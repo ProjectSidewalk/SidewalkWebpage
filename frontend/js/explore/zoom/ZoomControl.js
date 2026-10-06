@@ -36,6 +36,8 @@ export class ZoomControl {
 
   #blinkInterval;
   #wheelTrackTimeout;
+  // The pinch in progress (#5664): the zoom it started from, and which way it is currently going ('In'/'Out'/null).
+  #pinch = null;
 
   /**
    * @param {object} canvas - The Explore canvas (cleared/rendered on zoom changes).
@@ -260,6 +262,43 @@ export class ZoomControl {
         this.#tracker.push(zoomDelta > 0 ? 'Scroll_ZoomIn' : 'Scroll_ZoomOut');
       }, 250);
     }
+  }
+
+  /**
+   * Starts a two-finger pinch over the pano. Zoom then follows the fingers through `pinchZoom` until `pinchEnd`.
+   */
+  pinchStart() {
+    this.#pinch = { startZoom: svl.panoViewer.getPov().zoom, direction: null };
+  }
+
+  /**
+   * Zooms to follow a pinch, through the same clamp and disable locks as the buttons and the wheel.
+   * @param {number} zoomDelta - log2 of the finger spread relative to the start of the pinch; +1 is twice as far apart.
+   */
+  pinchZoom(zoomDelta) {
+    if (!this.#pinch) return;
+    const current = svl.panoViewer.getPov().zoom;
+    const target = this.#pinch.startZoom + zoomDelta;
+    if (target > current && this.#status.disableZoomIn) return;
+    if (target < current && this.#status.disableZoomOut) return;
+    if (target === current) return;
+
+    // Logged the way Validate logs pinches (PinchZoomDetector): a Start when a direction begins, an End when it stops.
+    const direction = target > current ? 'In' : 'Out';
+    if (direction !== this.#pinch.direction) {
+      if (this.#pinch.direction) this.#tracker?.push(`Pinch_Zoom${this.#pinch.direction}_End`);
+      this.#tracker?.push(`Pinch_Zoom${direction}_Start`);
+      this.#pinch.direction = direction;
+    }
+    this.#setZoom(target);
+  }
+
+  /**
+   * Ends the pinch begun by `pinchStart`.
+   */
+  pinchEnd() {
+    if (this.#pinch?.direction) this.#tracker?.push(`Pinch_Zoom${this.#pinch.direction}_End`);
+    this.#pinch = null;
   }
 
   /**

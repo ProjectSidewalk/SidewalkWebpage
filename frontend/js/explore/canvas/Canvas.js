@@ -6,6 +6,7 @@ import { svl } from '../svl.js';
 import { ShareWidget } from '../../common/share/ShareWidget.js';
 import { util } from '../../common/utilities.js';
 import { Label } from '../label/Label.js';
+import { PointerInput } from './PointerInput.js';
 import '../../common/pano-viewer/panoUtilities.js';
 import '../../common/utilitiesSidewalk.js';
 
@@ -26,6 +27,10 @@ export class Canvas {
   #hoverCardHideTimer = null;
   #shareWidget = null;
   #shareUrl = null;
+  /** @type {PointerInput|null} Touch and pen input over the view-control layer (Walk mode). */
+  #viewInput = null;
+  /** @type {PointerInput|null} Touch and pen input over the drawing layer (a label type is armed). */
+  #drawInput = null;
   #status = {
     currentLabel: null,
     disableLabelDelete: false,
@@ -82,6 +87,65 @@ export class Canvas {
     svl.ui.streetview.viewControlLayer.addEventListener('mousemove', (e) => this.#handlerViewControlLayerMouseMove(e));
     svl.ui.streetview.viewControlLayer.addEventListener('mouseleave', () => this.#handlerViewControlLayerMouseLeave());
     svl.ui.streetview.viewControlLayer.onselectstart = () => false;
+    this.#initTouchInput();
+  }
+
+  /**
+   * Wires touch and pen input on both pano layers (#5664). A tap does what a click does; a drag pans in either mode, so
+   * a finger can line up a shot without disarming the label type (a mouse drag in labeling mode still does nothing);
+   * two fingers pinch-zoom.
+   */
+  #initTouchInput() {
+    const pinch = {
+      onPinchStart: () => svl.zoomControl?.pinchStart(),
+      onPinch: ({ zoomDelta, dx, dy }) => {
+        svl.zoomControl?.pinchZoom(zoomDelta);
+        this.#panBy(dx, dy);
+      },
+      onPinchEnd: () => svl.zoomControl?.pinchEnd(),
+    };
+    const pan = {
+      onDragStart: () => this.#setViewControlLayerCursor('ClosedHand'),
+      onDrag: ({ dx, dy }) => this.#panBy(dx, dy),
+    };
+
+    const viewLayer = svl.ui.streetview.viewControlLayer;
+    this.#viewInput = new PointerInput(viewLayer, {
+      ...pinch,
+      ...pan,
+      onDown: ({ clientX, clientY, pointerType }) => svl.tracker.push('ViewControl_MouseDown',
+        { ...this.#canvasPositionAt(clientX, clientY, viewLayer), pointerType }),
+      onTap: ({ clientX, clientY, pointerType }) =>
+        this.#releaseViewControl(this.#canvasPositionAt(clientX, clientY, viewLayer), pointerType),
+      onDragEnd: ({ clientX, clientY, pointerType }) => svl.tracker.push('ViewControl_MouseUp',
+        { ...this.#canvasPositionAt(clientX, clientY, viewLayer), pointerType }),
+    });
+
+    const drawingLayer = svl.ui.canvas.drawingLayer;
+    this.#drawInput = new PointerInput(drawingLayer, {
+      ...pinch,
+      ...pan,
+      onDown: ({ clientX, clientY, pointerType }) => svl.tracker.push('LabelingCanvas_MouseDown',
+        { ...this.#canvasPositionAt(clientX, clientY, drawingLayer), pointerType }),
+      onTap: ({ clientX, clientY, pointerType }) =>
+        this.#placeLabelAt(this.#canvasPositionAt(clientX, clientY, drawingLayer), pointerType),
+    });
+  }
+
+  /**
+   * Pans the pano by an on-screen distance, the same way a mouse drag on the view-control layer does.
+   * @param {number} dxCss - Horizontal movement in CSS px.
+   * @param {number} dyCss - Vertical movement in CSS px.
+   */
+  #panBy(dxCss, dyCss) {
+    if (svl.panoManager.getStatus('disablePanning') !== false) return;
+    const scale = util.exploreDisplayScale();
+    const zoomScaling = Math.pow(2, svl.panoViewer.getPov().zoom);
+    svl.panoManager.updatePov(dxCss / scale / zoomScaling, dyCss / scale / zoomScaling);
+
+    // Hide any label hover info while panning so it doesn't linger over the moving pano.
+    this.showLabelHoverInfo(undefined);
+    this.setCurrentLabel(undefined);
   }
 
   /**
@@ -183,7 +247,18 @@ export class Canvas {
    * @returns {{x: number, y: number}}
    */
   #canvasMousePosition(e) {
-    const pos = util.mousePosition(e, e.currentTarget);
+    return this.#canvasPositionAt(e.clientX, e.clientY, /** @type {Element} */ (e.currentTarget));
+  }
+
+  /**
+   * Returns a viewport point in the logical canvas frame, measured against one of the pano layers.
+   * @param {number} clientX
+   * @param {number} clientY
+   * @param {Element} layer - The layer the point is measured against.
+   * @returns {{x: number, y: number}}
+   */
+  #canvasPositionAt(clientX, clientY, layer) {
+    const pos = util.mousePosition({ clientX, clientY }, layer);
     const scale = util.exploreDisplayScale();
     return { x: Math.round(pos.x / scale), y: Math.round(pos.y / scale) };
   }
@@ -193,6 +268,7 @@ export class Canvas {
    * @param {MouseEvent} e
    */
   #handlerViewControlLayerMouseDown(e) {
+    if (this.#viewInput?.isCompatMouseEvent(e)) return;
     const currMousePosition = this.#canvasMousePosition(e);
     this.#mouseStatus.isLeftDown = true;
     svl.tracker.push('ViewControl_MouseDown', currMousePosition);
@@ -204,9 +280,18 @@ export class Canvas {
    * @param {MouseEvent} e
    */
   #handlerViewControlLayerMouseUp(e) {
-    const currMousePosition = this.#canvasMousePosition(e);
+    if (this.#viewInput?.isCompatMouseEvent(e)) return;
     this.#mouseStatus.isLeftDown = false;
-    svl.tracker.push('ViewControl_MouseUp', currMousePosition);
+    this.#releaseViewControl(this.#canvasMousePosition(e));
+  }
+
+  /**
+   * A click or tap on the view-control layer: opens the menu of the label under it, or logs a possible double click.
+   * @param {{x: number, y: number}} currMousePosition - Where it landed, in the logical canvas frame.
+   * @param {string} [pointerType] - 'touch' or 'pen' when it was a tap; omitted for the mouse.
+   */
+  #releaseViewControl(currMousePosition, pointerType) {
+    svl.tracker.push('ViewControl_MouseUp', pointerType ? { ...currMousePosition, pointerType } : currMousePosition);
     const currTime = new Date();
 
     const selectedLabel = this.onLabel(currMousePosition.x, currMousePosition.y);
@@ -246,6 +331,7 @@ export class Canvas {
    * @param {MouseEvent} e
    */
   #handlerViewControlLayerMouseMove(e) {
+    if (this.#viewInput?.isCompatMouseEvent(e)) return;
     const currMousePosition = this.#canvasMousePosition(e);
 
     const item = this.onLabel(currMousePosition.x, currMousePosition.y);
@@ -324,6 +410,7 @@ export class Canvas {
    * @param {MouseEvent} e
    */
   #handleDrawingLayerMouseDown(e) {
+    if (this.#drawInput?.isCompatMouseEvent(e)) return;
     svl.tracker.push('LabelingCanvas_MouseDown', this.#canvasMousePosition(e));
   }
 
@@ -332,8 +419,16 @@ export class Canvas {
    * @param {MouseEvent} e
    */
   async #handleDrawingLayerMouseUp(e) {
-    const currMousePosition = this.#canvasMousePosition(e);
+    if (this.#drawInput?.isCompatMouseEvent(e)) return;
+    await this.#placeLabelAt(this.#canvasMousePosition(e));
+  }
 
+  /**
+   * Places a label of the armed type where a click or tap landed, then submits it.
+   * @param {{x: number, y: number}} currMousePosition - In the logical canvas frame.
+   * @param {string} [pointerType] - 'touch' or 'pen' when it was a tap; omitted for the mouse.
+   */
+  async #placeLabelAt(currMousePosition, pointerType) {
     if (!this.#status.disableLabeling) {
       this.#createLabel(currMousePosition.x, currMousePosition.y);
       this.clear();
@@ -341,7 +436,7 @@ export class Canvas {
       this.render();
     }
 
-    svl.tracker.push('LabelingCanvas_MouseUp', currMousePosition);
+    svl.tracker.push('LabelingCanvas_MouseUp', pointerType ? { ...currMousePosition, pointerType } : currMousePosition);
     await svl.form.submitData(); // Submit the label to the back end.
   }
 

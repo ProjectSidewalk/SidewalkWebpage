@@ -42,6 +42,15 @@ export class Tracker {
       });
     }
 
+    // Touch and pen presses (#5664). A mouse is left out, as its mousedown/mouseup rows above already cover it, and
+    // pointermove is never logged: it would flood the log the way mousemove already does.
+    for (const type of ['pointerdown', 'pointerup']) {
+      document.addEventListener(type, (/** @type {PointerEvent} */ e) => {
+        if (e.pointerType === 'mouse') return;
+        this.push(prefix + e.type, { cursorX: e.pageX, cursorY: e.pageY, pointerType: e.pointerType });
+      });
+    }
+
     // Keyboard related events.
     for (const type of ['keydown', 'keyup']) {
       document.addEventListener(type, (/** @type {KeyboardEvent} */ e) => {
