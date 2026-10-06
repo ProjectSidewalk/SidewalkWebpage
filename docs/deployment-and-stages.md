@@ -330,7 +330,7 @@ A deploy builds the app essentially the same way you do locally, in this order:
    **in-band** during clustering. These must land in the `python3` interpreter the app shells out to, or clustering
    fails at import time (e.g. `ModuleNotFoundError: No module named 'haversine'`). That interpreter is the server's
    system Python (3.8), which is why `requirements.txt` stays pinned to 3.8-installable versions (#4396). The
-   out-of-band utilities are **not** deployed: `requirements-offline-tools.txt` needs ≥ 3.11 and is installed by hand
+   out-of-band utilities are **not** deployed: `requirements-offline-tools.txt` needs ≥ 3.12 and is installed by hand
    into the 3.13 on whichever user account runs those scripts.
 2. `npm install`, then `npx grunt`: the tools' CSS bundles, then **Rolldown** for every page's JS bundle (minified, with
    a sourcemap beside it that carries the sources, since `frontend/js/` itself is not served).
