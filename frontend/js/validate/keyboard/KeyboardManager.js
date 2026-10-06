@@ -27,6 +27,12 @@ export class KeyboardManager {
     { keys: ['Digit3', 'Numpad3'], action: (e) => this.#handleNumberKeyShortcut(3, e) },
     { keys: ['Digit4', 'Numpad4'], action: (e) => this.#handleFourOrFive(4, e) },
     { keys: ['Digit5', 'Numpad5'], action: (e) => this.#handleFourOrFive(5, e) },
+    // A card opened on load (#5675) must close from anywhere, not only with focus on the label (WCAG 1.4.13).
+    {
+      keys: ['Escape'],
+      when: () => svv.labelVisibilityControl.isCardHeldOpen(),
+      action: (e) => this.#closeHeldOpenCard(e),
+    },
   ];
 
   /** With Ctrl (Cmd on a Mac) held. Off while a modal is up, and while typing, where Ctrl+Z undoes the typing. */
@@ -88,7 +94,7 @@ export class KeyboardManager {
     if (e.ctrlKey || e.metaKey) {
       KeyboardShortcuts.run(this.#ctrlShortcuts, e);
     } else if (!e.altKey) { // Alt+D is the browser's address bar, not Disagree.
-      svv.labelVisibilityControl.hideLabelCard();
+      if (!svv.labelVisibilityControl.isCardHeldOpen()) svv.labelVisibilityControl.hideLabelCard();
       KeyboardShortcuts.run(this.#shortcuts, e);
     }
   };
@@ -284,6 +290,15 @@ export class KeyboardManager {
       svv.tracker.push('KeyboardShortcut_HideLabelCard', { code: e.code });
     }
     KeyboardManager.#marker()?.focus();
+  }
+
+  /**
+   * Closes a card opened on load. Unlike #escapeLabelCard, focus stays where it was: the user never went to the label.
+   * @param {KeyboardEvent} e
+   */
+  #closeHeldOpenCard(e) {
+    svv.labelVisibilityControl.hideLabelCard();
+    svv.tracker.push('KeyboardShortcut_HideLabelCard', { code: e.code });
   }
 
   /**

@@ -58,6 +58,7 @@ describe('KeyboardManager label-card scope', () => {
         window.svv = {
             labelVisibilityControl: {
                 hideLabelCard: jest.fn(),
+                isCardHeldOpen: () => false,
                 toggleLabelCard: jest.fn(),
                 // The card starts open in most tests; the Escape-against-nothing case flips this.
                 isCardVisible: () => true,
@@ -141,5 +142,32 @@ describe('KeyboardManager label-card scope', () => {
             expect(validationMenuUi.yesButton.click).toHaveBeenCalledTimes(1);
             expect(window.svv.labelVisibilityControl.hideLabelCard).toHaveBeenCalledTimes(1);
         });
+    });
+
+    // Infra3d cities open the card on load and keep it up until something deliberate (#5675).
+    describe('a card opened on load', () => {
+        beforeEach(() => {
+            window.svv.labelVisibilityControl.isCardHeldOpen = () => true;
+        });
+
+        it('stays up through keys that aren\'t meant to close it', () => {
+            key('KeyQ', document.body); // Unbound, which today would take a hovered card down.
+
+            expect(window.svv.labelVisibilityControl.hideLabelCard).not.toHaveBeenCalled();
+        });
+
+        it('closes on Escape from anywhere, logged as a keyboard hide, without moving focus to the marker', () => {
+            key('Escape', document.body);
+
+            expect(window.svv.labelVisibilityControl.hideLabelCard).toHaveBeenCalledTimes(1);
+            expect(window.svv.tracker.push).toHaveBeenCalledWith('KeyboardShortcut_HideLabelCard', expect.anything());
+            expect(document.activeElement).not.toBe(marker());
+        });
+    });
+
+    it('Escape outside the scope does nothing to a card that was only hovered open', () => {
+        key('Escape', document.body);
+
+        expect(window.svv.tracker.push).not.toHaveBeenCalled();
     });
 });
