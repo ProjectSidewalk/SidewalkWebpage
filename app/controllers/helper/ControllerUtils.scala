@@ -232,7 +232,8 @@ object ControllerUtils {
    * Restricts a caller-supplied redirect target to a same-origin path, guarding against open redirects.
    *
    * Only a single-slash-prefixed relative path is accepted (e.g. `/explore?foo=bar`). A `/\` prefix and control
-   * characters are refused because browsers turn `/\host` and `/<tab>/host` into the off-site `//host`.
+   * characters are refused because browsers turn `/\host` and `/<tab>/host` into the off-site `//host`; any other
+   * character outside printable ASCII is refused because Play rejects it in a `Location` header.
    *
    * @param url     The candidate redirect target.
    * @param default Where to send the user when `url` is not a safe same-origin path.
@@ -241,7 +242,7 @@ object ControllerUtils {
   def safeLocalPath(url: String, default: String = "/"): String = {
     val trimmed = url.trim
     val isLocal = trimmed.startsWith("/") && !trimmed.startsWith("//") && !trimmed.startsWith("/\\")
-    if (isLocal && !trimmed.exists(_.isControl)) trimmed else default
+    if (isLocal && trimmed.forall(c => c > ' ' && c <= '~')) trimmed else default
   }
 
   /**

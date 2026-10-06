@@ -517,9 +517,10 @@ class UserController @Inject() (
    */
   def signUpAnon(url: String) = silhouette.UserAwareAction.async { implicit request =>
     val qString = request.queryString.-("url") // Query string to pass along; remove the url parameter.
+    val target  = safeLocalPath(url)
     request.identity match {
       case Some(user) =>
-        Future.successful(Redirect(safeLocalPath(url), qString))
+        Future.successful(Redirect(target, qString))
       case None =>
         // Each anon sign-up costs a bcrypt hash and inserts across several tables, unauthenticated, so it needs its
         // own IP bound. Checked directly rather than via rateLimited(): that helper's no-JS branch redirects, and any
@@ -533,12 +534,12 @@ class UserController @Inject() (
             TooManyRequests(Messages("authenticate.error.too.many"))
               .withHeaders("Retry-After" -> retryAfter.toString)
           )
-        } else signUpAnonUser(url, qString)
+        } else signUpAnonUser(target, qString)
     }
   }
 
-  /** Creates an anon user with a randomly generated username/password, signs them in, and redirects to `url`. */
-  private def signUpAnonUser(url: String, qString: Map[String, Seq[String]])(using
+  /** Creates an anon user with a randomly generated username/password, signs them in, and redirects to `target`. */
+  private def signUpAnonUser(target: String, qString: Map[String, Seq[String]])(using
       request: play.silhouette.api.actions.UserAwareRequest[DefaultEnv, play.api.mvc.AnyContent]
   ): Future[play.api.mvc.Result] = {
     val randomPassword: String = Random.alphanumeric take 16 mkString ""
@@ -553,14 +554,14 @@ class UserController @Inject() (
       value         <- silhouette.env.authenticatorService.init(authenticator)
       // Strip UTM params from redirect to avoid double-capture in index().
       qStringNoUtm = qString.filterNot { case (k, _) => k.startsWith("utm_") }
-      result <- silhouette.env.authenticatorService.embed(value, Redirect(safeLocalPath(url), qStringNoUtm))
+      result <- silhouette.env.authenticatorService.embed(value, Redirect(target, qStringNoUtm))
 
       _ <- saveUtms(user.userId, ControllerUtils.utmParams(qString))
     } yield {
       // Log the anon sign-up along with url and query string of the page they came from.
       val activityStr =
-        if (qString.isEmpty) s"""AnonAutoSignUp_url="$url""""
-        else s"""AnonAutoSignUp_url="$url?${qString.map { case (k, v) => k + "=" + v.mkString }.mkString("&")}""""
+        if (qString.isEmpty) s"""AnonAutoSignUp_url="$target""""
+        else s"""AnonAutoSignUp_url="$target?${qString.map { case (k, v) => k + "=" + v.mkString }.mkString("&")}""""
       cc.loggingService.insert(user.userId, request.ipAddress, activityStr)
 
       silhouette.env.eventBus.publish(SignUpEvent(user, request))

@@ -47,7 +47,7 @@ class ApplicationController @Inject() (
     referrer match {
       // If someone is coming to the site from a custom URL, log it, and send them to the correct location.
       case Some(ref) =>
-        val redirectTo: String      = qString.getOrElse("to", "/")
+        val redirectTo: String      = safeLocalPath(qString.getOrElse("to", "/"))
         val activityLogText: String = s"Referrer=${ref}_SendTo=$redirectTo"
         cc.loggingService.insert(user.map(_.userId), ipAddress, activityLogText, timestamp)
         Future.successful(Redirect(redirectTo))
@@ -150,8 +150,9 @@ class ApplicationController @Inject() (
       // Log the interaction. Moved the logging here from navbar.scala.html b/c the redirect was happening too fast.
       cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, logText)
 
-      // Update the cookie and redirect.
-      Future.successful(Redirect(safeLocalPath(url)).withLang(Lang(newLang)))
+      // Lang.get returns None for a malformed tag, which Lang() would throw on; an unsupported one is ignored too.
+      val redirect = Redirect(safeLocalPath(url))
+      Future.successful(Lang.get(newLang).filter(cc.langs.availables.contains).fold(redirect)(redirect.withLang))
   }
 
   /**
