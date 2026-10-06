@@ -349,6 +349,8 @@ util.getBrowserName = () => bowserParser().getBrowserName();
 util.getBrowser = () => util.getBrowserName();
 util.getBrowserVersion = () => bowserParser().getBrowserVersion();
 util.getOperatingSystem = () => bowserParser().getOSName();
+// The rendering engine, for an engine bug rather than a browser one: every iOS browser is WebKit whatever its name.
+util.isWebKit = () => bowserParser().getEngineName() === 'WebKit';
 util.isSafari = () => util.getBrowserName() === 'Safari';
 util.isChrome = () => util.getBrowserName() === 'Chrome';
 util.isFirefox = () => util.getBrowserName() === 'Firefox';

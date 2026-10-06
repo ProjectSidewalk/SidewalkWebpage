@@ -296,3 +296,31 @@ describe('persistence', () => {
         expect(model.currentFilter()).toBe('url(#ps-pano-tone-curve)');
     });
 });
+
+// WebKit drops the whole CSS filter when it holds the Shadows url(), taking Brightness and Contrast with it (#5683).
+describe('without Shadows (WebKit)', () => {
+    test('offers only Brightness and Contrast', () => {
+        const model = new PanoImageAdjustments(target, null, { shadows: false });
+        expect(model.keys()).toEqual(['brightness', 'contrast']);
+        expect(new PanoImageAdjustments(target, null).keys()).toEqual(['shadows', 'brightness', 'contrast']);
+    });
+
+    test('ignores a stored Shadows value, so Brightness and Contrast still render', () => {
+        const storage = memoryStorage({
+            panoImageAdjustments: JSON.stringify({ v: 1, shadows: 40, brightness: 120, contrast: 90 }),
+        });
+        const model = new PanoImageAdjustments(target, storage, { shadows: false });
+        expect(model.values()).toEqual({ shadows: 0, brightness: 120, contrast: 90 });
+        expect(target.style.filter).toBe('brightness(1.2) contrast(0.9)');
+        expect(document.getElementById('ps-pano-tone-curve')).toBeNull();
+    });
+
+    test('refuses to set Shadows', () => {
+        const listener = jest.fn();
+        const model = new PanoImageAdjustments(target, null, { shadows: false });
+        model.onChange(listener);
+        expect(model.set('shadows', 60)).toBe(0);
+        expect(model.currentFilter()).toBe('');
+        expect(listener).not.toHaveBeenCalled();
+    });
+});

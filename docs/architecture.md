@@ -372,7 +372,9 @@ loaded by the corresponding Twirl view:
   the pills continuing the row, and to its right in full screen, where the pills form a column. Shadows is a gamma
   curve (an SVG `feComponentTransfer` the model injects on first use) rather than brightness, because the dark
   sidewalks people struggle with sit in otherwise well-exposed scenes and a brightness multiplier clips the sky before
-  it opens the shadows. Values persist in localStorage, shared with Validate, which mounts the same two classes (below).
+  it opens the shadows. WebKit (Safari and every iOS browser) gets no Shadows row: it drops the whole `filter` when it
+  references an SVG filter over a GPU canvas, which would take Brightness and Contrast with it (#5683). Values persist
+  in localStorage, shared with Validate, which mounts the same two classes (below).
 - **`validate/`** — the Validate tool (confirm/reject others' labels). Which labels it serves, in what order,
   and why: [`docs/validation-queue.md`](validation-queue.md).
   Desktop Validate mounts Explore's image adjustments panel (#5501) from an Image pill in a chevron menu beside the

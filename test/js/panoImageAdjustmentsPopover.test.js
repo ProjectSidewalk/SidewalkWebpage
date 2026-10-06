@@ -49,7 +49,7 @@ let hooks;
 let shown;
 
 /** Builds the panel over fresh markup, with Popover API stubs that record their state in `shown`. */
-function mount(extraHooks = {}) {
+function mount(extraHooks = {}, modelOptions = {}) {
     document.body.innerHTML = MARKUP;
     button = document.getElementById('explore-control-image');
     popover = document.getElementById('pano-image-adjustments');
@@ -57,7 +57,7 @@ function mount(extraHooks = {}) {
     shown = false;
     popover.showPopover = jest.fn(() => { shown = true; });
     popover.hidePopover = jest.fn(() => { shown = false; });
-    model = new window.PanoImageAdjustments(pano, memoryStorage());
+    model = new window.PanoImageAdjustments(pano, memoryStorage(), modelOptions);
     hooks = { onOpen: jest.fn(), onClose: jest.fn(), onChange: jest.fn(), onReset: jest.fn(), ...extraHooks };
     return new window.PanoImageAdjustmentsPopover(model, button, popover, hooks);
 }
@@ -69,6 +69,15 @@ const fire = (el, type) => el.dispatchEvent(new Event(type, { bubbles: true }));
 beforeAll(loadClasses);
 
 describe('setup', () => {
+    test('hides a control the model doesn\'t offer and opens on the first one it does (#5683)', () => {
+        mount({}, { shadows: false });
+        expect(slider('shadows').classList.contains('ps-hidden')).toBe(true);
+        expect(slider('brightness').classList.contains('ps-hidden')).toBe(false);
+        button.click();
+        expect(document.activeElement).toBe(slider('brightness'));
+        button.click(); // Closed again: an open panel's document listeners would outlive this test's markup.
+    });
+
     test('gives the trigger the disclosure ARIA and sliders their range from SPECS', () => {
         mount();
         expect(button.getAttribute('aria-expanded')).toBe('false');

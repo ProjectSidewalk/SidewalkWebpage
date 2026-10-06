@@ -126,7 +126,7 @@ export class PanoImageAdjustmentsPopover {
     this.#resetButton?.addEventListener('click', () => {
       this.#model.reset();
       this.#hooks.onReset();
-      this.#sliders[PanoImageAdjustments.KEYS[0]]?.focus();
+      this.#sliders[this.#model.keys()[0]]?.focus();
     });
 
     this.#popover.querySelector('[data-action="close"]')?.addEventListener('click', () => this.close('close'));
@@ -187,7 +187,7 @@ export class PanoImageAdjustmentsPopover {
     }
     this.#position();
     this.#hooks.onOpen();
-    this.#sliders[PanoImageAdjustments.KEYS[0]]?.focus();
+    this.#sliders[this.#model.keys()[0]]?.focus();
   }
 
   /**
@@ -225,6 +225,11 @@ export class PanoImageAdjustmentsPopover {
     for (const key of PanoImageAdjustments.KEYS) {
       const slider = /** @type {HTMLInputElement|null} */ (this.#popover.querySelector(`[data-adjust="${key}"]`));
       if (!slider) continue;
+      // A control the browser can't render (Shadows on WebKit, #5683) loses its whole row, label and readout too.
+      if (!this.#model.keys().includes(key)) {
+        (slider.closest('.pano-image-adjustments__row') ?? slider).classList.add('ps-hidden');
+        continue;
+      }
       const spec = PanoImageAdjustments.SPECS[key];
       slider.min = String(spec.min);
       slider.max = String(spec.max);

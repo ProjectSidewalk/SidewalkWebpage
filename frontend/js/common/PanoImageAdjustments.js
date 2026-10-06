@@ -27,6 +27,10 @@
  *
  * Settings are shared by every page through one localStorage key, so a view tuned on Explore carries to Validate.
  *
+ * WebKit (Safari, and every iOS browser) gets no Shadows (#5683): it doesn't render an SVG `url()` filter over the
+ * providers' GPU-drawn canvases, and drops the whole `filter` with it, so any Shadows would take Brightness and
+ * Contrast down with it. There, Shadows is held at its default whatever storage says, and the panel hides it.
+ *
  * Usage:
  *   // Explore: one mount.
  *   const adjustments = new PanoImageAdjustments(document.getElementById('pano'));
@@ -37,6 +41,8 @@
  *   const byId = (id) => document.getElementById(id);
  *   new PanoImageAdjustments([byId('svv-panorama'), byId('svv-panorama-pannellum')]);
  */
+import { util } from './utilities.js';
+
 export class PanoImageAdjustments {
   /** localStorage key holding `{ v, shadows, brightness, contrast }`. */
   static STORAGE_KEY = 'panoImageAdjustments';
@@ -75,6 +81,9 @@ export class PanoImageAdjustments {
   /** @type {Record<string, number>} Current values, always within their spec's range. */
   #values;
 
+  /** @type {boolean} Whether this browser can render the Shadows curve; see the class comment. */
+  #shadows;
+
   /** @type {Array<(values: Record<string, number>) => void>} */
   #listeners = [];
 
@@ -85,11 +94,15 @@ export class PanoImageAdjustments {
    * @param {HTMLElement|HTMLElement[]} target - The element the pano viewer renders into, or every such element when
    *   the page swaps between viewers. Falsy entries are dropped, so a mount that isn't on the page is simply skipped.
    * @param {Storage|null} [storage] - Defaults to `window.localStorage`; pass null to disable persistence.
+   * @param {object} [options]
+   * @param {boolean} [options.shadows] - Whether to offer Shadows; defaults to "not on WebKit".
    */
-  constructor(target, storage = PanoImageAdjustments.#defaultStorage()) {
+  constructor(target, storage = PanoImageAdjustments.#defaultStorage(),
+    { shadows = PanoImageAdjustments.#rendersShadows() } = {}) {
     this.#targets = (Array.isArray(target) ? target : [target]).filter(Boolean);
     if (!this.#targets.length) throw new Error('PanoImageAdjustments: no pano mount to apply the filter to');
     this.#storage = storage;
+    this.#shadows = shadows;
     this.#values = this.#load();
     this.#apply();
   }
@@ -133,6 +146,11 @@ export class PanoImageAdjustments {
     return { ...this.#values };
   }
 
+  /** @returns {string[]} The controls this browser offers, in {@link KEYS} order. */
+  keys() {
+    return PanoImageAdjustments.KEYS.filter((k) => k !== 'shadows' || this.#shadows);
+  }
+
   /** @returns {boolean} True when every control is at its default. */
   isDefault() {
     return PanoImageAdjustments.KEYS.every((k) => this.#values[k] === PanoImageAdjustments.SPECS[k].default);
@@ -142,11 +160,12 @@ export class PanoImageAdjustments {
    * Sets one control, clamped to its range, then applies, persists and notifies listeners.
    * @param {string} key - One of {@link KEYS}.
    * @param {number} value
-   * @returns {number} The value actually stored.
+   * @returns {number} The value actually stored (the default for a control this browser doesn't offer).
    */
   set(key, value) {
     const spec = PanoImageAdjustments.SPECS[key];
     if (!spec) throw new Error(`PanoImageAdjustments: unknown control "${key}"`);
+    if (!this.keys().includes(key)) return spec.default;
     const next = PanoImageAdjustments.#clamp(value, spec);
     if (next === this.#values[key]) return next;
     this.#values[key] = next;
@@ -251,7 +270,7 @@ export class PanoImageAdjustments {
     }
     // A record from a different format version is ignored rather than half-read; migrate here when one exists.
     if (!stored || typeof stored !== 'object' || stored.v !== PanoImageAdjustments.STORAGE_VERSION) return values;
-    for (const k of PanoImageAdjustments.KEYS) {
+    for (const k of this.keys()) {
       const spec = PanoImageAdjustments.SPECS[k];
       const v = stored[k];
       if (typeof v === 'number' && Number.isFinite(v) && v >= spec.min && v <= spec.max) {
@@ -289,6 +308,11 @@ export class PanoImageAdjustments {
     if (!Number.isFinite(n)) return spec.default;
     const snapped = spec.min + Math.round((n - spec.min) / spec.step) * spec.step;
     return Math.min(spec.max, Math.max(spec.min, snapped));
+  }
+
+  /** @returns {boolean} False on WebKit. Without bowser (a test page) there's no engine to blame, so true. */
+  static #rendersShadows() {
+    return typeof bowser === 'undefined' || !util.isWebKit();
   }
 
   /** @returns {Storage|null} localStorage when the browser lets us touch it, else null. */
