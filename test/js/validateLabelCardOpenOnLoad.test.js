@@ -31,6 +31,7 @@ describe('LabelVisibilityControl opening the card on load', () => {
             ui: { viewer: { controlLayer: document.getElementById('view-control-layer') } },
         };
         window.util = { anchorPanelToLabel: jest.fn() };
+        window.ValidateLayout = { isCompact: () => false }; // jsdom has no matchMedia; a wide window.
         window.Infra3dViewer = FakeInfra3dViewer;
         const { LabelVisibilityControl } = loadModules('frontend/js/validate/label/LabelVisibilityControl.js');
         control = new LabelVisibilityControl();
