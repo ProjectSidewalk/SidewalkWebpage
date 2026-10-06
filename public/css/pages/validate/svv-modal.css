@@ -327,3 +327,166 @@
   cursor: wait;
   opacity: 1;
 }
+
+/* ---- The phone's mission briefing (#5580) ------------------------------------------------------------------------
+   A wide window briefs with MissionStartTutorial's overlay and shows this modal only for a dead end, so the briefing's
+   header and eyebrow are drawn only on a phone-sized window (svv-immersive.css's compact block lays the screen out). */
+.svv-brief__header,
+.svv-brief__eyebrow:empty {
+  display: none;
+}
+
+/* "YOUR MISSION", behind the marker of the label type this mission is about. */
+.svv-brief__eyebrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: calc(6px * var(--ui-scale));
+  font: var(--text-small-bold);
+  letter-spacing: 0.08em;
+  color: var(--color-neutral-700);
+}
+
+.svv-brief__eyebrow img {
+  width: calc(22px * var(--ui-scale));
+  height: calc(22px * var(--ui-scale));
+}
+
+/* ---- The mission briefing's examples (ModalMission builds them, on /mobile and on a phone-size window) ----
+   One example fills the screen's width and the next is a swipe away, which is the phone reading of the desktop
+   tutorial's arrow-stepped carousel — same examples, same order, same lesson (MissionStartTutorial.slidesFor). */
+.svv-brief-examples {
+  display: flex;
+  width: 100%;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  gap: calc(12px * var(--ui-scale));
+}
+
+.svv-brief-example {
+  flex: 0 0 100%;
+  scroll-snap-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: calc(10px * var(--ui-scale));
+  margin: 0;
+}
+
+.svv-brief-example__photo {
+  position: relative;
+  border-radius: calc(12px * var(--ui-scale));
+  overflow: hidden;
+  background: var(--color-neutral-100);
+}
+
+/* The example photos are all screenshots of the same 3:2 frame; declaring it keeps the caption from jumping when a
+   lazily-loaded one arrives. */
+.svv-brief-example__photo img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1316 / 872;
+  object-fit: cover;
+}
+
+.svv-brief-example__verdict {
+  position: absolute;
+  top: calc(8px * var(--ui-scale));
+  left: calc(8px * var(--ui-scale));
+  display: flex;
+  align-items: center;
+  gap: calc(4px * var(--ui-scale));
+  padding: calc(4px * var(--ui-scale)) calc(10px * var(--ui-scale)) calc(4px * var(--ui-scale))
+    calc(6px * var(--ui-scale));
+  border-radius: calc(999px * var(--ui-scale));
+  background: var(--color-neutral-white);
+  font: var(--text-caption-semibold);
+  letter-spacing: 0.04em;
+}
+
+.svv-brief-example__verdict-icon {
+  width: calc(16px * var(--ui-scale));
+  height: calc(16px * var(--ui-scale));
+}
+
+/* The example's correct/incorrect class picks the smiley's face; its color comes from the verdict text's. */
+.svv-brief-example--correct .svv-brief-example__verdict-icon {
+  -webkit-mask-image: url("../../../images/icons/smileys/sev-1-positive.svg");
+  mask-image: url("../../../images/icons/smileys/sev-1-positive.svg");
+}
+
+.svv-brief-example--incorrect .svv-brief-example__verdict-icon {
+  -webkit-mask-image: url("../../../images/icons/smileys/sev-3-positive.svg");
+  mask-image: url("../../../images/icons/smileys/sev-3-positive.svg");
+}
+
+.svv-brief-example--correct .svv-brief-example__verdict {
+  color: var(--color-pine-700);
+}
+
+.svv-brief-example--incorrect .svv-brief-example__verdict {
+  color: var(--color-error-300);
+}
+
+.svv-brief-example__caption {
+  display: flex;
+  flex-direction: column;
+  gap: calc(4px * var(--ui-scale));
+  text-align: left;
+}
+
+.svv-brief-example__title {
+  font: var(--text-title-bold);
+  color: var(--color-neutral-900);
+}
+
+.svv-brief-example__text {
+  font: var(--text-body-regular);
+  color: var(--color-neutral-800);
+}
+
+/* What the example is worth on the buttons below — "Mark Agree" / "Mark Disagree" — sitting in the callout frame the
+   photo draws for it, at the end of the dotted line from the label. Sized to cover that frame: the desktop tutorial's
+   own callout is at most 220x90 of the 658x436 the photo is laid out in, and ModalMission places this one at the same
+   spot in percentages. */
+.svv-brief-example__callout {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 33.5%;
+  min-height: 20.7%;
+  padding: calc(4px * var(--ui-scale)) calc(6px * var(--ui-scale));
+  border: calc(2px * var(--ui-scale)) solid;
+  border-radius: calc(8px * var(--ui-scale));
+  background: var(--color-neutral-white);
+  font: var(--text-caption-semibold);
+  text-align: center;
+}
+
+.svv-brief-example--correct .svv-brief-example__callout {
+  border-color: var(--color-pine-700);
+  color: var(--color-pine-700);
+}
+
+.svv-brief-example--incorrect .svv-brief-example__callout {
+  border-color: var(--color-error-300);
+  color: var(--color-error-300);
+}
+
+.svv-brief-dots {
+  display: flex;
+  justify-content: center;
+  gap: calc(6px * var(--ui-scale));
+}
+
+.svv-brief-dot {
+  width: calc(7px * var(--ui-scale));
+  height: calc(7px * var(--ui-scale));
+  border-radius: 50%;
+  background: var(--color-neutral-300);
+  transition: background-color 0.2s ease;
+}
+
+.svv-brief-dot--current {
+  background: var(--color-neutral-800);
+}

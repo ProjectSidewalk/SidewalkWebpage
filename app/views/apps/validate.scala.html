@@ -1,5 +1,5 @@
 @import controllers.helper.ValidateHelper.ValidateParams
-@import models.user.SidewalkUserWithRole
+@import models.user.{Role, SidewalkUserWithRole}
 @import play.api.Configuration
 @import play.api.libs.json.{JsArray, Json}
 @import service.CommonPageData
@@ -175,12 +175,33 @@
           </div>
         }
       </div>
+      @* Two screens share this modal: the mission briefing on a phone (ModalMission, #5580; a wider window briefs with
+         the MissionStartTutorial overlay instead), and the dead end on any window (ModalNoNewMission). *@
       <div id="modal-mission-holder" class="ps-hidden">
         <div id="modal-mission-background" class="modal-background"></div>
-        <div id="modal-mission-foreground" class="modal-foreground">
-          <h1 id="modal-mission-header"></h1>
-          <div id="modal-mission-instruction"></div>
-          <button type="button" class="button button--primary button--large" id="modal-mission-close-button">OK</button>
+        <div id="modal-mission-foreground" class="modal-foreground svv-brief">
+          @* The phone's way off a page with no navbar (immersive hides it): the city's logo home, and sign-in. *@
+          <div class="svv-brief__header">
+            <a href="/" class="svv-brief__home"><img src='@assets.path("images/" + config.get[String]("city-params.logo-img." + commonData.cityId))' class="svv-brief__logo" alt="Project Sidewalk home"></a>
+            @* Signed-in users get a plain username badge: the auth dialog only renders for signed-out users, so a
+               data-au-open control here would be a focusable button that does nothing. *@
+            @if(user.role != Role.Anonymous) {
+              <span class="svv-brief__account">@{user.username}</span>
+            } else {
+              <button type="button" data-au-open="signIn" class="svv-brief__account button">@Messages("navbar.signin")</button>
+            }
+          </div>
+          <div class="svv-brief__content">
+            @* Both filled by ModalMission (the label type's icon over "YOUR MISSION", then what to validate) — and
+               emptied/overwritten by ModalNoNewMission, which takes this screen over on a dead end. *@
+            <div id="modal-mission-eyebrow" class="svv-brief__eyebrow"></div>
+            <h1 id="modal-mission-header"></h1>
+            @* The label type's examples, swipeable — the same ones the desktop tutorial teaches from. *@
+            <div id="modal-mission-instruction"></div>
+          </div>
+          <div class="svv-brief__actions">
+            <button type="button" class="button button--primary button--large" id="modal-mission-close-button">OK</button>
+          </div>
         </div>
       </div>
       <div id="modal-mission-complete-holder">

@@ -374,6 +374,102 @@ body.svv-immersive #modal-mission-complete-foreground.svv-mc {
     font: var(--text-subtitle-bold);
   }
 
+  /* The mission briefing and the dead end take the whole screen on a phone, as /mobile's did: the logo and sign-in
+     along the top, the content centred in what the pinned button leaves, scrolling under it when a briefing or a
+     long translation runs past the fold. */
+  body.svv-immersive #modal-mission-foreground.svv-brief {
+    inset: 0;
+    transform: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: calc(20px * var(--ui-scale));
+    width: 100%;
+    height: 100%;
+    max-height: none;
+    padding: calc(24px * var(--ui-scale)) calc(24px * var(--ui-scale)) 0;
+    border: none;
+    border-radius: 0;
+    text-align: center;
+    overflow-y: auto;
+  }
+
+  body.svv-immersive .svv-brief__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: calc(12px * var(--ui-scale));
+    width: 100%;
+  }
+
+  body.svv-immersive .svv-brief__logo {
+    display: block;
+    width: calc(150px * var(--ui-scale));
+    height: auto;
+  }
+
+  /* A button for signed-out users, a name badge once signed in. */
+  body.svv-immersive .svv-brief__account {
+    flex: 0 0 auto;
+    max-width: calc(180px * var(--ui-scale));
+    min-height: 44px;
+    padding: calc(10px * var(--ui-scale)) calc(18px * var(--ui-scale));
+    border: none;
+    border-radius: calc(12px * var(--ui-scale));
+    background: var(--color-banana-500);
+    font: var(--text-subtitle-medium);
+    color: var(--color-asphalt-500);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Grows but never shrinks: a shrunken box would centre its children outside itself, and overflow above a scroll
+     container can't be scrolled to. */
+  body.svv-immersive .svv-brief__content {
+    flex: 1 0 auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: calc(14px * var(--ui-scale));
+    width: 100%;
+  }
+
+  /* Full width, which is what lets ModalMission measure the title against the screen and shrink it onto one line. */
+  body.svv-immersive #modal-mission-header {
+    width: 100%;
+    margin: 0;
+    font: var(--text-h3-bold);
+    color: var(--color-neutral-900);
+  }
+
+  /* Pinned to the screen's width, not sized to its contents, so a wordy example can't push the carousel wider. */
+  body.svv-immersive #modal-mission-instruction {
+    width: 100%;
+  }
+
+  body.svv-immersive #modal-mission-instruction p {
+    margin: 0;
+  }
+
+  body.svv-immersive .svv-brief__actions {
+    position: sticky;
+    bottom: 0;
+    width: 100%;
+    padding-bottom: calc(24px * var(--ui-scale) + env(safe-area-inset-bottom));
+    background: var(--color-neutral-white);
+  }
+
+  body.svv-immersive #modal-mission-close-button {
+    justify-content: center;
+    width: 100%;
+    min-height: 48px;
+    margin: 0;
+    border-radius: calc(14px * var(--ui-scale));
+    font: var(--text-subtitle-bold);
+  }
+
   /* The mission and dead-end screens are sized to the 720px desktop pano; on a phone they take the window instead,
      scrolling if their content runs long. */
   body.svv-immersive .modal-foreground {

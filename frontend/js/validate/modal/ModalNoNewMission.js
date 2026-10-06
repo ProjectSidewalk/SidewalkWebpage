@@ -4,6 +4,7 @@
  */
 
 import { svv } from '../svv.js';
+import { ValidateLayout } from '../util/ValidateLayout.js';
 import { util } from '../../common/utilities.js';
 
 export class ModalNoNewMission {
@@ -95,8 +96,9 @@ export class ModalNoNewMission {
     }
     this.#uiModalMission.closeButton.innerHTML = buttonLabel;
 
-    // Widen the button to fit more text. The mobile page's button is already full-width (mobile-validate.css).
-    if (!svv.legacyMobile) {
+    // Widen the button to fit more text. A phone's button is already full-width (mobile-validate.css, and the compact
+    // block of svv-immersive.css).
+    if (!svv.legacyMobile && !ValidateLayout.isCompact()) {
       this.#uiModalMission.closeButton.style.width = 'fit-content';
     }
 

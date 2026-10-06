@@ -1,12 +1,12 @@
 /**
- * NOTE This is now used only for the mission start screens on mobile!
- *
- * Briefs a mobile validator before a mission: what they're about to validate, and what the label type looks like when
- * it's right and when it isn't, as a swipeable carousel of the same examples the desktop tools teach from
+ * Briefs a validator on a phone before a mission (/mobile, and the unified page at phone size since #5580; a wider
+ * window gets MissionStartTutorial's overlay instead): what they're about to validate, and what the label type looks
+ * like when it's right and when it isn't, as a swipeable carousel of the same examples the desktop tools teach from
  * (MissionStartTutorial.slidesFor).
  */
 
 import { svv } from '../svv.js';
+import { ValidateLayout } from '../util/ValidateLayout.js';
 import { MissionStartTutorial } from '../../common/MissionStartTutorial.js';
 import { util } from '../../common/utilities.js';
 import '../../common/utilitiesSidewalk.js';
@@ -90,27 +90,27 @@ export class ModalMission {
       // The callout's sentence is wrapped in its own span so the centering flex box sees a single item: handed
       // "Mark <b>Agree</b>" as-is it makes two, and the space between them disappears.
       return `
-        <figure class="mv-example mv-example--${correct ? 'correct' : 'incorrect'}">
-          <div class="mv-example__photo">
+        <figure class="svv-brief-example svv-brief-example--${correct ? 'correct' : 'incorrect'}">
+          <div class="svv-brief-example__photo">
             <img src="${slide.imageURL}" alt=""${loading} decoding="async">
-            <span class="mv-example__verdict">
-              <span class="mv-example__verdict-icon ps-mask-icon" aria-hidden="true"></span>
+            <span class="svv-brief-example__verdict">
+              <span class="svv-brief-example__verdict-icon ps-mask-icon" aria-hidden="true"></span>
               ${verdict}
             </span>
-            <span class="mv-example__callout" style="left: ${left.toFixed(2)}%; top: ${top.toFixed(2)}%;">
+            <span class="svv-brief-example__callout" style="left: ${left.toFixed(2)}%; top: ${top.toFixed(2)}%;">
               <span>${verdictAction}</span>
             </span>
           </div>
-          <figcaption class="mv-example__caption">
-            <span class="mv-example__title">${slide.slideTitle}</span>
-            <span class="mv-example__text">${slide.slideDescription}</span>
+          <figcaption class="svv-brief-example__caption">
+            <span class="svv-brief-example__title">${slide.slideTitle}</span>
+            <span class="svv-brief-example__text">${slide.slideDescription}</span>
           </figcaption>
         </figure>`;
     }).join('');
 
     // Decorative: the strip itself is the scrollable region a screen reader announces, so the dots repeat nothing.
     const dots = slides
-      .map((slide, i) => `<span class="mv-dot${i === 0 ? ' mv-dot--current' : ''}"></span>`)
+      .map((slide, i) => `<span class="svv-brief-dot${i === 0 ? ' svv-brief-dot--current' : ''}"></span>`)
       .join('');
 
     // The later examples are reachable only by scrolling the strip, so it has to be focusable: a keyboard or switch
@@ -118,8 +118,8 @@ export class ModalMission {
     // finger. A named group is what tells them what they have landed on.
     const stripLabel = i18next.t('validate:mission-start-tutorial.examples-label');
     return `
-      <div class="mv-examples" tabindex="0" role="group" aria-label="${stripLabel}">${figures}</div>
-      <div class="mv-dots" aria-hidden="true">${dots}</div>`;
+      <div class="svv-brief-examples" tabindex="0" role="group" aria-label="${stripLabel}">${figures}</div>
+      <div class="svv-brief-dots" aria-hidden="true">${dots}</div>`;
   }
 
   /** Below this the title wraps instead of shrinking further, which is past the point of being readable. */
@@ -174,14 +174,14 @@ export class ModalMission {
    * Keeps the dots in step with the swiped-to example, and logs each example the validator actually reaches.
    */
   #watchCarousel() {
-    const strip = this.#uiModalMission.instruction.querySelector('.mv-examples');
+    const strip = this.#uiModalMission.instruction.querySelector('.svv-brief-examples');
     if (!strip) return;
-    const dots = strip.parentElement.querySelectorAll('.mv-dot');
+    const dots = strip.parentElement.querySelectorAll('.svv-brief-dot');
     strip.addEventListener('scroll', () => {
       const idx = Math.round(strip.scrollLeft / strip.clientWidth);
       if (idx === this.#currentSlideIdx || !dots[idx]) return;
       this.#currentSlideIdx = idx;
-      dots.forEach((dot, i) => dot.classList.toggle('mv-dot--current', i === idx));
+      dots.forEach((dot, i) => dot.classList.toggle('svv-brief-dot--current', i === idx));
       svv.tracker.push('MSTSlide_Swipe', { currentSlideIdx: idx });
     }, { passive: true });
   }
@@ -202,10 +202,18 @@ export class ModalMission {
       labelType: util.misc.labelTypeName(labelType),
       interpolation: { escapeValue: true },
     });
-    // Desktop reaches here too — MissionContainer starts every mission the same way — but shows this screen only to
-    // announce a dead end (ModalNoNewMission). Building the briefing there would cost a tutorial photo fetched per
-    // mission for markup nobody sees.
-    this.show(title, svv.legacyMobile ? ModalMission.#buildExamples(labelType) : '', labelType);
+    // A wide window reaches here too — MissionContainer starts every mission the same way — but briefs with the
+    // tutorial overlay and shows this screen only to announce a dead end (ModalNoNewMission). Building the briefing
+    // there would cost a tutorial photo fetched per mission for markup nobody sees.
+    this.show(title, ModalMission.#briefsHere() ? ModalMission.#buildExamples(labelType) : '', labelType);
+  }
+
+  /**
+   * @returns {boolean} Whether this page briefs a mission with this screen: /mobile always, the unified page on a
+   *   phone-sized window, where MissionStartTutorial's overlay is skipped (Main.js).
+   */
+  static #briefsHere() {
+    return svv.legacyMobile || ValidateLayout.isCompact();
   }
 
   /**
@@ -235,11 +243,14 @@ export class ModalMission {
       this.#uiModalMission.eyebrow.innerHTML = `${icon}${eyebrowText}`;
     }
 
+    // The unified page keeps this modal display:none until it has a screen to show; a wide window never briefs here.
+    const briefing = ModalMission.#briefsHere();
+    if (briefing) this.#uiModalMission.holder.classList.remove('ps-hidden');
     this.#uiModalMission.background.style.visibility = 'visible';
     this.#uiModalMission.missionTitle.innerHTML = title;
-    // Only the phone screen is tight enough to need it, and only it is visible: desktop's copy of this modal is
+    // Only the phone screen is tight enough to need it, and only it is visible: a wide window's copy of this modal is
     // display:none, so a fit measured there would size the title against a box of zero width.
-    if (svv.legacyMobile) ModalMission.#fitTitleWhenReady(this.#uiModalMission.missionTitle);
+    if (briefing) ModalMission.#fitTitleWhenReady(this.#uiModalMission.missionTitle);
     this.#uiModalMission.holder.style.visibility = 'visible';
     this.#uiModalMission.foreground.style.visibility = 'visible';
     // Hiding this screen only makes it invisible, which preserves how far it was scrolled — and briefings routinely

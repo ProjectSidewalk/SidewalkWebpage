@@ -56,10 +56,13 @@ function makeMission(props = {}) {
 
 describe('mobile Validate mission screens', () => {
     let onMobilePage;
+    let compactWindow;
     let tracker;
 
     beforeEach(() => {
         onMobilePage = true;
+        compactWindow = false;
+        global.ValidateLayout = {isCompact: () => compactWindow, isNarrow: () => compactWindow};
         tracker = {push: jest.fn()};
         document.body.innerHTML = `
             <div id="modal-mission-holder">
@@ -173,7 +176,7 @@ describe('mobile Validate mission screens', () => {
         });
 
         test('is a named group a keyboard can land on, since scrolling it is the only way past example one', () => {
-            const strip = document.querySelector('.mv-examples');
+            const strip = document.querySelector('.svv-brief-examples');
 
             expect(strip.getAttribute('tabindex')).toBe('0');
             expect(strip.getAttribute('role')).toBe('group');
@@ -181,11 +184,11 @@ describe('mobile Validate mission screens', () => {
         });
 
         test('renders one figure per slide, the right example first', () => {
-            const figures = document.querySelectorAll('.mv-examples .mv-example');
+            const figures = document.querySelectorAll('.svv-brief-examples .svv-brief-example');
 
             expect(figures).toHaveLength(2);
-            expect(figures[0].classList.contains('mv-example--correct')).toBe(true);
-            expect(figures[1].classList.contains('mv-example--incorrect')).toBe(true);
+            expect(figures[0].classList.contains('svv-brief-example--correct')).toBe(true);
+            expect(figures[1].classList.contains('svv-brief-example--incorrect')).toBe(true);
         });
 
         test('the slides sit inside the strip, not directly in the box the dead end takes over', () => {
@@ -194,20 +197,34 @@ describe('mobile Validate mission screens', () => {
             const instruction = document.getElementById('modal-mission-instruction');
 
             expect(instruction.querySelectorAll(':scope > figure')).toHaveLength(0);
-            expect(instruction.querySelectorAll('.mv-examples > figure')).toHaveLength(2);
+            expect(instruction.querySelectorAll('.svv-brief-examples > figure')).toHaveLength(2);
         });
 
         test('only the first photo is fetched up front; the rest wait for a swipe', () => {
-            const images = document.querySelectorAll('.mv-example__photo img');
+            const images = document.querySelectorAll('.svv-brief-example__photo img');
 
             expect(images[0].getAttribute('loading')).toBeNull();
             expect(images[1].getAttribute('loading')).toBe('lazy');
         });
 
         test('a dot per slide, the first one current, hidden from screen readers as decoration', () => {
-            expect(document.querySelectorAll('.mv-dot')).toHaveLength(2);
-            expect(document.querySelectorAll('.mv-dot--current')).toHaveLength(1);
-            expect(document.querySelector('.mv-dots').getAttribute('aria-hidden')).toBe('true');
+            expect(document.querySelectorAll('.svv-brief-dot')).toHaveLength(2);
+            expect(document.querySelectorAll('.svv-brief-dot--current')).toHaveLength(1);
+            expect(document.querySelector('.svv-brief-dots').getAttribute('aria-hidden')).toBe('true');
+        });
+    });
+
+    // #5580: the unified page briefs with this screen too, on a phone-sized window.
+    describe('the briefing on the unified page at phone size', () => {
+        test('builds the carousel and shows the modal, which the page keeps display:none until it has a screen', () => {
+            onMobilePage = false;
+            compactWindow = true;
+            document.getElementById('modal-mission-holder').classList.add('ps-hidden');
+
+            new ModalMission(missionUI()).setMissionMessage(makeMission());
+
+            expect(document.querySelectorAll('.svv-brief-examples .svv-brief-example')).toHaveLength(2);
+            expect(document.getElementById('modal-mission-holder').classList.contains('ps-hidden')).toBe(false);
         });
     });
 
@@ -218,7 +235,7 @@ describe('mobile Validate mission screens', () => {
             new ModalMission(missionUI()).setMissionMessage(makeMission());
 
             expect(MissionStartTutorial.slidesFor).not.toHaveBeenCalled();
-            expect(document.querySelector('.mv-examples')).toBeNull();
+            expect(document.querySelector('.svv-brief-examples')).toBeNull();
             expect(document.querySelectorAll('#modal-mission-instruction img')).toHaveLength(0);
         });
 
