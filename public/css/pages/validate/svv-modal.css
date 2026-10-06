@@ -363,6 +363,19 @@
   gap: calc(12px * var(--ui-scale));
 }
 
+/* A finger swipes and the dots say there is more, so a touch screen draws no scrollbar under the strip (a phone's own
+   is an overlay that only shows mid-swipe, but an emulated or hybrid one draws a desktop bar). A mouse keeps it: for
+   a mouse in a narrow window it is the only visible way to the next example. */
+@media (pointer: coarse) {
+  .svv-brief-examples {
+    scrollbar-width: none;
+  }
+
+  .svv-brief-examples::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 .svv-brief-example {
   flex: 0 0 100%;
   scroll-snap-align: center;
