@@ -85,13 +85,14 @@ class SnakeCaseReadersSpec extends AnyFunSuite with Matchers {
     import ExploreFormats.{*, given}
     check(
       """{"browser":"b","browser_version":"v","browser_width":1,"browser_height":2,"avail_width":3,"avail_height":4,
-        |"screen_width":5,"screen_height":6,"operating_system":"os","language":"en","css_zoom":100}""".stripMargin,
+        |"screen_width":5,"screen_height":6,"operating_system":"os","language":"en","css_zoom":100,
+        |"max_touch_points":5,"primary_pointer":"coarse"}""".stripMargin,
       EnvironmentSubmission(Some("b"), Some("v"), Some(1), Some(2), Some(3), Some(4), Some(5), Some(6), Some("os"),
-        "en", 100)
+        "en", 100, Some(5), Some("coarse"))
     )
     check(
       """{"language":"en","css_zoom":100}""",
-      EnvironmentSubmission(None, None, None, None, None, None, None, None, None, "en", 100)
+      EnvironmentSubmission(None, None, None, None, None, None, None, None, None, "en", 100, None, None)
     )
     check(
       s"""{"action":"a","pano_id":"p","lat":1.5,"lng":2.5,"heading":3.5,"pitch":4.5,"zoom":5.5,"note":"n",
@@ -218,9 +219,9 @@ class SnakeCaseReadersSpec extends AnyFunSuite with Matchers {
     check(
       """{"mission_id":1,"browser":"b","browser_version":"v","browser_width":1,"browser_height":2,"avail_width":3,
         |"avail_height":4,"screen_width":5,"screen_height":6,"operating_system":"os","language":"en",
-        |"css_zoom":100}""".stripMargin,
+        |"css_zoom":100,"max_touch_points":0,"primary_pointer":"fine"}""".stripMargin,
       EnvironmentSubmission(Some(1), Some("b"), Some("v"), Some(1), Some(2), Some(3), Some(4), Some(5), Some(6),
-        Some("os"), "en", 100)
+        Some("os"), "en", 100, Some(0), Some("fine"))
     )
     check(
       s"""{"action":"a","mission_id":1,"pano_id":"p","lat":1.5,"lng":2.5,"heading":3.5,"pitch":4.5,"zoom":5.5,
@@ -271,7 +272,7 @@ class SnakeCaseReadersSpec extends AnyFunSuite with Matchers {
          |"timestamp":$ts}""".stripMargin,
       ValidationTaskSubmission(
         Nil,
-        EnvironmentSubmission(None, None, None, None, None, None, None, None, None, None, "en", 100),
+        EnvironmentSubmission(None, None, None, None, None, None, None, None, None, None, "en", 100, None, None),
         Nil,
         Some(ValidationMissionProgress(8, MissionType.Validation, 1, 10, LabelType.CurbRamp, false)),
         ValidateParams(false, unvalidatedOnly = true),

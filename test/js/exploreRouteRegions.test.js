@@ -122,6 +122,7 @@ describe('Form.submitData street-priority refresh on a route walk', () => {
             getBrowser: () => 'chrome',
             getBrowserVersion: () => '1',
             getOperatingSystem: () => 'linux',
+            getPrimaryPointer: () => 'coarse',
             math: { kmsToMeters: (km) => km * 1000 },
             pano: { TUTORIAL_PANO_IDS: new Set(['tutorial', 'afterWalkTutorial']) },
         };

@@ -12,7 +12,7 @@ import models.mission.MissionType
 import models.pano.PanoSource
 import models.street.{StreetEdgeIssue, StreetEdgeIssueType}
 import models.user.*
-import models.utils.IpAddress
+import models.utils.{IpAddress, PrimaryPointer}
 import play.api.i18n.Messages
 import play.api.libs.json.*
 import play.api.mvc.Result
@@ -365,7 +365,8 @@ class ExploreController @Inject() (
               .insertEnvironment(
                 AuditTaskEnvironment(0, returnData.auditTaskId, missionId, env.browser, env.browserVersion,
                   env.browserWidth, env.browserHeight, env.availWidth, env.availHeight, env.screenWidth,
-                  env.screenHeight, env.operatingSystem, ipAddress, env.language, env.cssZoom, Some(currTime))
+                  env.screenHeight, env.operatingSystem, ipAddress, env.language, env.cssZoom, Some(currTime),
+                  env.maxTouchPoints, PrimaryPointer.sanitize(env.primaryPointer))
               )
               .failed
               .foreach(e => logger.error("Error saving explore environment data.", e))

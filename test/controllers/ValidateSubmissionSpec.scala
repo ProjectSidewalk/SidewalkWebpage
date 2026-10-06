@@ -190,7 +190,14 @@ class ValidateSubmissionSpec
       "interactions" -> Json.arr(
         Json.obj("action" -> "ValidationButtonClick_Agree", "mission_id" -> b.missionId, "timestamp" -> now)
       ),
-      "environment"      -> Json.obj("mission_id" -> b.missionId, "language" -> "en", "css_zoom" -> 100),
+      // An unknown pointer value is dropped rather than failing the row on its CHECK constraint (#5664).
+      "environment" -> Json.obj(
+        "mission_id"       -> b.missionId,
+        "language"         -> "en",
+        "css_zoom"         -> 100,
+        "max_touch_points" -> 0,
+        "primary_pointer"  -> "bogus"
+      ),
       "validations"      -> validations,
       "mission_progress" -> missionProgress.getOrElse[JsValue](JsNull),
       "validate_params"  -> Json.obj(
@@ -471,8 +478,9 @@ class ValidateSubmissionSpec
       // The async writes that ride the same submission: interaction and environment rows.
       eventually(timeout(Span(15, Seconds)), interval(Span(250, Millis))) {
         run(
-          sql"SELECT count(*) FROM validation_task_environment WHERE mission_id = ${b.missionId}".as[Int]
-        ).head mustBe 1
+          sql"""SELECT max_touch_points, primary_pointer FROM validation_task_environment
+                WHERE mission_id = ${b.missionId}""".as[(Option[Int], Option[String])]
+        ) mustBe Seq((Some(0), None))
       }
       if (interactionsLogged) {
         eventually(timeout(Span(15, Seconds)), interval(Span(250, Millis))) {

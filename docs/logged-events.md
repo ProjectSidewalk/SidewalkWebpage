@@ -39,6 +39,12 @@ rather than as `push(...)` events. These values come from the **Bowser** library
 sniffing, use a different vocabulary (`mozilla` for Firefox, `MacOS`, `UNIX`); newer rows use Bowser's (`Firefox`,
 `macOS`, `Linux`, …). When analyzing browser/OS across time ranges, expect both.
 
+Explore and Validate also send `max_touch_points` (`navigator.maxTouchPoints`) and `primary_pointer` (`coarse`, `fine`
+or `none`, from the `pointer` media query; `util.getPrimaryPointer`), added in evolution 412 (#5664). They are the only
+way to tell an iPad from a Mac: Safari on an iPad sends a Mac user agent, so its `operating_system` is `macOS`. An iPad
+with a trackpad attached reports `fine`. Both are null on older rows, and the server drops a `primary_pointer` outside
+those three values rather than lose the row.
+
 ### Page-level activity (`webpage_activity`)
 
 Separate from the per-tool trackers, a lighter path records **page visits and one-off actions** on pages that aren't

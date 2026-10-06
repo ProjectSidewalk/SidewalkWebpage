@@ -158,6 +158,8 @@ export class Form {
         operating_system: util.getOperatingSystem(),
         language: i18next.language,
         css_zoom: 100, // Sent for back-end compatibility; UI scaling is done via real layout sizes (--ui-scale).
+        max_touch_points: navigator.maxTouchPoints,
+        primary_pointer: util.getPrimaryPointer(),
       },
     };
 
