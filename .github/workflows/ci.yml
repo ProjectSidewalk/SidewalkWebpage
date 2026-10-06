@@ -2,7 +2,7 @@ name: CI
 
 # Every job blocks a merge except the offline-tooling leg of python-tests and dependency-review.
 #
-#   - backend:         `sbt compile` + `scalafmtCheckAll scalafmtSbtCheck`.
+#   - backend:         `sbt compile` + `scalafmtCheckAll` + `scalafmtSbtCheck`.
 #   - frontend:        asset build (grunt) + the lint steps (ESLint, Stylelint, HTMLHint, locale checks, CSS layout,
 #                      asset paths, vendor versions, JS types, spec base class) + the jsdom `jest` suite in test/js/.
 #                      Jest reports JS coverage but has no floor — the number can't support one yet, see #5112.
@@ -58,11 +58,15 @@ jobs:
           SIDEWALK_APPLICATION_SECRET: dummy-ci-secret
           INTERNAL_API_KEY: dummy-ci-internal-key
 
-      # `if: always()` runs this even when the compile step failed, so compile and format problems show up in one
-      # run. The second check covers build.sbt and project/*.scala. Auto-format locally with `make scalafmt-fix`.
+      # `if: always()` runs these even when an earlier step failed, so compile and format problems show up in one
+      # run (sbt stops at its first failing command). Auto-format locally with `make scalafmt-fix`.
       - name: scalafmt check (blocking)
         if: always()
-        run: sbt scalafmtCheckAll scalafmtSbtCheck
+        run: sbt scalafmtCheckAll
+
+      - name: scalafmt check, build files (blocking)
+        if: always()
+        run: sbt scalafmtSbtCheck
 
   frontend:
     name: Frontend (build)
@@ -517,7 +521,7 @@ jobs:
       fail-fast: false
       # One leg per interpreter the web container ships, testing each script on the Python that runs it (#4396):
       # label_clustering.py is shelled out to by the app, so it stays on prod's EOL 3.8; the offline tooling needs
-      # >= 3.11. Mirrors the `pytest-args-*` and `cov-omit-*` variables in the Makefile — each leg takes the whole
+      # >= 3.12. Mirrors the `pytest-args-*` and `cov-omit-*` variables in the Makefile — each leg takes the whole
       # directory minus the files only the other's interpreter can import (shapely/geopandas are 3.13-only here), so a
       # new test file runs in both rather than in neither.
       # `half` also spells the check name, and `Python tests (in-band script)` is a required check — renaming a half

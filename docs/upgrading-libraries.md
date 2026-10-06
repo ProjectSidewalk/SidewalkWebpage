@@ -100,9 +100,9 @@ download and the build re-resolves (a running sbt, which `make compile` reuses, 
   (Compose won't rebuild on its own). sbt **2.x** is gated on Play: its `sbt-plugin` has no sbt 2 build outside the
   3.1.0 milestones, and sbt 2 build definitions are Scala 3, so it's a tracked migration rather than a bump. You may
   need to bump Play at the same time for major sbt updates. [Releases](https://github.com/sbt/sbt/releases)
-- **Play Framework: 3.0.12** — to update: (1) change the version in `project/plugins.sbt` (the `sbt-plugin`
-  dependency), and (2) change it in `build.sbt` for the Play-provided libraries that share Play's versioning scheme
-  (`play-guice`, `play-cache`, `play-ws`, `play-caffeine-cache`).
+- **Play Framework: 3.0.12** — to update, change the `sbt-plugin` version in `project/plugins.sbt`. The Play libraries
+  in `build.sbt` that share its version (`play-guice`, `play-cache`, `play-ws`, `play-caffeine-cache`) read it from
+  the plugin through `PlayVersion.current`, so they follow on their own.
   [Releases](https://github.com/playframework/playframework/releases) ·
   [Changelog](https://www.playframework.com/changelog)
 
@@ -312,7 +312,7 @@ The web image carries two, and **which one a package targets decides which file 
   **pyogrio 0.13.0**, **scipy 1.18.1**, and the street-gradient raster stack: **rasterio 1.5.2** (its wheel bundles
   GDAL, so nothing comes from the OS), **pyproj 3.8.0**. Self-contained rather than layered on `requirements.txt`,
   since the two files target different interpreters and so can't share a pin.
-  **Note:** requires **Python ≥ 3.11**, and pandas is what sets that floor — re-check it when bumping pandas, and
+  **Note:** requires **Python ≥ 3.12**, set by scipy, rasterio and pyproj — re-check it when bumping any of them, and
   update the docs that quote it. [shapely](https://github.com/shapely/shapely/releases) ·
   [geopy](https://github.com/geopy/geopy/releases) · [tenacity](https://github.com/jd/tenacity/releases) ·
   [tqdm](https://github.com/tqdm/tqdm/releases) · [osmnx](https://github.com/gboeing/osmnx/releases) ·

@@ -21,13 +21,13 @@ resolvers ++= Seq(
   "OSGeo" at "https://repo.osgeo.org/repository/release/"
 )
 
-// Play: https://mvnrepository.com/artifact/com.typesafe.play/play?repo=central
+// Play: https://mvnrepository.com/artifact/org.playframework/play?repo=central
 libraryDependencies ++= Seq(
-  // General Play stuff.
-  "org.playframework" %% "play-guice"          % "3.0.12",
-  "org.playframework" %% "play-cache"          % "3.0.12",
-  "org.playframework" %% "play-ws"             % "3.0.12",
-  "org.playframework" %% "play-caffeine-cache" % "3.0.12",
+  // General Play stuff. These take their version from the Play sbt plugin, so a plugin bump moves them all together.
+  "org.playframework" %% "play-guice"          % play.core.PlayVersion.current,
+  "org.playframework" %% "play-cache"          % play.core.PlayVersion.current,
+  "org.playframework" %% "play-ws"             % play.core.PlayVersion.current,
+  "org.playframework" %% "play-caffeine-cache" % play.core.PlayVersion.current,
   "org.playframework" %% "play-mailer" % "10.1.0", // play-mailer is on a different versioning scheme than Play itself.
   "org.playframework" %% "play-mailer-guice" % "10.1.0", // play-mailer is on a different versioning scheme than Play itself.
   "org.playframework" %% "play-json" % "3.0.6", // play-json is on a different versioning scheme than Play itself.
