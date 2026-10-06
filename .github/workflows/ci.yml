@@ -1,6 +1,6 @@
 name: CI
 
-# Every job blocks a merge except the offline-tooling leg of python-tests.
+# Every job blocks a merge except the offline-tooling leg of python-tests and dependency-review.
 #
 #   - backend:         `sbt compile` + `scalafmtCheckAll`.
 #   - frontend:        asset build (grunt) + the lint steps (ESLint, Stylelint, HTMLHint, locale checks, CSS layout,
@@ -18,6 +18,8 @@ name: CI
 #   - python-tests:    pytest unit tests for the Python scripts in scripts/ and tools/. One leg per interpreter the web
 #                      container ships — 3.8 for the in-band script, 3.13 for the offline tooling (advisory: it covers
 #                      an operator utility that never runs on the server).
+#   - dependency-review: PRs only. Flags a dependency the PR adds or changes that has a known vulnerability (advisory:
+#                      the app's Python is stuck on 3.8, where some fixes can't install, #4396).
 
 on:
   pull_request:
@@ -556,3 +558,11 @@ jobs:
           COVERAGE_OMIT: ${{ matrix['coverage-omit'] }}
           COVERAGE_OMIT2: ${{ matrix['coverage-omit-2'] }}
           COVERAGE_OMIT3: ${{ matrix['coverage-omit-3'] }}
+
+  dependency-review:
+    name: Dependency review
+    runs-on: ubuntu-latest
+    # Only a PR has a before and after to compare.
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/dependency-review-action@v5

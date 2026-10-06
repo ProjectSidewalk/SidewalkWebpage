@@ -289,8 +289,8 @@ The web image carries two, and **which one a package targets decides which file 
 
 - **Python 3.8** (`python3`) — the base image's own, and past EOL. **Note:** kept only because the deployed app
   shells out to it for in-band clustering (prod runs on Rocky's system Python).
-  Retiring it means changing the base image, gated on the prod-environment audit
-  ([#4385](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4385)) — until then, don't add libraries to
+  Retiring it means changing the base image, tracked in
+  [#4396](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4396) — until then, don't add libraries to
   `requirements.txt`, because current releases have all dropped 3.8.
 - **Python 3.13** (`python3.13`) — a [python-build-standalone](https://github.com/astral-sh/python-build-standalone)
   CPython fetched by **uv 0.12.15** at image build time, since no PPA carries 3.13 for focal. Where offline tooling
