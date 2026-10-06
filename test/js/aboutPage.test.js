@@ -794,7 +794,8 @@ describe('AboutPage', () => {
         // A publication title edited on the ML side flows into citation_html verbatim, so this page treats that
         // string as untrusted even though the two sites are run by the same lab.
         '/publications/605/': { ...DETAIL,
-          citation_html: 'Saha, M. <img src=x onerror="alert(1)"><svg onload="alert(2)"></svg>'
+          citation_html: 'Saha, M. <img src=x onerror="alert(1)"><svg onload="alert(2)"></svg><style>p{}</style>'
+            + '<form><input type="password"></form>'
             + '<a href="javascript:alert(3)">CHI</a> <b>2019</b>.' },
         '/people/?format=json': page([]),
         '/grants/': page([]),
@@ -803,6 +804,7 @@ describe('AboutPage', () => {
       await hydrate();
 
       const pane = document.getElementById('about-cite-plain');
+      expect(pane.querySelector('img, svg, style, form, input')).toBeNull();
       expect(pane.innerHTML).not.toContain('onerror');
       expect(pane.innerHTML).not.toContain('onload');
       expect(pane.querySelector('a').hasAttribute('href')).toBe(false);

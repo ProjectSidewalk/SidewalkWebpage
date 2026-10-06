@@ -109,6 +109,22 @@ describe('psTooltip markup', () => {
         expect(card.querySelector('img').hasAttribute('onerror')).toBe(false);
         expect(card.querySelector('script')).toBeNull();
     });
+
+    test('keeps what our cards rely on: new-tab links and the shortcut-key underline', () => {
+        const trigger = addTrigger({ left: 400, top: 400, width: 40, height: 20 },
+            '<tag-underline>S</tag-underline>teep <a href="https://x.org" target="_blank">x</a>');
+        const card = open(trigger);
+        expect(card.querySelector('tag-underline').textContent).toBe('S');
+        expect(card.querySelector('a').getAttribute('target')).toBe('_blank');
+        expect(card.querySelector('a').getAttribute('rel')).toBe('noopener');
+    });
+
+    test('drops page-wide styles and form fields', () => {
+        const trigger = addTrigger({ left: 400, top: 400, width: 40, height: 20 },
+            'x<style>body{display:none}</style><form><input type="password"><button>Go</button></form>');
+        const card = open(trigger);
+        expect(card.querySelector('style, form, input, button')).toBeNull();
+    });
 });
 
 describe('psTooltip placement', () => {

@@ -11,7 +11,9 @@
  * MiniLineChart import with it, so the bars are drawn by the real renderer.
  */
 
-const { loadModules, realUtil } = require('./loadGlobalScript');
+const { loadModules, loadVendored, realUtil } = require('./loadGlobalScript');
+
+loadVendored('dompurify');
 
 // The page fetches through util.fetchJson.
 window.util = realUtil();
@@ -410,18 +412,18 @@ describe('Across Cities — attribution split and hover breakdowns', () => {
           contributor_list: [dayContributor('<img src=x onerror=alert(1)>', 2, 0)],
         })],
       });
-      // Two levels of escaping: attribute parsing consumes one, psTooltip's innerHTML the other. Reading the attribute
-      // back through the DOM has already consumed the first, so rendering it as HTML models exactly what psTooltip does.
+      // Reading the attribute back already consumed one escaping level. Raw innerHTML, not the sanitizer, so this
+      // proves the escaping itself rather than leaning on the safety net.
       document.body.insertAdjacentHTML('beforeend', `<div id="probe">${barCard(0)}</div>`);
 
       expect(document.querySelectorAll('#probe img').length).toBe(0);
     });
 
     describe('where each person worked, and links to their work (#5495)', () => {
-      /** Parses a card's markup into a detached element, the way psTooltip renders it. */
+      /** Renders a card's markup into a detached element, the way psTooltip does. */
       function parse(card) {
         const host = document.createElement('div');
-        host.innerHTML = card;
+        host.append(util.sanitizeHtml(card));
         return host;
       }
 

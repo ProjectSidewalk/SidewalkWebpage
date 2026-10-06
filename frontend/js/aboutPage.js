@@ -20,6 +20,8 @@ export class AboutPage {
   static #CITATION_DOI = '10.1145/3290605.3300292';
   static #FALLBACK_PHOTO = util.assetPath('images/logos/ProjectSidewalkLogo_NoText_100x100.png');
 
+  static #CITATION_TAGS = ['a', 'b', 'em', 'i', 'strong', 'span', 'br', 'sub', 'sup'];
+
   /** Only http(s) links from the ML API are used; others (like `javascript:`) could run code. */
   static #HTTP_URL = /^https?:\/\//i;
 
@@ -381,8 +383,9 @@ export class AboutPage {
     const detail = await this.#fetchJson(`${AboutPage.#ML_API_BASE}/publications/${paper.id}/?format=json`);
     if (!detail.citation_html || !detail.bibtex) return;
 
-    // Shown as markup for its <i> and <a>, but it comes from a separate app with its own admin UI.
-    const citation = DOMPurify.sanitize(detail.citation_html, { RETURN_DOM_FRAGMENT: true });
+    // From a separate app with its own admin UI, so held to the inline formatting a citation needs.
+    const citation = util.sanitizeHtml(detail.citation_html, { ALLOWED_TAGS: AboutPage.#CITATION_TAGS,
+      ALLOWED_ATTR: ['href'] });
     document.getElementById('about-cite-plain').replaceChildren(citation);
     document.getElementById('about-cite-bibtex').textContent = detail.bibtex;
 

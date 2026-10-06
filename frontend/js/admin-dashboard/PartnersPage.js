@@ -4,6 +4,7 @@
  */
 
 import { ConfirmDialog } from '../common/ConfirmDialog.js';
+import { util } from '../common/utilities.js';
 
 /**
  * @typedef {object} PartnerFormFields
@@ -154,7 +155,7 @@ export class PartnersPage {
       // textContent, not innerHTML: the name is admin-entered free text.
       // The message carries its own LabelMap/Stories anchors, so read it as HTML and keep only its text. A replacer
       // function, so a `$&` or `$'` in the name is inserted literally rather than read as a pattern.
-      const template = new DOMParser().parseFromString(preview.dataset.template, 'text/html').body.textContent;
+      const template = util.htmlToText(preview.dataset.template);
       preview.textContent = `Landing page preview: ${template.replace('{name}', () => name || '…')}`;
     }
   }
