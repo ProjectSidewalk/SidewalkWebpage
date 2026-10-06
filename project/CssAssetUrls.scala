@@ -4,7 +4,7 @@ import scala.collection.mutable
 import scala.util.matching.Regex
 
 import com.typesafe.sbt.web.PathMapping
-import sbt._
+import sbt.*
 
 /**
  * An asset-pipeline stage that points every `url(...)` in a CSS asset at sbt-digest's fingerprinted copy (#5094).

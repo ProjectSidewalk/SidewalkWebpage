@@ -262,6 +262,18 @@ describe('Validate pano marker activation', () => {
             expect(svv.labelVisibilityControl.showLabelCard).not.toHaveBeenCalled();
         });
 
+        test('the focus a click gives the marker does not reopen the card the click closed', () => {
+            markerEl().dispatchEvent(new MouseEvent('mousedown', {bubbles: true}));
+            markerEl().focus();
+            expect(svv.labelVisibilityControl.showLabelCard).not.toHaveBeenCalled();
+
+            // Once the press is over, focus is the keyboard's again.
+            window.dispatchEvent(new MouseEvent('mouseup'));
+            markerEl().blur();
+            markerEl().focus();
+            expect(svv.labelVisibilityControl.showLabelCard).toHaveBeenCalledWith({viaKeyboard: true});
+        });
+
         test('the keys stay with Validate’s KeyboardManager, which handles them with capture', () => {
             markerEl().dispatchEvent(new KeyboardEvent('keydown', {key: 'Enter', bubbles: true}));
             markerEl().dispatchEvent(new MouseEvent('click', {bubbles: true}));

@@ -70,7 +70,7 @@ describe('KeyboardManager number-key shortcuts', () => {
     beforeEach(() => {
         clicks.length = 0;
         window.svv = {
-            labelVisibilityControl: { hideLabelCard: jest.fn(), isVisible: () => true },
+            labelVisibilityControl: { hideLabelCard: jest.fn(), isVisible: () => true, isCardHeldOpen: () => false },
             tracker: { push: jest.fn() },
         };
         for (const box of ['optionalCommentTextBox', 'disagreeReasonTextBox', 'unsureReasonTextBox']) {
