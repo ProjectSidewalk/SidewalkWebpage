@@ -425,6 +425,15 @@ body.svv-immersive .modal-mission-complete-counts {
     margin-top: calc(4px * var(--ui-scale));
   }
 
+  /* The chevron points the way its menu opens: down, and up again to close it. */
+  body.svv-immersive #validate-control-buttons-toggle .pano-overlay-button-icon {
+    transform: rotate(90deg);
+  }
+
+  body.svv-immersive #validate-control-buttons-toggle[aria-expanded="true"] .pano-overlay-button-icon {
+    transform: rotate(-90deg);
+  }
+
   body.svv-immersive #validate-control-image {
     height: 44px;
     padding: 0 calc(14px * var(--ui-scale));
