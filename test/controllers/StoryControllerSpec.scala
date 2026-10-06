@@ -224,7 +224,7 @@ class StoryControllerSpec extends SidewalkSpec with RolledBackDb with AnonSessio
       }
     }
 
-    "render the card scaffolding: tinted type chip, button-styled view-label, no cap note, no raw i18n keys" in {
+    "render the card scaffolding: tinted type chip, button-styled view-label, cap note only when full, no raw i18n keys" in {
       labelIds.headOption match {
         case None     => cancel("No labels in the connected test DB.")
         case Some(id) =>
@@ -237,8 +237,9 @@ class StoryControllerSpec extends SidewalkSpec with RolledBackDb with AnonSessio
             body must include("community-chip--type")
             body must include("data-type-color=\"#")
             body must include("button button--primary button--small story-card__label-link")
-            // Far under the 500 cap here, so the truncation note must not render.
-            body must not include "community-cap-note"
+            // A long-lived dev database can hold more stories than the listing shows, so tie the note to the card count.
+            val cards = "<li class=\"community-card story-card\"".r.findAllMatchIn(body).size
+            body.contains("community-cap-note") mustBe (cards >= StoryController.ListingMax)
             // A raw key leaking into the page means a messages file lost one — dotted keys never appear in copy.
             body must not include "stories.page."
             body must not include "community.page."

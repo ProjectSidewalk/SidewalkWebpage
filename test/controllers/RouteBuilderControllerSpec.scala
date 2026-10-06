@@ -193,12 +193,14 @@ class RouteBuilderControllerSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       val body = contentAsString(page)
       body must include("route-list-page")
       body must include(name)
-      // Card scaffolding (#4688): design-system buttons, the label-map link, the copy control; no truncation
-      // note this far under the 500 cap, and no raw i18n key leaking (dotted keys never appear in real copy).
+      // Card scaffolding (#4688): design-system buttons, the label-map link, the copy control, and no raw i18n key
+      // leaking (dotted keys never appear in real copy).
       body must include("button button--primary button--small route-card__explore")
       body must include(s"/labelMap?routes=$routeId")
       body must include("route-card__copy")
-      body must not include "community-cap-note"
+      // A long-lived dev database can hold more routes than the listing shows, so tie the note to the card count.
+      val cards = "<li class=\"community-card route-card\"".r.findAllMatchIn(body).size
+      body.contains("community-cap-note") mustBe (cards >= RouteBuilderController.ListingMax)
       body must not include "routes.page."
       body must not include "community.page."
 
