@@ -384,6 +384,8 @@ export class Main {
     }
 
     svv.labelVisibilityControl = new LabelVisibilityControl();
+    // The first label rendered before the control existed, so LabelContainer couldn't open its card.
+    svv.labelVisibilityControl.openCardOnLoad();
 
     this.#showPanoInteractiveHint();
 
