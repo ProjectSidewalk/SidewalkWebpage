@@ -383,20 +383,119 @@ body.svv-immersive .modal-mission-complete-counts {
   }
 }
 
-/* Portrait: the corner row along the top, the pill on its own line beneath it, and the dock edge to edge above the
-   logo strip, its height capped below the pill so a long reason list scrolls rather than covers it. */
+/* Portrait: one compact row along the top, the way a phone's video apps float their chrome: the mission pill on the
+   left (task first), the label controls on the right as bare glyphs, and the dock edge to edge above the logo strip,
+   its height capped below the row so a long reason list scrolls rather than covers it. Every control keeps a 44px
+   target; only what is painted shrinks. */
 @media (width <= 600px) {
+  /* The pill says the type with its icon and the progress with its bar and count; the title would repeat the dock's
+     question ("Is this a Curb Ramp?"), so it gives its width to the pano. Leaves room on the right for Back, the eye
+     and the chevron. */
   body.svv-immersive #mission-status {
-    top: calc(60px * var(--ui-scale));
+    top: calc(8px * var(--ui-scale));
     left: calc(8px * var(--ui-scale));
-    right: calc(8px * var(--ui-scale));
     transform: none;
-    max-width: none;
-    justify-content: center;
+    max-width: calc(100vw - (16px + 3 * 44px + 8px) * var(--ui-scale));
+    min-height: 36px;
+    padding: calc(4px * var(--ui-scale)) calc(12px * var(--ui-scale)) calc(4px * var(--ui-scale))
+      calc(6px * var(--ui-scale));
+  }
+
+  body.svv-immersive #mission-title {
+    display: none;
   }
 
   body.svv-immersive #mission-progress-bar-section {
-    width: calc(60px * var(--ui-scale));
+    width: calc(56px * var(--ui-scale));
+  }
+
+  /* Anchored right, so opening the chevron's menu grows the row leftward instead of off the screen. */
+  body.svv-immersive #label-visibility-control-holder {
+    left: auto;
+    right: calc(4px * var(--ui-scale));
+    top: calc(4px * var(--ui-scale));
+    gap: 0;
+  }
+
+  /* Back, Hide Label and the chevron as glyphs on the imagery: each paints only a 36px disc of the scrim, which keeps
+     a white glyph past 3:1 on bright sky (WCAG 1.4.11), inside its 44px target. */
+  body.svv-immersive #label-visibility-control-button,
+  body.svv-immersive #validate-control-buttons-toggle,
+  body.svv-immersive #validate-undo-button,
+  body.svv-immersive #label-visibility-control-button:hover,
+  body.svv-immersive #validate-control-buttons-toggle:hover {
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    color: var(--color-neutral-white);
+    background: radial-gradient(circle, var(--svv-scrim) 17.5px, transparent 18px);
+    box-shadow: none;
+  }
+
+  /* Back joins the top row (fixed: the dock has no transform at this width, so the viewport is its containing block),
+     which takes the dock's own Back row away: closed, the dock is just the question and the verdicts. Its place in
+     the dock's markup, and so in the reading and tab order, is unchanged. */
+  body.svv-immersive #validate-undo-button {
+    position: fixed;
+    top: calc(4px * var(--ui-scale));
+    right: calc((4px + 2 * 44px) * var(--ui-scale));
+    z-index: 4;
+    min-height: 44px;
+  }
+
+  body.svv-immersive #validate-undo-button:disabled {
+    color: var(--color-neutral-white);
+    opacity: 0.45;
+  }
+
+  body.svv-immersive .validate-undo-button__icon {
+    width: 22px;
+    height: 22px;
+    -webkit-mask-image: url("../../../images/icons/undo-material.svg");
+    mask-image: url("../../../images/icons/undo-material.svg");
+  }
+
+  /* The words stay Back's accessible name; only the paint goes. */
+  body.svv-immersive #validate-undo-button span:not(.validate-undo-button__icon) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  /* With Back floated out of it, the dock's last row holds Submit alone, at the right, and only once a verdict opens
+     it. Closed, the row is empty but can't be hidden, since Back is still its child: it collapses instead, and gives
+     back the dock's gap above it. */
+  body.svv-immersive #validate-submit-section {
+    justify-content: flex-end;
+    gap: calc(12px * var(--ui-scale));
+  }
+
+  body.svv-immersive #validation-menu-holder:not(.has-verdict) #validate-submit-section {
+    height: 0;
+    margin-top: calc(-8px * var(--ui-scale));
+  }
+
+  body.svv-immersive #label-visibility-control-button .hide-label-button-icon {
+    width: 24px;
+    height: 24px;
+  }
+
+  /* The words stay the button's accessible name; only the paint goes. */
+  body.svv-immersive #label-visibility-control-button span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  body.svv-immersive .speed-limit-sign {
+    top: calc(52px * var(--ui-scale));
   }
 
   body.svv-immersive #validation-menu-holder {
@@ -404,9 +503,9 @@ body.svv-immersive .modal-mission-complete-counts {
     right: calc(8px * var(--ui-scale));
     transform: none;
     width: auto;
-    max-height: calc(100dvh - (60px + 44px + 16px) * var(--ui-scale) - var(--svv-bottom-clear));
-    padding: calc(10px * var(--ui-scale)) calc(12px * var(--ui-scale)) calc(12px * var(--ui-scale));
-    gap: calc(10px * var(--ui-scale));
+    max-height: calc(100dvh - (52px + 16px) * var(--ui-scale) - var(--svv-bottom-clear));
+    padding: calc(8px * var(--ui-scale)) calc(10px * var(--ui-scale)) calc(10px * var(--ui-scale));
+    gap: calc(8px * var(--ui-scale));
     border-radius: calc(12px * var(--ui-scale));
   }
 
@@ -417,7 +516,7 @@ body.svv-immersive .modal-mission-complete-counts {
   body.svv-immersive .validate-page-button {
     flex: 1 1 0;
     width: auto;
-    min-height: 48px;
+    min-height: 44px;
     font: var(--text-small-bold);
   }
 
@@ -429,7 +528,11 @@ body.svv-immersive .modal-mission-complete-counts {
   /* Clears the close control, now a 44px target in the corner. */
   body.svv-immersive #main-validate-header {
     padding-right: calc(40px * var(--ui-scale));
-    font: var(--text-body-bold);
+    font: var(--text-small-bold);
+  }
+
+  body.svv-immersive .validation-menu-section-header {
+    margin-bottom: calc(4px * var(--ui-scale));
   }
 
   body.svv-immersive #validate-verdict-clear {
@@ -452,15 +555,6 @@ body.svv-immersive .modal-mission-complete-counts {
     gap: calc(8px * var(--ui-scale));
   }
 
-  body.svv-immersive #validate-submit-section {
-    gap: calc(12px * var(--ui-scale));
-  }
-
-  body.svv-immersive #validate-undo-button {
-    min-height: 44px;
-    padding: 0 calc(8px * var(--ui-scale));
-  }
-
   /* Submit takes one verdict column under Unsure, at the verdicts' height and type, so the dock reads as one grid
      rather than a row of buttons and a slab of a different size. The column width is the verdict row's: three
      equal buttons across two gaps. */
@@ -468,18 +562,14 @@ body.svv-immersive .modal-mission-complete-counts {
     flex: none;
     width: calc((100% - 2 * 8px * var(--ui-scale)) / 3);
     min-width: 0;
-    min-height: 48px;
+    min-height: 44px;
     font: var(--text-small-bold);
   }
 }
 
-/* The narrowest phones: the type icon and the dock's question still name the type, so the pill drops the title, and
-   the verdicts step their type down so pt-BR's "Não tenho certeza" still fits its third of the row. */
+/* The narrowest phones: the verdicts step their type down so pt-BR's "Não tenho certeza" still fits its third of the
+   row. */
 @media (width <= 360px) {
-  body.svv-immersive #mission-title {
-    display: none;
-  }
-
   body.svv-immersive .validate-page-button,
   body.svv-immersive #validate-submit-button {
     font: var(--text-caption-semibold);
