@@ -265,6 +265,7 @@ export class LabelContainer {
       // Every label starts visible. Without this the toggle keeps saying "Show Label" over a marker that
       // renderPanoMarker just drew in full — you'd have to hide and re-show to get the two back in agreement.
       svv.labelVisibilityControl?.unhideLabel();
+      svv.labelVisibilityControl?.openCardOnLoad();
 
       this.setProperty('renderedTimestamp', Date.now());
       // Now that this label's imagery is on screen and the connection is idle, start on the next ones' (#5562, #5581).

@@ -39,7 +39,7 @@ describe('Validate F shortcut for immersive mode', () => {
         document.body.innerHTML = '<input id="field"><div id="note" contenteditable="true"></div>';
         window.svv = {
             immersiveMode: { toggle: jest.fn() },
-            labelVisibilityControl: { hideLabelCard: jest.fn(), isCardVisible: () => false },
+            labelVisibilityControl: { hideLabelCard: jest.fn(), isCardVisible: () => false, isCardHeldOpen: () => false },
             labelCard: { isPopoverOpen: () => false, closeTypeDropdown: () => false },
             tracker: { push: jest.fn() },
         };
