@@ -89,13 +89,7 @@ export class LabelVisibilityControl {
 
   /** Opens the card for a label that just loaded, on the cities that want it up without a hover (#5675). */
   openCardOnLoad() {
-    if (!this.#opensOnLoad || !this.#anchorCard()) return;
-    this.cancelScheduledCardHide();
-    svv.tracker.push('LabelCard_OpenedOnLoad');
-    this.#heldOpen = true;
-    this.#cardVisible = true;
-    this.#card.style.visibility = 'visible';
-    this.#setMarkerExpanded(true);
+    if (this.#opensOnLoad) this.showLabelCard({ holdOpen: true });
   }
 
   /**
@@ -105,11 +99,17 @@ export class LabelVisibilityControl {
    * @param {boolean} [options.viaKeyboard] - The card was opened from the keyboard (Tab onto the marker, or Enter/
    *     Space on it) rather than by pointer. Logged under its own event name, the way the H key's hide is —
    *     see docs/logged-events.md.
+   * @param {boolean} [options.holdOpen] - Opened on load rather than by the user, so it stays up until something
+   *     deliberate closes it (see openCardOnLoad).
    */
-  showLabelCard({ viaKeyboard = false } = {}) {
+  showLabelCard({ viaKeyboard = false, holdOpen = false } = {}) {
     this.cancelScheduledCardHide();
     if (!this.#anchorCard()) return;
-    if (!this.#cardVisible) svv.tracker.push(viaKeyboard ? 'KeyboardShortcut_ShowLabelCard' : 'MouseOver_Label');
+    if (holdOpen) svv.tracker.push('LabelCard_OpenedOnLoad');
+    else if (!this.#cardVisible) svv.tracker.push(viaKeyboard ? 'KeyboardShortcut_ShowLabelCard' : 'MouseOver_Label');
+    if (holdOpen) this.#heldOpen = true;
+    // In immersive mode a held card would otherwise sit over the voting dock (svv-immersive.css).
+    this.#card.classList.toggle('label-card--held', this.#heldOpen);
     this.#cardVisible = true;
     this.#card.style.visibility = 'visible';
     this.#setMarkerExpanded(true);
@@ -124,7 +124,11 @@ export class LabelVisibilityControl {
     // The card's popovers hang off it, so they go too. Left open one would be invisible but still armed, and every
     // later scheduleHideLabelCard would defer to it forever.
     svv.labelCard?.closePopovers();
+    // Hiding the card with focus inside it (its Hide-label button) would drop focus to the page; send it back to the
+    // marker the card belongs to. The marker's focus handler sees it came from the card and doesn't reopen it.
+    if (this.#card.contains(document.activeElement)) document.getElementById('validate-pano-marker')?.focus();
     this.#heldOpen = false;
+    this.#card.classList.remove('label-card--held');
     this.#cardVisible = false;
     this.#card.style.visibility = 'hidden';
     this.#setMarkerExpanded(false);
