@@ -74,6 +74,11 @@ class ControllerUtilsSpec extends SidewalkSpec {
       ControllerUtils.safeLocalPath("  /explore") mustBe "/explore"
     }
 
+    "reject paths with control characters, which browsers strip into a protocol-relative URL" in {
+      ControllerUtils.safeLocalPath("/\t/evil.example") mustBe "/"
+      ControllerUtils.safeLocalPath("/\n/evil.example") mustBe "/"
+    }
+
     "fall back to the supplied default when the target is unsafe" in {
       ControllerUtils.safeLocalPath("https://evil.example", "/signIn") mustBe "/signIn"
     }

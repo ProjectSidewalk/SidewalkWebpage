@@ -156,7 +156,7 @@ class UserController @Inject() (
   def signOut(url: String) = cc.securityService.SecuredAction { implicit request =>
     cc.loggingService.insert(request.identity.userId, request.ipAddress, "SignOut")
     silhouette.env.eventBus.publish(LogoutEvent(request.identity, request))
-    silhouette.env.authenticatorService.discard(request.authenticator, Redirect(url))
+    silhouette.env.authenticatorService.discard(request.authenticator, Redirect(safeLocalPath(url)))
   }
 
   /** Renders the forgot-password page, for signed-in users too since Settings links here (#2285). */
@@ -519,7 +519,7 @@ class UserController @Inject() (
     val qString = request.queryString.-("url") // Query string to pass along; remove the url parameter.
     request.identity match {
       case Some(user) =>
-        Future.successful(Redirect(url, qString))
+        Future.successful(Redirect(safeLocalPath(url), qString))
       case None =>
         // Each anon sign-up costs a bcrypt hash and inserts across several tables, unauthenticated, so it needs its
         // own IP bound. Checked directly rather than via rateLimited(): that helper's no-JS branch redirects, and any
@@ -553,7 +553,7 @@ class UserController @Inject() (
       value         <- silhouette.env.authenticatorService.init(authenticator)
       // Strip UTM params from redirect to avoid double-capture in index().
       qStringNoUtm = qString.filterNot { case (k, _) => k.startsWith("utm_") }
-      result <- silhouette.env.authenticatorService.embed(value, Redirect(url, qStringNoUtm))
+      result <- silhouette.env.authenticatorService.embed(value, Redirect(safeLocalPath(url), qStringNoUtm))
 
       _ <- saveUtms(user.userId, ControllerUtils.utmParams(qString))
     } yield {

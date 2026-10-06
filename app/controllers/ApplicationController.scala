@@ -2,7 +2,7 @@ package controllers
 
 import controllers.base.*
 import controllers.helper.ControllerUtils
-import controllers.helper.ControllerUtils.parseIntegerSeq
+import controllers.helper.ControllerUtils.{parseIntegerSeq, safeLocalPath}
 import models.auth.{DefaultEnv, WithSignedIn}
 import models.user.{SidewalkUserWithRole, UserUtm}
 import models.utils.IpAddress
@@ -151,7 +151,7 @@ class ApplicationController @Inject() (
       cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, logText)
 
       // Update the cookie and redirect.
-      Future.successful(Redirect(url).withLang(Lang(newLang)))
+      Future.successful(Redirect(safeLocalPath(url)).withLang(Lang(newLang)))
   }
 
   /**
