@@ -228,6 +228,27 @@ util.pano.fovToZoom = (fov) => {
 };
 
 /**
+ * The span of GSV zoom that visibly changes the view in a viewport of the given shape, kept to the two zoom levels
+ * Validate's 1-3 range gives a 3:2 frame (#5580). GSV clamps its vertical field (GSV_VFOV_CLAMP_DEG), so on a tall
+ * frame every zoom below the point where the clamp lets go renders the same 90° view, and on a wide one every zoom
+ * past the other clamp renders the same 15°: a fixed 1-3 range left a phone's first several zoom-ins doing nothing
+ * and its zoom-out none at all. The span starts where the wide clamp lets go (never below 1) and runs two levels,
+ * stopping short of the narrow clamp. A 3:2 frame gets exactly 1-3.
+ *
+ * @param {number} aspect - The viewport's width / height.
+ * @returns {{min: number, max: number}} The zoom range.
+ * @example
+ * util.pano.gsvZoomRange(390 / 844); // {min: ~2.1, max: ~4.1}: a portrait phone
+ * util.pano.gsvZoomRange(3 / 2);     // {min: 1, max: 3}
+ */
+util.pano.gsvZoomRange = (aspect) => {
+  const { min: narrowest, max: widest } = util.pano.GSV_VFOV_CLAMP_DEG;
+  const min = Math.max(1, util.pano.fovToZoom(util.pano.vFovToHFov(widest, aspect)));
+  const max = Math.min(min + 2, util.pano.fovToZoom(util.pano.vFovToHFov(narrowest, aspect)));
+  return { min, max };
+};
+
+/**
  * Decodes the Explore tutorial's angular annotation coordinates into the POV at which the annotation is centered.
  *
  * Despite the parallel shape, this is NOT the inverse of povToPanoCoord, and must never be fed a real image

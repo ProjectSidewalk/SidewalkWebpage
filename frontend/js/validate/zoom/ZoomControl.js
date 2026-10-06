@@ -3,9 +3,11 @@
  */
 
 import { svv } from '../svv.js';
+import { util } from '../../common/utilities.js';
+import '../../common/pano-viewer/panoUtilities.js';
 
 export class ZoomControl {
-  // Zoom limits for the pano, matching the {1, 2, 3} levels used by the zoom buttons.
+  // Zoom limits for the pano on a 3:2 frame, and on every viewer but GSV: the {1, 2, 3} levels of the zoom buttons.
   static #MIN_ZOOM = 1;
   static #MAX_ZOOM = 3;
   // Scroll wheel / trackpad zoom tuning.
@@ -44,26 +46,41 @@ export class ZoomControl {
   };
 
   /**
-   * Increases zoom for the panorama and checks if 'Zoom In' button needs to be disabled.
-   * Zoom levels: {1, 2, 3}
+   * The zoom range that visibly changes this frame's view. GSV's clamps on its vertical field make part of a fixed
+   * 1-3 range dead on a frame that isn't about 3:2 (a phone, either way up), so for GSV the range follows the frame
+   * (util.pano.gsvZoomRange, #5580); every other viewer renders its zoom as asked.
+   * @returns {{min: number, max: number}}
+   */
+  static range() {
+    if (svv.panoViewer?.getViewerType?.() !== 'gsv') return { min: ZoomControl.#MIN_ZOOM, max: ZoomControl.#MAX_ZOOM };
+    return util.pano.gsvZoomRange(svv.canvasWidth() / svv.canvasHeight());
+  }
+
+  /**
+   * The current zoom, pulled into the visible range: a label can load at a zoom inside a clamp's dead zone, and a
+   * step taken from there would land somewhere that still looks the same.
+   * @param {{min: number, max: number}} range
+   * @returns {number}
+   */
+  static #currentZoom({ min, max }) {
+    return Math.max(min, Math.min(max, svv.panoViewer.getPov().zoom));
+  }
+
+  /**
+   * Zooms in one level (a level is a zoom unit, as the buttons' {1, 2, 3} on a 3:2 frame) and updates the buttons.
    */
   zoomIn() {
-    const zoomLevel = Math.round(svv.panoViewer.getPov().zoom);
-    if (zoomLevel <= 2) {
-      svv.panoManager.setZoom(zoomLevel + 1);
-    }
+    const range = ZoomControl.range();
+    svv.panoManager.setZoom(Math.min(range.max, ZoomControl.#currentZoom(range) + 1));
     this.updateZoomAvailability();
   }
 
   /**
-   * Decreases zoom for the panorama and checks if 'Zoom Out' button needs to be disabled.
-   * Zoom levels: {1, 2, 3}
+   * Zooms out one level and updates the buttons.
    */
   zoomOut() {
-    const zoomLevel = Math.round(svv.panoViewer.getPov().zoom);
-    if (zoomLevel >= 2) {
-      svv.panoManager.setZoom(zoomLevel - 1);
-    }
+    const range = ZoomControl.range();
+    svv.panoManager.setZoom(Math.max(range.min, ZoomControl.#currentZoom(range) - 1));
     this.updateZoomAvailability();
   }
 
@@ -78,9 +95,8 @@ export class ZoomControl {
     // Scrolling up (negative deltaY) zooms in; scrolling down zooms out.
     const zoomDelta = -e.deltaY * ZoomControl.#ZOOM_WHEEL_SENSITIVITY;
 
-    const newZoom = Math.max(
-      ZoomControl.#MIN_ZOOM, Math.min(ZoomControl.#MAX_ZOOM, svv.panoViewer.getPov().zoom + zoomDelta),
-    );
+    const range = ZoomControl.range();
+    const newZoom = Math.max(range.min, Math.min(range.max, ZoomControl.#currentZoom(range) + zoomDelta));
     svv.panoManager.setZoom(newZoom);
     this.updateZoomAvailability();
 
@@ -94,15 +110,15 @@ export class ZoomControl {
   };
 
   /**
-   * Changes the opacity and enables/disables the zoom buttons depending on the 'zoom level'. It
-   * disables and 'greys-out' the zoom in button in the most zoomed in state and the zoom out
-   * button in the most zoomed out state.
-   * Zoom levels: { 1 (Zoom-out Disabled), 2 (Both buttons enabled), 3 (Zoom-In Disabled) }
+   * Changes the opacity and enables/disables the zoom buttons depending on the zoom: greys out zoom-in at the top
+   * of the visible range and zoom-out at the bottom.
    */
   updateZoomAvailability() {
     const zoomLevel = svv.panoViewer.getPov().zoom;
+    const { min, max } = ZoomControl.range();
+    const EPSILON = 1e-3; // A zoom set to the bound itself can read back a hair off it.
     // `aria-disabled` greys the button out but lets it keep keyboard focus; see pano-overlay-buttons.css.
-    this.#zoomInButton.setAttribute('aria-disabled', String(zoomLevel >= 3));
-    this.#zoomOutButton.setAttribute('aria-disabled', String(zoomLevel <= 1));
+    this.#zoomInButton.setAttribute('aria-disabled', String(zoomLevel >= max - EPSILON));
+    this.#zoomOutButton.setAttribute('aria-disabled', String(zoomLevel <= min + EPSILON));
   }
 }
