@@ -22,7 +22,11 @@ function installDialogStub() {
   };
 }
 
-const flush = () => new Promise((resolve) => setTimeout(resolve, 5));
+// Waits for the dialog's next `close` rather than a fixed delay: a close that lands after the next step would be
+// counted against it (a late submit close after a reopen reads as a skip).
+const nextClose = () => new Promise((resolve) => {
+  document.getElementById('survey-modal-container').addEventListener('close', resolve, { once: true });
+});
 
 let logged;
 let posted;
@@ -65,7 +69,7 @@ test('opens with focus on the dialog itself, not the skip X', () => {
 test('a close that is not a submit is logged as a skip', async () => {
   survey.open();
   document.getElementById('survey-skip-button').click();
-  await flush();
+  await nextClose();
 
   expect(document.getElementById('survey-modal-container').open).toBe(false);
   expect(logged).toEqual(['SurveySkip']);
@@ -77,7 +81,7 @@ test('a submit posts the answers as name/value pairs and is not a skip', async (
   form.querySelector('input').checked = true;
   form.querySelector('textarea').value = 'because';
   form.dispatchEvent(new Event('submit', { cancelable: true }));
-  await flush();
+  await nextClose();
 
   expect(posted).toEqual([[{ name: '1', value: 'a' }, { name: '2', value: 'because' }]]);
   expect(document.getElementById('survey-modal-container').open).toBe(false);
@@ -87,10 +91,10 @@ test('a submit posts the answers as name/value pairs and is not a skip', async (
 test('a skip after an earlier submit is still a skip', async () => {
   survey.open();
   document.getElementById('survey-form').dispatchEvent(new Event('submit', { cancelable: true }));
-  await flush();
+  await nextClose();
   survey.open();
   document.getElementById('survey-skip-button').click();
-  await flush();
+  await nextClose();
 
   expect(logged).toEqual(['SurveySkip']);
 });
