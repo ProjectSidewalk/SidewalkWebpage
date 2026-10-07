@@ -145,6 +145,8 @@ describe('MapStatusPill', () => {
         const pill = new window.MapStatusPill(container);
         pill.setState('belowFloor');
         jest.advanceTimersByTime(5000);
+        // Only the X is hit-testable, but a browser sends mouseenter/mouseleave to the pill as the pointer crosses
+        // the X (they reach every ancestor of the target), so the pill is where they're dispatched here.
         const target = enterEvent === 'mouseenter' ? pillEl() : closeEl();
         target.dispatchEvent(new Event(enterEvent, { bubbles: enterEvent !== 'mouseenter' }));
         jest.advanceTimersByTime(6000);
@@ -156,5 +158,28 @@ describe('MapStatusPill', () => {
         expect(pillEl().classList.contains('map-status-pill--leaving')).toBe(false);
         jest.advanceTimersByTime(1);
         expect(pillEl().classList.contains('map-status-pill--leaving')).toBe(true);
+    });
+
+    test('a hint that follows the loading note gets its close button back', () => {
+        const pill = new window.MapStatusPill(container);
+        pill.setState('loading');
+        jest.advanceTimersByTime(400);
+        expect(closeEl().hidden).toBe(true);
+
+        pill.setState('belowFloor');
+        expect(textEl().textContent).toBe('labelmap:zoom-in-for-labels');
+        expect(closeEl().hidden).toBe(false);
+    });
+
+    test('a state change that hides the hint while its X holds focus returns focus to the map canvas', () => {
+        container.innerHTML = '<canvas class="mapboxgl-canvas" tabindex="0"></canvas>';
+        const pill = new window.MapStatusPill(container);
+        pill.setState('belowFloor');
+        closeEl().focus();
+
+        pill.setState('idle');
+        expect(pillEl().hidden).toBe(true);
+        expect(document.activeElement).toBe(container.querySelector('canvas'));
+        expect(window.logWebpageActivity).not.toHaveBeenCalled(); // not a dismissal
     });
 });

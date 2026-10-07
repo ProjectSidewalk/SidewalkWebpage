@@ -8,7 +8,10 @@
  * sits over the map for the whole visit stops being read and takes the spot that later hints want.
  *
  * The hint follows the site's toast convention (`common/Toast.js`, #5415): a close button for a reader who is done
- * with it, and a fade that waits while it is hovered or focused, for one still reading it. It stays a pill rather
+ * with it, and a fade that waits while that button is hovered or focused, so it can't fade out from under someone
+ * reaching for it. Only the button takes the pointer: the pill itself stays pointer-events: none, so a wheel, drag or
+ * pinch that lands on it still reaches the map, and a tap on its text can't leave a touch "hover" holding the fade
+ * (Toast likewise pauses on hover only when there is a button to reach for). It stays a pill rather
  * than a Toast because Toast is fixed-positioned on <body> and one-shot, while this is a stateful element that lives
  * inside the map and centers itself on the map's visible part (`--map-inset-left`). The brief loading note gets no
  * close button: it is a status that clears itself, not a hint.
@@ -82,6 +85,8 @@ export class MapStatusPill {
     this.#close.addEventListener('click', () => this.#dismiss());
     this.#el.append(this.#text, this.#close);
 
+    // Listened for on the pill, but only the close button is hit-testable (choropleth.css), so in practice these
+    // fire as the pointer enters and leaves the button: mouseenter/mouseleave reach every ancestor of the target.
     this.#el.addEventListener('mouseenter', () => {
       this.#hovered = true;
       this.#applyPause();
@@ -181,10 +186,10 @@ export class MapStatusPill {
   }
 
   /**
-   * Holds the zoom hint's fade while it is hovered or focused, and restarts the full countdown once it is neither, as
-   * Toast does, so a reader who paused on it gets the whole duration back rather than a sliver. Focus matters most:
-   * the role="status" announcement gives no cue that the hint is on a clock (WCAG 2.2.1). A hint already fading is
-   * left to finish.
+   * Holds the zoom hint's fade while its close button is hovered or focused, and restarts the full countdown once it
+   * is neither, as Toast does, so a reader who paused on it gets the whole duration back rather than a sliver. Focus
+   * matters most: the role="status" announcement gives no cue that the hint is on a clock (WCAG 2.2.1). A hint
+   * already fading is left to finish.
    */
   #applyPause() {
     if (this.#state !== 'belowFloor' || this.#el.hidden || this.#el.classList.contains('map-status-pill--leaving')) {
