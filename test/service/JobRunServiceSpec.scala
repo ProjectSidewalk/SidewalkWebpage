@@ -11,7 +11,7 @@ import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
 import slick.dbio.DBIO
-import util.SidewalkSpec
+import util.{LogCapture, SidewalkSpec}
 
 import scala.concurrent.duration.*
 import scala.concurrent.{Await, Future}
@@ -106,6 +106,35 @@ class JobRunServiceSpec extends SidewalkSpec with BeforeAndAfterAll with GuiceOn
       cleanUp()
       await(jobRunService.record(jobName, JobRunTrigger.Manual)(Future.successful(1))(_ => Json.obj()))
       runsFor(jobName).head.triggeredBy mustBe JobRunTrigger.Manual
+    }
+
+    "log the outcome of a successful run, naming the job and trigger" in {
+      cleanUp()
+      // Several jobs log only their start, so this line is what tells a job still working from one that died at once.
+      val logged = LogCapture.capturing(classOf[JobRunServiceImpl].getName) { messages =>
+        await(jobRunService.record(jobName, JobRunTrigger.Scheduled)(Future.successful(1))(_ => Json.obj()))
+        messages()
+      }
+      logged.exists(line => line.startsWith(s"$jobName (scheduled) run succeeded in ")) mustBe true
+    }
+
+    "log the outcome of a failed run, with its error" in {
+      cleanUp()
+      val logged = LogCapture.capturing(classOf[JobRunServiceImpl].getName) { messages =>
+        an[IllegalStateException] must be thrownBy {
+          await(
+            jobRunService.record(jobName, JobRunTrigger.Manual)(Future.failed[Int](IllegalStateException("boom")))(_ =>
+              Json.obj()
+            )
+          )
+        }
+        messages()
+      }
+      logged.exists { line =>
+        line.startsWith(s"$jobName (manual) run failed after ") && line.endsWith(
+          "java.lang.IllegalStateException: boom"
+        )
+      } mustBe true
     }
 
     "still return the job's result when recording its details throws" in {

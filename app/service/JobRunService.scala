@@ -1,12 +1,12 @@
 package service
 
 import com.google.inject.ImplementedBy
-import models.utils.{BackgroundJobRunTable, JobRunStatus, JobRunTrigger, MyPostgresProfile}
+import models.utils.{BackgroundJobRun, BackgroundJobRunTable, JobRunStatus, JobRunTrigger, MyPostgresProfile}
 import play.api.Logger
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.JsObject
 
-import java.time.OffsetDateTime
+import java.time.{Duration, OffsetDateTime}
 import javax.inject.*
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
@@ -15,6 +15,7 @@ import scala.util.{Failure, Success, Try}
 @ImplementedBy(classOf[JobRunServiceImpl])
 trait JobRunService {
   def record[T](jobName: String, trigger: JobRunTrigger)(work: => Future[T])(details: T => JsObject): Future[T]
+  def interruptOrphanedRuns(bootedAt: OffsetDateTime): Future[Seq[BackgroundJobRun]]
 }
 
 /**
@@ -50,19 +51,41 @@ class JobRunServiceImpl @Inject() (
    * @return        Exactly what `work` returned, or its original failure.
    */
   def record[T](jobName: String, trigger: JobRunTrigger)(work: => Future[T])(details: T => JsObject): Future[T] = {
-    openRun(jobName, trigger).flatMap { runId =>
+    val startedAt = OffsetDateTime.now
+    openRun(jobName, trigger, startedAt).flatMap { runId =>
       // Future.delegate so that a `work` that throws synchronously is recorded as a failed run rather than escaping
       // past the bracket -- the actors' calls resolve config and API keys eagerly, which is exactly where that throw
       // would come from.
       Future.delegate(work).transformWith {
         case Success(result) =>
+          // Logged as well as recorded (#5236): several jobs log only their start, so without this line the log
+          // cannot tell a job that is still working from one that died the moment it began.
+          logger.info(s"$jobName (${trigger.name}) run succeeded in ${secondsSince(startedAt)}s.")
           closeRun(jobName, runId, JobRunStatus.Succeeded, buildDetails(jobName, result, details), None)
             .map(_ => result)
         case Failure(e) =>
-          closeRun(jobName, runId, JobRunStatus.Failed, None, Some(describe(e))).flatMap(_ => Future.failed(e))
+          val error = describe(e)
+          logger.warn(s"$jobName (${trigger.name}) run failed after ${secondsSince(startedAt)}s: $error")
+          closeRun(jobName, runId, JobRunStatus.Failed, None, Some(error)).flatMap(_ => Future.failed(e))
       }
     }
   }
+
+  /**
+   * Closes, as `Interrupted`, every run still open from before this process started (#5236).
+   *
+   * Only the process that opened a run ever closes it, so one that dies mid-run (a deploy, a crash, an OOM kill)
+   * leaves its row reading `running` forever. Called once at boot by `OrphanedJobRunSweep`.
+   *
+   * @param bootedAt When this process started. Every run it has opened itself started at or after this instant.
+   * @return         The runs closed, as they now read.
+   */
+  def interruptOrphanedRuns(bootedAt: OffsetDateTime): Future[Seq[BackgroundJobRun]] = {
+    db.run(backgroundJobRunTable.interruptRunsStartedBefore(bootedAt, OffsetDateTime.now))
+  }
+
+  /** Whole seconds since `start`, for the outcome log lines. */
+  private def secondsSince(start: OffsetDateTime): Long = Duration.between(start, OffsetDateTime.now).getSeconds
 
   /**
    * Runs the caller's details builder, keeping a broken one from costing the job its run record.
@@ -86,8 +109,8 @@ class JobRunServiceImpl @Inject() (
    *
    * @return The row's id, or None if the write failed — bookkeeping must never keep a job from running.
    */
-  private def openRun(jobName: String, trigger: JobRunTrigger): Future[Option[Int]] = {
-    db.run(backgroundJobRunTable.insertRunning(jobName, trigger, OffsetDateTime.now))
+  private def openRun(jobName: String, trigger: JobRunTrigger, startedAt: OffsetDateTime): Future[Option[Int]] = {
+    db.run(backgroundJobRunTable.insertRunning(jobName, trigger, startedAt))
       .map(Option(_))
       .recover { case NonFatal(e) =>
         logger.error(s"Could not record the start of $jobName; running it unrecorded.", e)

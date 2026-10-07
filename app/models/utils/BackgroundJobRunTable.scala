@@ -13,15 +13,24 @@ import javax.inject.{Inject, Singleton}
  * Outcome of one background-job run, backing the `job_run_status` Postgres enum type.
  *
  * A run is `Running` from the moment it starts until it settles, which is also exactly when `finished_at` is NULL
- * (enforced by `background_job_run_running_check`). A run left `Running` long past the job's normal duration was
- * abandoned — the app was killed or redeployed mid-run — and reads as neither success nor failure.
+ * (enforced by `background_job_run_running_check`). The process that opened a run is the only one that can settle it,
+ * so a process that dies mid-run leaves it open; the next boot closes it as `Interrupted` (#5236). A run left
+ * `Running` long past the job's normal duration while its process stays up has hung, and the Health panel reads it as
+ * abandoned.
  *
- * NOTE: if changing these values, update the `job_run_status` Postgres enum type as well (see 358.sql).
+ * NOTE: if changing these values, update the `job_run_status` Postgres enum type as well (see 358.sql, 413.sql).
  */
 enum JobRunStatus(val name: String) extends NamedEnum {
   case Running   extends JobRunStatus("running")
   case Succeeded extends JobRunStatus("succeeded")
   case Failed    extends JobRunStatus("failed")
+
+  /**
+   * The process running it died before it settled, as noticed by the next boot (`OrphanedJobRunSweep`). Kept apart
+   * from `Failed` because nothing is known about the work itself: there is no error, and `finished_at` is when the
+   * sweep closed the row, not when the work stopped.
+   */
+  case Interrupted extends JobRunStatus("interrupted")
 }
 
 object JobRunStatus extends PgEnumCompanion[JobRunStatus]("job_run_status")
@@ -126,6 +135,10 @@ class BackgroundJobRunTable @Inject() (protected val dbConfigProvider: DatabaseC
   /**
    * Closes a run row with its outcome.
    *
+   * Unconditional on the row's current status, deliberately: if a boot sweep closed this run as `Interrupted` while
+   * its owner was in fact still alive (two dev apps sharing one schema), the owner's verdict is the true one and
+   * overwrites the guess.
+   *
    * @param status       Anything but `Running` — the CHECK constraint rejects a finished row that claims to be running.
    * @param details      Per-job counts, or None when the job reports none.
    * @param errorMessage Set only alongside a `Failed` status.
@@ -141,6 +154,30 @@ class BackgroundJobRunTable @Inject() (protected val dbConfigProvider: DatabaseC
       .filter(_.backgroundJobRunId === runId)
       .map(run => (run.status, run.finishedAt, run.details, run.errorMessage))
       .update((status, Some(finishedAt), details, errorMessage))
+  }
+
+  /**
+   * Closes every run still open from before `bootedAt` as `Interrupted`, the boot-time half of #5236.
+   *
+   * On a deployed stage exactly one process serves each city schema, so a run that started before the current process
+   * did belongs to a process that is gone, and nothing will ever close it. Keying on the start instant rather than on
+   * "every open run" is what keeps the sweep off the runs this process has itself opened since it started.
+   *
+   * Raw SQL for `RETURNING`, so the caller can log what it closed in the same round trip.
+   *
+   * @param bootedAt   When this process started; only runs that started strictly earlier are touched.
+   * @param finishedAt What to record as the finish time: when the sweep noticed, since when the work stopped is lost.
+   * @return           The runs this call closed, as they now read.
+   */
+  def interruptRunsStartedBefore(bootedAt: OffsetDateTime, finishedAt: OffsetDateTime): DBIO[Seq[BackgroundJobRun]] = {
+    // finished_at is clamped to started_at so that a clock step backwards cannot trip background_job_run_finished_check
+    // and abort the whole sweep.
+    sql"""UPDATE background_job_run
+          SET status = 'interrupted', finished_at = GREATEST($finishedAt, started_at)
+          WHERE status = 'running'
+              AND started_at < $bootedAt
+          RETURNING background_job_run_id, job_name, triggered_by, started_at, finished_at, status, details,
+                    error_message""".as[BackgroundJobRun]
   }
 
   /**
