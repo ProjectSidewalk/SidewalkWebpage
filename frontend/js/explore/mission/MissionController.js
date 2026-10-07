@@ -42,9 +42,8 @@ export class MissionController {
     const mission = this.#missionContainer.getCurrentMission();
     const region = this.#regionModel.currentRegion();
 
-    // Nothing is left to walk, so finish the mission even if it reads just under 99.9%: the server and the page
-    // measure distance slightly differently. Do it before endTask, which sends the completed flag to the server.
-    if (!mission.isComplete()) {
+    // A route's mission completes before endTask, so endTask's submission carries the completed flag to the server.
+    if (svl.regionModel.isRoute && !mission.isComplete()) {
       this.#completeTheCurrentMission(mission, region);
     }
 
@@ -57,6 +56,12 @@ export class MissionController {
       svl.taskContainer.updateAuditedDistance();
     } else {
       svl.taskContainer.endTask(currentTask);
+    }
+
+    // Finish a region's mission here, as it can read just under 99.9% (server and page measure distance a bit
+    // differently). Only after the street's submission, or the server would count it as left and start a new mission.
+    if (!mission.isComplete()) {
+      this.#completeTheCurrentMission(mission, region);
     }
 
     svl.modalMissionComplete.update(mission, region);

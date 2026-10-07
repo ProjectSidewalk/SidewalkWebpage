@@ -8,6 +8,7 @@ import models.label.LabelType
 import models.mission.MissionTable.{distanceForLaterMissions, distancesForFirstAuditMissions}
 import models.mission.{Mission, MissionTable, MissionType}
 import models.route.{RouteTable, UserRoute}
+import models.street.StreetEdgeTable
 import models.user.SidewalkUserTable.aiUserId
 import models.user.{SidewalkUserWithRole, UserAccountStateTable}
 import models.utils.MyPostgresProfile
@@ -78,6 +79,7 @@ class MissionServiceImpl @Inject() (
     missionTable: MissionTable,
     auditTaskTable: AuditTaskTable,
     routeTable: RouteTable,
+    streetEdgeTable: StreetEdgeTable,
     userAccountStateTable: UserAccountStateTable
 )(using ec: ExecutionContext)
     extends MissionService
@@ -318,10 +320,8 @@ class MissionServiceImpl @Inject() (
       revisitStreetId: Option[Int]
   ): DBIO[Double] = {
     for {
-      distRemaining: Double <- auditTaskTable.getUnauditedDistance(userId, regionId)
-      revisitDist: Double   <- revisitStreetId
-        .map(auditTaskTable.lengthIfExploredBy(userId, _))
-        .getOrElse(DBIO.successful(0d))
+      distRemaining: Double  <- auditTaskTable.getUnauditedDistance(userId, regionId)
+      revisitDist: Double    <- revisitStreetId.map(revisitedStreetLength(userId, _)).getOrElse(DBIO.successful(0d))
       completedInRegion: Int <- missionTable.selectCompletedExploreMissions(userId, regionId).map(_.length)
     } yield {
       val naiveMissionDist: Double =
@@ -332,6 +332,15 @@ class MissionServiceImpl @Inject() (
       math.min(distRemaining + revisitDist, math.max(naiveMissionDist, revisitDist))
     }
   }
+
+  /**
+   * A street's length if the user already explored it, which leaves it out of getUnauditedDistance; else 0.
+   */
+  private def revisitedStreetLength(userId: String, streetEdgeId: Int): DBIO[Double] =
+    auditTaskTable.userHasAuditedStreet(streetEdgeId, userId).flatMap {
+      case true  => streetEdgeTable.getServedStreetLength(streetEdgeId).map(_.getOrElse(0d))
+      case false => DBIO.successful(0d)
+    }
 
   /**
    * Either resumes or creates a new validation mission.

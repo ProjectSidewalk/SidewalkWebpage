@@ -95,4 +95,14 @@ describe('MissionController.wrapUpRouteOrRegion', () => {
 
         expect(mission.complete).toHaveBeenCalled();
     });
+
+    // Completing sends a submission; if it beat the street's, the server would size a new mission for that street.
+    it('finishes a region\'s last street before completing its mission', () => {
+        svl.regionModel.isRoute = false;
+
+        controller.wrapUpRouteOrRegion();
+
+        const streetDone = svl.taskContainer.endTask.mock.invocationCallOrder[0];
+        expect(streetDone).toBeLessThan(mission.complete.mock.invocationCallOrder[0]);
+    });
 });
