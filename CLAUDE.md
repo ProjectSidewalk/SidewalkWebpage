@@ -49,7 +49,7 @@ file, and this table says which doc to read first:
 - End every issue, PR description, and comment you post on GitHub with `🤖 <model> · effort: <level>` (e.g.
   `🤖 Claude Opus 5.5 · effort: high`), reading the level from `$CLAUDE_EFFORT` at post time.
 - Prod deploys are tag-triggered (`vX.Y.Z` on `master`); pushing `develop` redeploys the test stage.
-- Never edit `public/build/` output or run the build by hand: the developer's `npm start` runs `grunt watch`, which
+- Never edit `public/build/` output or run the build by hand: the developer's `npm start` runs `npm run watch`, which
   rebuilds on save. A page's JS starts at its entry in `frontend/js/pages/`, which imports what it needs.
 - Keep docs in sync in the same change. `docs/architecture.md` is the human-facing architecture reference; exact
   dependency versions live only in `docs/upgrading-libraries.md`.
