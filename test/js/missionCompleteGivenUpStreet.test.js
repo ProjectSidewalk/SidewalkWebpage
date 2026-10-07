@@ -87,7 +87,7 @@ describe('MissionController.wrapUpRouteOrRegion', () => {
         expect(svl.modalMissionComplete.show).toHaveBeenCalled();
     });
 
-    // A region's last mission is sized to the distance left, which client progress can fall just short of (#5692).
+    // A region's last mission can read just under done, so the wrap-up has to finish it (#5692).
     it('completes the mission when a region runs out of streets, not only a route', () => {
         svl.regionModel.isRoute = false;
 

@@ -30,8 +30,7 @@ import scala.concurrent.{ExecutionContext, Future}
  * @param routeUnavailable Whether a route the visit would have been in was dropped, so the page tells the user rather
  *                         than passing the visit off as an ordinary session. Either a ?routeId= named no live route
  *                         (#5156), or the walk's route has no walkable distance and so yields no mission (#5167).
- * @param regionFinished   Whether the ?regionId= asked for was already finished by the user, so they were moved to
- *                         another region (#5692).
+ * @param regionFinished   Whether the ?regionId= asked for was already finished, so the user was moved (#5692).
  */
 case class ExplorePageData(
     task: Option[NewTask],
@@ -214,7 +213,7 @@ class ExploreServiceImpl @Inject() (
       regionId: Option[Int],
       streetEdgeId: Option[Int]
   ): Future[ExplorePageData] = {
-    // Read before the for-comprehension below rebinds regionId to the session's region.
+    // Saved here because regionId is reused below for the session's region.
     val askedForRegion: Boolean = regionId.isDefined
     def getExploreDataAction    = for {
       // Check if user has an active route or create a new one if routeId was supplied. If resumeRoute is false and no
@@ -300,8 +299,7 @@ class ExploreServiceImpl @Inject() (
                   _        <- userRouteTable.pauseAllActiveRoutes(userId)
                   fallback <- regionFallbackAfterDroppedWalk(userId, region.get)
                 } yield (fallback._1, true, false, fallback._2)
-              // The region has no distance left for the user. That's news only when they asked for it by ?regionId=
-              // (#5692); a region picked for them can still land here if its only unexplored streets are zero length.
+              // Nothing left for the user here. Only tell them so if they asked for this region by ?regionId= (#5692).
               case None =>
                 missionInFreshRegion(userId).map((m, newRegion) => (m, false, askedForRegion, newRegion))
             }
@@ -555,9 +553,8 @@ class ExploreServiceImpl @Inject() (
     }
 
   /**
-   * Moves the user to one of the highest-priority regions they haven't finished, as a bare /explore does once their
-   * current region is done.
-   * @return The new region's mission, paired with that region.
+   * Moves the user to a top-priority region they haven't finished, as a bare /explore does.
+   * @return The new mission and its region.
    */
   private def missionInFreshRegion(userId: String): DBIO[(Mission, Region)] =
     assignRegion(userId).flatMap {

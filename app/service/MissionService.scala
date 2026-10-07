@@ -32,8 +32,7 @@ trait MissionService {
    * The user's incomplete audit mission in the region or route walk, else a new one; a tutorial mission instead for a
    * user who hasn't finished the tutorial.
    *
-   * @param revisitStreetId A street the visit asked for. If the user already explored it, a new mission counts it as
-   *                        distance left, so the mission ends no later than the work the user has left (#5692).
+   * @param revisitStreetId A requested street; if the user already explored it, it counts as distance left (#5692).
    * @return None when no mission can be sized: a route walk whose streets sum to zero length (#5167), or a region
    *         with no distance left to assign. Callers decide what the session falls back to.
    */
@@ -308,8 +307,7 @@ class MissionServiceImpl @Inject() (
   /**
    * Get the suggested distance in meters for the next mission this user does in this region.
    *
-   * Capped at what the user has left (a revisited street included), but never shorter than a revisited street, so it
-   * can't end partway along it with nothing left to size the next one from.
+   * Capped at what's left (counting a revisited street) but never shorter than it, so it can't end partway along it.
    *
    * @param revisitStreetId A street the visit asked for; see resumeOrCreateNewAuditMission.
    * @return The mission distance in meters; 0 when the user has nothing left in the region.

@@ -443,8 +443,7 @@ class ExploreRouteRequestSpec
       val session = freshAnonSession()
       completeOnboarding(session)
       val userId = exploreBootstrap(session).userId
-      // The smallest region holding a street Explore can serve. Small, because afterAll deletes one task per street,
-      // and each delete scans tables that reference audit_task without an index.
+      // The smallest region: cleanup deletes one task per street, and each delete is slow (unindexed foreign keys).
       val regionId: Int = run(
         sql"""SELECT street_edge_region.region_id
               FROM street_edge_region
@@ -477,7 +476,7 @@ class ExploreRouteRequestSpec
                  SELECT $userId, street_edge_id, TRUE, 0, 0
                  FROM street_edge_region
                  WHERE region_id = $regionId""")
-      // Closes the mission the bootstrap opened, so the visit has to make a new one in the finished region.
+      // Close the bootstrap's mission so the visit has to make a new one.
       val _ = run(sqlu"UPDATE mission SET completed = TRUE WHERE user_id = $userId")
 
       val visit = exploreSession(session, s"?streetEdgeId=$streetEdgeId")

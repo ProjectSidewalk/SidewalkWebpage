@@ -42,8 +42,8 @@ export class MissionController {
     const mission = this.#missionContainer.getCurrentMission();
     const region = this.#regionModel.currentRegion();
 
-    // Nothing is left to walk, but the distance check can stall short of 99.9%: the server sizes missions on the WGS84
-    // spheroid, client progress is spherical turf. Before endTask, whose submission carries the completed flag.
+    // Nothing is left to walk, so finish the mission even if it reads just under 99.9%: the server and the page
+    // measure distance slightly differently. Do it before endTask, which sends the completed flag to the server.
     if (!mission.isComplete()) {
       this.#completeTheCurrentMission(mission, region);
     }

@@ -600,8 +600,8 @@ class AuditTaskTable @Inject() (
       }
 
   /**
-   * A street's length if the user has explored it with up-to-date imagery, so it is missing from getUnauditedDistance.
-   * @return The length in meters, or 0 when the user hasn't explored it.
+   * A street's length if the user already explored it, which leaves it out of getUnauditedDistance.
+   * @return The length in meters, or 0 if they haven't explored it.
    */
   def lengthIfExploredBy(userId: String, streetEdgeId: Int): DBIO[Double] = {
     streetEdgeTable.streets
