@@ -1,0 +1,161 @@
+-- WRITES (DDL). Run by hand in psql as a superuser, one database at a time: \i 3955-drop-raster-leftovers.sql
+-- It leaves the transaction OPEN. Check the PostGIS_Full_Version() output at the end, then type COMMIT (or ROLLBACK).
+--
+-- Drops the loose PostGIS 2.5 raster objects that no extension owns (listed from sidewalk_test on 2026-10-07). We never
+-- used PostGIS rasters. No CASCADE anywhere: if anything still depends on one of these, the DROP fails and nothing
+-- is changed. IF EXISTS so the same script works on a database that is missing some of them.
+-- Leaves public.play_evolutions and public.mission_progress_cvgroundtruth alone; those are ours, not PostGIS's.
+-- Written against PostGIS 3.6.4 / Postgres 18.6; no evolution dependency. A no-op on dev, which has none of these.
+
+\set ON_ERROR_STOP on
+BEGIN;
+
+DROP VIEW IF EXISTS public.raster_overviews;
+DROP VIEW IF EXISTS public.raster_columns;
+
+DROP FUNCTION IF EXISTS public._add_overview_constraint(name,name,name,name,name,name,integer);
+DROP FUNCTION IF EXISTS public.addoverviewconstraints(name,name,name,name,integer);
+DROP FUNCTION IF EXISTS public.addoverviewconstraints(name,name,name,name,name,name,integer);
+DROP FUNCTION IF EXISTS public._add_raster_constraint_alignment(name,name,name);
+DROP FUNCTION IF EXISTS public._add_raster_constraint_blocksize(name,name,name,text);
+DROP FUNCTION IF EXISTS public._add_raster_constraint_coverage_tile(name,name,name);
+DROP FUNCTION IF EXISTS public._add_raster_constraint_extent(name,name,name);
+DROP FUNCTION IF EXISTS public._add_raster_constraint(name,text);
+DROP FUNCTION IF EXISTS public._add_raster_constraint_nodata_values(name,name,name);
+DROP FUNCTION IF EXISTS public._add_raster_constraint_num_bands(name,name,name);
+DROP FUNCTION IF EXISTS public._add_raster_constraint_out_db(name,name,name);
+DROP FUNCTION IF EXISTS public._add_raster_constraint_pixel_types(name,name,name);
+DROP FUNCTION IF EXISTS public._add_raster_constraint_scale(name,name,name,character);
+DROP FUNCTION IF EXISTS public.addrasterconstraints(name,name,boolean,boolean,boolean,boolean,boolean,boolean,boolean,boolean,boolean,boolean,boolean,boolean);
+DROP FUNCTION IF EXISTS public.addrasterconstraints(name,name,name,boolean,boolean,boolean,boolean,boolean,boolean,boolean,boolean,boolean,boolean,boolean,boolean);
+DROP FUNCTION IF EXISTS public.addrasterconstraints(name,name,name,text[]);
+DROP FUNCTION IF EXISTS public.addrasterconstraints(name,name,text[]);
+DROP FUNCTION IF EXISTS public._add_raster_constraint_spatially_unique(name,name,name);
+DROP FUNCTION IF EXISTS public._add_raster_constraint_srid(name,name,name);
+DROP FUNCTION IF EXISTS public._drop_overview_constraint(name,name,name);
+DROP FUNCTION IF EXISTS public.dropoverviewconstraints(name,name);
+DROP FUNCTION IF EXISTS public.dropoverviewconstraints(name,name,name);
+DROP FUNCTION IF EXISTS public._drop_raster_constraint_alignment(name,name,name);
+DROP FUNCTION IF EXISTS public._drop_raster_constraint_blocksize(name,name,name,text);
+DROP FUNCTION IF EXISTS public._drop_raster_constraint_coverage_tile(name,name,name);
+DROP FUNCTION IF EXISTS public._drop_raster_constraint_extent(name,name,name);
+DROP FUNCTION IF EXISTS public._drop_raster_constraint(name,name,name);
+DROP FUNCTION IF EXISTS public._drop_raster_constraint_nodata_values(name,name,name);
+DROP FUNCTION IF EXISTS public._drop_raster_constraint_num_bands(name,name,name);
+DROP FUNCTION IF EXISTS public._drop_raster_constraint_out_db(name,name,name);
+DROP FUNCTION IF EXISTS public._drop_raster_constraint_pixel_types(name,name,name);
+DROP FUNCTION IF EXISTS public._drop_raster_constraint_regular_blocking(name,name,name);
+DROP FUNCTION IF EXISTS public._drop_raster_constraint_scale(name,name,name,character);
+DROP FUNCTION IF EXISTS public.droprasterconstraints(name,name,boolean,boolean,boolean,boolean,boolean,boolean,boolean,boolean,boolean,boolean,boolean,boolean);
+DROP FUNCTION IF EXISTS public.droprasterconstraints(name,name,name,boolean,boolean,boolean,boolean,boolean,boolean,boolean,boolean,boolean,boolean,boolean,boolean);
+DROP FUNCTION IF EXISTS public.droprasterconstraints(name,name,name,text[]);
+DROP FUNCTION IF EXISTS public.droprasterconstraints(name,name,text[]);
+DROP FUNCTION IF EXISTS public._drop_raster_constraint_spatially_unique(name,name,name);
+DROP FUNCTION IF EXISTS public._drop_raster_constraint_srid(name,name,name);
+DROP FUNCTION IF EXISTS public._overview_constraint_info(name,name,name);
+DROP FUNCTION IF EXISTS public.postgis_raster_scripts_installed();
+DROP FUNCTION IF EXISTS public._raster_constraint_info_alignment(name,name,name);
+DROP FUNCTION IF EXISTS public._raster_constraint_info_blocksize(name,name,name,text);
+DROP FUNCTION IF EXISTS public._raster_constraint_info_coverage_tile(name,name,name);
+DROP FUNCTION IF EXISTS public._raster_constraint_info_extent(name,name,name);
+DROP FUNCTION IF EXISTS public._raster_constraint_info_index(name,name,name);
+DROP FUNCTION IF EXISTS public._raster_constraint_info_nodata_values(name,name,name);
+DROP FUNCTION IF EXISTS public._raster_constraint_info_num_bands(name,name,name);
+DROP FUNCTION IF EXISTS public._raster_constraint_info_out_db(name,name,name);
+DROP FUNCTION IF EXISTS public._raster_constraint_info_pixel_types(name,name,name);
+DROP FUNCTION IF EXISTS public._raster_constraint_info_regular_blocking(name,name,name);
+DROP FUNCTION IF EXISTS public._raster_constraint_info_scale(name,name,name,character);
+DROP FUNCTION IF EXISTS public._raster_constraint_info_spatially_unique(name,name,name);
+DROP FUNCTION IF EXISTS public._raster_constraint_info_srid(name,name,name);
+DROP FUNCTION IF EXISTS public.st_approxcount(text,text,boolean,double precision);
+DROP FUNCTION IF EXISTS public.st_approxcount(text,text,double precision);
+DROP FUNCTION IF EXISTS public.st_approxcount(text,text,integer,boolean,double precision);
+DROP FUNCTION IF EXISTS public.st_approxcount(text,text,integer,double precision);
+DROP FUNCTION IF EXISTS public.st_approxhistogram(text,text,double precision);
+DROP FUNCTION IF EXISTS public.st_approxhistogram(text,text,integer,boolean,double precision,integer,boolean);
+DROP FUNCTION IF EXISTS public.st_approxhistogram(text,text,integer,boolean,double precision,integer,double precision[],boolean);
+DROP FUNCTION IF EXISTS public.st_approxhistogram(text,text,integer,double precision);
+DROP FUNCTION IF EXISTS public.st_approxhistogram(text,text,integer,double precision,integer,boolean);
+DROP FUNCTION IF EXISTS public.st_approxhistogram(text,text,integer,double precision,integer,double precision[],boolean);
+DROP FUNCTION IF EXISTS public.st_approxquantile(text,text,boolean,double precision);
+DROP FUNCTION IF EXISTS public.st_approxquantile(text,text,double precision);
+DROP FUNCTION IF EXISTS public.st_approxquantile(text,text,double precision[]);
+DROP FUNCTION IF EXISTS public.st_approxquantile(text,text,double precision,double precision);
+DROP FUNCTION IF EXISTS public.st_approxquantile(text,text,double precision,double precision[]);
+DROP FUNCTION IF EXISTS public.st_approxquantile(text,text,integer,boolean,double precision,double precision);
+DROP FUNCTION IF EXISTS public.st_approxquantile(text,text,integer,boolean,double precision,double precision[]);
+DROP FUNCTION IF EXISTS public.st_approxquantile(text,text,integer,double precision,double precision);
+DROP FUNCTION IF EXISTS public.st_approxquantile(text,text,integer,double precision,double precision[]);
+DROP FUNCTION IF EXISTS public.st_approxsummarystats(text,text,boolean);
+DROP FUNCTION IF EXISTS public.st_approxsummarystats(text,text,double precision);
+DROP FUNCTION IF EXISTS public.st_approxsummarystats(text,text,integer,boolean,double precision);
+DROP FUNCTION IF EXISTS public.st_approxsummarystats(text,text,integer,double precision);
+DROP FUNCTION IF EXISTS public._st_aspect4ma(double precision[],integer[],text[]);
+DROP FUNCTION IF EXISTS public._st_convertarray4ma(double precision[]);
+DROP FUNCTION IF EXISTS public._st_countagg_finalfn(agg_count);
+DROP FUNCTION IF EXISTS public.st_count(text,text,boolean);
+DROP FUNCTION IF EXISTS public.st_count(text,text,integer,boolean);
+DROP FUNCTION IF EXISTS public._st_count(text,text,integer,boolean,double precision);
+DROP FUNCTION IF EXISTS public.st_createoverview(regclass,name,integer,text);
+DROP FUNCTION IF EXISTS public.st_distinct4ma(double precision[],integer[],text[]);
+DROP FUNCTION IF EXISTS public.st_distinct4ma(double precision[],text,text[]);
+DROP FUNCTION IF EXISTS public._st_grayscale4ma(double precision[],integer[],text[]);
+DROP FUNCTION IF EXISTS public._st_hillshade4ma(double precision[],integer[],text[]);
+DROP FUNCTION IF EXISTS public.st_histogram(text,text,integer,boolean,integer,boolean);
+DROP FUNCTION IF EXISTS public.st_histogram(text,text,integer,boolean,integer,double precision[],boolean);
+DROP FUNCTION IF EXISTS public.st_histogram(text,text,integer,integer,boolean);
+DROP FUNCTION IF EXISTS public.st_histogram(text,text,integer,integer,double precision[],boolean);
+DROP FUNCTION IF EXISTS public.st_invdistweight4ma(double precision[],integer[],text[]);
+DROP FUNCTION IF EXISTS public.st_max4ma(double precision[],integer[],text[]);
+DROP FUNCTION IF EXISTS public.st_max4ma(double precision[],text,text[]);
+DROP FUNCTION IF EXISTS public.st_mean4ma(double precision[],integer[],text[]);
+DROP FUNCTION IF EXISTS public.st_mean4ma(double precision[],text,text[]);
+DROP FUNCTION IF EXISTS public.st_min4ma(double precision[],integer[],text[]);
+DROP FUNCTION IF EXISTS public.st_min4ma(double precision[],text,text[]);
+DROP FUNCTION IF EXISTS public.st_mindist4ma(double precision[],integer[],text[]);
+DROP FUNCTION IF EXISTS public.st_quantile(text,text,boolean,double precision);
+DROP FUNCTION IF EXISTS public.st_quantile(text,text,double precision);
+DROP FUNCTION IF EXISTS public.st_quantile(text,text,double precision[]);
+DROP FUNCTION IF EXISTS public.st_quantile(text,text,integer,boolean,double precision);
+DROP FUNCTION IF EXISTS public.st_quantile(text,text,integer,boolean,double precision[]);
+DROP FUNCTION IF EXISTS public.st_quantile(text,text,integer,double precision);
+DROP FUNCTION IF EXISTS public.st_quantile(text,text,integer,double precision[]);
+DROP FUNCTION IF EXISTS public.st_range4ma(double precision[],integer[],text[]);
+DROP FUNCTION IF EXISTS public.st_range4ma(double precision[],text,text[]);
+DROP FUNCTION IF EXISTS public._st_roughness4ma(double precision[],integer[],text[]);
+DROP FUNCTION IF EXISTS public.st_samealignment(double precision,double precision,double precision,double precision,double precision,double precision,double precision,double precision,double precision,double precision,double precision,double precision);
+DROP FUNCTION IF EXISTS public._st_slope4ma(double precision[],integer[],text[]);
+DROP FUNCTION IF EXISTS public.st_stddev4ma(double precision[],integer[],text[]);
+DROP FUNCTION IF EXISTS public.st_stddev4ma(double precision[],text,text[]);
+DROP FUNCTION IF EXISTS public.st_sum4ma(double precision[],integer[],text[]);
+DROP FUNCTION IF EXISTS public.st_sum4ma(double precision[],text,text[]);
+DROP FUNCTION IF EXISTS public.st_summarystats(text,text,boolean);
+DROP FUNCTION IF EXISTS public.st_summarystats(text,text,integer,boolean);
+DROP FUNCTION IF EXISTS public._st_summarystats(text,text,integer,boolean,double precision);
+DROP FUNCTION IF EXISTS public._st_tpi4ma(double precision[],integer[],text[]);
+DROP FUNCTION IF EXISTS public._st_tri4ma(double precision[],integer[],text[]);
+DROP FUNCTION IF EXISTS public.st_valuecount(text,text,double precision,double precision);
+DROP FUNCTION IF EXISTS public.st_valuecount(text,text,double precision[],double precision);
+DROP FUNCTION IF EXISTS public.st_valuecount(text,text,integer,boolean,double precision,double precision);
+DROP FUNCTION IF EXISTS public.st_valuecount(text,text,integer,boolean,double precision[],double precision);
+DROP FUNCTION IF EXISTS public.st_valuecount(text,text,integer,double precision,double precision);
+DROP FUNCTION IF EXISTS public.st_valuecount(text,text,integer,double precision[],double precision);
+DROP FUNCTION IF EXISTS public.st_valuepercent(text,text,double precision,double precision);
+DROP FUNCTION IF EXISTS public.st_valuepercent(text,text,double precision[],double precision);
+DROP FUNCTION IF EXISTS public.st_valuepercent(text,text,integer,boolean,double precision,double precision);
+DROP FUNCTION IF EXISTS public.st_valuepercent(text,text,integer,boolean,double precision[],double precision);
+DROP FUNCTION IF EXISTS public.st_valuepercent(text,text,integer,double precision,double precision);
+DROP FUNCTION IF EXISTS public.st_valuepercent(text,text,integer,double precision[],double precision);
+DROP FUNCTION IF EXISTS public.updaterastersrid(name,name,integer);
+DROP FUNCTION IF EXISTS public._updaterastersrid(name,name,name,integer);
+DROP FUNCTION IF EXISTS public.updaterastersrid(name,name,name,integer);
+
+DROP TYPE IF EXISTS public.addbandarg;
+DROP TYPE IF EXISTS public.agg_count;
+DROP TYPE IF EXISTS public.geomval;
+DROP TYPE IF EXISTS public.reclassarg;
+DROP TYPE IF EXISTS public.summarystats;
+DROP TYPE IF EXISTS public.unionarg;
+
+-- The "raster procs ... need upgrade" note at the end should be gone.
+SELECT PostGIS_Full_Version();
