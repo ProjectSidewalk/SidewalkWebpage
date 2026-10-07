@@ -722,6 +722,25 @@ textarea.ps-input {
   outline-offset: 2px;
 }
 
+/* A finger needs a 44px target and a thumb it can see around itself; 14px was hard to grab on a phone (#5580).
+   Unscaled on purpose: a touch target's floor doesn't shrink with --ui-scale. */
+@media (pointer: coarse) {
+  .ps-range {
+    height: 44px;
+  }
+
+  .ps-range::-webkit-slider-thumb {
+    width: 28px;
+    height: 28px;
+    margin-top: calc(1.5px * var(--ui-scale, 1) - 14px); /* Centred on the scaled 3px track. */
+  }
+
+  .ps-range::-moz-range-thumb {
+    width: 28px;
+    height: 28px;
+  }
+}
+
 
 /* Data table. The API docs and both dashboards draw their tables from this; the shared sticky-header and scroller
    variants are in components/tables.css, and a page adds only what its own table needs on top. Mark a numeric cell
