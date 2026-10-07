@@ -27,6 +27,14 @@ trait MissionService {
       auditTaskId: Option[Int]
   ): DBIO[Option[Mission]]
   def resumeOrCreateNewAuditOnboardingMission(userId: String): DBIO[Option[Mission]]
+
+  /**
+   * The user's incomplete audit mission in the region or route walk, else a new one; a tutorial mission instead for a
+   * user who hasn't finished the tutorial.
+   *
+   * @return None when no mission can be sized: a route walk whose streets sum to zero length (#5167), or a region
+   *         with no distance left to assign. Callers decide what the session falls back to.
+   */
   def resumeOrCreateNewAuditMission(userId: String, regionId: Int, userRoute: Option[UserRoute]): DBIO[Option[Mission]]
   def resumeOrCreateNewAiExploreMission(regionId: Int): DBIO[Mission]
   def resumeOrCreateNewExploreAddressMission(userId: String): DBIO[Mission]
