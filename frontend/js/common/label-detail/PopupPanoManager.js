@@ -44,6 +44,10 @@ export class PopupPanoManager {
   // Longest a deep-linked host should hold its own init on warmUp() before carrying on without the viewer; a
   // healthy build takes well under a second even on a cold cache.
   static DEEP_LINK_BUILD_WAIT_MS = 3000;
+  // The whole zoom steps Explore's and Validate's zoom buttons offer. A convention of our viewers (all of them speak
+  // GSV's zoom scale), not a domain value the backend owns, so it is not sourced from it.
+  static #MIN_ZOOM = 1;
+  static #MAX_ZOOM = 3;
   #pannellumViewer = undefined;  // Only constructed when an expired pano with a self-hosted image is shown.
   #loadingEl; // Host-rendered overlay (.label-detail__pano-loading); absent on a host that doesn't include it.
   // Identifies the newest setPano() call. Its late work — the deferred resize/POV, the reveal, the fallback panel —
@@ -670,5 +674,45 @@ export class PopupPanoManager {
     while (pov.heading > 360) pov.heading -= 360;
 
     return pov;
+  }
+
+  /**
+   * Steps the imagery one zoom level in, for the Gallery's Z shortcut (#5142).
+   * @returns {boolean} Whether the view changed: false at the top step, or when no pano is on screen.
+   */
+  zoomIn() {
+    return this.#stepZoom(1);
+  }
+
+  /**
+   * Steps the imagery one zoom level out, for the Gallery's Shift+Z shortcut (#5142).
+   * @returns {boolean} Whether the view changed: false at the bottom step, or when no pano is on screen.
+   */
+  zoomOut() {
+    return this.#stepZoom(-1);
+  }
+
+  /**
+   * Moves the active viewer one whole zoom step, staying within Explore/Validate's {1, 2, 3} buttons.
+   *
+   * Guarded by direction rather than clamped, because the scroll wheel can leave a viewer outside those steps (GSV
+   * past 3, Mapillary below 1): clamping first would make Z zoom *out* of a view the user had wheeled in past 3.
+   *
+   * @param {number} delta - +1 to zoom in, -1 to zoom out.
+   * @returns {boolean} Whether the view changed.
+   */
+  #stepZoom(delta) {
+    // Only a live or self-hosted pano has a zoom to step. While the crop or no-imagery panel shows, panoViewer still
+    // points at the hidden primary viewer (#teardownPannellum), and before the first label it is unbuilt (#5128).
+    if (this.activeViewerName !== 'Default' && this.activeViewerName !== 'Pannellum') return false;
+    const pov = this.getPov();
+    if (!pov) return false;
+
+    const current = Math.round(pov.zoom);
+    if (delta > 0 && current >= PopupPanoManager.#MAX_ZOOM) return false;
+    if (delta < 0 && current <= PopupPanoManager.#MIN_ZOOM) return false;
+    const zoom = Math.min(PopupPanoManager.#MAX_ZOOM, Math.max(PopupPanoManager.#MIN_ZOOM, current + delta));
+    this.panoViewer.setPov({ ...pov, zoom });
+    return true;
   }
 }

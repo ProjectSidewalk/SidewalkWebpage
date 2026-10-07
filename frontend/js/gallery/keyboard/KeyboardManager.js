@@ -1,3 +1,5 @@
+import { sg } from '../sg.js';
+
 /** @typedef {import('../expandedview/ExpandedView.js').ExpandedView} ExpandedView */
 
 /**
@@ -31,9 +33,16 @@ export class KeyboardManager {
 
     switch (e.code) {
       // Zoom in on 'Z', zoom out on 'Shift+Z'.
+      // Logged whether or not the view moved (already at a bound, or a crop on screen), as Explore and Validate do.
+      // The tracker is optional because Main.js builds it after this manager.
       case 'KeyZ':
-        if (e.shiftKey) this.#expandedView.panoManager.zoomOut();
-        else this.#expandedView.panoManager.zoomIn();
+        if (e.shiftKey) {
+          this.#expandedView.panoManager.zoomOut();
+          sg.tracker?.push('KeyboardShortcut_ZoomOut', null, { code: e.code });
+        } else {
+          this.#expandedView.panoManager.zoomIn();
+          sg.tracker?.push('KeyboardShortcut_ZoomIn', null, { code: e.code });
+        }
         break;
       case 'Escape':
         this.#expandedView.closeExpandedViewAndRemoveCardTransparency();
