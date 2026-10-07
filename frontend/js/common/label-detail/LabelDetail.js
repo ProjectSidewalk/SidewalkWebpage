@@ -113,6 +113,7 @@ export class LabelDetail {
   #els = {};
 
   #source = undefined;      // Set in showLabel().
+  #redrawing = false;       // Set by #redrawShownLabel() for exactly one showLabel() call: keeps it out of the log.
   #readonly = false;        // Set per-label in #handleData() based on meta.from_current_user.
   #canEdit = false;         // Set per-label in #handleData() from meta.can_edit (#2575).
   #deleted = false;         // Set per-label in #handleData() from meta.deleted (#3591).
@@ -765,11 +766,26 @@ export class LabelDetail {
    *
    * An arrow instance field (not a prototype method) because LabelPopup detaches and re-invokes it.
    *
+   * Every call logs `LabelDetail_Show_labelId=<id>_source=<source>` (#5139) — the card's only open signal, since
+   * the hosts open it from map clicks, deep links, list rows and the paging arrows alike (docs/logged-events.md).
+   * It is logged before the fetch, so an open counts even when the label then fails to load. A redraw of the label
+   * already on screen is not an open, so it comes through #redrawShownLabel() and stays out of the count.
+   *
    * @param {number|object} idOrMeta - Either a label id (number) to fetch, or a pre-built meta object.
    * @param {string} source - The UI that created the popup (recorded with validations).
    * @returns {Promise<object>} The label metadata payload that was rendered.
    */
   showLabel = async (idOrMeta, source) => {
+    // Read and cleared before any await, so the suppression covers this one call and never a later, real open.
+    const redraw = this.#redrawing;
+    this.#redrawing = false;
+    if (!redraw) {
+      const labelId = typeof idOrMeta === 'object' && idOrMeta !== null
+        ? /** @type {Record<string, any>} */ (idOrMeta).label_id
+        : idOrMeta;
+      window.logWebpageActivity(`LabelDetail_Show_labelId=${labelId}_source=${source}`);
+    }
+
     this.#source = source;
     this.#resetVoteButtonStyles();
     this.panoManager.clearLabels();
@@ -793,6 +809,26 @@ export class LabelDetail {
     this.#handleData(meta);
     return meta;
   };
+
+  /**
+   * Reloads the label already on screen, for a save the server refused because the label changed under the card.
+   * It goes through `this.showLabel` rather than the fetch-and-render body directly, because a LabelPopup host
+   * has replaced that with its wrapper, whose onMetadata callback is what tells LabelMap the label's new type; the
+   * flag only keeps the redraw out of the open count (#5139).
+   *
+   * @param {number} labelId - The ID of the label being redrawn, which is the one currently shown.
+   * @param {string} source - The UI source the label was shown with.
+   * @returns {Promise<void>} Resolves once the label has been redrawn.
+   */
+  async #redrawShownLabel(labelId, source) {
+    this.#redrawing = true;
+    try {
+      await this.showLabel(labelId, source);
+    } finally {
+      // A wrapper that threw before reaching the inner showLabel() would otherwise leave the next open unlogged.
+      this.#redrawing = false;
+    }
+  }
 
   /**
    * Populates the view with the label metadata fetched (or passed in directly) by showLabel().
@@ -1196,7 +1232,7 @@ export class LabelDetail {
         // The type changed under this card, so the vote judged a type the label lost (#3671): reload and say so.
         if (this.#currentLabelMeta !== votedLabelMeta) return;
         this.#setVoteButtonsDisabled(false);
-        await this.showLabel(votedLabelMeta.label_id, source);
+        await this.#redrawShownLabel(votedLabelMeta.label_id, source);
         this.#showTypeConflictToast();
         return;
       }
@@ -2617,7 +2653,7 @@ export class LabelDetail {
       if (res.status === 409) {
         // The type changed under this card (#5510): reload so the user sees the right comments, keeping their text.
         if (this.#currentLabelMeta !== commentedLabelMeta) return;
-        await this.showLabel(commentedLabelMeta.label_id, this.#source);
+        await this.#redrawShownLabel(commentedLabelMeta.label_id, this.#source);
         els.commentInput.value = comment;
         this.#showTypeConflictToast();
         return;
