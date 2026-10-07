@@ -65,6 +65,8 @@ readonly_user -d sidewalk`).
   18, code has to run on Postgres 16 too, so don't use SQL that's new in 17 or 18 (`RETURNING OLD/NEW`, `uuidv7()`,
   `JSON_TABLE`, virtual generated columns). `docker-compose.yml` starts the db with `jit=off`, matching prod
   ([#4376](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4376)).
+- **Name time zones as Area/City** (`America/Los_Angeles`, not `US/Pacific`). Dev's Debian 13 ships without the old
+  alias names, so Postgres there rejects them even though Rocky's Postgres accepts them.
 - **Prod server settings dev lacks** (set by CSE IT in its `postgresql.conf` after
   [#4545](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4545)):
   `idle_in_transaction_session_timeout = 2min` and `log_lock_waits = on`.
