@@ -16,6 +16,7 @@ import play.twirl.api.Html
 import slick.dbio.DBIO
 
 import java.lang.management.ManagementFactory
+import java.time.format.{DateTimeFormatter, FormatStyle}
 import java.time.{Instant, LocalDate, OffsetDateTime, ZoneId, ZoneOffset}
 import java.time.temporal.ChronoUnit
 import javax.inject.*
@@ -108,6 +109,10 @@ case class CommonPageData(
     // Every language the site offers (play.i18n.langs), so i18next only asks for translation files that exist.
     supportedLanguages: Seq[String]
 ) {
+
+  /** The release date for the footer, in the reader's language's date style (e.g. "October 6, 2026"). */
+  def versionDateLabel(lang: Lang): String =
+    versionTimestamp.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG).withLocale(lang.toLocale))
 
   /** The deployment city's info; cityId always comes from the same config that builds allCityInfo. */
   def currentCity: CityInfo = allCityInfo.find(_.cityId == cityId).get
