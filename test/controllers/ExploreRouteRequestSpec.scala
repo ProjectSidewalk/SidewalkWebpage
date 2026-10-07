@@ -476,6 +476,16 @@ class ExploreRouteRequestSpec
   "GET /explore/session?regionId=<finished>" should {
     "move the user to a region with streets left, and say why, even with a mission still open there (#5692)" in {
       val (session, finishedRegion, _) = userWithOpenMissionInFinishedRegion()
+      val otherRegions                 = run(
+        sql"""SELECT COUNT(DISTINCT street_edge_region.region_id)
+              FROM street_edge_region
+              INNER JOIN region ON street_edge_region.region_id = region.region_id
+              INNER JOIN street_edge ON street_edge_region.street_edge_id = street_edge.street_edge_id
+              WHERE NOT region.deleted AND street_edge.status = 'open'
+                AND street_edge_region.region_id <> $finishedRegion""".as[Int].head
+      )
+      if (otherRegions == 0)
+        cancel("No other region has streets to move the user to; the all-finished end state is #5693.")
 
       val visit = exploreSession(session, s"?regionId=$finishedRegion")
 
