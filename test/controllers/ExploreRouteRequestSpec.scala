@@ -409,4 +409,141 @@ class ExploreRouteRequestSpec
       pageParam(exploreSession(session, ""), "route_unavailable") mustBe Some(JsBoolean(false))
     }
   }
+
+  /**
+   * The smallest region holding a street Explore can serve, and one such street in it. Smallest because finishing it
+   * gives the user one task per street, and cleanup deletes each slowly (unindexed foreign keys on audit_task).
+   */
+  private def smallestServableRegion(): (Int, Int) = {
+    val regionId: Int = run(
+      sql"""SELECT street_edge_region.region_id
+            FROM street_edge_region
+            INNER JOIN region ON street_edge_region.region_id = region.region_id
+            WHERE NOT region.deleted
+              AND street_edge_region.region_id IN (
+                SELECT street_edge_region.region_id
+                FROM street_edge_region
+                INNER JOIN street_edge_priority
+                  ON street_edge_region.street_edge_id = street_edge_priority.street_edge_id
+                INNER JOIN osm_way_street_edge
+                  ON street_edge_region.street_edge_id = osm_way_street_edge.street_edge_id
+              )
+            GROUP BY street_edge_region.region_id
+            ORDER BY COUNT(*)
+            LIMIT 1""".as[Int].headOption
+    ).getOrElse(cancel("No region holds a street Explore can serve."))
+    val streetEdgeId: Int = run(
+      sql"""SELECT street_edge_region.street_edge_id
+            FROM street_edge_region
+            INNER JOIN street_edge ON street_edge_region.street_edge_id = street_edge.street_edge_id
+            INNER JOIN street_edge_priority ON street_edge_region.street_edge_id = street_edge_priority.street_edge_id
+            INNER JOIN osm_way_street_edge ON street_edge_region.street_edge_id = osm_way_street_edge.street_edge_id
+            WHERE street_edge_region.region_id = $regionId
+              AND street_edge.status = 'open'
+              AND street_edge.street_edge_id NOT IN (SELECT tutorial_street_edge_id FROM config)
+            LIMIT 1""".as[Int].headOption
+    ).getOrElse(cancel("The smallest region has no open, non-tutorial street to visit."))
+    (regionId, streetEdgeId)
+  }
+
+  private def finishRegion(userId: String, regionId: Int): Unit = {
+    val _ = run(sqlu"""INSERT INTO audit_task (user_id, street_edge_id, completed, current_lat, current_lng)
+                       SELECT $userId, street_edge_id, TRUE, 0, 0
+                       FROM street_edge_region
+                       WHERE region_id = $regionId""")
+  }
+
+  /**
+   * A user who has finished the smallest region, with a mission still open in it: the leftover a closed tab or the
+   * old 99.9% stall leaves behind, which a visit must not resume.
+   */
+  private def userWithOpenMissionInFinishedRegion(): (Seq[Cookie], Int, Int) = {
+    val session = freshAnonSession()
+    completeOnboarding(session)
+    val (regionId, streetEdgeId) = smallestServableRegion()
+    val opened                   = exploreSession(session, s"?regionId=$regionId")
+    pageParam(opened, "region_id").map(_.as[Int]) mustBe Some(regionId)
+    val userId =
+      run(
+        sql"SELECT user_id FROM mission WHERE mission_id = ${(opened \ "mission" \ "mission_id").as[Int]}"
+          .as[String]
+          .head
+      )
+    finishRegion(userId, regionId)
+    (session, regionId, streetEdgeId)
+  }
+
+  "GET /explore/session?regionId=<finished>" should {
+    "move the user to a region with streets left, and say why, even with a mission still open there (#5692)" in {
+      val (session, finishedRegion, _) = userWithOpenMissionInFinishedRegion()
+      val otherRegions                 = run(
+        sql"""SELECT COUNT(DISTINCT street_edge_region.region_id)
+              FROM street_edge_region
+              INNER JOIN region ON street_edge_region.region_id = region.region_id
+              INNER JOIN street_edge_priority ON street_edge_region.street_edge_id = street_edge_priority.street_edge_id
+              WHERE NOT region.deleted AND street_edge_region.region_id <> $finishedRegion""".as[Int].head
+      )
+      if (otherRegions == 0)
+        cancel("No other region has streets to move the user to; the all-finished end state is #5693.")
+
+      val visit = exploreSession(session, s"?regionId=$finishedRegion")
+
+      pageParam(visit, "region_finished") mustBe Some(JsBoolean(true))
+      pageParam(visit, "region_id").map(_.as[Int]) must not be Some(finishedRegion)
+      (visit \ "task").toOption must not be None
+    }
+
+    "say nothing when the region asked for still has streets left" in {
+      val session = freshAnonSession()
+      completeOnboarding(session)
+      val openRegion = exploreSession(session, "")("region_id").as[Int]
+
+      val visit = exploreSession(session, s"?regionId=$openRegion")
+
+      pageParam(visit, "region_finished") mustBe Some(JsBoolean(false))
+      pageParam(visit, "region_id").map(_.as[Int]) mustBe Some(openRegion)
+    }
+
+    "move the user without a toast when the only streets left are zero length" in {
+      val session = freshAnonSession()
+      completeOnboarding(session)
+      val streetEdgeId = seedZeroLengthStreet(session, aloneInItsRegion = true)
+      val zeroRegion   = run(
+        sql"SELECT region_id FROM street_edge_region WHERE street_edge_id = $streetEdgeId".as[Int].head
+      )
+
+      val visit = exploreSession(session, s"?regionId=$zeroRegion")
+
+      pageParam(visit, "region_finished") mustBe Some(JsBoolean(false))
+      pageParam(visit, "region_id").map(_.as[Int]) must not be Some(zeroRegion)
+    }
+
+    "pick another region rather than failing when the id names no region" in {
+      val session = freshAnonSession()
+      completeOnboarding(session)
+
+      val visit = exploreSession(session, s"?regionId=${Int.MaxValue}")
+
+      pageParam(visit, "region_finished") mustBe Some(JsBoolean(false))
+    }
+  }
+
+  "GET /explore/session?streetEdgeId=<street in a finished region>" should {
+    "start a mission exactly as long as that street, not resume the one left open there (#5692)" in {
+      val (session, regionId, streetEdgeId) = userWithOpenMissionInFinishedRegion()
+
+      val visit = exploreSession(session, s"?streetEdgeId=$streetEdgeId")
+
+      pageParam(visit, "region_id").map(_.as[Int]) mustBe Some(regionId)
+      pageParam(visit, "region_finished") mustBe Some(JsBoolean(false))
+      (visit \ "task" \ "properties" \ "street_edge_id").asOpt[Int] mustBe Some(streetEdgeId)
+      val missionId = (visit \ "mission" \ "mission_id").as[Int]
+      val lengthGap = run(
+        sql"""SELECT ABS(mission.distance_meters - ST_Length(street_edge.geom::geography))
+              FROM mission, street_edge
+              WHERE mission.mission_id = $missionId AND street_edge.street_edge_id = $streetEdgeId""".as[Double].head
+      )
+      lengthGap must be < 0.01
+    }
+  }
 }

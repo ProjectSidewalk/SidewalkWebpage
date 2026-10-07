@@ -23,10 +23,11 @@ describe('MissionController.wrapUpRouteOrRegion', () => {
     let svl;
     let controller;
     let currentTask;
+    let mission;
 
     beforeEach(() => {
         currentTask = makeTask();
-        const mission = {
+        mission = {
             isComplete: () => false,
             complete: jest.fn(),
             getProperty: (key) => (key === 'missionId' ? 7 : 'audit'),
@@ -84,5 +85,24 @@ describe('MissionController.wrapUpRouteOrRegion', () => {
         controller.wrapUpRouteOrRegion();
 
         expect(svl.modalMissionComplete.show).toHaveBeenCalled();
+    });
+
+    // A region's last mission can read just under done, so the wrap-up has to finish it (#5692).
+    it('completes the mission when a region runs out of streets, not only a route', () => {
+        svl.regionModel.isRoute = false;
+
+        controller.wrapUpRouteOrRegion();
+
+        expect(mission.complete).toHaveBeenCalled();
+    });
+
+    // Completing sends a submission; if it beat the street's, the server would size a new mission for that street.
+    it('finishes a region\'s last street before completing its mission', () => {
+        svl.regionModel.isRoute = false;
+
+        controller.wrapUpRouteOrRegion();
+
+        const streetDone = svl.taskContainer.endTask.mock.invocationCallOrder[0];
+        expect(streetDone).toBeLessThan(mission.complete.mock.invocationCallOrder[0]);
     });
 });
