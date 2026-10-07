@@ -465,11 +465,14 @@ class ExploreRouteRequestSpec
       val streetEdgeId: Int = run(
         sql"""SELECT street_edge_region.street_edge_id
               FROM street_edge_region
+              INNER JOIN street_edge ON street_edge_region.street_edge_id = street_edge.street_edge_id
               INNER JOIN street_edge_priority ON street_edge_region.street_edge_id = street_edge_priority.street_edge_id
               INNER JOIN osm_way_street_edge ON street_edge_region.street_edge_id = osm_way_street_edge.street_edge_id
               WHERE street_edge_region.region_id = $regionId
-              LIMIT 1""".as[Int].head
-      )
+                AND street_edge.status = 'open'
+                AND street_edge.street_edge_id NOT IN (SELECT tutorial_street_edge_id FROM config)
+              LIMIT 1""".as[Int].headOption
+      ).getOrElse(cancel("The smallest region has no open, non-tutorial street to visit."))
       val _ = run(sqlu"""INSERT INTO audit_task (user_id, street_edge_id, completed, current_lat, current_lng)
                  SELECT $userId, street_edge_id, TRUE, 0, 0
                  FROM street_edge_region
@@ -482,6 +485,13 @@ class ExploreRouteRequestSpec
       pageParam(visit, "region_id").map(_.as[Int]) mustBe Some(regionId)
       pageParam(visit, "region_finished") mustBe Some(JsBoolean(false))
       (visit \ "task" \ "properties" \ "street_edge_id").asOpt[Int] mustBe Some(streetEdgeId)
+      val missionId = (visit \ "mission" \ "mission_id").as[Int]
+      val lengthGap = run(
+        sql"""SELECT ABS(mission.distance_meters - ST_Length(street_edge.geom::geography))
+              FROM mission, street_edge
+              WHERE mission.mission_id = $missionId AND street_edge.street_edge_id = $streetEdgeId""".as[Double].head
+      )
+      lengthGap must be < 0.01
     }
   }
 }

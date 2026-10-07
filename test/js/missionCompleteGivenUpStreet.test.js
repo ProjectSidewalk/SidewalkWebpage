@@ -23,10 +23,11 @@ describe('MissionController.wrapUpRouteOrRegion', () => {
     let svl;
     let controller;
     let currentTask;
+    let mission;
 
     beforeEach(() => {
         currentTask = makeTask();
-        const mission = {
+        mission = {
             isComplete: () => false,
             complete: jest.fn(),
             getProperty: (key) => (key === 'missionId' ? 7 : 'audit'),
@@ -84,5 +85,14 @@ describe('MissionController.wrapUpRouteOrRegion', () => {
         controller.wrapUpRouteOrRegion();
 
         expect(svl.modalMissionComplete.show).toHaveBeenCalled();
+    });
+
+    // A region's last mission is sized to the distance left, which client progress can fall just short of (#5692).
+    it('completes the mission when a region runs out of streets, not only a route', () => {
+        svl.regionModel.isRoute = false;
+
+        controller.wrapUpRouteOrRegion();
+
+        expect(mission.complete).toHaveBeenCalled();
     });
 });

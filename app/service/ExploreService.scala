@@ -214,7 +214,9 @@ class ExploreServiceImpl @Inject() (
       regionId: Option[Int],
       streetEdgeId: Option[Int]
   ): Future[ExplorePageData] = {
-    def getExploreDataAction = for {
+    // Read before the for-comprehension below rebinds regionId to the session's region.
+    val askedForRegion: Boolean = regionId.isDefined
+    def getExploreDataAction    = for {
       // Check if user has an active route or create a new one if routeId was supplied. If resumeRoute is false and no
       // routeId was supplied, then the function should return None and the user is not sent on a specific route. A
       // routeId naming no live route is dropped and flagged for the page (#5156). Region or street id params take
@@ -286,7 +288,7 @@ class ExploreServiceImpl @Inject() (
           missionService.resumeOrCreateNewAuditOnboardingMission(userId).map(m => (m.get, false, false, region.get))
         } else {
           missionService
-            .resumeOrCreateNewAuditMission(userId, regionId, userRoute, allowFinishedRegion = streetEdgeId.isDefined)
+            .resumeOrCreateNewAuditMission(userId, regionId, userRoute, revisitStreetId = streetEdgeId)
             .flatMap {
               case Some(m)                     => DBIO.successful((m, false, false, region.get))
               case None if userRoute.isDefined =>
@@ -298,10 +300,10 @@ class ExploreServiceImpl @Inject() (
                   _        <- userRouteTable.pauseAllActiveRoutes(userId)
                   fallback <- regionFallbackAfterDroppedWalk(userId, region.get)
                 } yield (fallback._1, true, false, fallback._2)
-              // Only a ?regionId= the user already finished gets here: a region picked for them always has work, and a
-              // street visit always gets a mission (#5692).
+              // The region has no distance left for the user. That's news only when they asked for it by ?regionId=
+              // (#5692); a region picked for them can still land here if its only unexplored streets are zero length.
               case None =>
-                missionInFreshRegion(userId).map((m, newRegion) => (m, false, true, newRegion))
+                missionInFreshRegion(userId).map((m, newRegion) => (m, false, askedForRegion, newRegion))
             }
         }
       }
@@ -553,7 +555,8 @@ class ExploreServiceImpl @Inject() (
     }
 
   /**
-   * Moves the user to a region with streets left for them, picked the way a bare /explore picks one.
+   * Moves the user to one of the highest-priority regions they haven't finished, as a bare /explore does once their
+   * current region is done.
    * @return The new region's mission, paired with that region.
    */
   private def missionInFreshRegion(userId: String): DBIO[(Mission, Region)] =

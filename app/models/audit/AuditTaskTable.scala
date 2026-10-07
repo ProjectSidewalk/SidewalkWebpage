@@ -600,6 +600,22 @@ class AuditTaskTable @Inject() (
       }
 
   /**
+   * A street's length if the user has explored it with up-to-date imagery, so it is missing from getUnauditedDistance.
+   * @return The length in meters, or 0 when the user hasn't explored it.
+   */
+  def lengthIfExploredBy(userId: String, streetEdgeId: Int): DBIO[Double] = {
+    streetEdgeTable.streets
+      .filter(_.streetEdgeId === streetEdgeId)
+      .filter(street =>
+        upToDateCompletedTasks.filter(t => t.userId === userId && t.streetEdgeId === street.streetEdgeId).exists
+      )
+      .map(_.geom.lengthGeodesic)
+      .result
+      .headOption
+      .map(_.getOrElse(0d))
+  }
+
+  /**
    * Get the sum of the line distance of all streets in the region that the user has not audited.
    */
   def getUnauditedDistance(userId: String, regionId: Int): DBIO[Double] = {

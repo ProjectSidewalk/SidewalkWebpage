@@ -42,9 +42,9 @@ export class MissionController {
     const mission = this.#missionContainer.getCurrentMission();
     const region = this.#regionModel.currentRegion();
 
-    // A route-scoped mission completes with the route. This must happen before endTask: endTask's submission
-    // carries the mission's completed flag, which is what marks the mission complete server-side.
-    if (svl.regionModel.isRoute && !mission.isComplete()) {
+    // Nothing is left to walk, but the distance check can stall short of 99.9%: the server sizes missions on the WGS84
+    // spheroid, client progress is spherical turf. Before endTask, whose submission carries the completed flag.
+    if (!mission.isComplete()) {
       this.#completeTheCurrentMission(mission, region);
     }
 
