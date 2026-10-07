@@ -198,7 +198,8 @@ DI is Guice. The app bootstraps via `app/CustomApplicationLoader.scala`; modules
 `SilhouetteModule`, and `StartupChecksModule` — the home for boot-time checks that surface deployment-level
 misconfiguration, like `PersistentMediaDirCheck`, and for boot-time repairs like `AiSeedRowsRepair`, which inserts
 the SidewalkAI user's per-schema rows wherever a schema was created without running 281.sql — a cloned or
-dump-restored city, #5349). Custom execution contexts live in `app/executors/`; background actors in `app/actor/`;
+dump-restored city, #5349, and `OrphanedJobRunSweep`, which closes the job runs a previous process died in the
+middle of, #5236). Custom execution contexts live in `app/executors/`; background actors in `app/actor/`;
 HTTP filters in `app/filters/`, registered through `play.filters.enabled` in
 `conf/application.conf`.
 
@@ -240,8 +241,13 @@ the Health panel can tell "fresh" from "stuck". `/v3/api/places` serves the tabl
 Every run is bracketed by `JobRunService.record`, which writes a `background_job_run` row — start, finish, outcome,
 and the job's own counts as JSONB (#4928). Without it, a job that silently stops firing is indistinguishable from one
 that found nothing to do, since the absence of a log line is not something anyone notices. `/admin/health` renders
-the roster, flagging any job that is overdue, failed, or has never run. The wrapper is strictly subordinate to the
-job: a bookkeeping failure is logged and swallowed, and a job's own failure propagates unchanged.
+the roster, flagging any job that is overdue, failed, interrupted, or has never run. The wrapper is strictly
+subordinate to the job: a bookkeeping failure is logged and swallowed, and a job's own failure propagates unchanged.
+It also logs each run's outcome and duration, so the log alone can tell a job still working from one that died.
+Only the process that opened a run can close it, so a process that dies mid-run (a deploy, a crash) would leave the
+row `running` forever; `OrphanedJobRunSweep` closes those at the next boot as `interrupted` (#5236), taking every run
+that started before this JVM did. That rule rests on each stage running one process per city schema. A run that hangs
+inside a live process is not caught at boot; the Health panel reads it as `abandoned` after 12 hours.
 
 The two derived tables, `intersection` and `sidewalk_presence`, share one pattern: the derivation is raw SQL held once
 in the DAO (`IntersectionTable.derivationSql`, `SidewalkPresenceTable.derivationSql`), the evolution that created the

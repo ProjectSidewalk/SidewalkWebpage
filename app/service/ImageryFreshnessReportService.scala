@@ -26,8 +26,9 @@ import scala.concurrent.{ExecutionContext, Future}
  * @param streetsRefreshed street_imagery rows the sync refreshed from panos labelers happened to view.
  * @param auditsFlagged    Audits newly marked as needing a re-audit.
  * @param auditsUnflagged  Audits whose re-audit flag cleared.
- * @param pollFailures     Failed poll runs that night; a night of zeros with a failure means "broken", not "quiet".
- * @param syncFailures     Failed sync runs that night.
+ * @param pollFailures     Failed or interrupted poll runs that night; a night of zeros with a failure means
+ *                         "broken", not "quiet".
+ * @param syncFailures     Failed or interrupted sync runs that night.
  * @param noImagerySelected no_imagery streets picked by the regained-imagery re-check rotation (#4929). Zero for
  *                          runs recorded before that rotation existed.
  * @param noImageryPolled   Of those, streets that answered conclusively.
@@ -142,6 +143,13 @@ object ImageryFreshnessReportService {
   /** Clamps a caller-supplied window into the supported range. */
   def clampDays(days: Int): Int = math.max(MinDays, math.min(MaxDays, days))
 
+  /**
+   * Whether a run counts as a failure on the chart. An interrupted run (its process died, #5236) did not do the night's
+   * work any more than a failed one did, and leaving it out would draw a night the app was killed in as merely quiet.
+   */
+  private def failedOrInterrupted(status: JobRunStatus): Boolean =
+    status == JobRunStatus.Failed || status == JobRunStatus.Interrupted
+
   /** Reads one integer out of a run's recorded details, treating an absent or non-numeric key as zero. */
   private def count(details: Option[JsValue], key: String): Int =
     details.flatMap(json => (json \ key).asOpt[Int]).getOrElse(0)
@@ -174,8 +182,8 @@ object ImageryFreshnessReportService {
           streetsRefreshed = syncs.map(run => count(run.details, "streets_refreshed")).sum,
           auditsFlagged = syncs.map(run => count(run.details, "audits_flagged")).sum,
           auditsUnflagged = syncs.map(run => count(run.details, "audits_unflagged")).sum,
-          pollFailures = polls.count(_.status == JobRunStatus.Failed),
-          syncFailures = syncs.count(_.status == JobRunStatus.Failed),
+          pollFailures = polls.count(run => failedOrInterrupted(run.status)),
+          syncFailures = syncs.count(run => failedOrInterrupted(run.status)),
           // Absent in runs recorded before the #4929 rotation existed; count() reads those as zero.
           noImagerySelected = polls.map(run => count(run.details, "no_imagery_streets_selected")).sum,
           noImageryPolled = polls.map(run => count(run.details, "no_imagery_streets_polled")).sum,

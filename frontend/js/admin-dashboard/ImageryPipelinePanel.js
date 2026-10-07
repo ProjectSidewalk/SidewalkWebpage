@@ -151,12 +151,20 @@ export class ImageryPipelinePanel {
     } else if (poll.last_status === 'failed') {
       tone = 'warn';
       message = `The most recent poll failed: ${poll.last_error || 'see the server log'}`;
-    } else if (sync && (sync.overdue || sync.last_status === 'failed')) {
+    } else if (poll.last_status === 'interrupted') {
+      // The app was restarted or died mid-run, so there is no error to show; the server log around that time has why.
+      tone = 'warn';
+      message = 'The most recent poll was cut off when the app stopped (a restart or crash) before it finished.';
+    } else if (sync && (sync.overdue || ['failed', 'interrupted'].includes(sync.last_status))) {
       // The poll can be healthy while the sync that turns its dates into flags is not, and the symptom is the same
-      // from the outside: nothing new gets flagged.
+      // from the outside: nothing new gets flagged. An interrupted sync has no error of its own and may well have
+      // succeeded on schedule the night before, so it gets its own reason rather than the overdue one.
+      const interrupted = sync.last_status === 'interrupted' && !sync.overdue;
       tone = 'warn';
       message = 'The poll is running, but the flag sync that turns capture dates into re-audits is not: '
-        + `${sync.last_error || 'it has not succeeded on schedule'}.`;
+        + `${interrupted
+          ? 'its most recent run was cut off when the app stopped (a restart or crash)'
+          : sync.last_error || 'it has not succeeded on schedule'}.`;
     } else if (recentPolled === 0) {
       tone = 'warn';
       message = `The poll has run but refreshed no streets in the last ${report.days} days; every street it `
