@@ -2,9 +2,9 @@
  * The Gallery's Z / Shift+Z zoom shortcut (#5142): frontend/js/gallery/keyboard/KeyboardManager.js calling
  * PopupPanoManager's zoomIn()/zoomOut() (frontend/js/common/label-detail/PopupPanoManager.js).
  *
- * The shortcut once called methods the expanded view's pano manager didn't have, so every Z threw a TypeError and
- * nothing zoomed. These pin the key → manager call → viewer POV chain, the logging, and the step bounds, including
- * the views (crop, no imagery, no label yet) where there is nothing to zoom.
+ * These pin the key → manager call → viewer POV chain (the manager has to have the methods the key calls), the
+ * logging, the keypresses the card doesn't own (a text field, a dialog stacked over it), and the step bounds,
+ * including wheel-set zooms between steps and the views (crop, no imagery, no label yet) with nothing to zoom.
  */
 
 const { loadModules } = require('./loadGlobalScript');
@@ -113,6 +113,32 @@ describe('Gallery Z / Shift+Z shortcut', () => {
         expect(window.sg.tracker.push).not.toHaveBeenCalled();
     });
 
+    it.each([
+        ['a focused select', '<select><option>x</option></select>', 'select'],
+        ['a focused contenteditable', '<div contenteditable="true" tabindex="0">x</div>', 'div'],
+        ['a button in a dialog stacked over the card', '<dialog open><button>OK</button></dialog>', 'button'],
+    ])('leaves Z alone from %s', (_name, html, selector) => {
+        document.body.innerHTML = html;
+        document.querySelector(selector).focus();
+        release({ key: 'z', code: 'KeyZ' });
+        expect(expandedView.panoManager.zoomIn).not.toHaveBeenCalled();
+        expect(window.sg.tracker.push).not.toHaveBeenCalled();
+    });
+
+    it('leaves Z alone while a dialog is open and nothing holds focus', () => {
+        document.body.innerHTML = '<dialog open><p>Delete this label?</p></dialog>';
+        release({ key: 'z', code: 'KeyZ' });
+        expect(expandedView.panoManager.zoomIn).not.toHaveBeenCalled();
+        expect(window.sg.tracker.push).not.toHaveBeenCalled();
+    });
+
+    it('still zooms from a focused control on the card itself', () => {
+        document.body.innerHTML = '<button>Agree</button><dialog><p>closed</p></dialog>';
+        document.querySelector('button').focus();
+        release({ key: 'z', code: 'KeyZ' });
+        expect(expandedView.panoManager.zoomIn).toHaveBeenCalledTimes(1);
+    });
+
     it.each(['ctrlKey', 'metaKey', 'altKey'])('leaves Z to the browser with %s held', (modifier) => {
         release({ key: 'z', code: 'KeyZ', [modifier]: true });
         expect(expandedView.panoManager.zoomIn).not.toHaveBeenCalled();
@@ -186,6 +212,34 @@ describe('PopupPanoManager zoomIn() / zoomOut()', () => {
         const { manager, viewer } = await liveManager(2.4);
         expect(manager.zoomIn()).toBe(true);
         expect(viewer.getPov().zoom).toBe(3);
+    });
+
+    it('zooms in to 3 from a wheel-set zoom that rounds up to 3', async () => {
+        const { manager, viewer } = await liveManager(2.6);
+        expect(manager.zoomIn()).toBe(true);
+        expect(viewer.getPov().zoom).toBe(3);
+    });
+
+    it('zooms out to 3, not 2, from a wheel-set zoom just past 3', async () => {
+        const { manager, viewer } = await liveManager(3.4);
+        expect(manager.zoomOut()).toBe(true);
+        expect(viewer.getPov().zoom).toBe(3);
+    });
+
+    it('steps out to the step below a fractional zoom', async () => {
+        const { manager, viewer } = await liveManager(2.4);
+        expect(manager.zoomOut()).toBe(true);
+        expect(viewer.getPov().zoom).toBe(2);
+    });
+
+    it('treats float noise around a step as that step', async () => {
+        const { manager, viewer } = await liveManager(1.9999999);
+        expect(manager.zoomIn()).toBe(true);
+        expect(viewer.getPov().zoom).toBe(3);
+
+        const top = await liveManager(2.9999999);
+        expect(top.manager.zoomIn()).toBe(false);
+        expect(top.viewer.setPov).not.toHaveBeenCalled();
     });
 
     it('never zooms out on Z when the wheel has taken the view past 3', async () => {

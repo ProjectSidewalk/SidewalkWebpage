@@ -693,13 +693,19 @@ export class PopupPanoManager {
   }
 
   /**
-   * Moves the active viewer one whole zoom step, staying within Explore/Validate's {1, 2, 3} buttons.
+   * Moves the active viewer to the next whole zoom step in the direction pressed, within Explore/Validate's
+   * {1, 2, 3} buttons.
    *
-   * Guarded by direction rather than clamped, because the scroll wheel can leave a viewer outside those steps (GSV
-   * past 3, Mapillary below 1): clamping first would make Z zoom *out* of a view the user had wheeled in past 3.
+   * The scroll wheel can leave a viewer between steps or outside them (GSV past 3, Mapillary below 1), so the
+   * target is the nearest step strictly beyond the current zoom in that direction rather than the current zoom
+   * rounded and then stepped: rounding would leave Z dead at 2.6 and make Shift+Z skip 3 from 3.4, and clamping
+   * would make Z zoom *out* of a view wheeled in past 3.
    *
    * @param {number} delta - +1 to zoom in, -1 to zoom out.
    * @returns {boolean} Whether the view changed.
+   *
+   * @example
+   * // From 2.6, Z goes to 3; from 3.4 or 4, Shift+Z goes to 3; from 0.4, Z goes to 1; at 3, Z does nothing.
    */
   #stepZoom(delta) {
     // Only a live or self-hosted pano has a zoom to step. While the crop or no-imagery panel shows, panoViewer still
@@ -708,10 +714,18 @@ export class PopupPanoManager {
     const pov = this.getPov();
     if (!pov) return false;
 
-    const current = Math.round(pov.zoom);
-    if (delta > 0 && current >= PopupPanoManager.#MAX_ZOOM) return false;
-    if (delta < 0 && current <= PopupPanoManager.#MIN_ZOOM) return false;
-    const zoom = Math.min(PopupPanoManager.#MAX_ZOOM, Math.max(PopupPanoManager.#MIN_ZOOM, current + delta));
+    // Pannellum reports zoom through a fov round trip, so a view set to 2 can read back as 1.9999999.
+    const EPSILON = 0.01;
+    const min = PopupPanoManager.#MIN_ZOOM;
+    const max = PopupPanoManager.#MAX_ZOOM;
+    let zoom;
+    if (delta > 0) {
+      if (pov.zoom >= max - EPSILON) return false;
+      zoom = Math.min(max, Math.max(min, Math.floor(pov.zoom + EPSILON) + 1));
+    } else {
+      if (pov.zoom <= min + EPSILON) return false;
+      zoom = Math.max(min, Math.min(max, Math.ceil(pov.zoom - EPSILON) - 1));
+    }
     this.panoViewer.setPov({ ...pov, zoom });
     return true;
   }
