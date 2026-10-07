@@ -440,12 +440,13 @@ lint-shellcheck:
 
 # The sbt targets below go through tools/dev/sbt-run.sh; its header says what that guards against.
 #
-# Scala formatting (.scalafmt.conf). `scalafmt` checks (the blocking CI gate); `scalafmt-fix` reformats in place.
+# Scala formatting (.scalafmt.conf), covering the build files too. `scalafmt` checks (the blocking CI gate);
+# `scalafmt-fix` reformats in place.
 scalafmt:
-	@echo "Checking Scala formatting..."; docker exec $(tty-flags) -e SBT_OPTS="$(sbt-opts)" $(web-container) bash -lc "cd $(self-container-dir) && bash tools/dev/sbt-run.sh --dir $(container-dir) scalafmtCheckAll"
+	@echo "Checking Scala formatting..."; docker exec $(tty-flags) -e SBT_OPTS="$(sbt-opts)" $(web-container) bash -lc "cd $(self-container-dir) && bash tools/dev/sbt-run.sh --dir $(container-dir) 'scalafmtCheckAll; scalafmtSbtCheck'"
 
 scalafmt-fix:
-	@echo "Formatting Scala..."; docker exec $(tty-flags) -e SBT_OPTS="$(sbt-opts)" $(web-container) bash -lc "cd $(self-container-dir) && bash tools/dev/sbt-run.sh --dir $(container-dir) scalafmtAll"
+	@echo "Formatting Scala..."; docker exec $(tty-flags) -e SBT_OPTS="$(sbt-opts)" $(web-container) bash -lc "cd $(self-container-dir) && bash tools/dev/sbt-run.sh --dir $(container-dir) 'scalafmtAll; scalafmtSbt'"
 
 # Compile, and run the Scala tests (which need the db container). Narrow the tests with only=, e.g.
 # `make test-scala only=controllers.api.PublicApiSpec`. A test run waits for any other checkout's to finish first.

@@ -3,7 +3,9 @@
  */
 
 import { svv } from '../svv.js';
+import { ValidateLayout } from '../util/ValidateLayout.js';
 import { LabelVisibilityToggle } from '../../common/LabelVisibilityToggle.js';
+import { Infra3dViewer } from '../../common/pano-viewer/Infra3dViewer.js';
 import { util } from '../../common/utilities.js';
 
 export class LabelVisibilityControl {
@@ -14,6 +16,13 @@ export class LabelVisibilityControl {
 
   #cardVisible = false;
   #hideCardTimer = null;
+  // Infra3d cities (Zurich, Winterthur) asked for each label's tags and description to be on screen as soon as it
+  // loads (#5675). Not on a phone-sized window (or /mobile), where the card would cover much of the small pano: keyed
+  // on the layout rather than util.isMobile(), which says nothing about it on the unified page (#5580).
+  #opensOnLoad = !svv.legacyMobile && !ValidateLayout.isCompact() && svv.viewerType === Infra3dViewer;
+  // True while a card opened on load is up. Mouse movement and keypresses leave it alone; only a press on the pano,
+  // hiding the label, Escape, or the next label closes it.
+  #heldOpen = false;
   #card;
   #toggle;
 
@@ -37,6 +46,7 @@ export class LabelVisibilityControl {
         // The marker is briefly absent while the viewer swaps (primary ↔ Pannellum); its replacement is read
         // against the toggle's own state, so nothing is lost by there being none to set here.
         svv.panoManager.getPanoMarker()?.marker_.classList.toggle(LabelVisibilityToggle.HIDDEN_CLASS, !visible);
+        if (!visible && this.#heldOpen) this.hideLabelCard();
       },
     });
 
@@ -74,6 +84,16 @@ export class LabelVisibilityControl {
     return this.#cardVisible;
   }
 
+  /** @returns {boolean} True while a card opened on load is up, which ordinary keypresses shouldn't close. */
+  isCardHeldOpen() {
+    return this.#heldOpen;
+  }
+
+  /** Opens the card for a label that just loaded, on the cities that want it up without a hover (#5675). */
+  openCardOnLoad() {
+    if (this.#opensOnLoad) this.showLabelCard({ holdOpen: true });
+  }
+
   /**
    * Shows the label card beside the label's marker.
    *
@@ -81,11 +101,17 @@ export class LabelVisibilityControl {
    * @param {boolean} [options.viaKeyboard] - The card was opened from the keyboard (Tab onto the marker, or Enter/
    *     Space on it) rather than by pointer. Logged under its own event name, the way the H key's hide is —
    *     see docs/logged-events.md.
+   * @param {boolean} [options.holdOpen] - Opened on load rather than by the user, so it stays up until something
+   *     deliberate closes it (see openCardOnLoad).
    */
-  showLabelCard({ viaKeyboard = false } = {}) {
+  showLabelCard({ viaKeyboard = false, holdOpen = false } = {}) {
     this.cancelScheduledCardHide();
     if (!this.#anchorCard()) return;
-    if (!this.#cardVisible) svv.tracker.push(viaKeyboard ? 'KeyboardShortcut_ShowLabelCard' : 'MouseOver_Label');
+    if (holdOpen) svv.tracker.push('LabelCard_OpenedOnLoad');
+    else if (!this.#cardVisible) svv.tracker.push(viaKeyboard ? 'KeyboardShortcut_ShowLabelCard' : 'MouseOver_Label');
+    if (holdOpen) this.#heldOpen = true;
+    // In immersive mode a held card would otherwise sit over the voting dock (svv-immersive.css).
+    this.#card.classList.toggle('label-card--held', this.#heldOpen);
     this.#cardVisible = true;
     this.#card.style.visibility = 'visible';
     this.#setMarkerExpanded(true);
@@ -100,6 +126,11 @@ export class LabelVisibilityControl {
     // The card's popovers hang off it, so they go too. Left open one would be invisible but still armed, and every
     // later scheduleHideLabelCard would defer to it forever.
     svv.labelCard?.closePopovers();
+    // Hiding the card with focus inside it (its Hide-label button) would drop focus to the page; send it back to the
+    // marker the card belongs to. The marker's focus handler sees it came from the card and doesn't reopen it.
+    if (this.#card.contains(document.activeElement)) document.getElementById('validate-pano-marker')?.focus();
+    this.#heldOpen = false;
+    this.#card.classList.remove('label-card--held');
     this.#cardVisible = false;
     this.#card.style.visibility = 'hidden';
     this.#setMarkerExpanded(false);
@@ -114,7 +145,7 @@ export class LabelVisibilityControl {
     // An open share popover or type dropdown extends past the card, so the pointer leaving the card doesn't mean the
     // user is done with it. Taking the card down here would take the popover with it, mid-choice —
     // handlePopoverDismissed re-arms the hide once the popover closes.
-    if (this.#hideCardTimer !== null || svv.labelCard?.isPopoverOpen()) return;
+    if (this.#heldOpen || this.#hideCardTimer !== null || svv.labelCard?.isPopoverOpen()) return;
     this.#hideCardTimer = setTimeout(() => {
       this.#hideCardTimer = null;
       this.hideLabelCard();
