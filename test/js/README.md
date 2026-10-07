@@ -65,6 +65,11 @@ Also covered, beyond the api-docs previews:
   returns to the pill). On a top-left pill (Hide label, Image) only Space is left to the browser: Enter still
   submits, as from any focused button, while the chevron takes Enter when reached by keyboard (`:focus-visible`);
   letter shortcuts still fire from a control a mouse click left focused.
+- `gallery/keyboard/KeyboardManager.js` + `common/label-detail/PopupPanoManager.js` → `galleryKeyboardZoom.test.js`
+  — the Gallery's Z / Shift+Z zoom shortcut (#5142): the key reaches the pano manager's `zoomIn()`/`zoomOut()`
+  and logs, not from a focused field, a dialog stacked over the card, or with a modifier held, and never builds the
+  lazy viewer; the manager steps to the next whole level within 1–3, including from a wheel-set zoom between or
+  outside them, and does nothing over the crop fallback.
 - `validate/panorama/PanoControlMenu.js` → `validatePanoControlMenu.test.js` — the chevron that opens the menu
   holding Validate's Image pill (#5501): a click flips `aria-expanded` both ways (the CSS shows the menu from it),
   each flip is logged with the resulting state, and the collapsed indicator toggles the shared active-dot class.
