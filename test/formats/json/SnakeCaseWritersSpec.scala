@@ -74,18 +74,19 @@ class SnakeCaseWritersSpec extends AnyFunSuite with Matchers {
         Some("Walk"),
         true,
         false,
+        true,
         Some(1.5),
         Some(2.5),
         Some("p"),
         Some(POV(90.0, 0.0, 1.0)),
         Some("Town Hall")
       ),
-      s"""{"mission":$bareMissionJson,"region_id":3,"region_name":"Downtown","next_temporary_label_id":4,"has_completed_mission":true,"route_id":5,"user_route_id":6,"route_name":"Walk","route_resumed":true,"route_unavailable":false,"start_lat":1.5,"start_lng":2.5,"start_pano_id":"p","start_pov":{"heading":90,"pitch":0,"zoom":1},"start_place_name":"Town Hall"}"""
+      s"""{"mission":$bareMissionJson,"region_id":3,"region_name":"Downtown","next_temporary_label_id":4,"has_completed_mission":true,"route_id":5,"user_route_id":6,"route_name":"Walk","route_resumed":true,"route_unavailable":false,"region_finished":true,"start_lat":1.5,"start_lng":2.5,"start_pano_id":"p","start_pov":{"heading":90,"pitch":0,"zoom":1},"start_place_name":"Town Hall"}"""
     )
     check(
-      ExploreSession(None, bareMission, 3, "Downtown", 4, false, None, None, None, false, true, None, None, None, None,
-        None),
-      s"""{"mission":$bareMissionJson,"region_id":3,"region_name":"Downtown","next_temporary_label_id":4,"has_completed_mission":false,"route_resumed":false,"route_unavailable":true}"""
+      ExploreSession(None, bareMission, 3, "Downtown", 4, false, None, None, None, false, true, false, None, None, None,
+        None, None),
+      s"""{"mission":$bareMissionJson,"region_id":3,"region_name":"Downtown","next_temporary_label_id":4,"has_completed_mission":false,"route_resumed":false,"route_unavailable":true,"region_finished":false}"""
     )
     check(
       TeamMemberStats("u", "n", Role.Registered, 1, 2, 3.5, 4, 5, Some(t), true, false),

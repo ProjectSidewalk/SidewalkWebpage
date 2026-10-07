@@ -42,8 +42,7 @@ export class MissionController {
     const mission = this.#missionContainer.getCurrentMission();
     const region = this.#regionModel.currentRegion();
 
-    // A route-scoped mission completes with the route. This must happen before endTask: endTask's submission
-    // carries the mission's completed flag, which is what marks the mission complete server-side.
+    // A route's mission completes before endTask, so endTask's submission carries the completed flag to the server.
     if (svl.regionModel.isRoute && !mission.isComplete()) {
       this.#completeTheCurrentMission(mission, region);
     }
@@ -57,6 +56,12 @@ export class MissionController {
       svl.taskContainer.updateAuditedDistance();
     } else {
       svl.taskContainer.endTask(currentTask);
+    }
+
+    // Finish a region's mission here, as it can read just under 99.9% (server and page measure distance a bit
+    // differently). Only after the street's submission, or the server would count it as left and start a new mission.
+    if (!mission.isComplete()) {
+      this.#completeTheCurrentMission(mission, region);
     }
 
     svl.modalMissionComplete.update(mission, region);
