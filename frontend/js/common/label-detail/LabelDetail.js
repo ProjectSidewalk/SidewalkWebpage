@@ -814,16 +814,20 @@ export class LabelDetail {
    * Reloads the label already on screen, for a save the server refused because the label changed under the card.
    * It goes through `this.showLabel` rather than the fetch-and-render body directly, because a LabelPopup host
    * has replaced that with its wrapper, whose onMetadata callback is what tells LabelMap the label's new type; the
-   * flag only keeps the redraw out of the open count (#5139).
+   * flag only keeps the redraw out of the open count (#5139). That holds only while every such wrapper calls the
+   * inner showLabel() before its own first await (LabelPopup's and the admin dashboard's both do): a wrapper that
+   * awaited first would let a real open slip in while the flag is up, and that open would go uncounted.
+   *
+   * The label is re-shown with the source it was shown with, never a vote button's source: that would become the
+   * card's source for later edits and deletes, and a LabelPopup host's source for the next paging event.
    *
    * @param {number} labelId - The ID of the label being redrawn, which is the one currently shown.
-   * @param {string} source - The UI source the label was shown with.
    * @returns {Promise<void>} Resolves once the label has been redrawn.
    */
-  async #redrawShownLabel(labelId, source) {
+  async #redrawShownLabel(labelId) {
     this.#redrawing = true;
     try {
-      await this.showLabel(labelId, source);
+      await this.showLabel(labelId, this.#source);
     } finally {
       // A wrapper that threw before reaching the inner showLabel() would otherwise leave the next open unlogged.
       this.#redrawing = false;
@@ -1232,7 +1236,7 @@ export class LabelDetail {
         // The type changed under this card, so the vote judged a type the label lost (#3671): reload and say so.
         if (this.#currentLabelMeta !== votedLabelMeta) return;
         this.#setVoteButtonsDisabled(false);
-        await this.#redrawShownLabel(votedLabelMeta.label_id, source);
+        await this.#redrawShownLabel(votedLabelMeta.label_id);
         this.#showTypeConflictToast();
         return;
       }
@@ -2653,7 +2657,7 @@ export class LabelDetail {
       if (res.status === 409) {
         // The type changed under this card (#5510): reload so the user sees the right comments, keeping their text.
         if (this.#currentLabelMeta !== commentedLabelMeta) return;
-        await this.#redrawShownLabel(commentedLabelMeta.label_id, this.#source);
+        await this.#redrawShownLabel(commentedLabelMeta.label_id);
         els.commentInput.value = comment;
         this.#showTypeConflictToast();
         return;

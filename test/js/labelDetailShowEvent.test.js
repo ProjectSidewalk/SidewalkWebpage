@@ -404,9 +404,135 @@ describe('the label card\'s open event (#5139)', () => {
         await card.detail.showLabel(43, 'LabelMap');
 
         expect(wrapped).toHaveBeenCalledTimes(3);
+        // Re-shown with the source the label was opened with, not the overlay button's ('test'): a LabelPopup host
+        // keeps whatever source the wrapper last saw for its paging arrows, and the card uses it for edits.
+        expect(wrapped).toHaveBeenNthCalledWith(2, 42, 'LabelMap');
         expect(showEvents()).toEqual([
             'LabelDetail_Show_labelId=42_source=LabelMap',
             'LabelDetail_Show_labelId=43_source=LabelMap',
         ]);
+    });
+
+    test('a wrapper that throws during the 409 redraw does not swallow the next open', async () => {
+        // The suppression flag is cleared in a finally, so a wrapper that fails before reaching the card's own
+        // showLabel() can't leave it raised for whatever the user opens next.
+        const inner = card.detail.showLabel;
+        let failNext = false;
+        const wrapped = jest.fn((id, source) => {
+            if (failNext) {
+                failNext = false;
+                throw new Error('host wrapper failed');
+            }
+            return inner(id, source);
+        });
+        Object.assign(card.detail, { showLabel: wrapped });
+        jest.spyOn(console, 'error').mockImplementation(() => {});
+        await card.detail.showLabel(42, 'LabelMap');
+        setPano.resolve(true);
+        await flush();
+        post.mockImplementationOnce(async () => ({ ok: false, status: 409, json: async () => ({}) }));
+
+        failNext = true;
+        q('.label-detail__pano-overlay-button--agree').click();
+        await flush();
+        await flush();
+        await card.detail.showLabel(43, 'LabelMap');
+
+        expect(wrapped).toHaveBeenCalledTimes(3);
+        expect(showEvents()).toEqual([
+            'LabelDetail_Show_labelId=42_source=LabelMap',
+            'LabelDetail_Show_labelId=43_source=LabelMap',
+        ]);
+        console.error.mockRestore();
+    });
+
+    describe('through the real LabelPopup', () => {
+        // The flag design depends on LabelPopup's wrapper reaching the card's own showLabel() before its first
+        // await, and the deep link and paging arrows are opens that only LabelPopup makes, so these run the real
+        // module over the real card rather than a stand-in.
+        let popup;
+        let dialog;
+        const onMetadata = jest.fn();
+
+        /** A navigator that always has somewhere to go: one id up or down. */
+        const steppingNav = {
+            next: (id) => id + 1,
+            prev: (id) => id - 1,
+            hasPrev: () => true,
+            hasNext: () => true,
+            onRefresh: () => {},
+        };
+
+        /** Builds the popup the way LabelMap does, optionally over a `?labelId=` deep link. */
+        async function buildPopup({ deepLinkId = null } = {}) {
+            dialog = buildCard({ asDialog: true });
+            dialog.id = 'label-modal';
+            dialog.insertAdjacentHTML('afterbegin', '<button type="button" data-action="close-label-detail"></button>');
+            window.history.replaceState({}, '', deepLinkId ? `/labelMap?labelId=${deepLinkId}` : '/labelMap');
+            window.logWebpageActivity.mockClear();
+            Object.assign(window, loadModules('frontend/js/common/label-detail/LabelPopup.js'));
+            popup = await window.LabelPopup(false, 'Default', null, 'tester', { syncUrlSource: 'LabelMap', onMetadata });
+            card = dialog;
+        }
+
+        beforeEach(() => {
+            onMetadata.mockClear();
+            // jsdom has no modal dialog implementation.
+            window.HTMLDialogElement.prototype.showModal = function () { this.setAttribute('open', ''); };
+            window.HTMLDialogElement.prototype.close = function () { this.removeAttribute('open'); };
+        });
+
+        afterEach(() => {
+            window.history.replaceState({}, '', '/');
+        });
+
+        test('a ?labelId= deep link logs one open, with the host\'s source', async () => {
+            await buildPopup({ deepLinkId: 7 });
+            await flush();
+
+            expect(showEvents()).toEqual(['LabelDetail_Show_labelId=7_source=LabelMap']);
+        });
+
+        test('each paging arrow press logs one open for the label it lands on', async () => {
+            await buildPopup();
+            popup.setNearbyNavigator(steppingNav);
+            await popup.showLabel(10, 'LabelMap');
+
+            q('.label-detail__paging--next').click();
+            await flush();
+            q('.label-detail__paging--prev').click();
+            await flush();
+
+            expect(showEvents()).toEqual([
+                'LabelDetail_Show_labelId=10_source=LabelMap',
+                'LabelDetail_Show_labelId=11_source=LabelMap',
+                'LabelDetail_Show_labelId=10_source=LabelMap',
+            ]);
+        });
+
+        test('the 409 redraw reaches the host\'s onMetadata with the new type, and is not counted', async () => {
+            await buildPopup();
+            popup.setNearbyNavigator(steppingNav);
+            await popup.showLabel(42, 'LabelMap');
+            setPano.resolve(true);
+            await flush();
+            // Someone changed the label's type elsewhere, so the vote is refused and the redraw sees the new type.
+            window.fetch.mockImplementationOnce(() => Promise.resolve({
+                ok: true, status: 200, json: async () => meta({ label_id: 42, label_type: 'CurbRamp' }),
+            }));
+            post.mockImplementationOnce(async () => ({ ok: false, status: 409, json: async () => ({}) }));
+
+            q('.label-detail__pano-overlay-button--agree').click();
+            await flush();
+            await flush();
+            q('.label-detail__paging--next').click();
+            await flush();
+
+            expect(onMetadata).toHaveBeenCalledWith(42, expect.objectContaining({ label_type: 'CurbRamp' }));
+            expect(showEvents()).toEqual([
+                'LabelDetail_Show_labelId=42_source=LabelMap',
+                'LabelDetail_Show_labelId=43_source=LabelMap',
+            ]);
+        });
     });
 });
