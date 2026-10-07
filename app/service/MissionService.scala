@@ -32,10 +32,17 @@ trait MissionService {
    * The user's incomplete audit mission in the region or route walk, else a new one; a tutorial mission instead for a
    * user who hasn't finished the tutorial.
    *
+   * @param allowFinishedRegion Sizes a new mission even if the user has nothing left in the region, for a one-street
+   *                            visit (#5692). The page's region-complete flow ends it once that street is done.
    * @return None when no mission can be sized: a route walk whose streets sum to zero length (#5167), or a region
    *         with no distance left to assign. Callers decide what the session falls back to.
    */
-  def resumeOrCreateNewAuditMission(userId: String, regionId: Int, userRoute: Option[UserRoute]): DBIO[Option[Mission]]
+  def resumeOrCreateNewAuditMission(
+      userId: String,
+      regionId: Int,
+      userRoute: Option[UserRoute],
+      allowFinishedRegion: Boolean = false
+  ): DBIO[Option[Mission]]
   def resumeOrCreateNewAiExploreMission(regionId: Int): DBIO[Mission]
   def resumeOrCreateNewExploreAddressMission(userId: String): DBIO[Mission]
   def resumeOrCreateNewValidateMission(
@@ -141,10 +148,11 @@ class MissionServiceImpl @Inject() (
   def resumeOrCreateNewAuditMission(
       userId: String,
       regionId: Int,
-      userRoute: Option[UserRoute]
+      userRoute: Option[UserRoute],
+      allowFinishedRegion: Boolean = false
   ): DBIO[Option[Mission]] = {
     queryMissionTableExploreMissions(
-      Seq("getMission"), userId, Some(regionId), Some(false), None, None, None, None, userRoute
+      Seq("getMission"), userId, Some(regionId), Some(false), None, None, None, None, userRoute, allowFinishedRegion
     )
   }
 
@@ -167,6 +175,7 @@ class MissionServiceImpl @Inject() (
    * @param missionId Only required if actions contains "updateProgress" or "updateComplete".
    * @param distanceProgress Only required if actions contains "updateProgress".
    * @param userRoute Only relevant if actions contains "getMission": scopes the mission to this route walk.
+   * @param allowFinishedRegion Only relevant if actions contains "getMission": see resumeOrCreateNewAuditMission.
    */
   private def queryMissionTableExploreMissions(
       actions: Seq[String],
@@ -177,7 +186,8 @@ class MissionServiceImpl @Inject() (
       distanceProgress: Option[Double],
       auditTaskId: Option[Int],
       skipped: Option[Boolean],
-      userRoute: Option[UserRoute] = None
+      userRoute: Option[UserRoute] = None,
+      allowFinishedRegion: Boolean = false
   ): DBIO[Option[Mission]] = {
 
     val updateProgressAction =
@@ -242,12 +252,13 @@ class MissionServiceImpl @Inject() (
                   case Some(incompleteMission) =>
                     DBIO.successful(Some(incompleteMission))
                   case _ =>
-                    getNextAuditMissionDistance(userId, regionId.get).flatMap { nextMissionDistance =>
-                      if (nextMissionDistance > 0) {
-                        missionTable.createNextAuditMission(userId, nextMissionDistance, regionId.get).map(Some(_))
-                      } else {
-                        DBIO.successful(None)
-                      }
+                    getNextAuditMissionDistance(userId, regionId.get, allowFinishedRegion).flatMap {
+                      nextMissionDistance =>
+                        if (nextMissionDistance > 0) {
+                          missionTable.createNextAuditMission(userId, nextMissionDistance, regionId.get).map(Some(_))
+                        } else {
+                          DBIO.successful(None)
+                        }
                     }
                 }
             }
@@ -297,8 +308,9 @@ class MissionServiceImpl @Inject() (
 
   /**
    * Get the suggested distance in meters for the next mission this user does in this region.
+   * @param ignoreRemaining Skips capping it at the distance the user has left to explore in the region.
    */
-  private def getNextAuditMissionDistance(userId: String, regionId: Int): DBIO[Double] = {
+  private def getNextAuditMissionDistance(userId: String, regionId: Int, ignoreRemaining: Boolean): DBIO[Double] = {
     for {
       distRemaining: Double  <- auditTaskTable.getUnauditedDistance(userId, regionId)
       completedInRegion: Int <- missionTable.selectCompletedExploreMissions(userId, regionId).map(_.length)
@@ -308,7 +320,7 @@ class MissionServiceImpl @Inject() (
           distanceForLaterMissions
         else
           distancesForFirstAuditMissions(completedInRegion)
-      math.min(distRemaining, naiveMissionDist)
+      if (ignoreRemaining) naiveMissionDist else math.min(distRemaining, naiveMissionDist)
     }
   }
 

@@ -409,4 +409,79 @@ class ExploreRouteRequestSpec
       pageParam(exploreSession(session, ""), "route_unavailable") mustBe Some(JsBoolean(false))
     }
   }
+
+  "GET /explore/session?regionId=<finished>" should {
+    "move the user to a region with streets left, and say why, instead of failing (#5692)" in {
+      val session = freshAnonSession()
+      completeOnboarding(session)
+      // A region whose only street is zero metres long has nothing left to explore, just like a finished one.
+      val streetEdgeId   = seedZeroLengthStreet(session, aloneInItsRegion = true)
+      val finishedRegion = run(
+        sql"SELECT region_id FROM street_edge_region WHERE street_edge_id = $streetEdgeId".as[Int].head
+      )
+
+      val visit = exploreSession(session, s"?regionId=$finishedRegion")
+
+      pageParam(visit, "region_finished") mustBe Some(JsBoolean(true))
+      pageParam(visit, "region_id").map(_.as[Int]) must not be Some(finishedRegion)
+    }
+
+    "say nothing when the region asked for still has streets left" in {
+      val session = freshAnonSession()
+      completeOnboarding(session)
+      val openRegion = exploreSession(session, "")("region_id").as[Int]
+
+      val visit = exploreSession(session, s"?regionId=$openRegion")
+
+      pageParam(visit, "region_finished") mustBe Some(JsBoolean(false))
+      pageParam(visit, "region_id").map(_.as[Int]) mustBe Some(openRegion)
+    }
+  }
+
+  "GET /explore/session?streetEdgeId=<street in a finished region>" should {
+    "start a mission on that street instead of failing (#5692)" in {
+      val session = freshAnonSession()
+      completeOnboarding(session)
+      val userId = exploreBootstrap(session).userId
+      // The smallest region holding a street Explore can serve. Small, because afterAll deletes one task per street,
+      // and each delete scans tables that reference audit_task without an index.
+      val regionId: Int = run(
+        sql"""SELECT street_edge_region.region_id
+              FROM street_edge_region
+              INNER JOIN region ON street_edge_region.region_id = region.region_id
+              WHERE NOT region.deleted
+                AND street_edge_region.region_id IN (
+                  SELECT street_edge_region.region_id
+                  FROM street_edge_region
+                  INNER JOIN street_edge_priority
+                    ON street_edge_region.street_edge_id = street_edge_priority.street_edge_id
+                  INNER JOIN osm_way_street_edge
+                    ON street_edge_region.street_edge_id = osm_way_street_edge.street_edge_id
+                )
+              GROUP BY street_edge_region.region_id
+              ORDER BY COUNT(*)
+              LIMIT 1""".as[Int].headOption
+      ).getOrElse(cancel("No region holds a street Explore can serve."))
+      val streetEdgeId: Int = run(
+        sql"""SELECT street_edge_region.street_edge_id
+              FROM street_edge_region
+              INNER JOIN street_edge_priority ON street_edge_region.street_edge_id = street_edge_priority.street_edge_id
+              INNER JOIN osm_way_street_edge ON street_edge_region.street_edge_id = osm_way_street_edge.street_edge_id
+              WHERE street_edge_region.region_id = $regionId
+              LIMIT 1""".as[Int].head
+      )
+      val _ = run(sqlu"""INSERT INTO audit_task (user_id, street_edge_id, completed, current_lat, current_lng)
+                 SELECT $userId, street_edge_id, TRUE, 0, 0
+                 FROM street_edge_region
+                 WHERE region_id = $regionId""")
+      // Closes the mission the bootstrap opened, so the visit has to make a new one in the finished region.
+      val _ = run(sqlu"UPDATE mission SET completed = TRUE WHERE user_id = $userId")
+
+      val visit = exploreSession(session, s"?streetEdgeId=$streetEdgeId")
+
+      pageParam(visit, "region_id").map(_.as[Int]) mustBe Some(regionId)
+      pageParam(visit, "region_finished") mustBe Some(JsBoolean(false))
+      (visit \ "task" \ "properties" \ "street_edge_id").asOpt[Int] mustBe Some(streetEdgeId)
+    }
+  }
 }

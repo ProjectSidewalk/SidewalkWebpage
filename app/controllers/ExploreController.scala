@@ -194,7 +194,8 @@ class ExploreController @Inject() (
               exploreData.task, exploreData.mission, exploreData.region.regionId, exploreData.region.name,
               exploreData.nextTempLabelId, exploreData.hasCompletedAMission, exploreData.userRoute.map(_.routeId),
               exploreData.userRoute.map(_.userRouteId), exploreData.route.map(_.name), exploreData.routeResumed,
-              exploreData.routeUnavailable, startLat, startLng, startPanoId, startPov, startPlaceName
+              exploreData.routeUnavailable, exploreData.regionFinished, startLat, startLng, startPanoId, startPov,
+              startPlaceName
             )
           )
         )

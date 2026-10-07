@@ -150,6 +150,8 @@ object ExploreFormats {
    * @param routeResumed     Whether a walk already in progress was picked back up, so the page can say so.
    * @param routeUnavailable Whether a route was dropped from the session: a `?routeId=` named no live route (#5156),
    *                         or the walk's route has no walkable distance (#5167). `routeId` is then absent.
+   * @param regionFinished   Whether the `?regionId=` asked for was one the user had finished, so `regionId` names the
+   *                         region they were moved to instead (#5692).
    * @param startPov         A heading, pitch and zoom to open the pano at; only ever set alongside a pano or lat/lng.
    */
   case class ExploreSession(
@@ -164,6 +166,7 @@ object ExploreFormats {
       routeName: Option[String],
       routeResumed: Boolean,
       routeUnavailable: Boolean,
+      regionFinished: Boolean,
       startLat: Option[Double],
       startLng: Option[Double],
       startPanoId: Option[String],

@@ -614,15 +614,28 @@ export class Main {
           }, svl, this.#params.language);
 
           // Toasts telling the user this visit resumed something in progress (#4833), or that the route the URL
-          // asked for could not be opened (#5156), deferred until the mission-start screen closes so they aren't
-          // missed underneath it. At most one of these three shows: the dropped-route news outranks a resume note the
-          // sidebar's route name already carries. The re-audit notice (#4895) is raised alongside them and `Toast`
+          // asked for could not be opened (#5156), or that the neighborhood it asked for is already done (#5692),
+          // deferred until the mission-start screen closes so they aren't missed underneath it. At most one of these
+          // shows: news that the visit didn't go where the URL asked outranks a resume note the sidebar already
+          // carries. The re-audit notice (#4895) is raised alongside them and `Toast`
           // queues it behind whichever took the spot, so no duration arithmetic is needed here.
           if (this.#takeRouteUnavailableNotice()) {
             document.addEventListener('ps:mission-start-tutorial:done', () => {
               svl.tracker.push('RouteUnavailableToast_Shown');
               Toast.show({
                 message: i18next.t('right-ui.route-unavailable.message'),
+                reference: document.getElementById('pano'),
+                dark: true,
+                duration: 10000,
+              });
+            }, { once: true });
+          } else if (this.#session.region_finished) {
+            document.addEventListener('ps:mission-start-tutorial:done', () => {
+              svl.tracker.push('RegionFinishedToast_Shown');
+              Toast.show({
+                message: i18next.t('right-ui.region-finished.message', {
+                  regionName: currentRegion.getProperty('name'),
+                }),
                 reference: document.getElementById('pano'),
                 dark: true,
                 duration: 10000,
