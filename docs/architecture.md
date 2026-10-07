@@ -550,7 +550,7 @@ shape as the next one (#5650). The tool pages also answer `Cache-Control: no-sto
 
 The JS source lives in `frontend/js/`, outside `public/`, because Play serves everything under `public/`: only the
 bundles ship (their sourcemaps carry the sources for the browser's debugger). The three tools' stylesheets are still
-concatenated by Grunt (`concat_css`) into `public/build/css/`; `npm start` runs `grunt watch`, which reruns both it and
+concatenated by Grunt (`concat_css`) into `public/build/css/`; `npm start` runs `npm run watch`, which reruns both it and
 Rolldown on save. Everything under `public/build/` is generated and git-ignored. Third-party libraries live under
 `public/vendor/<lib>/`, one self-contained folder each (never edited or linted).
 

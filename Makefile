@@ -205,7 +205,7 @@ qa-worktree:
 	$(worktree-require-wt)
 	@docker exec -it $(lease-env) $(web-container) bash -c '$(call qa-worktree-exec,$(wt) $(lease-flags))'
 
-# End a qa-worktree session: stop its app, its grunt watch, and any sbt left running there. Add `clean=1` to also
+# End a qa-worktree session: stop its app, its asset watcher, and any sbt left running there. Add `clean=1` to also
 # drop the node_modules symlink. e.g. `make qa-worktree-stop wt=remove-admin-classic` or
 # `make qa-worktree-stop wt=... clean=1`.
 qa-worktree-stop:
