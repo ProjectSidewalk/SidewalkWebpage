@@ -56,6 +56,9 @@ class ExploreRouteRequestSpec
   /** Streets this suite seeded; deleted in `afterAll`, once the routes on them are gone. */
   private var createdStreetIds: Set[Int] = Set.empty
 
+  /** Regions this suite seeded; deleted in `afterAll`, once the streets and missions in them are gone. */
+  private var createdRegionIds: Set[Int] = Set.empty
+
   /** Resolves an Explore visit's session through /explore/session, as the page does for the query it opened with. */
   private def exploreSession(session: Seq[Cookie], query: String): JsValue = {
     val resp = route(app, FakeRequest(GET, s"/explore/session$query").withCookies(session*)).get
@@ -101,19 +104,34 @@ class ExploreRouteRequestSpec
    * Seeds a street whose geom starts and ends at one point, so it measures zero metres — the degenerate shape a route
    * has to be made of for its walk to yield no mission (#5167). Nothing in a dev dump is reliably like that.
    *
-   * Filed in the region of a real street rather than a region of its own, so the region session the visit falls back
-   * to is an ordinary one. It gets no street_edge_priority row, which keeps it out of every task the fallback hands
-   * out. Explicit ids, since the dev dumps don't advance the sequences (see StreetFixtures).
+   * By default it is filed in the region of a real street, so the region session the visit falls back to is an
+   * ordinary one. It gets no street_edge_priority row, which keeps it out of every task the fallback hands out.
+   * Explicit ids, since the dev dumps don't advance the sequences (see StreetFixtures).
+   *
+   * @param aloneInItsRegion Files it instead in a region of its own, where it is the only street. That region then has
+   *                         no distance for anyone to audit, so the route's start region can't host the fallback.
    */
-  private def seedZeroLengthStreet(session: Seq[Cookie]): Int = {
-    val regionId: Int = run(
-      sql"""SELECT street_edge_region.region_id
-            FROM street_edge_region
-            INNER JOIN region ON street_edge_region.region_id = region.region_id
-            WHERE street_edge_region.street_edge_id = ${routableStreetId(session)} AND NOT region.deleted"""
-        .as[Int]
-        .headOption
-    ).getOrElse(cancel("The routable street sits in no live region; there's nowhere to file a zero-length one."))
+  private def seedZeroLengthStreet(session: Seq[Cookie], aloneInItsRegion: Boolean = false): Int = {
+    val regionId: Int =
+      if (aloneInItsRegion) {
+        val rId = run(
+          sql"""INSERT INTO region (region_id, data_source, name, geom, deleted)
+                VALUES ((SELECT COALESCE(MAX(region_id), 0) + 1 FROM region), 'spec', 'Zero-Length Route Spec Region',
+                        ST_Multi(ST_SetSRID(ST_GeomFromText('POLYGON((0 0, 0 1, 1 1, 1 0, 0 0))'), 4326)), FALSE)
+                RETURNING region_id""".as[Int].head
+        )
+        createdRegionIds += rId
+        rId
+      } else {
+        run(
+          sql"""SELECT street_edge_region.region_id
+                FROM street_edge_region
+                INNER JOIN region ON street_edge_region.region_id = region.region_id
+                WHERE street_edge_region.street_edge_id = ${routableStreetId(session)} AND NOT region.deleted"""
+            .as[Int]
+            .headOption
+        ).getOrElse(cancel("The routable street sits in no live region; there's nowhere to file a zero-length one."))
+      }
     val streetEdgeId: Int = run(
       sql"""INSERT INTO street_edge (street_edge_id, geom, x1, y1, x2, y2, way_type, status)
             VALUES ((SELECT COALESCE(MAX(street_edge_id), 0) + 1 FROM street_edge),
@@ -161,7 +179,7 @@ class ExploreRouteRequestSpec
   }
 
   /**
-   * Deletes every route and walk this suite's users created, in FK order, then the streets it seeded.
+   * Deletes every route and walk this suite's users created, in FK order, then the streets and regions it seeded.
    *
    * Routes are the part that must not be left behind: a route row keeps its slug reserved even once soft-deleted,
    * so leaked spec routes would quietly claim share links in a developer's database.
@@ -193,6 +211,10 @@ class ExploreRouteRequestSpec
             sqlu"DELETE FROM street_edge WHERE street_edge_id = $sId"
           )
         )
+      }
+      // user_current_region and region_completion rows cascade; missions were deleted with their users above.
+      createdRegionIds.foreach { rId =>
+        val _ = run(sqlu"DELETE FROM region WHERE region_id = $rId")
       }
     } finally super.afterAll()
   }
@@ -288,11 +310,15 @@ class ExploreRouteRequestSpec
   // fix the page was handed the route anyway, rendering route mode over a mission that wasn't the route's.
   "GET /explore/session?routeId=<zero-length route>" should {
 
-    /** A graduate's session, the zero-length route they saved, and their first visit to it. */
-    def visitZeroLengthRoute(): (Seq[Cookie], Int, JsValue) = {
+    /**
+     * A graduate's session, the zero-length route they saved, and their first visit to it.
+     *
+     * @param aloneInItsRegion Whether the route's street is the only one in its region; see [[seedZeroLengthStreet]].
+     */
+    def visitZeroLengthRoute(aloneInItsRegion: Boolean = false): (Seq[Cookie], Int, JsValue) = {
       val session = freshAnonSession()
       completeOnboarding(session)
-      val routeId = saveRoute(session, seedZeroLengthStreet(session))
+      val routeId = saveRoute(session, seedZeroLengthStreet(session, aloneInItsRegion))
       (session, routeId, exploreSession(session, s"?routeId=$routeId"))
     }
 
@@ -319,6 +345,24 @@ class ExploreRouteRequestSpec
       val (session, routeId, _) = visitZeroLengthRoute()
 
       walkPaused(walkOf(routeId)) mustBe true
+      val next = exploreSession(session, "")
+      pageParam(next, "route_unavailable") mustBe Some(JsBoolean(false))
+      pageParam(next, "route_id") mustBe None
+    }
+
+    // The route's start region is where the fallback runs, but a user can have nothing left to audit there. The
+    // fallback then 500ed, and since the failed request rolled the pause back, every later /explore re-picked the walk
+    // and failed the same way. The visit has to land in another region instead.
+    "fall back to another region when the route's start region has nothing left to audit" in {
+      val (session, routeId, visit) = visitZeroLengthRoute(aloneInItsRegion = true)
+      val routeRegionId: Int        = run(sql"SELECT region_id FROM route WHERE route_id = $routeId".as[Int].head)
+
+      pageParam(visit, "route_unavailable") mustBe Some(JsBoolean(true))
+      pageParam(visit, "route_id") mustBe None
+      (visit \ "region_id").as[Int] must not be routeRegionId
+      (visit \ "mission" \ "mission_type").as[String] mustBe "audit"
+      walkPaused(walkOf(routeId)) mustBe true
+      // And the way out holds: the next bare visit is an ordinary session, not the walk again.
       val next = exploreSession(session, "")
       pageParam(next, "route_unavailable") mustBe Some(JsBoolean(false))
       pageParam(next, "route_id") mustBe None
