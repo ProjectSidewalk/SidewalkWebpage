@@ -38,6 +38,8 @@ lease-flags = $(if $(filter 1 true yes,$(wait)),--wait,) $(if $(filter 1 true ye
 lease-env = -e CLAUDE_CODE_SESSION_ID -e LEASE_PURPOSE="$(purpose)"
 # Same idiom for import-users' `replace=1`, which wipes the login schema instead of merging into it.
 import-users-replace-flag = $(if $(filter 1 true yes,$(replace)),--replace,)
+# Same idiom for upgrade-dev-db's `all=1`, which copies every database rather than just sidewalk.
+upgrade-dev-db-all-flag = $(if $(filter 1 true yes,$(all)),--all,)
 
 # Resolve which copy of qa-worktree.sh to run, then exec it with the args in $(1). The main repo is mounted at the
 # container's /home, so /home/tools/dev/qa-worktree.sh is the script as it exists on whatever branch the MAIN checkout
@@ -180,7 +182,7 @@ docker-up-db:
 # Copies a Postgres 16 dev database (the old `pgdata` volume) into the Postgres 18 one (#3955). Host-side, since it
 # starts a throwaway Postgres 16 container. See docs/dev-environment.md.
 upgrade-dev-db:
-	@bash tools/dev/upgrade-dev-db.sh --container $(db-container)
+	@bash tools/dev/upgrade-dev-db.sh --container $(db-container) $(upgrade-dev-db-all-flag)
 
 # `rm -v` drops the removed containers' anonymous volumes only.
 docker-stop:

@@ -645,7 +645,8 @@ class UserStatTable @Inject() (
     val statStartTime = timePeriod.toLowerCase() match {
       case "overall" => """TIMESTAMP 'epoch'"""
       case "weekly"  =>
-        """(now() AT TIME ZONE 'America/Los_Angeles')::date - (cast(extract(dow from (now() AT TIME ZONE 'America/Los_Angeles')::date) as int) % 7) + TIME '00:00:00'"""
+        """(now() AT TIME ZONE 'America/Los_Angeles')::date
+          - (cast(extract(dow from (now() AT TIME ZONE 'America/Los_Angeles')::date) as int) % 7) + TIME '00:00:00'"""
     }
     val joinUserTeamTable: String = if (byTeam || teamId.isDefined) {
       "INNER JOIN user_team ON sidewalk_user.user_id = user_team.user_id INNER JOIN team ON user_team.team_id = team.team_id"
@@ -961,7 +962,8 @@ class UserStatTable @Inject() (
    */
   def getUserStanding(userId: String, mode: String, n: Int): DBIO[Option[UserStanding]] = {
     val weekStart =
-      "((now() AT TIME ZONE 'America/Los_Angeles')::date - (cast(extract(dow from (now() AT TIME ZONE 'America/Los_Angeles')::date) as int) % 7))"
+      """((now() AT TIME ZONE 'America/Los_Angeles')::date
+        - (cast(extract(dow from (now() AT TIME ZONE 'America/Los_Angeles')::date) as int) % 7))"""
     val timeFilter = mode.toLowerCase match {
       case "weekly"   => s"AND (label.time_created AT TIME ZONE 'America/Los_Angeles') >= $weekStart"
       case "lastweek" =>

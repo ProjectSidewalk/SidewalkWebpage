@@ -30,7 +30,7 @@ listed separately and are *expected* to differ; the goal is skew that's written 
 | Python (app) | **3.8** | 3.14.7 | **Oct 2024 — past** | web base image ([why two](#interpreters)) |
 | Python (tooling) | **3.13.15** | 3.14.7 | Oct 2029 | `Dockerfile`, via uv |
 | web image | **`eclipse-temurin:17-jdk-focal`** | jammy / noble | **May 2025 — past** | `Dockerfile` |
-| db image | **`postgis/postgis:18-3.6`** | 18-3.6 | Nov 2030 (Postgres 18) | `db/Dockerfile` |
+| db image | **`postgis/postgis:18-3.6`** | 18-3.6 | ~Aug 2028 (Debian 13) | `db/Dockerfile` |
 | ShellCheck image | **`koalaman/shellcheck:v0.11.0`** | 0.11.0 | — | `docker/shellcheck/Dockerfile` (never built; the pin `make shellcheck` and CI run, kept where Dependabot looks) |
 
 - **Focal does more than it looks.** It's what makes `python3` mean 3.8 (retiring that is
@@ -76,7 +76,8 @@ readonly_user -d sidewalk`).
   database to 18 ([dev-environment.md](dev-environment.md#moving-your-database-to-postgres-18)).
 - **makelab1's `psql` on the PATH is 13.23**, older than both servers. It can still query them, but its `pg_dump`
   refuses both, so dump with the matching `/usr/pgsql-<version>/bin/pg_dump` (the `sidewalk-server-tools` scripts
-  pick it themselves).
+  pick it themselves once [sidewalk-server-tools#8](https://github.com/ProjectSidewalk/sidewalk-server-tools/pull/8)
+  merges).
 - **When CSE IT updates a server's PostGIS library**, the SQL functions stay behind until someone updates them
   (`PostGIS_Full_Version()` ends in `need upgrade`). In each database, run `ALTER EXTENSION postgis UPDATE`. Use that
   and not `postgis_extensions_upgrade()`, which trips on leftover PostGIS 2.5 raster functions until

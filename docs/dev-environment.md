@@ -518,11 +518,14 @@ over, stop `npm start` and run:
 make upgrade-dev-db
 ```
 
-It opens the old volume in a throwaway Postgres 16 container, copies every database and role into the new one,
-rebuilds the planner statistics, and compares each city's label count between the two. It takes a few minutes per
-large city. Rerunning it is safe: each run replaces the new database's contents. Once the app works, delete the old
-volume with the `docker volume rm` line it prints. If you'd rather start over instead, skip it and `make import-dump`
-the cities you need.
+It opens the old volume in a throwaway Postgres 16 container, copies the roles and the `sidewalk` database into the
+new one (`all=1` copies every database, such as a DC migration copy), rebuilds the planner statistics, and compares
+each city's label count between the two. It takes a few minutes per large city. A rerun replaces whatever is in the
+new database, so it asks first once that holds cities. If you'd rather start over instead, skip it and
+`make import-dump` the cities you need.
+
+Keep the old volume while you still check out branches from before this change: their `docker-compose.yml` starts the
+Postgres 16 image on it. After that, delete it with the `docker volume rm` line the script prints.
 
 A dump taken from a Postgres 18 server (test, and prod after its upgrade) can't be loaded into a Postgres 16
 database, so this is also what makes fresh dumps loadable again.

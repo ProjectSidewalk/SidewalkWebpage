@@ -602,7 +602,8 @@ class LabelValidationTable @Inject() (
       WHERE """
       .concat(SqlFragments.allOf(conditions))
       .concat(sql"""
-      GROUP BY (label_validation.end_timestamp AT TIME ZONE 'America/Los_Angeles')::date, label_validation.label_type::text
+      GROUP BY (label_validation.end_timestamp AT TIME ZONE 'America/Los_Angeles')::date,
+               label_validation.label_type::text
       ORDER BY date ASC, label_validation.label_type::text
     """)
       .as[DailyValidationStat]

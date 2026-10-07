@@ -92,7 +92,7 @@ DROP FUNCTION IF EXISTS public.st_approxsummarystats(text,text,integer,boolean,d
 DROP FUNCTION IF EXISTS public.st_approxsummarystats(text,text,integer,double precision);
 DROP FUNCTION IF EXISTS public._st_aspect4ma(double precision[],integer[],text[]);
 DROP FUNCTION IF EXISTS public._st_convertarray4ma(double precision[]);
-DROP FUNCTION IF EXISTS public._st_countagg_finalfn(agg_count);
+DROP FUNCTION IF EXISTS public._st_countagg_finalfn(public.agg_count);
 DROP FUNCTION IF EXISTS public.st_count(text,text,boolean);
 DROP FUNCTION IF EXISTS public.st_count(text,text,integer,boolean);
 DROP FUNCTION IF EXISTS public._st_count(text,text,integer,boolean,double precision);
