@@ -14,7 +14,7 @@
 #     docker exec -it projectsidewalk-web bash /home/.claude/worktrees/<name>/tools/dev/qa-worktree.sh <name>
 #
 # Handles the worktree-specific setup the plain `npm start` flow doesn't (node_modules,
-# bundles, a backgrounded grunt watch, sbt caches, config.file, thin-client contention), and holds the
+# bundles, a backgrounded asset watcher, sbt caches, config.file, thin-client contention), and holds the
 # :9000 lease (tools/dev/lease.sh) while the app runs.
 # See docs/dev-environment.md -> "Running a branch from a git worktree".
 #
@@ -50,21 +50,24 @@ WT_DIR="/home/.claude/worktrees/$WT"
 # Absolute, since the script changes directory before its first lease call.
 LEASE_SH="$(cd "$(dirname "$0")" && pwd)/lease.sh"
 lease() { bash "$LEASE_SH" "$@"; }
-# grunt watch's log lives here (per-worktree) so `make qa-worktree-stop clean=1` can remove it.
-GRUNT_WATCH_LOG="/tmp/qa-worktree-grunt-watch-$WT.log"
+# The asset watcher's log lives here (per-worktree) so `make qa-worktree-stop clean=1` can remove it.
+WATCH_LOG="/tmp/qa-worktree-watch-$WT.log"
 
 # True (exit 0) when something is listening on :9000 inside the container.
 port_9000_in_use() { (exec 3<>/dev/tcp/127.0.0.1/9000) 2>/dev/null; }
 
 # Reap every process whose full command line matches $2 and whose working directory is this worktree, sending
-# signal $1. cwd-scoping is deliberate: it reaps only the sbt/grunt processes bound to *this* worktree (target/
-# contention, the backgrounded watch) and never touches the main repo's own sbt server or npm-start grunt watch.
+# signal $1. cwd-scoping is deliberate: it reaps only the sbt/watcher processes bound to *this* worktree (target/
+# contention, the backgrounded watch) and never touches the main repo's own sbt server or npm-start watcher.
+# With a 4th argument of "group", the signal goes to each match's whole process group: `npm run watch` runs the
+# watcher through a shell that doesn't pass signals on, so killing npm alone would leave the watcher running.
 reap_in_worktree() {
-  local sig="$1" pattern="$2" label="$3" p
+  local sig="$1" pattern="$2" label="$3" scope="${4:-}" p
   for p in $(pgrep -f "$pattern" 2>/dev/null || true); do
     if [ "$(readlink "/proc/$p/cwd" 2>/dev/null || true)" = "$WT_DIR" ]; then
       echo "==> killing $label (pid $p)"
-      kill "-$sig" "$p" 2>/dev/null || true
+      if [ "$scope" = "group" ]; then kill "-$sig" -- "-$p" 2>/dev/null || true
+      else kill "-$sig" "$p" 2>/dev/null || true; fi
     fi
   done
 }
@@ -79,19 +82,19 @@ fi
 if [ "$MODE" = "stop" ]; then
   echo "==> stopping worktree QA session: $WT_DIR"
   lease release app --checkout "$WT_DIR"
-  reap_in_worktree TERM 'grunt' "grunt watch"
+  reap_in_worktree TERM 'npm run watch' "asset watcher" group
   reap_in_worktree TERM '~ run' "app on :9000 (~ run)"
   # `make compile`, `make test-scala`, and `make scalafmt` leave sbt running here, so stop that too.
   reap_in_worktree TERM 'sbt-launch|sbtn' "sbt server"
   sleep 2
   # SIGKILL anything that ignored the SIGTERM above.
-  reap_in_worktree KILL 'grunt' "grunt watch"
+  reap_in_worktree KILL 'npm run watch' "asset watcher" group
   reap_in_worktree KILL '~ run' "app on :9000 (~ run)"
   reap_in_worktree KILL 'sbt-launch|sbtn' "sbt server"
-  # --clean drops the gitignored setup artifacts too; keep the grunt watch log by default so a watch failure stays
+  # --clean drops the gitignored setup artifacts too; keep the watcher log by default so a watch failure stays
   # diagnosable after a stop.
   if [ -n "$CLEAN" ]; then
-    rm -f "$GRUNT_WATCH_LOG"
+    rm -f "$WATCH_LOG"
     if [ -L "$WT_DIR/node_modules" ]; then
       rm -f "$WT_DIR/node_modules"
       echo "==> removed node_modules symlink"
@@ -108,10 +111,10 @@ echo "==> worktree: $WT_DIR"
 # Before any setup, so a busy :9000 fails fast.
 lease take app --checkout "$WT_DIR" --pid $$ "${LEASE_FLAGS[@]}" || exit 1
 
-# 1. node_modules is gitignored (absent in worktrees) -> reuse the main repo's. Test for grunt rather than the folder,
-#    so a broken link or a partial install (e.g. only typescript, added by hand) is replaced too.
-if [ ! -x node_modules/.bin/grunt ]; then
-  [ -L node_modules ] || [ ! -e node_modules ] || echo "==> replacing node_modules, which has no grunt"
+# 1. node_modules is gitignored (absent in worktrees) -> reuse the main repo's. Test for the bundler rather than the
+#    folder, so a broken link or a partial install (e.g. only typescript, added by hand) is replaced too.
+if [ ! -x node_modules/.bin/rolldown ]; then
+  [ -L node_modules ] || [ ! -e node_modules ] || echo "==> replacing node_modules, which has no rolldown"
   rm -rf node_modules
   ln -s /home/node_modules node_modules
   echo "==> linked node_modules -> /home/node_modules"
@@ -122,8 +125,8 @@ if [ -L node_modules ] && ! cmp -s package-lock.json /home/package-lock.json; th
 fi
 
 # 2. build/ bundles are gitignored (absent) -> build this branch's JS/CSS once up front.
-echo "==> building bundles (grunt)"
-node_modules/.bin/grunt >/dev/null
+echo "==> building bundles (npm run build)"
+npm run build >/dev/null
 
 # 3. A stray thin-client sbt server (or a hung task, e.g. a wedged `scalafmtAll`) whose cwd is this worktree
 #    shares target/ and deadlocks `~ run` on compile locks. Reap them.
@@ -147,27 +150,28 @@ if port_9000_in_use; then
   exit 1
 fi
 
-# 5. Start a backgrounded `grunt watch` so `frontend/js/**` / `public/css/**` edits rebuild the bundles automatically —
-#    a plain hard-reload then always reflects the latest source (no manual reconcat). The trap tears it down on exit
-#    (Ctrl-C, sbt quitting, an error) so it never outlives the app it was serving.
-GRUNT_WATCH_PID=""
+# 5. Start a backgrounded `npm run watch` so `frontend/js/**` / `public/css/**` edits rebuild the bundles
+#    automatically — a plain hard-reload then always reflects the latest source. It gets its own process group
+#    (setsid) so the trap can kill npm, its shell and the watcher together on exit (Ctrl-C, sbt quitting, an error),
+#    and it never outlives the app it was serving.
+WATCH_PGID=""
 cleanup() {
   trap - EXIT INT TERM  # disarm so cleanup runs at most once
   lease release app --checkout "$WT_DIR" --pid $$
-  if [ -n "$GRUNT_WATCH_PID" ] && kill -0 "$GRUNT_WATCH_PID" 2>/dev/null; then
+  if [ -n "$WATCH_PGID" ] && kill -0 "$WATCH_PGID" 2>/dev/null; then
     echo ""
-    echo "==> stopping grunt watch (pid $GRUNT_WATCH_PID)"
-    kill "$GRUNT_WATCH_PID" 2>/dev/null || true
+    echo "==> stopping asset watcher (pid $WATCH_PGID)"
+    kill -- "-$WATCH_PGID" 2>/dev/null || true
   fi
 }
 trap cleanup EXIT INT TERM
-node_modules/.bin/grunt watch >"$GRUNT_WATCH_LOG" 2>&1 &
-GRUNT_WATCH_PID=$!
-echo "==> grunt watch running (pid $GRUNT_WATCH_PID) — bundles rebuild on save; log: $GRUNT_WATCH_LOG"
+setsid npm run watch >"$WATCH_LOG" 2>&1 &
+WATCH_PGID=$!
+echo "==> asset watcher running (pid $WATCH_PGID) — bundles rebuild on save; log: $WATCH_LOG"
 
 # 6. Launch. Absolute cache paths reuse the main repo's warm .coursier/.sbt; cwd-relative caches from a
 #    worktree would trigger a multi-GB re-download. config.file points at the worktree's own conf. Run sbt in the
-#    foreground (not `exec`) so the exit trap above can reap grunt watch once it stops.
+#    foreground (not `exec`) so the exit trap above can reap the asset watcher once it stops.
 echo "==> starting sbt ~ run  (first HTTP request triggers the dev compile; Ctrl-C to stop)"
 sbt \
   -Dconfig.file="$WT_DIR/conf/application.local.conf" \
