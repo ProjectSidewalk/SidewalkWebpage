@@ -151,6 +151,10 @@ async function checkLabelCardFits(page, {withoutAddress = false} = {}) {
   // which is network-timed and can land between any two of those steps. Holding the state briefly and then
   // measuring outside the retry loses that race whenever the pano settles in the gap. Once it has run there is
   // nothing left to rewrite the cell, so the block converges rather than spinning.
+  // ResizeObserver callbacks land before paint, so two frames covers a re-fit and its relayout.
+  const twoFrames = () => page.evaluate(() => new Promise(done => {
+    requestAnimationFrame(() => requestAnimationFrame(done));
+  }));
   let fit;
   await expect(async () => {
     await page.evaluate(({hide, address}) => {
@@ -158,17 +162,20 @@ async function checkLabelCardFits(page, {withoutAddress = false} = {}) {
       cell.hidden = hide;
       document.querySelector('.label-detail__meta-divider--address').hidden = hide;
       if (!hide) document.querySelector('.label-detail__address').textContent = address;
+      // Cleared so the trims checked below can only come from a fit of the authored state, never an earlier one.
+      document.querySelector('.label-detail__meta-row').classList.remove('label-detail__meta-row--no-time',
+        'label-detail__meta-row--compact-details', 'label-detail__meta-row--wrap');
     }, {hide: withoutAddress, address: LONG_ADDRESS});
 
     // Those writes reach the DOM but not the fitter: #fitMetaRow runs from a ResizeObserver on the meta row, and
-    // toggling that row's own children never changes its box. Unfitted, the strip keeps whatever trims the real
-    // address left on it — the per-run variance this helper exists to pin. A 1px viewport round-trip is the
-    // resize path production takes on rotation, and lands back on the width under test.
+    // toggling that row's own children never changes its box. A 1px viewport round-trip is the resize path
+    // production takes on rotation, and lands back on the width under test. Each leg gets its own frames: both
+    // resizes inside one frame are no net change to the observer, which then never fires (#5682).
     const viewport = page.viewportSize();
     await page.setViewportSize({...viewport, width: viewport.width - 1});
+    await twoFrames();
     await page.setViewportSize(viewport);
-    // ResizeObserver callbacks land before paint, so two frames covers the re-fit and its relayout.
-    await page.evaluate(() => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done))));
+    await twoFrames();
 
     fit = await page.evaluate(() => {
       const card = document.getElementById('label-modal');
