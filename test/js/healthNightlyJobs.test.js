@@ -151,6 +151,18 @@ describe('the nightly jobs panel', () => {
     expect(rows().map((r) => r[0])).toEqual(['Never run', 'Overdue but ok', 'Failed', 'Fine']);
   });
 
+  test('shows a run its process died in as interrupted, in the bad tone, between abandoned and failed', async () => {
+    await render([
+      job({ label: 'Failed', last_status: 'failed' }),
+      job({ label: 'Interrupted', last_status: 'interrupted' }),
+      job({ label: 'Abandoned', last_status: 'abandoned' }),
+    ]);
+    expect(rows().map((r) => r[0])).toEqual(['Abandoned', 'Interrupted', 'Failed']);
+    const badge = [...document.querySelectorAll('#health-jobs tbody tr')][1].querySelector('td:nth-child(3) span');
+    expect(badge.textContent).toBe('interrupted');
+    expect(badge.className).toContain('ac-badge--bad');
+  });
+
   test('labels a job whose last scheduled run succeeded but is too old as overdue', async () => {
     await render([job({ last_status: 'succeeded', overdue: true })]);
     const badge = document.querySelector('#health-jobs tbody td:nth-child(3) span');

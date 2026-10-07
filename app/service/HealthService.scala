@@ -116,15 +116,16 @@ case class HealthThresholds(
  * that anything is still firing it, so letting one supply the badge would let a morning-after "run it now" click
  * paint over the night the job actually failed.
  *
- * @param lastStatus         `never_run`, `abandoned` (still open long past any plausible duration, so the app died
- *                           mid-run), or the recorded outcome.
+ * @param lastStatus         `never_run`, `abandoned` (still open long past any plausible duration while its process
+ *                           stayed up, so it hung), or the recorded outcome, which includes `interrupted` (the process
+ *                           died mid-run and the next boot closed the row, #5236).
  * @param lastDetails        The job's own counts, shaped by the job.
  * @param hoursSinceLastRun  Age of the last scheduled run's start, which is what makes a stalled scheduler visible.
  * @param overdue            No successful scheduled run within the roster's overdue window.
  * @param lastManualRunAt    When someone last ran this job by hand, if ever.
  * @param lastManualStatus   How that hand-triggered run ended.
  * @param runsInWindow       Scheduled runs started within the reporting window, successful or not.
- * @param failuresInWindow   How many of those failed or were abandoned, for the error-rate read.
+ * @param failuresInWindow   How many of those failed, were interrupted, or were abandoned, for the error-rate read.
  */
 case class NightlyJobStatus(
     jobName: String,
@@ -321,10 +322,11 @@ class HealthServiceImpl @Inject() (
         val lastManual   = byJobAndTrigger.get((job.name, JobRunTrigger.Manual))
         val jobCounts    = counts.filter(_.jobName == job.name)
         val runsInWindow = jobCounts.map(_.count).sum
-        // An abandoned run — still open long past any plausible duration — is a failure the row never got to record,
-        // so counting only `failed` here would read a job the JVM dies inside every night as a spotless record.
+        // An interrupted or abandoned run is a failure the job never got to record, so counting only `failed` here
+        // would read a job the JVM dies inside every night as a spotless record.
         val failures = jobCounts.collect {
           case outcome if outcome.status == JobRunStatus.Failed                       => outcome.count
+          case outcome if outcome.status == JobRunStatus.Interrupted                  => outcome.count
           case outcome if outcome.status == JobRunStatus.Running && outcome.abandoned => outcome.count
         }.sum
         val hoursSince = latest.map(run => ChronoUnit.HOURS.between(run.startedAt, now))
@@ -403,8 +405,10 @@ object HealthService {
   /**
    * How long a run may stay open before it reads as abandoned rather than in progress, in hours.
    *
-   * The whole nightly schedule spans under four hours, so a run still open this long after it started means the app
-   * was killed or redeployed mid-run and nothing ever closed the row.
+   * The whole nightly schedule spans under four hours, so a run still open this long after it started has stopped
+   * making progress. A run whose process died is closed as `interrupted` at the next boot (#5236), so what this
+   * threshold catches is a run that hung inside a process that stayed up, or a process that died and has not yet
+   * restarted. A heartbeat column would shorten that wait; until then, this is the only signal.
    */
   val JobAbandonedAfterHours: Long = 12
 

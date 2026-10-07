@@ -151,7 +151,11 @@ export class ImageryPipelinePanel {
     } else if (poll.last_status === 'failed') {
       tone = 'warn';
       message = `The most recent poll failed: ${poll.last_error || 'see the server log'}`;
-    } else if (sync && (sync.overdue || sync.last_status === 'failed')) {
+    } else if (poll.last_status === 'interrupted') {
+      // The app was restarted or died mid-run, so there is no error to show; the server log around that time has why.
+      tone = 'warn';
+      message = 'The most recent poll was cut off by an app restart before it finished.';
+    } else if (sync && (sync.overdue || ['failed', 'interrupted'].includes(sync.last_status))) {
       // The poll can be healthy while the sync that turns its dates into flags is not, and the symptom is the same
       // from the outside: nothing new gets flagged.
       tone = 'warn';

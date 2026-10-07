@@ -337,9 +337,11 @@ export class AdminShell {
    * @returns {string} The badge's HTML.
    */
   static jobStatusBadge(job) {
-    const tones = { never_run: 'bad', abandoned: 'bad', failed: 'bad', running: 'ok', succeeded: 'good' };
-    const labels = { never_run: 'never run', abandoned: 'abandoned', failed: 'failed', running: 'running',
-      succeeded: 'ok' };
+    // `interrupted`: the process died mid-run and the next boot closed the row (#5236), so the work did not happen.
+    const tones = { never_run: 'bad', abandoned: 'bad', interrupted: 'bad', failed: 'bad', running: 'ok',
+      succeeded: 'good' };
+    const labels = { never_run: 'never run', abandoned: 'abandoned', interrupted: 'interrupted', failed: 'failed',
+      running: 'running', succeeded: 'ok' };
     // An unknown status defaults to `warn`, not `good`: a status the server grew and this page hasn't learned yet
     // would otherwise render as a clean bill of health, which is the one direction a health panel must never drift.
     const known = tones[job.last_status] || 'warn';

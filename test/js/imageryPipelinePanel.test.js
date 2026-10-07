@@ -149,6 +149,13 @@ describe('ImageryPipelinePanel banner', () => {
     expect(statusText()).toContain('HTTP 429');
   });
 
+  test('reports a poll an app restart cut off as a warning, not as healthy', async () => {
+    // An interrupted run carries no error message, so the banner has to say what happened on its own.
+    await renderPanel(report({ jobs: [job({ last_status: 'interrupted', last_error: null })] }));
+    expect(statusHtml()).toContain('ac-badge--warn');
+    expect(statusText()).toContain('app restart');
+  });
+
   test('reports a healthy poll whose flag sync is not running', async () => {
     // The two failures look the same from outside — nothing new gets flagged — so the sync gets its own rung.
     await renderPanel(report({

@@ -244,5 +244,18 @@ class NightlyJobStatusSpec extends SidewalkSpec with BeforeAndAfterAll with Guic
       job.overdue mustBe true
       job.failuresInWindow must be >= 1
     }
+
+    "report a run its process died in as interrupted, and count it as a failure" in {
+      resetHistory()
+      seedFinished(JobRunTrigger.Scheduled, JobRunStatus.Interrupted, OffsetDateTime.now.minusHours(2))
+
+      // An interrupted run did not do the night's work, so it must neither read as healthy nor drop out of the
+      // error rate: a job the JVM is killed inside every night would otherwise look spotless.
+      val job = jobStatus()
+      job.lastStatus mustBe "interrupted"
+      job.overdue mustBe true
+      job.runsInWindow mustBe 1
+      job.failuresInWindow mustBe 1
+    }
   }
 }
