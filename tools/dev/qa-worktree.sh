@@ -59,8 +59,7 @@ port_9000_in_use() { (exec 3<>/dev/tcp/127.0.0.1/9000) 2>/dev/null; }
 # Reap every process whose full command line matches $2 and whose working directory is this worktree, sending
 # signal $1. cwd-scoping is deliberate: it reaps only the sbt/watcher processes bound to *this* worktree (target/
 # contention, the backgrounded watch) and never touches the main repo's own sbt server or npm-start watcher.
-# With a 4th argument of "group", the signal goes to each match's whole process group: `npm run watch` runs the
-# watcher through a shell that doesn't pass signals on, so killing npm alone would leave the watcher running.
+# A 4th argument of "group" signals each match's whole process group, since npm doesn't pass signals to the watcher.
 reap_in_worktree() {
   local sig="$1" pattern="$2" label="$3" scope="${4:-}" p
   for p in $(pgrep -f "$pattern" 2>/dev/null || true); do
@@ -151,9 +150,8 @@ if port_9000_in_use; then
 fi
 
 # 5. Start a backgrounded `npm run watch` so `frontend/js/**` / `public/css/**` edits rebuild the bundles
-#    automatically — a plain hard-reload then always reflects the latest source. It gets its own process group
-#    (setsid) so the trap can kill npm, its shell and the watcher together on exit (Ctrl-C, sbt quitting, an error),
-#    and it never outlives the app it was serving.
+#    automatically. It gets its own process group (setsid) so the trap can kill npm, its shell and the watcher
+#    together on exit (Ctrl-C, sbt quitting, an error), and it never outlives the app it was serving.
 WATCH_PGID=""
 cleanup() {
   trap - EXIT INT TERM  # disarm so cleanup runs at most once
