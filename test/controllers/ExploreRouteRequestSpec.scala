@@ -480,9 +480,8 @@ class ExploreRouteRequestSpec
         sql"""SELECT COUNT(DISTINCT street_edge_region.region_id)
               FROM street_edge_region
               INNER JOIN region ON street_edge_region.region_id = region.region_id
-              INNER JOIN street_edge ON street_edge_region.street_edge_id = street_edge.street_edge_id
-              WHERE NOT region.deleted AND street_edge.status = 'open'
-                AND street_edge_region.region_id <> $finishedRegion""".as[Int].head
+              INNER JOIN street_edge_priority ON street_edge_region.street_edge_id = street_edge_priority.street_edge_id
+              WHERE NOT region.deleted AND street_edge_region.region_id <> $finishedRegion""".as[Int].head
       )
       if (otherRegions == 0)
         cancel("No other region has streets to move the user to; the all-finished end state is #5693.")
