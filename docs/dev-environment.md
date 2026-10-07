@@ -167,6 +167,7 @@ Other handy targets:
 | `make docker-up` | Start all services detached (no shell). Useful for `db` only: the web container exits at once, its image command being `jshell`, which reads EOF without a TTY. |
 | `make npm-sync` | Reinstall `node_modules` from `package-lock.json` if they've diverged. |
 | `make ssh target=web` | Open a shell in a running container (`target=web` or `target=db`). |
+| `make upgrade-dev-db` | Copy your Postgres 16 database into the Postgres 18 one. See [Moving your database to Postgres 18](#moving-your-database-to-postgres-18). |
 
 ---
 
@@ -506,6 +507,26 @@ Two more things to know before drawing conclusions from a query:
   Never infer a table's production size or existence from the local DB; when reasoning about query cost or indexes,
   treat those two, not `webpage_activity`, as the heavyweight logs.
 
+### Moving your database to Postgres 18
+
+Dev moved from Postgres 16 to 18 in #3955, on a new data volume (`<project>_pgdata18`; your checkout directory,
+lowercased, is `<project>`). The first `make dev` after pulling it builds the new image and starts an **empty**
+database from the template dumps. Your cities are still in the old `<project>_pgdata` volume, untouched. To copy them
+over, stop `npm start` and run:
+
+```bash
+make upgrade-dev-db
+```
+
+It opens the old volume in a throwaway Postgres 16 container, copies every database and role into the new one,
+rebuilds the planner statistics, and compares each city's label count between the two. It takes a few minutes per
+large city. Rerunning it is safe: each run replaces the new database's contents. Once the app works, delete the old
+volume with the `docker volume rm` line it prints. If you'd rather start over instead, skip it and `make import-dump`
+the cities you need.
+
+A dump taken from a Postgres 18 server (test, and prod after its upgrade) can't be loaded into a Postgres 16
+database, so this is also what makes fresh dumps loadable again.
+
 ---
 
 ## Troubleshooting
@@ -520,10 +541,10 @@ Roughly ordered by when you'd hit them during setup.
 | `pg_restore: ... schema "public" already exists` | Safe to ignore — no effect. |
 | `import-dump` otherwise errors | Don't skip ahead. Re-check the dump filename and `db=` value, then see the [Troubleshooting wiki](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Troubleshooting-Dev-Environment) and ask. |
 | `Execution exception [NoSuchElementException: None.get]` at runtime | The data wasn't imported — run `make import-dump` (the init only creates the schema, not the data). |
-| Database suddenly looks empty (`role "sidewalk_<city>" does not exist`, no city schemas) | Your data is most likely parked on an orphaned Docker volume, not gone — `docker volume ls -qf dangling=true` lists the candidates, and you can copy one back onto this project's data volume (`<project>_pgdata`, where `<project>` is your checkout directory lowercased). Don't run `docker volume prune` while you're looking; that is what actually destroys them. |
+| Database suddenly looks empty (`role "sidewalk_<city>" does not exist`, no city schemas) | Your data is most likely parked on an orphaned Docker volume, not gone — `docker volume ls -qf dangling=true` lists the candidates, and you can copy one back onto this project's data volume (`<project>_pgdata18`, where `<project>` is your checkout directory lowercased). The Postgres 16 `<project>_pgdata` volume is expected to be dangling: see [Moving your database to Postgres 18](#moving-your-database-to-postgres-18). Don't run `docker volume prune` while you're looking; that is what actually destroys them. |
 | `Cannot create container for service web: Conflict ... name "/projectsidewalk-web" already in use` | A prior `web` container wasn't shut down cleanly: `docker container rm /projectsidewalk-web`. |
 | Errors after the computer was shut off mid-run (WSL) | Run `wsl --shutdown`; when Docker offers to restart WSL, accept. Otherwise restart Docker manually. |
-| Can't connect to the database | The db container may not be listening on all addresses. `make ssh target=db`, edit `/var/lib/postgresql/data/postgresql.conf`, set `listen_addresses = '*'`. |
+| Can't connect to the database | The db container may not be listening on all addresses. `make ssh target=db`, edit `/var/lib/postgresql/18/docker/postgresql.conf`, set `listen_addresses = '*'`. |
 | `make` commands "just don't work" | Reinstall `make`. As a fallback, run the underlying command from the `Makefile` directly (e.g. `make ssh target=web` ≈ `docker exec -it projectsidewalk-web /bin/bash`). |
 | `relation "role" does not exist` while a schema is applying evolutions | That schema is behind evolution 372, which dropped the shared `sidewalk_login.role` lookup table that evolutions 270, 295, 337 and 355 all read. Recoverable with the data intact: [Recovering a schema stranded below evolution 372](#recovering-a-schema-stranded-below-evolution-372). |
 | A new JS file isn't in the bundle | Nothing imports it yet: import it from the page's entry in `frontend/js/pages/` or from a file that entry reaches. |

@@ -1,5 +1,5 @@
 .PHONY: dev docker-up docker-up-db docker-run docker-stop npm-sync ssh qa-worktree qa-worktree-stop worktree-remove \
-        lease-status lease-take lease-release \
+        upgrade-dev-db lease-status lease-take lease-release \
         test-js test-e2e test-e2e-host \
         test-python test-python-app test-python-tools \
         import-users import-dump create-new-schema fill-new-schema onboard-city build-city-data check-imagery \
@@ -176,6 +176,11 @@ docker-up:
 
 docker-up-db:
 	@docker compose up -d db
+
+# Copies a Postgres 16 dev database (the old `pgdata` volume) into the Postgres 18 one (#3955). Host-side, since it
+# starts a throwaway Postgres 16 container. See docs/dev-environment.md.
+upgrade-dev-db:
+	@bash tools/dev/upgrade-dev-db.sh --container $(db-container)
 
 # `rm -v` drops the removed containers' anonymous volumes only.
 docker-stop:
