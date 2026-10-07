@@ -14,7 +14,7 @@ Read `docs/evolutions.md` before writing or editing one. The rules that have cau
 - **Every `CREATE TABLE` is followed by `ALTER TABLE <name> OWNER TO sidewalk;`** in the same evolution. Tables
   only: sequences follow automatically, and enum types/views don't need it.
 - **Full constraints up front** (`NOT NULL`, `UNIQUE`/`PRIMARY KEY`, `FOREIGN KEY`, `CHECK` on bounded domains),
-  mirrored in the Slick `*Table.scala`. Closed value sets are enum types (with a `createEnumJdbcType` mapper) or a
+  mirrored in the Slick `*Table.scala`. Closed value sets are enum types (with a `PgEnumCompanion` Scala enum) or a
   `CHECK (col IN (...))` for tiny config tables, never lookup tables or bare text.
 - **Renaming a column or table renames nothing else.** Rename its constraints and indexes back to
   `<table>_<column>_{fkey,key,pkey,check}` and update the name strings in the Slick model.

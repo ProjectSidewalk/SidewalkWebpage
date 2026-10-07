@@ -214,6 +214,17 @@
   "pano-attribution": {
     "opens-new-tab": "(opens in a new tab)"
   },
+  "image-adjustments": {
+    "button": "Image",
+    "active-sr": "(adjusted)",
+    "tooltip": "Adjust shadows, brightness and contrast of the imagery",
+    "title": "Image adjustments",
+    "shadows": "Shadows",
+    "brightness": "Brightness",
+    "contrast": "Contrast",
+    "reset": "Reset to defaults",
+    "persist-note": "These settings persist across Explore and Validate until you reset them."
+  },
   "mission-start-tutorial": {
     "example-type-label-correct": "CORRECT EXAMPLE",
     "label-type-subtitle": "Why is this wrong?",
@@ -356,6 +367,11 @@
     "vote-failed": "Your vote didn't save. Please try again."
   },
   "download-already-preparing": "This file is already being prepared for another request. Please try again shortly.",
+  "session-load-failed": {
+    "title": "Couldn't load",
+    "body": "We couldn't load your mission. Please reload the page to try again.",
+    "bad-link": "This link isn't valid. Check the address and try again."
+  },
   "label-type-picker": {
     "current": "{{labelType}} (current type)",
     "change": "change",
@@ -391,5 +407,8 @@
     "region-sub-pending": "{{length}} of streets · {{percent}}% explored",
     "street-in-city": "{{region}}, {{city}}",
     "unnamed": "Unnamed street"
-  }
+  },
+  "immersive-enter": "Enter immersive mode",
+  "immersive-exit": "Exit immersive mode",
+  "immersive-exit-hint": "Immersive mode. Press F to exit."
 }

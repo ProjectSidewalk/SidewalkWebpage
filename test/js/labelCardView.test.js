@@ -1,5 +1,5 @@
 /**
- * Tests for LabelCardView (public/js/common/LabelCardView.js).
+ * Tests for LabelCardView (frontend/js/common/LabelCardView.js).
  *
  * The shared populator behind Explore's hover card and Validate's label card (#4730). The two tools feed it the
  * same facts but ship slightly different markup — Explore opts into the not-rated nudge, Validate into the no-info
@@ -11,12 +11,8 @@
  * export, the same way share-widget.test.js loads ShareWidget.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const VIEW_SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/common/LabelCardView.js'), 'utf8'
-);
 
 /**
  * Builds the card markup the way views/components/labelCard.scala.html renders it: the not-rated nudge and the
@@ -63,6 +59,7 @@ describe('LabelCardView', () => {
         window.util = {
             camelToKebab: (s) => s.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase(),
             misc: {
+                labelTypeName: (type) => window.i18next.t(`common:${window.util.camelToKebab(type)}`),
                 getIconImagePaths: (type) => ({ iconImagePath: `/icons/${type}.svg` }),
                 // CurbRamp plays the positive type (rated for quality), Obstacle the negative one.
                 getRatingLevelKeys: () => ({ 1: 'level-one', 2: 'level-two', 3: 'level-three' }),
@@ -72,7 +69,7 @@ describe('LabelCardView', () => {
                 labelTypeHasSeverity: (type) => type !== 'Occlusion',
             },
         };
-        window.eval(`${VIEW_SRC}\nwindow.LabelCardView = LabelCardView;`);
+        Object.assign(window, loadModules('frontend/js/common/LabelCardView.js'));
         LabelCardView = window.LabelCardView;
     });
 

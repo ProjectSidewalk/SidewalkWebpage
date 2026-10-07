@@ -1,5 +1,5 @@
 /**
- * Tests for public/js/validate/src/data/Form.js `submit()`.
+ * Tests for frontend/js/validate/data/Form.js `submit()`.
  *
  * Pins the resilience contract introduced for issue #2745: a failed data POST must NOT reload the page (a reload
  * mid-mission reset the user to the first validation and, when it looped, produced the browser's "A problem
@@ -9,31 +9,18 @@
  * Runs under jsdom (jest.config.js sets testEnvironment) so window/document exist.
  */
 
-const fs = require('fs');
 const path = require('path');
 
-const { windowWithStubbedLocation, runScriptWithWindow, newLocationStub, resetLocationStub } =
-    require('./support/windowWithStubbedLocation');
+const { loadModules } = require('./loadGlobalScript');
 
-const FORM_PATH = path.resolve(__dirname, '..', '..', 'public/js/validate/src/data/Form.js');
+const FORM_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/data/Form.js');
 
-/**
- * Load the `Form` class out of the production file. Unlike the api-docs preview modules, Form.js is a bare
- * `class Form {}` that the Grunt bundle simply concatenates into the page scope (it does not assign to `window`), so
- * we evaluate the source as a function body that returns the class rather than relying on a global assignment.
- * String concatenation (not a template literal) is used so the backticks inside Form.js aren't reinterpreted.
- * @param {Window} win - The `window` the loaded source should see.
- * @returns {Function} The Form class.
- */
-function loadFormClass(win) {
-    const src = fs.readFileSync(FORM_PATH, 'utf8');
-    return runScriptWithWindow(src + '\nreturn Form;\n', win);
-}
+const Form = loadModules(FORM_PATH).Form;
 
-// Loaded once against a window carrying this stub, so the stub has to outlive any one test -- beforeEach resets
-// its fields in place rather than rebuilding the object the proxy closed over.
-const locationStub = newLocationStub();
-const Form = loadFormClass(windowWithStubbedLocation(locationStub));
+// jsdom reports a page reload as a "Not implemented: navigation" error on the console, so a spy there is how the
+// suite proves the page was never reloaded (the blanket `catch -> location.reload()` #2745 removed).
+let consoleError;
+const reloadAttempts = () => consoleError.mock.calls.filter(([msg]) => String(msg).includes('Not implemented: navigation'));
 
 /** Stub `fetch` to resolve with the given JSON body and an OK status. */
 function stubFetchOk(body) {
@@ -58,7 +45,8 @@ describe('Form.submit (issue #2745 resilience)', () => {
             modalNoNewMission: { show: jest.fn() }
         };
 
-        resetLocationStub(locationStub);
+        consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+        consoleError.mockClear();
 
         form = new Form('/validationTask');
     });
@@ -77,7 +65,7 @@ describe('Form.submit (issue #2745 resilience)', () => {
         await form.submit(payload);
 
         // The page must never reload, and the first attempt is logged as a failure.
-        expect(locationStub.reload).not.toHaveBeenCalled();
+        expect(reloadAttempts()).toHaveLength(0);
         expect(global.fetch).toHaveBeenCalledTimes(1);
         expect(svv.tracker.push).toHaveBeenCalledWith('SubmitFailed', expect.objectContaining({ attempt: 0 }));
 
@@ -94,7 +82,7 @@ describe('Form.submit (issue #2745 resilience)', () => {
 
         await form.submit({});
 
-        expect(locationStub.reload).not.toHaveBeenCalled();
+        expect(reloadAttempts()).toHaveLength(0);
         expect(svv.tracker.push).toHaveBeenCalledWith('SubmitFailed', expect.anything());
     });
 
@@ -111,14 +99,15 @@ describe('Form.submit (issue #2745 resilience)', () => {
             expect.objectContaining({ attempt: 0, status: 400 }));
         expect(svv.tracker.push).toHaveBeenCalledWith('SubmitFailedGaveUp', { attempts: 0, retryable: false });
         expect(errorSpy).toHaveBeenCalled();
-        expect(locationStub.reload).not.toHaveBeenCalled();
+        expect(reloadAttempts()).toHaveLength(0);
     });
 
     test('408 and 429 are retried even though they are 4xx', async () => {
         for (const status of [408, 429]) {
             global.fetch = jest.fn(() => Promise.resolve({ ok: false, status, json: () => Promise.resolve({}) }));
+            const freshForm = new Form('/validationTask'); // Its own send queue, so the last status's retries don't hold it.
 
-            await form.submit({});
+            await freshForm.submit({});
             await jest.advanceTimersByTimeAsync(2000);
 
             expect(global.fetch).toHaveBeenCalledTimes(2);
@@ -143,7 +132,7 @@ describe('Form.submit (issue #2745 resilience)', () => {
 
         expect(global.fetch).toHaveBeenCalledTimes(6);
         expect(svv.tracker.push).toHaveBeenCalledWith('SubmitFailedGaveUp', expect.anything());
-        expect(locationStub.reload).not.toHaveBeenCalled();
+        expect(reloadAttempts()).toHaveLength(0);
     });
 
     test('an error while applying the response is logged but not retried or reloaded', async () => {
@@ -154,7 +143,7 @@ describe('Form.submit (issue #2745 resilience)', () => {
         await form.submit({});
 
         expect(errorSpy).toHaveBeenCalled();
-        expect(locationStub.reload).not.toHaveBeenCalled();
+        expect(reloadAttempts()).toHaveLength(0);
         expect(global.fetch).toHaveBeenCalledTimes(1); // response handling errors must not resubmit
     });
 
@@ -183,7 +172,7 @@ describe('Form.submit (issue #2745 resilience)', () => {
         // The label type rides along so the container can ask for replacement labels of the right type (#4810).
         expect(svv.labelContainer.resetLabelList).toHaveBeenCalledWith([{ label_id: 9 }], 'Obstacle');
         expect(svv.modalMissionComplete.nextMissionLoaded).toHaveBeenCalled();
-        expect(locationStub.reload).not.toHaveBeenCalled();
+        expect(reloadAttempts()).toHaveLength(0);
     });
 
     test('a successful submit schedules no retry', async () => {
@@ -205,7 +194,7 @@ describe('Form.submit (issue #2745 resilience)', () => {
 
         await form.submit({});
 
-        expect(locationStub.reload).not.toHaveBeenCalled();
+        expect(reloadAttempts()).toHaveLength(0);
         expect(svv.tracker.push).toHaveBeenCalledWith('SubmitFailed', expect.objectContaining({ attempt: 0 }));
         await jest.advanceTimersByTimeAsync(2000);
         expect(global.fetch).toHaveBeenCalledTimes(2);
@@ -229,7 +218,7 @@ describe('Form.submit (issue #2745 resilience)', () => {
 
         expect(svv.missionContainer.createAMission).not.toHaveBeenCalled();
         expect(svv.modalNoNewMission.show).not.toHaveBeenCalled();
-        expect(locationStub.reload).not.toHaveBeenCalled();
+        expect(reloadAttempts()).toHaveLength(0);
     });
 
     test('sends a JSON POST to the configured URL', async () => {
@@ -241,8 +230,93 @@ describe('Form.submit (issue #2745 resilience)', () => {
         expect(global.fetch).toHaveBeenCalledWith('/validationTask', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json; charset=utf-8' },
-            body: JSON.stringify(payload)
+            body: JSON.stringify(payload),
+            keepalive: false
         });
+    });
+
+    test('submits go out one at a time: a second payload waits behind the first one\'s retry', async () => {
+        global.fetch = jest.fn()
+            .mockImplementationOnce(() => Promise.reject(new Error('blip')))
+            .mockImplementation(() => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({}) }));
+
+        await form.submit({ validations: [{ label_id: 1 }] }, true);
+        form.submit({ validations: [{ label_id: 2 }] }, true);
+        await Promise.resolve();
+        expect(global.fetch).toHaveBeenCalledTimes(1); // The second is waiting behind the first's retry.
+
+        await jest.advanceTimersByTimeAsync(2000);
+        const labelIds = global.fetch.mock.calls.map(([, options]) => JSON.parse(options.body).validations[0].label_id);
+        expect(labelIds).toEqual([1, 1, 2]);
+    });
+
+    test('a resend carries the latest progress compiled for its mission, so it cannot move progress backwards',
+        async () => {
+            global.fetch = jest.fn()
+                .mockImplementationOnce(() => Promise.reject(new Error('blip')))
+                .mockImplementation(() => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({}) }));
+
+            await form.submit({ mission_progress: { mission_id: 5, labels_progress: 4 }, validations: [] }, true);
+            form.submit({ mission_progress: { mission_id: 5, labels_progress: 3 }, validations: [] }, true); // An undo.
+            await jest.advanceTimersByTimeAsync(2000);
+
+            const progress = global.fetch.mock.calls.map(([, options]) => JSON.parse(options.body).mission_progress);
+            expect(progress.map((p) => p.labels_progress)).toEqual([4, 3, 3]);
+        });
+
+    test('a resend sends the snapshot it was given, untouched by later edits to the buffered verdict', async () => {
+        global.fetch = jest.fn(() => Promise.reject(new Error('blip')));
+        const verdict = { label_id: 1, undone: false };
+
+        await form.submit({ validations: [verdict] }, true);
+        verdict.undone = true; // What an undo does to the buffered object.
+        await jest.advanceTimersByTimeAsync(2000);
+
+        expect(global.fetch).toHaveBeenCalledTimes(2);
+        expect(JSON.parse(global.fetch.mock.calls[1][1].body).validations[0].undone).toBe(false);
+    });
+
+    test('a submit made while an earlier one is still in flight waits behind that one\'s retries too', async () => {
+        let failFirst;
+        global.fetch = jest.fn()
+            .mockImplementationOnce(() => new Promise((_, reject) => { failFirst = reject; }))
+            .mockImplementation(() => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({}) }));
+
+        form.submit({ validations: [{ label_id: 1 }] }, true); // A verdict, slow to answer.
+        await Promise.resolve();
+        form.submit({ validations: [{ label_id: 2 }] }, true); // Its undo, while the verdict is still in flight.
+        failFirst(new Error('timed out'));
+        await jest.advanceTimersByTimeAsync(2000);
+
+        const labelIds = global.fetch.mock.calls.map(([, options]) => JSON.parse(options.body).validations[0].label_id);
+        expect(labelIds).toEqual([1, 1, 2]);
+    });
+
+    test('a resend of the mission-complete submit stays the mission-complete submit', async () => {
+        global.fetch = jest.fn()
+            .mockImplementationOnce(() => Promise.reject(new Error('blip')))
+            .mockImplementation(() => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({}) }));
+
+        await form.submit({ mission_progress: { mission_id: 5, labels_progress: 10, completed: true }, validations: [] });
+        // A flush compiled during the backoff: same mission, not a completion.
+        form.submit({ mission_progress: { mission_id: 5, labels_progress: 10, completed: false }, validations: [] }, true);
+        await jest.advanceTimersByTimeAsync(2000);
+
+        const completed = global.fetch.mock.calls.map(([, options]) => JSON.parse(options.body).mission_progress.completed);
+        expect(completed).toEqual([true, true, false]);
+    });
+
+    test('a resend of a flush does not become a mission-complete submit', async () => {
+        global.fetch = jest.fn()
+            .mockImplementationOnce(() => Promise.reject(new Error('blip')))
+            .mockImplementation(() => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({}) }));
+
+        await form.submit({ mission_progress: { mission_id: 5, labels_progress: 9, completed: false }, validations: [] }, true);
+        form.submit({ mission_progress: { mission_id: 5, labels_progress: 10, completed: true }, validations: [] });
+        await jest.advanceTimersByTimeAsync(2000);
+
+        const progress = global.fetch.mock.calls.map(([, options]) => JSON.parse(options.body).mission_progress);
+        expect(progress.map((p) => [p.labels_progress, p.completed])).toEqual([[9, false], [10, false], [10, true]]);
     });
 
     test('never rejects, even when every attempt fails (callers do not catch)', async () => {
@@ -332,7 +406,7 @@ describe('Form.submit (issue #2745 resilience)', () => {
         expect(errorSpy).toHaveBeenCalled();
         expect(svv.modalMissionComplete.nextMissionLoaded).not.toHaveBeenCalled();
         expect(global.fetch).toHaveBeenCalledTimes(1);
-        expect(locationStub.reload).not.toHaveBeenCalled();
+        expect(reloadAttempts()).toHaveLength(0);
     });
 
     test('a failed submit still retries (and gives up) cleanly when the tracker is unavailable', async () => {
@@ -343,7 +417,7 @@ describe('Form.submit (issue #2745 resilience)', () => {
         await jest.advanceTimersByTimeAsync(30100);
 
         expect(global.fetch).toHaveBeenCalledTimes(6);
-        expect(locationStub.reload).not.toHaveBeenCalled();
+        expect(reloadAttempts()).toHaveLength(0);
     });
 
     test('a failed intermediate submit stays intermediate across retries (never loads a mission)', async () => {

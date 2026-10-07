@@ -1,5 +1,5 @@
 /**
- * Tests for util.exploreCanvasFrame (public/js/common/utilities.js, #5085).
+ * Tests for util.exploreCanvasFrame (frontend/js/common/utilities.js, #5085).
  *
  * Explore projects every click through a logical frame that is always 720 px wide and as tall as the displayed
  * pano's aspect makes it, and stores that frame with the label. These pin the two things that matter downstream:
@@ -7,12 +7,8 @@
  * the projection needs.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { realUtil } = require('./loadGlobalScript');
 
-const UTILITIES_SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/common/utilities.js'), 'utf8'
-);
 
 /** Puts a drawing layer of the given on-screen size in the document (jsdom's real rect is all zeroes). */
 function layerOfSize(width, height) {
@@ -28,7 +24,7 @@ describe('util.exploreCanvasFrame', () => {
     beforeEach(() => {
         window.bowser = { getParser: () => ({ getBrowserName: () => 'Chrome', getBrowserVersion: () => '1',
             getOSName: () => 'Linux', getPlatformType: () => 'desktop' }) };
-        window.eval(UTILITIES_SRC);
+        window.util = realUtil();
         util = window.util;
     });
 

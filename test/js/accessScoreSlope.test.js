@@ -6,9 +6,11 @@
 
 const fs = require('fs');
 const path = require('path');
-
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
+const { loadModules, realUtil } = require('./loadGlobalScript');
+
 const read = (p) => fs.readFileSync(path.join(REPO_ROOT, p), 'utf8');
+
 const FIXTURE = JSON.parse(read('test/fixtures/accessScoreParity.json'));
 
 const GRADIENT = {
@@ -48,15 +50,16 @@ describe('slope in the AccessScore scoring controls', () => {
         // Echoes the key with any interpolated values, so a test can see what was handed to a string.
         window.i18next = {
             language: 'en',
-            exists: () => false,
-            t: (key, values = {}) => [key, ...Object.entries(values).map(([k, v]) => `${k}=${v}`)].join(' '),
+            // A string that names its own fallback is one this locale may not have, and here it doesn't.
+            t: (key, values = {}) => values.defaultValue
+                ?? [key, ...Object.entries(values).map(([k, v]) => `${k}=${v}`)].join(' '),
         };
         window.util = { escapeHTML: (text) => String(text) };
-        window.eval(read('public/js/common/urlQuery.js'));
+        window.util ??= realUtil();
+        loadModules('frontend/js/common/urlQuery.js');
         for (const name of ['Model', 'GradeRamp', 'SlopePanel', 'UrlSync']) {
-            const dir = name === 'GradeRamp' ? 'common' : 'access-score/src';  // The ramp is shared with the API docs.
-            window.eval(`${read(`public/js/${dir}/AccessScore${name}.js`)}
-                window.AccessScore${name} = AccessScore${name};`);
+            const dir = name === 'GradeRamp' ? 'common' : 'access-score';  // The ramp is shared with the API docs.
+            Object.assign(window, loadModules(`frontend/js/${dir}/AccessScore${name}.js`));
         }
         ({ AccessScoreModel, AccessScoreSlopePanel, AccessScoreUrlSync } = window);
     });
@@ -101,6 +104,9 @@ describe('slope in the AccessScore scoring controls', () => {
             expect(el('acs-slope-low').min).toBe('1');
             expect(el('acs-slope-low').max).toBe('40');
             expect([...el('acs-slope-statistic').options].map((o) => o.value)).toEqual(CONFIG.grade_scoring.statistics);
+            // A statistic the locale has no name for yet is listed by its id.
+            expect([...el('acs-slope-statistic').options].map((o) => o.textContent))
+                .toEqual(CONFIG.grade_scoring.statistics);
             expect(el('acs-slope-reset').hidden).toBe(true);
             expect(el('acs-slope-summary').textContent).toBe('');
             expect(el('acs-slope-barrier-threshold').disabled).toBe(true);

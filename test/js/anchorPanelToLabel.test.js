@@ -1,40 +1,32 @@
 /**
- * Tests for util.anchorPanelToLabel (public/js/common/utilities.js).
+ * Tests for util.anchorPanelToLabel (frontend/js/common/utilities.js).
  *
  * This routine places every panel that hangs off a label icon in a pano: Explore's hover card and context menu
  * (#4719/#4724) and Validate's label card (#4726). It is pure geometry over measured rects, which makes it exactly
  * the kind of thing that is painful to verify by eye in a browser and cheap to pin here — the flip, the clamps, and
  * the tail offset only misbehave at the edges, which is where a manual pass is least likely to look.
  *
- * The panel is a jQuery object in production. jsdom has no layout engine, so a real jQuery panel would measure
- * 0x0 and every assertion below would be about the wrong numbers; the tests pass a stub whose dimensions are stated
- * outright, which is what a geometry test wants anyway. The bounding elements are stubbed the same way.
+ * jsdom has no layout engine, so a real panel element would measure 0x0 and every assertion below would be about the
+ * wrong numbers; the tests pass a stub whose dimensions are stated outright, which is what a geometry test wants
+ * anyway. The bounding elements are stubbed the same way.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { realUtil } = require('./loadGlobalScript');
 
-const UTILITIES_SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/common/utilities.js'), 'utf8'
-);
 
 // Explore's frame, as the defaults expect to find it. The pano is 720x480 at scale 1 and sits 100px from the
 // viewport's left edge; the whole tool (pano + gap + sidebar) runs to x=1136.
 const PANO_LEFT = 100;
 const APP_RIGHT = 1136;
 
-/** A stand-in for the jQuery panel, recording what the routine sets on it. */
+/** A panel of a fixed size (jsdom lays nothing out); `placed` reads back where it was put. */
 function makePanel(width, height) {
-    const el = document.createElement('div');
-    const panel = {
-        0: el,
-        classes: {},
-        placed: null,
-        outerWidth: () => width,
-        outerHeight: () => height,
-        toggleClass: (name, on) => { panel.classes[name] = on; },
-        css: (props) => { panel.placed = props; },
-    };
+    const panel = document.createElement('div');
+    Object.defineProperties(panel, {
+        offsetWidth: { value: width },
+        offsetHeight: { value: height },
+        placed: { get: () => ({ left: parseFloat(panel.style.left), top: parseFloat(panel.style.top) }) },
+    });
     return panel;
 }
 
@@ -48,8 +40,8 @@ function makeRectEl(rect, id) {
 }
 
 /** The tail offset the routine wrote, in px. */
-const tailTop = (panel) => parseFloat(panel[0].style.getPropertyValue('--panel-tail-top'));
-const flipped = (panel) => panel.classes['label-anchored-panel--flipped'];
+const tailTop = (panel) => parseFloat(panel.style.getPropertyValue('--panel-tail-top'));
+const flipped = (panel) => panel.classList.contains('label-anchored-panel--flipped');
 
 describe('util.anchorPanelToLabel', () => {
     let util;
@@ -59,7 +51,7 @@ describe('util.anchorPanelToLabel', () => {
         // utilities.js builds a Bowser parser at load time; the geometry under test never consults it.
         window.bowser = { getParser: () => ({ getBrowserName: () => 'Chrome', getBrowserVersion: () => '1',
             getOSName: () => 'Linux', getPlatformType: () => 'desktop' }) };
-        window.eval(UTILITIES_SRC);
+        window.util = realUtil();
         util = window.util;
 
         // Explore's frame: the display-scale probe, the coordinate origin, and the horizontal bound.

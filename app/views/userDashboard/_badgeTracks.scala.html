@@ -1,5 +1,5 @@
 @(labelCount: Int, auditedDistance: Double, missionCount: Int, validationCount: Int, isMetric: Boolean
-)(implicit assets: AssetsFinder, messages: Messages)
+)(using assets: AssetsFinder, messages: Messages)
 
 @*
 * Shared badge-tracks skeleton for the dashboard and public profile. Server-renders each track's type + raw value as

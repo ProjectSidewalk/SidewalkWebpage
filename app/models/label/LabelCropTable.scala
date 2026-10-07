@@ -1,9 +1,9 @@
 package models.label
 
 import com.google.inject.ImplementedBy
-import models.label.CropSource.CropSource
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.{given, *}
+import models.utils.{NamedEnum, PgEnumCompanion}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.{Json, Writes}
 
@@ -11,16 +11,57 @@ import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
 
-// NOTE need to update crop_source enum in postgres as well if changing this Enumeration.
-object CropSource extends Enumeration {
-  type CropSource = Value
+/**
+ * A label the crop job may cut a crop for.
+ *
+ * @param panoWidth  The pano's width as `pano_data` records it — the frame `panoX` is expressed in — or None.
+ * @param panoHeight The pano's height as `pano_data` records it, or None.
+ */
+case class CropCandidate(
+    labelId: Int,
+    labelType: LabelType,
+    panoId: String,
+    panoX: Int,
+    panoY: Int,
+    panoWidth: Option[Int],
+    panoHeight: Option[Int]
+)
+
+/**
+ * A label whose crop is on disk with no `label_crop` row saying where the label is in it (#2660).
+ *
+ * @param timeCreated  When the label was placed; an Explore-frame crop is uploaded within the same session.
+ * @param canvasWidth  With `canvasHeight`, the frame `canvasX`/`canvasY` are expressed in (#5085); a snapshot of
+ *                     the canvas has the same aspect ratio.
+ * @param aiGenerated  Whether an AI placed it, in which case no browser ever snapshotted a canvas for it.
+ */
+case class ProvenanceCandidate(
+    labelId: Int,
+    labelType: LabelType,
+    timeCreated: OffsetDateTime,
+    panoId: String,
+    panoX: Int,
+    panoY: Int,
+    canvasX: Int,
+    canvasY: Int,
+    canvasWidth: Int,
+    canvasHeight: Int,
+    panoWidth: Option[Int],
+    panoHeight: Option[Int],
+    aiGenerated: Boolean
+)
+
+// NOTE need to update crop_source enum in postgres as well if changing this enum.
+enum CropSource(val name: String) extends NamedEnum {
 
   /** The browser's snapshot of the Explore canvas at labeling time, where the label is at the canvas fraction. */
-  val ExploreFrame = Value("explore_frame")
+  case ExploreFrame extends CropSource("explore_frame")
 
   /** The window the crop job cuts around the label from the self-hosted pano (#4865). */
-  val PanoWindow = Value("pano_window")
+  case PanoWindow extends CropSource("pano_window")
 }
+
+object CropSource extends PgEnumCompanion[CropSource]("crop_source")
 
 /**
  * Where the label is in its crop, as fractions of the image (`0` to `1`), so it places the marker at any scale.
@@ -33,7 +74,7 @@ object CropSource extends Enumeration {
 case class CropMarker(x: Double, y: Double, width: Option[Int] = None, height: Option[Int] = None)
 
 object CropMarker {
-  implicit val writes: Writes[CropMarker] = Json.writes[CropMarker]
+  given writes: Writes[CropMarker] = Json.writes[CropMarker]
 }
 
 /**
@@ -71,8 +112,7 @@ class LabelCropTableDef(tag: slick.lifted.Tag) extends Table[LabelCrop](tag, "la
   // DEFAULT now() in the DB (O.Default holds a value, not an expression).
   def timeCreated: Rep[OffsetDateTime] = column[OffsetDateTime]("time_created")
 
-  def * = (labelId, source, markerX, markerY, width, height, cropRuleVersion, timeCreated) <>
-    ((LabelCrop.apply _).tupled, LabelCrop.unapply)
+  def * = (labelId, source, markerX, markerY, width, height, cropRuleVersion, timeCreated).mapTo[LabelCrop]
 
   def label = foreignKey("label_crop_label_id_fkey", labelId, TableQuery[LabelTableDef])(_.labelId)
 }
@@ -81,7 +121,7 @@ class LabelCropTableDef(tag: slick.lifted.Tag) extends Table[LabelCrop](tag, "la
 trait LabelCropTableRepository {}
 
 @Singleton
-class LabelCropTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext)
+class LabelCropTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(using ec: ExecutionContext)
     extends LabelCropTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 

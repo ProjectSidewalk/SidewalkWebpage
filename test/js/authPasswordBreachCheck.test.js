@@ -80,7 +80,7 @@ function renderPasswordGroup({ withDialog = false, withChecklist = true } = {}) 
   jest.spyOn(window, 'addEventListener').mockImplementation((type, handler) => {
     if (type === 'DOMContentLoaded') domReady = handler;
   });
-  window.PsModal = class {
+  window.Modal = class {
     open() {}
 
     close() {}
@@ -88,7 +88,7 @@ function renderPasswordGroup({ withDialog = false, withChecklist = true } = {}) 
   document.body.innerHTML = `
     ${withDialog ? AUTH_DIALOG : ''}
     <div class="au-page"><form id="sign-up-form" class="au-form">${passwordGroup(withChecklist)}</form></div>`;
-  loadGlobalScript('public/js/common/AuthModal.js');
+  loadGlobalScript('frontend/js/common/AuthModal.js');
   domReady();
 }
 
@@ -136,7 +136,7 @@ afterEach(() => {
   jest.restoreAllMocks();
   jest.useRealTimers();
   delete window.fetch;
-  delete window.PsModal;
+  delete window.Modal;
 });
 
 describe('advisory breached-password check', () => {

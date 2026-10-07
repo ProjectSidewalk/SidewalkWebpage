@@ -11,6 +11,7 @@ set -euo pipefail
 # provider for a batch of streets (data_source = 'imagery_poll'); a bulk scan import remains useful for new cities and
 # for full-coverage passes.
 
+# shellcheck source=helpers.sh
 source /opt/scripts/helpers.sh
 
 # Optional positional args ($1 schema, $2 CSV path relative to the db dir) so tools/city/setup_new_city.py can drive the

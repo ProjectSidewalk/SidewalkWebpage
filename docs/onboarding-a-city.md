@@ -31,7 +31,12 @@ Run the three from the **main checkout**: `db/` is the bind mount the db contain
      US census tracts, then the whole city as one region (fine for a small town).
   Whatever you use, record where it came from with `--regions-source` (a URL, or the collaborator's email); it is
   stored in `region.data_source`. **Regions must tile the city — never overlap.** Street pieces are cut out of the
-  region polygons, so a street lying under two of them is cut twice and lands in the database twice (#3067). A
+  region polygons, so a street lying under two of them is cut twice and lands in the database twice (#3067). Those
+  cuts are a leftover from when a route could not leave its region: since #3488 a region is only where a street is
+  *filed* (for missions and completion), and routes run across borders freely, so the cutting is to be replaced by
+  assigning each whole street to the region holding most of it (`docs/architecture.md` → "Streets, regions, and
+  routes"). Until that lands, expect the border pieces in the report's tiny-segment share, and don't hand-split a
+  street to make it fit a region. A
   hairline where two borders were traced a metre apart is repaired for you, by giving that ground to the smaller
   region (`--max-region-sliver-m`, 5 m). An overlap thicker than that is a real disagreement about where a region
   is, so the build stops and names the pairs for you to settle in QGIS.

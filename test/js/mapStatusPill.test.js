@@ -1,19 +1,17 @@
 /**
- * Tests for public/js/ps-map/MapStatusPill.js (#5002): the zoom-floor hint shows immediately, the loading note
+ * Tests for frontend/js/ps-map/MapStatusPill.js (#5002): the zoom-floor hint shows immediately, the loading note
  * only after its anti-flicker delay (and never while suppressed), and idle/error hide the pill.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const PILL_SRC = fs.readFileSync(path.resolve(__dirname, '..', '..', 'public/js/ps-map/MapStatusPill.js'), 'utf8');
 
 describe('MapStatusPill', () => {
     let container;
 
     beforeAll(() => {
         window.i18next = { t: (key) => key };
-        window.eval(`${PILL_SRC}\nwindow.MapStatusPill = MapStatusPill;`);
+        Object.assign(window, loadModules('frontend/js/ps-map/MapStatusPill.js'));
     });
 
     beforeEach(() => {

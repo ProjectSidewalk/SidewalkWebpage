@@ -3,14 +3,14 @@ package service
 import models.place.PlaceCategory
 import models.utils.LatLngBBox
 import org.scalatest.OptionValues
-import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.{JsObject, Json}
+import util.SidewalkSpec
 
 /**
  * Unit tests for the places refresh's pure halves (#5311): the Overpass query it sends and the parsing of what comes
  * back. No application, DB, or network required; both live on the companion object.
  */
-class PlacesServiceSpec extends PlaySpec with OptionValues {
+class PlacesServiceSpec extends SidewalkSpec with OptionValues {
 
   private val teaneck = LatLngBBox(minLat = 40.86, minLng = -74.03, maxLat = 40.92, maxLng = -73.97)
 

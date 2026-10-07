@@ -1,5 +1,5 @@
 /**
- * Tests for the label card's keyboard shortcuts (public/js/common/label-detail/LabelDetail.js, #5194).
+ * Tests for the label card's keyboard shortcuts (frontend/js/common/label-detail/LabelDetail.js, #5194).
  *
  * Left/right page to the previous/next label and A/Y, D/N, U cast agree, disagree and unsure — on every host the
  * shared card has, which is why the shortcuts live in the controller rather than in one host's key manager.
@@ -29,14 +29,9 @@
  * stubbed on `window` first.
  */
 
-const fs = require('fs');
-const path = require('path');
 
-const { assetPathStub } = require('./loadGlobalScript');
+const { assetPathStub, installDateHelpers, loadModules } = require('./loadGlobalScript');
 
-const readSrc = (rel) => fs.readFileSync(path.resolve(__dirname, '..', '..', rel), 'utf8');
-const LABEL_DETAIL_SRC = readSrc('public/js/common/label-detail/LabelDetail.js');
-const TAG_EDITOR_SRC = readSrc('public/js/common/label-detail/TagEditor.js');
 
 /**
  * Builds the card markup as views/common/labelDetail.scala.html renders it, reduced to the elements
@@ -298,7 +293,6 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
         post = jest.fn(async () => ({ ok: true, status: 200, json: async () => ({}) }));
 
         window.i18next = { t: (key) => key };
-        window.moment = () => ({ format: () => '', fromNow: () => 'a while ago' });
         window.logWebpageActivity = jest.fn();
         window.buildBackupImageData = () => null;
         window.camelToKebab = (s) => s.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
@@ -309,6 +303,7 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
             isMobile: () => false,
             lazyIdentityFetch: post,
             misc: {
+                labelTypeName: (type) => window.i18next.t(`common:${window.camelToKebab(type)}`),
                 getRatingLevelKeys: () => ({ 1: 'low', 2: 'medium', 3: 'high' }),
                 getSmileyIconPath: (sev, type, selected) => `${type}-${sev}-${selected}.svg`,
                 isPositiveLabelType: () => false,
@@ -317,6 +312,7 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
             pano: { centeredPovToCanvasCoord: () => ({ x: 0, y: 0 }), renderedHFov: () => 90 },
             url: { replaceQuery: () => {} },
         };
+        installDateHelpers();
         window.BadgeAchievements = { seedCounts: () => {}, recordValidation: () => {} };
         window.LabelVisibilityToggle = class { constructor() {} };
         window.PanoInfoPopover = class { constructor() {} };
@@ -336,15 +332,19 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
             },
             getPov: () => ({ heading: 250.5, pitch: -12, zoom: 2 }),
             getOriginalPosition: () => ({ heading: 250.5, pitch: -12 }),
-            // A jQuery object in the real card: indexable, and asked for its size when a vote is submitted.
-            svHolder: Object.assign([document.createElement('div')], { width: () => 720, height: () => 480 }),
+            // Measured when a vote is submitted; jsdom lays nothing out.
+            svHolder: Object.defineProperties(document.createElement('div'), {
+                clientWidth: { value: 720 }, clientHeight: { value: 480 },
+            }),
             label: { labelId: 42, label_type: 'Obstacle' },
         };
         window.PopupPanoManager = { create: async () => panoManager };
+        // The stories disclosure is not what these tests exercise, and its real section wants the composer's markup.
+        window.StorySection = class { setLabel() {} };
 
         window.fetch = jest.fn(async () => ({ ok: true, status: 200, json: async () => ({}) }));
 
-        window.eval(`${TAG_EDITOR_SRC}\n${LABEL_DETAIL_SRC}\nwindow.LabelDetail = LabelDetail;`);
+        Object.assign(window, loadModules('frontend/js/common/label-detail/TagEditor.js', 'frontend/js/common/label-detail/LabelDetail.js'));
         LabelDetail = window.LabelDetail;
 
         await mount();

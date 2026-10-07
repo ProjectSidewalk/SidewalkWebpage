@@ -10,15 +10,14 @@
  * into global scope rather than required.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules, realUtil } = require('./loadGlobalScript');
 
-const SHELL_PATH = path.resolve(__dirname, '..', '..', 'public/js/admin-dashboard/AdminShell.js');
+window.util = realUtil();
+
 
 /** Load AdminShell.js and return the class binding. */
 function loadShell() {
-  const src = fs.readFileSync(SHELL_PATH, 'utf8');
-  return (0, eval)(`${src}\nAdminShell;`);
+  return loadModules('frontend/js/admin-dashboard/AdminShell.js').AdminShell;
 }
 
 const AdminShell = loadShell();
@@ -35,19 +34,14 @@ describe('AdminShell.nil', () => {
   });
 });
 
-describe('AdminShell.esc', () => {
-  test('escapes every character that could break out of markup', () => {
-    expect(AdminShell.esc(`<script>alert("x") & 'y'</script>`))
-      .toBe('&lt;script&gt;alert(&quot;x&quot;) &amp; &#39;y&#39;&lt;/script&gt;');
-  });
-
-  test('renders an absent value as empty rather than as the string "null"', () => {
-    expect(AdminShell.esc(null)).toBe('');
-    expect(AdminShell.esc(undefined)).toBe('');
-  });
-
-  test('escapes ampersands before the entities it introduces, so they are not double-escaped', () => {
-    expect(AdminShell.esc('&lt;')).toBe('&amp;lt;');
+describe('AdminShell.tooltipAttr', () => {
+  test('survives both the attribute parse and psTooltip\'s HTML render as plain text', () => {
+    const host = document.createElement('div');
+    host.innerHTML = `<span data-ps-tooltip="${AdminShell.tooltipAttr('<img src=x onerror="bad()"> & co')}"></span>`;
+    const card = document.createElement('div');
+    card.innerHTML = host.firstChild.getAttribute('data-ps-tooltip');
+    expect(card.querySelector('img')).toBeNull();
+    expect(card.textContent).toBe('<img src=x onerror="bad()"> & co');
   });
 });
 

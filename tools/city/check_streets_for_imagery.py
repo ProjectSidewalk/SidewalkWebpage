@@ -18,7 +18,7 @@ This is a standalone, manually-run utility (it is not invoked by the app). Workf
      ``INFRA3D_CLIENT_ID`` and ``INFRA3D_CLIENT_SECRET`` (one city's pair — the same OAuth client-credentials the app
      holds per city as ``INFRA3D_CLIENT_ID_<CITY>``), plus ``--campaign <uid>`` if the city's tenant holds more than
      one campaign. It is ``python3.13`` rather than the container's default ``python3`` because this tool's libraries
-     need Python >= 3.11.
+     need Python >= 3.12.
   3. It writes streets without imagery to ``streets_with_no_imagery.csv`` and a per-street imagery summary (presence +
      capture-date range) to ``street_imagery_summary.csv``, both in the same dir.
   4. Run ``make hide-streets-without-imagery`` to mark those streets in the database.
@@ -554,7 +554,7 @@ def score_pano(image: dict, lat: float, lng: float, now_ms: float) -> float | No
     """
     Scores one candidate Mapillary image for a location, the way Explore's pano viewer does.
 
-    This is a port of ``MapillaryViewer.#scorePano`` (``public/js/common/pano-viewer/src/MapillaryViewer.js``); the
+    This is a port of ``MapillaryViewer.#scorePano`` (``frontend/js/common/pano-viewer/MapillaryViewer.js``); the
     weights and decay scales come from ``conf/pano-scoring.json`` so the two can't drift. Recency is only a
     quarter of the decision and distance dominates it, so the newest image at a point is frequently *not* the one the
     viewer shows — which is the whole reason this port exists (#4411).

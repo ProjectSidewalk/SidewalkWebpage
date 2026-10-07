@@ -3,7 +3,7 @@
 @import models.street.StreetGradientStats
 @import models.user.SidewalkUserWithRole
 @import play.api.Configuration
-@(commonData: CommonPageData, user: Option[SidewalkUserWithRole])(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+@(commonData: CommonPageData, user: Option[SidewalkUserWithRole])(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @content = {
   <div class="page-section" id="street-grade-intro-section">
@@ -25,17 +25,10 @@
        chart are the AccessScore tool's own, shared from js/common/. *@
     <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.js")' defer></script>
     <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")' defer></script>
-    <script src='@assets.path("js/common/geoBounds.js")' defer></script>
-    <script src='@assets.path("js/common/AccessScoreGradeRamp.js")' defer></script>
-    <script src='@assets.path("js/common/AccessScoreElevationProfile.js")' defer></script>
-    <script src='@assets.path("js/api-docs/apiDocsMap.js")' defer></script>
-    <script src='@assets.path("js/api-docs/streetGradePreview.js")' defer></script>
-    <script>
-      // Waits on appManager: the map's language control and the chart's strings both come from i18next.
-      window.appManager.ready(function() {
-        StreetGradePreview.setup({ mapboxApiKey: '@commonData.mapboxApiKey' }).init();
-      });
-    </script>
+    <script type="module"
+            id="page-entry"
+            data-mapbox-api-key="@commonData.mapboxApiKey"
+            src='@assets.path("build/js/api-docs/streetGrade.js")'></script>
   </div>
 
   <div class="page-section" id="data-source-section">

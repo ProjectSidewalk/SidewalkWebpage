@@ -134,20 +134,7 @@
     "feedback": "Retroalimentación",
     "feedback-tooltip": "Comparte tus pensamientos con nosotros",
     "feedback-submitted": "Comentarios enviados",
-    "feedback-title": "¿Alguna idea? ¿Encontraste algo confuso? ¿Has visto un error?<br>¡Envíanos tus comentarios!",
-    "immersive-enter": "Entrar en el modo inmersivo",
-    "immersive-exit": "Salir del modo inmersivo",
-    "immersive-exit-hint": "Modo inmersivo. Pulsa F para salir.",
-    "image": "Imagen",
-    "image-tooltip": "Ajusta las sombras, el brillo y el contraste de la imagen",
-    "image-adjustments": {
-      "title": "Ajustes de imagen",
-      "shadows": "Sombras",
-      "brightness": "Brillo",
-      "contrast": "Contraste",
-      "reset": "Restablecer valores",
-      "persist-note": "Estos ajustes se mantienen entre misiones de Explorar hasta que los restablezcas."
-    }
+    "feedback-title": "¿Alguna idea? ¿Encontraste algo confuso? ¿Has visto un error?<br>¡Envíanos tus comentarios!"
   },
   "right-ui": {
     "opens-new-tab": "(se abre en una pestaña nueva)",
@@ -375,7 +362,7 @@
     "still-stuck": "Si todavía estás atorado, otra vez haz clic en el botón Atorado.",
     "stuck-skipped-street": "Esa calle no tenía imágenes que pudiéramos mostrarte, así que te hemos movido a una calle nueva.",
     "stuck-skipped-street-named": "Esa calle no tenía imágenes que pudiéramos mostrarte, así que te hemos movido a <b>{{streetName}}</b>.",
-    "free-explore-start": "Te hemos colocado cerca de la dirección que buscaste. ¡Mira a tu alrededor y etiqueta lo que encuentres!",
+    "free-explore-start": "Estás explorando libremente desde aquí. ¡Mira a tu alrededor y etiqueta lo que encuentres!",
     "free-explore-start-named": "Has aterrizado cerca de <b>{{placeName}}</b>. ¡Mira a tu alrededor y etiqueta lo que encuentres!",
     "free-explore-no-imagery": "No hay más imágenes de la calle en esta dirección. Intenta mirar alrededor o ir hacia el otro lado.",
     "stuck-suggestion": "Si no puede moverse con las flechas, intente hacer clic en las direcciones de navegación en la parte inferior derecha. O intente hacer clic en el botón Atascado a la izquierda.",

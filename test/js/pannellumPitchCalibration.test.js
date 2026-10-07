@@ -14,11 +14,8 @@
  * eval'd into the jsdom global scope with a stubbed pannellum library underneath.
  */
 
-const fs = require('fs');
-const path = require('path');
-const { loadGlobalScript } = require('./loadGlobalScript');
+const { loadGlobalScript, realUtil, loadModules } = require('./loadGlobalScript');
 
-const SRC_DIR = path.resolve(__dirname, '..', '..', 'public/js/common/pano-viewer/src');
 
 window.bowser = {
     getParser: () => ({
@@ -26,9 +23,9 @@ window.bowser = {
         getOSName: () => 'TestOS', getPlatformType: () => 'desktop',
     }),
 };
-loadGlobalScript('public/js/common/utilities.js');
-loadGlobalScript('public/js/common/utilitiesMath.js');
-loadGlobalScript('public/js/common/pano-viewer/src/panoUtilities.js');
+window.util = realUtil();
+loadGlobalScript('frontend/js/common/utilitiesMath.js');
+loadGlobalScript('frontend/js/common/pano-viewer/panoUtilities.js');
 
 const CAMERA_PITCH = 8.5;    // degrees; near the top of the real distribution
 const CAMERA_HEADING = 104.9;
@@ -71,30 +68,15 @@ function makeFakePannellum() {
 async function makeViewer() {
     const { state, lib } = makeFakePannellum();
     window.pannellum = lib;
-    // PanoData wraps captureDate in moment() and validates it with `instanceof moment`, so the stub has to hand
-    // back something on its own prototype chain. Nothing here reads the formatted value.
-    window.moment = function moment(v) {
-        const m = Object.create(window.moment.prototype);
-        m.format = () => String(v);
-        return m;
-    };
-    window.eval(`
-        class GsvViewer {}
-        class MapillaryViewer {}
-        class Infra3dViewer {}
-        ${fs.readFileSync(path.join(SRC_DIR, 'PanoData.js'), 'utf8')}
-        ${fs.readFileSync(path.join(SRC_DIR, 'PanoViewer.js'), 'utf8')}
-        ${fs.readFileSync(path.join(SRC_DIR, 'PannellumViewer.js'), 'utf8')}
-        window.PannellumViewer = PannellumViewer;
-    `);
+    Object.assign(window, loadModules('frontend/js/common/pano-viewer/PanoData.js', 'frontend/js/common/pano-viewer/PanoViewer.js', 'frontend/js/common/pano-viewer/PannellumViewer.js'));
     const el = document.createElement('div');
     document.body.appendChild(el);
     const v = new window.PannellumViewer();
     await v.initialize(el, {
         panoMetadata: {
-            panoId: 'p1', imageUrl: '/backupImage/p1', width: 13312, height: 6656,
-            cameraHeading: CAMERA_HEADING, cameraPitch: CAMERA_PITCH,
-            lat: 40.9, lng: -74.0, captureDate: '2023-05', linkedPanos: [], history: [], source: 'pannellum',
+            pano_id: 'p1', image_url: '/backupImage/p1', width: 13312, height: 6656,
+            camera_heading: CAMERA_HEADING, camera_pitch: CAMERA_PITCH,
+            lat: 40.9, lng: -74.0, capture_date: '2023-05', linkedPanos: [], history: [], source: 'pannellum',
         },
         startPitch: 0,
         startZoom: 1,

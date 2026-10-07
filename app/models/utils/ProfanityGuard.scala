@@ -51,7 +51,7 @@ object ProfanityGuard {
     'y' -> "у"
   ).flatMap { case (letter, chars) => chars.map(_ -> letter) }.toMap
 
-  private val symbolStandIns: Map[Char, Char] = standIns.filterNot(_._1.isDigit)
+  private val symbolStandIns: Map[Char, Char] = standIns.filterNot { case (standIn, _) => standIn.isDigit }
 
   // A "word" this short is more likely a piece of something split up than a word of its own.
   private val maxShortWordLength: Int = 2
@@ -66,7 +66,7 @@ object ProfanityGuard {
 
   /** Collapses runs of 3+ of the same letter to one, so "shiiiiit" reads as "shit" but "shiitake" is left alone. */
   private def unstretch(s: String): String = {
-    val out = new StringBuilder
+    val out = StringBuilder()
     var i   = 0
     while (i < s.length) {
       var run = 1

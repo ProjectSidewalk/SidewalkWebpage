@@ -1,17 +1,19 @@
 package models.utils
 
-import models.label.LabelTypeEnum
-import org.scalatestplus.play.PlaySpec
+import models.label.LabelType
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import models.api.AggregateStats
-import service.CityScorecard
+import service.{CityScorecard, ConfigService}
+import util.SidewalkSpec
 
+import java.time.{LocalDate, ZoneId}
+import java.time.temporal.ChronoUnit
 import scala.concurrent.Await
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 /**
  * Integration test for the Across-Cities scorecard query on ConfigTable.
@@ -25,10 +27,10 @@ import scala.concurrent.duration._
  *
  * Requires a Postgres+PostGIS database (via DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD env).
  */
-class CityScorecardSpec extends PlaySpec with GuiceOneAppPerSuite {
+class CityScorecardSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule]
       .build()
 
@@ -74,21 +76,42 @@ class CityScorecardSpec extends PlaySpec with GuiceOneAppPerSuite {
       run(configTable.getCityAggregateDataBySchema(schema)) mustBe a[AggregateStats]
     }
     "execute getContributorUserIdsBySchema" in {
-      run(configTable.getContributorUserIdsBySchema(schema)) mustBe a[Seq[_]]
+      run(configTable.getContributorUserIdsBySchema(schema)) mustBe a[Seq[?]]
     }
     "report every label type in the scorecard's per-type breakdown, zero counts included" in {
       // The per-type query LEFT JOINs labels onto the full type list so a type with no labels still gets a row.
-      run(configTable.getCityScorecardBySchema(schema)).byLabelType.keySet mustBe LabelTypeEnum.labelTypeNames
+      run(configTable.getCityScorecardBySchema(schema)).byLabelType.keySet mustBe LabelType.labelTypeNames
     }
     "execute getCityWeeklyTrendBySchema (all-time and windowed)" in {
-      run(configTable.getCityWeeklyTrendBySchema(schema, None)) mustBe a[Seq[_]]
-      run(configTable.getCityWeeklyTrendBySchema(schema, Some(4))) mustBe a[Seq[_]]
+      run(configTable.getCityWeeklyTrendBySchema(schema, None)) mustBe a[Seq[?]]
+      run(configTable.getCityWeeklyTrendBySchema(schema, Some(4))) mustBe a[Seq[?]]
     }
     "execute getCityWindowActivityByUserBySchema" in {
-      run(configTable.getCityWindowActivityByUserBySchema(schema)) mustBe a[Seq[_]]
+      run(configTable.getCityWindowActivityByUserBySchema(schema)) mustBe a[Seq[?]]
     }
     "execute getCityDailyActivityByUserBySchema" in {
-      run(configTable.getCityDailyActivityByUserBySchema(schema, 7)) mustBe a[Seq[_]]
+      run(configTable.getCityDailyActivityByUserBySchema(schema, 7)) mustBe a[Seq[?]]
+    }
+    "execute getCityDailyBaselineBySchema" in {
+      run(configTable.getCityDailyBaselineBySchema(schema, 365)) mustBe a[Seq[?]]
+    }
+    // The baseline's SQL collapses anonymous and AI rows that the bars' query keeps per person, so the only proof the
+    // two still count the same things is running both over the same data. A window reaching back to 2010 covers the
+    // whole seeded history, and the guard below keeps an empty schema from passing this vacuously.
+    "count the baseline on exactly the daily bars' basis" in {
+      val today = LocalDate.now(ZoneId.of("US/Pacific"))
+      val days  = ChronoUnit.DAYS.between(LocalDate.of(2010, 1, 1), today).toInt
+      val bars  = run(configTable.getCityDailyActivityByUserBySchema(schema, days)).map(currentCityId -> _)
+      val base  = run(configTable.getCityDailyBaselineBySchema(schema, days)).map(currentCityId -> _)
+      bars must not be empty
+
+      val window   = (1 to days).map(i => today.minusDays(i.toLong))
+      val byDay    = bars.groupBy(_._2.day)
+      val points   = window.map(day => ConfigService.summarizeDay(day, byDay.getOrElse(day, Seq.empty)).point)
+      val baseline = ConfigService.summarizeBaseline(today, days, base)
+      baseline.labelsPerDay * days mustBe points.map(_.labels).sum.toDouble +- 1e-6
+      baseline.validationsPerDay * days mustBe points.map(_.validations).sum.toDouble +- 1e-6
+      baseline.contributorsPerDay * days mustBe points.map(_.contributors).sum.toDouble +- 1e-6
     }
     "execute getCityContributorOutputBySchema" in {
       run(configTable.getCityContributorOutputBySchema(schema)) mustBe a[Product] // 7-tuple
@@ -97,11 +120,11 @@ class CityScorecardSpec extends PlaySpec with GuiceOneAppPerSuite {
       run(configTable.getCityLabelingSpeedBySchema(schema)) mustBe a[Product] // (Double, Double)
     }
     "execute getCityDailyLabelStatsBySchema (both quality filters)" in {
-      run(configTable.getCityDailyLabelStatsBySchema(schema, filterLowQuality = false)) mustBe a[Seq[_]]
-      run(configTable.getCityDailyLabelStatsBySchema(schema, filterLowQuality = true)) mustBe a[Seq[_]]
+      run(configTable.getCityDailyLabelStatsBySchema(schema, filterLowQuality = false)) mustBe a[Seq[?]]
+      run(configTable.getCityDailyLabelStatsBySchema(schema, filterLowQuality = true)) mustBe a[Seq[?]]
     }
     "execute getCityDailyValidationStatsBySchema" in {
-      run(configTable.getCityDailyValidationStatsBySchema(schema, filterLowQuality = false)) mustBe a[Seq[_]]
+      run(configTable.getCityDailyValidationStatsBySchema(schema, filterLowQuality = false)) mustBe a[Seq[?]]
     }
   }
 }

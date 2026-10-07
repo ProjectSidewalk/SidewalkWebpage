@@ -10,8 +10,8 @@
 }
 
 /* Once the grid collapses to a single column (~650px viewport: two 300px columns + 16px gap no longer fit the
-   Bootstrap container), six stacked cards push the rest of the page too far down — show only three. The hidden
-   cards' images are loading="lazy", so they're never fetched. */
+   page column), six stacked cards push the rest of the page too far down — show only three. The hidden cards'
+   images are loading="lazy", so they're never fetched. */
 @media (width <= 650px) {
   .landing-validation-grid .lvg-card:nth-child(n+4) {
     display: none;

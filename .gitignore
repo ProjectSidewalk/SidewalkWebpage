@@ -99,18 +99,9 @@ project/.sbtserver.lock
 .worksheet
 
 # JavaScript and Node
-public/js/explore/build/*
-public/js/user-dashboard/build/*
-public/js/validate/build/*
-public/js/gallery/build/*
-public/js/access-score/build/*
-public/js/ps-map/build/*
-public/js/route-builder/build/*
-public/js/shared-label/build/*
-public/js/common/pano-viewer/build/*
-public/js/common/pano-credit/build/*
+public/build/
 # Bundles written to the pre-#2292 asset layout by an out-of-date Gruntfile; the paths are dead but a stale
-# checkout can still regenerate them, and they'd otherwise slip past the public/js/*/build/* rules above.
+# checkout can still regenerate them.
 public/javascripts/
 download
 
@@ -151,6 +142,8 @@ htmlcov/
 
 # Claude
 .claude/settings.local.json
+# Who holds the shared dev resources right now (tools/dev/lease.sh).
+.claude/leases/
 CLAUDE.local.md
 
 

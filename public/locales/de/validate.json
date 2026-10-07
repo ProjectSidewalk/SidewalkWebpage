@@ -16,6 +16,7 @@
   },
   "validate-menu": {
     "remove-tag": "Tag entfernen: {{tag}}",
+    "clear-verdict": "Antwort zurücknehmen",
     "tag-search-placeholder": "Weitere Tags hier hinzufügen",
     "tag-search-no-results": "Keine passenden Tags",
     "disagree-reason": {
@@ -104,6 +105,9 @@
     "title": "Bildmaterial konnte nicht geladen werden",
     "body": "Wir konnten das Strassenbildmaterial für die Beschriftungen dieser Mission nicht laden, daher gibt es im Moment nichts zu zeigen. Ihre abgeschlossenen Validierungen sind gespeichert. Das erledigt sich meist von selbst — bitte versuchen Sie es erneut.",
     "retry": "Erneut versuchen"
+  },
+  "pano-loading": {
+    "skipping": "Lädt noch – wir versuchen die nächste Beschriftung …"
   },
   "mission-complete": {
     "title": "Gute Arbeit!",

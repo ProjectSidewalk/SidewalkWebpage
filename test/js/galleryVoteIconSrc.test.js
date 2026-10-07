@@ -8,14 +8,10 @@
  * build would.
  */
 
-const fs = require('fs');
-const path = require('path');
-
-const { loadGlobalScript, REPO_ROOT } = require('./loadGlobalScript');
+const { loadModules, realUtil } = require('./loadGlobalScript');
 
 // A bare `class` declaration, so it has to be evaluated in the page's scope to be reachable, the way its <script>
 // tag makes it reachable in the browser.
-const SRC = fs.readFileSync(path.join(REPO_ROOT, 'public/js/gallery/src/displays/ValidationInfoDisplay.js'), 'utf8');
 
 /** A distinct digest per file, so a URL built by carrying one file's fingerprint onto another's name is visible. */
 const DIGESTS = {
@@ -59,8 +55,8 @@ const srcOf = (display, action) => {
 beforeEach(() => {
   window.assetDigests = { ...DIGESTS };
   window.i18next = { t: (key) => key };
-  loadGlobalScript('public/js/common/utilities.js');
-  window.eval(`${SRC}\nwindow.ValidationInfoDisplay = ValidationInfoDisplay;`);
+  window.util = realUtil();
+  Object.assign(window, loadModules('frontend/js/gallery/displays/ValidationInfoDisplay.js'));
 });
 
 afterEach(() => {

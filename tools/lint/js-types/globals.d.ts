@@ -1,57 +1,22 @@
-// Globals that public/js/ code uses but tsc can't find a declaration for, such as vendor libraries and values set with
+// Globals that frontend/js/ code uses but tsc can't find a declaration for, such as vendor libraries and values set with
 // `window.x = ...` (#5278). Loaded by jsconfig.json. Anything typed `any` here is unchecked at every use; swap in a
 // real type as folders get cleaned up.
 
-// The app namespaces. Each page's Twirl view creates its own with `var svl = {}` and the app fills it in.
-declare var svl: any;
-declare var svv: any;
-declare var sg: any;
-// Shared helpers, built up piece by piece across common/ with `window.util = window.util || {}`.
-declare var util: any;
-
-// Set by common/scoreRamp.js, which the api-docs and AccessScore pages load.
-declare var ScoreRamp: any;
-
-// The API docs helpers, and each endpoint's preview object that its Twirl view calls setup() and init() on.
-declare var ApiDocsMap: any;
-declare var ApiDocsTheme: { color(token: string, alpha?: number): string };
-declare var createApiTableWrapper: (table: HTMLTableElement, label: string) => HTMLElement;
-declare var AccessScoreIntersectionsPreview: any;
-declare var PlacesPreview: any;
-declare var AccessScoreRegionsPreview: any;
-declare var AccessScoreStreetsPreview: any;
-declare var StreetGradePreview: any;
-declare var AggregateStatsByDayPreview: any;
-declare var AggregateStatsPreview: any;
-declare var LabelClustersPreview: any;
-declare var LabelTagsPreview: any;
-declare var LabelTypesPreview: any;
-declare var OverallStatsByDayPreview: any;
-declare var OverallStatsPreview: any;
-declare var RawLabelsPreview: any;
-declare var RegionsPreview: any;
-declare var SidewalkPresencePreview: any;
-declare var StreetsPreview: any;
-declare var StreetTypesPreview: any;
-declare var UserStatsPreview: any;
-declare var ValidationResultTypesPreview: any;
-declare var ValidationsPreview: any;
-
-// The homepage's count-up animations, created inline by index.scala.html.
-declare var percentageAnim: { start(): void } | undefined;
-declare var labelsAnim: { start(): void } | undefined;
-declare var distanceAnim: { start(): void } | undefined;
-declare var validationsAnim: { start(): void } | undefined;
+// The dashboard pages hand their label popup to the contribution map through window: its click adapter resolves the
+// popup lazily, so map setup can't race popup init.
+interface Window {
+  udLabelPopupReady: Promise<any>;
+}
 
 // Libraries loaded from public/vendor/ by <script> tag that have no type package installed.
 declare const AsyncLock: any;
 declare const bowser: any;
 declare const Chart: any;
+declare const DOMPurify: any;
 declare const FloatingUIDOM: any;
 declare const i18next: any;
 declare const i18nextHttpBackend: any;
 declare const infra3dapi: any;
-declare const Kinetic: any;
 declare const mapboxgl: any;
 declare namespace mapboxgl {
   type GeoJSONSource = any;
@@ -67,10 +32,6 @@ declare const MapboxLanguage: any;
 declare const MapboxSearchBox: any;
 // GraphDataProvider is spelled out because a class extending an `any` base gets a constructor that takes nothing.
 declare const mapillary: { GraphDataProvider: new (options?: object) => any; [name: string]: any };
-declare const moment: any;
-declare namespace moment {
-  type Moment = any;
-}
 declare const pannellum: any;
 declare namespace pannellum {
   type Viewer = any;
@@ -98,13 +59,6 @@ declare namespace GeoJSON {
   type LineString = any;
 }
 
-declare namespace JQuery {
-  interface TriggeredEvent<TDelegateTarget = any, TData = any, TCurrentTarget = any, TTarget = any> {
-    // jQuery sets this on events fired from code with .trigger() or .click(), but its type package leaves it out.
-    isTrigger?: number;
-  }
-}
-
 // The Network Information API, which only Chromium browsers have, so TypeScript's DOM types leave it out.
 interface Navigator {
   connection?: { saveData?: boolean };
@@ -112,22 +66,15 @@ interface Navigator {
 
 // Values set on `window` by the site-wide layout (common/main.scala.html) or by AppManager from it.
 interface Window {
-  // The AccessScore tool (access-score/src/main.js): the bootstrap its view calls, and the running app once the map
-  // is scored, which the browser tests read. Both hold the tool's own classes as `any` because those are only
-  // declared in the run that reads access-score/.
-  AccessScoreApp: {
-    start(options: {
-      mapboxApiKey: string;
-      viewerType: typeof PanoViewer;
-      imageryAccessToken: string;
-      username?: string | null;
-    }): Promise<Record<string, any>>;
-    formatScore(score: number): string;
-  };
+  // The running AccessScore app, and the Explore, Validate and Gallery registries: console and browser-test handles
+  // that each page entry sets. Nothing in the app reads them from window.
   accessScore?: Record<string, any>;
+  svl?: Record<string, any>;
+  svv?: Record<string, any>;
+  sg?: Record<string, any>;
   // The admin dashboard's shell. `any` because AdminShell is only declared in the run that reads admin-dashboard/.
   adminShell?: any;
-  appManager: AppManager;
+  appManager: import('../../../frontend/js/common/AppManager.js').AppManager;
   assetDigests: Record<string, string>;
   cityId: string;
   cityName: string;
@@ -137,11 +84,9 @@ interface Window {
   choropleth?: mapboxgl.Map;
   // The deployment sites map, kept here so the resize handler can reach it.
   citiesMap?: mapboxgl.Map;
-  // Set by the jQuery script; @types/jquery only declares the bare `$` and `jQuery` globals.
-  jQuery: JQueryStatic;
   // Explore's rasterized label icons, by icon path. Set up by Label.js.
   labelIconCache: Record<string, HTMLCanvasElement>;
-  // Stamped from LabelTypeEnum.pageStampJson.
+  // Stamped from LabelType.pageStampJson.
   labelTypes: Array<{
     name: string;
     color: string;
@@ -150,15 +95,10 @@ interface Window {
     isPrimary: boolean;
     isPrimaryValidate: boolean;
   }>;
-  localizeElement: (el: Element) => void;
-  localizeSubtree: (root: ParentNode) => void;
   logWebpageActivity: (activity: string, async?: boolean) => void;
   panoramaxLicenses: Record<string, { name: string; url: string }>;
-  psAuthModal: AuthModal;
-  PsModal: typeof Modal;
+  psAuthModal: import('../../../frontend/js/common/AuthModal.js').AuthModal;
 }
-declare function localizeElement(el: Element): void;
-declare function localizeSubtree(root: ParentNode): void;
 
 // A selector lookup returns HTMLElement rather than TypeScript's plain Element. Every page we query is HTML, so the
 // strict default would only mean a cast at nearly every lookup; a class or id selector that finds SVG needs one.

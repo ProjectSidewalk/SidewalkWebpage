@@ -1,17 +1,13 @@
 /**
- * Tests for LabelMiniCard (public/js/common/LabelMiniCard.js, #5217): what a card shows for a label, where its type
+ * Tests for LabelMiniCard (frontend/js/common/LabelMiniCard.js, #5217): what a card shows for a label, where its type
  * icon lands on the crop (#5386), and that its vote chips post the validation payload every static-image surface
  * sends, clear on a second click, roll back on a refusal, and lock where there is nothing to judge or the label is
  * the reader's own.
  */
 
-const fs = require('fs');
-const path = require('path');
 
-const { assetPathStub, installUtilitiesMisc } = require('./loadGlobalScript');
+const { assetPathStub, installDateHelpers, installUtilitiesMisc, installEscapeHTML, loadModules } = require('./loadGlobalScript');
 
-const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const read = (p) => fs.readFileSync(path.join(REPO_ROOT, p), 'utf8');
 
 /** A `/label/id` JSON with a crop, two agrees, and no vote of the reader's own. */
 function label(overrides = {}) {
@@ -48,8 +44,7 @@ describe('LabelMiniCard', () => {
         };
         window.util = {
             assetPath: assetPathStub,
-            // The two site-wide string helpers from utilities.js the card leans on, verbatim.
-            escapeHTML: (str) => str.replace(/[&<>"']/g, (c) => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'}[c])),
+            // The site-wide string helper from utilities.js the card leans on, verbatim.
             camelToKebab: (str) => str.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase(),
             lazyIdentityFetch: (...args) => window.fetch(...args),
             EXPLORE_CANVAS_WIDTH: 720,
@@ -57,9 +52,11 @@ describe('LabelMiniCard', () => {
         };
         // The real util.misc, so the marker helper under test is the shipped one and the palettes are the card's.
         installUtilitiesMisc();
+        installDateHelpers();
+        installEscapeHTML();
         window.Toast = {show: jest.fn()};
         window.BadgeAchievements = {recordValidation: jest.fn()};
-        window.eval(`${read('public/js/common/LabelMiniCard.js')}\nwindow.LabelMiniCard = LabelMiniCard;`);
+        Object.assign(window, loadModules('frontend/js/common/LabelMiniCard.js'));
     });
 
     beforeEach(() => {

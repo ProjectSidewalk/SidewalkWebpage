@@ -190,13 +190,6 @@
   overflow: visible;
 }
 
-#severity-menu.hidden {
-  display: none;
-  margin: 0;
-  height: 0;
-  overflow: hidden;
-}
-
 /* One enclosure, three equal cells. The shape is the visual half of what the markup already says: a rating is
    pick-one, where the tags below are pick-any. Equal thirds because the options are peers -- affordable because
    the labels are short (Low/Medium/High, Good/Okay/Bad); the passability phrases would not fit three fixed cells. */

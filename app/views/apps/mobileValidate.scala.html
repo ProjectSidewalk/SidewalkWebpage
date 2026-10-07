@@ -3,11 +3,12 @@
 @import play.api.Configuration
 @import play.api.libs.json.{JsArray, Json}
 @import service.CommonPageData
+@import models.label.Tag
 @import models.pano.PanoSource
 @import formats.json.LabelFormats.tagWrites
 @import views.ViewHelpers.jsonForScript
-@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, validateParams: ValidateParams, validatePageData: ValidatePageData
-)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, validateParams: ValidateParams, tagList: Seq[Tag]
+)(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
 
@@ -25,9 +26,7 @@
   }
   <script src='@assets.path("vendor/pannellum/pannellum-2.5.7.js")'></script>
   <link rel="stylesheet" href='@assets.path("vendor/pannellum/pannellum-2.5.7.css")'>
-  <script src='@assets.path("js/common/pano-viewer/build/pano-viewer.js")'></script>
-  <script src='@assets.path("js/validate/build/validate.js")'></script>
-  <link rel="stylesheet" href='@assets.path("js/validate/build/validate.css")'>
+  <link rel="stylesheet" href='@assets.path("build/css/validate.css")'>
   <link rel="stylesheet" href='@assets.path("css/components/progress-bar.css")'>
   @* Base .tag-pill shape for the label card's tag chips; the desktop Validate view links this too. *@
   <link rel="stylesheet" href='@assets.path("css/components/tag-pills.css")'>
@@ -36,19 +35,19 @@
      as explore.scala.html and validate.scala.html do. mobile-validate.css only resizes them for touch. *@
   <link rel="stylesheet" href='@assets.path("css/components/pano-overlay-buttons.css")'>
 
-  <script src='@assets.path("js/mobileValidate.js")'></script>
   <link rel="stylesheet" href='@assets.path("css/pages/mobile-validate.css")'>
 
   <div id="page-loading">
     <div id="loading-animation">
       <p class="loading-text">@Messages("loading")</p>
       <img src='@assets.path("videos/ProjectSidewalk_LoadingAnimation_WithArmMovement_Medium.webp")' alt='@Messages("loading")'>
+      <span class="ps-mask-icon loading-failed-icon" aria-hidden="true"></span>
       <p class="loading-sub-text">@Messages("loading.encouragement")</p>
     </div>
   </div>
 
   @* ps-invisible until loading completes (Main.js unhides), so the raw UI never flashes. *@
-  <div class="container tool-ui ps-invisible">
+  <div class="tool-ui ps-invisible">
     @components.progressBar(
       rootId = "mission-progress-bar-section",
       fillId = "mission-progress-bar-complete"
@@ -57,9 +56,21 @@
     <div id="svv-panorama-holder">
       <div id="svv-panorama"></div>
       <div id="view-control-layer"></div>
+      @* Says a slow load is a load rather than a hang (#5581). PanoLoadingStatus shows the box at once when the pano
+         area is blank for the load and after 2 s otherwise; the announcement always waits the 2 s. The element with the
+         id is the live region and is always rendered, the box is aria-hidden and is what gets shown, and the visually
+         hidden span is what the screen reader hears: changing text inside a live region already in the accessibility
+         tree is announced reliably, unhiding the region itself is not. *@
+      <div id="svv-pano-loading" class="svv-pano-loading" role="status" aria-live="polite">
+        <div class="svv-pano-loading__box ps-hidden" aria-hidden="true">
+          <img class="svv-pano-loading__img" src='@assets.path("videos/ProjectSidewalk_LoadingAnimation_WithArmMovement_Medium.webp")' alt="">
+          <span class="svv-pano-loading__text" data-i18n="common:loading-imagery">Loading imagery...</span>
+        </div>
+        <span class="svv-pano-loading__announce sr-only"></span>
+      </div>
       @* Same read-only card as desktop Validate; a tap on the marker opens and closes it (LabelVisibilityControl). *@
       @components.labelCard(idPrefix = "label-card", noInfoKey = Some("validate:center-ui.no-info")) {
-        <button type="button" id="label-visibility-button-on-label" class="button-ps button--tiny label-hover-card__action-button" data-ps-tooltip-placement="bottom"></button>
+        <button type="button" id="label-visibility-button-on-label" class="button button--tiny label-hover-card__action-button" data-ps-tooltip-placement="bottom"></button>
       }
       <div id="label-visibility-control-holder" class="pano-overlay-button-group">
         <button type="button" id="label-visibility-control-button" class="pano-overlay-button"></button>
@@ -71,15 +82,15 @@
       @* The verdict buttons carry the same thumbs the mission-complete counts do. Plain labels, not the underlined
          `.shortcut` ones the desktop uses: there is no keyboard here to press the underlined letter on. *@
       <div id="validation-button-holder">
-        <button type="button" id="validate-no-button" class="validate-page-button button-ps button--small">
+        <button type="button" id="validate-no-button" class="validate-page-button button button--small">
           <img src='@assets.path("images/icons/validation/disagree-filled.svg")' class="validate-page-button__icon" alt="">
           @Messages("no.caps")
         </button>
-        <button type="button" id="validate-unsure-button" class="validate-page-button button-ps button--small">
+        <button type="button" id="validate-unsure-button" class="validate-page-button button button--small">
           <img src='@assets.path("images/icons/validation/unsure-filled.svg")' class="validate-page-button__icon" alt="">
           @Messages("unsure.caps")
         </button>
-        <button type="button" id="validate-yes-button" class="validate-page-button button-ps button--small">
+        <button type="button" id="validate-yes-button" class="validate-page-button button button--small">
           <img src='@assets.path("images/icons/validation/agree-filled.svg")' class="validate-page-button__icon" alt="">
           @Messages("yes.caps")
         </button>
@@ -88,12 +99,12 @@
       <div id="validate-why-no-section" class="validation-menu-section">
         <div id="validate-why-not-header" class="validation-menu-section-header">@Messages("validate.why.not")</div>
         <div id="no-reason-options">
-          <button type="button" id="no-button-1"class="validation-reason-button ps-button button--small"></button>
-          <button type="button" id="no-button-2"class="validation-reason-button ps-button button--small"></button>
-          <button type="button" id="no-button-3"class="validation-reason-button ps-button button--small"></button>
-          <button type="button" id="no-button-4" class="validation-reason-button ps-button button--small"></button>
-          <div class="input-group input-group-sm validate-text-input">
-            <input type="text" class="form-control" placeholder="@Messages("validate.add.own.reason")" id="add-disagree-comment" size="36" aria-label="Add no reason input">
+          <button type="button" id="no-button-1"class="validation-reason-button button button--small"></button>
+          <button type="button" id="no-button-2"class="validation-reason-button button button--small"></button>
+          <button type="button" id="no-button-3"class="validation-reason-button button button--small"></button>
+          <button type="button" id="no-button-4" class="validation-reason-button button button--small"></button>
+          <div class="validate-text-input">
+            <input type="text" placeholder="@Messages("validate.add.own.reason")" id="add-disagree-comment" size="36" aria-label="Add no reason input">
           </div>
         </div>
         <div id="no-submit-section">
@@ -104,11 +115,11 @@
       <div id="validate-why-unsure-section" class="validation-menu-section">
         <div id="validate-why-unsure-header" class="validation-menu-section-header">@Messages("validate.why.unsure")</div>
         <div id="unsure-reason-options">
-          <button type="button" id="unsure-button-1"class="validation-reason-button ps-button button--small"></button>
-          <button type="button" id="unsure-button-2"class="validation-reason-button ps-button button--small"></button>
-          <button type="button" id="unsure-button-3"class="validation-reason-button ps-button button--small"></button>
-          <div class="input-group input-group-sm validate-text-input">
-            <input type="text" class="form-control" placeholder="@Messages("validate.add.own.reason")" id="add-unsure-comment" size="36" aria-label="Add unsure reason input">
+          <button type="button" id="unsure-button-1"class="validation-reason-button button button--small"></button>
+          <button type="button" id="unsure-button-2"class="validation-reason-button button button--small"></button>
+          <button type="button" id="unsure-button-3"class="validation-reason-button button button--small"></button>
+          <div class="validate-text-input">
+            <input type="text" placeholder="@Messages("validate.add.own.reason")" id="add-unsure-comment" size="36" aria-label="Add unsure reason input">
           </div>
         </div>
         <div id="unsure-submit-section">
@@ -128,7 +139,7 @@
           @if(user.role != Role.Anonymous) {
             <span class="sign-in-up-button-mobile">@{user.username}</span>
           } else {
-            <button type="button" data-au-open="signIn" class="sign-in-up-button-mobile button-ps">@Messages("navbar.signin")</button>
+            <button type="button" data-au-open="signIn" class="sign-in-up-button-mobile button">@Messages("navbar.signin")</button>
           }
         </div>
         <div class="mv-modal__content">
@@ -140,7 +151,7 @@
           <div id="modal-mission-instruction"></div>
         </div>
         <div class="mv-modal__actions">
-          <button type="button" class="button-ps" id="modal-mission-close-button">@Messages("ok")</button>
+          <button type="button" class="button" id="modal-mission-close-button">@Messages("ok")</button>
         </div>
       </div>
     </div>
@@ -202,8 +213,10 @@
           </div>
         </div>
         <div class="mv-modal__actions">
-          <button type="button" class="button-ps btn-primary" id="modal-mission-complete-close-button-primary"></button>
-          <button type="button" class="button-ps btn-secondary" id="modal-mission-complete-close-button-secondary"></button>
+          <div class="modal-mission-complete-buttons">
+            <button type="button" class="button" id="modal-mission-complete-close-button-primary"></button>
+            <button type="button" class="button" id="modal-mission-complete-close-button-secondary"></button>
+          </div>
         </div>
       </div>
     </div>
@@ -213,41 +226,26 @@
      for signed-in users neither the dialog nor any opener renders. *@
   @common.authDialog(Some(user))
 
-  <script>
-    window.appManager.ready(function() {
-      const param = {};
-
-      const userParam = {
-        username: '@user.username',
-        role: '@user.role'
-      };
-      svv.user = new User(userParam);
-
-      param.dataStoreUrl = '@routes.ValidateController.post';
-      param.hasNextMission = @validatePageData.hasNextMission;
-      param.completedValidations = @validatePageData.completedValidations;
-      param.language = "@messages.lang.code";
-      const imagerySrc = "@commonData.imagerySource.toString";
-      param.viewerType = imagerySrc === 'mapillary' ? MapillaryViewer : imagerySrc === 'infra3d' ? Infra3dViewer
-        : imagerySrc === 'panoramax' ? PanoramaxViewer : GsvViewer;
-      param.viewerAccessToken = "@commonData.imageryAccessToken";
-      param.validateParams = {
-        adminVersion: @validateParams.adminVersion,
-        labelType: @Html(validateParams.labelType.map(lt => s"'${lt.name}'").getOrElse("null")),
-        userIds: @Html(validateParams.userIds.map(_.mkString("['", "','", "']")).getOrElse("null")),
-        regionIds: @Html(validateParams.regionIds.map(_.mkString("[", ",", "]")).getOrElse("null")),
-        teamIds: @Html(validateParams.teamIds.map(_.mkString("[", ",", "]")).getOrElse("null")),
-        unvalidatedOnly: @validateParams.unvalidatedOnly,
-        triage: @validateParams.triage
-      };
-      param.tagList = @jsonForScript(JsArray(validatePageData.tagList.map(t => Json.toJson(t))));
-
-      if (@validatePageData.hasNextMission) {
-        param.mission = @Html(validatePageData.mission.getOrElse("\"\"").toString);
-        param.labelList = @Html(validatePageData.labelList.getOrElse("\"\"").toString);
-        param.progress = @Html(validatePageData.missionProgress.getOrElse("\"\"").toString);
-      }
-      svv.main = new Main(param);
-    });
-  </script>
+  @* What the Validate entry (frontend/js/validate/start.js) needs from the server, as JSON. Session scalars only: the
+     mission is fetched from /validationTask/mission, so a cached copy of this page can never carry stale labels
+     (#5650). validateParams is in the shape the backend reads back, so the entry can send it as it is. *@
+  <script type="application/json" id="page-data">{
+    "user": {"username": @jsonForScript(user.username), "role": "@user.role.name"},
+    "dataStoreUrl": "@routes.ValidateController.post",
+    "missionUrl": "@routes.ValidateController.getMission",
+    "language": "@messages.lang.code",
+    "imagerySource": "@commonData.imagerySource.name",
+    "viewerAccessToken": "@commonData.imageryAccessToken",
+    "validateParams": {
+      "admin_version": @validateParams.adminVersion,
+      "label_type": @if(validateParams.labelType.isDefined) {@jsonForScript(validateParams.labelType.get.name)} else {null},
+      "user_ids": @if(validateParams.userIds.isDefined) {@jsonForScript(validateParams.userIds.get)} else {null},
+      "region_ids": @if(validateParams.regionIds.isDefined) {@jsonForScript(validateParams.regionIds.get)} else {null},
+      "team_ids": @if(validateParams.teamIds.isDefined) {@jsonForScript(validateParams.teamIds.get)} else {null},
+      "unvalidated_only": @validateParams.unvalidatedOnly,
+      "triage": @validateParams.triage
+    },
+    "tagList": @jsonForScript(JsArray(tagList.map(t => Json.toJson(t))))
+  }</script>
+  <script type="module" src='@assets.path("build/js/mobileValidate.js")'></script>
 }

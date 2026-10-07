@@ -292,7 +292,7 @@ describe('nothing in the render path comes from a third party we have not chosen
         // Only the file types that can name an origin — public/vendor/ also carries fonts, images and source maps,
         // and reading those in as text is megabytes of work per run for something that could never match.
         const TEXT = /\.(js|mjs|cjs|css|html|scala\.html|json|svg)$/;
-        const haystack = ['app/views', 'public/js', 'public/css', 'public/vendor']
+        const haystack = ['app/views', 'frontend/js', 'public/css', 'public/vendor']
             .flatMap(function walk(rel) {
                 const full = path.join(REPO_ROOT, rel);
                 return fs.readdirSync(full, { withFileTypes: true }).flatMap((entry) => {
@@ -316,5 +316,20 @@ describe('nothing in the render path comes from a third party we have not chosen
 
         const unused = [...origins].filter((origin) => !haystack.includes(origin.replace(/^\*\./, '')));
         expect(unused).toEqual([]);
+    });
+
+    test('the CSP lets the Mapillary viewer reach its Graph API and the CDN its images come from', () => {
+        // The opposite direction from the test above: an origin the policy is missing. Report-only hides that today,
+        // but once #4793 enforces the policy every Mapillary city's panos would go blank (#5534). The CDN host never
+        // appears in shipped code -- the Graph API hands its URLs back at runtime in the thumbnail fields -- so pin
+        // the vendored viewer's use of both instead, and a MapillaryJS upgrade that moves either fails here first.
+        const mapillaryJs = fs.readFileSync(
+            path.join(REPO_ROOT, 'public', 'vendor', 'mapillary', 'mapillary-4.1.2.min.js'), 'utf8');
+        expect(mapillaryJs).toContain('https://graph.mapillary.com');
+        expect(mapillaryJs).toContain('thumb_2048_url');
+
+        const conf = fs.readFileSync(path.join(REPO_ROOT, 'conf', 'application.conf'), 'utf8');
+        const connectSrc = (/^\s*connect-src\s*=\s*"([^"]*)"/m.exec(conf)?.[1] ?? '').split(/\s+/);
+        expect(connectSrc).toEqual(expect.arrayContaining(['https://graph.mapillary.com', 'https://*.fbcdn.net']));
     });
 });

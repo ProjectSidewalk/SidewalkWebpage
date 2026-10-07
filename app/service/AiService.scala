@@ -1,21 +1,22 @@
 package service
 
 import com.google.inject.ImplementedBy
-import models.label._
+import models.label.*
 import models.user.SidewalkUserTable
 import models.utils.CommonUtils.{UiSource, ViewerType}
-import models.utils.MyPostgresProfile.api._
-import models.utils._
+import models.utils.MyPostgresProfile.api.given
+import models.utils.*
 import models.validation.{LabelValidation, ValidationOption}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.{JsObject, JsValue}
 import play.api.libs.ws.WSClient
+import play.api.libs.ws.WSBodyWritables.*
 import play.api.{Configuration, Logger}
 import slick.dbio.DBIO
 
 import java.time.format.DateTimeFormatter
 import java.time.{LocalDate, OffsetDateTime, ZoneOffset}
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.{ExecutionContext, Future}
 
 /** The AI server rejected our password, so no request in this run can succeed. */
@@ -25,7 +26,7 @@ class AiApiAuthException(message: String) extends Exception(message)
  * What [[AiService.ensureSeedRows]] had to insert: whether the AI's user_stat row was missing, and the label types
  * whose `aiValidation` mission was. Both empty means the schema already carried every row.
  */
-case class AiSeedRows(statRowInserted: Boolean, missionsInserted: Seq[LabelTypeEnum.Base]) {
+case class AiSeedRows(statRowInserted: Boolean, missionsInserted: Seq[LabelType]) {
 
   /** @return True when the schema already carried every row, so the run was a no-op. */
   def nothingInserted: Boolean = !statRowInserted && missionsInserted.isEmpty
@@ -84,7 +85,7 @@ class AiServiceImpl @Inject() (
     missionTable: models.mission.MissionTable,
     userStatTable: models.user.UserStatTable,
     panoDataService: PanoDataService
-)(implicit val ec: ExecutionContext)
+)(using val ec: ExecutionContext)
     extends AiService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
   private val logger                         = Logger(this.getClass)
@@ -128,9 +129,9 @@ class AiServiceImpl @Inject() (
     // The mission inserts are exists-then-insert, which a transaction alone doesn't serialize: two boots of the same
     // schema at once (a deploy overlapping a restart) would each see "missing" and both insert. The lock is
     // database-wide, so every city's boot takes it in turn, for the milliseconds this transaction lasts.
-    _                                 <- sql"SELECT 1 FROM pg_advisory_xact_lock(5349)".as[Int]
-    statRows: Int                     <- userStatTable.insertAiUserStatIfMissing()
-    missions: Seq[LabelTypeEnum.Base] <- missionTable.insertMissingAiValidationMissions()
+    _                        <- sql"SELECT 1 FROM pg_advisory_xact_lock(5349)".as[Int]
+    statRows: Int            <- userStatTable.insertAiUserStatIfMissing()
+    missions: Seq[LabelType] <- missionTable.insertMissingAiValidationMissions()
   } yield AiSeedRows(statRows == 1, missions)).transactionally
 
   def validateLabelsWithAiDaily(n: Int): Future[Seq[Option[LabelAiAssessment]]] = {
@@ -181,7 +182,7 @@ class AiServiceImpl @Inject() (
             val labelPoint = labelData.labelPoint
 
             // If confidence is below the threshold, submit an Unsure validation instead.
-            val aiValResult: ValidationOption.Value =
+            val aiValResult: ValidationOption =
               if (aiResults.validationAccuracy >= AI_VALIDATION_MIN_ACCURACY) aiResults.validationResult
               else ValidationOption.Unsure
 
@@ -301,7 +302,7 @@ class AiServiceImpl @Inject() (
           } else if (response.status == 401 || response.status == 403) {
             // Wrong password means every label would fail the same way, so stop the whole run here.
             val msg = s"AI API returned ${response.status} for label $labelId: SIDEWALK_AI_API_KEY is missing or wrong."
-            Future.failed(new AiApiAuthException(msg))
+            Future.failed(AiApiAuthException(msg))
           } else {
             logger.warn(s"AI API for label $labelId returned error status: ${response.status} - ${response.statusText}")
             panoDataService.panoExists(labelData.panoData.panoId, labelData.panoData.source).map(_ => None)
@@ -324,7 +325,7 @@ class AiServiceImpl @Inject() (
    * @param labelType The label type for which to get the AI validation mission_id
    * @return A DBIO containing the AI validation mission_id
    */
-  private def getAiValidateMissionId(labelType: LabelTypeEnum.Base): DBIO[Int] =
+  private def getAiValidateMissionId(labelType: LabelType): DBIO[Int] =
     configService.cachedDBIO[Int](s"getAiValidateMissionId(${labelType.name})")(
       missionTable.getAiValidateMissionId(labelType)
     )

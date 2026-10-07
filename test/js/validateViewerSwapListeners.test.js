@@ -1,7 +1,7 @@
 /**
  * Tests that Validate's startup components follow the active viewer instead of the one that happened to be showing
  * the first label (issue #4828), across
- * public/js/validate/src/panorama/PanoManager.js (`#watchViewerPov`) and public/js/common/SpeedLimit.js (`refresh`).
+ * frontend/js/validate/panorama/PanoManager.js (`#watchViewerPov`) and frontend/js/common/SpeedLimit.js (`refresh`).
  *
  * PanoManager swaps `svv.panoViewer` between the primary viewer (GSV/Mapillary/Infra3d) and the Pannellum fallback as
  * labels come and go, and the viewer that isn't showing fires no events at all. Both failures are silent — POV pans
@@ -12,12 +12,12 @@
  * involved, so none of this needs imagery.
  */
 
-const fs = require('fs');
 const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const PANO_MANAGER_PATH = path.resolve(__dirname, '..', '..', 'public/js/validate/src/panorama/PanoManager.js');
-const SPEED_LIMIT_PATH = path.resolve(__dirname, '..', '..', 'public/js/common/SpeedLimit.js');
-const THROTTLE_PATH = path.resolve(__dirname, '..', '..', 'public/js/validate/src/util/throttle.js');
+const PANO_MANAGER_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/panorama/PanoManager.js');
+const SPEED_LIMIT_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/common/SpeedLimit.js');
+const THROTTLE_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/util/throttle.js');
 
 /**
  * Load a bare `class` declaration out of a production file. The Grunt bundle concatenates these into page scope, so
@@ -27,8 +27,7 @@ const THROTTLE_PATH = path.resolve(__dirname, '..', '..', 'public/js/validate/sr
  * @returns {Function} The class.
  */
 function loadClassFromFile(filePath, className) {
-  const src = fs.readFileSync(filePath, 'utf8');
-  return (0, eval)('(() => {\n' + src + '\nreturn ' + className + ';\n})()');
+  return loadModules(filePath)[className];
 }
 
 describe('PanoManager logs POV changes from whichever viewer is showing (issue #4828)', () => {
@@ -39,7 +38,7 @@ describe('PanoManager logs POV changes from whichever viewer is showing (issue #
   let pannellumListeners; // event name -> callback captured from the Pannellum viewer
   let panoData;
   const attribution = {holder: '© jacobwhall', provider: 'Mapillary', license: 'CC BY-SA 4.0', license_url: 'x'};
-  const backupImage = {panoId: 'pano2', cameraHeading: 90, attribution};
+  const backupImage = {pano_id: 'pano2', camera_heading: 90, attribution};
   let attributionOverlay;
 
   /**
@@ -75,7 +74,8 @@ describe('PanoManager logs POV changes from whichever viewer is showing (issue #
     document.body.innerHTML = '<div id="pano-holder"><div id="svv-panorama"></div></div>';
 
     global.util = {};
-    (0, eval)(fs.readFileSync(THROTTLE_PATH, 'utf8')); // real throttle, the same one production wires up
+    global.i18next = {language: 'en'};
+    Object.assign(window, loadModules(THROTTLE_PATH));
     util.isMobile = () => false;
 
     global.createPanoViewerLogo = jest.fn(() => ({showPrimaryLogo: jest.fn(), showSourceLogo: jest.fn()}));
@@ -89,7 +89,7 @@ describe('PanoManager logs POV changes from whichever viewer is showing (issue #
       ui: {viewer: {date: {text: jest.fn()}}},
     };
 
-    panoData = {getPanoId: () => 'pano1', getProperty: () => ({format: () => 'Jun 2026'})};
+    panoData = {getPanoId: () => 'pano1', getProperty: () => new Date(2026, 5)};
     primaryListeners = {};
     pannellumListeners = {};
     primaryViewer = makeFakeViewer(primaryListeners);
@@ -105,13 +105,15 @@ describe('PanoManager logs POV changes from whichever viewer is showing (issue #
     };
 
     const PanoManager = loadClassFromFile(PANO_MANAGER_PATH, 'PanoManager');
-    panoManager = await PanoManager.create(FakeViewerType, 'token', 'pano1');
+    panoManager = await PanoManager.create(FakeViewerType, 'token');
+    await loadPrimaryLabel('pano1'); // The first label's load, which is the first setPanorama (#5581).
   });
 
   afterEach(() => {
     jest.useRealTimers();
     document.body.innerHTML = '';
     delete global.util;
+    delete global.i18next;
     delete global.createPanoViewerLogo;
     delete global.createPanoAttribution;
     delete global.GsvViewer;
@@ -205,8 +207,10 @@ describe('PanoManager logs POV changes from whichever viewer is showing (issue #
     expect(attributionOverlay.show).toHaveBeenCalledTimes(1);
     expect(attributionOverlay.show).toHaveBeenLastCalledWith(attribution);
 
+    // The first label's primary load already hid it once, in beforeEach.
+    const hidesBefore = attributionOverlay.hide.mock.calls.length;
     await loadPrimaryLabel('pano3');
-    expect(attributionOverlay.hide).toHaveBeenCalledTimes(1);
+    expect(attributionOverlay.hide).toHaveBeenCalledTimes(hidesBefore + 1);
   });
 });
 

@@ -3,8 +3,8 @@ package formats.json
 import formats.json.LabelFormats.labelForLabelMapToGeoJson
 import models.label.LabelForLabelMap
 import models.validation.ValidationOption
-import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.{JsNull, JsObject}
+import util.SidewalkSpec
 
 /**
  * Pure JSON-contract tests for `LabelFormats.labelForLabelMapToGeoJson`, the per-feature serializer behind both label
@@ -14,7 +14,7 @@ import play.api.libs.json.{JsNull, JsObject}
  *
  * Needs no database — `RouteAuthPostureSpec` covers the public set end to end over HTTP where one is available.
  */
-class LabelFormatsSpec extends PlaySpec {
+class LabelFormatsSpec extends SidewalkSpec {
 
   /** Every property key `/labels/all` publishes per feature. */
   private val PublicProperties: Set[String] = Set("label_id", "label_type", "severity", "correct", "has_validations",
@@ -63,10 +63,10 @@ class LabelFormatsSpec extends PlaySpec {
       (feature \ "geometry" \ "coordinates").as[Seq[Double]] mustBe Seq(-122.3321, 47.6062)
     }
 
-    // The sidebar filter reads ai_validation as a string; the raw Enumeration value would serialize as its numeric id.
+    // The sidebar filter reads ai_validation as a string, spelled the way the database spells it.
     "render ai_validation as its name" in {
       (propertiesOf(labelForLabelMapToGeoJson(label, admin = false)) \ "ai_validation").as[String] mustBe
-        ValidationOption.Agree.toString
+        ValidationOption.Agree.name
     }
 
     // MapSidebarFilter distinguishes "no AI validation" from "not validated correct", so the key must survive as null

@@ -14,11 +14,10 @@
  * what is being exercised.
  */
 
-const fs = require('fs');
 const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const SRC = fs.readFileSync(path.join(REPO_ROOT, 'public/js/explore/src/navigation/ForwardCrumbs.js'), 'utf8');
 
 window.turf = require(path.join(REPO_ROOT, 'public/vendor/turf/turf-7.4.0.min.js'));
 const { turf } = window;
@@ -127,7 +126,7 @@ describe('ForwardCrumbs marker lifecycle', () => {
                 },
             },
         };
-        window.eval(`${SRC}; window.ForwardCrumbs = ForwardCrumbs;`);
+        Object.assign(window, loadModules('frontend/js/explore/navigation/ForwardCrumbs.js'));
         crumbs = new window.ForwardCrumbs(nav, tracker);
     });
 

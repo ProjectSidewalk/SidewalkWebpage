@@ -23,7 +23,7 @@ const CSS_DIR = join(ROOT, 'public', 'css');
 const ROOT_ENTRIES = new Set(['main.css', 'fonts.css', 'components', 'pages']);
 
 // Every entry under pages/ (a file, or a subdir for a page family): which views may link it (a directory prefix or a
-// single view; `[]` = a Grunt-bundled tool, never linked from a view, whose bundle is `public/js/<name>/`) and which
+// single view; `[]` = a Grunt-bundled tool, never linked from a view, built to `public/build/css/<name>.css`) and which
 // class prefixes are its own. homepage.css and auth.css are registered to the site-wide layout, which links them on
 // every page. `api-` is deliberately not a prefix: the API docs' own classes carry it, but so does the admin
 // dashboard's API-analytics page.
@@ -33,7 +33,7 @@ const PAGES = {
   'pages/admin-dashboard.css': {
     views: ['app/views/admin/dashboard/'],
     prefixes: ['ac-', 'ov-', 'dq-', 'hva-', 'mgmt-', 'contrib-', 'coverage-', 'activity-', 'deploy-strip',
-      'stories-queue-', 'street-status-', 'imagery-', 'health-kpi', 'partners-'],
+      'stories-queue-', 'street-status-', 'imagery-', 'health-kpi', 'partners-', 'admin-nav-'],
   },
   'pages/api-docs': { views: ['app/views/apiDocs/'] },
   'pages/auth.css': { views: ['app/views/common/main.scala.html'] },
@@ -115,7 +115,7 @@ for (const [, srcList, dest] of grunt.matchAll(/src:\s*\[([^\]]*)\]\s*,\s*dest:\
     const owner = ownerOf(src);
     if (owner === null) continue;
     const tool = owner.slice('pages/'.length);
-    if (!dest.startsWith(`public/js/${tool}/`)) {
+    if (dest !== `public/build/css/${tool}.css`) {
       problems.push(`Gruntfile.js: ${dest} bundles public/css/${src}, which only ${tool}'s bundle may`);
     }
   }

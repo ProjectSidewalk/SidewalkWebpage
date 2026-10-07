@@ -16,22 +16,20 @@
  * UTC-only worker would make every "does the axis line up with the server's nights" assertion vacuous.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules, mockModule, realUtil } = require('./loadGlobalScript');
 
-const JS_DIR = path.resolve(__dirname, '..', '..', 'public/js/admin-dashboard');
+window.util = realUtil();
+
 
 /** Chart calls, recorded instead of drawn — MiniLineChart has its own tests. */
 const charts = [];
 
 /** Loads AdminShell + the panel into global scope, with MiniLineChart stubbed. */
 function loadPanel() {
-  const shell = fs.readFileSync(path.join(JS_DIR, 'AdminShell.js'), 'utf8');
-  const panel = fs.readFileSync(path.join(JS_DIR, 'ImageryPipelinePanel.js'), 'utf8');
-  globalThis.MiniLineChart = {
-    renderInto: (host, labels, series, options) => charts.push({ host, labels, series, options }),
-  };
-  return (0, eval)(`${shell}\nglobalThis.AdminShell = AdminShell;\n${panel}\nImageryPipelinePanel;`);
+  mockModule('frontend/js/admin-dashboard/MiniLineChart.js', () => ({
+    MiniLineChart: { renderInto: (host, labels, series, options) => charts.push({ host, labels, series, options }) },
+  }));
+  return loadModules('frontend/js/admin-dashboard/ImageryPipelinePanel.js').ImageryPipelinePanel;
 }
 
 const ImageryPipelinePanel = loadPanel();
@@ -384,7 +382,7 @@ describe('the regained-imagery rotation line', () => {
 
     const text = document.getElementById('imagery-no-imagery-note').textContent;
     expect(text).toContain('49 of 50');
-    expect(text).toContain('1 for review');
+    expect(text).toContain('1 queued for review');
     expect(text).toContain('25 a night');
   });
 

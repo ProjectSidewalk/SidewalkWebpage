@@ -10,16 +10,8 @@
  * into jsdom with those stubbed.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules, realUtil } = require('./loadGlobalScript');
 
-const SRC_DIR = path.resolve(__dirname, '..', '..', 'public/js');
-const URL_QUERY_SRC = fs.readFileSync(path.join(SRC_DIR, 'common/urlQuery.js'), 'utf8');
-const FILTER_SIDEBAR_SRC = fs.readFileSync(path.join(SRC_DIR, 'common/filter-sidebar/FilterSidebar.js'), 'utf8');
-const GALLERY_FILTER_SRC = fs.readFileSync(path.join(SRC_DIR, 'gallery/src/filter/GalleryFilter.js'), 'utf8');
-const CARD_BUCKET_SRC = fs.readFileSync(path.join(SRC_DIR, 'gallery/src/cards/CardBucket.js'), 'utf8');
-const CARD_CONTAINER_SRC = fs.readFileSync(path.join(SRC_DIR, 'gallery/src/cards/CardContainer.js'), 'utf8');
-const EXPANDED_VIEW_SRC = fs.readFileSync(path.join(SRC_DIR, 'gallery/src/expandedview/ExpandedView.js'), 'utf8');
 
 const LIST_IDS = [42, 7, 19];
 /** Exactly one list-mode page (12), so the boundary between "one page" and "two" is pinned from both sides. */
@@ -30,12 +22,13 @@ const LONG_LIST = [...FULL_PAGE, 213, 214, 215];
 describe('the Gallery in review-list mode', () => {
     beforeAll(() => {
         window.i18next = { t: (key, opts) => `${key}:${JSON.stringify(opts ?? {})}` };
-        window.eval(URL_QUERY_SRC); // Defines util.url, which the URL writer depends on.
-        window.eval(`${FILTER_SIDEBAR_SRC}\nwindow.FilterSidebar = FilterSidebar;`);
-        window.eval(`${GALLERY_FILTER_SRC}\nwindow.GalleryFilter = GalleryFilter;`);
-        window.eval(`${CARD_BUCKET_SRC}\nwindow.CardBucket = CardBucket;`);
-        window.eval(`${CARD_CONTAINER_SRC}\nwindow.CardContainer = CardContainer;`);
-        window.eval(`${EXPANDED_VIEW_SRC}\nwindow.ExpandedViewClass = ExpandedView;`);
+        window.util ??= realUtil();
+        loadModules('frontend/js/common/urlQuery.js');
+        Object.assign(window, loadModules('frontend/js/common/filter-sidebar/FilterSidebar.js'));
+        Object.assign(window, loadModules('frontend/js/gallery/filter/GalleryFilter.js'));
+        Object.assign(window, loadModules('frontend/js/gallery/cards/CardBucket.js'));
+        Object.assign(window, loadModules('frontend/js/gallery/cards/CardContainer.js'));
+        window.ExpandedViewClass = loadModules('frontend/js/gallery/expandedview/ExpandedView.js').ExpandedView;
     });
 
     describe('the sidebar and the address bar', () => {
@@ -116,6 +109,8 @@ describe('the Gallery in review-list mode', () => {
         let requests;
         /** @type {(cards: object[], unavailable: (number[]|undefined)) => void} */
         let respond;
+        /** @type {(body: *) => void} Answers the held request with a 200 and this body. */
+        let respondWith;
         /** @type {() => void} Answers the in-flight request the way a failed POST does. */
         let failRequest;
 
@@ -153,25 +148,18 @@ describe('the Gallery in review-list mode', () => {
             };
         }
 
-        /**
-         * A jQuery-ish element stub: enough of the API for the container's DOM pokes, and it remembers the handlers
-         * bound to it so a test can press the paging buttons the way the page does.
-         */
-        function el() {
-            const stub = {
-                handlers: {},
-                bind(map) { Object.assign(this.handlers, map); },
-                append: jest.fn(),
-                prop: jest.fn(),
-                on: jest.fn(),
-                css: jest.fn(),
-                show: jest.fn(),
-                hide: jest.fn(),
-                children: () => ({ each: jest.fn() }),
+        /** @returns {boolean} Whether the container has shown the filtered grid's "no matches" notice. */
+        const labelsNotFoundShown = () => sg.labelsNotFound.style.display === 'block';
+
+        /** Fresh paging controls per container, so one container's click listener can't answer for another's. */
+        function freshControls() {
+            sg.ui.pageControl = document.createElement('div');
+            sg.ui.cardContainer = {
+                holder: document.createElement('div'),
+                prevPage: document.createElement('button'),
+                nextPage: document.createElement('button'),
+                pageNumber: document.createElement('div'),
             };
-            stub.click = () => stub.handlers.click?.({});
-            stub[0] = document.createElement('div');
-            return stub;
         }
 
         beforeEach(() => {
@@ -199,16 +187,16 @@ describe('the Gallery in review-list mode', () => {
             requests = [];
             respond = () => {};
             window.scrollTo = jest.fn(); // jsdom has no implementation; the container scrolls to the top on paging.
-            window.$ = jest.fn(() => ({ prop: jest.fn() }));
-            window.$.ajax = ({ data, success, error }) => {
-                requests.push(JSON.parse(data));
+            window.fetch = (url, { body }) => new Promise((resolve) => {
+                requests.push(JSON.parse(body));
                 // Held rather than resolved inline, so a test can assert on the request before the cards land.
-                respond = (cards, unavailableLabelIds) => success({
+                respondWith = (responseBody) => resolve({ ok: true, json: async () => responseBody });
+                respond = (cards, unavailableLabelIds) => respondWith({
                     labelsOfType: cards.map((card) => ({ label: { label_id: card.getLabelId() } })),
                     ...(unavailableLabelIds !== undefined && { unavailableLabelIds }),
                 });
-                failRequest = () => error();
-            };
+                failRequest = () => resolve({ ok: false, status: 500 });
+            });
             window.Card = class {
                 constructor(label) { return stubCard(label.label_id); }
             };
@@ -233,8 +221,6 @@ describe('the Gallery in review-list mode', () => {
             window.ResizeObserver = class {
                 observe() {}
             };
-            const expandedHost = el();
-            expandedHost[0] = document.querySelector('.gallery-expanded-view');
             window.sg = {
                 // The whole of the interface GalleryFilter offers the container, since the filtered path reads more
                 // of it than list mode does.
@@ -246,13 +232,9 @@ describe('the Gallery in review-list mode', () => {
                     disable: jest.fn(),
                     enable: jest.fn(),
                 },
-                ui: {
-                    pageControl: el(),
-                    cardContainer: { holder: el(), prevPage: el(), nextPage: el(), pageNumber: el() },
-                    expandedView: { container: expandedHost },
-                },
-                pageLoading: el(),
-                labelsNotFound: el(),
+                ui: { expandedView: { container: document.querySelector('.gallery-expanded-view') } },
+                pageLoading: document.createElement('div'),
+                labelsNotFound: document.createElement('div'),
                 tracker: { push: jest.fn() },
             };
         });
@@ -272,6 +254,7 @@ describe('the Gallery in review-list mode', () => {
         async function listContainer(served, unavailable, requested = LIST_IDS) {
             document.getElementById('cards').innerHTML
                 = served.map((labelId) => `<div id="gallery_card_${labelId}"></div>`).join('');
+            freshControls();
             const created = window.CardContainer.create(
                 sg.ui.cardContainer, { regionIds: [], aiValidationOptions: [], labelIds: requested }, null, null, null,
             );
@@ -348,7 +331,7 @@ describe('the Gallery in review-list mode', () => {
             // more data!" answers a filtered search, not this, and with no sidebar it lands on top of the strip.
             await listContainer([], LIST_IDS);
 
-            expect(sg.labelsNotFound.show).not.toHaveBeenCalled();
+            expect(labelsNotFoundShown()).toBe(false);
             expect(document.getElementById('gallery-list-count').textContent)
                 .toBe('gallery:list-count-partial:{"shown":0,"count":3}');
             const unavailable = document.getElementById('gallery-list-unavailable');
@@ -373,6 +356,7 @@ describe('the Gallery in review-list mode', () => {
         });
 
         it('says the list could not be loaded, rather than showing an empty queue', async () => {
+            freshControls();
             const created = window.CardContainer.create(
                 sg.ui.cardContainer, { regionIds: [], aiValidationOptions: [], labelIds: LIST_IDS }, null, null, null,
             );
@@ -382,9 +366,22 @@ describe('the Gallery in review-list mode', () => {
 
             expect(document.getElementById('gallery-list-error').hidden).toBe(false);
             // "No matches, start exploring" is the filtered grid's copy; a failed request is not an empty list.
-            expect(sg.labelsNotFound.show).not.toHaveBeenCalled();
+            expect(labelsNotFoundShown()).toBe(false);
             // The count the server rendered still stands, rather than being rewritten to "0 labels in this list".
             expect(document.getElementById('gallery-list-count').textContent).toBe('3 labels in this list');
+        });
+
+        it('treats an answer with no labels in it as a failed request', async () => {
+            // A 200 with an unexpected body must still release the filters and the loading overlay.
+            freshControls();
+            const created = window.CardContainer.create(
+                sg.ui.cardContainer, { regionIds: [], aiValidationOptions: [], labelIds: LIST_IDS }, null, null, null,
+            );
+            respondWith({});
+            await created;
+
+            expect(document.getElementById('gallery-list-error').hidden).toBe(false);
+            expect(sg.cardFilter.enable).toHaveBeenCalled();
         });
 
         it('leaves the filtered grid on nine, which is the other half of the same contract', async () => {
@@ -395,7 +392,7 @@ describe('the Gallery in review-list mode', () => {
 
             expect(filtered.isListMode()).toBe(false);
             expect(filtered.getCardsPerPage()).toBe(9);
-            expect(sg.labelsNotFound.show).toHaveBeenCalled();
+            expect(labelsNotFoundShown()).toBe(true);
         });
 
         describe('paging a list longer than one page', () => {
@@ -425,13 +422,13 @@ describe('the Gallery in review-list mode', () => {
                 expect(container.getCurrentPage()).toBe(1);
                 expect(container.isLastPage()).toBe(false); // 15 cards, 12 per page.
 
-                sg.ui.cardContainer.nextPage.handlers.click({});
+                sg.ui.cardContainer.nextPage.click();
                 expect(container.getCurrentPage()).toBe(2);
                 expect(container.isLastPage()).toBe(true); // Cards 13-15.
                 expect(container.getCurrentPageCards()).toHaveLength(3);
                 expect(requests).toHaveLength(1); // Still no second query.
 
-                sg.ui.cardContainer.prevPage.handlers.click({});
+                sg.ui.cardContainer.prevPage.click();
                 expect(container.getCurrentPage()).toBe(1);
                 expect(container.isLastPage()).toBe(false);
             });
@@ -510,7 +507,7 @@ describe('the Gallery in review-list mode', () => {
                 slowExpandedView();
                 sg.tracker = undefined; // As on the real page: Main assigns it after CardContainer.create resolves.
                 // This block's beforeEach already built one container; only the one below is under test here.
-                sg.ui.pageControl.show.mockClear();
+                freshControls();
                 sg.cardFilter.enable.mockClear();
                 const created = window.CardContainer.create(
                     sg.ui.cardContainer,
@@ -520,13 +517,13 @@ describe('the Gallery in review-list mode', () => {
                 respond(LONG_LIST.map(stubCard), []);
                 await flushRenderOnly();
 
-                expect(sg.ui.pageControl.show).not.toHaveBeenCalled();
+                expect(sg.ui.pageControl.style.display).toBe('none');
                 expect(sg.cardFilter.enable).not.toHaveBeenCalled();
                 // And a click that slips through anyway must not take the page down with it.
-                expect(() => sg.ui.cardContainer.nextPage.handlers.click({})).not.toThrow();
+                expect(() => sg.ui.cardContainer.nextPage.click()).not.toThrow();
 
                 const raced = await created;
-                expect(sg.ui.pageControl.show).toHaveBeenCalled();
+                expect(sg.ui.pageControl.style.display).toBe('');
                 expect(sg.cardFilter.enable).toHaveBeenCalled();
                 expect(raced.getExpandedView()).toBeDefined();
             });
@@ -540,10 +537,30 @@ describe('the Gallery in review-list mode', () => {
                 await flush();
                 expect(raced.getExpandedView().cardIndex).toBe(0);
 
-                sg.ui.cardContainer.nextPage.handlers.click({});
+                sg.ui.cardContainer.nextPage.click();
                 await flush();
 
                 expect(raced.getCurrentPage()).toBe(2);
+            });
+
+            it('pages back from a deep link that landed on the second page', async () => {
+                // A deep link turns the page without Next, so Prev may still be disabled; paging from the expanded
+                // view must not go through the button.
+                const view = container.getExpandedView();
+                view.initialUrlLabelId = LONG_LIST[12];
+                view.restoreFromUrl();
+                await flush();
+                expect(container.getCurrentPage()).toBe(2);
+                expect(view.cardIndex).toBe(12);
+                expect(sg.ui.cardContainer.prevPage.disabled).toBe(false);
+
+                view.previousLabel(false);
+                await flush();
+
+                expect(container.getCurrentPage()).toBe(1);
+                expect(view.cardIndex).toBe(11);
+                expect(view.getReferenceCard().getLabelId()).toBe(LONG_LIST[11]);
+                expect(sg.ui.cardContainer.prevPage.disabled).toBe(true);
             });
 
             it('reopens a ?labelId= deep link by its place in the list, not just by id', async () => {

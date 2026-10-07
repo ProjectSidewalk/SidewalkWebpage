@@ -1,20 +1,20 @@
 package controllers
 
-import controllers.base._
+import controllers.base.*
 import controllers.helper.ControllerUtils
-import controllers.helper.ControllerUtils.parseIntegerSeq
+import controllers.helper.ControllerUtils.{parseIntegerSeq, safeLocalPath}
 import models.auth.{DefaultEnv, WithSignedIn}
 import models.user.{SidewalkUserWithRole, UserUtm}
 import models.utils.IpAddress
 import play.api.Configuration
 import play.api.i18n.{Lang, Messages}
-import play.api.mvc._
+import play.api.mvc.*
 import play.silhouette.api.Silhouette
 import play.silhouette.api.actions.SecuredRequest
-import service._
+import service.*
 
 import java.time.OffsetDateTime
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
@@ -28,15 +28,15 @@ class ApplicationController @Inject() (
     labelService: LabelService,
     validationService: ValidationService,
     partnerService: PartnerService
-)(implicit ec: ExecutionContext, assets: AssetsFinder)
+)(using ec: ExecutionContext, assets: AssetsFinder)
     extends CustomBaseController(cc) {
-  implicit val implicitConfig: Configuration = config
+  given Configuration = config
 
   def index = cc.securityService.UserAwareAction { implicit request =>
     val user: Option[SidewalkUserWithRole] = request.identity
     val timestamp: OffsetDateTime          = OffsetDateTime.now
     val ipAddress: IpAddress               = request.ipAddress
-    val isMobile: Boolean                  = ControllerUtils.isMobile(request)
+    val isMobile: Boolean                  = ControllerUtils.isMobile
     val qString: Map[String, String]       = request.queryString.map { case (k, v) => k.mkString -> v.mkString }
 
     val referrer: Option[String] = qString.get("referrer") match {
@@ -47,7 +47,7 @@ class ApplicationController @Inject() (
     referrer match {
       // If someone is coming to the site from a custom URL, log it, and send them to the correct location.
       case Some(ref) =>
-        val redirectTo: String      = qString.getOrElse("to", "/")
+        val redirectTo: String      = safeLocalPath(qString.getOrElse("to", "/"))
         val activityLogText: String = s"Referrer=${ref}_SendTo=$redirectTo"
         cc.loggingService.insert(user.map(_.userId), ipAddress, activityLogText, timestamp)
         Future.successful(Redirect(redirectTo))
@@ -56,23 +56,20 @@ class ApplicationController @Inject() (
         if (qString.nonEmpty) {
           // Log the query string parameters if they exist, but do a redirect to hide them.
           cc.loggingService.insert(user.map(_.userId), ipAddress, request.uri, timestamp)
-          // Save UTM parameters if present, awaiting the write so failures surface to the error handler (#4229).
-          // A cookie-less visitor has no user row to attach UTM params to, so they're skipped; UTM capture for
-          // these visitors moves to account-mint time (#4442).
-          val utmSaved: Future[_] =
-            if (ControllerUtils.hasUtmParamsFlat(qString)) {
-              user match {
-                case Some(u) =>
-                  userService.insertUserUtm(
-                    UserUtm(
-                      0, u.userId, qString.get("utm_source"), qString.get("utm_medium"), qString.get("utm_campaign"),
-                      qString.get("utm_content"), qString.get("utm_term"), configService.getCityId, timestamp
-                    )
-                  )
-                case None => Future.successful(())
-              }
-            } else Future.successful(())
-          utmSaved.map(_ => Redirect("/"))
+          // Awaited so a failed write surfaces to the error handler (#4229). No account yet: hold the visit in a cookie.
+          val utm: Map[String, String] = ControllerUtils.utmParams(request.queryString)
+          if (utm.isEmpty) Future.successful(Redirect("/"))
+          else
+            user match {
+              case Some(u) =>
+                userService
+                  .insertUserUtm(UserUtm.fromParams(u.userId, utm, configService.getCityId, timestamp))
+                  .map(_ => Redirect("/"))
+              case None =>
+                val visit = UserUtm.fromParams(ControllerUtils.NoUserId, utm, configService.getCityId, timestamp)
+                val held  = ControllerUtils.utmVisitsFromCookie(request) :+ visit
+                Future.successful(Redirect("/").withCookies(ControllerUtils.utmCookie(held, config)))
+            }
         } else if (isMobile) {
           Future.successful(Redirect("/mobileLanding"))
         } else {
@@ -153,8 +150,9 @@ class ApplicationController @Inject() (
       // Log the interaction. Moved the logging here from navbar.scala.html b/c the redirect was happening too fast.
       cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, logText)
 
-      // Update the cookie and redirect.
-      Future.successful(Redirect(url).withLang(Lang(newLang)))
+      // Lang.get returns None for a malformed tag, which Lang() would throw on; an unsupported one is ignored too.
+      val redirect = Redirect(safeLocalPath(url))
+      Future.successful(Lang.get(newLang).filter(cc.langs.availables.contains).fold(redirect)(redirect.withLang))
   }
 
   /**
@@ -283,7 +281,7 @@ class ApplicationController @Inject() (
    * a control drawer on one side and a four-panel band below has no phone layout.
    */
   def accessScore = cc.securityService.UserAwareAction { implicit request =>
-    if (ControllerUtils.isMobile(request)) {
+    if (ControllerUtils.isMobile) {
       cc.loggingService.insert(
         request.identity.map(_.userId),
         request.ipAddress,
@@ -308,7 +306,7 @@ class ApplicationController @Inject() (
    * Returns a page with instructions for users who want to receive community service hours.
    */
   def serviceHoursInstructions = cc.securityService.SecuredAction { implicit request =>
-    val isMobile: Boolean = ControllerUtils.isMobile(request)
+    val isMobile: Boolean = ControllerUtils.isMobile
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
       cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_ServiceHourInstructions")
       Ok(views.html.serviceHoursInstructions(commonData, request.identity, isMobile))
@@ -320,7 +318,7 @@ class ApplicationController @Inject() (
    */
   def timeCheck = cc.securityService.SecuredAction(WithSignedIn()) {
     implicit request: SecuredRequest[DefaultEnv, AnyContent] =>
-      val isMobile: Boolean = ControllerUtils.isMobile(request)
+      val isMobile: Boolean = ControllerUtils.isMobile
       // Not cached, and started together: volunteers reload this page while logging service hours, so a stale total
       // would be worse than a slow one (#4526).
       val cityHoursF: Future[service.CrossCityHours] =
@@ -335,7 +333,7 @@ class ApplicationController @Inject() (
   }
 
   def routeBuilder = cc.securityService.UserAwareAction { implicit request =>
-    if (ControllerUtils.isMobile(request)) {
+    if (ControllerUtils.isMobile) {
       cc.loggingService.insert(
         request.identity.map(_.userId),
         request.ipAddress,

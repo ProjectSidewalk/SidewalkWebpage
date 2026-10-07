@@ -17,15 +17,10 @@
  * exploreFormPanoSubmitted pattern) rather than using loadGlobalScript.
  */
 
-const fs = require('fs');
-const path = require('path');
-const { loadGlobalScript } = require('./loadGlobalScript');
+const { loadGlobalScript, installDateHelpers, loadModules } = require('./loadGlobalScript');
 
-const FORM_SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/explore/src/data/Form.js'), 'utf8'
-);
 
-// Explore's boxed labeling frame (util.EXPLORE_CANVAS_WIDTH/HEIGHT in public/js/common/utilities.js). The frame is
+// Explore's boxed labeling frame (util.EXPLORE_CANVAS_WIDTH/HEIGHT in frontend/js/common/utilities.js). The frame is
 // always 720 wide; its height follows the displayed aspect (util.exploreCanvasFrame, #5085), so a 16:9 window is
 // 720x405.
 const CANVAS_WIDTH = 720;
@@ -37,7 +32,7 @@ const WIDE_FRAME = { width: 720, height: 405 };
 const PANO = {
     panoId: 'pano-A',
     source: 'gsv',
-    captureDate: { format: () => '2024-06' },
+    captureDate: new Date(2024, 5),
     width: 8192,
     height: 4096,
     tileWidth: 512,
@@ -56,7 +51,7 @@ const PANO = {
 
 /** Loads a fresh Form class into the jsdom global scope. */
 function loadForm() {
-    window.eval(`${FORM_SRC}\nwindow.Form = Form;`);
+    Object.assign(window, loadModules('frontend/js/explore/data/Form.js'));
     return window.Form;
 }
 
@@ -182,7 +177,7 @@ describe('Explore label POV staleness (#4842 regression)', () => {
     beforeEach(() => {
         // The real projection math the client places labels with; assigns window.util.pano.
         window.util = window.util || {};
-        loadGlobalScript('public/js/common/pano-viewer/src/panoUtilities.js');
+        loadGlobalScript('frontend/js/common/pano-viewer/panoUtilities.js');
         // Form's other collaborators that live on globals rather than constructor args.
         Object.assign(window.util, {
             getBrowser: () => 'chrome',
@@ -190,6 +185,7 @@ describe('Explore label POV staleness (#4842 regression)', () => {
             getOperatingSystem: () => 'linux',
             math: { kmsToMeters: (km) => km * 1000 },
         });
+        installDateHelpers();
         window.AsyncLock = class { async acquire(key, fn) { return fn(); } };
         viewerPov = { heading: 128.7, pitch: -12.3, zoom: 2 };
         window.svl = {
@@ -202,7 +198,6 @@ describe('Explore label POV staleness (#4842 regression)', () => {
             },
             tracker: { setAuditTaskID: jest.fn() },
         };
-        window.$ = jest.fn(() => ({ width: () => 1920, height: () => 1080 }));
         window.i18next = { language: 'en' };
 
         labels = [];

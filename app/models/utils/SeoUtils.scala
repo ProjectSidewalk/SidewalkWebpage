@@ -29,7 +29,7 @@ object SeoUtils {
    * @return                True iff this deployment should be crawled and indexed.
    */
   def isIndexable(environmentType: String, cityStatus: String, panoViewerType: String): Boolean =
-    environmentType == "prod" && cityStatus == "public" && panoViewerType != PanoSource.Infra3d.toString
+    environmentType == "prod" && cityStatus == "public" && panoViewerType != PanoSource.Infra3d.name
 
   /**
    * Applies [[isIndexable]] to a deployment's configuration, for the callers that hold a `Configuration` rather than
@@ -44,7 +44,7 @@ object SeoUtils {
     // indexable" rather than take the city offline over a gap whose only consequence is that it shouldn't be indexed.
     config.get[String]("environment-type") == "prod" &&
     config.getOptional[String](s"city-params.status.$cityId").contains("public") &&
-    config.getOptional[String](s"city-params.pano-viewer-type.$cityId").exists(_ != PanoSource.Infra3d.toString)
+    config.getOptional[String](s"city-params.pano-viewer-type.$cityId").exists(_ != PanoSource.Infra3d.name)
   }
 
   /** Duplicate route aliases collapsed to one canonical path (conf/routes serves both spellings). */

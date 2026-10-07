@@ -9,6 +9,12 @@ impact, add a dated, version-tagged entry here (newest first) so future analysts
 
 ## Data caveats by release
 
+### `webpage_activity.user_id` can be empty (#4643)
+
+A page opened with no session (a crawler, or a first visit before opening Explore) is logged with no `user_id`. Every
+older row on the shared `anonymous` account was moved to no user too, DC's visit-only page views included. For a rough
+visitor count, count distinct `ip_address`.
+
 ### `ip_address` columns became `inet` (#5398)
 
 Every `ip_address` column is now Postgres `inet` instead of `text`. What changes for analysis:

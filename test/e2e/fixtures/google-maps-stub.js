@@ -8,9 +8,9 @@
  * against the real API was ~20 billable events — and the suite's job is to catch *our* runtime errors, not Google's.
  * With this file routed in, the CI project needs no key at all and the suite is deterministic offline.
  *
- * What it implements: only the surface `public/js` touches, so a member found here is known to be load-bearing and
+ * What it implements: only the surface `frontend/js` touches, so a member found here is known to be load-bearing and
  * a new Google call in the app fails here first rather than "working" against a fake the real API doesn't match.
- * The inventory is `grep -rn 'google\.maps\.' public/js app/views | grep -v /build/` plus the methods called on what
+ * The inventory is `grep -rn 'google\.maps\.' frontend/js app/views` plus the methods called on what
  * those return (`gsvPano.*`, `getMap().*`, the marker properties); re-run it before adding anything. Events arrive
  * on the next macrotask, as the real API's do. Nothing renders; each widget mounts an empty, labelled `<div>`.
  *
@@ -18,9 +18,10 @@
  * an id this stub has seen (minted by a search, or vouched for by the panorama's registered provider), and any other
  * id answers `ZERO_RESULTS` the way an expired pano does in production. That lets the server's own expiry verdict
  * drive the app's fallback chain (Pannellum + committed backups) on the CI seed, whose panoramas are all expired. A
- * spec that wants the primary-viewer path instead sets `window.googleMapsStubOptions = { serveAnyPano: true }`
+ * spec that wants the provider to answer instead sets `window.googleMapsStubOptions = { serveAnyPano: true }`
  * before the page loads (fixtures.js exports `serveAnyPano(context)`), and every id resolves the way Google keeps
- * serving panoramas our metadata check has retired.
+ * serving panoramas our metadata check has retired — which a page that trusts the flag (Validate, #5561) must
+ * ignore, and a page that asks the provider first renders through the primary viewer.
  *
  * Contract with the app's inline loader (app/views/common/main.scala.html): that snippet appends this script with
  * `?callback=google.maps.__ib__`, then re-invokes `google.maps.importLibrary(name)` expecting the loaded script to

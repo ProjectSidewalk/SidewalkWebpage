@@ -2,7 +2,7 @@ package models.label
 
 import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.{given, *}
 import org.locationtech.jts.geom.Point
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
@@ -33,9 +33,9 @@ case class LabelPoint(
     lat: Option[Double],
     lng: Option[Double],
     geom: Option[Point],
-    computationMethod: Option[ComputationMethod.Value],
+    computationMethod: Option[ComputationMethod],
     centerlineOffsetM: Option[Double],
-    streetSide: Option[StreetSide.Value]
+    streetSide: Option[StreetSide]
 )
 
 class LabelPointTableDef(tag: slick.lifted.Tag) extends Table[LabelPoint](tag, "label_point") {
@@ -55,14 +55,13 @@ class LabelPointTableDef(tag: slick.lifted.Tag) extends Table[LabelPoint](tag, "
   def lat: Rep[Option[Double]] = column[Option[Double]]("lat")
   def lng: Rep[Option[Double]] = column[Option[Double]]("lng")
   def geom: Rep[Option[Point]] = column[Option[Point]]("geom")
-  def computationMethod: Rep[Option[ComputationMethod.Value]] =
-    column[Option[ComputationMethod.Value]]("computation_method")
-  def centerlineOffsetM: Rep[Option[Double]] = column[Option[Double]]("centerline_offset_m")
+  def computationMethod: Rep[Option[ComputationMethod]] = column[Option[ComputationMethod]]("computation_method")
+  def centerlineOffsetM: Rep[Option[Double]]            = column[Option[Double]]("centerline_offset_m")
   // GENERATED ALWAYS ... STORED in the DB, and Postgres rejects an explicit value, so `insertProjection` leaves it out.
-  def streetSide: Rep[Option[StreetSide.Value]] = column[Option[StreetSide.Value]]("street_side")
+  def streetSide: Rep[Option[StreetSide]] = column[Option[StreetSide]]("street_side")
 
   def * = (labelPointId, labelId, panoX, panoY, canvasX, canvasY, canvasWidth, canvasHeight, heading, pitch, zoom, lat,
-    lng, geom, computationMethod, centerlineOffsetM, streetSide) <> ((LabelPoint.apply _).tupled, LabelPoint.unapply)
+    lng, geom, computationMethod, centerlineOffsetM, streetSide).mapTo[LabelPoint]
 
   def insertProjection = (labelId, panoX, panoY, canvasX, canvasY, canvasWidth, canvasHeight, heading, pitch, zoom, lat,
     lng, geom, computationMethod, centerlineOffsetM)
@@ -89,7 +88,7 @@ object LabelPointTable {
 trait LabelPointTableRepository {}
 
 @Singleton
-class LabelPointTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(implicit
+class LabelPointTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(using
     ec: ExecutionContext
 ) extends LabelPointTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
@@ -133,7 +132,7 @@ class LabelPointTable @Inject() (protected val dbConfigProvider: DatabaseConfigP
         case 1    => DBIO.successful(1)
         case rows =>
           DBIO.failed(
-            new IllegalStateException(
+            IllegalStateException(
               s"Expected to set centerline_offset_m on 1 row for label_point $labelPointId against street edge " +
                 s"$streetEdgeId, updated $rows"
             )

@@ -2,7 +2,8 @@ package models.street
 
 import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.{given, *}
+import models.utils.{NamedEnum, PgEnumCompanion}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.jdbc.GetResult
 
@@ -20,45 +21,42 @@ import javax.inject.{Inject, Singleton}
  * NOTE: if changing these values, update the `street_edge_status_change_source` Postgres enum type as well (see
  * 358.sql, 368.sql, and 386.sql) and the script or service that emits it.
  */
-object StreetEdgeStatusChangeSource extends Enumeration {
-  type StreetEdgeStatusChangeSource = Value
-  val HideStreetsWithoutImagery: Value = Value("hide_streets_without_imagery")
-  val RevealRegions: Value             = Value("reveal_regions")
-  val HideRegions: Value               = Value("hide_regions")
-  val RemoveStreets: Value             = Value("remove_streets")
-  val AdminReopen: Value               = Value("admin_reopen")
-
-  /** Parses a string into a status change source, returning None if it doesn't match a known value. */
-  def fromString(name: String): Option[Value] = values.find(_.toString == name)
+enum StreetEdgeStatusChangeSource(val name: String) extends NamedEnum {
+  case HideStreetsWithoutImagery extends StreetEdgeStatusChangeSource("hide_streets_without_imagery")
+  case RevealRegions             extends StreetEdgeStatusChangeSource("reveal_regions")
+  case HideRegions               extends StreetEdgeStatusChangeSource("hide_regions")
+  case RemoveStreets             extends StreetEdgeStatusChangeSource("remove_streets")
+  case AdminReopen               extends StreetEdgeStatusChangeSource("admin_reopen")
 }
+
+object StreetEdgeStatusChangeSource
+    extends PgEnumCompanion[StreetEdgeStatusChangeSource]("street_edge_status_change_source")
 
 /** One recorded transition of a street between two `street_edge_status` values. */
 case class StreetEdgeStatusChange(
     streetEdgeStatusChangeId: Int,
     streetEdgeId: Int,
-    oldStatus: StreetEdgeStatus.Value,
-    newStatus: StreetEdgeStatus.Value,
+    oldStatus: StreetEdgeStatus,
+    newStatus: StreetEdgeStatus,
     changedAt: OffsetDateTime,
-    source: StreetEdgeStatusChangeSource.Value
+    source: StreetEdgeStatusChangeSource
 )
 
 /** Streets that entered one status during one week. */
-case class StatusChangeWeek(weekStart: LocalDate, newStatus: StreetEdgeStatus.Value, streetCount: Int)
+case class StatusChangeWeek(weekStart: LocalDate, newStatus: StreetEdgeStatus, streetCount: Int)
 
 class StreetEdgeStatusChangeTableDef(tag: Tag) extends Table[StreetEdgeStatusChange](tag, "street_edge_status_change") {
   def streetEdgeStatusChangeId: Rep[Int] =
     column[Int]("street_edge_status_change_id", O.PrimaryKey, O.AutoInc)
-  def streetEdgeId: Rep[Int]                          = column[Int]("street_edge_id")
-  def oldStatus: Rep[StreetEdgeStatus.Value]          = column[StreetEdgeStatus.Value]("old_status")
-  def newStatus: Rep[StreetEdgeStatus.Value]          = column[StreetEdgeStatus.Value]("new_status")
-  def changedAt: Rep[OffsetDateTime]                  = column[OffsetDateTime]("changed_at") // DEFAULT now() in the DB.
-  def source: Rep[StreetEdgeStatusChangeSource.Value] = column[StreetEdgeStatusChangeSource.Value]("source")
+  def streetEdgeId: Rep[Int]                    = column[Int]("street_edge_id")
+  def oldStatus: Rep[StreetEdgeStatus]          = column[StreetEdgeStatus]("old_status")
+  def newStatus: Rep[StreetEdgeStatus]          = column[StreetEdgeStatus]("new_status")
+  def changedAt: Rep[OffsetDateTime]            = column[OffsetDateTime]("changed_at") // DEFAULT now() in the DB.
+  def source: Rep[StreetEdgeStatusChangeSource] = column[StreetEdgeStatusChangeSource]("source")
 
   // CHECK constraint, which Slick can't express: old_status <> new_status, so only real transitions are recorded.
-  def * = (streetEdgeStatusChangeId, streetEdgeId, oldStatus, newStatus, changedAt, source) <> (
-    (StreetEdgeStatusChange.apply _).tupled,
-    StreetEdgeStatusChange.unapply
-  )
+  def * =
+    (streetEdgeStatusChangeId, streetEdgeId, oldStatus, newStatus, changedAt, source).mapTo[StreetEdgeStatusChange]
 
   // ON DELETE CASCADE, which tools/one-off/4181-remove-streets.sql relies on: once the street row is gone, its status
   // history describes nothing, so that script deletes no rows here of its own.
@@ -85,7 +83,7 @@ class StreetEdgeStatusChangeTable @Inject() (protected val dbConfigProvider: Dat
     with HasDatabaseConfigProvider[MyPostgresProfile] {
   val statusChanges = TableQuery[StreetEdgeStatusChangeTableDef]
 
-  implicit private val getStatusChangeWeek: GetResult[StatusChangeWeek] = GetResult { r =>
+  private given getStatusChangeWeek: GetResult[StatusChangeWeek] = { r =>
     StatusChangeWeek(r.nextDate().toLocalDate, StreetEdgeStatus.withName(r.nextString()), r.nextInt())
   }
 

@@ -177,7 +177,7 @@ class AccessScoreParitySpec extends AnyFunSuite with Matchers {
     // them moves every served score — so a change here should be deliberate, not a merge artifact.
     val defaults = AccessScoreCalculator.defaultSlopeSettings
     defaults.weight shouldBe 1.0
-    defaults.statistic shouldBe AccessScoreCalculator.MaxGrade
+    defaults.statistic shouldBe AccessScoreCalculator.SlopeStatistic.MaxGrade
     defaults.barrierEnabled shouldBe false
     defaults.includeApproximate shouldBe false
   }

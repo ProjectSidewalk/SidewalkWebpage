@@ -3,7 +3,7 @@ package controllers.api
 import controllers.base.{CustomBaseController, CustomControllerComponents}
 import controllers.helper.ShapefilesCreatorHelper
 import models.api.{ApiError, StreamingApiType}
-import models.label.LabelTypeEnum
+import models.label.LabelType
 import models.utils.{LatLngBBox, MapParams}
 import org.apache.pekko.stream.scaladsl.{Source, StreamConverters}
 import play.api.Logger
@@ -18,14 +18,14 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.zip.{ZipEntry, ZipOutputStream}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.jdk.CollectionConverters.IteratorHasAsScala
-import scala.math._
+import scala.math.*
 import scala.util.{Failure, Success, Try, Using}
 import scala.util.control.NonFatal
 
 /**
  * Base controller for API endpoints with common utility methods.
  */
-abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: ExecutionContext)
+abstract class BaseApiController(cc: CustomControllerComponents)(using ec: ExecutionContext)
     extends CustomBaseController(cc) {
 
   private val logger = Logger(this.getClass)
@@ -114,9 +114,9 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
    * @param labelType The optional label type name.
    * @return `Right(None)` if absent, `Right(Some(labelType))` if valid, or `Left(ApiError)` for an unknown name.
    */
-  protected def parseLabelTypeParam(labelType: Option[String]): Either[ApiError, Option[LabelTypeEnum.Base]] =
-    parseAllowlistedList(labelType, LabelTypeEnum.labelTypeNames, "labelType")
-      .map(_.flatMap(_.headOption).flatMap(LabelTypeEnum.byName.get))
+  protected def parseLabelTypeParam(labelType: Option[String]): Either[ApiError, Option[LabelType]] =
+    parseAllowlistedList(labelType, LabelType.labelTypeNames, "labelType")
+      .map(_.flatMap(_.headOption).flatMap(LabelType.withNameOption))
 
   /** Renders an `ApiError` as an RFC 7807 `application/problem+json` response with the error's HTTP status. */
   protected def badRequest(error: ApiError): Result = ApiError.toResult(error)
@@ -157,12 +157,12 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
    * that work (#4161), so the retry gets a 429 instead. Only for file downloads: the site's own pages fetch the same
    * CSV/GeoJSON URLs in parallel, and those are cheap to repeat. `serve` must wrap its body with [[releasing]].
    */
-  private def oneAtATime(serve: BaseApiController.InFlight => Future[Result])(implicit
+  private def oneAtATime(serve: BaseApiController.InFlight => Future[Result])(using
       request: RequestHeader
   ): Future[Result] = {
     val key   = request.uri
     val now   = Instant.now()
-    val fresh = new BaseApiController.InFlight(now)
+    val fresh = BaseApiController.InFlight(now)
     val busy  = ApiError
       .toResult(
         ApiError.duplicateRequest("This file is already being built for an earlier request. Please try again shortly.")
@@ -194,9 +194,9 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
   }
 
   /** Ties the URL's hold to the response body: alive while chunks flow, freed when the body ends for any reason. */
-  private def releasing[T](body: Source[T, _], entry: BaseApiController.InFlight)(implicit
+  private def releasing[T](body: Source[T, ?], entry: BaseApiController.InFlight)(using
       request: RequestHeader
-  ): Source[T, _] =
+  ): Source[T, ?] =
     body
       .mapMaterializedValue { mat => entry.bodyStarted = true; mat }
       .map { chunk => entry.lastSeen = Instant.now(); chunk }
@@ -242,9 +242,9 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
       contentType: String,
       disposition: String,
       entry: BaseApiController.InFlight
-  )(implicit request: RequestHeader): Result = {
+  )(using request: RequestHeader): Result = {
     val fileSource = StreamConverters
-      .fromInputStream(() => new BufferedInputStream(Files.newInputStream(file)))
+      .fromInputStream(() => BufferedInputStream(Files.newInputStream(file)))
       .mapMaterializedValue(_.andThen { case _ => deleteDownloadDir(dir) })
     // Gzip (GeoPackages are compressed) drops Content-Length, so the size is repeated in a header of our own.
     val size = Files.size(file)
@@ -262,14 +262,14 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
    * @param filename The name of the output CSV file.
    */
   protected def outputCSV[A <: StreamingApiType](
-      dbDataStream: Source[A, _],
+      dbDataStream: Source[A, ?],
       csvHeader: String,
       inline: Option[Boolean],
       filename: String
   ): Future[Result] = {
     // Logging wraps the bare rows so a cut-off is reported in rows. The header carries its own newline because
     // `intersperse` puts nothing between it and the first row.
-    val csvSource: Source[String, _] = logStreamFailures(dbDataStream.map(row => row.toCsvRow), filename)
+    val csvSource: Source[String, ?] = logStreamFailures(dbDataStream.map(row => row.toCsvRow), filename)
       .intersperse(s"$csvHeader\n", "\n", "\n")
 
     // Play's chunked(content, inline, fileName) overload emits a properly quoted Content-Disposition that honors
@@ -285,16 +285,16 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
    * @param writeCsvs Writes the CSV files into the given folder and returns (file path, zip entry name) pairs.
    * @return A Result containing the zipped CSV files as a downloadable response.
    */
-  protected def outputZippedCsvs(baseFileName: String)(writeCsvs: Path => Future[Seq[(Path, String)]])(implicit
+  protected def outputZippedCsvs(baseFileName: String)(writeCsvs: Path => Future[Seq[(Path, String)]])(using
       request: RequestHeader
   ): Future[Result] = oneAtATime { entry =>
     val dir     = newDownloadDir()
     val zipPath = dir.resolve(s"$baseFileName.zip")
     writeCsvs(dir)
       .map { files =>
-        Using.resource(new ZipOutputStream(Files.newOutputStream(zipPath))) { zipOut =>
+        Using.resource(ZipOutputStream(Files.newOutputStream(zipPath))) { zipOut =>
           files.foreach { case (filePath, entryName) =>
-            zipOut.putNextEntry(new ZipEntry(entryName))
+            zipOut.putNextEntry(ZipEntry(entryName))
             Files.copy(filePath, zipOut)
             zipOut.closeEntry()
             Files.deleteIfExists(filePath)
@@ -317,11 +317,11 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
    * @param filename The name of the output CSV file.
    */
   protected def outputGeoJSON[A <: StreamingApiType](
-      dbDataStream: Source[A, _],
+      dbDataStream: Source[A, ?],
       inline: Option[Boolean],
       filename: String
   ): Future[Result] = {
-    val jsonSource: Source[String, _] =
+    val jsonSource: Source[String, ?] =
       geoJsonFeatureCollection(logStreamFailures(dbDataStream.map(row => row.toJson.toString), filename))
 
     Future.successful(Ok.chunked(jsonSource, inline.getOrElse(false), Some(filename)).as(ContentTypes.JSON))
@@ -336,11 +336,11 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
    * @param filename The name of the output CSV file.
    */
   protected def outputJSON[A <: StreamingApiType](
-      dbDataStream: Source[A, _],
+      dbDataStream: Source[A, ?],
       inline: Option[Boolean],
       filename: String
   ): Future[Result] = {
-    val jsonSource: Source[String, _] = logStreamFailures(dbDataStream.map(row => row.toJson.toString), filename)
+    val jsonSource: Source[String, ?] = logStreamFailures(dbDataStream.map(row => row.toJson.toString), filename)
       .intersperse("[", ",", "]")
 
     Future.successful(Ok.chunked(jsonSource, inline.getOrElse(false), Some(filename)).as(ContentTypes.JSON))
@@ -358,15 +358,15 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
    *         error response if the shapefile creation fails.
    */
   protected def outputShapefile[A <: StreamingApiType](
-      dbDataStream: Source[A, _],
+      dbDataStream: Source[A, ?],
       baseFileName: String,
-      createShapefile: (Source[A, _], String, Int) => Future[Option[Path]],
+      createShapefile: (Source[A, ?], String, Int) => Future[Option[Path]],
       shapefileCreator: ShapefilesCreatorHelper
-  )(implicit request: RequestHeader): Future[Result] =
+  )(using request: RequestHeader): Future[Result] =
     outputShapefiles(
       dbDataStream,
       baseFileName,
-      (source: Source[A, _], outputFile: String, batchSize: Int) =>
+      (source: Source[A, ?], outputFile: String, batchSize: Int) =>
         createShapefile(source, outputFile, batchSize).map(_.map(Seq(_))),
       shapefileCreator
     )
@@ -378,11 +378,11 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
    * @return The zip as a downloadable response, or an error response if the shapefiles couldn't be created.
    */
   protected def outputShapefiles[A](
-      dbDataStream: Source[A, _],
+      dbDataStream: Source[A, ?],
       baseFileName: String,
-      createShapefiles: (Source[A, _], String, Int) => Future[Option[Seq[Path]]],
+      createShapefiles: (Source[A, ?], String, Int) => Future[Option[Seq[Path]]],
       shapefileCreator: ShapefilesCreatorHelper
-  )(implicit request: RequestHeader): Future[Result] = oneAtATime { entry =>
+  )(using request: RequestHeader): Future[Result] = oneAtATime { entry =>
     val dir        = newDownloadDir()
     val outputFile = dir.resolve(baseFileName).toString
     createShapefiles(dbDataStream, outputFile, DEFAULT_BATCH_SIZE)
@@ -411,11 +411,11 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
    * @return Play Framework Result with the GeoPackage file.
    */
   protected def outputGeopackage[T](
-      source: Source[T, _],
+      source: Source[T, ?],
       baseFileName: String,
-      createGeopackageMethod: (Source[T, _], String, Int) => Future[Option[Path]],
+      createGeopackageMethod: (Source[T, ?], String, Int) => Future[Option[Path]],
       inline: Option[Boolean]
-  )(implicit request: RequestHeader): Future[Result] = oneAtATime { entry =>
+  )(using request: RequestHeader): Future[Result] = oneAtATime { entry =>
     val dir = newDownloadDir()
     // Going through `flatMap` means a builder that throws is handled by the same `recover` as one that fails later.
     Future.unit
@@ -571,7 +571,7 @@ object BaseApiController {
   val staleDownloadAge: Duration = Duration.ofHours(2)
 
   /** URLs being served right now; see [[InFlight]]. */
-  val inFlight: ConcurrentHashMap[String, InFlight] = new ConcurrentHashMap()
+  val inFlight: ConcurrentHashMap[String, InFlight] = ConcurrentHashMap()
 
   /** How often, at most, abandoned download folders are swept. */
   val sweepInterval: Duration = Duration.ofMinutes(5)

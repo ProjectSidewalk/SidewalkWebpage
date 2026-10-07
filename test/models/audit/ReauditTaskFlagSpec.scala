@@ -1,12 +1,11 @@
 package models.audit
 
 import models.route.{Route, RouteStreet, RouteStreetTableDef, RouteTableDef, UserRoute, UserRouteTableDef}
-import models.utils.MyPostgresProfile.api._
-import org.scalatestplus.play.PlaySpec
+import models.utils.MyPostgresProfile.api.*
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import util.{RolledBackDb, StreetFixtures}
+import util.{RolledBackDb, SidewalkSpec, StreetFixtures}
 
 import java.time.{LocalDate, OffsetDateTime}
 
@@ -30,10 +29,10 @@ import java.time.{LocalDate, OffsetDateTime}
  * (runRolledBack). Requires a Postgres+PostGIS database (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in
  * dev/CI). Scheduling actors are disabled so nightly jobs can't race the tests.
  */
-class ReauditTaskFlagSpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb with StreetFixtures {
+class ReauditTaskFlagSpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledBackDb with StreetFixtures {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private val auditTaskTable = app.injector.instanceOf[AuditTaskTable]
 
@@ -65,7 +64,7 @@ class ReauditTaskFlagSpec extends PlaySpec with GuiceOneAppPerSuite with RolledB
         "reaudit spec",
         s"reaudit-spec-$streetEdgeId",
         None,
-        public = false,
+        public = true,
         deleted = false,
         OffsetDateTime.now,
         0d,

@@ -11,18 +11,7 @@
  * would go stale the next time `make lint-vendor-versions` sees a newer one.
  */
 
-const fs = require('fs');
-const path = require('path');
-const { loadGlobalScript, REPO_ROOT } = require('./loadGlobalScript');
-
-/** The vendored i18next, evaluated into this jsdom context; returns the UMD's export. */
-function loadVendoredI18next() {
-    const dir = path.join(REPO_ROOT, 'public/vendor/i18next');
-    const bundle = fs.readdirSync(dir).find((name) => name.endsWith('.js'));
-    if (!bundle) throw new Error(`no i18next bundle in ${dir}`);
-    window.eval(fs.readFileSync(path.join(dir, bundle), 'utf8'));
-    return window.i18next;
-}
+const { loadGlobalScript, loadVendored } = require('./loadGlobalScript');
 
 /** What a labeler-facing string interpolates, in the shapes that broke: an apostrophe, a slash, an ampersand. */
 const RESOURCES = {
@@ -51,7 +40,7 @@ describe('AppManager i18next interpolation', () => {
             services: { formatter: { add: () => {} } },
         };
         window.i18nextHttpBackend = {};
-        loadGlobalScript('public/js/common/AppManager.js');
+        loadGlobalScript('frontend/js/common/AppManager.js');
         window.appManager._setupI18next({
             language: 'en', defaultNS: 'common', namespaces: ['common'], countryId: 'usa', unitWords: {},
         });
@@ -76,7 +65,8 @@ describe('the vendored i18next under that configuration', () => {
     let i18next;
 
     beforeAll(() => {
-        i18next = loadVendoredI18next();
+        loadVendored('i18next');
+        i18next = window.i18next;
     });
 
     afterAll(() => {

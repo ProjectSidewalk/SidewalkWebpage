@@ -11,14 +11,11 @@
  * along-street math that places the finish flag is part of what is being exercised.
  */
 
-const fs = require('fs');
 const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const readSrc = (relativePath) => fs.readFileSync(path.join(REPO_ROOT, relativePath), 'utf8');
 
-const NAVIGATION_SERVICE_SRC = readSrc('public/js/explore/src/navigation/NavigationService.js');
-const MINIMAP_SRC = readSrc('public/js/explore/src/navigation/Minimap.js');
 
 window.turf = require(path.join(REPO_ROOT, 'public/vendor/turf/turf-7.4.0.min.js'));
 const { turf } = window;
@@ -67,8 +64,8 @@ function makeMission(missionId, { distanceM, progressM = 0 }) {
     };
 }
 
-/** A jQuery-shaped stub for the progress-bar elements the reset touches; nothing here is under test. */
-const uiStub = () => ({ css: jest.fn(), text: jest.fn(), attr: jest.fn(), hasClass: () => false });
+/** A throwaway element for each progress-bar part the reset touches; nothing here is under test. */
+const uiStub = () => document.createElement('div');
 
 describe('Minimap mission flags across a mission boundary', () => {
     let minimap;
@@ -99,8 +96,8 @@ describe('Minimap mission flags across a mission boundary', () => {
             },
         };
 
-        window.eval(`${NAVIGATION_SERVICE_SRC}; window.NavigationService = NavigationService;`);
-        window.eval(`${MINIMAP_SRC}; window.Minimap = Minimap;`);
+        Object.assign(window, loadModules('frontend/js/explore/navigation/NavigationService.js'));
+        Object.assign(window, loadModules('frontend/js/explore/navigation/Minimap.js'));
         // The constructor is inert (the map is only built by the async factory), which is all the flags need.
         minimap = new window.Minimap();
     });

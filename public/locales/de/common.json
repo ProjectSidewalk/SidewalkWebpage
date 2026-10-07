@@ -15,16 +15,16 @@
   "correct": "Validiert als richtig",
   "incorrect": "Validiert als falsch",
   "unvalidated": "nicht validiert",
-  "curb-ramp": "Trottoir&shy;absenkung",
-  "no-curb-ramp": "fehlende Trottoir&shy;absenkung",
+  "curb-ramp": "Trottoir\u00ADabsenkung",
+  "no-curb-ramp": "fehlende Trottoir\u00ADabsenkung",
   "obstacle": "Hindernis im Weg",
-  "surface-problem": "Oberflächen&shy;problem",
+  "surface-problem": "Oberflächen\u00ADproblem",
   "occlusion": "Trottoir nicht sichtbar",
   "no-sidewalk": "kein Trottoir",
   "crosswalk": "Markierter Fussgängerstreifen",
-  "signal": "Fussgänger:&shy;innensignal",
+  "signal": "Fussgänger:\u00ADinnensignal",
   "other": "Andere",
-  "surface-problems": "Oberflächen&shy;probleme",
+  "surface-problems": "Oberflächen\u00ADprobleme",
   "close": "Schließen",
   "cancel": "Abbrechen",
   "continue": "Fortfahren",
@@ -214,6 +214,17 @@
   "pano-attribution": {
     "opens-new-tab": "(wird in einem neuen Tab geöffnet)"
   },
+  "image-adjustments": {
+    "button": "Bild",
+    "active-sr": "(angepasst)",
+    "tooltip": "Schatten, Helligkeit und Kontrast der Bilder anpassen",
+    "title": "Bildanpassungen",
+    "shadows": "Schatten",
+    "brightness": "Helligkeit",
+    "contrast": "Kontrast",
+    "reset": "Auf Standard zurücksetzen",
+    "persist-note": "Diese Einstellungen bleiben in Erkunden und Validieren erhalten, bis Sie sie zurücksetzen."
+  },
   "mission-start-tutorial": {
     "example-type-label-correct": "RICHTIGES BEISPIEL",
     "label-type-subtitle": "Wieso ist das falsch?",
@@ -356,6 +367,11 @@
     "vote-failed": "Deine Stimme wurde nicht gespeichert. Bitte versuche es erneut."
   },
   "download-already-preparing": "Diese Datei wird bereits für eine andere Anfrage vorbereitet. Bitte versuchen Sie es gleich noch einmal.",
+  "session-load-failed": {
+    "title": "Laden fehlgeschlagen",
+    "body": "Wir konnten deine Mission nicht laden. Bitte lade die Seite neu, um es erneut zu versuchen.",
+    "bad-link": "Dieser Link ist ungültig. Überprüfe die Adresse und versuche es erneut."
+  },
   "label-type-picker": {
     "current": "{{labelType}} (aktueller Typ)",
     "change": "ändern",
@@ -391,5 +407,8 @@
     "region-sub-pending": "{{length}} Straßen · {{percent}}% erkundet",
     "street-in-city": "{{region}}, {{city}}",
     "unnamed": "Straße ohne Namen"
-  }
+  },
+  "immersive-enter": "Immersiven Modus starten",
+  "immersive-exit": "Immersiven Modus beenden",
+  "immersive-exit-hint": "Immersiver Modus. Drücken Sie F, um ihn zu beenden."
 }

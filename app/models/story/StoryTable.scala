@@ -1,13 +1,13 @@
 package models.story
 
 import com.google.inject.ImplementedBy
-import models.label.{LabelTableDef, LabelTypeEnum}
+import models.label.{LabelTableDef, LabelType}
 import models.pano.PanoDataTableDef
 import models.region.RegionTableDef
 import models.street.StreetEdgeRegionTableDef
 import models.user.SidewalkUserTableDef
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.{given, *}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import java.time.OffsetDateTime
@@ -70,10 +70,8 @@ class StoryTableDef(tag: Tag) extends Table[Story](tag, "story") {
   // DEFAULT now() in the DB (O.Default holds a value, not an expression).
   def createdAt: Rep[OffsetDateTime] = column[OffsetDateTime]("created_at")
 
-  def * = (storyId, labelId, userId, storyText, displayNameMode, visible, moderatedBy, moderatedAt, createdAt) <> (
-    (Story.apply _).tupled,
-    Story.unapply
-  )
+  def * =
+    (storyId, labelId, userId, storyText, displayNameMode, visible, moderatedBy, moderatedAt, createdAt).mapTo[Story]
 
   def label = foreignKey("story_label_id_fkey", labelId, TableQuery[LabelTableDef])(_.labelId)
   def user  = foreignKey("story_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
@@ -89,10 +87,8 @@ trait StoryTableRepository {}
  * `story_media` rows cascade in the DB, so callers fetch media rows first when they need to remove files from disk.
  */
 @Singleton
-class StoryTable @Inject() (
-    protected val dbConfigProvider: DatabaseConfigProvider,
-    implicit val ec: ExecutionContext
-) extends StoryTableRepository
+class StoryTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(using ec: ExecutionContext)
+    extends StoryTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   val stories           = TableQuery[StoryTableDef]
@@ -117,7 +113,7 @@ class StoryTable @Inject() (
   }
 
   /** The label's type, or None when the label doesn't exist. Drives the card's problem-vs-feature story copy. */
-  def labelTypeForLabel(labelId: Int): DBIO[Option[LabelTypeEnum.Base]] = {
+  def labelTypeForLabel(labelId: Int): DBIO[Option[LabelType]] = {
     labels.filter(_.labelId === labelId).map(_.labelType).result.headOption
   }
 
@@ -186,21 +182,21 @@ class StoryTable @Inject() (
       .join(users)
       .on(_.userId === _.userId)
       .joinLeft(storyMedia)
-      .on(_._1.storyId === _.storyId)
-      .sortBy(_._1._1.createdAt.desc)
+      .on { case ((story, _), media) => story.storyId === media.storyId }
+      .sortBy { case ((story, _), _) => story.createdAt.desc }
       .result
       .map(_.map { case ((story, user), media) => (story, media, user.username) })
   }
 
   /** All of one user's stories (including hidden ones), for the dashboard management surface. */
-  def getForUser(userId: String): DBIO[Seq[(Story, Option[StoryMedia], LabelTypeEnum.Base)]] = {
+  def getForUser(userId: String): DBIO[Seq[(Story, Option[StoryMedia], LabelType)]] = {
     stories
       .filter(_.userId === userId)
       .join(labels)
       .on(_.labelId === _.labelId)
       .joinLeft(storyMedia)
-      .on(_._1.storyId === _.storyId)
-      .sortBy(_._1._1.createdAt.desc)
+      .on { case ((story, _), media) => story.storyId === media.storyId }
+      .sortBy { case ((story, _), _) => story.createdAt.desc }
       .result
       .map(_.map { case ((story, label), media) => (story, media, label.labelType) })
   }
@@ -215,7 +211,7 @@ class StoryTable @Inject() (
    */
   def getVisibleForCity(
       n: Int
-  ): DBIO[Seq[(Story, Option[StoryMedia], String, LabelTypeEnum.Base, Int, String, Option[String])]] = {
+  ): DBIO[Seq[(Story, Option[StoryMedia], String, LabelType, Int, String, Option[String])]] = {
     val visibleWithPlace = for {
       story            <- stories if story.visible
       user             <- users if user.userId === story.userId
@@ -225,10 +221,10 @@ class StoryTable @Inject() (
     } yield (story, user.username, label.labelType, label.panoId, region.regionId, region.name)
     visibleWithPlace
       .joinLeft(storyMedia)
-      .on(_._1.storyId === _.storyId)
+      .on { case ((story, _, _, _, _, _), media) => story.storyId === media.storyId }
       .joinLeft(panoData)
-      .on(_._1._4 === _.panoId)
-      .sortBy(_._1._1._1.createdAt.desc)
+      .on { case (((_, _, _, panoId, _, _), _), pano) => panoId === pano.panoId }
+      .sortBy { case (((story, _, _, _, _, _), _), _) => story.createdAt.desc }
       .take(n)
       .result
       .map(_.map { case (((story, username, labelType, _, regionId, regionName), media), pano) =>
@@ -237,15 +233,15 @@ class StoryTable @Inject() (
   }
 
   /** Most recent stories across all users (hidden included), for the admin moderation queue. */
-  def getRecent(n: Int): DBIO[Seq[(Story, Option[StoryMedia], String, LabelTypeEnum.Base)]] = {
+  def getRecent(n: Int): DBIO[Seq[(Story, Option[StoryMedia], String, LabelType)]] = {
     stories
       .join(users)
       .on(_.userId === _.userId)
       .join(labels)
-      .on(_._1.labelId === _.labelId)
+      .on { case ((story, _), label) => story.labelId === label.labelId }
       .joinLeft(storyMedia)
-      .on(_._1._1.storyId === _.storyId)
-      .sortBy(_._1._1._1.createdAt.desc)
+      .on { case (((story, _), _), media) => story.storyId === media.storyId }
+      .sortBy { case (((story, _), _), _) => story.createdAt.desc }
       .take(n)
       .result
       .map(_.map { case (((story, user), label), media) => (story, media, user.username, label.labelType) })

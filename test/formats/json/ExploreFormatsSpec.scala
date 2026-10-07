@@ -1,8 +1,8 @@
 package formats.json
 
-import formats.json.ExploreFormats._
+import formats.json.ExploreFormats.{given, *}
 import models.audit.AuditTask
-import models.label.LabelPointTable
+import models.label.{LabelPointTable, LabelType}
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 import play.api.libs.json.Json
@@ -68,6 +68,27 @@ class ExploreFormatsSpec extends AnyFunSuite with Matchers {
 
   test("LabelPointSubmission rejects a non-positive frame") {
     (labelPointJson + ("canvas_height" -> Json.toJson(0))).validate[LabelPointSubmission].isError shouldBe true
+  }
+
+  private val labelJson = Json.obj(
+    "pano_id"            -> "some-pano",
+    "pano_source"        -> "gsv",
+    "label_type"         -> "Obstacle",
+    "deleted"            -> false,
+    "tag_ids"            -> Json.arr(),
+    "label_point"        -> labelPointJson,
+    "temporary_label_id" -> 1,
+    "tutorial"           -> false
+  )
+
+  test("LabelSubmission parses label_type into a LabelType") {
+    labelJson.as[LabelSubmission].labelType shouldBe LabelType.Obstacle
+  }
+
+  test("LabelSubmission rejects a label_type that isn't a label type's exact name") {
+    for (bad <- Seq(Json.toJson("NotAType"), Json.toJson("obstacle"), Json.toJson(3))) {
+      withClue(s"$bad: ") { (labelJson + ("label_type" -> bad)).validate[LabelSubmission].isError shouldBe true }
+    }
   }
 
   test("AuditTask serializes audited_distance_m and start_offset_m in snake_case") {

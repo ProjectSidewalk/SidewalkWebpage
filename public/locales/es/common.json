@@ -214,6 +214,17 @@
   "pano-attribution": {
     "opens-new-tab": "(se abre en una pestaña nueva)"
   },
+  "image-adjustments": {
+    "button": "Imagen",
+    "active-sr": "(ajustada)",
+    "tooltip": "Ajusta las sombras, el brillo y el contraste de la imagen",
+    "title": "Ajustes de imagen",
+    "shadows": "Sombras",
+    "brightness": "Brillo",
+    "contrast": "Contraste",
+    "reset": "Restablecer valores",
+    "persist-note": "Estos ajustes se mantienen en Explorar y Validar hasta que los restablezcas."
+  },
   "mission-start-tutorial": {
     "example-type-label-correct": "EJEMPLO CORRECTO",
     "label-type-subtitle": "¿Por qué está mal?",
@@ -356,6 +367,11 @@
     "vote-failed": "Tu voto no se guardó. Inténtalo de nuevo."
   },
   "download-already-preparing": "Este archivo ya se está preparando para otra solicitud. Inténtalo de nuevo en un momento.",
+  "session-load-failed": {
+    "title": "No se pudo cargar",
+    "body": "No pudimos cargar tu misión. Recarga la página para intentarlo de nuevo.",
+    "bad-link": "Este enlace no es válido. Revisa la dirección e inténtalo de nuevo."
+  },
   "label-type-picker": {
     "current": "{{labelType}} (tipo actual)",
     "change": "cambiar",
@@ -391,5 +407,8 @@
     "region-sub-pending": "{{length}} de calles · {{percent}}% explorado",
     "street-in-city": "{{region}}, {{city}}",
     "unnamed": "Calle sin nombre"
-  }
+  },
+  "immersive-enter": "Entrar en el modo inmersivo",
+  "immersive-exit": "Salir del modo inmersivo",
+  "immersive-exit-hint": "Modo inmersivo. Pulsa F para salir."
 }

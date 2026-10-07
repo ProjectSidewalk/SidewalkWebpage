@@ -3,19 +3,19 @@ package models.street
 import models.route.RouteTable
 import models.user.{UserStatTable, UserStatTableDef}
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import org.apache.pekko.stream.Materializer
-import org.scalatest.OptionValues
-import org.scalatestplus.play.PlaySpec
+import org.scalatest.{Assertion, OptionValues}
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import service.RegionService
 import slick.basic.DatabaseConfig
 import slick.dbio.DBIO
+import util.SidewalkSpec
 
 import java.time.OffsetDateTime
 import scala.concurrent.Await
@@ -48,18 +48,18 @@ import scala.concurrent.duration.DurationInt
  * runtime cannot maintain would decay back out of agreement on its own (#4774). That test seeds every row it reads,
  * so it runs everywhere the synthetic-fixture layer does, empty schemas included.
  */
-class GeodesicDistanceSpec extends PlaySpec with GuiceOneAppPerSuite with OptionValues {
+class GeodesicDistanceSpec extends SidewalkSpec with GuiceOneAppPerSuite with OptionValues {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   private val streetEdgeTable = app.injector.instanceOf[StreetEdgeTable]
   private val userStatTable   = app.injector.instanceOf[UserStatTable]
   private val routeTable      = app.injector.instanceOf[RouteTable]
   private val regionService   = app.injector.instanceOf[RegionService]
-  // Typed explicitly: letting `.db` infer here yields an existential type the compiler rejects under -Xfatal-warnings.
+  // Typed explicitly: letting `.db` infer here yields an existential type the compiler rejects under -Werror.
   private val dbConfig: DatabaseConfig[MyPostgresProfile] =
     app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
 
@@ -82,10 +82,9 @@ class GeodesicDistanceSpec extends PlaySpec with GuiceOneAppPerSuite with Option
   }
 
   /** Relative-with-absolute-floor closeness check for distances in meters. */
-  private def assertClose(actual: Double, expected: Double, relTol: Double = 1e-9, absTol: Double = 1e-6): Unit = {
+  private def assertClose(actual: Double, expected: Double, relTol: Double = 1e-9, absTol: Double = 1e-6): Assertion = {
     val bound = math.max(relTol * math.max(actual.abs, expected.abs), absTol)
     actual mustBe expected +- bound
-    ()
   }
 
   /**
@@ -155,19 +154,31 @@ class GeodesicDistanceSpec extends PlaySpec with GuiceOneAppPerSuite with Option
   }
 
   "cached distances" should {
-    "match a fresh runtime recompute of user_stat.meters_audited" in {
-      // Runs the REAL runtime recompute (updateAuditedDistanceHelper) over every user inside a rolled-back
-      // transaction: cached values must already equal what it writes. Also evolution 347's backfill postcondition.
-      val allUserIds                                                  = TableQuery[UserStatTableDef].map(_.userId)
-      val (before, after): (Map[String, Double], Map[String, Double]) = runRolledBack(for {
-        before <- sql"SELECT user_id, meters_audited FROM user_stat".as[(String, Double)].map(_.toMap)
-        _      <- userStatTable.updateAuditedDistanceHelper(allUserIds)
-        after  <- sql"SELECT user_id, meters_audited FROM user_stat".as[(String, Double)].map(_.toMap)
-      } yield (before, after))
+    "write the same user_stat.meters_audited as evolution 347's backfill" in {
+      // The evolution's SQL and the runtime recompute are two spellings of one formula, so they must agree for every
+      // user. Both run in one rolled-back transaction, so the check holds however stale the cached values were.
+      val allUserIds          = TableQuery[UserStatTableDef].map(_.userId)
+      val (backfill, runtime) = runRolledBack(for {
+        _ <- sqlu"""UPDATE user_stat
+                    SET meters_audited = recomputed.meters_audited
+                    FROM (
+                        SELECT audit_task.user_id, SUM(ST_Length(street_edge.geom::geography)) AS meters_audited
+                        FROM audit_task
+                        INNER JOIN street_edge ON audit_task.street_edge_id = street_edge.street_edge_id
+                        WHERE audit_task.completed
+                            AND street_edge.status = 'open'
+                            AND street_edge.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
+                        GROUP BY audit_task.user_id
+                    ) recomputed
+                    WHERE user_stat.user_id = recomputed.user_id"""
+        backfill <- sql"SELECT user_id, meters_audited FROM user_stat".as[(String, Double)].map(_.toMap)
+        _        <- userStatTable.updateAuditedDistanceHelper(allUserIds)
+        runtime  <- sql"SELECT user_id, meters_audited FROM user_stat".as[(String, Double)].map(_.toMap)
+      } yield (backfill, runtime))
 
-      assume(after.nonEmpty, "no users in this schema; cache freshness needs a seeded DB")
+      assume(runtime.nonEmpty, "no users in this schema; comparing the two recomputes needs a seeded DB")
       // `.get` rather than `apply` so a user vanishing between the two reads reports as a failed assertion.
-      after.foreach { case (userId, recomputed) => assertClose(before.get(userId).value, recomputed) }
+      runtime.foreach { case (userId, recomputed) => assertClose(backfill.get(userId).value, recomputed) }
     }
 
     "credit a mission-less audit task through the nightly refresh (#4774)" in {
@@ -179,8 +190,8 @@ class GeodesicDistanceSpec extends PlaySpec with GuiceOneAppPerSuite with Option
       // Seeds the street as well as the user rather than looking for either, so the check runs for real against any
       // schema — including CI's empty one, which has no street to find. The street must be open: the refresh only
       // credits open streets.
-      val cutoff                                     = OffsetDateTime.now().minusHours(1)
-      val (credited, streetLength): (Double, Double) = runRolledBack(for {
+      val cutoff                   = OffsetDateTime.now().minusHours(1)
+      val (credited, streetLength) = runRolledBack(for {
         streetEdgeId <- insertSyntheticStreet(-122.3, 47.6, -122.301, 47.6, "open")
         length       <- streetEdgeTable.getStreetLengths(Seq(streetEdgeId)).map(_(streetEdgeId))
         userId       <- sql"""INSERT INTO sidewalk_login.sidewalk_user (user_id, username, email)
@@ -216,7 +227,7 @@ class GeodesicDistanceSpec extends PlaySpec with GuiceOneAppPerSuite with Option
                            WHERE user_stat.meters_audited > 0
                                AND sidewalk_user.username NOT LIKE 'spec%'""".as[(String, Option[Double])].map(_.toMap)
 
-      val (before, after): (Map[String, Option[Double]], Map[String, Option[Double]]) = runRolledBack(for {
+      val (before, after) = runRolledBack(for {
         before <- snapshot
         _      <- userStatTable.updateLabelsPerMeterHelper(auditedUserIds)
         after  <- snapshot
@@ -238,25 +249,40 @@ class GeodesicDistanceSpec extends PlaySpec with GuiceOneAppPerSuite with Option
       }
     }
 
-    "match a fresh runtime recompute of the distance-derived user_stat.high_quality flag" in {
-      // labels_per_meter is an input to the quality heuristic, so the cached flag must agree with a fresh
-      // updateHighQuality run. Epoch cutoff = every user the runtime recompute would ever touch.
-      val epoch                                                         = OffsetDateTime.parse("1970-01-01T00:00:00Z")
-      val (before, after): (Map[String, Boolean], Map[String, Boolean]) = runRolledBack(for {
-        before <- sql"SELECT user_id, high_quality FROM user_stat".as[(String, Boolean)].map(_.toMap)
-        _      <- userStatTable.updateHighQuality(epoch)
-        after  <- sql"SELECT user_id, high_quality FROM user_stat".as[(String, Boolean)].map(_.toMap)
-      } yield (before, after))
+    "write the same distance-derived user_stat.high_quality flag as evolution 347's backfill" in {
+      // Same for the quality flag, which reads labels_per_meter: after the evolution's SQL sets every flag, a runtime
+      // updateHighQuality pass with an epoch cutoff (everyone who ever audited or was validated) must change nothing.
+      // The WHERE is the evolution's too: without it the update rewrites, and locks until the rollback, every
+      // user_stat row in the city instead of the few whose flag changes.
+      val epoch               = OffsetDateTime.parse("1970-01-01T00:00:00Z")
+      val (backfill, runtime) = runRolledBack(for {
+        _ <- sqlu"""UPDATE user_stat
+                    SET high_quality =
+                        NOT excluded
+                        AND COALESCE(high_quality_manual, TRUE)
+                        AND (COALESCE(high_quality_manual, FALSE)
+                             OR ((meters_audited = 0 OR COALESCE(labels_per_meter, 5) > 0.0375)
+                                 AND (COALESCE(accuracy, 1.0) > 0.6 OR own_labels_validated < 50)))
+                    WHERE high_quality IS DISTINCT FROM (
+                        NOT excluded
+                        AND COALESCE(high_quality_manual, TRUE)
+                        AND (COALESCE(high_quality_manual, FALSE)
+                             OR ((meters_audited = 0 OR COALESCE(labels_per_meter, 5) > 0.0375)
+                                 AND (COALESCE(accuracy, 1.0) > 0.6 OR own_labels_validated < 50))))"""
+        backfill <- sql"SELECT user_id, high_quality FROM user_stat".as[(String, Boolean)].map(_.toMap)
+        _        <- userStatTable.updateHighQuality(epoch)
+        runtime  <- sql"SELECT user_id, high_quality FROM user_stat".as[(String, Boolean)].map(_.toMap)
+      } yield (backfill, runtime))
 
-      assume(after.nonEmpty, "no users in this schema; cache freshness needs a seeded DB")
-      after.foreach { case (userId, recomputed) => before.get(userId).value mustBe recomputed }
+      assume(runtime.nonEmpty, "no users in this schema; comparing the two recomputes needs a seeded DB")
+      runtime.foreach { case (userId, recomputed) => backfill.get(userId).value mustBe recomputed }
     }
 
     "match a fresh runtime recompute of region_completion.total_distance, with audited_distance in bounds" in {
       // total_distance must equal what initializeRegionCompletionTable would write today. audited_distance is only
       // bounds-checked: it is maintained incrementally at runtime (with deliberate equalization fudges in
       // RegionCompletionTable), so exact equality with a fresh recompute is not an invariant.
-      val (cached, fresh): (Map[Int, (Double, Double)], Map[Int, (Double, Double)]) = runRolledBack(for {
+      val (cached, fresh) = runRolledBack(for {
         cached <- sql"SELECT region_id, total_distance, audited_distance FROM region_completion"
           .as[(Int, Double, Double)]
           .map(_.map { case (id, total, audited) => id -> (total, audited) }.toMap)

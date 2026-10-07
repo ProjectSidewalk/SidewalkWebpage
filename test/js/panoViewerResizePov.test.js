@@ -11,11 +11,8 @@
  * MapillaryViewer is a top-level `class` written for Grunt concatenation, so the sources are eval'd into jsdom with
  * stubs for the sibling classes PanoViewer's constructor compares `new.target` against.
  */
-const fs = require('fs');
-const path = require('path');
-const { loadGlobalScript } = require('./loadGlobalScript');
+const { loadGlobalScript, realUtil, loadModules } = require('./loadGlobalScript');
 
-const SRC_DIR = path.resolve(__dirname, '..', '..', 'public/js/common/pano-viewer/src');
 
 // getPov() converts through util.pano; utilities.js builds a Bowser parser at load time that nothing here consults.
 window.bowser = {
@@ -24,21 +21,13 @@ window.bowser = {
         getOSName: () => 'TestOS', getPlatformType: () => 'desktop',
     }),
 };
-loadGlobalScript('public/js/common/utilities.js');
-loadGlobalScript('public/js/common/utilitiesMath.js');
-loadGlobalScript('public/js/common/pano-viewer/src/panoUtilities.js');
+window.util = realUtil();
+loadGlobalScript('frontend/js/common/utilitiesMath.js');
+loadGlobalScript('frontend/js/common/pano-viewer/panoUtilities.js');
 
 /** Loads PanoViewer + MapillaryViewer fresh into the jsdom global scope. */
 function loadViewers() {
-    window.eval(`
-        class GsvViewer {}
-        class Infra3dViewer {}
-        class PannellumViewer {}
-        class PanoramaxViewer {}
-        ${fs.readFileSync(path.join(SRC_DIR, 'PanoViewer.js'), 'utf8')}
-        ${fs.readFileSync(path.join(SRC_DIR, 'MapillaryViewer.js'), 'utf8')}
-        window.MapillaryViewer = MapillaryViewer;
-    `);
+    Object.assign(window, loadModules('frontend/js/common/pano-viewer/PanoViewer.js', 'frontend/js/common/pano-viewer/MapillaryViewer.js'));
     return window.MapillaryViewer;
 }
 

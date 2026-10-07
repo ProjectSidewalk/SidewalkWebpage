@@ -4,7 +4,7 @@
 package models.api
 
 import models.utils.LatLngBBox
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.given
 import org.locationtech.jts.geom.LineString
 import play.api.libs.json.{JsObject, Json, Writes}
 
@@ -95,7 +95,7 @@ object SidewalkPresenceForApi extends ApiFields[SidewalkPresenceForApi] {
     field("end_point")(f => s"${f.geometry.getEndPoint.getX},${f.geometry.getEndPoint.getY}")
   )
 
-  implicit val sidewalkPresenceWrites: Writes[SidewalkPresenceForApi] = (face: SidewalkPresenceForApi) => face.toJson
+  given sidewalkPresenceWrites: Writes[SidewalkPresenceForApi] = (face: SidewalkPresenceForApi) => face.toJson
 }
 
 /**

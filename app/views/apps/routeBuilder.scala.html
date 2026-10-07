@@ -2,12 +2,11 @@
 @import play.api.Configuration
 @import service.CommonPageData
 @(commonData: service.CommonPageData, user: Option[models.user.SidewalkUserWithRole], minutesPer100m: Double
-)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: play.api.Configuration)
+)(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: play.api.Configuration)
 
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
 @* A cookie-less visitor (None) gets the same treatment as an anonymous account. *@
 @isAnon = @{user.forall(_.role == Role.Anonymous)}
-@paceRounded = @{f"$minutesPer100m%.1f"}
 
 @common.main(commonData, Messages("seo.title.route.builder"), defaultI18nNamespace = "routebuilder", i18Namespaces = Seq("routebuilder", "common"), url = "/routeBuilder") {
   @common.navbar(commonData, user)
@@ -20,7 +19,6 @@
 
   <link rel="stylesheet" href='@assets.path("css/components/toast.css")'>
   <link rel="stylesheet" href='@assets.path("css/pages/route-builder.css")'>
-  <script src='@assets.path("js/route-builder/build/route-builder.js")'></script>
 
   @* Full-viewport map. Routing is by clicking points on the map; the floating planner card (left), the on-map CTA,
      and the always-visible legend overlay it. The planner card's data-state (empty|building) drives which sections
@@ -28,7 +26,6 @@
      MapboxSearchBox controls into the slots once. Modals live outside the map wrapper. *@
   <div id="routebuilder-map-area">
     <div id="routebuilder-map"></div>
-    <div id="routebuilder-cta" role="status" aria-live="polite" hidden></div>
     <div id="routebuilder-panel" data-state="empty">
       <div class="routebuilder-panel__empty">
         <span id="routebuilder-intro-title" class="routebuilder-h1">@Messages("routebuilder.welcome")</span>
@@ -51,24 +48,25 @@
             <span aria-hidden="true">·</span>
             <span id="route-time-wrap">
               <span id="route-time-val" tabindex="0" role="button" aria-describedby="route-time-tip"></span>
-              <span id="route-time-tip" role="tooltip" hidden>@Messages("routebuilder.stat.time.tooltip", paceRounded)</span>
+              @* Filled by RouteBuilder.js on every stats update: the text names the route's own estimate. *@
+              <span id="route-time-tip" role="tooltip" hidden></span>
             </span>
           </div>
           <span id="route-stats-caption"></span>
         </div>
         <div id="creating-route-buttons" class="flex-div-row">
-          <button type="button" id="save-button" class="button-ps button--primary button--medium" disabled>@Messages("routebuilder.save")</button>
-          <button type="button" id="preview-button" class="button-ps button--secondary button--medium button--icon-only" disabled aria-label="@Messages("routebuilder.preview")" title="@Messages("routebuilder.preview")">
+          <button type="button" id="save-button" class="button button--primary button--medium" disabled>@Messages("routebuilder.save")</button>
+          <button type="button" id="preview-button" class="button button--secondary button--medium button--icon-only" disabled aria-label="@Messages("routebuilder.preview")" data-ps-tooltip="@Messages("routebuilder.preview")">
             <img src="@assets.path("images/icons/play-feather.svg")" class="button-icon-img" alt="">
           </button>
-          <button type="button" id="undo-button" class="button-ps button--secondary button--medium button--icon-only" disabled aria-label="@Messages("routebuilder.undo")" title="@Messages("routebuilder.undo")">
+          <button type="button" id="undo-button" class="button button--secondary button--medium button--icon-only" disabled aria-label="@Messages("routebuilder.undo")" data-ps-tooltip="@Messages("routebuilder.undo")">
             <img src="@assets.path("images/icons/undo-material.svg")" class="button-icon-img" alt="">
           </button>
-          <button type="button" id="cancel-button" class="button-ps button--secondary button--medium button--icon-only" aria-label="@Messages("routebuilder.delete.route")" title="@Messages("routebuilder.delete.route")">
+          <button type="button" id="cancel-button" class="button button--secondary button--medium button--icon-only" aria-label="@Messages("routebuilder.delete.route")" data-ps-tooltip="@Messages("routebuilder.delete.route")">
             <img src="@assets.path("images/icons/trash-2-feather.svg")" class="button-icon-img" alt="">
           </button>
         </div>
-        <button type="button" id="new-route-button" class="button-ps button--secondary button--medium" title="@Messages("routebuilder.new.route.tooltip")">@Messages("routebuilder.new.route")</button>
+        <button type="button" id="new-route-button" class="button button--secondary button--medium" data-ps-tooltip="@Messages("routebuilder.new.route.tooltip")">@Messages("routebuilder.new.route")</button>
       </div>
       <div id="saved-routes-panel" class="routebuilder-panel__saved" hidden>
         <span id="saved-routes-title" class="routebuilder-h2">@Messages("routebuilder.saved.routes")</span>
@@ -111,8 +109,8 @@
         <span id="delete-route-explanation">@Messages("routebuilder.not.saved.explanation")</span>
       </div>
       <div id="delete-route-buttons" class="flex-div-row">
-        <button type="button" id="delete-route-button" class="button-ps button--primary button--medium">@Messages("routebuilder.delete.route")</button>
-        <button type="button" id="cancel-delete-route-button" class="button-ps button--secondary button--medium">@Messages("back")</button>
+        <button type="button" id="delete-route-button" class="button button--primary button--medium">@Messages("routebuilder.delete.route")</button>
+        <button type="button" id="cancel-delete-route-button" class="button button--secondary button--medium">@Messages("back")</button>
       </div>
     </div>
   </div>
@@ -136,32 +134,16 @@
       }
       <div id="save-route-buttons" class="flex-div-row">
         @if(isAnon) {
-          <button type="button" id="signin-save-button" class="button-ps button--primary button--medium">@Messages("routebuilder.signin.to.save")</button>
+          <button type="button" id="signin-save-button" class="button button--primary button--medium">@Messages("routebuilder.signin.to.save")</button>
         }
-        <button type="button" id="confirm-save-button" class="button-ps button--medium @if(isAnon) {button--secondary} else {button--primary}">@if(isAnon) {@Messages("routebuilder.continue.without.account")} else {@Messages("routebuilder.save")}</button>
-        <button type="button" id="cancel-save-button" class="button-ps button--secondary button--medium">@Messages("cancel")</button>
+        <button type="button" id="confirm-save-button" class="button button--medium @if(isAnon) {button--secondary} else {button--primary}">@if(isAnon) {@Messages("routebuilder.continue.without.account")} else {@Messages("routebuilder.save")}</button>
+        <button type="button" id="cancel-save-button" class="button button--secondary button--medium">@Messages("cancel")</button>
       </div>
     </div>
   </div>
 
-  <script>
-    // Gets all translations before loading the map.
-    window.appManager.ready(function () {
-      let routeBuilder;
-      const loadMapParams = $.getJSON('/cityMapParams');
-      const loadPolygons = $.getJSON('/regions');
-      const loadStreets = $.getJSON('/contribution/streets/all?filterLowQuality=true');
-
-      const initMap = $.when(loadMapParams).done(function(mapParams) {
-        routeBuilder = new RouteBuilder('@commonData.mapboxApiKey', mapParams, @(!isAnon), @minutesPer100m);
-      });
-      $.when(initMap, loadPolygons).done(function(d0, regionData) {
-        routeBuilder.renderRegions(regionData[0]);
-      });
-      $.when(initMap, loadStreets).done(function(d0, streetData) {
-        routeBuilder.renderStreets(streetData[0]);
-        window.routeBuilder = routeBuilder;
-      });
-    });
-  </script>
+  <script type="module" id="page-entry" src='@assets.path("build/js/routeBuilder.js")'
+          data-mapbox-api-key="@commonData.mapboxApiKey"
+          data-signed-in="@(!isAnon)"
+          data-minutes-per-hundred-m="@minutesPer100m"></script>
 }

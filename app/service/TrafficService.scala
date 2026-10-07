@@ -2,8 +2,10 @@ package service
 
 import com.google.inject.ImplementedBy
 import play.api.cache.AsyncCacheApi
-import play.api.libs.json._
+import play.api.libs.json.*
+import play.api.libs.ws.WSBodyReadables.*
 import play.api.libs.ws.WSClient
+import play.api.libs.ws.WSBodyWritables.*
 import play.api.{Configuration, Logger}
 
 import java.nio.charset.StandardCharsets
@@ -12,7 +14,7 @@ import java.security.{KeyFactory, PrivateKey, Signature}
 import java.time.format.DateTimeFormatter
 import java.time.{Instant, LocalDate, OffsetDateTime, ZoneOffset}
 import java.util.Base64
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
@@ -63,7 +65,7 @@ object CityTraffic {
 
   // Hand-written rather than JsonNaming.SnakeCase: the macro renders `sessions7d`, not the page convention's
   // `sessions_7d` — it only breaks words before uppercase letters, never before digits.
-  implicit val cityTrafficWrites: Writes[CityTraffic] = (t: CityTraffic) =>
+  given cityTrafficWrites: Writes[CityTraffic] = (t: CityTraffic) =>
     Json.obj(
       "city_id"               -> t.cityId,
       "sessions_7d"           -> t.sessions7d,
@@ -157,7 +159,7 @@ object TrafficService {
     val der = Base64.getMimeDecoder.decode(
       pem.replace("-----BEGIN PRIVATE KEY-----", "").replace("-----END PRIVATE KEY-----", "")
     )
-    val key = KeyFactory.getInstance("RSA").generatePrivate(new PKCS8EncodedKeySpec(der))
+    val key = KeyFactory.getInstance("RSA").generatePrivate(PKCS8EncodedKeySpec(der))
     GaCredentials((json \ "client_email").as[String], key)
   }
 
@@ -273,9 +275,9 @@ class TrafficServiceImpl @Inject() (
     cacheApi: AsyncCacheApi,
     swrCache: SwrCache,
     ws: WSClient
-)(implicit val ec: ExecutionContext)
+)(using val ec: ExecutionContext)
     extends TrafficService {
-  import TrafficService._
+  import TrafficService.*
 
   private val logger  = Logger(this.getClass)
   private val envType = config.get[String]("environment-type")
@@ -325,7 +327,10 @@ class TrafficServiceImpl @Inject() (
   private def fetchSnapshot(creds: GaCredentials, byCity: Map[String, String]): Future[TrafficSnapshot] =
     accessToken(creds).flatMap { token =>
       // Cities can share a property (e.g. zurich / zurich-infra3d): fetch each property once, row every city.
-      val properties = byCity.toSeq.groupMap(_._2)(_._1).toSeq.sortBy(_._1)
+      val properties = byCity.toSeq
+        .groupMap { case (_, propertyId) => propertyId } { case (cityId, _) => cityId }
+        .toSeq
+        .sortBy { case (propertyId, _) => propertyId }
       Batching
         .inBatches(properties, FanOutParallelism) { case (propertyId, cityIds) =>
           fetchProperty(token, propertyId)
@@ -338,11 +343,11 @@ class TrafficServiceImpl @Inject() (
             }
         }
         .map { perProperty =>
-          val cities = perProperty.flatMap(_._1)
-          val failed = perProperty.flatMap(_._2)
+          val cities = perProperty.flatMap { case (fetched, _) => fetched }
+          val failed = perProperty.flatMap { case (_, failedCityIds) => failedCityIds }
           // Every property failing signals a systemic problem (auth, quota, outage): fail the refresh so nothing is
           // cached and the next request retries, instead of pinning an empty snapshot for the whole fresh window.
-          if (cities.isEmpty) throw new RuntimeException(s"All ${properties.size} GA property fetches failed")
+          if (cities.isEmpty) throw RuntimeException(s"All ${properties.size} GA property fetches failed")
           TrafficSnapshot(OffsetDateTime.now(), cities.sortBy(_.cityId), failed.sorted)
         }
     }
@@ -360,7 +365,10 @@ class TrafficServiceImpl @Inject() (
         )
         .map { response =>
           if (response.status == 200) (response.json \ "access_token").as[String]
-          else throw new RuntimeException(s"GA token request failed (${response.status}): ${response.body.take(300)}")
+          else
+            throw RuntimeException(
+              s"GA token request failed (${response.status}): ${response.body[String].take(300)}"
+            )
         }
     }
 
@@ -423,7 +431,7 @@ class TrafficServiceImpl @Inject() (
       .post(body)
       .map { response =>
         if (response.status != 200)
-          throw new RuntimeException(s"batchRunReports failed (${response.status}): ${response.body.take(300)}")
+          throw RuntimeException(s"batchRunReports failed (${response.status}): ${response.body[String].take(300)}")
         val reports                 = (response.json \ "reports").asOpt[Seq[JsValue]].getOrElse(Seq.empty)
         def report(i: Int): JsValue = reports.lift(i).getOrElse(JsNull)
 

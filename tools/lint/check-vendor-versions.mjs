@@ -24,7 +24,7 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const VENDOR_DIR = join(ROOT, 'public', 'vendor');
 const DOC = 'docs/upgrading-libraries.md';
 
-// A version in a filename ('turf-7.3.4.min.js', 'kinetic-v4.4.3.min.js'). The leading separator is what keeps this
+// A version in a filename ('turf-7.3.4.min.js'). The leading separator is what keeps this
 // from reading the '2' out of a '.min.js' or off the end of a library name.
 const VERSION_IN_FILENAME = /[-_.]v?(\d+(?:\.\d+)+)/g;
 
@@ -83,7 +83,7 @@ const entries = starts.map((match, i) => {
  * The vendor folder a doc entry describes, ignoring punctuation ('chart.js' → chart-js, 'infra3dapi' → infra3d).
  *
  * An exact name wins first, so 'i18next' takes its own folder rather than i18next-http-backend's; failing that the
- * longest contained folder name wins, which picks magnific-popup over jquery for an entry naming both. An entry whose
+ * longest contained folder name wins, so an entry naming two folders picks the more specific one. An entry whose
  * name lines up with no folder — its library ships inside another one's, or under a different name — says so by
  * naming that folder's path in its text.
  *

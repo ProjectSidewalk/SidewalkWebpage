@@ -10,16 +10,15 @@
  * so they are eval'd into global scope rather than required.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules, realUtil } = require('./loadGlobalScript');
 
-const JS_DIR = path.resolve(__dirname, '..', '..', 'public/js/admin-dashboard');
+// The page fetches through util.fetchJson.
+window.util = realUtil();
+
 
 /** Loads AdminShell into global scope and returns the HealthPage class. */
 function loadPage() {
-  const shell = fs.readFileSync(path.join(JS_DIR, 'AdminShell.js'), 'utf8');
-  const page = fs.readFileSync(path.join(JS_DIR, 'HealthPage.js'), 'utf8');
-  return (0, eval)(`${shell}\nglobalThis.AdminShell = AdminShell;\n${page}\nHealthPage;`);
+  return loadModules('frontend/js/admin-dashboard/HealthPage.js').HealthPage;
 }
 
 const HealthPage = loadPage();

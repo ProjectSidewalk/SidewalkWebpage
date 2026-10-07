@@ -1,7 +1,7 @@
 package models.story
 
-import models.label.LabelTypeEnum
-import models.label.LabelTypeEnum.AccessImpact
+import models.label.LabelType
+import models.label.AccessImpact
 
 import java.io.File
 import java.time.OffsetDateTime
@@ -48,7 +48,7 @@ case class StoryForAdmin(
 
 /**
  * A story on the author's own dashboard management list (hidden ones included, so they can still retract).
- * `accessImpact` comes from LabelTypeEnum so the dashboard's edit composer can pick the problem-vs-feature
+ * `accessImpact` comes from LabelType so the dashboard's edit composer can pick the problem-vs-feature
  * phrasing without re-deriving that mapping in JS.
  * `labelImageUrl` is a signed preview of the story's label (crop, else GSV static) — only populated when the story
  * has no uploaded photo, so every row can still carry a thumbnail; None when neither source is available.
@@ -73,7 +73,7 @@ case class StoryForOwner(
 case class StoryForListing(
     storyId: Int,
     labelId: Int,
-    labelType: LabelTypeEnum.Base,
+    labelType: LabelType,
     regionId: Int,
     regionName: String,
     address: Option[String],
@@ -94,31 +94,28 @@ case class StoryPhotoUpload(tempFile: File, altText: Option[String])
  * Why a story submission was refused. `messageKey` is a client-side i18n key (labelmap namespace) so the composer can
  * localize; `defaultMessage` is the English fallback served alongside it.
  */
-sealed abstract class StoryRejection(val messageKey: String, val defaultMessage: String)
-
-object StoryRejection {
-  case object LabelNotFound
+enum StoryRejection(val messageKey: String, val defaultMessage: String) {
+  case LabelNotFound
       extends StoryRejection("story.error.label-not-found", "That label doesn't exist or has been removed.")
-  case object TextMissing extends StoryRejection("story.error.text-missing", "Your story text can't be empty.")
-  case class TextTooLong(maxLength: Int)
+  case TextMissing extends StoryRejection("story.error.text-missing", "Your story text can't be empty.")
+  case TextTooLong(maxLength: Int)
       extends StoryRejection("story.error.text-too-long", s"Stories are limited to $maxLength characters.")
-  case object TextRejected
+  case TextRejected
       extends StoryRejection("story.error.text-rejected", "Your story contains language we can't publish.")
-  case class AltTextTooLong(maxLength: Int)
+  case AltTextTooLong(maxLength: Int)
       extends StoryRejection(
         "story.error.alt-text-too-long",
         s"Photo descriptions are limited to $maxLength characters."
       )
-  case object AltTextRejected
+  case AltTextRejected
       extends StoryRejection(
         "story.error.alt-text-rejected",
         "Your photo description contains language we can't publish."
       )
-  case object LinksNotAllowed
+  case LinksNotAllowed
       extends StoryRejection("story.error.links-not-allowed", "Links aren't allowed in stories or photo descriptions.")
-  case object InvalidDisplayNameMode
-      extends StoryRejection("story.error.invalid-display-name", "Invalid display-name option.")
-  case object AlreadyExists
+  case InvalidDisplayNameMode extends StoryRejection("story.error.invalid-display-name", "Invalid display-name option.")
+  case AlreadyExists
       extends StoryRejection("story.error.already-exists", "You've already shared a story on this label.")
 
   /**
@@ -127,7 +124,7 @@ object StoryRejection {
    * say it as a duration — true in every timezone, and needing none. None when the wait isn't known (the IP burst
    * layer only knows its own window).
    */
-  case class RateLimited(retryAfterSeconds: Option[Long])
+  case RateLimited(retryAfterSeconds: Option[Long])
       extends StoryRejection(
         "story.error.rate-limited",
         "You've published as many stories as we allow in a day — please try again later."
@@ -138,14 +135,13 @@ object StoryRejection {
    * reader may have published nothing themselves — the IP can be a whole building behind one NAT — so the copy has
    * to blame the network, not the person. `retryAfterSeconds` is the time left in the IP's current window.
    */
-  case class RateLimitedIp(retryAfterSeconds: Option[Long])
+  case RateLimitedIp(retryAfterSeconds: Option[Long])
       extends StoryRejection(
         "story.error.rate-limited-ip",
         "Too many stories have been submitted from your network recently — please try again later."
       )
-  case object StoryNotFound
-      extends StoryRejection("story.error.story-not-found", "That story doesn't exist or isn't yours.")
-  case object PhotoTooLarge extends StoryRejection("story.error.photo-too-large", "That photo is too large to upload.")
-  case object PhotoInvalid
+  case StoryNotFound extends StoryRejection("story.error.story-not-found", "That story doesn't exist or isn't yours.")
+  case PhotoTooLarge extends StoryRejection("story.error.photo-too-large", "That photo is too large to upload.")
+  case PhotoInvalid
       extends StoryRejection("story.error.photo-invalid", "We couldn't read that file as an image (JPEG or PNG).")
 }

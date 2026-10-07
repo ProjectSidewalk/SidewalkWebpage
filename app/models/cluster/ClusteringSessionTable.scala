@@ -5,9 +5,10 @@ import models.label.{LabelPointTableDef, LabelTable, LabelTableDef}
 import models.mission.MissionTableDef
 import models.region.RegionTableDef
 import models.street.StreetEdgeRegionTableDef
-import models.utils.MyPostgresProfile.api._
-import models.utils.{ClusteringThreshold, MyPostgresProfile}
+import models.utils.MyPostgresProfile.api.{given, *}
+import models.utils.{ClusteringThreshold, LiftedRow, MyPostgresProfile}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+import slick.lifted.{FlatShapeLevel, Shape}
 
 import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
@@ -31,6 +32,22 @@ case class LabelToCluster(
     severity: Option[Int]
 )
 
+/** [[LabelToCluster]] while it is still part of a query. */
+case class LabelToClusterRep(
+    regionId: Rep[Int],
+    userId: Rep[String],
+    panoId: Rep[String],
+    labelId: Rep[Int],
+    labelType: Rep[String],
+    lat: Rep[Double],
+    lng: Rep[Double],
+    severity: Rep[Option[Int]]
+)
+object LabelToClusterRep {
+  given Shape[FlatShapeLevel, LabelToClusterRep, LabelToCluster, LabelToClusterRep] =
+    LiftedRow.shape(LabelToClusterRep.apply.tupled)(LabelToCluster.apply.tupled)
+}
+
 class ClusteringSessionTableDef(tag: Tag) extends Table[ClusteringSession](tag, "clustering_session") {
   def clusteringSessionId: Rep[Int]             = column[Int]("clustering_session_id", O.PrimaryKey, O.AutoInc)
   def regionId: Rep[Int]                        = column[Int]("region_id")
@@ -38,8 +55,7 @@ class ClusteringSessionTableDef(tag: Tag) extends Table[ClusteringSession](tag, 
   // DEFAULT now() in the DB (O.Default holds a value, not an expression).
   def timestamp: Rep[OffsetDateTime] = column[OffsetDateTime]("timestamp")
 
-  def * = (clusteringSessionId, regionId, thresholds, timestamp) <>
-    ((ClusteringSession.apply _).tupled, ClusteringSession.unapply)
+  def * = (clusteringSessionId, regionId, thresholds, timestamp).mapTo[ClusteringSession]
 
   def region = foreignKey("clustering_session_region_id_fkey", regionId, TableQuery[RegionTableDef])(_.regionId)
 }
@@ -94,7 +110,7 @@ trait ClusteringSessionTableRepository {
 
 @Singleton
 class ClusteringSessionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider, labelTable: LabelTable)(
-    implicit ec: ExecutionContext
+    using ec: ExecutionContext
 ) extends ClusteringSessionTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
   private val clusteringSessions = TableQuery[ClusteringSessionTableDef]
@@ -107,11 +123,7 @@ class ClusteringSessionTable @Inject() (protected val dbConfigProvider: Database
 
   // Get labels that should be in the API. Labels from high quality users that haven't been explicitly marked as
   // incorrect should be included, plus labels from low quality users that have been explicitly marked as correct.
-  def labelsForApiQuery: Query[
-    (Rep[Int], Rep[String], Rep[String], Rep[Int], Rep[String], Rep[Double], Rep[Double], Rep[Option[Int]]),
-    (Int, String, String, Int, String, Double, Double, Option[Int]),
-    Seq
-  ] = for {
+  def labelsForApiQuery: Query[LabelToClusterRep, LabelToCluster, Seq] = for {
     m           <- missions
     r           <- regions if m.regionId === r.regionId
     (l, at, us) <- labelTable.labelsWithAuditTasksAndUserStats if l.missionId === m.missionId
@@ -120,8 +132,8 @@ class ClusteringSessionTable @Inject() (protected val dbConfigProvider: Database
     if r.deleted === false
     if l.correct || (us.highQuality && l.correct.isEmpty && !at.lowQuality)
     if lp.lat.isDefined && lp.lng.isDefined
-  } yield (ser.regionId, us.userId, l.panoId, l.labelId, l.labelTypeName, lp.lat.ifNull(-1d), lp.lng.ifNull(-1d),
-    l.severity)
+  } yield LabelToClusterRep(ser.regionId, us.userId, l.panoId, l.labelId, l.labelTypeName, lp.lat.ifNull(-1d),
+    lp.lng.ifNull(-1d), l.severity)
 
   // The labels that are currently present in the API, by the region their street belongs to now.
   private def labelsInApiQuery = for {
@@ -134,10 +146,13 @@ class ClusteringSessionTable @Inject() (protected val dbConfigProvider: Database
     // Find all mismatches between the two label lists using an outer join.
     labelsForApiQuery
       .joinFull(labelsInApiQuery)
-      .on(_._4 === _._2)                               // FULL OUTER JOIN on label_id.
-      .filter(x => x._1.isEmpty || x._2.isEmpty)       // WHERE no_api.label_id IS NULL OR in_api.label_id IS NULL.
-      .map(x => x._1.map(_._1).ifNull(x._2.map(_._1))) // COALESCE(no_api.region_id, in_api.region_id).
-      .distinct                                        // SELECT DISTINCT and flatten.
+      // FULL OUTER JOIN on label_id.
+      .on { case (forApi, (_, inApiLabelId)) => forApi.labelId === inApiLabelId }
+      // WHERE no_api.label_id IS NULL OR in_api.label_id IS NULL.
+      .filter { case (forApi, inApi) => forApi.isEmpty || inApi.isEmpty }
+      // COALESCE(no_api.region_id, in_api.region_id).
+      .map { case (forApi, inApi) => forApi.map(_.regionId).ifNull(inApi.map { case (regionId, _) => regionId }) }
+      .distinct // SELECT DISTINCT and flatten.
       .result
       .map(_.flatten)
   }
@@ -145,11 +160,12 @@ class ClusteringSessionTable @Inject() (protected val dbConfigProvider: Database
   def getAllRegionsToCluster: DBIO[Seq[Int]] = {
     // Both sides of the mismatch join above, plus regions that hold a clustering session, so this is a superset of
     // getRegionsToCluster by construction (that query can only return a region id one of those sides produced).
-    (labelsForApiQuery.map(_._1) ++ labelsInApiQuery.map(_._1) ++ clusteringSessions.map(_.regionId)).distinct.result
+    val regionsInApi = labelsInApiQuery.map { case (regionId, _) => regionId }
+    (labelsForApiQuery.map(_.regionId) ++ regionsInApi ++ clusteringSessions.map(_.regionId)).distinct.result
   }
 
   def getLabelsToClusterInRegion(regionId: Int): DBIO[Seq[LabelToCluster]] = {
-    labelsForApiQuery.filter(_._1 === regionId).result.map(_.map(LabelToCluster.tupled))
+    labelsForApiQuery.filter(_.regionId === regionId).result
   }
 
   def deleteClusteringSessions(regionIds: Seq[Int]): DBIO[Int] = {

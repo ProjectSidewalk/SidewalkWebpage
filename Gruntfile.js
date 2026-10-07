@@ -1,203 +1,14 @@
+const { execFileSync } = require('child_process');
+
 module.exports = function (grunt) {
 
   // 1. All configuration goes here
   grunt.initConfig({
     pkg: grunt.file.readJSON('package.json'),
 
-    concat: {
-      dist_audit: {
-        src: [
-          'public/js/explore/src/*.js',
-          'public/js/explore/src/*/*.js',
-          'public/js/common/ProgressBar.js',
-          'public/js/common/PanoMarker.js',
-          'public/js/common/LabelCardView.js',
-          'public/js/common/utilitiesSidewalk.js',
-          'public/js/common/SpeedLimit.js',
-          'public/js/common/MissionStartTutorial.js',
-          // Toast must be concatenated before BadgeAchievements, which builds badge-unlock toasts.
-          'public/js/common/Toast.js',
-          'public/js/common/BadgeAchievements.js',
-          'public/js/common/share/ShareWidget.js',
-          // The pano image adjustments: the model, then the popover that drives it.
-          'public/js/common/PanoImageAdjustments.js',
-          'public/js/common/PanoImageAdjustmentsPopover.js'
-        ],
-        dest: 'public/js/explore/build/explore.js'
-      },
-      dist_validate: {
-        src: [
-          'public/js/common/aiLabelIndicator.js',
-          'public/js/validate/src/*.js',
-          'public/js/validate/src/data/*.js',
-          'public/js/validate/src/keyboard/*.js',
-          'public/js/validate/src/label/*.js',
-          'public/js/validate/src/menu/*.js',
-          'public/js/validate/src/mission/*.js',
-          'public/js/validate/src/modal/*.js',
-          'public/js/validate/src/panorama/*.js',
-          'public/js/validate/src/status/*.js',
-          'public/js/validate/src/user/*.js',
-          'public/js/validate/src/util/*.js',
-          'public/js/validate/src/zoom/*.js',
-          'public/js/common/ProgressBar.js',
-          'public/js/common/PanoMarker.js',
-          'public/js/common/LabelVisibilityToggle.js',
-          'public/js/common/LabelCardView.js',
-          'public/js/common/LabelTypePicker.js',
-          'public/js/common/utilitiesSidewalk.js',
-          'public/js/common/SpeedLimit.js',
-          'public/js/common/MissionStartTutorial.js',
-          'public/js/common/Confetti.js',
-          // Toast must be concatenated before BadgeAchievements, which builds badge-unlock toasts.
-          'public/js/common/Toast.js',
-          'public/js/common/BadgeAchievements.js',
-          'public/js/common/share/ShareWidget.js'
-        ],
-        dest: 'public/js/validate/build/validate.js'
-      },
-      dist_gallery: {
-        src: [
-          // Shared deep-link query rules; every reader/writer of the URL's filter params depends on it.
-          'public/js/common/urlQuery.js',
-          'public/js/common/aiLabelIndicator.js',
-          // Toast must be concatenated before BadgeAchievements, which builds badge-unlock toasts.
-          'public/js/common/Toast.js',
-          'public/js/common/BadgeAchievements.js',
-          // PopupPanoManager and LabelDetail must be concatenated before ExpandedView.
-          'public/js/common/label-detail/PopupPanoManager.js',
-          'public/js/common/ConfirmDialog.js',
-          'public/js/common/label-detail/StoryComposer.js',
-          'public/js/common/label-detail/StorySection.js',
-          'public/js/common/label-detail/TagEditor.js',
-          'public/js/common/LabelTypePicker.js',
-          'public/js/common/label-detail/LabelDetail.js',
-          'public/js/common/share/ShareWidget.js',
-          // The shared filter sidebar owns the sidebar controls; GalleryFilter is the Gallery's adapter for it.
-          'public/js/common/filter-sidebar/*.js',
-          'public/js/common/sidebarDisclosure.js',
-          'public/js/gallery/src/cards/*.js',
-          'public/js/gallery/src/data/*.js',
-          'public/js/gallery/src/filter/*.js',
-          'public/js/gallery/src/keyboard/*.js',
-          'public/js/gallery/src/validation/*.js',
-          'public/js/gallery/src/displays/*.js',
-          'public/js/gallery/src/expandedview/*.js',
-          'public/js/gallery/src/*.js',
-          'public/js/common/PanoMarker.js',
-          'public/js/common/LabelVisibilityToggle.js',
-          'public/js/common/utilitiesSidewalk.js'
-        ],
-        dest: 'public/js/gallery/build/gallery.js'
-      },
-      dist_map: {
-        src: [
-          // Shared deep-link query rules; every reader/writer of the URL's filter params depends on it.
-          'public/js/common/urlQuery.js',
-          // The shared filter sidebar owns the sidebar controls; MapSidebarFilter is the map's adapter for it.
-          'public/js/common/filter-sidebar/*.js',
-          'public/js/common/geoBounds.js',
-          'public/js/ps-map/*.js',
-        ],
-        dest: 'public/js/ps-map/build/ps-map.js'
-      },
-      dist_access_score: {
-        src: [
-          // The score ramp is a shared helper (the api-docs load it on its own); the tool's modules follow it.
-          'public/js/common/scoreRamp.js',
-          'public/js/access-score/src/AccessScoreFetch.js',
-          'public/js/access-score/src/AccessScoreModel.js',
-          'public/js/access-score/src/AccessScoreUrlSync.js',
-          'public/js/common/AccessScoreGradeRamp.js',
-          'public/js/common/AccessScoreElevationProfile.js',
-          'public/js/access-score/src/AccessScoreMapLegend.js',
-          'public/js/access-score/src/AccessScoreMapView.js',
-          'public/js/access-score/src/AccessScoreSlopePanel.js',
-          'public/js/access-score/src/AccessScoreSidebar.js',
-          'public/js/access-score/src/AccessScoreClusterLayer.js',
-          'public/js/common/PlaceCategoryIcons.js',
-          'public/js/access-score/src/AccessScorePlacesLayer.js',
-          // The insights dock: the chart base class precedes the views that extend it (a subclass evaluates its
-          // superclass at definition time), and the dock that owns them comes last.
-          'public/js/access-score/src/AccessScoreChart.js',
-          'public/js/access-score/src/AccessScoreHistogram.js',
-          'public/js/access-score/src/AccessScoreWhatsHere.js',
-          'public/js/access-score/src/AccessScoreRankBars.js',
-          'public/js/access-score/src/AccessScoreClusterSheet.js',
-          'public/js/access-score/src/AccessScorePhotoStrip.js',
-          'public/js/access-score/src/AccessScoreDock.js',
-          'public/js/access-score/src/main.js',
-        ],
-        dest: 'public/js/access-score/build/access-score.js'
-      },
-      dist_route_builder: {
-        src: [
-          'public/js/common/Toast.js',
-          'public/js/common/ConfirmDialog.js',
-          'public/js/common/UnsavedChangesGuard.js',
-          'public/js/common/mapboxSearchBoxA11y.js',
-          'public/js/route-builder/src/*.js'
-        ],
-        dest: 'public/js/route-builder/build/route-builder.js'
-      },
-      dist_shared_label: {
-        src: [
-          // The shared LabelDetail component + its deps (same set the Gallery bundle pulls in), plus the
-          // SharedLabel app. The pano-viewer classes and ps-map load from their own bundles (script tags).
-          // Shared deep-link query rules; every reader/writer of the URL's filter params depends on it.
-          'public/js/common/urlQuery.js',
-          'public/js/common/aiLabelIndicator.js',
-          // Toast must precede BadgeAchievements, which builds badge-unlock toasts.
-          'public/js/common/Toast.js',
-          'public/js/common/BadgeAchievements.js',
-          'public/js/common/PanoMarker.js',
-          'public/js/common/LabelVisibilityToggle.js',
-          // PopupPanoManager + LabelDetail must precede anything that uses them.
-          'public/js/common/label-detail/PopupPanoManager.js',
-          'public/js/common/ConfirmDialog.js',
-          'public/js/common/label-detail/StoryComposer.js',
-          'public/js/common/label-detail/StorySection.js',
-          'public/js/common/label-detail/TagEditor.js',
-          'public/js/common/LabelTypePicker.js',
-          'public/js/common/label-detail/LabelDetail.js',
-          'public/js/common/share/ShareWidget.js',
-          'public/js/shared-label/*.js'
-        ],
-        dest: 'public/js/shared-label/build/shared-label.js'
-      },
-      dist_pano_viewer: {
-        src: [
-          'public/js/common/pano-viewer/src/PanoData.js',
-          'public/js/common/pano-viewer/src/PanoStore.js',
-          'public/js/common/pano-viewer/src/panoUtilities.js',
-          // NoImageryError must precede the viewers, which throw it, and PanoViewer, which classifies on it.
-          'public/js/common/pano-viewer/src/NoImageryError.js',
-          'public/js/common/pano-viewer/src/PanoViewer.js',
-          'public/js/common/pano-viewer/src/GsvViewer.js',
-          'public/js/common/pano-viewer/src/MapillaryChunkedDataProvider.js',
-          'public/js/common/pano-viewer/src/MapillaryViewer.js',
-          'public/js/common/pano-viewer/src/Infra3dViewer.js',
-          'public/js/common/pano-viewer/src/PannellumViewer.js',
-          'public/js/common/pano-viewer/src/PanoramaxViewer.js',
-          'public/js/common/pano-viewer/src/PanoViewerLogo.js',
-          'public/js/common/pano-viewer/src/PanoAttribution.js',
-          'public/js/common/pano-viewer/src/PanoInfoPopover.js'
-        ],
-        dest: 'public/js/common/pano-viewer/build/pano-viewer.js'
-      },
-      // The imagery-credit overlays alone, for a page with stills but no viewer (the landing grid, #5202). Neither
-      // file may reference a viewer class — that is what lets them stand alone. A page loads one bundle or the other.
-      dist_pano_credit: {
-        src: [
-          'public/js/common/pano-viewer/src/PanoViewerLogo.js',
-          'public/js/common/pano-viewer/src/PanoAttribution.js'
-        ],
-        dest: 'public/js/common/pano-credit/build/pano-credit.js'
-      }
-    },
     concat_css: {
-      // The bundles land in public/js/<app>/build/, so each file's relative url()s are rewritten to /assets/ paths that
-      // still reach the same file from there. An absolute /assets/ url() would get the prefix twice, so use relative.
+      // The bundles land in public/build/css/, so each file's relative url()s are rewritten to /assets/ paths that still
+      // reach the same file from there. An absolute /assets/ url() would get the prefix twice, so use relative.
       options: {
         assetBaseUrl: '/assets',
         baseDir: 'public'
@@ -211,7 +22,7 @@ module.exports = function (grunt) {
           'public/css/pages/explore/*.css',
           'public/css/components/mission-start-tutorial.css'
         ],
-        dest: 'public/js/explore/build/explore.css'
+        dest: 'public/build/css/explore.css'
       },
       dist_validate: {
         src: [
@@ -221,63 +32,53 @@ module.exports = function (grunt) {
           'public/css/pages/validate/*.css',
           'public/css/components/mission-start-tutorial.css'
         ],
-        dest: 'public/js/validate/build/validate.css'
+        dest: 'public/build/css/validate.css'
       },
       gallery_all: {
         src: [
           'public/css/pages/gallery/*.css'
         ],
-        dest: 'public/js/gallery/build/gallery.css'
+        dest: 'public/build/css/gallery.css'
       }
     },
     watch: {
       gruntfile: {
-        files: ['Gruntfile.js'],
-        tasks: ['concat', 'concat_css'],
+        files: ['Gruntfile.js', 'rolldown.config.mjs'],
+        tasks: ['concat_css', 'rolldown'],
         options: {
           reload: true
         }
       },
-      scripts: {
+      // No `interrupt`: a save during a build waits for it, so two builds never write public/build/ at once.
+      js: {
+        files: ['frontend/js/**/*.js'],
+        tasks: ['rolldown']
+      },
+      css: {
         files: [
-          'public/js/common/*.js',
-          'public/js/common/*/*.js',
-          'public/js/common/*/src/*.js',
-          'public/js/explore/src/*.js',
-          'public/js/explore/src/**/*.js',
           'public/css/pages/explore/*.css',
-          'public/js/validate/src/*.js',
-          'public/js/validate/src/**/*.js',
           'public/css/pages/validate/*.css',
-          'public/js/gallery/src/*.js',
-          'public/js/gallery/src/**/*.js',
           'public/css/pages/gallery/*.css',
-          'public/js/ps-map/*.js',
-          'public/js/route-builder/src/*.js',
-          'public/js/access-score/src/*.js',
-          'public/js/shared-label/*.js',
           'public/css/components/label-anchored-panel.css',
           'public/css/components/label-hover-card.css',
           'public/css/components/pano-attribution.css',
           'public/css/components/mission-start-tutorial.css'
         ],
-        tasks: [
-          'concat',
-          'concat_css'
-        ],
-        options: {
-          interrupt: true
-        }
+        tasks: ['concat_css']
       }
     }
   });
 
   // 3. Where we tell Grunt we plan to use this plug-in.
-  grunt.loadNpmTasks('grunt-contrib-concat');
   grunt.loadNpmTasks('grunt-concat-css');
   grunt.loadNpmTasks('grunt-contrib-watch');
 
   // 4. Where we tell Grunt what to do when we type "grunt" into the terminal.
-  grunt.registerTask('default', ['concat', 'concat_css']);
-  grunt.registerTask('dist', ['concat:dist_audit', 'concat:dist_validate', 'concat:dist_gallery']);
+  // Run from here rather than `rolldown --watch`: Rolldown only watches files it already knows, so it would miss a
+  // new page entry. `grunt watch` globs, so it doesn't.
+  grunt.registerTask('rolldown', 'Bundle the ES-module pages (rolldown.config.mjs).', function () {
+    execFileSync('node_modules/.bin/rolldown', ['-c'], { stdio: 'inherit' });
+  });
+
+  grunt.registerTask('default', ['concat_css', 'rolldown']);
 };

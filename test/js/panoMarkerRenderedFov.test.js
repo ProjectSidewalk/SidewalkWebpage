@@ -1,31 +1,29 @@
 /**
- * PanoMarker (public/js/common/PanoMarker.js) projects a marker with the field of view its viewer actually renders
+ * PanoMarker (frontend/js/common/PanoMarker.js) projects a marker with the field of view its viewer actually renders
  * for the container's shape, not the zoom curve alone (#5083, #5085): GSV clamps its vertical field on a tall or wide
  * viewport, and a marker projected with the curve sits off its feature there. Validate's marker and the label
  * popup's both come through here.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const MARKER_SRC = fs.readFileSync(path.resolve(__dirname, '..', '..', 'public/js/common/PanoMarker.js'), 'utf8');
 
 describe('PanoMarker projection', () => {
     let PanoMarker;
     let container;
 
     beforeEach(() => {
-        window.util = {
-            pano: {
-                // jsdom has no WebGL, so PanoMarker picks the 2d projection; both take the same trailing fov.
-                centeredPovToCanvasCoord2d: jest.fn(() => ({ x: 10, y: 20 })),
-                centeredPovToCanvasCoord: jest.fn(() => ({ x: 10, y: 20 })),
-                renderedHFov: jest.fn(() => 42),
-            },
-        };
+        window.util = {};
         // PanoMarker probes for WebGL on load; jsdom has no canvas contexts and would log a not-implemented error.
         HTMLCanvasElement.prototype.getContext = () => null;
-        window.eval(`${MARKER_SRC}\nwindow.PanoMarker = PanoMarker;`);
+        Object.assign(window, loadModules('frontend/js/common/PanoMarker.js'));
+        // Set after the load: importing PanoMarker rebuilds util.pano.
+        Object.assign(window.util.pano, {
+            // jsdom has no WebGL, so PanoMarker picks the 2d projection; both take the same trailing fov.
+            centeredPovToCanvasCoord2d: jest.fn(() => ({ x: 10, y: 20 })),
+            centeredPovToCanvasCoord: jest.fn(() => ({ x: 10, y: 20 })),
+            renderedHFov: jest.fn(() => 42),
+        });
         PanoMarker = window.PanoMarker;
         container = document.createElement('div');
         document.body.replaceChildren(container);

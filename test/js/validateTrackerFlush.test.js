@@ -1,5 +1,5 @@
 /**
- * Tests for public/js/validate/src/Tracker.js — the timed interaction-buffer flush (issue #4429).
+ * Tests for frontend/js/validate/Tracker.js — the timed interaction-buffer flush (issue #4429).
  *
  * Pins the flush lifecycle: a deadline is armed by the first push after a drain and fires ~60s later; every drain
  * path funnels through refresh(), which cancels the pending deadline, so an idle tab (whose buffer holds only the
@@ -10,32 +10,20 @@
  * Runs under jsdom (jest.config.js sets testEnvironment) so window/document exist.
  */
 
-const fs = require('fs');
 const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const { windowWithStubbedLocation, runScriptWithWindow, newLocationStub, resetLocationStub } =
-    require('./support/windowWithStubbedLocation');
 
-const TRACKER_PATH = path.resolve(__dirname, '..', '..', 'public/js/validate/src/Tracker.js');
+const TRACKER_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/Tracker.js');
 
 const FLUSH_INTERVAL_MS = 60000;
 
-/**
- * Load the `Tracker` class out of the production file. Like Form.js, it is a bare `class Tracker {}` that the Grunt
- * bundle concatenates into page scope, so we evaluate the source as a function body that returns the class. String
- * concatenation (not a template literal) is used so the backticks inside Tracker.js aren't reinterpreted.
- * @param {Window} win - The `window` the loaded source should see.
- * @returns {Function} The Tracker class.
- */
-function loadTrackerClass(win) {
-    const src = fs.readFileSync(TRACKER_PATH, 'utf8');
-    return runScriptWithWindow(src + '\nreturn Tracker;\n', win);
-}
+const Tracker = loadModules(TRACKER_PATH).Tracker;
 
-// Loaded once against a window carrying this stub, so the stub has to outlive any one test -- beforeEach resets
-// its fields in place rather than rebuilding the object the proxy closed over.
-const locationStub = newLocationStub();
-const Tracker = loadTrackerClass(windowWithStubbedLocation(locationStub));
+// jsdom reports a page reload as a "Not implemented: navigation" error on the console, so a spy there is how the
+// suite proves the page was never reloaded (the blanket `catch -> location.reload()` #2745 removed).
+let consoleError;
+const reloadAttempts = () => consoleError.mock.calls.filter(([msg]) => String(msg).includes('Not implemented: navigation'));
 
 describe('Tracker timed flush (issue #4429)', () => {
     let tracker;
@@ -44,9 +32,6 @@ describe('Tracker timed flush (issue #4429)', () => {
     beforeEach(() => {
         jest.useFakeTimers();
         jest.setSystemTime(1_000_000);
-
-        // The constructor binds low-level window events through jQuery; a stub with a no-op .on() is enough.
-        global.$ = jest.fn(() => ({ on: jest.fn() }));
 
         // Minimal svv surface. compileSubmissionData mimics the production Form.js contract: it synchronously drains
         // the tracker (tracker.refresh()) before returning the payload snapshot.
@@ -61,7 +46,7 @@ describe('Tracker timed flush (issue #4429)', () => {
             }
         };
 
-        resetLocationStub(locationStub);
+        consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
 
         tracker = new Tracker();
     });
@@ -70,7 +55,6 @@ describe('Tracker timed flush (issue #4429)', () => {
         jest.useRealTimers();
         jest.restoreAllMocks();
         delete global.svv;
-        delete global.$;
     });
 
     test('the first push arms a deadline that flushes the compiled payload as an intermediate submit', () => {
@@ -117,6 +101,70 @@ describe('Tracker timed flush (issue #4429)', () => {
         expect(svv.form.submit).not.toHaveBeenCalled();
     });
 
+    // A verdict is worth more than the interactions around it, and on a phone the page can be killed without any
+    // exit event firing (#5561), so Label.validate() asks for the flush now rather than at the deadline.
+    describe('flushSoon() (issue #5561)', () => {
+        const VERDICT_FLUSH_DELAY_MS = 1000;
+
+        test('sends the buffer about a second later instead of at the 60 s deadline', () => {
+            tracker.push('ValidationButtonClick_Agree');
+            tracker.flushSoon();
+
+            jest.advanceTimersByTime(VERDICT_FLUSH_DELAY_MS - 1);
+            expect(svv.form.submit).not.toHaveBeenCalled();
+
+            jest.advanceTimersByTime(1);
+            expect(svv.form.submit).toHaveBeenCalledTimes(1);
+            expect(svv.form.submit).toHaveBeenCalledWith(compiledPayload, true);
+        });
+
+        test('a quick run of verdicts becomes one flush, timed from the last of them', () => {
+            tracker.push('ValidationButtonClick_Agree');
+            tracker.flushSoon();
+            jest.advanceTimersByTime(VERDICT_FLUSH_DELAY_MS / 2);
+            tracker.push('ValidationButtonClick_Disagree');
+            tracker.flushSoon();
+
+            jest.advanceTimersByTime(VERDICT_FLUSH_DELAY_MS - 1);
+            expect(svv.form.submit).not.toHaveBeenCalled();
+
+            jest.advanceTimersByTime(1);
+            expect(svv.form.submit).toHaveBeenCalledTimes(1);
+        });
+
+        test('replaces the pending deadline rather than adding a second flush after it', () => {
+            tracker.push('ValidationButtonClick_Agree');
+            tracker.flushSoon();
+            jest.advanceTimersByTime(VERDICT_FLUSH_DELAY_MS);
+            expect(svv.form.submit).toHaveBeenCalledTimes(1);
+
+            // Only the post-flush marker is buffered now; the original 60 s deadline must not fire on it.
+            jest.advanceTimersByTime(10 * 60 * 1000);
+            expect(svv.form.submit).toHaveBeenCalledTimes(1);
+        });
+
+        test('an external drain in the meantime cancels it', () => {
+            tracker.push('ValidationButtonClick_Agree');
+            tracker.flushSoon();
+            tracker.refresh(); // Mission complete or pagehide got there first.
+
+            jest.advanceTimersByTime(10 * 60 * 1000);
+            expect(svv.form.submit).not.toHaveBeenCalled();
+        });
+
+        test('the next push after it arms an ordinary deadline again', () => {
+            tracker.push('ValidationButtonClick_Agree');
+            tracker.flushSoon();
+            jest.advanceTimersByTime(VERDICT_FLUSH_DELAY_MS);
+
+            tracker.push('LowLevelEvent_mousemove');
+            jest.advanceTimersByTime(FLUSH_INTERVAL_MS - 1);
+            expect(svv.form.submit).toHaveBeenCalledTimes(1);
+            jest.advanceTimersByTime(1);
+            expect(svv.form.submit).toHaveBeenCalledTimes(2);
+        });
+    });
+
     test('an external drain (mission complete / pagehide) cancels the pending deadline', () => {
         tracker.push('ValidationButtonClick_Agree');
         jest.advanceTimersByTime(FLUSH_INTERVAL_MS / 2);
@@ -157,7 +205,7 @@ describe('Tracker timed flush (issue #4429)', () => {
         jest.setSystemTime(1_000_000 + 2 * 60 * 60 * 1000);
         tracker.push('ValidationButtonClick_Disagree');
 
-        expect(locationStub.reload).not.toHaveBeenCalled();
+        expect(reloadAttempts()).toHaveLength(0);
     });
 
     test('a deadline firing before init finishes is a no-op that self-heals on the next push', () => {

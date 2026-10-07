@@ -1,11 +1,10 @@
 package models.label
 
-import models.utils.MyPostgresProfile.api._
-import org.scalatestplus.play.PlaySpec
+import models.utils.MyPostgresProfile.api.given
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import util.RolledBackDb
+import util.{RolledBackDb, SidewalkSpec}
 
 /**
  * Pins the `/label/resumeMission` query, which Explore loads on every page load and reads for two things: the
@@ -16,10 +15,10 @@ import util.RolledBackDb
  * (a different task of the same user, say) would fail rather than agree by construction. The count is checked
  * against a raw SQL rewrite of the same filters, since narrowing the query would silently change the modal's stat.
  */
-class ResumeLabelsQuerySpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb {
+class ResumeLabelsQuerySpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledBackDb {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private lazy val labelTable = app.injector.instanceOf[LabelTable]
 
@@ -51,9 +50,9 @@ class ResumeLabelsQuerySpec extends PlaySpec with GuiceOneAppPerSuite with Rolle
             LIMIT 1""".as[(Int, String)].headOption
     ).getOrElse(cancel(missing))
 
-  "getLabelsFromUserInRegion" should {
+  "getLabelsFromUserInRegions" should {
     "be a query Postgres accepts" in {
-      run(labelTable.getLabelsFromUserInRegion(-1, "no-such-user")) mustBe empty
+      run(labelTable.getLabelsFromUserInRegions(Seq(-1), "no-such-user")) mustBe empty
     }
 
     "carry each label's own audit task's outdated_imagery flag" in {
@@ -64,7 +63,7 @@ class ResumeLabelsQuerySpec extends PlaySpec with GuiceOneAppPerSuite with Rolle
         having = "bool_or(audit_task.outdated_imagery) AND NOT bool_and(audit_task.outdated_imagery)",
         missing = "no user in this database has both outdated-imagery and current labels in one region"
       )
-      val rows = run(labelTable.getLabelsFromUserInRegion(regionId, userId))
+      val rows = run(labelTable.getLabelsFromUserInRegions(Seq(regionId), userId))
       rows.map(_.fromOutdatedImagery).toSet mustBe Set(true, false)
       val flaggedTasks: Set[Int] = run(
         sql"""SELECT audit_task_id FROM audit_task WHERE outdated_imagery AND user_id = $userId""".as[Int]
@@ -82,13 +81,17 @@ class ResumeLabelsQuerySpec extends PlaySpec with GuiceOneAppPerSuite with Rolle
         having = "count(*) > 0",
         missing = "no user has a resumable label in any region of this database"
       )
+      // A label belongs to the region either through its mission or through its street: a route mission is filed
+      // under its start region but can run into the next one (#3488).
       val expected = run(
         sql"""SELECT count(*)
               #$resumableLabelsFromWhere
-                AND mission.region_id = $regionId AND mission.user_id = $userId""".as[Int].head
+                AND mission.user_id = $userId
+                AND (mission.region_id = $regionId OR label.street_edge_id IN (
+                  SELECT street_edge_id FROM street_edge_region WHERE region_id = $regionId))""".as[Int].head
       )
       expected must be > 0
-      run(labelTable.getLabelsFromUserInRegion(regionId, userId)).size mustBe expected
+      run(labelTable.getLabelsFromUserInRegions(Seq(regionId), userId)).size mustBe expected
     }
   }
 }

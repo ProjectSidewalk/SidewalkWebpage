@@ -3,13 +3,13 @@ package controllers
 import controllers.base.{CustomBaseController, CustomControllerComponents}
 import controllers.helper.ControllerUtils.internalKeyValid
 import formats.json.ExploreFormats.AiLabelsSubmission
-import play.api.libs.json._
-import play.api.libs.ws._
-import play.api.mvc._
+import play.api.libs.json.*
+import play.api.libs.ws.*
+import play.api.mvc.*
 import play.api.{Configuration, Logger}
 
 import java.util.Base64
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.{ExecutionContext, Future}
 
 /**
@@ -23,7 +23,7 @@ class AiController @Inject() (
     configService: service.ConfigService,
     exploreService: service.ExploreService,
     panoDataService: service.PanoDataService
-)(implicit ec: ExecutionContext)
+)(using ec: ExecutionContext)
     extends CustomBaseController(cc) {
   private val logger = Logger(this.getClass)
 

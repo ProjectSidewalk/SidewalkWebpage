@@ -6,7 +6,7 @@
 package models.api
 
 import models.utils.LatLngBBox
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.given
 import org.locationtech.jts.geom.LineString
 import play.api.libs.json.{JsObject, Json, OFormat, Writes}
 
@@ -87,7 +87,7 @@ object StreetDataForApi extends ApiFields[StreetDataForApi] {
   /**
    * Implicit JSON writer for StreetDataForApi that uses the toJson method.
    */
-  implicit val streetDataWrites: Writes[StreetDataForApi] = (street: StreetDataForApi) => street.toJson
+  given streetDataWrites: Writes[StreetDataForApi] = (street: StreetDataForApi) => street.toJson
 }
 
 /**
@@ -130,5 +130,5 @@ case class StreetTypeForApi(
  * Companion object for StreetTypeForApi containing JSON formatter
  */
 object StreetTypeForApi {
-  implicit val format: OFormat[StreetTypeForApi] = Json.format[StreetTypeForApi]
+  given format: OFormat[StreetTypeForApi] = Json.format[StreetTypeForApi]
 }

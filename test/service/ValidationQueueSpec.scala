@@ -3,24 +3,23 @@ package service
 import models.label.{
   LabelPointTable,
   LabelTable,
-  LabelTypeEnum,
+  LabelType,
   LabelTypeValidationsLeft,
   LabelValidationMetadata,
   StreetSide
 }
-import models.pano.PanoSource.PanoSource
-import models.utils.MyPostgresProfile.api._
+import models.pano.PanoSource
+import models.utils.MyPostgresProfile.api.*
 import models.validation.ValidationLabelFilter
 import models.validation.ValidationQueuePolicy.ValidationQueue
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import util.RolledBackDb
+import util.{RolledBackDb, SidewalkSpec}
 
 import java.util.UUID
 import scala.concurrent.Await
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 /**
  * DB-backed tests for the queue policy Validate selects labels with (#4715), and for NoSidewalk's per-block-face
@@ -39,10 +38,10 @@ import scala.concurrent.duration._
  * Requires a Postgres+PostGIS database (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in dev/CI). Scheduling
  * actors are disabled so background jobs can't write while a test is measuring.
  */
-class ValidationQueueSpec extends PlaySpec with RolledBackDb with GuiceOneAppPerSuite {
+class ValidationQueueSpec extends SidewalkSpec with RolledBackDb with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private val labelTable                                 = app.injector.instanceOf[LabelTable]
   private val labelService                               = app.injector.instanceOf[LabelService]
@@ -79,7 +78,7 @@ class ValidationQueueSpec extends PlaySpec with RolledBackDb with GuiceOneAppPer
   private lazy val fixturePanoId: Option[String] = run(
     sql"""SELECT pano_data.pano_id
           FROM pano_data
-          WHERE pano_data.source = ${viewer.toString}::pano_source
+          WHERE pano_data.source = $viewer
             AND NOT pano_data.expired
           ORDER BY (pano_data.last_checked >= now() - INTERVAL '6 days') DESC NULLS LAST
           LIMIT 1""".as[String].headOption
@@ -214,7 +213,7 @@ class ValidationQueueSpec extends PlaySpec with RolledBackDb with GuiceOneAppPer
   private def insertPano(): DBIO[String] = {
     val panoId = s"spec-4715-${UUID.randomUUID().toString.take(8)}"
     sqlu"""INSERT INTO pano_data (pano_id, capture_date, expired, last_viewed, last_checked, source)
-            VALUES ($panoId, '2024-01', FALSE, now(), now(), ${viewer.toString}::pano_source)""".map(_ => panoId)
+            VALUES ($panoId, '2024-01', FALSE, now(), now(), $viewer)""".map(_ => panoId)
   }
 
   /**
@@ -246,7 +245,7 @@ class ValidationQueueSpec extends PlaySpec with RolledBackDb with GuiceOneAppPer
           sqlu"DELETE FROM sidewalk_user WHERE user_id = $id"
         )
       }
-      run(DBIO.seq(perLabeler :+ sqlu"DELETE FROM pano_data WHERE pano_id = $panoId": _*).transactionally)
+      run(DBIO.seq(perLabeler :+ sqlu"DELETE FROM pano_data WHERE pano_id = $panoId"*).transactionally)
     }
   }
 
@@ -287,7 +286,7 @@ class ValidationQueueSpec extends PlaySpec with RolledBackDb with GuiceOneAppPer
       queue: ValidationQueue,
       labelerIds: Set[String],
       unvalidatedOnly: Boolean = false,
-      labelType: LabelTypeEnum.Base = LabelTypeEnum.CurbRamp
+      labelType: LabelType = LabelType.CurbRamp
   ): DBIO[Set[Int]] = {
     labelTable
       .retrieveLabelListForValidationQuery(requester, viewer, labelType, queue,
@@ -298,7 +297,7 @@ class ValidationQueueSpec extends PlaySpec with RolledBackDb with GuiceOneAppPer
   }
 
   /** The face evidence rows on the fixture's streets, keyed by (street, side). */
-  private def fixtureFaceEvidence: DBIO[Map[(Int, StreetSide.Value), (Int, Int, Int)]] =
+  private def fixtureFaceEvidence: DBIO[Map[(Int, StreetSide), (Int, Int, Int)]] =
     labelTable.getNoSidewalkFaceEvidence.map(
       _.filter(f => fixtureStreetEdgeIds.contains(f.streetEdgeId))
         .map(f => (f.streetEdgeId, f.streetSide) -> (f.labelerCount, f.support, f.labelCount))
@@ -417,7 +416,7 @@ class ValidationQueueSpec extends PlaySpec with RolledBackDb with GuiceOneAppPer
         validator <- insertLabeler(ownLabelsValidated = 100, highQuality = false)
         labelId   <- insertLabel(labeler, 0, 0, 0, None)
         served = labelTable
-          .retrieveLabelListForValidationQuery(validator, viewer, LabelTypeEnum.CurbRamp, ValidationQueue.Any,
+          .retrieveLabelListForValidationQuery(validator, viewer, LabelType.CurbRamp, ValidationQueue.Any,
             filter = ValidationLabelFilter(userIds = Some(Set(labeler))))
           .map(_._1)
           .result
@@ -462,11 +461,11 @@ class ValidationQueueSpec extends PlaySpec with RolledBackDb with GuiceOneAppPer
         labelTable
           .getAvailableValidationsLabelsByType(requester, viewer, unvalidatedOnly = false, ValidationQueue.crowdCascade,
             None, filter)
-          .map(_.find(_.labelType == LabelTypeEnum.CurbRamp).map(_.validationsAvailable).getOrElse(0))
+          .map(_.find(_.labelType == LabelType.CurbRamp).map(_.validationsAvailable).getOrElse(0))
 
       def served(filter: ValidationLabelFilter): DBIO[Set[Int]] =
         labelTable
-          .retrieveLabelListForValidationQuery(requester, viewer, LabelTypeEnum.CurbRamp, ValidationQueue.Any,
+          .retrieveLabelListForValidationQuery(requester, viewer, LabelType.CurbRamp, ValidationQueue.Any,
             filter = filter)
           .map(_._1)
           .result
@@ -505,8 +504,7 @@ class ValidationQueueSpec extends PlaySpec with RolledBackDb with GuiceOneAppPer
         labelTable
           .getAvailableValidationsLabelsByType(requester, viewer, unvalidatedOnly = false, queues, None, NoFilter)
           .map(
-            _.find(_.labelType == LabelTypeEnum.CurbRamp)
-              .getOrElse(LabelTypeValidationsLeft(LabelTypeEnum.CurbRamp, 0, 0, 0))
+            _.find(_.labelType == LabelType.CurbRamp).getOrElse(LabelTypeValidationsLeft(LabelType.CurbRamp, 0, 0, 0))
           )
 
       val (before, after, crowd) = runRolledBack(for {
@@ -527,19 +525,19 @@ class ValidationQueueSpec extends PlaySpec with RolledBackDb with GuiceOneAppPer
     "take the face count only for a cascade that could serve NoSidewalk from NeedsVotes" in {
       def noSidewalkCounts(
           queues: Seq[ValidationQueue],
-          required: Option[LabelTypeEnum.Base]
+          required: Option[LabelType]
       ): DBIO[Option[LabelTypeValidationsLeft]] =
         labelTable
           .getAvailableValidationsLabelsByType(requester, viewer, unvalidatedOnly = false, queues, required, NoFilter)
-          .map(_.find(_.labelType == LabelTypeEnum.NoSidewalk))
+          .map(_.find(_.labelType == LabelType.NoSidewalk))
 
       val (crowd, pinnedElsewhere, triageOnly, pinnedHere) = runRolledBack(for {
         labeler         <- insertLabeler(ownLabelsValidated = 100, highQuality = false)
         _               <- insertNoSidewalk(labeler, fixtureAnchors._1, LeftOfStreet)
         crowd           <- noSidewalkCounts(ValidationQueue.crowdCascade, None)
-        pinnedElsewhere <- noSidewalkCounts(ValidationQueue.crowdCascade, Some(LabelTypeEnum.CurbRamp))
+        pinnedElsewhere <- noSidewalkCounts(ValidationQueue.crowdCascade, Some(LabelType.CurbRamp))
         triageOnly      <- noSidewalkCounts(Seq(ValidationQueue.Triage), None)
-        pinnedHere      <- noSidewalkCounts(ValidationQueue.expertCascade, Some(LabelTypeEnum.NoSidewalk))
+        pinnedHere      <- noSidewalkCounts(ValidationQueue.expertCascade, Some(LabelType.NoSidewalk))
       } yield (crowd, pinnedElsewhere, triageOnly, pinnedHere))
 
       crowd.flatMap(_.facesNeedingVotes).isDefined mustBe true
@@ -566,7 +564,7 @@ class ValidationQueueSpec extends PlaySpec with RolledBackDb with GuiceOneAppPer
             .retrieveLabelListForValidationQuery(
               requester,
               viewer,
-              LabelTypeEnum.CurbRamp,
+              LabelType.CurbRamp,
               ValidationQueue.NeedsVotes,
               filter = ValidationLabelFilter(userIds = Some(Set(newLabeler, oldLabeler)))
             )
@@ -686,7 +684,7 @@ class ValidationQueueSpec extends PlaySpec with RolledBackDb with GuiceOneAppPer
           .retrieveLabelListForValidationQuery(
             requester,
             viewer,
-            LabelTypeEnum.NoSidewalk,
+            LabelType.NoSidewalk,
             ValidationQueue.Any,
             filter = ValidationLabelFilter(userIds = Some(Set(labeler))),
             excludedFaces = Set((streetA, StreetSide.Left))
@@ -762,14 +760,14 @@ class ValidationQueueSpec extends PlaySpec with RolledBackDb with GuiceOneAppPer
         labelers = Some(Set(lone) ++ crowd)
         drawn <- DBIO.sequence((1 to Draws).map { _ =>
           labelTable
-            .retrieveLabelListForValidationQuery(requester, viewer, LabelTypeEnum.NoSidewalk,
-              ValidationQueue.NeedsVotes, filter = ValidationLabelFilter(userIds = labelers))
+            .retrieveLabelListForValidationQuery(requester, viewer, LabelType.NoSidewalk, ValidationQueue.NeedsVotes,
+              filter = ValidationLabelFilter(userIds = labelers))
             .map(_._1)
             .take(1)
             .result
             .map(_.head)
         })
-        needsVotes <- queueIds(ValidationQueue.NeedsVotes, labelers.get, labelType = LabelTypeEnum.NoSidewalk)
+        needsVotes <- queueIds(ValidationQueue.NeedsVotes, labelers.get, labelType = LabelType.NoSidewalk)
       } yield (drawn.count(_ == top), drawn.toSet, needsVotes, unsided))
 
       // Binomial(200, 0.70) has mean 140 and sd 6.5, so the band is ±4.6 sd and nowhere near uniform's ~9 hits.
@@ -799,7 +797,7 @@ class ValidationQueueSpec extends PlaySpec with RolledBackDb with GuiceOneAppPer
         } yield (Seq(labeler), (labeler, streetA, streetB, stuck))
       } { case (labeler, streetA, streetB, stuck) =>
         val served = await(
-          labelService.retrieveLabelListForValidation(requester, 2, viewer, LabelTypeEnum.NoSidewalk,
+          labelService.retrieveLabelListForValidation(requester, 2, viewer, LabelType.NoSidewalk,
             ValidationQueue.expertCascade, filter = ValidationLabelFilter(userIds = Some(Set(labeler))))
         )
         served.map(_.labelId) must contain(stuck)
@@ -828,7 +826,7 @@ class ValidationQueueSpec extends PlaySpec with RolledBackDb with GuiceOneAppPer
       } { case (labeler, held, onB) =>
         (1 to 5).foreach { _ =>
           val served = await(
-            labelService.retrieveLabelListForValidation(requester, 1, viewer, LabelTypeEnum.NoSidewalk,
+            labelService.retrieveLabelListForValidation(requester, 1, viewer, LabelType.NoSidewalk,
               ValidationQueue.crowdCascade, filter = ValidationLabelFilter(userIds = Some(Set(labeler))),
               excludedLabelIds = Set(held))
           )
@@ -840,11 +838,11 @@ class ValidationQueueSpec extends PlaySpec with RolledBackDb with GuiceOneAppPer
 
   "spreadAcrossFaces" should {
     "take one label per face, distinct streets first, and fall back to a repeat face only when short" in {
-      def label(id: Int, street: Int, side: Option[StreetSide.Value]): LabelValidationMetadata = {
+      def label(id: Int, street: Int, side: Option[StreetSide]): LabelValidationMetadata = {
         // Only the face fields matter to the spread; the rest is filler.
         LabelValidationMetadata(
           id,
-          LabelTypeEnum.NoSidewalk,
+          LabelType.NoSidewalk,
           "pano",
           viewer,
           expired = false,
@@ -889,8 +887,8 @@ class ValidationQueueSpec extends PlaySpec with RolledBackDb with GuiceOneAppPer
   "Type selection" should {
     "weight NoSidewalk by faces still needing votes in the crowd's queue, and gate it on labels like any type" in {
       val missionLength = 10
-      val noSidewalk    = LabelTypeValidationsLeft(LabelTypeEnum.NoSidewalk, 500, 12, 0, facesNeedingVotes = Some(3))
-      val curbRamp      = LabelTypeValidationsLeft(LabelTypeEnum.CurbRamp, 500, 50, 3)
+      val noSidewalk    = LabelTypeValidationsLeft(LabelType.NoSidewalk, 500, 12, 0, facesNeedingVotes = Some(3))
+      val curbRamp      = LabelTypeValidationsLeft(LabelType.CurbRamp, 500, 50, 3)
 
       // 12 labels pass the 10-label gate even though only 3 faces need votes; the lottery then weighs the 3.
       val (queue, types) =
@@ -931,10 +929,10 @@ class ValidationQueueSpec extends PlaySpec with RolledBackDb with GuiceOneAppPer
     "use the first queue in the cascade that can fill a mission, and weight uniformly once it falls back to Any" in {
       val missionLength                                                                  = 10
       def counts(needsVotes: Int, triage: Int, available: Int): LabelTypeValidationsLeft =
-        LabelTypeValidationsLeft(LabelTypeEnum.CurbRamp, available, needsVotes, triage)
+        LabelTypeValidationsLeft(LabelType.CurbRamp, available, needsVotes, triage)
 
       val plenty = counts(needsVotes = 50, triage = 3, available = 500)
-      val thin   = counts(needsVotes = 2, triage = 0, available = 500).copy(labelType = LabelTypeEnum.Crosswalk)
+      val thin   = counts(needsVotes = 2, triage = 0, available = 500).copy(labelType = LabelType.Crosswalk)
 
       // The crowd's cascade stops at NeedsVotes as soon as one type can fill a mission from it.
       val (crowdQueue, crowdTypes) =
@@ -985,9 +983,9 @@ class ValidationQueueSpec extends PlaySpec with RolledBackDb with GuiceOneAppPer
 
     "settle for a queue short of a whole mission only when short missions are allowed, and still prefer a full one" in {
       val missionLength = 10
-      val few           = LabelTypeValidationsLeft(LabelTypeEnum.CurbRamp, 7, 7, 0)
-      val some          = LabelTypeValidationsLeft(LabelTypeEnum.Obstacle, 4, 0, 0)
-      val full          = LabelTypeValidationsLeft(LabelTypeEnum.Crosswalk, 12, 0, 0)
+      val few           = LabelTypeValidationsLeft(LabelType.CurbRamp, 7, 7, 0)
+      val some          = LabelTypeValidationsLeft(LabelType.Obstacle, 4, 0, 0)
+      val full          = LabelTypeValidationsLeft(LabelType.Crosswalk, 12, 0, 0)
 
       LabelServiceImpl.chooseQueueAndTypes(
         Seq(few, some),

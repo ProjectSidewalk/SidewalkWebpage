@@ -1,9 +1,9 @@
 package service
 
-import formats.json.ExploreFormats._
-import formats.json.MissionFormats._
+import formats.json.ExploreFormats.*
+import formats.json.MissionFormats.given
 import models.audit.{AuditTask, AuditTaskTable, AuditTaskTableDef}
-import models.label.{LabelHistoryTableDef, LabelPointTableDef, LabelTableDef}
+import models.label.{LabelHistoryTableDef, LabelPointTableDef, LabelTableDef, LabelType}
 import models.mission.{Mission, MissionTableDef, MissionType}
 import models.pano.{PanoDataTableDef, PanoSource}
 import models.region.RegionCompletionTableDef
@@ -17,8 +17,7 @@ import models.street.{
 }
 import models.user.SidewalkUserWithRole
 import models.utils.IpAddress
-import models.utils.MyPostgresProfile.api._
-import org.scalatestplus.play.PlaySpec
+import models.utils.MyPostgresProfile.api.*
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.i18n.{Lang, MessagesApi, MessagesImpl}
@@ -26,11 +25,11 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
 import play.silhouette.api.util.PasswordInfo
 import slick.dbio.DBIO
-import util.RolledBackDb
+import util.{RolledBackDb, SidewalkSpec}
 
 import java.time.OffsetDateTime
 import scala.concurrent.Await
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 /**
  * DB-backed tests for the exploreAddress (address-drop-in) flow (#4451).
@@ -58,13 +57,13 @@ import scala.concurrent.duration._
 // BeforeAndAfterAll must be mixed in BEFORE GuiceOneAppPerSuite: linearization then runs afterAll inside the running
 // app, rather than after the app (and its DB pool) has already been stopped.
 class ExploreAddressServiceSpec
-    extends PlaySpec
+    extends SidewalkSpec
     with org.scalatest.BeforeAndAfterAll
     with RolledBackDb
     with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private val exploreService                             = app.injector.instanceOf[ExploreService]
   private val authService                                = app.injector.instanceOf[AuthenticationService]
@@ -215,7 +214,7 @@ class ExploreAddressServiceSpec
     LabelSubmission(
       panoId = specPanoId,
       panoSource = PanoSource.Gsv,
-      labelType = "Obstacle",
+      labelType = LabelType.Obstacle,
       deleted = false,
       severity = Some(1),
       description = None,

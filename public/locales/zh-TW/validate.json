@@ -16,6 +16,7 @@
   },
   "validate-menu": {
     "remove-tag": "移除標籤：{{tag}}",
+    "clear-verdict": "清除答案",
     "tag-search-placeholder": "在此新增更多標籤",
     "tag-search-no-results": "沒有符合的標籤",
     "disagree-reason": {
@@ -104,6 +105,9 @@
     "title": "無法載入影像",
     "body": "我們無法載入此任務中標記的街景影像，因此目前沒有可顯示的內容。您已完成的檢核都已儲存。這通常會自行恢復，請再試一次。",
     "retry": "再試一次"
+  },
+  "pano-loading": {
+    "skipping": "仍在載入，改試下一個標記..."
   },
   "mission-complete": {
     "title": "做得好！",

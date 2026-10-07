@@ -1,5 +1,5 @@
 /**
- * Tests for the number-key shortcuts in Validate's KeyboardManager (public/js/validate/src/keyboard/
+ * Tests for the number-key shortcuts in Validate's KeyboardManager (frontend/js/validate/keyboard/
  * KeyboardManager.js), covering the fourth Missing Curb Ramp disagree reason added for #4871, plus the Ctrl+Z undo
  * that shares the manager's key handling.
  *
@@ -14,21 +14,18 @@
  * listener that cannot be unregistered).
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const MANAGER_SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/validate/src/keyboard/KeyboardManager.js'), 'utf8'
-);
 
-/** A stand-in for one of the menu's jQuery-wrapped controls; `chosen` drives which verdict is selected. */
+/**
+ * A menu control with its click spied; `chosen` marks the verdict. A real element, since the manager compares the
+ * comment boxes against document.activeElement.
+ */
 function makeControl({ chosen = false } = {}) {
-    return {
-        on: () => {},
-        0: document.createElement('textarea'),
-        click: jest.fn(),
-        hasClass: (cls) => cls === 'chosen' && chosen,
-    };
+    const control = document.createElement('textarea');
+    control.classList.toggle('is-chosen', chosen);
+    control.click = jest.fn();
+    return control;
 }
 
 /**
@@ -63,23 +60,17 @@ describe('KeyboardManager number-key shortcuts', () => {
             unsureButton: makeControl(),
         });
 
-        // Minimal jQuery stand-in over the real DOM: the manager only asks a selector for `hasClass` and `click`.
-        window.$ = (selector) => {
-            const el = document.querySelector(selector);
-            return {
-                hasClass: (cls) => !!el && el.classList.contains(cls),
-                click: () => { if (el) clicks.push(el.id); },
-            };
-        };
+        // The manager looks the reason buttons and severity radios up by id and clicks them natively.
+        document.addEventListener('click', (e) => clicks.push(/** @type {Element} */ (e.target).id));
 
-        window.eval(`${MANAGER_SRC}\nwindow.KeyboardManager = KeyboardManager;`);
+        Object.assign(window, loadModules('frontend/js/common/KeyboardShortcuts.js', 'frontend/js/validate/keyboard/KeyboardManager.js'));
         new window.KeyboardManager(validationMenuUi);
     });
 
     beforeEach(() => {
         clicks.length = 0;
         window.svv = {
-            labelVisibilityControl: { hideLabelCard: jest.fn(), isVisible: () => true },
+            labelVisibilityControl: { hideLabelCard: jest.fn(), isVisible: () => true, isCardHeldOpen: () => false },
             tracker: { push: jest.fn() },
         };
         for (const box of ['optionalCommentTextBox', 'disagreeReasonTextBox', 'unsureReasonTextBox']) {
@@ -274,7 +265,7 @@ describe('KeyboardManager number-key shortcuts', () => {
         });
 
         it('leaves the comment box to the browser, where it undoes what was typed', () => {
-            const commentBox = validationMenuUi.optionalCommentTextBox[0];
+            const commentBox = validationMenuUi.optionalCommentTextBox;
             document.body.appendChild(commentBox);
             commentBox.focus();
 

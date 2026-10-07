@@ -1,7 +1,7 @@
 @import models.user.Role
 @import views.html.helper.CSRF
 @(commonData: service.CommonPageData, user: models.user.SidewalkUserWithRole, isMobile: Boolean
-)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: play.api.Configuration)
+)(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: play.api.Configuration)
 
 @*
 * Instructions for earning community/volunteer service hours (#4375). Reached from the Settings opt-in toggle and the
@@ -33,7 +33,7 @@
           <strong>@Messages("servicehours.anon.title")</strong>
           <span>@Messages("servicehours.anon.body")</span>
         </div>
-        <a class="button-ps button--primary button--medium" href="@routes.UserController.signUp()">@Messages("servicehours.anon.cta")</a>
+        <a class="button button--primary button--medium" href="@routes.UserController.signUp()">@Messages("servicehours.anon.cta")</a>
       </div>
     } else {
       @if(user.communityService) {
@@ -47,7 +47,7 @@
           </div>
           <form method="post" action="@routes.UserController.setServiceHours(false, Some("/serviceHoursInstructions"))">
             @CSRF.formField
-            <button type="submit" class="button-ps button--secondary button--medium">@Messages("servicehours.optedin.cta")</button>
+            <button type="submit" class="button button--secondary button--medium">@Messages("servicehours.optedin.cta")</button>
           </form>
         </div>
       } else {
@@ -58,7 +58,7 @@
           </div>
           <form method="post" action="@routes.UserController.setServiceHours(true, Some("/serviceHoursInstructions"))">
             @CSRF.formField
-            <button type="submit" class="button-ps button--primary button--medium">@Messages("servicehours.optedout.cta")</button>
+            <button type="submit" class="button button--primary button--medium">@Messages("servicehours.optedout.cta")</button>
           </form>
         </div>
       }
@@ -115,8 +115,8 @@
         </div>
       </div>
       <div class="sh-ctas">
-        <a class="button-ps button--primary button--large" id="service-hours-explore-btn" href="@routes.ExploreController.explore()">@exploreLabel</a>
-        <a class="button-ps button--secondary button--large" id="service-hours-time-check-btn" href="@routes.ApplicationController.timeCheck">@Messages("servicehours.cta.timecheck")</a>
+        <a class="button button--primary button--large" id="service-hours-explore-btn" href="@routes.ExploreController.explore">@exploreLabel</a>
+        <a class="button button--secondary button--large" id="service-hours-time-check-btn" href="@routes.ApplicationController.timeCheck">@Messages("servicehours.cta.timecheck")</a>
       </div>
     </div>
   </div>

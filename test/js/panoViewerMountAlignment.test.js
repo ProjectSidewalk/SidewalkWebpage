@@ -15,28 +15,15 @@
  * against, following panoViewerAspect.test.js.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const SRC_DIR = path.resolve(__dirname, '..', '..', 'public/js/common/pano-viewer/src');
 
 /**
  * Loads PanoViewer + Infra3dViewer fresh into the jsdom global scope.
  * @returns {{PanoViewer: Function, Infra3dViewer: Function}}
  */
 function loadViewers() {
-    const panoViewerSrc = fs.readFileSync(path.join(SRC_DIR, 'PanoViewer.js'), 'utf8');
-    const infra3dSrc = fs.readFileSync(path.join(SRC_DIR, 'Infra3dViewer.js'), 'utf8');
-    window.eval(`
-        class GsvViewer {}
-        class MapillaryViewer {}
-        class PannellumViewer {}
-        class PanoramaxViewer {}
-        ${panoViewerSrc}
-        ${infra3dSrc}
-        window.PanoViewer = PanoViewer;
-        window.Infra3dViewer = Infra3dViewer;
-    `);
+            Object.assign(window, loadModules('frontend/js/common/pano-viewer/PanoViewer.js', 'frontend/js/common/pano-viewer/Infra3dViewer.js'));
     return { PanoViewer: window.PanoViewer, Infra3dViewer: window.Infra3dViewer };
 }
 

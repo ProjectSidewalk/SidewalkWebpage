@@ -52,8 +52,7 @@ input[type="radio"] {
   /* Base text size for the whole tool. */
   font: var(--text-body-regular);
 
-  width: var(--app-width); /* Overrides bootstrap .container media queries to keep a consistent width. */
-  padding: 0; /* Drop bootstrap .container's 15px side padding so the app-width holder inside stays centered. */
+  width: var(--app-width);
 }
 
 #svl-application-holder {
@@ -87,12 +86,6 @@ input[type="radio"] {
   user-select: none;
   cursor: url("../../../images/icons/openhand.cur") 4 4, move;
   z-index: 1;
-}
-
-.disabled {
-  pointer-events: none;
-  cursor: default;
-  opacity: 0.5;
 }
 
 #svl-panorama-date-holder {
@@ -144,11 +137,16 @@ input[type="radio"] {
   transform-origin: bottom left;
 }
 
-/* Move Mapillary's attribution links to the bottom-left of the pano, scaling them with the UI. */
-#view-control-layer .mapillary-attribution-container {
-  bottom: calc(3px * var(--ui-scale)) !important;
-  left: calc(1px * var(--ui-scale)) !important;
-  right: auto !important;
+/* Put Mapillary's attribution pill at the bottom-left of the pano, scaling it with the UI, where the SDK renders it.
+   It stays inside the SDK's DOM because the SDK patches its creator and date in place per image, and a node moved out
+   of that tree keeps whatever it last said (#5600). That leaves it under the control layers, so its links don't take
+   clicks; the pano info popover carries the view-in-Mapillary link instead. Lifting it with a z-index would need #pano
+   not to be a stacking context, and both its z-index and the image-adjustment filter (PanoImageAdjustments) make it
+   one. The ID selector is what outranks the vendor's position. */
+#pano .mapillary-attribution-container {
+  bottom: calc(3px * var(--ui-scale));
+  left: calc(1px * var(--ui-scale));
+  right: auto;
   transform: scale(var(--ui-scale));
   transform-origin: bottom left;
 }
@@ -168,7 +166,7 @@ input[type="radio"] {
 }
 
 .survey-question {
-  margin-bottom: calc(10px * var(--ui-scale, 1));
+  margin: calc(10px * var(--ui-scale, 1)) 0;
 }
 
 .survey-textarea {
@@ -194,7 +192,7 @@ input[type="radio"] {
 }
 
 .survey-option label {
-  width:100%;
+  display: block;
   font: var(--text-caption-regular);
 }
 

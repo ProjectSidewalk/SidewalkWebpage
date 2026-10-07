@@ -1,17 +1,16 @@
 package controllers
 
 import org.apache.pekko.stream.Materializer
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.JsValue
 import play.api.mvc.{Cookie, Result}
-import play.api.test.CSRFTokenHelper._
+import play.api.test.CSRFTokenHelper.*
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import service.AuthenticationService
-import util.SignedUpAccounts
+import util.{SidewalkSpec, SignedUpAccounts}
 
 import scala.concurrent.Future
 
@@ -22,12 +21,12 @@ import scala.concurrent.Future
  * Only the change-password limit is on, turned down to three so the lockout is quick to reach. The sign-up and sign-in
  * limits would otherwise trip, since every request here comes from 127.0.0.1.
  */
-class ChangePasswordSpec extends PlaySpec with SignedUpAccounts with GuiceOneAppPerSuite {
+class ChangePasswordSpec extends SidewalkSpec with SignedUpAccounts with GuiceOneAppPerSuite {
 
   private val MaxAttempts = 3
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule]
       .configure(
         "rate-limit.enabled"                      -> false,
@@ -36,7 +35,7 @@ class ChangePasswordSpec extends PlaySpec with SignedUpAccounts with GuiceOneApp
       )
       .build()
 
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   private val XHR          = "X-Requested-With" -> "XMLHttpRequest"
   private val NewPassword  = "NewPass22"
@@ -51,7 +50,7 @@ class ChangePasswordSpec extends PlaySpec with SignedUpAccounts with GuiceOneApp
     route(
       app,
       FakeRequest(POST, "/dashboard/settings/password")
-        .withCookies(session: _*)
+        .withCookies(session*)
         .withHeaders(XHR)
         .withFormUrlEncodedBody(
           "currentPassword"    -> current,
@@ -80,7 +79,7 @@ class ChangePasswordSpec extends PlaySpec with SignedUpAccounts with GuiceOneApp
       route(
         app,
         FakeRequest(POST, s"/resetPassword?token=$token")
-          .withCookies(session: _*)
+          .withCookies(session*)
           .withFormUrlEncodedBody("passwordReset" -> NewPassword, "passwordResetConfirm" -> NewPassword)
           .withCSRFToken
       ).get
@@ -101,7 +100,7 @@ class ChangePasswordSpec extends PlaySpec with SignedUpAccounts with GuiceOneApp
 
   /** @return Whether `session` still opens Settings, which a revoked session is bounced away from. */
   private def isSignedIn(session: Seq[Cookie]): Boolean =
-    status(route(app, FakeRequest(GET, "/dashboard/settings").withCookies(session: _*)).get) == OK
+    status(route(app, FakeRequest(GET, "/dashboard/settings").withCookies(session*)).get) == OK
 
   /** @return `session` with any cookie `result` set replacing the one of the same name. */
   private def afterResponse(session: Seq[Cookie], result: Future[Result]): Seq[Cookie] = {
@@ -113,7 +112,7 @@ class ChangePasswordSpec extends PlaySpec with SignedUpAccounts with GuiceOneApp
     route(
       app,
       FakeRequest(POST, "/dashboard/settings/signOutOtherDevices")
-        .withCookies(session: _*)
+        .withCookies(session*)
         .withHeaders(XHR)
         .withCSRFToken
     ).get
@@ -219,7 +218,7 @@ class ChangePasswordSpec extends PlaySpec with SignedUpAccounts with GuiceOneApp
     "leave the cookie alone on an ordinary request, so one already on its way can't overwrite a renewed cookie" in {
       val (_, email, _) = signUpFreshUser()
       val session       = signIn(email, signUpPassword)
-      val result        = route(app, FakeRequest(GET, "/dashboard/settings").withCookies(session: _*)).get
+      val result        = route(app, FakeRequest(GET, "/dashboard/settings").withCookies(session*)).get
       status(result) mustBe OK
       cookies(result).filter(cookie => session.exists(_.name == cookie.name)) mustBe empty
     }
@@ -228,7 +227,7 @@ class ChangePasswordSpec extends PlaySpec with SignedUpAccounts with GuiceOneApp
       val (_, email, session) = signUpFreshUser()
       val otherDevice         = signIn(email, signUpPassword)
       status(signOutOtherDevices(session)) mustBe OK
-      val result  = route(app, FakeRequest(GET, "/dashboard/settings").withCookies(otherDevice: _*)).get
+      val result  = route(app, FakeRequest(GET, "/dashboard/settings").withCookies(otherDevice*)).get
       val cleared = cookies(result).find(cookie => otherDevice.exists(_.name == cookie.name))
       cleared.map(_.value) mustBe Some("")
     }
@@ -237,7 +236,7 @@ class ChangePasswordSpec extends PlaySpec with SignedUpAccounts with GuiceOneApp
   "The reset-by-email flow Settings links to" should {
     "open /forgotPassword to a signed-in user" in {
       val (_, _, session) = signUpFreshUser()
-      status(route(app, FakeRequest(GET, "/forgotPassword").withCookies(session: _*)).get) mustBe OK
+      status(route(app, FakeRequest(GET, "/forgotPassword").withCookies(session*)).get) mustBe OK
     }
 
     "send someone who finishes a reset while signed in back to Settings, where the message shows" in {
@@ -252,7 +251,7 @@ class ChangePasswordSpec extends PlaySpec with SignedUpAccounts with GuiceOneApp
       val result                   = route(
         app,
         FakeRequest(POST, s"/resetPassword?token=$token")
-          .withCookies(session: _*)
+          .withCookies(session*)
           .withFormUrlEncodedBody("passwordReset" -> NewPassword, "passwordResetConfirm" -> NewPassword)
           .withCSRFToken
       ).get

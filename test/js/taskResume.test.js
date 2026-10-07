@@ -12,15 +12,11 @@
  * along real street geometry, and a stub that got it slightly wrong would pass for the wrong reason.
  */
 
-const fs = require('fs');
 const path = require('path');
+const { loadModules, realUtil } = require('./loadGlobalScript');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const readSrc = (relativePath) => fs.readFileSync(path.join(REPO_ROOT, relativePath), 'utf8');
 
-const TASK_SRC = readSrc('public/js/explore/src/task/Task.js');
-const TASK_CONTAINER_SRC = readSrc('public/js/explore/src/task/TaskContainer.js');
-const UTIL_MATH_SRC = readSrc('public/js/common/utilitiesMath.js');
 // Loaded once, up front: the fixtures below are built while the suite is collected, before any beforeEach runs.
 const turf = require(path.join(REPO_ROOT, 'public/vendor/turf/turf-7.4.0.min.js'));
 
@@ -83,8 +79,9 @@ describe('Task resumed from an earlier session', () => {
     beforeEach(() => {
         window.turf = turf;
         window.svl = { CLOSE_TO_ROUTE_THRESHOLD: 0.05 };
-        window.eval(UTIL_MATH_SRC);
-        window.eval(`${TASK_SRC}; window.Task = Task;`);
+        window.util ??= realUtil();
+        loadModules('frontend/js/common/utilitiesMath.js');
+        Object.assign(window, loadModules('frontend/js/explore/task/Task.js'));
     });
 
     it('starts where the labeler stopped, at the end the row says they started from', () => {
@@ -184,7 +181,7 @@ describe('TaskContainer handing out a part-walked street', () => {
         window.turf = { point: (coords) => ({ type: 'Point', coordinates: coords }), pointToLineDistance: () => 0 };
         window.util = { math: { kmsToMeters: (km) => km * 1000 } };
         tracker = { push: jest.fn(), setAuditTaskID: jest.fn() };
-        window.eval(`${TASK_CONTAINER_SRC}; window.TaskContainer = TaskContainer;`);
+        Object.assign(window, loadModules('frontend/js/explore/task/TaskContainer.js'));
         const regionModel = { isRoute: false };
         const svl = { regionModel, CONNECTED_TASK_THRESHOLD: 0.025, CLOSE_TO_ROUTE_THRESHOLD: 0.05 };
         container = new window.TaskContainer(regionModel, svl, tracker);
@@ -287,9 +284,10 @@ describe('TaskContainer.fetchTasks', () => {
     beforeEach(() => {
         window.turf = turf;
         window.svl = { CLOSE_TO_ROUTE_THRESHOLD: 0.05 };
-        window.eval(UTIL_MATH_SRC);
+        window.util ??= realUtil();
+        loadModules('frontend/js/common/utilitiesMath.js');
         // One eval so TaskContainer's `new Task(...)` resolves to the class evaluated beside it.
-        window.eval(`${TASK_SRC}\n${TASK_CONTAINER_SRC}; window.TaskContainer = TaskContainer;`);
+        Object.assign(window, loadModules('frontend/js/explore/task/Task.js', 'frontend/js/explore/task/TaskContainer.js'));
 
         window.fetch = jest.fn(() => Promise.resolve({
             json: () => Promise.resolve({

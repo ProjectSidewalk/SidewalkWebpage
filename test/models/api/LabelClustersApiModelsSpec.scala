@@ -56,7 +56,7 @@ class LabelClustersApiModelsSpec extends AnyFunSuite with Matchers {
   }
 
   /** A raw in-cluster label; panoSource is optional because the cluster query LEFT JOINs pano_data. */
-  private def sampleRawLabel(panoSource: Option[PanoSource.PanoSource]): RawLabelInClusterDataForApi =
+  private def sampleRawLabel(panoSource: Option[PanoSource]): RawLabelInClusterDataForApi =
     RawLabelInClusterDataForApi(
       labelId = 8, userId = "u1", panoId = "abc123", panoSource = panoSource, severity = Some(2),
       timeCreated = OffsetDateTime.parse("2023-08-16T23:47:25Z"), latitude = 47.6, longitude = -122.3,

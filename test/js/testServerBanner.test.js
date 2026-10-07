@@ -1,5 +1,5 @@
 /**
- * Tests for the TestServerBanner class (public/js/common/TestServerBanner.js).
+ * Tests for the TestServerBanner class (frontend/js/common/TestServerBanner.js).
  *
  * TestServerBanner is a top-level `class` declaration written for the Grunt-concatenation world, so — like ShareWidget
  * and unlike the `window.X = ...` IIFE modules — require()-ing it would leave the class module-scoped. We instead eval
@@ -11,12 +11,8 @@
  * banner is hidden or positioned non-fixed (the /mobile app's absolute layout).
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/common/TestServerBanner.js'), 'utf8'
-);
 
 const STORAGE_KEY = 'hideTestServerWarningBanner';
 const HEIGHT_VAR = '--test-banner-height';
@@ -24,14 +20,14 @@ const HEIGHT_VAR = '--test-banner-height';
 /** Loads a fresh TestServerBanner class into the jsdom global scope (body is empty, so auto-init no-ops). */
 function loadTestServerBanner() {
     document.body.innerHTML = '';
-    window.eval(`${SRC}\nwindow.TestServerBanner = TestServerBanner;`);
+    Object.assign(window, loadModules('frontend/js/common/TestServerBanner.js'));
     return window.TestServerBanner;
 }
 
 /** Inserts the banner markup and returns the `.test-server-banner` element. */
 function insertBanner() {
     document.body.innerHTML = `
-        <aside class="test-server-banner" aria-label="Test server notice">
+        <aside class="test-server-banner" aria-label="Test server notice" data-storage-key="${STORAGE_KEY}">
           <div class="test-server-banner-content">
             <p class="test-server-banner-text">You're on a test server.</p>
             <div class="test-server-banner-actions">

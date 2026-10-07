@@ -14,7 +14,8 @@ community stat bands across widths and fails when one stat runs into the next (#
 
 The suite does **not** boot the app — it runs against whatever `BASE_URL` points at (default
 `http://localhost:9000`). So bring an app up first (`npm start` inside `make dev`, or `make qa-worktree
-wt=<name>` for a branch under QA); that occupies a terminal, so run the suite from a second one.
+wt=<name>` for a branch under QA); that occupies a terminal, so run the suite from a second one. It stops if another
+checkout holds `:9000` (`force=1` overrides).
 
 ```bash
 make test-e2e                                  # the whole suite
@@ -183,13 +184,14 @@ read, not a second city dump to maintain. Three things about it shape this suite
   (`fixtures/google-maps-stub.js`, routed in for every context by `fixtures.js`; #5129). Google bills every
   `StreetViewPanorama` and `Map` instantiation — local tiles or not — and the label-detail popup instantiates a
   panorama on each `/labelMap`, `/gallery`, `/dashboard` and `/stories` load (#5128), so a suite run against the
-  real API was ~20 billable events. The stub implements just the surface `public/js` uses (grep-verified; the
+  real API was ~20 billable events. The stub implements just the surface `frontend/js` uses (grep-verified; the
   file says how) and fires the events the app awaits. Its pano contract is Google's: a location search always
   finds a pano, a lookup by id succeeds only for an id the stub has seen or a registered provider vouches for
   (Explore's tutorial), and any other id is `ZERO_RESULTS` — which is what an expired pano answers in production,
-  and what sends the seeded labels down the Pannellum + backup path. A spec that wants the primary-viewer path
-  instead calls `serveAnyPano(context)` before navigating, and every id resolves the way Google keeps serving a
-  panorama our metadata check has retired; `explore-validate.spec.js` covers both. The `googleMapsLeaks`
+  and what sends the seeded labels down the Pannellum + backup path. `serveAnyPano(context)`, called before
+  navigating, makes every id resolve the way Google keeps serving a panorama our metadata check has retired;
+  `explore-validate.spec.js` runs Validate both ways and expects Pannellum both times, because a label the payload
+  flags `expired` never asks the provider (#5561). The `googleMapsLeaks`
   auto-fixture aborts and reports any request that still reaches a Google map host, and checks that whatever
   `google.maps` a page ended up with is the stub's, so a page that builds a real map or panorama cannot merge.
   `test/js/googleMapsStub.test.js` pins the stub's own contract. `/explore` asserts the audit tutorial loads: it's
@@ -199,8 +201,9 @@ read, not a second city dump to maintain. Three things about it shape this suite
   `/validate` accepts either legitimate terminal state error-free: a mission or the "no new mission" modal.
   CI takes the mission branch — the seed carries the ≥ 10 validatable labels of one type a mission needs, and
   the server resolves their imagery from the committed backups rather than a provider (#5115) — and on it asserts
-  that a panorama rendered *and which viewer rendered it*: Pannellum on the default (expired) path, the primary
-  viewer under `serveAnyPano`. `/mobile`
+  that a panorama rendered *and which viewer rendered it*: Pannellum, on the default path and under `serveAnyPano`
+  alike, since every seeded label is flagged expired. The primary viewer's own path is covered by `/explore`'s
+  tutorial. `/mobile`
   runs the same two-terminal-state check under an iPhone descriptor (the server serves that page by UA and
   redirects a desktop one to `/`), in portrait and in landscape, each pinning the layout viewport to the
   device's own width — the #4891 contract. ✅

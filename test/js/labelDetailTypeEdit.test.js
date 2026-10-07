@@ -1,5 +1,5 @@
 /**
- * Tests for changing a label's type from the label detail card (public/js/common/label-detail/LabelDetail.js,
+ * Tests for changing a label's type from the label detail card (frontend/js/common/label-detail/LabelDetail.js,
  * issue #3671).
  *
  * The title is the type: a plain span for most viewers, and for the labeler and admins a button that opens a picker
@@ -14,15 +14,9 @@
  * path, which is what the assertions read.
  */
 
-const fs = require('fs');
-const path = require('path');
 
-const { assetPathStub } = require('./loadGlobalScript');
+const { assetPathStub, installDateHelpers, loadModules } = require('./loadGlobalScript');
 
-const readSrc = (rel) => fs.readFileSync(path.resolve(__dirname, '..', '..', rel), 'utf8');
-const LABEL_DETAIL_SRC = readSrc('public/js/common/label-detail/LabelDetail.js');
-const TAG_EDITOR_SRC = readSrc('public/js/common/label-detail/TagEditor.js');
-const PICKER_SRC = readSrc('public/js/common/LabelTypePicker.js');
 
 const TYPES = ['CurbRamp', 'Obstacle', 'SurfaceProblem', 'Signal'];
 const RATED = { CurbRamp: true, Obstacle: true, SurfaceProblem: true, Signal: false };
@@ -174,7 +168,6 @@ describe('changing a label\'s type from the card (#3671)', () => {
     });
 
     window.i18next = { t: (key, opts) => (opts?.labelType ? `${key}:${opts.labelType}` : key) };
-    window.moment = () => ({ format: () => '' });
     window.logWebpageActivity = jest.fn();
     window.camelToKebab = (s) => s.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
     window.buildBackupImageData = () => null;
@@ -186,6 +179,7 @@ describe('changing a label\'s type from the card (#3671)', () => {
       isMobile: () => false,
       lazyIdentityFetch: saveRequest,
       misc: {
+        labelTypeName: (type) => window.i18next.t(`common:${window.util.camelToKebab(type)}`),
         VALID_LABEL_TYPES: TYPES,
         getRatingLevelKeys: () => ({ 1: 'low', 2: 'medium', 3: 'high' }),
         getSmileyIconPath: (sev, type, selected) => `${type}-${sev}-${selected}.svg`,
@@ -198,6 +192,7 @@ describe('changing a label\'s type from the card (#3671)', () => {
       pano: { centeredPovToCanvasCoord: () => ({ x: 0, y: 0 }) },
       url: { replaceQuery: () => {} },
     };
+    installDateHelpers();
     window.BadgeAchievements = { seedCounts: () => {}, recordValidation: () => {} };
     window.Toast = { show: jest.fn() };
     window.LabelVisibilityToggle = class { constructor() {} };
@@ -213,9 +208,11 @@ describe('changing a label\'s type from the card (#3671)', () => {
       resolvePano: (shown) => resolvePano(shown),
       activeViewerName: 'Default',
       panoViewer: { currPanoData: null },
-      svHolder: [document.createElement('div')],
+      svHolder: document.createElement('div'),
     };
     window.PopupPanoManager = { create: async () => panoManager };
+    // The stories disclosure is not what these tests exercise, and its real section wants the composer's markup.
+    window.StorySection = class { setLabel() {} };
     // The tag catalog for the tag editor, and the label itself for the vote-count refresh after a type change.
     window.fetch = jest.fn((url) => {
       if (String(url).includes('/label/id/')) {
@@ -224,7 +221,7 @@ describe('changing a label\'s type from the card (#3671)', () => {
       return Promise.resolve({ ok: true, json: async () => [] });
     });
 
-    window.eval(`${PICKER_SRC}\n${TAG_EDITOR_SRC}\n${LABEL_DETAIL_SRC}\nwindow.LabelDetail = LabelDetail;`);
+    Object.assign(window, loadModules('frontend/js/common/LabelTypePicker.js', 'frontend/js/common/label-detail/TagEditor.js', 'frontend/js/common/label-detail/LabelDetail.js'));
     card.detail = await window.LabelDetail.create(card, {
       admin: false, viewerType: 'Default', currUsername: 'tester', panoOverlaySource: 'test',
       voteColumnSource: 'test', onEdit,

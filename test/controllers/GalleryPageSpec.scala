@@ -1,14 +1,13 @@
 package controllers
 
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.i18n.{Lang, MessagesApi}
 import play.api.libs.json.{JsObject, JsValue, Json}
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
-import util.UserAgents
+import play.api.test.Helpers.*
+import util.{SidewalkSpec, UserAgents}
 
 import java.net.URLEncoder
 
@@ -28,10 +27,10 @@ import java.net.URLEncoder
  *
  * Requires a Postgres+PostGIS database (via DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD env, as in dev/CI).
  */
-class GalleryPageSpec extends PlaySpec with GuiceOneAppPerSuite {
+class GalleryPageSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule] // No eager background actors during tests.
       .build()
 
@@ -58,8 +57,8 @@ class GalleryPageSpec extends PlaySpec with GuiceOneAppPerSuite {
   /** An id no city's `label` serial has reached, so a review list naming it is always short one label. */
   private val missingLabelId: Int = Int.MaxValue
 
-  /** The `labelIds: [...]` array the page carries into its card query, as rendered. */
-  private val renderedLabelIds                     = """labelIds: \[([^\]]*)\]""".r
+  /** The `"labelIds": [...]` array the page carries into its card query, as rendered in its page-data block. */
+  private val renderedLabelIds                     = """"labelIds": \[([^\]]*)\]""".r
   private def pageLabelIds(body: String): Seq[Int] =
     renderedLabelIds.findFirstMatchIn(body).map(_.group(1)).filter(_.nonEmpty).toSeq.flatMap(_.split(",").map(_.toInt))
 
@@ -108,8 +107,8 @@ class GalleryPageSpec extends PlaySpec with GuiceOneAppPerSuite {
       assume(regionIds.nonEmpty, "connected database has no regions")
 
       val regionId = regionIds.head.as[Int]
-      galleryPage(s"?regions=$regionId") must include(s"regionIds: [$regionId]")
-      galleryPage(s"?neighborhoods=$regionId") must include(s"regionIds: [$regionId]")
+      galleryPage(s"?regions=$regionId") must include(s""""regionIds": [$regionId]""")
+      galleryPage(s"?neighborhoods=$regionId") must include(s""""regionIds": [$regionId]""")
     }
 
     "carry a label list to the page in the order it was given, deduped" in {
@@ -241,8 +240,8 @@ class GalleryPageSpec extends PlaySpec with GuiceOneAppPerSuite {
     // French string needs four of them to survive. Two renders "na pas pu", which reads as a typo in the
     // translation rather than as the quoting rule it is — hence a test, so the doubling can't be tidied away.
     "keep the apostrophe in the French over-cap notice" in {
-      messagesApi("gallery.list.truncated", 1, 500)(Lang("fr")) must include("n'a pas pu")
-      messagesApi("gallery.list.truncated", 2, 500)(Lang("fr")) must include("n'ont pas pu")
+      messagesApi("gallery.list.truncated", 1, 500)(using Lang("fr")) must include("n'a pas pu")
+      messagesApi("gallery.list.truncated", 2, 500)(using Lang("fr")) must include("n'ont pas pu")
     }
 
     "say nothing about unavailable ids when no list was asked for" in {

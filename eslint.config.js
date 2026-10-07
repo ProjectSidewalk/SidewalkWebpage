@@ -13,49 +13,62 @@ const jsdoc = require('eslint-plugin-jsdoc');
 // Our own rules, as an inline plugin: flat config takes a plugin object directly, so a one-rule plugin needs no
 // package, no build step and no npm publish. See tools/lint/eslint-rules/ for what each rule guards.
 const i18nEscapeInMarkup = require('./tools/lint/eslint-rules/i18n-escape-in-markup');
-const psPlugin = {rules: {'i18n-escape-in-markup': i18nEscapeInMarkup}};
+const escapeInMarkup = require('./tools/lint/eslint-rules/escape-in-markup');
+const psPlugin = {rules: {'i18n-escape-in-markup': i18nEscapeInMarkup, 'escape-in-markup': escapeInMarkup}};
 
 module.exports = [
   // ESLint core "recommended" -- ~45 correctness rules. Listed first so the explicit block below overrides it.
   // Scoped to JS rather than left global: these are JavaScript-correctness rules, and on the translation JSON they
   // false-positive -- no-irregular-whitespace on locales that legitimately use non-breaking spaces, for one.
-  {files: ['public/js/**/*.js'], ...js.configs.recommended},
-  // Global ignores. Flat config lints nothing unless a `files` glob below opts it in, so this only has to carve out
-  // generated bundles and vendored libraries *within* the linted tree -- no more whole-repo `*` + `!negation`
-  // gymnastics that the old ignorePatterns needed to claw scope back down to public/js.
+  {files: ['frontend/js/**/*.js'], ...js.configs.recommended},
   {
-    ignores: [
-      'public/js/**/build/**',
-    ],
-  },
-  {
-    files: ['public/js/**/*.js'],
+    files: ['frontend/js/**/*.js'],
     plugins: {
       '@stylistic': stylistic,
       'ps': psPlugin,
     },
     languageOptions: {
       ecmaVersion: 2022, // ES2022 -- needed for class fields, including `#private` members.
-      sourceType: 'script', // Files are concatenated into a global bundle by Grunt, not ES modules.
+      sourceType: 'module', // Every file is an ES module, bundled per page by Rolldown (#4467).
       globals: {
         ...globals.browser, // was `env: { browser: true }`.
         ...globals.es2021,  // was `env: { es6: true }`; supplies Promise/Map/Set/Symbol/globalThis etc.
+        // Vendor libraries loaded by <script> tag (the list tools/lint/js-types/globals.d.ts types); modules import all else.
+        AsyncLock: 'readonly',
+        bowser: 'readonly',
+        Chart: 'readonly',
+        DOMPurify: 'readonly',
+        FloatingUIDOM: 'readonly',
+        google: 'readonly',
+        i18next: 'readonly',
+        i18nextHttpBackend: 'readonly',
+        infra3dapi: 'readonly',
+        mapboxgl: 'readonly',
+        MapboxLanguage: 'readonly',
+        MapboxSearchBox: 'readonly',
+        mapillary: 'readonly',
+        pannellum: 'readonly',
+        panzoom: 'readonly',
+        PhotoSphereViewer: 'readonly',
+        proj4: 'readonly',
+        THREE: 'readonly',
+        TomSelect: 'readonly',
+        turf: 'readonly',
+        vegaEmbed: 'readonly',
       },
     },
     rules: {
       // --- Project Sidewalk's own rules ---
       // An `error`, so CI blocks on it: what it guards is an XSS, not a style preference (#5389).
       'ps/i18n-escape-in-markup': 'error',
+      'ps/escape-in-markup': 'error',
 
       // --- Code-quality / ES6 rules (ESLint core) ---
       'curly': ['error', 'multi-line', 'consistent'],
       'eqeqeq': ['error', 'always'],
-      // vars:'local' skips global-scope (top-level) declarations -- in this concat-globals bundle those are
-      // entry points consumed by another file or a Twirl view's inline <script>, not dead code (#2487). Dead
-      // locals inside functions and unused params are still flagged. A `_` prefix marks a param as intentionally
-      // unused (e.g. interface-documenting stubs in an abstract class like PanoViewer).
-      'no-unused-vars': ['error', {vars: 'local', argsIgnorePattern: '^_'}],
-      'no-undef': 'off',
+      // A `_` prefix marks a param as intentionally unused (e.g. the interface-documenting stubs in PanoViewer).
+      'no-unused-vars': ['error', {argsIgnorePattern: '^_'}],
+      'no-undef': 'error',
       'one-var': ['error', 'never'],
       'no-var': 'error',
       // Got most of the below rules from Airbnb style guide:
@@ -88,12 +101,17 @@ module.exports = [
 
       // --- Bug-catchers beyond eslint:recommended ---
       'no-unused-expressions': ['error', {allowShortCircuit: true, allowTernary: true}],
-      'no-shadow': 'error', // Easy to shadow shared globals (svl/svv/util) in an inner scope.
+      'no-shadow': 'error', // Easy to shadow a shared registry (svl/svv/util) in an inner scope.
       'no-throw-literal': 'error',
       'radix': 'error',
       'no-eval': 'error',
       'no-implied-eval': 'error',
       'no-new-func': 'error',
+      // Deprecated, and they disagree with `key`/`code` on non-US layouts (#5618).
+      'no-restricted-properties': ['error', ...['keyCode', 'which', 'charCode'].map((property) => ({
+        property,
+        message: 'Use KeyboardEvent.code for a shortcut key, or KeyboardEvent.key for the character typed.',
+      }))],
 
       // --- Modern-idiom cleanup (all auto-fixable) ---
       'prefer-object-spread': 'error',
@@ -150,11 +168,12 @@ module.exports = [
     },
   },
 
+
   // --- JSDoc (#5278) ---
   // A short list rather than `recommended`, grown as the tree is cleaned up. `require-jsdoc` stays off: which methods
   // are "non-trivial" enough to need a header is a judgment call.
   {
-    files: ['public/js/**/*.js'],
+    files: ['frontend/js/**/*.js'],
     plugins: {jsdoc},
     settings: {
       jsdoc: {
@@ -166,6 +185,9 @@ module.exports = [
     },
     rules: {
       // Skips destructured keys: we often document a destructured param as the one object it is.
+      // Also what lets `no-unused-vars` see an import a JSDoc type uses (`{typeof PanoViewer}`); the undefined-type
+      // report itself stays off, since `make lint-js-types` already catches those with real resolution.
+      'jsdoc/no-undefined-types': ['error', {disableReporting: true}],
       'jsdoc/check-param-names': ['error', {checkDestructured: false}],
       'jsdoc/check-tag-names': 'error',
       // Also catches two tags on one line (`/** @private @type {X} */`), which hides the second from every other rule.
@@ -222,7 +244,7 @@ module.exports = [
 
   // --- Browser smoke suite (test/e2e/) + its config ---
   // Node-side CommonJS (Playwright test runner), unlike the browser-global concat bundles above — so it gets its
-  // own block with node globals rather than joining the public/js one. Kept to the core recommended rules; the
+  // own block with node globals rather than joining the frontend/js one. Kept to the core recommended rules; the
   // suite is a handful of files and the full @stylistic house-style preset isn't worth a second tuning pass here.
   {files: ['test/e2e/**/*.js', 'playwright.config.js'], ...js.configs.recommended},
   {
@@ -245,12 +267,10 @@ module.exports = [
   },
 
   // --- jsdom unit suite (test/js/) ---
-  // Unlike public/js this keeps `no-undef`: these are CommonJS modules, so an undefined identifier is unambiguous and
-  // the rule catches the typo'd helper in a branch that only runs sometimes. The bundle globals a suite stands up on
-  // `window` and then reads bare are named below; the handful of subjects a suite pulls in via `eval` are declared
-  // per-file with `/* global */`, so they stay scoped to the one suite that injects them rather than becoming
-  // project-wide names whose typos would stop being reported. The @stylistic house style is deliberately not applied
-  // -- these files are 4-space, and reformatting 26k lines would bury every real finding (#2487).
+  // `no-undef` stays on: a typo'd helper in a rarely-run branch is otherwise invisible. Only the registries a suite
+  // fakes on `window` (test/js/moduleTransform.js) are project-wide names; anything else hoisted onto `global` is
+  // declared per-file with `/* global */`. The @stylistic house style is not applied: these files are 4-space, and
+  // reformatting 26k lines would bury every real finding (#2487).
   {files: ['test/js/**/*.js'], ...js.configs.recommended},
   {
     files: ['test/js/**/*.js'],
@@ -261,12 +281,10 @@ module.exports = [
         ...globals.node,
         ...globals.jest,
         ...globals.browser,
-        // The concat bundle's globals: a suite assigns these onto `window`, then reads them bare as the subject does.
         svl: 'writable',
         svv: 'writable',
         sg: 'writable',
         util: 'writable',
-        $: 'writable',
       },
     },
     rules: {

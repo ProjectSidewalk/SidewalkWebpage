@@ -1,5 +1,5 @@
 /**
- * Tests for the sidebar's street-row emphasis (public/js/ps-map/MapSidebarFilter.js, #5258).
+ * Tests for the sidebar's street-row emphasis (frontend/js/ps-map/MapSidebarFilter.js, #5258).
  *
  * The three street states differ on the map only by color and dash pattern, so pointing at a row swells the streets
  * it stands for. The interesting part is not the swelling but the bookkeeping around it: pointer and keyboard both
@@ -11,13 +11,8 @@
  * helpers are eval'd into jsdom.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const SRC_DIR = path.resolve(__dirname, '..', '..', 'public/js');
-const FILTER_SIDEBAR_SRC = fs.readFileSync(path.join(SRC_DIR, 'common/filter-sidebar/FilterSidebar.js'), 'utf8');
-const MAP_SIDEBAR_SRC = fs.readFileSync(path.join(SRC_DIR, 'ps-map/MapSidebarFilter.js'), 'utf8');
-const MAP_UTILS_SRC = fs.readFileSync(path.join(SRC_DIR, 'ps-map/psMapUtilities.js'), 'utf8');
 
 const STREET_ROWS = ['audited-street', 'outdated-street', 'unaudited-street'];
 
@@ -86,11 +81,10 @@ describe('street row emphasis', () => {
         window.i18next = { t: (key) => key, language: 'en' };
         window.filterLabelLayers = () => {};
         window.toggleLabelLayer = () => {};
-        window.eval(`${FILTER_SIDEBAR_SRC}\nwindow.FilterSidebar = FilterSidebar;`);
+        Object.assign(window, loadModules('frontend/js/common/filter-sidebar/FilterSidebar.js'));
         // The real helpers, so the width expression under test is the one the layer is actually built with.
-        window.eval(`${MAP_UTILS_SRC}\nwindow.emphasizeStreetState = emphasizeStreetState;`
-            + '\nwindow.streetLineWidth = streetLineWidth;\nwindow.filterStreetLayer = filterStreetLayer;');
-        window.eval(`${MAP_SIDEBAR_SRC}\nwindow.MapSidebarFilter = MapSidebarFilter;`);
+        Object.assign(window, loadModules('frontend/js/ps-map/psMapUtilities.js'));
+        Object.assign(window, loadModules('frontend/js/ps-map/MapSidebarFilter.js'));
     });
 
     beforeEach(() => {

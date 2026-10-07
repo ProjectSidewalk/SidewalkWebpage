@@ -1,15 +1,13 @@
 /**
- * Tests the Explore survey dialog (public/js/explore/src/modal/ModalSurvey.js): where focus lands on open, which
+ * Tests the Explore survey dialog (frontend/js/explore/modal/ModalSurvey.js): where focus lands on open, which
  * closes count as a skip, and what a submit posts.
  *
  * jsdom has no <dialog> implementation, so showModal/close are stubbed on the prototype to flip `open` and fire
  * `close` the way a browser does (asynchronously).
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const SRC = fs.readFileSync(path.resolve(__dirname, '../../public/js/explore/src/modal/ModalSurvey.js'), 'utf8');
 
 function installDialogStub() {
   HTMLDialogElement.prototype.showModal = function () {
@@ -24,7 +22,11 @@ function installDialogStub() {
   };
 }
 
-const flush = () => new Promise((resolve) => setTimeout(resolve, 5));
+// Waits for the dialog's next `close` rather than a fixed delay: a close that lands after the next step would be
+// counted against it (a late submit close after a reopen reads as a skip).
+const nextClose = () => new Promise((resolve) => {
+  document.getElementById('survey-modal-container').addEventListener('close', resolve, { once: true });
+});
 
 let logged;
 let posted;
@@ -54,7 +56,7 @@ beforeEach(() => {
     ribbon: { disableModeSwitch: noop, enableModeSwitch: noop },
     zoomControl: { disableZoomIn: noop, disableZoomOut: noop, enableZoomIn: noop, enableZoomOut: noop },
   };
-  window.eval(`${SRC}\nwindow.ModalSurvey = ModalSurvey;`);
+  Object.assign(window, loadModules('frontend/js/explore/modal/ModalSurvey.js'));
   survey = new window.ModalSurvey();
 });
 
@@ -67,7 +69,7 @@ test('opens with focus on the dialog itself, not the skip X', () => {
 test('a close that is not a submit is logged as a skip', async () => {
   survey.open();
   document.getElementById('survey-skip-button').click();
-  await flush();
+  await nextClose();
 
   expect(document.getElementById('survey-modal-container').open).toBe(false);
   expect(logged).toEqual(['SurveySkip']);
@@ -79,7 +81,7 @@ test('a submit posts the answers as name/value pairs and is not a skip', async (
   form.querySelector('input').checked = true;
   form.querySelector('textarea').value = 'because';
   form.dispatchEvent(new Event('submit', { cancelable: true }));
-  await flush();
+  await nextClose();
 
   expect(posted).toEqual([[{ name: '1', value: 'a' }, { name: '2', value: 'because' }]]);
   expect(document.getElementById('survey-modal-container').open).toBe(false);
@@ -89,10 +91,10 @@ test('a submit posts the answers as name/value pairs and is not a skip', async (
 test('a skip after an earlier submit is still a skip', async () => {
   survey.open();
   document.getElementById('survey-form').dispatchEvent(new Event('submit', { cancelable: true }));
-  await flush();
+  await nextClose();
   survey.open();
   document.getElementById('survey-skip-button').click();
-  await flush();
+  await nextClose();
 
   expect(logged).toEqual(['SurveySkip']);
 });

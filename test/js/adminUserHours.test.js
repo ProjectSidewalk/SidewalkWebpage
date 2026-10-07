@@ -7,20 +7,19 @@
  * instead of marking the total as a floor. The failure path matters for the same reason — a KPI left on its loading
  * placeholder reads as "zero hours" to an admin verifying a claim.
  *
- * Runs under jsdom (jest.config.js). AdminUser is a bare top-level class in a concatenated bundle, so it is eval'd
- * into global scope rather than required.
+ * Runs under jsdom (jest.config.js).
  */
 
-const fs = require('fs');
-const path = require('path');
+const { installDateHelpers, loadModules, realUtil } = require('./loadGlobalScript');
 
-const ADMIN_USER_SRC = fs.readFileSync(
-  path.resolve(__dirname, '..', '..', 'public/js/user-dashboard/AdminUser.js'), 'utf8');
+window.util = realUtil();
 
 let AdminUser;
 
 beforeAll(() => {
-  AdminUser = (0, eval)(`${ADMIN_USER_SRC}\nAdminUser;`);
+  window.i18next = { language: 'en' };
+  installDateHelpers();
+  AdminUser = loadModules('frontend/js/user-dashboard/AdminUser.js').AdminUser;
 });
 
 /** The stats section of adminUser.scala.html, trimmed to what the hours code touches. */
@@ -32,7 +31,7 @@ function buildDom() {
         <span class="ps-kpi-label" id="au-hours-label">Exploring &amp; validating</span>
       </div>
     </div>
-    <span id="au-hours-status" class="ud-sr-only" role="status" aria-live="polite"></span>
+    <span id="au-hours-status" class="sr-only" role="status" aria-live="polite"></span>
     <div id="au-hours-cities" hidden>
       <h3 class="page-subhead" id="au-hours-cities-title">Where their time came from</h3>
       <div class="ps-table-scroll ud-admin-hours-cities" id="au-hours-cities-table"></div>

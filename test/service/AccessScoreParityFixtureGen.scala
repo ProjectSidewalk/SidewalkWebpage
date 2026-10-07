@@ -38,7 +38,7 @@ object AccessScoreParityFixtureGen {
   )
 
   /** Dense per-type object in the API's type order, defaulting to `default`. */
-  private def perType[T](values: Map[String, T], default: T)(implicit w: play.api.libs.json.Writes[T]): JsObject =
+  private def perType[T](values: Map[String, T], default: T)(using w: play.api.libs.json.Writes[T]): JsObject =
     JsObject(AccessScoreCalculator.orderedScoredTypes.map(t => t -> Json.toJson(values.getOrElse(t, default))))
 
   /** Dense per-type-per-bucket object in the API's order, defaulting to 0. */
@@ -131,7 +131,7 @@ object AccessScoreParityFixtureGen {
 
   /** Random streets, each with a random length from below the floor to several hundred meters. */
   def randomStreets(seed: Int, count: Int): Seq[(String, Double, Seq[ClusterScoreInput])] = {
-    val rng   = new scala.util.Random(seed)
+    val rng   = scala.util.Random(seed)
     val types = AccessScoreCalculator.orderedScoredTypes :+ "Occlusion"
     (1 to count).map { i =>
       val clusters = randomClusters(rng, types)
@@ -163,7 +163,7 @@ object AccessScoreParityFixtureGen {
 
   /** Random intersections: corner types only, as attribution guarantees. */
   def randomIntersections(seed: Int, count: Int): Seq[(String, Seq[ClusterScoreInput])] = {
-    val rng = new scala.util.Random(seed)
+    val rng = scala.util.Random(seed)
     (1 to count).map(i =>
       s"random intersection $i" -> randomClusters(rng, AccessScoreCalculator.orderedIntersectionTypes)
     )
@@ -212,7 +212,10 @@ object AccessScoreParityFixtureGen {
 
   /** The engine's weight on the mean grade: the statistic most of these cases are written against. */
   private val weighted: SlopeSettings =
-    AccessScoreCalculator.defaultSlopeSettings.copy(weight = 1.0, statistic = AccessScoreCalculator.MeanGrade)
+    AccessScoreCalculator.defaultSlopeSettings.copy(
+      weight = 1.0,
+      statistic = AccessScoreCalculator.SlopeStatistic.MeanGrade
+    )
 
   /**
    * The slope cases: a base street from the cases above (by name, so its clusters and length are not repeated), a
@@ -252,19 +255,23 @@ object AccessScoreParityFixtureGen {
         "the max-grade statistic reads the steepest stretch",
         ramp,
         Some(slope(0.03, 0.075, 0.02)),
-        weighted.copy(statistic = AccessScoreCalculator.MaxGrade)
+        weighted.copy(statistic = AccessScoreCalculator.SlopeStatistic.MaxGrade)
       ),
       (
         "meters over the limits is a share of the length, the ramp limit counted twice",
         hilly,
         Some(slope(0.06, 0.1, 0.05, over5 = 180, over8 = 60)),
-        weighted.copy(statistic = AccessScoreCalculator.MetersOverLimit)
+        weighted.copy(statistic = AccessScoreCalculator.SlopeStatistic.MetersOverLimit)
       ),
       (
         "meters over the limits ignores the reader's thresholds",
         hilly,
         Some(slope(0.06, 0.1, 0.05, over5 = 180, over8 = 60)),
-        weighted.copy(statistic = AccessScoreCalculator.MetersOverLimit, lowThreshold = 0.2, highThreshold = 0.3)
+        weighted.copy(
+          statistic = AccessScoreCalculator.SlopeStatistic.MetersOverLimit,
+          lowThreshold = 0.2,
+          highThreshold = 0.3
+        )
       ),
       (
         "custom thresholds move the ramp",
@@ -342,7 +349,7 @@ object AccessScoreParityFixtureGen {
         "the over-limit statistic finds no lengths on a coarse-model row",
         ramp,
         Some(netOnly(0.2)),
-        weighted.copy(statistic = AccessScoreCalculator.MetersOverLimit, includeApproximate = true)
+        weighted.copy(statistic = AccessScoreCalculator.SlopeStatistic.MetersOverLimit, includeApproximate = true)
       ),
       ("an unsampled street takes no slope term", hilly, None, weighted.copy(barrierEnabled = true)),
       (
@@ -383,7 +390,7 @@ object AccessScoreParityFixtureGen {
     namedStreets
       .collectFirst { case (n, cs) if n == name => (cs, referenceLength) }
       .orElse(lengthStreets.collectFirst { case (n, len, cs) if n == name => (cs, len) })
-      .getOrElse(throw new IllegalArgumentException(s"no street case named '$name'"))
+      .getOrElse(throw IllegalArgumentException(s"no street case named '$name'"))
 
   /** One slope case in the fixture's JSON shape: the base street's name, the slope, the settings, and the results. */
   private def slopeCaseJson(

@@ -1,5 +1,5 @@
 /**
- * Tests for the label card's edit gating (public/js/common/label-detail/LabelDetail.js, issue #5047).
+ * Tests for the label card's edit gating (frontend/js/common/label-detail/LabelDetail.js, issue #5047).
  *
  * Two behaviors ride on the same render pass, so they are pinned together here.
  *
@@ -28,11 +28,9 @@
 const fs = require('fs');
 const path = require('path');
 
-const { assetPathStub } = require('./loadGlobalScript');
+const { assetPathStub, installDateHelpers, loadModules } = require('./loadGlobalScript');
 
 const readSrc = (rel) => fs.readFileSync(path.resolve(__dirname, '..', '..', rel), 'utf8');
-const LABEL_DETAIL_SRC = readSrc('public/js/common/label-detail/LabelDetail.js');
-const TAG_EDITOR_SRC = readSrc('public/js/common/label-detail/TagEditor.js');
 /** The shipped English copy, so the wording tests read the strings a user sees rather than the keys. */
 const EN_LABELMAP = JSON.parse(readSrc('public/locales/en/labelmap.json'));
 
@@ -268,7 +266,6 @@ describe('LabelDetail edit gating (#5047)', () => {
         // i18next echoes its key so assertions can name the key they expect rather than an English string that
         // translation churn would break.
         window.i18next = { t: (key) => key };
-        window.moment = () => ({ format: () => '' });
         window.logWebpageActivity = jest.fn();
         window.camelToKebab = (s) => s.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
         window.buildBackupImageData = () => null;
@@ -279,6 +276,7 @@ describe('LabelDetail edit gating (#5047)', () => {
             isMobile: () => false,
             lazyIdentityFetch: saveRequest,
             misc: {
+                labelTypeName: (type) => window.i18next.t(`common:${window.camelToKebab(type)}`),
                 getRatingLevelKeys: () => ({ 1: 'low', 2: 'medium', 3: 'high' }),
                 getSmileyIconPath: (sev, type, selected) => `${type}-${sev}-${selected}.svg`,
                 isPositiveLabelType: () => false,
@@ -287,6 +285,7 @@ describe('LabelDetail edit gating (#5047)', () => {
             pano: { centeredPovToCanvasCoord: () => ({ x: 0, y: 0 }), renderedHFov: () => 90 },
             url: { replaceQuery: () => {} },
         };
+        installDateHelpers();
         window.BadgeAchievements = { seedCounts: () => {}, recordValidation: () => {} };
         window.LabelVisibilityToggle = class { constructor() {} };
         window.PanoInfoPopover = class { constructor() {} };
@@ -299,9 +298,11 @@ describe('LabelDetail edit gating (#5047)', () => {
             setPano: jest.fn(() => setPano.promise),
             activeViewerName: 'Default',
             panoViewer: { currPanoData: null, getViewerType: () => 'gsv' },
-            svHolder: [document.createElement('div')],
+            svHolder: document.createElement('div'),
         };
         window.PopupPanoManager = { create: async () => panoManager };
+        // The stories disclosure is not what these tests exercise, and its real section wants the composer's markup.
+        window.StorySection = class { setLabel() {} };
 
         // TagEditor fetches the city's tag catalog on first open; nothing else here goes to the network, so an
         // unexpected call shows up as an unmatched URL rather than a silent pass.
@@ -312,7 +313,7 @@ describe('LabelDetail edit gating (#5047)', () => {
             return Promise.resolve({ ok: true, json: async () => ({}) });
         });
 
-        window.eval(`${TAG_EDITOR_SRC}\n${LABEL_DETAIL_SRC}\nwindow.LabelDetail = LabelDetail;`);
+        Object.assign(window, loadModules('frontend/js/common/label-detail/TagEditor.js', 'frontend/js/common/label-detail/LabelDetail.js'));
         LabelDetail = window.LabelDetail;
 
         card.detail = await LabelDetail.create(card, {
@@ -381,7 +382,7 @@ describe('LabelDetail edit gating (#5047)', () => {
     });
 
     describe('with imagery, a viewer who may edit gets live controls', () => {
-        test('the faces and the Tags control are live, with no lock tooltip', async () => {
+        test('the faces and the Tags control are live, the faces naming their level rather than a lock', async () => {
             await showLabel();
             await resolveImagery(true);
 
@@ -392,7 +393,7 @@ describe('LabelDetail edit gating (#5047)', () => {
             for (const face of faces()) {
                 expect(face.hasAttribute('aria-disabled')).toBe(false);
                 expect(face.hasAttribute('tabindex')).toBe(false);
-                expect(face.hasAttribute('data-ps-tooltip')).toBe(false);
+                expect(face.getAttribute('data-ps-tooltip')).toMatch(/^common:severity: common:/);
                 expect(face.classList.contains('severity-button--static')).toBe(false);
             }
         });
@@ -444,8 +445,6 @@ describe('LabelDetail edit gating (#5047)', () => {
                 expect(face.getAttribute('aria-disabled')).toBe('true');
                 expect(face.hasAttribute('tabindex')).toBe(false);
                 expect(face.getAttribute('data-ps-tooltip')).toBe('labelmap:no-imagery-edit-disabled');
-                // The lock is the more useful thing to say than the face's own level, which reads like an offer.
-                expect(face.title).toBe('');
             }
         });
 
@@ -508,18 +507,18 @@ describe('LabelDetail edit gating (#5047)', () => {
                 expect(face.getAttribute('aria-disabled')).toBe('true');
                 // Out of the tab order, unlike the no-imagery case: there is no reason to go and hear.
                 expect(face.getAttribute('tabindex')).toBe('-1');
-                expect(face.hasAttribute('data-ps-tooltip')).toBe(false);
+                expect(face.getAttribute('data-ps-tooltip')).toMatch(/^common:severity: common:/);
                 expect(face.classList.contains('severity-button--static')).toBe(true);
             }
         });
 
-        test('no imagery adds no tooltip for them either', async () => {
+        test('no imagery adds no lock tooltip for them either', async () => {
             // Severity and tags were never controls for this viewer, so naming a lock on them would be noise.
             await showLabel({ can_edit: false });
             await resolveImagery(false);
 
             expect(tagsEdit().hidden).toBe(true);
-            for (const face of faces()) expect(face.hasAttribute('data-ps-tooltip')).toBe(false);
+            for (const face of faces()) expect(face.getAttribute('data-ps-tooltip')).toMatch(/^common:severity: common:/);
         });
     });
 

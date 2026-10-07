@@ -1,4 +1,5 @@
 .PHONY: dev docker-up docker-up-db docker-run docker-stop npm-sync ssh qa-worktree qa-worktree-stop worktree-remove \
+        lease-status lease-take lease-release \
         test-js test-e2e test-e2e-host \
         test-python test-python-app test-python-tools \
         import-users import-dump create-new-schema fill-new-schema onboard-city build-city-data check-imagery \
@@ -6,6 +7,7 @@
         import-street-imagery export-street-gradient-input street-gradient import-street-gradient \
         reveal-or-hide-regions \
         lint lint-fix lint-evolutions lint-locales lint-css-layout lint-asset-paths lint-vendor-versions lint-js-types \
+        lint-spec-base lint-shellcheck shellcheck \
         scalafmt scalafmt-fix compile test-scala clean-dist \
         eslint htmlhint stylelint eslint-fix stylelint-fix \
         lint-eslint lint-htmlhint lint-stylelint lint-fix-eslint lint-fix-stylelint
@@ -22,23 +24,30 @@ only ?=
 clean ?=
 force ?=
 replace ?=
+wait ?=
+purpose ?=
+res ?=
 
 # `clean=1` (or true/yes) expands to the qa-worktree-stop --clean flag; anything else (incl. empty) expands to nothing.
 qa-stop-clean-flag = $(if $(filter 1 true yes,$(clean)),--clean,)
 # Same idiom for worktree-remove's `force=1`.
 worktree-force-flag = $(if $(filter 1 true yes,$(force)),--force,)
+# Same idiom for a lease's `wait=1` and `force=1` (tools/dev/lease.sh).
+lease-flags = $(if $(filter 1 true yes,$(wait)),--wait,) $(if $(filter 1 true yes,$(force)),--force,)
+# Who's asking, for the lease: the Claude session (unset in a terminal) and `purpose="…"`.
+lease-env = -e CLAUDE_CODE_SESSION_ID -e LEASE_PURPOSE="$(purpose)"
 # Same idiom for import-users' `replace=1`, which wipes the login schema instead of merging into it.
 import-users-replace-flag = $(if $(filter 1 true yes,$(replace)),--replace,)
 
 # Resolve which copy of qa-worktree.sh to run, then exec it with the args in $(1). The main repo is mounted at the
 # container's /home, so /home/tools/dev/qa-worktree.sh is the script as it exists on whatever branch the MAIN checkout
 # happens to be on — which may predate the script entirely (#4628). Prefer the worktree's own copy so the branch being
-# QA'd supplies its own tooling, and fall back to the main repo's for worktrees branched before the script existed.
+# QA'd supplies its own tooling, and fall back to the main repo's for a copy that predates it or the :9000 lease.
 # Held in a variable rather than written inline in a recipe: make condenses a variable's backslash-continuations into
 # single spaces at parse time, so the container's shell receives one flat line — no reliance on how a given make version
 # passes continuations and leading tabs through to the shell (macOS still ships make 3.81, WSL/Linux run 4.x).
 qa-worktree-exec = script="/home/.claude/worktrees/$(wt)/tools/dev/qa-worktree.sh"; \
-  [ -f "$$script" ] || script=/home/tools/dev/qa-worktree.sh; \
+  grep -qs "lease take" "$$script" || script=/home/tools/dev/qa-worktree.sh; \
   [ -f "$$script" ] || { echo "error: no tools/dev/qa-worktree.sh in worktree $(wt) or in the main checkout"; exit 1; }; \
   exec bash "$$script" $(1)
 # Every wt= target fails fast on a missing name rather than passing an empty one along.
@@ -72,7 +81,7 @@ BOLD  := \033[1m
 RESET := \033[0m
 # What each linter checks: everything by default, or just dir=. stylelint needs file patterns, so a folder gets
 # /**/*.css added.
-eslint-paths   = $(if $(filter ./,$(dir)),public/js/ public/locales/ test/js/ test/e2e/ playwright.config.js,$(dir))
+eslint-paths   = $(if $(filter ./,$(dir)),frontend/js/ public/locales/ test/js/ test/e2e/ playwright.config.js,$(dir))
 htmlhint-paths = $(if $(filter ./,$(dir)),./app/views,$(dir))
 css-glob       = $(if $(filter ./,$(dir)),public/**/*.css,$(if $(filter %.css,$(dir)),$(dir),$(dir)/**/*.css))
 
@@ -115,8 +124,6 @@ e2e-user   = $(e2e-uid):$(if $(filter 0,$(docker-rootless)),$(shell id -g),0)
 # in place instead of sending the developer to sudo. Held in a variable, not written inline in the recipe, because
 # make condenses a variable's backslash-continuations to spaces at parse time and the container's shell would
 # otherwise receive them literally inside the single-quoted script (same reason as qa-worktree-exec).
-# Which checkout the app on :9000 is running from.
-e2e-app-dir = for p in $$(pgrep -f "[~] run"); do readlink /proc/$$p/cwd; done | head -1
 e2e-fix-artifact-owner = cd $(container-dir) 2>/dev/null || exit 0; \
   for d in test-results playwright-report; do \
     [ -d "$$d" ] || continue; \
@@ -137,13 +144,15 @@ eslint-fix: | lint-fix-eslint
 
 stylelint-fix: | lint-fix-stylelint
 
-# Runs every linter (the frontend set + evolutions) even if an earlier one fails, so all problems surface in one pass,
-# then prints a ✓/✗ per linter and a colored summary. Exits non-zero if any failed.
+shellcheck: | lint-shellcheck
+
+# Runs every linter (the frontend set + evolutions + shell scripts) even if an earlier one fails, so all problems
+# surface in one pass, then prints a ✓/✗ per linter and a colored summary. Exits non-zero if any failed.
 lint:
 	@printf "$(BOLD)Linting %s$(RESET)\n" "$(container-dir)"
 	@fail=0; \
 	for t in lint-eslint lint-htmlhint lint-stylelint lint-locales lint-css-layout lint-asset-paths \
-			lint-vendor-versions lint-js-types lint-evolutions; do \
+			lint-vendor-versions lint-js-types lint-spec-base lint-evolutions lint-shellcheck; do \
 		if $(MAKE) --no-print-directory $$t; then \
 			printf "$(GREEN)✓ %s passed$(RESET)\n" "$$t"; \
 		else \
@@ -194,7 +203,7 @@ ssh:
 # "Running a worktree's app for QA". e.g. `make qa-worktree wt=remove-admin-classic`.
 qa-worktree:
 	$(worktree-require-wt)
-	@docker exec -it $(web-container) bash -c '$(call qa-worktree-exec,$(wt))'
+	@docker exec -it $(lease-env) $(web-container) bash -c '$(call qa-worktree-exec,$(wt) $(lease-flags))'
 
 # End a qa-worktree session: stop its app, its grunt watch, and any sbt left running there. Add `clean=1` to also
 # drop the node_modules symlink. e.g. `make qa-worktree-stop wt=remove-admin-classic` or
@@ -209,6 +218,18 @@ qa-worktree-stop:
 worktree-remove:
 	$(worktree-require-wt)
 	@bash tools/dev/worktree-remove.sh $(wt) --container $(web-container) $(worktree-force-flag)
+
+# Leases (tools/dev/lease.sh): `app` is :9000 and `db-tests` the Scala test DB, or claim anything else by name.
+lease-status:
+	@docker exec $(web-container) bash $(self-container-dir)/tools/dev/lease.sh status $(res)
+
+lease-take:
+	@[ -n "$(res)" ] || { echo "usage: make lease-take res=<name> [wait=1] [force=1] [purpose=\"…\"]"; exit 2; }
+	@docker exec $(tty-flags) $(lease-env) $(web-container) bash $(self-container-dir)/tools/dev/lease.sh take $(res) --checkout $(container-dir) $(lease-flags)
+
+lease-release:
+	@[ -n "$(res)" ] || { echo "usage: make lease-release res=<name>"; exit 2; }
+	@docker exec $(web-container) bash $(self-container-dir)/tools/dev/lease.sh release $(res) --checkout $(container-dir)
 
 import-users:
 	@docker exec -it $(db-container) sh -c "/opt/scripts/import-users.sh $(import-users-replace-flag)"
@@ -279,7 +300,7 @@ import-street-gradient:
 
 # Python utility tests (test/python/) in the web container; extra pytest flags via args=, e.g. args="-k bbox -v".
 # Split by interpreter because the scripts are: label_clustering.py runs in-band on prod's `python3` (3.8), while the
-# offline tooling needs >= 3.11. Each half runs the whole directory minus the files only the other's interpreter can
+# offline tooling needs >= 3.12. Each half runs the whole directory minus the files only the other's interpreter can
 # import, so a new test file runs in both by default instead of silently in neither. The COVERAGE_OMIT* slots are
 # explained in pyproject.toml.
 pytest-args-app   = test/python --ignore=test/python/test_check_streets_for_imagery.py \
@@ -332,8 +353,9 @@ test-e2e:
 	  || { echo "error: no @playwright/test version found in package-lock.json — is it still listed as a devDependency?"; exit 2; }
 	@[ -n "$(axe-version)" ] \
 	  || { echo "error: no @axe-core/playwright version found in package-lock.json — is it still listed as a devDependency?"; exit 2; }
-	@app=$$(docker exec $(web-container) sh -c '$(e2e-app-dir)'); [ -z "$$app" ] || [ "$$app" = "$(container-dir)" ] \
-	  || echo "warning: the app on :9000 is $$app's, not $(container-dir)'s (make qa-worktree wt=<name> serves a worktree)"
+	@docker exec $(web-container) bash $(self-container-dir)/tools/dev/lease.sh check app --checkout $(container-dir) \
+	  || [ -n "$(filter 1 true yes,$(force))" ] \
+	  || { echo "Wait for :9000 (a worktree: make qa-worktree wt=<name> wait=1), or add force=1 to test that app anyway."; exit 1; }
 	@docker exec $(web-container) sh -c '$(e2e-fix-artifact-owner)'
 	@if docker image inspect $(e2e-image):$(e2e-tag) > /dev/null 2>&1; then \
 	  docker build --quiet --build-arg PW_VERSION=$(pw-version) --build-arg AXE_VERSION=$(axe-version) -t $(e2e-image):$(e2e-tag) docker/e2e > /dev/null; \
@@ -362,7 +384,7 @@ reveal-or-hide-regions:
 
 # Static checks on conf/evolutions/default/*.sql. Host-side bash, no container needed. Also a blocking CI job.
 lint-evolutions:
-	@bash "$(host-dir)/db/scripts/lint-evolutions.sh"
+	@bash "$(check-host-dir)$(host-dir)/db/scripts/lint-evolutions.sh"
 
 # Cross-locale key parity and empty values for public/locales/ (the i18next plural/override handling a per-file JSON
 # rule can't do). Pure node, run in the web container so node is present. Also a blocking CI step.
@@ -379,7 +401,7 @@ lint-css-layout:
 	@docker exec $(web-container) bash -lc "cd $(container-dir) && node tools/lint/check-css-layout.mjs"
 	@echo "Finished checking CSS layout";
 
-# Asset URLs in public/js/ (#4893): no hardcoded '/assets/' outside the allowlist, and every util.assetPath()
+# Asset URLs in frontend/js/ (#4893): no hardcoded '/assets/' outside the allowlist, and every util.assetPath()
 # argument checkable — a literal one naming a real file in a fingerprinted family, an interpolated one opening with a
 # literal family directory. Pure node, run in the web container so node is present. Also a blocking CI step.
 lint-asset-paths:
@@ -396,20 +418,36 @@ lint-vendor-versions:
 	@docker exec $(web-container) bash -lc "cd $(container-dir) && node tools/lint/check-vendor-versions.mjs"
 	@echo "Finished checking vendor versions";
 
-# Type-checks public/js/ from its JSDoc with TypeScript (#5278). Also a blocking CI step.
+# Type-checks frontend/js/ from its JSDoc with TypeScript (#5278). Also a blocking CI step.
 lint-js-types:
 	@echo "Checking JS types...";
 	@docker exec $(web-container) bash -lc "cd $(container-dir) && node tools/lint/check-js-types.mjs"
 	@echo "Finished checking JS types";
 
+# Every backend spec extends util.SidewalkSpec rather than PlaySpec (#3936). Also a blocking CI step.
+lint-spec-base:
+	@echo "Checking spec base classes...";
+	@docker exec $(web-container) bash -lc "cd $(container-dir) && node tools/lint/check-spec-base.mjs"
+	@echo "Finished checking spec base classes";
+
+# ShellCheck over the repo's .sh files (#5589). Host-side, in ShellCheck's own Docker image (pinned in
+# docker/shellcheck/Dockerfile), so the web container doesn't need to be up. Scope it with files=, e.g.
+# `make shellcheck files=tools/dev/lease.sh`. Also a blocking CI step.
+lint-shellcheck:
+	@echo "Running ShellCheck...";
+	@bash "$(check-host-dir)$(host-dir)/tools/lint/shellcheck.sh" $(files)
+	@echo "Finished running ShellCheck";
+
 # The sbt targets below go through tools/dev/sbt-run.sh; its header says what that guards against.
 #
-# Scala formatting (.scalafmt.conf). `scalafmt` checks (the blocking CI gate); `scalafmt-fix` reformats in place.
+# Scala formatting (.scalafmt.conf), covering the build files too. `scalafmt` checks (the blocking CI gate);
+# `scalafmt-fix` reformats in place. The two checks run separately because sbt stops at its first failing command,
+# and one failure shouldn't hide the other.
 scalafmt:
-	@echo "Checking Scala formatting..."; docker exec $(tty-flags) -e SBT_OPTS="$(sbt-opts)" $(web-container) bash -lc "cd $(self-container-dir) && bash tools/dev/sbt-run.sh --dir $(container-dir) scalafmtCheckAll"
+	@echo "Checking Scala formatting..."; docker exec $(tty-flags) -e SBT_OPTS="$(sbt-opts)" $(web-container) bash -lc "cd $(self-container-dir) && { bash tools/dev/sbt-run.sh --dir $(container-dir) scalafmtCheckAll; s=\$$?; bash tools/dev/sbt-run.sh --dir $(container-dir) scalafmtSbtCheck && exit \$$s; }"
 
 scalafmt-fix:
-	@echo "Formatting Scala..."; docker exec $(tty-flags) -e SBT_OPTS="$(sbt-opts)" $(web-container) bash -lc "cd $(self-container-dir) && bash tools/dev/sbt-run.sh --dir $(container-dir) scalafmtAll"
+	@echo "Formatting Scala..."; docker exec $(tty-flags) -e SBT_OPTS="$(sbt-opts)" $(web-container) bash -lc "cd $(self-container-dir) && bash tools/dev/sbt-run.sh --dir $(container-dir) 'scalafmtAll; scalafmtSbt'"
 
 # Compile, and run the Scala tests (which need the db container). Narrow the tests with only=, e.g.
 # `make test-scala only=controllers.api.PublicApiSpec`. A test run waits for any other checkout's to finish first.
@@ -417,13 +455,13 @@ compile:
 	@docker exec $(tty-flags) -e SBT_OPTS="$(sbt-opts)" $(web-container) bash -lc "cd $(self-container-dir) && bash tools/dev/sbt-run.sh --dir $(container-dir) compile"
 
 test-scala:
-	@docker exec $(tty-flags) -e SBT_OPTS="$(sbt-opts)" $(web-container) bash -lc "cd $(self-container-dir) && bash tools/dev/sbt-run.sh --dir $(container-dir) --db-lock $(if $(only),'testOnly $(only)',test)"
+	@docker exec $(tty-flags) $(lease-env) -e SBT_OPTS="$(sbt-opts)" $(web-container) bash -lc "cd $(self-container-dir) && bash tools/dev/sbt-run.sh --dir $(container-dir) --db-lock $(if $(only),'testOnly $(only)',test)"
 
 # Each release build leaves ~1GB of jars named after its version and removes none of the older ones. Drops those,
 # keeping compiled classes so the next `make compile` is still incremental.
 clean-dist:
 	@echo "Removing packaged build output from $(host-dir)..."
-	@docker exec $(web-container) bash -lc "cd $(container-dir) && rm -rf target/scala-2.13/*.jar target/universal/stage target/universal/*.zip"
+	@docker exec $(web-container) bash -lc "cd $(container-dir) && rm -rf target/scala-*/*.jar target/universal/stage target/universal/*.zip"
 	@echo "Done. target/ is now $$(du -sh $(host-dir)/target 2>/dev/null | cut -f1)."
 
 # The JS/CSS/HTML linters run in the web container, where their node_modules live (no host-side npm install).

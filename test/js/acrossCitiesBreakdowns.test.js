@@ -7,22 +7,21 @@
  * counted beside them rather than folded in. Third, the cards that explain those counts name the contributors behind
  * them, which means they carry user-supplied text into markup and must escape it twice (see psTooltip's header).
  *
- * Runs under jsdom (jest.config.js). AcrossCitiesPage is a bare top-level class in a concatenated bundle, so it is
- * eval'd into global scope rather than required; MiniLineChart has to be present first, since the page draws with it.
+ * Runs under jsdom (jest.config.js). AcrossCitiesPage is loaded fresh per test through loadModules, which brings its
+ * MiniLineChart import with it, so the bars are drawn by the real renderer.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules, loadVendored, realUtil } = require('./loadGlobalScript');
 
-const JS_DIR = path.resolve(__dirname, '..', '..', 'public/js');
+loadVendored('dompurify');
+
+// The page fetches through util.fetchJson.
+window.util = realUtil();
+
 
 /** Loads MiniLineChart into global scope and returns the AcrossCitiesPage class. */
 function loadPage() {
-  const chart = fs.readFileSync(path.join(JS_DIR, 'admin-dashboard/MiniLineChart.js'), 'utf8');
-  const shell = fs.readFileSync(path.join(JS_DIR, 'admin-dashboard/AdminShell.js'), 'utf8');
-  const page = fs.readFileSync(path.join(JS_DIR, 'admin-dashboard/AcrossCitiesPage.js'), 'utf8');
-  return (0, eval)(`${chart}\nglobalThis.MiniLineChart = MiniLineChart;\n`
-    + `${shell}\nglobalThis.AdminShell = AdminShell;\n${page}\nAcrossCitiesPage;`);
+  return loadModules('frontend/js/admin-dashboard/AcrossCitiesPage.js').AcrossCitiesPage;
 }
 
 const MARKUP = `
@@ -39,6 +38,10 @@ const MARKUP = `
   <div class="mini-chart" id="ac-chart-week-labels"></div>
   <div class="mini-chart" id="ac-chart-week-validations"></div>
   <div class="mini-chart" id="ac-chart-week-users"></div>
+  <div class="mini-chart" id="ac-chart-month-labels"></div>
+  <span id="ac-baseline-note">The dashed line is the average per day over the trailing year.</span>
+  <div class="mini-chart" id="ac-chart-month-validations"></div>
+  <div class="mini-chart" id="ac-chart-month-users"></div>
   <table id="ac-top-table">
     <thead>
       <tr>
@@ -126,10 +129,11 @@ describe('Across Cities — attribution split and hover breakdowns', () => {
   /**
    * Renders the page against a fixture and returns the initialized instance.
    *
-   * @param {{cities?: Array, daily?: Array, summary?: ?object}} fixture - Any subset of the endpoint's payload.
+   * @param {{cities?: Array, daily?: Array, summary?: ?object, baseline?: ?object}} fixture - Any subset of the
+   *   endpoint's payload; `baseline` is its `daily_baseline` block, left out of the payload when absent.
    * @returns {Promise<object>} The initialized AcrossCitiesPage.
    */
-  async function render({ cities = [], daily = [], summary = null } = {}) {
+  async function render({ cities = [], daily = [], summary = null, baseline = undefined } = {}) {
     document.body.innerHTML = MARKUP;
     const windowByCity = {};
     cities.forEach((c) => { windowByCity[c.city.city_id] = c.window; });
@@ -142,6 +146,7 @@ describe('Across Cities — attribution split and hover breakdowns', () => {
         over_time_daily: daily,
         window_summary: summary,
         window_by_city: windowByCity,
+        ...(baseline === undefined ? {} : { daily_baseline: baseline }),
       }),
     }));
     const page = new AcrossCitiesPage({ scorecardsUrl: '/adminapi/cityScorecards' });
@@ -407,18 +412,18 @@ describe('Across Cities — attribution split and hover breakdowns', () => {
           contributor_list: [dayContributor('<img src=x onerror=alert(1)>', 2, 0)],
         })],
       });
-      // Two levels of escaping: attribute parsing consumes one, psTooltip's innerHTML the other. Reading the attribute
-      // back through the DOM has already consumed the first, so rendering it as HTML models exactly what psTooltip does.
+      // Reading the attribute back already consumed one escaping level. Raw innerHTML, not the sanitizer, so this
+      // proves the escaping itself rather than leaning on the safety net.
       document.body.insertAdjacentHTML('beforeend', `<div id="probe">${barCard(0)}</div>`);
 
       expect(document.querySelectorAll('#probe img').length).toBe(0);
     });
 
     describe('where each person worked, and links to their work (#5495)', () => {
-      /** Parses a card's markup into a detached element, the way psTooltip renders it. */
+      /** Renders a card's markup into a detached element, the way psTooltip does. */
       function parse(card) {
         const host = document.createElement('div');
-        host.innerHTML = card;
+        host.append(util.sanitizeHtml(card));
         return host;
       }
 
@@ -687,6 +692,114 @@ describe('Across Cities — attribution split and hover breakdowns', () => {
       const cells = [...document.querySelectorAll('#ac-top-tbody tr')[0].cells];
 
       expect(cells.filter((td) => td.querySelector('[tabindex="0"][data-ps-tooltip]')).length).toBe(4);
+    });
+  });
+
+  describe('rolling 7- and 30-day charts with the trailing-year average (#5653)', () => {
+    const GROUPS = ['week', 'month'];
+    const CHARTS = ['labels', 'validations', 'users'];
+
+    /** Ten consecutive days, each with distinct volumes so a bar can be traced back to its day. */
+    const TEN_DAYS = Array.from({ length: 10 }, (_, i) => makeDay(`2026-09-${String(i + 1).padStart(2, '0')}`, {
+      labels: (i + 1) * 10, validations: i + 1, contributors: 1, contributor_total: 1,
+      contributor_list: [dayContributor(`person${i}`, (i + 1) * 10, i + 1)],
+    }));
+
+    const BASELINE = {
+      days: 365, window_start: '2025-09-05', window_end: '2026-09-04',
+      labels_per_day: 1239.6, validations_per_day: 512.2, contributors_per_day: 2.43,
+    };
+
+    /** The bar hover targets of one chart, in day order. */
+    function bars(group, chart) {
+      return [...document.querySelectorAll(`#ac-chart-${group}-${chart} rect.mini-bar-hit`)];
+    }
+
+    it('draws the week from the last seven days of the month', async () => {
+      await render({ daily: TEN_DAYS });
+
+      expect(bars('week', 'labels').length).toBe(7);
+      expect(bars('month', 'labels').length).toBe(10);
+      // Cards are keyed by day, so the week's bar i and the month's bar i + 3 explain the same day identically.
+      bars('week', 'labels').forEach((bar, i) => {
+        const monthBar = bars('month', 'labels')[i + 3];
+        expect(bar.getAttribute('data-ps-tooltip')).toBe(monthBar.getAttribute('data-ps-tooltip'));
+      });
+    });
+
+    it('labels each week bar with its value but leaves thirty to the cards', async () => {
+      await render({ daily: TEN_DAYS });
+
+      expect(document.querySelectorAll('#ac-chart-week-labels .mini-value').length).toBe(7);
+      expect(document.querySelectorAll('#ac-chart-month-labels .mini-value').length).toBe(0);
+    });
+
+    it('emphasizes today, the last bar, in both groups', async () => {
+      await render({ daily: TEN_DAYS });
+
+      GROUPS.forEach((group) => {
+        const drawn = [...document.querySelectorAll(`#ac-chart-${group}-labels rect.mini-bar`)];
+        expect(drawn[drawn.length - 1].classList.contains('mini-bar--emphasis')).toBe(true);
+        expect(drawn.filter((r) => r.classList.contains('mini-bar--emphasis')).length).toBe(1);
+      });
+    });
+
+    it('draws the average as a labeled reference line on all six charts', async () => {
+      await render({ daily: TEN_DAYS, baseline: BASELINE });
+
+      GROUPS.forEach((group) => CHARTS.forEach((chart) => {
+        expect(document.querySelectorAll(`#ac-chart-${group}-${chart} line.mini-ref--baseline`).length).toBe(1);
+      }));
+      expect(document.querySelector('#ac-chart-week-labels .mini-ref-label--baseline').textContent)
+        .toBe('365-day avg: 1,240/day');
+      // One decimal below 10, where rounding would hide most of the signal.
+      expect(document.querySelector('#ac-chart-month-users .mini-ref-label--baseline').textContent)
+        .toBe('365-day avg: 2.4/day');
+    });
+
+    it('puts the average in each chart\'s text alternative', async () => {
+      await render({ daily: TEN_DAYS, baseline: BASELINE });
+
+      expect(document.querySelector('#ac-chart-month-validations svg').getAttribute('aria-label'))
+        .toBe('Validations per day, last 10 days; 365-day avg: 512/day');
+      expect(document.querySelector('#ac-chart-week-labels svg').getAttribute('aria-label'))
+        .toBe('Labels per day, last 7 days; 365-day avg: 1,240/day');
+    });
+
+    it('hides the on-chart label from screen readers, since the text alternative already says it', async () => {
+      await render({ daily: TEN_DAYS, baseline: BASELINE });
+
+      const labels = [...document.querySelectorAll('.mini-ref-label--baseline')];
+      expect(labels.length).toBe(6);
+      labels.forEach((label) => expect(label.getAttribute('aria-hidden')).toBe('true'));
+    });
+
+    it('names the window the server averaged over, not an assumed "ending yesterday"', async () => {
+      await render({ daily: TEN_DAYS, baseline: BASELINE });
+
+      expect(document.getElementById('ac-baseline-note').hidden).toBe(false);
+      const note = document.getElementById('ac-baseline-note').textContent;
+      expect(note).toContain('365 days');
+      expect(note).toContain('2025');
+      expect(note).toContain('2026');
+    });
+
+    it('labels today on the month axis even when thirty days skip most labels', async () => {
+      const month = Array.from({ length: 30 }, (_, i) => makeDay(`2026-09-${String(i + 1).padStart(2, '0')}`, {
+        labels: i + 1, validations: 0, contributors: 0, contributor_total: 0, contributor_list: [],
+      }));
+      await render({ daily: month });
+
+      expect(document.querySelector('#ac-chart-month-labels .mini-axis--emphasis')).not.toBeNull();
+    });
+
+    it('draws no reference line when the payload has no baseline', async () => {
+      await render({ daily: TEN_DAYS });
+
+      expect(document.getElementById('ac-baseline-note').hidden).toBe(true);
+      expect(document.querySelectorAll('.mini-ref').length).toBe(0);
+      expect(document.querySelector('#ac-chart-week-labels svg').getAttribute('aria-label'))
+        .toBe('Labels per day, last 7 days');
     });
   });
 });

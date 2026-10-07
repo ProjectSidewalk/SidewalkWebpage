@@ -2,21 +2,24 @@
 @import models.user.SidewalkUserWithRole
 @import play.api.Configuration
 @import play.api.libs.json.Json
+@import views.ViewHelpers.jsonForScript
 @import service.CommonPageData
 @(title: String, commonData: CommonPageData, user: Option[SidewalkUserWithRole], openStatus: String,
   mapathonLink: Option[String], streetDistance: Double, auditedDistance: Double, labelCount: Int, valCount: Int,
   partners: Seq[models.partner.PartnerMetadata], officialContact: Option[models.utils.OfficialContact]
-)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+)(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @currentCity = @{commonData.allCityInfo.filter(c => c.cityId == commonData.cityId).head}
 @skylineImg = @{config.get[String]("city-params.skyline-img." + currentCity.cityId)}
 @newsRibbonLink = @{config.get[Option[String]]("custom.news.ribbon.link")}
-@streetCompletionRate = @{100 * auditedDistance / streetDistance}
+@* A city with no streets loaded yet counts as 0% rather than dividing by zero. *@
+@streetCompletionRate = @{if (streetDistance > 0) 100 * auditedDistance / streetDistance else 0.0}
+@locale = @{messages.lang.toLocale}
 
-@* Organization + WebSite JSON-LD (#4237), built with the JSON library so quoting is always valid; escaping `<`
-   blocks a `</script>` breakout from any interpolated string. *@
+@* Organization + WebSite JSON-LD (#4237), built with the JSON library so quoting is always valid, and through
+   jsonForScript so no interpolated string can close the block with `</script>`. *@
 @jsonLd = @{
-  Json.stringify(Json.obj(
+  jsonForScript(Json.obj(
     "@context" -> "https://schema.org",
     "@graph" -> Json.arr(
       Json.obj(
@@ -36,10 +39,10 @@
         "url"   -> commonData.prodUrl
       )
     )
-  )).replace("<", "\\u003c")
+  ))
 }
 @structuredData = {
-  <script type="application/ld+json">@Html(jsonLd)</script>
+  <script type="application/ld+json">@jsonLd</script>
 }
 
 @common.main(commonData, title, i18Namespaces = Seq("common", "validate"), extraHead = structuredData,
@@ -56,13 +59,12 @@
       <a href="@newsRibbonLink" class="ps-news-ribbon">News on PS</a>
     }
 
-    <div class="container" id="banner">
-      <div class="row" id="bigtext">
-        <div class="col-sm-3"></div>
-        <div class="col-sm-6" id="bannertext">
+    <div id="banner">
+      <div id="bigtext">
+        <div id="bannertext">
           <h1 id="text" class="tagline">@Messages("landing.create.path")</h1>
           <br>
-          <a id="landing-cta-button" class="button-ps button--primary button--large" href="@routes.ExploreController.explore()">
+          <a id="landing-cta-button" class="button button--primary button--large" href="@routes.ExploreController.explore">
             @Messages("landing.start.exploring") @currentCity.cityNameShort
           </a>
           <br><br>
@@ -74,46 +76,45 @@
             <span class="header-text">@Html(Messages("landing.mapathon", currentCity.cityNameShort, mapathonLink.get))</span>
           }
         </div>
-        <div class="col-sm-3"></div>
       </div>
     </div>
   </div>
 
   <div id="content">
-    <div class="container home-content-container">
+    <div class="home-content-container">
       <div class="section-title-and-subtitle">
-        <h2 class="row section-title" id="instruction-video-title">@Messages("landing.how.you.help")</h2>
-        <div class="row section-subtitle" id="instruction-video-subtitle">@Messages("landing.how.you.help.content", currentCity.cityNameShort)</div>
+        <h2 class="section-title" id="instruction-video-title">@Messages("landing.how.you.help")</h2>
+        <div class="section-subtitle" id="instruction-video-subtitle">@Messages("landing.how.you.help.content", currentCity.cityNameShort)</div>
       </div>
 
       <div class="instructional-video-container">
-        <div class="row" id="numbersrow">
-          <div class="col-sm-4">
-            <div id="firstnumbox" role="button" tabindex="0" aria-label="@Messages("landing.how.you.help.explore")">
-              <span class="stepnumber" id="number1">01</span><br>
-              <span id="word1" class="stepword">@Messages("landing.how.you.help.explore")</span>
+        <div id="numbersrow">
+          <div>
+            <div id="firstnumbox" class="tab-word" role="button" tabindex="0" aria-label="@Messages("landing.how.you.help.explore")">
+              <span class="stepnumber tab-word" id="number1">01</span><br>
+              <span id="word1" class="stepword tab-word">@Messages("landing.how.you.help.explore")</span>
             </div>
           </div>
 
-          <div class="col-sm-4">
-            <div id="secondnumbox" role="button" tabindex="0" aria-label="@Messages("landing.how.you.help.find")">
-              <span class="stepnumber" id="number2">02</span><br>
-              <span id="word2" class="stepword">@Messages("landing.how.you.help.find")</span>
+          <div>
+            <div id="secondnumbox" class="tab-word" role="button" tabindex="0" aria-label="@Messages("landing.how.you.help.find")">
+              <span class="stepnumber tab-word" id="number2">02</span><br>
+              <span id="word2" class="stepword tab-word">@Messages("landing.how.you.help.find")</span>
             </div>
           </div>
-          <div class="col-sm-4">
-            <div id="thirdnumbox" role="button" tabindex="0" aria-label="@Messages("landing.how.you.help.assess")">
-              <span class="stepnumber" id="number3">03</span><br>
-              <span id="word3" class="stepword">@Messages("landing.how.you.help.assess")</span>
+          <div>
+            <div id="thirdnumbox" class="tab-word" role="button" tabindex="0" aria-label="@Messages("landing.how.you.help.assess")">
+              <span class="stepnumber tab-word" id="number3">03</span><br>
+              <span id="word3" class="stepword tab-word">@Messages("landing.how.you.help.assess")</span>
             </div>
           </div>
         </div>
-        <div class="hidden-xs" id="greenbar"></div>
+        <div id="greenbar"></div>
         <div id="instructionvideo">
           <video id="vid1" width="800" playsinline autoplay muted loop poster='@assets.path("images/segment-1-1.jpg")' class="ps-hidden">
             <source src='@assets.path("videos/segment-1-1.mp4")' type="video/mp4">
           </video>
-          @* vid2/vid3 start hidden and only play once their tab is clicked (homepage.js switchToVideo calls play()),
+          @* vid2/vid3 start hidden and only play once their tab is clicked (homepage.js showHowItWorksStep calls play()),
              so they don't autoplay and preload="none" keeps them out of the page's load path. homepage.js
              warmHiddenInstructionVideos downloads them shortly after load, so the tab switch is instant. *@
           <video id="vid2" width="800" playsinline muted loop preload="none" poster='@assets.path("images/segment-2.jpg")' class="ps-hidden">
@@ -126,29 +127,29 @@
       </div>
     </div>
 
-    <div class="container" id="landing-validation-container" hidden>
+    <div class="ps-container" id="landing-validation-container" hidden>
       <div class="section-title-and-subtitle">
-        <h2 class="row section-title" id="landing-validation-title">@Messages("landing.validate.title")</h2>
-        <div class="row section-subtitle" id="landing-validation-subtitle">@Messages("landing.validate.content", currentCity.cityNameShort)</div>
+        <h2 class="section-title" id="landing-validation-title">@Messages("landing.validate.title")</h2>
+        <div class="section-subtitle" id="landing-validation-subtitle">@Messages("landing.validate.content", currentCity.cityNameShort)</div>
       </div>
       <div id="landing-validation-grid" class="landing-validation-grid" aria-live="polite"></div>
     </div>
 
     @* Directly above the choropleth, so the neighborhood a hovered row lights up is visible without scrolling. *@
-    <div class="container" id="access-score-spotlight-container" hidden>
+    <div class="ps-container" id="access-score-spotlight-container" hidden>
       <div class="section-title-and-subtitle">
-        <h2 class="row section-title" id="access-score-spotlight-title">@Messages("landing.spotlight.title", currentCity.cityNameShort)</h2>
+        <h2 class="section-title" id="access-score-spotlight-title">@Messages("landing.spotlight.title", currentCity.cityNameShort)</h2>
         @* Filled by AccessScoreSpotlight.js: the wording depends on which unit is shown and on how much of the city
            has enough data to be ranked. *@
-        <div class="row section-subtitle spotlight-subtitle" id="access-score-spotlight-subtitle"></div>
+        <div class="section-subtitle spotlight-subtitle" id="access-score-spotlight-subtitle"></div>
       </div>
       <div class="spotlight"></div>
     </div>
 
-    <div id="landing-choropleth-container" class="container choropleth-container">
+    <div id="landing-choropleth-container" class="choropleth-container">
       <div class="section-title-and-subtitle">
-        <h2 class="row section-title" id="choose-region-title">@Messages("landing.choropleth.title")</h2>
-        <div class="row section-subtitle" id="choose-region-subtitle">
+        <h2 class="section-title" id="choose-region-title">@Messages("landing.choropleth.title")</h2>
+        <div class="section-subtitle" id="choose-region-subtitle">
           <div id="exploredesc">@Html(Messages("landing.choropleth.content"))</div>
         </div>
       </div>
@@ -157,7 +158,7 @@
         <div id="landing-choropleth" class="choropleth"></div>
         <div id="landing-legend">
           <strong>@Messages("landing.choropleth.legend")</strong>
-          <nav class='legend clearfix'>
+          <nav class="legend">
             <div class="legend-scale">
               <span class="legend-swatch legend-swatch-1" aria-hidden="true"></span>
               <span class="legend-swatch legend-swatch-2" aria-hidden="true"></span>
@@ -190,10 +191,13 @@
         <img loading="lazy" src="@assets.path("images/generic_cloud_overlay.png")" class="skyline-cloud-overlay" alt="@Messages("landing.clouds.alt")">
       </div>
       <div class="ps-skyline-stats-holder">
-        <span class="ps-skyline-stats-holder-stat-number" id="percentage">NA</span>
-        <span class="ps-skyline-stats-holder-stat-number" id="distance">NA</span>
-        <span class="ps-skyline-stats-holder-stat-number" id="numlabels">NA</span>
-        <span class="ps-skyline-stats-holder-stat-number" id="numvalidation">NA</span>
+        @* homepage.js counts these up from zero; the numbers written here show if it can't. *@
+        <span class="ps-skyline-stats-holder-stat-number">
+          <span data-count-to="@streetCompletionRate" data-count-decimals="1">@("%.1f".formatLocal(locale, streetCompletionRate))</span>%
+        </span>
+        <span class="ps-skyline-stats-holder-stat-number" data-count-to="@auditedDistance" data-count-decimals="1">@("%,.1f".formatLocal(locale, auditedDistance))</span>
+        <span class="ps-skyline-stats-holder-stat-number" data-count-to="@labelCount">@("%,d".formatLocal(locale, labelCount))</span>
+        <span class="ps-skyline-stats-holder-stat-number" data-count-to="@valCount">@("%,d".formatLocal(locale, valCount))</span>
         @if(openStatus == "partially") {
           <span class="ps-skyline-stats-holder-stat-label">@Messages("landing.stats.percent.partial")</span>
         } else {
@@ -204,34 +208,28 @@
         <span class="ps-skyline-stats-holder-stat-label">@Messages("landing.stats.validations")</span>
       </div>
       <div class="ps-skyline-overlay section-title-and-subtitle">
-        <h2 class="row section-title" id="skyline-title">@Messages("landing.stats.title")</h2>
-        <div class="row section-subtitle" id="skyline-subtitle">
+        <h2 class="section-title" id="skyline-title">@Messages("landing.stats.title")</h2>
+        <div class="section-subtitle" id="skyline-subtitle">
           <p id="conditional-text">Keep Mapping!</p>
         </div>
       </div>
-      @* countUp is only used by this inline stats script, so it loads here rather than in the global <head>. *@
-      <script src='@assets.path("vendor/countup/countUp-1.9.3.min.js")'></script>
       <script language="javascript">
         if ("@openStatus" === "partially" && @("%.0f".format(streetCompletionRate)) >= 100) {
-          document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.finished.partial", " %, .0f".format(auditedDistance), currentCity.cityNameFormatted, distanceUnitWords.name)";
+          document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.finished.partial", " %, .0f".formatLocal(locale, auditedDistance), currentCity.cityNameFormatted, distanceUnitWords.name)";
         } else if ("@openStatus" === "partially") {
-          document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.unfinished.partial", " %, .0f".format(auditedDistance), currentCity.cityNameFormatted, " % .1f".format(streetCompletionRate), distanceUnitWords.name)";
+          document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.unfinished.partial", " %, .0f".formatLocal(locale, auditedDistance), currentCity.cityNameFormatted, " % .1f".formatLocal(locale, streetCompletionRate), distanceUnitWords.name)";
         } else if (@("%.0f".format(streetCompletionRate)) < 100) {
-          document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.unfinished.full", " %, .0f".format(auditedDistance), currentCity.cityNameFormatted, " % .1f".format(streetCompletionRate), distanceUnitWords.name)";
+          document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.unfinished.full", " %, .0f".formatLocal(locale, auditedDistance), currentCity.cityNameFormatted, " % .1f".formatLocal(locale, streetCompletionRate), distanceUnitWords.name)";
         } else {
-          document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.finished.full", " %, .0f".format(auditedDistance), currentCity.cityNameFormatted, distanceUnitWords.name)";
+          document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.finished.full", " %, .0f".formatLocal(locale, auditedDistance), currentCity.cityNameFormatted, distanceUnitWords.name)";
         }
-        var percentageAnim = new CountUp("percentage", 0, @("%.1f".format(streetCompletionRate)), 1, 2.5, {suffix: '%'});
-        var distanceAnim = new CountUp("distance", 0, @("%.1f".format(auditedDistance)), 1, 2.5, {suffix: ''});
-        var labelsAnim = new CountUp("numlabels", 0, @labelCount, 0, 2.5, {suffix: ''});
-        var validationsAnim = new CountUp("numvalidation", 0, @valCount, 0, 2.5, {suffix: ''});
       </script>
     </div>
 
-    <div class="container" id="machinelearning-container">
+    <div id="machinelearning-container">
       <div class="section-title-and-subtitle">
-        <h2 class="row section-title" id="ml-title">@Messages("landing.ml.title")</h2>
-        <div class="row section-subtitle" id="ml-subtitle">
+        <h2 class="section-title" id="ml-title">@Messages("landing.ml.title")</h2>
+        <div class="section-subtitle" id="ml-subtitle">
           <div class="exploredesc">@Messages("landing.ml.content")</div>
         </div>
       </div>
@@ -250,10 +248,10 @@
       </div>
     </div>
 
-    <div class="container-fluid" id="deployment-map-container">
+    <div id="deployment-map-container">
       <div class="section-title-and-subtitle">
-        <h2 class="row section-title" id="deployment-map-title">@Messages("landing.deployment.map.title")</h2>
-        <div class="row section-subtitle" id="deployment-map-subtitle">
+        <h2 class="section-title" id="deployment-map-title">@Messages("landing.deployment.map.title")</h2>
+        <div class="section-subtitle" id="deployment-map-subtitle">
           <div class="exploredesc">@Messages("landing.deployment.map.subtitle")</div>
         </div>
       </div>
@@ -264,17 +262,6 @@
 
     @landing._partners(partners, officialContact, currentCity.cityNameShort)
 
-
-    @* Deferred: every reference below sits inside an appManager.ready callback, which runs off $(document).ready and so lands after all deferred scripts. i18next and its http backend are NOT re-included here — common/main.scala.html already loads both, deferred, on every page (#4486). *@
-    <script src='@assets.path("js/homepage.js")' defer></script>
-    <script src='@assets.path("js/common/utilitiesSidewalk.js")' defer></script>
-    <script src='@assets.path("js/common/share/ShareWidget.js")' defer></script>
-    @* The grid's imagery credits, without the 170 KB pano-viewer bundle: this page shows stills, never a live viewer. *@
-    <script src='@assets.path("js/common/pano-credit/build/pano-credit.js")' defer></script>
-    <script src='@assets.path("js/LandingValidationGrid.js")' defer></script>
-    @* The AccessScore ramp the Spotlight's bars are painted from, read out of the main.css tokens. *@
-    <script src='@assets.path("js/common/scoreRamp.js")' defer></script>
-    <script src='@assets.path("js/AccessScoreSpotlight.js")' defer></script>
     <link href='@assets.path("css/components/choropleth.css")' rel="stylesheet">
     <link href='@assets.path("css/components/deployment-map.css")' rel="stylesheet">
     <link href='@assets.path("css/components/landing-validation-grid.css")' rel="stylesheet">
@@ -282,63 +269,9 @@
     <link href='@assets.path("css/components/pano-attribution.css")' rel="stylesheet">
     @* The grid cards' share chip + popover (.label-detail__share-*) are styled by css/components/share-widget.css, which common/main.scala.html links on every page — nothing else here needs label-detail.css. *@
 
-    <script>
-      // The map stack (mapbox-gl + mapbox-gl-language + turf + ps-map) is ~600KB gz — roughly 75% of this page's JS —
-      // for two maps that both sit well below the fold, so it's kept out of the page's load path entirely but pulled
-      // in on the visitor's first interaction (#4486) so it's loaded by the time a user scrolls to the map.
-      util.onFirstInteractionOrIdle(function () {
-        const mapboxCss = document.createElement('link');
-        mapboxCss.rel = 'stylesheet';
-        mapboxCss.href = '@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.css")';
-        document.head.appendChild(mapboxCss);
-
-        util.loadScriptsInOrder([
-          '@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.js")',
-          '@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")',
-          '@assets.path("vendor/turf/turf-7.4.0.min.js")',
-          '@assets.path("js/ps-map/build/ps-map.js")'
-        ]).then(function () {
-          // createPSMap reads translated strings, so it still waits on the app's i18next setup.
-          window.appManager.ready(function () {
-            // Create the choropleth map.
-            const choroplethParams = {
-              mapName: 'landing-choropleth',
-              mapStyle: 'mapbox://styles/mapbox/light-v11?optimize=true',
-              mapboxApiKey: '@commonData.mapboxApiKey',
-              mapboxLogoLocation: 'bottom-right',
-              scrollWheelZoom: false,
-              regionsURL: '/regions',
-              completionRatesURL: '/regions/completionRates',
-              regionFillMode: 'completionRate',
-              regionTooltip: 'completionRate'
-            };
-            createPSMap($, choroplethParams).then(m => {
-              window.choropleth = m[0];
-            });
-
-            // Create the deployment cities map.
-            const deploymentMapParams = {
-              mapName: 'deployment-map',
-              mapStyle: 'mapbox://styles/mapbox/light-v11?optimize=true',
-              mapboxApiKey: '@commonData.mapboxApiKey',
-              mapboxLogoLocation: 'bottom-left',
-              scrollWheelZoom: false,
-              loadCities: true,
-              logClicks: true
-            };
-            createPSMap($, deploymentMapParams).then(m => {
-              window.deploymentMap = m[0];
-            });
-          });
-        }).catch(e => console.error('Failed to load the landing page maps', e));
-      });
-
-      // Gets all translations before setting up the grid, which reads translated strings as it builds each card. The
-      // grid renders its skeletons immediately to reserve layout, then fills itself on the first interaction.
-      window.appManager.ready(function () {
-        new LandingValidationGrid(document.getElementById('landing-validation-container'));
-        new AccessScoreSpotlight(document.getElementById('access-score-spotlight-container'));
-      });
-    </script>
+    <script type="module" id="page-entry" src='@assets.path("build/js/home.js")'
+            data-mapbox-api-key="@commonData.mapboxApiKey"
+            data-mapbox-css-url='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.css")'
+            data-map-script-urls='["@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.js")", "@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")", "@assets.path("vendor/turf/turf-7.4.0.min.js")"]'></script>
   </div>
 }

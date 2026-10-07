@@ -1,16 +1,17 @@
 package controllers
 
 import org.apache.pekko.stream.Materializer
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.test.CSRFTokenHelper._
+import play.api.test.CSRFTokenHelper.*
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
-import util.SignedUpAccounts
-import models.utils.MyPostgresProfile.api._
+import play.api.test.Helpers.*
+import util.{SidewalkSpec, SignedUpAccounts}
+import models.auth.RememberMeSettings
+import models.utils.MyPostgresProfile.api.given
 
+import java.time.OffsetDateTime
 import java.util.UUID
 
 /**
@@ -24,10 +25,10 @@ import java.util.UUID
  *
  * Requires a Postgres+PostGIS database (via DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD env, as in dev/CI).
  */
-class UserAuthControllerSpec extends PlaySpec with SignedUpAccounts with GuiceOneAppPerSuite {
+class UserAuthControllerSpec extends SidewalkSpec with SignedUpAccounts with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule]
       // All requests here share FakeRequest's default 127.0.0.1, so the suite's auth POSTs would eat into one shared
       // per-IP budget. Throttle behavior has its own dedicated coverage (UserAuthRateLimitSpec); keeping the limiter
@@ -35,9 +36,12 @@ class UserAuthControllerSpec extends PlaySpec with SignedUpAccounts with GuiceOn
       .configure("rate-limit.enabled" -> false)
       .build()
 
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   private val XHR = "X-Requested-With" -> "XMLHttpRequest"
+
+  private def authCookie(result: scala.concurrent.Future[play.api.mvc.Result]): Option[play.api.mvc.Cookie] =
+    cookies(result).find(_.name.toLowerCase.contains("authenticator"))
 
   /** A username/email pair that can't collide with existing data, so the happy path is repeatable. */
   private def freshCreds(): (String, String, String) = {
@@ -64,7 +68,7 @@ class UserAuthControllerSpec extends PlaySpec with SignedUpAccounts with GuiceOn
       val (u, e, p) = freshCreds()
       val req       = FakeRequest(POST, "/signUp")
         .withHeaders(XHR)
-        .withFormUrlEncodedBody(signUpBody(u, e, p, "DifferentPass9"): _*)
+        .withFormUrlEncodedBody(signUpBody(u, e, p, "DifferentPass9")*)
         .withCSRFToken
       val resp = route(app, req).get
       status(resp) mustBe BAD_REQUEST
@@ -75,7 +79,7 @@ class UserAuthControllerSpec extends PlaySpec with SignedUpAccounts with GuiceOn
       val (_, e, p) = freshCreds()
       val req       = FakeRequest(POST, "/signUp")
         .withHeaders(XHR)
-        .withFormUrlEncodedBody(signUpBody("bad name!", e, p, p): _*)
+        .withFormUrlEncodedBody(signUpBody("bad name!", e, p, p)*)
         .withCSRFToken
       val resp = route(app, req).get
       status(resp) mustBe BAD_REQUEST
@@ -87,7 +91,7 @@ class UserAuthControllerSpec extends PlaySpec with SignedUpAccounts with GuiceOn
       // Valid charset + length, so it clears form binding and is caught by the guard, not the regex.
       val req = FakeRequest(POST, "/signUp")
         .withHeaders(XHR)
-        .withFormUrlEncodedBody(signUpBody("shithead", e, p, p): _*)
+        .withFormUrlEncodedBody(signUpBody("shithead", e, p, p)*)
         .withCSRFToken
       val resp = route(app, req).get
       status(resp) mustBe BAD_REQUEST
@@ -97,7 +101,7 @@ class UserAuthControllerSpec extends PlaySpec with SignedUpAccounts with GuiceOn
     "fall back to a full-page redirect (303) when the request is not an XHR" in {
       val (u, e, p) = freshCreds()
       val req       = FakeRequest(POST, "/signUp")
-        .withFormUrlEncodedBody(signUpBody(u, e, p, "Mismatch9"): _*)
+        .withFormUrlEncodedBody(signUpBody(u, e, p, "Mismatch9")*)
         .withCSRFToken
       status(route(app, req).get) mustBe SEE_OTHER
     }
@@ -148,7 +152,7 @@ class UserAuthControllerSpec extends PlaySpec with SignedUpAccounts with GuiceOn
         app,
         FakeRequest(POST, "/signUp")
           .withHeaders(XHR)
-          .withFormUrlEncodedBody(signUpBody(otherUsername, email, password, password): _*)
+          .withFormUrlEncodedBody(signUpBody(otherUsername, email, password, password)*)
           .withCSRFToken
       ).get
       status(dup) mustBe CONFLICT
@@ -172,7 +176,7 @@ class UserAuthControllerSpec extends PlaySpec with SignedUpAccounts with GuiceOn
         app,
         FakeRequest(POST, "/signUp")
           .withHeaders(XHR)
-          .withFormUrlEncodedBody(signUpBody(username, email, password, password): _*)
+          .withFormUrlEncodedBody(signUpBody(username, email, password, password)*)
           .withCSRFToken
       ).get
       status(signUp) mustBe OK
@@ -186,7 +190,7 @@ class UserAuthControllerSpec extends PlaySpec with SignedUpAccounts with GuiceOn
         app,
         FakeRequest(POST, "/signUp")
           .withHeaders(XHR)
-          .withFormUrlEncodedBody(signUpBody(username, otherEmail, password, password): _*)
+          .withFormUrlEncodedBody(signUpBody(username, otherEmail, password, password)*)
           .withCSRFToken
       ).get
       status(dup) mustBe CONFLICT
@@ -202,7 +206,9 @@ class UserAuthControllerSpec extends PlaySpec with SignedUpAccounts with GuiceOn
       ).get
       status(signIn) mustBe OK
       (contentAsJson(signIn) \ "redirect").asOpt[String] mustBe defined
-      cookies(signIn).exists(_.name.toLowerCase.contains("authenticator")) mustBe true
+      authCookie(signIn).flatMap(_.maxAge) mustBe Some(
+        app.injector.instanceOf[RememberMeSettings].cookieMaxAge.toSeconds.toInt
+      )
 
       // 4. The same account also signs in by username, not just email — the controller resolves it (#4375).
       val signInByUsername = route(
@@ -214,7 +220,42 @@ class UserAuthControllerSpec extends PlaySpec with SignedUpAccounts with GuiceOn
       ).get
       status(signInByUsername) mustBe OK
       (contentAsJson(signInByUsername) \ "redirect").asOpt[String] mustBe defined
-      cookies(signInByUsername).exists(_.name.toLowerCase.contains("authenticator")) mustBe true
+      // Without "remember me" the cookie has no Max-Age, so the browser drops it on close.
+      authCookie(signInByUsername).map(_.maxAge) mustBe Some(None)
+    }
+  }
+
+  "A new account" should {
+    "record when it was created (#5532)" in {
+      val (userId, _, _) = signUpFreshUser()
+      runAccounts(
+        sql"""SELECT created_at BETWEEN now() - interval '1 minute' AND now() FROM sidewalk_login.sidewalk_user
+              WHERE user_id = $userId""".as[Boolean]
+      ).head mustBe true
+    }
+
+    "keep the date of the first visit when an anonymous visitor registers (#5532)" in {
+      val firstVisit = route(app, FakeRequest(GET, "/anonSignUp?url=%2F")).get
+      status(firstVisit) mustBe SEE_OTHER
+      val afterFirstVisit = OffsetDateTime.now.toString
+
+      val (username, email, password) = freshCreds()
+      val signUp                      = route(
+        app,
+        FakeRequest(POST, "/signUp")
+          .withHeaders(XHR)
+          .withCookies(cookies(firstVisit).toSeq*)
+          .withFormUrlEncodedBody(signUpBody(username, email, password, password)*)
+          .withCSRFToken
+      ).get
+      status(signUp) mustBe OK
+
+      val (userId, keptItsDate) = runAccounts(
+        sql"""SELECT user_id, created_at < $afterFirstVisit::timestamptz FROM sidewalk_login.sidewalk_user
+              WHERE email = $email""".as[(String, Boolean)]
+      ).head
+      createdUserIds += userId
+      keptItsDate mustBe true
     }
   }
 

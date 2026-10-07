@@ -1,5 +1,5 @@
 /**
- * Tests for Toast's per-anchor queueing (public/js/common/Toast.js).
+ * Tests for Toast's per-anchor queueing (frontend/js/common/Toast.js).
  *
  * Every toast anchored to the same element is positioned at the identical spot, so before #4895 they drew on top of
  * one another — two cards in one rectangle, and two `role="status"` regions live at once. Explore alone can raise six
@@ -10,14 +10,9 @@
  * toastPosition.test.js takes. A fresh class is built per test because the queue lives in static state.
  */
 
-const fs = require('fs');
-const path = require('path');
 
-const { assetPathStub } = require('./loadGlobalScript');
+const { assetPathStub, loadModules } = require('./loadGlobalScript');
 
-const SOURCE = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/common/Toast.js'), 'utf8'
-);
 
 /** Every `.ps-toast` currently in the document. */
 const mounted = () => document.querySelectorAll('.ps-toast');
@@ -36,7 +31,7 @@ describe('Toast queueing', () => {
         global.i18next = { t: (key) => key };
         global.util = { assetPath: assetPathStub }; // The close button's icon URL.
         // A fresh class per test: the live/waiting maps are static, so a shared one would leak between cases.
-        Toast = new Function(`${SOURCE}; return Toast;`)();
+        Toast = loadModules('frontend/js/common/Toast.js').Toast;
         anchorA = document.createElement('div');
         anchorB = document.createElement('div');
         document.body.append(anchorA, anchorB);

@@ -7,7 +7,7 @@
  *   - Inline (Gallery's expanded view): the host adds `.label-detail--inline`, which drops the dialog-fixed
  *     sizing and lets the parent grid drive the dimensions. Paging-arrow rules also live in the inline section.
  *
- * Scoped under `.label-detail` so nothing here leaks into Bootstrap-3-styled pages elsewhere.
+ * Scoped under `.label-detail` so nothing here leaks into the pages that host the card.
  */
 
 /* Many of the card's elements carry their own display: flex/inline-flex, which would beat the UA stylesheet's
@@ -160,7 +160,7 @@ dialog.label-detail[open]::backdrop {
 /* Inert (no imagery): greyed and no pointer, but still a hover and focus target so the tooltip can say why. */
 .label-detail__delete[aria-disabled="true"] {
   color: var(--color-neutral-400);
-  cursor: default;
+  cursor: not-allowed;
 }
 
 .label-detail__delete:focus-visible {
@@ -538,10 +538,10 @@ dialog.label-detail[open]::backdrop {
   font-weight: 500;
   font-size: 16px;
   cursor: pointer;
-  opacity: 0.8;
+  opacity: 0.78; /* Any lower and Disagree's text is too faint over dark imagery. */
   transition: opacity 120ms ease;
 }
-.label-detail__pano-overlay-button:hover { opacity: 0.95; }
+.label-detail__pano-overlay-button:hover { opacity: 0.9; }
 
 .label-detail__pano-overlay-button:focus-visible {
   outline: 2px solid var(--color-link-100);
@@ -555,20 +555,23 @@ dialog.label-detail[open]::backdrop {
 
 .label-detail__pano-overlay-button.is-selected { opacity: 1; }
 
-/* Hovering the option you already picked previews clearing it (#4653). It fades *past* the unselected 0.8 rather
-   than toward it, so the cue reads as "this turns off" — the overlay's counterpart to the column icons dropping
-   back to their outline variant on the same hover. Declared above the read-only block so that block still wins. */
-.label-detail__pano-overlay-button.is-selected:hover { opacity: 0.65; }
+/* Hovering your current vote previews clearing it (#4653), going most of the way toward what a click does. Declared
+   above the read-only block so that block still wins. */
+.label-detail__pano-overlay-button.is-selected:hover { opacity: 0.85; }
+
+/* Right after a vote, show its result until the mouse leaves, not a preview of undoing it (#5518). */
+.label-detail__pano-overlay-button.is-just-voted:hover { opacity: 0.78; }
+.label-detail__pano-overlay-button.is-selected.is-just-voted:hover { opacity: 1; }
 
 /* Read-only mode: validating/commenting is blocked (the viewer's own label, or no imagery is available for it).
    Elements remain visible but appear disabled. */
 .label-detail--readonly .label-detail__pano-overlay-button {
-  opacity: 0.8;
+  opacity: 0.78;
   background: #E2E2E2;
   cursor: default;
   color: rgb(0 0 0 / 40%);
 }
-.label-detail--readonly .label-detail__pano-overlay-button:hover { opacity: 0.8; }
+.label-detail--readonly .label-detail__pano-overlay-button:hover { opacity: 0.78; }
 .label-detail--readonly .label-detail__vote[disabled] { cursor: default; }
 
 .label-detail--readonly .label-detail__comment-input:disabled {
@@ -996,7 +999,7 @@ button.label-detail__meta-cell:focus-visible {
 
 /* Comes after .is-active so an in-flight submit (still active-green) drops the pointer while it's locked out. */
 .label-detail__comment-submit:disabled {
-  cursor: default;
+  cursor: not-allowed;
 }
 
 .label-detail__comment-submit:focus-visible {
@@ -1004,7 +1007,7 @@ button.label-detail__meta-cell:focus-visible {
   outline-offset: 2px;
 }
 
-/* Cancel is a design-system secondary button (.button-ps .button--small .button--secondary); only its height and
+/* Cancel is a design-system secondary button (.button .button--small .button--secondary); only its height and
    radius are pinned here, to match the bespoke submit button it stands beside rather than sit a few px shorter.
    The negative offsets are what make it visible at all: .button--secondary draws its edge as an `outline`, which
    paints *outside* the border box, and the row above clips to a box exactly as tall as this button — so an
@@ -1284,7 +1287,6 @@ button.label-detail__meta-cell:focus-visible {
   background: rgb(255 255 255 / 55%);
   color: var(--color-neutral-500);
   box-shadow: none;
-  cursor: default;
 }
 
 .label-detail__paging:focus-visible {
@@ -1692,7 +1694,7 @@ button.label-detail__meta-cell:focus-visible {
 
 .label-detail__comment-own-control:disabled {
   color: var(--color-neutral-700);
-  cursor: default;
+  cursor: not-allowed;
   text-decoration: none; /* The underline is what makes it read as a live control; off means off. */
 }
 
@@ -1701,7 +1703,7 @@ button.label-detail__meta-cell:focus-visible {
    greyed and no longer offering a pointer, but still a focus target. */
 .label-detail__tags-edit[aria-disabled="true"] {
   color: var(--color-neutral-700);
-  cursor: default;
+  cursor: not-allowed;
   text-decoration: none; /* The underline is what makes it read as a live control; off means off. */
 }
 
@@ -1751,9 +1753,8 @@ dialog.story-composer {
 dialog.story-composer::backdrop,
 dialog.story-lightbox::backdrop { background: rgb(0 0 0 / 45%); }
 
-/* Weight hierarchy (deliberate, and defended against Bootstrap 3's globals — `label { font-weight: bold }` and
-   normalize's `textarea/input { font: inherit }` would otherwise bolden option rows and typed text): title 600,
-   field labels 600, everything the user reads or types 400. */
+/* Weight hierarchy: title 600, field labels 600, everything the user reads or types 400. Set on the inputs too:
+   `font: inherit` would carry a bold label's weight into the text typed under it. */
 .story-composer__title {
   margin: 0 0 4px;
   font-family: var(--font-primary);

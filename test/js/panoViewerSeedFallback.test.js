@@ -12,26 +12,12 @@
  * declarations for those names are eval'd ahead of the source.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const SRC_DIR = path.resolve(__dirname, '..', '..', 'public/js/common/pano-viewer/src');
-const NO_IMAGERY_ERROR_SRC = fs.readFileSync(path.join(SRC_DIR, 'NoImageryError.js'), 'utf8');
-const VIEWER_SRC = fs.readFileSync(path.join(SRC_DIR, 'PanoViewer.js'), 'utf8');
 
 /** Loads fresh PanoViewer and NoImageryError classes into the jsdom global scope. */
 function loadPanoViewer() {
-    window.eval(`
-        class GsvViewer {}
-        class MapillaryViewer {}
-        class Infra3dViewer {}
-        class PannellumViewer {}
-        class PanoramaxViewer {}
-        ${NO_IMAGERY_ERROR_SRC}
-        ${VIEWER_SRC}
-        window.PanoViewer = PanoViewer;
-        window.NoImageryError = NoImageryError;
-    `);
+    Object.assign(window, loadModules('frontend/js/common/pano-viewer/NoImageryError.js', 'frontend/js/common/pano-viewer/PanoViewer.js'));
     return { PanoViewer: window.PanoViewer, NoImageryError: window.NoImageryError };
 }
 

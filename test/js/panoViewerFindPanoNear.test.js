@@ -16,13 +16,11 @@
 
 const fs = require('fs');
 const path = require('path');
-const { loadGlobalScript } = require('./loadGlobalScript');
+const { loadGlobalScript, realUtil, loadModules } = require('./loadGlobalScript');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const SRC_DIR = path.join(REPO_ROOT, 'public/js/common/pano-viewer/src');
-const readSrc = (name) => fs.readFileSync(path.join(SRC_DIR, name), 'utf8');
+const SRC_DIR = path.join(REPO_ROOT, 'frontend/js/common/pano-viewer');
 
-const VIEWER_NAMES = ['GsvViewer', 'MapillaryViewer', 'Infra3dViewer', 'PannellumViewer', 'PanoramaxViewer'];
 
 // utilities.js builds a Bowser parser at load time; nothing here consults it.
 window.bowser = {
@@ -31,15 +29,15 @@ window.bowser = {
         getOSName: () => 'TestOS', getPlatformType: () => 'desktop',
     }),
 };
-loadGlobalScript('public/js/common/utilities.js');
-loadGlobalScript('public/js/common/utilitiesMath.js');
+window.util = realUtil();
+loadGlobalScript('frontend/js/common/utilitiesMath.js');
 // The ranking weights the providers score candidates with, stamped onto <html> the way main.scala.html does it
 // (minus the file's own `_`-prefixed documentation), so the pick here is the production pick.
 const scoringConfig = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'conf/pano-scoring.json'), 'utf8'));
 document.documentElement.dataset.panoScoring = JSON.stringify(
     Object.fromEntries(Object.entries(scoringConfig).filter(([key]) => !key.startsWith('_'))),
 );
-loadGlobalScript('public/js/common/pano-viewer/src/panoUtilities.js');
+loadGlobalScript('frontend/js/common/pano-viewer/panoUtilities.js');
 window.turf = require(path.join(REPO_ROOT, 'public/vendor/turf/turf-7.4.0.min.js'));
 window.svl = { STREETVIEW_MAX_DISTANCE: 25 };
 
@@ -51,17 +49,8 @@ const { turf } = window;
  * @returns {{PanoViewer: Function, Viewer: Function, NoImageryError: Function}}
  */
 function loadViewer(name) {
-    const stubs = VIEWER_NAMES.filter((other) => other !== name).map((other) => `class ${other} {}`).join('\n');
-    window.eval(`
-        ${stubs}
-        ${readSrc('NoImageryError.js')}
-        ${readSrc('PanoViewer.js')}
-        ${readSrc(`${name}.js`)}
-        window.PanoViewer = PanoViewer;
-        window.NoImageryError = NoImageryError;
-        window.__viewerUnderTest = ${name};
-    `);
-    return { PanoViewer: window.PanoViewer, Viewer: window.__viewerUnderTest, NoImageryError: window.NoImageryError };
+    const mods = loadModules(path.join(SRC_DIR, `${name}.js`), path.join(SRC_DIR, 'PanoViewer.js'), path.join(SRC_DIR, 'NoImageryError.js'));
+    return { PanoViewer: mods.PanoViewer, Viewer: mods[name], NoImageryError: mods.NoImageryError };
 }
 
 const HERE = { lat: 47.61, lng: -122.33 };
@@ -75,7 +64,7 @@ function metersFromHere(meters, bearing = 90) {
 /** The slice of PanoData the exclusion checks read. */
 const excludedPano = (panoId, capturedAt = 0) => ({
     getPanoId: () => panoId,
-    getProperty: (key) => (key === 'captureDate' ? { valueOf: () => capturedAt } : null),
+    getProperty: (key) => (key === 'captureDate' ? new Date(capturedAt) : null),
 });
 
 describe('PanoViewer.findPanoNear (base)', () => {

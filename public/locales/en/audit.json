@@ -134,20 +134,7 @@
     "feedback": "Feedback",
     "feedback-tooltip": "Share your thoughts with us",
     "feedback-submitted": "Feedback Submitted",
-    "feedback-title": "Any thoughts? Found something confusing? Spotted a bug?<br>Send us comments!",
-    "immersive-enter": "Enter immersive mode",
-    "immersive-exit": "Exit immersive mode",
-    "immersive-exit-hint": "Immersive mode. Press F to exit.",
-    "image": "Image",
-    "image-tooltip": "Adjust shadows, brightness and contrast of the imagery",
-    "image-adjustments": {
-      "title": "Image adjustments",
-      "shadows": "Shadows",
-      "brightness": "Brightness",
-      "contrast": "Contrast",
-      "reset": "Reset to defaults",
-      "persist-note": "These settings persist across Explore missions until you reset them."
-    }
+    "feedback-title": "Any thoughts? Found something confusing? Spotted a bug?<br>Send us comments!"
   },
   "right-ui": {
     "opens-new-tab": "(opens in a new tab)",
@@ -375,7 +362,7 @@
     "still-stuck": "If you're still stuck, click the Stuck button again.",
     "stuck-skipped-street": "That street had no imagery we could show you, so we've moved you to a new street.",
     "stuck-skipped-street-named": "That street had no imagery we could show you, so we've moved you to <b>{{streetName}}</b>.",
-    "free-explore-start": "You've been dropped near your searched address. Look around and label what you find!",
+    "free-explore-start": "You're exploring freely from here. Look around and label what you find!",
     "free-explore-start-named": "You've been dropped close to <b>{{placeName}}</b>. Look around and label what you find!",
     "free-explore-no-imagery": "There's no more street imagery in this direction. Try looking around or heading the other way.",
     "stuck-suggestion": "If you can't move with the arrows, trying clicking on the navigation directions in the bottom right. Or try clicking on the Stuck button on the left.",

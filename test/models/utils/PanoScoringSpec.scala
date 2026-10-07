@@ -1,7 +1,7 @@
 package models.utils
 
-import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.{JsObject, JsValue, Json}
+import util.SidewalkSpec
 
 import scala.io.Source
 import scala.util.Using
@@ -15,7 +15,7 @@ import scala.util.Using
  * that quietly: the file being unreachable on the classpath, growing a key the loader drops on the floor, losing a
  * provider, or shipping its `_comment` to every page.
  */
-class PanoScoringSpec extends PlaySpec {
+class PanoScoringSpec extends SidewalkSpec {
 
   private val file: JsObject =
     Using.resource(Source.fromInputStream(getClass.getResourceAsStream("/pano-scoring.json"), "UTF-8"))(source =>

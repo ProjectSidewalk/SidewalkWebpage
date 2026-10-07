@@ -1,22 +1,23 @@
 package controllers
 
-import controllers.base._
+import controllers.base.*
 import controllers.helper.ControllerUtils.{isAdmin, isMobile, regionsParam}
 import controllers.helper.ValidateHelper.ValidateParams
 import formats.json.CommentSubmissionFormats.LabelMapValidationCommentSubmission
 import formats.json.LabelFormats
-import formats.json.MissionFormats._
+import formats.json.MissionFormats.given
 import formats.json.ValidateFormats.{
   EnvironmentSubmission,
   LabelMapValidationSubmission,
   LabelValidationSubmission,
+  MissionRequest,
   MoreLabelsRequest,
   ValidationTaskSubmission
 }
 import models.auth.WithAdmin
-import models.label.{LabelTypeEnum, Tag}
+import models.label.{AdminValidationData, LabelType, LabelValidationMetadata}
 import models.mission.MissionType
-import models.user._
+import models.user.*
 import models.utils.IpAddress
 import models.validation.{
   LabelValidation,
@@ -27,9 +28,9 @@ import models.validation.{
 }
 import play.api.{Configuration, Logger}
 import play.api.i18n.Messages
-import play.api.libs.json._
+import play.api.libs.json.*
 import play.api.mvc.Result
-import service.ValidationSubmission
+import service.{ValidationSubmission, ValidationTaskPostReturnValue}
 
 import java.time.OffsetDateTime
 import java.time.temporal.ChronoUnit
@@ -38,19 +39,9 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
-case class ValidatePageData(
-    mission: Option[JsValue],
-    labelList: Option[JsValue],
-    missionProgress: Option[JsObject],
-    hasNextMission: Boolean,
-    completedValidations: Int,
-    tagList: Seq[Tag]
-)
-
 @Singleton
 class ValidateController @Inject() (
     cc: CustomControllerComponents,
-    implicit val ec: ExecutionContext,
     val config: Configuration,
     configService: service.ConfigService,
     labelService: service.LabelService,
@@ -62,10 +53,10 @@ class ValidateController @Inject() (
     osmWayService: service.OsmWayService,
     missionService: service.MissionService,
     aiService: service.AiService
-)(implicit assets: AssetsFinder)
+)(using ec: ExecutionContext, assets: AssetsFinder)
     extends CustomBaseController(cc) {
-  implicit val implicitConfig: Configuration = config
-  private val logger                         = Logger(this.getClass)
+  given Configuration = config
+  private val logger  = Logger(this.getClass)
 
   /**
    * Returns the validation page.
@@ -75,7 +66,7 @@ class ValidateController @Inject() (
    */
   def validate(regions: Option[String], unvalidatedOnly: Option[Boolean], neighborhoods: Option[String]) =
     cc.securityService.SecuredAction { implicit request =>
-      if (isMobile(request)) {
+      if (isMobile) {
         // mobileValidate takes the same query params, so forward them along with the redirect.
         cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Validate_RedirectMobile")
         Future.successful(Redirect("/mobile", request.queryString))
@@ -92,13 +83,15 @@ class ValidateController @Inject() (
           if (response.header.status == 200) {
             val user: SidewalkUserWithRole = request.identity
             for {
-              validatePageData <- getDataForValidatePages(user, labelCount = 10, validateParams)
-              commonPageData   <- configService.getCommonPageData(request2Messages.lang)
+              tags           <- labelService.getTagsForCurrentCity
+              commonPageData <- configService.getCommonPageData(request2Messages.lang)
             } yield {
               cc.loggingService.insert(user.userId, request.ipAddress, "Visit_Validate")
-              Ok(
-                views.html.apps.validate(commonPageData, "/validate", Messages("seo.title.validate"), user,
-                  validateParams, validatePageData)
+              noStore(
+                Ok(
+                  views.html.apps.validate(commonPageData, "/validate", Messages("seo.title.validate"), user,
+                    validateParams, tags)
+                )
               )
             }
           } else {
@@ -128,7 +121,7 @@ class ValidateController @Inject() (
       teams: Option[String]
   ) =
     cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-      if (isMobile(request)) {
+      if (isMobile) {
         cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_ExpertValidate_RedirectMobile")
         Future.successful(Redirect("/mobile"))
       } else {
@@ -144,13 +137,15 @@ class ValidateController @Inject() (
           if (response.header.status == 200) {
             val user: SidewalkUserWithRole = request.identity
             for {
-              validatePageData <- getDataForValidatePages(user, labelCount = 10, validateParams)
-              commonPageData   <- configService.getCommonPageData(request2Messages.lang)
+              tags           <- labelService.getTagsForCurrentCity
+              commonPageData <- configService.getCommonPageData(request2Messages.lang)
             } yield {
               cc.loggingService.insert(user.userId, request.ipAddress, "Visit_ExpertValidate")
-              Ok(
-                views.html.apps.validate(commonPageData, "/expertValidate", Messages("seo.title.expert.validate"), user,
-                  validateParams, validatePageData)
+              noStore(
+                Ok(
+                  views.html.apps.validate(commonPageData, "/expertValidate", Messages("seo.title.expert.validate"),
+                    user, validateParams, tags)
+                )
               )
             }
           } else {
@@ -180,17 +175,19 @@ class ValidateController @Inject() (
         if (response.header.status == 200) {
           val user: SidewalkUserWithRole = request.identity
           for {
-            validatePageData <- getDataForValidatePages(user, labelCount = 10, validateParams)
-            commonPageData   <- configService.getCommonPageData(request2Messages.lang)
+            tags           <- labelService.getTagsForCurrentCity
+            commonPageData <- configService.getCommonPageData(request2Messages.lang)
           } yield {
-            if (!isMobile(request)) {
+            if (!isMobile) {
               cc.loggingService.insert(user.userId, request.ipAddress, "Visit_MobileValidate_RedirectHome")
               Redirect("/")
             } else {
               cc.loggingService.insert(user.userId, request.ipAddress, "Visit_MobileValidate")
-              Ok(
-                views.html.apps.mobileValidate(commonPageData, Messages("seo.title.validate"), user, validateParams,
-                  validatePageData)
+              noStore(
+                Ok(
+                  views.html.apps.mobileValidate(commonPageData, Messages("seo.title.validate"), user, validateParams,
+                    tags)
+                )
               )
             }
           }
@@ -220,8 +217,8 @@ class ValidateController @Inject() (
       teams: Option[String]
   ): Future[(ValidateParams, Result)] = {
     // Users and regions may be given by id or by name, so each is resolved both ways before deciding it is invalid.
-    val parsedLabelType: Option[Option[LabelTypeEnum.Base]] = labelType.map(LabelTypeEnum.byName.get)
-    val userIdsList: Option[Seq[Future[Option[String]]]]    = users.map(
+    val parsedLabelType: Option[Option[LabelType]]       = labelType.map(LabelType.withNameOption)
+    val userIdsList: Option[Seq[Future[Option[String]]]] = users.map(
       _.split(',')
         .map(_.trim)
         .map { userStr =>
@@ -274,7 +271,7 @@ class ValidateController @Inject() (
       if (parsedLabelType.isDefined && parsedLabelType.get.isEmpty) {
         (
           ValidateParams(adminVersion),
-          BadRequest(s"Invalid label type provided: ${labelType.get}. Valid label types are: ${LabelTypeEnum.primaryLabelTypeNames.mkString(", ")}.")
+          BadRequest(s"Invalid label type provided: ${labelType.get}. Valid label types are: ${LabelType.primaryLabelTypeNames.mkString(", ")}.")
         )
       } else if (userIds.isDefined && userIds.get.length != userIds.get.flatten.length) {
         (
@@ -309,48 +306,82 @@ class ValidateController @Inject() (
   }
 
   /**
-   * Get the data needed by the /validate or /mobileValidate endpoints.
+   * Serves the mission a Validate page starts on (#5650): the one the user left unfinished, or a fresh one.
    *
-   * @return (mission, labelList, missionProgress, hasNextMission, completedValidations)
+   * The page asks here rather than carrying the mission in its HTML, so a cached copy of the page can never show
+   * labels the user has already judged; the answer has the same shape as the mission-complete response of [[post]],
+   * so the client builds a mission one way. The body carries the page's filters, cut down by
+   * [[paramsAllowedFor]] like every other body that claims them.
    */
-  def getDataForValidatePages(
-      user: SidewalkUserWithRole,
-      labelCount: Int,
-      validateParams: ValidateParams
-  ): Future[ValidatePageData] = {
-    for {
-      (mission, missionProgress, labels, adminData) <-
-        labelService.getDataForValidationPages(user, labelCount, validateParams)
-      completedValidations <- validationService.countValidations(user.userId)
-      tags: Seq[Tag]       <- labelService.getTagsForCurrentCity
-      maxSpeeds            <- osmWayService.getMaxSpeedsForStreets(labels.map(_.streetEdgeId).distinct)
-    } yield {
-      val missionJsObject: Option[JsValue] = mission.map(m => Json.toJson(m))
-      val progressJsObject                 =
-        missionProgress.map(p => Json.obj("agree_count" -> p._1, "disagree_count" -> p._2, "unsure_count" -> p._3))
-      val hasDataForMission: Boolean          = labels.nonEmpty
-      val labelMetadataJsonSeq: Seq[JsObject] = if (validateParams.adminVersion) {
-        labels.sortBy(_.labelId).zip(adminData.sortBy(_.labelId)).map { case (l, admin) =>
-          LabelFormats.validationLabelMetadataToJson(
-            l,
-            panoDataService.backupImageUrl(l.panoId),
-            Some(admin),
-            maxSpeed = maxSpeeds.get(l.streetEdgeId)
-          )
+  def getMission = cc.securityService.SecuredAction(parse.json) { implicit request =>
+    request.body
+      .validate[MissionRequest]
+      .fold(
+        errors => Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))),
+        missionRequest => {
+          val user: SidewalkUserWithRole = request.identity
+          val safeParams: ValidateParams = paramsAllowedFor(missionRequest.validateParams, user)
+          val completedValidationsF      = validationService.countValidations(user.userId)
+          for {
+            returnValue          <- labelService.getDataForValidationPages(user, labelCount = 10, safeParams)
+            completedValidations <- completedValidationsF
+            maxSpeeds <- osmWayService.getMaxSpeedsForStreets(returnValue.labels.map(_.streetEdgeId).distinct)
+          } yield {
+            val mission: JsObject = missionJson(returnValue, safeParams.adminVersion, maxSpeeds)
+            Ok(mission + ("completed_validations" -> JsNumber(completedValidations)))
+          }
         }
-      } else {
-        labels.map { l =>
-          LabelFormats.validationLabelMetadataToJson(
-            l,
-            panoDataService.backupImageUrl(l.panoId),
-            maxSpeed = maxSpeeds.get(l.streetEdgeId)
-          )
-        }
+      )
+  }
+
+  /**
+   * The JSON a mission is handed over as, shared by the first-mission and mission-complete responses.
+   * @param maxSpeeds Speed limits by street, for the labels' street signs.
+   */
+  private def missionJson(
+      returnValue: ValidationTaskPostReturnValue,
+      adminVersion: Boolean,
+      maxSpeeds: Map[Int, String]
+  ): JsObject = {
+    Json.obj(
+      "has_mission_available" -> returnValue.hasMissionAvailable,
+      "mission"               -> returnValue.mission.map(m => Json.toJson(m)),
+      "labels"                -> labelsJson(returnValue.labels, returnValue.adminData, adminVersion, maxSpeeds),
+      "progress"              -> returnValue.progress.map { p =>
+        Json.obj("agree_count" -> p.agreeCount, "disagree_count" -> p.disagreeCount, "unsure_count" -> p.unsureCount)
       }
-      val labelMetadataJson: JsValue = Json.toJson(labelMetadataJsonSeq)
-      ValidatePageData(missionJsObject, Some(labelMetadataJson), progressJsObject, hasDataForMission,
-        completedValidations, tags)
+    )
+  }
+
+  /**
+   * Serializes a batch of labels for Validate, with Expert Validate's per-label extras when the page is the admin one.
+   * @param adminData One entry per label, in any order; empty unless `adminVersion`.
+   */
+  private def labelsJson(
+      labels: Seq[LabelValidationMetadata],
+      adminData: Seq[AdminValidationData],
+      adminVersion: Boolean,
+      maxSpeeds: Map[Int, String]
+  ): JsValue = {
+    val labelMetadataJsonSeq: Seq[JsObject] = if (adminVersion) {
+      labels.sortBy(_.labelId).zip(adminData.sortBy(_.labelId)).map { case (l, admin) =>
+        LabelFormats.validationLabelMetadataToJson(
+          l,
+          panoDataService.backupImageUrl(l.panoId),
+          Some(admin),
+          maxSpeed = maxSpeeds.get(l.streetEdgeId)
+        )
+      }
+    } else {
+      labels.map { l =>
+        LabelFormats.validationLabelMetadataToJson(
+          l,
+          panoDataService.backupImageUrl(l.panoId),
+          maxSpeed = maxSpeeds.get(l.streetEdgeId)
+        )
+      }
     }
+    Json.toJson(labelMetadataJsonSeq)
   }
 
   /**
@@ -364,7 +395,7 @@ class ValidateController @Inject() (
     val currTime: OffsetDateTime = data.timestamp
 
     // The type each vote was cast on: what the tool showed, or the mission's type for a client that doesn't say.
-    def labelTypeSeen(newVal: LabelValidationSubmission): LabelTypeEnum.Base =
+    def labelTypeSeen(newVal: LabelValidationSubmission): LabelType =
       newVal.labelType.orElse(data.missionProgress.map(_.labelType)).get
     if (data.validations.exists(_.labelType.isEmpty) && data.missionProgress.isEmpty) {
       return Future.successful(
@@ -386,8 +417,8 @@ class ValidateController @Inject() (
           newVal.tags,
           newVal.comment.map(c =>
             ValidationTaskComment(
-              0, c.missionId, c.labelId, user.userId, ipAddress, c.panoId, c.heading, c.pitch, c.zoom, c.lat, c.lng,
-              currTime, c.comment
+              0, c.missionId, c.labelId, labelTypeSeen(newVal), user.userId, ipAddress, c.panoId, c.heading, c.pitch,
+              c.zoom, c.lat, c.lng, currTime, c.comment
             )
           ),
           newVal.undone,
@@ -406,34 +437,7 @@ class ValidateController @Inject() (
       returnValue <- labelService.getDataForValidatePostRequest(user, data.missionProgress, data.validateParams)
       maxSpeeds   <- osmWayService.getMaxSpeedsForStreets(returnValue.labels.map(_.streetEdgeId).distinct)
     } yield {
-      val labelMetadataJsonSeq: Seq[JsObject] = if (data.validateParams.adminVersion) {
-        returnValue.labels.sortBy(_.labelId).zip(returnValue.adminData.sortBy(_.labelId)).map { case (l, admin) =>
-          LabelFormats.validationLabelMetadataToJson(
-            l,
-            panoDataService.backupImageUrl(l.panoId),
-            Some(admin),
-            maxSpeed = maxSpeeds.get(l.streetEdgeId)
-          )
-        }
-      } else {
-        returnValue.labels.map { l =>
-          LabelFormats.validationLabelMetadataToJson(
-            l,
-            panoDataService.backupImageUrl(l.panoId),
-            maxSpeed = maxSpeeds.get(l.streetEdgeId)
-          )
-        }
-      }
-      Ok(
-        Json.obj(
-          "has_mission_available" -> returnValue.hasMissionAvailable,
-          "mission"               -> returnValue.mission.map(m => Json.toJson(m)),
-          "labels"                -> Json.toJson(labelMetadataJsonSeq),
-          "progress"              -> returnValue.progress.map { case (agreeCount, disagreeCount, unsureCount) =>
-            Json.obj("agree_count" -> agreeCount, "disagree_count" -> disagreeCount, "unsure_count" -> unsureCount)
-          }
-        )
-      )
+      Ok(missionJson(returnValue, data.validateParams.adminVersion, maxSpeeds))
     }
 
     // Now we do all the stuff that can be done async, we can return the response before these are done.
@@ -464,7 +468,7 @@ class ValidateController @Inject() (
       val timeSpent: Double = data.validations.map { l =>
         Math.min(ChronoUnit.MILLIS.between(l.startTimestamp, l.endTimestamp), 60000)
       }.sum / 1000d
-      configService.sendSciStarterContributions(user.email, data.validations.length, timeSpent)
+      val _ = configService.sendSciStarterContributions(user.email, data.validations.length, timeSpent)
     }
 
     response
@@ -530,25 +534,7 @@ class ValidateController @Inject() (
               moreLabels.labelsNeeded, moreLabels.excludedLabelIds.toSet, safeParams)
             maxSpeeds <- osmWayService.getMaxSpeedsForStreets(labels.map(_.streetEdgeId).distinct)
           } yield {
-            val labelMetadataJsonSeq: Seq[JsObject] = if (safeParams.adminVersion) {
-              labels.sortBy(_.labelId).zip(adminData.sortBy(_.labelId)).map { case (l, admin) =>
-                LabelFormats.validationLabelMetadataToJson(
-                  labelMetadata = l,
-                  backupImageUrl = panoDataService.backupImageUrl(l.panoId),
-                  adminData = Some(admin),
-                  maxSpeed = maxSpeeds.get(l.streetEdgeId)
-                )
-              }
-            } else {
-              labels.map { l =>
-                LabelFormats.validationLabelMetadataToJson(
-                  labelMetadata = l,
-                  backupImageUrl = panoDataService.backupImageUrl(l.panoId),
-                  maxSpeed = maxSpeeds.get(l.streetEdgeId)
-                )
-              }
-            }
-            Ok(Json.obj("labels" -> Json.toJson(labelMetadataJsonSeq)))
+            Ok(Json.obj("labels" -> labelsJson(labels, adminData, safeParams.adminVersion, maxSpeeds)))
           }
         }
       )
@@ -601,7 +587,7 @@ class ValidateController @Inject() (
                 newVal.newLabelType.isDefined && newVal.validationResult == ValidationOption.Agree && !newVal.undone &&
                 isAdmin(request.identity)
               ) {
-                aiService.reassessAfterTypeChange(newVal.labelId)
+                val _ = aiService.reassessAfterTypeChange(newVal.labelId)
               }
               Ok(Json.obj("status" -> "Success"))
             }
@@ -618,21 +604,27 @@ class ValidateController @Inject() (
     submission.fold(
       errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
       submission => {
-        val userId: String                = request.identity.userId
-        val labelType: LabelTypeEnum.Base = LabelTypeEnum.withName(submission.labelType)
-        for {
-          mission <- missionService.resumeOrCreateNewValidateMission(
-            userId,
-            MissionType.LabelmapValidation,
-            labelType
-          )
-          commentId: Int <- validationService.replaceComment(
-            ValidationTaskComment(0, mission.get.missionId, submission.labelId, userId, request.ipAddress,
-              submission.panoId, submission.heading, submission.pitch, submission.zoom, submission.lat, submission.lng,
-              OffsetDateTime.now, submission.comment)
-          )
-        } yield {
-          Ok(Json.obj("comment_id" -> commentId, "username" -> request.identity.username))
+        val userId: String = request.identity.userId
+        labelService.findLabel(submission.labelId).flatMap {
+          case None => Future.successful(NotFound(Json.obj("status" -> "Error", "message" -> "No such label")))
+          // A comment is filed under the label's type (#5510), so one written on a stale card would never show.
+          case Some(label) if label.labelType.name != submission.labelType =>
+            Future.successful(Conflict(Json.obj("status" -> "Conflict", "label_type" -> label.labelType.name)))
+          case Some(label) =>
+            for {
+              mission <- missionService.resumeOrCreateNewValidateMission(
+                userId,
+                MissionType.LabelmapValidation,
+                label.labelType
+              )
+              commentId: Int <- validationService.replaceComment(
+                ValidationTaskComment(0, mission.get.missionId, submission.labelId, label.labelType, userId,
+                  request.ipAddress, submission.panoId, submission.heading, submission.pitch, submission.zoom,
+                  submission.lat, submission.lng, OffsetDateTime.now, submission.comment)
+              )
+            } yield {
+              Ok(Json.obj("comment_id" -> commentId, "username" -> request.identity.username))
+            }
         }
       }
     )
@@ -642,15 +634,20 @@ class ValidateController @Inject() (
    * Deletes the signed-in user's own comment on a label, from the label card's Delete control (#5015).
    *
    * Keyed by label rather than by comment id: the card's comment payload carries no id, and a comment is unique per
-   * (label, user) anyway, so the identity of the row to delete is fully determined by the label and the session.
+   * (label, user, type) anyway, so the label, the type the card showed, and the session fully determine the row.
    * That also makes the delete inherently scoped to the caller's own comment — there is no id to forge.
    *
-   * @param labelId The label whose comment should be removed.
+   * @param labelId   The label whose comment should be removed.
+   * @param labelType The type the card showed, so a card behind a type change deletes the comment on screen.
    * @return `Ok` with the number deleted (0 if they had not commented), so a double-click is not an error.
    */
-  def deleteLabelMapComment(labelId: Int) = cc.securityService.SecuredAction { implicit request =>
-    validationService.deleteComment(labelId, request.identity.userId).map { deleted =>
-      Ok(Json.obj("deleted" -> deleted))
+  def deleteLabelMapComment(labelId: Int, labelType: String) = cc.securityService.SecuredAction { implicit request =>
+    LabelType.withNameOption(labelType) match {
+      case None     => Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> "Unknown label type")))
+      case Some(lt) =>
+        validationService.deleteComment(labelId, request.identity.userId, lt).map { deleted =>
+          Ok(Json.obj("deleted" -> deleted))
+        }
     }
   }
 

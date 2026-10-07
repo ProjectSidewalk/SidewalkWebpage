@@ -1,5 +1,5 @@
 /**
- * Behavior tests for public/js/common/aggregateStats.js (#4600).
+ * Behavior tests for frontend/js/common/aggregateStats.js (#4600).
  *
  * The API-docs landing page fell back to its error state whenever /v3/api/aggregateStats took longer than the fetch
  * timeout, because timeout aborts were exempted from the retry logic. These tests pin the fixed contract: a timed-out
@@ -9,7 +9,7 @@
  * Runs under jsdom (set in jest.config.js via testEnvironment) so `window`/`document` are available.
  */
 
-const { loadGlobalScript } = require('./loadGlobalScript');
+const { loadGlobalScript, installEscapeHTML } = require('./loadGlobalScript');
 
 // jsdom (as bundled with this Jest version) implements AbortSignal but not the static AbortSignal.timeout()
 // (Baseline 2022, present in all supported browsers). Shim it for these tests; fetch is stubbed anyway, so the
@@ -18,7 +18,7 @@ if (typeof AbortSignal.timeout !== 'function') {
     AbortSignal.timeout = () => new AbortController().signal;
 }
 
-const MODULE_PATH = 'public/js/common/aggregateStats.js';
+const MODULE_PATH = 'frontend/js/common/aggregateStats.js';
 const STATS_PARAGRAPH_ID = 'project-sidewalk-aggregate-stats';
 
 // Minimal snake_case /v3/api/aggregateStats response (v3 naming convention, issue #3871).
@@ -74,6 +74,7 @@ describe('aggregateStats fetch resilience', () => {
         // Globals the renderer reaches for (provided by other bundles in production).
         global.i18next = { t: (key, opts) => Number(opts.val).toLocaleString('en-US') };
         global.util = { math: { kmsToMiles: (km) => km * 0.621371 } };
+        installEscapeHTML();
 
         // Keep the retry/error logging out of Jest's output.
         jest.spyOn(console, 'warn').mockImplementation(() => {});

@@ -5,8 +5,8 @@ import models.utils.{IpAddress, MyPostgresProfile, WebpageActivity, WebpageActiv
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import java.time.OffsetDateTime
-import javax.inject._
-import scala.concurrent.{ExecutionContext, Future}
+import javax.inject.*
+import scala.concurrent.Future
 
 @ImplementedBy(classOf[LoggingServiceImpl])
 trait LoggingService {
@@ -19,9 +19,7 @@ trait LoggingService {
 @Singleton
 class LoggingServiceImpl @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
-    webpageActivityTable: WebpageActivityTable,
-    authenticationService: AuthenticationService,
-    implicit val ec: ExecutionContext
+    webpageActivityTable: WebpageActivityTable
 ) extends LoggingService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
@@ -39,7 +37,7 @@ class LoggingServiceImpl @Inject() (
 
   /**
    * Inserts a new webpage activity record into the database, dealing with all optional inputs.
-   * @param userId Optional user ID, if available
+   * @param userId The user, or None for a visitor with no session
    * @param ipAddress IP address of the user
    * @param activity Description of the activity performed
    * @param timestamp Optional timestamp of the activity, defaults to current time if not provided
@@ -51,13 +49,7 @@ class LoggingServiceImpl @Inject() (
       activity: String,
       timestamp: Option[OffsetDateTime]
   ): Future[Int] = {
-    // If userId is provided, use it; otherwise, get the default anonymous user ID.
-    val user: Future[String] = userId match {
-      case Some(uId) => Future.successful(uId)
-      case None      => authenticationService.getDefaultAnonUser.map(_.userId)
-    }
-
     val time: OffsetDateTime = timestamp.getOrElse(OffsetDateTime.now)
-    user.flatMap { uId => db.run(webpageActivityTable.insert(WebpageActivity(0, uId, ipAddress, activity, time))) }
+    db.run(webpageActivityTable.insert(WebpageActivity(0, userId, ipAddress, activity, time)))
   }
 }

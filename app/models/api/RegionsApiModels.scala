@@ -6,7 +6,7 @@
 package models.api
 
 import models.utils.LatLngBBox
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.given
 import org.locationtech.jts.geom.MultiPolygon
 import play.api.libs.json.{JsObject, Json, Writes}
 
@@ -97,7 +97,7 @@ object RegionDataForApi extends ApiFields[RegionDataForApi] {
   /**
    * Implicit JSON writer for RegionDataForApi that uses the toJson method.
    */
-  implicit val regionDataWrites: Writes[RegionDataForApi] = (region: RegionDataForApi) => region.toJson
+  given regionDataWrites: Writes[RegionDataForApi] = (region: RegionDataForApi) => region.toJson
 }
 
 /**

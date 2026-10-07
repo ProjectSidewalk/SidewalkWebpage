@@ -1,5 +1,5 @@
 /**
- * Tests for MapSidebarUrlSync (public/js/ps-map/MapSidebarUrlSync.js, issue #4696): the two-way sync between
+ * Tests for MapSidebarUrlSync (frontend/js/ps-map/MapSidebarUrlSync.js, issue #4696): the two-way sync between
  * the LabelMap's filter sidebar + viewport and the page URL.
  *
  * Pins the URL contract both ways — reading (params validated against the rendered controls, applied through
@@ -12,15 +12,8 @@
  * precedent).
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules, realUtil } = require('./loadGlobalScript');
 
-const SRC_DIR = path.resolve(__dirname, '..', '..', 'public/js');
-const URL_QUERY_SRC = fs.readFileSync(path.join(SRC_DIR, 'common/urlQuery.js'), 'utf8');
-const FILTER_SIDEBAR_SRC = fs.readFileSync(path.join(SRC_DIR, 'common/filter-sidebar/FilterSidebar.js'), 'utf8');
-const MAP_SIDEBAR_SRC = fs.readFileSync(path.join(SRC_DIR, 'ps-map/MapSidebarFilter.js'), 'utf8');
-const URL_SYNC_SRC = fs.readFileSync(path.join(SRC_DIR, 'ps-map/MapSidebarUrlSync.js'), 'utf8');
-const LABEL_DETAIL_SRC = fs.readFileSync(path.join(SRC_DIR, 'common/label-detail/LabelDetail.js'), 'utf8');
 
 const LABEL_TYPES = ['CurbRamp', 'Obstacle'];
 // Three real-world tag shapes the URL contract has to survive: "shared" repeats across types ("narrow" is both a
@@ -148,11 +141,12 @@ describe('MapSidebarUrlSync', () => {
         window.filterStreetLayer = jest.fn();
         window.toggleLabelLayer = jest.fn();
         window.logWebpageActivity = jest.fn();
-        window.eval(URL_QUERY_SRC); // Defines util.url, which the URL readers/writers depend on.
-        window.eval(`${FILTER_SIDEBAR_SRC}\nwindow.FilterSidebar = FilterSidebar;`);
-        window.eval(`${MAP_SIDEBAR_SRC}\nwindow.MapSidebarFilter = MapSidebarFilter;`);
-        window.eval(`${URL_SYNC_SRC}\nwindow.MapSidebarUrlSync = MapSidebarUrlSync;`);
-        window.eval(`${LABEL_DETAIL_SRC}\nwindow.LabelDetail = LabelDetail;`);
+        window.util ??= realUtil();
+        loadModules('frontend/js/common/urlQuery.js');
+        Object.assign(window, loadModules('frontend/js/common/filter-sidebar/FilterSidebar.js'));
+        Object.assign(window, loadModules('frontend/js/ps-map/MapSidebarFilter.js'));
+        Object.assign(window, loadModules('frontend/js/ps-map/MapSidebarUrlSync.js'));
+        Object.assign(window, loadModules('frontend/js/common/label-detail/LabelDetail.js'));
     });
 
     beforeEach(() => {

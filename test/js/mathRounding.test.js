@@ -1,5 +1,5 @@
 /**
- * Tests for `util.math.floorTo` and `util.math.ceilTo` in public/js/common/utilitiesMath.js.
+ * Tests for `util.math.floorTo` and `util.math.ceilTo` in frontend/js/common/utilitiesMath.js.
  *
  * Distance display rounds away from claiming a badge the user hasn't earned (#4404): progress toward a threshold is
  * truncated, and the remainder still to go is rounded up. Both directions need the same guard, because scaling by a
@@ -9,16 +9,16 @@
  * Runs under jsdom (jest.config.js); utilitiesMath.js is a global script assigning onto `window.util`.
  */
 
-const fs = require('fs');
 const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const MATH_PATH = path.resolve(__dirname, '..', '..', 'public/js/common/utilitiesMath.js');
+const MATH_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/common/utilitiesMath.js');
 
 /** Load utilitiesMath.js (a global script hanging helpers off `window.util`) and return its rounding helpers. */
 function loadMath() {
   global.window = global;
   global.util = {};
-  (0, eval)(fs.readFileSync(MATH_PATH, 'utf8'));
+  Object.assign(window, loadModules(MATH_PATH));
   return global.util.math;
 }
 

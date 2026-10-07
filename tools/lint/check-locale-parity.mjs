@@ -13,9 +13,9 @@
 //      we only flag keys that don't exist in the reference at all (typos / stale keys), never missing keys.
 //
 // The `en` locale is the reference. Full locales are compared for exact key parity; override-only files are compared
-// as subsets. Every file, reference included, is also checked for values that aren't a non-empty string, and every
-// translated value for `{{placeholders}}` its reference key never supplies, which i18next would print raw. Exits
-// non-zero (and prints the offending files/keys) if anything is found, so it can gate CI.
+// as subsets. Every file, reference included, is also checked for values that aren't a non-empty string or that carry
+// an `&shy;` entity, and every translated value for `{{placeholders}}` its reference key never supplies, which i18next
+// would print raw. Exits non-zero (and prints the offending files/keys) if anything is found, so it can gate CI.
 
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
@@ -136,7 +136,12 @@ function referenceKeySet(baseNamespace) {
 function unusableValues(obj, prefix = '') {
     return Object.entries(obj).flatMap(([key, value]) => {
         const path = `${prefix}${key}`;
-        if (typeof value === 'string') return value.trim() === '' ? [{ path, reason: 'empty string' }] : [];
+        if (typeof value === 'string') {
+            if (value.trim() === '') return [{ path, reason: 'empty string' }];
+            // Much of our JS writes translations as plain text, where the entity prints literally; `\u00AD` works in
+            // both plain text and HTML.
+            return value.includes('&shy;') ? [{ path, reason: '&shy; entity, write \\u00AD instead' }] : [];
+        }
         if (Array.isArray(value)) return [{ path, reason: 'array' }];
         if (value && typeof value === 'object') {
             return Object.keys(value).length ? unusableValues(value, `${path}.`) : [{ path, reason: 'empty object' }];

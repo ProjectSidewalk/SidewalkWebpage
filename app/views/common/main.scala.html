@@ -1,13 +1,12 @@
 @import controllers.helper.ControllerUtils
-@import models.label.LabelTypeEnum
+@import models.label.LabelType
 @import models.pano.ImageryAttribution
 @import models.utils.PanoScoring
-@import play.api.Configuration
-@import play.api.libs.json.Json
+@import views.ViewHelpers.jsonForScript
 @import service.CommonPageData
 @import play.filters.csrf.CSRF
 @(commonData: CommonPageData, title: String, defaultI18nNamespace: String = "common", i18Namespaces: Seq[String] = Seq("common"), url: String = "/", extraHead: Html = Html(""), pageMeta: service.PageMeta = service.PageMeta()
-)(content: Html)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+)(content: Html)(using request: RequestHeader, messages: Messages, assets: AssetsFinder)
 
 @currentCity = @{commonData.currentCity}
 @* Pages that render the map full-window (no footer, #wrap becomes a fixed-height flex column). *@
@@ -21,18 +20,6 @@
 @bodyClass = @{if (request.path == "/" || request.path == "/home") "no-navbar-offset" else ""}
 @unitWords = @{ControllerUtils.distanceUnitWords}
 
-@* The one moment locale this request needs. Locale files register lowercase names ('zh-tw', 'pt-br') matching their
-   filenames, and moment lowercases the code it's given, so a language code maps straight to a filename (#4486).
-   Derived from play.i18n.langs rather than a second list of languages: a hardcoded copy that drifts fails the way
-   de/pt-BR did — silently, in English — whereas a missing file here is a 404 someone will notice. *@
-@momentLocaleFile = @{
-  val langCode = messages.lang.code.toLowerCase
-  // moment has US English built in, so those two need no file; every other supported language has one vendored.
-  val builtIntoMoment = Set("en", "en-us")
-  val supported       = config.get[Seq[String]]("play.i18n.langs").map(_.toLowerCase)
-  Option.when(!builtIntoMoment(langCode) && supported.contains(langCode))(s"vendor/moment/$langCode.js")
-}
-
 <!DOCTYPE html>
 @* data-mobile-device is the server's mobile verdict (ControllerUtils.isMobile, the single mobile definition) for
    this request; util.isMobile() reads it back so client and server always agree on which UI variant is running.
@@ -41,7 +28,7 @@
    data-pano-scoring carries conf/pano-scoring.json, which the Mapillary and Panoramax viewers read back through
    util.pano.scoring() and tools/city/check_streets_for_imagery.py reads off disk. Stamped here rather than beside each
    of the dozen pano-viewer.js script tags so a new page that loads a viewer can't forget it (#4411). *@
-<html lang="@messages.lang.code" data-mobile-device="@ControllerUtils.isMobile" data-measurement-system="@ControllerUtils.measurementSystem" data-pano-scoring="@PanoScoring.json">
+<html lang="@messages.lang.code" data-mobile-device="@ControllerUtils.isMobile" data-measurement-system="@ControllerUtils.measurementSystem.name" data-pano-scoring="@PanoScoring.json">
   <head>
     @* Global site tag (gtag.js) - Google Analytics. Skipped when the city has no measurement id yet: loading the
        tag with an empty one requests gtag/js?id= on every page and configures a property that doesn't exist. *@
@@ -62,14 +49,11 @@
     @common.seoHead(commonData, title, pageMeta)
     @* Per-page <head> injection point, e.g. Open Graph / Twitter Card meta for social sharing (#456). *@
     @extraHead
-    @* Deferred: i18next is only touched from AppManager's $(document).ready callback, which runs after deferred
-       scripts execute, so these don't need to block HTML parsing. *@
-    <script src='@assets.path("vendor/i18next/i18next-23.16.8.min.js")' defer></script>
-    <script src='@assets.path("vendor/i18next-http-backend/i18nextHttpBackend-3.0.6.min.js")' defer></script>
+    @* Deferred: i18next is only touched from AppManager's DOM-ready callback, which runs after deferred scripts
+       execute, so these don't need to block HTML parsing. *@
+    <script src='@assets.path("vendor/i18next/i18next-26.4.2.min.js")' defer></script>
+    <script src='@assets.path("vendor/i18next-http-backend/i18nextHttpBackend-4.0.2.min.js")' defer></script>
     <link rel="icon" type="image/png" href='@assets.path("images/favicon.png")'>
-    <link href='@assets.path("vendor/bootstrap/css/bootstrap-3.3.5.min.css")' rel='stylesheet'>
-
-    <script src='@assets.path("vendor/jquery/jquery-1.12.2.min.js")'></script>
 
     <script>
       (g=>{var h,a,k,p="The Google Maps JavaScript API",c="google",l="importLibrary",q="__ib__",m=document,b=window;b=b[c]||(b[c]={});var d=b.maps||(b.maps={}),r=new Set,e=new URLSearchParams,u=()=>h||(h=new Promise(async(f,n)=>{await (a=m.createElement("script"));e.set("libraries",[...r]+"");for(k in g)e.set(k.replace(/[A-Z]/g,t=>"_"+t[0].toLowerCase()),g[k]);e.set("callback",c+".maps."+q);a.src=`https://maps.${c}apis.com/maps/api/js?`+e;d[q]=f;a.onerror=()=>h=n(Error(p+" could not load."));a.nonce=m.querySelector("script[nonce]")?.nonce||"";m.head.append(a)}));d[l]?console.warn(p+" only loads once. Ignoring:",g):d[l]=(f,...n)=>r.add(f)&&u().then(()=>d[l](f,...n))})({
@@ -86,14 +70,10 @@
     <link rel="stylesheet" href='@assets.path("css/pages/homepage.css")'>
     <link rel="stylesheet" href='@assets.path("css/pages/auth.css")'>
 
-    @* Auth dialog (#4375): Modal.js must precede AuthModal.js; both no-op on pages without the dialog. *@
-    <script src='@assets.path("js/common/Modal.js")' defer></script>
-    <script src='@assets.path("js/common/AuthModal.js")' defer></script>
-    @* Navbar interactivity (dropdowns, city search, hamburger, click logging); no-ops on pages without the navbar. *@
-    <script src='@assets.path("js/common/Navbar.js")' defer></script>
-
     @* Deferred: utilities.js only touches the bowser global lazily, from DOMContentLoaded-or-later callers. *@
     <script src='@assets.path("vendor/bowser/bowser-2.14.1.min.js")' defer></script>
+    @* Cleans HTML from outside sources before it's shown (psTooltip's cards, the About page's citation). *@
+    <script src='@assets.path("vendor/dompurify/purify-3.4.16.min.js")' defer></script>
     @* Content-fingerprint digests for assets whose URLs JS builds at runtime (#4893): logicalPath -> md5, read by
        util.assetPath. Empty under dev `sbt run` (no digests exist); a missing entry falls back to the plain
        /assets/ path. Must precede the tool bundles: their module-level constants resolve URLs at script-eval time.
@@ -106,45 +86,42 @@
        the live viewer name the same licence the same way. PanoramaxViewer shows an identifier it can't find here
        verbatim, so a page that never stamps this (jsdom, the error pages) degrades rather than breaks. *@
     <script>window.panoramaxLicenses = @Html(ImageryAttribution.panoramaxLicensesJson);</script>
-    @* The label-type table, in canonical order — colour, access impact, rating scale, primary flags. LabelTypeEnum
+    @* The label-type table, in canonical order — colour, access impact, rating scale, primary flags. LabelType
        owns it; utilitiesSidewalk.js builds every label-type lookup from this rather than keeping a parallel set of
        literals that can drift from the backend. Must precede the tool bundles, which read it at load time. A page
        that never stamps it (jsdom, the error pages) leaves util.misc with an empty table. *@
-    <script>window.labelTypes = @Html(LabelTypeEnum.pageStampJson);</script>
-    <script src='@assets.path("js/common/utilities.js")'></script>
-    <script src='@assets.path("js/common/utilitiesMath.js")'></script>
-    <script src='@assets.path("js/common/i18nDom.js")'></script>
-    <script src='@assets.path("js/common/psTooltip.js")'></script>
-    <script src='@assets.path("js/common/AppManager.js")'></script>
+    <script>window.labelTypes = @Html(LabelType.pageStampJson);</script>
+    @* What frontend/js/pages/main.js needs from the server, then the bundle itself (shared helpers, app manager, navbar,
+       auth dialog, test-server banner). A module script runs after parsing and before the page's own entry below. *@
+    <script type="application/json" id="page-config">{
+      "csrfToken": "@CSRF.getToken.map(_.value)",
+      "i18next": {
+        "language": "@messages.lang.code",
+        "supportedLanguages": @jsonForScript(commonData.supportedLanguages),
+        "localeFiles": @commonData.localeFilesJson,
+        "defaultNS": "@defaultI18nNamespace",
+        "namespaces": @jsonForScript(i18Namespaces),
+        "countryId": "@currentCity.countryId",
+        @* The distance words for this request's language and measurement system, resolved once on the server so the
+           locale files don't carry a second copy of them. AppManager makes them i18next interpolation defaults. *@
+        "unitWords": @jsonForScript(Map(
+          "unitAbbr" -> unitWords.abbr, "unitAbbrSmall" -> unitWords.abbrSmall,
+          "unitName" -> unitWords.name, "unitNameSingular" -> unitWords.nameSingular
+        ))
+      },
+      "globals": {
+        "cityId": "@commonData.cityId",
+        "cityName": @jsonForScript(currentCity.cityNameFormatted),
+        "cityNameShort": @jsonForScript(currentCity.cityNameShort)
+      }
+    }</script>
+    <script type="module" src='@assets.path("build/js/main.js")'></script>
   </head>
   <body class="@bodyClass">
-    <script>
-      // Set up AppManager to initialize stuff that we need on every page (CSRF token, i18next, etc.).
-      $(document).ready(function() {
-        const csrfToken = "@CSRF.getToken.map(_.value)";
-        const i18nextParams = {
-          language: "@messages.lang.code",
-          defaultNS: "@defaultI18nNamespace",
-          namespaces: @Html(i18Namespaces.map(namespace => s""""$namespace"""").mkString("[", ",", "]")),
-          countryId: "@currentCity.countryId",
-          // The distance words for this request's language and measurement system, resolved once on the server so the
-          // locale files don't carry a second copy of them. AppManager makes them i18next interpolation defaults.
-          unitWords: @Html(Json.stringify(Json.toJson(Map(
-            "unitAbbr" -> unitWords.abbr, "unitAbbrSmall" -> unitWords.abbrSmall,
-            "unitName" -> unitWords.name, "unitNameSingular" -> unitWords.nameSingular
-          ))))
-        };
-        const globals = {
-          cityId: "@commonData.cityId",
-          cityName: "@currentCity.cityNameFormatted",
-          cityNameShort: "@currentCity.cityNameShort"
-        };
-        window.appManager.init(csrfToken, i18nextParams, globals);
-      });
-    </script>
       <!-- Banner is only visible if user is on local/test server-->
     @if(commonData.environmentType != "prod") {
-      <aside class="test-server-banner" aria-label="@Messages("test.server.warning.label")">
+      <aside class="test-server-banner" aria-label="@Messages("test.server.warning.label")"
+             data-storage-key="hideTestServerWarningBanner">
         <div class="test-server-banner-content">
           <span class="test-server-banner-icon ps-mask-icon" aria-hidden="true"></span>
           <p class="test-server-banner-text">
@@ -158,8 +135,19 @@
           </div>
         </div>
       </aside>
-
-      <script src='@assets.path("js/common/TestServerBanner.js")'></script>
+      @* Inline, right after the banner: the module that owns it (TestServerBanner.js) runs only after parsing, so a
+         saved "don't show again" and the banner's reserved height have to be applied here to land before first paint. *@
+      <script>
+        const banner = document.querySelector('.test-server-banner');
+        try {
+          if (JSON.parse(localStorage.getItem(banner.dataset.storageKey)) === true) banner.classList.add('ps-hidden');
+        } catch (e) {
+          // No localStorage (private mode): the banner shows, and the module's close button still hides it.
+        }
+        if (!banner.classList.contains('ps-hidden') && getComputedStyle(banner).position === 'fixed') {
+          document.documentElement.style.setProperty('--test-banner-height', `${banner.offsetHeight}px`);
+        }
+      </script>
     }
     <div id="wrap" class='@if(fullWindow){wrap--full-window}'>
       @content
@@ -172,20 +160,19 @@
     }
     @if(!noFooter) {
     <footer>
-      <div class="container" id="footer-container">
-        <div class="row footer-links-row">
-          <div class="col-sm-4 footer-link">
+      <div id="footer-container">
+        <div class="footer-links-row">
+          <div class="footer-link">
             <span class="footer-header">PROJECT SIDEWALK</span><br>
-              <!-- Back to top<br>-->
             <a href='@routes.ApplicationController.about' id="sidewalk-about-link">@Messages("footer.about")</a> <br>
             <a href='@routes.ApplicationController.terms' id="sidewalk-terms-link" target="_blank">@Messages("footer.terms")</a> <br>
             <a href='@routes.ApplicationController.labelingGuide' id="sidewalk-labeling-link" target="_blank">@Messages("footer.guide")</a> <br>
           </div>
-          <div class="col-sm-4 footer-link">
+          <div class="footer-link">
             <span class="footer-header">@Messages("footer.developer")</span><br>
             <a href='@routes.ApiDocsController.index' id="developer-api-link">@Messages("footer.api")</a><br>
           </div>
-          <div class="col-sm-4 footer-link">
+          <div class="footer-link">
             <span class="footer-header">@Messages("footer.connect")</span><br>
             <a target="_blank" href="https://github.com/ProjectSidewalk/SidewalkWebpage" id="connect-github-link">@common.socialIcon("github")&nbsp;Github</a> <br>
             <a target="_blank" href="https://www.linkedin.com/company/project-sidewalk/" id="connect-linkedin-link">@common.socialIcon("linkedin")&nbsp;LinkedIn</a><br>
@@ -194,37 +181,25 @@
           </div>
         </div>
       </div>
-      <div class="container" id="info-footer">
-        <br>
+      <div id="info-footer">
         <p><span id="funding-title">@Messages("footer.funding")</span></p>
-        <div class="row footer-logos-row">
-          <div class="col-sm-1">
+        <div class="footer-logos-row">
+          <div class="footer-logo-nsf">
             <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338" id="nsf-link">
               <img loading="lazy" src="@assets.path("images/nsf.png")" alt="@Messages("footer.logo.nsf.alt")">
             </a>
-            <div class="col-sm-2" id="award-num">@Html(Messages("footer.award"))</div>
+            <div id="award-num">@Html(Messages("footer.award"))</div>
           </div>
-          <div class="col-sm-3">
-            <a href="http://www.google.com/" id="google-link"><img loading="lazy" src="@assets.path("images/google.png")" alt="@Messages("footer.logo.google.alt")"></a>
-          </div>
-          <div class="col-sm-3">
-            <a href="https://sloan.org/fellowships/" id="sloan-link">
-              <img loading="lazy" src="@assets.path("images/sloan_logo.png")" alt="@Messages("footer.logo.sloan.alt")">
-            </a>
-          </div>
-          <div class="col-sm-2">
-            <a href="https://www.washington.edu/research/research-centers/pacific-northwest-transportation-consortium-pactrans/" id="pactrans-link">
-              <img loading="lazy" src="@assets.path("images/pactrans_logo.png")" alt="@Messages("footer.logo.pactrans.alt")">
-            </a>
-          </div>
-          <div class="col-sm-3">
-            <a href="https://create.uw.edu/" id="create-link">
-              <img loading="lazy" src="@assets.path("images/CREATE_logo.png")" alt="@Messages("footer.logo.create.alt")">
-            </a>
-          </div>
-        </div>
-        <div class="row footer-logos-row">
-          <div class="col-sm-8"></div>
+          <a href="http://www.google.com/" id="google-link"><img loading="lazy" src="@assets.path("images/google.png")" alt="@Messages("footer.logo.google.alt")"></a>
+          <a href="https://sloan.org/fellowships/" id="sloan-link">
+            <img loading="lazy" src="@assets.path("images/sloan_logo.png")" alt="@Messages("footer.logo.sloan.alt")">
+          </a>
+          <a href="https://www.washington.edu/research/research-centers/pacific-northwest-transportation-consortium-pactrans/" id="pactrans-link">
+            <img loading="lazy" src="@assets.path("images/pactrans_logo.png")" alt="@Messages("footer.logo.pactrans.alt")">
+          </a>
+          <a href="https://create.uw.edu/" id="create-link">
+            <img loading="lazy" src="@assets.path("images/CREATE_logo.png")" alt="@Messages("footer.logo.create.alt")">
+          </a>
         </div>
 
         @Html(Messages("footer.designed.operated"))<br>
@@ -235,49 +210,5 @@
     </footer>
     }
 
-    <script>
-      window.appManager.ready(function () {
-        // Log clicks on links in the footer to WebpageActivityTable.
-        // Depending on column, form of log varies by the following:
-        // Column is 'Project Sidewalk' or 'Developer',
-        //    log is of form: "Click_module=Footer_section=<"sidewalk" or "developer">_target=<link>"
-        // Column is 'Connect',
-        //    log is of form: "Click_module=Footer_section=connect_platform=<"github", "twitter", or "email">"
-        $('#footer-container').on('click', 'a', function(e){
-          const currentRoute = window.location.pathname;
-          const id = e.currentTarget.id.split('-');
-          const column = id[0];
-          const link = id[1];
-
-          let activity = 'Click_module=Footer_section=' + column + '_';
-          if (column === 'sidewalk' || column === 'developer') {
-            activity = activity + 'target=' + link;
-          } else {
-            activity = activity + 'platform=' + link;
-          }
-          activity = activity + '_route=' + currentRoute;
-
-          window.logWebpageActivity(activity);
-        });
-
-        // Log clicks on links in the information footer to WebpageActivityTable.
-        // Log is of form: "Click_module=InfoFooter_target=<link>_route=</|/explore|/labelingGuide|...>"
-        $('#info-footer').on('click','a', function(e){
-          const currentRoute = window.location.pathname;
-          const link = e.currentTarget.id.split('-')[0];
-          const activity = 'Click_module=InfoFooter_' + 'target=' + link + '_route=' + currentRoute;
-          window.logWebpageActivity(activity);
-        });
-      });
-    </script>
-
-    @* 37KB gz of parser-blocking script, and nothing reads `moment` at parse time — updateTimestamps defers its work
-       to $(document).ready. timestampLocalization.js stays blocking so the call below still resolves (#4486). *@
-    <script src='@assets.path("vendor/moment/moment-2.31.0.js")' defer></script>
-    @momentLocaleFile.map { localeFile =>
-      <script src='@assets.path(localeFile)' defer></script>
-    }
-    <script src='@assets.path("js/common/timestampLocalization.js")'></script>
-    <script>updateTimestamps("@messages.lang.code");</script>
   </body>
 </html>

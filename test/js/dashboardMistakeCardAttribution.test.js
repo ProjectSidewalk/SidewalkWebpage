@@ -1,20 +1,12 @@
 /**
- * Tests the imagery credit on a dashboard "recent mistakes" card (public/js/user-dashboard/MistakeGallery.js, #5254).
+ * Tests the imagery credit on a dashboard "recent mistakes" card (frontend/js/user-dashboard/MistakeGallery.js, #5254).
  *
  * The card shows the label's saved crop, which is our own copy of the provider's image, so it has to credit that
  * provider the same way the Gallery and landing cards do. The real overlays are loaded instead of fake ones, since
  * the whole point is checking that the card hooks them up.
  */
 
-const fs = require('fs');
-const path = require('path');
-
-const { assetPathStub, installUtilitiesMisc, REPO_ROOT } = require('./loadGlobalScript');
-
-const GALLERY_SRC = fs.readFileSync(path.join(REPO_ROOT, 'public/js/user-dashboard/MistakeGallery.js'), 'utf8');
-const LOGO_SRC = fs.readFileSync(path.join(REPO_ROOT, 'public/js/common/pano-viewer/src/PanoViewerLogo.js'), 'utf8');
-const ATTRIBUTION_SRC =
-  fs.readFileSync(path.join(REPO_ROOT, 'public/js/common/pano-viewer/src/PanoAttribution.js'), 'utf8');
+const { assetPathStub, installUtilitiesMisc, loadModules } = require('./loadGlobalScript');
 
 const CROP_URL = '/cropImage/Obstacle/501?exp=1&sig=x';
 const GSV_URL = 'https://maps.googleapis.com/maps/api/streetview?pano=abc123';
@@ -54,11 +46,16 @@ describe('the dashboard mistake card\'s imagery credit', () => {
     window.i18next = { t: (key) => key };
     // The logo measures itself to report how wide it is. jsdom lays nothing out, so there's nothing to measure.
     window.ResizeObserver = class { observe() {} disconnect() {} };
-    window.util = { assetPath: assetPathStub, EXPLORE_CANVAS_WIDTH: 720, EXPLORE_CANVAS_HEIGHT: 480 };
+    window.util = {
+      assetPath: assetPathStub,
+      EXPLORE_CANVAS_WIDTH: 720,
+      EXPLORE_CANVAS_HEIGHT: 480,
+      camelToKebab: (s) => s.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase(),
+    };
     installUtilitiesMisc();
-    window.eval(`${LOGO_SRC}\nwindow.createPanoViewerLogo = createPanoViewerLogo;`);
-    window.eval(`${ATTRIBUTION_SRC}\nwindow.createPanoAttribution = createPanoAttribution;`);
-    window.eval(`${GALLERY_SRC}\nwindow.MistakeGallery = MistakeGallery;`);
+    Object.assign(window, loadModules('frontend/js/common/pano-viewer/PanoViewerLogo.js'));
+    Object.assign(window, loadModules('frontend/js/common/pano-viewer/PanoAttribution.js'));
+    window.MistakeGallery = loadModules('frontend/js/user-dashboard/MistakeGallery.js').MistakeGallery;
   });
 
   beforeEach(() => {

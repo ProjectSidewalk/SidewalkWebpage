@@ -11,16 +11,14 @@
  * eval'd into global scope rather than required.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules, realUtil } = require('./loadGlobalScript');
 
-const JS_DIR = path.resolve(__dirname, '..', '..', 'public/js/admin-dashboard');
+window.util = realUtil();
+
 
 /** Loads AdminShell (the table escapes through it) and returns the table class. */
 function loadTable() {
-  const shell = fs.readFileSync(path.join(JS_DIR, 'AdminShell.js'), 'utf8');
-  const table = fs.readFileSync(path.join(JS_DIR, 'StreetPriorityTable.js'), 'utf8');
-  return (0, eval)(`${shell}\nglobalThis.AdminShell = AdminShell;\n${table}\nStreetPriorityTable;`);
+  return loadModules('frontend/js/admin-dashboard/StreetPriorityTable.js').StreetPriorityTable;
 }
 
 const StreetPriorityTable = loadTable();
@@ -294,7 +292,7 @@ describe('StreetPriorityTable row interactions', () => {
 });
 
 describe('StreetPriorityTable highlighting', () => {
-  const highlighted = () => [...document.querySelectorAll('#work tbody tr.highlighted')]
+  const highlighted = () => [...document.querySelectorAll('#work tbody tr.is-highlighted')]
     .map((tr) => tr.cells[0].textContent);
 
   test('highlights exactly the given ids and drops the rest', () => {

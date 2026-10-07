@@ -15,21 +15,17 @@
  * Runs under jsdom. These are bare top-level classes in a concatenated bundle, so they are eval'd into global scope.
  */
 
-const fs = require('fs');
-const path = require('path');
 
-const JS_DIR = path.resolve(__dirname, '..', '..', 'public/js/admin-dashboard');
+const { installDateHelpers, loadModules, realUtil } = require('./loadGlobalScript');
+
+window.util = realUtil();
+
 
 function loadPage() {
-  const read = (file) => fs.readFileSync(path.join(JS_DIR, file), 'utf8');
-  return (0, eval)(
-    `${read('MiniLineChart.js')}\nglobalThis.MiniLineChart = MiniLineChart;\n`
-    + `${read('StreetStatusMap.js')}\nglobalThis.StreetStatusColors = StreetStatusColors;\n`
-    + `${read('AdminShell.js')}\nglobalThis.AdminShell = AdminShell;\n`
-    + `${read('StreetStatusTrend.js')}\nStreetStatusTrend;`
-  );
+  return loadModules('frontend/js/admin-dashboard/StreetStatusTrend.js').StreetStatusTrend;
 }
 
+installDateHelpers();
 const StreetStatusTrend = loadPage();
 
 const MARKUP = `

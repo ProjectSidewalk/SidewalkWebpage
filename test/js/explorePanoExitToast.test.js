@@ -8,15 +8,9 @@
  * buttons take the pointer, so the realistic toast-side path is through the close X.
  */
 
-const fs = require('fs');
-const path = require('path');
 
-const read = (rel) => fs.readFileSync(path.resolve(__dirname, '..', '..', rel), 'utf8');
-const { assetPathStub } = require('./loadGlobalScript');
+const { assetPathStub, loadModules } = require('./loadGlobalScript');
 
-const CANVAS_SRC = read('public/js/explore/src/canvas/Canvas.js');
-const TOAST_SRC = read('public/js/common/Toast.js');
-const RIBBON_SRC = read('public/js/explore/src/menu/RibbonMenu.js');
 
 describe('Canvas.watchPanoExit', () => {
     let holder;
@@ -61,7 +55,7 @@ describe('Canvas.watchPanoExit', () => {
         onExit = jest.fn();
         abort = new AbortController();
 
-        window.eval(`${CANVAS_SRC}\nwindow.Canvas = Canvas;`);
+        Object.assign(window, loadModules('frontend/js/explore/canvas/Canvas.js'));
         window.Canvas.watchPanoExit(holder, onExit, { signal: abort.signal });
     });
 
@@ -139,7 +133,7 @@ describe('Toast data-anchor', () => {
         document.body.innerHTML = '<div id="pano"></div><div class="modal"></div>';
         global.i18next = { t: (key) => key };
         global.util = { assetPath: assetPathStub };
-        Toast = new Function(`${TOAST_SRC}; return Toast;`)();
+        Toast = loadModules('frontend/js/common/Toast.js').Toast;
     });
 
     // svl-canvas.css keys the click-through on data-anchor="pano", so a toast over anything else must not carry it.
@@ -160,13 +154,12 @@ describe('RibbonMenu.modeSwitch and the explore-labeling class', () => {
 
     beforeEach(() => {
         document.body.className = '';
-        document.body.innerHTML = '<div id="mode-switch-button-other"></div>';
-        // A chainable jQuery stand-in: modeSwitch only styles ribbon buttons through it, which isn't under test.
-        const chain = new Proxy({}, { get: (_, prop) => (prop === 'length' ? 0 : () => chain) });
-        window.$ = Object.assign(() => chain, { each: () => {} });
+        // Only the containers modeSwitch styles; the ribbon's own markup isn't under test.
+        document.body.innerHTML = `<div id="mode-switch-button-other"></div><div id="ribbon-menu-holder"></div>
+            <div id="pano-border-frame"></div><div id="ribbon-menu-other-subcategory-holder"></div>`;
         window.util = { misc: { getLabelColors: () => new Proxy({}, { get: () => ({ fillStyle: 'black' }) }) } };
         window.svl = { ui: { canvas: {} } };
-        window.eval(`${RIBBON_SRC}\nwindow.RibbonMenu = RibbonMenu;`);
+        Object.assign(window, loadModules('frontend/js/explore/menu/RibbonMenu.js'));
         ribbon = new window.RibbonMenu({ push: jest.fn() });
     });
 

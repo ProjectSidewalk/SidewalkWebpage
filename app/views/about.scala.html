@@ -1,6 +1,7 @@
 @import models.user.SidewalkUserWithRole
 @import play.api.Configuration
 @import play.api.libs.json.Json
+@import views.ViewHelpers.jsonForScript
 @import service.{CommonPageData, PageMeta}
 @*
  * About page (#4237, redesigned in #4631): server-rendered, localized overview of Project Sidewalk — mission, how it
@@ -17,7 +18,7 @@
  * @param user       The signed-in or anonymous display user (for the navbar).
  *@
 @(commonData: CommonPageData, title: String, user: Option[SidewalkUserWithRole]
-)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+)(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @* Deployment counts span every configured city, not just the publicly listed ones, so these no-JS fallbacks line up
    with the /v3/api/aggregateStats numbers that replace them on load — the same counts the landing and /cities pages
@@ -27,12 +28,12 @@
 @countryCount = @{commonData.allCityInfo.map(_.countryId).distinct.size}
 @* Count of natively translated languages, from config so it can't drift: base languages only (en-US/en-NZ are
    regional overlays of en, zh-TW's base is zh), so e.g. [en, en-US, en-NZ, es, nl, zh-TW, de, pt-BR, fr] counts 7. *@
-@languageCount = @{config.get[Seq[String]]("play.i18n.langs").map(_.takeWhile(_ != '-')).distinct.size}
+@languageCount = @{commonData.supportedLanguages.map(_.takeWhile(_ != '-')).distinct.size}
 
-@* AboutPage JSON-LD built with the JSON library (not hand-written markup) so quoting is always valid; escaping `<`
-   blocks a `</script>` breakout from any interpolated string. *@
+@* AboutPage JSON-LD built with the JSON library (not hand-written markup) so quoting is always valid, and through
+   jsonForScript so no interpolated string can close the block with `</script>`. *@
 @jsonLd = @{
-  Json.stringify(Json.obj(
+  jsonForScript(Json.obj(
     "@context" -> "https://schema.org",
     "@type"    -> "AboutPage",
     "name"     -> Messages("about.title"),
@@ -56,7 +57,7 @@
         "https://makeabilitylab.cs.washington.edu/"
       )
     )
-  )).replace("<", "\\u003c")
+  ))
 }
 
 @* about.css ships in <head> rather than alongside the markup: this page is one long column of styled bands, so
@@ -66,7 +67,7 @@
   @* Styles the deployment map's city popups. Small enough to ship up front, unlike the mapping libraries the map
      itself needs, which aboutPage.js only fetches once the section nears the viewport. *@
   <link rel="stylesheet" href='@assets.path("css/components/deployment-map.css")'>
-  <script type="application/ld+json">@Html(jsonLd)</script>
+  <script type="application/ld+json">@jsonLd</script>
 }
 
 @common.main(commonData, title, extraHead = extraHeadContent,
@@ -79,9 +80,9 @@
         <h1 class="about-hero-title">@Html(Messages("about.hero.title"))</h1>
         <p class="about-hero-subtitle">@Messages("about.hero.subtitle")</p>
         <div class="about-cta-row">
-          <a class="button-ps button--primary button--large" id="about-hero-explore-link" href="/explore">
+          <a class="button button--primary button--large" id="about-hero-explore-link" href="/explore">
             @Messages("about.hero.cta.explore")</a>
-          <a class="button-ps button--secondary button--large" id="about-hero-data-link" href="/api">
+          <a class="button button--secondary button--large" id="about-hero-data-link" href="/api">
             @Messages("about.hero.cta.data")</a>
         </div>
       </div>
@@ -141,7 +142,7 @@
                  alt="">
             <h3>@Html(Messages("about.how.step.explore.title"))</h3>
             <p>@Messages("about.how.step.explore.body")</p>
-            <a class="button-ps button--secondary button--small about-step-cta" id="about-step-explore-link"
+            <a class="button button--secondary button--small about-step-cta" id="about-step-explore-link"
                href="/explore">@Messages("about.how.step.explore.cta")</a>
           </li>
           <li class="about-step">
@@ -149,7 +150,7 @@
                  src='@assets.path("images/icons/check-circle-feather.svg")' alt="">
             <h3>@Messages("about.how.step.validate.title")</h3>
             <p>@Messages("about.how.step.validate.body")</p>
-            <a class="button-ps button--secondary button--small about-step-cta" id="about-step-validate-link"
+            <a class="button button--secondary button--small about-step-cta" id="about-step-validate-link"
                href="/validate">@Messages("about.how.step.validate.cta")</a>
           </li>
           <li class="about-step">
@@ -157,7 +158,7 @@
                  src='@assets.path("images/icons/bar-chart-2-feather.svg")' alt="">
             <h3>@Messages("about.how.step.data.title")</h3>
             <p>@Messages("about.how.step.data.body")</p>
-            <a class="button-ps button--secondary button--small about-step-cta" id="about-step-data-link"
+            <a class="button button--secondary button--small about-step-cta" id="about-step-data-link"
                href="/api">@Messages("about.how.step.data.cta")</a>
           </li>
         </ol>
@@ -192,7 +193,6 @@
              data-mapbox-api-key="@commonData.mapboxApiKey"
              data-mapbox-js='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.js")'
              data-mapbox-language-js='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")'
-             data-ps-map-js='@assets.path("js/ps-map/build/ps-map.js")'
              data-mapbox-css='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.css")'></div>
         <p class="about-where-links">@Html(Messages("about.where.links"))</p>
       </div>
@@ -261,7 +261,7 @@
         <h2>@Messages("about.pubs.title")</h2>
         <p class="about-section-intro">@Html(Messages("about.pubs.intro"))</p>
         <div class="about-pubs-list" id="about-pubs-list"></div>
-        <button class="button-ps button--secondary button--medium" id="about-pubs-show-all" hidden
+        <button class="button button--secondary button--medium" id="about-pubs-show-all" hidden
                 data-label-template="@Messages("about.pubs.showAll")"></button>
         <p class="about-pubs-fallback">@Html(Messages("about.pubs.fallback"))</p>
         @* Citation for the canonical Project Sidewalk paper, hydrated from the Makeability Lab API so the formatting
@@ -318,9 +318,9 @@
       <div class="about-container">
         <h2>@Messages("about.cta.title")</h2>
         <div class="about-cta-row">
-          <a class="button-ps button--primary button--large" id="about-cta-explore-link" href="/explore">
+          <a class="button button--primary button--large" id="about-cta-explore-link" href="/explore">
             @Messages("about.hero.cta.explore")</a>
-          <a class="button-ps button--secondary button--large" id="about-cta-city-link"
+          <a class="button button--secondary button--large" id="about-cta-city-link"
              href="https://accessiblecommunities.org/use-project-sidewalk/">@Messages("about.cta.city")</a>
         </div>
         <p class="about-contact">@Html(Messages("about.contact.body"))</p>
@@ -328,8 +328,5 @@
     </section>
   </main>
 
-  @* Hydrates the data-live-stat spans with live deployment numbers from /v3/api/aggregateStats. *@
-  <script src='@assets.path("js/common/aggregateStats.js")'></script>
-  @* Hydrates team, publications, and grants from the Makeability Lab API; logs CTA clicks. *@
-  <script src='@assets.path("js/aboutPage.js")'></script>
+  <script type="module" src='@assets.path("build/js/about.js")'></script>
 }

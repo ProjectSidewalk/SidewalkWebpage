@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-// Asset-URL check for public/js/ (#4893), public/css/ (#5094), and the `assets.path("…")` literals in app/views/.
+// Asset-URL check for frontend/js/ (#4893), public/css/ (#5094), and the `assets.path("…")` literals in app/views/.
 //
-// == public/js/ ==
+// == frontend/js/ ==
 // Frontend JS names a public asset by its logical path and resolves it with
 // `util.assetPath`, so staged builds serve the content-fingerprinted copy (`max-age=31536000, immutable`) instead of
 // the original (one hour, so a returning visitor re-asks about every asset hourly and a swapped file reaches a cached
@@ -10,9 +10,8 @@
 // a mistake are silent.
 //
 // So this checks:
-//   1. No hardcoded '/assets/' URL in public/js, whether a full path or a bare base directory that a name is later
-//      appended to — sbt-digest fingerprints the filename, so a base directory can never carry a digest. The
-//      exceptions are the ALLOWED entries below (which must still match, or the registry is stale and this fails).
+//   1. No hardcoded '/assets/' URL in frontend/js, whether a full path or a bare base directory that a name is later
+//      appended to — sbt-digest fingerprints the filename, so a base directory can never carry a digest.
 //   2. Every `util.assetPath` argument names something the digest manifest can fingerprint:
 //      - a literal argument must be a real file under public/, written as a logical path (no leading slash, no
 //        'assets/' prefix), sitting under one of build.sbt's `assetManifestPrefixes`;
@@ -36,9 +35,6 @@
 //      '/assets/' paths for its new home in build/, and would put a second prefix on one that already has it. Holding
 //      every stylesheet to the one form means a file can join a bundle without breaking.
 //
-// Bundles under public/js/*/build/ are left to the stage: checking them here would report a concatenated copy of a
-// problem already reported against its source.
-//
 // Exits non-zero with the offending files listed, so it can gate CI.
 
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
@@ -46,20 +42,10 @@ import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
-const JS_DIR = join(ROOT, 'public', 'js');
+const JS_DIR = join(ROOT, 'frontend', 'js');
 const VIEWS_DIR = join(ROOT, 'app', 'views');
 const PUBLIC_DIR = join(ROOT, 'public');
 const ASSETS_PREFIX = '/assets/';
-
-// The hardcoded '/assets/' URLs that may stay, each with the reason it can't go through util.assetPath. Every entry
-// must match something in its file; one that matches nothing is a stale exemption and fails the check.
-const ALLOWED = [
-  {
-    file: 'public/js/common/AppManager.js',
-    url: '/assets/locales/{{lng}}/{{ns}}.json',
-    reason: 'an i18next-http-backend loadPath template the library interpolates and multi-loads itself',
-  },
-];
 
 // A hardcoded asset URL: '/assets/' opening a string or a css url(), and however much literal path follows — none at
 // all still counts, since a bare '/assets/' is a base directory something appends a filename to, which is the one
@@ -71,7 +57,7 @@ const HARDCODED = /['"`(]\/assets\/(?!\$)[A-Za-z0-9_\-./]*/g;
 // every call shape is accounted for instead of only the ones a pattern happens to describe.
 const CALL = /util\.assetPath\(/g;
 
-// Editing an element's already-resolved `src` as a string. `href` is deliberately left out — in public/js it names
+// Editing an element's already-resolved `src` as a string. `href` is deliberately left out — in frontend/js it names
 // fragment ids, the page's own location and API links, never an asset.
 const SRC_SURGERY =
   /(?:\.src|getAttribute\(\s*['"]src['"]\s*\))\s*\.\s*(replace|slice|substring|substr|split|concat)\s*\(/g;
@@ -86,10 +72,9 @@ const CSS_NOT_A_FILE = /^(?:[a-z][a-z0-9+.-]*:|\/\/|#|%23)/i;
 
 const problems = [];
 
-/** @returns {string[]} Every .js file under `dir` outside a build/ output directory, as repo-relative paths. */
+/** @returns {string[]} Every .js file under `dir`, as repo-relative paths. */
 function walkJs(dir) {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
-    if (entry.name === 'build') return [];
     const full = join(dir, entry.name);
     if (entry.isDirectory()) return walkJs(full);
     return entry.name.endsWith('.js') ? [relative(ROOT, full)] : [];
@@ -143,7 +128,7 @@ const REGEX_PRECEDING_KEYWORDS = new Set([
  * Whether the '/' at `at` opens a regex literal rather than being a division operator.
  *
  * Best effort, and only ever consulted to decide how much text to skip: the shapes it can get wrong (a regex right
- * after a `}`, say) are absent from public/js, and the cost of a wrong answer is a stretch of code read as a regex
+ * after a `}`, say) are absent from frontend/js, and the cost of a wrong answer is a stretch of code read as a regex
  * body or vice versa, not a crash.
  *
  * @param {string} text - The file's contents.
@@ -232,7 +217,7 @@ function withoutComments(text) {
  * a template interpolation.
  *
  * Regex literals are not tracked, so a bracket or quote inside one counts: an asset path is named with strings, and
- * no call in public/js puts a regex in the argument.
+ * no call in frontend/js puts a regex in the argument.
  *
  * @param {string} text - Text to walk; comments must already be stripped.
  * @param {number} start - Index to start at.
@@ -321,10 +306,6 @@ for (const file of files) {
   lines.forEach((line, i) => {
     for (const [match] of line.matchAll(HARDCODED)) {
       const url = match.slice(1); // Drop the opening quote/paren.
-      // Exact match, not a prefix match: the allowed URL is a template the library interpolates, so the literal this
-      // scanner can see is all of it. Matching on a prefix would exempt every longer '/assets/locales/...' string in
-      // the same file.
-      if (ALLOWED.some((entry) => entry.file === file && url === entry.url.split('{')[0])) continue;
       problems.push(`${file}:${i + 1}: hardcoded '${url}' URL — use util.assetPath('images/...') so staged builds `
         + 'serve the fingerprinted, immutable-cached copy');
     }
@@ -389,16 +370,6 @@ for (const file of files) {
   }
 }
 
-// --- 4. The allowlist is still live -------------------------------------------------------------------------------
-
-for (const { file, url } of ALLOWED) {
-  const text = existsSync(join(ROOT, file)) ? readFileSync(join(ROOT, file), 'utf8') : '';
-  if (!text.includes(url)) {
-    problems.push(`tools/lint/check-asset-paths.mjs: allows '${url}' in ${file}, which no longer contains it — drop the `
-      + 'ALLOWED entry');
-  }
-}
-
 // --- 5 + 6. Every css url() is a relative path to a real file ------------------------------------------------------
 
 const cssFiles = walkCss(PUBLIC_DIR);
@@ -419,7 +390,7 @@ for (const file of cssFiles) {
         continue;
       }
 
-      // A query string or fragment is part of the URL but not of the filename; Bootstrap's glyphicons carry both.
+      // A query string or fragment is part of the URL but not of the filename (a font's `?#iefix` carries both).
       const cut = url.search(/[?#]/);
       const target = cssTarget(cut < 0 ? url : url.slice(0, cut), file);
       if (target === null || !existsSync(join(PUBLIC_DIR, target))) {
@@ -456,7 +427,7 @@ for (const file of viewFiles) {
 
 if (problems.length === 0) {
   console.log(`Asset paths OK -- ${files.length} JS files, ${staticCalls} literal and ${dynamicCalls} interpolated `
-    + `util.assetPath() calls, ${PREFIXES.length} manifest prefixes, ${ALLOWED.length} allowed hardcoded URL(s); `
+    + `util.assetPath() calls, ${PREFIXES.length} manifest prefixes; `
     + `${cssFiles.length} CSS files, ${cssUrls} file-naming url() reference(s); ${viewFiles.length} views, `
     + `${viewCalls} literal assets.path() calls.`);
   process.exit(0);

@@ -4,8 +4,7 @@ import models.api.{RegionSpotlightRowForApi, SpotlightUnit, StreetSpotlightRowFo
 import models.region.{RegionAccessScoreTable, RegionAccessScoreTableDef}
 import models.street.{StreetAccessScore, StreetAccessScoreTable, StreetAccessScoreTableDef}
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
-import org.scalatestplus.play.PlaySpec
+import models.utils.MyPostgresProfile.api.*
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.cache.AsyncCacheApi
@@ -13,10 +12,11 @@ import play.api.db.slick.DatabaseConfigProvider
 import play.api.i18n.Lang
 import play.api.inject.guice.GuiceApplicationBuilder
 import slick.dbio.DBIO
+import util.SidewalkSpec
 
 import java.time.OffsetDateTime
 import java.time.temporal.ChronoUnit
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import scala.concurrent.{Await, Future}
 
 /**
@@ -35,10 +35,10 @@ import scala.concurrent.{Await, Future}
  * database is tiny and may have nothing ranked at all, which is a state the module is built for, so the assertions
  * are invariants rather than counts.
  */
-class AccessScoreSpotlightSnapshotSpec extends PlaySpec with GuiceOneAppPerSuite {
+class AccessScoreSpotlightSnapshotSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private val service                    = app.injector.instanceOf[AccessScoreSpotlightService]
   private val accessScoreService         = app.injector.instanceOf[AccessScoreService]

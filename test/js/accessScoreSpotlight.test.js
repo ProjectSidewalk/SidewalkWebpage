@@ -1,5 +1,5 @@
 /**
- * The AccessScore Spotlight module's state logic (public/js/AccessScoreSpotlight.js, issue #5215).
+ * The AccessScore Spotlight module's state logic (frontend/js/AccessScoreSpotlight.js, issue #5215).
  *
  * Almost every Project Sidewalk city is short of the data needed to rank five neighborhoods, so which of the module's
  * states a visitor sees is decided by the feed far more often than by the happy path. These pin that decision table —
@@ -11,10 +11,9 @@
  * collaborators stubbed out.
  */
 
-const fs = require('fs');
-const path = require('path');
 
-const SRC = fs.readFileSync(path.resolve(__dirname, '..', '..', 'public/js/AccessScoreSpotlight.js'), 'utf8');
+const { installDateHelpers, loadModules } = require('./loadGlobalScript');
+
 
 /** Every feature-state call the module made, in order, as `source:id -> hover`. */
 let featureStates = [];
@@ -142,6 +141,7 @@ describe('the AccessScore Spotlight', () => {
             distanceToString: (m) => `${m} m`,
             longDistanceToString: (km, precision) => `${km.toFixed(precision)} km`,
         };
+        installDateHelpers();
         window.ScoreRamp = {
             colors: () => ['#a', '#b', '#c', '#d', '#e'],
             at: (score) => `score:${score}`,
@@ -154,7 +154,7 @@ describe('the AccessScore Spotlight', () => {
         });
         window.choropleth = fakeMap(['region-polygons']);
         window.citiesMap = fakeMap(['cities']);
-        window.eval(`${SRC}\nwindow.AccessScoreSpotlight = AccessScoreSpotlight;`);
+        Object.assign(window, loadModules('frontend/js/AccessScoreSpotlight.js'));
     });
 
     describe('which unit it opens on', () => {
@@ -465,11 +465,11 @@ describe('the AccessScore Spotlight', () => {
             const row = document.querySelector('.spotlight-row');
 
             row.dispatchEvent(new window.Event('mouseenter'));
-            expect(row.classList.contains('highlighted')).toBe(true);
+            expect(row.classList.contains('is-highlighted')).toBe(true);
             expect(featureStates).toContain('region-polygons:42 -> true');
 
             row.dispatchEvent(new window.Event('mouseleave'));
-            expect(row.classList.contains('highlighted')).toBe(false);
+            expect(row.classList.contains('is-highlighted')).toBe(false);
             expect(featureStates).toContain('region-polygons:42 -> false');
         });
 
@@ -507,7 +507,7 @@ describe('the AccessScore Spotlight', () => {
 
             row.dispatchEvent(new window.Event('focusin', { bubbles: true }));
 
-            expect(row.classList.contains('highlighted')).toBe(true);
+            expect(row.classList.contains('is-highlighted')).toBe(true);
             expect(featureStates).toContain('region-polygons:42 -> true');
         });
 
@@ -556,7 +556,7 @@ describe('the AccessScore Spotlight', () => {
                 const row = document.querySelector('.spotlight-row');
 
                 expect(() => row.dispatchEvent(new window.Event('mouseenter'))).not.toThrow();
-                expect(row.classList.contains('highlighted')).toBe(true);
+                expect(row.classList.contains('is-highlighted')).toBe(true);
                 expect(featureStates).toEqual([]);
             } finally {
                 window.choropleth = realChoropleth;

@@ -3,20 +3,19 @@ package controllers
 import models.user.Role
 import models.utils.OfficialContact
 import org.apache.pekko.stream.Materializer
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsNull, JsObject, JsValue, Json}
 import play.api.mvc.Cookie
-import play.api.test.CSRFTokenHelper._
+import play.api.test.CSRFTokenHelper.*
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import service.ConfigService
-import util.{AnonSession, RoleSession}
+import util.{AnonSession, RoleSession, SidewalkSpec}
 
 import scala.concurrent.Await
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 /**
  * Functional tests for the city's official-contact notice (#5462): the admin endpoints on /adminapi/officialContact
@@ -28,16 +27,16 @@ import scala.concurrent.duration._
  *
  * Requires a Postgres+PostGIS database (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in dev/CI).
  */
-class OfficialContactAdminSpec extends PlaySpec with RoleSession with GuiceOneAppPerSuite with AnonSession {
+class OfficialContactAdminSpec extends SidewalkSpec with RoleSession with GuiceOneAppPerSuite with AnonSession {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule]
       // AnonSession mints one session per call and the limiter is per-IP; every suite in a run shares loopback.
       .configure("rate-limit.anon-signup.enabled" -> false)
       .build()
 
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   private val configService = app.injector.instanceOf[ConfigService]
 
@@ -68,14 +67,14 @@ class OfficialContactAdminSpec extends PlaySpec with RoleSession with GuiceOneAp
       app,
       FakeRequest(PUT, "/adminapi/officialContact")
         .withHeaders(XHR)
-        .withCookies(session: _*)
+        .withCookies(session*)
         .withJsonBody(body)
         .withCSRFToken
     ).get
 
   private def getSaved: JsObject =
     contentAsJson(
-      route(app, FakeRequest(GET, "/adminapi/officialContact").withHeaders(XHR).withCookies(adminCookies: _*)).get
+      route(app, FakeRequest(GET, "/adminapi/officialContact").withHeaders(XHR).withCookies(adminCookies*)).get
     ).as[JsObject]
 
   private def body(path: String): String = {
@@ -88,7 +87,7 @@ class OfficialContactAdminSpec extends PlaySpec with RoleSession with GuiceOneAp
     "refuse a signed-in visitor" in {
       val get = route(
         app,
-        FakeRequest(GET, "/adminapi/officialContact").withHeaders(XHR).withCookies(visitorCookies: _*)
+        FakeRequest(GET, "/adminapi/officialContact").withHeaders(XHR).withCookies(visitorCookies*)
       ).get
       status(get) mustBe FORBIDDEN
       status(put(visitorCookies, Json.obj("name" -> burnaby.name, "url" -> burnaby.url))) mustBe FORBIDDEN

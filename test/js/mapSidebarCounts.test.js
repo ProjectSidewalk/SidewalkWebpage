@@ -1,5 +1,5 @@
 /**
- * Tests for MapSidebarFilter's faceted count math (public/js/ps-map/MapSidebarFilter.js, issue #4585).
+ * Tests for MapSidebarFilter's faceted count math (frontend/js/ps-map/MapSidebarFilter.js, issue #4585).
  *
  * The counts beside each row answer "how many labels would this option contribute if it were enabled": every *other*
  * active filter applies, but the option's own on/off state doesn't, so unchecking a row never zeroes its own count.
@@ -9,12 +9,8 @@
  * the source is eval'd into jsdom with those stubbed.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const SRC_DIR = path.resolve(__dirname, '..', '..', 'public/js');
-const FILTER_SIDEBAR_SRC = fs.readFileSync(path.join(SRC_DIR, 'common/filter-sidebar/FilterSidebar.js'), 'utf8');
-const MAP_SIDEBAR_SRC = fs.readFileSync(path.join(SRC_DIR, 'ps-map/MapSidebarFilter.js'), 'utf8');
 
 const LABEL_TYPES = ['CurbRamp', 'Obstacle'];
 const VALIDATIONS = ['correct', 'incorrect', 'unsure', 'unvalidated'];
@@ -128,8 +124,8 @@ describe('MapSidebarFilter counts', () => {
         window.filterLabelLayers = () => {};
         window.filterStreetLayer = () => {};
         window.toggleLabelLayer = () => {};
-        window.eval(`${FILTER_SIDEBAR_SRC}\nwindow.FilterSidebar = FilterSidebar;`);
-        window.eval(`${MAP_SIDEBAR_SRC}\nwindow.MapSidebarFilter = MapSidebarFilter;`);
+        Object.assign(window, loadModules('frontend/js/common/filter-sidebar/FilterSidebar.js'));
+        Object.assign(window, loadModules('frontend/js/ps-map/MapSidebarFilter.js'));
     });
 
     it('renders counts as soon as it is constructed, before any interaction', () => {

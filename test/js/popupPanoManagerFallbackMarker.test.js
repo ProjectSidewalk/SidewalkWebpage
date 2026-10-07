@@ -1,25 +1,20 @@
 /**
  * Tests for where the label popup draws its marker on the static crop it falls back to when no pano can be shown
- * (public/js/common/label-detail/PopupPanoManager.js, issue #2660).
+ * (frontend/js/common/label-detail/PopupPanoManager.js, issue #2660).
  *
  * The crop behind the fallback is either the browser's snapshot of the Explore canvas, where the label is at its
  * canvas fraction, or the window the nightly crop job cut around the label, where it is wherever `label_crop` says
  * (the centre, unless the window shifted off a pole). The label payload carries that as `cropMarker`; these pin that
  * the fallback marker follows it when present and the canvas fraction otherwise.
  *
- * Like the other PopupPanoManager tests, the source is eval'd into jsdom with jQuery, since it is a top-level class
+ * Like the other PopupPanoManager tests, the source is eval'd into jsdom, since it is a top-level class
  * written for Grunt concatenation. The fallback is reached by declaring the imagery expired (no live attempt) with
  * no self-hosted copy (no Pannellum attempt), which is the popup's path for an old label whose pano Google has
  * dropped.
  */
 
-const fs = require('fs');
-const path = require('path');
-const { installUtilitiesMisc } = require('./loadGlobalScript');
+const { installUtilitiesMisc, loadModules } = require('./loadGlobalScript');
 
-const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const JQUERY_SRC = fs.readFileSync(path.join(REPO_ROOT, 'public/vendor/jquery/jquery-1.12.2.min.js'), 'utf8');
-const MANAGER_SRC = fs.readFileSync(path.join(REPO_ROOT, 'public/js/common/label-detail/PopupPanoManager.js'), 'utf8');
 
 const POV = { heading: 10, pitch: 0, zoom: 1 };
 
@@ -66,7 +61,7 @@ describe('PopupPanoManager fallback marker', () => {
         window.fetch = jest.fn(() => Promise.resolve({ ok: false }));
         jest.spyOn(console, 'error').mockImplementation(() => {});
 
-        window.eval(`${JQUERY_SRC}\n${MANAGER_SRC}\nwindow.PopupPanoManager = PopupPanoManager;`);
+        Object.assign(window, loadModules('frontend/js/common/label-detail/PopupPanoManager.js'));
         PopupPanoManager = window.PopupPanoManager;
     });
 

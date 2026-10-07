@@ -1,22 +1,23 @@
 package models.label
 
 import models.user.UserStatTable
-import models.utils.MyPostgresProfile.api._
-import org.scalatestplus.play.PlaySpec
+import models.utils.MyPostgresProfile.api.*
+import models.validation.ValidationOption
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import util.RolledBackDb
+import util.{RolledBackDb, SidewalkSpec}
 
 /**
  * Pins the validation recount behind excluding a user (#3956), which must agree with the live counting in
  * `ValidationService`. Votes are inserted straight into label_validation, skipping live counting, so every count the
- * assertions read came from the recount. Runs in a rolled-back transaction; cancels without enough data.
+ * assertions read came from the recount. Also checks that Expert Validate's vote list skips votes on an earlier label
+ * type (#5613). Runs in a rolled-back transaction; cancels without enough data.
  */
-class ValidationRecountSpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb {
+class ValidationRecountSpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledBackDb {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private lazy val labelTable    = app.injector.instanceOf[LabelTable]
   private lazy val userStatTable = app.injector.instanceOf[UserStatTable]
@@ -126,6 +127,23 @@ class ValidationRecountSpec extends PlaySpec with GuiceOneAppPerSuite with Rolle
     }
   }
 
+  "getExtraAdminValidateData" should {
+    "list only the votes cast on the label's current type" in {
+      val (labelId, _) = targets.head
+      val (v1, v2)     = (validators(0), validators(1))
+      val result       = runRolledBack(for {
+        currentType <- sql"SELECT label_type::text FROM label WHERE label_id = $labelId".as[String].head
+        earlierType = if (currentType == "CurbRamp") "NoCurbRamp" else "CurbRamp"
+        _          <- vote(labelId, v1, "Agree", Some(earlierType))
+        _          <- vote(labelId, v2, "Disagree")
+        v2Username <- sql"SELECT username FROM sidewalk_login.sidewalk_user WHERE user_id = $v2".as[String].head
+        data       <- labelTable.getExtraAdminValidateData(Seq(labelId))
+      } yield (v2Username, data.flatMap(_.previousValidations)))
+      val (v2Username, previous) = result
+      previous mustBe Seq(PreviousValidation(v2Username, ValidationOption.Disagree))
+    }
+  }
+
   "updateAccuracyForLabelersValidatedBy and updateUserQualityForLabelersValidatedBy" should {
     "refresh the labelers the validator voted on, and nobody else" in {
       val (labelId, labeler) = targets.head
@@ -137,7 +155,7 @@ class ValidationRecountSpec extends PlaySpec with GuiceOneAppPerSuite with Rolle
         _                 <- userStatTable.updateAccuracyForLabelersValidatedBy(v1)
         storedValidated   <- sql"SELECT own_labels_validated FROM user_stat WHERE user_id = $labeler".as[Int].head
         expectedValidated <-
-          labelTable.labelsForAccuracy.filter(l => l.userId === labeler && l.correct.isDefined).length.result
+          labelTable.labelsForAccuracy.filter(l => l.userId === labeler).filter(l => l.correct.isDefined).length.result
 
         // A user none of whose labels v1 voted on; flipping their flag shows whether the update reached them.
         bystander <- sql"""SELECT user_id FROM user_stat

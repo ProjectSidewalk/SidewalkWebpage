@@ -1,10 +1,9 @@
 package service
 
 import actor.ScheduledJobs
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.given
 import models.utils.{BackgroundJobRunTable, JobRunStatus, JobRunTrigger, MyPostgresProfile}
 import org.scalatest.BeforeAndAfterAll
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.cache.AsyncCacheApi
@@ -12,9 +11,10 @@ import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
 import slick.dbio.DBIO
+import util.SidewalkSpec
 
 import java.time.{LocalDate, OffsetDateTime}
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import scala.concurrent.{Await, Future}
 
 /**
@@ -34,10 +34,10 @@ import scala.concurrent.{Await, Future}
  * Requires a Postgres database (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in dev/CI); the scheduling
  * actors are disabled so a real run can't land mid-test.
  */
-class ImageryFreshnessReportServiceSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppPerSuite {
+class ImageryFreshnessReportServiceSpec extends SidewalkSpec with BeforeAndAfterAll with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private val reportService = app.injector.instanceOf[ImageryFreshnessReportService]
   private val jobRunTable   = app.injector.instanceOf[BackgroundJobRunTable]
@@ -110,8 +110,8 @@ class ImageryFreshnessReportServiceSpec extends PlaySpec with BeforeAndAfterAll 
       job: String,
       startedAt: OffsetDateTime,
       details: Map[String, Int],
-      status: JobRunStatus.Value = JobRunStatus.Succeeded,
-      trigger: JobRunTrigger.Value = JobRunTrigger.Scheduled
+      status: JobRunStatus = JobRunStatus.Succeeded,
+      trigger: JobRunTrigger = JobRunTrigger.Scheduled
   ): Unit = {
     val id = run(jobRunTable.insertRunning(job, trigger, startedAt))
     seededRunIds ::= id

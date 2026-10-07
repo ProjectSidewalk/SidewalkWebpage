@@ -1,13 +1,13 @@
 package controllers.helper
 
-import org.scalatestplus.play.PlaySpec
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
+import util.SidewalkSpec
 
 /**
  * Unit tests for pure helpers in ControllerUtils. No application/DB boot required.
  */
-class ControllerUtilsSpec extends PlaySpec {
+class ControllerUtilsSpec extends SidewalkSpec {
 
   "ControllerUtils.regionsParam" should {
     "prefer regions over the old neighborhoods name" in {
@@ -72,6 +72,18 @@ class ControllerUtilsSpec extends PlaySpec {
     "trim surrounding whitespace before classifying" in {
       ControllerUtils.safeLocalPath("  //evil.example") mustBe "/"
       ControllerUtils.safeLocalPath("  /explore") mustBe "/explore"
+    }
+
+    "reject paths with control characters, which browsers strip into a protocol-relative URL" in {
+      ControllerUtils.safeLocalPath("/\t/evil.example") mustBe "/"
+      ControllerUtils.safeLocalPath("/\n/evil.example") mustBe "/"
+      ControllerUtils.safeLocalPath("/\r/evil.example") mustBe "/"
+    }
+
+    "reject characters outside printable ASCII, which Play can't put in a Location header" in {
+      ControllerUtils.safeLocalPath("/\u4e2d") mustBe "/"
+      ControllerUtils.safeLocalPath("/a b") mustBe "/"
+      ControllerUtils.safeLocalPath("/%E4%B8%AD?x=%20") mustBe "/%E4%B8%AD?x=%20"
     }
 
     "fall back to the supplied default when the target is unsafe" in {

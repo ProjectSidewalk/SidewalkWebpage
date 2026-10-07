@@ -1,21 +1,22 @@
 package controllers
 
 import controllers.helper.SubmissionSpecHelpers
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import org.apache.pekko.stream.Materializer
 import org.scalatest.{Assertion, BeforeAndAfterAll}
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsBoolean, JsValue, Json}
 import play.api.mvc.Cookie
-import play.api.test.CSRFTokenHelper._
+import play.api.test.CSRFTokenHelper.*
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
+import util.SidewalkSpec
 
 /**
- * In-JVM functional tests for how /explore answers a ?routeId= it can't resolve (#5156).
+ * In-JVM functional tests for how an Explore visit answers a ?routeId= it can't resolve (#5156), through
+ * /explore/session, which the page asks for its session with the query it was opened with.
  *
  * The contract has two halves, and the second is the one that bit: a mistyped or since-deleted id must be *reported*
  * rather than silently downgraded to an ordinary session, and it must leave the user's existing route walk alone.
@@ -23,26 +24,26 @@ import play.api.test.Helpers._
  * pauses every active walk — so a typo knocked a labeler out of a route they were legitimately in. That exit path is
  * asserted here too, since the fix works by keeping it reachable only through the explicit parameter.
  *
- * Boots the real app against Postgres so routing, Silhouette, the DAO layer, and the page's bootstrap script all run;
- * the flag is read back the way the client does, out of the inline `mainParam` assignments. Everything written is
+ * Boots the real app against Postgres so routing, Silhouette and the DAO layer all run; the flag is read back the way
+ * the client does, out of the /explore/session answer. Everything written is
  * keyed to the throwaway anon users the suite mints and is deleted in `afterAll`, so a failed assertion can't leave
  * the shared dev DB altered.
  */
 // Mixin order matters: GuiceOneAppPerSuite must be rightmost so its run() wraps BeforeAndAfterAll's — otherwise
 // afterAll's cleanup executes after the app (and its DB pool) has shut down and aborts the suite.
 class ExploreRouteRequestSpec
-    extends PlaySpec
+    extends SidewalkSpec
     with BeforeAndAfterAll
     with SubmissionSpecHelpers
     with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule]
       .configure("rate-limit.anon-signup.enabled" -> false)
       .build()
 
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   private val XHR = "X-Requested-With" -> "XMLHttpRequest"
 
@@ -52,21 +53,21 @@ class ExploreRouteRequestSpec
   /** Users minted by this suite; the routes and walks written under them are deleted in `afterAll`. */
   private var createdUserIds: Set[String] = Set.empty
 
-  /** Loads /explore for the session and returns the rendered page. */
-  private def exploreHtml(session: Seq[Cookie], query: String): String = {
-    val resp = route(app, FakeRequest(GET, s"/explore$query").withCookies(session: _*)).get
-    withClue(s"/explore$query: ") { status(resp) mustBe OK }
-    contentAsString(resp)
+  /** Resolves an Explore visit's session through /explore/session, as the page does for the query it opened with. */
+  private def exploreSession(session: Seq[Cookie], query: String): JsValue = {
+    val resp = route(app, FakeRequest(GET, s"/explore/session$query").withCookies(session*)).get
+    withClue(s"/explore/session$query: ") { status(resp) mustBe OK }
+    contentAsJson(resp)
   }
 
-  /** Reads one of the page's `mainParam.<name> = <json>;` bootstrap assignments, as the client does. */
-  private def pageParam(html: String, name: String): Option[JsValue] = embeddedPageJson(html, s"mainParam.$name")
+  /** Reads one of the session's fields, as the client does; None when the server left it out. */
+  private def pageParam(session: JsValue, name: String): Option[JsValue] = (session \ name).toOption
 
-  /** Saves a one-street route in a region the connected schema actually has, and returns its id. */
+  /** Saves a one-street route on a street the connected schema actually has, and returns its id. */
   private def saveRoute(session: Seq[Cookie]): Int = {
     val streets = route(
       app,
-      FakeRequest(GET, "/contribution/streets/all?filterLowQuality=true").withCookies(session: _*)
+      FakeRequest(GET, "/contribution/streets/all?filterLowQuality=true").withCookies(session*)
     ).get
     status(streets) mustBe OK
     val feature = (contentAsJson(streets) \ "features")
@@ -74,15 +75,14 @@ class ExploreRouteRequestSpec
       .headOption
       .getOrElse(cancel("No routable street in the connected schema; a route can't be built."))
     val body = Json.obj(
-      "region_id" -> (feature \ "properties" \ "region_id").as[Int],
-      "name"      -> s"Explore Route Param Spec ${java.util.UUID.randomUUID()}",
-      "streets"   -> Json.arr(
+      "name"    -> s"Explore Route Param Spec ${java.util.UUID.randomUUID()}",
+      "streets" -> Json.arr(
         Json.obj("street_id" -> (feature \ "properties" \ "street_edge_id").as[Int], "reverse" -> false)
       )
     )
     val saved = route(
       app,
-      FakeRequest(POST, "/saveRoute").withHeaders(XHR).withCookies(session: _*).withJsonBody(body).withCSRFToken
+      FakeRequest(POST, "/saveRoute").withHeaders(XHR).withCookies(session*).withJsonBody(body).withCSRFToken
     ).get
     status(saved) mustBe OK
     (contentAsJson(saved) \ "route_id").as[Int]
@@ -92,7 +92,7 @@ class ExploreRouteRequestSpec
   private def deleteRoute(session: Seq[Cookie], routeId: Int): Assertion = {
     val resp = route(
       app,
-      FakeRequest(DELETE, s"/userapi/routes/$routeId").withHeaders(XHR).withCookies(session: _*).withCSRFToken
+      FakeRequest(DELETE, s"/userapi/routes/$routeId").withHeaders(XHR).withCookies(session*).withCSRFToken
     ).get
     status(resp) mustBe OK
   }
@@ -155,56 +155,56 @@ class ExploreRouteRequestSpec
     completeOnboarding(session)
 
     val routeId = saveRoute(session)
-    val entered = exploreHtml(session, s"?routeId=$routeId")
-    pageParam(entered, "routeId").map(_.as[Int]) mustBe Some(routeId)
-    val userRouteId = pageParam(entered, "userRouteId")
+    val entered = exploreSession(session, s"?routeId=$routeId")
+    pageParam(entered, "route_id").map(_.as[Int]) mustBe Some(routeId)
+    val userRouteId = pageParam(entered, "user_route_id")
       .map(_.as[Int])
       .getOrElse(fail("Entering a route left no walk in the explore bootstrap."))
     walkPaused(userRouteId) mustBe false
     (session, routeId, userRouteId)
   }
 
-  "GET /explore?routeId=<unresolvable>" should {
+  "GET /explore/session?routeId=<unresolvable>" should {
     "report the dropped route instead of passing the visit off as an ordinary session" in {
       val (session, _, _) = sessionWalkingARoute()
 
-      pageParam(exploreHtml(session, s"?routeId=$UnknownRouteId"), "routeUnavailable") mustBe Some(JsBoolean(true))
+      pageParam(exploreSession(session, s"?routeId=$UnknownRouteId"), "route_unavailable") mustBe Some(JsBoolean(true))
     }
 
     "leave the walk the user is already in running, rather than pausing it on the strength of a typo" in {
       val (session, routeId, userRouteId) = sessionWalkingARoute()
 
-      val visit = exploreHtml(session, s"?routeId=$UnknownRouteId")
+      val visit = exploreSession(session, s"?routeId=$UnknownRouteId")
 
       // The walk survives, and this very visit continues it: an id that resolves to nothing is dropped, leaving the
       // session to run exactly as if no route had been asked for.
       walkPaused(userRouteId) mustBe false
-      pageParam(visit, "routeId").map(_.as[Int]) mustBe Some(routeId)
-      pageParam(visit, "userRouteId").map(_.as[Int]) mustBe Some(userRouteId)
+      pageParam(visit, "route_id").map(_.as[Int]) mustBe Some(routeId)
+      pageParam(visit, "user_route_id").map(_.as[Int]) mustBe Some(userRouteId)
     }
 
     "report it to a user who has no walk to lose, the plain typo case" in {
       val session = freshAnonSession()
       completeOnboarding(session)
 
-      val visit = exploreHtml(session, s"?routeId=$UnknownRouteId")
+      val visit = exploreSession(session, s"?routeId=$UnknownRouteId")
 
-      pageParam(visit, "routeUnavailable") mustBe Some(JsBoolean(true))
-      pageParam(visit, "routeId") mustBe None
+      pageParam(visit, "route_unavailable") mustBe Some(JsBoolean(true))
+      pageParam(visit, "route_id") mustBe None
     }
 
     "leave a paused walk paused rather than resuming it on the way past" in {
       val (session, _, userRouteId) = sessionWalkingARoute()
-      exploreHtml(session, "?resumeRoute=false")
+      exploreSession(session, "?resumeRoute=false")
       walkPaused(userRouteId) mustBe true
 
-      val visit = exploreHtml(session, s"?routeId=$UnknownRouteId")
+      val visit = exploreSession(session, s"?routeId=$UnknownRouteId")
 
       // Dropping the id makes the visit an ordinary one, and an ordinary visit doesn't un-exit a route the user
       // left: only an explicit ?routeId= re-enters one (#4833).
       walkPaused(userRouteId) mustBe true
-      pageParam(visit, "routeId") mustBe None
-      pageParam(visit, "routeUnavailable") mustBe Some(JsBoolean(true))
+      pageParam(visit, "route_id") mustBe None
+      pageParam(visit, "route_unavailable") mustBe Some(JsBoolean(true))
     }
 
     // The tutorial suppresses route data on the page (#4816), so this flag is the only thing that survives the
@@ -217,33 +217,33 @@ class ExploreRouteRequestSpec
       createdUserIds += bootstrap.userId
       bootstrap.missionType mustBe "auditOnboarding"
 
-      val visit = exploreHtml(session, s"?routeId=$UnknownRouteId")
+      val visit = exploreSession(session, s"?routeId=$UnknownRouteId")
 
-      pageParam(visit, "routeUnavailable") mustBe Some(JsBoolean(true))
+      pageParam(visit, "route_unavailable") mustBe Some(JsBoolean(true))
       // Route data stays suppressed for the tutorial's sake, which is why the notice has to wait rather than show.
-      pageParam(visit, "routeId") mustBe None
+      pageParam(visit, "route_id") mustBe None
     }
 
     "report a route that was deleted after its link was shared" in {
       val (session, routeId, _) = sessionWalkingARoute()
       deleteRoute(session, routeId)
 
-      val visit = exploreHtml(session, s"?routeId=$routeId")
-      pageParam(visit, "routeUnavailable") mustBe Some(JsBoolean(true))
+      val visit = exploreSession(session, s"?routeId=$routeId")
+      pageParam(visit, "route_unavailable") mustBe Some(JsBoolean(true))
       // Deleting the route ends its walk as a place to be, so the page is a plain session rather than a route one.
-      pageParam(visit, "routeId") mustBe None
+      pageParam(visit, "route_id") mustBe None
     }
   }
 
-  "GET /explore" should {
+  "GET /explore/session" should {
     "still exit the route on an explicit ?resumeRoute=false" in {
       val (session, _, userRouteId) = sessionWalkingARoute()
 
-      val exited = exploreHtml(session, "?resumeRoute=false")
+      val exited = exploreSession(session, "?resumeRoute=false")
 
       walkPaused(userRouteId) mustBe true
-      pageParam(exited, "routeId") mustBe None
-      pageParam(exited, "routeUnavailable") mustBe None
+      pageParam(exited, "route_id") mustBe None
+      pageParam(exited, "route_unavailable") mustBe Some(JsBoolean(false))
     }
 
     // The one combination where a dropped id still ends a walk. It takes the user spelling out the exit as well, and
@@ -251,18 +251,18 @@ class ExploreRouteRequestSpec
     "still exit the route when an unresolvable id is paired with an explicit ?resumeRoute=false" in {
       val (session, _, userRouteId) = sessionWalkingARoute()
 
-      val visit = exploreHtml(session, s"?routeId=$UnknownRouteId&resumeRoute=false")
+      val visit = exploreSession(session, s"?routeId=$UnknownRouteId&resumeRoute=false")
 
       walkPaused(userRouteId) mustBe true
-      pageParam(visit, "routeId") mustBe None
-      pageParam(visit, "routeUnavailable") mustBe Some(JsBoolean(true))
+      pageParam(visit, "route_id") mustBe None
+      pageParam(visit, "route_unavailable") mustBe Some(JsBoolean(true))
     }
 
     "say nothing about routes on a visit that resolved the one it asked for" in {
       val (session, routeId, _) = sessionWalkingARoute()
 
-      pageParam(exploreHtml(session, s"?routeId=$routeId"), "routeUnavailable") mustBe None
-      pageParam(exploreHtml(session, ""), "routeUnavailable") mustBe None
+      pageParam(exploreSession(session, s"?routeId=$routeId"), "route_unavailable") mustBe Some(JsBoolean(false))
+      pageParam(exploreSession(session, ""), "route_unavailable") mustBe Some(JsBoolean(false))
     }
   }
 }

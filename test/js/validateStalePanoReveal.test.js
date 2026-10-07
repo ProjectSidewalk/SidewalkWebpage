@@ -1,6 +1,6 @@
 /**
  * Tests that Validate never paints a pano the current label doesn't belong to, in
- * public/js/validate/src/panorama/PanoManager.js (`#showPannellumPano`, `setPanorama`).
+ * frontend/js/validate/panorama/PanoManager.js (`#showPannellumPano`, `setPanorama`).
  *
  * The Pannellum fallback viewer is reused across labels so its WebGL context survives, which means its canvas
  * carries whatever pano it last drew — an earlier label's. Painting it before the new image has loaded would put
@@ -12,15 +12,22 @@
  * layout and still carries the last live label's pano, so a live label that follows a fallback one loads into it
  * unpainted and is revealed only once the load resolves.
  *
+ * A viewer that draws a new pano before its load resolves (Mapillary, Panoramax: PanoViewer.PAINTS_DURING_LOAD) breaks
+ * the invariant on a live label after a live one too (#5582): mid-load, it shows the incoming pano at the outgoing
+ * label's heading. Its canvas is kept unpainted from before the load until renderPanoMarker has applied the label's
+ * POV.
+ *
  * The assertions are about what a validator could see at each instant, so they read `display`/`visibility` off the
  * two canvases rather than trusting the call order. Fake viewers throughout; no imagery is involved.
  */
 
-const fs = require('fs');
 const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const PANO_MANAGER_PATH = path.resolve(__dirname, '..', '..', 'public/js/validate/src/panorama/PanoManager.js');
-const THROTTLE_PATH = path.resolve(__dirname, '..', '..', 'public/js/validate/src/util/throttle.js');
+const PANO_MANAGER_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/panorama/PanoManager.js');
+const THROTTLE_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/util/throttle.js');
+const TIMEOUT_ERROR_PATH = path.resolve(__dirname, '..', '..',
+  'frontend/js/common/pano-viewer/PanoLoadTimeoutError.js');
 
 /**
  * Load a bare `class` declaration out of a production file. The Grunt bundle concatenates these into page scope, so
@@ -30,8 +37,7 @@ const THROTTLE_PATH = path.resolve(__dirname, '..', '..', 'public/js/validate/sr
  * @returns {Function} The class.
  */
 function loadClassFromFile(filePath, className) {
-  const src = fs.readFileSync(filePath, 'utf8');
-  return (0, eval)('(() => {\n' + src + '\nreturn ' + className + ';\n})()');
+  return loadModules(filePath)[className];
 }
 
 describe('Validate only paints a viewer canvas once it holds this label\'s pano (issues #5206, #5453)', () => {
@@ -44,7 +50,7 @@ describe('Validate only paints a viewer canvas once it holds this label\'s pano 
   let logo;         // the stubbed source/primary logo control
   let attribution;  // the stubbed imagery-attribution pill
 
-  const backupImage = { panoId: 'backup-pano', cameraHeading: 90 };
+  const backupImage = { pano_id: 'backup-pano', camera_heading: 90 };
 
   /** Build a fake viewer that resolves its loads immediately. */
   function makeFakeViewer() {
@@ -113,8 +119,9 @@ describe('Validate only paints a viewer canvas once it holds this label\'s pano 
     document.body.innerHTML = '<div id="pano-holder"><div id="svv-panorama"></div></div>';
 
     global.util = {};
-    (0, eval)(fs.readFileSync(THROTTLE_PATH, 'utf8'));
+    Object.assign(window, loadModules(THROTTLE_PATH));
     util.isMobile = () => false;
+    global.i18next = { language: 'en' };
 
     logo = { showPrimaryLogo: jest.fn(), showSourceLogo: jest.fn() };
     attribution = { show: jest.fn(), hide: jest.fn() };
@@ -122,13 +129,14 @@ describe('Validate only paints a viewer canvas once it holds this label\'s pano 
     global.createPanoAttribution = jest.fn(() => attribution);
     global.GsvViewer = class GsvViewer {};
     global.MapillaryViewer = class MapillaryViewer {};
+    global.PanoLoadTimeoutError = loadClassFromFile(TIMEOUT_ERROR_PATH, 'PanoLoadTimeoutError');
     global.svv = {
       tracker: { push: jest.fn() },
       panoStore: { addPanoMetadata: jest.fn() },
       ui: { viewer: { date: { text: jest.fn() } } },
     };
 
-    panoData = { getPanoId: () => 'pano1', getProperty: () => ({ format: () => 'Jun 2026' }) };
+    panoData = { getPanoId: () => 'pano1', getProperty: () => new Date(2026, 5) };
     primaryViewer = makeFakeViewer();
     pannellumViewer = makeFakeViewer();
     pannellumViewer.currPanoData = panoData;
@@ -142,7 +150,7 @@ describe('Validate only paints a viewer canvas once it holds this label\'s pano 
     };
 
     const PanoManager = loadClassFromFile(PANO_MANAGER_PATH, 'PanoManager');
-    panoManager = await PanoManager.create(FakeViewerType, 'token', 'pano1');
+    panoManager = await PanoManager.create(FakeViewerType, 'token');
 
     primaryCanvas = document.getElementById('svv-panorama');
     pannellumCanvas = document.getElementById('svv-panorama-pannellum');
@@ -151,10 +159,12 @@ describe('Validate only paints a viewer canvas once it holds this label\'s pano 
   afterEach(() => {
     document.body.innerHTML = '';
     delete global.util;
+    delete global.i18next;
     delete global.createPanoViewerLogo;
     delete global.createPanoAttribution;
     delete global.GsvViewer;
     delete global.MapillaryViewer;
+    delete global.PanoLoadTimeoutError;
     delete global.PannellumViewer;
     delete global.svv;
   });
@@ -215,9 +225,9 @@ describe('Validate only paints a viewer canvas once it holds this label\'s pano 
     load.reject();
     const result = await inFlight;
 
-    // setPanorama reports the failure by returning null (#4810); what it must not do is leave a canvas showing an
+    // setPanorama reports the failure with a null panoData (#4810); what it must not do is leave a canvas showing an
     // unrelated pano behind the caller's back.
-    expect(result).toBeNull();
+    expect(result.panoData).toBeNull();
     expect(visibleCanvas()).toBe('none');
   });
 
@@ -227,7 +237,7 @@ describe('Validate only paints a viewer canvas once it holds this label\'s pano 
     expect(visibleCanvas()).toBe('pannellum');
 
     const load = holdPannellumLoad();
-    const inFlight = panoManager.setPanorama('pano3', { panoId: 'backup-pano-2', cameraHeading: 12 });
+    const inFlight = panoManager.setPanorama('pano3', { pano_id: 'backup-pano-2', camera_heading: 12 });
     await load.started;
 
     // Already the right canvas, and it holds the outgoing label's imagery — the honest thing to keep showing.
@@ -249,7 +259,7 @@ describe('Validate only paints a viewer canvas once it holds this label\'s pano 
     await first.started;
 
     const second = holdPannellumLoad();
-    const secondInFlight = panoManager.setPanorama('pano3', { panoId: 'backup-pano-2', cameraHeading: 12 });
+    const secondInFlight = panoManager.setPanorama('pano3', { pano_id: 'backup-pano-2', camera_heading: 12 });
     await second.started;
 
     first.reject();
@@ -257,7 +267,7 @@ describe('Validate only paints a viewer canvas once it holds this label\'s pano 
     second.resolve();
     const result = await secondInFlight;
 
-    expect(result).not.toBeNull();
+    expect(result.panoData).not.toBeNull();
     expect(panoManager.getProperty('panoLoaded')).toBe(true);
     expect(visibleCanvas()).toBe('pannellum');
   });
@@ -319,7 +329,7 @@ describe('Validate only paints a viewer canvas once it holds this label\'s pano 
 
     test('a live load that fails puts the primary canvas back out of the layout', async () => {
       const load = holdPrimaryLoad();
-      const inFlight = panoManager.setPanorama('pano3', { panoId: 'backup-pano-2', cameraHeading: 12 });
+      const inFlight = panoManager.setPanorama('pano3', { pano_id: 'backup-pano-2', camera_heading: 12 });
       await load.started;
       load.reject();
       await inFlight;
@@ -332,7 +342,7 @@ describe('Validate only paints a viewer canvas once it holds this label\'s pano 
 
     test('a failed live load takes the primary canvas out of the layout before the fallback loads', async () => {
       const live = holdPrimaryLoad();
-      const inFlight = panoManager.setPanorama('pano3', { panoId: 'backup-pano-2', cameraHeading: 12 });
+      const inFlight = panoManager.setPanorama('pano3', { pano_id: 'backup-pano-2', camera_heading: 12 });
       await live.started;
       const fallback = holdPannellumLoad();
       live.reject();
@@ -343,7 +353,7 @@ describe('Validate only paints a viewer canvas once it holds this label\'s pano 
       expect(primaryCanvas.style.visibility).toBe('');
 
       fallback.reject();
-      expect(await inFlight).toBeNull();
+      expect((await inFlight).panoData).toBeNull();
       expect(primaryCanvas.style.display).toBe('none');
       expect(primaryCanvas.style.visibility).toBe('');
     });
@@ -354,7 +364,7 @@ describe('Validate only paints a viewer canvas once it holds this label\'s pano 
       const failing = panoManager.setPanorama('pano3', null);
       await failed.started;
       failed.reject();
-      expect(await failing).toBeNull();
+      expect((await failing).panoData).toBeNull();
       expect(visibleCanvas()).toBe('none');
 
       const load = holdPrimaryLoad();
@@ -378,5 +388,272 @@ describe('Validate only paints a viewer canvas once it holds this label\'s pano 
     load.resolve();
     await inFlight;
     expect(visibleCanvas()).toBe('primary');
+  });
+});
+
+describe('a viewer that paints during a load stays unpainted until it faces the label (issue #5582)', () => {
+  let panoManager;
+  let primaryViewer;
+  let panoData;
+  let primaryCanvas;
+  let frames;     // Animation-frame callbacks, run by hand so a test controls which frame has painted.
+
+  /** What a validator can see of the primary canvas right now. */
+  function primaryShowing() {
+    return primaryCanvas.style.display !== 'none' && primaryCanvas.style.visibility !== 'hidden';
+  }
+
+  /** @returns {?HTMLElement} The label marker element, if one is drawn. */
+  function markerEl() {
+    return document.querySelector('.fake-marker');
+  }
+
+  /** Runs every frame callback queued so far, as one paint would. */
+  function paint() {
+    frames.splice(0).forEach((cb) => cb());
+  }
+
+  /** Lets queued promise callbacks run, without advancing any frame. */
+  async function flushMicrotasks() {
+    for (let i = 0; i < 5; i++) await Promise.resolve();
+  }
+
+  /**
+   * Hold the next primary load open.
+   * @returns {{started: Promise<void>, resolve: Function, reject: Function}} Controls for settling that load.
+   */
+  function holdPrimaryLoad() {
+    const controls = {};
+    const gate = new Promise((resolve, reject) => {
+      controls.resolve = () => resolve(panoData);
+      controls.reject = (err) => reject(err);
+    });
+    controls.started = new Promise((markStarted) => {
+      primaryViewer.setPano = jest.fn(() => { markStarted(); return gate; });
+    });
+    return controls;
+  }
+
+  /** @returns {object} A fake label with the surface renderPanoMarker reads. */
+  function makeLabel() {
+    const auditProps = { heading: 200, pitch: -5, zoom: 1, labelType: 'CurbRamp', aiGenerated: false };
+    return {
+      getOriginalPov: () => ({ heading: 200, pitch: -5, zoom: 1 }),
+      getAuditProperty: (key) => auditProps[key],
+      getProperty: () => 'CurbRamp',
+      getIconUrl: () => '/assets/fake-icon.svg',
+      getIconColor: () => '#abcdef', // arbitrary test value, not a real label-type color
+    };
+  }
+
+  beforeEach(async () => {
+    document.body.innerHTML = '<div id="pano-holder"><div id="svv-panorama"></div></div>'
+      + '<div id="view-control-layer"></div>';
+    // Fake timers so the reveal's background-tab cap only runs when a test advances the clock to it.
+    jest.useFakeTimers();
+    frames = [];
+    global.requestAnimationFrame = (cb) => { frames.push(cb); return frames.length; };
+
+    global.util = {};
+    Object.assign(window, loadModules(THROTTLE_PATH));
+    util.isMobile = () => false;
+    util.uiScale = () => 1;
+    util.cappedMarkerDiameter = (diameter) => diameter;
+    util.misc = { labelTypeName: () => 'Curb ramp' };
+    global.i18next = { language: 'en' };
+    global.createPanoViewerLogo = jest.fn(() => ({ showPrimaryLogo: jest.fn(), showSourceLogo: jest.fn() }));
+    global.createPanoAttribution = jest.fn(() => ({ show: jest.fn(), hide: jest.fn() }));
+    global.GsvViewer = class GsvViewer {};
+    global.MapillaryViewer = class MapillaryViewer {};
+    global.PanoLoadTimeoutError = loadClassFromFile(TIMEOUT_ERROR_PATH, 'PanoLoadTimeoutError');
+    global.PannellumViewer = class PannellumViewer {};
+    // Only what renderPanoMarker needs of a marker: an element to hide and show, in the marker layer.
+    global.PanoMarker = class PanoMarker {
+      constructor(opts) {
+        this.marker_ = document.createElement('div');
+        this.marker_.className = 'fake-marker';
+        opts.markerContainer.append(this.marker_);
+      }
+
+      setPosition() {}
+
+      removeMarker() { this.marker_.remove(); }
+    };
+    global.svv = {
+      tracker: { push: jest.fn() },
+      panoStore: { addPanoMetadata: jest.fn() },
+      ui: { viewer: { date: { text: jest.fn() } } },
+      labelRadius: 10,
+    };
+
+    panoData = { getPanoId: () => 'pano1', getProperty: () => new Date(2026, 5) };
+    primaryViewer = {
+      setPano: jest.fn(() => Promise.resolve(panoData)),
+      addListener: jest.fn(),
+      resize: jest.fn(),
+      prefetchPano: jest.fn(),
+      setPov: jest.fn(() => undefined), // Like MapillaryJS's setCenter/setFieldOfView: nothing to wait on.
+      getPov: () => ({ heading: 0, pitch: 0, zoom: 1 }),
+    };
+    const PaintingViewerType = class PaintingViewerType {
+      static PAINTS_DURING_LOAD = true;
+
+      static create() { return Promise.resolve(primaryViewer); }
+    };
+
+    const PanoManager = loadClassFromFile(PANO_MANAGER_PATH, 'PanoManager');
+    panoManager = await PanoManager.create(PaintingViewerType, 'token');
+    primaryCanvas = document.getElementById('svv-panorama');
+
+    // The first label is up and aimed, as it is by the time a validator moves on from it.
+    await panoManager.setPanorama('pano1', null);
+    const firstRender = panoManager.renderPanoMarker(makeLabel());
+    await flushMicrotasks();
+    paint();
+    paint();
+    await firstRender;
+    expect(primaryShowing()).toBe(true);
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+    document.body.innerHTML = '';
+    delete global.requestAnimationFrame;
+    delete global.util;
+    delete global.i18next;
+    delete global.createPanoViewerLogo;
+    delete global.createPanoAttribution;
+    delete global.GsvViewer;
+    delete global.MapillaryViewer;
+    delete global.PanoLoadTimeoutError;
+    delete global.PannellumViewer;
+    delete global.PanoMarker;
+    delete global.svv;
+  });
+
+  test('the canvas is unpainted from before the load starts until two frames after the label\'s POV', async () => {
+    const load = holdPrimaryLoad();
+    const inFlight = panoManager.setPanorama('pano2', null);
+    await load.started;
+    // This is the bug: the viewer draws the incoming pano here, at the outgoing label's heading.
+    expect(primaryShowing()).toBe(false);
+    expect(primaryCanvas.style.display).not.toBe('none'); // Laid out, so the provider renders at its real size.
+
+    load.resolve();
+    await inFlight;
+    // The load resolving is not enough: the viewer is still facing the old label's way.
+    expect(primaryShowing()).toBe(false);
+
+    const rendering = panoManager.renderPanoMarker(makeLabel());
+    expect(primaryViewer.setPov).toHaveBeenCalled();
+    await flushMicrotasks();
+    expect(primaryShowing()).toBe(false); // The SDK draws the new center on its own frame first.
+    paint();
+    await flushMicrotasks();
+    expect(primaryShowing()).toBe(false);
+    paint();
+    await rendering;
+    expect(primaryShowing()).toBe(true);
+  });
+
+  test('the outgoing label\'s marker goes with the canvas, and comes back with it', async () => {
+    const load = holdPrimaryLoad();
+    const inFlight = panoManager.setPanorama('pano2', null);
+    await load.started;
+    expect(markerEl().style.visibility).toBe('hidden'); // Or it would float over an empty pano area.
+
+    load.resolve();
+    await inFlight;
+    const rendering = panoManager.renderPanoMarker(makeLabel());
+    await flushMicrotasks();
+    paint();
+    paint();
+    await rendering;
+    expect(markerEl().style.visibility).toBe('');
+  });
+
+  test('a newer load that starts before the reveal keeps the canvas unpainted', async () => {
+    await panoManager.setPanorama('pano2', null);
+    const rendering = panoManager.renderPanoMarker(makeLabel());
+
+    const next = holdPrimaryLoad();
+    const nextInFlight = panoManager.setPanorama('pano3', null);
+    await next.started;
+    await flushMicrotasks();
+    paint();
+    paint();
+    await rendering;
+    // pano2's reveal would show pano3 mid-load, at pano2's heading.
+    expect(primaryShowing()).toBe(false);
+
+    next.resolve();
+    await nextInFlight;
+  });
+
+  test('a load that fails never reveals the half-drawn pano it left behind', async () => {
+    const load = holdPrimaryLoad();
+    const inFlight = panoManager.setPanorama('pano2', null);
+    await load.started;
+    load.reject(new Error('imagery expired'));
+    const result = await inFlight;
+
+    expect(result.panoData).toBeNull();
+    expect(primaryCanvas.style.display).toBe('none');
+  });
+
+  test('a setPov that throws still reveals the pano, so the tool never unlocks over a blank area', async () => {
+    await panoManager.setPanorama('pano2', null);
+    primaryViewer.setPov = jest.fn(() => { throw new Error('not navigable'); });
+
+    const rendering = panoManager.renderPanoMarker(makeLabel());
+    const outcome = rendering.catch((err) => err);
+    await flushMicrotasks();
+    paint();
+    paint();
+
+    expect((await outcome).message).toBe('not navigable'); // Still reported, so the render failure is logged.
+    expect(primaryShowing()).toBe(true);
+  });
+
+  test('a render that fails before the marker is drawn can still reveal the pano it loaded', async () => {
+    await panoManager.setPanorama('pano2', null);
+    expect(primaryShowing()).toBe(false);
+
+    panoManager.revealPendingCanvas();
+
+    expect(primaryShowing()).toBe(true);
+  });
+
+  test('a marker created after the pano area was cleared stays hidden, and unpulsed, until the reveal', async () => {
+    // A failed load clears the viewer, which takes the marker down; the next label then builds a new one.
+    primaryViewer.setPano = jest.fn(() => Promise.reject(new Error('imagery expired')));
+    await panoManager.setPanorama('pano2', null);
+    expect(markerEl()).toBeNull();
+
+    primaryViewer.setPano = jest.fn(() => Promise.resolve(panoData));
+    await panoManager.setPanorama('pano3', null);
+    const rendering = panoManager.renderPanoMarker(makeLabel());
+
+    expect(markerEl().style.visibility).toBe('hidden'); // Or it floats over the unpainted canvas.
+    expect(markerEl().classList.contains('label-marker-pulse')).toBe(false); // Its pulse would play unseen.
+
+    await flushMicrotasks();
+    paint();
+    paint();
+    await rendering;
+    expect(primaryShowing()).toBe(true);
+    expect(markerEl().style.visibility).toBe('');
+    expect(markerEl().classList.contains('label-marker-pulse')).toBe(true);
+  });
+
+  test('in a background tab, where no animation frame runs, the reveal still happens on a short timer', async () => {
+    await panoManager.setPanorama('pano2', null);
+    const rendering = panoManager.renderPanoMarker(makeLabel());
+    await flushMicrotasks();
+    expect(primaryShowing()).toBe(false);
+
+    await jest.advanceTimersByTimeAsync(100); // No paint() at all.
+    await rendering;
+    expect(primaryShowing()).toBe(true);
   });
 });

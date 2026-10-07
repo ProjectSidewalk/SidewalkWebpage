@@ -1,5 +1,5 @@
 /**
- * Tests for LabelDetail.submissionContext (public/js/common/label-detail/LabelDetail.js, issues #4697 and #4711).
+ * Tests for LabelDetail.submissionContext (frontend/js/common/label-detail/LabelDetail.js, issues #4697 and #4711).
  *
  * The pano/POV recorded with a validation or a validator comment used to be read straight off the pano viewer. That
  * breaks on every label the viewer isn't actually rendering: on the static-crop fallback the primary viewer reports
@@ -20,16 +20,12 @@
  * Only the static method is exercised here — constructing a LabelDetail needs a live pano viewer.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/common/label-detail/LabelDetail.js'), 'utf8'
-);
 
 /** Loads a fresh LabelDetail class into the jsdom global scope. */
 function loadLabelDetail() {
-    window.eval(`${SRC}\nwindow.LabelDetail = LabelDetail;`);
+    Object.assign(window, loadModules('frontend/js/common/label-detail/LabelDetail.js'));
     return window.LabelDetail;
 }
 

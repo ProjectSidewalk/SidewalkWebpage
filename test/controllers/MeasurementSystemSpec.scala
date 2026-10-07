@@ -1,14 +1,13 @@
 package controllers
 
 import models.user.{MeasurementSystem, UserSettingsTableDef}
-import models.utils.MyPostgresProfile.api._
-import org.scalatestplus.play.PlaySpec
+import models.utils.MyPostgresProfile.api.*
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
-import util.{AnonSession, RoleSession, RolledBackDb}
+import play.api.test.Helpers.*
+import util.{AnonSession, RoleSession, RolledBackDb, SidewalkSpec}
 
 /**
  * The single-measurement-system contract (#4404): `ControllerUtils.measurementSystem` is the one units verdict, and
@@ -23,14 +22,14 @@ import util.{AnonSession, RoleSession, RolledBackDb}
  * Requires a Postgres+PostGIS database (via DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD env, as in dev/CI).
  */
 class MeasurementSystemSpec
-    extends PlaySpec
+    extends SidewalkSpec
     with RoleSession
     with GuiceOneAppPerSuite
     with AnonSession
     with RolledBackDb {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule] // No eager background actors during tests.
       .configure("rate-limit.anon-signup.enabled" -> false) // One session per page, more than the limiter allows.
       .build()
@@ -45,15 +44,15 @@ class MeasurementSystemSpec
    * @param saved    The account's saved units, or None for no saved choice.
    * @return         The /leaderboard page body.
    */
-  private def pageOf(langCode: String, saved: Option[MeasurementSystem.Value] = None): String = {
+  private def pageOf(langCode: String, saved: Option[MeasurementSystem] = None): String = {
     val session = freshAnonSession()
     val userId  = userIdOf(session)
     sessionUserIds += userId
     saved.foreach { system =>
       val _ = run(sqlu"""INSERT INTO sidewalk_login.user_settings (user_id, measurement_system)
-                         VALUES ($userId, ${system.toString}::sidewalk_login.measurement_system)""")
+                         VALUES ($userId, $system)""")
     }
-    val request = FakeRequest(GET, "/leaderboard").withHeaders("Accept-Language" -> langCode).withCookies(session: _*)
+    val request = FakeRequest(GET, "/leaderboard").withHeaders("Accept-Language" -> langCode).withCookies(session*)
     val resp    = route(app, request).get
     status(resp) mustBe OK
     contentAsString(resp)
