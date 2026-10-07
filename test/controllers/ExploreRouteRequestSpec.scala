@@ -111,7 +111,7 @@ class ExploreRouteRequestSpec
    * @param aloneInItsRegion Files it instead in a region of its own, where it is the only street. That region then has
    *                         no distance for anyone to audit, so the route's start region can't host the fallback.
    */
-  private def seedZeroLengthStreet(session: Seq[Cookie], aloneInItsRegion: Boolean = false): Int = {
+  private def seedZeroLengthStreet(session: Seq[Cookie], aloneInItsRegion: Boolean): Int = {
     val regionId: Int =
       if (aloneInItsRegion) {
         val rId = run(
