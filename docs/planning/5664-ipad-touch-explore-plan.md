@@ -1,5 +1,8 @@
 # Implementation plan: Explore on iPad — touch input for immersive Explore (tablets first)
 
+> **Temporary — delete before merging.** This plan is committed only so it can be worked on remotely. It is not part
+> of the codebase: remove `docs/planning/` from the branch before any #5664 / #5580 PR merges into `develop`.
+
 Issue: [#5664](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/5664). Phase 4 of
 [#4875](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4875) ("split on interaction model, never on
 device"). Builds on immersive Explore [#5085](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/5085) (merged

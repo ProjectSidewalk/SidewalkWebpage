@@ -1,5 +1,8 @@
 # Plan: replace mobile Validate with responsive immersive Validate ([#5580](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/5580))
 
+> **Temporary — delete before merging.** This plan is committed only so it can be worked on remotely. It is not part
+> of the codebase: remove `docs/planning/` from the branch before any #5664 / #5580 PR merges into `develop`.
+
 Written 2026-10-06 against `origin/develop` at `5c68a3270`. Every line number below was read on that commit; treat
 them as anchors to re-find, not gospel. Read with
 [#4875](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4875)'s
