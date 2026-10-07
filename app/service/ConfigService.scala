@@ -110,15 +110,25 @@ case class CommonPageData(
     supportedLanguages: Seq[String]
 ) {
 
-  /** The release date for the footer, in the reader's language's date style (e.g. "October 6, 2026"). */
-  def versionDateLabel(lang: Lang): String =
-    versionTimestamp.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG).withLocale(lang.toLocale))
+  def versionDate: LocalDate = CommonPageData.releaseDate(versionTimestamp)
+
+  def versionDateLabel(lang: Lang): String = CommonPageData.releaseDateLabel(versionTimestamp, lang)
 
   /** The deployment city's info; cityId always comes from the same config that builds allCityInfo. */
   def currentCity: CityInfo = allCityInfo.find(_.cityId == cityId).get
 
   /** Whether search engines may index this deployment (#5120); see [[models.utils.SeoUtils.isIndexable]]. */
   def isIndexable: Boolean = SeoUtils.isIndexable(environmentType, currentCity.visibility, imagerySource.name)
+}
+
+object CommonPageData {
+
+  /** A release's day in UTC, so it doesn't follow the server's time zone and matches the admin deploy strip. */
+  def releaseDate(released: OffsetDateTime): LocalDate = released.atZoneSameInstant(ZoneOffset.UTC).toLocalDate
+
+  /** A release's date in the reader's language's date style (e.g. "October 7, 2026"). */
+  def releaseDateLabel(released: OffsetDateTime, lang: Lang): String =
+    releaseDate(released).format(DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG).withLocale(lang.toLocale))
 }
 
 /**
