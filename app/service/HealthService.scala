@@ -336,8 +336,7 @@ class HealthServiceImpl @Inject() (
           scheduledAt = job.scheduledAt,
           lastStartedAt = latest.map(_.startedAt.toString),
           lastFinishedAt = latest.flatMap(_.finishedAt.map(_.toString)),
-          lastDurationSeconds =
-            latest.flatMap(run => run.finishedAt.map(finished => ChronoUnit.SECONDS.between(run.startedAt, finished))),
+          lastDurationSeconds = latest.flatMap(lastDuration),
           lastStatus = describeStatus(latest, hoursSince),
           lastDetails = latest.flatMap(_.details),
           lastError = latest.flatMap(_.errorMessage),
@@ -357,6 +356,20 @@ class HealthServiceImpl @Inject() (
         )
       }
     }
+  }
+
+  /**
+   * How long a settled run took, in seconds.
+   *
+   * None for an interrupted run (#5236): its `finished_at` is when the next boot closed the row, so the span would be
+   * how long the app stayed down, which can be weeks for an orphan from before the sweep existed.
+   *
+   * @param run The run to measure.
+   * @return    Its duration, or None while it is open or when it was interrupted.
+   */
+  private def lastDuration(run: BackgroundJobRun): Option[Long] = {
+    if (run.status == JobRunStatus.Interrupted) None
+    else run.finishedAt.map(finished => ChronoUnit.SECONDS.between(run.startedAt, finished))
   }
 
   /** How a run reads: never run, abandoned mid-run, or its recorded outcome. */

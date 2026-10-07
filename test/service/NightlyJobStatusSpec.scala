@@ -256,6 +256,8 @@ class NightlyJobStatusSpec extends SidewalkSpec with BeforeAndAfterAll with Guic
       job.overdue mustBe true
       job.runsInWindow mustBe 1
       job.failuresInWindow mustBe 1
+      // Its finished_at is when the next boot noticed, so start-to-finish is downtime, not how long the job ran.
+      job.lastDurationSeconds mustBe None
     }
   }
 }
