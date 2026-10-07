@@ -69,7 +69,7 @@ class ValidateController @Inject() (
       if (isMobile && !immersiveLayoutRequested) {
         // mobileValidate takes the same query params, so forward them along with the redirect.
         cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Validate_RedirectMobile")
-        Future.successful(Redirect("/mobile", request.queryString))
+        Future.successful(Redirect("/mobile", request.queryString).removingFromSession(LayoutSessionKey))
       } else {
         checkParams(
           adminVersion = false,
@@ -87,12 +87,14 @@ class ValidateController @Inject() (
               commonPageData <- configService.getCommonPageData(request2Messages.lang)
             } yield {
               cc.loggingService.insert(user.userId, request.ipAddress, "Visit_Validate")
-              noStore(
+              val page = noStore(
                 Ok(
                   views.html.apps.validate(commonPageData, "/validate", Messages("seo.title.validate"), user,
                     validateParams, tags)
                 )
               )
+              if (layoutParam.contains("immersive")) page.addingToSession(LayoutSessionKey -> "immersive")
+              else page
             }
           } else {
             Future.successful(response)
@@ -101,16 +103,23 @@ class ValidateController @Inject() (
       }
     }
 
+  private val LayoutSessionKey = "validateLayout"
+
+  private def layoutParam(using request: RequestHeader): Option[String] =
+    request.queryString.get("layout").flatMap(_.headOption)
+
   /**
-   * Whether the request asks for the unified Validate page with `?layout=immersive`, which serves it to a phone that
-   * would otherwise be redirected to /mobile. A QA override for #5580: it lets the responsive layout be tested on
-   * real devices before the redirect is deleted, and it goes away with the redirect.
+   * Whether a phone gets the unified Validate page instead of the /mobile redirect. A #5580 QA override that goes away
+   * with the redirect. `?layout=immersive` opts in and `?layout=mobile` opts out; with no param, an opt-in remembered in
+   * the Play session decides, since in-app links (landing page, next mission, sign-in) drop the param.
    *
-   * @param request The request whose query string is read.
-   * @return        True if `layout=immersive` is among its query params.
+   * @param request The request whose query string and session are read.
+   * @return        True if this request should get the unified page on a phone.
    */
-  private def immersiveLayoutRequested(using request: RequestHeader): Boolean =
-    request.queryString.get("layout").exists(_.contains("immersive"))
+  private def immersiveLayoutRequested(using request: RequestHeader): Boolean = layoutParam match {
+    case Some(layout) => layout == "immersive"
+    case None         => request.session.get(LayoutSessionKey).contains("immersive")
+  }
 
   /**
    * Returns the Expert Validate page, optionally with some admin filters.
