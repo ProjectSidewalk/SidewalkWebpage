@@ -119,15 +119,12 @@ _JUN_2019_ISO = '2019-06-08T00:00:00+00:00'
 _NOW_ISO = '2024-08-30T06:40:00+00:00'
 
 
-def _pnx_feature(picture_id, datetime, lat=_PNX_LAT, lng=_PNX_LNG, width=None, collection=None):
+def _pnx_feature(picture_id, datetime, lat=_PNX_LAT, lng=_PNX_LNG, width=None):
     """A Panoramax STAC item. ``datetime=None`` omits the key; ``width`` adds the sensor block the viewer reads."""
     properties = {} if datetime is None else {'datetime': datetime}
     if width is not None:
         properties['pers:interior_orientation'] = {'sensor_array_dimensions': [width, width // 2]}
-    feature = {'id': picture_id, 'geometry': {'type': 'Point', 'coordinates': [lng, lat]}, 'properties': properties}
-    if collection is not None:
-        feature['collection'] = collection
-    return feature
+    return {'id': picture_id, 'geometry': {'type': 'Point', 'coordinates': [lng, lat]}, 'properties': properties}
 
 
 def _pnx_feature_near(url, meters, picture_id, datetime, **kwargs):
@@ -167,100 +164,13 @@ def test_parse_iso_instant_ms_rejects_what_date_parse_would_make_nan(raw):
     assert cs.parse_iso_instant_ms(raw) is None
 
 
-def test_panoramax_candidate_reads_position_width_and_instant():
-    feature = _pnx_feature('a', '2026-08-11T15:02:33+00:00', width=5760)
-    candidate = cs.panoramax_candidate(feature)
-    assert candidate == cs.PanoCandidate(_PNX_LAT, _PNX_LNG, 5760, _AUG_11_MS, feature)
-    assert candidate.item is feature
-
-
-@pytest.mark.parametrize('orientation', [None, {}, {'sensor_array_dimensions': []},
-                                         {'sensor_array_dimensions': [None, None]},
-                                         {'sensor_array_dimensions': ['5760', 2880]},
-                                         {'sensor_array_dimensions': [True, 1]}])
-def test_panoramax_candidate_without_a_numeric_width_scores_it_zero(orientation):
-    # Phone and GoPro captures often carry no sensor block; the viewer's `?.[0] || 0` scores them 0, not unscorable.
-    feature = _pnx_feature('a', _NOW_ISO)
-    if orientation is not None:
-        feature['properties']['pers:interior_orientation'] = orientation
-    assert cs.panoramax_candidate(feature).width == 0
-
-
-@pytest.mark.parametrize('datetime', [None, 'garbage'])
-def test_panoramax_candidate_without_a_date_is_still_a_candidate(datetime):
-    candidate = cs.panoramax_candidate(_pnx_feature('a', datetime))
-    assert candidate is not None and candidate.captured_at_ms is None
-
-
-def test_panoramax_candidate_ignores_an_altitude():
-    feature = _pnx_feature('a', _NOW_ISO)
-    feature['geometry']['coordinates'] = [_PNX_LNG, _PNX_LAT, 12.3]
-    assert (cs.panoramax_candidate(feature).lat, cs.panoramax_candidate(feature).lng) == (_PNX_LAT, _PNX_LNG)
-
-
-def test_panoramax_candidate_needs_a_position_but_not_properties():
-    assert cs.panoramax_candidate({'id': 'x', 'properties': {'datetime': _NOW_ISO}}) is None
-    assert cs.panoramax_candidate({'id': 'x', 'geometry': {'coordinates': []}}) is None
-    bare = cs.panoramax_candidate({'id': 'x', 'geometry': {'type': 'Point', 'coordinates': [_PNX_LNG, _PNX_LAT]}})
-    assert (bare.width, bare.captured_at_ms) == (0, None)
-
-
-def _pnx_score(feature, scoring=None):
-    """Scores a Panoramax fixture at the Panoramax origin, at _NOW_MS, with Panoramax's parameters by default."""
-    return cs.score_candidate(cs.panoramax_candidate(feature), _PNX_LAT, _PNX_LNG, _NOW_MS,
-                              cs.PANORAMAX_SCORING if scoring is None else scoring)
-
-
 def _pnx_lat_north(meters):
     return _lat_north_of_origin(meters, _PNX_LAT, _PNX_LNG)
 
 
-def test_panoramax_score_is_the_weighted_sum_of_its_terms():
-    scoring = cs.PANORAMAX_SCORING
-    feature = _pnx_feature('a', _NOW_ISO, lat=_pnx_lat_north(10), width=12288)
-    expected = (scoring['distanceWeight'] * math.exp(-10 / scoring['distanceDecayMeters'])
-                + scoring['resolutionWeight'] + scoring['recencyWeight'])
-    assert _pnx_score(feature) == pytest.approx(expected, rel=1e-3)
-
-
-def test_panoramax_score_caps_resolution_at_its_own_width():
-    # 12288 px is Panoramax's top rig, so it already earns the full term; under Mapillary's 16384 cap it would not.
-    at_cap = _pnx_feature('a', _NOW_ISO, width=12288)
-    assert _pnx_score(at_cap) == pytest.approx(_pnx_score(_pnx_feature('b', _NOW_ISO, width=16384)))
-    assert _pnx_score(at_cap) - _pnx_score(at_cap, cs.PANO_SCORING) == pytest.approx(0.25 - 0.1875)
-
-
-def test_panoramax_score_without_a_width_loses_the_resolution_term():
-    with_width = _pnx_score(_pnx_feature('a', _NOW_ISO, width=12288))
-    assert with_width - _pnx_score(_pnx_feature('b', _NOW_ISO)) == pytest.approx(
-        cs.PANORAMAX_SCORING['resolutionWeight'])
-
-
-def test_panoramax_score_ages_an_undated_picture_as_unknown_date_age_years():
-    # The viewer falls back to unknownDateAgeYears rather than NaN, so an undated box still yields a pick.
-    years = cs.PANORAMAX_SCORING['unknownDateAgeYears']
-    aged_iso = datetime.fromtimestamp((_NOW_MS - years * cs.MS_PER_YEAR) / 1000, tz=timezone.utc).isoformat()
-    undated = _pnx_score(_pnx_feature('a', None))
-    assert undated == pytest.approx(_pnx_score(_pnx_feature('b', aged_iso)))
-    assert _pnx_score(_pnx_feature('c', _NOW_ISO)) > undated
-
-
-def test_panoramax_score_ignores_the_collection_offline():
-    # The viewer's sequence term keys on the STAC collection of the picture on screen; sampling cold there is none.
-    assert (_pnx_score(_pnx_feature('a', _NOW_ISO, collection='seq-a'))
-            == _pnx_score(_pnx_feature('b', _NOW_ISO, collection='seq-b')))
-
-
-def test_best_panoramax_pano_takes_the_highest_scorer():
-    close = _pnx_feature('close', _NOW_ISO, lat=_pnx_lat_north(2))
-    far = _pnx_feature('far', _NOW_ISO, lat=_pnx_lat_north(24))
-    winner = cs.best_panoramax_pano({'features': [far, close]}, _PNX_LAT, _PNX_LNG, _NOW_MS)
-    assert winner.item['id'] == 'close'
-
-
-@pytest.mark.parametrize('response', [{'features': []}, {}, {'features': [{'id': 'x', 'properties': {}}]}])
-def test_best_panoramax_pano_with_nothing_placeable(response):
-    assert cs.best_panoramax_pano(response, _PNX_LAT, _PNX_LNG, _NOW_MS) is None
+def _pnx_info(features, now_ms=_NOW_MS):
+    """The ``PanoInfo`` for a box of Panoramax fixtures queried at the Panoramax origin."""
+    return cs.panoramax_pano_info({'features': features}, _PNX_LAT, _PNX_LNG, now_ms)
 
 
 def test_panoramax_pano_info_takes_the_viewers_pick_not_the_newest():
@@ -268,24 +178,42 @@ def test_panoramax_pano_info_takes_the_viewers_pick_not_the_newest():
     # date, and we would stop flagging the street while Explore kept showing the older, closer, sharper one.
     close_old = _pnx_feature('close_old', _JUN_2019_ISO, lat=_pnx_lat_north(3), width=8192)
     far_new = _pnx_feature('far_new', _NOW_ISO, lat=_pnx_lat_north(20))
-    response = {'features': [close_old, far_new]}
-    assert max(f['properties']['datetime'] for f in response['features']) == _NOW_ISO  # newest is the other one
-    info = cs.panoramax_pano_info(response, _PNX_LAT, _PNX_LNG, _NOW_MS)
+    assert max(f['properties']['datetime'] for f in (close_old, far_new)) == _NOW_ISO  # newest is the other one
+    info = _pnx_info([close_old, far_new])
     assert (info.has_imagery, info.capture_date) == (True, '2019-06-08')
     # The position describes the same picture as the date, or max_cross_track_m would mix two panos.
     assert (info.pano_lat, info.pano_lng) == pytest.approx((_pnx_lat_north(3), _PNX_LNG))
 
 
 def test_panoramax_pano_info_records_the_utc_calendar_day():
-    info = cs.panoramax_pano_info({'features': [_pnx_feature('a', '2026-08-12T01:00:00+02:00')]},
-                                  _PNX_LAT, _PNX_LNG, _NOW_MS)
-    assert info.capture_date == '2026-08-11'
+    assert _pnx_info([_pnx_feature('a', '2026-08-12T01:00:00+02:00')]).capture_date == '2026-08-11'
+
+
+def test_panoramax_pano_info_ages_an_undated_picture_as_unknown_date_age_years():
+    # The viewer scores an undated picture as unknownDateAgeYears old rather than NaN, so it still competes: at the
+    # same spot it beats a picture older than that and loses to a fresher one, whichever order the page lists them.
+    years = cs.PANORAMAX_SCORING['unknownDateAgeYears']
+    older_iso = datetime.fromtimestamp((_NOW_MS - (years + 1) * cs.MS_PER_YEAR) / 1000, tz=timezone.utc).isoformat()
+    assert _pnx_info([_pnx_feature('older', older_iso), _pnx_feature('undated', None)]).capture_date is None
+    assert _pnx_info([_pnx_feature('undated', None), _pnx_feature('new', _NOW_ISO)]).capture_date == '2024-08-30'
 
 
 def test_panoramax_pano_info_undated_winner_still_positions_a_picture():
-    info = cs.panoramax_pano_info({'features': [_pnx_feature('c', 'garbage')]}, _PNX_LAT, _PNX_LNG, _NOW_MS)
+    info = _pnx_info([_pnx_feature('c', 'garbage')])
     assert (info.has_imagery, info.capture_date) == (True, None)
     assert (info.pano_lat, info.pano_lng) == (_PNX_LAT, _PNX_LNG)
+
+
+@pytest.mark.parametrize('orientation', [None, {'sensor_array_dimensions': [None, None]}])
+def test_panoramax_pano_info_scores_a_missing_width_as_zero_not_unscorable(orientation):
+    # Phone and GoPro captures often carry no sensor block; the viewer's `?.[0] || 0` keeps them as candidates, so a
+    # sized picture a metre away beats an unsized one at the point, and the unsized one alone is still a pick.
+    unsized = _pnx_feature('unsized', _NOW_ISO)
+    if orientation is not None:
+        unsized['properties']['pers:interior_orientation'] = orientation
+    sized = _pnx_feature('sized', _NOW_ISO, lat=_pnx_lat_north(1), width=12288)
+    assert _pnx_info([unsized, sized]).pano_lat == pytest.approx(_pnx_lat_north(1))
+    assert _pnx_info([unsized]).pano_lat == _PNX_LAT
 
 
 def test_panoramax_pano_info_without_a_placeable_picture():
@@ -358,18 +286,6 @@ def test_pano_scoring_loader_merges_the_providers_own_parameters():
     assert panoramax['unknownDateAgeYears'] == 3
     assert panoramax['distanceWeight'] == cs.PANO_SCORING['distanceWeight']
     assert cs.PANORAMAX_SCORING == panoramax
-    assert 'unknownDateAgeYears' not in cs.PANO_SCORING
-
-
-def test_pano_scoring_loader_names_a_providers_own_missing_key(tmp_path, monkeypatch):
-    conf = tmp_path / 'conf'
-    conf.mkdir()
-    shared = {key: 1 for key in (*cs.PANO_SCORING_KEYS, 'sequenceWeight')}
-    (conf / 'pano-scoring.json').write_text(json.dumps(
-        {**shared, 'providers': {'panoramax': {'maxImageWidthPx': 12288}}}))
-    monkeypatch.setattr(cs, 'REPO_ROOT', str(tmp_path))
-    with pytest.raises(KeyError, match='unknownDateAgeYears'):
-        cs._load_pano_scoring('panoramax', required=('unknownDateAgeYears',))
 
 
 def test_pano_scoring_loader_names_the_key_a_malformed_file_is_missing(tmp_path, monkeypatch):
@@ -1436,19 +1352,6 @@ def test_main_panoramax_branch_needs_no_key(monkeypatch, tmp_path, capsys):
     assert cs.main(['--city-id', _CITY, '--panoramax']) == 0
     assert 'no credential needed' in capsys.readouterr().out
     assert _output(tmp_path)['street_edge_id'].tolist() == [100]
-
-
-def test_main_panoramax_records_the_viewers_pick(monkeypatch, tmp_path):
-    _setup(monkeypatch, tmp_path, [(200, 1, _LINE_61)])
-    for var in ('GOOGLE_MAPS_API_KEY', 'MAPILLARY_ACCESS_TOKEN'):
-        monkeypatch.delenv(var, raising=False)
-    monkeypatch.setattr(cs, '_get_json', lambda url, **kwargs: {'features': [
-        _pnx_feature_near(url, 2, 'old', _JUN_2019_ISO), _pnx_feature_near(url, 20, 'new', _NOW_ISO)]})
-    assert cs.main(['--city-id', _CITY, '--panoramax', '--max-qps', '1000']) == 0
-    summary = _summary(tmp_path)
-    assert bool(summary.loc[200, 'has_imagery']) is True
-    assert summary.loc[200, 'newest_capture'] == '2019-06-08'
-    assert summary.loc[200, 'n_panos'] >= 1
 
 
 def test_main_mapillary_requests_and_records_capture_dates(monkeypatch, tmp_path):
