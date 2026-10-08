@@ -93,11 +93,13 @@ each street's capture-date range (oldest/newest) and pano count into `street_ima
 region_id, has_imagery, oldest_capture, newest_capture, n_panos, max_cross_track_m, cross_track_limit_m`). That tells us
 not just whether a street has imagery but how old it is. GSV and Infra3d each answer with a single pano, so its date is
 the one recorded.
-Mapillary instead returns every image in the queried box, and the date recorded belongs to the image Explore would
-actually display: `score_pano` ports the viewer's ranking (distance, resolution, recency), reading its weights from
-`conf/pano-scoring.json` so the two can't drift. Recording the *newest* image instead would let a street look freshly
-imaged while the viewer went on serving older panos (#4411). Persisting this into the database — to power a "stale
-imagery" signal alongside the `street_edge_status` work (#3888) — is tracked as a separate follow-up (#4348).
+Mapillary and Panoramax instead return every picture in the queried box, and the date recorded belongs to the picture
+Explore would actually display: `score_pano` and `panoramax_pano_info` port the viewers' ranking (distance, resolution,
+recency), reading its weights from `conf/pano-scoring.json` so they can't drift; Panoramax's section of that file adds
+its own resolution cap (12288 px) and the age an undated picture is scored at. Recording the *newest* picture instead
+would let a street look freshly imaged while the viewer went on serving older panos (#4411, #5284). Persisting this
+into the database — to power a "stale imagery" signal alongside the `street_edge_status` work (#3888) — is tracked as
+a separate follow-up (#4348).
 
 ### Search radius, and how far off the street a pano sits
 
@@ -155,10 +157,10 @@ with `--point-log` (below):
 
 The limit applies to GSV only. It was measured on Google's car-mounted captures, and a GSV response is the one pano
 the viewer would open. Mapillary and Panoramax are also captured on foot and by bike, off the roadway, so a car's
-limit would reject their sidewalk captures. For Mapillary, holding the viewer's pick (`score_pano`) to the limit would
+limit would reject their sidewalk captures. For Mapillary and Panoramax, holding the viewer's pick to the limit would
 hide points that have an on-street runner-up, and filtering the candidates before scoring would record a date the
-viewer never shows (#4411). Infra3d answers with its nearest frame as GSV does, but no Infra3d city has been measured.
-`--point-log` works for every provider, so each one's limit can come from its own distribution. Passing
+viewer never shows (#4411, #5284). Infra3d answers with its nearest frame as GSV does, but no Infra3d city has been
+measured. `--point-log` works for every provider, so each one's limit can come from its own distribution. Passing
 `--max-cross-track-m` with another provider is an error.
 
 Each street's `max_cross_track_m` in the summary is the distance from its centerline to the farthest pano it saw,
