@@ -3112,6 +3112,33 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     labelsUnfiltered.filter(_.userId === userId).map(_.temporaryLabelId).max.result.map(_.map(x => x + 1).getOrElse(1))
   }
 
+  /** One user's live labels of one type on one pano: what a per-pano resubmission would duplicate or replace. */
+  private def liveLabelsOnPano(panoId: String, userId: String, labelType: LabelType) =
+    labelsUnfiltered.filter(l =>
+      l.panoId === panoId && l.userId === userId && l.labelType === labelType && l.deleted === false
+    )
+
+  /** Counts a user's live labels of one type on one pano, so an AI resubmission can refuse to duplicate them (#5382). */
+  def countLiveLabelsOnPano(panoId: String, userId: String, labelType: LabelType): DBIO[Int] =
+    liveLabelsOnPano(panoId, userId, labelType).length.result
+
+  /**
+   * Soft-deletes a user's live labels of one type on one pano for a resubmission that replaces them (#5382). Only the
+   * deletion columns change, so the label keeps its point, AI info and validations and can be restored. The caller
+   * refreshes the user's accuracy, as [[LabelEditService.setDeleted]] does.
+   * @return How many labels were deleted.
+   */
+  def softDeleteLabelsOnPano(
+      panoId: String,
+      userId: String,
+      labelType: LabelType,
+      deleterId: String,
+      source: UiSource
+  ): DBIO[Int] = {
+    val (by, at, from) = LabelDeletion.fields(deleterId, Some(source))
+    liveLabelsOnPano(panoId, userId, labelType).map(_.deletion).update((true, by, at, from))
+  }
+
   /**
    * Gets the pano + point-of-view metadata needed to build a preview image URL for a set of labels.
    *

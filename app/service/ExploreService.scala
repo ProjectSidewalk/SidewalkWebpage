@@ -45,6 +45,16 @@ case class ExplorePageData(
     nextTempLabelId: Int
 )
 
+/**
+ * An AI submission was refused because the pano already carries live AI labels of its type and it didn't ask to
+ * overwrite them (#5382). Nothing from the submission was written.
+ * @param panoId        The pano the submission was for.
+ * @param labelType     The submission's label type.
+ * @param existingCount How many live labels of that type the AI user already has on the pano.
+ */
+case class AiLabelsConflict(panoId: String, labelType: LabelType, existingCount: Int)
+    extends Exception(s"Pano $panoId already has $existingCount ${labelType.name} label(s) from the AI labeler")
+
 /** Core facts about a label inserted during an Explore submission, for post-submission side effects (AI, SciStarter). */
 case class NewLabelData(
     labelId: Int,
@@ -134,8 +144,12 @@ trait ExploreService {
 
   /**
    * Inserts a set of AI-generated labels into the database, filling in appropriate tables with dummy data.
+   *
+   * A pano that already holds live AI labels of the submission's type is refused with [[AiLabelsConflict]] unless the
+   * submission sets `overwrite`, which retires those labels in the same transaction as the new inserts (#5382).
    * @param data The AiLabelsSubmission object submitted through a POST request.
-   * @return A Future containing a sequence of Unit values, one for each label submitted.
+   * @return A Future containing a sequence of Unit values, one for each label submitted. Fails with
+   *         [[AiLabelsConflict]] when the submission would duplicate labels, having written nothing.
    */
   def submitAiLabelData(data: AiLabelsSubmission): Future[Seq[Unit]]
 
@@ -195,7 +209,8 @@ class ExploreServiceImpl @Inject() (
     webpageActivityTable: WebpageActivityTable,
     surveyQuestionTable: SurveyQuestionTable,
     userSurveyOptionSubmissionTable: UserSurveyOptionSubmissionTable,
-    userSurveyTextSubmissionTable: UserSurveyTextSubmissionTable
+    userSurveyTextSubmissionTable: UserSurveyTextSubmissionTable,
+    userStatTable: UserStatTable
 )(using ec: ExecutionContext)
     extends ExploreService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
@@ -978,7 +993,8 @@ class ExploreServiceImpl @Inject() (
 
     val labelSubmitActions = DBIO.sequence {
       data.labels.map { label =>
-        // Calculate the label's lat/lng and theoretical user's heading/pitch from its panoX/panoY coordinates.
+        // Calculate the label's lat/lng and theoretical user's heading/pitch from its panoX/panoY coordinates. The
+        // `.get`s are safe: aiLabelSubmissionReads refuses a submission with labels that lacks any of them (#4808).
         val pov = PanoDataService.calculatePovFromPanoXY(label.panoX, label.panoY, pano.width.get, pano.height.get,
           pano.cameraHeading.get)
         // label_point.canvas_x/y are NOT NULL, but an AI label was never drawn on a canvas. The center is the one
@@ -990,10 +1006,13 @@ class ExploreServiceImpl @Inject() (
         for {
           // Create necessary associated data for the label to fit in PS (mission, audit_task, etc.).
           streetEdgeId <- labelTable.getStreetEdgeIdClosestToLatLng(labelLat, labelLng)
-          regionId     <- streetEdgeRegionTable.getNonDeletedRegionFromStreetId(streetEdgeId).map(_.get.regionId)
-          missionId    <- missionService.resumeOrCreateNewAiExploreMission(regionId).map(_.missionId)
-          auditTaskId  <- resumeOrCreateNewAiAuditTask(missionId, streetEdgeId)
-          tempLabelId  <- labelTable.nextTempLabelId(aiUserId)
+          // A street with no live region is a data-integrity fault, not a bad request, so it stays a 500.
+          regionId <- streetEdgeRegionTable
+            .getNonDeletedRegionFromStreetId(streetEdgeId)
+            .map(_.getOrElse(throw IllegalStateException(s"Street $streetEdgeId has no non-deleted region")).regionId)
+          missionId   <- missionService.resumeOrCreateNewAiExploreMission(regionId).map(_.missionId)
+          auditTaskId <- resumeOrCreateNewAiAuditTask(missionId, streetEdgeId)
+          tempLabelId <- labelTable.nextTempLabelId(aiUserId)
 
           // Create and insert the label and label_point entries.
           labelPoint: LabelPointSubmission = LabelPointSubmission(label.panoX, label.panoY, canvasX, canvasY,
@@ -1021,9 +1040,31 @@ class ExploreServiceImpl @Inject() (
         } yield ()
       }
     }
+
+    // A re-run of the labeler re-POSTs panos it has already submitted, so refuse to duplicate their labels unless the
+    // caller asked to replace them (#5382). Only the submission's own label type is considered: a model for another
+    // type must neither be refused by these labels nor wipe them. A label-less submission without the flag is a pano
+    // upsert only, so it never conflicts. Two concurrent first submissions of one pano could both count zero under
+    // READ COMMITTED; the labeler submits sequentially, so that isn't worth a lock.
+    val overwrite                        = data.overwrite.contains(true)
+    val retireExistingAction: DBIO[Unit] =
+      labelTable.countLiveLabelsOnPano(pano.panoId, aiUserId, data.labelType).flatMap { (existingCount: Int) =>
+        if (overwrite && existingCount > 0) {
+          labelTable
+            .softDeleteLabelsOnPano(pano.panoId, aiUserId, data.labelType, aiUserId, UiSource.SidewalkAI)
+            .andThen(userStatTable.updateAccuracy(Seq(aiUserId)))
+        } else if (!overwrite && existingCount > 0 && data.labels.nonEmpty) {
+          DBIO.failed(AiLabelsConflict(pano.panoId, data.labelType, existingCount))
+        } else {
+          DBIO.successful(())
+        }
+      }
+
     // The pano's metadata is integral to its labels (#4587): writing it in the same transaction means a label can
-    // never be committed without its pano_data row, and a failed pano write fails the whole request.
-    db.run(savePanoAction(pano, currTime).andThen(labelSubmitActions).transactionally)
+    // never be committed without its pano_data row, and a failed pano write fails the whole request. The conflict
+    // check runs first in that transaction, so a refused submission writes nothing, and a replacement can never be
+    // left half done.
+    db.run(retireExistingAction.andThen(savePanoAction(pano, currTime)).andThen(labelSubmitActions).transactionally)
   }
 
   def submitExploreData(data: AuditTaskSubmission, userId: String): Future[ExploreTaskPostReturnValue] = {
