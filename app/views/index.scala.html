@@ -263,7 +263,8 @@
     @landing._partners(partners, officialContact, currentCity.cityNameShort)
 
     @ViteAssets.stylesheets("home")
-    @* The grid cards' share chip + popover (.label-detail__share-*) are styled by share-widget.css, which ShareWidget.js brings into this page's bundle — nothing else here needs label-detail.css. *@
+    @* The grid cards' share chip + popover (.label-detail__share-*) are styled by share-widget.css, which
+       ShareWidget.js brings into this page's bundle; nothing else here needs label-detail.css. *@
 
     <script type="module" id="page-entry" src='@assets.path("build/js/home.js")'
             data-mapbox-api-key="@commonData.mapboxApiKey"

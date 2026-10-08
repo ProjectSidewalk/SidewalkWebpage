@@ -2,6 +2,7 @@
 import { AccessScoreApp } from '../access-score/main.js';
 import { viewerClassFor } from '../common/pano-viewer/viewerClassFor.js';
 import '../../css/components/filter-sidebar.css';
+import '../../css/components/map-frame.css';
 import '../../css/pages/access-score.css';
 
 const data = document.getElementById('page-entry').dataset;

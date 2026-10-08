@@ -96,7 +96,7 @@
   <script src="@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.js")"></script>
 
   @* The endpoints come from the router, so a renamed route fails the view's compile rather than the page. *@
-  @ViteAssets.stylesheets("admin/imagery")
+  @ViteAssets.stylesheets("admin/imagery", alreadyLinked = "admin/shell")
   <script type="module" id="page-entry" src='@assets.path("build/js/admin/imagery.js")'
           data-mapbox-token="@commonData.mapboxApiKey"
           data-priority-url="@routes.AdminDashboardController.getStreetPriority"

@@ -109,7 +109,7 @@
 
   @* Label popup stack (shared common/label-detail + pano-viewer), loaded directly like the redesign's other src. *@
   @common.labelPopup(admin = false)
-  @ViteAssets.stylesheets("dashboard/publicProfile")
+  @ViteAssets.stylesheets("dashboard/publicProfile", alreadyLinked = "dashboard/shell")
   @if(commonData.imagerySource == PanoSource.Infra3d) {
     <script src='@assets.path("vendor/proj4/proj4-2.22.0.js")'></script>
     <script src='@assets.path("vendor/infra3d/infra3dapi-1.12.1.js")'></script>

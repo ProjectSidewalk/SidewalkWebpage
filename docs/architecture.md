@@ -537,8 +537,8 @@ stay `<script>`-tag globals, declared for the type checker in `tools/lint/js-typ
 **One entry per page** lives in `frontend/js/pages/` (`pages/explore.js`, `pages/admin/overview.js`, …): it imports
 the page's code and runs the start-up that used to be an inline `<script>`. **Vite** (`vite.config.mjs`, Rolldown
 underneath) builds every file in that folder to `public/build/js/<same path>.js`, minified, with code that several
-pages share split into `public/build/js/chunks/` so a visitor downloads it once; a new page is just a new file there. A view loads
-its entry with `<script type="module" src='@assets.path("build/js/<page>.js")'>`, after `pages/main.js`, which
+pages share split into `public/build/js/chunks/` so a visitor downloads it once; a new page is just a new file there.
+A view loads its entry with `<script type="module" src='@assets.path("build/js/<page>.js")'>`, after `pages/main.js`, which
 `main.scala.html` loads on every page (shared helpers, app manager, navbar, auth dialog). Because a bundled module can't
 be templated and runs only after the page is parsed, a view hands its entry the server's values on that tag as
 `data-*` attributes (`id="page-entry"`) or, for the tools' larger sets, in a `<script type="application/json"
@@ -556,7 +556,9 @@ one file they all load. Which files a page needs is only known after the build, 
 [backend integration](https://vite.dev/guide/backend-integration): the build writes `manifest.json`, and a
 view emits its tags with `@ViteAssets.stylesheets("<entry>")` (`app/views/ViteAssets.scala`, imported into every
 template by `build.sbt`), which reads the manifest and links the entry's stylesheets after those of the chunks it
-imports — the same order `import` gives the modules. A `url()` in a source stylesheet is the file's root-absolute
+imports, and a sheet shared with other chunks before a chunk's own, so a page's rules come last. A page inside a
+layout that links an entry of its own (the admin and user dashboards, the API docs) names it as
+`alreadyLinked = "<shell entry>"`, so nothing is linked twice. A `url()` in a source stylesheet is the file's root-absolute
 path under `public/` (`url("/images/icons/x.svg")`, Vite's public-dir convention), which the build turns into the
 served `/assets/` URL. No Vite dev server: `npm run build` is `vite build`, and `npm start` runs `npm run watch`
 (`tools/dev/watch-assets.mjs`, `vite build --watch` plus a restart when a page entry is added or removed), so a save

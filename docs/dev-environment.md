@@ -264,7 +264,9 @@ The dev server hot-reloads, so you rarely restart it.
   bundles each page's entry in `frontend/js/pages/` and what it imports, stylesheets included (`frontend/css/`).
   **Never edit `public/build/` output**, and don't run the build by hand. A new JS file or stylesheet is picked up as
   soon as something imports it; a new page needs an entry file in `frontend/js/pages/`, which the watcher notices and
-  restarts for.
+  restarts for. The watcher builds in Vite's development mode: the CSS stays unminified for DevTools (Vite writes no
+  CSS source map), and the previous build stays in place while the next is written, so a reload mid-rebuild still
+  renders; the production build `npm start` runs first is what clears old files out.
 - **`build.sbt` or config changes** — these aren't hot-reloaded. In the Docker shell press `Ctrl+D`, then run
   `sbt clean`, then `npm start` again.
 - **Python** (the standalone scripts in `scripts/` and `tools/`) — the container has **two** interpreters. `python3`

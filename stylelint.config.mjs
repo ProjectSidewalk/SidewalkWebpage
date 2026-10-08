@@ -1,7 +1,7 @@
 // Stylelint config (Stylelint 17).
 // Run with `make stylelint` (defaults to every stylesheet under frontend/css/), and a blocking CI gate. Nothing under
-// public/ is ours to lint: the built bundles (public/build/) and the vendored libraries (public/vendor/) sit outside the
-// glob, so there is no ignore list to fall out of sync with the tree (#5218).
+// public/ is ours to lint: the built bundles (public/build/) and the vendored libraries (public/vendor/) sit outside
+// the glob, so there is no ignore list to fall out of sync with the tree (#5218).
 //
 // Formatting/whitespace rules live in @stylistic/stylelint-plugin, not Stylelint core: core removed all of its
 // stylistic rules in v16 (the same move ESLint made) and the plugin is their non-deprecated home — mirroring our
@@ -43,8 +43,8 @@ export default {
     'color-hex-length': 'long',
     'no-descending-specificity': null,
 
-    // No Autoprefixer in the build (Vite's Lightning CSS only minifies here), so vendor prefixes are written by hand and are
-    // legitimate. config-standard bans them assuming a build-time autoprefixer we don't run.
+    // No Autoprefixer in the build (Vite's Lightning CSS only minifies here), so vendor prefixes are written by hand
+    // and are legitimate. config-standard bans them assuming a build-time autoprefixer we don't run.
     'property-no-vendor-prefix': null,
     'value-no-vendor-prefix': null,
     'selector-no-vendor-prefix': null,

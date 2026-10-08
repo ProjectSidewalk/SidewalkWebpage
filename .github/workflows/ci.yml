@@ -99,9 +99,9 @@ jobs:
         if: always()
         run: npx eslint frontend/js/ public/locales/ test/js/ test/e2e/ playwright.config.js
 
-      # Only our sources: vendored and built CSS live under public/, outside the glob. It is single-quoted so Stylelint's
-      # own globber expands `**` (not the shell). Like ESLint, no `--max-warnings` flag: the one `warning` rule
-      # (max-line-length) is advisory.
+      # Only our sources: vendored and built CSS live under public/, outside the glob. It is single-quoted so
+      # Stylelint's own globber expands `**` (not the shell). Like ESLint, no `--max-warnings` flag: the one `warning`
+      # rule (max-line-length) is advisory.
       - name: Stylelint (blocking)
         if: always()
         run: npx stylelint 'frontend/css/**/*.css'

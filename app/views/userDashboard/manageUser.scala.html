@@ -226,7 +226,7 @@
     }
   </div>
 
-  @ViteAssets.stylesheets("dashboard/manageUser")
+  @ViteAssets.stylesheets("dashboard/manageUser", alreadyLinked = "dashboard/shell")
   <script type="module" id="page-entry" src='@assets.path("build/js/dashboard/manageUser.js")'
           data-user-id="@user.userId"
           data-username="@user.username"

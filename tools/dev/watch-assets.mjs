@@ -18,8 +18,10 @@ function snapshot() {
 }
 
 function start() {
-  // `npm run` puts node_modules/.bin on PATH, so the bare name finds the bundler in a worktree too.
-  vite = spawn('vite', ['build', '--watch'], { stdio: 'inherit' });
+  // `npm run` puts node_modules/.bin on PATH, so the bare name finds the bundler in a worktree too. Development mode
+  // (vite.config.mjs) leaves the previous build in place while the next one is written, so a reload mid-rebuild
+  // still finds a manifest; the production build that precedes the watcher is what empties the directory.
+  vite = spawn('vite', ['build', '--watch', '--mode', 'development'], { stdio: 'inherit' });
   vite.on('exit', (code, signal) => {
     if (restarting) {
       restarting = false;

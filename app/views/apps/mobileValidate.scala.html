@@ -27,11 +27,6 @@
   <script src='@assets.path("vendor/pannellum/pannellum-2.5.7.js")'></script>
   <link rel="stylesheet" href='@assets.path("vendor/pannellum/pannellum-2.5.7.css")'>
   @ViteAssets.stylesheets("mobileValidate")
-  @* Base .tag-pill shape for the label card's tag chips; the desktop Validate view links this too. *@
-  @* Surface of the pano-overlay pills (visibility toggle, undo). Not in the validate CSS bundle — that globs
-     css/pages/validate/ plus a hand-named few from css/components/ — so each view that uses the pills links it itself,
-     as explore.scala.html and validate.scala.html do. mobile-validate.css only resizes them for touch. *@
-
 
   <div id="page-loading">
     <div id="loading-animation">

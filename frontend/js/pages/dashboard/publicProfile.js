@@ -4,6 +4,7 @@ import { LabelPopup } from '../../common/label-detail/LabelPopup.js';
 import { viewerClassFor } from '../../common/pano-viewer/viewerClassFor.js';
 import { DashboardBadges } from '../../user-dashboard/DashboardBadges.js';
 import { loadContributionMap } from '../../user-dashboard/contributionMap.js';
+import '../../../css/components/map-frame.css';
 
 const data = document.getElementById('page-entry').dataset;
 

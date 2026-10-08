@@ -100,7 +100,7 @@
     <p class="mgmt-result dq-sub" id="mgmt-maint-result" role="status" aria-live="polite"></p>
   </div>
 
-  @ViteAssets.stylesheets("admin/management")
+  @ViteAssets.stylesheets("admin/management", alreadyLinked = "admin/shell")
   <script type="module" id="page-entry" src='@assets.path("build/js/admin/management.js")'
           data-assignable-roles="@Json.stringify(Json.toJson(Role.ADMIN_ASSIGNABLE_ROLES.map(_.name)))"></script>
 }

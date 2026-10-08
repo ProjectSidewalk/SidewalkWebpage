@@ -20,7 +20,7 @@
     <div id="raw-labels-preview" class="map-container">Loading raw labels data...</div>
 
     <link rel="stylesheet" href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.css")'>
-    @ViteAssets.stylesheets("api-docs/rawLabels")
+    @ViteAssets.stylesheets("api-docs/rawLabels", alreadyLinked = "api-docs/layout")
     @* Deferred to keep the ~800KB mapping stack off this article's rendering path. Order still matters within the
        set: the language plugin and the preview both read the mapboxgl global as they parse. *@
     <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.js")' defer></script>

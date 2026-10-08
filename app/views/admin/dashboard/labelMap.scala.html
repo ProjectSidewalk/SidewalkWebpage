@@ -27,7 +27,7 @@
 
   @* Label-detail popup + PSMap dependencies. The label-detail modules are pulled in individually (not via the legacy Admin.js bundle) to keep with the dashboard's standalone-script convention; i18next, AppManager, util and the Google Maps loader are already loaded by common.main / adminLayout. *@
 @common.labelPopup(admin = true)
-  @ViteAssets.stylesheets("admin/labelMap")
+  @ViteAssets.stylesheets("admin/labelMap", alreadyLinked = "admin/shell")
   <link href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.css")' rel="stylesheet">
   <link rel="stylesheet" href='@assets.path("vendor/pannellum/pannellum-2.5.7.css")'>
 

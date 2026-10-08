@@ -20,7 +20,8 @@ Full rules: `docs/style-guide.md` (tokens, primitives, file layout, naming) and 
 - **A stylesheet is `import`ed by the JS that needs it, never linked by hand** (#5651): a component's sheet from the
   component's module (`Toast.js` imports `toast.css`), a page's sheet from its entry in `frontend/js/pages/`. Vite
   builds them and the view emits the `<link>`s with `@ViteAssets.stylesheets("<entry>")` beside the entry's
-  `<script>`. Sources live in `frontend/css/`; nothing there is served. Never `@import`.
+  `<script>`; a page inside the admin or user dashboard or the API docs adds `alreadyLinked = "<shell entry>"`.
+  Sources live in `frontend/css/`; nothing there is served. Never `@import`.
 - **`frontend/css/` layout is linted** (`make lint-css-layout`): root holds only `main.css` + `fonts.css`;
   `components/` for anything two pages use (prefix `ps-` or component-named); `pages/` for page-specific files,
   registered in the lint's `PAGES` map and imported only by their page's modules; a page's class prefix lives only in

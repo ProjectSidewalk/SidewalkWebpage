@@ -160,8 +160,12 @@ consistent with it.
   page's own sheet (last, so it overrides the components'), and a sheet that only Twirl markup uses (`kpi.css`,
   `tables.css`, `pano-overlay-buttons.css`) is imported by the entry of each page showing that markup. Vite writes
   `public/build/css/`, one file per chunk, and the view emits the `<link>`s with `@ViteAssets.stylesheets("<entry>")`
-  beside the entry's `<script>` (the helper reads Vite's manifest). Never `@import`; a `url()` is the file's
-  root-absolute path under `public/` (`url("/images/…")`).
+  beside the entry's `<script>`. The helper reads Vite's manifest and links the chunks a page imports before the
+  page's own sheet, and a sheet shared with other chunks before a chunk's own, so page rules win; a page inside the
+  admin or user dashboard or the API docs names the shell as `alreadyLinked = "admin/shell"` (or `dashboard/shell`,
+  `api-docs/layout`) so nothing is linked twice. The containers a page renders around a lazily loaded component get
+  their sheet from the page's entry (`map-frame.css` for a map), since the component's sheet only arrives with its
+  code. Never `@import`; a `url()` is the file's root-absolute path under `public/` (`url("/images/…")`).
 - **`frontend/css/` is organized by what each file is** (#5030), and its root has exactly four entries. `main.css` and
   `fonts.css` (tokens and `.ps-*` primitives, no layout knowledge). `css/components/` holds anything more than one page
   uses, one component per file with a `ps-` or component-named class prefix (`page-shell.css` — the sidebar + content +

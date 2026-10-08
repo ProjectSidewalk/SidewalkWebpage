@@ -63,7 +63,7 @@
   <script src="@assets.path("vendor/vega/vega-lite-5.23.0.min.js")"></script>
   <script src="@assets.path("vendor/vega/vega-embed-6.29.0.min.js")"></script>
 
-  @ViteAssets.stylesheets("admin/coverage")
+  @ViteAssets.stylesheets("admin/coverage", alreadyLinked = "admin/shell")
 
   <script type="module" id="page-entry" src='@assets.path("build/js/admin/coverage.js")'
           data-mapbox-token="@commonData.mapboxApiKey"></script>

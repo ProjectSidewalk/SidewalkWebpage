@@ -465,7 +465,7 @@
   @* Second composer instance (#4656), for editing a story straight from the list above; the popup's own instance
      belongs to the card it's inside, and its save would refresh that card rather than this list. *@
   @common.storyComposer("ud-story-composer")
-  @ViteAssets.stylesheets("dashboard/dashboard")
+  @ViteAssets.stylesheets("dashboard/dashboard", alreadyLinked = "dashboard/shell")
   @if(commonData.imagerySource == PanoSource.Infra3d) {
     <script src='@assets.path("vendor/proj4/proj4-2.22.0.js")'></script>
     <script src='@assets.path("vendor/infra3d/infra3dapi-1.12.1.js")'></script>
