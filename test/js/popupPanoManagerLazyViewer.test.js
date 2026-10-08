@@ -135,6 +135,22 @@ describe('PopupPanoManager builds its viewer lazily', () => {
         expect(manager.panoViewer).toBeUndefined();
     });
 
+    test('a metadata refusal naming its cause still reads as "no backup", landing on the crop (#5183)', async () => {
+        // The route answers 404 with a reason in the body; the client must keep keying off res.ok alone.
+        window.fetch = jest.fn(() => Promise.resolve({
+            ok: false,
+            status: 404,
+            text: async () => 'Stored image for pano pano-gone cannot be served: pano_data is missing camera_pitch.',
+            json: async () => { throw new SyntaxError('not JSON'); },
+        }));
+        const manager = await createManager();
+
+        await expect(manager.setPano('pano-gone', POV, 'https://example.test/crop.png', true, null)).resolves.toBe(true);
+        expect(window.fetch).toHaveBeenCalledWith('/backupImage/pano-gone/metadata');
+        expect(window.PannellumViewer.create).not.toHaveBeenCalled();
+        expect(manager.activeViewerName).toBe('StaticCrop');
+    });
+
     test('the imagery attribution shows over the crop and hides again when live imagery takes over', async () => {
         // The crop is Project Sidewalk's own copy of the imagery, so it carries the label's attribution line (#4865);
         // the provider's live viewer draws its own, so the pill must go when it shows.

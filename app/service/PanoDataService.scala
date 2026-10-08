@@ -22,6 +22,7 @@ import service.PanoDataService.{
   parseInfra3dTokenResponse,
   staticLocationUrl,
   staticStillUrl,
+  BackupImageLookup,
   ImageryCheckConcurrency,
   ImageryCheckResult,
   Infra3dToken,
@@ -507,6 +508,53 @@ object PanoDataService {
     // Calculate destination point using haversine formula.
     CommonUtils.calculateDestination(panoLat, panoLng, estDistanceM / 1000.0, pov.heading)
   }
+
+  /**
+   * What asking for a self-hosted backup pano found: a row the viewer can render, or the first precondition that
+   * failed. The failures are kept apart because each points somewhere different (#5183): a missing file at the store
+   * and the scraper, a missing or incomplete row at whatever wrote pano_data.
+   */
+  enum BackupImageLookup {
+
+    /** The file is in the store and the row has every column in [[BackupRequiredColumns]]. */
+    case Usable(pano: PanoData)
+
+    /** Nothing under `pano.images.directory` for this pano. Checked first, so this answer costs no DB query. */
+    case NoStoredImage
+
+    /** The file is in the store but pano_data has no row for it. */
+    case NoPanoDataRow
+
+    /**
+     * The file and row both exist, but the row lacks columns the viewer needs.
+     * @param missing DB column names, in [[BackupRequiredColumns]] order so messages are stable to grep and test.
+     */
+    case IncompleteMetadata(missing: Seq[String])
+  }
+
+  /**
+   * The pano_data columns PannellumViewer needs to render a backup, by DB column name, each with how to tell it is set.
+   *
+   * The list mirrors `PanoData`'s `requiredParams` (frontend/js/common/pano-viewer/PanoData.js) and
+   * `util.misc.BACKUP_IMAGE_REQUIRED_FIELDS`, which PanoDataServiceSpec holds equal to it — see the note in
+   * PanoData.js before changing it. `LabelTable.imageryViewable` has to state the same columns as a Slick `Rep`.
+   */
+  val BackupRequiredColumns: Seq[(String, PanoData => Boolean)] = Seq(
+    "width"          -> (_.width.isDefined),
+    "height"         -> (_.height.isDefined),
+    "lat"            -> (_.lat.isDefined),
+    "lng"            -> (_.lng.isDefined),
+    "camera_heading" -> (_.cameraHeading.isDefined),
+    "camera_pitch"   -> (_.cameraPitch.isDefined)
+  )
+
+  /**
+   * The [[BackupRequiredColumns]] a pano_data row leaves NULL.
+   * @return Column names in [[BackupRequiredColumns]] order; empty when the row can back a viewer.
+   */
+  def missingBackupColumns(p: PanoData): Seq[String] = BackupRequiredColumns.collect {
+    case (n, isSet) if !isSet(p) => n
+  }
 }
 
 @ImplementedBy(classOf[PanoDataServiceImpl])
@@ -550,6 +598,17 @@ trait PanoDataService {
   def cropUrl(labelId: Int, labelType: LabelType): Option[String]
   def moveCrop(labelId: Int, from: LabelType, to: LabelType): Boolean
   def localBackupImageFile(panoId: String): Option[File]
+
+  /**
+   * Looks a pano up for the backup viewer and says which precondition, if any, keeps it from being served.
+   * @return [[PanoDataService.BackupImageLookup.Usable]] with the row, or the reason it can't be.
+   */
+  def lookupLocalBackupImage(panoId: String): Future[PanoDataService.BackupImageLookup]
+
+  /**
+   * [[lookupLocalBackupImage]] as a gate, for callers that only need to know whether the backup can be shown.
+   * @return The pano_data row when the backup is usable, None for every reason it isn't.
+   */
   def getLocalBackupImage(panoId: String): Future[Option[PanoData]]
 }
 
@@ -1031,21 +1090,28 @@ class PanoDataServiceImpl @Inject() (
   }
 
   /**
-   * Returns the pano_data row for a pano if a self-hosted image exists AND all required fields are populated.
+   * Checks the file before the row, so the common miss (no stored image) never touches the DB.
    *
-   * "Required" means what PannellumViewer needs to render the backup; the columns mirror `PanoData`'s
-   * `requiredParams` (frontend/js/common/pano-viewer/PanoData.js) — see the note there before changing them.
+   * "Required" means what PannellumViewer needs to render the backup: [[PanoDataService.BackupRequiredColumns]].
    */
-  def getLocalBackupImage(panoId: String): Future[Option[PanoData]] = {
+  def lookupLocalBackupImage(panoId: String): Future[BackupImageLookup] = {
     if (localBackupImageFile(panoId).isEmpty) {
-      Future.successful(None)
+      Future.successful(BackupImageLookup.NoStoredImage)
     } else {
-      db.run(panoDataTable.getPano(panoId))
-        .map(
-          _.filter(p =>
-            p.width.isDefined && p.height.isDefined && p.lat.isDefined && p.lng.isDefined && p.cameraHeading.isDefined && p.cameraPitch.isDefined
-          )
-        )
+      db.run(panoDataTable.getPano(panoId)).map {
+        case None    => BackupImageLookup.NoPanoDataRow
+        case Some(p) =>
+          PanoDataService.missingBackupColumns(p) match {
+            case Seq()   => BackupImageLookup.Usable(p)
+            case missing => BackupImageLookup.IncompleteMetadata(missing)
+          }
+      }
     }
   }
+
+  def getLocalBackupImage(panoId: String): Future[Option[PanoData]] =
+    lookupLocalBackupImage(panoId).map {
+      case BackupImageLookup.Usable(p) => Some(p)
+      case _                           => None
+    }
 }

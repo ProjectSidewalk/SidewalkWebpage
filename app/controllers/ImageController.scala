@@ -10,6 +10,7 @@ import play.api.libs.json.*
 import play.api.mvc.{AnyContent, Request, RequestHeader}
 import play.api.{Configuration, Logger}
 import service.ImageSigningService
+import service.PanoDataService.BackupImageLookup
 
 import java.awt.Image
 import java.awt.image.BufferedImage
@@ -122,6 +123,11 @@ class ImageController @Inject() (
    * Returns the backup image metadata for a pano as JSON, used by PopupPanoManager's lazy-fetch fallback.
    *
    * User-aware (#4643): read-only, referer-gated, and served on pages that render for cookie-less visitors.
+   *
+   * Every refusal is a 404, since the viewer only reads `res.ok`, but each names its own cause (#5183), because each
+   * sends whoever is debugging it somewhere different: no stored image to the store and the scraper, a missing or
+   * incomplete row to pano_data. The incomplete row is also logged, at info because it is the normal state of a
+   * Mapillary pano submitted by the AI (no camera_pitch), so an operator can find it without a curl.
    */
   def getBackupImageMetadata(panoId: String) = cc.securityService.UserAwareAction { implicit request =>
     if (!refererAllowed(request)) {
@@ -129,11 +135,18 @@ class ImageController @Inject() (
     } else if (PANO_ID_PATTERN.findFirstIn(panoId).isEmpty) {
       Future.successful(BadRequest(s"Invalid pano ID: $panoId"))
     } else {
-      panoDataService.getLocalBackupImage(panoId).map {
-        case Some(p) =>
+      panoDataService.lookupLocalBackupImage(panoId).map {
+        case BackupImageLookup.Usable(p) =>
           val url = signingService.signedUrl(s"/backupImage/$panoId")
           Ok(LabelFormats.localBackupImagePayload(p, url))
-        case None => NotFound(s"No backup image found for pano: $panoId")
+        case BackupImageLookup.NoStoredImage =>
+          NotFound(s"No stored image for pano $panoId under pano.images.directory.")
+        case BackupImageLookup.NoPanoDataRow =>
+          NotFound(s"Stored image for pano $panoId cannot be served: no pano_data row.")
+        case BackupImageLookup.IncompleteMetadata(missing) =>
+          val reason = s"pano_data is missing ${missing.mkString(", ")}"
+          logger.info(s"Stored image for pano $panoId is unusable: $reason")
+          NotFound(s"Stored image for pano $panoId cannot be served: $reason.")
       }
     }
   }
