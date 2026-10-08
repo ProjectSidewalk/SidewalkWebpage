@@ -35,10 +35,12 @@ class OutdatedStreetsForUserSpec extends SidewalkSpec with GuiceOneAppPerSuite w
 
   private val ListLimit = 12
 
-  private def setImagery(streetEdgeId: Int, median: Option[LocalDate]): DBIO[Int] =
+  private def setImagery(streetEdgeId: Int, median: Option[LocalDate]): DBIO[Int] = {
+    val polledAt = OffsetDateTime.now
     streetImagery.insertOrUpdate(
-      StreetImagery(streetEdgeId, None, median, median, 1, StreetImagerySource.ImageryPoll, OffsetDateTime.now)
+      StreetImagery(streetEdgeId, None, median, median, 1, StreetImagerySource.ImageryPoll, polledAt, Some(polledAt))
     )
+  }
 
   "getOutdatedStreetsForUser" should {
     "list a street only once the user's audit of it is flagged" in {

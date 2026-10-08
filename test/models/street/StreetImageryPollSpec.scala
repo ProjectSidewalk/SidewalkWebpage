@@ -114,10 +114,11 @@ class StreetImageryPollSpec extends SidewalkSpec with GuiceOneAppPerSuite with R
           OffsetDateTime.now, completed = true, 0.0, 0.0, startPointReversed = false, None, None, lowQuality = false,
           incomplete = false, stale = false, auditedDistanceM = None)
         _ <- streetImagery.filter(_.streetEdgeId === target).delete
+        // polledAt set, not None: a NULL stamp would tie with the target on NULLS FIRST and leave id order to decide.
         _ <- DBIO.sequence(candidates.tail.map { id =>
           streetImagery.filter(_.streetEdgeId === id).delete andThen
             (streetImagery += StreetImagery(id, None, None, None, 0, StreetImagerySource.ImageryPoll,
-              OffsetDateTime.now))
+              OffsetDateTime.now, Some(OffsetDateTime.now)))
         })
         reordered <- streetImageryTable.streetsToPoll(1000).map(_.map(_.streetEdgeId))
       } yield (reordered.headOption.contains(target), reordered.indexOf(candidates.tail.headOption.getOrElse(-1))))
@@ -125,6 +126,39 @@ class StreetImageryPollSpec extends SidewalkSpec with GuiceOneAppPerSuite with R
       first mustBe true
       // The just-polled unaudited streets fall to the back of the rotation (or out of a bounded batch entirely).
       freshlyPolledLast must not be 0
+    }
+
+    "key on polled_at, not updated_at: never-polled, then harvest-bumped, then recently polled (#5403)" in {
+      assume(someUserId.isDefined)
+      val now                                = OffsetDateTime.now
+      val (neverPolled, bumped, recent, ids) = runRolledBack(for {
+        candidates <- streetImageryTable.streetsToPoll(3).map(_.map(_.streetEdgeId))
+        _           = assume(candidates.size == 3)
+        neverPolled = candidates(0)
+        bumped      = candidates(1)
+        recent      = candidates(2)
+        // All three audited, so they share the first tier and only the second ORDER BY key separates them.
+        _ <- DBIO.sequence(candidates.map { id =>
+          auditTasks += AuditTask(0, None, someUserId.get, id, now.minusHours(1), now, completed = true, 0.0, 0.0,
+            startPointReversed = false, None, None, lowQuality = false, incomplete = false, stale = false,
+            auditedDistanceM = None)
+        })
+        _ <- streetImagery.filter(_.streetEdgeId.inSet(candidates)).delete
+        // A harvest-only record: the newest updated_at of the three, but never polled.
+        _ <- streetImagery += StreetImagery(neverPolled, None, None, None, 0, StreetImagerySource.PanoData, now, None)
+        // Polled ten nights ago, then bumped by tonight's harvest.
+        _ <- streetImagery += StreetImagery(bumped, None, None, None, 0, StreetImagerySource.ImageryPoll, now,
+          Some(now.minusDays(10)))
+        _ <- streetImagery += StreetImagery(recent, None, None, None, 0, StreetImagerySource.ImageryPoll,
+          now.minusDays(1), Some(now.minusDays(1)))
+        ids <- streetImageryTable.streetsToPoll(1000000).map(_.map(_.streetEdgeId))
+      } yield (neverPolled, bumped, recent, ids))
+
+      // Relative order only: every other street's polled_at is NULL on a freshly migrated DB, so absolute positions
+      // depend on the schema. The bumped street has the newest updated_at of the three and still sorts between the
+      // other two, which is the whole fix.
+      ids.indexOf(neverPolled) must be < ids.indexOf(bumped)
+      ids.indexOf(bumped) must be < ids.indexOf(recent)
     }
   }
 
@@ -147,17 +181,24 @@ class StreetImageryPollSpec extends SidewalkSpec with GuiceOneAppPerSuite with R
       statuses mustBe empty // i.e. every returned street's status is no_imagery.
     }
 
-    "visit never-polled streets first and freshly-polled streets last" in {
-      val (neverPolledId, freshlyPolledId, ids) = runRolledBack(for {
+    "visit never-polled streets first and freshly-polled streets last, whatever updated_at says (#5403)" in {
+      val now                                                    = OffsetDateTime.now
+      val (neverPolledId, harvestBumpedId, freshlyPolledId, ids) = runRolledBack(for {
         neverPolled   <- seedStreet("no_imagery", 0.02)
-        freshlyPolled <- seedStreet("no_imagery", 0.04)
-        _             <- streetImagery += StreetImagery(freshlyPolled.streetEdgeId, None, None, None, 0,
-          StreetImagerySource.ImageryPoll, OffsetDateTime.now.plusMinutes(1))
+        harvestBumped <- seedStreet("no_imagery", 0.04)
+        freshlyPolled <- seedStreet("no_imagery", 0.06)
+        // The harvest-bumped row has the newest updated_at in the table but no poll stamp.
+        _ <- streetImagery += StreetImagery(harvestBumped.streetEdgeId, None, None, None, 0,
+          StreetImagerySource.PanoData, now.plusMinutes(2), None)
+        // plusMinutes keeps this the newest poll stamp the table could hold, so it must be the last street visited.
+        _ <- streetImagery += StreetImagery(freshlyPolled.streetEdgeId, None, None, None, 0,
+          StreetImagerySource.ImageryPoll, now.plusMinutes(1), Some(now.plusMinutes(1)))
         ids <- streetImageryTable.noImageryStreetsToPoll(1000000).map(_.map(_.streetEdgeId))
-      } yield (neverPolled.streetEdgeId, freshlyPolled.streetEdgeId, ids))
+      } yield (neverPolled.streetEdgeId, harvestBumped.streetEdgeId, freshlyPolled.streetEdgeId, ids))
 
-      // No street_imagery row sorts NULLS FIRST; the newest updated_at is the back of the rotation.
+      // No row and a NULL polled_at both sort NULLS FIRST; the newest polled_at is the back of the rotation.
       ids.indexOf(neverPolledId) must be < ids.indexOf(freshlyPolledId)
+      ids.indexOf(harvestBumpedId) must be < ids.indexOf(freshlyPolledId)
       ids.last mustBe freshlyPolledId
     }
 
@@ -255,6 +296,7 @@ class StreetImageryPollSpec extends SidewalkSpec with GuiceOneAppPerSuite with R
       row.map(_.medianNewestCapture) mustBe Some(Some(newest))
       row.map(_.nPanos) mustBe Some(3)
       row.map(_.dataSource) mustBe Some(StreetImagerySource.ImageryPoll)
+      row.flatMap(_.polledAt).isDefined mustBe true
     }
 
     "leave the median NULL when fewer than half the sampled points have dated imagery" in {
@@ -294,14 +336,16 @@ class StreetImageryPollSpec extends SidewalkSpec with GuiceOneAppPerSuite with R
       row.map(_.medianNewestCapture) mustBe Some(None)
       row.map(_.nPanos) mustBe Some(0)
       row.map(_.dataSource) mustBe Some(StreetImagerySource.ImageryPoll)
+      // A conclusive poll that attributed nothing still advances the rotation.
+      row.flatMap(_.polledAt).isDefined mustBe true
     }
 
-    "widen the range, replace the median (NULL on an empty poll), keep n_panos/data_source, and bump updated_at" in {
+    "widen the range, replace the median (NULL on an empty poll), keep n_panos/data_source, stamp both times" in {
       val staleStamp                 = OffsetDateTime.now.minusYears(1)
       val (afterDatedPoll, finalRow) = runRolledBack(for {
         street <- seedIsolatedStreet
         _      <- streetImagery += StreetImagery(street.streetEdgeId, Some(LocalDate.parse("2010-01-01")),
-          Some(LocalDate.parse("2030-01-01")), None, 42, StreetImagerySource.ImageryScan, staleStamp)
+          Some(LocalDate.parse("2030-01-01")), None, 42, StreetImagerySource.ImageryScan, staleStamp, None)
         // This poll's narrower range must not shrink the stored one. Its median (2 of 3 points dated -> the older
         // of the two per-point captures) is a snapshot, not a widen.
         _ <- streetImageryTable.upsertFromPoll(
@@ -322,6 +366,42 @@ class StreetImageryPollSpec extends SidewalkSpec with GuiceOneAppPerSuite with R
       finalRow.map(_.nPanos) mustBe Some(42)
       finalRow.map(_.dataSource) mustBe Some(StreetImagerySource.ImageryScan)
       finalRow.map(_.updatedAt.isAfter(staleStamp)) mustBe Some(true)
+      // Not compared with each other: both upserts share one transaction, and now() is the transaction's start time.
+      afterDatedPoll.flatMap(_.polledAt).isDefined mustBe true
+      finalRow.flatMap(_.polledAt).exists(_.isAfter(staleStamp)) mustBe true
+    }
+
+    "stamp polled_at on both branches, insert and conflict (#5403)" in {
+      // Older than any stamp now() can produce, so a conflict update that left polled_at alone would still show it.
+      val staleStamp                             = OffsetDateTime.now.minusYears(1)
+      def backdate(streetEdgeId: Int): DBIO[Int] =
+        streetImagery.filter(_.streetEdgeId === streetEdgeId).map(_.polledAt).update(Some(staleStamp))
+
+      val (emptyInsert, datedConflict, datedInsert, emptyConflict) = runRolledBack(for {
+        streetA <- seedStreet("open", 0.10)
+        streetB <- seedStreet("open", 0.12)
+        // Street A: empty branch inserts, then the dated branch hits the conflict path.
+        _           <- streetImageryTable.upsertFromPoll(streetA.streetEdgeId, 3, Seq.empty)
+        emptyInsert <- streetImageryTable.getForStreet(streetA.streetEdgeId)
+        _           <- backdate(streetA.streetEdgeId)
+        _ <- streetImageryTable.upsertFromPoll(streetA.streetEdgeId, 3, Seq(onStreet(streetA, 1, Some(newest))))
+        datedConflict <- streetImageryTable.getForStreet(streetA.streetEdgeId)
+        // Street B: the dated branch inserts, then the empty branch hits the conflict path.
+        _ <- streetImageryTable.upsertFromPoll(streetB.streetEdgeId, 3, Seq(onStreet(streetB, 1, Some(newest))))
+        datedInsert   <- streetImageryTable.getForStreet(streetB.streetEdgeId)
+        _             <- backdate(streetB.streetEdgeId)
+        _             <- streetImageryTable.upsertFromPoll(streetB.streetEdgeId, 3, Seq.empty)
+        emptyConflict <- streetImageryTable.getForStreet(streetB.streetEdgeId)
+      } yield (emptyInsert, datedConflict, datedInsert, emptyConflict))
+
+      emptyInsert.flatMap(_.polledAt).isDefined mustBe true
+      datedInsert.flatMap(_.polledAt).isDefined mustBe true
+      // The conflict paths must write EXCLUDED.polled_at: the backdated stamp is replaced by this poll's, which is
+      // the same instant as its updated_at.
+      Seq(datedConflict, emptyConflict).foreach { row =>
+        row.flatMap(_.polledAt).exists(_.isAfter(staleStamp)) mustBe true
+        row.flatMap(_.polledAt).map(_.toInstant) mustBe row.map(_.updatedAt.toInstant)
+      }
     }
   }
 }

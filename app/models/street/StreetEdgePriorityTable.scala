@@ -30,8 +30,11 @@ case class StreetEdgePriority(streetEdgePriorityId: Int, streetEdgeId: Int, prio
  * @param outdated            Audited, with no up-to-date audit left -- the same definition `/v3/api/streets` reports,
  *                            so the page's re-audit counts match the Coverage KPI rather than the priority counts.
  * @param lastAuditDate       UTC date of the most recent completed audit, if any.
- * @param medianNewestCapture The street's polled median newest capture, NULL when never polled conclusively.
+ * @param medianNewestCapture The street's polled median newest capture: NULL before its first conclusive poll, and
+ *                            also after a conclusive poll that attributed nothing, so it cannot say "never polled".
  * @param imageryUpdatedAt    When any feeder last wrote this street's `street_imagery` row.
+ * @param polledAt            When the nightly imagery-age poll last answered conclusively for this street; NULL when
+ *                            it never has (#5403). The page's coverage figures count this, not the median.
  * @param lengthMeters        Geodesic length, for distance roll-ups.
  */
 case class StreetPriorityForAdmin(
@@ -46,6 +49,7 @@ case class StreetPriorityForAdmin(
     lastAuditDate: Option[LocalDate],
     medianNewestCapture: Option[LocalDate],
     imageryUpdatedAt: Option[OffsetDateTime],
+    polledAt: Option[OffsetDateTime],
     lengthMeters: Double
 )
 
@@ -71,6 +75,7 @@ object StreetPriorityForAdmin {
       "last_audit_date"       -> street.lastAuditDate.map(_.toString),
       "median_newest_capture" -> street.medianNewestCapture.map(_.toString),
       "imagery_updated_at"    -> street.imageryUpdatedAt.map(_.toString),
+      "polled_at"             -> street.polledAt.map(_.toString),
       "length_m"              -> street.lengthMeters
     )
   }
@@ -152,6 +157,7 @@ class StreetEdgePriorityTable @Inject() (
         r.nextDateOption().map(_.toLocalDate),
         r.nextDateOption().map(_.toLocalDate),
         r.nextOffsetDateTimeOption(),
+        r.nextOffsetDateTimeOption(),
         r.nextDouble()
       )
     }
@@ -195,6 +201,7 @@ class StreetEdgePriorityTable @Inject() (
              audit_activity.last_audit_date,
              street_imagery.median_newest_capture,
              street_imagery.updated_at,
+             street_imagery.polled_at,
              ST_Length(street_edge.geom::geography)
       FROM #${FilteredTables.streets()}
       INNER JOIN street_edge_region ON street_edge_region.street_edge_id = street_edge.street_edge_id

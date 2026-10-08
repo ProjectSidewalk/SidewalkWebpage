@@ -113,6 +113,7 @@ const street = (overrides = {}) => ({
   last_audit_date: null,
   median_newest_capture: null,
   imagery_updated_at: null,
+  polled_at: null,
   length_m: 1609.34,
   ...overrides,
 });
@@ -122,12 +123,13 @@ const CITY = [
   street({ street_edge_id: 1, priority: 1 }),
   street({ street_edge_id: 2, priority: 0.667, outdated_good_count: 1, outdated: true,
     last_audit_date: '2021-05-04', median_newest_capture: '2025-06-01',
-    imagery_updated_at: '2026-08-15T00:45:00Z' }),
+    imagery_updated_at: '2026-08-15T00:45:00Z', polled_at: '2026-08-15T00:45:00Z' }),
   street({ street_edge_id: 3, priority: 0.5, fresh_good_count: 1, last_audit_date: '2026-01-10',
-    median_newest_capture: '2025-01-01', imagery_updated_at: '2026-02-01T00:45:00Z' }),
+    median_newest_capture: '2025-01-01', imagery_updated_at: '2026-02-01T00:45:00Z',
+    polled_at: '2026-02-01T00:45:00Z' }),
   street({ street_edge_id: 4, region_id: 11, region_name: 'Downtown', priority: 0.333, fresh_good_count: 2,
     last_audit_date: '2026-07-01', median_newest_capture: '2026-07-20',
-    imagery_updated_at: '2024-03-01T00:45:00Z' }),
+    imagery_updated_at: '2024-03-01T00:45:00Z', polled_at: '2024-03-01T00:45:00Z' }),
 ];
 
 /** GeoJSON for the given street ids, in the shape /v3/api/streets serves. */
@@ -220,29 +222,45 @@ describe('ImageryPage KPIs', () => {
     expect(text('kpi-unaudited-note')).toBe('of 4 routable streets');
   });
 
-  test('reports how much of the audited city the rotation has actually reached', async () => {
+  test('reports how much of the city the rotation has actually reached, and how far back it goes', async () => {
     await renderPage();
-    // Three streets have been audited; all three carry a polled capture date.
-    expect(text('kpi-rotation')).toBe('100%');
-    expect(text('kpi-rotation-note')).toContain('3 of 3 audited streets');
+    // Three of the four routable streets carry a poll stamp; the oldest is 2024-03-01T00:45Z, 902 whole days before
+    // the pinned clock.
+    expect(text('kpi-rotation')).toBe('75%');
+    expect(text('kpi-rotation-note')).toContain('3 of 4 routable streets polled at least once');
+    expect(text('kpi-rotation-note')).toContain('oldest poll 902 days ago');
   });
 
-  test('reports an unmeasured audited street as unmeasured rather than as up to date', async () => {
+  test('counts a street as polled by its poll stamp, not by whether the poll found dated imagery', async () => {
     await renderPage({
       streets: [
-        street({ street_edge_id: 1, fresh_good_count: 1, last_audit_date: '2026-01-01' }),
+        // A conclusive poll that attributed nothing dated: polled, with no median.
+        street({ street_edge_id: 1, fresh_good_count: 1, last_audit_date: '2026-01-01',
+          polled_at: '2026-08-10T00:45:00Z' }),
+        // A harvest-only record: an imagery timestamp, but never polled.
         street({ street_edge_id: 2, fresh_good_count: 1, last_audit_date: '2026-01-01',
-          median_newest_capture: '2026-02-02' }),
+          imagery_updated_at: '2026-08-19T00:45:00Z' }),
       ],
       features: geojson([1, 2]),
     });
     expect(text('kpi-rotation')).toBe('50%');
+    expect(text('kpi-rotation-note')).toContain('1 of 2 routable streets');
+    expect(text('kpi-rotation-note')).toContain('oldest poll 10 days ago');
   });
 
-  test('renders the rotation share as an em dash rather than 0% when nothing has been audited', async () => {
+  test('says no street has been polled rather than inventing an oldest poll', async () => {
     await renderPage({ streets: [street({ street_edge_id: 1 })], features: geojson([1]) });
     expect(text('kpi-rotation')).toBe('0%');
-    expect(text('kpi-rotation-note')).toContain('0 of 0 audited streets');
+    expect(text('kpi-rotation-note'))
+      .toContain('0 of 1 routable streets polled at least once; no street has been polled yet');
+  });
+
+  test('reports a one-day-old poll in the singular', async () => {
+    await renderPage({
+      streets: [street({ street_edge_id: 1, polled_at: '2026-08-19T06:00:00Z' })],
+      features: geojson([1]),
+    });
+    expect(text('kpi-rotation-note')).toContain('oldest poll 1 day ago');
   });
 
   test('reports the last poll from the pipeline report', async () => {
@@ -445,6 +463,23 @@ describe('ImageryPage tables', () => {
     expect(text('imagery-street-note')).toContain('a sample, not a queue');
   });
 
+  test('says why a street has no median', async () => {
+    await renderPage({
+      streets: [
+        street({ street_edge_id: 1, last_audit_date: '2026-01-01', polled_at: '2026-08-01T00:45:00Z' }),
+        street({ street_edge_id: 2, last_audit_date: '2026-01-01' }),
+      ],
+      features: geojson([1, 2]),
+    });
+    // The median is the table's last column.
+    const medianOf = (id) => {
+      const row = streetRows().find((tr) => tr.dataset.rowId === String(id));
+      return row.cells[row.cells.length - 1].textContent;
+    };
+    expect(medianOf(1)).toBe('none dated');
+    expect(medianOf(2)).toBe('not polled');
+  });
+
   test('says how many regions the scroll box holds', async () => {
     await renderPage();
     const note = text('imagery-region-note');
@@ -501,7 +536,7 @@ describe('ImageryPage rotation roll-up', () => {
     await renderPage();
     expect(rollupRow('Routable streets').cells[1].textContent).toBe('4');
     expect(rollupRow('With any imagery record').cells[1].textContent).toBe('3');
-    expect(rollupRow('With a polled capture date').cells[1].textContent).toBe('3');
+    expect(rollupRow('Polled at least once').cells[1].textContent).toBe('3');
     expect(rollupRow('Audited and polled').cells[2].textContent).toContain('100% of audited streets');
   });
 
@@ -534,6 +569,32 @@ describe('ImageryPage rotation roll-up', () => {
     });
     // The second instant is 2026-01-01T22:00Z — earlier — but sorts later as a string.
     expect(rollupRow('Oldest imagery record').cells[1].textContent).toBe('2026-01-02');
+  });
+
+  test('counts a conclusive poll that found nothing, and not a harvest-only record, as polled', async () => {
+    await renderPage({
+      streets: [
+        street({ street_edge_id: 1, last_audit_date: '2026-01-01', polled_at: '2026-08-01T00:45:00Z',
+          imagery_updated_at: '2026-08-01T00:45:00Z' }),
+        street({ street_edge_id: 2, last_audit_date: '2026-01-01', imagery_updated_at: '2026-08-01T00:45:00Z' }),
+      ],
+      features: geojson([1, 2]),
+    });
+    expect(rollupRow('Polled at least once').cells[1].textContent).toBe('1');
+    expect(rollupRow('Audited and polled').cells[2].textContent).toContain('50% of audited streets');
+    expect(rollupRow('With any imagery record').cells[1].textContent).toBe('2');
+  });
+
+  test('finds the oldest poll by instant, not by comparing timestamp strings', async () => {
+    await renderPage({
+      streets: [
+        street({ street_edge_id: 1, polled_at: '2026-01-01T23:00:00Z' }),
+        street({ street_edge_id: 2, polled_at: '2026-01-02T00:00:00+02:00' }),
+      ],
+      features: geojson([1, 2]),
+    });
+    // The second instant is 2026-01-01T22:00Z — earlier — but sorts later as a string.
+    expect(rollupRow('Oldest poll').cells[1].textContent).toBe('2026-01-02');
   });
 });
 
@@ -583,6 +644,22 @@ describe('ImageryPage freshness histogram', () => {
     expect(note).toContain('2 audited streets have imagery newer than their last audit');
     expect(note).toContain('1 still current');
     expect(note).toContain('0 not yet polled');
+    expect(note).toContain('0 polled without a dated capture');
+  });
+
+  test('tells a street the poll has not reached from one it reached and found nothing dated on', async () => {
+    await renderPage({
+      streets: [
+        street({ street_edge_id: 1, last_audit_date: '2026-01-01', median_newest_capture: '2026-03-01',
+          polled_at: '2026-08-01T00:45:00Z' }),
+        street({ street_edge_id: 2, last_audit_date: '2026-01-01', polled_at: '2026-08-01T00:45:00Z' }),
+        street({ street_edge_id: 3, last_audit_date: '2026-01-01' }),
+      ],
+      features: geojson([1, 2, 3]),
+    });
+    const note = text('imagery-freshness-note');
+    expect(note).toContain('1 not yet polled');
+    expect(note).toContain('1 polled without a dated capture');
   });
 
   test('reports the same split in the rotation table as the chart plots', async () => {
