@@ -380,11 +380,11 @@ def test_fetch_bytes_retries_a_failed_request_and_a_wrong_body_then_gives_up(mon
     assert sg.fetch_bytes('https://example.test/a.tif', magic=b'II*\x00', sleep=pauses.append) == b'II*\x00tiff'
     assert pauses == [2.0, 4.0] and [s[1:] for s in seen] == [(None, 600.0)] * 3
     assert 'connection reset' in caplog.text and 'ServiceExceptionReport' in caplog.text
-    # A form POST carries its fields. The third failure is the caller's.
-    answers[:] = [urllib.error.HTTPError('https://example.test/form', 503, 'busy', {}, None)] * 3
+    # A form POST carries its fields. The fifth failure is the caller's, after four pauses (2, 4, 8, 16 s).
+    answers[:] = [urllib.error.HTTPError('https://example.test/form', 503, 'busy', {}, None)] * 5
     with pytest.raises(urllib.error.HTTPError):
         sg.fetch_bytes('https://example.test/form', {'res': 5, 'cve': 'E14A39B4'}, 9.0, sleep=pauses.append)
-    assert seen[-1] == ('https://example.test/form', b'res=5&cve=E14A39B4', 9.0) and len(pauses) == 4
+    assert seen[-1] == ('https://example.test/form', b'res=5&cve=E14A39B4', 9.0) and pauses[2:] == [2.0, 4.0, 8.0, 16.0]
 
 
 def test_stac_items_follows_next_links_and_tolerates_a_page_without_them():
@@ -561,7 +561,7 @@ def test_inegi_fetch_grid_takes_the_newest_edition_once_and_gives_a_lidar_editio
     assert sorted(cache.iterdir()) == [grid, lidar]
 
 
-def test_cached_locator_asks_once_per_key_and_keeps_the_keys_it_gave_up_on(tmp_path, monkeypatch, caplog):
+def test_cached_locator_asks_once_per_key_and_lets_a_failed_download_through(tmp_path, monkeypatch, caplog):
     monkeypatch.setattr(sg, 'REPO_ROOT', tmp_path)
     cache = tmp_path / 'db/onboarding/_dem_cache/demo'
     asked = []
@@ -577,11 +577,16 @@ def test_cached_locator_asks_once_per_key_and_keeps_the_keys_it_gave_up_on(tmp_p
 
     locate = sg.CachedLocator('demo', lambda lng, lat: 'gone' if lng < 0 else 'down' if lat < 0 else 'here',
                               fetch_file)
-    lngs, lats = np.array([1.0, -1.0, 1.0, 2.0, -2.0]), np.array([1.0, 1.0, -1.0, 2.0, 1.0])
-    assert locate(lngs, lats) == [str(cache / 'here.tif'), None, None, str(cache / 'here.tif'), None]
-    assert asked == ['here', 'gone', 'down'] and locate.failed == ['down']
-    assert 'demo has nothing for gone' in caplog.text
-    assert 'demo down: <ServiceExceptionReport/>. Giving up on it' in caplog.text
+    lngs, lats = np.array([1.0, -1.0, 2.0, -2.0]), np.array([1.0, 1.0, 2.0, 1.0])
+    # A chart the publisher has nothing for is remembered as None; every key is fetched once.
+    assert locate(lngs, lats) == [str(cache / 'here.tif'), None, str(cache / 'here.tif'), None]
+    assert asked == ['here', 'gone'] and 'demo has nothing for gone' in caplog.text
+    # A download that fails after every retry is not remembered as missing: the error reaches the caller, and asking
+    # again asks the publisher again.
+    for _ in range(2):
+        with pytest.raises(sg.WrongBody, match='ServiceExceptionReport'):
+            locate(np.array([1.0]), np.array([-1.0]))
+    assert asked == ['here', 'gone', 'down', 'down']
 
 
 def test_lidarhd_cell_url_asks_for_the_cell_at_half_meter_nodes():
@@ -1028,15 +1033,35 @@ def test_main_points_at_the_export_when_there_is_no_input(city):
         sg.main(_DEM_ARGS)
 
 
-def test_main_ends_by_naming_the_downloads_it_gave_up_on(city, caplog, monkeypatch):
+def test_main_stops_at_a_failed_download_and_keeps_the_rows_before_it(city, monkeypatch):
+    plane = city.parents[2] / 'dem' / 'plane.tif'
+    publisher_is_back = False
+
     def fetch_file(key, cache_dir):
+        if key == 'west':
+            return plane
+        if publisher_is_back:
+            return None  # Nothing published for the eastern cell: a fact about the data, written as no_data.
         raise urllib.error.URLError('still down after every retry')
 
-    locate = sg.CachedLocator('flaky', lambda lng, lat: 'west' if lng < _LNG + 0.1 else 'east', fetch_file)
-    monkeypatch.setitem(sg.REMOTE_SOURCES, 'flaky', sg.Source('flaky', 10.0, locate))
-    assert sg.main(['--city-id', 'testville', '--source', 'flaky']) == 0
-    assert [row['quality'] for row in _read_output(city)] == [sg.QUALITY_NO_DATA] * 2
-    assert '2 download(s) failed after every retry, so their streets are no_data: west, east' in caplog.text
+    def flaky():
+        return sg.Source('flaky', 10.0, sg.CachedLocator('flaky', lambda lng, lat: 'west' if lng < _LNG + 0.1 else
+                                                         'east', fetch_file))
+
+    # The western cell (street 1) is sampled and flushed; the eastern cell's download fails and ends the run.
+    monkeypatch.setitem(sg.REMOTE_SOURCES, 'flaky', flaky())
+    with pytest.raises(SystemExit, match=r'flaky download failed after 5 tries.*rerun with --resume') as exit_info:
+        sg.main(['--city-id', 'testville', '--source', 'flaky'])
+    assert 'still down' in str(exit_info.value)
+    rows = _read_output(city)
+    assert [(int(row['street_edge_id']), row['quality']) for row in rows] == [(1, sg.QUALITY_MEASURED)]
+    # Once the publisher answers, --resume samples only what is missing and keeps the earlier row.
+    publisher_is_back = True
+    monkeypatch.setitem(sg.REMOTE_SOURCES, 'flaky', flaky())
+    assert sg.main(['--city-id', 'testville', '--source', 'flaky', '--resume']) == 0
+    rows = _read_output(city)
+    assert [(int(row['street_edge_id']), row['quality']) for row in rows] == [(1, sg.QUALITY_MEASURED),
+                                                                            (2, sg.QUALITY_NO_DATA)]
 
 
 def test_the_import_script_expects_exactly_the_columns_the_sampler_writes():

@@ -396,9 +396,9 @@ class WrongBody(Exception):
 
 # What one request can fail with: a refused or dropped connection, an HTTP error status, a socket timeout, a body cut
 # short, or a body that is not the file asked for. Any of them partway through an hour-long run would otherwise end it
-# (GDAL's own reads get the same retries through GDAL_ENV). The pause doubles between tries: 2 s, then 4 s.
+# (GDAL's own reads get the same five tries through GDAL_ENV). The pause doubles between tries: 2, 4, 8, then 16 s.
 FETCH_ERRORS = (urllib.error.URLError, http.client.HTTPException, ConnectionError, TimeoutError, WrongBody)
-FETCH_TRIES = 3
+FETCH_TRIES = 5
 FETCH_PAUSE_S = 2.0
 
 
@@ -778,10 +778,10 @@ class CachedLocator:
     """
     A locator over rasters that have to be downloaded whole into the cache (no range requests), one per key.
 
-    A key is fetched once per run and the answer remembered either way, so a chart or cell the publisher has nothing
-    for, or whose download failed after every retry, costs one request and gives its points no elevation. The failed
-    keys are kept in ``failed`` for ``main`` to report, since a cell dropped by a transient error would otherwise
-    read as a cluster of ``no_data`` streets.
+    A key is fetched once per run and the answer remembered, so a chart or cell the publisher has nothing for costs
+    one request and gives its points no elevation. A download that still fails after every retry is not remembered:
+    its error propagates and ends the run (see ``main``), since a cell dropped by an outage would otherwise be written
+    as a cluster of ``no_data`` streets that nothing marks for a redo.
     """
 
     def __init__(self, cache_name: str, key: Callable[[float, float], str],
@@ -795,18 +795,12 @@ class CachedLocator:
         """
         self._cache_name, self._key, self._fetch_file = cache_name, key, fetch_file
         self._rasters: dict[str, str | None] = {}
-        self.failed: list[str] = []
 
     def _raster(self, key: str) -> str | None:
         if key not in self._rasters:
-            try:
-                path = self._fetch_file(key, dem_cache_dir(self._cache_name))
-                if path is None:
-                    log.warning('%s has nothing for %s. Points there get no elevation.', self._cache_name, key)
-            except DOWNLOAD_ERRORS as err:
-                log.warning('%s %s: %s. Giving up on it; points there get no elevation.', self._cache_name, key, err)
-                self.failed.append(key)
-                path = None
+            path = self._fetch_file(key, dem_cache_dir(self._cache_name))
+            if path is None:
+                log.warning('%s has nothing for %s. Points there get no elevation.', self._cache_name, key)
             self._rasters[key] = None if path is None else str(path)
         return self._rasters[key]
 
@@ -835,7 +829,7 @@ SWISSALTI3D_2M = Source('swissalti3d-2m', 2.0, CatalogLocator(swissalti3d_tiles)
 LINZ_NZ_1M = Source('linz-nz-1m', 1.0, nz_1m_locate)
 HRDEM_MOSAIC_2M = Source('nrcan-hrdem-mosaic-2m', 2.0, CatalogLocator(hrdem_tiles))
 GEDTM30 = Source('gedtm30', 30.0, gedtm30_locate)
-INEGI_MDT_5M = Source('inegi-lidar-mdt-5m', 5.0, CachedLocator('inegi-lidar-mdt-5m', inegi_chart, inegi_fetch_grid))
+INEGI_MDT_5M = Source('inegi-mdt-5m', 5.0, CachedLocator('inegi-mdt-5m', inegi_chart, inegi_fetch_grid))
 IGN_LIDARHD_05M = Source('ign-lidarhd-mnt-05m', 0.5,
                          CachedLocator('ign-lidarhd-mnt-05m', lidarhd_cell, lidarhd_fetch_cell))
 AHN4_DTM_05M = Source('ahn4-dtm-05m', 0.5, index_locator(ahn_sheets))
@@ -1129,17 +1123,19 @@ def main(argv: list[str] | None = None, opener: Callable = rasterio.open) -> int
         if not skip:
             writer.writeheader()
         for batch in cells(todo, CELL_DEGREES_FINE if source.resolution_m < FINE_RESOLUTION_M else CELL_DEGREES):
-            rows = process_cell(batch, sampler, source)
+            try:
+                rows = process_cell(batch, sampler, source)
+            except DOWNLOAD_ERRORS as err:
+                # Rows are flushed per cell, so everything before this one is on disk. Ending here keeps an outage
+                # from being written as no_data streets that nothing would mark for a redo.
+                sys.exit(f'error: {source.name} download failed after {FETCH_TRIES} tries: {err}. {out_path} keeps '
+                         f'the rows written so far; rerun with --resume once the publisher is back.')
             writer.writerows(rows)
             f.flush()
             for row in rows:
                 counts[row['quality']] = counts.get(row['quality'], 0) + 1
     log.info('Wrote %s: %s.', out_path, ', '.join(f'{n} {quality}' for quality, n in sorted(counts.items())) or
              'nothing new')
-    failed = getattr(source.locate, 'failed', [])
-    if failed:
-        log.warning('%d download(s) failed after every retry, so their streets are no_data: %s. A rerun without '
-                    '--resume samples them again.', len(failed), ', '.join(failed))
     return 0
 
 

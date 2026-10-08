@@ -91,12 +91,12 @@ object DemSource {
       )
     ),
     DemSource(
-      name = "inegi-lidar-mdt-5m",
+      name = "inegi-mdt-5m",
       title = "Modelo Digital de Elevación de Alta Resolución, tipo Terreno, 5 m (INEGI)",
       // INEGI's terms ask for "Fuente: INEGI, <product>" and that any transformation be disclosed as ours, which
       // the grade documentation does. The sampler takes a chart's newest edition, and the series holds two products
       // in INEGI's words: the 2011/2012 lidar one and the 2018+ one "derivado de datos de sensores remotos
-      // satelitales y aerotransportados", so the credit names both. The stored name keeps the series' lidar label.
+      // satelitales y aerotransportados", so the credit names both and the stored name claims neither.
       credit = "Elevation: Fuente: INEGI, Modelo Digital de Elevación de Alta Resolución tipo Terreno 5 m " +
         "(LiDAR 2011-2012; derivado de sensores remotos satelitales y aerotransportados 2018 en adelante). " +
         "Street grades derived by Project Sidewalk, not by INEGI",
