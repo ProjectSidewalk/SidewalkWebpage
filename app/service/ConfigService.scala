@@ -1146,30 +1146,21 @@ trait ConfigService {
    * separate rather than summing them. Anomaly flags ("stalled", "low_coverage", "high_disagreement") are computed
    * across the whole set (the disagreement flag is relative to the cross-city median), so they are returned together.
    *
-   * @param coldWait How long to wait for the fan-out when nothing is cached; it keeps running past this and fills the
-   *                 cache for the next load.
-   * @return         One [[CityScorecardWithFlags]] per available city ("staging" excluded), or None when nothing was
-   *                 cached and the fan-out didn't finish within `coldWait`.
+   * @return One [[CityScorecardWithFlags]] per available city ("staging" excluded), or None when nothing was cached
+   *         and the fan-out outlasted [[ConfigService.CrossCityColdWait]].
    */
-  def getCityScorecards(
-      coldWait: FiniteDuration = ConfigService.CrossCityColdWait
-  ): Future[Option[Seq[CityScorecardWithFlags]]]
+  def getCityScorecards(): Future[Option[Seq[CityScorecardWithFlags]]]
 
   /**
    * Returns the weekly label/validation/active-user volume summed across all available cities (#4329), for the
    * "over time" overview charts. Active users are summed per city, so a person active in multiple cities is counted in
    * each (documented on the page).
    *
-   * @param weeks    Trailing weeks to include, or None for full history (the page's "All time" toggle).
-   * @param coldWait How long to wait for the fan-out when nothing is cached; it keeps running past this and fills the
-   *                 cache for the next load.
-   * @return         Merged weekly series, ascending by week, or None when nothing was cached and the fan-out didn't
-   *                 finish within `coldWait`.
+   * @param weeks Trailing weeks to include, or None for full history (the page's "All time" toggle).
+   * @return      Merged weekly series, ascending by week, or None when nothing was cached and the fan-out outlasted
+   *              [[ConfigService.CrossCityColdWait]].
    */
-  def getCrossCityWeeklyTrend(
-      weeks: Option[Int],
-      coldWait: FiniteDuration = ConfigService.CrossCityColdWait
-  ): Future[Option[Seq[WeeklyPoint]]]
+  def getCrossCityWeeklyTrend(weeks: Option[Int]): Future[Option[Seq[WeeklyPoint]]]
 
   /**
    * Returns the daily label/validation/contributor volume across all available cities for the trailing window
@@ -1177,16 +1168,11 @@ trait ConfigService {
    * bar charts and their hover cards (#5653). Same activity definitions and exclusions as [[getCrossCityWeeklyTrend]];
    * each day is rolled up by [[ConfigService.summarizeDay]], which merges a person's cities so they count once per day.
    *
-   * @param days     Trailing calendar days (Pacific) to include; the last day is today, so its counts are partial.
-   * @param coldWait How long to wait for the fan-out when nothing is cached; it keeps running past this and fills the
-   *                 cache for the next load.
-   * @return         Exactly `days` days, zero-filled and ascending by day, or None when nothing was cached and the
-   *                 fan-out didn't finish within `coldWait`.
+   * @param days Trailing calendar days (Pacific) to include; the last day is today, so its counts are partial.
+   * @return     Exactly `days` days, zero-filled and ascending by day, or None when nothing was cached and the fan-out
+   *             outlasted [[ConfigService.CrossCityColdWait]].
    */
-  def getCrossCityDailyTrend(
-      days: Int,
-      coldWait: FiniteDuration = ConfigService.CrossCityColdWait
-  ): Future[Option[Seq[DailyActivity]]]
+  def getCrossCityDailyTrend(days: Int): Future[Option[Seq[DailyActivity]]]
 
   /**
    * Returns the trailing-year per-day averages the per-day bar charts draw as reference lines (#5653).
@@ -1214,14 +1200,10 @@ trait ConfigService {
    * counts are made of (#4931). Same activity definition and exclusions as [[getCrossCityDailyTrend]]; contributors
    * are distinct per city per window and summed across cities.
    *
-   * @param coldWait How long to wait for the fan-out when nothing is cached; it keeps running past this and fills the
-   *                 cache for the next load.
-   * @return         Per-city windows plus their cross-city total, or None when nothing was cached and the fan-out
-   *                 didn't finish within `coldWait`.
+   * @return Per-city windows plus their cross-city total, or None when nothing was cached and the fan-out outlasted
+   *         [[ConfigService.CrossCityColdWait]].
    */
-  def getCrossCityActivitySummary(
-      coldWait: FiniteDuration = ConfigService.CrossCityColdWait
-  ): Future[Option[CrossCityActivityWindows]]
+  def getCrossCityActivitySummary(): Future[Option[CrossCityActivityWindows]]
 
   /**
    * Returns each city's labeling speed as seconds of active auditing per 100 m covered (#4329).
@@ -1231,14 +1213,10 @@ trait ConfigService {
    * load — the "nightly precompute" half of the hybrid delivery. Cities with no interaction data are omitted from the
    * map (the page shows them as unknown).
    *
-   * @param coldWait How long to wait for the fan-out when nothing is cached; it keeps running past this and fills the
-   *                 cache for the next load.
-   * @return         cityId → seconds per 100 m (lower is faster), or None when nothing was cached and the fan-out
-   *                 didn't finish within `coldWait`.
+   * @return cityId → seconds per 100 m (lower is faster), or None when nothing was cached and the fan-out outlasted
+   *         [[ConfigService.CrossCityColdWait]].
    */
-  def getCrossCityLabelingSpeed(
-      coldWait: FiniteDuration = ConfigService.CrossCityColdWait
-  ): Future[Option[Map[String, Double]]]
+  def getCrossCityLabelingSpeed(): Future[Option[Map[String, Double]]]
 
   /**
    * Returns each city's story counts (#5543), so an Owner can see which deployments have stories to moderate.
@@ -1247,14 +1225,10 @@ trait ConfigService {
    * reports its stories. Every available city gets an entry: None when its count failed (e.g. a schema not yet at the
    * evolution that added `story`), which the page shows as unavailable rather than as zero.
    *
-   * @param coldWait How long to wait for the fan-out when nothing is cached; it keeps running past this and fills the
-   *                 cache for the next load.
-   * @return         cityId → that city's story counts (None where the count failed), or None as a whole when
-   *                 nothing was cached and the fan-out didn't finish within `coldWait`.
+   * @return cityId → that city's story counts (None where the count failed), or None as a whole when nothing was
+   *         cached and the fan-out outlasted [[ConfigService.CrossCityColdWait]].
    */
-  def getCrossCityStoryStats(
-      coldWait: FiniteDuration = ConfigService.CrossCityColdWait
-  ): Future[Option[Map[String, Option[CityStoryStats]]]]
+  def getCrossCityStoryStats(): Future[Option[Map[String, Option[CityStoryStats]]]]
 
   /**
    * Returns the current city's labeling pace as minutes of active auditing per 100 m covered.
@@ -1710,12 +1684,12 @@ class ConfigServiceImpl @Inject() (
     Future.sequence(schemaExistenceChecks).map(_.collect { case (cityId, true) => cityId })
   }
 
-  def getCityScorecards(coldWait: FiniteDuration): Future[Option[Seq[CityScorecardWithFlags]]] = {
+  def getCityScorecards(): Future[Option[Seq[CityScorecardWithFlags]]] = {
     swrCache.staleWhileRevalidateWithin[Seq[CityScorecardWithFlags]](
       "getCityScorecards",
       ConfigService.CrossCityFreshFor,
       ConfigService.CrossCityMaxAge,
-      coldWait
+      ConfigService.CrossCityColdWait
     ) {
       availableCityIds().flatMap { availableCities =>
         // Query each available city in parallel; one failing schema yields None rather than sinking the whole page.
@@ -1734,13 +1708,13 @@ class ConfigServiceImpl @Inject() (
     }
   }
 
-  def getCrossCityWeeklyTrend(weeks: Option[Int], coldWait: FiniteDuration): Future[Option[Seq[WeeklyPoint]]] = {
+  def getCrossCityWeeklyTrend(weeks: Option[Int]): Future[Option[Seq[WeeklyPoint]]] = {
     val cacheKey = s"getCrossCityWeeklyTrend_${weeks.map(_.toString).getOrElse("all")}"
     swrCache.staleWhileRevalidateWithin[Seq[WeeklyPoint]](
       cacheKey,
       ConfigService.CrossCityFreshFor,
       ConfigService.CrossCityMaxAge,
-      coldWait
+      ConfigService.CrossCityColdWait
     ) {
       availableCityIds().flatMap { availableCities =>
         val perCityFutures = availableCities.map { cityId =>
@@ -1770,12 +1744,12 @@ class ConfigServiceImpl @Inject() (
     }
   }
 
-  def getCrossCityDailyTrend(days: Int, coldWait: FiniteDuration): Future[Option[Seq[DailyActivity]]] = {
+  def getCrossCityDailyTrend(days: Int): Future[Option[Seq[DailyActivity]]] = {
     swrCache.staleWhileRevalidateWithin[Seq[DailyActivity]](
       s"getCrossCityDailyTrend_$days",
       ConfigService.CrossCityFreshFor,
       ConfigService.CrossCityMaxAge,
-      coldWait
+      ConfigService.CrossCityColdWait
     ) {
       availableCityIds().flatMap { availableCities =>
         val perCityFutures = availableCities.map { cityId =>
@@ -1825,12 +1799,12 @@ class ConfigServiceImpl @Inject() (
     }
   }
 
-  def getCrossCityActivitySummary(coldWait: FiniteDuration): Future[Option[CrossCityActivityWindows]] = {
+  def getCrossCityActivitySummary(): Future[Option[CrossCityActivityWindows]] = {
     swrCache.staleWhileRevalidateWithin[CrossCityActivityWindows](
       "getCrossCityActivitySummary",
       ConfigService.CrossCityFreshFor,
       ConfigService.CrossCityMaxAge,
-      coldWait
+      ConfigService.CrossCityColdWait
     ) {
       availableCityIds().flatMap { availableCities =>
         val perCityFutures = availableCities.map { cityId =>
@@ -1882,12 +1856,12 @@ class ConfigServiceImpl @Inject() (
       }
   }
 
-  def getCrossCityLabelingSpeed(coldWait: FiniteDuration): Future[Option[Map[String, Double]]] = {
+  def getCrossCityLabelingSpeed(): Future[Option[Map[String, Double]]] = {
     swrCache.staleWhileRevalidateWithin[Map[String, Double]](
       "getCrossCityLabelingSpeed",
       ConfigService.LabelingSpeedFreshFor,
       ConfigService.LabelingSpeedMaxAge,
-      coldWait
+      ConfigService.CrossCityColdWait
     ) {
       availableCityIds().flatMap { availableCities =>
         val perCityFutures: Seq[Future[Option[(String, Double)]]] = availableCities.map { cityId =>
@@ -1898,12 +1872,12 @@ class ConfigServiceImpl @Inject() (
     }
   }
 
-  def getCrossCityStoryStats(coldWait: FiniteDuration): Future[Option[Map[String, Option[CityStoryStats]]]] = {
+  def getCrossCityStoryStats(): Future[Option[Map[String, Option[CityStoryStats]]]] = {
     swrCache.staleWhileRevalidateWithin[Map[String, Option[CityStoryStats]]](
       "getCrossCityStoryStats",
       ConfigService.CrossCityFreshFor,
       ConfigService.CrossCityMaxAge,
-      coldWait
+      ConfigService.CrossCityColdWait
     ) {
       availableCityIds().flatMap { availableCities =>
         val perCityFutures: Seq[Future[(String, Option[CityStoryStats])]] = availableCities.map { cityId =>

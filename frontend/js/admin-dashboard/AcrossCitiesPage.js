@@ -205,10 +205,6 @@ export class AcrossCitiesPage {
    */
   #fetchScorecards() {
     return FetchWithRetry.fetchJsonWithRetry(this.#scorecardsUrl, {
-      // The first attempt is the ordinary load, which the view's "Loading cities…" already covers.
-      onAttempt: (attempt) => {
-        if (attempt >= 2) this.#setText('ac-pulse', 'Still gathering figures from every city…');
-      },
       onWait: (_attempt, seconds) => {
         this.#setText('ac-pulse', `Still gathering figures from every city; trying again in ${seconds} s…`);
       },
