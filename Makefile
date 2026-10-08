@@ -1,5 +1,5 @@
 .PHONY: dev docker-up docker-up-db docker-run docker-stop npm-sync ssh qa-worktree qa-worktree-stop worktree-remove \
-        lease-status lease-take lease-release \
+        upgrade-dev-db lease-status lease-take lease-release \
         test-js test-e2e test-e2e-host \
         test-python test-python-app test-python-tools \
         import-users import-dump create-new-schema fill-new-schema onboard-city build-city-data check-imagery \
@@ -38,6 +38,8 @@ lease-flags = $(if $(filter 1 true yes,$(wait)),--wait,) $(if $(filter 1 true ye
 lease-env = -e CLAUDE_CODE_SESSION_ID -e LEASE_PURPOSE="$(purpose)"
 # Same idiom for import-users' `replace=1`, which wipes the login schema instead of merging into it.
 import-users-replace-flag = $(if $(filter 1 true yes,$(replace)),--replace,)
+# Same idiom for upgrade-dev-db's `all=1`, which copies every database rather than just sidewalk.
+upgrade-dev-db-all-flag = $(if $(filter 1 true yes,$(all)),--all,)
 
 # Resolve which copy of qa-worktree.sh to run, then exec it with the args in $(1). The main repo is mounted at the
 # container's /home, so /home/tools/dev/qa-worktree.sh is the script as it exists on whatever branch the MAIN checkout
@@ -176,6 +178,10 @@ docker-up:
 
 docker-up-db:
 	@docker compose up -d db
+
+# Copies a Postgres 16 dev database into the Postgres 18 one, from the host. See docs/dev-environment.md.
+upgrade-dev-db:
+	@bash tools/dev/upgrade-dev-db.sh --container $(db-container) $(upgrade-dev-db-all-flag)
 
 # `rm -v` drops the removed containers' anonymous volumes only.
 docker-stop:

@@ -411,7 +411,7 @@ CREATE TEMP TABLE dc_onboarding_pano AS SELECT gsv_panorama_id FROM gsv_onboardi
 CREATE TEMP TABLE dc_label_place AS
 SELECT label.label_id, tm.user_id, tm.region_id,
        COALESCE(lt.first_ts,
-                CASE WHEN label.time_created < '2018-08-25' THEN label.time_created AT TIME ZONE 'US/Eastern'
+                CASE WHEN label.time_created < '2018-08-25' THEN label.time_created AT TIME ZONE 'America/New_York'
                      ELSE label.time_created AT TIME ZONE 'UTC' END,
                 tm.t0) AS ts,
        label.gsv_panorama_id IN (SELECT gsv_panorama_id FROM dc_onboarding_pano) AS is_tutorial

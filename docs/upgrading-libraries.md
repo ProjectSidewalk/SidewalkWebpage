@@ -30,7 +30,7 @@ listed separately and are *expected* to differ; the goal is skew that's written 
 | Python (app) | **3.8** | 3.14.7 | **Oct 2024 — past** | web base image ([why two](#interpreters)) |
 | Python (tooling) | **3.13.15** | 3.14.7 | Oct 2029 | `Dockerfile`, via uv |
 | web image | **`eclipse-temurin:17-jdk-focal`** | jammy / noble | **May 2025 — past** | `Dockerfile` |
-| db image | **`postgis/postgis:16-3.5`** | (see below) | **Aug 2026 — past** | `db/Dockerfile` |
+| db image | **`postgis/postgis:18-3.6`** | 18-3.6 | ~Aug 2028 (Debian 13) | `db/Dockerfile` |
 | ShellCheck image | **`koalaman/shellcheck:v0.11.0`** | 0.11.0 | — | `docker/shellcheck/Dockerfile` (never built; the pin `make shellcheck` and CI run, kept where Dependabot looks) |
 
 - **Focal does more than it looks.** It's what makes `python3` mean 3.8 (retiring that is
@@ -38,46 +38,44 @@ listed separately and are *expected* to differ; the goal is skew that's written 
   2.32 and 2.34 that sbt's `sbtn` needs, so `sbt --client` can't run in the container at all and everything uses
   `sbt --jvm-client` instead (#5268). Jammy (glibc 2.35, `python3` 3.10) or noble (2.39, 3.12) fixes both, but a
   move has to say what happens to 3.8 first.
-- **The `16-3.5` image line is a dead end.** Its Debian version (bullseye) gets no more Postgres or PostGIS
-  releases (stuck at 16.15 and 3.5.2, #5626), and there's no newer image for Postgres 16. Newer versions in dev
-  mean moving to a new Postgres major version and base image together (#3955).
+- **The db image updates by rebuilding.** It's Debian 13 with Postgres, PostGIS, GEOS and PROJ from Postgres's own
+  package server, the same source as prod's.
 - **Java 17** in dev and CI, **21** on prod; moving dev to 21 is
   [#4396](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4396). Dependabot deliberately ignores major
   `eclipse-temurin` bumps. **Node 24** is LTS until Apr 2028, with 26 taking over as LTS in Oct 2026.
 
 ### Database server
 
-Prod is the target dev tracks. Prod's column was read off makelab1 on 2026-07-01 (#4398); re-check either side with
+Prod is the target dev tracks. Test moved to Postgres 18 on 2026-10-07, ahead of prod (#3955). Prod's column was
+read on 2026-07-01 (#4398), test's on 2026-10-07; re-check any of them with
 `SELECT version();` and `SELECT PostGIS_Full_Version();` (in dev, `docker exec projectsidewalk-db psql -U
 readonly_user -d sidewalk`).
 
-| | dev (`projectsidewalk-db`) | prod (makelab1) | Latest |
-|---|---|---|---|
-| OS | Debian 11 bullseye (EOL Aug 2026) | Rocky Linux 9.8 (EOL May 2032) | — |
-| Postgres | **16.15** | **16.14** | 18.6 |
-| PostGIS | **3.5.2** | **3.4.6** | 3.6.4 |
-| GEOS | **3.9.0** | **3.14.1** | 3.15.0 |
-| PROJ | **7.2.1** | **9.8.1** | 9.8.1 |
-| GDAL | **3.2.2** (`libgdal28`) | not collected | 3.13.3 |
+| | dev (`projectsidewalk-db`) | test (makelab1) | prod (makelab1) | Latest |
+|---|---|---|---|---|
+| OS | Debian 13 trixie | Rocky Linux 9.8 (EOL May 2032) | Rocky Linux 9.8 | — |
+| Postgres | **18.6** | **18.6** | **16.14** | 18.6 |
+| PostGIS | **3.6.4** | **3.6.4** | **3.4.6** | 3.6.4 |
+| GEOS | **3.14.1** | **3.14.1** | **3.14.1** | 3.15.0 |
+| PROJ | **9.8.1** | **9.8.1** | **9.8.1** | 9.8.1 |
+| GDAL | **3.10.3** (`libgdal36`) | not collected | not collected | 3.13.3 |
 
-- **Dev is both ahead and years behind**: newer PostGIS, but a 2020 GEOS/PROJ out of bullseye's system packages
-  against prod's hand-built ones. Geometry output can genuinely differ across that GEOS gap, so a spatial result that
-  reproduces in only one environment starts here. The same skew breaks dev's JIT — PostGIS bitcode built with LLVM 16
-  against a runtime linked to LLVM 11, so an expensive spatial query segfaults the backend
-  ([#4376](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4376)) — so `docker-compose.yml` starts the db
-  with `jit=off`, matching prod.
+- **Dev matches test, and prod except for the Postgres and PostGIS versions.** Until prod is on 18, don't use SQL
+  that's new in 17 or 18 (`RETURNING OLD/NEW`, `uuidv7()`, `JSON_TABLE`, virtual generated columns). JIT is off in
+  `docker-compose.yml`, matching prod ([#4376](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4376)).
+- **Name time zones as Area/City** (`America/Los_Angeles`, not `US/Pacific`). Debian 13 dropped the old names, so
+  dev's Postgres rejects them; Rocky's still accepts them.
 - **Prod server settings dev lacks** (set by CSE IT in its `postgresql.conf` after
   [#4545](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4545)):
   `idle_in_transaction_session_timeout = 2min` and `log_lock_waits = on`.
-- **Prod's `psql` on the PATH is 13.23**, older than the 16.14 server. A 13 `pg_dump` refuses a 16 server, so
-  check `pg_dump --version` before dumping there.
-- **Dev's Postgres is stuck at 16.15** (#5626) while prod keeps getting updates. An old container may report an older
-  version; rebuild it. PostGIS and the other map libraries come from the base image and never change. **When CSE IT
-  updates prod's PostGIS library**, the SQL functions stay behind until someone updates them (`PostGIS_Full_Version()`
-  ends in `need upgrade`; last done 2026-09-28). In each database, run `ALTER EXTENSION postgis UPDATE TO '<lib
-  version>'`, not `postgis_extensions_upgrade()`, which trips on leftover unpackaged raster functions. Then hand any
-  functions the update created back to `sidewalk`. **GDAL** isn't reported by that function in either place (no raster
-  support), so dev's comes from the installed package.
+- **Dumps only load into the same or a newer Postgres** (otherwise: `unsupported version (1.16) in file header`), and
+  an older `pg_dump` refuses a newer server. So dev must be at least as new as the server its dumps come from.
+- **makelab1's `psql` on the PATH is 13.23.** It can query both servers, but its `pg_dump` refuses them: use
+  `/usr/pgsql-<version>/bin/pg_dump` (sidewalk-server-tools#8 makes the scripts do this).
+- **When CSE IT updates a server's PostGIS library**, its SQL functions lag behind (`PostGIS_Full_Version()` ends in
+  `need upgrade`). Run `ALTER EXTENSION postgis UPDATE` in each database, then hand any new functions to `sidewalk`.
+  Avoid `postgis_extensions_upgrade()` until `tools/one-off/3955-drop-raster-leftovers.sql` has cleared that
+  database's old raster functions. **GDAL** isn't reported there (no raster support); dev's comes from its package.
 
 ## Scala / sbt / Play
 
