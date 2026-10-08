@@ -44,8 +44,7 @@ object DemSource {
       )
     ),
     DemSource(
-      name = "swissalti3d-2m",
-      title = "swissALTI3D (2 m)",
+      name = "swissalti3d-2m", title = "swissALTI3D (2 m)",
       // The product documentation (swissALTI3D-ProdInfo, §2.3) names this wording as the whole obligation of the
       // OGD terms: "Quelle: Bundesamt für Landestopografie swisstopo" or "© swisstopo".
       credit = "Elevation: © swisstopo (Federal Office of Topography), swissALTI3D",
@@ -103,8 +102,7 @@ object DemSource {
       citation = None
     ),
     DemSource(
-      name = "ign-lidarhd-mnt-05m",
-      title = "MNT LiDAR HD, 0,5 m (IGN)",
+      name = "ign-lidarhd-mnt-05m", title = "MNT LiDAR HD, 0,5 m (IGN)",
       // The Licence Ouverte asks for the producer and the date of the data's last update; the edition date is per
       // tile and lives in IGN's metadata service, so the credit names the producer and links the product.
       credit = "Elevation: IGN, MNT LiDAR HD (Licence Ouverte / Open Licence 2.0)",
@@ -114,11 +112,9 @@ object DemSource {
       citation = None
     ),
     DemSource(
-      name = "ahn4-dtm-05m",
-      title = "Actueel Hoogtebestand Nederland (AHN4) DTM 0,5 m",
+      name = "ahn4-dtm-05m", title = "Actueel Hoogtebestand Nederland (AHN4) DTM 0,5 m",
       credit = "Elevation: Actueel Hoogtebestand Nederland (AHN4), Rijkswaterstaat via PDOK, CC0 1.0",
-      licence = "CC0 1.0",
-      url = Some("https://www.pdok.nl/introductie/-/article/actueel-hoogtebestand-nederland-ahn"),
+      licence = "CC0 1.0", url = Some("https://www.pdok.nl/introductie/-/article/actueel-hoogtebestand-nederland-ahn"),
       // PDOK suggests no citation form, and CC0 asks for none.
       citation = None
     )
