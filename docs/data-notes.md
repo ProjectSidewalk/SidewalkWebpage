@@ -48,9 +48,13 @@ gone. Analysts should know:
   page views stay on the shared account.
 - **Streets keep the 2015 network** and belong to one neighborhood each (largest-overlap pick; DC never split
   streets at boundaries). The original 192-neighborhood set was dropped in favor of the 179 shown since 2016.
-- **Label positions are the original client values.** The 179.sql coordinate fix never applied on DC (all pano
-  dimensions were NULL); 3,773 positions from the legacy depth code were unusable and are NULL pending a recompute.
-  37 labels with an empty pano id were deleted, as 298.sql did elsewhere.
+- **Label positions were converted after the migration, not by it.** The 179.sql coordinate fix never applied on DC
+  (all pano dimensions were NULL). The dimensions were recovered from the scraped store and Google, and the
+  conversion and position recompute ran as `tools/one-off/5667-dc-label-positions.sql` (#5667); its backup table
+  `old_label_point_coords_2` holds the pre-conversion values. Labels on panos nobody can size any more keep the
+  legacy coordinates (negative `pano_y`), a few hundred whose pano has no recorded position still have no
+  lat/lng, and the ~14,800 tutorial labels were left alone on purpose. 37 labels with an empty pano id were deleted,
+  as 298.sql did elsewhere.
 - **Naive timestamps** (`label.time_created`, survey submissions) were US/Eastern before 2018-08-25 and UTC after.
 - The public aggregate stats now count DC live: users 823 registered + the split anonymous accounts rather than the
   old fixed 1,395; distance 2,089 km of network rather than the 5,482 km "explored" (which counted repeat audits).
