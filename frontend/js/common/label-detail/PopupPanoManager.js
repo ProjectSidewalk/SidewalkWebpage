@@ -12,6 +12,7 @@ import { MapillaryViewer } from '../pano-viewer/MapillaryViewer.js';
 import { PannellumViewer } from '../pano-viewer/PannellumViewer.js';
 import { createPanoAttribution } from '../pano-viewer/PanoAttribution.js';
 import { createPanoViewerLogo } from '../pano-viewer/PanoViewerLogo.js';
+import { watchPanoDragRelease } from '../pano-viewer/PanoDragRelease.js';
 import { util } from '../utilities.js';
 import { PanoViewer } from '../pano-viewer/PanoViewer.js';
 import '../pano-viewer/panoUtilities.js';
@@ -193,6 +194,12 @@ export class PopupPanoManager {
     this.#fallbackContainer.append(this.#fallbackPanzoomWrap, this.#fallbackMarker);
 
     this.svHolder.append(this.#panoCanvas, this.#pannellumCanvas, this.#fallbackContainer, this.#panoNotAvailable);
+
+    // The card's paging arrows and vote buttons overlay the imagery and are often disabled, and a drag released over
+    // a disabled control never produces the mouseup most viewers end it on (#5295); Infra3D also missed releases off
+    // its canvas (#5294). One watch on the holder covers the primary viewer, Pannellum and the crop, and is active
+    // before the lazily built viewer exists. It lives as long as svHolder does, so its dispose() is not kept.
+    watchPanoDragRelease(this.svHolder);
 
     // Initialize panzoom on the wrapper.
     this.#fallbackPanzoom = panzoom(this.#fallbackPanzoomWrap, {

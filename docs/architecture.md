@@ -503,6 +503,12 @@ loaded by the corresponding Twirl view:
   constructed, hidden or not, and most visits to a hosting page never open a label (#5128). Only the free library
   download is scheduled early (`PanoViewer.preloadLibrary`). Deferring the build moves that cost to the first open,
   where the user is watching, so the card covers the wait with `.label-detail__pano-loading` until imagery paints.
+  The card's paging arrows and vote buttons sit over the imagery and are often disabled, and browsers never dispatch
+  `mousedown`/`mouseup`/`click` to a disabled form control, so a drag released over one never told GSV, Panoramax,
+  Pannellum or the crop's panzoom that it had ended; Infra3D, which listens for pointer events on its canvas alone,
+  missed any release off the canvas. `PanoDragRelease.watchPanoDragRelease`, mounted once on the card's pano holder,
+  captures the pointer on the pressed element for each mouse/pen drag and dispatches a `mouseup` there only when the
+  native one is missing (#5295, #5294). Whether a drag should end when it leaves the frame is still open (#5294).
   Infra3d's access token is minted server-side (`PanoDataService.getInfra3dToken`: an hour-long Cognito token, cached
   until it nears expiry), stamped into the page once, and renewed in place by `Infra3dViewer` through
   `GET /imageryAccessToken` five minutes before it expires, since the SDK has no refresh flow of its own. Failures
