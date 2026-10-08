@@ -2990,3 +2990,43 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
     grid-template-columns: 1fr;
   }
 }
+
+/* --- Sidewalks: per-side sidewalk presence (#5724) -------------------------------------------------------------
+   Verdict colors are main.css tokens, read by SidewalkPresenceMap for the map and named directly by the legend. */
+
+.sidewalks-filters {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-sm);
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+}
+
+.sidewalks-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs) var(--space-sm);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.sidewalks-filter-row legend {
+  float: left;
+  margin-right: var(--space-sm);
+  padding: 0;
+}
+
+.sidewalks-filter-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs) var(--space-sm);
+}
+
+.sidewalks-filter-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}

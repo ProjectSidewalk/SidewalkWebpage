@@ -1,0 +1,92 @@
+@import service.CommonPageData
+@import models.user.SidewalkUserWithRole
+@import play.api.Configuration
+@(commonData: CommonPageData, user: SidewalkUserWithRole
+)(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+
+@*
+* Admin Sidewalks page (#5724): where the labels say each side of each street has a sidewalk, and which of those
+* calls most need checking. Admin-only surface, English only.
+*@
+
+@content = {
+  <div class="page-section" id="sidewalks-intro-section">
+    <h1 class="page-heading" id="sidewalks">Sidewalks <a href="#sidewalks" class="permalink">#</a></h1>
+    <p>Each side of each audited street is called <em>no sidewalk</em> when it carries a NoSidewalk label, and <em>sidewalk</em> when it was audited without one. The nightly rebuild makes these calls; this page shows them and the ones most likely to be wrong.</p>
+    <div class="ps-kpis" id="sidewalks-kpis">
+      <div class="ps-kpi"><span class="ps-kpi-value" id="kpi-absent">—</span><span class="ps-kpi-label">Audited sides with no sidewalk</span><span class="ps-kpi-note" id="kpi-absent-note"></span></div>
+      <div class="ps-kpi"><span class="ps-kpi-value" id="kpi-single">—</span><span class="ps-kpi-label">Of those, on one labeler's word</span><span class="ps-kpi-note" id="kpi-single-note"></span></div>
+      <div class="ps-kpi"><span class="ps-kpi-value" id="kpi-confirmed">—</span><span class="ps-kpi-label">Confirmed by a validator</span><span class="ps-kpi-note" id="kpi-confirmed-note"></span></div>
+      <div class="ps-kpi"><span class="ps-kpi-value" id="kpi-rebuilt">—</span><span class="ps-kpi-label">Last rebuilt</span><span class="ps-kpi-note" id="kpi-rebuilt-note"></span></div>
+    </div>
+    <div class="coverage-status" id="sidewalks-status" role="status" aria-live="polite">Loading sidewalk presence…</div>
+  </div>
+
+  <div class="page-section" id="sidewalks-map-section">
+    <h2 class="page-heading" id="sidewalk-map">Map <a href="#sidewalk-map" class="permalink">#</a></h2>
+    <p>Every open street is drawn twice, its left and right side offset from the centerline. A no-sidewalk side is fainter the fewer people labeled it; a validator's confirmation draws it at full strength. Hover a side for its evidence.</p>
+    <form id="sidewalks-filters" class="sidewalks-filters" aria-describedby="sidewalks-filter-note">
+      <div class="sidewalks-filter-row">
+        <label for="sidewalks-min-users">No sidewalk from at least</label>
+        <select id="sidewalks-min-users" class="ps-select">
+          <option value="1">1 labeler</option>
+          <option value="2">2 labelers</option>
+          <option value="3">3 labelers</option>
+        </select>
+        <label class="sidewalks-filter-check" for="sidewalks-confirmed-only">
+          <input type="checkbox" id="sidewalks-confirmed-only"> Only validator-confirmed no-sidewalk sides
+        </label>
+      </div>
+      <fieldset class="sidewalks-filter-row">
+        <legend>Basis of the call</legend>
+        <div id="sidewalks-basis-filters" class="sidewalks-filter-checks"></div>
+      </fieldset>
+    </form>
+    <div id="sidewalks-map" class="coverage-map"
+    role="img" aria-label="Map of street sides colored by whether the labels say each has a sidewalk; the tables below list the same data"></div>
+    <div id="sidewalks-legend" class="street-status-legend"></div>
+    <p class="ac-note" id="sidewalks-filter-note" aria-live="polite"></p>
+  </div>
+
+  <div class="page-section" id="sidewalks-review-section">
+    <h2 class="page-heading" id="worth-checking">Worth checking <a href="#worth-checking" class="permalink">#</a></h2>
+    <p>Calls of the kinds the Seattle study against the city's sidewalk inventory found wrong most often. Choose a street to show it on the map, or open it in Explore.</p>
+    <div class="coverage-table-controls">
+      <label for="sidewalks-flag">List</label>
+      <select id="sidewalks-flag" class="ps-select"></select>
+      <label class="sr-only" for="sidewalks-flag-search">Search by region or street</label>
+      <input type="search" id="sidewalks-flag-search" class="ps-input coverage-table-search" placeholder="Search region or street…">
+    </div>
+    <p class="ac-note" id="sidewalks-flag-description"></p>
+    <div class="ps-table-scroll-box">
+      <table id="sidewalks-flag-table" class="ps-table ps-table--compact ps-table--sticky"></table>
+    </div>
+  </div>
+
+  <div class="page-section" id="sidewalks-regions-section">
+    <h2 class="page-heading" id="by-region">By region <a href="#by-region" class="permalink">#</a></h2>
+    <p>Click a region to fit the map to it; click it again to let go.</p>
+    <div class="coverage-table-controls">
+      <label class="sr-only" for="sidewalks-region-search">Search regions</label>
+      <input type="search" id="sidewalks-region-search" class="ps-input coverage-table-search" placeholder="Search regions…">
+    </div>
+    <div class="ps-table-scroll-box">
+      <table id="sidewalks-region-table" class="ps-table ps-table--compact ps-table--sticky"></table>
+    </div>
+  </div>
+
+    <!-- Page-specific library: Mapbox for the face map. -->
+  <link rel="stylesheet" href="@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.css")">
+  <script src="@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.js")"></script>
+
+  @* The endpoint comes from the router, so a renamed route fails the view's compile rather than the page. *@
+  @ViteAssets.stylesheets("admin/sidewalks", alreadyLinked = "admin/shell")
+  <script type="module" id="page-entry" src='@assets.path("build/js/admin/sidewalks.js")'
+          data-mapbox-token="@commonData.mapboxApiKey"
+          data-presence-url="@routes.AdminDashboardController.getSidewalkPresence"></script>
+}
+
+@common.main(commonData, "Sidewalk - Admin Sidewalks") {
+  @common.navbar(commonData, Some(user))
+  @admin.dashboard.adminLayout("sidewalks", commonData, user)(content)
+}

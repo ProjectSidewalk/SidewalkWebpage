@@ -6,7 +6,7 @@
 * Pages cover the current city, and the "All cities" badge marks the ones that span every deployment; the scope line
 * under the header names the city, because the deployment strip above the h1 is easy to miss when choosing a page. Scope
 * that doesn't follow the page (roles are shared by every city; Health's job panels are this city's) is named in the
-* link's description. Every link carries a description, since fifteen pages are too many to tell apart by name
+* link's description. Every link carries a description, since there are too many pages to tell apart by name
 * alone. The name sits in its own span so sidebarDisclosure.js can label the mobile toggle with it and not with the
 * description.
 *
@@ -41,6 +41,7 @@
     @navItem("coverage", routes.AdminDashboardController.coverage, "Coverage", "% explored by neighborhood", false)
     @navItem("street-status", routes.AdminDashboardController.streetStatus, "Street Status", "Which streets can be audited", false)
     @navItem("imagery", routes.AdminDashboardController.imagery, "Imagery", "Re-audits for newer imagery", false)
+    @navItem("sidewalks", routes.AdminDashboardController.sidewalks, "Sidewalks", "Which street sides have one", false)
     @navItem("label-map", routes.AdminDashboardController.labelMap, "Label Map", "Every label, filterable", false)
     @navItem("quality", routes.AdminDashboardController.quality, "Data Quality", "Types, severity, agreement", false)
 

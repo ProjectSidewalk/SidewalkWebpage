@@ -372,4 +372,51 @@ class SidewalkPresenceTableSpec
       remaining mustBe empty
     }
   }
+
+  "the admin Sidewalks query" should {
+    "carry each face's verdict with the curb ramps and problem labels on that side, counting what the verdict does" in {
+      val (streetEdgeId, unregioned, streets) = runRolledBack(for {
+        regionId     <- insertRegion()
+        streetEdgeId <- insertStreet(Some(regionId))
+        unregioned   <- insertStreet()
+        user         <- insertUser()
+        excluded     <- insertUser()
+        _            <- excludeUser(excluded)
+        _            <- audit(streetEdgeId, user)
+        _            <- insertLabel(streetEdgeId, user, "NoSidewalk", Some(3.0))
+        _            <- insertLabel(streetEdgeId, user, "Obstacle", Some(3.0))
+        _            <- insertLabel(streetEdgeId, user, "SurfaceProblem", Some(2.0))
+        _            <- insertLabel(streetEdgeId, user, "CurbRamp", Some(-3.0))
+        // None of these is evidence: rejected, deleted, an excluded contributor's, or on no side.
+        _       <- insertLabel(streetEdgeId, user, "CurbRamp", Some(-3.0), correct = Some(false))
+        _       <- insertLabel(streetEdgeId, user, "Obstacle", Some(3.0), deleted = true)
+        _       <- insertLabel(streetEdgeId, excluded, "Obstacle", Some(3.0))
+        _       <- insertLabel(streetEdgeId, user, "CurbRamp", Some(0.5))
+        _       <- table.rebuild
+        streets <- table.getForAdmin
+      } yield (streetEdgeId, unregioned, streets))
+
+      // A street in no region has nowhere to roll up to, so it is left out like the Imagery page leaves it out.
+      streets.map(_.streetEdgeId) must not contain unregioned
+
+      val street = streets.find(_.streetEdgeId == streetEdgeId).value
+      street.regionName mustBe "Spec Region"
+      street.lengthMeters mustBe OneDegreeEquatorMeters +- 1.0
+      street.auditCount mustBe 1
+      street.faces.map(_.streetSide) mustBe Seq("left", "right")
+      val Seq(left, right) = street.faces: @unchecked
+      left.presence mustBe "absent"
+      left.problemLabelCount mustBe 2
+      left.curbRampCount mustBe 0
+      right.presence mustBe "present"
+      right.curbRampCount mustBe 1
+      right.problemLabelCount mustBe 0
+    }
+
+    "list streets in id order, each once" in {
+      val streets = runRolledBack(table.getForAdmin)
+      streets.map(_.streetEdgeId) mustBe streets.map(_.streetEdgeId).distinct.sorted
+      streets.foreach(_.faces.size mustBe 2)
+    }
+  }
 }
