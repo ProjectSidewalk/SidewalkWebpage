@@ -158,6 +158,9 @@
     "route-unavailable": {
       "message": "That route isn't available. It may have been deleted."
     },
+    "region-finished": {
+      "message": "You've already explored every street in that neighborhood, so we've moved you to {{regionName}}."
+    },
     "reaudit": {
       "title": "This street has newer imagery",
       "message-you": "You last assessed this street in {{lastMapped}}, but the imagery has been refreshed since then (in {{newImagery}}). Please assess this street again to help us analyze what has changed.",

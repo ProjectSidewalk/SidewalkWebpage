@@ -2,7 +2,7 @@
 
 A thin headless-browser suite (issue #4504) that loads each core page and **fails on any uncaught page
 error or non-allowlisted `console.error`**. It exists to catch the class of regression that compile, the
-grunt build, and all four linters are blind to: runtime-only JS errors — a stale bundle, a missing global,
+asset build (`npm run build`), and all four linters are blind to: runtime-only JS errors — a stale bundle, a missing global,
 an unbound-method `this` bug, a route-ordering 400 breaking a fetch. It asserts *pages initialize cleanly*
 plus two pieces of layout geometry — `phone-viewport.spec.js` re-loads the responsive pages at a 390×844
 phone viewport and fails on horizontal overflow (#4883), and `stat-bands.spec.js` sweeps the `/about` and
@@ -148,7 +148,7 @@ this suite in two steps: the **accessibility gate** (`--project=a11y`), then the
 gave the pages content to render. Each project writes to its own `test-results/` subdirectory, so the second run
 does not clear the first's traces before they are uploaded. On failure of either half it uploads the Playwright
 report, traces, and `app.log`. **It never runs
-during local development** — your edit / `grunt watch` / reload loop is untouched.
+during local development** — your edit / `npm run watch` / reload loop is untouched.
 
 ### The CI test city
 

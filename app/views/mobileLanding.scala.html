@@ -83,7 +83,7 @@
     <a class="mobile-landing-cta-btn" id="mobile-bottom-cta-btn" href="/mobile">@Messages("landing.mobile.start.validating", currentCity.cityNameShort)</a>
     <div id="mobile-cta-footer-info">
       @Html(Messages("footer.designed.operated"))<br>
-      <span>@Html(Messages("footer.version", commonData.versionId, commonData.versionTimestamp.toString))</span>
+      <span class="mobile-footer-version">@Messages("footer.version", commonData.versionId, commonData.versionDateLabel(messages.lang))</span>
     </div>
   </section>
 

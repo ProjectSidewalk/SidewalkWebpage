@@ -136,9 +136,9 @@ Make sure Docker is running (you'll see the whale icon in your tray; you can set
    npm start
    ```
 
-   `npm start` runs the asset build (Rolldown for the JS, Grunt for the CSS bundles) with a watch in the background, then `sbt ~ run` for continuous
-   recompile. The first compile takes 5+ minutes; later ones are seconds. Use `npm run debug` if you want a JVM
-   debug port attached. It's ready when you see `Listening for HTTP on .../9000`.
+   `npm start` runs the asset build (`npm run build`: Rolldown for the JS, Grunt for the CSS bundles), keeps a
+   watcher (`npm run watch`) rebuilding it on save, then runs `sbt ~ run` for continuous recompile. The first compile
+   takes 5+ minutes; later ones are seconds. It's ready when you see `Listening for HTTP on .../9000`.
 
 6. **Open the app:** http://localhost:9000 (or `127.0.0.1:9000`). The first load is slow while Play applies
    evolutions and compiles on demand.
@@ -259,7 +259,7 @@ Password: sidewalk
 The dev server hot-reloads, so you rarely restart it.
 
 - **Scala / Twirl views** — `sbt ~ run` recompiles on save; reload the browser once compilation finishes.
-- **JavaScript / CSS** — the `grunt watch` behind `npm start` rebuilds `public/build/` on every save: Rolldown
+- **JavaScript / CSS** — the `npm run watch` behind `npm start` rebuilds `public/build/` on every save: Rolldown
   bundles each page's entry in `frontend/js/pages/` and what it imports, Grunt concatenates the tools' stylesheets.
   **Never edit `public/build/` output**, and don't run the build by hand. A new JS file is picked up as soon as
   something imports it; a new page needs an entry file in `frontend/js/pages/`.
@@ -373,11 +373,11 @@ make qa-worktree wt=<worktree-name>
 
 A worktree needs more setup than the main repo (its `node_modules` and built asset bundles aren't checked in, and
 sbt's caches and config have to be pointed at the right places), so this target handles all of it: it links the main
-repo's `node_modules`, builds that branch's JS/CSS bundles, starts a backgrounded `grunt watch` so later edits
+repo's `node_modules`, builds that branch's JS/CSS bundles, starts a backgrounded `npm run watch` so later edits
 rebuild automatically, takes `:9000`, kills any stray sbt server or hung sbt task sharing the worktree's `target/`
 (either deadlocks `~ run` on compile locks), and launches `sbt ~ run` against the worktree's own config
 while reusing the main repo's warm sbt caches. The first request triggers the dev compile; `Ctrl+C` stops it and
-reaps the grunt watch. To tear a session down out-of-band, run `make qa-worktree-stop wt=<name>` (add `clean=1` to
+reaps the watcher. To tear a session down out-of-band, run `make qa-worktree-stop wt=<name>` (add `clean=1` to
 also drop the `node_modules` symlink). It behaves the same on macOS, Linux, and WSL because the work runs inside the
 web container.
 

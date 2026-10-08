@@ -204,7 +204,7 @@
 
         @Html(Messages("footer.designed.operated"))<br>
         <span id="application-version">
-        @Html(Messages("footer.version", commonData.versionId, commonData.versionTimestamp.toString))
+        @Messages("footer.version", commonData.versionId, commonData.versionDateLabel(messages.lang))
         </span>
       </div>
     </footer>

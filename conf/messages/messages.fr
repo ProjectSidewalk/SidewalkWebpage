@@ -325,7 +325,7 @@ footer.email = Nous écrire
 footer.funding = NOUS SOMMES FIÈREMENT FINANCÉS PAR
 footer.award = Subventions <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338" target="_blank" id = "nsf-link">n° 1302338</a> <br> et <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID=2125087" target="_blank" id = "nsf-link">n° 2125087</a>
 footer.designed.operated = Project Sidewalk est conçu et exploité par le <a id="makeabilitylab" href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> de l''<a id="universityofwashington" href="http://www.cs.uw.edu/">Université de Washington</a>
-footer.version = Version {0} | Dernière mise à jour : <span class = "timestamp date">{1}</span>
+footer.version = Version {0} | Dernière mise à jour : {1}
 
 audit.tutorial.complete.1 = Vous avez réussi !
 audit.tutorial.complete.2 = Vous avez terminé le tutoriel !

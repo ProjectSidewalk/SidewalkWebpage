@@ -613,16 +613,27 @@ export class Main {
             resuming,
           }, svl, this.#params.language);
 
-          // Toasts telling the user this visit resumed something in progress (#4833), or that the route the URL
-          // asked for could not be opened (#5156), deferred until the mission-start screen closes so they aren't
-          // missed underneath it. At most one of these three shows: the dropped-route news outranks a resume note the
-          // sidebar's route name already carries. The re-audit notice (#4895) is raised alongside them and `Toast`
-          // queues it behind whichever took the spot, so no duration arithmetic is needed here.
+          // Toasts for a visit that resumed something (#4833) or didn't go where the URL asked: a route that couldn't
+          // open (#5156), or a neighborhood already done (#5692). They wait for the mission-start screen to close so
+          // they aren't hidden under it, and only one shows; "didn't go where asked" wins over a resume note. `Toast`
+          // queues the re-audit notice (#4895) behind whichever one shows.
           if (this.#takeRouteUnavailableNotice()) {
             document.addEventListener('ps:mission-start-tutorial:done', () => {
               svl.tracker.push('RouteUnavailableToast_Shown');
               Toast.show({
                 message: i18next.t('right-ui.route-unavailable.message'),
+                reference: document.getElementById('pano'),
+                dark: true,
+                duration: 10000,
+              });
+            }, { once: true });
+          } else if (this.#session.region_finished) {
+            document.addEventListener('ps:mission-start-tutorial:done', () => {
+              svl.tracker.push('RegionFinishedToast_Shown');
+              Toast.show({
+                message: i18next.t('right-ui.region-finished.message', {
+                  regionName: currentRegion.getProperty('name'),
+                }),
                 reference: document.getElementById('pano'),
                 dark: true,
                 duration: 10000,

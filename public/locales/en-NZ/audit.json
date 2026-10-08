@@ -50,6 +50,9 @@
   "right-ui": {
     "region-progress": {
       "title": "Neighbourhood progress"
+    },
+    "region-finished": {
+      "message": "You've already explored every street in that neighbourhood, so we've moved you to {{regionName}}."
     }
   },
   "center-ui": {
