@@ -166,8 +166,8 @@ consistent with it.
   `api-docs/layout`) so nothing is linked twice. The containers a page renders around a lazily loaded component get
   their sheet from the page's entry (`map-frame.css` for a map), since the component's sheet only arrives with its
   code. A rule that overrides a vendor stylesheet's (`.mapboxgl-popup-content`) out-ranks it in specificity, since
-  a page's sheets may be linked before the vendor's `<link>`, and a lazily loaded chunk's arrive whenever its code
-  does. Never `@import`; a `url()` is the file's root-absolute path under `public/` (`url("/images/…")`).
+  which `<link>` comes last varies by page. Never `@import`; a `url()` is the file's root-absolute path under
+  `public/` (`url("/images/…")`).
 - **`frontend/css/` is organized by what each file is** (#5030), and its root has exactly four entries. `main.css` and
   `fonts.css` (tokens and `.ps-*` primitives, no layout knowledge). `css/components/` holds anything more than one page
   uses, one component per file with a `ps-` or component-named class prefix (`page-shell.css` — the sidebar + content +

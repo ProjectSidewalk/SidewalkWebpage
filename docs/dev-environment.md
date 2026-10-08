@@ -334,7 +334,7 @@ make test-scala only=controllers.api.PublicApiSpec
 ```
 
 The specs render views, whose stylesheet tags come from the asset build's manifest, so the tree needs a build
-(`npm run build`; `npm start` and `make qa-worktree` both do one). The target stops with that message otherwise.
+(`npm run build`; `npm start` and `make qa-worktree` both do one). Without one the target stops and says so.
 
 Only one checkout tests at a time. They share one `db` container and one city schema, and most specs commit rather
 than roll back, so simultaneous runs overwrite each other's rows and stack two multi-GB JVMs — which is how

@@ -33,7 +33,7 @@
 //      to something real under public/ — caught here, seconds into CI, rather than midway through a stage build. A
 //      vendored stylesheet is served from where it sits, so its url is relative to the file; one of ours is bundled
 //      by Vite from a source nothing serves, so its url is the file's root-absolute path under public/
-//      (`url("/images/icons/x.svg")`), which Vite's `base` turns into the served '/assets/' URL.
+//      (`url("/images/icons/x.svg")`), which the build turns into the served '/assets/' URL.
 //   6. No url is written '/assets/...' itself: the build adds that prefix to ours, and the vendored files never had it.
 //
 // Exits non-zero with the offending files listed, so it can gate CI.

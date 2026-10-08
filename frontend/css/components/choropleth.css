@@ -179,8 +179,7 @@
   display: none;
 }
 
-/* Mapbox's own rule has the same specificity, and this sheet can be linked before Mapbox's (or appended later by a
-   lazily loaded chunk), so the override out-ranks it rather than relying on which link comes last. */
+/* Out-ranks Mapbox's same-specificity rule, so the override holds whichever stylesheet is linked last. */
 .mapboxgl-popup .mapboxgl-popup-content {
   padding: 12px; /* Default 10px 10px 15px */
   box-shadow: 0 2px 4px 0 rgb(0 0 0 / 25%); /* Default 0 1px 2px rgb(0 0 0/10%) */

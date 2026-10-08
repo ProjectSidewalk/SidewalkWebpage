@@ -1,7 +1,6 @@
 // Builds the frontend (#4467, #5651): every file in frontend/js/pages/ is one page's entry, bundled with what it
-// imports (stylesheets included) to public/build/, where Play serves it. Vite's backend-integration setup: the pages
-// are Twirl views, so views.ViteAssets reads the manifest to emit each page's <link> tags, and there is no dev server,
-// since `vite build --watch` plus `sbt run` already serves a rebuilt page.
+// imports (stylesheets included) to public/build/, where Play serves it. The pages are Twirl views, so views.ViteAssets
+// reads the manifest for each page's <link> tags. No dev server: `vite build --watch` plus `sbt run` is enough.
 import { globSync } from 'node:fs';
 import path from 'node:path';
 import { defineConfig } from 'vite';
@@ -27,8 +26,8 @@ export default defineConfig(({ mode }) => ({
     outDir: 'public/build',
     // The output lives inside public/, so copying public/ into it would recurse.
     copyPublicDir: false,
-    // Each rebuild under the watcher would otherwise empty the directory first, and a page loaded in that gap has no
-    // manifest to render from. Stale hashed files then linger until the next production build clears them.
+    // Under the watcher, emptying the folder before each rebuild would leave a page loaded in that gap with no
+    // manifest. Old hashed files stay until the next production build.
     emptyOutDir: mode === 'production',
     // Vite writes no source map for CSS, so the watcher leaves it readable in DevTools.
     cssMinify: mode === 'production',
@@ -47,8 +46,8 @@ export default defineConfig(({ mode }) => ({
         // would also collide for admin/shell and dashboard/shell.
         entryFileNames: 'js/[name].js',
         chunkFileNames: 'js/chunks/[name]-[hash].js',
-        // Only stylesheets go to css/, where Play's cache rules (conf/application.conf) expect them; anything else a
-        // module ever imports lands beside them under assets/.
+        // Stylesheets go to css/, where application.conf's cache rules expect them; any other imported asset goes to
+        // assets/.
         assetFileNames: ({ names }) =>
           (names.some(name => name.endsWith('.css')) ? 'css' : 'assets') + '/[name]-[hash][extname]'
       }

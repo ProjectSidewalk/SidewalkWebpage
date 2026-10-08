@@ -437,8 +437,7 @@ The one asset family that doesn't go through `assets.path` is Vite's shared JS c
 page's bundle imports them by relative path, so they are served at their plain URL. Their file names carry a content
 hash, so `play.assets.cache` in `application.conf` gives that folder the same year-long `immutable` answer. The
 stylesheet a lazily loaded chunk brings in (`public/build/css/`) is fetched the same way but keeps the hourly default:
-the stage rewrites the icon URLs inside it after Vite has hashed its name, so after a deploy the same URL can carry
-new bytes.
+the stage rewrites the icon URLs inside it after Vite has hashed its name, so a deploy can change what that URL serves.
 
 **What the plain path costs.** `max-age=3600` means a browser re-asks about every asset it holds once an hour, so a
 returning visitor to Explore or Validate spends a conditional GET per icon, cursor, badge and tutorial frame — well
@@ -491,10 +490,9 @@ stays relative (the digested copy sits in the original's directory), and a query
 **A new reference needs nothing registered**: unlike
 `util.assetPath` and its `assetManifestPrefixes`, the stage resolves each `url()` against the file itself. Just name a
 file that exists. In a source stylesheet (`frontend/css/`) that is the file's root-absolute path under `public/`
-(`url("/images/icons/x.svg")`): Vite rewrites it to `/assets/…` (`renderBuiltUrl` in `vite.config.mjs`, since
-`base` alone would say `/assets/build/…`) in `public/build/css/`, which is what
-the stage then sees, so `make lint-asset-paths` (rule 6) rejects a relative path or an `/assets/` prefix there. A
-vendored stylesheet is served from where it sits, so its `url()`s stay relative.
+(`url("/images/icons/x.svg")`): Vite rewrites it to `/assets/…` (`renderBuiltUrl` in `vite.config.mjs`) in
+`public/build/css/`, which is what the stage then sees, so `make lint-asset-paths` (rule 6) rejects a relative path
+or an `/assets/` prefix there. A vendored stylesheet is served from where it sits, so its `url()`s stay relative.
 
 Two things about that stage are load-bearing:
 

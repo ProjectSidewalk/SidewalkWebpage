@@ -399,9 +399,8 @@ lint-locales:
 	@docker exec $(web-container) bash -lc "cd $(container-dir) && node tools/lint/check-locale-parity.mjs"
 	@echo "Finished locale checks";
 
-# Layout of frontend/css/ (#5030, #5651): a page's stylesheet is imported only by its page's entry, page class prefixes
-# stay in the page's own files, and every view asks for its entry's styles. Pure node, run in the web container so node
-# is present. Also a blocking CI step.
+# The frontend/css/ layout rules (tools/lint/check-css-layout.mjs). Pure node, run in the web container so node is
+# present. Also a blocking CI step.
 lint-css-layout:
 	@echo "Checking CSS layout...";
 	@docker exec $(web-container) bash -lc "cd $(container-dir) && node tools/lint/check-css-layout.mjs"

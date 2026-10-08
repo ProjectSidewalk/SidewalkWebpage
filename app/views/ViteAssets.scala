@@ -13,11 +13,10 @@ import play.api.libs.json.{JsObject, Json}
 import play.twirl.api.Html
 
 /**
- * The Play half of Vite's backend integration (#5651): the stylesheet tags a page needs, from the build's manifest.
+ * The stylesheet tags a page needs, read from the build's manifest (Vite's backend integration, #5651).
  *
- * Vite writes stylesheets split by chunk, so a component shared by several pages is one file they all load, and which
- * files an entry needs is only known after the build. The JS side needs no manifest: an entry is built to
- * `build/js/<name>.js` and imports its chunks itself.
+ * Vite splits stylesheets by chunk, so which files a page needs is only known after the build. JS needs no manifest:
+ * an entry is built to `build/js/<name>.js` and imports its own chunks.
  */
 object ViteAssets {
 
@@ -32,9 +31,8 @@ object ViteAssets {
   /**
    * The parsed manifest, with each entry's answer kept once computed.
    *
-   * A stylesheet that several chunks import but no JS does is one Vite folds into each importer's list, after that
-   * chunk's own sheet. A chunk's own sheet is therefore the one no other chunk lists, and the shared ones must go
-   * before it for the page's rules to win.
+   * Vite lists a stylesheet that several chunks import under each of them, after that chunk's own sheet. So a sheet
+   * listed by more than one chunk is a shared one, and goes before the chunk's own so the page's rules win.
    */
   private[views] class Manifest(chunks: Map[String, Chunk]) {
     private val shared: Set[String] =
@@ -67,10 +65,10 @@ object ViteAssets {
   /**
    * @param entry         The page's entry name: its path under `frontend/js/pages/` without the `.js` (`about`,
    *                      `admin/shell`).
-   * @param alreadyLinked Entries whose tags the enclosing layout emitted (`admin/shell` inside the admin layout), so
-   *                      a sheet both need is not linked a second time, after the page's own.
-   * @return A `<link rel="stylesheet">` per stylesheet the entry still needs, in load order: the chunks it imports
-   *         before its own, and within a chunk the sheets shared with other chunks before the chunk's own.
+   * @param alreadyLinked Entries the enclosing layout already emitted tags for (`admin/shell` inside the admin layout),
+   *                      so a sheet both need is linked once.
+   * @return A `<link rel="stylesheet">` per stylesheet the entry still needs, in load order: imported chunks' sheets
+   *         first, and shared sheets before a chunk's own.
    */
   def stylesheets(entry: String, alreadyLinked: String*)(using assets: AssetsFinder): Html =
     Html(

@@ -1,6 +1,5 @@
-/* The containers and legend a page renders around a map, imported by the page's entry so they are sized before the
-   map code arrives: the landing page loads that code lazily, so these rules cannot ride with it (#5651).
-   choropleth.css holds what the map code itself draws. */
+/* The containers and legend a page draws around a map. The page's entry imports this so they are sized before the
+   map code arrives, which the landing page loads lazily. choropleth.css holds what the map code itself draws. */
 .choropleth-container {
   position: relative;
   background-color: var(--color-neutral-white);

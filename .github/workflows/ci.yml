@@ -117,9 +117,7 @@ jobs:
         if: always()
         run: node tools/lint/check-locale-parity.mjs
 
-      # The frontend/css/ layout (#5030, #5651): a page's stylesheet is imported only by its page's entry, page class
-      # prefixes stay in the page's own files, every stylesheet is imported by something, and every view that loads an
-      # entry's JS asks for its styles.
+      # The frontend/css/ layout rules (tools/lint/check-css-layout.mjs).
       - name: CSS layout (blocking)
         if: always()
         run: node tools/lint/check-css-layout.mjs
@@ -254,7 +252,7 @@ jobs:
       - name: Install npm dependencies
         run: npm ci
 
-      # The specs render real views, and a view's stylesheet tags come from the manifest the build writes (#5651).
+      # The specs render views, whose stylesheet tags come from the build's manifest.
       - name: Build frontend assets
         run: npm run build
 

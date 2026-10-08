@@ -15,11 +15,11 @@
 //      `<link>` to a stylesheet by path is caught here too. A page inside a shell layout (one that links an entry of
 //      its own around the page) names that entry as `alreadyLinked`, so a sheet both need isn't linked a second
 //      time, after the page's own.
-//   6. With a build present, no sheet a page links (its own, or its shell's) is also brought in by a chunk the page
-//      loads lazily: the chunk links its sheets at Vite's plain URL, which the fingerprinted <link> of a staged build
-//      doesn't match, so the browser would load the sheet again, after the page's own.
+//   6. With a build present, no sheet a page (or its shell) links also comes with a chunk the page loads lazily: the
+//      chunk links it by its plain URL, which a staged build's fingerprinted <link> doesn't match, so the browser
+//      loads it twice, the second time after the page's own.
 //   7. With a build present, no page entry shares a sheet with main.js, which every page links first: the page's
-//      copy would land after main.css on that page alone, so the two would cascade differently from page to page.
+//      copy would come after main.css on that page alone.
 //
 // Exits non-zero with the offending files listed, so it can gate CI.
 
@@ -36,9 +36,9 @@ const MANIFEST = join(ROOT, 'public', 'build', 'manifest.json');
 const ROOT_ENTRIES = new Set(['main.css', 'fonts.css', 'components', 'pages']);
 
 // Every entry under pages/ (a file, or a subdir for a page family): which modules may import it (a directory prefix
-// or a single file) and which class prefixes are its own. homepage.css and auth.css are registered to the shell entry,
-// which main.scala.html loads on every page. `api-` is deliberately not a prefix: the API docs' own classes carry it,
-// but so does the admin dashboard's API-analytics page.
+// or a single file) and which class prefixes are its own. homepage.css and auth.css are registered to main.js, which
+// every page loads. `api-` is deliberately not a prefix: the API docs' own classes carry it, but so does the admin
+// dashboard's API-analytics page.
 const PAGES = {
   'pages/about.css': { importers: ['frontend/js/pages/about.js'] },
   'pages/access-score.css': {

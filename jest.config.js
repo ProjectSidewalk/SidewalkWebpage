@@ -28,8 +28,8 @@ module.exports = {
     '/frontend/js/.+\\.js$': '<rootDir>/test/js/moduleTransform.js'
   },
 
-  // A module's `import './x.css'` only tells Vite which styles it needs (#5651); under jsdom it resolves to an empty
-  // module instead of a file Jest would try to parse as JS.
+  // A stylesheet import only tells Vite which styles a module needs; here it resolves to an empty module instead of
+  // a file Jest would try to parse as JS.
   moduleNameMapper: {
     '\\.css$': '<rootDir>/test/js/cssStub.js'
   },
