@@ -1,11 +1,8 @@
--- WRITES (DDL). Run by hand in psql as a superuser, one database at a time: \i 3955-drop-raster-leftovers.sql
--- It leaves the transaction OPEN. Check the PostGIS_Full_Version() output at the end, then type COMMIT (or ROLLBACK).
+-- WRITES. Run by hand in psql as a superuser, once per database: \i 3955-drop-raster-leftovers.sql
+-- Leaves the transaction open: COMMIT if PostGIS_Full_Version() at the end drops "need upgrade", else ROLLBACK.
 --
--- Drops the loose PostGIS 2.5 raster objects that no extension owns (listed from sidewalk_test on 2026-10-07). We never
--- used PostGIS rasters. No CASCADE anywhere: if anything still depends on one of these, the DROP fails and nothing
--- is changed. IF EXISTS so the same script works on a database that is missing some of them.
--- Leaves public.play_evolutions and public.mission_progress_cvgroundtruth alone; those are ours, not PostGIS's.
--- Written against PostGIS 3.6.4 / Postgres 18.6; no evolution dependency. A no-op on dev, which has none of these.
+-- Drops the PostGIS 2.5 raster leftovers no extension owns; we never used rasters. No CASCADE, so anything still using
+-- one makes its DROP fail instead of going with it. Written against PostGIS 3.6.4 / Postgres 18.6; a no-op on dev.
 
 \set ON_ERROR_STOP on
 BEGIN;
@@ -157,5 +154,4 @@ DROP TYPE IF EXISTS public.reclassarg;
 DROP TYPE IF EXISTS public.summarystats;
 DROP TYPE IF EXISTS public.unionarg;
 
--- The "raster procs ... need upgrade" note at the end should be gone.
 SELECT PostGIS_Full_Version();

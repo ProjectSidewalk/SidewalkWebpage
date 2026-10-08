@@ -246,9 +246,8 @@ jobs:
         uses: sbt/setup-sbt@v1
 
       # Bring up Postgres+PostGIS exactly as dev does (db/Dockerfile + init.sh, which restores the shared
-      # sidewalk_login schema and the sidewalk_init template). A runner starts with the `pgdata18` volume empty, which
-      # is what makes the entrypoint run init.sh — locally, an existing volume makes it skip, and you get your own dev
-      # DB.
+      # sidewalk_login schema and the sidewalk_init template). A runner's `pgdata18` volume starts empty, so init.sh
+      # runs; locally, an existing volume skips it and you get your own dev DB.
       - name: Start database
         run: docker compose up -d --build db
 

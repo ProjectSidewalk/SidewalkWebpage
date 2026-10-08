@@ -179,8 +179,7 @@ docker-up:
 docker-up-db:
 	@docker compose up -d db
 
-# Copies a Postgres 16 dev database (the old `pgdata` volume) into the Postgres 18 one (#3955). Host-side, since it
-# starts a throwaway Postgres 16 container. See docs/dev-environment.md.
+# Copies a Postgres 16 dev database into the Postgres 18 one, from the host. See docs/dev-environment.md.
 upgrade-dev-db:
 	@bash tools/dev/upgrade-dev-db.sh --container $(db-container) $(upgrade-dev-db-all-flag)
 

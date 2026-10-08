@@ -509,26 +509,19 @@ Two more things to know before drawing conclusions from a query:
 
 ### Moving your database to Postgres 18
 
-Dev moved from Postgres 16 to 18 in #3955, on a new data volume (`<project>_pgdata18`; your checkout directory,
-lowercased, is `<project>`). The first `make dev` after pulling it builds the new image and starts an **empty**
-database from the template dumps. Your cities are still in the old `<project>_pgdata` volume, untouched. To copy them
-over, stop `npm start` and run:
+Dev runs Postgres 18 (#3955) on a new data volume, `<project>_pgdata18` (`<project>` is your checkout folder,
+lowercased). The first `make dev` after this change starts an **empty** database; your cities are still in the old
+`<project>_pgdata` volume. To copy them over, stop `npm start` and run:
 
 ```bash
-make upgrade-dev-db
+make upgrade-dev-db   # all=1 copies every database, not just sidewalk
 ```
 
-It opens the old volume in a throwaway Postgres 16 container, copies the roles and the `sidewalk` database into the
-new one (`all=1` copies every database, such as a DC migration copy), rebuilds the planner statistics, and compares
-each city's label count between the two. It takes a few minutes per large city. A rerun replaces whatever is in the
-new database, so it asks first once that holds cities. If you'd rather start over instead, skip it and
+It compares each city's label count when it's done, and takes a few minutes per large city. Or skip it and
 `make import-dump` the cities you need.
 
-Keep the old volume while you still check out branches from before this change: their `docker-compose.yml` starts the
-Postgres 16 image on it. After that, delete it with the `docker volume rm` line the script prints.
-
-A dump taken from a Postgres 18 server (test, and prod after its upgrade) can't be loaded into a Postgres 16
-database, so this is also what makes fresh dumps loadable again.
+Keep the old volume while you still use branches from before this change, since they start Postgres 16 on it. Then
+delete it with the `docker volume rm` line the script prints.
 
 ---
 
@@ -544,7 +537,7 @@ Roughly ordered by when you'd hit them during setup.
 | `pg_restore: ... schema "public" already exists` | Safe to ignore — no effect. |
 | `import-dump` otherwise errors | Don't skip ahead. Re-check the dump filename and `db=` value, then see the [Troubleshooting wiki](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Troubleshooting-Dev-Environment) and ask. |
 | `Execution exception [NoSuchElementException: None.get]` at runtime | The data wasn't imported — run `make import-dump` (the init only creates the schema, not the data). |
-| Database suddenly looks empty (`role "sidewalk_<city>" does not exist`, no city schemas) | Your data is most likely parked on an orphaned Docker volume, not gone — `docker volume ls -qf dangling=true` lists the candidates, and you can copy one back onto this project's data volume (`<project>_pgdata18`, where `<project>` is your checkout directory lowercased). The Postgres 16 `<project>_pgdata` volume is expected to be dangling: see [Moving your database to Postgres 18](#moving-your-database-to-postgres-18). Don't run `docker volume prune` while you're looking; that is what actually destroys them. |
+| Database suddenly looks empty (`role "sidewalk_<city>" does not exist`, no city schemas) | Your data is most likely parked on an orphaned Docker volume, not gone — `docker volume ls -qf dangling=true` lists the candidates, and you can copy one back onto this project's data volume (`<project>_pgdata18`, where `<project>` is your checkout directory lowercased). (The old Postgres 16 `<project>_pgdata` volume is meant to be dangling.) Don't run `docker volume prune` while you're looking; that is what actually destroys them. |
 | `Cannot create container for service web: Conflict ... name "/projectsidewalk-web" already in use` | A prior `web` container wasn't shut down cleanly: `docker container rm /projectsidewalk-web`. |
 | Errors after the computer was shut off mid-run (WSL) | Run `wsl --shutdown`; when Docker offers to restart WSL, accept. Otherwise restart Docker manually. |
 | Can't connect to the database | The db container may not be listening on all addresses. `make ssh target=db`, edit `/var/lib/postgresql/18/docker/postgresql.conf`, set `listen_addresses = '*'`. |

@@ -38,17 +38,16 @@ listed separately and are *expected* to differ; the goal is skew that's written 
   2.32 and 2.34 that sbt's `sbtn` needs, so `sbt --client` can't run in the container at all and everything uses
   `sbt --jvm-client` instead (#5268). Jammy (glibc 2.35, `python3` 3.10) or noble (2.39, 3.12) fixes both, but a
   move has to say what happens to 3.8 first.
-- **The db image gets updates by rebuilding.** `18-3.6` is Debian 13 (trixie) with Postgres, PostGIS, GEOS and PROJ
-  from Postgres's own package server, the same source prod's packages come from. It replaced `16-3.5`, whose Debian
-  version (bullseye) stopped getting Postgres releases (#5626, #3955).
+- **The db image updates by rebuilding.** It's Debian 13 with Postgres, PostGIS, GEOS and PROJ from Postgres's own
+  package server, the same source as prod's.
 - **Java 17** in dev and CI, **21** on prod; moving dev to 21 is
   [#4396](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4396). Dependabot deliberately ignores major
   `eclipse-temurin` bumps. **Node 24** is LTS until Apr 2028, with 26 taking over as LTS in Oct 2026.
 
 ### Database server
 
-Prod is the target dev tracks. Test (makelab1, port 6432) moved to Postgres 18 on 2026-10-07, ahead of prod (#3955).
-Prod's column was read off makelab1 on 2026-07-01 (#4398), test's on 2026-10-07; re-check any of them with
+Prod is the target dev tracks. Test moved to Postgres 18 on 2026-10-07, ahead of prod (#3955). Prod's column was
+read on 2026-07-01 (#4398), test's on 2026-10-07; re-check any of them with
 `SELECT version();` and `SELECT PostGIS_Full_Version();` (in dev, `docker exec projectsidewalk-db psql -U
 readonly_user -d sidewalk`).
 
@@ -61,29 +60,22 @@ readonly_user -d sidewalk`).
 | PROJ | **9.8.1** | **9.8.1** | **9.8.1** | 9.8.1 |
 | GDAL | **3.10.3** (`libgdal36`) | not collected | not collected | 3.13.3 |
 
-- **Dev matches test exactly, and prod in everything but the Postgres and PostGIS versions.** Until prod moves to
-  18, code has to run on Postgres 16 too, so don't use SQL that's new in 17 or 18 (`RETURNING OLD/NEW`, `uuidv7()`,
-  `JSON_TABLE`, virtual generated columns). `docker-compose.yml` starts the db with `jit=off`, matching prod
-  ([#4376](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4376)).
-- **Name time zones as Area/City** (`America/Los_Angeles`, not `US/Pacific`). Dev's Debian 13 ships without the old
-  alias names, so Postgres there rejects them even though Rocky's Postgres accepts them.
+- **Dev matches test, and prod except for the Postgres and PostGIS versions.** Until prod is on 18, don't use SQL
+  that's new in 17 or 18 (`RETURNING OLD/NEW`, `uuidv7()`, `JSON_TABLE`, virtual generated columns). JIT is off in
+  `docker-compose.yml`, matching prod ([#4376](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4376)).
+- **Name time zones as Area/City** (`America/Los_Angeles`, not `US/Pacific`). Debian 13 dropped the old names, so
+  dev's Postgres rejects them; Rocky's still accepts them.
 - **Prod server settings dev lacks** (set by CSE IT in its `postgresql.conf` after
   [#4545](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4545)):
   `idle_in_transaction_session_timeout = 2min` and `log_lock_waits = on`.
-- **Dumps only load into the same or a newer Postgres.** An older `pg_restore` can't read a dump made by a newer
-  `pg_dump` (`unsupported version (1.16) in file header`), and an older `pg_dump` refuses a newer server. So a dev
-  database has to be at least as new as the server its dumps come from. `make upgrade-dev-db` moves a Postgres 16 dev
-  database to 18 ([dev-environment.md](dev-environment.md#moving-your-database-to-postgres-18)).
-- **makelab1's `psql` on the PATH is 13.23**, older than both servers. It can still query them, but its `pg_dump`
-  refuses both, so dump with the matching `/usr/pgsql-<version>/bin/pg_dump` (the `sidewalk-server-tools` scripts
-  pick it themselves once [sidewalk-server-tools#8](https://github.com/ProjectSidewalk/sidewalk-server-tools/pull/8)
-  merges).
-- **When CSE IT updates a server's PostGIS library**, the SQL functions stay behind until someone updates them
-  (`PostGIS_Full_Version()` ends in `need upgrade`). In each database, run `ALTER EXTENSION postgis UPDATE`. Use that
-  and not `postgis_extensions_upgrade()`, which trips on leftover PostGIS 2.5 raster functions until
-  `tools/one-off/3955-drop-raster-leftovers.sql` has removed them from that database. Then hand any functions the
-  update created back to `sidewalk`. **GDAL** isn't reported by that function anywhere (no raster support), so dev's
-  comes from the installed package.
+- **Dumps only load into the same or a newer Postgres** (otherwise: `unsupported version (1.16) in file header`), and
+  an older `pg_dump` refuses a newer server. So dev must be at least as new as the server its dumps come from.
+- **makelab1's `psql` on the PATH is 13.23.** It can query both servers, but its `pg_dump` refuses them: use
+  `/usr/pgsql-<version>/bin/pg_dump` (sidewalk-server-tools#8 makes the scripts do this).
+- **When CSE IT updates a server's PostGIS library**, its SQL functions lag behind (`PostGIS_Full_Version()` ends in
+  `need upgrade`). Run `ALTER EXTENSION postgis UPDATE` in each database, then hand any new functions to `sidewalk`.
+  Avoid `postgis_extensions_upgrade()` until `tools/one-off/3955-drop-raster-leftovers.sql` has cleared that
+  database's old raster functions. **GDAL** isn't reported there (no raster support); dev's comes from its package.
 
 ## Scala / sbt / Play
 

@@ -42,7 +42,7 @@ services:
       - SIDEWALK_IMAGES_DIR=.crops
 
   db:
-    # Tagged by Postgres version, so a checkout that still has the 16 image builds this one instead of reusing it.
+    # Tagged by Postgres version, so a checkout with the old 16 image builds this one instead of reusing it.
     image: projectsidewalk/db:18
     container_name: projectsidewalk-db
     build:
