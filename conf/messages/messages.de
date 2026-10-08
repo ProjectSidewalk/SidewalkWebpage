@@ -496,6 +496,7 @@ reset.pw.email.hello = Hallo {0},
 reset.pw.email.reset.title = Passwort für den Project Sidewalk-Account zurücksetzen.
 reset.pw.email.send.link = E-Mail senden
 reset.pw.email.reset.pw.sent = Eine E-Mail zum Zurücksetzen Ihres Passwortes wurde versendet.
+reset.pw.email.send.failed = Die E-Mail konnte gerade nicht gesendet werden. Bitte versuchen Sie es später erneut.
 reset.pw.email.reset.request.message = Sie haben kürzlich darum gebeten, das Passwort für Ihren Project Sidewalk-Account zurückzusetzen. Klicken Sie auf den Link, um Ihr Passwort zurückzusetzen:
 reset.pw.email.reset.not.requested = Wenn Sie kein Link für das Zurücksetzen Ihres Passwortes angefordert haben, ignorieren Sie bitte diese Nachricht oder senden Sie uns eine E-Mail, um uns darüber zu informieren.
 reset.pw.email.reset.valid.duration = Dieser Link für das Zurücksetzen des Passworts ist für die nächsten 60 Minuten gültig.

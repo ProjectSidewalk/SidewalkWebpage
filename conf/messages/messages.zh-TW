@@ -570,6 +570,7 @@ reset.pw.email.hello = {0}您好,
 reset.pw.email.reset.title = 請重設您的Project Sidewalk密碼
 reset.pw.email.send.link = 傳送電子郵件
 reset.pw.email.reset.pw.sent = 重設密碼的電子郵件已寄出。
+reset.pw.email.send.failed = 目前無法寄送電子郵件，請稍後再試。
 reset.pw.email.reset.request.message = 您最近要求重設Project Sidewalk密碼，點擊以下連結以重設密碼：
 reset.pw.email.reset.not.requested = 如果您沒有要求重設密碼，請忽略此訊息，或發送電子郵件通知我們。
 reset.pw.email.reset.valid.duration = 此密碼重設將在下60分鐘內有效

@@ -506,6 +506,7 @@ reset.pw.email.hello = Hola {0},
 reset.pw.email.reset.title = Restablecer la contraseña de tu cuenta de Project Sidewalk
 reset.pw.email.send.link = Enviar correo electrónico
 reset.pw.email.reset.pw.sent = Se ha enviado un correo electrónico para restablecer tu contraseña.
+reset.pw.email.send.failed = No pudimos enviar el correo electrónico en este momento. Por favor, inténtalo de nuevo más tarde.
 reset.pw.email.reset.request.message = Recientemente solicitaste que se restablezca la contraseña de tu cuenta de Project Sidewalk. Haz clic en el siguiente enlace para restablecer tu contraseña:
 reset.pw.email.reset.not.requested = Si no has solicitado el restablecimiento de la contraseña, por favor, ignora este mensaje o envíanos un correo electrónico para informarnos.
 reset.pw.email.reset.valid.duration = Este restablecimiento de contraseña será válido durante los próximos 60 minutos

@@ -501,6 +501,7 @@ reset.pw.email.hello = Olá {0},
 reset.pw.email.reset.title = Redefinir a senha da sua conta Project Sidewalk
 reset.pw.email.send.link = Enviar e-mail
 reset.pw.email.reset.pw.sent = Um e-mail para redefinir sua senha foi enviado.
+reset.pw.email.send.failed = Não foi possível enviar o e-mail agora. Por favor, tente novamente mais tarde.
 reset.pw.email.reset.request.message = Você solicitou recentemente a redefinição da senha da sua conta Project Sidewalk. Clique no link abaixo para redefinir sua senha:
 reset.pw.email.reset.not.requested = Se você não solicitou a redefinição da senha, por favor ignore esta mensagem ou nos envie um e-mail para nos informar.
 reset.pw.email.reset.valid.duration = Esta redefinição de senha será válida pelos próximos 60 minutos

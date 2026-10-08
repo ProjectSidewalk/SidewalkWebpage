@@ -493,6 +493,7 @@ reset.pw.email.hello = Hi {0},
 reset.pw.email.reset.title = Reset het wachtwoord van je Project Sidewalk-account
 reset.pw.email.send.link = E-mail verzenden
 reset.pw.email.reset.pw.sent = Er is een e-mail verzonden om je wachtwoord opnieuw in te stellen.
+reset.pw.email.send.failed = We konden de e-mail nu niet verzenden. Probeer het later opnieuw.
 reset.pw.email.reset.request.message = Je hebt onlangs gevraagd om je wachtwoord voor je Project Sidewalk-account opnieuw in te stellen. Klik op de onderstaande link om je wachtwoord opnieuw in te stellen:
 reset.pw.email.reset.not.requested = Als je geen wachtwoordreset hebt aangevraagd, negeer dan dit bericht of stuur ons een e-mail om het ons te laten weten.
 reset.pw.email.reset.valid.duration = Deze wachtwoordreset is de komende 60 minuten geldig

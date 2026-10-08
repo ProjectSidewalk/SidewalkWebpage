@@ -510,6 +510,7 @@ reset.pw.email.hello = Bonjour {0},
 reset.pw.email.reset.title = Réinitialisez le mot de passe de votre compte Project Sidewalk
 reset.pw.email.send.link = Envoyer l''e-mail
 reset.pw.email.reset.pw.sent = Un e-mail de réinitialisation de votre mot de passe a été envoyé.
+reset.pw.email.send.failed = Nous n''avons pas pu envoyer l''e-mail pour le moment. Veuillez réessayer plus tard.
 reset.pw.email.reset.request.message = Vous avez récemment demandé à réinitialiser le mot de passe de votre compte Project Sidewalk. Cliquez sur le lien ci-dessous pour le réinitialiser :
 reset.pw.email.reset.not.requested = Si vous n''avez pas demandé de réinitialisation, ignorez ce message ou écrivez-nous pour nous en informer.
 reset.pw.email.reset.valid.duration = Cette réinitialisation est valable pendant les 60 prochaines minutes
