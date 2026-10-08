@@ -1,26 +1,26 @@
 package controllers.api
 
 import models.api.ApiError
+import models.utils.IpAddress
 import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.stream.Materializer
 import org.scalatest.Assertion
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.cache.AsyncCacheApi
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import service.{LoggingService, SwrCache}
+import util.SidewalkSpec
 
 import java.time.OffsetDateTime
 import java.util.concurrent.ConcurrentLinkedQueue
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
-import scala.jdk.CollectionConverters._
-import scala.reflect.ClassTag
+import scala.jdk.CollectionConverters.*
 
 /**
  * A [[SwrCache]] whose cold path never resolves in time, so every full-city AccessScore read is a miss the compute
@@ -28,10 +28,10 @@ import scala.reflect.ClassTag
  * behave normally.
  */
 @Singleton
-class ColdSwrCache @Inject() (cacheApi: AsyncCacheApi, actorSystem: ActorSystem)(implicit ec: ExecutionContext)
+class ColdSwrCache @Inject() (cacheApi: AsyncCacheApi, actorSystem: ActorSystem)(using context: ExecutionContext)
     extends SwrCache(cacheApi, actorSystem) {
 
-  override def staleWhileRevalidateWithin[T: ClassTag](
+  override def staleWhileRevalidateWithin[T](
       key: String,
       freshFor: FiniteDuration,
       maxAge: FiniteDuration,
@@ -49,29 +49,29 @@ class ColdSwrCache @Inject() (cacheApi: AsyncCacheApi, actorSystem: ActorSystem)
  * hold regardless of how fast the connected database is. The activity log is captured in memory rather than read
  * back from the table, since the routes are `UserAwareAction` and an anonymous request has no user row to key on.
  */
-class AccessScoreColdCacheApiSpec extends PlaySpec with GuiceOneAppPerSuite {
+class AccessScoreColdCacheApiSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   /** Every activity string the app tried to log, in order. */
-  private val logged = new ConcurrentLinkedQueue[String]()
+  private val logged = ConcurrentLinkedQueue[String]()
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule]
       .overrides(
         bind[SwrCache].to[ColdSwrCache],
         bind[LoggingService].toInstance(new LoggingService {
           private def record(activity: String): Future[Int] = { logged.add(activity); Future.successful(1) }
-          def insert(userId: String, ipAddress: String, activity: String, timestamp: OffsetDateTime): Future[Int] =
+          def insert(userId: String, ipAddress: IpAddress, activity: String, timestamp: OffsetDateTime): Future[Int] =
             record(activity)
-          def insert(userId: String, ipAddress: String, activity: String): Future[Int]         = record(activity)
-          def insert(userId: Option[String], ipAddress: String, activity: String): Future[Int] = record(activity)
-          def insert(userId: Option[String], ipAddress: String, activity: String, timestamp: OffsetDateTime)
+          def insert(userId: String, ipAddress: IpAddress, activity: String): Future[Int]         = record(activity)
+          def insert(userId: Option[String], ipAddress: IpAddress, activity: String): Future[Int] = record(activity)
+          def insert(userId: Option[String], ipAddress: IpAddress, activity: String, timestamp: OffsetDateTime)
               : Future[Int] = record(activity)
         })
       )
       .build()
 
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   private val fullCityPaths = Seq(
     "/v3/api/accessScoreStreets",

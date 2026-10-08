@@ -3,7 +3,7 @@ package service
 import com.google.inject.ImplementedBy
 import models.intersection.{IntersectionRebuildCounts, IntersectionTable}
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.{JsObject, Json}
 
@@ -60,7 +60,7 @@ trait IntersectionService {
 class IntersectionServiceImpl @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
     intersectionTable: IntersectionTable
-)(implicit ec: ExecutionContext)
+)(using ec: ExecutionContext)
     extends IntersectionService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 

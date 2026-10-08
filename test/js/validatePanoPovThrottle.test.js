@@ -1,6 +1,6 @@
 /**
  * Integration test for the POV_Changed logging throttle wired up in
- * public/js/validate/src/panorama/PanoManager.js `#init` (issue #2745).
+ * frontend/js/validate/panorama/PanoManager.js, which subscribes the primary viewer on its first load (issue #2745).
  *
  * Dragging the pano fires `pov_changed` on every frame; before #2745 each one was logged, flooding the Tracker's
  * interaction buffer and forcing its 200-action mid-mission flush every few validations. This test drives the REAL
@@ -11,11 +11,11 @@
  * Runs under jsdom (jest.config.js) with fake timers (which also mock Date.now for the throttle's elapsed-time math).
  */
 
-const fs = require('fs');
 const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const PANO_MANAGER_PATH = path.resolve(__dirname, '..', '..', 'public/js/validate/src/panorama/PanoManager.js');
-const THROTTLE_PATH = path.resolve(__dirname, '..', '..', 'public/js/validate/src/util/throttle.js');
+const PANO_MANAGER_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/panorama/PanoManager.js');
+const THROTTLE_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/util/throttle.js');
 
 /**
  * Load the `PanoManager` class out of the production file. Like Form.js, it is a bare `class` declaration that the
@@ -23,8 +23,7 @@ const THROTTLE_PATH = path.resolve(__dirname, '..', '..', 'public/js/validate/sr
  * @returns {Function} The PanoManager class.
  */
 function loadPanoManagerClass() {
-    const src = fs.readFileSync(PANO_MANAGER_PATH, 'utf8');
-    return (0, eval)('(() => {\n' + src + '\nreturn PanoManager;\n})()');
+    return loadModules(PANO_MANAGER_PATH).PanoManager;
 }
 
 describe('PanoManager POV_Changed throttling (issue #2745)', () => {
@@ -42,7 +41,8 @@ describe('PanoManager POV_Changed throttling (issue #2745)', () => {
 
         // Real throttle implementation — the unit under integration here.
         global.util = {};
-        (0, eval)(fs.readFileSync(THROTTLE_PATH, 'utf8'));
+        global.i18next = { language: 'en' };
+        Object.assign(window, loadModules(THROTTLE_PATH));
 
         // Globals PanoManager's init path reads.
         util.isMobile = () => false;
@@ -58,7 +58,7 @@ describe('PanoManager POV_Changed throttling (issue #2745)', () => {
 
         const panoData = {
             getPanoId: () => 'pano1',
-            getProperty: () => ({ format: () => 'Jun 2026' })
+            getProperty: () => new Date(2026, 5)
         };
         listeners = {};
         const fakeViewer = {
@@ -77,6 +77,7 @@ describe('PanoManager POV_Changed throttling (issue #2745)', () => {
         jest.useRealTimers();
         document.body.innerHTML = '';
         delete global.util;
+        delete global.i18next;
         delete global.createPanoViewerLogo;
         delete global.createPanoAttribution;
         delete global.GsvViewer;
@@ -84,13 +85,22 @@ describe('PanoManager POV_Changed throttling (issue #2745)', () => {
         delete global.svv;
     });
 
+    /**
+     * Create the manager and load the first label's pano, the way Validate's first render does.
+     * @returns {Promise<void>}
+     */
+    async function loadFirstPano() {
+        const panoManager = await PanoManager.create(FakeViewerType, 'token');
+        await panoManager.setPanorama('pano1', null);
+    }
+
     /** Count how many times the tracker logged a POV_Changed action. */
     function povChangedLogCount() {
         return svv.tracker.push.mock.calls.filter(call => call[0] === 'POV_Changed').length;
     }
 
     test('a pov_changed firehose is coalesced into one leading + one trailing log per window', async () => {
-        await PanoManager.create(FakeViewerType, 'token', 'pano1');
+        await loadFirstPano();
         expect(listeners.pov_changed).toBeDefined();
 
         // Simulate one continuous drag: dozens of pov_changed events within a single 500ms window.
@@ -104,7 +114,7 @@ describe('PanoManager POV_Changed throttling (issue #2745)', () => {
     });
 
     test('panning again after a quiet period logs again (the listener stays wired)', async () => {
-        await PanoManager.create(FakeViewerType, 'token', 'pano1');
+        await loadFirstPano();
 
         listeners.pov_changed();
         expect(povChangedLogCount()).toBe(1);
@@ -117,7 +127,7 @@ describe('PanoManager POV_Changed throttling (issue #2745)', () => {
     });
 
     test('sustained panning logs at most ~one POV_Changed per window, not one per frame', async () => {
-        await PanoManager.create(FakeViewerType, 'token', 'pano1');
+        await loadFirstPano();
 
         // 100 frames of dragging, 50ms apart (~5s of continuous panning).
         for (let i = 0; i < 100; i++) {

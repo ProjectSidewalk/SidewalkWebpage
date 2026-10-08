@@ -39,14 +39,15 @@ through its own frame, viewport-independent (below).
 
 | path | code | when | stamps |
 |---|---|---|---|
-| Client | `Label#toLatLng` (`public/js/explore/src/label/Label.js`), destination via the vendored turf | every crowd label, at placement, before submit | `approximation3` |
+| Client | `Label#toLatLng` (`frontend/js/explore/label/Label.js`), destination via the vendored turf | every crowd label, at placement, before submit | `approximation3` |
 | Server | `PanoDataService.toLatLng` (`app/service/PanoDataService.scala`) | AI label submissions (`ExploreService`) | `approximation3` |
 | SQL | evolution 352 (a statement-for-statement port), 366 for the rows 179 had skipped | one-off backfills of stored rows | `approximation3` |
 
 Every stored label position is on this estimator except `computation_method = 'depth'` rows, whose positions were
 measured from GSV depth data at label time (2017–2020) and are better than any estimate, and a small, city-dependent
-number of `approximation2` rows (Teaneck 2, Seattle 499) whose panorama has no usable metadata. There is no "frozen
-regression" path for historical labels: evolution 352 recomputed them.
+number of `approximation2` rows (Teaneck 2, Seattle 499) whose panorama has no usable metadata. DC was that case for
+its whole corpus until `tools/one-off/5667-dc-label-positions.sql` ran (#5667). There is no "frozen regression" path
+for historical labels: evolution 352 recomputed them.
 
 The enum's values, in order of appearance, so the vocabulary in the research reports and the database line up:
 
@@ -132,7 +133,7 @@ geometric side is right 93–96% where the two methods disagree, the heading met
 the audited street (18.5% accurate beyond 15 m, and one label in five is shot from more than 5 m off), and no hybrid
 beats it. The offset is stored rather than just the enum because accuracy is a monotone function of it alone
 (63–70% under 0.5 m, 97–98% at 1.5–2 m, 99%+ from 3 m, the same for every label type), so a consumer can pick its own
-floor. Full report: [`experiments/2026-09-03-street-side-assignment.md`](experiments/2026-09-03-street-side-assignment.md).
+floor. Full report: [`tools/experiments/2886-street-side/`](../tools/experiments/2886-street-side/README.md).
 
 **Recompute contract.** Anything that moves `label_point.geom`, changes `label.street_edge_id`, or edits
 `street_edge.geom` (a 352/366-style backfill, an estimator refit, an AI reattach, a street re-import) recomputes
@@ -148,12 +149,18 @@ labeling canvas into the POV that centers it, and `util.pano.povToPanoCoord` tur
 The projection models the viewport as a rectilinear camera with focal length `(canvasWidth / 2) / tan(hFov / 2)`,
 where the horizontal field of view is a function of zoom alone (#5083).
 
-**The invariant: a click must be projected through the frame it was made in.** Today every caller passes the
-720×480 constants (`util.EXPLORE_CANVAS_WIDTH/HEIGHT` in JS, `LabelPointTable.canvasWidth/Height` in Scala's
-`calculatePovIfCentered`), and every stored label was in fact placed on a 720×480 frame, so the constant is correct
-for the corpus. The moment the labeling viewport can be another size, the frame has to travel with the label
-(`label_point.canvas_width/canvas_height`, the #5085 plan) and every consumer of `canvas_x/canvas_y` has to read it.
-Measured over 387 label directions on frames from 4:3 to 21:9:
+**The invariant: a click must be projected through the frame it was made in.** Since evolution 403 (#5085) the frame
+travels with the label as `label_point.canvas_width/canvas_height`, and every consumer of `canvas_x/canvas_y` reads
+it: the Scala tripwire (`calculatePovIfCentered` takes the frame), Validate's marker decode, the label-detail popup,
+resumed missions, the share image, and the card surfaces (whose crops are cover-fitted into a 3:2 box, so their
+markers go through `util.misc.labelMarkerFraction` with the box's aspect). Explore's frame is *logical*: always 720 px wide
+(`util.exploreCanvasFrame`), with a height of 720 divided by the displayed aspect ratio, 480 for the boxed tool and
+about 405 for a 16:9 immersive window. Only the aspect matters, so a 720-wide frame is exactly as good as the
+on-screen size, and the whole pre-403 corpus, which the client always normalized into 720×480, keeps that frame as
+its default. Validate's `label_validation.canvas_width/height` is the on-screen size in CSS px; the two tables differ
+in unit but not in meaning. AI labels carry the notional 720×480 (`LabelPointTable.canvasWidth/Height`), whose
+center is the one point consistent with the POV stored beside it. Measured over 387 label directions on frames from
+4:3 to 21:9:
 
 | how the click is interpreted | position error |
 |---|---|
@@ -163,8 +170,12 @@ Measured over 387 label directions on frames from 4:3 to 21:9:
 
 Uniform scaling is free: a 1280×720 and a 1920×1080 frame give identical results because focal length and both click
 offsets scale together, which is why the boxed tool's `--ui-scale` zoom has never needed a correction. Aspect is
-not. Portrait shapes and beyond-21:9 at zoom 3, where GSV clamps the vertical field, change the *effective*
-horizontal FOV rather than this math; #5083's clamp model applies before the projection.
+not. Off 3:2 the horizontal FOV itself also stops being a function of zoom alone: GSV clamps the vertical field to
+[14.97°, 89.84°] (#5083), which binds at aspect ≥ 1.90 at zoom 3, so an ordinary fill-window viewport renders a wider
+horizontal field than the zoom curve says. `util.pano.renderedHFov(zoom, aspect, viewerType)` and its port
+`PanoDataService.renderedHFov` model that, and both projection functions take the result as their trailing `hFov`
+argument; every writer and reader of a stored click passes it, keyed on the imagery source because Mapillary and
+Infra3D read their rendered field back and need no correction.
 
 ## What to do when the constants change
 

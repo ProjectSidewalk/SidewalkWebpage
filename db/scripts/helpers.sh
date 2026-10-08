@@ -35,7 +35,7 @@ prompt_with_default() {
         prompt_text+=": "
 
         # Get user input.
-        read -p "$prompt_text" input
+        read -r -p "$prompt_text" input
 
         # Use default if input is empty and default exists.
         input="${input:-$default}"
@@ -157,6 +157,7 @@ run_with_progress() {
 
     # Poll once a second in both modes so the job is reaped promptly when it finishes; only the *display* differs.
     local tty=0; [[ -t 2 ]] && tty=1
+    # shellcheck disable=SC1003 # The backslash is one of the spinner's four frames, not an escape.
     local frames='|/-\' frame=0 elapsed last_beat=0
     while kill -0 "$cmd_pid" 2>/dev/null; do
         elapsed=$((SECONDS - start))

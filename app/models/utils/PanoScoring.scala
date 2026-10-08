@@ -43,10 +43,10 @@ case class PanoScoringParams(
  * Mapillary and Panoramax both answer a location query with every picture in a box and leave the choice to us, and
  * three consumers have to agree on how that choice is made: `MapillaryViewer.#scorePano` and
  * `PanoramaxViewer.#scorePano` pick the pano Explore displays, while `score_pano` in
- * `scripts/check_streets_for_imagery.py` picks the pano whose capture date we record for a street. If they disagreed,
- * we would report a street as freshly imaged and then never show the imagery that said so. The Python script reads the
- * file straight off disk; the browser gets it from the `data-pano-scoring` stamp that `main.scala.html` puts on every
- * page.
+ * `tools/city/check_streets_for_imagery.py` picks the pano whose capture date we record for a street. If they
+ * disagreed, we would report a street as freshly imaged and then never show the imagery that said so. The Python
+ * script reads the file straight off disk; the browser gets it from the `data-pano-scoring` stamp that
+ * `main.scala.html` puts on every page.
  *
  * Parsing into [[PanoScoringParams]] rather than passing the file through verbatim means a typo'd or missing key
  * fails here — loudly, with the key named — instead of surfacing as an `undefined` weight and a silently wrong ranking
@@ -56,19 +56,19 @@ case class PanoScoringParams(
 object PanoScoring {
   private val ResourcePath: String = "/pano-scoring.json"
 
-  implicit private val providerReads: Reads[PanoScoringProvider]   = Json.reads[PanoScoringProvider]
-  implicit private val paramsReads: Reads[PanoScoringParams]       = Json.reads[PanoScoringParams]
-  implicit private val providerWrites: Writes[PanoScoringProvider] = Json.writes[PanoScoringProvider]
-  implicit private val paramsWrites: Writes[PanoScoringParams]     = Json.writes[PanoScoringParams]
+  private given providerReads: Reads[PanoScoringProvider]   = Json.reads[PanoScoringProvider]
+  private given paramsReads: Reads[PanoScoringParams]       = Json.reads[PanoScoringParams]
+  private given providerWrites: Writes[PanoScoringProvider] = Json.writes[PanoScoringProvider]
+  private given paramsWrites: Writes[PanoScoringParams]     = Json.writes[PanoScoringParams]
 
   /** The parsed scoring parameters. Throws if the resource is missing or does not match the expected shape. */
   lazy val params: PanoScoringParams = {
     val stream: InputStream = Option(getClass.getResourceAsStream(ResourcePath))
-      .getOrElse(throw new IllegalStateException(s"$ResourcePath is missing from the classpath"))
+      .getOrElse(throw IllegalStateException(s"$ResourcePath is missing from the classpath"))
     val raw: String = Using.resource(stream)(Source.fromInputStream(_, "UTF-8").mkString)
     Json.parse(raw).validate[PanoScoringParams] match {
       case JsSuccess(parsed, _) => parsed
-      case JsError(errors)      => throw new IllegalStateException(s"$ResourcePath is malformed: $errors")
+      case JsError(errors)      => throw IllegalStateException(s"$ResourcePath is malformed: $errors")
     }
   }
 

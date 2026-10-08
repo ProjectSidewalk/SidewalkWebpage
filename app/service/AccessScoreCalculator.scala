@@ -1,6 +1,7 @@
 package service
 
-import models.label.LabelTypeEnum
+import models.label.LabelType
+import models.street.StreetGradientStats
 
 /**
  * Pure, DB-free scoring engine for the v3 AccessScore API (#3855).
@@ -24,6 +25,10 @@ import models.label.LabelTypeEnum
  *     SurfaceProblem) are scaled to a per-100 m density by [[lengthFactor]], so a long street is not penalized for
  *     having more room for problems; NoSidewalk's pooled term is already length-free.
  *   - A unit's score is `sigmoid(sum)`, mapped to (0, 1).
+ *   - A segment's sum also takes a **slope** term ([[slopeTerm]], #5223), which is not a label type and so not one of
+ *     the per-type terms: it comes from an elevation model, not from clusters. [[defaultSlopeSettings]] is what the
+ *     API serves; the AccessScore tool re-runs the same arithmetic under a reader's own settings, and the two
+ *     implementations are held to one fixture. A street with no sampled slope takes no term at all.
  *   - A street's headline score is the mean of its segment score and its end intersections' scores
  *     ([[headlineScore]]): a trip along a street includes getting on and off it.
  *   - A region's score is the street-length-weighted mean of its audited streets' scores (the paper's normalization),
@@ -38,28 +43,30 @@ import models.label.LabelTypeEnum
 object AccessScoreCalculator {
 
   /** How a label type's clusters are turned into its contribution to a street's score. */
-  sealed trait Scoring
+  enum Scoring {
 
-  /** Severity ignored; each cluster's presence alone contributes `baseWeight` (e.g. Signal). */
-  case object PresenceOnly extends Scoring
+    /** Severity ignored; each cluster's presence alone contributes `baseWeight` (e.g. Signal). */
+    case PresenceOnly
 
-  /** Quality-rated positive feature: severity 1=Good, 2=Okay, 3=Bad (a Bad one contributes negatively). */
-  case object PositiveQuality extends Scoring
+    /** Quality-rated positive feature: severity 1=Good, 2=Okay, 3=Bad (a Bad one contributes negatively). */
+    case PositiveQuality
 
-  /** Severity-rated negative feature: severity 1=Low, 2=Med, 3=High (magnitude grows with severity). */
-  case object NegativeSeverity extends Scoring
+    /** Severity-rated negative feature: severity 1=Low, 2=Med, 3=High (magnitude grows with severity). */
+    case NegativeSeverity
 
-  /**
-   * Scored once per street rather than once per cluster (#5093).
-   *
-   * NoSidewalk describes a stretch of street, not a point, and labelers pin it repeatedly along the stretch (it also
-   * has the tightest clustering threshold, 10 m), so a per-cluster weight would track label density instead of the
-   * street's condition. All of a street's clusters of this type pool into one term:
-   * `baseWeight * min(1, n / streetConditionSaturationCount) + pooledTagAdjustments`, where `n` is the cluster count.
-   * A tag is active when it covers at least [[tagActiveThreshold]] of the street's pooled labels of this type, except
-   * the [[streetConditionPointTags]], which are active when any single cluster carries them at that threshold.
-   */
-  case object StreetCondition extends Scoring
+    /**
+     * Scored once per street rather than once per cluster (#5093).
+     *
+     * NoSidewalk describes a stretch of street, not a point, and labelers pin it repeatedly along the stretch (it also
+     * has the tightest clustering threshold, 10 m), so a per-cluster weight would track label density instead of the
+     * street's condition. All of a street's clusters of this type pool into one term:
+     * `baseWeight * min(1, n / streetConditionSaturationCount) + pooledTagAdjustments`, where `n` is the cluster count.
+     * A tag is active when it covers at least [[tagActiveThreshold]] of the street's pooled labels of this type, except
+     * the [[streetConditionPointTags]], which are active when any single cluster carries them at that threshold.
+     */
+    case StreetCondition
+  }
+  import Scoring.*
 
   /**
    * Per-type scoring configuration.
@@ -75,23 +82,23 @@ object AccessScoreCalculator {
 
   // --- TUNABLE: base weight + scoring mode per scored label type. Types absent here are excluded from scoring. ---
   val typeWeights: Map[String, TypeWeight] = Map(
-    LabelTypeEnum.CurbRamp.name   -> TypeWeight(+0.75, PositiveQuality),
-    LabelTypeEnum.Crosswalk.name  -> TypeWeight(+0.75, PositiveQuality),
-    LabelTypeEnum.Signal.name     -> TypeWeight(+0.50, PresenceOnly),
-    LabelTypeEnum.NoCurbRamp.name -> TypeWeight(-1.00, NegativeSeverity),
+    LabelType.CurbRamp.name   -> TypeWeight(+0.75, PositiveQuality),
+    LabelType.Crosswalk.name  -> TypeWeight(+0.75, PositiveQuality),
+    LabelType.Signal.name     -> TypeWeight(+0.50, PresenceOnly),
+    LabelType.NoCurbRamp.name -> TypeWeight(-1.00, NegativeSeverity),
     // Along-length problems are counted per 100 m of street (#5095): three obstacles on a 300 m street are the
     // same density as one on a 100 m street, and score the same.
-    LabelTypeEnum.Obstacle.name       -> TypeWeight(-1.00, NegativeSeverity, lengthNormalized = true),
-    LabelTypeEnum.SurfaceProblem.name -> TypeWeight(-1.00, NegativeSeverity, lengthNormalized = true),
+    LabelType.Obstacle.name       -> TypeWeight(-1.00, NegativeSeverity, lengthNormalized = true),
+    LabelType.SurfaceProblem.name -> TypeWeight(-1.00, NegativeSeverity, lengthNormalized = true),
     // A whole street without a sidewalk sits at sigmoid(-2) ≈ 0.12 before its tags and other features (#5093).
-    LabelTypeEnum.NoSidewalk.name -> TypeWeight(-2.00, StreetCondition)
+    LabelType.NoSidewalk.name -> TypeWeight(-2.00, StreetCondition)
   )
 
   /** Names of the label types that contribute to the score. Single source of truth for the DB query's type filter. */
   val scoredTypeNames: Set[String] = typeWeights.keySet
 
   /** Scored types in the canonical label type order so CSV/shapefile columns never drift from the header. */
-  val orderedScoredTypes: Seq[String] = LabelTypeEnum.orderedNames.filter(scoredTypeNames.contains)
+  val orderedScoredTypes: Seq[String] = LabelType.names.filter(scoredTypeNames.contains)
 
   /** Each scored type's signed base weight, the form [[subScoresFromCounts]] takes so a caller can substitute its own. */
   val baseWeights: Map[String, Double] = typeWeights.map { case (t, tw) => t -> tw.baseWeight }
@@ -103,10 +110,10 @@ object AccessScoreCalculator {
 
   /** The scored types that are corner features, pooled on the intersection they sit at rather than on a street. */
   val intersectionTypeNames: Set[String] = Set(
-    LabelTypeEnum.CurbRamp.name,
-    LabelTypeEnum.NoCurbRamp.name,
-    LabelTypeEnum.Crosswalk.name,
-    LabelTypeEnum.Signal.name
+    LabelType.CurbRamp.name,
+    LabelType.NoCurbRamp.name,
+    LabelType.Crosswalk.name,
+    LabelType.Signal.name
   )
 
   /** The scored types that describe a stretch of street: everything scored that isn't an intersection type. */
@@ -182,34 +189,34 @@ object AccessScoreCalculator {
   // --- TUNABLE: additive weight adjustments for impactful tags. (labelType, tag) -> delta; unlisted tags contribute 0.
   // Sign is absolute (added directly to the type's contribution), independent of the base weight's sign. ---
   val tagAdjustments: Map[(String, String), Double] = Map(
-    (LabelTypeEnum.Signal.name, "hard to reach buttons")       -> -0.25,
-    (LabelTypeEnum.Signal.name, "button waist height")         -> +0.15,
-    (LabelTypeEnum.Signal.name, "APS")                         -> +0.25,
-    (LabelTypeEnum.CurbRamp.name, "steep")                     -> -0.25,
-    (LabelTypeEnum.CurbRamp.name, "narrow")                    -> -0.25,
-    (LabelTypeEnum.CurbRamp.name, "missing tactile warning")   -> -0.25,
-    (LabelTypeEnum.CurbRamp.name, "points into traffic")       -> -0.25,
-    (LabelTypeEnum.Crosswalk.name, "level with sidewalk")      -> +0.25,
-    (LabelTypeEnum.Crosswalk.name, "paint fading")             -> -0.25,
-    (LabelTypeEnum.Crosswalk.name, "no pedestrian priority")   -> -0.25,
-    (LabelTypeEnum.NoCurbRamp.name, "no alternate route")      -> -0.50,
-    (LabelTypeEnum.NoCurbRamp.name, "alternate route present") -> +0.25,
+    (LabelType.Signal.name, "hard to reach buttons")       -> -0.25,
+    (LabelType.Signal.name, "button waist height")         -> +0.15,
+    (LabelType.Signal.name, "APS")                         -> +0.25,
+    (LabelType.CurbRamp.name, "steep")                     -> -0.25,
+    (LabelType.CurbRamp.name, "narrow")                    -> -0.25,
+    (LabelType.CurbRamp.name, "missing tactile warning")   -> -0.25,
+    (LabelType.CurbRamp.name, "points into traffic")       -> -0.25,
+    (LabelType.Crosswalk.name, "level with sidewalk")      -> +0.25,
+    (LabelType.Crosswalk.name, "paint fading")             -> -0.25,
+    (LabelType.Crosswalk.name, "no pedestrian priority")   -> -0.25,
+    (LabelType.NoCurbRamp.name, "no alternate route")      -> -0.50,
+    (LabelType.NoCurbRamp.name, "alternate route present") -> +0.25,
     // NoSidewalk tags are pooled per street (#5093). "street has no sidewalks" and "street has a sidewalk" (the other
     // side has one) are mutually exclusive, so at most one is active unless the street's labels split exactly in half.
     // "ends abruptly" aggravates: a pedestrian on the sidewalk is stranded in the roadway where it stops.
-    (LabelTypeEnum.NoSidewalk.name, "ends abruptly")               -> -1.00,
-    (LabelTypeEnum.NoSidewalk.name, "street has no sidewalks")     -> -1.00,
-    (LabelTypeEnum.NoSidewalk.name, "street has a sidewalk")       -> +1.00,
-    (LabelTypeEnum.NoSidewalk.name, "gravel/dirt road")            -> -0.25,
-    (LabelTypeEnum.NoSidewalk.name, "shared pedestrian/car space") -> +0.25,
-    (LabelTypeEnum.NoSidewalk.name, "covered walkway")             -> +0.50,
-    (LabelTypeEnum.NoSidewalk.name, "pedestrian lane marking")     -> +0.50
+    (LabelType.NoSidewalk.name, "ends abruptly")               -> -1.00,
+    (LabelType.NoSidewalk.name, "street has no sidewalks")     -> -1.00,
+    (LabelType.NoSidewalk.name, "street has a sidewalk")       -> +1.00,
+    (LabelType.NoSidewalk.name, "gravel/dirt road")            -> -0.25,
+    (LabelType.NoSidewalk.name, "shared pedestrian/car space") -> +0.25,
+    (LabelType.NoSidewalk.name, "covered walkway")             -> +0.50,
+    (LabelType.NoSidewalk.name, "pedestrian lane marking")     -> +0.50
   )
 
   // --- TUNABLE: StreetCondition tags that describe a point on the street rather than the whole stretch. A pooled
   // majority would only ever notice them on short streets (a sidewalk ends in one place, and labelers tag that one
   // pin), so they are active when any single cluster carries them at the active threshold (#5093). ---
-  val streetConditionPointTags: Set[(String, String)] = Set((LabelTypeEnum.NoSidewalk.name, "ends abruptly"))
+  val streetConditionPointTags: Set[(String, String)] = Set((LabelType.NoSidewalk.name, "ends abruptly"))
 
   // --- TUNABLE: a tag counts toward scoring when it appears on at least this fraction of the labels it is judged over
   // (a cluster's members, or a street's pooled members for a StreetCondition type). ---
@@ -232,7 +239,7 @@ object AccessScoreCalculator {
       // Features weigh half again as much; problems are unchanged.
       "infrastructure" -> default.map { case (t, w) => t -> (if (problems.contains(t)) w else w * 1.5) },
       // The one problem a curb-ramp program can fix, doubled, with the ramps themselves credited more too.
-      "missing_ramps" -> (default ++ Map(LabelTypeEnum.NoCurbRamp.name -> 2.0, LabelTypeEnum.CurbRamp.name -> 1.0))
+      "missing_ramps" -> (default ++ Map(LabelType.NoCurbRamp.name -> 2.0, LabelType.CurbRamp.name -> 1.0))
     )
   }
 
@@ -444,7 +451,10 @@ object AccessScoreCalculator {
     val labelType: String                 = clusters.head.labelType
     val pooledLabelCount: Int             = clusters.iterator.map(_.labelCount).sum
     val pooledTagCounts: Map[String, Int] =
-      clusters.iterator.flatMap(_.tagCounts).toSeq.groupMapReduce(_._1)(_._2)(_ + _)
+      clusters.iterator
+        .flatMap(_.tagCounts)
+        .toSeq
+        .groupMapReduce { case (tag, _) => tag } { case (_, count) => count }(_ + _)
 
     tagAdjustments.iterator.collect {
       case ((lt, tag), delta) if lt == labelType =>
@@ -475,6 +485,191 @@ object AccessScoreCalculator {
 
   /** The logistic squashing function mapping the unbounded weighted sum to (0, 1). */
   private def sigmoid(t: Double): Double = 1.0 / (1.0 + math.exp(-t))
+
+  /** Which of a street's slope statistics drives its slope term. */
+  enum SlopeStatistic {
+
+    /** The mean absolute grade over 10 m baselines: how steep the street is on the whole. */
+    case MeanGrade
+
+    /** The steepest 30 m stretch: the worst a traveler meets, which one short pitch can set. */
+    case MaxGrade
+
+    /**
+     * The share of the street's length over the two ADA / PROWAG limits. Those lengths are measured when the street is
+     * sampled, against [[StreetGradientStats.WalkingSurfaceLimit]] and [[StreetGradientStats.RampLimit]], so this is
+     * the one statistic a reader's own thresholds do not move.
+     */
+    case MetersOverLimit
+  }
+  import SlopeStatistic.*
+
+  /** The statistics in the order a control lists them, which is the order the enum declares them in. */
+  val slopeStatistics: Seq[SlopeStatistic] = SlopeStatistic.values.toSeq
+
+  /** The API's snake_case name for a slope statistic, the one source for both the config and the tool's URL. */
+  def slopeStatisticName(statistic: SlopeStatistic): String = statistic match {
+    case MeanGrade       => "mean_grade"
+    case MaxGrade        => "max_grade"
+    case MetersOverLimit => "meters_over_limit"
+  }
+
+  /**
+   * How slope enters a segment's score. Grades are fractions (0.05 is a 5% grade).
+   *
+   * @param weight               Magnitude of the term at full strength; the term only ever lowers a score.
+   * @param statistic            Which statistic drives the term.
+   * @param lowThreshold         The grade at or under which slope costs nothing ([[MeanGrade]] / [[MaxGrade]] only).
+   * @param highThreshold        The grade at or over which the term is at full strength.
+   * @param barrierEnabled       Whether a street steeper than `barrierThreshold` scores 0 outright.
+   * @param barrierThreshold     The `maxGrade` over which a street is a barrier, when enabled.
+   * @param includeApproximate   Whether an approximate grade takes part at all ([[SlopeInput.approximate]]). Off
+   *                             by default: such a grade is an end-to-end line, good to within about a point, and
+   *                             says nothing of the pitches along the street that the thresholds and the barrier
+   *                             are about.
+   */
+  case class SlopeSettings(
+      weight: Double,
+      statistic: SlopeStatistic,
+      lowThreshold: Double,
+      highThreshold: Double,
+      barrierEnabled: Boolean,
+      barrierThreshold: Double,
+      includeApproximate: Boolean
+  )
+
+  // --- TUNABLE: how slope enters the score. The weight of 1 is a missing curb ramp's, so the claim it makes is one a
+  // reader can check: a block whose steepest stretch passes the ramp limit is about as hard to travel as one whose
+  // corner has no ramp. [[MaxGrade]] over [[MeanGrade]] because the worst pitch is what turns a traveler back, and a
+  // mean hides the otherwise flat block with one brutal pitch in it. The thresholds are settings rather than
+  // constants because people's limits differ (a manual and a power wheelchair user do not share one). The barrier is
+  // off: scoring a street 0 outright is a stronger claim than a weight, and it is the reader's to make. Its grade is
+  // 1:8 and not the ramp limit, because 8.33% over 30 m is an ordinary block in a hilly city, where a switch labeled
+  // "very steep" would zero a large share of the map; 12.5% is also where the slope map's steepest class begins.
+  //
+  // The cost of a nonzero weight: a sampled city scores below an unsampled one, since an unsampled street takes no
+  // term. That closes as cities are imported; until then it is a reason not to rank two cities against each other,
+  // which was never a claim these scores supported. ---
+  val defaultSlopeSettings: SlopeSettings = SlopeSettings(
+    weight = 1.0, statistic = MaxGrade, lowThreshold = StreetGradientStats.WalkingSurfaceLimit,
+    highThreshold = StreetGradientStats.RampLimit, barrierEnabled = false,
+    barrierThreshold = StreetGradientStats.MapClassBreaks.last, includeApproximate = false
+  )
+
+  // --- TUNABLE: the grades a reader may set a threshold between. The floor keeps "everything is steep" off the
+  // table; the ceiling is above the steepest real streets (Canton Avenue and Baldwin Street are 35 to 37%). ---
+  val slopeThresholdMin: Double = 0.01
+  val slopeThresholdMax: Double = 0.4
+
+  // --- TUNABLE: the most a reader may weigh slope, the ceiling of the label types' own sliders: at 3 a street over
+  // the high threshold loses what three severe obstacles would cost it, and the sigmoid has little left to give. ---
+  val slopeWeightMax: Double = 3.0
+
+  /**
+   * A street's slope, as the engine needs it: `StreetGradientStats` without the database's types.
+   *
+   * @param meanGrade      Mean absolute grade, or None where the street has no windowed statistics.
+   * @param maxGrade       Steepest 30 m grade, None likewise.
+   * @param netGrade       Signed end-to-end grade, the one statistic a coarse model supports.
+   * @param metersOver5pct Meters steeper than the walking-surface limit.
+   * @param metersOver8pct Meters steeper than the ramp limit.
+   * @param approximate    Whether the grade is an end-to-end line and not a sampled profile: it came from a coarse
+   *                       elevation model (`low` confidence), or the sampler distrusted the profile it read and drew
+   *                       a straight line between the street's ends in its place (`suspect` quality), which makes
+   *                       `meanGrade` and `maxGrade` both the size of `netGrade`.
+   */
+  case class SlopeInput(
+      meanGrade: Option[Double],
+      maxGrade: Option[Double],
+      netGrade: Option[Double],
+      metersOver5pct: Option[Double],
+      metersOver8pct: Option[Double],
+      approximate: Boolean
+  )
+
+  /** Whether a street's slope takes part under the settings: it has one, and it is sampled or approximates count. */
+  private def slopeCounts(slope: Option[SlopeInput], settings: SlopeSettings): Option[SlopeInput] =
+    slope.filter(s => settings.includeApproximate || !s.approximate)
+
+  /**
+   * How far a grade sits between the two thresholds, in [0, 1]. Thresholds that have crossed or met leave no ramp
+   * between them, so the low one acts as a step.
+   */
+  private def gradeBetweenThresholds(grade: Double, settings: SlopeSettings): Double = {
+    val span = settings.highThreshold - settings.lowThreshold
+    if (span <= 0.0) { if (grade > settings.lowThreshold) 1.0 else 0.0 }
+    else math.min(1.0, math.max(0.0, (grade - settings.lowThreshold) / span))
+  }
+
+  /**
+   * How much of the slope term a street takes, in [0, 1].
+   *
+   * [[MeanGrade]] and [[MaxGrade]] ramp from 0 at the low threshold to 1 at the high one. A street with neither,
+   * whatever its confidence (in practice a coarse-model row, once admitted), stands in the size of its end-to-end
+   * grade for either.
+   * [[MetersOverLimit]] is the share of the street over the walking-surface limit, with the share over the ramp limit
+   * counted again: a street wholly between the two limits takes half the term, one wholly over both takes all of it.
+   *
+   * @param slope        The street's slope, or None where it has not been sampled. A bridge or a gap in the model
+   *                     has a row, so it arrives as Some with every grade None, and takes no units either.
+   * @param lengthMeters The street's length, the denominator of the over-limit share.
+   * @param settings     How slope enters the score.
+   * @return             The units the weight applies to; 0 for a street whose slope does not take part.
+   */
+  def slopeUnits(slope: Option[SlopeInput], lengthMeters: Double, settings: SlopeSettings): Double =
+    slopeCounts(slope, settings).fold(0.0) { s =>
+      val endToEnd: Option[Double] = s.netGrade.map(math.abs)
+      settings.statistic match {
+        case MeanGrade       => s.meanGrade.orElse(endToEnd).fold(0.0)(gradeBetweenThresholds(_, settings))
+        case MaxGrade        => s.maxGrade.orElse(endToEnd).fold(0.0)(gradeBetweenThresholds(_, settings))
+        case MetersOverLimit =>
+          if (lengthMeters <= 0.0) 0.0
+          else {
+            val over = s.metersOver5pct.getOrElse(0.0) + s.metersOver8pct.getOrElse(0.0)
+            math.min(1.0, math.max(0.0, over / (2.0 * lengthMeters)))
+          }
+      }
+    }
+
+  /**
+   * A segment's slope term: what slope adds to the pre-sigmoid sum, never positive. Exactly 0.0 at a zero weight (and
+   * not the -0.0 the product would give), so the default settings leave a sum bit-for-bit as the labels made it.
+   *
+   * @return `-weight × slopeUnits`.
+   */
+  def slopeTerm(slope: Option[SlopeInput], lengthMeters: Double, settings: SlopeSettings): Double = {
+    val units = slopeUnits(slope, lengthMeters, settings)
+    if (settings.weight == 0.0 || units == 0.0) 0.0 else -settings.weight * units
+  }
+
+  /**
+   * Whether the settings treat the street as impassable: the barrier switch is on and the street's steepest stretch
+   * (its end-to-end grade, for a row with no steepest stretch) is over the barrier threshold. An approximate grade
+   * the settings do not admit cannot make a barrier, as it cannot make a term.
+   */
+  def slopeIsBarrier(slope: Option[SlopeInput], settings: SlopeSettings): Boolean =
+    settings.barrierEnabled && slopeCounts(slope, settings).exists { s =>
+      s.maxGrade.orElse(s.netGrade.map(math.abs)).exists(_ > settings.barrierThreshold)
+    }
+
+  /**
+   * A segment's score with slope taken into account: 0 for a barrier, otherwise the sigmoid of the per-type terms
+   * plus the slope term. With no sampled slope this is [[scoreFromSubScores]] exactly, whatever the settings say.
+   *
+   * @param subScores    The segment's contribution per scored label type.
+   * @param slope        The street's slope, if it has one.
+   * @param lengthMeters The street's length.
+   * @param settings     How slope enters the score.
+   * @return             The segment's score in [0, 1): 0 only for a barrier.
+   */
+  def segmentScoreWithSlope(
+      subScores: Map[String, Double],
+      slope: Option[SlopeInput],
+      lengthMeters: Double,
+      settings: SlopeSettings = defaultSlopeSettings
+  ): Double =
+    if (slopeIsBarrier(slope, settings)) 0.0
+    else sigmoid(subScores.valuesIterator.sum + slopeTerm(slope, lengthMeters, settings))
 
   /**
    * Squashes a street's per-type contributions (from [[scoreByType]]) into its access score.
@@ -527,7 +722,7 @@ object AccessScoreCalculator {
    * @return               The weighted-mean score, or None when there are no audited streets / zero total length.
    */
   def scoreRegion(auditedStreets: Seq[(Double, Double)]): Option[Double] = {
-    val totalLength: Double = auditedStreets.iterator.map(_._2).sum
+    val totalLength: Double = auditedStreets.iterator.map { case (_, length) => length }.sum
     if (totalLength <= 0.0) None
     else Some(auditedStreets.iterator.map { case (score, length) => score * length }.sum / totalLength)
   }

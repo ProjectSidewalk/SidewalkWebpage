@@ -1,13 +1,13 @@
 package controllers.api
 
 import org.apache.pekko.stream.Materializer
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.JsObject
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import play.api.test.FakeRequest
+import util.SidewalkSpec
 
 /**
  * Locks the response contract of GET /v3/api/validations after the validation_option enum migration (#4263):
@@ -21,16 +21,16 @@ import play.api.test.FakeRequest
  *
  * Requires a Postgres+PostGIS database (via DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD env, as in dev/CI).
  */
-class ValidationsApiContractSpec extends PlaySpec with GuiceOneAppPerSuite {
+class ValidationsApiContractSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule] // No eager background actors during tests (nothing else injects their ActorRefs).
       .build()
 
   // File-streamed responses (chunked JSON) need a real Materializer to consume; the test default is NoMaterializer,
   // which only works for strict bodies like JSON.
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   private val validResults = Set("Agree", "Disagree", "Unsure")
 

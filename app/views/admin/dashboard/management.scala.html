@@ -1,21 +1,22 @@
 @import service.CommonPageData
-@import models.user.SidewalkUserWithRole
+@import models.user.{Role, SidewalkUserWithRole}
+@import play.api.libs.json.Json
 @import play.api.Configuration
 @(commonData: CommonPageData, user: SidewalkUserWithRole
-)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+)(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
-@* Admin Management page (#4272): the operational console for deployment-wide, state-changing actions that the read-only lens pages don't carry. Full user directory with inline role + team assignment, team open/closed and visible/hidden toggles, and the maintenance jobs. Built in the redesign idiom (lightweight accessible tables, no DataTables/jQuery); all data + mutations go through existing /adminapi endpoints. Per-user actions (quality, infra3d, task flags) live on /admin/user/:username, linked from each row. *@
+@* Admin Management page (#4272): the operational console for deployment-wide, state-changing actions that the read-only lens pages don't carry. Full user directory with inline role + team assignment, team open/closed and visible/hidden toggles, and the maintenance jobs. Built in the redesign idiom (lightweight accessible tables); all data + mutations go through existing /adminapi endpoints. Per-user actions (quality, infra3d, task flags) live on /admin/user/:username, linked from each row. *@
 
 @content = {
   <div class="page-section" id="management-intro-section">
     <h1 class="page-heading" id="management">Management <a href="#management" class="permalink">#</a></h1>
-    <p>Operational controls for this deployment: find and manage any contributor, set their role or team, open or hide teams, and run the maintenance jobs. These actions change live data — they take effect immediately. Per-user controls (manual quality, infra3D access, marking work by date) live on each contributor's <em>admin profile</em>, linked from their name below.</p>
+    <p>Roles (all cities), teams, and jobs; changes apply immediately.</p>
     <div class="coverage-status" id="mgmt-status" role="status" aria-live="polite">Loading…</div>
   </div>
 
   <div class="page-section" id="users-section">
     <h2 class="page-heading" id="users">Users <a href="#users" class="permalink">#</a></h2>
-    <p>Every contributing account on this deployment. Search by name or email, sort any column, and assign a role or team inline. Owner accounts can't be reassigned. Per-user quality, infra3D access, and marking work by date live on each contributor's admin profile — click a name to open it.</p>
+    <p>Click a name for that user's admin profile (manual quality, infra3D access, marking work by date).</p>
     <div class="mgmt-toolbar">
       <label class="sr-only" for="mgmt-user-search">Search users by username or email</label>
       <input type="search" id="mgmt-user-search" class="ps-input mgmt-search"
@@ -31,87 +32,76 @@
 
   <div class="page-section" id="teams-section">
     <h2 class="page-heading" id="teams">Teams <a href="#teams" class="permalink">#</a></h2>
-    <p>Teams contributors can join. <b>Status</b> controls whether a team is open to new members; <b>visibility</b> controls whether it shows in public team lists. Toggle either inline, or click a team's name to open its own page, where its members and their contributions live.</p>
+    <p><b>Status</b> sets whether a team accepts new members; <b>visibility</b>, whether it appears in public team lists.</p>
     <div id="mgmt-teams"></div>
   </div>
 
   <div class="page-section" id="maintenance-section">
     <h2 class="page-heading" id="maintenance">Maintenance <a href="#maintenance" class="permalink">#</a></h2>
-    <p>Deployment-wide jobs. These can be expensive and affect what every user sees, so each asks for confirmation before running.</p>
+    <p>City-wide jobs; each asks to confirm.</p>
     <div class="mgmt-actions">
       <div class="mgmt-action">
         <div class="mgmt-action-text">
           <b>Recalculate user stats</b>
-          <span class="dq-sub">Recomputes each contributor's labeling frequency and high-quality flag.</span>
+          <span class="dq-sub">Recomputes each contributor's labeling rate and high-quality flag (also nightly).</span>
         </div>
-        <button type="button" class="coverage-sort-btn mgmt-run" id="mgmt-recalc-stats" data-confirm="Recalculate user stats for all recent contributors?">Run</button>
+        <button type="button" class="coverage-sort-btn mgmt-run" id="mgmt-recalc-stats" data-confirm="Recalculate user stats for every contributor?">Run</button>
       </div>
       <div class="mgmt-action">
         <div class="mgmt-action-text">
           <b>Recalculate street priority</b>
-          <span class="dq-sub">Recomputes audit priority for every street so under-audited streets resurface.</span>
+          <span class="dq-sub">Recomputes every street's audit priority so under-audited streets resurface (also nightly).</span>
         </div>
         <button type="button" class="coverage-sort-btn mgmt-run" id="mgmt-recalc-priority" data-confirm="Recalculate street priority for all streets? This can take a while.">Run</button>
       </div>
       <div class="mgmt-action">
         <div class="mgmt-action-text">
           <b>Recalculate validation counts</b>
-          <span class="dq-sub">Recounts every label's agree, disagree, and unsure votes, skipping excluded users. Run "Recalculate user stats" and "Recalculate street priority" afterward.</span>
+          <span class="dq-sub">Recounts every label's votes, skipping excluded users; run the two jobs above afterward.</span>
         </div>
-        <button type="button" class="coverage-sort-btn mgmt-run" id="mgmt-recalc-validation-counts" data-confirm="Recount the validations on every label now?">Run</button>
+        <button type="button" class="coverage-sort-btn mgmt-run" id="mgmt-recalc-validation-counts" data-confirm="Recount validations on every label?">Run</button>
       </div>
       <div class="mgmt-action">
         <div class="mgmt-action-text">
           <b>Generate crops</b>
-          <span class="dq-sub">Cuts the missing label crops from the self-hosted pano store, as the nightly job does.</span>
+          <span class="dq-sub">Cuts missing label crops (also nightly).</span>
         </div>
-        <button type="button" class="coverage-sort-btn mgmt-run" id="mgmt-generate-crops" data-confirm="Generate the missing crops now? A first backfill can take an hour.">Run</button>
+        <button type="button" class="coverage-sort-btn mgmt-run" id="mgmt-generate-crops" data-confirm="Generate missing crops? A first backfill can take an hour.">Run</button>
       </div>
       <div class="mgmt-action">
         <div class="mgmt-action-text">
           <b>Rebuild sidewalk presence</b>
-          <span class="dq-sub">Re-derives each street side's sidewalk verdict from today's labels, as the nightly job does.</span>
+          <span class="dq-sub">Re-derives each street side's sidewalk verdict from labels (also nightly).</span>
         </div>
-        <button type="button" class="coverage-sort-btn mgmt-run" id="mgmt-rebuild-sidewalk-presence" data-confirm="Rebuild sidewalk presence for every street now? It takes a few seconds.">Run</button>
+        <button type="button" class="coverage-sort-btn mgmt-run" id="mgmt-rebuild-sidewalk-presence" data-confirm="Rebuild sidewalk presence for every street? Takes a few seconds.">Run</button>
       </div>
       <div class="mgmt-action">
         <div class="mgmt-action-text">
           <b>Refresh places</b>
-          <span class="dq-sub">Fetches the city's schools, clinics, libraries, grocery stores, transit stops, parks, and community centers from OpenStreetMap for the AccessScore map. The nightly job does this weekly; this runs it now.</span>
+          <span class="dq-sub">Fetches AccessScore destinations from OpenStreetMap (also weekly).</span>
         </div>
-        <button type="button" class="coverage-sort-btn mgmt-run" id="mgmt-refresh-places" data-confirm="Fetch the city's places from OpenStreetMap now? It can take a few minutes for a big city.">Run</button>
+        <button type="button" class="coverage-sort-btn mgmt-run" id="mgmt-refresh-places" data-confirm="Fetch places from OpenStreetMap? A big city can take a few minutes.">Run</button>
+      </div>
+      <div class="mgmt-action">
+        <div class="mgmt-action-text">
+          <b>Recount street gradient staleness</b>
+          <span class="dq-sub">Counts ungraded or re-shaped streets for the Health page (also nightly); run after importing <a href="https://github.com/ProjectSidewalk/SidewalkWebpage/blob/develop/docs/street-gradient.md">street grades</a>.</span>
+        </div>
+        <button type="button" class="coverage-sort-btn mgmt-run" id="mgmt-recount-gradient-staleness" data-confirm="Recount street gradient staleness?">Run</button>
       </div>
       <div class="mgmt-action">
         <div class="mgmt-action-text">
           <b>Clear server cache</b>
-          <span class="dq-sub">Clears Play's cached values; the next page loads rebuild them.</span>
+          <span class="dq-sub">Next page loads rebuild it.</span>
         </div>
-        <button type="button" class="coverage-sort-btn mgmt-run" id="mgmt-clear-cache" data-confirm="Clear the server cache now?">Run</button>
+        <button type="button" class="coverage-sort-btn mgmt-run" id="mgmt-clear-cache" data-confirm="Clear the server cache?">Run</button>
       </div>
     </div>
     <p class="mgmt-result dq-sub" id="mgmt-maint-result" role="status" aria-live="polite"></p>
   </div>
 
-  <script src='@assets.path("js/common/ConfirmDialog.js")'></script>
-  <script src="@assets.path("js/admin-dashboard/ManagementPage.js")"></script>
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      new ManagementPage({
-        userStatsUrl: '/adminapi/getUserStats',
-        setRoleUrl: '/adminapi/setRole',
-        setTeamUrl: '/userapi/setUserTeam',
-        teamStatusUrl: '/adminapi/updateTeamStatus',
-        teamVisibilityUrl: '/adminapi/updateTeamVisibility',
-        clearCacheUrl: '/adminapi/clearPlayCache',
-        recalcStatsUrl: '/adminapi/updateUserStats',
-        recalcPriorityUrl: '/adminapi/recalculateStreetPriority',
-        recalcValidationCountsUrl: '/adminapi/recalculateValidationCounts',
-        generateCropsUrl: '/adminapi/generateCrops',
-        rebuildSidewalkPresenceUrl: '/adminapi/rebuildSidewalkPresence',
-        refreshPlacesUrl: '/adminapi/refreshPlaces'
-      }).init();
-    });
-  </script>
+  <script type="module" id="page-entry" src='@assets.path("build/js/admin/management.js")'
+          data-assignable-roles="@Json.stringify(Json.toJson(Role.ADMIN_ASSIGNABLE_ROLES.map(_.name)))"></script>
 }
 
 @common.main(commonData, "Sidewalk - Admin Management") {

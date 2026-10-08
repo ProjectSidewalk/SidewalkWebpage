@@ -6,7 +6,7 @@ import models.utils.SeoUtils
 import play.api.Configuration
 import play.api.mvc.{Action, AnyContent}
 
-import javax.inject._
+import javax.inject.*
 
 /**
  * Serves robots.txt and sitemap.xml (issue #4237).
@@ -38,7 +38,7 @@ class SeoController @Inject() (cc: CustomControllerComponents, config: Configura
    * `ConfigService.getPanoSource` uses, so this controller keeps its build-once, no-DB property.
    */
   private val signInWalled: Boolean =
-    config.get[String](s"city-params.pano-viewer-type.$cityId") == PanoSource.Infra3d.toString
+    config.get[String](s"city-params.pano-viewer-type.$cityId") == PanoSource.Infra3d.name
 
   /**
    * Public, indexable pages promoted in the sitemap. Duplicate route aliases are excluded (see SeoUtils).
@@ -57,8 +57,9 @@ class SeoController @Inject() (cc: CustomControllerComponents, config: Configura
         "/labelingGuide/occlusion", "/api", "/leaderboard", "/routeBuilder", "/terms", "/cities"
       ) ++ Seq(
         "labelTypes", "cities", "labelTags", "rawLabels", "labelClusters", "streets", "streetTypes", "sidewalkPresence",
-        "regions", "places", "accessScoreStreets", "accessScoreRegions", "validations", "validation-result-types",
-        "user-stats", "overall-stats", "overall-stats-by-day", "aggregate-stats", "aggregate-stats-by-day"
+        "streetGrade", "regions", "places", "accessScoreStreets", "accessScoreRegions", "validations",
+        "validation-result-types", "user-stats", "overall-stats", "overall-stats-by-day", "aggregate-stats",
+        "aggregate-stats-by-day"
       ).map(p => s"/v3/api-docs/$p")
 
   /** Duplicate-alias Disallow lines, derived from the same alias map that drives canonical URLs (SeoUtils). */

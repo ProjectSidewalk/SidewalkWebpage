@@ -26,15 +26,15 @@ import scala.util.Random
  */
 class AccessScoreSpotlightSpec extends AnyFunSuite with Matchers {
 
-  private val gf: GeometryFactory = new GeometryFactory()
+  private val gf: GeometryFactory = GeometryFactory()
   private val run: OffsetDateTime = OffsetDateTime.of(2026, 9, 16, 3, 14, 0, 0, ZoneOffset.UTC)
 
   /** A degenerate geometry: nothing here reads it, but the DTOs carry one. */
   private val line: LineString = gf.createLineString(
-    Array(new org.locationtech.jts.geom.Coordinate(0, 0), new org.locationtech.jts.geom.Coordinate(0, 1))
+    Array(org.locationtech.jts.geom.Coordinate(0, 0), org.locationtech.jts.geom.Coordinate(0, 1))
   )
   private val polygon: MultiPolygon = gf.createMultiPolygon(Array.empty)
-  private val point: Point          = gf.createPoint(new org.locationtech.jts.geom.Coordinate(0, 0))
+  private val point: Point          = gf.createPoint(org.locationtech.jts.geom.Coordinate(0, 0))
 
   /** One street as `AccessScoreService` scores it; only the fields the roll-up reads are interesting. */
   private def street(
@@ -64,6 +64,8 @@ class AccessScoreSpotlightSpec extends AnyFunSuite with Matchers {
     subScores = Map.empty,
     severityCounts = Map.empty,
     tagAdjustments = Map.empty,
+    gradient = None,
+    slopeTerm = 0.0,
     geometry = line
   )
 
@@ -210,7 +212,7 @@ class AccessScoreSpotlightSpec extends AnyFunSuite with Matchers {
       street(11, osmWayId = 99L, regionId = 1, score = Some(0.2), lengthMeters = 100),
       street(12, osmWayId = 99L, regionId = 1, score = Some(1.0), lengthMeters = 300)
     )
-    val rows = AccessScoreSpotlight.buildStreetRows(streets, Map.empty, run, new Random(1))
+    val rows = AccessScoreSpotlight.buildStreetRows(streets, Map.empty, run, Random(1))
 
     rows should have size 1
     rows.head.osmWayId shouldBe 99L
@@ -225,7 +227,7 @@ class AccessScoreSpotlightSpec extends AnyFunSuite with Matchers {
       street(11, osmWayId = 99L, regionId = 1, score = Some(0.2), lengthMeters = 200),
       street(12, osmWayId = 99L, regionId = 2, score = Some(0.9), lengthMeters = 200)
     )
-    val rows = AccessScoreSpotlight.buildStreetRows(streets, Map.empty, run, new Random(1))
+    val rows = AccessScoreSpotlight.buildStreetRows(streets, Map.empty, run, Random(1))
 
     rows.map(r => (r.osmWayId, r.regionId)) should contain theSameElementsAs Seq((99L, 1), (99L, 2))
   }
@@ -235,12 +237,12 @@ class AccessScoreSpotlightSpec extends AnyFunSuite with Matchers {
       street(11, 99L, 1, score = Some(0.4), lengthMeters = 100),
       street(12, 99L, 1, score = None, lengthMeters = 300, auditCount = 0, clusters = 0)
     )
-    val mixedRow = AccessScoreSpotlight.buildStreetRows(mixed, Map.empty, run, new Random(1)).head
+    val mixedRow = AccessScoreSpotlight.buildStreetRows(mixed, Map.empty, run, Random(1)).head
     mixedRow.score.get shouldBe (0.4 +- 1e-9) // Only the explored 100 m is evidence...
     mixedRow.lengthM shouldBe (400.0 +- 1e-9) // ...but the row still says how long the whole stretch is.
 
     val untouched = Seq(street(13, 98L, 1, score = None, lengthMeters = 500, auditCount = 0, clusters = 0))
-    AccessScoreSpotlight.buildStreetRows(untouched, Map.empty, run, new Random(1)).head.score shouldBe None
+    AccessScoreSpotlight.buildStreetRows(untouched, Map.empty, run, Random(1)).head.score shouldBe None
   }
 
   test("a way's counts are summed across its edges, validations included") {
@@ -248,7 +250,7 @@ class AccessScoreSpotlightSpec extends AnyFunSuite with Matchers {
       street(11, 99L, 1, Some(0.4), 200, auditCount = 2, clusters = 3),
       street(12, 99L, 1, Some(0.6), 200, auditCount = 1, clusters = 5)
     )
-    val row = AccessScoreSpotlight.buildStreetRows(streets, Map(11 -> 7, 12 -> 2), run, new Random(1)).head
+    val row = AccessScoreSpotlight.buildStreetRows(streets, Map(11 -> 7, 12 -> 2), run, Random(1)).head
 
     row.auditCount shouldBe 3
     row.clusterCount shouldBe 8
@@ -257,9 +259,9 @@ class AccessScoreSpotlightSpec extends AnyFunSuite with Matchers {
 
   test("the tie-break is drawn per run, so one night's list is stable and the next night's is not") {
     val streets = (1 to 5).map(i => street(i, i.toLong, 1, Some(0.5), 200))
-    val first   = AccessScoreSpotlight.buildStreetRows(streets, Map.empty, run, new Random(42)).map(_.tieBreak)
-    val again   = AccessScoreSpotlight.buildStreetRows(streets, Map.empty, run, new Random(42)).map(_.tieBreak)
-    val nextRun = AccessScoreSpotlight.buildStreetRows(streets, Map.empty, run, new Random(43)).map(_.tieBreak)
+    val first   = AccessScoreSpotlight.buildStreetRows(streets, Map.empty, run, Random(42)).map(_.tieBreak)
+    val again   = AccessScoreSpotlight.buildStreetRows(streets, Map.empty, run, Random(42)).map(_.tieBreak)
+    val nextRun = AccessScoreSpotlight.buildStreetRows(streets, Map.empty, run, Random(43)).map(_.tieBreak)
 
     first shouldBe again        // Same seed, same order: the day's list does not reshuffle between page loads.
     first should not be nextRun // A new run redraws, so a tie is not frozen forever.
@@ -268,9 +270,9 @@ class AccessScoreSpotlightSpec extends AnyFunSuite with Matchers {
 
   test("the rows a run writes do not depend on the hash order of the grouping") {
     val streets  = (1 to 20).map(i => street(i, i.toLong, 1, Some(0.5), 200))
-    val forward  = AccessScoreSpotlight.buildStreetRows(streets, Map.empty, run, new Random(7))
+    val forward  = AccessScoreSpotlight.buildStreetRows(streets, Map.empty, run, Random(7))
     val shuffled =
-      AccessScoreSpotlight.buildStreetRows(new Random(3).shuffle(streets), Map.empty, run, new Random(7))
+      AccessScoreSpotlight.buildStreetRows(Random(3).shuffle(streets), Map.empty, run, Random(7))
 
     forward.map(r => (r.osmWayId, r.tieBreak)) shouldBe shuffled.map(r => (r.osmWayId, r.tieBreak))
   }
@@ -362,7 +364,7 @@ class AccessScoreSpotlightSpec extends AnyFunSuite with Matchers {
   test("rows equal on score and validations keep one order, so the list does not churn between requests") {
     val rows  = Seq(streetRow(3L, 0.5, 1), streetRow(1L, 0.5, 1), streetRow(2L, 0.5, 1))
     val once  = AccessScoreSpotlight.rank(rows, descending = true, 3)
-    val twice = AccessScoreSpotlight.rank(new Random(5).shuffle(rows), descending = true, 3)
+    val twice = AccessScoreSpotlight.rank(Random(5).shuffle(rows), descending = true, 3)
 
     once.map(_.asInstanceOf[StreetSpotlightRowForApi].osmWayId) shouldBe
       twice.map(_.asInstanceOf[StreetSpotlightRowForApi].osmWayId)

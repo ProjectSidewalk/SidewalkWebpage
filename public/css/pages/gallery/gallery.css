@@ -108,6 +108,106 @@
   visibility: hidden;
 }
 
+/* Review-list mode (#5444). With no sidebar the grid runs full width — four columns on a desktop, which is why a
+   page holds twelve — and everything the list has to say about itself sits in this one strip above it. One
+   left-aligned line while there is nothing unusual to report; it wraps as the notices below appear. No left
+   padding of its own, so the strip starts on the same edge as the first card beneath it. */
+.gallery-list-bar {
+  display: flex;
+
+  /* flex-start, not center: an opened disclosure grows its own box instead of stretching the whole strip. */
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  padding: 4px 0 12px;
+}
+
+/* Link-styled, underlined only on hover/focus: it must read as somewhere to go, not as an action on the list. */
+.gallery-list-bar__browse-all {
+  font: var(--text-small-regular);
+  line-height: 24px;
+  color: var(--color-link-200);
+  text-decoration: none;
+}
+
+.gallery-list-bar__browse-all:hover {
+  text-decoration: underline;
+}
+
+/* An underline alone is too quiet to serve as the focus indicator, so focus also draws a ring. */
+.gallery-list-bar__browse-all:focus-visible {
+  outline: 2px solid var(--color-link-100);
+  outline-offset: 2px;
+  text-decoration: underline;
+}
+
+/* Decoration only (the link's words say where it goes), so the gap is set here rather than with markup whitespace. */
+.gallery-list-bar__arrow {
+  margin-right: 6px;
+}
+
+/* A pill, so the count reads as a status of the list rather than as a sentence continuing the link beside it. Same
+   radius as the cards' tag pills; the neutral fill keeps it quieter than those. */
+.gallery-list-bar__count {
+  margin: 0;
+  padding: 0 10px; /* Plain px like its neighbours: --ui-scale is unset on this strip, so a calc() would be inert. */
+  font: var(--text-small-medium);
+  line-height: 24px; /* Matches the link and the disclosure summary beside it, so the strip reads as one line. */
+  color: var(--color-asphalt-500);
+  background: var(--color-neutral-100);
+  border-radius: 200px;
+  white-space: nowrap;
+}
+
+/* The live region is always in the DOM so a screen reader is already watching it when the disclosure appears, but
+   an empty box still takes a flex gap of its own — 16px of nothing on the line, and a dead row when the strip
+   stacks. `display: contents` drops the box and keeps the element, so the disclosure inside it becomes the flex
+   item and the region still exists to announce into. */
+.gallery-list-bar__unavailable-wrap {
+  display: contents;
+}
+
+.gallery-list-bar__summary {
+  font: var(--text-body-regular);
+  line-height: 24px;
+  color: var(--color-asphalt-500);
+  cursor: pointer;
+}
+
+.gallery-list-bar__summary:focus-visible {
+  outline: 2px solid var(--color-asphalt-400);
+  outline-offset: 2px;
+}
+
+.gallery-list-bar__ids {
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+  font: var(--text-small-regular);
+  color: var(--color-asphalt-500);
+
+  /* An opened list of a few hundred ids must not push the card grid off the screen. */
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+/* The list is a focusable scroll region (see gallery.scala.html), so it needs a focus ring of its own — it is not a
+   control, so it inherits none. */
+.gallery-list-bar__ids:focus-visible {
+  outline: 2px solid var(--color-asphalt-400);
+  outline-offset: 2px;
+}
+
+/* The two lines that say the list isn't what was asked for: one cut off at the cap, and one that failed to load at
+   all. Both read as warnings rather than as part of the ordinary strip copy. */
+.gallery-list-bar__truncated,
+.gallery-list-bar__error {
+  margin: 0;
+  font: var(--text-small-medium);
+  line-height: 24px;
+  color: var(--color-error-300); /* The contrast-safe error token; -200 fails AA on white. */
+}
+
 .cards {
   display: grid;
 
@@ -154,6 +254,17 @@ We should allow the pointer events to pass through and behave the same way as th
   /* Resolves against the initial containing block, which the stacked sidebar now overlaps. */
   #labels-not-found-text {
     position: static;
+  }
+
+  /* Stacked, so each notice gets its own line rather than wrapping mid-strip. */
+  .gallery-list-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  /* Stacked, a full-width pill would read as a bar; keep it to its own text. */
+  .gallery-list-bar__count {
+    align-self: flex-start;
   }
 
   /* Full-screen sheet below the navbar (and test banner). dvh tracks the visible viewport under mobile

@@ -1,7 +1,7 @@
 package models.auth
 
 import play.api.mvc.RequestHeader
-import play.api.mvc.Results._
+import play.api.mvc.Results.*
 import play.silhouette.api.actions.UnsecuredErrorHandler
 
 import scala.concurrent.Future
@@ -20,7 +20,7 @@ class CustomUnsecuredErrorHandler extends UnsecuredErrorHandler {
    * @param request The request header.
    * @return The result to send to the client.
    */
-  override def onNotAuthorized(implicit request: RequestHeader) = {
+  override def onNotAuthorized(using request: RequestHeader) = {
     Future.successful(Redirect(controllers.routes.ApplicationController.index))
   }
 }

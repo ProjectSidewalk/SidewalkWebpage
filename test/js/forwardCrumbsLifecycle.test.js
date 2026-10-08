@@ -9,16 +9,14 @@
  *   - lookups queued for a street the user has left are skipped, not run ahead of the next street's;
  *   - a far crumb over a visited pano takes over the breadcrumb's job and peeks back on click.
  *
- * ForwardCrumbs is a top-level `class` written for the Grunt-concatenation world, so the source is eval'd into the
- * jsdom global scope alongside the globals it closes over. Real turf: the sampler's along-street math is part of
+ * ForwardCrumbs is loaded as a module against fakes for the globals it closes over. Real turf: the sampler's along-street math is part of
  * what is being exercised.
  */
 
-const fs = require('fs');
 const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const SRC = fs.readFileSync(path.join(REPO_ROOT, 'public/js/explore/src/navigation/ForwardCrumbs.js'), 'utf8');
 
 window.turf = require(path.join(REPO_ROOT, 'public/vendor/turf/turf-7.4.0.min.js'));
 const { turf } = window;
@@ -112,7 +110,7 @@ describe('ForwardCrumbs marker lifecycle', () => {
         window.svl = svl;
         window.i18next = { t: (key, options) => (options && 'rank' in options ? `${key}#${options.rank}` : key) };
         window.NavigationService = { DIST_INCREMENT: 0.01 };
-        window.eval(`${SRC}; window.ForwardCrumbs = ForwardCrumbs;`);
+        Object.assign(window, loadModules('frontend/js/explore/navigation/ForwardCrumbs.js'));
         crumbs = new window.ForwardCrumbs(nav, tracker);
     });
 

@@ -33,8 +33,9 @@ change is served the label again (their old vote stays as history). A change mad
 Agree, so the label starts again with that one vote; one made from the label detail card records no vote at all, so it
 starts with none. The same rule
 applies to the AI's vote in the AI-contested predicate below, and to the AI tag suggestions the tool shows. Expert
-Validate is where a type gets changed: its fourth verdict, "Wrong type", is submitted as an Agree on the picked type
-(`ValidationSubmission.newLabelType`), so the changer's own vote is the first one counted under the new type.
+Validate is where a type gets changed: the "wrong label type" disagree reason (or the type dropdown in the label card)
+is submitted as an Agree on the picked type (`ValidationSubmission.newLabelType`), so the changer's own vote is the
+first one counted under the new type.
 
 - **capped out** — `totalVotes >= MaxCrowdVotes`. The crowd has had its five swings and is still undecided.
 - **unsure-heavy** — `unsure_count >= UnsureHeavyMinVotes` and `unsure_count >= agree_count + disagree_count`. The
@@ -151,10 +152,10 @@ every other such face, still servable, never certain.
 `getLabelTypeToValidate` picks the mission's label type before any labels are drawn.
 `getAvailableValidationsLabelsByType` returns, per label type, how many labels the user could validate at all and how
 many of those each queue holds — computed with the *same* predicates as the label query, so type selection and label
-selection cannot disagree about what "needs validation" means. It runs on every Validate page load and mission
-completion, so the two dearer counts are only taken for a cascade that can read them: the `Triage` count (which joins
-the AI's vote onto every servable label) only when the cascade has a `Triage` queue, and the `NoSidewalk` face count
-only when the cascade has `NeedsVotes` and the mission is not pinned to another type.
+selection cannot disagree about what "needs validation" means. It runs on every Validate first-mission request (one
+per page load) and mission completion, so the two dearer counts are only taken for a cascade that can read them: the
+`Triage` count (which joins the AI's vote onto every servable label) only when the cascade has a `Triage` queue, and
+the `NoSidewalk` face count only when the cascade has `NeedsVotes` and the mission is not pinned to another type.
 
 1. Keep types with at least one full mission's worth of available labels, honoring a requested type if there is one.
    The counts apply `unvalidatedOnly` and Expert Validate's `?users=`, `?regions=`, and `?teams=` filters
@@ -261,8 +262,8 @@ aggregate.
 
 ### Evidence (Teaneck, 2026-09-13)
 
-From `tools/validation_queue/run.sh sidewalk_teaneck` against the dev schema (evolution 385, the only local schema
-with `street_side`); the section is the tool's "NoSidewalk by block face" output. Seattle's dev dump predates
+From `tools/validation_queue/analyze_validation_queue.py` against the dev Teaneck schema (evolution 385, the only
+local schema with `street_side` at the time); the section is the tool's "NoSidewalk by block face" output. Seattle's dev dump predates
 evolution 377, so its face numbers above come from the #5222 study and the prod checks on the issue.
 
 | human labelers on the face | agreeing votes on the face | faces | % faces | labels | labels / face |
@@ -318,7 +319,7 @@ The flag rides `ValidateHelper.ValidateParams` as `triage`, which `require`s `ad
 and `userIds` do; the JSON reader checks the same constraint before building the params, so a body that breaks it is
 a 400 rather than the 500 the constructor's exception would be. `ValidateController.paramsAllowedFor` rebuilds a
 non-admin's params without the admin-only fields — so a non-admin who posts `triage: true` gets the crowd cascade. The Twirl views embed it in
-`param.validateParams`, and `public/js/validate/src/data/Form.js` sends it back as `validate_params.triage`; the JSON
+`param.validateParams`, and `frontend/js/validate/data/Form.js` sends it back as `validate_params.triage`; the JSON
 reader defaults a missing field to `false`, so a tab opened before the field existed still submits successfully.
 
 The mode is visible only in the URL and in the embedded params — there is no user-facing string for it, so there is
@@ -350,7 +351,7 @@ two cannot drift apart.
 
 ## Evidence (Seattle, 2026-09)
 
-Every number below is pasted from `tools/analyze_validation_queue.py` (see
+Every number below is pasted from `tools/validation_queue/analyze_validation_queue.py` (see
 [Re-running the analysis](#re-running-the-analysis)) against the Seattle city schema of the dev DB dump — a recent
 production snapshot, 304,948 non-deleted labels and 422,284 validations. Nothing here is typed by hand. Those three
 counts are direct `count(*)`s against the schema; every other number comes from the tool's report, and the tables are
@@ -538,21 +539,35 @@ unsure-heavy, 3,029 AI-contested (the three overlap).
 
 ## Re-running the analysis
 
+Both exports are written for `run-query-in-every-city.sh` in the sibling `sidewalk-server-tools` checkout, which
+runs them on prod across every city and merges the rows into one CSV with a `city` column. Per export:
+
 ```bash
-# tools/validation_queue/run.sh <schema> <out-dir>
-tools/validation_queue/run.sh sidewalk_seattle tmp/validation-queue
+mkdir -p tmp/validation-queue
+scp tools/validation_queue/pool.sql <netid>@makelab1.cs.washington.edu:sidewalk-server-tools/current-query.sql
+./run-query-in-every-city.sh -p -m -o "validation-queue-pool"          # add -c "seattle" for one city
+scp <netid>@makelab1.cs.washington.edu:sidewalk-server-tools/validation-queue-pool.csv tmp/validation-queue/
 ```
 
-Run it from the host with both containers up. It exports two CSVs with `psql` through the `db` container
-(`tools/validation_queue/pool.sql`, the honest servable pool; `tools/validation_queue/validations.sql`, every
-validation for the replay), then runs `tools/analyze_validation_queue.py` in the web container, where numpy lives, and
-writes `report.md` into the output directory. The output directory must be inside the repo so the web container can
-see it; `tmp/` is gitignored, so keep the CSVs there and never commit them.
+Then the same three lines with `validations.sql` / `validation-queue-validations`, and the analysis for one city:
 
-The tool reads either schema shape — it checks `max(id)` in the schema's `play_evolutions` and selects the label-type
-expression accordingly — so it runs against a city schema that has not caught up to the current evolution level.
+```bash
+python3.13 tools/validation_queue/analyze_validation_queue.py \
+    --pool tmp/validation-queue/validation-queue-pool.csv \
+    --validations tmp/validation-queue/validation-queue-validations.csv \
+    --city seattle --out tmp/validation-queue/validation-queue-seattle.md
+```
 
-To point the analysis at a different city, pass that schema name; `readonly_user` needs `USAGE` on it.
+The CSVs are a snapshot of a database and stay in `tmp/` (ignored); only the report is meant to leave the machine.
+The analyzer needs numpy, so on the host it wants a Python that has it (the web container's `python3.13` does).
+
+For one city on the dev DB, run an export the way the runner does (`readonly_user` needs `USAGE` on the schema):
+
+```bash
+docker exec -i projectsidewalk-db psql "dbname=sidewalk options=--search_path=sidewalk_seattle,public" \
+    -U readonly_user -v ON_ERROR_STOP=1 -P footer=off -A --csv -F"," -v city=seattle \
+    -f - < tools/validation_queue/pool.sql > tmp/validation-queue/validation-queue-pool.csv
+```
 
 ## QA
 

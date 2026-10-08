@@ -212,6 +212,17 @@
   "pano-attribution": {
     "opens-new-tab": "(在新分頁中開啟)"
   },
+  "image-adjustments": {
+    "button": "影像",
+    "active-sr": "（已調整）",
+    "tooltip": "調整影像的陰影、亮度與對比",
+    "title": "影像調整",
+    "shadows": "陰影",
+    "brightness": "亮度",
+    "contrast": "對比",
+    "reset": "重設為預設值",
+    "persist-note": "這些設定會在探索與檢核中保留，直到您重設為止。"
+  },
   "mission-start-tutorial": {
     "example-type-label-correct": "正確案例",
     "label-type-subtitle": "為什麼是錯的？",
@@ -354,14 +365,21 @@
     "vote-failed": "您的投票未儲存，請再試一次。"
   },
   "download-already-preparing": "此檔案已在為另一個請求準備中，請稍後再試。",
+  "session-load-failed": {
+    "title": "無法載入",
+    "body": "無法載入您的任務。請重新整理頁面再試一次。",
+    "bad-link": "此連結無效。請檢查網址後再試一次。"
+  },
   "label-type-picker": {
     "current": "{{labelType}}（目前類型）",
-    "change": "更改"
+    "change": "更改",
+    "change-type": "更改標籤類型",
+    "change-type-hint": "不適用於新類型的標記會被移除。評分只會在評分方式相同的類型之間保留。"
   },
   "access-score-spotlight": {
     "subtitle-regions": "每個鄰里的人行道都由我們的 <a href=\"{{href}}\">AccessScore</a> 演算法評為 0 到 100 分（100 分最佳）。",
     "subtitle-streets": "每條街道的人行道都由我們的 <a href=\"{{href}}\">AccessScore</a> 演算法評為 0 到 100 分（100 分最佳）。",
-    "subtitle-one-region": "這個城市被劃為單一鄰里，因此只有一個分數。切換到「街道」可看得更仔細。",
+    "subtitle-one-region": "這個城市被劃為單一鄰里，因此只有一個分數。",
     "units-label": "依鄰里或街道排名",
     "unit-regions": "鄰里",
     "unit-streets": "街道",
@@ -387,5 +405,8 @@
     "region-sub-pending": "街道總長 {{length}} · 已探索 {{percent}}%",
     "street-in-city": "{{region}}，{{city}}",
     "unnamed": "未命名街道"
-  }
+  },
+  "immersive-enter": "進入沉浸模式",
+  "immersive-exit": "離開沉浸模式",
+  "immersive-exit-hint": "沉浸模式。按 F 離開。"
 }

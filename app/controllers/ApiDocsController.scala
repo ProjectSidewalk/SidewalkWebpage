@@ -4,7 +4,7 @@ import controllers.base.{CustomBaseController, CustomControllerComponents}
 import play.api.Configuration
 import service.ConfigService
 
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.ExecutionContext
 
 /**
@@ -14,11 +14,10 @@ import scala.concurrent.ExecutionContext
 class ApiDocsController @Inject() (
     cc: CustomControllerComponents,
     val config: Configuration,
-    implicit val assets: AssetsFinder,
     configService: ConfigService
-)(implicit ec: ExecutionContext)
+)(using assets: AssetsFinder, ec: ExecutionContext)
     extends CustomBaseController(cc) {
-  implicit val implicitConfig: Configuration = config
+  given Configuration = config
 
   /**
    * Displays API documentation index/introduction page.
@@ -87,6 +86,16 @@ class ApiDocsController @Inject() (
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
       cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, "Visit_APIDocs_Regions")
       Ok(views.html.apiDocs.regions(commonData, request.identity))
+    }
+  }
+
+  /**
+   * Displays API documentation for one street's slope and elevation profile (#5223).
+   */
+  def streetGrade = cc.securityService.UserAwareAction { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, "Visit_APIDocs_StreetGrade")
+      Ok(views.html.apiDocs.streetGrade(commonData, request.identity))
     }
   }
 

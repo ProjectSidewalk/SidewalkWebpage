@@ -68,8 +68,7 @@
     "add-note": "💬 Add a note",
     "note-placeholder": "Add a note about this label (optional)…",
     "save-note": "Save note",
-    "popup-heading": "Your label was validated as incorrect. Do you agree this was a mistake?",
-    "your-label": "Your label: {{type}}"
+    "popup-heading": "Your label was validated as incorrect. Do you agree this was a mistake?"
   },
   "settings-form": {
     "saving": "Saving…",

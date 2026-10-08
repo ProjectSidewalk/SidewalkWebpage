@@ -81,8 +81,9 @@ When a column can only hold a fixed set of values, pick between two tools (#4103
   Scala enum. It makes the DB self-describing (readable raw SQL and dumps, no join to a lookup table, no
   hand-maintained Scala id map that nothing validates) and fails loudly on drift. Wire it up like the existing ones
   (`pano_source`, `validation_option`, `street_edge_status`, `mission_type`, `way_type`, `role`, `label_type`): a Scala
-  `Enumeration` object whose string values match the enum labels, plus a `createEnumJdbcType` mapper in
-  `MyPostgresProfile`. Growing a set later is fine; `ALTER TYPE ... ADD VALUE` has prod precedent (331/332/339).
+  `enum` extending `NamedEnum` whose `name` values match the enum labels, with a companion object extending
+  `PgEnumCompanion("<type name>")`. Raw SQL then takes a value as-is (`$status`), with no `::type` cast. Growing a set
+  later is fine; `ALTER TYPE ... ADD VALUE` has prod precedent (331/332/339).
 - A plain **`CHECK (col IN (...))`** for tiny script-seeded config/cache tables (e.g. `config.open_status`,
   `funnel_stat.funnel_type`), where the enum's join/space/mapping benefits are nil.
 
@@ -142,6 +143,13 @@ The dev DB is small enough that any SQL looks fast; prod tables are not (`label`
   serves each join/filter column (check with `\d`; don't assume), and what the driving row count is at prod scale.
   A statement with no index behind it on a large table needs a rewrite or a justification comment.
 - City schemas differ by ~1000x in size, so `EXPLAIN` against the largest local schema, not the smallest.
+- **A backfill that reads an `_interaction` table is a one-off script, not an evolution.** Evolutions run while the
+  app starts, so every city's server waits on them. `audit_task_interaction` and `validation_task_interaction` hold
+  hundreds of millions of rows in the big cities, indexed only by task id and action, and even a well-planned pass
+  over them takes minutes per city. Keep the evolution to the cheap part (add the column, nullable) and put the
+  backfill in a `scratchpad/*.sql` for `run-query-in-every-city.sh` (in the `sidewalk-server-tools` repo), run by a
+  maintainer after the deploy. The dev DB omits these tables in most schemas, so it can't tell you the
+  cost either way.
 
 ## Cached distance columns
 
@@ -150,13 +158,14 @@ distance columns (`user_stat.meters_audited`, `labels_per_meter` and the `high_q
 `region_completion`, `route.distance_meters`, and `label_point.centerline_offset_m`) must equal what their runtime
 recompute would produce, so changing a distance query means recomputing its caches in the same evolution, and the
 nightly refresh that maintains them has to reach every row a full recompute would touch (#4774).
-`GeodesicDistanceSpec` checks both against the connected database; it needs a *seeded* one, since its cache-freshness
-tests cancel on empty tables. `centerline_offset_m` is the odd one out: nothing refreshes it nightly, so an evolution
-that moves `label_point.geom`, changes `label.street_edge_id`, or edits `street_edge.geom` must recompute it in the
-same statement with `label_centerline_offset_m(label_point.geom, street_edge.geom)` (377.sql's backfill is the
-template); `StreetSideSpec` fails if a stored value differs from a fresh call. The `street_edge.geom` case is the
-easiest to miss and the worst to get wrong: a street re-import that **reverses** an edge's digitization flips the
-sign of every offset on it, so labels silently swap sides while every value still looks plausible.
+`GeodesicDistanceSpec` checks both (for `meters_audited` and `high_quality` it compares evolution 347's backfill SQL
+with the runtime recompute, since the two must stay one formula). It needs a *seeded* database, since its
+cache-freshness tests cancel on empty tables. `centerline_offset_m` is the odd one out: nothing refreshes it nightly,
+so an evolution that moves `label_point.geom`, changes `label.street_edge_id`, or edits `street_edge.geom` must
+recompute it in the same statement with `label_centerline_offset_m(label_point.geom, street_edge.geom)` (377.sql's
+backfill is the template); `StreetSideSpec` fails if a stored value differs from a fresh call. The `street_edge.geom`
+case is the easiest to miss and the worst to get wrong: a street re-import that **reverses** an edge's digitization
+flips the sign of every offset on it, so labels silently swap sides while every value still looks plausible.
 
 ## A new table that cross-schema queries read
 

@@ -2,7 +2,7 @@ package controllers.api
 
 import controllers.base.CustomControllerComponents
 import models.api.{ApiError, LabelEditDataForApi, LabelEditFiltersForApi}
-import models.label.LabelTypeEnum
+import models.label.LabelType
 import models.utils.CommonUtils.UiSource
 import org.apache.pekko.stream.scaladsl.Source
 import play.silhouette.api.Silhouette
@@ -19,7 +19,7 @@ class LabelEditApiController @Inject() (
     cc: CustomControllerComponents,
     val silhouette: Silhouette[models.auth.DefaultEnv],
     apiService: ApiService
-)(implicit ec: ExecutionContext)
+)(using ec: ExecutionContext)
     extends BaseApiController(cc) {
 
   /**
@@ -48,10 +48,10 @@ class LabelEditApiController @Inject() (
 
     val parsedTimestamp = parseDateTimeParam(editTimestamp, "editTimestamp")
 
-    val parsedSource: Either[ApiError, Option[UiSource.Value]] = source match {
+    val parsedSource: Either[ApiError, Option[UiSource]] = source match {
       case None    => Right(None)
       case Some(s) =>
-        UiSource.values.find(_.toString == s) match {
+        UiSource.withNameOption(s) match {
           case Some(uiSource) => Right(Some(uiSource))
           case None           =>
             Left(
@@ -63,7 +63,7 @@ class LabelEditApiController @Inject() (
         }
     }
 
-    val parsedLabelType: Either[ApiError, Option[LabelTypeEnum.Base]] = parseLabelTypeParam(labelType)
+    val parsedLabelType: Either[ApiError, Option[LabelType]] = parseLabelTypeParam(labelType)
 
     val firstError: Option[ApiError] = Seq(
       parsedTimestamp.left.toOption,
@@ -87,7 +87,7 @@ class LabelEditApiController @Inject() (
           editTimestamp = parsedTimestamp.toOption.flatten, source = parsedSource.toOption.flatten,
           withValidation = withValidation
         )
-        val dbDataStream: Source[LabelEditDataForApi, _] = apiService.getLabelEdits(filters, DEFAULT_BATCH_SIZE)
+        val dbDataStream: Source[LabelEditDataForApi, ?] = apiService.getLabelEdits(filters, DEFAULT_BATCH_SIZE)
         val baseFileName: String                         = timestampedFilename("label_edits")
 
         filetype match {

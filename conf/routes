@@ -11,7 +11,7 @@ GET     /labelMap                                       controllers.ApplicationC
 GET     /labelmap                                       controllers.ApplicationController.labelMap(regions: Option[String] ?= None, routes: Option[String] ?= None, aiValidationOptions: Option[String] ?= None)
 GET     /accessScore                                    controllers.ApplicationController.accessScore
 GET     /accessscore                                    controllers.ApplicationController.accessScore
-GET     /gallery                                        controllers.GalleryController.gallery(labelType: String ?= "Assorted", regions: String ?= "", severities: String ?= "", tags: List[String] ?= List(), validationOptions: String ?= "correct,unvalidated", aiValidationOptions: String ?= "", neighborhoods: String ?= "")
+GET     /gallery                                        controllers.GalleryController.gallery(labelType: String ?= "Assorted", regions: String ?= "", severities: String ?= "", tags: List[String] ?= List(), validationOptions: String ?= "correct,unvalidated", aiValidationOptions: String ?= "", neighborhoods: String ?= "", labelIds: String ?= "")
 GET     /labelingGuide                                  controllers.ApplicationController.labelingGuide
 GET     /labelingguide                                  controllers.ApplicationController.labelingGuide
 GET     /labelingGuide/curbRamps                        controllers.ApplicationController.labelingGuideCurbRamps
@@ -118,6 +118,7 @@ GET     /adminapi/checkImagery                          controllers.AdminControl
 POST    /adminapi/generateCrops                         controllers.AdminController.generateCrops
 POST    /adminapi/rebuildSidewalkPresence               controllers.AdminController.rebuildSidewalkPresence
 POST    /adminapi/refreshPlaces                         controllers.AdminController.refreshPlaces
+POST    /adminapi/recountStreetGradientStaleness        controllers.AdminController.recountStreetGradientStaleness
 
 # Community-partner logos on the landing page (#4516). Global (all-cities) scope is Owner-only; the reorder routes
 # must precede the :partnerId ones so "order" isn't captured as an id.
@@ -128,13 +129,17 @@ PUT     /adminapi/partners/order                        controllers.PartnerContr
 PUT     /adminapi/globalPartners/order                  controllers.PartnerController.reorderGlobalPartners
 PUT     /adminapi/partners/:partnerId                   controllers.PartnerController.updatePartner(partnerId: Int)
 DELETE  /adminapi/partners/:partnerId                   controllers.PartnerController.deletePartner(partnerId: Int)
+# The "contact <city> directly" notice in the landing page's partners section (#5462), edited on the same admin page.
+GET     /adminapi/officialContact                       controllers.PartnerController.getOfficialContact
+PUT     /adminapi/officialContact                       controllers.PartnerController.updateOfficialContact
 GET     /adminapi/refreshOsmWayData                     controllers.AdminController.refreshOsmWayData()
 GET     /adminapi/recalculateStreetPriority             controllers.AdminController.recalculateStreetPriority
 POST    /adminapi/recalculateValidationCounts           controllers.AdminController.recalculateValidationCounts
 GET     /adminapi/threadPoolStats                       controllers.AdminController.getThreadPoolStats
 
 # Auditing tasks
-GET     /explore                                        controllers.ExploreController.explore(newRegion: Boolean ?= false, retakeTutorial: Option[Boolean] ?= None, routeId: Option[Int] ?= None, resumeRoute: Boolean ?= true, regionId: Option[Int] ?= None, streetEdgeId: Option[Int] ?= None, lat: Option[Double] ?= None, lng: Option[Double] ?= None, panoId: Option[String] ?= None, placeName: Option[String] ?= None, heading: Option[Double] ?= None, pitch: Option[Double] ?= None, zoom: Option[Int] ?= None)
+GET     /explore                                        controllers.ExploreController.explore
+GET     /explore/session                                controllers.ExploreController.getSession(newRegion: Boolean ?= false, retakeTutorial: Option[Boolean] ?= None, routeId: Option[Int] ?= None, resumeRoute: Boolean ?= true, regionId: Option[Int] ?= None, streetEdgeId: Option[Int] ?= None, lat: Option[Double] ?= None, lng: Option[Double] ?= None, panoId: Option[String] ?= None, placeName: Option[String] ?= None, heading: Option[Double] ?= None, pitch: Option[Double] ?= None, zoom: Option[Double] ?= None, missionId: Option[Int] ?= None)
 POST    /explore/comment                                controllers.ExploreController.postComment
 POST    /explore/nostreetview                           controllers.ExploreController.postNoImagery
 GET     /survey/display                                 controllers.ExploreController.shouldDisplaySurvey
@@ -142,7 +147,7 @@ POST    /survey                                         controllers.ExploreContr
 GET     /completedMissionsInRegion                      controllers.ExploreController.getCompletedExploreMissionsInRegion(regionId: Int)
 
 # Exploring task reroutes from old names.
-GET     /audit                                          controllers.ExploreController.explore(newRegion: Boolean ?= false, retakeTutorial: Option[Boolean] ?= None, routeId: Option[Int] ?= None, resumeRoute: Boolean ?= true, regionId: Option[Int] ?= None, streetEdgeId: Option[Int] ?= None, lat: Option[Double] ?= None, lng: Option[Double] ?= None, panoId: Option[String] ?= None, placeName: Option[String] ?= None, heading: Option[Double] ?= None, pitch: Option[Double] ?= None, zoom: Option[Int] ?= None)
+GET     /audit                                          controllers.ExploreController.explore
 
 # Label validation tasks
 GET     /validate                                       controllers.ValidateController.validate(regions: Option[String] ?= None, unvalidatedOnly: Option[Boolean] ?= None, neighborhoods: Option[String] ?= None)
@@ -156,17 +161,20 @@ GET     /speedLimit                                     controllers.ExploreContr
 POST    /task                                           controllers.ExploreController.post
 POST    /validationTask                                 controllers.ValidateController.post
 POST    /validationTask/moreLabels                      controllers.ValidateController.getMoreLabels
+POST    /validationTask/mission                         controllers.ValidateController.getMission
 POST    /galleryTask                                    controllers.GalleryController.post
 POST    /labelmap/validate                              controllers.ValidateController.postLabelMapValidation
 POST    /labelmap/comment                               controllers.ValidateController.postLabelMapComment
-DELETE  /labelmap/comment/:labelId                      controllers.ValidateController.deleteLabelMapComment(labelId: Int)
+DELETE  /labelmap/comment/:labelId                      controllers.ValidateController.deleteLabelMapComment(labelId: Int, labelType: String)
 
 # Labels
 GET     /labels/all                                     controllers.LabelController.getAllLabelsForLabelMap(regions: Option[String] ?= None, routes: Option[String] ?= None, aiValidationOptions: Option[String] ?= None, bbox: Option[String] ?= None)
 GET     /label/id/:labelId                              controllers.LabelController.getLabelData(labelId: Int)
 POST    /label/edit                                     controllers.LabelController.editLabel
+DELETE  /label/:labelId                                 controllers.LabelController.deleteLabel(labelId: Int, source: String)
+POST    /label/:labelId/restore                         controllers.LabelController.restoreLabel(labelId: Int)
 GET     /label/tags                                     controllers.LabelController.getLabelTags
-GET     /label/resumeMission                            controllers.LabelController.getLabelsToResumeMission(regionId: Int)
+GET     /label/resumeMission                            controllers.LabelController.getLabelsToResumeMission(regionId: Int, userRouteId: Option[Int] ?= None)
 GET     /label/countInRegion                            controllers.LabelController.getRegionLabelCount(regionId: Int)
 POST    /label/labels                                   controllers.GalleryController.getLabels
 
@@ -217,7 +225,6 @@ POST    /userapi/logWebpageActivity                     controllers.UserControll
 PUT     /userapi/setUserTeam                            controllers.UserProfileController.setUserTeam(userId: String, teamId: Int)
 PUT     /userapi/leaveTeam                              controllers.UserProfileController.leaveTeam(userId: String)
 POST    /userapi/createTeam                             controllers.UserProfileController.createTeam()
-GET     /userapi/getTeams                               controllers.UserProfileController.getTeams
 
 # Map resources from the /public folder to the /assets URL path. Prefix must match `play.assets.urlPrefix`
 GET     /assets/*file                                   controllers.Assets.versioned(file)
@@ -289,6 +296,7 @@ GET     /v3/api/aggregateStatsByDay                     controllers.api.StatsApi
 GET     /v3/api/labelClusters                           controllers.api.LabelClustersApiController.getLabelClustersV3(bbox: Option[String], labelType: Option[String], regionId: Option[Int], regionName: Option[String], includeRawLabels: Option[Boolean], clusterSize: Option[Int], avgImageCaptureDate: Option[String], avgLabelDate: Option[String], minSeverity: Option[Int], maxSeverity: Option[Int], filetype: Option[String], inline: Option[Boolean])
 GET     /v3/api/streets                                 controllers.api.StreetsApiController.getStreets(bbox: Option[String], regionId: Option[Int], regionName: Option[String], minLabelCount: Option[Int], minAuditCount: Option[Int], minUserCount: Option[Int], wayType: Option[String], status: Option[String], filetype: Option[String], inline: Option[Boolean])
 GET     /v3/api/streetTypes                             controllers.api.StreetsApiController.getStreetTypes
+GET     /v3/api/streetGrade                             controllers.api.StreetsApiController.getStreetGrade(streetEdgeId: Int)
 GET     /v3/api/sidewalkPresence                        controllers.api.StreetsApiController.getSidewalkPresence(bbox: Option[String], regionId: Option[Int], regionName: Option[String], presence: Option[String], minNoSidewalkLabels: Option[Int], minValidatedNoSidewalkLabels: Option[Int], minAuditCount: Option[Int], wayType: Option[String], status: Option[String], filetype: Option[String], inline: Option[Boolean])
 GET     /v3/api/places                                  controllers.api.PlacesApiController.getPlaces(bbox: Option[String], regionId: Option[Int], regionName: Option[String], category: Option[String], filetype: Option[String], inline: Option[Boolean])
 GET     /v3/api/regions                                 controllers.api.RegionApiController.getRegions(bbox: Option[String], regionId: Option[Int], regionName: Option[String], minLabelCount: Option[Int], filetype: Option[String], inline: Option[Boolean])
@@ -313,6 +321,7 @@ GET     /v3/api-docs/streetTypes                        controllers.ApiDocsContr
 GET     /v3/api-docs/sidewalkPresence                   controllers.ApiDocsController.sidewalkPresence
 GET     /v3/api-docs/places                             controllers.ApiDocsController.places
 GET     /v3/api-docs/regions                            controllers.ApiDocsController.regions
+GET     /v3/api-docs/streetGrade                        controllers.ApiDocsController.streetGrade
 GET     /v3/api-docs/accessScoreStreets                 controllers.ApiDocsController.accessScoreStreets
 GET     /v3/api-docs/accessScoreIntersections           controllers.ApiDocsController.accessScoreIntersections
 GET     /v3/api-docs/accessScoreRegions                 controllers.ApiDocsController.accessScoreRegions

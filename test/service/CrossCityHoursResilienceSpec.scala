@@ -1,7 +1,6 @@
 package service
 
 import models.utils.{ConfigTable, FunnelStatTable, VersionTable}
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.cache.AsyncCacheApi
 import play.api.db.slick.DatabaseConfigProvider
@@ -9,6 +8,7 @@ import play.api.i18n.{Lang, MessagesApi}
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.ws.WSClient
 import play.api.{Application, Configuration}
+import util.SidewalkSpec
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.DurationInt
@@ -22,10 +22,10 @@ import scala.concurrent.{Await, Future}
  * produces an unreadable schema. Here the scope is supplied directly, so the failures are reachable on purpose while
  * the per-city queries still run against the real database.
  */
-class CrossCityHoursResilienceSpec extends PlaySpec with GuiceOneAppPerSuite {
+class CrossCityHoursResilienceSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private def await[T](f: => Future[T]): T = Await.result(f, 60.seconds)
 
@@ -59,7 +59,7 @@ class CrossCityHoursResilienceSpec extends PlaySpec with GuiceOneAppPerSuite {
     override def getCrossCityHoursScope: Future[SelfViewScope] = scope
   }
 
-  private def userServiceWith(scope: => Future[SelfViewScope]): UserService = new UserServiceImpl(
+  private def userServiceWith(scope: => Future[SelfViewScope]): UserService = UserServiceImpl(
     app.injector.instanceOf[DatabaseConfigProvider],
     app.injector.instanceOf[models.user.UserStatTable],
     app.injector.instanceOf[models.user.SidewalkUserTable],
@@ -74,16 +74,15 @@ class CrossCityHoursResilienceSpec extends PlaySpec with GuiceOneAppPerSuite {
     app.injector.instanceOf[models.user.TeamTable],
     app.injector.instanceOf[models.user.UserUtmTable],
     app.injector.instanceOf[models.user.UserSettingsTable],
-    new ScopedConfigService(scope),
-    app.injector.instanceOf[AsyncCacheApi],
-    global
-  )
+    ScopedConfigService(scope),
+    app.injector.instanceOf[AsyncCacheApi]
+  )(using global)
 
   "getCrossCityHours" should {
     "fall back to this city's own total when the scope can't be determined at all" in {
       // Without this the page 500s on a volunteer who may be mid-way through logging hours, when the number they
       // came for is still perfectly computable.
-      val service = userServiceWith(Future.failed(new RuntimeException("scope lookup exploded")))
+      val service = userServiceWith(Future.failed(RuntimeException("scope lookup exploded")))
       val result  = await(service.getCrossCityHours(ghostId, Lang("en")))
 
       result.cities.count(_.isCurrentCity) must be <= 1
@@ -94,7 +93,7 @@ class CrossCityHoursResilienceSpec extends PlaySpec with GuiceOneAppPerSuite {
 
     "report exactly this city's own hours in that fallback, not a zero or a partial figure" in {
       activeUser.foreach { userId =>
-        val service = userServiceWith(Future.failed(new RuntimeException("scope lookup exploded")))
+        val service = userServiceWith(Future.failed(RuntimeException("scope lookup exploded")))
         val result  = await(service.getCrossCityHours(userId, Lang("en")))
 
         result.totalHours mustBe UserService.toDisplayedTenth(await(realService.getHoursAuditingAndValidating(userId)))

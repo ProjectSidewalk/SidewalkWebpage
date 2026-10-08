@@ -10,7 +10,7 @@
  *   - writes that need a session at the same moment share one mint, so a double-click can't create two accounts.
  */
 
-const { loadGlobalScript } = require('./loadGlobalScript');
+const { realUtil } = require('./loadGlobalScript');
 
 /** A minimal Response-shaped object carrying only the fields the helper reads. */
 function response(overrides = {}) {
@@ -27,7 +27,7 @@ beforeEach(() => {
             getOSName: () => 'TestOS', getPlatformType: () => 'desktop',
         }),
     };
-    loadGlobalScript('public/js/common/utilities.js');
+    window.util = realUtil();
 });
 
 /** Runs the helper against a scripted sequence of responses and returns { result, calls }. */

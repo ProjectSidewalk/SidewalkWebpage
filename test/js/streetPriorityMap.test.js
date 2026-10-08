@@ -11,22 +11,18 @@
  * eval'd into global scope rather than required.
  */
 
-/* global StreetPriorityTiers -- pulled into scope by the eval() loader below. */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules, realUtil } = require('./loadGlobalScript');
 
-const JS_DIR = path.resolve(__dirname, '..', '..', 'public/js/admin-dashboard');
+window.util = realUtil();
+
 
 /** Loads AdminShell (the popup escapes through it) and returns the map class. */
 function loadMap() {
-  const shell = fs.readFileSync(path.join(JS_DIR, 'AdminShell.js'), 'utf8');
-  const map = fs.readFileSync(path.join(JS_DIR, 'StreetPriorityMap.js'), 'utf8');
-  return (0, eval)(`${shell}\nglobalThis.AdminShell = AdminShell;\n${map}\n`
-    + 'globalThis.StreetPriorityTiers = StreetPriorityTiers;\nStreetPriorityMap;');
+  return loadModules('frontend/js/admin-dashboard/StreetPriorityMap.js');
 }
 
-const StreetPriorityMap = loadMap();
+const { StreetPriorityMap, StreetPriorityTiers } = loadMap();
 
 /** A minimal `mapboxgl` double: records layers, sources, feature states and handlers instead of drawing. */
 function stubMapbox() {

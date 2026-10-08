@@ -1,5 +1,7 @@
 package models.street
 
+import models.utils.{NamedEnum, PgEnumCompanion}
+
 /**
  * Enumeration of a street edge's intrinsic availability, backing the `street_edge_status` Postgres enum type.
  *
@@ -13,13 +15,11 @@ package models.street
  * NOTE: if changing these values, update the `street_edge_status` Postgres enum type as well (see 325.sql). The
  * string values are emitted directly in the `/v3/api/streets` responses.
  */
-object StreetEdgeStatus extends Enumeration {
-  type StreetEdgeStatus = Value
-  val Open: Value      = Value("open")
-  val NoImagery: Value = Value("no_imagery")
-  val Closed: Value    = Value("closed")
-  val Disabled: Value  = Value("disabled")
-
-  /** Parses a string into a street edge status, returning None if it doesn't match a known value. */
-  def fromString(name: String): Option[Value] = values.find(_.toString == name)
+enum StreetEdgeStatus(val name: String) extends NamedEnum {
+  case Open      extends StreetEdgeStatus("open")
+  case NoImagery extends StreetEdgeStatus("no_imagery")
+  case Closed    extends StreetEdgeStatus("closed")
+  case Disabled  extends StreetEdgeStatus("disabled")
 }
+
+object StreetEdgeStatus extends PgEnumCompanion[StreetEdgeStatus]("street_edge_status")

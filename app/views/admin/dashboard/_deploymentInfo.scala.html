@@ -18,7 +18,7 @@
     v@commonData.versionId<span aria-hidden="true"> ↗</span>
   </a>
   <span class="deploy-strip-sep" aria-hidden="true">·</span>
-  <span><b class="deploy-strip-label">released</b> <time datetime="@commonData.versionTimestamp" data-format="date">@commonData.versionTimestamp.toLocalDate</time></span>
+  <span><b class="deploy-strip-label">released</b> <time datetime="@commonData.versionTimestamp" data-format="date">@commonData.versionDate</time></span>
   <span class="deploy-strip-sep" aria-hidden="true">·</span>
   <span>@commonData.currentCity.cityNameFormatted (<code>@commonData.cityId</code>)</span>
   <span class="deploy-strip-sep" aria-hidden="true">·</span>
@@ -28,7 +28,7 @@
      describe wasn't available at build time; the link always targets the exact commit. *@
   @commonData.buildCommit.map { sha =>
     <span class="deploy-strip-sep" aria-hidden="true">·</span>
-    <span @if(commonData.buildDirty) {title="* means built with uncommitted local changes"}><b class="deploy-strip-label">build</b>
+    <span @if(commonData.buildDirty) {data-ps-tooltip="* means built with uncommitted local changes"}><b class="deploy-strip-label">build</b>
       <a href="@repoUrl/commit/@sha" target="_blank" rel="noopener"
          aria-label="commit @sha.take(7) on GitHub (opens in new tab)@if(commonData.buildDirty){, built with uncommitted local changes}"><code>@commonData.buildDescribe.getOrElse(sha.take(7))@if(commonData.buildDirty){*}</code></a></span>
   }

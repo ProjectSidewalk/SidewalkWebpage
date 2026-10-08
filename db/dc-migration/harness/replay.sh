@@ -43,7 +43,7 @@ while [ $# -gt 0 ]; do
     *) break ;;
   esac
 done
-HIGHEST=$(ls "$EVODIR" | sed 's/\.sql$//' | sort -n | tail -1)
+HIGHEST=$(for f in "$EVODIR"/*.sql; do basename "$f" .sql; done | sort -n | tail -1)
 START=${1:-15}
 END=${2:-$HIGHEST}
 
@@ -95,7 +95,7 @@ for N in $(seq "$START" "$END"); do
     grep -v '^$' "$LOGDIR/$N.pre.out" | sed 's/^/     /'
   fi
   if [ -f "$PATCHES/$N.sql" ]; then
-    SRC="$PATCHES/$N.sql"; KIND=patch
+    SRC="$PATCHES/$N.sql"; KIND="patch"
     SQL=$(cat "$SRC")
   else
     SRC="$EVODIR/$N.sql"; KIND=repo

@@ -4,9 +4,9 @@ import com.typesafe.sbt.web.pipeline.Pipeline
 
 name := """sidewalk-webpage"""
 
-version := "11.14.1"
+version := "11.17.0"
 
-scalaVersion := "2.13.18"
+scalaVersion := "3.9.0"
 
 // An idle server sits on ~1GB, and the default keeps one alive per worktree for a week.
 Global / serverIdleTimeout := Some(scala.concurrent.duration.Duration(1, "hour"))
@@ -21,13 +21,13 @@ resolvers ++= Seq(
   "OSGeo" at "https://repo.osgeo.org/repository/release/"
 )
 
-// Play: https://mvnrepository.com/artifact/com.typesafe.play/play?repo=central
+// Play: https://mvnrepository.com/artifact/org.playframework/play?repo=central
 libraryDependencies ++= Seq(
-  // General Play stuff.
-  "org.playframework" %% "play-guice"          % "3.0.11",
-  "org.playframework" %% "play-cache"          % "3.0.11",
-  "org.playframework" %% "play-ws"             % "3.0.11",
-  "org.playframework" %% "play-caffeine-cache" % "3.0.11",
+  // General Play stuff. These take their version from the Play sbt plugin, so a plugin bump moves them all together.
+  "org.playframework" %% "play-guice"          % play.core.PlayVersion.current,
+  "org.playframework" %% "play-cache"          % play.core.PlayVersion.current,
+  "org.playframework" %% "play-ws"             % play.core.PlayVersion.current,
+  "org.playframework" %% "play-caffeine-cache" % play.core.PlayVersion.current,
   "org.playframework" %% "play-mailer" % "10.1.0", // play-mailer is on a different versioning scheme than Play itself.
   "org.playframework" %% "play-mailer-guice" % "10.1.0", // play-mailer is on a different versioning scheme than Play itself.
   "org.playframework" %% "play-json" % "3.0.6", // play-json is on a different versioning scheme than Play itself.
@@ -38,7 +38,6 @@ libraryDependencies ++= Seq(
   "org.playframework.silhouette" %% "play-silhouette-crypto-jca"      % "10.0.4",
   "org.playframework.silhouette" %% "play-silhouette-persistence"     % "10.0.4",
   "net.codingwell" %% "scala-guice" % "6.0.0", // This on top of play-guice, I think to simplify SilhouetteModule.scala.
-  "com.iheart"     %% "ficus"       % "1.5.2",
 
   // Slick and Postgres stuff.
   "org.postgresql"     % "postgresql"            % "42.7.13",
@@ -49,19 +48,11 @@ libraryDependencies ++= Seq(
   "com.github.tminglei" %% "slick-pg"           % "0.23.1",
   "com.github.tminglei" %% "slick-pg_jts_lt"    % "0.23.1",
   "com.github.tminglei" %% "slick-pg_play-json" % "0.23.1",
-  "org.locationtech.jts" % "jts"                % "1.20.0",
-
-  // For automatic WKT to GeoJSON and Shapefile conversion, used with slick-pg.
-  "org.n52.jackson" % "jackson-datatype-jts" % "1.2.10",
+  "org.locationtech.jts" % "jts-core"           % "1.20.0",
 
   // Reads EXIF (photos) and QuickTime/MP4 atoms (videos, for the later #4054 increments) from user-uploaded story
   // media. Pure Java, one small transitive dep (xmpcore). Used transiently on ingest; precise values are discarded.
   "com.drewnoakes" % "metadata-extractor" % "2.21.0",
-
-  // Used for the sign in/up views. https://github.com/mohiva/play-silhouette-seed/blob/1710f9f3337cbe10d1928fd53a5ab933352b3cf5/build.sbt
-  // Find versions here (P26-B3 is Play 2.6, Bootstrap 3): https://adrianhurt.github.io/play-bootstrap/changelog/
-  // TODO no releases since Play 2.8. Seems to continue to work, but should consider other options.
-  "com.adrianhurt" %% "play-bootstrap" % "1.6.1-P28-B3",
 
   // Used to create the shapefile and GeoPackage exports (ShapefilesCreatorHelper). Served by the OSGeo resolver above.
   "org.geotools" % "gt-shapefile" % "35.1",
@@ -153,19 +144,11 @@ Compile / sourceGenerators += Def.task {
 // `util.assetPath` (#4893). Everything under these prefixes goes into the generated inventory below, which
 // AssetManifestService turns into the `window.assetDigests` stamp main.scala.html puts on every page.
 //
-// tools/check-asset-paths.mjs parses this Seq to decide which logical paths `util.assetPath` may name, so keep the
-// literal shape — one quoted prefix per line. `locales` is deliberately absent: i18next-http-backend interpolates its
-// own `loadPath` template, so those URLs never reach the helper.
+// tools/lint/check-asset-paths.mjs parses this Seq to decide which logical paths `util.assetPath` may name, so keep
+// each prefix a plain quoted string.
 val assetManifestPrefixes = Seq(
-  "audio",
-  "images/badges",
-  "images/examples",
-  "images/explore",
-  "images/icons",
-  "images/logos",
-  "images/pano-tutorial",
-  "images/tutorials",
-  "images/validate"
+  "audio", "images/badges", "images/examples", "images/explore", "images/icons", "images/logos", "images/pano-tutorial",
+  "images/tutorials", "images/validate", "locales"
 )
 
 // Generate models.utils.AssetInventory: the sorted logical paths of every file under the prefixes above, so the app
@@ -178,12 +161,14 @@ val assetManifestPrefixes = Seq(
 // Output is sorted and deterministic so the generated source is byte-identical between compiles and zinc has nothing
 // to recompile.
 Compile / sourceGenerators += Def.task {
-  val publicDir = baseDirectory.value / "public"
+  val publicDir          = baseDirectory.value / "public"
   val paths: Seq[String] = assetManifestPrefixes.flatMap { prefix =>
     val dir = publicDir / prefix
     if (!dir.isDirectory) {
-      sys.error(s"build.sbt: asset manifest prefix 'public/$prefix' is not a directory. If the asset family moved, " +
-        "update assetManifestPrefixes (and the util.assetPath call sites naming it).")
+      sys.error(
+        s"build.sbt: asset manifest prefix 'public/$prefix' is not a directory. If the asset family moved, " +
+          "update assetManifestPrefixes (and the util.assetPath call sites naming it)."
+      )
     }
     (dir ** "*")
       .get()
@@ -231,9 +216,8 @@ Test / parallelExecution := false
 //
 // Read the new figure off a CI run before raising this. A local run scores far higher: CI's schema is empty where a
 // local one is seeded, so the data-dependent paths go unmeasured there, and a floor set from a local number fails
-// every PR. 52 sits under a CI run of the whole suite (#5042) that measured 53.28%, by about the same ~1000
-// statements of jitter room 35 kept under the subset's 36.39%.
-coverageMinimumStmtTotal := 52
+// every PR. 65 sits under a CI run that measured 69.83%.
+coverageMinimumStmtTotal := 65
 coverageFailOnMinimum    := true
 
 // Twirl templates emit the JS reverse router for the browser, so nothing calls it from Scala: 692 statements no test
@@ -242,19 +226,32 @@ coverageFailOnMinimum    := true
 coverageExcludedPackages := """controllers\.javascript\..*"""
 
 scalacOptions ++= Seq(
-  "-deprecation", // Emit warning and location for usages of deprecated APIs.
-  "-feature",     // Emit warning and location for usages of features that should be imported explicitly.
-  "-unchecked",   // Enable additional warnings where generated code depends on assumptions.
+  // Play's sbt plugin already passes -deprecation and -unchecked, and Scala 3 rejects a flag that's set twice.
+  "-feature", // Emit warning and location for usages of features that should be imported explicitly.
 
-  // Fail the compilation if there are any warnings. But suppress the warnings/errors in Twirl templates (.scala.html)
-  // and silence unused import warnings in the routes file. But are bugged and bugged and incorrectly throw errors.
-  "-Xfatal-warnings", "-Wconf:src=views/.*:s", "-Wconf:cat=unused-imports&src=.*routes.*:s", "-Xlint", // Enable recommended additional warnings.
-  "-Wunused:explicits", // Warn if an explicit parameter is unused.
-  "-Wunused:implicits", // Warn if an implicit parameter is unused.
-  "-Wdead-code",        // Warn when dead code is identified.
-  "-Wvalue-discard",    // Warn when non-Unit expression results are unused.
-  "-Wnumeric-widen"     // Warn when numerics are widened.
+  // Generated code gets a pass on -Werror, since we can't fix its warnings. The -Wconf paths name sbt's output folders,
+  // so no checkout path matches.
+  "-Werror",                        // Fail the compilation if there are any warnings...
+  "-Wconf:src=.*/twirl/main/.*:s",  // ...except in Twirl templates (.scala.html)...
+  "-Wconf:src=.*/routes/main/.*:s", // ...and the routes file.
+  "-Wshadow:all",                   // Warn when a name hides one from a parent class or an outer scope.
+  "-Wrecurse-with-default",         // Warn when a method calls itself with a default argument.
+  "-Wunused:nowarn",                // Warn if a @nowarn annotation silences nothing.
+  "-Wunused:imports",               // Warn if an import is unused.
+  "-Wunused:explicits",             // Warn if an explicit parameter is unused.
+  "-Wunused:implicits",             // Warn if an implicit parameter is unused.
+  "-Wunused:privates",              // Warn if a private member is unused.
+  "-Wunused:locals",                // Warn if a local definition is unused.
+  "-Wvalue-discard",                // Warn when non-Unit expression results are unused.
+  "-Wsafe-init",                    // Warn when a field could be read before it is set.
+  "-Winfer-union",                  // Warn when a type comes out as `A | B`, usually because two branches disagree.
+  "-Wimplausible-patterns",         // Warn when a `case` compares against a value it can never equal.
+  "-Wenum-comment-discard",         // Warn when a doc comment between enum cases is dropped.
+  "-Wwrong-arrow"                   // Warn when `=>` is used where `?=>` was meant.
 )
+
+// A test often ends on `if (hasData) result mustBe expected`, which the value-discard check would flag.
+Test / scalacOptions += "-Wconf:msg=discarded non-Unit value of type org.scalatest.Assertion:s"
 
 javacOptions ++= Seq("-source", "17", "-target", "17")
 // Heap for the forked test JVM, which is all this ever reached — prod's comes from the deploy tooling (#4564).

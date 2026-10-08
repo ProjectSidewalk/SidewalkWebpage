@@ -15,18 +15,10 @@
  *   on screen, and an overview whose lower floor is lowered before fitting and raised only after returning.
  * - that the credits MapLibre opens on its own are closed once, and only once.
  *
- * The sources are top-level `class` declarations written for the Grunt-concatenation world, so they are eval'd into
- * the jsdom global scope against a stand-in for the MapLibre global.
+ * The sources are loaded as modules against a stand-in for the MapLibre global.
  */
 
-const fs = require('fs');
-const path = require('path');
-
-const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const readSrc = (relativePath) => fs.readFileSync(path.join(REPO_ROOT, relativePath), 'utf8');
-
-const NAVIGATION_DIR = 'public/js/explore/src/navigation';
-const SOURCES = ['MinimapStyle', 'MinimapBasemapStyle', 'Minimap'];
+const { loadModules } = require('./loadGlobalScript');
 
 // The class MapLibre's compact attribution carries while its credits are showing.
 const CREDITS_SHOWN = 'maplibregl-compact-show';
@@ -216,20 +208,6 @@ function buildDom() {
     <button id="minimap-zoom-out" type="button"></button>`;
 }
 
-/**
- * The slice of jQuery Minimap calls on svl.ui.minimap.holder.
- * @param {HTMLElement} element
- * @returns {object}
- */
-function fakeJQuery(element) {
-  const wrapped = {
-    hasClass: (name) => element.classList.contains(name),
-    addClass: (name) => { element.classList.add(name); return wrapped; },
-    removeClass: (name) => { element.classList.remove(name); return wrapped; },
-  };
-  return wrapped;
-}
-
 /** Loads the sources and the globals they read, against a fresh DOM and a fresh stand-in for MapLibre. */
 function setUpGlobals(frames) {
   FakeMap.instances = [];
@@ -241,15 +219,16 @@ function setUpGlobals(frames) {
     Map: FakeMap, Marker: FakeMarker, AttributionControl: FakeAttributionControl, LngLatBounds: FakeLngLatBounds,
   };
   window.svl = {
-    ui: { minimap: { holder: fakeJQuery(document.getElementById('minimap-holder')) } },
+    ui: { minimap: { holder: document.getElementById('minimap-holder') } },
     tracker: { push: jest.fn() },
     panoViewer: { getPosition: () => PANO },
   };
-  for (const name of SOURCES) {
-    window.eval(`${readSrc(`${NAVIGATION_DIR}/${name}.js`)}; window.${name} = ${name};`);
-  }
-  // jsdom has no 2D canvas; the chevron's pixels aren't under test.
+  // MinimapStyle is loaded first and put on window so Minimap's import resolves to this patched copy: jsdom has no 2D
+  // canvas, and the chevron's pixels aren't under test.
+  Object.assign(window, loadModules('frontend/js/explore/navigation/MinimapStyle.js'));
   window.MinimapStyle.chevronImage = () => ({ width: 1, height: 1, data: new Uint8ClampedArray(4) });
+  Object.assign(window, loadModules('frontend/js/explore/navigation/MinimapBasemapStyle.js'));
+  Object.assign(window, loadModules('frontend/js/explore/navigation/Minimap.js'));
 }
 
 describe('Minimap seam', () => {

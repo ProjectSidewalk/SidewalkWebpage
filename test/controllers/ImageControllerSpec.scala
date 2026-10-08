@@ -1,17 +1,16 @@
 package controllers
 
 import org.apache.pekko.stream.Materializer
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
 import play.api.mvc.Cookie
-import play.api.test.CSRFTokenHelper._
+import play.api.test.CSRFTokenHelper.*
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import service.{PanoDataService, ShareImageCache}
-import util.AnonSession
+import util.{AnonSession, SidewalkSpec}
 
 import java.awt.image.BufferedImage
 import java.io.{ByteArrayOutputStream, File}
@@ -33,14 +32,14 @@ import javax.imageio.ImageIO
  *
  * Requires a Postgres+PostGIS database (via DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD env, as in dev/CI).
  */
-class ImageControllerSpec extends PlaySpec with AnonSession with GuiceOneAppPerSuite {
+class ImageControllerSpec extends SidewalkSpec with AnonSession with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule] // No eager background actors during tests.
       .build()
 
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   private val panoDataService: PanoDataService = app.injector.instanceOf[PanoDataService]
   private val shareImageCache: ShareImageCache = app.injector.instanceOf[ShareImageCache]
@@ -50,20 +49,39 @@ class ImageControllerSpec extends PlaySpec with AnonSession with GuiceOneAppPerS
   private val otherSyntheticLabelId = Int.MaxValue - 4727
   private val labelType             = "CurbRamp"
 
-  /** A real 2x2 PNG as the `data:` URL the canvas sends, since the controller decodes and re-encodes it. */
-  private lazy val cropDataUrl: String = {
-    val img = new BufferedImage(2, 2, BufferedImage.TYPE_INT_RGB)
+  /** A real PNG of the given size as the `data:` URL the canvas sends; the controller decodes and re-encodes it. */
+  private def pngDataUrl(width: Int, height: Int): String = {
+    val img = BufferedImage(width, height, BufferedImage.TYPE_INT_RGB)
     img.setRGB(0, 0, 0x00ff00)
-    val out = new ByteArrayOutputStream()
+    val out = ByteArrayOutputStream()
     val _   = ImageIO.write(img, "png", out)
     s"data:image/png;base64,${Base64.getEncoder.encodeToString(out.toByteArray)}"
+  }
+
+  private lazy val cropDataUrl: String = pngDataUrl(2, 2)
+
+  /** A 2x2 PNG whose header claims another size, with the IHDR checksum recomputed so a reader trusts the claim. */
+  private def pngDataUrlClaiming(width: Int, height: Int): String = {
+    val img = BufferedImage(2, 2, BufferedImage.TYPE_INT_RGB)
+    val out = ByteArrayOutputStream()
+    val _   = ImageIO.write(img, "png", out)
+    val png = out.toByteArray
+    // Signature (8 bytes), IHDR length (4), "IHDR" (4), then width and height as big-endian ints, then a CRC over
+    // the chunk type and data.
+    val buf = java.nio.ByteBuffer.wrap(png)
+    buf.putInt(16, width)
+    buf.putInt(20, height)
+    val crc = java.util.zip.CRC32()
+    crc.update(png, 12, 4 + 13)
+    buf.putInt(12 + 4 + 13, crc.getValue.toInt)
+    s"data:image/png;base64,${Base64.getEncoder.encodeToString(png)}"
   }
 
   private def postCrop(session: Seq[Cookie], labelId: Int, lblType: String = labelType, b64: String = cropDataUrl) =
     route(
       app,
       FakeRequest(POST, "/saveImage")
-        .withCookies(session: _*)
+        .withCookies(session*)
         .withJsonBody(Json.obj("label_id" -> labelId, "label_type" -> lblType, "b64" -> b64))
         .withCSRFToken
     ).get
@@ -138,8 +156,37 @@ class ImageControllerSpec extends PlaySpec with AnonSession with GuiceOneAppPerS
       contentAsString(resp) must include("Invalid label type")
     }
 
+    "store an upload at 1440 wide with its own aspect ratio, not squashed to 3:2 (#5085)" in {
+      val labelId = Int.MaxValue - 5085
+      try {
+        status(postCrop(freshAnonSession(), labelId, b64 = pngDataUrl(160, 90))) mustBe OK
+        val stored = ImageIO.read(cropFileFor(labelId))
+        (stored.getWidth, stored.getHeight) mustBe ((1440, 810))
+      } finally cleanUp(labelId)
+    }
+
+    "refuse an upload that is not the shape of a labeling frame, before decoding it" in {
+      // The stored height follows the upload's aspect, so this 1x300 file would otherwise become a 1440x432,000
+      // raster: about 1.9 GB, from a hundred bytes of base64 and any signed-in session.
+      val labelId = Int.MaxValue - 5086
+      try {
+        status(postCrop(freshAnonSession(), labelId, b64 = pngDataUrl(1, 300))) mustBe BAD_REQUEST
+        cropFileFor(labelId).exists() mustBe false
+      } finally cleanUp(labelId)
+    }
+
+    "refuse an upload whose header declares more pixels than any snapshot has, without decoding it" in {
+      // A small PNG whose IHDR claims 6000x4000: the size check reads the header, so the body is never decoded and no
+      // raster is allocated for the claim.
+      val labelId = Int.MaxValue - 5087
+      try {
+        status(postCrop(freshAnonSession(), labelId, b64 = pngDataUrlClaiming(6000, 4000))) mustBe BAD_REQUEST
+        cropFileFor(labelId).exists() mustBe false
+      } finally cleanUp(labelId)
+    }
+
     "reject a request with no JSON body" in {
-      val resp = route(app, FakeRequest(POST, "/saveImage").withCookies(freshAnonSession(): _*).withCSRFToken).get
+      val resp = route(app, FakeRequest(POST, "/saveImage").withCookies(freshAnonSession()*).withCSRFToken).get
       status(resp) mustBe BAD_REQUEST
     }
   }

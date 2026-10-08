@@ -1,11 +1,12 @@
 /**
- * Tests for AccessScoreUrlSync (public/js/access-score/src/AccessScoreUrlSync.js, #5217): the tool's state as a
+ * Tests for AccessScoreUrlSync (frontend/js/access-score/AccessScoreUrlSync.js, #5217): the tool's state as a
  * shareable URL. Reading validates every token against the engine config so a stale or hand-edited link degrades
  * to the defaults; writing omits params at their defaults and preserves params the tool doesn't own.
  */
 
 const fs = require('fs');
 const path = require('path');
+const { loadModules, realUtil } = require('./loadGlobalScript');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const read = (p) => fs.readFileSync(path.join(REPO_ROOT, p), 'utf8');
@@ -17,9 +18,10 @@ describe('AccessScoreUrlSync', () => {
     const config = FIXTURE.config;
 
     beforeAll(() => {
-        window.eval(read('public/js/common/urlQuery.js'));
-        window.eval(`${read('public/js/access-score/src/AccessScoreModel.js')}\nwindow.AccessScoreModel = AccessScoreModel;`);
-        window.eval(`${read('public/js/access-score/src/AccessScoreUrlSync.js')}\nwindow.AccessScoreUrlSync = AccessScoreUrlSync;`);
+        window.util ??= realUtil();
+        loadModules('frontend/js/common/urlQuery.js');
+        Object.assign(window, loadModules('frontend/js/access-score/AccessScoreModel.js'));
+        Object.assign(window, loadModules('frontend/js/access-score/AccessScoreUrlSync.js'));
         AccessScoreUrlSync = window.AccessScoreUrlSync;
         AccessScoreModel = window.AccessScoreModel;
     });
@@ -69,7 +71,7 @@ describe('AccessScoreUrlSync', () => {
 
     test('reads the dock params and drops a brush that is off the bin edges', () => {
         const { dock } = AccessScoreUrlSync.read(config, '?dock=0&b=40-60&focus=7');
-        expect(dock).toEqual({ open: false, brush: { from: 4, to: 6 }, focus: 7 });
+        expect(dock).toEqual({ open: false, brush: { kind: 'score', from: 4, to: 6 }, focus: 7 });
         expect(AccessScoreUrlSync.read(config, '').dock).toEqual({ open: true, brush: null, focus: null });
         expect(AccessScoreUrlSync.read(config, '?focus=0').dock.focus).toBeNull();
         expect(AccessScoreUrlSync.read(config, '?focus=abc').dock.focus).toBeNull();
@@ -146,6 +148,6 @@ describe('AccessScoreUrlSync', () => {
         sync.writeNow();
         expect(new URLSearchParams(window.location.search).has('place')).toBe(false);
         expect(back.dark).toBe(true);
-        expect(back.dock).toEqual({ open: false, brush: { from: 4, to: 6 }, focus: 3 });
+        expect(back.dock).toEqual({ open: false, brush: { kind: 'score', from: 4, to: 6 }, focus: 3 });
     });
 });

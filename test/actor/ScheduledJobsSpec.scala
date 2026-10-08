@@ -1,6 +1,6 @@
 package actor
 
-import org.scalatestplus.play.PlaySpec
+import util.SidewalkSpec
 
 /**
  * Invariants of the nightly job roster (#4928).
@@ -12,7 +12,7 @@ import org.scalatestplus.play.PlaySpec
  *
  * Pure — no database, no application.
  */
-class ScheduledJobsSpec extends PlaySpec {
+class ScheduledJobsSpec extends SidewalkSpec {
 
   /** Every `ScheduledJob` value defined on the object, found by reflection rather than by being listed again here. */
   private val declaredJobs: Seq[ScheduledJob] = {
@@ -99,7 +99,8 @@ class ScheduledJobsSpec extends PlaySpec {
         service.AccessScoreSpotlightService.JobName,           // /runClustering, its last step
         ClusteringActor.Name,                                  // /runClustering
         CropGenerationActor.Name,                              // /adminapi/generateCrops
-        SidewalkPresenceActor.Name                             // /adminapi/rebuildSidewalkPresence
+        SidewalkPresenceActor.Name,                            // /adminapi/rebuildSidewalkPresence
+        StreetGradientStalenessActor.Name                      // /adminapi/recountStreetGradientStaleness
       )
       ScheduledJobs.All.map(_.name) must contain allElementsOf handTriggered
     }
@@ -110,7 +111,8 @@ class ScheduledJobsSpec extends PlaySpec {
         RecalculateStreetPriorityActor.Name, RecalculateStreetPriorityActor.FreshnessSyncJobName,
         OsmWayRefreshActor.Name, PlacesRefreshActor.Name, AuthTokenCleanerActor.Name, FunnelStatActor.Name,
         service.ClusterServiceImpl.IntersectionRebuildJobName, ClusteringActor.Name,
-        service.AccessScoreSpotlightService.JobName, CropGenerationActor.Name, SidewalkPresenceActor.Name
+        service.AccessScoreSpotlightService.JobName, CropGenerationActor.Name, SidewalkPresenceActor.Name,
+        StreetGradientStalenessActor.Name
       )
       ScheduledJobs.All.map(_.name) must contain theSameElementsAs scheduled
     }

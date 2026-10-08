@@ -11,10 +11,8 @@
  * pointing that at a loader-shaped URL and evaluating the source in the jsdom window, the way a `<script>` would.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const STUB_SRC = fs.readFileSync(path.resolve(__dirname, '..', 'e2e', 'fixtures', 'google-maps-stub.js'), 'utf8');
 const LOADER_URL = 'https://maps.googleapis.com/maps/api/js?key=DUMMY&v=weekly&callback=google.maps.__ib__';
 
 /**
@@ -30,7 +28,7 @@ function install({ options, url = LOADER_URL, callback = jest.fn() } = {}) {
   const script = document.createElement('script');
   script.src = url;
   Object.defineProperty(document, 'currentScript', { value: script, configurable: true });
-  window.eval(STUB_SRC);
+  Object.assign(window, loadModules('test/e2e/fixtures/google-maps-stub.js'));
   return { maps: window.google.maps, callback };
 }
 

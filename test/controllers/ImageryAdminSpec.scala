@@ -1,10 +1,9 @@
 package controllers
 
 import models.user.Role
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.given
 import models.utils.{BackgroundJobRunTable, JobRunStatus, JobRunTrigger, MyPostgresProfile}
 import org.apache.pekko.stream.Materializer
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.db.slick.DatabaseConfigProvider
@@ -13,15 +12,15 @@ import play.api.cache.AsyncCacheApi
 import play.api.libs.json.{JsObject, JsValue, Json}
 import play.api.mvc.Cookie
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import service.ImageryFreshnessReportService
 import slick.dbio.DBIO
-import util.{AnonSession, RoleSession}
+import util.{AnonSession, RoleSession, SidewalkSpec}
 
 import java.time.temporal.ChronoUnit
 import java.time.{LocalDate, OffsetDateTime}
 import scala.concurrent.Await
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 /**
  * Functional tests for the admin Imagery surface (#4908): the page and the two endpoints behind it.
@@ -35,16 +34,16 @@ import scala.concurrent.duration._
  * Requires a Postgres+PostGIS database (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in dev/CI); the
  * scheduling actors are disabled so nightly jobs can't race the tests.
  */
-class ImageryAdminSpec extends PlaySpec with RoleSession with GuiceOneAppPerSuite with AnonSession {
+class ImageryAdminSpec extends SidewalkSpec with RoleSession with GuiceOneAppPerSuite with AnonSession {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule]
       // AnonSession mints one session per call and the limiter is per-IP; every suite in a run shares loopback.
       .configure("rate-limit.anon-signup.enabled" -> false)
       .build()
 
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   private val dbConfig    = app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
   private val jobRunTable = app.injector.instanceOf[BackgroundJobRunTable]
@@ -65,9 +64,9 @@ class ImageryAdminSpec extends PlaySpec with RoleSession with GuiceOneAppPerSuit
 
   /** Seeds one finished run of the imagery-age poll, giving the row's optional fields something to carry. */
   private def seedPollRun(
-      status: JobRunStatus.Value,
+      status: JobRunStatus,
       details: Option[JsValue],
-      trigger: JobRunTrigger.Value = JobRunTrigger.Scheduled
+      trigger: JobRunTrigger = JobRunTrigger.Scheduled
   ): Unit = {
     // The run must land on today (the run_days assertions look for today's row) and successive seeds must stay
     // ordered (a job row reports its latest run). A flat hour back breaks the first between 00:00 and 01:00; pinning
@@ -112,10 +111,10 @@ class ImageryAdminSpec extends PlaySpec with RoleSession with GuiceOneAppPerSuit
 
   /** Performs an admin GET. */
   private def asAdmin(path: String) =
-    route(app, FakeRequest(GET, path).withHeaders(XHR).withCookies(adminCookies: _*)).get
+    route(app, FakeRequest(GET, path).withHeaders(XHR).withCookies(adminCookies*)).get
 
   private def asVisitor(path: String) =
-    route(app, FakeRequest(GET, path).withHeaders(XHR).withCookies(visitorCookies: _*)).get
+    route(app, FakeRequest(GET, path).withHeaders(XHR).withCookies(visitorCookies*)).get
 
   "the Imagery admin surface" should {
     "refuse a signed-in visitor, naming the role it wants" in {
@@ -149,9 +148,9 @@ class ImageryAdminSpec extends PlaySpec with RoleSession with GuiceOneAppPerSuit
 
     "hand the client the endpoints and the default window rather than letting it hardcode them" in {
       val body = contentAsString(asAdmin("/admin/imagery"))
-      body must include("/adminapi/streetPriority")
-      body must include("/adminapi/imageryFreshness")
-      body must include(s"pipelineDays: ${ImageryFreshnessReportService.DefaultDays}")
+      body must include("data-priority-url=\"/adminapi/streetPriority\"")
+      body must include("data-pipeline-url=\"/adminapi/imageryFreshness\"")
+      body must include(s"data-pipeline-days=\"${ImageryFreshnessReportService.DefaultDays}\"")
     }
   }
 

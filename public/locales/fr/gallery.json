@@ -2,6 +2,17 @@
   "card-image-alt": "Photo de rue d'une étiquette {{labelType}}",
   "clear-filters": "Effacer les filtres",
   "filter-by": "Filtrer par",
+  "list-browse-all": "Parcourir toutes les étiquettes",
+  "list-count-partial_one": "{{shown}} sur {{count}} étiquette dans cette liste",
+  "list-count-partial_other": "{{shown}} sur {{count}} étiquettes dans cette liste",
+  "list-count_one": "{{count}} étiquette dans cette liste",
+  "list-count_other": "{{count}} étiquettes dans cette liste",
+  "list-error": "La liste n’a pas pu être chargée. Rechargez la page pour réessayer.",
+  "list-position": "{{k}} sur {{n}}",
+  "list-truncated_one": "{{count}} identifiant dépassait la limite de {{max}} et n’a pas pu être chargé.",
+  "list-truncated_other": "{{count}} identifiants dépassaient la limite de {{max}} et n’ont pas pu être chargés.",
+  "list-unavailable_one": "{{count}} indisponible",
+  "list-unavailable_other": "{{count}} indisponibles",
   "none": "aucun",
   "not-applicable": "non applicable"
 }

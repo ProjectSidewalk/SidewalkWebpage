@@ -48,7 +48,7 @@ object ApiError {
    * Serializes an ApiError as an RFC 7807 problem object. Standard members (`type`, `title`, `status`,
    * `detail`) are emitted first, followed by the extension members (`code`, and `parameter` when present).
    */
-  implicit val writes: Writes[ApiError] = (e: ApiError) => {
+  given writes: Writes[ApiError] = (e: ApiError) => {
     val base = Json.obj(
       "type"   -> e.problemType,
       "title"  -> e.title,

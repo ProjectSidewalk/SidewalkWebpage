@@ -1,11 +1,10 @@
 package models.street
 
-import models.utils.MyPostgresProfile.api._
-import org.scalatestplus.play.PlaySpec
+import models.utils.MyPostgresProfile.api.*
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import util.RolledBackDb
+import util.{RolledBackDb, SidewalkSpec}
 
 import java.time.LocalDate
 
@@ -22,10 +21,10 @@ import java.time.LocalDate
  * All cases run inside rolled-back transactions, leaving the connected DB untouched; requires Postgres+PostGIS like
  * the other DB-backed specs. Actors are disabled.
  */
-class StreetReopenCandidateSpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb {
+class StreetReopenCandidateSpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledBackDb {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private val candidateTable = app.injector.instanceOf[StreetReopenCandidateTable]
 

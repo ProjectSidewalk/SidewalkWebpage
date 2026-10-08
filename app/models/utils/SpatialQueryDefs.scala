@@ -1,8 +1,7 @@
 package models.utils
 
-object SpatialQueryType extends Enumeration {
-  type SpatialQueryType = Value
-  val Region, Street, LabelCluster = Value
+enum SpatialQueryType {
+  case Region, Street, LabelCluster
 }
 
 case class LatLngBBox(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double) {

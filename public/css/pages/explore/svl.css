@@ -52,8 +52,7 @@ input[type="radio"] {
   /* Base text size for the whole tool. */
   font: var(--text-body-regular);
 
-  width: var(--app-width); /* Overrides bootstrap .container media queries to keep a consistent width. */
-  padding: 0; /* Drop bootstrap .container's 15px side padding so the app-width holder inside stays centered. */
+  width: var(--app-width);
 }
 
 #svl-application-holder {
@@ -70,7 +69,6 @@ input[type="radio"] {
   height: var(--pano-height);
   width: var(--pano-width);
 }
-
 
 #page-overlay-holder {
   background: var(--color-neutral-white);
@@ -90,15 +88,14 @@ input[type="radio"] {
   z-index: 1;
 }
 
-.disabled {
-  pointer-events: none;
-  cursor: default;
-  opacity: 0.5;
-}
-
 #svl-panorama-date-holder {
   display: flex;
   justify-content: flex-start;
+
+  /* Holds the imagery pills (#5413; svl-pano-date-pills.css), centered against the imagery-source logo they sit
+     beside rather than stretched to the row's full height. */
+  align-items: center;
+  gap: calc(6px * var(--ui-scale));
   height: calc(28px * var(--ui-scale));
   position: absolute;
   bottom: calc(var(--bottom-left-links-clearance, 0px) * var(--ui-scale));
@@ -140,26 +137,18 @@ input[type="radio"] {
   transform-origin: bottom left;
 }
 
-/* Move Mapillary's attribution links to the bottom-left of the pano, scaling them with the UI. */
-#view-control-layer .mapillary-attribution-container {
-  bottom: calc(3px * var(--ui-scale)) !important;
-  left: calc(1px * var(--ui-scale)) !important;
-  right: auto !important;
+/* Put Mapillary's attribution pill at the bottom-left of the pano, scaling it with the UI, where the SDK renders it.
+   It stays inside the SDK's DOM because the SDK patches its creator and date in place per image, and a node moved out
+   of that tree keeps whatever it last said (#5600). That leaves it under the control layers, so its links don't take
+   clicks; the pano info popover carries the view-in-Mapillary link instead. Lifting it with a z-index would need #pano
+   not to be a stacking context, and both its z-index and the image-adjustment filter (PanoImageAdjustments) make it
+   one. The ID selector is what outranks the vendor's position. */
+#pano .mapillary-attribution-container {
+  bottom: calc(3px * var(--ui-scale));
+  left: calc(1px * var(--ui-scale));
+  right: auto;
   transform: scale(var(--ui-scale));
   transform-origin: bottom left;
-}
-
-/* No left padding — the holder's left offset above owns the whole gap to the imagery-source logo. */
-#svl-panorama-date {
-  padding: calc(3px * var(--ui-scale)) calc(3px * var(--ui-scale)) calc(3px * var(--ui-scale)) 0;
-}
-
-/* Scale Bootstrap tooltips (severity descriptions, button hints, etc.) with the UI. They render on <body>, so they read
-   --ui-scale from :root. Font/padding are scaled rather than transformed so Bootstrap's positioning still works. */
-.tooltip-inner {
-  font: var(--text-caption-regular);
-  padding: calc(3px * var(--ui-scale, 1)) calc(8px * var(--ui-scale, 1));
-  max-width: calc(200px * var(--ui-scale, 1));
 }
 
 /* Survey. Lives outside .tool-ui, so it reads --ui-scale from :root (set by util.applyToolScale). */
@@ -177,7 +166,7 @@ input[type="radio"] {
 }
 
 .survey-question {
-  margin-bottom: calc(10px * var(--ui-scale, 1));
+  margin: calc(10px * var(--ui-scale, 1)) 0;
 }
 
 .survey-textarea {
@@ -203,35 +192,59 @@ input[type="radio"] {
 }
 
 .survey-option label {
-  width:100%;
+  display: block;
   font: var(--text-caption-regular);
 }
 
-/* Scale the survey modal's Bootstrap chrome (dialog width, header, title, close button, submit button) with the UI. */
-#survey-modal-container .modal-dialog {
+.survey-dialog {
   width: calc(600px * var(--ui-scale, 1));
-  margin: calc(30px * var(--ui-scale, 1)) auto;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100dvh - 32px);
+  padding: 0;
+  border: none;
+  border-radius: var(--border-radius-lg);
+  background: var(--color-neutral-white);
+  color: var(--color-neutral-900);
+  box-shadow: var(--box-shadow-lg);
+  font: var(--text-small-regular);
 }
 
-#survey-modal .modal-header {
+/* ::backdrop can't read :root custom properties in all Baseline browsers, so the asphalt-500 tint is spelled out. */
+.survey-dialog::backdrop {
+  background: rgb(45 42 63 / 55%);
+}
+
+.survey-dialog__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(10px * var(--ui-scale, 1));
   padding: calc(15px * var(--ui-scale, 1));
+  border-bottom: 1px solid var(--color-neutral-200);
 }
 
-#survey-modal .modal-title {
+.survey-dialog__title {
+  margin: 0;
   font: var(--text-subtitle-medium);
 }
 
-#survey-modal .modal-header .close {
+.survey-dialog__close {
+  padding: 0 calc(4px * var(--ui-scale, 1));
+  border: none;
+  background: none;
   font: var(--text-title-bold);
+  line-height: 1;
+  color: var(--color-neutral-700);
+  cursor: pointer;
 }
 
-#survey-modal .modal-body {
+.survey-dialog__body {
   padding: calc(15px * var(--ui-scale, 1));
 }
 
-#survey-modal .btn {
-  font: var(--text-small-regular);
-  padding: calc(5px * var(--ui-scale, 1)) calc(10px * var(--ui-scale, 1));
+.survey-dialog__submit {
+  width: 100%;
+  justify-content: center;
 }
 
 /**

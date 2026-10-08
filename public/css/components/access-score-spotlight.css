@@ -1,7 +1,7 @@
 /* AccessScore Spotlight (#5215): two ranked lists of the highest- and lowest-scoring neighborhoods or streets,
    shared by the landing page and /cities. Section chrome (title, subtitle) comes from the pages' own
    .section-title-and-subtitle; everything the module builds carries the spotlight- prefix. Colors and type from the
-   main.css design tokens; the bars are painted by public/js/common/scoreRamp.js, which reads the same tokens the
+   main.css design tokens; the bars are painted by frontend/js/common/scoreRamp.js, which reads the same tokens the
    AccessScore tool's map does. */
 
 .spotlight {
@@ -56,8 +56,8 @@
   gap: 32px;
 }
 
-/* One column is already plenty wide on a phone, and two 300px columns plus the gap stop fitting the Bootstrap
-   container around here (--breakpoint-sm is 768px). */
+/* One column is already plenty wide on a phone, and two 300px columns plus the gap stop fitting the page column
+   around here (--breakpoint-sm is 768px). */
 @media (width <= 768px) {
   .spotlight-cols {
     grid-template-columns: 1fr;
@@ -65,7 +65,8 @@
   }
 }
 
-/* A single-neighborhood city has one score and no second list to put beside it. */
+/* One column, wherever the second has nothing in it: a single-neighborhood city, a sparse city whose only list is
+   "Ranked so far", or one whose only list is the "Closest to being ranked" ask. */
 .spotlight-cols.spotlight-cols--single {
   grid-template-columns: 1fr;
 }
@@ -114,7 +115,7 @@
 /* The same orange the map-linked table rows use (components/tables.css): the high-contrast pick against the
    choropleth's Blues scale, which is the map this highlight is paired with. */
 .spotlight-row:hover,
-.spotlight-row.highlighted {
+.spotlight-row.is-highlighted {
   background: rgb(246 141 62 / 14%);
   box-shadow: inset 3px 0 0 var(--color-label-surface-problem, #f68d3e);
 }

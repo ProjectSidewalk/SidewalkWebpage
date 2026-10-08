@@ -85,35 +85,41 @@ row.button.setAttribute('aria-label', label);
 row.button.setAttribute('data-ps-tooltip', util.escapeHTML(label)); // psTooltip renders this as HTML.
 ```
 
-Markup sinks in this codebase are `innerHTML` / `outerHTML`, `insertAdjacentHTML`, a MapLibre popup's `setHTML`,
-jQuery's `.html()` / `.append()` / `$('<p>…')`, a Bootstrap tooltip built with `html: true`, and the
-**`data-ps-tooltip` attribute**, which `psTooltip.js` writes into the tooltip card's `innerHTML`. Helpers count too:
-`AlertController.showAlert`, `PopUpMessage.notify`, and the onboarding message boxes all render HTML. Text sinks are
-everything else — a text node, `.text()`, `alert` / `confirm`, a share sheet, and an attribute *unless* something
-renders it as markup: `title` is plain text on most elements and HTML on one carrying `data-toggle="tooltip"`, since
-`explore/src/Main.js` initializes every one of those with `html: true`.
+Markup sinks in this codebase are `innerHTML` / `outerHTML`, `insertAdjacentHTML`, a MapLibre popup's `setHTML`, and
+the **`data-ps-tooltip` attribute**, which `psTooltip.js` renders as HTML (cleaned of script first, but a missed
+escape still shows as markup). Helpers count too: `AlertController.showAlert`, `PopUpMessage.notify`, and the
+onboarding message boxes all render HTML. Text sinks are everything else — a text node, `append()`, `alert` /
+`confirm`, a share sheet, and any other attribute, `title` included.
 
-The **`ps/i18n-escape-in-markup`** ESLint rule (`tools/eslint-rules/i18n-escape-in-markup.js`) blocks the ones it can
-see syntactically — a `t()` call with interpolation variables that reaches one of those sinks, directly or through a
-template literal, a concatenation, a pass-through string method, a `map(…).join('')`, or a local variable, without
-stating `interpolation.escapeValue`.
+The **`ps/i18n-escape-in-markup`** ESLint rule (`tools/lint/eslint-rules/i18n-escape-in-markup.js`) flags a `t()`
+call that interpolates values and reaches one of those sinks without stating `interpolation.escapeValue`, whether
+directly or through a template literal, a concatenation, a string method, a `map(…).join('')`, or a local variable.
 
-**It is a tripwire, not a proof.** Strip every `escapeValue: true` in the tree and re-lint, and it reproduces 19 of
-the 45 decisions — the #5389 audit is the guarantee, the rule is what catches the next call taking a familiar shape.
-It cannot see a value returned from a function, parked on an object property, or handed to a helper; a jQuery object
-whose name doesn't look like one (`menuUI.template.parent().append(…)`); or a `title` that is markup only because of
-how the element was initialized. **It also matches `i18next.t` literally**, so an alias, a wrapper method, or
-`i18next?.t(…)` turns it off for that call with no signal — don't wrap `i18next.t` (four such wrappers were removed
-in #5389 for exactly this reason), and write `el.innerHTML`, never `el['innerHTML']`.
+**It is a tripwire, not a proof.** It follows syntax only: a value returned from a function, stored on an object
+property, or handed to an HTML-rendering helper it doesn't know about is invisible to it, and so is a `t()` call
+behind an alias or a wrapper (don't wrap `i18next.t`, and write `el.innerHTML`, never `el['innerHTML']`). Those
+flows are on the author and the reviewer.
 
 So when a string you build ends up as HTML somewhere the rule can't follow, escape it there or say
-`escapeValue: true` here. Values we computed ourselves — a count, an id, an asset path — carry nothing to escape and
-need neither. And if the rule fires on something that is really a text sink, the answer is `escapeValue: false` with
-a comment, never `true`: turning escaping on at a text sink is the bug #5389 fixed.
+`escapeValue: true` here. Other values put into HTML are checked by `ps/escape-in-markup` (`docs/style-guide.md`).
+And if the rule fires on something that is really a text sink, the answer is `escapeValue: false` with a comment,
+never `true`: turning escaping on at a text sink is the bug #5389 fixed.
 
 Two things escaping never touches: the **translation string itself** (markup inside a locale value always renders),
-and a variable written **`{{- labelType}}`**, which i18next interpolates raw whatever the setting is — the label-type
-names use that, because the German ones carry a `&shy;`.
+and a variable written **`{{- labelType}}`**, which i18next interpolates raw whatever the setting is.
+
+Write a soft hyphen as `\u00AD`, never `&shy;`, which prints literally in plain text. Read a label type's name in JS
+with `util.misc.labelTypeName(type)`.
+
+### Dates
+
+Dates are formatted by the browser's built-in `Intl`, e.g. `date.toLocaleDateString(i18next.language, util.SHORT_DATE)`,
+so every language gets its own date style with nothing to add per language. `utilities.js` has the few helpers
+`Intl` lacks: `util.monthYear` for capture dates, `util.timeAgo` for "3 days ago", and `util.parseDate` for reading a
+bare `2024-10` as local time (`new Date` reads it as UTC, which is still September west of London).
+
+Dates in server-rendered text, like the footer's release date, are formatted in Scala with
+`DateTimeFormatter.ofLocalizedDate(...).withLocale(messages.lang.toLocale)` so they show up already readable.
 
 ## Measurement units
 
@@ -141,7 +147,7 @@ nested `$t(...)` references, and i18next's plural suffixes compose with them.
 
 **Rendering a distance is the `distance` formatter's job** (`AppManager._addDistanceFormatter`):
 `{{meters, distance(style: small)}}` converts, rounds, localizes the number, and appends the unit. Params are `style`
-(`small` → m/ft to the nearest 25; `large` → km/mi), `precision`, and `unit: false` for a bare number; separate several
+(`small` → m/ft to the nearest 25; `fine` → m/ft to the whole unit, for elevations; `large` → km/mi), `precision`, and `unit: false` for a bare number; separate several
 with `;`. `util.distanceToString(meters)` and `util.longDistanceToString(km, precision)` call it from outside a string.
 
 **Its input must be canonical** — meters for `small`, km for `large`. Values that arrive already converted
@@ -182,20 +188,11 @@ orphans remain.
 2. **Register the locale** by adding it to `play.i18n.langs` in [`conf/application.conf`](../conf/application.conf).
 3. **Add the translated files:** backend as `conf/messages/messages.<lang>`, frontend as
    `public/locales/<lang>/<namespace>.json` (mirror the namespaces in `public/locales/en/`).
-4. **Add the moment.js locale** (for localized dates). Skipping this fails silently — dates just render in English —
-   which is how `de` and `pt-BR` went years without one. Download the [locale file](https://github.com/moment/moment/tree/develop/locale)
-   matching our moment version into `public/vendor/moment/`, then add the lowercased language code to
-   `momentLocaleFile` in [`app/views/common/main.scala.html`](../app/views/common/main.scala.html); the filename and
-   the name the file registers with moment are both that same lowercased code. Only the active language's locale is
-   sent to the browser, so adding one costs nobody but its own speakers. Only `en` and `en-US` need no file, because
-   moment has US English built in — a new English variant still needs one, the way `en-NZ` does. (There's an open
-   ticket, [#1258](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/1258), about moving off moment.js — don't
-   take that on as part of adding a language.)
-5. **Translate both measurement systems.** The unit words live in `conf/messages/messages.<lang>` as
+4. **Translate both measurement systems.** The unit words live in `conf/messages/messages.<lang>` as
    `unit.distance.*.{metric,imperial}` (see "Measurement units" above), so a new language needs both sets — even one
    whose speakers would never pick imperial, since the choice is the reader's. Nothing unit-related goes in the
    locale JSON.
-6. **Test thoroughly.** Compare each main page against the English version (open them in adjacent tabs and flip
+5. **Test thoroughly.** Compare each main page against the English version (open them in adjacent tabs and flip
    between them) to catch layout breakage from differing text lengths. On Explore, place a label of each type and
    open the various sub-menus. Then open a PR and deploy to the test servers so the requesting partner can review the
    live result.
@@ -209,7 +206,7 @@ The frontend i18next JSON under `public/locales/` is linted in CI (blocking step
   and checks it for **duplicate keys** (a plain `JSON.parse` silently keeps the last of a duplicated key, so a dup
   translation that overwrites a real one is otherwise invisible — nothing caught this before #5132), empty key names,
   and unsafe numbers. Run with `make eslint`.
-- **Cross-locale key parity and empty values** — `tools/check-locale-parity.mjs` (`make lint-locales`) checks that
+- **Cross-locale key parity and empty values** — `tools/lint/check-locale-parity.mjs` (`make lint-locales`) checks that
   every locale carries the same keys as the `en` reference, and that no value is anything but a non-empty string
   (i18next only falls back on an *absent* key, so an empty string renders as blank rather than falling back to `en`).
   It's i18next-aware where a per-file JSON rule can't be: it **normalizes plural suffixes** (`_one`/`_other`/…

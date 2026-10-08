@@ -12,7 +12,7 @@ services:
       # Masks the host's node_modules, which the bind mount above would otherwise lay over the image's — the host
       # copy is built for the host's OS/arch. Named, not anonymous: an anonymous one is created per `docker compose
       # run` and orphaned on exit. The cost is that it no longer re-seeds from a rebuilt image, which is why
-      # `make dev` runs tools/npm-sync.sh.
+      # `make dev` runs tools/dev/npm-sync.sh.
       - "node_modules:/home/node_modules"
     ports:
       - "9000:9000"
@@ -36,21 +36,26 @@ services:
       - SILHOUETTE_SIGNER_KEY=DUMMY_SILHOUETTE_SIGNER_KEY
       - SILHOUETTE_CRYPTER_KEY=DUMMY_SILHOUETTE_CRYPTER_KEY
       - INTERNAL_API_KEY=DUMMY_INTERNAL_API_KEY
+      - SIDEWALK_AI_API_KEY=DUMMY_SIDEWALK_AI_API_KEY
       - SIDEWALK_HTTP_PORT=9000
       - ENV_TYPE=local
       - SIDEWALK_IMAGES_DIR=.crops
 
   db:
-    image: projectsidewalk/db
+    # Tagged by Postgres version, so a checkout with the old 16 image builds this one instead of reusing it.
+    image: projectsidewalk/db:18
     container_name: projectsidewalk-db
     build:
       context: ./db/
     shm_size: '512mb'
+    # Matches prod, which runs with JIT off (#4376).
+    command: postgres -c jit=off
     volumes:
       - "./db/scripts/init.sh:/docker-entrypoint-initdb.d/init.sh"
       - "./db:/opt"
       # Named, so the data survives `make docker-stop`, which runs `docker compose rm -fv`, rather than being deleted.
-      - "pgdata:/var/lib/postgresql/data"
+      # Postgres 18 images keep their data in /var/lib/postgresql/18/docker, so the volume is mounted one level up.
+      - "pgdata18:/var/lib/postgresql"
     ports:
       - "5432:5432"
     environment:
@@ -60,5 +65,5 @@ services:
 volumes:
   # Leave these unprefixed. Compose namespaces them per project — your checkout directory, lowercased — so an explicit
   # `name:` would point every Sidewalk checkout on the machine at one shared database (or one shared node_modules).
-  pgdata:
+  pgdata18:
   node_modules:

@@ -10,14 +10,13 @@
  * jsdom global scope.
  */
 
-const fs = require('fs');
 const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const SRC = fs.readFileSync(path.join(REPO_ROOT, 'public/js/explore/src/navigation/ForwardCrumbs.js'), 'utf8');
 
 window.turf = require(path.join(REPO_ROOT, 'public/vendor/turf/turf-7.4.0.min.js'));
-window.eval(`${SRC}; window.ForwardCrumbs = ForwardCrumbs;`);
+Object.assign(window, loadModules('frontend/js/explore/navigation/ForwardCrumbs.js'));
 const { ForwardCrumbs } = window;
 const { turf } = window;
 
@@ -50,6 +49,24 @@ describe('ForwardCrumbs.sampleOffsetsKm', () => {
 
     test('does not double up the end when the street length is a multiple of the step', () => {
         expect(ForwardCrumbs.sampleOffsetsKm(0.03, 0.01, 100)).toEqual([0, 0.01, 0.02, 0.03]);
+    });
+
+    test('never spaces samples wider than the cap, even past the sample count', () => {
+        const offsets = ForwardCrumbs.sampleOffsetsKm(10, 0.01, 100, 0.04);
+        expect(offsets[1] - offsets[0]).toBeCloseTo(0.04, 10);
+        expect(offsets.at(-1)).toBe(10);
+        // A street short enough for the sample cap alone is untouched by the spacing cap.
+        expect(ForwardCrumbs.sampleOffsetsKm(1.5, 0.01, 100, 0.04)).toEqual(ForwardCrumbs.sampleOffsetsKm(1.5, 0.01, 100));
+    });
+
+    test('the spacing cap reaches every pano a crumb may show, given the search radius (#5114)', () => {
+        const capKm = ForwardCrumbs.maxSampleStepKm(25);
+        expect(capKm * 1000).toBeCloseTo(40, 6);
+        // The worst case: a pano at the crumb offset limit, midway between two samples.
+        const worstM = Math.hypot((capKm * 1000) / 2, ForwardCrumbs.MAX_OFFSET_M);
+        expect(worstM).toBeLessThanOrEqual(25 + 1e-9);
+        // A radius that can't reach the offset limit leaves the sample cap in charge.
+        expect(ForwardCrumbs.maxSampleStepKm(ForwardCrumbs.MAX_OFFSET_M)).toBe(Infinity);
     });
 
     test('a degenerate street still gets one sample at its start', () => {

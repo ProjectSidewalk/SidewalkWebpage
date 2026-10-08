@@ -1,6 +1,6 @@
 package service
 
-import formats.json.ExploreFormats._
+import formats.json.ExploreFormats.*
 import models.mission.MissionTableDef
 import models.audit.AuditTaskTableDef
 import models.region.RegionTableDef
@@ -16,19 +16,19 @@ import models.route.{
 import models.street.{StreetEdgeRegionTableDef, StreetEdgeTable}
 import models.user.{SidewalkUserWithRole, UserAccountStateTable, UserAccountStateTableDef, UserCurrentRegionTableDef}
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
-import org.scalatestplus.play.PlaySpec
+import models.utils.MyPostgresProfile.api.*
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.silhouette.api.util.PasswordInfo
 import slick.dbio.DBIO
+import util.SidewalkSpec
 
 import java.time.OffsetDateTime
 import java.util.concurrent.atomic.AtomicInteger
 import scala.concurrent.Await
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 /**
  * DB-backed tests for #4833: exiting a custom-route walk pauses it (progress kept, resumable) rather than
@@ -51,13 +51,13 @@ import scala.concurrent.duration._
 // BeforeAndAfterAll must be mixed in BEFORE GuiceOneAppPerSuite: linearization then runs afterAll inside the running
 // app, rather than after the app (and its DB pool) has already been stopped.
 class ExploreRoutePauseSpec
-    extends PlaySpec
+    extends SidewalkSpec
     with org.scalatest.BeforeAndAfterAll
     with org.scalatest.LoneElement
     with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private val exploreService        = app.injector.instanceOf[ExploreService]
   private val authService           = app.injector.instanceOf[AuthenticationService]
@@ -80,7 +80,7 @@ class ExploreRoutePauseSpec
   private val createdUserIds = scala.collection.mutable.Set[String]()
 
   /** Distinguishes seeded routes' slugs; route.slug is globally unique (route_slug_idx). */
-  private val slugCounter = new AtomicInteger(0)
+  private val slugCounter = AtomicInteger(0)
 
   /** Creates a throwaway anonymous user (marked past the tutorial) and registers it for afterAll cleanup. */
   private def newTutorialGraduate(): SidewalkUserWithRole = {
@@ -129,7 +129,7 @@ class ExploreRoutePauseSpec
           s"4833 spec route $n",
           s"spec-4833-route-$n",
           None,
-          public = false,
+          public = true,
           deleted = false,
           OffsetDateTime.now,
           0d,

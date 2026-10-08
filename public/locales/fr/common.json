@@ -214,6 +214,17 @@
   "pano-attribution": {
     "opens-new-tab": "(s'ouvre dans un nouvel onglet)"
   },
+  "image-adjustments": {
+    "button": "Image",
+    "active-sr": "(ajustée)",
+    "tooltip": "Ajustez les ombres, la luminosité et le contraste de l'image",
+    "title": "Réglages de l'image",
+    "shadows": "Ombres",
+    "brightness": "Luminosité",
+    "contrast": "Contraste",
+    "reset": "Rétablir les valeurs par défaut",
+    "persist-note": "Ces réglages sont conservés dans Explorer et Valider jusqu'à leur réinitialisation."
+  },
   "mission-start-tutorial": {
     "example-type-label-correct": "EXEMPLE CORRECT",
     "label-type-subtitle": "Pourquoi est-ce faux ?",
@@ -356,14 +367,21 @@
     "vote-failed": "Votre vote n'a pas été enregistré. Veuillez réessayer."
   },
   "download-already-preparing": "Ce fichier est déjà en cours de préparation pour une autre demande. Veuillez réessayer dans un instant.",
+  "session-load-failed": {
+    "title": "Chargement impossible",
+    "body": "Nous n'avons pas pu charger votre mission. Veuillez recharger la page pour réessayer.",
+    "bad-link": "Ce lien n'est pas valide. Vérifiez l'adresse et réessayez."
+  },
   "label-type-picker": {
     "current": "{{labelType}} (type actuel)",
-    "change": "modifier"
+    "change": "modifier",
+    "change-type": "Changer le type d'étiquette",
+    "change-type-hint": "Les tags qui ne correspondent pas au nouveau type sont retirés. Une note n'est conservée qu'entre des types notés de la même façon."
   },
   "access-score-spotlight": {
     "subtitle-regions": "Les trottoirs de chaque quartier reçoivent une note de 0 à 100 avec notre algorithme <a href=\"{{href}}\">AccessScore</a> (100 est la meilleure).",
     "subtitle-streets": "Les trottoirs de chaque rue reçoivent une note de 0 à 100 avec notre algorithme <a href=\"{{href}}\">AccessScore</a> (100 est la meilleure).",
-    "subtitle-one-region": "Cette ville est cartographiée comme un seul quartier : il n'y a donc qu'une note à afficher. Passez à Rues pour un regard plus détaillé.",
+    "subtitle-one-region": "Cette ville est cartographiée comme un seul quartier : il n'y a donc qu'une note à afficher.",
     "units-label": "Classer les quartiers ou les rues",
     "unit-regions": "Quartiers",
     "unit-streets": "Rues",
@@ -389,5 +407,8 @@
     "region-sub-pending": "{{length}} de rues · {{percent}}% exploré",
     "street-in-city": "{{region}}, {{city}}",
     "unnamed": "Rue sans nom"
-  }
+  },
+  "immersive-enter": "Entrer en mode immersif",
+  "immersive-exit": "Quitter le mode immersif",
+  "immersive-exit-hint": "Mode immersif. Appuyez sur F pour quitter."
 }

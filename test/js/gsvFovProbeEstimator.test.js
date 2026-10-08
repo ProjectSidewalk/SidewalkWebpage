@@ -1,6 +1,6 @@
 /**
- * Validates the #5083 focal-length estimator (tools/gsv-fov-probe/estimator.cjs) against synthetic ground
- * truth — gate 1 of the probe protocol (tools/gsv-fov-probe/README.md): the estimator must recover a known
+ * Validates the #5083 focal-length estimator (test/js/gsv-fov-probe/estimator.cjs) against synthetic ground
+ * truth — gate 1 of the probe protocol (test/js/gsv-fov-probe/README.md): the estimator must recover a known
  * focal length from analytically rendered pinhole pairs to better than 0.2% before any live GSV measurement
  * is trusted. The synthetic renderer samples an analytic texture (no source-image interpolation), so the
  * recovery error here is pure estimator error.
@@ -16,7 +16,7 @@ const {
     madSigma,
     makeProceduralEquirectSampler,
     renderPinhole,
-} = require('../../tools/gsv-fov-probe/estimator.cjs');
+} = require('./gsv-fov-probe/estimator.cjs');
 
 const W = 720;
 const H = 480;

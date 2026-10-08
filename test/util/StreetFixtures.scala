@@ -2,7 +2,7 @@ package util
 
 import models.audit.{AuditTask, AuditTaskTable, AuditTaskTableDef}
 import models.user.{SidewalkUser, SidewalkUserTableDef}
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 
 import java.time.OffsetDateTime
@@ -18,9 +18,9 @@ import java.util.UUID
  * exactly ("these three streets, in this order").
  *
  * Every helper writes real rows, so a spec must either wrap them in [[RolledBackDb.runRolledBack]] or delete what it
- * seeded in an `afterAll`. Mix into a `PlaySpec with GuiceOneAppPerSuite with RolledBackDb`.
+ * seeded in an `afterAll`. Mix into a `SidewalkSpec with GuiceOneAppPerSuite with RolledBackDb`.
  */
-trait StreetFixtures { this: GuiceOneAppPerSuite with RolledBackDb =>
+trait StreetFixtures { this: GuiceOneAppPerSuite & RolledBackDb =>
 
   // Plain defs, deliberately: a `lazy val` here would be initialized under the spec instance's monitor, and these
   // helpers' later steps run on a Slick thread. A spec that blocks on `run(...)` from inside its own lazy val would
@@ -35,23 +35,25 @@ trait StreetFixtures { this: GuiceOneAppPerSuite with RolledBackDb =>
   /** Timestamps are compared after a round trip through Postgres, whose timestamptz resolution is microseconds. */
   protected def now: OffsetDateTime = OffsetDateTime.now.truncatedTo(ChronoUnit.MILLIS)
 
-  /** A throwaway mapper, with no rows anywhere else, so their street set is exactly what a case seeds. */
+  /**
+   * A throwaway mapper with no work yet, plus the `user_stat` row every real user gets on their first visit.
+   */
   protected def insertUser(): DBIO[String] = {
     val userId = UUID.randomUUID.toString
-    (sidewalkUsersForFixtures += SidewalkUser(userId, s"spec-$userId", s"spec-$userId@example.com")).map(_ => userId)
+    for {
+      _ <- sidewalkUsersForFixtures += SidewalkUser(userId, s"spec-$userId", s"spec-$userId@example.com", now)
+      _ <- sqlu"""INSERT INTO user_stat (user_stat_id, user_id)
+                  VALUES ((SELECT COALESCE(MAX(user_stat_id), 0) + 1 FROM user_stat), $userId)"""
+    } yield userId
   }
 
   /**
    * Flags a mapper as excluded, the way an admin does when their work turns out to be unreliable.
    *
-   * A [[insertUser]] mapper has no `user_stat` row at all, which is not a state prod reaches; queries that filter on
-   * `excluded` treat a missing row as not-excluded, so this seeds the row only when a case needs the flag set.
-   *
    * @return The number of rows written.
    */
   protected def excludeUser(userId: String): DBIO[Int] =
-    sqlu"""INSERT INTO user_stat (user_id, excluded) VALUES ($userId, TRUE)
-           ON CONFLICT (user_id) DO UPDATE SET excluded = TRUE"""
+    sqlu"UPDATE user_stat SET excluded = TRUE, high_quality = FALSE WHERE user_id = $userId"
 
   /**
    * A region of the spec's own, so the streets hung there are reachable only by the case that seeded them.

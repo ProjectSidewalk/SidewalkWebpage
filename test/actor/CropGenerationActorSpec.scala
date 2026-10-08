@@ -1,21 +1,21 @@
 package actor
 
-import models.utils.JobRunTrigger
+import models.utils.{BackgroundJobRun, JobRunTrigger}
 import org.apache.pekko.actor.{ActorRef, ActorSystem, Props}
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.Eventually
 import org.scalatest.time.{Millis, Seconds, Span}
-import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.JsObject
 import service.CropService.CropRunResult
 import service.{ConfigService, CropService, JobRunService}
-import util.StubService
+import util.{SidewalkSpec, StubService}
 
+import java.time.OffsetDateTime
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicInteger
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import scala.concurrent.{Await, ExecutionContext, Future, Promise}
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 /**
  * What the nightly crop actor does on a tick (#4865): records a scheduled run of the job — or, while a manual run is
@@ -24,10 +24,10 @@ import scala.jdk.CollectionConverters._
  *
  * A bare actor system with stubbed collaborators; no application, no database.
  */
-class CropGenerationActorSpec extends PlaySpec with BeforeAndAfterAll with Eventually {
+class CropGenerationActorSpec extends SidewalkSpec with BeforeAndAfterAll with Eventually {
 
-  private val system                        = ActorSystem("CropGenerationActorSpec")
-  implicit private val ec: ExecutionContext = system.dispatcher
+  private val system                 = ActorSystem("CropGenerationActorSpec")
+  private given ec: ExecutionContext = system.dispatcher
 
   private val result = CropRunResult(1, 2, 3, 4, 5, 6, 7, 12, 13, 14, 11)
 
@@ -38,14 +38,14 @@ class CropGenerationActorSpec extends PlaySpec with BeforeAndAfterAll with Event
 
   /** Stands in for the row-writing service: runs the work and remembers what it was asked to record. */
   private class RecordingJobRunService extends JobRunService {
-    val calls = new CopyOnWriteArrayList[(String, JobRunTrigger.Value)]()
+    val calls = CopyOnWriteArrayList[(String, JobRunTrigger)]()
 
-    def record[T](jobName: String, trigger: JobRunTrigger.Value)(work: => Future[T])(
-        details: T => JsObject
-    ): Future[T] = {
+    def record[T](jobName: String, trigger: JobRunTrigger)(work: => Future[T])(details: T => JsObject): Future[T] = {
       calls.add((jobName, trigger))
       work
     }
+
+    def interruptOrphanedRuns(bootedAt: OffsetDateTime): Future[Seq[BackgroundJobRun]] = Future.successful(Seq.empty)
   }
 
   /**
@@ -60,25 +60,24 @@ class CropGenerationActorSpec extends PlaySpec with BeforeAndAfterAll with Event
       jobRuns: RecordingJobRunService
   ): ActorRef = {
     // The schedule is never armed, so the only ticks are the ones a test sends.
-    implicit val configService: ConfigService =
-      StubService.answering[ConfigService](Map("getOffsetHours" -> Future.never))
-    val cropService = StubService.answeringWith[CropService](
+    given configService: ConfigService = StubService.answering[ConfigService](Map("getOffsetHours" -> Future.never))
+    val cropService                    = StubService.answeringWith[CropService](
       Map(
         "isRunning"            -> (() => { val _ = asked.incrementAndGet(); running() }),
         "generateMissingCrops" -> (() => { val _ = generated.incrementAndGet(); Future.successful(result) })
       )
     )
-    system.actorOf(Props(new CropGenerationActor(cropService, jobRuns)))
+    system.actorOf(Props(CropGenerationActor(cropService, jobRuns)))
   }
 
-  implicit override val patienceConfig: PatienceConfig =
+  override given patienceConfig: PatienceConfig =
     PatienceConfig(timeout = Span(10, Seconds), interval = Span(50, Millis))
 
   "CropGenerationActor" should {
     "record a tick as a scheduled run of the crop job and let it run" in {
-      val jobRuns   = new RecordingJobRunService
-      val generated = new AtomicInteger
-      val actor     = actorWith(() => false, new AtomicInteger, generated, jobRuns)
+      val jobRuns   = RecordingJobRunService()
+      val generated = AtomicInteger()
+      val actor     = actorWith(() => false, AtomicInteger(), generated, jobRuns)
 
       actor ! CropGenerationActor.Tick
 
@@ -89,9 +88,9 @@ class CropGenerationActorSpec extends PlaySpec with BeforeAndAfterAll with Event
     }
 
     "skip a tick, recording nothing, while a run is already in flight" in {
-      val jobRuns   = new RecordingJobRunService
-      val asked     = new AtomicInteger
-      val generated = new AtomicInteger
+      val jobRuns   = RecordingJobRunService()
+      val asked     = AtomicInteger()
+      val generated = AtomicInteger()
       val running   = Promise[Unit]()
       // The first tick sees a run in flight; the flag clears for the second, whose recording proves the first tick
       // was fully handled — an actor takes its messages in order — without a sleep standing in for that proof.

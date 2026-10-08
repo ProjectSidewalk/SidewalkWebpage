@@ -1,6 +1,6 @@
 package modules
 
-import actor._
+import actor.*
 import com.google.inject.AbstractModule
 import play.api.libs.concurrent.PekkoGuiceSupport
 
@@ -18,6 +18,7 @@ class ActorModule extends AbstractModule with PekkoGuiceSupport {
     bindActor[CropGenerationActor]("crop-generation-actor")
     bindActor[SidewalkPresenceActor]("sidewalk-presence-actor")
     bindActor[PlacesRefreshActor]("places-refresh-actor")
+    bindActor[StreetGradientStalenessActor]("street-gradient-staleness-actor")
     bind(classOf[ActorInitializer]).asEagerSingleton()
   }
 }

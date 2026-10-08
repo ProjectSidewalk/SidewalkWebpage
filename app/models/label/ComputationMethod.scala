@@ -1,5 +1,7 @@
 package models.label
 
+import models.utils.{NamedEnum, PgEnumCompanion}
+
 /**
  * Enumeration of the ways a label's lat/lng can be computed, backing the `computation_method` Postgres enum type.
  *
@@ -11,12 +13,10 @@ package models.label
  * NOTE: if changing these values, update the `computation_method` Postgres enum type as well (see 342.sql, 349.sql).
  * The string values are sent by the Explore frontend in label submissions.
  */
-object ComputationMethod extends Enumeration {
-  type ComputationMethod = Value
-  val Depth: Value          = Value("depth")
-  val Approximation2: Value = Value("approximation2")
-  val Approximation3: Value = Value("approximation3")
-
-  /** Parses a string into a computation method, returning None if it doesn't match a known value. */
-  def fromString(name: String): Option[Value] = values.find(_.toString == name)
+enum ComputationMethod(val name: String) extends NamedEnum {
+  case Depth          extends ComputationMethod("depth")
+  case Approximation2 extends ComputationMethod("approximation2")
+  case Approximation3 extends ComputationMethod("approximation3")
 }
+
+object ComputationMethod extends PgEnumCompanion[ComputationMethod]("computation_method")

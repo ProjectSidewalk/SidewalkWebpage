@@ -1,7 +1,7 @@
 package service
 
 import models.utils.ImageUtils
-import org.scalatestplus.play.PlaySpec
+import util.SidewalkSpec
 
 import java.io.File
 import java.nio.file.Files
@@ -11,9 +11,9 @@ import javax.imageio.ImageIO
  * The on-demand display copy (#5256): the width arithmetic, the allowlist that bounds the cache, and a real
  * subsampled read against the crop fixtures' synthetic pano.
  */
-class PanoDisplayCopySpec extends PlaySpec {
+class PanoDisplayCopySpec extends SidewalkSpec {
 
-  private val pano = new File("test/resources/crops/synthetic-pano.png") // 1024x512
+  private val pano = File("test/resources/crops/synthetic-pano.png") // 1024x512
 
   "ImageUtils.subsamplePeriod" should {
     "leave an image the viewer can already texture alone" in {

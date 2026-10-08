@@ -1,5 +1,5 @@
 /**
- * Tests for the badge math in public/js/common/BadgeAchievements.js — the single source of truth behind every badge
+ * Tests for the badge math in frontend/js/common/BadgeAchievements.js — the single source of truth behind every badge
  * tier pill the dashboard and public profile render ("Labeler IV: Barrier Buster").
  *
  * Pins the two contracts DashboardBadges.js relies on: (1) the THRESHOLDS / LEVEL_NAMES / ROMAN tables stay parallel
@@ -10,16 +10,10 @@
  * stays module-scoped, so the test evaluates the source directly instead of using loadGlobalScript.
  */
 
-const fs = require('fs');
-const path = require('path');
 
-const {assetPathStub} = require('./loadGlobalScript');
+const {assetPathStub, loadModules } = require('./loadGlobalScript');
 
-const SOURCE = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/common/BadgeAchievements.js'),
-    'utf8'
-);
-const evalBadgeAchievements = () => new Function(`${SOURCE}; return BadgeAchievements;`)();
+const evalBadgeAchievements = () => loadModules('frontend/js/common/BadgeAchievements.js').BadgeAchievements;
 const BadgeAchievements = evalBadgeAchievements();
 
 const TRACKS = ['missions', 'distance', 'labels', 'validations'];

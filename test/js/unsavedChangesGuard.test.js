@@ -1,5 +1,5 @@
 /**
- * Tests the shared unsaved-changes guard (public/js/common/UnsavedChangesGuard.js) that the Settings form arms so
+ * Tests the shared unsaved-changes guard (frontend/js/common/UnsavedChangesGuard.js) that the Settings form arms so
  * edits aren't dropped on the way out of the page (#5226).
  *
  * What matters is that the guard reads a click correctly before it cancels one: a middle-click, a Ctrl-click, a
@@ -7,27 +7,28 @@
  * prompt a user who was never leaving. The other half is that the destination survives the prompt — a "save and
  * leave" has to end up where the user clicked.
  *
- * The subject is eval'd with `window` and `document` as parameters: jsdom's real `window.location` can be neither
- * replaced nor spied on, and where the guard navigates is most of what there is to assert, while `document` has to
- * be fresh per test because a guard's click listener lives for the life of the page and an earlier test's would
- * answer this one's clicks. ConfirmDialog is stubbed too — jsdom has no <dialog>, and the button the user picks is
- * what these tests vary anyway.
+ * The guard takes its `window` and `document` as options: jsdom's real `window.location` can be neither replaced nor
+ * spied on, and where the guard navigates is most of what there is to assert, while `document` has to be fresh per
+ * test because a guard's click listener lives for the life of the page and an earlier test's would answer this
+ * one's clicks. ConfirmDialog is stubbed too — jsdom has no <dialog>, and the button the user picks is what these
+ * tests vary anyway.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const SRC = fs.readFileSync(
-  path.resolve(__dirname, '..', '..', 'public/js/common/UnsavedChangesGuard.js'), 'utf8'
-);
 
 const PAGE_URL = 'http://localhost/dashboard/settings';
 const OTHER_PAGE = 'http://localhost/dashboard';
 
-/** The guard class, with the globals it reads (window, document, i18next, ConfirmDialog) supplied per test. */
-const guardFactory = (0, eval)(
-  `(function (window, document, i18next, ConfirmDialog) {\n${SRC}\nreturn UnsavedChangesGuard;\n})`
-);
+/**
+ * A fresh guard class seeing the given `i18next` and `ConfirmDialog` stand-ins (through the window fakes the module
+ * loader honors).
+ * @returns {Function} The class.
+ */
+function guardFactory(i18next, ConfirmDialog) {
+  Object.assign(window, { i18next, ConfirmDialog });
+  return loadModules('frontend/js/common/UnsavedChangesGuard.js').UnsavedChangesGuard;
+}
 
 /**
  * Stands up a page with one link and a guard watching a form.
@@ -61,10 +62,12 @@ function setUp({ choice = 'stay', href = OTHER_PAGE, attrs = '', saveOk = true, 
     },
   };
   const doc = document.implementation.createHTMLDocument();
-  const UnsavedChangesGuard = guardFactory(fakeWindow, doc, { t: (key) => key }, confirmDialog);
+  const UnsavedChangesGuard = guardFactory({ t: (key) => key }, confirmDialog);
 
   doc.body.innerHTML = `<a id="link" href="${href}" ${attrs}>go</a>`;
   new UnsavedChangesGuard({
+    win: fakeWindow,
+    doc,
     isDirty: () => dirty,
     save: () => {
       record.saves += 1;

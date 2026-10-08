@@ -55,7 +55,6 @@ no.caps = Nee
 no.caps.shortcut = <u>N</u>ee
 unsure.caps = Onzeker
 unsure.caps.shortcut = Onzeker (<u>u</u>)
-wrong.type.shortcut = Verkeerd <u>t</u>ype
 thanks = Dank je wel!
 username = Gebruikersnaam
 loading = Laden...
@@ -280,7 +279,8 @@ landing.ml.gif.explain.alt = GIF met uitleg over de resultaten van crowdsourcing
 landing.deployment.map.title = Ontdek andere steden
 landing.deployment.map.subtitle = Klik op een cirkel hieronder om andere Project Sidewalk-steden te ontdekken!
 landing.partners.title = Communitypartners in {0}
-landing.partners.tagline = Ons werk in {0} is mogelijk dankzij onze geweldige communitypartners, waaronder:
+landing.partners.tagline = Ons werk in {0} is mogelijk dankzij onze communitypartners, waaronder:
+landing.partners.official.contact = Project Sidewalk is een onderzoekstool. Neem voor het melden van een probleem of het aanvragen van een reparatie rechtstreeks contact op met {0}. Je kunt links naar <a href="/labelMap" data-partner-source="official-contact-labelmap">labels</a> of <a href="/stories" data-partner-source="official-contact-stories">verhalen</a> van Project Sidewalk aan je verzoek toevoegen.
 landing.partners.logo.alt = Logo van {0}
 landing.partners.created.by = Project Sidewalk is met {0} ontwikkeld door
 landing.partners.created.heart = liefde
@@ -310,7 +310,7 @@ footer.email = Email ons
 footer.funding = MET TROTS GESPONSORD DOOR
 footer.award = Prijs <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338" target="_blank" id = "nsf-link">#1302338</a> <br> en <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID=2125087" target="_blank" id = "nsf-link">#2125087</a>
 footer.designed.operated = Project Sidewalk is ontworpen en beheerd door <a id="makeabilitylab" href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> op de <a id="universityofwashington" href="http://www.cs.uw.edu/">University of Washington</a>
-footer.version = Versie {0} | Laatst geupdated: <span class = "timestamp date">{1}</span>
+footer.version = Versie {0} | Laatst geupdated: {1}
 
 audit.tutorial.complete.1 = Het is gelukt!
 audit.tutorial.complete.2 = Je hebt de uitleg voltooid!
@@ -324,7 +324,7 @@ audit.ribbon.other.labels = ANDERE TOEGANKELIJKHEIDSLABELS
 audit.ribbon.explore = Ontd<u>e</u>k
 audit.ribbon.curb.ramp = Trottoir Oprit (<u>C</u>)
 audit.ribbon.missing.ramp = Ontbrekende Trottoir Oprit
-audit.ribbon.obstacle = <u>O</u>bstakel in het Pad
+audit.ribbon.obstacle = <u>O</u>bstakel
 audit.ribbon.surface.problem = Oppervlakteprobleem (<u>S</u>)
 audit.ribbon.no.sidewalk = Gee<u>n</u> Trottoir
 audit.ribbon.crosswalk = Gemarkeerde oversteekplaats (<u>W</u>)
@@ -548,13 +548,16 @@ gallery.all = Alle labeltypen
 gallery.labels.not.found = Geen overeenkomsten. <a href="/explore">Begin met verkennen</a> om meer data bij te dragen!
 gallery.cards = Labels worden willekeurig gesorteerd op basis van geselecteerde filters
 gallery.clear.filters = Filters Wissen
+gallery.list.count = {0,choice,1#1 label|1<{0} labels} in deze lijst
+gallery.list.truncated = {0,choice,1#1 id lag boven de limiet van {1} en kon niet worden geladen.|1<{0} ids lagen boven de limiet van {1} en konden niet worden geladen.}
+gallery.list.error = De lijst kon niet worden geladen. Herlaad de pagina om het opnieuw te proberen.
+gallery.list.browse.all = Alle labels bekijken
 
 routebuilder.name = Routebuilder
 routebuilder.welcome = Welkom bij Routebuilder
 routebuilder.intro.content = Bouw een route en deel deze met anderen.
 routebuilder.directions.start.aria = Startadres of plaats
 routebuilder.directions.end.aria = Eindadres of plaats
-routebuilder.stat.time.tooltip = Geschat op basis van het gebruikelijke tempo van Project Sidewalk-verkenners in deze stad (ongeveer {0} minuten per 100 meter).
 routebuilder.save = Route bewaren
 routebuilder.delete.route.icon.alt = Een oranje cirkel met een witte uitroepteken in het midden
 routebuilder.not.saved = Route is niet opgeslagen.
@@ -572,6 +575,7 @@ routebuilder.optional = (optioneel)
 routebuilder.route.description.placeholder = bijv. Onze vaste route van de bibliotheek naar school
 routebuilder.description.error.length = Routebeschrijvingen mogen maximaal {0} tekens lang zijn.
 routebuilder.description.error.allowed = Deze beschrijving is niet toegestaan. Pas hem aan.
+routebuilder.streets.error.unknown = Die route gebruikt een straat die we niet meer hebben. Laad de pagina opnieuw en bouw de route nog eens.
 routebuilder.signin.nudge = Log in om je routes in je dashboard te bewaren, waar je ze altijd kunt terugvinden, hernoemen en delen.
 routebuilder.signin.to.save = Inloggen & bewaren
 routebuilder.continue.without.account = Bewaren zonder account
@@ -596,6 +600,7 @@ dashboard.routes.rename = Hernoemen
 dashboard.routes.delete = Verwijderen
 dashboard.routes.stats = Door {0} verkend · Door {1} voltooid
 dashboard.routes.stats.tooltip = Verkend: hoeveel mensen deze route zijn gaan verkennen. Voltooid: hoeveel mensen de hele route hebben afgerond.
+dashboard.routes.region.and.more = {0} + {1} meer
 dashboard.routes.view.title = Bekijk deze route in RouteBuilder
 dashboard.routes.none = Je hebt nog geen routes gemaakt.
 dashboard.routes.build.one = Maak je eerste route →
@@ -758,6 +763,7 @@ dashboard.nav.you = Jij
 dashboard.nav.community = Gemeenschap
 dashboard.nav.dashboard = Dashboard
 dashboard.nav.settings = Instellingen
+dashboard.nav.manageuser = Gebruiker beheren
 dashboard.toc.header = Op deze pagina
 dashboard.settings.title = Instellingen
 dashboard.settings.intro = Beheer je account, je team en wat je met de gemeenschap deelt.

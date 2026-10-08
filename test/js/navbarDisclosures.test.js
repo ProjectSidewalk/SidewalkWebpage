@@ -10,12 +10,8 @@
  * DOM before constructing a controller.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const NAVBAR_SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/common/Navbar.js'), 'utf8'
-);
 
 /** Builds a navbar with one quick item (the account control) and one panel-only dropdown (language). */
 function buildNavbar() {
@@ -25,21 +21,21 @@ function buildNavbar() {
         <div class="navbar-container">
           <div class="navbar-brand-area">
             <div class="navbar-logo"><a id="navbar-brand" href="/"></a></div>
-            <ul class="navbar-nav navbar-quick" id="navbar-quick"></ul>
-            <button type="button" class="navbar-toggle" data-nav-toggle aria-controls="navbar"
+            <ul class="navbar-list navbar-quick" id="navbar-quick"></ul>
+            <button type="button" class="navbar-menu-toggle" data-nav-toggle aria-controls="navbar"
                     aria-expanded="false"></button>
           </div>
           <div id="navbar">
-            <ul class="navbar-nav navbar-nav--utility">
-              <li class="dropdown navbar-lnk" id="li-user" data-nav-quick="1">
+            <ul class="navbar-list navbar-list--utility">
+              <li class="dropdown navbar-item" id="li-user" data-nav-quick="1">
                 <button type="button" id="user-btn" class="navbar-button" data-nav-dropdown aria-expanded="false"
                         aria-controls="nav-user-menu"></button>
-                <ul id="nav-user-menu" class="dropdown-menu"><li><a href="/dashboard"></a></li></ul>
+                <ul id="nav-user-menu" class="navbar-menu"><li><a href="/dashboard"></a></li></ul>
               </li>
-              <li class="dropdown navbar-lnk" id="language-dropdown">
+              <li class="dropdown navbar-item" id="language-dropdown">
                 <button type="button" id="lang-btn" class="navbar-button" data-nav-dropdown aria-expanded="false"
                         aria-controls="nav-language-menu"></button>
-                <ul id="nav-language-menu" class="dropdown-menu"><li><a href="/lang"></a></li></ul>
+                <ul id="nav-language-menu" class="navbar-menu"><li><a href="/lang"></a></li></ul>
               </li>
             </ul>
           </div>
@@ -57,7 +53,7 @@ function stubLayout() {
     rect(hamburger, 44);
     rect(document.querySelector('.navbar-logo'), 110);
     rect(document.getElementById('navbar-quick'), 40);
-    for (const group of document.querySelectorAll('#navbar > .navbar-nav')) rect(group, 100);
+    for (const group of document.querySelectorAll('#navbar > .navbar-list')) rect(group, 100);
     const row = document.querySelector('.navbar-brand-area');
     Object.defineProperty(row, 'clientWidth', { configurable: true, get: () => 800 });
     Object.defineProperty(document.getElementById('navbar'), 'clientWidth', { configurable: true, get: () => 800 });
@@ -69,7 +65,7 @@ const press = (el) => el.dispatchEvent(new Event('pointerdown', { bubbles: true 
 
 describe('Navbar disclosures', () => {
     beforeAll(() => {
-        window.eval(`${NAVBAR_SRC}\nwindow.NavbarController = NavbarController;`);
+        Object.assign(window, loadModules('frontend/js/common/Navbar.js'));
     });
 
     beforeEach(() => {
@@ -190,7 +186,7 @@ describe('Navbar disclosures', () => {
         expect(langBtn().getAttribute('aria-expanded')).toBe('false');
     });
 
-    // `.navbar-lnk.is-open > .dropdown-menu` is not scoped by breakpoint, so an item that crosses the collapse
+    // `.navbar-item.is-open > .navbar-menu` is not scoped by breakpoint, so an item that crosses the collapse
     // boundary still carrying `is-open` renders its panel in a bar the user never opened it from.
     describe('when the bar crosses the collapse boundary', () => {
         it('closes a quick-strip dropdown as its item returns to the inline bar', async () => {

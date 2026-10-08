@@ -1,5 +1,7 @@
 package models.street
 
+import models.utils.{NamedEnum, PgEnumCompanion}
+
 /**
  * Enumeration of the OSM way types our imported streets carry, backing the `way_type` Postgres enum type.
  *
@@ -10,38 +12,36 @@ package models.street
  * NOTE: if changing these values, update the `way_type` Postgres enum type as well (see 342.sql). The string values
  * are emitted directly in the `/v3/api/streets` responses.
  */
-object WayType extends Enumeration {
-  type WayType = Value
-  val Motorway: Value      = Value("motorway")
-  val MotorwayLink: Value  = Value("motorway_link")
-  val Trunk: Value         = Value("trunk")
-  val TrunkLink: Value     = Value("trunk_link")
-  val Primary: Value       = Value("primary")
-  val PrimaryLink: Value   = Value("primary_link")
-  val Secondary: Value     = Value("secondary")
-  val SecondaryLink: Value = Value("secondary_link")
-  val Tertiary: Value      = Value("tertiary")
-  val TertiaryLink: Value  = Value("tertiary_link")
-  val Unclassified: Value  = Value("unclassified")
-  val Residential: Value   = Value("residential")
-  val LivingStreet: Value  = Value("living_street")
-  val Pedestrian: Value    = Value("pedestrian")
-  val Service: Value       = Value("service")
-  val Road: Value          = Value("road")
-  val Track: Value         = Value("track")
-  val Raceway: Value       = Value("raceway")
-  val Footway: Value       = Value("footway")
-  val Cycleway: Value      = Value("cycleway")
-  val Path: Value          = Value("path")
-  val Bridleway: Value     = Value("bridleway")
-  val Steps: Value         = Value("steps")
-  val Corridor: Value      = Value("corridor")
-  val Crossing: Value      = Value("crossing")
-  val Construction: Value  = Value("construction")
-  val Border: Value        = Value("border")
-  val Subway: Value        = Value("subway")
-  val Unknown: Value       = Value("unknown")
-
-  /** Parses a string into a way type, returning None if it doesn't match a known value. */
-  def fromString(name: String): Option[Value] = values.find(_.toString == name)
+enum WayType(val name: String) extends NamedEnum {
+  case Motorway      extends WayType("motorway")
+  case MotorwayLink  extends WayType("motorway_link")
+  case Trunk         extends WayType("trunk")
+  case TrunkLink     extends WayType("trunk_link")
+  case Primary       extends WayType("primary")
+  case PrimaryLink   extends WayType("primary_link")
+  case Secondary     extends WayType("secondary")
+  case SecondaryLink extends WayType("secondary_link")
+  case Tertiary      extends WayType("tertiary")
+  case TertiaryLink  extends WayType("tertiary_link")
+  case Unclassified  extends WayType("unclassified")
+  case Residential   extends WayType("residential")
+  case LivingStreet  extends WayType("living_street")
+  case Pedestrian    extends WayType("pedestrian")
+  case Service       extends WayType("service")
+  case Road          extends WayType("road")
+  case Track         extends WayType("track")
+  case Raceway       extends WayType("raceway")
+  case Footway       extends WayType("footway")
+  case Cycleway      extends WayType("cycleway")
+  case Path          extends WayType("path")
+  case Bridleway     extends WayType("bridleway")
+  case Steps         extends WayType("steps")
+  case Corridor      extends WayType("corridor")
+  case Crossing      extends WayType("crossing")
+  case Construction  extends WayType("construction")
+  case Border        extends WayType("border")
+  case Subway        extends WayType("subway")
+  case Unknown       extends WayType("unknown")
 }
+
+object WayType extends PgEnumCompanion[WayType]("way_type")

@@ -5,11 +5,14 @@ import controllers.helper.ShapefilesCreatorHelper
 import models.api.{
   AccessScoreConfigForApi,
   ApiError,
+  DemSourceForApi,
   IntersectionAccessScoreForApi,
   RegionAccessScoreForApi,
   SpotlightUnit,
-  StreetAccessScoreForApi
+  StreetAccessScoreForApi,
+  StreetGradientConfigForApi
 }
+import models.street.DemSource
 import models.utils.{LatLngBBox, SpatialQueryType}
 import org.apache.pekko.stream.scaladsl.Source
 import play.api.libs.json.Json
@@ -48,7 +51,7 @@ class AccessScoreApiController @Inject() (
     accessScoreService: AccessScoreService,
     accessScoreSpotlightService: AccessScoreSpotlightService,
     apiService: ApiService
-)(implicit ec: ExecutionContext)
+)(using ec: ExecutionContext)
     extends BaseApiController(cc) {
 
   /**
@@ -82,7 +85,7 @@ class AccessScoreApiController @Inject() (
             val streets: Seq[StreetAccessScoreForApi] =
               regionFilterId.fold(allStreets)(id => allStreets.filter(_.regionId == id))
             val baseFileName: String                             = timestampedFilename("accessScoreStreets")
-            val streetStream: Source[StreetAccessScoreForApi, _] = Source.fromIterator(() => streets.iterator)
+            val streetStream: Source[StreetAccessScoreForApi, ?] = Source.fromIterator(() => streets.iterator)
 
             filetype match {
               case Some("csv") =>
@@ -142,7 +145,7 @@ class AccessScoreApiController @Inject() (
               case _                => scores.intersections
             }
             val baseFileName: String                             = timestampedFilename("accessScoreIntersections")
-            val stream: Source[IntersectionAccessScoreForApi, _] = Source.fromIterator(() => intersections.iterator)
+            val stream: Source[IntersectionAccessScoreForApi, ?] = Source.fromIterator(() => intersections.iterator)
 
             filetype match {
               case Some("csv") =>
@@ -200,7 +203,7 @@ class AccessScoreApiController @Inject() (
             val regions: Seq[RegionAccessScoreForApi] =
               regionFilterId.fold(allRegions)(id => allRegions.filter(_.regionId == id))
             val baseFileName: String                             = timestampedFilename("accessScoreRegions")
-            val regionStream: Source[RegionAccessScoreForApi, _] = Source.fromIterator(() => regions.iterator)
+            val regionStream: Source[RegionAccessScoreForApi, ?] = Source.fromIterator(() => regions.iterator)
 
             filetype match {
               case Some("csv") =>
@@ -230,9 +233,21 @@ class AccessScoreApiController @Inject() (
    */
   def getAccessScoreConfig = silhouette.UserAwareAction.async { implicit request =>
     cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
-    // The engine's constants plus the one runtime fact a reader of the scores needs: how fresh the clusters are.
-    accessScoreService.clustersUpdatedAt.map { updatedAt =>
-      Ok(AccessScoreConfigForApi.current.toJson + ("clusters_updated_at" -> Json.toJson(updatedAt)))
+    // The engine's constants plus the runtime facts a reader needs: how fresh the clusters are, and which elevation
+    // models the city's grades came from (a per-city fact, so the credit cannot be a constant either).
+    val updatedAtFuture = accessScoreService.clustersUpdatedAt
+    val sourcesFuture   = accessScoreService.gradientSourceCounts
+    for {
+      updatedAt <- updatedAtFuture
+      sources   <- sourcesFuture
+    } yield {
+      val gradient = StreetGradientConfigForApi(sources.map { case (name, n) =>
+        DemSourceForApi(DemSource.forName(name), Some(n))
+      })
+      Ok(
+        AccessScoreConfigForApi.current.toJson +
+          ("clusters_updated_at" -> Json.toJson(updatedAt)) + ("grade" -> gradient.toJson)
+      )
     }
   }
 

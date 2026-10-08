@@ -68,8 +68,7 @@
     "add-note": "💬 Ajouter une note",
     "note-placeholder": "Ajoutez une note sur cette étiquette (facultatif)…",
     "save-note": "Enregistrer la note",
-    "popup-heading": "Votre étiquette a été jugée incorrecte. Êtes-vous d'accord qu'il s'agit d'une erreur ?",
-    "your-label": "Votre étiquette : {{type}}"
+    "popup-heading": "Votre étiquette a été jugée incorrecte. Êtes-vous d'accord qu'il s'agit d'une erreur ?"
   },
   "settings-form": {
     "saving": "Enregistrement…",

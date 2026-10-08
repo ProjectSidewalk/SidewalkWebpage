@@ -1,29 +1,37 @@
 package service
 
 import com.google.inject.ImplementedBy
-import formats.json.ExploreFormats._
-import models.audit._
-import models.label.{Tag, _}
+import formats.json.ExploreFormats.*
+import models.audit.*
+import models.label.{Tag, *}
+import models.utils.CommonUtils.UiSource
 import models.mission.{Mission, MissionTable, MissionType}
-import models.pano.PanoSource.PanoSource
-import models.pano._
+import models.pano.*
 import models.region.{Region, RegionCompletionTable, RegionTable}
-import models.route._
-import models.street._
+import models.route.*
+import models.street.*
 import models.survey.{SurveyQuestionTable, SurveyQuestionWithOptions}
 import models.user.SidewalkUserTable.aiUserId
-import models.user._
-import models.utils.MyPostgresProfile.api._
-import models.utils.{ConfigTable, MyPostgresProfile, WebpageActivityTable}
+import models.user.*
+import models.utils.MyPostgresProfile.api.*
+import models.utils.{IpAddress, MyPostgresProfile, WebpageActivityTable}
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory, Point, PrecisionModel}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.{Configuration, Logger}
 
 import java.time.format.DateTimeFormatter
 import java.time.{LocalDate, OffsetDateTime, ZoneOffset}
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.{ExecutionContext, Future}
 
+/**
+ * An Explore session as the page starts it: the task to walk, the mission it counts toward, and where it sits.
+ *
+ * @param routeUnavailable Whether a route the visit would have been in was dropped, so the page tells the user rather
+ *                         than passing the visit off as an ordinary session. Either a ?routeId= named no live route
+ *                         (#5156), or the walk's route has no walkable distance and so yields no mission (#5167).
+ * @param regionFinished   Whether the ?regionId= asked for was already finished, so the user was moved (#5692).
+ */
 case class ExplorePageData(
     task: Option[NewTask],
     mission: Mission,
@@ -32,18 +40,16 @@ case class ExplorePageData(
     route: Option[Route],
     routeResumed: Boolean,
     routeUnavailable: Boolean,
+    regionFinished: Boolean,
     hasCompletedAMission: Boolean,
-    nextTempLabelId: Int,
-    surveyData: Seq[SurveyQuestionWithOptions],
-    tutorialStreetId: Int,
-    makeCrops: Boolean
+    nextTempLabelId: Int
 )
 
 /** Core facts about a label inserted during an Explore submission, for post-submission side effects (AI, SciStarter). */
 case class NewLabelData(
     labelId: Int,
     temporaryLabelId: Int,
-    labelType: LabelTypeEnum.Base,
+    labelType: LabelType,
     panoSource: PanoSource,
     tutorial: Boolean,
     timeCreated: OffsetDateTime
@@ -100,6 +106,7 @@ trait ExploreService {
    * @return None if no street is within range of the point (caller should fall back to the normal explore flow).
    */
   def getDataForExploreAddressPage(userId: String, lat: Double, lng: Double): Future[Option[ExplorePageData]]
+  def listSurveyQuestions: Future[Seq[SurveyQuestionWithOptions]]
   def selectTasksInARegion(regionId: Int, userId: String): Future[Seq[NewTask]]
   def insertEnvironment(env: AuditTaskEnvironment): Future[Int]
   def insertMultipleInteractions(interactions: Seq[AuditTaskInteraction]): Future[Unit]
@@ -154,14 +161,13 @@ trait ExploreService {
    * @param ipAddress IP address of the user submitting the survey.
    * @param data Data submitted from the survey.
    */
-  def submitSurvey(userId: String, ipAddress: String, data: Seq[SurveySingleSubmission]): Future[Seq[Int]]
+  def submitSurvey(userId: String, ipAddress: IpAddress, data: Seq[SurveySingleSubmission]): Future[Seq[Int]]
 }
 
 @Singleton
 class ExploreServiceImpl @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
     val config: Configuration,
-    configTable: ConfigTable,
     missionService: MissionService,
     regionTable: RegionTable,
     labelTable: LabelTable,
@@ -189,14 +195,14 @@ class ExploreServiceImpl @Inject() (
     webpageActivityTable: WebpageActivityTable,
     surveyQuestionTable: SurveyQuestionTable,
     userSurveyOptionSubmissionTable: UserSurveyOptionSubmissionTable,
-    userSurveyTextSubmissionTable: UserSurveyTextSubmissionTable,
-    implicit val ec: ExecutionContext
-) extends ExploreService
+    userSurveyTextSubmissionTable: UserSurveyTextSubmissionTable
+)(using ec: ExecutionContext)
+    extends ExploreService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   private val logger = Logger(this.getClass)
   // SRID 4326 is baked into the factory so points it creates match label_point.geom's lat/lng coordinate system.
-  val gf: GeometryFactory = new GeometryFactory(new PrecisionModel(), 4326)
+  val gf: GeometryFactory = GeometryFactory(PrecisionModel(), 4326)
 
   def getDataForExplorePage(
       userId: String,
@@ -225,55 +231,93 @@ class ExploreServiceImpl @Inject() (
         .getOrElse(DBIO.successful(None))
 
       // Get the appropriate region the user is going to explore, and update their user_current_region entry.
-      currRegion: Option[Region] <- userCurrentRegionTable.getCurrentRegion(userId)
-      region: Option[Region]     <- {
+      currRegion: Option[Region]                        <- userCurrentRegionTable.getCurrentRegion(userId)
+      (region: Option[Region], regionFinished: Boolean) <- {
         (streetEdgeId, regionId, routeOption, newRegion, currRegion) match {
           // If user is exploring a specific street, get the region associated with that street and assign it to them.
           case (Some(streetId), _, _, _, _) =>
             streetEdgeRegionTable.getNonDeletedRegionFromStreetId(streetId).flatMap {
-              case Some(region) => userCurrentRegionTable.insertOrUpdate(userId, region.regionId).map(_ => Some(region))
-              case None         =>
+              case Some(region) =>
+                for {
+                  _ <- userCurrentRegionTable.insertOrUpdate(userId, region.regionId)
+                  _ <- closeMissionIfRegionFinished(userId, region.regionId)
+                } yield (Some(region), false)
+              case None =>
                 logger.error(
                   s"Either there is no region associated with street edge $streetId, or it is not a valid id."
                 )
-                DBIO.successful(None)
+                DBIO.successful((None, false))
             }
-          // If user is exploring a specific region, assign it to them.
+          // If user is exploring a specific region, assign it to them, unless they've already finished it (#5692).
           case (_, Some(r), _, _, _) =>
             regionTable.getRegion(r).flatMap {
-              case Some(region) => userCurrentRegionTable.insertOrUpdate(userId, region.regionId).map(_ => Some(region))
-              case None         =>
-                logger.error(s"Tried to explore region $r, but there is no region with that id.")
-                DBIO.successful(None)
+              case Some(region) =>
+                isTaskAvailable(userId, r).flatMap {
+                  case true  => userCurrentRegionTable.insertOrUpdate(userId, r).map(_ => (Some(region), false))
+                  case false => assignRegion(userId).map((_, true))
+                }
+              case None =>
+                logger.warn(s"Tried to explore region $r, but there is no region with that id; picking another.")
+                assignRegion(userId).map((_, false))
             }
-          // If user is on a route, assign them to the region associated with the route.
+          // If user is on a route, assign them to the region the route starts in. The route may run on into other
+          // regions (#3488); nothing on a walk is scoped by this one — the tasks come from the route's streets and
+          // region_completion is credited per street — so it serves as the page's region, the region the walk's
+          // mission is filed under, and where the user carries on exploring once the walk ends.
           case (_, _, Some(route), _, _) =>
-            userCurrentRegionTable.insertOrUpdate(userId, route.regionId).flatMap(rId => regionTable.getRegion(rId))
+            userCurrentRegionTable
+              .insertOrUpdate(userId, route.regionId)
+              .flatMap(rId => regionTable.getRegion(rId))
+              .map((_, false))
           // If we aren't trying to do anything special and user already has a region assigned, use that region.
           case (_, _, _, false, Some(r)) =>
             isTaskAvailable(userId, r.regionId).flatMap {
-              case true  => DBIO.successful(currRegion)
-              case false => assignRegion(userId)
+              case true  => DBIO.successful((currRegion, false))
+              case false => assignRegion(userId).map((_, false))
             }
           // If we aren't trying to do anything special and the user has no region assigned, assign one to them.
-          case _ => assignRegion(userId)
+          case _ => assignRegion(userId).map((_, false))
         }
       }
       // TODO we should throw some error here so that the user knows if a region wasn't found.
       _             = if (region.isEmpty) logger.error(s"Could not find region for $userId!!")
       regionId: Int = region.get.regionId
 
-      mission: Mission <- {
-        if (retakingTutorial) missionService.resumeOrCreateNewAuditOnboardingMission(userId).map(_.get)
-        else {
-          missionService.resumeOrCreateNewAuditMission(userId, regionId, userRoute).flatMap {
-            case Some(m) => DBIO.successful(m)
-            // A route with no distance left yields no route-scoped mission. Rather than 500 the page, drop the
-            // user into a normal region session in the route's region.
-            case None => missionService.resumeOrCreateNewAuditMission(userId, regionId, None).map(_.get)
-          }
+      // A walk whose route measures zero length (a degenerate street geom, #4670) gets no route-scoped mission, and
+      // there is no route left to walk anyway. It is dropped for this request exactly like an unresolvable
+      // ?routeId= (#5156): the page is told, and it stops claiming to be in a route whose mission it doesn't have
+      // (#5167). The walk is paused too, since setUpPossibleUserRoute left it active, and an active walk would be
+      // re-picked — and the toast re-shown — by every bare /explore after this one. Pausing rather than discarding
+      // keeps the one-way door reserved for ?resumeRoute=false (#4833). Only this walk can still be active here:
+      // setUpPossibleUserRoute paused every other one before resuming or creating it. The session then runs in the
+      // route's start region, or in a freshly picked one if the user has nothing left there.
+      (mission: Mission, walkDropped: Boolean, sessionRegion: Region) <- {
+        if (retakingTutorial) {
+          missionService.resumeOrCreateNewAuditOnboardingMission(userId).map(m => (m.get, false, region.get))
+        } else {
+          missionService
+            .resumeOrCreateNewAuditMission(userId, regionId, userRoute, revisitStreetId = streetEdgeId)
+            .flatMap {
+              case Some(m)                     => DBIO.successful((m, false, region.get))
+              case None if userRoute.isDefined =>
+                logger.warn(
+                  s"Route ${userRoute.get.routeId} (walk ${userRoute.get.userRouteId}) has no walkable distance for " +
+                    s"user $userId; dropping the walk and pausing it."
+                )
+                for {
+                  _        <- userRouteTable.pauseAllActiveRoutes(userId)
+                  fallback <- regionFallbackAfterDroppedWalk(userId, region.get)
+                } yield (fallback._1, true, fallback._2)
+              // Work was left, but none a mission can be sized from: the only streets left are zero length (#4670).
+              case None =>
+                missionInFreshRegion(userId, s"region $regionId had only zero-length streets left")
+                  .map((m, newRegion) => (m, false, newRegion))
+            }
         }
       }
+      sessionRegionId: Int             = sessionRegion.regionId
+      liveUserRoute: Option[UserRoute] = if (walkDropped) None else userRoute
+      liveRoute: Option[Route]         = if (walkDropped) None else routeOption
 
       // If there is a partially completed task in this route or mission, get that, o/w make a new one.
       task: Option[NewTask] <- {
@@ -281,8 +325,8 @@ class ExploreServiceImpl @Inject() (
           auditTaskTable.getATutorialTask(mission.missionId).map(Some(_))
         } else if (streetEdgeId.isDefined) {
           auditTaskTable.selectANewTask(streetEdgeId.get, userId, mission.missionId).map(Some(_))
-        } else if (routeOption.isDefined) {
-          userRouteTable.getRouteTask(userRoute.get, mission.missionId)
+        } else if (liveRoute.isDefined) {
+          userRouteTable.getRouteTask(liveUserRoute.get, mission.missionId)
         } else if (mission.currentAuditTaskId.isDefined) {
           // If we find no task with the given ID, try to get any new task in the region. A task the labeler has
           // just reported for missing imagery is passed over the same way: the report leaves it incomplete (#4922),
@@ -294,13 +338,13 @@ class ExploreServiceImpl @Inject() (
           auditTaskTable.selectTaskFromTaskId(mission.currentAuditTaskId.get, userId).flatMap {
             case Some(currTask) =>
               streetEdgeIssueTable.reportedNoImagerySince(currTask.edgeId, userId, currTask.taskStart).flatMap {
-                case true  => auditTaskTable.selectANewTaskInARegion(regionId, userId, mission.missionId)
+                case true  => auditTaskTable.selectANewTaskInARegion(sessionRegionId, userId, mission.missionId)
                 case false => DBIO.successful(Some(currTask))
               }
-            case None => auditTaskTable.selectANewTaskInARegion(regionId, userId, mission.missionId)
+            case None => auditTaskTable.selectANewTaskInARegion(sessionRegionId, userId, mission.missionId)
           }
         } else {
-          auditTaskTable.selectANewTaskInARegion(regionId, userId, mission.missionId)
+          auditTaskTable.selectANewTaskInARegion(sessionRegionId, userId, mission.missionId)
         }
       }
       nextTempLabelId: Int <- labelTable.nextTempLabelId(userId)
@@ -323,34 +367,30 @@ class ExploreServiceImpl @Inject() (
 
       // Check if they've already completed an explore mission. Used to suggest Validate/Explore missions on front-end.
       hasCompletedAMission: Boolean <- missionTable.countCompletedMissions(userId, MissionType.Audit).map(_ > 0)
-
-      surveyData: Seq[SurveyQuestionWithOptions] <- surveyQuestionTable.listAllWithOptions
-      tutorialStreetId: Int                      <- configTable.getTutorialStreetId
-      makeCrops: Boolean                         <- configTable.getMakeCrops
     } yield {
       // The tutorial takes over the whole session, so a resumable route must not surface mid-tutorial: shipping its
       // id flips the client into route mode and draws the route over the tutorial map (#4816). Only the page payload
       // is suppressed — the walk stays active, so it resumes on the post-tutorial reload of /explore. (An explicit
       // ?routeId= still sets a walk up above, since that is the user asking for one; it just waits for them.)
       val (pageUserRoute, pageRoute) =
-        if (updatedMission.missionType == MissionType.AuditOnboarding) (None, None) else (userRoute, routeOption)
+        if (updatedMission.missionType == MissionType.AuditOnboarding) (None, None) else (liveUserRoute, liveRoute)
       ExplorePageData(
         task,
         updatedMission,
-        region.get,
+        sessionRegion,
         pageUserRoute,
         pageRoute,
         routeResumed = pageUserRoute.isDefined && routeSetup.resumed,
-        routeSetup.routeUnavailable,
+        routeUnavailable = routeSetup.routeUnavailable || walkDropped,
+        regionFinished,
         hasCompletedAMission,
-        nextTempLabelId,
-        surveyData,
-        tutorialStreetId,
-        makeCrops
+        nextTempLabelId
       )
     }
     db.run(getExploreDataAction.transactionally)
   }
+
+  def listSurveyQuestions: Future[Seq[SurveyQuestionWithOptions]] = db.run(surveyQuestionTable.listAllWithOptions)
 
   def getDataForExploreAddressPage(userId: String, lat: Double, lng: Double): Future[Option[ExplorePageData]] = {
     val exploreAddressAction = lockUserForExploreAddress(userId)
@@ -378,14 +418,10 @@ class ExploreServiceImpl @Inject() (
                 nextTempLabelId: Int          <- labelTable.nextTempLabelId(userId)
                 hasCompletedAMission: Boolean <-
                   missionTable.countCompletedMissions(userId, missionType = MissionType.Audit).map(_ > 0)
-                surveyData: Seq[SurveyQuestionWithOptions] <- surveyQuestionTable.listAllWithOptions
-                tutorialStreetId: Int                      <- configTable.getTutorialStreetId
-                makeCrops: Boolean                         <- configTable.getMakeCrops
               } yield {
                 Some(
                   ExplorePageData(task, updatedMission, region, userRoute = None, route = None, routeResumed = false,
-                    routeUnavailable = false, hasCompletedAMission, nextTempLabelId, surveyData, tutorialStreetId,
-                    makeCrops)
+                    routeUnavailable = false, regionFinished = false, hasCompletedAMission, nextTempLabelId)
                 )
               }
           }
@@ -438,7 +474,7 @@ class ExploreServiceImpl @Inject() (
               WHERE street_edge.street_edge_id = $streetEdgeId"""
           .as[Double]
           .headOption
-          .flatMap { startOffsetM: Option[Double] =>
+          .flatMap { (startOffsetM: Option[Double]) =>
             auditTaskTable.insert(
               AuditTask(0, None, userId, streetEdgeId, OffsetDateTime.now, OffsetDateTime.now, completed = false, lat,
                 lng, startPointReversed = false, Some(missionId), None, lowQuality = false, incomplete = false,
@@ -483,17 +519,17 @@ class ExploreServiceImpl @Inject() (
         // Pause routes that don't match routeId, resume route with given routeId if it exists, o/w make a new one.
         case (Some(rId), true) =>
           for {
-            _      <- userRouteTable.pauseOtherActiveRoutes(rId, userId)
-            result <- userRouteTable.getActiveRouteOrCreateNew(rId, userId)
-            walked <-
-              if (result._2) userRouteTable.hasBeenWalked(result._1.userRouteId) else DBIO.successful(false)
-          } yield RouteWalkSetup(Some(result._1), resumed = walked)
+            _                           <- userRouteTable.pauseOtherActiveRoutes(rId, userId)
+            (userRoute, alreadyExisted) <- userRouteTable.getActiveRouteOrCreateNew(rId, userId)
+            walked                      <-
+              if (alreadyExisted) userRouteTable.hasBeenWalked(userRoute.userRouteId) else DBIO.successful(false)
+          } yield RouteWalkSetup(Some(userRoute), resumed = walked)
         // Explicit restart: discard old walks (including any of this route), save a new one with given routeId.
         case (Some(rId), false) =>
           for {
-            _      <- userRouteTable.discardAllActiveRoutes(userId)
-            result <- userRouteTable.getActiveRouteOrCreateNew(rId, userId)
-          } yield RouteWalkSetup(Some(result._1), resumed = false)
+            _              <- userRouteTable.discardAllActiveRoutes(userId)
+            (userRoute, _) <- userRouteTable.getActiveRouteOrCreateNew(rId, userId)
+          } yield RouteWalkSetup(Some(userRoute), resumed = false)
         // Get an in progress route (with any routeId) if it exists, otherwise return None.
         case (None, true) =>
           userRouteTable.getInProgressRoute(userId).flatMap {
@@ -509,6 +545,49 @@ class ExploreServiceImpl @Inject() (
       setup.map(_.copy(routeUnavailable = routeId.isDefined && !routeExists))
     }
   }
+
+  /**
+   * The region session a visit falls back to once its zero-length walk is dropped (#5167): the route's start region
+   * while it still has distance left for the user, else a region picked the way a bare /explore picks one. The second
+   * step is what keeps a user who finished the start region out of an error on every load: a failed request rolls
+   * back the pause with everything else, so the walk would stay active and be re-picked by the next /explore.
+   *
+   * @param userId      The user whose walk was dropped.
+   * @param routeRegion The region the route starts in, where the session was headed.
+   * @return The region mission to start on, paired with the region it sits in.
+   */
+  private def regionFallbackAfterDroppedWalk(userId: String, routeRegion: Region): DBIO[(Mission, Region)] =
+    missionService.resumeOrCreateNewAuditMission(userId, routeRegion.regionId, None).flatMap {
+      case Some(m) => DBIO.successful((m, routeRegion))
+      case None    => missionInFreshRegion(userId, "dropping their walk")
+    }
+
+  /**
+   * Moves the user to a top-priority region they haven't finished, as a bare /explore does.
+   * @param reason Why the user is being moved, for the error log if there's nowhere left to move them.
+   * @return The new mission and its region.
+   */
+  private def missionInFreshRegion(userId: String, reason: String): DBIO[(Mission, Region)] =
+    assignRegion(userId).flatMap {
+      case Some(newRegion) =>
+        missionService.resumeOrCreateNewAuditMission(userId, newRegion.regionId, None).map(m => (m.get, newRegion))
+      case None =>
+        DBIO.failed(new IllegalStateException(s"No region left for $userId to explore after $reason."))
+    }
+
+  /**
+   * Closes the user's open mission in a region they've finished: it could never end, and resuming it would cut a
+   * street visit's mission short (#5692).
+   */
+  private def closeMissionIfRegionFinished(userId: String, regionId: Int): DBIO[Unit] =
+    isTaskAvailable(userId, regionId).flatMap {
+      case true  => DBIO.successful(())
+      case false =>
+        missionTable.getCurrentMissionInRegion(userId, regionId).flatMap {
+          case Some(m) => missionTable.updateComplete(m.missionId).map(_ => ())
+          case None    => DBIO.successful(())
+        }
+    }
 
   /**
    * Picks one of the regions with the highest average priority out of those that the user has not completed.
@@ -617,7 +696,7 @@ class ExploreServiceImpl @Inject() (
               WHERE street_edge.street_edge_id = $streetEdgeId"""
           .as[(Double, Option[Double])]
           .headOption
-          .map { row: Option[(Double, Option[Double])] =>
+          .map { (row: Option[(Double, Option[Double])]) =>
             row.exists { case (len, startOffsetM) =>
               len > 0d && walkedM - startOffsetM.getOrElse(0d) >= len * ExploreService.streetWalkedThreshold
             }
@@ -681,7 +760,7 @@ class ExploreServiceImpl @Inject() (
     val pointGeom: Option[Point]    = for {
       _lat <- point.lat
       _lng <- point.lng
-    } yield gf.createPoint(new Coordinate(_lng, _lat))
+    } yield gf.createPoint(Coordinate(_lng, _lat))
 
     warnIfRecordStale(label, userId)
 
@@ -694,14 +773,15 @@ class ExploreServiceImpl @Inject() (
 
       // Add the new entry to the label table.
       allTags: Seq[Tag] <- labelService.selectAllTags
-      newLabelId: Int   <- labelService.insertLabel(
+      (deletedBy, deletedAt, deletedSource) = LabelDeletion.fields(userId, Option.when(label.deleted)(UiSource.Explore))
+      newLabelId: Int <- labelService.insertLabel(
         Label(
           labelId = 0,
           auditTaskId = auditTaskId,
           missionId = missionId,
           userId = userId,
           panoId = label.panoId,
-          labelType = LabelTypeEnum.withName(label.labelType),
+          labelType = label.labelType,
           deleted = label.deleted,
           temporaryLabelId = label.temporaryLabelId,
           timeCreated = timeCreated,
@@ -713,20 +793,23 @@ class ExploreServiceImpl @Inject() (
           correct = None,
           severity = label.severity,
           description = label.description,
-          tags = label.tagIds.distinct.flatMap(t => allTags.filter(_.tagId == t).map(_.tag).headOption).toList
+          tags = label.tagIds.distinct.flatMap(t => allTags.filter(_.tagId == t).map(_.tag).headOption).toList,
+          // A label removed before its first save arrives already deleted.
+          deletedBy = deletedBy,
+          deletedAt = deletedAt,
+          deletedSource = deletedSource
         )
       )
 
       // The side of the street is relative to calculatedStreetEdgeId, so it is filled in after the insert (#2886).
       newLabelPointId: Int <- labelPointTable.insert(
-        LabelPoint(0, newLabelId, point.panoX, point.panoY, point.canvasX, point.canvasY, point.heading, point.pitch,
-          point.zoom, point.lat, point.lng, pointGeom, point.computationMethod, centerlineOffsetM = None,
-          streetSide = None)
+        LabelPoint(0, newLabelId, point.panoX, point.panoY, point.canvasX, point.canvasY, point.canvasWidth,
+          point.canvasHeight, point.heading, point.pitch, point.zoom, point.lat, point.lng, pointGeom,
+          point.computationMethod, centerlineOffsetM = None, streetSide = None)
       )
       _ <- labelPointTable.computeCenterlineOffset(newLabelPointId, calculatedStreetEdgeId)
     } yield {
-      NewLabelData(newLabelId, label.temporaryLabelId, LabelTypeEnum.byName(label.labelType), label.panoSource,
-        label.tutorial, timeCreated)
+      NewLabelData(newLabelId, label.temporaryLabelId, label.labelType, label.panoSource, label.tutorial, timeCreated)
     }
   }
 
@@ -763,7 +846,10 @@ class ExploreServiceImpl @Inject() (
           PanoDataService.calculatePovIfCentered(
             POV(point.heading, point.pitch, point.zoom),
             point.canvasX.toDouble,
-            point.canvasY.toDouble
+            point.canvasY.toDouble,
+            point.canvasWidth,
+            point.canvasHeight,
+            label.panoSource
           )
         val (expectedX, expectedY) = PanoDataService.calculatePanoXYFromPov(labelPov, camHeading, width, height)
         val dxPx                   = { val d = math.abs(point.panoX - expectedX); math.min(d, width - d) }
@@ -774,7 +860,7 @@ class ExploreServiceImpl @Inject() (
               s"pano=${label.panoId} stored pano_x/y=(${point.panoX}, ${point.panoY}) " +
               s"record replays to=($expectedX, $expectedY) mismatch=${f"$mismatchDeg%.3f"}deg " +
               s"record=(h=${point.heading}, p=${point.pitch}, z=${point.zoom}, " +
-              s"canvas=${point.canvasX},${point.canvasY})"
+              s"canvas=${point.canvasX},${point.canvasY} frame=${point.canvasWidth}x${point.canvasHeight})"
           )
         }
       }
@@ -813,7 +899,7 @@ class ExploreServiceImpl @Inject() (
   def savePanoInfo(panos: Seq[PanoSubmission]): Future[Boolean] = {
     val currTime: OffsetDateTime = OffsetDateTime.now
     // asTry so one pano's failure can't abort the rest of the batch; failures are logged below.
-    val panoSubmissionActions = panos.map { pano: PanoSubmission => savePanoAction(pano, currTime).asTry }
+    val panoSubmissionActions = panos.map { (pano: PanoSubmission) => savePanoAction(pano, currTime).asTry }
 
     db.run(DBIO.sequence(panoSubmissionActions))
       .map { results =>
@@ -869,7 +955,7 @@ class ExploreServiceImpl @Inject() (
         case _ =>
           streetEdgeTable.getStreet(streetEdgeId).flatMap {
             case None =>
-              DBIO.failed(new Exception(s"Street edge with ID $streetEdgeId not found."))
+              DBIO.failed(Exception(s"Street edge with ID $streetEdgeId not found."))
             case Some(street) =>
               // No existing task found, create a new one.
               auditTaskTable.insert(
@@ -897,13 +983,13 @@ class ExploreServiceImpl @Inject() (
           pano.cameraHeading.get)
         // label_point.canvas_x/y are NOT NULL, but an AI label was never drawn on a canvas. The center is the one
         // value consistent with the heading/pitch stored beside it, which is the POV that centers the label.
-        val canvasX = LabelPointTable.canvasWidth / 2
-        val canvasY = LabelPointTable.canvasHeight / 2
-        val latLng  = PanoDataService.toLatLng(pano.lat.get, pano.lng.get, label.panoX, label.panoY, pano.width.get,
-          pano.height.get, pano.cameraHeading.get)
+        val canvasX              = LabelPointTable.canvasWidth / 2
+        val canvasY              = LabelPointTable.canvasHeight / 2
+        val (labelLat, labelLng) = PanoDataService.toLatLng(pano.lat.get, pano.lng.get, label.panoX, label.panoY,
+          pano.width.get, pano.height.get, pano.cameraHeading.get)
         for {
           // Create necessary associated data for the label to fit in PS (mission, audit_task, etc.).
-          streetEdgeId <- labelTable.getStreetEdgeIdClosestToLatLng(latLng._1, latLng._2)
+          streetEdgeId <- labelTable.getStreetEdgeIdClosestToLatLng(labelLat, labelLng)
           regionId     <- streetEdgeRegionTable.getNonDeletedRegionFromStreetId(streetEdgeId).map(_.get.regionId)
           missionId    <- missionService.resumeOrCreateNewAiExploreMission(regionId).map(_.missionId)
           auditTaskId  <- resumeOrCreateNewAiAuditTask(missionId, streetEdgeId)
@@ -911,7 +997,8 @@ class ExploreServiceImpl @Inject() (
 
           // Create and insert the label and label_point entries.
           labelPoint: LabelPointSubmission = LabelPointSubmission(label.panoX, label.panoY, canvasX, canvasY,
-            heading = pov.heading, pitch = pov.pitch, pov.zoom, lat = Some(latLng._1), lng = Some(latLng._2),
+            LabelPointTable.canvasWidth, LabelPointTable.canvasHeight, heading = pov.heading, pitch = pov.pitch,
+            pov.zoom, lat = Some(labelLat), lng = Some(labelLng),
             computationMethod = Some(ComputationMethod.Approximation3))
           labelSubmission: LabelSubmission = LabelSubmission(
             panoId = pano.panoId,
@@ -948,12 +1035,12 @@ class ExploreServiceImpl @Inject() (
     // means a label can never be committed without its pano_data row, and a failed pano write takes the whole
     // submission with it rather than quietly producing an orphan.
     val labeledPanos: Seq[PanoSubmission]  = data.labels.flatMap(_.pano).distinctBy(_.panoId).sortBy(_.panoId)
-    val saveLabeledPanosAction: DBIO[Unit] = DBIO.seq(labeledPanos.map(savePanoAction(_, OffsetDateTime.now)): _*)
+    val saveLabeledPanosAction: DBIO[Unit] = DBIO.seq(labeledPanos.map(savePanoAction(_, OffsetDateTime.now))*)
 
     // Update the audit_task table and get the audit_task_id. This is needed to submit all other data.
     val submitAction: DBIO[ExploreTaskPostReturnValue] = updateAuditTaskTable(userId, data.auditTask, missionId)
-      .flatMap { auditTaskId: Int =>
-        missionTable.getMissionType(missionId).flatMap { missionType: Option[MissionType.Value] =>
+      .flatMap { (auditTaskId: Int) =>
+        missionTable.getMissionType(missionId).flatMap { (missionType: Option[MissionType]) =>
           // If task is complete, mark it in the db and update the street priority. A normal audit is completed by the
           // client; a free-exploration drop-in has no such client signal, so the server derives it from how far the
           // user walked (#4451). Deriving it also means a forged completed=true can't mark a drop-in street audited.
@@ -969,7 +1056,7 @@ class ExploreServiceImpl @Inject() (
             case Some(MissionType.Audit) if data.auditTask.completed.getOrElse(false) => completeTaskAction
             case Some(MissionType.ExploreAddress)                                     =>
               streetWalkedFarEnough(auditTaskId, streetEdgeId, data.auditTask.auditedDistanceM).flatMap {
-                farEnough: Boolean => if (farEnough) completeTaskAction else DBIO.successful(0)
+                (farEnough: Boolean) => if (farEnough) completeTaskAction else DBIO.successful(0)
               }
             case _ => DBIO.successful(0)
           }
@@ -993,13 +1080,12 @@ class ExploreServiceImpl @Inject() (
 
           // Insert any labels.
           val labelSubmitActions: Seq[DBIO[Option[NewLabelData]]] =
-            data.labels.map { label: LabelSubmission =>
-              val labelType: LabelTypeEnum.Base = LabelTypeEnum.withName(label.labelType)
+            data.labels.map { (label: LabelSubmission) =>
               labelTable.find(label.temporaryLabelId, userId).flatMap {
                 case Some(existingLabel) =>
                   // If there is already a label with this temp id but a mismatched label type, the user probably has the
                   // Explore page open in multiple browsers. Don't add the label; tell the front-end to refresh the page.
-                  if (existingLabel.labelType != labelType) {
+                  if (existingLabel.labelType != label.labelType) {
                     refreshPage = true
                     DBIO.successful(None)
                   } else {
@@ -1064,7 +1150,7 @@ class ExploreServiceImpl @Inject() (
     })
   }
 
-  def submitSurvey(userId: String, ipAddress: String, data: Seq[SurveySingleSubmission]): Future[Seq[Int]] = {
+  def submitSurvey(userId: String, ipAddress: IpAddress, data: Seq[SurveySingleSubmission]): Future[Seq[Int]] = {
     db.run((for {
       numMissionsCompleted: Int <- missionTable
         .countCompletedMissions(userId, includeOnboarding = false, includeSkipped = true)

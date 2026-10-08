@@ -1,14 +1,13 @@
 package models.street
 
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.given
 import org.scalatest.BeforeAndAfterAll
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsValue, Json}
 import slick.dbio.DBIO
-import util.{RolledBackDb, StreetFixtures}
+import util.{RolledBackDb, SidewalkSpec, StreetFixtures}
 
 import java.time.temporal.ChronoUnit
 import java.time.{Instant, OffsetDateTime}
@@ -28,14 +27,14 @@ import java.time.{Instant, OffsetDateTime}
  * the scheduling actors are disabled so no background refresh touches the rows mid-test.
  */
 class OsmWayTableSpec
-    extends PlaySpec
+    extends SidewalkSpec
     with BeforeAndAfterAll
     with GuiceOneAppPerSuite
     with RolledBackDb
     with StreetFixtures {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private val osmWayTable = app.injector.instanceOf[OsmWayTable]
 

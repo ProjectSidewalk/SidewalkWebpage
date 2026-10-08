@@ -10,7 +10,7 @@
   color: var(--color-neutral-black);
 }
 
-#about-page a:not(.button-ps) {
+#about-page a:not(.button) {
   color: var(--color-link-200);
 }
 

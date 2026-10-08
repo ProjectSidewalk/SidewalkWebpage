@@ -214,6 +214,17 @@
   "pano-attribution": {
     "opens-new-tab": "(abre em uma nova aba)"
   },
+  "image-adjustments": {
+    "button": "Imagem",
+    "active-sr": "(ajustada)",
+    "tooltip": "Ajuste as sombras, o brilho e o contraste da imagem",
+    "title": "Ajustes de imagem",
+    "shadows": "Sombras",
+    "brightness": "Brilho",
+    "contrast": "Contraste",
+    "reset": "Restaurar padrões",
+    "persist-note": "Estas configurações persistem em Explorar e Validar até você redefini-las."
+  },
   "mission-start-tutorial": {
     "example-type-label-correct": "EXEMPLO CORRETO",
     "label-type-subtitle": "Por que isso está errado?",
@@ -356,14 +367,21 @@
     "vote-failed": "Seu voto não foi salvo. Tente novamente."
   },
   "download-already-preparing": "Este arquivo já está sendo preparado para outra solicitação. Tente novamente em instantes.",
+  "session-load-failed": {
+    "title": "Não foi possível carregar",
+    "body": "Não foi possível carregar sua missão. Recarregue a página para tentar novamente.",
+    "bad-link": "Este link não é válido. Verifique o endereço e tente novamente."
+  },
   "label-type-picker": {
     "current": "{{labelType}} (tipo atual)",
-    "change": "alterar"
+    "change": "alterar",
+    "change-type": "Alterar o tipo de rótulo",
+    "change-type-hint": "Tags que não se aplicam ao novo tipo são removidas. Uma avaliação só é mantida entre tipos avaliados da mesma forma."
   },
   "access-score-spotlight": {
     "subtitle-regions": "As calçadas de cada bairro recebem de 0 a 100 pontos pelo nosso algoritmo <a href=\"{{href}}\">AccessScore</a> (100 é o melhor).",
     "subtitle-streets": "As calçadas de cada rua recebem de 0 a 100 pontos pelo nosso algoritmo <a href=\"{{href}}\">AccessScore</a> (100 é o melhor).",
-    "subtitle-one-region": "Esta cidade é mapeada como um único bairro, então há apenas uma pontuação para mostrar. Mude para Ruas para ver com mais detalhes.",
+    "subtitle-one-region": "Esta cidade é mapeada como um único bairro, então há apenas uma pontuação para mostrar.",
     "units-label": "Classificar bairros ou ruas",
     "unit-regions": "Bairros",
     "unit-streets": "Ruas",
@@ -389,5 +407,8 @@
     "region-sub-pending": "{{length}} de ruas · {{percent}}% explorado",
     "street-in-city": "{{region}}, {{city}}",
     "unnamed": "Rua sem nome"
-  }
+  },
+  "immersive-enter": "Entrar no modo imersivo",
+  "immersive-exit": "Sair do modo imersivo",
+  "immersive-exit-hint": "Modo imersivo. Pressione F para sair."
 }

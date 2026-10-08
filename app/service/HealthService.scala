@@ -5,13 +5,13 @@ import com.google.inject.ImplementedBy
 import models.utils.{BackgroundJobRun, BackgroundJobRunTable, HealthTable, JobRunStatus, JobRunTrigger}
 import play.api.cache.AsyncCacheApi
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import play.api.libs.json._
+import play.api.libs.json.*
 import play.api.{Configuration, Logger}
 import models.utils.MyPostgresProfile
 
 import java.time.temporal.ChronoUnit
 import java.time.OffsetDateTime
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.duration.Duration
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -116,15 +116,16 @@ case class HealthThresholds(
  * that anything is still firing it, so letting one supply the badge would let a morning-after "run it now" click
  * paint over the night the job actually failed.
  *
- * @param lastStatus         `never_run`, `abandoned` (still open long past any plausible duration, so the app died
- *                           mid-run), or the recorded outcome.
+ * @param lastStatus         `never_run`, `abandoned` (still open long past any plausible duration while its process
+ *                           stayed up, so it hung), or the recorded outcome, which includes `interrupted` (the process
+ *                           died mid-run and the next boot closed the row, #5236).
  * @param lastDetails        The job's own counts, shaped by the job.
  * @param hoursSinceLastRun  Age of the last scheduled run's start, which is what makes a stalled scheduler visible.
  * @param overdue            No successful scheduled run within the roster's overdue window.
  * @param lastManualRunAt    When someone last ran this job by hand, if ever.
  * @param lastManualStatus   How that hand-triggered run ended.
  * @param runsInWindow       Scheduled runs started within the reporting window, successful or not.
- * @param failuresInWindow   How many of those failed or were abandoned, for the error-rate read.
+ * @param failuresInWindow   How many of those failed, were interrupted, or were abandoned, for the error-rate read.
  */
 case class NightlyJobStatus(
     jobName: String,
@@ -189,7 +190,7 @@ class HealthServiceImpl @Inject() (
     cacheApi: AsyncCacheApi,
     healthTable: HealthTable,
     backgroundJobRunTable: BackgroundJobRunTable
-)(implicit val ec: ExecutionContext)
+)(using val ec: ExecutionContext)
     extends HealthService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
@@ -319,13 +320,14 @@ class HealthServiceImpl @Inject() (
       ScheduledJobs.All.map { job =>
         val latest       = byJobAndTrigger.get((job.name, JobRunTrigger.Scheduled))
         val lastManual   = byJobAndTrigger.get((job.name, JobRunTrigger.Manual))
-        val jobCounts    = counts.filter(_._1 == job.name)
-        val runsInWindow = jobCounts.map(_._4).sum
-        // An abandoned run — still open long past any plausible duration — is a failure the row never got to record,
-        // so counting only `failed` here would read a job the JVM dies inside every night as a spotless record.
+        val jobCounts    = counts.filter(_.jobName == job.name)
+        val runsInWindow = jobCounts.map(_.count).sum
+        // An interrupted or abandoned run is a failure the job never got to record, so counting only `failed` here
+        // would read a job the JVM dies inside every night as a spotless record.
         val failures = jobCounts.collect {
-          case (_, JobRunStatus.Failed, _, count)     => count
-          case (_, JobRunStatus.Running, true, count) => count
+          case outcome if outcome.status == JobRunStatus.Failed                       => outcome.count
+          case outcome if outcome.status == JobRunStatus.Interrupted                  => outcome.count
+          case outcome if outcome.status == JobRunStatus.Running && outcome.abandoned => outcome.count
         }.sum
         val hoursSince = latest.map(run => ChronoUnit.HOURS.between(run.startedAt, now))
         NightlyJobStatus(
@@ -334,8 +336,7 @@ class HealthServiceImpl @Inject() (
           scheduledAt = job.scheduledAt,
           lastStartedAt = latest.map(_.startedAt.toString),
           lastFinishedAt = latest.flatMap(_.finishedAt.map(_.toString)),
-          lastDurationSeconds =
-            latest.flatMap(run => run.finishedAt.map(finished => ChronoUnit.SECONDS.between(run.startedAt, finished))),
+          lastDurationSeconds = latest.flatMap(lastDuration),
           lastStatus = describeStatus(latest, hoursSince),
           lastDetails = latest.flatMap(_.details),
           lastError = latest.flatMap(_.errorMessage),
@@ -357,13 +358,27 @@ class HealthServiceImpl @Inject() (
     }
   }
 
+  /**
+   * How long a settled run took, in seconds.
+   *
+   * None for an interrupted run (#5236): its `finished_at` is when the next boot closed the row, so the span would be
+   * how long the app stayed down, which can be weeks for an orphan from before the sweep existed.
+   *
+   * @param run The run to measure.
+   * @return    Its duration, or None while it is open or when it was interrupted.
+   */
+  private def lastDuration(run: BackgroundJobRun): Option[Long] = {
+    if (run.status == JobRunStatus.Interrupted) None
+    else run.finishedAt.map(finished => ChronoUnit.SECONDS.between(run.startedAt, finished))
+  }
+
   /** How a run reads: never run, abandoned mid-run, or its recorded outcome. */
   private def describeStatus(latest: Option[BackgroundJobRun], hoursSinceStart: Option[Long]): String = {
     latest match {
       case None                                            => "never_run"
       case Some(run) if run.status == JobRunStatus.Running =>
         if (hoursSinceStart.exists(_ > HealthService.JobAbandonedAfterHours)) "abandoned" else "running"
-      case Some(run) => run.status.toString
+      case Some(run) => run.status.name
     }
   }
 
@@ -403,21 +418,23 @@ object HealthService {
   /**
    * How long a run may stay open before it reads as abandoned rather than in progress, in hours.
    *
-   * The whole nightly schedule spans under four hours, so a run still open this long after it started means the app
-   * was killed or redeployed mid-run and nothing ever closed the row.
+   * The whole nightly schedule spans under four hours, so a run still open this long after it started has stopped
+   * making progress. A run whose process died is closed as `interrupted` at the next boot (#5236), so what this
+   * threshold catches is a run that hung inside a process that stayed up, or a process that died and has not yet
+   * restarted. A heartbeat column would shorten that wait; until then, this is the only signal.
    */
   val JobAbandonedAfterHours: Long = 12
 
-  implicit private val jsonConfig: JsonConfiguration = JsonConfiguration(JsonNaming.SnakeCase)
+  private given jsonConfig: JsonConfiguration = JsonConfiguration(JsonNaming.SnakeCase)
 
-  implicit val blockingSessionWrites: Writes[BlockingSession]   = Json.writes[BlockingSession]
-  implicit val idleTxnSessionWrites: Writes[IdleTxnSession]     = Json.writes[IdleTxnSession]
-  implicit val activeQueryWrites: Writes[ActiveQuery]           = Json.writes[ActiveQuery]
-  implicit val stuckEvolutionWrites: Writes[StuckEvolution]     = Json.writes[StuckEvolution]
-  implicit val tableBloatWrites: Writes[TableBloat]             = Json.writes[TableBloat]
-  implicit val connCountWrites: Writes[ConnCount]               = Json.writes[ConnCount]
-  implicit val panoBackupStatsWrites: Writes[PanoBackupStats]   = Json.writes[PanoBackupStats]
-  implicit val nightlyJobStatusWrites: Writes[NightlyJobStatus] = Json.writes[NightlyJobStatus]
-  implicit val healthThresholdsWrites: Writes[HealthThresholds] = Json.writes[HealthThresholds]
-  implicit val dbHealthDataWrites: Writes[DbHealthData]         = Json.writes[DbHealthData]
+  given blockingSessionWrites: Writes[BlockingSession]   = Json.writes[BlockingSession]
+  given idleTxnSessionWrites: Writes[IdleTxnSession]     = Json.writes[IdleTxnSession]
+  given activeQueryWrites: Writes[ActiveQuery]           = Json.writes[ActiveQuery]
+  given stuckEvolutionWrites: Writes[StuckEvolution]     = Json.writes[StuckEvolution]
+  given tableBloatWrites: Writes[TableBloat]             = Json.writes[TableBloat]
+  given connCountWrites: Writes[ConnCount]               = Json.writes[ConnCount]
+  given panoBackupStatsWrites: Writes[PanoBackupStats]   = Json.writes[PanoBackupStats]
+  given nightlyJobStatusWrites: Writes[NightlyJobStatus] = Json.writes[NightlyJobStatus]
+  given healthThresholdsWrites: Writes[HealthThresholds] = Json.writes[HealthThresholds]
+  given dbHealthDataWrites: Writes[DbHealthData]         = Json.writes[DbHealthData]
 }

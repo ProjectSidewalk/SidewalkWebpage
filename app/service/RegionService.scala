@@ -1,13 +1,13 @@
 package service
 
 import com.google.inject.ImplementedBy
-import models.region._
+import models.region.*
 import models.street.{StreetEdgePriorityTableDef, StreetEdgeRegionTableDef, StreetEdgeTable}
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.{ExecutionContext, Future}
 
 @ImplementedBy(classOf[RegionServiceImpl])
@@ -28,9 +28,9 @@ class RegionServiceImpl @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
     regionTable: RegionTable,
     regionCompletionTable: RegionCompletionTable,
-    streetEdgeTable: StreetEdgeTable,
-    implicit val ec: ExecutionContext
-) extends RegionService
+    streetEdgeTable: StreetEdgeTable
+)(using ec: ExecutionContext)
+    extends RegionService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
   val regionCompletions    = regionCompletionTable.regionCompletions
   val streetEdgeRegion     = TableQuery[StreetEdgeRegionTableDef]
@@ -78,25 +78,31 @@ class RegionServiceImpl @Inject() (
           } yield (_edgeRegion.regionId, _edges.geom.lengthGeodesic, _edgePriority.priority < 1.0)
 
           // Get region_id, total_distance, audited_distance for each region.
-          val regionsQuery = streetsInRegion.groupBy(_._1).map { case (regionId, group) =>
-            (
-              regionId,
-              group.map(_._2).sum.getOrElse(0.0d),                                    // total distance
-              group.map(s => Case.If(s._3).Then(s._2).Else(0.0d)).sum.getOrElse(0.0d) // audited distance
-            )
-          }
+          val regionsQuery =
+            streetsInRegion.groupBy { case (regionId, _, _) => regionId }.map { case (regionId, group) =>
+              val totalDistance   = group.map { case (_, length, _) => length }.sum.getOrElse(0.0d)
+              val auditedDistance = group
+                .map { case (_, length, audited) => Case.If(audited).Then(length).Else(0.0d) }
+                .sum
+                .getOrElse(0.0d)
+              (regionId, totalDistance, auditedDistance)
+            }
 
           // Grab the regions with no streets in them as well, so we can insert them with 0 distances.
           val includingEmptyRegionsQuery = regionTable.regionsWithoutDeleted
             .joinLeft(regionsQuery)
-            .on(_.regionId === _._1)
+            .on { case (region, (regionId, _, _)) => region.regionId === regionId }
             .map { case (region, regionData) =>
-              (region.regionId, regionData.map(_._2).getOrElse(0.0d), regionData.map(_._3).getOrElse(0.0d))
+              (
+                region.regionId,
+                regionData.map { case (_, totalDistance, _) => totalDistance }.getOrElse(0.0d),
+                regionData.map { case (_, _, auditedDistance) => auditedDistance }.getOrElse(0.0d)
+              ).mapTo[RegionCompletion]
             }
 
           for {
             regions     <- includingEmptyRegionsQuery.result
-            insertCount <- (regionCompletions ++= regions.map(RegionCompletion.tupled)).map(_.getOrElse(0))
+            insertCount <- (regionCompletions ++= regions).map(_.getOrElse(0))
           } yield insertCount
         } else {
           DBIO.successful(0) // If the table is already initialized, 0 rows inserted.

@@ -5,17 +5,17 @@ import models.mission.MissionTableDef
 import models.mturk.AMTAssignmentTableDef
 import models.region.RegionTableDef
 import models.route.{AuditTaskUserRouteTableDef, RouteStreetTableDef, UserRouteTableDef}
-import models.street._
+import models.street.*
 import models.user.{Role, SidewalkUserTableDef, UserRoleTableDef, UserStatTableDef}
-import models.utils.MyPostgresProfile.api._
-import models.utils.{ConfigTableDef, MyPostgresProfile}
+import models.utils.MyPostgresProfile.api.{given, *}
+import models.utils.{ConfigTableDef, FilteredTables, LiftedRow, MyPostgresProfile}
 import org.locationtech.jts.geom.{LineString, Point}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import service.TimeInterval
-import service.TimeInterval.TimeInterval
+import slick.lifted.{FlatShapeLevel, Shape}
 
 import java.time.{LocalDate, OffsetDateTime}
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.{ExecutionContext, Future}
 
 case class AuditTask(
@@ -44,7 +44,7 @@ case class NewTask(
     geom: LineString,
     currentLng: Double,
     currentLat: Double,
-    wayType: WayType.Value,      // OSM road type (residential, trunk, etc.).
+    wayType: WayType,            // OSM road type (residential, trunk, etc.).
     startPointReversed: Boolean, // Notes if we start at x1,y1 instead of x2,y2.
     taskStart: OffsetDateTime,
     completedByAnyUser: Boolean, // Notes if any user has audited this street.
@@ -66,7 +66,7 @@ case class AuditedStreetWithTimestamp(
     streetEdgeId: Int,
     auditTaskId: Int,
     userId: String,
-    role: Role.Value,
+    role: Role,
     highQuality: Boolean,
     taskStart: OffsetDateTime,
     taskEnd: OffsetDateTime,
@@ -84,7 +84,7 @@ case class StreetEdgeWithAuditStatus(
     streetEdgeId: Int,
     geom: LineString,
     regionId: Int,
-    wayType: WayType.Value,
+    wayType: WayType,
     audited: Boolean,
     outdated: Boolean
 )
@@ -107,6 +107,33 @@ case class OutdatedStreetForUser(
     newImageryDate: Option[LocalDate],
     lastAuditedAt: Option[OffsetDateTime]
 )
+
+/** One street's audit state for a given user; see [[AuditTaskTable.streetAuditState]]. */
+case class StreetAuditState(
+    streetEdgeId: Int,
+    completedByAnyUser: Boolean,
+    needsReaudit: Boolean,
+    mappedByThisUser: Boolean,
+    lastMappedAt: Option[OffsetDateTime],
+    newImageryDate: Option[LocalDate]
+)
+
+/** [[StreetAuditState]] while it is still part of a query. */
+case class StreetAuditStateRep(
+    streetEdgeId: Rep[Int],
+    completedByAnyUser: Rep[Boolean],
+    needsReaudit: Rep[Boolean],
+    mappedByThisUser: Rep[Boolean],
+    lastMappedAt: Rep[Option[OffsetDateTime]],
+    newImageryDate: Rep[Option[LocalDate]]
+)
+object StreetAuditStateRep {
+  given Shape[FlatShapeLevel, StreetAuditStateRep, StreetAuditState, StreetAuditStateRep] =
+    LiftedRow.shape(StreetAuditStateRep.apply.tupled)(StreetAuditState.apply.tupled)
+}
+
+/** The open route task a labeler resumes on, and where its street falls in the route's walking order. */
+case class ResumableRouteTask(auditTaskId: Int, routeStreetId: Int, position: Int)
 
 class AuditTaskTableDef(tag: slick.lifted.Tag) extends Table[AuditTask](tag, "audit_task") {
   def auditTaskId: Rep[Int]             = column[Int]("audit_task_id", O.PrimaryKey, O.AutoInc)
@@ -136,10 +163,7 @@ class AuditTaskTableDef(tag: slick.lifted.Tag) extends Table[AuditTask](tag, "au
 
   def * = (auditTaskId, amtAssignmentId, userId, streetEdgeId, taskStart, taskEnd, completed, currentLat, currentLng,
     startPointReversed, currentMissionId, currentMissionStart, lowQuality, incomplete, stale, auditedDistanceM,
-    startOffsetM, outdatedImagery, outdatedImageryAt) <> (
-    (AuditTask.apply _).tupled,
-    AuditTask.unapply
-  )
+    startOffsetM, outdatedImagery, outdatedImageryAt).mapTo[AuditTask]
 
   def streetEdge =
     foreignKey("audit_task_street_edge_id_fkey", streetEdgeId, TableQuery[StreetEdgeTableDef])(_.streetEdgeId)
@@ -159,7 +183,7 @@ class AuditTaskTable @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
     streetEdgeTable: StreetEdgeTable,
     osmWayTable: OsmWayTable
-)(implicit ec: ExecutionContext)
+)(using ec: ExecutionContext)
     extends AuditTaskTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
@@ -179,11 +203,12 @@ class AuditTaskTable @Inject() (
   val activeTasks    = auditTasks.filterNot(_.completed)
   val completedTasks = auditTasks.filter(_.completed)
 
-  // Completed audits still valid against current imagery -- the set that routing and coverage queries should use.
-  // Routing view: a street whose completed audits are all on since-replaced imagery reads as not-done here, so it is
-  // re-offered to users. Credit/stats/completion queries use completedTasks instead -- an outdated audit still counts
-  // as the user's work and as city-wide coverage (#4384).
+  // Audits still valid for today's imagery. Streets without one get offered again. Credit and stats use completedTasks,
+  // since an outdated audit still counts as work done (#4384).
   val upToDateCompletedTasks = completedTasks.filterNot(_.outdatedImagery)
+
+  // Same, minus excluded users. Used for a street's status as everyone sees it.
+  val upToDateCountedTasks = streetEdgeTable.countedAuditTasks.filterNot(_.outdatedImagery)
 
   val regionsWithoutDeleted       = regions.filterNot(_.deleted)
   val nonDeletedStreetEdgeRegions = for {
@@ -195,33 +220,27 @@ class AuditTaskTable @Inject() (
   /**
    * Every street's audit state as the Explore task payload reports it, for the user the task is being handed to.
    *
-   * `completedByAnyUser` counts only audits on current imagery (#4384), so alone it cannot tell a street nobody has
-   * walked from one whose audits were all overtaken by newer imagery -- both read false. `needsReaudit` is that
-   * distinction; `mappedByThisUser` splits it again, because the labeler who mapped it themself is told their own
-   * work is being refreshed and one who never did is told somebody else's is (#4895). `lastMappedAt` follows that
-   * split, so it is resolved here rather than sent as both dates -- which would push [[NewTask]] past the
-   * 22-element ceiling Slick's tuple shapes stop at.
+   * Only audits by users who aren't excluded count. `completedByAnyUser` counts only audits on current imagery
+   * (#4384), so alone it cannot tell a street nobody has walked from one whose audits were all overtaken by newer
+   * imagery -- both read false. `needsReaudit` is that distinction; `mappedByThisUser` splits it again, because the
+   * labeler who mapped it themself is told their own work is being refreshed and one who never did is told somebody
+   * else's is (#4895). `lastMappedAt` follows that split, so it is resolved here rather than sent as both dates --
+   * which would push [[NewTask]] past the 22-element ceiling Slick's tuple shapes stop at.
    *
    * The tutorial street reads `completedByAnyUser` true, having completed audits like any other, but never
    * `needsReaudit`: [[models.street.StreetImageryTable.streetsToPoll]] excludes it from imagery polling, so its
    * audits are never flagged `outdated_imagery`. That exclusion is the only thing holding the invariant, which is
    * why [[getATutorialTask]] hardcodes the flag off rather than relying on it.
    *
-   * TODO it would be better to only consider "good user" audits here, but it takes too long to calculate each time.
-   *
    * @param userId The user the task is for, for the `mappedByThisUser` and `lastMappedAt` columns.
-   * @return (streetEdgeId, completedByAnyUser, needsReaudit, mappedByThisUser, lastMappedAt, newImageryDate)
+   * @return A query with one row per open street, tutorial street included.
    */
-  def streetAuditState(userId: String): Query[
-    (Rep[Int], Rep[Boolean], Rep[Boolean], Rep[Boolean], Rep[Option[OffsetDateTime]], Rep[Option[LocalDate]]),
-    (Int, Boolean, Boolean, Boolean, Option[OffsetDateTime], Option[LocalDate]),
-    Seq
-  ] = {
+  def streetAuditState(userId: String): Query[StreetAuditStateRep, StreetAuditState, Seq] = {
     // Presence is all that is ever read, so a distinct set beats counting (as in selectStreetsWithAuditStatus).
-    val _upToDateStreets = upToDateCompletedTasks.groupBy(_.streetEdgeId).map(_._1)
+    val _upToDateStreets = upToDateCountedTasks.groupBy(_.streetEdgeId).map { case (_street, _) => _street }
 
     // Each aggregate doubles as its own presence test: the row exists exactly when a completed audit does.
-    val _lastAuditPerStreet = completedTasks.groupBy(_.streetEdgeId).map { case (_street, _group) =>
+    val _lastAuditPerStreet = streetEdgeTable.countedAuditTasks.groupBy(_.streetEdgeId).map { case (_street, _group) =>
       (_street, _group.map(_.taskEnd).max)
     }
     val _yourLastAuditPerStreet = completedTasks.filter(_.userId === userId).groupBy(_.streetEdgeId).map {
@@ -233,22 +252,22 @@ class AuditTaskTable @Inject() (
       .joinLeft(_upToDateStreets)
       .on(_.streetEdgeId === _)
       .joinLeft(_lastAuditPerStreet)
-      .on(_._1.streetEdgeId === _._1)
+      .on { case ((_edge, _), (_street, _)) => _edge.streetEdgeId === _street }
       .joinLeft(_yourLastAuditPerStreet)
-      .on(_._1._1.streetEdgeId === _._1)
+      .on { case (((_edge, _), _), (_street, _)) => _edge.streetEdgeId === _street }
       .joinLeft(streetImagery)
-      .on(_._1._1._1.streetEdgeId === _.streetEdgeId)
+      .on { case ((((_edge, _), _), _), _imagery) => _edge.streetEdgeId === _imagery.streetEdgeId }
       .map { case ((((_edge, _upToDate), _lastAudit), _yourLastAudit), _imagery) =>
-        (
-          _edge.streetEdgeId,
-          _upToDate.isDefined,
-          _upToDate.isEmpty && _lastAudit.map(_._1).isDefined,
-          _yourLastAudit.map(_._1).isDefined,
-          Case
-            .If(_yourLastAudit.map(_._1).isDefined)
-            .Then(_yourLastAudit.flatMap(_._2))
-            .Else(_lastAudit.flatMap(_._2)),
-          _imagery.flatMap(_.medianNewestCapture)
+        StreetAuditStateRep(
+          streetEdgeId = _edge.streetEdgeId,
+          completedByAnyUser = _upToDate.isDefined,
+          needsReaudit = _upToDate.isEmpty && _lastAudit.isDefined,
+          mappedByThisUser = _yourLastAudit.isDefined,
+          lastMappedAt = Case
+            .If(_yourLastAudit.isDefined)
+            .Then(_yourLastAudit.flatMap { case (_, _taskEnd) => _taskEnd })
+            .Else(_lastAudit.flatMap { case (_, _taskEnd) => _taskEnd }),
+          newImageryDate = _imagery.flatMap(_.medianNewestCapture)
         )
       }
   }
@@ -257,7 +276,12 @@ class AuditTaskTable @Inject() (
    * Returns a count of the number of audits performed on each day with an audit.
    */
   def getAuditCountsByDate: DBIO[Seq[(OffsetDateTime, Int)]] = {
-    completedTasks.map(_.taskEnd.trunc("day")).groupBy(x => x).map(x => (x._1, x._2.length)).sortBy(_._1).result
+    completedTasks
+      .map(_.taskEnd.trunc("day"))
+      .groupBy(day => day)
+      .map { case (day, tasks) => (day, tasks.length) }
+      .sortBy { case (day, _) => day }
+      .result
   }
 
   /**
@@ -265,14 +289,7 @@ class AuditTaskTable @Inject() (
    * @param timeInterval can be "today" or "week". If anything else, defaults to "all_time".
    */
   def countCompletedAudits(timeInterval: TimeInterval = TimeInterval.AllTime): DBIO[Int] = {
-    // Filter by the given time interval.
-    val tasksInTimeInterval = timeInterval match {
-      case TimeInterval.Today => completedTasks.filter(l => l.taskEnd > OffsetDateTime.now().minusDays(1))
-      case TimeInterval.Week  => completedTasks.filter(l => l.taskEnd >= OffsetDateTime.now().minusDays(7))
-      case _                  => completedTasks
-    }
-
-    tasksInTimeInterval.length.result
+    TimeInterval.start(timeInterval).fold(completedTasks)(s => completedTasks.filter(_.taskEnd >= s)).length.result
   }
 
   /**
@@ -310,14 +327,16 @@ class AuditTaskTable @Inject() (
       userId: String,
       regionId: Int
   ): Query[StreetEdgeRegionTableDef, StreetEdgeRegion, Seq] = {
-    val edgesAuditedByUser = upToDateCompletedTasks.filter(_.userId === userId).groupBy(_.streetEdgeId).map(_._1)
+    val edgesAuditedByUser = upToDateCompletedTasks.filter(_.userId === userId).groupBy(_.streetEdgeId).map {
+      case (streetEdgeId, _) => streetEdgeId
+    }
 
     nonDeletedStreetEdgeRegions
       .filter(_.regionId === regionId)
       .joinLeft(edgesAuditedByUser)
       .on(_.streetEdgeId === _)
-      .filter(_._2.isEmpty)
-      .map(_._1)
+      .filter { case (_, audited) => audited.isEmpty }
+      .map { case (streetEdgeRegion, _) => streetEdgeRegion }
   }
 
   /**
@@ -333,23 +352,25 @@ class AuditTaskTable @Inject() (
    * A region re-opens for the user when new imagery lands on a street they audited (#4384).
    */
   def getRegionsCompletedByUser(userId: String): DBIO[Seq[Int]] = {
-    val edgesAuditedByUser = upToDateCompletedTasks.filter(_.userId === userId).groupBy(_.streetEdgeId).map(_._1)
+    val edgesAuditedByUser = upToDateCompletedTasks.filter(_.userId === userId).groupBy(_.streetEdgeId).map {
+      case (streetEdgeId, _) => streetEdgeId
+    }
 
     // Get regions that the user _hasn't_ finished.
     val incompleteRegionIds = nonDeletedStreetEdgeRegions
       .joinLeft(edgesAuditedByUser)
       .on(_.streetEdgeId === _)
-      .filter(_._2.isEmpty)
-      .map(_._1.regionId)
-      .groupBy(x => x)
-      .map(_._1)
+      .filter { case (_, audited) => audited.isEmpty }
+      .map { case (streetEdgeRegion, _) => streetEdgeRegion.regionId }
+      .groupBy(regionId => regionId)
+      .map { case (regionId, _) => regionId }
 
     // Any region that is not in the incompleteRegionIds list is a region that the user has completed.
     regionsWithoutDeleted
       .joinLeft(incompleteRegionIds)
       .on(_.regionId === _)
-      .filter(_._2.isEmpty)
-      .map(_._1.regionId)
+      .filter { case (_, incomplete) => incomplete.isEmpty }
+      .map { case (region, _) => region.regionId }
       .result
   }
 
@@ -371,54 +392,53 @@ class AuditTaskTable @Inject() (
       regionIds: Seq[Int],
       routeIds: Seq[Int]
   ): Future[Seq[StreetEdgeWithAuditStatus]] = {
-    // Optionally filter out data marked as low quality.
-    val _filteredTasks = if (filterLowQuality) {
-      completedTasks
-        .join(userStats)
-        .on(_.userId === _.userId)
-        .filter(_._2.highQuality)
-        .map(_._1)
-    } else {
-      completedTasks
-    }
+    // No streets join: the outer query already limits to routable streets.
+    val _filteredTasks =
+      if (filterLowQuality) {
+        streetEdgeTable.countedAuditTasksWithUsers
+          .filter { case (_, userStat) => userStat.highQuality }
+          .map { case (task, _) => task }
+      } else streetEdgeTable.countedAuditTasks
 
     // Distinct streets with any completed audit, and with a completed audit on current imagery (#4384).
-    val _distinctEverCompleted = _filteredTasks.groupBy(_.streetEdgeId).map(_._1)
-    val _distinctUpToDate      = _filteredTasks.filterNot(_.outdatedImagery).groupBy(_.streetEdgeId).map(_._1)
+    val _distinctEverCompleted = _filteredTasks.groupBy(_.streetEdgeId).map { case (streetEdgeId, _) => streetEdgeId }
+    val _distinctUpToDate      =
+      _filteredTasks.filterNot(_.outdatedImagery).groupBy(_.streetEdgeId).map { case (streetEdgeId, _) => streetEdgeId }
 
     // Left join streets against both sets: audited = has an up-to-date audit; outdated = audited before, but every
     // audit predates newer imagery (needs re-audit). Unaudited streets match neither.
-    val streetsWithAuditedStatus = streetEdgeTable.streets
+    val streetsWithAudits = streetEdgeTable.streets
       .join(streetEdgeRegionTable)
       .on(_.streetEdgeId === _.streetEdgeId)
-      .filter(x => (x._2.regionId inSetBind regionIds) || regionIds.isEmpty)
+      .filter { case (_, region) => (region.regionId inSetBind regionIds) || regionIds.isEmpty }
       .joinLeft(_distinctUpToDate)
-      .on(_._1.streetEdgeId === _)
+      .on { case ((street, _), upToDateId) => street.streetEdgeId === upToDateId }
       .joinLeft(_distinctEverCompleted)
-      .on(_._1._1.streetEdgeId === _)
-      .map { case (((street, region), upToDate), everCompleted) =>
-        (
-          street.streetEdgeId,
-          street.geom,
-          region.regionId,
-          street.wayType,
-          upToDate.isDefined,
-          upToDate.isEmpty && everCompleted.isDefined
-        )
-      }
+      .on { case (((street, _), _), everCompletedId) => street.streetEdgeId === everCompletedId }
 
     // If routeIds are provided, filter out streets that are not part of the route.
-    val streetsWithAuditedStatusFiltered = if (routeIds.nonEmpty) {
+    val streetsWithAuditsFiltered = if (routeIds.nonEmpty) {
       routeStreets
         .filter(_.routeId inSetBind routeIds)
-        .join(streetsWithAuditedStatus)
-        .on(_.streetEdgeId === _._1)
-        .map(_._2)
+        .join(streetsWithAudits)
+        .on { case (routeStreet, (((street, _), _), _)) => routeStreet.streetEdgeId === street.streetEdgeId }
+        .map { case (_, streetWithAudits) => streetWithAudits }
     } else {
-      streetsWithAuditedStatus
+      streetsWithAudits
     }
 
-    db.run(streetsWithAuditedStatusFiltered.result).map(s => s.map(StreetEdgeWithAuditStatus.tupled))
+    val streetsWithAuditedStatus = streetsWithAuditsFiltered.map { case (((street, region), upToDate), everCompleted) =>
+      (
+        street.streetEdgeId,
+        street.geom,
+        region.regionId,
+        street.wayType,
+        upToDate.isDefined,
+        upToDate.isEmpty && everCompleted.isDefined
+      ).mapTo[StreetEdgeWithAuditStatus]
+    }
+
+    db.run(streetsWithAuditedStatus.result)
   }
 
   /**
@@ -431,8 +451,8 @@ class AuditTaskTable @Inject() (
       _ut <- userStats if _at.userId === _ut.userId
       _ur <- userRoleTable if _ut.userId === _ur.userId
     } yield (_se.streetEdgeId, _at.auditTaskId, _ut.userId, _ur.role, _ut.highQuality, _at.taskStart, _at.taskEnd,
-      _se.geom)
-    auditedStreets.result.map(_.map(AuditedStreetWithTimestamp.tupled))
+      _se.geom).mapTo[AuditedStreetWithTimestamp]
+    auditedStreets.result
   }
 
   /**
@@ -448,22 +468,24 @@ class AuditTaskTable @Inject() (
     completedTasks
       .join(streetEdgeTable.streets)
       .on(_.streetEdgeId === _.streetEdgeId)
-      .filter(_._1.userId === userId)
-      .map(_._2)
+      .filter { case (task, _) => task.userId === userId }
+      .map { case (_, street) => street }
       .distinct
-      .map(street => (street, !hasUpToDateAudit(street.streetEdgeId)))
+      .map(street => (street, !hasUpToDateAudit(street.streetEdgeId, userId)))
       .result
   }
 
   /**
-   * Whether any completed audit of the street was made against the current imagery (#4384).
+   * Whether the street has an up-to-date audit that counts (#4384), or one by this user, so excluded users still see
+   * their own streets as done.
    *
    * Correlated on purpose: it compiles to an EXISTS that Postgres serves from audit_task's street_edge_id index,
    * driven by the handful of streets the outer query already narrowed to. The set-membership form ("street_edge_id
    * NOT IN (SELECT ...)") reads the same but builds its hash over every completed audit in the city first.
    */
-  private def hasUpToDateAudit(streetEdgeId: Rep[Int]): Rep[Boolean] = {
-    upToDateCompletedTasks.filter(_.streetEdgeId === streetEdgeId).exists
+  private def hasUpToDateAudit(streetEdgeId: Rep[Int], userId: String): Rep[Boolean] = {
+    upToDateCountedTasks.filter(_.streetEdgeId === streetEdgeId).exists ||
+    upToDateCompletedTasks.filter(t => t.streetEdgeId === streetEdgeId && t.userId === userId).exists
   }
 
   /**
@@ -480,7 +502,7 @@ class AuditTaskTable @Inject() (
       .filter(_.userId === userId)
       .groupBy(_.streetEdgeId)
       .map { case (streetEdgeId, tasks) => (streetEdgeId, tasks.map(_.taskEnd).max) }
-      .filterNot { case (streetEdgeId, _) => hasUpToDateAudit(streetEdgeId) }
+      .filterNot { case (streetEdgeId, _) => hasUpToDateAudit(streetEdgeId, userId) }
 
     for {
       (streetEdgeId, lastAudited) <- userStreets
@@ -491,23 +513,21 @@ class AuditTaskTable @Inject() (
   }
 
   /**
-   * When any user last finished auditing the street, or `None` if nobody ever has.
+   * When a non-excluded user last finished auditing the street, or `None` if none has.
    *
    * Counts audits regardless of the auditor's quality rating, matching the `audit_activity` bookkeeping in
    * [[models.street.StreetEdgePriorityTable]]: this is the audited/outdated record the rest of the app reports, not
    * the priority formula's weighted view of the same audits.
    */
   def getLastCompletedAuditTime(streetEdgeId: Int): DBIO[Option[OffsetDateTime]] = {
-    completedTasks.filter(_.streetEdgeId === streetEdgeId).map(_.taskEnd).max.result
+    streetEdgeTable.countedAuditTasks.filter(_.streetEdgeId === streetEdgeId).map(_.taskEnd).max.result
   }
 
   /**
-   * Whether the street has a completed audit made against the current imagery (#4384).
-   *
-   * The public form of [[hasUpToDateAudit]], for callers that have one street rather than a query of them.
+   * Whether the street has an up-to-date audit that counts (#4384), as everyone sees it.
    */
   def hasUpToDateAuditFor(streetEdgeId: Int): DBIO[Boolean] = {
-    upToDateCompletedTasks.filter(_.streetEdgeId === streetEdgeId).exists.result
+    upToDateCountedTasks.filter(_.streetEdgeId === streetEdgeId).exists.result
   }
 
   /**
@@ -534,30 +554,21 @@ class AuditTaskTable @Inject() (
   def getOutdatedStreetsForUser(userId: String, limit: Int): DBIO[Seq[OutdatedStreetForUser]] = {
     outdatedStreetsForUserQuery(userId)
       .joinLeft(streetImagery)
-      .on(_._1.streetEdgeId === _.streetEdgeId)
+      .on { case ((_se, _, _), _si) => _se.streetEdgeId === _si.streetEdgeId }
+      .sortBy { case ((_se, _, lastAudited), _) => (lastAudited.asc.nullsLast, _se.streetEdgeId.asc) }
+      .take(limit)
       .map { case ((_se, _r, lastAudited), _si) =>
         (_se.streetEdgeId, _r.regionId, _r.name, _se.geom.lengthGeodesic, _si.flatMap(_.medianNewestCapture),
-          lastAudited)
+          lastAudited).mapTo[OutdatedStreetForUser]
       }
-      .sortBy { case (streetEdgeId, _, _, _, _, lastAudited) => (lastAudited.asc.nullsLast, streetEdgeId.asc) }
-      .take(limit)
       .result
-      .map(_.map(OutdatedStreetForUser.tupled))
   }
 
   /**
    * Gets total distance audited by a user in meters.
    */
-  def getDistanceAudited(userId: String): DBIO[Double] = {
-    completedTasks
-      .filter(_.userId === userId)
-      .join(streetEdgeTable.streets)
-      .on(_.streetEdgeId === _.streetEdgeId)
-      .map(_._2.geom.lengthGeodesic)
-      .sum
-      .getOrElse(0d)
-      .result
-  }
+  def getDistanceAudited(userId: String): DBIO[Double] =
+    metersAuditedByUser(_ === userId).map { case (_, meters) => meters }.result.headOption.map(_.getOrElse(0d))
 
   /**
    * Sums the same geodesic street lengths [[getDistanceAudited]] does, rather than reading the nightly
@@ -566,15 +577,27 @@ class AuditTaskTable @Inject() (
    * @param userIds The users to measure.
    * @return One entry per user with a completed audit: (user id, meters explored).
    */
-  def getDistanceAuditedByUsers(userIds: Seq[String]): DBIO[Seq[(String, Double)]] = {
+  def getDistanceAuditedByUsers(userIds: Seq[String]): DBIO[Seq[(String, Double)]] =
+    metersAuditedByUser(_ inSet userIds).result
+
+  /**
+   * The one definition of distance explored, shared by the profile, team pages, and `user_stat.meters_audited`: the
+   * geodesic length of every street a user has a completed audit on, counting a street again each time it's audited.
+   *
+   * @param includeUser Which users to measure.
+   * @return A query of (user id, meters explored), one row per user with a completed audit.
+   */
+  def metersAuditedByUser(
+      includeUser: Rep[String] => Rep[Boolean]
+  ): Query[(Rep[String], Rep[Double]), (String, Double), Seq] =
     completedTasks
-      .filter(_.userId inSet userIds)
+      .filter(task => includeUser(task.userId))
       .join(streetEdgeTable.streets)
       .on(_.streetEdgeId === _.streetEdgeId)
-      .groupBy(_._1.userId)
-      .map { case (_userId, rows) => (_userId, rows.map(_._2.geom.lengthGeodesic).sum.getOrElse(0d)) }
-      .result
-  }
+      .groupBy { case (task, _) => task.userId }
+      .map { case (_userId, rows) =>
+        (_userId, rows.map { case (_, street) => street.geom.lengthGeodesic }.sum.getOrElse(0d))
+      }
 
   /**
    * Get the sum of the line distance of all streets in the region that the user has not audited.
@@ -583,7 +606,7 @@ class AuditTaskTable @Inject() (
     getStreetEdgeRegionsNotAuditedQuery(userId, regionId)
       .join(streetEdgeTable.streets)
       .on(_.streetEdgeId === _.streetEdgeId)
-      .map(_._2.geom.lengthGeodesic)
+      .map { case (_, street) => street.geom.lengthGeodesic }
       .sum
       .result
       .map(_.getOrElse(0d))
@@ -606,10 +629,10 @@ class AuditTaskTable @Inject() (
 
     // Join with other queries to get completion count and priority for each of the street edges.
     val edges = for {
-      se   <- streetEdgeTable.streets if se.streetEdgeId === streetEdgeId
-      scau <- streetAuditState(userId) if se.streetEdgeId === scau._1
-      sep  <- streetEdgePriorities if scau._1 === sep.streetEdgeId
-      sms  <- osmWayTable.streetMaxSpeeds if se.streetEdgeId === sms._1
+      se                    <- streetEdgeTable.streets if se.streetEdgeId === streetEdgeId
+      scau                  <- streetAuditState(userId) if se.streetEdgeId === scau.streetEdgeId
+      sep                   <- streetEdgePriorities if scau.streetEdgeId === sep.streetEdgeId
+      (smsEdgeId, maxSpeed) <- osmWayTable.streetMaxSpeeds if se.streetEdgeId === smsEdgeId
     } yield (
       se.streetEdgeId,
       se.geom,
@@ -618,23 +641,23 @@ class AuditTaskTable @Inject() (
       se.wayType,
       reverseStartPoint,
       timestamp,
-      scau._2, // completedByAnyUser
+      scau.completedByAnyUser,
       sep.priority,
       false,             // completed
       None: Option[Int], // auditTaskId is None for a new task.
       Some(missionId).asColumnOf[Option[Int]],
-      None: Option[Point], // currentMissionStart is None for a new task.
+      LiteralColumn[Option[Point]](None), // currentMissionStart is None for a new task.
       routeStreetId,
       routeStreetPosition,
-      sms._2,  // maxSpeed
-      false,   // reportedNoImagery is route-scoped; see NewTask.
-      scau._3, // needsReaudit
-      scau._4, // mappedByThisUser
-      scau._5, // lastMappedAt
-      scau._6  // newImageryDate
-    )
+      maxSpeed,
+      false, // reportedNoImagery is route-scoped; see NewTask.
+      scau.needsReaudit,
+      scau.mappedByThisUser,
+      scau.lastMappedAt,
+      scau.newImageryDate
+    ).mapTo[NewTask]
 
-    edges.result.head.map(NewTask.tupled)
+    edges.result.head
   }
 
   /**
@@ -659,19 +682,19 @@ class AuditTaskTable @Inject() (
           false,             // completed is always false for a new task.
           None: Option[Int], // auditTaskId is None for a new task.
           missionId.asColumnOf[Option[Int]],
-          None: Option[Point],          // currentMissionStart is None for a new task.
-          None: Option[Int],            // routeStreetId is None for the tutorial task.
-          None: Option[Int],            // routeStreetPosition is None for the tutorial task.
-          None: Option[String],         // maxSpeed isn't shown during the tutorial.
-          false,                        // reportedNoImagery is route-scoped; see NewTask.
-          false,                        // needsReaudit: the tutorial street is never a re-audit.
-          false,                        // mappedByThisUser: no notice to phrase, so nothing to attribute.
-          None: Option[OffsetDateTime], // lastMappedAt
-          None: Option[LocalDate]       // newImageryDate
-        )
+          LiteralColumn[Option[Point]](None), // currentMissionStart is None for a new task.
+          None: Option[Int],                  // routeStreetId is None for the tutorial task.
+          None: Option[Int],                  // routeStreetPosition is None for the tutorial task.
+          None: Option[String],               // maxSpeed isn't shown during the tutorial.
+          false,                              // reportedNoImagery is route-scoped; see NewTask.
+          false,                              // needsReaudit: the tutorial street is never a re-audit.
+          false,                              // mappedByThisUser: no notice to phrase, so nothing to attribute.
+          None: Option[OffsetDateTime],       // lastMappedAt
+          None: Option[LocalDate]             // newImageryDate
+        ).mapTo[NewTask]
       }
       .result
-      .map(t => NewTask.tupled(t.head))
+      .head
   }
 
   /**
@@ -686,48 +709,54 @@ class AuditTaskTable @Inject() (
    */
   def selectANewTaskInARegion(regionId: Int, userId: String, missionId: Int): DBIO[Option[NewTask]] = {
     // Get streets the user hasn't completed. Then join w/ other queries to get completion count and priority.
-    val possibleTasks = for {
-      ser <- getStreetEdgeRegionsNotAuditedQuery(userId, regionId)
-      se  <- streetEdgeTable.streets if ser.streetEdgeId === se.streetEdgeId
-      sp  <- streetEdgePriorities if se.streetEdgeId === sp.streetEdgeId
-      sc  <- streetAuditState(userId) if se.streetEdgeId === sc._1
-      sms <- osmWayTable.streetMaxSpeeds if se.streetEdgeId === sms._1
-    } yield (
-      se.streetEdgeId,
-      se.geom,
-      se.x1,
-      se.y1,
-      se.wayType,
-      false, // startPointReversed is false by default.
-      OffsetDateTime.now,
-      sc._2, // completedByAnyUser
-      sp.priority,
-      false,             // completed is false for a new task.
-      None: Option[Int], // auditTaskId is None for a new task.
-      Some(missionId).asColumnOf[Option[Int]],
-      None: Option[Point], // currentMissionStart is None for a new task.
-      None: Option[Int],   // routeStreetId
-      None: Option[Int],   // routeStreetPosition
-      sms._2,              // maxSpeed
-      false,               // reportedNoImagery is route-scoped; see NewTask.
-      sc._3,               // needsReaudit
-      sc._4,               // mappedByThisUser
-      sc._5,               // lastMappedAt
-      sc._6                // newImageryDate
-    )
+    val candidates = for {
+      ser                   <- getStreetEdgeRegionsNotAuditedQuery(userId, regionId)
+      se                    <- streetEdgeTable.streets if ser.streetEdgeId === se.streetEdgeId
+      sp                    <- streetEdgePriorities if se.streetEdgeId === sp.streetEdgeId
+      sc                    <- streetAuditState(userId) if se.streetEdgeId === sc.streetEdgeId
+      (smsEdgeId, maxSpeed) <- osmWayTable.streetMaxSpeeds if se.streetEdgeId === smsEdgeId
+    } yield (se, sp, sc, maxSpeed)
 
     // Get the priority of the highest priority task.
-    possibleTasks.map(_._9).max.result.flatMap {
+    candidates.map { case (_, sp, _, _) => sp.priority }.max.result.flatMap {
       case Some(maxPriority) =>
         // Choose one of the highest priority tasks at random.
-        possibleTasks.filter(_._9 === maxPriority).sortBy(_ => random).result.map(_.headOption).flatMap {
+        val highestPriorityTasks = candidates
+          .filter { case (_, sp, _, _) => sp.priority === maxPriority }
+          .sortBy(_ => random)
+          .map { case (se, sp, sc, maxSpeed) =>
+            (
+              se.streetEdgeId,
+              se.geom,
+              se.x1,
+              se.y1,
+              se.wayType,
+              false, // startPointReversed is false by default.
+              OffsetDateTime.now,
+              sc.completedByAnyUser,
+              sp.priority,
+              false,             // completed is false for a new task.
+              None: Option[Int], // auditTaskId is None for a new task.
+              Some(missionId).asColumnOf[Option[Int]],
+              LiteralColumn[Option[Point]](None), // currentMissionStart is None for a new task.
+              None: Option[Int],                  // routeStreetId
+              None: Option[Int],                  // routeStreetPosition
+              maxSpeed,
+              false, // reportedNoImagery is route-scoped; see NewTask.
+              sc.needsReaudit,
+              sc.mappedByThisUser,
+              sc.lastMappedAt,
+              sc.newImageryDate
+            ).mapTo[NewTask]
+          }
+        highestPriorityTasks.result.headOption.flatMap {
           case Some(freshTask) =>
-            resumableTaskIdOnStreet(userId, freshTask._1).flatMap {
+            resumableTaskIdOnStreet(userId, freshTask.edgeId).flatMap {
               // selectTaskFromTaskId hands back the row's own mission id rather than the one passed in. That is the
               // page-load resume path's behaviour too: the caller moves mission.current_audit_task_id onto the
               // resumed task, and the next submission's updateTaskProgress rewrites the task's mission.
               case Some(taskId) => selectTaskFromTaskId(taskId, userId)
-              case None         => DBIO.successful(Some(NewTask.tupled(freshTask)))
+              case None         => DBIO.successful(Some(freshTask))
             }
           case None => DBIO.successful(None)
         }
@@ -755,19 +784,19 @@ class AuditTaskTable @Inject() (
   ): DBIO[Option[NewTask]] = {
     val matchingTasks = if (includeCompleted) auditTasks else activeTasks
     val newTask       = for {
-      at  <- matchingTasks if at.auditTaskId === taskId
-      se  <- streetEdgeTable.streetsWithTutorial if at.streetEdgeId === se.streetEdgeId
-      sp  <- streetEdgePriorities if se.streetEdgeId === sp.streetEdgeId
-      sc  <- streetAuditState(userId) if sp.streetEdgeId === sc._1
-      sms <- osmWayTable.streetMaxSpeeds if se.streetEdgeId === sms._1
+      at                    <- matchingTasks if at.auditTaskId === taskId
+      se                    <- streetEdgeTable.streetsWithTutorial if at.streetEdgeId === se.streetEdgeId
+      sp                    <- streetEdgePriorities if se.streetEdgeId === sp.streetEdgeId
+      sc                    <- streetAuditState(userId) if sp.streetEdgeId === sc.streetEdgeId
+      (smsEdgeId, maxSpeed) <- osmWayTable.streetMaxSpeeds if se.streetEdgeId === smsEdgeId
     } yield (
-      se.streetEdgeId, se.geom, at.currentLng, at.currentLat, se.wayType, at.startPointReversed, at.taskStart, sc._2,
-      sp.priority, at.completed, at.auditTaskId.?, at.currentMissionId, at.currentMissionStart, routeStreetId,
-      routeStreetPosition, sms._2, false, // reportedNoImagery is route-scoped; see NewTask.
-      sc._3, sc._4, sc._5, sc._6          // needsReaudit, mappedByThisUser, lastMappedAt, newImageryDate
-    )
+      se.streetEdgeId, se.geom, at.currentLng, at.currentLat, se.wayType, at.startPointReversed, at.taskStart,
+      sc.completedByAnyUser, sp.priority, at.completed, at.auditTaskId.?, at.currentMissionId, at.currentMissionStart,
+      routeStreetId, routeStreetPosition, maxSpeed, false, // reportedNoImagery is route-scoped; see NewTask.
+      sc.needsReaudit, sc.mappedByThisUser, sc.lastMappedAt, sc.newImageryDate
+    ).mapTo[NewTask]
 
-    newTask.result.headOption.map(_.map(NewTask.tupled))
+    newTask.result.headOption
   }
 
   /**
@@ -780,60 +809,57 @@ class AuditTaskTable @Inject() (
    * audit comes back as an available task, so the Explore mini-map and next-task logic re-offer it (#4384).
    */
   def selectTasksInARegion(regionId: Int, userId: String): DBIO[Seq[NewTask]] = {
-    // Get street_edge_id, task_start, audit_task_id, current_mission_id, and current_mission_start for streets the user
-    // has audited. If there are multiple for the same street, choose most recent (one w/ the highest audit_task_id).
+    // A street the user audited more than once is represented by its most recent audit_task (highest id).
     val userCompletedStreets = upToDateCompletedTasks
       .filter(_.userId === userId)
       .groupBy(_.streetEdgeId)
-      .map(_._2.map(_.auditTaskId).max)
+      .map { case (_, tasks) => tasks.map(_.auditTaskId).max }
       .join(auditTasks)
       .on(_ === _.auditTaskId)
-      .map(t => (t._2.streetEdgeId, t._2.taskStart, t._2.auditTaskId, t._2.currentMissionId, t._2.currentMissionStart))
+      .map { case (_, task) => task }
 
     // The same streets' unfinished work, carrying the saved position and direction so the labeler picks the street up
     // where they stopped (#5370). Disjoint from userCompletedStreets by construction: resumableTasksForUser drops any
     // street this user already has an up-to-date completed audit of, so the COALESCEs below never have to choose.
-    val userResumableStreets = resumableTasksForUser(userId, Some(regionId)).map(task =>
-      (task.streetEdgeId, task.taskStart, task.auditTaskId, task.currentMissionId, task.currentMissionStart,
-        task.currentLng, task.currentLat, task.startPointReversed)
-    )
+    val userResumableStreets = resumableTasksForUser(userId, Some(regionId))
 
     val edgesInRegion = nonDeletedStreetEdgeRegions.filter(_.regionId === regionId)
     val tasks         = for {
       ((ser, ucs), urs) <- edgesInRegion
         .joinLeft(userCompletedStreets)
-        .on(_.streetEdgeId === _._1)
+        .on(_.streetEdgeId === _.streetEdgeId)
         .joinLeft(userResumableStreets)
-        .on(_._1.streetEdgeId === _._1)
-      se   <- streetEdgeTable.streets if ser.streetEdgeId === se.streetEdgeId
-      sep  <- streetEdgePriorities if se.streetEdgeId === sep.streetEdgeId
-      scau <- streetAuditState(userId) if sep.streetEdgeId === scau._1
-      sms  <- osmWayTable.streetMaxSpeeds if se.streetEdgeId === sms._1
+        .on { case ((ser, _), urs) => ser.streetEdgeId === urs.streetEdgeId }
+      se                    <- streetEdgeTable.streets if ser.streetEdgeId === se.streetEdgeId
+      sep                   <- streetEdgePriorities if se.streetEdgeId === sep.streetEdgeId
+      scau                  <- streetAuditState(userId) if sep.streetEdgeId === scau.streetEdgeId
+      (smsEdgeId, maxSpeed) <- osmWayTable.streetMaxSpeeds if se.streetEdgeId === smsEdgeId
     } yield (
       se.streetEdgeId,
       se.geom,
-      urs.map(_._6).ifNull(se.x1), // resume where the labeler stopped; an untouched street starts at its own start.
-      urs.map(_._7).ifNull(se.y1),
+      // Resume where the labeler stopped; an untouched street starts at its own start.
+      urs.map(_.currentLng).ifNull(se.x1),
+      urs.map(_.currentLat).ifNull(se.y1),
       se.wayType,
-      urs.map(_._8).getOrElse(false), // the direction the open task was walked in; false for a fresh street.
-      ucs.map(_._2).ifNull(urs.map(_._2)).getOrElse(OffsetDateTime.now),
-      scau._2, // completedByAnyUser
+      urs.map(_.startPointReversed).getOrElse(false), // the open task's walking direction; false for a fresh street.
+      ucs.map(_.taskStart).ifNull(urs.map(_.taskStart)).getOrElse(OffsetDateTime.now),
+      scau.completedByAnyUser,
       sep.priority,
-      ucs.isDefined,                                       // completed is true if the user has audited this street.
-      ucs.map(_._3).ifNull(urs.map(_._3)),                 // the completed audit's id, else the open task's.
-      ucs.map(_._4).flatten.ifNull(urs.map(_._4).flatten), // fill currentMissionId if either task has one.
-      ucs.map(_._5).flatten.ifNull(urs.map(_._5).flatten), // fill currentMissionStart if either task has one.
-      None: Option[Int],                                   // routeStreetId
-      None: Option[Int],                                   // routeStreetPosition
-      sms._2,                                              // maxSpeed
-      false,                                               // reportedNoImagery is route-scoped; see NewTask.
-      scau._3,                                             // needsReaudit
-      scau._4,                                             // mappedByThisUser
-      scau._5,                                             // lastMappedAt
-      scau._6                                              // newImageryDate
-    )
+      ucs.isDefined,                                         // completed is true if the user has audited this street.
+      ucs.map(_.auditTaskId).ifNull(urs.map(_.auditTaskId)), // the completed audit's id, else the open task's.
+      ucs.flatMap(_.currentMissionId).ifNull(urs.flatMap(_.currentMissionId)),
+      ucs.flatMap(_.currentMissionStart).ifNull(urs.flatMap(_.currentMissionStart)),
+      None: Option[Int], // routeStreetId
+      None: Option[Int], // routeStreetPosition
+      maxSpeed,
+      false, // reportedNoImagery is route-scoped; see NewTask.
+      scau.needsReaudit,
+      scau.mappedByThisUser,
+      scau.lastMappedAt,
+      scau.newImageryDate
+    ).mapTo[NewTask]
 
-    tasks.result.map(_.map(NewTask.tupled(_)))
+    tasks.result
   }
 
   /**
@@ -852,10 +878,14 @@ class AuditTaskTable @Inject() (
       .filter(_.userRouteId === userRouteId.bind)
       .join(auditTasks)
       .on(_.auditTaskId === _.auditTaskId)
-      .join(streetEdgeIssues.filter(_.issue === StreetEdgeIssueType.PanoNotAvailable))
+      .join(streetEdgeIssues)
       .on { case ((_, auditTask), issue) =>
-        auditTask.streetEdgeId === issue.streetEdgeId && auditTask.userId === issue.userId &&
-        issue.timestamp >= auditTask.taskStart
+        StreetEdgeIssueTable.reportedNoImageryDuringTask(
+          issue,
+          auditTask.streetEdgeId,
+          auditTask.userId,
+          auditTask.taskStart
+        )
       }
       .map { case (_, issue) => issue.streetEdgeId }
   }
@@ -867,20 +897,22 @@ class AuditTaskTable @Inject() (
    * reload drops the labeler back onto one, losing progress on later streets (#5008).
    *
    * @param userRouteId The walk of the route being resumed.
-   * @return (auditTaskId, routeStreetId, position) of the task to resume, or None if no open task remains.
+   * @return The task to resume, or None if no open task remains.
    */
-  def resumableRouteTask(userRouteId: Int): DBIO[Option[(Int, Int, Int)]] = {
+  def resumableRouteTask(userRouteId: Int): DBIO[Option[ResumableRouteTask]] = {
     auditTaskUserRoutes
       .join(auditTasks)
       .on(_.auditTaskId === _.auditTaskId)
       .join(routeStreets)
-      .on(_._1.routeStreetId === _.routeStreetId)
+      .on { case ((link, _), routeStreet) => link.routeStreetId === routeStreet.routeStreetId }
       .filter { case ((link, auditTask), _) =>
         !auditTask.completed && link.userRouteId === userRouteId.bind &&
         !(auditTask.streetEdgeId in streetsReportedNoImageryDuringRoute(userRouteId))
       }
       .sortBy { case (_, routeStreet) => routeStreet.position.desc }
-      .map { case ((link, _), routeStreet) => (link.auditTaskId, routeStreet.routeStreetId, routeStreet.position) }
+      .map { case ((link, _), routeStreet) =>
+        (link.auditTaskId, routeStreet.routeStreetId, routeStreet.position).mapTo[ResumableRouteTask]
+      }
       .result
       .headOption
   }
@@ -892,11 +924,9 @@ class AuditTaskTable @Inject() (
    * walked metres are recorded on it, so handing the street back from its start makes them re-walk and re-label what
    * they already did. The region-audit counterpart of [[resumableRouteTask]].
    *
-   * The no-imagery exclusion below is a **second copy** of the predicate ExploreService's page-load resume applies to
-   * the mission's current task, via StreetEdgeIssueTable.reportedNoImagerySince. They are not shared because that path
-   * tests one already-loaded task while this one is a query predicate over many, and the other two exclusions here
-   * would change that path's behaviour if it adopted them wholesale. So they can drift: a change to what counts as a
-   * no-imagery give-up has to be made in both places, and there is no compiler or test that will say so.
+   * The no-imagery exclusion below uses the same StreetEdgeIssueTable.reportedNoImageryDuringTask test that
+   * ExploreService's page-load resume applies to the mission's current task. Only that test is shared: the other two
+   * exclusions here would change that path's behaviour if it adopted them.
    *
    * Three exclusions, each for a reason the street is not really resumable:
    *   - Drop-in tasks (`start_offset_m` set) cover only the stretch from where free exploration began (#4451).
@@ -957,10 +987,7 @@ class AuditTaskTable @Inject() (
       )
       .filterNot(task =>
         streetEdgeIssues
-          .filter(issue =>
-            issue.streetEdgeId === task.streetEdgeId && issue.userId === userId &&
-              issue.issue === StreetEdgeIssueType.PanoNotAvailable && issue.timestamp >= task.taskStart
-          )
+          .filter(StreetEdgeIssueTable.reportedNoImageryDuringTask(_, task.streetEdgeId, userId.bind, task.taskStart))
           .exists
       )
   }
@@ -1008,11 +1035,10 @@ class AuditTaskTable @Inject() (
       .join(routeStreets)
       .on(_.routeId === _.routeId)
       .join(streetEdgeTable.streets)
-      .on(_._2.streetEdgeId === _.streetEdgeId)
+      .on { case ((_, _routeStreet), _streetEdge) => _routeStreet.streetEdgeId === _streetEdge.streetEdgeId }
       .map { case ((_userRoute, _routeStreet), _streetEdge) => (_streetEdge, _routeStreet) }
 
-    // Get task_start, audit_task_id, current_mission_id, and current_mission_start for the route's streets the user
-    // has audited. If there are multiple for the same one, choose most recent (one w/ the highest audit_task_id).
+    // A route street the user audited more than once is represented by its most recent audit_task (highest id).
     // Keyed by route_street rather than by street: an out-and-back route walks the same street twice, and each
     // traversal is its own task, so keying by street would mark the return leg done and hand it the outbound
     // leg's audit task.
@@ -1023,27 +1049,26 @@ class AuditTaskTable @Inject() (
       .filter(_.userRouteId === userRouteId)
       .join(completedTasks)
       .on(_.auditTaskId === _.auditTaskId)
-      .groupBy(_._1.routeStreetId)
-      .map(_._2.map(_._2.auditTaskId).max)
+      .groupBy { case (link, _) => link.routeStreetId }
+      .map { case (_, rows) => rows.map { case (_, task) => task.auditTaskId }.max }
 
     val userCompletedStreets = auditTaskUserRoutes
       .filter(_.userRouteId === userRouteId)
       .join(auditTasks)
       .on(_.auditTaskId === _.auditTaskId)
       .filter { case (_, auditTask) => auditTask.auditTaskId.? in latestCompletedTaskIds }
-      .map { case (link, auditTask) =>
-        (link.routeStreetId, auditTask.taskStart, auditTask.auditTaskId, auditTask.currentMissionId,
-          auditTask.currentMissionStart)
-      }
+      .map { case (link, auditTask) => (link.routeStreetId, auditTask) }
 
     val reportedStreets = streetsReportedNoImageryDuringRoute(userRouteId)
 
     val tasks = for {
-      ((_se1, _rs), ucs) <- edgesInRoute.joinLeft(userCompletedStreets).on(_._2.routeStreetId === _._1)
-      _se2               <- streetEdgeTable.streets if _se1.streetEdgeId === _se2.streetEdgeId
-      _sep               <- streetEdgePriorities if _se2.streetEdgeId === _sep.streetEdgeId
-      _scau              <- streetAuditState(userId) if _sep.streetEdgeId === _scau._1
-      _sms               <- osmWayTable.streetMaxSpeeds if _se2.streetEdgeId === _sms._1
+      ((_se1, _rs), ucs) <- edgesInRoute.joinLeft(userCompletedStreets).on {
+        case ((_, _routeStreet), (_routeStreetId, _)) => _routeStreet.routeStreetId === _routeStreetId
+      }
+      _se2                    <- streetEdgeTable.streets if _se1.streetEdgeId === _se2.streetEdgeId
+      _sep                    <- streetEdgePriorities if _se2.streetEdgeId === _sep.streetEdgeId
+      _scau                   <- streetAuditState(userId) if _sep.streetEdgeId === _scau.streetEdgeId
+      (_smsEdgeId, _maxSpeed) <- osmWayTable.streetMaxSpeeds if _se2.streetEdgeId === _smsEdgeId
     } yield (
       _se2.streetEdgeId,
       _se2.geom,
@@ -1051,24 +1076,24 @@ class AuditTaskTable @Inject() (
       _se2.y1,
       _se2.wayType,
       _rs.reverse,
-      ucs.map(_._2).getOrElse(timestamp), // taskStart is now, or the existing task start if the user has one.
-      _scau._2,                           // completedByAnyUser
+      ucs.map { case (_, _task) => _task.taskStart }.getOrElse(timestamp),
+      _scau.completedByAnyUser,
       _sep.priority,
-      ucs.isDefined,     // completed is true if the user has audited this street before.
-      ucs.map(_._3),     // fill auditTaskId using the existing audit_task for this street if the user has one.
-      ucs.flatMap(_._4), // fill currentMissionId if the user has an existing mission for this street.
-      ucs.flatMap(_._5), // fill currentMissionStart if the user has an existing mission for this street.
+      ucs.isDefined, // completed is true if the user has audited this street before.
+      ucs.map { case (_, _task) => _task.auditTaskId },
+      ucs.flatMap { case (_, _task) => _task.currentMissionId },
+      ucs.flatMap { case (_, _task) => _task.currentMissionStart },
       _rs.routeStreetId.asColumnOf[Option[Int]],
       _rs.position.asColumnOf[Option[Int]],
-      _sms._2,                              // maxSpeed
+      _maxSpeed,
       _se2.streetEdgeId in reportedStreets, // reportedNoImagery
-      _scau._3,                             // needsReaudit
-      _scau._4,                             // mappedByThisUser
-      _scau._5,                             // lastMappedAt
-      _scau._6                              // newImageryDate
-    )
+      _scau.needsReaudit,
+      _scau.mappedByThisUser,
+      _scau.lastMappedAt,
+      _scau.newImageryDate
+    ).mapTo[NewTask]
 
-    tasks.result.map(_.map(NewTask.tupled(_)))
+    tasks.result
   }
 
   /**
@@ -1113,11 +1138,7 @@ class AuditTaskTable @Inject() (
   def updateTaskFlag(auditTaskId: Int, flag: String, state: Boolean): DBIO[Int] = {
     val q = for {
       t <- auditTasks if t.auditTaskId === auditTaskId
-    } yield flag match {
-      case "low_quality" => t.lowQuality
-      case "incomplete"  => t.incomplete
-      case "stale"       => t.stale
-    }
+    } yield flagColumn(t, flag)
 
     q.update(state)
   }
@@ -1133,13 +1154,21 @@ class AuditTaskTable @Inject() (
   def updateTaskFlagsBeforeDate(userId: String, date: OffsetDateTime, flag: String, state: Boolean): DBIO[Int] = {
     val q = for {
       t <- auditTasks if t.userId === userId && t.taskStart < date
-    } yield flag match {
-      case "low_quality" => t.lowQuality
-      case "incomplete"  => t.incomplete
-      case "stale"       => t.stale
-    }
+    } yield flagColumn(t, flag)
 
     q.update(state)
+  }
+
+  /**
+   * The column behind an admin-set task flag.
+   *
+   * @param flag One of "low_quality", "incomplete", or "stale".
+   * @return That flag's column on the task.
+   */
+  private def flagColumn(t: AuditTaskTableDef, flag: String): Rep[Boolean] = flag match {
+    case "low_quality" => t.lowQuality
+    case "incomplete"  => t.incomplete
+    case "stale"       => t.stale
   }
 
   /**
@@ -1158,8 +1187,8 @@ class AuditTaskTable @Inject() (
    * flagged. The tutorial street is excluded. Unlike the manually-set flags above, this flag is never set by admins,
    * so the clear-pass owns every TRUE value -- including tutorial-street rows, which the set-pass can never produce.
    *
-   * The two passes apply the *same* outdated test, so together they partition audit_task exactly; any change to one
-   * predicate has to be mirrored in the other or the sync stops being idempotent. Three details of that test:
+   * The two passes share one outdated test (`auditPredatesImagery`), so together they partition audit_task exactly and
+   * the sync stays idempotent. Three details of that test:
    *
    *   - The strict < is deliberately conservative with GSV's varying-precision capture dates: a month-only capture
    *     date standardizes to the 1st, so an audit any time in that month is not flagged.
@@ -1177,30 +1206,29 @@ class AuditTaskTable @Inject() (
    * @return (number of audits flagged, number of audits unflagged)
    */
   def syncOutdatedImageryFlags: DBIO[(Int, Int)] = {
-    val setPass = sqlu"""
+    val auditPredatesImagery = """street_imagery.median_newest_capture IS NOT NULL
+          AND street_imagery.median_newest_capture <= (now() AT TIME ZONE 'UTC')::date
+          AND (audit_task.task_end AT TIME ZONE 'UTC')::date < street_imagery.median_newest_capture"""
+    val setPass              = sqlu"""
       UPDATE audit_task
       SET outdated_imagery = TRUE, outdated_imagery_at = now()
       FROM street_imagery
       WHERE audit_task.street_edge_id = street_imagery.street_edge_id
           AND audit_task.completed
           AND NOT audit_task.outdated_imagery
-          AND street_imagery.median_newest_capture IS NOT NULL
-          AND street_imagery.median_newest_capture <= (now() AT TIME ZONE 'UTC')::date
-          AND (audit_task.task_end AT TIME ZONE 'UTC')::date < street_imagery.median_newest_capture
-          AND audit_task.street_edge_id <> (SELECT tutorial_street_edge_id FROM config);
+          AND #$auditPredatesImagery
+          AND #${FilteredTables.notTutorialStreet("audit_task.street_edge_id")};
     """
     val clearPass = sqlu"""
       UPDATE audit_task
       SET outdated_imagery = FALSE, outdated_imagery_at = NULL
       WHERE audit_task.outdated_imagery
           AND (
-              audit_task.street_edge_id = (SELECT tutorial_street_edge_id FROM config)
+              audit_task.street_edge_id = #${FilteredTables.tutorialStreetId()}
               OR NOT EXISTS (
                   SELECT FROM street_imagery
                   WHERE street_imagery.street_edge_id = audit_task.street_edge_id
-                      AND street_imagery.median_newest_capture IS NOT NULL
-                      AND street_imagery.median_newest_capture <= (now() AT TIME ZONE 'UTC')::date
-                      AND (audit_task.task_end AT TIME ZONE 'UTC')::date < street_imagery.median_newest_capture
+                      AND #$auditPredatesImagery
               )
           );
     """

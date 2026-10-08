@@ -2,17 +2,17 @@ package service
 
 import models.label.{CropSource, LabelCrop, LabelCropTable}
 import models.utils.{ImageUtils, MyPostgresProfile}
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import org.apache.pekko.stream.Materializer
 import org.scalatest.{BeforeAndAfterAll, OptionValues}
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import play.api.{Application, Configuration, Environment}
 import service.CropService.CropRunResult
+import util.SidewalkSpec
 
 import java.awt.image.BufferedImage
 import java.io.File
@@ -20,7 +20,7 @@ import java.nio.file.{Files, StandardCopyOption}
 import java.time.OffsetDateTime
 import java.util.UUID
 import javax.imageio.ImageIO
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import scala.concurrent.{Await, ExecutionContext}
 import scala.util.{Failure, Try}
 
@@ -36,37 +36,37 @@ import scala.util.{Failure, Try}
  */
 // Mixin order matters: GuiceOneAppPerSuite must be rightmost so its run() wraps BeforeAndAfterAll's — otherwise
 // afterAll's cleanup executes after the app (and its DB pool) has shut down and aborts the suite.
-class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with OptionValues with GuiceOneAppPerSuite {
+class CropServiceSpec extends SidewalkSpec with BeforeAndAfterAll with OptionValues with GuiceOneAppPerSuite {
 
   private val prefix    = "CropServiceSpec-4865-"
   private val mediaRoot = Files.createTempDirectory("crop-service-spec").toFile
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule] // No eager background actors during tests.
       .configure(
-        "cropped.image.directory" -> new File(mediaRoot, "crops").getPath,
-        "pano.images.directory"   -> new File(mediaRoot, "panos").getPath,
-        "share.image.directory"   -> new File(mediaRoot, "share").getPath
+        "cropped.image.directory" -> File(mediaRoot, "crops").getPath,
+        "pano.images.directory"   -> File(mediaRoot, "panos").getPath,
+        "share.image.directory"   -> File(mediaRoot, "share").getPath
       )
       .build()
 
-  private lazy val dbConfig = app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
-  implicit private lazy val ec: ExecutionContext = app.injector.instanceOf[ExecutionContext]
+  private lazy val dbConfig          = app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
+  private given ec: ExecutionContext = app.injector.instanceOf[ExecutionContext]
   // Play's test helpers need a real materializer to read a streamed (sendFile) body.
-  implicit private lazy val mat: Materializer = app.materializer
-  private lazy val cropService                = app.injector.instanceOf[CropService]
-  private lazy val panoDataService            = app.injector.instanceOf[PanoDataService]
-  private lazy val panoDataTable              = app.injector.instanceOf[models.pano.PanoDataTable]
-  private lazy val labelCropTable             = app.injector.instanceOf[LabelCropTable]
-  private lazy val shareImageCache            = app.injector.instanceOf[ShareImageCache]
-  private lazy val signingService             = app.injector.instanceOf[ImageSigningService]
+  private given mat: Materializer  = app.materializer
+  private lazy val cropService     = app.injector.instanceOf[CropService]
+  private lazy val panoDataService = app.injector.instanceOf[PanoDataService]
+  private lazy val panoDataTable   = app.injector.instanceOf[models.pano.PanoDataTable]
+  private lazy val labelCropTable  = app.injector.instanceOf[LabelCropTable]
+  private lazy val shareImageCache = app.injector.instanceOf[ShareImageCache]
+  private lazy val signingService  = app.injector.instanceOf[ImageSigningService]
 
   private def runDb[T](action: DBIO[T]): T = Await.result(dbConfig.db.run(action), 60.seconds)
 
   private def generate(): CropRunResult = Await.result(cropService.generateMissingCrops(), 5.minutes)
 
-  private val syntheticPano = new File("test/resources/crops/synthetic-pano.png")
+  private val syntheticPano = File("test/resources/crops/synthetic-pano.png")
 
   /** The synthetic pano's size, and the size the narrow variant is stored at — under the cap, so served as it is. */
   private val PanoW   = 1024
@@ -94,6 +94,8 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with OptionValues 
   // the job's window would also be stored at 1440x960, where the size cannot decide and the label's age or its AI
   // authorship does. Plus one nothing can classify: no frame anywhere to recompute the window from.
   private val snapshotPanoId     = s"${prefix}snapshot"
+  private val immersivePanoId    = s"${prefix}immersive"
+  private val offByOnePanoId     = s"${prefix}offbyone"
   private val windowPanoId       = s"${prefix}window"
   private val ambiguousOldPanoId = s"${prefix}ambiguous-old"
   private val ambiguousNewPanoId = s"${prefix}ambiguous-new"
@@ -138,7 +140,7 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with OptionValues 
       app.injector.instanceOf[Environment],
       "pano.images.directory"
     )
-    val file = new File(new File(base, panoId.take(2)), name)
+    val file = File(File(base, panoId.take(2)), name)
     val _    = file.getParentFile.mkdirs()
     file
   }
@@ -153,7 +155,7 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with OptionValues 
   /** Puts a 256x128 rendering of the synthetic pano in the store: a pano the viewer can take as it is. */
   private def storeNarrowPano(panoId: String): File = {
     val file  = storeFile(panoId)
-    val small = new BufferedImage(NarrowW, NarrowH, BufferedImage.TYPE_INT_RGB)
+    val small = BufferedImage(NarrowW, NarrowH, BufferedImage.TYPE_INT_RGB)
     val g     = small.createGraphics()
     val _     = g.drawImage(ImageIO.read(syntheticPano), 0, 0, NarrowW, NarrowH, null)
     g.dispose()
@@ -221,6 +223,12 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with OptionValues 
     } yield Seeded(labelId, labelType, streetEdgeId, auditTaskId, missionId, userId)).transactionally)
   }
 
+  /** Records the frame a seeded label's click was made in (#5085); the seed's default is the boxed 720x480. */
+  private def setFrame(panoId: String, width: Int, height: Int): Unit = {
+    val labelId = seeded(panoId).labelId
+    val _ = runDb(sqlu"UPDATE label_point SET canvas_width = $width, canvas_height = $height WHERE label_id = $labelId")
+  }
+
   private def hasBackup(panoId: String): Option[Boolean] =
     runDb(sql"SELECT has_backup FROM pano_data WHERE pano_id = $panoId".as[Option[Boolean]].head)
 
@@ -240,7 +248,7 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with OptionValues 
   private def plantCrop(panoId: String, width: Int, height: Int): File = {
     val file = cropFile(panoId)
     val _    = file.getParentFile.mkdirs()
-    ImageUtils.writePng(new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB), file)
+    ImageUtils.writePng(BufferedImage(width, height, BufferedImage.TYPE_INT_RGB), file)
     file
   }
 
@@ -256,7 +264,7 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with OptionValues 
   private val preexistingCropBytes: Array[Byte] = {
     val tmp = File.createTempFile("preexisting", ".png")
     try {
-      ImageUtils.writePng(new BufferedImage(10, 10, BufferedImage.TYPE_INT_RGB), tmp)
+      ImageUtils.writePng(BufferedImage(10, 10, BufferedImage.TYPE_INT_RGB), tmp)
       Files.readAllBytes(tmp.toPath)
     } finally { val _ = tmp.delete() }
   }
@@ -284,6 +292,8 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with OptionValues 
       preexistingPanoId  -> seedLabel(preexistingPanoId, Some((PanoW, PanoH)), panoX = 512, panoY = 300),
       narrowPanoId       -> seedLabel(narrowPanoId, Some((NarrowW, NarrowH)), panoX = 128, panoY = 70),
       snapshotPanoId     -> seedLabel(snapshotPanoId, Some((PanoW, PanoH)), panoX = 512, panoY = 300),
+      immersivePanoId    -> seedLabel(immersivePanoId, Some((PanoW, PanoH)), panoX = 512, panoY = 300),
+      offByOnePanoId     -> seedLabel(offByOnePanoId, Some((WideW, WideH)), panoX = WideW / 2, panoY = WideY),
       windowPanoId       -> seedLabel(windowPanoId, Some((PanoW, PanoH)), panoX = 512, panoY = 300),
       ambiguousOldPanoId -> seedLabel(
         ambiguousOldPanoId,
@@ -317,7 +327,13 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with OptionValues 
     val _           = preexisting.getParentFile.mkdirs()
     val _           = Files.write(preexisting.toPath, preexistingCropBytes)
     // Crops from before label_crop existed, for the reconcile pass to classify.
-    val _         = plantCrop(snapshotPanoId, CropService.ExploreFrameCropWidth, CropService.ExploreFrameCropHeight)
+    val _ = plantCrop(snapshotPanoId, CropService.ExploreFrameCropWidth, CropService.ExploreFrameCropHeight)
+    // A label placed in a 16:9 immersive window (#5085): its frame is 720x405 and its snapshot 1440x810.
+    setFrame(immersivePanoId, 720, 405)
+    val _ = plantCrop(immersivePanoId, 1440, 810)
+    // A boxed snapshot a pixel taller than 3:2, as the browser's rounding of its own canvas can make it, on a pano
+    // whose job window would be exactly 1440x960.
+    val _         = plantCrop(offByOnePanoId, 1440, 961)
     val windowBox = boxFor(512, 300, PanoW, PanoH)
     val _         = plantCrop(windowPanoId, windowBox.width, windowBox.height)
     val _         = plantSharePreview(windowPanoId)
@@ -468,6 +484,22 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with OptionValues 
       labelCrop(mismatchedPanoId) mustBe None
     }
 
+    "recognise a snapshot by its label's frame, within the pixel the browser's rounding adds (#5085)" in {
+      // 1440x810 is no job window on this pano and is exactly the 720x405 frame's snapshot: the label at its
+      // canvas fraction of that frame, not of 720x480.
+      val immersive = labelCrop(immersivePanoId).value
+      immersive.source mustBe CropSource.ExploreFrame
+      immersive.markerX mustBe 0.5 +- 1e-9
+      immersive.markerY mustBe (240.0 / 405) +- 1e-9
+      (immersive.width, immersive.height) mustBe ((1440, 810))
+
+      // 1440x961 is within a pixel of both writers' sizes; the file's age settles it as the labeler's upload, and it
+      // must not be taken for the job's window on the strength of a rounding pixel.
+      val offByOne = labelCrop(offByOnePanoId).value
+      offByOne.source mustBe CropSource.ExploreFrame
+      (offByOne.markerX, offByOne.markerY) mustBe ((0.5, 0.5))
+    }
+
     "tell a browser snapshot from a job window by size, where the size can tell" in {
       // A 1440x960 file where the job's window would be far smaller: the browser's snapshot, label at its canvas
       // fraction (the seed clicks the canvas centre).
@@ -512,7 +544,7 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with OptionValues 
       // cannot be recomputed; and the tiny pre-existing file is a size neither writer produces.
       labelCrop(unresolvedPanoId) mustBe None
       labelCrop(preexistingPanoId) mustBe None
-      firstRun.provenanceExplore mustBe 2
+      firstRun.provenanceExplore mustBe 4 // The boxed and the ambiguous-but-fresh snapshots, plus the two #5085 ones.
       firstRun.provenanceWindow mustBe 3
     }
 
@@ -559,7 +591,7 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with OptionValues 
         // The guard is taken synchronously, before any of the run's work is scheduled, so this is not a race.
         cropService.isRunning mustBe true
         val second = Try(Await.result(cropService.generateMissingCrops(), 10.seconds))
-        second mustBe a[Failure[_]]
+        second mustBe a[Failure[?]]
         second.failed.get mustBe an[IllegalStateException]
       } finally {
         val _ = Await.result(first, 5.minutes)

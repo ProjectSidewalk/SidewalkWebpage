@@ -1,16 +1,16 @@
 package controllers
 
-import controllers.base._
+import controllers.base.*
 import models.auth.{DefaultEnv, WithAdmin}
-import models.label.LabelTypeEnum.AccessImpact
-import models.label.{CropMarker, LabelMetadata, LabelTypeEnum}
-import models.pano.PanoSource.PanoSource
+import models.label.AccessImpact
+import models.label.{CropMarker, LabelMetadata, LabelType}
+import models.pano.PanoSource
 import models.story.StoryForView
 import models.user.SidewalkUserWithRole
 import models.utils.ImageUtils
 import play.api.i18n.Messages
 import play.api.libs.ws.WSClient
-import play.api.mvc._
+import play.api.mvc.*
 import play.api.{Configuration, Environment, Logger}
 import play.silhouette.api.Silhouette
 import play.twirl.api.Html
@@ -28,7 +28,7 @@ import java.awt.RenderingHints
 import java.awt.image.BufferedImage
 import java.io.{ByteArrayInputStream, File}
 import javax.imageio.ImageIO
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
@@ -59,10 +59,10 @@ class ShareController @Inject() (
     authenticationService: AuthenticationService,
     shareImageCache: ShareImageCache,
     storyService: StoryService
-)(implicit ec: ExecutionContext, assets: AssetsFinder)
+)(using ec: ExecutionContext, assets: AssetsFinder)
     extends CustomBaseController(cc) {
-  implicit val implicitConfig: Configuration = config
-  private val logger                         = Logger(this.getClass)
+  given Configuration = config
+  private val logger  = Logger(this.getClass)
 
   // The preview image is the same 3:2 shape as a stored crop (2x for retina), which suits summary_large_image cards.
   private val SHARE_IMAGE_WIDTH  = 1440
@@ -117,7 +117,7 @@ class ShareController @Inject() (
    * @return `Ok` with the page, or `NotFound` if no such label exists.
    */
   private def renderLabelPage(labelId: Int, user: SidewalkUserWithRole, viewerId: Option[String], isAdmin: Boolean)(
-      implicit request: RequestHeader
+      using request: RequestHeader
   ): Future[Result] = {
     val storyIdOpt: Option[Int] =
       request.getQueryString("storyId").flatMap(s => Try(s.trim.toInt).toOption).filter(_ > 0)
@@ -185,7 +185,7 @@ class ShareController @Inject() (
    * Builds the localized share title. Problems ("I found an accessibility issue...") and everything else (positive
    * features like curb ramps, neutral types like occlusions — "Look what I found...") take opposite framings.
    */
-  private def shareTitle(meta: LabelMetadata)(implicit messages: Messages): String = {
+  private def shareTitle(meta: LabelMetadata)(using messages: Messages): String = {
     val isProblem   = meta.labelType.accessImpact == AccessImpact.Problem
     val key: String = if (isProblem) "share.meta.title.issue" else "share.meta.title.feature"
     Messages(key, Messages(meta.labelType.nameKey))
@@ -201,7 +201,7 @@ class ShareController @Inject() (
       commonData: service.CommonPageData,
       meta: LabelMetadata,
       linkedStory: Option[StoryForView]
-  )(implicit messages: Messages): Html = {
+  )(using messages: Messages): Html = {
     val base: String    = commonData.prodUrl.stripSuffix("/")
     val pageUrl: String =
       s"$base/label/${meta.labelId}" + linkedStory.map(s => s"?storyId=${s.storyId}").getOrElse("")
@@ -305,13 +305,14 @@ class ShareController @Inject() (
   }
 
   /**
-   * The marker for the base image: the `label_crop` row's for a stored crop (#2660), else the canvas fraction — where
-   * the label is on a Street View still (which reproduces the Explore frame) and on a crop nothing has recorded yet.
+   * The marker for the base image: the `label_crop` row's for a stored crop (#2660), else the canvas fraction of the
+   * label's frame for a crop nothing has recorded yet, else where the frame's point lands on the 3:2 Street View
+   * still, which is only the frame itself for a boxed label (#5085).
    */
   private def markerFor(meta: LabelMetadata, onCrop: Boolean): Future[CropMarker] = {
-    val canvasFraction: CropMarker = CropService.exploreFrameMarker(meta.canvasXY.x, meta.canvasXY.y)
-    if (onCrop) cropService.cropMarker(meta.labelId).map(_.getOrElse(canvasFraction))
-    else Future.successful(canvasFraction)
+    val (x, y, w, h) = (meta.canvasXY.x, meta.canvasXY.y, meta.canvasWidth, meta.canvasHeight)
+    if (onCrop) cropService.cropMarker(meta.labelId).map(_.getOrElse(CropService.exploreFrameMarker(x, y, w, h)))
+    else Future.successful(CropService.stillMarker(x, y, w, h))
   }
 
   /**
@@ -344,7 +345,8 @@ class ShareController @Inject() (
     if (crop.exists()) {
       Future.successful(Option(ImageIO.read(crop)))
     } else {
-      panoDataService.getImageUrl(meta.panoId, imagerySource, meta.pov.heading, meta.pov.pitch, meta.pov.zoom) match {
+      panoDataService.getImageUrl(meta.panoId, imagerySource, meta.pov.heading, meta.pov.pitch, meta.pov.zoom,
+        meta.canvasWidth, meta.canvasHeight) match {
         case Some(url) =>
           ws.url(url)
             .get()
@@ -352,7 +354,7 @@ class ShareController @Inject() (
               // The still is requested with `return_error_code`, so missing imagery arrives as a 404 rather than as a
               // placeholder photo: any non-200 means there is no base image and the caller serves the branded fallback.
               if (r.status != 200) None
-              else Option(ImageIO.read(new ByteArrayInputStream(r.bodyAsBytes.toArray)))
+              else Option(ImageIO.read(ByteArrayInputStream(r.bodyAsBytes.toArray)))
             }
             .recover { case e =>
               logger.warn(s"Failed to fetch GSV still for label ${meta.labelId}: ${e.getMessage}"); None
@@ -370,11 +372,11 @@ class ShareController @Inject() (
    */
   private[controllers] def compositeMarker(
       base: BufferedImage,
-      labelType: LabelTypeEnum.Base,
+      labelType: LabelType,
       marker: CropMarker
   ): BufferedImage = {
     // RGB (not ARGB): the canvas is fully covered by the base photo, and ImageIO's JPEG writer rejects alpha.
-    val out: BufferedImage = new BufferedImage(SHARE_IMAGE_WIDTH, SHARE_IMAGE_HEIGHT, BufferedImage.TYPE_INT_RGB)
+    val out: BufferedImage = BufferedImage(SHARE_IMAGE_WIDTH, SHARE_IMAGE_HEIGHT, BufferedImage.TYPE_INT_RGB)
     val g                  = out.createGraphics()
     g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR)
 
@@ -427,7 +429,7 @@ class ShareController @Inject() (
    * city and cached alongside the per-label images, which the sweep leaves alone (it only evicts previews).
    */
   private def serveFallbackImage(): Result = {
-    val cached: File = new File(shareImageDir, "share_fallback.jpg")
+    val cached: File = File(shareImageDir, "share_fallback.jpg")
     if (!cached.exists()) buildFallbackImage(cached)
     if (cached.exists()) serveImage(cached) else NotFound("No preview image available.")
   }
@@ -445,7 +447,7 @@ class ShareController @Inject() (
   private[controllers] def buildFallbackImage(cached: File): Unit = {
     val logo: File = environment.getFile("public/images/sidewalk-logo.png")
     Option(if (logo.exists()) ImageIO.read(logo) else null).foreach { mark =>
-      val out = new BufferedImage(SHARE_IMAGE_WIDTH, SHARE_IMAGE_HEIGHT, BufferedImage.TYPE_INT_RGB)
+      val out = BufferedImage(SHARE_IMAGE_WIDTH, SHARE_IMAGE_HEIGHT, BufferedImage.TYPE_INT_RGB)
       val g   = out.createGraphics()
       g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR)
       g.setColor(java.awt.Color.WHITE)

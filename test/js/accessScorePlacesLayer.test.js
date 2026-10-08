@@ -1,5 +1,5 @@
 /**
- * Tests for AccessScorePlacesLayer (public/js/access-score/src/AccessScorePlacesLayer.js, #5311): the place
+ * Tests for AccessScorePlacesLayer (frontend/js/access-score/AccessScorePlacesLayer.js, #5311): the place
  * markers beside the scores. A fake Mapbox map records what the layer adds, so the suite pins one symbol layer per
  * category at its zoom, the visibility of the master toggle and the category set, the data buffered until the icons
  * are drawn, the remount after a basemap swap, and the lookups the page uses (counts, a place by id, the marker
@@ -8,11 +8,8 @@
  * neither image loading nor a canvas.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const read = (p) => fs.readFileSync(path.join(REPO_ROOT, p), 'utf8');
 
 const CATEGORIES = ['school', 'health', 'transit'];
 /** Two score bins keep the image lists short; the page passes the model's ten. */
@@ -73,7 +70,8 @@ describe('AccessScorePlacesLayer', () => {
         };
         window.getComputedStyle = () => ({ getPropertyValue: (name) => tokens[name] ?? '' });
         window.requestAnimationFrame = jest.fn((cb) => { cb(); return 1; });
-        window.eval(`${read('public/js/access-score/src/AccessScorePlacesLayer.js')}\nwindow.AccessScorePlacesLayer = AccessScorePlacesLayer;`);
+        Object.assign(window, loadModules('frontend/js/common/PlaceCategoryIcons.js'));
+        Object.assign(window, loadModules('frontend/js/access-score/AccessScorePlacesLayer.js'));
         AccessScorePlacesLayer = window.AccessScorePlacesLayer;
         AccessScorePlacesLayer.loadGlyph = jest.fn(async (url) => ({ src: url }));
         AccessScorePlacesLayer.rasterize = jest.fn(() => pixels);
@@ -131,10 +129,17 @@ describe('AccessScorePlacesLayer', () => {
     test('falls back to a plain pin for a category the backend added before this file learned it', async () => {
         const { map, layer } = mount({ categories: ['school', 'skatepark'] });
         await layer.ready;
-        expect(AccessScorePlacesLayer.presentation('skatepark')).toEqual(AccessScorePlacesLayer.DEFAULT_PRESENTATION);
+        expect(AccessScorePlacesLayer.presentation('skatepark')).toEqual({ icon: window.PlaceCategoryIcons.DEFAULT_FILE });
         expect(AccessScorePlacesLayer.loadGlyph).toHaveBeenCalledWith('/assets/images/icons/map-pin-white-lucide.svg');
         expect([...map.images.keys()]).toEqual(expect.arrayContaining(imagesOf('skatepark')));
         expect(map.layers.get('acs-places-skatepark').layout['icon-image'][1]).toBe('acs-place-skatepark-');
+    });
+
+    test('gives a category id that names an Object.prototype property the plain pin too', () => {
+        for (const id of ['constructor', 'toString', '__proto__']) {
+            expect(window.PlaceCategoryIcons.file(id)).toBe(window.PlaceCategoryIcons.DEFAULT_FILE);
+        }
+        expect(window.PlaceCategoryIcons.file('government')).toBe('landmark-white-lucide.svg');
     });
 
     test('buffers data given before the icons are ready, then splits it by category', async () => {

@@ -91,7 +91,7 @@
   "edit-failed": "De wijziging kon niet worden opgeslagen. Probeer het opnieuw.",
   "edit-failed-short": "Niet opgeslagen",
   "no-imagery-disabled": "Je kunt niet valideren of becommentariëren wanneer er geen beeldmateriaal beschikbaar is voor dit etiket",
-  "no-imagery-edit-disabled": "Je kunt dit etiket niet beoordelen of de tags ervan bewerken wanneer er geen beeldmateriaal beschikbaar is",
+  "no-imagery-edit-disabled": "Je kunt dit etiket niet beoordelen, bewerken of verwijderen wanneer er geen beeldmateriaal beschikbaar is",
   "admin-only": "Alleen beheerders",
   "not-admin-validated": "Niet gevalideerd door een beheerder",
   "download": {
@@ -177,10 +177,18 @@
       "photo-invalid": "We konden dat bestand niet als afbeelding lezen (JPEG of PNG)."
     }
   },
-  "change-type": "Labeltype wijzigen",
-  "change-type-hint": "Tags die niet bij het nieuwe type passen worden verwijderd. Een beoordeling blijft alleen behouden tussen types die op dezelfde manier beoordeeld worden.",
   "edit-type-changed": "Gewijzigd naar {{labelType}}",
   "edit-undo": "Ongedaan maken",
   "edit-conflict-short": "Labeltype elders gewijzigd",
-  "edit-conflict": "Het type van dit label is elders gewijzigd, dus de kaart toont nu de huidige staat."
+  "edit-conflict": "Het type van dit label is elders gewijzigd, dus de kaart toont nu de huidige staat.",
+  "delete-label": "Etiket verwijderen",
+  "delete-label-confirm": "Weet je zeker dat je dit etiket wilt verwijderen?",
+  "delete-label-confirm-admin": "Weet je zeker dat je dit etiket wilt verwijderen? Je stem 'Het oneens zijn' wordt erbij vastgelegd.",
+  "delete-label-failed": "Het etiket kon niet worden verwijderd. Probeer het opnieuw.",
+  "restore-label": "Etiket herstellen",
+  "restore-label-brief": "Herstellen",
+  "restore-label-failed": "Het etiket kon niet worden hersteld. Probeer het opnieuw.",
+  "you-deleted-label": "Je hebt dit etiket verwijderd",
+  "label-was-deleted": "Dit etiket is verwijderd",
+  "deleted-label-disabled": "Dit etiket is verwijderd en kan pas na herstel worden gevalideerd of bewerkt"
 }

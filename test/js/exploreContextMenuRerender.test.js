@@ -1,5 +1,5 @@
 /**
- * Tests for the canvas re-render in ContextMenu.show()/hide() (public/js/explore/src/canvas/ContextMenu.js, #4824).
+ * Tests for the canvas re-render in ContextMenu.show()/hide() (frontend/js/explore/canvas/ContextMenu.js, #4824).
  *
  * Label.render() fades the icon whose dialog is open (pinned in exploreLabelDialogFade.test.js), but the canvas is
  * only repainted when something asks it to. What makes the fade appear the instant the panel opens and clear the
@@ -10,29 +10,14 @@
  *  - hide() must not repaint when nothing was open, because it is also called speculatively on navigation and on
  *    keyboard shortcuts, where a repaint per keystroke is waste.
  *
- * ContextMenu is a jQuery-bound class with private fields, so it is driven through a stubbed UI the way
+ * ContextMenu is a DOM-bound class with private fields, so it is driven through a bare-bones UI the way
  * validateLabelCardKeyboard.test.js drives Validate's KeyboardManager. Only the surface show()/hide() touch is
- * stubbed; the severity and tag sections are switched off through the same flags production uses.
+ * built; the severity and tag sections are switched off through the same flags production uses.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const CONTEXT_MENU_SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/explore/src/canvas/ContextMenu.js'), 'utf8'
-);
-
-/** A chainable jQuery-wrapped-element stand-in. Every method returns the node; `length` 0 means "not in the DOM". */
-function makeNode(overrides = {}) {
-    const node = {
-        length: 0,
-        0: undefined,
-    };
-    const chainable = ['find', 'each', 'text', 'html', 'attr', 'prop', 'addClass', 'removeClass', 'toggleClass',
-        'css', 'val', 'on', 'off', 'blur', 'focus', 'filter', 'tooltip', 'trigger', 'append', 'remove'];
-    chainable.forEach((name) => { node[name] = () => node; });
-    return Object.assign(node, overrides);
-}
+const { makeContextMenuUi } = require('./contextMenuUiStub');
 
 /** The label a menu opens for. Only the getters show()/hide() actually call are present. */
 function makeLabel({ labelType = 'CurbRamp' } = {}) {
@@ -55,12 +40,12 @@ describe('ContextMenu repaints the canvas when the panel opens and closes', () =
 
     beforeEach(() => {
         renders = [];
-        window.$ = () => makeNode();
         window.i18next = { t: (key) => key };
         window.util = {
             camelToKebab: (s) => s,
             anchorPanelToLabel: jest.fn(),
             misc: {
+                labelTypeName: (type) => window.i18next.t(`common:${window.util.camelToKebab(type)}`),
                 getIconImagePaths: () => ({ iconImagePath: 'CurbRamp.svg' }),
                 // False everywhere, which is what switches off the severity menu, its smiley images, and its
                 // tooltips — none of which this file is about.
@@ -81,23 +66,15 @@ describe('ContextMenu repaints the canvas when the panel opens and closes', () =
         window.svl = {
             canvas,
             tracker: { push: jest.fn() },
+            ribbon: { enableModeSwitch: jest.fn() }, keyboard: { setStatus: jest.fn() },
             isOnboarding: () => false,
             LABEL_ICON_RADIUS: 17,
             navigationService: { setStatus: jest.fn() },
         };
 
-        window.eval(`${CONTEXT_MENU_SRC}\nwindow.ContextMenu = ContextMenu;`);
+        Object.assign(window, loadModules('frontend/js/explore/canvas/ContextMenu.js'));
         // No #context-menu-share element and no ShareWidget global, so the share widget stays null.
-        menu = new window.ContextMenu({
-            holder: makeNode(),
-            severityMenu: makeNode(),
-            severityRadioHolder: makeNode(),
-            radioButtons: makeNode(),
-            textBox: makeNode(),
-            tagHolder: makeNode(),
-            tags: makeNode(),
-            closeButton: makeNode(),
-        });
+        menu = new window.ContextMenu(makeContextMenuUi());
         window.svl.contextMenu = menu;
     });
 

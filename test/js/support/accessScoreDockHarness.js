@@ -8,7 +8,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const { installUtilitiesMisc } = require('../loadGlobalScript');
+const { installDateHelpers, installUtilitiesMisc, installEscapeHTML, loadModules } = require('../loadGlobalScript');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..', '..');
 const read = (p) => fs.readFileSync(path.join(REPO_ROOT, p), 'utf8');
@@ -31,20 +31,21 @@ function stubI18next() {
 }
 
 /**
- * `window.util` as the views see it: the real `util.misc` (public/js/common/utilitiesSidewalk.js, over the stamped
+ * `window.util` as the views see it: the real `util.misc` (frontend/js/common/utilitiesSidewalk.js, over the stamped
  * label types) so the rating palettes, their words, the icon paths and the shared marker helper are the shipped ones,
  * plus the handful of utilities.js helpers the views lean on, verbatim.
  */
 function installUtil() {
     window.util = {
         assetPath: (p) => `/assets/${p}`,
-        escapeHTML: (str) => str.replace(/[&<>"']/g, (c) => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'}[c])),
         camelToKebab: (str) => str.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase(),
         lazyIdentityFetch: (...args) => window.fetch(...args),
         EXPLORE_CANVAS_WIDTH: 720,
         EXPLORE_CANVAS_HEIGHT: 480,
     };
     installUtilitiesMisc();
+    installDateHelpers();
+    installEscapeHTML();
     // The mini-card's side channels: a toast on a refused vote, a badge tick on a first one.
     window.Toast = {show: jest.fn()};
     window.BadgeAchievements = {recordValidation: jest.fn()};
@@ -53,11 +54,15 @@ function installUtil() {
 /** Evaluates the production sources into the jsdom global scope, exporting the bare classes onto window. */
 function loadSources() {
     RAMP.forEach((hex, i) => document.documentElement.style.setProperty(`--color-score-ramp-${i + 1}`, hex));
-    window.eval(read('public/js/common/scoreRamp.js'));
-    window.eval(`${read('public/js/common/LabelMiniCard.js')}\nwindow.LabelMiniCard = LabelMiniCard;`);
-    const classes = ['AccessScoreModel', 'AccessScoreChart', 'AccessScoreHistogram', 'AccessScoreWhatsHere',
-        'AccessScoreRankBars', 'AccessScoreClusterSheet', 'AccessScorePhotoStrip', 'AccessScoreDock'];
-    for (const name of classes) window.eval(`${read(`public/js/access-score/src/${name}.js`)}\nwindow.${name} = ${name};`);
+    Object.assign(window, loadModules('frontend/js/common/scoreRamp.js'));
+    Object.assign(window, loadModules('frontend/js/common/LabelMiniCard.js'));
+    const classes = ['AccessScoreModel', 'AccessScoreGradeRamp', 'AccessScoreChart', 'AccessScoreHistogram',
+        'AccessScoreWhatsHere', 'AccessScoreRankBars', 'AccessScoreClusterSheet', 'AccessScorePhotoStrip',
+        'AccessScoreDock'];
+    for (const name of classes) {
+        const dir = name === 'AccessScoreGradeRamp' ? 'common' : 'access-score';  // Shared with the API docs.
+        Object.assign(window, loadModules(`frontend/js/${dir}/${name}.js`));
+    }
 }
 
 /** A street feature in the API's shape, from a fixture case. */
@@ -94,11 +99,18 @@ const DOCK_HTML = `
         </div>
         <div id="acs-dock-status" role="status"></div>
       </div>
-      <div id="acs-dock-body">
-        <div id="acs-histogram"></div>
-        <div id="acs-whats-here"></div>
-        <div id="acs-rank-bars"></div>
-        <div id="acs-photos"></div>
+      <div id="acs-dock-body" class="acs-dock__body">
+        <section class="acs-dock__panel acs-dock__panel--histogram"><div id="acs-histogram"></div></section>
+        <section class="acs-dock__panel acs-dock__panel--whats-here"><div id="acs-whats-here"></div></section>
+        <section class="acs-dock__panel acs-dock__panel--rank">
+          <div class="acs-dock__panel-head">
+            <h3 id="acs-dock-rank-title">Neighborhoods ranked</h3>
+            <button type="button" class="acs-info" aria-label="More information">i</button>
+            <button type="button" id="acs-rank-order" hidden>Show worst 20</button>
+          </div>
+          <div id="acs-rank-bars"></div>
+        </section>
+        <section class="acs-dock__panel acs-dock__panel--photos"><div id="acs-photos"></div></section>
       </div>
     </aside>
   </div>`;

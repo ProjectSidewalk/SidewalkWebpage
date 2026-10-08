@@ -85,7 +85,7 @@
   "edit-failed": "無法儲存變更，請再試一次。",
   "edit-failed-short": "未儲存",
   "no-imagery-disabled": "當此標記沒有可用的影像時，您無法驗證或評論",
-  "no-imagery-edit-disabled": "當此標記沒有可用的影像時，您無法評分或編輯其標籤",
+  "no-imagery-edit-disabled": "當此標記沒有可用的影像時，您無法評分、編輯或刪除它",
   "admin-only": "僅限管理員",
   "not-admin-validated": "未經管理員驗證",
   "download": {
@@ -169,10 +169,18 @@
       "photo-invalid": "我們無法將該檔案讀取為圖片（JPEG 或 PNG）。"
     }
   },
-  "change-type": "更改標籤類型",
-  "change-type-hint": "不適用於新類型的標記會被移除。評分只會在評分方式相同的類型之間保留。",
   "edit-type-changed": "已更改為 {{labelType}}",
   "edit-undo": "復原",
   "edit-conflict-short": "標籤類型已在其他地方更改",
-  "edit-conflict": "此標籤的類型已在其他地方被更改，卡片現在顯示其目前狀態。"
+  "edit-conflict": "此標籤的類型已在其他地方被更改，卡片現在顯示其目前狀態。",
+  "delete-label": "刪除標記",
+  "delete-label-confirm": "確定要刪除這個標記嗎？",
+  "delete-label-confirm-admin": "確定要刪除這個標記嗎？系統會記錄您的「不同意」投票。",
+  "delete-label-failed": "無法刪除標記，請再試一次。",
+  "restore-label": "還原標記",
+  "restore-label-brief": "還原",
+  "restore-label-failed": "無法還原標記，請再試一次。",
+  "you-deleted-label": "您已刪除這個標記",
+  "label-was-deleted": "這個標記已被刪除",
+  "deleted-label-disabled": "這個標記已被刪除，還原前無法驗證或編輯"
 }

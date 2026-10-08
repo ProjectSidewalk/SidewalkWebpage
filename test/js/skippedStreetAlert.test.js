@@ -8,15 +8,9 @@
  * this was found on had it silenced, which is exactly why the teleports looked unexplained.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const readSrc = (relativePath) => fs.readFileSync(path.join(REPO_ROOT, relativePath), 'utf8');
 
-const ALERT_SRC = readSrc('public/js/explore/src/alert/Alert.js');
-const ALERT_CONTROLLER_SRC = readSrc('public/js/explore/src/alert/AlertController.js');
-const STUCK_ALERT_SRC = readSrc('public/js/explore/src/alert/StuckAlert.js');
 
 describe('the "we moved you off that street" message', () => {
     let stored;
@@ -53,9 +47,9 @@ describe('the "we moved you off that street" message', () => {
         window.util = { misc: { getStreetNameNear } };
         window.i18next = { t: (key, interpolation) => JSON.stringify({ key, ...interpolation }) };
 
-        window.eval(`${ALERT_SRC}; window.Alert = Alert;`);
-        window.eval(`${ALERT_CONTROLLER_SRC}; window.AlertController = AlertController;`);
-        window.eval(`${STUCK_ALERT_SRC}; window.StuckAlert = StuckAlert;`);
+        Object.assign(window, loadModules('frontend/js/explore/alert/Alert.js'));
+        Object.assign(window, loadModules('frontend/js/explore/alert/AlertController.js'));
+        Object.assign(window, loadModules('frontend/js/explore/alert/StuckAlert.js'));
     });
 
     /** The i18next key the banner currently displays, per the stub's serialization. */

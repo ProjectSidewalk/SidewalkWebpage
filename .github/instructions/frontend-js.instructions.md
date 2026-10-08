@@ -1,11 +1,10 @@
 ---
-applyTo: "public/js/**/*.js"
+applyTo: "frontend/js/**/*.js"
 ---
 # Frontend JS review (ES2022 target)
 
-- Flag `var` (use const/let), string `+` concatenation for HTML (use template
-  literals), and jQuery AJAX where native `fetch` + Promises fit. Prefer arrow
-  functions in callbacks to keep `this` bound.
+- Flag `var` (use const/let) and string `+` concatenation for HTML (use template
+  literals). Prefer arrow functions in callbacks to keep `this` bound.
 - The constructor-function pattern (`function Foo(){ const self=this; ...; return
   self }`) should be a `class` with `#private` fields. Flag new code using it.
 - **No hardcoded domain values** (see repo-wide rule): use

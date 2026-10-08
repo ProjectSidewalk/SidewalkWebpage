@@ -1,5 +1,5 @@
 /**
- * Tests for public/js/user-dashboard/DashboardBadges.js — the dashboard's four badge tracks, rendered from the
+ * Tests for frontend/js/user-dashboard/DashboardBadges.js — the dashboard's four badge tracks, rendered from the
  * server-stamped counts on `_badgeTracks.scala.html`'s skeleton.
  *
  * The track's numbers come from BadgeAchievements.getProgress, which Validate's mission-complete standing row reads
@@ -8,12 +8,9 @@
  * icons, and the units the "N more" line is written in are this file's own and are pinned alongside.
  */
 
-const fs = require('fs');
-const path = require('path');
 
-const {assetPathStub} = require('./loadGlobalScript');
+const {assetPathStub, installEscapeHTML, loadModules } = require('./loadGlobalScript');
 
-const SRC = (relativePath) => fs.readFileSync(path.resolve(__dirname, '..', '..', relativePath), 'utf8');
 
 /**
  * Load a bare `class` declaration out of a production file, as the Grunt bundle puts it in page scope.
@@ -22,11 +19,11 @@ const SRC = (relativePath) => fs.readFileSync(path.resolve(__dirname, '..', '..'
  * @returns {Function} The class.
  */
 function loadClass(relativePath, className) {
-    return (0, eval)('(() => {\n' + SRC(relativePath) + '\nreturn ' + className + ';\n})()');
+    return loadModules(relativePath)[className];
 }
 
-const DashboardBadges = loadClass('public/js/user-dashboard/DashboardBadges.js', 'DashboardBadges');
-const BadgeAchievements = loadClass('public/js/common/BadgeAchievements.js', 'BadgeAchievements');
+const DashboardBadges = loadModules('frontend/js/user-dashboard/DashboardBadges.js').DashboardBadges;
+const BadgeAchievements = loadClass('frontend/js/common/BadgeAchievements.js', 'BadgeAchievements');
 
 const TRACKS = ['labels', 'distance', 'missions', 'validations'];
 
@@ -62,6 +59,7 @@ describe('DashboardBadges', () => {
         global.BadgeAchievements = BadgeAchievements;
         global.i18next = {t: (key, opts) => (opts ? `${key}|${JSON.stringify(opts)}` : key)};
         global.util = {math: {milesToKms: (mi) => mi * 1.609344}, assetPath: assetPathStub};
+        installEscapeHTML();
     });
 
     afterEach(() => {

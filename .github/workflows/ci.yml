@@ -1,22 +1,26 @@
 name: CI
 
-#   - backend:         `sbt compile` + `scalafmtCheckAll` (both BLOCKING)
-#   - frontend:        asset build (grunt) + `eslint` (JS/JSON) + `stylelint` (CSS) + `htmlhint` (HTML) + locale
-#                      checks + CSS layout + asset paths + JS types + the jsdom `jest` suite in test/js/ (all BLOCKING).
+# Every job blocks a merge except the offline-tooling leg of python-tests and dependency-review.
+#
+#   - backend:         `sbt compile` + `scalafmtCheckAll` + `scalafmtSbtCheck`.
+#   - frontend:        asset build (`npm run build`) + the lint steps (ESLint, Stylelint, HTMLHint, locale checks,
+#                      CSS layout, asset paths, vendor versions, JS types, spec base class) + the jsdom `jest` suite in
+#                      test/js/.
 #                      Jest reports JS coverage but has no floor — the number can't support one yet, see #5112.
-#   - evolutions-lint: static checks on conf/evolutions/default/*.sql (BLOCKING — fast, deterministic, no DB).
-#   - route-lint:      conf/routes reachability — fails if any route is shadowed by an earlier one (BLOCKING — no DB).
-#   - backend-tests:   the whole of test/ against a real Postgres+PostGIS (BLOCKING). Boots the app, which
-#                      auto-applies pending evolutions -- so it doubles as the forward-apply gate. Also carries
-#                      the statement-coverage ratchet (BLOCKING, #4743).
+#   - evolutions-lint: static checks on conf/evolutions/default/*.sql.
+#   - shell-lint:      ShellCheck over the repo's .sh files.
+#   - route-lint:      conf/routes reachability — fails if any route is shadowed by an earlier one.
+#   - backend-tests:   the whole of test/ against a real Postgres+PostGIS. Boots the app, which auto-applies pending
+#                      evolutions, so it doubles as the forward-apply gate. Also carries the statement-coverage
+#                      ratchet (#4743).
 #   - e2e-smoke:       Playwright browser smoke tests (test/e2e/) against a staged app + the CI database. Loads each
-#                      core page in headless Chromium and fails on uncaught console/page errors (BLOCKING since
-#                      #5115); also carries the axe-core accessibility gate (a11y.spec.js, #5060), also BLOCKING.
-#   - python-tests:    pytest unit tests for the standalone scripts in scripts/. One leg per interpreter the web
-#                      container ships — 3.8 for the in-band script (BLOCKING), 3.13 for the offline tooling
-#                      (ADVISORY — it covers an operator utility that never runs on the server).
-# ESLint (JavaScript), Stylelint (CSS), and htmlhint (HTML) are all wired into the `frontend` job as blocking steps now
-# that their trees are lint-clean (#2487).
+#                      core page in headless Chromium and fails on uncaught console/page errors; also carries the
+#                      axe-core accessibility gate (a11y.spec.js, #5060).
+#   - python-tests:    pytest unit tests for the Python scripts in scripts/ and tools/. One leg per interpreter the web
+#                      container ships — 3.8 for the in-band script, 3.13 for the offline tooling (advisory: it covers
+#                      an operator utility that never runs on the server).
+#   - dependency-review: PRs only. Flags a dependency the PR adds or changes that has a known vulnerability (advisory:
+#                      the app's Python is stuck on 3.8, where some fixes can't install, #4396).
 
 on:
   pull_request:
@@ -48,20 +52,22 @@ jobs:
       - name: Set up sbt
         uses: sbt/setup-sbt@v1
 
-      # Dummy env so any config evaluation during compile has values. Compilation does not touch the database, so no
-      # DB service is needed in Phase 0 (that arrives with the DB-integration phase).
+      # Dummy env so any config evaluation during compile has values. Compilation does not touch the database.
       - name: Compile (blocking gate)
         run: sbt -v compile
         env:
           SIDEWALK_APPLICATION_SECRET: dummy-ci-secret
           INTERNAL_API_KEY: dummy-ci-internal-key
 
-      # Blocking: the tree is kept scalafmt-clean, so any formatting drift fails the build. `if: always()` runs this
-      # even when the compile step above failed, so a contributor sees compile and format problems in one run instead
-      # of one at a time. Auto-format locally with `make scalafmt-fix` (or `sbt scalafmtAll`) before pushing.
+      # `if: always()` runs these even when an earlier step failed, so compile and format problems show up in one
+      # run (sbt stops at its first failing command). Auto-format locally with `make scalafmt-fix`.
       - name: scalafmt check (blocking)
         if: always()
         run: sbt scalafmtCheckAll
+
+      - name: scalafmt check, build files (blocking)
+        if: always()
+        run: sbt scalafmtSbtCheck
 
   frontend:
     name: Frontend (build)
@@ -79,78 +85,70 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Exercises the grunt concat/concat_css asset build (the project's `default` grunt task).
+      # The same command the deploy runs (sidewalk-tools' build.sh): the CSS bundles, then Rolldown for the JS.
       - name: Build assets
-        run: npx grunt
+        run: npm run build
 
-      # Blocking: the JS tree is kept eslint-clean (#2487), so any `error`-severity finding fails the build — the
-      # frontend counterpart to the backend job's scalafmt gate. Same path the `make eslint` target defaults to; build/
-      # and lib/ are carved out by eslint.config.js's own `ignores`. No `--max-warnings` flag on purpose: the config's
-      # one `warn` rule (max-len) is deliberately advisory — CLAUDE.md sanctions long-line exceptions, so an over-limit
-      # line nags but doesn't block; every other rule is an `error`. `if: always()` runs it even when the build step
-      # failed, so a contributor sees build and lint problems in one run. Auto-fix locally with `make eslint-fix`.
+      # Every lint step below is `if: always()`, so all frontend problems surface in one run even when an earlier step
+      # failed. Each has a `make` target of the same name for running it locally.
+      #
+      # Same paths `make eslint` defaults to; build/ and lib/ are carved out by eslint.config.js's own `ignores`. No
+      # `--max-warnings` flag on purpose: the config's one `warn` rule (max-len) is deliberately advisory — CLAUDE.md
+      # sanctions long-line exceptions, so an over-limit line nags but doesn't block; every other rule is an `error`.
       - name: ESLint (blocking)
         if: always()
-        run: npx eslint public/js/ public/locales/ test/js/ test/e2e/ playwright.config.js
+        run: npx eslint frontend/js/ public/locales/ test/js/ test/e2e/ playwright.config.js
 
-      # Blocking: the CSS tree is kept stylelint-clean (#2487), the CSS counterpart to the ESLint gate above. Same glob
-      # `make stylelint` defaults to; vendored/generated CSS is carved out by `.stylelintignore`.
-      # The glob is single-quoted so Stylelint's own globber expands `**` (not the shell). Like ESLint, no
-      # `--max-warnings` flag: the one `warning` rule (max-line-length) is deliberately advisory — CLAUDE.md sanctions
-      # long-line exceptions — so an over-limit line nags but doesn't block. `if: always()` runs it even when an earlier
-      # step failed, so all frontend problems surface in one run. Auto-fix locally with `make stylelint-fix`.
+      # Vendored/generated CSS is carved out by `.stylelintignore`. The glob is single-quoted so Stylelint's own globber
+      # expands `**` (not the shell). Like ESLint, no `--max-warnings` flag: the one `warning` rule (max-line-length)
+      # is advisory.
       - name: Stylelint (blocking)
         if: always()
         run: npx stylelint 'public/**/*.css'
 
-      # Blocking: the HTML tree (Twirl templates under app/views) is kept htmlhint-clean (#2487), the HTML counterpart to
-      # the ESLint/Stylelint gates above. Same path `make lint-htmlhint` defaults to; htmlhint reads its rules from
-      # .htmlhintrc. `if: always()` runs it even when an earlier step failed, so all frontend problems surface in one
-      # run. Auto-check locally with `make htmlhint`.
+      # The Twirl templates; htmlhint reads its rules from .htmlhintrc.
       - name: HTMLHint (blocking)
         if: always()
         run: npx htmlhint app/views
 
-      # Blocking: cross-locale key parity and empty values for public/locales/. Pure-node (no deps), i18next-aware
-      # where a per-file JSON rule can't be -- it normalizes plural suffixes and treats en-US/en-NZ and the per-city
-      # overlays as override-only. Run locally with `make lint-locales`.
+      # Cross-locale key parity and empty values for public/locales/. i18next-aware where a per-file JSON rule can't
+      # be: it normalizes plural suffixes and treats en-US/en-NZ and the per-city overlays as override-only.
       - name: Locale checks (blocking)
         if: always()
-        run: node tools/check-locale-parity.mjs
+        run: node tools/lint/check-locale-parity.mjs
 
-      # Blocking: the public/css/ layout (#5030) -- a page's stylesheet is linked only by that page, page class prefixes
-      # stay in the page's own files, and every stylesheet a view links exists (a moved file is a 500 at render time,
-      # not a build failure). `if: always()` so it reports even when an earlier frontend step failed. Run locally with
-      # `make lint-css-layout`.
+      # The public/css/ layout (#5030): a page's stylesheet is linked only by that page, page class prefixes stay in
+      # the page's own files, and every stylesheet a view links exists (a moved file is a 500 at render time, not a
+      # build failure).
       - name: CSS layout (blocking)
         if: always()
-        run: node tools/check-css-layout.mjs
+        run: node tools/lint/check-css-layout.mjs
 
-      # Blocking: asset URLs in public/js/ (#4893) -- no hardcoded '/assets/...' outside the tool's allowlist, and
-      # every literal util.assetPath() argument names a real file in a family the digest manifest covers. Both halves
-      # of a mistake here are silent (a missing asset resolves to its plain path rather than throwing), so nothing
-      # else would catch one. `if: always()` so it reports even when an earlier frontend step failed. Run locally with
-      # `make lint-asset-paths`.
+      # Asset URLs in frontend/js/ (#4893): no hardcoded '/assets/...' outside the tool's allowlist, and every literal
+      # util.assetPath() argument names a real file in a family the digest manifest covers. Both halves of a mistake
+      # here are silent (a missing asset resolves to its plain path rather than throwing), so nothing else would catch
+      # one.
       - name: Asset paths (blocking)
         if: always()
-        run: node tools/check-asset-paths.mjs
+        run: node tools/lint/check-asset-paths.mjs
 
-      # Blocking: the self-hosted libraries in public/vendor/ (#4399) are listed in docs/upgrading-libraries.md at
-      # the versions in their filenames. No Dependabot ecosystem watches that folder (the npm one reads
-      # package.json, which is build tooling), so that doc is their whole inventory and it drifts silently. Run locally with
-      # `make lint-vendor-versions`.
+      # The self-hosted libraries in public/vendor/ (#4399) are listed in docs/upgrading-libraries.md at the versions
+      # in their filenames. No Dependabot ecosystem watches that folder, so that doc is their whole inventory.
       - name: Vendor versions (blocking)
         if: always()
-        run: node tools/check-vendor-versions.mjs
+        run: node tools/lint/check-vendor-versions.mjs
 
-      # Blocking: TypeScript checks public/js/ against its JSDoc types (#5278). `if: always()` so it reports even
-      # when an earlier frontend step failed. Run locally with `make lint-js-types`.
+      # TypeScript checks frontend/js/ against its JSDoc types (#5278).
       - name: JS types (blocking)
         if: always()
-        run: node tools/check-js-types.mjs
+        run: node tools/lint/check-js-types.mjs
 
-      # Blocking: the jsdom unit suite (test/js/). Thin *coverage* is why there's no `coverageThreshold`
-      # (jest.config.js says why); it is not a reason to let a suite that does exist go red.
+      # Every backend spec extends util.SidewalkSpec, never PlaySpec (#3936). In this job because it needs only node.
+      - name: Spec base class (blocking)
+        if: always()
+        run: node tools/lint/check-spec-base.mjs
+
+      # The jsdom unit suite (test/js/). Thin coverage is why there's no `coverageThreshold` (jest.config.js says why).
       - name: Jest unit tests (blocking)
         if: always()
         run: npm run test:js:coverage
@@ -161,12 +159,22 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # Fast, deterministic, no DB: catches Play-evolution footguns the database won't flag until apply time (e.g. a
-      # semicolon mid-`--`-comment, which Play splits on -- the bug that broke evolution 325). Blocking from day one.
-      # Invoked via `bash` (not `./`) so it doesn't depend on the file's executable bit, which git on some dev setups
-      # (core.fileMode=false) drops.
+      # Catches Play-evolution footguns the database won't flag until apply time (e.g. a semicolon mid-`--`-comment,
+      # which Play splits on -- the bug that broke evolution 325). Invoked via `bash` (not `./`) so it doesn't depend on
+      # the file's executable bit, which git on some dev setups (core.fileMode=false) drops.
       - name: Lint evolution files
         run: bash db/scripts/lint-evolutions.sh
+
+  shell-lint:
+    name: Shell script lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # Runs from the Docker image pinned in docker/shellcheck/Dockerfile, so CI and `make shellcheck` use the same
+      # version.
+      - name: Run ShellCheck
+        run: bash tools/lint/shellcheck.sh
 
   route-lint:
     name: Route reachability lint
@@ -179,14 +187,13 @@ jobs:
         with:
           python-version: '3.8'
 
-      # Fast, deterministic, no DB: fails if any conf/routes entry is unreachable because an earlier same-method route
-      # already matches all of its request paths. Play commits to the first path-pattern match and 400s on a typed-param
-      # mismatch instead of falling through, so a wildcard placed above a literal sibling silently breaks it -- the #456
-      # `/label/:labelId`-over-`/label/tags` regression. Blocking from day one, like the evolutions/locale lints. Uses
-      # only the Python stdlib (no pip install). The faithful compiled-router counterpart is RouteReachabilitySpec (run
-      # in backend-tests), which additionally covers routes contributed by any sub-router includes.
+      # Fails if any conf/routes entry is unreachable because an earlier same-method route already matches all of its
+      # request paths. Play commits to the first path-pattern match and 400s on a typed-param mismatch instead of
+      # falling through, so a wildcard placed above a literal sibling silently breaks it (#456). Stdlib only, so no pip
+      # install. RouteReachabilitySpec (in backend-tests) is the compiled-router counterpart, which also covers routes
+      # contributed by sub-router includes.
       - name: Check route reachability
-        run: python3 tools/check_route_reachability.py
+        run: python3 tools/lint/check_route_reachability.py
 
   backend-tests:
     name: Backend tests (API, PostGIS)
@@ -194,9 +201,8 @@ jobs:
     # A spec that hangs on the DB waits out its own 120s timeout and the next one starts, so a bad run degrades
     # slowly instead of failing. The suite is ~10 min locally, so 30 is generous without being open-ended.
     timeout-minutes: 30
-    # BLOCKING: booting the app makes this the forward-evolution-apply gate — the failure that shipped the broken
-    # evolution 325 (#4335/#4351). Runs all of test/, so a spec is covered by existing here rather than by being
-    # named in this file (#5042).
+    # Booting the app makes this the forward-evolution-apply gate. Runs all of test/, so a spec is covered by
+    # existing rather than by being named in this file (#5042).
     #
     # Dummy env mirroring docker-compose.yml's web service, so the app boots exactly as it does in dev. The application
     # secret must be >=256 bits (32+ chars) for Play's HS256 JWT sessions, hence the long value. Job-level because
@@ -211,6 +217,7 @@ jobs:
       SILHOUETTE_SIGNER_KEY: DUMMY_SILHOUETTE_SIGNER_KEY
       SILHOUETTE_CRYPTER_KEY: DUMMY_SILHOUETTE_CRYPTER_KEY
       INTERNAL_API_KEY: DUMMY_INTERNAL_API_KEY
+      SIDEWALK_AI_API_KEY: DUMMY_SIDEWALK_AI_API_KEY
       MAPBOX_API_KEY: DUMMY_MAPBOX_API_KEY
       GOOGLE_MAPS_API_KEY: DUMMY_GOOGLE_API_KEY
       GOOGLE_MAPS_SECRET: DUMMY_GOOGLE_SECRET
@@ -239,8 +246,8 @@ jobs:
         uses: sbt/setup-sbt@v1
 
       # Bring up Postgres+PostGIS exactly as dev does (db/Dockerfile + init.sh, which restores the shared
-      # sidewalk_login schema and the sidewalk_init template). A runner starts with the `pgdata` volume empty, which is
-      # what makes the entrypoint run init.sh — locally, an existing volume makes it skip, and you get your own dev DB.
+      # sidewalk_login schema and the sidewalk_init template). A runner's `pgdata18` volume starts empty, so init.sh
+      # runs; locally, an existing volume skips it and you get your own dev DB.
       - name: Start database
         run: docker compose up -d --build db
 
@@ -293,9 +300,9 @@ jobs:
       - name: Apply evolutions
         run: sbt coverage "testOnly models.utils.EvolutionsApplySpec"
 
-      # Without this the suite's data-dependent half cancels itself out — 87 tests before #5115 seeded labels. Must
-      # follow the step above: it writes street_edge.status and needs constraints from well past the template's
-      # evolution level. Shared with test/e2e rather than duplicated: one definition of the test city.
+      # Without this the suite's data-dependent half cancels itself out. Must follow the step above: it writes
+      # street_edge.status and needs constraints from well past the template's evolution level. Shared with test/e2e:
+      # one definition of the test city.
       - name: Seed the test city
         run: docker compose exec -T db psql -v ON_ERROR_STOP=1 -U postgres -d sidewalk < test/e2e/fixtures/ci-seed.sql
 
@@ -303,8 +310,8 @@ jobs:
       - name: Install the seeded imagery
         run: bash test/e2e/fixtures/install-media.sh
 
-      # Suites run one at a time — see `Test / parallelExecution := false` in build.sbt for why. Nothing cancels on
-      # the seeded schema any more, so a CANCELED line here means the seed stopped covering something.
+      # Suites run one at a time — see `Test / parallelExecution := false` in build.sbt for why. A CANCELED line here
+      # means the seed stopped covering something.
       - name: Run the backend suite
         run: sbt coverage test
 
@@ -318,7 +325,7 @@ jobs:
       # check green with nothing measured.
       - name: Coverage report (blocking ratchet)
         run: |
-          test -s target/scala-2.13/scoverage-data/scoverage.coverage \
+          test -s target/scala-*/scoverage-data/scoverage.coverage \
             || { echo "::error::no scoverage data — the spec steps above did not run under \`coverage\`, or something recompiled after them"; exit 1; }
           sbt coverageReport
 
@@ -330,15 +337,13 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: scoverage-report
-          path: target/scala-2.13/scoverage-report/
+          path: target/scala-*/scoverage-report/
           retention-days: 7
           if-no-files-found: ignore
 
   e2e-smoke:
     name: E2E smoke (Playwright)
     runs-on: ubuntu-latest
-    # Both halves block, and the job is a required status check — so the db bring-up, grunt build, `sbt stage`,
-    # app boot and the readiness probes gate merges too, not just the two test steps.
     timeout-minutes: 30
     # Job-level env (shared by `sbt stage` and the app process), mirroring backend-tests' block. Every key is a
     # dummy on purpose: Mapbox and Google Maps are both stubbed in-suite (test/e2e/fixtures.js), so no page hits the
@@ -354,6 +359,7 @@ jobs:
       SILHOUETTE_SIGNER_KEY: DUMMY_SILHOUETTE_SIGNER_KEY
       SILHOUETTE_CRYPTER_KEY: DUMMY_SILHOUETTE_CRYPTER_KEY
       INTERNAL_API_KEY: DUMMY_INTERNAL_API_KEY
+      SIDEWALK_AI_API_KEY: DUMMY_SIDEWALK_AI_API_KEY
       MAPBOX_API_KEY: DUMMY_MAPBOX_API_KEY
       GOOGLE_MAPS_API_KEY: DUMMY_GOOGLE_API_KEY
       GOOGLE_MAPS_SECRET: DUMMY_GOOGLE_SECRET
@@ -396,10 +402,10 @@ jobs:
       - name: Install npm dependencies
         run: npm ci
 
-      # MUST precede `sbt stage`: the staged app serves public/ from the packaged assets jar, and the grunt bundles
-      # (public/js/*/build/) are git-ignored — without them every page 404s its own JS/CSS.
+      # MUST precede `sbt stage`: the staged app serves public/ from the packaged assets jar, and the built bundles
+      # (public/build/) are git-ignored — without them every page 404s its own JS/CSS.
       - name: Build frontend assets
-        run: npx grunt
+        run: npm run build
 
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
@@ -478,16 +484,16 @@ jobs:
       - name: Install the seeded imagery
         run: bash test/e2e/fixtures/install-media.sh
 
-      # BLOCKING (#5060). A page only enters the shared table (test/e2e/pages.js) once its violations are fixed or
-      # tracked, so a failure here is a regression, never a known gap. Runs first so a red gate heads the log.
+      # A page only enters the shared table (test/e2e/pages.js) once its violations are fixed or tracked, so a failure
+      # here is a regression, never a known gap (#5060). Runs first so a red gate heads the log.
       - name: Run accessibility gate (blocking)
         run: npx playwright test --project=a11y
         env:
           BASE_URL: http://localhost:9000
           PLAYWRIGHT_HTML_REPORT: playwright-report/a11y
 
-      # BLOCKING (#5115). The condition runs this half even when the gate is red, but unlike `always()` skips it
-      # when the app never came up — where 80 specs would otherwise time out against a dead server.
+      # The condition runs this half even when the gate is red, but unlike `always()` skips it when the app never came
+      # up, where every spec would otherwise time out against a dead server.
       - name: Run Playwright smoke suite
         if: ${{ !cancelled() && steps.app-ready.outcome == 'success' }}
         run: npx playwright test --project=chromium
@@ -516,7 +522,7 @@ jobs:
       fail-fast: false
       # One leg per interpreter the web container ships, testing each script on the Python that runs it (#4396):
       # label_clustering.py is shelled out to by the app, so it stays on prod's EOL 3.8; the offline tooling needs
-      # >= 3.11. Mirrors the `pytest-args-*` and `cov-omit-*` variables in the Makefile — each leg takes the whole
+      # >= 3.12. Mirrors the `pytest-args-*` and `cov-omit-*` variables in the Makefile — each leg takes the whole
       # directory minus the files only the other's interpreter can import (shapely/geopandas are 3.13-only here), so a
       # new test file runs in both rather than in neither.
       # `half` also spells the check name, and `Python tests (in-band script)` is a required check — renaming a half
@@ -529,9 +535,10 @@ jobs:
             requirements: -r requirements.txt -r requirements-dev.txt
             pytest-args: >-
               test/python --ignore=test/python/test_check_streets_for_imagery.py
-              --ignore=test/python/test_onboard_city.py
-            coverage-omit: scripts/check_streets_for_imagery.py
-            coverage-omit-2: scripts/onboard_city.py
+              --ignore=test/python/test_onboard_city.py --ignore=test/python/test_street_gradient.py
+            coverage-omit: tools/city/check_streets_for_imagery.py
+            coverage-omit-2: tools/city/onboard_city.py
+            coverage-omit-3: tools/city/street_gradient.py
           - half: offline tooling
             advisory: true
             python: '3.13'
@@ -555,3 +562,12 @@ jobs:
         env:
           COVERAGE_OMIT: ${{ matrix['coverage-omit'] }}
           COVERAGE_OMIT2: ${{ matrix['coverage-omit-2'] }}
+          COVERAGE_OMIT3: ${{ matrix['coverage-omit-3'] }}
+
+  dependency-review:
+    name: Dependency review
+    runs-on: ubuntu-latest
+    # Only a PR has a before and after to compare.
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/dependency-review-action@v5

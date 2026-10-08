@@ -1,16 +1,26 @@
 package controllers
 
-import controllers.base._
+import controllers.base.*
 import controllers.helper.ControllerUtils.{isAdmin, parseIntegerSeq, NoUserId}
 import formats.json.LabelFormats
 import formats.json.ValidateFormats.{labelEditSubmissionReads, LabelEditSubmission}
 import models.auth.DefaultEnv
-import models.label._
+import models.label.*
+import models.user.SidewalkUserWithRole
+import models.utils.CommonUtils.UiSource
 import models.utils.LatLngBBox
-import play.api.Logger
-import play.api.libs.json._
+import play.api.libs.json.*
+import play.api.mvc.Result
 import play.silhouette.api.Silhouette
-import service.{AiService, CropService, LabelEditOutcome, LabelEditService, LabelService, PanoDataService}
+import service.{
+  AiService,
+  CropService,
+  LabelEditOutcome,
+  LabelEditService,
+  LabelService,
+  PanoDataService,
+  ValidationService
+}
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -19,36 +29,41 @@ import scala.concurrent.{ExecutionContext, Future}
 class LabelController @Inject() (
     cc: CustomControllerComponents,
     val silhouette: Silhouette[DefaultEnv],
-    implicit val ec: ExecutionContext,
     labelService: LabelService,
     labelEditService: LabelEditService,
+    validationService: ValidationService,
     aiService: AiService,
     panoDataService: PanoDataService,
     cropService: CropService
-) extends CustomBaseController(cc) {
-
-  private val logger = Logger(this.getClass)
+)(using ec: ExecutionContext)
+    extends CustomBaseController(cc) {
 
   /**
-   * Fetches the labels that a user has added in the current region they are working in.
-   * @param regionId Region id
+   * Fetches the labels that a user has already added where they are working: the current region, plus every region
+   * their route runs through when they are on a route walk.
+   * @param regionId    Region id
+   * @param userRouteId The route walk the user is on, if any
    * @return A list of labels
    */
-  def getLabelsToResumeMission(regionId: Int) = cc.securityService.SecuredAction { implicit request =>
-    for {
-      labels: Seq[ResumeLabelMetadata] <- labelService.getLabelsFromUserInRegion(regionId, request.identity.userId)
-      allTags: Seq[Tag]                <- labelService.selectAllTagsFuture
-    } yield {
-      Ok(Json.obj("labels" -> labels.map(l => LabelFormats.resumeLabelMetadatatoJson(l, allTags))))
-    }
+  def getLabelsToResumeMission(regionId: Int, userRouteId: Option[Int]) = cc.securityService.SecuredAction {
+    implicit request =>
+      for {
+        labels: Seq[ResumeLabelMetadata] <- labelService.getLabelsToResume(
+          regionId,
+          userRouteId,
+          request.identity.userId
+        )
+        allTags: Seq[Tag] <- labelService.selectAllTagsFuture
+      } yield {
+        Ok(Json.obj("labels" -> labels.map(l => LabelFormats.resumeLabelMetadatatoJson(l, allTags))))
+      }
   }
 
   /**
    * Gets the total label count in a region across all users.
    * @param regionId Region id
    */
-  def getRegionLabelCount(regionId: Int) = cc.securityService.SecuredAction { implicit request =>
-    logger.debug(request.toString) // The request is unused, but SecuredAction needs it and the compiler wants it read.
+  def getRegionLabelCount(regionId: Int) = cc.securityService.SecuredAction { _ =>
     labelService.countLabelsInRegion(regionId).map { labelCount => Ok(Json.obj("label_count" -> labelCount)) }
   }
 
@@ -70,7 +85,9 @@ class LabelController @Inject() (
                 "crop_url"         -> panoDataService.cropUrl(metadata.labelId, metadata.labelType),
                 "crop_marker"      -> marker,
                 "backup_image_url" -> panoDataService.backupImageUrl(metadata.panoId),
-                "can_edit"         -> (metadata.fromCurrentUser || isAdmin(request.identity))
+                "can_edit"         -> (metadata.fromCurrentUser || isAdmin(request.identity)),
+                "deleted"          -> metadata.deleted,
+                "can_restore"      -> LabelDeletion.canRestore(metadata.deleted, metadata.deletedBy, request.identity)
               )
           )
         }
@@ -99,8 +116,9 @@ class LabelController @Inject() (
               .map {
                 case LabelEditOutcome.Applied(label) =>
                   // Not waited on: the AI's old assessment was about the old type, and the nightly sweep can take days.
-                  if (submission.labelType.exists(_ != label.labelType))
-                    aiService.reassessAfterTypeChange(label.labelId)
+                  if (submission.labelType.exists(_ != label.labelType)) {
+                    val _ = aiService.reassessAfterTypeChange(label.labelId)
+                  }
                   Ok(
                     Json.obj(
                       "status"     -> "Success",
@@ -128,6 +146,46 @@ class LabelController @Inject() (
         }
       )
   }
+
+  /**
+   * Soft-deletes a label, as its labeler or as an admin (#3591). `source` names the host page; Explore is refused,
+   * since an Explore delete is the one kind that leaves the labeler's accuracy.
+   */
+  def deleteLabel(labelId: Int, source: String) = cc.securityService.SecuredAction { implicit request =>
+    UiSource.withNameOption(source).filter(_ != UiSource.Explore) match {
+      case None => Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> s"Invalid source: $source")))
+      case Some(uiSource) =>
+        validationService
+          .deleteLabel(labelId, request.identity, uiSource)
+          .map(deletionResponse(labelId, request.identity))
+    }
+  }
+
+  /** Undoes a delete (#3591): the labeler their own, an admin any. */
+  def restoreLabel(labelId: Int) = cc.securityService.SecuredAction { implicit request =>
+    labelEditService.restoreLabel(labelId, request.identity).map(deletionResponse(labelId, request.identity))
+  }
+
+  /**
+   * The label's state after a delete or restore. `can_restore` is the server's say, since a delete can find that an
+   * admin got there first.
+   */
+  private def deletionResponse(labelId: Int, user: SidewalkUserWithRole)(outcome: LabelEditOutcome): Result =
+    outcome match {
+      case LabelEditOutcome.Applied(label) =>
+        Ok(
+          Json.obj(
+            "status"      -> "Success",
+            "deleted"     -> label.deleted,
+            "can_restore" -> LabelDeletion.canRestore(label.deleted, label.deletedBy, Some(user))
+          )
+        )
+      case LabelEditOutcome.Forbidden =>
+        Forbidden(
+          Json.obj("status" -> "Error", "message" -> "Only the labeler or an admin can delete or restore a label")
+        )
+      case _ => NotFound(Json.obj("status" -> "Error", "message" -> s"No label found with ID: $labelId"))
+    }
 
   /**
    * Get all labels with the metadata needed for /labelMap, as a GeoJSON FeatureCollection of points.
@@ -176,9 +234,7 @@ class LabelController @Inject() (
   /**
    * Gets all tags in the database in JSON.
    */
-  def getLabelTags = silhouette.UserAwareAction.async { implicit request =>
-    logger.debug(request.toString)
-
+  def getLabelTags = silhouette.UserAwareAction.async { _ =>
     // TODO this should use implicit conversion maybe?
     labelService.getTagsForCurrentCity.map { tags =>
       Ok(JsArray(tags.map { tag =>

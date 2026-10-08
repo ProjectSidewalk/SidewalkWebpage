@@ -55,7 +55,6 @@ no.caps = Non
 no.caps.shortcut = <u>N</u>on
 unsure.caps = Incertain
 unsure.caps.shortcut = Incertain (<u>U</u>)
-wrong.type.shortcut = Mauvais <u>t</u>ype
 thanks = Merci !
 username = Nom d''utilisateur
 loading = Chargement...
@@ -295,7 +294,8 @@ landing.ml.gif.explain.alt = GIF expliquant les résultats de la participation c
 landing.deployment.map.title = Explorer d''autres villes
 landing.deployment.map.subtitle = Cliquez sur un cercle ci-dessous pour explorer d''autres villes Project Sidewalk !
 landing.partners.title = Partenaires locaux à {0}
-landing.partners.tagline = Notre travail à {0} est rendu possible grâce à nos formidables partenaires locaux, dont :
+landing.partners.tagline = Notre travail à {0} est rendu possible grâce à nos partenaires locaux, dont :
+landing.partners.official.contact = Project Sidewalk est un outil de recherche. Pour signaler un problème ou demander une réparation, contactez directement {0}. Vous pouvez joindre à votre demande des liens vers des <a href="/labelMap" data-partner-source="official-contact-labelmap">étiquettes</a> ou des <a href="/stories" data-partner-source="official-contact-stories">témoignages</a> de Project Sidewalk.
 landing.partners.logo.alt = Logo de {0}
 landing.partners.created.by = Project Sidewalk a été créé avec {0} par
 landing.partners.created.heart = amour
@@ -325,7 +325,7 @@ footer.email = Nous écrire
 footer.funding = NOUS SOMMES FIÈREMENT FINANCÉS PAR
 footer.award = Subventions <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338" target="_blank" id = "nsf-link">n° 1302338</a> <br> et <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID=2125087" target="_blank" id = "nsf-link">n° 2125087</a>
 footer.designed.operated = Project Sidewalk est conçu et exploité par le <a id="makeabilitylab" href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> de l''<a id="universityofwashington" href="http://www.cs.uw.edu/">Université de Washington</a>
-footer.version = Version {0} | Dernière mise à jour : <span class = "timestamp date">{1}</span>
+footer.version = Version {0} | Dernière mise à jour : {1}
 
 audit.tutorial.complete.1 = Vous avez réussi !
 audit.tutorial.complete.2 = Vous avez terminé le tutoriel !
@@ -339,7 +339,7 @@ audit.ribbon.other.labels = AUTRES ÉTIQUETTES D''ACCESSIBILITÉ
 audit.ribbon.explore = <u>E</u>xplorer
 audit.ribbon.curb.ramp = Bateau de trottoir (<u>C</u>)
 audit.ribbon.missing.ramp = Bateau <u>m</u>anquant
-audit.ribbon.obstacle = <u>O</u>bstacle sur le passage
+audit.ribbon.obstacle = <u>O</u>bstacle
 audit.ribbon.surface.problem = Problème de <u>s</u>urface
 audit.ribbon.no.sidewalk = Absence de trottoir (<u>N</u>)
 audit.ribbon.crosswalk = Passage piéton marqué (<u>W</u>)
@@ -566,13 +566,18 @@ gallery.all = Tous les types d''étiquettes
 gallery.labels.not.found = Aucun résultat. <a href="/explore">Commencez à explorer</a> pour contribuer plus de données !
 gallery.cards = Les étiquettes sont triées aléatoirement selon les filtres sélectionnés
 gallery.clear.filters = Effacer les filtres
+gallery.list.count = {0,choice,1#1 étiquette|1<{0} étiquettes} dans cette liste
+# Four apostrophes, not two: a choice sub-message containing a placeholder is re-parsed as a MessageFormat
+# pattern, so the quoting is undone twice. Two here renders "na pas pu".
+gallery.list.truncated = {0,choice,1#1 identifiant dépassait la limite de {1} et n''''a pas pu être chargé.|1<{0} identifiants dépassaient la limite de {1} et n''''ont pas pu être chargés.}
+gallery.list.error = La liste n''a pas pu être chargée. Rechargez la page pour réessayer.
+gallery.list.browse.all = Parcourir toutes les étiquettes
 
 routebuilder.name = RouteBuilder
 routebuilder.welcome = Bienvenue dans RouteBuilder
 routebuilder.intro.content = Construisez un itinéraire et partagez-le avec d''autres.
 routebuilder.directions.start.aria = Adresse ou lieu de départ
 routebuilder.directions.end.aria = Adresse ou lieu d''arrivée
-routebuilder.stat.time.tooltip = Estimation basée sur le rythme habituel des explorateurs de Project Sidewalk dans cette ville (environ {0} minutes pour 100 mètres).
 routebuilder.save = Enregistrer l''itinéraire
 routebuilder.delete.route.icon.alt = Un cercle orange avec un point d''exclamation blanc au centre
 routebuilder.not.saved = L''itinéraire n''a pas été enregistré.
@@ -590,6 +595,7 @@ routebuilder.optional = (facultatif)
 routebuilder.route.description.placeholder = p. ex. Notre trajet habituel de la bibliothèque à l''école
 routebuilder.description.error.length = Les descriptions d''itinéraire sont limitées à {0} caractères.
 routebuilder.description.error.allowed = Cette description n''est pas autorisée. Veuillez la modifier.
+routebuilder.streets.error.unknown = Cet itinéraire utilise une rue que nous n''avons plus. Veuillez recharger la page et le créer à nouveau.
 routebuilder.signin.nudge = Connectez-vous pour conserver vos itinéraires dans votre tableau de bord, où vous pourrez les retrouver, les renommer et les partager à tout moment.
 routebuilder.signin.to.save = Se connecter et enregistrer
 routebuilder.continue.without.account = Enregistrer sans compte
@@ -742,6 +748,7 @@ dashboard.routes.rename = Renommer
 dashboard.routes.delete = Supprimer
 dashboard.routes.stats = Exploré par {0} · Terminé par {1}
 dashboard.routes.stats.tooltip = Exploré : nombre de personnes ayant commencé cet itinéraire. Terminé : nombre de personnes l''ayant parcouru en entier.
+dashboard.routes.region.and.more = {0} + {1} de plus
 dashboard.routes.view.title = Voir cet itinéraire dans RouteBuilder
 dashboard.routes.none = Vous n''avez pas encore construit d''itinéraire.
 dashboard.routes.build.one = Construire votre premier itinéraire →
@@ -776,6 +783,7 @@ dashboard.nav.you = Vous
 dashboard.nav.community = Communauté
 dashboard.nav.dashboard = Tableau de bord
 dashboard.nav.settings = Paramètres
+dashboard.nav.manageuser = Gérer l''utilisateur
 dashboard.toc.header = Sur cette page
 dashboard.settings.title = Paramètres
 dashboard.settings.intro = Gérez votre compte, votre équipe et ce que vous partagez avec la communauté.

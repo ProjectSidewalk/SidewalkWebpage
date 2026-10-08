@@ -55,7 +55,6 @@ no.caps = No
 no.caps.shortcut = <u>N</u>o
 unsure.caps = Inseguro
 unsure.caps.shortcut = Inseg<u>u</u>ro
-wrong.type.shortcut = <u>T</u>ipo incorrecto
 thanks = ¡Gracias!
 username = Nombre de usuario/a
 loading = Cargando...
@@ -293,7 +292,8 @@ landing.ml.gif.explain.alt = GIF que explica los resultados del crowdsourcing y 
 landing.deployment.map.title = Explora otras ciudades
 landing.deployment.map.subtitle = ¡Haga clic en un círculo a continuación para explorar otras ciudades del Proyecto Sidewalk!
 landing.partners.title = Socios comunitarios en {0}
-landing.partners.tagline = Nuestro trabajo en {0} es posible gracias a nuestros increíbles socios comunitarios, incluyendo:
+landing.partners.tagline = Nuestro trabajo en {0} es posible gracias a nuestros socios comunitarios, incluyendo:
+landing.partners.official.contact = Project Sidewalk es una herramienta de investigación. Para reportar un problema o solicitar una reparación, comunícate directamente con {0}. Puedes incluir en tu solicitud enlaces a <a href="/labelMap" data-partner-source="official-contact-labelmap">etiquetas</a> o <a href="/stories" data-partner-source="official-contact-stories">historias</a> de Project Sidewalk.
 landing.partners.logo.alt = Logotipo de {0}
 landing.partners.created.by = Project Sidewalk fue creado con {0} por
 landing.partners.created.heart = amor
@@ -323,7 +323,7 @@ footer.email = Envíanos un correo
 footer.funding = ESTAMOS ORGULLOSAMENTE FINANCIADOS POR
 footer.award = Premio <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338" target="_blank" id = "nsf-link">#1302338</a> <br> y <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID=2125087" target="_blank" id = "nsf-link">#2125087</a>
 footer.designed.operated = Project Sidewalk está diseñado y operado por el <a id="makeabilitylab" href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> de la <a id="universityofwashington" href="http://www.cs.uw.edu/">Universidad de Washington</a>
-footer.version = Versión {0} |  Última actualización: <span class = "timestamp date">{1}</span>
+footer.version = Versión {0} |  Última actualización: {1}
 
 audit.tutorial.complete.1 = ¡Lo lograste!
 audit.tutorial.complete.2 = ¡Completaste el tutorial!
@@ -337,7 +337,7 @@ audit.ribbon.other.labels = OTRAS ETIQUETAS DE ACCESIBILIDAD
 audit.ribbon.explore = <u>E</u>xplorar
 audit.ribbon.curb.ramp = Rampa peatonal (<u>C</u>)
 audit.ribbon.missing.ramp = Rampa peatonal ausente (<u>M</u>)
-audit.ribbon.obstacle = <u>O</u>bstáculo en la banqueta
+audit.ribbon.obstacle = <u>O</u>bstáculo
 audit.ribbon.surface.problem = Problema en <u>s</u>uperficie
 audit.ribbon.no.sidewalk = <u>N</u>o hay banqueta
 audit.ribbon.crosswalk = Cruce peatonal marcado (<u>W</u>)
@@ -562,13 +562,16 @@ gallery.all = Todos los tipos de etiquetas
 gallery.labels.not.found = No hay resultados. ¡<a href="/explore">Comienza a explorar</a> para aportar más datos!
 gallery.cards = Las etiquetas se ordenan aleatoriamente según los filtros seleccionados
 gallery.clear.filters = Borrar Filtros
+gallery.list.count = {0,choice,1#1 etiqueta|1<{0} etiquetas} en esta lista
+gallery.list.truncated = {0,choice,1#1 ID superaba el límite de {1} y no se pudo cargar.|1<{0} ID superaban el límite de {1} y no se pudieron cargar.}
+gallery.list.error = No se pudo cargar la lista. Recarga la página para volver a intentarlo.
+gallery.list.browse.all = Explorar todas las etiquetas
 
 routebuilder.name = Constructor de rutas
 routebuilder.welcome = Bienvenido a RouteBuilder
 routebuilder.intro.content = Crea una ruta y compártela con otros.
 routebuilder.directions.start.aria = Dirección o lugar de inicio
 routebuilder.directions.end.aria = Dirección o lugar de destino
-routebuilder.stat.time.tooltip = Estimado a partir del ritmo típico de quienes exploran en Project Sidewalk en esta ciudad (unos {0} minutos por 100 metros).
 routebuilder.save = Guardar ruta
 routebuilder.delete.route.icon.alt = Un círculo naranja con una marca de exclamación blanca en el centro
 routebuilder.not.saved = La ruta no se ha guardado.
@@ -586,6 +589,7 @@ routebuilder.optional = (opcional)
 routebuilder.route.description.placeholder = p. ej., Nuestra ruta principal de la biblioteca a la escuela
 routebuilder.description.error.length = La descripción de la ruta puede tener como máximo {0} caracteres.
 routebuilder.description.error.allowed = Esa descripción no está permitida. Revísala, por favor.
+routebuilder.streets.error.unknown = Esa ruta usa una calle que ya no tenemos. Vuelve a cargar la página y créala de nuevo.
 routebuilder.signin.nudge = Inicia sesión para guardar tus rutas en tu panel, donde podrás encontrarlas, renombrarlas y compartirlas en cualquier momento.
 routebuilder.signin.to.save = Iniciar sesión y guardar
 routebuilder.continue.without.account = Guardar sin cuenta
@@ -610,6 +614,7 @@ dashboard.routes.rename = Renombrar
 dashboard.routes.delete = Eliminar
 dashboard.routes.stats = Explorada por {0} · Completada por {1}
 dashboard.routes.stats.tooltip = Explorada: cuántas personas han empezado a explorar esta ruta. Completada: cuántas la han terminado por completo.
+dashboard.routes.region.and.more = {0} + {1} más
 dashboard.routes.view.title = Ver esta ruta en RouteBuilder
 dashboard.routes.none = Aún no has creado ninguna ruta.
 dashboard.routes.build.one = Crea tu primera ruta →
@@ -772,6 +777,7 @@ dashboard.nav.you = Tú
 dashboard.nav.community = Comunidad
 dashboard.nav.dashboard = Panel
 dashboard.nav.settings = Configuración
+dashboard.nav.manageuser = Administrar usuario
 dashboard.toc.header = En esta página
 dashboard.settings.title = Configuración
 dashboard.settings.intro = Administra tu cuenta, tu equipo y lo que compartes con la comunidad.

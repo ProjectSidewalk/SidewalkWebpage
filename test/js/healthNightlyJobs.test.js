@@ -10,16 +10,15 @@
  * so they are eval'd into global scope rather than required.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules, realUtil } = require('./loadGlobalScript');
 
-const JS_DIR = path.resolve(__dirname, '..', '..', 'public/js/admin-dashboard');
+// The page fetches through util.fetchJson.
+window.util = realUtil();
+
 
 /** Loads AdminShell into global scope and returns the HealthPage class. */
 function loadPage() {
-  const shell = fs.readFileSync(path.join(JS_DIR, 'AdminShell.js'), 'utf8');
-  const page = fs.readFileSync(path.join(JS_DIR, 'HealthPage.js'), 'utf8');
-  return (0, eval)(`${shell}\nglobalThis.AdminShell = AdminShell;\n${page}\nHealthPage;`);
+  return loadModules('frontend/js/admin-dashboard/HealthPage.js').HealthPage;
 }
 
 const HealthPage = loadPage();
@@ -150,6 +149,18 @@ describe('the nightly jobs panel', () => {
       job({ label: 'Overdue but ok', last_status: 'succeeded', overdue: true }),
     ]);
     expect(rows().map((r) => r[0])).toEqual(['Never run', 'Overdue but ok', 'Failed', 'Fine']);
+  });
+
+  test('shows a run its process died in as interrupted, in the bad tone, between abandoned and failed', async () => {
+    await render([
+      job({ label: 'Failed', last_status: 'failed' }),
+      job({ label: 'Interrupted', last_status: 'interrupted' }),
+      job({ label: 'Abandoned', last_status: 'abandoned' }),
+    ]);
+    expect(rows().map((r) => r[0])).toEqual(['Abandoned', 'Interrupted', 'Failed']);
+    const badge = [...document.querySelectorAll('#health-jobs tbody tr')][1].querySelector('td:nth-child(3) span');
+    expect(badge.textContent).toBe('interrupted');
+    expect(badge.className).toContain('ac-badge--bad');
   });
 
   test('labels a job whose last scheduled run succeeded but is too old as overdue', async () => {

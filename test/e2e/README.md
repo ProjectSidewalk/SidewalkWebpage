@@ -2,7 +2,7 @@
 
 A thin headless-browser suite (issue #4504) that loads each core page and **fails on any uncaught page
 error or non-allowlisted `console.error`**. It exists to catch the class of regression that compile, the
-grunt build, and all four linters are blind to: runtime-only JS errors — a stale bundle, a missing global,
+asset build (`npm run build`), and all four linters are blind to: runtime-only JS errors — a stale bundle, a missing global,
 an unbound-method `this` bug, a route-ordering 400 breaking a fetch. It asserts *pages initialize cleanly*
 plus two pieces of layout geometry — `phone-viewport.spec.js` re-loads the responsive pages at a 390×844
 phone viewport and fails on horizontal overflow (#4883), and `stat-bands.spec.js` sweeps the `/about` and
@@ -14,7 +14,8 @@ community stat bands across widths and fails when one stat runs into the next (#
 
 The suite does **not** boot the app — it runs against whatever `BASE_URL` points at (default
 `http://localhost:9000`). So bring an app up first (`npm start` inside `make dev`, or `make qa-worktree
-wt=<name>` for a branch under QA); that occupies a terminal, so run the suite from a second one.
+wt=<name>` for a branch under QA); that occupies a terminal, so run the suite from a second one. It stops if another
+checkout holds `:9000` (`force=1` overrides).
 
 ```bash
 make test-e2e                                  # the whole suite
@@ -147,13 +148,13 @@ this suite in two steps: the **accessibility gate** (`--project=a11y`), then the
 gave the pages content to render. Each project writes to its own `test-results/` subdirectory, so the second run
 does not clear the first's traces before they are uploaded. On failure of either half it uploads the Playwright
 report, traces, and `app.log`. **It never runs
-during local development** — your edit / `grunt watch` / reload loop is untouched.
+during local development** — your edit / `npm run watch` / reload loop is untouched.
 
 ### The CI test city
 
 `fixtures/ci-seed.sql`, applied by this job and by `backend-tests`, and the one definition of what CI's database
 holds: one real Teaneck neighbourhood — its four streets, 33 labels, and the panoramas they sit on — pulled from
-prod with `../../tools/ci_seed_slice.sql` and rebuilt by `../../tools/gen_ci_seed.py`. Real, because a fixture that
+prod with `fixtures/ci_seed_slice.sql` and rebuilt by `fixtures/gen_ci_seed.py`. Real, because a fixture that
 invents its own coordinates and panorama ids can only show that the code runs, not that it runs on the shape of data
 it will meet. Small on purpose: enough that every page renders real content and every backend spec has something to
 read, not a second city dump to maintain. Three things about it shape this suite:
@@ -183,13 +184,14 @@ read, not a second city dump to maintain. Three things about it shape this suite
   (`fixtures/google-maps-stub.js`, routed in for every context by `fixtures.js`; #5129). Google bills every
   `StreetViewPanorama` and `Map` instantiation — local tiles or not — and the label-detail popup instantiates a
   panorama on each `/labelMap`, `/gallery`, `/dashboard` and `/stories` load (#5128), so a suite run against the
-  real API was ~20 billable events. The stub implements just the surface `public/js` uses (grep-verified; the
+  real API was ~20 billable events. The stub implements just the surface `frontend/js` uses (grep-verified; the
   file says how) and fires the events the app awaits. Its pano contract is Google's: a location search always
   finds a pano, a lookup by id succeeds only for an id the stub has seen or a registered provider vouches for
   (Explore's tutorial), and any other id is `ZERO_RESULTS` — which is what an expired pano answers in production,
-  and what sends the seeded labels down the Pannellum + backup path. A spec that wants the primary-viewer path
-  instead calls `serveAnyPano(context)` before navigating, and every id resolves the way Google keeps serving a
-  panorama our metadata check has retired; `explore-validate.spec.js` covers both. The `googleMapsLeaks`
+  and what sends the seeded labels down the Pannellum + backup path. `serveAnyPano(context)`, called before
+  navigating, makes every id resolve the way Google keeps serving a panorama our metadata check has retired;
+  `explore-validate.spec.js` runs Validate both ways and expects Pannellum both times, because a label the payload
+  flags `expired` never asks the provider (#5561). The `googleMapsLeaks`
   auto-fixture aborts and reports any request that still reaches a Google map host, and checks that whatever
   `google.maps` a page ended up with is the stub's, so a page that builds a real map or panorama cannot merge.
   `test/js/googleMapsStub.test.js` pins the stub's own contract. `/explore` asserts the audit tutorial loads: it's
@@ -200,8 +202,9 @@ read, not a second city dump to maintain. Three things about it shape this suite
   `/validate` accepts either legitimate terminal state error-free: a mission or the "no new mission" modal.
   CI takes the mission branch — the seed carries the ≥ 10 validatable labels of one type a mission needs, and
   the server resolves their imagery from the committed backups rather than a provider (#5115) — and on it asserts
-  that a panorama rendered *and which viewer rendered it*: Pannellum on the default (expired) path, the primary
-  viewer under `serveAnyPano`. `/mobile`
+  that a panorama rendered *and which viewer rendered it*: Pannellum, on the default path and under `serveAnyPano`
+  alike, since every seeded label is flagged expired. The primary viewer's own path is covered by `/explore`'s
+  tutorial. `/mobile`
   runs the same two-terminal-state check under an iPhone descriptor (the server serves that page by UA and
   redirects a desktop one to `/`), in portrait and in landscape, each pinning the layout viewport to the
   device's own width — the #4891 contract. ✅
@@ -227,8 +230,8 @@ read, not a second city dump to maintain. Three things about it shape this suite
 | `fixtures/ci-seed.sql` | The CI test city: region, streets, users, labels, missions, panos. Applied by both CI jobs |
 | `fixtures/install-media.sh` | Copies `fixtures/media/` into the app's pano and crop directories |
 | `fixtures/media/` | The seeded labels' real imagery, downscaled: backup panoramas and label crops |
-| `../../tools/gen_ci_seed.py` | Regenerates `fixtures/ci-seed.sql` from a prod slice; holds the fixture's invariants |
-| `../../tools/ci_seed_slice.sql` | The read-only prod query the slice comes from (which rows, and why those) |
+| `fixtures/gen_ci_seed.py` | Regenerates `fixtures/ci-seed.sql` from a prod slice; holds the fixture's invariants |
+| `fixtures/ci_seed_slice.sql` | The read-only prod query the slice comes from (which rows, and why those) |
 | `auth.setup.js` | Registers a throwaway user, saves storageState for registered-user specs |
 | `pages.js` | **The** page table: every anonymous page the suite walks, and how each loads. Adding one here opts it into the smoke tests *and* the accessibility gate |
 | `pages.spec.js` | Table-driven phase-1 anonymous pages |

@@ -214,6 +214,17 @@
   "pano-attribution": {
     "opens-new-tab": "(opent in een nieuw tabblad)"
   },
+  "image-adjustments": {
+    "button": "Beeld",
+    "active-sr": "(aangepast)",
+    "tooltip": "Pas schaduwen, helderheid en contrast van de beelden aan",
+    "title": "Beeldinstellingen",
+    "shadows": "Schaduwen",
+    "brightness": "Helderheid",
+    "contrast": "Contrast",
+    "reset": "Standaardwaarden herstellen",
+    "persist-note": "Deze instellingen blijven behouden in Ontdekken en Bevestigen totdat u ze herstelt."
+  },
   "mission-start-tutorial": {
     "example-type-label-correct": "JUISTE VOORBEELD",
     "label-type-subtitle": "Waarom is dit verkeerd?",
@@ -356,14 +367,21 @@
     "vote-failed": "Je stem is niet opgeslagen. Probeer het opnieuw."
   },
   "download-already-preparing": "Dit bestand wordt al voorbereid voor een andere aanvraag. Probeer het zo opnieuw.",
+  "session-load-failed": {
+    "title": "Laden mislukt",
+    "body": "We konden je missie niet laden. Herlaad de pagina om het opnieuw te proberen.",
+    "bad-link": "Deze link is niet geldig. Controleer het adres en probeer het opnieuw."
+  },
   "label-type-picker": {
     "current": "{{labelType}} (huidig type)",
-    "change": "wijzigen"
+    "change": "wijzigen",
+    "change-type": "Labeltype wijzigen",
+    "change-type-hint": "Tags die niet bij het nieuwe type passen worden verwijderd. Een beoordeling blijft alleen behouden tussen types die op dezelfde manier beoordeeld worden."
   },
   "access-score-spotlight": {
     "subtitle-regions": "De stoepen van elke wijk krijgen van ons <a href=\"{{href}}\">AccessScore</a>-algoritme een score van 0 tot 100 (100 is het best).",
     "subtitle-streets": "De stoepen van elke straat krijgen van ons <a href=\"{{href}}\">AccessScore</a>-algoritme een score van 0 tot 100 (100 is het best).",
-    "subtitle-one-region": "Deze stad is gekarteerd als één wijk, dus er is één score te tonen. Schakel over naar Straten voor meer detail.",
+    "subtitle-one-region": "Deze stad is gekarteerd als één wijk, dus er is één score te tonen.",
     "units-label": "Wijken of straten rangschikken",
     "unit-regions": "Wijken",
     "unit-streets": "Straten",
@@ -389,5 +407,8 @@
     "region-sub-pending": "{{length}} aan straten · {{percent}}% onderzocht",
     "street-in-city": "{{region}}, {{city}}",
     "unnamed": "Naamloze straat"
-  }
+  },
+  "immersive-enter": "Immersieve modus openen",
+  "immersive-exit": "Immersieve modus verlaten",
+  "immersive-exit-hint": "Immersieve modus. Druk op F om te verlaten."
 }

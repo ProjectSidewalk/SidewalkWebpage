@@ -214,6 +214,17 @@
   "pano-attribution": {
     "opens-new-tab": "(opens in a new tab)"
   },
+  "image-adjustments": {
+    "button": "Image",
+    "active-sr": "(adjusted)",
+    "tooltip": "Adjust shadows, brightness and contrast of the imagery",
+    "title": "Image adjustments",
+    "shadows": "Shadows",
+    "brightness": "Brightness",
+    "contrast": "Contrast",
+    "reset": "Reset to defaults",
+    "persist-note": "These settings persist across Explore and Validate until you reset them."
+  },
   "mission-start-tutorial": {
     "example-type-label-correct": "CORRECT EXAMPLE",
     "label-type-subtitle": "Why is this wrong?",
@@ -356,14 +367,21 @@
     "vote-failed": "Your vote didn't save. Please try again."
   },
   "download-already-preparing": "This file is already being prepared for another request. Please try again shortly.",
+  "session-load-failed": {
+    "title": "Couldn't load",
+    "body": "We couldn't load your mission. Please reload the page to try again.",
+    "bad-link": "This link isn't valid. Check the address and try again."
+  },
   "label-type-picker": {
     "current": "{{labelType}} (current type)",
-    "change": "change"
+    "change": "change",
+    "change-type": "Change label type",
+    "change-type-hint": "Tags that don't fit the new type are removed. A rating carries over only between types rated the same way."
   },
   "access-score-spotlight": {
     "subtitle-regions": "Each neighborhood's sidewalks are scored from 0 to 100 by our <a href=\"{{href}}\">AccessScore</a> algorithm (100 is best).",
     "subtitle-streets": "Each street's sidewalks are scored from 0 to 100 by our <a href=\"{{href}}\">AccessScore</a> algorithm (100 is best).",
-    "subtitle-one-region": "This city is mapped as a single neighborhood, so there is one score to show. Switch to Streets for a closer look.",
+    "subtitle-one-region": "This city is mapped as a single neighborhood, so there is one score to show.",
     "units-label": "Rank neighborhoods or streets",
     "unit-regions": "Neighborhoods",
     "unit-streets": "Streets",
@@ -389,5 +407,8 @@
     "region-sub-pending": "{{length}} of streets · {{percent}}% explored",
     "street-in-city": "{{region}}, {{city}}",
     "unnamed": "Unnamed street"
-  }
+  },
+  "immersive-enter": "Enter immersive mode",
+  "immersive-exit": "Exit immersive mode",
+  "immersive-exit-hint": "Immersive mode. Press F to exit."
 }

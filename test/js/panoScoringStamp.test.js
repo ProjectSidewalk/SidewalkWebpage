@@ -3,7 +3,7 @@
  *
  * `conf/pano-scoring.json` is read three ways: `models.utils.PanoScoring` parses it and `main.scala.html` stamps it
  * onto `<html data-pano-scoring>`, `MapillaryViewer.#scorePano` and `PanoramaxViewer.#scorePano` read it back through
- * `util.pano.scoring()`, and `score_pano` in `scripts/check_streets_for_imagery.py` reads the file off disk. The two
+ * `util.pano.scoring()`, and `score_pano` in `tools/city/check_streets_for_imagery.py` reads the file off disk. The two
  * viewers must rank a location's candidates the way the scan does, or a street records the capture date of a pano
  * Explore never shows — the failure the shared file exists to prevent.
  *
@@ -16,7 +16,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { loadGlobalScript } = require('./loadGlobalScript');
+const { loadModules, realUtil } = require('./loadGlobalScript');
 
 const CONFIG_PATH = path.resolve(__dirname, '..', '..', 'conf/pano-scoring.json');
 const config = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
@@ -25,7 +25,8 @@ const config = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
 const stamped = Object.fromEntries(Object.entries(config).filter(([key]) => !key.startsWith('_')));
 document.documentElement.dataset.panoScoring = JSON.stringify(stamped);
 
-loadGlobalScript('public/js/common/pano-viewer/src/panoUtilities.js');
+window.util = realUtil();
+loadModules('frontend/js/common/pano-viewer/panoUtilities.js');
 
 const scoring = window.util.pano.scoring;
 

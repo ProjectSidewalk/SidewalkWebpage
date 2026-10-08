@@ -6,20 +6,16 @@
  * mission-complete modal closes, the red finish flag the user just reached should read as the new mission's green
  * start flag straight away, not after their next step re-runs the per-move progress update.
  *
- * Minimap and NavigationService are top-level `class` declarations written for the Grunt-concatenation world, so the
- * sources are eval'd into the jsdom global scope with MapLibre's Map and Marker and the UI collaborators stubbed, so
- * the flags go through the real Minimap.addMarker. Real turf: the along-street math that places the finish flag is
+ * Minimap is loaded as a module with MapLibre's Map and Marker and the UI collaborators stubbed, so the flags go
+ * through the real Minimap.addMarker. Real turf: the along-street math that places the finish flag is
  * part of what is being exercised.
  */
 
-const fs = require('fs');
 const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const readSrc = (relativePath) => fs.readFileSync(path.join(REPO_ROOT, relativePath), 'utf8');
 
-const NAVIGATION_SERVICE_SRC = readSrc('public/js/explore/src/navigation/NavigationService.js');
-const MINIMAP_SOURCES = ['MinimapStyle', 'MinimapBasemapStyle', 'Minimap'];
 
 window.turf = require(path.join(REPO_ROOT, 'public/vendor/turf/turf-7.4.0.min.js'));
 const { turf } = window;
@@ -100,8 +96,8 @@ function makeMission(missionId, { distanceM, progressM = 0 }) {
     };
 }
 
-/** A jQuery-shaped stub for the progress-bar elements the reset touches; nothing here is under test. */
-const uiStub = () => ({ css: jest.fn(), text: jest.fn(), attr: jest.fn(), hasClass: () => false });
+/** A throwaway element for each progress-bar part the reset touches; nothing here is under test. */
+const uiStub = () => document.createElement('div');
 
 describe('Minimap mission flags across a mission boundary', () => {
     let minimap;
@@ -130,12 +126,11 @@ describe('Minimap mission flags across a mission boundary', () => {
             },
         };
 
-        window.eval(`${NAVIGATION_SERVICE_SRC}; window.NavigationService = NavigationService;`);
-        for (const name of MINIMAP_SOURCES) {
-            window.eval(`${readSrc(`public/js/explore/src/navigation/${name}.js`)}; window.${name} = ${name};`);
-        }
+        Object.assign(window, loadModules('frontend/js/explore/navigation/NavigationService.js'));
+        Object.assign(window, loadModules('frontend/js/explore/navigation/MinimapStyle.js'));
         // jsdom has no 2D canvas; the chevron's pixels aren't under test.
         window.MinimapStyle.chevronImage = () => ({ width: 1, height: 1, data: new Uint8ClampedArray(4) });
+        Object.assign(window, loadModules('frontend/js/explore/navigation/Minimap.js'));
         minimap = await window.Minimap.create({ lat: LAT, lng: START_LNG });
     });
 

@@ -1,5 +1,5 @@
 /**
- * Tests for Label#updateLabelIdAndUploadCrop / #cropUploaded (public/js/explore/src/label/Label.js, issue #4726).
+ * Tests for Label#updateLabelIdAndUploadCrop / #cropUploaded (frontend/js/explore/label/Label.js, issue #4726).
  *
  * Form.js calls updateLabelIdAndUploadCrop on every label a submit hands ids back for. Two things ride on it: the
  * label's own id — which the share permalink and every later lookup key off — and a promise the share flow waits on
@@ -14,18 +14,14 @@
  * one static that puts a marker on the minimap.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const LABEL_SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/explore/src/label/Label.js'), 'utf8'
-);
 
 const CROP_B64 = 'data:image/png;base64,iVBORw0KGgo=';
 
 /** Loads a fresh Label class into the jsdom global scope (a class declaration is not a globalThis property). */
 function loadLabel() {
-    window.eval(`${LABEL_SRC}\nwindow.Label = Label;`);
+    Object.assign(window, loadModules('frontend/js/explore/label/Label.js'));
     return window.Label;
 }
 

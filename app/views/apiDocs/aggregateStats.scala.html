@@ -2,14 +2,9 @@
 @import service.CommonPageData
 @import models.user.SidewalkUserWithRole
 @import play.api.Configuration
-@(commonData: CommonPageData, user: Option[SidewalkUserWithRole])(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+@(commonData: CommonPageData, user: Option[SidewalkUserWithRole])(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @content = {
-  <script>
-    // Set data attributes for API information, used by apiDocs.js (e.g. the download buttons).
-    document.documentElement.setAttribute('data-api-base-url', '/v3/api');
-    document.documentElement.setAttribute('data-api-endpoint', 'aggregateStats');
-  </script>
 
   <div class="page-section" id="aggregate-stats-intro-section">
     <h1 class="page-heading" id="aggregate-stats-api">Aggregate Stats API <a href="#aggregate-stats-api" class="permalink">#</a></h1>
@@ -23,12 +18,7 @@
 
     <div id="aggregate-stats-preview">Loading aggregate statistics...</div>
 
-    <script src="@routes.Assets.versioned("js/api-docs/aggregateStatsPreview.js")"></script>
-    <script>
-      document.addEventListener('DOMContentLoaded', function() {
-        AggregateStatsPreview.setup({ maxWidth: 1000 }).init();
-      });
-    </script>
+    <script type="module" id="page-entry" src='@assets.path("build/js/api-docs/aggregateStats.js")'></script>
   </div>
 
   <div class="page-section" id="endpoint-section">
@@ -74,12 +64,6 @@
         <span class="format-hint">For spreadsheets</span>
       </button>
     </div>
-
-    <div id="download-status" class="status-container status-loading ps-hidden">
-      <div class="loading-spinner"></div>
-      <div class="status-message">Preparing your download...</div>
-      <div class="status-progress">This should only take a few seconds.</div>
-    </div>
   </div>
 
   <div class="page-section" id="responses-section">
@@ -121,7 +105,7 @@
           <tr><td><code>total_labels</code></td><td><code>integer</code></td><td>Total number of labels across all deployments, excluding practice/tutorial labels. Equal to the sum of the <code>by_label_type.&lt;type&gt;.labels</code> counts.</td></tr>
           <tr><td><code>tutorial_labels</code></td><td><code>integer</code></td><td>Number of practice/tutorial labels across all deployments. Reported separately because they are excluded from <code>total_labels</code> and <code>by_label_type</code> (they would skew the per-type ratios).</td></tr>
           <tr><td><code>total_validations</code></td><td><code>integer</code></td><td>Total number of validations across all deployments.</td></tr>
-          <tr><td><code>total_users</code></td><td><code>integer</code></td><td>Number of distinct contributors across all deployments &mdash; users who added at least one (non-tutorial) label or validated at least one label. Counted as distinct people: a user active in multiple cities is counted once. Registered and anonymous users are counted the same; excluded low-quality users are omitted.</td></tr>
+          <tr><td><code>total_users</code></td><td><code>integer</code></td><td>Number of distinct contributors across all deployments &mdash; users who added at least one (non-tutorial) label or validated at least one label. Counted as distinct people: a user active in multiple cities is counted once. Registered and anonymous users are counted the same.</td></tr>
           <tr><td><code>num_cities</code></td><td><code>integer</code></td><td>Number of deployment cities.</td></tr>
           <tr><td><code>num_countries</code></td><td><code>integer</code></td><td>Number of countries with a deployment.</td></tr>
           <tr><td><code>num_languages</code></td><td><code>integer</code></td><td>Number of natively translated languages.</td></tr>

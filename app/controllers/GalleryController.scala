@@ -1,37 +1,51 @@
 package controllers
 
-import controllers.base._
+import controllers.base.*
 import controllers.helper.ControllerUtils.{isAdmin, parseIntegerSeq, regionsParam, NoUserId}
-import formats.json.GalleryFormats._
+import formats.json.GalleryFormats.*
 import formats.json.LabelFormats
 import models.auth.DefaultEnv
-import models.label.{LabelTypeEnum, Tag}
+import models.label.{LabelType, Tag}
 import models.region.Region
 import play.api.Configuration
 import play.api.i18n.Messages
 import play.api.libs.json.{JsError, JsValue, Json}
 import play.api.mvc.{Action, AnyContent}
 import play.silhouette.api.Silhouette
-import service._
+import service.*
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
+
+/**
+ * The Gallery's controller, including its review-list mode (#5444).
+ */
+object GalleryController {
+
+  /**
+   * How many ids a `?labelIds=` review list may name.
+   *
+   * A ground-truth review pass is a few hundred labels, which keeps the URL well under the ~4 KB every browser and
+   * proxy handles and stays one `IN (...)` query. The cap is applied server-side on both the page request and the
+   * label request, so a longer list is truncated rather than trusted.
+   */
+  val MaxLabelIds: Int = 500
+}
 
 @Singleton
 class GalleryController @Inject() (
     cc: CustomControllerComponents,
     val silhouette: Silhouette[DefaultEnv],
     val config: Configuration,
-    implicit val ec: ExecutionContext,
     configService: ConfigService,
     labelService: LabelService,
     panoDataService: PanoDataService,
     cropService: CropService,
     galleryService: GalleryService,
     regionService: RegionService
-)(implicit assets: AssetsFinder)
+)(using ec: ExecutionContext, assets: AssetsFinder)
     extends CustomBaseController(cc) {
-  implicit val implicitConfig: Configuration = config
+  given Configuration = config
 
   /**
    * Returns the Gallery page.
@@ -39,6 +53,8 @@ class GalleryController @Inject() (
    * Mobile visitors are served the page itself (it is responsive) rather than being redirected to /mobileLanding.
    *
    * @param neighborhoods Old name for `regions`, still read so existing links keep working.
+   * @param labelIds      A comma-separated review list (#5444). When it names at least one label, the page shows
+   *                      exactly those labels in that order and every other filter above is ignored.
    */
   def gallery(
       labelType: String,
@@ -47,13 +63,14 @@ class GalleryController @Inject() (
       tags: List[String],
       validationOptions: String,
       aiValidationOptions: String,
-      neighborhoods: String
+      neighborhoods: String,
+      labelIds: String
   ): Action[AnyContent] =
     cc.securityService.UserAwareAction { implicit request =>
       // The label type filter is a list, and an empty one means every type — which is what the legacy "Assorted"
       // value, and anything else unrecognized, falls back to.
       val labTypes: Seq[String] =
-        labelType.split(",").map(_.trim).filter(LabelTypeEnum.labelTypeNames.contains).toSeq
+        labelType.split(",").map(_.trim).filter(LabelType.labelTypeNames.contains).toSeq
 
       // Nothing here depends on anything else, so start all three before the for-comprehension sequences them.
       val regionsF: Future[Seq[Region]] = regionService.getAllRegions
@@ -97,14 +114,24 @@ class GalleryController @Inject() (
             .filter(Seq("correct", "incorrect", "unsure", "unvalidated").contains(_))
             .toSeq
 
-        // Log visit to Gallery async.
+        // parseIntegerSeq drops tokens that aren't integers and dedups, preserving order. A dropped token can't be
+        // reported back — the page never learns it existed — so only ids that parsed reach the unavailable list.
+        val requestedIds: Seq[Int] = parseIntegerSeq(labelIds)
+        val labelIdList: Seq[Int]  = requestedIds.take(GalleryController.MaxLabelIds)
+        // The cap has to be visible on the page: a review list is a completeness promise, and silently serving the
+        // first 500 of 600 tells the reviewer they have seen everything when they have not.
+        val idsOverCap: Int = requestedIds.size - labelIdList.size
+
+        // Log visit to Gallery async. A review list logs its length, not its ids: it can be 500 of them, and the
+        // question the log answers is how often list mode is used, not on what.
+        val listSuffix: String  = if (labelIdList.isEmpty) "" else s"_LabelIdList=${labelIdList.size}"
         val activityStr: String =
-          s"Visit_Gallery_LabelType=${labTypes.mkString("+")}_RegionIDs=${regionIdsList}_Severity=${severityList}_Tags=${tagList}_Validations=$valOptions"
+          s"Visit_Gallery_LabelType=${labTypes.mkString("+")}_RegionIDs=${regionIdsList}_Severity=${severityList}_Tags=${tagList}_Validations=$valOptions$listSuffix"
         cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, activityStr)
 
         Ok(
           views.html.apps.gallery(commonData, Messages("seo.title.gallery"), request.identity, labTypes, allTags,
-            regionIdsList, regionNames, severityList, tagList, valOptions, aiValOptions)
+            regionIdsList, regionNames, severityList, tagList, valOptions, aiValOptions, labelIdList, idsOverCap)
         )
       }
     }
@@ -123,25 +150,26 @@ class GalleryController @Inject() (
       submission => {
         val n: Int = submission.n
         // An empty set of types means "every type", which is what the landing grid and the Gallery's default ask for.
-        val labelTypes: Set[LabelTypeEnum.Base] =
-          submission.labelTypes.getOrElse(Seq()).flatMap(LabelTypeEnum.byName.get).toSet
-        val loadedLabels: Set[Int]       = submission.loadedLabels.toSet
-        val valOptions: Set[String]      = submission.validationOptions.getOrElse(Seq()).toSet
-        val regionIds: Set[Int]          = submission.regionIds.getOrElse(Seq()).toSet
+        val labelTypes: Set[LabelType] = submission.labelTypes.getOrElse(Seq()).flatMap(LabelType.withNameOption).toSet
+        val loadedLabels: Set[Int]     = submission.loadedLabels.toSet
+        val valOptions: Set[String]    = submission.validationOptions.getOrElse(Seq()).toSet
+        val regionIds: Set[Int]        = submission.regionIds.getOrElse(Seq()).toSet
         val severities: Set[Option[Int]] =
           submission.severities.getOrElse(Seq()).toSet.map { (s: String) => if (s == "null") None else Some(s.toInt) }
-        val tagsByLabelType: Map[LabelTypeEnum.Base, Set[String]] = submission.tagsByLabelType
+        val tagsByLabelType: Map[LabelType, Set[String]] = submission.tagsByLabelType
           .getOrElse(Map())
-          .flatMap { case (name, tags) => LabelTypeEnum.byName.get(name).map(_ -> tags.toSet) }
+          .flatMap { case (name, tags) => LabelType.withNameOption(name).map(_ -> tags.toSet) }
         val aiValOptions: Set[String]  = submission.aiValidationOptions.getOrElse(Seq()).toSet
         val userId: String             = request.identity.map(_.userId).getOrElse(NoUserId)
         val recentFirst: Boolean       = submission.sort.contains("recent")
         val staticImageryOnly: Boolean = submission.staticImageryOnly.getOrElse(false)
+        // The client's list is never trusted for length or uniqueness; the same cap applies as on the page request.
+        val labelIdList: Seq[Int] = submission.labelIds.getOrElse(Seq()).distinct.take(GalleryController.MaxLabelIds)
 
         // Get labels from LabelTable.
         labelService
           .getGalleryLabels(n, labelTypes, loadedLabels, valOptions, regionIds, severities, tagsByLabelType,
-            aiValOptions, userId, recentFirst, staticImageryOnly)
+            aiValOptions, userId, recentFirst, staticImageryOnly, labelIdList)
           .flatMap { labels =>
             cropService.cropMarkers(labels.map(_.labelId)).map { markers =>
               val jsonList = labels.map { l =>
@@ -154,10 +182,19 @@ class GalleryController @Inject() (
                   "cropUrl"     -> panoDataService.cropUrl(l.labelId, l.labelType),
                   "cropMarker"  -> markers.get(l.labelId),
                   "gsvImageUrl" ->
-                    panoDataService.getImageUrl(l.panoId, l.panoSource, l.pov.heading, l.pov.pitch, l.pov.zoom)
+                    panoDataService.getImageUrl(l.panoId, l.panoSource, l.pov.heading, l.pov.pitch, l.pov.zoom,
+                      l.canvasWidth, l.canvasHeight)
                 )
               }
-              Ok(Json.obj("labelsOfType" -> jsonList))
+              // Only a review list gets the extra key, so the landing grid's response shape is untouched. The
+              // reviewer has to be able to tell "this id isn't in this city / its imagery is gone" from a list that
+              // came back whole, which a silently shorter grid can't say.
+              val body = Json.obj("labelsOfType" -> jsonList)
+              if (labelIdList.isEmpty) Ok(body)
+              else {
+                val returnedIds: Set[Int] = labels.map(_.labelId).toSet
+                Ok(body + ("unavailableLabelIds" -> Json.toJson(labelIdList.filterNot(returnedIds))))
+              }
             }
           }
       }

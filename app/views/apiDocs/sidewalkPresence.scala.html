@@ -2,15 +2,10 @@
 @import service.CommonPageData
 @import models.user.SidewalkUserWithRole
 @import play.api.Configuration
-@(commonData: CommonPageData, user: Option[SidewalkUserWithRole])(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+@(commonData: CommonPageData, user: Option[SidewalkUserWithRole])(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 @cityName = @{commonData.allCityInfo.filter(c => c.cityId == commonData.cityId).head.cityNameFormatted}
 
 @content = {
-  <script>
-    // Read by the Quick Download buttons in apiDocs.js.
-    document.documentElement.setAttribute('data-api-base-url', '/v3/api');
-    document.documentElement.setAttribute('data-api-endpoint', 'sidewalkPresence');
-  </script>
 
   <div class="page-section" id="sidewalk-presence-intro-section">
     <h1 class="page-heading" id="sidewalk-presence-api">Sidewalk Presence API <a href="#sidewalk-presence-api" class="permalink">#</a></h1>
@@ -77,17 +72,10 @@
        set: the language plugin and the preview both read the mapboxgl global as they parse. *@
     <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.js")' defer></script>
     <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")' defer></script>
-    <script src='@assets.path("js/common/geoBounds.js")' defer></script>
-    <script src='@assets.path("js/api-docs/apiDocsMap.js")' defer></script>
-    <script src='@assets.path("js/api-docs/sidewalkPresencePreview.js")' defer></script>
-    <script>
-      // Waits on appManager so the map's language control can read the page's locale out of i18next.
-      window.appManager.ready(function() {
-        SidewalkPresencePreview.setup({
-          mapboxApiKey: '@commonData.mapboxApiKey'
-        }).init();
-      });
-    </script>
+    <script type="module"
+            id="page-entry"
+            data-mapbox-api-key="@commonData.mapboxApiKey"
+            src='@assets.path("build/js/api-docs/sidewalkPresence.js")'></script>
   </div>
 
   <div class="page-section" id="endpoint-section">
@@ -129,12 +117,6 @@
         <span class="format-icon">📦</span> GeoPackage
         <span class="format-hint">Open GIS format</span>
       </button>
-    </div>
-
-    <div id="download-status" class="status-container status-loading ps-hidden">
-      <div class="loading-spinner"></div>
-      <div class="status-message">Generating your download...</div>
-      <div class="status-progress">This may take anywhere from a few seconds to a few minutes depending on the data size.</div>
     </div>
 
     <p class="download-note">Note: This downloads every street side in the city &mdash; including the unknowns, and including streets that are not currently open for auditing (each carries a <code>status</code>). For filtered data, use the <a href="#query-parameters">API Query Parameters</a> described below.</p>
@@ -417,6 +399,10 @@
       <li><strong><code>404 Not Found</code>:</strong> The requested resource does not exist (e.g., incorrect base URL path).</li>
       <li><strong><code>429 Too Many Requests</code>:</strong> The same file is already being built for an earlier request; wait <code>Retry-After</code> seconds and try again. A <code>HEAD</code> request gets the same answer without building anything.</li>
       <li><strong><code>500 Internal Server Error</code>:</strong> An unexpected error occurred on the server.</li>
+    </ul>
+    <h3 class="page-heading" id="response-headers">Response Headers<a href="#response-headers" class="permalink">#</a></h3>
+    <ul>
+      <li><strong><code>X-File-Size</code>:</strong> On a Shapefile, GeoPackage or zipped-CSV download, the file's size in bytes. Sent alongside <code>Content-Length</code>, and still present when the response is gzipped, which drops it — use it to show download progress.</li>
     </ul>
 
     @apiDocs.errorResponseBody()

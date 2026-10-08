@@ -17,10 +17,10 @@ import models.street.{
 import models.utils.MyPostgresProfile
 import play.api.cache.AsyncCacheApi
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import play.api.libs.json._
+import play.api.libs.json.*
 
 import java.time.{LocalDate, OffsetDateTime, ZoneId}
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.duration.Duration
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -57,24 +57,21 @@ case class StreetStatusTrend(
 object StreetStatusTrend {
 
   /** snake_case per the admin dashboard convention. Weeks with nothing to report are absent; the client zero-fills. */
-  implicit private val jsonConfig: JsonConfiguration = JsonConfiguration(JsonNaming.SnakeCase)
+  private given jsonConfig: JsonConfiguration = JsonConfiguration(JsonNaming.SnakeCase)
 
   // Dates go out as ISO strings, which is what the charts bucket and label by. Pinned here rather than left to
   // play-json's defaults so the wire format can't shift under the client with a library upgrade.
-  implicit private val localDateWrites: Writes[LocalDate]           = Writes(date => JsString(date.toString))
-  implicit private val offsetDateTimeWrites: Writes[OffsetDateTime] = Writes(time => JsString(time.toString))
+  private given localDateWrites: Writes[LocalDate]           = Writes(date => JsString(date.toString))
+  private given offsetDateTimeWrites: Writes[OffsetDateTime] = Writes(time => JsString(time.toString))
 
-  implicit private val statusWrites: Writes[StreetEdgeStatus.Value] = Writes(status => JsString(status.toString))
+  private given statusChangeWeekWrites: Writes[StatusChangeWeek]        = Json.writes[StatusChangeWeek]
+  private given reportWeekWrites: Writes[NoImageryReportWeek]           = Json.writes[NoImageryReportWeek]
+  private given imageryWeekWrites: Writes[PanoImageryWeek]              = Json.writes[PanoImageryWeek]
+  private given reportRegionWrites: Writes[NoImageryReportRegion]       = Json.writes[NoImageryReportRegion]
+  private given corroboratedWrites: Writes[CorroboratedNoImageryStreet] = Json.writes[CorroboratedNoImageryStreet]
+  private given reopenCandidateWrites: Writes[ReopenCandidateForReview] = Json.writes[ReopenCandidateForReview]
 
-  implicit private val statusChangeWeekWrites: Writes[StatusChangeWeek]        = Json.writes[StatusChangeWeek]
-  implicit private val reportWeekWrites: Writes[NoImageryReportWeek]           = Json.writes[NoImageryReportWeek]
-  implicit private val imageryWeekWrites: Writes[PanoImageryWeek]              = Json.writes[PanoImageryWeek]
-  implicit private val reportRegionWrites: Writes[NoImageryReportRegion]       = Json.writes[NoImageryReportRegion]
-  implicit private val corroboratedWrites: Writes[CorroboratedNoImageryStreet] =
-    Json.writes[CorroboratedNoImageryStreet]
-  implicit private val reopenCandidateWrites: Writes[ReopenCandidateForReview] = Json.writes[ReopenCandidateForReview]
-
-  implicit val writes: Writes[StreetStatusTrend] = Json.writes[StreetStatusTrend]
+  given writes: Writes[StreetStatusTrend] = Json.writes[StreetStatusTrend]
 }
 
 @ImplementedBy(classOf[StreetLifecycleServiceImpl])
@@ -87,16 +84,17 @@ trait StreetLifecycleService {
 object StreetLifecycleService {
 
   /** Outcome of an admin's attempt to reopen a no_imagery street (#4929). */
-  sealed trait ReopenOutcome
+  enum ReopenOutcome {
 
-  /** The street was flipped back to open, with its priority row and status-change record written. */
-  case object Reopened extends ReopenOutcome
+    /** The street was flipped back to open, with its priority row and status-change record written. */
+    case Reopened
 
-  /** The street exists but isn't no_imagery (already open, or closed/disabled), so nothing was changed. */
-  case class NotNoImagery(currentStatus: String) extends ReopenOutcome
+    /** The street exists but isn't no_imagery (already open, or closed/disabled), so nothing was changed. */
+    case NotNoImagery(currentStatus: String)
 
-  /** No street with the given id exists. */
-  case object StreetNotFound extends ReopenOutcome
+    /** No street with the given id exists. */
+    case StreetNotFound
+  }
 
   /** Window the Street Status trend defaults to, in weeks. Half a year reads as a season-scale trend at chart width. */
   val DefaultTrendWeeks: Int = 26
@@ -166,10 +164,12 @@ class StreetLifecycleServiceImpl @Inject() (
     panoImageryChangeTable: PanoImageryChangeTable,
     streetReopenCandidateTable: StreetReopenCandidateTable,
     regionCompletionTable: RegionCompletionTable
-)(implicit ec: ExecutionContext)
+)(using ec: ExecutionContext)
     extends StreetLifecycleService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
-  import profile.api._
+  import StreetLifecycleService.ReopenOutcome
+
+  import profile.api.given
 
   /**
    * @param weeks How far back the series reach. Clamped to the supported range.
@@ -261,8 +261,8 @@ class StreetLifecycleServiceImpl @Inject() (
       outcome <-
         if (flipped == 0) {
           sql"SELECT status::text FROM street_edge WHERE street_edge_id = $streetEdgeId".as[String].headOption.map {
-            case Some(status) => StreetLifecycleService.NotNoImagery(status)
-            case None         => StreetLifecycleService.StreetNotFound
+            case Some(status) => ReopenOutcome.NotNoImagery(status)
+            case None         => ReopenOutcome.StreetNotFound
           }
         } else {
           for {
@@ -275,13 +275,14 @@ class StreetLifecycleServiceImpl @Inject() (
             """
             _ <- streetReopenCandidateTable.delete(streetEdgeId)
             _ <- regionCompletionTable.truncateTable
-          } yield StreetLifecycleService.Reopened
+          } yield ReopenOutcome.Reopened
         }
     } yield outcome
 
     db.run(action.transactionally).flatMap {
-      case StreetLifecycleService.Reopened => cacheApi.removeAll().map(_ => StreetLifecycleService.Reopened)
-      case other                           => Future.successful(other)
+      case ReopenOutcome.Reopened =>
+        cacheApi.removeAll().map(_ => ReopenOutcome.Reopened)
+      case other => Future.successful(other)
     }
   }
 

@@ -158,12 +158,23 @@
     "route-unavailable": {
       "message": "Esa ruta no está disponible. Es posible que se haya eliminado."
     },
+    "region-finished": {
+      "message": "Ya exploraste todas las calles de ese vecindario, así que te llevamos a {{regionName}}."
+    },
     "reaudit": {
       "title": "Esta calle tiene imágenes más recientes",
-      "message-you": "Mapeaste esta calle por última vez en {{lastMapped}}, pero las imágenes se han renovado desde entonces (en {{newImagery}}). ¡Veamos qué ha cambiado!",
-      "message-you-no-dates": "Ya mapeaste esta calle antes, pero las imágenes se han renovado desde entonces. ¡Veamos qué ha cambiado!",
-      "message-others": "Otro usuario mapeó esta calle en {{lastMapped}}, pero las imágenes se han renovado desde entonces (en {{newImagery}}). ¡Veamos qué ha cambiado!",
-      "message-others-no-dates": "Otro usuario ya mapeó esta calle antes, pero las imágenes se han renovado desde entonces. ¡Veamos qué ha cambiado!"
+      "message-you": "Evaluaste esta calle por última vez en {{lastMapped}}, pero las imágenes se han renovado desde entonces (en {{newImagery}}). Por favor, evalúa esta calle de nuevo para ayudarnos a analizar lo que ha cambiado.",
+      "message-you-no-dates": "Ya evaluaste esta calle antes, pero las imágenes se han renovado desde entonces. Por favor, evalúa esta calle de nuevo para ayudarnos a analizar lo que ha cambiado.",
+      "message-others": "Esta calle se evaluó por última vez en {{lastMapped}}, pero las imágenes se han renovado desde entonces (en {{newImagery}}). Por favor, evalúa esta calle de nuevo para ayudarnos a analizar lo que ha cambiado.",
+      "message-others-no-dates": "Esta calle ya se evaluó antes, pero las imágenes se han renovado desde entonces. Por favor, evalúa esta calle de nuevo para ayudarnos a analizar lo que ha cambiado."
+    },
+    "pano-date-note": {
+      "image-date": "Imagen: {{date}}",
+      "needs-reassessment": "Necesita reevaluación",
+      "already-assessed": "Ya evaluado",
+      "already-assessed-tip": "Evaluaste este lugar por última vez en {{assessedDate}}, y las imágenes ({{captureDate}}) no han cambiado desde esa evaluación. ¡Añade nuevas etiquetas si ves algo!",
+      "needs-reassessment-tip-you": "Evaluaste este lugar por última vez en {{assessedDate}}, pero las imágenes de aquí son más recientes ({{captureDate}}). Por favor, evalúalo de nuevo para ayudarnos a analizar lo que ha cambiado.",
+      "needs-reassessment-tip-others": "Un usuario evaluó este lugar por última vez en {{assessedDate}}, pero las imágenes de aquí son más recientes ({{captureDate}}). Por favor, evalúalo de nuevo para ayudarnos a analizar lo que ha cambiado."
     },
     "minimap": {
       "attribution-toggle": "Créditos de los datos del mapa",
@@ -182,10 +193,13 @@
       "legend-crumbs": "Círculos: lugares a los que puede ir con un clic",
       "legend-unseen": "Aún sin ver",
       "forward-crumb-title": "Avanzar a la parada {{rank}}",
+      "legend-earlier-labels": "Mis etiquetas anteriores",
       "link-crumb-title": "Ir a esta panorámica",
       "route-stop-title": "Parada {{rank}} de su ruta",
       "breadcrumb-title": "Visitado: clic para volver aquí",
       "label-marker-title": "Etiqueta {{labelType}}: clic para revisarla",
+      "label-marker-title-prior": "Etiqueta «{{labelType}}» de una misión anterior",
+      "label-marker-title-outdated": "Etiqueta antigua «{{labelType}}» en una calle con imágenes nuevas",
       "route-start-flag": "Inicio de la ruta",
       "route-finish-flag": "Final de la ruta",
       "mission-start-flag": "Donde empezó esta misión",
@@ -351,7 +365,7 @@
     "still-stuck": "Si todavía estás atorado, otra vez haz clic en el botón Atorado.",
     "stuck-skipped-street": "Esa calle no tenía imágenes que pudiéramos mostrarte, así que te hemos movido a una calle nueva.",
     "stuck-skipped-street-named": "Esa calle no tenía imágenes que pudiéramos mostrarte, así que te hemos movido a <b>{{streetName}}</b>.",
-    "free-explore-start": "Te hemos colocado cerca de la dirección que buscaste. ¡Mira a tu alrededor y etiqueta lo que encuentres!",
+    "free-explore-start": "Estás explorando libremente desde aquí. ¡Mira a tu alrededor y etiqueta lo que encuentres!",
     "free-explore-start-named": "Has aterrizado cerca de <b>{{placeName}}</b>. ¡Mira a tu alrededor y etiqueta lo que encuentres!",
     "free-explore-no-imagery": "No hay más imágenes de la calle en esta dirección. Intenta mirar alrededor o ir hacia el otro lado.",
     "stuck-suggestion": "Si no puede moverse con las flechas, intente hacer clic en las direcciones de navegación en la parte inferior derecha. O intente hacer clic en el botón Atascado a la izquierda.",

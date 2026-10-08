@@ -1,5 +1,5 @@
 /**
- * Smoke tests for public/js/api-docs/aggregateStatsPreview.js.
+ * Smoke tests for frontend/js/api-docs/aggregateStatsPreview.js.
  *
  * This is the kind of test that would have caught the overallStatsPreview.js regression, where the renderer read
  * `data.validations.total_validations` after the field had moved under `data.validations.combined`, throwing
@@ -9,9 +9,11 @@
  * Runs under jsdom (set in jest.config.js via testEnvironment) so `window`/`document` are available.
  */
 
-const { loadGlobalScript } = require('./loadGlobalScript');
+const { loadModules, mockModule, unmockModule, installEscapeHTML } = require('./loadGlobalScript');
 
-const MODULE_PATH = 'public/js/api-docs/aggregateStatsPreview.js';
+installEscapeHTML();
+
+const MODULE_PATH = 'frontend/js/api-docs/aggregateStatsPreview.js';
 const CONTAINER_ID = 'aggregate-stats-preview';
 
 // Realistic captured-shape response: flat, snake_case keys per the v3 API naming convention (issue #3871).
@@ -71,10 +73,7 @@ function stubFetch(body) {
 describe('AggregateStatsPreview', () => {
     beforeEach(() => {
         document.body.innerHTML = `<div id="${CONTAINER_ID}"></div>`;
-        delete window.AggregateStatsPreview;
-        // apiDocs/layout.scala.html loads the shared table-wrapper helper ahead of every preview script.
-        loadGlobalScript('public/js/api-docs/apiTableWrapper.js');
-        loadGlobalScript(MODULE_PATH);
+        window.AggregateStatsPreview = loadModules(MODULE_PATH).AggregateStatsPreview;
     });
 
     afterEach(() => {
@@ -127,12 +126,15 @@ describe('AggregateStatsPreview', () => {
         expect(wrapper.getAttribute('aria-label')).toBe('Labels by label type');
     });
 
-    // The wrapper helper arrives as a separate <script> in apiDocs/layout.scala.html, so a render-time throw is a
-    // reachable production failure, not a hypothetical. It has to land in the banner: init() is fire-and-forget at
-    // every call site, so an escaping rejection would leave "Loading..." on screen with nothing to explain it.
+    // A render-time throw has to land in the banner: init() is fire-and-forget at every call site, so an escaping
+    // rejection would leave "Loading..." on screen with nothing to explain it.
     test('a render-time throw reaches the error banner instead of escaping init()', async () => {
         stubFetch(GOOD_FIXTURE);
-        delete window.createApiTableWrapper;
+        mockModule('frontend/js/api-docs/apiTableWrapper.js', () => ({
+            createApiTableWrapper: () => { throw new Error('render failed'); },
+        }));
+        window.AggregateStatsPreview = loadModules(MODULE_PATH).AggregateStatsPreview;
+        unmockModule('frontend/js/api-docs/apiTableWrapper.js');
 
         await expect(window.AggregateStatsPreview.setup({}).init()).resolves.toBeUndefined();
 

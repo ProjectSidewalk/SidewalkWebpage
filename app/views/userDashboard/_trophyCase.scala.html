@@ -1,5 +1,5 @@
 @import models.userdashboard.Trophy
-@(trophies: Seq[Trophy])(implicit assets: AssetsFinder, messages: Messages)
+@(trophies: Seq[Trophy])(using assets: AssetsFinder, messages: Messages)
 
 @*
 * The trophy-case grid, shared by the dashboard and public profile. A trophy with a `link` (region/pioneer trophies →

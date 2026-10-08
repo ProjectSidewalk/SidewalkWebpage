@@ -1,27 +1,27 @@
 package controllers
 
 import controllers.helper.{ExploreBootstrap, SubmissionSpecHelpers}
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.Eventually
 import org.scalatest.time.{Millis, Seconds, Span}
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json._
+import play.api.libs.json.*
 import play.api.mvc.Cookie
-import play.api.test.CSRFTokenHelper._
+import play.api.test.CSRFTokenHelper.*
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
+import _root_.util.SidewalkSpec
 
 import java.time.OffsetDateTime
 
 /**
  * Functional tests for the Explore submission endpoint (`POST /task`) — the write path that turns a labeling session
  * into `audit_task` / `label` / `label_point` rows (#4777). Boots the real app against Postgres and follows the real
- * client bootstrap: GET /explore embeds the assigned mission and task as inline page JS (`mainParam.*`), and the spec
- * submits payloads shaped like the frontend's compiled submission data.
+ * client bootstrap: GET /explore/session hands the page its assigned mission and task (#5650), and the spec submits
+ * payloads shaped like the frontend's compiled submission data.
  *
  * A fresh anonymous user deterministically starts on the audit tutorial, so the tutorial-mission submission needs no
  * particular seed data beyond a servable /explore page; the post-tutorial test completes the tutorial mission over
@@ -35,14 +35,14 @@ import java.time.OffsetDateTime
 // Mixin order matters: GuiceOneAppPerSuite must be rightmost so its run() wraps BeforeAndAfterAll's — otherwise
 // afterAll's cleanup executes after the app (and its DB pool) has shut down and aborts the suite.
 class ExploreSubmissionSpec
-    extends PlaySpec
+    extends SidewalkSpec
     with BeforeAndAfterAll
     with Eventually
     with SubmissionSpecHelpers
     with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule]
       // Submitting eligible labels fires an async AI-validation HTTP call; keep the spec off the network.
       .configure("ai-enabled" -> false)
@@ -102,13 +102,16 @@ class ExploreSubmissionSpec
    *
    * It carries its own pano block like the real client's labels do. Without it the label insert races the separate
    * save of the top-level `panos` list, and loses to the pano foreign key whenever it runs first.
+   *
+   * @param canvasFrame The frame the click is expressed in (#5085); None mimics a pre-#5085 client that sends no frame.
    */
   private def labelJson(
       tempId: Int,
       b: ExploreBootstrap,
       tutorial: Boolean,
       deleted: Boolean = false,
-      severity: Int = 1
+      severity: Int = 1,
+      canvasFrame: Option[(Int, Int)] = Some((720, 405))
   ): JsObject =
     Json.obj(
       "pano_id"     -> specPanoId,
@@ -118,7 +121,7 @@ class ExploreSubmissionSpec
       "severity"    -> severity,
       "description" -> JsNull,
       "tag_ids"     -> Json.arr(),
-      "label_point" -> Json.obj(
+      "label_point" -> (Json.obj(
         "pano_x"             -> 8000,
         "pano_y"             -> 4000,
         "canvas_x"           -> 360,
@@ -129,7 +132,7 @@ class ExploreSubmissionSpec
         "lat"                -> b.currentLat,
         "lng"                -> b.currentLng,
         "computation_method" -> "depth"
-      ),
+      ) ++ canvasFrame.fold(Json.obj())(f => Json.obj("canvas_width" -> f._1, "canvas_height" -> f._2))),
       "temporary_label_id" -> tempId,
       "time_created"       -> OffsetDateTime.now,
       "tutorial"           -> tutorial,
@@ -196,7 +199,7 @@ class ExploreSubmissionSpec
 
   /** Posts a submission over HTTP as the session's user, the way the frontend does. */
   private def postTask(session: Seq[Cookie], payload: JsValue) =
-    route(app, FakeRequest(POST, "/task").withCookies(session: _*).withJsonBody(payload).withCSRFToken).get
+    route(app, FakeRequest(POST, "/task").withCookies(session*).withJsonBody(payload).withCSRFToken).get
 
   /** Reports the bootstrap's street as having no usable imagery, the way `util.misc.reportNoImagery` does. */
   private def postNoImagery(session: Seq[Cookie], b: ExploreBootstrap) = {
@@ -217,7 +220,7 @@ class ExploreSubmissionSpec
     )
     route(
       app,
-      FakeRequest(POST, "/explore/nostreetview").withCookies(session: _*).withJsonBody(payload).withCSRFToken
+      FakeRequest(POST, "/explore/nostreetview").withCookies(session*).withJsonBody(payload).withCSRFToken
     ).get
   }
 
@@ -257,7 +260,7 @@ class ExploreSubmissionSpec
       sql"""SELECT label_id, audit_task_id, mission_id, deleted, tutorial, severity
             FROM label WHERE user_id = $userId AND temporary_label_id = $tempLabelId"""
         .as[(Int, Int, Int, Boolean, Boolean, Option[Int])]
-    ).map((LabelRow.apply _).tupled)
+    ).map(LabelRow.apply.tupled)
 
   /** The street's current priority, or None when it has no `street_edge_priority` row. */
   private def streetPriority(streetEdgeId: Int): Option[Double] =
@@ -362,6 +365,16 @@ class ExploreSubmissionSpec
       (contentAsJson(resp) \ "status").as[String] mustBe "Error"
     }
 
+    "400 a label whose type isn't one we know, and write nothing" in {
+      val session  = freshAnonSession()
+      val b        = fetchExploreBootstrap(session)
+      val tempId   = 777009
+      val badLabel = labelJson(tempId, b, b.missionType == "auditOnboarding") + ("label_type" -> JsString("NotAType"))
+
+      status(postTask(session, submission(b, labels = Seq(badLabel)))) mustBe BAD_REQUEST
+      labelRows(b.userId, tempId) mustBe empty
+    }
+
     "write audit_task, label, and label_point rows and echo the temp-to-permanent label id mapping" in {
       val session  = freshAnonSession()
       val b        = fetchExploreBootstrap(session)
@@ -396,13 +409,14 @@ class ExploreSubmissionSpec
       labels.head.severity mustBe Some(1)
 
       val point = run(
-        sql"SELECT pano_x, canvas_x, lat, lng FROM label_point WHERE label_id = $labelId"
-          .as[(Int, Int, Option[Double], Option[Double])]
+        sql"SELECT pano_x, canvas_x, canvas_width, canvas_height, lat, lng FROM label_point WHERE label_id = $labelId"
+          .as[(Int, Int, Int, Int, Option[Double], Option[Double])]
       ).headOption
       point mustBe defined
       (point.get._1, point.get._2) mustBe ((8000, 360))
-      point.get._3 mustBe defined
-      point.get._4 mustBe defined
+      (point.get._3, point.get._4) mustBe ((720, 405)) // The frame travels with the label (#5085).
+      point.get._5 mustBe defined
+      point.get._6 mustBe defined
 
       // The async writes that ride the same submission: environment and pano metadata.
       eventually(timeout(Span(15, Seconds)), interval(Span(250, Millis))) {
@@ -449,7 +463,7 @@ class ExploreSubmissionSpec
       val priorityBefore = streetPriority(b2.streetEdgeId)
       val tempId         = 777002
 
-      val posted = postTask(session, submission(b2, Seq(labelJson(tempId, b2, tutorial = false))))
+      val posted = postTask(session, submission(b2, Seq(labelJson(tempId, b2, tutorial = false, canvasFrame = None))))
       status(posted) mustBe OK
       val auditTaskId = (contentAsJson(posted) \ "audit_task_id").as[Int]
 
@@ -457,6 +471,10 @@ class ExploreSubmissionSpec
       rows must have size 1
       rows.head.tutorial mustBe false
       rows.head.deleted mustBe false
+      // No canvas_width/height in the payload (a pre-#5085 client): the frame defaults to the boxed 720x480.
+      run(
+        sql"SELECT canvas_width, canvas_height FROM label_point WHERE label_id = ${rows.head.labelId}".as[(Int, Int)]
+      ).headOption mustBe Some((720, 480))
 
       // An incomplete task leaves the street's priority untouched.
       streetPriority(b2.streetEdgeId) mustBe priorityBefore

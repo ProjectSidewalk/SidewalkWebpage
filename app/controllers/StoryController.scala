@@ -1,6 +1,6 @@
 package controllers
 
-import controllers.base._
+import controllers.base.*
 import controllers.helper.ControllerUtils.isAdmin
 import controllers.helper.SignedMediaUtils
 import formats.json.StoryFormats
@@ -30,14 +30,12 @@ import scala.util.Try
 class StoryController @Inject() (
     cc: CustomControllerComponents,
     val silhouette: Silhouette[DefaultEnv],
-    implicit val config: Configuration,
-    implicit val assets: AssetsFinder,
     configService: ConfigService,
     storyService: StoryService,
     signingService: ImageSigningService,
-    rateLimiter: RateLimiter,
-    implicit val ec: ExecutionContext
-) extends CustomBaseController(cc) {
+    rateLimiter: RateLimiter
+)(using config: Configuration, assets: AssetsFinder, ec: ExecutionContext)
+    extends CustomBaseController(cc) {
   private val logger = Logger(this.getClass)
 
   private val photoMaxBytes: Long = config.get[Long]("stories.photo-max-bytes")
@@ -51,10 +49,12 @@ class StoryController @Inject() (
   def storiesPage = cc.securityService.SecuredAction { implicit request =>
     for {
       commonData <- configService.getCommonPageData(request2Messages.lang)
-      stories    <- storyService.getStoriesForCity(StoryController.ListingMax)
+      // One past the cap, so a city with exactly ListingMax stories isn't told some are hidden.
+      stories <- storyService.getStoriesForCity(StoryController.ListingMax + 1)
     } yield {
       cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Stories")
-      Ok(views.html.apps.storyList(commonData, request.identity, stories))
+      val truncated = stories.size > StoryController.ListingMax
+      Ok(views.html.apps.storyList(commonData, request.identity, stories.take(StoryController.ListingMax), truncated))
     }
   }
 
@@ -73,7 +73,7 @@ class StoryController @Inject() (
       Json.obj(
         "label_id"        -> labelId,
         "max_text_length" -> storyService.maxTextLength, // Composer counter limit; sourced here, never a JS literal.
-        // Problem-vs-feature story prompts flip on this; sourced from LabelTypeEnum, never re-derived in JS. Null
+        // Problem-vs-feature story prompts flip on this; sourced from LabelType, never re-derived in JS. Null
         // when the label doesn't exist (the card then keeps its default copy).
         "access_impact" -> impact.map(_.name),
         "stories"       -> stories.map(StoryFormats.storyForViewToJson)
@@ -174,7 +174,7 @@ class StoryController @Inject() (
    */
   private def updateStory(storyId: Int, event: String, body: MultipartFormData[TemporaryFile])(
       save: StoryEdit => Future[Either[StoryRejection, Unit]]
-  )(implicit request: SecuredRequest[DefaultEnv, _]): Future[Result] = {
+  )(using request: SecuredRequest[DefaultEnv, ?]): Future[Result] = {
     def dataPart(name: String): Option[String] = body.dataParts.get(name).flatMap(_.headOption)
 
     val ipKey   = s"story-submit:ip:${request.ipAddress}"
@@ -219,10 +219,7 @@ class StoryController @Inject() (
   def getMyStories = cc.securityService.SecuredAction { implicit request => userStoriesJson(request.identity.userId) }
 
   /** Any user's stories in the owner shape, for the admin view of their dashboard (same list they see themselves). */
-  def getUserStories(userId: String) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-    logger.debug(request.toString) // The request is unused, but SecuredAction needs it and the compiler wants it read.
-    userStoriesJson(userId)
-  }
+  def getUserStories(userId: String) = cc.securityService.SecuredAction(WithAdmin()) { _ => userStoriesJson(userId) }
 
   private def userStoriesJson(userId: String): Future[Result] = {
     storyService.getStoriesForUser(userId).map { stories =>
@@ -306,8 +303,7 @@ class StoryController @Inject() (
   }
 
   /** Most recent stories across all users, hidden included — the admin moderation queue feed. */
-  def getRecentStories(n: Int) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-    logger.debug(request.toString) // The request is unused, but SecuredAction needs it and the compiler wants it read.
+  def getRecentStories(n: Int) = cc.securityService.SecuredAction(WithAdmin()) { _ =>
     // Clamp both ends: a negative n would reach Slick's .take and emit an invalid negative SQL LIMIT (500 otherwise).
     storyService.getRecentStories(math.min(math.max(n, 0), 500)).map { stories =>
       Ok(Json.obj("stories" -> stories.map(StoryFormats.storyForAdminToJson)))

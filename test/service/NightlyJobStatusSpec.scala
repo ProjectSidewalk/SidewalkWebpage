@@ -1,10 +1,9 @@
 package service
 
 import actor.ScheduledJobs
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.given
 import models.utils.{BackgroundJobRunTable, JobRunStatus, JobRunTrigger, MyPostgresProfile}
 import org.scalatest.BeforeAndAfterAll
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.cache.AsyncCacheApi
@@ -12,9 +11,10 @@ import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsArray, Json}
 import slick.dbio.DBIO
+import util.SidewalkSpec
 
 import java.time.OffsetDateTime
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import scala.concurrent.{Await, Future}
 
 /**
@@ -35,10 +35,10 @@ import scala.concurrent.{Await, Future}
  * Requires a Postgres database (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in dev/CI); the scheduling actors
  * are disabled so a real run can't land mid-test.
  */
-class NightlyJobStatusSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppPerSuite {
+class NightlyJobStatusSpec extends SidewalkSpec with BeforeAndAfterAll with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private val healthService = app.injector.instanceOf[HealthService]
   private val jobRunTable   = app.injector.instanceOf[BackgroundJobRunTable]
@@ -68,9 +68,8 @@ class NightlyJobStatusSpec extends PlaySpec with BeforeAndAfterAll with GuiceOne
   /** How many runs this job has inside the window the panel counts over, that this suite did not seed. */
   private def foreignRunsInWindow: Int = run(
     jobRunTable.backgroundJobRuns
-      .filter(row =>
-        row.jobName === jobName && row.startedAt >= OffsetDateTime.now.minusDays(HealthService.JobWindowDays.toLong)
-      )
+      .filter(row => row.jobName === jobName)
+      .filter(row => row.startedAt >= OffsetDateTime.now.minusDays(HealthService.JobWindowDays.toLong))
       .length
       .result
   )
@@ -92,11 +91,7 @@ class NightlyJobStatusSpec extends PlaySpec with BeforeAndAfterAll with GuiceOne
   }
 
   /** Seeds one finished run. */
-  private def seedFinished(
-      trigger: JobRunTrigger.Value,
-      status: JobRunStatus.Value,
-      startedAt: OffsetDateTime
-  ): Unit = {
+  private def seedFinished(trigger: JobRunTrigger, status: JobRunStatus, startedAt: OffsetDateTime): Unit = {
     val id = run(jobRunTable.insertRunning(jobName, trigger, startedAt))
     seededRunIds ::= id
     val error = if (status == JobRunStatus.Failed) Some("seeded failure") else None
@@ -210,7 +205,7 @@ class NightlyJobStatusSpec extends PlaySpec with BeforeAndAfterAll with GuiceOne
       // The JS renders from its own fixtures, so nothing else would notice a field being renamed here until the
       // panel quietly started drawing blank cells against a live database.
       await(cacheApi.removeAll())
-      val row = (Json.toJson(await(healthService.getDbHealth))(HealthService.dbHealthDataWrites) \ "nightly_jobs")
+      val row = (Json.toJson(await(healthService.getDbHealth))(using HealthService.dbHealthDataWrites) \ "nightly_jobs")
         .as[JsArray]
         .value
         .find(entry => (entry \ "job_name").as[String] == jobName)
@@ -248,6 +243,21 @@ class NightlyJobStatusSpec extends PlaySpec with BeforeAndAfterAll with GuiceOne
       job.lastStatus mustBe "failed"
       job.overdue mustBe true
       job.failuresInWindow must be >= 1
+    }
+
+    "report a run its process died in as interrupted, and count it as a failure" in {
+      resetHistory()
+      seedFinished(JobRunTrigger.Scheduled, JobRunStatus.Interrupted, OffsetDateTime.now.minusHours(2))
+
+      // An interrupted run did not do the night's work, so it must neither read as healthy nor drop out of the
+      // error rate: a job the JVM is killed inside every night would otherwise look spotless.
+      val job = jobStatus()
+      job.lastStatus mustBe "interrupted"
+      job.overdue mustBe true
+      job.runsInWindow mustBe 1
+      job.failuresInWindow mustBe 1
+      // Its finished_at is when the next boot noticed, so start-to-finish is downtime, not how long the job ran.
+      job.lastDurationSeconds mustBe None
     }
   }
 }

@@ -1,11 +1,10 @@
 package service
 
-import models.utils.MyPostgresProfile.api._
-import org.scalatestplus.play.PlaySpec
+import models.utils.MyPostgresProfile.api.*
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import util.{RolledBackDb, StreetFixtures}
+import util.{RolledBackDb, SidewalkSpec, StreetFixtures}
 
 import java.time.{LocalDate, OffsetDateTime}
 
@@ -21,10 +20,10 @@ import java.time.{LocalDate, OffsetDateTime}
  * would not work here: nothing in a fresh dev dump is flagged as needing a re-audit, and CI's schema holds a single
  * street and no audits at all (see [[util.StreetFixtures]]).
  */
-class StreetReauditSummarySpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb with StreetFixtures {
+class StreetReauditSummarySpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledBackDb with StreetFixtures {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private val streetService = app.injector.instanceOf[StreetService]
 
@@ -66,9 +65,10 @@ class StreetReauditSummarySpec extends PlaySpec with GuiceOneAppPerSuite with Ro
   private def insertCountedUser(): DBIO[String] = for {
     userId <- insertUser()
     _      <- sqlu"INSERT INTO user_role (user_id, role) VALUES ($userId, 'Registered')"
-    _      <- sqlu"""INSERT INTO user_stat (user_id, meters_audited, high_quality, excluded, on_leaderboard,
-                                            public_profile)
-                     VALUES ($userId, 0, TRUE, FALSE, TRUE, TRUE)"""
+    _      <- sqlu"""UPDATE user_stat
+                     SET meters_audited = 0, high_quality = TRUE, excluded = FALSE, on_leaderboard = TRUE,
+                         public_profile = TRUE
+                     WHERE user_id = $userId"""
   } yield userId
 
   "getReauditSummaryDBIO" should {
@@ -186,7 +186,7 @@ class StreetReauditSummarySpec extends PlaySpec with GuiceOneAppPerSuite with Ro
         streetId    <- insertStreet()
         auditTaskId <- audit(streetId, userId, outdated = true)
         _           <- labelStreet(streetId, userId, auditTaskId, "CurbRamp", 3)
-        _           <- sqlu"""UPDATE label SET deleted = TRUE
+        _           <- sqlu"""UPDATE label SET deleted = TRUE, deleted_by = user_id, deleted_source = 'Explore'
                               WHERE street_edge_id = $streetId AND temporary_label_id = 1"""
         result <- streetService.getReauditSummaryDBIO(streetId)
       } yield result)
@@ -200,8 +200,9 @@ class StreetReauditSummarySpec extends PlaySpec with GuiceOneAppPerSuite with Ro
         streetId    <- insertStreet()
         auditTaskId <- audit(streetId, userId, outdated = true)
         _           <- labelStreet(streetId, userId, auditTaskId, "CurbRamp", 1)
-        _           <- sqlu"UPDATE label SET deleted = TRUE WHERE street_edge_id = $streetId"
-        result      <- streetService.getReauditSummaryDBIO(streetId)
+        _           <- sqlu"""UPDATE label SET deleted = TRUE, deleted_by = user_id, deleted_source = 'Explore'
+                              WHERE street_edge_id = $streetId"""
+        result <- streetService.getReauditSummaryDBIO(streetId)
       } yield result)
 
       summary mustBe defined

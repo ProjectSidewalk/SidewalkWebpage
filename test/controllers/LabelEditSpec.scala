@@ -1,18 +1,17 @@
 package controllers
 
 import controllers.helper.SubmissionSpecHelpers
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import org.scalatest.BeforeAndAfterAll
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json._
+import play.api.libs.json.*
 import play.api.mvc.Cookie
-import play.api.test.CSRFTokenHelper._
+import play.api.test.CSRFTokenHelper.*
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
-import _root_.util.SignedUpAccounts
+import play.api.test.Helpers.*
+import _root_.util.{SidewalkSpec, SignedUpAccounts}
 
 /**
  * Functional tests for `POST /label/edit` (#2575) and the `can_edit` flag `GET /label/id/:id` hands the popup:
@@ -21,17 +20,19 @@ import _root_.util.SignedUpAccounts
  * suite's rows. Cancels when the connected schema has no label with a severity (the empty CI city).
  */
 class LabelEditSpec
-    extends PlaySpec
+    extends SidewalkSpec
     with BeforeAndAfterAll
     with SubmissionSpecHelpers
     with SignedUpAccounts
     with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule]
       .configure("rate-limit.anon-signup.enabled" -> false)
       .build()
+
+  private lazy val labelTable = app.injector.instanceOf[models.label.LabelTable]
 
   /** Pre-test type, severity and tags of every real label the suite edited, restored in `afterAll`. */
   private var labelBackup: Map[Int, Target] = Map.empty
@@ -110,14 +111,14 @@ class LabelEditSpec
   ): JsObject =
     editBody(labelId, severity, tags) ++ Json.obj("label_type" -> labelTypeSeen, "new_label_type" -> newLabelType)
 
-  /** Every source string a host passes to `showLabel()` in `public/js`; each has to be a `UiSource` member. */
+  /** Every source string a host passes to `showLabel()` in `frontend/js`; each has to be a `UiSource` member. */
   private val cardHostSources = Seq(
     "LabelMap", "UserMap", "SharedLabel", "LabelSearchPage", "GalleryExpanded", "AdminLabelMap", "AdminActivity",
     "AdminStories", "DashboardStories", "StoryListPage", "UserDashboard"
   )
 
   private def postEdit(session: Seq[Cookie], body: JsValue) =
-    route(app, FakeRequest(POST, "/label/edit").withCookies(session: _*).withJsonBody(body).withCSRFToken).get
+    route(app, FakeRequest(POST, "/label/edit").withCookies(session*).withJsonBody(body).withCSRFToken).get
 
   private def labelState(labelId: Int): (Option[Int], List[String]) = {
     val row = run(
@@ -218,7 +219,7 @@ class LabelEditSpec
   }
 
   private def postPopupVote(session: Seq[Cookie], body: JsValue) =
-    route(app, FakeRequest(POST, "/labelmap/validate").withCookies(session: _*).withJsonBody(body).withCSRFToken).get
+    route(app, FakeRequest(POST, "/labelmap/validate").withCookies(session*).withJsonBody(body).withCSRFToken).get
 
   override def afterAll(): Unit = {
     try {
@@ -234,10 +235,11 @@ class LabelEditSpec
         )
       }
       labelBackup.foreach { case (labelId, t) =>
+        // Recount after putting the type back, or the next run starts from counts taken at the other type.
         val _ = run(
           sqlu"""UPDATE label SET label_type = ${t.labelType}::label_type, severity = ${t.severity},
                      tags = string_to_array(${t.tags.mkString("|")}, '|')
-                 WHERE label_id = $labelId"""
+                 WHERE label_id = $labelId""" >> labelTable.recalculateValidationCountsForLabel(labelId)
         )
       }
     } finally super.afterAll()
@@ -277,7 +279,7 @@ class LabelEditSpec
     "403 a non-admin editing someone else's label, and flag the label as not editable" in {
       val target               = pickLabel()
       val (userId, _, session) = signUpFreshUser()
-      val meta = route(app, FakeRequest(GET, s"/label/id/${target.labelId}").withCookies(session: _*)).get
+      val meta                 = route(app, FakeRequest(GET, s"/label/id/${target.labelId}").withCookies(session*)).get
       status(meta) mustBe OK
       (contentAsJson(meta) \ "can_edit").as[Boolean] mustBe false
 
@@ -294,7 +296,7 @@ class LabelEditSpec
       grantAdmin(userId)
       val historyBefore = historyCount(target.labelId)
 
-      val meta = route(app, FakeRequest(GET, s"/label/id/${target.labelId}").withCookies(session: _*)).get
+      val meta = route(app, FakeRequest(GET, s"/label/id/${target.labelId}").withCookies(session*)).get
       (contentAsJson(meta) \ "can_edit").as[Boolean] mustBe true
 
       // First change: the severity. One standalone edit from the label's old state, with its history row.

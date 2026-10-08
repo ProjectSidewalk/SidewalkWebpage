@@ -5,8 +5,10 @@
   width: 100%;
 }
 
+/* Spans the window like the map pages, keeping only the page gutter. */
 #landing-choropleth-container {
   min-height: 1100px;
+  padding: 0 var(--space-md);
 }
 
 .choropleth-holder {
@@ -43,7 +45,6 @@
  * #labelmap-* ids so the admin Map tab (#admin-labelmap-*), which shares this file, stays boxed.
  */
 #labelmap-choropleth-container {
-  max-width: none; /* Override the Bootstrap .container max-width so the map spans the window. */
   width: 100%;
   flex: 1 1 auto; /* Fill the space #wrap leaves below the navbar and any test-server banner. */
   min-height: 0; /* Let the flex child shrink to fit instead of overflowing the column. */
@@ -100,13 +101,13 @@
 }
 
 .labelmap-loading__message {
-  font-size: 1rem;
+  font-size: 16px;
   font-weight: 600;
   margin: 0;
 }
 
 .labelmap-loading__elapsed {
-  font-size: 0.8rem;
+  font-size: 13px;
   color: #bbbbbb;
   margin: 6px 0 0;
 }
@@ -156,7 +157,9 @@
  * Viewport-loading status pill (#5002): "zoom in to see labels" while the zoom floor holds fetches back, and a
  * brief note during refetches. Top-centered, where a transient help message is looked for and where nothing
  * else sits (the drawer is left, Mapbox's controls right, its attribution along the bottom), styled like the
- * loading card above, and pointer-events: none so it never blocks map gestures.
+ * loading card above. It is pointer-events: none so it never blocks map gestures: Mapbox listens on its canvas
+ * container, a sibling of the pill, so a wheel, drag, or pinch that lands on a hit-testable pill never reaches the
+ * map (on touch the browser pinch-zooms the page instead). Only the hint's close (X) button takes the pointer.
  */
 
 /* Centered on the part of the map the reader can see: the drawer covers the canvas's left edge, and
@@ -168,15 +171,60 @@
   transform: translateX(-50%);
   z-index: 15; /* Above the map, below the loading overlay. */
   transition: opacity var(--transition-medium);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   max-width: 90%;
   padding: 8px 16px;
   border-radius: 999px;
-  color: #ffffff;
+  color: var(--color-neutral-white);
   background: rgb(0 0 0 / 72%);
   box-shadow: 0 2px 8px rgb(0 0 0 / 25%);
   font: var(--text-body-regular);
   text-align: center;
   pointer-events: none;
+}
+
+/*
+ * Close (X) for the zoom hint (#5415). 24px meets WCAG 2.5.8's minimum target; the negative margin keeps the pill's
+ * right edge as tight as its left one. Plain px like the rest of this file: these map pages don't set --ui-scale.
+ */
+.map-status-pill__close {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  margin-right: -8px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+  pointer-events: auto; /* The pill itself passes the pointer through to the map; see above. */
+}
+
+.map-status-pill__close:hover {
+  background: rgb(255 255 255 / 15%);
+}
+
+.map-status-pill__close:focus-visible {
+  outline: 2px solid var(--color-neutral-white);
+  outline-offset: 2px;
+}
+
+.map-status-pill__close[hidden] {
+  display: none;
+}
+
+/* cross.svg is drawn dark, so it is painted as a mask in the pill's white. */
+.map-status-pill__close-icon {
+  width: 14px;
+  height: 14px;
+  -webkit-mask-image: url("../../images/icons/cross.svg");
+  mask-image: url("../../images/icons/cross.svg");
 }
 
 .map-status-pill--leaving {
@@ -196,8 +244,9 @@
 
 /* Common legend components. */
 .legend {
+  display: flow-root; /* Contains the floated swatches and labels below. */
   height: inherit;
-  width: 250px;
+  width: 100%;
 }
 
 .legend span, .legend label {
@@ -245,9 +294,6 @@
 .legend .legend-swatch-10 { background: #B3D3E8; }
 .legend .legend-swatch-11 { background: #C6DBEF; }
 
-.clearfix {
-  width: 100%;
-}
 
 /* Project Sidewalk pin dropped on an address-search result on the public LabelMap (#4451). A circular badge carrying
    the wheelchair mark, on a tail that points at the exact coordinate. */

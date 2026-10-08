@@ -1,5 +1,5 @@
 /**
- * Tests for the MapDownloadControl class (public/js/ps-map/MapDownloadControl.js, issue #4095).
+ * Tests for the MapDownloadControl class (frontend/js/ps-map/MapDownloadControl.js, issue #4095).
  *
  * Like ShareWidget, MapDownloadControl is a top-level `class` declaration written for the Grunt-concatenation
  * world, so the source is eval'd into the jsdom global scope with an explicit window epilogue.
@@ -10,16 +10,14 @@
  * download anchor URLs, the post-click busy state, and activity logging.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { installEscapeHTML, loadModules } = require('./loadGlobalScript');
 
-const CONTROL_SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/ps-map/MapDownloadControl.js'), 'utf8'
-);
+installEscapeHTML();
+
 
 /** Loads a fresh MapDownloadControl class into the jsdom global scope. */
 function loadControl() {
-    window.eval(`${CONTROL_SRC}\nwindow.MapDownloadControl = MapDownloadControl;`);
+    Object.assign(window, loadModules('frontend/js/ps-map/MapDownloadControl.js'));
     return window.MapDownloadControl;
 }
 
@@ -255,7 +253,7 @@ describe('MapDownloadControl panel', () => {
         items().find((item) => item.dataset.format === 'csv').click();
         await settle();
 
-        expect(window.fetch).toHaveBeenCalledWith(anchorClicks[0], { method: 'HEAD' });
+        expect(window.fetch).toHaveBeenCalledWith(anchorClicks[0], { method: 'HEAD', cache: 'no-store' });
         expect(anchorClicks).toHaveLength(1);
         const params = queryOf(anchorClicks[0]);
         expect(anchorClicks[0].startsWith('/v3/api/rawLabels?')).toBe(true);

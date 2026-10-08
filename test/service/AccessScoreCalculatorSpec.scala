@@ -1,7 +1,7 @@
 package service
 
-import models.label.LabelTypeEnum
-import models.label.LabelTypeEnum.{AccessImpact, RatingScale}
+import models.label.LabelType
+import models.label.{AccessImpact, RatingScale}
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 import service.AccessScoreCalculator.ClusterScoreInput
@@ -106,9 +106,9 @@ class AccessScoreCalculatorSpec extends AnyFunSuite with Matchers {
     // base −2.0 × min(1, n / 3): one stray pin is a third of a missing sidewalk; eight pins are no worse than three.
     noSidewalkTerm(noSidewalk()) shouldBe (-2.0 / 3 +- eps)
     noSidewalkTerm(noSidewalk(), noSidewalk()) shouldBe (-4.0 / 3 +- eps)
-    noSidewalkTerm(Seq.fill(3)(noSidewalk()): _*) shouldBe (-2.0 +- eps)
-    noSidewalkTerm(Seq.fill(8)(noSidewalk()): _*) shouldBe (-2.0 +- eps)
-    noSidewalkTerm(Seq.fill(40)(noSidewalk()): _*) shouldBe (-2.0 +- eps)
+    noSidewalkTerm(Seq.fill(3)(noSidewalk())*) shouldBe (-2.0 +- eps)
+    noSidewalkTerm(Seq.fill(8)(noSidewalk())*) shouldBe (-2.0 +- eps)
+    noSidewalkTerm(Seq.fill(40)(noSidewalk())*) shouldBe (-2.0 +- eps)
     AccessScoreCalculator.streetConditionSaturationCount shouldBe 3
   }
 
@@ -136,12 +136,12 @@ class AccessScoreCalculatorSpec extends AnyFunSuite with Matchers {
   test("'ends abruptly' is a point tag: one cluster carrying it at the threshold activates it for the street") {
     // 1 of 8 clusters tagged — pooled that is 1/8 of the labels, but a sidewalk only ends in one place.
     noSidewalkTerm(
-      Seq.fill(7)(noSidewalk()) :+ noSidewalk(labelCount = 1, "ends abruptly", tagged = 1): _*
+      Seq.fill(7)(noSidewalk()) :+ noSidewalk(labelCount = 1, "ends abruptly", tagged = 1)*
     ) shouldBe (-2.0 - 1.0 +- eps)
 
     // The tagged cluster itself still has to clear the threshold: 1 of 3 of its labels is not enough.
     noSidewalkTerm(
-      Seq.fill(7)(noSidewalk()) :+ noSidewalk(labelCount = 3, "ends abruptly", tagged = 1): _*
+      Seq.fill(7)(noSidewalk()) :+ noSidewalk(labelCount = 3, "ends abruptly", tagged = 1)*
     ) shouldBe (-2.0 +- eps)
 
     AccessScoreCalculator.streetConditionPointTags shouldBe Set(("NoSidewalk", "ends abruptly"))
@@ -219,7 +219,7 @@ class AccessScoreCalculatorSpec extends AnyFunSuite with Matchers {
 
   /** A deterministic spread of clusters: every scored type, every rating bucket, tags on and off, pooled NoSidewalk. */
   private def randomClusters(seed: Int, n: Int): Seq[ClusterScoreInput] = {
-    val rng   = new scala.util.Random(seed)
+    val rng   = scala.util.Random(seed)
     val types = AccessScoreCalculator.orderedScoredTypes :+ "Occlusion"
     Seq.fill(n) {
       val labelType  = types(rng.nextInt(types.size))
@@ -291,12 +291,12 @@ class AccessScoreCalculatorSpec extends AnyFunSuite with Matchers {
 
   test("ratingMultiplier ignores the bucket for the modes that ignore ratings") {
     AccessScoreCalculator.severityBuckets.foreach { b =>
-      AccessScoreCalculator.ratingMultiplier(AccessScoreCalculator.PresenceOnly, b) shouldBe 1.0
-      AccessScoreCalculator.ratingMultiplier(AccessScoreCalculator.StreetCondition, b) shouldBe 1.0
+      AccessScoreCalculator.ratingMultiplier(AccessScoreCalculator.Scoring.PresenceOnly, b) shouldBe 1.0
+      AccessScoreCalculator.ratingMultiplier(AccessScoreCalculator.Scoring.StreetCondition, b) shouldBe 1.0
     }
-    AccessScoreCalculator.ratingMultiplier(AccessScoreCalculator.PositiveQuality, "3") shouldBe -1.0
-    AccessScoreCalculator.ratingMultiplier(AccessScoreCalculator.PositiveQuality, "null") shouldBe 0.5
-    AccessScoreCalculator.ratingMultiplier(AccessScoreCalculator.NegativeSeverity, "null") shouldBe 0.33
+    AccessScoreCalculator.ratingMultiplier(AccessScoreCalculator.Scoring.PositiveQuality, "3") shouldBe -1.0
+    AccessScoreCalculator.ratingMultiplier(AccessScoreCalculator.Scoring.PositiveQuality, "null") shouldBe 0.5
+    AccessScoreCalculator.ratingMultiplier(AccessScoreCalculator.Scoring.NegativeSeverity, "null") shouldBe 0.33
   }
 
   test("every preset weights exactly the scored types, and 'default' is the engine's own magnitudes") {
@@ -326,12 +326,12 @@ class AccessScoreCalculatorSpec extends AnyFunSuite with Matchers {
 
   test("the scored types are exactly the ones that say something about access, signed the way they read") {
     // The weights are tuned by hand, but which types get one, and which way it points, is not a taste call (#4457).
-    val meaningful = LabelTypeEnum.values.filterNot(_.accessImpact == AccessImpact.Neutral)
-    AccessScoreCalculator.scoredTypeNames shouldBe meaningful.map(_.name)
+    val meaningful = LabelType.ordered.filterNot(_.accessImpact == AccessImpact.Neutral)
+    AccessScoreCalculator.scoredTypeNames shouldBe meaningful.map(_.name).toSet
 
     AccessScoreCalculator.typeWeights.foreach { case (typeName, weight) =>
-      val impact = LabelTypeEnum.byName(typeName).accessImpact
-      withClue(s"$typeName is a $impact but weighs ${weight.baseWeight}: ") {
+      val impact = LabelType.withName(typeName).accessImpact
+      withClue(s"$typeName is a ${impact.name} but weighs ${weight.baseWeight}: ") {
         if (impact == AccessImpact.Problem) weight.baseWeight should be < 0.0 else weight.baseWeight should be > 0.0
       }
     }
@@ -339,15 +339,15 @@ class AccessScoreCalculatorSpec extends AnyFunSuite with Matchers {
 
   test("each scoring mode agrees with the label type's rating scale") {
     // Scoring carries what the enum doesn't know (per-cluster vs pooled vs presence-only, length normalization), but
-    // which way a rating reads is LabelTypeEnum's to say. Pin them together so the two can't drift (#4457).
+    // which way a rating reads is LabelType's to say. Pin them together so the two can't drift (#4457).
     AccessScoreCalculator.typeWeights.foreach { case (typeName, weight) =>
-      val scale = LabelTypeEnum.byName(typeName).ratingScale
+      val scale = LabelType.withName(typeName).ratingScale
       withClue(s"$typeName is $scale but scores as ${weight.scoring}: ") {
         weight.scoring match {
-          case AccessScoreCalculator.PositiveQuality  => scale shouldBe RatingScale.Quality
-          case AccessScoreCalculator.NegativeSeverity => scale shouldBe RatingScale.Severity
+          case AccessScoreCalculator.Scoring.PositiveQuality  => scale shouldBe RatingScale.Quality
+          case AccessScoreCalculator.Scoring.NegativeSeverity => scale shouldBe RatingScale.Severity
           // Both ignore the rating entirely, which is only sound for a type that never carries one.
-          case AccessScoreCalculator.PresenceOnly | AccessScoreCalculator.StreetCondition =>
+          case AccessScoreCalculator.Scoring.PresenceOnly | AccessScoreCalculator.Scoring.StreetCondition =>
             scale shouldBe RatingScale.Unrated
         }
       }
@@ -463,5 +463,83 @@ class AccessScoreCalculatorSpec extends AnyFunSuite with Matchers {
   test("a region's intersection score is the unweighted mean of its scored intersections, or None") {
     AccessScoreCalculator.scoreRegionIntersections(Seq(0.2, 0.4, 0.9)).get shouldBe (0.5 +- eps)
     AccessScoreCalculator.scoreRegionIntersections(Seq.empty) shouldBe None
+  }
+  // ---- Slope (#5223). Hand-computed, so the fixture (which the engine itself writes) is not the only witness. ----
+
+  /** A double weight on the mean grade: the statistic the ramp cases below name their grades against. */
+  private val slopeOn =
+    AccessScoreCalculator.defaultSlopeSettings.copy(
+      weight = 2.0,
+      statistic = AccessScoreCalculator.SlopeStatistic.MeanGrade
+    )
+
+  private def measured(mean: Double, max: Double, over5: Double = 0.0, over8: Double = 0.0) =
+    Some(AccessScoreCalculator.SlopeInput(Some(mean), Some(max), Some(mean), Some(over5), Some(over8), false))
+
+  test("the default slope settings weigh the steepest stretch between the two ADA limits, with no barrier") {
+    val d = AccessScoreCalculator.defaultSlopeSettings
+    d.weight shouldBe 1.0
+    d.statistic shouldBe AccessScoreCalculator.SlopeStatistic.MaxGrade
+    d.lowThreshold shouldBe 0.05
+    d.highThreshold shouldBe (1.0 / 12.0)
+    d.barrierEnabled shouldBe false
+    // Not the ramp limit: a street's steepest 30 m at 8.33% is an ordinary block, not a "very steep" one.
+    d.barrierThreshold shouldBe 0.125
+    d.includeApproximate shouldBe false
+  }
+
+  test("the default settings read the steepest stretch, not the mean, so one pitch is enough") {
+    // The point of MaxGrade over MeanGrade: a street that is flat on the whole but has one impassable pitch in it.
+    val d = AccessScoreCalculator.defaultSlopeSettings
+    AccessScoreCalculator.slopeTerm(measured(0.02, 0.15), 100, d) shouldBe (-1.0 +- eps)
+    AccessScoreCalculator.slopeTerm(measured(0.02, 0.04), 100, d) shouldBe 0.0
+  }
+
+  test("the slope term ramps from nothing at the low threshold to the whole weight at the high one") {
+    AccessScoreCalculator.slopeTerm(measured(0.04, 0.2), 100, slopeOn) shouldBe 0.0
+    AccessScoreCalculator.slopeTerm(measured(0.05, 0.2), 100, slopeOn) shouldBe 0.0
+    // 6% is 0.01 into a span of 1/12 - 0.05 = 0.0333..., so 0.3 of the way: -2 x 0.3.
+    AccessScoreCalculator.slopeTerm(measured(0.06, 0.2), 100, slopeOn) shouldBe (-0.6 +- eps)
+    AccessScoreCalculator.slopeTerm(measured(1.0 / 12.0, 0.2), 100, slopeOn) shouldBe (-2.0 +- eps)
+    AccessScoreCalculator.slopeTerm(measured(0.3, 0.3), 100, slopeOn) shouldBe (-2.0 +- eps)
+  }
+
+  test("a zero weight yields exactly 0.0, never -0.0, so a sum is untouched bit for bit") {
+    val off  = AccessScoreCalculator.defaultSlopeSettings.copy(weight = 0.0)
+    val term = AccessScoreCalculator.slopeTerm(measured(0.3, 0.3), 100, off)
+    (1.0 / term) shouldBe Double.PositiveInfinity
+  }
+
+  test("the over-limit statistic is the share over 5% plus the share over 8.33%, halved") {
+    val s = slopeOn.copy(statistic = AccessScoreCalculator.SlopeStatistic.MetersOverLimit)
+    AccessScoreCalculator.slopeUnits(measured(0.06, 0.1, over5 = 100, over8 = 0), 200, s) shouldBe (0.25 +- eps)
+    AccessScoreCalculator.slopeUnits(measured(0.1, 0.1, over5 = 200, over8 = 200), 200, s) shouldBe (1.0 +- eps)
+    // A stored length a hair over the street's own (both are geodesic, measured separately) cannot pass 1.
+    AccessScoreCalculator.slopeUnits(measured(0.1, 0.1, over5 = 201, over8 = 201), 200, s) shouldBe 1.0
+    AccessScoreCalculator.slopeUnits(measured(0.1, 0.1, over5 = 50, over8 = 50), 0, s) shouldBe 0.0
+  }
+
+  test("a barrier needs the switch, a steepest stretch over the threshold, and an admitted confidence") {
+    val steep  = measured(0.07, 0.15)
+    val coarse = Some(AccessScoreCalculator.SlopeInput(None, None, Some(-0.2), None, None, approximate = true))
+    val on     = slopeOn.copy(barrierEnabled = true)
+    AccessScoreCalculator.slopeIsBarrier(steep, slopeOn) shouldBe false
+    AccessScoreCalculator.slopeIsBarrier(steep, on) shouldBe true
+    AccessScoreCalculator.slopeIsBarrier(measured(0.07, 0.125), on) shouldBe false
+    AccessScoreCalculator.slopeIsBarrier(coarse, on) shouldBe false
+    AccessScoreCalculator.slopeIsBarrier(coarse, on.copy(includeApproximate = true)) shouldBe true
+    AccessScoreCalculator.slopeIsBarrier(None, on) shouldBe false
+    AccessScoreCalculator.segmentScoreWithSlope(Map("CurbRamp" -> 3.0), steep, 100, on) shouldBe 0.0
+  }
+
+  test("the slope term joins the per-type sum before the sigmoid") {
+    val subScores = Map("CurbRamp" -> 0.75, "Obstacle" -> -0.33)
+    val score     = AccessScoreCalculator.segmentScoreWithSlope(subScores, measured(1.0, 1.0), 100, slopeOn)
+    logit(score) shouldBe ((0.75 - 0.33 - 2.0) +- eps)
+  }
+
+  test("every slope statistic has a distinct API name") {
+    val names = AccessScoreCalculator.slopeStatistics.map(AccessScoreCalculator.slopeStatisticName)
+    names shouldBe Seq("mean_grade", "max_grade", "meters_over_limit")
   }
 }

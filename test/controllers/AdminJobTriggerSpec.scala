@@ -9,23 +9,23 @@ import actor.{
   PlacesRefreshActor,
   RecalculateStreetPriorityActor,
   SidewalkPresenceActor,
+  StreetGradientStalenessActor,
   UserStatActor
 }
 import models.user.Role
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.given
 import models.utils.{BackgroundJobRun, BackgroundJobRunTable, JobRunStatus, JobRunTrigger}
 import org.apache.pekko.stream.Materializer
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.mvc.Cookie
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import org.scalatest.concurrent.Eventually
 import org.scalatest.time.{Millis, Seconds, Span}
-import play.api.test.CSRFTokenHelper._
+import play.api.test.CSRFTokenHelper.*
 import service.CropService.CropRunResult
 import service.PanoDataService.ImageryCheckResult
 import service.{
@@ -40,9 +40,10 @@ import service.{
   PlacesService,
   SidewalkPresenceRebuildResult,
   SidewalkPresenceService,
+  StreetGradientStaleness,
   StreetService
 }
-import util.{AnonSession, RoleSession, RolledBackDb, StubService}
+import util.{AnonSession, RoleSession, RolledBackDb, SidewalkSpec, StubService}
 
 import scala.concurrent.Future
 
@@ -63,7 +64,7 @@ import scala.concurrent.Future
  * scheduling actors are disabled so a nightly run can't be mistaken for a triggered one.
  */
 class AdminJobTriggerSpec
-    extends PlaySpec
+    extends SidewalkSpec
     with RoleSession
     with GuiceOneAppPerSuite
     with AnonSession
@@ -91,6 +92,8 @@ class AdminJobTriggerSpec
     fetchedAt = None
   )
 
+  private val StalenessResult = StreetGradientStaleness(unsampled = 4641, stale = 4642)
+
   /** Set per test: this endpoint's failure path is part of its contract, and Guice owns the stub. */
   @volatile private var osmWayAnswer: Future[OsmWayRefreshResult] = Future.successful(OsmWayRefreshResult.empty)
 
@@ -104,7 +107,7 @@ class AdminJobTriggerSpec
   @volatile private var placesRunning: Boolean = false
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule]
       // AnonSession mints one session per call and the limiter is per-IP; every suite in a run shares loopback.
       .configure("rate-limit.anon-signup.enabled" -> false)
@@ -118,11 +121,16 @@ class AdminJobTriggerSpec
           )
         ),
         bind[StreetService].toInstance(
-          StubService.answering[StreetService](Map("recalculateStreetPriority" -> Future.successful(Seq(1, 2))))
+          StubService.answering[StreetService](
+            Map(
+              "recalculateStreetPriority"    -> Future.successful(Seq(1, 2)),
+              "countStreetGradientStaleness" -> Future.successful(StalenessResult)
+            )
+          )
         ),
         bind[PanoDataService].toInstance(
           StubService.answering[PanoDataService](
-            Map(
+            Map[String, Any](
               "checkForImagery" -> Future.successful(ImageryResult),
               // Play builds every controller to route one request, and ImageController reads this in its constructor.
               "getCropDirectory" -> ".crops"
@@ -156,7 +164,7 @@ class AdminJobTriggerSpec
       )
       .build()
 
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   private val jobRunTable = app.injector.instanceOf[BackgroundJobRunTable]
 
@@ -168,10 +176,10 @@ class AdminJobTriggerSpec
 
   // A POST carries the CSRF token the admin UI's fetch wrapper sends; on a GET the token is simply unused.
   private def asAdmin(path: String, method: String) =
-    route(app, FakeRequest(method, path).withCookies(adminCookies: _*).withCSRFToken).get
+    route(app, FakeRequest(method, path).withCookies(adminCookies*).withCSRFToken).get
 
   private def asVisitor(path: String, method: String) =
-    route(app, FakeRequest(method, path).withCookies(visitorCookies: _*).withCSRFToken).get
+    route(app, FakeRequest(method, path).withCookies(visitorCookies*).withCSRFToken).get
 
   private def highestRunId: Int =
     run(jobRunTable.backgroundJobRuns.map(_.backgroundJobRunId).max.result).getOrElse(0)
@@ -179,7 +187,8 @@ class AdminJobTriggerSpec
   private def runsSince(idFloor: Int, jobName: String): Seq[BackgroundJobRun] =
     run(
       jobRunTable.backgroundJobRuns
-        .filter(row => row.jobName === jobName && row.backgroundJobRunId > idFloor)
+        .filter(row => row.jobName === jobName)
+        .filter(row => row.backgroundJobRunId > idFloor)
         .result
     )
 
@@ -284,6 +293,18 @@ class AdminJobTriggerSpec
     }
   }
 
+  "POST /adminapi/recountStreetGradientStaleness" should {
+    "record the recount as a manual run of the nightly staleness job, with its counts" in {
+      val (code, body, jobRun) =
+        trigger("/adminapi/recountStreetGradientStaleness", StreetGradientStalenessActor.Name, POST)
+      code mustBe OK
+      body must include(StalenessResult.unsampled.toString)
+      jobRun.triggeredBy mustBe JobRunTrigger.Manual
+      jobRun.status mustBe JobRunStatus.Succeeded
+      jobRun.details.value mustBe StalenessResult.runDetails
+    }
+  }
+
   "POST /adminapi/refreshPlaces" should {
     // Answers before the Overpass round trip finishes, as crop generation does, so the run row is read back later.
     "answer at once and record the refresh as a manual run of the nightly job, with its counts" in {
@@ -364,7 +385,7 @@ class AdminJobTriggerSpec
     "record a half-finished refresh as a failure, and say so rather than reporting a count" in {
       // This job runs for tens of minutes over a shared community API and can die partway. The run row is the only
       // durable account of that, and the caller is told progress is kept -- both are easy to lose to a refactor.
-      osmWayAnswer = Future.failed(new RuntimeException("overpass timed out"))
+      osmWayAnswer = Future.failed(RuntimeException("overpass timed out"))
       val (code, body, jobRun) = trigger("/adminapi/refreshOsmWayData", OsmWayRefreshActor.Name)
       code mustBe SERVICE_UNAVAILABLE
       body must include("trigger again to resume")
@@ -400,6 +421,7 @@ class AdminJobTriggerSpec
         (GET, "/adminapi/checkImagery", CheckImageExpiryActor.Name),
         (GET, "/adminapi/refreshOsmWayData", OsmWayRefreshActor.Name),
         (POST, "/adminapi/refreshPlaces", PlacesRefreshActor.Name),
+        (POST, "/adminapi/recountStreetGradientStaleness", StreetGradientStalenessActor.Name),
         (POST, "/adminapi/generateCrops", CropGenerationActor.Name),
         (GET, "/runClustering", ClusteringActor.Name)
       ).foreach { case (method, path, jobName) =>

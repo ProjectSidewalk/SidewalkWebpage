@@ -1,5 +1,5 @@
 /**
- * Tests for GalleryFilter (public/js/gallery/src/filter/GalleryFilter.js, issue #4585).
+ * Tests for GalleryFilter (frontend/js/gallery/filter/GalleryFilter.js, issue #4585).
  *
  * GalleryFilter is the Gallery's adapter for the shared FilterSidebar: it turns the sidebar's state into a card
  * query — the URL the page can be reloaded from, the refetch, and the tracker events — and keeps the severity block
@@ -10,13 +10,8 @@
  * into jsdom with those stubbed.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules, realUtil } = require('./loadGlobalScript');
 
-const SRC_DIR = path.resolve(__dirname, '..', '..', 'public/js');
-const URL_QUERY_SRC = fs.readFileSync(path.join(SRC_DIR, 'common/urlQuery.js'), 'utf8');
-const FILTER_SIDEBAR_SRC = fs.readFileSync(path.join(SRC_DIR, 'common/filter-sidebar/FilterSidebar.js'), 'utf8');
-const GALLERY_FILTER_SRC = fs.readFileSync(path.join(SRC_DIR, 'gallery/src/filter/GalleryFilter.js'), 'utf8');
 
 const LABEL_TYPES = ['CurbRamp', 'Crosswalk', 'Obstacle', 'NoSidewalk'];
 const VALIDATIONS = ['correct', 'incorrect', 'unsure', 'unvalidated'];
@@ -72,7 +67,7 @@ function buildFixture() {
     document.body.innerHTML = `
       <div class="gallery-filter-header">
         <h4 id="filter-header">Filter By</h4>
-        <button type="button" id="clear-filters" class="button-ps button--tiny button--secondary" hidden>
+        <button type="button" id="clear-filters" class="button button--tiny button--secondary" hidden>
           <span aria-hidden="true">&#10006;</span><span>Clear Filters</span>
         </button>
       </div>
@@ -133,7 +128,7 @@ describe('GalleryFilter', () => {
 
     beforeAll(() => {
         window.i18next = { t: (key) => key, language: 'en' };
-        // Mirrors util.misc's rating rules (public/js/common/utilitiesSidewalk.js), which the real page supplies.
+        // Mirrors util.misc's rating rules (frontend/js/common/utilitiesSidewalk.js), which the real page supplies.
         window.util = {
             misc: {
                 labelTypeHasSeverity: (t) => !['NoSidewalk', 'Signal', 'Occlusion'].includes(t),
@@ -148,9 +143,15 @@ describe('GalleryFilter', () => {
                 },
             },
         };
-        window.eval(URL_QUERY_SRC); // Defines util.url, which the URL readers/writers depend on.
-        window.eval(`${FILTER_SIDEBAR_SRC}\nwindow.FilterSidebar = FilterSidebar;`);
-        window.eval(`${GALLERY_FILTER_SRC}\nwindow.GalleryFilter = GalleryFilter;`);
+        // GalleryFilter is the page's only writer of the address bar, so it reads the open label off LabelDetail to
+        // carry the ?labelId= deep link through its rewrite (#5446).
+        window.LabelDetail = {
+            urlLabelId: () => parseInt(new URLSearchParams(window.location.search).get('labelId'), 10) || null,
+        };
+        window.util ??= realUtil();
+        loadModules('frontend/js/common/urlQuery.js');
+        Object.assign(window, loadModules('frontend/js/common/filter-sidebar/FilterSidebar.js'));
+        Object.assign(window, loadModules('frontend/js/gallery/filter/GalleryFilter.js'));
     });
 
     beforeEach(() => {
@@ -173,6 +174,37 @@ describe('GalleryFilter', () => {
             expect(filter.getStatus().currentLabelTypes).toEqual(['CurbRamp', 'Crosswalk', 'Obstacle']);
             expect(sg.cardContainer.updateCardsByFilter).toHaveBeenCalled();
             expect(clearBtn().hidden).toBe(false);
+        });
+
+        it('carries a ?labelId= deep link through the rewrite, and through a filter change', () => {
+            // The rewrite used to drop it before ExpandedView could read it, so every shared deep link opened the
+            // plain grid (#5446). The filter is constructed here with the param already in the URL, as on a load.
+            window.history.replaceState({}, '', '/gallery?labelId=123');
+            build();
+            expect(currentUrl()).toBe('/gallery?labelId=123');
+
+            typeBox('NoSidewalk').click();
+            expect(currentUrl()).toBe('/gallery?labelType=CurbRamp,Crosswalk,Obstacle&labelId=123');
+        });
+
+        it('runs with no sidebar in the page at all, still writing the URL', () => {
+            // Review-list mode renders neither the sidebar nor the reset (#5444), but this class still owns the
+            // address bar, so it has to construct and keep working against nothing.
+            window.history.replaceState({}, '', '/gallery?labelIds=5,6&labelId=6');
+            buildFixture();
+            const filter = new window.GalleryFilter(null, null, {
+                regionIds: [], aiValidationOptions: [], labelIds: [5, 6],
+            });
+
+            expect(currentUrl()).toBe('/gallery?labelIds=5,6&labelId=6');
+            expect(filter.getStatus().currentLabelTypes).toEqual([]);
+        });
+
+        it('does not treat a deep link as a filter worth offering to clear', () => {
+            window.history.replaceState({}, '', '/gallery?labelId=123');
+            build();
+
+            expect(clearBtn().hidden).toBe(true);
         });
 
         it('goes back to a bare URL when every type is checked again', () => {

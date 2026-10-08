@@ -1,5 +1,5 @@
 /**
- * Tests for the dashboard's "Streets with newer imagery" list (public/js/user-dashboard/OutdatedStreets.js, #4896).
+ * Tests for the dashboard's "Streets with newer imagery" list (frontend/js/user-dashboard/OutdatedStreets.js, #4896).
  *
  * Three contracts matter here. The rows are server-rendered and paged client-side, so "show more" must reveal
  * exactly one page, keep its own count honest, and hand keyboard focus somewhere real when it disappears. Because a
@@ -8,14 +8,14 @@
  * is rendered in UTC by the server and rewritten to the reader's timezone here.
  *
  * OutdatedStreets is a page-global `class` that reaches for globals, so the source is eval'd into jsdom with its
- * collaborators (moment, logWebpageActivity, the map) stubbed.
+ * collaborators (i18next, logWebpageActivity, the map) stubbed.
  */
 
 const fs = require('fs');
 const path = require('path');
+const { installDateHelpers, loadModules } = require('./loadGlobalScript');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const SECTION_SRC = fs.readFileSync(path.join(REPO_ROOT, 'public/js/user-dashboard/OutdatedStreets.js'), 'utf8');
 const DASHBOARD_CSS = fs.readFileSync(path.join(REPO_ROOT, 'public/css/pages/user-dashboard.css'), 'utf8');
 
 const PAGE_SIZE = 5;
@@ -32,7 +32,9 @@ function row(streetEdgeId, hidden, datetime = '2026-01-02T03:04:05Z') {
         <li class="ud-reaudit-row" data-street-edge-id="${streetEdgeId}"${hidden ? ' hidden' : ''}>
           <div class="ud-reaudit-info">
             <span class="ud-reaudit-place">Spec Region</span>
-            <span class="ud-reaudit-meta">120 ft</span>
+            <span class="ud-reaudit-meta">120 ft ·
+              new imagery from <time class="ud-reaudit-imagery-date" datetime="2025-10">October 2025</time>
+            </span>
             <span class="ud-reaudit-audited">You mapped it on
               <time class="ud-reaudit-date" datetime="${datetime}">Jan 2, 2026</time>
             </span>
@@ -94,8 +96,9 @@ describe('the dashboard\'s needs-re-audit list', () => {
     }
 
     beforeAll(() => {
-        window.moment = (date) => ({ format: () => `local:${date.toISOString()}` });
-        window.eval(`${SECTION_SRC}\nwindow.OutdatedStreets = OutdatedStreets;`);
+        window.i18next = { language: 'en' };
+        installDateHelpers();
+        window.OutdatedStreets = loadModules('frontend/js/user-dashboard/OutdatedStreets.js').OutdatedStreets;
     });
 
     beforeEach(() => {
@@ -263,14 +266,22 @@ describe('the dashboard\'s needs-re-audit list', () => {
         it('rewrites the server\'s UTC date into the reader\'s timezone', async () => {
             await init(3);
 
-            expect(document.querySelector('.ud-reaudit-date').textContent)
-                .toBe(`local:${new Date('2026-01-02T03:04:05Z').toISOString()}`);
+            // 03:04 UTC on Jan 2 is still Jan 1 in Los Angeles, where jest.config.js pins the clock.
+            expect(document.querySelector('.ud-reaudit-date').textContent).toBe('Jan 1, 2026');
         });
 
         it('leaves the server\'s rendering alone when the timestamp is unparseable', async () => {
             await init(3, { datetime: 'not-a-date' });
 
             expect(document.querySelector('.ud-reaudit-date').textContent.trim()).toBe('Jan 2, 2026');
+        });
+
+        it('words the imagery month in the page language', async () => {
+            window.i18next.language = 'zh-TW';
+            await init(3);
+            window.i18next.language = 'en';
+
+            expect(document.querySelector('.ud-reaudit-imagery-date').textContent).toBe('2025年10月');
         });
     });
 

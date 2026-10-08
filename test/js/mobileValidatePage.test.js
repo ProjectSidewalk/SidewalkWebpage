@@ -1,5 +1,5 @@
 /**
- * Tests for the page-level behavior in public/js/mobileValidate.js.
+ * Tests for the page-level behavior in frontend/js/mobileValidate.js.
  *
  * The page suppresses double-tap zoom over the imagery by cancelling a touchstart that lands on a pano canvas within
  * half a second of another. Cancelling a touchstart also cancels that touch's scrolling and its click, so everything
@@ -8,12 +8,8 @@
  * second finger lands inside the same window, and cancelling it would cancel the page's pinch zoom.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const MOBILE_VALIDATE_SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/mobileValidate.js'), 'utf8'
-);
 
 describe('mobile Validate page behavior', () => {
     let modalForeground;
@@ -21,15 +17,10 @@ describe('mobile Validate page behavior', () => {
 
     /** Loads mobileValidate.js into jsdom with the globals it reaches for at load time. */
     function loadPage() {
-        // jQuery's surface here is $(document).ready — a no-op for these tests, whose subject is the document-level
-        // touchstart listener the ready handler is installed alongside.
+        // The DOM-ready handler is a no-op here; the subject is the touchstart listener beside it.
         const ready = [];
-        window.$ = jest.fn(() => ({append: jest.fn(), on: jest.fn()}));
-        window.$.mockImplementation((arg) => {
-            if (arg === document) return {ready: (fn) => ready.push(fn)};
-            return {append: jest.fn(), on: jest.fn()};
-        });
-        window.eval(MOBILE_VALIDATE_SRC);
+        window.util = { onDomReady: (fn) => ready.push(fn) };
+        Object.assign(window, loadModules('frontend/js/mobileValidate.js'));
         ready.forEach((fn) => fn());
     }
 
@@ -100,7 +91,6 @@ describe('mobile Validate page behavior', () => {
     afterEach(() => {
         jest.useRealTimers();
         document.body.innerHTML = '';
-        delete window.$;
     });
 
     describe('the double-tap suppressor', () => {

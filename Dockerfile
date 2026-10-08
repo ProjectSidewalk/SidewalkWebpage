@@ -38,7 +38,7 @@ RUN python3 -m pip install --no-cache-dir --upgrade pip
 RUN python3 -m pip install --no-cache-dir -r requirements.txt -r requirements-dev.txt
 RUN python3 -m pip install --no-cache-dir --upgrade setuptools
 
-# `python3.13` is where offline tooling lives: its dependencies (requirements-offline-tools.txt) need >= 3.11. The
+# `python3.13` is where offline tooling lives: its dependencies (requirements-offline-tools.txt) need >= 3.12. The
 # interpreter is a prebuilt python-build-standalone CPython fetched by uv, since no PPA carries 3.13 for focal. Both
 # versions are pinned so every build produces the same pair; docs/upgrading-libraries.md records them.
 #
@@ -58,5 +58,5 @@ RUN python3.13 -m pip install --no-cache-dir -r requirements-offline-tools.txt -
 # Not `npm install`: the image must not drift from the tree CI resolved (#5152). Copied last so editing the script
 # doesn't invalidate the layers above. The stamp is what stops the first `make dev` after a build reinstalling the
 # identical tree.
-COPY tools/npm-sync.sh ./tools/
-RUN npm ci && bash tools/npm-sync.sh --write-stamp
+COPY tools/dev/npm-sync.sh ./tools/dev/
+RUN npm ci && bash tools/dev/npm-sync.sh --write-stamp

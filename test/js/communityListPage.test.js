@@ -3,25 +3,18 @@
  * localized dates) plus the page-specific StoryListPage (type-chip tinting, read-more clamp toggle, view-label
  * popup routing) and RouteListPage (copy-share-link fallbacks).
  *
- * All three are top-level `class` declarations written for the Grunt-concatenation world, so (like ShareWidget's
- * test) we eval the sources into the jsdom global scope.
+ * All four are ES modules, loaded fresh through `loadModules`.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { installDateHelpers, loadModules } = require('./loadGlobalScript');
 
-const REPO_ROOT = path.resolve(__dirname, '..', '..');
 
-const COMMUNITY_SRC = ['CommunityListPage.js', 'StoryListPage.js', 'RouteListPage.js']
-    .map((f) => fs.readFileSync(path.resolve(REPO_ROOT, 'public/js/community', f), 'utf8'))
-    .join('\n');
-
-/** Loads fresh copies of the three page classes into the jsdom global scope. */
 function loadClasses() {
-    window.eval(`${COMMUNITY_SRC}
-        window.CommunityListPage = CommunityListPage;
-        window.StoryListPage = StoryListPage;
-        window.RouteListPage = RouteListPage;`);
+    Object.assign(window, loadModules(
+        'frontend/js/community/CommunityListPage.js',
+        'frontend/js/community/StoryListPage.js',
+        'frontend/js/community/RouteListPage.js'
+    ));
 }
 
 /** Renders the toolbar + card list skeleton that CommunityListPage.init() expects. */
@@ -76,7 +69,7 @@ function newCommunityPage() {
 beforeEach(() => {
     loadClasses();
     window.logWebpageActivity = jest.fn();
-    window.moment = jest.fn(() => ({ format: () => 'LOCALIZED-DATE' }));
+    installDateHelpers();
     // The string sort passes the page language to localeCompare; the Twirl layout always renders <html lang="...">,
     // but jsdom's default is the empty string, which localeCompare rejects.
     document.documentElement.lang = 'en';
@@ -166,11 +159,12 @@ describe('CommunityListPage', () => {
         expect(document.querySelector('[data-route-id="2"]').hidden).toBe(true); // Still filtered out.
     });
 
-    test('server-rendered UTC dates are rewritten through moment in the reader\'s locale', () => {
+    test('server-rendered UTC dates are rewritten in the reader\'s timezone and language', () => {
         setupDom(routeCard({ id: '1', created: 1, region: 'A', text: 'x' })
             .replace('<h2>x</h2>', '<h2>x</h2><time class="community-date" datetime="2026-07-24T01:00:00Z">raw</time>'));
         newCommunityPage();
-        expect(document.querySelector('.community-date').textContent).toBe('LOCALIZED-DATE');
+        // 01:00 UTC on the 24th is still the 23rd in Los Angeles, where jest.config.js pins the clock.
+        expect(document.querySelector('.community-date').textContent).toBe('Jul 23, 2026');
     });
 });
 
@@ -370,12 +364,10 @@ describe('StoryListPage', () => {
     });
 
     describe('share chips (#4722)', () => {
-        const SHARE_SRC = fs.readFileSync(
-            path.resolve(REPO_ROOT, 'public/js/common/share/ShareWidget.js'), 'utf8');
-
+        
         /** Loads the real ShareWidget (the page builds one per card) plus the collaborators it reaches for. */
         function loadShareWidget() {
-            window.eval(`${SHARE_SRC}\nwindow.ShareWidget = ShareWidget;`);
+            Object.assign(window, loadModules('frontend/js/common/share/ShareWidget.js'));
             // The share text key resolves with the excerpt interpolated; everything else echoes its key. Mimics how
             // the app configures i18next — values verbatim unless the call asks for escaping — so a share string
             // that wrongly opted into it would ship visible entities here too, not just in production.
@@ -459,15 +451,10 @@ describe('StoryListPage', () => {
             expect(popup.showLabel).not.toHaveBeenCalled();
         });
 
-        test('a card without a story id gets no chip, and a missing ShareWidget leaves the page working', () => {
+        test('a card without a story id gets no chip', () => {
             setupDom(storyCard({ id: '7' })); // No data-story-id.
             loadShareWidget();
             new window.StoryListPage().init();
-            expect(document.querySelector('.story-card__share')).toBeNull();
-
-            delete window.ShareWidget; // The share script failed to load; cards must still initialize.
-            setupDom(storyCard({ id: '8', storyId: '9' }));
-            expect(() => new window.StoryListPage().init()).not.toThrow();
             expect(document.querySelector('.story-card__share')).toBeNull();
         });
     });

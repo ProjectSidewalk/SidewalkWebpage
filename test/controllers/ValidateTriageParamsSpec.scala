@@ -2,15 +2,14 @@ package controllers
 
 import models.user.Role
 import org.apache.pekko.stream.Materializer
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsObject, JsValue}
 import play.api.mvc.Cookie
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
-import util.{AnonSession, RoleSession}
+import play.api.test.Helpers.*
+import util.{AnonSession, RoleSession, SidewalkSpec}
 
 /**
  * Functional tests for the `triage` flag that decides which queue a Validate page draws from (#4715).
@@ -22,23 +21,23 @@ import util.{AnonSession, RoleSession}
  *
  * Requires a Postgres+PostGIS database (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in dev/CI).
  */
-class ValidateTriageParamsSpec extends PlaySpec with RoleSession with GuiceOneAppPerSuite with AnonSession {
+class ValidateTriageParamsSpec extends SidewalkSpec with RoleSession with GuiceOneAppPerSuite with AnonSession {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule]
       // This suite mints a session per test, and /anonSignUp is capped per IP per hour.
       .configure("rate-limit.anon-signup.enabled" -> false)
       .build()
 
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
-  /** The Twirl views embed `param.validateParams` as a JS object literal, so the flag is read back as text. */
+  /** The Twirl views embed `validateParams` in the page-data JSON block, so the flag is read back as text. */
   private def embeddedTriage(body: String): Option[Boolean] =
-    """triage:\s*(true|false)""".r.findFirstMatchIn(body).map(_.group(1).toBoolean)
+    """"triage":\s*(true|false)""".r.findFirstMatchIn(body).map(_.group(1).toBoolean)
 
   private def getPage(path: String, cookies: Seq[Cookie]): (Int, String) = {
-    val resp = route(app, FakeRequest(GET, path).withCookies(cookies: _*)).get
+    val resp = route(app, FakeRequest(GET, path).withCookies(cookies*)).get
     (status(resp), contentAsString(resp))
   }
 
@@ -69,6 +68,26 @@ class ValidateTriageParamsSpec extends PlaySpec with RoleSession with GuiceOneAp
       val (code, body) = getPage("/validate", freshAnonSession())
       assume(code == OK, s"/validate answered $code, so this schema cannot serve a mission")
       embeddedTriage(body) mustBe Some(false)
+    }
+
+    "carry no mission, and tell the browser never to cache the page (#5650)" in {
+      val resp = route(app, FakeRequest(GET, "/validate").withCookies(freshAnonSession()*)).get
+      status(resp) mustBe OK
+      header(CACHE_CONTROL, resp) mustBe Some("no-store")
+      contentAsString(resp) must not include "mission_id"
+    }
+  }
+
+  "GET /mobile" should {
+    "tell the browser never to cache the page (#5650)" in {
+      val resp = route(
+        app,
+        FakeRequest(GET, "/mobile")
+          .withHeaders("User-Agent" -> "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) Mobile/15E148")
+          .withCookies(freshAnonSession()*)
+      ).get
+      status(resp) mustBe OK
+      header(CACHE_CONTROL, resp) mustBe Some("no-store")
     }
   }
 

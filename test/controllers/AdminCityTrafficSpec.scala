@@ -1,12 +1,12 @@
 package controllers
 
 import org.apache.pekko.stream.Materializer
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
+import util.SidewalkSpec
 
 /**
  * Smoke tests for the cross-city GA traffic endpoint (Planning#8): GET /adminapi/cityTraffic (Owner).
@@ -17,16 +17,16 @@ import play.api.test.Helpers._
  *
  * Requires a Postgres+PostGIS database (via DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD env).
  */
-class AdminCityTrafficSpec extends PlaySpec with GuiceOneAppPerSuite {
+class AdminCityTrafficSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule]
       // Force the unusable-key path so the unavailability assertion holds even where a real key is configured.
       .configure("ga-service-account-key" -> "DUMMY_GA_SERVICE_ACCOUNT_KEY")
       .build()
 
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   "GET /adminapi/cityTraffic" should {
     "redirect unauthenticated users to the sign-in page (not 404)" in {

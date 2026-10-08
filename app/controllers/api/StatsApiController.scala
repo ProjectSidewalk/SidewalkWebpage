@@ -18,7 +18,7 @@ class StatsApiController @Inject() (
     val silhouette: Silhouette[models.auth.DefaultEnv],
     apiService: ApiService,
     configService: ConfigService
-)(implicit ec: ExecutionContext)
+)(using ec: ExecutionContext)
     extends BaseApiController(cc) {
 
   private val logger = Logger(this.getClass)
@@ -48,15 +48,15 @@ class StatsApiController @Inject() (
         highQualityOnly = highQualityOnly.getOrElse(false),
         minAccuracy = minAccuracy
       )
-      .map { filteredStats: Seq[UserStatForApi] =>
+      .map { (filteredStats: Seq[UserStatForApi]) =>
         val baseFileName: String = timestampedFilename("userStats")
         cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
 
         // Output data in the appropriate file format: CSV or JSON (default).
         filetype match {
           case Some("csv") =>
-            val userStatsFile = new java.io.File(s"$baseFileName.csv")
-            val writer        = new java.io.PrintStream(userStatsFile)
+            val userStatsFile = java.io.File(s"$baseFileName.csv")
+            val writer        = java.io.PrintStream(userStatsFile)
             writer.println(UserStatForApi.csvHeader)
             filteredStats.foreach(userStat => writer.println(userStat.toCsvRow))
             writer.close()
@@ -72,15 +72,15 @@ class StatsApiController @Inject() (
    */
   def getOverallSidewalkStats(filterLowQuality: Boolean, filetype: Option[String]) = silhouette.UserAwareAction.async {
     implicit request =>
-      apiService.getOverallStats(filterLowQuality).map { stats: ProjectSidewalkStats =>
+      apiService.getOverallStats(filterLowQuality).map { (stats: ProjectSidewalkStats) =>
         val baseFileName: String = timestampedFilename("projectSidewalkStats")
         cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
 
         // Output data in the appropriate file format: CSV or JSON (default).
         filetype match {
           case Some("csv") =>
-            val sidewalkStatsFile = new java.io.File(s"$baseFileName.csv")
-            val writer            = new java.io.PrintStream(sidewalkStatsFile, "UTF-8")
+            val sidewalkStatsFile = java.io.File(s"$baseFileName.csv")
+            val writer            = java.io.PrintStream(sidewalkStatsFile, "UTF-8")
             writer.println(ProjectSidewalkStats.csvHeader)
             stats.toCsvRows.foreach(writer.println)
             writer.close()
@@ -118,8 +118,8 @@ class StatsApiController @Inject() (
             val baseFileName = timestampedFilename("aggregateStats")
 
             // Create temporary CSV file (following the same pattern as other endpoints).
-            val aggregateStatsFile = new java.io.File(s"$baseFileName.csv")
-            val writer             = new java.io.PrintStream(aggregateStatsFile)
+            val aggregateStatsFile = java.io.File(s"$baseFileName.csv")
+            val writer             = java.io.PrintStream(aggregateStatsFile)
             writer.print((AggregateStats.csvHeader +: aggregateStats.toCsvRows).mkString("\n"))
             writer.close()
 
@@ -179,8 +179,8 @@ class StatsApiController @Inject() (
   private def renderDailyStats(stats: Seq[DailyStatRecord], filetype: Option[String], baseName: String): Result = {
     filetype match {
       case Some("csv") =>
-        val file   = new java.io.File(s"${timestampedFilename(baseName)}.csv")
-        val writer = new java.io.PrintStream(file, "UTF-8")
+        val file   = java.io.File(s"${timestampedFilename(baseName)}.csv")
+        val writer = java.io.PrintStream(file, "UTF-8")
         writer.println(DailyStatRecord.csvHeader)
         stats.foreach(record => writer.println(DailyStatRecord.toCsvRow(record)))
         writer.close()

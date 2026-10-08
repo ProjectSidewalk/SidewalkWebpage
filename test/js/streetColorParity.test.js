@@ -16,7 +16,7 @@ const read = (p) => fs.readFileSync(path.join(REPO_ROOT, p), 'utf8');
 
 const MAIN_CSS = read('public/css/main.css');
 const SIDEBAR_CSS = read('public/css/components/filter-sidebar.css');
-const STREETS_JS = read('public/js/ps-map/addStreetsToMap.js');
+const STREETS_JS = read('frontend/js/ps-map/addStreetsToMap.js');
 
 const AUDITED_TOKEN = '--color-street-audited';
 const UNAUDITED_TOKEN = '--color-street-unaudited';

@@ -16,22 +16,20 @@
  * UTC-only worker would make every "does the axis line up with the server's nights" assertion vacuous.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules, mockModule, realUtil } = require('./loadGlobalScript');
 
-const JS_DIR = path.resolve(__dirname, '..', '..', 'public/js/admin-dashboard');
+window.util = realUtil();
+
 
 /** Chart calls, recorded instead of drawn — MiniLineChart has its own tests. */
 const charts = [];
 
 /** Loads AdminShell + the panel into global scope, with MiniLineChart stubbed. */
 function loadPanel() {
-  const shell = fs.readFileSync(path.join(JS_DIR, 'AdminShell.js'), 'utf8');
-  const panel = fs.readFileSync(path.join(JS_DIR, 'ImageryPipelinePanel.js'), 'utf8');
-  globalThis.MiniLineChart = {
-    renderInto: (host, labels, series, options) => charts.push({ host, labels, series, options }),
-  };
-  return (0, eval)(`${shell}\nglobalThis.AdminShell = AdminShell;\n${panel}\nImageryPipelinePanel;`);
+  mockModule('frontend/js/admin-dashboard/MiniLineChart.js', () => ({
+    MiniLineChart: { renderInto: (host, labels, series, options) => charts.push({ host, labels, series, options }) },
+  }));
+  return loadModules('frontend/js/admin-dashboard/ImageryPipelinePanel.js').ImageryPipelinePanel;
 }
 
 const ImageryPipelinePanel = loadPanel();
@@ -149,6 +147,23 @@ describe('ImageryPipelinePanel banner', () => {
     await renderPanel(report({ jobs: [job({ last_status: 'failed', last_error: 'HTTP 429' })] }));
     expect(statusHtml()).toContain('ac-badge--warn');
     expect(statusText()).toContain('HTTP 429');
+  });
+
+  test('reports a poll an app restart or crash cut off as a warning, not as healthy', async () => {
+    // An interrupted run carries no error message, so the banner has to say what happened on its own.
+    await renderPanel(report({ jobs: [job({ last_status: 'interrupted', last_error: null })] }));
+    expect(statusHtml()).toContain('ac-badge--warn');
+    expect(statusText()).toContain('restart or crash');
+  });
+
+  test('says an interrupted flag sync was cut off, not that it has stopped succeeding on schedule', async () => {
+    // Not overdue: the previous night's sync succeeded, so "has not succeeded on schedule" would be false.
+    await renderPanel(report({
+      jobs: [job(), job({ job_name: SYNC, last_status: 'interrupted', last_error: null })],
+    }));
+    expect(statusHtml()).toContain('ac-badge--warn');
+    expect(statusText()).toContain('cut off when the app stopped');
+    expect(statusText()).not.toContain('not succeeded on schedule');
   });
 
   test('reports a healthy poll whose flag sync is not running', async () => {
@@ -384,7 +399,7 @@ describe('the regained-imagery rotation line', () => {
 
     const text = document.getElementById('imagery-no-imagery-note').textContent;
     expect(text).toContain('49 of 50');
-    expect(text).toContain('1 for review');
+    expect(text).toContain('1 queued for review');
     expect(text).toContain('25 a night');
   });
 

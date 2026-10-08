@@ -1,5 +1,5 @@
 /**
- * Tests for `backupImageDataIsComplete` / `buildBackupImageData` in public/js/common/utilitiesSidewalk.js, which keep
+ * Tests for `backupImageDataIsComplete` / `buildBackupImageData` in frontend/js/common/utilitiesSidewalk.js, which keep
  * a pano_data row with null width/height from reaching PannellumViewer and throwing (#4804).
  *
  * The last block pins the guard's field list against PanoData, the authority it and two backend copies answer to.
@@ -7,19 +7,14 @@
  * Runs under jsdom (jest.config.js).
  */
 
-/* global PanoData, backupImageDataIsComplete, buildBackupImageData -- pulled into scope by the eval() loader below. */
+/* global PanoData, backupImageDataIsComplete, buildBackupImageData -- put on global by loadScript below. */
 
-const fs = require('fs');
 const path = require('path');
-
-// jest-environment-jsdom doesn't expose these, and jsdom's own dependencies need them when required from within a
-// test (the "runs twice" case below drives a second jsdom instance to get real <script> semantics).
-global.TextEncoder = global.TextEncoder ?? require('node:util').TextEncoder;
-global.TextDecoder = global.TextDecoder ?? require('node:util').TextDecoder;
+const { loadModules, realUtil } = require('./loadGlobalScript');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const UTILITIES_PATH = path.join(REPO_ROOT, 'public/js/common/utilitiesSidewalk.js');
-const PANO_DATA_PATH = path.join(REPO_ROOT, 'public/js/common/pano-viewer/src/PanoData.js');
+const UTILITIES_PATH = path.join(REPO_ROOT, 'frontend/js/common/utilitiesSidewalk.js');
+const PANO_DATA_PATH = path.join(REPO_ROOT, 'frontend/js/common/pano-viewer/PanoData.js');
 
 /**
  * Execute a production global script in the jsdom global scope, then hoist the named bindings onto `global`.
@@ -27,29 +22,26 @@ const PANO_DATA_PATH = path.join(REPO_ROOT, 'public/js/common/pano-viewer/src/Pa
  * Indirect eval puts top-level `function` declarations on globalThis, but not `const`/`class` — hence the epilogue.
  *
  * @param {string} filePath Absolute path to the script.
- * @param {string[]} names Bindings to expose on `global`.
  */
-function loadScript(filePath, names) {
-  const src = fs.readFileSync(filePath, 'utf8');
-  const epilogue = names.map((n) => `global.${n} = ${n};`).join('\n');
-  (0, eval)(`${src}\n${epilogue}`);
+function loadScript(filePath) {
+  Object.assign(global, loadModules(filePath));
 }
 
 /** A backup pano whose metadata is complete — the shape buildBackupImageData produces. */
 function completeBackupImageData() {
   return {
-    panoId: 'abc123',
-    imageUrl: '/backupImage/abc123?exp=1&sig=x',
+    pano_id: 'abc123',
+    image_url: '/backupImage/abc123?exp=1&sig=x',
     width: 13312,
     height: 6656,
-    tileWidth: 512,
-    tileHeight: 512,
+    tile_width: 512,
+    tile_height: 512,
     lat: 47.6,
     lng: -122.3,
-    cameraHeading: 180.5,
-    cameraPitch: 0,
-    cameraRoll: 0,
-    captureDate: '2011-05',
+    camera_heading: 180.5,
+    camera_pitch: 0,
+    camera_roll: 0,
+    capture_date: '2011-05',
     copyright: '© 2011 Google',
     address: '123 Fake St',
   };
@@ -79,32 +71,9 @@ function labelMetadata(panoDataOverrides = {}) {
 }
 
 beforeAll(() => {
-  loadScript(UTILITIES_PATH, []);
-  // PanoData checks `captureDate instanceof moment`; a bare constructor is enough to satisfy it here.
-  global.moment = function Moment() {};
-  loadScript(PANO_DATA_PATH, ['PanoData']);
-});
-
-test('the script can run twice on one page', () => {
-  // Some views load this file directly on a page whose bundle already concatenates it, so it executes twice. A
-  // top-level `const` made the second execution a fatal redeclaration that took /labelMap down.
-  //
-  // Driven through real <script> tags rather than the eval() loader above, which cannot catch this: eval puts its
-  // lexical declarations in a scope it throws away, so a repeated `const` there is harmless.
-  const { JSDOM, VirtualConsole } = require('jsdom');
-  const virtualConsole = new VirtualConsole();
-  const errors = [];
-  virtualConsole.on('jsdomError', (e) => errors.push(e.message));
-  const dom = new JSDOM('<!doctype html><body>', { runScripts: 'dangerously', virtualConsole });
-
-  const src = fs.readFileSync(UTILITIES_PATH, 'utf8');
-  for (let i = 0; i < 2; i++) {
-    const script = dom.window.document.createElement('script');
-    script.textContent = src;
-    dom.window.document.body.appendChild(script);
-  }
-
-  expect(errors).toEqual([]);
+  window.util = realUtil();
+  loadScript(UTILITIES_PATH);
+  loadScript(PANO_DATA_PATH);
 });
 
 describe('backupImageDataIsComplete', () => {
@@ -112,13 +81,13 @@ describe('backupImageDataIsComplete', () => {
     expect(backupImageDataIsComplete(completeBackupImageData())).toBe(true);
   });
 
-  test.each(['width', 'height', 'lat', 'lng', 'cameraHeading', 'cameraPitch'])('rejects null %s', (field) => {
+  test.each(['width', 'height', 'lat', 'lng', 'camera_heading', 'camera_pitch'])('rejects null %s', (field) => {
     const data = completeBackupImageData();
     data[field] = null; // What the server sends for a NULL pano_data column.
     expect(backupImageDataIsComplete(data)).toBe(false);
   });
 
-  test.each(['width', 'height', 'lat', 'lng', 'cameraHeading', 'cameraPitch'])('rejects missing %s', (field) => {
+  test.each(['width', 'height', 'lat', 'lng', 'camera_heading', 'camera_pitch'])('rejects missing %s', (field) => {
     const data = completeBackupImageData();
     delete data[field];
     expect(backupImageDataIsComplete(data)).toBe(false);
@@ -130,7 +99,7 @@ describe('backupImageDataIsComplete', () => {
   });
 
   test('accepts zero values, which are legitimate for the camera angles', () => {
-    const data = { ...completeBackupImageData(), cameraHeading: 0, cameraPitch: 0 };
+    const data = { ...completeBackupImageData(), camera_heading: 0, camera_pitch: 0 };
     expect(backupImageDataIsComplete(data)).toBe(true);
   });
 
@@ -141,9 +110,9 @@ describe('backupImageDataIsComplete', () => {
 
   test('does not require the optional fields', () => {
     const data = completeBackupImageData();
-    delete data.cameraRoll;
-    delete data.tileWidth;
-    delete data.tileHeight;
+    delete data.camera_roll;
+    delete data.tile_width;
+    delete data.tile_height;
     delete data.address;
     delete data.copyright;
     expect(backupImageDataIsComplete(data)).toBe(true);
@@ -155,9 +124,9 @@ describe('buildBackupImageData', () => {
     const built = buildBackupImageData(labelMetadata());
 
     expect(built).not.toBeNull();
-    expect(built.panoId).toBe('abc123');
+    expect(built.pano_id).toBe('abc123');
     expect(built.width).toBe(13312);
-    expect(built.cameraHeading).toBe(180.5);
+    expect(built.camera_heading).toBe(180.5);
     // Camera position comes off the label metadata, not the nested pano_data.
     expect(built.lat).toBe(47.6);
     expect(built.lng).toBe(-122.3);
@@ -185,6 +154,9 @@ describe('buildBackupImageData', () => {
 });
 
 describe('coupling to PanoData', () => {
+  /** PanoData's params are camelCase; the backup data the guard checks is snake_case. */
+  const snakeCase = (field) => field.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`);
+
   /** The params PannellumViewer hands PanoData for a complete backup pano. */
   function panoDataParams() {
     return {
@@ -196,7 +168,7 @@ describe('coupling to PanoData', () => {
       cameraPitch: 0,
       width: 13312,
       height: 6656,
-      captureDate: new global.moment(),
+      captureDate: new Date(),
       linkedPanos: [],
       history: [],
     };
@@ -215,7 +187,7 @@ describe('coupling to PanoData', () => {
       delete params[field];
 
       expect(() => new PanoData(params)).toThrow(`Missing required parameter: ${field}`);
-      expect(util.misc.BACKUP_IMAGE_REQUIRED_FIELDS).toContain(field);
+      expect(util.misc.BACKUP_IMAGE_REQUIRED_FIELDS).toContain(snakeCase(field));
     },
   );
 
@@ -224,7 +196,7 @@ describe('coupling to PanoData', () => {
     const suppliedByViewer = ['panoId', 'source', 'captureDate', 'linkedPanos', 'history'];
     for (const field of Object.keys(panoDataParams())) {
       if (!suppliedByViewer.includes(field)) {
-        expect(util.misc.BACKUP_IMAGE_REQUIRED_FIELDS).toContain(field);
+        expect(util.misc.BACKUP_IMAGE_REQUIRED_FIELDS).toContain(snakeCase(field));
       }
     }
   });

@@ -1,19 +1,19 @@
 package controllers.api
 
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import org.apache.pekko.stream.Materializer
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsNull, JsObject}
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
+import util.SidewalkSpec
 
 import scala.concurrent.Await
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 /**
  * Locks the response contract of the v3 Places API (#5311): GET /v3/api/places returns a GeoJSON FeatureCollection by
@@ -25,15 +25,15 @@ import scala.concurrent.duration._
  * Boots the real application (real Slick/PostGIS) and exercises the routes end to end. The endpoint is
  * `UserAwareAction` (no auth needed); the eager scheduling actors are disabled so they don't fire background work.
  */
-class PlacesApiSpec extends PlaySpec with GuiceOneAppPerSuite {
+class PlacesApiSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule] // No eager background actors during tests.
       .build()
 
   // Chunked GeoJSON/CSV bodies need a real Materializer to consume (the test default NoMaterializer only does strict).
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   // A tiny near-empty bbox keeps the streamed body cheap regardless of how much data the connected DB holds.
   private val tinyBbox = "bbox=0,0,0.001,0.001"
@@ -125,7 +125,10 @@ class PlacesApiSpec extends PlaySpec with GuiceOneAppPerSuite {
     "return a SQLite GeoPackage when filetype=geopackage" in {
       val resp = route(app, FakeRequest(GET, s"/v3/api/places?$tinyBbox&filetype=geopackage")).get
       status(resp) mustBe OK
-      contentAsBytes(resp).take(15).utf8String mustBe "SQLite format 3"
+      val bytes = contentAsBytes(resp)
+      bytes.take(15).utf8String mustBe "SQLite format 3"
+      // The size the download-progress bar counts against. Gzip would drop Content-Length, so it has its own header.
+      header("X-File-Size", resp) mustBe Some(bytes.length.toString)
     }
 
     "return a nonempty ZIP archive when filetype=shapefile" in {
@@ -168,7 +171,7 @@ class PlacesApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       val resp = route(app, FakeRequest(GET, "/v3/api/accessScoreConfig")).get
       status(resp) mustBe OK
       (contentAsJson(resp) \ "place_categories").as[Seq[String]] mustBe
-        Seq("school", "health", "library", "grocery", "transit", "park", "community")
+        Seq("school", "health", "library", "grocery", "transit", "park", "community", "government")
     }
   }
 
@@ -177,6 +180,14 @@ class PlacesApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       val resp = route(app, FakeRequest(GET, "/v3/api-docs/places")).get
       status(resp) mustBe OK
       contentAsString(resp) must include("Places API")
+    }
+
+    // A rule's qualifier is the difference between a passport office and a maintenance yard, so the tag table has to
+    // print it; without this the page would promise every office=government object.
+    "spell out a qualified rule's second tag in the category table" in {
+      val page = contentAsString(route(app, FakeRequest(GET, "/v3/api-docs/places")).get)
+      page must include("<code>office=government</code> with <code>government</code> one of")
+      page must include("<code>public_service</code>")
     }
   }
 }

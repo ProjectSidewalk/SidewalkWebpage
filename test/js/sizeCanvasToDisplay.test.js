@@ -1,5 +1,5 @@
 /**
- * Tests for util.sizeCanvasToDisplay (public/js/common/utilities.js).
+ * Tests for util.sizeCanvasToDisplay (frontend/js/common/utilities.js).
  *
  * Explore draws into a fixed 720x480 logical frame but displays the pano larger, so both canvases over it — the
  * label canvas (#4719) and the tutorial's onboarding canvas (#4817) — size their bitmap to the on-screen box times
@@ -11,12 +11,8 @@
  * that records what the routine set on it — which is all this routine touches.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { realUtil } = require('./loadGlobalScript');
 
-const UTILITIES_SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/common/utilities.js'), 'utf8'
-);
 
 /** A canvas whose on-screen box is fixed, since jsdom's real getBoundingClientRect is all zeroes. */
 function makeCanvas(displayWidth, displayHeight = displayWidth / 1.5) {
@@ -48,7 +44,7 @@ describe('util.sizeCanvasToDisplay', () => {
         // utilities.js builds a Bowser parser at load time; the sizing under test never consults it.
         window.bowser = { getParser: () => ({ getBrowserName: () => 'Chrome', getBrowserVersion: () => '1',
             getOSName: () => 'Linux', getPlatformType: () => 'desktop' }) };
-        window.eval(UTILITIES_SRC);
+        window.util = realUtil();
         util = window.util;
         setDpr(1);
     });
@@ -93,6 +89,28 @@ describe('util.sizeCanvasToDisplay', () => {
         // ...and logical (720, 480) lands on its far corner, so drawing needs no other adjustment.
         expect(scale * util.EXPLORE_CANVAS_WIDTH).toBeCloseTo(el.width, 6);
         expect(scale * util.EXPLORE_CANVAS_HEIGHT).toBeCloseTo(el.height, 6);
+    });
+
+    it('follows the box\'s own aspect, so a fill-window pano gets a fill-window bitmap (#5085)', () => {
+        const el = makeCanvas(1920, 1080);
+        const ctx = makeCtx();
+        setDpr(2);
+        util.sizeCanvasToDisplay(el, ctx);
+
+        expect(el.width).toBe(3840);
+        expect(el.height).toBe(2160);
+        // The transform stays uniform and width-based: logical (720, 405) lands on the far corner.
+        const scale = 3840 / util.EXPLORE_CANVAS_WIDTH;
+        expect(ctx.transform).toEqual([scale, 0, 0, scale, 0, 0]);
+        expect(scale * 405).toBeCloseTo(el.height, 6);
+    });
+
+    it('falls back to the 3:2 height when only the width is measurable', () => {
+        const el = makeCanvas(1080, 0);
+        util.sizeCanvasToDisplay(el, makeCtx());
+
+        expect(el.width).toBe(1080);
+        expect(el.height).toBe(720);
     });
 
     it('asks for high-quality smoothing, so downscaled label icons keep a clean outer circle', () => {

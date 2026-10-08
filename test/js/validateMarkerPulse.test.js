@@ -1,6 +1,6 @@
 /**
  * Tests for the validate marker's one-shot halo pulse (issue #4790), wired up in
- * public/js/validate/src/panorama/PanoManager.js `renderPanoMarker` / `#restartMarkerPulse`.
+ * frontend/js/validate/panorama/PanoManager.js `renderPanoMarker` / `#restartMarkerPulse`.
  *
  * Validate reuses one marker element across labels, so the pulse lifecycle has real edge cases: the
  * .label-marker-pulse class must be (re)applied on every label render, taken back off by an `animationend`
@@ -13,13 +13,13 @@
  * uses to size the halo to the marker it decorates (22px on desktop Validate vs 52px on mobile).
  */
 
-const fs = require('fs');
 const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const PANO_MANAGER_PATH = path.resolve(__dirname, '..', '..', 'public/js/validate/src/panorama/PanoManager.js');
-const PANO_MARKER_PATH = path.resolve(__dirname, '..', '..', 'public/js/common/PanoMarker.js');
-const THROTTLE_PATH = path.resolve(__dirname, '..', '..', 'public/js/validate/src/util/throttle.js');
-const UTILITIES_PATH = path.resolve(__dirname, '..', '..', 'public/js/common/utilities.js');
+const PANO_MANAGER_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/panorama/PanoManager.js');
+const PANO_MARKER_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/common/PanoMarker.js');
+const THROTTLE_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/util/throttle.js');
+const UTILITIES_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/common/utilities.js');
 
 /**
  * Load a bare `class` declaration out of a production file. The Grunt bundle concatenates these into page scope,
@@ -29,8 +29,7 @@ const UTILITIES_PATH = path.resolve(__dirname, '..', '..', 'public/js/common/uti
  * @returns {Function} The class.
  */
 function loadClassFromFile(filePath, className) {
-    const src = fs.readFileSync(filePath, 'utf8');
-    return (0, eval)('(() => {\n' + src + '\nreturn ' + className + ';\n})()');
+    return loadModules(filePath)[className];
 }
 
 /**
@@ -79,11 +78,15 @@ describe('Validate marker halo pulse (issue #4790)', () => {
             getOSName: () => 'Linux', getPlatformType: () => 'desktop' }) };
         // Real utilities, for util.cappedMarkerDiameter: these tests read the marker's rendered diameter back, so
         // the sizing rule needs to be production's rather than a formula copied into a stub (#4838).
-        (0, eval)(fs.readFileSync(UTILITIES_PATH, 'utf8'));
-        (0, eval)(fs.readFileSync(THROTTLE_PATH, 'utf8')); // real throttle; #init wires it to pov_changed
+        Object.assign(window, loadModules(UTILITIES_PATH));
+        Object.assign(window, loadModules(THROTTLE_PATH));
         util.isMobile = () => false;
         util.uiScale = () => 1;
         util.camelToKebab = (str) => str.toLowerCase();
+        util.misc = {
+            ...util.misc,
+            labelTypeName: (type) => window.i18next.t(`common:${window.util.camelToKebab(type)}`),
+        };
         // jsdom has no WebGL, so PanoMarker falls back to the 2d projection; where the marker lands is irrelevant
         // here, only what classes/properties it carries. Returning null directly (jsdom's effective behavior)
         // keeps the fallback deterministic without jsdom's "not implemented" console noise.
@@ -91,6 +94,7 @@ describe('Validate marker halo pulse (issue #4790)', () => {
         util.pano = {
             centeredPovToCanvasCoord2d: () => ({ x: 0, y: 0 }),
             centeredPovToCanvasCoord: () => ({ x: 0, y: 0 }),
+            renderedHFov: () => 90,
         };
 
         global.PanoMarker = loadClassFromFile(PANO_MARKER_PATH, 'PanoMarker');
@@ -108,7 +112,7 @@ describe('Validate marker halo pulse (issue #4790)', () => {
 
         const panoData = {
             getPanoId: () => 'pano1',
-            getProperty: () => ({ format: () => 'Jun 2026' })
+            getProperty: () => new Date(2026, 5)
         };
         const fakeViewer = {
             setPano: jest.fn(() => Promise.resolve(panoData)),
@@ -122,7 +126,7 @@ describe('Validate marker halo pulse (issue #4790)', () => {
         };
 
         const PanoManager = loadClassFromFile(PANO_MANAGER_PATH, 'PanoManager');
-        panoManager = await PanoManager.create(FakeViewerType, 'token', 'pano1');
+        panoManager = await PanoManager.create(FakeViewerType, 'token');
     });
 
     afterEach(() => {

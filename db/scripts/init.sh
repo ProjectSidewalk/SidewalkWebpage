@@ -97,4 +97,4 @@ psql -v ON_ERROR_STOP=1 -U sidewalk -d sidewalk <<-'EOSQL'
 EOSQL
 
 # Remove any password authentication on databases. This should be used for dev environment only.
-sed -i -e 's/host all all all scram-sha-256/host all all all trust/' /var/lib/postgresql/data/pg_hba.conf
+sed -i -e 's/host all all all scram-sha-256/host all all all trust/' "$PGDATA/pg_hba.conf"

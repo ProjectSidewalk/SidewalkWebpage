@@ -9,8 +9,8 @@ architecture. This page explains the conventions a linter can't, and the *why* b
 [`.htmlhintrc`](../.htmlhintrc); Scala formatting lives in [`.scalafmt.conf`](../.scalafmt.conf). When this guide and a
 config disagree, the config wins — fix the config and this doc together. **The linters are all blocking CI gates** —
 ESLint (JS + translation JSON), Stylelint (CSS), HTMLHint (HTML), cross-locale key parity, the `public/css/` layout
-check, the `public/js/` asset-path check, the JSDoc type check (`make lint-js-types`), and `scalafmtCheckAll` for
-Scala. The trees are kept fully lint-clean ([#2487](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2487)),
+check, the `frontend/js/` asset-path check, the JSDoc type check (`make lint-js-types`), and `make scalafmt` for
+Scala (source and build files). The trees are kept fully lint-clean ([#2487](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2487)),
 so run the relevant linter — or `make lint` for all of them — and get to zero before you push: `make lint-fix`
 autofixes the mechanical JS/CSS findings, hand-fix the rest. CI wiring is in [`docs/testing-and-ci.md`](testing-and-ci.md).
 
@@ -41,14 +41,21 @@ These apply across every language in the repo.
   line-height (or another single aspect) doesn't suit, keep the token and override that one property on the next
   line instead of hand-assembling the font. Long-form reading text takes `--text-prose-regular` (body size, looser
   leading); code blocks take `--text-code-regular`.
-- **Use the component primitives in `main.css` before writing a new one.** Buttons are `.button-ps` with a
+- **Use the component primitives in `main.css` before writing a new one.** Buttons are `.button` with a
   `.button--<variant>` and `.button--<size>` modifier; text inputs and textareas are `.ps-input`, `<select>`s are
   `.ps-select` (both take `--large` for a settings-style form); data tables are `.ps-table` (`--compact` for dense
-  admin data, `.num` on a numeric cell, `.ps-table-wrapper` for the horizontal scroller). A page-scoped class on top
-  for layout (width, margin, a sticky header, a row-highlight state) is fine; re-declaring the font, border, padding,
-  or hover/focus treatment is not — extend the primitive in `main.css` instead.
-- **Size in px, never `rem`.** Bootstrap 3 sets `html { font-size: 62.5% }`, so `1rem` is 10px everywhere and a
-  `0.875rem` "14px" renders at 8.75px. The `--text-*` tokens are px for this reason.
+  admin data, `.num` on a numeric cell, `.ps-table-wrapper` for the horizontal scroller); a centered page column is
+  `.ps-container`; hide with `.ps-hidden` / `.ps-invisible`, and `.sr-only` keeps text for screen readers only. A
+  page-scoped class on top for layout (width, margin, a sticky header, a row-highlight state) is fine; re-declaring
+  the font, border, padding, or hover/focus treatment is not — extend the primitive in `main.css` instead.
+- **Hint text goes in `data-ps-tooltip`, not `title`** (`data-i18n-tooltip="ns:key"` when translated; see
+  `psTooltip.js`). Keep `title` only as a plain-text fallback: the full text of an ellipsized value, the exact date
+  behind a relative one, a plain permalink anchor, or a form field's pattern message.
+- **Base element styles live at the top of `main.css`** (`box-sizing`, the body type, heading and paragraph
+  rhythm, links, form controls inheriting their font). There is no CSS framework underneath: an unstyled element
+  looks the way that block says, so add to it rather than re-declaring a default in a page stylesheet.
+- **Size in px, never `rem`.** The `--text-*` tokens are px, and so is every dimension around them; a lone `rem`
+  is the one size on the page that doesn't say what it renders at.
 - **Raleway (`--font-accent`) is display-only — and never for numbers.** Default to the primary font (Mulish); the
   accent font appears only in the tokens that already carry it (`--text-h1-bold`, `--text-h2-bold`,
   `--text-small-accent`). Raleway defaults to old-style (text) figures — digits vary in height and 3/4/5/7/9 descend
@@ -58,15 +65,14 @@ These apply across every language in the repo.
 
 ## JavaScript
 
-The frontend is vanilla ES, organized as independent apps that Grunt concatenates (no transpiler, no module system).
-Edit files under `src/`; never edit the generated `build/` bundles. Most rules below are enforced by
+The frontend is vanilla ES modules, bundled per page by Rolldown (no transpiler, no framework). Never edit the
+generated `public/build/` output. Most rules below are enforced by
 [`eslint.config.js`](../eslint.config.js).
 
 - **Write ES2022 for new and modernized code:** `const`/`let` (`no-var`), arrow functions, template literals
   (`prefer-template`), object shorthand, and `===`/`!==` (`eqeqeq`). When you're editing a file that is *entirely*
   ES5, you may match its style for consistency — but prefer modernizing it. See the migration guidance in
-  [`CLAUDE.md`](../CLAUDE.md) (constructor-functions → `class` with `#private` fields; jQuery → native `fetch`;
-  Bootstrap → native JS/CSS as you touch that code).
+  [`CLAUDE.md`](../CLAUDE.md) (constructor-functions → `class` with `#private` fields).
 - **One declaration per statement** (`one-var: never`) — the opposite of the old comma-chained `var` style:
 
   ```js
@@ -95,9 +101,18 @@ Edit files under `src/`; never edit the generated `build/` bundles. Most rules b
   - `eslint --fix` can't do this conversion for you (`prefer-template` only fires when a variable is involved, not on
     literal-plus-literal chains), so convert concatenated HTML by hand as you touch it.
   - Anything interpolated into that markup must be escaped exactly once — `util.escapeHTML(value)`, or, for a
-    translated string, `interpolation: { escapeValue: true }` on the `i18next.t()` call (the
-    `ps/i18n-escape-in-markup` rule blocks a build that forgets). i18next interpolates values verbatim by default,
-    since most of them land in a text node: `docs/internationalization.md` → "Interpolated values and HTML".
+    translated string, `interpolation: { escapeValue: true }` on the
+    `i18next.t()` call (the `ps/i18n-escape-in-markup` rule blocks a build that forgets). i18next interpolates values
+    verbatim by default, since most of them land in a text node: `docs/internationalization.md` → "Interpolated
+    values and HTML".
+  - The `ps/escape-in-markup` lint rule enforces this: any `${…}` that ends up as HTML must be escaped unless it's
+    clearly safe (a number, a translation, an asset path, or a value from the same file it can trace). Escape where
+    the value goes into the HTML, not where it's computed. If a value really is our own markup, add
+    `// eslint-disable-next-line ps/escape-in-markup -- <why>` (inside a template: `${x /* eslint-disable-line … */}`).
+  - Text inside a `data-ps-tooltip="…"` attribute in markup needs escaping twice: use `AdminShell.tooltipAttr(…)`.
+    With `setAttribute('data-ps-tooltip', …)`, escaping once is enough.
+  - Escaping doesn't make a link safe: check that an API-supplied `href` starts with http(s).
+  - Markup you didn't write (an outside API's HTML) goes through `util.sanitizeHtml`, appended as nodes. To turn markup into plain text, use `util.htmlToText`, never a tag-stripping regex.
 - **Semicolons required** (`semi`); always parenthesize arrow-function params (`arrow-parens`).
 - **No space between a function name and its `(`**; **do** put a space before a block's `{` and around operators and
   keywords (`if`, `for`). Blank line before and after function declarations (`padding-line-between-statements`).
@@ -137,30 +152,30 @@ Edit files under `src/`; never edit the generated `build/` bundles. Most rules b
 The `public/` static-asset tree follows an industry-standard layout, settled in the #2292 reorg. Keep new files
 consistent with it.
 
-- **First-party assets split by type.** `public/js/` is **JavaScript only** — no `css/`, `img/`, or `audio/` dirs
+- **First-party assets split by type.** `frontend/js/` is **JavaScript only** — no `css/`, `img/`, or `audio/` dirs
   nested inside an app dir. Styles live in `public/css/`; media lives in `public/images/`, `public/audio/`, and
   `public/videos/`. App-private styles go to `css/pages/`, app-private images to `images/<app>/`.
 - **`public/css/` is organized by what each file is** (#5030), and its root has exactly four entries. `main.css` and
-  `fonts.css` (tokens and `.ps-*` primitives, no layout knowledge). `css/components/` holds anything more than one
-  page links, one component per file with a `ps-` or component-named class prefix (`page-shell.css` — the sidebar +
-  content + TOC template the API docs and both dashboards build on, `kpi.css`, `tables.css`, `label-detail.css`,
-  `toast.css`, …). `css/pages/` holds everything page-specific: a single file for a single page (`about.css`,
-  `auth.css`, `admin-dashboard.css`, `user-dashboard.css`, …) and a subdir for a page family with several files
-  (`pages/explore/`, `pages/validate/`, `pages/gallery/`, `pages/api-docs/`). Two rules keep the split honest, both
-  enforced by `make lint-css-layout` (`tools/check-css-layout.mjs`, a blocking CI step): every entry under `pages/`
-  is registered in the lint's `PAGES` map with the views that may link it — its own page, or for the Grunt-bundled
-  tools its own bundle (the two legacy exceptions, `homepage.css` and `auth.css`, are registered to the site-wide
-  layout) — and an unregistered file fails the lint, so when a second page needs a rule, it moves to
-  `css/components/`; and a page's class prefix (`ud-`, `ac-`/`ov-`/`dq-`/…, `svl-`, `svv-`, `gallery-`) is defined
-  only in that page's stylesheet(s). Layouts link the shell plus only the component files their pages use;
-  never `@import` (Play fingerprints per file, and an import adds a serial round trip).
+  `fonts.css` (tokens and `.ps-*` primitives, no layout knowledge). `css/components/` holds anything more than one page
+  links, one component per file with a `ps-` or component-named class prefix (`page-shell.css` — the sidebar + content +
+  TOC template the API docs, both dashboards, and the labeling guide build on, `kpi.css`, `tables.css`,
+  `label-detail.css`, `toast.css`, …). `css/pages/` holds everything page-specific: a single file for a single page
+  (`about.css`, `auth.css`, `admin-dashboard.css`, `user-dashboard.css`, …) and a subdir for a page family with several
+  files (`pages/explore/`, `pages/validate/`, `pages/gallery/`, `pages/api-docs/`). Two rules keep the split honest,
+  both enforced by `make lint-css-layout` (`tools/lint/check-css-layout.mjs`, a blocking CI step): every entry under
+  `pages/` is registered in the lint's `PAGES` map with the views that may link it — its own page, or for the
+  three bundled tools its own CSS bundle (the two legacy exceptions, `homepage.css` and `auth.css`, are registered to the
+  site-wide layout) — and an unregistered file fails the lint, so when a second page needs a rule, it moves to
+  `css/components/`; and a page's class prefix (`ud-`, `ac-`/`ov-`/`dq-`/…, `svl-`, `svv-`, `gallery-`) is defined only
+  in that page's stylesheet(s). Layouts link the shell plus only the component files their pages use; never `@import`
+  (Play fingerprints per file, and an import adds a serial round trip).
 - **Third-party code groups by library** under `public/vendor/<lib>/`, each folder self-contained (its JS + CSS +
   fonts + images together, upstream internal layout preserved so relative `url()` refs keep working). **Nothing under
   `vendor/` is ever edited or linted.** Vendored filenames carry their version (`pannellum-2.5.7.js`), which names
   in the URL what a reader would otherwise have to diff for, and keeps two versions installable side by side during
   an upgrade (see [`docs/upgrading-libraries.md`](upgrading-libraries.md)).
 - **Never hardcode an `/assets/...` URL in JavaScript** (#4893). Name the asset by its logical path under `public/`
-  and resolve it with **`util.assetPath('images/icons/openhand.cur')`** (defined in `public/js/common/utilities.js`,
+  and resolve it with **`util.assetPath('images/icons/openhand.cur')`** (defined in `frontend/js/common/utilities.js`,
   loaded on every page). Staged builds content-fingerprint assets and serve the fingerprinted copy `immutable` for a
   year; a hardcoded path gets the one-hour default, so a returning visitor re-asks about every asset once an hour and
   a swapped file reaches a cached client only after that hour. Twirl's equivalent is `assets.path(...)` — also
@@ -173,7 +188,7 @@ consistent with it.
 - **CSS files → kebab-case**, always (`labeling-guide.css`, `user-dashboard.css`, `filter-sidebar.css`).
 - **JS files → Airbnb "filename matches what it defines":** **PascalCase** for a file that defines a
   class/constructor (`AppManager.js`, `LabelPopup.js`, `GsvViewer.js`), **camelCase** for a function/utility/entry
-  file (`main.js`, `aggregateStats.js`, `timestampLocalization.js`). Kebab-case is **not** used for JS files.
+  file (`main.js`, `aggregateStats.js`, `labelMapLocationSearch.js`). Kebab-case is **not** used for JS files.
 - **HTML `id`/`class` values → kebab-case** (`page-loading`, `severity-button`, `nav-user-menu`), with two deliberate
   exceptions:
   - **BEM** element/modifier syntax is allowed — `__` for elements, `--` for modifiers
@@ -188,6 +203,13 @@ consistent with it.
   Because of those two exceptions, the htmlhint `id-class-value` rule is left **off** — its `dash` mode enforces strict
   kebab-case and can express neither BEM nor the backend-sourced values, so it can't be brought to zero. New markup
   should still default to kebab-case.
+- **State classes → `is-*`** (`is-active`, `is-open`, `is-chosen`, `is-highlighted`), toggled from JS and styled
+  scoped to their component (`.navbar-item.is-open`). A bare word like `active` is a global name that an unscoped
+  rule or a vendor library can hit. The one global state class is `.is-disabled` (below).
+- **Switched-off controls** get their "not allowed" cursor from one rule in `main.css`. A button or input takes the
+  `disabled` attribute; a control that would strand a keyboard user by losing focus when it switches itself off (the
+  pano zoom buttons) takes `aria-disabled="true"` and checks it in its click handler; anything else takes
+  `.is-disabled`.
 
 **Icons.** SVG icons live as **their own files** in `public/images/icons/` — **never inlined** in Twirl templates
 (inlined SVGs are hard to find, reuse, and review — see #4058). Default to icons from the **feather** and **material**
@@ -199,7 +221,7 @@ How to show one depends on where its color comes from:
 - **Color baked into the file: an `<img>`**, e.g.
   `<img src='@assets.path("images/icons/map-pin-feather.svg")' alt="">` (empty `alt` when the icon sits next to a
   text label). Feather/material SVGs carry a **fixed** stroke color (`#242424` for the standard dark icon), so another
-  color this way is a **separate file** with a color qualifier (`chevron-left-white-feather.svg`).
+  color this way is a **separate file** with a color qualifier (`chevron-right-white-feather.svg`).
 - **Color set in CSS: a mask.** When the color is a token or changes with state (hover, correct/incorrect,
   error/info), give an empty `<span>` the **`.ps-mask-icon`** primitive from `main.css`, then set its file with
   `mask-image` (plus the `-webkit-mask-image` copy), its size, and its `color`. One file then serves every color, as
@@ -214,16 +236,23 @@ refactor touching nearly every source line of those apps. Don't "fix" the mismat
 
 ## Scala
 
-Formatting is handled by **scalafmt** ([`.scalafmt.conf`](../.scalafmt.conf)) — run it before pushing (`scalafmtCheckAll`
-is a blocking CI gate). Conventions scalafmt doesn't cover:
+Formatting is handled by **scalafmt** ([`.scalafmt.conf`](../.scalafmt.conf)) — run `make scalafmt-fix` before
+pushing (`make scalafmt` is a blocking CI gate). Conventions scalafmt doesn't cover:
 
 - **Follow the request flow** `routes → Controller → Service → Table (DAO)`; keep controllers thin and put business
   logic in services. (See [`CLAUDE.md`](../CLAUDE.md) / [`docs/architecture.md`](architecture.md).)
 - **Declare value types where it aids clarity** — prefer `val x: Int = 5` over `val x = 5`. Use discretion when the
   type is long/uninformative (often the case with Slick types) or when an explicit annotation would push a line past
   120 chars or hurt readability.
+- **Write `given`, `using`, and `extension`, not `implicit`** — `given` for a value the compiler supplies (a JSON
+  format, a Slick mapper), `using` for a parameter that receives one, `extension` for methods added to a type. A
+  `given` defined beside the type it serves (in the type's companion, or the object the type is declared in) is found
+  with no import. Any other needs one, and a wildcard doesn't bring it in: `import X.given`, or `import X.{given, *}`
+  when the file uses the object's other names too. The one `implicit` left is Play's
+  `implicit request =>` on an action block, which has no shorter Scala 3 spelling.
 - **Use Slick for database access**, not raw SQL, wherever possible — you get compile-time type checking. When you
   must write SQL, **avoid table aliases**.
+- **Read query results by name, not by position** — return a case class rather than a tuple, so nothing reads `row._3`.
 - **Measure geographic distances geodesically** — `ST_Length(geom::geography)` in raw SQL, the `lengthGeodesic`
   extension method in Slick, turf.js on the frontend. Never measure by projecting to a fixed SRID: a projection is
   only accurate near its own meridian (measuring every city through UTM zone 18N overstated street distances by up
@@ -278,7 +307,7 @@ methods: private methods are read by the next developer, not just public API con
  *
  * Longer description if construction semantics, lifecycle, or thread-safety matter.
  *
- * @param cc  Description of constructor param (omit implicit/DI-only params).
+ * @param cc  Description of constructor param (omit `using`/DI-only params).
  */
 ```
 
@@ -287,14 +316,14 @@ Rules:
 - Use `@return` (not `@returns`) — that is the ScalaDoc standard.
 - Align `@param` descriptions when there are multiple, consistent with Play/Slick/Scala stdlib style.
 - Omit `@throws` unless the exception is part of the intentional public contract.
-- Do not document implicit params that are pure DI plumbing.
+- Do not document `using` params that are pure DI plumbing.
 - Trivial one-line helpers (simple delegators, obvious getters) may omit the header.
 
 ### JavaScript (JSDoc)
 
 Use `/** ... */` for all JSDoc. Every `class` and every non-trivial method gets one, including `#private` methods.
-The types are checked: `make lint-js-types` runs TypeScript over `public/js/`
-([`tools/check-js-types.mjs`](../tools/check-js-types.mjs)), so a type that doesn't match the code fails the build.
+The types are checked: `make lint-js-types` runs TypeScript over `frontend/js/`
+([`tools/lint/check-js-types.mjs`](../tools/lint/check-js-types.mjs)), so a type that doesn't match the code fails the build.
 
 **Method / function:**
 
@@ -329,7 +358,7 @@ Rules:
 - Use `@returns` (not `@return`) — that is the JSDoc standard (opposite of ScalaDoc).
 - Always include `{Type}` in `@param` and `@returns`.
 - Separate a `@param` name from its description with ` - `, and start `@param` and `@returns` descriptions with a
-  capital letter unless it opens with a code identifier (`this`, `true`, `jQuery`).
+  capital letter unless it opens with a code identifier (`this`, `true`, `util`).
 - Write types TypeScript-style: `object` and `string` (not `Object`/`String`), `Record<string, number>` for a map,
   and an arrow signature like `(id: number) => void` (not Closure's `function(number)`, which TypeScript can't read)
   for a callback.
@@ -342,8 +371,8 @@ Rules:
   params from a view, log notes) is `Record<string, any>`.
 - When you know more than TypeScript can see, cast in place: `/** @type {HTMLInputElement} */ (el)`. Selector lookups
   (`querySelector`, `closest`) already return `HTMLElement`; `event.target` and `getElementById` often need a cast.
-- Every file in `public/js/` is type-checked. Globals that no file in `public/js/` declares (vendor libraries,
-  values a view sets on `window`) go in [`tools/js-types/globals.d.ts`](../tools/js-types/globals.d.ts).
+- Every file in `frontend/js/` is type-checked. Globals that no file in `frontend/js/` declares (vendor libraries,
+  values a view sets on `window`) go in [`tools/lint/js-types/globals.d.ts`](../tools/lint/js-types/globals.d.ts).
 - Use `{Type} [paramName]` (square brackets) for optional parameters, and `{Type} [paramName=default]` when a
   default exists and is non-obvious.
 - Trivial one-line helpers may omit the header.

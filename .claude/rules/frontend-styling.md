@@ -10,17 +10,19 @@ Full rules: `docs/style-guide.md` (tokens, primitives, file layout, naming) and 
 
 - **Style from the `main.css` `:root` tokens and primitives.** `font: var(--text-*)` (a complete shorthand; override
   one property after it rather than dropping to raw `font-*`), `--color-*`, `--space-*`, `--border-radius*`,
-  `--box-shadow*`, `--z-index-*`; `.button-ps`, `.ps-input`, `.ps-select`, `.ps-table`. A hardcoded hex or a
-  hand-assembled font stack is a bug. `--font-size-*` / `--color-text-*` names are dead aliases, not tokens.
-- **px, never rem** (Bootstrap sets `html { font-size: 62.5% }`, so `1rem` is 10px). **Raleway is display-only and
-  never renders digits.** Breakpoints: write the px and name the `--breakpoint-*` token in a comment.
+  `--box-shadow*`, `--z-index-*`; `.button`, `.ps-input`, `.ps-select`, `.ps-table`, `.ps-container`,
+  `.ps-hidden`, `.sr-only`. A hardcoded hex or a hand-assembled font stack is a bug. `--font-size-*` /
+  `--color-text-*` names are dead aliases, not tokens.
+- **px, never rem.** **Raleway is display-only and never renders digits.** Breakpoints: write the px and name the
+  `--breakpoint-*` token in a comment.
 - **Tool UI scales:** every fixed dimension in Explore/Validate and their overlays is
   `calc(<n>px * var(--ui-scale, 1))`; fixed page chrome like the navbar stays unscaled.
 - **`public/css/` layout is linted** (`make lint-css-layout`): root holds only `main.css` + `fonts.css`;
   `components/` for anything two pages link (prefix `ps-` or component-named); `pages/` for page-specific files,
   registered in the lint's `PAGES` map and linked only by their page; a page's class prefix lives only in its own
-  stylesheet. `components/page-shell.css` is shared by the API docs and both dashboards. Never `@import`.
-- **CSS `url()` names a real file by relative path**, nothing to register. Build steps rewrite it for Grunt's bundles
+  stylesheet. `components/page-shell.css` is shared by the API docs, both dashboards, and the labeling guide. Never
+  `@import`.
+- **CSS `url()` names a real file by relative path**, nothing to register. Build steps rewrite it for the CSS bundles
   and to the fingerprinted name (`docs/deployment-and-stages.md` → "Asset caching"), and would mangle an absolute
   `/assets/` path in a bundled stylesheet. Naming a file that isn't there fails `make lint-asset-paths` and the stage
   build, so add the asset first.

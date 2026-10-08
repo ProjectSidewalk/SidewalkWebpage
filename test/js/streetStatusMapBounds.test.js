@@ -11,14 +11,9 @@
  * eval'd into scope rather than required; the static helper touches no Mapbox API, so no `mapboxgl` global is needed.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const StreetStatusMap = (0, eval)(
-  `${fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/admin-dashboard/StreetStatusMap.js'), 'utf8',
-  )}\nStreetStatusMap;`,
-);
+const StreetStatusMap = loadModules('frontend/js/admin-dashboard/StreetStatusMap.js').StreetStatusMap;
 
 /** One street as the v3 streets GeoJSON carries it: [lng, lat] pairs, in that order. */
 const feature = (coordinates) => ({ type: 'Feature', geometry: { type: 'LineString', coordinates } });

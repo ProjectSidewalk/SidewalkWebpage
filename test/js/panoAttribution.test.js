@@ -1,15 +1,15 @@
 /**
- * Tests for public/js/common/pano-viewer/src/PanoAttribution.js, the imagery-attribution overlay shown while Project
+ * Tests for frontend/js/common/pano-viewer/PanoAttribution.js, the imagery-attribution overlay shown while Project
  * Sidewalk displays its own copy of a panorama — the self-hosted Pannellum pano or the static crop (#4865).
  *
  * The line is structured by the server (holder / provider / licence / licence URL), so the overlay never has to know
  * which providers carry a licence: it links whatever licence it is handed and nothing else.
  */
 
-const fs = require('fs');
 const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const ATTRIBUTION_PATH = path.resolve(__dirname, '..', '..', 'public/js/common/pano-viewer/src/PanoAttribution.js');
+const ATTRIBUTION_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/common/pano-viewer/PanoAttribution.js');
 
 /** The one string the overlay translates: the new-tab cue on the licence link. */
 const NEW_TAB_CUE = '(opens in a new tab)';
@@ -19,8 +19,7 @@ function loadAttribution() {
   global.i18next = {
     t: (key) => (key === 'common:pano-attribution.opens-new-tab' ? NEW_TAB_CUE : `MISSING:${key}`),
   };
-  const src = fs.readFileSync(ATTRIBUTION_PATH, 'utf8');
-  return (0, eval)(`${src}\ncreatePanoAttribution;`);
+  return loadModules(ATTRIBUTION_PATH).createPanoAttribution;
 }
 
 const MAPILLARY = {
@@ -65,7 +64,7 @@ describe('createPanoAttribution', () => {
 
     const link = el().querySelector('a');
     // The cue lives inside the link so it is part of the link's accessible name, and is visually hidden by class.
-    const cue = link.querySelector('.pano-attribution__new-tab');
+    const cue = link.querySelector('.sr-only');
     expect(cue).not.toBeNull();
     expect(cue.textContent.trim()).toBe(NEW_TAB_CUE);
     expect(link.textContent).toBe(`CC BY-SA 4.0 ${NEW_TAB_CUE}`);

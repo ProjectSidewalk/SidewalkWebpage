@@ -2,7 +2,7 @@ package models.street
 
 import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.jdbc.GetResult
 
@@ -48,12 +48,11 @@ class StreetReopenCandidateTableDef(tag: Tag) extends Table[StreetReopenCandidat
   def newestCapture: Rep[Option[LocalDate]]    = column[Option[LocalDate]]("newest_capture")
   def dismissedAt: Rep[Option[OffsetDateTime]] = column[Option[OffsetDateTime]]("dismissed_at")
 
-  def * = (streetEdgeId, firstDetectedAt, lastDetectedAt, nPanos, newestCapture, dismissedAt) <> (
-    (StreetReopenCandidate.apply _).tupled,
-    StreetReopenCandidate.unapply
-  )
+  def * =
+    (streetEdgeId, firstDetectedAt, lastDetectedAt, nPanos, newestCapture, dismissedAt).mapTo[StreetReopenCandidate]
 
-  // ON DELETE CASCADE: once the street row is gone (remove_streets.sql hard delete), evidence about it is meaningless.
+  // ON DELETE CASCADE: once the street row is gone (a tools/one-off/4181-remove-streets.sql hard delete), evidence
+  // about it is meaningless.
   def streetEdge =
     foreignKey("street_reopen_candidate_street_edge_id_fkey", streetEdgeId, TableQuery[StreetEdgeTableDef])(
       _.streetEdgeId,
@@ -79,7 +78,7 @@ class StreetReopenCandidateTable @Inject() (protected val dbConfigProvider: Data
 
   val reopenCandidates = TableQuery[StreetReopenCandidateTableDef]
 
-  implicit private val getCandidateForReview: GetResult[ReopenCandidateForReview] = GetResult { r =>
+  private given getCandidateForReview: GetResult[ReopenCandidateForReview] = { r =>
     ReopenCandidateForReview(
       r.nextInt(),
       r.nextInt(),

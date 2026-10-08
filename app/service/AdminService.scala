@@ -1,13 +1,21 @@
 package service
 
 import com.google.inject.ImplementedBy
-import models.audit._
-import models.label.{LabelAiAssessmentTable, LabelCount, LabelTable, TagCount}
+import models.audit.*
+import models.label.{
+  LabelAiAssessmentTable,
+  LabelCount,
+  LabelPanoMetadata,
+  LabelTable,
+  SeverityCountByAuthorRole,
+  TagCount,
+  TagSeverityCountRow,
+  UserSeverityCount
+}
 import models.mission.MissionTable
-import models.pano.PanoSource.PanoSource
 import models.region.Region
 import models.street.StreetEdgeTable
-import models.user._
+import models.user.*
 import models.utils.CommonUtils.METERS_TO_MILES
 import models.utils.{
   ApiDailySourceCount,
@@ -17,21 +25,71 @@ import models.utils.{
   FunnelStat,
   FunnelStatTable,
   MyPostgresProfile,
+  NamedEnum,
+  NamedEnumCompanion,
   WebpageActivityTable
 }
 import models.validation.{LabelValidationTable, ValidationCount, ValidationOption, ValidationTaskCommentTable}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.dbio.DBIO
 
-import java.time.{LocalDate, OffsetDateTime}
-import javax.inject._
+import java.time.temporal.ChronoUnit
+import java.time.{LocalDate, OffsetDateTime, ZoneId, ZonedDateTime}
+import javax.inject.*
 import scala.concurrent.{ExecutionContext, Future}
 
-object TimeInterval extends Enumeration {
-  type TimeInterval = Value
-  val AllTime = Value("all_time")
-  val Week    = Value("week")
-  val Today   = Value("today")
+/** A window of time that the admin page reports stats over. `name` is how it is written in JSON. */
+enum TimeInterval(val name: String) extends NamedEnum {
+  case AllTime extends TimeInterval("all_time")
+  case Week    extends TimeInterval("week")
+  case Today   extends TimeInterval("today")
+}
+
+/** Limits on how much the admin dashboard feeds can ask for, so an odd `n` in the URL can't error or load everything. */
+object AdminService {
+
+  /** How many recent comments the activity feed pulls in; the feed itself is capped to match. */
+  val RecentCommentLimit: Int = 100
+
+  /** Largest recent-activity feed; any longer and older comments would go missing between newer labels. */
+  val MaxRecentActivity: Int = RecentCommentLimit
+
+  /** Largest contributor leaderboard. */
+  val MaxLeaderboardRows: Int = 100
+
+  /** Keeps a requested feed length between 1 and [[MaxRecentActivity]]. */
+  def clampRecentActivity(n: Int): Int = math.max(1, math.min(MaxRecentActivity, n))
+
+  /** Keeps a requested leaderboard length between 1 and [[MaxLeaderboardRows]]. */
+  def clampLeaderboardRows(n: Int): Int = math.max(1, math.min(MaxLeaderboardRows, n))
+}
+
+object TimeInterval extends NamedEnumCompanion[TimeInterval] {
+
+  /**
+   * When the interval starts: midnight Pacific for today, seven days ago for the week.
+   *
+   * @return The start, or None for all time.
+   */
+  def start(interval: TimeInterval): Option[OffsetDateTime] = interval match {
+    case Today =>
+      Some(ZonedDateTime.now(ZoneId.of("America/Los_Angeles")).truncatedTo(ChronoUnit.DAYS).toOffsetDateTime)
+    case Week    => Some(OffsetDateTime.now().minusDays(7))
+    case AllTime => None
+  }
+
+  /**
+   * The same window as [[start]], as a raw-SQL condition on a timestamp column.
+   *
+   * @param column A timestamp column, written in code.
+   * @return A condition keeping rows in the interval; `TRUE` for all time.
+   */
+  def sqlFilter(interval: TimeInterval, column: String): String = interval match {
+    case Today =>
+      s"$column >= date_trunc('day', NOW() AT TIME ZONE 'America/Los_Angeles') AT TIME ZONE 'America/Los_Angeles'"
+    case Week    => s"$column >= NOW() - INTERVAL '7 days'"
+    case AllTime => "TRUE"
+  }
 }
 
 /** Source-split v3 API usage, assembled for the admin API Analytics page. */
@@ -100,12 +158,6 @@ case class RecentActivityItem(
 )
 
 /**
- * The pano + point-of-view metadata needed to build a preview-image URL for one label (a saved crop or a Street View
- * Static thumbnail). Carried alongside a recent-activity item so the admin Activity feed can show a thumbnail.
- */
-case class LabelThumbnailMeta(panoId: String, panoSource: PanoSource, heading: Double, pitch: Double, zoom: Double)
-
-/**
  * A compact "who is this contributor" summary for annotating a recent-activity item: their role plus how much they've
  * contributed overall. Lets the admin Activity feed say a bit about each person, not just the single action shown.
  *
@@ -113,7 +165,7 @@ case class LabelThumbnailMeta(panoId: String, panoSource: PanoSource, heading: D
  * @param labels      Total labels they've placed (same base as the Contributors page, so the numbers agree).
  * @param validations Total validations they've performed.
  */
-case class UserSummary(role: Role.Value, labels: Int, validations: Int)
+case class UserSummary(role: Role, labels: Int, validations: Int)
 
 /**
  * One row of the Contributors page's "Top labelers" leaderboard: a prolific labeler with the breakdowns that reveal
@@ -125,7 +177,7 @@ case class UserSummary(role: Role.Value, labels: Int, validations: Int)
 case class LabelerLeaderboardEntry(
     userId: String,
     username: String,
-    role: Role.Value,
+    role: Role,
     labels: Int,
     ownValidated: Int,
     ownValidatedAgreedPct: Double,
@@ -141,7 +193,7 @@ case class LabelerLeaderboardEntry(
 case class ValidatorLeaderboardEntry(
     userId: String,
     username: String,
-    role: Role.Value,
+    role: Role,
     validations: Int,
     agree: Int,
     disagree: Int,
@@ -286,7 +338,7 @@ trait AdminService {
   def getContributionTimeStats: Future[Seq[ContributionTimeStat]]
   def getRecentExploreAndValidateComments: Future[Seq[GenericComment]]
   def getRecentActivity(n: Int): Future[Seq[RecentActivityItem]]
-  def getLabelThumbnailMeta(labelIds: Seq[Int]): Future[Map[Int, LabelThumbnailMeta]]
+  def getLabelThumbnailMeta(labelIds: Seq[Int]): Future[Map[Int, LabelPanoMetadata]]
   def getUserSummaries(usernames: Seq[String]): Future[Map[String, UserSummary]]
   def getContributorLeaderboards(n: Int): Future[ContributorLeaderboards]
   def getHumanVsAiStats: Future[HumanVsAiStats]
@@ -329,9 +381,9 @@ class AdminServiceImpl @Inject() (
     webpageActivityTable: WebpageActivityTable,
     teamTable: TeamTable,
     funnelStatTable: FunnelStatTable,
-    configService: ConfigService,
-    implicit val ec: ExecutionContext
-) extends AdminService
+    configService: ConfigService
+)(using ec: ExecutionContext)
+    extends AdminService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   // Trailing window for the Overview page's API-usage KPI; matches the API Analytics page's default range.
@@ -369,10 +421,10 @@ class AdminServiceImpl @Inject() (
       newUsers    <- newUsersFut
     } yield {
       def toDayMap(rows: Seq[(OffsetDateTime, Int)]): Map[LocalDate, Int] =
-        rows.map(r => r._1.toLocalDate -> r._2).toMap
+        rows.map { case (day, count) => day.toLocalDate -> count }.toMap
       // The anon-split series carry an isAnonymous flag; partition into two single-valued maps keyed by day.
-      def splitMap(rows: Seq[(OffsetDateTime, Boolean, Int)], anon: Boolean): Map[LocalDate, Int] =
-        rows.filter(_._2 == anon).map(r => r._1.toLocalDate -> r._3).toMap
+      def splitMap(rows: Seq[models.utils.DailyCountByAnon], anon: Boolean): Map[LocalDate, Int] =
+        rows.filter(_.isAnonymous == anon).map(r => r.day.toLocalDate -> r.count).toMap
 
       val labelMap      = toDayMap(labels)
       val validationMap = toDayMap(validations)
@@ -414,10 +466,12 @@ class AdminServiceImpl @Inject() (
   def getTagSeverityCounts: Future[Seq[TagSeverityCount]] = {
     db.run(labelTable.getTagSeverityCounts).map { rows =>
       rows
-        .collect { case (labelType, tag, Some(sev), count) => (labelType, tag, math.min(3, math.max(1, sev)), count) }
+        .collect { case TagSeverityCountRow(labelType, tag, Some(sev), count) =>
+          (labelType, tag, math.min(3, math.max(1, sev)), count)
+        }
         .groupBy { case (labelType, tag, severity, _) => (labelType, tag, severity) }
         .map { case ((labelType, tag, severity), group) =>
-          TagSeverityCount(labelType, tag, severity, group.map(_._4).sum)
+          TagSeverityCount(labelType, tag, severity, group.map { case (_, _, _, count) => count }.sum)
         }
         .toSeq
     }
@@ -473,14 +527,14 @@ class AdminServiceImpl @Inject() (
   }
 
   /**
-   * Gets the 100 most recent comments made through either the Explore or (any) Validate page.
+   * Gets the [[AdminService.RecentCommentLimit]] most recent comments from the Explore or (any) Validate page.
    */
   def getRecentExploreAndValidateComments: Future[Seq[GenericComment]] = {
     db.run(for {
-      exploreComments  <- auditTaskCommentTable.getRecentExploreComments(100)
-      validateComments <- validationTaskCommentTable.getRecentValidateComments(100)
+      exploreComments  <- auditTaskCommentTable.getRecentExploreComments(AdminService.RecentCommentLimit)
+      validateComments <- validationTaskCommentTable.getRecentValidateComments(AdminService.RecentCommentLimit)
     } yield {
-      (exploreComments ++ validateComments).sortBy(_.timestamp).reverse.take(100)
+      (exploreComments ++ validateComments).sortBy(_.timestamp).reverse.take(AdminService.RecentCommentLimit)
     })
   }
 
@@ -491,28 +545,30 @@ class AdminServiceImpl @Inject() (
    * Each source is queried for its own `n` most-recent rows in parallel, then the union is re-sorted by timestamp and
    * trimmed to `n` so the result is the true `n` most-recent contributions across all three kinds.
    *
-   * @param n Number of stream items to return.
+   * @param n Number of stream items to return; kept within 1 to [[AdminService.MaxRecentActivity]].
    * @return Recent activity items, most recent first.
    */
   def getRecentActivity(n: Int): Future[Seq[RecentActivityItem]] = {
-    val labelsFut   = db.run(labelTable.getRecentLabels(n))
-    val valsFut     = db.run(labelValidationTable.getRecentValidations(n))
+    val limit       = AdminService.clampRecentActivity(n)
+    val labelsFut   = db.run(labelTable.getRecentLabels(limit))
+    val valsFut     = db.run(labelValidationTable.getRecentValidations(limit))
     val commentsFut = getRecentExploreAndValidateComments
     for {
       labels   <- labelsFut
       vals     <- valsFut
       comments <- commentsFut
     } yield {
-      val labelItems = labels.map { case (labelId, labelType, username, ts) =>
-        RecentActivityItem("label", username, ts, Some(labelId), Some(labelType), None, None)
+      val labelItems = labels.map { l =>
+        RecentActivityItem("label", l.username, l.timeCreated, Some(l.labelId), Some(l.labelType), None, None)
       }
-      val validationItems = vals.map { case (labelId, labelType, username, result, ts) =>
-        RecentActivityItem("validation", username, ts, Some(labelId), Some(labelType), Some(result.toString), None)
+      val validationItems = vals.map { v =>
+        val result = Some(v.validationResult.name)
+        RecentActivityItem("validation", v.username, v.endTimestamp, Some(v.labelId), Some(v.labelType), result, None)
       }
       val commentItems = comments.map { c =>
         RecentActivityItem("comment", c.username, c.timestamp, c.labelId, None, None, Some(c.comment))
       }
-      (labelItems ++ validationItems ++ commentItems).sortBy(_.timestamp).reverse.take(n)
+      (labelItems ++ validationItems ++ commentItems).sortBy(_.timestamp).reverse.take(limit)
     }
   }
 
@@ -523,14 +579,9 @@ class AdminServiceImpl @Inject() (
    * @param labelIds Label ids to fetch metadata for (typically a recent-activity batch).
    * @return Map of label id to its thumbnail metadata; ids without point/pano rows are simply absent.
    */
-  def getLabelThumbnailMeta(labelIds: Seq[Int]): Future[Map[Int, LabelThumbnailMeta]] = {
+  def getLabelThumbnailMeta(labelIds: Seq[Int]): Future[Map[Int, LabelPanoMetadata]] = {
     if (labelIds.isEmpty) Future.successful(Map.empty)
-    else
-      db.run(labelTable.getPanoMetadataForLabels(labelIds)).map { rows =>
-        rows.map { case (id, panoId, source, heading, pitch, zoom) =>
-          id -> LabelThumbnailMeta(panoId, source, heading, pitch, zoom)
-        }.toMap
-      }
+    else db.run(labelTable.getPanoMetadataForLabels(labelIds)).map(_.map(meta => meta.labelId -> meta).toMap)
   }
 
   /**
@@ -546,16 +597,16 @@ class AdminServiceImpl @Inject() (
     if (distinct.isEmpty) Future.successful(Map.empty)
     else
       db.run(sidewalkUserTable.getUserIdAndRoleByUsernames(distinct)).flatMap { idRoles =>
-        val userIds = idRoles.map(_._2)
+        val userIds = idRoles.map(_.userId)
         db.run(
           labelTable.countLabelsForUsers(userIds) zip labelValidationTable.getValidationResultCountsForUsers(userIds)
         ).map { case (labelCounts, valCounts) =>
           val labelByUser: Map[String, Int] = labelCounts.toMap
           // getValidationResultCountsForUsers is split by verdict; sum the verdicts for each user's validation total.
           val valByUser: Map[String, Int] =
-            valCounts.groupBy(_._1).map { case (userId, rows) => userId -> rows.map(_._3).sum }
-          idRoles.map { case (username, userId, role) =>
-            username -> UserSummary(role, labelByUser.getOrElse(userId, 0), valByUser.getOrElse(userId, 0))
+            valCounts.groupBy(_.userId).map { case (userId, rows) => userId -> rows.map(_.count).sum }
+          idRoles.map { u =>
+            u.username -> UserSummary(u.role, labelByUser.getOrElse(u.userId, 0), valByUser.getOrElse(u.userId, 0))
           }.toMap
         }
       }
@@ -569,13 +620,14 @@ class AdminServiceImpl @Inject() (
    * mix, severity distribution, validation-result split) are then queried only for the ranked users, so those joins
    * stay scoped to ~`n` ids rather than the whole user base.
    *
-   * @param n Number of rows per leaderboard.
+   * @param n Number of rows per leaderboard; kept within 1 to [[AdminService.MaxLeaderboardRows]].
    * @return The two assembled leaderboards.
    */
   def getContributorLeaderboards(n: Int): Future[ContributorLeaderboards] = {
+    val limit = AdminService.clampLeaderboardRows(n)
     getUserStatsForAdminPage.flatMap { stats =>
-      val topLabelers   = stats.filter(_.labels > 0).sortBy(-_.labels).take(n)
-      val topValidators = stats.filter(_.othersValidated > 0).sortBy(-_.othersValidated).take(n)
+      val topLabelers   = stats.filter(_.labels > 0).sortBy(-_.labels).take(limit)
+      val topValidators = stats.filter(_.othersValidated > 0).sortBy(-_.othersValidated).take(limit)
       val labelerIds    = topLabelers.map(_.userId)
       val validatorIds  = topValidators.map(_.userId)
 
@@ -590,14 +642,16 @@ class AdminServiceImpl @Inject() (
       } yield {
         // Group each breakdown by user, sorting type counts by frequency (desc) and severities by rating (asc).
         val typesByUser: Map[String, Seq[(String, Int)]] =
-          typeCounts.groupBy(_._1).map { case (u, rows) => u -> rows.map(r => (r._2, r._3)).sortBy(-_._2) }
+          typeCounts.groupBy(_.userId).map { case (u, rows) =>
+            u -> rows.map(r => (r.labelType, r.count)).sortBy { case (_, count) => -count }
+          }
         val sevByUser: Map[String, Seq[(Int, Int)]] =
           sevCounts
-            .collect { case (u, Some(s), c) => (u, s, c) }
-            .groupBy(_._1)
-            .map { case (u, rows) => u -> rows.map(r => (r._2, r._3)).sortBy(_._1) }
-        val resultsByUser: Map[String, Seq[(ValidationOption.Value, Int)]] =
-          valCounts.groupBy(_._1).map { case (u, rows) => u -> rows.map(r => (r._2, r._3)) }
+            .collect { case UserSeverityCount(u, Some(s), c) => (u, s, c) }
+            .groupBy { case (u, _, _) => u }
+            .map { case (u, rows) => u -> rows.map { case (_, s, c) => (s, c) }.sortBy { case (s, _) => s } }
+        val resultsByUser: Map[String, Seq[(ValidationOption, Int)]] =
+          valCounts.groupBy(_.userId).map { case (u, rows) => u -> rows.map(r => (r.validationResult, r.count)) }
 
         val labelers = topLabelers.map { u =>
           LabelerLeaderboardEntry(
@@ -613,8 +667,8 @@ class AdminServiceImpl @Inject() (
           )
         }
         val validators = topValidators.map { u =>
-          val counts                             = resultsByUser.getOrElse(u.userId, Seq.empty)
-          def of(result: ValidationOption.Value) = counts.find(_._1 == result).map(_._2).getOrElse(0)
+          val counts                       = resultsByUser.getOrElse(u.userId, Seq.empty)
+          def of(result: ValidationOption) = counts.collectFirst { case (`result`, count) => count }.getOrElse(0)
           ValidatorLeaderboardEntry(u.userId, u.username, u.role, u.othersValidated, of(ValidationOption.Agree),
             of(ValidationOption.Disagree), of(ValidationOption.Unsure), u.othersValidatedAgreedPct)
         }
@@ -656,16 +710,14 @@ class AdminServiceImpl @Inject() (
 
       def labelerGroup(isAi: Boolean, name: String): HumanAiLabelerStats = {
         val types = labelStats
-          .collect {
-            case (g, lt, total, validated, correct) if g == isAi => HumanAiTypeStat(lt, total, validated, correct)
-          }
+          .filter(_.isAi == isAi)
+          .map(s => HumanAiTypeStat(s.labelType, s.total, s.validated, s.correct))
           .sortBy(-_.count)
         val severityCounts: Seq[(Int, Int)] = sev
-          .collect { case (g, Some(s), c) if g == isAi => (clampSeverity(s), c) }
-          .groupBy(_._1)
-          .map { case (rating, rows) => (rating, rows.map(_._2).sum) }
+          .collect { case SeverityCountByAuthorRole(g, Some(s), c) if g == isAi => (clampSeverity(s), c) }
+          .groupMapReduce { case (rating, _) => rating } { case (_, count) => count }(_ + _)
           .toSeq
-          .sortBy(_._1)
+          .sortBy { case (rating, _) => rating }
         HumanAiLabelerStats(
           name,
           types.map(_.count).sum,
@@ -677,16 +729,17 @@ class AdminServiceImpl @Inject() (
       }
 
       def validatorGroup(isAi: Boolean, name: String): HumanAiValidatorStats = {
-        def of(result: ValidationOption.Value): Int = vals.collect {
-          case (g, r, c) if g == isAi && r == result => c
-        }.sum
+        def of(result: ValidationOption): Int =
+          vals.filter(v => v.isAi == isAi && v.validationResult == result).map(_.count).sum
         val agree    = of(ValidationOption.Agree)
         val disagree = of(ValidationOption.Disagree)
         val unsure   = of(ValidationOption.Unsure)
         HumanAiValidatorStats(name, agree + disagree + unsure, agree, disagree, unsure)
       }
 
-      val tagger = HumanAiTaggerStats(taggerSummary._1, taggerSummary._2, aiTags.sortBy(-_._2), humanTags.sortBy(-_._2))
+      val (labelsAssessed, avgConfidence)              = taggerSummary
+      def mostUsedFirst(tagCounts: Seq[(String, Int)]) = tagCounts.sortBy { case (_, count) => -count }
+      val tagger = HumanAiTaggerStats(labelsAssessed, avgConfidence, mostUsedFirst(aiTags), mostUsedFirst(humanTags))
 
       HumanVsAiStats(
         labelers = Seq(labelerGroup(isAi = false, "human"), labelerGroup(isAi = true, "ai")),
@@ -805,18 +858,15 @@ class AdminServiceImpl @Inject() (
       othersValidatedCounts: Map[String, (Int, Int)] <- labelValidationTable.getValidatedCountsPerUser.map(_.toMap)
       // Map(user_id: String -> (high_quality: Boolean, high_quality_manual: Option[Boolean])).
       userHighQuality: Map[String, (Boolean, Option[Boolean])] <- userStatTable.getUserQuality
-        .map(_.map(t => t._1 -> (t._2, t._3)).toMap)
+        .map(_.map { case (userId, highQuality, manual) => userId -> (highQuality, manual) }.toMap)
       users: Seq[SidewalkUserWithRole] <- userStatTable.usersMinusAnonUsersWithNoLabelsAndNoValidations
     } yield {
       // Now left join them all together and put into UserStatsForAdminPage objects.
       users.map { user =>
-        val ownValidatedCounts = validatedCounts.getOrElse(user.userId, (0, 0))
-        val ownValidatedTotal  = ownValidatedCounts._1
-        val ownValidatedAgreed = ownValidatedCounts._2
-
-        val otherValidatedCounts = othersValidatedCounts.getOrElse(user.userId, (0, 0))
-        val otherValidatedTotal  = otherValidatedCounts._1
-        val otherValidatedAgreed = otherValidatedCounts._2
+        val (ownValidatedTotal, ownValidatedAgreed)     = validatedCounts.getOrElse(user.userId, (0, 0))
+        val (otherValidatedTotal, otherValidatedAgreed) = othersValidatedCounts.getOrElse(user.userId, (0, 0))
+        val (signInCount, lastSignInTime)               = signInTimesAndCounts.getOrElse(user.userId, (0, None))
+        val (highQuality, highQualityManual)            = userHighQuality.getOrElse(user.userId, (true, None))
 
         val ownValidatedAgreedPct =
           if (ownValidatedTotal == 0) 0d
@@ -833,15 +883,15 @@ class AdminServiceImpl @Inject() (
           role = user.role,
           team = userTeams.get(user.userId),
           signUpTime = signUpTimes.get(user.userId).flatten,
-          lastSignInTime = signInTimesAndCounts.get(user.userId).flatMap(_._2),
-          signInCount = signInTimesAndCounts.get(user.userId).map(_._1).getOrElse(0),
+          lastSignInTime = lastSignInTime,
+          signInCount = signInCount,
           labels = labelCounts.getOrElse(user.userId, 0),
           ownValidated = ownValidatedTotal,
           ownValidatedAgreedPct = ownValidatedAgreedPct,
           othersValidated = otherValidatedTotal,
           othersValidatedAgreedPct = otherValidatedAgreedPct,
-          highQuality = userHighQuality.get(user.userId).map(_._1).getOrElse(true),
-          highQualityManual = userHighQuality.get(user.userId).flatMap(_._2)
+          highQuality = highQuality,
+          highQualityManual = highQualityManual
         )
       }
     })

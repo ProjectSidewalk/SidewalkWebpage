@@ -1,13 +1,12 @@
 package models.street
 
 import models.label.StreetSide
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import org.scalatest.OptionValues
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import util.{RolledBackDb, StreetFixtures}
+import util.{RolledBackDb, SidewalkSpec, StreetFixtures}
 
 import scala.io.Source
 
@@ -21,18 +20,17 @@ import scala.io.Source
  * an existing label's task, mission and pano for their foreign keys, so a schema without any label (CI's) cancels
  * the label-bearing cases rather than failing them.
  *
- * A [[util.StreetFixtures.insertUser]] mapper has no `user_stat` row, which the derivation reads as not-excluded, so
- * every case here counts unless it calls `excludeUser`.
+ * Every seeded mapper counts unless the case calls `excludeUser`.
  */
 class SidewalkPresenceTableSpec
-    extends PlaySpec
+    extends SidewalkSpec
     with GuiceOneAppPerSuite
     with RolledBackDb
     with StreetFixtures
     with OptionValues {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private lazy val table: SidewalkPresenceTable = app.injector.instanceOf[SidewalkPresenceTable]
 
@@ -60,11 +58,13 @@ class SidewalkPresenceTableSpec
     val tagsLiteral = tags.map(t => s"'${t.replace("'", "''")}'").mkString("ARRAY[", ", ", "]::text[]")
     for {
       labelId <- sql"""INSERT INTO label (label_id, audit_task_id, mission_id, user_id, pano_id, label_type, deleted,
-                                          temporary_label_id, time_created, tutorial, street_edge_id, tags, correct)
+                                          temporary_label_id, time_created, tutorial, street_edge_id, tags, correct,
+                                          deleted_by, deleted_source)
                        SELECT (SELECT COALESCE(MAX(label_id), 0) + 1 FROM label), audit_task_id, mission_id, $userId,
                               pano_id, CAST($labelType AS label_type), $deleted, 0,
                               now() - make_interval(days => $daysAgo), $tutorial, $streetEdgeId, #$tagsLiteral,
-                              $correct
+                              $correct, CASE WHEN $deleted THEN $userId END,
+                              CASE WHEN $deleted THEN 'Explore'::ui_source END
                        FROM label
                        LIMIT 1
                        RETURNING label_id""".as[Int].headOption
@@ -77,7 +77,7 @@ class SidewalkPresenceTableSpec
     } yield labelId.get
   }
 
-  private def facesOf(streetEdgeId: Int): DBIO[Map[StreetSide.Value, SidewalkPresence]] =
+  private def facesOf(streetEdgeId: Int): DBIO[Map[StreetSide, SidewalkPresence]] =
     table.sidewalkPresence.filter(_.streetEdgeId === streetEdgeId).result.map(_.map(f => f.streetSide -> f).toMap)
 
   /** The data statements (the `WITH … INSERT` derivation) of one half of evolution 388, comments stripped. */

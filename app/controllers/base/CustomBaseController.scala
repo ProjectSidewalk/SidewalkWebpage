@@ -5,9 +5,10 @@ import org.apache.pekko.stream.scaladsl.Source
 import play.api.Logger
 import play.api.http.ContentTypes
 import controllers.AssetsFinder
+import models.utils.IpAddress
 import play.api.i18n.{I18nSupport, Messages}
 import play.api.libs.json.JsObject
-import play.api.mvc._
+import play.api.mvc.*
 
 import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success}
@@ -31,7 +32,7 @@ abstract class CustomBaseController(cc: CustomControllerComponents)
 
   // Adds a ipAddress method to RequestHeader for easy access to the client's IP address.
   // See: https://github.com/ProjectSidewalk/SidewalkWebpage/issues/465
-  implicit class RequestHeaderExtensions(request: RequestHeader) {
+  extension (request: RequestHeader) {
 
     /**
      * The client IP as resolved by Play's forwarded-header processing (`play.http.forwarded.*` in application.conf):
@@ -39,9 +40,17 @@ abstract class CustomBaseController(cc: CustomControllerComponents)
      * from 127.0.0.1 and appends the true client IP) and yields the first untrusted hop. Unlike taking the header's
      * first value, a client-supplied X-Forwarded-For cannot spoof this, so it is safe to key rate limits on (#1102).
      * With no proxy in front (dev/Docker), it is simply the TCP peer address.
+     *
+     * Drops an IPv6 zone suffix like `%eth0` (rare), because the database won't accept it as an IP.
      */
-    def ipAddress: String = request.remoteAddress
+    def ipAddress: IpAddress = IpAddress(request.remoteAddress.takeWhile(_ != '%'))
   }
+
+  /**
+   * A response the browser must never serve from its cache (#5650): the tool pages and the session data they fetch,
+   * so a back/forward navigation can't resurrect a mission or task the user already worked through.
+   */
+  protected def noStore(result: Result): Result = result.withHeaders(CACHE_CONTROL -> "no-store")
 
   /**
    * Attaches failure logging to a streaming response body.
@@ -61,9 +70,9 @@ abstract class CustomBaseController(cc: CustomControllerComponents)
    *                     leaving the page mid-load is routine.
    * @return             The same source, with logging attached.
    */
-  protected def logStreamFailures(source: Source[String, _], label: String, warnOnCutOff: Boolean = true)(implicit
+  protected def logStreamFailures(source: Source[String, ?], label: String, warnOnCutOff: Boolean = true)(using
       ec: ExecutionContext
-  ): Source[String, _] = {
+  ): Source[String, ?] = {
     val startedAt  = System.nanoTime()
     var chunks     = 0L
     var chars      = 0L
@@ -105,7 +114,7 @@ abstract class CustomBaseController(cc: CustomControllerComponents)
    * @param features A source of serialized GeoJSON Feature objects.
    * @return         The same features framed as a `{"type":"FeatureCollection","features":[...]}` document.
    */
-  protected def geoJsonFeatureCollection(features: Source[String, _]): Source[String, _] =
+  protected def geoJsonFeatureCollection(features: Source[String, ?]): Source[String, ?] =
     features.intersperse("""{"type":"FeatureCollection","features":[""", ",", "]}")
 
   /**
@@ -118,8 +127,8 @@ abstract class CustomBaseController(cc: CustomControllerComponents)
    * @param features A source of GeoJSON Feature objects, e.g. a streamed db query mapped through a serializer.
    * @param label    A short identifier (e.g. the endpoint path) included in the log line if the stream fails.
    */
-  protected def streamGeoJson(features: Source[JsObject, _], label: String)(implicit ec: ExecutionContext): Result = {
-    val jsonSource: Source[String, _] =
+  protected def streamGeoJson(features: Source[JsObject, ?], label: String)(using ec: ExecutionContext): Result = {
+    val jsonSource: Source[String, ?] =
       geoJsonFeatureCollection(logStreamFailures(features.map(_.toString), label, warnOnCutOff = false))
     Ok.chunked(jsonSource).as(ContentTypes.JSON)
   }
@@ -129,7 +138,7 @@ abstract class CustomBaseController(cc: CustomControllerComponents)
    *
    * @param path The path that matched nothing, echoed back on the page.
    */
-  protected def notFoundPage(path: String)(implicit messages: Messages, assets: AssetsFinder): Result = {
+  protected def notFoundPage(path: String)(using messages: Messages, assets: AssetsFinder): Result = {
     NotFound(
       views.html.errors.errorPage(
         NOT_FOUND,

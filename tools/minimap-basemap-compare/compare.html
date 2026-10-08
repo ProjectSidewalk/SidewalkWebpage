@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <!--
-  Minimap basemap comparison page (#5429). record.mjs serves it, and public/ beside it, under /__compare/ on the dev
-  app's origin through Playwright routing: the origin is what the Maps key's referrer allowlist accepts, and the files
+  Minimap basemap comparison page (#5429). record.mjs serves it, with public/ and frontend/ beside it, under
+  /__compare/ on the dev app's origin through Playwright routing: the origin is what the Maps key's referrer allowlist accepts, and the files
   come from this checkout, not from whatever branch the dev app runs. Relative URLs keep every request under that
   prefix. Never linked from the app; not part of any bundle or test suite.
 
@@ -27,13 +27,12 @@
       v: "weekly"
     });
   </script>
-  <script src="js/explore/src/navigation/MinimapStyle.js"></script>
-  <script src="js/explore/src/navigation/MinimapBasemapStyle.js"></script>
 </head>
 <body>
   <div id="google" class="pane"></div><div id="maplibre" class="pane"></div>
-  <script>
-    'use strict';
+  <script type="module">
+    // The branch's style sources, as the modules they are; record.mjs serves frontend/ beside public/ for this import.
+    import { MinimapBasemapStyle } from './frontend/js/explore/navigation/MinimapBasemapStyle.js';
 
     /**
      * Drives the two panes for record.mjs. Each pane holds one map for the whole run and is re-centered per shot,

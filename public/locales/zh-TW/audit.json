@@ -158,12 +158,23 @@
     "route-unavailable": {
       "message": "找不到這條路線，可能已被刪除。"
     },
+    "region-finished": {
+      "message": "你已經探索過那個社區的每一條街道，所以我們把你移到了{{regionName}}。"
+    },
     "reaudit": {
       "title": "這條街道有更新的街景影像",
-      "message-you": "你上次標註這條街道是在 {{lastMapped}}，但影像之後已更新（{{newImagery}}）。一起來看看有什麼改變吧！",
-      "message-you-no-dates": "你先前標註過這條街道，但影像之後已更新。一起來看看有什麼改變吧！",
-      "message-others": "另一位使用者在 {{lastMapped}} 標註過這條街道，但影像之後已更新（{{newImagery}}）。一起來看看有什麼改變吧！",
-      "message-others-no-dates": "另一位使用者先前標註過這條街道，但影像之後已更新。一起來看看有什麼改變吧！"
+      "message-you": "你上次評估這條街道是在 {{lastMapped}}，但影像之後已更新（{{newImagery}}）。請再次評估這條街道，幫助我們分析有哪些改變。",
+      "message-you-no-dates": "你先前評估過這條街道，但影像之後已更新。請再次評估這條街道，幫助我們分析有哪些改變。",
+      "message-others": "這條街道上次評估是在 {{lastMapped}}，但影像之後已更新（{{newImagery}}）。請再次評估這條街道，幫助我們分析有哪些改變。",
+      "message-others-no-dates": "這條街道先前評估過，但影像之後已更新。請再次評估這條街道，幫助我們分析有哪些改變。"
+    },
+    "pano-date-note": {
+      "image-date": "影像：{{date}}",
+      "needs-reassessment": "需要重新評估",
+      "already-assessed": "已評估",
+      "already-assessed-tip": "你上次評估這個地點是在 {{assessedDate}}，這裡的影像（{{captureDate}}）自那次評估後沒有變更。如果你發現什麼，歡迎新增標記！",
+      "needs-reassessment-tip-you": "你上次評估這個地點是在 {{assessedDate}}，但這裡的影像更新（{{captureDate}}）。請再次評估，幫助我們分析有哪些改變。",
+      "needs-reassessment-tip-others": "有使用者在 {{assessedDate}} 最後一次評估這個地點，但這裡的影像更新（{{captureDate}}）。請再次評估，幫助我們分析有哪些改變。"
     },
     "minimap": {
       "attribution-toggle": "地圖資料來源",
@@ -182,10 +193,13 @@
       "legend-crumbs": "圓圈：可點選前往的位置",
       "legend-unseen": "尚未查看",
       "forward-crumb-title": "前往第 {{rank}} 站",
+      "legend-earlier-labels": "我先前的標記",
       "link-crumb-title": "前往此全景",
       "route-stop-title": "路線上的第 {{rank}} 站",
       "breadcrumb-title": "已造訪：點擊返回此處",
       "label-marker-title": "{{labelType}} 標記：點擊查看",
+      "label-marker-title-prior": "來自先前任務的「{{labelType}}」標記",
+      "label-marker-title-outdated": "「{{labelType}}」舊標記（此街道已有新影像）",
       "route-start-flag": "路線起點",
       "route-finish-flag": "路線終點",
       "mission-start-flag": "本次任務的起點",
@@ -350,7 +364,7 @@
     "still-stuck": "若您仍卡住無法動彈，請再次點選「卡住」鍵。",
     "stuck-skipped-street": "這條街道沒有我們可以顯示的影像，因此我們已將您移至新的街道。",
     "stuck-skipped-street-named": "這條街道沒有我們可以顯示的影像，因此我們已將您移至<b>{{streetName}}</b>。",
-    "free-explore-start": "您已被帶到搜尋地址的附近。請環顧四周並標記您發現的問題！",
+    "free-explore-start": "您正從這裡自由探索。請環顧四周並標記您發現的問題！",
     "free-explore-start-named": "您已降落在 <b>{{placeName}}</b> 附近。四處看看，標記您發現的問題！",
     "free-explore-no-imagery": "這個方向沒有更多街景影像了。請試著環顧四周或往另一個方向前進。",
     "stuck-suggestion": "若您無法透過箭頭移動，請嘗試點選右下角的導航方向，或嘗試點選左側的「卡住」鍵。",

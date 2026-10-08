@@ -1,5 +1,5 @@
 /**
- * Tests for public/js/aboutPage.js — the About page's Makeability Lab API hydration.
+ * Tests for frontend/js/aboutPage.js — the About page's Makeability Lab API hydration.
  *
  * The value here is pinning the contract with an API this repo doesn't own: the team roster, publication list, and
  * grant list all render straight off the ML payload shape, so a field rename or a nesting change on their side would
@@ -9,9 +9,11 @@
  * Runs under jsdom (set in jest.config.js via testEnvironment).
  */
 
-const { loadGlobalScript } = require('./loadGlobalScript');
+const { loadGlobalScript, loadVendored, mockModule, unmockModule, realUtil } = require('./loadGlobalScript');
 
-const MODULE_PATH = 'public/js/aboutPage.js';
+loadVendored('dompurify');
+
+const MODULE_PATH = 'frontend/js/pages/about.js';
 const ML_API = 'https://makeabilitylab.cs.washington.edu/api/v1';
 
 // jsdom implements neither AbortSignal.timeout() nor CSS.escape(), both of which the module calls and both of which
@@ -170,9 +172,9 @@ describe('AboutPage', () => {
     localStorage.clear();
     // The page renders asset URLs through util.assetPath, which the real page gets from the blocking utilities.js tag
     // in main.scala.html's <head>. Load it first here for the same reason.
-    loadGlobalScript('public/js/common/utilities.js');
+    window.util = realUtil();
     FakeIntersectionObserver.instances = [];
-    // aboutPage.js defers its work to appManager.ready(); capture the callback so each test can run it on demand.
+    // The page entry defers its work to appManager.ready(); capture the callback so each test can run it on demand.
     window.appManager = { ready: (cb) => { window.__aboutReady = cb; } };
     window.logWebpageActivity = jest.fn();
   });
@@ -183,7 +185,6 @@ describe('AboutPage', () => {
     delete window.appManager;
     delete window.__aboutReady;
     delete window.createPSMap;
-    delete window.jQuery;
     jest.restoreAllMocks();
   });
 
@@ -769,7 +770,7 @@ describe('AboutPage', () => {
       expect(document.getElementById('about-cite-bibtex').textContent).toBe(DETAIL.bibtex);
     });
 
-    test('keeps the citation\'s emphasis and link, dropping every other attribute', async () => {
+    test('keeps the citation\'s emphasis and link, dropping its event handlers', async () => {
       stubFetch({
         '/projects/sidewalk/publications/': page([CITED]),
         '/publications/605/': { ...DETAIL,
@@ -785,7 +786,6 @@ describe('AboutPage', () => {
       expect(document.querySelector('#about-cite-plain i').textContent).toBe('CHI 2019');
       expect(link.getAttribute('href')).toBe('https://doi.org/10.1145/3290605.3300292');
       expect(link.getAttribute('onclick')).toBeNull();
-      expect(link.getAttribute('target')).toBeNull();
     });
 
     test('strips markup that could run script, keeping the citation text readable', async () => {
@@ -794,7 +794,8 @@ describe('AboutPage', () => {
         // A publication title edited on the ML side flows into citation_html verbatim, so this page treats that
         // string as untrusted even though the two sites are run by the same lab.
         '/publications/605/': { ...DETAIL,
-          citation_html: 'Saha, M. <img src=x onerror="alert(1)"><svg onload="alert(2)"></svg>'
+          citation_html: 'Saha, M. <img src=x onerror="alert(1)"><svg onload="alert(2)"></svg><style>p{}</style>'
+            + '<form><input type="password"></form>'
             + '<a href="javascript:alert(3)">CHI</a> <b>2019</b>.' },
         '/people/?format=json': page([]),
         '/grants/': page([]),
@@ -803,10 +804,9 @@ describe('AboutPage', () => {
       await hydrate();
 
       const pane = document.getElementById('about-cite-plain');
-      expect(pane.querySelector('img, svg')).toBeNull();
+      expect(pane.querySelector('img, svg, style, form, input')).toBeNull();
       expect(pane.innerHTML).not.toContain('onerror');
       expect(pane.innerHTML).not.toContain('onload');
-      // The <a> is allowlisted but a javascript: href is not, so the anchor keeps its text and loses its target.
       expect(pane.querySelector('a').hasAttribute('href')).toBe(false);
       expect(pane.textContent).toBe('Saha, M. CHI 2019.');
       expect(pane.querySelector('b').textContent).toBe('2019');
@@ -978,7 +978,6 @@ describe('AboutPage', () => {
       'data-mapbox-css': '/assets/vendor/mapbox-gl/mapbox-gl.css',
       'data-mapbox-js': '/assets/vendor/mapbox-gl/mapbox-gl.js',
       'data-mapbox-language-js': '/assets/vendor/mapbox-gl/mapbox-gl-language.js',
-      'data-ps-map-js': '/assets/js/ps-map/build/ps-map.js',
       'data-mapbox-api-key': 'pk.test',
     };
 
@@ -986,10 +985,13 @@ describe('AboutPage', () => {
       const attrs = Object.entries(ASSETS).map(([name, value]) => `${name}="${value}"`).join(' ');
       document.body.innerHTML = `<main id="about-page"><div id="about-deployment-map" ${attrs}></div></main>`;
       stubFetch({});
+      // The page pulls ps-map in through a dynamic import, so the fake is a module, not a global.
       window.createPSMap = jest.fn(() => Promise.resolve([{}]));
-      window.jQuery = { getJSON: jest.fn() };
+      mockModule('frontend/js/ps-map/createPSMap.js', () => ({ createPSMap: window.createPSMap }));
       jest.spyOn(console, 'warn').mockImplementation(() => {});
     });
+
+    afterEach(() => unmockModule('frontend/js/ps-map/createPSMap.js'));
 
     /** @returns {FakeIntersectionObserver} The observer watching the map container. */
     const mapObserver = () => FakeIntersectionObserver.instances
@@ -1003,7 +1005,7 @@ describe('AboutPage', () => {
       expect(window.createPSMap).not.toHaveBeenCalled();
     });
 
-    test('loads mapbox before the ps-map bundle that reads it, then builds the map', async () => {
+    test('loads mapbox and its language plugin in order, then builds the map', async () => {
       loadGlobalScript(MODULE_PATH);
       await hydrate();
 
@@ -1011,11 +1013,11 @@ describe('AboutPage', () => {
       observer.trigger(observer.targets);
       const srcs = await runInjectedScripts();
 
-      expect(srcs).toEqual([ASSETS['data-mapbox-js'], ASSETS['data-mapbox-language-js'], ASSETS['data-ps-map-js']]);
+      expect(srcs).toEqual([ASSETS['data-mapbox-js'], ASSETS['data-mapbox-language-js']]);
       expect([...document.head.querySelectorAll('link[rel="stylesheet"]')].map((el) => el.getAttribute('href')))
         .toContain(ASSETS['data-mapbox-css']);
       expect(window.createPSMap).toHaveBeenCalledTimes(1);
-      expect(window.createPSMap.mock.calls[0][1]).toMatchObject({
+      expect(window.createPSMap.mock.calls[0][0]).toMatchObject({
         mapName: 'about-deployment-map',
         mapboxApiKey: 'pk.test',
         loadCities: true,
@@ -1035,7 +1037,7 @@ describe('AboutPage', () => {
       const srcs = await runInjectedScripts();
 
       expect(observer.disconnected).toBe(true);
-      expect(srcs).toHaveLength(3);
+      expect(srcs).toHaveLength(2);
       expect(window.createPSMap).toHaveBeenCalledTimes(1);
     });
 

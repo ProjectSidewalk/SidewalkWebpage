@@ -1,5 +1,5 @@
 /**
- * Every tutorial transition in public/js/explore/src/onboarding/OnboardingStates.js must name a state that exists.
+ * Every tutorial transition in frontend/js/explore/onboarding/OnboardingStates.js must name a state that exists.
  *
  * Onboarding#getState throws on an unknown id, but only when a user reaches that step, so a typo'd id would otherwise
  * surface as a tutorial that dies partway through for everyone. Function transitions branch on the clicked element or
@@ -7,12 +7,8 @@
  * their source.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const SOURCE = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/explore/src/onboarding/OnboardingStates.js'), 'utf8'
-);
 
 describe('OnboardingStates transitions', () => {
     let states;
@@ -30,7 +26,7 @@ describe('OnboardingStates transitions', () => {
             },
             pano: { horizonRelativeCoordToPov: () => ({ heading: 0, pitch: 0 }) },
         };
-        window.eval(`${SOURCE}; window.OnboardingStates = OnboardingStates;`);
+        Object.assign(window, loadModules('frontend/js/explore/onboarding/OnboardingStates.js'));
         const stub = new Proxy({}, { get: () => () => undefined });
         states = new window.OnboardingStates(stub, stub, stub).get();
         ids = new Set(states.map((state) => state.id));

@@ -40,6 +40,13 @@ class AssetManifestService @Inject() (assets: AssetsFinder) {
    * hundred entries, identical on every page of every response, for a map that cannot change while the process runs.
    */
   val assetDigestsJson: Html = ViewHelpers.jsonForScript(assetDigests)
+
+  /**
+   * Every translation file there is, e.g. `locales/en/audit-india.json`, so i18next asks only for those (#5570).
+   *
+   * Unlike [[assetDigests]] this is the full list in dev mode too: it says which files exist, not how they're named.
+   */
+  val localeFilesJson: Html = ViewHelpers.jsonForScript(AssetInventory.paths.filter(_.startsWith("locales/")))
 }
 
 /** The pure half of [[AssetManifestService]], so the digest-extraction contract is testable without booting an app. */

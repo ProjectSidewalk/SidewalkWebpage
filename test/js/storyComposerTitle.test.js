@@ -8,12 +8,8 @@
  * constructor queries rather than called off the prototype.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const COMPOSER_SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/common/label-detail/StoryComposer.js'), 'utf8'
-);
 
 /** The elements StoryComposer's constructor looks up, in a <dialog> host. */
 function setupDom() {
@@ -52,7 +48,7 @@ function newComposer() {
 const title = () => document.querySelector('.story-composer__title').textContent;
 
 beforeEach(() => {
-    window.eval(`${COMPOSER_SRC}\nwindow.StoryComposer = StoryComposer;`);
+    Object.assign(window, loadModules('frontend/js/common/label-detail/StoryComposer.js'));
     // Echo the key, with any interpolation appended so both halves are assertable.
     window.i18next = {
         t: (key, opts) => (opts && opts.labelType !== undefined ? `${key}[${opts.labelType}]` : key),

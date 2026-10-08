@@ -1,5 +1,5 @@
 /**
- * Regression test for the /cities map city popup — public/js/ps-map/addCitiesToMap.js.
+ * Regression test for the /cities map city popup — frontend/js/ps-map/addCitiesToMap.js.
  *
  * Guards issue #4591: the popup read `stats.validations.total_validations` from /v3/api/overallStats after that total
  * had moved under `stats.validations.combined` (the endpoint was restructured into combined/human/ai sub-objects).
@@ -13,10 +13,10 @@
  * expose it. Mapbox, i18next and fetch are all stubbed.
  */
 
-const fs = require('fs');
 const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const MODULE_PATH = path.resolve(__dirname, '..', '..', 'public/js/ps-map/addCitiesToMap.js');
+const MODULE_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/ps-map/addCitiesToMap.js');
 
 // Realistic slice of /v3/api/overallStats: validation totals live under validations.combined/human/ai (#4591),
 // labels under labels.count, distance at km_explored.
@@ -139,8 +139,7 @@ function stubFetch(body) {
  * @returns {Function} The addCitiesToMap function.
  */
 function loadAddCitiesToMap() {
-    const src = fs.readFileSync(MODULE_PATH, 'utf8');
-    return new Function(`${src}\nreturn addCitiesToMap;`)();
+    return loadModules(MODULE_PATH).addCitiesToMap;
 }
 
 describe('addCitiesToMap city popup (#4591)', () => {

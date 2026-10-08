@@ -1,25 +1,27 @@
 package controllers
 
-import models.label.LabelTypeEnum.AccessImpact
-import models.label.{CropMarker, LabelMetadata, LabelTypeEnum}
+import models.label.AccessImpact
+import models.api.RawLabelFiltersForApi
+import models.label.{CropMarker, LabelMetadata, LabelType}
 import models.story.Story
 import org.apache.pekko.stream.Materializer
-import org.scalatestplus.play.PlaySpec
+import org.apache.pekko.stream.scaladsl.Sink
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.i18n.{Lang, MessagesApi}
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.JsObject
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
-import service.{AuthenticationService, LabelService, PanoDataService, ShareImageCache, StoryService}
+import play.api.test.Helpers.*
+import service.{ApiService, AuthenticationService, LabelService, PanoDataService, ShareImageCache, StoryService}
+import util.SidewalkSpec
 
 import java.awt.image.BufferedImage
 import java.io.{ByteArrayInputStream, File}
 import java.nio.file.Files
 import javax.imageio.ImageIO
 import scala.concurrent.{Await, Future}
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 /**
  * Functional tests for the public label-share surface (issue #456): GET /label/:labelId (rich-preview landing) and
@@ -34,20 +36,21 @@ import scala.concurrent.duration._
  * Requires a Postgres+PostGIS database (via DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD env, as in dev/CI).
  * Valid-label tests source ids from the connected DB and cancel (not fail) when no suitable label exists.
  */
-class ShareControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
+class ShareControllerSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule] // No eager background actors during tests (nothing else injects their ActorRefs).
       .build()
 
   // The image endpoint streams a file (sendFile), which needs a real Materializer to consume; the test default is
   // NoMaterializer, which only works for strict bodies.
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   private val labelService: LabelService = app.injector.instanceOf[LabelService]
+  private val apiService: ApiService     = app.injector.instanceOf[ApiService]
   private val messagesApi: MessagesApi   = app.injector.instanceOf[MessagesApi]
-  implicit private val lang: Lang        = Lang("en") // Requests below send no Accept-Language, so Play serves English.
+  private given lang: Lang               = Lang("en") // Requests below send no Accept-Language, so Play serves English.
 
   /**
    * Recent labels from the connected test DB, providing real ids to exercise. Sourcing ids from the app keeps the
@@ -101,10 +104,10 @@ class ShareControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
           val body = contentAsString(route(app, FakeRequest(GET, s"/label/$id")).get)
           // The whole point of the spotlight pivot (#456, Mikey review): the share landing must NOT pull `/labels/all`,
           // a city's single most expensive endpoint, on every bot-crawled hit. The nearby-labels map uses the cheap,
-          // bbox-bounded /v3/api/rawLabels instead — wired client-side from the SharedLabel bundle + config below.
+          // bbox-bounded /v3/api/rawLabels instead — wired client-side from the SharedLabel entry + the page-data block.
           body must not include "/labels/all"
-          body must include("js/shared-label/build/shared-label.js")
-          body must include("window.sharedLabelData")
+          body must include("build/js/sharedLabel.js")
+          body must include("id=\"page-data\"")
           // The hero reuses the shared LabelDetail component mounted inline; plus the label legend and Explore CTA.
           body must include("label-detail--inline")
           body must include("spotlight-legend")
@@ -238,7 +241,7 @@ class ShareControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
 
           // The meta advertises og:image:width/height 1440x960; the pipeline must make that true for every source
           // (stored crop, GSV still, or fallback), so decode the actual bytes and check.
-          val img = ImageIO.read(new ByteArrayInputStream(contentAsBytes(resp).toArray))
+          val img = ImageIO.read(ByteArrayInputStream(contentAsBytes(resp).toArray))
           img.getWidth mustBe 1440
           img.getHeight mustBe 960
       }
@@ -304,9 +307,21 @@ class ShareControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
     }
 
     "serve nearby labels as GeoJSON from /v3/api/rawLabels with no auth cookie" in {
-      val resp = route(app, FakeRequest(GET, "/v3/api/rawLabels?filetype=geojson")).get
+      // A small box around a label the endpoint itself serves, as the spotlight page asks. Unbounded, the endpoint
+      // streams the whole city and a big dev database runs the suite out of heap. The anchor comes from the endpoint's
+      // own stream (one row, then cancel) so it can't be a label rawLabels filters out, like an excluded user's.
+      val anchor = Await.result(
+        apiService.getRawLabels(RawLabelFiltersForApi(), batchSize = 1).take(1).runWith(Sink.headOption),
+        60.seconds
+      )
+      assume(anchor.nonEmpty, "No servable labels in the connected test DB; cannot exercise the nearby-labels path.")
+      val (lat, lng) = (anchor.get.latitude, anchor.get.longitude)
+      val bbox       = s"${lng - 0.002},${lat - 0.002},${lng + 0.002},${lat + 0.002}"
+      val resp       = route(app, FakeRequest(GET, s"/v3/api/rawLabels?filetype=geojson&bbox=$bbox")).get
       status(resp) mustBe OK
-      contentAsString(resp) must include("FeatureCollection")
+      val json = contentAsJson(resp)
+      (json \ "type").as[String] mustBe "FeatureCollection"
+      (json \ "features").as[Seq[JsObject]] must not be empty
     }
   }
 
@@ -345,9 +360,9 @@ class ShareControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
 
     /** Builds a solid-color base image for compositing tests. */
     def solidBase(w: Int, h: Int, rgb: Int): BufferedImage = {
-      val img = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB)
+      val img = BufferedImage(w, h, BufferedImage.TYPE_INT_RGB)
       val g   = img.createGraphics()
-      g.setColor(new java.awt.Color(rgb))
+      g.setColor(java.awt.Color(rgb))
       g.fillRect(0, 0, w, h)
       g.dispose()
       img
@@ -373,7 +388,7 @@ class ShareControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
     val canvasCenter = CropMarker(0.5, 0.5)
 
     "output the fixed share dimensions and keep a centered marker centered when a taller base is cover-cropped" in {
-      val out = controller.compositeMarker(solidBase(640, 480, bg), LabelTypeEnum.CurbRamp, canvasCenter)
+      val out = controller.compositeMarker(solidBase(640, 480, bg), LabelType.CurbRamp, canvasCenter)
       out.getWidth mustBe 1440
       out.getHeight mustBe 960
       val (cx, cy) = markerCenter(out, bg)
@@ -386,16 +401,15 @@ class ShareControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
       // if it is that frame — any extra rows would shift the same fraction (a 640x480 still lands this one 42 px up).
       val nearTop = CropMarker(0.62, 0.15)
       val still   = solidBase(PanoDataService.StaticStillWidth, PanoDataService.StaticStillHeight, bg)
-      val onStill = markerCenter(controller.compositeMarker(still, LabelTypeEnum.Crosswalk, nearTop), bg)
-      val onCrop  =
-        markerCenter(controller.compositeMarker(solidBase(1440, 960, bg), LabelTypeEnum.Crosswalk, nearTop), bg)
+      val onStill = markerCenter(controller.compositeMarker(still, LabelType.Crosswalk, nearTop), bg)
+      val onCrop  = markerCenter(controller.compositeMarker(solidBase(1440, 960, bg), LabelType.Crosswalk, nearTop), bg)
       onStill._1 must be(onCrop._1 +- 3)
       onStill._2 must be(onCrop._2 +- 3)
       onCrop._2 must be(144 +- 3)
     }
 
     "keep a centered marker centered for a crop-sized (already 3:2) base" in {
-      val out      = controller.compositeMarker(solidBase(1440, 960, bg), LabelTypeEnum.NoCurbRamp, canvasCenter)
+      val out      = controller.compositeMarker(solidBase(1440, 960, bg), LabelType.NoCurbRamp, canvasCenter)
       val (cx, cy) = markerCenter(out, bg)
       cx must be(720 +- 3)
       cy must be(480 +- 3)
@@ -404,10 +418,21 @@ class ShareControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
     "map an off-center marker through the cover-crop transform" in {
       // A marker at 1/4 width on a 3:2 base (scale-only, no crop): marker center must land at 1/4 output width.
       val quarter  = CropMarker(0.25, 0.5)
-      val out      = controller.compositeMarker(solidBase(1440, 960, bg), LabelTypeEnum.Obstacle, quarter)
+      val out      = controller.compositeMarker(solidBase(1440, 960, bg), LabelType.Obstacle, quarter)
       val (cx, cy) = markerCenter(out, bg)
       cx must be(360 +- 3)
       cy must be(480 +- 3)
+    }
+
+    "cover-crop a wider-than-3:2 base around the marker's fraction of it (#5085)" in {
+      // A crop taken in a 16:9 immersive viewport keeps that aspect. Cover-scaling a 1600x900 base into 1440x960
+      // scales by 960/900 (scaledW 1707) and trims 133 px off each side, so a marker at 1/4 of the crop's width lands
+      // at 0.25 * 1707 - 133 = 293 px, and one at mid-height stays at mid-height.
+      val quarterWide = CropMarker(0.25, 0.5)
+      val out         = controller.compositeMarker(solidBase(1600, 900, bg), LabelType.Crosswalk, quarterWide)
+      val (cx, cy)    = markerCenter(out, bg)
+      cx must be(293 +- 4)
+      cy must be(480 +- 4)
     }
   }
 
@@ -434,17 +459,17 @@ class ShareControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
       // The sweep trusts generationOf to find every preview fileFor writes: a name the two disagree on would either
       // never be evicted or be evicted on every build.
       ShareImageCache.generationOf(cache.fileFor(syntheticLabelId)) mustBe Some(ShareImageCache.Generation)
-      ShareImageCache.generationOf(new File(cache.dir, ShareImageCache.fileName(syntheticLabelId, 1))) mustBe Some(1)
-      ShareImageCache.fileName(12, 1) mustBe "share_12.jpg" // Generation 1 predates the suffix.
-      ShareImageCache.generationOf(new File(cache.dir, "share_12_g1.jpg")) mustBe None // Never written; a stray.
-      ShareImageCache.generationOf(new File(cache.dir, "share_fallback.jpg")) mustBe None
-      ShareImageCache.generationOf(new File(cache.dir, "share_12_g2.jpg.8675309.tmp")) mustBe None
-      ShareImageCache.generationOf(new File(cache.dir, "story_12.jpg")) mustBe None
+      ShareImageCache.generationOf(File(cache.dir, ShareImageCache.fileName(syntheticLabelId, 1))) mustBe Some(1)
+      ShareImageCache.fileName(12, 1) mustBe "share_12.jpg"                        // Generation 1 predates the suffix.
+      ShareImageCache.generationOf(File(cache.dir, "share_12_g1.jpg")) mustBe None // Never written; a stray.
+      ShareImageCache.generationOf(File(cache.dir, "share_fallback.jpg")) mustBe None
+      ShareImageCache.generationOf(File(cache.dir, "share_12_g2.jpg.8675309.tmp")) mustBe None
+      ShareImageCache.generationOf(File(cache.dir, "story_12.jpg")) mustBe None
     }
 
     "promote the newest earlier-generation preview to current, and drop them all once the current one exists" in {
       val _          = cache.dir.mkdirs()
-      val legacyGen1 = new File(cache.dir, ShareImageCache.fileName(syntheticLabelId, 1))
+      val legacyGen1 = File(cache.dir, ShareImageCache.fileName(syntheticLabelId, 1))
       val current    = cache.fileFor(syntheticLabelId)
       try {
         cache.promoteLegacy(syntheticLabelId) mustBe None
@@ -465,7 +490,7 @@ class ShareControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
     "delete a cached preview so the next request rebuilds it from the crop that just landed (#4726)" in {
       val _      = cache.dir.mkdirs()
       val file   = cache.fileFor(syntheticLabelId)
-      val legacy = new File(cache.dir, ShareImageCache.fileName(syntheticLabelId, 1))
+      val legacy = File(cache.dir, ShareImageCache.fileName(syntheticLabelId, 1))
       val _      = file.createNewFile()
       val _      = legacy.createNewFile() // An old still-based preview is just as stale once the crop is here.
       file.exists() mustBe true
@@ -488,7 +513,7 @@ class ShareControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
     /** Creates `n` empty current-generation cache files with strictly increasing mtimes (index 0 = oldest). */
     def fillCache(dir: File, n: Int): Seq[File] =
       (1 to n).map { i =>
-        val f = new File(dir, s"share_${i}_g${ShareImageCache.Generation}.jpg")
+        val f = File(dir, s"share_${i}_g${ShareImageCache.Generation}.jpg")
         val _ = f.createNewFile()
         val _ = f.setLastModified(1700000000000L + i * 60000L)
         f
@@ -522,7 +547,7 @@ class ShareControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
       val dir = Files.createTempDirectory("share-evict-spec").toFile
       try {
         val current = fillCache(dir, 2)
-        val legacy  = Seq(new File(dir, "share_7.jpg"), new File(dir, "share_8.jpg"))
+        val legacy  = Seq(File(dir, "share_7.jpg"), File(dir, "share_8.jpg"))
         legacy.zipWithIndex.foreach { case (f, i) =>
           val _ = f.createNewFile()
           val _ = f.setLastModified(1600000000000L + i * 60000L) // Both older than every current file.
@@ -545,7 +570,7 @@ class ShareControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
       val dir = Files.createTempDirectory("share-evict-spec").toFile
       try {
         val current   = fillCache(dir, 4)
-        val untouched = Seq(new File(dir, "share_fallback.jpg"), new File(dir, "share_9_g2.jpg.12345.tmp"))
+        val untouched = Seq(File(dir, "share_fallback.jpg"), File(dir, "share_9_g2.jpg.12345.tmp"))
         untouched.foreach { f =>
           val _ = f.createNewFile()
           val _ = f.setLastModified(1600000000000L) // Older than everything: age alone would evict these first.
@@ -567,7 +592,7 @@ class ShareControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
 
     "serve the label's earlier-generation preview when nothing better can be built, as the current one (#3095)" in {
       val _       = cache.dir.mkdirs()
-      val legacy  = new File(cache.dir, ShareImageCache.fileName(labelId, 1))
+      val legacy  = File(cache.dir, ShareImageCache.fileName(labelId, 1))
       val current = cache.fileFor(labelId)
       try {
         Files.write(legacy.toPath, Array[Byte](1, 2, 3)) // Any bytes: the point is which file is served.
@@ -582,7 +607,7 @@ class ShareControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
     "fall back to the branded image when the label has no preview of any generation" in {
       val result = Future.successful(controller.serveLegacyOrFallbackImage(labelId))
       status(result) mustBe OK
-      val img = ImageIO.read(new ByteArrayInputStream(contentAsBytes(result).toArray))
+      val img = ImageIO.read(ByteArrayInputStream(contentAsBytes(result).toArray))
       img.getWidth mustBe 1440
       img.getHeight mustBe 960
     }
@@ -591,7 +616,7 @@ class ShareControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
   "buildFallbackImage" should {
     "write a branded fallback at exactly the advertised share dimensions" in {
       val controller = app.injector.instanceOf[ShareController]
-      val tmp        = new File(System.getProperty("java.io.tmpdir"), s"share-fallback-spec-${System.nanoTime()}.jpg")
+      val tmp        = File(System.getProperty("java.io.tmpdir"), s"share-fallback-spec-${System.nanoTime()}.jpg")
       try {
         controller.buildFallbackImage(tmp)
         assert(tmp.exists(), "fallback image file was not written (is public/images/sidewalk-logo.png present?)")

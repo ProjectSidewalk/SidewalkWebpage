@@ -11,7 +11,7 @@
     profileData: UserProfileData, isMetric: Boolean, tags: Seq[Tag], standing: Option[UserStanding],
     streak: StreakStats, accuracyByType: Seq[AccuracyByType], trophies: Seq[Trophy], myRoutes: Seq[RouteWithStats],
     reauditStreets: Seq[OutdatedStreetForUser], reauditTotal: Int, reauditPageSize: Int
-)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+)(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @*
 * The signed-in user's dashboard. `user` is whose dashboard this is and `viewer` who is looking at it — the same
@@ -46,7 +46,7 @@
 
 @heatCell(cell: Option[StreakCell]) = {
   @for(c <- cell) {
-    <span class="ud-heat ud-heat-@c.intensity" role="img" title="@cellTooltip(c)" aria-label="@cellTooltip(c)" tabindex="0"></span>
+    <span class="ud-heat ud-heat-@c.intensity" role="img" data-ps-tooltip="@cellTooltip(c)" aria-label="@cellTooltip(c)" tabindex="0"></span>
   }
   @if(cell.isEmpty) {
     <span class="ud-heat ud-heat-empty" aria-hidden="true"></span>
@@ -71,6 +71,13 @@
   f"$dist%.2f $unitAbbr"
 }
 
+@* A route is filed under the region it starts in and may run on through others (#3488); say so rather than let one
+   name stand for the whole route. *@
+@regionLabel(r: RouteWithStats) = @{
+  if (r.regionCount > 1) Messages("dashboard.routes.region.and.more", r.regionName, r.regionCount - 1)
+  else r.regionName
+}
+
 @*
 * Unit-aware distance for a single street, matching the leaderboard's formatting (km/m for metric, miles/feet
 * otherwise). A street averages under 100 m and can be a metre or two long (#4670), so the large unit alone would
@@ -91,7 +98,8 @@
     .withLocale(messages.lang.toLocale))
 }
 
-@* Capture dates are month-granular in practice, so a full date would over-claim precision. *@
+@* Capture dates are month-granular in practice, so a full date would over-claim precision. Java can't word a
+   month and year the way each language does (zh-TW is 2026年3月), so OutdatedStreets rewrites this with Intl. *@
 @imageryMonthLabel(d: java.time.LocalDate) = @{
   d.format(java.time.format.DateTimeFormatter.ofPattern("LLLL yyyy", messages.lang.toLocale))
 }
@@ -156,7 +164,7 @@
    *@
   @* Outside the section, because a live region that was display:none at load isn't reliably watched — and this one
    has to announce the arrival of the very element it would otherwise sit inside. *@
-  <span id="ud-cities-status" class="ud-sr-only" role="status" aria-live="polite"></span>
+  <span id="ud-cities-status" class="sr-only" role="status" aria-live="polite"></span>
   <div class="page-section" id="ud-cities-section" hidden
        data-stats-url="@if(adminView){/adminapi/users/@{user.userId}/crossCityStats}else{/userapi/crossCityStats}">
     <h2 class="page-heading" id="cities">@Messages("dashboard.cities.title") <a href="#cities" class="permalink">#</a></h2>
@@ -200,7 +208,7 @@
       @for(r <- myRoutes) {
         <li class="ud-route-row" data-route-id="@r.routeId" data-slug="@r.slug">
           @if(r.thumbnailUrl.nonEmpty) {
-            <a class="ud-route-view" data-route-id="@r.routeId" href="/routeBuilder?preview=@r.routeId" title="@Messages("dashboard.routes.view.title")">
+            <a class="ud-route-view" data-route-id="@r.routeId" href="/routeBuilder?preview=@r.routeId" aria-label="@Messages("dashboard.routes.view.title")" data-ps-tooltip="@Messages("dashboard.routes.view.title")">
               <img class="ud-route-thumb" src="@r.thumbnailUrl" alt="" loading="lazy" width="180" height="90">
             </a>
           }
@@ -209,12 +217,12 @@
             @r.description.map { desc =>
               <span class="ud-route-desc">@desc</span>
             }
-            <span class="ud-route-meta">@r.regionName · @metersLabel(r.distanceMeters) ·
+            <span class="ud-route-meta">@regionLabel(r) · @metersLabel(r.distanceMeters) ·
               @* A timestamp's calendar date depends on the reader's timezone, which only the browser knows;
                  MyRoutes rewrites this to the local date, leaving the UTC rendering as the no-JS fallback. *@
               <time class="ud-route-date" datetime="@r.createdAt.toInstant.toString">@mediumDateLabel(r.createdAt)</time>
             </span>
-            <span class="ud-route-usage" title="@Messages("dashboard.routes.stats.tooltip")">@Messages("dashboard.routes.stats", r.startedCount, r.completedCount)</span>
+            <span class="ud-route-usage" tabindex="0" data-ps-tooltip="@Messages("dashboard.routes.stats.tooltip")">@Messages("dashboard.routes.stats", r.startedCount, r.completedCount)</span>
           </div>
           <div class="ud-route-actions">
             <a class="ud-btn-secondary ud-route-explore" data-route-id="@r.routeId" href="/explore?routeId=@r.routeId">@Messages("dashboard.routes.explore")</a>
@@ -230,7 +238,7 @@
     <div class="ud-nudge" id="ud-routes-empty" @if(myRoutes.nonEmpty) {hidden}>
       @Messages("dashboard.routes.none") <a href="/routeBuilder">@Messages("dashboard.routes.build.one")</a>
     </div>
-    <span id="ud-routes-status" class="ud-sr-only" role="status" aria-live="polite"></span>
+    <span id="ud-routes-status" class="sr-only" role="status" aria-live="polite"></span>
   </div>
 
   @* ---- Streak / activity rhythm -------------------------------------------------------------------------- *@
@@ -413,7 +421,8 @@
                 <span class="ud-reaudit-meta">
                   @streetLengthLabel(street.distanceMeters)
                   @for(captured <- street.newImageryDate) {
-                    · @Messages("dashboard.reaudit.imagery", imageryMonthLabel(captured))
+                    · @Html(Messages("dashboard.reaudit.imagery",
+                      s"""<time class="ud-reaudit-imagery-date" datetime="${captured.toString.take(7)}">${imageryMonthLabel(captured)}</time>"""))
                   }
                 </span>
                 @for(audited <- street.lastAuditedAt) {
@@ -449,11 +458,6 @@
     </div>
   }
 
-  @* Contribution map: the shared PSMap choropleth wired to the signed-in user's own streets/labels. Map labels
-   open the same label-detail popup the mistake cards use (window.udLabelPopupReady is resolved below). *@
-  @userDashboard._contributionMapScript("user-dashboard-choropleth", commonData.mapboxApiKey,
-    s"/contribution/streets?userId=${user.userId}", s"/userapi/labels?userId=${user.userId}",
-    wireLabelPopup = true)
 
   @* Interactive label popup (shared common/label-detail stack) so a mistake card expands into the pano + detail,
    reusing what LabelMap/Gallery use. Loaded directly (not a Grunt bundle) like the redesign's other src. *@
@@ -471,112 +475,37 @@
     <script src='@assets.path("vendor/three/three-0.160.1-min.js")'></script>
     <script src='@assets.path("vendor/mapillary/mapillary-4.1.2.min.js")'></script>
     <link href='@assets.path("vendor/mapillary/mapillary-4.1.2.css")' rel="stylesheet">
+  } else if (commonData.imagerySource == PanoSource.Panoramax) {
+    <script src='@assets.path("vendor/photo-sphere-viewer/psv-5.15.1-bundle.min.js")'></script>
+    <link href='@assets.path("vendor/photo-sphere-viewer/psv-5.15.1.css")' rel="stylesheet">
   }
   <script src='@assets.path("vendor/pannellum/pannellum-2.5.7.js")'></script>
   <link rel="stylesheet" href='@assets.path("vendor/pannellum/pannellum-2.5.7.css")'>
   <script src='@assets.path("vendor/panzoom/panzoom-9.4.4.min.js")'></script>
-  <script src='@assets.path("js/common/pano-viewer/build/pano-viewer.js")'></script>
-  <script src='@assets.path("js/common/aiLabelIndicator.js")'></script>
-  <script src='@assets.path("js/common/PanoMarker.js")'></script>
-  <script src='@assets.path("js/common/Toast.js")'></script>
-  <script src='@assets.path("js/common/LabelVisibilityToggle.js")'></script>
-  <script src='@assets.path("js/common/label-detail/PopupPanoManager.js")'></script>
-  <script src='@assets.path("js/common/ConfirmDialog.js")'></script>
-  <script src='@assets.path("js/common/label-detail/StoryComposer.js")'></script>
-  <script src='@assets.path("js/common/label-detail/StorySection.js")'></script>
-  <script src='@assets.path("js/common/share/ShareWidget.js")'></script>
-  <script src='@assets.path("js/common/label-detail/TagEditor.js")'></script>
-  <script src='@assets.path("js/common/LabelTypePicker.js")'></script>
-  <script src='@assets.path("js/common/label-detail/LabelDetail.js")'></script>
-  <script src='@assets.path("js/common/label-detail/LabelPopup.js")'></script>
 
   @* Badge rendering from real counts (BadgeAchievements is the source of truth for thresholds + level names). *@
   @userDashboard._createTeamDialog()
-  <script src="@assets.path("js/user-dashboard/TeamActions.js")"></script>
-  <script src="@assets.path("js/common/BadgeAchievements.js")"></script>
-  <script src="@assets.path("js/user-dashboard/DashboardBadges.js")"></script>
-  <script src="@assets.path("js/user-dashboard/MistakeGallery.js")"></script>
-  <script src="@assets.path("js/user-dashboard/StoriesSection.js")"></script>
-  <script src="@assets.path("js/user-dashboard/MyRoutes.js")"></script>
-  <script src="@assets.path("js/user-dashboard/OutdatedStreets.js")"></script>
-  <script src="@assets.path("js/user-dashboard/CrossCityStats.js")"></script>
-  <script>
-    // Deferred handle the contribution map's click adapter awaits; resolved (popup or null) once init finishes.
-    let labelPopupReadyResolve;
-    window.udLabelPopupReady = new Promise((resolve) => { labelPopupReadyResolve = resolve; });
-
-    // Accuracy-bar widths are data-driven per label type; set from the data attribute because inline style
-    // attributes are lint-banned (htmlhint inline-style-disabled).
-    document.querySelectorAll('.ud-acc-fill[data-ud-pct]').forEach((el) => {
-      el.style.width = `${el.dataset.udPct}%`;
-    });
-
-    window.appManager.ready(async function () {
-      var badges = document.getElementById('ud-badges');
-      if (badges && typeof DashboardBadges !== 'undefined') {
-        try { new DashboardBadges(badges).render(); } catch (e) { console.error('Badge render failed', e); }
-      }
-
-      // Build the interactive label popup up front (it initializes the pano viewer). Entirely optional: if it
-      // fails, the mistake cards still work with their inline vote/note controls.
-      let labelPopup = null;
-      try {
-        const src = "@commonData.imagerySource.toString";
-        const viewerType = src === 'mapillary' ? MapillaryViewer : src === 'infra3d' ? Infra3dViewer : GsvViewer;
-        @* The popup's username marks the viewer's own comments/stories; anonymous sessions have autogenerated
-           usernames, so only a real account's name reaches it. *@
-        labelPopup = await LabelPopup(@adminView, viewerType, "@commonData.imageryAccessToken",
-                                      @if(viewer.role != Role.Anonymous) {"@viewer.username"} else {null});
-      } catch (e) {
-        console.error('Label popup init failed; mistake cards will use inline controls only', e);
-      }
-      labelPopupReadyResolve(labelPopup);
-
-      const citiesSection = document.getElementById('ud-cities-section');
-      if (citiesSection && typeof CrossCityStats !== 'undefined') {
-        // Fire-and-forget: the section stays hidden if this fails, and nothing below it depends on the result.
-        new CrossCityStats(citiesSection, {
-          statsUrl: citiesSection.dataset.statsUrl,
-          currentCityName: "@commonData.currentCity.cityNameShort",
-          mapboxApiKey: "@commonData.mapboxApiKey"
-        }).render();
-      }
-
-      const routesList = document.getElementById('ud-routes-list');
-      if (routesList && typeof MyRoutes !== 'undefined') {
-        new MyRoutes(routesList).init();
-      }
-
-      const reauditList = document.getElementById('ud-reaudit-list');
-      if (reauditList && typeof OutdatedStreets !== 'undefined') {
-        new OutdatedStreets(reauditList, { mapReady: window.udContributionMapReady }).init();
-      }
-
-      var mistakes = document.getElementById('ud-mistakes');
-      if (mistakes && typeof MistakeGallery !== 'undefined') {
-        new MistakeGallery(mistakes, {
-          userId: mistakes.dataset.userId,
-          limit: parseInt(mistakes.dataset.limit, 10) || 6,
-          seeAllEl: document.getElementById('ud-mistakes-seeall'),
-          labelPopup: labelPopup,
-          readOnly: mistakes.dataset.readOnly === 'true'
-        }).render();
-      }
-
-      const stories = document.getElementById('ud-stories');
-      if (stories && typeof StoriesSection !== 'undefined') {
-        new StoriesSection(stories, {
-          labelPopup: labelPopup,
-          composerDialog: document.getElementById('ud-story-composer'),
-          storiesUrl: stories.dataset.storiesUrl,
-          storyUrlFor: (storyId) => `${stories.dataset.storyUrlBase}/${storyId}`,
-          @* The stories belong to `user`, so their byline option is that name (the admin edits on their behalf).
-             Anonymous sessions have autogenerated usernames, so only a real account's name reaches the composer. *@
-          currUsername: @if(user.role != Role.Anonymous) {"@user.username"} else {null}
-        }).render();
-      }
-    });
-  </script>
+  @* The contribution map's libraries and styles (the map itself is built by the page entry). *@
+  <link href="@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.css")" rel="stylesheet">
+  <link href="@assets.path("css/components/choropleth.css")" rel="stylesheet">
+  <link href="@assets.path("css/components/filter-sidebar.css")" rel="stylesheet">
+  <link href="@assets.path("css/components/tag-pills.css")" rel="stylesheet">
+  <script src="@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.js")"></script>
+  <script src="@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")"></script>
+  <script src="@assets.path("vendor/turf/turf-7.4.0.min.js")"></script>
+  <script type="module" id="page-entry" src='@assets.path("build/js/dashboard/dashboard.js")'
+          data-imagery-source="@commonData.imagerySource.name"
+          data-imagery-access-token="@commonData.imageryAccessToken"
+          data-admin-view="@adminView"
+          data-current-city-name="@commonData.currentCity.cityNameShort"
+          data-mapbox-api-key="@commonData.mapboxApiKey"
+          data-streets-url="/contribution/streets?userId=@user.userId"
+          data-labels-url="/userapi/labels?userId=@user.userId"
+          @* The popup's username marks the viewer's own comments/stories, and the stories' byline is the dashboard's
+             user (an admin edits on their behalf). Anonymous sessions have autogenerated usernames, so only a real
+             account's name is sent for either. *@
+          data-viewer-username="@if(viewer.role != Role.Anonymous) {@viewer.username}"
+          data-username="@if(user.role != Role.Anonymous) {@user.username}"></script>
 }
 
 @* labelmap: the reused label-detail popup's strings; dashboard: the mistake-card/badge strings MistakeGallery.js and

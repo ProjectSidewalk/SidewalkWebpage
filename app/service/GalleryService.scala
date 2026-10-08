@@ -2,19 +2,19 @@ package service
 
 import com.google.inject.ImplementedBy
 import formats.json.GalleryFormats.GalleryTaskSubmission
-import models.gallery._
-import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.gallery.*
+import models.utils.{IpAddress, MyPostgresProfile}
+import models.utils.MyPostgresProfile.api.*
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.{ExecutionContext, Future}
 
 @ImplementedBy(classOf[GalleryServiceImpl])
 trait GalleryService {
   def submitGalleryTasks(
       submissions: Seq[GalleryTaskSubmission],
-      ipAddress: String,
+      ipAddress: IpAddress,
       userId: String
   ): Future[Seq[Int]]
 }
@@ -23,9 +23,9 @@ trait GalleryService {
 class GalleryServiceImpl @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
     galleryTaskInteractionTable: GalleryTaskInteractionTable,
-    galleryTaskEnvironmentTable: GalleryTaskEnvironmentTable,
-    implicit val ec: ExecutionContext
-) extends GalleryService
+    galleryTaskEnvironmentTable: GalleryTaskEnvironmentTable
+)(using ec: ExecutionContext)
+    extends GalleryService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   /**
@@ -38,7 +38,7 @@ class GalleryServiceImpl @Inject() (
    */
   def submitGalleryTasks(
       submissions: Seq[GalleryTaskSubmission],
-      ipAddress: String,
+      ipAddress: IpAddress,
       userId: String
   ): Future[Seq[Int]] = {
     val submissionActions: Seq[DBIO[Int]] = submissions.map { data =>
@@ -49,7 +49,7 @@ class GalleryServiceImpl @Inject() (
         })
         _ <- galleryTaskEnvironmentTable.insert(
           GalleryTaskEnvironment(0, env.browser, env.browserVersion, env.browserWidth, env.browserHeight,
-            env.availWidth, env.availHeight, env.screenWidth, env.screenHeight, env.operatingSystem, Some(ipAddress),
+            env.availWidth, env.availHeight, env.screenWidth, env.screenHeight, env.operatingSystem, ipAddress,
             env.language, Some(userId))
         )
       } yield nInteractionSubmitted.length

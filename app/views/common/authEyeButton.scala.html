@@ -1,4 +1,4 @@
-@(inputId: String)(implicit messages: Messages)
+@(inputId: String)(using messages: Messages)
 @* Show/hide-password toggle shared by the auth dialog and the full-page auth forms; AuthModal.js swaps the two
    icons and the aria state on click. *@
 <button type="button" class="au-eye" data-eye="@inputId" aria-pressed="false" aria-label="@Messages("authenticate.show.password")" data-label-show="@Messages("authenticate.show.password")" data-label-hide="@Messages("authenticate.hide.password")">

@@ -3,20 +3,20 @@
  */
 
 /**
- * Unit tests for the `i18n-escape-in-markup` ESLint rule (tools/eslint-rules/i18n-escape-in-markup.js, #5389).
+ * Unit tests for the `i18n-escape-in-markup` ESLint rule (tools/lint/eslint-rules/i18n-escape-in-markup.js, #5389).
  *
  * The rule is the standing guard on the site-wide `interpolation.escapeValue: false` default: a translated string
  * that interpolates values and lands in an HTML sink has to state its escaping at the call site. These cases pin
  * both halves of that contract — the sink shapes it recognizes, and the flows it deliberately lets through, since a
- * silent widening there would turn the whole tree red on the next lint run. The native-DOM `append`/`before` cases
- * matter most: a false positive there would push a contributor at a *text* sink into the escaping #5389 removed.
+ * silent widening there would turn the whole tree red on the next lint run. The `append`/`before` cases matter
+ * most: a false positive there would push a contributor at a *text* sink into the escaping #5389 removed.
  *
  * Node environment, not the suite's usual jsdom: ESLint's RuleTester calls `structuredClone`, which jsdom's global
  * does not provide. Jest only reads that docblock when it is the file's first one, hence the split header.
  */
 
 const { RuleTester } = require('eslint');
-const rule = require('../../tools/eslint-rules/i18n-escape-in-markup');
+const rule = require('../../tools/lint/eslint-rules/i18n-escape-in-markup');
 
 const ruleTester = new RuleTester({
     languageOptions: { ecmaVersion: 2022, sourceType: 'script' },
@@ -35,7 +35,6 @@ describe('i18n-escape-in-markup', () => {
             { code: 'el.textContent = i18next.t("ns:key", { name });' },
             { code: 'el.setAttribute("aria-label", i18next.t("ns:key", { name }));' },
             { code: 'const msg = i18next.t("ns:key", { name }); el.textContent = msg;' },
-            { code: '$(el).text(i18next.t("ns:key", { count }));' },
             { code: 'alert(i18next.t("ns:key", { name }));' },
 
             // The decision is written down, either way.
@@ -50,10 +49,11 @@ describe('i18n-escape-in-markup', () => {
             // A `map` callback whose result is not joined into markup goes nowhere this rule can see.
             { code: 'const names = xs.map((x) => i18next.t("ns:key", { name: x }));' },
 
-            // The native DOM twins of jQuery's insert methods take text, so reporting them would push a
-            // contributor at a text sink toward the very escaping #5389 turned off.
+            // `append`, `before` and friends insert text, so reporting them would push a contributor at a text
+            // sink toward the very escaping #5389 turned off.
             { code: 'el.append(i18next.t("ns:key", { name }));' },
             { code: 'el.before(i18next.t("ns:key", { name }));' },
+            { code: 'el.replaceWith(i18next.t("ns:key", { name }));' },
             { code: 'params.append("t", i18next.t("ns:key", { name }));' },
             { code: 'fd.append("t", i18next.t("ns:key", { name }));' },
 
@@ -69,18 +69,10 @@ describe('i18n-escape-in-markup', () => {
             { code: 'el.innerHTML = i18next.t("ns:key", { name });', errors },
             { code: 'el.outerHTML = i18next.t("ns:key", { count });', errors },
             { code: 'el.insertAdjacentHTML("beforeend", i18next.t("ns:key", { name }));', errors },
-            { code: '$("#x").html(i18next.t("ns:key", { name }));', errors },
-            { code: '$(`<p>${i18next.t("ns:key", { name })}</p>`);', errors },
             { code: 'popup.setHTML(i18next.t("ns:key", { name }));', errors },
 
             // `data-ps-tooltip` is read back into the tooltip card's innerHTML, so it is a markup sink.
             { code: 'el.setAttribute("data-ps-tooltip", i18next.t("ns:key", { count }));', errors },
-            { code: '$el.attr("data-ps-tooltip", i18next.t("ns:key", { count }));', errors },
-
-            // A jQuery-shaped receiver makes the ambiguous insert methods markup again.
-            { code: '$el.append(i18next.t("ns:key", { name }));', errors },
-            { code: '$("#x").prepend(i18next.t("ns:key", { name }));', errors },
-            { code: '$("#x").find(".y").replaceWith(i18next.t("ns:key", { name }));', errors },
 
             // Carried there by a template literal, a concatenation, a ternary, or an array that is joined.
             { code: 'el.innerHTML = `<b>${i18next.t("ns:key", { name })}</b>`;', errors },

@@ -3,9 +3,8 @@ package service
 import forms.UsernamePolicy
 import models.user.{LeaderboardStat, SidewalkUserWithRole, UserStatTable}
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.given
 import models.utils.ProfanityGuard
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.db.slick.DatabaseConfigProvider
 import slick.basic.DatabaseConfig
@@ -13,6 +12,7 @@ import slick.dbio.DBIO
 import play.api.i18n.Lang
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.{Application, Configuration}
+import util.SidewalkSpec
 
 import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -34,10 +34,10 @@ import scala.concurrent.duration.DurationInt
  *     The #4533 regression synthesizes a label-only mapper and runs the board query in one transaction that is always
  *     rolled back (`runRolledBack`). Both leave the shared dev DB exactly as found, even on assertion failure.
  */
-class DashboardStatsInvariantSpec extends PlaySpec with GuiceOneAppPerSuite {
+class DashboardStatsInvariantSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private val userService               = app.injector.instanceOf[UserService]
   private val messages                  = play.api.test.Helpers.stubMessages()
@@ -46,7 +46,7 @@ class DashboardStatsInvariantSpec extends PlaySpec with GuiceOneAppPerSuite {
   private val config                    = app.injector.instanceOf[Configuration]
   private val userStatTable             = app.injector.instanceOf[UserStatTable]
   private val auditTaskInteractionTable = app.injector.instanceOf[models.audit.AuditTaskInteractionTable]
-  // Typed explicitly: letting `.db` infer here yields an existential type the compiler rejects under -Xfatal-warnings.
+  // Typed explicitly: letting `.db` infer here yields an existential type the compiler rejects under -Werror.
   private val dbConfig: DatabaseConfig[MyPostgresProfile] =
     app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
 
@@ -77,31 +77,23 @@ class DashboardStatsInvariantSpec extends PlaySpec with GuiceOneAppPerSuite {
   private val FixtureUserId   = "zz-fixture-4533"
   private val FixtureUsername = "zz_fixture_4533"
 
-  private lazy val someStreetEdgeId: Option[Int] =
-    await(dbConfig.db.run(sql"SELECT street_edge_id FROM street_edge LIMIT 1".as[Int].headOption))
-
-  /**
-   * The reference row a synthetic mapper has to hang off, or a cancellation when this database lacks one.
-   *
-   * Read outside the fixture's transaction, and as options, so a schema thin enough to be missing one of them cancels
-   * these tests rather than erroring the suite — the CANCEL-on-thin-data posture the rest of the suite already takes,
-   * and what lets it run against a freshly-created city schema in CI.
-   */
-  private def fixtureRefs: Int = someStreetEdgeId.getOrElse(cancel("no street_edge rows in this database"))
-
   /**
    * Inserts a mapper whose only period activity is a label placed *now* — their mission ended 30 days ago and their
    * audit task is not completed, so neither the mission-count nor the distance aggregate has a qualifying weekly row —
-   * then runs the real leaderboard query in the same (rolled-back) transaction. Reference ids are looked up from the
-   * connected DB so the fixture is city-agnostic.
+   * then runs the real leaderboard query in the same (rolled-back) transaction. The label gets its own street, since
+   * CI's only street is the tutorial street.
    *
    * @param onLeaderboard Value for the user's `on_leaderboard` privacy flag.
    * @param timePeriod    "weekly" or "overall".
    * @return              The board, including the fixture user iff the query admits label-only mappers.
    */
   private def boardWithLabelOnlyUser(onLeaderboard: Boolean, timePeriod: String): Seq[LeaderboardStat] = {
-    val streetEdge = fixtureRefs
     runRolledBack(for {
+      streetEdge <- sql"""INSERT INTO street_edge (street_edge_id, geom, x1, y1, x2, y2, way_type, status)
+                           VALUES ((SELECT COALESCE(MAX(street_edge_id), 0) + 1 FROM street_edge),
+                                   ST_SetSRID(ST_MakeLine(ST_MakePoint(0, 0), ST_MakePoint(1, 0)), 4326),
+                                   0, 0, 1, 0, 'residential', 'open')
+                           RETURNING street_edge_id""".as[Int].head
       _ <- sqlu"""INSERT INTO sidewalk_user (user_id, username, email)
                   VALUES ($FixtureUserId, $FixtureUsername, 'zz_fixture_4533@example.com')"""
       _ <- sqlu"INSERT INTO user_role (user_id, role) VALUES ($FixtureUserId, 'Registered')"
@@ -142,7 +134,7 @@ class DashboardStatsInvariantSpec extends PlaySpec with GuiceOneAppPerSuite {
     board.map(_.username).distinct.length mustBe board.length // no user listed twice
     board.map(_.score).sliding(2).foreach {
       case Seq(higher, lower) => higher must be >= lower // ranked by score, descending
-      case _                  => ()
+      case _                  => succeed
     }
     board.foreach { s =>
       s.labelCount must be >= 0
@@ -347,7 +339,7 @@ class DashboardStatsInvariantSpec extends PlaySpec with GuiceOneAppPerSuite {
       // Unlike the per-city boards, this one ranks on the value it displays, so rows are in true descending order.
       globalBoard.map(_.labelCount).sliding(2).foreach {
         case Seq(higher, lower) => higher must be >= lower
-        case _                  => ()
+        case _                  => succeed
       }
       globalBoard.foreach { s =>
         s.labelCount must be > 0 // a user whose every city is excluded is dropped, not shown with a zero
@@ -466,7 +458,7 @@ class DashboardStatsInvariantSpec extends PlaySpec with GuiceOneAppPerSuite {
         stats.cities.map(_.cityId).distinct.length mustBe stats.cities.length
         stats.cities.map(_.labels).sliding(2).foreach {
           case Seq(higher, lower) => higher must be >= lower
-          case _                  => ()
+          case _                  => succeed
         }
         stats.cities.foreach { city =>
           (city.labels + city.validations + city.missions) > 0 || city.distance > 0 mustBe true
@@ -622,7 +614,7 @@ class DashboardStatsInvariantSpec extends PlaySpec with GuiceOneAppPerSuite {
         rows.map(_.cityId).distinct.length mustBe rows.length
         rows.map(_.hours).sliding(2).foreach {
           case Seq(higher, lower) => higher must be >= lower
-          case _                  => ()
+          case _                  => succeed
         }
         rows.foreach { row =>
           row.hours must be >= 0d

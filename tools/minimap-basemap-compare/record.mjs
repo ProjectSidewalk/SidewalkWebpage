@@ -22,6 +22,7 @@ import { chromium } from '@playwright/test';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = path.resolve(HERE, '../../public');
+const FRONTEND_DIR = path.resolve(HERE, '../../frontend');
 const OUT_DIR = path.join(HERE, 'out');
 const DEV_APP_URL = process.env.DEV_APP_URL ?? 'http://localhost:9000';
 // Path prefix the page and public/ are routed under; nothing in the app uses it.
@@ -167,7 +168,7 @@ async function resolveCities(cityIds, refresh) {
 
 /**
  * Answers every request under PREFIX on the dev app's origin: compare.html (with the key filled in) and files from
- * public/. The origin satisfies the Maps key's referrer allowlist; the files come from this checkout. Routed on the
+ * public/ and frontend/. The origin satisfies the Maps key's referrer allowlist; the files come from this checkout. Routed on the
  * context, not the page, so MapLibre's worker chunks are answered too.
  * @param {import('@playwright/test').BrowserContext} context - The browser context.
  * @param {string} pageHtml - compare.html with the key substituted.
@@ -177,9 +178,13 @@ async function routeFiles(context, pageHtml) {
   await context.route(`${DEV_APP_URL}${PREFIX}**`, (route) => {
     const rel = decodeURIComponent(new URL(route.request().url()).pathname).slice(PREFIX.length);
     if (rel === 'compare.html') return route.fulfill({ contentType: 'text/html', body: pageHtml });
-    const file = path.resolve(PUBLIC_DIR, rel);
-    // path.relative, not startsWith: a sibling like public-old/ shares the prefix but is outside public/.
-    const inside = path.relative(PUBLIC_DIR, file);
+    // The style sources are ES modules under frontend/, which compare.html imports by that prefix; everything else
+    // (main.css, the vendored MapLibre and its worker chunks) is under public/.
+    const fromFrontend = rel.startsWith('frontend/');
+    const root = fromFrontend ? FRONTEND_DIR : PUBLIC_DIR;
+    const file = path.resolve(root, fromFrontend ? rel.slice('frontend/'.length) : rel);
+    // path.relative, not startsWith: a sibling like public-old/ shares the prefix but is outside the root.
+    const inside = path.relative(root, file);
     if (inside.startsWith('..') || path.isAbsolute(inside) || !fs.existsSync(file) || !fs.statSync(file).isFile()) {
       return route.fulfill({ status: 404, body: '' });
     }

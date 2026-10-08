@@ -11,16 +11,22 @@
  * eval'd into global scope rather than required.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules, realUtil } = require('./loadGlobalScript');
 
-const JS_DIR = path.resolve(__dirname, '..', '..', 'public/js/admin-dashboard');
+// The page fetches through util.fetchJson.
+window.util = realUtil();
+
+
+/** The text psTooltip's card shows for an element: its attribute is rendered as HTML, so it's decoded once more. */
+function tooltipText(el) {
+  const card = document.createElement('div');
+  card.innerHTML = el.getAttribute('data-ps-tooltip');
+  return card.textContent;
+}
 
 /** Load AcrossCitiesPage.js, plus the AdminShell helpers every dashboard page reads, and return the class binding. */
 function loadPage() {
-  const shell = fs.readFileSync(path.join(JS_DIR, 'AdminShell.js'), 'utf8');
-  const src = fs.readFileSync(path.join(JS_DIR, 'AcrossCitiesPage.js'), 'utf8');
-  return (0, eval)(`${shell}\nglobalThis.AdminShell = AdminShell;\n${src}\nAcrossCitiesPage;`);
+  return loadModules('frontend/js/admin-dashboard/AcrossCitiesPage.js').AcrossCitiesPage;
 }
 
 /** A minimal scorecard row; the traffic section only reads identity/lifecycle from it. */
@@ -221,8 +227,8 @@ describe('Across Cities — traffic section', () => {
     expect(cells[6].textContent.trim()).toBe('17,690');
     expect(cells[7].textContent.trim()).toBe('12%');
     // The window isn't the city's lifetime, so the cell has to date itself.
-    expect(cells[5].getAttribute('title')).toContain('2021');
-    expect(cells[5].getAttribute('title')).toContain("earlier traffic isn't included");
+    expect(tooltipText(cells[5])).toContain('2021');
+    expect(tooltipText(cells[5])).toContain("earlier traffic isn't counted");
   });
 
   it('sorts by an all-time column independently of the recent ones', async () => {
@@ -244,8 +250,8 @@ describe('Across Cities — traffic section', () => {
       available: true,
       traffic_by_city: { alpha: makeTraffic({ ga_since: null }) },
     });
-    const title = document.querySelector('#ac-traffic-tbody tr').cells[5].getAttribute('title');
-    expect(title).toBe("Covers this property's whole GA4 history.");
+    expect(tooltipText(document.querySelector('#ac-traffic-tbody tr').cells[5]))
+      .toBe("Covers this property's whole GA4 history.");
   });
 
   it('says so when the server reached some cities but not others', async () => {

@@ -2,12 +2,11 @@ package models.pano
 
 import com.google.inject.ImplementedBy
 import models.label.LabelTableDef
-import models.pano.PanoSource.PanoSource
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.{given, *}
+import models.utils.{NamedEnum, PgEnumCompanion}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import play.api.libs.functional.syntax._
-import play.api.libs.json.{__, JsValue, Json, Writes}
+import play.api.libs.json.{JsValue, Json, JsonConfiguration, JsonNaming, Reads, Writes}
 
 import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
@@ -55,29 +54,37 @@ case class PanoData(
     sourceMetadata: Option[JsValue]
 )
 
-// NOTE need to update pano_source enum in postgres as well if changing this Enumeration.
-object PanoSource extends Enumeration {
-  type PanoSource = Value
-  val Gsv       = Value("gsv")
-  val Mapillary = Value("mapillary")
-  val Infra3d   = Value("infra3d")
-  val Panoramax = Value("panoramax")
+// NOTE need to update pano_source enum in postgres as well if changing this enum.
+enum PanoSource(val name: String) extends NamedEnum {
+  case Gsv       extends PanoSource("gsv")
+  case Mapillary extends PanoSource("mapillary")
+  case Infra3d   extends PanoSource("infra3d")
+  case Panoramax extends PanoSource("panoramax")
 
   /**
    * The tutorial's locally-served panos, whose imagery is app assets. They carry rows so that every label has one
    * (#4587), and this value is what keeps them out of the scraper's work list and every provider call (#4773).
    */
-  val Tutorial = Value("tutorial")
+  case Tutorial extends PanoSource("tutorial")
+}
+
+object PanoSource extends PgEnumCompanion[PanoSource]("pano_source") {
 
   /**
    * Sources whose imagery `PanoDataService.panoExists` can actually verify against a provider API.
    */
-  val providerCheckedSources: Set[Value] = Set(Gsv, Mapillary, Panoramax)
+  val providerCheckedSources: Set[PanoSource] = Set(Gsv, Mapillary, Panoramax)
 
   /**
    * Sources a client may name in a submission. `Tutorial` is server-owned.
    */
-  val clientSubmittableSources: Set[Value] = Set(Gsv, Mapillary, Infra3d, Panoramax)
+  val clientSubmittableSources: Set[PanoSource] = Set(Gsv, Mapillary, Infra3d, Panoramax)
+
+  /** Only what a client may name, so no submission format can let one claim `Tutorial` by oversight. */
+  override protected def readable: Seq[PanoSource] = values.toSeq.filter(clientSubmittableSources.contains)
+
+  /** Takes every source, for JSON that the database built. */
+  val storedReads: Reads[PanoSource] = readsAmong(values.toSeq)
 }
 
 case class PanoDataSlim(
@@ -94,18 +101,10 @@ case class PanoDataSlim(
 )
 
 object PanoDataSlim {
-  implicit val panoDataSlimWrites: Writes[PanoDataSlim] = (
-    (__ \ "pano_id").write[String] and
-      (__ \ "has_labels").write[Boolean] and
-      (__ \ "width").writeNullable[Int] and
-      (__ \ "height").writeNullable[Int] and
-      (__ \ "lat").writeNullable[Double] and
-      (__ \ "lng").writeNullable[Double] and
-      (__ \ "camera_heading").writeNullable[Double] and
-      (__ \ "camera_pitch").writeNullable[Double] and
-      (__ \ "camera_roll").writeNullable[Double] and
-      (__ \ "source").write[PanoSource.Value]
-  )(unlift(PanoDataSlim.unapply))
+  // snake_case keys for the Json.writes macro below.
+  private given jsonConfig: JsonConfiguration = JsonConfiguration(JsonNaming.SnakeCase)
+
+  given panoDataSlimWrites: Writes[PanoDataSlim] = Json.writes[PanoDataSlim]
 }
 
 class PanoDataTableDef(tag: Tag) extends Table[PanoData](tag, "pano_data") {
@@ -138,8 +137,7 @@ class PanoDataTableDef(tag: Tag) extends Table[PanoData](tag, "pano_data") {
 
   def * = (panoId, width, height, tileWidth, tileHeight, captureDate, copyright, license, lat, lng, cameraHeading,
     cameraPitch, cameraRoll, expired, lastViewed, panoHistorySaved, lastChecked, source, hasBackup, address,
-    sourceMetadata) <>
-    ((PanoData.apply _).tupled, PanoData.unapply)
+    sourceMetadata).mapTo[PanoData]
 }
 
 @ImplementedBy(classOf[PanoDataTable]) trait PanoDataTableRepository {}
@@ -148,14 +146,30 @@ object PanoDataTable {
 
   /** Ids per `markHasBackup` statement: enough to make a night's update a handful of round trips, not thousands. */
   val MarkHasBackupChunk: Int = 1000
+
+  /**
+   * SQL that reads a free-text `capture_date` column as a date, or NULL when the value isn't a usable date. It takes
+   * `YYYY`, `YYYY-MM`, and `YYYY-MM-DD` (missing parts become the 1st). Blank, junk ('Invalid date'), impossible
+   * months, and years before 2004 (when street-level imagery began) give NULL instead of failing the query; an
+   * impossible day like Feb 31 rolls into the next month.
+   *
+   * @param column The capture-date column, written in code (e.g. `pano_data.capture_date`).
+   * @return A SQL date expression to splice into a query with `#$`.
+   */
+  def captureDateSql(column: String): String = {
+    val usable = "'^(200[4-9]|20[1-9][0-9])(-(0?[1-9]|1[0-2])(-(0?[1-9]|[12][0-9]|3[01]))?)?$'"
+    // The n-th dash-separated number in the value, or 1 when the value stops before it.
+    def part(n: Int): String = s"COALESCE(NULLIF(split_part($column, '-', $n), '')::int, 1)"
+    s"(CASE WHEN $column ~ $usable THEN make_date(${part(1)}, ${part(2)}, 1) + (${part(3)} - 1) END)"
+  }
 }
 
 @Singleton
-class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext)
+class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(using ec: ExecutionContext)
     extends PanoDataTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
-  import profile.api._
+  import profile.api.*
   val panoDataRecords = TableQuery[PanoDataTableDef]
   val labelTable      = TableQuery[LabelTableDef]
 
@@ -175,18 +189,21 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
    *
    * Tutorial panos are excluded: this feeds `/adminapi/panos`, the scraper's work list, and their imagery is app
    * assets with no provider to download from.
+   *
+   * `has_labels` deliberately includes deleted labels: a deleted label can be restored, so the scraper keeps any pano
+   * that ever had one. So it means "ever had a label", not "has a live label" (#5385).
    */
   def getAllPanos: DBIO[Seq[PanoDataSlim]] = {
     panoDataRecords
       .filter(_.source =!= PanoSource.Tutorial)
       .joinLeft(labelTable)
       .on(_.panoId === _.panoId)
-      .distinctOn(_._1.panoId)
+      .distinctOn { case (g, _) => g.panoId }
       .map { case (g, l) =>
         (g.panoId, l.isDefined, g.width, g.height, g.lat, g.lng, g.cameraHeading, g.cameraPitch, g.cameraRoll, g.source)
+          .mapTo[PanoDataSlim]
       }
       .result
-      .map(_.map((PanoDataSlim.apply _).tupled))
   }
 
   /**
@@ -198,8 +215,8 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
     labelTable
       .join(panoDataRecords)
       .on(_.panoId === _.panoId)
-      .filter(_._2.source inSet PanoSource.providerCheckedSources)
-      .map(_._2.panoId)
+      .filter { case (_, pano) => pano.source inSet PanoSource.providerCheckedSources }
+      .map { case (_, pano) => pano.panoId }
       .countDistinct
       .result
   }
@@ -239,13 +256,13 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
       hasBackup: Option[Boolean],
       lastChecked: OffsetDateTime
   ): DBIO[Int] = {
-    val source = PanoImageryChangeSource.ProviderCheck.toString
+    val source = PanoImageryChangeSource.ProviderCheck
     if (expired) {
       sqlu"""WITH edge AS (
                SELECT pano_id FROM pano_data WHERE pano_id = $panoId AND NOT expired
              ), logged AS (
                INSERT INTO pano_imagery_change (pano_id, expired, changed_at, source)
-               SELECT pano_id, TRUE, $lastChecked, $source::pano_imagery_change_source FROM edge
+               SELECT pano_id, TRUE, $lastChecked, $source FROM edge
              )
              UPDATE pano_data
              SET expired = TRUE,
@@ -258,7 +275,7 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
                SELECT pano_id FROM pano_data WHERE pano_id = $panoId AND expired
              ), logged AS (
                INSERT INTO pano_imagery_change (pano_id, expired, changed_at, source)
-               SELECT pano_id, FALSE, $lastChecked, $source::pano_imagery_change_source FROM edge
+               SELECT pano_id, FALSE, $lastChecked, $source FROM edge
              )
              UPDATE pano_data
              SET expired = FALSE,
@@ -343,15 +360,15 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
     panoDataRecords
       .join(labelTable)
       .on(_.panoId === _.panoId)
-      .filter(pano =>
-        (pano._1.source inSet PanoSource.providerCheckedSources)
-          && pano._1.expired === expired
-          && pano._1.lastChecked < OffsetDateTime.now().minusMonths(3)
-      )
-      .map(pano => (pano._1.panoId, pano._1.source, pano._1.lastChecked))
+      .filter { case (pano, _) =>
+        (pano.source inSet PanoSource.providerCheckedSources)
+        && pano.expired === expired
+        && pano.lastChecked < OffsetDateTime.now().minusMonths(3)
+      }
+      .map { case (pano, _) => (pano.panoId, pano.source, pano.lastChecked) }
       .distinct
-      .sortBy(_._3.asc)
-      .map(pano => (pano._1, pano._2))
+      .sortBy { case (_, _, lastChecked) => lastChecked.asc }
+      .map { case (panoId, source, _) => (panoId, source) }
       .take(n)
       .result
   }
@@ -380,13 +397,13 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
    * @return Number of rows inserted/updated (always 1).
    */
   def upsert(data: PanoData): DBIO[Int] = {
-    val source = PanoImageryChangeSource.PanoView.toString
+    val source = PanoImageryChangeSource.PanoView
     sqlu"""
       WITH edge AS (
         SELECT pano_id FROM pano_data WHERE pano_id = ${data.panoId} AND expired
       ), logged AS (
         INSERT INTO pano_imagery_change (pano_id, expired, changed_at, source)
-        SELECT pano_id, FALSE, ${data.lastViewed}, $source::pano_imagery_change_source FROM edge
+        SELECT pano_id, FALSE, ${data.lastViewed}, $source FROM edge
       )
       INSERT INTO pano_data (pano_id, width, height, tile_width, tile_height, capture_date, copyright, license, lat,
                              lng, camera_heading, camera_pitch, camera_roll, expired, last_viewed, pano_history_saved,
@@ -394,7 +411,7 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
       VALUES (${data.panoId}, ${data.width}, ${data.height}, ${data.tileWidth}, ${data.tileHeight},
               ${data.captureDate}, ${data.copyright}, ${data.license}, ${data.lat}, ${data.lng}, ${data.cameraHeading},
               ${data.cameraPitch}, ${data.cameraRoll}, ${data.expired}, ${data.lastViewed}, ${data.panoHistorySaved},
-              ${data.lastChecked}, ${data.source.toString}::pano_source, ${data.hasBackup}, ${data.address},
+              ${data.lastChecked}, ${data.source}, ${data.hasBackup}, ${data.address},
               ${data.sourceMetadata.map(m => Json.stringify(m))}::jsonb)
       ON CONFLICT (pano_id) DO UPDATE SET
         lat = COALESCE(EXCLUDED.lat, pano_data.lat),
