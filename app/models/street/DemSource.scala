@@ -51,7 +51,8 @@ object DemSource {
       credit = "Elevation: © swisstopo (Federal Office of Topography), swissALTI3D",
       licence = "swisstopo OGD terms of use (attribution required)",
       url = Some("https://www.swisstopo.admin.ch/en/height-model-swissalti3d"),
-      citation = None // swisstopo suggests no citation form; the source reference above is what it asks for.
+      // swisstopo suggests no citation form; the source reference above is what it asks for.
+      citation = None
     ),
     DemSource(
       name = "linz-nz-1m",
@@ -73,7 +74,8 @@ object DemSource {
         "Government Licence – Canada",
       licence = "Open Government Licence – Canada 2.0",
       url = Some("https://open.canada.ca/data/en/dataset/0fe65119-e96e-4a57-8bfe-9d9245fba06b"),
-      citation = None // The record suggests no citation form.
+      // The record suggests no citation form.
+      citation = None
     ),
     DemSource(
       name = "gedtm30",
@@ -97,7 +99,8 @@ object DemSource {
         "Street grades derived by Project Sidewalk, not by INEGI",
       licence = "Términos de Libre Uso de la Información del INEGI",
       url = Some("https://www.inegi.org.mx/app/geo2/elevacionesmex/"),
-      citation = None // INEGI suggests the "Fuente:" line above, no separate citation form.
+      // INEGI suggests the "Fuente:" line above, no separate citation form.
+      citation = None
     ),
     DemSource(
       name = "ign-lidarhd-mnt-05m",
@@ -107,7 +110,8 @@ object DemSource {
       credit = "Elevation: IGN, MNT LiDAR HD (Licence Ouverte / Open Licence 2.0)",
       licence = "Licence Ouverte / Open Licence 2.0 (Etalab)",
       url = Some("https://www.data.gouv.fr/fr/datasets/mnt-lidar-hd/"),
-      citation = None // IGN publishes no citation form for LiDAR HD.
+      // IGN publishes no citation form for LiDAR HD.
+      citation = None
     ),
     DemSource(
       name = "ahn4-dtm-05m",
@@ -115,7 +119,8 @@ object DemSource {
       credit = "Elevation: Actueel Hoogtebestand Nederland (AHN4), Rijkswaterstaat via PDOK, CC0 1.0",
       licence = "CC0 1.0",
       url = Some("https://www.pdok.nl/introductie/-/article/actueel-hoogtebestand-nederland-ahn"),
-      citation = None // PDOK suggests no citation form, and CC0 asks for none.
+      // PDOK suggests no citation form, and CC0 asks for none.
+      citation = None
     )
   )
 

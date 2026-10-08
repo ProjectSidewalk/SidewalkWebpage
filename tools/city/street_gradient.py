@@ -134,6 +134,7 @@ GDAL_ENV = {'GDAL_HTTP_MAX_RETRY': '5', 'GDAL_HTTP_RETRY_DELAY': '2', 'GDAL_DISA
 log = logging.getLogger('street_gradient')
 
 Locator = Callable[[np.ndarray, np.ndarray], list]
+Extent = tuple[str, object, tuple[float, float, float, float]]  # (path, crs, (left, bottom, right, top))
 
 
 # --------------------------------------------------------------------------------------------------------------------
@@ -459,9 +460,6 @@ def swissalti3d_tiles(west: float, south: float, east: float, north: float, fetc
             newest[key] = (int(year), f'/vsicurl/{href}')
     return [(path, SWISSALTI3D_CRS, (e * 1000.0, n * 1000.0, e * 1000.0 + 1000.0, n * 1000.0 + 1000.0))
             for (e, n), (_, path) in sorted(newest.items())]
-
-
-Extent = tuple[str, object, tuple[float, float, float, float]]  # (path, crs, (left, bottom, right, top))
 
 
 def locate_by_extent(rasters: Sequence[Extent], lngs: np.ndarray, lats: np.ndarray) -> list:
