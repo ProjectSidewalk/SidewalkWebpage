@@ -13,11 +13,15 @@ import util.SidewalkSpec
  *
  * The module builds its own markup, so a template owes it only a container, the page entry that constructs it, its
  * stylesheet, and a translated title. None of that fails loudly: a renamed container or a missing entry just leaves
- * the section hidden, which is also what "this city has nothing ranked yet" looks like. These pin the wiring.
+ * the section hidden, which is also what "this city has nothing ranked yet" looks like. These pin the wiring. The
+ * stylesheet arrives through the module's own import (#5651), so what the page links is the chunk Vite names after
+ * the module.
  *
  * Requires a Postgres+PostGIS database (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in dev/CI).
  */
 class AccessScoreSpotlightPageSpec extends SidewalkSpec with GuiceOneAppPerSuite {
+
+  private val SpotlightStylesheet = """build/css/AccessScoreSpotlight-[^"]+\.css"""
 
   override def fakeApplication(): Application =
     GuiceApplicationBuilder()
@@ -39,7 +43,7 @@ class AccessScoreSpotlightPageSpec extends SidewalkSpec with GuiceOneAppPerSuite
 
       body must include("""id="access-score-spotlight-container"""")
       body must include("build/js/home.js")
-      body must include("css/components/access-score-spotlight.css")
+      body must include regex SpotlightStylesheet
       // Hidden on arrival: a section that unhid itself and then found nothing ranked would flash an empty gap.
       body must include regex """id="access-score-spotlight-container"\s+hidden"""
       // Above the choropleth, so a hovered row's neighborhood lights up without scrolling.
@@ -60,7 +64,7 @@ class AccessScoreSpotlightPageSpec extends SidewalkSpec with GuiceOneAppPerSuite
 
       body must include("""id="access-score-spotlight-container"""")
       body must include("build/js/deploymentSites.js")
-      body must include("css/components/access-score-spotlight.css")
+      body must include regex SpotlightStylesheet
       body.indexOf("""id="access-score-spotlight-container"""") must be < body.indexOf("""class="cta-section"""")
       body must not include "cities.spotlight.title"
     }
