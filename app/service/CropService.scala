@@ -500,8 +500,8 @@ class CropServiceImpl @Inject() (
           try {
             ImageUtils.withReader(file) { (reader, width, height) =>
               counts.panosOpened += 1
-              // The label positions are in the frame pano_data recorded, so an image of another size would put
-              // every crop in the wrong place: skip loudly rather than mis-centre.
+              // A pano never changes size, so a stored image of another size is a mis-stitched file (the old scraper
+              // cut larger panos down to the app's then-hardcoded 13312×6656): skip loudly rather than mis-centre.
               val recorded = labels.head
               if (recorded.panoWidth.exists(_ != width) || recorded.panoHeight.exists(_ != height)) {
                 counts.dimsMismatch += labels.size
@@ -510,10 +510,8 @@ class CropServiceImpl @Inject() (
                     s"is ${width}x$height; skipping its ${labels.size} labels rather than mis-centring their crops."
                 )
               } else {
-                // A row that records no dimensions gives that check nothing to fail on, so the crop is cut against
-                // the stored image on the assumption the label was placed on the same frame. Usually true — the
-                // scraper stores what the client saw — but nothing here confirms it, so the run says how often it
-                // had to assume rather than passing the case off as verified.
+                // With no recorded dimensions the stored image is taken as the label's frame; a mis-stitched file
+                // (above) can't be ruled out, so the run counts how often it had to assume.
                 if (recorded.panoWidth.isEmpty || recorded.panoHeight.isEmpty) {
                   counts.dimsUnverified += labels.size
                   logger.warn(

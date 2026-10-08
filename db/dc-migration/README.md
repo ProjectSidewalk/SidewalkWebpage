@@ -88,4 +88,6 @@ DC's Dec-2023 CV coordinate fix (its fork's evo 17, a backport of mainline 179.s
 recompute was gated on `gsv_data.image_width IS NOT NULL`, and its own evo 15 had just nulled every width. All
 271,187 backed-up coordinate pairs are identical to the live values. The replay keeps them as-is; the real fix is a
 post-migration follow-up: refetch GSV metadata (width/height/camera) for still-existing panos, then run the
-position recompute for labels on those panos.
+position recompute for labels on those panos. That follow-up is #5667. A pano's size never changes, so panos Google no
+longer serves can take their dimensions from the stored `dc/` images (the XML sidecar, or the JPEG header where the
+file was stitched at full size), and the recompute is exact for any pano whose dimensions are known.

@@ -133,6 +133,10 @@ directory by `LabelEditService`). They are disposable — delete the store and t
 which is why they live beside the app's other derived media rather than in the panorama store, which the app only
 reads.
 
+A pano's `pano_data.width`/`height` never change: Google re-renders pixels, never the frame (measured in
+sidewalk-panorama-tools, `reports/2026-08-09-photometa-census.md`). A stored image of another size is a mis-stitched
+file, not a resized pano (#5667).
+
 Crops are the image the Gallery, the landing validation grid and label popups fall back to when live imagery is
 unavailable; they are written by the browser's `POST /saveImage` canvas snapshot at labeling time and by the job for
 every label that has none (AI submissions, failed uploads, any past city). The card surfaces (Gallery, landing grid,
