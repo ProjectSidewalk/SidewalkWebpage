@@ -64,8 +64,6 @@
    loading it at the end of the body paints the whole thing unstyled before it snaps into place. *@
 @extraHeadContent = {
   @ViteAssets.stylesheets("about")
-  @* Styles the deployment map's city popups. Small enough to ship up front, unlike the mapping libraries the map
-     itself needs, which aboutPage.js only fetches once the section nears the viewport. *@
   <script type="application/ld+json">@jsonLd</script>
 }
 

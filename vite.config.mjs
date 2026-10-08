@@ -47,7 +47,10 @@ export default defineConfig(({ mode }) => ({
         // would also collide for admin/shell and dashboard/shell.
         entryFileNames: 'js/[name].js',
         chunkFileNames: 'js/chunks/[name]-[hash].js',
-        assetFileNames: 'css/[name]-[hash][extname]'
+        // Only stylesheets go to css/, where Play's cache rules (conf/application.conf) expect them; anything else a
+        // module ever imports lands beside them under assets/.
+        assetFileNames: ({ names }) =>
+          (names.some(name => name.endsWith('.css')) ? 'css' : 'assets') + '/[name]-[hash][extname]'
       }
     }
   }

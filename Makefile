@@ -461,6 +461,7 @@ compile:
 	@docker exec $(tty-flags) -e SBT_OPTS="$(sbt-opts)" $(web-container) bash -lc "cd $(self-container-dir) && bash tools/dev/sbt-run.sh --dir $(container-dir) compile"
 
 test-scala:
+	@[ -f "$(host-dir)/public/build/manifest.json" ] || { echo "error: $(host-dir)/public/build/manifest.json is missing. The specs render views whose stylesheet tags come from the build, so run \`npm run build\` in that tree first."; exit 1; }
 	@docker exec $(tty-flags) $(lease-env) -e SBT_OPTS="$(sbt-opts)" $(web-container) bash -lc "cd $(self-container-dir) && bash tools/dev/sbt-run.sh --dir $(container-dir) --db-lock $(if $(only),'testOnly $(only)',test)"
 
 # Each release build leaves ~1GB of jars named after its version and removes none of the older ones. Drops those,

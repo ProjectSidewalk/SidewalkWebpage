@@ -17,6 +17,7 @@ function snapshot() {
   return globSync(ENTRY_GLOB).sort().join('\n');
 }
 
+/** Runs the bundler in watch mode until it exits, and again after a restart this script asked for. */
 function start() {
   // `npm run` puts node_modules/.bin on PATH, so the bare name finds the bundler in a worktree too. Development mode
   // (vite.config.mjs) leaves the previous build in place while the next one is written, so a reload mid-rebuild

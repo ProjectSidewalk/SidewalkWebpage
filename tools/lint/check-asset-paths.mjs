@@ -437,8 +437,8 @@ for (const file of viewFiles) {
 if (problems.length === 0) {
   console.log(`Asset paths OK -- ${files.length} JS files, ${staticCalls} literal and ${dynamicCalls} interpolated `
     + `util.assetPath() calls, ${PREFIXES.length} manifest prefixes; `
-    + `${ourCssFiles.length} + ${vendorCssFiles.length} CSS files, ${cssUrls} file-naming url() reference(s); ${viewFiles.length} views, `
-    + `${viewCalls} literal assets.path() calls.`);
+    + `${ourCssFiles.length} + ${vendorCssFiles.length} CSS files, ${cssUrls} file-naming url() reference(s); `
+    + `${viewFiles.length} views, ${viewCalls} literal assets.path() calls.`);
   process.exit(0);
 }
 

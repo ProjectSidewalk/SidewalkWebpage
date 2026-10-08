@@ -44,6 +44,7 @@ object ViteAssets {
     /** @return The entry's stylesheets, as paths under `public/build/`, each once, in cascade order. */
     def stylesheets(entry: String): Seq[String] = byEntry.computeIfAbsent(entry, walk)
 
+    /** @return The entry's stylesheets in cascade order: each imported chunk's before its importer's. */
     private def walk(entry: String): Seq[String] = {
       val key  = s"frontend/js/pages/$entry.js"
       val root = chunks.getOrElse(key, throw new NoSuchElementException(s"$ManifestPath has no entry '$key'"))
@@ -107,6 +108,7 @@ object ViteAssets {
     }
   }
 
+  /** @return The manifest at `url`, keeping only the fields the stylesheet walk reads. */
   private def parse(url: URL): Manifest = {
     val stream = url.openStream()
     val parsed =

@@ -15,9 +15,11 @@
 //      `<link>` to a stylesheet by path is caught here too. A page inside a shell layout (one that links an entry of
 //      its own around the page) names that entry as `alreadyLinked`, so a sheet both need isn't linked a second
 //      time, after the page's own.
-//   6. With a build present, no sheet a page links is also brought in by a chunk the page loads lazily: the chunk
-//      links its sheets at Vite's plain URL, which the fingerprinted <link> of a staged build doesn't match, so the
-//      browser would load the sheet again, after the page's own.
+//   6. With a build present, no sheet a page links (its own, or its shell's) is also brought in by a chunk the page
+//      loads lazily: the chunk links its sheets at Vite's plain URL, which the fingerprinted <link> of a staged build
+//      doesn't match, so the browser would load the sheet again, after the page's own.
+//   7. With a build present, no page entry shares a sheet with main.js, which every page links first: the page's
+//      copy would land after main.css on that page alone, so the two would cascade differently from page to page.
 //
 // Exits non-zero with the offending files listed, so it can gate CI.
 
@@ -60,7 +62,6 @@ const PAGES = {
   'pages/labeling-guide.css': {
     importers: ['frontend/js/pages/labelingGuide.js', 'frontend/js/common/labelingGuide.js'],
   },
-  'pages/maintenance.css': { importers: ['frontend/js/pages/maintenance.js'] },
   'pages/mobile-landing.css': { importers: ['frontend/js/pages/mobileLanding.js'] },
   'pages/mobile-validate.css': { importers: ['frontend/js/pages/mobileValidate.js', 'frontend/js/mobileValidate.js'] },
   'pages/route-builder.css': { importers: ['frontend/js/pages/routeBuilder.js', 'frontend/js/route-builder/'] },
@@ -76,8 +77,8 @@ const PAGES = {
 };
 
 // A layout that links an entry of its own around a page's content, and that entry; a page inside one names it as
-// `alreadyLinked`. common/main.scala.html wraps every page but isn't one: no page entry imports its sheets, and a
-// chunk it shares with a page is re-linked before the page's own sheet, where the repeat changes nothing.
+// `alreadyLinked`. common/main.scala.html wraps every page but isn't one: rule 7 keeps a page from sharing a sheet
+// with main, so there is nothing for a page to leave out.
 const SHELLS = {
   'app/views/admin/dashboard/adminLayout.scala.html': 'admin/shell',
   'app/views/apiDocs/layout.scala.html': 'api-docs/layout',
@@ -89,7 +90,11 @@ const IMPORT = /\bimport\s*(?:[^'"()]*?\bfrom\s*)?\(?\s*['"](\.[^'"]+)['"]/g;
 
 const problems = [];
 
-/** @returns {string[]} Every file under `dir` (recursively) whose name passes `keep`, as repo-relative paths. */
+/**
+ * @param {string} dir An absolute directory.
+ * @param {(name: string) => boolean} keep Whether a file name is wanted.
+ * @returns {string[]} Every file under `dir` (recursively) whose name passes `keep`, as repo-relative paths.
+ */
 function walk(dir, keep) {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     const full = join(dir, entry.name);
@@ -98,12 +103,18 @@ function walk(dir, keep) {
   });
 }
 
-/** @returns {string|null} The PAGES key that owns a `pages/...` path (the file itself, or the subdir it sits in). */
+/**
+ * @param {string} cssRelPath A stylesheet's path under frontend/css/.
+ * @returns {string|null} The PAGES key that owns a `pages/...` path (the file itself, or the subdir it sits in).
+ */
 function ownerOf(cssRelPath) {
   return Object.keys(PAGES).find((key) => cssRelPath === key || cssRelPath.startsWith(`${key}/`)) ?? null;
 }
 
-/** @returns {string[]} The repo-relative targets of every relative import in a JS file, in source order. */
+/**
+ * @param {string} jsFile A module's repo-relative path.
+ * @returns {string[]} The repo-relative targets of every relative import in it, in source order.
+ */
 function importsOf(jsFile) {
   const text = readFileSync(join(ROOT, jsFile), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
   return [...text.matchAll(IMPORT)].map(([, spec]) => relative(ROOT, resolve(dirname(join(ROOT, jsFile)), spec)));
@@ -203,7 +214,11 @@ const STYLES_CALL = /ViteAssets\.stylesheets\("([^"]+)"((?:\s*,\s*(?:alreadyLink
 const JS_LINK = /assets\.path\("build\/js\/([^"]+)\.js"\)/g;
 const STALE_LINK = /(?:assets\.path|routes\.Assets\.versioned)\("(?:css|build\/css)\/[^"]+"\)/g;
 
-/** @returns {string[]} The SHELLS entries whose layout a view renders its content through. */
+/**
+ * @param {string} view A view's repo-relative path.
+ * @param {string} text Its source.
+ * @returns {string[]} The SHELLS entries whose layout the view renders its content through.
+ */
 function shellsAround(view, text) {
   return Object.entries(SHELLS).filter(([layout]) => {
     const name = basename(layout, '.scala.html');
@@ -213,6 +228,8 @@ function shellsAround(view, text) {
   }).map(([, entry]) => entry);
 }
 
+/** @type {Map<string, Set<string>>} Each entry's shells, as the views name them in `alreadyLinked`. */
+const shellsOf = new Map();
 let views = 0;
 for (const view of walk(VIEWS_DIR, (name) => name.endsWith('.scala.html'))) {
   const text = readFileSync(join(ROOT, view), 'utf8');
@@ -226,6 +243,7 @@ for (const view of walk(VIEWS_DIR, (name) => name.endsWith('.scala.html'))) {
   for (const [, name, rest] of text.matchAll(STYLES_CALL)) {
     styled.push(name);
     const linked = [...rest.matchAll(/"([^"]+)"/g)].map(([, entry]) => entry);
+    shellsOf.set(name, new Set([...(shellsOf.get(name) ?? []), ...linked]));
     for (const entry of [name, ...linked]) {
       if (!entries.includes(entry)) {
         problems.push(`${view}: @ViteAssets.stylesheets names ${entry}, but frontend/js/pages/ has no entry named `
@@ -248,14 +266,17 @@ for (const view of walk(VIEWS_DIR, (name) => name.endsWith('.scala.html'))) {
   }
 }
 
-// --- 6. Nothing a page links rides along with a chunk it loads lazily ---------------------------------------------
+// --- 6. Nothing a page links rides along with a chunk it loads lazily; 7. nothing is shared with main --------------
 
 const built = existsSync(MANIFEST);
 if (built) {
   const manifest = JSON.parse(readFileSync(MANIFEST, 'utf8'));
 
-  /** @returns {Set<string>} The stylesheets a chunk and its static imports bring: what the page links for an entry,
-   *   and what Vite's preload links for a lazily loaded chunk. */
+  /**
+   * @param {string} key A manifest key: an entry's source path, or a chunk's `_name` key.
+   * @returns {Set<string>} The stylesheets the chunk and its static imports bring: what the page links for an entry,
+   *   and what Vite's preload links for a lazily loaded chunk.
+   */
   function sheetsOf(key) {
     const sheets = new Set();
     const seen = new Set();
@@ -268,9 +289,23 @@ if (built) {
     return sheets;
   }
 
+  /** @returns {string} The manifest key of a page entry. */
+  const keyOf = (entry) => `frontend/js/pages/${entry}.js`;
+  const mainSheets = sheetsOf(keyOf('main'));
+
   for (const [key, chunk] of Object.entries(manifest)) {
-    if (!chunk.isEntry) continue;
-    const linked = sheetsOf(key);
+    if (!chunk.isEntry || key === keyOf('main')) continue;
+    const entry = relative(PAGES_DIR, join(ROOT, key)).replace(/\.js$/, '');
+    const own = sheetsOf(key);
+    for (const file of own) {
+      if (mainSheets.has(file)) {
+        problems.push(`${chunk.src}: links ${file}, which main.js already links on every page; import it from main.js `
+          + 'or from the pages that need it, not both');
+      }
+    }
+    // What the page's HTML links before the lazy chunk's code runs: the entry's sheets, and its shell's.
+    const shells = [...(shellsOf.get(entry) ?? [])];
+    const linked = new Set([...own, ...shells.flatMap((shell) => [...sheetsOf(keyOf(shell))])]);
     const lazy = new Set();
     const seen = new Set();
     (function visit(k) {

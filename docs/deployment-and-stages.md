@@ -491,7 +491,8 @@ stays relative (the digested copy sits in the original's directory), and a query
 **A new reference needs nothing registered**: unlike
 `util.assetPath` and its `assetManifestPrefixes`, the stage resolves each `url()` against the file itself. Just name a
 file that exists. In a source stylesheet (`frontend/css/`) that is the file's root-absolute path under `public/`
-(`url("/images/icons/x.svg")`): Vite rewrites it to `/assets/…` (its `base`) in `public/build/css/`, which is what
+(`url("/images/icons/x.svg")`): Vite rewrites it to `/assets/…` (`renderBuiltUrl` in `vite.config.mjs`, since
+`base` alone would say `/assets/build/…`) in `public/build/css/`, which is what
 the stage then sees, so `make lint-asset-paths` (rule 6) rejects a relative path or an `/assets/` prefix there. A
 vendored stylesheet is served from where it sits, so its `url()`s stay relative.
 
