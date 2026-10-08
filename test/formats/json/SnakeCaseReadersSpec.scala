@@ -136,19 +136,11 @@ class SnakeCaseReadersSpec extends AnyFunSuite with Matchers {
       PanoSubmission("p", PanoSource.Gsv, "2020-01", Some(8192), Some(4096), None, None, Some(1.5), Some(2.5),
         Some(90.0), None, None, Nil, None, None, None, Nil, None)
     check(
-      """{"label_type":"CurbRamp","model_id":"m","model_training_date":"01-15-2026","api_version":"v",
+      """{"label_type":"CurbRamp","model_id":"m","model_training_date":"d","api_version":"v",
         |"pano":{"pano_id":"p","source":"gsv","capture_date":"2020-01","width":8192,"height":4096,"lat":1.5,"lng":2.5,
         |"camera_heading":90.0,"links":[],"history":[]},
         |"labels":[{"pano_x":1,"pano_y":2,"confidence":0.5}]}""".stripMargin,
-      AiLabelsSubmission(
-        LabelType.CurbRamp,
-        "m",
-        "01-15-2026",
-        "v",
-        pano,
-        Seq(AiLabelDetection(1, 2, 0.5)),
-        overwrite = false
-      )
+      AiLabelsSubmission(LabelType.CurbRamp, "m", "d", "v", pano, Seq(AiLabelDetection(1, 2, 0.5)), overwrite = None)
     )
   }
 

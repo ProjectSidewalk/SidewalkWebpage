@@ -19,6 +19,7 @@ import org.locationtech.jts.geom.{Coordinate, GeometryFactory, Point, PrecisionM
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.{Configuration, Logger}
 
+import java.time.format.DateTimeFormatter
 import java.time.{LocalDate, OffsetDateTime, ZoneOffset}
 import javax.inject.*
 import scala.concurrent.{ExecutionContext, Future}
@@ -983,91 +984,76 @@ class ExploreServiceImpl @Inject() (
 
   def submitAiLabelData(data: AiLabelsSubmission): Future[Seq[Unit]] = {
     val currTime: OffsetDateTime          = OffsetDateTime.now
+    val dateFormatter                     = DateTimeFormatter.ofPattern("MM-dd-yyyy")
     val modelTrainingDate: OffsetDateTime = LocalDate
-      .parse(data.modelTrainingDate, aiModelTrainingDateFormat)
+      .parse(data.modelTrainingDate, dateFormatter)
       .atStartOfDay(ZoneOffset.UTC)
       .toOffsetDateTime
     val pano = data.pano
 
-    // aiLabelSubmissionReads already refuses labels without these, so the failure is a backstop that still keeps the
-    // request inside the transaction rather than throwing from a `.get` (#4808).
-    val panoPlacement: Option[(Int, Int, Double, Double, Double)] = for {
-      width   <- pano.width
-      height  <- pano.height
-      heading <- pano.cameraHeading
-      lat     <- pano.lat
-      lng     <- pano.lng
-    } yield (width, height, heading, lat, lng)
+    val labelSubmitActions = DBIO.sequence {
+      data.labels.map { label =>
+        // Calculate the label's lat/lng and theoretical user's heading/pitch from its panoX/panoY coordinates. The
+        // `.get`s are safe: aiLabelSubmissionReads refuses a submission with labels that lacks any of them (#4808).
+        val pov = PanoDataService.calculatePovFromPanoXY(label.panoX, label.panoY, pano.width.get, pano.height.get,
+          pano.cameraHeading.get)
+        // label_point.canvas_x/y are NOT NULL, but an AI label was never drawn on a canvas. The center is the one
+        // value consistent with the heading/pitch stored beside it, which is the POV that centers the label.
+        val canvasX              = LabelPointTable.canvasWidth / 2
+        val canvasY              = LabelPointTable.canvasHeight / 2
+        val (labelLat, labelLng) = PanoDataService.toLatLng(pano.lat.get, pano.lng.get, label.panoX, label.panoY,
+          pano.width.get, pano.height.get, pano.cameraHeading.get)
+        for {
+          // Create necessary associated data for the label to fit in PS (mission, audit_task, etc.).
+          streetEdgeId <- labelTable.getStreetEdgeIdClosestToLatLng(labelLat, labelLng)
+          // A street with no live region is a data-integrity fault, not a bad request, so it stays a 500.
+          regionId <- streetEdgeRegionTable
+            .getNonDeletedRegionFromStreetId(streetEdgeId)
+            .map(_.getOrElse(throw IllegalStateException(s"Street $streetEdgeId has no non-deleted region")).regionId)
+          missionId   <- missionService.resumeOrCreateNewAiExploreMission(regionId).map(_.missionId)
+          auditTaskId <- resumeOrCreateNewAiAuditTask(missionId, streetEdgeId)
+          tempLabelId <- labelTable.nextTempLabelId(aiUserId)
 
-    val labelSubmitActions: DBIO[Seq[Unit]] = (data.labels, panoPlacement) match {
-      case (Seq(), _) => DBIO.successful(Seq.empty)
-      case (_, None)  =>
-        DBIO.failed(
-          IllegalArgumentException(s"Pano ${pano.panoId} lacks the size, heading or position to place labels")
-        )
-      case (labels, Some((width, height, heading, panoLat, panoLng))) =>
-        DBIO.sequence(labels.map { label =>
-          // Calculate the label's lat/lng and theoretical user's heading/pitch from its panoX/panoY coordinates.
-          val pov = PanoDataService.calculatePovFromPanoXY(label.panoX, label.panoY, width, height, heading)
-          // label_point.canvas_x/y are NOT NULL, but an AI label was never drawn on a canvas. The center is the one
-          // value consistent with the heading/pitch stored beside it, which is the POV that centers the label.
-          val canvasX              = LabelPointTable.canvasWidth / 2
-          val canvasY              = LabelPointTable.canvasHeight / 2
-          val (labelLat, labelLng) =
-            PanoDataService.toLatLng(panoLat, panoLng, label.panoX, label.panoY, width, height, heading)
-          for {
-            // Create necessary associated data for the label to fit in PS (mission, audit_task, etc.).
-            streetEdgeId <- labelTable.getStreetEdgeIdClosestToLatLng(labelLat, labelLng)
-            // A street with no live region is a data-integrity fault, not a bad request, so it stays a 500. Failing
-            // here keeps it inside the transaction, and the message says which street.
-            regionId <- streetEdgeRegionTable.getNonDeletedRegionFromStreetId(streetEdgeId).flatMap {
-              _.fold[DBIO[Int]](DBIO.failed(IllegalStateException(s"Street $streetEdgeId has no non-deleted region")))(
-                region => DBIO.successful(region.regionId)
-              )
-            }
-            missionId   <- missionService.resumeOrCreateNewAiExploreMission(regionId).map(_.missionId)
-            auditTaskId <- resumeOrCreateNewAiAuditTask(missionId, streetEdgeId)
-            tempLabelId <- labelTable.nextTempLabelId(aiUserId)
-
-            // Create and insert the label and label_point entries.
-            labelPoint: LabelPointSubmission = LabelPointSubmission(label.panoX, label.panoY, canvasX, canvasY,
-              LabelPointTable.canvasWidth, LabelPointTable.canvasHeight, heading = pov.heading, pitch = pov.pitch,
-              pov.zoom, lat = Some(labelLat), lng = Some(labelLng),
-              computationMethod = Some(ComputationMethod.Approximation3))
-            labelSubmission: LabelSubmission = LabelSubmission(
-              panoId = pano.panoId,
-              panoSource = pano.source,
-              labelType = data.labelType,
-              deleted = false,
-              temporaryLabelId = tempLabelId,
-              timeCreated = Some(currTime),
-              tutorial = false,
-              severity = None,
-              description = None,
-              tagIds = Seq.empty[Int],
-              point = labelPoint,
-              pano = Some(pano)
-            )
-            labelId <- insertLabel(labelSubmission, aiUserId, auditTaskId, streetEdgeId, missionId).map(_.labelId)
-            _       <- labelAiInfoTable.save(
-              LabelAiInfo(0, labelId, label.confidence, data.apiVersion, data.modelId, modelTrainingDate)
-            )
-          } yield ()
-        })
+          // Create and insert the label and label_point entries.
+          labelPoint: LabelPointSubmission = LabelPointSubmission(label.panoX, label.panoY, canvasX, canvasY,
+            LabelPointTable.canvasWidth, LabelPointTable.canvasHeight, heading = pov.heading, pitch = pov.pitch,
+            pov.zoom, lat = Some(labelLat), lng = Some(labelLng),
+            computationMethod = Some(ComputationMethod.Approximation3))
+          labelSubmission: LabelSubmission = LabelSubmission(
+            panoId = pano.panoId,
+            panoSource = pano.source,
+            labelType = data.labelType,
+            deleted = false,
+            temporaryLabelId = tempLabelId,
+            timeCreated = Some(currTime),
+            tutorial = false,
+            severity = None,
+            description = None,
+            tagIds = Seq.empty[Int],
+            point = labelPoint,
+            pano = Some(pano)
+          )
+          labelId <- insertLabel(labelSubmission, aiUserId, auditTaskId, streetEdgeId, missionId).map(_.labelId)
+          _       <- labelAiInfoTable.save(
+            LabelAiInfo(0, labelId, label.confidence, data.apiVersion, data.modelId, modelTrainingDate)
+          )
+        } yield ()
+      }
     }
 
     // A re-run of the labeler re-POSTs panos it has already submitted, so refuse to duplicate their labels unless the
     // caller asked to replace them (#5382). Only the submission's own label type is considered: a model for another
     // type must neither be refused by these labels nor wipe them. A label-less submission without the flag is a pano
     // upsert only, so it never conflicts. Two concurrent first submissions of one pano could both count zero under
-    // READ COMMITTED. The labeler submits sequentially, so that isn't worth a lock.
+    // READ COMMITTED; the labeler submits sequentially, so that isn't worth a lock.
+    val overwrite                        = data.overwrite.contains(true)
     val retireExistingAction: DBIO[Unit] =
       labelTable.countLiveLabelsOnPano(pano.panoId, aiUserId, data.labelType).flatMap { (existingCount: Int) =>
-        if (data.overwrite && existingCount > 0) {
+        if (overwrite && existingCount > 0) {
           labelTable
-            .softDeleteLabelsOnPano(pano.panoId, aiUserId, data.labelType, aiUserId, UiSource.AiLabeler)
+            .softDeleteLabelsOnPano(pano.panoId, aiUserId, data.labelType, aiUserId, UiSource.SidewalkAI)
             .andThen(userStatTable.updateAccuracy(Seq(aiUserId)))
-        } else if (!data.overwrite && existingCount > 0 && data.labels.nonEmpty) {
+        } else if (!overwrite && existingCount > 0 && data.labels.nonEmpty) {
           DBIO.failed(AiLabelsConflict(pano.panoId, data.labelType, existingCount))
         } else {
           DBIO.successful(())

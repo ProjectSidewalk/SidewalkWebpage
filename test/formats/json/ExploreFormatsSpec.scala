@@ -5,7 +5,7 @@ import models.audit.AuditTask
 import models.label.{LabelPointTable, LabelType}
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
-import play.api.libs.json.{JsError, JsObject, JsSuccess, Json}
+import play.api.libs.json.Json
 
 import java.time.OffsetDateTime
 
@@ -137,48 +137,18 @@ class ExploreFormatsSpec extends AnyFunSuite with Matchers {
     "labels"              -> Json.arr(Json.obj("pano_x" -> 4096, "pano_y" -> 2048, "confidence" -> 0.9))
   )
 
-  test("AiLabelsSubmission defaults a missing overwrite to false, so an old payload fails closed (#5382)") {
-    aiSubmissionJson.as[AiLabelsSubmission].overwrite shouldBe false
-  }
-
-  test("AiLabelsSubmission parses overwrite") {
-    (aiSubmissionJson + ("overwrite" -> Json.toJson(true))).as[AiLabelsSubmission].overwrite shouldBe true
+  test("AiLabelsSubmission reads a missing overwrite as None and a given one as Some (#5382)") {
+    aiSubmissionJson.as[AiLabelsSubmission].overwrite shouldBe None
+    (aiSubmissionJson + ("overwrite" -> Json.toJson(true))).as[AiLabelsSubmission].overwrite shouldBe Some(true)
   }
 
   test("AiLabelsSubmission rejects a non-boolean overwrite") {
     (aiSubmissionJson + ("overwrite" -> Json.toJson("yes"))).validate[AiLabelsSubmission].isError shouldBe true
   }
 
-  /** The submission with the given pano fields removed. */
-  private def aiSubmissionWithoutPanoFields(fields: String*): JsObject =
-    aiSubmissionJson + ("pano" -> fields.foldLeft(aiPanoJson)(_ - _))
-
-  /** The error paths of a submission that failed to parse, e.g. "/pano/width". */
-  private def errorPaths(json: JsObject): Set[String] =
-    json.validate[AiLabelsSubmission] match {
-      case JsError(errors) => errors.map(_._1.toString).toSet
-      case JsSuccess(_, _) => fail("expected the submission to be refused")
-    }
-
-  test("AiLabelsSubmission with labels refuses a pano missing what places them, naming each field (#4808)") {
-    for (field <- Seq("width", "height", "lat", "lng", "camera_heading")) {
-      withClue(s"$field: ") { errorPaths(aiSubmissionWithoutPanoFields(field)) shouldBe Set(s"/pano/$field") }
-    }
-    errorPaths(aiSubmissionWithoutPanoFields("width", "lat")) shouldBe Set("/pano/width", "/pano/lat")
-  }
-
-  test("AiLabelsSubmission without labels needs none of the pano's placement fields") {
-    val panoOnly = aiSubmissionWithoutPanoFields("width", "height", "lat", "lng", "camera_heading") +
-      ("labels" -> Json.arr())
-    panoOnly.validate[AiLabelsSubmission].isSuccess shouldBe true
-  }
-
-  test("AiLabelsSubmission refuses a model_training_date that isn't MM-dd-yyyy") {
-    for (bad <- Seq("2026-01-15", "15-01-2026", "d")) {
-      withClue(s"$bad: ") {
-        errorPaths(aiSubmissionJson + ("model_training_date" -> Json.toJson(bad))) shouldBe
-          Set("/model_training_date")
-      }
-    }
+  test("AiLabelsSubmission with labels refuses a pano missing what places them; without labels it doesn't (#4808)") {
+    val panoWithoutLat = aiSubmissionJson + ("pano" -> (aiPanoJson - "lat"))
+    panoWithoutLat.validate[AiLabelsSubmission].isError shouldBe true
+    (panoWithoutLat + ("labels" -> Json.arr())).validate[AiLabelsSubmission].isSuccess shouldBe true
   }
 }

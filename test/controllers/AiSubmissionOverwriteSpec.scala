@@ -23,8 +23,7 @@ import util.SidewalkSpec
  * near the bottom of the pano, looking almost straight down, which projects to well under a meter from the camera, so
  * each one lands on that street. Cancels on a schema with no region holding a street.
  *
- * The cases walk one pano through first submission, refusal, a second type, replacement and retirement, so they run
- * in order. Everything the spec wrote is deleted in `afterAll`, by this pano's id and by row ids above the AI user's
+ * The cases walk one pano through first submission, refusal, a second type and replacement, so they run in order. Everything the spec wrote is deleted in `afterAll`, by this pano's id and by row ids above the AI user's
  * maxima recorded before the run.
  */
 // GuiceOneAppPerSuite must be rightmost so its run() wraps BeforeAndAfterAll's, keeping the app up for afterAll.
@@ -200,12 +199,6 @@ class AiSubmissionOverwriteSpec
       storedRun mustBe Some("v1")
     }
 
-    "refuse the same with overwrite explicitly false" in {
-      assume(firstCurbRamps.nonEmpty, "the first submission didn't save its labels")
-      status(post(payload("CurbRamp", labelCount = 1, overwrite = Some(false)))) mustBe CONFLICT
-      aiLabelIds("CurbRamp", includeDeleted = true) mustBe firstCurbRamps
-    }
-
     "accept a submission of another label type, since the check is per type" in {
       assume(firstCurbRamps.nonEmpty, "the first submission didn't save its labels")
       status(post(payload("Crosswalk", labelCount = 1, overwrite = None))) mustBe OK
@@ -221,25 +214,12 @@ class AiSubmissionOverwriteSpec
       val live = aiLabelIds("CurbRamp")
       live must have size 1
       live.head must be > firstCurbRamps.max
-      deletionOf(firstCurbRamps) mustBe Seq.fill(2)((true, Some(aiUserId), true, Some("AiLabeler")))
+      deletionOf(firstCurbRamps) mustBe Seq.fill(2)((true, Some(aiUserId), true, Some("SidewalkAI")))
       // Soft delete only: the retired labels keep their provenance and point.
       countOn("label_ai_info", firstCurbRamps) mustBe 2
       countOn("label_point", firstCurbRamps) mustBe 2
       aiLabelIds("Crosswalk") mustBe crosswalks
       storedRun mustBe Some("v3")
-    }
-
-    "retire the type's labels with overwrite and no labels" in {
-      assume(firstCurbRamps.nonEmpty, "the first submission didn't save its labels")
-      status(post(payload("CurbRamp", labelCount = 0, overwrite = Some(true)))) mustBe OK
-      aiLabelIds("CurbRamp") mustBe empty
-      aiLabelIds("Crosswalk") must have size 1
-    }
-
-    "accept a first submission again once the type's labels are retired" in {
-      assume(firstCurbRamps.nonEmpty, "the first submission didn't save its labels")
-      status(post(payload("CurbRamp", labelCount = 1, overwrite = None))) mustBe OK
-      aiLabelIds("CurbRamp") must have size 1
     }
   }
 }

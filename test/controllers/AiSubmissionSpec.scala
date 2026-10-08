@@ -180,7 +180,7 @@ class AiSubmissionSpec extends SidewalkSpec with BeforeAndAfterAll with GuiceOne
       panoRowCount(badLatPanoId) mustBe 0
     }
 
-    "refuse labels on a pano without the position to place them with a 400 naming the field (#4808)" in {
+    "refuse labels on a pano without the position to place them with a 400, not a 500 (#4808)" in {
       // Reuses the bad-lat pano id: the previous case left no row for it, and neither may this one.
       val base = payload(None, id = badLatPanoId) +
         ("labels" -> Json.arr(Json.obj("pano_x" -> 4096, "pano_y" -> 3500, "confidence" -> 0.9)))
@@ -188,7 +188,7 @@ class AiSubmissionSpec extends SidewalkSpec with BeforeAndAfterAll with GuiceOne
 
       val resp = post(noLatPay)
       status(resp) mustBe BAD_REQUEST
-      contentAsString(resp) must include("pano.lat")
+      contentAsString(resp) must include("needs the pano's")
       panoRowCount(badLatPanoId) mustBe 0
     }
   }

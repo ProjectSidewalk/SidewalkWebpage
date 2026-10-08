@@ -99,36 +99,22 @@ validation.
    label the humans lean against goes to Expert Validate's triage queue
    (`docs/validation-queue.md`).
 
-**Resubmitting a pano (#5382).** A re-run of the labeler (a corrected pano position, a model
-upgrade, a city re-run) re-POSTs panos it has already submitted, so the endpoint refuses to
-duplicate their labels unless told to replace them. The submission carries an optional
-`overwrite` boolean, default `false`. The check is scoped to the AI user's **live labels of the
-submission's `label_type`** on that pano, so a model for another type is neither refused by
-nor wipes them.
+**Resubmitting a pano (#5382).** A re-run of the labeler re-POSTs panos it has already
+submitted, so a submission with labels is refused with a **409** when the AI user already has
+live labels of its `label_type` on that pano, and nothing is written (the pano upsert
+included). The body carries `pano_id`, `label_type` and `existing_label_count` beside the
+message. Sending `"overwrite": true` (default `false`) instead soft-deletes those labels
+(`deleted_by` the AI user, `deleted_source = 'SidewalkAI'`, so their `label_point`,
+`label_ai_info` and validations stay and an admin can restore them) in the same transaction
+as the new inserts; with `labels: []` it just retires them. The check is per label type, so a
+model for another type is neither refused by nor wipes them. Two concurrent *first*
+submissions of one pano could both pass the check; the labeler submits sequentially.
 
-| Request | Live AI labels of `label_type` already on `pano_id`? | Result |
-|---|---|---|
-| `labels` non-empty, `overwrite` absent or `false` | none | 200 `success!` |
-| `labels` non-empty, `overwrite` absent or `false` | some | **409**, and nothing is written (the pano upsert included) |
-| `labels` non-empty, `overwrite: true` | any | 200: the existing labels are soft-deleted and the new ones inserted, in one transaction |
-| `labels: []`, `overwrite` absent or `false` | any | 200, pano upsert only |
-| `labels: []`, `overwrite: true` | any | 200: retires the pano's AI labels of that type |
-
-The 409 body is
-`{"status":"Error","message":"Pano <id> already has <n> <type> label(s) from the AI labeler; resend with overwrite=true to replace them.","pano_id":"<id>","label_type":"<type>","existing_label_count":<n>}`.
-A retired label is a soft delete (`label.deleted`, with `deleted_by` the AI user and
-`deleted_source = 'AiLabeler'`), so its validations, `label_point` and `label_ai_info` stay
-attached and an admin can restore it. The check runs in the same transaction as the inserts,
-but two concurrent *first* submissions of one pano could both pass it; the labeler submits
-sequentially, so there is no lock.
-
-**Incomplete payloads get a 400 (#4808).** A label's lat/lng and POV are computed from the
-pano's `width`, `height`, `lat`, `lng` and `camera_heading`, so a submission with labels that
-lacks any of them is refused with a 400 whose body names each missing field
-(`obj.pano.lat`, …), before anything is written. They stay optional on a `labels: []`
-submission. `model_training_date` must be `MM-dd-yyyy` on every submission. A label whose
-nearest street has no live region is still a 500, since that is a data-integrity fault on the
-server rather than a bad request, and it rolls back the whole submission.
+**Incomplete payloads get a 400 (#4808).** A label's lat/lng and POV come from the pano's
+`width`, `height`, `lat`, `lng` and `camera_heading`, so a submission with labels that lacks
+any of them is refused with a 400 before anything is written; they stay optional on a
+`labels: []` submission. A label whose nearest street has no live region is still a 500, a
+data-integrity fault rather than a bad request, and it rolls back the whole submission.
 
 **City gate:** `submitAiLabel` is gated by the per-city `ai-label-submission-enabled` flag in
 `cityparams.conf` (default **false**; unlisted cities reject submissions). Onboarding another

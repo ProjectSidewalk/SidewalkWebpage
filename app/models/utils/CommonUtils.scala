@@ -36,7 +36,6 @@ object CommonUtils {
     case StoryListPage                   extends UiSource("StoryListPage")
     case UserDashboard                   extends UiSource("UserDashboard")
     case AccessScore                     extends UiSource("AccessScore")
-    case AiLabeler                       extends UiSource("AiLabeler") // Not a page: an overwrite resubmission (#5382).
     case OldDataUnknownSource            extends UiSource("Old data, unknown source")
   }
 

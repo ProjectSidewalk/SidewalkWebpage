@@ -3118,30 +3118,15 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       l.panoId === panoId && l.userId === userId && l.labelType === labelType && l.deleted === false
     )
 
-  /**
-   * Counts a user's live labels of one type on one pano, so an AI resubmission can refuse to duplicate them (#5382).
-   *
-   * @param panoId    The pano the submission is for.
-   * @param userId    Whose labels to count (the AI user, for the auto-labeler).
-   * @param labelType The submission's label type: a submission speaks for one type only.
-   * @return          How many non-deleted labels match.
-   */
+  /** Counts a user's live labels of one type on one pano, so an AI resubmission can refuse to duplicate them (#5382). */
   def countLiveLabelsOnPano(panoId: String, userId: String, labelType: LabelType): DBIO[Int] =
     liveLabelsOnPano(panoId, userId, labelType).length.result
 
   /**
-   * Soft-deletes a user's live labels of one type on one pano, for a resubmission that replaces them (#5382).
-   *
-   * Only the `label` row's deletion columns change, so its validations, point, AI provenance and history stay attached
-   * and the label can still be restored. The caller refreshes the labeler's accuracy, since a deleted label stops
-   * counting toward it unless it was judged incorrect (see [[countsTowardAccuracy]]).
-   *
-   * @param panoId    The pano being resubmitted.
-   * @param userId    Whose labels to retire.
-   * @param labelType The label type being resubmitted.
-   * @param deleterId Recorded as `deleted_by`.
-   * @param source    Recorded as `deleted_source`.
-   * @return          How many labels were deleted.
+   * Soft-deletes a user's live labels of one type on one pano for a resubmission that replaces them (#5382). Only the
+   * deletion columns change, so the label keeps its point, AI info and validations and can be restored. The caller
+   * refreshes the user's accuracy, as [[LabelEditService.setDeleted]] does.
+   * @return How many labels were deleted.
    */
   def softDeleteLabelsOnPano(
       panoId: String,
