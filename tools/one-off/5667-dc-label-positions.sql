@@ -1,6 +1,11 @@
 -- #5667: give Washington DC's labels the coordinates evolution 179 never computed for them.
 --
--- Written against evolution 413 (v11.17.0). ONE schema (sidewalk_dc), a write role. Preview with apply=0 (the
+-- Ran on prod 2026-10-07 (and on test the same day), written against evolution 413 (v11.17.0): 77,554 panos sized
+-- (77,273 sidecar, 281 photometa; 744 labelled panos unsizeable), 254,579 labels converted, 3,726 positions
+-- recomputed, 3,607 reattached, 1,685 non-tutorial labels left legacy, 335 positions still NULL. A rerun is a no-op
+-- until more dimensions arrive.
+--
+-- ONE schema (sidewalk_dc), a write role. Preview with apply=0 (the
 -- default: prints every count, then rolls back), apply with apply=1. Writes only where a value is missing or still
 -- legacy, so a rerun after more dimensions arrive converts just the newly reachable labels. Not for
 -- run-query-in-every-city.sh (read-only runner). Undo: 5667-undo-dc-label-positions.sql.
