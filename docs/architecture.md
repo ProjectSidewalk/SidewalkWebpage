@@ -507,14 +507,15 @@ loaded by the corresponding Twirl view:
   label icons, crumbs, flags and `Task`'s street lines reach the map through its methods (`addMarker`,
   `setStreetLines`, `project`, `getZoom`, `getBounds`, `setBasemapVisible`) in plain `{lat, lng}` and DOM elements,
   and the map object is never handed out. *The basemap is code*, `MinimapBasemapStyle.js`: a sparse style (land,
-  water, parks, buildings, roads, road names in the local language) built from the `main.css` tokens, reviewed like
-  any other change; its tile host must also be in the CSP's `connect-src`. *A dead tile host degrades, never
+  water, rivers, parks, buildings, roads, and road and water names in the UI language where OSM has one) built from
+  the `main.css` tokens, reviewed like any other change; its tile host must also be in the CSP's `connect-src`. *A
+  dead tile host degrades, never
   breaks*: `Minimap.create` resolves when the style is ready, not when tiles arrive, so streets, markers and fog
   draw over a blank background. *No map degrades too*: MapLibre needs WebGL2 and throws without it, so `create`
   never rejects; a minimap that can't be built says so in its place and draws nothing, `isAvailable()` turns false
   for the overlays drawn to its scale, and the rest of Explore starts (`Minimap_Unavailable` is logged). What Project Sidewalk itself draws on the map (street-line encodings, fog, cone) is
   `MinimapStyle.js`. MapLibre 6 ships only as ES modules whose worker and shared chunk import each other by relative
-  URL, so it stays out of the Rolldown bundle and is served as its own files: `Minimap.create` loads it with a dynamic
+  URL, so it stays out of the Vite bundle and is served as its own files: `Minimap.create` loads it with a dynamic
   `import()` of the URL on the view's `#maplibre-module` preload link, which is also what fingerprints it and starts
   the download early. The mission-complete map on the same page is still Mapbox, so Explore loads
   both libraries.

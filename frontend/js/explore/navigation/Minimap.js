@@ -88,7 +88,7 @@ export class Minimap {
   async #init(initialLocation) {
     this.#map = new maplibregl.Map({
       container: 'minimap',
-      style: MinimapBasemapStyle.build(initialLocation.lat),
+      style: MinimapBasemapStyle.build(initialLocation.lat, i18next.language),
       center: Minimap.#lngLat(initialLocation),
       zoom: Minimap.#DEFAULT_ZOOM,
       minZoom: Minimap.#MIN_ZOOM,
@@ -164,6 +164,9 @@ export class Minimap {
     const attribution = corner.querySelector('.maplibregl-ctrl-attrib');
     const button = corner.querySelector('.maplibregl-ctrl-attrib-button');
     if (!attribution || !button) return;
+    // MapLibre gives the button a native title; every hover text on the page is psTooltip.
+    button.setAttribute('data-ps-tooltip', button.title);
+    button.removeAttribute('title');
     const opened = 'maplibregl-compact-show';
     // Closed the way MapLibre's own toggle closes it: the class shows the credits, and the <details> `open`
     // attribute is what the <summary> button announces as expanded to assistive tech.
@@ -299,7 +302,12 @@ export class Minimap {
     this.#updateFitButtonLabel();
     svl.ui.minimap.holder.classList.add('minimap-overview');
     this.#map.setMinZoom(Minimap.#OVERVIEW_MIN_ZOOM);
-    this.#map.fitBounds(bounds, { padding: 12, animate: false });
+    // Room for a flag on any edge (drawn above and either side of its point), then a whole zoom level like Google's
+    // fitBounds gave, so the overview is never up to a level closer than prod's was.
+    const flag = Minimap.#ROUTE_FLAG_SIZE_PX;
+    const padding = { top: 12 + flag, bottom: 12, left: 12 + flag / 2, right: 12 + flag / 2 };
+    const camera = this.#map.cameraForBounds(bounds, { padding });
+    if (camera) this.#map.jumpTo({ center: camera.center, zoom: Math.floor(camera.zoom) });
   }
 
   /**
@@ -463,8 +471,8 @@ export class Minimap {
     // so the role follows the current state, re-derived in one place whenever that state moves.
     const state = { title, clickable: Boolean(onClick) };
     const describe = () => {
-      if (state.title) element.title = state.title;
-      else element.removeAttribute('title');
+      if (state.title) element.setAttribute('data-ps-tooltip', state.title);
+      else element.removeAttribute('data-ps-tooltip');
       element.classList.toggle('minimap-marker-decorative', !state.clickable && !state.title);
       if (state.clickable) {
         element.setAttribute('role', 'button');

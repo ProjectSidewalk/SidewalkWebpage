@@ -3,8 +3,8 @@
  *
  * The style lives in the repo, as code, so the cartography is reviewed like anything else. It is deliberately sparse:
  * the minimap is ~200px and sits under the fog-of-war and FOV overlays, so it draws only what helps a labeler orient —
- * land, water, parks, buildings, roads, rail, and road names. No POI icons, transit, or place labels (#4665), which
- * also means no sprite sheet to host: glyphs are the only style asset fetched.
+ * land, water, rivers, parks, buildings, roads, rail, and road and water names. No POI icons, transit, or place
+ * labels (#4665), which also means no sprite sheet to host: glyphs are the only style asset fetched.
  *
  * Colors come from the main.css design tokens (via MinimapStyle.token) so the basemap stays in the design system's
  * palette and quiet enough for the route lines and label icons drawn over it to carry the contrast.
@@ -99,19 +99,30 @@ export class MinimapBasemapStyle {
   }
 
   /**
+   * The UI-language name where the tiles have one, else the local name: what the Mapbox maps' language plugin shows.
+   * The tiles key translations by bare language ('name:zh'), so a region tag is dropped.
+   * @param {?string} language - A BCP 47 tag ('pt-BR'); none means the local name only.
+   * @returns {Array} A MapLibre expression.
+   */
+  static #nameField(language) {
+    const base = (language || '').split('-')[0];
+    return base ? ['coalesce', ['get', `name:${base}`], ['get', 'name']] : ['get', 'name'];
+  }
+
+  /**
    * One road-name label layer.
    * @param {string} id - Layer id.
    * @param {string[]} classes - OpenMapTiles transportation classes to label.
    * @param {number} size - Text size in px.
+   * @param {Array} nameField - The text expression, from #nameField.
    * @returns {object} A MapLibre symbol layer.
    */
-  static #roadNameLayer(id, classes, size) {
+  static #roadNameLayer(id, classes, size, nameField) {
     return MinimapBasemapStyle.#layer(id, 'symbol', 'transportation_name', {
       filter: MinimapBasemapStyle.#roadFilter(classes),
       layout: {
         'symbol-placement': 'line',
-        // The street's local name, whatever the UI language: labelers match it against the street sign in the image.
-        'text-field': ['get', 'name'],
+        'text-field': nameField,
         'text-font': ['Noto Sans Regular'],
         'text-size': size,
         // The map is small and never rotates, so repeat names often enough that one is usually in view.
@@ -129,9 +140,10 @@ export class MinimapBasemapStyle {
   /**
    * Builds the style. Called once, at minimap creation, after main.css has loaded (the tokens are read here).
    * @param {number} latitude - Latitude the map opens at, for drawing roads at real width (see #roadWidth).
+   * @param {string} language - The UI language (see #nameField).
    * @returns {object} A MapLibre style specification.
    */
-  static build(latitude) {
+  static build(latitude, language) {
     const token = MinimapStyle.token;
     const layer = MinimapBasemapStyle.#layer;
     const roadFilter = MinimapBasemapStyle.#roadFilter;
@@ -140,10 +152,20 @@ export class MinimapBasemapStyle {
     const minor = S.#MINOR_ROADS;
     const roadWidth = (classes, extraPx) => S.#roadWidth(classes, latitude, extraPx);
     const roadNameLayer = MinimapBasemapStyle.#roadNameLayer;
+    const nameField = MinimapBasemapStyle.#nameField(language);
     const white = token('--color-neutral-white', '#FFFFFF');
     const roadCasing = token('--color-neutral-400', '#C2C2C2');
+    const water = token('--color-blue-400', '#C6E0FA');
+    const labelColor = token('--color-asphalt-300', '#615E78');
     const polygon = ['match', ['geometry-type'], ['Polygon', 'MultiPolygon'], true, false];
+    const notTunnel = ['!=', ['get', 'brunnel'], 'tunnel'];
     const roundLine = { 'line-cap': 'round', 'line-join': 'round' };
+    // Italic alone sets water names apart from road names: the blue tokens are too light to read as text.
+    const waterName = (id, sourceLayer, spec) => layer(id, 'symbol', sourceLayer, {
+      ...spec,
+      layout: { 'text-field': nameField, 'text-font': ['Noto Sans Italic'], 'text-size': 10, ...spec.layout },
+      paint: { 'text-color': labelColor, 'text-halo-color': white, 'text-halo-width': 1.5 },
+    });
 
     return {
       version: 8,
@@ -162,8 +184,19 @@ export class MinimapBasemapStyle {
           paint: { 'fill-color': token('--color-pine-100', '#E4F4EE') },
         }),
         layer('water', 'fill', 'water', {
-          filter: ['all', polygon, ['!=', ['get', 'brunnel'], 'tunnel']],
-          paint: { 'fill-color': token('--color-blue-400', '#C6E0FA') },
+          filter: ['all', polygon, notTunnel],
+          paint: { 'fill-color': water },
+        }),
+        // Water too narrow for a polygon; streams only near street level so the overview isn't a tangle of them.
+        layer('waterway', 'line', 'waterway', {
+          filter: ['all', ['match', ['get', 'class'], ['river', 'canal', 'stream'], true, false], notTunnel],
+          layout: roundLine,
+          paint: {
+            'line-color': water,
+            'line-width': ['match', ['get', 'class'], 'river', 2.5, 'canal', 2, 1],
+            // MapLibre only accepts a zoom test at the top of an expression, hence the step outside the match.
+            'line-opacity': ['step', ['zoom'], ['match', ['get', 'class'], 'stream', 0, 1], 14, 1],
+          },
         }),
         layer('building', 'fill', 'building', {
           paint: {
@@ -201,8 +234,15 @@ export class MinimapBasemapStyle {
           layout: roundLine,
           paint: { 'line-color': white, 'line-width': roadWidth(major) },
         }),
-        roadNameLayer('road-name-minor', MinimapBasemapStyle.#MINOR_ROADS, 10),
-        roadNameLayer('road-name-major', MinimapBasemapStyle.#MAJOR_ROADS, 11),
+        roadNameLayer('road-name-minor', MinimapBasemapStyle.#MINOR_ROADS, 10, nameField),
+        roadNameLayer('road-name-major', MinimapBasemapStyle.#MAJOR_ROADS, 11, nameField),
+        waterName('waterway-name', 'waterway', {
+          filter: ['match', ['get', 'class'], ['river', 'canal'], true, false],
+          layout: { 'symbol-placement': 'line', 'symbol-spacing': 300 },
+        }),
+        waterName('water-name', 'water_name', {
+          filter: ['match', ['geometry-type'], ['Point'], true, false],
+        }),
       ],
     };
   }

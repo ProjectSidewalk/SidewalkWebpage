@@ -61,7 +61,7 @@ class FakeMarker {
     }
 
     get title() {
-        return this.element.title;
+        return this.element.getAttribute('data-ps-tooltip');
     }
 
     get hidden() {

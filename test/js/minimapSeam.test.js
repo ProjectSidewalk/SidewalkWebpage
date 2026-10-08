@@ -103,8 +103,9 @@ class FakeMap {
     this.calls.push(['setMinZoom', zoom]);
   }
 
-  fitBounds(bounds, options) {
-    this.calls.push(['fitBounds', bounds, options]);
+  cameraForBounds(bounds, options) {
+    this.calls.push(['cameraForBounds', bounds, options]);
+    return { center: [bounds.points[0][0], bounds.points[0][1]], zoom: 13.7 };
   }
 
   remove() {
@@ -214,7 +215,7 @@ function setUpGlobals(frames) {
   buildDom();
   window.requestAnimationFrame = (callback) => frames.push(callback);
   window.util = { assetPath: (logicalPath) => logicalPath };
-  window.i18next = { t: (key) => key };
+  window.i18next = { t: (key) => key, language: 'pt-BR' };
   window.maplibregl = {
     Map: FakeMap, Marker: FakeMarker, AttributionControl: FakeAttributionControl, LngLatBounds: FakeLngLatBounds,
   };
@@ -324,6 +325,16 @@ describe('Minimap seam', () => {
     });
   });
 
+  test('road and water names are in the UI language where the tiles have it, else the local name', () => {
+    const nameLayers = map.options.style.layers.filter((layer) => layer.type === 'symbol');
+    expect(nameLayers.map((layer) => layer.id)).toEqual([
+      'road-name-minor', 'road-name-major', 'waterway-name', 'water-name',
+    ]);
+    nameLayers.forEach((layer) => {
+      expect(layer.layout['text-field']).toEqual(['coalesce', ['get', 'name:pt'], ['get', 'name']]);
+    });
+  });
+
   test('street lines go over the whole basemap, road names included, so a name never hides the route', () => {
     expect(map.layers.length).toBeGreaterThan(0);
     map.layers.forEach((layer) => expect(layer.beforeId).toBeUndefined());
@@ -386,19 +397,29 @@ describe('Minimap seam', () => {
       window.svl.taskContainer = { getTasks: () => [{ getGeoJSON: () => ({ geometry: { coordinates: ROUTE } }) }] };
     });
 
-    const zoomCalls = () => map.callsTo('setMinZoom', 'fitBounds', 'jumpTo').map(([name, arg]) => [name, arg]);
+    const zoomCalls = () => map.callsTo('setMinZoom', 'cameraForBounds', 'jumpTo').map(([name, arg]) => [name, arg]);
 
     test('entering lowers the zoom floor before fitting, so the fit isn\'t clamped to street level', () => {
       click('minimap-zoom-fit');
 
       const calls = zoomCalls();
-      expect(calls.map(([name]) => name)).toEqual(['setMinZoom', 'fitBounds']);
+      expect(calls.map(([name]) => name)).toEqual(['setMinZoom', 'cameraForBounds', 'jumpTo']);
       expect(calls[0][1]).toBe(11);
       expect(calls[1][1].points).toEqual(ROUTE);
       expect(document.getElementById('minimap-holder').classList.contains('minimap-overview')).toBe(true);
       expect(tracked('Click_MinimapFitRoute')).toEqual([
         ['Click_MinimapFitRoute', { mode: 'overview', trigger: 'fit-button' }],
       ]);
+    });
+
+    test('the fit leaves room for a flag on any edge and lands on a whole zoom level', () => {
+      click('minimap-zoom-fit');
+
+      const [, , { padding }] = map.callsTo('cameraForBounds').at(-1);
+      expect(padding.top).toBeGreaterThan(padding.bottom);
+      expect(padding.left).toBeGreaterThan(padding.bottom);
+      expect(padding.left).toBe(padding.right);
+      expect(map.callsTo('jumpTo').at(-1)[1]).toEqual({ center: ROUTE[0], zoom: 13 });
     });
 
     test('leaving jumps back to street level before raising the floor again', () => {
@@ -578,6 +599,8 @@ describe('Minimap seam', () => {
 
       expect(element.getAttribute('role')).toBe('img');
       expect(element.getAttribute('aria-label')).toBe('Route start');
+      expect(element.getAttribute('data-ps-tooltip')).toBe('Route start');
+      expect(element.hasAttribute('title')).toBe(false);
       expect(element.hasAttribute('tabindex')).toBe(false);
       expect(element.classList.contains('minimap-marker-decorative')).toBe(false);
     });
