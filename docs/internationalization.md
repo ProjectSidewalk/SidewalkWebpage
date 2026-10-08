@@ -118,6 +118,9 @@ so every language gets its own date style with nothing to add per language. `uti
 `Intl` lacks: `util.monthYear` for capture dates, `util.timeAgo` for "3 days ago", and `util.parseDate` for reading a
 bare `2024-10` as local time (`new Date` reads it as UTC, which is still September west of London).
 
+Dates in server-rendered text, like the footer's release date, are formatted in Scala with
+`DateTimeFormatter.ofLocalizedDate(...).withLocale(messages.lang.toLocale)` so they show up already readable.
+
 ## Measurement units
 
 Units are **not** a property of the language: readers choose metric or imperial on the Settings page (#4404), so every

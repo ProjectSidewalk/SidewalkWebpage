@@ -136,9 +136,9 @@ Make sure Docker is running (you'll see the whale icon in your tray; you can set
    npm start
    ```
 
-   `npm start` runs the asset build (Rolldown for the JS, Grunt for the CSS bundles) with a watch in the background, then `sbt ~ run` for continuous
-   recompile. The first compile takes 5+ minutes; later ones are seconds. Use `npm run debug` if you want a JVM
-   debug port attached. It's ready when you see `Listening for HTTP on .../9000`.
+   `npm start` runs the asset build (`npm run build`: Rolldown for the JS, Grunt for the CSS bundles), keeps a
+   watcher (`npm run watch`) rebuilding it on save, then runs `sbt ~ run` for continuous recompile. The first compile
+   takes 5+ minutes; later ones are seconds. It's ready when you see `Listening for HTTP on .../9000`.
 
 6. **Open the app:** http://localhost:9000 (or `127.0.0.1:9000`). The first load is slow while Play applies
    evolutions and compiles on demand.
@@ -167,6 +167,7 @@ Other handy targets:
 | `make docker-up` | Start all services detached (no shell). Useful for `db` only: the web container exits at once, its image command being `jshell`, which reads EOF without a TTY. |
 | `make npm-sync` | Reinstall `node_modules` from `package-lock.json` if they've diverged. |
 | `make ssh target=web` | Open a shell in a running container (`target=web` or `target=db`). |
+| `make upgrade-dev-db` | Copy your Postgres 16 database into the Postgres 18 one. See [Moving your database to Postgres 18](#moving-your-database-to-postgres-18). |
 
 ---
 
@@ -259,7 +260,7 @@ Password: sidewalk
 The dev server hot-reloads, so you rarely restart it.
 
 - **Scala / Twirl views** — `sbt ~ run` recompiles on save; reload the browser once compilation finishes.
-- **JavaScript / CSS** — the `grunt watch` behind `npm start` rebuilds `public/build/` on every save: Rolldown
+- **JavaScript / CSS** — the `npm run watch` behind `npm start` rebuilds `public/build/` on every save: Rolldown
   bundles each page's entry in `frontend/js/pages/` and what it imports, Grunt concatenates the tools' stylesheets.
   **Never edit `public/build/` output**, and don't run the build by hand. A new JS file is picked up as soon as
   something imports it; a new page needs an entry file in `frontend/js/pages/`.
@@ -373,11 +374,11 @@ make qa-worktree wt=<worktree-name>
 
 A worktree needs more setup than the main repo (its `node_modules` and built asset bundles aren't checked in, and
 sbt's caches and config have to be pointed at the right places), so this target handles all of it: it links the main
-repo's `node_modules`, builds that branch's JS/CSS bundles, starts a backgrounded `grunt watch` so later edits
+repo's `node_modules`, builds that branch's JS/CSS bundles, starts a backgrounded `npm run watch` so later edits
 rebuild automatically, takes `:9000`, kills any stray sbt server or hung sbt task sharing the worktree's `target/`
 (either deadlocks `~ run` on compile locks), and launches `sbt ~ run` against the worktree's own config
 while reusing the main repo's warm sbt caches. The first request triggers the dev compile; `Ctrl+C` stops it and
-reaps the grunt watch. To tear a session down out-of-band, run `make qa-worktree-stop wt=<name>` (add `clean=1` to
+reaps the watcher. To tear a session down out-of-band, run `make qa-worktree-stop wt=<name>` (add `clean=1` to
 also drop the `node_modules` symlink). It behaves the same on macOS, Linux, and WSL because the work runs inside the
 web container.
 
@@ -506,6 +507,22 @@ Two more things to know before drawing conclusions from a query:
   Never infer a table's production size or existence from the local DB; when reasoning about query cost or indexes,
   treat those two, not `webpage_activity`, as the heavyweight logs.
 
+### Moving your database to Postgres 18
+
+Dev runs Postgres 18 (#3955) on a new data volume, `<project>_pgdata18` (`<project>` is your checkout folder,
+lowercased). The first `make dev` after this change starts an **empty** database; your cities are still in the old
+`<project>_pgdata` volume. To copy them over, stop `npm start` and run:
+
+```bash
+make upgrade-dev-db   # all=1 copies every database, not just sidewalk
+```
+
+It compares each city's label count when it's done, and takes a few minutes per large city. Or skip it and
+`make import-dump` the cities you need.
+
+Keep the old volume while you still use branches from before this change, since they start Postgres 16 on it. Then
+delete it with the `docker volume rm` line the script prints.
+
 ---
 
 ## Troubleshooting
@@ -520,10 +537,10 @@ Roughly ordered by when you'd hit them during setup.
 | `pg_restore: ... schema "public" already exists` | Safe to ignore — no effect. |
 | `import-dump` otherwise errors | Don't skip ahead. Re-check the dump filename and `db=` value, then see the [Troubleshooting wiki](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Troubleshooting-Dev-Environment) and ask. |
 | `Execution exception [NoSuchElementException: None.get]` at runtime | The data wasn't imported — run `make import-dump` (the init only creates the schema, not the data). |
-| Database suddenly looks empty (`role "sidewalk_<city>" does not exist`, no city schemas) | Your data is most likely parked on an orphaned Docker volume, not gone — `docker volume ls -qf dangling=true` lists the candidates, and you can copy one back onto this project's data volume (`<project>_pgdata`, where `<project>` is your checkout directory lowercased). Don't run `docker volume prune` while you're looking; that is what actually destroys them. |
+| Database suddenly looks empty (`role "sidewalk_<city>" does not exist`, no city schemas) | Your data is most likely parked on an orphaned Docker volume, not gone — `docker volume ls -qf dangling=true` lists the candidates, and you can copy one back onto this project's data volume (`<project>_pgdata18`, where `<project>` is your checkout directory lowercased). (The old Postgres 16 `<project>_pgdata` volume is meant to be dangling.) Don't run `docker volume prune` while you're looking; that is what actually destroys them. |
 | `Cannot create container for service web: Conflict ... name "/projectsidewalk-web" already in use` | A prior `web` container wasn't shut down cleanly: `docker container rm /projectsidewalk-web`. |
 | Errors after the computer was shut off mid-run (WSL) | Run `wsl --shutdown`; when Docker offers to restart WSL, accept. Otherwise restart Docker manually. |
-| Can't connect to the database | The db container may not be listening on all addresses. `make ssh target=db`, edit `/var/lib/postgresql/data/postgresql.conf`, set `listen_addresses = '*'`. |
+| Can't connect to the database | The db container may not be listening on all addresses. `make ssh target=db`, edit `/var/lib/postgresql/18/docker/postgresql.conf`, set `listen_addresses = '*'`. |
 | `make` commands "just don't work" | Reinstall `make`. As a fallback, run the underlying command from the `Makefile` directly (e.g. `make ssh target=web` ≈ `docker exec -it projectsidewalk-web /bin/bash`). |
 | `relation "role" does not exist` while a schema is applying evolutions | That schema is behind evolution 372, which dropped the shared `sidewalk_login.role` lookup table that evolutions 270, 295, 337 and 355 all read. Recoverable with the data intact: [Recovering a schema stranded below evolution 372](#recovering-a-schema-stranded-below-evolution-372). |
 | A new JS file isn't in the bundle | Nothing imports it yet: import it from the page's entry in `frontend/js/pages/` or from a file that entry reaches. |

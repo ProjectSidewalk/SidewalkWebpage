@@ -247,6 +247,11 @@
   color: rgb(255 255 255 / 55%);
 }
 
+/* Raleway's digits sit at uneven heights, so the version number and date use the primary font. */
+.mobile-footer-version {
+  font-family: var(--font-primary);
+}
+
 #mobile-cta-footer-info a {
   color: rgb(255 255 255 / 55%);
   text-decoration: underline;

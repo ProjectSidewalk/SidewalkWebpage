@@ -5,7 +5,7 @@ Everything a person or CI runs. A script lives where its caller is:
 | Folder | Who runs it | What's there |
 | --- | --- | --- |
 | [`lint/`](lint) | CI (`make lint`) | The `check-*.mjs` gates, the route-reachability lint, the ShellCheck runner, our ESLint rules and the JSDoc type-check configs |
-| [`dev/`](dev) | A developer working on the dev env | Worktree QA, the sbt runner, leases on the shared app and test DB, `npm-sync.sh` |
+| [`dev/`](dev) | A developer working on the dev env | Worktree QA, the sbt runner, leases on the shared app and test DB, `npm-sync.sh`, the Postgres 16 → 18 copy |
 | [`city/`](city/README.md) | A developer setting up or updating a city's data | Onboarding, imagery scans, street gradients, GA and Maps key setup |
 | [`validation_queue/`](validation_queue) | A developer changing the queue policy | The exports and analyzer behind `docs/validation-queue.md` |
 | [`one-off/`](one-off) | A person, deliberately, against a database | Scripts we don't maintain (below) |
@@ -37,6 +37,10 @@ docker exec -i projectsidewalk-db psql "dbname=sidewalk options=--search_path=si
 `search_path`) and run as one transaction that commits at the end, so paste them into psql up to the preview, read
 it, and finish with `COMMIT` or `ROLLBACK` yourself. The runner passes no psql variables: to apply the merge across
 cities, send it a copy with `\set apply 1` in place of `\set apply 0`.
+
+The runner opens connections read-only, which blocks temp tables too, so a script that needs either starts with
+`SET default_transaction_read_only = off;`. `5532-backfill-user-created-at.sql` predates that: add the line to the
+copy you send. `5612-delete-visit-only-anon-accounts.sql` must run as a database superuser; its header says why.
 
 ## `experiments/`
 

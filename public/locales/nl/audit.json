@@ -158,6 +158,9 @@
     "route-unavailable": {
       "message": "Die route is niet beschikbaar. Mogelijk is hij verwijderd."
     },
+    "region-finished": {
+      "message": "Je hebt alle straten in die buurt al verkend, dus we hebben je naar {{regionName}} verplaatst."
+    },
     "reaudit": {
       "title": "Deze straat heeft nieuwere beelden",
       "message-you": "Jij hebt deze straat voor het laatst in {{lastMapped}} beoordeeld, maar de beelden zijn sindsdien vernieuwd (in {{newImagery}}). Beoordeel deze straat opnieuw, zodat we kunnen analyseren wat er veranderd is.",

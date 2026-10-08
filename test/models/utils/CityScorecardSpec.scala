@@ -99,7 +99,7 @@ class CityScorecardSpec extends SidewalkSpec with GuiceOneAppPerSuite {
     // two still count the same things is running both over the same data. A window reaching back to 2010 covers the
     // whole seeded history, and the guard below keeps an empty schema from passing this vacuously.
     "count the baseline on exactly the daily bars' basis" in {
-      val today = LocalDate.now(ZoneId.of("US/Pacific"))
+      val today = LocalDate.now(ZoneId.of("America/Los_Angeles"))
       val days  = ChronoUnit.DAYS.between(LocalDate.of(2010, 1, 1), today).toInt
       val bars  = run(configTable.getCityDailyActivityByUserBySchema(schema, days)).map(currentCityId -> _)
       val base  = run(configTable.getCityDailyBaselineBySchema(schema, days)).map(currentCityId -> _)

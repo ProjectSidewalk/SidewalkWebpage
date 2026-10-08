@@ -359,7 +359,7 @@ export class HealthPage {
     const t = this.#thresholds;
     // A status this page has not been taught sorts most-urgent (AdminShell.jobStatusBadge tones it to match):
     // on a health panel, an unrecognized value is a reason to look, not a reason to relax.
-    const rank = { never_run: 0, abandoned: 1, failed: 2, running: 3, succeeded: 4 };
+    const rank = { never_run: 0, abandoned: 1, interrupted: 2, failed: 3, running: 4, succeeded: 5 };
     const sorted = [...jobs].sort((a, b) => {
       if (a.overdue !== b.overdue) return a.overdue ? -1 : 1;
       return (rank[a.last_status] ?? -1) - (rank[b.last_status] ?? -1);

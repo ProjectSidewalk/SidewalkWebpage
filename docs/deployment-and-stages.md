@@ -69,6 +69,21 @@ NoCurbRamp, Obstacle, SurfaceProblem, Crosswalk, Signal, NoSidewalk, Occlusion, 
 An `ERROR` line there means the AI's labels stay invisible in that city; the message says whether it is the
 foreign-key case (`sidewalk_login` has no SidewalkAI account).
 
+`OrphanedJobRunSweep` (the same module) closes the `background_job_run` rows the previous process left open (#5236):
+a deploy or crash that kills a job mid-run leaves its row `running`, and nothing else would ever close it. Every run
+that started before this JVM did is marked `interrupted` (one WARN line each), which is safe because a stage runs
+exactly one process per city schema. Expect one of:
+
+```
+INFO m.OrphanedJobRunSweep - Orphaned job runs: none.
+WARN m.OrphanedJobRunSweep - Orphaned job run: #1234 crop-generation-actor (scheduled) started
+2026-09-05T06:00:01-07:00 was still open when this process started at 2026-09-07T17:09:12.345-07:00; marked
+interrupted.
+```
+
+A WARN on a boot that followed a deploy names the jobs that deploy cut off. Each job's own outcome is logged by
+`JobRunService` as `<job> (<trigger>) run succeeded in Ns.` or `<job> (<trigger>) run failed after Ns: <error>`.
+
 It also sweeps every city's `status` and logs an error for any value that isn't `public` or `private`. Nothing there
 is fatal: an unrecognised value reads as private, which costs a launched city its search traffic silently, but
 refusing to boot over it would take the city offline instead. The public/total count is a tripwire for a bulk flip —
@@ -332,7 +347,7 @@ A deploy builds the app essentially the same way you do locally, in this order:
    system Python (3.8), which is why `requirements.txt` stays pinned to 3.8-installable versions (#4396). The
    out-of-band utilities are **not** deployed: `requirements-offline-tools.txt` needs ≥ 3.12 and is installed by hand
    into the 3.13 on whichever user account runs those scripts.
-2. `npm install`, then `npx grunt`: the tools' CSS bundles, then **Rolldown** for every page's JS bundle (minified, with
+2. `npm ci`, then `npm run build`: the tools' CSS bundles, then **Rolldown** for every page's JS bundle (minified, with
    a sourcemap beside it that carries the sources, since `frontend/js/` itself is not served).
 3. **sbt** `clean stage` to compile the Scala/Play backend into a runnable package. This also bundles the `scripts/`
    directory into the staged app (via `Universal / mappings` in `build.sbt`) so the in-band `label_clustering.py` is

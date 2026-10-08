@@ -6,7 +6,7 @@
 #     bash /home/tools/dev/npm-sync.sh           # from inside the container shell
 #     bash tools/dev/npm-sync.sh --write-stamp   # image build: record the tree its own `npm ci` just installed
 #
-# Nothing else in the dev loop installs: `npm start` only runs grunt and sbt, and the named node_modules volume is
+# Nothing else in the dev loop installs: `npm start` only runs the asset build and sbt, and the named node_modules volume is
 # not refreshed by rebuilding the image.
 #
 set -euo pipefail

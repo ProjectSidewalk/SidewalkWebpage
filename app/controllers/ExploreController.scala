@@ -162,6 +162,8 @@ class ExploreController @Inject() (
       // The id that failed is logged separately, because it reaches neither the activity string above (which names
       // the route the session ended up in, if any) nor the page (which is told only that something was dropped).
       // Without it, a stale share link can't be told apart from a typo, or traced back to what was shared (#5156).
+      // The same line covers a route that resolved but has no walkable distance (#5167): the id is real there, so
+      // the server's warn line, which names it as zero-length, is what tells the two causes apart.
       if (exploreData.routeUnavailable) {
         routeId.foreach { rId =>
           cc.loggingService.insert(user.userId, request.ipAddress, s"Visit_Audit_UnresolvableRouteId=$rId")
@@ -192,7 +194,8 @@ class ExploreController @Inject() (
               exploreData.task, exploreData.mission, exploreData.region.regionId, exploreData.region.name,
               exploreData.nextTempLabelId, exploreData.hasCompletedAMission, exploreData.userRoute.map(_.routeId),
               exploreData.userRoute.map(_.userRouteId), exploreData.route.map(_.name), exploreData.routeResumed,
-              exploreData.routeUnavailable, startLat, startLng, startPanoId, startPov, startPlaceName
+              exploreData.routeUnavailable, exploreData.regionFinished, startLat, startLng, startPanoId, startPov,
+              startPlaceName
             )
           )
         )

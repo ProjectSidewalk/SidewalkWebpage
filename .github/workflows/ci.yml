@@ -3,8 +3,9 @@ name: CI
 # Every job blocks a merge except the offline-tooling leg of python-tests and dependency-review.
 #
 #   - backend:         `sbt compile` + `scalafmtCheckAll` + `scalafmtSbtCheck`.
-#   - frontend:        asset build (grunt) + the lint steps (ESLint, Stylelint, HTMLHint, locale checks, CSS layout,
-#                      asset paths, vendor versions, JS types, spec base class) + the jsdom `jest` suite in test/js/.
+#   - frontend:        asset build (`npm run build`) + the lint steps (ESLint, Stylelint, HTMLHint, locale checks,
+#                      CSS layout, asset paths, vendor versions, JS types, spec base class) + the jsdom `jest` suite in
+#                      test/js/.
 #                      Jest reports JS coverage but has no floor — the number can't support one yet, see #5112.
 #   - evolutions-lint: static checks on conf/evolutions/default/*.sql.
 #   - shell-lint:      ShellCheck over the repo's .sh files.
@@ -84,9 +85,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Exercises the asset build (the `default` grunt task: the CSS bundles, then Rolldown for the JS).
+      # The same command the deploy runs (sidewalk-tools' build.sh): the CSS bundles, then Rolldown for the JS.
       - name: Build assets
-        run: npx grunt
+        run: npm run build
 
       # Every lint step below is `if: always()`, so all frontend problems surface in one run even when an earlier step
       # failed. Each has a `make` target of the same name for running it locally.
@@ -245,8 +246,8 @@ jobs:
         uses: sbt/setup-sbt@v1
 
       # Bring up Postgres+PostGIS exactly as dev does (db/Dockerfile + init.sh, which restores the shared
-      # sidewalk_login schema and the sidewalk_init template). A runner starts with the `pgdata` volume empty, which is
-      # what makes the entrypoint run init.sh — locally, an existing volume makes it skip, and you get your own dev DB.
+      # sidewalk_login schema and the sidewalk_init template). A runner's `pgdata18` volume starts empty, so init.sh
+      # runs; locally, an existing volume skips it and you get your own dev DB.
       - name: Start database
         run: docker compose up -d --build db
 
@@ -404,7 +405,7 @@ jobs:
       # MUST precede `sbt stage`: the staged app serves public/ from the packaged assets jar, and the built bundles
       # (public/build/) are git-ignored — without them every page 404s its own JS/CSS.
       - name: Build frontend assets
-        run: npx grunt
+        run: npm run build
 
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
