@@ -104,12 +104,21 @@ class AuditTaskInteractionTable @Inject() (protected val dbConfigProvider: Datab
   val actionSubsetForSmallTable: Seq[String] =
     Seq("ViewControl_MouseDown", "LabelingCanvas_MouseDown", "NextSlideButton_Click", "PreviousSlideButton_Click")
 
+  // 12 bound columns x 1,000 rows stays well under Postgres's 65,535 bind-parameter limit per statement.
+  private val MultiRowInsertChunk: Int = 1000
+
   /**
    * Inserts a sequence of interactions into the audit_task_interaction and audit_task_interaction_small tables.
    */
   def insertMultiple(interactions: Seq[AuditTaskInteraction]): DBIO[Unit] = {
+    // The small table needs each row's new id, and `returning` turns off Slick's batching, so each chunk goes in as
+    // one multi-row INSERT instead. One transaction around it all makes a submission cost one commit (#5718).
+    val inserts: Seq[DBIO[Seq[AuditTaskInteraction]]] = interactions
+      .grouped(MultiRowInsertChunk)
+      .toSeq
+      .map((auditTaskInteractions returning auditTaskInteractions).insertAll(_, slick.jdbc.RowsPerStatement.All))
     (for {
-      savedActions <- (auditTaskInteractions returning auditTaskInteractions).insertMany(interactions)
+      savedActions <- DBIO.sequence(inserts).map(_.flatten)
       subsetToSave = savedActions.filter(action => actionSubsetForSmallTable.contains(action.action))
       subsetSaved <- auditTaskInteractionsSmall ++= subsetToSave
     } yield ()).transactionally
