@@ -52,6 +52,15 @@ class AccessScoreSpotlightPageSpec extends SidewalkSpec with GuiceOneAppPerSuite
       body must include("""id="access-score-spotlight-title"""")
       body must not include "landing.spotlight.title"
     }
+
+    "carry the ask heading alongside the ranked one, translated" in {
+      // The module swaps to this wording when nothing is ranked but a neighborhood is near the floor (#5454), so it
+      // has to ride on the same heading element rather than live anywhere the module would have to find.
+      val body = render("/")
+      body must include("data-ask-title=\"")
+      body must not include "landing.spotlight.title-ask"
+      body must include regex """id="access-score-spotlight-title"\s+data-ask-title=""""
+    }
   }
 
   "The cities page" should {
@@ -63,6 +72,8 @@ class AccessScoreSpotlightPageSpec extends SidewalkSpec with GuiceOneAppPerSuite
       body must include("css/components/access-score-spotlight.css")
       body.indexOf("""id="access-score-spotlight-container"""") must be < body.indexOf("""class="cta-section"""")
       body must not include "cities.spotlight.title"
+      // The cross-city feed never carries an ask, so this page has no ask wording to swap in.
+      body must not include "data-ask-title"
     }
   }
 
@@ -72,6 +83,7 @@ class AccessScoreSpotlightPageSpec extends SidewalkSpec with GuiceOneAppPerSuite
 
       body must include("/v3/api/accessScoreSpotlight")
       body must include("min_region_completion")
+      body must include("nearest_min_completion")
       body must include("""href="/v3/api-docs/accessScoreSpotlight"""")
     }
   }

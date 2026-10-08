@@ -61,6 +61,16 @@ object AccessScoreSpotlight {
   val MinRegionCompletion: Double = 0.8
 
   /**
+   * How much of a region's street length must be explored before it is offered as "closest to being ranked".
+   *
+   * Half the ranking floor: a neighborhood at 40% explored is one a visitor can finish, so "closest to being ranked"
+   * is true of it, while a fresh deployment's 0% regions are not close to anything and must never fill the list
+   * (#5454). Published as `nearest_min_completion` by
+   * `/v3/api/accessScoreSpotlight`, so the page and the docs read it rather than restate it.
+   */
+  val NearestMinCompletion: Double = MinRegionCompletion / 2
+
+  /**
    * How long a stretch of street must be to be ranked.
    *
    * A score describes what is along a street, so a 20 m stub with one bad label is not a street with a bad score —
@@ -109,6 +119,26 @@ object AccessScoreSpotlight {
     row.score.isDefined && math.round(row.completionRate * 100) >= math.round(minCompletion * 100)
 
   /**
+   * Whether an unranked region is close enough to the floor to be the module's ask.
+   *
+   * Compared on the rounded percent, like [[regionQualifies]], so the rule agrees with the "N% explored" printed
+   * beside the row. A region with no streets is never near: `buildRegionRows` reads it as 100% complete, and there
+   * is nothing in it to explore.
+   *
+   * @param row                  The region's snapshot row.
+   * @param minCompletion        The ranking floor, normally [[MinRegionCompletion]].
+   * @param nearestMinCompletion The ask's floor, normally [[NearestMinCompletion]].
+   * @return                     Whether the region belongs in `nearest`.
+   */
+  def regionIsNear(
+      row: RegionSpotlightRowForApi,
+      minCompletion: Double = MinRegionCompletion,
+      nearestMinCompletion: Double = NearestMinCompletion
+  ): Boolean =
+    !regionQualifies(row, minCompletion) && row.totalDistanceM > 0 &&
+      math.round(row.completionRate * 100) >= math.round(nearestMinCompletion * 100)
+
+  /**
    * Whether a ranked unit belongs in the "Highest scores" list: at or above [[HighestMinScore]].
    *
    * @param row A ranked row, so `score` is defined.
@@ -150,8 +180,9 @@ object AccessScoreSpotlight {
   /**
    * Builds one night's region rows: every region in the city, scored or not.
    *
-   * The unscored ones are written too, because they are what the module counts as "of M neighborhoods" and lists as
-   * "closest to being ranked" — the call to action that most deployments will actually show.
+   * The unscored ones are written too, because they are what the module counts as "of M neighborhoods", and the ones
+   * near the floor are what it lists as "closest to being ranked" — the call to action that most deployments will
+   * actually show.
    *
    * @param regionScores     The region roll-up from `AccessScoreService`, one entry per region in the city.
    * @param completions      `region_completion` rows, the distance-based explored share per region.
@@ -285,16 +316,26 @@ object AccessScoreSpotlight {
   }
 
   /**
-   * The regions closest to the completion floor, which is the module's "closest to being ranked" call to action.
+   * The unranked regions nearest the completion floor, best-explored first: the "closest to being ranked" ask.
    *
-   * @param rows          Every region row of the snapshot.
-   * @param minCompletion The completion floor.
-   * @param n             How many to list.
-   * @return              The non-qualifying regions, best-explored first.
+   * Only regions [[regionIsNear]] accepts, so the list is empty in a city where nothing is near — a fresh
+   * deployment, or one whose remaining regions are barely touched — rather than every unranked region in the city.
+   *
+   * @param rows                 Every region row of the snapshot.
+   * @param minCompletion        The ranking floor.
+   * @param n                    How many to list.
+   * @param nearestMinCompletion The ask's floor, see [[NearestMinCompletion]].
+   * @return                     At most `n` near regions, best-explored first, then by name and id so ties are
+   *                             stable.
    */
-  def nearest(rows: Seq[RegionSpotlightRowForApi], minCompletion: Double, n: Int): Seq[RegionSpotlightRowForApi] =
+  def nearest(
+      rows: Seq[RegionSpotlightRowForApi],
+      minCompletion: Double,
+      n: Int,
+      nearestMinCompletion: Double = NearestMinCompletion
+  ): Seq[RegionSpotlightRowForApi] =
     rows
-      .filterNot(row => regionQualifies(row, minCompletion))
+      .filter(row => regionIsNear(row, minCompletion, nearestMinCompletion))
       .sortBy(row => (-row.completionRate, row.name, row.regionId))
       .take(n)
 
@@ -455,6 +496,7 @@ class AccessScoreSpotlightService @Inject() (
           AccessScoreSpotlightForApi(
             unit = unit,
             minCompletion = AccessScoreSpotlight.MinRegionCompletion,
+            nearestMinCompletion = AccessScoreSpotlight.NearestMinCompletion,
             minStreetLengthM = AccessScoreSpotlight.MinStreetLengthMeters,
             highestMinScore = AccessScoreSpotlight.HighestMinScore,
             lowestMaxScore = AccessScoreSpotlight.LowestMaxScore,
@@ -481,6 +523,7 @@ class AccessScoreSpotlightService @Inject() (
       AccessScoreSpotlightForApi(
         unit = SpotlightUnit.Regions,
         minCompletion = AccessScoreSpotlight.MinRegionCompletion,
+        nearestMinCompletion = AccessScoreSpotlight.NearestMinCompletion,
         minStreetLengthM = AccessScoreSpotlight.MinStreetLengthMeters,
         highestMinScore = AccessScoreSpotlight.HighestMinScore,
         lowestMaxScore = AccessScoreSpotlight.LowestMaxScore,
@@ -493,7 +536,13 @@ class AccessScoreSpotlightService @Inject() (
         // "help the next one across the line" ask has nowhere to go.
         nearest =
           if (qualifying.size >= n) Seq.empty
-          else AccessScoreSpotlight.nearest(snapshot, AccessScoreSpotlight.MinRegionCompletion, n)
+          else
+            AccessScoreSpotlight.nearest(
+              snapshot,
+              AccessScoreSpotlight.MinRegionCompletion,
+              n,
+              AccessScoreSpotlight.NearestMinCompletion
+            )
       )
     }
   }
@@ -525,6 +574,7 @@ class AccessScoreSpotlightService @Inject() (
         rows => city.fold[Seq[SpotlightRowForApi]](rows)(c => rows.map(_.copy(city = Some(c))))
       val response = AccessScoreSpotlightForApi(
         unit = SpotlightUnit.Streets, minCompletion = AccessScoreSpotlight.MinRegionCompletion,
+        nearestMinCompletion = AccessScoreSpotlight.NearestMinCompletion,
         minStreetLengthM = AccessScoreSpotlight.MinStreetLengthMeters,
         highestMinScore = AccessScoreSpotlight.HighestMinScore, lowestMaxScore = AccessScoreSpotlight.LowestMaxScore,
         qualifying = snapshot.qualifying, total = snapshot.total, computedAt = snapshot.computedAt,

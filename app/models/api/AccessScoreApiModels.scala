@@ -669,6 +669,9 @@ case class StreetSpotlightRowForApi(
  * @param unit          Which unit was ranked: "regions" or "streets".
  * @param minCompletion The completion floor a region must clear to be ranked, the same number
  *                      `/v3/api/accessScoreConfig` publishes as `min_region_completion`.
+ * @param nearestMinCompletion The completion a neighborhood needs to be offered in `nearest`, in [0, 1]: half of
+ *                      `minCompletion`, so the ask names places a visitor can finish rather than every unranked
+ *                      region (#5454).
  * @param minStreetLengthM The length floor a stretch of street must clear to be ranked, in meters. Published so the
  *                      module can say what it is without re-declaring it.
  * @param highestMinScore The score a ranked unit needs to appear in `top`, in [0, 1].
@@ -684,13 +687,16 @@ case class StreetSpotlightRowForApi(
  *                      to show, so this is every ranked unit, best first.
  * @param bottom        With `n` or more ranked: the worst of those scoring under `lowestMaxScore`, worst first;
  *                      empty otherwise.
- * @param nearest       The units closest to qualifying, best-explored first. Populated only when fewer than `n`
- *                      qualify, and only for `unit=regions` under the single-city scope — a neighborhood is
- *                      somewhere a visitor can be sent to explore, and a street on another city's site is not.
+ * @param nearest       The unranked neighborhoods at or above `nearestMinCompletion` and with streets to explore,
+ *                      best-explored first. Populated only when fewer than `n` qualify, only for `unit=regions`, and
+ *                      only under the single-city scope — a neighborhood is somewhere a visitor can be sent to
+ *                      explore, and a street on another city's site is not. Empty when nothing is near, which is what
+ *                      a fresh deployment reports.
  */
 case class AccessScoreSpotlightForApi(
     unit: String,
     minCompletion: Double,
+    nearestMinCompletion: Double,
     minStreetLengthM: Double,
     highestMinScore: Double,
     lowestMaxScore: Double,
@@ -704,17 +710,18 @@ case class AccessScoreSpotlightForApi(
 
   /** Serializes the response with snake_case keys. */
   def toJson: JsObject = Json.obj(
-    "unit"                -> unit,
-    "min_completion"      -> minCompletion,
-    "min_street_length_m" -> minStreetLengthM,
-    "highest_min_score"   -> highestMinScore,
-    "lowest_max_score"    -> lowestMaxScore,
-    "qualifying"          -> qualifying,
-    "total"               -> total,
-    "computed_at"         -> computedAt,
-    "top"                 -> top.map(_.toJson),
-    "bottom"              -> bottom.map(_.toJson),
-    "nearest"             -> nearest.map(_.toJson)
+    "unit"                   -> unit,
+    "min_completion"         -> minCompletion,
+    "nearest_min_completion" -> nearestMinCompletion,
+    "min_street_length_m"    -> minStreetLengthM,
+    "highest_min_score"      -> highestMinScore,
+    "lowest_max_score"       -> lowestMaxScore,
+    "qualifying"             -> qualifying,
+    "total"                  -> total,
+    "computed_at"            -> computedAt,
+    "top"                    -> top.map(_.toJson),
+    "bottom"                 -> bottom.map(_.toJson),
+    "nearest"                -> nearest.map(_.toJson)
   )
 }
 

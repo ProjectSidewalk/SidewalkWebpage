@@ -489,17 +489,19 @@ loaded by the corresponding Twirl view:
   `remount()` of the map view and the cluster layer on `style.load`) reads the ramp in its dark stepping
   (`--color-score-ramp-dark-*`, passed per call as `{ mode: 'dark' }`) with a second chrome palette; the band and
   popups stay light and keep the light ramp. The shared score ramp is `common/scoreRamp.js`.
-- **`AccessScoreSpotlight.js`** — the AccessScore Spotlight (#5215), a standalone module that the
-  landing page and `/cities` both mount: the highest- and lowest-scoring neighborhoods, or streets, as two ranked
-  lists whose bars are painted by `common/scoreRamp.js`. It reads one feed, `/v3/api/accessScoreSpotlight`, which
-  answers from the nightly snapshot tables; nothing is fetched until the visitor's first interaction, and the
-  section hides itself when the city has nothing ranked. A city mapped as one neighborhood has no neighborhood ranking
-  to give, so that unit is dropped in favor of its street list — unless no street is ranked either, where the one score
-  is still better than an empty section — and the unit switch is only drawn when both units have something to show.
-  Hovering or focusing a row lights that neighborhood on the landing choropleth — or that city's circle on `/cities` —
-  through the same `hover` feature-state the maps' own pointer handlers use, and the map never moves. The completion
-  floor below which a neighborhood is not ranked is the backend's `min_region_completion`, the same number the
-  AccessScore tool hatches by.
+- **`AccessScoreSpotlight.js`** — the AccessScore Spotlight (#5215), a standalone module that the landing page and
+  `/cities` both mount: the highest- and lowest-scoring neighborhoods, or streets, as two ranked lists whose bars are
+  painted by `common/scoreRamp.js`. It reads one feed, `/v3/api/accessScoreSpotlight`, which answers from the nightly
+  snapshot tables; nothing is fetched until the visitor's first interaction, and the section hides itself when the city
+  has nothing ranked and no neighborhood near the completion floor; with nothing ranked but a neighborhood at least
+  half-way to the floor (the feed's `nearest_min_completion`) it shows the "closest to being ranked" ask alone, under an
+  ask heading the landing view carries on `data-ask-title` (#5454). A city mapped as one neighborhood has no
+  neighborhood ranking to give, so that unit is dropped in favor of its street list — unless no street is ranked either,
+  where the one score is still better than an empty section — and the unit switch is only drawn when both units have
+  something to show. Hovering or focusing a row lights that neighborhood on the landing choropleth — or that city's
+  circle on `/cities` — through the same `hover` feature-state the maps' own pointer handlers use, and the map never
+  moves. The completion floor below which a neighborhood is not ranked is the backend's `min_region_completion`, the
+  same number the AccessScore tool hatches by.
 - **`ps-map/`** — shared map component used across pages.
 - **`common/`** — modules shared across bundles: `pano-viewer/` (an abstraction over the GSV / Mapillary / Infra3d /
   Panoramax / Pannellum imagery providers), `label-detail/` (label popups), and various utilities. The popup's pano viewer is

@@ -260,6 +260,7 @@ landing.how.you.help.assess = ASSESS SEVERITY
 landing.validate.title = Validate What Others Found
 landing.validate.content = Start helping in seconds: check recent labels that volunteers placed in {0} and tell us whether they got it right.
 landing.spotlight.title = Where {0}''s Sidewalks Score Highest and Lowest
+landing.spotlight.title-ask = Help {0}''s First Neighborhoods Get a Sidewalk Score
 landing.choropleth.title = Pick a Neighborhood
 landing.choropleth.content = Choose a neighborhood to explore below or click on the <a href="/explore">''Explore''</a> button and you''ll be assigned a neighborhood automatically!
 landing.choropleth.legend = Percent of Neighborhood Complete

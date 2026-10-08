@@ -328,6 +328,7 @@ landing.how.you.help.assess = 評估品質
 landing.validate.title = 驗證其他人的發現
 landing.validate.content = 只需幾秒即可開始協助:查看志工最近在{0}放置的標記,並告訴我們這些標記是否正確。
 landing.spotlight.title = {0} 人行道評分最高與最低的地方
+landing.spotlight.title-ask = 幫助 {0} 的第一批鄰里獲得人行道評分
 landing.choropleth.title = 選擇一個鄰里
 landing.choropleth.content = 選擇下面要探索的社區，或點擊<a href="/explore">「探索」</a>按鈕，系統將自動為您分配一個社區！
 landing.choropleth.legend = 鄰里完成度

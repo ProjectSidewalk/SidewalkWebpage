@@ -8,7 +8,7 @@
 @content = {
   <div class="page-section" id="access-score-spotlight-intro-section">
     <h1 class="page-heading" id="access-score-spotlight-api">AccessScore: Spotlight API <a href="#access-score-spotlight-api" class="permalink">#</a></h1>
-    <p>The AccessScore: Spotlight API returns the <strong>highest- and lowest-scoring</strong> neighborhoods, or streets, in @cityName — the feed behind the AccessScore Spotlight module on the home page and on <a href="/cities">/cities</a>. It answers from a snapshot written once a night, at the end of the label-clustering run, so asking for it never sets a whole city's AccessScore recomputing.</p>
+    <p>The AccessScore: Spotlight API returns the <strong>highest- and lowest-scoring</strong> neighborhoods, or streets, in @cityName, and — in a city with fewer than <code>n</code> ranked — the neighborhoods closest to being ranked: the feed behind the AccessScore Spotlight module on the home page and on <a href="/cities">/cities</a>. It answers from a snapshot written once a night, at the end of the label-clustering run, so asking for it never sets a whole city's AccessScore recomputing.</p>
     <p>This endpoint returns <strong>JSON only</strong>. It is a page feed rather than a data export: the scores it ranks are downloadable in every format from the <a href="@routes.ApiDocsController.accessScoreRegions">AccessScore: Regions API</a> and the <a href="@routes.ApiDocsController.accessScoreStreets">AccessScore: Streets API</a>.</p>
     <p class="download-note"><strong>One method, not the method.</strong> There is no single correct way to measure street- and neighborhood-level accessibility. AccessScore implements one experimental algorithm, and a ranking built on it reflects what volunteers have found so far rather than an official assessment. Read <code>qualifying</code> and <code>total</code> alongside the lists: in most cities only part of the map has enough data to be ranked at all.</p>
   </div>
@@ -33,6 +33,7 @@
       <li><strong>Neighborhoods</strong> need a score and at least <code>min_completion</code> of their street length explored — the same distance-based completion the home page's choropleth colors, published as <code>min_region_completion</code> by the <a href="/v3/api/accessScoreConfig">AccessScore configuration</a>. The AccessScore tool applies the same floor, so the two can never disagree about who is ranked.</li>
       <li><strong>Streets</strong> are grouped by OSM way within a neighborhood, because a street edge is one block of a way and a list of edges would print the same street name a dozen times. Each row is that named stretch: its score is the length-weighted mean of its explored edges, and its <code>street_edge_id</code> is the longest edge in the group. A stretch is ranked once it has been explored, is at least 100&nbsp;m long, and carries either three or more label clusters or none at all — a confirmed absence of problems is a finding, while one or two clusters on a long street says little either way.</li>
     </ul>
+    <p><strong>Closest to being ranked.</strong> When fewer than <code>n</code> neighborhoods qualify, <code>nearest</code> lists the unranked ones a visitor could finish: those with streets to explore whose completion is at least <code>nearest_min_completion</code> — half of <code>min_completion</code>, so a neighborhood at 40% is offered and one at 5% is not. The list is empty in a city where nothing is that far along, which is what a new deployment reports; it is never populated for streets or under <code>scope=cities</code>.</p>
     <p>Streets that score alike are ordered by how many validations their labels have received (the best-checked first), then by a random number drawn once per nightly run, so a list of equal scores stays in one order for the day rather than reshuffling between two page loads.</p>
   </div>
 
@@ -72,6 +73,7 @@
     <pre><code class="language-json">{
   "unit": "regions",
   "min_completion": 0.8,
+  "nearest_min_completion": 0.4,
   "min_street_length_m": 100,
   "highest_min_score": 0.5,
   "lowest_max_score": 0.5,
@@ -112,6 +114,7 @@
         <tbody>
           <tr><td><code>unit</code></td><td><code>string</code></td><td>Which unit was ranked: <code>regions</code> or <code>streets</code>.</td></tr>
           <tr><td><code>min_completion</code></td><td><code>number</code></td><td>The share of a neighborhood's street length that must be explored before it is ranked, in <code>[0,&nbsp;1]</code>.</td></tr>
+          <tr><td><code>nearest_min_completion</code></td><td><code>number</code></td><td>The share of a neighborhood's street length that must be explored before it is offered in <code>nearest</code>, in <code>[0,&nbsp;1]</code>: half of <code>min_completion</code>.</td></tr>
           <tr><td><code>min_street_length_m</code></td><td><code>number</code></td><td>The length a stretch of street must reach before it is ranked, in meters.</td></tr>
           <tr><td><code>highest_min_score</code></td><td><code>number</code></td><td>The score a ranked unit needs to appear in <code>top</code>, in <code>[0,&nbsp;1]</code>.</td></tr>
           <tr><td><code>lowest_max_score</code></td><td><code>number</code></td><td>The score a ranked unit must be under to appear in <code>bottom</code>, in <code>[0,&nbsp;1]</code>. The two lists never overlap; a unit between the two bars, if they differ, is in neither.</td></tr>
@@ -120,7 +123,7 @@
           <tr><td><code>computed_at</code></td><td><code>string</code></td><td>The nightly run that produced these rows, as the timestamp it stamped on every row it wrote (ISO 8601). <code>null</code> before the first run. Under <code>scope=cities</code> this is the <em>oldest</em> of the contributing cities' runs, so it is true of every row rather than only the freshest one.</td></tr>
           <tr><td><code>top</code></td><td><code>array</code></td><td>With <code>n</code> or more units ranked: the best of those scoring at least <code>highest_min_score</code>, best first &mdash; fewer than <code>n</code> rows when fewer clear it, and empty when none does. With fewer than <code>n</code> ranked there is no highest-and-lowest to show, so this holds every ranked unit, best first.</td></tr>
           <tr><td><code>bottom</code></td><td><code>array</code></td><td>With <code>n</code> or more units ranked: the worst of those scoring under <code>lowest_max_score</code>, worst first; empty otherwise. Never overlaps <code>top</code>.</td></tr>
-          <tr><td><code>nearest</code></td><td><code>array</code></td><td>Neighborhoods closest to the completion floor, best-explored first — the "help the next one across the line" list. Populated only when fewer than <code>n</code> units qualify, and only for <code>unit=regions</code> without <code>scope=cities</code>; empty otherwise.</td></tr>
+          <tr><td><code>nearest</code></td><td><code>array</code></td><td>Unranked neighborhoods with streets to explore and at least <code>nearest_min_completion</code> of them explored, best-explored first — the "help the next one across the line" list. Populated only when fewer than <code>n</code> units qualify, and only for <code>unit=regions</code> without <code>scope=cities</code>; empty otherwise, including when no neighborhood is that far along.</td></tr>
         </tbody>
       </table>
     </div>

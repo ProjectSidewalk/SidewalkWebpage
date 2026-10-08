@@ -198,11 +198,20 @@ class AccessScoreApiSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       val json = contentAsJson(resp)
       (json \ "unit").as[String] mustBe "regions"
       (json \ "min_completion").as[Double] mustBe service.AccessScoreSpotlight.MinRegionCompletion
+      (json \ "nearest_min_completion").as[Double] mustBe service.AccessScoreSpotlight.NearestMinCompletion
       (json \ "qualifying").as[Int] must be >= 0
       (json \ "total").as[Int] must be >= 0
       (json \ "top").asOpt[Seq[JsObject]] mustBe defined
       (json \ "bottom").asOpt[Seq[JsObject]] mustBe defined
       (json \ "nearest").asOpt[Seq[JsObject]] mustBe defined
+      // Every ask is near the floor and has streets to explore. Completion past `min_completion` is allowed: an
+      // unscored region there is unranked, and exploring it is still the right ask.
+      val nearFloorPct = math.round(service.AccessScoreSpotlight.NearestMinCompletion * 100)
+      (json \ "nearest").as[Seq[JsObject]].foreach { row =>
+        math.round((row \ "completion_rate").as[Double] * 100) must be >= nearFloorPct
+        (row \ "total_distance_m").as[Double] must be > 0.0
+        (row \ "score").asOpt[Double].foreach(score => score must (be >= 0.0 and be <= 1.0))
+      }
       // Present on every deployment; null until the nightly snapshot has run once (the CI database has no runs).
       (json \ "computed_at").toOption mustBe defined
     }
@@ -212,6 +221,7 @@ class AccessScoreApiSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       status(resp) mustBe OK
       val json = contentAsJson(resp)
       (json \ "unit").as[String] mustBe "streets"
+      (json \ "nearest_min_completion").as[Double] mustBe service.AccessScoreSpotlight.NearestMinCompletion
       (json \ "top").as[Seq[JsObject]].size must be <= 3
       // A street has no "closest to being ranked" call to action -- that ask belongs to a neighborhood.
       (json \ "nearest").as[Seq[JsObject]] mustBe empty
@@ -222,6 +232,7 @@ class AccessScoreApiSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       status(resp) mustBe OK
       val json = contentAsJson(resp)
       (json \ "unit").as[String] mustBe "regions"
+      (json \ "nearest_min_completion").as[Double] mustBe service.AccessScoreSpotlight.NearestMinCompletion
       (json \ "nearest").as[Seq[JsObject]] mustBe empty
       // Every cross-city row names the deployment it came from, so a click can leave for the right site.
       (json \ "top").as[Seq[JsObject]].foreach { row =>
@@ -249,6 +260,7 @@ class AccessScoreApiSpec extends SidewalkSpec with GuiceOneAppPerSuite {
     "keep every output field name snake_case" in {
       val body = contentAsString(route(app, FakeRequest(GET, "/v3/api/accessScoreSpotlight")).get)
       body must not include "minCompletion"
+      body must not include "nearestMinCompletion"
       body must not include "computedAt"
       body must not include "regionId"
     }

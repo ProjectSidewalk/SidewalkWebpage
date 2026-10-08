@@ -41,6 +41,7 @@ function feed(unit, { qualifying = 0, total = 0, top = [], bottom = [], nearest 
     return {
         unit,
         min_completion: 0.8,
+        nearest_min_completion: 0.4,
         min_street_length_m: 100,
         highest_min_score: 0.5,
         lowest_max_score: 0.5,
@@ -53,6 +54,17 @@ function feed(unit, { qualifying = 0, total = 0, top = [], bottom = [], nearest 
     };
 }
 
+/** The landing page's server-rendered section heading, and the ask wording it carries on `data-ask-title`. */
+const RANKED_TITLE = 'Where scores are highest and lowest';
+const ASK_TITLE = 'Help Fixture\'s first neighborhoods get a score';
+
+/** A regions feed with nothing ranked and two neighborhoods near the floor: the ask-only state (#5454). */
+const askOnlyRegions = () => feed('regions', {
+    qualifying: 0,
+    total: 9,
+    nearest: [regionRow(3, 'Riverside', null, 0.67), regionRow(4, 'Soldier Hill', null, 0.41)],
+});
+
 /** Five ranked region rows, i.e. enough for a top-and-bottom city. */
 const FIVE_REGIONS = [1, 2, 3, 4, 5].map((i) => regionRow(i, `Region ${i}`, 0.9 - i * 0.1));
 
@@ -62,6 +74,7 @@ describe('the AccessScore Spotlight', () => {
      *
      * @param {object} feeds - `{ regions, streets }`; a null feed stands for a request that failed.
      * @param {object} [options] - Passed through to the constructor.
+     * @param {boolean} [options.noAskTitle] - Drop the heading's ask wording, as /cities renders it.
      * @returns {Promise<HTMLElement>} The section element.
      */
     async function mount(feeds, options = {}) {
@@ -70,11 +83,12 @@ describe('the AccessScore Spotlight', () => {
         document.body.innerHTML = `
             <section id="spotlight-section" hidden>
               <div class="section-title-and-subtitle">
-                <h2 class="section-title">Where scores are highest and lowest</h2>
+                <h2 class="section-title" data-ask-title="${ASK_TITLE}">${RANKED_TITLE}</h2>
                 <div class="section-subtitle spotlight-subtitle"></div>
               </div>
               <div class="spotlight"></div>
             </section>`;
+        if (options.noAskTitle) document.querySelector('.section-title').removeAttribute('data-ask-title');
         window.fetch = jest.fn((url) => Promise.resolve({
             ok: true,
             json: () => Promise.resolve(url.includes('unit=streets') ? feeds.streets : feeds.regions),
@@ -97,6 +111,9 @@ describe('the AccessScore Spotlight', () => {
         await start();
         return section;
     }
+
+    /** The section heading's text, which the module swaps between the ranked and the ask wording. */
+    const heading = () => document.querySelector('.section-title').textContent;
 
     /** The heading text of each rendered column. */
     const columnHeadings = () => [...document.querySelectorAll('.spotlight-col-heading')].map((h) => h.textContent);
@@ -255,6 +272,7 @@ describe('the AccessScore Spotlight', () => {
             ]);
             expect(document.querySelector('.spotlight-cols').classList).not.toContain('spotlight-cols--single');
             expect(rowNames()).toContain('South Park');
+            expect(heading()).toBe(RANKED_TITLE);
         });
 
         it('turns the second column into the call to action while the city is short of ranked places', async () => {
@@ -277,6 +295,102 @@ describe('the AccessScore Spotlight', () => {
             expect(explore[0].getAttribute('href')).toBe('/explore?regionId=3');
             // A pending row has no score, so its bar is the completion meter instead.
             expect(document.querySelector('.spotlight-row--pending .spotlight-bar').style.width).toBe('67%');
+            expect(heading()).toBe(RANKED_TITLE);
+        });
+
+        it('shows the ask alone, under a heading that promises no scores, when nothing is ranked but a neighborhood '
+            + 'is near the floor', async () => {
+            const section = await mount({
+                regions: askOnlyRegions(),
+                streets: feed('streets', { qualifying: 0, total: 900 }),
+            });
+
+            expect(section.hidden).toBe(false);
+            expect(columnHeadings()).toEqual(['common:access-score-spotlight.closest']);
+            expect(document.querySelector('.spotlight-cols').classList).toContain('spotlight-cols--single');
+            expect(heading()).toBe(ASK_TITLE);
+            expect(document.querySelector('.spotlight-subtitle').textContent)
+                .toContain('common:access-score-spotlight.subtitle-ask');
+            const explore = [...document.querySelectorAll('.spotlight-explore')].map((a) => a.getAttribute('href'));
+            expect(explore).toEqual(['/explore?regionId=3', '/explore?regionId=4']);
+            expect(document.querySelectorAll('.spotlight-unit')).toHaveLength(0);
+            expect(document.querySelector('.spotlight-cta a').getAttribute('href')).toBe('/accessScore?unit=regions');
+            expect(logged).toContain('View_module=AccessScoreSpotlight_unit=regions_count=2');
+        });
+
+        it('keeps a one-neighborhood city with nothing ranked hidden, since the only ask would name the whole city',
+            async () => {
+                const section = await mount({
+                    regions: feed('regions', {
+                        qualifying: 0, total: 1, nearest: [regionRow(1, 'Oradell', null, 0.6)],
+                    }),
+                    streets: feed('streets', { qualifying: 0, total: 200 }),
+                });
+
+                expect(section.hidden).toBe(true);
+            });
+
+        it('restores the scores heading when the reader leaves the ask for a ranked unit, and swaps it back',
+            async () => {
+                await mount({
+                    regions: askOnlyRegions(),
+                    streets: feed('streets', { qualifying: 9, total: 90, top: [streetRow(1, 'Main St', 0.7)] }),
+                });
+                const subtitle = () => document.querySelector('.spotlight-subtitle').textContent;
+                const pick = (unit) => [...document.querySelectorAll('.spotlight-unit')]
+                    .find((b) => b.textContent === `common:access-score-spotlight.unit-${unit}`).click();
+
+                expect(heading()).toBe(RANKED_TITLE);
+                expect(subtitle()).toContain('common:access-score-spotlight.subtitle-streets');
+
+                pick('regions');
+                expect(heading()).toBe(ASK_TITLE);
+                expect(subtitle()).toContain('common:access-score-spotlight.subtitle-ask');
+                expect(columnHeadings()).toEqual(['common:access-score-spotlight.closest']);
+
+                pick('streets');
+                expect(heading()).toBe(RANKED_TITLE);
+            });
+
+        it('keeps the scores heading while anything is ranked, even beside the ask', async () => {
+            await mount({
+                regions: feed('regions', {
+                    qualifying: 1, total: 9, top: [regionRow(1, 'Ranked', 0.5)],
+                    nearest: [regionRow(3, 'Nearly', null, 0.67)],
+                }),
+                streets: feed('streets', { qualifying: 0, total: 0 }),
+            });
+
+            expect(columnHeadings()).toEqual([
+                'common:access-score-spotlight.ranked-so-far', 'common:access-score-spotlight.closest',
+            ]);
+            expect(heading()).toBe(RANKED_TITLE);
+            // The STRINGS table renders this key for real, so match its text rather than the key.
+            expect(document.querySelector('.spotlight-subtitle').innerHTML).toContain('AccessScore</a>');
+            expect(document.querySelector('.spotlight-subtitle').textContent)
+                .not.toContain('common:access-score-spotlight.subtitle-ask');
+        });
+
+        it('leaves the heading alone on a page that gave it no ask wording', async () => {
+            const section = await mount({
+                regions: askOnlyRegions(),
+                streets: feed('streets', { qualifying: 0, total: 900 }),
+            }, { noAskTitle: true });
+
+            expect(section.hidden).toBe(false);
+            expect(heading()).toBe(RANKED_TITLE);
+        });
+
+        it('offers a unit by the rows it can draw, not by a count it cannot list', async () => {
+            const section = await mount({
+                regions: askOnlyRegions(),
+                streets: feed('streets', { qualifying: 3, total: 900 }),
+            });
+
+            expect(section.hidden).toBe(false);
+            expect(columnHeadings()).toEqual(['common:access-score-spotlight.closest']);
+            expect(heading()).toBe(ASK_TITLE);
+            expect(document.querySelectorAll('.spotlight-unit')).toHaveLength(0);
         });
 
         it('shows one list and no comparison for a city mapped as a single neighborhood', async () => {
@@ -318,8 +432,7 @@ describe('the AccessScore Spotlight', () => {
         });
 
         it('hides itself rather than drawing an empty band when a feed counts rows it cannot list', async () => {
-            // `qualifying` and the ranked list come from two queries that can disagree: StreetAccessScoreTable's
-            // count has no `region` join, so a street in a soft-deleted region is counted and never listed.
+            // A feed whose count and lists disagree must never draw an empty band.
             const section = await mount({
                 regions: feed('regions', { qualifying: 0, total: 9 }),
                 streets: feed('streets', { qualifying: 3, total: 900 }),

@@ -264,6 +264,7 @@ landing.how.you.help.assess = EVALÚA LA GRAVEDAD
 landing.validate.title = Valida lo que otras personas encontraron
 landing.validate.content = Empieza a ayudar en segundos: revisa las etiquetas recientes que los voluntarios colocaron en {0} y dinos si son correctas.
 landing.spotlight.title = Dónde las aceras de {0} obtienen la mejor y la peor puntuación
+landing.spotlight.title-ask = Ayuda a que los primeros barrios de {0} tengan una puntuación de aceras
 landing.choropleth.title = Elige un barrio
 landing.choropleth.content = Elige un vecindario para explorar a continuación o haz clic en el botón <a href="/explore">''Explorar''</a> y se te asignará un vecindario automáticamente.
 landing.choropleth.legend = Porcentaje del barrio completo

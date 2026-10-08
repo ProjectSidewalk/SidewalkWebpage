@@ -24,6 +24,7 @@ import { ScoreRamp } from './common/scoreRamp.js';
  * @typedef {object} SpotlightFeed
  * @property {string} unit
  * @property {number} min_completion
+ * @property {number} nearest_min_completion
  * @property {number} min_street_length_m
  * @property {number} highest_min_score
  * @property {number} lowest_max_score
@@ -55,7 +56,9 @@ import { ScoreRamp } from './common/scoreRamp.js';
  * the common one and is treated as the ask rather than as an error: the columns become "Ranked so far" and "Closest
  * to being ranked", the latter listing the neighborhoods nearest the completion floor with a button that starts a
  * mission in one, and "Ranked so far" dropped entirely when it has no rows rather than drawn as a bare heading.
- * With nothing ranked at all in either unit the section hides itself.
+ * With nothing ranked but a neighborhood near the floor the ask stands alone, under a heading that asks for help
+ * rather than promising scores; with nothing ranked and nothing near — a fresh deployment, or a city mapped as one
+ * neighborhood — the section hides itself (#5454).
  *
  * Nothing is fetched during page load; the module fills itself once the visitor shows a sign of engagement.
  */
@@ -76,6 +79,8 @@ export class AccessScoreSpotlight {
   #section;
   #root;
   #crossCity;
+  /** The section heading's ranked wording, restored whenever a render draws a ranked list. */
+  #rankedTitle = null;
   /** Per unit: the feed, or null until it has been fetched. */
   #feeds = { regions: null, streets: null };
   #unit = 'regions';
@@ -96,10 +101,11 @@ export class AccessScoreSpotlight {
   constructor(sectionEl, options = {}) {
     this.#section = sectionEl;
     this.#root = sectionEl.querySelector('.spotlight');
+    this.#rankedTitle = this.#section.querySelector('.section-title')?.textContent ?? null;
     this.#crossCity = Boolean(options.crossCity);
 
     // Unhide and hold the space with skeletons immediately, so the real lists swap in without a layout shift. The
-    // section re-hides if the city turns out to have nothing ranked.
+    // section re-hides if the city turns out to have nothing ranked and nothing near the floor.
     this.#section.hidden = false;
     this.#root.appendChild(this.#buildSkeleton());
 
@@ -115,48 +121,61 @@ export class AccessScoreSpotlight {
   }
 
   /**
-   * Whether a unit has a column to draw: it ranks something, or it can ask for the neighborhood nearest the floor.
+   * Whether a unit has a column to draw: a ranked row in either list, or a neighborhood near the floor to ask for.
    *
-   * This decides which units are offered, so it has to agree with what `#render` draws for one: both conditions on
-   * the `nearest` clause are the ones `#render` applies. The ask is a neighborhood to explore, so a streets feed
-   * never carries one, and a city of one neighborhood has none to offer either — the one it would name is the
-   * whole city, the same degenerate comparison the ranking itself would be (#5419).
-   *
-   * It deliberately does NOT gate whether the section appears: `nearest` is every unranked neighborhood, not the
-   * ones near the floor (`AccessScoreSpotlightService.nearest` sorts and takes, with no proximity test), so a city
-   * with no scores at all would qualify and the section's server-rendered "Where … Score Highest and Lowest"
-   * heading would sit over a list of neighborhoods at 0% explored.
-   *
-   * The unit is read from the feed rather than inferred from `nearest` being empty. The backend does send `[]` for
-   * streets, but two reviewers read the older wording as "streets have no `nearest` key" and reported a crash that
-   * cannot happen; naming the unit says which list this is for.
+   * Read from the lists rather than `qualifying`, so a unit is offered exactly when `#render` would draw something
+   * for it; this is the one rule behind the hide guard, the unit switch and the empty-band fail-safe. The ask is a
+   * neighborhood to explore, so a streets feed never carries one, and a city of one neighborhood has none to offer
+   * either — the one it would name is the whole city (#5419). `nearest` holds only neighborhoods at or above the
+   * feed's `nearest_min_completion` (#5454), which is what lets the ask alone keep the section on the page.
    *
    * @param {?SpotlightFeed} feed - The unit's feed, or null if it failed to load, which is never offerable.
    * @returns {boolean}
    */
   static #hasContent(feed) {
     if (!feed) return false;
-    if (feed.qualifying > 0) return true;
+    if (feed.top.length > 0 || feed.bottom.length > 0) return true;
+    return AccessScoreSpotlight.#hasAsk(feed);
+  }
+
+  /**
+   * Whether a feed can draw the "closest to being ranked" column. Shared by `#hasContent` and `#render` so the two
+   * cannot drift.
+   *
+   * The unit is read from the feed rather than inferred from `nearest` being empty: the backend sends `[]` for
+   * streets, and naming the unit says which list the ask belongs to.
+   *
+   * @param {SpotlightFeed} feed - The unit's feed.
+   * @returns {boolean}
+   */
+  static #hasAsk(feed) {
     return feed.unit === 'regions' && feed.total > 1 && feed.nearest.length > 0;
   }
 
-  /** Fetches both units, picks the one to open on, and renders — or hides the section if nothing is ranked. */
+  /**
+   * Fetches both units, picks the one to open on, and renders — or hides the section if neither unit has a ranked
+   * row or a neighborhood near the floor.
+   */
   async #start() {
     const [regions, streets] = await Promise.all([this.#fetchUnit('regions'), this.#fetchUnit('streets')]);
     this.#feeds = { regions, streets };
 
-    const ranked = (feed) => (feed ? feed.qualifying : 0);
-    if (ranked(regions) === 0 && ranked(streets) === 0) {
+    // Nothing to rank and nothing near the floor in either unit: a fresh deployment, or one whose only neighborhood
+    // is the whole city. The page's own Explore button is the call to action there.
+    const offerable = (unit) => AccessScoreSpotlight.#hasContent(this.#feeds[unit]);
+    if (!offerable('regions') && !offerable('streets')) {
       this.#section.hidden = true;
       return;
     }
 
+    const ranked = (feed) => (feed ? feed.qualifying : 0);
     // One neighborhood is nothing to rank against — unless no street is ranked either, when one score beats none.
     if (!this.#crossCity && regions && regions.total === 1 && ranked(streets) > 0) this.#feeds.regions = null;
 
-    // Streets qualify early, so a young city opens on streets until enough neighborhoods clear the completion floor.
-    const neighborhoodsWorthOpening = this.#feeds.regions && ranked(regions) >= AccessScoreSpotlight.#LIST_SIZE;
-    this.#unit = neighborhoodsWorthOpening || ranked(streets) === 0 ? 'regions' : 'streets';
+    // Streets qualify early, so a young city opens on streets until enough neighborhoods clear the completion
+    // floor; a unit that cannot draw anything is never opened on, whatever its count says.
+    const neighborhoodsWorthOpening = offerable('regions') && ranked(regions) >= AccessScoreSpotlight.#LIST_SIZE;
+    this.#unit = neighborhoodsWorthOpening || !offerable('streets') ? 'regions' : 'streets';
     this.#render();
   }
 
@@ -206,7 +225,13 @@ export class AccessScoreSpotlight {
       return;
     }
 
-    this.#renderSubtitle(feed);
+    const ranked = feed.qualifying >= AccessScoreSpotlight.#LIST_SIZE;
+    const showRanked = ranked || feed.top.length > 0;
+    const showAsk = !ranked && AccessScoreSpotlight.#hasAsk(feed);
+    // The ask alone is a different promise from a ranking: the heading and subtitle say so (#5454).
+    const askOnly = showAsk && !showRanked;
+    this.#renderHeading(askOnly);
+    this.#renderSubtitle(feed, askOnly);
 
     const units = this.#buildUnitSwitch();
     if (units) {
@@ -218,7 +243,6 @@ export class AccessScoreSpotlight {
 
     const cols = document.createElement('div');
     cols.className = 'spotlight-cols';
-    const ranked = feed.qualifying >= AccessScoreSpotlight.#LIST_SIZE;
 
     // With a full set of ranked units the lists are a top and a bottom; below that there is only one list worth
     // showing, so the second column becomes the "help the next one across the line" ask.
@@ -226,7 +250,7 @@ export class AccessScoreSpotlight {
     // "Ranked so far" is dropped when it has nothing in it, rather than drawn as a bare heading: it is the one
     // heading with no empty-state string, because a city in that state has the ask to lead with instead. The
     // highest/lowest pair keeps its empty list, since "no neighborhood scores 70 or above yet" is the answer there.
-    if (ranked || feed.top.length > 0) {
+    if (showRanked) {
       cols.appendChild(this.#buildColumn(
         ranked ? 'highest' : 'ranked-so-far',
         ranked ? 4 : 3,
@@ -237,9 +261,10 @@ export class AccessScoreSpotlight {
     }
     if (ranked) {
       cols.appendChild(this.#buildColumn('lowest', 0, feed.bottom, 'ranked', feed));
-    } else if (feed.unit === 'regions' && feed.total > 1 && feed.nearest.length > 0) {
+    } else if (showAsk) {
       cols.appendChild(this.#buildColumn('closest', 2, feed.nearest, 'pending', feed));
     }
+    // Belt and braces for a feed whose count and lists disagree: never draw an empty band.
     if (cols.children.length === 0) {
       this.#section.hidden = true;
       return;
@@ -259,17 +284,33 @@ export class AccessScoreSpotlight {
   }
 
   /**
-   * Writes the section subtitle: one sentence saying what a score is, with "AccessScore" linking to how it is
-   * computed. The rules for who is ranked belong to the footnote, not here.
-   * @param {SpotlightFeed} feed - The unit's feed.
+   * Swaps the section heading between its ranked wording and the ask wording the page put on `data-ask-title`.
+   *
+   * The heading is server-rendered, so the two strings are both the page's; this only chooses. A page without the
+   * attribute (/cities, whose feed never carries an ask) keeps its heading as is.
+   *
+   * @param {boolean} askOnly - Whether this render draws the "closest to being ranked" column and nothing else.
    */
-  #renderSubtitle(feed) {
+  #renderHeading(askOnly) {
+    const title = this.#section.querySelector('.section-title');
+    if (!title || !title.dataset.askTitle || this.#rankedTitle === null) return;
+    title.textContent = askOnly ? title.dataset.askTitle : this.#rankedTitle;
+  }
+
+  /**
+   * Writes the section subtitle: one sentence saying what a score is, with "AccessScore" linking to how it is
+   * computed, or, with nothing ranked, why the list below is an ask rather than a ranking. The rules for who is
+   * ranked belong to the footnote, not here.
+   * @param {SpotlightFeed} feed - The unit's feed.
+   * @param {boolean} askOnly - Whether this render draws the "closest to being ranked" column and nothing else.
+   */
+  #renderSubtitle(feed, askOnly) {
     const subtitle = this.#section.querySelector('.spotlight-subtitle');
     if (!subtitle) return;
     const oneRegion = this.#unit === 'regions' && feed.total === 1;
-    const key = oneRegion
-      ? 'common:access-score-spotlight.subtitle-one-region'
-      : `common:access-score-spotlight.subtitle-${this.#unit}`;
+    let key = `common:access-score-spotlight.subtitle-${this.#unit}`;
+    if (askOnly) key = 'common:access-score-spotlight.subtitle-ask';
+    else if (oneRegion) key = 'common:access-score-spotlight.subtitle-one-region';
     // Markup sink: the translation carries the <a> so its position can move with the language, and the one value
     // interpolated into it is escaped.
     subtitle.innerHTML = i18next.t(key, {

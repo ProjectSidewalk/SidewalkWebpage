@@ -106,11 +106,12 @@ class AccessScoreSpotlightSpec extends AnyFunSuite with Matchers {
       name: String,
       score: Option[Double],
       completionRate: Double,
-      city: Option[SpotlightCityForApi] = None
+      city: Option[SpotlightCityForApi] = None,
+      totalDistanceM: Double = 1200.0
   ): RegionSpotlightRowForApi =
     RegionSpotlightRowForApi(
-      regionId, name, score, completionRate, auditedDistanceM = 1000.0, totalDistanceM = 1200.0, clusterCount = 40,
-      city = city
+      regionId, name, score, completionRate, auditedDistanceM = 1000.0, totalDistanceM = totalDistanceM,
+      clusterCount = 40, city = city
     )
 
   /** One street snapshot row, the shape the endpoint ranks. */
@@ -405,10 +406,55 @@ class AccessScoreSpotlightSpec extends AnyFunSuite with Matchers {
     val nearest = AccessScoreSpotlight.nearest(rows, minCompletion = 0.8, n = 2)
 
     nearest.map(_.name) shouldBe Seq("Riverside", "Oradell Manor")
+    AccessScoreSpotlight.nearest(rows, minCompletion = 0.8, n = 5).map(_.name) shouldBe
+      Seq("Riverside", "Oradell Manor", "Soldier Hill")
   }
 
   test("nearest is capped at n, so the CTA stays a short list rather than the whole city") {
-    val rows = (1 to 20).map(i => regionRow(i, s"Region $i", None, i / 100.0))
+    // Every row sits between the near floor and the ranking floor, so only the cap can shorten the list.
+    val rows = (1 to 20).map(i => regionRow(i, s"Region $i", None, 0.4 + i / 100.0))
     AccessScoreSpotlight.nearest(rows, minCompletion = 0.8, n = 5) should have size 5
+  }
+
+  test("nearest offers only regions at least half-way to the floor, judged on the printed percent") {
+    val rows = Seq(
+      regionRow(1, "0.79", None, 0.79),
+      regionRow(2, "0.40", None, 0.40),
+      regionRow(3, "0.3996", None, 0.3996), // Prints 40%, so it is in.
+      regionRow(4, "0.3949", None, 0.3949), // Prints 39%, so it is out.
+      regionRow(5, "0.10", None, 0.10),
+      regionRow(6, "0.0", None, 0.0)
+    )
+    AccessScoreSpotlight.nearest(rows, minCompletion = 0.8, n = 10).map(_.name) shouldBe Seq("0.79", "0.40", "0.3996")
+  }
+
+  test("nearest is empty in a fresh deployment, so the ask cannot show over a city nobody has explored") {
+    val rows = (1 to 9).map(i => regionRow(i, s"Region $i", None, 0.0))
+    AccessScoreSpotlight.nearest(rows, minCompletion = 0.8, n = 5) shouldBe empty
+  }
+
+  test("a region with no streets is never the ask, however complete it reads") {
+    val noStreets = regionRow(1, "No streets", None, 1.0, totalDistanceM = 0.0)
+    AccessScoreSpotlight.regionIsNear(noStreets) shouldBe false
+    AccessScoreSpotlight.nearest(Seq(noStreets), minCompletion = 0.8, n = 5) shouldBe empty
+  }
+
+  test("a ranked region is never near, and an unscored region above the floor is not either") {
+    AccessScoreSpotlight.regionIsNear(regionRow(1, "Ranked", Some(0.6), 0.9)) shouldBe false
+    // Deliberately near: it is unranked (no score), has streets, and clears the near floor, so exploring it is still
+    // the right ask even though its completion is already past the ranking floor.
+    AccessScoreSpotlight.regionIsNear(regionRow(2, "Unscored", None, 0.85)) shouldBe true
+  }
+
+  test("the near floor is a parameter, so the endpoint can only ever apply the backend's number") {
+    val row = regionRow(1, "Half", None, 0.5)
+    AccessScoreSpotlight.regionIsNear(row, nearestMinCompletion = 0.6) shouldBe false
+    AccessScoreSpotlight.regionIsNear(row, nearestMinCompletion = 0.5) shouldBe true
+  }
+
+  test("the near floor sits below the ranking floor and above zero") {
+    AccessScoreSpotlight.NearestMinCompletion should be > 0.0
+    AccessScoreSpotlight.NearestMinCompletion should be < AccessScoreSpotlight.MinRegionCompletion
+    AccessScoreSpotlight.NearestMinCompletion shouldBe (AccessScoreSpotlight.MinRegionCompletion / 2 +- 1e-9)
   }
 }
