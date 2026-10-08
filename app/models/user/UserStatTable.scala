@@ -645,7 +645,8 @@ class UserStatTable @Inject() (
     val statStartTime = timePeriod.toLowerCase() match {
       case "overall" => """TIMESTAMP 'epoch'"""
       case "weekly"  =>
-        """(now() AT TIME ZONE 'US/Pacific')::date - (cast(extract(dow from (now() AT TIME ZONE 'US/Pacific')::date) as int) % 7) + TIME '00:00:00'"""
+        """(now() AT TIME ZONE 'America/Los_Angeles')::date
+          - (cast(extract(dow from (now() AT TIME ZONE 'America/Los_Angeles')::date) as int) % 7) + TIME '00:00:00'"""
     }
     val joinUserTeamTable: String = if (byTeam || teamId.isDefined) {
       "INNER JOIN user_team ON sidewalk_user.user_id = user_team.user_id INNER JOIN team ON user_team.team_id = team.team_id"
@@ -691,7 +692,7 @@ class UserStatTable @Inject() (
           #$joinUserTeamTable
           WHERE user_role.role IN (#${Role.LEADERBOARD_ROLES_SQL})
               #$leaderboardVisibilityFilter
-              AND (label.time_created AT TIME ZONE 'US/Pacific') > #$statStartTime
+              AND (label.time_created AT TIME ZONE 'America/Los_Angeles') > #$statStartTime
               #$teamFilter
           GROUP BY #$groupingCol
           ORDER BY label_count DESC
@@ -704,7 +705,7 @@ class UserStatTable @Inject() (
           FROM mission
           INNER JOIN sidewalk_user ON mission.user_id = sidewalk_user.user_id
           #$joinUserTeamTable
-          WHERE (mission_end AT TIME ZONE 'US/Pacific') > #$statStartTime
+          WHERE (mission_end AT TIME ZONE 'America/Los_Angeles') > #$statStartTime
           GROUP BY #$groupingCol
       ) "missions_counts" ON label_counts.#$groupingColName = missions_counts.#$groupingColName
       LEFT JOIN (
@@ -714,7 +715,7 @@ class UserStatTable @Inject() (
           INNER JOIN #${FilteredTables.completedAudits()} ON street_edge.street_edge_id = audit_task.street_edge_id
           INNER JOIN sidewalk_user ON audit_task.user_id = sidewalk_user.user_id
           #$joinUserTeamTable
-          WHERE (task_end AT TIME ZONE 'US/Pacific') > #$statStartTime
+          WHERE (task_end AT TIME ZONE 'America/Los_Angeles') > #$statStartTime
           GROUP BY #$groupingCol
       ) "distance" ON label_counts.#$groupingColName = distance.#$groupingColName
       LEFT JOIN (
@@ -723,7 +724,7 @@ class UserStatTable @Inject() (
                  COUNT(CASE WHEN correct IS NOT NULL THEN 1 END) AS validated_count
           FROM #${FilteredTables.accuracyLabels}
           #$joinUserTeamForAcc
-          WHERE (label.time_created AT TIME ZONE 'US/Pacific') > #$statStartTime
+          WHERE (label.time_created AT TIME ZONE 'America/Los_Angeles') > #$statStartTime
           GROUP BY #$groupingColName
       ) "accuracy" ON label_counts.#$groupingColName = accuracy.#$groupingColName
       ORDER BY score DESC, label_counts.label_count DESC;
@@ -961,12 +962,13 @@ class UserStatTable @Inject() (
    */
   def getUserStanding(userId: String, mode: String, n: Int): DBIO[Option[UserStanding]] = {
     val weekStart =
-      "((now() AT TIME ZONE 'US/Pacific')::date - (cast(extract(dow from (now() AT TIME ZONE 'US/Pacific')::date) as int) % 7))"
+      """((now() AT TIME ZONE 'America/Los_Angeles')::date
+        - (cast(extract(dow from (now() AT TIME ZONE 'America/Los_Angeles')::date) as int) % 7))"""
     val timeFilter = mode.toLowerCase match {
-      case "weekly"   => s"AND (label.time_created AT TIME ZONE 'US/Pacific') >= $weekStart"
+      case "weekly"   => s"AND (label.time_created AT TIME ZONE 'America/Los_Angeles') >= $weekStart"
       case "lastweek" =>
-        s"AND (label.time_created AT TIME ZONE 'US/Pacific') >= ($weekStart - INTERVAL '7 days') " +
-          s"AND (label.time_created AT TIME ZONE 'US/Pacific') < $weekStart"
+        s"AND (label.time_created AT TIME ZONE 'America/Los_Angeles') >= ($weekStart - INTERVAL '7 days') " +
+          s"AND (label.time_created AT TIME ZONE 'America/Los_Angeles') < $weekStart"
       case _ => ""
     }
     sql"""
@@ -1018,19 +1020,19 @@ class UserStatTable @Inject() (
     sql"""
       WITH activity AS (
           -- Excluded users still see their own streak.
-          SELECT (label.time_created AT TIME ZONE 'US/Pacific')::date AS d
+          SELECT (label.time_created AT TIME ZONE 'America/Los_Angeles')::date AS d
           FROM #${FilteredTables.labels(contributors = Contributors.Everyone)}
           WHERE label.user_id = $userId
           UNION ALL
-          SELECT (audit_task.task_end AT TIME ZONE 'US/Pacific')::date
+          SELECT (audit_task.task_end AT TIME ZONE 'America/Los_Angeles')::date
           FROM #${FilteredTables.completedAudits(contributors = Contributors.Everyone)}
           WHERE audit_task.user_id = $userId AND audit_task.task_end IS NOT NULL
           UNION ALL
-          SELECT (label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date
+          SELECT (label_validation.end_timestamp AT TIME ZONE 'America/Los_Angeles')::date
           FROM label_validation
           WHERE label_validation.user_id = $userId AND label_validation.end_timestamp IS NOT NULL
           UNION ALL
-          SELECT (voided_label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date
+          SELECT (voided_label_validation.end_timestamp AT TIME ZONE 'America/Los_Angeles')::date
           FROM voided_label_validation
           WHERE voided_label_validation.user_id = $userId
       )

@@ -1029,7 +1029,7 @@ class UserServiceImpl @Inject() (
   def getActivityStreak(userId: String, locale: Locale = Locale.ENGLISH): Future[StreakStats] = {
     db.run(userStatTable.getActivityDayCounts(userId)).map { rows =>
       val counts = rows.map { case (day, count) => LocalDate.parse(day) -> count }.toMap
-      UserService.computeStreakStats(counts, LocalDate.now(ZoneId.of("US/Pacific")), locale)
+      UserService.computeStreakStats(counts, LocalDate.now(ZoneId.of("America/Los_Angeles")), locale)
     }
   }
 

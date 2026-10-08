@@ -47,8 +47,8 @@ class TrophyTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    * @return       One row per qualifying week.
    */
   def getWeeklyPodiums(userId: String, limit: Int): DBIO[Seq[WeeklyPodium]] = {
-    val labelWeek = weekStart("label.time_created AT TIME ZONE 'US/Pacific'")
-    val nowWeek   = weekStart("now() AT TIME ZONE 'US/Pacific'")
+    val labelWeek = weekStart("label.time_created AT TIME ZONE 'America/Los_Angeles'")
+    val nowWeek   = weekStart("now() AT TIME ZONE 'America/Los_Angeles'")
     sql"""
       WITH weekly AS (
           SELECT sidewalk_user.user_id AS uid,

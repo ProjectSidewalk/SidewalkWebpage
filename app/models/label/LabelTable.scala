@@ -3247,7 +3247,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     ).flatten
 
     sql"""
-      SELECT CAST((label.time_created AT TIME ZONE 'US/Pacific')::date AS TEXT) AS date,
+      SELECT CAST((label.time_created AT TIME ZONE 'America/Los_Angeles')::date AS TEXT) AS date,
              label.label_type::text,
              COUNT(CASE WHEN user_role.role IS DISTINCT FROM 'AI' THEN label.label_id END) AS human_labels,
              COUNT(CASE WHEN user_role.role = 'AI'               THEN label.label_id END) AS ai_labels
@@ -3256,7 +3256,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       WHERE """
       .concat(SqlFragments.allOf(dateBounds))
       .concat(sql"""
-      GROUP BY (label.time_created AT TIME ZONE 'US/Pacific')::date, label.label_type::text
+      GROUP BY (label.time_created AT TIME ZONE 'America/Los_Angeles')::date, label.label_type::text
       ORDER BY date ASC, label.label_type::text
     """)
       .as[DailyLabelStat]
