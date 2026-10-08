@@ -221,6 +221,10 @@ generation, OSM way refresh, AI validations, and auth-token cleanup. The schedul
 shifted per city by `ConfigService.getOffsetHours` so 50+ deployments don't contend for the same database and
 provider quotas.
 
+The imagery-age poll's rotation (`StreetImageryTable.streetsToPoll` and `noImageryStreetsToPoll`) keys on
+`street_imagery.polled_at`, which only the poll's `upsertFromPoll` writes (#5403): the labeling harvest bumps `updated_at`
+too, and the expiry sweep feeds its `pano_data.last_viewed` window, so keying on it starved never-polled streets.
+
 Label clustering closes with the **AccessScore Spotlight snapshot** (#5215), which writes `region_access_score`
 and `street_access_score` from the clusters that run just built: one row per region per night (kept, so the table is
 a score history) and one row per OSM way per region, replaced each run. The landing page and `/cities` read only

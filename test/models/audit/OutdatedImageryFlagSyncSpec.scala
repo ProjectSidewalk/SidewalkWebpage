@@ -10,6 +10,7 @@ import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import util.{RolledBackDb, SidewalkSpec}
 
+import java.time.temporal.ChronoUnit
 import java.time.{LocalDate, OffsetDateTime}
 
 /**
@@ -54,9 +55,10 @@ class OutdatedImageryFlagSyncSpec extends SidewalkSpec with GuiceOneAppPerSuite 
       newest: Option[LocalDate],
       oldest: Option[LocalDate]
   ): DBIO[Int] = {
+    val polledAt = OffsetDateTime.now
     streetImagery.filter(_.streetEdgeId === streetEdgeId).delete andThen
       (streetImagery += StreetImagery(streetEdgeId, oldest, newest, median, 1, StreetImagerySource.ImageryPoll,
-        OffsetDateTime.now))
+        polledAt, Some(polledAt)))
   }
 
   private def flagOf(auditTaskId: Int): DBIO[Boolean] =
@@ -299,10 +301,13 @@ class OutdatedImageryFlagSyncSpec extends SidewalkSpec with GuiceOneAppPerSuite 
       // Labeling-observed panos can't support a "half the street" claim, so the refresh never writes a median.
       row.get.medianNewestCapture mustBe None
       row.get.dataSource mustBe StreetImagerySource.PanoData
+      // The harvest creates rows without a poll stamp, so a harvest-only street still sorts as never polled.
+      row.get.polledAt mustBe None
     }
 
-    "only widen the capture-date range on conflict, leaving n_panos, data_source, and the median alone" in {
-      val staleStamp = OffsetDateTime.now.minusYears(1)
+    "only widen the capture-date range on conflict, leaving n_panos, data_source, the median, and polled_at alone" in {
+      // Truncated because Postgres keeps microseconds while Java 17's clock has nanoseconds.
+      val staleStamp = OffsetDateTime.now.minusYears(1).truncatedTo(ChronoUnit.MICROS)
 
       val row = runRolledBack(for {
         _        <- ageOutRealPanos
@@ -312,7 +317,7 @@ class OutdatedImageryFlagSyncSpec extends SidewalkSpec with GuiceOneAppPerSuite 
         // Pre-existing polled row with a wider date range and a richer pano count than the viewed pano provides.
         _ <- streetImagery += StreetImagery(streetId, Some(LocalDate.parse("2010-01-01")),
           Some(LocalDate.parse("2030-01-01")), Some(LocalDate.parse("2015-01-01")), 42, StreetImagerySource.ImageryPoll,
-          staleStamp)
+          staleStamp, Some(staleStamp))
         _   <- streetImageryTable.refreshFromPanoData
         row <- streetImageryTable.getForStreet(streetId)
       } yield row)
@@ -323,6 +328,8 @@ class OutdatedImageryFlagSyncSpec extends SidewalkSpec with GuiceOneAppPerSuite 
       row.get.nPanos mustBe 42
       row.get.dataSource mustBe StreetImagerySource.ImageryPoll
       row.get.updatedAt.isAfter(staleStamp) mustBe true
+      // The harvest never touches the rotation key (#5403).
+      row.get.polledAt.map(_.toInstant) mustBe Some(staleStamp.toInstant)
     }
   }
 }
