@@ -42,6 +42,25 @@ trait MyPostgresProfile
     /** Postgres's `random()`, a fresh draw in [0, 1) per row, so `sortBy(_ => random)` shuffles a query's rows. */
     val random: Rep[Double] = SimpleFunction.nullary[Double]("random")
 
+    /** Rows per multi-row insert; keeps a statement under Postgres's 65,535 bind-parameter limit for any table. */
+    val MultiRowInsertChunk: Int = 1000
+
+    extension [U, R](insert: ReturningInsertActionComposer[U, R]) {
+
+      /**
+       * Inserts many rows with one statement per [[MultiRowInsertChunk]] rows, all in one transaction. Use it instead
+       * of `++=`, which with `returning` sends and commits each row on its own: one disk flush per row (#5718).
+       *
+       * @param rows Rows to insert.
+       * @return What `returning` asked for, one per inserted row.
+       */
+      def insertMany(rows: Seq[U]): DBIO[Seq[R]] =
+        DBIO
+          .sequence(rows.grouped(MultiRowInsertChunk).toSeq.map(insert.insertAll(_, slick.jdbc.RowsPerStatement.All)))
+          .map(_.flatten)(using scala.concurrent.ExecutionContext.parasitic)
+          .transactionally
+    }
+
     // Postgres won't save plain text into an inet column, so the value is sent untyped and Postgres reads it as an IP.
     given ipAddressMapper: JdbcType[IpAddress] = GenericJdbcType[IpAddress]("inet", IpAddress(_), _.value)
 

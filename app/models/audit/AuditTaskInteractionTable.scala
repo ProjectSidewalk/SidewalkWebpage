@@ -108,11 +108,11 @@ class AuditTaskInteractionTable @Inject() (protected val dbConfigProvider: Datab
    * Inserts a sequence of interactions into the audit_task_interaction and audit_task_interaction_small tables.
    */
   def insertMultiple(interactions: Seq[AuditTaskInteraction]): DBIO[Unit] = {
-    for {
-      savedActions <- (auditTaskInteractions returning auditTaskInteractions) ++= interactions
+    (for {
+      savedActions <- (auditTaskInteractions returning auditTaskInteractions).insertMany(interactions)
       subsetToSave = savedActions.filter(action => actionSubsetForSmallTable.contains(action.action))
       subsetSaved <- auditTaskInteractionsSmall ++= subsetToSave
-    } yield ()
+    } yield ()).transactionally
   }
 
   /**

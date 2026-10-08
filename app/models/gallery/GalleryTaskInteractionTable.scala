@@ -49,6 +49,6 @@ class GalleryTaskInteractionTable @Inject() (protected val dbConfigProvider: Dat
   }
 
   def insertMultiple(interactions: Seq[GalleryTaskInteraction]): DBIO[Seq[Int]] = {
-    (galleryTaskInteractions returning galleryTaskInteractions.map(_.galleryTaskInteractionId)) ++= interactions
+    (galleryTaskInteractions returning galleryTaskInteractions.map(_.galleryTaskInteractionId)).insertMany(interactions)
   }
 }

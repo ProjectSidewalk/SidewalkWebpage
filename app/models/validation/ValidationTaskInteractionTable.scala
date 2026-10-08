@@ -66,8 +66,7 @@ class ValidationTaskInteractionTable @Inject() (protected val dbConfigProvider: 
   }
 
   def insertMultiple(interactions: Seq[ValidationTaskInteraction]): DBIO[Seq[Int]] = {
-    (validationTaskInteractions returning validationTaskInteractions.map(
-      _.validationTaskInteractionId
-    )) ++= interactions
+    (validationTaskInteractions returning validationTaskInteractions.map(_.validationTaskInteractionId))
+      .insertMany(interactions)
   }
 }
