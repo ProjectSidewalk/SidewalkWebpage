@@ -82,15 +82,6 @@ Also covered, beyond the api-docs previews:
   holding the pano on screen. These pin the link hidden — rather than left pointing at the previous label's pano — on
   both fallbacks: Pannellum, and the static crop, where the provider's viewer is still loaded but with someone else's
   pano. jsdom implements neither the Popover API nor `:popover-open`, so the test stands both up.
-- `common/pano-viewer/PanoDragRelease.js` → `panoDragRelease.test.js`, and its mount in
-  `common/label-detail/PopupPanoManager.js` → `popupPanoManagerDragRelease.test.js` — the label card's drag release
-  (#5295, #5294). A drag released over a disabled overlay button gets no `mouseup` from the browser, and Infra3D
-  missed any release off its canvas. These pin the pointer captured on the pressed element, exactly one synthetic
-  `mouseup` when the native one is missing and none when it arrives (wherever it lands, and none for a viewer that
-  cancelled its pointerdown), blur and button-up-on-move ending both mouse- and pointer-driven viewers, touch and
-  secondary buttons left alone, a fast re-press settling the old release before the new drag, and the watch active
-  on the crop fallback before the lazy viewer exists. jsdom has no PointerEvent, pointer capture, or disabled-control
-  suppression, so the suites model all three.
 - `common/pano-viewer/panoUtilities.js` → `panoProjection.test.js` — the canvas↔POV↔pano projection (#4851): the
   canvas coordinate carries no anchor offset, the canvas→POV→canvas round trip is an identity (and returns null
   behind the camera), Validate's `getOriginalPov` call site passes the stored coordinate through untouched, and the

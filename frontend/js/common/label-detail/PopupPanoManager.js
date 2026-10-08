@@ -12,7 +12,6 @@ import { MapillaryViewer } from '../pano-viewer/MapillaryViewer.js';
 import { PannellumViewer } from '../pano-viewer/PannellumViewer.js';
 import { createPanoAttribution } from '../pano-viewer/PanoAttribution.js';
 import { createPanoViewerLogo } from '../pano-viewer/PanoViewerLogo.js';
-import { watchPanoDragRelease } from '../pano-viewer/PanoDragRelease.js';
 import { util } from '../utilities.js';
 import { PanoViewer } from '../pano-viewer/PanoViewer.js';
 import '../pano-viewer/panoUtilities.js';
@@ -195,11 +194,16 @@ export class PopupPanoManager {
 
     this.svHolder.append(this.#panoCanvas, this.#pannellumCanvas, this.#fallbackContainer, this.#panoNotAvailable);
 
-    // The card's paging arrows and vote buttons overlay the imagery and are often disabled, and a drag released over
-    // a disabled control never produces the mouseup most viewers end it on (#5295); Infra3D also missed releases off
-    // its canvas (#5294). One watch on the holder covers the primary viewer, Pannellum and the crop, and is active
-    // before the lazily built viewer exists. It lives as long as svHolder does, so its dispose() is not kept.
-    watchPanoDragRelease(this.svHolder);
+    // Browsers drop mouseup on a disabled form control, and the card's paging arrows and vote buttons sit over the
+    // imagery, so a drag released on one never ended for GSV, Panoramax, Pannellum or the crop's panzoom; Infra3D only
+    // listens on its canvas, so it missed any release off it (#5295, #5294). Capturing the pointer retargets the rest
+    // of the press, compat mouse events included, at the pressed element. Touch viewers end on touchend; links and
+    // buttons in the holder keep their own click.
+    this.svHolder.addEventListener('pointerdown', (e) => {
+      if (e.pointerType === 'touch' || e.button !== 0 || !(e.target instanceof Element)) return;
+      if (e.target.closest('a, button')) return;
+      e.target.setPointerCapture(e.pointerId);
+    }, true);
 
     // Initialize panzoom on the wrapper.
     this.#fallbackPanzoom = panzoom(this.#fallbackPanzoomWrap, {
