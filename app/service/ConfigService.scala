@@ -1792,7 +1792,7 @@ class ConfigServiceImpl @Inject() (
             .groupBy { case (_, activity) => activity.day }
           // Zero-fill the exact trailing window so the page always gets `days` bars. Iterating the window (rather
           // than the query results) also drops any extra day the DAO's index-friendly coarse bound let through.
-          val today = LocalDate.now(ZoneId.of("US/Pacific"))
+          val today = LocalDate.now(ZoneId.of("America/Los_Angeles"))
           (0 until days).map { i =>
             val day = today.minusDays((days - 1 - i).toLong)
             ConfigService.summarizeDay(day, rowsByDay.getOrElse(day, Seq.empty))
@@ -1819,7 +1819,7 @@ class ConfigServiceImpl @Inject() (
             .map(rows => rows.map(cityId -> _))
         }
         Future.sequence(perCityFutures).map { perCity =>
-          ConfigService.summarizeBaseline(LocalDate.now(ZoneId.of("US/Pacific")), days, perCity.flatten)
+          ConfigService.summarizeBaseline(LocalDate.now(ZoneId.of("America/Los_Angeles")), days, perCity.flatten)
         }
       }
     }
