@@ -18,10 +18,12 @@ import play.api.libs.ws.WSBodyWritables.*
 import play.api.libs.ws.WSBodyReadables.*
 import play.api.{Configuration, Environment, Logger}
 import service.PanoDataService.{
+  endpointPanoWithin,
   infra3dTokenNeedsRemint,
   parseInfra3dTokenResponse,
-  staticLocationUrl,
+  staticEndpointUrl,
   staticStillUrl,
+  GsvSearchRadiusMeters,
   ImageryCheckConcurrency,
   ImageryCheckResult,
   Infra3dToken,
@@ -149,21 +151,38 @@ object PanoDataService {
       apiKey
     )
 
+  // Explore's svl.STREETVIEW_MAX_DISTANCE: how far from a point a pano may sit and still count as imagery of it.
+  val GsvSearchRadiusMeters: Int = 25
+
   /**
-   * The unsigned Static API URL for the outdoor pano nearest a location, facing `heading`: the street-edge endpoint
-   * images. Pure for the same reason as `staticStillUrl`; `getGsvImageUrlFromLatLng` signs it.
+   * The pano a Street View metadata response names, if it really lies within `radiusM` of the searched point. Google
+   * treats `radius` as a hint and has answered from another state (#5114); the inclusive edge matches
+   * `GsvViewer.isWithinSearchRadius`, so client and server reject the same panos.
+   * @return The pano id when it is verifiably within the radius, else None.
    */
-  def staticLocationUrl(lat: Double, lng: Double, heading: Double, apiKey: String): String =
+  def endpointPanoWithin(json: JsValue, lat: Double, lng: Double, radiusM: Double): Option[String] =
+    for {
+      _       <- (json \ "status").asOpt[String].filter(_ == "OK")
+      panoId  <- (json \ "pano_id").asOpt[String].filter(_.nonEmpty)
+      panoLat <- (json \ "location" \ "lat").asOpt[Double]
+      panoLng <- (json \ "location" \ "lng").asOpt[Double]
+      if CommonUtils.haversineMeters(lat, lng, panoLat, panoLng) <= radiusM
+    } yield panoId
+
+  /**
+   * The unsigned Static API URL for a street-endpoint image of one pano, facing `heading`. Requested by pano id, not
+   * location, so the picture is the pano [[endpointPanoWithin]] checked (#5464). Pure for the same reason as
+   * `staticStillUrl`.
+   */
+  def staticEndpointUrl(panoId: String, heading: Double, apiKey: String): String =
     staticApiUrl(
       Seq(
-        "location"          -> s"$lat,$lng",
-        "radius"            -> 40,  // As far from the point as the frontend searches.
-        "source"            -> "outdoor",
+        "pano"              -> panoId,
         "size"              -> s"${StaticApiMaxEdgePx}x$StaticApiMaxEdgePx",
         "heading"           -> heading,
         "pitch"             -> -10, // Slightly toward the ground, where the sidewalk is.
         "fov"               -> 90,
-        "return_error_code" -> true // No pano within the radius is a 404, not a placeholder image.
+        "return_error_code" -> true // An expired pano is a 404, not a placeholder image.
       ),
       apiKey
     )
@@ -537,6 +556,11 @@ trait PanoDataService {
       canvasWidth: Int,
       canvasHeight: Int
   ): Option[String]
+
+  /**
+   * Signed Static API URLs for a street's endpoint images (start, then end). An endpoint whose nearest pano can't be
+   * verified within [[PanoDataService.GsvSearchRadiusMeters]] is left out, so the result holds zero to two URLs.
+   */
   def getGsvImageUrlsForStreet(streetEdgeId: Int): Future[Seq[String]]
   def insertPanoHistories(histories: Seq[PanoHistorySubmission]): Future[Unit]
   def getAllPanos: Future[Seq[PanoDataSlim]]
@@ -840,38 +864,43 @@ class PanoDataServiceImpl @Inject() (
     if (panoSrc != PanoSource.Gsv) None
     else Some(signUrl(staticStillUrl(panoId, heading, pitch, zoom, canvasWidth, canvasHeight, googleApiKey)))
 
-  /**
-   * Creates a signed URL that retrieves a static image at the given lat/lng and heading from the GSV Static API.
-   * More information here: https://developers.google.com/maps/documentation/streetview/intro
-   *
-   * @param lat Latitude of the location
-   * @param lng Longitude of the location
-   * @param heading Compass heading of the camera
-   * @return GSV Static API URL for the given location and heading
-   */
-  def getGsvImageUrlFromLatLng(lat: Double, lng: Double, heading: Double): String =
-    signUrl(staticLocationUrl(lat, lng, heading, googleApiKey))
-
-  /**
-   * Gets the image URLs for a street edge, which includes the start and end points of the street.
-   * @param streetEdgeId ID of the street edge to get image URLs for
-   * @return A sequence of image URLs for the start and end points of the street edge
-   */
   def getGsvImageUrlsForStreet(streetEdgeId: Int): Future[Seq[String]] = {
     db.run(for {
       streetOption: Option[StreetEdge] <- streetEdgeTable.getStreet(streetEdgeId)
       startDir: Option[Double]         <- streetEdgeTable.directionFromStart(streetEdgeId)
       endDir: Option[Double]           <- streetEdgeTable.directionFromEnd(streetEdgeId)
     } yield {
-      streetOption.fold(Seq.empty[String]) { street =>
+      streetOption.toSeq.flatMap { street =>
         val startPoint: Point = street.geom.getStartPoint
         val endPoint: Point   = street.geom.getEndPoint
         Seq(
-          startDir.map(sd => getGsvImageUrlFromLatLng(startPoint.getY, startPoint.getX, Math.toDegrees(sd))),
-          endDir.map(ed => getGsvImageUrlFromLatLng(endPoint.getY, endPoint.getX, Math.toDegrees(ed)))
+          startDir.map(sd => (startPoint.getY, startPoint.getX, Math.toDegrees(sd))),
+          endDir.map(ed => (endPoint.getY, endPoint.getX, Math.toDegrees(ed)))
         ).flatten
       }
-    })
+    }).flatMap { endpoints =>
+      Future.traverse(endpoints) { case (lat, lng, heading) => verifiedEndpointUrl(lat, lng, heading) }.map(_.flatten)
+    }
+  }
+
+  /**
+   * The signed image URL for one street endpoint, or None when its nearest pano can't be verified as near it. A
+   * location-based Static request can't be checked (the image carries no position), so the free metadata call places
+   * the pano first and the image is then requested by id (#5464).
+   */
+  private def verifiedEndpointUrl(lat: Double, lng: Double, heading: Double): Future[Option[String]] = {
+    val url = signUrl(
+      s"https://maps.googleapis.com/maps/api/streetview/metadata?source=outdoor" +
+        s"&location=$lat,$lng&radius=$GsvSearchRadiusMeters&key=$googleApiKey"
+    )
+    ws.url(url)
+      .withRequestTimeout(5.seconds)
+      .get()
+      .map { response =>
+        endpointPanoWithin(Json.parse(response.body), lat, lng, GsvSearchRadiusMeters)
+          .map(panoId => signUrl(staticEndpointUrl(panoId, heading, googleApiKey)))
+      }
+      .recover { case NonFatal(_) => None } // Unverifiable (timeout, non-JSON body) is dropped: unchecked is the bug.
   }
 
   def insertPanoHistories(histories: Seq[PanoHistorySubmission]): Future[Unit] = {

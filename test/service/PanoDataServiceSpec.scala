@@ -230,11 +230,45 @@ class PanoDataServiceSpec extends AnyFunSuite with Matchers {
     PanoDataService.staticStillUrl("p", 0, 0, 3.0, 720, 480, "KEY") should include(s"&fov=$curve&")
   }
 
-  test("the street-endpoint URL is the request the endpoint images have always made") {
-    // Same builder and the same error-code ask as the still; the params, not the plumbing, are what may differ.
-    PanoDataService.staticLocationUrl(47.6062, -122.3321, 271.5, "KEY") shouldBe
-      "https://maps.googleapis.com/maps/api/streetview?location=47.6062,-122.3321&radius=40&source=outdoor" +
+  test("the street-endpoint URL asks for the checked pano by id, never by location (#5464)") {
+    // A location request can be answered from another state (#5114), and its image carries no position to check, so
+    // the image has to be the pano that metadata already placed within the radius.
+    val url = PanoDataService.staticEndpointUrl("abc", 271.5, "KEY")
+    url shouldBe "https://maps.googleapis.com/maps/api/streetview?pano=abc" +
       "&size=640x640&heading=271.5&pitch=-10&fov=90&return_error_code=true&key=KEY"
+    url should not include "location="
+    url should not include "radius="
+  }
+
+  // The #5114 response: a 25 m search at a Seattle street point answered with a Syracuse photosphere.
+  private val seattleLat = 47.6196811
+  private val seattleLng = -122.3100703
+  private val syracuseOk = Json.parse(
+    """{"copyright":"© Carlos Chavez","date":"2014-05","location":{"lat":43.0917906,"lng":-76.1720131},""" +
+      """"pano_id":"CAoSLEFGMVFpcE1","status":"OK"}"""
+  )
+
+  test("the #5114 Syracuse answer to a Seattle search is rejected; a pano inside the radius is kept (#5464)") {
+    PanoDataService.endpointPanoWithin(syracuseOk, seattleLat, seattleLng, 25) shouldBe None
+    val (nearLat, nearLng) = CommonUtils.calculateDestination(seattleLat, seattleLng, 0.010, 0.0)
+    val nearLoc            = Json.obj("lat" -> nearLat, "lng" -> nearLng)
+    val near               = Json.obj("status" -> "OK", "pano_id" -> "near", "location" -> nearLoc)
+    PanoDataService.endpointPanoWithin(near, seattleLat, seattleLng, 25) shouldBe Some("near")
+    // Inclusive at the edge, as GsvViewer.isWithinSearchRadius is: a pano at exactly the radius is kept.
+    val edgeM = CommonUtils.haversineMeters(seattleLat, seattleLng, nearLat, nearLng)
+    PanoDataService.endpointPanoWithin(near, seattleLat, seattleLng, edgeM) shouldBe Some("near")
+    PanoDataService.endpointPanoWithin(near, seattleLat, seattleLng, edgeM - 0.01) shouldBe None
+  }
+
+  test("a metadata response without OK, a pano id, or a position never yields a pano to fetch") {
+    val here     = Json.obj("lat" -> seattleLat, "lng" -> seattleLng)
+    val unusable = Seq(
+      Json.obj("status" -> "ZERO_RESULTS"),
+      Json.obj("status" -> "REQUEST_DENIED", "pano_id" -> "p", "location" -> here),
+      Json.obj("status" -> "OK", "pano_id"             -> "p"),
+      Json.obj("status" -> "OK", "location"            -> here)
+    )
+    for (json <- unusable) PanoDataService.endpointPanoWithin(json, seattleLat, seattleLng, 25) shouldBe None
   }
 
   test("getFov is util.pano.zoomToFov, constant for constant") {
