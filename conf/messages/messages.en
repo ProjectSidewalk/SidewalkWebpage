@@ -504,6 +504,7 @@ reset.pw.email.hello = Hi {0},
 reset.pw.email.reset.title = Reset Your Project Sidewalk Account Password
 reset.pw.email.send.link = Send Email
 reset.pw.email.reset.pw.sent = An email to reset your password has been sent.
+reset.pw.email.send.failed = We couldn''t send the email right now. Please try again later.
 reset.pw.email.reset.request.message = You recently asked to reset your password for your Project Sidewalk account. Click the link below to reset your password:
 reset.pw.email.reset.not.requested = If you did not request a password reset, please ignore this message or send us an email to let us know.
 reset.pw.email.reset.valid.duration = This password reset will be valid for the next 60 minutes

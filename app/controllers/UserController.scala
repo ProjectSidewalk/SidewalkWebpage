@@ -22,8 +22,9 @@ import play.silhouette.impl.providers.CredentialsProvider
 import java.time.OffsetDateTime
 import java.util.UUID
 import javax.inject.*
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{blocking, ExecutionContext, Future}
 import scala.util.Random
+import scala.util.control.NonFatal
 
 @Singleton
 class UserController @Inject() (
@@ -591,10 +592,10 @@ class UserController @Inject() (
   }
 
   /**
-   * Sends an email with password reset instructions.
+   * Sends password reset instructions to the submitted email when it belongs to an account.
    *
-   * It sends an email to the given address if it exists in the database. Otherwise we do not show the user
-   * a notice for not existing email addresses to prevent the leak of existing email addresses.
+   * The confirmation is the same whether or not the address is registered; only a failed send is reported to the
+   * user (#4531).
    */
   def submitForgottenPassword = silhouette.UserAwareAction.async { implicit request =>
     val ipAddress: IpAddress   = request.ipAddress
@@ -621,17 +622,29 @@ class UserController @Inject() (
     }
   }
 
-  /** Emails password reset instructions to `email` if it belongs to an account, responding identically either way. */
+  /**
+   * Emails password reset instructions to `email` if it belongs to an account.
+   *
+   * An unknown address and a delivered email get the same confirmation, so the response never says whether an
+   * address is registered. A send that fails is the one exception: the user is told it did not go out rather than
+   * left waiting for mail that will never arrive (#4531). That does differ from the unknown-address response while
+   * the mailer is down, a signal the per-IP and per-email `forgot` throttles keep expensive to probe.
+   *
+   * @param email The address the user typed into the form.
+   * @param userId The signed-in user making the request, if any.
+   * @param ipAddress The requester's IP address, for the webpage_activity log.
+   * @return A redirect back to the form carrying an `info` flash when the reset link was sent or the address is
+   *         unknown, or an `error` flash when the send failed.
+   */
   private def submitForgottenPasswordForEmail(email: String, userId: Option[String], ipAddress: IpAddress)(using
       request: play.silhouette.api.actions.UserAwareRequest[DefaultEnv, play.api.mvc.AnyContent]
   ): Future[play.api.mvc.Result] = {
-    val result = Redirect(routes.UserController.forgotPassword)
+    val sentResult = Redirect(routes.UserController.forgotPassword)
       .flashing("info" -> Messages("reset.pw.email.reset.pw.sent"))
     cc.loggingService.insert(userId, ipAddress, s"""PasswordResetAttempt_Email="$email"""")
 
     authenticationService.findByEmail(email).flatMap {
       case Some(user) =>
-        // User exists, create a new token and send an email with the reset link.
         authenticationService.createToken(user.userId).flatMap { authTokenID =>
           val url = routes.UserController.resetPasswordPage(authTokenID).absoluteURL()
 
@@ -642,29 +655,31 @@ class UserController @Inject() (
             bodyHtml = Some(views.html.authentication.resetPasswordEmail(user, url).body)
           )
 
-          try {
-            mailerClient.send(resetEmail)
-            cc.loggingService.insert(userId, ipAddress, s"""PasswordResetSuccess_Email="$email"""")
-            Future.successful(result)
-          } catch {
-            case e: Exception =>
+          // The SMTP client blocks for up to play.mailer.connectiontimeout + play.mailer.timeout; `blocking` lets the
+          // pool compensate rather than starve other requests on it. An unsent token is harmless: nobody knows it,
+          // it expires on its own, and a retry creates a fresh one.
+          Future(blocking(mailerClient.send(resetEmail)))
+            .map { _ =>
+              cc.loggingService.insert(userId, ipAddress, s"""PasswordResetSuccess_Email="$email"""")
+              sentResult
+            }
+            .recover { case NonFatal(e) =>
               cc.loggingService.insert(
                 userId,
                 ipAddress,
                 s"""PasswordResetFail_Email="$email"_Reason=${e.getClass.getCanonicalName}"""
               )
-              logger.error("Failed to send password reset email", e)
-              // Show the same confirmation regardless: a mailer outage must not 500 the user, nor reveal
-              // (via a differing response) that this email is registered. Delivery health is ops' concern.
-              Future.successful(result)
-          }
+              logger.error(s"Failed to send password reset email to $email", e)
+              Redirect(routes.UserController.forgotPassword)
+                .flashing("error" -> Messages("reset.pw.email.send.failed"))
+            }
         }
 
-      // This is the case where the email was not found in the database.
+      // Nothing is sent for an unknown address, so nothing can fail: same confirmation as a delivery.
       case None =>
         cc.loggingService
           .insert(userId, ipAddress, s"""PasswordResetFail_Email="$email"_Reason=EmailNotFound""")
-        Future.successful(result)
+        Future.successful(sentResult)
     }
   }
 
