@@ -5,6 +5,8 @@
  * progressBar Twirl partial). The two-segment region bar is driven by RegionProgressBar instead, which
  * reuses formatPercent here for its label.
  */
+import '../../css/components/progress-bar.css';
+
 export class ProgressBar {
   #fillEl;
   #labelEl;

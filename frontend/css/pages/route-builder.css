@@ -514,8 +514,8 @@ a.saved-route-explore {
   height: 17px;
 }
 
-/* Overwriting Mapbox popup styling. */
-.mapboxgl-popup-content {
+/* Out-ranks Mapbox's same-specificity rule, so the override holds whichever stylesheet is linked last. */
+.mapboxgl-popup .mapboxgl-popup-content {
   padding: 10px;
   box-shadow: 0 2px 4px 0 rgb(0 0 0 / 25%);
   border-radius: 10px;

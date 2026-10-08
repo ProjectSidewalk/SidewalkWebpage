@@ -7,6 +7,13 @@ import { User } from './user/User.js';
 import { svv } from './svv.js';
 import { loadPageSession } from '../common/pageSession.js';
 import { viewerClassFor } from '../common/pano-viewer/viewerClassFor.js';
+import '../../css/components/pano-overlay-buttons.css';
+import '../../css/pages/validate/svv-general.css';
+import '../../css/pages/validate/svv-immersive.css';
+import '../../css/pages/validate/svv-modal.css';
+import '../../css/pages/validate/svv-panorama.css';
+import '../../css/pages/validate/svv-upper-row.css';
+import '../../css/pages/validate/svv-validation-menu.css';
 
 const param = JSON.parse(document.getElementById('page-data').textContent);
 param.viewerType = viewerClassFor(param.imagerySource);

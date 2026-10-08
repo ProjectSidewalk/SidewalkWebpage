@@ -7,10 +7,7 @@
 * The layout derives the sidebar's Owner-only visibility from the signed-in user rather than taking a boolean, so every page gets the same nav by construction: a page can't quietly render a shorter sidebar by passing the wrong flag or leaning on a default, and the required `user` param makes omitting it a compile error.
 *@
 
-<link rel="stylesheet" href="@assets.path("css/components/page-shell.css")">
-<link rel="stylesheet" href="@assets.path("css/components/kpi.css")">
-<link rel="stylesheet" href="@assets.path("css/components/tables.css")">
-<link rel="stylesheet" href="@assets.path("css/pages/admin-dashboard.css")">
+@ViteAssets.stylesheets("admin/shell")
 
 <div class="page-container">
   @admin.dashboard._sidebar(activePage, user.role == Role.Owner, commonData.currentCity.cityNameFormatted)
@@ -28,4 +25,4 @@
   </aside>
 </div>
 
-<script type="module" src="@assets.path("build/js/dashboardShell.js")"></script>
+<script type="module" src="@assets.path("build/js/admin/shell.js")"></script>

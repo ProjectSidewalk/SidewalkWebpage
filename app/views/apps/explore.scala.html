@@ -15,10 +15,7 @@
   pageMeta = service.PageMeta(description = Some(Messages("seo.description.explore", currentCity.cityNameShort)))) {
   @common.navbar(commonData, Some(user))
 
-  <link rel="stylesheet" href='@assets.path("build/css/explore.css")'>
-  <link rel="stylesheet" href='@assets.path("css/components/progress-bar.css")'>
-  <link rel="stylesheet" href='@assets.path("css/components/pano-overlay-buttons.css")'>
-  <link rel="stylesheet" href='@assets.path("css/components/pano-image-adjustments.css")'>
+  @ViteAssets.stylesheets("explore")
 
   @* Inline, in the head: label crops read the pano canvas back, so every WebGL context must keep its drawing buffer,
      and a module script would only patch getContext after the vendor libraries below have loaded. *@
@@ -909,7 +906,6 @@
   <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.js")'></script>
   <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")'></script>
   <link href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.css")' rel="stylesheet">
-  <link href='@assets.path("css/components/tag-pills.css")' rel="stylesheet">
 
   @* What the Explore entry (frontend/js/pages/explore.js) needs from the server, as JSON. Session scalars only: the
      task, mission, region and route come from /explore/session, so a cached copy of this page can never carry a

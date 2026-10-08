@@ -16,6 +16,7 @@ import { BadgeAchievements } from './BadgeAchievements.js';
 import { Toast } from './Toast.js';
 import { util } from './utilities.js';
 import './utilitiesSidewalk.js';
+import '../../css/components/label-mini-card.css';
 
 export class LabelMiniCard {
   // Width:height of the card's figure (.lmc__figure); the crop is cover-fitted into it.

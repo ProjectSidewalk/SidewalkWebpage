@@ -28,6 +28,12 @@ module.exports = {
     '/frontend/js/.+\\.js$': '<rootDir>/test/js/moduleTransform.js'
   },
 
+  // A stylesheet import only tells Vite which styles a module needs; here it resolves to an empty module instead of
+  // a file Jest would try to parse as JS.
+  moduleNameMapper: {
+    '\\.css$': '<rootDir>/test/js/cssStub.js'
+  },
+
   // The whole first-party frontend, so an untested file counts against the ratio rather than being invisible (the
   // built bundles live in public/build/, outside it).
   collectCoverageFrom: ['frontend/js/**/*.js'],

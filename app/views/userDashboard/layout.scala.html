@@ -16,10 +16,7 @@
 * @param adminLinkFor The username whose admin pages the sidebar links to, for an admin on a public profile (#5564).
 *@
 
-<link rel="stylesheet" href="@assets.path("css/components/page-shell.css")">
-<link rel="stylesheet" href="@assets.path("css/components/kpi.css")">
-<link rel="stylesheet" href="@assets.path("css/components/tables.css")">
-<link rel="stylesheet" href="@assets.path("css/pages/user-dashboard.css")">
+@ViteAssets.stylesheets("dashboard/shell")
 
 <div class="page-container">
   @userDashboard._sidebar(activePage, isSignedIn, adminSubject, adminLinkFor)
@@ -36,4 +33,4 @@
   </aside>
 </div>
 
-<script type="module" src="@assets.path("build/js/dashboardShell.js")"></script>
+<script type="module" src="@assets.path("build/js/dashboard/shell.js")"></script>

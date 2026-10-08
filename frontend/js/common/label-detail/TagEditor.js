@@ -5,6 +5,7 @@
  * @property {string} label_type
  * @property {?string} mutually_exclusive_with
  */
+import '../../../css/components/tag-pills.css';
 
 /**
  * Inline tag editor for the label detail card (#2575).

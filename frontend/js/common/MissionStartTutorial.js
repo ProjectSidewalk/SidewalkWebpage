@@ -11,6 +11,7 @@
 
 import { svl } from '../explore/svl.js';
 import { util } from './utilities.js';
+import '../../css/components/mission-start-tutorial.css';
 
 /**
  * A full-screen carousel for the mission start tutorial.

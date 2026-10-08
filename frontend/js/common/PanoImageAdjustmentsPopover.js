@@ -30,6 +30,7 @@
 
 import { PanoImageAdjustments } from './PanoImageAdjustments.js';
 import { util } from './utilities.js';
+import '../../css/components/pano-image-adjustments.css';
 
 export class PanoImageAdjustmentsPopover {
   /** Class on the trigger while any control is off its default, so a persisted setting isn't a mystery later. */

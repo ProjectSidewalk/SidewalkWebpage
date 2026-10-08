@@ -16,7 +16,7 @@ const path = require('path');
 const { installDateHelpers, loadModules } = require('./loadGlobalScript');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const DASHBOARD_CSS = fs.readFileSync(path.join(REPO_ROOT, 'public/css/pages/user-dashboard.css'), 'utf8');
+const DASHBOARD_CSS = fs.readFileSync(path.join(REPO_ROOT, 'frontend/css/pages/user-dashboard.css'), 'utf8');
 
 const PAGE_SIZE = 5;
 

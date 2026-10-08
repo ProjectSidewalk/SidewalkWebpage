@@ -404,6 +404,7 @@
 
   @if(isSignedIn) {
     @userDashboard._createTeamDialog()
+    @ViteAssets.stylesheets("dashboard/leaderboard", alreadyLinked = "dashboard/shell")
     <script type="module" src='@assets.path("build/js/dashboard/leaderboard.js")'></script>
   }
 }

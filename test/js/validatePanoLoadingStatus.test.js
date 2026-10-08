@@ -18,7 +18,7 @@ const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const STATUS_PATH = path.join(REPO_ROOT, 'frontend/js/validate/panorama/PanoLoadingStatus.js');
 const DESKTOP_VIEW_PATH = path.join(REPO_ROOT, 'app/views/apps/validate.scala.html');
 const MOBILE_VIEW_PATH = path.join(REPO_ROOT, 'app/views/apps/mobileValidate.scala.html');
-const CSS_PATH = path.join(REPO_ROOT, 'public/css/pages/validate/svv-panorama.css');
+const CSS_PATH = path.join(REPO_ROOT, 'frontend/css/pages/validate/svv-panorama.css');
 
 /**
  * Load a bare `class` declaration out of a production file (same trick as validateSkipUnrenderableLabel.test.js).
@@ -241,7 +241,7 @@ describe('the pano loading status stylesheet', () => {
   test('leaves hiding to .ps-hidden, whose !important beats the box\'s flex display', () => {
     const css = fs.readFileSync(CSS_PATH, 'utf8');
     expect(css).not.toMatch(/\.svv-pano-loading__box\[hidden\]/);
-    const mainCss = fs.readFileSync(path.join(REPO_ROOT, 'public/css/main.css'), 'utf8');
+    const mainCss = fs.readFileSync(path.join(REPO_ROOT, 'frontend/css/main.css'), 'utf8');
     expect(mainCss).toMatch(/\.ps-hidden\s*\{\s*display:\s*none !important;/);
   });
 });

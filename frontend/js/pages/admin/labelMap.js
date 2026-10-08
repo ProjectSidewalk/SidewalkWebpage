@@ -2,6 +2,7 @@
 
 import { viewerClassFor } from '../../common/pano-viewer/viewerClassFor.js';
 import { LabelMapPage } from '../../admin-dashboard/LabelMapPage.js';
+import '../../../css/components/map-frame.css';
 
 const data = document.getElementById('page-entry').dataset;
 window.appManager.ready(() => {

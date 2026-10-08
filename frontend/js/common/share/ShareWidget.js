@@ -12,6 +12,8 @@
  * returns to the trigger on close; ArrowUp/ArrowDown cycle the items and Home/End jump to the first/last one; all
  * actions are real <button>s with visible focus states (styled in css/components/share-widget.css).
  */
+import '../../../css/components/share-widget.css';
+
 export class ShareWidget {
   /** @type {HTMLElement} The container the popover is appended into (positioned relative to the trigger). */
   #host;

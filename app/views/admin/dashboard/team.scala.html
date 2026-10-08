@@ -52,6 +52,7 @@
     <div id="team-add-results"></div>
   </div>
 
+  @ViteAssets.stylesheets("admin/team", alreadyLinked = "admin/shell")
   <script type="module" id="page-entry" src='@assets.path("build/js/admin/team.js")'
           data-team-id="@team.teamId"></script>
 }

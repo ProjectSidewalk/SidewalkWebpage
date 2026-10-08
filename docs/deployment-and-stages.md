@@ -347,8 +347,9 @@ A deploy builds the app essentially the same way you do locally, in this order:
    system Python (3.8), which is why `requirements.txt` stays pinned to 3.8-installable versions (#4396). The
    out-of-band utilities are **not** deployed: `requirements-offline-tools.txt` needs ≥ 3.12 and is installed by hand
    into the 3.13 on whichever user account runs those scripts.
-2. `npm ci`, then `npm run build`: the tools' CSS bundles, then **Rolldown** for every page's JS bundle (minified, with
-   a sourcemap beside it that carries the sources, since `frontend/js/` itself is not served).
+2. `npm ci`, then `npm run build` (**Vite**): every page's JS bundle (minified, with a sourcemap beside it that
+   carries the sources, since `frontend/js/` itself is not served), the stylesheets (`frontend/css/` is not served
+   either), and the manifest `views.ViteAssets` reads to link them.
 3. **sbt** `clean stage` to compile the Scala/Play backend into a runnable package. This also bundles the `scripts/`
    directory into the staged app (via `Universal / mappings` in `build.sbt`) so the in-band `label_clustering.py` is
    present at runtime — the staged app runs from the stage dir, not the repo root, so an unbundled script can't be found.
@@ -432,9 +433,11 @@ check — not a comment in `application.conf` — is what holds the contract.
 assets through `controllers.Assets.versioned`, Play answers with `max-age=31536000, immutable` rather than the
 `max-age=3600` default. Changed content always arrives under a new URL, so there is no staleness risk.
 
-The one asset family that doesn't go through `assets.path` is Rolldown's shared chunks (`public/build/js/chunks/`): a
+The one asset family that doesn't go through `assets.path` is Vite's shared JS chunks (`public/build/js/chunks/`): a
 page's bundle imports them by relative path, so they are served at their plain URL. Their file names carry a content
-hash, so `play.assets.cache` in `application.conf` gives that folder the same year-long `immutable` answer.
+hash, so `play.assets.cache` in `application.conf` gives that folder the same year-long `immutable` answer. The
+stylesheet a lazily loaded chunk brings in (`public/build/css/`) is fetched the same way but keeps the hourly default:
+the stage rewrites the icon URLs inside it after Vite has hashed its name, so a deploy can change what that URL serves.
 
 **What the plain path costs.** `max-age=3600` means a browser re-asks about every asset it holds once an hour, so a
 returning visitor to Explore or Validate spends a conditional GET per icon, cursor, badge and tutorial frame — well
@@ -486,9 +489,10 @@ form at stage time, deriving the name from the file's bytes as sbt-digest does. 
 stays relative (the digested copy sits in the original's directory), and a query string or fragment rides along.
 **A new reference needs nothing registered**: unlike
 `util.assetPath` and its `assetManifestPrefixes`, the stage resolves each `url()` against the file itself. Just name a
-file that exists, by relative path: a stylesheet Grunt bundles into `public/build/css/` has its relative `url()`s
-rewritten to `/assets/` paths first (`concat_css`'s `assetBaseUrl` in `Gruntfile.js`), which would double up an
-absolute one, so `make lint-asset-paths` (rule 6) rejects absolute ones in every stylesheet.
+file that exists. In a source stylesheet (`frontend/css/`) that is the file's root-absolute path under `public/`
+(`url("/images/icons/x.svg")`): Vite rewrites it to `/assets/…` (`renderBuiltUrl` in `vite.config.mjs`) in
+`public/build/css/`, which is what the stage then sees, so `make lint-asset-paths` (rule 6) rejects a relative path
+or an `/assets/` prefix there. A vendored stylesheet is served from where it sits, so its `url()`s stay relative.
 
 Two things about that stage are load-bearing:
 
@@ -498,7 +502,7 @@ Two things about that stage are load-bearing:
   unchanged, year-cached URL pointing at a path the new build lacks.
 - **An unresolvable `url()` fails the build**, like the asset-manifest generator: passing it through means a broken
   reference or an asset silently left on the one-hour cache, neither of which shows up at runtime.
-  `make lint-asset-paths` applies the same rule to `public/css/` (rule 5 in
+  `make lint-asset-paths` applies the same rule to `frontend/css/` and `public/vendor/` (rule 5 in
   [`tools/lint/check-asset-paths.mjs`](../tools/lint/check-asset-paths.mjs)), so in practice this fails a fast CI step instead.
   Bundles under `public/build/` are left to the stage, which sees them on disk.
 

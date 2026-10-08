@@ -1,7 +1,7 @@
 # CLAUDE.md
 
 Project Sidewalk is a web-based crowdsourcing tool for mapping and assessing sidewalk accessibility. Scala 3.9 +
-Play 3.0 (Java 17) backend, Postgres + PostGIS via Slick, and a vanilla-JS frontend of ES modules that Rolldown bundles
+Play 3.0 (Java 17) backend, Postgres + PostGIS via Slick, and a vanilla-JS frontend of ES modules that Vite bundles
 per page (no framework, no transpile), all run in Docker. Request flow is routes → Controller → Service → Table
 (DAO). Architecture tour: `docs/architecture.md`. Setup, daily commands, troubleshooting: `docs/dev-environment.md`.
 

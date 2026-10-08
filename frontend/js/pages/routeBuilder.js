@@ -1,6 +1,7 @@
 /** Entry point for the RouteBuilder. */
 import { RouteBuilder } from '../route-builder/RouteBuilder.js';
 import { util } from '../common/utilities.js';
+import '../../css/pages/route-builder.css';
 
 const data = document.getElementById('page-entry').dataset;
 // Gets all translations before loading the map.

@@ -3,6 +3,7 @@
 import { LabelPopup } from '../common/label-detail/LabelPopup.js';
 import { viewerClassFor } from '../common/pano-viewer/viewerClassFor.js';
 import { StoryListPage } from '../community/StoryListPage.js';
+import '../../css/pages/community-list.css';
 
 window.appManager.ready(async () => {
   const page = new StoryListPage();

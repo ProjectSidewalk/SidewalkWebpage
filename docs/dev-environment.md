@@ -136,7 +136,7 @@ Make sure Docker is running (you'll see the whale icon in your tray; you can set
    npm start
    ```
 
-   `npm start` runs the asset build (`npm run build`: Rolldown for the JS, Grunt for the CSS bundles), keeps a
+   `npm start` runs the asset build (`npm run build`: Vite, for every page's JS and CSS bundle), keeps a
    watcher (`npm run watch`) rebuilding it on save, then runs `sbt ~ run` for continuous recompile. The first compile
    takes 5+ minutes; later ones are seconds. It's ready when you see `Listening for HTTP on .../9000`.
 
@@ -260,10 +260,13 @@ Password: sidewalk
 The dev server hot-reloads, so you rarely restart it.
 
 - **Scala / Twirl views** — `sbt ~ run` recompiles on save; reload the browser once compilation finishes.
-- **JavaScript / CSS** — the `npm run watch` behind `npm start` rebuilds `public/build/` on every save: Rolldown
-  bundles each page's entry in `frontend/js/pages/` and what it imports, Grunt concatenates the tools' stylesheets.
-  **Never edit `public/build/` output**, and don't run the build by hand. A new JS file is picked up as soon as
-  something imports it; a new page needs an entry file in `frontend/js/pages/`.
+- **JavaScript / CSS** — the `npm run watch` behind `npm start` rebuilds `public/build/` on every save: Vite
+  bundles each page's entry in `frontend/js/pages/` and what it imports, stylesheets included (`frontend/css/`).
+  **Never edit `public/build/` output**, and don't run the build by hand. A new JS file or stylesheet is picked up as
+  soon as something imports it; a new page needs an entry file in `frontend/js/pages/`, which the watcher notices and
+  restarts for. The watcher builds in Vite's development mode: the CSS stays unminified for DevTools (Vite writes no
+  CSS source map), and the previous build stays in place while the next is written, so a reload mid-rebuild still
+  renders; the production build `npm start` runs first is what clears old files out.
 - **`build.sbt` or config changes** — these aren't hot-reloaded. In the Docker shell press `Ctrl+D`, then run
   `sbt clean`, then `npm start` again.
 - **Python** (the standalone scripts in `scripts/` and `tools/`) — the container has **two** interpreters. `python3`
@@ -329,6 +332,9 @@ specs. They boot the real app against Postgres+PostGIS, so the `db` container ha
 make test-scala
 make test-scala only=controllers.api.PublicApiSpec
 ```
+
+The specs render views, whose stylesheet tags come from the asset build's manifest, so the tree needs a build
+(`npm run build`; `npm start` and `make qa-worktree` both do one). Without one the target stops and says so.
 
 Only one checkout tests at a time. They share one `db` container and one city schema, and most specs commit rather
 than roll back, so simultaneous runs overwrite each other's rows and stack two multi-GB JVMs — which is how
