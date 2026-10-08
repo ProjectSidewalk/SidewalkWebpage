@@ -122,6 +122,7 @@ class ImageController @Inject() (
    * Returns the backup image metadata for a pano as JSON, used by PopupPanoManager's lazy-fetch fallback.
    *
    * User-aware (#4643): read-only, referer-gated, and served on pages that render for cookie-less visitors.
+   * Every refusal is a 404 (the viewer only reads `res.ok`) whose body names the cause (#5183).
    */
   def getBackupImageMetadata(panoId: String) = cc.securityService.UserAwareAction { implicit request =>
     if (!refererAllowed(request)) {
@@ -130,10 +131,12 @@ class ImageController @Inject() (
       Future.successful(BadRequest(s"Invalid pano ID: $panoId"))
     } else {
       panoDataService.getLocalBackupImage(panoId).map {
-        case Some(p) =>
+        case Right(p) =>
           val url = signingService.signedUrl(s"/backupImage/$panoId")
           Ok(LabelFormats.localBackupImagePayload(p, url))
-        case None => NotFound(s"No backup image found for pano: $panoId")
+        case Left(reason) =>
+          logger.info(reason)
+          NotFound(reason)
       }
     }
   }

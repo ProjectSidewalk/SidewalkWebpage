@@ -174,6 +174,10 @@ nothing waiting on it, retries once after `Retry-After`. Validate also fetches t
 `PanoImageCache` while the current one is judged, one at a time, and Pannellum loads the held `blob:` URL in place of
 the network one, waiting a bounded time for a prefetch still in flight rather than downloading beside it (#5562).
 
+`/backupImage/:panoId/metadata` answers 404 whether the file is missing, the `pano_data` row is missing, or the row
+lacks a column Pannellum needs, and the body names which (#5183). The file is checked first, so the common miss costs
+no query.
+
 The app used to precompute that copy for every wide pano nightly, which OOM-killed prod JVMs (#5239) — not because
 downscaling is beyond a city stage, but because doing it for a whole store, for copies almost nothing ever displays,
 was never worth it. On-demand costs ~105 MB and ~2 s per copy, by letting the JPEG decoder subsample rather than

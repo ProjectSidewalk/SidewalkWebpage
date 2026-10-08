@@ -654,7 +654,7 @@ class LabelServiceImpl @Inject() (
               case Some(true) => Future.successful(Some(label))
               // getLocalBackupImage, not backupExists: a file on disk is only usable if pano_data also has the metadata
               // Pannellum needs. Validate has no fallback behind it, so admitting a label we can't render is #4804.
-              case _ => panoDataService.getLocalBackupImage(label.panoId).map(_.map(_ => label))
+              case _ => panoDataService.getLocalBackupImage(label.panoId).map(_.toOption.map(_ => label))
             }
           }
           .map(_.flatten)

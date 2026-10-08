@@ -507,6 +507,19 @@ object PanoDataService {
     // Calculate destination point using haversine formula.
     CommonUtils.calculateDestination(panoLat, panoLng, estDistanceM / 1000.0, pov.heading)
   }
+
+  /**
+   * The pano_data columns PannellumViewer needs that a row leaves NULL, by DB column name, in a fixed order. The list
+   * mirrors `PanoData`'s `requiredParams` and `util.misc.BACKUP_IMAGE_REQUIRED_FIELDS` — see the note in PanoData.js.
+   */
+  def missingBackupColumns(p: PanoData): Seq[String] = Seq(
+    "width"          -> p.width,
+    "height"         -> p.height,
+    "lat"            -> p.lat,
+    "lng"            -> p.lng,
+    "camera_heading" -> p.cameraHeading,
+    "camera_pitch"   -> p.cameraPitch
+  ).collect { case (name, None) => name }
 }
 
 @ImplementedBy(classOf[PanoDataServiceImpl])
@@ -550,7 +563,9 @@ trait PanoDataService {
   def cropUrl(labelId: Int, labelType: LabelType): Option[String]
   def moveCrop(labelId: Int, from: LabelType, to: LabelType): Boolean
   def localBackupImageFile(panoId: String): Option[File]
-  def getLocalBackupImage(panoId: String): Future[Option[PanoData]]
+
+  /** @return The pano_data row when a stored backup can be served, or the reason it can't (the route's 404 body). */
+  def getLocalBackupImage(panoId: String): Future[Either[String, PanoData]]
 }
 
 @Singleton
@@ -1031,21 +1046,22 @@ class PanoDataServiceImpl @Inject() (
   }
 
   /**
-   * Returns the pano_data row for a pano if a self-hosted image exists AND all required fields are populated.
-   *
-   * "Required" means what PannellumViewer needs to render the backup; the columns mirror `PanoData`'s
-   * `requiredParams` (frontend/js/common/pano-viewer/PanoData.js) — see the note there before changing them.
+   * Checks the file before the row, so the common miss (no stored image) never touches the DB. Each refusal names its
+   * own cause (#5183) because each points somewhere different: the store and the scraper, or whatever wrote pano_data.
    */
-  def getLocalBackupImage(panoId: String): Future[Option[PanoData]] = {
+  def getLocalBackupImage(panoId: String): Future[Either[String, PanoData]] = {
     if (localBackupImageFile(panoId).isEmpty) {
-      Future.successful(None)
+      Future.successful(Left(s"No stored image for pano $panoId."))
     } else {
-      db.run(panoDataTable.getPano(panoId))
-        .map(
-          _.filter(p =>
-            p.width.isDefined && p.height.isDefined && p.lat.isDefined && p.lng.isDefined && p.cameraHeading.isDefined && p.cameraPitch.isDefined
-          )
-        )
+      db.run(panoDataTable.getPano(panoId)).map {
+        case None    => Left(s"Stored image for pano $panoId cannot be served: no pano_data row.")
+        case Some(p) =>
+          PanoDataService.missingBackupColumns(p) match {
+            case Seq()   => Right(p)
+            case missing =>
+              Left(s"Stored image for pano $panoId cannot be served: pano_data is missing ${missing.mkString(", ")}.")
+          }
+      }
     }
   }
 }
