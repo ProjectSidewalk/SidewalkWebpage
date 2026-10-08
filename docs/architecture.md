@@ -170,12 +170,9 @@ nothing waiting on it, retries once after `Retry-After`. Validate also fetches t
 `PanoImageCache` while the current one is judged, one at a time, and Pannellum loads the held `blob:` URL in place of
 the network one, waiting a bounded time for a prefetch still in flight rather than downloading beside it (#5562).
 
-A stored file is not enough to serve a backup: Pannellum also needs the pano's dimensions, camera position and camera
-angles from `pano_data`, the columns listed once as `PanoDataService.BackupRequiredColumns` (mirrored by `PanoData`'s
-`requiredParams` and held equal to the frontend's list by a spec). `/backupImage/:panoId/metadata` answers 404 for
-each of its three refusals but names which one it is (#5183) — no stored image, no `pano_data` row, or a row missing
-the named columns — and logs the last, which is the usual state of a Mapillary pano submitted by the AI (no
-`camera_pitch`). The image route itself never checks the row; the crop job reads the file directly.
+`/backupImage/:panoId/metadata` answers 404 whether the file is missing, the `pano_data` row is missing, or the row
+lacks a column Pannellum needs, and the body names which (#5183). The file is checked first, so the common miss costs
+no query.
 
 The app used to precompute that copy for every wide pano nightly, which OOM-killed prod JVMs (#5239) — not because
 downscaling is beyond a city stage, but because doing it for a whole store, for copies almost nothing ever displays,

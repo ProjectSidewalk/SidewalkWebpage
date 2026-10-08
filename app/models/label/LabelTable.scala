@@ -1464,8 +1464,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
    * `hasBackup` is NULL until the imagery check has looked at a pano and is read optimistically; the real gate is
    * `LabelService.checkImageryBatch`, which checks disk and API per label as a mission is built.
    *
-   * The six columns are `PanoDataService.BackupRequiredColumns`, restated as a `Rep`, and mirror `PanoData`'s
-   * `requiredParams` — see the note there before changing them.
+   * The six columns mirror `PanoData`'s `requiredParams` — see the note there before changing them.
    */
   private def imageryViewable(pd: PanoDataTableDef): Rep[Boolean] = {
     !pd.expired || (pd.hasBackup.getOrElse(true: Rep[Boolean]) &&

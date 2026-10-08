@@ -304,18 +304,21 @@ class PanoDataServiceSpec extends AnyFunSuite with Matchers {
     PanoDataService.missingBackupColumns(completeBackupRow.copy(cameraPitch = None)) shouldBe Seq("camera_pitch")
   }
 
-  test("missingBackupColumns lists every missing column, in BackupRequiredColumns order") {
+  test("missingBackupColumns lists every missing column, in a fixed order") {
     val row = completeBackupRow.copy(cameraPitch = None, lat = None, width = None)
     PanoDataService.missingBackupColumns(row) shouldBe Seq("width", "lat", "camera_pitch")
   }
 
-  test("BackupRequiredColumns is the frontend's BACKUP_IMAGE_REQUIRED_FIELDS, in the same order") {
+  test("missingBackupColumns checks the frontend's BACKUP_IMAGE_REQUIRED_FIELDS, in the same order") {
     // The jsdom suite holds that JS list to PanoData's requiredParams (backupImageDataIsComplete.test.js), so this
     // closes the loop: a column added on any of the three sides fails one of the two suites.
     val src     = Files.readString(Path.of("frontend/js/common/utilitiesSidewalk.js"))
     val literal = """BACKUP_IMAGE_REQUIRED_FIELDS\s*=\s*\[([^\]]*)\]""".r
     val listed = literal.findFirstMatchIn(src).map(_.group(1)).getOrElse(fail("BACKUP_IMAGE_REQUIRED_FIELDS not found"))
     val jsFields = "'([^']+)'".r.findAllMatchIn(listed).map(_.group(1)).toSeq
-    jsFields shouldBe PanoDataService.BackupRequiredColumns.map(_._1)
+    val allNull  = completeBackupRow.copy(
+      width = None, height = None, lat = None, lng = None, cameraHeading = None, cameraPitch = None
+    )
+    jsFields shouldBe PanoDataService.missingBackupColumns(allNull)
   }
 }

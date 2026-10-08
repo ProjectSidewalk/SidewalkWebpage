@@ -814,7 +814,7 @@ util.misc.BACKUP_IMAGE_REQUIRED_FIELDS = ['width', 'height', 'lat', 'lng', 'came
  * Whether a backup pano carries the metadata PannellumViewer needs to render it.
  *
  * Old pano_data rows carry nulls for these and PanoData rejects them (#4804). Guards the buildBackupImageData path
- * only — the /backupImage/:panoId/metadata payload is already filtered server-side by `lookupLocalBackupImage`.
+ * only — the /backupImage/:panoId/metadata payload is already filtered server-side by `getLocalBackupImage`.
  *
  * @param {?object} data - Backup pano metadata in the shape buildBackupImageData produces, or null.
  * @returns {boolean} True when every field the viewer needs is present and numeric.
