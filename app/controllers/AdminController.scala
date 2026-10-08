@@ -6,7 +6,7 @@ import formats.json.AdminFormats.{given, *}
 import formats.json.LabelFormats.*
 import formats.json.UserFormats.given
 import models.auth.{DefaultEnv, WithAdmin, WithOwner}
-import models.api.ApiModelUtils
+import models.api.{ApiError, ApiModelUtils}
 import models.label.{LabelDeletion, LabelPanoMetadata, LabelType}
 import models.user.Role
 import models.utils.JobRunTrigger
@@ -27,7 +27,7 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.util.{Failure, Success, Try}
-import scala.util.control.NonFatal
+import scala.util.control.{NoStackTrace, NonFatal}
 
 @Singleton
 class AdminController @Inject() (
@@ -672,6 +672,12 @@ class AdminController @Inject() (
    * computed metrics ([[service.ConfigService.getCityScorecards]]) with each city's display name / URL / visibility
    * (from config, so they stay language-aware) and echoes the anomaly thresholds + cross-city median in the summary
    * block so the page can label the "needs attention" items. All field names are snake_case (v3 API convention).
+   *
+   * Every read behind it is a per-JVM cache over a fan-out to every city schema, so on a cold JVM the response can't
+   * wait for them all: past Apache's 60 s proxy timeout the page would get a `502` (#5432). Each read waits at most
+   * [[service.ConfigService.CrossCityColdWait]] instead, and when one the page needs is still computing this answers
+   * `503` + `Retry-After` with a `STILL_COMPUTING` problem body, the contract the AccessScore endpoints use (#5418),
+   * while the fan-outs keep running and fill the cache for the retry.
    */
   def getCityScorecards = cc.securityService.SecuredAction(WithOwner()) { implicit request =>
     cc.loggingService.insert(request.identity.userId, request.ipAddress, request.toString)
@@ -685,20 +691,30 @@ class AdminController @Inject() (
     // this week" tiles (#4758). One 30-day read rather than a 7- and a 30-day one: the page takes the week from its
     // last seven days, so the two groups can't disagree about a shared day and the fan-out runs once.
     val dailyTrendDays = 30
-    val scorecardsF    = configService.getCityScorecards()
-    val allTimeF       = configService.getCrossCityWeeklyTrend(None)
-    val dailyF         = configService.getCrossCityDailyTrend(dailyTrendDays)
+    val scorecardsF    = required(configService.getCityScorecards())
+    val allTimeF       = required(configService.getCrossCityWeeklyTrend(None))
+    val dailyF         = required(configService.getCrossCityDailyTrend(dailyTrendDays))
     // A failed or still-computing baseline only costs the charts their average line; it must not take the rest of the
     // page down with it, nor hold it (the read's own cold wait bounds the latter).
     val baselineF = configService.getCrossCityDailyBaseline().recover { case e: Exception =>
       logger.warn(s"Daily baseline unavailable: ${e.getMessage}")
       None
     }
-    val windowSummaryF = configService.getCrossCityActivitySummary()
-    val labelingSpeedF = configService.getCrossCityLabelingSpeed()
-    val storyStatsF    = configService.getCrossCityStoryStats()
+    val windowSummaryF = required(configService.getCrossCityActivitySummary())
+    // Labeling speed is the one fan-out that scans the interaction tables, so it is the likeliest to outlast the cold
+    // wait on its own. Refusing the page for it would make every retry wait on the slowest metric, and the page already
+    // shows a city missing from this map as unknown. Story stats stay required: an empty map would render as "no
+    // stories", which the page must never claim falsely.
+    val labelingSpeedF = configService
+      .getCrossCityLabelingSpeed()
+      .map(_.getOrElse {
+        logger.warn("Cross-city labeling speed still computing; serving Across Cities without it.")
+        Map.empty[String, Double]
+      })
+    val storyStatsF = required(configService.getCrossCityStoryStats())
 
-    for {
+    // Every future above is already running, so the waits overlap and the response is bounded by the longest one.
+    (for {
       withFlags     <- scorecardsF
       allTimeTrend  <- allTimeF
       dailyTrend    <- dailyF
@@ -748,8 +764,26 @@ class AdminController @Inject() (
           "summary" -> crossCitySummaryJson(scorecards, cityInfoById)
         )
       )
+    }).recover { case StillComputing =>
+      ApiError
+        .toResult(
+          ApiError.stillComputing(
+            "Cross-city figures are still being computed. Retry after the number of seconds in the Retry-After header."
+          )
+        )
+        .withHeaders(RETRY_AFTER -> ApiError.StillComputingRetryAfterSeconds.toString)
     }
   }
+
+  /** A bounded cross-city read whose fan-out outlasted its cold wait (#5432); `getCityScorecards` answers 503 for it. */
+  private case object StillComputing extends Exception with NoStackTrace
+
+  /**
+   * Fails with [[StillComputing]] when a bounded cross-city read answers None, so the page's required reads sit in one
+   * `for` and a single `.recover` turns whichever is still computing into the 503, leaving the JSON body as it was.
+   */
+  private def required[T](f: Future[Option[T]]): Future[T] =
+    f.flatMap(_.fold(Future.failed[T](StillComputing))(Future.successful))
 
   /**
    * One city's row of the scorecard table, with snake_case keys like the v3 API.
