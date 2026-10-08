@@ -99,6 +99,29 @@ validation.
    label the humans lean against goes to Expert Validate's triage queue
    (`docs/validation-queue.md`).
 
+**Resubmitting a pano (#5382).** A re-run of the labeler (a corrected pano position, a model
+upgrade, a city re-run) re-POSTs panos it has already submitted, so the endpoint refuses to
+duplicate their labels unless told to replace them. The submission carries an optional
+`overwrite` boolean, default `false`. The check is scoped to the AI user's **live labels of the
+submission's `label_type`** on that pano, so a model for another type is neither refused by
+nor wipes them.
+
+| Request | Live AI labels of `label_type` already on `pano_id`? | Result |
+|---|---|---|
+| `labels` non-empty, `overwrite` absent or `false` | none | 200 `success!` |
+| `labels` non-empty, `overwrite` absent or `false` | some | **409**, and nothing is written (the pano upsert included) |
+| `labels` non-empty, `overwrite: true` | any | 200: the existing labels are soft-deleted and the new ones inserted, in one transaction |
+| `labels: []`, `overwrite` absent or `false` | any | 200, pano upsert only |
+| `labels: []`, `overwrite: true` | any | 200: retires the pano's AI labels of that type |
+
+The 409 body is
+`{"status":"Error","message":"Pano <id> already has <n> <type> label(s) from the AI labeler; resend with overwrite=true to replace them.","pano_id":"<id>","label_type":"<type>","existing_label_count":<n>}`.
+A retired label is a soft delete (`label.deleted`, with `deleted_by` the AI user and
+`deleted_source = 'AiLabeler'`), so its validations, `label_point` and `label_ai_info` stay
+attached and an admin can restore it. The check runs in the same transaction as the inserts,
+but two concurrent *first* submissions of one pano could both pass it; the labeler submits
+sequentially, so there is no lock.
+
 **City gate:** `submitAiLabel` is gated by the per-city `ai-label-submission-enabled` flag in
 `cityparams.conf` (default **false**; unlisted cities reject submissions). Onboarding another
 city to AI labeling (e.g. Bend) means setting the flag to `true` for that city. Note that this

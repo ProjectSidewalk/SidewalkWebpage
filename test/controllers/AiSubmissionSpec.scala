@@ -152,6 +152,11 @@ class AiSubmissionSpec extends SidewalkSpec with BeforeAndAfterAll with GuiceOne
       storedMetadata(barePanoId) mustBe None
     }
 
+    "accept overwrite=true on a pano-only submission for a pano with no AI labels (#5382)" in {
+      status(post(payload(None, id = barePanoId) + ("overwrite" -> Json.toJson(true)))) mustBe OK
+      panoRowCount(barePanoId) mustBe 1
+    }
+
     "reject a source_metadata that isn't a JSON object" in {
       status(post(payloadWithRawMetadata(Json.toJson("not an object")))) mustBe BAD_REQUEST
       storedMetadata().map(Json.parse) mustBe Some(metadataV2)

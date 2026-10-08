@@ -138,7 +138,7 @@ class SnakeCaseReadersSpec extends AnyFunSuite with Matchers {
       """{"label_type":"CurbRamp","model_id":"m","model_training_date":"d","api_version":"v",
         |"pano":{"pano_id":"p","source":"gsv","capture_date":"2020-01","links":[],"history":[]},
         |"labels":[{"pano_x":1,"pano_y":2,"confidence":0.5}]}""".stripMargin,
-      AiLabelsSubmission(LabelType.CurbRamp, "m", "d", "v", pano, Seq(AiLabelDetection(1, 2, 0.5)))
+      AiLabelsSubmission(LabelType.CurbRamp, "m", "d", "v", pano, Seq(AiLabelDetection(1, 2, 0.5)), overwrite = false)
     )
   }
 

@@ -133,14 +133,19 @@ object ExploreFormats {
   )
   case class SurveySingleSubmission(surveyQuestionId: String, answerText: String)
 
-  // Includes a list of labels found on a single panorama.
+  /**
+   * The labels an AI model found on a single panorama, all of one type.
+   * @param overwrite Whether to replace the AI user's live labels of this type already on the pano rather than be
+   *                  refused for duplicating them (#5382). With no labels, it retires them.
+   */
   case class AiLabelsSubmission(
       labelType: LabelType,
       modelId: String,
       modelTrainingDate: String,
       apiVersion: String,
       pano: PanoSubmission,
-      labels: Seq[AiLabelDetection]
+      labels: Seq[AiLabelDetection],
+      overwrite: Boolean
   )
   case class AiLabelDetection(panoX: Int, panoY: Int, confidence: Double)
 
@@ -341,5 +346,14 @@ object ExploreFormats {
 
   given aiLabelDetectionReads: Reads[AiLabelDetection] = Json.reads[AiLabelDetection]
 
-  given aiLabelSubmissionReads: Reads[AiLabelsSubmission] = Json.reads[AiLabelsSubmission]
+  given aiLabelSubmissionReads: Reads[AiLabelsSubmission] = (
+    (JsPath \ "label_type").read[LabelType] and
+      (JsPath \ "model_id").read[String] and
+      (JsPath \ "model_training_date").read[String] and
+      (JsPath \ "api_version").read[String] and
+      (JsPath \ "pano").read[PanoSubmission] and
+      (JsPath \ "labels").read[Seq[AiLabelDetection]] and
+      // Absent means false, so a payload from before the flag existed fails closed instead of duplicating (#5382).
+      (JsPath \ "overwrite").readWithDefault[Boolean](false)
+  )(AiLabelsSubmission.apply)
 }

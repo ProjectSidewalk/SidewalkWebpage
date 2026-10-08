@@ -53,7 +53,8 @@ class PanoCopyrightIngestSpec extends SidewalkSpec with BeforeAndAfterAll with G
         height = Some(4096), tileWidth = None, tileHeight = None, lat = Some(37.55), lng = Some(-77.46),
         cameraHeading = Some(0d), cameraPitch = None, cameraRoll = None, links = Seq.empty, copyright = Some(copyright),
         license = None, address = None, history = Seq.empty, sourceMetadata = None),
-      labels = Seq.empty
+      labels = Seq.empty,
+      overwrite = false
     )
 
   private def storedCopyright(panoId: String): Option[String] = run(panoDataTable.getPano(panoId)).value.copyright

@@ -114,4 +114,38 @@ class ExploreFormatsSpec extends AnyFunSuite with Matchers {
     (json \ "audited_distance_m").toOption shouldBe None
     (json \ "start_offset_m").toOption shouldBe None
   }
+
+  private val aiPanoJson = Json.obj(
+    "pano_id"        -> "ai-pano",
+    "source"         -> "gsv",
+    "capture_date"   -> "2025-06",
+    "width"          -> 8192,
+    "height"         -> 4096,
+    "lat"            -> 40.89,
+    "lng"            -> -74.02,
+    "camera_heading" -> 180.0,
+    "links"          -> Json.arr(),
+    "history"        -> Json.arr()
+  )
+
+  private val aiSubmissionJson = Json.obj(
+    "label_type"          -> "CurbRamp",
+    "model_id"            -> "test-model",
+    "model_training_date" -> "01-15-2026",
+    "api_version"         -> "1.0",
+    "pano"                -> aiPanoJson,
+    "labels"              -> Json.arr(Json.obj("pano_x" -> 4096, "pano_y" -> 2048, "confidence" -> 0.9))
+  )
+
+  test("AiLabelsSubmission defaults a missing overwrite to false, so an old payload fails closed (#5382)") {
+    aiSubmissionJson.as[AiLabelsSubmission].overwrite shouldBe false
+  }
+
+  test("AiLabelsSubmission parses overwrite") {
+    (aiSubmissionJson + ("overwrite" -> Json.toJson(true))).as[AiLabelsSubmission].overwrite shouldBe true
+  }
+
+  test("AiLabelsSubmission rejects a non-boolean overwrite") {
+    (aiSubmissionJson + ("overwrite" -> Json.toJson("yes"))).validate[AiLabelsSubmission].isError shouldBe true
+  }
 }
