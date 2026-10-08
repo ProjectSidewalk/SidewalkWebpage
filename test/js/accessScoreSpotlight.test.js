@@ -432,7 +432,8 @@ describe('the AccessScore Spotlight', () => {
         });
 
         it('hides itself rather than drawing an empty band when a feed counts rows it cannot list', async () => {
-            // A feed whose count and lists disagree must never draw an empty band.
+            // The count and the lists now read the same `region` join, but a feed served from an older snapshot can
+            // still count a stretch it cannot list; kept as a fail-safe for that.
             const section = await mount({
                 regions: feed('regions', { qualifying: 0, total: 9 }),
                 streets: feed('streets', { qualifying: 3, total: 900 }),

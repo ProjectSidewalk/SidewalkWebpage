@@ -65,8 +65,8 @@ object AccessScoreSpotlight {
    *
    * Half the ranking floor: a neighborhood at 40% explored is one a visitor can finish, so "closest to being ranked"
    * is true of it, while a fresh deployment's 0% regions are not close to anything and must never fill the list
-   * (#5454). Published as `nearest_min_completion` by
-   * `/v3/api/accessScoreSpotlight`, so the page and the docs read it rather than restate it.
+   * (#5454). Published as `nearest_min_completion` by `/v3/api/accessScoreSpotlight`, like the other thresholds the
+   * feed applies, so a consumer can explain `nearest` without reading the source.
    */
   val NearestMinCompletion: Double = MinRegionCompletion / 2
 
@@ -125,18 +125,13 @@ object AccessScoreSpotlight {
    * beside the row. A region with no streets is never near: `buildRegionRows` reads it as 100% complete, and there
    * is nothing in it to explore.
    *
-   * @param row                  The region's snapshot row.
-   * @param minCompletion        The ranking floor, normally [[MinRegionCompletion]].
-   * @param nearestMinCompletion The ask's floor, normally [[NearestMinCompletion]].
-   * @return                     Whether the region belongs in `nearest`.
+   * @param row           The region's snapshot row.
+   * @param minCompletion The ranking floor, normally [[MinRegionCompletion]].
+   * @return              Whether the region belongs in `nearest`.
    */
-  def regionIsNear(
-      row: RegionSpotlightRowForApi,
-      minCompletion: Double = MinRegionCompletion,
-      nearestMinCompletion: Double = NearestMinCompletion
-  ): Boolean =
+  def regionIsNear(row: RegionSpotlightRowForApi, minCompletion: Double = MinRegionCompletion): Boolean =
     !regionQualifies(row, minCompletion) && row.totalDistanceM > 0 &&
-      math.round(row.completionRate * 100) >= math.round(nearestMinCompletion * 100)
+      math.round(row.completionRate * 100) >= math.round(NearestMinCompletion * 100)
 
   /**
    * Whether a ranked unit belongs in the "Highest scores" list: at or above [[HighestMinScore]].
@@ -321,21 +316,14 @@ object AccessScoreSpotlight {
    * Only regions [[regionIsNear]] accepts, so the list is empty in a city where nothing is near — a fresh
    * deployment, or one whose remaining regions are barely touched — rather than every unranked region in the city.
    *
-   * @param rows                 Every region row of the snapshot.
-   * @param minCompletion        The ranking floor.
-   * @param n                    How many to list.
-   * @param nearestMinCompletion The ask's floor, see [[NearestMinCompletion]].
-   * @return                     At most `n` near regions, best-explored first, then by name and id so ties are
-   *                             stable.
+   * @param rows          Every region row of the snapshot.
+   * @param minCompletion The ranking floor.
+   * @param n             How many to list.
+   * @return              At most `n` near regions, best-explored first, then by name and id so ties are stable.
    */
-  def nearest(
-      rows: Seq[RegionSpotlightRowForApi],
-      minCompletion: Double,
-      n: Int,
-      nearestMinCompletion: Double = NearestMinCompletion
-  ): Seq[RegionSpotlightRowForApi] =
+  def nearest(rows: Seq[RegionSpotlightRowForApi], minCompletion: Double, n: Int): Seq[RegionSpotlightRowForApi] =
     rows
-      .filter(row => regionIsNear(row, minCompletion, nearestMinCompletion))
+      .filter(row => regionIsNear(row, minCompletion))
       .sortBy(row => (-row.completionRate, row.name, row.regionId))
       .take(n)
 
@@ -536,13 +524,7 @@ class AccessScoreSpotlightService @Inject() (
         // "help the next one across the line" ask has nowhere to go.
         nearest =
           if (qualifying.size >= n) Seq.empty
-          else
-            AccessScoreSpotlight.nearest(
-              snapshot,
-              AccessScoreSpotlight.MinRegionCompletion,
-              n,
-              AccessScoreSpotlight.NearestMinCompletion
-            )
+          else AccessScoreSpotlight.nearest(snapshot, AccessScoreSpotlight.MinRegionCompletion, n)
       )
     }
   }

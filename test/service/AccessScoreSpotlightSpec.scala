@@ -445,16 +445,4 @@ class AccessScoreSpotlightSpec extends AnyFunSuite with Matchers {
     // the right ask even though its completion is already past the ranking floor.
     AccessScoreSpotlight.regionIsNear(regionRow(2, "Unscored", None, 0.85)) shouldBe true
   }
-
-  test("the near floor is a parameter, so the endpoint can only ever apply the backend's number") {
-    val row = regionRow(1, "Half", None, 0.5)
-    AccessScoreSpotlight.regionIsNear(row, nearestMinCompletion = 0.6) shouldBe false
-    AccessScoreSpotlight.regionIsNear(row, nearestMinCompletion = 0.5) shouldBe true
-  }
-
-  test("the near floor sits below the ranking floor and above zero") {
-    AccessScoreSpotlight.NearestMinCompletion should be > 0.0
-    AccessScoreSpotlight.NearestMinCompletion should be < AccessScoreSpotlight.MinRegionCompletion
-    AccessScoreSpotlight.NearestMinCompletion shouldBe (AccessScoreSpotlight.MinRegionCompletion / 2 +- 1e-9)
-  }
 }

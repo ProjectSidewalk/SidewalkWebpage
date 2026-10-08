@@ -168,13 +168,12 @@ export class AccessScoreSpotlight {
       return;
     }
 
-    const ranked = (feed) => (feed ? feed.qualifying : 0);
     // One neighborhood is nothing to rank against — unless no street is ranked either, when one score beats none.
-    if (!this.#crossCity && regions && regions.total === 1 && ranked(streets) > 0) this.#feeds.regions = null;
+    if (!this.#crossCity && regions && regions.total === 1 && offerable('streets')) this.#feeds.regions = null;
 
     // Streets qualify early, so a young city opens on streets until enough neighborhoods clear the completion
     // floor; a unit that cannot draw anything is never opened on, whatever its count says.
-    const neighborhoodsWorthOpening = offerable('regions') && ranked(regions) >= AccessScoreSpotlight.#LIST_SIZE;
+    const neighborhoodsWorthOpening = offerable('regions') && regions.qualifying >= AccessScoreSpotlight.#LIST_SIZE;
     this.#unit = neighborhoodsWorthOpening || !offerable('streets') ? 'regions' : 'streets';
     this.#render();
   }

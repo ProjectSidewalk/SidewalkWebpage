@@ -57,9 +57,8 @@ class AccessScoreSpotlightPageSpec extends SidewalkSpec with GuiceOneAppPerSuite
       // The module swaps to this wording when nothing is ranked but a neighborhood is near the floor (#5454), so it
       // has to ride on the same heading element rather than live anywhere the module would have to find.
       val body = render("/")
-      body must include("data-ask-title=\"")
+      body must include("""id="access-score-spotlight-title" data-ask-title="""")
       body must not include "landing.spotlight.title-ask"
-      body must include regex """id="access-score-spotlight-title"\s+data-ask-title=""""
     }
   }
 
