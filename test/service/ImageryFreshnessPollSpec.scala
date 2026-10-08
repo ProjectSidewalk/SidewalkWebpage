@@ -24,27 +24,6 @@ class ImageryFreshnessPollSpec extends AnyFunSuite with Matchers {
     parseGsvCaptureDate(null) shouldBe None
   }
 
-  test("a GSV metadata response becomes the point's observations exactly as the poll has always read it (#5464)") {
-    // Through the parser shared with the AI endpoint images, so a change there that shifts the poll fails here.
-    def observe(body: String) = gsvPointObservations(PanoDataService.parseGsvMetadata(body))
-
-    observe("""{"status":"OK","pano_id":"p","date":"2024-06","location":{"lat":47.6,"lng":-122.3}}""") shouldBe
-      Some(Seq(PanoObservation("p", Some(LocalDate.of(2024, 6, 1)), Some((47.6, -122.3)))))
-    // A positionless or idless OK is still conclusive; pollOneStreet's position filter drops it, not this step.
-    observe("""{"status":"OK","pano_id":"p","date":"2024-06"}""") shouldBe
-      Some(Seq(PanoObservation("p", Some(LocalDate.of(2024, 6, 1)), None)))
-    observe("""{"status":"OK","location":{"lat":47.6,"lng":-122.3}}""") shouldBe
-      Some(Seq(PanoObservation("", None, Some((47.6, -122.3)))))
-    observe("""{"status":"OK","pano_id":"p","date":"June","location":{"lat":47.6,"lng":-122.3}}""") shouldBe
-      Some(Seq(PanoObservation("p", None, Some((47.6, -122.3)))))
-    observe("""{"status":"ZERO_RESULTS"}""") shouldBe Some(Seq.empty)
-    observe("""{"status":"REQUEST_DENIED"}""") shouldBe None
-    observe("""{"status":"OVER_QUERY_LIMIT"}""") shouldBe None
-    observe("""{}""") shouldBe None
-    observe("not json") shouldBe None
-    gsvPointObservations(PanoDataService.GsvMetadataAnswer.Inconclusive("timeout")) shouldBe None
-  }
-
   test("parseMapillaryCapturedAt converts epoch millis and clamps implausible device-clock values") {
     val now = LocalDate.of(2026, 7, 16)
     // 2024-06-15T12:00:00Z in epoch millis.

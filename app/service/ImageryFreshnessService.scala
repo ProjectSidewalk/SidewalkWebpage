@@ -129,23 +129,6 @@ object ImageryFreshnessService {
   case class PanoObservation(panoId: String, capture: Option[LocalDate], location: Option[(Double, Double)])
 
   /**
-   * One GSV sample point's poll result, from the metadata answer. Pure, for unit tests.
-   *
-   * A pano without a position (or without an id) is still an observation, so the street counts as conclusively
-   * polled; pollOneStreet's position filter is what drops it. Only an inconclusive answer skips the street.
-   *
-   * @param answer What the Street View metadata endpoint said about the point.
-   * @return       The point's observations (empty for confirmed no imagery), or None when inconclusive.
-   */
-  def gsvPointObservations(answer: PanoDataService.GsvMetadataAnswer): Option[Seq[PanoObservation]] =
-    answer match {
-      case PanoDataService.GsvMetadataAnswer.Pano(panoId, location, date) =>
-        Some(Seq(PanoObservation(panoId, date.flatMap(parseGsvCaptureDate), location)))
-      case PanoDataService.GsvMetadataAnswer.NoImagery       => Some(Seq.empty)
-      case PanoDataService.GsvMetadataAnswer.Inconclusive(_) => None
-    }
-
-  /**
    * Approximate minimum distance (meters) from a point to a street's polyline.
    *
    * Equirectangular local projection centered on the point: exact enough at the sub-100 m scales involved (the
@@ -284,12 +267,12 @@ class ImageryFreshnessServiceImpl @Inject() (
    */
   def pollImageryAges(): Future[PollResult] = {
     configService.getPanoSource match {
-      // The key's presence is checked here, like the Mapillary token below, so a missing one fails the run loudly
-      // instead of making every point inconclusive. PanoDataService.queryGsvMetadata signs with the same config key.
+      // The key is resolved once here, like the Mapillary token below: resolving it lazily inside the per-point
+      // fetch would throw synchronously in the batch fold and abandon every remaining street.
       case PanoSource.Gsv =>
         config.getOptional[String]("google-maps-api-key") match {
-          case Some(_) => pollStreets("GSV")(fetchGsvPointObservations)
-          case None    =>
+          case Some(key) => pollStreets("GSV")(fetchGsvPointObservations(key))
+          case None      =>
             Future.failed(MissingImageryCredentialException("No google-maps-api-key configured for a GSV city."))
         }
       case PanoSource.Mapillary =>
@@ -461,19 +444,45 @@ class ImageryFreshnessServiceImpl @Inject() (
    * reaching a pano on a parallel service road or alley -- is handled downstream: the response carries the pano's
    * position, and pollOneStreet drops observations that don't lie on the polled street. The same filter is what stops
    * an answer from outside the radius altogether, which Google does give: `radius` is a hint, not a bound, and a 25 m
-   * query has come back with a photosphere in another state (#5114). The request itself is
-   * PanoDataService.queryGsvMetadata, shared with the AI guidance endpoint images (#5464).
+   * query has come back with a photosphere in another state (#5114).
    */
-  private def fetchGsvPointObservations(lat: Double, lng: Double): Future[Option[Seq[PanoObservation]]] =
-    panoDataService.queryGsvMetadata(lat, lng, SampleRadiusMeters.toInt).map { answer =>
-      answer match {
-        // REQUEST_DENIED (e.g. dev dummy keys), OVER_QUERY_LIMIT, a timeout, etc.: inconclusive, skip the street.
-        case PanoDataService.GsvMetadataAnswer.Inconclusive(reason) =>
-          logger.info(s"GSV imagery-age poll inconclusive ($reason) at $lat,$lng")
-        case _ => ()
+  private def fetchGsvPointObservations(
+      apiKey: String
+  )(lat: Double, lng: Double): Future[Option[Seq[PanoObservation]]] = {
+    val url = panoDataService.signUrl(
+      s"https://maps.googleapis.com/maps/api/streetview/metadata?source=outdoor" +
+        s"&location=$lat,$lng&radius=${SampleRadiusMeters.toInt}&key=$apiKey"
+    )
+    ws.url(url)
+      .withRequestTimeout(5.seconds)
+      .get()
+      .map { response =>
+        val json = Json.parse(response.body)
+        (json \ "status").asOpt[String] match {
+          case Some("OK") =>
+            val panoId   = (json \ "pano_id").asOpt[String].getOrElse("")
+            val date     = (json \ "date").asOpt[String].flatMap(parseGsvCaptureDate)
+            val location = for {
+              panoLat <- (json \ "location" \ "lat").asOpt[Double]
+              panoLng <- (json \ "location" \ "lng").asOpt[Double]
+            } yield (panoLat, panoLng)
+            Some(Seq(PanoObservation(panoId, date, location)))
+          case Some("ZERO_RESULTS") => Some(Seq.empty)
+          case other                =>
+            // REQUEST_DENIED (e.g. dev dummy keys), OVER_QUERY_LIMIT, etc.: inconclusive, skip the street.
+            logger.info(s"GSV imagery-age poll inconclusive (${other.getOrElse("no status")}) at $lat,$lng")
+            None
+        }
       }
-      gsvPointObservations(answer)
-    }
+      .recover {
+        // Transient network errors are inconclusive, not "no imagery".
+        case _: SocketTimeoutException => None
+        case _: IOException            => None
+        case e: Exception              =>
+          logger.warn(s"Unexpected error polling GSV imagery age at $lat,$lng; treating as inconclusive.", e)
+          None
+      }
+  }
 
   /**
    * Queries the Mapillary Graph API for panos in a small bbox around a point. Only 360° panos count (is_pano), since

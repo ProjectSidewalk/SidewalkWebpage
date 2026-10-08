@@ -511,9 +511,7 @@ loaded by the corresponding Twirl view:
   hint and has answered a 25 m query with a photosphere in another state (#5114), so `GsvViewer` treats a reply
   beyond `svl.STREETVIEW_MAX_DISTANCE` exactly like `ZERO_RESULTS`. Mapillary and Panoramax search a square box of
   that half-width, so their corners reach about 35 m; Infra3d checks the radius in `findPanoNear` but not yet in
-  `setLocation`. The server-side twin is the AI guidance endpoint images: `PanoDataService.getGsvImageUrlsForStreet`
-  places each endpoint's nearest pano with a metadata call, drops it beyond `PanoDataService.GsvSearchRadiusMeters`
-  (the same 25 m), and requests the image by pano id (#5464).
+  `setLocation`.
   `PanoViewer.setPano` types its rejections, because callers decide from them whether to give up on what needed the
   pano: `NoImageryError` means the provider no longer has it, `PanoLoadTimeoutError` means it didn't load in time or
   the network failed and the provider didn't say it is gone, and anything else is a failure on a pano the provider

@@ -3,7 +3,6 @@ package controllers
 import controllers.base.{CustomBaseController, CustomControllerComponents}
 import controllers.helper.ControllerUtils.internalKeyValid
 import formats.json.ExploreFormats.AiLabelsSubmission
-import models.pano.PanoSource
 import play.api.libs.json.*
 import play.api.libs.ws.*
 import play.api.mvc.*
@@ -96,16 +95,10 @@ class AiController @Inject() (
     // Create the prompt using the way type and city name.
     val prompt = generatePrompt(wayType, cityName)
 
-    // The client only asks from GSV cities, but nothing server-side enforced that, so a direct POST from a city on
-    // another imagery provider would spend GSV metadata calls on streets GSV may not even cover. Empty -> the 400 below.
-    val imageUrlsFuture: Future[Seq[String]] =
-      if (configService.getPanoSource != PanoSource.Gsv) Future.successful(Seq.empty)
-      else panoDataService.getGsvImageUrlsForStreet(streetEdgeId)
-
     for {
-      gsvImageUrls   <- imageUrlsFuture                       // Endpoint images verified near the street
-      imageObjects   <- fetchAndEncodeImages(gsvImageUrls)    // Fetch and encode images
-      geminiResponse <- sendToGeminiApi(prompt, imageObjects) // Send to Gemini API
+      gsvImageUrls   <- panoDataService.getGsvImageUrlsForStreet(streetEdgeId) // Get image URLs for the street
+      imageObjects   <- fetchAndEncodeImages(gsvImageUrls)                     // Fetch and encode images
+      geminiResponse <- sendToGeminiApi(prompt, imageObjects)                  // Send to Gemini API
     } yield {
       val activity = s"Analyzing street $streetEdgeId with URLs: ${gsvImageUrls.mkString(", ")}"
       cc.loggingService.insert(request.identity.userId, request.ipAddress, activity)
