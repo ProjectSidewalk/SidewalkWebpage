@@ -582,7 +582,7 @@ class LabelValidationTable @Inject() (
     ).flatten
 
     sql"""
-      SELECT CAST((label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date AS TEXT) AS date,
+      SELECT CAST((label_validation.end_timestamp AT TIME ZONE 'America/Los_Angeles')::date AS TEXT) AS date,
              label_validation.label_type::text,
              COUNT(CASE WHEN user_role.role IS DISTINCT FROM 'AI' AND label_validation.validation_result::text = 'Agree'
                         THEN 1 END) AS human_agree,
@@ -602,7 +602,8 @@ class LabelValidationTable @Inject() (
       WHERE """
       .concat(SqlFragments.allOf(conditions))
       .concat(sql"""
-      GROUP BY (label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date, label_validation.label_type::text
+      GROUP BY (label_validation.end_timestamp AT TIME ZONE 'America/Los_Angeles')::date,
+               label_validation.label_type::text
       ORDER BY date ASC, label_validation.label_type::text
     """)
       .as[DailyValidationStat]
