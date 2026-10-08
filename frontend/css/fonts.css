@@ -6,7 +6,7 @@
    each style, and copy their unicode-ranges here alongside the woff2 (last taken from Mulish v18). */
 @font-face {
   font-family: Mulish;
-  src: url("../fonts/Mulish/Mulish-latin.woff2") format("woff2");
+  src: url("/fonts/Mulish/Mulish-latin.woff2") format("woff2");
   font-style: normal;
   font-weight: 200 1000;
   font-display: swap;
@@ -16,7 +16,7 @@
 
 @font-face {
   font-family: Mulish;
-  src: url("../fonts/Mulish/Mulish-latin-ext.woff2") format("woff2");
+  src: url("/fonts/Mulish/Mulish-latin-ext.woff2") format("woff2");
   font-style: normal;
   font-weight: 200 1000;
   font-display: swap;
@@ -26,7 +26,7 @@
 
 @font-face {
   font-family: Mulish;
-  src: url("../fonts/Mulish/Mulish-italic-latin.woff2") format("woff2");
+  src: url("/fonts/Mulish/Mulish-italic-latin.woff2") format("woff2");
   font-style: italic;
   font-weight: 200 1000;
   font-display: swap;
@@ -36,7 +36,7 @@
 
 @font-face {
   font-family: Mulish;
-  src: url("../fonts/Mulish/Mulish-italic-latin-ext.woff2") format("woff2");
+  src: url("/fonts/Mulish/Mulish-italic-latin-ext.woff2") format("woff2");
   font-style: italic;
   font-weight: 200 1000;
   font-display: swap;
@@ -53,7 +53,7 @@
    copy their unicode-ranges here alongside the woff2 (last taken from JetBrains Mono v24). */
 @font-face {
   font-family: "JetBrains Mono";
-  src: url("../fonts/JetBrainsMono/JetBrainsMono-latin.woff2") format("woff2");
+  src: url("/fonts/JetBrainsMono/JetBrainsMono-latin.woff2") format("woff2");
   font-style: normal;
   font-weight: 100 800;
   font-display: swap;
@@ -63,10 +63,37 @@
 
 @font-face {
   font-family: "JetBrains Mono";
-  src: url("../fonts/JetBrainsMono/JetBrainsMono-latin-ext.woff2") format("woff2");
+  src: url("/fonts/JetBrainsMono/JetBrainsMono-latin-ext.woff2") format("woff2");
   font-style: normal;
   font-weight: 100 800;
   font-display: swap;
   unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF,
     U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+/* Raleway (--font-accent, the heading face): three weights of one family, so `font-weight: 700` picks Raleway Bold
+   for the --text-h1-bold / --text-h2-bold headings instead of a smeared copy of the regular outlines. `swap`, like
+   the faces above: a heading is better in a fallback face for a moment than absent until this one arrives. */
+@font-face {
+  font-family: raleway;
+  src: url("/fonts/Raleway/Raleway-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: raleway;
+  src: url("/fonts/Raleway/Raleway-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: raleway;
+  src: url("/fonts/Raleway/Raleway-ExtraBold.woff2") format("woff2");
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
 }

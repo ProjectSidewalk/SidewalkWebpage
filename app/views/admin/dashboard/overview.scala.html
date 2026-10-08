@@ -82,6 +82,8 @@
     <a class="ov-recent-more" href="@routes.AdminDashboardController.activity">View all activity →</a>
   </div>
 
+  @ViteAssets.stylesheets("admin/overview", alreadyLinked = "admin/shell")
+
   <script type="module" id="page-entry" src='@assets.path("build/js/admin/overview.js")'></script>
 }
 

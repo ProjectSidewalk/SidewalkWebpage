@@ -2,10 +2,10 @@
  * The card shown over the label being validated: its type, rating, tags, and description.
  *
  * This is the same component as Explore's hover card — one Twirl template (views/components/labelCard.scala.html),
- * one stylesheet pair in public/css/components/, and one populator (js/common/LabelCardView.js), which this feeds from
- * Validate's own Label object (#4726/#4730). It replaced a parallel implementation that painted white text straight
- * onto the raw label color, which failed WCAG AA for every label type (1.68:1 to 2.75:1); the label color now lives
- * in the type icon and the surface is white.
+ * one stylesheet pair in frontend/css/components/, and one populator (js/common/LabelCardView.js), which this feeds
+ * from Validate's own Label object (#4726/#4730). It replaced a parallel implementation that painted white text
+ * straight onto the raw label color, which failed WCAG AA for every label type (1.68:1 to 2.75:1); the label color
+ * now lives in the type icon and the surface is white.
  *
  * A validator judges a label rather than changing it, so there is no Delete or Edit here and the card is not itself
  * a click target the way Explore's is. The exception is Expert Validate's type dropdown in the header, whose pick

@@ -8,6 +8,7 @@ import { svl } from '../svl.js';
 import { ShareWidget } from '../../common/share/ShareWidget.js';
 import { getImage, util } from '../../common/utilities.js';
 import '../../common/utilitiesSidewalk.js';
+import '../../../css/components/tag-pills.css';
 /** @typedef {import('../label/Label.js').Label} Label */
 
 export class ContextMenu {

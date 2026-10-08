@@ -26,6 +26,7 @@ import { buildBackupImageData } from '../utilitiesSidewalk.js';
 import { PanoViewer } from '../pano-viewer/PanoViewer.js';
 import '../urlQuery.js';
 import '../pano-viewer/panoUtilities.js';
+import '../../../css/components/label-detail.css';
 
 export class LabelDetail {
   /**

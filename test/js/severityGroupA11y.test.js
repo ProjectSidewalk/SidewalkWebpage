@@ -1,7 +1,7 @@
 /**
  * Tests for the keyboard and screen-reader contract of the severity/quality rating group, shared by Explore's
  * context menu and Expert Validate's menu (app/views/apps/explore.scala.html, app/views/apps/validate.scala.html,
- * public/css/main.css).
+ * frontend/css/main.css).
  *
  * The group is three `<label class="severity-button">`s, each wrapping a same-named `<input type="radio">` that CSS
  * hides visually — `opacity: 0; width: 0; height: 0`, deliberately not `display: none`, so it keeps its place in the
@@ -27,7 +27,7 @@ const fs = require('fs');
 const path = require('path');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const MAIN_CSS_PATH = path.join(REPO_ROOT, 'public/css/main.css');
+const MAIN_CSS_PATH = path.join(REPO_ROOT, 'frontend/css/main.css');
 const VALIDATE_VIEW_PATH = path.join(REPO_ROOT, 'app/views/apps/validate.scala.html');
 const EXPLORE_VIEW_PATH = path.join(REPO_ROOT, 'app/views/apps/explore.scala.html');
 
@@ -62,7 +62,7 @@ describe('the severity rating group is operable and announced', () => {
         else if (entry.name.endsWith('.css')) pageStylesheets.push(full);
       }
     };
-    walk(path.join(REPO_ROOT, 'public/css/pages'));
+    walk(path.join(REPO_ROOT, 'frontend/css/pages'));
 
     const offenders = pageStylesheets.filter(
       (file) => fs.readFileSync(file, 'utf8').includes('.severity-button__radio:focus-visible'),

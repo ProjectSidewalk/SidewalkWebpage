@@ -124,3 +124,6 @@ interface Element {
   closest<K extends keyof SVGElementTagNameMap>(selector: K): SVGElementTagNameMap[K] | null;
   closest<E extends Element = HTMLElement>(selectors: string): E | null;
 }
+
+// A stylesheet import (`import './x.css'`) only tells Vite which styles the module needs (#5651); it has no exports.
+declare module '*.css';

@@ -83,6 +83,7 @@
   <link rel="stylesheet" href="@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.css")">
   <script src="@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.js")"></script>
 
+  @ViteAssets.stylesheets("admin/streetStatus", alreadyLinked = "admin/shell")
   <script type="module" id="page-entry" src='@assets.path("build/js/admin/streetStatus.js")'
           data-mapbox-token="@commonData.mapboxApiKey"
           data-trend-weeks="@service.StreetLifecycleService.DefaultTrendWeeks"></script>

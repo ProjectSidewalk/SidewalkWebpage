@@ -7,6 +7,7 @@ import { LabelTypePicker } from '../../common/LabelTypePicker.js';
 import { util } from '../../common/utilities.js';
 import { LabelContainer } from '../label/LabelContainer.js';
 import '../../common/utilitiesSidewalk.js';
+import '../../../css/components/tag-pills.css';
 /** @typedef {import('../label/Label.js').Label} Label */
 
 export class DesktopValidationMenu {

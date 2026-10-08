@@ -32,12 +32,7 @@
   }
   <script src='@assets.path("vendor/pannellum/pannellum-2.5.7.js")'></script>
   <link rel="stylesheet" href='@assets.path("vendor/pannellum/pannellum-2.5.7.css")'>
-  <link rel="stylesheet" href='@assets.path("build/css/validate.css")'>
-  <link rel="stylesheet" href='@assets.path("css/components/progress-bar.css")'>
-  <link rel="stylesheet" href='@assets.path("css/components/pano-overlay-buttons.css")'>
-  <link rel="stylesheet" href='@assets.path("css/components/pano-image-adjustments.css")'>
-  <link rel="stylesheet" href='@assets.path("css/components/tag-pills.css")'>
-  <link rel="stylesheet" href='@assets.path("css/components/label-type-picker.css")'>
+  @ViteAssets.stylesheets("validate")
 
   @common.missionStartTutorial()
   @common.panoInfoPopover()

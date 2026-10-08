@@ -8,7 +8,7 @@ architecture. This page explains the conventions a linter can't, and the *why* b
 [`eslint.config.js`](../eslint.config.js), [`stylelint.config.mjs`](../stylelint.config.mjs), and
 [`.htmlhintrc`](../.htmlhintrc); Scala formatting lives in [`.scalafmt.conf`](../.scalafmt.conf). When this guide and a
 config disagree, the config wins — fix the config and this doc together. **The linters are all blocking CI gates** —
-ESLint (JS + translation JSON), Stylelint (CSS), HTMLHint (HTML), cross-locale key parity, the `public/css/` layout
+ESLint (JS + translation JSON), Stylelint (CSS), HTMLHint (HTML), cross-locale key parity, the `frontend/css/` layout
 check, the `frontend/js/` asset-path check, the JSDoc type check (`make lint-js-types`), and `make scalafmt` for
 Scala (source and build files). The trees are kept fully lint-clean ([#2487](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2487)),
 so run the relevant linter — or `make lint` for all of them — and get to zero before you push: `make lint-fix`
@@ -65,7 +65,7 @@ These apply across every language in the repo.
 
 ## JavaScript
 
-The frontend is vanilla ES modules, bundled per page by Rolldown (no transpiler, no framework). Never edit the
+The frontend is vanilla ES modules, bundled per page by Vite (no transpiler, no framework). Never edit the
 generated `public/build/` output. Most rules below are enforced by
 [`eslint.config.js`](../eslint.config.js).
 
@@ -153,22 +153,34 @@ The `public/` static-asset tree follows an industry-standard layout, settled in 
 consistent with it.
 
 - **First-party assets split by type.** `frontend/js/` is **JavaScript only** — no `css/`, `img/`, or `audio/` dirs
-  nested inside an app dir. Styles live in `public/css/`; media lives in `public/images/`, `public/audio/`, and
+  nested inside an app dir. Styles live in `frontend/css/`; media lives in `public/images/`, `public/audio/`, and
   `public/videos/`. App-private styles go to `css/pages/`, app-private images to `images/<app>/`.
-- **`public/css/` is organized by what each file is** (#5030), and its root has exactly four entries. `main.css` and
+- **A stylesheet is imported by the JS that needs it, never linked by hand** (#5651). A component's module imports
+  the component's sheet (`Toast.js` → `components/toast.css`), a page's entry in `frontend/js/pages/` imports the
+  page's own sheet (last, so it overrides the components'), and a sheet that only Twirl markup uses (`kpi.css`,
+  `tables.css`, `pano-overlay-buttons.css`) is imported by the entry of each page showing that markup. Vite writes
+  `public/build/css/`, one file per chunk, and the view emits the `<link>`s with `@ViteAssets.stylesheets("<entry>")`
+  beside the entry's `<script>`. The helper reads Vite's manifest and links the chunks a page imports before the
+  page's own sheet, and a sheet shared with other chunks before a chunk's own, so page rules win; a page inside the
+  admin or user dashboard or the API docs names the shell as `alreadyLinked = "admin/shell"` (or `dashboard/shell`,
+  `api-docs/layout`) so nothing is linked twice. The containers a page renders around a lazily loaded component get
+  their sheet from the page's entry (`map-frame.css` for a map), since the component's sheet only arrives with its
+  code. A rule that overrides a vendor stylesheet's (`.mapboxgl-popup-content`) out-ranks it in specificity, since
+  which `<link>` comes last varies by page. Never `@import`; a `url()` is the file's root-absolute path under
+  `public/` (`url("/images/…")`).
+- **`frontend/css/` is organized by what each file is** (#5030), and its root has exactly four entries. `main.css` and
   `fonts.css` (tokens and `.ps-*` primitives, no layout knowledge). `css/components/` holds anything more than one page
-  links, one component per file with a `ps-` or component-named class prefix (`page-shell.css` — the sidebar + content +
+  uses, one component per file with a `ps-` or component-named class prefix (`page-shell.css` — the sidebar + content +
   TOC template the API docs, both dashboards, and the labeling guide build on, `kpi.css`, `tables.css`,
   `label-detail.css`, `toast.css`, …). `css/pages/` holds everything page-specific: a single file for a single page
   (`about.css`, `auth.css`, `admin-dashboard.css`, `user-dashboard.css`, …) and a subdir for a page family with several
-  files (`pages/explore/`, `pages/validate/`, `pages/gallery/`, `pages/api-docs/`). Two rules keep the split honest,
-  both enforced by `make lint-css-layout` (`tools/lint/check-css-layout.mjs`, a blocking CI step): every entry under
-  `pages/` is registered in the lint's `PAGES` map with the views that may link it — its own page, or for the
-  three bundled tools its own CSS bundle (the two legacy exceptions, `homepage.css` and `auth.css`, are registered to the
-  site-wide layout) — and an unregistered file fails the lint, so when a second page needs a rule, it moves to
-  `css/components/`; and a page's class prefix (`ud-`, `ac-`/`ov-`/`dq-`/…, `svl-`, `svv-`, `gallery-`) is defined only
-  in that page's stylesheet(s). Layouts link the shell plus only the component files their pages use; never `@import`
-  (Play fingerprints per file, and an import adds a serial round trip).
+  files (`pages/explore/`, `pages/validate/`, `pages/gallery/`, `pages/api-docs/`). Four rules keep the split honest,
+  all enforced by `make lint-css-layout` (`tools/lint/check-css-layout.mjs`, a blocking CI step): every entry under
+  `pages/` is registered in the lint's `PAGES` map with the modules that may import it — its entry and its own JS
+  folder (the two legacy exceptions, `homepage.css` and `auth.css`, are registered to the shell entry) — and an
+  unregistered file fails the lint, so when a second page needs a rule, it moves to `css/components/`; every
+  stylesheet is imported by something; a page's class prefix (`ud-`, `ac-`/`ov-`/`dq-`/…, `svl-`, `svv-`, `gallery-`)
+  is defined only in that page's stylesheet(s); and a view that loads an entry's JS asks for that entry's styles.
 - **Third-party code groups by library** under `public/vendor/<lib>/`, each folder self-contained (its JS + CSS +
   fonts + images together, upstream internal layout preserved so relative `url()` refs keep working). **Nothing under
   `vendor/` is ever edited or linted.** Vendored filenames carry their version (`pannellum-2.5.7.js`), which names

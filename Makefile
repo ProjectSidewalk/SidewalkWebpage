@@ -85,7 +85,7 @@ RESET := \033[0m
 # /**/*.css added.
 eslint-paths   = $(if $(filter ./,$(dir)),frontend/js/ public/locales/ test/js/ test/e2e/ playwright.config.js,$(dir))
 htmlhint-paths = $(if $(filter ./,$(dir)),./app/views,$(dir))
-css-glob       = $(if $(filter ./,$(dir)),public/**/*.css,$(if $(filter %.css,$(dir)),$(dir),$(dir)/**/*.css))
+css-glob       = $(if $(filter ./,$(dir)),frontend/css/**/*.css,$(if $(filter %.css,$(dir)),$(dir),$(dir)/**/*.css))
 
 # The browser smoke suite's runner image (docker/e2e/Dockerfile), tagged from the tool versions read out of
 # package-lock.json — the base image bundles the matching Chromium, so deriving both from one pin is what keeps the
@@ -399,9 +399,8 @@ lint-locales:
 	@docker exec $(web-container) bash -lc "cd $(container-dir) && node tools/lint/check-locale-parity.mjs"
 	@echo "Finished locale checks";
 
-# Layout of public/css/ (#5030): a page's stylesheet is linked only by that page, page class prefixes stay in the
-# page's own files, and every linked stylesheet exists. Pure node, run in the web container so node is present. Also a
-# blocking CI step.
+# The frontend/css/ layout rules (tools/lint/check-css-layout.mjs). Pure node, run in the web container so node is
+# present. Also a blocking CI step.
 lint-css-layout:
 	@echo "Checking CSS layout...";
 	@docker exec $(web-container) bash -lc "cd $(container-dir) && node tools/lint/check-css-layout.mjs"
@@ -461,6 +460,7 @@ compile:
 	@docker exec $(tty-flags) -e SBT_OPTS="$(sbt-opts)" $(web-container) bash -lc "cd $(self-container-dir) && bash tools/dev/sbt-run.sh --dir $(container-dir) compile"
 
 test-scala:
+	@[ -f "$(host-dir)/public/build/manifest.json" ] || { echo "error: $(host-dir)/public/build/manifest.json is missing. The specs render views whose stylesheet tags come from the build, so run \`npm run build\` in that tree first."; exit 1; }
 	@docker exec $(tty-flags) $(lease-env) -e SBT_OPTS="$(sbt-opts)" $(web-container) bash -lc "cd $(self-container-dir) && bash tools/dev/sbt-run.sh --dir $(container-dir) --db-lock $(if $(only),'testOnly $(only)',test)"
 
 # Each release build leaves ~1GB of jars named after its version and removes none of the older ones. Drops those,

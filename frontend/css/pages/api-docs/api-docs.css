@@ -310,20 +310,20 @@ pre > code.language-csv {
 
 .download-status-icon--done {
   color: var(--color-pine-700);
-  -webkit-mask-image: url("../../../images/icons/check-circle-feather.svg");
-  mask-image: url("../../../images/icons/check-circle-feather.svg");
+  -webkit-mask-image: url("/images/icons/check-circle-feather.svg");
+  mask-image: url("/images/icons/check-circle-feather.svg");
 }
 
 .download-status-icon--warning {
   color: var(--color-orange-600);
-  -webkit-mask-image: url("../../../images/icons/alert-triangle-feather.svg");
-  mask-image: url("../../../images/icons/alert-triangle-feather.svg");
+  -webkit-mask-image: url("/images/icons/alert-triangle-feather.svg");
+  mask-image: url("/images/icons/alert-triangle-feather.svg");
 }
 
 .download-status-icon--error {
   color: var(--color-error-300);
-  -webkit-mask-image: url("../../../images/icons/alert-circle.svg");
-  mask-image: url("../../../images/icons/alert-circle.svg");
+  -webkit-mask-image: url("/images/icons/alert-circle.svg");
+  mask-image: url("/images/icons/alert-circle.svg");
 }
 
 /* Sits beside the message, and wraps under it on a narrow screen. */
@@ -400,8 +400,8 @@ pre > code.language-csv {
   margin-top: 2px;
   background-color: currentcolor;
   color: var(--color-banana-800);
-  -webkit-mask: url("../../../images/icons/alert-triangle-feather.svg") center / contain no-repeat;
-  mask: url("../../../images/icons/alert-triangle-feather.svg") center / contain no-repeat;
+  -webkit-mask: url("/images/icons/alert-triangle-feather.svg") center / contain no-repeat;
+  mask: url("/images/icons/alert-triangle-feather.svg") center / contain no-repeat;
 }
 
 /* ---- Map Previews ---- */

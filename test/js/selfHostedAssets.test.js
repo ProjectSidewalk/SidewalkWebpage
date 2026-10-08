@@ -1,5 +1,5 @@
 /**
- * Pins two properties of our own stylesheets under public/css/.
+ * Pins two properties of our own stylesheets under frontend/css/.
  *
  * **Everything they load, we serve.** A stylesheet that reaches out to a third-party host puts that host in the
  * render path of a page we serve: the URLs a font CDN hands out rotate underneath a stable-looking version number,
@@ -17,9 +17,9 @@ const fs = require('fs');
 const path = require('path');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const CSS_ROOT = path.join(REPO_ROOT, 'public', 'css');
+const CSS_ROOT = path.join(REPO_ROOT, 'frontend', 'css');
 
-/** @returns {string[]} Every .css file under public/css/, recursively, as repo-relative paths. */
+/** @returns {string[]} Every .css file under frontend/css/, recursively, as repo-relative paths. */
 function ourStylesheets(dir = CSS_ROOT) {
     return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
         const full = path.join(dir, entry.name);
@@ -37,9 +37,8 @@ function urlTargets(css) {
 }
 
 /**
- * Where a stylesheet's url(...) target lands on disk. Stylesheets address our assets either absolutely
- * (/assets/... — how Play serves public/) or relative to the stylesheet's own directory; a data: URI or a remote
- * URL lands nowhere.
+ * Where a stylesheet's url(...) target lands on disk. A source stylesheet names an asset by its root-absolute path
+ * under public/ (the build rewrites it to the served /assets/ URL); a data: URI or a remote URL lands nowhere.
  * @param {string} file The stylesheet, as a repo-relative path.
  * @param {string} target One of its url(...) targets, as urlTargets returns them.
  * @returns {string|null} The absolute path, with any query string or fragment dropped, or null for a URL that
@@ -47,8 +46,8 @@ function urlTargets(css) {
  */
 function resolveTarget(file, target) {
     if (target.startsWith('data:') || /^(https?:)?\/\//.test(target)) return null;
-    const resolved = target.startsWith('/assets/')
-        ? path.join(REPO_ROOT, 'public', target.slice('/assets/'.length))
+    const resolved = target.startsWith('/')
+        ? path.join(REPO_ROOT, 'public', target)
         : path.resolve(path.dirname(path.join(REPO_ROOT, file)), target);
     return resolved.split('?')[0].split('#')[0];
 }
@@ -62,8 +61,8 @@ function fontFaceBlocks() {
 describe('our stylesheets are self-contained', () => {
     test('there is at least one stylesheet to check, so a broken walk cannot pass vacuously', () => {
         expect(STYLESHEETS.length).toBeGreaterThan(10);
-        expect(STYLESHEETS).toContain('public/css/fonts.css');
-        expect(STYLESHEETS).toContain('public/css/pages/api-docs/api-docs.css');
+        expect(STYLESHEETS).toContain('frontend/css/fonts.css');
+        expect(STYLESHEETS).toContain('frontend/css/pages/api-docs/api-docs.css');
     });
 
     test('none of them @imports anything', () => {
@@ -292,7 +291,7 @@ describe('nothing in the render path comes from a third party we have not chosen
         // Only the file types that can name an origin — public/vendor/ also carries fonts, images and source maps,
         // and reading those in as text is megabytes of work per run for something that could never match.
         const TEXT = /\.(js|mjs|cjs|css|html|scala\.html|json|svg)$/;
-        const haystack = ['app/views', 'frontend/js', 'public/css', 'public/vendor']
+        const haystack = ['app/views', 'frontend/js', 'frontend/css', 'public/vendor']
             .flatMap(function walk(rel) {
                 const full = path.join(REPO_ROOT, rel);
                 return fs.readdirSync(full, { withFileTypes: true }).flatMap((entry) => {

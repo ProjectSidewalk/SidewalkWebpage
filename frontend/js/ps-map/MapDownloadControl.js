@@ -14,6 +14,7 @@
  */
 
 import { localizeSubtree } from '../common/i18nDom.js';
+import '../../css/components/map-download-control.css';
 
 export class MapDownloadControl {
   /** @type {HTMLElement} */

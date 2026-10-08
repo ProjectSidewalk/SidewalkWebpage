@@ -286,15 +286,7 @@
   @* Paging steps through the labels of the cluster a card was opened from. *@
   @common.labelPopup(admin = false, withPaging = true)
 
-  <link href='@assets.path("css/components/label-detail.css")' rel="stylesheet">
-  <link href='@assets.path("css/components/label-type-picker.css")' rel="stylesheet">
-  <link href='@assets.path("css/components/label-mini-card.css")' rel="stylesheet">
-  <link href='@assets.path("css/components/tag-pills.css")' rel="stylesheet">
-  <link href='@assets.path("css/components/filter-sidebar.css")' rel="stylesheet">
-  <link href='@assets.path("css/components/choropleth.css")' rel="stylesheet">
-  <link href='@assets.path("css/components/toast.css")' rel="stylesheet">
-  <link href='@assets.path("css/components/elevation-profile.css")' rel="stylesheet">
-  <link href='@assets.path("css/pages/access-score.css")' rel="stylesheet">
+  @ViteAssets.stylesheets("accessScore")
 
   <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.js")'></script>
   <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")'></script>

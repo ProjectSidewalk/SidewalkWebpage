@@ -1,9 +1,9 @@
 @*
 * The shared label card: the read-only panel showing a label's type, rating, tags, and description that Explore
 * opens over a hovered label and Validate opens over the label being validated (#4726/#4730). One markup, one
-* stylesheet pair (css/components/label-anchored-panel.css for the shell, label-hover-card.css for the chip stack),
-* one populator (js/common/LabelCardView.js); each caller keeps what is genuinely its own — showing, hiding, and
-* anchoring the card, plus the action buttons passed in as the actions block.
+* stylesheet pair (frontend/css/components/label-anchored-panel.css for the shell, label-hover-card.css for the chip
+* stack), one populator (js/common/LabelCardView.js); each caller keeps what is genuinely its own — showing, hiding,
+* and anchoring the card, plus the action buttons passed in as the actions block.
 *
 * Between the header and the facts sits the provenance strip for AI-generated labels (#5359). It lives in the card
 * rather than in a tooltip on the marker's AI badge because on Validate the hover that would open such a tooltip is
