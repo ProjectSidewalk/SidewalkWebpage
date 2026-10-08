@@ -13,6 +13,7 @@ import csv
 import io
 import json
 import re
+import urllib.error
 import urllib.parse
 import zipfile
 from pathlib import Path
@@ -22,6 +23,7 @@ import pytest
 import rasterio
 import shapely
 from pyproj import Geod
+from rasterio.crs import CRS
 from rasterio.errors import RasterioIOError
 from rasterio.transform import from_origin
 from shapely.geometry import LineString
@@ -42,12 +44,12 @@ def _east(meters, lng=_LNG, lat=_LAT):
 
 
 def _write_plane(path, rise_per_degree_lng=0.0, base=100.0, size=200, nodata_cols=(), lng=_LNG, lat=_LAT,
-                 cell=_CELL_DEG, decimeters=False):
+                 cell=_CELL_DEG, decimeters=False, crs='EPSG:4326'):
     """
     A `size` x `size` EPSG:4326 GeoTIFF whose elevation at a cell center is `base + rise_per_degree_lng * (center lng -
     west edge)`. Bilinear interpolation of a plane is exact, so a sampled elevation is this formula at the point.
     Columns in `nodata_cols` are no-data. `decimeters` stores the same surface the way GEDTM30 does: int32 tenths of a
-    meter with a 0.1 scale.
+    meter with a 0.1 scale. `crs=None` leaves the file with no coordinate system, as an ESRI GRID without prj.adf is.
     """
     centers = (np.arange(size) + 0.5) * cell
     grid = np.tile(base + rise_per_degree_lng * centers, (size, 1))
@@ -55,7 +57,7 @@ def _write_plane(path, rise_per_degree_lng=0.0, base=100.0, size=200, nodata_col
     grid[:, list(nodata_cols)] = -9999
     dtype = 'int32' if decimeters else 'float32'
     with rasterio.open(path, 'w', driver='GTiff', height=size, width=size, count=1, dtype=dtype, nodata=-9999,
-                       crs='EPSG:4326', transform=from_origin(lng, lat + size * cell, cell, cell)) as ds:
+                       crs=crs, transform=from_origin(lng, lat + size * cell, cell, cell)) as ds:
         ds.write(grid.astype(dtype), 1)
         if decimeters:
             ds.scales = (0.1,)
@@ -344,8 +346,16 @@ def test_nz_sheet_is_named_by_topo50_row_letters_and_column_number():
     assert paths[0] == f'/vsicurl/{sg.NZ_1M_DEM}BA32.tiff' and paths[1] is None
 
 
-def test_fetch_json_reads_one_document(monkeypatch):
+def _json(document):
+    """What `fetch_bytes` hands back for a JSON document."""
+    return json.dumps(document).encode()
+
+
+def test_fetch_bytes_retries_a_failed_request_and_a_wrong_body_then_gives_up(monkeypatch, caplog):
     class Response:
+        def __init__(self, body):
+            self.body = body
+
         def __enter__(self):
             return self
 
@@ -353,12 +363,28 @@ def test_fetch_json_reads_one_document(monkeypatch):
             return False
 
         def read(self):
-            return b'{"features": []}'
+            return self.body
 
-    asked = []
-    monkeypatch.setattr(sg.urllib.request, 'urlopen', lambda url, timeout: asked.append((url, timeout)) or Response())
-    assert sg.fetch_json('https://example.test/items', 5.0) == {'features': []}
-    assert asked == [('https://example.test/items', 5.0)]
+    answers, seen, pauses = [], [], []
+
+    def urlopen(request, timeout):
+        seen.append((request.full_url, request.data, timeout))
+        answer = answers.pop(0)
+        if isinstance(answer, Exception):
+            raise answer
+        return Response(answer)
+
+    monkeypatch.setattr(sg.urllib.request, 'urlopen', urlopen)
+    # A dropped connection, then a service exception with status 200, then the file: two pauses, 2 s and 4 s.
+    answers[:] = [urllib.error.URLError('connection reset'), b'<ServiceExceptionReport/>', b'II*\x00tiff']
+    assert sg.fetch_bytes('https://example.test/a.tif', magic=b'II*\x00', sleep=pauses.append) == b'II*\x00tiff'
+    assert pauses == [2.0, 4.0] and [s[1:] for s in seen] == [(None, 600.0)] * 3
+    assert 'connection reset' in caplog.text and 'ServiceExceptionReport' in caplog.text
+    # A form POST carries its fields. The third failure is the caller's.
+    answers[:] = [urllib.error.HTTPError('https://example.test/form', 503, 'busy', {}, None)] * 3
+    with pytest.raises(urllib.error.HTTPError):
+        sg.fetch_bytes('https://example.test/form', {'res': 5, 'cve': 'E14A39B4'}, 9.0, sleep=pauses.append)
+    assert seen[-1] == ('https://example.test/form', b'res=5&cve=E14A39B4', 9.0) and len(pauses) == 4
 
 
 def test_stac_items_follows_next_links_and_tolerates_a_page_without_them():
@@ -367,8 +393,9 @@ def test_stac_items_follows_next_links_and_tolerates_a_page_without_them():
                                                             {'rel': 'next', 'href': 'q?page=2'}]},
         'q?page=2': {'features': [{'id': 'b'}, {'id': 'c'}]},
     }
-    assert [item['id'] for item in sg.stac_items('q?page=1', pages.__getitem__)] == ['a', 'b', 'c']
-    assert list(sg.stac_items('q?page=2', pages.__getitem__)) == [{'id': 'b'}, {'id': 'c'}]
+    fetch = lambda url: _json(pages[url])
+    assert [item['id'] for item in sg.stac_items('q?page=1', fetch)] == ['a', 'b', 'c']
+    assert list(sg.stac_items('q?page=2', fetch)) == [{'id': 'b'}, {'id': 'c'}]
 
 
 def test_catalog_locator_searches_an_area_once_pads_it_and_keeps_each_raster_once():
@@ -396,18 +423,22 @@ def test_catalog_locator_searches_an_area_once_pads_it_and_keeps_each_raster_onc
 def _swiss_item(year, square, resolution='2'):
     item_id = f'swissalti3d_{year}_{square}'
     base = f'https://data.geo.admin.ch/ch.swisstopo.swissalti3d/{item_id}/{item_id}'
-    return {'id': item_id, 'assets': {f'{item_id}_{resolution}_2056_5728.tif': {'href': f'{base}_{resolution}_2056_5728.tif'},
-                                      f'{item_id}_{resolution}_2056_5728.xyz.zip': {'href': f'{base}.xyz.zip'}}}
+    tif = f'{item_id}_{resolution}_2056_5728.tif'
+    return {'id': item_id, 'assets': {tif: {'href': f'{base}_{resolution}_2056_5728.tif'},
+                                      f'{tif}.xyz.zip': {'href': f'{base}.xyz.zip'}}}
+
+
+_SWISS_QUERY = sg.SWISSALTI3D_ITEMS + '?bbox=8.5%2C47.3%2C8.6%2C47.4&limit=100'
 
 
 def test_swissalti3d_tiles_keeps_the_newest_issue_of_each_square_and_places_it_in_lv95():
     def fetch(url):
         if url == 'page2':
-            return {'features': [_swiss_item(2021, '2684-1247')]}
-        assert url == sg.SWISSALTI3D_ITEMS + '?bbox=8.5%2C47.3%2C8.6%2C47.4&limit=100'
-        return {'features': [_swiss_item(2019, '2683-1247'), _swiss_item(2026, '2683-1247'),
-                             _swiss_item(2020, '2683-1247'), _swiss_item(2019, '2684-1247')],
-                'links': [{'rel': 'next', 'href': 'page2'}]}
+            return _json({'features': [_swiss_item(2021, '2684-1247')]})
+        assert url == _SWISS_QUERY
+        return _json({'features': [_swiss_item(2019, '2683-1247'), _swiss_item(2026, '2683-1247'),
+                                   _swiss_item(2020, '2683-1247'), _swiss_item(2019, '2684-1247')],
+                      'links': [{'rel': 'next', 'href': 'page2'}]})
 
     tiles = sg.swissalti3d_tiles(8.5, 47.3, 8.6, 47.4, fetch)
     assert [(path.split('/')[-1], crs, bounds) for path, crs, bounds in tiles] == [
@@ -415,7 +446,7 @@ def test_swissalti3d_tiles_keeps_the_newest_issue_of_each_square_and_places_it_i
         ('swissalti3d_2021_2684-1247_2_2056_5728.tif', 'EPSG:2056', (2684000.0, 1247000.0, 2685000.0, 1248000.0))]
     assert all(path.startswith('/vsicurl/https://') for path, _, _ in tiles)
     # The 1 km square under Zürich HB (LV95 2683303, 1247925) resolves through the locator to its tile.
-    one_page = lambda url: {'features': fetch(sg.SWISSALTI3D_ITEMS + '?bbox=8.5%2C47.3%2C8.6%2C47.4&limit=100')['features']}
+    one_page = lambda url: _json({'features': json.loads(fetch(_SWISS_QUERY))['features']})
     locate = sg.CatalogLocator(lambda w, s, e, n: sg.swissalti3d_tiles(8.5, 47.3, 8.6, 47.4, one_page))
     assert locate(np.array([8.5417]), np.array([47.3769]))[0].endswith('swissalti3d_2026_2683-1247_2_2056_5728.tif')
 
@@ -425,27 +456,6 @@ def test_gedtm30_is_one_raster_for_every_point_between_its_latitude_limits():
     assert paths == [sg.GEDTM30_URL, sg.GEDTM30_URL, None, None]
     assert sg.GEDTM30_URL.startswith('/vsicurl/https://') and sg.GEDTM30.resolution_m == 30.0
     assert sg.confidence_for(sg.GEDTM30.resolution_m) == 'low'
-
-
-def test_fetch_bytes_gets_or_posts_a_form(monkeypatch):
-    class Response:
-        def __init__(self, request):
-            self.request = request
-
-        def __enter__(self):
-            return self
-
-        def __exit__(self, *args):
-            return False
-
-        def read(self):
-            return b'body:' + (self.request.data or b'')
-
-    seen = []
-    monkeypatch.setattr(sg.urllib.request, 'urlopen', lambda req, timeout: seen.append(timeout) or Response(req))
-    assert sg.fetch_bytes('https://example.test/a.zip') == b'body:'
-    assert sg.fetch_bytes('https://example.test/form', {'res': 5, 'cve': 'E14A39B4'}, 9.0) == b'body:res=5&cve=E14A39B4'
-    assert seen == [600.0, 9.0]
 
 
 def test_dem_cache_dir_is_under_the_repos_onboarding_directory(tmp_path, monkeypatch):
@@ -475,49 +485,103 @@ def test_inegi_chart_walks_the_map_series_from_the_north_west_corner():
     # The first chart of a 1:1 000 000 sheet is its north-west corner, lettered and numbered from there.
     assert sg.inegi_chart(-101.99, 19.99) == 'E14A11A1'
     assert sg.inegi_chart(-96.01, 16.01) == 'E14D89F4'
+    # A point exactly on a 4° band edge (an OSM node at 20.000000) is on that band's southern row, not past it.
+    assert sg.inegi_chart(-99.1332, 19.999999) == 'E14A19B2'
+    assert sg.inegi_chart(-99.1332, 20.0) == 'F14C89E4' and sg.inegi_chart(-99.1332, 24.0) == 'G14C89E4'
+    # A zone's eastern edge belongs to the next zone, as its western edge belongs to it.
+    assert sg.inegi_chart(-96.0, 19.4326) == 'E15A31A3'
 
 
-def _grid_zip(chart):
-    """A zip laid out the way INEGI's are: Windows separators, a GRID directory with an hdr.adf, and metadata."""
+def _grid_zip(chart, projected=True, grid=True):
+    """
+    A zip laid out the way INEGI's are: Windows separators, a GRID directory with an hdr.adf, and metadata. The
+    2011/2012 lidar editions ship no prj.adf (`projected=False`); `grid=False` is an archive with no GRID at all.
+    """
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, 'w') as archive:
-        archive.writestr(f'conjunto_de_datos\\{chart.lower()}_mt\\hdr.adf', b'grid header')
-        archive.writestr(f'conjunto_de_datos\\{chart.lower()}_mt\\w001001.adf', b'cells')
+        if grid:
+            archive.writestr(f'conjunto_de_datos\\{chart.lower()}_mt\\hdr.adf', b'grid header')
+            archive.writestr(f'conjunto_de_datos\\{chart.lower()}_mt\\w001001.adf', b'cells')
+        if grid and projected:
+            archive.writestr(f'conjunto_de_datos\\{chart.lower()}_mt\\prj.adf', b'Projection    UTM\n')
         archive.writestr('metadatos\\', b'')
         archive.writestr(f'metadatos\\{chart.lower()}_mt.txt', b'notes')
     return buffer.getvalue()
 
 
-def test_inegi_locator_downloads_the_newest_grid_edition_once_and_remembers_a_chart_without_one(tmp_path, monkeypatch,
-                                                                                               caplog):
-    monkeypatch.setattr(sg, 'REPO_ROOT', tmp_path)
-    ascii_only, unlisted = sg.inegi_chart(-99.17, 19.4326), sg.inegi_chart(-99.30, 19.4326)
-    assert len({'E14A39B4', ascii_only, unlisted}) == 3
-    editions = {'E14A39B4': [{'edicion': 2011, 'url_descarga': 'https://inegi.test/old', 'archivo': '|_as.zip,7 MB|_gr.zip,2 MB'},
-                             {'edicion': 2018, 'url_descarga': 'https://inegi.test/new', 'archivo': '|_b.zip,4 MB|_gr.zip,1 MB'}],
-                ascii_only: [{'edicion': 2011, 'url_descarga': 'https://inegi.test/ascii', 'archivo': '|_as.zip,7 MB'}],
-                unlisted: []}
+def test_extract_zip_refuses_an_entry_that_would_land_outside_the_target(tmp_path):
+    for name in ('..\\..\\escape.adf', '/etc/escape.adf'):
+        buffer = io.BytesIO()
+        with zipfile.ZipFile(buffer, 'w') as archive:
+            archive.writestr(name, b'x')
+        with pytest.raises(ValueError, match='outside'):
+            sg.extract_zip(buffer.getvalue(), tmp_path / 'into')
+    assert not (tmp_path / 'escape.adf').exists() and not (tmp_path / 'into').exists()
+
+
+def test_inegi_fetch_grid_takes_the_newest_edition_once_and_gives_a_lidar_edition_its_projection(tmp_path):
+    def edition(year, url, formats):
+        return {'edicion': year, 'url_descarga': url, 'archivo': formats}
+
+    editions = {
+        'E14A39B4': [edition(2011, 'https://www.inegi.org.mx/old', '|_as.zip,7 MB|_gr.zip,2 MB'),
+                     edition(2018, 'https://www.inegi.org.mx/new', '|_b.zip,4 MB|_gr.zip,1 MB')],
+        'F13D79F2': [edition(2011, 'https://www.inegi.org.mx/lidar', '|_gr.zip,2 MB')],
+        'E14A39B2': [edition(2011, 'https://www.inegi.org.mx/ascii', '|_as.zip,7 MB')],
+        'G14C25C3': [edition(2018, 'https://elsewhere.test/grid', '|_gr.zip,1 MB')],
+        'E14D89F4': [edition(2018, 'https://www.inegi.org.mx/empty', '|_gr.zip,1 MB')],
+    }
+    zips = {'https://www.inegi.org.mx/new_gr.zip': _grid_zip('E14A39B4'),
+            'https://www.inegi.org.mx/lidar_gr.zip': _grid_zip('F13D79F2', projected=False),
+            'https://www.inegi.org.mx/empty_gr.zip': _grid_zip('E14D89F4', grid=False)}
     fetched = []
 
-    def fetch(url, data=None):
+    def fetch(url, data=None, **_):
         fetched.append(url)
-        if url == sg.INEGI_DESCRIPTOR:
-            return json.dumps(editions[data['cve']]).encode()
-        assert url == 'https://inegi.test/new_gr.zip'
-        return _grid_zip('E14A39B4')
+        return _json(editions[data['cve']]) if url == sg.INEGI_DESCRIPTOR else zips[url]
 
-    locate = sg.InegiLocator(fetch)
-    lngs = np.array([-99.1332, -99.1332, -99.17, -99.1332, -99.30])
-    lats = np.array([19.4326, 19.4300, 19.4326, 19.4326, 19.4326])
-    grid = str(tmp_path / 'db/onboarding/_dem_cache/inegi-lidar-mdt-5m/E14A39B4/conjunto_de_datos/e14a39b4_mt')
-    assert locate(lngs, lats) == [grid, grid, None, grid, None]
-    assert (Path(grid) / 'hdr.adf').read_bytes() == b'grid header' and (Path(grid).parent.parent / 'metadatos' /
-                                                                          'e14a39b4_mt.txt').exists()
-    assert fetched == [sg.INEGI_DESCRIPTOR, 'https://inegi.test/new_gr.zip', sg.INEGI_DESCRIPTOR, sg.INEGI_DESCRIPTOR]
-    assert f'no 5 m terrain GRID for chart {ascii_only}' in caplog.text
-    # A second locator finds the chart in the cache and asks INEGI nothing.
-    fetched.clear()
-    assert sg.InegiLocator(fetch)(lngs[:1], lats[:1]) == [grid] and fetched == []
+    cache = tmp_path / 'cache'
+    cache.mkdir()
+    grid = sg.inegi_fetch_grid('E14A39B4', cache, fetch)
+    assert grid == cache / 'E14A39B4_2018' and (grid / 'hdr.adf').read_bytes() == b'grid header'
+    assert (grid / 'prj.adf').read_bytes() == b'Projection    UTM\n' and sorted(cache.iterdir()) == [grid]
+    assert fetched == [sg.INEGI_DESCRIPTOR, 'https://www.inegi.org.mx/new_gr.zip']
+    # The edition in the cache is the one INEGI still lists, so only the descriptor is asked for again.
+    assert sg.inegi_fetch_grid('E14A39B4', cache, fetch) == grid and fetched[2:] == [sg.INEGI_DESCRIPTOR]
+    # A lidar edition gets the projection of its chart's UTM zone (13 from the key); a killed run's leftovers go.
+    (cache / 'F13D79F2_2011.part').mkdir()
+    lidar = sg.inegi_fetch_grid('F13D79F2', cache, fetch)
+    assert lidar == cache / 'F13D79F2_2011' and CRS.from_wkt((lidar / 'prj.adf').read_text()).to_epsg() == 32613
+    assert sorted(cache.iterdir()) == [grid, lidar]
+    assert sg.inegi_fetch_grid('E14A39B2', cache, fetch) is None
+    with pytest.raises(ValueError, match='off its own host'):
+        sg.inegi_fetch_grid('G14C25C3', cache, fetch)
+    with pytest.raises(zipfile.BadZipFile, match='no GRID'):
+        sg.inegi_fetch_grid('E14D89F4', cache, fetch)
+    assert sorted(cache.iterdir()) == [grid, lidar]
+
+
+def test_cached_locator_asks_once_per_key_and_keeps_the_keys_it_gave_up_on(tmp_path, monkeypatch, caplog):
+    monkeypatch.setattr(sg, 'REPO_ROOT', tmp_path)
+    cache = tmp_path / 'db/onboarding/_dem_cache/demo'
+    asked = []
+
+    def fetch_file(key, cache_dir):
+        asked.append(key)
+        assert cache_dir == cache
+        if key == 'gone':
+            return None
+        if key == 'down':
+            raise sg.WrongBody('<ServiceExceptionReport/>')
+        return cache_dir / f'{key}.tif'
+
+    locate = sg.CachedLocator('demo', lambda lng, lat: 'gone' if lng < 0 else 'down' if lat < 0 else 'here',
+                              fetch_file)
+    lngs, lats = np.array([1.0, -1.0, 1.0, 2.0, -2.0]), np.array([1.0, 1.0, -1.0, 2.0, 1.0])
+    assert locate(lngs, lats) == [str(cache / 'here.tif'), None, None, str(cache / 'here.tif'), None]
+    assert asked == ['here', 'gone', 'down'] and locate.failed == ['down']
+    assert 'demo has nothing for gone' in caplog.text
+    assert 'demo down: <ServiceExceptionReport/>. Giving up on it' in caplog.text
 
 
 def test_lidarhd_cell_url_asks_for_the_cell_at_half_meter_nodes():
@@ -534,45 +598,55 @@ def test_lidarhd_cell_url_asks_for_the_cell_at_half_meter_nodes():
     assert x0 < min(xs) and x1 > max(xs) and y0 < min(ys) and y1 > max(ys)
 
 
-def test_lidarhd_locator_fetches_each_cell_once_and_drops_a_service_exception(tmp_path, monkeypatch, caplog):
-    monkeypatch.setattr(sg, 'REPO_ROOT', tmp_path)
+def test_lidarhd_fetch_cell_fetches_a_cell_once_as_one_whole_file(tmp_path, monkeypatch):
     fetched = []
 
-    def fetch(url):
-        fetched.append(url)
-        return b'<ServiceExceptionReport/>' if 'BBOX=-1000:' in url else b'II*\x00tiff'
+    def fetch(url, magic=b'', **_):
+        fetched.append((url, magic))
+        return b'II*\x00tiff'
 
     monkeypatch.setattr(sg, 'lidarhd_cell_url', lambda column, row: f'wms?BBOX={column}:{row}')
-    locate = sg.LidarHdLocator(fetch)
-    tif = str(tmp_path / 'db/onboarding/_dem_cache/ign-lidarhd-mnt-05m/-148_4349.tif')
-    assert locate(np.array([-1.475, -1.472, -9.995]), np.array([43.493, 43.499, 43.493])) == [tif, tif, None]
-    assert Path(tif).read_bytes() == b'II*\x00tiff' and fetched == ['wms?BBOX=-148:4349', 'wms?BBOX=-1000:4349']
-    assert 'No LiDAR HD GeoTIFF for cell -1000,4349' in caplog.text
-    # The exception is remembered within a run, and the file serves the next run without a request.
-    assert locate(np.array([-9.995]), np.array([43.493])) == [None] and len(fetched) == 2
-    assert sg.LidarHdLocator(fetch)(np.array([-1.475]), np.array([43.493])) == [tif] and len(fetched) == 2
+    assert sg.lidarhd_cell(-1.475, 43.493) == '-148_4349'  # Bayonne: lng -1.48..-1.47, lat 43.49..43.50
+    tif = sg.lidarhd_fetch_cell('-148_4349', tmp_path, fetch)
+    assert tif == tmp_path / '-148_4349.tif' and tif.read_bytes() == b'II*\x00tiff'
+    # The TIFF magic is what fetch_bytes retries on; nothing but the finished file is left in the cache.
+    assert fetched == [('wms?BBOX=-148:4349', b'II*\x00')] and list(tmp_path.iterdir()) == [tif]
+    assert sg.lidarhd_fetch_cell('-148_4349', tmp_path, fetch) == tif and len(fetched) == 1
 
 
 def test_ahn_sheets_read_each_sheets_url_and_rd_extent():
     index = {'features': [{'properties': {'kaartbladNr': 'M_25EZ1', 'url': 'https://pdok.test/M_25EZ1.tif'},
                            'geometry': {'coordinates': [[[120000, 487500], [125000, 487500], [125000, 493750],
                                                          [120000, 493750], [120000, 487500]]]}}]}
-    assert sg.ahn_sheets(lambda url: index if url == sg.AHN_INDEX else None) == [
-        ('/vsicurl/https://pdok.test/M_25EZ1.tif', 'EPSG:28992', (120000, 487500, 125000, 493750))]
+    sheet = '/vsicurl/https://pdok.test/M_25EZ1.tif'
+    assert sg.ahn_sheets(lambda url: _json(index) if url == sg.AHN_INDEX else None) == [
+        (sheet, 'EPSG:28992', (120000, 487500, 125000, 493750))]
     # Amsterdam Centraal (RD 121847, 488026) lies on that sheet.
-    locate = sg.index_locator(lambda: sg.ahn_sheets(lambda url: index))
-    assert locate(np.array([4.9003, -122.33]), np.array([52.3791, 47.62])) == ['/vsicurl/https://pdok.test/M_25EZ1.tif', None]
+    locate = sg.index_locator(lambda: sg.ahn_sheets(lambda url: _json(index)))
+    assert locate(np.array([4.9003, -122.33]), np.array([52.3791, 47.62])) == [sheet, None]
 
 
-def test_hrdem_tiles_take_each_mosaic_tiles_dtm_and_wgs84_bbox():
+def test_hrdem_tiles_take_each_mosaic_tiles_dtm_and_its_own_lambert_square():
+    def item(name, x0):
+        square = [[x0, 0.0], [x0, 500000.0], [x0 + 500000.0, 500000.0], [x0 + 500000.0, 0.0], [x0, 0.0]]
+        return {'id': f'{name}-mosaic-2m', 'bbox': [-123.54, 45.33, -114.83, 51.14],
+                'properties': {'proj:epsg': 3979, 'proj:geometry': {'type': 'Polygon', 'coordinates': [square]}},
+                'assets': {'dtm': {'href': f'https://example.test/{name}-mosaic-2m-dtm.tif'},
+                           'dsm': {'href': f'https://example.test/{name}-mosaic-2m-dsm.tif'}}}
+
     def fetch(url):
         assert url == (sg.HRDEM_SEARCH + '?collections=hrdem-mosaic-2m&bbox=-123.1%2C49.1%2C-122.8%2C49.3&limit=100')
-        return {'features': [{'id': '2_3-mosaic-2m', 'bbox': [-130.0, 45.0, -115.0, 52.0, 0.0, 3000.0],
-                              'assets': {'dtm': {'href': 'https://example.test/2_3-mosaic-2m-dtm.tif'},
-                                         'dsm': {'href': 'https://example.test/2_3-mosaic-2m-dsm.tif'}}}]}
+        return _json({'features': [item('2_3', -2000000.0), item('3_3', -1500000.0)]})
 
-    assert sg.hrdem_tiles(-123.1, 49.1, -122.8, 49.3, fetch) == [
-        ('/vsicurl/https://example.test/2_3-mosaic-2m-dtm.tif', 'EPSG:4326', (-130.0, 45.0, -115.0, 52.0))]
+    tiles = sg.hrdem_tiles(-123.1, 49.1, -122.8, 49.3, fetch)
+    assert tiles == [('/vsicurl/https://example.test/2_3-mosaic-2m-dtm.tif', 'EPSG:3979',
+                      (-2000000.0, 0.0, -1500000.0, 500000.0)),
+                     ('/vsicurl/https://example.test/3_3-mosaic-2m-dtm.tif', 'EPSG:3979',
+                      (-1500000.0, 0.0, -1000000.0, 500000.0))]
+    # Two points 2 km apart across the seam at x = -1 500 000 (near Cranbrook, BC). Both lie inside tile 2_3's WGS84
+    # bbox (its real one, above), so a bbox match would put the eastern one on 2_3, where it has no cells.
+    lngs, lats = sg.warp_transform('EPSG:3979', 'EPSG:4326', [-1501000.0, -1499000.0], [250000.0, 250000.0])
+    assert sg.locate_by_extent(tiles, np.array(lngs), np.array(lats)) == [tiles[0][0], tiles[1][0]]
 
 
 def test_directory_locator_finds_the_covering_raster_first_in_name_order(tmp_path):
@@ -666,6 +740,16 @@ def test_raster_sampler_survives_a_missing_raster_and_asks_for_it_once(tmp_path)
     assert np.isnan(sampler.sample(lngs, lats)).all()
     assert np.isnan(sampler.sample(lngs, lats)).all()
     assert sorted(opened) == sorted(['missing.tif', path])
+    sampler.close()
+
+
+def test_raster_sampler_gives_up_on_a_raster_that_has_no_coordinate_system(tmp_path, caplog):
+    path = str(_write_plane(tmp_path / 'bare.tif', crs=None))
+    opened = []
+    sampler = sg.RasterSampler(lambda lngs, lats: [path] * len(lngs), lambda p: opened.append(p) or rasterio.open(p))
+    lngs, lats = np.array([_LNG + 0.001]), np.array([_LAT + 0.001])
+    assert np.isnan(sampler.sample(lngs, lats)).all() and np.isnan(sampler.sample(lngs, lats)).all()
+    assert opened == [path] and 'bare.tif has no coordinate system' in caplog.text
     sampler.close()
 
 
@@ -942,6 +1026,17 @@ def test_main_points_at_the_export_when_there_is_no_input(city):
     (city / sg.INPUT_NAME).unlink()
     with pytest.raises(SystemExit, match='make export-street-gradient-input'):
         sg.main(_DEM_ARGS)
+
+
+def test_main_ends_by_naming_the_downloads_it_gave_up_on(city, caplog, monkeypatch):
+    def fetch_file(key, cache_dir):
+        raise urllib.error.URLError('still down after every retry')
+
+    locate = sg.CachedLocator('flaky', lambda lng, lat: 'west' if lng < _LNG + 0.1 else 'east', fetch_file)
+    monkeypatch.setitem(sg.REMOTE_SOURCES, 'flaky', sg.Source('flaky', 10.0, locate))
+    assert sg.main(['--city-id', 'testville', '--source', 'flaky']) == 0
+    assert [row['quality'] for row in _read_output(city)] == [sg.QUALITY_NO_DATA] * 2
+    assert '2 download(s) failed after every retry, so their streets are no_data: west, east' in caplog.text
 
 
 def test_the_import_script_expects_exactly_the_columns_the_sampler_writes():

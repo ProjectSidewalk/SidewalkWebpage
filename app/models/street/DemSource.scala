@@ -85,16 +85,20 @@ object DemSource {
       // The paper the dataset's README asks to be cited alongside the Zenodo record.
       citation = Some(
         "Ho, Y.-F., Grohmann, C.H., Lindsay, J., Reuter, H.I., Parente, L., Witjes, M., & Hengl, T. (2025). Global " +
-          "Ensemble Digital Terrain modeling and parametrization at 30 m resolution (GEDTM30): a data fusion approach " +
-          "based on ICESat-2, GEDI and multisource data. PeerJ 13, e19673. https://doi.org/10.7717/peerj.19673"
+          "Ensemble Digital Terrain modeling and parametrization at 30 m resolution (GEDTM30): a data fusion " +
+          "approach based on ICESat-2, GEDI and multisource data. PeerJ 13, e19673. " +
+          "https://doi.org/10.7717/peerj.19673"
       )
     ),
     DemSource(
       name = "inegi-lidar-mdt-5m",
-      title = "Modelo Digital de Elevación de Alta Resolución LiDAR, tipo Terreno, 5 m (INEGI)",
+      title = "Modelo Digital de Elevación de Alta Resolución, tipo Terreno, 5 m (INEGI)",
       // INEGI's terms ask for "Fuente: INEGI, <product>" and that any transformation be disclosed as ours, which
-      // the grade documentation does; the credit names the product in INEGI's own words.
-      credit = "Elevation: Fuente: INEGI, Modelo Digital de Elevación de Alta Resolución LiDAR tipo Terreno 5 m. " +
+      // the grade documentation does. The sampler takes a chart's newest edition, and the series holds two products
+      // in INEGI's words: the 2011/2012 lidar one and the 2018+ one "derivado de datos de sensores remotos
+      // satelitales y aerotransportados", so the credit names both. The stored name keeps the series' lidar label.
+      credit = "Elevation: Fuente: INEGI, Modelo Digital de Elevación de Alta Resolución tipo Terreno 5 m " +
+        "(LiDAR 2011-2012; derivado de sensores remotos satelitales y aerotransportados 2018 en adelante). " +
         "Street grades derived by Project Sidewalk, not by INEGI",
       licence = "Términos de Libre Uso de la Información del INEGI",
       url = Some("https://www.inegi.org.mx/app/geo2/elevacionesmex/"),
@@ -102,10 +106,13 @@ object DemSource {
       citation = None
     ),
     DemSource(
-      name = "ign-lidarhd-mnt-05m", title = "MNT LiDAR HD, 0,5 m (IGN)",
-      // The Licence Ouverte asks for the producer and the date of the data's last update; the edition date is per
-      // tile and lives in IGN's metadata service, so the credit names the producer and links the product.
-      credit = "Elevation: IGN, MNT LiDAR HD (Licence Ouverte / Open Licence 2.0)",
+      name = "ign-lidarhd-mnt-05m",
+      title = "MNT LiDAR HD, 0,5 m (IGN)",
+      // The Licence Ouverte asks for the producer and the date of the data's last update. The edition date is per
+      // tile, so the credit carries the flight year of the one French city (Bayonne, 2023) and the access date; a
+      // second French city flown in another year needs its own entry.
+      credit = "Elevation: IGN, MNT LiDAR HD, acquisition 2023, accessed 2026-10 " +
+        "(Licence Ouverte / Open Licence 2.0)",
       licence = "Licence Ouverte / Open Licence 2.0 (Etalab)",
       url = Some("https://www.data.gouv.fr/fr/datasets/mnt-lidar-hd/"),
       // IGN publishes no citation form for LiDAR HD.

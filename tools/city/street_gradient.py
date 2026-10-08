@@ -39,17 +39,21 @@ Grades are fractions (0.05 is a 5% grade, the OpenSidewalks ``incline`` conventi
 The pure functions (``sample_points``, ``bilinear``, ``fill_gaps``, ``smooth``, ``window_grades``, ``grade_metrics``,
 ``edge_gradient``, the tile-naming functions of each source, ``locate_by_extent``, ``country_id``) are import-safe
 and unit-tested in ``test/python/test_street_gradient.py``; raster, network and file I/O live in ``RasterSampler``,
-the catalog-backed locators (each takes its fetch function as a seam) and ``main``.
+``fetch_bytes`` (the one seam every catalog reader and download takes, so their tests stub it) and ``main``.
 """
 
 import argparse
 import csv
+import http.client
 import io
 import json
 import logging
 import math
 import re
+import shutil
 import sys
+import time
+import urllib.error
 import urllib.parse
 import urllib.request
 import zipfile
@@ -61,6 +65,8 @@ from pathlib import Path
 import numpy as np
 import rasterio
 from pyproj import Geod
+from rasterio.crs import CRS
+from rasterio.enums import WktVersion
 from rasterio.errors import RasterioIOError
 from rasterio.warp import transform as warp_transform
 from rasterio.windows import Window
@@ -384,16 +390,52 @@ def usgs_13_locate(lngs: np.ndarray, lats: np.ndarray) -> list:
     return [usgs_13_tile_url(lng, lat) for lng, lat in zip(lngs, lats)]
 
 
-def fetch_json(url: str, timeout_s: float = 60.0) -> dict:
-    """One GET of a JSON document; the seam the catalog-backed sources' tests stub."""
-    with urllib.request.urlopen(url, timeout=timeout_s) as response:
-        return json.load(response)
+class WrongBody(Exception):
+    """A response that is not the file asked for: a WMS answers an overloaded request with XML and status 200."""
 
 
-def stac_items(url: str, fetch: Callable = fetch_json) -> Iterable[dict]:
+# What one request can fail with: a refused or dropped connection, an HTTP error status, a socket timeout, a body cut
+# short, or a body that is not the file asked for. Any of them partway through an hour-long run would otherwise end it
+# (GDAL's own reads get the same retries through GDAL_ENV). The pause doubles between tries: 2 s, then 4 s.
+FETCH_ERRORS = (urllib.error.URLError, http.client.HTTPException, ConnectionError, TimeoutError, WrongBody)
+FETCH_TRIES = 3
+FETCH_PAUSE_S = 2.0
+
+
+def fetch_bytes(url: str, data: dict | None = None, timeout_s: float = 600.0, magic: bytes = b'',
+                sleep: Callable = time.sleep) -> bytes:
+    """
+    One GET (or, with ``data``, a form POST) returning the response body; the seam the catalog and download tests stub.
+
+    A body that does not start with ``magic`` counts as a failed try, since a WMS reports an overloaded request as XML
+    with status 200.
+
+    Raises:
+        One of ``FETCH_ERRORS``, once ``FETCH_TRIES`` tries have all failed.
+    """
+    body = urllib.parse.urlencode(data).encode() if data is not None else None
+
+    def once() -> bytes:
+        with urllib.request.urlopen(urllib.request.Request(url, data=body), timeout=timeout_s) as response:
+            content = response.read()
+        if not content.startswith(magic):
+            raise WrongBody(content[:200].decode(errors='replace'))
+        return content
+
+    for attempt in range(1, FETCH_TRIES):
+        try:
+            return once()
+        except FETCH_ERRORS as err:
+            pause = FETCH_PAUSE_S * 2 ** (attempt - 1)
+            log.warning('%s: %s. Trying again in %.0f s.', url, err, pause)
+            sleep(pause)
+    return once()
+
+
+def stac_items(url: str, fetch: Callable = fetch_bytes) -> Iterable[dict]:
     """Every item of a STAC search, following ``rel=next`` links across pages."""
     while url:
-        page = fetch(url)
+        page = json.loads(fetch(url))
         yield from page.get('features', [])
         url = next((link['href'] for link in page.get('links', []) if link.get('rel') == 'next'), None)
 
@@ -411,8 +453,9 @@ class CatalogLocator:
     def __init__(self, fill: Callable[[float, float, float, float], Sequence[Extent]], pad_deg: float = 0.02) -> None:
         """
         Args:
-            fill: Maps a ``(west, south, east, north)`` WGS84 box to the rasters covering it, as :func:`locate_by_extent`
-                takes them. It may return the same raster twice across calls; a path is kept once.
+            fill: Maps a ``(west, south, east, north)`` WGS84 box to the rasters covering it, as
+                :func:`locate_by_extent` takes them. It may return the same raster twice across calls; a path is kept
+                once.
             pad_deg: How far beyond a batch's box each search reaches, in degrees.
         """
         self._fill = fill
@@ -442,7 +485,7 @@ SWISSALTI3D_ITEMS = 'https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swis
 SWISSALTI3D_CRS = 'EPSG:2056'
 
 
-def swissalti3d_tiles(west: float, south: float, east: float, north: float, fetch: Callable = fetch_json,
+def swissalti3d_tiles(west: float, south: float, east: float, north: float, fetch: Callable = fetch_bytes,
                       resolution: str = '2') -> list[Extent]:
     """
     The newest swissALTI3D tile of the given resolution for each 1 km square touching a WGS84 box.
@@ -511,24 +554,31 @@ def directory_locator(dem_dir: Path, opener: Callable = rasterio.open) -> Locato
 
 # NRCan's HRDEM Mosaic, the seamless lidar terrain model of Canada ("most recent source wins" where projects
 # overlap), one cloud-optimized GeoTIFF per 500 km Lambert tile (EPSG:3979) in 1 m and 2 m issues. The tile ids
-# (2_3 under Vancouver) are not documented, so the STAC search names the tile; each item's WGS84 bbox is the extent.
-# 2 m rather than 1 m for the reason swissALTI3D is sampled at 2 m. A 30 m MRDEM DTM exists for the rest of Canada.
+# (2_3 under Vancouver) are not documented, so the STAC search names the tile; each item's ``proj:geometry`` square is
+# the extent. 2 m rather than 1 m for the reason swissALTI3D is sampled at 2 m. A 30 m MRDEM DTM exists for the rest
+# of Canada.
 HRDEM_SEARCH = 'https://datacube.services.geo.ca/stac/api/search'
 HRDEM_COLLECTION = 'hrdem-mosaic-2m'
 
 
-def hrdem_tiles(west: float, south: float, east: float, north: float, fetch: Callable = fetch_json) -> list[Extent]:
+def hrdem_tiles(west: float, south: float, east: float, north: float, fetch: Callable = fetch_bytes) -> list[Extent]:
     """
     The HRDEM Mosaic DTM tiles touching a WGS84 box.
 
+    The extent is the tile's own square in its projection, not the item's WGS84 bbox: a Lambert square's lat/lng bbox
+    reaches into its neighbours', and a point in that overlap would be placed on whichever tile the search listed
+    first, then fall off it. The squares abut exactly.
+
     Returns:
-        ``(path, crs, bounds)`` per tile, the bounds being the item's WGS84 bbox, as :class:`CatalogLocator` takes them.
+        ``(path, crs, bounds)`` per tile, as :class:`CatalogLocator` takes them.
     """
     query = urllib.parse.urlencode({'collections': HRDEM_COLLECTION, 'bbox': f'{west},{south},{east},{north}',
                                     'limit': 100})
     tiles = []
     for item in stac_items(f'{HRDEM_SEARCH}?{query}', fetch):
-        tiles.append((f'/vsicurl/{item["assets"]["dtm"]["href"]}', 'EPSG:4326', tuple(item['bbox'][:4])))
+        xs, ys = zip(*item['properties']['proj:geometry']['coordinates'][0])
+        tiles.append((f'/vsicurl/{item["assets"]["dtm"]["href"]}', f'EPSG:{item["properties"]["proj:epsg"]}',
+                      (min(xs), min(ys), max(xs), max(ys))))
     return tiles
 
 
@@ -574,14 +624,6 @@ def gedtm30_locate(lngs: np.ndarray, lats: np.ndarray) -> list:
     return [GEDTM30_URL if GEDTM30_SOUTH <= lat <= GEDTM30_NORTH else None for lat in lats]
 
 
-def fetch_bytes(url: str, data: dict | None = None, timeout_s: float = 600.0) -> bytes:
-    """One GET (or, with ``data``, a form POST) returning the response body; the seam the download tests stub."""
-    body = urllib.parse.urlencode(data).encode() if data is not None else None
-    request = urllib.request.Request(url, data=body)
-    with urllib.request.urlopen(request, timeout=timeout_s) as response:
-        return response.read()
-
-
 def dem_cache_dir(source_name: str) -> Path:
     """
     Where a source that has to be downloaded rather than read in place keeps its files, under the gitignored
@@ -609,71 +651,79 @@ def index_locator(load: Callable[[], Sequence[Extent]]) -> Locator:
 # in the national map series, so it is computed rather than looked up: 1:1 000 000 sheets by UTM zone and 4° band,
 # split 2 x 2 into lettered 1:250 000 sheets, 9 x 8 into numbered 1:50 000 sheets (tens digit the row), 3 x 2 into
 # lettered 1:20 000 sheets and 2 x 2 into numbered charts, each ordered row by row from the north-west. Checked
-# against the centroid INEGI lists for every one of the 26,334 charts (2026-10). Elevations are on ITRF, which the
-# GRID's own projection file carries, so no datum is assigned here.
+# against the centroid INEGI lists for every one of the 26,334 charts (2026-10). Elevations are on ITRF. The 2018+
+# editions carry a projection file; the 2011/2012 lidar editions none, so one is written for them (inegi_fetch_grid).
 INEGI_DESCRIPTOR = 'https://www.inegi.org.mx/app/geo2/elevacionesmex/getF10KDescarga.do'
+INEGI_DOWNLOADS = 'https://www.inegi.org.mx/'
 INEGI_GRID_SUFFIX = '_gr.zip'
 
 
 def inegi_chart(lng: float, lat: float) -> str:
     """The 1:10 000 chart key holding a point, ``E14A39B4`` under the Zócalo."""
     zone, band = math.floor((lng + 180) / 6) + 1, math.floor(lat / 4)
-    west, top = -180 + (zone - 1) * 6, band * 4 + 4
-    col, row = math.floor((lng - west) / 3), math.floor((top - lat) / 2)
-    west, top = west + col * 3, top - row * 2
-    quarter = 'ABCD'[row * 2 + col]
-    col, row = math.floor((lng - west) * 3), math.floor((top - lat) * 4)
-    west, top = west + col / 3, top - row / 4
-    sheet = (row + 1) * 10 + col + 1
-    col, row = math.floor((lng - west) * 9), math.floor((top - lat) * 8)
-    west, top = west + col / 9, top - row / 8
-    sixth = 'ABCDEF'[row * 3 + col]
-    col, row = math.floor((lng - west) * 18), math.floor((top - lat) * 16)
-    return f"{chr(ord('A') + band)}{zone:02d}{quarter}{sheet}{sixth}{row * 2 + col + 1}"
+    # Every level is read off the position of the finest (1/18° x 1/16°) chart within the 6° x 4° sheet. Zones and
+    # bands are closed along their west and south edges, as floor makes them; the rows within a sheet count from the
+    # north, so a point exactly on the sheet's south edge would floor to one row past the last and is kept on it.
+    i = min(107, math.floor((lng + 180 - (zone - 1) * 6) * 18))
+    j = min(63, math.floor((band * 4 + 4 - lat) * 16))
+    quarter = 'ABCD'[(j // 32) * 2 + i // 54]
+    sheet = ((j % 32) // 4 + 1) * 10 + (i % 54) // 6 + 1
+    sixth = 'ABCDEF'[((j % 4) // 2) * 3 + (i % 6) // 2]
+    return f"{chr(ord('A') + band)}{zone:02d}{quarter}{sheet}{sixth}{(j % 2) * 2 + i % 2 + 1}"
 
 
 def extract_zip(data: bytes, into: Path) -> None:
     """Unzips an archive whose entries may carry Windows path separators, as INEGI's do, into real directories."""
+    root = into.resolve()
     with zipfile.ZipFile(io.BytesIO(data)) as archive:
         for info in archive.infolist():
             name = info.filename.replace('\\', '/')
-            if not name.endswith('/'):
-                target = into / name
-                target.parent.mkdir(parents=True, exist_ok=True)
-                target.write_bytes(archive.read(info))
+            if name.endswith('/'):
+                continue
+            target = (root / name).resolve()
+            # An entry naming an absolute path or a `..` would otherwise write outside the cache.
+            if not target.is_relative_to(root):
+                raise ValueError(f'zip entry {info.filename!r} would land outside {into}')
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(archive.read(info))
 
 
-class InegiLocator:
-    """Fetches each chart's GRID once into the cache and names it for every point on the chart."""
+def inegi_fetch_grid(chart: str, cache_dir: Path, fetch: Callable = fetch_bytes) -> Path | None:
+    """
+    The GRID directory for a chart, from the newest edition INEGI offers one for, downloaded unless the cache holds
+    that edition already (the edition is in the directory's name, so a chart reflown since is fetched anew).
 
-    def __init__(self, fetch: Callable = fetch_bytes) -> None:
-        self._fetch = fetch
-        self._charts: dict[str, str | None] = {}
-
-    def _grid(self, chart: str) -> str | None:
-        """
-        Returns:
-            The GRID directory for a chart, downloaded on first use from the chart's newest edition that offers one,
-            or None where INEGI lists no such edition (remembered, so a chart is asked for once).
-        """
-        if chart not in self._charts:
-            self._charts[chart] = None
-            chart_dir = dem_cache_dir('inegi-lidar-mdt-5m') / chart
-            if not chart_dir.exists():
-                editions = json.loads(self._fetch(INEGI_DESCRIPTOR, {'res': 5, 'mod': 'T', 'cve': chart}))
-                offered = [e for e in editions if INEGI_GRID_SUFFIX in e.get('archivo', '')]
-                if offered:
-                    newest = max(offered, key=lambda e: e['edicion'])
-                    extract_zip(self._fetch(newest['url_descarga'] + INEGI_GRID_SUFFIX), chart_dir)
-            header = next(chart_dir.rglob('hdr.adf'), None) if chart_dir.exists() else None
-            if header is None:
-                log.warning('INEGI publishes no 5 m terrain GRID for chart %s. Points there get no elevation.', chart)
-            else:
-                self._charts[chart] = str(header.parent)
-        return self._charts[chart]
-
-    def __call__(self, lngs: np.ndarray, lats: np.ndarray) -> list:
-        return [self._grid(inegi_chart(lng, lat)) for lng, lat in zip(lngs, lats)]
+    Returns:
+        The directory rasterio opens, or None where INEGI lists no 5 m terrain GRID for the chart.
+    """
+    editions = json.loads(fetch(INEGI_DESCRIPTOR, {'res': 5, 'mod': 'T', 'cve': chart}))
+    offered = [e for e in editions if INEGI_GRID_SUFFIX in e.get('archivo', '')]
+    if not offered:
+        return None
+    newest = max(offered, key=lambda e: e['edicion'])
+    grid_dir = cache_dir / f'{chart}_{newest["edicion"]}'
+    if grid_dir.exists():
+        return grid_dir
+    url = newest['url_descarga'] + INEGI_GRID_SUFFIX
+    if not url.startswith(INEGI_DOWNLOADS):
+        raise ValueError(f'INEGI names a download off its own host for chart {chart}: {url}')
+    # Unpacked beside its final name and moved there last, so a run killed partway leaves nothing a later run trusts.
+    staging = cache_dir / f'{grid_dir.name}.part'
+    shutil.rmtree(staging, ignore_errors=True)
+    extract_zip(fetch(url), staging)
+    header = next(staging.rglob('hdr.adf'), None)
+    if header is None:
+        shutil.rmtree(staging)
+        raise zipfile.BadZipFile(f'no GRID (hdr.adf) in the archive for chart {chart}')
+    # GDAL reads a GRID without a projection file as having no coordinate system at all. Every chart of a sheet lies
+    # in the UTM zone its key names, and ITRF is within centimeters of WGS 84, so WGS 84 / UTM north stands in for it
+    # (checked against a 2018 edition's own file: the same point lands within 0.1 mm).
+    if not (header.parent / 'prj.adf').exists():
+        wkt = CRS.from_epsg(32600 + int(chart[1:3])).to_wkt(version=WktVersion.WKT1_ESRI)
+        (header.parent / 'prj.adf').write_text(wkt + '\n')
+    header.parent.rename(grid_dir)
+    shutil.rmtree(staging)
+    return grid_dir
 
 
 # IGN's LiDAR HD MNT, the 0.5 m bare-earth model France is flying through 2026 (Bayonne was flown in 2023). It is
@@ -702,29 +752,66 @@ def lidarhd_cell_url(column: int, row: int) -> str:
     return f'{LIDARHD_WMS}?{query}'
 
 
-class LidarHdLocator:
-    """Fetches each cell's GeoTIFF once into the cache and names it for every point in the cell."""
+def lidarhd_cell(lng: float, lat: float) -> str:
+    """The 0.01° cell holding a point, as its cache name (``-148_4349`` for the centre of Bayonne)."""
+    return f'{math.floor(lng / LIDARHD_CELL_DEG)}_{math.floor(lat / LIDARHD_CELL_DEG)}'
 
-    def __init__(self, fetch: Callable = fetch_bytes) -> None:
-        self._fetch = fetch
-        self._cells: dict[tuple[int, int], str | None] = {}
 
-    def _cell(self, column: int, row: int) -> str | None:
-        if (column, row) not in self._cells:
-            path = dem_cache_dir('ign-lidarhd-mnt-05m') / f'{column}_{row}.tif'
-            if not path.exists():
-                data = self._fetch(lidarhd_cell_url(column, row))
-                if not data.startswith(b'II*\x00'):  # A service exception comes back as XML with status 200.
-                    log.warning('No LiDAR HD GeoTIFF for cell %d,%d: %s', column, row, data[:200].decode(errors='replace'))
-                    self._cells[(column, row)] = None
-                    return None
-                path.write_bytes(data)
-            self._cells[(column, row)] = str(path)
-        return self._cells[(column, row)]
+def lidarhd_fetch_cell(cell: str, cache_dir: Path, fetch: Callable = fetch_bytes) -> Path:
+    """The cell's GeoTIFF in the cache, fetched from the WMS unless it is there already."""
+    path = cache_dir / f'{cell}.tif'
+    if not path.exists():
+        column, row = (int(v) for v in cell.split('_'))
+        # Written under another name and renamed last, so a run killed mid-write leaves no short file to trust.
+        part = path.with_suffix('.part')
+        part.write_bytes(fetch(lidarhd_cell_url(column, row), magic=b'II*\x00'))
+        part.rename(path)
+    return path
+
+
+# JSON and zip errors are not retried: a descriptor or archive that came back whole and still does not parse is what
+# the publisher is serving, and asking again returns the same bytes.
+DOWNLOAD_ERRORS = (*FETCH_ERRORS, json.JSONDecodeError, zipfile.BadZipFile)
+
+
+class CachedLocator:
+    """
+    A locator over rasters that have to be downloaded whole into the cache (no range requests), one per key.
+
+    A key is fetched once per run and the answer remembered either way, so a chart or cell the publisher has nothing
+    for, or whose download failed after every retry, costs one request and gives its points no elevation. The failed
+    keys are kept in ``failed`` for ``main`` to report, since a cell dropped by a transient error would otherwise
+    read as a cluster of ``no_data`` streets.
+    """
+
+    def __init__(self, cache_name: str, key: Callable[[float, float], str],
+                 fetch_file: Callable[[str, Path], Path | None]) -> None:
+        """
+        Args:
+            cache_name: The source's directory under :func:`dem_cache_dir`.
+            key: Maps a point to the key of the raster holding it (a chart, a cell).
+            fetch_file: Maps a key and the cache directory to the raster's path there, downloading it unless it is
+                present, or None where the publisher has none. It must leave nothing at that path when it fails.
+        """
+        self._cache_name, self._key, self._fetch_file = cache_name, key, fetch_file
+        self._rasters: dict[str, str | None] = {}
+        self.failed: list[str] = []
+
+    def _raster(self, key: str) -> str | None:
+        if key not in self._rasters:
+            try:
+                path = self._fetch_file(key, dem_cache_dir(self._cache_name))
+                if path is None:
+                    log.warning('%s has nothing for %s. Points there get no elevation.', self._cache_name, key)
+            except DOWNLOAD_ERRORS as err:
+                log.warning('%s %s: %s. Giving up on it; points there get no elevation.', self._cache_name, key, err)
+                self.failed.append(key)
+                path = None
+            self._rasters[key] = None if path is None else str(path)
+        return self._rasters[key]
 
     def __call__(self, lngs: np.ndarray, lats: np.ndarray) -> list:
-        return [self._cell(math.floor(lng / LIDARHD_CELL_DEG), math.floor(lat / LIDARHD_CELL_DEG))
-                for lng, lat in zip(lngs, lats)]
+        return [self._raster(self._key(lng, lat)) for lng, lat in zip(lngs, lats)]
 
 
 # AHN4, the Dutch national height model (Rijkswaterstaat, via PDOK), as 0.5 m cloud-optimized GeoTIFFs of the bare
@@ -734,10 +821,10 @@ AHN_INDEX = 'https://service.pdok.nl/rws/actueel-hoogtebestand-nederland/atom/do
 AHN_CRS = 'EPSG:28992'
 
 
-def ahn_sheets(fetch: Callable = fetch_json) -> list[Extent]:
+def ahn_sheets(fetch: Callable = fetch_bytes) -> list[Extent]:
     """Every AHN4 DTM sheet, with its RD extent, as :func:`locate_by_extent` takes them."""
     sheets = []
-    for feature in fetch(AHN_INDEX)['features']:
+    for feature in json.loads(fetch(AHN_INDEX))['features']:
         xs, ys = zip(*feature['geometry']['coordinates'][0])
         sheets.append((f'/vsicurl/{feature["properties"]["url"]}', AHN_CRS, (min(xs), min(ys), max(xs), max(ys))))
     return sheets
@@ -748,8 +835,9 @@ SWISSALTI3D_2M = Source('swissalti3d-2m', 2.0, CatalogLocator(swissalti3d_tiles)
 LINZ_NZ_1M = Source('linz-nz-1m', 1.0, nz_1m_locate)
 HRDEM_MOSAIC_2M = Source('nrcan-hrdem-mosaic-2m', 2.0, CatalogLocator(hrdem_tiles))
 GEDTM30 = Source('gedtm30', 30.0, gedtm30_locate)
-INEGI_MDT_5M = Source('inegi-lidar-mdt-5m', 5.0, InegiLocator())
-IGN_LIDARHD_05M = Source('ign-lidarhd-mnt-05m', 0.5, LidarHdLocator())
+INEGI_MDT_5M = Source('inegi-lidar-mdt-5m', 5.0, CachedLocator('inegi-lidar-mdt-5m', inegi_chart, inegi_fetch_grid))
+IGN_LIDARHD_05M = Source('ign-lidarhd-mnt-05m', 0.5,
+                         CachedLocator('ign-lidarhd-mnt-05m', lidarhd_cell, lidarhd_fetch_cell))
 AHN4_DTM_05M = Source('ahn4-dtm-05m', 0.5, index_locator(ahn_sheets))
 REMOTE_SOURCES = {source.name: source for source in (USGS_3DEP_10M, SWISSALTI3D_2M, LINZ_NZ_1M, HRDEM_MOSAIC_2M,
                                                      GEDTM30, INEGI_MDT_5M, IGN_LIDARHD_05M, AHN4_DTM_05M)}
@@ -790,10 +878,16 @@ class RasterSampler:
         """
         if path not in self._datasets:
             try:
-                self._datasets[path] = self._opener(path)
+                ds = self._opener(path)
             except RasterioIOError as err:
                 log.warning('No raster at %s (%s). Points there get no elevation.', path, err)
-                self._datasets[path] = None
+                ds = None
+            # A raster that does not say where it is cannot have points projected onto it.
+            if ds is not None and ds.crs is None:
+                log.warning('%s has no coordinate system. Points there get no elevation.', path)
+                ds.close()
+                ds = None
+            self._datasets[path] = ds
         return self._datasets[path]
 
     def sample(self, lngs: np.ndarray, lats: np.ndarray) -> np.ndarray:
@@ -1042,6 +1136,10 @@ def main(argv: list[str] | None = None, opener: Callable = rasterio.open) -> int
                 counts[row['quality']] = counts.get(row['quality'], 0) + 1
     log.info('Wrote %s: %s.', out_path, ', '.join(f'{n} {quality}' for quality, n in sorted(counts.items())) or
              'nothing new')
+    failed = getattr(source.locate, 'failed', [])
+    if failed:
+        log.warning('%d download(s) failed after every retry, so their streets are no_data: %s. A rerun without '
+                    '--resume samples them again.', len(failed), ', '.join(failed))
     return 0
 
 
