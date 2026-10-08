@@ -227,7 +227,10 @@ its siblings cache per JVM, so it also seeds that cache (`SwrCache.put`, #5418):
 computation takes longer than the reverse proxy allows a request, so a cold cache — after a deploy, or a city nobody
 opened in two days — would otherwise cost the first visitor a `502`. When the cache is cold anyway, the full-city
 endpoints wait at most 45 s and then answer `503` with `Retry-After: 30` while the computation finishes in the
-background; the AccessScore tool retries on that header and says so under its spinner.
+background; the AccessScore tool retries on that header and says so under its spinner. The admin Across Cities
+page's `/adminapi/cityScorecards` keeps the same contract over its per-JVM cross-city caches
+(`ConfigService.CrossCityColdWait`, #5432), and both pages retry through the one helper,
+`frontend/js/common/FetchWithRetry.js`.
 
 The **places refresh** (#5311) keeps the per-city `place` table current from OpenStreetMap: one Overpass query per
 run over the city's bounds for every tag in the `PlaceCategory` catalog (schools, health care, libraries, grocery,

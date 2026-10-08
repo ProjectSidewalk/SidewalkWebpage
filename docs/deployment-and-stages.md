@@ -543,10 +543,11 @@ hostnames, and ports are omitted here for the same reason as the rest of this do
 `502` can originate at the proxy itself, so a failing page may leave **no** trace in the application log. Apache's
 `ProxyTimeout` is **60 s**: a request the app takes longer than that to answer is a `502` at the client no matter
 what the JVM does next, which is why the full-city AccessScore endpoints give up waiting at 45 s and answer `503` +
-`Retry-After` instead (`AccessScoreService.FullCityColdWait`, #5418) — lower the proxy's timeout and that constant has
-to follow. That `Retry-After` reaches the browser only if the vhost does not rewrite proxied error responses
-(`ProxyErrorOverride`), which is worth checking whenever the Apache config changes; without it the AccessScore tool
-falls back to its own backoff and still converges, just more slowly. Two checks:
+`Retry-After` instead (`AccessScoreService.FullCityColdWait`, #5418), as does the Across Cities page's
+`/adminapi/cityScorecards` (`ConfigService.CrossCityColdWait`, #5432) — lower the proxy's timeout and both constants
+have to follow. That `Retry-After` reaches the browser only if the vhost does not rewrite proxied error responses
+(`ProxyErrorOverride`), which is worth checking whenever the Apache config changes; without it both pages fall back
+to their own backoff and still converge, just more slowly. Two checks:
 
 - **Reproduce against the backend directly, bypassing the proxy** — but carry a session cookie and follow redirects
   (`curl -L -c jar -b jar`): an anonymous request is bounced through the anon-session flow (a fast `303` to

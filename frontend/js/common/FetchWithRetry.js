@@ -1,13 +1,14 @@
 /**
- * The AccessScore tool's JSON fetch, with the retry a cold server asks for (#5418).
+ * A JSON fetch with the retry a cold server asks for (#5418), shared by the AccessScore tool's whole-city score feeds
+ * and the admin Across Cities page's scorecards (#5432).
  *
- * The whole-city score endpoints are cached per JVM, and a request that finds the cache empty gets a `503` with a
- * `Retry-After` once the computation has outlasted the request budget — the server keeps computing, so the client
- * that comes back when told finds the value. The same shape covers a `502`/`503`/`504` from the reverse proxy in front
+ * Both endpoints are cached per JVM, and a request that finds the cache empty gets a `503` with a `Retry-After` once
+ * the computation has outlasted the request budget — the server keeps computing, so the client that comes back when
+ * told finds the value. The same shape covers a `502`/`503`/`504` from the reverse proxy in front
  * of a slow or restarting backend. Nothing else is retried: a `4xx` means the request itself is wrong, and a network
  * failure is the page's error card, not a wait.
  */
-export class AccessScoreFetch {
+export class FetchWithRetry {
   /** The statuses that mean "not yet" rather than "no": the server's own deadline and the proxy's. */
   static #RETRYABLE_STATUSES = new Set([502, 503, 504]);
 
@@ -39,19 +40,19 @@ export class AccessScoreFetch {
    * @throws {Error} The last failure, once a response is not retryable or the next wait would end past the cap.
    */
   static async fetchJsonWithRetry(url, { onAttempt, onWait, isRetryable, maxTotalWaitSeconds } = {}) {
-    const retryable = isRetryable ?? ((response) => AccessScoreFetch.#RETRYABLE_STATUSES.has(response.status));
-    const cap = maxTotalWaitSeconds ?? AccessScoreFetch.#MAX_TOTAL_WAIT_SECONDS;
-    const startedAt = AccessScoreFetch.#now();
+    const retryable = isRetryable ?? ((response) => FetchWithRetry.#RETRYABLE_STATUSES.has(response.status));
+    const cap = maxTotalWaitSeconds ?? FetchWithRetry.#MAX_TOTAL_WAIT_SECONDS;
+    const startedAt = FetchWithRetry.#now();
     for (let attempt = 1; ; attempt += 1) {
       onAttempt?.(attempt);
       const response = await fetch(url);
       if (response.ok) return response.json();
       const error = new Error(`${url}: HTTP ${response.status}`);
       if (!retryable(response)) throw error;
-      const delaySeconds = AccessScoreFetch.#delaySeconds(response, attempt);
+      const delaySeconds = FetchWithRetry.#delaySeconds(response, attempt);
       // Giving up is a decision about the total, not the count: a server naming long waits, or one that holds each
       // request for a long time before refusing it, runs the cap down faster.
-      const elapsedSeconds = (AccessScoreFetch.#now() - startedAt) / 1000;
+      const elapsedSeconds = (FetchWithRetry.#now() - startedAt) / 1000;
       if (elapsedSeconds + delaySeconds > cap) throw error;
       onWait?.(attempt, delaySeconds);
       await new Promise((resolve) => setTimeout(resolve, delaySeconds * 1000));
@@ -73,7 +74,7 @@ export class AccessScoreFetch {
     if (header !== undefined && header !== null && /^\d+$/.test(header.trim())) {
       return Math.max(1, Number.parseInt(header, 10));
     }
-    const backoff = AccessScoreFetch.#BACKOFF_SECONDS;
+    const backoff = FetchWithRetry.#BACKOFF_SECONDS;
     return backoff[Math.min(attempt, backoff.length) - 1];
   }
 

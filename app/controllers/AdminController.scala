@@ -6,7 +6,7 @@ import formats.json.AdminFormats.{given, *}
 import formats.json.LabelFormats.*
 import formats.json.UserFormats.given
 import models.auth.{DefaultEnv, WithAdmin, WithOwner}
-import models.api.ApiModelUtils
+import models.api.{ApiError, ApiModelUtils}
 import models.label.{LabelDeletion, LabelPanoMetadata, LabelType}
 import models.user.Role
 import models.utils.JobRunTrigger
@@ -672,6 +672,12 @@ class AdminController @Inject() (
    * computed metrics ([[service.ConfigService.getCityScorecards]]) with each city's display name / URL / visibility
    * (from config, so they stay language-aware) and echoes the anomaly thresholds + cross-city median in the summary
    * block so the page can label the "needs attention" items. All field names are snake_case (v3 API convention).
+   *
+   * Every read behind it is a per-JVM cache over a fan-out to every city schema, so on a cold JVM the response can't
+   * wait for them all: past Apache's 60 s proxy timeout the page would get a `502` (#5432). Each read waits at most
+   * [[service.ConfigService.CrossCityColdWait]] instead, and when one the page needs is still computing this answers
+   * `503` + `Retry-After` with a `STILL_COMPUTING` problem body, the contract the AccessScore endpoints use (#5418),
+   * while the fan-outs keep running and fill the cache for the retry.
    */
   def getCityScorecards = cc.securityService.SecuredAction(WithOwner()) { implicit request =>
     cc.loggingService.insert(request.identity.userId, request.ipAddress, request.toString)
@@ -695,59 +701,87 @@ class AdminController @Inject() (
       None
     }
     val windowSummaryF = configService.getCrossCityActivitySummary()
-    val labelingSpeedF = configService.getCrossCityLabelingSpeed()
-    val storyStatsF    = configService.getCrossCityStoryStats()
+    // Labeling speed is the one fan-out that scans the interaction tables, so it is the likeliest to outlast the cold
+    // wait on its own. Refusing the page for it would make every retry wait on the slowest metric, and the page already
+    // shows a city missing from this map as unknown, so a still-computing speed is an honest gap rather than a zero.
+    val labelingSpeedF = configService
+      .getCrossCityLabelingSpeed()
+      .map(_.getOrElse {
+        logger.warn("Cross-city labeling speed still computing; serving Across Cities without it.")
+        Map.empty[String, Double]
+      })
+    val storyStatsF = configService.getCrossCityStoryStats()
 
+    // Every future above is already running, so the waits overlap and the response is bounded by the longest one.
     for {
-      withFlags     <- scorecardsF
-      allTimeTrend  <- allTimeF
-      dailyTrend    <- dailyF
-      dailyBaseline <- baselineF
-      windowSummary <- windowSummaryF
-      labelingSpeed <- labelingSpeedF
-      storyStats    <- storyStatsF
-    } yield {
-      val now        = OffsetDateTime.now()
-      val scorecards = withFlags.map(_.scorecard)
+      withFlagsOpt     <- scorecardsF
+      allTimeTrendOpt  <- allTimeF
+      dailyTrendOpt    <- dailyF
+      dailyBaseline    <- baselineF
+      windowSummaryOpt <- windowSummaryF
+      labelingSpeed    <- labelingSpeedF
+      storyStatsOpt    <- storyStatsF
+    } yield (withFlagsOpt, allTimeTrendOpt, dailyTrendOpt, windowSummaryOpt, storyStatsOpt) match {
+      // Story stats stay required: an empty map would render as "no stories", which the page must never claim falsely.
+      case (Some(withFlags), Some(allTimeTrend), Some(dailyTrend), Some(windowSummary), Some(storyStats)) =>
+        val now        = OffsetDateTime.now()
+        val scorecards = withFlags.map(_.scorecard)
 
-      val cities = withFlags.map { case CityScorecardWithFlags(sc, anomalies) =>
-        cityScorecardJson(sc, anomalies, cityInfoById.get(sc.cityId), labelingSpeed.get(sc.cityId), now)
-      }
-      Ok(
-        Json.obj(
-          "cities"             -> JsArray(cities),
-          "stories"            -> storyStatsJson(storyStats, cityInfoById),
-          "over_time_all_time" -> allTimeTrendJson(allTimeTrend),
-          "over_time_daily"    -> dailyTrendJson(dailyTrend, cityInfoById),
-          // Trailing-year per-day averages drawn as a reference line on every per-day chart (#5653), on the bars'
-          // own basis so the line and the bars are comparable. Null when the baseline couldn't be computed, which the
-          // page reads as "draw no line".
-          "daily_baseline" -> dailyBaseline
-            .map { b =>
-              Json.obj(
-                "days"                 -> b.days,
-                "window_start"         -> b.windowStart.toString,
-                "window_end"           -> b.windowEnd.toString,
-                "labels_per_day"       -> b.labelsPerDay,
-                "validations_per_day"  -> b.validationsPerDay,
-                "contributors_per_day" -> b.contributorsPerDay
-              )
-            }
-            .getOrElse(JsNull),
-          // Rolling week-over-week windows (trailing 7 days vs the 7 before) for the "Today & this week" tiles
-          // (#4758). Headcounts here are distinct across every city, so they can come out below the same column
-          // summed down `window_by_city` — someone who mapped in three cities is one contributor here.
-          "window_summary" -> activityWindowJson(windowSummary.total),
-          // The same windows kept per city, for the "Most active cities" table. Emitted as its own block rather than
-          // merged into `cities` because the scorecard rows already carry labels_7d/validations_7d on a slightly
-          // different basis (see getCityWindowActivityByUserBySchema) and two same-named fields would invite mixing
-          // them.
-          "window_by_city" -> JsObject(windowSummary.byCity.toSeq.map { case (cityId, w) =>
-            cityId -> cityActivityWindowJson(w)
-          }),
-          "summary" -> crossCitySummaryJson(scorecards, cityInfoById)
+        val cities = withFlags.map { case CityScorecardWithFlags(sc, anomalies) =>
+          cityScorecardJson(sc, anomalies, cityInfoById.get(sc.cityId), labelingSpeed.get(sc.cityId), now)
+        }
+        Ok(
+          Json.obj(
+            "cities"             -> JsArray(cities),
+            "stories"            -> storyStatsJson(storyStats, cityInfoById),
+            "over_time_all_time" -> allTimeTrendJson(allTimeTrend),
+            "over_time_daily"    -> dailyTrendJson(dailyTrend, cityInfoById),
+            // Trailing-year per-day averages drawn as a reference line on every per-day chart (#5653), on the bars'
+            // own basis so the line and the bars are comparable. Null when the baseline couldn't be computed, which the
+            // page reads as "draw no line".
+            "daily_baseline" -> dailyBaseline
+              .map { b =>
+                Json.obj(
+                  "days"                 -> b.days,
+                  "window_start"         -> b.windowStart.toString,
+                  "window_end"           -> b.windowEnd.toString,
+                  "labels_per_day"       -> b.labelsPerDay,
+                  "validations_per_day"  -> b.validationsPerDay,
+                  "contributors_per_day" -> b.contributorsPerDay
+                )
+              }
+              .getOrElse(JsNull),
+            // Rolling week-over-week windows (trailing 7 days vs the 7 before) for the "Today & this week" tiles
+            // (#4758). Headcounts here are distinct across every city, so they can come out below the same column
+            // summed down `window_by_city` — someone who mapped in three cities is one contributor here.
+            "window_summary" -> activityWindowJson(windowSummary.total),
+            // The same windows kept per city, for the "Most active cities" table. Emitted as its own block rather than
+            // merged into `cities` because the scorecard rows already carry labels_7d/validations_7d on a slightly
+            // different basis (see getCityWindowActivityByUserBySchema) and two same-named fields would invite mixing
+            // them.
+            "window_by_city" -> JsObject(windowSummary.byCity.toSeq.map { case (cityId, w) =>
+              cityId -> cityActivityWindowJson(w)
+            }),
+            "summary" -> crossCitySummaryJson(scorecards, cityInfoById)
+          )
         )
-      )
+      case _ =>
+        val pending = Seq[(String, Option[?])](
+          "scorecards"     -> withFlagsOpt,
+          "weekly trend"   -> allTimeTrendOpt,
+          "daily trend"    -> dailyTrendOpt,
+          "window summary" -> windowSummaryOpt,
+          "story stats"    -> storyStatsOpt
+        ).collect { case (name, None) => name }
+        logger.info(s"Across Cities still computing (${pending.mkString(", ")}); answering 503.")
+        ApiError
+          .toResult(
+            ApiError.stillComputing(
+              "Cross-city figures are still being computed. Retry after the number of seconds in the Retry-After " +
+                "header."
+            )
+          )
+          .withHeaders(RETRY_AFTER -> ApiError.StillComputingRetryAfterSeconds.toString)
     }
   }
 

@@ -34,7 +34,7 @@ class ConfigServiceTrendSpec extends SidewalkSpec with GuiceOneAppPerSuite {
   private def await[T](f: => scala.concurrent.Future[T]): T = Await.result(f, 120.seconds)
 
   "getCrossCityWeeklyTrend(None)" should {
-    lazy val allTime = await(configService.getCrossCityWeeklyTrend(None))
+    lazy val allTime = await(configService.getCrossCityWeeklyTrend(None)).value
 
     "return weeks ascending and unique with non-negative counts" in {
       allTime.map(_.weekStart) mustBe allTime.map(_.weekStart).distinct.sorted
@@ -62,7 +62,7 @@ class ConfigServiceTrendSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   "getCrossCityWeeklyTrend(Some(n))" should {
     "leave newUsers at 0 (first-ever activity is unknowable in a trailing window)" in {
-      val recent = await(configService.getCrossCityWeeklyTrend(Some(12)))
+      val recent = await(configService.getCrossCityWeeklyTrend(Some(12))).value
       // A 12-week trailing bound can straddle 13 calendar weeks (partial weeks at both ends).
       recent.length must be <= 13
       recent.foreach { w => w.newUsers mustBe 0 }
@@ -71,11 +71,11 @@ class ConfigServiceTrendSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   "getCrossCityDailyTrend(30)" should {
     // 30 is what the page requests (the week is its last seven days), so this exercises the cached key it reads.
-    lazy val daily = await(configService.getCrossCityDailyTrend(30))
+    lazy val daily = await(configService.getCrossCityDailyTrend(30)).value
 
     "return exactly 30 consecutive Pacific days ending today, zero-filled" in {
       val before = LocalDate.now(ZoneId.of("US/Pacific"))
-      val days   = await(configService.getCrossCityDailyTrend(30)).map(_.point)
+      val days   = await(configService.getCrossCityDailyTrend(30)).value.map(_.point)
       val after  = LocalDate.now(ZoneId.of("US/Pacific"))
 
       days.length mustBe 30
@@ -178,21 +178,21 @@ class ConfigServiceTrendSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       // `days = 5` is a key nothing else in the suite requests, so this is the genuinely-cold path. Identity is the
       // observable proof of sharing: a layer that recomputed per caller would hand back equal-but-distinct values.
       val inFlight = (1 to 5).map(_ => configService.getCrossCityDailyTrend(5))
-      val results  = inFlight.map(f => await(f))
+      val results  = inFlight.map(f => await(f).value)
 
       results.foreach(r => assert(r eq results.head))
     }
 
     "serve a warmed key without recomputing it" in {
-      val first  = await(configService.getCrossCityActivitySummary())
-      val second = await(configService.getCrossCityActivitySummary())
+      val first  = await(configService.getCrossCityActivitySummary()).value
+      val second = await(configService.getCrossCityActivitySummary()).value
 
       assert(second eq first)
     }
   }
 
   "getCrossCityActivitySummary" should {
-    lazy val windows = await(configService.getCrossCityActivitySummary())
+    lazy val windows = await(configService.getCrossCityActivitySummary()).value
     lazy val summary = windows.total
 
     "return non-negative totals for both windows" in {
