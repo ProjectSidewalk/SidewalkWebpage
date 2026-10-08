@@ -78,7 +78,7 @@ export class ReauditNotice {
       reference: document.getElementById('pano'),
       dark: true,
       duration: ReauditNotice.DURATION_MS,
-      // Can fire inside Toast.show(), before `#pending` is set below; it touches neither, so the order is harmless.
+      // May fire inside Toast.show(), before `#pending` is set; it touches neither.
       onShow: () => {
         this.#shownStreetIds.add(streetEdgeId);
         this.#tracker.push('ReauditToast_Shown', {

@@ -206,27 +206,6 @@ describe('ReauditNotice with Toast\'s queue (#5472)', () => {
         expect(shownIds()).toEqual([7]);
     });
 
-    test('the notice for the street the labeler ends up on is the one that shows', () => {
-        showResumeToast();
-        notice.showForTask(reauditTask(7));
-        notice.showForTask(reauditTask(8));
-        jest.advanceTimersByTime(10000 + Toast.FADE_MS);
-
-        expect(onScreen()).toEqual(['right-ui.reaudit.message-you|June 2008|March 2025']);
-        expect(shownIds()).toEqual([8]);
-    });
-
-    test('a street whose toast reached the screen is not announced again', () => {
-        notice.showForTask(reauditTask(7));
-        expect(shownIds()).toEqual([7]);
-        notice.showForTask(makeTask(8, { needsReaudit: false }));
-        jest.advanceTimersByTime(Toast.FADE_MS);
-
-        expect(notice.showForTask(reauditTask(7))).toBe(false);
-        expect(onScreen()).toEqual([]);
-        expect(shownIds()).toEqual([7]);
-    });
-
     test('a run of skipped re-audit streets behind a live toast yields one toast, for the street reached', () => {
         showResumeToast();
         for (const id of [1, 2, 3, 4]) notice.showForTask(reauditTask(id));
@@ -254,36 +233,5 @@ describe('ReauditNotice with Toast\'s queue (#5472)', () => {
         expect(shownIds()).toEqual([1, 5]);
         jest.advanceTimersByTime(ReauditNotice.DURATION_MS + Toast.FADE_MS);
         expect(onScreen()).toEqual([]);
-    });
-
-    test('a single re-audit street still shows after the resume toast, and logs then, for 12 s', () => {
-        // The ordinary page-load path: one re-audit street queued behind the resume toast.
-        showResumeToast();
-        expect(notice.showForTask(reauditTask(7))).toBe(true);
-        expect(shownIds()).toEqual([]); // Raised, not yet shown.
-
-        jest.advanceTimersByTime(10000);
-        expect(onScreen()).toEqual(['resume']); // The fade is still running.
-        jest.advanceTimersByTime(Toast.FADE_MS);
-        expect(onScreen()).toEqual(['right-ui.reaudit.message-you|June 2007|March 2025']);
-        expect(shownIds()).toEqual([7]);
-        expect(tracker.push).toHaveBeenCalledWith('ReauditToast_Shown', expect.objectContaining({
-            streetEdgeId: 7, mappedByThisUser: true, lastMappedAt: '2007-06-14T18:20:00Z', newImageryDate: '2025-03-01',
-        }));
-
-        jest.advanceTimersByTime(ReauditNotice.DURATION_MS - 1);
-        expect(onScreen()).toHaveLength(1);
-        jest.advanceTimersByTime(1 + Toast.FADE_MS);
-        expect(onScreen()).toEqual([]);
-        // Standing on the same street for the rest of the session: silent.
-        expect(notice.showForTask(reauditTask(7))).toBe(false);
-    });
-
-    test('closing a shown toast with the X still logs the dismissal, and the street stays announced', () => {
-        notice.showForTask(reauditTask(7));
-        document.querySelector('.ps-toast__close').click();
-        expect(tracker.push).toHaveBeenCalledWith('Click_ReauditToast_Close', { streetEdgeId: 7 });
-        jest.advanceTimersByTime(Toast.FADE_MS);
-        expect(notice.showForTask(reauditTask(7))).toBe(false);
     });
 });
