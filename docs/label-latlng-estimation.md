@@ -45,9 +45,9 @@ through its own frame, viewport-independent (below).
 
 Every stored label position is on this estimator except `computation_method = 'depth'` rows, whose positions were
 measured from GSV depth data at label time (2017–2020) and are better than any estimate, and a small, city-dependent
-number of `approximation2` rows (Teaneck 2, Seattle 499) whose panorama has no usable metadata, plus all of DC, whose
-pano dimensions were never recorded (#5667). There is no "frozen regression" path for historical labels: evolution 352
-recomputed them.
+number of `approximation2` rows (Teaneck 2, Seattle 499) whose panorama has no usable metadata. DC was that case for
+its whole corpus until `tools/one-off/5667-dc-label-positions.sql` ran (#5667). There is no "frozen regression" path
+for historical labels: evolution 352 recomputed them.
 
 The enum's values, in order of appearance, so the vocabulary in the research reports and the database line up:
 

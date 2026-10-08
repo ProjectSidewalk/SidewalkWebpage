@@ -500,8 +500,8 @@ class CropServiceImpl @Inject() (
           try {
             ImageUtils.withReader(file) { (reader, width, height) =>
               counts.panosOpened += 1
-              // A pano never changes size, so a stored image of another size is a mis-stitched file (the old scraper
-              // cut larger panos down to the app's then-hardcoded 13312×6656): skip loudly rather than mis-centre.
+              // A pano never changes size, so a stored image of another size was stitched at the wrong size (the old
+              // scraper upscaled small panos to 13312×6656): skip loudly rather than mis-centre.
               val recorded = labels.head
               if (recorded.panoWidth.exists(_ != width) || recorded.panoHeight.exists(_ != height)) {
                 counts.dimsMismatch += labels.size

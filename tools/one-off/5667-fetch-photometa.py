@@ -19,9 +19,9 @@ Response shape (indices verified against a known pano, 2026-08-21):
 
 Usage:
 
-    python3 scratchpad/4587-fetch-photometa.py -o scratchpad/photometa-results.csv \\
-        --input scratchpad/gsv-metadata-check.csv --only-status OK
-    python3 scratchpad/4587-fetch-photometa.py -o /dev/stdout --panos j6-uZGrtNJU24rm-j9yTZQ
+    python3 tools/one-off/5667-fetch-photometa.py -o photometa-results.csv \\
+        --input gsv-metadata-check.csv --only-status OK
+    python3 tools/one-off/5667-fetch-photometa.py -o /dev/stdout --panos j6-uZGrtNJU24rm-j9yTZQ
 """
 
 import argparse
@@ -82,11 +82,11 @@ def fetch(pano_id, timeout):
             elif response.headers.get("Content-Encoding") == "deflate":
                 raw = zlib.decompress(raw, -zlib.MAX_WBITS)
             body = raw.decode("utf-8")
+        return json.loads(body[body.index("["):]), ""
     except urllib.error.HTTPError as e:
         return None, "HTTP {}".format(e.code)
     except Exception as e:
         return None, type(e).__name__
-    return json.loads(body[body.index("["):]), ""
 
 
 def parse(payload):

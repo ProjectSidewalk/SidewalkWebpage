@@ -1,9 +1,13 @@
 -- #5667: give Washington DC's labels the coordinates evolution 179 never computed for them.
 --
--- Written against evolution 413 (v11.17.0). ONE schema (sidewalk_dc), a write role, one transaction; preview with
--- apply=0 (prints every count, then rolls back), apply with apply=1. Writes only where a value is missing or still
+-- Written against evolution 413 (v11.17.0). ONE schema (sidewalk_dc), a write role. Preview with apply=0 (the
+-- default: prints every count, then rolls back), apply with apply=1. Writes only where a value is missing or still
 -- legacy, so a rerun after more dimensions arrive converts just the newly reachable labels. Not for
 -- run-query-in-every-city.sh (read-only runner). Undo: 5667-undo-dc-label-positions.sql.
+--
+-- The main transaction holds row locks on every converted label_point/label row for its ~90 s and the backup table
+-- is created in its own short transaction (its foreign keys take a share lock on label, label_point and
+-- street_edge that would otherwise block writes to DC for the whole run). Run it at a quiet hour anyway.
 --
 -- Run first (read-only, produce the two CSVs this script loads):
 --   1. 5667-dc-store-dims.py on the scraper box against /mnt/panostore/washington-dc -> 5667-dc-store.csv
@@ -22,6 +26,25 @@
 -- backup table. Tutorial labels stay as they are (#4587). Clusters are not invalidated (352/366 precedent): force
 -- a re-cluster on DC afterwards (/runClustering?allRegions=true), then recompute user stats.
 
+\if :{?apply}
+\else
+  \set apply 0
+\endif
+SET lock_timeout = '10s';
+
+-- The backup table outlives the run: it is the undo record, and a rerun adds to it. Own transaction, see above.
+CREATE TABLE IF NOT EXISTS old_label_point_coords_2 (
+  label_point_id INT PRIMARY KEY REFERENCES label_point (label_point_id),
+  label_id INT NOT NULL UNIQUE REFERENCES label (label_id),
+  pano_x INT NOT NULL,
+  pano_y INT NOT NULL,
+  lat DOUBLE PRECISION,
+  lng DOUBLE PRECISION,
+  geom geometry,
+  computation_method TEXT,
+  street_edge_id INT NOT NULL REFERENCES street_edge (street_edge_id)
+);
+
 BEGIN;
 
 -- ---------------------------------------------------------------------------------------------------------------
@@ -38,14 +61,13 @@ CREATE TEMP TABLE store_in (pano_id TEXT, folder TEXT, jpeg_w INT, jpeg_h INT, x
                             xml_date TEXT, has_depth INT, log_downloaded TEXT) ON COMMIT DROP;
 \set copy_store '\\copy store_in FROM ' :'store' ' WITH (FORMAT csv, HEADER true, NULL '''')'
 :copy_store
+ANALYZE dims_in;
+ANALYZE store_in;
 
 SELECT 'dims to fill' AS what, count(*) FROM pano_data INNER JOIN dims_in USING (pano_id)
 WHERE pano_data.width IS NULL OR pano_data.height IS NULL;
 SELECT 'capture_date to fill' AS what, count(*) FROM pano_data INNER JOIN store_in USING (pano_id)
 WHERE pano_data.capture_date = '' AND store_in.xml_date ~ '^[0-9]{4}-[0-9]{2}$';
-SELECT 'camera/position to fill' AS what, count(*) FROM pano_data INNER JOIN store_in USING (pano_id)
-WHERE (pano_data.camera_heading IS NULL OR pano_data.lat IS NULL) AND store_in.xml_yaw IS NOT NULL
-  AND store_in.xml_orig_lat IS NOT NULL;
 SELECT 'dims by source' AS what, source, count(*) FROM dims_in GROUP BY source;
 
 UPDATE pano_data
@@ -62,15 +84,6 @@ FROM store_in
 WHERE pano_data.pano_id = store_in.pano_id AND pano_data.capture_date = ''
   AND store_in.xml_date ~ '^[0-9]{4}-[0-9]{2}$';
 
--- Camera heading = the sidecar's pano_yaw_deg, position = its original_lat/lng (what the live API reports; #4587
--- measured both). camera_pitch is left alone: the sidecar's tilt vector is not the API's pitch.
-UPDATE pano_data
-SET camera_heading = COALESCE(pano_data.camera_heading, store_in.xml_yaw),
-    lat = COALESCE(pano_data.lat, store_in.xml_orig_lat), lng = COALESCE(pano_data.lng, store_in.xml_orig_lng)
-FROM store_in
-WHERE pano_data.pano_id = store_in.pano_id AND (pano_data.camera_heading IS NULL OR pano_data.lat IS NULL)
-  AND store_in.xml_yaw IS NOT NULL AND store_in.xml_orig_lat IS NOT NULL;
-
 SELECT 'panos still without dims' AS what, count(*) FROM pano_data WHERE width IS NULL OR height IS NULL;
 SELECT 'labelled panos still without dims' AS what, count(DISTINCT label.pano_id) FROM label
 INNER JOIN pano_data ON label.pano_id = pano_data.pano_id WHERE pano_data.width IS NULL;
@@ -78,18 +91,6 @@ INNER JOIN pano_data ON label.pano_id = pano_data.pano_id WHERE pano_data.width 
 -- ---------------------------------------------------------------------------------------------------------------
 -- Part 2. The coordinate conversion 179 skipped, then the position recompute (evolution 366 parts 2 and 3).
 -- ---------------------------------------------------------------------------------------------------------------
--- A rerun must not fail on the backup table from the last run: keep it (it is the undo record) and add to it.
-CREATE TABLE IF NOT EXISTS old_label_point_coords_2 (
-  label_point_id INT PRIMARY KEY REFERENCES label_point (label_point_id),
-  label_id INT NOT NULL UNIQUE REFERENCES label (label_id),
-  pano_x INT NOT NULL,
-  pano_y INT NOT NULL,
-  lat DOUBLE PRECISION,
-  lng DOUBLE PRECISION,
-  geom geometry,
-  computation_method TEXT,
-  street_edge_id INT NOT NULL REFERENCES street_edge (street_edge_id)
-);
 -- Earlier runs' rows fail the population test below, so every later statement drives off this run's rows only.
 CREATE TEMP TABLE run_rows (label_point_id INT PRIMARY KEY) ON COMMIT DROP;
 
@@ -196,9 +197,12 @@ SET lat = new_lat,
 FROM new_positions
 WHERE label_point.label_point_id = new_positions.label_point_id;
 
--- Reattach to the nearest open street, as the app does at submission (352/366). Labels whose position was NULL are
--- skipped: they took the audit task's street, not a computed one. The strictly-closer test keeps a label whose own
--- street has since closed from being dragged onto a farther open one.
+-- Reattach to the nearest open street, as the app does at submission (352/366), but only labels whose position this
+-- run changed or created. Unlike 366 the unmoved rows are left alone: on DC the strictly-closer sweep would re-file
+-- 20,098 labels whose position did not change for a median gain of 0.76 m, adjacent-street coin flips. The rows
+-- that HAD no position are included on purpose: DC's legacy nearest-street assignment filed them from garbage
+-- coordinates (3,435 labels on 3 streets a median 8.5 km from their pano). The strictly-closer test keeps a label
+-- whose own street has since closed from being dragged onto a farther open one.
 UPDATE label
 SET street_edge_id = nearest_street.street_edge_id
 FROM run_rows
@@ -219,8 +223,9 @@ CROSS JOIN LATERAL (
   LIMIT 1
 ) nearest_street
 WHERE label.label_id = old_label_point_coords_2.label_id
-  AND old_label_point_coords_2.lat IS NOT NULL
-  AND old_label_point_coords_2.lng IS NOT NULL
+  AND label_point.lat IS NOT NULL
+  AND (old_label_point_coords_2.lat IS NULL
+       OR old_label_point_coords_2.lat <> label_point.lat OR old_label_point_coords_2.lng <> label_point.lng)
   AND label.street_edge_id <> nearest_street.street_edge_id
   AND ST_DistanceSphere(nearest_street.geom, label_point.geom)
     < ST_DistanceSphere(current_street.geom, label_point.geom);
@@ -228,6 +233,9 @@ WHERE label.label_id = old_label_point_coords_2.label_id
 SELECT 'labels converted this run' AS what, count(*) FROM run_rows;
 SELECT 'positions recomputed this run' AS what, count(*) FROM run_rows
 INNER JOIN label_point USING (label_point_id) WHERE label_point.computation_method = 'approximation3';
+SELECT 'labels reattached this run' AS what, count(*) FROM run_rows
+INNER JOIN old_label_point_coords_2 USING (label_point_id) INNER JOIN label USING (label_id)
+WHERE label.street_edge_id <> old_label_point_coords_2.street_edge_id;
 SELECT 'labels still legacy (not tutorial)' AS what, count(*) FROM label_point
 INNER JOIN label USING (label_id) INNER JOIN old_label_metadata USING (label_id)
 WHERE NOT label.tutorial AND label_point.pano_x = old_label_metadata.old_pano_x
