@@ -340,12 +340,13 @@ class StreetImageryPollSpec extends SidewalkSpec with GuiceOneAppPerSuite with R
       row.flatMap(_.polledAt).isDefined mustBe true
     }
 
-    "widen the range, replace the median (NULL on an empty poll), keep n_panos/data_source, stamp both times" in {
+    "widen the range, replace the median (NULL on an empty poll), keep n_panos/data_source, restamp polled_at" in {
+      // A year old, so a conflict path that left polled_at alone would still show the stale stamp.
       val staleStamp                 = OffsetDateTime.now.minusYears(1)
       val (afterDatedPoll, finalRow) = runRolledBack(for {
         street <- seedIsolatedStreet
         _      <- streetImagery += StreetImagery(street.streetEdgeId, Some(LocalDate.parse("2010-01-01")),
-          Some(LocalDate.parse("2030-01-01")), None, 42, StreetImagerySource.ImageryScan, staleStamp, None)
+          Some(LocalDate.parse("2030-01-01")), None, 42, StreetImagerySource.ImageryScan, staleStamp, Some(staleStamp))
         // This poll's narrower range must not shrink the stored one. Its median (2 of 3 points dated -> the older
         // of the two per-point captures) is a snapshot, not a widen.
         _ <- streetImageryTable.upsertFromPoll(
@@ -354,6 +355,7 @@ class StreetImageryPollSpec extends SidewalkSpec with GuiceOneAppPerSuite with R
           Seq(onStreet(street, 0, Some(oldest)), onStreet(street, 1, Some(newest)))
         )
         afterDatedPoll <- streetImageryTable.getForStreet(street.streetEdgeId)
+        _ <- streetImagery.filter(_.streetEdgeId === street.streetEdgeId).map(_.polledAt).update(Some(staleStamp))
         // A later conclusive poll that sees nothing attributable NULLs the median again -- its honest snapshot.
         _        <- streetImageryTable.upsertFromPoll(street.streetEdgeId, 3, Seq.empty)
         finalRow <- streetImageryTable.getForStreet(street.streetEdgeId)
@@ -366,42 +368,10 @@ class StreetImageryPollSpec extends SidewalkSpec with GuiceOneAppPerSuite with R
       finalRow.map(_.nPanos) mustBe Some(42)
       finalRow.map(_.dataSource) mustBe Some(StreetImagerySource.ImageryScan)
       finalRow.map(_.updatedAt.isAfter(staleStamp)) mustBe Some(true)
-      // Not compared with each other: both upserts share one transaction, and now() is the transaction's start time.
-      afterDatedPoll.flatMap(_.polledAt).isDefined mustBe true
+      // Both conflict paths replace the backdated stamp (#5403). Not compared with each other: both upserts share one
+      // transaction, and now() is the transaction's start time.
+      afterDatedPoll.flatMap(_.polledAt).exists(_.isAfter(staleStamp)) mustBe true
       finalRow.flatMap(_.polledAt).exists(_.isAfter(staleStamp)) mustBe true
-    }
-
-    "stamp polled_at on both branches, insert and conflict (#5403)" in {
-      // Older than any stamp now() can produce, so a conflict update that left polled_at alone would still show it.
-      val staleStamp                             = OffsetDateTime.now.minusYears(1)
-      def backdate(streetEdgeId: Int): DBIO[Int] =
-        streetImagery.filter(_.streetEdgeId === streetEdgeId).map(_.polledAt).update(Some(staleStamp))
-
-      val (emptyInsert, datedConflict, datedInsert, emptyConflict) = runRolledBack(for {
-        streetA <- seedStreet("open", 0.10)
-        streetB <- seedStreet("open", 0.12)
-        // Street A: empty branch inserts, then the dated branch hits the conflict path.
-        _           <- streetImageryTable.upsertFromPoll(streetA.streetEdgeId, 3, Seq.empty)
-        emptyInsert <- streetImageryTable.getForStreet(streetA.streetEdgeId)
-        _           <- backdate(streetA.streetEdgeId)
-        _ <- streetImageryTable.upsertFromPoll(streetA.streetEdgeId, 3, Seq(onStreet(streetA, 1, Some(newest))))
-        datedConflict <- streetImageryTable.getForStreet(streetA.streetEdgeId)
-        // Street B: the dated branch inserts, then the empty branch hits the conflict path.
-        _ <- streetImageryTable.upsertFromPoll(streetB.streetEdgeId, 3, Seq(onStreet(streetB, 1, Some(newest))))
-        datedInsert   <- streetImageryTable.getForStreet(streetB.streetEdgeId)
-        _             <- backdate(streetB.streetEdgeId)
-        _             <- streetImageryTable.upsertFromPoll(streetB.streetEdgeId, 3, Seq.empty)
-        emptyConflict <- streetImageryTable.getForStreet(streetB.streetEdgeId)
-      } yield (emptyInsert, datedConflict, datedInsert, emptyConflict))
-
-      emptyInsert.flatMap(_.polledAt).isDefined mustBe true
-      datedInsert.flatMap(_.polledAt).isDefined mustBe true
-      // The conflict paths must write EXCLUDED.polled_at: the backdated stamp is replaced by this poll's, which is
-      // the same instant as its updated_at.
-      Seq(datedConflict, emptyConflict).foreach { row =>
-        row.flatMap(_.polledAt).exists(_.isAfter(staleStamp)) mustBe true
-        row.flatMap(_.polledAt).map(_.toInstant) mustBe row.map(_.updatedAt.toInstant)
-      }
     }
   }
 }

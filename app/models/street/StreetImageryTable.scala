@@ -68,9 +68,7 @@ object StreetImagerySource extends PgEnumCompanion[StreetImagerySource]("street_
  * @param nPanos              Number of distinct dated panos observed on the street.
  * @param dataSource          Which feeder created this row.
  * @param updatedAt           When this row was last written, by any feeder.
- * @param polledAt            When the nightly imagery-age poll last answered conclusively for this street, `None`
- *                            until it has (#5403). The rotation key: only `upsertFromPoll` writes it, so the
- *                            labeling harvest (which bumps `updatedAt`) cannot move a street in the poll queue.
+ * @param polledAt            When the imagery-age poll last answered conclusively; the poll rotation's key (#5403).
  */
 case class StreetImagery(
     streetEdgeId: Int,
@@ -157,13 +155,11 @@ class StreetImageryTable @Inject() (protected val dbConfigProvider: DatabaseConf
    *
    * Open, non-tutorial streets, ordered so that audited streets come first (their outdated_imagery flags are what the
    * poll exists to feed) and, within each group, least recently *polled* first: no street_imagery row or a NULL
-   * polled_at first, then the oldest polled_at. The poller stamps polled_at on every street it conclusively polls --
-   * even when the dates don't change -- which is what advances this rotation. updated_at is deliberately not the key
-   * (#5403): the labeling harvest (refreshFromPanoData) bumps it too, and because the expiry sweep feeds that
-   * harvest's pano_data.last_viewed window, keying on it would let streets nobody polled queue behind every street
-   * polled the previous week. The tiering is strict: in a city with more than `limit` audited streets, the batch is
-   * all audited streets and unaudited ones are never reached -- accepted, since only audited streets have flags to
-   * feed, but it means this poll is not a city-wide imagery census.
+   * polled_at first, then the oldest polled_at. polled_at is the rotation key, not updated_at, because only the poll
+   * writes it (#5403); it is stamped on every conclusive poll, so a street the poll can never answer for (a sample
+   * point that always fails) stays NULL and holds one batch slot every night. The tiering is strict: in a city with
+   * more than `limit` audited streets, the batch is all audited streets and unaudited ones are never reached --
+   * accepted, since only audited streets have flags to feed, but it means this poll is not a city-wide imagery census.
    *
    * Sample points sit at the street's 20%/50%/80% marks -- see StreetToPoll for why interior points, not endpoints.
    *
@@ -205,8 +201,7 @@ class StreetImageryTable @Inject() (protected val dbConfigProvider: DatabaseConf
    *
    * A separate, slower rotation from streetsToPoll on purpose: no_imagery streets are never audited, so folding them
    * into that query's audited-first ordering would place them dead last and they would never be reached. Ordering is
-   * purely least-recently-polled (no street_imagery row or NULL polled_at first), and the poller stamps polled_at on
-   * every conclusive poll -- empty results included -- which is what advances this rotation (#5403).
+   * purely least-recently-polled: polled_at ASC NULLS FIRST, the same rotation key as streetsToPoll (#5403).
    *
    * Side effect worth knowing: neither syncOutdatedImageryFlags nor km_needs_reaudit filters by street status, so a
    * regained street's pre-retirement audits get flagged as outdated_imagery while it still sits in the review queue.
@@ -259,9 +254,8 @@ class StreetImageryTable @Inject() (protected val dbConfigProvider: DatabaseConf
    * On conflict, oldest/newest only ever widen (LEAST/GREATEST ignore NULLs) and n_panos / data_source are left
    * alone -- a poll sees at most a few panos, so a scan's richer pano count stays authoritative. A street where
    * nothing was attributable still gets its row upserted (NULL dates, n_panos 0 on insert), recording "checked,
-   * nothing there" and, through polled_at, advancing the streetsToPoll rotation -- and NULLing the median, since
-   * that is this poll's honest snapshot. polled_at is this method's alone: it is the rotation key, and a feeder that
-   * could write it could reorder the queue (#5403).
+   * nothing there" and advancing the streetsToPoll rotation -- and NULLing the median, since that is this poll's
+   * honest snapshot. Only this method writes polled_at, the rotation key (#5403).
    *
    * @param streetEdgeId   The polled street.
    * @param nPointsSampled How many sample points the poll conclusively answered for (the median's denominator).
@@ -403,11 +397,9 @@ class StreetImageryTable @Inject() (protected val dbConfigProvider: DatabaseConf
    * data_source / median_newest_capture are left alone -- a scan's full-street pano count is richer than the
    * labeling-observed subset, and labeling-observed panos are too positionally biased to support the median's
    * "half the street" claim (only the fixed-sample-point poll writes it). polled_at, the poll rotation's key, is left
-   * alone too (#5403): this refresh runs for every street with a recently viewed pano, and the expiry sweep counts as
-   * a view, so letting it touch the key would starve never-polled streets. The seven-day last_viewed lookback
-   * overlaps nightly runs, so a missed run self-heals. Panos without a stored position (lat/lng are nullable)
-   * contribute nothing, the tutorial pano is skipped, and a pano whose nearest street is the tutorial street is
-   * dropped rather than reattributed.
+   * alone too (#5403). The seven-day last_viewed lookback overlaps nightly runs, so a missed run self-heals. Panos
+   * without a stored position (lat/lng are nullable) contribute nothing, the tutorial pano is skipped, and a pano
+   * whose nearest street is the tutorial street is dropped rather than reattributed.
    *
    * @return Number of street rows inserted or updated.
    */

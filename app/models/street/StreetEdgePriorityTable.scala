@@ -30,11 +30,9 @@ case class StreetEdgePriority(streetEdgePriorityId: Int, streetEdgeId: Int, prio
  * @param outdated            Audited, with no up-to-date audit left -- the same definition `/v3/api/streets` reports,
  *                            so the page's re-audit counts match the Coverage KPI rather than the priority counts.
  * @param lastAuditDate       UTC date of the most recent completed audit, if any.
- * @param medianNewestCapture The street's polled median newest capture: NULL before its first conclusive poll, and
- *                            also after a conclusive poll that attributed nothing, so it cannot say "never polled".
+ * @param medianNewestCapture The street's polled median newest capture, NULL when never polled conclusively.
  * @param imageryUpdatedAt    When any feeder last wrote this street's `street_imagery` row.
- * @param polledAt            When the nightly imagery-age poll last answered conclusively for this street; NULL when
- *                            it never has (#5403). The page's coverage figures count this, not the median.
+ * @param polledAt            When the imagery-age poll last answered conclusively; the poll rotation's key (#5403).
  * @param lengthMeters        Geodesic length, for distance roll-ups.
  */
 case class StreetPriorityForAdmin(

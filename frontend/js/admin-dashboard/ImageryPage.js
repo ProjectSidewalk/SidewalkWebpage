@@ -235,9 +235,7 @@ export class ImageryPage {
           key: 'median_newest_capture',
           label: 'Imagery (median)',
           numeric: false,
-          // A NULL median means "never polled" only when polled_at is NULL too; a conclusive poll that found no
-          // dated imagery leaves it NULL as well (#5403).
-          format: (r) => util.escapeHTML(r.median_newest_capture || (r.polled_at ? 'none dated' : 'not polled')),
+          format: (r) => util.escapeHTML(r.median_newest_capture || 'not polled'),
         },
       ],
     });
@@ -303,10 +301,6 @@ export class ImageryPage {
     this.#regionTable?.highlightRows(regionIds);
   }
 
-  /**
-   * The street-row KPIs: the re-audit backlog, the unaudited count, and how much of the city the poll has reached.
-   * The pipeline-derived last-poll KPI renders separately, since it needs the other fetch.
-   */
   #renderKpis() {
     const counts = this.#tierCounts();
     // The KPI counts the site-wide re-audit flag (audited, no up-to-date audit left) rather than the map's tier, so
@@ -320,14 +314,14 @@ export class ImageryPage {
     AdminShell.setText('kpi-unaudited', counts.unaudited.toLocaleString());
     AdminShell.setText('kpi-unaudited-note', `of ${this.#streets.length.toLocaleString()} routable streets`);
 
-    // "Polled" is polled_at, never the median: a conclusive poll that attributed nothing leaves the median NULL,
-    // and a harvest-only record has a timestamp but was never polled (#5403).
+    // polled_at is the poll rotation's key (#5403); the median is NULL after a conclusive poll that found nothing.
     const polled = this.#streets.filter((street) => street.polled_at);
     const share = this.#streets.length ? Math.round((polled.length / this.#streets.length) * 100) : 0;
     const oldestPoll = ImageryPage.#oldestInstant(polled, 'polled_at');
+    // Clamped: a browser clock behind the server's would otherwise read "-1 days ago".
     const oldestAge = oldestPoll === null
       ? 'no street has been polled yet'
-      : `oldest poll ${ImageryPage.#daysAgo(oldestPoll)}`;
+      : `oldest poll ${Math.max(0, Math.floor((Date.now() - Date.parse(oldestPoll)) / 86400000))} days ago`;
     AdminShell.setText('kpi-rotation', `${share}%`);
     AdminShell.setText('kpi-rotation-note', `${polled.length.toLocaleString()} of `
     + `${this.#streets.length.toLocaleString()} routable streets polled at least once; ${oldestAge}`);
@@ -470,7 +464,6 @@ export class ImageryPage {
     const withRow = this.#streets.filter((street) => street.imagery_updated_at);
     const polled = this.#streets.filter((street) => street.polled_at);
     const auditedPolled = audited.filter((street) => street.polled_at);
-    // Still the median here, not polled_at: these two rows compare dates, which a poll with nothing dated lacks.
     const auditedWithMedian = audited.filter((street) => street.median_newest_capture);
     const behind = auditedWithMedian.filter((street) =>
       ImageryPage.#daysBetween(street.last_audit_date, street.median_newest_capture) > 0).length;
@@ -523,7 +516,7 @@ export class ImageryPage {
             ${row('Oldest imagery record', oldest ? util.escapeHTML(oldest.slice(0, 10)) : '—',
               'the record written longest ago, by any feeder')}
             ${row('Oldest poll', oldestPoll ? util.escapeHTML(oldestPoll.slice(0, 10)) : '—',
-              'the polled street the rotation revisits first; never-polled streets go ahead of it')}
+              'the oldest poll stamp in the table; never-polled streets sort ahead of it')}
           </tbody>
         </table>
       </div>`;
@@ -556,15 +549,12 @@ export class ImageryPage {
       });
 
     const audited = this.#streets.filter((street) => street.last_audit_date);
-    const notPolled = audited.filter((street) => !street.polled_at).length;
-    // Polled, but no sample point had dated imagery: measured as "nothing to compare", not "not yet polled".
-    const polledUndated = audited.length - measured.length - notPolled;
+    const unmeasured = audited.length - measured.length;
     const note = document.getElementById('imagery-freshness-note');
     if (note) {
       note.textContent = `${behind.length.toLocaleString()} audited streets have imagery newer than their last `
         + `audit; not plotted: ${(measured.length - behind.length).toLocaleString()} still current, `
-        + `${notPolled.toLocaleString()} not yet polled, ${polledUndated.toLocaleString()} polled `
-        + 'without a dated capture.';
+        + `${unmeasured.toLocaleString()} not yet polled.`;
     }
   }
 
@@ -589,17 +579,6 @@ export class ImageryPage {
       if (street[field] && (oldest === null || Date.parse(street[field]) < Date.parse(oldest))) oldest = street[field];
     }
     return oldest;
-  }
-
-  /**
-   * Whole days since a past instant, phrased for a KPI note.
-   *
-   * @param {string} iso - A past instant.
-   * @returns {string} "N days ago", singular for one day ("0 days ago" for today).
-   */
-  static #daysAgo(iso) {
-    const days = Math.floor((Date.now() - Date.parse(iso)) / 86400000);
-    return `${days.toLocaleString()} day${days === 1 ? '' : 's'} ago`;
   }
 
   /** Whole days from `from` to `to`, both YYYY-MM-DD; negative when `to` is the earlier date. */
