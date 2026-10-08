@@ -72,9 +72,8 @@
 }
 
 /* Raleway (--font-accent, the heading face): three weights of one family, so `font-weight: 700` picks Raleway Bold
-   for the --text-h1-bold / --text-h2-bold headings instead of a smeared copy of the regular outlines.
-   `swap`, like the faces above: a heading is better in a fallback face for a moment than absent until this one
-   arrives. */
+   for the --text-h1-bold / --text-h2-bold headings instead of a smeared copy of the regular outlines. `swap`, like
+   the faces above: a heading is better in a fallback face for a moment than absent until this one arrives. */
 @font-face {
   font-family: raleway;
   src: url("/fonts/Raleway/Raleway-Regular.woff2") format("woff2");
