@@ -230,11 +230,87 @@ class PanoDataServiceSpec extends AnyFunSuite with Matchers {
     PanoDataService.staticStillUrl("p", 0, 0, 3.0, 720, 480, "KEY") should include(s"&fov=$curve&")
   }
 
-  test("the street-endpoint URL is the request the endpoint images have always made") {
-    // Same builder and the same error-code ask as the still; the params, not the plumbing, are what may differ.
-    PanoDataService.staticLocationUrl(47.6062, -122.3321, 271.5, "KEY") shouldBe
-      "https://maps.googleapis.com/maps/api/streetview?location=47.6062,-122.3321&radius=40&source=outdoor" +
+  test("the street-endpoint URL asks for the checked pano by id, never by location (#5464)") {
+    // A location request can be answered from another state (#5114), and its image carries no position to check, so
+    // the image has to be the pano that metadata already placed within the radius.
+    val url = PanoDataService.staticEndpointUrl("abc", 271.5, "KEY")
+    url shouldBe "https://maps.googleapis.com/maps/api/streetview?pano=abc" +
       "&size=640x640&heading=271.5&pitch=-10&fov=90&return_error_code=true&key=KEY"
+    url should not include "location="
+    url should not include "radius="
+  }
+
+  test("the GSV search radius is Explore's svl.STREETVIEW_MAX_DISTANCE") {
+    // The JS side is the one definition (#5465); read it rather than restating 25 so the two can't drift apart.
+    val js = Files.readString(Path.of("frontend/js/explore/Main.js"))
+    val m  = """svl\.STREETVIEW_MAX_DISTANCE = (\d+);""".r
+      .findFirstMatchIn(js)
+      .getOrElse(fail("svl.STREETVIEW_MAX_DISTANCE is no longer set as a literal in Main.js"))
+    PanoDataService.GsvSearchRadiusMeters shouldBe m.group(1).toInt
+    PanoDataService.GsvSearchRadiusMeters shouldBe 25
+  }
+
+  test("the metadata URL is the request the imagery-age poll has always made") {
+    PanoDataService.gsvMetadataUrl(47.6062, -122.3321, 25, "KEY") shouldBe
+      "https://maps.googleapis.com/maps/api/streetview/metadata?source=outdoor" +
+      "&location=47.6062,-122.3321&radius=25&key=KEY"
+  }
+
+  // The #5114 response: a 25 m search at a Seattle street point answered with a Syracuse photosphere.
+  private val seattleLat = 47.6196811
+  private val seattleLng = -122.3100703
+  private val syracuseOk =
+    """{"copyright":"© Carlos Chavez","date":"2014-05","location":{"lat":43.0917906,"lng":-76.1720131},""" +
+      """"pano_id":"CAoSLEFGMVFpcE1","status":"OK"}"""
+
+  /** A pano `meters` due north of the Seattle query point, with its exact haversine distance from that point. */
+  private def panoNorthOfQuery(meters: Double): (PanoDataService.GsvMetadataAnswer, Double) = {
+    val (lat, lng) = CommonUtils.calculateDestination(seattleLat, seattleLng, meters / 1000.0, 0.0)
+    (
+      PanoDataService.GsvMetadataAnswer.Pano("near", Some((lat, lng)), Some("2024-06")),
+      CommonUtils.haversineMeters(seattleLat, seattleLng, lat, lng)
+    )
+  }
+
+  test("an OK metadata response is read as the pano, its position, and its raw date") {
+    PanoDataService.parseGsvMetadata(syracuseOk) shouldBe
+      PanoDataService.GsvMetadataAnswer.Pano("CAoSLEFGMVFpcE1", Some((43.0917906, -76.1720131)), Some("2014-05"))
+  }
+
+  test("the #5114 Syracuse answer to a Seattle search is rejected; 3,500 km is not within 25 m") {
+    val answer = PanoDataService.parseGsvMetadata(syracuseOk)
+    PanoDataService.nearestPanoWithin(answer, seattleLat, seattleLng, 25) shouldBe None
+  }
+
+  test("a pano inside the radius is kept, the edge counts, and the milder 77 m form of #5114 does not") {
+    val (near, _) = panoNorthOfQuery(10)
+    PanoDataService.nearestPanoWithin(near, seattleLat, seattleLng, 25) shouldBe Some("near")
+    // Inclusive at the edge, as GsvViewer.isWithinSearchRadius is: a pano at exactly the radius is kept.
+    val (edge, edgeM) = panoNorthOfQuery(25)
+    edgeM shouldBe (25.0 +- 0.01)
+    PanoDataService.nearestPanoWithin(edge, seattleLat, seattleLng, edgeM) shouldBe Some("near")
+    PanoDataService.nearestPanoWithin(edge, seattleLat, seattleLng, edgeM - 0.01) shouldBe None
+    val (milder, _) = panoNorthOfQuery(77)
+    PanoDataService.nearestPanoWithin(milder, seattleLat, seattleLng, 25) shouldBe None
+  }
+
+  test("non-OK, positionless, and malformed metadata responses never yield a pano to use") {
+    val zero    = PanoDataService.parseGsvMetadata("""{"status":"ZERO_RESULTS"}""")
+    val denied  = PanoDataService.parseGsvMetadata("""{"status":"REQUEST_DENIED","error_message":"x"}""")
+    val noPlace = PanoDataService.parseGsvMetadata("""{"status":"OK","pano_id":"p","date":"2020-01"}""")
+    val noId = PanoDataService.parseGsvMetadata(s"""{"status":"OK","location":{"lat":$seattleLat,"lng":$seattleLng}}""")
+    val noStat  = PanoDataService.parseGsvMetadata("""{"pano_id":"p"}""")
+    val garbage = PanoDataService.parseGsvMetadata("<html>502 Bad Gateway</html>")
+
+    zero shouldBe PanoDataService.GsvMetadataAnswer.NoImagery
+    denied shouldBe PanoDataService.GsvMetadataAnswer.Inconclusive("REQUEST_DENIED")
+    noStat shouldBe PanoDataService.GsvMetadataAnswer.Inconclusive("no status")
+    garbage shouldBe a[PanoDataService.GsvMetadataAnswer.Inconclusive]
+    // Kept as a Pano, because the imagery-age poll counts it as conclusively checked; it just can't be placed.
+    noPlace shouldBe PanoDataService.GsvMetadataAnswer.Pano("p", None, Some("2020-01"))
+    for (answer <- Seq(zero, denied, noPlace, noId, noStat, garbage)) {
+      PanoDataService.nearestPanoWithin(answer, seattleLat, seattleLng, 25) shouldBe None
+    }
   }
 
   test("getFov is util.pano.zoomToFov, constant for constant") {

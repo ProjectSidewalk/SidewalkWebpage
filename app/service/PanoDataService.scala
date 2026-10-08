@@ -18,10 +18,15 @@ import play.api.libs.ws.WSBodyWritables.*
 import play.api.libs.ws.WSBodyReadables.*
 import play.api.{Configuration, Environment, Logger}
 import service.PanoDataService.{
+  gsvMetadataUrl,
   infra3dTokenNeedsRemint,
+  nearestPanoWithin,
+  parseGsvMetadata,
   parseInfra3dTokenResponse,
-  staticLocationUrl,
+  staticEndpointUrl,
   staticStillUrl,
+  GsvMetadataAnswer,
+  GsvSearchRadiusMeters,
   ImageryCheckConcurrency,
   ImageryCheckResult,
   Infra3dToken,
@@ -150,20 +155,110 @@ object PanoDataService {
     )
 
   /**
-   * The unsigned Static API URL for the outdoor pano nearest a location, facing `heading`: the street-edge endpoint
-   * images. Pure for the same reason as `staticStillUrl`; `getGsvImageUrlFromLatLng` signs it.
+   * The search radius, in meters, for a "nearest outdoor pano to this point" lookup on GSV.
+   *
+   * A tool parameter, not a backend domain value: it mirrors Explore's `svl.STREETVIEW_MAX_DISTANCE`, the one
+   * definition of how far from a point a pano may sit and still count as imagery *of* that point (#5465). Google
+   * treats `radius` as a hint rather than a bound (#5114), so a caller also checks the answer against it with
+   * [[nearestPanoWithin]].
    */
-  def staticLocationUrl(lat: Double, lng: Double, heading: Double, apiKey: String): String =
+  val GsvSearchRadiusMeters: Int = 25
+
+  /** What the Street View metadata endpoint said about the nearest outdoor pano to a point. */
+  enum GsvMetadataAnswer {
+
+    /**
+     * Google named a pano.
+     * @param panoId      The pano's id; empty when the response omitted it.
+     * @param location    Where Google says the pano is, as (lat, lng); None when the response carried no position.
+     * @param captureDate The raw `date` field (`YYYY-MM` or `YYYY`), when present.
+     */
+    case Pano(panoId: String, location: Option[(Double, Double)], captureDate: Option[String])
+
+    /** `ZERO_RESULTS`: a conclusive "no imagery near here". */
+    case NoImagery
+
+    /**
+     * No usable answer: a denied key, a quota error, a timeout, a body that isn't the expected JSON.
+     * @param reason The status Google returned, or a short tag for a transport failure, for the log line.
+     */
+    case Inconclusive(reason: String)
+  }
+
+  /**
+   * The unsigned Street View metadata URL for the nearest outdoor pano to a point. Metadata requests are free and
+   * unmetered (docs/google-cloud.md). Pure so the request can be pinned without an app; `queryGsvMetadata` signs it.
+   */
+  def gsvMetadataUrl(lat: Double, lng: Double, radiusM: Int, apiKey: String): String =
+    s"https://maps.googleapis.com/maps/api/streetview/metadata?source=outdoor" +
+      s"&location=$lat,$lng&radius=$radiusM&key=$apiKey"
+
+  /**
+   * Reads a Street View metadata response. Pure so every status branch can be pinned without a live call.
+   *
+   * A Pano is kept even when its position or id is missing: the imagery-age poll records that as "checked, nothing
+   * attributable", while [[nearestPanoWithin]] refuses it, since a pano that can't be placed can't be checked.
+   *
+   * @param body The raw response body.
+   * @return     The answer; `Inconclusive` for a body that isn't JSON or any status other than `OK` or `ZERO_RESULTS`.
+   */
+  def parseGsvMetadata(body: String): GsvMetadataAnswer =
+    scala.util.Try(Json.parse(body)).toOption.fold(GsvMetadataAnswer.Inconclusive("unparseable body")) { json =>
+      readGsvMetadata(json)
+    }
+
+  /** The status dispatch behind [[parseGsvMetadata]], on an already-parsed body. */
+  private def readGsvMetadata(json: JsValue): GsvMetadataAnswer =
+    (json \ "status").asOpt[String] match {
+      case Some("OK") =>
+        val location = for {
+          panoLat <- (json \ "location" \ "lat").asOpt[Double]
+          panoLng <- (json \ "location" \ "lng").asOpt[Double]
+        } yield (panoLat, panoLng)
+        GsvMetadataAnswer.Pano((json \ "pano_id").asOpt[String].getOrElse(""), location, (json \ "date").asOpt[String])
+      case Some("ZERO_RESULTS") => GsvMetadataAnswer.NoImagery
+      case other                => GsvMetadataAnswer.Inconclusive(other.getOrElse("no status"))
+    }
+
+  /**
+   * The pano a metadata answer names, if it really lies within `radiusM` of the point that was searched.
+   *
+   * The check `GsvViewer.isWithinSearchRadius` makes client-side, with the same inclusive edge: a pano exactly at the
+   * radius counts. An answer without a pano id or a position can't be verified, so it never passes.
+   *
+   * @example {{{
+   * // The #5114 Syracuse photosphere, returned for a 25 m search in Seattle: ~3,500 km off, so rejected.
+   * val syracuse = GsvMetadataAnswer.Pano("abc", Some((43.0917906, -76.1720131)), Some("2014-05"))
+   * nearestPanoWithin(syracuse, 47.6196811, -122.3100703, 25) // None
+   * }}}
+   * @param answer  What the metadata endpoint said.
+   * @param lat     Latitude of the searched point.
+   * @param lng     Longitude of the searched point.
+   * @param radiusM The search radius the answer must respect.
+   * @return        The pano id when it is verifiably within the radius, else None.
+   */
+  def nearestPanoWithin(answer: GsvMetadataAnswer, lat: Double, lng: Double, radiusM: Double): Option[String] =
+    answer match {
+      case GsvMetadataAnswer.Pano(panoId, Some((panoLat, panoLng)), _)
+          if panoId.nonEmpty && CommonUtils.haversineMeters(lat, lng, panoLat, panoLng) <= radiusM =>
+        Some(panoId)
+      case _ => None
+    }
+
+  /**
+   * The unsigned Static API URL for a street-endpoint image of one pano, facing `heading`. Requested by pano id, not
+   * by location, so the picture is the pano [[nearestPanoWithin]] checked rather than whatever a location search
+   * returns, which can be another state (#5464). Pure for the same reason as `staticStillUrl`.
+   */
+  def staticEndpointUrl(panoId: String, heading: Double, apiKey: String): String =
     staticApiUrl(
       Seq(
-        "location"          -> s"$lat,$lng",
-        "radius"            -> 40,  // As far from the point as the frontend searches.
-        "source"            -> "outdoor",
+        "pano"              -> panoId,
         "size"              -> s"${StaticApiMaxEdgePx}x$StaticApiMaxEdgePx",
         "heading"           -> heading,
         "pitch"             -> -10, // Slightly toward the ground, where the sidewalk is.
         "fov"               -> 90,
-        "return_error_code" -> true // No pano within the radius is a 404, not a placeholder image.
+        "return_error_code" -> true // An expired pano is a 404, not a placeholder image.
       ),
       apiKey
     )
@@ -537,6 +632,29 @@ trait PanoDataService {
       canvasWidth: Int,
       canvasHeight: Int
   ): Option[String]
+
+  /**
+   * Asks the free Street View metadata endpoint for the nearest outdoor pano to a point. The one server-side place
+   * that call is made, so the key it is signed with is chosen here alone (#5647).
+   *
+   * Never fails: a timeout, network error, or unexpected response is `Inconclusive`.
+   *
+   * @param lat     Latitude of the point.
+   * @param lng     Longitude of the point.
+   * @param radiusM The search radius to send. Google may answer from beyond it (#5114); check with `nearestPanoWithin`.
+   * @return        What Google said.
+   */
+  def queryGsvMetadata(lat: Double, lng: Double, radiusM: Int): Future[PanoDataService.GsvMetadataAnswer]
+
+  /**
+   * Signed Static API URLs for a street's two endpoint images, facing along the street (start, then end).
+   *
+   * An endpoint whose nearest pano can't be verified within [[PanoDataService.GsvSearchRadiusMeters]] is left out,
+   * so the result can hold zero, one, or two URLs.
+   *
+   * @param streetEdgeId ID of the street edge.
+   * @return             The image URLs, each requested by the id of the pano that was checked.
+   */
   def getGsvImageUrlsForStreet(streetEdgeId: Int): Future[Seq[String]]
   def insertPanoHistories(histories: Seq[PanoHistorySubmission]): Future[Unit]
   def getAllPanos: Future[Seq[PanoDataSlim]]
@@ -840,39 +958,74 @@ class PanoDataServiceImpl @Inject() (
     if (panoSrc != PanoSource.Gsv) None
     else Some(signUrl(staticStillUrl(panoId, heading, pitch, zoom, canvasWidth, canvasHeight, googleApiKey)))
 
-  /**
-   * Creates a signed URL that retrieves a static image at the given lat/lng and heading from the GSV Static API.
-   * More information here: https://developers.google.com/maps/documentation/streetview/intro
-   *
-   * @param lat Latitude of the location
-   * @param lng Longitude of the location
-   * @param heading Compass heading of the camera
-   * @return GSV Static API URL for the given location and heading
-   */
-  def getGsvImageUrlFromLatLng(lat: Double, lng: Double, heading: Double): String =
-    signUrl(staticLocationUrl(lat, lng, heading, googleApiKey))
+  def queryGsvMetadata(lat: Double, lng: Double, radiusM: Int): Future[GsvMetadataAnswer] = {
+    // Signed inside the Future so a signing error becomes Inconclusive rather than a synchronous throw.
+    Future(signUrl(gsvMetadataUrl(lat, lng, radiusM, googleApiKey)))
+      .flatMap(url => ws.url(url).withRequestTimeout(5.seconds).get())
+      .map(response => parseGsvMetadata(response.body))
+      .recover {
+        // Transient network errors say nothing about the imagery.
+        case _: SocketTimeoutException => GsvMetadataAnswer.Inconclusive("timeout")
+        case _: IOException            => GsvMetadataAnswer.Inconclusive("io")
+        case e: Exception              =>
+          logger.warn(s"Unexpected error querying GSV metadata at $lat,$lng; treating as inconclusive.", e)
+          GsvMetadataAnswer.Inconclusive(e.getClass.getSimpleName)
+      }
+  }
 
-  /**
-   * Gets the image URLs for a street edge, which includes the start and end points of the street.
-   * @param streetEdgeId ID of the street edge to get image URLs for
-   * @return A sequence of image URLs for the start and end points of the street edge
-   */
   def getGsvImageUrlsForStreet(streetEdgeId: Int): Future[Seq[String]] = {
     db.run(for {
       streetOption: Option[StreetEdge] <- streetEdgeTable.getStreet(streetEdgeId)
       startDir: Option[Double]         <- streetEdgeTable.directionFromStart(streetEdgeId)
       endDir: Option[Double]           <- streetEdgeTable.directionFromEnd(streetEdgeId)
     } yield {
-      streetOption.fold(Seq.empty[String]) { street =>
+      streetOption.toSeq.flatMap { street =>
         val startPoint: Point = street.geom.getStartPoint
         val endPoint: Point   = street.geom.getEndPoint
         Seq(
-          startDir.map(sd => getGsvImageUrlFromLatLng(startPoint.getY, startPoint.getX, Math.toDegrees(sd))),
-          endDir.map(ed => getGsvImageUrlFromLatLng(endPoint.getY, endPoint.getX, Math.toDegrees(ed)))
+          startDir.map(sd => (startPoint.getY, startPoint.getX, Math.toDegrees(sd))),
+          endDir.map(ed => (endPoint.getY, endPoint.getX, Math.toDegrees(ed)))
         ).flatten
       }
-    })
+    }).flatMap { endpoints =>
+      Future
+        .sequence(endpoints.map { case (lat, lng, heading) => verifiedEndpointUrl(streetEdgeId, lat, lng, heading) })
+        .map(_.flatten)
+    }
   }
+
+  /**
+   * The signed image URL for one street endpoint, or None when its nearest pano can't be verified as near it.
+   *
+   * A location-based Static request can't be checked, as the image response carries no position, and Google answers
+   * a 25 m search from thousands of km away often enough to matter (#5114). So the pano is found and checked through
+   * metadata first, then the image is requested by its id (#5464). An inconclusive answer drops the endpoint too: an
+   * unchecked image is the very thing this guards against.
+   */
+  private def verifiedEndpointUrl(
+      streetEdgeId: Int,
+      lat: Double,
+      lng: Double,
+      heading: Double
+  ): Future[Option[String]] =
+    queryGsvMetadata(lat, lng, GsvSearchRadiusMeters).map { answer =>
+      val panoId = nearestPanoWithin(answer, lat, lng, GsvSearchRadiusMeters)
+      if (panoId.isEmpty) {
+        // The server-side twin of PanoViewer_FarPanoRejected, so the logs give a rate for this consumer too.
+        val why = answer match {
+          case GsvMetadataAnswer.Pano(id, Some((pLat, pLng)), _) =>
+            s"pano $id is ${math.round(CommonUtils.haversineMeters(lat, lng, pLat, pLng))} m away"
+          case GsvMetadataAnswer.Pano(id, None, _) => s"pano '$id' came back without a position"
+          case GsvMetadataAnswer.NoImagery         => "no imagery"
+          case GsvMetadataAnswer.Inconclusive(r)   => s"metadata inconclusive ($r)"
+        }
+        logger.info(
+          s"Dropped the AI endpoint image at $lat,$lng for street $streetEdgeId: $why " +
+            s"(radius $GsvSearchRadiusMeters m)."
+        )
+      }
+      panoId.map(id => signUrl(staticEndpointUrl(id, heading, googleApiKey)))
+    }
 
   def insertPanoHistories(histories: Seq[PanoHistorySubmission]): Future[Unit] = {
     db.run(DBIO.traverse(histories) { panoHist =>

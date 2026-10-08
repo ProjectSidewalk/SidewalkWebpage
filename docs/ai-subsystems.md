@@ -121,7 +121,9 @@ alongside the AI-label endpoint; model id updated June 2026.
 → Gemini API. Enabled only where `GEMINI_API_KEY` is configured. Independent of subsystems
 A/B — no PS-trained models, no DB tables, no validation loop. (Note: this is our only
 subsystem that ships GSV imagery to a third-party API; A and B keep imagery within
-UW-controlled infrastructure.)
+UW-controlled infrastructure.) The two images are the street's endpoints, facing along it; each endpoint's pano is
+first found through the free metadata call and checked to lie within 25 m, then fetched by pano id, so a far answer
+from Google is dropped rather than sent to Gemini (#5464). GSV cities only: elsewhere the endpoint answers 400.
 
 ## AI project timeline — every AI/CV repo in the org
 
