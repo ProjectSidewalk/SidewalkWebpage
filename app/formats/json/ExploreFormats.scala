@@ -15,7 +15,9 @@ import play.api.libs.json.*
 import service.UpdatedStreets
 
 import java.nio.charset.StandardCharsets
-import java.time.OffsetDateTime
+import java.time.format.DateTimeFormatter
+import java.time.{LocalDate, OffsetDateTime}
+import scala.util.{Failure, Success, Try}
 
 object ExploreFormats {
   private given jsonConfig: JsonConfiguration = JsonConfiguration(JsonNaming.SnakeCase)
@@ -346,14 +348,53 @@ object ExploreFormats {
 
   given aiLabelDetectionReads: Reads[AiLabelDetection] = Json.reads[AiLabelDetection]
 
-  given aiLabelSubmissionReads: Reads[AiLabelsSubmission] = (
-    (JsPath \ "label_type").read[LabelType] and
-      (JsPath \ "model_id").read[String] and
-      (JsPath \ "model_training_date").read[String] and
-      (JsPath \ "api_version").read[String] and
-      (JsPath \ "pano").read[PanoSubmission] and
-      (JsPath \ "labels").read[Seq[AiLabelDetection]] and
-      // Absent means false, so a payload from before the flag existed fails closed instead of duplicating (#5382).
-      (JsPath \ "overwrite").readWithDefault[Boolean](false)
-  )(AiLabelsSubmission.apply)
+  /** How the auto-labeler spells `model_training_date`, e.g. "01-15-2026". */
+  val aiModelTrainingDateFormat: DateTimeFormatter = DateTimeFormatter.ofPattern("MM-dd-yyyy")
+
+  /**
+   * Refuses an AI submission the server can't place (#4808), so the caller gets a 400 naming the field instead of a
+   * 500 from deep in the write. A label's lat/lng and POV are computed from the pano's size, heading and position, so
+   * a submission with labels needs all five, though they stay optional on a label-less (pano-only) one.
+   *
+   * @param submission The parsed submission.
+   * @return           The submission, or an error at each missing or malformed field's path.
+   */
+  private def validateAiLabelsSubmission(submission: AiLabelsSubmission): JsResult[AiLabelsSubmission] = {
+    val pano          = submission.pano
+    val missingFields =
+      if (submission.labels.isEmpty) Seq.empty
+      else {
+        Seq(
+          "width"          -> pano.width,
+          "height"         -> pano.height,
+          "lat"            -> pano.lat,
+          "lng"            -> pano.lng,
+          "camera_heading" -> pano.cameraHeading
+        ).collect { case (field, None) => field }
+      }
+    val missingErrors = missingFields.map { field =>
+      (JsPath \ "pano" \ field) -> Seq(JsonValidationError("A submission with labels needs the pano's " + field))
+    }
+    val dateErrors = Try(LocalDate.parse(submission.modelTrainingDate, aiModelTrainingDateFormat)) match {
+      case Success(_) => Seq.empty
+      case Failure(_) =>
+        Seq((JsPath \ "model_training_date") -> Seq(JsonValidationError("model_training_date must be MM-dd-yyyy")))
+    }
+    val errors = missingErrors ++ dateErrors
+    if (errors.isEmpty) JsSuccess(submission) else JsError(errors)
+  }
+
+  given aiLabelSubmissionReads: Reads[AiLabelsSubmission] = {
+    val fields: Reads[AiLabelsSubmission] = (
+      (JsPath \ "label_type").read[LabelType] and
+        (JsPath \ "model_id").read[String] and
+        (JsPath \ "model_training_date").read[String] and
+        (JsPath \ "api_version").read[String] and
+        (JsPath \ "pano").read[PanoSubmission] and
+        (JsPath \ "labels").read[Seq[AiLabelDetection]] and
+        // Absent means false, so a payload from before the flag existed fails closed instead of duplicating (#5382).
+        (JsPath \ "overwrite").readWithDefault[Boolean](false)
+    )(AiLabelsSubmission.apply)
+    Reads(json => fields.reads(json).flatMap(validateAiLabelsSubmission))
+  }
 }

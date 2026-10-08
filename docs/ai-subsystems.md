@@ -122,6 +122,14 @@ attached and an admin can restore it. The check runs in the same transaction as 
 but two concurrent *first* submissions of one pano could both pass it; the labeler submits
 sequentially, so there is no lock.
 
+**Incomplete payloads get a 400 (#4808).** A label's lat/lng and POV are computed from the
+pano's `width`, `height`, `lat`, `lng` and `camera_heading`, so a submission with labels that
+lacks any of them is refused with a 400 whose body names each missing field
+(`obj.pano.lat`, …), before anything is written. They stay optional on a `labels: []`
+submission. `model_training_date` must be `MM-dd-yyyy` on every submission. A label whose
+nearest street has no live region is still a 500, since that is a data-integrity fault on the
+server rather than a bad request, and it rolls back the whole submission.
+
 **City gate:** `submitAiLabel` is gated by the per-city `ai-label-submission-enabled` flag in
 `cityparams.conf` (default **false**; unlisted cities reject submissions). Onboarding another
 city to AI labeling (e.g. Bend) means setting the flag to `true` for that city. Note that this

@@ -5,7 +5,7 @@ import models.audit.AuditTask
 import models.label.{LabelPointTable, LabelType}
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
-import play.api.libs.json.Json
+import play.api.libs.json.{JsError, JsObject, JsSuccess, Json}
 
 import java.time.OffsetDateTime
 
@@ -147,5 +147,38 @@ class ExploreFormatsSpec extends AnyFunSuite with Matchers {
 
   test("AiLabelsSubmission rejects a non-boolean overwrite") {
     (aiSubmissionJson + ("overwrite" -> Json.toJson("yes"))).validate[AiLabelsSubmission].isError shouldBe true
+  }
+
+  /** The submission with the given pano fields removed. */
+  private def aiSubmissionWithoutPanoFields(fields: String*): JsObject =
+    aiSubmissionJson + ("pano" -> fields.foldLeft(aiPanoJson)(_ - _))
+
+  /** The error paths of a submission that failed to parse, e.g. "/pano/width". */
+  private def errorPaths(json: JsObject): Set[String] =
+    json.validate[AiLabelsSubmission] match {
+      case JsError(errors) => errors.map(_._1.toString).toSet
+      case JsSuccess(_, _) => fail("expected the submission to be refused")
+    }
+
+  test("AiLabelsSubmission with labels refuses a pano missing what places them, naming each field (#4808)") {
+    for (field <- Seq("width", "height", "lat", "lng", "camera_heading")) {
+      withClue(s"$field: ") { errorPaths(aiSubmissionWithoutPanoFields(field)) shouldBe Set(s"/pano/$field") }
+    }
+    errorPaths(aiSubmissionWithoutPanoFields("width", "lat")) shouldBe Set("/pano/width", "/pano/lat")
+  }
+
+  test("AiLabelsSubmission without labels needs none of the pano's placement fields") {
+    val panoOnly = aiSubmissionWithoutPanoFields("width", "height", "lat", "lng", "camera_heading") +
+      ("labels" -> Json.arr())
+    panoOnly.validate[AiLabelsSubmission].isSuccess shouldBe true
+  }
+
+  test("AiLabelsSubmission refuses a model_training_date that isn't MM-dd-yyyy") {
+    for (bad <- Seq("2026-01-15", "15-01-2026", "d")) {
+      withClue(s"$bad: ") {
+        errorPaths(aiSubmissionJson + ("model_training_date" -> Json.toJson(bad))) shouldBe
+          Set("/model_training_date")
+      }
+    }
   }
 }
