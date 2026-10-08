@@ -303,9 +303,10 @@ make import-street-gradient
 `--structures onboarding/<city-id>/street_structures.csv` so it needs no `osm_way` cache; a live city is topped up
 by hand with the same three commands, and the nightly `StreetGradientStalenessActor` says when (Admin > Health).
 
-- **Sources.** A registered source is chosen from the city's `country-id` in `conf/cityparams.conf` (only the USA so
-  far). Anything else goes through `--dem-dir`: a directory of hand-downloaded GeoTIFFs in any mix of coordinate
-  systems, elevations in meters.
+- **Sources.** A registered source is chosen from the city's `country-id` in `conf/cityparams.conf` (ten countries;
+  the table in `docs/street-gradient.md`). Sources that cannot be read in place (INEGI's zipped grids, IGN's WMS
+  GeoTIFFs) are fetched once into `db/onboarding/_dem_cache/`. Anything else goes through `--dem-dir`: a directory
+  of hand-downloaded GeoTIFFs in any mix of coordinate systems, elevations in meters.
 - **Bridges and tunnels.** A bare-earth model has the ground under a bridge, so streets the export marks
   `is_structure` (from `osm_way.tags`) get their endpoint elevations and no grade (`quality = structure`), and an
   untagged street whose profile holds an implausible pitch is drawn as a straight line between its endpoints

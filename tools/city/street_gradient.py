@@ -11,8 +11,8 @@ This is a standalone, manually-run utility (it is not invoked by the app). Workf
   2. Run (from anywhere — data files are resolved relative to the repo root, not your working directory):
 
          make street-gradient id=seattle-wa
-         make street-gradient id=cdmx \
-             args="--dem-dir db/onboarding/cdmx/dem --dem-name inegi-mdt-5m --dem-resolution-m 5"
+         make street-gradient id=taipei \
+             args="--dem-dir db/onboarding/taipei/dem --dem-name moi-dtm-20m --dem-resolution-m 20"
 
      The first form picks the elevation source from the city's ``country-id`` in ``conf/cityparams.conf``; the second
      reads GeoTIFFs someone downloaded by hand, for sources that have no scriptable endpoint.
@@ -37,8 +37,9 @@ Grades are fractions (0.05 is a 5% grade, the OpenSidewalks ``incline`` conventi
 ``descent_m`` follow the street's digitized direction, the rest are direction-free.
 
 The pure functions (``sample_points``, ``bilinear``, ``fill_gaps``, ``smooth``, ``window_grades``, ``grade_metrics``,
-``edge_gradient``, ``usgs_13_tile_url``, ``country_id``) are import-safe and unit-tested in
-``test/python/test_street_gradient.py``; raster and file I/O live in ``RasterSampler`` and ``main``.
+``edge_gradient``, the tile-naming functions of each source, ``locate_by_extent``, ``country_id``) are import-safe
+and unit-tested in ``test/python/test_street_gradient.py``; raster, network and file I/O live in ``RasterSampler``,
+the catalog-backed locators (each takes its fetch function as a seam) and ``main``.
 """
 
 import argparse

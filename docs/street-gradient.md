@@ -62,11 +62,11 @@ overrides the check for a city that really has none. The
 tutorial street is never exported: it is the shared DC geometry, and no model the city is sampled from says
 anything true about it.
 
-A city whose country has no registered source (every country but the USA today) is sampled from rasters someone
-downloaded by hand:
+A city whose country has no registered source (Taiwan and Brazil today, see "Sources by country") is sampled from
+rasters someone downloaded by hand:
 
 ```bash
-make street-gradient id=cdmx args="--dem-dir db/onboarding/cdmx/dem --dem-name inegi-mdt-5m --dem-resolution-m 5"
+make street-gradient id=taipei args="--dem-dir db/onboarding/taipei/dem --dem-name moi-dtm-20m --dem-resolution-m 20"
 ```
 
 Any set of GeoTIFFs works, in any mix of coordinate systems, as long as elevations are in meters and the model is
@@ -185,25 +185,30 @@ so a real photogrammetric 20 m model will do somewhat worse.
 
 ## Sources by country
 
-`SOURCE_BY_COUNTRY` in the script maps a `cityparams.conf` `country-id` to its registered source. Only the USA is
-registered so far. The rest of this table is the plan from #5223, so whoever adds the next adapter starts from a
-tested endpoint instead of a search.
+`SOURCE_BY_COUNTRY` in the script maps a `cityparams.conf` `country-id` to its registered source. Each adapter was
+verified against the publisher's live endpoint on 2026-10-07; the "Access" column is what the locator does.
 
-| Country | Model | Grid | Access |
+| Country | Model (`dem_source`) | Grid | Access |
 |---|---|---|---|
-| USA | USGS 3DEP 1/3 arc-second seamless | 10 m | **Registered.** Public COGs on `prd-tnm.s3.amazonaws.com`, one per degree tile. |
-| Switzerland | swissALTI3D, or Canton Zürich DTM | 0.5 m, 0.25 m | STAC at `data.geo.admin.ch`; canton tiles at `maps.zh.ch/download/hoehen/`. |
-| Netherlands | AHN DTM | 0.5 m | PDOK WCS `service.pdok.nl/rws/ahn/wcs/v1_0`, coverage `dtm_05m`. 66% no-data in central Amsterdam. |
-| France | IGN LiDAR HD MNT | 0.5 m | Géoplateforme WMS-Raster `data.geopf.fr/wms-r` with `FORMAT=image/geotiff`. |
-| New Zealand | LINZ regional lidar DEMs | 1 m | `s3://nz-elevation`. LERC-compressed, so check the GDAL build reads it. |
-| Canada | NRCan HRDEM | 1 m | COGs on `canelevation-dem.s3.ca-central-1.amazonaws.com`, STAC at `datacube.services.geo.ca`. |
-| Brazil (São Paulo) | GeoSampa lidar 2020 | point cloud | Ground-classified LAZ per tile, to be rasterized first. CC BY-SA 4.0. |
-| Mexico | INEGI MDT | 5 m | Portal download only, no API: use `--dem-dir`. |
-| Taiwan | MOI DTM | 20 m | Open data, but the host refuses non-Taiwan addresses: download there, then `--dem-dir`. |
-| Chile, India, Ecuador | none open below 30 m | 30 m | GEDTM30 (CC BY 4.0), `net_grade` only, `confidence = low`. |
+| USA | USGS 3DEP 1/3 arc-second seamless (`usgs-3dep-10m`) | 10 m | Public COGs on `prd-tnm.s3.amazonaws.com`, one per degree tile, named from the coordinate. |
+| Switzerland | swissALTI3D (`swissalti3d-2m`) | 2 m | STAC search on `data.geo.admin.ch` per area; a 1 km tile is re-issued under a new year when its region is reflown, so the newest year per tile wins. The 0.5 m issue exists but adds only what the sampler's 5 m smoothing removes. |
+| New Zealand | LINZ New Zealand LiDAR 1m DEM (`linz-nz-1m`) | 1 m | The national mosaic ("the most current LiDAR surveys") on the `nz-elevation` open bucket, one COG per Topo50 sheet, named from the NZTM coordinate. LERC-compressed; GDAL 3.12 reads it. |
+| Canada | NRCan HRDEM Mosaic (`nrcan-hrdem-mosaic-2m`) | 2 m | STAC search on `datacube.services.geo.ca` names the 500 km Lambert tile; COGs on `canelevation-dem`. Burnaby is wholly inside lidar coverage; a 30 m MRDEM DTM exists for the rest of Canada. |
+| Mexico | INEGI MDE LiDAR tipo Terreno (`inegi-lidar-mdt-5m`) | 5 m | The chart key is computed from the coordinate (checked against INEGI's list of all 26,334 charts); one POST per chart names its editions, and the newest zipped ESRI GRID is fetched into `db/onboarding/_dem_cache/`. All three cities' charts exist. |
+| France | IGN MNT LiDAR HD (`ign-lidarhd-mnt-05m`) | 0.5 m | Served only as WMS GetMap GeoTIFFs (`data.geopf.fr/wms-r`), so each 0.01° cell is fetched once into the cache, at the native 0.5 m: asked for 1 m, the server averages the -9999 no-data value into every river bank. About 15 MB and 20 s per cell. Bayonne was flown in 2023. The RGE ALTI layer (`ELEVATIONGRIDCOVERAGE.HIGHRES`) is effectively 4 m and no longer updated. |
+| Netherlands | AHN4 DTM (`ahn4-dtm-05m`) | 0.5 m | PDOK's per-sheet COGs, CC0; the sheet index is one GeoJSON read once. Water and building footprints are no-data, so a third of central Amsterdam's streets lose an end sample and stay `no_data`; the 5 m product gains little (it is a mean of the 0.5 m cells, no-data where most are). |
+| Chile, India, Ecuador | GEDTM30 v1.1 (`gedtm30`) | 30 m | One global COG on `s3.opengeohub.org`; `confidence = low`. v1.2 is newer but its 30 m file carries a stale 0.1 scale tag on float metres (reported upstream 2026-10). No open national bare-earth model exists for these three (Chile has none; India's CartoDEM needs a login; Ecuador's SIGTIERRAS portal refused every request). |
+| Taiwan | MOI 20 m DTM | 20 m | **Not registered.** Open data, but every file lives on `www.tgos.tw`, which answers 403 to a US address; the data.gov.tw CSV index that names the files is reachable. Download from Taiwan, then `--dem-dir`. The 1 m national lidar DTM is fee-based. |
+| Brazil (São Paulo) | GeoSampa MDT 2020 | 0.5 m | **Not registered.** GeoSampa's WCS is disabled and its download host sits behind a bot filter that wants a browser; the tile index (WFS `quadricula_folha_mdt_mds_2020`) is readable. One browser download with the network panel open would give the URL shape to script. Licence unconfirmed (metadata says "license", names none). |
 
 The test for a new country is the one used here: an open bare-earth model at 10 m or finer is `high`, to 20 m
-`medium`, and otherwise the city gets `net_grade` from a global model.
+`medium`, and otherwise the city gets `net_grade` from a global model. A new adapter is a `Source` in the script,
+its `DemSource` credit in the app (the test suite holds the two rosters together), and a row here.
+
+**What a fill costs.** Zürich (8,481 streets) took 3 minutes against swissALTI3D; Mexico City's centre samples at
+about 350 streets a second once its charts are cached; Bayonne's 70 cells against the IGN WMS take about 25 minutes
+and leave 1 GB in `db/onboarding/_dem_cache/`, which a rerun or a neighbouring city reuses. The cache is gitignored
+with the rest of `db/onboarding/`.
 
 ## Where it shows up
 
