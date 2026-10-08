@@ -10,7 +10,11 @@ expected grade is arithmetic rather than a recorded number. See test/python/READ
 
 import argparse
 import csv
+import io
+import json
 import re
+import urllib.parse
+import zipfile
 from pathlib import Path
 
 import numpy as np
@@ -325,6 +329,252 @@ def test_usgs_tile_is_named_for_its_north_west_corner():
         sg.usgs_13_tile_url(-122.33, 47.62), None]
 
 
+def test_nz_sheet_is_named_by_topo50_row_letters_and_column_number():
+    # Queen St, Auckland: NZTM 1757316, 5920481 lies on sheet BA32 (the probe matched it against the bucket's tiles).
+    assert sg.nz_sheet_name(1757316, 5920481) == 'BA32'
+    # The grid's north-west corner is sheet AS04; the letters skip I and O like the published series.
+    assert sg.nz_sheet_name(sg.NZ_SHEET_LEFT_E + 1, sg.NZ_SHEET_TOP_N - 1) == 'AS04'
+    assert sg.NZ_SHEET_ROWS[:9] == ['AS', 'AT', 'AU', 'AV', 'AW', 'AX', 'AY', 'AZ', 'BA']
+    assert 'BI' not in sg.NZ_SHEET_ROWS and 'BO' not in sg.NZ_SHEET_ROWS and sg.NZ_SHEET_ROWS[-1] == 'CK'
+    # Off the grid: north of the first row, west of the first column, south of the last row.
+    assert sg.nz_sheet_name(1757316, sg.NZ_SHEET_TOP_N + 1) is None
+    assert sg.nz_sheet_name(sg.NZ_SHEET_LEFT_E - 1, 5920481) is None
+    assert sg.nz_sheet_name(1757316, sg.NZ_SHEET_TOP_N - len(sg.NZ_SHEET_ROWS) * sg.NZ_SHEET_HEIGHT_M - 1) is None
+    paths = sg.nz_1m_locate(np.array([174.7645, -122.33]), np.array([-36.8485, 47.62]))
+    assert paths[0] == f'/vsicurl/{sg.NZ_1M_DEM}BA32.tiff' and paths[1] is None
+
+
+def test_fetch_json_reads_one_document(monkeypatch):
+    class Response:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+        def read(self):
+            return b'{"features": []}'
+
+    asked = []
+    monkeypatch.setattr(sg.urllib.request, 'urlopen', lambda url, timeout: asked.append((url, timeout)) or Response())
+    assert sg.fetch_json('https://example.test/items', 5.0) == {'features': []}
+    assert asked == [('https://example.test/items', 5.0)]
+
+
+def test_stac_items_follows_next_links_and_tolerates_a_page_without_them():
+    pages = {
+        'q?page=1': {'features': [{'id': 'a'}], 'links': [{'rel': 'self', 'href': 'q?page=1'},
+                                                            {'rel': 'next', 'href': 'q?page=2'}]},
+        'q?page=2': {'features': [{'id': 'b'}, {'id': 'c'}]},
+    }
+    assert [item['id'] for item in sg.stac_items('q?page=1', pages.__getitem__)] == ['a', 'b', 'c']
+    assert list(sg.stac_items('q?page=2', pages.__getitem__)) == [{'id': 'b'}, {'id': 'c'}]
+
+
+def test_catalog_locator_searches_an_area_once_pads_it_and_keeps_each_raster_once():
+    searched = []
+
+    def fill(west, south, east, north):
+        searched.append((round(west, 3), round(south, 3), round(east, 3), round(north, 3)))
+        # The same tile comes back from every search that touches it; a second one lies east of the first.
+        return [('tile-a.tif', 'EPSG:4326', (_LNG, _LAT, _LNG + 0.01, _LAT + 0.01)),
+                ('tile-b.tif', 'EPSG:4326', (_LNG + 0.01, _LAT, _LNG + 0.02, _LAT + 0.01))]
+
+    locate = sg.CatalogLocator(fill, pad_deg=0.005)
+    lngs, lats = np.array([_LNG + 0.002, _LNG + 0.012, _LNG + 0.5]), np.full(3, _LAT + 0.004)
+    assert locate(lngs, lats) == ['tile-a.tif', 'tile-b.tif', None]
+    assert searched == [(round(_LNG - 0.003, 3), round(_LAT - 0.001, 3), round(_LNG + 0.505, 3),
+                         round(_LAT + 0.009, 3))]
+    # A batch inside the area already searched asks nothing more, even where no raster covers it (open water).
+    assert locate(np.array([_LNG + 0.3]), np.array([_LAT + 0.004])) == [None]
+    assert len(searched) == 1
+    # One beyond it searches again, and the tiles seen before are not listed twice.
+    assert locate(np.array([_LNG + 0.015]), np.array([_LAT + 0.02])) == [None]
+    assert len(searched) == 2 and len(locate._rasters) == 2
+
+
+def _swiss_item(year, square, resolution='2'):
+    item_id = f'swissalti3d_{year}_{square}'
+    base = f'https://data.geo.admin.ch/ch.swisstopo.swissalti3d/{item_id}/{item_id}'
+    return {'id': item_id, 'assets': {f'{item_id}_{resolution}_2056_5728.tif': {'href': f'{base}_{resolution}_2056_5728.tif'},
+                                      f'{item_id}_{resolution}_2056_5728.xyz.zip': {'href': f'{base}.xyz.zip'}}}
+
+
+def test_swissalti3d_tiles_keeps_the_newest_issue_of_each_square_and_places_it_in_lv95():
+    def fetch(url):
+        if url == 'page2':
+            return {'features': [_swiss_item(2021, '2684-1247')]}
+        assert url == sg.SWISSALTI3D_ITEMS + '?bbox=8.5%2C47.3%2C8.6%2C47.4&limit=100'
+        return {'features': [_swiss_item(2019, '2683-1247'), _swiss_item(2026, '2683-1247'),
+                             _swiss_item(2020, '2683-1247'), _swiss_item(2019, '2684-1247')],
+                'links': [{'rel': 'next', 'href': 'page2'}]}
+
+    tiles = sg.swissalti3d_tiles(8.5, 47.3, 8.6, 47.4, fetch)
+    assert [(path.split('/')[-1], crs, bounds) for path, crs, bounds in tiles] == [
+        ('swissalti3d_2026_2683-1247_2_2056_5728.tif', 'EPSG:2056', (2683000.0, 1247000.0, 2684000.0, 1248000.0)),
+        ('swissalti3d_2021_2684-1247_2_2056_5728.tif', 'EPSG:2056', (2684000.0, 1247000.0, 2685000.0, 1248000.0))]
+    assert all(path.startswith('/vsicurl/https://') for path, _, _ in tiles)
+    # The 1 km square under Zürich HB (LV95 2683303, 1247925) resolves through the locator to its tile.
+    one_page = lambda url: {'features': fetch(sg.SWISSALTI3D_ITEMS + '?bbox=8.5%2C47.3%2C8.6%2C47.4&limit=100')['features']}
+    locate = sg.CatalogLocator(lambda w, s, e, n: sg.swissalti3d_tiles(8.5, 47.3, 8.6, 47.4, one_page))
+    assert locate(np.array([8.5417]), np.array([47.3769]))[0].endswith('swissalti3d_2026_2683-1247_2_2056_5728.tif')
+
+
+def test_gedtm30_is_one_raster_for_every_point_between_its_latitude_limits():
+    paths = sg.gedtm30_locate(np.array([-70.65, 76.78, 0.0, 0.0]), np.array([-33.44, 30.73, -70.0, 86.0]))
+    assert paths == [sg.GEDTM30_URL, sg.GEDTM30_URL, None, None]
+    assert sg.GEDTM30_URL.startswith('/vsicurl/https://') and sg.GEDTM30.resolution_m == 30.0
+    assert sg.confidence_for(sg.GEDTM30.resolution_m) == 'low'
+
+
+def test_fetch_bytes_gets_or_posts_a_form(monkeypatch):
+    class Response:
+        def __init__(self, request):
+            self.request = request
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+        def read(self):
+            return b'body:' + (self.request.data or b'')
+
+    seen = []
+    monkeypatch.setattr(sg.urllib.request, 'urlopen', lambda req, timeout: seen.append(timeout) or Response(req))
+    assert sg.fetch_bytes('https://example.test/a.zip') == b'body:'
+    assert sg.fetch_bytes('https://example.test/form', {'res': 5, 'cve': 'E14A39B4'}, 9.0) == b'body:res=5&cve=E14A39B4'
+    assert seen == [600.0, 9.0]
+
+
+def test_dem_cache_dir_is_under_the_repos_onboarding_directory(tmp_path, monkeypatch):
+    monkeypatch.setattr(sg, 'REPO_ROOT', tmp_path)
+    assert sg.dem_cache_dir('x') == tmp_path / 'db' / 'onboarding' / '_dem_cache' / 'x'
+    assert sg.dem_cache_dir('x').is_dir()
+
+
+def test_index_locator_loads_its_list_once():
+    loads = []
+
+    def load():
+        loads.append(True)
+        return [('sheet.tif', 'EPSG:4326', (_LNG, _LAT, _LNG + 0.01, _LAT + 0.01))]
+
+    locate = sg.index_locator(load)
+    assert locate(np.array([_LNG + 0.005, _LNG + 1]), np.array([_LAT + 0.005, _LAT])) == ['sheet.tif', None]
+    assert locate(np.array([_LNG + 0.005]), np.array([_LAT + 0.005])) == ['sheet.tif']
+    assert loads == [True]
+
+
+def test_inegi_chart_walks_the_map_series_from_the_north_west_corner():
+    # Keys INEGI itself lists for these points (the derivation was checked against all 26,334 listed charts).
+    assert sg.inegi_chart(-99.1332, 19.4326) == 'E14A39B4'   # Zócalo, Mexico City
+    assert sg.inegi_chart(-100.40, 25.66) == 'G14C25C3'      # San Pedro Garza García
+    assert sg.inegi_chart(-102.03, 20.34) == 'F13D79F2'      # La Piedad, in UTM zone 13
+    # The first chart of a 1:1 000 000 sheet is its north-west corner, lettered and numbered from there.
+    assert sg.inegi_chart(-101.99, 19.99) == 'E14A11A1'
+    assert sg.inegi_chart(-96.01, 16.01) == 'E14D89F4'
+
+
+def _grid_zip(chart):
+    """A zip laid out the way INEGI's are: Windows separators, a GRID directory with an hdr.adf, and metadata."""
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, 'w') as archive:
+        archive.writestr(f'conjunto_de_datos\\{chart.lower()}_mt\\hdr.adf', b'grid header')
+        archive.writestr(f'conjunto_de_datos\\{chart.lower()}_mt\\w001001.adf', b'cells')
+        archive.writestr('metadatos\\', b'')
+        archive.writestr(f'metadatos\\{chart.lower()}_mt.txt', b'notes')
+    return buffer.getvalue()
+
+
+def test_inegi_locator_downloads_the_newest_grid_edition_once_and_remembers_a_chart_without_one(tmp_path, monkeypatch,
+                                                                                               caplog):
+    monkeypatch.setattr(sg, 'REPO_ROOT', tmp_path)
+    ascii_only, unlisted = sg.inegi_chart(-99.17, 19.4326), sg.inegi_chart(-99.30, 19.4326)
+    assert len({'E14A39B4', ascii_only, unlisted}) == 3
+    editions = {'E14A39B4': [{'edicion': 2011, 'url_descarga': 'https://inegi.test/old', 'archivo': '|_as.zip,7 MB|_gr.zip,2 MB'},
+                             {'edicion': 2018, 'url_descarga': 'https://inegi.test/new', 'archivo': '|_b.zip,4 MB|_gr.zip,1 MB'}],
+                ascii_only: [{'edicion': 2011, 'url_descarga': 'https://inegi.test/ascii', 'archivo': '|_as.zip,7 MB'}],
+                unlisted: []}
+    fetched = []
+
+    def fetch(url, data=None):
+        fetched.append(url)
+        if url == sg.INEGI_DESCRIPTOR:
+            return json.dumps(editions[data['cve']]).encode()
+        assert url == 'https://inegi.test/new_gr.zip'
+        return _grid_zip('E14A39B4')
+
+    locate = sg.InegiLocator(fetch)
+    lngs = np.array([-99.1332, -99.1332, -99.17, -99.1332, -99.30])
+    lats = np.array([19.4326, 19.4300, 19.4326, 19.4326, 19.4326])
+    grid = str(tmp_path / 'db/onboarding/_dem_cache/inegi-lidar-mdt-5m/E14A39B4/conjunto_de_datos/e14a39b4_mt')
+    assert locate(lngs, lats) == [grid, grid, None, grid, None]
+    assert (Path(grid) / 'hdr.adf').read_bytes() == b'grid header' and (Path(grid).parent.parent / 'metadatos' /
+                                                                          'e14a39b4_mt.txt').exists()
+    assert fetched == [sg.INEGI_DESCRIPTOR, 'https://inegi.test/new_gr.zip', sg.INEGI_DESCRIPTOR, sg.INEGI_DESCRIPTOR]
+    assert f'no 5 m terrain GRID for chart {ascii_only}' in caplog.text
+    # A second locator finds the chart in the cache and asks INEGI nothing.
+    fetched.clear()
+    assert sg.InegiLocator(fetch)(lngs[:1], lats[:1]) == [grid] and fetched == []
+
+
+def test_lidarhd_cell_url_asks_for_the_cell_at_half_meter_nodes():
+    url = sg.lidarhd_cell_url(-148, 4349)  # Bayonne: lng -1.48..-1.47, lat 43.49..43.50
+    query = dict(urllib.parse.parse_qsl(url.split('?', 1)[1], keep_blank_values=True))
+    assert url.startswith(sg.LIDARHD_WMS) and query['LAYERS'] == sg.LIDARHD_LAYER and query['CRS'] == 'EPSG:2154'
+    assert query['FORMAT'] == 'image/geotiff' and query['STYLES'] == ''
+    x0, y0, x1, y1 = (float(v) for v in query['BBOX'].split(','))
+    assert all(v % 1 == 0.25 or v % 1 == 0.75 for v in (x0, y0, x1, y1))
+    # ~0.8 km wide and ~1.1 km tall at this latitude, plus 2 m of padding each side, at 0.5 m per pixel.
+    assert int(query['WIDTH']) == round((x1 - x0) * 2) and int(query['HEIGHT']) == round((y1 - y0) * 2)
+    assert 1500 < int(query['WIDTH']) < 1800 and 2100 < int(query['HEIGHT']) < 2400
+    xs, ys = sg.warp_transform('EPSG:4326', 'EPSG:2154', [-1.48, -1.47], [43.49, 43.50])
+    assert x0 < min(xs) and x1 > max(xs) and y0 < min(ys) and y1 > max(ys)
+
+
+def test_lidarhd_locator_fetches_each_cell_once_and_drops_a_service_exception(tmp_path, monkeypatch, caplog):
+    monkeypatch.setattr(sg, 'REPO_ROOT', tmp_path)
+    fetched = []
+
+    def fetch(url):
+        fetched.append(url)
+        return b'<ServiceExceptionReport/>' if 'BBOX=-1000:' in url else b'II*\x00tiff'
+
+    monkeypatch.setattr(sg, 'lidarhd_cell_url', lambda column, row: f'wms?BBOX={column}:{row}')
+    locate = sg.LidarHdLocator(fetch)
+    tif = str(tmp_path / 'db/onboarding/_dem_cache/ign-lidarhd-mnt-05m/-148_4349.tif')
+    assert locate(np.array([-1.475, -1.472, -9.995]), np.array([43.493, 43.499, 43.493])) == [tif, tif, None]
+    assert Path(tif).read_bytes() == b'II*\x00tiff' and fetched == ['wms?BBOX=-148:4349', 'wms?BBOX=-1000:4349']
+    assert 'No LiDAR HD GeoTIFF for cell -1000,4349' in caplog.text
+    # The exception is remembered within a run, and the file serves the next run without a request.
+    assert locate(np.array([-9.995]), np.array([43.493])) == [None] and len(fetched) == 2
+    assert sg.LidarHdLocator(fetch)(np.array([-1.475]), np.array([43.493])) == [tif] and len(fetched) == 2
+
+
+def test_ahn_sheets_read_each_sheets_url_and_rd_extent():
+    index = {'features': [{'properties': {'kaartbladNr': 'M_25EZ1', 'url': 'https://pdok.test/M_25EZ1.tif'},
+                           'geometry': {'coordinates': [[[120000, 487500], [125000, 487500], [125000, 493750],
+                                                         [120000, 493750], [120000, 487500]]]}}]}
+    assert sg.ahn_sheets(lambda url: index if url == sg.AHN_INDEX else None) == [
+        ('/vsicurl/https://pdok.test/M_25EZ1.tif', 'EPSG:28992', (120000, 487500, 125000, 493750))]
+    # Amsterdam Centraal (RD 121847, 488026) lies on that sheet.
+    locate = sg.index_locator(lambda: sg.ahn_sheets(lambda url: index))
+    assert locate(np.array([4.9003, -122.33]), np.array([52.3791, 47.62])) == ['/vsicurl/https://pdok.test/M_25EZ1.tif', None]
+
+
+def test_hrdem_tiles_take_each_mosaic_tiles_dtm_and_wgs84_bbox():
+    def fetch(url):
+        assert url == (sg.HRDEM_SEARCH + '?collections=hrdem-mosaic-2m&bbox=-123.1%2C49.1%2C-122.8%2C49.3&limit=100')
+        return {'features': [{'id': '2_3-mosaic-2m', 'bbox': [-130.0, 45.0, -115.0, 52.0, 0.0, 3000.0],
+                              'assets': {'dtm': {'href': 'https://example.test/2_3-mosaic-2m-dtm.tif'},
+                                         'dsm': {'href': 'https://example.test/2_3-mosaic-2m-dsm.tif'}}}]}
+
+    assert sg.hrdem_tiles(-123.1, 49.1, -122.8, 49.3, fetch) == [
+        ('/vsicurl/https://example.test/2_3-mosaic-2m-dtm.tif', 'EPSG:4326', (-130.0, 45.0, -115.0, 52.0))]
+
+
 def test_directory_locator_finds_the_covering_raster_first_in_name_order(tmp_path):
     a = _write_plane(tmp_path / 'a.tif')
     _write_plane(tmp_path / 'b.TIF', lng=_LNG + 0.01)  # 100 cells east of a's west edge: overlaps a's eastern half.
@@ -432,6 +682,7 @@ city-params {
   country-id {
     seattle-wa = "usa"
     cdmx = "mexico"
+    taipei = "taiwan"
     validation-study = ${city-params.country-id.seattle-wa}
     nowhere = null
   }
@@ -600,8 +851,8 @@ def test_resolve_source_uses_the_countrys_registered_source_or_an_explicit_one()
 
 
 def test_resolve_source_explains_what_to_do_for_an_unregistered_country():
-    with pytest.raises(SystemExit, match='country-id "mexico".*--dem-dir'):
-        sg.resolve_source(_args(city_id='cdmx'), _CONF)
+    with pytest.raises(SystemExit, match='country-id "taiwan".*--dem-dir'):
+        sg.resolve_source(_args(city_id='taipei'), _CONF)
 
 
 def test_resolve_source_builds_a_directory_source_from_absolute_and_repo_relative_paths(tmp_path, monkeypatch):

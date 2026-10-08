@@ -43,10 +43,15 @@ The pure functions (``sample_points``, ``bilinear``, ``fill_gaps``, ``smooth``, 
 
 import argparse
 import csv
+import io
+import json
 import logging
 import math
 import re
 import sys
+import urllib.parse
+import urllib.request
+import zipfile
 from collections.abc import Callable, Iterable, Sequence
 from contextlib import closing
 from dataclasses import dataclass
@@ -123,7 +128,7 @@ OUTPUT_FIELDS = ('street_edge_id', 'quality', 'confidence', 'net_grade', 'mean_g
 
 # GDAL's defaults give up on the first dropped connection and list the whole S3 prefix before opening one file.
 GDAL_ENV = {'GDAL_HTTP_MAX_RETRY': '5', 'GDAL_HTTP_RETRY_DELAY': '2', 'GDAL_DISABLE_READDIR_ON_OPEN': 'EMPTY_DIR',
-            'CPL_VSIL_CURL_ALLOWED_EXTENSIONS': '.tif'}
+            'CPL_VSIL_CURL_ALLOWED_EXTENSIONS': '.tif,.tiff'}
 
 log = logging.getLogger('street_gradient')
 
@@ -377,48 +382,392 @@ def usgs_13_locate(lngs: np.ndarray, lats: np.ndarray) -> list:
     return [usgs_13_tile_url(lng, lat) for lng, lat in zip(lngs, lats)]
 
 
+def fetch_json(url: str, timeout_s: float = 60.0) -> dict:
+    """One GET of a JSON document; the seam the catalog-backed sources' tests stub."""
+    with urllib.request.urlopen(url, timeout=timeout_s) as response:
+        return json.load(response)
+
+
+def stac_items(url: str, fetch: Callable = fetch_json) -> Iterable[dict]:
+    """Every item of a STAC search, following ``rel=next`` links across pages."""
+    while url:
+        page = fetch(url)
+        yield from page.get('features', [])
+        url = next((link['href'] for link in page.get('links', []) if link.get('rel') == 'next'), None)
+
+
+class CatalogLocator:
+    """
+    A locator over rasters a catalog lists, asked about an area only when a batch of points first lands there.
+
+    National models that publish a new tile whenever a region is reflown have no URL a point can be turned into
+    without asking the catalog, so a search by bounding box is the way to a tile's address. One search per 0.01°
+    cell would be hundreds per city; padding each search covers the neighbouring cells too, and an area is never
+    searched twice, so a batch in open water (no tile) costs nothing after the first.
+    """
+
+    def __init__(self, fill: Callable[[float, float, float, float], Sequence[Extent]], pad_deg: float = 0.02) -> None:
+        """
+        Args:
+            fill: Maps a ``(west, south, east, north)`` WGS84 box to the rasters covering it, as :func:`locate_by_extent`
+                takes them. It may return the same raster twice across calls; a path is kept once.
+            pad_deg: How far beyond a batch's box each search reaches, in degrees.
+        """
+        self._fill = fill
+        self._pad = pad_deg
+        self._rasters: list[Extent] = []
+        self._paths: set = set()
+        self._covered: list[tuple[float, float, float, float]] = []
+
+    def __call__(self, lngs: np.ndarray, lats: np.ndarray) -> list:
+        west, south, east, north = lngs.min(), lats.min(), lngs.max(), lats.max()
+        if not any(w <= west and s <= south and e >= east and n >= north for w, s, e, n in self._covered):
+            box = (west - self._pad, south - self._pad, east + self._pad, north + self._pad)
+            for raster in self._fill(*box):
+                if raster[0] not in self._paths:
+                    self._paths.add(raster[0])
+                    self._rasters.append(raster)
+            self._covered.append(box)
+        return locate_by_extent(self._rasters, lngs, lats)
+
+
+# swissALTI3D (swisstopo), the Swiss national terrain model: 1 km tiles in LV95 (EPSG:2056) named for their south-west
+# corner in km, each published as 0.5 m and 2 m cloud-optimized GeoTIFFs. A tile is re-issued under a new year when
+# its region is reflown (2026 for Zürich, 2021 for Geneva, 2025 for Bern, ...), and an older issue stays listed beside
+# it, so the STAC search is asked per area and the newest year per tile wins. 2 m rather than 0.5 m: the sampler
+# steps every meter and smooths over 5 m on any model finer than 5 m, which removes what the 14x larger tiles add.
+SWISSALTI3D_ITEMS = 'https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.swissalti3d/items'
+SWISSALTI3D_CRS = 'EPSG:2056'
+
+
+def swissalti3d_tiles(west: float, south: float, east: float, north: float, fetch: Callable = fetch_json,
+                      resolution: str = '2') -> list[Extent]:
+    """
+    The newest swissALTI3D tile of the given resolution for each 1 km square touching a WGS84 box.
+
+    Returns:
+        ``(path, crs, bounds)`` per tile, as :class:`CatalogLocator` takes them.
+    """
+    query = urllib.parse.urlencode({'bbox': f'{west},{south},{east},{north}', 'limit': 100})
+    newest: dict[tuple[int, int], tuple[int, str]] = {}
+    for item in stac_items(f'{SWISSALTI3D_ITEMS}?{query}', fetch):
+        _, year, square = item['id'].split('_')  # swissalti3d_2026_2683-1247
+        key = tuple(int(v) for v in square.split('-'))
+        href = item['assets'][f'{item["id"]}_{resolution}_2056_5728.tif']['href']
+        if key not in newest or int(year) > newest[key][0]:
+            newest[key] = (int(year), f'/vsicurl/{href}')
+    return [(path, SWISSALTI3D_CRS, (e * 1000.0, n * 1000.0, e * 1000.0 + 1000.0, n * 1000.0 + 1000.0))
+            for (e, n), (_, path) in sorted(newest.items())]
+
+
+Extent = tuple[str, object, tuple[float, float, float, float]]  # (path, crs, (left, bottom, right, top))
+
+
+def locate_by_extent(rasters: Sequence[Extent], lngs: np.ndarray, lats: np.ndarray) -> list:
+    """
+    The first raster, in the order given, whose extent holds each point.
+
+    The rasters may be in different coordinate systems (adjacent UTM zones, say); a batch is projected once per system
+    rather than once per raster, since a fine national model ships as hundreds of tiles in one or two systems.
+
+    Args:
+        rasters: ``(path, crs, (left, bottom, right, top))`` per raster, the bounds in that raster's ``crs``.
+
+    Returns:
+        A raster path per point, None where none holds it.
+    """
+    found = np.full(len(lngs), None, dtype=object)
+    placed = np.zeros(len(lngs), dtype=bool)
+    projected: dict = {}
+    for path, crs, (left, bottom, right, top) in rasters:
+        if placed.all():
+            break
+        if crs not in projected:
+            xs, ys = warp_transform('EPSG:4326', crs, list(lngs), list(lats))
+            projected[crs] = np.array(xs), np.array(ys)
+        xs, ys = projected[crs]
+        inside = (xs >= left) & (xs <= right) & (ys >= bottom) & (ys <= top)
+        found[inside & ~placed] = path
+        placed |= inside
+    return list(found)
+
+
 def directory_locator(dem_dir: Path, opener: Callable = rasterio.open) -> Locator:
     """
     Builds a locator over every GeoTIFF in ``dem_dir``, for models that have to be downloaded by hand.
 
-    The rasters may be in different coordinate systems (adjacent UTM zones, say). Where two overlap, the first in name
-    order wins.
+    Where two rasters overlap, the first in name order wins.
 
     Returns:
         A function mapping points to the path of the raster whose extent holds each, None where none does.
     """
-    rasters = []
+    rasters: list[Extent] = []
     for path in sorted(p for p in dem_dir.iterdir() if p.suffix.lower() in ('.tif', '.tiff')):
         with opener(path) as ds:
-            rasters.append((str(path), ds.crs, ds.bounds))
+            rasters.append((str(path), ds.crs, tuple(ds.bounds)))
     if not rasters:
         sys.exit(f'error: no .tif files in {dem_dir}')
+    return lambda lngs, lats: locate_by_extent(rasters, lngs, lats)
+
+
+# NRCan's HRDEM Mosaic, the seamless lidar terrain model of Canada ("most recent source wins" where projects
+# overlap), one cloud-optimized GeoTIFF per 500 km Lambert tile (EPSG:3979) in 1 m and 2 m issues. The tile ids
+# (2_3 under Vancouver) are not documented, so the STAC search names the tile; each item's WGS84 bbox is the extent.
+# 2 m rather than 1 m for the reason swissALTI3D is sampled at 2 m. A 30 m MRDEM DTM exists for the rest of Canada.
+HRDEM_SEARCH = 'https://datacube.services.geo.ca/stac/api/search'
+HRDEM_COLLECTION = 'hrdem-mosaic-2m'
+
+
+def hrdem_tiles(west: float, south: float, east: float, north: float, fetch: Callable = fetch_json) -> list[Extent]:
+    """
+    The HRDEM Mosaic DTM tiles touching a WGS84 box.
+
+    Returns:
+        ``(path, crs, bounds)`` per tile, the bounds being the item's WGS84 bbox, as :class:`CatalogLocator` takes them.
+    """
+    query = urllib.parse.urlencode({'collections': HRDEM_COLLECTION, 'bbox': f'{west},{south},{east},{north}',
+                                    'limit': 100})
+    tiles = []
+    for item in stac_items(f'{HRDEM_SEARCH}?{query}', fetch):
+        tiles.append((f'/vsicurl/{item["assets"]["dtm"]["href"]}', 'EPSG:4326', tuple(item['bbox'][:4])))
+    return tiles
+
+
+# LINZ's national 1 m lidar DEM, "an amalgamation of the most current LiDAR surveys", one cloud-optimized GeoTIFF per
+# Topo50 map sheet (24 km x 36 km in NZTM2000, EPSG:2193). Sheets are lettered by row from AS at the top of the
+# North Island down to CK, skipping I and O as the alphabet of the series does, and numbered by column from 04 at the
+# western edge; a sheet that is all sea is simply absent from the bucket, which the sampler records as a missing
+# raster. Checked against the bounding boxes of every tile the bucket's catalogs list.
+NZ_SHEET_ROWS = [a + b for a in 'ABC' for b in 'ABCDEFGHJKLMNPQRSTUVWXYZ']
+NZ_SHEET_ROWS = NZ_SHEET_ROWS[NZ_SHEET_ROWS.index('AS'):NZ_SHEET_ROWS.index('CK') + 1]
+NZ_SHEET_TOP_N, NZ_SHEET_LEFT_E, NZ_SHEET_HEIGHT_M, NZ_SHEET_WIDTH_M = 6_234_000, 1_084_000, 36_000, 24_000
+NZ_1M_DEM = 'https://nz-elevation.s3.ap-southeast-2.amazonaws.com/new-zealand/new-zealand/dem_1m/2193/'
+
+
+def nz_sheet_name(easting: float, northing: float) -> str | None:
+    """The Topo50 sheet holding a NZTM2000 point (``BA32`` under Auckland), or None off the grid."""
+    row = math.floor((NZ_SHEET_TOP_N - northing) / NZ_SHEET_HEIGHT_M)
+    col = 4 + math.floor((easting - NZ_SHEET_LEFT_E) / NZ_SHEET_WIDTH_M)
+    if not 0 <= row < len(NZ_SHEET_ROWS) or col < 4 or col > 99:
+        return None
+    return f'{NZ_SHEET_ROWS[row]}{col:02d}'
+
+
+def nz_1m_locate(lngs: np.ndarray, lats: np.ndarray) -> list:
+    """The LINZ 1 m DEM sheet for each point, as a ``/vsicurl/`` path."""
+    xs, ys = warp_transform('EPSG:4326', 'EPSG:2193', list(lngs), list(lats))
+    names = (nz_sheet_name(x, y) for x, y in zip(xs, ys))
+    return [f'/vsicurl/{NZ_1M_DEM}{name}.tiff' if name else None for name in names]
+
+
+# GEDTM30 (OpenGeoHub), a global 30 m terrain model fused from ICESat-2 and GEDI ground returns and the open DSMs,
+# one cloud-optimized GeoTIFF for the whole land surface between 65°S and 85°N. The only bare-earth model open for
+# Chile, India and Ecuador, and a 30 m one: the confidence tier is `low`, and the tool leaves such grades out of the
+# score unless asked. Version 1.1 (June 2025) rather than 1.2: the 1.2 file on the publisher's S3 is float metres
+# but still tagged with 1.1's 0.1 decimeter scale, which the sampler would apply (reported upstream 2026-10).
+GEDTM30_URL = ('/vsicurl/https://s3.opengeohub.org/global/edtm/'
+               'gedtm_rf_m_30m_s_20060101_20151231_go_epsg.4326.3855_v20250611.tif')
+GEDTM30_SOUTH, GEDTM30_NORTH = -65.0, 85.0
+
+
+def gedtm30_locate(lngs: np.ndarray, lats: np.ndarray) -> list:
+    """The one GEDTM30 raster for every point it covers, None beyond its latitude band."""
+    return [GEDTM30_URL if GEDTM30_SOUTH <= lat <= GEDTM30_NORTH else None for lat in lats]
+
+
+def fetch_bytes(url: str, data: dict | None = None, timeout_s: float = 600.0) -> bytes:
+    """One GET (or, with ``data``, a form POST) returning the response body; the seam the download tests stub."""
+    body = urllib.parse.urlencode(data).encode() if data is not None else None
+    request = urllib.request.Request(url, data=body)
+    with urllib.request.urlopen(request, timeout=timeout_s) as response:
+        return response.read()
+
+
+def dem_cache_dir(source_name: str) -> Path:
+    """
+    Where a source that has to be downloaded rather than read in place keeps its files, under the gitignored
+    ``db/onboarding/``, so a rerun or a second city on the same tiles fetches nothing twice.
+    """
+    path = REPO_ROOT / 'db' / 'onboarding' / '_dem_cache' / source_name
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def index_locator(load: Callable[[], Sequence[Extent]]) -> Locator:
+    """A locator over a raster list loaded once, on the first batch, for models whose whole index is one document."""
+    rasters: list = []
 
     def locate(lngs: np.ndarray, lats: np.ndarray) -> list:
-        found = np.full(len(lngs), None, dtype=object)
-        placed = np.zeros(len(lngs), dtype=bool)
-        # A fine national model ships as hundreds of tiles in one or two coordinate systems, so the batch is
-        # projected once per system rather than once per tile.
-        projected: dict = {}
-        for path, crs, bounds in rasters:
-            if placed.all():
-                break
-            if crs not in projected:
-                xs, ys = warp_transform('EPSG:4326', crs, list(lngs), list(lats))
-                projected[crs] = np.array(xs), np.array(ys)
-            xs, ys = projected[crs]
-            inside = (xs >= bounds.left) & (xs <= bounds.right) & (ys >= bounds.bottom) & (ys <= bounds.top)
-            found[inside & ~placed] = path
-            placed |= inside
-        return list(found)
+        if not rasters:
+            rasters.extend(load())
+        return locate_by_extent(rasters, lngs, lats)
     return locate
 
 
+# INEGI's 5 m lidar terrain model of Mexico ("Modelo Digital de Elevación de Alta Resolución LiDAR, tipo Terreno"),
+# published per 1:10 000 chart as a zipped ESRI GRID that rasterio reads in place. The portal is a plain form API:
+# a chart's editions, each naming its download URL and formats, come from one POST. The chart key is the position
+# in the national map series, so it is computed rather than looked up: 1:1 000 000 sheets by UTM zone and 4° band,
+# split 2 x 2 into lettered 1:250 000 sheets, 9 x 8 into numbered 1:50 000 sheets (tens digit the row), 3 x 2 into
+# lettered 1:20 000 sheets and 2 x 2 into numbered charts, each ordered row by row from the north-west. Checked
+# against the centroid INEGI lists for every one of the 26,334 charts (2026-10). Elevations are on ITRF, which the
+# GRID's own projection file carries, so no datum is assigned here.
+INEGI_DESCRIPTOR = 'https://www.inegi.org.mx/app/geo2/elevacionesmex/getF10KDescarga.do'
+INEGI_GRID_SUFFIX = '_gr.zip'
+
+
+def inegi_chart(lng: float, lat: float) -> str:
+    """The 1:10 000 chart key holding a point, ``E14A39B4`` under the Zócalo."""
+    zone, band = math.floor((lng + 180) / 6) + 1, math.floor(lat / 4)
+    west, top = -180 + (zone - 1) * 6, band * 4 + 4
+    col, row = math.floor((lng - west) / 3), math.floor((top - lat) / 2)
+    west, top = west + col * 3, top - row * 2
+    quarter = 'ABCD'[row * 2 + col]
+    col, row = math.floor((lng - west) * 3), math.floor((top - lat) * 4)
+    west, top = west + col / 3, top - row / 4
+    sheet = (row + 1) * 10 + col + 1
+    col, row = math.floor((lng - west) * 9), math.floor((top - lat) * 8)
+    west, top = west + col / 9, top - row / 8
+    sixth = 'ABCDEF'[row * 3 + col]
+    col, row = math.floor((lng - west) * 18), math.floor((top - lat) * 16)
+    return f"{chr(ord('A') + band)}{zone:02d}{quarter}{sheet}{sixth}{row * 2 + col + 1}"
+
+
+def extract_zip(data: bytes, into: Path) -> None:
+    """Unzips an archive whose entries may carry Windows path separators, as INEGI's do, into real directories."""
+    with zipfile.ZipFile(io.BytesIO(data)) as archive:
+        for info in archive.infolist():
+            name = info.filename.replace('\\', '/')
+            if not name.endswith('/'):
+                target = into / name
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(archive.read(info))
+
+
+class InegiLocator:
+    """Fetches each chart's GRID once into the cache and names it for every point on the chart."""
+
+    def __init__(self, fetch: Callable = fetch_bytes) -> None:
+        self._fetch = fetch
+        self._charts: dict[str, str | None] = {}
+
+    def _grid(self, chart: str) -> str | None:
+        """
+        Returns:
+            The GRID directory for a chart, downloaded on first use from the chart's newest edition that offers one,
+            or None where INEGI lists no such edition (remembered, so a chart is asked for once).
+        """
+        if chart not in self._charts:
+            self._charts[chart] = None
+            chart_dir = dem_cache_dir('inegi-lidar-mdt-5m') / chart
+            if not chart_dir.exists():
+                editions = json.loads(self._fetch(INEGI_DESCRIPTOR, {'res': 5, 'mod': 'T', 'cve': chart}))
+                offered = [e for e in editions if INEGI_GRID_SUFFIX in e.get('archivo', '')]
+                if offered:
+                    newest = max(offered, key=lambda e: e['edicion'])
+                    extract_zip(self._fetch(newest['url_descarga'] + INEGI_GRID_SUFFIX), chart_dir)
+            header = next(chart_dir.rglob('hdr.adf'), None) if chart_dir.exists() else None
+            if header is None:
+                log.warning('INEGI publishes no 5 m terrain GRID for chart %s. Points there get no elevation.', chart)
+            else:
+                self._charts[chart] = str(header.parent)
+        return self._charts[chart]
+
+    def __call__(self, lngs: np.ndarray, lats: np.ndarray) -> list:
+        return [self._grid(inegi_chart(lng, lat)) for lng, lat in zip(lngs, lats)]
+
+
+# IGN's LiDAR HD MNT, the 0.5 m bare-earth model France is flying through 2026 (Bayonne was flown in 2023). It is
+# served only as WMS GetMap imagery in GeoTIFF, which rasterio cannot read in place (no range requests), so each
+# 0.01° cell is fetched once at the native 0.5 m into the cache. Native rather than coarser: the server resamples
+# by averaging the -9999 no-data value in with its neighbors, so a 1 m request carries elevations of -7000 m along
+# every river bank. The grid's nodes sit on half-meter multiples, so the box edges land on quarter meters.
+LIDARHD_WMS = 'https://data.geopf.fr/wms-r/wms'
+LIDARHD_LAYER = 'IGNF_LIDAR-HD_MNT_ELEVATION.ELEVATIONGRIDCOVERAGE.LAMB93'
+LIDARHD_CRS = 'EPSG:2154'
+LIDARHD_CELL_DEG = 0.01
+LIDARHD_PAD_M = 2.0
+
+
+def lidarhd_cell_url(column: int, row: int) -> str:
+    """The GetMap request for the GeoTIFF covering one 0.01° cell (``column``, ``row`` index it from the origin)."""
+    west, south = column * LIDARHD_CELL_DEG, row * LIDARHD_CELL_DEG
+    east, north = west + LIDARHD_CELL_DEG, south + LIDARHD_CELL_DEG
+    xs, ys = warp_transform('EPSG:4326', LIDARHD_CRS, [west, east, east, west], [south, south, north, north])
+    x0, y0 = math.floor(min(xs) - LIDARHD_PAD_M) - 0.25, math.floor(min(ys) - LIDARHD_PAD_M) - 0.25
+    x1, y1 = math.ceil(max(xs) + LIDARHD_PAD_M) + 0.25, math.ceil(max(ys) + LIDARHD_PAD_M) + 0.25
+    query = urllib.parse.urlencode({
+        'SERVICE': 'WMS', 'VERSION': '1.3.0', 'REQUEST': 'GetMap', 'LAYERS': LIDARHD_LAYER, 'STYLES': '',
+        'FORMAT': 'image/geotiff', 'CRS': LIDARHD_CRS, 'BBOX': f'{x0},{y0},{x1},{y1}',
+        'WIDTH': round((x1 - x0) * 2), 'HEIGHT': round((y1 - y0) * 2)})
+    return f'{LIDARHD_WMS}?{query}'
+
+
+class LidarHdLocator:
+    """Fetches each cell's GeoTIFF once into the cache and names it for every point in the cell."""
+
+    def __init__(self, fetch: Callable = fetch_bytes) -> None:
+        self._fetch = fetch
+        self._cells: dict[tuple[int, int], str | None] = {}
+
+    def _cell(self, column: int, row: int) -> str | None:
+        if (column, row) not in self._cells:
+            path = dem_cache_dir('ign-lidarhd-mnt-05m') / f'{column}_{row}.tif'
+            if not path.exists():
+                data = self._fetch(lidarhd_cell_url(column, row))
+                if not data.startswith(b'II*\x00'):  # A service exception comes back as XML with status 200.
+                    log.warning('No LiDAR HD GeoTIFF for cell %d,%d: %s', column, row, data[:200].decode(errors='replace'))
+                    self._cells[(column, row)] = None
+                    return None
+                path.write_bytes(data)
+            self._cells[(column, row)] = str(path)
+        return self._cells[(column, row)]
+
+    def __call__(self, lngs: np.ndarray, lats: np.ndarray) -> list:
+        return [self._cell(math.floor(lng / LIDARHD_CELL_DEG), math.floor(lat / LIDARHD_CELL_DEG))
+                for lng, lat in zip(lngs, lats)]
+
+
+# AHN4, the Dutch national height model (Rijkswaterstaat, via PDOK), as 0.5 m cloud-optimized GeoTIFFs of the bare
+# earth (DTM), one per 5 x 6.25 km map sheet in RD New (EPSG:28992). The sheet index is one GeoJSON document, read
+# once. Water and building footprints are no-data, which the sampler bridges where it can.
+AHN_INDEX = 'https://service.pdok.nl/rws/actueel-hoogtebestand-nederland/atom/downloads/dtm_05m/kaartbladindex.json'
+AHN_CRS = 'EPSG:28992'
+
+
+def ahn_sheets(fetch: Callable = fetch_json) -> list[Extent]:
+    """Every AHN4 DTM sheet, with its RD extent, as :func:`locate_by_extent` takes them."""
+    sheets = []
+    for feature in fetch(AHN_INDEX)['features']:
+        xs, ys = zip(*feature['geometry']['coordinates'][0])
+        sheets.append((f'/vsicurl/{feature["properties"]["url"]}', AHN_CRS, (min(xs), min(ys), max(xs), max(ys))))
+    return sheets
+
+
 USGS_3DEP_10M = Source('usgs-3dep-10m', 10.0, usgs_13_locate)
-REMOTE_SOURCES = {USGS_3DEP_10M.name: USGS_3DEP_10M}
+SWISSALTI3D_2M = Source('swissalti3d-2m', 2.0, CatalogLocator(swissalti3d_tiles))
+LINZ_NZ_1M = Source('linz-nz-1m', 1.0, nz_1m_locate)
+HRDEM_MOSAIC_2M = Source('nrcan-hrdem-mosaic-2m', 2.0, CatalogLocator(hrdem_tiles))
+GEDTM30 = Source('gedtm30', 30.0, gedtm30_locate)
+INEGI_MDT_5M = Source('inegi-lidar-mdt-5m', 5.0, InegiLocator())
+IGN_LIDARHD_05M = Source('ign-lidarhd-mnt-05m', 0.5, LidarHdLocator())
+AHN4_DTM_05M = Source('ahn4-dtm-05m', 0.5, index_locator(ahn_sheets))
+REMOTE_SOURCES = {source.name: source for source in (USGS_3DEP_10M, SWISSALTI3D_2M, LINZ_NZ_1M, HRDEM_MOSAIC_2M,
+                                                     GEDTM30, INEGI_MDT_5M, IGN_LIDARHD_05M, AHN4_DTM_05M)}
 # The registered source for each cityparams country-id. A country is only listed once a bare-earth model for it has
 # an adapter here. The rest go through --dem-dir until then.
-SOURCE_BY_COUNTRY = {'usa': USGS_3DEP_10M.name}
+SOURCE_BY_COUNTRY = {
+    'usa': USGS_3DEP_10M.name,
+    'switzerland': SWISSALTI3D_2M.name,
+    'new-zealand': LINZ_NZ_1M.name,
+    'canada': HRDEM_MOSAIC_2M.name,
+    'chile': GEDTM30.name,
+    'india': GEDTM30.name,
+    'ecuador': GEDTM30.name,
+    'mexico': INEGI_MDT_5M.name,
+    'france': IGN_LIDARHD_05M.name,
+    'netherlands': AHN4_DTM_05M.name,
+}
 
 
 class RasterSampler:
