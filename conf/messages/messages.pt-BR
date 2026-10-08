@@ -259,6 +259,7 @@ landing.how.you.help.assess = AVALIAR A SEVERIDADE
 landing.validate.title = Valide o que outras pessoas encontraram
 landing.validate.content = Comece a ajudar em segundos: veja os rótulos recentes que voluntários colocaram em {0} e diga se estão corretos.
 landing.spotlight.title = Onde as calçadas de {0} têm as melhores e as piores pontuações
+landing.spotlight.title-ask = Ajude os primeiros bairros de {0} a ganhar uma pontuação de calçadas
 landing.choropleth.title = Escolha um bairro
 landing.choropleth.content = Escolha um bairro para explorar abaixo ou clique no botão <a href="/explore">"Explorar"</a> e você receberá um bairro automaticamente!
 landing.choropleth.legend = Percentual do bairro concluído

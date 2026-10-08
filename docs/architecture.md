@@ -493,7 +493,10 @@ loaded by the corresponding Twirl view:
   landing page and `/cities` both mount: the highest- and lowest-scoring neighborhoods, or streets, as two ranked
   lists whose bars are painted by `common/scoreRamp.js`. It reads one feed, `/v3/api/accessScoreSpotlight`, which
   answers from the nightly snapshot tables; nothing is fetched until the visitor's first interaction, and the
-  section hides itself when the city has nothing ranked. A city mapped as one neighborhood has no neighborhood ranking
+  section hides itself when the city has nothing ranked and no neighborhood near the completion floor. With nothing
+  ranked but a neighborhood at least half-way to the floor (the feed's `nearest_min_completion`) it shows the "closest
+  to being ranked" ask alone, under the ask heading the landing view carries on `data-ask-title` (#5454).
+  A city mapped as one neighborhood has no neighborhood ranking
   to give, so that unit is dropped in favor of its street list — unless no street is ranked either, where the one score
   is still better than an empty section — and the unit switch is only drawn when both units have something to show.
   Hovering or focusing a row lights that neighborhood on the landing choropleth — or that city's circle on `/cities` —

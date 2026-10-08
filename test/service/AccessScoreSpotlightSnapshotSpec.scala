@@ -135,6 +135,7 @@ class AccessScoreSpotlightSnapshotSpec extends SidewalkSpec with GuiceOneAppPerS
         withClue(s"unit $unit: ") {
           feed.unit mustBe unit
           feed.minCompletion mustBe AccessScoreSpotlight.MinRegionCompletion
+          feed.nearestMinCompletion mustBe AccessScoreSpotlight.NearestMinCompletion
           feed.qualifying must be <= feed.total
           feed.top.size must be <= 5
           feed.bottom.size must be <= 5
@@ -151,6 +152,7 @@ class AccessScoreSpotlightSnapshotSpec extends SidewalkSpec with GuiceOneAppPerS
     "offer the closest-to-qualifying regions only while the ranked list is short" in {
       await(service.recordSnapshot())
       val feed = await(service.getSpotlight(SpotlightUnit.Regions, 5))
+      feed.nearestMinCompletion mustBe AccessScoreSpotlight.NearestMinCompletion
 
       if (feed.qualifying >= 5) feed.nearest mustBe empty
       else {
@@ -160,7 +162,12 @@ class AccessScoreSpotlightSnapshotSpec extends SidewalkSpec with GuiceOneAppPerS
         rates mustBe rates.sorted.reverse
         feed.nearest
           .collect { case row: RegionSpotlightRowForApi => row }
-          .foreach(row => AccessScoreSpotlight.regionQualifies(row) mustBe false)
+          .foreach { row =>
+            AccessScoreSpotlight.regionQualifies(row) mustBe false
+            // Near the floor, not merely unranked: a fresh deployment's 0% regions must never fill the ask (#5454).
+            math.round(row.completionRate * 100) must be >= math.round(AccessScoreSpotlight.NearestMinCompletion * 100)
+            row.totalDistanceM must be > 0.0
+          }
       }
       // A street is never a "go explore this" ask; that belongs to the neighborhood it is in.
       await(service.getSpotlight(SpotlightUnit.Streets, 5)).nearest mustBe empty
@@ -260,6 +267,51 @@ class AccessScoreSpotlightSnapshotSpec extends SidewalkSpec with GuiceOneAppPerS
         ways(sparse.top) mustBe Seq(1L, 2L, 12L, 4L, 3L, 5L, 6L, 7L)
         sparse.bottom mustBe empty
       } finally { await(service.recordSnapshot()): Unit }
+    }
+
+    "neither count nor list a stretch in a soft-deleted region, so qualifying never exceeds what is shown" in {
+      // The count and the lists are two queries; if only the lists join `region`, a stretch in a deleted region is
+      // counted and never listed, and the module is told it has rows it cannot draw (#5454).
+      val liveRegionId =
+        run(sql"SELECT region_id FROM region WHERE deleted = FALSE ORDER BY region_id LIMIT 1".as[Int].head)
+      val edgeId = run(sql"SELECT street_edge_id FROM street_edge ORDER BY street_edge_id LIMIT 1".as[Int].head)
+      // An explicit id, because the dev dumps don't advance sequences (same reason as `StreetFixtures.insertRegion`).
+      val deletedRegionId = run(
+        sql"""INSERT INTO region (region_id, data_source, name, geom, deleted)
+              VALUES ((SELECT COALESCE(MAX(region_id), 0) + 1 FROM region), 'spec', 'Spec Deleted Region',
+                      ST_Multi(ST_SetSRID(ST_GeomFromText('POLYGON((0 0, 0 1, 1 1, 1 0, 0 0))'), 4326)), TRUE)
+              RETURNING region_id""".as[Int].head
+      )
+      // Millisecond precision: Postgres keeps microseconds, and Java 17's clock can carry nanos past that.
+      val runAt = OffsetDateTime.now().truncatedTo(ChronoUnit.MILLIS)
+      def row(way: Long, score: Double, regionId: Int): StreetAccessScore =
+        StreetAccessScore(0, way, regionId, edgeId, Some(s"Way $way"), Some(score), 500, 1, 4, 0, 0.5, runAt)
+      def ways(list: Seq[models.api.SpotlightRowForApi]): Seq[Long] =
+        list.collect { case r: StreetSpotlightRowForApi => r.osmWayId }
+
+      try {
+        run(
+          streetScoreTable.replaceSnapshot(
+            Seq(
+              row(1, 0.95, liveRegionId),
+              row(2, 0.60, liveRegionId),
+              // Would top the list if the deleted region were read.
+              row(3, 0.99, deletedRegionId)
+            )
+          )
+        )
+        val feed = await(service.getSpotlight(SpotlightUnit.Streets, 5))
+        feed.total mustBe 2
+        feed.qualifying mustBe 2
+        ways(feed.top) mustBe Seq(1L, 2L)
+        feed.bottom mustBe empty
+        // Under the sparse rule every ranked stretch is in the one list, so the count must equal what is listed.
+        feed.qualifying mustBe (feed.top ++ feed.bottom).size
+      } finally {
+        // Deleting the region cascades to its `street_access_score` rows; the real run then replaces the rest.
+        run(sqlu"DELETE FROM region WHERE region_id = $deletedRegionId"): Unit
+        await(service.recordSnapshot()): Unit
+      }
     }
 
     "fan out over the public cities without failing on a city it cannot read" in {
