@@ -85,7 +85,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # The same command the deploy runs (sidewalk-tools' build.sh): the CSS bundles, then Rolldown for the JS.
+      # The same command the deploy runs (sidewalk-tools' build.sh): Vite, for every page's JS and CSS bundle.
       - name: Build assets
         run: npm run build
 
@@ -99,12 +99,12 @@ jobs:
         if: always()
         run: npx eslint frontend/js/ public/locales/ test/js/ test/e2e/ playwright.config.js
 
-      # Vendored/generated CSS is carved out by `.stylelintignore`. The glob is single-quoted so Stylelint's own globber
-      # expands `**` (not the shell). Like ESLint, no `--max-warnings` flag: the one `warning` rule (max-line-length)
-      # is advisory.
+      # Only our sources: vendored and built CSS live under public/, outside the glob. It is single-quoted so Stylelint's
+      # own globber expands `**` (not the shell). Like ESLint, no `--max-warnings` flag: the one `warning` rule
+      # (max-line-length) is advisory.
       - name: Stylelint (blocking)
         if: always()
-        run: npx stylelint 'public/**/*.css'
+        run: npx stylelint 'frontend/css/**/*.css'
 
       # The Twirl templates; htmlhint reads its rules from .htmlhintrc.
       - name: HTMLHint (blocking)
@@ -117,9 +117,9 @@ jobs:
         if: always()
         run: node tools/lint/check-locale-parity.mjs
 
-      # The public/css/ layout (#5030): a page's stylesheet is linked only by that page, page class prefixes stay in
-      # the page's own files, and every stylesheet a view links exists (a moved file is a 500 at render time, not a
-      # build failure).
+      # The frontend/css/ layout (#5030, #5651): a page's stylesheet is imported only by its page's entry, page class
+      # prefixes stay in the page's own files, every stylesheet is imported by something, and every view that loads an
+      # entry's JS asks for its styles.
       - name: CSS layout (blocking)
         if: always()
         run: node tools/lint/check-css-layout.mjs

@@ -18,6 +18,7 @@
 
 import { util } from './common/utilities.js';
 import { ScoreRamp } from './common/scoreRamp.js';
+import '../css/components/access-score-spotlight.css';
 
 /**
  * One unit's Spotlight feed.

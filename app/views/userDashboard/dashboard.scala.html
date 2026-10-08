@@ -465,9 +465,7 @@
   @* Second composer instance (#4656), for editing a story straight from the list above; the popup's own instance
      belongs to the card it's inside, and its save would refresh that card rather than this list. *@
   @common.storyComposer("ud-story-composer")
-  <link href='@assets.path("css/components/label-detail.css")' rel="stylesheet">
-  <link href='@assets.path("css/components/label-type-picker.css")' rel="stylesheet">
-  <link href='@assets.path("css/components/pano-attribution.css")' rel="stylesheet">
+  @ViteAssets.stylesheets("dashboard/dashboard")
   @if(commonData.imagerySource == PanoSource.Infra3d) {
     <script src='@assets.path("vendor/proj4/proj4-2.22.0.js")'></script>
     <script src='@assets.path("vendor/infra3d/infra3dapi-1.12.1.js")'></script>
@@ -487,9 +485,6 @@
   @userDashboard._createTeamDialog()
   @* The contribution map's libraries and styles (the map itself is built by the page entry). *@
   <link href="@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.css")" rel="stylesheet">
-  <link href="@assets.path("css/components/choropleth.css")" rel="stylesheet">
-  <link href="@assets.path("css/components/filter-sidebar.css")" rel="stylesheet">
-  <link href="@assets.path("css/components/tag-pills.css")" rel="stylesheet">
   <script src="@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.js")"></script>
   <script src="@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")"></script>
   <script src="@assets.path("vendor/turf/turf-7.4.0.min.js")"></script>

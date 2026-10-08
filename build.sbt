@@ -84,6 +84,9 @@ Universal / mappings ++= directory(baseDirectory.value / "scripts")
 // `no-cache`) and grows `target/web` from 290MB to ~880MB in every checkout and QA worktree.
 pipelineStages := Seq(fingerprintCssAssetUrls, digest)
 
+// Every view can emit its page's stylesheet tags with `@ViteAssets.stylesheets("<entry>")` (#5651).
+TwirlKeys.templateImports += "views.ViteAssets"
+
 // Points every `url(...)` in a CSS asset at the fingerprinted copy `digest` is about to write (#5094): a stylesheet is
 // static text out of the assets jar, so no interpolation point reaches those URLs. Must precede `digest` above — see
 // project/CssAssetUrls.scala.

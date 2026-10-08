@@ -372,8 +372,8 @@ dialog.au-dialog::backdrop {
   height: 14px;
   margin-top: 1px;
   color: var(--color-banana-800);
-  -webkit-mask-image: url("../../images/icons/alert-triangle-feather.svg");
-  mask-image: url("../../images/icons/alert-triangle-feather.svg");
+  -webkit-mask-image: url("/images/icons/alert-triangle-feather.svg");
+  mask-image: url("/images/icons/alert-triangle-feather.svg");
 }
 
 /* ---- Inline errors ------------------------------------------------------------------------------------------ */
@@ -390,8 +390,8 @@ dialog.au-dialog::backdrop {
 /* The same alert glyph is tinted three ways: error banner, field error, info banner. */
 .au-summary .au-icon,
 .au-field-error .au-icon {
-  -webkit-mask-image: url("../../images/icons/alert-circle.svg");
-  mask-image: url("../../images/icons/alert-circle.svg");
+  -webkit-mask-image: url("/images/icons/alert-circle.svg");
+  mask-image: url("/images/icons/alert-circle.svg");
 }
 
 .au-summary .au-icon {

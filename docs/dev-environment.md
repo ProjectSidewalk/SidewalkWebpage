@@ -136,7 +136,7 @@ Make sure Docker is running (you'll see the whale icon in your tray; you can set
    npm start
    ```
 
-   `npm start` runs the asset build (`npm run build`: Rolldown for the JS, Grunt for the CSS bundles), keeps a
+   `npm start` runs the asset build (`npm run build`: Vite, for every page's JS and CSS bundle), keeps a
    watcher (`npm run watch`) rebuilding it on save, then runs `sbt ~ run` for continuous recompile. The first compile
    takes 5+ minutes; later ones are seconds. It's ready when you see `Listening for HTTP on .../9000`.
 
@@ -259,10 +259,11 @@ Password: sidewalk
 The dev server hot-reloads, so you rarely restart it.
 
 - **Scala / Twirl views** — `sbt ~ run` recompiles on save; reload the browser once compilation finishes.
-- **JavaScript / CSS** — the `npm run watch` behind `npm start` rebuilds `public/build/` on every save: Rolldown
-  bundles each page's entry in `frontend/js/pages/` and what it imports, Grunt concatenates the tools' stylesheets.
-  **Never edit `public/build/` output**, and don't run the build by hand. A new JS file is picked up as soon as
-  something imports it; a new page needs an entry file in `frontend/js/pages/`.
+- **JavaScript / CSS** — the `npm run watch` behind `npm start` rebuilds `public/build/` on every save: Vite
+  bundles each page's entry in `frontend/js/pages/` and what it imports, stylesheets included (`frontend/css/`).
+  **Never edit `public/build/` output**, and don't run the build by hand. A new JS file or stylesheet is picked up as
+  soon as something imports it; a new page needs an entry file in `frontend/js/pages/`, which the watcher notices and
+  restarts for.
 - **`build.sbt` or config changes** — these aren't hot-reloaded. In the Docker shell press `Ctrl+D`, then run
   `sbt clean`, then `npm start` again.
 - **Python** (the standalone scripts in `scripts/` and `tools/`) — the container has **two** interpreters. `python3`

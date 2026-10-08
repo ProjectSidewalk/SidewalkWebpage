@@ -14,35 +14,27 @@
     "eslint": "^10.12.0",
     "eslint-plugin-jsdoc": "^64.5.4",
     "globals": "^17.13.0",
-    "grunt": "^1.6.3",
-    "grunt-concat-css": "*",
-    "grunt-contrib-watch": "*",
     "htmlhint": "^1.9.2",
     "jest": "^30.5.2",
     "jest-environment-jsdom": "^30.5.2",
     "pngjs": "^7.0.0",
-    "rolldown": "^1.2.12",
     "stylelint": "^17.16.0",
     "stylelint-config-standard": "^40.0.0",
     "stylelint-plugin-use-baseline": "^1.4.6",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "vite": "^8.0.0"
   },
   "engines": {
     "node": ">=24 <25",
     "npm": ">=11"
   },
   "scripts": {
-    "build": "grunt",
-    "watch": "grunt watch",
+    "build": "vite build",
+    "watch": "node tools/dev/watch-assets.mjs",
     "start": "bash tools/dev/start.sh",
     "test": "npm run test:js",
     "test:js": "jest --config jest.config.js",
     "test:js:coverage": "jest --config jest.config.js --coverage",
     "test:e2e": "playwright test"
-  },
-  "overrides": {
-    "globule": {
-      "minimatch": "^3.1.5"
-    }
   }
 }

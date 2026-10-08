@@ -14,7 +14,7 @@ aggregated, scored, and served back out through a public API and a set of dashbo
 **Stack:**
 - **Backend** — Scala 3.9 + Play Framework 3.0 (Java 17).
 - **Database** — Postgres + PostGIS, accessed via Slick (with slick-pg for spatial/JSON types).
-- **Frontend** — vanilla JavaScript ES modules, bundled per page by Rolldown (no transpilation), with no framework:
+- **Frontend** — vanilla JavaScript ES modules, bundled per page by Vite (no transpilation), with no framework:
   native DOM and CSS on the `main.css` design tokens.
 - **Dev/runtime** — everything runs in Docker.
 
@@ -535,9 +535,9 @@ that reads `util.misc`, `util.math`, `util.url` or `util.pano` imports the file 
 stay `<script>`-tag globals, declared for the type checker in `tools/lint/js-types/globals.d.ts`.
 
 **One entry per page** lives in `frontend/js/pages/` (`pages/explore.js`, `pages/admin/overview.js`, …): it imports
-the page's code and runs the start-up that used to be an inline `<script>`. **Rolldown** (`rolldown.config.mjs`)
-builds every file in that folder to `public/build/js/<same path>.js`, minified, with code that several pages share
-split into `public/build/js/chunks/` so a visitor downloads it once; a new page is just a new file there. A view loads
+the page's code and runs the start-up that used to be an inline `<script>`. **Vite** (`vite.config.mjs`, Rolldown
+underneath) builds every file in that folder to `public/build/js/<same path>.js`, minified, with code that several
+pages share split into `public/build/js/chunks/` so a visitor downloads it once; a new page is just a new file there. A view loads
 its entry with `<script type="module" src='@assets.path("build/js/<page>.js")'>`, after `pages/main.js`, which
 `main.scala.html` loads on every page (shared helpers, app manager, navbar, auth dialog). Because a bundled module can't
 be templated and runs only after the page is parsed, a view hands its entry the server's values on that tag as
@@ -548,21 +548,33 @@ keys, Validate's filters): the mission or task a tool opens on is fetched by the
 the page the browser cached can never show labels the user already judged, and the first mission arrives in the same
 shape as the next one (#5650). The tool pages also answer `Cache-Control: no-store` for the same reason.
 
-The JS source lives in `frontend/js/`, outside `public/`, because Play serves everything under `public/`: only the
-bundles ship (their sourcemaps carry the sources for the browser's debugger). The three tools' stylesheets are still
-concatenated by Grunt (`concat_css`) into `public/build/css/`; `npm start` runs `npm run watch`, which reruns both it and
-Rolldown on save. Everything under `public/build/` is generated and git-ignored. Third-party libraries live under
-`public/vendor/<lib>/`, one self-contained folder each (never edited or linted).
+The sources live in `frontend/`, outside `public/`, because Play serves everything under `public/`: only the bundles
+ship (their sourcemaps carry the JS sources for the browser's debugger). **Stylesheets go through the same build**
+(#5651): a module `import`s the stylesheet it depends on — `Toast.js` imports `toast.css`, a page's entry imports the
+page's own sheet — and Vite writes them to `public/build/css/`, split by chunk, so a component several pages share is
+one file they all load. Which files a page needs is only known after the build, so this is Vite's
+[backend integration](https://vite.dev/guide/backend-integration): the build writes `manifest.json`, and a
+view emits its tags with `@ViteAssets.stylesheets("<entry>")` (`app/views/ViteAssets.scala`, imported into every
+template by `build.sbt`), which reads the manifest and links the entry's stylesheets after those of the chunks it
+imports — the same order `import` gives the modules. A `url()` in a source stylesheet is the file's root-absolute
+path under `public/` (`url("/images/icons/x.svg")`, Vite's public-dir convention), which the build turns into the
+served `/assets/` URL. No Vite dev server: `npm run build` is `vite build`, and `npm start` runs `npm run watch`
+(`tools/dev/watch-assets.mjs`, `vite build --watch` plus a restart when a page entry is added or removed), so a save
+rebuilds into `public/build/` and `sbt run` serves it as before. Everything under `public/build/` is generated and
+git-ignored. Third-party libraries live under `public/vendor/<lib>/`, one self-contained folder each (never edited or
+linted).
 
-First-party assets split by type: `frontend/js/` is JavaScript-only, `public/css/` holds all styles, and media lives in
-`public/images/`, `public/audio/`, and `public/videos/`. Within `public/css/`, files are organized by what they are
-(#5030): `main.css` and `fonts.css` at the root (tokens and `.ps-*` primitives), `css/components/` for anything more
-than one page links (one component per file — the `page-shell.css` sidebar + content + TOC template, `kpi.css`,
-`tables.css`, `label-detail.css`, `toast.css`, …), and `css/pages/` for everything page-specific (a single file per
-page, or a subdir for a multi-file page family such as `pages/explore/` or `pages/api-docs/`). A page's stylesheet is
-linked only by that page, and a page's class prefix (`ud-`, `ac-`, `svl-`, …) is defined only in that page's
-stylesheet(s) — `tools/lint/check-css-layout.mjs` (`make lint-css-layout`) enforces both. Directories and CSS files are kebab-case; JS files use Airbnb casing (PascalCase for class files, camelCase
-otherwise). See [`style-guide.md`](style-guide.md) for the full layout and naming conventions.
+First-party assets split by type: `frontend/js/` is JavaScript-only, `frontend/css/` holds all styles, and media
+lives in `public/images/`, `public/audio/`, and `public/videos/`. Within `frontend/css/`, files are organized by what
+they are (#5030): `main.css` and `fonts.css` at the root (tokens and `.ps-*` primitives), `css/components/` for
+anything more than one page uses (one component per file — the `page-shell.css` sidebar + content + TOC template,
+`kpi.css`, `tables.css`, `label-detail.css`, `toast.css`, …), and `css/pages/` for everything page-specific (a single
+file per page, or a subdir for a multi-file page family such as `pages/explore/` or `pages/api-docs/`). A page's
+stylesheet is imported only by that page's modules, every stylesheet is imported by something, a page's class prefix
+(`ud-`, `ac-`, `svl-`, …) is defined only in that page's stylesheet(s), and a view that loads an entry's JS asks for
+that entry's styles — `tools/lint/check-css-layout.mjs` (`make lint-css-layout`) enforces all four. Directories and CSS
+files are kebab-case; JS files use Airbnb casing (PascalCase for class files, camelCase otherwise). See
+[`style-guide.md`](style-guide.md) for the full layout and naming conventions.
 
 **Assets are named by logical path, never by URL** (#4893). A Twirl template asks for one with `assets.path("…")`,
 which resolves to the content-fingerprinted copy a staged build serves under a year-long `immutable` cache; a

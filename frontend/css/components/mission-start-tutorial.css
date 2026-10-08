@@ -81,13 +81,13 @@
 }
 
 .previous-slide-button .mst-arrow-icon {
-  -webkit-mask-image: url("../../images/icons/chevron-left-feather.svg");
-  mask-image: url("../../images/icons/chevron-left-feather.svg");
+  -webkit-mask-image: url("/images/icons/chevron-left-feather.svg");
+  mask-image: url("/images/icons/chevron-left-feather.svg");
 }
 
 .next-slide-button .mst-arrow-icon {
-  -webkit-mask-image: url("../../images/icons/chevron-right-feather.svg");
-  mask-image: url("../../images/icons/chevron-right-feather.svg");
+  -webkit-mask-image: url("/images/icons/chevron-right-feather.svg");
+  mask-image: url("/images/icons/chevron-right-feather.svg");
 }
 
 .mst-slide {
@@ -245,15 +245,15 @@
 .correct .label-on-image-type-icon,
 .correct .example-type-icon {
   color: var(--color-pine-700);
-  -webkit-mask-image: url("../../images/icons/smileys/sev-1-positive.svg");
-  mask-image: url("../../images/icons/smileys/sev-1-positive.svg");
+  -webkit-mask-image: url("/images/icons/smileys/sev-1-positive.svg");
+  mask-image: url("/images/icons/smileys/sev-1-positive.svg");
 }
 
 .incorrect .label-on-image-type-icon,
 .incorrect .example-type-icon {
   color: var(--color-error-300);
-  -webkit-mask-image: url("../../images/icons/smileys/sev-3-positive.svg");
-  mask-image: url("../../images/icons/smileys/sev-3-positive.svg");
+  -webkit-mask-image: url("/images/icons/smileys/sev-3-positive.svg");
+  mask-image: url("/images/icons/smileys/sev-3-positive.svg");
 }
 
 .example-type-label {

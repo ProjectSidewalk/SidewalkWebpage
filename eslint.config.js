@@ -29,7 +29,7 @@ module.exports = [
     },
     languageOptions: {
       ecmaVersion: 2022, // ES2022 -- needed for class fields, including `#private` members.
-      sourceType: 'module', // Every file is an ES module, bundled per page by Rolldown (#4467).
+      sourceType: 'module', // Every file is an ES module, bundled per page by Vite (#4467).
       globals: {
         ...globals.browser, // was `env: { browser: true }`.
         ...globals.es2021,  // was `env: { es6: true }`; supplies Promise/Map/Set/Symbol/globalThis etc.

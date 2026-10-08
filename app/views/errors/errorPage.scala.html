@@ -1,7 +1,7 @@
 @*
  * Branded, self-contained error page shared by the 404 and 500 handlers (modules.CustomErrorHandler).
  * Deliberately does NOT use common.main: an error page has to render when the app/DB is degraded, so it takes no
- * per-city CommonPageData and only links static, design-token stylesheets. `errorId` is shown for server errors so
+ * per-city CommonPageData and only links the built shell and error stylesheets. `errorId` is shown for server errors so
  * users can quote it when reporting (it matches the id in the application log). `action` is an optional way onward,
  * supplied by the raising controller rather than by the handler.
  *@
@@ -20,9 +20,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>@heading · Project Sidewalk</title>
-    <link href='@assets.path("css/fonts.css")' rel="stylesheet">
-    <link rel="stylesheet" href='@assets.path("css/main.css")'>
-    <link rel="stylesheet" href='@assets.path("css/pages/errors.css")'>
+    @ViteAssets.stylesheets("main")
+    @ViteAssets.stylesheets("errorPage")
   </head>
   <body>
     <main class="error-page">

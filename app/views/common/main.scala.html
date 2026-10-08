@@ -62,13 +62,7 @@
       });
     </script>
 
-    <link href='@assets.path("css/fonts.css")' rel="stylesheet">
-    <link rel="stylesheet" href='@assets.path("css/main.css")'>
-    <link rel="stylesheet" href='@assets.path("css/components/toast.css")'>
-    <link rel="stylesheet" href='@assets.path("css/components/confirm-dialog.css")'>
-    <link rel="stylesheet" href='@assets.path("css/components/share-widget.css")'>
-    <link rel="stylesheet" href='@assets.path("css/pages/homepage.css")'>
-    <link rel="stylesheet" href='@assets.path("css/pages/auth.css")'>
+    @ViteAssets.stylesheets("main")
 
     @* Deferred: utilities.js only touches the bowser global lazily, from DOMContentLoaded-or-later callers. *@
     <script src='@assets.path("vendor/bowser/bowser-2.14.1.min.js")' defer></script>

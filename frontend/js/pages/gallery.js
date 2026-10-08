@@ -2,6 +2,10 @@
 import { Main } from '../gallery/Main.js';
 import { sg } from '../gallery/sg.js';
 import { viewerClassFor } from '../common/pano-viewer/viewerClassFor.js';
+import '../../css/pages/gallery/cards.css';
+import '../../css/pages/gallery/filter.css';
+import '../../css/pages/gallery/gallery.css';
+import '../../css/pages/gallery/tags.css';
 
 // What the server knows about this session, written into the page as JSON by gallery.scala.html.
 const params = JSON.parse(document.getElementById('page-data').textContent);

@@ -10,6 +10,7 @@
 
 import { initSidebarDisclosure } from '../common/sidebarDisclosure.js';
 import { util } from '../common/utilities.js';
+import '../../css/components/page-shell.css';
 
 export class AdminShell {
   /** Height of the fixed top navbar, in px; headings are offset by this so they aren't hidden when scrolled to. */

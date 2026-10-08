@@ -198,8 +198,8 @@ body.svv-immersive .validate-undo-button__icon {
   display: inline-block;
   width: calc(18px * var(--ui-scale));
   height: calc(18px * var(--ui-scale));
-  -webkit-mask-image: url("../../../images/icons/chevron-left-feather.svg");
-  mask-image: url("../../../images/icons/chevron-left-feather.svg");
+  -webkit-mask-image: url("/images/icons/chevron-left-feather.svg");
+  mask-image: url("/images/icons/chevron-left-feather.svg");
 }
 
 /* The close control in the dock's top-right corner, once a verdict has opened it: an X takes the answer back so the
@@ -241,8 +241,8 @@ body.svv-immersive #validate-verdict-clear:hover {
 body.svv-immersive .validate-verdict-clear__icon {
   width: calc(14px * var(--ui-scale));
   height: calc(14px * var(--ui-scale));
-  -webkit-mask-image: url("../../../images/icons/cross.svg");
-  mask-image: url("../../../images/icons/cross.svg");
+  -webkit-mask-image: url("/images/icons/cross.svg");
+  mask-image: url("/images/icons/cross.svg");
 }
 
 /* The question keeps clear of the close control. */

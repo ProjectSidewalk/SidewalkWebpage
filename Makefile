@@ -83,7 +83,7 @@ RESET := \033[0m
 # /**/*.css added.
 eslint-paths   = $(if $(filter ./,$(dir)),frontend/js/ public/locales/ test/js/ test/e2e/ playwright.config.js,$(dir))
 htmlhint-paths = $(if $(filter ./,$(dir)),./app/views,$(dir))
-css-glob       = $(if $(filter ./,$(dir)),public/**/*.css,$(if $(filter %.css,$(dir)),$(dir),$(dir)/**/*.css))
+css-glob       = $(if $(filter ./,$(dir)),frontend/css/**/*.css,$(if $(filter %.css,$(dir)),$(dir),$(dir)/**/*.css))
 
 # The browser smoke suite's runner image (docker/e2e/Dockerfile), tagged from the tool versions read out of
 # package-lock.json — the base image bundles the matching Chromium, so deriving both from one pin is what keeps the
@@ -393,8 +393,8 @@ lint-locales:
 	@docker exec $(web-container) bash -lc "cd $(container-dir) && node tools/lint/check-locale-parity.mjs"
 	@echo "Finished locale checks";
 
-# Layout of public/css/ (#5030): a page's stylesheet is linked only by that page, page class prefixes stay in the
-# page's own files, and every linked stylesheet exists. Pure node, run in the web container so node is present. Also a
+# Layout of frontend/css/ (#5030, #5651): a page's stylesheet is imported only by its page's entry, page class prefixes stay in the
+# page's own files, and every view asks for its entry's styles. Pure node, run in the web container so node is present. Also a
 # blocking CI step.
 lint-css-layout:
 	@echo "Checking CSS layout...";

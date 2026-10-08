@@ -1,6 +1,6 @@
 ---
 paths:
-  - "public/css/**"
+  - "frontend/css/**"
   - "app/views/**"
 ---
 
@@ -17,15 +17,18 @@ Full rules: `docs/style-guide.md` (tokens, primitives, file layout, naming) and 
   `--breakpoint-*` token in a comment.
 - **Tool UI scales:** every fixed dimension in Explore/Validate and their overlays is
   `calc(<n>px * var(--ui-scale, 1))`; fixed page chrome like the navbar stays unscaled.
-- **`public/css/` layout is linted** (`make lint-css-layout`): root holds only `main.css` + `fonts.css`;
-  `components/` for anything two pages link (prefix `ps-` or component-named); `pages/` for page-specific files,
-  registered in the lint's `PAGES` map and linked only by their page; a page's class prefix lives only in its own
-  stylesheet. `components/page-shell.css` is shared by the API docs, both dashboards, and the labeling guide. Never
-  `@import`.
-- **CSS `url()` names a real file by relative path**, nothing to register. Build steps rewrite it for the CSS bundles
-  and to the fingerprinted name (`docs/deployment-and-stages.md` → "Asset caching"), and would mangle an absolute
-  `/assets/` path in a bundled stylesheet. Naming a file that isn't there fails `make lint-asset-paths` and the stage
-  build, so add the asset first.
+- **A stylesheet is `import`ed by the JS that needs it, never linked by hand** (#5651): a component's sheet from the
+  component's module (`Toast.js` imports `toast.css`), a page's sheet from its entry in `frontend/js/pages/`. Vite
+  builds them and the view emits the `<link>`s with `@ViteAssets.stylesheets("<entry>")` beside the entry's
+  `<script>`. Sources live in `frontend/css/`; nothing there is served. Never `@import`.
+- **`frontend/css/` layout is linted** (`make lint-css-layout`): root holds only `main.css` + `fonts.css`;
+  `components/` for anything two pages use (prefix `ps-` or component-named); `pages/` for page-specific files,
+  registered in the lint's `PAGES` map and imported only by their page's modules; a page's class prefix lives only in
+  its own stylesheet. `components/page-shell.css` is shared by the API docs, both dashboards, and the labeling guide.
+- **CSS `url()` is the file's path under `public/`, root-absolute** (`url("/images/icons/x.svg")`), nothing to
+  register. The build rewrites it to the served URL and the stage to the fingerprinted name
+  (`docs/deployment-and-stages.md` → "Asset caching"). A relative path or an `/assets/` prefix fails the build, as does
+  naming a file that isn't there (`make lint-asset-paths` catches both first), so add the asset first.
 - **Twirl:** every asset through `assets.path("…")` (JS uses `util.assetPath('…')`), never a hardcoded `/assets/`
   string; only those resolve to the fingerprinted, immutable URL, and `make lint-asset-paths` gates the JS side —
   including against editing the filename inside a `src` already on an element, which carries that file's digest. No

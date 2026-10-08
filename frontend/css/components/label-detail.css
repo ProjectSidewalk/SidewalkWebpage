@@ -153,8 +153,8 @@ dialog.label-detail[open]::backdrop {
 .label-detail__trash-icon {
   width: 14px;
   height: 14px;
-  -webkit-mask-image: url("../../images/icons/trash-2-feather.svg");
-  mask-image: url("../../images/icons/trash-2-feather.svg");
+  -webkit-mask-image: url("/images/icons/trash-2-feather.svg");
+  mask-image: url("/images/icons/trash-2-feather.svg");
 }
 
 /* Inert (no imagery): greyed and no pointer, but still a hover and focus target so the tooltip can say why. */

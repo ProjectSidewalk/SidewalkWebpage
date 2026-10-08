@@ -342,7 +342,7 @@
    Google — and it matches what the Mulish/Inter/JetBrains Mono faces in css/fonts.css already do. */
 @font-face {
   font-family: raleway;
-  src: url("../fonts/Raleway/Raleway-Regular.woff2") format("woff2");
+  src: url("/fonts/Raleway/Raleway-Regular.woff2") format("woff2");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -350,7 +350,7 @@
 
 @font-face {
   font-family: raleway;
-  src: url("../fonts/Raleway/Raleway-Bold.woff2") format("woff2");
+  src: url("/fonts/Raleway/Raleway-Bold.woff2") format("woff2");
   font-weight: 700;
   font-style: normal;
   font-display: swap;
@@ -358,7 +358,7 @@
 
 @font-face {
   font-family: raleway;
-  src: url("../fonts/Raleway/Raleway-ExtraBold.woff2") format("woff2");
+  src: url("/fonts/Raleway/Raleway-ExtraBold.woff2") format("woff2");
   font-weight: 800;
   font-style: normal;
   font-display: swap;
@@ -1074,7 +1074,7 @@ textarea.ps-input {
   position: relative;
   top: 0;
   width: 100%;
-  background-image: url("../images/footer.jpg");
+  background-image: url("/images/footer.jpg");
   min-height: 200px;
   padding-top: 50px;
   padding-bottom: 50px;
@@ -1432,8 +1432,8 @@ kbd {
   height: 120px;
   margin: 40px auto;
   color: var(--color-error-200);
-  -webkit-mask-image: url("../images/icons/alert-triangle-feather.svg");
-  mask-image: url("../images/icons/alert-triangle-feather.svg");
+  -webkit-mask-image: url("/images/icons/alert-triangle-feather.svg");
+  mask-image: url("/images/icons/alert-triangle-feather.svg");
 }
 
 /* Keyed on the id too, to outrank the id-scoped rule that sizes and shows the animation. */
@@ -1499,8 +1499,8 @@ kbd {
   width: 20px;
   height: 20px;
   color: var(--color-banana-800);
-  -webkit-mask-image: url("../images/icons/alert-triangle-feather.svg");
-  mask-image: url("../images/icons/alert-triangle-feather.svg");
+  -webkit-mask-image: url("/images/icons/alert-triangle-feather.svg");
+  mask-image: url("/images/icons/alert-triangle-feather.svg");
 }
 
 .test-server-banner-text {

@@ -18,8 +18,7 @@
     <div id="street-grade-preview" class="map-container"></div>
 
     <link rel="stylesheet" href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.css")'>
-    <link rel="stylesheet" href='@assets.path("css/pages/api-docs/access-score.css")'>
-    <link rel="stylesheet" href='@assets.path("css/components/elevation-profile.css")'>
+    @ViteAssets.stylesheets("api-docs/streetGrade")
     @* Deferred to keep the ~800KB mapping stack off this article's rendering path. Order still matters within the
        set: the language plugin and the preview both read the mapboxgl global as they parse. The grade ramp and the
        chart are the AccessScore tool's own, shared from js/common/. *@

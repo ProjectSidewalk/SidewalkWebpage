@@ -223,8 +223,8 @@
 .map-status-pill__close-icon {
   width: 14px;
   height: 14px;
-  -webkit-mask-image: url("../../images/icons/cross.svg");
-  mask-image: url("../../images/icons/cross.svg");
+  -webkit-mask-image: url("/images/icons/cross.svg");
+  mask-image: url("/images/icons/cross.svg");
 }
 
 .map-status-pill--leaving {

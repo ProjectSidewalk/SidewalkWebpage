@@ -3,6 +3,7 @@ import '../homepage.js';
 import { LandingValidationGrid } from '../LandingValidationGrid.js';
 import { AccessScoreSpotlight } from '../AccessScoreSpotlight.js';
 import { util } from '../common/utilities.js';
+import '../../css/components/deployment-map.css';
 
 const data = document.getElementById('page-entry').dataset;
 
