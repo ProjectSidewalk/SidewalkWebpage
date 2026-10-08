@@ -14,8 +14,7 @@ import util.SidewalkSpec
  * The module builds its own markup, so a template owes it only a container, the page entry that constructs it, its
  * stylesheet, and a translated title. None of that fails loudly: a renamed container or a missing entry just leaves
  * the section hidden, which is also what "this city has nothing ranked yet" looks like. These pin the wiring. The
- * stylesheet arrives through the module's own import (#5651), so what the page links is the chunk Vite names after
- * the module.
+ * stylesheet comes with the module's own import (#5651), so the page links the chunk Vite names after the module.
  *
  * Requires a Postgres+PostGIS database (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in dev/CI).
  */

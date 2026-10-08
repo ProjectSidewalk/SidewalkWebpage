@@ -31,8 +31,7 @@ export default defineConfig(({ mode }) => ({
     emptyOutDir: mode === 'production',
     // Vite writes no source map for CSS, so the watcher leaves it readable in DevTools.
     cssMinify: mode === 'production',
-    // Not the default `.vite/manifest.json`: sbt-web skips hidden files when it stages public/, so Play would never
-    // see it.
+    // Not the default `.vite/manifest.json`: sbt-web skips hidden files when it stages public/.
     manifest: 'manifest.json',
     // The map carries the sources: they live outside public/, so the server has nothing else to point at.
     sourcemap: true,
@@ -46,8 +45,7 @@ export default defineConfig(({ mode }) => ({
         // would also collide for admin/shell and dashboard/shell.
         entryFileNames: 'js/[name].js',
         chunkFileNames: 'js/chunks/[name]-[hash].js',
-        // Stylesheets go to css/, where application.conf's cache rules expect them; any other imported asset goes to
-        // assets/.
+        // Stylesheets go to css/, where application.conf's cache rules expect them; other imported assets to assets/.
         assetFileNames: ({ names }) =>
           (names.some(name => name.endsWith('.css')) ? 'css' : 'assets') + '/[name]-[hash][extname]'
       }

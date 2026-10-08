@@ -63,8 +63,7 @@ object ViteAssets {
   @volatile private var cached: Option[(Long, Manifest)] = None
 
   /**
-   * @param entry         The page's entry name: its path under `frontend/js/pages/` without the `.js` (`about`,
-   *                      `admin/shell`).
+   * @param entry         The page's entry name: its path under `frontend/js/pages/` without `.js` (`admin/shell`).
    * @param alreadyLinked Entries the enclosing layout already emitted tags for (`admin/shell` inside the admin layout),
    *                      so a sheet both need is linked once.
    * @return A `<link rel="stylesheet">` per stylesheet the entry still needs, in load order: imported chunks' sheets

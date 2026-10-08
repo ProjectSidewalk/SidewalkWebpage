@@ -13,8 +13,7 @@
 //   4. Nothing sits at the root but main.css, fonts.css, components/, and pages/.
 //   5. A view that loads an entry's JS also asks for that entry's styles, and names an entry that exists. A leftover
 //      `<link>` to a stylesheet by path is caught here too. A page inside a shell layout (one that links an entry of
-//      its own around the page) names that entry as `alreadyLinked`, so a sheet both need isn't linked a second
-//      time, after the page's own.
+//      its own around the page) names that entry as `alreadyLinked`, so a sheet both need is linked once.
 //   6. With a build present, no sheet a page (or its shell) links also comes with a chunk the page loads lazily: the
 //      chunk links it by its plain URL, which a staged build's fingerprinted <link> doesn't match, so the browser
 //      loads it twice, the second time after the page's own.
