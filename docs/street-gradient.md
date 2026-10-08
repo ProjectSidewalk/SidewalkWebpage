@@ -206,8 +206,8 @@ The test for a new country is the one used here: an open bare-earth model at 10 
 its `DemSource` credit in the app (the test suite holds the two rosters together), and a row here.
 
 **What a fill costs.** Zürich (8,481 streets) took 3 minutes against swissALTI3D; Mexico City's centre samples at
-about 350 streets a second once its charts are cached; Bayonne's 70 cells against the IGN WMS take about 25 minutes
-and leave 1 GB in `db/onboarding/_dem_cache/`, which a rerun or a neighbouring city reuses. The cache is gitignored
+about 350 streets a second once its charts are cached; Bayonne's 44 cells against the IGN WMS took 12 minutes
+and left 0.7 GB in `db/onboarding/_dem_cache/`, which a rerun or a neighbouring city reuses. The cache is gitignored
 with the rest of `db/onboarding/`.
 
 ## Where it shows up
