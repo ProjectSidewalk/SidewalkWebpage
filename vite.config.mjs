@@ -9,9 +9,16 @@ import { defineConfig } from 'vite';
 const pages = globSync('frontend/js/pages/**/*.js');
 
 export default defineConfig({
-  // Where public/ is served, so a stylesheet's `url("/images/x.svg")` resolves.
-  base: '/assets/',
+  // Where the output is served. Vite assumes public/ is copied in beside it; here the output sits inside public/,
+  // so renderBuiltUrl below addresses the two differently.
+  base: '/assets/build/',
   publicDir: 'public',
+  experimental: {
+    /** @returns {string|{relative: boolean}} A file under public/ by its served path; a built chunk or stylesheet relative to the importer. */
+    renderBuiltUrl(filename, { type }) {
+      return type === 'public' ? `/assets/${filename}` : { relative: true };
+    }
+  },
   build: {
     outDir: 'public/build',
     // The output lives inside public/, so copying public/ into it would recurse.

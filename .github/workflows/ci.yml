@@ -245,6 +245,19 @@ jobs:
       - name: Set up sbt
         uses: sbt/setup-sbt@v1
 
+      - name: Set up Node 24
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      # The specs render real views, and a view's stylesheet tags come from the manifest the build writes (#5651).
+      - name: Build frontend assets
+        run: npm run build
+
       # Bring up Postgres+PostGIS exactly as dev does (db/Dockerfile + init.sh, which restores the shared
       # sidewalk_login schema and the sidewalk_init template). A runner's `pgdata18` volume starts empty, so init.sh
       # runs; locally, an existing volume skips it and you get your own dev DB.
