@@ -8,8 +8,9 @@
  *
  * Queueing: toasts sharing an anchor are positioned identically, so they show one at a time -- Explore alone raises
  * six over `#pano`, and overlapping them leaves two `role="status"` regions live at once. A toast with an action
- * button pauses its timer on hover, so an incumbent under the cursor holds the queue indefinitely; a caller whose
- * message can go stale should re-check it still applies when its turn comes.
+ * button pauses its timer on hover, so an incumbent under the cursor holds the queue indefinitely. A caller whose
+ * message can go stale keeps the instance `show()` returns and `dismiss()`es it once it no longer applies, and
+ * reads `onShow` for the moment its turn actually came (ReauditNotice, #5472).
  *
  * Specialized toasts (e.g. badge-unlock celebrations) should extend or compose this class rather than re-implement it.
  */
@@ -41,6 +42,7 @@ export class Toast {
   #resizeObserver = null;
   #pauseOnHover;
   #onClose;
+  #onShow;
   #hovered = false;
   #focused = false;
   #queued = false;
@@ -64,12 +66,16 @@ export class Toast {
    *      announcement with a title and an action.
    * @param {() => void} [opts.onClose] - Called when the user clicks the close button, and not when the toast fades
    *      out on its own: the two say different things about whether the message was read.
+   * @param {() => void} [opts.onShow] - Called when the toast appears on screen: at once if nothing is live on its
+   *      anchor, otherwise when its turn in that anchor's queue comes. Never called for a toast dismissed while
+   *      still queued, which is how a caller tells "the labeler saw this" from "this was merely raised" (#5472).
    */
   constructor(opts = {}) {
     this.#reference = opts.reference || null;
     this.#top = opts.top ?? null;
     this.#duration = opts.duration ?? 5000;
     this.#onClose = opts.onClose || null;
+    this.#onShow = opts.onShow || null;
     // A toast anchored to a small control — a dashboard "Copy link" button — opens under the cursor that just
     // clicked it, so pausing on hover would strand it on screen until the user happened to move the mouse. Only a
     // toast with an action button to reach for earns the pause.
@@ -257,6 +263,8 @@ export class Toast {
     void this.#el.offsetWidth;
     this.#el.classList.add('ps-toast--visible');
     this.#startTimer();
+    // After the timer starts, so a callback that throws cannot strand the toast on screen holding its anchor's queue.
+    if (this.#onShow) this.#onShow();
   }
 
   /**
