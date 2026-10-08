@@ -1,5 +1,5 @@
 /**
- * Tests for AccessScoreDock (public/js/access-score/src/AccessScoreDock.js, #5217): the coordinator's composition
+ * Tests for AccessScoreDock (frontend/js/access-score/AccessScoreDock.js, #5217): the coordinator's composition
  * rules. The whole city is the population; a brush narrows what's here and dims the map outside it; a hover in a
  * view outranks the brush on the map and never drops it; a selection scopes what's here and the photo strip and
  * fades everything but its region once no brush is in force; every change lands in one animation frame; and

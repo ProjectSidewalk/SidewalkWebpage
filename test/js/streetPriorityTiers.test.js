@@ -10,15 +10,12 @@
  * eval'd into global scope rather than required.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const MAP_PATH = path.resolve(__dirname, '..', '..', 'public/js/admin-dashboard/StreetPriorityMap.js');
 
 /** Load StreetPriorityMap.js and return its tier class. */
 function loadTiers() {
-  const src = fs.readFileSync(MAP_PATH, 'utf8');
-  return (0, eval)(`${src}\nStreetPriorityTiers;`);
+  return loadModules('frontend/js/admin-dashboard/StreetPriorityMap.js').StreetPriorityTiers;
 }
 
 const StreetPriorityTiers = loadTiers();

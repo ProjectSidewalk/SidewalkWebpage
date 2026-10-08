@@ -1,5 +1,5 @@
 /**
- * Tests for Toast's placement (public/js/common/Toast.js).
+ * Tests for Toast's placement (frontend/js/common/Toast.js).
  *
  * The toast is fixed-positioned and centered on a reference element, which means an overhang past the viewport is not
  * scrollable — whatever lands outside is simply unreachable. So the placement clamps the center back inside, and this
@@ -13,15 +13,10 @@
  * the reference reports the rect it was given, which is what a geometry test wants anyway.
  */
 
-const fs = require('fs');
-const path = require('path');
 
-const { assetPathStub } = require('./loadGlobalScript');
+const { assetPathStub, loadModules } = require('./loadGlobalScript');
 
-const SOURCE = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/common/Toast.js'), 'utf8'
-);
-const Toast = new Function(`${SOURCE}; return Toast;`)();
+const Toast = loadModules('frontend/js/common/Toast.js').Toast;
 
 // Matches the constants in Toast.#position.
 const EDGE = 8;

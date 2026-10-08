@@ -1,5 +1,5 @@
 /**
- * Tests for public/js/common/pano-viewer/src/PanoImageCache.js (issue #5562).
+ * Tests for frontend/js/common/pano-viewer/PanoImageCache.js (issue #5562).
  *
  * The cache holds a pano's compressed bytes behind an object URL from the moment Validate knows the label is coming
  * until the viewer has loaded it. What matters is the contract the two sides meet on: an entry is keyed by the exact
@@ -10,18 +10,17 @@
  * jsdom has no object URLs, so `URL.createObjectURL` / `revokeObjectURL` are stubbed to hand out and record ids.
  */
 
-const fs = require('fs');
 const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const CACHE_PATH = path.resolve(__dirname, '..', '..', 'public/js/common/pano-viewer/src/PanoImageCache.js');
+const CACHE_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/common/pano-viewer/PanoImageCache.js');
 
 /**
  * Load the bare `class PanoImageCache` declaration out of the production file, wrapped in an IIFE that returns it.
  * @returns {Function} The class.
  */
 function loadCacheClass() {
-    const src = fs.readFileSync(CACHE_PATH, 'utf8');
-    return (0, eval)('(() => {\n' + src + '\nreturn PanoImageCache;\n})()');
+    return loadModules(CACHE_PATH).PanoImageCache;
 }
 
 /**

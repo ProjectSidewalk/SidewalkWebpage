@@ -1,7 +1,7 @@
 /**
  * Tests for Validate's handling of a label whose imagery no viewer can render (issue #4810), across
- * public/js/validate/src/panorama/PanoManager.js (`setPanorama` / `#clearViewer`) and
- * public/js/validate/src/label/LabelContainer.js (`renderCurrentLabel` / `#loadPanoForCurrentLabel`).
+ * frontend/js/validate/panorama/PanoManager.js (`setPanorama` / `#clearViewer`) and
+ * frontend/js/validate/label/LabelContainer.js (`renderCurrentLabel` / `#loadPanoForCurrentLabel`).
  *
  * The failure this pins down is silent by nature: neither viewer clears itself when a load fails, so the validator
  * was left looking at the *previous* label's panorama with the new label's marker drawn on it, and asked whether
@@ -16,18 +16,17 @@
  * and is dropped only if it is slow again, so a slow CDN no longer ends missions at the imagery-unavailable modal.
  */
 
-const fs = require('fs');
 const path = require('path');
 
-const { assetPathStub } = require('./loadGlobalScript');
+const { assetPathStub, loadModules } = require('./loadGlobalScript');
 
-const PANO_MANAGER_PATH = path.resolve(__dirname, '..', '..', 'public/js/validate/src/panorama/PanoManager.js');
-const PANO_MARKER_PATH = path.resolve(__dirname, '..', '..', 'public/js/common/PanoMarker.js');
-const LABEL_CONTAINER_PATH = path.resolve(__dirname, '..', '..', 'public/js/validate/src/label/LabelContainer.js');
-const THROTTLE_PATH = path.resolve(__dirname, '..', '..', 'public/js/validate/src/util/throttle.js');
-const UTILITIES_PATH = path.resolve(__dirname, '..', '..', 'public/js/common/utilities.js');
+const PANO_MANAGER_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/panorama/PanoManager.js');
+const PANO_MARKER_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/common/PanoMarker.js');
+const LABEL_CONTAINER_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/label/LabelContainer.js');
+const THROTTLE_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/util/throttle.js');
+const UTILITIES_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/common/utilities.js');
 const TIMEOUT_ERROR_PATH = path.resolve(__dirname, '..', '..',
-  'public/js/common/pano-viewer/src/PanoLoadTimeoutError.js');
+  'frontend/js/common/pano-viewer/PanoLoadTimeoutError.js');
 
 /**
  * Load a bare `class` declaration out of a production file. The Grunt bundle concatenates these into page scope,
@@ -37,8 +36,7 @@ const TIMEOUT_ERROR_PATH = path.resolve(__dirname, '..', '..',
  * @returns {Function} The class.
  */
 function loadClassFromFile(filePath, className) {
-  const src = fs.readFileSync(filePath, 'utf8');
-  return (0, eval)('(() => {\n' + src + '\nreturn ' + className + ';\n})()');
+  return loadModules(filePath)[className];
 }
 
 /** @returns {HTMLElement} A stand-in for an element Validate dims or re-cursors. */
@@ -66,8 +64,8 @@ describe('PanoManager clears the pano when no viewer can render it (issue #4810)
     global.bowser = { getParser: () => ({ getBrowserName: () => 'Chrome', getBrowserVersion: () => '1',
         getOSName: () => 'Linux', getPlatformType: () => 'desktop' }) };
     // Real utilities, for the marker sizing rule util.cappedMarkerDiameter uses (#4838).
-    (0, eval)(fs.readFileSync(UTILITIES_PATH, 'utf8'));
-    (0, eval)(fs.readFileSync(THROTTLE_PATH, 'utf8')); // real throttle; #init wires it to pov_changed
+    Object.assign(window, loadModules(UTILITIES_PATH));
+    Object.assign(window, loadModules(THROTTLE_PATH));
     util.isMobile = () => false;
     util.uiScale = () => 1;
     util.camelToKebab = (str) => str.toLowerCase();
@@ -234,9 +232,14 @@ describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
       labelCard: {render: jest.fn()},
       validationMenu: {resetMenu: jest.fn()},
       undoValidation: {enableUndo: jest.fn(), disableUndo: jest.fn()},
-      labelVisibilityControl: {hideLabelCard: jest.fn(), unhideLabel: jest.fn(), isVisible: () => true},
+      labelVisibilityControl: {
+        hideLabelCard: jest.fn(),
+        unhideLabel: jest.fn(),
+        openCardOnLoad: jest.fn(),
+        isVisible: () => true,
+      },
       modalNoNewMission: {show: jest.fn()},
-      form: {getValidateParams: () => ({admin_version: false, unvalidated_only: false})},
+      validateParams: {admin_version: false, unvalidated_only: false},
       ui: {
         holder: fakeElement(),
         busyRegion: [fakeElement(), fakeElement()],
@@ -531,9 +534,14 @@ describe('LabelContainer defers a label whose pano is slow rather than dropping 
       labelCard: {render: jest.fn()},
       validationMenu: {resetMenu: jest.fn()},
       undoValidation: {enableUndo: jest.fn(), disableUndo: jest.fn()},
-      labelVisibilityControl: {hideLabelCard: jest.fn(), unhideLabel: jest.fn(), isVisible: () => true},
+      labelVisibilityControl: {
+        hideLabelCard: jest.fn(),
+        unhideLabel: jest.fn(),
+        openCardOnLoad: jest.fn(),
+        isVisible: () => true,
+      },
       modalNoNewMission: {show: jest.fn()},
-      form: {getValidateParams: () => ({admin_version: false, unvalidated_only: false})},
+      validateParams: {admin_version: false, unvalidated_only: false},
       ui: {
         holder: fakeElement(),
         busyRegion: [fakeElement(), fakeElement()],

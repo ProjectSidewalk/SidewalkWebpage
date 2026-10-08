@@ -1,5 +1,5 @@
 /**
- * Tests for how Validate's pano label marker is activated (public/js/common/PanoMarker.js), which is the only way
+ * Tests for how Validate's pano label marker is activated (frontend/js/common/PanoMarker.js), which is the only way
  * to reach the label card — the one place a label's rating, tags, and description appear.
  *
  * Mobile is where this is delicate. The marker is the single `pointer-events: auto` element over a click-through
@@ -12,12 +12,12 @@
  * TouchEvent constructor, so they are plain Events carrying the fields the handlers read).
  */
 
-/* global PanoMarker -- pulled into scope by the eval() loader below. */
-
-const fs = require('fs');
 const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const PANO_MARKER_PATH = path.resolve(__dirname, '..', '..', 'public/js/common/PanoMarker.js');
+/* global PanoMarker -- put on global by the suite's setup. */
+
+const PANO_MARKER_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/common/PanoMarker.js');
 
 /**
  * Load a bare `class` declaration out of a production file, the way the Grunt bundle would put it in page scope.
@@ -26,8 +26,7 @@ const PANO_MARKER_PATH = path.resolve(__dirname, '..', '..', 'public/js/common/P
  * @returns {Function} The class.
  */
 function loadClassFromFile(filePath, className) {
-    const src = fs.readFileSync(filePath, 'utf8');
-    return (0, eval)('(() => {\n' + src + '\nreturn ' + className + ';\n})()');
+    return loadModules(filePath)[className];
 }
 
 /**
@@ -261,6 +260,18 @@ describe('Validate pano marker activation', () => {
             markerEl().dispatchEvent(new MouseEvent('mouseover', {bubbles: true, buttons: 1}));
 
             expect(svv.labelVisibilityControl.showLabelCard).not.toHaveBeenCalled();
+        });
+
+        test('the focus a click gives the marker does not reopen the card the click closed', () => {
+            markerEl().dispatchEvent(new MouseEvent('mousedown', {bubbles: true}));
+            markerEl().focus();
+            expect(svv.labelVisibilityControl.showLabelCard).not.toHaveBeenCalled();
+
+            // Once the press is over, focus is the keyboard's again.
+            window.dispatchEvent(new MouseEvent('mouseup'));
+            markerEl().blur();
+            markerEl().focus();
+            expect(svv.labelVisibilityControl.showLabelCard).toHaveBeenCalledWith({viaKeyboard: true});
         });
 
         test('the keys stay with Validate’s KeyboardManager, which handles them with capture', () => {

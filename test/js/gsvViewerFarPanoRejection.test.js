@@ -11,13 +11,11 @@
  * panoViewerFindPanoNear.test.js, with the real util.math.haversine doing the distance math.
  */
 
-const fs = require('fs');
 const path = require('path');
-const { loadGlobalScript } = require('./loadGlobalScript');
+const { loadGlobalScript, realUtil, loadModules } = require('./loadGlobalScript');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const SRC_DIR = path.join(REPO_ROOT, 'public/js/common/pano-viewer/src');
-const readSrc = (name) => fs.readFileSync(path.join(SRC_DIR, name), 'utf8');
+const SRC_DIR = path.join(REPO_ROOT, 'frontend/js/common/pano-viewer');
 
 // utilities.js builds a Bowser parser at load time; nothing here consults it.
 window.bowser = {
@@ -26,9 +24,9 @@ window.bowser = {
         getOSName: () => 'TestOS', getPlatformType: () => 'desktop',
     }),
 };
-loadGlobalScript('public/js/common/utilities.js');
-loadGlobalScript('public/js/common/utilitiesMath.js');
-loadGlobalScript('public/js/common/pano-viewer/src/panoUtilities.js');
+window.util = realUtil();
+loadGlobalScript('frontend/js/common/utilitiesMath.js');
+loadGlobalScript('frontend/js/common/pano-viewer/panoUtilities.js');
 window.turf = require(path.join(REPO_ROOT, 'public/vendor/turf/turf-7.4.0.min.js'));
 window.svl = { STREETVIEW_MAX_DISTANCE: 25 };
 
@@ -39,16 +37,7 @@ const { turf } = window;
  * @returns {{GsvViewer: Function, NoImageryError: Function}}
  */
 function loadGsvViewer() {
-    const stubs = ['MapillaryViewer', 'Infra3dViewer', 'PannellumViewer', 'PanoramaxViewer']
-        .map((name) => `class ${name} {}`).join('\n');
-    window.eval(`
-        ${stubs}
-        ${readSrc('NoImageryError.js')}
-        ${readSrc('PanoViewer.js')}
-        ${readSrc('GsvViewer.js')}
-        window.GsvViewer = GsvViewer;
-        window.NoImageryError = NoImageryError;
-    `);
+    Object.assign(window, loadModules(path.join(SRC_DIR, 'GsvViewer.js'), path.join(SRC_DIR, 'NoImageryError.js')));
     return { GsvViewer: window.GsvViewer, NoImageryError: window.NoImageryError };
 }
 

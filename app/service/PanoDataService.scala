@@ -253,7 +253,7 @@ object PanoDataService {
 
   /**
    * GSV's silent vertical field-of-view clamp, in degrees, measured in #5083: the same two numbers as
-   * `util.pano.GSV_VFOV_CLAMP_DEG` (public/js/common/pano-viewer/src/panoUtilities.js), which documents the model.
+   * `util.pano.GSV_VFOV_CLAMP_DEG` (frontend/js/common/pano-viewer/panoUtilities.js), which documents the model.
    */
   val GSV_VFOV_CLAMP_DEG: (Double, Double) = (14.97, 89.84)
 
@@ -291,7 +291,7 @@ object PanoDataService {
    * The POV at which a canvas click would sit at the viewport's center: the forward projection the Explore client
    * runs when a label is placed.
    *
-   * Port of `util.pano.canvasCoordToCenteredPov` (public/js/common/pano-viewer/src/panoUtilities.js) — the viewport
+   * Port of `util.pano.canvasCoordToCenteredPov` (frontend/js/common/pano-viewer/panoUtilities.js) — the viewport
    * is modeled as a rectilinear camera aimed at (heading, pitch) with focal length `(canvasWidth/2) / tan(fov/2)`,
    * the click's canvas offset is projected through it, and the result is the label's own direction. Together with
    * `calculatePanoXYFromPov` this recomputes a label's `pano_x`/`pano_y` from its stored viewport record, which is
@@ -340,7 +340,7 @@ object PanoDataService {
    * The pano-pixel coordinate a POV points at, on a heading-centred equirectangular pano: the inverse of
    * `calculatePovFromPanoXY` and the second half of the client's `pano_x`/`pano_y` computation.
    *
-   * Port of `util.pano.povToPanoCoord` (public/js/common/pano-viewer/src/panoUtilities.js) with the client's
+   * Port of `util.pano.povToPanoCoord` (frontend/js/common/pano-viewer/panoUtilities.js) with the client's
    * round-then-wrap: column zero sits at bearing `cameraHeading - 180`, and the y mapping is linear in elevation.
    *
    * @param pov           The direction to locate (heading wrt true north, pitch positive above the horizon).
@@ -1034,7 +1034,7 @@ class PanoDataServiceImpl @Inject() (
    * Returns the pano_data row for a pano if a self-hosted image exists AND all required fields are populated.
    *
    * "Required" means what PannellumViewer needs to render the backup; the columns mirror `PanoData`'s
-   * `requiredParams` (public/js/common/pano-viewer/src/PanoData.js) — see the note there before changing them.
+   * `requiredParams` (frontend/js/common/pano-viewer/PanoData.js) — see the note there before changing them.
    */
   def getLocalBackupImage(panoId: String): Future[Option[PanoData]] = {
     if (localBackupImageFile(panoId).isEmpty) {

@@ -1,5 +1,5 @@
 /**
- * Tests for the dialog-open fade in Label#render (public/js/explore/src/label/Label.js, issue #4824).
+ * Tests for the dialog-open fade in Label#render (frontend/js/explore/label/Label.js, issue #4824).
  *
  * While a label's context menu is open, that label's icon draws at reduced opacity: the marker sits exactly on the
  * feature the user is rating, so fading it lets them see the feature while they rate it. The dialog's tail still
@@ -11,20 +11,13 @@
  * that wiring is pinned separately, in exploreContextMenuRerender.test.js.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules, realUtil } = require('./loadGlobalScript');
 const { makeRecordingCtx } = require('./canvasCtxStub');
 
-const LABEL_SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/explore/src/label/Label.js'), 'utf8'
-);
-const UTILITIES_SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/common/utilities.js'), 'utf8'
-);
 
 /** Loads a fresh Label class into the jsdom global scope (a class declaration is not a globalThis property). */
 function loadLabel() {
-    window.eval(`${LABEL_SRC}\nwindow.Label = Label;`);
+    Object.assign(window, loadModules('frontend/js/explore/label/Label.js'));
     return window.Label;
 }
 
@@ -36,7 +29,7 @@ function loadUtil() {
     // utilities.js builds a Bowser parser at load time; nothing under test here consults it.
     window.bowser = { getParser: () => ({ getBrowserName: () => 'Chrome', getBrowserVersion: () => '1',
         getOSName: () => 'Linux', getPlatformType: () => 'desktop' }) };
-    window.eval(UTILITIES_SRC);
+    window.util = realUtil();
     return window.util;
 }
 

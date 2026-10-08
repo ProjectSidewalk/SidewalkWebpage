@@ -69,6 +69,21 @@ NoCurbRamp, Obstacle, SurfaceProblem, Crosswalk, Signal, NoSidewalk, Occlusion, 
 An `ERROR` line there means the AI's labels stay invisible in that city; the message says whether it is the
 foreign-key case (`sidewalk_login` has no SidewalkAI account).
 
+`OrphanedJobRunSweep` (the same module) closes the `background_job_run` rows the previous process left open (#5236):
+a deploy or crash that kills a job mid-run leaves its row `running`, and nothing else would ever close it. Every run
+that started before this JVM did is marked `interrupted` (one WARN line each), which is safe because a stage runs
+exactly one process per city schema. Expect one of:
+
+```
+INFO m.OrphanedJobRunSweep - Orphaned job runs: none.
+WARN m.OrphanedJobRunSweep - Orphaned job run: #1234 crop-generation-actor (scheduled) started
+2026-09-05T06:00:01-07:00 was still open when this process started at 2026-09-07T17:09:12.345-07:00; marked
+interrupted.
+```
+
+A WARN on a boot that followed a deploy names the jobs that deploy cut off. Each job's own outcome is logged by
+`JobRunService` as `<job> (<trigger>) run succeeded in Ns.` or `<job> (<trigger>) run failed after Ns: <error>`.
+
 It also sweeps every city's `status` and logs an error for any value that isn't `public` or `private`. Nothing there
 is fatal: an unrecognised value reads as private, which costs a launched city its search traffic silently, but
 refusing to boot over it would take the city offline instead. The public/total count is a tripwire for a bulk flip —
@@ -330,9 +345,10 @@ A deploy builds the app essentially the same way you do locally, in this order:
    **in-band** during clustering. These must land in the `python3` interpreter the app shells out to, or clustering
    fails at import time (e.g. `ModuleNotFoundError: No module named 'haversine'`). That interpreter is the server's
    system Python (3.8), which is why `requirements.txt` stays pinned to 3.8-installable versions (#4396). The
-   out-of-band utilities are **not** deployed: `requirements-offline-tools.txt` needs ≥ 3.11 and is installed by hand
+   out-of-band utilities are **not** deployed: `requirements-offline-tools.txt` needs ≥ 3.12 and is installed by hand
    into the 3.13 on whichever user account runs those scripts.
-2. `npm install`, then **Grunt** to concatenate/build the frontend bundles.
+2. `npm ci`, then `npm run build`: the tools' CSS bundles, then **Rolldown** for every page's JS bundle (minified, with
+   a sourcemap beside it that carries the sources, since `frontend/js/` itself is not served).
 3. **sbt** `clean stage` to compile the Scala/Play backend into a runnable package. This also bundles the `scripts/`
    directory into the staged app (via `Universal / mappings` in `build.sbt`) so the in-band `label_clustering.py` is
    present at runtime — the staged app runs from the stage dir, not the repo root, so an unbundled script can't be found.
@@ -416,6 +432,10 @@ check — not a comment in `application.conf` — is what holds the contract.
 assets through `controllers.Assets.versioned`, Play answers with `max-age=31536000, immutable` rather than the
 `max-age=3600` default. Changed content always arrives under a new URL, so there is no staleness risk.
 
+The one asset family that doesn't go through `assets.path` is Rolldown's shared chunks (`public/build/js/chunks/`): a
+page's bundle imports them by relative path, so they are served at their plain URL. Their file names carry a content
+hash, so `play.assets.cache` in `application.conf` gives that folder the same year-long `immutable` answer.
+
 **What the plain path costs.** `max-age=3600` means a browser re-asks about every asset it holds once an hour, so a
 returning visitor to Explore or Validate spends a conditional GET per icon, cursor, badge and tutorial frame — well
 over a hundred round trips that a fingerprinted URL makes zero of for a year. And because a plain URL doesn't change
@@ -453,7 +473,7 @@ page as `window.assetDigests`, ahead of `utilities.js`. JS then names an asset b
 `util.assetPath('images/icons/openhand.cur')` build the URL. The stamp is empty under dev `sbt run` (no digests exist),
 and a missing entry falls back to the plain `/assets/<path>`, so dev, jsdom, and any asset the pipeline skipped behave
 as they would with the path written out by hand. `make lint-asset-paths` (a blocking CI step) keeps hardcoded
-`/assets/...` URLs out of `public/js/` and checks every `util.assetPath` argument: a literal one has to name a real
+`/assets/...` URLs out of `frontend/js/` and checks every `util.assetPath` argument: a literal one has to name a real
 file in a manifest family, and an interpolated one has to open with a literal family directory that is in the manifest
 (which is also why a path is built inside one template literal rather than concatenated). It also rejects string
 surgery on an element's resolved `src`: that URL carries *its own* file's digest, so editing the filename inside it
@@ -466,7 +486,7 @@ form at stage time, deriving the name from the file's bytes as sbt-digest does. 
 stays relative (the digested copy sits in the original's directory), and a query string or fragment rides along.
 **A new reference needs nothing registered**: unlike
 `util.assetPath` and its `assetManifestPrefixes`, the stage resolves each `url()` against the file itself. Just name a
-file that exists, by relative path: a stylesheet Grunt bundles into `public/js/*/build/` has its relative `url()`s
+file that exists, by relative path: a stylesheet Grunt bundles into `public/build/css/` has its relative `url()`s
 rewritten to `/assets/` paths first (`concat_css`'s `assetBaseUrl` in `Gruntfile.js`), which would double up an
 absolute one, so `make lint-asset-paths` (rule 6) rejects absolute ones in every stylesheet.
 
@@ -480,7 +500,7 @@ Two things about that stage are load-bearing:
   reference or an asset silently left on the one-hour cache, neither of which shows up at runtime.
   `make lint-asset-paths` applies the same rule to `public/css/` (rule 5 in
   [`tools/lint/check-asset-paths.mjs`](../tools/lint/check-asset-paths.mjs)), so in practice this fails a fast CI step instead.
-  Bundles under `public/js/*/build/` are left to the stage, which sees them on disk.
+  Bundles under `public/build/` are left to the stage, which sees them on disk.
 
 Stage/dist only: local `sbt run` serves plain paths and `no-cache` as before, so exercising the real behavior means
 staging the app and running the binary directly rather than `npm start`. That depends on `pipelineStages` in
@@ -539,6 +559,18 @@ falls back to its own backoff and still converges, just more slowly. Two checks:
   application log. That log lives on the database host under the standard PostgreSQL data-directory layout; ask a running
   server for its exact location with `psql -c 'SHOW log_directory;'` (relative to `SHOW data_directory;`) rather than
   hardcoding a path. Members of the project's UW CSE group have command-line read access to it.
+
+## Backups
+
+UW CSE IT backs up the production database every night. The backups alternate between a full copy of the database's
+files (the fastest way to restore everything) and a SQL dump (which can restore a single city or table, and still
+works after a Postgres upgrade). Copies are also kept in a different building and periodically archived off site. The
+test database is not backed up, and the [persistent media directories](#directories-that-must-survive-a-deploy) are
+covered separately.
+
+The details are in the **Backups** section of the README in the private ops repo
+([`lab/sidewalk-tools`](https://gitlab.cs.washington.edu/lab/sidewalk-tools)). To restore from a backup, contact UW
+CSE IT.
 
 ## Runtime configuration contract
 

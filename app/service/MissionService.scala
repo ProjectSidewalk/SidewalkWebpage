@@ -8,6 +8,7 @@ import models.label.LabelType
 import models.mission.MissionTable.{distanceForLaterMissions, distancesForFirstAuditMissions}
 import models.mission.{Mission, MissionTable, MissionType}
 import models.route.{RouteTable, UserRoute}
+import models.street.StreetEdgeTable
 import models.user.SidewalkUserTable.aiUserId
 import models.user.{SidewalkUserWithRole, UserAccountStateTable}
 import models.utils.MyPostgresProfile
@@ -27,7 +28,21 @@ trait MissionService {
       auditTaskId: Option[Int]
   ): DBIO[Option[Mission]]
   def resumeOrCreateNewAuditOnboardingMission(userId: String): DBIO[Option[Mission]]
-  def resumeOrCreateNewAuditMission(userId: String, regionId: Int, userRoute: Option[UserRoute]): DBIO[Option[Mission]]
+
+  /**
+   * The user's incomplete audit mission in the region or route walk, else a new one; a tutorial mission instead for a
+   * user who hasn't finished the tutorial.
+   *
+   * @param revisitStreetId A requested street; if the user already explored it, it counts as distance left (#5692).
+   * @return None when no mission can be sized: a route walk whose streets sum to zero length (#5167), or a region
+   *         with no distance left to assign. Callers decide what the session falls back to.
+   */
+  def resumeOrCreateNewAuditMission(
+      userId: String,
+      regionId: Int,
+      userRoute: Option[UserRoute],
+      revisitStreetId: Option[Int] = None
+  ): DBIO[Option[Mission]]
   def resumeOrCreateNewAiExploreMission(regionId: Int): DBIO[Mission]
   def resumeOrCreateNewExploreAddressMission(userId: String): DBIO[Mission]
   def resumeOrCreateNewValidateMission(
@@ -55,6 +70,7 @@ trait MissionService {
   ): Future[Option[Mission]]
   def updateMissionTableExplore(userId: String, missionProgress: AuditMissionProgress): DBIO[Option[Mission]]
   def getCompletedExploreMissionsInRegion(userId: String, regionId: Int): Future[Seq[Mission]]
+  def getMission(missionId: Int): Future[Option[Mission]]
 }
 
 @Singleton
@@ -63,6 +79,7 @@ class MissionServiceImpl @Inject() (
     missionTable: MissionTable,
     auditTaskTable: AuditTaskTable,
     routeTable: RouteTable,
+    streetEdgeTable: StreetEdgeTable,
     userAccountStateTable: UserAccountStateTable
 )(using ec: ExecutionContext)
     extends MissionService
@@ -132,10 +149,11 @@ class MissionServiceImpl @Inject() (
   def resumeOrCreateNewAuditMission(
       userId: String,
       regionId: Int,
-      userRoute: Option[UserRoute]
+      userRoute: Option[UserRoute],
+      revisitStreetId: Option[Int] = None
   ): DBIO[Option[Mission]] = {
     queryMissionTableExploreMissions(
-      Seq("getMission"), userId, Some(regionId), Some(false), None, None, None, None, userRoute
+      Seq("getMission"), userId, Some(regionId), Some(false), None, None, None, None, userRoute, revisitStreetId
     )
   }
 
@@ -158,6 +176,7 @@ class MissionServiceImpl @Inject() (
    * @param missionId Only required if actions contains "updateProgress" or "updateComplete".
    * @param distanceProgress Only required if actions contains "updateProgress".
    * @param userRoute Only relevant if actions contains "getMission": scopes the mission to this route walk.
+   * @param revisitStreetId Only relevant if actions contains "getMission": see resumeOrCreateNewAuditMission.
    */
   private def queryMissionTableExploreMissions(
       actions: Seq[String],
@@ -168,7 +187,8 @@ class MissionServiceImpl @Inject() (
       distanceProgress: Option[Double],
       auditTaskId: Option[Int],
       skipped: Option[Boolean],
-      userRoute: Option[UserRoute] = None
+      userRoute: Option[UserRoute] = None,
+      revisitStreetId: Option[Int] = None
   ): DBIO[Option[Mission]] = {
 
     val updateProgressAction =
@@ -233,7 +253,7 @@ class MissionServiceImpl @Inject() (
                   case Some(incompleteMission) =>
                     DBIO.successful(Some(incompleteMission))
                   case _ =>
-                    getNextAuditMissionDistance(userId, regionId.get).flatMap { nextMissionDistance =>
+                    getNextAuditMissionDistance(userId, regionId.get, revisitStreetId).flatMap { nextMissionDistance =>
                       if (nextMissionDistance > 0) {
                         missionTable.createNextAuditMission(userId, nextMissionDistance, regionId.get).map(Some(_))
                       } else {
@@ -288,10 +308,20 @@ class MissionServiceImpl @Inject() (
 
   /**
    * Get the suggested distance in meters for the next mission this user does in this region.
+   *
+   * Capped at what's left (counting a revisited street) but never shorter than it, so it can't end partway along it.
+   *
+   * @param revisitStreetId A street the visit asked for; see resumeOrCreateNewAuditMission.
+   * @return The mission distance in meters; 0 when the user has nothing left in the region.
    */
-  private def getNextAuditMissionDistance(userId: String, regionId: Int): DBIO[Double] = {
+  private def getNextAuditMissionDistance(
+      userId: String,
+      regionId: Int,
+      revisitStreetId: Option[Int]
+  ): DBIO[Double] = {
     for {
       distRemaining: Double  <- auditTaskTable.getUnauditedDistance(userId, regionId)
+      revisitDist: Double    <- revisitStreetId.map(revisitedStreetLength(userId, _)).getOrElse(DBIO.successful(0d))
       completedInRegion: Int <- missionTable.selectCompletedExploreMissions(userId, regionId).map(_.length)
     } yield {
       val naiveMissionDist: Double =
@@ -299,9 +329,18 @@ class MissionServiceImpl @Inject() (
           distanceForLaterMissions
         else
           distancesForFirstAuditMissions(completedInRegion)
-      math.min(distRemaining, naiveMissionDist)
+      math.min(distRemaining + revisitDist, math.max(naiveMissionDist, revisitDist))
     }
   }
+
+  /**
+   * A street's length if the user already explored it, which leaves it out of getUnauditedDistance; else 0.
+   */
+  private def revisitedStreetLength(userId: String, streetEdgeId: Int): DBIO[Double] =
+    auditTaskTable.userHasAuditedStreet(streetEdgeId, userId).flatMap {
+      case true  => streetEdgeTable.getServedStreetLength(streetEdgeId).map(_.getOrElse(0d))
+      case false => DBIO.successful(0d)
+    }
 
   /**
    * Either resumes or creates a new validation mission.
@@ -507,4 +546,6 @@ class MissionServiceImpl @Inject() (
   def getCompletedExploreMissionsInRegion(userId: String, regionId: Int): Future[Seq[Mission]] = {
     db.run(missionTable.selectCompletedExploreMissions(userId, regionId))
   }
+
+  def getMission(missionId: Int): Future[Option[Mission]] = db.run(missionTable.getMission(missionId))
 }

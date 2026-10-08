@@ -1,5 +1,5 @@
 /**
- * Tests for the image adjustments keyboard scope in Validate's KeyboardManager (public/js/validate/src/keyboard/
+ * Tests for the image adjustments keyboard scope in Validate's KeyboardManager (frontend/js/validate/keyboard/
  * KeyboardManager.js), added for #5501.
  *
  * The manager listens on window with capture and treats most keys as global shortcuts, Enter submitting the current
@@ -23,16 +23,7 @@
  * a window listener that cannot be unregistered. Each test swaps the svv/menu stubs it reads at event time.
  */
 
-const fs = require('fs');
-const path = require('path');
-const SHORTCUTS_SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/common/KeyboardShortcuts.js'), 'utf8'
-);
-
-const ROOT = path.resolve(__dirname, '..', '..');
-const MANAGER_SRC = fs.readFileSync(path.join(ROOT, 'public/js/validate/src/keyboard/KeyboardManager.js'), 'utf8');
-const MODEL_SRC = fs.readFileSync(path.join(ROOT, 'public/js/common/PanoImageAdjustments.js'), 'utf8');
-const POPOVER_SRC = fs.readFileSync(path.join(ROOT, 'public/js/common/PanoImageAdjustmentsPopover.js'), 'utf8');
+const { loadModules } = require('./loadGlobalScript');
 
 /** A stand-in for one of the menu's controls, with its click spied. */
 function makeControl() {
@@ -67,10 +58,10 @@ describe('KeyboardManager image adjustments scope', () => {
             unsureButton: makeControl(),
         });
         // Registered first, as on the page, so its window-capture listener sees every key before the popover's.
-        window.eval(`${SHORTCUTS_SRC}\n${MANAGER_SRC}\nwindow.KeyboardManager = KeyboardManager;`);
+        Object.assign(window, loadModules('frontend/js/common/KeyboardShortcuts.js', 'frontend/js/validate/keyboard/KeyboardManager.js'));
         new window.KeyboardManager(validationMenuUi);
-        (0, eval)(`${MODEL_SRC}\nwindow.PanoImageAdjustments = PanoImageAdjustments;`);
-        (0, eval)(`${POPOVER_SRC}\nwindow.PanoImageAdjustmentsPopover = PanoImageAdjustmentsPopover;`);
+        Object.assign(window, loadModules('frontend/js/common/PanoImageAdjustments.js'));
+        Object.assign(window, loadModules('frontend/js/common/PanoImageAdjustmentsPopover.js'));
     });
 
     beforeEach(() => {
@@ -93,6 +84,7 @@ describe('KeyboardManager image adjustments scope', () => {
             imageAdjustmentsPopover: { isOpen: () => panelOpen },
             labelVisibilityControl: {
                 hideLabelCard: jest.fn(),
+                isCardHeldOpen: () => false,
                 toggleLabelCard: jest.fn(),
                 isCardVisible: () => true,
                 isVisible: () => true,

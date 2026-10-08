@@ -16,7 +16,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { loadGlobalScript } = require('./loadGlobalScript');
+const { loadModules, realUtil } = require('./loadGlobalScript');
 
 const CONFIG_PATH = path.resolve(__dirname, '..', '..', 'conf/pano-scoring.json');
 const config = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
@@ -25,7 +25,8 @@ const config = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
 const stamped = Object.fromEntries(Object.entries(config).filter(([key]) => !key.startsWith('_')));
 document.documentElement.dataset.panoScoring = JSON.stringify(stamped);
 
-loadGlobalScript('public/js/common/pano-viewer/src/panoUtilities.js');
+window.util = realUtil();
+loadModules('frontend/js/common/pano-viewer/panoUtilities.js');
 
 const scoring = window.util.pano.scoring;
 

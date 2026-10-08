@@ -1,5 +1,5 @@
 /**
- * Tests for the tutorial-annotation helpers in public/js/common/utilitiesSidewalk.js:
+ * Tests for the tutorial-annotation helpers in frontend/js/common/utilitiesSidewalk.js:
  * util.misc.mergeOnboardingAnnotations, util.misc.carryOverOnboardingAnnotations, and util.misc.unwrapPanoX.
  *
  * These back Onboarding's #drawAnnotations, which is called far more often than once per step: once per pano move,
@@ -11,12 +11,8 @@
  * These are pure functions over plain objects, so no DOM stubbing is needed beyond loading the source.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules, realUtil } = require('./loadGlobalScript');
 
-const SOURCE = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/common/utilitiesSidewalk.js'), 'utf8'
-);
 
 // The tutorial pano's real dimensions (svl.TUTORIAL_PANO_WIDTH in Main.js), so the seam cases are the real ones.
 const PANO_WIDTH = 13312;
@@ -34,7 +30,8 @@ describe('tutorial annotation helpers', () => {
     beforeEach(() => {
         // utilitiesSidewalk.js reads i18next at call time for label descriptions; the helpers here never do.
         window.i18next = { t: (k) => k };
-        window.eval(SOURCE);
+        window.util ??= realUtil();
+        loadModules('frontend/js/common/utilitiesSidewalk.js');
         misc = window.util.misc;
     });
 

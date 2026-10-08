@@ -1,0 +1,363 @@
+/**
+ * Compass module. Shows the user which way to turn/move to follow the assigned route.
+ *
+ * @memberof svl
+ */
+
+import { svl } from '../svl.js';
+import { util } from '../../common/utilities.js';
+import { NavigationService } from './NavigationService.js';
+import '../../common/utilitiesMath.js';
+
+export class Compass {
+  #navigationService;
+  #taskContainer;
+  #blinkInterval;
+  #blinkTimer;
+  #uiCompass;
+  #directionIcons;
+  #status = {
+    lockDisableCompassClick: false,
+  };
+
+  /**
+   * @param {object} navigationService - NavigationService module.
+   * @param {object} taskContainer - TaskContainer module.
+   */
+  constructor(navigationService, taskContainer) {
+    this.#navigationService = navigationService;
+    this.#taskContainer = taskContainer;
+
+    this.#uiCompass = {
+      messageHolder: document.getElementById('compass-message-holder'),
+      message: document.getElementById('compass-message'),
+    };
+
+    this.#directionIcons = {
+      leftTurn: util.assetPath('images/explore/icons/ArrowLeftTurn.png'),
+      rightTurn: util.assetPath('images/explore/icons/ArrowRightTurn.png'),
+      slightLeft: util.assetPath('images/explore/icons/ArrowSlightLeft.png'),
+      slightRight: util.assetPath('images/explore/icons/ArrowSlightRight.png'),
+      straight: util.assetPath('images/explore/icons/ArrowStraight.png'),
+      uTurn: util.assetPath('images/explore/icons/ArrowUTurn.png'),
+    };
+
+    this.enableCompassClick();
+  }
+
+  /**
+   * Blink the compass message.
+   */
+  blink() {
+    this.stopBlinking();
+    this.#blinkInterval = window.setInterval(() => {
+      this.#uiCompass.messageHolder.classList.toggle('highlight-100');
+    }, 500);
+  }
+
+  getCompassMessageHolder() {
+    return this.#uiCompass;
+  }
+
+  /**
+   * Get the angle necessary to move further down the street (using 15 meters further along street as target point).
+   * @returns {number}
+   */
+  getTargetAngle() {
+    const task = this.#taskContainer.getCurrentTask();
+    const latlng = svl.panoViewer.getPosition();
+    const remainder = NavigationService.remainderOfStreet(task);
+
+    // Get the point representing 15 meters further along the street (or the endpoint if there's fewer than 15m).
+    const distIncrement = Math.min(0.015, turf.length(remainder));
+    const goalLoc = turf.along(remainder, distIncrement).geometry.coordinates;
+
+    // Compute the angle from the current location to the goal location, with respect to true north.
+    return ((util.math.toDegrees(Math.atan2(goalLoc[0] - latlng.lng, goalLoc[1] - latlng.lat)) + 360) % 360);
+  }
+
+  /**
+   * Check if the user is following the route that we specified.
+   * @returns {boolean}
+   */
+  #checkEnRoute() {
+    const task = this.#taskContainer.getCurrentTask();
+    if (task) {
+      const line = task.getGeoJSON();
+      const latlng = svl.panoViewer.getPosition();
+      const currentPoint = turf.point([latlng.lng, latlng.lat]);
+      return turf.pointToLineDistance(currentPoint, line) < svl.CLOSE_TO_ROUTE_THRESHOLD;
+    }
+    return true;
+  }
+
+  /**
+   * Whether the user is currently on the assigned route (within the close-to-route threshold). Public so the pano's
+   * route-forward arrow can match the compass, which only guides forward while en route. (#4671)
+   * @returns {boolean}
+   */
+  isEnRoute() {
+    return this.#checkEnRoute();
+  }
+
+  enableCompassClick() {
+    if (!this.#status.lockDisableCompassClick) this.attachMessageClickHandler(this.#handleCompassClick);
+  }
+
+  disableCompassClick() {
+    if (!this.#status.lockDisableCompassClick) this.detachMessageClickHandler(this.#handleCompassClick);
+  }
+
+  lockDisableCompassClick() {
+    this.#status.lockDisableCompassClick = true;
+  }
+
+  unlockDisableCompassClick() {
+    this.#status.lockDisableCompassClick = false;
+  }
+
+  /*
+   * Part of the new jump mechanism.
+   */
+  //  ** start **
+
+  #cancelTimer() {
+    window.clearTimeout(this.#blinkTimer);
+  }
+
+  resetBeforeJump() {
+    this.#cancelTimer();
+    this.removeLabelBeforeJumpMessage();
+  }
+
+  // Held onto so the click handler can be removed again.
+  #jumpMessageOnclick = null;
+
+  #makeTheLabelBeforeJumpMessageBoxClickable() {
+    this.#makeTheLabelBeforeJumpMessageBoxUnclickable();
+    if (svl.regionModel.isRouteOrRegionComplete()) {
+      this.#jumpMessageOnclick = () => svl.missionController.wrapUpRouteOrRegion();
+    } else {
+      this.#jumpMessageOnclick = async () => {
+        svl.tracker.push('LabelBeforeJump_Jump');
+        await this.#navigationService.jumpToANewTask();
+      };
+    }
+    this.attachMessageClickHandler(this.#jumpMessageOnclick);
+  }
+
+  #makeTheLabelBeforeJumpMessageBoxUnclickable() {
+    if (this.#jumpMessageOnclick) this.detachMessageClickHandler(this.#jumpMessageOnclick);
+    this.#jumpMessageOnclick = null;
+  }
+
+  showLabelBeforeJumpMessage() {
+    // Start blinking after 15 seconds.
+    this.#blinkTimer = window.setTimeout(() => {
+      svl.tracker.push('LabelBeforeJump_Blink');
+      this.blink();
+    }, 15000);
+    this.disableCompassClick();
+    this.#makeTheLabelBeforeJumpMessageBoxClickable();
+    this.#setLabelBeforeJumpMessage();
+  }
+
+  removeLabelBeforeJumpMessage() {
+    this.stopBlinking();
+    this.#makeTheLabelBeforeJumpMessageBoxUnclickable();
+    this.enableCompassClick();
+  }
+  // ** end **
+
+  /**
+   * Get the compass angle.
+   * @returns {number} Degrees the user needs to rotate to face the correct direction, normalized [0,360].
+   */
+  #getCompassAngle() {
+    const heading = ((svl.panoViewer.getPov().heading % 360) + 360) % 360;
+    const targetAngle = this.getTargetAngle();
+    return ((heading - targetAngle + 360) % 360);
+  }
+
+  /**
+   * Mapping from a direction to an image path of direction icons.
+   * @param {string} direction
+   * @returns {string|undefined}
+   */
+  directionToImagePath(direction) {
+    switch (direction) {
+      case 'straight':
+        return this.#directionIcons.straight;
+      case 'slight-right':
+        return this.#directionIcons.slightRight;
+      case 'slight-left':
+        return this.#directionIcons.slightLeft;
+      case 'right':
+        return this.#directionIcons.rightTurn;
+      case 'left':
+        return this.#directionIcons.leftTurn;
+      case 'u-turn':
+        return this.#directionIcons.uTurn;
+      default:
+    }
+  }
+
+  /**
+   * Hide a message.
+   */
+  hideMessage() {
+    this.#uiCompass.messageHolder.hidden = true;
+  }
+
+  /**
+   * Set the compass message.
+   */
+  setTurnMessage() {
+    const angle = this.#getCompassAngle();
+    const direction = this.#angleToDirection(angle);
+
+    const src = util.escapeHTML(this.directionToImagePath(direction));
+    const image = `<img src="${src}" class="compass-turn-images" alt="Turn icon"/>`;
+    const message
+      = `<div class="compass-message-small">${i18next.t('center-ui.compass.unlabeled-problems')}</div>`
+        + `${image}<span class="compass-message-large">${this.#directionToDirectionMessage(direction)}</span>`;
+    this.#uiCompass.message.innerHTML = message;
+  }
+
+  #setLabelBeforeJumpMessage() {
+    if (svl.regionModel.isRouteComplete) {
+      this.#uiCompass.message.innerHTML = `<div>${i18next.t('center-ui.compass.end-route')}</div>`;
+    } else if (svl.regionModel.isRegionComplete) {
+      this.#uiCompass.message.innerHTML = `<div>${i18next.t('center-ui.compass.end-region')}</div>`;
+    } else {
+      this.#uiCompass.message.innerHTML = `<div>${i18next.t('center-ui.compass.end-street')}</div>`;
+    }
+  }
+
+  #setBackToRouteMessage() {
+    this.#uiCompass.message.innerHTML = i18next.t('center-ui.compass.far-away');
+  }
+
+  /**
+   * Show a message.
+   */
+  showMessage() {
+    this.#uiCompass.messageHolder.hidden = false;
+  }
+
+  /**
+   * Stop blinking the compass message.
+   */
+  stopBlinking() {
+    window.clearInterval(this.#blinkInterval);
+    this.#blinkInterval = null;
+    this.#uiCompass.messageHolder.classList.remove('highlight-100');
+  }
+
+  /**
+   * Update the compass message.
+   */
+  update() {
+    // No route guidance in free exploration (#4451): there is no red line to follow or route to return to.
+    if (svl.isExploreAddressMode()) return;
+    if (!this.#navigationService.getLabelBeforeJumpState() && !svl.isOnboarding()) {
+      if (this.#checkEnRoute()) {
+        this.stopBlinking();
+        this.setTurnMessage();
+      } else if (!this.#navigationService.getStatus('movingToNewLocation')) {
+        // Only warn that the user is off-route if they're not mid-move. (#4174)
+        this.blink();
+        this.#setBackToRouteMessage();
+      }
+    }
+  }
+
+  /**
+   * Mapping from an angle to a direction.
+   * @param {number} angle
+   * @returns {string|undefined}
+   */
+  #angleToDirection(angle) {
+    if (angle < 20 || angle > 340) {
+      return 'straight';
+    } else if (angle >= 20 && angle < 45) {
+      return 'slight-left';
+    } else if (angle <= 340 && angle > 315) {
+      return 'slight-right';
+    } else if (angle >= 45 && angle < 150) {
+      return 'left';
+    } else if (angle <= 315 && angle > 210) {
+      return 'right';
+    } else if (angle <= 210 && angle >= 150) {
+      return 'u-turn';
+    } else {
+      console.debug('It shouldn\'t reach here.');
+    }
+  }
+
+  /**
+   * Mapping from direction to a description of the direction.
+   * @param {string} direction
+   * @returns {string|undefined}
+   */
+  #directionToDirectionMessage(direction) {
+    switch (direction) {
+      case 'straight':
+        return i18next.t('center-ui.compass.straight');
+      case 'slight-right':
+        return i18next.t('center-ui.compass.slight-right');
+      case 'slight-left':
+        return i18next.t('center-ui.compass.slight-left');
+      case 'right':
+        return i18next.t('center-ui.compass.right');
+      case 'left':
+        return i18next.t('center-ui.compass.left');
+      case 'u-turn':
+        return i18next.t('center-ui.compass.u-turn');
+      default:
+    }
+  }
+
+  // Performs the action written in the compass message for the user (turning, moving ahead, jumping).
+  // An arrow field so enable/disableCompassClick add and remove the same function.
+  #handleCompassClick = async () => {
+    if (this.#checkEnRoute()) {
+      svl.stuckAlert.compassOrStuckClicked();
+
+      const angle = this.#getCompassAngle();
+      const direction = this.#angleToDirection(angle);
+      svl.tracker.push(`Click_Compass_Direction=${direction}`);
+
+      if (direction === 'straight') {
+        await this.#navigationService.moveForward()
+          .then(() => svl.tracker.push('CompassMove_Success'))
+          .catch(() => svl.tracker.push('CompassMove_PanoNotAvailable'));
+      } else {
+        svl.panoManager.setPovToRouteDirection(250);
+      }
+    } else {
+      svl.tracker.push('Click_Compass_FarFromRoute');
+      await this.#navigationService.moveForward();
+      svl.panoManager.setPovToRouteDirection();
+    }
+  };
+
+  /**
+   * Attaches an external click handler to the compass message and shows the pointer cursor. Onboarding uses this to
+   * override the default compass behavior so that a click advances to the next pano.
+   * @param {Function} handler
+   */
+  attachMessageClickHandler(handler) {
+    this.#uiCompass.messageHolder.addEventListener('click', handler);
+    this.#uiCompass.messageHolder.style.cursor = 'pointer';
+  }
+
+  /**
+   * Detaches an attached external click handler from the compass message and restores the default cursor.
+   * @param {Function} handler
+   */
+  detachMessageClickHandler(handler) {
+    this.#uiCompass.messageHolder.removeEventListener('click', handler);
+    this.#uiCompass.messageHolder.style.cursor = 'default';
+  }
+}

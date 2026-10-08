@@ -80,7 +80,7 @@ trait LabelService {
       user: SidewalkUserWithRole,
       labelCount: Int,
       validateParams: ValidateParams
-  ): Future[(Option[Mission], Option[ValidationResultCounts], Seq[LabelValidationMetadata], Seq[AdminValidationData])]
+  ): Future[ValidationTaskPostReturnValue]
   def getDataForValidatePostRequest(
       user: SidewalkUserWithRole,
       missionProgress: Option[ValidationMissionProgress],
@@ -722,16 +722,14 @@ class LabelServiceImpl @Inject() (
   }
 
   /**
-   * Get the data needed by the various Validate endpoints.
-   * @return Future[(mission, missionProgress, labelList, adminData)]
+   * The mission a Validate page starts on, resumed or newly created, in the shape the mission-complete response uses.
+   * @param labelCount How many labels of a type there must be for that type to be worth a mission.
    */
   def getDataForValidationPages(
       user: SidewalkUserWithRole,
       labelCount: Int,
       validateParams: ValidateParams
-  ): Future[
-    (Option[Mission], Option[ValidationResultCounts], Seq[LabelValidationMetadata], Seq[AdminValidationData])
-  ] = {
+  ): Future[ValidationTaskPostReturnValue] = {
     // TODO can this be merged with `getDataForValidatePostRequest`?
     val viewerType: PanoSource = configService.getPanoSource
     getLabelTypeToValidate(user.userId, labelCount, viewerType, validateParams.labelType, validateParams.queueCascade,
@@ -757,12 +755,10 @@ class LabelServiceImpl @Inject() (
               else Future.successful(Seq.empty[AdminValidationData])
             }
           } yield {
-            (Some(mission), Some(missionProgress), labelMetadata, adminData)
+            ValidationTaskPostReturnValue(Some(labelMetadata.nonEmpty), Some(mission), labelMetadata, adminData,
+              Some(missionProgress))
           }
-        case None =>
-          Future.successful(
-            (Option.empty[Mission], None, Seq.empty[LabelValidationMetadata], Seq.empty[AdminValidationData])
-          )
+        case None => Future.successful(ValidationTaskPostReturnValue(Some(false), None, Seq.empty, Seq.empty, None))
       }
   }
 

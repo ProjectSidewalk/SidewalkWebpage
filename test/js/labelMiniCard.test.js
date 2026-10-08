@@ -1,17 +1,13 @@
 /**
- * Tests for LabelMiniCard (public/js/common/LabelMiniCard.js, #5217): what a card shows for a label, where its type
+ * Tests for LabelMiniCard (frontend/js/common/LabelMiniCard.js, #5217): what a card shows for a label, where its type
  * icon lands on the crop (#5386), and that its vote chips post the validation payload every static-image surface
  * sends, clear on a second click, roll back on a refusal, and lock where there is nothing to judge or the label is
  * the reader's own.
  */
 
-const fs = require('fs');
-const path = require('path');
 
-const { assetPathStub, installDateHelpers, installUtilitiesMisc, installEscapeHTML } = require('./loadGlobalScript');
+const { assetPathStub, installDateHelpers, installUtilitiesMisc, installEscapeHTML, loadModules } = require('./loadGlobalScript');
 
-const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const read = (p) => fs.readFileSync(path.join(REPO_ROOT, p), 'utf8');
 
 /** A `/label/id` JSON with a crop, two agrees, and no vote of the reader's own. */
 function label(overrides = {}) {
@@ -60,7 +56,7 @@ describe('LabelMiniCard', () => {
         installEscapeHTML();
         window.Toast = {show: jest.fn()};
         window.BadgeAchievements = {recordValidation: jest.fn()};
-        window.eval(`${read('public/js/common/LabelMiniCard.js')}\nwindow.LabelMiniCard = LabelMiniCard;`);
+        Object.assign(window, loadModules('frontend/js/common/LabelMiniCard.js'));
     });
 
     beforeEach(() => {

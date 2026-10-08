@@ -1,5 +1,5 @@
 /* Immersive mode (#5560): the pano fills the browser window and the surviving controls float over it.
-   body.svv-immersive is toggled by the shared ImmersiveMode (public/js/common/ImmersiveMode.js), which also sets
+   body.svv-immersive is toggled by the shared ImmersiveMode (frontend/js/common/ImmersiveMode.js), which also sets
    html.chromeless (main.css) to hide the navbar and the test-server banner. Everything here overrides the boxed
    layout's CSS variables on the same element, so #svv-application-holder, #svv-panorama-holder and the viewer follow
    (see the derivations in svv-general.css) without touching their own rules. The pano's size is CSS-driven here;
@@ -118,6 +118,12 @@ body.svv-immersive #validation-menu-holder {
   border-radius: calc(10px * var(--ui-scale));
   box-shadow: var(--box-shadow-lg);
   z-index: 3;
+}
+
+/* A card opened on load (#5675) isn't transient, so it gives way to the dock: matching the card's z-index (4) puts the
+   dock on top, since it comes later in the page. */
+body.svv-immersive:has(#label-card.label-card--held) #validation-menu-holder {
+  z-index: 4;
 }
 
 /* The dock is sized to its content, so the boxed column's push-to-bottom has nothing to push against. */

@@ -10,18 +10,15 @@
  * into global scope rather than required.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const SHELL_SRC = fs.readFileSync(
-  path.resolve(__dirname, '..', '..', 'public/js/admin-dashboard/AdminShell.js'), 'utf8');
 
 let AdminShell;
 
 beforeAll(() => {
   // init() calls into sidebarDisclosure.js, which lives in a different file of the same bundle.
   global.initSidebarDisclosure = () => {};
-  AdminShell = (0, eval)(`${SHELL_SRC}\nAdminShell;`);
+  AdminShell = loadModules('frontend/js/admin-dashboard/AdminShell.js').AdminShell;
 });
 
 /**

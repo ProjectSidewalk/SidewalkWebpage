@@ -1,5 +1,5 @@
 /**
- * Tests for the label card's keyboard shortcuts (public/js/common/label-detail/LabelDetail.js, #5194).
+ * Tests for the label card's keyboard shortcuts (frontend/js/common/label-detail/LabelDetail.js, #5194).
  *
  * Left/right page to the previous/next label and A/Y, D/N, U cast agree, disagree and unsure — on every host the
  * shared card has, which is why the shortcuts live in the controller rather than in one host's key manager.
@@ -29,14 +29,9 @@
  * stubbed on `window` first.
  */
 
-const fs = require('fs');
-const path = require('path');
 
-const { assetPathStub, installDateHelpers } = require('./loadGlobalScript');
+const { assetPathStub, installDateHelpers, loadModules } = require('./loadGlobalScript');
 
-const readSrc = (rel) => fs.readFileSync(path.resolve(__dirname, '..', '..', rel), 'utf8');
-const LABEL_DETAIL_SRC = readSrc('public/js/common/label-detail/LabelDetail.js');
-const TAG_EDITOR_SRC = readSrc('public/js/common/label-detail/TagEditor.js');
 
 /**
  * Builds the card markup as views/common/labelDetail.scala.html renders it, reduced to the elements
@@ -344,10 +339,12 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
             label: { labelId: 42, label_type: 'Obstacle' },
         };
         window.PopupPanoManager = { create: async () => panoManager };
+        // The stories disclosure is not what these tests exercise, and its real section wants the composer's markup.
+        window.StorySection = class { setLabel() {} };
 
         window.fetch = jest.fn(async () => ({ ok: true, status: 200, json: async () => ({}) }));
 
-        window.eval(`${TAG_EDITOR_SRC}\n${LABEL_DETAIL_SRC}\nwindow.LabelDetail = LabelDetail;`);
+        Object.assign(window, loadModules('frontend/js/common/label-detail/TagEditor.js', 'frontend/js/common/label-detail/LabelDetail.js'));
         LabelDetail = window.LabelDetail;
 
         await mount();

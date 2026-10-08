@@ -1,16 +1,17 @@
 @import play.api.Configuration
 @import play.api.libs.json.Json
+@import views.ViewHelpers.jsonForScript
 @import service.CommonPageData
 @import models.user.SidewalkUserWithRole
 @(commonData: CommonPageData, user: Option[SidewalkUserWithRole])(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @* schema.org Dataset JSON-LD (#4237) so each city's open data is discoverable in Google Dataset Search. Built with
-   the JSON library so quoting is always valid; escaping `<` blocks a `</script>` breakout. `license` is CC0: the
+   the JSON library so quoting is always valid; jsonForScript stops a `</script>` breakout. `license` is CC0: the
    data is public domain (MIT in LICENSE.md covers the code); see the Data License & Provenance section below. *@
 @datasetJsonLd = @{
   val base = commonData.prodUrl.stripSuffix("/")
   val city = commonData.currentCity.cityNameFormatted
-  Json.stringify(Json.obj(
+  jsonForScript(Json.obj(
     "@context"    -> "https://schema.org",
     "@type"       -> "Dataset",
     "name"        -> s"Project Sidewalk Sidewalk Accessibility Data — $city",
@@ -32,18 +33,15 @@
       Json.obj("@type" -> "DataDownload", "encodingFormat" -> "application/geopackage+sqlite3",
         "contentUrl" -> s"$base/v3/api/rawLabels?filetype=geopackage")
     )
-  )).replace("<", "\\u003c")
+  ))
 }
 @structuredData = {
-  <script type="application/ld+json">@Html(datasetJsonLd)</script>
+  <script type="application/ld+json">@datasetJsonLd</script>
 }
 
 @content = {
-  <script src="@routes.Assets.versioned("js/common/aggregateStats.js")"></script>
   <link rel="stylesheet" href="@routes.Assets.versioned("css/pages/api-docs/label-tags.css")">
-  <script src="@routes.Assets.versioned("js/api-docs/labelTagsPreview.js")"></script>
   <link rel="stylesheet" href="@routes.Assets.versioned("css/pages/api-docs/label-types.css")">
-  <script src="@routes.Assets.versioned("js/api-docs/labelTypesPreview.js")"></script>
 
 
   <div class="page-section" id="introduction">
@@ -95,14 +93,7 @@
 
       <div id="label-types-preview"></div>
 
-      <script>
-        // Initialize the label types preview
-        document.addEventListener('DOMContentLoaded', function() {
-          LabelTypesPreview.setup({
-            maxWidth: 1000
-          }).init();
-        });
-      </script>
+      <script type="module" id="page-entry" src='@assets.path("build/js/api-docs/index.js")'></script>
     </div>
 
     <div class="page-section" id="label-tags-preview-section">
@@ -111,22 +102,6 @@
 
       <div id="label-tags-preview"></div>
 
-      <script>
-        document.addEventListener('DOMContentLoaded', function() {
-          LabelTagsPreview.setup({
-            maxWidth: 1000,
-            displayMode: "summary"  // Use summary mode for the index page
-          }).init()
-            .then(() => {
-              if (typeof generateTableOfContents === 'function') {
-                generateTableOfContents(); // Regenerate the TOC if needed
-              }
-            })
-            .catch(error => {
-              console.error('Error initializing label tags summary:', error);
-            });
-        });
-      </script>
     </div>
 
     <h2 class="page-heading" id="metadata-apis">Metadata APIs<a href="#metadata-apis" class="permalink">#</a></h2>

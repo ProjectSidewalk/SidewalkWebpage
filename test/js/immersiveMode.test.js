@@ -1,5 +1,5 @@
 /**
- * Tests for the immersive-mode toggle shared by Explore and Validate (public/js/common/ImmersiveMode.js, #5085,
+ * Tests for the immersive-mode toggle shared by Explore and Validate (frontend/js/common/ImmersiveMode.js, #5085,
  * #5560), built here with Explore's wiring; validateImmersiveKey.test.js covers Validate's key path.
  *
  * The layout is CSS keyed on two classes, so what the module has to get right is the bookkeeping around a toggle:
@@ -11,14 +11,9 @@
  * eval'd into jsdom with those stubbed; the tool-specific collaborators arrive through its options.
  */
 
-const fs = require('fs');
-const path = require('path');
 
-const { assetPathStub } = require('./loadGlobalScript');
+const { assetPathStub, loadModules } = require('./loadGlobalScript');
 
-const SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/common/ImmersiveMode.js'), 'utf8'
-);
 
 describe('ImmersiveMode', () => {
     let ImmersiveMode;
@@ -29,7 +24,6 @@ describe('ImmersiveMode', () => {
     /** Builds the module against a fresh page, wired the way Explore's Main.js wires it. */
     function build(extra = {}) {
         return new ImmersiveMode({
-            ...extra,
             tracker,
             bodyClass: 'svl-immersive',
             relayout,
@@ -40,6 +34,8 @@ describe('ImmersiveMode', () => {
             },
             frame: () => window.svl.CANVAS_FRAME,
             hintReference: () => document.getElementById('pano'),
+            urlParam: 'immersive',
+            ...extra,
         });
     }
 
@@ -53,6 +49,7 @@ describe('ImmersiveMode', () => {
         document.body.className = '';
         document.documentElement.className = '';
         window.sessionStorage.clear();
+        window.history.replaceState(null, '', '/explore');
         onboarding = false;
         tracker = { push: jest.fn() };
         relayout = jest.fn();
@@ -65,7 +62,7 @@ describe('ImmersiveMode', () => {
             canvas: { showLabelHoverInfo: jest.fn() },
             CANVAS_FRAME: { width: 720, height: 480 },
         };
-        window.eval(`${SRC}\nwindow.ImmersiveMode = ImmersiveMode;`);
+        Object.assign(window, loadModules('frontend/js/common/ImmersiveMode.js'));
         ImmersiveMode = window.ImmersiveMode;
     });
 
@@ -200,6 +197,60 @@ describe('ImmersiveMode', () => {
         restored.toggle('Click');
         expect(window.sessionStorage.getItem('svl-immersive-active')).toBeNull();
         expect(build().isActive()).toBe(false);
+    });
+
+    it('enters from a link carrying immersive=1, keeps it for the sitting, and says the link asked (#5480)', () => {
+        window.history.replaceState(null, '', '/explore?panoId=abc&immersive=1');
+        const mode = build();
+        expect(mode.isActive()).toBe(true);
+        expect(document.body.classList.contains('svl-immersive')).toBe(true);
+        expect(relayout).not.toHaveBeenCalled();
+        expect(tracker.push).toHaveBeenCalledWith('ImmersiveMode_Restored', expect.objectContaining({ source: 'url' }));
+        // The ask outlives the link: the fresh /explore a finished route goes through has no param.
+        expect(window.sessionStorage.getItem('svl-immersive-active')).toBe('1');
+        window.history.replaceState(null, '', '/explore');
+        tracker.push.mockClear();
+        expect(build().isActive()).toBe(true);
+        expect(tracker.push).toHaveBeenCalledWith('ImmersiveMode_Restored',
+            expect.objectContaining({ source: 'session' }));
+    });
+
+    it('credits the tab, not the link, when both say immersive: only a new arrival reads as url (#5480)', () => {
+        window.sessionStorage.setItem('svl-immersive-active', '1');
+        window.history.replaceState(null, '', '/explore?panoId=abc&immersive=1');
+        expect(build().isActive()).toBe(true);
+        expect(tracker.push).toHaveBeenCalledWith('ImmersiveMode_Restored',
+            expect.objectContaining({ source: 'session' }));
+    });
+
+    it('keeps the tutorial boxed even when the link says immersive=1', () => {
+        window.history.replaceState(null, '', '/explore?retakeTutorial=true&immersive=1');
+        onboarding = true;
+        expect(build().isActive()).toBe(false);
+        expect(document.body.classList.contains('svl-immersive')).toBe(false);
+        expect(window.sessionStorage.getItem('svl-immersive-active')).toBeNull();
+        expect(tracker.push).not.toHaveBeenCalled();
+    });
+
+    it('tells its onChange hook after every toggle, once the tool is laid out (#5480)', () => {
+        const onChange = jest.fn();
+        const mode = build({ onChange });
+        mode.toggle('Click');
+        expect(onChange).toHaveBeenCalledTimes(1);
+        expect(relayout.mock.invocationCallOrder[0]).toBeLessThan(onChange.mock.invocationCallOrder[0]);
+        mode.toggle('KeyboardShortcut');
+        expect(onChange).toHaveBeenCalledTimes(2);
+        // A build without the hook, and a toggle during the tutorial, stay quiet.
+        expect(() => build().toggle('Click')).not.toThrow();
+        onboarding = true;
+        build({ onChange }).toggle('Click');
+        expect(onChange).toHaveBeenCalledTimes(2);
+    });
+
+    it('ignores immersive=1 for a tool that names no URL param (Validate)', () => {
+        window.history.replaceState(null, '', '/validate?immersive=1');
+        expect(build({ urlParam: undefined }).isActive()).toBe(false);
+        expect(tracker.push).not.toHaveBeenCalled();
     });
 
     it('does not restore the mode into the tutorial', () => {

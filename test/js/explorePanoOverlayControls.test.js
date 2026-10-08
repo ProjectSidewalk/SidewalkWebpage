@@ -1,5 +1,5 @@
 /**
- * Tests for the chevron toggle in Explore's PanoOverlayControls (public/js/explore/src/controls/
+ * Tests for the chevron toggle in Explore's PanoOverlayControls (frontend/js/explore/controls/
  * PanoOverlayControls.js), logged since #5501.
  *
  * The CSS shows the menu from the chevron's `aria-expanded`, and the toggle is logged as Click_PanoControlMenu_Toggle,
@@ -8,15 +8,11 @@
  * explicit export.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/explore/src/controls/PanoOverlayControls.js'), 'utf8'
-);
 
 beforeAll(() => {
-    (0, eval)(`${SRC}\nwindow.PanoOverlayControls = PanoOverlayControls;`);
+    Object.assign(window, loadModules('frontend/js/explore/controls/PanoOverlayControls.js'));
 });
 
 let toggle;

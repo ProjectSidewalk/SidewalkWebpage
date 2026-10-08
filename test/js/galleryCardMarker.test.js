@@ -1,5 +1,5 @@
 /**
- * Tests for where a Gallery card draws its label marker (public/js/gallery/src/cards/Card.js, issue #2660).
+ * Tests for where a Gallery card draws its label marker (frontend/js/gallery/cards/Card.js, issue #2660).
  *
  * A card's image is one of three things, and the label is in a different place in each: a crop the nightly job cut
  * around the label from the pano (label wherever `label_crop` says, usually the centre), the browser's snapshot of the
@@ -11,14 +11,9 @@
  * collaborators it touches during construction stubbed out.
  */
 
-const fs = require('fs');
-const path = require('path');
 
-const { assetPathStub, installUtilitiesMisc } = require('./loadGlobalScript');
+const { assetPathStub, installUtilitiesMisc, loadModules } = require('./loadGlobalScript');
 
-const CARD_SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/gallery/src/cards/Card.js'), 'utf8'
-);
 
 /** What the source-logo and licence-line stubs were last told: the card owes a credit on a crop and nothing else. */
 const credit = { logo: null, attribution: null };
@@ -77,7 +72,7 @@ describe('a Gallery card\'s label marker', () => {
             show: () => { credit.attribution = 'shown'; },
             hide: () => { credit.attribution = 'hidden'; },
         });
-        window.eval(`${CARD_SRC}\nwindow.Card = Card;`);
+        Object.assign(window, loadModules('frontend/js/gallery/cards/Card.js'));
     });
 
     beforeEach(() => {

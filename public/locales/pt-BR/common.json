@@ -367,6 +367,11 @@
     "vote-failed": "Seu voto não foi salvo. Tente novamente."
   },
   "download-already-preparing": "Este arquivo já está sendo preparado para outra solicitação. Tente novamente em instantes.",
+  "session-load-failed": {
+    "title": "Não foi possível carregar",
+    "body": "Não foi possível carregar sua missão. Recarregue a página para tentar novamente.",
+    "bad-link": "Este link não é válido. Verifique o endereço e tente novamente."
+  },
   "label-type-picker": {
     "current": "{{labelType}} (tipo atual)",
     "change": "alterar",

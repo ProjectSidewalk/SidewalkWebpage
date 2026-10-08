@@ -367,6 +367,11 @@
     "vote-failed": "Deine Stimme wurde nicht gespeichert. Bitte versuche es erneut."
   },
   "download-already-preparing": "Diese Datei wird bereits für eine andere Anfrage vorbereitet. Bitte versuchen Sie es gleich noch einmal.",
+  "session-load-failed": {
+    "title": "Laden fehlgeschlagen",
+    "body": "Wir konnten deine Mission nicht laden. Bitte lade die Seite neu, um es erneut zu versuchen.",
+    "bad-link": "Dieser Link ist ungültig. Überprüfe die Adresse und versuche es erneut."
+  },
   "label-type-picker": {
     "current": "{{labelType}} (aktueller Typ)",
     "change": "ändern",

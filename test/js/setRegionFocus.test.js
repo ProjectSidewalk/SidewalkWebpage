@@ -1,17 +1,13 @@
 /**
- * Tests for setRegionFocus (public/js/ps-map/psMapUtilities.js).
+ * Tests for setRegionFocus (frontend/js/ps-map/psMapUtilities.js).
  *
  * A `?regionId=` link — a Gallery card's region, a dashboard link — has to land framed on that region,
  * so these pin what the map is asked to do for one: the right region picked out of what's rendered, and its own
  * bounds fitted rather than a fixed zoom that can only suit one size of region.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const SRC = ['public/js/common/geoBounds.js', 'public/js/ps-map/psMapUtilities.js']
-    .map((file) => fs.readFileSync(path.resolve(__dirname, '..', '..', file), 'utf8'))
-    .join('\n');
 
 /** A square region feature, as queryRenderedFeatures hands it back. */
 function region(id, [west, south], [east, north]) {
@@ -40,7 +36,7 @@ describe('setRegionFocus', () => {
 
     beforeAll(() => {
         window.mapboxgl = { LngLatBounds };
-        window.eval(`${SRC}\nwindow.setRegionFocus = setRegionFocus;`);
+        Object.assign(window, loadModules('frontend/js/ps-map/psMapUtilities.js'));
     });
 
     beforeEach(() => {

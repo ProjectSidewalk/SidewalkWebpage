@@ -1,24 +1,25 @@
 /**
- * Tests Settings' account forms (public/js/user-dashboard/AccountForm.js), mostly change password (#2285): what the user sees
+ * Tests Settings' account forms (frontend/js/user-dashboard/AccountForm.js), mostly change password (#2285): what the user sees
  * after a success, a wrong current password, a form-level error, and a failed request. AuthModal.js is loaded for
  * real, so these also catch the form drifting from the markup `wireAsyncSubmit` expects.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const read = (relativePath) => fs.readFileSync(path.resolve(__dirname, '..', '..', relativePath), 'utf8');
 
 const GENERIC_ERROR = 'Something went wrong on our end. Please try again.';
 
-/** The class under test, in one scope with AuthModal.js as on the page, with `fetch` supplied per test. */
-const formFactory = (0, eval)(
-  `(function (fetch) {
-    ${read('public/js/common/AuthModal.js')}
-    ${read('public/js/user-dashboard/AccountForm.js')}
-    return AccountForm;
-  })`
-);
+
+/**
+ * The class under test, with AuthModal.js's helpers in the page scope as on the page, and `fetch` supplied per test.
+ * @param {Function} fetchImpl - Stands in for `fetch`.
+ * @returns {Function} A fresh AccountForm class.
+ */
+function formFactory(fetchImpl) {
+  window.fetch = fetchImpl;
+  Object.assign(window, loadModules('frontend/js/common/AuthModal.js'));
+  return loadModules('frontend/js/user-dashboard/AccountForm.js').AccountForm;
+}
 
 /** A cut-down copy of the password section in userDashboard/settings.scala.html. */
 const renderForm = () => {

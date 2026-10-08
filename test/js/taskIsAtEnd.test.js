@@ -14,14 +14,11 @@
  * stub that got the geometry slightly wrong would pass for the wrong reason.
  */
 
-const fs = require('fs');
 const path = require('path');
+const { loadModules, realUtil } = require('./loadGlobalScript');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const readSrc = (relativePath) => fs.readFileSync(path.join(REPO_ROOT, relativePath), 'utf8');
 
-const TASK_SRC = readSrc('public/js/explore/src/task/Task.js');
-const UTIL_MATH_SRC = readSrc('public/js/common/utilitiesMath.js');
 // Loaded once, up front: the fixtures below are built while the suite is collected, before any beforeEach runs.
 const turf = require(path.join(REPO_ROOT, 'public/vendor/turf/turf-7.4.0.min.js'));
 
@@ -59,8 +56,9 @@ describe('Task.isAtEnd', () => {
     beforeEach(() => {
         window.turf = turf;
         window.svl = { CLOSE_TO_ROUTE_THRESHOLD: 0.05 };
-        window.eval(UTIL_MATH_SRC);
-        window.eval(`${TASK_SRC}; window.Task = Task;`);
+        window.util ??= realUtil();
+        loadModules('frontend/js/common/utilitiesMath.js');
+        Object.assign(window, loadModules('frontend/js/explore/task/Task.js'));
     });
 
     describe('on the 8.6 m Richmond stub the labeler was bounced around (#5350)', () => {

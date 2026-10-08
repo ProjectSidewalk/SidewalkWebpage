@@ -104,12 +104,6 @@
       <p class="wl-hint">@Html(Messages("welcome.hint.username", routes.UserDashboardController.settings.url))</p>
     </div>
   </div>
-  <script src="@assets.path("js/common/saveUserSettings.js")"></script>
-  <script src="@assets.path("js/common/WelcomePrivacy.js")"></script>
-  <script>
-    // appManager.ready (not DOMContentLoaded) so i18next is initialized before a save status string can be shown.
-    window.appManager.ready(function () {
-      new WelcomePrivacy({ saveUrl: '@routes.UserDashboardController.saveSettings' });
-    });
-  </script>
+  <script type="module" id="page-entry" src='@assets.path("build/js/welcome.js")'
+          data-save-url="@routes.UserDashboardController.saveSettings"></script>
 }

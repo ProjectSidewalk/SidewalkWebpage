@@ -1,0 +1,551 @@
+/** @namespace */
+
+import { svv } from './svv.js';
+import { BadgeAchievements } from '../common/BadgeAchievements.js';
+import { ImmersiveMode } from '../common/ImmersiveMode.js';
+import { MissionStartTutorial } from '../common/MissionStartTutorial.js';
+import { PanoImageAdjustments } from '../common/PanoImageAdjustments.js';
+import { PanoImageAdjustmentsPopover } from '../common/PanoImageAdjustmentsPopover.js';
+import { SpeedLimit } from '../common/SpeedLimit.js';
+import { Toast } from '../common/Toast.js';
+import { PanoImageCache } from '../common/pano-viewer/PanoImageCache.js';
+import { PanoInfoPopover } from '../common/pano-viewer/PanoInfoPopover.js';
+import { PanoStore } from '../common/pano-viewer/PanoStore.js';
+import { util } from '../common/utilities.js';
+import { Tracker } from './Tracker.js';
+import { Form } from './data/Form.js';
+import { KeyboardManager } from './keyboard/KeyboardManager.js';
+import { LabelCard } from './label/LabelCard.js';
+import { LabelContainer } from './label/LabelContainer.js';
+import { LabelVisibilityControl } from './label/LabelVisibilityControl.js';
+import { DesktopValidationMenu } from './menu/DesktopValidationMenu.js';
+import { MobileValidationMenu } from './menu/MobileValidationMenu.js';
+import { UndoValidation } from './menu/UndoValidation.js';
+import { MissionContainer } from './mission/MissionContainer.js';
+import { ModalMission } from './modal/ModalMission.js';
+import { ModalMissionComplete } from './modal/ModalMissionComplete.js';
+import { ModalNoNewMission } from './modal/ModalNoNewMission.js';
+import { PanoControlMenu } from './panorama/PanoControlMenu.js';
+import { PanoLoadingStatus } from './panorama/PanoLoadingStatus.js';
+import { PanoManager } from './panorama/PanoManager.js';
+import { PanoOverlay } from './panorama/PanoOverlay.js';
+import { AdminInfo } from './status/AdminInfo.js';
+import { StatusField } from './status/StatusField.js';
+import { defineValidateConstants } from './util/ConstantsValidate.js';
+import { MissionLiveMarker } from './util/MissionLiveMarker.js';
+import { PinchZoomDetector } from './zoom/PinchZoomDetector.js';
+import { ZoomControl } from './zoom/ZoomControl.js';
+import './util/throttle.js';
+
+/**
+ * The elements the busy state covers while a label loads (LabelContainer's `#setUiBusy`, #5211), per layout.
+ *
+ * Desktop dims the whole tool through its application holder, with the menu column alongside it. Mobile has neither
+ * of those elements — its controls are laid over the pano rather than sitting in a column of their own — so they are
+ * named one by one: dimming the holder they share would take the imagery, and the fallback viewer's progress box,
+ * down with them.
+ *
+ * Every id here has to exist in the matching view, which validateLoadingGuard.test.js checks: a selector that matches
+ * nothing fails silently, and that is how mobile came to have no busy state at all.
+ */
+export const VALIDATE_BUSY_SELECTORS = {
+  desktop: ['#svv-application-holder', '#validation-menu-holder'],
+  mobile: ['#validation-button-holder', '#validate-why-no-section', '#validate-why-unsure-section',
+    '#mobile-popup-notch', '#validate-undo-button', '#label-visibility-control-holder'],
+};
+
+/**
+ * Main module for Validate / Expert Validate / and Mobile Validate.
+ */
+export class Main {
+  // Long enough to read two lines and try the drag it suggests, without sitting on the imagery it is describing.
+  static #PANO_HINT_MS = 6000;
+
+  // Re-sizing the pano is a layout and a viewer redraw, and a rotation fires resize several times as the device
+  // settles. Coalescing at about a frame's worth keeps the pano tracking the screen without doing it every event.
+  // Desktop, which rescales on every event, uses the same span as the quiet period before it logs Window_Resized.
+  static #RESIZE_THROTTLE_MS = 150;
+
+  #param;
+
+  // The mission the page opens on, as /validationTask/mission answered.
+  #firstMission;
+
+  /**
+   * @param {Record<string, any>} param - The page's session scalars, from the view's page-data block.
+   * @param {Record<string, any>} firstMission - The mission to start on: `mission`, its `labels` and `progress`,
+   *                                             `has_mission_available`, and the user's `completed_validations`.
+   */
+  constructor(param, firstMission) {
+    this.#param = param;
+    this.#firstMission = firstMission;
+
+    svv.adminVersion = param.validateParams.admin_version;
+    svv.validateParams = param.validateParams;
+    svv.viewerType = param.viewerType;
+    svv.missionLength = firstMission.mission?.labels_validated ?? 0;
+    svv.missionsCompleted = 0;
+
+    // Finally, do the actual initialization of the UI and other components.
+    defineValidateConstants();
+    this.#initUI();
+
+    if (firstMission.has_mission_available) {
+      this.#init();
+    } else {
+      if (!util.isMobile()) svv.keyboard = new KeyboardManager(svv.ui.validationMenu);
+      svv.form = new Form(param.dataStoreUrl);
+      svv.tracker = new Tracker();
+      svv.modalNoNewMission = new ModalNoNewMission(svv.ui.modalMission);
+      svv.modalNoNewMission.show();
+      // The unhide in #init() never runs on this path, and the page still needs revealing: without it the loading
+      // overlay sits on screen forever and the modal is visible only through its own inline visibility override.
+      Main.#revealTool();
+    }
+  }
+
+  /** Takes down the loading overlay and shows the tool under it. */
+  static #revealTool() {
+    document.getElementById('page-loading').style.visibility = 'hidden';
+    svv.ui.holder.classList.remove('ps-invisible');
+  }
+
+  /**
+   * Collects the tool's DOM elements into `svv.ui`. An element only one layout has (mobile's briefing eyebrow,
+   * desktop's tag editor) is null on the other.
+   */
+  #initUI() {
+    svv.tagsByLabelType = this.#param.tagList.reduce((acc, t) => {
+      (acc[t.label_type] ??= []).push(t);
+      return acc;
+    }, {});
+    const byId = (id) => document.getElementById(id);
+
+    svv.ui = {};
+    svv.ui.holder = document.querySelector('.tool-ui');
+    const busySelectors = util.isMobile() ? VALIDATE_BUSY_SELECTORS.mobile : VALIDATE_BUSY_SELECTORS.desktop;
+    svv.ui.busyRegion = [...document.querySelectorAll(busySelectors.join(', '))];
+
+    svv.ui.validationMenu = {
+      holder: byId('validation-menu-holder'), // Desktop only; the phone lays its menu over the pano.
+      verdictClearButton: byId('validate-verdict-clear'), // Desktop only, shown in immersive mode.
+      header: byId('main-validate-header'),
+      yesButton: byId('validate-yes-button'),
+      noButton: byId('validate-no-button'),
+      unsureButton: byId('validate-unsure-button'),
+      labelTypeMenu: byId('validate-label-type-section'),
+      labelTypePicker: byId('label-type-picker'),
+      tagsMenu: byId('validate-tags-section'),
+      severityMenu: byId('validate-severity-section'),
+      optionalCommentSection: byId('validate-optional-comment-section'),
+      optionalCommentTextBox: byId('add-optional-comment'),
+      noMenu: byId('validate-why-no-section'),
+      disagreeReasonOptions: byId('no-reason-options'),
+      disagreeReasonTextBox: byId('add-disagree-comment'),
+      unsureMenu: byId('validate-why-unsure-section'),
+      unsureReasonOptions: byId('unsure-reason-options'),
+      unsureReasonTextBox: byId('add-unsure-comment'),
+      submitButton: byId('validate-submit-button'),
+      mobilePopupNotch: byId('mobile-popup-notch'),
+      currentTags: byId('current-tags-list'),
+      aiSuggestionSection: byId('sidewalk-ai-suggestions-block'),
+      currentTagTemplate: byId('current-tag-template'),
+      aiSuggestedTagTemplate: byId('sidewalk-ai-suggested-tag-template'),
+    };
+
+    svv.ui.undoValidation = { undoButton: byId('validate-undo-button') };
+
+    svv.ui.modalMission = {
+      holder: byId('modal-mission-holder'),
+      foreground: byId('modal-mission-foreground'),
+      background: byId('modal-mission-background'),
+      eyebrow: byId('modal-mission-eyebrow'), // Mobile only.
+      missionTitle: byId('modal-mission-header'),
+      instruction: byId('modal-mission-instruction'),
+      closeButton: byId('modal-mission-close-button'),
+    };
+
+    svv.ui.modalMissionComplete = {
+      agreeCount: byId('modal-mission-complete-agree-count'),
+      background: byId('modal-mission-complete-background'),
+      closeButtonPrimary: byId('modal-mission-complete-close-button-primary'),
+      closeButtonSecondary: byId('modal-mission-complete-close-button-secondary'),
+      disagreeCount: byId('modal-mission-complete-disagree-count'),
+      foreground: byId('modal-mission-complete-foreground'),
+      holder: byId('modal-mission-complete-holder'),
+      message: byId('modal-mission-complete-message'),
+      missionTitle: byId('modal-mission-complete-title'),
+      unsureCount: byId('modal-mission-complete-unsure-count'),
+      // The mission's label type, and the validator's standing after it. Mobile only.
+      labelIcon: byId('mission-complete-label-icon'),
+      badgeIcon: byId('mission-complete-badge-icon'),
+      badgeName: byId('mission-complete-badge-name'),
+      badgeProgressFill: byId('mission-complete-badge-progress-fill'),
+      badgeNext: byId('mission-complete-badge-next'),
+      yourOverallTotalCount: byId('modal-mission-complete-your-overall-total-count'),
+    };
+
+    // A tap would pin the markup's tooltips open on a touch device; the ones added by script check the same query.
+    if (!window.matchMedia('(hover: hover)').matches) {
+      document.querySelectorAll('[data-ps-tooltip]').forEach((el) => el.removeAttribute('data-ps-tooltip'));
+    }
+    svv.ui.status = {
+      upperMenuTitle: byId('mission-title'),
+      upperMenuIcon: byId('mission-title-icon'),
+      zoomInButton: byId('zoom-in-button'),
+      zoomOutButton: byId('zoom-out-button'),
+      admin: {
+        holder: byId('admin-info-section'),
+        button: byId('admin-info-button'),
+        popover: byId('admin-info-popover'),
+        template: byId('admin-info-template'),
+      },
+    };
+
+    svv.ui.viewer = {
+      controlLayer: byId('view-control-layer'),
+      dateHolder: byId('svv-panorama-date-holder'),
+      date: byId('svv-panorama-date'),
+    };
+  }
+
+  /**
+   * Instantiates the tool's components in dependency order and reveals the UI once everything is ready.
+   */
+  async #init() {
+    const param = this.#param;
+    const { mission, labels, progress } = this.#firstMission;
+
+    // Measured live off the layer the imagery is actually drawn in, on both platforms: desktop scales the pano to
+    // fit the viewport and mobile sizes it to the screen below the header, and either can change under a resize.
+    // Label projection math and the canvas_width/height submitted with each validation follow the on-screen size.
+    svv.canvasWidth = () => Math.round(svv.ui.viewer.controlLayer.getBoundingClientRect().width);
+    svv.canvasHeight = () => Math.round(svv.ui.viewer.controlLayer.getBoundingClientRect().height);
+    // A phone activates the marker by pointer — it is what opens the label card — so mobile-validate.css floors its
+    // target at 44px. The mark itself stays 32px across (2 * radius + 2): bigger hides the imagery being judged.
+    svv.labelRadius = util.isMobile() ? 15 : 10;
+
+    const labelType = mission.label_type;
+
+    svv.validationMenu = util.isMobile()
+      ? new MobileValidationMenu(svv.ui.validationMenu)
+      : new DesktopValidationMenu(svv.ui.validationMenu);
+
+    svv.form = new Form(param.dataStoreUrl);
+
+    if (svv.adminVersion) svv.adminInfo = new AdminInfo(svv.ui.status.admin);
+
+    svv.statusField = new StatusField(this.#firstMission.completed_validations);
+    svv.tracker = new Tracker();
+
+    // Immersive mode (#5560): built before the pano viewer so a mode restored from the tab's last page load has its
+    // classes on the body when the viewer measures its container. Desktop only: the phone is already full-bleed.
+    // Expert Validate keeps the boxed layout for now (the view omits the toggle there too): its edit sections have
+    // no immersive placement yet, so the mode is off limits rather than half-designed.
+    if (!util.isMobile()) {
+      svv.immersiveMode = new ImmersiveMode({
+        tracker: svv.tracker,
+        bodyClass: 'svv-immersive',
+        relayout: () => Main.relayout(),
+        isDisabled: () => svv.adminVersion,
+        // The label card is anchored against the marker, which the relayout moves; it reopens on the next hover.
+        beforeToggle: () => svv.labelVisibilityControl?.hideLabelCard(),
+        frame: () => ({ width: svv.canvasWidth(), height: svv.canvasHeight() }),
+        hintReference: () => document.getElementById('svv-panorama-holder'),
+        deferRestoreLog: true, // Logged once the mission exists, like ImageAdjustments_Restored below.
+      });
+    }
+
+    BadgeAchievements.seedCounts();
+    svv.labelCard = new LabelCard();
+
+    svv.panoStore = new PanoStore();
+    // Backup panos fetched ahead of the label that needs them (#5562); the Pannellum fallback loads from it first.
+    svv.panoImageCache = new PanoImageCache();
+
+    // Built before the first label renders because that render can need it: if none of the mission's labels have
+    // usable imagery, LabelContainer drops all of them and shows this modal instead of an empty pano (#4810).
+    svv.modalNoNewMission = new ModalNoNewMission(svv.ui.modalMission);
+
+    // Built before the first label renders so that render can report a slow load too (#5581).
+    svv.panoLoadingStatus = new PanoLoadingStatus(document.getElementById('svv-pano-loading'));
+
+    svv.panoManager = await PanoManager.create(svv.viewerType, param.viewerAccessToken);
+    svv.labelContainer = await LabelContainer.create(labels, labelType);
+
+    // There are certain features that will only make sense on desktop vs mobile.
+    if (util.isMobile()) {
+      svv.pinchZoom = new PinchZoomDetector();
+    } else {
+      svv.panoOverlay = new PanoOverlay();
+      svv.keyboard = new KeyboardManager(svv.ui.validationMenu);
+      // Shortcuts act on the current label, and behind the dead-end modal there isn't one. The modal disables the
+      // keyboard when it goes up, but the first label's render can raise it before this exists to be told (#4810).
+      if (svv.modalNoNewMission.isShowing()) svv.keyboard.disableKeyboard();
+      // Read svv.panoViewer through closures rather than capturing it here, for the same reason as the info popover
+      // below: PanoManager swaps it between the primary viewer and Pannellum, and the sign would otherwise stay
+      // subscribed to whichever one happened to be showing the first label (#4828).
+      svv.speedLimit = new SpeedLimit(
+        () => svv.panoViewer, () => svv.panoViewer.getPosition(), () => false, param.countryId,
+        { labelContainer: svv.labelContainer },
+      );
+      svv.zoomControl = new ZoomControl();
+
+      // Shadows/brightness/contrast as a display-only filter (#5501), the same model and panel Explore uses. Both
+      // viewer mounts get it, since PanoManager swaps a label onto the Pannellum sibling when GSV has no imagery, and
+      // by now #init has created that sibling. No keyboard hooks: KeyboardManager treats the panel as its own scope.
+      // Desktop only because mobile has neither the pill nor the panel, and the popover logs an error without them.
+      svv.imageAdjustments = new PanoImageAdjustments([
+        document.getElementById('svv-panorama'), document.getElementById('svv-panorama-pannellum'),
+      ]);
+      svv.imageAdjustmentsPopover = new PanoImageAdjustmentsPopover(svv.imageAdjustments,
+        document.getElementById('validate-control-image'), document.getElementById('pano-image-adjustments'), {
+          // Below, so the hide-label toggle and chevron in the row stay visible beside the open panel.
+          placement: 'below',
+          onOpen: () => svv.tracker.push('Click_ImageAdjustments_Open'),
+          onClose: (via) => svv.tracker.push('Click_ImageAdjustments_Close', { via }),
+          onChange: (values) => svv.tracker.push('ImageAdjustments_Change', values),
+          onReset: () => svv.tracker.push('Click_ImageAdjustments_Reset'),
+        });
+      // The Image pill waits in the chevron's menu, so the chevron carries its active dot while the menu is closed.
+      svv.panoControlMenu
+        = new PanoControlMenu(document.getElementById('validate-control-buttons-toggle'), svv.tracker);
+      svv.panoControlMenu.setCollapsedIndicator(!svv.imageAdjustments.isDefault());
+      svv.imageAdjustments.onChange(() =>
+        svv.panoControlMenu.setCollapsedIndicator(!svv.imageAdjustments.isDefault()));
+
+      new MissionStartTutorial('validate', labelType, { nLabels: mission.labels_validated }, svv, param.language);
+    }
+
+    // Now that mission start tutorial has loaded, can unhide the UI under it and remove the loading icon.
+    Main.#revealTool();
+
+    // The first label rendered while the tool was still invisible (visibility: hidden doesn't pause animations),
+    // so its halo pulse played unseen. Replay it now that the marker can be seen — or, on desktop, once the
+    // mission-start tutorial overlay raised just above it clears (#4790).
+    svv.panoManager.replayMarkerPulse();
+
+    // Uniformly scale the whole tool to fit the viewport (like browser zoom) using var(--ui-scale). Mobile
+    // instead fills the screen via PanoManager's own sizing.
+    if (!util.isMobile()) {
+      Main.applyValidateScale();
+      window.addEventListener('resize', Main.createDesktopResizeHandler());
+    } else {
+      // The pano is sized to the viewport, so a rotation (or an on-screen keyboard opening) leaves it the wrong
+      // shape. Re-size it in place: a reload would be the only alternative, and it would cost the validator their
+      // place in the mission and a fresh round of imagery loading every time they turned the phone.
+      let lastWidth = document.documentElement.clientWidth;
+      let lastHeight = document.documentElement.clientHeight;
+      const resizePano = () => {
+        const width = document.documentElement.clientWidth;
+        const height = document.documentElement.clientHeight;
+        // A pinch fires resize on iOS but only moves the *visual* viewport: the layout is the shape it always was,
+        // and re-sizing the pano to a zoomed-into region is exactly the wrong answer.
+        if (width === lastWidth && height === lastHeight) return;
+
+        const rotated = (width > height) !== (lastWidth > lastHeight);
+        lastWidth = width;
+        lastHeight = height;
+
+        svv.panoManager.sizePano();
+        svv.panoViewer.resize();
+        svv.panoViewer.repaint();
+        svv.tracker.push('Window_Resized', {
+          width, height, orientation: width > height ? 'landscape' : 'portrait', rotated,
+        });
+      };
+      // Leading + trailing edges both matter: iOS settles on its post-rotation dimensions over several events, so
+      // the first one keeps the pano from sitting visibly wrong and the last one is the size that sticks.
+      window.addEventListener('resize', util.throttle(resizePano, Main.#RESIZE_THROTTLE_MS));
+    }
+
+    svv.labelVisibilityControl = new LabelVisibilityControl();
+    // The first label rendered before the control existed, so LabelContainer couldn't open its card.
+    svv.labelVisibilityControl.openCardOnLoad();
+
+    this.#showPanoInteractiveHint();
+
+    svv.undoValidation = new UndoValidation(svv.ui.undoValidation);
+
+    svv.modalMission = new ModalMission(svv.ui.modalMission);
+    svv.missionContainer = new MissionContainer();
+
+    // Did the last page life in this tab end without a pagehide? On a phone that is the browser killing the tab for
+    // memory (#5561), which from in here is otherwise indistinguishable from a reload. Read before the first mission
+    // is created, which is what marks this life live; the tracker files the row under that mission when the buffer
+    // drains, so it still names this mission alongside the one that was cut short.
+    svv.missionLiveMarker = new MissionLiveMarker(window.sessionStorage);
+    const unexpectedUnload = svv.missionLiveMarker.takeUnexpectedUnload();
+    if (unexpectedUnload) svv.tracker.push('Validate_UnexpectedUnload', unexpectedUnload);
+
+    svv.missionContainer.createAMission(mission, progress);
+    // Logged only now: the tracker stamps each row with the current mission, and without one this row, the only
+    // record of a filter carried in from an earlier visit, could not be tied to a validator. Desktop builds the model.
+    if (svv.imageAdjustments && !svv.imageAdjustments.isDefault()) {
+      svv.tracker.push('ImageAdjustments_Restored', svv.imageAdjustments.values());
+    }
+    svv.immersiveMode?.logRestored();
+
+    if (!util.isMobile()) {
+      // Read svv.panoViewer through closures rather than capturing it here: PanoManager swaps it between the
+      // primary viewer and Pannellum as labels come and go, and a captured viewer keeps reporting the pano from
+      // the last label it showed (#4813).
+      svv.infoPopover = new PanoInfoPopover(
+        svv.ui.viewer.dateHolder, () => svv.panoViewer,
+        () => svv.panoViewer.getPosition(), () => svv.panoViewer.getPanoId(),
+        () => {
+          return svv.labelContainer.getCurrentLabel().getAuditProperty('streetEdgeId');
+        },
+        () => {
+          return svv.labelContainer.getCurrentLabel().getAuditProperty('regionId');
+        },
+        () => {
+          return svv.panoStore.getPanoData(svv.panoViewer.getPanoId()).getProperty('captureDate');
+        },
+        () => {
+          return svv.panoStore.getPanoData(svv.panoViewer.getPanoId()).getProperty('address');
+        },
+        () => svv.panoViewer.getPov(), true, () => {
+          svv.tracker.push('PanoInfoButton_Click');
+        },
+        () => {
+          svv.tracker.push('PanoInfoCopyToClipboard_Click');
+        },
+        () => {
+          svv.tracker.push('PanoInfoViewInPano_Click');
+        },
+        () => {
+          return svv.labelContainer.getCurrentLabel().getAuditProperty('labelId');
+        },
+        () => {
+          return svv.labelContainer.getCurrentLabel().getAuditProperty('labelTimestamp');
+        },
+      );
+    }
+
+    svv.modalMissionComplete = new ModalMissionComplete(svv.ui.modalMissionComplete, svv.user, param.language);
+
+    // Logs when the page's focus changes.
+    function logPageFocus() {
+      if (document.hasFocus()) {
+        svv.tracker.push('PageGainedFocus');
+      } else {
+        svv.tracker.push('PageLostFocus');
+      }
+    }
+
+    window.addEventListener('focus', () => {
+      logPageFocus();
+    });
+    window.addEventListener('blur', () => {
+      logPageFocus();
+    });
+    logPageFocus();
+
+    // The auth dialog is absent when signed in, and svv.keyboard is absent on the mobile page (#4884); pause
+    // keyboard shortcuts while the dialog is open (events from Modal.js).
+    const signInModal = document.getElementById('sign-in-modal-container');
+    signInModal?.addEventListener('ps:modal:hidden', () => {
+      svv.keyboard?.enableKeyboard();
+      svv.ui.holder.style.opacity = '1';
+    });
+    signInModal?.addEventListener('ps:modal:show', () => {
+      svv.keyboard?.disableKeyboard();
+      svv.ui.holder.style.opacity = '0.5';
+    });
+  }
+
+  /**
+   * Scales the whole desktop tool to fit the viewport (like browser zoom, via var(--ui-scale)) and hands the pano
+   * viewer its new container size. Runs once at startup and again on every window resize.
+   *
+   * The viewer is told twice over: `resize()` is the documented "your container moved" call, and `repaint()` covers
+   * the case where GSV re-measures but never draws, leaving the validator a black image until they drag it (#2468,
+   * #5367). Neither is known to be sufficient on its own, and both are cheap. The startup call repaints too: the
+   * first label's marker set the POV while the tool was still at scale 1, so the rescale here is the first change
+   * to the pano's box after it painted — the very trigger — and a black first label is what gets reported.
+   * @returns {void}
+   */
+  static applyValidateScale() {
+    // Immersive mode (#5560) sizes the pano with CSS and floats the controls over it, so the scale fits only the
+    // pano's own footprint into the whole window, with no page margins to keep clear of, as Explore's does.
+    const immersive = svv.immersiveMode?.isActive() ?? false;
+    const scale = util.applyToolScale(
+      immersive ? ['--pano-base-width'] : ['--pano-base-width', '--menu-base-gap', '--menu-base-width'],
+      ['--header-base-height', '--pano-base-height'],
+      immersive ? { maxScale: 3, hMargin: 0, bottomReserve: 0 } : {},
+    );
+    svv.panoManager.setMarkerScale(scale);
+    svv.panoViewer.resize();
+    svv.panoViewer.repaint();
+  }
+
+  /**
+   * Re-lays out the desktop tool for its current box, for a layout switch rather than a window resize: the rescale
+   * and the viewer's resize and repaint, plus the toasts, which are anchored to the pano's old box and are told of a
+   * window resize but not of the tool moving under them (Toast.repositionAll). Synchronous, so the immersive toggle
+   * (#5560) lands in one frame.
+   * @returns {void}
+   */
+  static relayout() {
+    Main.applyValidateScale();
+    Toast.repositionAll();
+  }
+
+  /**
+   * Builds the desktop `resize` listener: re-scale the tool, and record that the viewport changed shape.
+   *
+   * The logging lives here rather than in applyValidateScale() because that also runs at startup, where nothing was
+   * resized — a `Window_Resized` then would read as a user action that never happened. Logged on the settled size,
+   * once the events have stopped for a window, rather than throttled like mobile's: a throttle keeps emitting for as
+   * long as a drag lasts, and a drag is one act, so it gets one line carrying the size that stuck.
+   * @returns {() => void} The listener to attach to the window's `resize` event.
+   */
+  static createDesktopResizeHandler() {
+    let logTimer;
+    return () => {
+      Main.applyValidateScale();
+      clearTimeout(logTimer);
+      logTimer = setTimeout(() => {
+        svv.tracker.push('Window_Resized', {
+          width: document.documentElement.clientWidth,
+          height: document.documentElement.clientHeight,
+        });
+      }, Main.#RESIZE_THROTTLE_MS);
+    };
+  }
+
+  /**
+   * Tells the validator the pano is not a still photo — it pans and zooms, which is often the difference between
+   * "I can't tell" and a confident answer (#4726).
+   *
+   * One line, no title: it is laid over the very imagery it is describing, so it has to be small enough to leave
+   * that imagery readable. It names the two mouse gestures rather than the zoom buttons or the Z shortcut, since a
+   * mouse is what someone who hasn't found either will already have their hand on.
+   *
+   * Desktop only, for that same reason: the gestures it names are a mouse's, where touch pans with a drag and zooms
+   * with a pinch. A phone also has nowhere to put it — the toast would cover a strip of the very pano the validator
+   * is being asked to judge, on a screen where that pano is the whole page.
+   *
+   * Held until the mission-start tutorial's overlay clears, since anything shown before that lands underneath it.
+   * A mission that doesn't open with one gets the hint immediately.
+   */
+  #showPanoInteractiveHint() {
+    if (util.isMobile()) return;
+
+    const show = () => Toast.show({
+      message: i18next.t('center-ui.pano-interactive-message'),
+      reference: svv.ui.viewer.controlLayer,
+      duration: Main.#PANO_HINT_MS,
+      dark: true,    // It floats over street imagery, where a white card glares.
+      compact: true, // An aside, not an announcement.
+    });
+
+    const overlay = document.querySelector('.mission-start-tutorial-overlay');
+    if (overlay && getComputedStyle(overlay).display !== 'none') {
+      document.addEventListener('ps:mission-start-tutorial:done', show, { once: true });
+    } else {
+      show();
+    }
+  }
+}

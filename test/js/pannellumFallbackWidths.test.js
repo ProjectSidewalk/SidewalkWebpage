@@ -1,6 +1,6 @@
 /**
  * Tests for the pano-viewer's downscale fallback ladder
- * (public/js/common/pano-viewer/src/PannellumViewer.js, issue #5256).
+ * (frontend/js/common/pano-viewer/PannellumViewer.js, issue #5256).
  *
  * A device that cannot texture a stored panorama asks `/backupImage` for a narrower copy, and when even that fails
  * it walks down to smaller ones. The rungs have to step down from the width the FIRST candidate is actually served
@@ -13,12 +13,8 @@
  * two different devices.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const VIEWER_SRC = fs.readFileSync(
-    path.join(REPO_ROOT, 'public/js/common/pano-viewer/src/PannellumViewer.js'), 'utf8');
 
 const IMAGE_URL = '/backupImage/pano1';
 
@@ -39,7 +35,7 @@ function candidatesFor(maxTextureSize, metadata, { mobile = false } = {}) {
         getParameter: () => maxTextureSize,
         getExtension: () => null,
     };
-    window.eval(`${VIEWER_SRC}\nwindow.__candidates = panoramaUrlCandidates;`);
+    window.__candidates = loadModules('frontend/js/common/pano-viewer/PannellumViewer.js').panoramaUrlCandidates;
     return window.__candidates(metadata);
 }
 

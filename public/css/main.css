@@ -146,7 +146,7 @@
      at the midpoint rather than a grey because the grey vanished against the basemap's grey land. Validated with
      the dataviz palette checks: every adjacent pair clears the CVD floor (worst ΔE 14.5, protan) and the
      normal-vision floor (16.2); yellow-500 is only 1.4:1 against the basemap, so anything colored by this ramp also
-     carries its value as text (tooltip, legend, table). Read through public/js/common/scoreRamp.js — a chart or map
+     carries its value as text (tooltip, legend, table). Read through frontend/js/common/scoreRamp.js — a chart or map
      layer never lists these hexes itself. */
   --color-score-ramp-1: var(--color-orange-600);
   --color-score-ramp-2: var(--color-orange-500);
@@ -1422,6 +1422,32 @@ kbd {
   font-size: 15px;
   color: var(--color-asphalt-500);
   margin-top: 5px;
+}
+
+/* The session request failed (#5650): the animation would promise progress that isn't coming, so the warning
+   triangle takes its place and the text says to reload. */
+.loading-failed-icon {
+  display: none;
+  width: 120px;
+  height: 120px;
+  margin: 40px auto;
+  color: var(--color-error-200);
+  -webkit-mask-image: url("../images/icons/alert-triangle-feather.svg");
+  mask-image: url("../images/icons/alert-triangle-feather.svg");
+}
+
+/* Keyed on the id too, to outrank the id-scoped rule that sizes and shows the animation. */
+#page-loading.page-loading--failed img {
+  display: none;
+}
+
+.page-loading--failed .loading-failed-icon {
+  display: block;
+}
+
+/* "Chargement impossible" at the heading's 45px would spill past the box; a smaller title still reads as one. */
+.page-loading--failed .loading-text {
+  font-size: 28px;
 }
 
 /*

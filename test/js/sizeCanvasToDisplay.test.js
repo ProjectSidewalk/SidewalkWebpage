@@ -1,5 +1,5 @@
 /**
- * Tests for util.sizeCanvasToDisplay (public/js/common/utilities.js).
+ * Tests for util.sizeCanvasToDisplay (frontend/js/common/utilities.js).
  *
  * Explore draws into a fixed 720x480 logical frame but displays the pano larger, so both canvases over it — the
  * label canvas (#4719) and the tutorial's onboarding canvas (#4817) — size their bitmap to the on-screen box times
@@ -11,12 +11,8 @@
  * that records what the routine set on it — which is all this routine touches.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { realUtil } = require('./loadGlobalScript');
 
-const UTILITIES_SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/common/utilities.js'), 'utf8'
-);
 
 /** A canvas whose on-screen box is fixed, since jsdom's real getBoundingClientRect is all zeroes. */
 function makeCanvas(displayWidth, displayHeight = displayWidth / 1.5) {
@@ -48,7 +44,7 @@ describe('util.sizeCanvasToDisplay', () => {
         // utilities.js builds a Bowser parser at load time; the sizing under test never consults it.
         window.bowser = { getParser: () => ({ getBrowserName: () => 'Chrome', getBrowserVersion: () => '1',
             getOSName: () => 'Linux', getPlatformType: () => 'desktop' }) };
-        window.eval(UTILITIES_SRC);
+        window.util = realUtil();
         util = window.util;
         setDpr(1);
     });

@@ -1,6 +1,6 @@
 /**
  * Validate leaves Mapillary's attribution pill where the SDK renders it (issue #5600), in
- * public/js/validate/src/panorama/PanoManager.js.
+ * frontend/js/validate/panorama/PanoManager.js.
  *
  * MapillaryJS renders the pill through virtual-dom and patches it by walking child indices down from its own
  * `div.mapillary-dom-renderer` root. A pill moved out of that root never receives another patch, so it kept showing an
@@ -11,11 +11,11 @@
  * Drives the REAL PanoManager against a fake viewer and an SDK-shaped DOM; no imagery is involved.
  */
 
-const fs = require('fs');
 const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const PANO_MANAGER_PATH = path.resolve(__dirname, '..', '..', 'public/js/validate/src/panorama/PanoManager.js');
-const THROTTLE_PATH = path.resolve(__dirname, '..', '..', 'public/js/validate/src/util/throttle.js');
+const PANO_MANAGER_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/panorama/PanoManager.js');
+const THROTTLE_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/util/throttle.js');
 
 /**
  * Load a bare `class` declaration out of a production file, the way the Grunt bundle puts it in page scope.
@@ -24,8 +24,7 @@ const THROTTLE_PATH = path.resolve(__dirname, '..', '..', 'public/js/validate/sr
  * @returns {Function} The class.
  */
 function loadClassFromFile(filePath, className) {
-  const src = fs.readFileSync(filePath, 'utf8');
-  return (0, eval)('(() => {\n' + src + '\nreturn ' + className + ';\n})()');
+  return loadModules(filePath)[className];
 }
 
 /** Let MutationObserver callbacks, which run as microtasks, fire. */
@@ -53,7 +52,7 @@ describe('Validate leaves Mapillary\'s attribution pill in the SDK\'s DOM (issue
 
     global.util = {};
     global.i18next = {language: 'en'};
-    (0, eval)(fs.readFileSync(THROTTLE_PATH, 'utf8'));
+    Object.assign(window, loadModules(THROTTLE_PATH));
     util.isMobile = () => false;
 
     global.createPanoViewerLogo = jest.fn(() => ({showPrimaryLogo: jest.fn(), showSourceLogo: jest.fn()}));

@@ -1,5 +1,5 @@
 /**
- * Tests for the shared tooltip (public/js/common/psTooltip.js).
+ * Tests for the shared tooltip (frontend/js/common/psTooltip.js).
  *
  * Covers the two behaviors that a screenshot pass would not catch, because both only show up in motion or at an
  * edge: the placement preference (above by default, below on request, each yielding to the side that has room) and
@@ -12,12 +12,10 @@
  * and triggers report the rect they were assigned.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules, loadVendored } = require('./loadGlobalScript');
 
-const SOURCE = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/common/psTooltip.js'), 'utf8'
-);
+loadVendored('dompurify');
+
 
 // Matches the constants in psTooltip.js.
 const TRIGGER_GAP = 8;
@@ -80,7 +78,7 @@ function loadPsTooltip() {
         return original.apply(this, args);
     };
     try {
-        new Function(SOURCE)();
+        Object.assign(window, loadModules('frontend/js/common/psTooltip.js'));
     } finally {
         EventTarget.prototype.addEventListener = original;
     }
@@ -100,6 +98,33 @@ beforeEach(() => {
 
 afterEach(() => {
     unloadPsTooltip();
+});
+
+describe('psTooltip markup', () => {
+    test('keeps formatting but never anything that could run script', () => {
+        const trigger = addTrigger({ left: 400, top: 400, width: 40, height: 20 },
+            '<b>Bold</b><img src="x" onerror="alert(1)"><script>alert(2)</script>');
+        const card = open(trigger);
+        expect(card.querySelector('b').textContent).toBe('Bold');
+        expect(card.querySelector('img').hasAttribute('onerror')).toBe(false);
+        expect(card.querySelector('script')).toBeNull();
+    });
+
+    test('keeps what our cards rely on: new-tab links and the shortcut-key underline', () => {
+        const trigger = addTrigger({ left: 400, top: 400, width: 40, height: 20 },
+            '<tag-underline>S</tag-underline>teep <a href="https://x.org" target="_blank">x</a>');
+        const card = open(trigger);
+        expect(card.querySelector('tag-underline').textContent).toBe('S');
+        expect(card.querySelector('a').getAttribute('target')).toBe('_blank');
+        expect(card.querySelector('a').getAttribute('rel')).toBe('noopener');
+    });
+
+    test('drops page-wide styles and form fields', () => {
+        const trigger = addTrigger({ left: 400, top: 400, width: 40, height: 20 },
+            'x<style>body{display:none}</style><form><input type="password"><button>Go</button></form>');
+        const card = open(trigger);
+        expect(card.querySelector('style, form, input, button')).toBeNull();
+    });
 });
 
 describe('psTooltip placement', () => {

@@ -1,5 +1,5 @@
 /**
- * Tests for public/js/validate/src/util/throttle.js (`util.throttle`).
+ * Tests for frontend/js/validate/util/throttle.js (`util.throttle`).
  *
  * The throttle exists to stop continuous events (panning a pano fires `pov_changed` every frame) from flooding the
  * interaction logger and forcing the Tracker's 200-action mid-mission flush every few validations (#2745). These
@@ -10,17 +10,16 @@
  * deterministic.
  */
 
-const fs = require('fs');
 const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const THROTTLE_PATH = path.resolve(__dirname, '..', '..', 'public/js/validate/src/util/throttle.js');
+const THROTTLE_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/util/throttle.js');
 
 /** Load Throttle.js (a `var util = util || {}` global script) and return the throttle factory. */
 function loadThrottle() {
     // Reset the shared util global each load so state can't leak between tests, then execute the global script.
     global.util = {};
-    const src = fs.readFileSync(THROTTLE_PATH, 'utf8');
-    (0, eval)(src); // assigns util.throttle
+    Object.assign(window, loadModules(THROTTLE_PATH));
     return global.util.throttle;
 }
 

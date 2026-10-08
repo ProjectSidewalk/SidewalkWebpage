@@ -12,8 +12,9 @@
  * @param commonData Per-page config (city info).
  * @param user       The signed-in or anonymous display user (navbar only).
  * @param cityRoutes The city's routes, newest first, capped at RouteBuilderController.ListingMax.
+ * @param truncated  Whether the city has more routes than the cap, so some are left off the page.
  *@
-@(commonData: CommonPageData, user: SidewalkUserWithRole, cityRoutes: Seq[RouteWithStats]
+@(commonData: CommonPageData, user: SidewalkUserWithRole, cityRoutes: Seq[RouteWithStats], truncated: Boolean
 )(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @isMetric = @{ControllerUtils.isMetric}
@@ -108,7 +109,7 @@
         }
       </ul>
       <p class="community-no-results" id="community-no-results" hidden>@Messages("community.page.no.results")</p>
-      @if(cityRoutes.size >= controllers.RouteBuilderController.ListingMax) {
+      @if(truncated) {
         <p class="community-cap-note">
           @Messages("community.page.cap.note", controllers.RouteBuilderController.ListingMax)
         </p>
@@ -117,12 +118,5 @@
   </main>
 
   <link href='@assets.path("css/pages/community-list.css")' rel="stylesheet">
-  <script src='@assets.path("js/common/Toast.js")'></script>
-  <script src='@assets.path("js/community/CommunityListPage.js")'></script>
-  <script src='@assets.path("js/community/RouteListPage.js")'></script>
-  <script>
-    window.appManager.ready(function () {
-      new RouteListPage().init();
-    });
-  </script>
+  <script type="module" src='@assets.path("build/js/routes.js")'></script>
 }

@@ -1,5 +1,5 @@
 /**
- * Earlier-era label markers on the Explore minimap (public/js/explore/src/label/Label.js, #4945).
+ * Earlier-era label markers on the Explore minimap (frontend/js/explore/label/Label.js, #4945).
  *
  * Every label the user placed in the region reaches the minimap, and during a re-audit most of them are from an
  * earlier pass. These tests pin the rules that separate the passes: how a label is classified into an era (current
@@ -12,15 +12,9 @@
  * sources are eval'd into the jsdom global scope with the map, marker, storage, and i18n collaborators stubbed.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 const { makeRecordingCtx } = require('./canvasCtxStub');
 
-const SRC_DIR = path.resolve(__dirname, '..', '..', 'public/js/explore/src');
-const LABEL_SRC = fs.readFileSync(path.join(SRC_DIR, 'label/Label.js'), 'utf8');
-const LABEL_CONTAINER_SRC = fs.readFileSync(path.join(SRC_DIR, 'label/LabelContainer.js'), 'utf8');
-const EVENT_EMITTER_SRC = fs.readFileSync(path.join(SRC_DIR, 'EventEmitter.js'), 'utf8');
-const MISSION_CONTAINER_SRC = fs.readFileSync(path.join(SRC_DIR, 'mission/MissionContainer.js'), 'utf8');
 
 /** Stands in for google.maps.marker.AdvancedMarkerElement: keeps its options as plain fields. */
 class FakeMarker {
@@ -33,19 +27,19 @@ class FakeMarker {
 
 /** Loads a fresh Label class into the jsdom global scope (a class declaration is not a globalThis property). */
 function loadLabel() {
-    window.eval(`${LABEL_SRC}\nwindow.Label = Label;`);
+    Object.assign(window, loadModules('frontend/js/explore/label/Label.js'));
     return window.Label;
 }
 
 /** Loads LabelContainer beside the already-loaded Label, which it resolves through the global scope. */
 function loadLabelContainer() {
-    window.eval(`${LABEL_CONTAINER_SRC}\nwindow.LabelContainer = LabelContainer;`);
+    Object.assign(window, loadModules('frontend/js/explore/label/LabelContainer.js'));
     return window.LabelContainer;
 }
 
 /** Loads MissionContainer with the EventEmitter it extends, in one eval so `extends` resolves. */
 function loadMissionContainer() {
-    window.eval(`${EVENT_EMITTER_SRC}\n${MISSION_CONTAINER_SRC}\nwindow.MissionContainer = MissionContainer;`);
+    Object.assign(window, loadModules('frontend/js/explore/EventEmitter.js', 'frontend/js/explore/mission/MissionContainer.js'));
     return window.MissionContainer;
 }
 

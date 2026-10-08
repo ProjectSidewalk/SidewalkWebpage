@@ -86,10 +86,10 @@ row.button.setAttribute('data-ps-tooltip', util.escapeHTML(label)); // psTooltip
 ```
 
 Markup sinks in this codebase are `innerHTML` / `outerHTML`, `insertAdjacentHTML`, a MapLibre popup's `setHTML`, and
-the **`data-ps-tooltip` attribute**, which `psTooltip.js` writes into the tooltip card's `innerHTML`. Helpers count
-too: `AlertController.showAlert`, `PopUpMessage.notify`, and the onboarding message boxes all render HTML. Text sinks
-are everything else — a text node, `append()`, `alert` / `confirm`, a share sheet, and any other attribute, `title`
-included.
+the **`data-ps-tooltip` attribute**, which `psTooltip.js` renders as HTML (cleaned of script first, but a missed
+escape still shows as markup). Helpers count too: `AlertController.showAlert`, `PopUpMessage.notify`, and the
+onboarding message boxes all render HTML. Text sinks are everything else — a text node, `append()`, `alert` /
+`confirm`, a share sheet, and any other attribute, `title` included.
 
 The **`ps/i18n-escape-in-markup`** ESLint rule (`tools/lint/eslint-rules/i18n-escape-in-markup.js`) flags a `t()`
 call that interpolates values and reaches one of those sinks without stating `interpolation.escapeValue`, whether
@@ -117,6 +117,9 @@ Dates are formatted by the browser's built-in `Intl`, e.g. `date.toLocaleDateStr
 so every language gets its own date style with nothing to add per language. `utilities.js` has the few helpers
 `Intl` lacks: `util.monthYear` for capture dates, `util.timeAgo` for "3 days ago", and `util.parseDate` for reading a
 bare `2024-10` as local time (`new Date` reads it as UTC, which is still September west of London).
+
+Dates in server-rendered text, like the footer's release date, are formatted in Scala with
+`DateTimeFormatter.ofLocalizedDate(...).withLocale(messages.lang.toLocale)` so they show up already readable.
 
 ## Measurement units
 

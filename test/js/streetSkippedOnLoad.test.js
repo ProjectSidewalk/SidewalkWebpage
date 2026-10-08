@@ -10,23 +10,16 @@
  * could walk 44 streets in 33 seconds without anyone in the seat realizing anything had happened.
  */
 
-const fs = require('fs');
-const path = require('path');
 
-const { windowWithStubbedLocation, runScriptWithWindow, newLocationStub } =
-    require('./support/windowWithStubbedLocation');
+const { loadModules } = require('./loadGlobalScript');
 
-const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const readSrc = (relativePath) => fs.readFileSync(path.join(REPO_ROOT, relativePath), 'utf8');
 
-const NO_IMAGERY_ERROR_SRC = readSrc('public/js/common/pano-viewer/src/NoImageryError.js');
-const FLAG_GUARD_SRC = readSrc('public/js/explore/src/panorama/NoImageryFlagGuard.js');
-const PANO_MANAGER_SRC = readSrc('public/js/explore/src/panorama/PanoManager.js');
 
 describe('a street given up on at page load', () => {
     let reportNoImagery;
     let showAlert;
-    let locationStub;
+    let consoleError;
+    const navigations = () => consoleError.mock.calls.filter(([m]) => String(m).includes('Not implemented: navigation'));
 
     /** A viewer type whose creation fails the given way, standing in for a street with no imagery or a dead SDK. */
     const viewerTypeFailingWith = (error) => ({ create: jest.fn(() => Promise.reject(error)) });
@@ -59,28 +52,26 @@ describe('a street given up on at page load', () => {
         document.head.appendChild(style);
         // The failure path logs the error deliberately — it is the only trace of a transient failure, since nothing
         // is written to the db. Kept out of the test output rather than out of the code.
-        jest.spyOn(console, 'error').mockImplementation(() => {});
+        // jsdom refuses real navigation, which the give-up path ends in, and reports the attempt on the console as
+        // "Not implemented: navigation"; that report is how the tests below see the move to /explore happen.
+        consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+        consoleError.mockClear();
         reportNoImagery = jest.fn(() => Promise.resolve());
         showAlert = jest.fn();
-
-        // jsdom refuses real navigation, and the give-up path ends in one.
-        locationStub = newLocationStub();
-        const win = windowWithStubbedLocation(locationStub);
 
         window.svl = { tracker: { push: jest.fn() }, alertController: { showAlert } };
         window.util = { misc: { reportNoImagery } };
         window.i18next = { t: (key) => key };
 
-        runScriptWithWindow(`${NO_IMAGERY_ERROR_SRC}; window.NoImageryError = NoImageryError;`, win);
-        runScriptWithWindow(`${FLAG_GUARD_SRC}; window.NoImageryFlagGuard = NoImageryFlagGuard;`, win);
-        runScriptWithWindow(`${PANO_MANAGER_SRC}; window.PanoManager = PanoManager;`, win);
+        Object.assign(window, loadModules('frontend/js/explore/panorama/PanoManager.js',
+            'frontend/js/explore/panorama/NoImageryFlagGuard.js', 'frontend/js/common/pano-viewer/NoImageryError.js'));
     });
 
     it('leaves a note for the load that follows, so the move can be explained', async () => {
         await loadAndFail(new window.NoImageryError('nothing usable here'));
 
         expect(reportNoImagery).toHaveBeenCalledWith(task, 3);
-        expect(locationStub.replace).toHaveBeenCalledWith('/explore');
+        expect(navigations()).toHaveLength(1);
         // The note names the street, so the arrival can tell a retry of this street from a move to another.
         expect(window.PanoManager.consumeStreetSkippedNotice()).toBe(101);
     });
@@ -100,7 +91,7 @@ describe('a street given up on at page load', () => {
         await loadAndFail(new Error('the maps library never loaded'));
 
         expect(reportNoImagery).not.toHaveBeenCalled();
-        expect(locationStub.replace).not.toHaveBeenCalled();
+        expect(navigations()).toHaveLength(0);
         expect(window.PanoManager.consumeStreetSkippedNotice()).toBeNull();
         expect(showAlert).toHaveBeenCalledWith('popup.imagery-load-failed', 'imageryLoadFailed', false);
     });
@@ -115,7 +106,7 @@ describe('a street given up on at page load', () => {
         // Past the flag budget nothing is recorded and nobody is moved, so the transient-failure wording ("try
         // again in a few minutes") would be doubly wrong: nothing failed, and waiting changes nothing.
         expect(reportNoImagery).not.toHaveBeenCalled();
-        expect(locationStub.replace).not.toHaveBeenCalled();
+        expect(navigations()).toHaveLength(0);
         expect(showAlert).toHaveBeenCalledWith('popup.imagery-skip-limit', 'imagerySkipLimit', false);
     });
 

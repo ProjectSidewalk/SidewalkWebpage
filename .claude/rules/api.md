@@ -3,7 +3,7 @@ paths:
   - "app/models/api/**"
   - "app/controllers/api/**"
   - "app/views/apiDocs/**"
-  - "public/js/api-docs/**"
+  - "frontend/js/api-docs/**"
 ---
 
 # The public `/v3` API

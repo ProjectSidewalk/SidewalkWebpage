@@ -1,5 +1,5 @@
 /**
- * Tests for the number-key shortcuts in Validate's KeyboardManager (public/js/validate/src/keyboard/
+ * Tests for the number-key shortcuts in Validate's KeyboardManager (frontend/js/validate/keyboard/
  * KeyboardManager.js), covering the fourth Missing Curb Ramp disagree reason added for #4871, plus the Ctrl+Z undo
  * that shares the manager's key handling.
  *
@@ -14,15 +14,8 @@
  * listener that cannot be unregistered).
  */
 
-const fs = require('fs');
-const path = require('path');
-const SHORTCUTS_SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/common/KeyboardShortcuts.js'), 'utf8'
-);
+const { loadModules } = require('./loadGlobalScript');
 
-const MANAGER_SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/validate/src/keyboard/KeyboardManager.js'), 'utf8'
-);
 
 /**
  * A menu control with its click spied; `chosen` marks the verdict. A real element, since the manager compares the
@@ -70,14 +63,14 @@ describe('KeyboardManager number-key shortcuts', () => {
         // The manager looks the reason buttons and severity radios up by id and clicks them natively.
         document.addEventListener('click', (e) => clicks.push(/** @type {Element} */ (e.target).id));
 
-        window.eval(`${SHORTCUTS_SRC}\n${MANAGER_SRC}\nwindow.KeyboardManager = KeyboardManager;`);
+        Object.assign(window, loadModules('frontend/js/common/KeyboardShortcuts.js', 'frontend/js/validate/keyboard/KeyboardManager.js'));
         new window.KeyboardManager(validationMenuUi);
     });
 
     beforeEach(() => {
         clicks.length = 0;
         window.svv = {
-            labelVisibilityControl: { hideLabelCard: jest.fn(), isVisible: () => true },
+            labelVisibilityControl: { hideLabelCard: jest.fn(), isVisible: () => true, isCardHeldOpen: () => false },
             tracker: { push: jest.fn() },
         };
         for (const box of ['optionalCommentTextBox', 'disagreeReasonTextBox', 'unsureReasonTextBox']) {

@@ -1,5 +1,5 @@
 /**
- * Tests for public/js/common/Confetti.js — the burst that celebrates a finished mobile Validate mission (#4886).
+ * Tests for frontend/js/common/Confetti.js — the burst that celebrates a finished mobile Validate mission (#4886).
  *
  * Two things about it are easy to get wrong. It covers the whole viewport, and a large one on a high-density
  * display asks for more device pixels than a canvas is allowed: iOS Safari refuses past ~16.7M, and over that
@@ -10,13 +10,9 @@
  * Confetti.js declares a top-level class, so the tests evaluate the source rather than using loadGlobalScript.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const SOURCE = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/common/Confetti.js'), 'utf8'
-);
-const Confetti = new Function(`${SOURCE}; return Confetti;`)();
+const Confetti = loadModules('frontend/js/common/Confetti.js').Confetti;
 
 // iOS Safari's canvas-area ceiling, spelled out here rather than read off the class so a change to the constant
 // has to be a deliberate one rather than something these tests follow silently.

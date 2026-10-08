@@ -158,6 +158,9 @@
     "route-unavailable": {
       "message": "Cet itinéraire n'est pas disponible. Il a peut-être été supprimé."
     },
+    "region-finished": {
+      "message": "Vous avez déjà exploré toutes les rues de ce quartier, nous vous avons donc déplacé vers {{regionName}}."
+    },
     "reaudit": {
       "title": "Cette rue a des images plus récentes",
       "message-you": "Vous avez évalué cette rue pour la dernière fois en {{lastMapped}}, mais les images ont été actualisées depuis (en {{newImagery}}). Veuillez évaluer à nouveau cette rue pour nous aider à analyser ce qui a changé.",
@@ -362,7 +365,7 @@
     "still-stuck": "Si vous êtes toujours bloqué, cliquez de nouveau sur le bouton Bloqué.",
     "stuck-skipped-street": "Cette rue n'avait aucune image à vous montrer, nous vous avons donc déplacé vers une nouvelle rue.",
     "stuck-skipped-street-named": "Cette rue n'avait aucune image à vous montrer, nous vous avons donc déplacé vers <b>{{streetName}}</b>.",
-    "free-explore-start": "Vous avez été déposé près de l'adresse recherchée. Regardez autour de vous et étiquetez ce que vous trouvez !",
+    "free-explore-start": "Vous explorez librement à partir d'ici. Regardez autour de vous et étiquetez ce que vous trouvez !",
     "free-explore-start-named": "Vous avez été déposé près de <b>{{placeName}}</b>. Regardez autour de vous et étiquetez ce que vous trouvez !",
     "free-explore-no-imagery": "Il n'y a plus d'images de rue dans cette direction. Essayez de regarder autour de vous ou de partir dans l'autre sens.",
     "stuck-suggestion": "Si vous ne pouvez pas vous déplacer avec les flèches, essayez de cliquer sur les indications de navigation en bas à droite. Ou cliquez sur le bouton Bloqué à gauche.",

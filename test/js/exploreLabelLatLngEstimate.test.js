@@ -1,5 +1,5 @@
 /**
- * Tests for Label#toLatLng's estimating branch (public/js/explore/src/label/Label.js, issues #4765/#4766).
+ * Tests for Label#toLatLng's estimating branch (frontend/js/explore/label/Label.js, issues #4765/#4766).
  *
  * The client-side estimator must mirror the server's PanoDataService.toLatLng: distance from the saturating-cotangent
  * blend on the label's depression angle, bearing straight from the label's centered POV, and 'approximation3' as the
@@ -17,16 +17,12 @@
  * derived; don't adjust one here to make a test pass.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const LABEL_SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/explore/src/label/Label.js'), 'utf8'
-);
 
 /** Loads a fresh Label class into the jsdom global scope (a class declaration is not a globalThis property). */
 function loadLabel() {
-    window.eval(`${LABEL_SRC}\nwindow.Label = Label;`);
+    Object.assign(window, loadModules('frontend/js/explore/label/Label.js'));
     return window.Label;
 }
 

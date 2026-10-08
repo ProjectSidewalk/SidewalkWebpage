@@ -5,12 +5,7 @@
 @(commonData: CommonPageData, user: Option[SidewalkUserWithRole])(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @content = {
-  <script>
-    // Set data attributes for API information. This is used by our JavaScripts to configure API calls, including the
-    // download buttons in apiDocs.js.
-    document.documentElement.setAttribute('data-api-base-url', '/v3/api');
-    document.documentElement.setAttribute('data-api-endpoint', 'labelEdits');
-  </script>
+  <script type="module" src='@assets.path("build/js/api-docs/labelEdits.js")'></script>
 
   <div class="page-section" id="label-edits-intro-section">
     <h1 class="page-heading" id="label-edits-api">Label Edits API <a href="#label-edits-api" class="permalink">#</a></h1>

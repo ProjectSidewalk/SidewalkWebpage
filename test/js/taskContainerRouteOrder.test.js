@@ -10,12 +10,8 @@
  * global scope.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/explore/src/task/TaskContainer.js'), 'utf8',
-);
 
 /** A route street at `walkOrder`, in whichever of the three states the route's next-street choice cares about. */
 const makeTask = (walkOrder, { complete = false, givenUp = false, km = 1 } = {}) => ({
@@ -39,7 +35,7 @@ describe('TaskContainer.nextTask on a route', () => {
     let container;
 
     beforeEach(() => {
-        window.eval(`${SRC}; window.TaskContainer = TaskContainer;`);
+        Object.assign(window, loadModules('frontend/js/explore/task/TaskContainer.js'));
         const regionModel = { isRoute: true };
         container = new window.TaskContainer(regionModel, { regionModel }, { push: jest.fn() });
     });
@@ -87,7 +83,7 @@ describe('TaskContainer distance credit', () => {
     beforeEach(() => {
         window.turf = { length: (feature) => feature.properties.km };
         window.util = { turfDistanceUnits: () => 'kilometers', array: { sum: (a) => a.reduce((x, y) => x + y, 0) } };
-        window.eval(`${SRC}; window.TaskContainer = TaskContainer;`);
+        Object.assign(window, loadModules('frontend/js/explore/task/TaskContainer.js'));
         const regionModel = { isRoute: true };
         container = new window.TaskContainer(regionModel, { regionModel }, { push: jest.fn() });
     });

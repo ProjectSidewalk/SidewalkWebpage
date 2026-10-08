@@ -1,5 +1,5 @@
 /**
- * Tests for Validate prefetching the next labels' imagery (public/js/validate/src/label/LabelContainer.js
+ * Tests for Validate prefetching the next labels' imagery (frontend/js/validate/label/LabelContainer.js
  * `#prefetchUpcomingPanos`, issues #5562 and #5581).
  *
  * After a label's imagery is on screen the connection is idle, so that is when the next labels' images start
@@ -11,12 +11,11 @@
  * Fake PanoManager and cache, in the shape validateSkipUnrenderableLabel.test.js uses.
  */
 
-const fs = require('fs');
 const path = require('path');
 
-const { assetPathStub } = require('./loadGlobalScript');
+const { assetPathStub, loadModules } = require('./loadGlobalScript');
 
-const LABEL_CONTAINER_PATH = path.resolve(__dirname, '..', '..', 'public/js/validate/src/label/LabelContainer.js');
+const LABEL_CONTAINER_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/label/LabelContainer.js');
 
 /**
  * Load a bare `class` declaration out of a production file, wrapped in an IIFE that returns it.
@@ -25,8 +24,7 @@ const LABEL_CONTAINER_PATH = path.resolve(__dirname, '..', '..', 'public/js/vali
  * @returns {Function} The class.
  */
 function loadClassFromFile(filePath, className) {
-  const src = fs.readFileSync(filePath, 'utf8');
-  return (0, eval)('(() => {\n' + src + '\nreturn ' + className + ';\n})()');
+  return loadModules(filePath)[className];
 }
 
 describe('LabelContainer prefetches upcoming backup panos (issue #5562)', () => {
@@ -61,9 +59,14 @@ describe('LabelContainer prefetches upcoming backup panos (issue #5562)', () => 
       labelCard: { render: jest.fn() },
       validationMenu: { resetMenu: jest.fn() },
       undoValidation: { enableUndo: jest.fn() },
-      labelVisibilityControl: { hideLabelCard: jest.fn(), unhideLabel: jest.fn(), isVisible: () => true },
+      labelVisibilityControl: {
+        hideLabelCard: jest.fn(),
+        unhideLabel: jest.fn(),
+        openCardOnLoad: jest.fn(),
+        isVisible: () => true,
+      },
       modalNoNewMission: { show: jest.fn() },
-      form: { getValidateParams: () => ({}) },
+      validateParams: {},
       ui: { holder: el(), busyRegion: [el()], viewer: { controlLayer: el() } },
       panoManager: {
         renderPanoMarker: jest.fn(),

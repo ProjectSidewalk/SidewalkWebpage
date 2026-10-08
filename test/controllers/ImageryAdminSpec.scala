@@ -148,9 +148,9 @@ class ImageryAdminSpec extends SidewalkSpec with RoleSession with GuiceOneAppPer
 
     "hand the client the endpoints and the default window rather than letting it hardcode them" in {
       val body = contentAsString(asAdmin("/admin/imagery"))
-      body must include("/adminapi/streetPriority")
-      body must include("/adminapi/imageryFreshness")
-      body must include(s"pipelineDays: ${ImageryFreshnessReportService.DefaultDays}")
+      body must include("data-priority-url=\"/adminapi/streetPriority\"")
+      body must include("data-pipeline-url=\"/adminapi/imageryFreshness\"")
+      body must include(s"data-pipeline-days=\"${ImageryFreshnessReportService.DefaultDays}\"")
     }
   }
 

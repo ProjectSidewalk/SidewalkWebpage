@@ -1,5 +1,5 @@
 /**
- * Tests for public/js/common/LabelVisibilityToggle.js, the Hide-label control shared by Validate and the label
+ * Tests for frontend/js/common/LabelVisibilityToggle.js, the Hide-label control shared by Validate and the label
  * detail card (#2477).
  *
  * What its two hosts depend on: every button it owns reads the same (Validate has two running one action), only a
@@ -7,15 +7,14 @@
  * the host — that call is how PopupPanoManager gets the hidden class onto a marker it just rebuilt.
  */
 
-const fs = require('fs');
 const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const TOGGLE_PATH = path.resolve(__dirname, '..', '..', 'public/js/common/LabelVisibilityToggle.js');
+const TOGGLE_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/common/LabelVisibilityToggle.js');
 
 /** Load LabelVisibilityToggle.js (a plain top-level class declaration, concatenation-style). */
 function loadToggle() {
-  const src = fs.readFileSync(TOGGLE_PATH, 'utf8');
-  return (0, eval)(`${src}\nLabelVisibilityToggle;`);
+  return loadModules(TOGGLE_PATH).LabelVisibilityToggle;
 }
 
 const TEXT = {

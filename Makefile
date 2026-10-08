@@ -1,5 +1,5 @@
 .PHONY: dev docker-up docker-up-db docker-run docker-stop npm-sync ssh qa-worktree qa-worktree-stop worktree-remove \
-        lease-status lease-take lease-release \
+        upgrade-dev-db lease-status lease-take lease-release \
         test-js test-e2e test-e2e-host \
         test-python test-python-app test-python-tools \
         import-users import-dump create-new-schema fill-new-schema onboard-city build-city-data check-imagery \
@@ -38,6 +38,8 @@ lease-flags = $(if $(filter 1 true yes,$(wait)),--wait,) $(if $(filter 1 true ye
 lease-env = -e CLAUDE_CODE_SESSION_ID -e LEASE_PURPOSE="$(purpose)"
 # Same idiom for import-users' `replace=1`, which wipes the login schema instead of merging into it.
 import-users-replace-flag = $(if $(filter 1 true yes,$(replace)),--replace,)
+# Same idiom for upgrade-dev-db's `all=1`, which copies every database rather than just sidewalk.
+upgrade-dev-db-all-flag = $(if $(filter 1 true yes,$(all)),--all,)
 
 # Resolve which copy of qa-worktree.sh to run, then exec it with the args in $(1). The main repo is mounted at the
 # container's /home, so /home/tools/dev/qa-worktree.sh is the script as it exists on whatever branch the MAIN checkout
@@ -81,7 +83,7 @@ BOLD  := \033[1m
 RESET := \033[0m
 # What each linter checks: everything by default, or just dir=. stylelint needs file patterns, so a folder gets
 # /**/*.css added.
-eslint-paths   = $(if $(filter ./,$(dir)),public/js/ public/locales/ test/js/ test/e2e/ playwright.config.js,$(dir))
+eslint-paths   = $(if $(filter ./,$(dir)),frontend/js/ public/locales/ test/js/ test/e2e/ playwright.config.js,$(dir))
 htmlhint-paths = $(if $(filter ./,$(dir)),./app/views,$(dir))
 css-glob       = $(if $(filter ./,$(dir)),public/**/*.css,$(if $(filter %.css,$(dir)),$(dir),$(dir)/**/*.css))
 
@@ -177,6 +179,10 @@ docker-up:
 docker-up-db:
 	@docker compose up -d db
 
+# Copies a Postgres 16 dev database into the Postgres 18 one, from the host. See docs/dev-environment.md.
+upgrade-dev-db:
+	@bash tools/dev/upgrade-dev-db.sh --container $(db-container) $(upgrade-dev-db-all-flag)
+
 # `rm -v` drops the removed containers' anonymous volumes only.
 docker-stop:
 	@docker compose stop
@@ -205,7 +211,7 @@ qa-worktree:
 	$(worktree-require-wt)
 	@docker exec -it $(lease-env) $(web-container) bash -c '$(call qa-worktree-exec,$(wt) $(lease-flags))'
 
-# End a qa-worktree session: stop its app, its grunt watch, and any sbt left running there. Add `clean=1` to also
+# End a qa-worktree session: stop its app, its asset watcher, and any sbt left running there. Add `clean=1` to also
 # drop the node_modules symlink. e.g. `make qa-worktree-stop wt=remove-admin-classic` or
 # `make qa-worktree-stop wt=... clean=1`.
 qa-worktree-stop:
@@ -300,7 +306,7 @@ import-street-gradient:
 
 # Python utility tests (test/python/) in the web container; extra pytest flags via args=, e.g. args="-k bbox -v".
 # Split by interpreter because the scripts are: label_clustering.py runs in-band on prod's `python3` (3.8), while the
-# offline tooling needs >= 3.11. Each half runs the whole directory minus the files only the other's interpreter can
+# offline tooling needs >= 3.12. Each half runs the whole directory minus the files only the other's interpreter can
 # import, so a new test file runs in both by default instead of silently in neither. The COVERAGE_OMIT* slots are
 # explained in pyproject.toml.
 pytest-args-app   = test/python --ignore=test/python/test_check_streets_for_imagery.py \
@@ -401,7 +407,7 @@ lint-css-layout:
 	@docker exec $(web-container) bash -lc "cd $(container-dir) && node tools/lint/check-css-layout.mjs"
 	@echo "Finished checking CSS layout";
 
-# Asset URLs in public/js/ (#4893): no hardcoded '/assets/' outside the allowlist, and every util.assetPath()
+# Asset URLs in frontend/js/ (#4893): no hardcoded '/assets/' outside the allowlist, and every util.assetPath()
 # argument checkable — a literal one naming a real file in a fingerprinted family, an interpolated one opening with a
 # literal family directory. Pure node, run in the web container so node is present. Also a blocking CI step.
 lint-asset-paths:
@@ -418,7 +424,7 @@ lint-vendor-versions:
 	@docker exec $(web-container) bash -lc "cd $(container-dir) && node tools/lint/check-vendor-versions.mjs"
 	@echo "Finished checking vendor versions";
 
-# Type-checks public/js/ from its JSDoc with TypeScript (#5278). Also a blocking CI step.
+# Type-checks frontend/js/ from its JSDoc with TypeScript (#5278). Also a blocking CI step.
 lint-js-types:
 	@echo "Checking JS types...";
 	@docker exec $(web-container) bash -lc "cd $(container-dir) && node tools/lint/check-js-types.mjs"
@@ -440,12 +446,14 @@ lint-shellcheck:
 
 # The sbt targets below go through tools/dev/sbt-run.sh; its header says what that guards against.
 #
-# Scala formatting (.scalafmt.conf). `scalafmt` checks (the blocking CI gate); `scalafmt-fix` reformats in place.
+# Scala formatting (.scalafmt.conf), covering the build files too. `scalafmt` checks (the blocking CI gate);
+# `scalafmt-fix` reformats in place. The two checks run separately because sbt stops at its first failing command,
+# and one failure shouldn't hide the other.
 scalafmt:
-	@echo "Checking Scala formatting..."; docker exec $(tty-flags) -e SBT_OPTS="$(sbt-opts)" $(web-container) bash -lc "cd $(self-container-dir) && bash tools/dev/sbt-run.sh --dir $(container-dir) scalafmtCheckAll"
+	@echo "Checking Scala formatting..."; docker exec $(tty-flags) -e SBT_OPTS="$(sbt-opts)" $(web-container) bash -lc "cd $(self-container-dir) && { bash tools/dev/sbt-run.sh --dir $(container-dir) scalafmtCheckAll; s=\$$?; bash tools/dev/sbt-run.sh --dir $(container-dir) scalafmtSbtCheck && exit \$$s; }"
 
 scalafmt-fix:
-	@echo "Formatting Scala..."; docker exec $(tty-flags) -e SBT_OPTS="$(sbt-opts)" $(web-container) bash -lc "cd $(self-container-dir) && bash tools/dev/sbt-run.sh --dir $(container-dir) scalafmtAll"
+	@echo "Formatting Scala..."; docker exec $(tty-flags) -e SBT_OPTS="$(sbt-opts)" $(web-container) bash -lc "cd $(self-container-dir) && bash tools/dev/sbt-run.sh --dir $(container-dir) 'scalafmtAll; scalafmtSbt'"
 
 # Compile, and run the Scala tests (which need the db container). Narrow the tests with only=, e.g.
 # `make test-scala only=controllers.api.PublicApiSpec`. A test run waits for any other checkout's to finish first.

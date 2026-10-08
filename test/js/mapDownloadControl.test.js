@@ -1,5 +1,5 @@
 /**
- * Tests for the MapDownloadControl class (public/js/ps-map/MapDownloadControl.js, issue #4095).
+ * Tests for the MapDownloadControl class (frontend/js/ps-map/MapDownloadControl.js, issue #4095).
  *
  * Like ShareWidget, MapDownloadControl is a top-level `class` declaration written for the Grunt-concatenation
  * world, so the source is eval'd into the jsdom global scope with an explicit window epilogue.
@@ -10,19 +10,14 @@
  * download anchor URLs, the post-click busy state, and activity logging.
  */
 
-const fs = require('fs');
-const path = require('path');
-const { installEscapeHTML } = require('./loadGlobalScript');
+const { installEscapeHTML, loadModules } = require('./loadGlobalScript');
 
 installEscapeHTML();
 
-const CONTROL_SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/ps-map/MapDownloadControl.js'), 'utf8'
-);
 
 /** Loads a fresh MapDownloadControl class into the jsdom global scope. */
 function loadControl() {
-    window.eval(`${CONTROL_SRC}\nwindow.MapDownloadControl = MapDownloadControl;`);
+    Object.assign(window, loadModules('frontend/js/ps-map/MapDownloadControl.js'));
     return window.MapDownloadControl;
 }
 

@@ -1,5 +1,5 @@
 /**
- * Tests for the label popup's prev/next arrow state (public/js/common/label-detail/LabelPopup.js) when the host's
+ * Tests for the label popup's prev/next arrow state (frontend/js/common/label-detail/LabelPopup.js) when the host's
  * label data changes after the popup has already opened.
  *
  * LabelMap loads labels by viewport (#5002), so a `?labelId=` deep link opens the popup before any label data
@@ -8,12 +8,12 @@
  * host has to be enough, in both directions (#5068).
  */
 
-const fs = require('fs');
 const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const NAV_PATH = path.join(REPO_ROOT, 'public/js/ps-map/nearbyLabelNavigator.js');
-const POPUP_PATH = path.join(REPO_ROOT, 'public/js/common/label-detail/LabelPopup.js');
+const NAV_PATH = path.join(REPO_ROOT, 'frontend/js/ps-map/nearbyLabelNavigator.js');
+const POPUP_PATH = path.join(REPO_ROOT, 'frontend/js/common/label-detail/LabelPopup.js');
 
 /** Builds the parts of labelPopup.scala.html / labelDetail.scala.html that LabelPopup queries. */
 function renderPopupMarkup() {
@@ -53,8 +53,8 @@ describe('LabelPopup paging state', () => {
             syncUrlLabelId: jest.fn(),
         };
 
-        (0, eval)(fs.readFileSync(NAV_PATH, 'utf8')); // Declares createNearbyLabelNavigator globally.
-        (0, eval)(fs.readFileSync(POPUP_PATH, 'utf8')); // Declares LabelPopup globally.
+        Object.assign(window, loadModules(NAV_PATH));
+        Object.assign(window, loadModules(POPUP_PATH));
 
         // The navigator is created over the map's label set, which is still empty while the viewport data loads.
         // The predicate stands in for LabelMap's sidebar filters (#5124).

@@ -1,5 +1,5 @@
 /**
- * Tests for the validator comment box on the label card (public/js/common/label-detail/LabelDetail.js, #5015).
+ * Tests for the validator comment box on the label card (frontend/js/common/label-detail/LabelDetail.js, #5015).
  *
  * A comment belongs to a vote. All three votes carry one — Disagree and Unsure ask for the reasoning behind the
  * dispute, Agree invites an optional note — and a vote that moves takes its comment with it, because the server
@@ -18,14 +18,9 @@
  * stubbed on `window` first.
  */
 
-const fs = require('fs');
-const path = require('path');
 
-const { assetPathStub, installDateHelpers } = require('./loadGlobalScript');
+const { assetPathStub, installDateHelpers, loadModules } = require('./loadGlobalScript');
 
-const readSrc = (rel) => fs.readFileSync(path.resolve(__dirname, '..', '..', rel), 'utf8');
-const LABEL_DETAIL_SRC = readSrc('public/js/common/label-detail/LabelDetail.js');
-const TAG_EDITOR_SRC = readSrc('public/js/common/label-detail/TagEditor.js');
 
 /**
  * Builds the card markup as views/common/labelDetail.scala.html renders it for a non-admin host, reduced to the
@@ -302,13 +297,15 @@ describe('the validator comment box (#5015)', () => {
             label: { labelId: 42, label_type: 'Obstacle' },
         };
         window.PopupPanoManager = { create: async () => panoManager };
+        // The stories disclosure is not what these tests exercise, and its real section wants the composer's markup.
+        window.StorySection = class { setLabel() {} };
 
         window.fetch = jest.fn(async (url) => {
             if (String(url).includes('/label/tags')) return { ok: true, json: async () => [] };
             return { ok: true, status: 200, json: async () => ({ username: 'tester', comment_id: 1, deleted: 1 }) };
         });
 
-        window.eval(`${TAG_EDITOR_SRC}\n${LABEL_DETAIL_SRC}\nwindow.LabelDetail = LabelDetail;`);
+        Object.assign(window, loadModules('frontend/js/common/label-detail/TagEditor.js', 'frontend/js/common/label-detail/LabelDetail.js'));
         LabelDetail = window.LabelDetail;
 
         card.detail = await LabelDetail.create(card, {

@@ -138,7 +138,8 @@ POST    /adminapi/recalculateValidationCounts           controllers.AdminControl
 GET     /adminapi/threadPoolStats                       controllers.AdminController.getThreadPoolStats
 
 # Auditing tasks
-GET     /explore                                        controllers.ExploreController.explore(newRegion: Boolean ?= false, retakeTutorial: Option[Boolean] ?= None, routeId: Option[Int] ?= None, resumeRoute: Boolean ?= true, regionId: Option[Int] ?= None, streetEdgeId: Option[Int] ?= None, lat: Option[Double] ?= None, lng: Option[Double] ?= None, panoId: Option[String] ?= None, placeName: Option[String] ?= None, heading: Option[Double] ?= None, pitch: Option[Double] ?= None, zoom: Option[Int] ?= None)
+GET     /explore                                        controllers.ExploreController.explore
+GET     /explore/session                                controllers.ExploreController.getSession(newRegion: Boolean ?= false, retakeTutorial: Option[Boolean] ?= None, routeId: Option[Int] ?= None, resumeRoute: Boolean ?= true, regionId: Option[Int] ?= None, streetEdgeId: Option[Int] ?= None, lat: Option[Double] ?= None, lng: Option[Double] ?= None, panoId: Option[String] ?= None, placeName: Option[String] ?= None, heading: Option[Double] ?= None, pitch: Option[Double] ?= None, zoom: Option[Double] ?= None, missionId: Option[Int] ?= None)
 POST    /explore/comment                                controllers.ExploreController.postComment
 POST    /explore/nostreetview                           controllers.ExploreController.postNoImagery
 GET     /survey/display                                 controllers.ExploreController.shouldDisplaySurvey
@@ -146,7 +147,7 @@ POST    /survey                                         controllers.ExploreContr
 GET     /completedMissionsInRegion                      controllers.ExploreController.getCompletedExploreMissionsInRegion(regionId: Int)
 
 # Exploring task reroutes from old names.
-GET     /audit                                          controllers.ExploreController.explore(newRegion: Boolean ?= false, retakeTutorial: Option[Boolean] ?= None, routeId: Option[Int] ?= None, resumeRoute: Boolean ?= true, regionId: Option[Int] ?= None, streetEdgeId: Option[Int] ?= None, lat: Option[Double] ?= None, lng: Option[Double] ?= None, panoId: Option[String] ?= None, placeName: Option[String] ?= None, heading: Option[Double] ?= None, pitch: Option[Double] ?= None, zoom: Option[Int] ?= None)
+GET     /audit                                          controllers.ExploreController.explore
 
 # Label validation tasks
 GET     /validate                                       controllers.ValidateController.validate(regions: Option[String] ?= None, unvalidatedOnly: Option[Boolean] ?= None, neighborhoods: Option[String] ?= None)
@@ -160,6 +161,7 @@ GET     /speedLimit                                     controllers.ExploreContr
 POST    /task                                           controllers.ExploreController.post
 POST    /validationTask                                 controllers.ValidateController.post
 POST    /validationTask/moreLabels                      controllers.ValidateController.getMoreLabels
+POST    /validationTask/mission                         controllers.ValidateController.getMission
 POST    /galleryTask                                    controllers.GalleryController.post
 POST    /labelmap/validate                              controllers.ValidateController.postLabelMapValidation
 POST    /labelmap/comment                               controllers.ValidateController.postLabelMapComment

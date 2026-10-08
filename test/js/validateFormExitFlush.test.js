@@ -1,5 +1,5 @@
 /**
- * Tests for public/js/validate/src/data/Form.js's exit flushes (issue #5561).
+ * Tests for frontend/js/validate/data/Form.js's exit flushes (issue #5561).
  *
  * A page going away (`pagehide`) sends what it has buffered in a POST that outlives it. So does a page merely going
  * out of sight (`visibilitychange` to hidden): on iOS that is the state a tab is killed from when memory runs short,
@@ -10,26 +10,18 @@
  * Runs under jsdom (jest.config.js sets testEnvironment) so window/document exist.
  */
 
-const fs = require('fs');
 const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const { windowWithStubbedLocation, runScriptWithWindow, newLocationStub, resetLocationStub } =
-    require('./support/windowWithStubbedLocation');
 
-const FORM_PATH = path.resolve(__dirname, '..', '..', 'public/js/validate/src/data/Form.js');
+const FORM_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/data/Form.js');
 
-/**
- * Load the `Form` class out of the production file, the same way validateFormSubmit.test.js does.
- * @param {Window} win - The `window` the loaded source should see.
- * @returns {Function} The Form class.
- */
-function loadFormClass(win) {
-    const src = fs.readFileSync(FORM_PATH, 'utf8');
-    return runScriptWithWindow(src + '\nreturn Form;\n', win);
-}
+const Form = loadModules(FORM_PATH).Form;
 
-const locationStub = newLocationStub();
-const Form = loadFormClass(windowWithStubbedLocation(locationStub));
+// jsdom reports a page reload as a "Not implemented: navigation" error on the console, so a spy there is how the
+// suite proves the page was never reloaded (the blanket `catch -> location.reload()` #2745 removed).
+let consoleError;
+const reloadAttempts = () => consoleError.mock.calls.filter(([msg]) => String(msg).includes('Not implemented: navigation'));
 
 /**
  * Puts the document into the given visibility state and announces it, the way the browser does.
@@ -53,7 +45,7 @@ describe('Form exit flushes (issue #5561)', () => {
     beforeEach(() => {
         global.fetch = jest.fn(() => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({}) }));
         global.svv = { tracker: { push: jest.fn() } };
-        resetLocationStub(locationStub);
+        consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
 
         payload = { validations: [{ label_id: 1 }], interactions: [] };
         jest.spyOn(form, 'compileSubmissionData').mockReturnValue(payload);
@@ -120,7 +112,7 @@ describe('Form exit flushes (issue #5561)', () => {
         setVisibility('hidden');
         window.dispatchEvent(new Event('pagehide'));
 
-        expect(locationStub.reload).not.toHaveBeenCalled();
+        expect(reloadAttempts()).toHaveLength(0);
     });
 
     test('a hidden flush that fails is logged and retried, since the page usually comes back', async () => {

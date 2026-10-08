@@ -1,7 +1,7 @@
 /* AccessScore Spotlight (#5215): two ranked lists of the highest- and lowest-scoring neighborhoods or streets,
    shared by the landing page and /cities. Section chrome (title, subtitle) comes from the pages' own
    .section-title-and-subtitle; everything the module builds carries the spotlight- prefix. Colors and type from the
-   main.css design tokens; the bars are painted by public/js/common/scoreRamp.js, which reads the same tokens the
+   main.css design tokens; the bars are painted by frontend/js/common/scoreRamp.js, which reads the same tokens the
    AccessScore tool's map does. */
 
 .spotlight {

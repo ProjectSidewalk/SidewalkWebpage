@@ -1,10 +1,11 @@
 name: CI
 
-# Every job blocks a merge except the offline-tooling leg of python-tests.
+# Every job blocks a merge except the offline-tooling leg of python-tests and dependency-review.
 #
-#   - backend:         `sbt compile` + `scalafmtCheckAll`.
-#   - frontend:        asset build (grunt) + the lint steps (ESLint, Stylelint, HTMLHint, locale checks, CSS layout,
-#                      asset paths, vendor versions, JS types, spec base class) + the jsdom `jest` suite in test/js/.
+#   - backend:         `sbt compile` + `scalafmtCheckAll` + `scalafmtSbtCheck`.
+#   - frontend:        asset build (`npm run build`) + the lint steps (ESLint, Stylelint, HTMLHint, locale checks,
+#                      CSS layout, asset paths, vendor versions, JS types, spec base class) + the jsdom `jest` suite in
+#                      test/js/.
 #                      Jest reports JS coverage but has no floor — the number can't support one yet, see #5112.
 #   - evolutions-lint: static checks on conf/evolutions/default/*.sql.
 #   - shell-lint:      ShellCheck over the repo's .sh files.
@@ -18,6 +19,8 @@ name: CI
 #   - python-tests:    pytest unit tests for the Python scripts in scripts/ and tools/. One leg per interpreter the web
 #                      container ships — 3.8 for the in-band script, 3.13 for the offline tooling (advisory: it covers
 #                      an operator utility that never runs on the server).
+#   - dependency-review: PRs only. Flags a dependency the PR adds or changes that has a known vulnerability (advisory:
+#                      the app's Python is stuck on 3.8, where some fixes can't install, #4396).
 
 on:
   pull_request:
@@ -56,11 +59,15 @@ jobs:
           SIDEWALK_APPLICATION_SECRET: dummy-ci-secret
           INTERNAL_API_KEY: dummy-ci-internal-key
 
-      # `if: always()` runs this even when the compile step failed, so compile and format problems show up in one
-      # run. Auto-format locally with `make scalafmt-fix`.
+      # `if: always()` runs these even when an earlier step failed, so compile and format problems show up in one
+      # run (sbt stops at its first failing command). Auto-format locally with `make scalafmt-fix`.
       - name: scalafmt check (blocking)
         if: always()
         run: sbt scalafmtCheckAll
+
+      - name: scalafmt check, build files (blocking)
+        if: always()
+        run: sbt scalafmtSbtCheck
 
   frontend:
     name: Frontend (build)
@@ -78,9 +85,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Exercises the grunt concat/concat_css asset build (the project's `default` grunt task).
+      # The same command the deploy runs (sidewalk-tools' build.sh): the CSS bundles, then Rolldown for the JS.
       - name: Build assets
-        run: npx grunt
+        run: npm run build
 
       # Every lint step below is `if: always()`, so all frontend problems surface in one run even when an earlier step
       # failed. Each has a `make` target of the same name for running it locally.
@@ -90,7 +97,7 @@ jobs:
       # sanctions long-line exceptions, so an over-limit line nags but doesn't block; every other rule is an `error`.
       - name: ESLint (blocking)
         if: always()
-        run: npx eslint public/js/ public/locales/ test/js/ test/e2e/ playwright.config.js
+        run: npx eslint frontend/js/ public/locales/ test/js/ test/e2e/ playwright.config.js
 
       # Vendored/generated CSS is carved out by `.stylelintignore`. The glob is single-quoted so Stylelint's own globber
       # expands `**` (not the shell). Like ESLint, no `--max-warnings` flag: the one `warning` rule (max-line-length)
@@ -117,7 +124,7 @@ jobs:
         if: always()
         run: node tools/lint/check-css-layout.mjs
 
-      # Asset URLs in public/js/ (#4893): no hardcoded '/assets/...' outside the tool's allowlist, and every literal
+      # Asset URLs in frontend/js/ (#4893): no hardcoded '/assets/...' outside the tool's allowlist, and every literal
       # util.assetPath() argument names a real file in a family the digest manifest covers. Both halves of a mistake
       # here are silent (a missing asset resolves to its plain path rather than throwing), so nothing else would catch
       # one.
@@ -131,7 +138,7 @@ jobs:
         if: always()
         run: node tools/lint/check-vendor-versions.mjs
 
-      # TypeScript checks public/js/ against its JSDoc types (#5278).
+      # TypeScript checks frontend/js/ against its JSDoc types (#5278).
       - name: JS types (blocking)
         if: always()
         run: node tools/lint/check-js-types.mjs
@@ -239,8 +246,8 @@ jobs:
         uses: sbt/setup-sbt@v1
 
       # Bring up Postgres+PostGIS exactly as dev does (db/Dockerfile + init.sh, which restores the shared
-      # sidewalk_login schema and the sidewalk_init template). A runner starts with the `pgdata` volume empty, which is
-      # what makes the entrypoint run init.sh — locally, an existing volume makes it skip, and you get your own dev DB.
+      # sidewalk_login schema and the sidewalk_init template). A runner's `pgdata18` volume starts empty, so init.sh
+      # runs; locally, an existing volume skips it and you get your own dev DB.
       - name: Start database
         run: docker compose up -d --build db
 
@@ -395,10 +402,10 @@ jobs:
       - name: Install npm dependencies
         run: npm ci
 
-      # MUST precede `sbt stage`: the staged app serves public/ from the packaged assets jar, and the grunt bundles
-      # (public/js/*/build/) are git-ignored — without them every page 404s its own JS/CSS.
+      # MUST precede `sbt stage`: the staged app serves public/ from the packaged assets jar, and the built bundles
+      # (public/build/) are git-ignored — without them every page 404s its own JS/CSS.
       - name: Build frontend assets
-        run: npx grunt
+        run: npm run build
 
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
@@ -515,7 +522,7 @@ jobs:
       fail-fast: false
       # One leg per interpreter the web container ships, testing each script on the Python that runs it (#4396):
       # label_clustering.py is shelled out to by the app, so it stays on prod's EOL 3.8; the offline tooling needs
-      # >= 3.11. Mirrors the `pytest-args-*` and `cov-omit-*` variables in the Makefile — each leg takes the whole
+      # >= 3.12. Mirrors the `pytest-args-*` and `cov-omit-*` variables in the Makefile — each leg takes the whole
       # directory minus the files only the other's interpreter can import (shapely/geopandas are 3.13-only here), so a
       # new test file runs in both rather than in neither.
       # `half` also spells the check name, and `Python tests (in-band script)` is a required check — renaming a half
@@ -556,3 +563,11 @@ jobs:
           COVERAGE_OMIT: ${{ matrix['coverage-omit'] }}
           COVERAGE_OMIT2: ${{ matrix['coverage-omit-2'] }}
           COVERAGE_OMIT3: ${{ matrix['coverage-omit-3'] }}
+
+  dependency-review:
+    name: Dependency review
+    runs-on: ubuntu-latest
+    # Only a PR has a before and after to compare.
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/dependency-review-action@v5

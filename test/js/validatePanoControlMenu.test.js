@@ -1,5 +1,5 @@
 /**
- * Tests for PanoControlMenu (public/js/validate/src/panorama/PanoControlMenu.js), the chevron that opens the menu
+ * Tests for PanoControlMenu (frontend/js/validate/panorama/PanoControlMenu.js), the chevron that opens the menu
  * holding the Image pill in desktop Validate's top-left corner (#5501).
  *
  * The CSS shows the menu from the chevron's `aria-expanded`, so the attribute is the contract: these pin that a click
@@ -7,15 +7,11 @@
  * shared active-dot class. Loaded like the other class-based suites: eval'd with an explicit export.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/validate/src/panorama/PanoControlMenu.js'), 'utf8'
-);
 
 beforeAll(() => {
-    (0, eval)(`${SRC}\nwindow.PanoControlMenu = PanoControlMenu;`);
+    Object.assign(window, loadModules('frontend/js/validate/panorama/PanoControlMenu.js'));
 });
 
 let toggle;

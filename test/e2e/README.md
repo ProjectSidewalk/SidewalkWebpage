@@ -2,7 +2,7 @@
 
 A thin headless-browser suite (issue #4504) that loads each core page and **fails on any uncaught page
 error or non-allowlisted `console.error`**. It exists to catch the class of regression that compile, the
-grunt build, and all four linters are blind to: runtime-only JS errors — a stale bundle, a missing global,
+asset build (`npm run build`), and all four linters are blind to: runtime-only JS errors — a stale bundle, a missing global,
 an unbound-method `this` bug, a route-ordering 400 breaking a fetch. It asserts *pages initialize cleanly*
 plus two pieces of layout geometry — `phone-viewport.spec.js` re-loads the responsive pages at a 390×844
 phone viewport and fails on horizontal overflow (#4883), and `stat-bands.spec.js` sweeps the `/about` and
@@ -148,7 +148,7 @@ this suite in two steps: the **accessibility gate** (`--project=a11y`), then the
 gave the pages content to render. Each project writes to its own `test-results/` subdirectory, so the second run
 does not clear the first's traces before they are uploaded. On failure of either half it uploads the Playwright
 report, traces, and `app.log`. **It never runs
-during local development** — your edit / `grunt watch` / reload loop is untouched.
+during local development** — your edit / `npm run watch` / reload loop is untouched.
 
 ### The CI test city
 
@@ -184,7 +184,7 @@ read, not a second city dump to maintain. Three things about it shape this suite
   (`fixtures/google-maps-stub.js`, routed in for every context by `fixtures.js`; #5129). Google bills every
   `StreetViewPanorama` and `Map` instantiation — local tiles or not — and the label-detail popup instantiates a
   panorama on each `/labelMap`, `/gallery`, `/dashboard` and `/stories` load (#5128), so a suite run against the
-  real API was ~20 billable events. The stub implements just the surface `public/js` uses (grep-verified; the
+  real API was ~20 billable events. The stub implements just the surface `frontend/js` uses (grep-verified; the
   file says how) and fires the events the app awaits. Its pano contract is Google's: a location search always
   finds a pano, a lookup by id succeeds only for an id the stub has seen or a registered provider vouches for
   (Explore's tutorial), and any other id is `ZERO_RESULTS` — which is what an expired pano answers in production,

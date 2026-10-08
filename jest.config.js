@@ -16,32 +16,26 @@ module.exports = {
   // we set the environment here at the config level instead.
   testEnvironment: 'jsdom',
 
-  // `collectCoverageFrom` can only report on files Jest has crawled, so without public/js as a root the ratio answers
+  // `collectCoverageFrom` can only report on files Jest has crawled, so without frontend/js as a root the ratio answers
   // "how well is the tested code tested" rather than "how much of the frontend is tested" (#4743). testMatch is what
   // keeps production JS from being picked up as a test.
-  roots: ['<rootDir>/test/js', '<rootDir>/public/js'],
+  roots: ['<rootDir>/test/js', '<rootDir>/frontend/js'],
   testMatch: ['<rootDir>/test/js/**/*.test.js'],
 
-  // These tests and the modules under test are plain ES6 that Node runs natively. Jest layers coverage
-  // instrumentation on top, so an empty transform does not disable it.
-  transform: {},
+  // Turns each ES-module source into CommonJS so a suite can `require` it, and lets an import defer to a fake the
+  // suite put on `window` (test/js/moduleTransform.js).
+  transform: {
+    '/frontend/js/.+\\.js$': '<rootDir>/test/js/moduleTransform.js'
+  },
 
-  // The whole first-party frontend, so an untested file counts against the ratio rather than being invisible. The
-  // build/ exclusion is load-bearing, not tidiness: the frontend CI job runs `npx grunt` before this suite, so the
-  // bundles are on disk here as well as locally, and each one duplicates every source file it concatenates.
-  collectCoverageFrom: [
-    'public/js/**/*.js',
-    '!public/js/**/build/**'
-  ],
+  // The whole first-party frontend, so an untested file counts against the ratio rather than being invisible (the
+  // built bundles live in public/build/, outside it).
+  collectCoverageFrom: ['frontend/js/**/*.js'],
 
   // The default per-file table is 229 rows of mostly zeroes, which buries the totals; lcov keeps the detail.
   coverageReporters: ['text-summary', 'lcov'],
 
-  // No `coverageThreshold` yet, deliberately. Only files Jest loads through `require` get instrumented, and 99 of the
-  // 107 suites read their subject with `fs.readFileSync` and run it through `eval` — the only way to reach a file
-  // that defines a bare top-level class instead of assigning to `window`. So the report covers 10 files of 229, and
-  // deleting a suite that exercises one of the other 219 would move the number by zero. A floor on top of that would
-  // read as protection without being any. Report the number until the loaders are uniform (#5112).
+  // No `coverageThreshold` yet: the number is a baseline to grow from before it becomes a floor (#5112).
 
   verbose: true
 };

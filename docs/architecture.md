@@ -14,8 +14,8 @@ aggregated, scored, and served back out through a public API and a set of dashbo
 **Stack:**
 - **Backend** — Scala 3.9 + Play Framework 3.0 (Java 17).
 - **Database** — Postgres + PostGIS, accessed via Slick (with slick-pg for spatial/JSON types).
-- **Frontend** — vanilla JavaScript, organized as several independent apps bundled by Grunt (concatenation only —
-  no transpilation/module system), with no framework: native DOM and CSS on the `main.css` design tokens.
+- **Frontend** — vanilla JavaScript ES modules, bundled per page by Rolldown (no transpilation), with no framework:
+  native DOM and CSS on the `main.css` design tokens.
 - **Dev/runtime** — everything runs in Docker.
 
 ## System at a glance
@@ -198,7 +198,8 @@ DI is Guice. The app bootstraps via `app/CustomApplicationLoader.scala`; modules
 `SilhouetteModule`, and `StartupChecksModule` — the home for boot-time checks that surface deployment-level
 misconfiguration, like `PersistentMediaDirCheck`, and for boot-time repairs like `AiSeedRowsRepair`, which inserts
 the SidewalkAI user's per-schema rows wherever a schema was created without running 281.sql — a cloned or
-dump-restored city, #5349). Custom execution contexts live in `app/executors/`; background actors in `app/actor/`;
+dump-restored city, #5349, and `OrphanedJobRunSweep`, which closes the job runs a previous process died in the
+middle of, #5236). Custom execution contexts live in `app/executors/`; background actors in `app/actor/`;
 HTTP filters in `app/filters/`, registered through `play.filters.enabled` in
 `conf/application.conf`.
 
@@ -240,8 +241,13 @@ the Health panel can tell "fresh" from "stuck". `/v3/api/places` serves the tabl
 Every run is bracketed by `JobRunService.record`, which writes a `background_job_run` row — start, finish, outcome,
 and the job's own counts as JSONB (#4928). Without it, a job that silently stops firing is indistinguishable from one
 that found nothing to do, since the absence of a log line is not something anyone notices. `/admin/health` renders
-the roster, flagging any job that is overdue, failed, or has never run. The wrapper is strictly subordinate to the
-job: a bookkeeping failure is logged and swallowed, and a job's own failure propagates unchanged.
+the roster, flagging any job that is overdue, failed, interrupted, or has never run. The wrapper is strictly
+subordinate to the job: a bookkeeping failure is logged and swallowed, and a job's own failure propagates unchanged.
+It also logs each run's outcome and duration, so the log alone can tell a job still working from one that died.
+Only the process that opened a run can close it, so a process that dies mid-run (a deploy, a crash) would leave the
+row `running` forever; `OrphanedJobRunSweep` closes those at the next boot as `interrupted` (#5236), taking every run
+that started before this JVM did. That rule rests on each stage running one process per city schema. A run that hangs
+inside a live process is not caught at boot; the Health panel reads it as `abandoned` after 12 hours.
 
 The two derived tables, `intersection` and `sidewalk_presence`, share one pattern: the derivation is raw SQL held once
 in the DAO (`IntersectionTable.derivationSql`, `SidewalkPresenceTable.derivationSql`), the evolution that created the
@@ -344,8 +350,8 @@ to anonymous access.
 
 ## Frontend
 
-Each major UI is a self-contained app under `public/js/`, bundled separately by Grunt and loaded by the
-corresponding Twirl view:
+Each major UI is a self-contained app under `frontend/js/`, started from its page's entry in `frontend/js/pages/` and
+loaded by the corresponding Twirl view:
 
 - **`explore/`** — the Explore/Audit tool (label accessibility issues on street-view panoramas). The largest app.
   Its immersive mode (#5085, the shared `common/ImmersiveMode.js` + `css/pages/explore/svl-immersive.css`) fills
@@ -354,6 +360,17 @@ corresponding Twirl view:
   (#5560, `css/pages/validate/svv-immersive.css`): over the boxed DOM, CSS alone floats the menu column as a dock at
   the bottom-centre and the mission title and progress bar as one pill at the top-centre. Expert Validate stays boxed
   until its edit sections have an immersive placement.
+  Explore's URL follows the labeler (#5480, `src/navigation/ExploreUrlSync.js`): on pano and POV changes, at most one
+  write per 500 ms with the latest state winning, it is rewritten in place (`replaceState`, never a Back entry) with
+  `panoId`, `lat`, `lng`, `heading`, `pitch`, `zoom` and, in immersive mode, `immersive=1` — the same params
+  `ExploreController.getSession` reads, so the address bar is always a shareable link to that view. To anyone else the
+  URL names a place, not a session: opening it lands in free exploration there (the `?lat&lng` drop-in of #4451),
+  never in the sharer's mission or route, so `routeId`, `resumeRoute`, `regionId`, `streetEdgeId` and `placeName`
+  are dropped from it once the page is up. To its owner it is still their session: the URL also carries the
+  `missionId` it was written from, which the controller honors only when the requesting user owns that mission,
+  so a refresh, or one of Explore's own reloads (after an hour idle, on a submit failure), resumes the mission at
+  the same pano and view while the id is inert for a recipient. Free exploration writes no id, since the drop-in
+  path already resumes the user's own open drop-in mission.
   The Image pill in the chevron menu beside Stuck (#3136, `common/PanoImageAdjustments.js` +
   `PanoImageAdjustmentsPopover.js`) lifts shadows and adjusts brightness/contrast as a CSS `filter` on the pano mount —
   display-only, for the labeler's eyes: the mount is a sibling of every overlay, and crops are cut from the provider's
@@ -365,14 +382,14 @@ corresponding Twirl view:
 - **`validate/`** — the Validate tool (confirm/reject others' labels). Which labels it serves, in what order,
   and why: [`docs/validation-queue.md`](validation-queue.md).
   Desktop Validate mounts Explore's image adjustments panel (#5501) from an Image pill in a chevron menu beside the
-  hide-label toggle (`validate/src/panorama/PanoControlMenu.js`), the same arrangement as Explore's beside Stuck.
+  hide-label toggle (`validate/panorama/PanoControlMenu.js`), the same arrangement as Explore's beside Stuck.
   The model takes a list of mounts there, `#svv-panorama` and the `#svv-panorama-pannellum` sibling PanoManager
   swaps in when GSV has no imagery, so the filter is already on whichever viewer shows the label. Validate scopes
   the keyboard for the panel in `KeyboardManager` rather than suspending it with `disableKeyboard()`, a single flag
   that the modals and the loading lock also set, and the partial sits outside `#svv-application-holder` so the busy
   state's `pointer-events: none` can't freeze the sliders. Mobile Validate has no panel.
   **A viewer canvas is painted only while it holds the current label's pano at that label's POV**
-  (`validate/src/panorama/PanoManager.js`). The Pannellum fallback is revealed only once its image has loaded (#5206),
+  (`validate/panorama/PanoManager.js`). The Pannellum fallback is revealed only once its image has loaded (#5206),
   the primary canvas rejoins the layout unpainted after a fallback label (#5453), and on a primary viewer that paints
   during a load (`PanoViewer.PAINTS_DURING_LOAD`: Mapillary, Panoramax) the canvas and marker are hidden for every load
   and revealed by `renderPanoMarker` two animation frames after it sets the label's POV (#5582), capped at 100 ms for
@@ -431,16 +448,16 @@ corresponding Twirl view:
   `pekko.http.server.parsing.max-uri-length` to 8k (Pekko's 2k default 414'd at about 290 ids). The imagery check
   runs in chunks of `LabelServiceImpl.ImageryCheckChunkSize` so a 500-id list can't open 500 provider lookups at
   once. The page's "labels are sorted randomly" footer is not rendered in list mode: the order is the caller's.
-- **`admin-dashboard/`** — the admin dashboard (#4272), served file-by-file rather than bundled: one
-  `<PageName>Page.js` per route, loaded by that page's Twirl template. `AdminShell.js` loads on every one of those
+- **`admin-dashboard/`** — the admin dashboard (#4272): one `<PageName>Page.js` per route, started by that page's entry
+  in `pages/admin/`. `AdminShell.js` loads on every one of those
   pages (and the user dashboard's) and holds the shared shell behaviors — the "On this page" list and its
   scroll-spy, and keeping a deep link's target in place while sections above it are still loading — plus the shared
   formatting helpers (escaping, numbers, durations, relative times, the standard table markup).
-- **`user-dashboard/`** — the redesigned user dashboard, settings, leaderboard, and public profiles, plus the admin's view of a user's dashboard (`/admin/user/:username`). Served file-by-file like `admin-dashboard/` — no Grunt bundle.
+- **`user-dashboard/`** — the redesigned user dashboard, settings, leaderboard, and public profiles, plus the admin's view of a user's dashboard (`/admin/user/:username`). Entries in `pages/dashboard/`.
 - **`api-docs/`** — the `/api-docs` reference pages: one `<endpoint>Preview.js` per page renders a live sample of
   that endpoint, alongside `apiDocs.js` (shell behavior), `apiTableWrapper.js`, and `apiDocsTheme.js`
   (`ApiDocsTheme.color(token, alpha?)`, the one way preview code reads a CSS color token for Chart.js/Mapbox so
-  chart colors follow the design system). Served file-by-file — no Grunt bundle.
+  chart colors follow the design system). Entries in `pages/api-docs/`, one per page plus `layout.js` for the chrome.
 - **`access-score/`** — the AccessScore tool (`/accessScore`, #5217): a pure scoring model that re-runs the engine's
   math in the browser (`AccessScoreModel.js`, pinned to the Scala engine through `test/fixtures/accessScoreParity.json`;
   it ingests `/v3/api/accessScoreStreets` and `/v3/api/accessScoreIntersections` and reproduces a street's
@@ -467,9 +484,8 @@ corresponding Twirl view:
   map). An optional dark basemap (`?dark=1`, or the sidebar toggle, which is a live `map.setStyle` followed by a
   `remount()` of the map view and the cluster layer on `style.load`) reads the ramp in its dark stepping
   (`--color-score-ramp-dark-*`, passed per call as `{ mode: 'dark' }`) with a second chrome palette; the band and
-  popups stay light and keep the light ramp. Grunt-bundled to `access-score/build/`; the shared score ramp is
-  `common/scoreRamp.js`.
-- **`AccessScoreSpotlight.js`** — the AccessScore Spotlight (#5215), a standalone module (no Grunt bundle) that the
+  popups stay light and keep the light ramp. The shared score ramp is `common/scoreRamp.js`.
+- **`AccessScoreSpotlight.js`** — the AccessScore Spotlight (#5215), a standalone module that the
   landing page and `/cities` both mount: the highest- and lowest-scoring neighborhoods, or streets, as two ranked
   lists whose bars are painted by `common/scoreRamp.js`. It reads one feed, `/v3/api/accessScoreSpotlight`, which
   answers from the nightly snapshot tables; nothing is fetched until the visitor's first interaction, and the
@@ -509,11 +525,36 @@ corresponding Twirl view:
   `setFieldOfView` return `undefined`), so a caller that must not show the old heading waits animation frames instead,
   as Validate's reveal does.
 
-There is **no module system**: files are concatenated in a hand-specified order (see `Gruntfile.js`). Third-party
-libraries live under `public/vendor/<lib>/`, one self-contained folder each (never edited or linted). Edit `src/`
-files only — bundles are generated into `public/js/*/build/`.
+### Modules and the build
 
-First-party assets split by type: `public/js/` is JavaScript-only, `public/css/` holds all styles, and media lives in
+Every first-party file is an **ES module** (#4467): it `import`s what it needs and `export`s what others use, so
+the imports decide load order, not a hand-kept list. Each tool keeps its shared state in one exported object
+(`explore/svl.js`, `validate/svv.js`, `gallery/sg.js`). `util` is the object `common/utilities.js` exports; a file
+that reads `util.misc`, `util.math`, `util.url` or `util.pano` imports the file that adds it (`utilitiesSidewalk.js`,
+`utilitiesMath.js`, `urlQuery.js`, `pano-viewer/panoUtilities.js`). Vendor libraries (`mapboxgl`, `i18next`, `turf`, …)
+stay `<script>`-tag globals, declared for the type checker in `tools/lint/js-types/globals.d.ts`.
+
+**One entry per page** lives in `frontend/js/pages/` (`pages/explore.js`, `pages/admin/overview.js`, …): it imports
+the page's code and runs the start-up that used to be an inline `<script>`. **Rolldown** (`rolldown.config.mjs`)
+builds every file in that folder to `public/build/js/<same path>.js`, minified, with code that several pages share
+split into `public/build/js/chunks/` so a visitor downloads it once; a new page is just a new file there. A view loads
+its entry with `<script type="module" src='@assets.path("build/js/<page>.js")'>`, after `pages/main.js`, which
+`main.scala.html` loads on every page (shared helpers, app manager, navbar, auth dialog). Because a bundled module can't
+be templated and runs only after the page is parsed, a view hands its entry the server's values on that tag as
+`data-*` attributes (`id="page-entry"`) or, for the tools' larger sets, in a `<script type="application/json"
+id="page-data">` block the entry parses. That block holds session scalars only (user, language, imagery source,
+keys, Validate's filters): the mission or task a tool opens on is fetched by the entry (`common/pageSession.js`) from
+`POST /validationTask/mission` or `GET /explore/session`, the latter with the page's own query string, so a copy of
+the page the browser cached can never show labels the user already judged, and the first mission arrives in the same
+shape as the next one (#5650). The tool pages also answer `Cache-Control: no-store` for the same reason.
+
+The JS source lives in `frontend/js/`, outside `public/`, because Play serves everything under `public/`: only the
+bundles ship (their sourcemaps carry the sources for the browser's debugger). The three tools' stylesheets are still
+concatenated by Grunt (`concat_css`) into `public/build/css/`; `npm start` runs `npm run watch`, which reruns both it and
+Rolldown on save. Everything under `public/build/` is generated and git-ignored. Third-party libraries live under
+`public/vendor/<lib>/`, one self-contained folder each (never edited or linted).
+
+First-party assets split by type: `frontend/js/` is JavaScript-only, `public/css/` holds all styles, and media lives in
 `public/images/`, `public/audio/`, and `public/videos/`. Within `public/css/`, files are organized by what they are
 (#5030): `main.css` and `fonts.css` at the root (tokens and `.ps-*` primitives), `css/components/` for anything more
 than one page links (one component per file — the `page-shell.css` sidebar + content + TOC template, `kpi.css`,
@@ -533,7 +574,7 @@ tool bundles resolve icon URLs in module-level constants at script-eval time. Fr
 `util.assetPath('images/icons/openhand.cur')`, building the whole path inside one template literal when part of it
 varies. Under dev `sbt run` nothing is fingerprinted, so the stamp is empty and every lookup falls back to the plain
 `/assets/<path>`. Neither half of a mistake fails at runtime, so `tools/lint/check-asset-paths.mjs`
-(`make lint-asset-paths`, a blocking CI step) is the gate: no hardcoded `/assets/` URLs under `public/js/`, every
+(`make lint-asset-paths`, a blocking CI step) is the gate: no hardcoded `/assets/` URLs under `frontend/js/`, every
 `util.assetPath` argument names a real file in a manifest family, and no code edits an element's resolved `src` as a
 string. Full caching contract: [`deployment-and-stages.md`](deployment-and-stages.md) → "Asset caching".
 

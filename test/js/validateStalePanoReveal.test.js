@@ -1,6 +1,6 @@
 /**
  * Tests that Validate never paints a pano the current label doesn't belong to, in
- * public/js/validate/src/panorama/PanoManager.js (`#showPannellumPano`, `setPanorama`).
+ * frontend/js/validate/panorama/PanoManager.js (`#showPannellumPano`, `setPanorama`).
  *
  * The Pannellum fallback viewer is reused across labels so its WebGL context survives, which means its canvas
  * carries whatever pano it last drew — an earlier label's. Painting it before the new image has loaded would put
@@ -21,13 +21,13 @@
  * two canvases rather than trusting the call order. Fake viewers throughout; no imagery is involved.
  */
 
-const fs = require('fs');
 const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const PANO_MANAGER_PATH = path.resolve(__dirname, '..', '..', 'public/js/validate/src/panorama/PanoManager.js');
-const THROTTLE_PATH = path.resolve(__dirname, '..', '..', 'public/js/validate/src/util/throttle.js');
+const PANO_MANAGER_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/panorama/PanoManager.js');
+const THROTTLE_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/util/throttle.js');
 const TIMEOUT_ERROR_PATH = path.resolve(__dirname, '..', '..',
-  'public/js/common/pano-viewer/src/PanoLoadTimeoutError.js');
+  'frontend/js/common/pano-viewer/PanoLoadTimeoutError.js');
 
 /**
  * Load a bare `class` declaration out of a production file. The Grunt bundle concatenates these into page scope, so
@@ -37,8 +37,7 @@ const TIMEOUT_ERROR_PATH = path.resolve(__dirname, '..', '..',
  * @returns {Function} The class.
  */
 function loadClassFromFile(filePath, className) {
-  const src = fs.readFileSync(filePath, 'utf8');
-  return (0, eval)('(() => {\n' + src + '\nreturn ' + className + ';\n})()');
+  return loadModules(filePath)[className];
 }
 
 describe('Validate only paints a viewer canvas once it holds this label\'s pano (issues #5206, #5453)', () => {
@@ -120,7 +119,7 @@ describe('Validate only paints a viewer canvas once it holds this label\'s pano 
     document.body.innerHTML = '<div id="pano-holder"><div id="svv-panorama"></div></div>';
 
     global.util = {};
-    (0, eval)(fs.readFileSync(THROTTLE_PATH, 'utf8'));
+    Object.assign(window, loadModules(THROTTLE_PATH));
     util.isMobile = () => false;
     global.i18next = { language: 'en' };
 
@@ -456,7 +455,7 @@ describe('a viewer that paints during a load stays unpainted until it faces the 
     global.requestAnimationFrame = (cb) => { frames.push(cb); return frames.length; };
 
     global.util = {};
-    (0, eval)(fs.readFileSync(THROTTLE_PATH, 'utf8'));
+    Object.assign(window, loadModules(THROTTLE_PATH));
     util.isMobile = () => false;
     util.uiScale = () => 1;
     util.cappedMarkerDiameter = (diameter) => diameter;

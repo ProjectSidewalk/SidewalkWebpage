@@ -1,6 +1,6 @@
 /**
  * Explore leaves Mapillary's attribution pill where the SDK renders it and publishes its height from there (issue
- * #5600), in public/js/explore/src/panorama/PanoManager.js.
+ * #5600), in frontend/js/explore/panorama/PanoManager.js.
  *
  * MapillaryJS patches the pill in place from its own render root, so a pill moved out of it goes stale. Explore still
  * needs the pill's height, as --bottom-left-links-clearance, so the date, info button and logo sit above it. The SDK
@@ -11,10 +11,10 @@
  * ResizeObserver, so a recording stub stands in for it.
  */
 
-const fs = require('fs');
 const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const PANO_MANAGER_PATH = path.resolve(__dirname, '..', '..', 'public/js/explore/src/panorama/PanoManager.js');
+const PANO_MANAGER_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/explore/panorama/PanoManager.js');
 
 /**
  * Load a bare `class` declaration out of a production file, the way the Grunt bundle puts it in page scope.
@@ -23,8 +23,7 @@ const PANO_MANAGER_PATH = path.resolve(__dirname, '..', '..', 'public/js/explore
  * @returns {Function} The class.
  */
 function loadClassFromFile(filePath, className) {
-  const src = fs.readFileSync(filePath, 'utf8');
-  return (0, eval)('(() => {\n' + src + '\nreturn ' + className + ';\n})()');
+  return loadModules(filePath)[className];
 }
 
 /** Let MutationObserver callbacks, which run as microtasks, fire. */

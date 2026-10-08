@@ -1,6 +1,7 @@
 @import models.user.SidewalkUserWithRole
 @import play.api.Configuration
 @import play.api.libs.json.Json
+@import views.ViewHelpers.jsonForScript
 @import service.{CommonPageData, PageMeta}
 @*
  * About page (#4237, redesigned in #4631): server-rendered, localized overview of Project Sidewalk — mission, how it
@@ -29,10 +30,10 @@
    regional overlays of en, zh-TW's base is zh), so e.g. [en, en-US, en-NZ, es, nl, zh-TW, de, pt-BR, fr] counts 7. *@
 @languageCount = @{commonData.supportedLanguages.map(_.takeWhile(_ != '-')).distinct.size}
 
-@* AboutPage JSON-LD built with the JSON library (not hand-written markup) so quoting is always valid; escaping `<`
-   blocks a `</script>` breakout from any interpolated string. *@
+@* AboutPage JSON-LD built with the JSON library (not hand-written markup) so quoting is always valid, and through
+   jsonForScript so no interpolated string can close the block with `</script>`. *@
 @jsonLd = @{
-  Json.stringify(Json.obj(
+  jsonForScript(Json.obj(
     "@context" -> "https://schema.org",
     "@type"    -> "AboutPage",
     "name"     -> Messages("about.title"),
@@ -56,7 +57,7 @@
         "https://makeabilitylab.cs.washington.edu/"
       )
     )
-  )).replace("<", "\\u003c")
+  ))
 }
 
 @* about.css ships in <head> rather than alongside the markup: this page is one long column of styled bands, so
@@ -66,7 +67,7 @@
   @* Styles the deployment map's city popups. Small enough to ship up front, unlike the mapping libraries the map
      itself needs, which aboutPage.js only fetches once the section nears the viewport. *@
   <link rel="stylesheet" href='@assets.path("css/components/deployment-map.css")'>
-  <script type="application/ld+json">@Html(jsonLd)</script>
+  <script type="application/ld+json">@jsonLd</script>
 }
 
 @common.main(commonData, title, extraHead = extraHeadContent,
@@ -192,7 +193,6 @@
              data-mapbox-api-key="@commonData.mapboxApiKey"
              data-mapbox-js='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.js")'
              data-mapbox-language-js='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")'
-             data-ps-map-js='@assets.path("js/ps-map/build/ps-map.js")'
              data-mapbox-css='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.css")'></div>
         <p class="about-where-links">@Html(Messages("about.where.links"))</p>
       </div>
@@ -328,8 +328,5 @@
     </section>
   </main>
 
-  @* Hydrates the data-live-stat spans with live deployment numbers from /v3/api/aggregateStats. *@
-  <script src='@assets.path("js/common/aggregateStats.js")'></script>
-  @* Hydrates team, publications, and grants from the Makeability Lab API; logs CTA clicks. *@
-  <script src='@assets.path("js/aboutPage.js")'></script>
+  <script type="module" src='@assets.path("build/js/about.js")'></script>
 }

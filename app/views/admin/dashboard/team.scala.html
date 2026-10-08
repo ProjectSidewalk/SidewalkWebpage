@@ -52,20 +52,8 @@
     <div id="team-add-results"></div>
   </div>
 
-  <script src='@assets.path("js/common/ConfirmDialog.js")'></script>
-  <script src="@assets.path("js/admin-dashboard/TeamPage.js")"></script>
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      new TeamPage(@team.teamId, {
-        overviewUrl: '/adminapi/team',
-        userSearchUrl: '/adminapi/userSearch',
-        setTeamUrl: '/userapi/setUserTeam',
-        leaveTeamUrl: '/userapi/leaveTeam',
-        teamStatusUrl: '/adminapi/updateTeamStatus',
-        teamVisibilityUrl: '/adminapi/updateTeamVisibility'
-      }).init();
-    });
-  </script>
+  <script type="module" id="page-entry" src='@assets.path("build/js/admin/team.js")'
+          data-team-id="@team.teamId"></script>
 }
 
 @common.main(commonData, "Sidewalk - Admin Team") {

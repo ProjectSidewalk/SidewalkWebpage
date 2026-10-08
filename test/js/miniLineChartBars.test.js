@@ -1,5 +1,5 @@
 /**
- * Tests for public/js/admin-dashboard/MiniLineChart.js bar-mode value labels and emphasis (#4686).
+ * Tests for frontend/js/admin-dashboard/MiniLineChart.js bar-mode value labels and emphasis (#4686).
  *
  * The rolling-7-day "this week" charts on /admin/across-cities label each bar with its value and emphasize the final,
  * still-accumulating "today" bar. These tests pin that contract: one label per bar (including a "0" over an empty
@@ -10,19 +10,14 @@
  * detached container and assert on the resulting DOM.
  */
 
-const fs = require('fs');
-const path = require('path');
-const { loadGlobalScript } = require('./loadGlobalScript');
+const { loadModules, realUtil } = require('./loadGlobalScript');
 
-loadGlobalScript('public/js/common/utilities.js');
+window.util = realUtil();
 
-const CHART_PATH = path.resolve(__dirname, '..', '..', 'public/js/admin-dashboard/MiniLineChart.js');
 
-/** Load MiniLineChart.js (a plain top-level class declaration, concatenation-style) and return the class. */
+/** Loads a fresh MiniLineChart class. */
 function loadMiniLineChart() {
-    const src = fs.readFileSync(CHART_PATH, 'utf8');
-    // Indirect eval runs the script in global scope; the trailing expression hands the class binding back out.
-    return (0, eval)(`${src}\nMiniLineChart;`);
+    return loadModules('frontend/js/admin-dashboard/MiniLineChart.js').MiniLineChart;
 }
 
 describe('MiniLineChart bar mode', () => {

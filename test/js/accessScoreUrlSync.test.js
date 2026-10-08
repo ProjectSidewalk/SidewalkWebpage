@@ -1,11 +1,12 @@
 /**
- * Tests for AccessScoreUrlSync (public/js/access-score/src/AccessScoreUrlSync.js, #5217): the tool's state as a
+ * Tests for AccessScoreUrlSync (frontend/js/access-score/AccessScoreUrlSync.js, #5217): the tool's state as a
  * shareable URL. Reading validates every token against the engine config so a stale or hand-edited link degrades
  * to the defaults; writing omits params at their defaults and preserves params the tool doesn't own.
  */
 
 const fs = require('fs');
 const path = require('path');
+const { loadModules, realUtil } = require('./loadGlobalScript');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const read = (p) => fs.readFileSync(path.join(REPO_ROOT, p), 'utf8');
@@ -17,9 +18,10 @@ describe('AccessScoreUrlSync', () => {
     const config = FIXTURE.config;
 
     beforeAll(() => {
-        window.eval(read('public/js/common/urlQuery.js'));
-        window.eval(`${read('public/js/access-score/src/AccessScoreModel.js')}\nwindow.AccessScoreModel = AccessScoreModel;`);
-        window.eval(`${read('public/js/access-score/src/AccessScoreUrlSync.js')}\nwindow.AccessScoreUrlSync = AccessScoreUrlSync;`);
+        window.util ??= realUtil();
+        loadModules('frontend/js/common/urlQuery.js');
+        Object.assign(window, loadModules('frontend/js/access-score/AccessScoreModel.js'));
+        Object.assign(window, loadModules('frontend/js/access-score/AccessScoreUrlSync.js'));
         AccessScoreUrlSync = window.AccessScoreUrlSync;
         AccessScoreModel = window.AccessScoreModel;
     });

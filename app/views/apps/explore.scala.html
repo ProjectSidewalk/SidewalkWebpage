@@ -1,16 +1,12 @@
-@import formats.json.MissionFormats.given
-@import formats.json.ExploreFormats.{given, _}
+@import models.survey.SurveyQuestionWithOptions
 @import models.user.{Role, SidewalkUserWithRole}
 @import play.api.Configuration
-@import play.api.libs.json.Json
-@import service.{CommonPageData, ExplorePageData}
+@import service.CommonPageData
 @import models.pano.PanoSource
 @import views.ViewHelpers.jsonForScript
 @(
-  commonData: service.CommonPageData, title: String, user: models.user.SidewalkUserWithRole, data: ExplorePageData,
-  lat: Option[Double] = None, lng: Option[Double] = None, panoId: Option[String] = None,
-  placeName: Option[String] = None, heading: Option[Double] = None, pitch: Option[Double] = None,
-  zoom: Option[Int] = None
+  commonData: service.CommonPageData, title: String, user: models.user.SidewalkUserWithRole,
+  surveyData: Seq[SurveyQuestionWithOptions], tutorialStreetId: Int, makeCrops: Boolean
 )(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: play.api.Configuration)
 
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
@@ -19,27 +15,26 @@
   pageMeta = service.PageMeta(description = Some(Messages("seo.description.explore", currentCity.cityNameShort)))) {
   @common.navbar(commonData, Some(user))
 
-  <link rel="stylesheet" href='@assets.path("js/explore/build/explore.css")'>
+  <link rel="stylesheet" href='@assets.path("build/css/explore.css")'>
   <link rel="stylesheet" href='@assets.path("css/components/progress-bar.css")'>
   <link rel="stylesheet" href='@assets.path("css/components/pano-overlay-buttons.css")'>
   <link rel="stylesheet" href='@assets.path("css/components/pano-image-adjustments.css")'>
 
+  @* Inline, in the head: label crops read the pano canvas back, so every WebGL context must keep its drawing buffer,
+     and a module script would only patch getContext after the vendor libraries below have loaded. *@
   <script>
-    // Setup necessary for saving crops of pano. We don't want to cause issues if this fails.
     try {
-      HTMLCanvasElement.prototype.getContext = function(origFn) {
-        return function(type, attributes) {
-          if (type === 'webgl' || type === 'webgl2') {
-            attributes = Object.assign({}, attributes, { preserveDrawingBuffer: true });
-          }
+      HTMLCanvasElement.prototype.getContext = (function (origFn) {
+        return function (type, attributes) {
+          if (type === 'webgl' || type === 'webgl2') attributes = { ...attributes, preserveDrawingBuffer: true };
           return origFn.call(this, type, attributes);
         };
-      }(HTMLCanvasElement.prototype.getContext);
+      }(HTMLCanvasElement.prototype.getContext));
     } catch (e) {
-      // todo: better logging
       console.log(e);
     }
   </script>
+
 
   @common.missionStartTutorial()
   @common.panoInfoPopover()
@@ -49,6 +44,7 @@
     <div id="loading-animation">
       <p class="loading-text">@Messages("loading")</p>
       <img src='@assets.path("videos/ProjectSidewalk_LoadingAnimation_WithArmMovement_Medium.webp")' alt='@Messages("loading")'>
+      <span class="ps-mask-icon loading-failed-icon" aria-hidden="true"></span>
       <p class="loading-sub-text">@Messages("loading.encouragement")</p>
     </div>
   </div>
@@ -63,7 +59,7 @@
     <div class="survey-dialog__body">
       <form id="survey-form" method="post">
         <ol>
-        @for(surveyQuestion <- data.surveyData) {
+        @for(surveyQuestion <- surveyData) {
           <li>
             @if(surveyQuestion.required) {
               <h4 class="survey-question">@Html(Messages("audit.survey." + surveyQuestion.surveyQuestionTextId + ".question")) *</h4>
@@ -905,143 +901,35 @@
   <script src='@assets.path("vendor/photo-sphere-viewer/psv-5.15.1-bundle.min.js")'></script>
   <link href='@assets.path("vendor/photo-sphere-viewer/psv-5.15.1.css")' rel="stylesheet">
   }
-  <script src='@assets.path("js/common/pano-viewer/build/pano-viewer.js")'></script>
   <script src='@assets.path("vendor/floating-ui/floating-ui.core-1.8.0.umd.min.js")'></script>
   <script src='@assets.path("vendor/floating-ui/floating-ui.dom-1.8.0.umd.min.js")'></script>
-  <script src='@assets.path("js/explore/build/explore.js")'></script>
-  <script src='@assets.path("js/ps-map/build/ps-map.js")'></script>
 
   <script src='@assets.path("vendor/turf/turf-7.4.0.min.js")'></script>
   <script src='@assets.path("vendor/async-lock/async-lock-1.4.1.min.js")'></script>
-  <script src='@assets.path("vendor/betterknown/betterknown-1.2.0.js")'></script>
   <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.js")'></script>
   <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")'></script>
   <link href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.css")' rel="stylesheet">
   <link href='@assets.path("css/components/tag-pills.css")' rel="stylesheet">
 
-  <script>
-    util.onDomReady(function() {
-      // Prevents text selection with cursor. Fixes https://github.com/ProjectSidewalk/SidewalkWebpage/issues/121.
-      // We also add the 'audit-selectable' class to a parent of any element that we want to have selectable.
-      document.onselectstart = function (e) {
-        // A selection can start on a text node, which has no closest().
-        const el = e.target instanceof Element ? e.target : e.target.parentElement;
-        return el?.closest('.audit-selectable') != null;
-      };
-      enableTouchSupport();
-
-      // Region Completion Overlay
-      document.getElementById('continue-current').addEventListener('click', function() {
-        document.getElementById('area-completion-overlay-wrapper').style.display = 'none';
-      });
-
-      document.getElementById('redirect-new').addEventListener('click', function() {
-        window.location.href = '/explore?newRegion=true';
-      });
-
-      // Already Completed Region Overlay
-      document.getElementById('accept-redirect').addEventListener('click', function() {
-        window.location.href = '/explore';
-      });
-    });
-
-    function enableTouchSupport() {
-      const mouseTypeForTouch = { touchstart: 'mousedown', touchmove: 'mousemove', touchend: 'mouseup' };
-      for (const touchType of Object.keys(mouseTypeForTouch)) {
-        document.addEventListener(touchType, function(event) {
-          const first = event.changedTouches[0];
-          first.target.dispatchEvent(new MouseEvent(mouseTypeForTouch[touchType], {
-            screenX: first.screenX,
-            screenY: first.screenY,
-            clientX: first.clientX,
-            clientY: first.clientY
-          }));
-        });
-      }
-
-      // Not passive: this is what stops a drag on the pano from scrolling the page.
-      document.getElementById('interaction-area-holder').addEventListener('touchmove', function (event) {
-        event.preventDefault();
-      }, { passive: false });
-    }
-
-    var svl = {};
-    const mainParam = {};
-
-    @* Server-side conditional (@if), not a browser `if`: when the user has finished their assigned region the *@
-    @* task is None, so `data.task.get` must never be evaluated at render time (that 500s the page — #4672). *@
-    @if(data.task.isDefined) {
-      mainParam.task = @jsonForScript(data.task.get);
-    } else {
-      document.querySelectorAll('.tool-ui').forEach(function (el) { el.classList.remove('ps-invisible'); });
-      document.getElementById('already-completed-region-overlay').style.display = 'block';
-    }
-
-    mainParam.dataStoreUrl = '@routes.ExploreController.post';
-
-    mainParam.user = {
-      username: @jsonForScript(user.username),
-      role: '@user.role.name',
-      userId: '@user.userId'
-    };
-    mainParam.regionId = @data.region.regionId;
-    mainParam.regionName = @jsonForScript(data.region.name);
-    // TODO I think that we can replace this with Json.toJson(data.region.geom).toString after back end upgrades.
-    mainParam.regionGeoJSON = window.betterknown.wktToGeoJSON("@data.region.geom");
-
-    mainParam.nextTemporaryLabelId = @data.nextTempLabelId;
-    mainParam.mission = @jsonForScript(data.mission);
-    mainParam.tutorialStreetId = @data.tutorialStreetId;
-    mainParam.hasCompletedAMission = @data.hasCompletedAMission;
-
-    @if(data.userRoute.isDefined) {
-    mainParam.routeId = @data.userRoute.get.routeId;
-    mainParam.userRouteId = @data.userRoute.get.userRouteId;
-    mainParam.routeName = @jsonForScript(data.route.map(_.name).getOrElse(""));
-    mainParam.routeResumed = @data.routeResumed;
-    }
-
-    @* A ?routeId= naming no live route was dropped rather than obeyed, so the session is not the one the link asked
-       for (#5156). Emitted only when it happened, so the ordinary page carries nothing extra. *@
-    @if(data.routeUnavailable) {
-    mainParam.routeUnavailable = true;
-    }
-
-    @* Optional pano seed: an admin auditing a specific street from a pano/lat-lng, or an address drop-in (#4451). *@
-    @if(lat.isDefined && lng.isDefined) {
-    mainParam.startLat = @lat.get;
-    mainParam.startLng = @lng.get;
-    }
-    @if(panoId.isDefined) {
-    mainParam.startPanoId = @jsonForScript(panoId.get);
-    }
-    @* A POV seed (e.g. a label's stored point of view from the label card, #4637). Heading is its required core;
-       pitch/zoom just refine it, so they default rather than gate. *@
-    @if(heading.isDefined) {
-    mainParam.startPov = { heading: @heading.get, pitch: @pitch.getOrElse(0.0), zoom: @zoom.getOrElse(1) };
-    }
-    @* Name of the place the user searched, so the drop-in greeting can say where they landed (#4451). It arrives from
-       a URL parameter, so it is JSON-serialized AND has `<` escaped: JSON quoting alone still lets a literal
-       `</script>` close this block early and execute the rest as markup. Same guard as sharedLabel.scala.html. *@
-    @if(placeName.isDefined) {
-    mainParam.startPlaceName = @jsonForScript(placeName.get);
-    }
-
-    mainParam.language = "@messages.lang.code";
-    mainParam.countryId = "@currentCity.countryId";
-    mainParam.mapboxApiKey = "@commonData.mapboxApiKey";
-    mainParam.makeCrops = @data.makeCrops;
+  @* What the Explore entry (frontend/js/pages/explore.js) needs from the server, as JSON. Session scalars only: the
+     task, mission, region and route come from /explore/session, so a cached copy of this page can never carry a
+     stale task (#5650). Strings go through jsonForScript, which also escapes `<` so a value can never close this
+     block early (#4451). *@
+  <script type="application/json" id="page-data">{
+    "dataStoreUrl": "@routes.ExploreController.post",
+    "sessionUrl": "@routes.ExploreController.getSession(newRegion = false)",
+    "user": {"username": @jsonForScript(user.username), "role": "@user.role.name", "userId": "@user.userId"},
+    "tutorialStreetId": @tutorialStreetId,
+    "language": "@messages.lang.code",
+    "countryId": "@currentCity.countryId",
+    "mapboxApiKey": "@commonData.mapboxApiKey",
+    "makeCrops": @makeCrops,
     @* Label lat/lng estimator constants. The backend owns them (PanoDataService.LatLngEstimation, which documents
        where each fitted value comes from) so the client-side copy of the estimator (Label.js) can never drift from
        the server-side one. *@
-    mainParam.latLngEstimation = @jsonForScript(service.PanoDataService.LatLngEstimation.asJson);
-    const imagerySrc = "@commonData.imagerySource.name";
-    mainParam.viewerType = imagerySrc === 'mapillary' ? MapillaryViewer : imagerySrc === 'infra3d' ? Infra3dViewer
-      : imagerySrc === 'panoramax' ? PanoramaxViewer : GsvViewer;
-    mainParam.viewerAccessToken = "@commonData.imageryAccessToken";
-
-    window.appManager.ready(function () {
-      new Main(mainParam);
-    });
-  </script>
+    "latLngEstimation": @jsonForScript(service.PanoDataService.LatLngEstimation.asJson),
+    "imagerySource": "@commonData.imagerySource.name",
+    "viewerAccessToken": "@commonData.imageryAccessToken"
+  }</script>
+  <script type="module" src='@assets.path("build/js/explore.js")'></script>
 }

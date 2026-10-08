@@ -1,21 +1,19 @@
 /**
  * Test helper: loads the real Infra3dViewer (over the real PanoViewer base and panoUtilities) into the jsdom global
  * scope, plus the fixtures its suites share. Infra3dViewer is a top-level `class` written for the Grunt-concatenation
- * world, so its source is eval'd rather than required, with stubs for the globals it closes over.
+ * world's stubs for the globals it closes over.
  */
 
-const fs = require('fs');
 const path = require('path');
-const { loadGlobalScript } = require('./loadGlobalScript');
+const { loadModules, realUtil } = require('./loadGlobalScript');
 
-const SRC_DIR = path.resolve(__dirname, '..', '..', 'public/js/common/pano-viewer/src');
+const SRC_DIR = path.resolve(__dirname, '..', '..', 'frontend/js/common/pano-viewer');
 
 /**
  * Loads Infra3dViewer and returns the class.
  * @returns {typeof Infra3dViewer}
  */
 function loadInfra3dViewer() {
-  const source = (file) => fs.readFileSync(path.join(SRC_DIR, file), 'utf8');
   // utilities.js builds a Bowser parser at load time; nothing here consults it.
   window.bowser = {
     getParser: () => ({
@@ -23,25 +21,15 @@ function loadInfra3dViewer() {
       getOSName: () => 'TestOS', getPlatformType: () => 'desktop',
     }),
   };
-  loadGlobalScript('public/js/common/utilities.js');
-  loadGlobalScript('public/js/common/utilitiesMath.js');
-  loadGlobalScript('public/js/common/pano-viewer/src/panoUtilities.js');
-  window.eval(`
-    class GsvViewer {}
-    class MapillaryViewer {}
-    class PannellumViewer {}
-    class PanoramaxViewer {}
-    class PanoData {
-      constructor(params) { this.params = params; }
-      getPanoId() { return this.params.panoId; }
-      getProperty(key) { return this.params[key]; }
-    }
-    const proj4 = () => [0, 0];
-    ${source('NoImageryError.js')}
-    ${source('PanoViewer.js')}
-    ${source('Infra3dViewer.js')}
-    window.Infra3dViewer = Infra3dViewer;
-  `);
+  window.util = realUtil();
+  loadModules('frontend/js/common/utilitiesMath.js', 'frontend/js/common/pano-viewer/panoUtilities.js');
+  window.PanoData = class PanoData {
+    constructor(params) { this.params = params; }
+    getPanoId() { return this.params.panoId; }
+    getProperty(key) { return this.params[key]; }
+  };
+  window.proj4 = () => [0, 0];
+  Object.assign(window, loadModules(path.join(SRC_DIR, 'Infra3dViewer.js')));
   return window.Infra3dViewer;
 }
 
