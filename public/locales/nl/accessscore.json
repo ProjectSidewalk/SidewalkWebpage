@@ -165,6 +165,7 @@
   "grade-legend-title-by": "Straathelling · {{statistic}}",
   "grade-legend-none": "Geen hellingsgegevens",
   "grade-legend-hint": "Klik op een klasse om die straten te markeren; Ctrl+klik om er meer toe te voegen.",
+  "grade-legend-coarse": "Uit een grof hoogtemodel: elke helling is een rechte lijn tussen de twee uiteinden van een straat.",
   "grade-class-under": "Minder dan {{to}}",
   "grade-class-over": "Meer dan {{from}}",
   "grade-class-between": "{{from}} – {{to}}",
@@ -209,6 +210,7 @@
   "slope-barrier-threshold": "Een barrière indien steiler dan",
   "slope-approximate-include": "Benaderde hellingen meenemen",
   "slope-approximate-include-help": "Sommige hellingen zijn slechts een rechte lijn tussen de twee uiteinden van een straat: waar een stad alleen een grof hoogtemodel heeft, of waar het model onbetrouwbaar leek. Zet dit aan om ook die hellingen mee te tellen.",
+  "slope-coarse-note": "De hellingen van deze stad komen uit een grof hoogtemodel en zijn daarom benaderingen. Ze tellen alleen mee in de score als hieronder benaderde hellingen worden meegenomen.",
   "slope-barrier-effect": "Het wegvak scoort 0: steiler dan de barrière van {{limit}}.",
   "popup-slope-barrier": "barrière: 0"
 }

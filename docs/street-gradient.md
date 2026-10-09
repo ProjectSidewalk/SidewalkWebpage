@@ -311,6 +311,15 @@ weight and a threshold may take), and `/v3/api/accessScoreStreets` publishes eac
 ride in the URL as `gs=`, the street popup's "What drives this score" table gains a Grade row once grade is
 weighed in, and its Grade block says when a barrier has zeroed the segment.
 
+In a city sampled from a coarse model (GEDTM30: Chile, Ecuador, India) every grade is approximate, so by default the
+section's weight slider moves nothing, and the grade layer paints end-to-end lines in colors that look as sure as
+Seattle's. Each entry under `grade.sources` therefore carries the `confidence` of its streets, and the tool
+(`AccessScoreModel.gradesApproximate`) treats a city as approximate when at least half of its sampled streets come from
+`low`-confidence sources. There, a note at the top of the Street grade section says the grades are approximate and
+count only once approximate grades are included, and the grade layer's legend carries the same line. Both are text in
+the flow, not hover tooltips, so they reach touch and screen-reader users; the per-street popup sentence ("From a
+coarse elevation model…") stays as well.
+
 ## Attribution
 
 Most of these models are attribution-only (public domain, CC0, CC BY, or a national open licence), and INEGI also asks

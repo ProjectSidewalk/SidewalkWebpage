@@ -40,6 +40,12 @@ class StreetGradientTableSpec
            VALUES ($streetEdgeId, 'measured', 'high', -0.04, 0.06, 0.09, 40, 10, 1.5, 5.5, 104.0, 100.0,
                    ARRAY[10400, 10150, 10000], $demSource, 10, $Md5, 20, 50)"""
 
+  /** Seeds a coarse-model row: `net_grade` alone at `low` confidence, the shape 399.sql's CHECKs allow at 30 m. */
+  private def insertCoarse(streetEdgeId: Int, demSource: String): DBIO[Int] =
+    sqlu"""INSERT INTO street_gradient (street_edge_id, quality, confidence, net_grade, elev_start_m, elev_end_m,
+                                        dem_source, dem_resolution_m, geom_md5)
+           VALUES ($streetEdgeId, 'measured', 'low', -0.04, 104.0, 100.0, $demSource, 30, $Md5)"""
+
   /** Seeds a `structure` row: endpoint elevations and no grade, as 399.sql's CHECK requires. */
   private def insertStructure(streetEdgeId: Int): DBIO[Int] =
     sqlu"""INSERT INTO street_gradient (street_edge_id, quality, confidence, elev_start_m, elev_end_m, dem_source,
@@ -147,27 +153,33 @@ class StreetGradientTableSpec
   }
 
   "StreetGradientTable.sourceCounts" should {
-    "count streets per elevation model, the most-used model first" in {
+    "count streets per elevation model with its confidence, the most-used model first" in {
       // Deltas against whatever the connected city already holds, so the case reads the same on a sampled dev DB.
       val (before, after) = runRolledBack(for {
         before <- table.sourceCounts(served)
         a      <- insertStreet()
         b      <- insertStreet()
         c      <- insertStreet()
+        d      <- insertStreet()
         hidden <- insertStreet(status = "no_imagery")
         _      <- insertMeasured(a, "spec-dem-major")
         _      <- insertMeasured(b, "spec-dem-major")
-        _      <- insertMeasured(c, "spec-dem-minor")
-        _      <- insertMeasured(hidden, "spec-dem-minor")
+        _      <- insertCoarse(c, "spec-dem-major")
+        _      <- insertCoarse(d, "spec-dem-coarse")
+        _      <- insertMeasured(hidden, "spec-dem-coarse")
         after  <- table.sourceCounts(served)
-      } yield (before.toMap, after))
+      } yield (before.map(_.demSource), after))
 
-      before.get("spec-dem-major") mustBe None
-      after.toMap.apply("spec-dem-major") mustBe 2
+      before must not contain "spec-dem-major"
+      val bySource = after.map(c => c.demSource -> c).toMap
+      // One entry per model whatever its rows' confidences, reporting the lower one: the caveat is what matters.
+      bySource("spec-dem-major").streetCount mustBe 3
+      bySource("spec-dem-major").confidence mustBe StreetGradientConfidence.Low
       // The no_imagery street's row is left out: no street API serves that street.
-      after.toMap.apply("spec-dem-minor") mustBe 1
-      after.map(_._1).indexOf("spec-dem-major") must be < after.map(_._1).indexOf("spec-dem-minor")
-      after.map(_._2) mustBe after.map(_._2).sorted.reverse
+      bySource("spec-dem-coarse").streetCount mustBe 1
+      bySource("spec-dem-coarse").confidence mustBe StreetGradientConfidence.Low
+      after.map(_.demSource).indexOf("spec-dem-major") must be < after.map(_.demSource).indexOf("spec-dem-coarse")
+      after.map(_.streetCount) mustBe after.map(_.streetCount).sorted.reverse
     }
   }
 

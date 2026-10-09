@@ -6,7 +6,13 @@ import models.api.{IntersectionAccessScoreForApi, RegionAccessScoreForApi, Stree
 import models.cluster.ClusterScoreRow
 import models.intersection.{IntersectionInfo, IntersectionStreetEnd, StreetEnd}
 import models.region.Region
-import models.street.{StreetEdgeInfo, StreetGradientConfidence, StreetGradientQuality, StreetGradientStats}
+import models.street.{
+  DemSourceCount,
+  StreetEdgeInfo,
+  StreetGradientConfidence,
+  StreetGradientQuality,
+  StreetGradientStats
+}
 import models.utils.{LatLngBBox, SpatialQueryType}
 import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.Sink
@@ -352,9 +358,9 @@ class AccessScoreService @Inject() (
    * (#5223). Cached like the full-city scores: `accessScoreConfig` is asked for on every AccessScore tool load and
    * was a constant before it carried this, while the answer only changes when someone imports a gradient CSV.
    */
-  def gradientSourceCounts: Future[Seq[(String, Int)]] =
-    swrCache.staleWhileRevalidate[Seq[(String, Int)]](
-      "accessScore:gradient-sources:v1",
+  def gradientSourceCounts: Future[Seq[DemSourceCount]] =
+    swrCache.staleWhileRevalidate[Seq[DemSourceCount]](
+      "accessScore:gradient-sources:v2",
       AccessScoreService.FullCityFreshFor,
       AccessScoreService.FullCityMaxAge
     )(apiService.getStreetGradientSourceCounts)

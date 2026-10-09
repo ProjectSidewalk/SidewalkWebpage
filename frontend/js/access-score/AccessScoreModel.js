@@ -36,7 +36,8 @@ import { AccessScoreGradeRamp } from '../common/AccessScoreGradeRamp.js';
  * @property {number} ramp_limit - 1:12, the running-slope limit for a ramp.
  * @property {number[]} map_class_breaks - Ascending grades dividing the map's slope classes.
  * @property {Array<{dem_source: string, title: string, credit: string, licence: string, url: ?string,
- *     street_count: number}>} sources - The city's elevation models, most streets first; empty where none is sampled.
+ *     street_count: number, confidence: string}>} sources - The city's elevation models, most streets first, each
+ *     with the `grade_confidence` of its streets; empty where none is sampled.
  */
 
 /**
@@ -597,6 +598,22 @@ export class AccessScoreModel {
       const [a, b] = [defaults[k], settings[k]];
       return typeof a === 'number' ? Math.abs(a - b) < 1e-9 : a === b;
     });
+  }
+
+  /**
+   * Whether the city's grades are approximate as a whole: at least half of its sampled streets come from a
+   * `low`-confidence (coarse) elevation model, under which each grade is a straight line between the street's ends
+   * and sits out of the score until `includeApproximate` admits it. Judged by street share rather than by the
+   * leading source alone, so a city sampled mostly from a coarse model with a finer one filling gaps still gets the
+   * caveat; a city where a coarse model fills gaps in a fine one does not. The confidences come from `grade.sources`.
+   * @param {AccessScoreConfig} config - The `/v3/api/accessScoreConfig` response.
+   * @returns {boolean}
+   */
+  static gradesApproximate(config) {
+    const sources = config.grade?.sources ?? [];
+    const total = sources.reduce((sum, s) => sum + (s.street_count ?? 0), 0);
+    const low = sources.filter((s) => s.confidence === 'low').reduce((sum, s) => sum + (s.street_count ?? 0), 0);
+    return total > 0 && low * 2 >= total;
   }
 
   /** Whether every slope setting equals the engine's default, so the panel can say "default" or "custom". */

@@ -97,6 +97,9 @@
             @info("slope-help")
           </div>
           <div id="acs-slope" class="acs-slope" hidden>
+            @* Filled in by AccessScoreSlopePanel.js in a city whose grades come from a coarse model: why the slider
+               below moves nothing until approximate grades are included. Empty, and so not shown, elsewhere. *@
+            <p class="acs-field__note" id="acs-slope-coarse-note"></p>
             <div class="acs-weight" id="acs-slope-weight-row">
               <div class="acs-weight__head">
                 <label class="acs-weight__label" for="acs-slope-weight" data-i18n="accessscore:slope-weight">Grade weight</label>
@@ -137,7 +140,7 @@
             </div>
             <div class="acs-check-row">
               <label class="acs-check" for="acs-slope-approximate">
-                <input type="checkbox" id="acs-slope-approximate">
+                <input type="checkbox" id="acs-slope-approximate" aria-describedby="acs-slope-coarse-note">
                 <span data-i18n="accessscore:slope-approximate-include">Include approximate grades</span>
               </label>
               @info("slope-approximate-include-help")
