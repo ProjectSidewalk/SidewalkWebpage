@@ -150,16 +150,22 @@ class UserController @Inject() (
     Redirect(routes.UserController.signUp().url, request.queryString, MOVED_PERMANENTLY)
   }
 
-  /** With no session this only redirects, so crawlers following the sign-out link don't make accounts (#5706). */
+  /**
+   * Signs the user out and redirects to `url`.
+   *
+   * Anyone else goes home instead: `url` is often a tool page, which makes a new account for a visitor without one.
+   * A link from another site never signs anyone out, so other sites can't sign users out (#5706).
+   */
   def signOut(url: String) = silhouette.UserAwareAction.async { implicit request =>
-    val redirect = Redirect(safeLocalPath(url))
-    request.identity.foreach { user =>
-      cc.loggingService.insert(user.userId, request.ipAddress, "SignOut")
-      silhouette.env.eventBus.publish(LogoutEvent(user, request))
-    }
-    request.authenticator match {
-      case Some(authenticator) => silhouette.env.authenticatorService.discard(authenticator, redirect)
-      case None                => Future.successful(redirect)
+    val fromOtherSite = request.headers.get("Sec-Fetch-Site").contains("cross-site")
+    (request.identity, request.authenticator) match {
+      case _ if fromOtherSite                => Future.successful(Redirect("/"))
+      case (Some(user), Some(authenticator)) =>
+        cc.loggingService.insert(user.userId, request.ipAddress, "SignOut")
+        silhouette.env.eventBus.publish(LogoutEvent(user, request))
+        silhouette.env.authenticatorService.discard(authenticator, Redirect(safeLocalPath(url)))
+      case (None, Some(authenticator)) => silhouette.env.authenticatorService.discard(authenticator, Redirect("/"))
+      case _                           => Future.successful(Redirect("/"))
     }
   }
 
