@@ -92,9 +92,11 @@
   text-align: center;
 }
 
+/* The counts and the buttons under them, in a column centred over the pano rather than spread across a modal that is
+   as wide as the tool: wide enough for the two-button row to keep each label on one line (#5729). */
 #modal-mission-complete-table {
-  height: calc(190px * var(--ui-scale));
-  padding-left: calc(175px * var(--ui-scale));
+  width: min(100%, calc(560px * var(--ui-scale, 1)));
+  margin: 0 auto;
 }
 
 #modal-mission-complete-table h3 {
@@ -103,7 +105,7 @@
 }
 
 .modal-mission-complete-counts {
-  width: 80%;
+  width: 100%;
   margin-bottom: calc(20px * var(--ui-scale, 1));
   border-collapse: collapse;
 }
