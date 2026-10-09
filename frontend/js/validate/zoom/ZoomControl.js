@@ -10,10 +10,11 @@ export class ZoomControl {
   // Zoom limits for the pano on a 3:2 frame, and on every viewer but GSV: the {1, 2, 3} levels of the zoom buttons.
   static #MIN_ZOOM = 1;
   static #MAX_ZOOM = 3;
-  // Zoom levels per unit of wheel deltaY. A trackpad pinch arrives as a wheel event with ctrlKey set and much less
-  // deltaY per gesture than the wheel's notches carry, so at the wheel's gain one pinch moved about a fifth of a
-  // level and zooming in took four or five of them (#5729). The pinch gets 4.5x the gain, the same wheel-to-pinch
-  // ratio MapLibre's scroll-zoom handler uses (1/450 vs 1/100).
+  // Zoom levels per unit of wheel deltaY. A trackpad pinch arrives as a wheel event with ctrlKey set (Chromium and
+  // Firefox; Safari sends gesture events instead, which nothing here hears) carrying much less deltaY per gesture
+  // than wheel notches do: at the wheel's gain one pinch moved about a fifth of a level and zooming in took four or
+  // five of them (#5729). The pinch gain is tuned so one full pinch is about one level. Ctrl held over a real wheel
+  // reads the same and gets the same gain: it is a deliberate zoom modifier, and the result is clamped either way.
   static #ZOOM_WHEEL_SENSITIVITY = 0.0015;
   static #ZOOM_PINCH_SENSITIVITY = 0.007;
 
