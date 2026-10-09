@@ -8,7 +8,7 @@
  * access to a prod city host (for /v3/api/cities) and to the tile hosts.
  *
  * Usage:
- *   node tools/minimap-basemap-compare/record.mjs [--cities a,b] [--map-id ID] [--refresh-cities]
+ *   node tools/experiments/5429-minimap-basemap-compare/record.mjs [--cities a,b] [--map-id ID] [--refresh-cities]
  *     [--headed] [--channel chrome]
  * --channel chrome uses the installed Google Chrome instead of Playwright's bundled browser (no download needed).
  *
@@ -21,8 +21,8 @@ import { fileURLToPath } from 'node:url';
 import { chromium } from '@playwright/test';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-const PUBLIC_DIR = path.resolve(HERE, '../../public');
-const FRONTEND_DIR = path.resolve(HERE, '../../frontend');
+const PUBLIC_DIR = path.resolve(HERE, '../../../public');
+const FRONTEND_DIR = path.resolve(HERE, '../../../frontend');
 const OUT_DIR = path.join(HERE, 'out');
 const DEV_APP_URL = process.env.DEV_APP_URL ?? 'http://localhost:9000';
 // Path prefix the page and public/ are routed under; nothing in the app uses it.
@@ -119,7 +119,7 @@ function metersApart(a, b) {
  * @returns {Object<string, string>} Host URL by city id.
  */
 function prodHosts() {
-  const conf = fs.readFileSync(path.resolve(HERE, '../../conf/cityparams.conf'), 'utf8');
+  const conf = fs.readFileSync(path.resolve(HERE, '../../../conf/cityparams.conf'), 'utf8');
   const block = conf.match(/landing-page-url\s*\{\s*prod\s*\{([^}]*)\}/);
   if (!block) throw new Error('No landing-page-url.prod block in conf/cityparams.conf');
   const entries = block[1].matchAll(/^\s*([\w-]+)\s*=\s*"([^"]+)"/gm);
@@ -168,8 +168,8 @@ async function resolveCities(cityIds, refresh) {
 
 /**
  * Answers every request under PREFIX on the dev app's origin: compare.html (with the key filled in) and files from
- * public/ and frontend/. The origin satisfies the Maps key's referrer allowlist; the files come from this checkout. Routed on the
- * context, not the page, so MapLibre's worker chunks are answered too.
+ * public/ and frontend/. The origin satisfies the Maps key's referrer allowlist; the files come from this checkout.
+ * Routed on the context, not the page, so MapLibre's worker chunks are answered too.
  * @param {import('@playwright/test').BrowserContext} context - The browser context.
  * @param {string} pageHtml - compare.html with the key substituted.
  * @returns {Promise<void>}

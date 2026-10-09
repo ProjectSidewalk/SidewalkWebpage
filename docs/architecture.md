@@ -509,16 +509,13 @@ loaded by the corresponding Twirl view:
   and the map object is never handed out. *The basemap is code*, `MinimapBasemapStyle.js`: a sparse style (land,
   water, rivers, parks, buildings, roads, and road and water names in the UI language where OSM has one) built from
   the `main.css` tokens, reviewed like any other change; its tile host must also be in the CSP's `connect-src`. *A
-  dead tile host degrades, never
-  breaks*: `Minimap.create` resolves when the style is ready, not when tiles arrive, so streets, markers and fog
-  draw over a blank background. *No map degrades too*: MapLibre needs WebGL2 and throws without it, so `create`
-  never rejects; a minimap that can't be built says so in its place and draws nothing, `isAvailable()` turns false
-  for the overlays drawn to its scale, and the rest of Explore starts (`Minimap_Unavailable` is logged). What Project Sidewalk itself draws on the map (street-line encodings, fog, cone) is
-  `MinimapStyle.js`. MapLibre 6 ships only as ES modules whose worker and shared chunk import each other by relative
-  URL, so it stays out of the Vite bundle and is served as its own files: `Minimap.create` loads it with a dynamic
-  `import()` of the URL on the view's `#maplibre-module` preload link, which is also what fingerprints it and starts
-  the download early. The mission-complete map on the same page is still Mapbox, so Explore loads
-  both libraries.
+  dead tile host degrades, never breaks*: `Minimap.create` resolves when the style is ready, not when tiles arrive,
+  so streets, markers and fog draw over a blank background. *No map degrades too*: MapLibre needs WebGL2 and throws
+  without it, so `create` never rejects; a minimap that can't be built says so in its place and draws nothing,
+  `isAvailable()` turns false for the overlays drawn to its scale, and the rest of Explore starts
+  (`Minimap_Unavailable` is logged). What Project Sidewalk itself draws on the map (street-line encodings, fog, cone)
+  is `MinimapStyle.js`. The library is served as its own files rather than bundled (`docs/upgrading-libraries.md`
+  says why), and the mission-complete map on the same page is still Mapbox, so Explore loads both libraries.
 - **`common/`** — modules shared across bundles: `pano-viewer/` (an abstraction over the GSV / Mapillary / Infra3d /
   Panoramax / Pannellum imagery providers), `label-detail/` (label popups), and various utilities. The popup's pano viewer is
   built for the first label shown, never for a visit that opens none: Google bills every `StreetViewPanorama`

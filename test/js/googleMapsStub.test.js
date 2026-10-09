@@ -4,8 +4,8 @@
  *
  * The browser suite only shows that the app runs against the stub; it can't show that the stub behaves like the
  * API in the ways the app depends on — the loader hand-off, event ordering, and the pano contract that decides which
- * imagery path Validate takes. A stub that drifted from the API in one of those would let the suite pass on behaviour production never sees,
- * which is exactly the failure a fake invites. So each of those is a test here.
+ * imagery path Validate takes. A stub that drifted from the API in one of those would let the suite pass on
+ * behaviour production never sees, which is exactly the failure a fake invites. So each of those is a test here.
  *
  * The stub is a browser IIFE that reads its callback name from `document.currentScript.src`; installing it means
  * pointing that at a loader-shaped URL and evaluating the source in the jsdom window, the way a `<script>` would.

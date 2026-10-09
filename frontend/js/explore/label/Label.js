@@ -351,8 +351,6 @@ export class Label {
       }
     }
 
-    // A deleted label leaves the minimap, as does one the legend's earlier-labels toggle hides. Hidden rather than
-    // removed: a delete can be undone, and the toggle can be turned back on.
     if (this.#minimapMarker) this.#minimapMarker.setVisible(!this.isDeleted() && !this.#minimapSuppressed);
     return this;
   }

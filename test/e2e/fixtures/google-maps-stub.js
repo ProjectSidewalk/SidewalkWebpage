@@ -4,8 +4,9 @@
  *
  * Why it exists: Google bills the "Dynamic Street View" SKU per `new google.maps.StreetViewPanorama(...)`, tiles or
  * no tiles. Explore's tutorial pano and the label-detail popup that /labelMap, /gallery, /dashboard and /stories
- * build at page load each fire one, so a run of the smoke suite against the real API was ~20 billable events — and the suite's job is to catch *our* runtime errors, not Google's.
- * With this file routed in, the CI project needs no key at all and the suite is deterministic offline.
+ * build at page load each fire one, so a run of the smoke suite against the real API was ~20 billable events — and
+ * the suite's job is to catch *our* runtime errors, not Google's. With this file routed in, the CI project needs no
+ * key at all and the suite is deterministic offline.
  *
  * What it implements: only the surface `frontend/js` touches, so a member found here is known to be load-bearing and
  * a new Google call in the app fails here first rather than "working" against a fake the real API doesn't match.

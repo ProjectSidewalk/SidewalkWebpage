@@ -218,14 +218,11 @@ blocking CI step) fails if the two disagree, or if a folder under `vendor/` isn'
   [Download](https://cdn.jsdelivr.net/npm/@inovitas/infra3dapi@1.12.1/infra3dapi.js) ·
   [Changelog](https://developers.infra3d.com/javascript-api/reference/index.html#md:changelog)
 - **maplibre-gl (js & css): 6.10.0** — draws the Explore minimap (#5429); check with `maplibregl.getVersion()`.
-  **Note:** ES modules only since 6.0.0: a main module, a shared chunk and a worker module, which import each other
-  by fixed relative names. That is why they live in a version-named folder (`maplibre-gl-6.10.0/`) rather than
-  carrying the version in their own names, and an upgrade copies all three `.mjs` files from `dist/` unrenamed (not
-  the `-dev` builds). It is not bundled into `build/js/explore.js` with the rest of the frontend, because the worker and
-  chunk must stay separate files at those names: `Minimap.create` loads the main module with a dynamic `import()` of
-  the fingerprinted URL on `explore.scala.html`'s `#maplibre-module` preload link, and assigns `window.maplibregl`. The
-  chunks resolve relative to it (plain URLs, which Play still serves with a content ETag), and a version bump edits
-  that link's path. The worker is a same-origin module worker, so CSP `worker-src 'self'` covers it.
+  **Note:** ships only as ES modules: a main module, a worker and a shared chunk that import each other by fixed
+  relative names. So the three sit unrenamed in a version-named folder (`maplibre-gl-6.10.0/`) and stay out of the
+  Vite bundle; `Minimap.create` imports the main module from the `#maplibre-module` link in `explore.scala.html`.
+  To upgrade, copy the three `.mjs` files (not the `-dev` builds) from `dist/` into a new version folder, and point
+  that link and the stylesheet link at the new paths. #5734 moves it to an npm dependency Vite bundles instead.
   [Download](https://cdn.jsdelivr.net/npm/maplibre-gl@6.10.0/dist/) ·
   [Changelog](https://github.com/maplibre/maplibre-gl-js/blob/main/CHANGELOG.md)
 - **mapbox-gl (js & css): 3.24.1** — check with `mapboxgl.version`. **Note:** held below 3.25 on purpose. From 3.25.0 a

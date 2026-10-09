@@ -886,10 +886,8 @@
 
   <script src='@assets.path("vendor/turf/turf-7.4.0.min.js")'></script>
   <script src='@assets.path("vendor/async-lock/async-lock-1.4.1.min.js")'></script>
-  @* The minimap's map library (#5429). MapLibre 6 ships as ES modules whose worker and shared chunk import each other
-     by relative URL, so it is served as its own files rather than bundled: Minimap.create imports it from this link's
-     href, which is how JS gets its fingerprinted URL (vendor/ isn't in util.assetPath's manifest). Mapbox GL below
-     still draws the mission-complete map. *@
+  @* Draws the minimap (#5429); Mapbox below is still the mission-complete map. Minimap.create imports it from this
+     link's href, the only way JS can get a vendor file's fingerprinted URL. docs/upgrading-libraries.md says why. *@
   <link id="maplibre-module" rel="modulepreload"
         href='@assets.path("vendor/maplibre-gl/maplibre-gl-6.10.0/maplibre-gl.mjs")'>
   <link href='@assets.path("vendor/maplibre-gl/maplibre-gl-6.10.0.css")' rel="stylesheet">

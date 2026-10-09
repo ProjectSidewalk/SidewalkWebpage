@@ -32,8 +32,7 @@ import { MinimapBasemapStyle } from './MinimapBasemapStyle.js';
 /** @typedef {import('../task/Task.js').Task} Task */
 
 export class Minimap {
-  // Zoom bounds for the minimap. ObservedArea's REFERENCE_ZOOM must match DEFAULT. MapLibre's zoom z shows the scale
-  // of Google's raster z + 1 (a 512px world tile, not 256px), so these are one below the Google minimap's 16/20/18/12.
+  // Zoom bounds for the minimap. ObservedArea's REFERENCE_ZOOM must match DEFAULT.
   /** @type {number} */
   static #MIN_ZOOM = 15;
   /** @type {number} */
@@ -117,14 +116,12 @@ export class Minimap {
 
     this.#setupZoomControls();
 
-    // Redraw the observed-area overlay as the map moves, so the fog/FOV stay aligned through a zoom animation and not
-    // just at its end; the route overview inset tracks the same moves so its "current extent" box follows along.
-    // A resize is a move too: MapLibre watches its container, so a UI-scale change or the tutorial's fixed square
-    // lands here once the map has caught up with its new size.
     // MapLibre gives an interactive canvas a tab stop; it would focus a map the keyboard can't do anything with.
     this.#map.getCanvas().setAttribute('tabindex', '-1');
     this.#map.on('dragend', () => svl.tracker.push('Minimap_Pan'));
 
+    // Keeps the fog/FOV and the route-overview inset aligned through a zoom animation, not just at its end. A resize
+    // is a move too (MapLibre watches its container), so a UI-scale change lands here once the map has caught up.
     this.#map.on('move', () => {
       this.#updateRecenterButton();
       // ObservedArea.update redraws the inset too, so the inset is drawn here only before ObservedArea exists.
@@ -145,12 +142,9 @@ export class Minimap {
   /**
    * Adds the map data attribution as a collapsed "i" button that expands on click, and logs each toggle.
    *
-   * MapLibre opens a compact attribution as soon as the tile source reports its credits, and closes it on the first
-   * drag of the map. This map can't be dragged, so left alone the credits would cover a third of it for the whole
-   * session. Closing them the moment they first open leaves the button, which still toggles them.
-   *
-   * Mounted in the holder, not via addControl: inside the map's isolated stacking context (#minimap in
-   * svl-minimap.css) the expanded credits would open under the legend.
+   * MapLibre opens the compact credits as soon as the tile source reports them, and on a map this small they would
+   * cover a third of it until the first drag, so they are closed the moment they first open. Mounted in the holder,
+   * not via addControl: inside the map's isolated stacking context they would open under the legend.
    */
   #addAttribution() {
     const holder = document.getElementById('minimap-holder');
@@ -302,8 +296,8 @@ export class Minimap {
     this.#updateFitButtonLabel();
     svl.ui.minimap.holder.classList.add('minimap-overview');
     this.#map.setMinZoom(Minimap.#OVERVIEW_MIN_ZOOM);
-    // Room for a flag on any edge (drawn above and either side of its point), then a whole zoom level like Google's
-    // fitBounds gave, so the overview is never up to a level closer than prod's was.
+    // Room for a flag on any edge (drawn above and either side of its point), then rounded down to a whole zoom
+    // level so the route has some air around it rather than a tight fit.
     const flag = Minimap.#ROUTE_FLAG_SIZE_PX;
     const padding = { top: 12 + flag, bottom: 12, left: 12 + flag / 2, right: 12 + flag / 2 };
     const camera = this.#map.cameraForBounds(bounds, { padding });
@@ -731,13 +725,9 @@ export class Minimap {
   }
 
   /**
-   * Makes MapLibre available as the `maplibregl` global the rest of this class names.
-   *
-   * MapLibre 6 ships only as ES modules whose worker and shared chunk import each other by relative URL, so it is
-   * served as its own files rather than bundled into this page's script, and loaded here through import(). The URL is
-   * the view's #maplibre-module preload link, the one place that can fingerprint a vendor file; the library's chunks
-   * resolve relative to it, so they stay beside it under their own names. A global already present (the jsdom tests'
-   * stand-in) is kept.
+   * Makes MapLibre available as the `maplibregl` global the rest of this class names. It is served as its own files,
+   * not bundled (docs/upgrading-libraries.md), so the URL comes from the view's preload link, the one place a vendor
+   * file gets its fingerprinted URL. A global already present (the jsdom tests' stand-in) is kept.
    * @returns {Promise<void>}
    */
   static async #loadLibrary() {

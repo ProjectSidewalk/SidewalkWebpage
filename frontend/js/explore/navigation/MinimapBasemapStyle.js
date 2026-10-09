@@ -1,22 +1,18 @@
 /**
  * The Explore minimap's basemap: a MapLibre style object over OpenStreetMap vector tiles (#5429).
  *
- * The style lives in the repo, as code, so the cartography is reviewed like anything else. It is deliberately sparse:
- * the minimap is ~200px and sits under the fog-of-war and FOV overlays, so it draws only what helps a labeler orient —
- * land, water, rivers, parks, buildings, roads, rail, and road and water names. No POI icons, transit, or place
- * labels (#4665), which also means no sprite sheet to host: glyphs are the only style asset fetched.
- *
- * Colors come from the main.css design tokens (via MinimapStyle.token) so the basemap stays in the design system's
- * palette and quiet enough for the route lines and label icons drawn over it to carry the contrast.
+ * Deliberately sparse: the minimap is ~200px and sits under the fog-of-war and FOV overlays, so it draws only what
+ * helps a labeler orient (land, water, parks, buildings, roads, rail, and road and water names). No POI icons, transit
+ * or place labels (#4665), which also means no sprite sheet to host. Colors come from the main.css tokens (via
+ * MinimapStyle.token), quiet enough for the route lines and label icons over the map to carry the contrast.
  */
 
 import { MinimapStyle } from './MinimapStyle.js';
 
 export class MinimapBasemapStyle {
-  // The tile and glyph host. Both URLs must stay on an origin listed in the CSP's connect-src (conf/application.conf),
-  // or the browser blocks the fetches and the minimap draws streets and markers over a blank background.
-  // OpenFreeMap serves the OpenMapTiles schema; the source-layer and class names below are that schema's, so a
-  // different host works unchanged only if it serves the same schema.
+  // The tile and glyph host must be in the CSP's connect-src (conf/application.conf), or the browser blocks the
+  // fetches and the minimap draws over a blank background. The source-layer and class names below are the
+  // OpenMapTiles schema's, so a different host works unchanged only if it serves that schema.
   static #TILES_URL = 'https://tiles.openfreemap.org/planet';
   static #GLYPHS_URL = 'https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf';
 
@@ -26,8 +22,8 @@ export class MinimapBasemapStyle {
   static #MAJOR_ROADS = ['motorway', 'trunk', 'primary', 'secondary', 'tertiary'];
   static #MINOR_ROADS = ['minor', 'service', 'track'];
 
-  // Typical curb-to-curb widths in meters by OpenMapTiles class. The tiles carry a class but no width (OSM's `width`
-  // tag is sparse and not in the schema), so roads are drawn at their class's typical width, as Google's are.
+  // Typical curb-to-curb widths in meters by OpenMapTiles class: the tiles carry a class but no width (OSM's `width`
+  // tag is sparse and not in the schema), so roads are drawn at their class's typical width.
   static #ROAD_METERS = {
     motorway: 22, trunk: 18, primary: 15, secondary: 13, tertiary: 11, minor: 9, service: 5, track: 4, path: 2,
   };
