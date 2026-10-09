@@ -617,9 +617,8 @@
 }
 
 /* Breadcrumbs are map-positioned markers, not canvas panes, so the rule above doesn't reach them; hide them explicitly
-   in the fitted whole-route overview so the visited trail doesn't clutter the zoomed-out view (#4639). The marker
-   wrapper is what goes: it holds the tab stop, so hiding only the crumb inside would leave an invisible focus
-   target. */
+   in the fitted whole-route overview so the visited trail doesn't clutter the zoomed-out view (#4639). The wrapper is
+   what goes: it holds the tab stop, so hiding only the crumb inside would leave an invisible focus target. */
 #minimap-holder.minimap-overview .minimap-marker:has(> .minimap-breadcrumb),
 #minimap-holder.minimap-overview .minimap-marker:has(> .minimap-crumb) {
   display: none;
@@ -739,8 +738,7 @@
 }
 
 /* Recenter: a lone button 6px above the zoom column (3 x 18px buttons, 2px gaps, 10px up), so it reads as its own
-   control and rounds on all corners. .ps-icon-button's display: flex would override its hidden attribute, hence the
-   explicit rule. */
+   control and rounds on all corners. .ps-icon-button's display: flex would override its hidden attribute. */
 #minimap-recenter {
   position: absolute;
   right: calc(4px * var(--ui-scale));
