@@ -217,6 +217,14 @@ blocking CI step) fails if the two disagree, or if a folder under `vendor/` isn'
   bump grep the new file for each name.
   [Download](https://cdn.jsdelivr.net/npm/@inovitas/infra3dapi@1.12.1/infra3dapi.js) ·
   [Changelog](https://developers.infra3d.com/javascript-api/reference/index.html#md:changelog)
+- **maplibre-gl (js & css): 6.10.0** — draws the Explore minimap (#5429); check with `maplibregl.getVersion()`.
+  **Note:** ships only as ES modules: a main module, a worker and a shared chunk that import each other by fixed
+  relative names. So the three sit unrenamed in a version-named folder (`maplibre-gl-6.10.0/`) and stay out of the
+  Vite bundle; `Minimap.create` imports the main module from the `#maplibre-module` link in `explore.scala.html`.
+  To upgrade, copy the three `.mjs` files (not the `-dev` builds) from `dist/` into a new version folder, and point
+  that link and the stylesheet link at the new paths. #5734 moves it to an npm dependency Vite bundles instead.
+  [Download](https://cdn.jsdelivr.net/npm/maplibre-gl@6.10.0/dist/) ·
+  [Changelog](https://github.com/maplibre/maplibre-gl-js/blob/main/CHANGELOG.md)
 - **mapbox-gl (js & css): 3.24.1** — check with `mapboxgl.version`. **Note:** held below 3.25 on purpose. From 3.25.0 a
   symbol layer that shares a source with feature-state paint (Route Builder's region labels, AccessScore's) crashes
   the map with `Cannot read properties of undefined (reading 'paint')` once that state changes

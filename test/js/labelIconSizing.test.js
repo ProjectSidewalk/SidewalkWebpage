@@ -118,7 +118,7 @@ describe('label icon sizing across the UI scale', () => {
                 labelTypeHasSeverity: () => true };
             window.labelIconCache = { 'CurbRamp.svg': {} };
             window.svl = { LABEL_ICON_RADIUS: 17, CANVAS_FRAME: { width: 720, height: 480 }, renderedHFov: () => 90,
-                minimap: { getMap: () => null } };
+                minimap: { addMarker: (latLng, content) => ({ content, setVisible() {}, setTitle() {}, setClickable() {}, setZIndex() {} }) } };
             Object.assign(window, loadModules('frontend/js/explore/label/Label.js'));
             // Set after the load: importing Label rebuilds util.pano.
             util.pano.centeredPovToCanvasCoord = () => ({ x: 100, y: 100 });
@@ -186,7 +186,7 @@ describe('label icon sizing across the UI scale', () => {
                 label.render(ctx, { heading: 90, pitch: -20, zoom: 1 });
                 return ctx;
             };
-            Label.createMinimapMarker = () => ({ addListener: () => {} });
+            Label.createMinimapMarker = () => ({ setVisible: () => {} });
 
             const base = render(util.LABEL_ICON_BASE_RADIUS).ellipses[0];
             const capped = render(util.labelIconRadius(1.8)).ellipses[0];
@@ -233,14 +233,13 @@ describe('label icon sizing across the UI scale', () => {
                 renderedHFov: () => 90,
                 LABEL_ICON_RADIUS: util.labelIconRadius(1),
                 LABEL_HIT_MARGIN: util.labelHitMargin(1),
-                minimap: { getMap: () => null },
             };
             Object.assign(window, loadModules('frontend/js/explore/label/Label.js'));
             Object.assign(window, loadModules('frontend/js/explore/canvas/Canvas.js'));
             util.pano.centeredPovToCanvasCoord = () => ({ x: 100, y: 100 });
             Label = window.Label;
             Canvas = window.Canvas;
-            Label.createMinimapMarker = () => ({ addListener: () => {} });
+            Label.createMinimapMarker = () => ({ setVisible: () => {} });
         });
 
         test('Label.isOn covers the whole drawn icon', () => {

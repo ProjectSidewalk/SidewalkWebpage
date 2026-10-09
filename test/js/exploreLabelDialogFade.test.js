@@ -73,7 +73,6 @@ describe('Label render fade while the context menu is open', () => {
             renderedHFov: () => 90,
             LABEL_ICON_RADIUS: util.labelIconRadius(1),
             isOnboarding: () => false,
-            minimap: { getMap: () => null },
         };
         util.pano = { centeredPovToCanvasCoord: () => ({ x: 360, y: 240 }) };
         util.misc = {
@@ -81,7 +80,7 @@ describe('Label render fade while the context menu is open', () => {
             getIconImagePaths: () => ({ iconImagePath: 'CurbRamp.svg' }),
         };
         window.labelIconCache = { 'CurbRamp.svg': {} }; // Truthy, so renderLabelIcon reaches its drawImage.
-        Label.createMinimapMarker = () => ({ addListener: () => {} });
+        Label.createMinimapMarker = () => ({ setVisible: () => {} });
     });
 
     afterEach(() => {

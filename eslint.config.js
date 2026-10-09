@@ -44,6 +44,7 @@ module.exports = [
         i18nextHttpBackend: 'readonly',
         infra3dapi: 'readonly',
         mapboxgl: 'readonly',
+        maplibregl: 'readonly',
         MapboxLanguage: 'readonly',
         MapboxSearchBox: 'readonly',
         mapillary: 'readonly',

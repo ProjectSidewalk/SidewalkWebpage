@@ -28,6 +28,11 @@ declare namespace mapboxgl {
   type Marker = any;
   type Popup = any;
 }
+declare const maplibregl: any;
+declare namespace maplibregl {
+  type LngLatBounds = any;
+  type Map = any;
+}
 declare const MapboxLanguage: any;
 declare const MapboxSearchBox: any;
 // GraphDataProvider is spelled out because a class extending an `any` base gets a constructor that takes nothing.
@@ -96,6 +101,8 @@ interface Window {
     isPrimaryValidate: boolean;
   }>;
   logWebpageActivity: (activity: string, async?: boolean) => void;
+  // Assigned by Minimap.create from a dynamic import(): MapLibre 6 is an ES module, not a script-tag global.
+  maplibregl: any;
   panoramaxLicenses: Record<string, { name: string; url: string }>;
   psAuthModal: import('../../../frontend/js/common/AuthModal.js').AuthModal;
 }
