@@ -92,10 +92,11 @@
   text-align: center;
 }
 
-/* The counts and the buttons under them, in a column centred over the pano rather than spread across a modal that is
-   as wide as the tool: wide enough for the two-button row to keep each label on one line (#5729). */
+/* The counts and the buttons under them, in a column centred in the modal (which is as wide as the tool) rather than
+   spread across it, under the centred title. Wide enough that the two-button row keeps every locale's labels on one
+   line (#5729): French's "Commencer une mission d'exploration" beside "Continuer" is the longest pair. */
 #modal-mission-complete-table {
-  width: min(100%, calc(560px * var(--ui-scale, 1)));
+  width: min(100%, calc(600px * var(--ui-scale, 1)));
   margin: 0 auto;
 }
 
@@ -134,10 +135,12 @@
   gap: calc(8px * var(--ui-scale, 1));
 }
 
+/* Grown 3:2 from each label's own width, not from zero: a zero basis hands the primary 60% of the row, which French's
+   label is too long for. */
 #modal-mission-complete-close-button-primary {
-  flex: 3;
+  flex: 3 1 auto;
 }
 
 #modal-mission-complete-close-button-secondary {
-  flex: 2;
+  flex: 2 1 auto;
 }
