@@ -319,11 +319,5 @@ body.svv-immersive #modal-mission-complete-close-button-secondary {
 }
 
 body.svv-immersive #modal-mission-complete-table {
-  height: auto;
-  padding-left: 0;
   margin-top: calc(20px * var(--ui-scale));
-}
-
-body.svv-immersive .modal-mission-complete-counts {
-  width: 100%;
 }

@@ -8,8 +8,13 @@ export class ZoomControl {
   // Zoom limits for the pano, matching the {1, 2, 3} levels used by the zoom buttons.
   static #MIN_ZOOM = 1;
   static #MAX_ZOOM = 3;
-  // Scroll wheel / trackpad zoom tuning.
+  // Zoom levels per unit of wheel deltaY. A trackpad pinch arrives as a wheel event with ctrlKey set (Chromium and
+  // Firefox; Safari sends gesture events instead, which nothing here hears) carrying much less deltaY per gesture
+  // than wheel notches do: at the wheel's gain one pinch moved about a fifth of a level and zooming in took four or
+  // five of them (#5729). The pinch gain is tuned so one full pinch is about one level. Ctrl held over a real wheel
+  // reads the same and gets the same gain: it is a deliberate zoom modifier, and the result is clamped either way.
   static #ZOOM_WHEEL_SENSITIVITY = 0.0015;
+  static #ZOOM_PINCH_SENSITIVITY = 0.007;
 
   #zoomInButton;
   #zoomOutButton;
@@ -76,7 +81,8 @@ export class ZoomControl {
     e.preventDefault();
 
     // Scrolling up (negative deltaY) zooms in; scrolling down zooms out.
-    const zoomDelta = -e.deltaY * ZoomControl.#ZOOM_WHEEL_SENSITIVITY;
+    const sensitivity = e.ctrlKey ? ZoomControl.#ZOOM_PINCH_SENSITIVITY : ZoomControl.#ZOOM_WHEEL_SENSITIVITY;
+    const zoomDelta = -e.deltaY * sensitivity;
 
     const newZoom = Math.max(
       ZoomControl.#MIN_ZOOM, Math.min(ZoomControl.#MAX_ZOOM, svv.panoViewer.getPov().zoom + zoomDelta),
