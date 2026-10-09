@@ -11,12 +11,14 @@
 const { loadModules, realUtil } = require('./loadGlobalScript');
 
 window.util = realUtil();
+// jsdom has no layout, so it leaves scrollIntoView out; the region table calls it.
+window.HTMLElement.prototype.scrollIntoView = () => {};
 
 const { SidewalksPage } = loadModules('frontend/js/admin-dashboard/SidewalksPage.js');
 
 /** Mapbox GL cannot run under jsdom; this records what the map was told and fires 'load' immediately. */
 function stubMapbox() {
-  const state = { filters: [], fits: [], featureStates: [] };
+  const state = { filters: [], halos: [], fits: [], featureStates: [] };
   global.mapboxgl = {
     accessToken: null,
     Map: class {
@@ -32,7 +34,9 @@ function stubMapbox() {
 
       addLayer() {}
 
-      setFilter(layer, expression) { state.filters.push(expression); }
+      setFilter(layer, expression) {
+        (layer.includes('halo') ? state.halos : state.filters).push(expression);
+      }
 
       setFeatureState(target, value) { state.featureStates.push({ target, value }); }
 
@@ -157,8 +161,11 @@ async function renderPage({ streets = CITY, ids = [1, 2, 3, 4, 5, 6], rebuiltAt 
 }
 
 const text = (id) => document.getElementById(id).textContent;
+// Flag rows are keyed street_edge_id * 2 + (right ? 1 : 0); this reads them back as "street:side".
 const flagRows = () => [...document.querySelectorAll('#sidewalks-flag-table tbody tr[data-row-id]')]
-  .map((tr) => Number(tr.dataset.rowId));
+  .map((tr) => Number(tr.dataset.rowId))
+  .map((id) => `${Math.floor(id / 2)}:${id % 2 ? 'right' : 'left'}`);
+const regionRows = () => [...document.querySelectorAll('#sidewalks-region-table tbody tr[data-row-id]')];
 const pickFlag = (key) => {
   const select = document.getElementById('sidewalks-flag');
   select.value = key;
@@ -203,14 +210,21 @@ describe('the Sidewalks page', () => {
 
   test('puts each street on the review list its evidence calls for', async () => {
     await renderPage();
-    expect(flagRows()).toEqual([1]);
+    expect(flagRows()).toEqual(['1:left']);
     pickFlag('other_side_tag');
-    expect(flagRows()).toEqual([2]);
+    expect(flagRows()).toEqual(['2:right']);
     pickFlag('curb_ramps');
     // A street-level list: one row for the street, not one per side.
-    expect(flagRows()).toEqual([3]);
+    expect(flagRows()).toEqual(['3:left']);
     pickFlag('problem_labels');
-    expect(flagRows()).toEqual([4]);
+    expect(flagRows()).toEqual(['4:left']);
+  });
+
+  test('gives both sides of one street their own row when both are on a list', async () => {
+    const both = street(7, face('left', absent({ problem_label_count: 1 })), face('right', absent({ problem_label_count: 1 })));
+    await renderPage({ streets: [...CITY, both], ids: [1, 2, 3, 4, 5, 6, 7] });
+    pickFlag('problem_labels');
+    expect(flagRows().sort()).toEqual(['4:left', '7:left', '7:right']);
   });
 
   test('names each list with how many rows it holds', async () => {
@@ -221,10 +235,8 @@ describe('the Sidewalks page', () => {
 
   test('focuses a street on the map when its row is chosen', async () => {
     const map = await renderPage();
-    document.querySelector('#sidewalks-flag-table tbody tr[data-row-id="1"] button').click();
-    expect(map.featureStates).toEqual(expect.arrayContaining([
-      { target: expect.objectContaining({ id: '1:left' }), value: { focused: true } },
-    ]));
+    document.querySelector('#sidewalks-flag-table tbody tr[data-row-id="2"] button').click();
+    expect(map.halos.at(-1)).toEqual(['in', ['get', 'face_id'], ['literal', ['1:left', '1:right']]]);
     expect(map.fits.at(-1).options.maxZoom).toBe(17);
   });
 
@@ -236,6 +248,25 @@ describe('the Sidewalks page', () => {
     select.dispatchEvent(new Event('change', { bubbles: true }));
     expect(text('sidewalks-filter-note')).toBe('Showing 11 of 12 sides.');
     expect(JSON.stringify(map.filters.at(-1))).toContain('["get","no_sidewalk_user_count"],2');
+  });
+
+  test('the confirmed-only box hides unconfirmed no-sidewalk sides on the map and in the count alike', async () => {
+    const map = await renderPage();
+    const box = document.getElementById('sidewalks-confirmed-only');
+    box.checked = true;
+    box.dispatchEvent(new Event('change', { bubbles: true }));
+    // Of the 6 absent sides only 4L is confirmed, so 5 drop out of 12.
+    expect(text('sidewalks-filter-note')).toBe('Showing 7 of 12 sides.');
+    expect(JSON.stringify(map.filters.at(-1))).toContain('["get","validated_no_sidewalk_count"],1');
+  });
+
+  test('unchecking a basis drops its sides from the map and the count alike', async () => {
+    const map = await renderPage();
+    const box = document.querySelector('input[name="sidewalks-basis"][value="other_side_tag"]');
+    box.checked = false;
+    box.dispatchEvent(new Event('change', { bubbles: true }));
+    expect(text('sidewalks-filter-note')).toBe('Showing 11 of 12 sides.');
+    expect(JSON.stringify(map.filters.at(-1))).not.toContain('"other_side_tag"');
   });
 
   test('offers a basis checkbox for exactly the bases the city has', async () => {
@@ -252,6 +283,26 @@ describe('the Sidewalks page', () => {
       ['Ballard', '100%', '60%', '6.0', '1', '1'],
       ['Downtown', '0%', '0%', '0.0', '0', '0'],
     ]));
+  });
+
+  test('a region is a button, stays highlighted through a re-sort, and a second press clears it', async () => {
+    const map = await renderPage();
+    const ballard = () => regionRows().find((tr) => tr.textContent.includes('Ballard'));
+    ballard().querySelector('button').click();
+    expect(map.fits).toHaveLength(1);
+    expect(ballard().classList.contains('is-highlighted')).toBe(true);
+    document.querySelector('#sidewalks-region-table th[data-key="region_name"]').click();
+    expect(ballard().classList.contains('is-highlighted')).toBe(true);
+    ballard().querySelector('button').click();
+    expect(ballard().classList.contains('is-highlighted')).toBe(false);
+  });
+
+  test('escapes a region name in the tables', async () => {
+    const hostile = CITY.map((s) => ({ ...s, region_name: '<img src=x onerror=alert(1)>' }));
+    await renderPage({ streets: hostile });
+    expect(document.querySelector('#sidewalks-region-table img')).toBeNull();
+    expect(document.querySelector('#sidewalks-flag-table img')).toBeNull();
+    expect(regionRows()[0].textContent).toContain('<img src=x');
   });
 
   test('explains an empty city rather than drawing an empty map', async () => {

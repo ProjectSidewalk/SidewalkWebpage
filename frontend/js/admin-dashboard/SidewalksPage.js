@@ -169,6 +169,8 @@ export class SidewalksPage {
 
   /** The headline numbers, over every face regardless of the map's filters. */
   #renderKpis() {
+    // "With a verdict" rather than "audited": a side with NoSidewalk labels is called absent even on a street whose
+    // audit was never completed.
     const audited = this.#faces.filter((f) => f.presence !== 'unknown');
     const absent = audited.filter((f) => f.presence === 'absent');
     const absentKm = absent.reduce((sum, f) => sum + f.length_m, 0) / 1000;
@@ -177,7 +179,7 @@ export class SidewalksPage {
 
     AdminShell.setText('kpi-absent', audited.length ? `${SidewalksPage.#pct(absent.length, audited.length)}%` : '—');
     AdminShell.setText('kpi-absent-note', `${AdminShell.num(absent.length)} of ${AdminShell.num(audited.length)} `
-    + `audited sides, ${absentKm.toFixed(1)} km`);
+    + `sides with a verdict, ${absentKm.toFixed(1)} km`);
     AdminShell.setText('kpi-single', absent.length ? `${SidewalksPage.#pct(single.length, absent.length)}%` : '—');
     AdminShell.setText('kpi-single-note', `${AdminShell.num(single.length)} sides rest on one labeler`);
     AdminShell.setText('kpi-confirmed', AdminShell.num(confirmed.length));
@@ -186,7 +188,7 @@ export class SidewalksPage {
       : 'no no-sidewalk sides yet');
     AdminShell.setText('kpi-rebuilt', this.#rebuiltAt ? AdminShell.relativeTime(this.#rebuiltAt) : 'never');
     AdminShell.setText('kpi-rebuilt-note', this.#rebuiltAt
-      ? 'verdicts are as of this rebuild'
+      ? 'verdicts are as of this rebuild; curb ramp and obstacle counts are live'
       : 'no successful rebuild recorded in this city');
   }
 
@@ -255,7 +257,9 @@ export class SidewalksPage {
     }
 
     this.#flagTable = new StreetPriorityTable('sidewalks-flag-table', {
-      rowKey: 'street_edge_id',
+      // Rows are faces, and both faces of a street can be on one list, so the street id alone would repeat. The
+      // table's row ids are numbers, hence a numeric face key rather than face_id.
+      rowKey: 'row_id',
       searchId: 'sidewalks-flag-search',
       searchFields: ['region_name', 'street_edge_id'],
       sortKey: 'weight',
@@ -287,14 +291,19 @@ export class SidewalksPage {
             + 'rel="noopener">Open</a>',
         },
       ],
-      onRowClick: (id) => this.#map?.focusStreets([id]),
+      onRowClick: (rowId) => this.#map?.focusStreets([Math.floor(rowId / 2)]),
     });
 
     const render = () => {
       const flag = FLAGS.find((candidate) => candidate.key === select?.value) || FLAGS[0];
       AdminShell.setText('sidewalks-flag-description', flag.description);
       this.#flagTable.render(rowsByFlag.get(flag.key)
-        .map((face) => ({ ...face, evidence: flag.evidence(face), weight: flag.weight(face) })));
+        .map((face) => ({
+          ...face,
+          row_id: face.street_edge_id * 2 + (face.street_side === 'right' ? 1 : 0),
+          evidence: flag.evidence(face),
+          weight: flag.weight(face),
+        })));
     };
     select?.addEventListener('change', render);
     render();
@@ -333,14 +342,25 @@ export class SidewalksPage {
       searchFields: ['region_name'],
       sortKey: 'absent_share',
       columns: [
-        { key: 'region_name', label: 'Region', numeric: false },
-        { key: 'audited_share', label: 'Sides audited', format: (r) => `${Math.round(r.audited_share * 100)}%` },
+        {
+          key: 'region_name',
+          label: 'Region',
+          numeric: false,
+          // A button, so a region can be fit from the keyboard; the click bubbles to the row.
+          format: (r) => `<button type="button" class="button button--secondary button--tiny">`
+            + `${util.escapeHTML(r.region_name)}</button>`,
+        },
+        { key: 'audited_share', label: 'Sides with a verdict', format: (r) => `${Math.round(r.audited_share * 100)}%` },
         { key: 'absent_share', label: 'No sidewalk', format: (r) => `${Math.round(r.absent_share * 100)}%` },
         { key: 'absent_km', label: 'No sidewalk km', format: (r) => r.absent_km.toFixed(1) },
         { key: 'single', label: 'On one labeler', format: (r) => AdminShell.num(r.single) },
         { key: 'confirmed', label: 'Confirmed', format: (r) => AdminShell.num(r.confirmed) },
       ],
       onRowClick: (id) => this.#focusRegion(id),
+      // Sorting or searching re-renders the rows, which would otherwise drop the focused region's highlight.
+      onRender: () => {
+        if (this.#focusedRegion !== null) this.#regionTable?.highlightRows([this.#focusedRegion]);
+      },
     });
     this.#regionTable.render(rows);
   }
@@ -356,7 +376,9 @@ export class SidewalksPage {
     // A whole region is too many streets to halo usefully, so the region is shown by the fit alone.
     this.#map?.focusStreets([]);
     this.#map?.fitStreets(this.#streetsByRegion.get(regionId) || [], 15);
-    document.getElementById('sidewalks-map')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    document.getElementById('sidewalks-map')?.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth',
+      block: 'center' });
   }
 
   /** Updates the status line; pass hide=true to remove it once data has loaded. */

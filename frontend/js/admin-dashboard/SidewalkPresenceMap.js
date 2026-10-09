@@ -20,7 +20,7 @@ export class SidewalkPresenceStyle {
   static PRESENCE = {
     absent: { label: 'No sidewalk', token: '--color-label-no-sidewalk' },
     present: { label: 'Sidewalk', token: '--color-success-200' },
-    unknown: { label: 'Unknown (not audited)', token: '--color-neutral-400' },
+    unknown: { label: 'Unknown (street not audited)', token: '--color-neutral-400' },
   };
 
   /** @type {Record<string, string>} How each `presence_basis` reads in the filters, popups and tables. */
@@ -73,7 +73,6 @@ export class SidewalkPresenceMap {
   #mapboxToken;
   #popup;
   #boundsByStreet = new Map(); // street_edge_id -> [[minLng, minLat], [maxLng, maxLat]]
-  #haloIds = [];
   #hoverId = null;
 
   /**
@@ -132,23 +131,25 @@ export class SidewalkPresenceMap {
     const isUnknown = ['==', ['get', 'presence'], 'unknown'];
     const hovered = ['boolean', ['feature-state', 'hover'], false];
 
-    // A wide, faint line on the centerline under both faces marks a focused street without hiding its colors.
+    // A wide, faint line on the centerline under both faces marks a focused street without hiding its colors. It is
+    // filtered to the focused faces rather than drawn everywhere at width 0, so it costs nothing until used.
     this.#map.addLayer({
       id: SidewalkPresenceMap.#HALO_LAYER,
       type: 'line',
       source,
+      filter: SidewalkPresenceMap.#haloFilter([]),
       layout: { 'line-cap': 'round', 'line-join': 'round' },
       paint: {
         'line-color': SidewalkPresenceStyle.color('--color-neutral-black'),
         'line-opacity': 0.3,
-        'line-width': ['case', ['boolean', ['feature-state', 'focused'], false], 14, 0],
+        'line-width': 14,
       },
     });
     this.#map.addLayer({
       id: SidewalkPresenceMap.#FACE_LAYER,
       type: 'line',
       source,
-      // Square caps: a rounded end on an offset line pokes past the corner it meets.
+      // Butt caps (the default): a rounded end on an offset line pokes past the corner it meets.
       layout: { 'line-join': 'round' },
       paint: {
         'line-color': colorExpr,
@@ -207,10 +208,8 @@ export class SidewalkPresenceMap {
    */
   focusStreets(streetEdgeIds) {
     if (!this.#map) return;
-    const source = SidewalkPresenceMap.#SOURCE;
-    for (const id of this.#haloIds) this.#map.setFeatureState({ source, id }, { focused: false });
-    this.#haloIds = streetEdgeIds.flatMap((id) => [`${id}:left`, `${id}:right`]);
-    for (const id of this.#haloIds) this.#map.setFeatureState({ source, id }, { focused: true });
+    this.#map.setFilter(SidewalkPresenceMap.#HALO_LAYER,
+      SidewalkPresenceMap.#haloFilter(streetEdgeIds.flatMap((id) => [`${id}:left`, `${id}:right`])));
     this.fitStreets(streetEdgeIds, 17);
   }
 
@@ -230,6 +229,14 @@ export class SidewalkPresenceMap {
     this.#map.fitBounds(box, { padding: 48, maxZoom });
   }
 
+  /**
+   * @param {string[]} faceIds - Faces to halo.
+   * @returns {Array<any>} A filter matching exactly those faces.
+   */
+  static #haloFilter(faceIds) {
+    return ['in', ['get', 'face_id'], ['literal', faceIds]];
+  }
+
   /** Builds the hover popup: this side's verdict and the evidence behind it, beside the other side's verdict. */
   static #popupHtml(p) {
     const row = (label, value) => `<dt>${label}</dt><dd>${value}</dd>`;
@@ -239,7 +246,6 @@ export class SidewalkPresenceMap {
     };
     const verdict = (presence) => {
       const label = util.escapeHTML(SidewalkPresenceStyle.presenceLabel(presence));
-      // eslint-disable-next-line ps/escape-in-markup -- swatch() returns our own markup.
       return `${swatch(presence)}${label}`;
     };
     const rows = [

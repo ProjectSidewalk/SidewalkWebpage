@@ -350,6 +350,7 @@ class SidewalkPresenceTable @Inject() (protected val dbConfigProvider: DatabaseC
 
     query.as[SidewalkPresenceForApi]
   }
+
   def getForAdmin: DBIO[Seq[SidewalkPresenceStreetForAdmin]] = {
     given GetResult[(SidewalkPresenceStreetForAdmin, SidewalkPresenceFaceForAdmin)] = { r =>
       val street = SidewalkPresenceStreetForAdmin(
@@ -365,9 +366,11 @@ class SidewalkPresenceTable @Inject() (protected val dbConfigProvider: DatabaseC
       (street, face)
     }
 
-    // The two extra counts use the population the derivation does (derivationSql): sided, not deleted or tutorial,
-    // not rejected by validators, and not from an excluded contributor, so they describe the same labels the verdict
-    // was drawn from.
+    // The two extra counts are computed live, while the verdicts they sit beside are as of the last rebuild, so a
+    // label added since then can put a street on a review list before the rebuild has seen it. Storing them in
+    // sidewalk_presence would close that gap at the cost of an evolution; for a review page the lag is acceptable.
+    // They also drop validator-rejected labels, which the derivation's label_count keeps: a rejected curb ramp is not
+    // evidence that a sidewalk is there.
     sql"""
       WITH face_evidence AS (
           SELECT label.street_edge_id, label_point.street_side,
