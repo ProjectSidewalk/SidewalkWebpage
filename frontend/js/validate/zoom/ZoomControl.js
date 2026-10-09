@@ -8,8 +8,12 @@ export class ZoomControl {
   // Zoom limits for the pano, matching the {1, 2, 3} levels used by the zoom buttons.
   static #MIN_ZOOM = 1;
   static #MAX_ZOOM = 3;
-  // Scroll wheel / trackpad zoom tuning.
+  // Zoom levels per unit of wheel deltaY. A trackpad pinch arrives as a wheel event with ctrlKey set and much less
+  // deltaY per gesture than the wheel's notches carry, so at the wheel's gain one pinch moved about a fifth of a
+  // level and zooming in took four or five of them (#5729). The pinch gets 4.5x the gain, the same wheel-to-pinch
+  // ratio MapLibre's scroll-zoom handler uses (1/450 vs 1/100).
   static #ZOOM_WHEEL_SENSITIVITY = 0.0015;
+  static #ZOOM_PINCH_SENSITIVITY = 0.007;
 
   #zoomInButton;
   #zoomOutButton;
@@ -76,7 +80,8 @@ export class ZoomControl {
     e.preventDefault();
 
     // Scrolling up (negative deltaY) zooms in; scrolling down zooms out.
-    const zoomDelta = -e.deltaY * ZoomControl.#ZOOM_WHEEL_SENSITIVITY;
+    const sensitivity = e.ctrlKey ? ZoomControl.#ZOOM_PINCH_SENSITIVITY : ZoomControl.#ZOOM_WHEEL_SENSITIVITY;
+    const zoomDelta = -e.deltaY * sensitivity;
 
     const newZoom = Math.max(
       ZoomControl.#MIN_ZOOM, Math.min(ZoomControl.#MAX_ZOOM, svv.panoViewer.getPov().zoom + zoomDelta),
