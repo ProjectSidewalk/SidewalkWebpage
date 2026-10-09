@@ -53,6 +53,12 @@ class RedirectTargetSpec extends SidewalkSpec with SignedUpAccounts with GuiceOn
       val result = route(app, FakeRequest(GET, s"/signOut?url=$OffSite").withCookies(session*)).get
       redirectLocation(result) mustBe Some("/")
     }
+
+    "redirect a visitor with no session straight to the url, without making an account" in {
+      val result = route(app, FakeRequest(GET, "/signOut?url=%2Fexplore")).get
+      status(result) mustBe SEE_OTHER
+      redirectLocation(result) mustBe Some("/explore")
+    }
   }
 
   "/anonSignUp" should {

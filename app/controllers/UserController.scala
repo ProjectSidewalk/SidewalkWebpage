@@ -150,13 +150,17 @@ class UserController @Inject() (
     Redirect(routes.UserController.signUp().url, request.queryString, MOVED_PERMANENTLY)
   }
 
-  /**
-   * Handles the sign-out action.
-   */
-  def signOut(url: String) = cc.securityService.SecuredAction { implicit request =>
-    cc.loggingService.insert(request.identity.userId, request.ipAddress, "SignOut")
-    silhouette.env.eventBus.publish(LogoutEvent(request.identity, request))
-    silhouette.env.authenticatorService.discard(request.authenticator, Redirect(safeLocalPath(url)))
+  /** With no session this only redirects, so crawlers following the sign-out link don't make accounts (#5706). */
+  def signOut(url: String) = silhouette.UserAwareAction.async { implicit request =>
+    val redirect = Redirect(safeLocalPath(url))
+    request.identity.foreach { user =>
+      cc.loggingService.insert(user.userId, request.ipAddress, "SignOut")
+      silhouette.env.eventBus.publish(LogoutEvent(user, request))
+    }
+    request.authenticator match {
+      case Some(authenticator) => silhouette.env.authenticatorService.discard(authenticator, redirect)
+      case None                => Future.successful(redirect)
+    }
   }
 
   /** Renders the forgot-password page, for signed-in users too since Settings links here (#2285). */
