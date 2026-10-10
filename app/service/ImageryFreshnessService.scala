@@ -498,7 +498,8 @@ class ImageryFreshnessServiceImpl @Inject() (
   )(lat: Double, lng: Double): Future[Option[Seq[PanoObservation]]] = {
     val (dLat, dLng) = bboxHalfWidths(lat, SampleRadiusMeters)
     val bbox         = s"${lng - dLng},${lat - dLat},${lng + dLng},${lat + dLat}"
-    ws.url(s"https://graph.mapillary.com/images?bbox=$bbox&fields=id,captured_at,is_pano,geometry&limit=100")
+    val graphUrl     = config.get[String]("mapillary-graph-url")
+    ws.url(s"$graphUrl/images?bbox=$bbox&fields=id,captured_at,is_pano,geometry&limit=100")
       .addHttpHeaders("Authorization" -> s"OAuth $accessToken")
       .withRequestTimeout(5.seconds)
       .get()

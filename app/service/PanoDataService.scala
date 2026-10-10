@@ -636,6 +636,8 @@ class PanoDataServiceImpl @Inject() (
 
   private val logger = Logger(this.getClass)
 
+  private val mapillaryGraphUrl: String = config.get[String]("mapillary-graph-url")
+
   // Grab API key and secret from ENV variable.
   val googleApiKey: String    = config.get[String]("google-maps-api-key")
   val secretKeyString: String = config.get[String]("google-maps-secret")
@@ -784,7 +786,7 @@ class PanoDataServiceImpl @Inject() (
         logger.warn(s"No mapillary-access-token configured; cannot verify Mapillary imagery for $panoId.")
         Future.successful(None)
       case Some(accessToken) =>
-        ws.url(s"https://graph.mapillary.com/$panoId?fields=id,computed_rotation")
+        ws.url(s"$mapillaryGraphUrl/$panoId?fields=id,computed_rotation")
           .addHttpHeaders("Authorization" -> s"OAuth $accessToken")
           .withRequestTimeout(5.seconds)
           .get()
