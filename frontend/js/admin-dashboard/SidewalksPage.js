@@ -17,10 +17,11 @@ import { StreetPriorityTable } from './StreetPriorityTable.js';
 
 /**
  * The review lists. Each `test` picks the faces (or, for a street-level list, the left face standing for its street)
- * that belong on it; `evidence` says in words why a row is there.
+ * that belong on it; `streetLevel` marks the latter, whose per-face columns then read for both sides. `evidence`
+ * says in words why a row is there.
  *
- * @type {Array<{key: string, label: string, description: string, test: (face: Record<string, any>) => boolean,
- *   evidence: (face: Record<string, any>) => string, weight: (face: Record<string, any>) => number}>}
+ * @type {Array<{key: string, label: string, description: string, streetLevel?: boolean,
+ *   test: (face: Record<string, any>) => boolean, evidence: (face: Record<string, any>) => string, weight: (face: Record<string, any>) => number}>}
  */
 const FLAGS = [
   {
@@ -40,12 +41,14 @@ const FLAGS = [
     description: 'Nobody labeled this side; the other side carries "street has no sidewalks". Right 78% of the time '
       + 'in Seattle.',
     test: (f) => f.presence_basis === 'other_side_tag',
-    evidence: () => 'Other side tagged "street has no sidewalks"',
+    evidence: (f) => `Other side tagged "street has no sidewalks"; ${AdminShell.num(f.label_count)} label`
+      + `${f.label_count === 1 ? '' : 's'} on this side`,
     weight: (f) => f.label_count,
   },
   {
     key: 'curb_ramps',
     label: 'No sidewalk on either side, but curb ramps',
+    streetLevel: true,
     description: 'Both sides called absent while the street has curb ramp labels, which usually lead onto a sidewalk.',
     test: (f) => f.street_side === 'left' && f.presence === 'absent' && f.other_presence === 'absent'
       && f.street_curb_ramp_count > 0,
@@ -66,10 +69,13 @@ const FLAGS = [
   {
     key: 'not_audited',
     label: 'Not audited',
-    description: 'Streets nobody has audited, so neither side has a verdict. One only a meter or two long is an '
-      + 'artifact of the street network, too short to show on the map or to audit, rather than unfinished work.',
-    // Audits cover a whole street, so both sides are always unaudited together: one row per street.
-    test: (f) => f.street_side === 'left' && f.presence_basis === 'unaudited',
+    description: 'Streets with no completed audit. A side can still carry a no-sidewalk verdict from labels placed '
+      + 'in an audit nobody finished. A street only a meter or two long is an artifact of the street network, too '
+      + 'short to show on the map or to audit, rather than unfinished work.',
+    streetLevel: true,
+    // Keyed on the street, not a face's basis: a face's own NoSidewalk labels outrank the audit check, so one side
+    // can be `absent` while the other is `unaudited`.
+    test: (f) => f.street_side === 'left' && f.audit_count === 0,
     evidence: (f) => `${f.length_m < 10 ? f.length_m.toFixed(1) : AdminShell.num(Math.round(f.length_m))} m long`,
     weight: (f) => f.length_m,
   },
@@ -88,6 +94,7 @@ export class SidewalksPage {
   #streetsByRegion = new Map();  // region_id -> number[] of street_edge_ids.
   #rebuiltAt = null;
   #focusedRegion = null;
+  #focusedFlagRow = null;
 
   /**
    * @param {{mapboxToken: string, streetsUrl: string, presenceUrl: string}} opts - Mapbox token and the two
@@ -159,6 +166,9 @@ export class SidewalksPage {
       if (!geom) continue;
       const { faces, ...streetProps } = street;
       const curbRamps = faces.reduce((sum, face) => sum + face.curb_ramp_count, 0);
+      // ISO-8601 strings in one zone, so the lexical max is the latest.
+      const streetLastNoSidewalk = faces.map((face) => face.last_no_sidewalk_label_at).filter(Boolean).sort().pop()
+        || null;
       for (const face of faces) {
         const other = faces.find((candidate) => candidate.street_side !== face.street_side);
         features.push({
@@ -170,6 +180,7 @@ export class SidewalksPage {
             face_id: `${street.street_edge_id}:${face.street_side}`,
             other_presence: other ? other.presence : null,
             street_curb_ramp_count: curbRamps,
+            street_last_no_sidewalk_label_at: streetLastNoSidewalk,
           },
         });
       }
@@ -225,7 +236,12 @@ export class SidewalksPage {
         </label>`).join('');
     }
     const form = document.getElementById('sidewalks-filters');
-    form?.addEventListener('change', () => this.#applyFilters());
+    form?.addEventListener('change', () => {
+      // The halo has its own layer filter, so a chosen street would stay marked after the filters hid it.
+      this.#clearFlagFocus();
+      this.#map?.focusStreets([]);
+      this.#applyFilters();
+    });
     form?.addEventListener('submit', (e) => e.preventDefault());
   }
 
@@ -301,21 +317,34 @@ export class SidewalksPage {
             + 'rel="noopener">Open</a>',
         },
       ],
-      onRowClick: (rowId) => this.#map?.focusStreets([Math.floor(rowId / 2)]),
+      onRowClick: (rowId) => this.#focusFlagRow(rowId),
+      // Sorting or searching re-renders the rows, which would otherwise drop the chosen street's highlight.
+      onRender: () => {
+        if (this.#focusedFlagRow !== null) this.#flagTable?.highlightRows([this.#focusedFlagRow]);
+      },
     });
 
     const render = () => {
       const flag = FLAGS.find((candidate) => candidate.key === select?.value) || FLAGS[0];
       AdminShell.setText('sidewalks-flag-description', flag.description);
+      // A street-level list stands for the whole street, so its per-face columns read for both sides.
       this.#flagTable.render(rowsByFlag.get(flag.key)
         .map((face) => ({
           ...face,
           row_id: face.street_edge_id * 2 + (face.street_side === 'right' ? 1 : 0),
+          street_side: flag.streetLevel ? 'both' : face.street_side,
+          last_no_sidewalk_label_at: flag.streetLevel
+            ? face.street_last_no_sidewalk_label_at
+            : face.last_no_sidewalk_label_at,
           evidence: flag.evidence(face),
           weight: flag.weight(face),
         })));
     };
-    select?.addEventListener('change', render);
+    select?.addEventListener('change', () => {
+      this.#clearFlagFocus();
+      this.#map?.focusStreets([]);
+      render();
+    });
     render();
   }
 
@@ -357,8 +386,8 @@ export class SidewalksPage {
           label: 'Region',
           numeric: false,
           // A button, so a region can be fit from the keyboard; the click bubbles to the row.
-          format: (r) => `<button type="button" class="button button--secondary button--tiny">`
-            + `${util.escapeHTML(r.region_name)}</button>`,
+          format: (r) => `<button type="button" class="button button--secondary button--tiny" `
+            + `aria-pressed="${r.region_id === this.#focusedRegion}">${util.escapeHTML(r.region_name)}</button>`,
         },
         { key: 'audited_share', label: 'Sides with a verdict', format: (r) => `${Math.round(r.audited_share * 100)}%` },
         { key: 'absent_share', label: 'No sidewalk', format: (r) => `${Math.round(r.absent_share * 100)}%` },
@@ -370,6 +399,7 @@ export class SidewalksPage {
       // Sorting or searching re-renders the rows, which would otherwise drop the focused region's highlight.
       onRender: () => {
         if (this.#focusedRegion !== null) this.#regionTable?.highlightRows([this.#focusedRegion]);
+        this.#syncRegionPressed();
       },
     });
     this.#regionTable.render(rows);
@@ -377,15 +407,55 @@ export class SidewalksPage {
 
   #focusRegion(regionId) {
     this.#focusedRegion = this.#focusedRegion === regionId ? null : regionId;
+    this.#clearFlagFocus();
+    this.#map?.focusStreets([]);
     if (this.#focusedRegion === null) {
       this.#regionTable.clearHighlight();
-      this.#map?.focusStreets([]);
+      this.#syncRegionPressed();
       return;
     }
     this.#regionTable.highlightRows([regionId]);
+    this.#syncRegionPressed();
     // A whole region is too many streets to halo usefully, so the region is shown by the fit alone.
-    this.#map?.focusStreets([]);
     this.#map?.fitStreets(this.#streetsByRegion.get(regionId) || [], 15);
+    SidewalksPage.#scrollToMap();
+  }
+
+  /**
+   * Shows a review-list street on the map. The map sits above the list, so it is scrolled into view and the choice
+   * is announced; otherwise a keyboard or screen-reader user would get no sign anything happened.
+   *
+   * @param {number} rowId - The row's id, street_edge_id * 2 plus 1 for the right face.
+   */
+  #focusFlagRow(rowId) {
+    const streetEdgeId = Math.floor(rowId / 2);
+    if (this.#focusedRegion !== null) {
+      this.#focusedRegion = null;
+      this.#regionTable?.clearHighlight();
+      this.#syncRegionPressed();
+    }
+    this.#focusedFlagRow = rowId;
+    this.#flagTable?.highlightRows([rowId]);
+    this.#map?.focusStreets([streetEdgeId]);
+    AdminShell.setText('sidewalks-flag-focus', `Showing street ${streetEdgeId} on the map.`);
+    SidewalksPage.#scrollToMap();
+  }
+
+  #clearFlagFocus() {
+    this.#focusedFlagRow = null;
+    this.#flagTable?.clearHighlight();
+    AdminShell.setText('sidewalks-flag-focus', '');
+  }
+
+  /** The region buttons are toggles, so each says whether it is pressed (WCAG 4.1.2), not just a row color. */
+  #syncRegionPressed() {
+    document.querySelectorAll('#sidewalks-region-table tbody tr[data-row-id]').forEach((tr) => {
+      const pressed = Number(/** @type {HTMLElement} */ (tr).dataset.rowId) === this.#focusedRegion;
+      tr.querySelector('button')?.setAttribute('aria-pressed', String(pressed));
+    });
+  }
+
+  static #scrollToMap() {
     const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
     document.getElementById('sidewalks-map')?.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth',
       block: 'center' });

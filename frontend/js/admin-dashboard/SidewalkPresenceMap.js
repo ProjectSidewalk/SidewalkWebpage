@@ -75,6 +75,8 @@ export class SidewalkPresenceMap {
   #popup;
   #boundsByStreet = new Map(); // street_edge_id -> [[minLng, minLat], [maxLng, maxLat]]
   #hoverId = null;
+  #loaded = false;
+  #pendingFocus = null;        // Streets chosen before the map loaded; applied on load.
 
   /**
    * @param {string} containerId - ID of the map container element.
@@ -114,6 +116,10 @@ export class SidewalkPresenceMap {
       this.#map.on('load', () => {
         this.#addLayers(faces);
         this.#wireInteractions();
+        this.#loaded = true;
+        // The page's tables are usable before the map loads, so a street chosen in that window is marked now.
+        if (this.#pendingFocus) this.focusStreets(this.#pendingFocus);
+        this.#pendingFocus = null;
         resolve();
       });
     });
@@ -208,7 +214,10 @@ export class SidewalkPresenceMap {
    * @param {number[]} streetEdgeIds - Streets to mark; an empty list clears the mark and leaves the view alone.
    */
   focusStreets(streetEdgeIds) {
-    if (!this.#map) return;
+    if (!this.#loaded) {
+      this.#pendingFocus = streetEdgeIds;
+      return;
+    }
     this.#map.setFilter(SidewalkPresenceMap.#HALO_LAYER,
       SidewalkPresenceMap.#haloFilter(streetEdgeIds.flatMap((id) => [`${id}:left`, `${id}:right`])));
     this.fitStreets(streetEdgeIds, 17);

@@ -75,6 +75,7 @@ const MARKUP = `
   <select id="sidewalks-flag"></select>
   <input id="sidewalks-flag-search" type="search">
   <p id="sidewalks-flag-description"></p>
+  <p id="sidewalks-flag-focus"></p>
   <table id="sidewalks-flag-table"></table>
   <input id="sidewalks-region-search" type="search">
   <table id="sidewalks-region-table"></table>
@@ -252,6 +253,48 @@ describe('the Sidewalks page', () => {
     expect(map.fits.at(-1).options.maxZoom).toBe(17);
   });
 
+  test('lists a never-audited street even when one side has a verdict from partial-audit labels', async () => {
+    // A face's own NoSidewalk labels outrank the audit check, so one side is absent and the other unaudited.
+    const partial = street(7, face('left', absent()), face('right', { presence: 'unknown', presence_basis: 'unaudited' }),
+      { audit_count: 0 });
+    await renderPage({ streets: [...CITY, partial], ids: [1, 2, 3, 4, 5, 6, 7] });
+    pickFlag('not_audited');
+    expect(flagRows().sort()).toEqual(['6:left', '7:left']);
+  });
+
+  test('a street-level list reads "both" for the side and takes the later of the two sides\' dates', async () => {
+    const dated = street(7,
+      face('left', absent({ no_sidewalk_user_count: 2, curb_ramp_count: 1, last_no_sidewalk_label_at: '2024-01-05T00:00:00Z' })),
+      face('right', absent({ no_sidewalk_user_count: 2, last_no_sidewalk_label_at: '2025-06-01T00:00:00Z' })));
+    await renderPage({ streets: [...CITY, dated], ids: [1, 2, 3, 4, 5, 6, 7] });
+    pickFlag('curb_ramps');
+    const row = document.querySelector('#sidewalks-flag-table tbody tr[data-row-id="14"]');
+    expect(row.textContent).toContain('both');
+    expect(row.textContent).toContain(new Date('2025-06-01T00:00:00Z').toLocaleDateString());
+  });
+
+  test('a right-side row focuses its own street, highlights the row and says so', async () => {
+    const map = await renderPage();
+    pickFlag('other_side_tag');
+    document.querySelector('#sidewalks-flag-table tbody tr[data-row-id="5"] button').click();
+    expect(map.halos.at(-1)).toEqual(['in', ['get', 'face_id'], ['literal', ['2:left', '2:right']]]);
+    expect(document.querySelector('#sidewalks-flag-table tr[data-row-id="5"]').classList.contains('is-highlighted'))
+      .toBe(true);
+    expect(text('sidewalks-flag-focus')).toBe('Showing street 2 on the map.');
+  });
+
+  test('switching lists or changing a filter lets go of the chosen street', async () => {
+    const map = await renderPage();
+    document.querySelector('#sidewalks-flag-table tbody tr[data-row-id="2"] button').click();
+    pickFlag('other_side_tag');
+    expect(map.halos.at(-1)).toEqual(['in', ['get', 'face_id'], ['literal', []]]);
+    expect(text('sidewalks-flag-focus')).toBe('');
+    pickFlag('single_labeler');
+    document.querySelector('#sidewalks-flag-table tbody tr[data-row-id="2"] button').click();
+    document.getElementById('sidewalks-min-users').dispatchEvent(new Event('change', { bubbles: true }));
+    expect(map.halos.at(-1)).toEqual(['in', ['get', 'face_id'], ['literal', []]]);
+  });
+
   test('raising the labeler minimum hides one-labeler sides and says how many remain', async () => {
     const map = await renderPage();
     expect(text('sidewalks-filter-note')).toBe('Showing 12 of 12 sides.');
@@ -307,6 +350,18 @@ describe('the Sidewalks page', () => {
     expect(ballard().classList.contains('is-highlighted')).toBe(true);
     ballard().querySelector('button').click();
     expect(ballard().classList.contains('is-highlighted')).toBe(false);
+  });
+
+  test('a region button says whether it is pressed, and choosing a street lets go of the region', async () => {
+    await renderPage();
+    const ballardButton = () => regionRows().find((tr) => tr.textContent.includes('Ballard')).querySelector('button');
+    expect(ballardButton().getAttribute('aria-pressed')).toBe('false');
+    ballardButton().click();
+    expect(ballardButton().getAttribute('aria-pressed')).toBe('true');
+    document.querySelector('#sidewalks-region-table th[data-key="region_name"]').click();
+    expect(ballardButton().getAttribute('aria-pressed')).toBe('true');
+    document.querySelector('#sidewalks-flag-table tbody tr[data-row-id="2"] button').click();
+    expect(ballardButton().getAttribute('aria-pressed')).toBe('false');
   });
 
   test('escapes a region name in the tables', async () => {

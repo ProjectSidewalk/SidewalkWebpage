@@ -4,7 +4,7 @@ import com.google.inject.ImplementedBy
 import models.api.{SidewalkPresenceFiltersForApi, SidewalkPresenceForApi}
 import models.label.StreetSide
 import models.utils.MyPostgresProfile.api.{given, *}
-import models.utils.{FilteredTables, MyPostgresProfile, SqlFragments}
+import models.utils.{Contributors, FilteredTables, MyPostgresProfile, SqlFragments}
 import org.locationtech.jts.geom.LineString
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.{JsValue, Json, Writes}
@@ -378,9 +378,9 @@ class SidewalkPresenceTable @Inject() (protected val dbConfigProvider: DatabaseC
                  COUNT(*) FILTER (WHERE label.label_type = 'CurbRamp') AS curb_ramp_count
           FROM label
           INNER JOIN label_point ON label.label_id = label_point.label_id
-          LEFT JOIN user_stat ON label.user_id = user_stat.user_id
           WHERE NOT label.deleted AND NOT label.tutorial AND label_point.street_side IS NOT NULL
-            AND label.correct IS DISTINCT FROM FALSE AND NOT COALESCE(user_stat.excluded, FALSE)
+            AND label.correct IS DISTINCT FROM FALSE
+            AND #${FilteredTables.userCounts(None, "label.user_id", Contributors.NotExcluded)}
             AND label.label_type IN ('Obstacle', 'SurfaceProblem', 'CurbRamp')
           GROUP BY label.street_edge_id, label_point.street_side
       )

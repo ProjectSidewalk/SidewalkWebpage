@@ -62,14 +62,18 @@ export class StreetPriorityTable {
     this.#rows = rows;
     const table = document.getElementById(this.#tableId);
     if (!table) return;
+    // The row listeners are bound to the tbody, so a later render keeps it and refreshes only the header and rows.
+    if (this.#wired) {
+      table.querySelector('thead').outerHTML = this.#headerHtml();
+      this.#renderBody();
+      return;
+    }
     table.innerHTML = this.#headerHtml();
     const tbody = document.createElement('tbody');
     table.appendChild(tbody);
     this.#renderBody();
-    if (!this.#wired) {
-      this.#wireEvents(table, tbody);
-      this.#wired = true;
-    }
+    this.#wireEvents(table, tbody);
+    this.#wired = true;
   }
 
   #headerHtml() {
