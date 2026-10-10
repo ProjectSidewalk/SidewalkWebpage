@@ -2005,6 +2005,13 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     val severityRatings: Set[Int]   = severity.flatten
     val severityAllowsNull: Boolean = severity.contains(None)
     val anyTags: Boolean            = labelTypes.exists(lt => tagsByLabelType.getOrElse(lt, Set.empty).nonEmpty)
+    // The disagree-ratio gate below keeps the public Gallery from showing labels the crowd has already rejected. A
+    // sorted order is admin tooling, and "most disputed" exists to find exactly those labels, so the gate is waived
+    // there (#2705). The contributor-quality gate is not: a low-quality contributor's label is noise, not a dispute.
+    val waiveDisagreeGate: Boolean = order match {
+      case GalleryOrder.Sorted(_)                        => true
+      case GalleryOrder.Random | GalleryOrder.RecentPool => false
+    }
 
     // One disjunct per type: the type alone, or the type and an overlap (postgres `&&`, Slick `@&`) with its tags.
     // Sorted so the SQL is the same whatever order the set iterates in.
@@ -2042,7 +2049,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       // When the severity filter is non-empty, require a match against the requested ratings or (if allowed) null.
       if (_lb.severity inSetBind severityRatings) || (_lb.severity.isEmpty && severityAllowsNull) || severity.isEmpty
       if _us.highQuality || (_lb.correct.isDefined && _lb.correct === true)
-      if _lb.disagreeCount < 3 || _lb.disagreeCount < _lb.agreeCount * 2
+      if (_lb.disagreeCount < 3 || _lb.disagreeCount < _lb.agreeCount * 2) || waiveDisagreeGate
     } yield (_lb, _lp, _pd, _lb.labelTypeName, _ser.regionId, _ur.role === Role.Ai)
 
     val _galleryLabels = galleryProjection(_labelInfo, aiValOptions, userId)

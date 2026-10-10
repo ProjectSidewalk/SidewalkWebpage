@@ -471,8 +471,11 @@ loaded by the corresponding Twirl view:
   severity or votes: those change under the admin as they vote or edit, and re-sorting on them moved cards between
   pages mid-review. Severity sorts on the raw 1–3 value,
   which is "worst first" for every type since a quality-scale 3 is the worst rating too; unrated and unvalidated
-  labels sort last. The control is rendered for admin roles only; the card query itself is not gated, since the
-  labels are public data the API serves in any order. Filters narrow and the sort orders what is left, so some pairs
+  labels sort last. A sorted order is admin tooling on both the page and the card request (a non-admin's `sort`
+  falls back to random; the landing grid's `recent` pool stays open), because in a sorted order the query waives
+  the disagree-ratio gate (`disagreeCount < 3 || disagreeCount < agreeCount * 2`) that keeps crowd-rejected labels
+  out of the public Gallery: "Most disputed" exists to find exactly those. The contributor-quality gate still
+  applies. Filters narrow and the sort orders what is left, so some pairs
   leave the sort nothing to rank (Most disputed over unvalidated labels only; a severity sort over one severity
   level or no rated type); `cardOrder.sortMootReason` names those, and the page keeps the choice but says under the
   select and in the footer that it is showing newest first, rather than greying the option out, which would have to

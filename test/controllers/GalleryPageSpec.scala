@@ -78,8 +78,8 @@ class GalleryPageSpec extends SidewalkSpec with RoleSession with GuiceOneAppPerS
     renderedLabelIds.findFirstMatchIn(body).map(_.group(1)).filter(_.nonEmpty).toSeq.flatMap(_.split(",").map(_.toInt))
 
   /** POSTs a card query and returns its JSON body. */
-  private def labelsFor(request: JsObject): JsValue = {
-    val resp = route(app, FakeRequest(POST, "/label/labels").withJsonBody(request)).get
+  private def labelsFor(request: JsObject, cookies: Seq[Cookie] = Seq.empty): JsValue = {
+    val resp = route(app, FakeRequest(POST, "/label/labels").withJsonBody(request).withCookies(cookies*)).get
     status(resp) mustBe OK
     contentAsJson(resp)
   }
@@ -248,8 +248,16 @@ class GalleryPageSpec extends SidewalkSpec with RoleSession with GuiceOneAppPerS
     val allValidations = Json.arr("correct", "incorrect", "unsure", "unvalidated")
     def sortedRequest(sort: String, n: Int, loaded: Seq[Int] = Seq.empty): JsObject =
       Json.obj("n" -> n, "loaded_labels" -> loaded, "sort" -> sort, "validation_options" -> allValidations)
-    def sortedLabels(sort: String, n: Int = 30): Seq[JsValue] =
-      (labelsFor(sortedRequest(sort, n)) \ "labelsOfType" \\ "label").toSeq
+    // As the admin: a strict order is admin tooling, and anyone else asking for one gets the random Gallery.
+    def sortedLabels(sort: String, n: Int = 30, cookies: Seq[Cookie] = adminCookies): Seq[JsValue] =
+      (labelsFor(sortedRequest(sort, n), cookies) \ "labelsOfType" \\ "label").toSeq
+
+    /** Whether the public Gallery's disagree-ratio gate would drop this label. */
+    def pastTheGate(l: JsValue): Boolean = {
+      val agree    = (l \ "agree_count").as[Int]
+      val disagree = (l \ "disagree_count").as[Int]
+      disagree >= 3 && disagree >= agree * 2
+    }
 
     "return the most severe labels first, unrated last" in {
       val severities = sortedLabels("most_severe").map(l => (l \ "severity").asOpt[Int])
@@ -274,7 +282,8 @@ class GalleryPageSpec extends SidewalkSpec with RoleSession with GuiceOneAppPerS
       val first = sortedLabels("most_severe", n = 12)
       assume(first.size == 12, "connected database serves fewer than 12 sorted labels")
       val firstIds = first.map(l => (l \ "label_id").as[Int])
-      val second   = (labelsFor(sortedRequest("most_severe", 12, firstIds)) \ "labelsOfType" \\ "label").toSeq
+      val second   =
+        (labelsFor(sortedRequest("most_severe", 12, firstIds), adminCookies) \ "labelsOfType" \\ "label").toSeq
 
       second.map(l => (l \ "label_id").as[Int]) must contain noElementsOf firstIds
       // The lowest severity on page one bounds page two; None (unrated) sorts last, so a None on page one means page
@@ -285,6 +294,16 @@ class GalleryPageSpec extends SidewalkSpec with RoleSession with GuiceOneAppPerS
         if (pageOneLast.isEmpty) s mustBe empty
         else if (s.isDefined) s.get must be <= pageOneLast.get
       }
+    }
+
+    // The gate keeps crowd-rejected labels out of the public Gallery; "most disputed" exists to find them, so it is
+    // waived for the admin's sorted order and for nobody else, whatever `sort` they send.
+    "let an admin's most-disputed sort past the disagree-ratio gate, and no one else" in {
+      val asAdmin = sortedLabels("most_disputed", n = 60)
+      assume(asAdmin.exists(pastTheGate), "connected database serves no label the disagree-ratio gate drops")
+
+      sortedLabels("most_disputed", n = 60, cookies = Seq.empty).exists(pastTheGate) mustBe false
+      sortedLabels("most_disputed", n = 60, cookies = sessionAs(Role.Registered)).exists(pastTheGate) mustBe false
     }
 
     "still serve the landing grid's recent pool" in {

@@ -170,9 +170,13 @@ class GalleryController @Inject() (
           .flatMap { case (name, tags) => LabelType.withNameOption(name).map(_ -> tags.toSet) }
         val aiValOptions: Set[String] = submission.aiValidationOptions.getOrElse(Seq()).toSet
         val userId: String            = request.identity.map(_.userId).getOrElse(NoUserId)
-        // Not admin-gated: the control is (the page renders it for admins only), but the labels are public data the
-        // API already serves in any order, so an order here is nothing to guard.
-        val order: GalleryOrder        = GalleryOrder.fromRequest(submission.sort)
+        // A strict order is admin tooling, and in that order the query waives the disagree-ratio gate the public
+        // Gallery keeps, so anyone else asking for one gets the random Gallery. The landing grid's recent pool is
+        // not an order in that sense and stays open to everyone.
+        val order: GalleryOrder = GalleryOrder.fromRequest(submission.sort) match {
+          case GalleryOrder.Sorted(_) if !isAdmin(request.identity) => GalleryOrder.Random
+          case requested                                            => requested
+        }
         val staticImageryOnly: Boolean = submission.staticImageryOnly.getOrElse(false)
         // The client's list is never trusted for length or uniqueness; the same cap applies as on the page request.
         val labelIdList: Seq[Int] = submission.labelIds.getOrElse(Seq()).distinct.take(GalleryController.MaxLabelIds)

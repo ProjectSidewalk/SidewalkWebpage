@@ -2,6 +2,7 @@ package service
 
 import models.gallery.{GalleryOrder, GallerySort}
 import models.label.{LabelTable, LabelType, LabelValidationMetadata}
+import models.pano.PanoSource
 import models.utils.MyPostgresProfile.api.given
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
@@ -28,6 +29,25 @@ class LabelServiceSpec extends SidewalkSpec with RolledBackDb with GuiceOneAppPe
   private val labelTable                                 = app.injector.instanceOf[LabelTable]
   private val configService                              = app.injector.instanceOf[ConfigService]
   private def await[T](f: scala.concurrent.Future[T]): T = Await.result(f, 60.seconds)
+
+  /**
+   * Renderable labels that fail the public Gallery's disagree-ratio gate (`disagreeCount < 3 || disagreeCount <
+   * agreeCount * 2`): the crowd has rejected them, and the random Gallery leaves them out.
+   */
+  private def contestedLabelIds(viewer: PanoSource): Seq[Int] = run(
+    labelTable.labels
+      .join(labelTable.labelPoints)
+      .on(_.labelId === _.labelId)
+      .join(labelTable.panoData)
+      .on(_._1.panoId === _.panoId)
+      .filter { case ((lb, lp), pd) =>
+        lb.disagreeCount >= 3 && lb.disagreeCount >= lb.agreeCount * 2 &&
+        pd.source === viewer && lp.lat.isDefined && lp.lng.isDefined
+      }
+      .map(_._1._1.labelId)
+      .take(5)
+      .result
+  )
 
   "LabelService.selectTagsByLabelType" should {
     "return exactly the tags belonging to the requested label type" in {
@@ -66,10 +86,11 @@ class LabelServiceSpec extends SidewalkSpec with RolledBackDb with GuiceOneAppPe
       timestamps.zip(timestamps.drop(1)).foreach { case (newer, older) => newer.isBefore(older) mustBe false }
     }
 
-    "return the same number of labels regardless of ordering mode" in {
-      run(query(GalleryOrder.RecentPool).length.result) mustBe run(query(GalleryOrder.Random).length.result)
-      run(query(GalleryOrder.Sorted(GallerySort.Newest)).length.result) mustBe
-        run(query(GalleryOrder.Random).length.result)
+    "return the same labels for the random order and the recent pool, and no fewer for a sorted one" in {
+      val randomCount = run(query(GalleryOrder.Random).length.result)
+      run(query(GalleryOrder.RecentPool).length.result) mustBe randomCount
+      // A sorted order waives the disagree-ratio gate, so it can only add labels; see the gate test below.
+      run(query(GalleryOrder.Sorted(GallerySort.Newest)).length.result) must be >= randomCount
     }
 
     // The SQL order and the in-memory one have to agree, or paging in sorted mode (#2705) skips or repeats labels
@@ -98,6 +119,19 @@ class LabelServiceSpec extends SidewalkSpec with RolledBackDb with GuiceOneAppPe
       rows.dropWhile(votes(_) > 0).forall(votes(_) == 0) mustBe true
       val ratios = rows.takeWhile(votes(_) > 0).map(l => l.validationInfo.disagreeCount.toDouble / votes(l))
       ratios.zip(ratios.drop(1)).foreach { case (higher, lower) => higher must be >= lower }
+    }
+
+    // "Most disputed" exists to find the labels the gate drops, so a sorted order (admin tooling) waives it; the
+    // random Gallery, which anyone sees, keeps it.
+    "waive the disagree-ratio gate in a sorted order only" in {
+      val contested = contestedLabelIds(configService.getPanoSource).toSet
+      assume(contested.nonEmpty, "connected DB has no renderable label that the disagree-ratio gate drops")
+      val everyType = LabelType.values.toSet
+
+      val sortedIds = run(query(GalleryOrder.Sorted(GallerySort.MostDisputed), everyType).map(_.labelId).result)
+      val randomIds = run(query(GalleryOrder.Random, everyType).map(_.labelId).result)
+      sortedIds.toSet.intersect(contested) must not be empty
+      randomIds.toSet.intersect(contested) mustBe empty
     }
 
     // A tag narrows only the type it belongs to (#2705 runs one query across several types, so this is where a
@@ -168,22 +202,8 @@ class LabelServiceSpec extends SidewalkSpec with RolledBackDb with GuiceOneAppPe
     }
 
     "return a label the filtered query drops for its disagree ratio" in {
-      // The gate getGalleryLabelsQuery applies is `disagreeCount < 3 || disagreeCount < agreeCount * 2`; these are
-      // the renderable labels that fail it, and a review list has to show them anyway.
-      val contested: Seq[Int] = run(
-        labelTable.labels
-          .join(labelTable.labelPoints)
-          .on(_.labelId === _.labelId)
-          .join(labelTable.panoData)
-          .on(_._1.panoId === _.panoId)
-          .filter { case ((lb, lp), pd) =>
-            lb.disagreeCount >= 3 && lb.disagreeCount >= lb.agreeCount * 2 &&
-            pd.source === viewer && lp.lat.isDefined && lp.lng.isDefined
-          }
-          .map(_._1._1.labelId)
-          .take(5)
-          .result
-      )
+      // A review list has to show the labels the gate drops anyway.
+      val contested: Seq[Int] = contestedLabelIds(viewer)
       assume(contested.nonEmpty, "connected DB has no renderable label that the disagree-ratio gate drops")
 
       run(labelTable.getGalleryLabelsByIdQuery(viewer, contested, userId).result).map(_._1).toSet mustBe contested.toSet
