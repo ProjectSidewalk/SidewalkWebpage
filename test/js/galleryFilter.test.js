@@ -379,4 +379,94 @@ describe('GalleryFilter', () => {
             expect(clearBtn().disabled).toBe(false);
         });
     });
+
+    // The admin's "Sort by" (#2705): an order, not a filter, so it rides in the URL and the card query without
+    // counting as a filter — the reset neither appears for it nor touches it.
+    describe('the sort select', () => {
+        /** @returns {HTMLSelectElement} The sort select. */
+        const sortSelect = () => document.getElementById('gallery-sort');
+
+        /**
+         * Builds the filter over the fixture plus the admin's sort select and footer, as the page renders them.
+         * @returns {GalleryFilter} The filter under test.
+         */
+        function buildAsAdmin() {
+            buildFixture();
+            document.body.insertAdjacentHTML('afterbegin', `
+              <div class="gallery-sort">
+                <label for="gallery-sort">Sort By</label>
+                <select id="gallery-sort" class="ps-select">
+                  <option value="random" selected>Random</option>
+                  <option value="newest">Newest first</option>
+                  <option value="most_severe">Most severe first</option>
+                </select>
+              </div>`);
+            document.body.insertAdjacentHTML('beforeend', '<div id="gallery-footer">gallery:cards</div>');
+            return new window.GalleryFilter(document.getElementById('card-filter'), clearBtn(), {
+                regionIds: [], aiValidationOptions: [],
+            }, sortSelect());
+        }
+
+        /** Picks an option the way a user would, so the change event fires. */
+        function choose(value) {
+            sortSelect().value = value;
+            sortSelect().dispatchEvent(new Event('change'));
+        }
+
+        beforeEach(() => {
+            window.i18next = { t: (key, opts) => (opts ? `${key}:${JSON.stringify(opts)}` : key), language: 'en' };
+            window.sg.cardContainer.updateCardsBySort = jest.fn();
+            filter = buildAsAdmin();
+        });
+
+        it('answers random with no select at all, as for everyone but an admin', () => {
+            expect(build().getSort()).toBe('random');
+        });
+
+        it('puts a chosen order in the URL, logs it, and refetches in that order', () => {
+            choose('most_severe');
+
+            expect(filter.getSort()).toBe('most_severe');
+            expect(currentUrl()).toBe('/gallery?sort=most_severe');
+            expect(sg.tracker.push).toHaveBeenCalledWith('SortApply', null, { Sort: 'most_severe' });
+            expect(sg.cardContainer.updateCardsBySort).toHaveBeenCalled();
+            expect(sg.cardContainer.updateCardsByFilter).not.toHaveBeenCalled();
+        });
+
+        it('leaves the reset hidden for a sort alone, and does not reset the sort', () => {
+            choose('newest');
+            expect(clearBtn().hidden).toBe(true);
+
+            typeBox('Obstacle').click();
+            expect(clearBtn().hidden).toBe(false);
+            expect(currentUrl()).toBe('/gallery?labelType=CurbRamp,Crosswalk,NoSidewalk&sort=newest');
+
+            clearBtn().click();
+            expect(filter.getSort()).toBe('newest');
+            expect(currentUrl()).toBe('/gallery?sort=newest');
+            expect(clearBtn().hidden).toBe(true);
+        });
+
+        it('drops the param again for the random default', () => {
+            choose('newest');
+            choose('random');
+            expect(currentUrl()).toBe('/gallery');
+        });
+
+        it('restates the footer for the order', () => {
+            choose('most_severe');
+            expect(document.getElementById('gallery-footer').textContent)
+                .toBe('gallery:cards-sorted:{"sort":"gallery:sort-most-severe"}');
+
+            choose('random');
+            expect(document.getElementById('gallery-footer').textContent).toBe('gallery:cards');
+        });
+
+        it('is blocked and restored with the filters while cards load', () => {
+            filter.disable();
+            expect(sortSelect().disabled).toBe(true);
+            filter.enable();
+            expect(sortSelect().disabled).toBe(false);
+        });
+    });
 });

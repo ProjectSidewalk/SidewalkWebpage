@@ -11,6 +11,7 @@ import { PanoStore } from '../../common/pano-viewer/PanoStore.js';
 import { util } from '../../common/utilities.js';
 import { Card } from './Card.js';
 import { CardBucket } from './CardBucket.js';
+import { compareCards, isSorted } from './cardOrder.js';
 import { ExpandedView } from '../expandedview/ExpandedView.js';
 import { PanoViewer } from '../../common/pano-viewer/PanoViewer.js';
 import '../../common/utilitiesSidewalk.js';
@@ -148,6 +149,7 @@ export class CardContainer {
       // which is exactly the ordering the list exists to avoid.
       this.fetchLabels(
         [], this.#listLabelIds.length, [], [], undefined, undefined, undefined, undefined, this.#listLabelIds,
+        undefined,
       ).then((result) => {
         // A failed request is not an empty list: rendering zero cards would show the filtered gallery's "No
         // matches, start exploring" copy and a "Showing 0 labels" count, telling a reviewer their queue is empty
@@ -180,6 +182,7 @@ export class CardContainer {
         filters.tagsByType,
         initialFilters.aiValidationOptions,
         undefined,
+        filters.sort,
       ).then(() => {
         this.#currentCards = this.#collectCurrentCards(filters);
         this.#lastPage = this.#currentCards.getCards().length <= this.#currentPage * this.getCardsPerPage();
@@ -306,12 +309,14 @@ export class CardContainer {
    * @param {string[]|undefined} aiValidationOptions - AI validation options: correct, incorrect, and/or unvalidated.
    * @param {number[]|undefined} labelIds - A review list (#5444). When non-empty the server ignores every filter
    *      above and returns exactly these labels in this order.
+   * @param {string|undefined} sort - The admin's order (#2705), a `GallerySort` name. Random, or nothing, asks for
+   *      the usual random sample; anything else asks for the next `n` labels in that order, the loaded ones excluded.
    * @returns {Promise<?{newCards: Card[], unavailableLabelIds: (number[]|undefined)}>} The new cards in server
    *     order and, for a review list, the ids it couldn't serve. Null (not an empty list) when the request failed.
    */
   async fetchLabels(
     labelTypes, n, validationOptions, loadedLabels, regionIds, severities, tagsByLabelType, aiValidationOptions,
-    labelIds,
+    labelIds, sort,
   ) {
     const url = '/label/labels';
     const data = {
@@ -323,6 +328,7 @@ export class CardContainer {
       ...(tagsByLabelType !== undefined && { tags_by_label_type: tagsByLabelType }),
       ...(aiValidationOptions !== undefined && { ai_validation_options: aiValidationOptions }),
       ...(labelIds !== undefined && labelIds.length > 0 && { label_ids: labelIds }),
+      ...(isSorted(sort) && { sort }),
       loaded_labels: loadedLabels,
     };
     let response;
@@ -384,9 +390,9 @@ export class CardContainer {
   }
 
   /**
-   * The filters the sidebar is currently reporting, in the shape the label query takes.
+   * The filters the sidebar is currently reporting, in the shape the label query takes, plus the order.
    * @returns {{types: string[], valOptions: string[], severities: (string[]|undefined),
-   *      tagsByType: Record<string, string[]>}} The current filter state.
+   *      tagsByType: Record<string, string[]>, sort: string}} The current filter state.
    */
   #currentFilters() {
     const types = sg.cardFilter.getStatus().currentLabelTypes;
@@ -398,6 +404,7 @@ export class CardContainer {
       valOptions: sg.cardFilter.getAppliedValidationOptions(),
       severities: anyHasSeverity ? sg.cardFilter.getAppliedSeverities() : undefined,
       tagsByType: sg.cardFilter.getAppliedTagsByType(),
+      sort: sg.cardFilter.getSort(),
     };
   }
 
@@ -406,13 +413,15 @@ export class CardContainer {
    *
    * Cards accumulate across filter changes, so this re-applies the filters the server already applied when they were
    * fetched. Tags are per type — a curb ramp's "narrow" says nothing about an obstacle — so each type is filtered
-   * against its own.
+   * against its own. In a sorted order (#2705) the gathered cards are sorted the server's way, which puts them back
+   * in one sequence across the type buckets; that sequence is the server's only because every card was fetched in
+   * this order (see #resetLoadedCards).
    *
    * @param {{types: string[], valOptions: string[], severities: (string[]|undefined),
-   *      tagsByType: Record<string, string[]>}} filters - The filters from #currentFilters().
+   *      tagsByType: Record<string, string[]>, sort: string}} filters - The filters from #currentFilters().
    * @returns {CardBucket} The cards to page through.
    */
-  #collectCurrentCards({ types, valOptions, severities, tagsByType }) {
+  #collectCurrentCards({ types, valOptions, severities, tagsByType, sort }) {
     const bucket = new CardBucket();
     for (const type of types) {
       const cards = this.#cardsByType[type].copy();
@@ -421,7 +430,24 @@ export class CardContainer {
       cards.filterOnValidationOptions(valOptions);
       cards.getCards().forEach((card) => bucket.push(card));
     }
+    const compare = compareCards(sort);
+    if (compare) bucket.getCards().sort(compare);
     return bucket;
+  }
+
+  /**
+   * Forgets every loaded card, so the next fetch starts over from the server.
+   *
+   * Sorted mode's cache rule (#2705): what the page holds has to be a prefix of the server's order under the
+   * *current* filters, because a page is served from the cache until it runs short and only then fetches the next
+   * ranked labels. Cards cached under a random order, or under a narrower filter, are not such a prefix — widening
+   * the type filter, say, would show the cached lower-ranked cards of one type before the unloaded higher-ranked
+   * cards of the other — so a change of order, or of a filter while ordered, starts the cache afresh. The random
+   * Gallery keeps its cache across filter changes as it always has: no order, nothing to break.
+   */
+  #resetLoadedCards() {
+    for (const type of Object.keys(this.#cardsByType)) this.#cardsByType[type] = new CardBucket();
+    this.#loadedLabelIds = new Set();
   }
 
   /**
@@ -461,6 +487,7 @@ export class CardContainer {
         filters.tagsByType,
         this.#initialFilters.aiValidationOptions,
         undefined,
+        filters.sort,
       ).then(() => {
         this.#currentCards = this.#collectCurrentCards(filters);
         this.#lastPage = this.#currentCards.getCards().length <= this.#currentPage * this.getCardsPerPage();
@@ -487,6 +514,21 @@ export class CardContainer {
       this.#refreshUI();
     }
 
+    // In an order, a filter change starts the cache over; see #resetLoadedCards for why.
+    if (isSorted(sg.cardFilter.getSort())) this.#resetLoadedCards();
+    this.#setPage(1);
+    this.updateCardsNewPage();
+  }
+
+  /**
+   * When the admin's "Sort by" changes (#2705): start over from page 1 in the new order.
+   *
+   * Always from an empty cache, even going back to Random: cards fetched in an order are the top of a ranking, not a
+   * sample, and a random Gallery seeded with them would open on, say, the thirty most severe labels.
+   */
+  updateCardsBySort() {
+    if (this.#listMode) return;
+    this.#resetLoadedCards();
     this.#setPage(1);
     this.updateCardsNewPage();
   }

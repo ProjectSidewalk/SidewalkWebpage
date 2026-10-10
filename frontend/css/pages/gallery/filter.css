@@ -9,6 +9,26 @@
   padding: 0 5px 5px;
 }
 
+/* The admin-only "Sort by" (#2705), above the filter header. It takes the header's 40px of headroom, and the header
+   then drops its own (below), so the column starts at the same distance from the navbar either way. */
+.gallery-sort {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 40px 5px 0;
+  margin: 0 0 16px;
+}
+
+.gallery-sort__label {
+  font: var(--text-subtitle-bold);
+  color: var(--color-neutral-black);
+  margin: 0;
+}
+
+.gallery-sort .ps-select {
+  width: 100%;
+}
+
 .gallery-filter-header {
   display: flex;
   align-items: center;
@@ -18,6 +38,10 @@
   /* The 40px of headroom matches the map sidebar's, so the two panels start at the same distance from the navbar. */
   padding: 40px 5px 0;
   margin: 0 0 16px;
+}
+
+.gallery-sort + .gallery-filter-header {
+  padding-top: 0;
 }
 
 #filter-header {
@@ -51,6 +75,12 @@
   .gallery-filter-header {
     padding: 8px 10px 0;
     margin-bottom: 0;
+  }
+
+  /* Stacked, the sort sits as one row above the "Filter By" disclosure, outside it, so it stays reachable. */
+  .gallery-sort {
+    padding: 8px 10px 0;
+    margin-bottom: 8px;
   }
 
   /* The toggle button carries the same "Filter By" text, so the heading would duplicate it. */

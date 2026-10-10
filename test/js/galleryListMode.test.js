@@ -229,6 +229,7 @@ describe('the Gallery in review-list mode', () => {
                     getAppliedValidationOptions: () => [],
                     getAppliedSeverities: () => [],
                     getAppliedTagsByType: () => ({}),
+                    getSort: () => 'random',
                     disable: jest.fn(),
                     enable: jest.fn(),
                 },

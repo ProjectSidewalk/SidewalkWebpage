@@ -13,6 +13,7 @@ import { sg } from '../sg.js';
 import { FilterSidebar } from '../../common/filter-sidebar/FilterSidebar.js';
 import { LabelDetail } from '../../common/label-detail/LabelDetail.js';
 import { util } from '../../common/utilities.js';
+import { isSorted, RANDOM_SORT } from '../cards/cardOrder.js';
 import '../../common/urlQuery.js';
 import '../../common/utilitiesSidewalk.js';
 /** @typedef {import('../../common/filter-sidebar/FilterSidebar.js').FilterSidebarChange} FilterSidebarChange */
@@ -27,6 +28,11 @@ export class GalleryFilter {
   #sidebar = null;
   /** @type {?HTMLButtonElement} Absent in review-list mode — there are no filters to reset. */
   #clearButton;
+  /**
+   * @type {?HTMLSelectElement} The admin's "Sort by" (#2705). Absent for everyone else and in review-list mode, and
+   * then the Gallery is in its random order.
+   */
+  #sortSelect;
   /** @type {{currentLabelTypes: string[]}} */
   #status;
   /** @type {Record<string, any>} Filters with no UI of their own, carried through so the URL keeps reporting them. */
@@ -41,10 +47,12 @@ export class GalleryFilter {
    * @param {?HTMLElement} root - The sidebar element holding the filter controls, or null when none is rendered.
    * @param {?HTMLButtonElement} clearButton - The button that resets every filter, or null when none is rendered.
    * @param {Record<string, any>} initialFilters - Filters parsed from the URL by the server, passed through the page.
+   * @param {?HTMLSelectElement} [sortSelect] - The admin's "Sort by" select, or null when none is rendered.
    */
-  constructor(root, clearButton, initialFilters) {
+  constructor(root, clearButton, initialFilters, sortSelect = null) {
     this.#root = root;
     this.#clearButton = clearButton;
+    this.#sortSelect = sortSelect;
     this.#initialFilters = initialFilters;
     this.#status = { currentLabelTypes: [] };
 
@@ -58,9 +66,38 @@ export class GalleryFilter {
         this.update();
       });
     }
+    if (this.#sortSelect) {
+      this.#sortSelect.addEventListener('change', () => {
+        sg.tracker?.push('SortApply', null, { Sort: this.getSort() });
+        this.renderFooter();
+        sg.cardContainer.updateCardsBySort();
+        this.#updateURL();
+      });
+    }
 
     this.#renderSeverity();
     this.#updateURL();
+  }
+
+  /**
+   * The order the cards are in: the select's value, or the random default when there is no select.
+   * @returns {string} A `GallerySort` wire name.
+   */
+  getSort() {
+    return this.#sortSelect?.value || RANDOM_SORT;
+  }
+
+  /**
+   * Restates the footer's "Labels are sorted …" line for the current order, in the page's language. The server
+   * renders it for the order the page opened in; this is for a change since.
+   */
+  renderFooter() {
+    const footer = document.getElementById('gallery-footer');
+    if (!footer) return;
+    const sort = this.getSort();
+    footer.textContent = isSorted(sort)
+      ? i18next.t('gallery:cards-sorted', { sort: i18next.t(`gallery:sort-${sort.replaceAll('_', '-')}`) })
+      : i18next.t('gallery:cards');
   }
 
   /**
@@ -135,8 +172,13 @@ export class GalleryFilter {
   /** Rewrites the address bar to match the filters, so the view can be linked and reloaded. */
   #updateURL() {
     const params = this.#filterParams();
-    // The reset speaks for the filters alone, so the deep link below doesn't make it appear.
+    // The reset speaks for the filters alone, so neither the sort nor the deep link below makes it appear.
     if (this.#clearButton) this.#clearButton.hidden = [...params.keys()].length === 0;
+
+    // An order is not a filter: it rides in the URL so the view reloads and links as seen, but it is not counted
+    // above and the reset leaves it alone. Random is the default and is left out, as a default filter is.
+    const sort = this.getSort();
+    if (isSorted(sort)) params.set('sort', sort);
 
     // The open label is not a filter, but this is the page's only writer of the address bar, so it has to carry the
     // deep link through: rebuilding the URL from the filters alone scrubbed `?labelId=` during the constructor's
@@ -275,14 +317,16 @@ export class GalleryFilter {
   /** Blocks interaction with the filters while a page of cards loads. */
   disable() {
     this.#sidebar?.disable();
-    // The reset sits outside the sidebar (see gallery.scala.html), so it needs disabling on its own.
+    // The reset and the sort sit outside the sidebar (see gallery.scala.html), so they need disabling on their own.
     if (this.#clearButton) this.#clearButton.disabled = true;
+    if (this.#sortSelect) this.#sortSelect.disabled = true;
   }
 
   /** Restores interaction with the filters. */
   enable() {
     this.#sidebar?.enable();
     if (this.#clearButton) this.#clearButton.disabled = false;
+    if (this.#sortSelect) this.#sortSelect.disabled = false;
   }
 
   /** Resets every filter to its default state. Callers follow with update() to apply it. */

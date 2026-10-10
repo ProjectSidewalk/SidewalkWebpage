@@ -452,6 +452,21 @@ loaded by the corresponding Twirl view:
   `pekko.http.server.parsing.max-uri-length` to 8k (Pekko's 2k default 414'd at about 290 ids). The imagery check
   runs in chunks of `LabelServiceImpl.ImageryCheckChunkSize` so a 500-id list can't open 500 provider lookups at
   once. The page's "labels are sorted randomly" footer is not rendered in list mode: the order is the caller's.
+  Admins also get a **"Sort by"** select above the filters (#2705; Random, Newest, Oldest, Most/Least severe, Most
+  disputed), carried as `?sort=` and honoured within whatever filters are selected. `GallerySort`
+  (`app/models/gallery/`) is the one definition of the options: the view renders the `<select>` from the enum, and
+  each value carries both its SQL `ORDER BY` and the same ordering in memory. A sorted Gallery is a different query
+  path from the random one, not a re-ordering of it: the random Gallery runs one query per selected type and shuffles
+  the batches together, which cannot produce a global order (the top of each type's ranking, merged, is not the top of
+  the union), so `LabelService.getGalleryLabels` runs **one ordered query across every selected type** with no type
+  spread and no shuffle, then re-sorts after the imagery check (which hands back crop-backed labels first). Paging
+  works because the client sends the ids it has loaded and the query excludes them, so each fetch is the next-ranked
+  unseen labels — and that is only true if what the client holds is a prefix of the server's order under the current
+  filters, so `CardContainer` empties its card cache on every sort change and on every filter change while sorted
+  (the random Gallery keeps its cache across filter changes, as it always has). Severity sorts on the raw 1–3 value,
+  which is "worst first" for every type since a quality-scale 3 is the worst rating too; unrated and unvalidated
+  labels sort last. The control is rendered for admin roles only; the card query itself is not gated, since the
+  labels are public data the API serves in any order.
 - **`admin-dashboard/`** — the admin dashboard (#4272): one `<PageName>Page.js` per route, started by that page's entry
   in `pages/admin/`. `AdminShell.js` loads on every one of those
   pages (and the user dashboard's) and holds the shared shell behaviors — the "On this page" list and its

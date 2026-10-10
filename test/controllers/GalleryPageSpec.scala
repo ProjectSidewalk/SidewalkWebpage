@@ -1,13 +1,16 @@
 package controllers
 
+import models.gallery.GallerySort
+import models.user.Role
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.i18n.{Lang, MessagesApi}
 import play.api.libs.json.{JsObject, JsValue, Json}
+import play.api.mvc.Cookie
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
-import util.{SidewalkSpec, UserAgents}
+import util.{AnonSession, RoleSession, SidewalkSpec, UserAgents}
 
 import java.net.URLEncoder
 
@@ -27,12 +30,23 @@ import java.net.URLEncoder
  *
  * Requires a Postgres+PostGIS database (via DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD env, as in dev/CI).
  */
-class GalleryPageSpec extends SidewalkSpec with GuiceOneAppPerSuite {
+class GalleryPageSpec extends SidewalkSpec with RoleSession with GuiceOneAppPerSuite with AnonSession {
 
   override def fakeApplication(): Application =
     GuiceApplicationBuilder()
       .disable[modules.ActorModule] // No eager background actors during tests.
+      // RoleSession mints its admin through the real anonymous signup, which the limiter would refuse mid-suite.
+      .configure("rate-limit.anon-signup.enabled" -> false)
       .build()
+
+  private lazy val adminCookies: Seq[Cookie] = sessionAs(Role.Administrator)
+
+  /** Fetches /gallery as the admin and returns its HTML. */
+  private def galleryPageAsAdmin(query: String = ""): String = {
+    val resp = route(app, FakeRequest(GET, s"/gallery$query").withCookies(adminCookies*)).get
+    status(resp) mustBe OK
+    contentAsString(resp)
+  }
 
   // Matches a whole tag-pill element so the active-class check doesn't depend on attribute order within the tag.
   // Twirl HTML-escapes ">" in attribute values, so [^>]* can't end the element early.
@@ -197,6 +211,57 @@ class GalleryPageSpec extends SidewalkSpec with GuiceOneAppPerSuite {
     "serve the page to a mobile visitor instead of redirecting to /mobileLanding" in {
       val resp = route(app, FakeRequest(GET, "/gallery").withHeaders(UserAgents.mobile)).get
       status(resp) mustBe OK
+    }
+
+    // The "Sort by" control (#2705) is admin tooling: everyone else keeps the random grid, whatever the URL says.
+    "render the sort control for an admin only" in {
+      galleryPageAsAdmin() must include("""id="gallery-sort"""")
+      galleryPage() must not include "gallery-sort"
+      galleryPage("?sort=newest") must not include "gallery-sort"
+    }
+
+    "offer every GallerySort as an option, from the enum rather than a list of its own" in {
+      val page = galleryPageAsAdmin()
+      GallerySort.values.foreach(s => page must include(s"""<option value="${s.name}""""))
+    }
+
+    "open in the order the URL asks for, and say so in the footer" in {
+      val page = galleryPageAsAdmin("?sort=most_severe")
+      page must include("""<option value="most_severe" selected""")
+      page must include("""Labels are sorted by &quot;Most severe first&quot; based on selected filters""")
+    }
+
+    "fall back to random for a sort the enum doesn't have" in {
+      val page = galleryPageAsAdmin("?sort=bogus")
+      page must include("""<option value="random" selected""")
+      page must include("Labels are sorted randomly based on selected filters")
+    }
+
+    "render no sort control in list mode" in {
+      galleryPageAsAdmin("?labelIds=8,3") must not include "gallery-sort"
+    }
+  }
+
+  "POST /label/labels with a sort" should {
+    def sortedLabels(sort: String, n: Int = 30): Seq[JsValue] =
+      (labelsFor(Json.obj("n" -> n, "loaded_labels" -> Json.arr(), "sort" -> sort)) \ "labelsOfType" \\ "label").toSeq
+
+    "return the most severe labels first, unrated last" in {
+      val severities = sortedLabels("most_severe").map(l => (l \ "severity").asOpt[Int])
+      val rated      = severities.takeWhile(_.isDefined).flatten
+      rated.zip(rated.drop(1)).foreach { case (higher, lower) => higher must be >= lower }
+      severities.dropWhile(_.isDefined).forall(_.isEmpty) mustBe true
+    }
+
+    "return the newest labels first" in {
+      val timestamps = sortedLabels("newest").map(l => (l \ "label_timestamp").as[String])
+      timestamps.zip(timestamps.drop(1)).foreach { case (newer, older) => newer must be >= older }
+    }
+
+    "still serve the landing grid's recent pool" in {
+      val resp =
+        labelsFor(Json.obj("n" -> 6, "loaded_labels" -> Json.arr(), "sort" -> "recent", "static_imagery_only" -> true))
+      (resp \ "labelsOfType").as[Seq[JsValue]].size must be <= 6
     }
   }
 

@@ -3,6 +3,7 @@ package service
 import com.google.inject.ImplementedBy
 import controllers.helper.ValidateHelper.ValidateParams
 import formats.json.ValidateFormats.ValidationMissionProgress
+import models.gallery.GalleryOrder
 import models.label.{Tag, *}
 import models.mission.{Mission, MissionTable, MissionType}
 import models.pano.PanoSource
@@ -62,7 +63,7 @@ trait LabelService {
       tagsByLabelType: Map[LabelType, Set[String]],
       aiValOptions: Set[String],
       userId: String,
-      recentFirst: Boolean = false,
+      order: GalleryOrder = GalleryOrder.Random,
       staticImageryOnly: Boolean = false,
       labelIds: Seq[Int] = Seq.empty
   ): Future[Seq[LabelValidationMetadata]]
@@ -330,7 +331,8 @@ class LabelServiceImpl @Inject() (
    * @param tagsByLabelType   Tags each label type is narrowed to; a type absent from the map is not narrowed.
    * @param aiValOptions      Set of AI validations to filter for: correct, incorrect, unsure, and/or unvalidated.
    * @param userId            User ID of the user requesting the labels.
-   * @param recentFirst       If true, draw from the most recent labels (shuffled) instead of sampling all labels.
+   * @param order             Random (the default), the landing grid's shuffled pool of the newest labels, or a strict
+   *                          [[GallerySort]] for the admin's "Sort by" (#2705); see the branches below.
    * @param staticImageryOnly If true, only label types a static (non-pannable) image can carry are returned.
    * @param labelIds          A review list (#5444). Non-empty switches to list mode: exactly these labels, in this
    *                          order, with every other argument above ignored. See the branch below for why.
@@ -346,7 +348,7 @@ class LabelServiceImpl @Inject() (
       tagsByLabelType: Map[LabelType, Set[String]],
       aiValOptions: Set[String],
       userId: String,
-      recentFirst: Boolean = false,
+      order: GalleryOrder = GalleryOrder.Random,
       staticImageryOnly: Boolean = false,
       labelIds: Seq[Int] = Seq.empty
   ): Future[Seq[LabelValidationMetadata]] = {
@@ -356,7 +358,7 @@ class LabelServiceImpl @Inject() (
     // empty request means every type; staticImageryOnly narrows it to the types a static image can support (the
     // landing grid can't pan, so e.g. Signal is out — see staticValidatableLabelTypes). Include useCrops so that
     // labels with expired or non-Google imagery are still included if a local crop exists.
-    // With recentFirst the query is ordered newest-first, so findValidLabelsForType's batching draws from the most
+    // With RecentPool the query is ordered newest-first, so findValidLabelsForType's batching draws from the most
     // recent labels and randomize=true shuffles within that recent pool.
     // lazy: a review list spreads across no types at all, so this is the filtered path's to compute.
     lazy val typesToSpread: Set[LabelType] =
@@ -386,30 +388,47 @@ class LabelServiceImpl @Inject() (
     } else if (typesToSpread.isEmpty) {
       Future.successful(Seq())
     } else {
-      // Split the request across the types so no one type crowds out the rest of a mixed selection.
-      val nPerType: Int = math.max(1, n / typesToSpread.size)
-      Future
-        .sequence(typesToSpread.map { labelType =>
+      order match {
+        case GalleryOrder.Sorted(sort) =>
+          // Sorted mode (#2705): one query across every selected type, because the order has to be global — the top
+          // n of each type merged is not the top n of the union — and so no type spread and no shuffle anywhere.
+          // The imagery check hands back crop-backed labels first, so the query's order is put back afterwards; the
+          // in-memory ordering is the SQL one, so paging (the client excludes what it has loaded and asks for the next
+          // ranked labels) neither skips nor repeats at a page boundary.
           findValidLabelsForType(
             (_: Seq[LabelValidationMetadata]) =>
-              labelTable.getGalleryLabelsQuery(
-                viewer,
-                labelType,
-                loadedLabelIds,
-                valOptions,
-                regionIds,
-                severity,
-                tagsByLabelType.getOrElse(labelType, Set()),
-                aiValOptions,
-                userId,
-                recentFirst
-              ),
-            randomize = true,
+              labelTable.getGalleryLabelsQuery(viewer, typesToSpread, loadedLabelIds, valOptions, regionIds, severity,
+                tagsByLabelType, aiValOptions, userId, order),
+            randomize = false,
             useCrops = true,
-            nPerType
-          )
-        })
-        .map(labelsByType => scala.util.Random.shuffle(labelsByType.flatten).toSeq)
+            n
+          ).map(_.sorted(using sort.ordering))
+        case GalleryOrder.Random | GalleryOrder.RecentPool =>
+          // Split the request across the types so no one type crowds out the rest of a mixed selection.
+          val nPerType: Int = math.max(1, n / typesToSpread.size)
+          Future
+            .sequence(typesToSpread.map { labelType =>
+              findValidLabelsForType(
+                (_: Seq[LabelValidationMetadata]) =>
+                  labelTable.getGalleryLabelsQuery(
+                    viewer,
+                    Set(labelType),
+                    loadedLabelIds,
+                    valOptions,
+                    regionIds,
+                    severity,
+                    tagsByLabelType.view.filterKeys(_ == labelType).toMap,
+                    aiValOptions,
+                    userId,
+                    order
+                  ),
+                randomize = true,
+                useCrops = true,
+                nPerType
+              )
+            })
+            .map(labelsByType => scala.util.Random.shuffle(labelsByType.flatten).toSeq)
+      }
     }
   }
 

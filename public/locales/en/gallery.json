@@ -1,5 +1,6 @@
 {
   "card-image-alt": "Street view photo of a {{labelType}} label",
+  "cards-sorted": "Labels are sorted by \"{{sort}}\" based on selected filters",
   "clear-filters": "Clear Filters",
   "filter-by": "Filter By",
   "list-browse-all": "Browse all labels",
@@ -14,5 +15,12 @@
   "list-unavailable_one": "{{count}} unavailable",
   "list-unavailable_other": "{{count}} unavailable",
   "none": "none",
-  "not-applicable": "not applicable"
+  "not-applicable": "not applicable",
+  "sort-by": "Sort By",
+  "sort-least-severe": "Least severe first",
+  "sort-most-disputed": "Most disputed first",
+  "sort-most-severe": "Most severe first",
+  "sort-newest": "Newest first",
+  "sort-oldest": "Oldest first",
+  "sort-random": "Random"
 }

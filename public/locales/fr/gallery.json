@@ -1,5 +1,6 @@
 {
   "card-image-alt": "Photo de rue d'une étiquette {{labelType}}",
+  "cards-sorted": "Les étiquettes sont triées par « {{sort}} » selon les filtres sélectionnés",
   "clear-filters": "Effacer les filtres",
   "filter-by": "Filtrer par",
   "list-browse-all": "Parcourir toutes les étiquettes",
@@ -14,5 +15,12 @@
   "list-unavailable_one": "{{count}} indisponible",
   "list-unavailable_other": "{{count}} indisponibles",
   "none": "aucun",
-  "not-applicable": "non applicable"
+  "not-applicable": "non applicable",
+  "sort-by": "Trier par",
+  "sort-least-severe": "Moins graves d’abord",
+  "sort-most-disputed": "Plus contestées d’abord",
+  "sort-most-severe": "Plus graves d’abord",
+  "sort-newest": "Plus récentes d’abord",
+  "sort-oldest": "Plus anciennes d’abord",
+  "sort-random": "Aléatoire"
 }

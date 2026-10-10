@@ -549,6 +549,14 @@ gallery.tags = Tags
 gallery.all = Alle labeltypen
 gallery.labels.not.found = Geen overeenkomsten. <a href="/explore">Begin met verkennen</a> om meer data bij te dragen!
 gallery.cards = Labels worden willekeurig gesorteerd op basis van geselecteerde filters
+gallery.cards.sorted = Labels worden gesorteerd op "{0}" op basis van geselecteerde filters
+gallery.sort.by = Sorteren op
+gallery.sort.random = Willekeurig
+gallery.sort.newest = Nieuwste eerst
+gallery.sort.oldest = Oudste eerst
+gallery.sort.most.severe = Ernstigste eerst
+gallery.sort.least.severe = Minst ernstige eerst
+gallery.sort.most.disputed = Meest betwiste eerst
 gallery.clear.filters = Filters Wissen
 gallery.list.count = {0,choice,1#1 label|1<{0} labels} in deze lijst
 gallery.list.truncated = {0,choice,1#1 id lag boven de limiet van {1} en kon niet worden geladen.|1<{0} ids lagen boven de limiet van {1} en konden niet worden geladen.}

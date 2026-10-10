@@ -1,5 +1,6 @@
 {
   "card-image-alt": "Foto de Street View de una etiqueta de {{labelType}}",
+  "cards-sorted": "Las etiquetas se ordenan por \"{{sort}}\" según los filtros seleccionados",
   "clear-filters": "Borrar Filtros",
   "filter-by": "Filtrar por",
   "list-browse-all": "Explorar todas las etiquetas",
@@ -14,5 +15,12 @@
   "list-unavailable_one": "{{count}} no disponible",
   "list-unavailable_other": "{{count}} no disponibles",
   "none": "ninguna",
-  "not-applicable": "no aplicable"
+  "not-applicable": "no aplicable",
+  "sort-by": "Ordenar por",
+  "sort-least-severe": "Menos graves primero",
+  "sort-most-disputed": "Más disputadas primero",
+  "sort-most-severe": "Más graves primero",
+  "sort-newest": "Más recientes primero",
+  "sort-oldest": "Más antiguas primero",
+  "sort-random": "Aleatorio"
 }
