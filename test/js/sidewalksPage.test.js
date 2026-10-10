@@ -218,6 +218,18 @@ describe('the Sidewalks page', () => {
     expect(flagRows()).toEqual(['3:left']);
     pickFlag('problem_labels');
     expect(flagRows()).toEqual(['4:left']);
+    pickFlag('not_audited');
+    expect(flagRows()).toEqual(['6:left']);
+  });
+
+  test('lists a street too short to see on the map by its length', async () => {
+    const sliver = street(7, face('left', { presence: 'unknown', presence_basis: 'unaudited' }),
+      face('right', { presence: 'unknown', presence_basis: 'unaudited' }), { audit_count: 0, length_m: 0.47 });
+    await renderPage({ streets: [...CITY, sliver], ids: [1, 2, 3, 4, 5, 6, 7] });
+    pickFlag('not_audited');
+    expect(flagRows().sort()).toEqual(['6:left', '7:left']);
+    const evidence = [...document.querySelectorAll('#sidewalks-flag-table tbody tr')].map((tr) => tr.textContent);
+    expect(evidence.some((text) => text.includes('0.5 m long'))).toBe(true);
   });
 
   test('gives both sides of one street their own row when both are on a list', async () => {

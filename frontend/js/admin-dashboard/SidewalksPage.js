@@ -63,6 +63,16 @@ const FLAGS = [
       + `${f.problem_label_count === 1 ? '' : 's'}`,
     weight: (f) => f.problem_label_count,
   },
+  {
+    key: 'not_audited',
+    label: 'Not audited',
+    description: 'Streets nobody has audited, so neither side has a verdict. One only a meter or two long is an '
+      + 'artifact of the street network, too short to show on the map or to audit, rather than unfinished work.',
+    // Audits cover a whole street, so both sides are always unaudited together: one row per street.
+    test: (f) => f.street_side === 'left' && f.presence_basis === 'unaudited',
+    evidence: (f) => `${f.length_m < 10 ? f.length_m.toFixed(1) : AdminShell.num(Math.round(f.length_m))} m long`,
+    weight: (f) => f.length_m,
+  },
 ];
 
 export class SidewalksPage {
