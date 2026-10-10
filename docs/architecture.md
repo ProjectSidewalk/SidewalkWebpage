@@ -160,8 +160,10 @@ the share preview, the label mini-card (`LabelMiniCard.js`, the AccessScore shee
 row (`crop_marker` in the label payloads), falling back to the canvas fraction only while a crop is unrecorded or the
 image on screen is the Street View still. A new crop writer must write that row, and a new surface that marks a crop
 must read it. A pano too wide for the viewer's GPU is shown from a downscaled copy, and `/backupImage/:panoId` serves
-that in place of the native file without the viewer being able to tell, because it places markers by angle. **The
-viewer decides when one is needed**, because only it knows the GPU: Pannellum uploads an equirect as two halves, so
+that in place of the native file without the viewer being able to tell, because it places markers by angle. A backup
+is served only when its row holds the pano's dimensions, camera position and heading; camera pitch and roll are
+stored but not needed, since the viewer takes the horizon from the image itself (#5174, #5725), and
+`PanoDataTable.hasBackupViewerFields` names every copy of that rule. **The viewer decides when one is needed**, because only it knows the GPU: Pannellum uploads an equirect as two halves, so
 its limit is `2 x MAX_TEXTURE_SIZE` and a device advertising 8192 renders a 16384-wide pano — the widest GSV
 produces — untouched. When a device can't, it appends `?maxWidth=` and `PanoDisplayCopyService` cuts a copy at that
 width on demand, caching it under the crop store (#5256). A phone asks for 8192 whatever its GPU says, because the

@@ -1457,19 +1457,16 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   /**
    * Whether Validate can show a label's imagery: the original is still live, or a viewable backup stands in.
    *
-   * Rendering a backup in Pannellum needs the pano's dimensions, camera location, and camera angles, and rows written
+   * Rendering a backup in Pannellum needs the pano's dimensions, camera location, and heading, and rows written
    * before we recorded those carry nulls. A label on one of them leaves Validate showing the *previous* label's
-   * imagery under the new label's marker (#4804), so they're better left out of the queue.
+   * imagery under the new label's marker (#4804), so they're better left out of the queue. The field rule is
+   * `PanoDataTable.hasBackupViewerFields`; see the note there before changing it.
    *
    * `hasBackup` is NULL until the imagery check has looked at a pano and is read optimistically; the real gate is
    * `LabelService.checkImageryBatch`, which checks disk and API per label as a mission is built.
-   *
-   * The six columns mirror `PanoData`'s `requiredParams` — see the note there before changing them.
    */
   private def imageryViewable(pd: PanoDataTableDef): Rep[Boolean] = {
-    !pd.expired || (pd.hasBackup.getOrElse(true: Rep[Boolean]) &&
-      pd.width.isDefined && pd.height.isDefined && pd.lat.isDefined && pd.lng.isDefined &&
-      pd.cameraHeading.isDefined && pd.cameraPitch.isDefined)
+    !pd.expired || (pd.hasBackup.getOrElse(true: Rep[Boolean]) && PanoDataTable.hasBackupViewerFields(pd))
   }
 
   /**

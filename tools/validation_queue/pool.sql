@@ -57,12 +57,13 @@ WHERE label.deleted = FALSE
     AND label_point.lng IS NOT NULL
     -- Validate only ever serves one imagery source: whichever one the city's labels mostly sit on.
     AND pano_data.source = (SELECT source FROM pano_data GROUP BY source ORDER BY count(*) DESC LIMIT 1)
-    -- imageryViewable: live imagery, or a backup we hold together with everything Pannellum needs to render it.
+    -- imageryViewable: live imagery, or a backup we hold together with everything Pannellum needs to render it
+    -- (PanoDataTable.hasBackupViewerFields; a pose is not needed, #5725).
     AND (pano_data.expired = FALSE
         OR (COALESCE(pano_data.has_backup, TRUE)
             AND pano_data.width IS NOT NULL AND pano_data.height IS NOT NULL
             AND pano_data.lat IS NOT NULL AND pano_data.lng IS NOT NULL
-            AND pano_data.camera_heading IS NOT NULL AND pano_data.camera_pitch IS NOT NULL))
+            AND pano_data.camera_heading IS NOT NULL AND pano_data.camera_heading <> 'NaN'))
     AND label.label_type::text IN ('CurbRamp', 'NoCurbRamp', 'Obstacle', 'SurfaceProblem', 'Crosswalk', 'Signal',
                                    'NoSidewalk')
 ORDER BY label.label_id;
