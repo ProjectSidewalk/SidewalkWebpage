@@ -311,9 +311,10 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
   }
 
   /**
-   * Fills in a pano's camera pitch and roll when it has none (#5725). A real stored value is never touched: it is a
-   * labeler's or the auto-labeler's own reading of the same rotation, so there is nothing to correct. A NaN pitch
-   * counts as none, as evolution 366 read it.
+   * Fills in a pano's camera pitch and roll when it has no pitch (#5725). A stored pitch is never touched: it is a
+   * labeler's or the auto-labeler's own reading of the same rotation, so there is nothing to correct. The roll
+   * follows the pitch, since the two are one reading and no writer stores one without the other. A NaN pitch counts
+   * as none, as evolution 366 read it.
    *
    * @return Rows updated: 1 when the pano had no pitch, else 0.
    */

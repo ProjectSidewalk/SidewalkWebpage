@@ -773,8 +773,10 @@ class PanoDataServiceImpl @Inject() (
   /**
    * Checks whether a Mapillary image still exists via the Graph API (`GET /:imageId`).
    *
-   * The same request asks for `computed_rotation`, so the nightly sweep fills a missing camera pitch from it with no
-   * second request (#5725): the AI pipeline sent none before sidewalk-auto-labeler#42.
+   * The same request asks for `computed_rotation`, and a missing camera pitch is filled from it before the answer is
+   * returned (#5725; the AI pipeline sent none before sidewalk-auto-labeler#42). That holds for every caller, not
+   * only the nightly sweep: a Validate mission being built pays the one guarded primary-key UPDATE too, which is
+   * cheap enough that keeping the fill sequenced, and so deterministic for the specs, wins.
    *
    * @param panoId Mapillary image ID.
    * @return       `Some(true)` if the imagery exists, `Some(false)` if not, `None` if inconclusive.

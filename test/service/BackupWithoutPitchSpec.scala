@@ -9,6 +9,7 @@ import models.utils.MyPostgresProfile.api.*
 import models.validation.ValidationLabelFilter
 import models.validation.ValidationQueuePolicy.ValidationQueue
 import org.apache.pekko.stream.Materializer
+import org.scalatest.BeforeAndAfterAll
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.cache.AsyncCacheApi
 import play.api.db.slick.DatabaseConfigProvider
@@ -36,7 +37,7 @@ import scala.concurrent.{Await, ExecutionContext, Future}
  * The app's pano directory is a temp dir and the service's Graph API a local server. The route and the service run
  * on their own DB connections, so the staging writes are committed and the row restored, not rolled back.
  */
-class BackupWithoutPitchSpec extends SidewalkSpec with GuiceOneAppPerSuite {
+class BackupWithoutPitchSpec extends SidewalkSpec with GuiceOneAppPerSuite with BeforeAndAfterAll {
 
   private val panosDir: Path = Files.createTempDirectory("backup-without-pitch-spec")
 
@@ -45,6 +46,11 @@ class BackupWithoutPitchSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       .configure("pano.images.directory" -> panosDir.toString)
       .disable[modules.ActorModule]
       .build()
+
+  override def afterAll(): Unit = {
+    super.afterAll()
+    Files.walk(panosDir).sorted(java.util.Comparator.reverseOrder()).forEach(p => Files.deleteIfExists(p): Unit)
+  }
 
   given mat: Materializer = app.materializer
 
