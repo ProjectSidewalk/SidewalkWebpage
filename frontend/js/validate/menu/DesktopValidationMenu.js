@@ -2,13 +2,18 @@
  * Initializes the primary validation UI on the right side, including validation of tags/severity.
  */
 
-import { svv } from '../svv.js';
 import { LabelTypePicker } from '../../common/LabelTypePicker.js';
 import { util } from '../../common/utilities.js';
 import { LabelContainer } from '../label/LabelContainer.js';
 import '../../common/utilitiesSidewalk.js';
 import '../../../css/components/tag-pills.css';
 /** @typedef {import('../label/Label.js').Label} Label */
+/** @typedef {import('../label/LabelCard.js').LabelCard} LabelCard */
+/** @typedef {import('../Main.js').ValidateConfig} ValidateConfig */
+/** @typedef {import('../Main.js').ValidationMenuUi} ValidationMenuUi */
+/** @typedef {import('../panorama/PanoManager.js').PanoManager} PanoManager */
+/** @typedef {import('../Tracker.js').Tracker} Tracker */
+/** @typedef {import('../util/ConstantsValidate.js').ReasonButton} ReasonButton */
 
 export class DesktopValidationMenu {
   #menuUI;
@@ -19,16 +24,42 @@ export class DesktopValidationMenu {
   /** @type {LabelTypePicker|null} Expert Validate only (#3671). */
   #labelTypePicker = null;
   #wrongTypeView = false;
+  /** @type {ValidateConfig} */
+  #config;
+  /** @type {Record<string, Record<string, ReasonButton>>} */
+  #reasonButtonInfo;
+  /** @type {LabelContainer} */
+  #labelContainer;
+  /** @type {LabelCard} */
+  #labelCard;
+  /** @type {PanoManager} */
+  #panoManager;
+  /** @type {Tracker} */
+  #tracker;
 
   /**
-   * @param {Record<string, HTMLElement>} menuUI - Validation menu UI elements.
+   * @param {ValidationMenuUi} menuUI - Validation menu UI elements.
+   * @param {ValidateConfig} config - Whether this is Expert Validate, and the tags each type offers.
+   * @param {Record<string, Record<string, ReasonButton>>} reasonButtonInfo - The reasons each type's menu offers.
+   * @param {LabelContainer} labelContainer - Whose current label the verdict is cast on; the menu resets for each.
+   * @param {LabelCard} labelCard - Re-rendered after every edit, and the source of a type picked from its dropdown.
+   * @param {PanoManager} panoManager - Whose marker is redrawn for a picked type.
+   * @param {Tracker} tracker - Logs every click in the menu.
    */
-  constructor(menuUI) {
+  constructor(menuUI, config, reasonButtonInfo, labelContainer, labelCard, panoManager, tracker) {
     this.#menuUI = menuUI;
+    this.#config = config;
+    this.#reasonButtonInfo = reasonButtonInfo;
+    this.#labelContainer = labelContainer;
+    this.#labelCard = labelCard;
+    this.#panoManager = panoManager;
+    this.#tracker = tracker;
     this.#disagreeReasonButtons = DesktopValidationMenu.#reasonButtonsIn(menuUI.disagreeReasonOptions);
     this.#unsureReasonButtons = DesktopValidationMenu.#reasonButtonsIn(menuUI.unsureReasonOptions);
 
     this.#init();
+    labelContainer.onLabelShown((label) => this.resetMenu(label));
+    labelCard.onTypePicked((labelType) => this.pickNewLabelType(labelType));
   }
 
   #init() {
@@ -38,28 +69,28 @@ export class DesktopValidationMenu {
     menuUI.yesButton.addEventListener('click', (e) => {
       // The menu is dimmed and pointer-blocked while the next label's pano loads, but a button that kept focus after
       // a click still answers Enter with a native click of its own, which no CSS stops (#5211).
-      if (svv.labelContainer.dropInputWhileLoading('Agree')) return;
-      svv.tracker.push(e.isTrusted ? 'ValidationButtonClick_Agree' : 'ValidationKeyboardShortcut_Agree');
+      if (this.#labelContainer.dropInputWhileLoading('Agree')) return;
+      this.#tracker.push(e.isTrusted ? 'ValidationButtonClick_Agree' : 'ValidationKeyboardShortcut_Agree');
       this.#setYesView();
-      svv.labelContainer.getCurrentLabel().setProperty('validationResult', 'Agree');
+      this.#labelContainer.getCurrentLabel().setProperty('validationResult', 'Agree');
     });
     menuUI.noButton.addEventListener('click', (e) => {
-      if (svv.labelContainer.dropInputWhileLoading('Disagree')) return;
-      svv.tracker.push(e.isTrusted ? 'ValidationButtonClick_Disagree' : 'ValidationKeyboardShortcut_Disagree');
+      if (this.#labelContainer.dropInputWhileLoading('Disagree')) return;
+      this.#tracker.push(e.isTrusted ? 'ValidationButtonClick_Disagree' : 'ValidationKeyboardShortcut_Disagree');
       this.#setNoView();
-      svv.labelContainer.getCurrentLabel().setProperty('validationResult', 'Disagree');
+      this.#labelContainer.getCurrentLabel().setProperty('validationResult', 'Disagree');
     });
     menuUI.unsureButton.addEventListener('click', (e) => {
-      if (svv.labelContainer.dropInputWhileLoading('Unsure')) return;
-      svv.tracker.push(e.isTrusted ? 'ValidationButtonClick_Unsure' : 'ValidationKeyboardShortcut_Unsure');
+      if (this.#labelContainer.dropInputWhileLoading('Unsure')) return;
+      this.#tracker.push(e.isTrusted ? 'ValidationButtonClick_Unsure' : 'ValidationKeyboardShortcut_Unsure');
       this.#setUnsureView();
-      svv.labelContainer.getCurrentLabel().setProperty('validationResult', 'Unsure');
+      this.#labelContainer.getCurrentLabel().setProperty('validationResult', 'Unsure');
     });
     // Immersive mode's close control on the open dock (#5560); the boxed column never shows it.
     menuUI.verdictClearButton?.addEventListener('click', () => this.clearVerdict());
 
     // Tag and severity sections only available with Expert Validate.
-    if (svv.adminVersion) {
+    if (this.#config.adminVersion) {
       this.#labelTypePicker = new LabelTypePicker(menuUI.labelTypePicker, {
         onPick: (labelType) => this.#setNewLabelType(labelType),
         // The full set of chips plus the editors would overflow the menu column, so only one shows at a time.
@@ -77,16 +108,16 @@ export class DesktopValidationMenu {
           // natively. The viewers stopPropagation those keydowns but nothing preventDefaults them, so the roving still
           // fires a click here — writing a severity onto the label that isn't on screen yet, where resetMenu hides the
           // menu but leaves the value on the label, and it is submitted as a change nobody made (#5211).
-          if (svv.labelContainer.dropInputWhileLoading('Severity')) return;
-          const currLabel = svv.labelContainer.getCurrentLabel();
+          if (this.#labelContainer.dropInputWhileLoading('Severity')) return;
+          const currLabel = this.#labelContainer.getCurrentLabel();
           const oldSeverity = currLabel.getProperty('newSeverity');
           const newSeverity = Number(severityButton.dataset.severity);
           const labelType = currLabel.getProperty('newLabelType');
           if (oldSeverity !== newSeverity && util.misc.labelTypeHasSeverity(labelType)) {
-            svv.tracker.push(`Click=Severity_Old=${oldSeverity}_New=${newSeverity}`);
+            this.#tracker.push(`Click=Severity_Old=${oldSeverity}_New=${newSeverity}`);
             currLabel.setProperty('newSeverity', newSeverity);
             this.#renderSeverity();
-            svv.labelCard?.render(currLabel);
+            this.#labelCard.render(currLabel);
           }
         });
       }
@@ -101,14 +132,14 @@ export class DesktopValidationMenu {
         searchField: 'tag_name',
         sortField: 'popularity', // TODO include data abt frequency of use on this server.
         onFocus: () => {
-          svv.tracker.push('Click=TagSearch');
+          this.#tracker.push('Click=TagSearch');
         },
         onItemAdd: (tagName) => {
           // Guarded ahead of #addTag's own guard, which is one line too late for this list: mid-load the tag is not
           // added but would still be remembered as user-added, and #tagsAddedByUser is what suppresses an AI
           // suggestion to remove a tag. resetMenu has already cleared it for the incoming label by then, so the
           // entry would be attributed to a label the validator never touched (#5211).
-          if (svv.labelContainer.dropInputWhileLoading('TagAdd')) return;
+          if (this.#labelContainer.dropInputWhileLoading('TagAdd')) return;
           this.#tagsAddedByUser.push(tagName);
           this.#addTag(tagName, false);
         },
@@ -137,15 +168,15 @@ export class DesktopValidationMenu {
     // interaction the load guard exists to refuse is the one that reads in the logs as having landed (#5211).
     for (const reasonButton of this.#disagreeReasonButtons) {
       reasonButton.addEventListener('click', (e) => {
-        if (svv.labelContainer.dropInputWhileLoading('DisagreeReason')) return;
-        svv.tracker.push(`${e.isTrusted ? 'Click=' : 'KeyboardShortcut_'}DisagreeReason_Option=${reasonButton.id}`);
+        if (this.#labelContainer.dropInputWhileLoading('DisagreeReason')) return;
+        this.#tracker.push(`${e.isTrusted ? 'Click=' : 'KeyboardShortcut_'}DisagreeReason_Option=${reasonButton.id}`);
         this.#setDisagreeReason(reasonButton.id);
       });
     }
     for (const reasonButton of this.#unsureReasonButtons) {
       reasonButton.addEventListener('click', (e) => {
-        if (svv.labelContainer.dropInputWhileLoading('UnsureReason')) return;
-        svv.tracker.push(`${e.isTrusted ? 'Click=' : 'KeyboardShortcut_'}UnsureReason_Option=${reasonButton.id}`);
+        if (this.#labelContainer.dropInputWhileLoading('UnsureReason')) return;
+        this.#tracker.push(`${e.isTrusted ? 'Click=' : 'KeyboardShortcut_'}UnsureReason_Option=${reasonButton.id}`);
         this.#setUnsureReason(reasonButton.id);
       });
     }
@@ -153,15 +184,15 @@ export class DesktopValidationMenu {
     // Log clicks to the three text boxes. Focus is set by hand because a shortcut's scripted click doesn't move it.
     menuUI.optionalCommentTextBox.addEventListener('click', (e) => {
       menuUI.optionalCommentTextBox.focus();
-      svv.tracker.push(e.isTrusted ? 'Click=AgreeCommentTextbox' : 'KeyboardShortcut=AgreeCommentTextbox');
+      this.#tracker.push(e.isTrusted ? 'Click=AgreeCommentTextbox' : 'KeyboardShortcut=AgreeCommentTextbox');
     });
     menuUI.disagreeReasonTextBox.addEventListener('click', (e) => {
       menuUI.disagreeReasonTextBox.focus();
-      svv.tracker.push(e.isTrusted ? 'Click=DisagreeReasonTextbox' : 'KeyboardShortcut=DisagreeReasonTextbox');
+      this.#tracker.push(e.isTrusted ? 'Click=DisagreeReasonTextbox' : 'KeyboardShortcut=DisagreeReasonTextbox');
     });
     menuUI.unsureReasonTextBox.addEventListener('click', (e) => {
       menuUI.unsureReasonTextBox.focus();
-      svv.tracker.push(e.isTrusted ? 'Click=UnsureReasonTextbox' : 'KeyboardShortcut=UnsureReasonTextbox');
+      this.#tracker.push(e.isTrusted ? 'Click=UnsureReasonTextbox' : 'KeyboardShortcut=UnsureReasonTextbox');
     });
 
     // Add oninput for disagree and unsure other reason text boxes.
@@ -171,19 +202,19 @@ export class DesktopValidationMenu {
     // from there, and once one has the box is only reachable by pointer, which is blocked — but half a guard on a
     // handler is a trap for whoever changes it next (#5211).
     menuUI.disagreeReasonTextBox.addEventListener('input', () => {
-      if (svv.labelContainer.dropInputWhileLoading('DisagreeReason')) return;
+      if (this.#labelContainer.dropInputWhileLoading('DisagreeReason')) return;
       if (menuUI.disagreeReasonTextBox.value === '') {
         menuUI.disagreeReasonTextBox.classList.remove('is-chosen');
-        svv.labelContainer.getCurrentLabel().setProperty('disagreeOption', undefined);
+        this.#labelContainer.getCurrentLabel().setProperty('disagreeOption', undefined);
       } else {
         this.#setDisagreeReason('other');
       }
     });
     menuUI.unsureReasonTextBox.addEventListener('input', () => {
-      if (svv.labelContainer.dropInputWhileLoading('UnsureReason')) return;
+      if (this.#labelContainer.dropInputWhileLoading('UnsureReason')) return;
       if (menuUI.unsureReasonTextBox.value === '') {
         menuUI.unsureReasonTextBox.classList.remove('is-chosen');
-        svv.labelContainer.getCurrentLabel().setProperty('unsureOption', undefined);
+        this.#labelContainer.getCurrentLabel().setProperty('unsureOption', undefined);
       } else {
         this.#setUnsureReason('other');
       }
@@ -192,7 +223,7 @@ export class DesktopValidationMenu {
     // Add onclick for submit button.
     menuUI.submitButton.addEventListener('click', (e) => {
       if (menuUI.submitButton.disabled) return;
-      this.#validateLabel(svv.labelContainer.getCurrentLabel().getProperty('validationResult'), !e.isTrusted);
+      this.#validateLabel(this.#labelContainer.getCurrentLabel().getProperty('validationResult'), !e.isTrusted);
     });
   }
 
@@ -283,7 +314,7 @@ export class DesktopValidationMenu {
   #renderReasonButtons(label) {
     const labelType = util.camelToKebab(label.getAuditProperty('labelType'));
     for (const reasonButton of [...this.#disagreeReasonButtons, ...this.#unsureReasonButtons]) {
-      const buttonInfo = svv.reasonButtonInfo[labelType][reasonButton.id];
+      const buttonInfo = this.#reasonButtonInfo[labelType][reasonButton.id];
       if (buttonInfo) {
         reasonButton.innerHTML = buttonInfo.buttonText;
 
@@ -341,9 +372,9 @@ export class DesktopValidationMenu {
    * @returns {string[]} The sections to show; severity is left out for unrated types.
    */
   #editSections() {
-    if (!svv.adminVersion) return [];
+    if (!this.#config.adminVersion) return [];
     this.#renderTags();
-    const labelType = svv.labelContainer.getCurrentLabel().getProperty('newLabelType');
+    const labelType = this.#labelContainer.getCurrentLabel().getProperty('newLabelType');
     if (!util.misc.labelTypeHasSeverity(labelType)) return ['tagsMenu'];
     this.#renderSeverity();
     return ['tagsMenu', 'severityMenu'];
@@ -357,7 +388,7 @@ export class DesktopValidationMenu {
 
   /** Puts the label back on its own type, for a verdict that isn't "wrong label type" and so can't carry a new one. */
   #dropPickedType() {
-    const currLabel = svv.labelContainer.getCurrentLabel();
+    const currLabel = this.#labelContainer.getCurrentLabel();
     if (this.#typeChanged(currLabel)) this.#setNewLabelType(currLabel.getProperty('oldLabelType'), false);
   }
 
@@ -366,12 +397,12 @@ export class DesktopValidationMenu {
    * must not leave one showing on the card as though Submit would keep it.
    */
   #dropPendingEdits() {
-    const currLabel = svv.labelContainer.getCurrentLabel();
+    const currLabel = this.#labelContainer.getCurrentLabel();
     const hadNewType = this.#typeChanged(currLabel);
     currLabel.setNewLabelType(currLabel.getProperty('oldLabelType'));
     this.#tagsAddedByUser = [];
-    if (hadNewType) svv.panoManager.styleMarkerForLabel(currLabel);
-    svv.labelCard?.render(currLabel);
+    if (hadNewType) this.#panoManager.styleMarkerForLabel(currLabel);
+    this.#labelCard.render(currLabel);
   }
 
   #setNoView() {
@@ -387,12 +418,12 @@ export class DesktopValidationMenu {
    */
   clearVerdict() {
     // Mid-load the current label is already the incoming one, so a Space on the still-focused X would wipe it (#5211).
-    if (svv.labelContainer.dropInputWhileLoading('ClearVerdict')) return;
+    if (this.#labelContainer.dropInputWhileLoading('ClearVerdict')) return;
     const menuUI = this.#menuUI;
-    const label = svv.labelContainer.getCurrentLabel();
+    const label = this.#labelContainer.getCurrentLabel();
     const verdict = label.getProperty('validationResult');
     if (verdict === undefined) return;
-    svv.tracker.push('Click_ClearVerdict', { verdict });
+    this.#tracker.push('Click_ClearVerdict', { verdict });
     this.#dropPendingEdits();
     for (const name of ['validationResult', 'disagreeOption', 'unsureOption']) label.setProperty(name, undefined);
     // The text fields start out empty strings (Label.js), not undefined.
@@ -425,7 +456,7 @@ export class DesktopValidationMenu {
    * for the picked type. Submit stays off until a type is picked; without one there is nothing to say.
    */
   #setWrongTypeView() {
-    const currLabel = svv.labelContainer.getCurrentLabel();
+    const currLabel = this.#labelContainer.getCurrentLabel();
     const picked = this.#typeChanged(currLabel) ? currLabel.getProperty('newLabelType') : null;
     this.#labelTypePicker.render({ current: currLabel.getProperty('oldLabelType'), selected: picked });
     this.#labelTypePicker.collapse(); // Keeps the editors below within the menu column; a no-op before a pick.
@@ -440,15 +471,15 @@ export class DesktopValidationMenu {
    * @param {boolean} [redraw] - False when the caller is about to draw a different verdict's view anyway.
    */
   #setNewLabelType(labelType, redraw = true) {
-    if (svv.labelContainer.dropInputWhileLoading('LabelType')) return;
-    const currLabel = svv.labelContainer.getCurrentLabel();
+    if (this.#labelContainer.dropInputWhileLoading('LabelType')) return;
+    const currLabel = this.#labelContainer.getCurrentLabel();
     const oldType = currLabel.getProperty('newLabelType');
     if (labelType === oldType) return;
-    svv.tracker.push(`Click=NewLabelType_Old=${oldType}_New=${labelType}`);
+    this.#tracker.push(`Click=NewLabelType_Old=${oldType}_New=${labelType}`);
     currLabel.setNewLabelType(labelType);
     this.#tagsAddedByUser = [];
-    svv.panoManager.styleMarkerForLabel(currLabel);
-    svv.labelCard?.render(currLabel);
+    this.#panoManager.styleMarkerForLabel(currLabel);
+    this.#labelCard.render(currLabel);
     if (redraw) this.#setWrongTypeView();
   }
 
@@ -457,7 +488,7 @@ export class DesktopValidationMenu {
    * admin's Agree can carry an edit.
    */
   #startWrongType() {
-    const currLabel = svv.labelContainer.getCurrentLabel();
+    const currLabel = this.#labelContainer.getCurrentLabel();
     DesktopValidationMenu.#clearChosen(this.#disagreeReasonButtons);
     this.#menuUI.disagreeReasonTextBox.classList.remove('is-chosen');
     currLabel.setProperty('disagreeOption', null);
@@ -470,7 +501,7 @@ export class DesktopValidationMenu {
    * @param {string} labelType
    */
   pickNewLabelType(labelType) {
-    if (svv.labelContainer.dropInputWhileLoading('LabelType')) return;
+    if (this.#labelContainer.dropInputWhileLoading('LabelType')) return;
     this.#startWrongType();
     this.#setNewLabelType(labelType);
   }
@@ -493,40 +524,40 @@ export class DesktopValidationMenu {
   #addTag(tagName, fromAiSuggestion = false) {
     // Guarded at the write rather than at its two entry points (the tag picker and the AI suggestions), so a third
     // can't reach the current label mid-load just by not knowing to guard itself (#5211).
-    if (svv.labelContainer.dropInputWhileLoading('TagAdd')) return;
-    const currLabel = svv.labelContainer.getCurrentLabel();
+    if (this.#labelContainer.dropInputWhileLoading('TagAdd')) return;
+    const currLabel = this.#labelContainer.getCurrentLabel();
 
     // If the tag is mutually exclusive with another tag that's been added, remove the other tag.
-    const allTags = svv.tagsByLabelType[currLabel.getProperty('newLabelType')] ?? [];
+    const allTags = this.#config.tagsByLabelType[currLabel.getProperty('newLabelType')] ?? [];
     const mutuallyExclusiveWith = allTags.find((t) => t.tag_name === tagName).mutually_exclusive_with;
     const currTags = currLabel.getProperty('newTags');
     if (currTags.some((t) => t === mutuallyExclusiveWith)) {
-      svv.tracker.push(`TagAutoRemove_Tag="${mutuallyExclusiveWith}"`);
+      this.#tracker.push(`TagAutoRemove_Tag="${mutuallyExclusiveWith}"`);
       currLabel.setProperty('newTags', currTags.filter((t) => t !== mutuallyExclusiveWith));
     }
     // New tag added, add to list and rerender.
-    svv.tracker.push(`Click=TagAdd_Tag="${tagName}"_FromAiSuggestion=${fromAiSuggestion}`);
+    this.#tracker.push(`Click=TagAdd_Tag="${tagName}"_FromAiSuggestion=${fromAiSuggestion}`);
     currLabel.getProperty('newTags').push(tagName);
     this.#tagSelect.clear();
     this.#tagSelect.removeOption(tagName);
     this.#renderTags();
-    svv.labelCard?.render(currLabel);
+    this.#labelCard.render(currLabel);
   }
 
   #removeTag(tagName, label, fromAiSuggestion = false) {
     // Mid-load `label` is the one that just left the screen and was already submitted, so this write goes nowhere —
     // while #renderTags below reads getCurrentLabel() instead, drawing the tags of a label nobody can see yet (#5211).
-    if (svv.labelContainer.dropInputWhileLoading('TagRemove')) return;
-    svv.tracker.push(`Click=TagRemove_Tag="${tagName}"_FromAiSuggestion=${fromAiSuggestion}`);
+    if (this.#labelContainer.dropInputWhileLoading('TagRemove')) return;
+    this.#tracker.push(`Click=TagRemove_Tag="${tagName}"_FromAiSuggestion=${fromAiSuggestion}`);
     label.setProperty('newTags', label.getProperty('newTags').filter((t) => t !== tagName));
     this.#renderTags();
-    svv.labelCard?.render(label);
+    this.#labelCard.render(label);
   }
 
   #renderTags() {
     const menuUI = this.#menuUI;
-    const label = svv.labelContainer.getCurrentLabel();
-    let allTagOptions = structuredClone(svv.tagsByLabelType[label.getProperty('newLabelType')] ?? []);
+    const label = this.#labelContainer.getCurrentLabel();
+    let allTagOptions = structuredClone(this.#config.tagsByLabelType[label.getProperty('newLabelType')] ?? []);
     const allTagOptionsPermanent = structuredClone(allTagOptions);
 
     menuUI.currentTags.replaceChildren();
@@ -592,7 +623,7 @@ export class DesktopValidationMenu {
       menuUI.aiSuggestionSection.style.display = '';
 
       // Log the AI suggestions.
-      svv.tracker.push(`ShowingAiSuggestions`, {
+      this.#tracker.push(`ShowingAiSuggestions`, {
         add:    `"${aiAddTagOptions.map((t) => t.tag_name).join()}"`,
         remove: `"${aiRemoveTagOptions.map((t) => t.tag_name).join()}"`,
       });
@@ -634,7 +665,7 @@ export class DesktopValidationMenu {
   // SEVERITY SECTION.
   #renderSeverity() {
     const menuUI = this.#menuUI;
-    const label = svv.labelContainer.getCurrentLabel();
+    const label = this.#labelContainer.getCurrentLabel();
     const severity = label.getProperty('newSeverity');
     const labelType = label.getProperty('newLabelType');
     const positive = util.misc.isPositiveLabelType(labelType);
@@ -689,23 +720,23 @@ export class DesktopValidationMenu {
    * @param {string} id - Id of the chosen reason button, or 'other' for the free-text box.
    */
   #setDisagreeReason(id) {
-    if (svv.labelContainer.dropInputWhileLoading('DisagreeReason')) return;
+    if (this.#labelContainer.dropInputWhileLoading('DisagreeReason')) return;
     const menuUI = this.#menuUI;
-    const currLabel = svv.labelContainer.getCurrentLabel();
-    const reasonInfo = svv.reasonButtonInfo[util.camelToKebab(currLabel.getAuditProperty('labelType'))]?.[id];
+    const currLabel = this.#labelContainer.getCurrentLabel();
+    const reasonInfo = this.#reasonButtonInfo[util.camelToKebab(currLabel.getAuditProperty('labelType'))]?.[id];
     // Where the type can be changed, it opens the picker instead of becoming a comment nobody acts on (#5409).
-    if (svv.adminVersion && reasonInfo?.wrongType) {
+    if (this.#config.adminVersion && reasonInfo?.wrongType) {
       this.#startWrongType();
       return;
     }
     DesktopValidationMenu.#clearChosen(this.#disagreeReasonButtons);
     if (id === 'other') {
       menuUI.disagreeReasonTextBox.classList.add('is-chosen');
-      svv.labelContainer.getCurrentLabel().setProperty('disagreeOption', 'other');
+      this.#labelContainer.getCurrentLabel().setProperty('disagreeOption', 'other');
     } else {
       menuUI.disagreeReasonTextBox.classList.remove('is-chosen');
       menuUI.disagreeReasonTextBox.value = '';
-      svv.labelContainer.getCurrentLabel().setProperty('disagreeOption', id);
+      this.#labelContainer.getCurrentLabel().setProperty('disagreeOption', id);
       this.#reasonButton(id)?.classList.add('is-chosen');
     }
   }
@@ -723,23 +754,23 @@ export class DesktopValidationMenu {
    * @param {string} id - Id of the chosen reason button, or 'other' for the free-text box.
    */
   #setUnsureReason(id) {
-    if (svv.labelContainer.dropInputWhileLoading('UnsureReason')) return;
+    if (this.#labelContainer.dropInputWhileLoading('UnsureReason')) return;
     const menuUI = this.#menuUI;
     DesktopValidationMenu.#clearChosen(this.#unsureReasonButtons);
     if (id === 'other') {
       menuUI.unsureReasonTextBox.classList.add('is-chosen');
-      svv.labelContainer.getCurrentLabel().setProperty('unsureOption', 'other');
+      this.#labelContainer.getCurrentLabel().setProperty('unsureOption', 'other');
     } else {
       menuUI.unsureReasonTextBox.classList.remove('is-chosen');
       menuUI.unsureReasonTextBox.value = '';
-      svv.labelContainer.getCurrentLabel().setProperty('unsureOption', id);
+      this.#labelContainer.getCurrentLabel().setProperty('unsureOption', id);
       this.#reasonButton(id)?.classList.add('is-chosen');
     }
   }
 
   saveValidationState() {
     const menuUI = this.#menuUI;
-    const currLabel = svv.labelContainer.getCurrentLabel();
+    const currLabel = this.#labelContainer.getCurrentLabel();
     currLabel.setProperty('agreeComment', menuUI.optionalCommentTextBox.value);
     currLabel.setProperty('disagreeReasonTextBox', menuUI.disagreeReasonTextBox.value);
     currLabel.setProperty('unsureReasonTextBox', menuUI.unsureReasonTextBox.value);
@@ -752,13 +783,13 @@ export class DesktopValidationMenu {
    */
   #validateLabel(action, keyboardShortcut) {
     // Everything below writes to whatever getCurrentLabel() returns, which mid-load is already the next label (#5211).
-    if (svv.labelContainer.dropInputWhileLoading(`Submit=${action}`)) return;
+    if (this.#labelContainer.dropInputWhileLoading(`Submit=${action}`)) return;
 
     const actionStr = keyboardShortcut ? 'ValidationKeyboardShortcut_Submit_Validation=' : 'Click=Submit_Validation=';
     const timestamp = new Date();
-    const currLabel = svv.labelContainer.getCurrentLabel();
+    const currLabel = this.#labelContainer.getCurrentLabel();
     const typeNote = this.#typeChanged(currLabel) ? `_NewLabelType=${currLabel.getProperty('newLabelType')}` : '';
-    svv.tracker.push(actionStr + action + typeNote);
+    this.#tracker.push(actionStr + action + typeNote);
 
     // Save anything they typed in either text box so that it's there again if they undo their validation.
     this.saveValidationState();
@@ -786,11 +817,11 @@ export class DesktopValidationMenu {
 
     // A verdict counts once the label has been on screen long enough to have been looked at (LabelContainer has the
     // reasoning). Double-tap protection swallows the rest without a trace on screen, so the log is where it shows.
-    const sinceMs = timestamp.getTime() - svv.labelContainer.getProperty('renderedTimestamp');
+    const sinceMs = timestamp.getTime() - this.#labelContainer.getProperty('renderedTimestamp');
     if (sinceMs > LabelContainer.VERDICT_GRACE_MS) {
-      svv.labelContainer.validateCurrentLabel(action, timestamp, comment);
+      this.#labelContainer.validateCurrentLabel(action, timestamp, comment);
     } else {
-      svv.tracker.push('ValidateInputDropped_Debounce', { source: `Submit=${action}`, sinceMs });
+      this.#tracker.push('ValidateInputDropped_Debounce', { source: `Submit=${action}`, sinceMs });
     }
   }
 }

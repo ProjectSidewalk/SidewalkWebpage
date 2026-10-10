@@ -11,7 +11,7 @@
  *
  * The class is a plain top-level declaration, so the source is eval'd with an explicit export, the same way
  * share-widget.test.js loads ShareWidget. One instance is created for the whole file — the constructor registers a
- * window listener that cannot be unregistered — and each test swaps the svv/menu stubs it reads at event time.
+ * window listener that cannot be unregistered — and each test swaps the collaborator/menu stubs it reads at event time.
  */
 
 const { loadModules } = require('./loadGlobalScript');
@@ -34,6 +34,10 @@ function key(code, target) {
 describe('KeyboardManager label-card scope', () => {
     // Shared across tests: the constructor's window listener reads these objects' properties at event time.
     const validationMenuUi = {};
+    // The manager keeps the collaborators it was built with, so each test swaps the objects behind these proxies.
+    let current = {};
+    const live = (name) => new Proxy({}, { get: (_, key) => current[name][key] });
+    const config = { adminVersion: false };
 
     beforeAll(() => {
         Object.assign(validationMenuUi, {
@@ -46,7 +50,13 @@ describe('KeyboardManager label-card scope', () => {
             unsureButton: makeControl(),
         });
         Object.assign(window, loadModules('frontend/js/common/KeyboardShortcuts.js', 'frontend/js/validate/keyboard/KeyboardManager.js'));
-        new window.KeyboardManager(validationMenuUi, { isDisabled: () => false, disableKeyboard: () => {}, enableKeyboard: () => {} });
+        new window.KeyboardManager(
+            { validationMenu: validationMenuUi, undoValidation: { undoButton: live('undoButton') } }, config,
+            { isDisabled: () => false, disableKeyboard: () => {}, enableKeyboard: () => {} },
+            { onLoadingChange: () => {} }, live('labelVisibilityControl'), live('labelCard'), live('validationMenu'),
+            live('zoomControl'), live('undoValidation'), live('immersiveMode'), live('imageAdjustmentsPopover'),
+            live('tracker'),
+        );
     });
 
     beforeEach(() => {
@@ -55,7 +65,7 @@ describe('KeyboardManager label-card scope', () => {
           <div id="label-card"><button type="button" id="label-visibility-button-on-label"></button></div>`;
         validationMenuUi.submitButton.click = jest.fn();
         validationMenuUi.yesButton = makeControl();
-        window.svv = {
+        current = {
             labelVisibilityControl: {
                 hideLabelCard: jest.fn(),
                 isCardHeldOpen: () => false,
@@ -66,8 +76,11 @@ describe('KeyboardManager label-card scope', () => {
                 hideLabel: jest.fn(),
                 unhideLabel: jest.fn(),
             },
-            tracker: { push: jest.fn() },
+            labelCard: { isPopoverOpen: () => false, closeTypeDropdown: () => false },
+            validationMenu: { inWrongTypeView: () => false },
+            imageAdjustmentsPopover: { isOpen: () => false },
             undoValidation: { canUndo: () => false },
+            tracker: { push: jest.fn() },
         };
     });
 
@@ -78,7 +91,7 @@ describe('KeyboardManager label-card scope', () => {
         it('Enter on the marker toggles the card instead of submitting the validation', () => {
             const ev = key('Enter', marker());
 
-            expect(window.svv.labelVisibilityControl.toggleLabelCard).toHaveBeenCalledTimes(1);
+            expect(current.labelVisibilityControl.toggleLabelCard).toHaveBeenCalledTimes(1);
             expect(validationMenuUi.submitButton.click).not.toHaveBeenCalled();
             expect(ev.defaultPrevented).toBe(true);
         });
@@ -86,14 +99,14 @@ describe('KeyboardManager label-card scope', () => {
         it('marks the toggle as a keyboard open, so it is not logged as a pointer hover', () => {
             key('Enter', marker());
 
-            expect(window.svv.labelVisibilityControl.toggleLabelCard)
+            expect(current.labelVisibilityControl.toggleLabelCard)
                 .toHaveBeenCalledWith({ viaKeyboard: true });
         });
 
         it('Space on the marker toggles the card', () => {
             const ev = key('Space', marker());
 
-            expect(window.svv.labelVisibilityControl.toggleLabelCard).toHaveBeenCalledTimes(1);
+            expect(current.labelVisibilityControl.toggleLabelCard).toHaveBeenCalledTimes(1);
             expect(ev.defaultPrevented).toBe(true); // Space would otherwise also scroll the page.
         });
 
@@ -101,25 +114,25 @@ describe('KeyboardManager label-card scope', () => {
             cardButton().focus();
             key('Escape', cardButton());
 
-            expect(window.svv.labelVisibilityControl.hideLabelCard).toHaveBeenCalledTimes(1);
-            expect(window.svv.tracker.push).toHaveBeenCalledWith('KeyboardShortcut_HideLabelCard', expect.anything());
+            expect(current.labelVisibilityControl.hideLabelCard).toHaveBeenCalledTimes(1);
+            expect(current.tracker.push).toHaveBeenCalledWith('KeyboardShortcut_HideLabelCard', expect.anything());
             expect(document.activeElement).toBe(marker());
         });
 
         it('Escape with the card already closed logs nothing, but still keeps focus on the marker', () => {
-            window.svv.labelVisibilityControl.isCardVisible = () => false;
+            current.labelVisibilityControl.isCardVisible = () => false;
             marker().focus();
             key('Escape', marker());
 
-            expect(window.svv.labelVisibilityControl.hideLabelCard).not.toHaveBeenCalled();
-            expect(window.svv.tracker.push).not.toHaveBeenCalled();
+            expect(current.labelVisibilityControl.hideLabelCard).not.toHaveBeenCalled();
+            expect(current.tracker.push).not.toHaveBeenCalled();
             expect(document.activeElement).toBe(marker());
         });
 
         it('Tab on the marker does not blanket-hide the card, so it can be tabbed into', () => {
             key('Tab', marker());
 
-            expect(window.svv.labelVisibilityControl.hideLabelCard).not.toHaveBeenCalled();
+            expect(current.labelVisibilityControl.hideLabelCard).not.toHaveBeenCalled();
         });
 
         it('validation shortcuts do not fire from inside the card', () => {
@@ -140,27 +153,27 @@ describe('KeyboardManager label-card scope', () => {
             key('KeyY', document.body);
 
             expect(validationMenuUi.yesButton.click).toHaveBeenCalledTimes(1);
-            expect(window.svv.labelVisibilityControl.hideLabelCard).toHaveBeenCalledTimes(1);
+            expect(current.labelVisibilityControl.hideLabelCard).toHaveBeenCalledTimes(1);
         });
     });
 
     // Infra3d cities open the card on load and keep it up until something deliberate (#5675).
     describe('a card opened on load', () => {
         beforeEach(() => {
-            window.svv.labelVisibilityControl.isCardHeldOpen = () => true;
+            current.labelVisibilityControl.isCardHeldOpen = () => true;
         });
 
         it('stays up through keys that aren\'t meant to close it', () => {
             key('KeyQ', document.body); // Unbound, which today would take a hovered card down.
 
-            expect(window.svv.labelVisibilityControl.hideLabelCard).not.toHaveBeenCalled();
+            expect(current.labelVisibilityControl.hideLabelCard).not.toHaveBeenCalled();
         });
 
         it('closes on Escape from anywhere, logged as a keyboard hide, without moving focus to the marker', () => {
             key('Escape', document.body);
 
-            expect(window.svv.labelVisibilityControl.hideLabelCard).toHaveBeenCalledTimes(1);
-            expect(window.svv.tracker.push).toHaveBeenCalledWith('KeyboardShortcut_HideLabelCard', expect.anything());
+            expect(current.labelVisibilityControl.hideLabelCard).toHaveBeenCalledTimes(1);
+            expect(current.tracker.push).toHaveBeenCalledWith('KeyboardShortcut_HideLabelCard', expect.anything());
             expect(document.activeElement).not.toBe(marker());
         });
     });
@@ -168,6 +181,6 @@ describe('KeyboardManager label-card scope', () => {
     it('Escape outside the scope does nothing to a card that was only hovered open', () => {
         key('Escape', document.body);
 
-        expect(window.svv.tracker.push).not.toHaveBeenCalled();
+        expect(current.tracker.push).not.toHaveBeenCalled();
     });
 });

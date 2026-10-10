@@ -22,9 +22,9 @@
  *   });
  *
  * Usage (Validate's KeyboardManager treats the panel as its own scope, so only logging is injected):
- *   new PanoImageAdjustmentsPopover(svv.imageAdjustments, button, popoverEl, {
+ *   new PanoImageAdjustmentsPopover(imageAdjustments, button, popoverEl, {
  *     placement: 'below',
- *     onOpen: () => svv.tracker.push('Click_ImageAdjustments_Open'),
+ *     onOpen: () => tracker.push('Click_ImageAdjustments_Open'),
  *   });
  */
 

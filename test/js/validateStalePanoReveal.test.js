@@ -66,6 +66,7 @@ describe('Validate only paints a viewer canvas once it holds this label\'s pano 
       resize: jest.fn(),
       setPov: jest.fn(),
       getPov: () => ({ heading: 0, pitch: 0, zoom: 1 }),
+      getViewerType: () => 'gsv',
     };
   }
 
@@ -488,6 +489,7 @@ describe('a viewer that paints during a load stays unpainted until it faces the 
       prefetchPano: jest.fn(),
       setPov: jest.fn(() => undefined), // Like MapillaryJS's setCenter/setFieldOfView: nothing to wait on.
       getPov: () => ({ heading: 0, pitch: 0, zoom: 1 }),
+      getViewerType: () => 'gsv',
     };
     const PaintingViewerType = class PaintingViewerType {
       static PAINTS_DURING_LOAD = true;

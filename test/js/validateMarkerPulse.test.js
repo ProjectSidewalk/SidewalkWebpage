@@ -113,7 +113,8 @@ describe('Validate marker halo pulse (issue #4790)', () => {
             addListener: jest.fn(),
             resize: jest.fn(),
             setPov: jest.fn(),
-            getPov: () => ({ heading: 0, pitch: 0, zoom: 1 })
+            getPov: () => ({ heading: 0, pitch: 0, zoom: 1 }),
+            getViewerType: () => 'gsv',
         };
         const FakeViewerType = class FakeViewerType {
             static create() { return Promise.resolve(fakeViewer); }

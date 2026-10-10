@@ -340,7 +340,7 @@ export class PanoManager {
    * @returns {void}
    */
   #aimAndDrawMarker(currentLabel) {
-    const labelPov = currentLabel.getOriginalPov();
+    const labelPov = currentLabel.getOriginalPov(this.#activeViewer.getViewerType());
 
     // Set to user's POV when labeling if on desktop. If on mobile, center the label on the screen.
     if (util.isMobile()) {

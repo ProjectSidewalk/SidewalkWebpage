@@ -18,6 +18,9 @@ const { loadModules } = require('./loadGlobalScript');
 /* global PanoMarker -- put on global by the suite's setup. */
 
 const PANO_MARKER_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/common/PanoMarker.js');
+const LABEL_VISIBILITY_CONTROL_PATH = path.resolve(
+    __dirname, '..', '..', 'frontend/js/validate/label/LabelVisibilityControl.js',
+);
 
 /**
  * Load a bare `class` declaration out of a production file, the way the Grunt bundle would put it in page scope.
@@ -49,6 +52,8 @@ const touch = (identifier, clientX, clientY) => ({identifier, clientX, clientY})
 describe('Validate pano marker activation', () => {
     let toggleLabelCard;
     let isMobile;
+    let control;
+    let wireMarker; // What LabelVisibilityControl registered with the pano manager for each marker built.
 
     /** @returns {HTMLElement} The marker element PanoMarker created. */
     const markerEl = () => document.getElementById('validate-pano-marker');
@@ -70,35 +75,44 @@ describe('Validate pano marker activation', () => {
         // jsdom has no WebGL, so PanoMarker takes its 2d projection fallback; where the marker lands is irrelevant
         // here. Returning null directly keeps that deterministic without jsdom's "not implemented" noise.
         jest.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
-        global.svv = {
-            labelVisibilityControl: {
-                toggleLabelCard,
-                showLabelCard: jest.fn(),
-                scheduleHideLabelCard: jest.fn(),
-                cancelScheduledCardHide: jest.fn(),
-                reanchorLabelCard: jest.fn(), // draw() re-glues the card to the marker on every reposition.
-            },
-        };
         global.PanoMarker = loadClassFromFile(PANO_MARKER_PATH, 'PanoMarker');
+
+        global.i18next = {t: (key) => key};
+        global.LabelCard = class { closePopovers() {} isPopoverOpen() { return false; } };
+        global.LabelVisibilityToggle = class { setVisible() {} isVisible() { return true; } };
+        global.Infra3dViewer = class {};
+        const LabelVisibilityControl = loadClassFromFile(LABEL_VISIBILITY_CONTROL_PATH, 'LabelVisibilityControl');
+        control = new LabelVisibilityControl(
+            {controlLayer: document.getElementById('view-control-layer')}, {viewerType: class {}},
+            {onLoadingChange: () => {}, onLabelShown: () => {}},
+            {getPanoMarker: () => null, onMarkerCreated: (listener) => { wireMarker = listener; }, onMarkerDrawn: () => {}},
+            {push: jest.fn()},
+        );
+        // Positioning is not under test, so the card's own methods are stubbed out and only their calls are counted.
+        control.toggleLabelCard = toggleLabelCard;
+        for (const name of ['showLabelCard', 'scheduleHideLabelCard', 'cancelScheduledCardHide']) {
+            control[name] = jest.fn();
+        }
     });
 
     afterEach(() => {
         jest.useRealTimers();
         jest.restoreAllMocks();
         document.body.innerHTML = '';
-        delete global.util;
-        delete global.svv;
-        delete global.PanoMarker;
+        for (const name of ['util', 'PanoMarker', 'i18next', 'LabelCard', 'LabelVisibilityToggle', 'Infra3dViewer']) {
+            delete global[name];
+        }
     });
 
-    /** Builds the real Validate marker on a fake viewer. @returns {Object} The PanoMarker. */
+    /** Builds the real Validate marker on a fake viewer, wired up the way PanoManager hands it over. */
     function createMarker() {
-        return new PanoMarker({
+        const marker = new PanoMarker({
             panoViewer: {addListener: jest.fn(), getPov: () => ({heading: 0, pitch: 0, zoom: 1})},
             markerContainer: document.getElementById('view-control-layer'),
             id: 'validate-pano-marker',
             size: {width: 52, height: 52},
         });
+        wireMarker(marker);
     }
 
     /** A tap that starts and ends at the same point, as a still finger does. */
@@ -250,28 +264,28 @@ describe('Validate pano marker activation', () => {
 
         test('hovering opens the card and leaving schedules its hide', () => {
             markerEl().dispatchEvent(new MouseEvent('mouseover', {bubbles: true}));
-            expect(svv.labelVisibilityControl.showLabelCard).toHaveBeenCalledTimes(1);
+            expect(control.showLabelCard).toHaveBeenCalledTimes(1);
 
             markerEl().dispatchEvent(new MouseEvent('mouseout', {bubbles: true}));
-            expect(svv.labelVisibilityControl.scheduleHideLabelCard).toHaveBeenCalledTimes(1);
+            expect(control.scheduleHideLabelCard).toHaveBeenCalledTimes(1);
         });
 
         test('the cursor passing over mid-pan does not re-open the card', () => {
             markerEl().dispatchEvent(new MouseEvent('mouseover', {bubbles: true, buttons: 1}));
 
-            expect(svv.labelVisibilityControl.showLabelCard).not.toHaveBeenCalled();
+            expect(control.showLabelCard).not.toHaveBeenCalled();
         });
 
         test('the focus a click gives the marker does not reopen the card the click closed', () => {
             markerEl().dispatchEvent(new MouseEvent('mousedown', {bubbles: true}));
             markerEl().focus();
-            expect(svv.labelVisibilityControl.showLabelCard).not.toHaveBeenCalled();
+            expect(control.showLabelCard).not.toHaveBeenCalled();
 
             // Once the press is over, focus is the keyboard's again.
             window.dispatchEvent(new MouseEvent('mouseup'));
             markerEl().blur();
             markerEl().focus();
-            expect(svv.labelVisibilityControl.showLabelCard).toHaveBeenCalledWith({viaKeyboard: true});
+            expect(control.showLabelCard).toHaveBeenCalledWith({viaKeyboard: true});
         });
 
         test('the keys stay with Validate’s KeyboardManager, which handles them with capture', () => {

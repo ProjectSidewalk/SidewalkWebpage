@@ -48,6 +48,10 @@ function renderReasons(offered) {
 describe('KeyboardManager number-key shortcuts', () => {
     const validationMenuUi = {};
     const clicks = [];
+    // The manager keeps the collaborators it was built with, so each test swaps the objects behind these proxies.
+    let current = {};
+    const live = (name) => new Proxy({}, { get: (_, key) => current[name][key] });
+    const config = { adminVersion: false };
 
     beforeAll(() => {
         Object.assign(validationMenuUi, {
@@ -64,13 +68,24 @@ describe('KeyboardManager number-key shortcuts', () => {
         document.addEventListener('click', (e) => clicks.push(/** @type {Element} */ (e.target).id));
 
         Object.assign(window, loadModules('frontend/js/common/KeyboardShortcuts.js', 'frontend/js/validate/keyboard/KeyboardManager.js'));
-        new window.KeyboardManager(validationMenuUi, { isDisabled: () => false, disableKeyboard: () => {}, enableKeyboard: () => {} });
+        new window.KeyboardManager(
+            { validationMenu: validationMenuUi, undoValidation: { undoButton: live('undoButton') } }, config,
+            { isDisabled: () => false, disableKeyboard: () => {}, enableKeyboard: () => {} },
+            { onLoadingChange: () => {} }, live('labelVisibilityControl'), live('labelCard'), live('validationMenu'),
+            live('zoomControl'), live('undoValidation'), live('immersiveMode'), live('imageAdjustmentsPopover'),
+            live('tracker'),
+        );
     });
 
     beforeEach(() => {
         clicks.length = 0;
-        window.svv = {
+        config.adminVersion = false;
+        current = {
             labelVisibilityControl: { hideLabelCard: jest.fn(), isVisible: () => true, isCardHeldOpen: () => false },
+            labelCard: { isPopoverOpen: () => false, closeTypeDropdown: () => false },
+            validationMenu: { inWrongTypeView: () => false },
+            imageAdjustmentsPopover: { isOpen: () => false },
+            undoValidation: { canUndo: () => false },
             tracker: { push: jest.fn() },
         };
         for (const box of ['optionalCommentTextBox', 'disagreeReasonTextBox', 'unsureReasonTextBox']) {
@@ -86,7 +101,7 @@ describe('KeyboardManager number-key shortcuts', () => {
         validationMenuUi.yesButton = makeControl({ chosen: verdict === 'yes' });
         validationMenuUi.noButton = makeControl({ chosen: verdict === 'no' || verdict === 'wrongType' });
         validationMenuUi.unsureButton = makeControl({ chosen: verdict === 'unsure' });
-        window.svv.validationMenu = { inWrongTypeView: () => verdict === 'wrongType' };
+        current.validationMenu = { inWrongTypeView: () => verdict === 'wrongType' };
     }
 
     describe('on a label type with a fourth disagree reason (Missing Curb Ramp)', () => {
@@ -155,7 +170,7 @@ describe('KeyboardManager number-key shortcuts', () => {
         }
 
         beforeEach(() => {
-            window.svv.adminVersion = true;
+            config.adminVersion = true;
             choose('wrongType');
         });
 
@@ -237,9 +252,9 @@ describe('KeyboardManager number-key shortcuts', () => {
 
         beforeEach(() => {
             undoButton = makeControl();
-            window.svv.ui = { undoValidation: { undoButton } };
-            window.svv.undoValidation = { canUndo: () => true };
-            window.svv.zoomControl = { zoomIn: jest.fn(), zoomOut: jest.fn() };
+            current.undoButton = undoButton;
+            current.undoValidation = { canUndo: () => true };
+            current.zoomControl = { zoomIn: jest.fn(), zoomOut: jest.fn() };
         });
 
         it('clicks Back', () => {
@@ -252,12 +267,12 @@ describe('KeyboardManager number-key shortcuts', () => {
             pressUndo({ mac: true });
 
             expect(undoButton.click).toHaveBeenCalledTimes(1);
-            expect(window.svv.zoomControl.zoomIn).not.toHaveBeenCalled();
-            expect(window.svv.zoomControl.zoomOut).not.toHaveBeenCalled();
+            expect(current.zoomControl.zoomIn).not.toHaveBeenCalled();
+            expect(current.zoomControl.zoomOut).not.toHaveBeenCalled();
         });
 
         it('does nothing while Back is disabled', () => {
-            window.svv.undoValidation.canUndo = () => false;
+            current.undoValidation.canUndo = () => false;
 
             pressUndo();
 

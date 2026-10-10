@@ -1,6 +1,5 @@
 /** Wires Validate together: the one place its modules are built, so every dependency between them is visible. */
 
-import { svv } from './svv.js';
 import { BadgeAchievements } from '../common/BadgeAchievements.js';
 import { ImmersiveMode } from '../common/ImmersiveMode.js';
 import { MissionStartTutorial } from '../common/MissionStartTutorial.js';
@@ -16,7 +15,6 @@ import { Tracker } from './Tracker.js';
 import { Form } from './data/Form.js';
 import { KeyboardLock } from './keyboard/KeyboardLock.js';
 import { KeyboardManager } from './keyboard/KeyboardManager.js';
-import { LabelCard } from './label/LabelCard.js';
 import { LabelContainer } from './label/LabelContainer.js';
 import { LabelVisibilityControl } from './label/LabelVisibilityControl.js';
 import { DesktopValidationMenu } from './menu/DesktopValidationMenu.js';
@@ -348,31 +346,18 @@ export class Main {
     const { mission, labels, progress } = this.#firstMission;
     const labelType = mission.label_type;
 
-    // Still read by the modules the later slices convert.
-    svv.adminVersion = config.adminVersion;
-    svv.validateParams = config.validateParams;
-    svv.viewerType = config.viewerType;
-    svv.tagsByLabelType = config.tagsByLabelType;
-    svv.labelRadius = config.labelRadius;
-    svv.source = config.source;
-    svv.canvasWidth = config.canvasWidth;
-    svv.canvasHeight = config.canvasHeight;
-    svv.ui = ui;
-    svv.reasonButtonInfo = buildReasonButtonInfo();
-
     // Logging comes first, so nothing built after it has to cope with its absence.
     const tracker = new Tracker();
-    svv.tracker = tracker;
     const keyboardLock = new KeyboardLock();
 
     const statusField = new StatusField(this.#firstMission.completed_validations, ui);
-    const adminInfo = config.adminVersion ? new AdminInfo(ui.status.admin) : null;
-    svv.adminInfo = adminInfo;
 
     // Immersive mode (#5560): built before the pano viewer so a mode restored from the tab's last page load has its
     // classes on the body when the viewer measures its container. Desktop only: the phone is already full-bleed.
     // Expert Validate keeps the boxed layout for now (the view omits the toggle there too): its edit sections have
     // no immersive placement yet, so the mode is off limits rather than half-designed.
+    /** @type {?LabelVisibilityControl} Assigned below; a toggle can only land once the tool is up. */
+    let labelVisibilityControl = null;
     if (!util.isMobile()) {
       this.#immersiveMode = new ImmersiveMode({
         tracker,
@@ -380,39 +365,32 @@ export class Main {
         relayout: () => Main.relayout(this.#panoManager, /** @type {ImmersiveMode} */ (this.#immersiveMode)),
         isDisabled: () => config.adminVersion,
         // The label card is anchored against the marker, which the relayout moves; it reopens on the next hover.
-        beforeToggle: () => svv.labelVisibilityControl?.hideLabelCard(),
+        beforeToggle: () => labelVisibilityControl?.hideLabelCard(),
         frame: () => ({ width: config.canvasWidth(), height: config.canvasHeight() }),
         hintReference: () => document.getElementById('svv-panorama-holder'),
         deferRestoreLog: true, // Logged once the mission exists, like ImageAdjustments_Restored below.
       });
-      svv.immersiveMode = this.#immersiveMode;
     }
 
     BadgeAchievements.seedCounts();
 
     const panoStore = new PanoStore();
-    svv.panoStore = panoStore;
     // Backup panos fetched ahead of the label that needs them (#5562); the Pannellum fallback loads from it first.
     const panoImageCache = new PanoImageCache();
-    svv.panoImageCache = panoImageCache;
 
     // Built before the first label renders because that render can need it: if none of the mission's labels have
     // usable imagery, LabelContainer drops all of them and shows this modal instead of an empty pano (#4810).
     const modalNoNewMission = new ModalNoNewMission(ui.modalMission, keyboardLock, tracker);
-    svv.modalNoNewMission = modalNoNewMission;
 
     // Built before the first label renders so that render can report a slow load too (#5581).
     const panoLoadingStatus = new PanoLoadingStatus(document.getElementById('svv-pano-loading'));
-    svv.panoLoadingStatus = panoLoadingStatus;
 
     const panoManager = await PanoManager.create(
       param.viewerAccessToken, ui.viewer, config, panoStore, panoImageCache, tracker,
     );
     this.#panoManager = panoManager;
-    svv.panoManager = panoManager;
 
     const zoomControl = util.isMobile() ? null : new ZoomControl(ui, panoManager, tracker);
-    svv.zoomControl = zoomControl;
 
     // What the mission-start tutorial logs through and hands back when it closes. Desktop only: the phone's
     // briefing is ModalMission's carousel.
@@ -421,7 +399,6 @@ export class Main {
     const modalMissionComplete = new ModalMissionComplete(
       ui.modalMissionComplete, param.language, tutorialHooks, keyboardLock, statusField, panoManager, tracker,
     );
-    svv.modalMissionComplete = modalMissionComplete;
     const modalMission = new ModalMission(ui.modalMission, keyboardLock, modalNoNewMission, tracker);
 
     // Did the last page life in this tab end without a pagehide? On a phone that is the browser killing the tab for
@@ -435,21 +412,29 @@ export class Main {
     const missionContainer = new MissionContainer(
       statusField, modalMission, modalMissionComplete, missionLiveMarker, tracker,
     );
-    svv.missionContainer = missionContainer;
 
-    svv.validationMenu = util.isMobile()
-      ? new MobileValidationMenu(ui.validationMenu)
-      : new DesktopValidationMenu(ui.validationMenu);
+    // Nothing renders yet: what describes a label subscribes to the container first, then the first label is drawn.
+    const labelContainer = new LabelContainer(labels, labelType, ui, config, panoManager, panoLoadingStatus,
+      modalMissionComplete, modalNoNewMission, missionContainer, tracker);
 
-    svv.labelCard = new LabelCard();
-    svv.labelContainer = await LabelContainer.create(labels, labelType);
-    const labelContainer = svv.labelContainer;
+    labelVisibilityControl = new LabelVisibilityControl(ui.viewer, config, labelContainer, panoManager, tracker);
+    const labelCard = labelVisibilityControl.getLabelCard();
 
-    const labelVisibilityControl = new LabelVisibilityControl();
-    svv.labelVisibilityControl = labelVisibilityControl;
-    // The first label rendered before the control existed, so LabelContainer couldn't open its card.
-    labelVisibilityControl.openCardOnLoad();
-    svv.undoValidation = new UndoValidation(ui.undoValidation);
+    const reasonButtonInfo = buildReasonButtonInfo();
+    const validationMenu = util.isMobile()
+      ? new MobileValidationMenu(ui.validationMenu, reasonButtonInfo, labelContainer, tracker)
+      : new DesktopValidationMenu(
+          ui.validationMenu, config, reasonButtonInfo, labelContainer, labelCard, panoManager, tracker,
+        );
+
+    const undoValidation = new UndoValidation(
+      ui.undoValidation, labelContainer, validationMenu, missionContainer, tracker,
+    );
+
+    if (config.adminVersion) {
+      const adminInfo = new AdminInfo(ui.status.admin);
+      labelContainer.onLabelShown((label) => adminInfo.updateAdminInfo(label));
+    }
 
     new Form(param.dataStoreUrl, config, tracker, {
       missionContainer, labelContainer, panoStore, modalMissionComplete, modalNoNewMission,
@@ -457,27 +442,33 @@ export class Main {
 
     /** @type {?PanoImageAdjustmentsPopover} */
     let imageAdjustmentsPopover = null;
+    /** @type {?PanoImageAdjustments} */
+    let imageAdjustments = null;
     // There are certain features that will only make sense on desktop vs mobile.
     if (util.isMobile()) {
       new PinchZoomDetector(panoManager, tracker);
     } else {
       new PanoOverlay(ui.viewer.controlLayer, labelVisibilityControl, panoManager);
-      // Read panoManager.panoViewer through closures rather than capturing it here, for the same reason as the info popover
+
+      // Read the viewer through closures rather than capturing it here, for the same reason as the info popover
       // below: PanoManager swaps it between the primary viewer and Pannellum, and the sign would otherwise stay
       // subscribed to whichever one happened to be showing the first label (#4828).
-      svv.speedLimit = new SpeedLimit(
+      const speedLimit = new SpeedLimit(
         () => panoManager.panoViewer, () => panoManager.panoViewer.getPosition(), () => false, param.countryId,
         { labelContainer },
       );
+      // Told rather than left waiting on a pano_changed: the label that just loaded may have swapped the active
+      // viewer, and the viewer the sign last heard from is then the one that stays silent (#4828).
+      labelContainer.onLabelShown(() => speedLimit.refresh());
+      labelContainer.onLabelShown(() => zoomControl.updateZoomAvailability());
 
       // Shadows/brightness/contrast as a display-only filter (#5501), the same model and panel Explore uses. Both
       // viewer mounts get it, since PanoManager swaps a label onto the Pannellum sibling when GSV has no imagery, and
       // by now #init has created that sibling. No keyboard hooks: KeyboardManager treats the panel as its own scope.
       // Desktop only because mobile has neither the pill nor the panel, and the popover logs an error without them.
-      const imageAdjustments = new PanoImageAdjustments([
+      imageAdjustments = new PanoImageAdjustments([
         document.getElementById('svv-panorama'), document.getElementById('svv-panorama-pannellum'),
       ]);
-      svv.imageAdjustments = imageAdjustments;
       imageAdjustmentsPopover = new PanoImageAdjustmentsPopover(imageAdjustments,
         document.getElementById('validate-control-image'), document.getElementById('pano-image-adjustments'), {
           // Below, so the hide-label toggle and chevron in the row stay visible beside the open panel.
@@ -487,15 +478,21 @@ export class Main {
           onChange: (values) => tracker.push('ImageAdjustments_Change', values),
           onReset: () => tracker.push('Click_ImageAdjustments_Reset'),
         });
-      svv.imageAdjustmentsPopover = imageAdjustmentsPopover;
       // The Image pill waits in the chevron's menu, so the chevron carries its active dot while the menu is closed.
       const panoControlMenu
         = new PanoControlMenu(document.getElementById('validate-control-buttons-toggle'), tracker);
       panoControlMenu.setCollapsedIndicator(!imageAdjustments.isDefault());
-      imageAdjustments.onChange(() => panoControlMenu.setCollapsedIndicator(!imageAdjustments.isDefault()));
+      const adjustmentsModel = imageAdjustments;
+      imageAdjustments.onChange(() => panoControlMenu.setCollapsedIndicator(!adjustmentsModel.isDefault()));
 
-      svv.keyboard = new KeyboardManager(ui.validationMenu, keyboardLock);
+      new KeyboardManager(ui, config, keyboardLock, labelContainer, labelVisibilityControl, labelCard,
+        /** @type {DesktopValidationMenu} */ (validationMenu), zoomControl, undoValidation,
+        /** @type {ImmersiveMode} */ (this.#immersiveMode), imageAdjustmentsPopover, tracker);
+    }
 
+    await labelContainer.renderCurrentLabel();
+
+    if (!util.isMobile()) {
       new MissionStartTutorial('validate', labelType, { nLabels: mission.labels_validated }, tutorialHooks,
         param.language);
     }
@@ -548,15 +545,15 @@ export class Main {
     missionContainer.createAMission(mission, progress);
     // Logged only now: the tracker stamps each row with the current mission, and without one this row, the only
     // record of a filter carried in from an earlier visit, could not be tied to a validator. Desktop builds the model.
-    if (svv.imageAdjustments && !svv.imageAdjustments.isDefault()) {
-      tracker.push('ImageAdjustments_Restored', svv.imageAdjustments.values());
+    if (imageAdjustments && !imageAdjustments.isDefault()) {
+      tracker.push('ImageAdjustments_Restored', imageAdjustments.values());
     }
     this.#immersiveMode?.logRestored();
 
     if (!util.isMobile()) {
-      // Read panoManager.panoViewer through closures rather than capturing it here: PanoManager swaps it between the
-      // primary viewer and Pannellum as labels come and go, and a captured viewer keeps reporting the pano from
-      // the last label it showed (#4813).
+      // Read the viewer through closures rather than capturing it here: PanoManager swaps it between the primary
+      // viewer and Pannellum as labels come and go, and a captured viewer keeps reporting the pano from the last
+      // label it showed (#4813).
       new PanoInfoPopover(
         ui.viewer.dateHolder, () => panoManager.panoViewer,
         () => panoManager.panoViewer.getPosition(), () => panoManager.panoViewer.getPanoId(),

@@ -4,14 +4,44 @@
  * Each table below is a group of shortcuts that's active at different times; edit a row to add or change one.
  */
 
-import { svv } from '../svv.js';
 import { KeyboardShortcuts } from '../../common/KeyboardShortcuts.js';
 /** @typedef {import('./KeyboardLock.js').KeyboardLock} KeyboardLock */
+/** @typedef {import('../Main.js').ValidateUi} ValidateUi */
+/** @typedef {import('../Main.js').ValidateConfig} ValidateConfig */
+/** @typedef {import('../label/LabelContainer.js').LabelContainer} LabelContainer */
+/** @typedef {import('../label/LabelVisibilityControl.js').LabelVisibilityControl} LabelVisibilityControl */
+/** @typedef {import('../label/LabelCard.js').LabelCard} LabelCard */
+/** @typedef {import('../menu/DesktopValidationMenu.js').DesktopValidationMenu} DesktopValidationMenu */
+/** @typedef {import('../zoom/ZoomControl.js').ZoomControl} ZoomControl */
+/** @typedef {import('../menu/UndoValidation.js').UndoValidation} UndoValidation */
+/** @typedef {import('../../common/ImmersiveMode.js').ImmersiveMode} ImmersiveMode */
+/** @typedef {import('../../common/PanoImageAdjustmentsPopover.js').PanoImageAdjustmentsPopover} AdjustmentsPopover */
+/** @typedef {import('../Tracker.js').Tracker} Tracker */
 
 export class KeyboardManager {
   #validationMenuUi;
+  /** @type {HTMLButtonElement} */
+  #undoButton;
+  /** @type {ValidateConfig} */
+  #config;
   /** @type {KeyboardLock} */
   #keyboardLock;
+  /** @type {LabelVisibilityControl} */
+  #labelVisibilityControl;
+  /** @type {LabelCard} */
+  #labelCard;
+  /** @type {DesktopValidationMenu} */
+  #validationMenu;
+  /** @type {ZoomControl} */
+  #zoomControl;
+  /** @type {UndoValidation} */
+  #undoValidation;
+  /** @type {ImmersiveMode} */
+  #immersiveMode;
+  /** @type {AdjustmentsPopover} */
+  #imageAdjustmentsPopover;
+  /** @type {Tracker} */
+  #tracker;
   #addingComment = false;
 
   /** The main shortcuts. Off while a modal is up, while typing in a comment box, and with Ctrl, Alt or Cmd held. */
@@ -20,7 +50,7 @@ export class KeyboardManager {
     { keys: ['KeyN', 'KeyD'], action: () => this.#validationMenuUi.noButton.click() },
     { keys: ['KeyU'], action: () => this.#validationMenuUi.unsureButton.click() },
     { keys: ['KeyS'], action: () => this.#validationMenuUi.submitButton.click() },
-    { keys: ['KeyB'], action: (e) => this.#undoValidation(e) },
+    { keys: ['KeyB'], action: (e) => this.#undo(e) },
     { keys: ['KeyH'], action: (e) => this.#toggleLabelVisibility(e) },
     { keys: ['KeyZ'], action: (e) => this.#zoom(e) }, // Shift+Z zooms out.
     { keys: ['KeyC'], action: (e) => this.#handleCommentBoxShortcut(e) },
@@ -32,7 +62,7 @@ export class KeyboardManager {
     // A card opened on load (#5675) must close from anywhere, not only with focus on the label (WCAG 1.4.13).
     {
       keys: ['Escape'],
-      when: () => svv.labelVisibilityControl.isCardHeldOpen(),
+      when: () => this.#labelVisibilityControl.isCardHeldOpen(),
       action: (e) => this.#closeHeldOpenCard(e),
     },
   ];
@@ -40,7 +70,7 @@ export class KeyboardManager {
   /** With Ctrl (Cmd on a Mac) held. Off while a modal is up, and while typing, where Ctrl+Z undoes the typing. */
   #ctrlShortcuts = [
     // Not Ctrl+Shift+Z, which means redo (#5409).
-    { keys: ['KeyZ'], when: (e) => !e.shiftKey, action: (e) => this.#undoValidation(e) },
+    { keys: ['KeyZ'], when: (e) => !e.shiftKey, action: (e) => this.#undo(e) },
   ];
 
   /**
@@ -62,12 +92,44 @@ export class KeyboardManager {
   ];
 
   /**
-   * @param {Record<string, HTMLElement>} validationMenuUi - Validation menu UI elements.
-   * @param {KeyboardLock} keyboardLock - Whether the shortcuts are paused, flipped by the modals and the loading state.
+   * Desktop only: the phone has no shortcuts. Built last, since the shortcuts act on the whole tool.
+   *
+   * @param {ValidateUi} ui - The verdict menu's buttons and boxes, and the undo button, which the shortcuts press.
+   * @param {ValidateConfig} config - Whether this is Expert Validate, where the number keys can rate a label.
+   * @param {KeyboardLock} keyboardLock - Whether the shortcuts are paused; the modals and the sign-in dialog flip it,
+   *     and this pauses them itself while a label loads.
+   * @param {LabelContainer} labelContainer - Whose loads pause the shortcuts.
+   * @param {LabelVisibilityControl} labelVisibilityControl - The label and its card, which H, Escape and the marker's
+   *     keys act on.
+   * @param {LabelCard} labelCard - Whose open popovers take the keys instead.
+   * @param {DesktopValidationMenu} validationMenu - Asked which view it is on, for the number keys.
+   * @param {ZoomControl} zoomControl - Z and Shift+Z.
+   * @param {UndoValidation} undoValidation - B and Ctrl+Z, while it has something to undo.
+   * @param {ImmersiveMode} immersiveMode - F.
+   * @param {AdjustmentsPopover} imageAdjustmentsPopover - A keyboard scope of its own while it is open.
+   * @param {Tracker} tracker - Logs the shortcuts.
    */
-  constructor(validationMenuUi, keyboardLock) {
+  constructor(ui, config, keyboardLock, labelContainer, labelVisibilityControl, labelCard, validationMenu,
+    zoomControl, undoValidation, immersiveMode, imageAdjustmentsPopover, tracker) {
+    const validationMenuUi = ui.validationMenu;
     this.#validationMenuUi = validationMenuUi;
+    this.#undoButton = ui.undoValidation.undoButton;
+    this.#config = config;
     this.#keyboardLock = keyboardLock;
+    this.#labelVisibilityControl = labelVisibilityControl;
+    this.#labelCard = labelCard;
+    this.#validationMenu = validationMenu;
+    this.#zoomControl = zoomControl;
+    this.#undoValidation = undoValidation;
+    this.#immersiveMode = immersiveMode;
+    this.#imageAdjustmentsPopover = imageAdjustmentsPopover;
+    this.#tracker = tracker;
+
+    // Shortcuts act on the current label, and while its pano loads that label isn't on screen yet (#5211).
+    labelContainer.onLoadingChange((loading) => {
+      if (loading) keyboardLock.disableKeyboard();
+      else keyboardLock.enableKeyboard();
+    });
 
     // Add keydown listeners to the text boxes because esc key press is not being recognized when selected input text.
     validationMenuUi.optionalCommentTextBox.addEventListener('keydown', this.#handleEscapeKey);
@@ -83,8 +145,8 @@ export class KeyboardManager {
    * @param {KeyboardEvent} e
    */
   #documentKeyDown = (e) => {
-    if (KeyboardManager.#belongsToFocusedControl(e)) return;
-    if (KeyboardManager.#inLabelCard(e)) {
+    if (this.#belongsToFocusedControl(e)) return;
+    if (this.#inLabelCard(e)) {
       KeyboardShortcuts.run(this.#labelCardShortcuts, e);
       return;
     }
@@ -98,7 +160,7 @@ export class KeyboardManager {
     if (e.ctrlKey || e.metaKey) {
       KeyboardShortcuts.run(this.#ctrlShortcuts, e);
     } else if (!e.altKey) { // Alt+D is the browser's address bar, not Disagree.
-      if (!svv.labelVisibilityControl.isCardHeldOpen()) svv.labelVisibilityControl.hideLabelCard();
+      if (!this.#labelVisibilityControl.isCardHeldOpen()) this.#labelVisibilityControl.hideLabelCard();
       KeyboardShortcuts.run(this.#shortcuts, e);
     }
   };
@@ -108,17 +170,9 @@ export class KeyboardManager {
       e.preventDefault();
       e.stopImmediatePropagation();
       e.currentTarget.blur();
-      svv.tracker.push('KeyboardShortcut_UnfocusComment', { code: e.code });
+      this.#tracker.push('KeyboardShortcut_UnfocusComment', { code: e.code });
     }
   };
-
-  disableKeyboard() {
-    this.#keyboardLock.disableKeyboard();
-  }
-
-  enableKeyboard() {
-    this.#keyboardLock.enableKeyboard();
-  }
 
   // Set the addingComment status based on whether the user is currently typing in a validation comment text field.
   #checkIfTextAreaSelected() {
@@ -150,7 +204,7 @@ export class KeyboardManager {
   #handleNumberKeyShortcut(n, e) {
     const validationMenuUi = this.#validationMenuUi;
     if (validationMenuUi.yesButton.classList.contains('is-chosen')) {
-      if (svv.adminVersion) this.#clickSeverity(n);
+      if (this.#config.adminVersion) this.#clickSeverity(n);
     } else if (this.#inWrongTypeView()) {
       // Severity only once its section is showing, or a rating typed before a type is picked rides along unseen.
       if (document.getElementById('validate-severity-section')?.style.display === 'block') this.#clickSeverity(n);
@@ -198,7 +252,7 @@ export class KeyboardManager {
 
   /** @returns {boolean} Whether the menu is on the "wrong label type" disagree (#5409). */
   #inWrongTypeView() {
-    return svv.validationMenu?.inWrongTypeView() === true;
+    return this.#validationMenu.inWrongTypeView();
   }
 
   /**
@@ -231,7 +285,7 @@ export class KeyboardManager {
    * @param {KeyboardEvent} e
    * @returns {boolean}
    */
-  static #belongsToFocusedControl(e) {
+  #belongsToFocusedControl(e) {
     // The image adjustments panel is a keyboard scope of its own (#5501): a key on a focused slider nudges it rather
     // than firing a shortcut, and the panel's own document-level listener takes Escape. An open panel counts wherever
     // the key came from, since a click on the panel's whitespace leaves focus on the body. Checked before the card's
@@ -239,7 +293,7 @@ export class KeyboardManager {
     // that flag is one boolean shared with the modals and the loading state, and re-enabling it on close could release
     // a lock the panel never took.
     const target = /** @type {Element} */ (e.target);
-    if (document.getElementById('pano-image-adjustments')?.contains(target) || svv.imageAdjustmentsPopover?.isOpen()) {
+    if (document.getElementById('pano-image-adjustments')?.contains(target) || this.#imageAdjustmentsPopover.isOpen()) {
       return true;
     }
 
@@ -263,10 +317,10 @@ export class KeyboardManager {
    * @param {KeyboardEvent} e
    * @returns {boolean}
    */
-  static #inLabelCard(e) {
+  #inLabelCard(e) {
     const card = document.getElementById('label-card');
     return e.target === KeyboardManager.#marker() || Boolean(card?.contains(/** @type {Node} */ (e.target)))
-      || Boolean(svv.labelCard?.isPopoverOpen());
+      || this.#labelCard.isPopoverOpen();
   }
 
   /**
@@ -287,11 +341,11 @@ export class KeyboardManager {
    * @param {KeyboardEvent} e
    */
   #escapeLabelCard(e) {
-    if (svv.labelCard?.closeTypeDropdown()) return;
+    if (this.#labelCard.closeTypeDropdown()) return;
     // Only log a hide if the card was showing. Focus goes back to the marker either way.
-    if (svv.labelVisibilityControl.isCardVisible()) {
-      svv.labelVisibilityControl.hideLabelCard();
-      svv.tracker.push('KeyboardShortcut_HideLabelCard', { code: e.code });
+    if (this.#labelVisibilityControl.isCardVisible()) {
+      this.#labelVisibilityControl.hideLabelCard();
+      this.#tracker.push('KeyboardShortcut_HideLabelCard', { code: e.code });
     }
     KeyboardManager.#marker()?.focus();
   }
@@ -301,8 +355,8 @@ export class KeyboardManager {
    * @param {KeyboardEvent} e
    */
   #closeHeldOpenCard(e) {
-    svv.labelVisibilityControl.hideLabelCard();
-    svv.tracker.push('KeyboardShortcut_HideLabelCard', { code: e.code });
+    this.#labelVisibilityControl.hideLabelCard();
+    this.#tracker.push('KeyboardShortcut_HideLabelCard', { code: e.code });
   }
 
   /**
@@ -310,7 +364,7 @@ export class KeyboardManager {
    */
   #toggleCard(e) {
     e.preventDefault(); // Space would otherwise also scroll the page.
-    svv.labelVisibilityControl.toggleLabelCard({ viaKeyboard: true });
+    this.#labelVisibilityControl.toggleLabelCard({ viaKeyboard: true });
   }
 
   /**
@@ -321,7 +375,7 @@ export class KeyboardManager {
   static #canToggleImmersiveMode(e) {
     const editing = ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)
       || /** @type {?HTMLElement} */ (document.activeElement)?.isContentEditable;
-    return !e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey && !editing && Boolean(svv.immersiveMode);
+    return !e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey && !editing;
   }
 
   /**
@@ -329,7 +383,7 @@ export class KeyboardManager {
    */
   #toggleImmersiveMode(e) {
     // Keydown repeats while the key is held, and each repeat would flip the layout again.
-    if (!e.repeat) svv.immersiveMode.toggle('KeyboardShortcut');
+    if (!e.repeat) this.#immersiveMode.toggle('KeyboardShortcut');
   }
 
   /**
@@ -343,21 +397,21 @@ export class KeyboardManager {
   /**
    * @param {KeyboardEvent} e
    */
-  #undoValidation(e) {
+  #undo(e) {
     e.preventDefault();
-    if (svv.undoValidation.canUndo()) svv.ui.undoValidation.undoButton.click();
+    if (this.#undoValidation.canUndo()) this.#undoButton.click();
   }
 
   /**
    * @param {KeyboardEvent} e
    */
   #toggleLabelVisibility(e) {
-    if (svv.labelVisibilityControl.isVisible()) {
-      svv.labelVisibilityControl.hideLabel();
-      svv.tracker.push('KeyboardShortcut_HideLabel', { code: e.code });
+    if (this.#labelVisibilityControl.isVisible()) {
+      this.#labelVisibilityControl.hideLabel();
+      this.#tracker.push('KeyboardShortcut_HideLabel', { code: e.code });
     } else {
-      svv.labelVisibilityControl.unhideLabel();
-      svv.tracker.push('KeyboardShortcut_UnhideLabel', { code: e.code });
+      this.#labelVisibilityControl.unhideLabel();
+      this.#tracker.push('KeyboardShortcut_UnhideLabel', { code: e.code });
     }
   }
 
@@ -367,11 +421,11 @@ export class KeyboardManager {
    */
   #zoom(e) {
     if (e.shiftKey) {
-      svv.zoomControl.zoomOut();
-      svv.tracker.push('KeyboardShortcut_ZoomOut', { code: e.code });
+      this.#zoomControl.zoomOut();
+      this.#tracker.push('KeyboardShortcut_ZoomOut', { code: e.code });
     } else {
-      svv.zoomControl.zoomIn();
-      svv.tracker.push('KeyboardShortcut_ZoomIn', { code: e.code });
+      this.#zoomControl.zoomIn();
+      this.#tracker.push('KeyboardShortcut_ZoomIn', { code: e.code });
     }
   }
 

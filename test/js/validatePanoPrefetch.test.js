@@ -8,7 +8,7 @@
  * backup would be bytes nobody looks at. Every other label has its pano warmed in the provider instead
  * (PanoManager.prefetchPano, #5581), since that is the viewer its load will ask.
  *
- * Fake PanoManager and cache, in the shape validateSkipUnrenderableLabel.test.js uses.
+ * Fake PanoManager, in the shape validateSkipUnrenderableLabel.test.js uses.
  */
 
 const path = require('path');
@@ -27,8 +27,62 @@ function loadClassFromFile(filePath, className) {
   return loadModules(filePath)[className];
 }
 
+/** @type {Function} The LabelContainer class under test. */
+let LabelContainer;
+
+/** @type {Record<string, any>} The collaborators the container under test is built over. */
+let deps;
+
+/**
+ * Fills in the collaborators LabelContainer takes that the suite has no opinion on.
+ * @param {Record<string, any>} suiteDeps - The suite's own fakes, which win where they overlap.
+ */
+function completeDeps(suiteDeps) {
+  const mission = {updateValidationResult: jest.fn(), isComplete: () => true, getProperty: () => 1};
+  deps = {
+    config: {validateParams: {}, source: 'Validate', canvasWidth: () => 720, canvasHeight: () => 480, labelRadius: 10},
+    panoLoadingStatus: {begin: jest.fn(), setMessage: jest.fn(), end: jest.fn()},
+    modalMissionComplete: {isShowing: () => false},
+    missionContainer: {getCurrentMission: () => mission, updateAMission: jest.fn()},
+    ...suiteDeps,
+  };
+  deps.tracker.flushSoon ??= jest.fn();
+  deps.modalNoNewMission.isShowing ??= () => false;
+  Object.assign(deps.panoManager, {
+    blanksPanoWhileLoading: () => false,
+    getActiveViewerName: () => 'Default',
+    revealPendingCanvas: jest.fn(),
+    prefetchBackups: deps.panoManager.prefetchBackups ?? jest.fn(),
+    panoViewer: {getViewerType: () => 'gsv'},
+  });
+}
+
+/**
+ * Builds a container over the fakes, with the card and menu listening the way Main.js wires them.
+ * @param {Array} labelList - Label metadata to start with.
+ * @param {string} labelType - The mission's label type.
+ * @returns {object} The container, before its first render.
+ */
+function newLabelContainer(labelList, labelType) {
+  const labelContainer = new LabelContainer(labelList, labelType, deps.ui, deps.config, deps.panoManager,
+    deps.panoLoadingStatus, deps.modalMissionComplete, deps.modalNoNewMission, deps.missionContainer, deps.tracker);
+  labelContainer.onLabelShown((label) => deps.labelCard.render(label));
+  labelContainer.onLabelShown((label) => deps.validationMenu.resetMenu(label));
+  return labelContainer;
+}
+
+/**
+ * @param {Array} labelList - Label metadata to start with.
+ * @param {string} labelType - The mission's label type.
+ * @returns {Promise<object>} The container with its first label rendered.
+ */
+async function buildLabelContainer(labelList, labelType) {
+  const labelContainer = newLabelContainer(labelList, labelType);
+  await labelContainer.renderCurrentLabel();
+  return labelContainer;
+}
+
 describe('LabelContainer prefetches upcoming backup panos (issue #5562)', () => {
-  let LabelContainer;
   const backup = (panoId) => ({ pano_id: panoId, image_url: `/backupImage/${panoId}` });
   const labels = [
     { labelId: 1, panoId: 'a', expired: false, backupImage: null },
@@ -53,8 +107,7 @@ describe('LabelContainer prefetches upcoming backup panos (issue #5562)', () => 
       getProperty(key) { return this.props[key]; }
     };
     const el = () => document.createElement('div');
-    global.svv = {
-      adminVersion: false,
+    completeDeps({
       tracker: { push: jest.fn() },
       labelCard: { render: jest.fn() },
       validationMenu: { resetMenu: jest.fn() },
@@ -72,34 +125,34 @@ describe('LabelContainer prefetches upcoming backup panos (issue #5562)', () => 
         renderPanoMarker: jest.fn(),
         setPanorama: jest.fn((panoId) => Promise.resolve({ panoData: { panoId } })),
         prefetchPano: jest.fn(),
+        prefetchBackups: jest.fn(),
       },
-      panoImageCache: { prefetchBackups: jest.fn() },
-    };
+    });
     LabelContainer = loadClassFromFile(LABEL_CONTAINER_PATH, 'LabelContainer');
   });
 
   afterEach(() => {
-    for (const name of ['util', 'i18next', 'Label', 'svv']) delete global[name];
+    for (const name of ['util', 'i18next', 'Label']) delete global[name];
   });
 
   /** @returns {string[][]} The pano ids asked for on each prefetch, in order. */
   function prefetchedPanoIds() {
-    return svv.panoImageCache.prefetchBackups.mock.calls.map(([backups]) => backups.map((b) => b.pano_id));
+    return deps.panoManager.prefetchBackups.mock.calls.map(([backups]) => backups.map((b) => b.pano_id));
   }
 
   /** @returns {string[]} The pano ids warmed in the provider, in order. */
   function providerPrefetchedPanoIds() {
-    return svv.panoManager.prefetchPano.mock.calls.map(([panoId]) => panoId);
+    return deps.panoManager.prefetchPano.mock.calls.map(([panoId]) => panoId);
   }
 
   test('the two labels after the current one are asked for, when they are expired with a backup', async () => {
-    await LabelContainer.create(labels, 'CurbRamp');
+    await buildLabelContainer(labels, 'CurbRamp');
 
     expect(prefetchedPanoIds()).toEqual([['b', 'c']]);
   });
 
   test('the window moves with the current label, passing over labels with nothing to fetch', async () => {
-    const labelContainer = await LabelContainer.create(labels, 'CurbRamp');
+    const labelContainer = await buildLabelContainer(labels, 'CurbRamp');
 
     await labelContainer.moveToNextLabel(); // On b: c is next, d is expired without a backup.
     await labelContainer.moveToNextLabel(); // On c: d has nothing, e is live.
@@ -109,7 +162,7 @@ describe('LabelContainer prefetches upcoming backup panos (issue #5562)', () => 
   });
 
   test('labels that will ask the provider are warmed there instead, in the same window', async () => {
-    const labelContainer = await LabelContainer.create(labels, 'CurbRamp'); // On a: b and c go to their backups.
+    const labelContainer = await buildLabelContainer(labels, 'CurbRamp'); // On a: b and c go to their backups.
     expect(providerPrefetchedPanoIds()).toEqual([]);
 
     await labelContainer.moveToNextLabel(); // On b: c goes to its backup; d has no backup, so asks the provider.
@@ -120,32 +173,21 @@ describe('LabelContainer prefetches upcoming backup panos (issue #5562)', () => 
   });
 
   test('the prefetch waits for the current label\'s imagery to be up', async () => {
-    await LabelContainer.create(labels, 'CurbRamp');
+    await buildLabelContainer(labels, 'CurbRamp');
 
-    const loadOrder = svv.panoManager.setPanorama.mock.invocationCallOrder[0];
-    const prefetchOrder = svv.panoImageCache.prefetchBackups.mock.invocationCallOrder[0];
+    const loadOrder = deps.panoManager.setPanorama.mock.invocationCallOrder[0];
+    const prefetchOrder = deps.panoManager.prefetchBackups.mock.invocationCallOrder[0];
     expect(prefetchOrder).toBeGreaterThan(loadOrder);
   });
 
   test('a label the mission dropped for bad imagery is not what the window is measured from', async () => {
-    svv.panoManager.setPanorama = jest.fn((panoId) => Promise.resolve(
+    deps.panoManager.setPanorama = jest.fn((panoId) => Promise.resolve(
       panoId === 'b' ? { panoData: null, reason: 'no-imagery' } : { panoData: { panoId } },
     ));
-    const labelContainer = await LabelContainer.create(labels, 'CurbRamp');
+    const labelContainer = await buildLabelContainer(labels, 'CurbRamp');
 
     await labelContainer.moveToNextLabel(); // b is dropped; c is shown in its place, so d and e are next.
 
     expect(prefetchedPanoIds()).toEqual([['b', 'c'], []]);
-  });
-
-  test('a page with no cache asks for nothing and carries on', async () => {
-    delete svv.panoImageCache;
-
-    const labelContainer = await LabelContainer.create(labels, 'CurbRamp');
-    await expect(labelContainer.moveToNextLabel()).resolves.toBeUndefined();
-
-    expect(labelContainer.getCurrentLabel().getAuditProperty('labelId')).toBe(2);
-    // The provider warm-up doesn't depend on the backup cache.
-    expect(providerPrefetchedPanoIds()).toEqual(['d']);
   });
 });

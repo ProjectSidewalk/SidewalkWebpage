@@ -42,6 +42,9 @@ beforeAll(() => {
 describe('DesktopValidationMenu.clearVerdict', () => {
   let label;
   let loading;
+  let tracker;
+  let labelContainer;
+  const config = { adminVersion: false, tagsByLabelType: { Obstacle: [] } };
   const byId = (id) => document.getElementById(id);
 
   beforeEach(() => {
@@ -80,20 +83,14 @@ describe('DesktopValidationMenu.clearVerdict', () => {
     label = new window.Label({
       label_id: 7, label_type: 'Obstacle', severity: 2, tags: [], ai_tags: null, ai_tags_not_present: null,
       heading: 0, pitch: 0, zoom: 1, canvas_x: 0, canvas_y: 0, pano_id: 'p',
-    });
+    }, config);
     loading = false;
-    window.svv = {
-      adminVersion: false,
-      tagsByLabelType: { Obstacle: [] },
-      tracker: { push: jest.fn() },
-      labelContainer: {
-        getCurrentLabel: () => label,
-        dropInputWhileLoading: jest.fn(() => loading),
-      },
-      panoManager: { styleMarkerForLabel: jest.fn() },
-      labelCard: { render: jest.fn() },
+    tracker = { push: jest.fn() };
+    labelContainer = {
+      getCurrentLabel: () => label,
+      dropInputWhileLoading: jest.fn(() => loading),
+      onLabelShown: jest.fn(),
     };
-    window.svv.reasonButtonInfo = window.buildReasonButtonInfo();
 
     const menu = new window.DesktopValidationMenu({
       holder: byId('validation-menu-holder'),
@@ -116,7 +113,8 @@ describe('DesktopValidationMenu.clearVerdict', () => {
       aiSuggestionSection: byId('sidewalk-ai-suggestions-block'),
       currentTagTemplate: byId('current-tag-template'),
       aiSuggestedTagTemplate: byId('sidewalk-ai-suggested-tag-template'),
-    });
+    }, config, window.buildReasonButtonInfo(), labelContainer, { render: jest.fn(), onTypePicked: jest.fn() },
+    { styleMarkerForLabel: jest.fn() }, tracker);
     menu.resetMenu(label);
   });
 
@@ -148,12 +146,12 @@ describe('DesktopValidationMenu.clearVerdict', () => {
   it('logs the verdict it took back', () => {
     answerNoWithReason();
     byId('validate-verdict-clear').click();
-    expect(window.svv.tracker.push).toHaveBeenCalledWith('Click_ClearVerdict', { verdict: 'Disagree' });
+    expect(tracker.push).toHaveBeenCalledWith('Click_ClearVerdict', { verdict: 'Disagree' });
   });
 
   it('does nothing, and logs nothing, when there is no verdict to take back', () => {
     byId('validate-verdict-clear').click();
-    expect(window.svv.tracker.push).not.toHaveBeenCalledWith('Click_ClearVerdict', expect.anything());
+    expect(tracker.push).not.toHaveBeenCalledWith('Click_ClearVerdict', expect.anything());
   });
 
   it('moves focus from the X, which hides itself, to the verdict button it undid', () => {
@@ -174,7 +172,7 @@ describe('DesktopValidationMenu.clearVerdict', () => {
     answerNoWithReason();
     loading = true;
     byId('validate-verdict-clear').click();
-    expect(window.svv.labelContainer.dropInputWhileLoading).toHaveBeenCalledWith('ClearVerdict');
+    expect(labelContainer.dropInputWhileLoading).toHaveBeenCalledWith('ClearVerdict');
     expect(label.getProperty('validationResult')).toBe('Disagree');
   });
 });
