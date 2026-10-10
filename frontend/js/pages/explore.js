@@ -28,7 +28,12 @@ util.onDomReady(() => {
   document.onselectstart = (e) => {
     // A selection can start on a text node, which has no closest().
     const el = e.target instanceof Element ? e.target : /** @type {Node} */ (e.target).parentElement;
-    return Boolean(el?.closest('.audit-selectable'));
+    if (el?.closest('.audit-selectable')) return true;
+    // A refused press would otherwise leave an earlier selection (a double-click in the sidebar) in place, where a
+    // press normally clears it, and while one stands Chrome won't forward a <label>'s click to its input: a click on
+    // a severity word or a survey option did nothing (#5749). Text fields keep their own selection.
+    if (!el?.closest('input, textarea, [contenteditable]')) document.getSelection()?.removeAllRanges();
+    return false;
   };
   enableTouchSupport();
 
