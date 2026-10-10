@@ -9,6 +9,8 @@ import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import util.{RolledBackDb, SidewalkSpec}
 
+import java.time.OffsetDateTime
+
 import scala.concurrent.Await
 import scala.concurrent.duration.*
 
@@ -40,14 +42,61 @@ class LabelServiceSpec extends SidewalkSpec with RolledBackDb with GuiceOneAppPe
       .on(_.labelId === _.labelId)
       .join(labelTable.panoData)
       .on(_._1.panoId === _.panoId)
-      .filter { case ((lb, lp), pd) =>
+      .join(labelTable.userStats)
+      .on(_._1._1.userId === _.userId)
+      // The query's other gate stays applied, so a contested label here is one only the disagree gate drops.
+      .filter { case (((lb, lp), pd), us) =>
         lb.disagreeCount >= 3 && lb.disagreeCount >= lb.agreeCount * 2 &&
-        pd.source === viewer && lp.lat.isDefined && lp.lng.isDefined
+        pd.source === viewer && lp.lat.isDefined && lp.lng.isDefined &&
+        (us.highQuality || (lb.correct.isDefined && lb.correct === true))
       }
-      .map(_._1._1.labelId)
+      .map(_._1._1._1.labelId)
       .take(5)
       .result
   )
+
+  // The walk keeps the first n viewable labels of a batch, and the imagery check hands them back crop-first, so
+  // without the restore a sorted page served the batch's cropped labels in place of its top-ranked ones.
+  "LabelServiceImpl.restoreBatchOrder" should {
+    def label(id: Int): LabelValidationMetadata = {
+      import models.label.{LabelValidationInfo, LatLng, LocationXY, POV}
+      LabelValidationMetadata(
+        id,
+        LabelType.CurbRamp,
+        s"pano$id",
+        PanoSource.Gsv,
+        false,
+        "",
+        OffsetDateTime.now,
+        LatLng(0, 0),
+        POV(0, 0, 1),
+        LocationXY(0, 0),
+        720,
+        480,
+        None,
+        None,
+        1,
+        1,
+        None,
+        LabelValidationInfo(0, 0, 0, None, None, None),
+        Seq.empty,
+        None,
+        None,
+        None,
+        false
+      )
+    }
+
+    "keep the batch's order whatever order the check answered in" in {
+      val batch    = Seq(label(1), label(2), label(3), label(4))
+      val viewable = Seq(label(4), label(2)) // crop-first, as checkImageryBatch returns it
+      LabelServiceImpl.restoreBatchOrder(batch, viewable).map(_.labelId) mustBe Seq(2, 4)
+    }
+
+    "drop what the check dropped" in {
+      LabelServiceImpl.restoreBatchOrder(Seq(label(1), label(2)), Seq.empty).map(_.labelId) mustBe empty
+    }
+  }
 
   "LabelService.selectTagsByLabelType" should {
     "return exactly the tags belonging to the requested label type" in {

@@ -367,7 +367,10 @@ export class GalleryFilter {
     if (this.#clearButton) this.#clearButton.disabled = false;
     if (this.#sortSelect) {
       this.#sortSelect.disabled = false;
-      if (this.#sortHadFocus) this.#sortSelect.focus();
+      // Only when focus is still lost: a sorted load can take a while, and an admin who has meanwhile tabbed into
+      // the navbar or the search box must not be pulled back.
+      const focusLost = !document.activeElement || document.activeElement === document.body;
+      if (this.#sortHadFocus && focusLost) this.#sortSelect.focus();
       this.#sortHadFocus = false;
     }
   }

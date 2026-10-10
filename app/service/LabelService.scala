@@ -124,9 +124,27 @@ object LabelServiceImpl {
    *
    * Bounds the cost of a dead prefix: with a page of 30 the sorted Gallery reads at most this many batches of 150
    * rows, and checks their imagery, before answering with what it has. Past that the admin sees a short page where
-   * thousands of labels may remain, which is the trade against a request that walks a whole city.
+   * thousands of labels may remain, which is the trade against a request that walks a whole city. Genuinely expired
+   * panos are remembered by `pano_data` after their first check, so a dead prefix costs the provider nothing on
+   * later requests; what this cap also bounds is the walk's behaviour while a provider is answering inconclusively
+   * (a timeout, a throttle), which the check cannot tell from "gone" and so counts the same way.
    */
   val MaxEmptyBatches: Int = 10
+
+  /**
+   * The labels of `batch` that `viewable` kept, in `batch`'s order.
+   *
+   * `checkImageryBatch` hands back crop-backed labels first, which is harmless to a shuffled batch and wrong for one
+   * in a caller's order: keeping the first n of the crop-first list would swap a cropped label in for a top-ranked
+   * one. Pure, so the order restore can be pinned without a database.
+   *
+   * @param batch    A batch as the query returned it.
+   * @param viewable Those of its labels whose imagery can be shown, in whatever order the check returned them.
+   */
+  def restoreBatchOrder[A <: BasicLabelMetadata](batch: Seq[A], viewable: Seq[A]): Seq[A] = {
+    val kept: Set[Int] = viewable.map(_.labelId).toSet
+    batch.filter(l => kept.contains(l.labelId))
+  }
 
   /** Keeps a requested mistakes-per-type count between 1 and [[MaxMistakesPerType]]. */
   def clampMistakesPerType(n: Int): Int = math.max(1, math.min(MaxMistakesPerType, n))
@@ -613,11 +631,7 @@ class LabelServiceImpl @Inject() (
             // and only notice as the same labels came round again on a later page. So the batch's own order is
             // put back before anything is kept.
             val inBatchOrder: Seq[A] =
-              if (randomize) validLabels
-              else {
-                val viewable: Set[Int] = validLabels.map(_.labelId).toSet
-                selectedLabels.filter(l => viewable.contains(l.labelId))
-              }
+              if (randomize) validLabels else LabelServiceImpl.restoreBatchOrder(selectedLabels, validLabels)
 
             // Skip labels an earlier batch took. The validation query orders by a score containing `random()`, which
             // Postgres re-evaluates per execution, so every batch sees a fresh shuffle and can resurface rows an

@@ -14,9 +14,11 @@ import java.time.Instant
  * reads the chosen `name` back, and the frontend never re-declares the options (backend is the source of truth).
  * Each value carries both halves of its ordering. `orderBy` is the SQL `ORDER BY` for the card query; `ordering` is
  * the same order in memory, applied after the imagery check, which returns crop-backed labels first and so loses the
- * query's order. The two have to agree, or paging (which excludes already-loaded ids and asks for the next ranked
- * ones) would skip or repeat a label at every page boundary. Every ordering ends on `label_id DESC` so it is total,
- * which is what makes that paging deterministic.
+ * query's order. The two have to agree, or a page would show its labels in a different order from the one the
+ * server ranked them in. Every ordering ends on `time_created DESC, label_id DESC`: the time so that the tie-broken
+ * order is the "newest first" the page says it is (a backfilled or imported label can carry an older time than a
+ * lower id), and the id so that the order is total, which is what makes paging (it excludes already-loaded ids and
+ * asks for the next ranked ones) deterministic.
  *
  * Severity sorts on the raw 1-3 rating whatever the type's scale reads as: for a quality-scale type (curb ramps) 3 is
  * the worst rating too, so "most severe" is "worst" for every type. Labels without a rating sort last both ways, and a
@@ -35,13 +37,15 @@ enum GallerySort(val name: String) extends NamedEnum {
   /**
    * The SQL ordering for this sort, over the Gallery's row projection.
    * @param r The projected row.
-   * @return  The `ORDER BY` key: the sort's own column(s), then `label_id DESC` as the tiebreak.
+   * @return  The `ORDER BY` key: the sort's own column(s), then `time_created DESC, label_id DESC` as the tiebreak
+   *          (`Oldest` reads its time the other way and so is its own tiebreak).
    */
   def orderBy(r: LabelValidationMetadataRep): Ordered = {
-    val primary: Ordered = this match {
-      case Random       => r.labelId.desc // Unreachable through the query (Random keeps `random()`); total anyway.
-      case Newest       => r.timestamp.desc
-      case Oldest       => r.timestamp.asc
+    val newestFirst: Ordered = new Ordered(r.timestamp.desc.columns ++ r.labelId.desc.columns)
+    val primary: Ordered     = this match {
+      case Random       => newestFirst // Unreachable through the query (Random keeps `random()`); total anyway.
+      case Newest       => newestFirst
+      case Oldest       => new Ordered(r.timestamp.asc.columns ++ r.labelId.desc.columns)
       case MostSevere   => r.severity.desc.nullsLast
       case LeastSevere  => r.severity.asc.nullsLast
       case MostDisputed =>
@@ -56,16 +60,20 @@ enum GallerySort(val name: String) extends NamedEnum {
             .Else((disagree.asColumnOf[Double] / total.asColumnOf[Double]).?)
         ratio.desc.nullsLast
     }
-    new Ordered(primary.columns ++ r.labelId.desc.columns)
+    if (primary eq newestFirst) primary
+    else if (this == Oldest) primary
+    else new Ordered(primary.columns ++ newestFirst.columns)
   }
 
   /** The same order as [[orderBy]], for sorting rows the query has already returned. */
   def ordering: Ordering[LabelValidationMetadata] = {
     val labelIdDesc: Ordering[LabelValidationMetadata] = Ordering.by[LabelValidationMetadata, Int](_.labelId).reverse
-    val primary: Ordering[LabelValidationMetadata]     = this match {
-      case Random       => labelIdDesc
-      case Newest       => Ordering.by[LabelValidationMetadata, Instant](_.timestamp.toInstant).reverse
-      case Oldest       => Ordering.by[LabelValidationMetadata, Instant](_.timestamp.toInstant)
+    val newestFirst: Ordering[LabelValidationMetadata] =
+      Ordering.by[LabelValidationMetadata, Instant](_.timestamp.toInstant).reverse.orElse(labelIdDesc)
+    val primary: Ordering[LabelValidationMetadata] = this match {
+      case Random       => newestFirst
+      case Newest       => newestFirst
+      case Oldest       => Ordering.by[LabelValidationMetadata, Instant](_.timestamp.toInstant).orElse(labelIdDesc)
       case MostSevere   => GallerySort.nullsLast(Ordering.Int.reverse).on(_.severity)
       case LeastSevere  => GallerySort.nullsLast(Ordering.Int).on(_.severity)
       case MostDisputed =>
@@ -76,7 +84,7 @@ enum GallerySort(val name: String) extends NamedEnum {
           if (total == 0) None else Some(v.disagreeCount.toDouble / total.toDouble)
         }
     }
-    primary.orElse(labelIdDesc)
+    primary.orElse(newestFirst)
   }
 }
 

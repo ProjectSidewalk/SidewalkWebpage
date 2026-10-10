@@ -455,7 +455,9 @@ loaded by the corresponding Twirl view:
   Admins also get a **"Sort by"** select above the filters (#2705; Random, Newest, Oldest, Most/Least severe, Most
   disputed), carried as `?sort=` and honoured within whatever filters are selected. `GallerySort`
   (`app/models/gallery/`) is the one definition of the options: the view renders the `<select>` from the enum, and
-  each value carries both its SQL `ORDER BY` and the same ordering in memory. A sorted Gallery is a different query
+  each value carries both its SQL `ORDER BY` and the same ordering in memory, every one ending on `time_created DESC,
+  label_id DESC` (the time so that a tie-broken order really is the "newest first" the page says, since a backfilled
+  label can carry an older time than a lower id; the id so that the order is total). A sorted Gallery is a different query
   path from the random one, not a re-ordering of it: the random Gallery runs one query per selected type and shuffles
   the batches together, which cannot produce a global order (the top of each type's ranking, merged, is not the top of
   the union), so `LabelService.getGalleryLabels` runs **one ordered query across every selected type** with no type

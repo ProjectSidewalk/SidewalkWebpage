@@ -539,14 +539,27 @@ describe('GalleryFilter', () => {
             window.sg.cardContainer.updateCardsBySort = jest.fn(() => filter.disable());
 
             choose('newest');
-            // A browser drops focus from an element the moment it is disabled; jsdom leaves it (and won't blur a
-            // disabled element), so focus is moved by hand. What is pinned is the hand-back, which the browser
-            // does not do on its own.
-            document.querySelector('.filter-sidebar__deselect-all').focus();
-            expect(document.activeElement).not.toBe(sortSelect());
+            // A browser drops focus to the body the moment the focused element is disabled; jsdom leaves it (and
+            // won't blur a disabled element), so that is played by hand. What is pinned is the hand-back, which
+            // the browser does not do on its own.
+            document.body.tabIndex = -1;
+            document.body.focus();
+            expect(document.activeElement).toBe(document.body);
 
             filter.enable();
             expect(document.activeElement).toBe(sortSelect());
+            document.body.removeAttribute('tabindex');
+        });
+
+        it('does not take focus back from somewhere the admin moved it during the load', () => {
+            sortSelect().focus();
+            window.sg.cardContainer.updateCardsBySort = jest.fn(() => filter.disable());
+            choose('newest');
+            const elsewhere = document.querySelector('.filter-sidebar__deselect-all');
+            elsewhere.focus();
+
+            filter.enable();
+            expect(document.activeElement).toBe(elsewhere);
         });
 
         it('leaves focus where it was when the select did not have it', () => {

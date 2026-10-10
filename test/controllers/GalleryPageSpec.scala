@@ -296,9 +296,11 @@ class GalleryPageSpec extends SidewalkSpec with RoleSession with GuiceOneAppPerS
       }
     }
 
-    // The gate keeps crowd-rejected labels out of the public Gallery; "most disputed" exists to find them, so it is
-    // waived for the admin's sorted order and for nobody else, whatever `sort` they send.
-    "let an admin's most-disputed sort past the disagree-ratio gate, and no one else" in {
+    // The gate keeps crowd-rejected labels out of the public Gallery; "most disputed" exists to find them, so a
+    // sorted order waives it (pinned in LabelServiceSpec) and is for admins only. What is pinned here is the second
+    // half: whatever `sort` anyone else sends, nothing past the gate comes back. The admin's own result is the
+    // precondition, since it is what shows the connected database has gated labels to leak.
+    "keep everyone but an admin from the disagree-ratio gate, whatever sort they send" in {
       val asAdmin = sortedLabels("most_disputed", n = 60)
       assume(asAdmin.exists(pastTheGate), "connected database serves no label the disagree-ratio gate drops")
 
