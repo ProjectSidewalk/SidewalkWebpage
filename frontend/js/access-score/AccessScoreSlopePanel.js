@@ -8,6 +8,11 @@
  * moved off the engine's own settings. The section stays hidden in a city whose streets have not been sampled,
  * where its controls would move nothing.
  *
+ * In a city whose grades come from a coarse elevation model (`grade.approximate`) a note
+ * at the top of the section says so: every grade there is approximate and sits out of the score until the switch
+ * at the bottom admits it, so without the note the weight slider would appear broken. It is text in the flow, not
+ * a hover, so it reaches touch and screen-reader users too.
+ *
  * Under the slider it reports what the settings reach, which is what a barely-moving map cannot say: a weight of 0
  * and a threshold no street passes look identical on screen, and only one of them is about the weight.
  *
@@ -56,6 +61,7 @@ export class AccessScoreSlopePanel {
       high: q('#acs-slope-high'), fixedNote: q('#acs-slope-fixed-note'), barrier: q('#acs-slope-barrier'),
       barrierThreshold: q('#acs-slope-barrier-threshold'), approximate: q('#acs-slope-approximate'),
       impact: q('#acs-slope-impact'), flash: q('#acs-slope-flash'), weightRow: q('#acs-slope-weight-row'),
+      coarseNote: q('#acs-slope-coarse-note'),
     };
     this.#els.section.hidden = !this.available;
     if (!this.available) return;
@@ -107,9 +113,17 @@ export class AccessScoreSlopePanel {
     this.#showImpact();
   }
 
-  /** Fills in what the config decides: the slider's range, the statistics on offer, the thresholds' bounds. */
+  /**
+   * Fills in what the config decides: the slider's range, the statistics on offer, the thresholds' bounds, and
+   * whether the city's grades are approximate as a whole.
+   */
   #render() {
     const e = this.#els;
+    if (e.coarseNote) {
+      e.coarseNote.textContent = AccessScoreModel.gradesApproximate(this.#config)
+        ? i18next.t('accessscore:slope-coarse-note')
+        : '';
+    }
     e.weight.max = String(this.#config.grade_scoring.weight_range.max);
     e.statistic.innerHTML = this.#config.grade_scoring.statistics.map((id) => {
       const name = i18next.t(`accessscore:slope-statistic-${id.replaceAll('_', '-')}`, { defaultValue: id });

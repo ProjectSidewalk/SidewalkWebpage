@@ -165,6 +165,7 @@
   "grade-legend-title-by": "Pendiente de la calle · {{statistic}}",
   "grade-legend-none": "Sin datos de pendiente",
   "grade-legend-hint": "Haga clic en una clase para resaltar esas calles; Ctrl+clic para añadir más.",
+  "grade-legend-coarse": "De un modelo de elevación poco detallado: cada pendiente es una línea recta entre los dos extremos de la calle.",
   "grade-class-under": "Menos de {{to}}",
   "grade-class-over": "Más de {{from}}",
   "grade-class-between": "{{from}} – {{to}}",
@@ -209,6 +210,7 @@
   "slope-barrier-threshold": "Es una barrera si supera",
   "slope-approximate-include": "Incluir pendientes aproximadas",
   "slope-approximate-include-help": "Algunas pendientes son solo una línea recta entre los dos extremos de la calle: donde la ciudad solo tiene un modelo de elevación poco detallado, o donde el modelo parecía poco fiable. Active esta opción para que esas pendientes también cuenten.",
+  "slope-coarse-note": "Las pendientes de esta ciudad proceden de un modelo de elevación poco detallado, así que son aproximadas. Solo cuentan para la puntuación si abajo se incluyen las pendientes aproximadas.",
   "slope-barrier-effect": "El tramo obtiene 0: supera la barrera del {{limit}}.",
   "popup-slope-barrier": "barrera: 0"
 }

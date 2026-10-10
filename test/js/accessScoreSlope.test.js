@@ -16,8 +16,12 @@ const FIXTURE = JSON.parse(read('test/fixtures/accessScoreParity.json'));
 const GRADIENT = {
     walking_surface_limit: 0.05, ramp_limit: 1 / 12, map_class_breaks: [1 / 48, 0.05, 1 / 12, 0.125],
     sources: [{ dem_source: 'usgs-3dep-10m', title: 'USGS', credit: 'Elevation: USGS', licence: 'PD', url: null,
-        street_count: 3 }],
+        street_count: 3, confidence: 'high' }],
+    approximate: false,
 };
+/** A city sampled from a 30 m global model: every grade a straight line between a street's ends. */
+const COARSE = { dem_source: 'gedtm30', title: 'GEDTM30', credit: 'Elevation: GEDTM30', licence: 'CC BY', url: null,
+    street_count: 5, confidence: 'low' };
 const CONFIG = { ...FIXTURE.config, grade: GRADIENT };
 const EMPTY = { type: 'FeatureCollection', features: [] };
 
@@ -28,6 +32,7 @@ const MARKUP = `
     <span id="acs-slope-summary"></span>
     <button id="acs-slope-reset" hidden></button>
     <div id="acs-slope" hidden>
+      <p id="acs-slope-coarse-note"></p>
       <div id="acs-slope-weight-row">
         <output id="acs-slope-weight-value"></output>
         <input type="range" id="acs-slope-weight" min="0" step="0.05">
@@ -91,6 +96,18 @@ describe('slope in the AccessScore scoring controls', () => {
             expect(mount(unsampled).panel.available).toBe(false);
             expect(mount().panel.available).toBe(true);
             expect(document.getElementById('acs-slope-section').hidden).toBe(false);
+        });
+
+        test('says so where the city\'s grades come from a coarse model, and stays quiet elsewhere', () => {
+            // The note is visible text, not a hover: it is what explains a weight slider that moves nothing.
+            expect(mount().el('acs-slope-coarse-note').textContent).toBe('');
+            const coarse = { ...CONFIG, grade: { ...GRADIENT, sources: [COARSE], approximate: true } };
+            expect(mount(coarse).el('acs-slope-coarse-note').textContent).toBe('accessscore:slope-coarse-note');
+            // The backend decides (StreetGradientApiModelsSpec pins its rule): a coarse source alone does not.
+            const mixed = { ...CONFIG, grade: { ...GRADIENT, sources: [GRADIENT.sources[0], COARSE] } };
+            expect(mount(mixed).el('acs-slope-coarse-note').textContent).toBe('');
+            expect(AccessScoreModel.gradesApproximate({ ...CONFIG, grade: { ...GRADIENT, approximate: undefined } }))
+                .toBe(false);
         });
 
         test('shows the engine defaults as percentages, offers its statistics, and has nothing to reset', () => {

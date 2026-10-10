@@ -22,7 +22,7 @@ const GRADIENT = {
     map_class_breaks: [1 / 48, 0.05, 1 / 12, 0.125],
     sources: [{
         dem_source: 'usgs-3dep-10m', title: 'USGS 3DEP', credit: 'Elevation: USGS', licence: 'Public domain',
-        url: 'https://www.usgs.gov/3d-elevation-program', street_count: 3,
+        url: 'https://www.usgs.gov/3d-elevation-program', street_count: 3, confidence: 'high',
     }],
 };
 const CONFIG = { ...FIXTURE.config, grade: GRADIENT };
@@ -257,9 +257,11 @@ describe('street slope in the AccessScore tool', () => {
          * @returns {HTMLButtonElement[]} The rows indexed by class (gentlest first, as selections name them), the
          *   no-slope row last, whatever order they are displayed in.
          */
-        function mount() {
+        function mount(options = {}) {
             selected = [];
-            legend = new window.AccessScoreMapLegend({ gradeBreaks: breaks, onGradeClasses: (c) => selected.push(c) });
+            legend = new window.AccessScoreMapLegend({
+                gradeBreaks: breaks, onGradeClasses: (c) => selected.push(c), ...options,
+            });
             document.body.innerHTML = '';
             document.body.appendChild(legend.onAdd());
             legend.setGrade(true, 'max_grade');
@@ -295,6 +297,14 @@ describe('street slope in the AccessScore tool', () => {
             legend.setGrade(true, 'mean_grade');
             expect(document.querySelector('.acs-map-legend__title').textContent)
                 .toContain('accessscore:slope-statistic-mean-grade');
+        });
+
+        test('names a coarse elevation model beside the classes, and only there', () => {
+            mount();
+            expect(document.body.textContent).not.toContain('accessscore:grade-legend-coarse');
+            mount({ gradeCoarse: true });
+            const hints = [...document.querySelectorAll('.acs-map-legend__hint')].map((p) => p.textContent);
+            expect(hints).toEqual(['accessscore:grade-legend-coarse', 'accessscore:grade-legend-hint']);
         });
 
         test('a click selects one class, and the same click again clears it', () => {
