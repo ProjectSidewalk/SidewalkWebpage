@@ -2357,6 +2357,12 @@ kbd {
   background: none;
   border: none;
   cursor: pointer;
+
+  /* A control, not text, as a <button> would be. Chrome's <label> won't forward a click to its radio while the
+     label's text is selected, and a press inside a selection keeps it, so a stray selection touching the word
+     swallowed every click on the text and padding until something cleared it (#5749). */
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .severity-button:hover {
@@ -2397,6 +2403,10 @@ kbd {
   width: calc(24px * var(--ui-scale, 1));
   height: calc(24px * var(--ui-scale, 1));
   display: block;
+
+  /* Presses land on the button instead, so a pixel of movement between press and release can't start a native
+     image drag, which cancels the click (#5749). */
+  pointer-events: none;
 }
 
 .severity-button__label {
