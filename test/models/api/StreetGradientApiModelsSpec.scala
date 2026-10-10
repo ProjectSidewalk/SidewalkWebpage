@@ -150,6 +150,22 @@ class StreetGradientApiModelsSpec extends SidewalkSpec {
       sources must have size 1
       (sources.head \ "street_count").as[Int] mustBe 2172
       (sources.head \ "confidence").as[String] mustBe "high"
+      (json \ "approximate").as[Boolean] mustBe false
+    }
+
+    "call a city approximate when at least half of its sampled streets come from a low-confidence model" in {
+      def config(fine: Int, coarse: Int) = StreetGradientConfigForApi(
+        Seq(
+          DemSourceForApi(DemSource.forName("usgs-3dep-10m"), Some(fine), Some(StreetGradientConfidence.High)),
+          DemSourceForApi(DemSource.forName("gedtm30"), Some(coarse), Some(StreetGradientConfidence.Low))
+        ).filter(_.streetCount.exists(_ > 0))
+      )
+      // By street share: a coarse model filling gaps in a fine one is not a coarse city, and half is enough.
+      config(fine = 6, coarse = 5).approximate mustBe false
+      config(fine = 5, coarse = 5).approximate mustBe true
+      config(fine = 0, coarse = 5).approximate mustBe true
+      config(fine = 0, coarse = 0).approximate mustBe false
+      (config(fine = 3, coarse = 5).toJson \ "approximate").as[Boolean] mustBe true
     }
 
     "leave out the count and confidence it was not given, as a single street's attribution is" in {

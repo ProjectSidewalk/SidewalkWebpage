@@ -106,13 +106,11 @@ object DemSource {
       citation = None
     ),
     DemSource(
-      name = "ign-lidarhd-mnt-05m",
-      title = "MNT LiDAR HD, 0,5 m (IGN)",
-      // The Licence Ouverte asks for the producer and the date of the data's last update. The edition date is per
-      // tile, so the credit carries the flight year of the one French city (Bayonne, 2023) and the access date; a
-      // second French city flown in another year needs its own entry.
-      credit = "Elevation: IGN, MNT LiDAR HD, acquisition 2023, accessed 2026-10 " +
-        "(Licence Ouverte / Open Licence 2.0)",
+      name = "ign-lidarhd-mnt-05m", title = "MNT LiDAR HD, 0,5 m (IGN)",
+      // The Licence Ouverte asks for the producer and the date of the data's last update. Flight years differ per
+      // tile and every French city shares this one entry, so the date given is when the data was retrieved, which
+      // holds for any of them. Move it forward when the French cities are resampled.
+      credit = "Elevation: IGN, MNT LiDAR HD, data as of 2026-10 (Licence Ouverte / Open Licence 2.0)",
       licence = "Licence Ouverte / Open Licence 2.0 (Etalab)",
       url = Some("https://www.data.gouv.fr/fr/datasets/mnt-lidar-hd/"),
       // IGN publishes no citation form for LiDAR HD.

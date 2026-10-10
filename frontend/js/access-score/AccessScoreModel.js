@@ -38,6 +38,7 @@ import { AccessScoreGradeRamp } from '../common/AccessScoreGradeRamp.js';
  * @property {Array<{dem_source: string, title: string, credit: string, licence: string, url: ?string,
  *     street_count: number, confidence: string}>} sources - The city's elevation models, most streets first, each
  *     with the `grade_confidence` of its streets; empty where none is sampled.
+ * @property {boolean} approximate - Whether the city's grades are approximate as a whole (the backend's rule).
  */
 
 /**
@@ -601,19 +602,14 @@ export class AccessScoreModel {
   }
 
   /**
-   * Whether the city's grades are approximate as a whole: at least half of its sampled streets come from a
-   * `low`-confidence (coarse) elevation model, under which each grade is a straight line between the street's ends
-   * and sits out of the score until `includeApproximate` admits it. Judged by street share rather than by the
-   * leading source alone, so a city sampled mostly from a coarse model with a finer one filling gaps still gets the
-   * caveat; a city where a coarse model fills gaps in a fine one does not. The confidences come from `grade.sources`.
+   * Whether the city's grades are approximate as a whole, under which each grade is a straight line between the
+   * street's ends and sits out of the score until `includeApproximate` admits it. The rule (a share of the city's
+   * sampled streets) is the backend's, published as `grade.approximate`; a config without it is not approximate.
    * @param {AccessScoreConfig} config - The `/v3/api/accessScoreConfig` response.
    * @returns {boolean}
    */
   static gradesApproximate(config) {
-    const sources = config.grade?.sources ?? [];
-    const total = sources.reduce((sum, s) => sum + (s.street_count ?? 0), 0);
-    const low = sources.filter((s) => s.confidence === 'low').reduce((sum, s) => sum + (s.street_count ?? 0), 0);
-    return total > 0 && low * 2 >= total;
+    return config.grade?.approximate === true;
   }
 
   /** Whether every slope setting equals the engine's default, so the panel can say "default" or "custom". */

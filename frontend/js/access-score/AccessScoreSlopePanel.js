@@ -8,7 +8,7 @@
  * moved off the engine's own settings. The section stays hidden in a city whose streets have not been sampled,
  * where its controls would move nothing.
  *
- * In a city whose grades come from a coarse elevation model (`grade.sources` all or mostly `low` confidence) a note
+ * In a city whose grades come from a coarse elevation model (`grade.approximate`) a note
  * at the top of the section says so: every grade there is approximate and sits out of the score until the switch
  * at the bottom admits it, so without the note the weight slider would appear broken. It is text in the flow, not
  * a hover, so it reaches touch and screen-reader users too.

@@ -60,17 +60,33 @@ case class DemSourceForApi(
 
 /**
  * What a client needs to read and credit the slope fields, published under `grade` on `/v3/api/accessScoreConfig`
- * so no client re-declares a limit, a class break, or a credit line.
+ * so no client re-declares a limit, a class break, a credit line, or the rule for when a city's grades are
+ * approximate.
  *
  * @param sources The elevation models this city's streets were sampled from, most streets first, each with its
  *                street count and confidence; empty in a city that has not been sampled.
  */
 case class StreetGradientConfigForApi(sources: Seq[DemSourceForApi]) {
+
+  /**
+   * Whether the city's grades are approximate as a whole: at least half of its sampled streets come from a `low`
+   * confidence (coarse) model, whose grades are straight lines between each street's ends and sit out of the score
+   * by default. Judged by street share rather than by the leading source alone, so a city sampled mostly from a
+   * coarse model with a finer one filling gaps is still approximate, and one where a coarse model fills gaps in a
+   * fine one is not. False in an unsampled city.
+   */
+  val approximate: Boolean = {
+    val total = sources.flatMap(_.streetCount).sum
+    val low   = sources.filter(_.confidence.contains(StreetGradientConfidence.Low)).flatMap(_.streetCount).sum
+    total > 0 && low * 2 >= total
+  }
+
   def toJson: JsObject = Json.obj(
     "walking_surface_limit" -> StreetGradientStats.WalkingSurfaceLimit,
     "ramp_limit"            -> StreetGradientStats.RampLimit,
     "map_class_breaks"      -> StreetGradientStats.MapClassBreaks,
-    "sources"               -> sources.map(_.toJson)
+    "sources"               -> sources.map(_.toJson),
+    "approximate"           -> approximate
   )
 }
 

@@ -171,8 +171,8 @@ What follows from it:
   ~54 GB at 1 m). `dem_source` is per row, so moving one city to 1 m later is incremental.
 - **The `confidence` cut points are this sweep's**: 10 m and finer is `high`, to 20 m `medium`, coarser `low`.
 - **A global 30 m model supports `net_grade` only.** End-to-end grade on streets of 80 m and longer, with the model
-  smoothed first, came within 1.0 to 1.4 pp in hilly cities (r 0.72 to 0.86). The table allows such a row: the
-  windowed statistics may be NULL while `net_grade` is set.
+  smoothed first, came within 1.0 to 1.4 pp in hilly cities (r 0.72 to 0.86). So a `low` source's row carries
+  `net_grade` and the two end elevations and nothing else: the windowed statistics and the profile are NULL.
 
 The production sampler reproduces the study. Run on all of Teaneck and compared on the 1,031 streets of the study
 window, against the lidar reference: `mean_grade` MAE 0.18 pp, `max_grade` 0.29 pp on streets of 30 m and longer, the
@@ -208,10 +208,14 @@ its `DemSource` credit in the app (the test suite holds the two rosters together
 **What a fill costs.** Zürich (8,481 streets) took 3 minutes against swissALTI3D; Mexico City's centre samples at
 about 350 streets a second once its charts are cached; Bayonne's 44 cells against the IGN WMS took 12 minutes
 and left 0.7 GB in `db/onboarding/_dem_cache/`, which a rerun or a neighbouring city reuses. The cache is gitignored
-with the rest of `db/onboarding/`. A request that fails (a dropped connection, an HTTP error, a WMS exception served
-with status 200) is tried five times with a doubling pause, 30 s in all. One that still fails ends that city's run
-with a non-zero exit; the rows already written stay, and `--resume` picks up from them once the publisher is back. An
-outage therefore shows up as a failed city in the backfill, never as a city full of `no_data` rows that nothing flags.
+with the rest of `db/onboarding/`, except an IGN cell that came back all no-data, which is fetched again next run in
+case its area has been published since. A request that fails (a dropped connection, a 5xx or 429, a WMS exception
+served with status 200) is tried five times with a doubling pause, 30 s in all; any other 4xx is not retried. A
+failure that remains ends that city's run with a non-zero exit, and so does a remote raster GDAL cannot open unless
+the publisher answers 404 for it (an all-ocean tile, an unflown sheet). The rows already written stay, and `--resume`
+picks up from them once the publisher is back. An outage therefore shows up as a failed city in the backfill, never as
+a city full of `no_data` rows that nothing flags. A file the publisher does not have is a fact, not an outage: a 404
+or a GRID-less archive for an INEGI chart gives its streets `no_data` and a warning, so it cannot stop every resume.
 
 ## Where it shows up
 
@@ -313,9 +317,9 @@ weighed in, and its Grade block says when a barrier has zeroed the segment.
 
 In a city sampled from a coarse model (GEDTM30: Chile, Ecuador, India) every grade is approximate, so by default the
 section's weight slider moves nothing, and the grade layer paints end-to-end lines in colors that look as sure as
-Seattle's. Each entry under `grade.sources` therefore carries the `confidence` of its streets, and the tool
-(`AccessScoreModel.gradesApproximate`) treats a city as approximate when at least half of its sampled streets come from
-`low`-confidence sources. There, a note at the top of the Street grade section says the grades are approximate and
+Seattle's. Each entry under `grade.sources` therefore carries the `confidence` of its streets, and `grade.approximate`
+(`StreetGradientConfigForApi`) says whether the city is approximate as a whole: at least half of its sampled streets
+come from `low`-confidence sources. There, a note at the top of the Street grade section says the grades are approximate and
 count only once approximate grades are included, and the grade layer's legend carries the same line. Both are text in
 the flow, not hover tooltips, so they reach touch and screen-reader users; the per-street popup sentence ("From a
 coarse elevation model…") stays as well.

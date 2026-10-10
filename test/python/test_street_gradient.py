@@ -303,6 +303,18 @@ def test_edge_gradient_caps_what_any_street_can_be():
     assert sg.edge_gradient(np.array([10.0, 13.0, 16.0]), 10.0, False) == {'quality': sg.QUALITY_SUSPECT}
 
 
+def test_edge_gradient_of_a_coarse_model_keeps_the_end_to_end_grade_alone():
+    # A hump a 30 m model cannot place: only the line between the ends is kept, which is the shape 399.sql allows.
+    z = np.array([10.0, 11.0, 14.0, 11.0, 9.0])
+    got = sg.edge_gradient(z, 20.0, False, net_only=True)
+    assert got == {'quality': sg.QUALITY_MEASURED, 'elev_start_m': 10.0, 'elev_end_m': 9.0,
+                   'net_grade': pytest.approx(-0.05)}
+    # The verdicts that need no profile still apply.
+    assert sg.edge_gradient(np.array([10.0, 20.0]), 10.0, False, net_only=True) == {'quality': sg.QUALITY_SUSPECT}
+    assert sg.edge_gradient(z, 20.0, True, net_only=True)['quality'] == sg.QUALITY_STRUCTURE
+    assert sg.edge_gradient(np.array([np.nan, 1.0]), 20.0, False, net_only=True) == {'quality': sg.QUALITY_NO_DATA}
+
+
 def test_edge_gradient_smooths_a_fine_model_without_moving_its_endpoints():
     z = 0.03 * np.arange(61.0)
     z[30] += 0.4  # A curb-height blip mid-block on a 3% street sampled every meter.
@@ -385,6 +397,25 @@ def test_fetch_bytes_retries_a_failed_request_and_a_wrong_body_then_gives_up(mon
     with pytest.raises(urllib.error.HTTPError):
         sg.fetch_bytes('https://example.test/form', {'res': 5, 'cve': 'E14A39B4'}, 9.0, sleep=pauses.append)
     assert seen[-1] == ('https://example.test/form', b'res=5&cve=E14A39B4', 9.0) and pauses[2:] == [2.0, 4.0, 8.0, 16.0]
+    # A 404 says the request is what is wrong, so it reaches the caller at once; a 429 says "later" and is retried.
+    answers[:] = [urllib.error.HTTPError('https://example.test/gone', 404, 'gone', {}, None)]
+    with pytest.raises(urllib.error.HTTPError, match='404'):
+        sg.fetch_bytes('https://example.test/gone', sleep=pauses.append)
+    assert len(pauses) == 6 and not answers
+    answers[:] = [urllib.error.HTTPError('https://example.test/busy', 429, 'slow down', {}, None), b'ok']
+    assert sg.fetch_bytes('https://example.test/busy', sleep=pauses.append) == b'ok' and pauses[6:] == [2.0]
+
+
+def test_transient_and_is_absent_tell_a_missing_file_from_an_outage():
+    def status(code):
+        return urllib.error.HTTPError('https://example.test/x', code, 'x', {}, None)
+
+    assert [sg.transient(status(code)) for code in (400, 403, 404, 408, 429, 500, 503)] == [
+        False, False, False, True, True, True, True]
+    assert sg.transient(urllib.error.URLError('reset')) and sg.transient(TimeoutError())
+    assert not sg.transient(ValueError('not a fetch error'))
+    assert [sg.is_absent(status(code)) for code in (403, 404, 410, 503)] == [False, True, True, False]
+    assert not sg.is_absent(urllib.error.URLError('reset'))
 
 
 def test_stac_items_follows_next_links_and_tolerates_a_page_without_them():
@@ -396,6 +427,17 @@ def test_stac_items_follows_next_links_and_tolerates_a_page_without_them():
     fetch = lambda url: _json(pages[url])
     assert [item['id'] for item in sg.stac_items('q?page=1', fetch)] == ['a', 'b', 'c']
     assert list(sg.stac_items('q?page=2', fetch)) == [{'id': 'b'}, {'id': 'c'}]
+
+
+def test_stac_items_resolves_a_relative_next_link_and_ends_at_a_page_that_links_to_itself():
+    pages = {
+        'https://stac.test/search?page=1': {'features': [{'id': 'a'}], 'links': [{'rel': 'next', 'href': '?page=2'}]},
+        'https://stac.test/search?page=2': {'features': [{'id': 'b'}], 'links': [{'rel': 'next', 'href': '?page=2'}]},
+    }
+    fetched = []
+    fetch = lambda url: fetched.append(url) or _json(pages[url])
+    assert [item['id'] for item in sg.stac_items('https://stac.test/search?page=1', fetch)] == ['a', 'b']
+    assert fetched == list(pages)
 
 
 def test_catalog_locator_searches_an_area_once_pads_it_and_keeps_each_raster_once():
@@ -433,12 +475,12 @@ _SWISS_QUERY = sg.SWISSALTI3D_ITEMS + '?bbox=8.5%2C47.3%2C8.6%2C47.4&limit=100'
 
 def test_swissalti3d_tiles_keeps_the_newest_issue_of_each_square_and_places_it_in_lv95():
     def fetch(url):
-        if url == 'page2':
+        if url == 'https://stac.test/page2':
             return _json({'features': [_swiss_item(2021, '2684-1247')]})
         assert url == _SWISS_QUERY
         return _json({'features': [_swiss_item(2019, '2683-1247'), _swiss_item(2026, '2683-1247'),
                                    _swiss_item(2020, '2683-1247'), _swiss_item(2019, '2684-1247')],
-                      'links': [{'rel': 'next', 'href': 'page2'}]})
+                      'links': [{'rel': 'next', 'href': 'https://stac.test/page2'}]})
 
     tiles = sg.swissalti3d_tiles(8.5, 47.3, 8.6, 47.4, fetch)
     assert [(path.split('/')[-1], crs, bounds) for path, crs, bounds in tiles] == [
@@ -464,16 +506,19 @@ def test_dem_cache_dir_is_under_the_repos_onboarding_directory(tmp_path, monkeyp
     assert sg.dem_cache_dir('x').is_dir()
 
 
-def test_index_locator_loads_its_list_once():
+def test_index_search_loads_its_list_once_and_returns_only_the_rasters_a_box_meets():
     loads = []
+    here = ('here.tif', 'EPSG:4326', (_LNG, _LAT, _LNG + 0.01, _LAT + 0.01))
+    far = ('far.tif', 'EPSG:4326', (_LNG + 1, _LAT, _LNG + 1.01, _LAT + 0.01))
 
     def load():
         loads.append(True)
-        return [('sheet.tif', 'EPSG:4326', (_LNG, _LAT, _LNG + 0.01, _LAT + 0.01))]
+        return [here, far]
 
-    locate = sg.index_locator(load)
-    assert locate(np.array([_LNG + 0.005, _LNG + 1]), np.array([_LAT + 0.005, _LAT])) == ['sheet.tif', None]
-    assert locate(np.array([_LNG + 0.005]), np.array([_LAT + 0.005])) == ['sheet.tif']
+    search = sg.index_search(load)
+    assert search(_LNG + 0.002, _LAT + 0.002, _LNG + 0.003, _LAT + 0.003) == [here]
+    assert search(_LNG - 1, _LAT - 1, _LNG + 2, _LAT + 1) == [here, far]
+    assert search(_LNG + 0.5, _LAT, _LNG + 0.6, _LAT + 0.01) == []
     assert loads == [True]
 
 
@@ -492,18 +537,20 @@ def test_inegi_chart_walks_the_map_series_from_the_north_west_corner():
     assert sg.inegi_chart(-96.0, 19.4326) == 'E15A31A3'
 
 
-def _grid_zip(chart, projected=True, grid=True):
+def _grid_zip(chart, projected=True, grid=True, nested=True):
     """
     A zip laid out the way INEGI's are: Windows separators, a GRID directory with an hdr.adf, and metadata. The
-    2011/2012 lidar editions ship no prj.adf (`projected=False`); `grid=False` is an archive with no GRID at all.
+    2011/2012 lidar editions ship no prj.adf (`projected=False`); `grid=False` is an archive with no GRID at all, and
+    `nested=False` one with the GRID's files at its root.
     """
     buffer = io.BytesIO()
+    folder = f'conjunto_de_datos\\{chart.lower()}_mt\\' if nested else ''
     with zipfile.ZipFile(buffer, 'w') as archive:
         if grid:
-            archive.writestr(f'conjunto_de_datos\\{chart.lower()}_mt\\hdr.adf', b'grid header')
-            archive.writestr(f'conjunto_de_datos\\{chart.lower()}_mt\\w001001.adf', b'cells')
+            archive.writestr(f'{folder}hdr.adf', b'grid header')
+            archive.writestr(f'{folder}w001001.adf', b'cells')
         if grid and projected:
-            archive.writestr(f'conjunto_de_datos\\{chart.lower()}_mt\\prj.adf', b'Projection    UTM\n')
+            archive.writestr(f'{folder}prj.adf', b'Projection    UTM\n')
         archive.writestr('metadatos\\', b'')
         archive.writestr(f'metadatos\\{chart.lower()}_mt.txt', b'notes')
     return buffer.getvalue()
@@ -530,15 +577,26 @@ def test_inegi_fetch_grid_takes_the_newest_edition_once_and_gives_a_lidar_editio
         'E14A39B2': [edition(2011, 'https://www.inegi.org.mx/ascii', '|_as.zip,7 MB')],
         'G14C25C3': [edition(2018, 'https://elsewhere.test/grid', '|_gr.zip,1 MB')],
         'E14D89F4': [edition(2018, 'https://www.inegi.org.mx/empty', '|_gr.zip,1 MB')],
+        'E14D89F3': [edition(2018, 'https://www.inegi.org.mx/gone', '|_gr.zip,1 MB')],
+        'E14D89F2': [edition(2018, 'https://www.inegi.org.mx/flat', '|_gr.zip,1 MB')],
+        'E14D89F1': [edition(2018, 'https://www.inegi.org.mx/down', '|_gr.zip,1 MB')],
     }
     zips = {'https://www.inegi.org.mx/new_gr.zip': _grid_zip('E14A39B4'),
             'https://www.inegi.org.mx/lidar_gr.zip': _grid_zip('F13D79F2', projected=False),
-            'https://www.inegi.org.mx/empty_gr.zip': _grid_zip('E14D89F4', grid=False)}
+            'https://www.inegi.org.mx/empty_gr.zip': _grid_zip('E14D89F4', grid=False),
+            'https://www.inegi.org.mx/flat_gr.zip': _grid_zip('E14D89F2', nested=False)}
     fetched = []
 
-    def fetch(url, data=None, **_):
+    def fetch(url, data=None, magic=b'', **_):
         fetched.append(url)
-        return _json(editions[data['cve']]) if url == sg.INEGI_DESCRIPTOR else zips[url]
+        if url == sg.INEGI_DESCRIPTOR:
+            return _json(editions[data['cve']])
+        assert magic == b'PK\x03\x04'  # So fetch_bytes retries a maintenance page rather than unzipping it.
+        if url.endswith('down_gr.zip'):
+            raise urllib.error.HTTPError(url, 503, 'Service Unavailable', {}, None)
+        if url not in zips:
+            raise urllib.error.HTTPError(url, 404, 'Not Found', {}, None)
+        return zips[url]
 
     cache = tmp_path / 'cache'
     cache.mkdir()
@@ -556,9 +614,18 @@ def test_inegi_fetch_grid_takes_the_newest_edition_once_and_gives_a_lidar_editio
     assert sg.inegi_fetch_grid('E14A39B2', cache, fetch) is None
     with pytest.raises(ValueError, match='off its own host'):
         sg.inegi_fetch_grid('G14C25C3', cache, fetch)
-    with pytest.raises(zipfile.BadZipFile, match='no GRID'):
-        sg.inegi_fetch_grid('E14D89F4', cache, fetch)
+    # An archive with no GRID, or a listed download that is gone, is a chart with nothing, not an outage: aborting
+    # would stop the city on the same chart at every --resume.
+    assert sg.inegi_fetch_grid('E14D89F4', cache, fetch) is None
+    assert sg.inegi_fetch_grid('E14D89F3', cache, fetch) is None
+    # A download INEGI could not serve is an outage, which ends the run (see main).
+    with pytest.raises(urllib.error.HTTPError, match='503'):
+        sg.inegi_fetch_grid('E14D89F1', cache, fetch)
     assert sorted(cache.iterdir()) == [grid, lidar]
+    # A GRID at the archive's root is moved into place whole.
+    flat = sg.inegi_fetch_grid('E14D89F2', cache, fetch)
+    assert flat == cache / 'E14D89F2_2018' and (flat / 'hdr.adf').read_bytes() == b'grid header'
+    assert sorted(cache.iterdir()) == [grid, flat, lidar]
 
 
 def test_cached_locator_asks_once_per_key_and_lets_a_failed_download_through(tmp_path, monkeypatch, caplog):
@@ -603,20 +670,30 @@ def test_lidarhd_cell_url_asks_for_the_cell_at_half_meter_nodes():
     assert x0 < min(xs) and x1 > max(xs) and y0 < min(ys) and y1 > max(ys)
 
 
-def test_lidarhd_fetch_cell_fetches_a_cell_once_as_one_whole_file(tmp_path, monkeypatch):
+def test_lidarhd_fetch_cell_fetches_a_cell_once_as_one_whole_file_and_never_caches_a_blank_one(tmp_path, monkeypatch):
+    bodies = tmp_path / 'bodies'
+    bodies.mkdir()
+    covered = _write_plane(bodies / 'covered.tif').read_bytes()
+    blank = _write_plane(bodies / 'blank.tif', nodata_cols=range(200)).read_bytes()
+    cache = tmp_path / 'cache'
+    cache.mkdir()
     fetched = []
 
     def fetch(url, magic=b'', **_):
         fetched.append((url, magic))
-        return b'II*\x00tiff'
+        return blank if url.endswith('4350') else covered
 
     monkeypatch.setattr(sg, 'lidarhd_cell_url', lambda column, row: f'wms?BBOX={column}:{row}')
     assert sg.lidarhd_cell(-1.475, 43.493) == '-148_4349'  # Bayonne: lng -1.48..-1.47, lat 43.49..43.50
-    tif = sg.lidarhd_fetch_cell('-148_4349', tmp_path, fetch)
-    assert tif == tmp_path / '-148_4349.tif' and tif.read_bytes() == b'II*\x00tiff'
+    tif = sg.lidarhd_fetch_cell('-148_4349', cache, fetch)
+    assert tif == cache / '-148_4349.tif' and tif.read_bytes() == covered
     # The TIFF magic is what fetch_bytes retries on; nothing but the finished file is left in the cache.
-    assert fetched == [('wms?BBOX=-148:4349', b'II*\x00')] and list(tmp_path.iterdir()) == [tif]
-    assert sg.lidarhd_fetch_cell('-148_4349', tmp_path, fetch) == tif and len(fetched) == 1
+    assert fetched == [('wms?BBOX=-148:4349', b'II*\x00')] and list(cache.iterdir()) == [tif]
+    assert sg.lidarhd_fetch_cell('-148_4349', cache, fetch) == tif and len(fetched) == 1
+    # A cell the flights have not reached is all no-data: nothing for it this run, and asked for again the next.
+    assert sg.lidarhd_fetch_cell('-148_4350', cache, fetch) is None
+    assert sg.lidarhd_fetch_cell('-148_4350', cache, fetch) is None
+    assert len(fetched) == 3 and list(cache.iterdir()) == [tif]
 
 
 def test_ahn_sheets_read_each_sheets_url_and_rd_extent():
@@ -627,7 +704,7 @@ def test_ahn_sheets_read_each_sheets_url_and_rd_extent():
     assert sg.ahn_sheets(lambda url: _json(index) if url == sg.AHN_INDEX else None) == [
         (sheet, 'EPSG:28992', (120000, 487500, 125000, 493750))]
     # Amsterdam Centraal (RD 121847, 488026) lies on that sheet.
-    locate = sg.index_locator(lambda: sg.ahn_sheets(lambda url: _json(index)))
+    locate = sg.CatalogLocator(sg.index_search(lambda: sg.ahn_sheets(lambda url: _json(index))))
     assert locate(np.array([4.9003, -122.33]), np.array([52.3791, 47.62])) == [sheet, None]
 
 
@@ -746,6 +823,37 @@ def test_raster_sampler_survives_a_missing_raster_and_asks_for_it_once(tmp_path)
     assert np.isnan(sampler.sample(lngs, lats)).all()
     assert sorted(opened) == sorted(['missing.tif', path])
     sampler.close()
+
+
+def test_raster_sampler_ends_the_run_on_a_remote_raster_the_publisher_has_but_could_not_serve(tmp_path):
+    url = 'https://tiles.test/a.tif'
+    answers = {}
+
+    def head(asked):
+        assert asked == url
+        if isinstance(answers['head'], Exception):
+            raise answers['head']
+        return b''
+
+    def opener(path):
+        raise RasterioIOError('HTTP response code: ' + answers['gdal'])
+
+    def sampler():
+        return sg.RasterSampler(lambda lngs, lats: [f'/vsicurl/{url}'] * len(lngs), opener, head)
+
+    lngs, lats = np.array([_LNG]), np.array([_LAT])
+    # Gone: the points get no elevation and the run goes on.
+    answers.update(gdal='404', head=urllib.error.HTTPError(url, 404, 'Not Found', {}, None))
+    assert np.isnan(sampler().sample(lngs, lats)).all()
+    # Down: the publisher's own answer ends the run, rather than becoming no_data rows nothing would resample.
+    answers.update(gdal='503', head=urllib.error.HTTPError(url, 503, 'Busy', {}, None))
+    with pytest.raises(urllib.error.HTTPError, match='503'):
+        sampler().sample(lngs, lats)
+    # There, but unreadable: the same.
+    answers.update(gdal='0', head=None)
+    with pytest.raises(sg.RasterUnreadable, match='exists but would not open'):
+        sampler().sample(lngs, lats)
+    assert issubclass(sg.RasterUnreadable, sg.DOWNLOAD_ERRORS)
 
 
 def test_raster_sampler_gives_up_on_a_raster_that_has_no_coordinate_system(tmp_path, caplog):
@@ -924,6 +1032,18 @@ def test_process_cell_samples_a_fine_model_every_meter_and_a_coarse_one_every_fi
     assert fine[0]['confidence'] == 'high' and fine[0]['dem_source'] == 'fine'
 
 
+def test_process_cell_writes_a_low_confidence_source_as_net_grade_and_end_elevations_only(tmp_path):
+    _write_plane(tmp_path / 'dem.tif', rise_per_degree_lng=4000.0)
+    locate = sg.directory_locator(tmp_path)
+    street = _street(1, [(_LNG + 0.002, _LAT + 0.01), _east(50, _LNG + 0.002, _LAT + 0.01)])
+    [row] = sg.process_cell([street], sg.RasterSampler(locate), sg.Source('gedtm30', 30.0, locate))
+    assert row['quality'] == sg.QUALITY_MEASURED and row['confidence'] == 'low'
+    assert row['net_grade'] and row['elev_start_m'] and row['elev_end_m']
+    windowed = ('mean_grade', 'max_grade', 'max_grade_from_m', 'max_grade_to_m', 'meters_over_5pct_grade',
+                'meters_over_8pct_grade', 'climb_m', 'descent_m', 'profile_cm')
+    assert all(row[field] == '' for field in windowed)
+
+
 # --------------------------------------------------------------------------------------------------------------------
 # resolve_source / main
 # --------------------------------------------------------------------------------------------------------------------
@@ -947,13 +1067,16 @@ def test_resolve_source_explains_what_to_do_for_an_unregistered_country():
 def test_resolve_source_builds_a_directory_source_from_absolute_and_repo_relative_paths(tmp_path, monkeypatch):
     (tmp_path / 'dem').mkdir()
     _write_plane(tmp_path / 'dem' / 'a.tif')
-    absolute = sg.resolve_source(_args(dem_dir=tmp_path / 'dem', dem_name='inegi-mdt-5m', dem_resolution_m=5.0), _CONF)
-    assert (absolute.name, absolute.resolution_m) == ('inegi-mdt-5m', 5.0)
+    absolute = sg.resolve_source(_args(dem_dir=tmp_path / 'dem', dem_name='moi-dtm-20m', dem_resolution_m=5.0), _CONF)
+    assert (absolute.name, absolute.resolution_m) == ('moi-dtm-20m', 5.0)
     monkeypatch.setattr(sg, 'REPO_ROOT', tmp_path)
-    relative = sg.resolve_source(_args(dem_dir=Path('dem'), dem_name='inegi-mdt-5m', dem_resolution_m=5.0), _CONF)
+    relative = sg.resolve_source(_args(dem_dir=Path('dem'), dem_name='moi-dtm-20m', dem_resolution_m=5.0), _CONF)
     assert relative.locate(np.array([_LNG + 0.001]), np.array([_LAT + 0.001])) == [str(tmp_path / 'dem' / 'a.tif')]
     with pytest.raises(SystemExit, match='also needs --dem-name'):
-        sg.resolve_source(_args(dem_dir=tmp_path / 'dem', dem_name='inegi-mdt-5m'), _CONF)
+        sg.resolve_source(_args(dem_dir=tmp_path / 'dem', dem_name='moi-dtm-20m'), _CONF)
+    # The app credits by name, so a registered one would publish hand-supplied rasters under another source's credit.
+    with pytest.raises(SystemExit, match='"inegi-mdt-5m" is a registered source'):
+        sg.resolve_source(_args(dem_dir=tmp_path / 'dem', dem_name='inegi-mdt-5m', dem_resolution_m=5.0), _CONF)
 
 
 @pytest.fixture
@@ -1050,7 +1173,7 @@ def test_main_stops_at_a_failed_download_and_keeps_the_rows_before_it(city, monk
 
     # The western cell (street 1) is sampled and flushed; the eastern cell's download fails and ends the run.
     monkeypatch.setitem(sg.REMOTE_SOURCES, 'flaky', flaky())
-    with pytest.raises(SystemExit, match=r'flaky download failed after 5 tries.*rerun with --resume') as exit_info:
+    with pytest.raises(SystemExit, match=r'flaky download failed \(URLError.*rerun with --resume') as exit_info:
         sg.main(['--city-id', 'testville', '--source', 'flaky'])
     assert 'still down' in str(exit_info.value)
     rows = _read_output(city)

@@ -261,7 +261,7 @@ fill-new-schema:
 # Host-side (edits conf/ and drives both containers), so no docker exec wrapper. Flags go through args=, e.g.
 # `make onboard-city id=laurens-ia args="--skip-scan"`, `args="--dump-only"`, `args="--allow-running-apps"`, and for
 # a country with no registered elevation model, the sampler's own flags once its rasters are downloaded:
-# `args="--dem-dir db/onboarding/cdmx/dem --dem-name inegi-mdt-5m --dem-resolution-m 5"`.
+# `args="--dem-dir db/onboarding/taipei/dem --dem-name moi-dtm-20m --dem-resolution-m 20"`.
 onboard-city:
 	@python3 tools/city/setup_new_city.py $(id) $(args)
 
@@ -293,7 +293,7 @@ import-street-imagery:
 # `args="--structures onboarding/<city-id>/street_structures.csv"` to take the bridge/tunnel flags from the street
 # build instead of the nightly osm_way cache (what onboard-city does). The export and import prompt for the schema
 # unless the positional args ride in args=; the sampler takes its flags via args=, e.g.
-# `make street-gradient id=cdmx args="--dem-dir db/onboarding/cdmx/dem --dem-name inegi-mdt-5m --dem-resolution-m 5"`.
+# `make street-gradient id=taipei args="--dem-dir db/onboarding/taipei/dem --dem-name moi-dtm-20m --dem-resolution-m 20"`.
 # Main checkout only, like build-city-data: the db container sees only that checkout's db/.
 export-street-gradient-input:
 	@docker exec -it $(db-container) sh -c "/opt/scripts/export-street-gradient-input.sh $(args)"

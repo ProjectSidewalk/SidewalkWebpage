@@ -295,7 +295,7 @@ table are in [`docs/street-gradient.md`](../../docs/street-gradient.md).
 ```bash
 make export-street-gradient-input      # streets with no row yet, or whose geometry changed
 make street-gradient id=seattle-wa     # US cities: USGS 3DEP 10 m, picked from the city's country-id
-make street-gradient id=cdmx args="--dem-dir db/onboarding/cdmx/dem --dem-name inegi-mdt-5m --dem-resolution-m 5"
+make street-gradient id=taipei args="--dem-dir db/onboarding/taipei/dem --dem-name moi-dtm-20m --dem-resolution-m 20"
 make import-street-gradient
 ```
 
