@@ -292,8 +292,8 @@ import-street-imagery:
 # takes `args=--all` to resample every street, `args=--allow-empty-osm-way` for a city with no OSM ways, and
 # `args="--structures onboarding/<city-id>/street_structures.csv"` to take the bridge/tunnel flags from the street
 # build instead of the nightly osm_way cache (what onboard-city does). The export and import prompt for the schema
-# unless the positional args ride in args=; the sampler takes its flags via args=, e.g.
-# `make street-gradient id=taipei args="--dem-dir db/onboarding/taipei/dem --dem-name moi-dtm-20m --dem-resolution-m 20"`.
+# unless the positional args ride in args=; the sampler takes its flags via args=, e.g. `make street-gradient
+# id=taipei args="--dem-dir db/onboarding/taipei/dem --dem-name moi-dtm-20m --dem-resolution-m 20"`.
 # Main checkout only, like build-city-data: the db container sees only that checkout's db/.
 export-street-gradient-input:
 	@docker exec -it $(db-container) sh -c "/opt/scripts/export-street-gradient-input.sh $(args)"

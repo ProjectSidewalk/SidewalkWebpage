@@ -319,10 +319,10 @@ In a city sampled from a coarse model (GEDTM30: Chile, Ecuador, India) every gra
 section's weight slider moves nothing, and the grade layer paints end-to-end lines in colors that look as sure as
 Seattle's. Each entry under `grade.sources` therefore carries the `confidence` of its streets, and `grade.approximate`
 (`StreetGradientConfigForApi`) says whether the city is approximate as a whole: at least half of its sampled streets
-come from `low`-confidence sources. There, a note at the top of the Street grade section says the grades are approximate and
-count only once approximate grades are included, and the grade layer's legend carries the same line. Both are text in
-the flow, not hover tooltips, so they reach touch and screen-reader users; the per-street popup sentence ("From a
-coarse elevation model…") stays as well.
+come from `low`-confidence sources. There, a note at the top of the Street grade section says the grades are
+approximate and count only once approximate grades are included, and the grade layer's legend carries the same line.
+Both are text in the flow, not hover tooltips, so they reach touch and screen-reader users; the per-street popup
+sentence ("From a coarse elevation model…") stays as well.
 
 ## Attribution
 

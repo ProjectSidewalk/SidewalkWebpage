@@ -318,8 +318,8 @@ def edge_gradient(z: np.ndarray, length_m: float, is_structure: bool, smooth_sam
     Returns:
         ``{'quality': ...}`` alone for ``no_data`` and for a ``suspect`` street whose own endpoints are implausible.
         A ``structure`` adds ``elev_start_m`` and ``elev_end_m`` and nothing else, and so does a ``net_only`` street,
-        plus ``net_grade``. The rest add those two and everything :func:`grade_metrics` returns. Smoothing leaves the endpoint elevations alone (see :func:`smooth`),
-        so streets sharing a node report the same number for it.
+        plus ``net_grade``. The rest add those two and everything :func:`grade_metrics` returns. Smoothing leaves the
+        endpoint elevations alone (see :func:`smooth`), so streets sharing a node report the same number for it.
     """
     missing = np.isnan(z)
     # Every statistic is normalized by the whole length, so an end the model cannot see would have to be invented, and
@@ -772,7 +772,8 @@ def inegi_fetch_grid(chart: str, cache_dir: Path, fetch: Callable = fetch_bytes)
     extract_zip(archive, staging)
     header = next(staging.rglob('hdr.adf'), None)
     if header is None:
-        shutil.rmtree(staging)
+        # ignore_errors: an archive of directory entries alone never created staging.
+        shutil.rmtree(staging, ignore_errors=True)
         log.warning('The archive INEGI serves for chart %s (%s) holds no GRID (hdr.adf).', chart, url)
         return None
     # GDAL reads a GRID without a projection file as having no coordinate system at all. Every chart of a sheet lies
