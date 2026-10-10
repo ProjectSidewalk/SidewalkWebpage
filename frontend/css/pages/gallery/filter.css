@@ -38,8 +38,9 @@
   background-size: 16px 16px;
 }
 
+/* A footnote, not a second control: well below the select's own size. */
 .gallery-sort__note {
-  font: var(--text-small-regular);
+  font: var(--text-tiny-regular);
   color: var(--color-neutral-700);
   margin: 0;
 }
