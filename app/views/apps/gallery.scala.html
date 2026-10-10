@@ -60,6 +60,9 @@
                 <option value="@s.name" @if(s==sort){selected} data-i18n="@sortI18nKey(s)">@Messages(sortMsgKey(s))</option>
               }
             </select>
+            @* Filled by GalleryFilter when the filters leave the sort nothing to rank (every label unvalidated under
+               "Most disputed", say): the choice stays, the page says what it is really showing. *@
+            <p id="gallery-sort-note" class="gallery-sort__note" aria-live="polite" hidden></p>
           </div>
         }
         @* Sits outside #card-filter, which wears filter-sidebar--loading while a page of cards loads: the disclosure

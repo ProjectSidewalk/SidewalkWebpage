@@ -466,7 +466,11 @@ loaded by the corresponding Twirl view:
   (the random Gallery keeps its cache across filter changes, as it always has). Severity sorts on the raw 1–3 value,
   which is "worst first" for every type since a quality-scale 3 is the worst rating too; unrated and unvalidated
   labels sort last. The control is rendered for admin roles only; the card query itself is not gated, since the
-  labels are public data the API serves in any order.
+  labels are public data the API serves in any order. Filters narrow and the sort orders what is left, so some pairs
+  leave the sort nothing to rank (Most disputed over unvalidated labels only; a severity sort over one severity
+  level or no rated type); `cardOrder.sortMootReason` names those, and the page keeps the choice but says under the
+  select and in the footer that it is showing newest first, rather than greying the option out, which would have to
+  snap the sort to Random and rewrite the URL under the admin.
 - **`admin-dashboard/`** — the admin dashboard (#4272): one `<PageName>Page.js` per route, started by that page's entry
   in `pages/admin/`. `AdminShell.js` loads on every one of those
   pages (and the user dashboard's) and holds the shared shell behaviors — the "On this page" list and its

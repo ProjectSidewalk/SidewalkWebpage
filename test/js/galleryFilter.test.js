@@ -399,7 +399,9 @@ describe('GalleryFilter', () => {
                   <option value="random" selected>Random</option>
                   <option value="newest">Newest first</option>
                   <option value="most_severe">Most severe first</option>
+                  <option value="most_disputed">Most disputed first</option>
                 </select>
+                <p id="gallery-sort-note" class="gallery-sort__note" aria-live="polite" hidden></p>
               </div>`);
             document.body.insertAdjacentHTML('beforeend', '<div id="gallery-footer">gallery:cards</div>');
             return new window.GalleryFilter(document.getElementById('card-filter'), clearBtn(), {
@@ -467,6 +469,67 @@ describe('GalleryFilter', () => {
             expect(sortSelect().disabled).toBe(true);
             filter.enable();
             expect(sortSelect().disabled).toBe(false);
+        });
+
+        // The choice stays (greying it out would have to rewrite the URL under the admin); the page says what it is
+        // really showing instead.
+        describe('when the filters leave the sort nothing to rank', () => {
+            /** @returns {HTMLElement} The note under the select. */
+            const note = () => document.getElementById('gallery-sort-note');
+            /** @returns {string} The footer's text. */
+            const footer = () => document.getElementById('gallery-footer').textContent;
+
+            it('says so under the select and in the footer, and keeps the sort', () => {
+                choose('most_disputed');
+                expect(note().hidden).toBe(true);
+
+                // Validations default to correct + unvalidated; "Only" on unvalidated leaves nothing with a vote.
+                document.querySelector('.filter-sidebar__only[data-section="label-validations"][data-value="unvalidated"]')
+                    .click();
+
+                expect(note().hidden).toBe(false);
+                expect(note().textContent).toBe('gallery:sort-moot-no-validated');
+                expect(footer()).toBe('gallery:cards-sorted-moot:{"sort":"gallery:sort-most-disputed"}');
+                expect(filter.getSort()).toBe('most_disputed');
+                expect(currentUrl()).toBe('/gallery?validationOptions=unvalidated&sort=most_disputed');
+            });
+
+            it('clears the note once a filter gives the sort something to rank again', () => {
+                choose('most_disputed');
+                document.querySelector('.filter-sidebar__only[data-section="label-validations"][data-value="unvalidated"]')
+                    .click();
+                expect(note().hidden).toBe(false);
+
+                document.querySelector('#unsure').click();
+
+                expect(note().hidden).toBe(true);
+                expect(footer()).toBe('gallery:cards-sorted:{"sort":"gallery:sort-most-disputed"}');
+            });
+
+            it('calls a severity sort moot once only one level, or no rated type, is left', () => {
+                choose('most_severe');
+                document.querySelector('.filter-sidebar__only[data-section="severity"][data-value="3"]').click();
+                expect(note().textContent).toBe('gallery:sort-moot-one-severity');
+
+                sevBtn(1).click();
+                expect(note().hidden).toBe(true);
+
+                // Only NoSidewalk, which carries no rating, so the severity block itself hides.
+                document.querySelector('.filter-sidebar__only[data-section="label-type"][data-value="NoSidewalk"]')
+                    .click();
+                expect(note().textContent).toBe('gallery:sort-moot-no-rated-type');
+            });
+
+            it('is settled on construction, for a page opened with such a URL', () => {
+                filter = buildAsAdmin();
+                sortSelect().value = 'most_disputed';
+                document.querySelector('.filter-sidebar__only[data-section="label-validations"][data-value="unvalidated"]')
+                    .click();
+                filter = new window.GalleryFilter(document.getElementById('card-filter'), clearBtn(), {
+                    regionIds: [], aiValidationOptions: [],
+                }, sortSelect());
+                expect(note().hidden).toBe(false);
+            });
         });
     });
 });

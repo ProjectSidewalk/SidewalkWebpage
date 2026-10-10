@@ -1,6 +1,7 @@
 {
   "card-image-alt": "Street-View-Foto einer {{labelType}}-Markierung",
   "cards-sorted": "Beschriftungen werden nach \"{{sort}}\" sortiert, basierend auf gewählten Filtern",
+  "cards-sorted-moot": "\"{{sort}}\" hat bei den gewählten Filtern keine Wirkung; Beschriftungen werden neueste zuerst angezeigt",
   "clear-filters": "Filter löschen",
   "filter-by": "Filtern nach",
   "list-browse-all": "Alle Beschriftungen durchsuchen",
@@ -18,6 +19,9 @@
   "not-applicable": "nicht zutreffend",
   "sort-by": "Sortieren nach",
   "sort-least-severe": "Am wenigsten schwerwiegende zuerst",
+  "sort-moot-no-rated-type": "Keiner der gewählten Beschriftungstypen hat eine Schweregradbewertung, daher hat diese Sortierung keine Wirkung. Neueste zuerst.",
+  "sort-moot-no-validated": "Diese Auswahl enthält keine validierten Beschriftungen, daher hat diese Sortierung keine Wirkung. Neueste zuerst.",
+  "sort-moot-one-severity": "Nur eine Schweregradstufe ist gewählt, daher hat diese Sortierung keine Wirkung. Neueste zuerst.",
   "sort-most-disputed": "Umstrittenste zuerst",
   "sort-most-severe": "Schwerwiegendste zuerst",
   "sort-newest": "Neueste zuerst",

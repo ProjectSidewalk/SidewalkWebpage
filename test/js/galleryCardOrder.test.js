@@ -59,6 +59,38 @@ describe('cardOrder', () => {
         expect(idsSorted(cardOrder, 'least_severe', cards)).toEqual([4, 1, 5, 3, 6, 2]);
     });
 
+    // Filters narrow and the sort orders what is left, so some pairs leave the sort nothing to rank; the page says
+    // so rather than claim an order it isn't applying.
+    describe('sortMootReason', () => {
+        const rated = { validations: ['correct', 'unvalidated'], severities: ['null', '1', '2', '3'], anyRatedType: true };
+
+        it('calls most disputed moot only when every label shown is unvalidated', () => {
+            expect(cardOrder.sortMootReason('most_disputed', { ...rated, validations: ['unvalidated'] }))
+                .toBe('no-validated');
+            expect(cardOrder.sortMootReason('most_disputed', { ...rated, validations: ['unsure'] })).toBeNull();
+            expect(cardOrder.sortMootReason('most_disputed', { ...rated, validations: ['unvalidated', 'unsure'] }))
+                .toBeNull();
+        });
+
+        it('calls a severity sort moot with no rated type or one severity level', () => {
+            for (const sort of ['most_severe', 'least_severe']) {
+                expect(cardOrder.sortMootReason(sort, { ...rated, severities: undefined, anyRatedType: false }))
+                    .toBe('no-rated-type');
+                expect(cardOrder.sortMootReason(sort, { ...rated, severities: ['3'] })).toBe('one-severity');
+                expect(cardOrder.sortMootReason(sort, { ...rated, severities: ['null'] })).toBe('one-severity');
+                expect(cardOrder.sortMootReason(sort, { ...rated, severities: ['null', '3'] })).toBeNull();
+                expect(cardOrder.sortMootReason(sort, rated)).toBeNull();
+            }
+        });
+
+        it('never calls a time sort, or the random default, moot', () => {
+            const narrowest = { validations: ['unvalidated'], severities: ['3'], anyRatedType: true };
+            expect(cardOrder.sortMootReason('newest', narrowest)).toBeNull();
+            expect(cardOrder.sortMootReason('oldest', narrowest)).toBeNull();
+            expect(cardOrder.sortMootReason('random', narrowest)).toBeNull();
+        });
+    });
+
     it('ranks most disputed by the share of disagreeing votes, unvalidated last', () => {
         const cards = [
             card({ label_id: 1, val_counts: { Agree: 3, Disagree: 1, Unsure: 0 } }), // 0.25

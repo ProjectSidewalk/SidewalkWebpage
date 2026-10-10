@@ -1,6 +1,7 @@
 {
   "card-image-alt": "Photo de rue d'une étiquette {{labelType}}",
   "cards-sorted": "Les étiquettes sont triées par « {{sort}} » selon les filtres sélectionnés",
+  "cards-sorted-moot": "« {{sort}} » est sans effet avec les filtres sélectionnés ; les étiquettes sont affichées des plus récentes aux plus anciennes",
   "clear-filters": "Effacer les filtres",
   "filter-by": "Filtrer par",
   "list-browse-all": "Parcourir toutes les étiquettes",
@@ -18,6 +19,9 @@
   "not-applicable": "non applicable",
   "sort-by": "Trier par",
   "sort-least-severe": "Moins graves d’abord",
+  "sort-moot-no-rated-type": "Aucun des types d’étiquette sélectionnés n’a de niveau de gravité : ce tri est sans effet. Affichage des plus récentes d’abord.",
+  "sort-moot-no-validated": "Aucune étiquette validée dans cette sélection : ce tri est sans effet. Affichage des plus récentes d’abord.",
+  "sort-moot-one-severity": "Un seul niveau de gravité est sélectionné : ce tri est sans effet. Affichage des plus récentes d’abord.",
   "sort-most-disputed": "Plus contestées d’abord",
   "sort-most-severe": "Plus graves d’abord",
   "sort-newest": "Plus récentes d’abord",

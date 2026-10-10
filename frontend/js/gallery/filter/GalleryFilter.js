@@ -13,7 +13,7 @@ import { sg } from '../sg.js';
 import { FilterSidebar } from '../../common/filter-sidebar/FilterSidebar.js';
 import { LabelDetail } from '../../common/label-detail/LabelDetail.js';
 import { util } from '../../common/utilities.js';
-import { isSorted, RANDOM_SORT } from '../cards/cardOrder.js';
+import { isSorted, RANDOM_SORT, sortMootReason } from '../cards/cardOrder.js';
 import '../../common/urlQuery.js';
 import '../../common/utilitiesSidewalk.js';
 /** @typedef {import('../../common/filter-sidebar/FilterSidebar.js').FilterSidebarChange} FilterSidebarChange */
@@ -69,13 +69,16 @@ export class GalleryFilter {
     if (this.#sortSelect) {
       this.#sortSelect.addEventListener('change', () => {
         sg.tracker?.push('SortApply', null, { Sort: this.getSort() });
-        this.renderFooter();
+        this.renderSortStatus();
         sg.cardContainer.updateCardsBySort();
         this.#updateURL();
       });
     }
 
     this.#renderSeverity();
+    // The server renders the footer for the order the page opened in but can't know whether the filters leave that
+    // order anything to rank, so the status is settled here as soon as the controls exist.
+    this.renderSortStatus();
     this.#updateURL();
   }
 
@@ -88,16 +91,43 @@ export class GalleryFilter {
   }
 
   /**
-   * Restates the footer's "Labels are sorted …" line for the current order, in the page's language. The server
-   * renders it for the order the page opened in; this is for a change since.
+   * Why the current sort can't tell the filtered labels apart, or null when it can (or there is no sort).
+   * @returns {?string} A `sortMootReason` value.
    */
-  renderFooter() {
+  getSortMootReason() {
+    const sort = this.getSort();
+    if (!isSorted(sort)) return null;
+    const types = this.#status.currentLabelTypes;
+    const anyRatedType = types.some((type) => util.misc.labelTypeHasSeverity(type));
+    return sortMootReason(sort, {
+      validations: this.getAppliedValidationOptions(),
+      severities: anyRatedType ? this.getAppliedSeverities() : undefined,
+      anyRatedType,
+    });
+  }
+
+  /**
+   * Restates what the page says about its order, in the page's language: the footer's "Labels are sorted …" line,
+   * and the note under the select that appears when the filters leave the sort nothing to rank. The choice itself
+   * is left alone in that case — greying the option out would have to snap the sort back to Random and rewrite the
+   * URL under the admin — so the page says what it is actually showing instead of claiming an order it isn't in.
+   */
+  renderSortStatus() {
+    const sort = this.getSort();
+    const reason = this.getSortMootReason();
+    const sortName = i18next.t(`gallery:sort-${sort.replaceAll('_', '-')}`);
+
+    const note = document.getElementById('gallery-sort-note');
+    if (note) {
+      note.hidden = reason === null;
+      note.textContent = reason === null ? '' : i18next.t(`gallery:sort-moot-${reason}`);
+    }
+
     const footer = document.getElementById('gallery-footer');
     if (!footer) return;
-    const sort = this.getSort();
-    footer.textContent = isSorted(sort)
-      ? i18next.t('gallery:cards-sorted', { sort: i18next.t(`gallery:sort-${sort.replaceAll('_', '-')}`) })
-      : i18next.t('gallery:cards');
+    if (!isSorted(sort)) footer.textContent = i18next.t('gallery:cards');
+    else if (reason !== null) footer.textContent = i18next.t('gallery:cards-sorted-moot', { sort: sortName });
+    else footer.textContent = i18next.t('gallery:cards-sorted', { sort: sortName });
   }
 
   /**
@@ -116,6 +146,8 @@ export class GalleryFilter {
       this.#status.currentLabelTypes = selected;
       this.#renderSeverity();
     }
+    // A filter change can give a sort something to rank, or take it away.
+    this.renderSortStatus();
     sg.cardContainer.updateCardsByFilter();
     this.#updateURL();
   }

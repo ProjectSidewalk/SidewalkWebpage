@@ -38,6 +38,12 @@
   background-size: 16px 16px;
 }
 
+.gallery-sort__note {
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+  margin: 0;
+}
+
 .gallery-filter-header {
   display: flex;
   align-items: center;

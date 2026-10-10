@@ -1,6 +1,7 @@
 {
   "card-image-alt": "Foto de Street View de una etiqueta de {{labelType}}",
   "cards-sorted": "Las etiquetas se ordenan por \"{{sort}}\" según los filtros seleccionados",
+  "cards-sorted-moot": "\"{{sort}}\" no tiene efecto con los filtros seleccionados; las etiquetas se muestran de más reciente a más antigua",
   "clear-filters": "Borrar Filtros",
   "filter-by": "Filtrar por",
   "list-browse-all": "Explorar todas las etiquetas",
@@ -18,6 +19,9 @@
   "not-applicable": "no aplicable",
   "sort-by": "Ordenar por",
   "sort-least-severe": "Menos graves primero",
+  "sort-moot-no-rated-type": "Ninguno de los tipos de etiqueta seleccionados tiene valoración de gravedad, así que este orden no tiene efecto. Se muestran las más recientes primero.",
+  "sort-moot-no-validated": "No hay etiquetas validadas en esta selección, así que este orden no tiene efecto. Se muestran las más recientes primero.",
+  "sort-moot-one-severity": "Solo hay un nivel de gravedad seleccionado, así que este orden no tiene efecto. Se muestran las más recientes primero.",
   "sort-most-disputed": "Más disputadas primero",
   "sort-most-severe": "Más graves primero",
   "sort-newest": "Más recientes primero",

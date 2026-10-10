@@ -1,6 +1,7 @@
 {
   "card-image-alt": "{{labelType}}標記的街景照片",
   "cards-sorted": "標記依據「{{sort}}」排序，並套用所選定的過濾器",
+  "cards-sorted-moot": "「{{sort}}」對所選定的過濾器無效；標記以最新優先顯示",
   "clear-filters": "清除過濾器",
   "filter-by": "篩選",
   "list-browse-all": "瀏覽所有標記",
@@ -14,6 +15,9 @@
   "not-applicable": "不適用",
   "sort-by": "排序方式",
   "sort-least-severe": "最輕微優先",
+  "sort-moot-no-rated-type": "所選的標記類型皆無嚴重程度評分，因此此排序無效。改以最新優先顯示。",
+  "sort-moot-no-validated": "此選取範圍內沒有已驗證的標記，因此此排序無效。改以最新優先顯示。",
+  "sort-moot-one-severity": "僅選取了一個嚴重程度，因此此排序無效。改以最新優先顯示。",
   "sort-most-disputed": "最具爭議優先",
   "sort-most-severe": "最嚴重優先",
   "sort-newest": "最新優先",
