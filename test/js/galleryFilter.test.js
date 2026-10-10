@@ -401,7 +401,7 @@ describe('GalleryFilter', () => {
                   <option value="most_severe">Most severe first</option>
                   <option value="most_disputed">Most disputed first</option>
                 </select>
-                <p id="gallery-sort-note" class="gallery-sort__note" aria-live="polite" hidden></p>
+                <p id="gallery-sort-note" class="gallery-sort__note" aria-live="polite"></p>
               </div>`);
             document.body.insertAdjacentHTML('beforeend', '<div id="gallery-footer">gallery:cards</div>');
             return new window.GalleryFilter(document.getElementById('card-filter'), clearBtn(), {
@@ -481,13 +481,12 @@ describe('GalleryFilter', () => {
 
             it('says so under the select and in the footer, and keeps the sort', () => {
                 choose('most_disputed');
-                expect(note().hidden).toBe(true);
+                expect(note().textContent).toBe('');
 
                 // Validations default to correct + unvalidated; "Only" on unvalidated leaves nothing with a vote.
                 document.querySelector('.filter-sidebar__only[data-section="label-validations"][data-value="unvalidated"]')
                     .click();
 
-                expect(note().hidden).toBe(false);
                 expect(note().textContent).toBe('gallery:sort-moot-no-validated');
                 expect(footer()).toBe('gallery:cards-sorted-moot:{"sort":"gallery:sort-most-disputed"}');
                 expect(filter.getSort()).toBe('most_disputed');
@@ -498,11 +497,11 @@ describe('GalleryFilter', () => {
                 choose('most_disputed');
                 document.querySelector('.filter-sidebar__only[data-section="label-validations"][data-value="unvalidated"]')
                     .click();
-                expect(note().hidden).toBe(false);
+                expect(note().textContent).not.toBe('');
 
                 document.querySelector('#unsure').click();
 
-                expect(note().hidden).toBe(true);
+                expect(note().textContent).toBe('');
                 expect(footer()).toBe('gallery:cards-sorted:{"sort":"gallery:sort-most-disputed"}');
             });
 
@@ -512,7 +511,7 @@ describe('GalleryFilter', () => {
                 expect(note().textContent).toBe('gallery:sort-moot-one-severity');
 
                 sevBtn(1).click();
-                expect(note().hidden).toBe(true);
+                expect(note().textContent).toBe('');
 
                 // Only NoSidewalk, which carries no rating, so the severity block itself hides.
                 document.querySelector('.filter-sidebar__only[data-section="label-type"][data-value="NoSidewalk"]')
@@ -528,8 +527,33 @@ describe('GalleryFilter', () => {
                 filter = new window.GalleryFilter(document.getElementById('card-filter'), clearBtn(), {
                     regionIds: [], aiValidationOptions: [],
                 }, sortSelect());
-                expect(note().hidden).toBe(false);
+                expect(note().textContent).toBe('gallery:sort-moot-no-validated');
             });
+        });
+
+        // A keyboard user steps a closed select with the arrow keys, and each step fires a change and so a load
+        // that disables the select; disabling the focused element drops focus to the body.
+        it('hands focus back to the select after the load it started', () => {
+            sortSelect().focus();
+            expect(document.activeElement).toBe(sortSelect());
+            window.sg.cardContainer.updateCardsBySort = jest.fn(() => filter.disable());
+
+            choose('newest');
+            // A browser drops focus from an element the moment it is disabled; jsdom leaves it (and won't blur a
+            // disabled element), so focus is moved by hand. What is pinned is the hand-back, which the browser
+            // does not do on its own.
+            document.querySelector('.filter-sidebar__deselect-all').focus();
+            expect(document.activeElement).not.toBe(sortSelect());
+
+            filter.enable();
+            expect(document.activeElement).toBe(sortSelect());
+        });
+
+        it('leaves focus where it was when the select did not have it', () => {
+            typeBox('Obstacle').focus();
+            filter.disable();
+            filter.enable();
+            expect(document.activeElement).not.toBe(sortSelect());
         });
     });
 });

@@ -11,7 +11,7 @@ import { PanoStore } from '../../common/pano-viewer/PanoStore.js';
 import { util } from '../../common/utilities.js';
 import { Card } from './Card.js';
 import { CardBucket } from './CardBucket.js';
-import { compareCards, isSorted } from './cardOrder.js';
+import { isSorted } from './cardOrder.js';
 import { ExpandedView } from '../expandedview/ExpandedView.js';
 import { PanoViewer } from '../../common/pano-viewer/PanoViewer.js';
 import '../../common/utilitiesSidewalk.js';
@@ -60,6 +60,13 @@ export class CardContainer {
 
   // Keep track of labels we have loaded already as to not grab the same label from the backend.
   #loadedLabelIds = new Set();
+
+  // The position each loaded label arrived at, across fetches, for sorted mode (#2705). Fetch order is the server's
+  // order (every fetch returns the next ranked labels, and the cache is emptied whenever that stops being true), and
+  // it is what the cards are paged by rather than their own severity or votes: those change under the admin as they
+  // vote or edit in the expanded view, and re-deriving the order from them moved cards between pages mid-review.
+  /** @type {Map<string, number>} Keyed as Card.getLabelId() types its answer. */
+  #fetchOrder = new Map();
 
   // Current labels being displayed of current type based off filters.
   #currentCards = new CardBucket();
@@ -349,6 +356,7 @@ export class CardContainer {
       const card = new Card(labelProp.label, labelProp.cropUrl, labelProp.gsvImageUrl, labelProp.cropMarker);
       this.push(card);
       this.#loadedLabelIds.add(card.getLabelId());
+      this.#fetchOrder.set(card.getLabelId(), this.#fetchOrder.size);
       return card;
     });
     return { newCards, unavailableLabelIds: response.unavailableLabelIds };
@@ -413,9 +421,9 @@ export class CardContainer {
    *
    * Cards accumulate across filter changes, so this re-applies the filters the server already applied when they were
    * fetched. Tags are per type — a curb ramp's "narrow" says nothing about an obstacle — so each type is filtered
-   * against its own. In a sorted order (#2705) the gathered cards are sorted the server's way, which puts them back
-   * in one sequence across the type buckets; that sequence is the server's only because every card was fetched in
-   * this order (see #resetLoadedCards).
+   * against its own. In a sorted order (#2705) the gathered cards go back into the sequence they arrived in, which
+   * is the server's order across the type buckets; that holds only because every card was fetched in this order
+   * (see #resetLoadedCards).
    *
    * @param {{types: string[], valOptions: string[], severities: (string[]|undefined),
    *      tagsByType: Record<string, string[]>, sort: string}} filters - The filters from #currentFilters().
@@ -430,8 +438,9 @@ export class CardContainer {
       cards.filterOnValidationOptions(valOptions);
       cards.getCards().forEach((card) => bucket.push(card));
     }
-    const compare = compareCards(sort);
-    if (compare) bucket.getCards().sort(compare);
+    if (isSorted(sort)) {
+      bucket.getCards().sort((a, b) => this.#fetchOrder.get(a.getLabelId()) - this.#fetchOrder.get(b.getLabelId()));
+    }
     return bucket;
   }
 
@@ -448,6 +457,7 @@ export class CardContainer {
   #resetLoadedCards() {
     for (const type of Object.keys(this.#cardsByType)) this.#cardsByType[type] = new CardBucket();
     this.#loadedLabelIds = new Set();
+    this.#fetchOrder = new Map();
   }
 
   /**

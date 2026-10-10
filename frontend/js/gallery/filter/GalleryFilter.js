@@ -33,6 +33,8 @@ export class GalleryFilter {
    * then the Gallery is in its random order.
    */
   #sortSelect;
+  /** Whether the select had focus when the filters were last disabled, so enable() can hand it back. */
+  #sortHadFocus = false;
   /** @type {{currentLabelTypes: string[]}} */
   #status;
   /** @type {Record<string, any>} Filters with no UI of their own, carried through so the URL keeps reporting them. */
@@ -117,11 +119,10 @@ export class GalleryFilter {
     const reason = this.getSortMootReason();
     const sortName = i18next.t(`gallery:sort-${sort.replaceAll('_', '-')}`);
 
+    // The note stays in the document, empty, when there is nothing to say: a live region that is hidden until it
+    // has text is outside the accessibility tree at the moment the text lands, and so is not announced.
     const note = document.getElementById('gallery-sort-note');
-    if (note) {
-      note.hidden = reason === null;
-      note.textContent = reason === null ? '' : i18next.t(`gallery:sort-moot-${reason}`);
-    }
+    if (note) note.textContent = reason === null ? '' : i18next.t(`gallery:sort-moot-${reason}`);
 
     const footer = document.getElementById('gallery-footer');
     if (!footer) return;
@@ -351,14 +352,24 @@ export class GalleryFilter {
     this.#sidebar?.disable();
     // The reset and the sort sit outside the sidebar (see gallery.scala.html), so they need disabling on their own.
     if (this.#clearButton) this.#clearButton.disabled = true;
-    if (this.#sortSelect) this.#sortSelect.disabled = true;
+    if (this.#sortSelect) {
+      // Disabling the focused element drops focus to the body, and a keyboard user stepping a closed select with the
+      // arrow keys fires a change (and so this) on every step, so without remembering it they would lose the select
+      // after one step and have no way to reach the next option.
+      this.#sortHadFocus = document.activeElement === this.#sortSelect;
+      this.#sortSelect.disabled = true;
+    }
   }
 
   /** Restores interaction with the filters. */
   enable() {
     this.#sidebar?.enable();
     if (this.#clearButton) this.#clearButton.disabled = false;
-    if (this.#sortSelect) this.#sortSelect.disabled = false;
+    if (this.#sortSelect) {
+      this.#sortSelect.disabled = false;
+      if (this.#sortHadFocus) this.#sortSelect.focus();
+      this.#sortHadFocus = false;
+    }
   }
 
   /** Resets every filter to its default state. Callers follow with update() to apply it. */

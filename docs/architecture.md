@@ -459,11 +459,17 @@ loaded by the corresponding Twirl view:
   path from the random one, not a re-ordering of it: the random Gallery runs one query per selected type and shuffles
   the batches together, which cannot produce a global order (the top of each type's ranking, merged, is not the top of
   the union), so `LabelService.getGalleryLabels` runs **one ordered query across every selected type** with no type
-  spread and no shuffle, then re-sorts after the imagery check (which hands back crop-backed labels first). Paging
-  works because the client sends the ids it has loaded and the query excludes them, so each fetch is the next-ranked
-  unseen labels — and that is only true if what the client holds is a prefix of the server's order under the current
-  filters, so `CardContainer` empties its card cache on every sort change and on every filter change while sorted
-  (the random Gallery keeps its cache across filter changes, as it always has). Severity sorts on the raw 1–3 value,
+  spread and no shuffle. The batch walk (`findValidLabelsForType`) keeps the query's order through the imagery check
+  when asked not to randomize (the check hands back crop-backed labels first, and taking the first n of *that* would
+  swap a cropped label in for a top-ranked one), and in sorted mode walks past a prefix of dead imagery rather than
+  ending on an empty batch, under `LabelServiceImpl.MaxEmptyBatches`, since a fixed order puts the same dead rows at
+  the same offsets on every request. Paging works because the client sends the ids it has loaded and the query
+  excludes them, so each fetch is the next-ranked unseen labels — and that is only true if what the client holds is
+  a prefix of the server's order under the current filters, so `CardContainer` empties its card cache on every sort
+  change and on every filter change while sorted (the random Gallery keeps its cache across filter changes, as it
+  always has). The client pages by the order cards *arrived* in, never by re-deriving the key from a card's own
+  severity or votes: those change under the admin as they vote or edit, and re-sorting on them moved cards between
+  pages mid-review. Severity sorts on the raw 1–3 value,
   which is "worst first" for every type since a quality-scale 3 is the worst rating too; unrated and unvalidated
   labels sort last. The control is rendered for admin roles only; the card query itself is not gated, since the
   labels are public data the API serves in any order. Filters narrow and the sort orders what is left, so some pairs

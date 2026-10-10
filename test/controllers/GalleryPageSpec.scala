@@ -13,6 +13,7 @@ import play.api.test.Helpers.*
 import util.{AnonSession, RoleSession, SidewalkSpec, UserAgents}
 
 import java.net.URLEncoder
+import java.time.OffsetDateTime
 
 /**
  * Locks the `tags` deep-link contract of GET /gallery: the selection a shared link carries has to come back on the
@@ -243,19 +244,47 @@ class GalleryPageSpec extends SidewalkSpec with RoleSession with GuiceOneAppPerS
   }
 
   "POST /label/labels with a sort" should {
+    // Every validation option, or the request means "none of them" and every test here passes on an empty grid.
+    val allValidations = Json.arr("correct", "incorrect", "unsure", "unvalidated")
+    def sortedRequest(sort: String, n: Int, loaded: Seq[Int] = Seq.empty): JsObject =
+      Json.obj("n" -> n, "loaded_labels" -> loaded, "sort" -> sort, "validation_options" -> allValidations)
     def sortedLabels(sort: String, n: Int = 30): Seq[JsValue] =
-      (labelsFor(Json.obj("n" -> n, "loaded_labels" -> Json.arr(), "sort" -> sort)) \ "labelsOfType" \\ "label").toSeq
+      (labelsFor(sortedRequest(sort, n)) \ "labelsOfType" \\ "label").toSeq
 
     "return the most severe labels first, unrated last" in {
       val severities = sortedLabels("most_severe").map(l => (l \ "severity").asOpt[Int])
-      val rated      = severities.takeWhile(_.isDefined).flatten
+      assume(severities.nonEmpty, "connected database serves no sorted labels")
+      val rated = severities.takeWhile(_.isDefined).flatten
       rated.zip(rated.drop(1)).foreach { case (higher, lower) => higher must be >= lower }
       severities.dropWhile(_.isDefined).forall(_.isEmpty) mustBe true
     }
 
+    // Parsed, not compared as strings: the ISO writer drops trailing zeros, so "…:18Z" would sort after "…:18.735Z".
     "return the newest labels first" in {
-      val timestamps = sortedLabels("newest").map(l => (l \ "label_timestamp").as[String])
-      timestamps.zip(timestamps.drop(1)).foreach { case (newer, older) => newer must be >= older }
+      val timestamps = sortedLabels("newest").map(l => OffsetDateTime.parse((l \ "label_timestamp").as[String]))
+      assume(timestamps.nonEmpty, "connected database serves no sorted labels")
+      timestamps.zip(timestamps.drop(1)).foreach { case (newer, older) => newer.isBefore(older) mustBe false }
+    }
+
+    // Paging is the client excluding what it holds and asking for the next ranked labels, so a second request has to
+    // pick up where the first left off: nothing repeated, and nothing that outranks what the first page showed. This
+    // is where keeping the batch's own order through the imagery check matters — a crop-backed label taken ahead of
+    // a higher-ranked one without a crop would surface on the second page, out of order.
+    "continue the order across a second request that excludes the first's labels" in {
+      val first = sortedLabels("most_severe", n = 12)
+      assume(first.size == 12, "connected database serves fewer than 12 sorted labels")
+      val firstIds = first.map(l => (l \ "label_id").as[Int])
+      val second   = (labelsFor(sortedRequest("most_severe", 12, firstIds)) \ "labelsOfType" \\ "label").toSeq
+
+      second.map(l => (l \ "label_id").as[Int]) must contain noElementsOf firstIds
+      // The lowest severity on page one bounds page two; None (unrated) sorts last, so a None on page one means page
+      // two is all None.
+      val severity    = (l: JsValue) => (l \ "severity").asOpt[Int]
+      val pageOneLast = severity(first.last)
+      second.map(severity).foreach { s =>
+        if (pageOneLast.isEmpty) s mustBe empty
+        else if (s.isDefined) s.get must be <= pageOneLast.get
+      }
     }
 
     "still serve the landing grid's recent pool" in {

@@ -55,14 +55,15 @@
         @if(isAdmin) {
           <div class="gallery-sort">
             <label for="gallery-sort" class="gallery-sort__label" data-i18n="gallery:sort-by">@Messages("gallery.sort.by")</label>
-            <select id="gallery-sort" class="ps-select">
+            <select id="gallery-sort" class="ps-select" aria-describedby="gallery-sort-note">
               @for(s <- GallerySort.values) {
                 <option value="@s.name" @if(s==sort){selected} data-i18n="@sortI18nKey(s)">@Messages(sortMsgKey(s))</option>
               }
             </select>
             @* Filled by GalleryFilter when the filters leave the sort nothing to rank (every label unvalidated under
-               "Most disputed", say): the choice stays, the page says what it is really showing. *@
-            <p id="gallery-sort-note" class="gallery-sort__note" aria-live="polite" hidden></p>
+               "Most disputed", say): the choice stays, the page says what it is really showing. Always in the
+               document, empty rather than hidden, so the live region is in the accessibility tree when text lands. *@
+            <p id="gallery-sort-note" class="gallery-sort__note" aria-live="polite"></p>
           </div>
         }
         @* Sits outside #card-filter, which wears filter-sidebar--loading while a page of cards loads: the disclosure

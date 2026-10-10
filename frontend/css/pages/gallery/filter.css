@@ -14,9 +14,14 @@
 .gallery-sort {
   display: flex;
   flex-direction: column;
-  gap: 6px;
   padding: 40px 5px 0;
   margin: 0 0 16px;
+}
+
+/* Spaced by margins rather than the column's gap: the note is always in the flow (see the view), and a gap would
+   hold its slot open while it has nothing to say. The select's margin is in its block below. */
+.gallery-sort__note:not(:empty) {
+  margin-top: 6px;
 }
 
 .gallery-sort__label {
@@ -30,12 +35,23 @@
    for the 16px icon plus the same 12px inset it sits at. */
 .gallery-sort .ps-select {
   width: 100%;
+  margin-top: 6px;
   appearance: none;
   padding-right: 40px;
   background-image: url("/images/icons/chevron-down-feather.svg");
   background-repeat: no-repeat;
   background-position: right 12px center;
   background-size: 16px 16px;
+}
+
+/* Forced colors (Windows High Contrast) strip background images, which would leave the select with no affordance
+   at all; the platform arrow survives there. */
+@media (forced-colors: active) {
+  .gallery-sort .ps-select {
+    appearance: auto;
+    padding-right: calc(10px * var(--ui-scale, 1));
+    background-image: none;
+  }
 }
 
 /* A footnote, not a second control: well below the select's own size. */

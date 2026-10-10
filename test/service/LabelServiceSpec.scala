@@ -123,6 +123,9 @@ class LabelServiceSpec extends SidewalkSpec with RolledBackDb with GuiceOneAppPe
       )
       rows.filter(_.labelType == LabelType.CurbRamp).foreach(_.tags must contain(tag.get))
       rows.map(_.labelType).toSet must contain(LabelType.CurbRamp)
+      // The other half of the scope: the type nobody narrowed is still served, tag or no tag.
+      val obstacles = run(query(GalleryOrder.Random, Set(LabelType.Obstacle)).take(1).result)
+      if (obstacles.nonEmpty) rows.map(_.labelType).toSet must contain(LabelType.Obstacle)
     }
   }
 
