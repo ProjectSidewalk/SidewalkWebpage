@@ -76,8 +76,10 @@ city.name.cdmx = Mexiko-Stadt
 city.name.zurich = Zürich
 city.name.taipei = Taipeh
 city.name.new-taipei-tw = Neu-Taipeh
+city.name.juneau-ak = Juneau
 
 state.name.california = Kalifornien
+state.name.alaska = Alaska
 
 country.name.usa = USA
 country.name.mexico = Mexiko

@@ -75,8 +75,10 @@ city.state = {0}, {1}
 city.name.cdmx = Mexico Stad
 city.name.new-taipei-tw = Nieuw Taipei
 city.name.niagara-falls-ny = Niagarawatervallen
+city.name.juneau-ak = Juneau
 
 state.name.california = Californië
+state.name.alaska = Alaska
 
 country.name.usa = USA
 country.name.netherlands = Nederland

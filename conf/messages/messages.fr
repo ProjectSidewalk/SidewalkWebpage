@@ -80,12 +80,14 @@ city.name.knox-oh = Comté de Knox
 city.name.niagara-falls-ny = Chutes du Niagara
 city.name.validation-study = Étude de validation
 city.name.la-piedad-old = La Piedad (ancien)
+city.name.juneau-ak = Juneau
 
 state.name.pennsylvania = Pennsylvanie
 state.name.california = Californie
 state.name.south-carolina = Caroline du Sud
 state.name.virginia = Virginie
 state.name.florida = Floride
+state.name.alaska = Alaska
 
 country.name.usa = États-Unis
 country.name.mexico = Mexique
