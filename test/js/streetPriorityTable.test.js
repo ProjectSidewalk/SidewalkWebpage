@@ -262,6 +262,15 @@ describe('StreetPriorityTable row interactions', () => {
     expect(hooks.onRowClick).toHaveBeenCalledWith(1);
   });
 
+  test('still pins and hovers after the table is rendered again with new rows', () => {
+    const table = build(hooks);
+    table.render([REGIONS[1]]);
+    rowFor('Downtown').dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+    rowFor('Downtown').dispatchEvent(new window.Event('pointerover', { bubbles: true }));
+    expect(hooks.onRowClick).toHaveBeenCalledWith(2);
+    expect(hooks.onRowHover).toHaveBeenCalledWith(2);
+  });
+
   test('lets a link inside a row navigate instead of pinning', () => {
     build({ ...hooks,
       columns: [{ key: 'region_name', label: 'Region', numeric: false,

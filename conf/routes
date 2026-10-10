@@ -61,6 +61,7 @@ GET     /admin/overview                                 controllers.AdminDashboa
 GET     /admin/coverage                                 controllers.AdminDashboardController.coverage
 GET     /admin/street-status                            controllers.AdminDashboardController.streetStatus
 GET     /admin/imagery                                  controllers.AdminDashboardController.imagery
+GET     /admin/sidewalks                                controllers.AdminDashboardController.sidewalks
 GET     /admin/label-map                                controllers.AdminDashboardController.labelMap
 GET     /admin/quality                                  controllers.AdminDashboardController.quality
 GET     /admin/contributors                             controllers.AdminDashboardController.contributors
@@ -83,6 +84,7 @@ PUT     /adminapi/streets/:streetEdgeId/reopen          controllers.AdminDashboa
 DELETE  /adminapi/streets/:streetEdgeId/reopenCandidate controllers.AdminDashboardController.dismissReopenCandidate(streetEdgeId: Int)
 GET     /adminapi/imageryFreshness                      controllers.AdminDashboardController.getImageryFreshness(days: Int ?= service.ImageryFreshnessReportService.DefaultDays)
 GET     /adminapi/streetPriority                        controllers.AdminDashboardController.getStreetPriority
+GET     /adminapi/sidewalkPresence                      controllers.AdminDashboardController.getSidewalkPresence
 GET     /adminapi/team/:teamId                          controllers.AdminDashboardController.getTeamOverview(teamId: Int)
 GET     /adminapi/userSearch                            controllers.AdminDashboardController.searchUsers(query: String ?= "", limit: Int ?= controllers.AdminDashboardController.MaxUserSearchResults)
 GET     /adminapi/auditedStreetTimes                    controllers.AdminController.getAuditedStreetsWithTimestamps
