@@ -148,7 +148,7 @@ async function loadValidate(page, path) {
 async function expectPanoRendered(page, path, viewerType) {
   const state = await page.evaluate(() => ({
     panoLoaded: window.svv?.panoManager?.getProperty('panoLoaded'),
-    viewerType: window.svv?.panoViewer?.viewerType,
+    viewerType: window.svv?.panoManager?.panoViewer?.viewerType,
   }));
   expect(state.panoLoaded, `${path} assigned a mission but rendered no panorama`).toBe(true);
   expect(state.viewerType, `${path} rendered its panorama with the wrong viewer`).toBe(viewerType);
