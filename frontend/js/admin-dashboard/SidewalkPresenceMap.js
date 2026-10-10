@@ -2,7 +2,7 @@
  * The admin Sidewalks page's map (#5724): every open street drawn twice, once per side, each side colored by what the
  * labels say about its sidewalk.
  *
- * The same encoding as the `/v3/api/sidewalkPresence` docs preview, so the two read alike, plus two things a review
+ * The docs preview's encoding (`/v3/api/sidewalkPresence`), except unaudited sides are red, plus two things a review
  * page needs that a preview does not: an absent side's opacity follows how many people labeled it (the #5222 study
  * found one labeler right 69% of the time and three 84%), and a street can be focused from outside, which is how the
  * review lists and the region table drive the map.
@@ -20,7 +20,8 @@ export class SidewalkPresenceStyle {
   static PRESENCE = {
     absent: { label: 'No sidewalk', token: '--color-label-no-sidewalk' },
     present: { label: 'Sidewalk', token: '--color-success-200' },
-    unknown: { label: 'Unknown (street not audited)', token: '--color-neutral-400' },
+    // Red, not the docs preview's gray, which vanishes against the light basemap.
+    unknown: { label: 'Unknown (street not audited)', token: '--color-error-200' },
   };
 
   /** @type {Record<string, string>} How each `presence_basis` reads in the filters, popups and tables. */
