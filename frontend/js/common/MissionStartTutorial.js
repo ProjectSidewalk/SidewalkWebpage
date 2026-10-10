@@ -9,7 +9,6 @@
  * @property {{position: {left: string, top: string}}} labelOnImage - Where the callout sits, in EXAMPLE_PHOTO's frame.
  */
 
-import { svl } from '../explore/svl.js';
 import { util } from './utilities.js';
 import '../../css/components/mission-start-tutorial.css';
 
@@ -17,8 +16,7 @@ import '../../css/components/mission-start-tutorial.css';
  * A full-screen carousel for the mission start tutorial.
  */
 /**
- * What a tool hands the tutorial: where to log, and what to re-enable or refresh when the tutorial closes. Explore
- * passes its whole registry; Validate passes just these.
+ * What a tool hands the tutorial: where to log, and what to re-enable or refresh when the tutorial closes.
  * @typedef {object} TutorialHooks
  * @property {{push: (action: string, notes?: object, extra?: any) => any}} tracker - Logs the slide clicks.
  * @property {{enableKeyboard: () => void}} [keyboard] - Shortcuts to resume once the overlay clears.
@@ -461,8 +459,7 @@ export class MissionStartTutorial {
     for (const tab of document.querySelectorAll('.explore-mission-start-tab')) {
       tab.addEventListener('click', () => {
         // A tab switch only changes which label type is taught, so everything describing the mission has to survive it.
-        new MissionStartTutorial('audit', tab.dataset.labelType, this.#data, /** @type {TutorialHooks} */ (svl),
-          this.#language);
+        new MissionStartTutorial('audit', tab.dataset.labelType, this.#data, this.#hooks, this.#language);
       }, { signal });
     }
 

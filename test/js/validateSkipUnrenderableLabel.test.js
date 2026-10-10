@@ -518,6 +518,17 @@ describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
     expect(uiReleased()).toBe(true);
   });
 
+  test('a marker that fails to draw still hands the label to the card and the menu', async () => {
+    // The tool unlocks either way; a menu left on the previous label's verdict would skip this one on the next click.
+    deps.panoManager.renderPanoMarker = jest.fn(() => Promise.reject(new Error('draw broke')));
+
+    await expect(buildContainer()).rejects.toThrow('draw broke');
+
+    expect(deps.labelCard.render).toHaveBeenCalled();
+    expect(deps.validationMenu.resetMenu).toHaveBeenCalled();
+    expect(uiReleased()).toBe(true);
+  });
+
   test('a status that comes into view is logged against the label loading under it', async () => {
     // How prod counts loads slow enough to be seen that still succeed (#5581).
     deps.panoLoadingStatus.begin = jest.fn((onShown) => onShown());

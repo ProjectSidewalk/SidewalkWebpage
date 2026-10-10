@@ -296,10 +296,15 @@ export class LabelContainer {
 
       // Awaited so the tool unlocks only once the pano is on screen facing this label: on a viewer that paints during
       // loads, that is renderPanoMarker's reveal, not setPanorama resolving (#5582).
-      await this.#panoManager.renderPanoMarker(this.#currLabel);
-      // Only now, with the pano facing the label: the label that just loaded may have swapped the active viewer, so
-      // anything that listens to a viewer (the speed limit sign, #4828) has to be told rather than left waiting.
-      for (const listener of this.#shownListeners) listener(this.#currLabel);
+      try {
+        await this.#panoManager.renderPanoMarker(this.#currLabel);
+      } finally {
+        // Only now, with the pano facing the label: the label that just loaded may have swapped the active viewer,
+        // so anything that listens to a viewer (the speed limit sign, #4828) has to be told rather than left
+        // waiting. Told even when the draw failed: the finally below hands the tool back, and a menu still showing
+        // the previous label's verdict would submit nothing and skip this label on the next click.
+        for (const listener of this.#shownListeners) listener(this.#currLabel);
+      }
 
       this.setProperty('renderedTimestamp', Date.now());
       // Now that this label's imagery is on screen and the connection is idle, start on the next ones' (#5562, #5581).
