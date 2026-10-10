@@ -58,10 +58,12 @@ export class Main {
     // Initialize functional components of UI elements. Review-list mode (#5444) renders neither the sidebar nor the
     // reset, so both lookups come back null; GalleryFilter is still built, because it owns the address bar and the
     // filter state CardContainer reads, and it runs sidebar-less.
+    // The sort select is rendered for admins only (#2705); null for everyone else, and the order is then random.
     sg.cardFilter = new GalleryFilter(
       document.getElementById('card-filter'),
       /** @type {?HTMLButtonElement} */ (document.getElementById('clear-filters')),
       params.initialFilters,
+      /** @type {?HTMLSelectElement} */ (document.getElementById('gallery-sort')),
     );
     sg.cardContainer = await CardContainer.create(
       sg.ui.cardContainer, params.initialFilters, params.viewerType, params.viewerAccessToken, params.currUsername,

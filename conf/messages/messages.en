@@ -560,6 +560,14 @@ gallery.tags = Tags
 gallery.all = All Label Types
 gallery.labels.not.found = No matches. <a href="/explore">Start exploring</a> to contribute more data!
 gallery.cards = Labels are sorted randomly based on selected filters
+gallery.cards.sorted = Labels are sorted by "{0}" based on selected filters
+gallery.sort.by = Sort By
+gallery.sort.random = Random
+gallery.sort.newest = Newest first
+gallery.sort.oldest = Oldest first
+gallery.sort.most.severe = Most severe first
+gallery.sort.least.severe = Least severe first
+gallery.sort.most.disputed = Most disputed first
 gallery.clear.filters = Clear Filters
 gallery.list.count = {0,choice,1#1 label|1<{0} labels} in this list
 gallery.list.truncated = {0,choice,1#1 id was|1<{0} ids were} past the {1}-id limit and could not be loaded.

@@ -18,6 +18,7 @@ import models.api.{
   ValidatorType
 }
 import models.audit.{AuditTask, AuditTaskTableDef}
+import models.gallery.GalleryOrder
 import models.label.LabelTable.{given, *}
 import models.mission.MissionTableDef
 import models.pano.{PanoData, PanoDataTable, PanoDataTableDef, PanoSource, PanoViewerMetadata}
@@ -1966,33 +1967,58 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   }
 
   /**
-   * Retrieves n labels of specified label type, severities, and tags. If no label type supplied, split across types.
+   * Retrieves the Gallery's labels of the given types, severities, and tags, in the given order.
+   *
+   * The random Gallery runs this once per type (the service spreads its request across the types), so for it the set
+   * is one type. A sorted Gallery (#2705) runs it once over every selected type, because a global order can only come
+   * from one query: the top of each type's own ranking, merged, is not the top of the union.
+   *
    * @param viewer            The type of pano viewer the labels must have been added on (GSV, Mapillary, etc).
-   * @param labelType         Label type specifying what type of labels to grab.
+   * @param labelTypes        Label types to grab; must be non-empty.
    * @param loadedLabelIds    Set of labelIds already grabbed as to not grab them again.
    * @param valOptions        Set of correctness values to filter for: correct, incorrect, unsure, and/or unvalidated.
    * @param regionIds         Set of regions to get labels from. All regions if empty.
    * @param severity          Set of severities the labels grabbed can have.
-   * @param tags              Set of tags the labels grabbed can have.
+   * @param tagsByLabelType   Tags each type is narrowed to. A type absent from the map, or mapped to an empty set, is
+   *                          not narrowed: a tag belongs to a type, so a curb ramp's tag says nothing about an obstacle.
    * @param aiValOptions      Set of AI validations to filter for: correct, incorrect, unsure, and/or unvalidated.
    * @param userId            User ID of the user requesting the labels.
-   * @param recentFirst       If true, order the labels newest-first instead of randomly.
+   * @param order             Random, the landing grid's newest-first pool, or a strict [[GallerySort]].
    * @return                  Query object to get the labels.
    */
   def getGalleryLabelsQuery(
       viewer: PanoSource,
-      labelType: LabelType,
+      labelTypes: Set[LabelType],
       loadedLabelIds: Set[Int],
       valOptions: Set[String],
       regionIds: Set[Int],
       severity: Set[Option[Int]],
-      tags: Set[String],
+      tagsByLabelType: Map[LabelType, Set[String]],
       aiValOptions: Set[String],
       userId: String,
-      recentFirst: Boolean = false
+      order: GalleryOrder = GalleryOrder.Random
   ): Query[LabelValidationMetadataRep, LabelValidationMetadata, Seq] = {
+    require(labelTypes.nonEmpty, "getGalleryLabelsQuery needs at least one label type")
     val severityRatings: Set[Int]   = severity.flatten
     val severityAllowsNull: Boolean = severity.contains(None)
+    val anyTags: Boolean            = labelTypes.exists(lt => tagsByLabelType.getOrElse(lt, Set.empty).nonEmpty)
+    // The disagree-ratio gate below keeps the public Gallery from showing labels the crowd has already rejected. A
+    // sorted order is admin tooling, and "most disputed" exists to find exactly those labels, so the gate is waived
+    // there (#2705). The contributor-quality gate is not: a low-quality contributor's label is noise, not a dispute.
+    val waiveDisagreeGate: Boolean = order match {
+      case GalleryOrder.Sorted(_)                        => true
+      case GalleryOrder.Random | GalleryOrder.RecentPool => false
+    }
+
+    // One disjunct per type: the type alone, or the type and an overlap (postgres `&&`, Slick `@&`) with its tags.
+    // Sorted so the SQL is the same whatever order the set iterates in.
+    def typeAndTags(lb: LabelTableDef): Rep[Boolean] = labelTypes.toSeq
+      .sortBy(_.name)
+      .map { lt =>
+        val tags = tagsByLabelType.getOrElse(lt, Set.empty)
+        if (tags.isEmpty) lb.labelType === lt else lb.labelType === lt && (lb.tags @& tags.toList)
+      }
+      .reduce(_ || _)
     // Filter labels based on correctness.
     val _labelsFilteredByCorrectness = {
       var query = labels
@@ -2015,22 +2041,26 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       _ur  <- userRoles if _us.userId === _ur.userId
       if _pd.source === viewer
       if _lp.lat.isDefined && _lp.lng.isDefined
-      if _lb.labelType === labelType
+      if typeAndTags(_lb)
       if (_ser.regionId inSetBind regionIds) || regionIds.isEmpty
       // When the severity filter is non-empty, require a match against the requested ratings or (if allowed) null.
       if (_lb.severity inSetBind severityRatings) || (_lb.severity.isEmpty && severityAllowsNull) || severity.isEmpty
-      if (_lb.tags @& tags.toList) || tags.isEmpty // @& is the overlap operator from postgres (&& in postgres).
       if _us.highQuality || (_lb.correct.isDefined && _lb.correct === true)
-      if _lb.disagreeCount < 3 || _lb.disagreeCount < _lb.agreeCount * 2
+      if (_lb.disagreeCount < 3 || _lb.disagreeCount < _lb.agreeCount * 2) || waiveDisagreeGate
     } yield (_lb, _lp, _pd, _lb.labelTypeName, _ser.regionId, _ur.role === Role.Ai)
 
     val _galleryLabels = galleryProjection(_labelInfo, aiValOptions, userId)
 
-    // Remove duplicates if needed, then order newest-first or randomized. Callers that batch through this query
-    // (findValidLabelsForType) shuffle each batch themselves, so recentFirst yields a shuffled recent pool.
+    // Remove duplicates if needed, then order. Callers that batch through this query (findValidLabelsForType) shuffle
+    // each batch themselves when randomizing, so RecentPool yields a shuffled recent pool; a Sorted order is kept as
+    // is, and the service restores it after the imagery check.
     val _uniqueLabels =
-      if (tags.nonEmpty) _galleryLabels.groupBy(x => x).map { case (label, _) => label } else _galleryLabels
-    if (recentFirst) _uniqueLabels.sortBy(_.timestamp.desc) else _uniqueLabels.sortBy(_ => random)
+      if (anyTags) _galleryLabels.groupBy(x => x).map { case (label, _) => label } else _galleryLabels
+    order match {
+      case GalleryOrder.Random       => _uniqueLabels.sortBy(_ => random)
+      case GalleryOrder.RecentPool   => _uniqueLabels.sortBy(_.timestamp.desc)
+      case GalleryOrder.Sorted(sort) => _uniqueLabels.sortBy(sort.orderBy)
+    }
   }
 
   /**

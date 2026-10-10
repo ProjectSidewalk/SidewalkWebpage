@@ -567,6 +567,14 @@ gallery.tags = Tags
 gallery.all = Tous les types d''étiquettes
 gallery.labels.not.found = Aucun résultat. <a href="/explore">Commencez à explorer</a> pour contribuer plus de données !
 gallery.cards = Les étiquettes sont triées aléatoirement selon les filtres sélectionnés
+gallery.cards.sorted = Les étiquettes sont triées par « {0} » selon les filtres sélectionnés
+gallery.sort.by = Trier par
+gallery.sort.random = Aléatoire
+gallery.sort.newest = Plus récentes d’abord
+gallery.sort.oldest = Plus anciennes d’abord
+gallery.sort.most.severe = Plus graves d’abord
+gallery.sort.least.severe = Moins graves d’abord
+gallery.sort.most.disputed = Plus contestées d’abord
 gallery.clear.filters = Effacer les filtres
 gallery.list.count = {0,choice,1#1 étiquette|1<{0} étiquettes} dans cette liste
 # Four apostrophes, not two: a choice sub-message containing a placeholder is re-parsed as a MessageFormat

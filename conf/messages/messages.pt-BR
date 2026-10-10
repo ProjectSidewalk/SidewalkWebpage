@@ -558,6 +558,14 @@ gallery.tags = Etiquetas
 gallery.all = Todos os tipos de rótulos
 gallery.labels.not.found = Nenhum resultado encontrado. <a href="/explore">Comece a explorar</a> para contribuir com mais dados!
 gallery.cards = Os rótulos são ordenadas aleatoriamente com base nos filtros selecionados
+gallery.cards.sorted = Os rótulos são ordenados por "{0}" com base nos filtros selecionados
+gallery.sort.by = Ordenar por
+gallery.sort.random = Aleatório
+gallery.sort.newest = Mais recentes primeiro
+gallery.sort.oldest = Mais antigos primeiro
+gallery.sort.most.severe = Mais graves primeiro
+gallery.sort.least.severe = Menos graves primeiro
+gallery.sort.most.disputed = Mais disputados primeiro
 gallery.clear.filters = Limpar filtros
 gallery.list.count = {0,choice,1#1 rótulo|1<{0} rótulos} nesta lista
 gallery.list.truncated = {0,choice,1#1 ID passou do limite de {1} e não pôde ser carregado.|1<{0} IDs passaram do limite de {1} e não puderam ser carregados.}

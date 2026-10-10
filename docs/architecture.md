@@ -460,6 +460,36 @@ loaded by the corresponding Twirl view:
   `pekko.http.server.parsing.max-uri-length` to 8k (Pekko's 2k default 414'd at about 290 ids). The imagery check
   runs in chunks of `LabelServiceImpl.ImageryCheckChunkSize` so a 500-id list can't open 500 provider lookups at
   once. The page's "labels are sorted randomly" footer is not rendered in list mode: the order is the caller's.
+  Admins also get a **"Sort by"** select above the filters (#2705; Random, Newest, Oldest, Most/Least severe, Most
+  disputed), carried as `?sort=` and honoured within whatever filters are selected. `GallerySort`
+  (`app/models/gallery/`) is the one definition of the options: the view renders the `<select>` from the enum, and
+  each value carries both its SQL `ORDER BY` and the same ordering in memory, every one ending on `time_created DESC,
+  label_id DESC` (the time so that a tie-broken order really is the "newest first" the page says, since a backfilled
+  label can carry an older time than a lower id; the id so that the order is total). A sorted Gallery is a different query
+  path from the random one, not a re-ordering of it: the random Gallery runs one query per selected type and shuffles
+  the batches together, which cannot produce a global order (the top of each type's ranking, merged, is not the top of
+  the union), so `LabelService.getGalleryLabels` runs **one ordered query across every selected type** with no type
+  spread and no shuffle. The batch walk (`findValidLabelsForType`) keeps the query's order through the imagery check
+  when asked not to randomize (the check hands back crop-backed labels first, and taking the first n of *that* would
+  swap a cropped label in for a top-ranked one), and in sorted mode walks past a prefix of dead imagery rather than
+  ending on an empty batch, under `LabelServiceImpl.MaxEmptyBatches`, since a fixed order puts the same dead rows at
+  the same offsets on every request. Paging works because the client sends the ids it has loaded and the query
+  excludes them, so each fetch is the next-ranked unseen labels — and that is only true if what the client holds is
+  a prefix of the server's order under the current filters, so `CardContainer` empties its card cache on every sort
+  change and on every filter change while sorted (the random Gallery keeps its cache across filter changes, as it
+  always has). The client pages by the order cards *arrived* in, never by re-deriving the key from a card's own
+  severity or votes: those change under the admin as they vote or edit, and re-sorting on them moved cards between
+  pages mid-review. Severity sorts on the raw 1–3 value,
+  which is "worst first" for every type since a quality-scale 3 is the worst rating too; unrated and unvalidated
+  labels sort last. A sorted order is admin tooling on both the page and the card request (a non-admin's `sort`
+  falls back to random; the landing grid's `recent` pool stays open), because in a sorted order the query waives
+  the disagree-ratio gate (`disagreeCount < 3 || disagreeCount < agreeCount * 2`) that keeps crowd-rejected labels
+  out of the public Gallery: "Most disputed" exists to find exactly those. The contributor-quality gate still
+  applies. Filters narrow and the sort orders what is left, so some pairs
+  leave the sort nothing to rank (Most disputed over unvalidated labels only; a severity sort over one severity
+  level or no rated type); `cardOrder.sortMootReason` names those, and the page keeps the choice but says under the
+  select and in the footer that it is showing newest first, rather than greying the option out, which would have to
+  snap the sort to Random and rewrite the URL under the admin.
 - **`admin-dashboard/`** — the admin dashboard (#4272): one `<PageName>Page.js` per route, started by that page's entry
   in `pages/admin/`. `AdminShell.js` loads on every one of those
   pages (and the user dashboard's) and holds the shared shell behaviors — the "On this page" list and its
