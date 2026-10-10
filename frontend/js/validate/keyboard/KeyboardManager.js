@@ -6,10 +6,12 @@
 
 import { svv } from '../svv.js';
 import { KeyboardShortcuts } from '../../common/KeyboardShortcuts.js';
+/** @typedef {import('./KeyboardLock.js').KeyboardLock} KeyboardLock */
 
 export class KeyboardManager {
   #validationMenuUi;
-  #disableKeyboard = false;
+  /** @type {KeyboardLock} */
+  #keyboardLock;
   #addingComment = false;
 
   /** The main shortcuts. Off while a modal is up, while typing in a comment box, and with Ctrl, Alt or Cmd held. */
@@ -61,9 +63,11 @@ export class KeyboardManager {
 
   /**
    * @param {Record<string, HTMLElement>} validationMenuUi - Validation menu UI elements.
+   * @param {KeyboardLock} keyboardLock - Whether the shortcuts are paused, flipped by the modals and the loading state.
    */
-  constructor(validationMenuUi) {
+  constructor(validationMenuUi, keyboardLock) {
     this.#validationMenuUi = validationMenuUi;
+    this.#keyboardLock = keyboardLock;
 
     // Add keydown listeners to the text boxes because esc key press is not being recognized when selected input text.
     validationMenuUi.optionalCommentTextBox.addEventListener('keydown', this.#handleEscapeKey);
@@ -87,7 +91,7 @@ export class KeyboardManager {
 
     this.#checkIfTextAreaSelected();
     if (KeyboardShortcuts.run(this.#alwaysOnShortcuts, e)) return;
-    if (this.#disableKeyboard) return;
+    if (this.#keyboardLock.isDisabled()) return;
     KeyboardShortcuts.run(this.#whileTypingShortcuts, e);
     if (this.#addingComment) return;
 
@@ -109,11 +113,11 @@ export class KeyboardManager {
   };
 
   disableKeyboard() {
-    this.#disableKeyboard = true;
+    this.#keyboardLock.disableKeyboard();
   }
 
   enableKeyboard() {
-    this.#disableKeyboard = false;
+    this.#keyboardLock.enableKeyboard();
   }
 
   // Set the addingComment status based on whether the user is currently typing in a validation comment text field.

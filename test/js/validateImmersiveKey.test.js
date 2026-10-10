@@ -32,7 +32,7 @@ describe('Validate F shortcut for immersive mode', () => {
             unsureButton: makeControl(),
         });
         Object.assign(window, loadModules('frontend/js/common/KeyboardShortcuts.js', 'frontend/js/validate/keyboard/KeyboardManager.js'));
-        new window.KeyboardManager(validationMenuUi);
+        new window.KeyboardManager(validationMenuUi, { isDisabled: () => false, disableKeyboard: () => {}, enableKeyboard: () => {} });
     });
 
     beforeEach(() => {

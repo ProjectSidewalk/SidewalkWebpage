@@ -64,7 +64,7 @@ describe('KeyboardManager number-key shortcuts', () => {
         document.addEventListener('click', (e) => clicks.push(/** @type {Element} */ (e.target).id));
 
         Object.assign(window, loadModules('frontend/js/common/KeyboardShortcuts.js', 'frontend/js/validate/keyboard/KeyboardManager.js'));
-        new window.KeyboardManager(validationMenuUi);
+        new window.KeyboardManager(validationMenuUi, { isDisabled: () => false, disableKeyboard: () => {}, enableKeyboard: () => {} });
     });
 
     beforeEach(() => {

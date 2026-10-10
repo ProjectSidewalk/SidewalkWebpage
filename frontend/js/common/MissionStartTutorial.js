@@ -16,6 +16,15 @@ import '../../css/components/mission-start-tutorial.css';
 /**
  * A full-screen carousel for the mission start tutorial.
  */
+/**
+ * What a tool hands the tutorial: where to log, and what to re-enable or refresh when the tutorial closes. Explore
+ * passes its whole registry; Validate passes just these.
+ * @typedef {object} TutorialHooks
+ * @property {{push: (action: string, notes?: object, extra?: any) => any}} tracker - Logs the slide clicks.
+ * @property {{enableKeyboard: () => void}} [keyboard] - Shortcuts to resume once the overlay clears.
+ * @property {{updateZoomAvailability: () => void}} [zoomControl] - Zoom buttons to bring in line with the pano.
+ * @property {{getCurrentMission: () => any}} [missionContainer] - Explore only: the mission whose start is logged.
+ */
 export class MissionStartTutorial {
   static #EXAMPLE_TYPES = {
     CORRECT: 'correct',
@@ -158,7 +167,8 @@ export class MissionStartTutorial {
   #missionType;
   #labelType;
   #data;
-  #svvOrsvl;
+  /** @type {TutorialHooks} */
+  #hooks;
   #language;
 
   #currentSlideIdx = 0;
@@ -174,14 +184,14 @@ export class MissionStartTutorial {
    * @param {string} labelType - One of the seven label types for which the tutorial is initialized.
    * @param {object} data - Mission data: `nLabels` (VALIDATE) or `region` (EXPLORE), plus optional `resuming`
    *                      (the mission already has progress, so the done button reads "Resume mission").
-   * @param {object} svvOrsvl - SVValidate or SVLabel object that logs interactions and acts on tutorial close.
+   * @param {TutorialHooks} hooks - What the tutorial logs through and acts on when it closes.
    * @param {string} [language] - Language code that tweaks spacing for verbose translations.
    */
-  constructor(missionType, labelType, data, svvOrsvl, language = 'en') {
+  constructor(missionType, labelType, data, hooks, language = 'en') {
     this.#missionType = missionType;
     this.#labelType = labelType;
     this.#data = data;
-    this.#svvOrsvl = svvOrsvl;
+    this.#hooks = hooks;
     this.#language = language;
     this.#messagesPrefix = missionType;
 
@@ -396,12 +406,10 @@ export class MissionStartTutorial {
     MissionStartTutorial.#handlers = new AbortController();
     const { signal } = MissionStartTutorial.#handlers;
 
-    // Hides the mission start tutorial, initializes the relevant svvOrsvl variables, and logs the interaction.
+    // Hides the mission start tutorial, hands the tool back, and logs the interaction.
     const hideMST = () => {
-      if (this.#svvOrsvl.zoomControl && this.#svvOrsvl.zoomControl.updateZoomAvailability) {
-        this.#svvOrsvl.zoomControl.updateZoomAvailability();
-      }
-      if (this.#svvOrsvl.keyboard && this.#svvOrsvl.keyboard.enableKeyboard) this.#svvOrsvl.keyboard.enableKeyboard();
+      this.#hooks.zoomControl?.updateZoomAvailability();
+      this.#hooks.keyboard?.enableKeyboard();
 
       MissionStartTutorial.#fadeOut(document.querySelector('.mission-start-tutorial-overlay'), (el) => {
         el.style.display = 'none';
@@ -414,15 +422,15 @@ export class MissionStartTutorial {
       // or it says its piece underneath it. Validate's pano hint listens for this (#4726).
       document.dispatchEvent(new CustomEvent('ps:mission-start-tutorial:done'));
 
-      this.#svvOrsvl.tracker.push('MSTDoneButton_Click', { currentSlideIdx: this.#currentSlideIdx }, null);
+      this.#hooks.tracker.push('MSTDoneButton_Click', { currentSlideIdx: this.#currentSlideIdx }, null);
 
       // Log 'MissionStart' on Explore missions.
       if (this.#missionType === MissionStartTutorial.#MISSION_TYPES.EXPLORE) {
-        const mission = this.#svvOrsvl.missionContainer.getCurrentMission();
+        const mission = this.#hooks.missionContainer.getCurrentMission();
         // Check added so that if a user begins a mission, leaves partway through, and then resumes the mission
         // later, another MissionStart will not be triggered.
         if (mission.getProperty('distanceProgress') < 0.0001) {
-          this.#svvOrsvl.tracker.push(
+          this.#hooks.tracker.push(
             'MissionStart',
             {
               missionId: mission.getProperty('missionId'),
@@ -439,21 +447,22 @@ export class MissionStartTutorial {
       if (/** @type {HTMLElement} */ (e.currentTarget).classList.contains('is-disabled')) return;
       this.#currentSlideIdx = Math.max(this.#currentSlideIdx - 1, 0);
       this.#renderSlide(this.#currentSlideIdx);
-      this.#svvOrsvl.tracker.push('PreviousSlideButton_Click', { currentSlideIdx: this.#currentSlideIdx }, null);
+      this.#hooks.tracker.push('PreviousSlideButton_Click', { currentSlideIdx: this.#currentSlideIdx }, null);
     }, { signal });
 
     document.querySelector('.next-slide-button').addEventListener('click', (e) => {
       if (/** @type {HTMLElement} */ (e.currentTarget).classList.contains('is-disabled')) return;
       this.#currentSlideIdx = Math.min(this.#currentSlideIdx + 1, this.#nSlides - 1);
       this.#renderSlide(this.#currentSlideIdx);
-      this.#svvOrsvl.tracker.push('NextSlideButton_Click', { currentSlideIdx: this.#currentSlideIdx }, null);
+      this.#hooks.tracker.push('NextSlideButton_Click', { currentSlideIdx: this.#currentSlideIdx }, null);
     }, { signal });
 
     // Event handler to allow selecting between different label types
     for (const tab of document.querySelectorAll('.explore-mission-start-tab')) {
       tab.addEventListener('click', () => {
         // A tab switch only changes which label type is taught, so everything describing the mission has to survive it.
-        new MissionStartTutorial('audit', tab.dataset.labelType, this.#data, svl, this.#language);
+        new MissionStartTutorial('audit', tab.dataset.labelType, this.#data, /** @type {TutorialHooks} */ (svl),
+          this.#language);
       }, { signal });
     }
 

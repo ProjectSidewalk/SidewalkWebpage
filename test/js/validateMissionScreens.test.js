@@ -57,9 +57,15 @@ function makeMission(props = {}) {
 describe('mobile Validate mission screens', () => {
     let isMobile;
     let tracker;
+    let deadEndShowing;
+    const keyboardLock = {disableKeyboard: jest.fn(), enableKeyboard: jest.fn()};
+    const modalNoNewMission = {isShowing: () => deadEndShowing};
+    const statusField = {getCompletedValidations: () => 0};
+    const panoManager = {replayMarkerPulse: jest.fn()};
 
     beforeEach(() => {
         isMobile = true;
+        deadEndShowing = false;
         tracker = {push: jest.fn()};
         document.body.innerHTML = `
             <div id="modal-mission-holder">
@@ -113,27 +119,23 @@ describe('mobile Validate mission screens', () => {
         global.BadgeAchievements.recordMissionComplete = jest.fn();
         global.ProgressBar = ProgressBar;
         global.Confetti = {burst: jest.fn()};
-        global.svv = {
-            tracker,
-            labelTypes: {1: 'CurbRamp'},
-            keyboard: null,
-            zoomControl: null,
-            undoValidation: {disableUndo: jest.fn()},
-            statusField: {getCompletedValidations: () => 0},
-            missionContainer: {getCurrentMission: () => makeMission()},
-            panoManager: {replayMarkerPulse: jest.fn()},
-            missionsCompleted: 1,
-        };
         window.matchMedia = jest.fn(() => ({matches: false}));
     });
 
     afterEach(() => {
         document.body.innerHTML = '';
         for (const key of ['i18next', 'util', 'MissionStartTutorial', 'BadgeAchievements', 'ProgressBar',
-            'Confetti', 'svv']) {
+            'Confetti']) {
             delete global[key];
         }
     });
+
+    /** @returns {ModalMission} A briefing wired the way Main.js wires it. */
+    const briefing = () => new ModalMission(missionUI(), keyboardLock, modalNoNewMission, tracker);
+
+    /** @returns {ModalMissionComplete} A mission-complete screen wired the way Main.js wires it, for the phone. */
+    const completion = (ui = completeUI()) =>
+        new ModalMissionComplete(ui, 'en', null, keyboardLock, statusField, panoManager, tracker);
 
     /** The UI element bag Main.js builds for the mission modal. @returns {Object} */
     const missionUI = () => ({
@@ -168,7 +170,7 @@ describe('mobile Validate mission screens', () => {
 
     describe('the briefing’s examples carousel', () => {
         beforeEach(() => {
-            new ModalMission(missionUI()).setMissionMessage(makeMission());
+            briefing().setMissionMessage(makeMission());
         });
 
         test('is a named group a keyboard can land on, since scrolling it is the only way past example one', () => {
@@ -214,7 +216,7 @@ describe('mobile Validate mission screens', () => {
         test('builds no carousel, so no tutorial photo is fetched for markup nobody sees', () => {
             isMobile = false;
 
-            new ModalMission(missionUI()).setMissionMessage(makeMission());
+            briefing().setMissionMessage(makeMission());
 
             expect(MissionStartTutorial.slidesFor).not.toHaveBeenCalled();
             expect(document.querySelector('.mv-examples')).toBeNull();
@@ -224,7 +226,7 @@ describe('mobile Validate mission screens', () => {
         test('leaves no shrunk-to-one-line sizing on a heading it never measured', () => {
             isMobile = false;
 
-            new ModalMission(missionUI()).setMissionMessage(makeMission());
+            briefing().setMissionMessage(makeMission());
 
             const title = document.getElementById('modal-mission-header');
             expect(title.style.fontSize).toBe('');
@@ -275,7 +277,7 @@ describe('mobile Validate mission screens', () => {
         test('a title that already fits keeps the heading token’s own size, with nothing stamped on it', () => {
             measureAs(8, 320); // 192px of text in a 320px box.
 
-            new ModalMission(missionUI()).setMissionMessage(makeMission());
+            briefing().setMissionMessage(makeMission());
 
             expect(title.style.fontSize).toBe('');
             expect(title.style.whiteSpace).toBe('nowrap');
@@ -284,7 +286,7 @@ describe('mobile Validate mission screens', () => {
         test('a title that overflows is shrunk only as far as it has to be', () => {
             measureAs(16, 320); // 384px of text in a 320px box: 20px is the first size that fits.
 
-            new ModalMission(missionUI()).setMissionMessage(makeMission());
+            briefing().setMissionMessage(makeMission());
 
             expect(parseFloat(title.style.fontSize)).toBe(20);
             expect(title.style.whiteSpace).toBe('nowrap');
@@ -294,7 +296,7 @@ describe('mobile Validate mission screens', () => {
             // 10px of text per px of font size, in a 260px box: it fits at 26px and no larger.
             measureAs(10, 260, 30);
 
-            new ModalMission(missionUI()).setMissionMessage(makeMission());
+            briefing().setMissionMessage(makeMission());
 
             // Seeded from the token's 30px it lands on 26. Seeded from a size copied into the source it would
             // start below what already fits and stamp that instead, silently ignoring the token.
@@ -304,7 +306,7 @@ describe('mobile Validate mission screens', () => {
         test('a title too long even at the floor wraps rather than shrinking into the unreadable', () => {
             measureAs(100, 320); // 1600px of text at the floor: no size in range fits.
 
-            new ModalMission(missionUI()).setMissionMessage(makeMission());
+            briefing().setMissionMessage(makeMission());
 
             expect(parseFloat(title.style.fontSize)).toBe(16);
             expect(title.style.whiteSpace).toBe(''); // Cleared, so it wraps.
@@ -312,7 +314,7 @@ describe('mobile Validate mission screens', () => {
 
         test('a later, shorter title is measured from the token size, not from the last one’s', () => {
             // Left to inherit the previous mission's stamped size, a short title would stay shrunk for good.
-            const modal = new ModalMission(missionUI());
+            const modal = briefing();
             measureAs(100, 320);
             modal.setMissionMessage(makeMission());
             expect(parseFloat(title.style.fontSize)).toBe(16);
@@ -328,7 +330,7 @@ describe('mobile Validate mission screens', () => {
             Object.defineProperty(document, 'fonts', {value: {load}, configurable: true});
             measureAs(8, 320); // The fallback face fits, so nothing is stamped...
 
-            new ModalMission(missionUI()).setMissionMessage(makeMission());
+            briefing().setMissionMessage(makeMission());
             expect(title.style.fontSize).toBe('');
             expect(load).toHaveBeenCalledTimes(1);
 
@@ -346,9 +348,9 @@ describe('mobile Validate mission screens', () => {
             const load = jest.fn(() => new Promise((resolve) => { resolveFont = resolve; }));
             Object.defineProperty(document, 'fonts', {value: {load}, configurable: true});
             measureAs(8, 320);
-            new ModalMission(missionUI()).setMissionMessage(makeMission());
+            briefing().setMissionMessage(makeMission());
 
-            svv.modalNoNewMission = {isShowing: () => true};
+            deadEndShowing = true;
             measureAs(16, 320);
             resolveFont();
             await Promise.resolve();
@@ -361,7 +363,7 @@ describe('mobile Validate mission screens', () => {
 
     describe('scroll position across missions', () => {
         test('the briefing opens at the top, however far the last one was scrolled', () => {
-            const modal = new ModalMission(missionUI());
+            const modal = briefing();
             const foreground = document.getElementById('modal-mission-foreground');
             modal.setMissionMessage(makeMission());
             foreground.scrollTop = 240; // The validator read to the bottom of a long briefing.
@@ -373,13 +375,13 @@ describe('mobile Validate mission screens', () => {
         });
 
         test('the mission-complete screen does too', () => {
-            const modal = new ModalMissionComplete(completeUI(), {}, 'en');
+            const modal = completion();
             const foreground = document.getElementById('modal-mission-complete-foreground');
-            modal.show(makeMission());
+            modal.show(makeMission(), 1);
             foreground.scrollTop = 180;
             modal.hide();
 
-            modal.show(makeMission());
+            modal.show(makeMission(), 2);
 
             expect(foreground.scrollTop).toBe(0);
         });
@@ -387,10 +389,10 @@ describe('mobile Validate mission screens', () => {
         test('so does the dead end, which can replace a briefing that was scrolled', () => {
             const ui = missionUI();
             const foreground = document.getElementById('modal-mission-foreground');
-            new ModalMission(ui).setMissionMessage(makeMission());
+            new ModalMission(ui, keyboardLock, modalNoNewMission, tracker).setMissionMessage(makeMission());
             foreground.scrollTop = 240;
 
-            new ModalNoNewMission(ui).show();
+            new ModalNoNewMission(ui, keyboardLock, tracker).show();
 
             expect(foreground.scrollTop).toBe(0);
         });
@@ -399,9 +401,9 @@ describe('mobile Validate mission screens', () => {
     describe('the mission-complete standing row', () => {
         /** Shows the screen for a validator with `total` all-time validations. @returns {Object} The UI bag. */
         function showWith(total) {
-            svv.statusField.getCompletedValidations = () => total;
+            statusField.getCompletedValidations = () => total;
             const ui = completeUI();
-            new ModalMissionComplete(ui, {}, 'en').show(makeMission());
+            completion(ui).show(makeMission(), 1);
             return ui;
         }
 

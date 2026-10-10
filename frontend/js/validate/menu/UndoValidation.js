@@ -47,7 +47,8 @@ export class UndoValidation {
     // Progress is rolled back only once the previous label is actually on screen, so that an undo the label container
     // couldn't complete leaves the mission counting the validation the user still has standing.
     if (await svv.labelContainer.undoLabel()) {
-      svv.missionContainer.updateAMissionUndoValidation();
+      const undone = svv.labelContainer.retractLastValidation();
+      svv.missionContainer.updateAMissionUndoValidation(undone.validation_result);
       this.disableUndo();
       // The verdict being undone has usually reached the server already (verdicts flush within a second, #5561), so
       // the retraction is a row of its own and is worth the same hurry: a tab killed before it goes out keeps a

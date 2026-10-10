@@ -611,7 +611,7 @@ export class Main {
             nLength: currentMission.getDistance('miles'),
             region: currentRegion.getProperty('name'),
             resuming,
-          }, svl, this.#params.language);
+          }, /** @type {import('../common/MissionStartTutorial.js').TutorialHooks} */ (svl), this.#params.language);
 
           // Toasts for a visit that resumed something (#4833) or didn't go where the URL asked: a route that couldn't
           // open (#5156), or a neighborhood already done (#5692). They wait for the mission-start screen to close so

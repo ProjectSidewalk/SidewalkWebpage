@@ -59,7 +59,7 @@ describe('KeyboardManager image adjustments scope', () => {
         });
         // Registered first, as on the page, so its window-capture listener sees every key before the popover's.
         Object.assign(window, loadModules('frontend/js/common/KeyboardShortcuts.js', 'frontend/js/validate/keyboard/KeyboardManager.js'));
-        new window.KeyboardManager(validationMenuUi);
+        new window.KeyboardManager(validationMenuUi, { isDisabled: () => false, disableKeyboard: () => {}, enableKeyboard: () => {} });
         Object.assign(window, loadModules('frontend/js/common/PanoImageAdjustments.js'));
         Object.assign(window, loadModules('frontend/js/common/PanoImageAdjustmentsPopover.js'));
     });

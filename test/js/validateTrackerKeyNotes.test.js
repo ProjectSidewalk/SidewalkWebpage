@@ -13,13 +13,8 @@ describe('Tracker key notes', () => {
     let tracker;
 
     beforeAll(() => {
-        global.svv = { panoViewer: { getPosition: () => null, getPov: () => null, getPanoId: () => null }, form: {} };
         // One instance for the file: the constructor adds document listeners that are never removed.
         tracker = new Tracker();
-    });
-
-    afterAll(() => {
-        delete global.svv;
     });
 
     beforeEach(() => {

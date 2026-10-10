@@ -182,6 +182,11 @@ export class PanoManager {
     this.#properties[key] = value;
   }
 
+  /** @returns {PanoViewer|undefined} The viewer showing the current label; none before create() has built one. */
+  get panoViewer() {
+    return svv.panoViewer;
+  }
+
   /** Returns the viewer_type enum value for the currently active viewer: 'Pannellum' or 'Default'. */
   getActiveViewerName() {
     if (!svv.panoViewer) return '';

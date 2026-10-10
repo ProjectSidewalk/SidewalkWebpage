@@ -457,11 +457,11 @@ describe('the disagree reasons (#5409)', () => {
   }
 
   beforeAll(() => {
-    loadClass('frontend/js/validate/util/ConstantsValidate.js', 'defineValidateConstants');
+    loadClass('frontend/js/validate/util/ConstantsValidate.js', 'buildReasonButtonInfo');
   });
 
   beforeEach(() => {
-    window.defineValidateConstants();
+    window.svv.reasonButtonInfo = window.buildReasonButtonInfo();
   });
 
   it('every type leads with "wrong label type", and no reason names a type of its own any more', () => {
@@ -501,7 +501,7 @@ describe('DesktopValidationMenu on Expert Validate', () => {
     window.eval(fs.readFileSync(path.join(REPO_ROOT, 'public/vendor/tom-select/tom-select-2.6.2.base.min.js'), 'utf8'));
     window.util.getImage = () => Promise.resolve('img');
     window.structuredClone ??= (v) => JSON.parse(JSON.stringify(v)); // Missing from this jsdom.
-    loadClass('frontend/js/validate/util/ConstantsValidate.js', 'defineValidateConstants');
+    loadClass('frontend/js/validate/util/ConstantsValidate.js', 'buildReasonButtonInfo');
     loadClass('frontend/js/validate/menu/DesktopValidationMenu.js', 'DesktopValidationMenu');
   });
 
@@ -543,7 +543,7 @@ describe('DesktopValidationMenu on Expert Validate', () => {
       panoManager: { styleMarkerForLabel: jest.fn() },
       labelCard: { render: jest.fn() },
     });
-    window.defineValidateConstants();
+    window.svv.reasonButtonInfo = window.buildReasonButtonInfo();
 
     const byId = (id) => document.getElementById(id);
     menu = new window.DesktopValidationMenu({

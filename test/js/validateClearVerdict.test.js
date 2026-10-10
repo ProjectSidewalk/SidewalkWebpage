@@ -93,7 +93,7 @@ describe('DesktopValidationMenu.clearVerdict', () => {
       panoManager: { styleMarkerForLabel: jest.fn() },
       labelCard: { render: jest.fn() },
     };
-    window.defineValidateConstants();
+    window.svv.reasonButtonInfo = window.buildReasonButtonInfo();
 
     const menu = new window.DesktopValidationMenu({
       holder: byId('validation-menu-holder'),

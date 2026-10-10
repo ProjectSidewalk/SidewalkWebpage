@@ -120,11 +120,18 @@ export class LabelContainer {
   }
 
   /**
-   * Returns the last validated label's form data for submission to the back end, useful for undoing a label.
-   * @returns {?object} Form data for last validated label from this mission.
+   * Takes back the last validation, for the undo button: an unsent verdict is dropped from the batch, a sent one gets
+   * a retraction queued behind it.
+   * @returns {Record<string, any>} The verdict taken back, as it was compiled for submission.
    */
-  getPriorLabelFormData() {
-    return this.#lastLabelFormData;
+  retractLastValidation() {
+    const priorLabelFormData = this.#lastLabelFormData;
+    if (this.#labelsToSubmit.length > 0) {
+      this.pop();
+    } else {
+      this.pushUndoValidation(priorLabelFormData);
+    }
+    return priorLabelFormData;
   }
 
   /**
@@ -559,7 +566,7 @@ export class LabelContainer {
       tags: labelMetadata.newTags,
       comment: commentData,
       zoom: labelMetadata.zoom,
-      source: svv.form.getSource(),
+      source: svv.source,
       undone: false,
       redone,
       viewer_type: svv.panoManager.getActiveViewerName(),

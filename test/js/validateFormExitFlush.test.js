@@ -35,16 +35,17 @@ function setVisibility(state) {
 describe('Form exit flushes (issue #5561)', () => {
     let form;
     let payload;
+    const tracker = { push: jest.fn(), onFlush: jest.fn() };
 
     // One Form for the whole suite: its constructor leaves exit listeners on the shared window and document, so a
     // Form per test would have every earlier one answering the events too, and the POST counts would be theirs.
     beforeAll(() => {
-        form = new Form('/validationTask');
+        form = new Form('/validationTask', { source: 'Validate', validateParams: {} }, tracker, null);
     });
 
     beforeEach(() => {
         global.fetch = jest.fn(() => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({}) }));
-        global.svv = { tracker: { push: jest.fn() } };
+        tracker.push.mockClear();
         consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
 
         payload = { validations: [{ label_id: 1 }], interactions: [] };
@@ -54,7 +55,6 @@ describe('Form exit flushes (issue #5561)', () => {
     afterEach(() => {
         jest.restoreAllMocks();
         delete global.fetch;
-        delete global.svv;
         setVisibility('visible');
     });
 
@@ -73,15 +73,15 @@ describe('Form exit flushes (issue #5561)', () => {
         expect(options.method).toBe('POST');
         expect(options.keepalive).toBe(true);
         expect(options.body).toBe(JSON.stringify(payload));
-        expect(svv.tracker.push).toHaveBeenCalledWith('PageHidden');
-        expect(svv.tracker.push).not.toHaveBeenCalledWith('Unload');
+        expect(tracker.push).toHaveBeenCalledWith('PageHidden');
+        expect(tracker.push).not.toHaveBeenCalledWith('Unload');
     });
 
     test('coming back into view sends nothing', () => {
         setVisibility('visible');
 
         expect(global.fetch).not.toHaveBeenCalled();
-        expect(svv.tracker.push).not.toHaveBeenCalled();
+        expect(tracker.push).not.toHaveBeenCalled();
     });
 
     test('pagehide still sends the buffer, recorded as an unload', () => {
@@ -89,7 +89,7 @@ describe('Form exit flushes (issue #5561)', () => {
 
         const options = exitPostOptions();
         expect(options.keepalive).toBe(true);
-        expect(svv.tracker.push).toHaveBeenCalledWith('Unload');
+        expect(tracker.push).toHaveBeenCalledWith('Unload');
     });
 
     test('hidden then gone drains the buffer each time, so nothing is sent twice', () => {
@@ -125,7 +125,7 @@ describe('Form exit flushes (issue #5561)', () => {
             setVisibility('hidden');
             await Promise.resolve();
             await Promise.resolve();
-            expect(svv.tracker.push).toHaveBeenCalledWith('SubmitFailed', expect.objectContaining({ attempt: 0 }));
+            expect(tracker.push).toHaveBeenCalledWith('SubmitFailed', expect.objectContaining({ attempt: 0 }));
 
             await jest.advanceTimersByTimeAsync(2000);
             expect(global.fetch).toHaveBeenCalledTimes(2);
@@ -143,7 +143,7 @@ describe('Form exit flushes (issue #5561)', () => {
         await Promise.resolve();
 
         expect(global.fetch).toHaveBeenCalledTimes(1);
-        expect(svv.tracker.push).not.toHaveBeenCalledWith('SubmitFailed', expect.anything());
+        expect(tracker.push).not.toHaveBeenCalledWith('SubmitFailed', expect.anything());
     });
 
     test('a flush too big for the keepalive budget goes out as an ordinary request', () => {
