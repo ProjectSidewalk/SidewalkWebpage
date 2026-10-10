@@ -54,10 +54,7 @@ case class PanoData(
     sourceMetadata: Option[JsValue]
 ) {
 
-  /**
-   * Whether the row carries what PannellumViewer needs to render this pano's backup image. The in-memory twin of
-   * `PanoDataTable.hasBackupViewerFields`; see the note there before changing either.
-   */
+  /** The in-memory twin of `PanoDataTable.hasBackupViewerFields`; see the note there before changing either. */
   def hasBackupViewerFields: Boolean =
     width.isDefined && height.isDefined && lat.isDefined && lng.isDefined && cameraHeading.exists(!_.isNaN)
 }
@@ -156,19 +153,15 @@ object PanoDataTable {
   val MarkHasBackupChunk: Int = 1000
 
   /**
-   * Whether a pano_data row carries what PannellumViewer needs to render its backup image: dimensions, camera
-   * location, and heading. Rows written before those were recorded carry nulls, and a label on one leaves Validate
-   * showing the previous label's imagery under the new marker (#4804), so the queue and `/backupImage/:id/metadata`
-   * both refuse them.
+   * Whether a pano_data row holds what PannellumViewer needs to render its backup image. Rows written before these
+   * columns were recorded carry nulls, and a label on one leaves Validate showing the previous label's imagery under
+   * the new marker (#4804). Pitch and roll are not required: the viewer takes the horizon from the image and never
+   * reads them (#5174), and a Mapillary pano the AI pipeline recorded without a pose would otherwise never be served
+   * (#5725). A NaN heading counts as missing, as evolution 366 and the JS guard already read it.
    *
-   * Pitch and roll are stored but not required: the viewer renders from the image's own horizon and never reads them
-   * (#5174), and a Mapillary pano the AI pipeline recorded without a pose would otherwise never be served (#5725). A
-   * NaN heading counts as missing, as evolution 366 and the JS guard already treat it.
-   *
-   * The rule lives in five places that must agree — here (the queue, via `LabelTable.imageryViewable`),
+   * The rule lives in five places that must agree: here (the queue, via `LabelTable.imageryViewable`),
    * `PanoData.hasBackupViewerFields` (the metadata route), `BACKUP_IMAGE_REQUIRED_FIELDS` and `PanoData.requiredParams`
-   * in the frontend, and `tools/validation_queue/pool.sql` — and test/js/backupImageDataIsComplete.test.js pins the
-   * frontend pair to each other.
+   * in the frontend, and `tools/validation_queue/pool.sql`.
    */
   def hasBackupViewerFields(pd: PanoDataTableDef): Rep[Boolean] = {
     // Postgres parses the string; a Scala Double.NaN would be inlined as a bare NaN, which SQL takes for a column.
@@ -320,12 +313,9 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
   /**
    * Fills in a pano's camera pitch and roll when it has none (#5725). A real stored value is never touched: it is a
    * labeler's or the auto-labeler's own reading of the same rotation, so there is nothing to correct. A NaN pitch
-   * counts as none, the reading evolution 366 gave it.
+   * counts as none, as evolution 366 read it.
    *
-   * @param panoId The pano to fill.
-   * @param pitch  Camera pitch in degrees, from `PanoDataService.mapillaryPitchRoll`.
-   * @param roll   Camera roll in degrees, from the same.
-   * @return       Rows updated: 1 when the pano had no pitch, else 0.
+   * @return Rows updated: 1 when the pano had no pitch, else 0.
    */
   def fillMissingCameraOrientation(panoId: String, pitch: Double, roll: Double): DBIO[Int] = {
     sqlu"""UPDATE pano_data

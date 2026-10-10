@@ -29,12 +29,11 @@ export class PanoData {
    * @param {boolean} [params.submitted=false] - Whether we've sent this data to the server; false unless in tutorial
    */
   constructor(params) {
-    // Validate required parameters. The guards that keep unrenderable backup panos away from PannellumViewer require
-    // the subset of this list that a pano_data row can be missing, so adding a field here means updating them too
-    // (#4804): PanoDataTable.hasBackupViewerFields and PanoData.hasBackupViewerFields on the backend,
-    // backupImageDataIsComplete in utilitiesSidewalk.js, and tools/validation_queue/pool.sql. Camera pitch and roll
-    // are deliberately not required: the viewer renders from the image's own horizon (#5174), and a pano recorded
-    // without a pose is still viewable (#5725).
+    // The guards that keep unrenderable backup panos away from PannellumViewer require the subset of this list that a
+    // pano_data row can be missing, so adding a field here means updating them too (#4804): PanoDataTable
+    // .hasBackupViewerFields (and its PanoData twin) on the backend, backupImageDataIsComplete in utilitiesSidewalk.js,
+    // and tools/validation_queue/pool.sql. Camera pitch and roll are deliberately not required: the viewer takes the
+    // horizon from the image (#5174), so a pano recorded without a pose is still viewable (#5725).
     const requiredParams = [
       'panoId', 'source', 'lat', 'lng', 'cameraHeading', 'width', 'height', 'captureDate', 'linkedPanos', 'history',
     ];

@@ -773,9 +773,8 @@ class PanoDataServiceImpl @Inject() (
   /**
    * Checks whether a Mapillary image still exists via the Graph API (`GET /:imageId`).
    *
-   * The same request asks for `computed_rotation`, and a pano recorded without a camera pitch gets the pose derived
-   * from it (#5725): the AI pipeline sent none before sidewalk-auto-labeler#42, and Mapillary adds the rotation to an
-   * image only once its reconstruction has run. So the nightly sweep backfills the column with no second request.
+   * The same request asks for `computed_rotation`, so the nightly sweep fills a missing camera pitch from it with no
+   * second request (#5725): the AI pipeline sent none before sidewalk-auto-labeler#42.
    *
    * @param panoId Mapillary image ID.
    * @return       `Some(true)` if the imagery exists, `Some(false)` if not, `None` if inconclusive.
@@ -822,11 +821,8 @@ class PanoDataServiceImpl @Inject() (
   }
 
   /**
-   * Stores the pitch and roll a Mapillary image's `computed_rotation` yields, if the pano has none. It never fails
-   * the caller: the pose is a by-product of the existence check, not its purpose.
-   *
-   * @param panoId Mapillary image ID.
-   * @param image  The Graph API's image entity.
+   * Stores the pitch and roll a Mapillary image entity's `computed_rotation` yields, if the pano has none. It never
+   * fails the caller: the pose is a by-product of the existence check, not its purpose.
    */
   private def fillMissingCameraOrientation(panoId: String, image: JsValue): Future[Unit] = {
     (image \ "computed_rotation").asOpt[Seq[Double]].flatMap(mapillaryPitchRoll) match {
@@ -1123,9 +1119,8 @@ class PanoDataServiceImpl @Inject() (
   }
 
   /**
-   * Returns the pano_data row for a pano if a self-hosted image exists AND the fields PannellumViewer needs to render
-   * it are populated (`PanoData.hasBackupViewerFields`). A NaN pitch or roll is handed on as absent: JSON has no NaN,
-   * and the viewer treats the two alike.
+   * Returns the pano_data row for a pano if a self-hosted image exists AND `PanoData.hasBackupViewerFields` holds. A
+   * NaN pitch or roll is handed on as absent: JSON has no NaN, and the viewer treats the two alike.
    */
   def getLocalBackupImage(panoId: String): Future[Option[PanoData]] = {
     if (localBackupImageFile(panoId).isEmpty) {

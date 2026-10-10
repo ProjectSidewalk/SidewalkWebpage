@@ -285,11 +285,9 @@ class PanoDataServiceSpec extends AnyFunSuite with Matchers {
       Infra3dToken("abc", now.plusHours(1))
   }
 
-  // Mapillary `computed_rotation` → (pitch, roll), #5725. The expected values are pinned from the auto-labeler's
-  // `geo.mapillary_pitch_roll`, the other writer of pano_data.camera_pitch, whose convention was checked against
-  // Mapillary's own computed_compass_angle on 191,286 images (sidewalk-auto-labeler#42); the Richmond pano is also
-  // the value our MapillaryViewer.extractPitchRoll derived for it. A level camera facing north is a quarter turn about
-  // east, so the cap cases pitch that camera down by a known angle.
+  // Mapillary `computed_rotation` → (pitch, roll), #5725. Expected values are pinned from the auto-labeler's
+  // `geo.mapillary_pitch_roll`, the other writer of pano_data.camera_pitch (sidewalk-auto-labeler#42), not from this
+  // implementation. A level camera facing north is a quarter turn about east; the cap cases pitch it down from there.
   private val levelNorth = math.Pi / 2
 
   test("Mapillary rotation: a real Richmond pano (2163793620710887) gives the pose the JS viewer stored") {

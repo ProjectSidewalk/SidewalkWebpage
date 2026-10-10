@@ -38,7 +38,6 @@ class BackupViewerFieldsSpec extends SidewalkSpec with GuiceOneAppPerSuite with 
       row <- panoDataTable.getPano(panoId)
     } yield (viaQuery, row.get.hasBackupViewerFields)
 
-  /** The pano's (camera_pitch, camera_roll). */
   private def orientation: DBIO[(Option[Double], Option[Double])] =
     sql"SELECT camera_pitch, camera_roll FROM pano_data WHERE pano_id = $panoId"
       .as[(Option[Double], Option[Double])]

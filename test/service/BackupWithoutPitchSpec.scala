@@ -33,10 +33,8 @@ import scala.concurrent.{Await, ExecutionContext, Future}
  * labels in the Validate pool, and the nightly imagery sweep fills the pitch in from Mapillary's `computed_rotation`
  * without ever overwriting a real value.
  *
- * Stages the most-labelled pano of the connected schema the way a Mapillary pano first seen by the AI pipeline looks
- * (no pose, imagery expired, a backup on disk), against an app whose pano directory is a temp dir and a service whose
- * Graph API is a local server. The route and the service run on their own DB connections, so the writes are
- * committed and the row is restored afterwards rather than rolled back. Requires the Postgres database.
+ * The app's pano directory is a temp dir and the service's Graph API a local server. The route and the service run
+ * on their own DB connections, so the staging writes are committed and the row restored, not rolled back.
  */
 class BackupWithoutPitchSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
@@ -69,17 +67,13 @@ class BackupWithoutPitchSpec extends SidewalkSpec with GuiceOneAppPerSuite {
           GROUP BY pano_data.pano_id ORDER BY count(*) DESC, pano_data.pano_id LIMIT 1""".as[String]
   ).headOption.getOrElse(cancel("No live pano with labels in the connected schema."))
 
-  /** The pano's (camera_pitch, camera_roll). */
   private def orientation: (Option[Double], Option[Double]) = run(
     sql"SELECT camera_pitch, camera_roll FROM pano_data WHERE pano_id = $panoId"
       .as[(Option[Double], Option[Double])]
       .head
   )
 
-  /**
-   * Runs `body` with the pano staged as the AI pipeline leaves a Mapillary pano: no pose, every rendering field set,
-   * and a backup file where the app looks for one. Whatever happens, the row goes back to what it was.
-   */
+  /** Runs `body` with the pano staged as the AI pipeline leaves a Mapillary one; the row is restored afterwards. */
   private def withStagedPano[T](body: PanoData => T): T = {
     val before  = run(panoDataTable.getPano(panoId)).get
     val cityDir = panosDir.resolve(baseConfig.get[String]("city-id")).resolve(panoId.take(2))
