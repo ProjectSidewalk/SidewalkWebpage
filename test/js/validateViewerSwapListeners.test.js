@@ -3,7 +3,7 @@
  * the first label (issue #4828), across
  * frontend/js/validate/panorama/PanoManager.js (`#watchViewerPov`) and frontend/js/common/SpeedLimit.js (`refresh`).
  *
- * PanoManager swaps `svv.panoViewer` between the primary viewer (GSV/Mapillary/Infra3d) and the Pannellum fallback as
+ * PanoManager swaps its active viewer between the primary viewer (GSV/Mapillary/Infra3d) and the Pannellum fallback as
  * labels come and go, and the viewer that isn't showing fires no events at all. Both failures are silent — POV pans
  * on a Pannellum label simply stop reaching the logs, and the speed-limit sign keeps showing the first label's value
  * — so the assertions here are about events arriving from the viewer that took over.
@@ -32,6 +32,7 @@ function loadClassFromFile(filePath, className) {
 
 describe('PanoManager logs POV changes from whichever viewer is showing (issue #4828)', () => {
   let panoManager;
+  let tracker;
   let primaryViewer;
   let pannellumViewer;
   let primaryListeners;   // event name -> callback captured from the primary viewer
@@ -83,11 +84,7 @@ describe('PanoManager logs POV changes from whichever viewer is showing (issue #
     global.createPanoAttribution = jest.fn(() => attributionOverlay);
     global.GsvViewer = class GsvViewer {};             // distinct from FakeViewerType, so the GSV-only
     global.MapillaryViewer = class MapillaryViewer {}; // and Mapillary-only attribution paths are skipped
-    global.svv = {
-      tracker: {push: jest.fn()},
-      panoStore: {addPanoMetadata: jest.fn()},
-      ui: {viewer: {date: {text: jest.fn()}}},
-    };
+    tracker = {push: jest.fn(), trackPano: jest.fn()};
 
     panoData = {getPanoId: () => 'pano1', getProperty: () => new Date(2026, 5)};
     primaryListeners = {};
@@ -105,7 +102,10 @@ describe('PanoManager logs POV changes from whichever viewer is showing (issue #
     };
 
     const PanoManager = loadClassFromFile(PANO_MANAGER_PATH, 'PanoManager');
-    panoManager = await PanoManager.create(FakeViewerType, 'token');
+    const viewerUi = {date: {textContent: ''}, controlLayer: document.createElement('div')};
+    panoManager = await PanoManager.create(
+      'token', viewerUi, {viewerType: FakeViewerType, labelRadius: 10}, {addPanoMetadata: jest.fn()}, {}, tracker,
+    );
     await loadPrimaryLabel('pano1'); // The first label's load, which is the first setPanorama (#5581).
   });
 
@@ -119,12 +119,11 @@ describe('PanoManager logs POV changes from whichever viewer is showing (issue #
     delete global.GsvViewer;
     delete global.MapillaryViewer;
     delete global.PannellumViewer;
-    delete global.svv;
   });
 
   /** Count how many times the tracker logged a POV_Changed action. */
   function povChangedLogCount() {
-    return svv.tracker.push.mock.calls.filter((call) => call[0] === 'POV_Changed').length;
+    return tracker.push.mock.calls.filter((call) => call[0] === 'POV_Changed').length;
   }
 
   /**
@@ -133,7 +132,7 @@ describe('PanoManager logs POV changes from whichever viewer is showing (issue #
    */
   function resetPovLog() {
     jest.advanceTimersByTime(1000);
-    svv.tracker.push.mockClear();
+    tracker.push.mockClear();
   }
 
   /** Load a label whose imagery the primary viewer rejects, so Pannellum takes over. */

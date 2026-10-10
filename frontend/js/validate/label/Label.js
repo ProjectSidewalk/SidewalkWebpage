@@ -211,7 +211,7 @@ export class Label {
     const frameHeight = this.getAuditProperty('canvasHeight') ?? util.EXPLORE_CANVAS_HEIGHT;
     // The imagery the click was made on decides the fov it was projected with (#5083): the label's own source,
     // with the page's viewer as the fallback for a payload that predates the field.
-    const viewerType = this.getAuditProperty('panoSource') ?? svv.panoViewer?.getViewerType();
+    const viewerType = this.getAuditProperty('panoSource') ?? svv.panoManager?.panoViewer?.getViewerType();
     return util.pano.canvasCoordToCenteredPov(origPov, this.getAuditProperty('canvasX'),
       this.getAuditProperty('canvasY'), frameWidth, frameHeight,
       util.pano.renderedHFov(origPov.zoom, frameWidth / frameHeight, viewerType));
@@ -279,7 +279,7 @@ export class Label {
     const centeredPov = this.getOriginalPov();
 
     // This is the POV of the viewport center - this is where the user is looking.
-    const userPov = svv.panoViewer.getPov();
+    const userPov = svv.panoManager.getPov();
 
     // Calculates the center xy coordinates of the Label on the current viewport, whose aspect is whatever the screen
     // gave it (a phone in landscape is inside GSV's clamp at zoom 3, #5083).
@@ -287,7 +287,7 @@ export class Label {
     const canvasHeight = svv.canvasHeight();
     const pixelCoordinates = util.pano.centeredPovToCanvasCoord(
       centeredPov, userPov, canvasWidth, canvasHeight, svv.labelRadius * util.uiScale(),
-      util.pano.renderedHFov(userPov.zoom, canvasWidth / canvasHeight, svv.panoViewer.getViewerType()));
+      util.pano.renderedHFov(userPov.zoom, canvasWidth / canvasHeight, svv.panoManager.panoViewer.getViewerType()));
 
     this.setProperty('endTimestamp', new Date());
     this.setProperty('canvasX', pixelCoordinates ? Math.round(pixelCoordinates.x) : null);

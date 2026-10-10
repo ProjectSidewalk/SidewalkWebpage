@@ -103,12 +103,6 @@ describe('Validate marker halo pulse (issue #4790)', () => {
         global.createPanoAttribution = jest.fn(() => ({ show: jest.fn(), hide: jest.fn() }));
         global.GsvViewer = class GsvViewer {};             // distinct from FakeViewerType, so the GSV-only
         global.MapillaryViewer = class MapillaryViewer {}; // and Mapillary-only attribution paths are skipped
-        global.svv = {
-            tracker: { push: jest.fn() },
-            panoStore: { addPanoMetadata: jest.fn() },
-            ui: { viewer: { date: { text: jest.fn() } } },
-            labelRadius: 10, // marker diameter = (10 * 2 + 2) * uiScale = 22px, desktop Validate's real size
-        };
 
         const panoData = {
             getPanoId: () => 'pano1',
@@ -126,7 +120,10 @@ describe('Validate marker halo pulse (issue #4790)', () => {
         };
 
         const PanoManager = loadClassFromFile(PANO_MANAGER_PATH, 'PanoManager');
-        panoManager = await PanoManager.create(FakeViewerType, 'token');
+        const viewerUi = { date: { textContent: '' }, controlLayer: document.getElementById('view-control-layer') };
+        // labelRadius 10: marker diameter = (10 * 2 + 2) * uiScale = 22px, desktop Validate's real size.
+        panoManager = await PanoManager.create('token', viewerUi, { viewerType: FakeViewerType, labelRadius: 10 },
+            { addPanoMetadata: jest.fn() }, {}, { push: jest.fn(), trackPano: jest.fn() });
     });
 
     afterEach(() => {
@@ -139,7 +136,6 @@ describe('Validate marker halo pulse (issue #4790)', () => {
         delete global.createPanoAttribution;
         delete global.GsvViewer;
         delete global.MapillaryViewer;
-        delete global.svv;
     });
 
     /** @returns {HTMLElement} The marker element PanoMarker created. */

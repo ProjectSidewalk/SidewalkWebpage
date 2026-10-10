@@ -88,12 +88,6 @@ describe('PanoManager clears the pano when no viewer can render it (issue #4810)
     global.GsvViewer = class GsvViewer {};             // distinct from FakeViewerType, so the GSV-only
     global.MapillaryViewer = class MapillaryViewer {}; // and Mapillary-only attribution paths are skipped
     global.PanoLoadTimeoutError = loadClassFromFile(TIMEOUT_ERROR_PATH, 'PanoLoadTimeoutError');
-    global.svv = {
-      tracker: {push: jest.fn()},
-      panoStore: {addPanoMetadata: jest.fn()},
-      ui: {viewer: {date: {text: jest.fn()}}},
-      labelRadius: 10,
-    };
 
     panoData = {getPanoId: () => 'pano1', getProperty: () => new Date(2026, 5)};
     fakeViewer = {
@@ -109,7 +103,9 @@ describe('PanoManager clears the pano when no viewer can render it (issue #4810)
     };
 
     const PanoManager = loadClassFromFile(PANO_MANAGER_PATH, 'PanoManager');
-    panoManager = await PanoManager.create(FakeViewerType, 'token');
+    const viewerUi = {date: {textContent: ''}, controlLayer: document.getElementById('view-control-layer')};
+    panoManager = await PanoManager.create('token', viewerUi, {viewerType: FakeViewerType, labelRadius: 10},
+      {addPanoMetadata: jest.fn()}, {}, {push: jest.fn(), trackPano: jest.fn()});
   });
 
   afterEach(() => {

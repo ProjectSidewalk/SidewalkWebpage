@@ -45,6 +45,7 @@ export class PanoMarker {
    * @param {string} [opts.title] - Hover tooltip.
    * @param {boolean} [opts.visible=true] - If true, the marker is visible.
    * @param {number} [opts.zIndex=1] - The marker's z-index.
+   * @param {() => void} [opts.onDraw] - Called after every draw, for anything anchored to the marker's position.
    */
   constructor(opts) {
     if (!opts.panoViewer) throw new Error('A panorama viewer needs to be defined.');
@@ -58,6 +59,9 @@ export class PanoMarker {
 
     /** @type {?string} */
     this.className_ = opts.className || null;
+
+    /** @type {?(() => void)} */
+    this.onDraw_ = opts.onDraw || null;
 
     /** @type {?string} */
     this.icon_ = opts.icon || null;
@@ -313,11 +317,7 @@ export class PanoMarker {
         this.marker_.style.top = '0';
       }
 
-      // The Validate card is anchored to the marker, so it has to move with it. This runs on every pov_changed and
-      // resize, but re-anchoring costs nothing while the card is hidden, which is the whole time on other pages.
-      if (this.id_ === 'validate-pano-marker') {
-        svv.labelVisibilityControl?.reanchorLabelCard();
-      }
+      this.onDraw_?.();
     }
   };
 

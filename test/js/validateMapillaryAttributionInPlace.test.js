@@ -59,11 +59,6 @@ describe('Validate leaves Mapillary\'s attribution pill in the SDK\'s DOM (issue
     global.createPanoAttribution = jest.fn(() => ({show: jest.fn(), hide: jest.fn()}));
     global.GsvViewer = class GsvViewer {};
     global.PannellumViewer = class PannellumViewer {};
-    global.svv = {
-      tracker: {push: jest.fn()},
-      panoStore: {addPanoMetadata: jest.fn()},
-      ui: {viewer: {date: {textContent: ''}, controlLayer: document.getElementById('view-control-layer')}},
-    };
 
     const fakeViewer = {addListener: jest.fn(), resize: jest.fn(), setPov: jest.fn(), getPov: () => ({})};
     // The viewer type IS the MapillaryViewer global, so every Mapillary-only path in PanoManager runs.
@@ -72,7 +67,9 @@ describe('Validate leaves Mapillary\'s attribution pill in the SDK\'s DOM (issue
     };
 
     const PanoManager = loadClassFromFile(PANO_MANAGER_PATH, 'PanoManager');
-    await PanoManager.create(global.MapillaryViewer, 'token');
+    const viewerUi = {date: {textContent: ''}, controlLayer: document.getElementById('view-control-layer')};
+    await PanoManager.create('token', viewerUi, {viewerType: global.MapillaryViewer, labelRadius: 10},
+      {addPanoMetadata: jest.fn()}, {}, {push: jest.fn(), trackPano: jest.fn()});
     await flushObservers();
   });
 
@@ -85,7 +82,6 @@ describe('Validate leaves Mapillary\'s attribution pill in the SDK\'s DOM (issue
     delete global.GsvViewer;
     delete global.MapillaryViewer;
     delete global.PannellumViewer;
-    delete global.svv;
   });
 
   test('the pill stays under the SDK\'s renderer root after the viewer is set up', () => {

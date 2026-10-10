@@ -405,12 +405,13 @@ export class Main {
     const panoLoadingStatus = new PanoLoadingStatus(document.getElementById('svv-pano-loading'));
     svv.panoLoadingStatus = panoLoadingStatus;
 
-    const panoManager = await PanoManager.create(config.viewerType, param.viewerAccessToken);
+    const panoManager = await PanoManager.create(
+      param.viewerAccessToken, ui.viewer, config, panoStore, panoImageCache, tracker,
+    );
     this.#panoManager = panoManager;
     svv.panoManager = panoManager;
-    tracker.trackPano(panoManager);
 
-    const zoomControl = util.isMobile() ? null : new ZoomControl();
+    const zoomControl = util.isMobile() ? null : new ZoomControl(ui, panoManager, tracker);
     svv.zoomControl = zoomControl;
 
     // What the mission-start tutorial logs through and hands back when it closes. Desktop only: the phone's
@@ -444,9 +445,10 @@ export class Main {
     svv.labelContainer = await LabelContainer.create(labels, labelType);
     const labelContainer = svv.labelContainer;
 
-    svv.labelVisibilityControl = new LabelVisibilityControl();
+    const labelVisibilityControl = new LabelVisibilityControl();
+    svv.labelVisibilityControl = labelVisibilityControl;
     // The first label rendered before the control existed, so LabelContainer couldn't open its card.
-    svv.labelVisibilityControl.openCardOnLoad();
+    labelVisibilityControl.openCardOnLoad();
     svv.undoValidation = new UndoValidation(ui.undoValidation);
 
     new Form(param.dataStoreUrl, config, tracker, {
@@ -457,9 +459,9 @@ export class Main {
     let imageAdjustmentsPopover = null;
     // There are certain features that will only make sense on desktop vs mobile.
     if (util.isMobile()) {
-      svv.pinchZoom = new PinchZoomDetector();
+      new PinchZoomDetector(panoManager, tracker);
     } else {
-      svv.panoOverlay = new PanoOverlay();
+      new PanoOverlay(ui.viewer.controlLayer, labelVisibilityControl, panoManager);
       // Read panoManager.panoViewer through closures rather than capturing it here, for the same reason as the info popover
       // below: PanoManager swaps it between the primary viewer and Pannellum, and the sign would otherwise stay
       // subscribed to whichever one happened to be showing the first label (#4828).
@@ -487,7 +489,8 @@ export class Main {
         });
       svv.imageAdjustmentsPopover = imageAdjustmentsPopover;
       // The Image pill waits in the chevron's menu, so the chevron carries its active dot while the menu is closed.
-      const panoControlMenu = new PanoControlMenu(document.getElementById('validate-control-buttons-toggle'), tracker);
+      const panoControlMenu
+        = new PanoControlMenu(document.getElementById('validate-control-buttons-toggle'), tracker);
       panoControlMenu.setCollapsedIndicator(!imageAdjustments.isDefault());
       imageAdjustments.onChange(() => panoControlMenu.setCollapsedIndicator(!imageAdjustments.isDefault()));
 
@@ -561,7 +564,7 @@ export class Main {
         () => labelContainer.getCurrentLabel().getAuditProperty('regionId'),
         () => panoStore.getPanoData(panoManager.panoViewer.getPanoId()).getProperty('captureDate'),
         () => panoStore.getPanoData(panoManager.panoViewer.getPanoId()).getProperty('address'),
-        () => panoManager.panoViewer.getPov(), true,
+        () => panoManager.getPov(), true,
         () => tracker.push('PanoInfoButton_Click'),
         () => tracker.push('PanoInfoCopyToClipboard_Click'),
         () => tracker.push('PanoInfoViewInPano_Click'),
