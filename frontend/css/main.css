@@ -2358,9 +2358,9 @@ kbd {
   border: none;
   cursor: pointer;
 
-  /* A control, not text, as a <button> would be. Chrome's <label> won't forward a click to its radio while the
-     label's text is selected, and a press inside a selection keeps it, so a stray selection touching the word
-     swallowed every click on the text and padding until something cleared it (#5749). */
+  /* A control, not text, as a <button> would be. Chrome's <label> won't forward a click to its radio while any text
+     on the page is selected, and the press doesn't clear the selection, so one stray double-click in Explore's
+     sidebar swallowed every click on a segment's word and padding until something cleared it (#5749). */
   -webkit-user-select: none;
   user-select: none;
 }
