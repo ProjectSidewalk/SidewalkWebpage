@@ -16,9 +16,12 @@ window.HTMLElement.prototype.scrollIntoView = () => {};
 
 const { SidewalksPage } = loadModules('frontend/js/admin-dashboard/SidewalksPage.js');
 
-/** Mapbox GL cannot run under jsdom; this records what the map was told and fires 'load' immediately. */
-function stubMapbox() {
-  const state = { filters: [], halos: [], fits: [], featureStates: [] };
+/**
+ * Mapbox GL cannot run under jsdom; this records what the map was told and fires 'load' on the next tick, or, with
+ * holdLoad, only when the test calls `state.fireLoad()`.
+ */
+function stubMapbox({ holdLoad = false } = {}) {
+  const state = { filters: [], halos: [], fits: [], featureStates: [], fireLoad: null };
   global.mapboxgl = {
     accessToken: null,
     Map: class {
@@ -28,7 +31,11 @@ function stubMapbox() {
 
       addControl() {}
 
-      on(event, layerOrHandler) { if (event === 'load') setTimeout(layerOrHandler, 0); }
+      on(event, layerOrHandler) {
+        if (event !== 'load') return;
+        if (holdLoad) state.fireLoad = layerOrHandler;
+        else setTimeout(layerOrHandler, 0);
+      }
 
       addSource(id, source) { state.source = source; }
 
@@ -187,6 +194,14 @@ describe('SidewalksPage.join', () => {
     expect(left.properties.street_curb_ramp_count).toBe(2);
   });
 
+  test('takes the later side\'s NoSidewalk date as an instant, not the lexically larger string', () => {
+    // The server drops zero seconds, so "10:00Z" is the earlier time yet sorts after "10:00:30Z".
+    const dated = street(1, face('left', absent({ last_no_sidewalk_label_at: '2025-06-01T10:00Z' })),
+      face('right', absent({ last_no_sidewalk_label_at: '2025-06-01T10:00:30Z' })));
+    const [left] = SidewalksPage.join(geojson([1]), [dated]);
+    expect(left.properties.street_last_no_sidewalk_label_at).toBe('2025-06-01T10:00:30Z');
+  });
+
   test('drops a street with no geometry rather than drawing it nowhere', () => {
     expect(SidewalksPage.join(geojson([1]), CITY.slice(0, 2)).map((f) => f.properties.street_edge_id))
       .toEqual([1, 1]);
@@ -234,7 +249,8 @@ describe('the Sidewalks page', () => {
   });
 
   test('gives both sides of one street their own row when both are on a list', async () => {
-    const both = street(7, face('left', absent({ problem_label_count: 1 })), face('right', absent({ problem_label_count: 1 })));
+    const both = street(7, face('left', absent({ problem_label_count: 1 })),
+      face('right', absent({ problem_label_count: 1 })));
     await renderPage({ streets: [...CITY, both], ids: [1, 2, 3, 4, 5, 6, 7] });
     pickFlag('problem_labels');
     expect(flagRows().sort()).toEqual(['4:left', '7:left', '7:right']);
@@ -255,8 +271,8 @@ describe('the Sidewalks page', () => {
 
   test('lists a never-audited street even when one side has a verdict from partial-audit labels', async () => {
     // A face's own NoSidewalk labels outrank the audit check, so one side is absent and the other unaudited.
-    const partial = street(7, face('left', absent()), face('right', { presence: 'unknown', presence_basis: 'unaudited' }),
-      { audit_count: 0 });
+    const partial = street(7, face('left', absent()),
+      face('right', { presence: 'unknown', presence_basis: 'unaudited' }), { audit_count: 0 });
     await renderPage({ streets: [...CITY, partial], ids: [1, 2, 3, 4, 5, 6, 7] });
     pickFlag('not_audited');
     expect(flagRows().sort()).toEqual(['6:left', '7:left']);
@@ -264,7 +280,9 @@ describe('the Sidewalks page', () => {
 
   test('a street-level list reads "both" for the side and takes the later of the two sides\' dates', async () => {
     const dated = street(7,
-      face('left', absent({ no_sidewalk_user_count: 2, curb_ramp_count: 1, last_no_sidewalk_label_at: '2024-01-05T00:00:00Z' })),
+      face('left', absent({
+        no_sidewalk_user_count: 2, curb_ramp_count: 1, last_no_sidewalk_label_at: '2024-01-05T00:00:00Z',
+      })),
       face('right', absent({ no_sidewalk_user_count: 2, last_no_sidewalk_label_at: '2025-06-01T00:00:00Z' })));
     await renderPage({ streets: [...CITY, dated], ids: [1, 2, 3, 4, 5, 6, 7] });
     pickFlag('curb_ramps');
@@ -281,6 +299,51 @@ describe('the Sidewalks page', () => {
     expect(document.querySelector('#sidewalks-flag-table tr[data-row-id="5"]').classList.contains('is-highlighted'))
       .toBe(true);
     expect(text('sidewalks-flag-focus')).toBe('Showing street 2 on the map.');
+  });
+
+  test('a chosen row stays highlighted through a re-sort and a search that keeps it', async () => {
+    await renderPage();
+    const row = () => document.querySelector('#sidewalks-flag-table tbody tr[data-row-id="2"]');
+    row().querySelector('button').click();
+    document.querySelector('#sidewalks-flag-table th[data-key="weight"]').click();
+    expect(row().classList.contains('is-highlighted')).toBe(true);
+    const search = document.getElementById('sidewalks-flag-search');
+    search.value = 'Ballard';
+    search.dispatchEvent(new Event('input', { bubbles: true }));
+    expect(row().classList.contains('is-highlighted')).toBe(true);
+  });
+
+  test('choosing a row scrolls the map into view, without animation when motion is reduced', async () => {
+    await renderPage();
+    const scrolls = [];
+    const original = window.HTMLElement.prototype.scrollIntoView;
+    window.HTMLElement.prototype.scrollIntoView = function record(options) { scrolls.push([this.id, options]); };
+    window.matchMedia = jest.fn(() => ({ matches: true }));
+    try {
+      document.querySelector('#sidewalks-flag-table tbody tr[data-row-id="2"] button').click();
+    } finally {
+      window.HTMLElement.prototype.scrollIntoView = original;
+      delete window.matchMedia;
+    }
+    expect(scrolls).toEqual([['sidewalks-map', { behavior: 'auto', block: 'center' }]]);
+  });
+
+  test('a street chosen before the map loads is marked once it does', async () => {
+    document.body.innerHTML = MARKUP;
+    const map = stubMapbox({ holdLoad: true });
+    global.fetch = jest.fn((url) => Promise.resolve({
+      ok: true,
+      json: async () => (url === '/presence' ? { rebuilt_at: '2026-10-08T03:30:00Z', streets: CITY }
+        : geojson([1, 2, 3, 4, 5, 6])),
+    }));
+    const loaded = new SidewalksPage({ mapboxToken: 'pk.test', streetsUrl: '/streets', presenceUrl: '/presence' })
+      .init();
+    while (!map.fireLoad) await new Promise((resolve) => setTimeout(resolve, 0));
+    document.querySelector('#sidewalks-flag-table tbody tr[data-row-id="2"] button').click();
+    expect(map.halos).toEqual([]);
+    map.fireLoad();
+    await loaded;
+    expect(map.halos.at(-1)).toEqual(['in', ['get', 'face_id'], ['literal', ['1:left', '1:right']]]);
   });
 
   test('switching lists or changing a filter lets go of the chosen street', async () => {

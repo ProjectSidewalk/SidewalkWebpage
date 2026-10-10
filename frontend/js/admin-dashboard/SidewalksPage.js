@@ -21,7 +21,8 @@ import { StreetPriorityTable } from './StreetPriorityTable.js';
  * says in words why a row is there.
  *
  * @type {Array<{key: string, label: string, description: string, streetLevel?: boolean,
- *   test: (face: Record<string, any>) => boolean, evidence: (face: Record<string, any>) => string, weight: (face: Record<string, any>) => number}>}
+ *   test: (face: Record<string, any>) => boolean, evidence: (face: Record<string, any>) => string,
+ *   weight: (face: Record<string, any>) => number}>}
  */
 const FLAGS = [
   {
@@ -38,8 +39,8 @@ const FLAGS = [
   {
     key: 'other_side_tag',
     label: 'No sidewalk only from the other side\'s tag',
-    description: 'Nobody labeled this side; the other side carries "street has no sidewalks". Right 78% of the time '
-      + 'in Seattle.',
+    description: 'No NoSidewalk label counts on this side, though labels of other types may; the other side carries '
+      + '"street has no sidewalks". Right 78% of the time in Seattle.',
     test: (f) => f.presence_basis === 'other_side_tag',
     evidence: (f) => `Other side tagged "street has no sidewalks"; ${AdminShell.num(f.label_count)} label`
       + `${f.label_count === 1 ? '' : 's'} on this side`,
@@ -166,9 +167,10 @@ export class SidewalksPage {
       if (!geom) continue;
       const { faces, ...streetProps } = street;
       const curbRamps = faces.reduce((sum, face) => sum + face.curb_ramp_count, 0);
-      // ISO-8601 strings in one zone, so the lexical max is the latest.
-      const streetLastNoSidewalk = faces.map((face) => face.last_no_sidewalk_label_at).filter(Boolean).sort().pop()
-        || null;
+      // Compared as instants: OffsetDateTime.toString drops zero seconds and varies the fraction's width, so the
+      // lexical max can be the earlier time ("10:00Z" sorts after "10:00:30Z").
+      const streetLastNoSidewalk = faces.map((face) => face.last_no_sidewalk_label_at).filter(Boolean)
+        .reduce((latest, at) => (latest === null || Date.parse(at) > Date.parse(latest) ? at : latest), null);
       for (const face of faces) {
         const other = faces.find((candidate) => candidate.street_side !== face.street_side);
         features.push({
@@ -397,9 +399,9 @@ export class SidewalksPage {
       ],
       onRowClick: (id) => this.#focusRegion(id),
       // Sorting or searching re-renders the rows, which would otherwise drop the focused region's highlight.
+      // aria-pressed needs no restoring here: the column's format writes it on every render.
       onRender: () => {
         if (this.#focusedRegion !== null) this.#regionTable?.highlightRows([this.#focusedRegion]);
-        this.#syncRegionPressed();
       },
     });
     this.#regionTable.render(rows);
@@ -441,6 +443,7 @@ export class SidewalksPage {
     SidewalksPage.#scrollToMap();
   }
 
+  /** Lets go of the chosen review-list street: its row highlight and the announcement that named it. */
   #clearFlagFocus() {
     this.#focusedFlagRow = null;
     this.#flagTable?.clearHighlight();
@@ -455,6 +458,7 @@ export class SidewalksPage {
     });
   }
 
+  /** Brings the map into view after a choice in a table below it, without animating for reduced-motion users. */
   static #scrollToMap() {
     const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
     document.getElementById('sidewalks-map')?.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth',

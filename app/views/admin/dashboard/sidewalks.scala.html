@@ -42,8 +42,9 @@
         <div id="sidewalks-basis-filters" class="sidewalks-filter-checks"></div>
       </fieldset>
     </form>
+    @* A labelled region, not role="img": img would hide the zoom buttons inside it from assistive tech. *@
     <div id="sidewalks-map" class="coverage-map"
-    role="img" aria-label="Map of street sides colored by whether the labels say each has a sidewalk; summarized by region and in the review lists below"></div>
+    role="region" aria-label="Map of street sides colored by whether the labels say each has a sidewalk; summarized by region and in the review lists below"></div>
     <div id="sidewalks-legend" class="street-status-legend"></div>
     <p class="ac-note" id="sidewalks-filter-note" aria-live="polite"></p>
   </div>
