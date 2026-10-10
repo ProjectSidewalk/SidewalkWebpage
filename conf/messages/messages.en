@@ -92,6 +92,7 @@ state.name.massachusetts = MA
 state.name.texas = TX
 state.name.kentucky = KY
 state.name.iowa = IA
+state.name.alaska = AK
 
 navbar.explore = Explore
 navbar.validate = Validate

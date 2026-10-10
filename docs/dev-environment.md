@@ -225,6 +225,7 @@ truth**; the snapshot below is a convenience copy (it may lag as new cities are 
 | knox-oh | sidewalk_knox | | houston-tx | sidewalk_houston |
 | kaohsiung-tw | sidewalk_kaohsiung | | newport-ky | sidewalk_newport_ky |
 | bayonne-fr | sidewalk_bayonne_fr | | laurens-ia | sidewalk_laurens_ia |
+| juneau-ak | sidewalk_juneau_ak | | | |
 
 ---
 

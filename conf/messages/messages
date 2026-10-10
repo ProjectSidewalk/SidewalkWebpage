@@ -65,6 +65,7 @@ city.name.houston-tx = Houston
 city.name.newport-ky = Newport
 city.name.bayonne-fr = Bayonne
 city.name.laurens-ia = Laurens
+city.name.juneau-ak = Juneau
 
 state.name.dc = DC
 state.name.oregon = Oregon
@@ -87,6 +88,7 @@ state.name.massachusetts = Massachusetts
 state.name.texas = Texas
 state.name.kentucky = Kentucky
 state.name.iowa = Iowa
+state.name.alaska = Alaska
 
 country.name.usa = USA
 country.name.mexico = Mexico

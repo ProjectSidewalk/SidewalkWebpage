@@ -77,11 +77,13 @@ city.name.validation-study = Estudo de Validação
 city.name.taipei = Taipé
 city.name.new-taipei-tw = Nova Taipé
 city.name.niagara-falls-ny = Cataratas do Niágara
+city.name.juneau-ak = Juneau
 
 state.name.new-jersey = Nova Jersey
 state.name.south-carolina = Carolina do Sul
 state.name.new-york = Nova York
 state.name.florida = Flórida
+state.name.alaska = Alasca
 
 country.name.usa = EUA
 country.name.mexico = México
