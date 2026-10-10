@@ -100,6 +100,10 @@ function buildFixture() {
 
 describe('GalleryFilter', () => {
     let filter;
+    /** @type {{push: jest.Mock}} */
+    let tracker;
+    /** @type {jest.Mock} What the filter tells to refetch the cards. */
+    let onUpdate;
 
     /** @returns {string} The path + query the page has pushed to the address bar. */
     const currentUrl = () => window.location.pathname + window.location.search;
@@ -121,9 +125,11 @@ describe('GalleryFilter', () => {
      */
     function build(initialFilters = {}) {
         buildFixture();
-        return new window.GalleryFilter(document.getElementById('card-filter'), clearBtn(), {
+        const built = new window.GalleryFilter(document.getElementById('card-filter'), clearBtn(), {
             regionIds: [], aiValidationOptions: [], ...initialFilters,
-        });
+        }, tracker);
+        built.onUpdate(onUpdate);
+        return built;
     }
 
     beforeAll(() => {
@@ -156,7 +162,8 @@ describe('GalleryFilter', () => {
 
     beforeEach(() => {
         window.history.replaceState({}, '', '/gallery');
-        window.sg = { tracker: { push: jest.fn() }, cardContainer: { updateCardsByFilter: jest.fn() } };
+        tracker = { push: jest.fn() };
+        onUpdate = jest.fn();
         filter = build();
     });
 
@@ -172,7 +179,7 @@ describe('GalleryFilter', () => {
 
             expect(currentUrl()).toBe('/gallery?labelType=CurbRamp,Crosswalk,Obstacle');
             expect(filter.getStatus().currentLabelTypes).toEqual(['CurbRamp', 'Crosswalk', 'Obstacle']);
-            expect(sg.cardContainer.updateCardsByFilter).toHaveBeenCalled();
+            expect(onUpdate).toHaveBeenCalled();
             expect(clearBtn().hidden).toBe(false);
         });
 
@@ -319,29 +326,29 @@ describe('GalleryFilter', () => {
     describe('logging', () => {
         it('logs each kind of filter interaction under its section\'s event name', () => {
             typeBox('Obstacle').click();
-            expect(sg.tracker.push).toHaveBeenCalledWith('LabelTypeUnapply', null, { Label_Type: 'Obstacle' });
+            expect(tracker.push).toHaveBeenCalledWith('LabelTypeUnapply', null, { Label_Type: 'Obstacle' });
 
             sevBtn(0).click();
-            expect(sg.tracker.push).toHaveBeenCalledWith('SeverityUnapply', null, { Severity: 'null' });
+            expect(tracker.push).toHaveBeenCalledWith('SeverityUnapply', null, { Severity: 'null' });
 
             document.querySelector('#incorrect').click();
-            expect(sg.tracker.push)
+            expect(tracker.push)
                 .toHaveBeenCalledWith('ValidationOptionApply', null, { ValidationOption: 'incorrect' });
 
             tagPill('Obstacle').click();
-            expect(sg.tracker.push)
+            expect(tracker.push)
                 .toHaveBeenCalledWith('TagApply', null, { Tag: 'obstacle-tag', Label_Type: 'Obstacle' });
         });
 
         it('logs the batch actions the shared sidebar adds', () => {
             document.querySelector('.filter-sidebar__only[data-section="severity"][data-value="2"]').click();
-            expect(sg.tracker.push).toHaveBeenCalledWith('SeverityOnly', null, { Severity: '2' });
+            expect(tracker.push).toHaveBeenCalledWith('SeverityOnly', null, { Severity: '2' });
 
             document.querySelector('.filter-sidebar__deselect-all[data-section="label-validations"]').click();
-            expect(sg.tracker.push).toHaveBeenCalledWith('ValidationOptionSelectAll');
+            expect(tracker.push).toHaveBeenCalledWith('ValidationOptionSelectAll');
 
             document.querySelector('.filter-sidebar__deselect-all[data-section="label-type"]').click();
-            expect(sg.tracker.push).toHaveBeenCalledWith('LabelTypeDeselectAll');
+            expect(tracker.push).toHaveBeenCalledWith('LabelTypeDeselectAll');
         });
     });
 

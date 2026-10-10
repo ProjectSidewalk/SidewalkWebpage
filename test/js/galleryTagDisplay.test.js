@@ -65,7 +65,7 @@ function render(tags, widths, holderWidth = HOLDER_WIDTH) {
         return widths[el.textContent] ?? el.textContent.length * CHAR_PX;
     });
     Object.assign(window, loadModules('frontend/js/gallery/displays/TagDisplay.js'));
-    new window.TagDisplay(container, tags);
+    new window.TagDisplay(container, tags, []);
     return {container, layoutReads: probe.layoutReads};
 }
 
@@ -88,8 +88,6 @@ beforeAll(() => {
     // readable, since a pill's text is also how the stub looks up its width.
     global.i18next = {t: (key) => key.replace(/^tag\./, '')};
     window.i18next = global.i18next;
-    global.sg = {cardFilter: {getAppliedTagNames: () => []}};
-    window.sg = global.sg;
 
     // jsdom implements no layout, and therefore no innerText; the pills set their text through it.
     Object.defineProperty(window.HTMLElement.prototype, 'innerText', {

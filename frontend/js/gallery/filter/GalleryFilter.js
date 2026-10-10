@@ -9,13 +9,13 @@
  * The map's adapter (MapSidebarFilter) is the sibling of this class: same controls, a different way to apply them.
  */
 
-import { sg } from '../sg.js';
 import { FilterSidebar } from '../../common/filter-sidebar/FilterSidebar.js';
 import { LabelDetail } from '../../common/label-detail/LabelDetail.js';
 import { util } from '../../common/utilities.js';
 import '../../common/urlQuery.js';
 import '../../common/utilitiesSidewalk.js';
 /** @typedef {import('../../common/filter-sidebar/FilterSidebar.js').FilterSidebarChange} FilterSidebarChange */
+/** @typedef {import('../data/Tracker.js').Tracker} Tracker */
 
 export class GalleryFilter {
   /** Validation options shown by default, matching the `/gallery` route's default query param. */
@@ -31,6 +31,10 @@ export class GalleryFilter {
   #status;
   /** @type {Record<string, any>} Filters with no UI of their own, carried through so the URL keeps reporting them. */
   #initialFilters;
+  /** @type {Tracker} */
+  #tracker;
+  /** @type {?(() => void)} Registered after construction (onUpdate): the cards are built after the sidebar. */
+  #onUpdate = null;
 
   /**
    * Review-list mode renders no sidebar and no reset, so both elements arrive null — but this class is still
@@ -41,11 +45,13 @@ export class GalleryFilter {
    * @param {?HTMLElement} root - The sidebar element holding the filter controls, or null when none is rendered.
    * @param {?HTMLButtonElement} clearButton - The button that resets every filter, or null when none is rendered.
    * @param {Record<string, any>} initialFilters - Filters parsed from the URL by the server, passed through the page.
+   * @param {Tracker} tracker - Logs the filter interactions.
    */
-  constructor(root, clearButton, initialFilters) {
+  constructor(root, clearButton, initialFilters, tracker) {
     this.#root = root;
     this.#clearButton = clearButton;
     this.#initialFilters = initialFilters;
+    this.#tracker = tracker;
     this.#status = { currentLabelTypes: [] };
 
     if (this.#root) {
@@ -72,6 +78,14 @@ export class GalleryFilter {
     this.update();
   }
 
+  /**
+   * Registers what refetches the cards when the filters change: the card container, once it exists.
+   * @param {() => void} listener
+   */
+  onUpdate(listener) {
+    this.#onUpdate = listener;
+  }
+
   /** Pulls the cards and the URL back in line with the sidebar. */
   update() {
     const selected = this.#selectedLabelTypes();
@@ -79,7 +93,7 @@ export class GalleryFilter {
       this.#status.currentLabelTypes = selected;
       this.#renderSeverity();
     }
-    sg.cardContainer.updateCardsByFilter();
+    this.#onUpdate?.();
     this.#updateURL();
   }
 
@@ -207,25 +221,25 @@ export class GalleryFilter {
    * @param {FilterSidebarChange} change - The change descriptor from FilterSidebar.
    */
   #log({ kind, section, value, checked, labelType, tag }) {
-    if (!sg.tracker) return;
+    const tracker = this.#tracker;
     const severityName = (v) => (Number(v) === 0 ? 'null' : String(v));
 
     if (kind === 'tag') {
-      sg.tracker.push(checked ? 'TagApply' : 'TagUnapply', null, { Tag: tag, Label_Type: labelType });
+      tracker.push(checked ? 'TagApply' : 'TagUnapply', null, { Tag: tag, Label_Type: labelType });
     } else if (kind === 'only') {
       /** @type {Record<string, string|number>} */
       let notes = { ValidationOption: value };
       if (section === FilterSidebar.SEVERITY) notes = { Severity: severityName(value) };
       else if (section === 'label-type') notes = { Label_Type: value };
-      sg.tracker.push(`${GalleryFilter.#eventPrefix(section)}Only`, null, notes);
+      tracker.push(`${GalleryFilter.#eventPrefix(section)}Only`, null, notes);
     } else if (kind === 'selectAll') {
-      sg.tracker.push(`${GalleryFilter.#eventPrefix(section)}${checked ? 'SelectAll' : 'DeselectAll'}`);
+      tracker.push(`${GalleryFilter.#eventPrefix(section)}${checked ? 'SelectAll' : 'DeselectAll'}`);
     } else if (section === FilterSidebar.SEVERITY) {
-      sg.tracker.push(checked ? 'SeverityApply' : 'SeverityUnapply', null, { Severity: severityName(value) });
+      tracker.push(checked ? 'SeverityApply' : 'SeverityUnapply', null, { Severity: severityName(value) });
     } else if (section === 'label-type') {
-      sg.tracker.push(checked ? 'LabelTypeApply' : 'LabelTypeUnapply', null, { Label_Type: value });
+      tracker.push(checked ? 'LabelTypeApply' : 'LabelTypeUnapply', null, { Label_Type: value });
     } else if (section === 'label-validations') {
-      sg.tracker.push(checked ? 'ValidationOptionApply' : 'ValidationOptionUnapply', null, {
+      tracker.push(checked ? 'ValidationOptionApply' : 'ValidationOptionUnapply', null, {
         ValidationOption: value,
       });
     }

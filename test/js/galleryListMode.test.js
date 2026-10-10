@@ -41,8 +41,9 @@ describe('the Gallery in review-list mode', () => {
          */
         function build(labelIds) {
             document.body.innerHTML = '<div class="gallery-list-bar"></div>';
-            window.sg = { tracker: { push: jest.fn() }, cardContainer: { updateCardsByFilter: jest.fn() } };
-            return new window.GalleryFilter(null, null, { regionIds: [], aiValidationOptions: [], labelIds });
+            return new window.GalleryFilter(
+                null, null, { regionIds: [], aiValidationOptions: [], labelIds }, { push: jest.fn() },
+            );
         }
 
         beforeEach(() => {
@@ -113,6 +114,24 @@ describe('the Gallery in review-list mode', () => {
         let respondWith;
         /** @type {() => void} Answers the in-flight request the way a failed POST does. */
         let failRequest;
+        /** @type {object} The elements the container under test drives; fresh per container (see freshControls). */
+        let ui;
+        /** @type {object} The sidebar as the container sees it: the filtered path reads more of it than list mode. */
+        let cardFilter;
+        /** @type {{push: jest.Mock}} */
+        let tracker;
+
+        /**
+         * @param {number[]} labelIds The review list the page was opened with; empty for the filtered grid.
+         * @returns {object} What the page was opened with, as CardContainer.create takes it.
+         */
+        const pageParams = (labelIds) => ({
+            initialFilters: { regionIds: [], aiValidationOptions: [], labelIds },
+            regionNames: {},
+            panoViewerType: null,
+            viewerAccessToken: null,
+            currUsername: null,
+        });
 
         /** Lets the render pipeline's promise chain settle; render() opens the expanded view inside a `.then`. */
         const flush = () => new Promise((resolve) => { setTimeout(resolve, 0); });
@@ -149,16 +168,19 @@ describe('the Gallery in review-list mode', () => {
         }
 
         /** @returns {boolean} Whether the container has shown the filtered grid's "no matches" notice. */
-        const labelsNotFoundShown = () => sg.labelsNotFound.style.display === 'block';
+        const labelsNotFoundShown = () => ui.labelsNotFound.style.display === 'block';
 
         /** Fresh paging controls per container, so one container's click listener can't answer for another's. */
         function freshControls() {
-            sg.ui.pageControl = document.createElement('div');
-            sg.ui.cardContainer = {
+            ui = {
                 holder: document.createElement('div'),
                 prevPage: document.createElement('button'),
                 nextPage: document.createElement('button'),
                 pageNumber: document.createElement('div'),
+                pageControl: document.createElement('div'),
+                pageLoading: document.createElement('div'),
+                labelsNotFound: document.createElement('div'),
+                expandedView: document.querySelector('.gallery-expanded-view'),
             };
         }
 
@@ -198,7 +220,7 @@ describe('the Gallery in review-list mode', () => {
                 failRequest = () => resolve({ ok: false, status: 500 });
             });
             window.Card = class {
-                constructor(label) { return stubCard(label.label_id); }
+                constructor({ label }) { return stubCard(label.label_id); }
             };
             window.PanoStore = class {};
             // The real ExpandedView, so the "k of N" indicator and the cross-page handoff are actually exercised;
@@ -221,22 +243,16 @@ describe('the Gallery in review-list mode', () => {
             window.ResizeObserver = class {
                 observe() {}
             };
-            window.sg = {
-                // The whole of the interface GalleryFilter offers the container, since the filtered path reads more
-                // of it than list mode does.
-                cardFilter: {
-                    getStatus: () => ({ currentLabelTypes: [] }),
-                    getAppliedValidationOptions: () => [],
-                    getAppliedSeverities: () => [],
-                    getAppliedTagsByType: () => ({}),
-                    disable: jest.fn(),
-                    enable: jest.fn(),
-                },
-                ui: { expandedView: { container: document.querySelector('.gallery-expanded-view') } },
-                pageLoading: document.createElement('div'),
-                labelsNotFound: document.createElement('div'),
-                tracker: { push: jest.fn() },
+            cardFilter = {
+                getStatus: () => ({ currentLabelTypes: [] }),
+                getAppliedValidationOptions: () => [],
+                getAppliedSeverities: () => [],
+                getAppliedTagsByType: () => ({}),
+                onUpdate: () => {},
+                disable: jest.fn(),
+                enable: jest.fn(),
             };
+            tracker = { push: jest.fn() };
         });
 
         /** @returns {string} The rendered "k of N" text, or '' while the indicator is hidden. */
@@ -255,13 +271,9 @@ describe('the Gallery in review-list mode', () => {
             document.getElementById('cards').innerHTML
                 = served.map((labelId) => `<div id="gallery_card_${labelId}"></div>`).join('');
             freshControls();
-            const created = window.CardContainer.create(
-                sg.ui.cardContainer, { regionIds: [], aiValidationOptions: [], labelIds: requested }, null, null, null,
-            );
+            const created = window.CardContainer.create(ui, pageParams(requested), cardFilter, tracker);
             respond(served.map(stubCard), unavailable);
-            // ExpandedView reaches back through sg.cardContainer for the card at an index, as Main wires it up.
-            sg.cardContainer = await created;
-            return sg.cardContainer;
+            return created;
         }
 
         it('asks for the list by id and for nothing else', async () => {
@@ -357,9 +369,7 @@ describe('the Gallery in review-list mode', () => {
 
         it('says the list could not be loaded, rather than showing an empty queue', async () => {
             freshControls();
-            const created = window.CardContainer.create(
-                sg.ui.cardContainer, { regionIds: [], aiValidationOptions: [], labelIds: LIST_IDS }, null, null, null,
-            );
+            const created = window.CardContainer.create(ui, pageParams(LIST_IDS), cardFilter, tracker);
             requests.length = 0;
             failRequest();
             await created;
@@ -374,14 +384,12 @@ describe('the Gallery in review-list mode', () => {
         it('treats an answer with no labels in it as a failed request', async () => {
             // A 200 with an unexpected body must still release the filters and the loading overlay.
             freshControls();
-            const created = window.CardContainer.create(
-                sg.ui.cardContainer, { regionIds: [], aiValidationOptions: [], labelIds: LIST_IDS }, null, null, null,
-            );
+            const created = window.CardContainer.create(ui, pageParams(LIST_IDS), cardFilter, tracker);
             respondWith({});
             await created;
 
             expect(document.getElementById('gallery-list-error').hidden).toBe(false);
-            expect(sg.cardFilter.enable).toHaveBeenCalled();
+            expect(cardFilter.enable).toHaveBeenCalled();
         });
 
         it('leaves the filtered grid on nine, which is the other half of the same contract', async () => {
@@ -422,13 +430,13 @@ describe('the Gallery in review-list mode', () => {
                 expect(container.getCurrentPage()).toBe(1);
                 expect(container.isLastPage()).toBe(false); // 15 cards, 12 per page.
 
-                sg.ui.cardContainer.nextPage.click();
+                ui.nextPage.click();
                 expect(container.getCurrentPage()).toBe(2);
                 expect(container.isLastPage()).toBe(true); // Cards 13-15.
                 expect(container.getCurrentPageCards()).toHaveLength(3);
                 expect(requests).toHaveLength(1); // Still no second query.
 
-                sg.ui.cardContainer.prevPage.click();
+                ui.prevPage.click();
                 expect(container.getCurrentPage()).toBe(1);
                 expect(container.isLastPage()).toBe(false);
             });
@@ -501,30 +509,25 @@ describe('the Gallery in review-list mode', () => {
             });
 
             it('keeps the controls dead until the view that backs them exists', async () => {
-                // Both paging handlers close the expanded view and push a tracker event, and in this ordering
-                // neither the view nor sg.tracker is up — so showing the control and re-enabling the filters
-                // before the handover hands the user a Next button that throws.
+                // Both paging handlers close the expanded view, and in this ordering the view isn't up — so
+                // showing the control and re-enabling the filters before the handover hands the user a Next
+                // button that throws.
                 slowExpandedView();
-                sg.tracker = undefined; // As on the real page: Main assigns it after CardContainer.create resolves.
                 // This block's beforeEach already built one container; only the one below is under test here.
                 freshControls();
-                sg.cardFilter.enable.mockClear();
-                const created = window.CardContainer.create(
-                    sg.ui.cardContainer,
-                    { regionIds: [], aiValidationOptions: [], labelIds: LONG_LIST },
-                    null, null, null,
-                );
+                cardFilter.enable.mockClear();
+                const created = window.CardContainer.create(ui, pageParams(LONG_LIST), cardFilter, tracker);
                 respond(LONG_LIST.map(stubCard), []);
                 await flushRenderOnly();
 
-                expect(sg.ui.pageControl.style.display).toBe('none');
-                expect(sg.cardFilter.enable).not.toHaveBeenCalled();
+                expect(ui.pageControl.style.display).toBe('none');
+                expect(cardFilter.enable).not.toHaveBeenCalled();
                 // And a click that slips through anyway must not take the page down with it.
-                expect(() => sg.ui.cardContainer.nextPage.click()).not.toThrow();
+                expect(() => ui.nextPage.click()).not.toThrow();
 
                 const raced = await created;
-                expect(sg.ui.pageControl.style.display).toBe('');
-                expect(sg.cardFilter.enable).toHaveBeenCalled();
+                expect(ui.pageControl.style.display).toBe('');
+                expect(cardFilter.enable).toHaveBeenCalled();
                 expect(raced.getExpandedView()).toBeDefined();
             });
 
@@ -537,7 +540,7 @@ describe('the Gallery in review-list mode', () => {
                 await flush();
                 expect(raced.getExpandedView().cardIndex).toBe(0);
 
-                sg.ui.cardContainer.nextPage.click();
+                ui.nextPage.click();
                 await flush();
 
                 expect(raced.getCurrentPage()).toBe(2);
@@ -552,7 +555,7 @@ describe('the Gallery in review-list mode', () => {
                 await flush();
                 expect(container.getCurrentPage()).toBe(2);
                 expect(view.cardIndex).toBe(12);
-                expect(sg.ui.cardContainer.prevPage.disabled).toBe(false);
+                expect(ui.prevPage.disabled).toBe(false);
 
                 view.previousLabel(false);
                 await flush();
@@ -560,7 +563,7 @@ describe('the Gallery in review-list mode', () => {
                 expect(container.getCurrentPage()).toBe(1);
                 expect(view.cardIndex).toBe(11);
                 expect(view.getReferenceCard().getLabelId()).toBe(LONG_LIST[11]);
-                expect(sg.ui.cardContainer.prevPage.disabled).toBe(true);
+                expect(ui.prevPage.disabled).toBe(true);
             });
 
             it('reopens a ?labelId= deep link by its place in the list, not just by id', async () => {

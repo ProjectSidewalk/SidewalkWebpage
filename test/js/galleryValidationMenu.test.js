@@ -22,7 +22,7 @@ function makeMenu(userValidation = null) {
     validationInfoDisplay: { agreeContainer: document.createElement('div'),
       disagreeContainer: document.createElement('div'), setVoteIconFilled: () => {} },
   };
-  return { menu: new window.ValidationMenu(refCard, image), card };
+  return { menu: new window.ValidationMenu(refCard, image, { push: jest.fn() }), card };
 }
 
 /**

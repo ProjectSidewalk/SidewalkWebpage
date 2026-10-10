@@ -25,6 +25,10 @@ function label(overrides = {}) {
 describe('a Gallery card\'s location line', () => {
     /** @returns {?HTMLElement} The card's rendered location line. */
     const locationLine = () => document.querySelector('.card-location');
+    /** The page's region names, which the card reads once on construction. */
+    let regionNames;
+    const tracker = { push: jest.fn() };
+    const cardFilter = { getAppliedTagNames: () => [] };
 
     /**
      * Renders a card into the document.
@@ -33,7 +37,9 @@ describe('a Gallery card\'s location line', () => {
      */
     function renderCard(labelOverrides) {
         document.body.innerHTML = '<div id="cards"></div>';
-        const card = new window.Card(label(labelOverrides), null, null);
+        const card = new window.Card(
+            { label: label(labelOverrides), cropUrl: null, gsvImageUrl: null }, regionNames, tracker, cardFilter,
+        );
         card.render(document.getElementById('cards'));
         return card;
     }
@@ -59,7 +65,8 @@ describe('a Gallery card\'s location line', () => {
     });
 
     beforeEach(() => {
-        window.sg = { regionNames: { 7: 'Herrick Park' }, tracker: { push: jest.fn() } };
+        regionNames = { 7: 'Herrick Park' };
+        tracker.push.mockClear();
     });
 
     it('names the region the label sits in', () => {
@@ -83,7 +90,7 @@ describe('a Gallery card\'s location line', () => {
 
         locationLine().click();
 
-        expect(sg.tracker.push).toHaveBeenCalledWith('CardLocationClick', null, { Label_Id: 1, Region_Id: 7 });
+        expect(tracker.push).toHaveBeenCalledWith('CardLocationClick', null, { Label_Id: 1, Region_Id: 7 });
         expect(card.getProperty('region_id')).toBe(7);
     });
 
@@ -94,14 +101,14 @@ describe('a Gallery card\'s location line', () => {
     });
 
     it('shows no line when the page carries no names', () => {
-        sg.regionNames = {};
+        regionNames = {};
         renderCard();
 
         expect(locationLine()).toBeNull();
     });
 
     it('puts the name in as text, so a name is never read as markup', () => {
-        sg.regionNames = { 7: '<img src=x onerror="alert(1)">Park' };
+        regionNames = { 7: '<img src=x onerror="alert(1)">Park' };
         renderCard();
 
         const name = locationLine().querySelector('.card-location__name');

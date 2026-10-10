@@ -2,10 +2,26 @@
  * Logs information from the Gallery.
  */
 
-import { sg } from '../sg.js';
+/** @typedef {import('./Form.js').Form} Form */
 
 export class Tracker {
+  static #FLUSH_AT = 10;
+
+  #form;
   #actions = [];
+
+  /**
+   * @param {Form} form - Where batches of actions are sent.
+   */
+  constructor(form) {
+    this.#form = form;
+
+    // `pagehide` is the reliable, bfcache-compatible unload signal.
+    window.addEventListener('pagehide', () => {
+      this.push('Unload');
+      this.flush({ keepalive: true });
+    });
+  }
 
   /**
    * Creates action to be added to action buffer.
@@ -71,12 +87,18 @@ export class Tracker {
     const item = this.#createAction(action, suppData, notes);
     this.#actions.push(item);
 
-    // TODO: change action buffer size limit
-    if (this.#actions.length > 10) {
-      const data = sg.form.compileSubmissionData();
-      sg.form.submit(data);
-    }
+    if (this.#actions.length > Tracker.#FLUSH_AT) this.flush();
     return this;
+  }
+
+  /**
+   * Sends everything buffered so far and starts a fresh buffer.
+   * @param {{keepalive?: boolean}} [options] - Passed on to the form; see Form.submit().
+   */
+  flush(options = {}) {
+    const data = this.#form.compileSubmissionData(this.#actions);
+    this.refresh();
+    this.#form.submit(data, options);
   }
 
   /**

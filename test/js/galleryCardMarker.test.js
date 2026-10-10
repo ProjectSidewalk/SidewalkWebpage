@@ -29,6 +29,9 @@ function label(overrides = {}) {
 describe('a Gallery card\'s label marker', () => {
     /** @returns {HTMLElement} The wrapper positioned over the image. */
     const markerWrapper = () => document.querySelector('.gallery-marker-wrapper');
+    // Collaborators the card takes but this test never exercises.
+    const tracker = { push: () => {} };
+    const cardFilter = { getAppliedTagNames: () => [] };
 
     /** The fractions the wrapper hands the stylesheet, as percentages. */
     function markerPercents() {
@@ -45,7 +48,7 @@ describe('a Gallery card\'s label marker', () => {
      */
     function renderCard(cropUrl, cropMarker, gsvImageUrl = 'https://maps.example/still.jpg') {
         document.body.innerHTML = '<div id="cards"></div>';
-        const card = new window.Card(label(), cropUrl, gsvImageUrl, cropMarker);
+        const card = new window.Card({ label: label(), cropUrl, gsvImageUrl, cropMarker }, {}, tracker, cardFilter);
         card.render(document.getElementById('cards'));
         return card;
     }
@@ -76,7 +79,6 @@ describe('a Gallery card\'s label marker', () => {
     });
 
     beforeEach(() => {
-        window.sg = { regionNames: {}, tracker: { push: jest.fn() } };
         credit.logo = null;
         credit.attribution = null;
     });

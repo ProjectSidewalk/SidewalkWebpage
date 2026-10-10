@@ -2,7 +2,6 @@
  * A Card module.
  */
 
-import { sg } from '../sg.js';
 import { aiLabelIndicator } from '../../common/aiLabelIndicator.js';
 import { createPanoAttribution } from '../../common/pano-viewer/PanoAttribution.js';
 import { createPanoViewerLogo } from '../../common/pano-viewer/PanoViewerLogo.js';
@@ -12,6 +11,18 @@ import { SeverityDisplay } from '../displays/SeverityDisplay.js';
 import { TagDisplay } from '../displays/TagDisplay.js';
 import { ValidationInfoDisplay } from '../displays/ValidationInfoDisplay.js';
 import { ValidationMenu } from '../validation/ValidationMenu.js';
+/** @typedef {import('../data/Tracker.js').Tracker} Tracker */
+/** @typedef {import('../filter/GalleryFilter.js').GalleryFilter} GalleryFilter */
+
+/**
+ * One entry of POST /label/labels: a label and the imagery the card has to show it with.
+ * @typedef {object} CardRecord
+ * @property {*} label - Properties of the label.
+ * @property {?string} cropUrl - Locally-saved crop image url, or null if no crop exists.
+ * @property {?string} gsvImageUrl - Google Street View static image url, or null if non-GSV imagery.
+ * @property {?{x: number, y: number}} [cropMarker] - Where the label is in the crop, as fractions of its width and
+ *     height; null when no crop exists or nothing has recorded it yet.
+ */
 
 export class Card {
   // Width:height of the card's photo box (.static-gallery-image fills a 3:2 container); crops are cover-fitted into it.
@@ -21,6 +32,9 @@ export class Card {
   #cropUrl;
   #cropMarker;
   #gsvImageUrl;
+  #tracker;
+  #cardFilter;
+  #regionNames;
 
   #markerWrapper;
   #sourceLogo;
@@ -76,17 +90,19 @@ export class Card {
   #panoImage;
 
   /**
-   * @param {*} params - Properties of the associated label.
-   * @param {string} cropUrl - Locally-saved crop image url, or null if no crop exists.
-   * @param {string} gsvImageUrl - Google Street View static image url, or null if non-GSV imagery.
-   * @param {?{x: number, y: number}} [cropMarker=null] - Where the label is in the crop, as fractions of its width and
-   *     height; null when no crop exists or nothing has recorded it yet.
+   * @param {CardRecord} record - The label and its imagery, as the server sent them.
+   * @param {Record<string, string>} regionNames - Region names for the location line, keyed by region id.
+   * @param {Tracker} tracker - Logs the card's interactions.
+   * @param {GalleryFilter} cardFilter - The sidebar, asked which tags are applied so those are shown first.
    */
-  constructor(params, cropUrl, gsvImageUrl, cropMarker = null) {
-    this.#params = params;
+  constructor({ label, cropUrl, gsvImageUrl, cropMarker = null }, regionNames, tracker, cardFilter) {
+    this.#params = label;
     this.#cropUrl = cropUrl;
     this.#cropMarker = cropMarker;
     this.#gsvImageUrl = gsvImageUrl;
+    this.#regionNames = regionNames;
+    this.#tracker = tracker;
+    this.#cardFilter = cardFilter;
 
     this.#status = {
       imageFetched: false,
@@ -97,7 +113,7 @@ export class Card {
     this.labelIcon = new Image();
     this.#panoImage = new Image();
 
-    this.#init(params);
+    this.#init(label);
   }
 
   /**
@@ -157,7 +173,7 @@ export class Card {
     const cardHeader = document.createElement('div');
     cardHeader.className = 'card-header';
     cardHeader.innerHTML = `<div class="card-header__type">${labelTypeName}</div>`;
-    const regionName = sg.regionNames?.[properties.region_id];
+    const regionName = this.#regionNames[properties.region_id];
     if (regionName) {
       // The name is a way out to this label on the LabelMap — the same ?labelId= deep link the expanded view's
       // "View on Label Map" uses. Same tab: the Gallery keeps its filters in the URL, so Back returns to this
@@ -170,7 +186,7 @@ export class Card {
       // the sighted user gets on hover follows.
       location.setAttribute('aria-label', `${regionName}: ${i18next.t('labelmap:open-label-on-labelmap')}`);
       location.addEventListener('click', () => {
-        sg.tracker?.push('CardLocationClick', null, {
+        this.#tracker.push('CardLocationClick', null, {
           Label_Id: properties.label_id,
           Region_Id: properties.region_id,
         });
@@ -233,7 +249,7 @@ export class Card {
     this.#creditImage(this.#status.imageSource);
 
     this.#card.appendChild(cardInfo);
-    this.validationMenu = new ValidationMenu(this, imageHolder);
+    this.validationMenu = new ValidationMenu(this, imageHolder, this.#tracker);
   }
 
   /**
@@ -417,7 +433,9 @@ export class Card {
    * Renders the tags on the card when the card is loaded onto on the DOM.
    */
   #renderTags() {
-    new TagDisplay(this.#card.querySelector('.card-tags'), this.#properties.tags);
+    new TagDisplay(
+      this.#card.querySelector('.card-tags'), this.#properties.tags, this.#cardFilter.getAppliedTagNames(),
+    );
   }
 
   /** Re-runs the pixel-measured tag fit against the card's current width (see CardContainer's ResizeObserver). */
