@@ -242,9 +242,9 @@ How to show one depends on where its color comes from:
   a button or link itself, since it would hide their focus ring too.
 
 **Deferred namespace mismatch:** the reorg renamed the app *directories* (`SVLabel → explore`, `SVValidate →
-validate`, `Progress → user-dashboard`), but the apps' internal JS namespace **globals** `svl` (Explore) and `sg`
-(Gallery) are identifiers, not filenames, and were intentionally left as-is — renaming them is a large independent
-refactor touching nearly every source line of those apps. Don't "fix" the mismatch as a drive-by.
+validate`, `Progress → user-dashboard`), but Explore's and Validate's internal registry objects `svl` and `svv` are
+identifiers, not filenames, and were intentionally left as-is. They are going away altogether under #5648 (the
+Gallery's `sg` already has), so don't rename them as a drive-by.
 
 ## Scala
 

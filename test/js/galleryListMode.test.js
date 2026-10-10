@@ -248,7 +248,7 @@ describe('the Gallery in review-list mode', () => {
                 getAppliedValidationOptions: () => [],
                 getAppliedSeverities: () => [],
                 getAppliedTagsByType: () => ({}),
-                onUpdate: () => {},
+                onUpdate: (listener) => { cardFilter.listener = listener; },
                 disable: jest.fn(),
                 enable: jest.fn(),
             };
@@ -390,6 +390,17 @@ describe('the Gallery in review-list mode', () => {
 
             expect(document.getElementById('gallery-list-error').hidden).toBe(false);
             expect(cardFilter.enable).toHaveBeenCalled();
+        });
+
+        it('reloads the cards when the sidebar reports a change', async () => {
+            // The container subscribes in its constructor, before anything can be clicked; a subscription made
+            // later from Main would leave a window where a filter change silently changed nothing.
+            const container = await listContainer(LIST_IDS, [], []);
+            const reload = jest.spyOn(container, 'updateCardsByFilter');
+
+            cardFilter.listener();
+
+            expect(reload).toHaveBeenCalled();
         });
 
         it('leaves the filtered grid on nine, which is the other half of the same contract', async () => {
