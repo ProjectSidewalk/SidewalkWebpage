@@ -25,8 +25,17 @@
   margin: 0;
 }
 
+/* Own chevron rather than the platform's: the browser pins its arrow to the border edge, which reads as cramped on a
+   full-width control, and only an `appearance: none` select lets the arrow be placed. The right padding leaves room
+   for the 16px icon plus the same 12px inset it sits at. */
 .gallery-sort .ps-select {
   width: 100%;
+  appearance: none;
+  padding-right: 40px;
+  background-image: url("/images/icons/chevron-down-feather.svg");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px 16px;
 }
 
 .gallery-filter-header {
