@@ -138,7 +138,10 @@
     @* Directly above the choropleth, so the neighborhood a hovered row lights up is visible without scrolling. *@
     <div class="ps-container" id="access-score-spotlight-container" hidden>
       <div class="section-title-and-subtitle">
-        <h2 class="section-title" id="access-score-spotlight-title">@Messages("landing.spotlight.title", currentCity.cityNameShort)</h2>
+        @* The ask-only wording rides on the same element: AccessScoreSpotlight.js swaps it in when the feed has
+           nothing ranked but a neighborhood near the floor, so the heading never promises scores over a list
+           with none (#5454). *@
+        <h2 class="section-title" id="access-score-spotlight-title" data-ask-title="@Messages("landing.spotlight.title-ask", currentCity.cityNameShort)">@Messages("landing.spotlight.title", currentCity.cityNameShort)</h2>
         @* Filled by AccessScoreSpotlight.js: the wording depends on which unit is shown and on how much of the city
            has enough data to be ranked. *@
         <div class="section-subtitle spotlight-subtitle" id="access-score-spotlight-subtitle"></div>

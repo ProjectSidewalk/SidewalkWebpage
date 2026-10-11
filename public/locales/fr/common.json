@@ -382,6 +382,7 @@
     "subtitle-regions": "Les trottoirs de chaque quartier reçoivent une note de 0 à 100 avec notre algorithme <a href=\"{{href}}\">AccessScore</a> (100 est la meilleure).",
     "subtitle-streets": "Les trottoirs de chaque rue reçoivent une note de 0 à 100 avec notre algorithme <a href=\"{{href}}\">AccessScore</a> (100 est la meilleure).",
     "subtitle-one-region": "Cette ville est cartographiée comme un seul quartier : il n'y a donc qu'une note à afficher.",
+    "subtitle-ask": "Aucun quartier n'a encore été assez exploré pour recevoir une note <a href=\"{{href}}\">AccessScore</a>. Voici les plus proches : explorez-en un pour l'aider à franchir la ligne.",
     "units-label": "Classer les quartiers ou les rues",
     "unit-regions": "Quartiers",
     "unit-streets": "Rues",

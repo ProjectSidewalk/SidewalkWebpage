@@ -382,6 +382,7 @@
     "subtitle-regions": "Die Gehwege jedes Quartiers werden von unserem <a href=\"{{href}}\">AccessScore</a>-Algorithmus mit 0 bis 100 bewertet (100 ist am besten).",
     "subtitle-streets": "Die Gehwege jeder Straße werden von unserem <a href=\"{{href}}\">AccessScore</a>-Algorithmus mit 0 bis 100 bewertet (100 ist am besten).",
     "subtitle-one-region": "Diese Stadt ist als ein einziges Quartier kartiert, es gibt also nur eine Bewertung.",
+    "subtitle-ask": "Noch kein Quartier ist weit genug erkundet, um eine <a href=\"{{href}}\">AccessScore</a>-Bewertung zu erhalten. Diese sind am nächsten dran – erkunde eines und hilf ihm über die Ziellinie.",
     "units-label": "Quartiere oder Straßen einordnen",
     "unit-regions": "Quartiere",
     "unit-streets": "Straßen",

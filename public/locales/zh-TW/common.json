@@ -380,6 +380,7 @@
     "subtitle-regions": "每個鄰里的人行道都由我們的 <a href=\"{{href}}\">AccessScore</a> 演算法評為 0 到 100 分（100 分最佳）。",
     "subtitle-streets": "每條街道的人行道都由我們的 <a href=\"{{href}}\">AccessScore</a> 演算法評為 0 到 100 分（100 分最佳）。",
     "subtitle-one-region": "這個城市被劃為單一鄰里，因此只有一個分數。",
+    "subtitle-ask": "目前還沒有任何鄰里的探索程度足以獲得 <a href=\"{{href}}\">AccessScore</a> 評分。以下是最接近的鄰里——探索其中一個，幫助它達標。",
     "units-label": "依鄰里或街道排名",
     "unit-regions": "鄰里",
     "unit-streets": "街道",
