@@ -11,7 +11,9 @@
  * this consistent with the minimap's earlier-label eras (#4945), which are the user's own work only -- on a street
  * mapped by others there are no dimmed markers, and the toast no longer implies there should be.
  *
- * Nothing here blocks the walk: the toast is informational, sits over the pano, and fades on its own.
+ * Nothing here blocks the walk: the toast is informational, sits over the pano, and fades on its own. A street switch
+ * retires the notice, queued or on screen, because a toast about a street the labeler has been moved off is noise
+ * (#5472).
  */
 
 import { Toast } from '../../common/Toast.js';
@@ -24,7 +26,15 @@ export class ReauditNotice {
   static DURATION_MS = 12000;
 
   #tracker;
+  /** Streets whose toast has been on screen this session. A notice that only queued and never showed is not here. */
   #shownStreetIds = new Set();
+  /**
+   * The notice raised for the street being walked, kept so the next street switch can retire it. Explore hands over
+   * several streets in a row when it skips ones with no imagery, and each hand-over would otherwise leave a toast
+   * queued over `#pano` that plays after the labeler has left the street it describes (#5472).
+   * @type {?{streetEdgeId: number, toast: Toast}}
+   */
+  #pending = null;
 
   /**
    * @param {Tracker} tracker
@@ -34,19 +44,26 @@ export class ReauditNotice {
   }
 
   /**
-   * Shows the notice for a task if it is a re-audit and hasn't been announced yet this session.
+   * Retires the previous street's notice and raises one for this task if it is a re-audit not yet announced.
    *
-   * Keyed by street rather than by call, since `PanoManager` can reverse without a `setCurrentTask`: coming back to
-   * a street already announced is silent. The street counts as announced only once the toast is raised, or a notice
-   * still queued behind another would burn it for the session.
+   * Called for every street hand-over, re-audit or not, since the retirement half applies to all of them. Keyed by
+   * street rather than by call, since `PanoManager` can reverse without a `setCurrentTask`: coming back to a street
+   * already announced is silent. The street counts as announced only once its toast is actually on screen
+   * (`onShow`): a notice retired while still queued behind another toast leaves the street un-announced, so the
+   * labeler still gets it if they land on the street again.
    *
    * @param {Task} task - The task that just became current.
-   * @returns {boolean} Whether a toast was shown.
+   * @returns {boolean} Whether a notice was raised for this street, on screen or queued behind another toast.
    */
   showForTask(task) {
-    if (!task || !task.getProperty('needsReaudit')) return false;
+    if (!task) return false;
     const streetEdgeId = task.getStreetEdgeId();
+    this.#retireUnlessFor(streetEdgeId);
+    if (!task.getProperty('needsReaudit')) return false;
     if (this.#shownStreetIds.has(streetEdgeId)) return false;
+    // `setCurrentTask` can run twice for one street (a re-render, a jump resolving to the street already current);
+    // the notice already waiting for it stands.
+    if (this.#pending?.streetEdgeId === streetEdgeId) return false;
 
     const lastMapped = util.monthYear(task.getProperty('lastMappedAt'));
     const newImagery = util.monthYear(task.getProperty('newImageryDate'));
@@ -55,21 +72,39 @@ export class ReauditNotice {
     const haveDates = Boolean(lastMapped && newImagery);
     const key = `right-ui.reaudit.message-${byThisUser ? 'you' : 'others'}${haveDates ? '' : '-no-dates'}`;
 
-    this.#shownStreetIds.add(streetEdgeId);
-    this.#tracker.push('ReauditToast_Shown', {
-      streetEdgeId,
-      mappedByThisUser: byThisUser,
-      lastMappedAt: task.getProperty('lastMappedAt') ?? null,
-      newImageryDate: task.getProperty('newImageryDate') ?? null,
-    });
-    Toast.show({
+    const toast = Toast.show({
       title: i18next.t('right-ui.reaudit.title'),
       message: haveDates ? i18next.t(key, { lastMapped, newImagery }) : i18next.t(key),
       reference: document.getElementById('pano'),
       dark: true,
       duration: ReauditNotice.DURATION_MS,
+      // May fire inside Toast.show(), before `#pending` is set; it touches neither.
+      onShow: () => {
+        this.#shownStreetIds.add(streetEdgeId);
+        this.#tracker.push('ReauditToast_Shown', {
+          streetEdgeId,
+          mappedByThisUser: byThisUser,
+          lastMappedAt: task.getProperty('lastMappedAt') ?? null,
+          newImageryDate: task.getProperty('newImageryDate') ?? null,
+        });
+      },
       onClose: () => this.#tracker.push('Click_ReauditToast_Close', { streetEdgeId }),
     });
+    this.#pending = { streetEdgeId, toast };
     return true;
+  }
+
+  /**
+   * Drops the pending notice unless it is for the street just handed over. A queued toast is removed from the
+   * queue unseen; one on screen fades, since it now describes somewhere the labeler no longer is. `dismiss()` is
+   * idempotent, so a handle whose toast already faded on its own is harmless to retire.
+   *
+   * @param {number} streetEdgeId - The street that just became current.
+   * @returns {void}
+   */
+  #retireUnlessFor(streetEdgeId) {
+    if (!this.#pending || this.#pending.streetEdgeId === streetEdgeId) return;
+    this.#pending.toast.dismiss();
+    this.#pending = null;
   }
 }

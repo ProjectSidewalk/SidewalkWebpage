@@ -484,8 +484,10 @@ export class TaskContainer {
       : {};
     if (task.getProperty('needsReaudit')) startNote.reaudit = true;
     this.#tracker.push('TaskStart', Object.keys(startNote).length ? startNote : undefined);
-    // Page load reaches here before the notice exists; Main.js announces that first street itself, once the
-    // mission-start screen is out of the way.
+    // Called for every street, re-audit or not: the notice also retires the previous street's toast here, so a
+    // street Explore skips past for lack of imagery does not leave its toast playing later (#5472). Page load
+    // reaches here before the notice exists; Main.js announces that first street itself, once the mission-start
+    // screen is out of the way.
     if (svl.reauditNotice) svl.reauditNotice.showForTask(task);
 
     if ('compass' in svl) {
