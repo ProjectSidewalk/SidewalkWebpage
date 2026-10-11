@@ -1,5 +1,7 @@
 {
   "card-image-alt": "Street view photo of a {{labelType}} label",
+  "cards-sorted": "Labels are sorted by \"{{sort}}\" based on selected filters",
+  "cards-sorted-moot": "\"{{sort}}\" has no effect on the selected filters; labels are shown newest first",
   "clear-filters": "Clear Filters",
   "filter-by": "Filter By",
   "list-browse-all": "Browse all labels",
@@ -14,5 +16,15 @@
   "list-unavailable_one": "{{count}} unavailable",
   "list-unavailable_other": "{{count}} unavailable",
   "none": "none",
-  "not-applicable": "not applicable"
+  "not-applicable": "not applicable",
+  "sort-by": "Sort By",
+  "sort-least-severe": "Least severe first",
+  "sort-moot-no-rated-type": "None of the selected label types has a severity rating, so this sort has no effect. Showing newest first.",
+  "sort-moot-no-validated": "No validated labels in this selection, so this sort has no effect. Showing newest first.",
+  "sort-moot-one-severity": "Only one severity level is selected, so this sort has no effect. Showing newest first.",
+  "sort-most-disputed": "Most disputed first",
+  "sort-most-severe": "Most severe first",
+  "sort-newest": "Newest first",
+  "sort-oldest": "Oldest first",
+  "sort-random": "Random"
 }

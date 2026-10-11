@@ -12,6 +12,7 @@
 import { FilterSidebar } from '../../common/filter-sidebar/FilterSidebar.js';
 import { LabelDetail } from '../../common/label-detail/LabelDetail.js';
 import { util } from '../../common/utilities.js';
+import { isSorted, RANDOM_SORT, sortMootReason } from '../cards/cardOrder.js';
 import '../../common/urlQuery.js';
 import '../../common/utilitiesSidewalk.js';
 /** @typedef {import('../../common/filter-sidebar/FilterSidebar.js').FilterSidebarChange} FilterSidebarChange */
@@ -27,6 +28,13 @@ export class GalleryFilter {
   #sidebar = null;
   /** @type {?HTMLButtonElement} Absent in review-list mode — there are no filters to reset. */
   #clearButton;
+  /**
+   * @type {?HTMLSelectElement} The admin's "Sort by" (#2705). Absent for everyone else and in review-list mode, and
+   * then the Gallery is in its random order.
+   */
+  #sortSelect;
+  /** Whether the select had focus when the filters were last disabled, so enable() can hand it back. */
+  #sortHadFocus = false;
   /** @type {{currentLabelTypes: string[]}} */
   #status;
   /** @type {Record<string, any>} Filters with no UI of their own, carried through so the URL keeps reporting them. */
@@ -35,6 +43,8 @@ export class GalleryFilter {
   #tracker;
   /** @type {?(() => void)} Registered after construction (onUpdate): the cards are built after the sidebar. */
   #onUpdate = null;
+  /** @type {?(() => void)} Likewise, for a change of the admin's sort (onSortChange). */
+  #onSortChange = null;
 
   /**
    * Review-list mode renders no sidebar and no reset, so both elements arrive null — but this class is still
@@ -44,12 +54,14 @@ export class GalleryFilter {
    *
    * @param {?HTMLElement} root - The sidebar element holding the filter controls, or null when none is rendered.
    * @param {?HTMLButtonElement} clearButton - The button that resets every filter, or null when none is rendered.
+   * @param {?HTMLSelectElement} sortSelect - The admin's "Sort by" select, or null when none is rendered.
    * @param {Record<string, any>} initialFilters - Filters parsed from the URL by the server, passed through the page.
    * @param {Tracker} tracker - Logs the filter interactions.
    */
-  constructor(root, clearButton, initialFilters, tracker) {
+  constructor(root, clearButton, sortSelect, initialFilters, tracker) {
     this.#root = root;
     this.#clearButton = clearButton;
+    this.#sortSelect = sortSelect;
     this.#initialFilters = initialFilters;
     this.#tracker = tracker;
     this.#status = { currentLabelTypes: [] };
@@ -64,9 +76,67 @@ export class GalleryFilter {
         this.update();
       });
     }
+    if (this.#sortSelect) {
+      this.#sortSelect.addEventListener('change', () => {
+        this.#tracker.push('SortApply', null, { Sort: this.getSort() });
+        this.renderSortStatus();
+        this.#onSortChange?.();
+        this.#updateURL();
+      });
+    }
 
     this.#renderSeverity();
+    // The server renders the footer for the order the page opened in but can't know whether the filters leave that
+    // order anything to rank, so the status is settled here as soon as the controls exist.
+    this.renderSortStatus();
     this.#updateURL();
+  }
+
+  /**
+   * The order the cards are in: the select's value, or the random default when there is no select.
+   * @returns {string} A `GallerySort` wire name.
+   */
+  getSort() {
+    return this.#sortSelect?.value || RANDOM_SORT;
+  }
+
+  /**
+   * Why the current sort can't tell the filtered labels apart, or null when it can (or there is no sort).
+   * @returns {?string} A `sortMootReason` value.
+   */
+  getSortMootReason() {
+    const sort = this.getSort();
+    if (!isSorted(sort)) return null;
+    const types = this.#status.currentLabelTypes;
+    const anyRatedType = types.some((type) => util.misc.labelTypeHasSeverity(type));
+    return sortMootReason(sort, {
+      validations: this.getAppliedValidationOptions(),
+      severities: anyRatedType ? this.getAppliedSeverities() : undefined,
+      anyRatedType,
+    });
+  }
+
+  /**
+   * Restates what the page says about its order, in the page's language: the footer's "Labels are sorted …" line,
+   * and the note under the select that appears when the filters leave the sort nothing to rank. The choice itself
+   * is left alone in that case — greying the option out would have to snap the sort back to Random and rewrite the
+   * URL under the admin — so the page says what it is actually showing instead of claiming an order it isn't in.
+   */
+  renderSortStatus() {
+    const sort = this.getSort();
+    const reason = this.getSortMootReason();
+    const sortName = i18next.t(`gallery:sort-${sort.replaceAll('_', '-')}`);
+
+    // The note stays in the document, empty, when there is nothing to say: a live region that is hidden until it
+    // has text is outside the accessibility tree at the moment the text lands, and so is not announced.
+    const note = document.getElementById('gallery-sort-note');
+    if (note) note.textContent = reason === null ? '' : i18next.t(`gallery:sort-moot-${reason}`);
+
+    const footer = document.getElementById('gallery-footer');
+    if (!footer) return;
+    if (!isSorted(sort)) footer.textContent = i18next.t('gallery:cards');
+    else if (reason !== null) footer.textContent = i18next.t('gallery:cards-sorted-moot', { sort: sortName });
+    else footer.textContent = i18next.t('gallery:cards-sorted', { sort: sortName });
   }
 
   /**
@@ -86,6 +156,14 @@ export class GalleryFilter {
     this.#onUpdate = listener;
   }
 
+  /**
+   * Registers what starts the cards over in a new order when the admin's sort changes (#2705).
+   * @param {() => void} listener
+   */
+  onSortChange(listener) {
+    this.#onSortChange = listener;
+  }
+
   /** Pulls the cards and the URL back in line with the sidebar. */
   update() {
     const selected = this.#selectedLabelTypes();
@@ -93,6 +171,8 @@ export class GalleryFilter {
       this.#status.currentLabelTypes = selected;
       this.#renderSeverity();
     }
+    // A filter change can give a sort something to rank, or take it away.
+    this.renderSortStatus();
     this.#onUpdate?.();
     this.#updateURL();
   }
@@ -149,8 +229,13 @@ export class GalleryFilter {
   /** Rewrites the address bar to match the filters, so the view can be linked and reloaded. */
   #updateURL() {
     const params = this.#filterParams();
-    // The reset speaks for the filters alone, so the deep link below doesn't make it appear.
+    // The reset speaks for the filters alone, so neither the sort nor the deep link below makes it appear.
     if (this.#clearButton) this.#clearButton.hidden = [...params.keys()].length === 0;
+
+    // An order is not a filter: it rides in the URL so the view reloads and links as seen, but it is not counted
+    // above and the reset leaves it alone. Random is the default and is left out, as a default filter is.
+    const sort = this.getSort();
+    if (isSorted(sort)) params.set('sort', sort);
 
     // The open label is not a filter, but this is the page's only writer of the address bar, so it has to carry the
     // deep link through: rebuilding the URL from the filters alone scrubbed `?labelId=` during the constructor's
@@ -289,14 +374,29 @@ export class GalleryFilter {
   /** Blocks interaction with the filters while a page of cards loads. */
   disable() {
     this.#sidebar?.disable();
-    // The reset sits outside the sidebar (see gallery.scala.html), so it needs disabling on its own.
+    // The reset and the sort sit outside the sidebar (see gallery.scala.html), so they need disabling on their own.
     if (this.#clearButton) this.#clearButton.disabled = true;
+    if (this.#sortSelect) {
+      // Disabling the focused element drops focus to the body, and a keyboard user stepping a closed select with the
+      // arrow keys fires a change (and so this) on every step, so without remembering it they would lose the select
+      // after one step and have no way to reach the next option.
+      this.#sortHadFocus = document.activeElement === this.#sortSelect;
+      this.#sortSelect.disabled = true;
+    }
   }
 
   /** Restores interaction with the filters. */
   enable() {
     this.#sidebar?.enable();
     if (this.#clearButton) this.#clearButton.disabled = false;
+    if (this.#sortSelect) {
+      this.#sortSelect.disabled = false;
+      // Only when focus is still lost: a sorted load can take a while, and an admin who has meanwhile tabbed into
+      // the navbar or the search box must not be pulled back.
+      const focusLost = !document.activeElement || document.activeElement === document.body;
+      if (this.#sortHadFocus && focusLost) this.#sortSelect.focus();
+      this.#sortHadFocus = false;
+    }
   }
 
   /** Resets every filter to its default state. Callers follow with update() to apply it. */

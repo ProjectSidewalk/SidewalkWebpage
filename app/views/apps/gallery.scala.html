@@ -4,12 +4,22 @@
 @import service.CommonPageData
 @import models.pano.PanoSource
 @import models.label.Tag
+@import models.gallery.GallerySort
 @import controllers.GalleryController
+@*
+ * @param isAdmin Whether to render the "Sort by" control (#2705). Only an admin gets it; the controller passes false
+ *                for everyone else, and `sort` is then Random whatever the URL said.
+ * @param sort    The order the page opens in, from `?sort=`; the control's selected option and the footer's wording.
+ *@
 @(commonData: service.CommonPageData, title: String, user: Option[models.user.SidewalkUserWithRole], labelTypes: Seq[String],
   allTags: Seq[Tag], regionIds: Seq[Int], regionNames: Map[Int, String], severities: Seq[String], tags: List[String],
-  valOptions: Seq[String], aiValOptions: Seq[String], labelIds: Seq[Int], idsOverCap: Int
+  valOptions: Seq[String], aiValOptions: Seq[String], labelIds: Seq[Int], idsOverCap: Int, isAdmin: Boolean = false,
+  sort: GallerySort = GallerySort.Random
 )(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: play.api.Configuration)
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
+@* The option's message key: `most_severe` -> `gallery.sort.most.severe` for Play, `gallery:sort-most-severe` for i18next. *@
+@sortMsgKey(s: GallerySort) = @{"gallery.sort." + s.name.replace("_", ".")}
+@sortI18nKey(s: GallerySort) = @{"gallery:sort-" + s.name.replace("_", "-")}
 
 @common.main(commonData, title, i18Namespaces = Seq("common", "gallery", "labelmap"),
   pageMeta = service.PageMeta(description = Some(Messages("seo.description.gallery", currentCity.cityNameShort)))) {
@@ -39,6 +49,23 @@
        itself goes in a strip above the cards instead (see #gallery-content below). *@
     @if(labelIds.isEmpty) {
       <div class="sidebar">
+        @* Admin-only "Sort by" (#2705). Above "Filter By" and outside the filter disclosure on purpose: an order is
+           not a filter, so the reset below leaves it alone and a phone reaches it without opening the filters. The
+           options are the GallerySort enum, so the JS never re-declares the list. *@
+        @if(isAdmin) {
+          <div class="gallery-sort">
+            <label for="gallery-sort" class="gallery-sort__label" data-i18n="gallery:sort-by">@Messages("gallery.sort.by")</label>
+            <select id="gallery-sort" class="ps-select" aria-describedby="gallery-sort-note">
+              @for(s <- GallerySort.values) {
+                <option value="@s.name" @if(s==sort){selected} data-i18n="@sortI18nKey(s)">@Messages(sortMsgKey(s))</option>
+              }
+            </select>
+            @* Filled by GalleryFilter when the filters leave the sort nothing to rank (every label unvalidated under
+               "Most disputed", say): the choice stays, the page says what it is really showing. Always in the
+               document, empty rather than hidden, so the live region is in the accessibility tree when text lands. *@
+            <p id="gallery-sort-note" class="gallery-sort__note" aria-live="polite"></p>
+          </div>
+        }
         @* Sits outside #card-filter, which wears filter-sidebar--loading while a page of cards loads: the disclosure
            is the only way to reach the filters on a phone, so it has to stay live through the load that greys them. *@
         <div class="gallery-filter-header">
@@ -119,10 +146,16 @@
     <div class="paging" id="page-number"></div>
     <button type="button" class="paging" id="next-page">&gt</button>
   </div>
-  @* The footer describes the filtered grid's random order, which a review list is not in: it is in the order the
-     caller asked for. *@
+  @* The footer describes the filtered grid's order (random, or the admin's sort, which GalleryFilter rewrites on a
+     change); a review list is in neither, it is in the order the caller asked for. *@
   @if(labelIds.isEmpty) {
-    <div class="gallery-footer">@Messages("gallery.cards")</div>
+    <div class="gallery-footer" id="gallery-footer">
+      @if(sort == GallerySort.Random) {
+        @Messages("gallery.cards")
+      } else {
+        @Messages("gallery.cards.sorted", Messages(sortMsgKey(sort)))
+      }
+    </div>
   }
 
   @* What the Gallery entry (frontend/js/pages/gallery.js) needs from the server, as JSON. *@

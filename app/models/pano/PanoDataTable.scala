@@ -52,7 +52,12 @@ case class PanoData(
     // Verbatim imagery-provider metadata blob (e.g. the Mapillary Graph API response). Only AI submissions carry it;
     // crowd submissions leave it untouched (#4806).
     sourceMetadata: Option[JsValue]
-)
+) {
+
+  /** The in-memory twin of `PanoDataTable.hasBackupViewerFields`; see the note there before changing either. */
+  def hasBackupViewerFields: Boolean =
+    width.isDefined && height.isDefined && lat.isDefined && lng.isDefined && cameraHeading.exists(!_.isNaN)
+}
 
 // NOTE need to update pano_source enum in postgres as well if changing this enum.
 enum PanoSource(val name: String) extends NamedEnum {
@@ -146,6 +151,24 @@ object PanoDataTable {
 
   /** Ids per `markHasBackup` statement: enough to make a night's update a handful of round trips, not thousands. */
   val MarkHasBackupChunk: Int = 1000
+
+  /**
+   * Whether a pano_data row holds what PannellumViewer needs to render its backup image. Rows written before these
+   * columns were recorded carry nulls, and a label on one leaves Validate showing the previous label's imagery under
+   * the new marker (#4804). Pitch and roll are not required: the viewer takes the horizon from the image and never
+   * reads them (#5174), and a Mapillary pano the AI pipeline recorded without a pose would otherwise never be served
+   * (#5725). A NaN heading counts as missing, as evolution 366 and the JS guard already read it.
+   *
+   * The rule lives in five places that must agree: here (the queue, via `LabelTable.imageryViewable`),
+   * `PanoData.hasBackupViewerFields` (the metadata route), `BACKUP_IMAGE_REQUIRED_FIELDS` and `PanoData.requiredParams`
+   * in the frontend, and `tools/validation_queue/pool.sql`.
+   */
+  def hasBackupViewerFields(pd: PanoDataTableDef): Rep[Boolean] = {
+    // Postgres parses the string; a Scala Double.NaN would be inlined as a bare NaN, which SQL takes for a column.
+    val nan: Rep[Double] = LiteralColumn("NaN").asColumnOf[Double]
+    pd.width.isDefined && pd.height.isDefined && pd.lat.isDefined && pd.lng.isDefined &&
+    pd.cameraHeading.map(_ =!= nan).getOrElse(false: Rep[Boolean])
+  }
 
   /**
    * SQL that reads a free-text `capture_date` column as a date, or NULL when the value isn't a usable date. It takes
@@ -285,6 +308,20 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
                  expired_at = NULL
              WHERE pano_id = $panoId"""
     }
+  }
+
+  /**
+   * Fills in a pano's camera pitch and roll when it has no pitch (#5725). A stored pitch is never touched: it is a
+   * labeler's or the auto-labeler's own reading of the same rotation, so there is nothing to correct. The roll
+   * follows the pitch, since the two are one reading and no writer stores one without the other. A NaN pitch counts
+   * as none, as evolution 366 read it.
+   *
+   * @return Rows updated: 1 when the pano had no pitch, else 0.
+   */
+  def fillMissingCameraOrientation(panoId: String, pitch: Double, roll: Double): DBIO[Int] = {
+    sqlu"""UPDATE pano_data
+           SET camera_pitch = $pitch, camera_roll = $roll
+           WHERE pano_id = $panoId AND (camera_pitch IS NULL OR camera_pitch = 'NaN')"""
   }
 
   /**

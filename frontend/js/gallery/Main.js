@@ -33,9 +33,11 @@ export async function startGallery(params) {
 
   // Review-list mode (#5444) renders neither the sidebar nor the reset, so both lookups come back null. GalleryFilter
   // is still built, sidebar-less, because it owns the address bar and the filter state CardContainer reads.
+  // The sort select is rendered for admins only (#2705); null for everyone else, and the order is then random.
   const cardFilter = new GalleryFilter(
     document.getElementById('card-filter'),
     /** @type {?HTMLButtonElement} */ (document.getElementById('clear-filters')),
+    /** @type {?HTMLSelectElement} */ (document.getElementById('gallery-sort')),
     params.initialFilters,
     tracker,
   );

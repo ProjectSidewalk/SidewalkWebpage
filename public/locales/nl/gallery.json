@@ -1,5 +1,7 @@
 {
   "card-image-alt": "Street View-foto van een {{labelType}}-label",
+  "cards-sorted": "Labels worden gesorteerd op \"{{sort}}\" op basis van geselecteerde filters",
+  "cards-sorted-moot": "\"{{sort}}\" heeft geen effect op de geselecteerde filters; labels worden nieuwste eerst getoond",
   "clear-filters": "Filters Wissen",
   "filter-by": "Filteren op",
   "list-browse-all": "Alle labels bekijken",
@@ -14,5 +16,15 @@
   "list-unavailable_one": "{{count}} niet beschikbaar",
   "list-unavailable_other": "{{count}} niet beschikbaar",
   "none": "geen",
-  "not-applicable": "niet toepasbaar"
+  "not-applicable": "niet toepasbaar",
+  "sort-by": "Sorteren op",
+  "sort-least-severe": "Minst ernstige eerst",
+  "sort-moot-no-rated-type": "Geen van de geselecteerde labeltypen heeft een ernstbeoordeling, dus deze sortering heeft geen effect. Nieuwste eerst getoond.",
+  "sort-moot-no-validated": "Er zijn geen gevalideerde labels in deze selectie, dus deze sortering heeft geen effect. Nieuwste eerst getoond.",
+  "sort-moot-one-severity": "Er is maar één ernstniveau geselecteerd, dus deze sortering heeft geen effect. Nieuwste eerst getoond.",
+  "sort-most-disputed": "Meest betwiste eerst",
+  "sort-most-severe": "Ernstigste eerst",
+  "sort-newest": "Nieuwste eerst",
+  "sort-oldest": "Oudste eerst",
+  "sort-random": "Willekeurig"
 }

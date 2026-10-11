@@ -165,6 +165,7 @@
   "grade-legend-title-by": "Straßensteigung · {{statistic}}",
   "grade-legend-none": "Keine Steigungsdaten",
   "grade-legend-hint": "Klicken Sie auf eine Klasse, um diese Straßen hervorzuheben; Strg+Klick für weitere.",
+  "grade-legend-coarse": "Aus einem groben Höhenmodell: jede Steigung ist eine gerade Linie zwischen den beiden Enden einer Straße.",
   "grade-class-under": "Unter {{to}}",
   "grade-class-over": "Über {{from}}",
   "grade-class-between": "{{from}} – {{to}}",
@@ -209,6 +210,7 @@
   "slope-barrier-threshold": "Eine Barriere, wenn steiler als",
   "slope-approximate-include": "Ungefähre Steigungen einbeziehen",
   "slope-approximate-include-help": "Manche Steigungen sind nur eine gerade Linie zwischen den beiden Enden einer Straße: wo eine Stadt nur ein grobes Höhenmodell hat oder wo das Modell unzuverlässig wirkte. Aktivieren Sie dies, damit auch diese Steigungen zählen.",
+  "slope-coarse-note": "Die Steigungen dieser Stadt stammen aus einem groben Höhenmodell und sind daher Näherungswerte. Sie zählen nur dann für die Bewertung, wenn unten ungefähre Steigungen einbezogen werden.",
   "slope-barrier-effect": "Der Abschnitt erhält 0: steiler als die Barriere von {{limit}}.",
   "popup-slope-barrier": "Barriere: 0"
 }

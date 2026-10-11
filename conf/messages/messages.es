@@ -81,6 +81,7 @@ city.name.knox-oh = Condado de Knox
 city.name.niagara-falls-ny = Cataratas del Niágara
 city.name.fort-wayne-in = Fuerte Wayne
 city.name.bayonne-fr = Bayona
+city.name.juneau-ak = Juneau
 
 state.name.oregon = Oregón
 state.name.pennsylvania = Pensilvania
@@ -88,6 +89,7 @@ state.name.new-jersey = Nueva Jersey
 state.name.missouri = Misuri
 state.name.south-carolina = Carolina del Sur
 state.name.new-york = Nueva York
+state.name.alaska = Alaska
 
 country.name.usa = EE.UU.
 country.name.mexico = México
@@ -561,6 +563,14 @@ gallery.tags = Etiquetas
 gallery.all = Todos los tipos de etiquetas
 gallery.labels.not.found = No hay resultados. ¡<a href="/explore">Comienza a explorar</a> para aportar más datos!
 gallery.cards = Las etiquetas se ordenan aleatoriamente según los filtros seleccionados
+gallery.cards.sorted = Las etiquetas se ordenan por "{0}" según los filtros seleccionados
+gallery.sort.by = Ordenar por
+gallery.sort.random = Aleatorio
+gallery.sort.newest = Más recientes primero
+gallery.sort.oldest = Más antiguas primero
+gallery.sort.most.severe = Más graves primero
+gallery.sort.least.severe = Menos graves primero
+gallery.sort.most.disputed = Más disputadas primero
 gallery.clear.filters = Borrar Filtros
 gallery.list.count = {0,choice,1#1 etiqueta|1<{0} etiquetas} en esta lista
 gallery.list.truncated = {0,choice,1#1 ID superaba el límite de {1} y no se pudo cargar.|1<{0} ID superaban el límite de {1} y no se pudieron cargar.}
