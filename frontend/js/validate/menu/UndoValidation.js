@@ -10,7 +10,7 @@
 /** @typedef {import('../Tracker.js').Tracker} Tracker */
 
 export class UndoValidation {
-  #disableUndo = false;
+  #disableUndo = true;
   #uiUndo;
   /** @type {LabelContainer} */
   #labelContainer;
@@ -36,6 +36,7 @@ export class UndoValidation {
     this.#missionContainer = missionContainer;
     this.#tracker = tracker;
     uiUndo.undoButton.addEventListener('click', this.#undo);
+    this.disableUndo(); // Nothing to go back to until a load finds a validated label behind the current one.
 
     // Back means something only while there is a validated label behind the current one, and nothing to go back to
     // once a mission is done: its labels are submitted with it.

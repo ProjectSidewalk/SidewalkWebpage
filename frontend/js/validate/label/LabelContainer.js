@@ -60,7 +60,6 @@ export class LabelContainer {
   #slowStreak = 0;
 
   #labelsToSubmit = [];
-  #submittedLabels = [];
   // Holds prior label's metadata formatted for submission, making it easier to submit an undo. Only read while the
   // undo button is live, and the button is disabled the moment an undo lands, so one undo can't be applied twice.
   #lastLabelFormData;
@@ -639,11 +638,8 @@ export class LabelContainer {
     this.#labelsToSubmit.pop();
   }
 
-  /**
-   * Moves the labelsToSubmit to submittedLabels and clears the labelsToSubmit array.
-   */
+  /** Clears the validations buffered for submission, once the form has taken them. */
   refresh() {
-    this.#submittedLabels.concat(this.#labelsToSubmit);
     this.#labelsToSubmit = [];
   }
 }
