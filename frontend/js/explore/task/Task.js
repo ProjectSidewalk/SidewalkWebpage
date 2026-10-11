@@ -25,6 +25,15 @@ export class Task {
   /* @type {turf.Point} */
   #furthestPoint;
 
+  /**
+   * Free exploration's coverage (#5733): merged [start_m, end_m] pairs in the server's frame, whichever way the task
+   * walks the street.
+   * @type {Array<[number, number]>}
+   */
+  #coveredRanges = [];
+  // The previous on-street pano's position along the street, so the stretch to the next one can count as walked.
+  #lastOnStreetM = null;
+
   #missionStarts = {};
   #status = {
     isComplete: false,
@@ -117,6 +126,9 @@ export class Task {
     if (currMissionId && currMissionStart) {
       this.setMissionStart(currMissionId, { lat: currMissionStart.lat, lng: currMissionStart.lng });
     }
+    this.#coveredRanges = Array.isArray(this.#geojson.properties.covered_ranges)
+      ? this.#geojson.properties.covered_ranges.map(([startM, endM]) => [startM, endM])
+      : [];
     // After the direction, never before it: reversing re-seeds the furthest point from the new first coordinate, so a
     // saved position applied first would be thrown away and the walked stretch measured from the wrong end.
     if (currentLatLng) {
@@ -320,6 +332,103 @@ export class Task {
   }
 
   /**
+   * Credits what a pano shows of this street (#5733): a window either side of it, plus the stretch back to the previous
+   * on-street pano when the hop is short enough to have been walked rather than jumped. A pano off the street credits
+   * nothing and breaks that chain, so a detour returns without crediting the roadway it skipped.
+   *
+   * @param {{lat: number, lng: number}} latLng - The pano the labeler is standing at.
+   * @returns {boolean} Whether the pano counted as on this street.
+   */
+  recordVisit(latLng) {
+    const point = turf.point([latLng.lng, latLng.lat]);
+    const snapped = turf.nearestPointOnLine(this.#geojson, point, { units: 'meters' });
+    if (snapped.properties.dist > Task.ON_STREET_MAX_DISTANCE_M) {
+      this.#lastOnStreetM = null;
+      return false;
+    }
+    const lengthM = this.lineDistance({ units: 'meters' });
+    // Measured from the server's first coordinate, so a revisit from the other end lands in the same frame.
+    const alongM = this.#properties.startPointReversed
+      ? lengthM - snapped.properties.location
+      : snapped.properties.location;
+    const windowM = svl.streetCoverage.pano_window_m;
+    /** @type {Array<[number, number]>} */
+    const ranges = [...this.#coveredRanges, [alongM - windowM, alongM + windowM]];
+    if (this.#lastOnStreetM !== null && Math.abs(alongM - this.#lastOnStreetM) <= svl.streetCoverage.max_hop_m) {
+      ranges.push([Math.min(alongM, this.#lastOnStreetM), Math.max(alongM, this.#lastOnStreetM)]);
+    }
+    this.#coveredRanges = Task.mergeRanges(ranges, lengthM);
+    this.#lastOnStreetM = alongM;
+    return true;
+  }
+
+  /**
+   * The same merge as the server's StreetCoverage.merge, so both sides agree on what a list means.
+   *
+   * @param {Array<[number, number]>} ranges - Any mix of ranges, in any order.
+   * @param {number} lengthM - The street's length in meters.
+   * @returns {Array<[number, number]>} Clipped to the street, sorted, disjoint, to a decimeter.
+   */
+  static mergeRanges(ranges, lengthM) {
+    const roundDm = (m) => Math.round(m * 10) / 10;
+    const clipped = ranges
+      .map(([startM, endM]) => [
+        roundDm(Math.min(Math.max(startM, 0), lengthM)), roundDm(Math.min(Math.max(endM, 0), lengthM)),
+      ])
+      .filter(([startM, endM]) => endM > startM)
+      .sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+    const merged = [];
+    for (const [startM, endM] of clipped) {
+      const last = merged[merged.length - 1];
+      if (last && startM <= last[1]) last[1] = Math.max(last[1], endM);
+      else merged.push([startM, endM]);
+    }
+    return merged;
+  }
+
+  /** @returns {Array<[number, number]>} A copy of the covered ranges, in the server's frame. */
+  getCoveredRanges() {
+    return this.#coveredRanges.map(([startM, endM]) => [startM, endM]);
+  }
+
+  /** @param {Array<[number, number]>} ranges - The server's merged list, which can hold an earlier session's. */
+  setCoveredRanges(ranges) {
+    this.#coveredRanges = Task.mergeRanges(ranges, this.lineDistance({ units: 'meters' }));
+  }
+
+  /** @returns {number} Meters of this street the covered ranges add up to. */
+  getCoveredDistanceM() {
+    return this.#coveredRanges.reduce((sum, [startM, endM]) => sum + (endM - startM), 0);
+  }
+
+  /**
+   * Mirrors the server's StreetCoverage.coveredEnough, so the minimap can show the street as done the moment it is.
+   * @returns {boolean}
+   */
+  isCoveredEnough() {
+    if (this.#coveredRanges.length === 0) return false;
+    const lengthM = this.lineDistance({ units: 'meters' });
+    const coveredM = this.getCoveredDistanceM();
+    return Math.max(0, lengthM - coveredM) <= svl.streetCoverage.max_uncovered_m
+      && coveredM >= svl.streetCoverage.min_covered_frac * lengthM;
+  }
+
+  /**
+   * The covered ranges as pieces of the street's geometry, for the minimap.
+   * @param {MinimapStreetLine['kind']} kind - The MinimapStyle line kind to draw them as.
+   * @returns {MinimapStreetLine[]}
+   */
+  #coveredLines(kind) {
+    const lengthM = this.lineDistance({ units: 'meters' });
+    return this.#coveredRanges.map(([startM, endM]) => {
+      // The ranges sit in the server's frame; the geometry may have been reversed to walk the other way.
+      const [fromM, toM] = this.#properties.startPointReversed ? [lengthM - endM, lengthM - startM] : [startM, endM];
+      const piece = turf.lineSliceAlong(this.#geojson, fromM, toM, { units: 'meters' });
+      return { kind, coordinates: piece.geometry.coordinates };
+    });
+  }
+
+  /**
    * Get the cumulative distance.
    *
    * @param {{lat: number, lng: number}} latLng - The point to measure the distance from the start
@@ -518,15 +627,20 @@ export class Task {
    * that turf slices down to a single point, when the furthest point sits on an endpoint, is dropped by the minimap.
    */
   render() {
-    // Free exploration draws no street lines at all (#4451). The red/green split reads as progress being scored, and
-    // the surrounding green/gray coverage is noise for someone who dropped in at a single address — the minimap is
-    // there to show where they are.
+    const wholeStreet = (kind) => [{ kind, coordinates: this.#geojson.geometry.coordinates }];
+
+    // Free exploration draws only what the labeler has earned (#5733). With no route, unwalked streets and the
+    // walk-this-way half stay off the map, where they would read as progress being scored (#4451).
     if (svl.isExploreAddressMode()) {
       this.eraseFromMinimap();
+      if (this.isComplete() || this.isCoveredEnough()) {
+        svl.minimap.setStreetLines(this.#minimapKey(), wholeStreet('completed'));
+      } else if (this.#coveredRanges.length > 0) {
+        svl.minimap.setStreetLines(this.#minimapKey(), this.#coveredLines('completed'));
+      }
       return;
     }
 
-    const wholeStreet = (kind) => [{ kind, coordinates: this.#geojson.geometry.coordinates }];
     // A street this session gave up on for lack of imagery draws as walked: the labeler did everything the tool let
     // them, and a grey gap in an otherwise finished route reads as their omission.
     const drawAsWalked = this.isComplete() || this.wasGivenUpOnImagery();
