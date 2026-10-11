@@ -18,7 +18,9 @@ export class Tracker {
 
     // `pagehide` is the reliable, bfcache-compatible unload signal.
     window.addEventListener('pagehide', () => {
-      this.push('Unload');
+      // Added without the size check: a push that tipped the buffer over the limit would send everything before it
+      // in a request the browser cancels along with the page, leaving only the marker for the keepalive one below.
+      this.#actions.push(this.#createAction('Unload', null, null));
       this.flush({ keepalive: true });
     });
   }

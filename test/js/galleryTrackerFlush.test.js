@@ -60,4 +60,18 @@ describe('the Gallery interaction log', () => {
         expect(actionsIn(sent[0])).toEqual(['RefreshTracker', 'CardLocationClick', 'Unload']);
         expect(sent[0].body[0].interactions[1].note).toBe('Label_Id:1');
     });
+
+    it('sends a buffer the exit marker tips over the limit in that same keepalive batch', () => {
+        // The last batch left the refresh marker behind; nine more fill the buffer to its limit.
+        for (let i = 1; i <= 9; i += 1) tracker.push(`Action${i}`);
+        expect(sent).toHaveLength(0);
+
+        window.dispatchEvent(new Event('pagehide'));
+
+        expect(sent).toHaveLength(1);
+        expect(sent[0].keepalive).toBe(true);
+        expect(actionsIn(sent[0])).toEqual([
+            'RefreshTracker', ...[...Array(9).keys()].map((i) => `Action${i + 1}`), 'Unload',
+        ]);
+    });
 });
