@@ -337,6 +337,12 @@ export class Card {
         const img = this.#panoImage;
         const primaryUrl = this.#cropUrl || this.#gsvImageUrl;
         const fallbackUrl = this.#cropUrl ? this.#gsvImageUrl : null;
+        // Non-GSV imagery with no crop cut yet has no source at all; assigning the null would request "/null".
+        if (!primaryUrl) {
+          this.#hideMissingImage();
+          resolve(false);
+          return;
+        }
         // The container asks again on every page and filter render, so a card whose last attempt fell back to the
         // still, or failed outright, starts over from the crop rather than keeping that attempt's marker and credit.
         this.#useSource(this.#cropUrl ? 'crop' : 'api');
