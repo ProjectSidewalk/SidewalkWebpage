@@ -3,7 +3,7 @@ package formats.json
 import formats.json.LabelFormats.POVWrites
 import formats.json.MissionFormats.given
 import formats.json.PanoFormats.PanoDate
-import models.audit.{AuditTask, AuditTaskInteraction, NewTask}
+import models.audit.{AuditTask, AuditTaskInteraction, CoveredRange, NewTask}
 import models.label.{ComputationMethod, LabelPointTable, LabelType, POV}
 import models.mission.Mission
 import models.pano.PanoSource
@@ -87,7 +87,9 @@ object ExploreFormats {
       auditedDistanceM: Option[Double],
       // Which route_street row this task was served for, when auditing along a route. A route may traverse one
       // street twice (out-and-back), so street_edge_id alone can't say which traversal this is.
-      routeStreetId: Option[Int]
+      routeStreetId: Option[Int],
+      // Free exploration only (#5733): the server unions these into the task's stored coverage.
+      coveredRanges: Option[Seq[CoveredRange]] = None
   )
   case class NoStreetViewSubmission(task: TaskSubmission, missionId: Int)
   case class PanoLinkSubmission(targetPanoId: String, yawDeg: Double, description: Option[String])
@@ -211,7 +213,8 @@ object ExploreFormats {
         // Carried on the payload so the re-audit notice costs no request of its own (#4895).
         "mapped_by_this_user" -> task.mappedByThisUser,
         "last_mapped_at"      -> task.lastMappedAt,
-        "new_imagery_date"    -> task.newImageryDate
+        "new_imagery_date"    -> task.newImageryDate,
+        "covered_ranges"      -> task.coveredRanges
       )
     )
   }

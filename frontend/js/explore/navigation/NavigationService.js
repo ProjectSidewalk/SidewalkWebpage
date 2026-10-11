@@ -422,16 +422,18 @@ export class NavigationService {
     svl.panoManager.enablePanning();
     svl.canvas.enableLabeling();
 
-    if (!isOnboarding && 'taskContainer' in svl && svl.taskContainer.tasksLoaded()) {
+    if (svl.isExploreAddressMode() && 'taskContainer' in svl) {
+      // Free exploration has no route and no end-of-street: each pano is credited to whichever street it is on, and
+      // the server decides when a street counts (#4451, #5733).
+      svl.taskContainer.recordExploreMove(newLatLng);
+    } else if (!isOnboarding && 'taskContainer' in svl && svl.taskContainer.tasksLoaded()) {
       // End of the task if the user is close enough to the end point, and we aren't in the tutorial.
       // TODO I wonder if ending a task should happen elsewhere? Bc some types of moves might never cause an end task?
       // - that might be because the task was already ended before we moved them, for example...
       // TODO I hardly understand the todo above, and idk why we would end the task in the middle of updating the
       //      UI after a move... especially when #endTheCurrentTask() can result in another move...
       const task = svl.taskContainer.getCurrentTask();
-      // In free exploration (#4451) reaching the end of the street must not end the task or advance to a new street.
-      if (!isOnboarding && !svl.isExploreAddressMode() && task
-        && task.isAtEnd(newLatLng, NavigationService.#END_OF_STREET_THRESHOLD)) {
+      if (task && task.isAtEnd(newLatLng, NavigationService.#END_OF_STREET_THRESHOLD)) {
         // On a route's final street, 25 m-from-endpoint can be a large fraction of a short street, firing "end of
         // route" long before the last reachable pano (#4640 route manifestation). Defer to the imagery-exhaustion
         // path (#handleImageryNotFound) unless they've already walked most of the street — on a long street 25 m

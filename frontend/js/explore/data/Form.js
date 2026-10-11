@@ -138,10 +138,14 @@ export class Form {
         // route walk: priorities choose the next street, and a route's next street is fixed by its walking order.
         request_updated_street_priority: !svl.isOnboarding() && !svl.userRouteId
           && (task.getAuditedDistance() / task.lineDistance()) > 0.6,
-        // How far along the street the user has gotten, measured from the street's start. The server reads it to
-        // derive street completion for free-exploration sessions (#4451); it also accumulates real partial-audit data
-        // so a future fractional-coverage model has history to build on.
-        audited_distance_m: util.math.kmsToMeters(task.getAuditedDistance()),
+        // How far along the street the user has gotten, measured from the street's start, as real partial-audit data
+        // for a future fractional-coverage model. Free exploration has no start to measure from, so it sends its
+        // covered meters instead.
+        audited_distance_m: svl.isExploreAddressMode()
+          ? task.getCoveredDistanceM()
+          : util.math.kmsToMeters(task.getAuditedDistance()),
+        // Free exploration only (#5733): the server credits the street from these, never from the completed flag.
+        covered_ranges: svl.isExploreAddressMode() ? task.getCoveredRanges() : null,
         // Which route_street row this task was served for. An out-and-back route walks one street twice, so the
         // server can't re-derive the traversal from street_edge_id alone. Null outside a route session.
         route_street_id: task.getProperty('routeStreetId'),
@@ -259,6 +263,12 @@ export class Form {
         const currentTask = this.#taskContainer.getCurrentTask();
         if (!currentTask || currentTask.getStreetEdgeId() === task.getStreetEdgeId()) {
           svl.tracker.setAuditTaskID(result.audit_task_id);
+        }
+
+        // The server's list can hold an earlier visit's stretches, which the minimap and done-yet check should show.
+        if (result.covered_ranges) {
+          task.setCoveredRanges(result.covered_ranges);
+          if (svl.minimap) task.render();
         }
 
         // If the back-end says that something is messed up and that we should refresh page, do that now.

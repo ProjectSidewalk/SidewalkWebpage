@@ -115,6 +115,7 @@ describe('Form.submitData street-priority refresh on a route walk', () => {
             userRouteId: null,
             regionId: 1,
             isOnboarding: () => false,
+            isExploreAddressMode: () => false,
             panoViewer: { getPosition: () => ({ lat: 41.85, lng: -87.65 }) },
             tracker: { setAuditTaskID: jest.fn() },
         };

@@ -421,7 +421,8 @@ class ExploreController @Inject() (
                 "label_ids"      -> returnData.newLabels
                   .map(l => Json.obj("label_id" -> l.labelId, "temporary_label_id" -> l.temporaryLabelId)),
                 "updated_streets" -> returnData.updatedStreets.map(Json.toJson(_)),
-                "refresh_page" -> returnData.refreshPage // If we notice something out of whack, tell front-end to refresh.
+                "refresh_page" -> returnData.refreshPage, // If we notice something out of whack, tell front-end to refresh.
+                "covered_ranges" -> returnData.coveredRanges.map(Json.toJson(_))
               )
             )
           }

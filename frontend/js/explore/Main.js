@@ -98,7 +98,8 @@ export class Main {
 
     svl.onboarding = null;
     svl.isOnboarding = () => this.#session.mission.mission_type === 'auditOnboarding';
-    // Free exploration at a searched address (#4451): labeling works normally, but the task/mission never complete.
+    // Free exploration at a searched address (#4451): labeling works normally, there is no route or mission to finish,
+    // and the server credits each street from the coverage the client posts rather than from a completed flag (#5733).
     svl.isExploreAddressMode = () => this.#session.mission.mission_type === 'exploreAddress';
     svl.regionId = session.region_id;
 
@@ -146,6 +147,8 @@ export class Main {
     svl.makeCrops = params.makeCrops;
     // Lat/lng estimator constants, owned by the backend (PanoDataService.LatLngEstimation) and used by Label.toLatLng.
     svl.latLngEstimation = params.latLngEstimation;
+    // Free exploration's street-credit rule (#5733), owned by the backend (StreetCoverage); read by Task.
+    svl.streetCoverage = params.streetCoverage;
 
     svl.mapboxApiKey = params.mapboxApiKey;
     svl.storage = new TemporaryStorage(JSON);
@@ -190,6 +193,8 @@ export class Main {
     }
     const currLatLng = svl.panoViewer.getPosition();
     newTask.updateTheFurthestPointReached(currLatLng);
+    // The drop-in pano is the first one seen of its street (#5733).
+    if (svl.isExploreAddressMode()) newTask.recordVisit(currLatLng);
 
     svl.minimap = await Minimap.create(currLatLng);
     svl.peg = new Peg(svl.minimap, currLatLng);

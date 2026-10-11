@@ -192,6 +192,7 @@ describe('Explore label POV staleness (#4842 regression)', () => {
             userRouteId: null,
             regionId: 1,
             isOnboarding: () => false,
+            isExploreAddressMode: () => false,
             panoViewer: {
                 getPov: jest.fn(() => ({ ...viewerPov })),
                 getPosition: () => ({ lat: 41.85, lng: -87.65 }),
