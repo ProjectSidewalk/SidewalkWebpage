@@ -2,24 +2,28 @@
  * Tracks the number of completed validations for the user, updating the progress bar throughout the mission.
  */
 
-import { svv } from '../svv.js';
 import { BadgeAchievements } from '../../common/BadgeAchievements.js';
 import { ProgressBar } from '../../common/ProgressBar.js';
 import { util } from '../../common/utilities.js';
 import '../../common/utilitiesSidewalk.js';
 /** @typedef {import('../mission/Mission.js').Mission} Mission */
+/** @typedef {import('../Main.js').ValidateUi} ValidateUi */
 
 export class StatusField {
   #completedValidations;
   #statusUI;
+  /** @type {?HTMLElement} The menu column's header, which names the label type; desktop only. */
+  #menuHeader;
   #progressBar;
 
   /**
    * @param {number} completedValidationsParam - The number of validations the user has completed all time.
+   * @param {ValidateUi} ui - The title bar's elements, plus the desktop menu header that repeats the label type.
    */
-  constructor(completedValidationsParam) {
+  constructor(completedValidationsParam, ui) {
     this.#completedValidations = completedValidationsParam;
-    this.#statusUI = svv.ui.status;
+    this.#statusUI = ui.status;
+    this.#menuHeader = ui.validationMenu.header;
     this.#progressBar = new ProgressBar('mission-progress-bar-complete', 'mission-progress-bar-text');
   }
 
@@ -66,11 +70,9 @@ export class StatusField {
    * Updates the label name that is displayed in the title bar and above the validation section.
    *
    * @param {string} labelType - Name of label without spaces.
+   * @param {number} missionLength - How many labels the mission asks for, for the title's count.
    */
-  updateLabelText(labelType) {
-    const missionLength = svv.missionContainer
-      ? svv.missionContainer.getCurrentMission().getProperty('labelsValidated')
-      : svv.missionLength;
+  updateLabelText(labelType, missionLength) {
     // The title bar takes HTML, so the count is escaped; the type name is written `{{- labelType}}`. The case is left
     // alone: the boxed and mobile titles uppercase it in CSS, immersive mode's pill does not.
     const newMissionTitle = i18next.t('mission-start-tutorial.mst-instruction-2', {
@@ -83,8 +85,8 @@ export class StatusField {
       this.#statusUI.upperMenuIcon.src = util.misc.getIconImagePaths(labelType).iconImagePath;
     }
     // The menu header is desktop's; the phone has no menu column.
-    if (svv.ui.validationMenu.header) {
-      svv.ui.validationMenu.header.innerHTML = i18next.t(`top-ui.title.${util.camelToKebab(labelType)}`);
+    if (this.#menuHeader) {
+      this.#menuHeader.innerHTML = i18next.t(`top-ui.title.${util.camelToKebab(labelType)}`);
     }
   }
 

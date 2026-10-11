@@ -585,9 +585,16 @@ loaded by the corresponding Twirl view:
 ### Modules and the build
 
 Every first-party file is an **ES module** (#4467): it `import`s what it needs and `export`s what others use, so
-the imports decide load order, not a hand-kept list. Explore and Validate still keep their shared state in one
-exported registry object (`explore/svl.js`, `validate/svv.js`); the Gallery instead hands each module what it works
-with as constructor arguments, all wired in `gallery/Main.js` (#5648), which is where the other two are headed.
+the imports decide load order, not a hand-kept list. Explore still keeps its shared state in one exported registry
+object (`explore/svl.js`); the Gallery and Validate instead hand each module what it works with as constructor
+arguments, all wired in `gallery/Main.js` and `validate/Main.js` (#5648), which is where Explore is headed. In
+Validate the page's facts travel as one frozen `ValidateConfig` and its elements as one `ValidateUi`; the Tracker is
+built first and what it reports on registers with it (`trackPano`, `trackMissions`, `onFlush`); `PanoManager` owns
+the active viewer, reached only through its `panoViewer` accessor because it swaps between the primary viewer and the
+Pannellum fallback; and `LabelContainer` announces `onLoadingChange` and `onLabelShown` so the card, menus, undo
+button, keyboard and admin info subscribe rather than being reached for. A `KeyboardLock` shared by the modals and
+the keyboard replaces a keyboard the modals are built long before. `window.svv` is only the console and e2e handle
+start.js sets.
 `util` is the object `common/utilities.js` exports; a file
 that reads `util.misc`, `util.math`, `util.url` or `util.pano` imports the file that adds it (`utilitiesSidewalk.js`,
 `utilitiesMath.js`, `urlQuery.js`, `pano-viewer/panoUtilities.js`). Vendor libraries (`mapboxgl`, `i18next`, `turf`, …)

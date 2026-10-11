@@ -1,7 +1,18 @@
-import { svv } from '../svv.js';
 import { util } from '../../common/utilities.js';
 
-export function defineValidateConstants() {
+/**
+ * One reason button's rendering: its text, a tooltip with an optional example image, and whether it is the "wrong
+ * label type" reason that Expert Validate turns into a type pick.
+ * @typedef {{buttonText: string, tooltipText: string, tooltipImage?: string, wrongType?: boolean}} ReasonButton
+ */
+
+/**
+ * Builds the disagree and unsure reasons each label type's menu offers, keyed by kebab-case type and then by the
+ * reason button's id. Built on demand rather than at import, since the texts are translations and i18next is only
+ * ready once the page's setup has run.
+ * @returns {Record<string, Record<string, ReasonButton>>} The reasons, frozen.
+ */
+export function buildReasonButtonInfo() {
   /**
    * Every type's first disagree reason. On Expert Validate it opens the label type picker instead of being saved as
    * a comment (#5409). A fresh object per type, since the tooltip gets its key number appended below.
@@ -9,7 +20,7 @@ export function defineValidateConstants() {
    * @param {string} [type] - The label type, where its tooltip names the type it is usually mistaken for. The button
    *     stays generic either way: the tooltip suggests, it doesn't pick for the validator.
    * @param {string} [tooltipImage] - Example image for that tooltip, by file name under the tooltip image folder.
-   * @returns {object} The reason, in the shape the menu renders.
+   * @returns {ReasonButton} The reason, in the shape the menu renders.
    */
   const wrongTypeReason = (type, tooltipImage) => ({
     buttonText: i18next.t('validate:validate-menu.disagree-reason.common.wrong-type'),
@@ -19,7 +30,7 @@ export function defineValidateConstants() {
     ...(tooltipImage ? { tooltipImage: util.assetPath(`images/validate/ExpertValidateTooltips/${tooltipImage}`) } : {}),
     wrongType: true,
   });
-  svv.reasonButtonInfo = {
+  const reasonButtonInfo = {
     'curb-ramp': {
       'no-button-1': wrongTypeReason('curb-ramp', 'CurbRampDisagree3.png'),
       'no-button-2': {
@@ -223,12 +234,13 @@ export function defineValidateConstants() {
     },
   };
   // Append button numbers to tooltipText.
-  for (const labelType in svv.reasonButtonInfo) {
-    for (const buttonId in svv.reasonButtonInfo[labelType]) {
-      const buttonInfo = svv.reasonButtonInfo[labelType][buttonId];
+  for (const labelType in reasonButtonInfo) {
+    for (const buttonId in reasonButtonInfo[labelType]) {
+      const buttonInfo = reasonButtonInfo[labelType][buttonId];
       // Extract the number from the button ID (e.g., "no-button-1" -> "1").
       const buttonNumber = buttonId.split('-').pop();
       buttonInfo.tooltipText += ` (${buttonNumber})`;
     }
   }
+  return Object.freeze(reasonButtonInfo);
 }

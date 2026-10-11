@@ -15,7 +15,7 @@
  *
  *     const marker = new MissionLiveMarker(window.sessionStorage);
  *     const unexpected = marker.takeUnexpectedUnload();   // {missionId, ageSec, navType} or null
- *     if (unexpected) svv.tracker.push('Validate_UnexpectedUnload', unexpected);
+ *     if (unexpected) tracker.push('Validate_UnexpectedUnload', unexpected);
  *     marker.markLive(missionId);
  */
 export class MissionLiveMarker {

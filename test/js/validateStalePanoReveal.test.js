@@ -40,6 +40,12 @@ function loadClassFromFile(filePath, className) {
   return loadModules(filePath)[className];
 }
 
+/** @returns {object} The pano area's chrome, as Main.js collects it: the page's marker layer where there is one. */
+function viewerUi() {
+  const layer = document.getElementById('view-control-layer') ?? document.createElement('div');
+  return { date: { textContent: '' }, controlLayer: layer };
+}
+
 describe('Validate only paints a viewer canvas once it holds this label\'s pano (issues #5206, #5453)', () => {
   let panoManager;
   let primaryViewer;
@@ -60,6 +66,7 @@ describe('Validate only paints a viewer canvas once it holds this label\'s pano 
       resize: jest.fn(),
       setPov: jest.fn(),
       getPov: () => ({ heading: 0, pitch: 0, zoom: 1 }),
+      getViewerType: () => 'gsv',
     };
   }
 
@@ -130,11 +137,6 @@ describe('Validate only paints a viewer canvas once it holds this label\'s pano 
     global.GsvViewer = class GsvViewer {};
     global.MapillaryViewer = class MapillaryViewer {};
     global.PanoLoadTimeoutError = loadClassFromFile(TIMEOUT_ERROR_PATH, 'PanoLoadTimeoutError');
-    global.svv = {
-      tracker: { push: jest.fn() },
-      panoStore: { addPanoMetadata: jest.fn() },
-      ui: { viewer: { date: { text: jest.fn() } } },
-    };
 
     panoData = { getPanoId: () => 'pano1', getProperty: () => new Date(2026, 5) };
     primaryViewer = makeFakeViewer();
@@ -150,7 +152,8 @@ describe('Validate only paints a viewer canvas once it holds this label\'s pano 
     };
 
     const PanoManager = loadClassFromFile(PANO_MANAGER_PATH, 'PanoManager');
-    panoManager = await PanoManager.create(FakeViewerType, 'token');
+    panoManager = await PanoManager.create('token', viewerUi(), { viewerType: FakeViewerType, labelRadius: 10 },
+      { addPanoMetadata: jest.fn() }, {}, { push: jest.fn(), trackPano: jest.fn() });
 
     primaryCanvas = document.getElementById('svv-panorama');
     pannellumCanvas = document.getElementById('svv-panorama-pannellum');
@@ -166,7 +169,6 @@ describe('Validate only paints a viewer canvas once it holds this label\'s pano 
     delete global.MapillaryViewer;
     delete global.PanoLoadTimeoutError;
     delete global.PannellumViewer;
-    delete global.svv;
   });
 
   test('the outgoing label stays on screen while the fallback image downloads', async () => {
@@ -479,13 +481,6 @@ describe('a viewer that paints during a load stays unpainted until it faces the 
 
       removeMarker() { this.marker_.remove(); }
     };
-    global.svv = {
-      tracker: { push: jest.fn() },
-      panoStore: { addPanoMetadata: jest.fn() },
-      ui: { viewer: { date: { text: jest.fn() } } },
-      labelRadius: 10,
-    };
-
     panoData = { getPanoId: () => 'pano1', getProperty: () => new Date(2026, 5) };
     primaryViewer = {
       setPano: jest.fn(() => Promise.resolve(panoData)),
@@ -494,6 +489,7 @@ describe('a viewer that paints during a load stays unpainted until it faces the 
       prefetchPano: jest.fn(),
       setPov: jest.fn(() => undefined), // Like MapillaryJS's setCenter/setFieldOfView: nothing to wait on.
       getPov: () => ({ heading: 0, pitch: 0, zoom: 1 }),
+      getViewerType: () => 'gsv',
     };
     const PaintingViewerType = class PaintingViewerType {
       static PAINTS_DURING_LOAD = true;
@@ -502,7 +498,8 @@ describe('a viewer that paints during a load stays unpainted until it faces the 
     };
 
     const PanoManager = loadClassFromFile(PANO_MANAGER_PATH, 'PanoManager');
-    panoManager = await PanoManager.create(PaintingViewerType, 'token');
+    panoManager = await PanoManager.create('token', viewerUi(), { viewerType: PaintingViewerType, labelRadius: 10 },
+      { addPanoMetadata: jest.fn() }, {}, { push: jest.fn(), trackPano: jest.fn() });
     primaryCanvas = document.getElementById('svv-panorama');
 
     // The first label is up and aimed, as it is by the time a validator moves on from it.
@@ -528,7 +525,6 @@ describe('a viewer that paints during a load stays unpainted until it faces the 
     delete global.PanoLoadTimeoutError;
     delete global.PannellumViewer;
     delete global.PanoMarker;
-    delete global.svv;
   });
 
   test('the canvas is unpainted from before the load starts until two frames after the label\'s POV', async () => {

@@ -14,6 +14,7 @@ describe('LabelVisibilityControl opening the card on load', () => {
     class FakeInfra3dViewer {}
 
     let control;
+    let tracker;
     const card = () => document.getElementById('label-card');
 
     /**
@@ -22,17 +23,17 @@ describe('LabelVisibilityControl opening the card on load', () => {
      * @param {boolean} [mobile] - Whether this is the mobile page.
      */
     function build(viewerType, mobile = false) {
-        window.svv = {
-            viewerType,
-            tracker: { push: jest.fn() },
-            labelCard: { closePopovers: jest.fn(), isPopoverOpen: () => false },
-            panoManager: { getPanoMarker: () => null },
-            ui: { viewer: { controlLayer: document.getElementById('view-control-layer') } },
-        };
+        tracker = { push: jest.fn() };
         window.util = { isMobile: () => mobile, anchorPanelToLabel: jest.fn() };
         window.Infra3dViewer = FakeInfra3dViewer;
+        // The card's own contents are LabelCard's; here only its opening is under test.
+        window.LabelCard = class { closePopovers() {} isPopoverOpen() { return false; } };
         const { LabelVisibilityControl } = loadModules('frontend/js/validate/label/LabelVisibilityControl.js');
-        control = new LabelVisibilityControl();
+        control = new LabelVisibilityControl(
+            { controlLayer: document.getElementById('view-control-layer') }, { viewerType },
+            { onLoadingChange: () => {}, onLabelShown: () => {} },
+            { getPanoMarker: () => null, onMarkerCreated: () => {}, onMarkerDrawn: () => {} }, tracker,
+        );
     }
 
     beforeEach(() => {
@@ -54,7 +55,7 @@ describe('LabelVisibilityControl opening the card on load', () => {
 
         expect(control.isCardVisible()).toBe(true);
         expect(control.isCardHeldOpen()).toBe(true);
-        expect(window.svv.tracker.push).toHaveBeenCalledWith('LabelCard_OpenedOnLoad');
+        expect(tracker.push).toHaveBeenCalledWith('LabelCard_OpenedOnLoad');
     });
 
     it('does nothing on a city with other imagery', () => {
@@ -62,7 +63,7 @@ describe('LabelVisibilityControl opening the card on load', () => {
         control.openCardOnLoad();
 
         expect(control.isCardVisible()).toBe(false);
-        expect(window.svv.tracker.push).not.toHaveBeenCalled();
+        expect(tracker.push).not.toHaveBeenCalled();
     });
 
     it('does nothing on mobile', () => {

@@ -39,6 +39,62 @@ function loadClassFromFile(filePath, className) {
   return loadModules(filePath)[className];
 }
 
+
+/** @type {Function} The LabelContainer class under test. */
+let LabelContainer;
+
+/** @type {Record<string, any>} The collaborators the container under test is built over. */
+let deps;
+
+/**
+ * Fills in the collaborators LabelContainer takes that the suite has no opinion on.
+ * @param {Record<string, any>} suiteDeps - The suite's own fakes, which win where they overlap.
+ */
+function completeDeps(suiteDeps) {
+  const mission = {updateValidationResult: jest.fn(), isComplete: () => true, getProperty: () => 1};
+  deps = {
+    config: {validateParams: {}, source: 'Validate', canvasWidth: () => 720, canvasHeight: () => 480, labelRadius: 10},
+    panoLoadingStatus: {begin: jest.fn(), setMessage: jest.fn(), end: jest.fn()},
+    modalMissionComplete: {isShowing: () => false},
+    missionContainer: {getCurrentMission: () => mission, updateAMission: jest.fn()},
+    ...suiteDeps,
+  };
+  deps.tracker.flushSoon ??= jest.fn();
+  deps.modalNoNewMission.isShowing ??= () => false;
+  Object.assign(deps.panoManager, {
+    blanksPanoWhileLoading: () => false,
+    getActiveViewerName: () => 'Default',
+    revealPendingCanvas: jest.fn(),
+    prefetchBackups: deps.panoManager.prefetchBackups ?? jest.fn(),
+    panoViewer: {getViewerType: () => 'gsv'},
+  });
+}
+
+/**
+ * Builds a container over the fakes, with the card and menu listening the way Main.js wires them.
+ * @param {Array} labelList - Label metadata to start with.
+ * @param {string} labelType - The mission's label type.
+ * @returns {object} The container, before its first render.
+ */
+function newLabelContainer(labelList, labelType) {
+  const labelContainer = new LabelContainer(labelList, labelType, deps.ui, deps.config, deps.panoManager,
+    deps.panoLoadingStatus, deps.modalMissionComplete, deps.modalNoNewMission, deps.missionContainer, deps.tracker);
+  labelContainer.onLabelShown((label) => deps.labelCard.render(label));
+  labelContainer.onLabelShown((label) => deps.validationMenu.resetMenu(label));
+  return labelContainer;
+}
+
+/**
+ * @param {Array} labelList - Label metadata to start with.
+ * @param {string} labelType - The mission's label type.
+ * @returns {Promise<object>} The container with its first label rendered.
+ */
+async function buildLabelContainer(labelList, labelType) {
+  const labelContainer = newLabelContainer(labelList, labelType);
+  await labelContainer.renderCurrentLabel();
+  return labelContainer;
+}
+
 /** @returns {HTMLElement} A stand-in for an element Validate dims or re-cursors. */
 function fakeElement() {
   return document.createElement('div');
@@ -46,8 +102,8 @@ function fakeElement() {
 
 /** @returns {boolean} Whether the busy state has been taken off every element it covers, cursor included. */
 function uiReleased() {
-  return svv.ui.busyRegion.every((el) => !el.classList.contains('validate-disabled'))
-    && svv.ui.holder.style.cursor === '';
+  return deps.ui.busyRegion.every((el) => !el.classList.contains('validate-disabled'))
+    && deps.ui.holder.style.cursor === '';
 }
 
 describe('PanoManager clears the pano when no viewer can render it (issue #4810)', () => {
@@ -88,12 +144,6 @@ describe('PanoManager clears the pano when no viewer can render it (issue #4810)
     global.GsvViewer = class GsvViewer {};             // distinct from FakeViewerType, so the GSV-only
     global.MapillaryViewer = class MapillaryViewer {}; // and Mapillary-only attribution paths are skipped
     global.PanoLoadTimeoutError = loadClassFromFile(TIMEOUT_ERROR_PATH, 'PanoLoadTimeoutError');
-    global.svv = {
-      tracker: {push: jest.fn()},
-      panoStore: {addPanoMetadata: jest.fn()},
-      ui: {viewer: {date: {text: jest.fn()}}},
-      labelRadius: 10,
-    };
 
     panoData = {getPanoId: () => 'pano1', getProperty: () => new Date(2026, 5)};
     fakeViewer = {
@@ -103,13 +153,16 @@ describe('PanoManager clears the pano when no viewer can render it (issue #4810)
       resize: jest.fn(),
       setPov: jest.fn(),
       getPov: () => ({heading: 0, pitch: 0, zoom: 1}),
+      getViewerType: () => 'gsv',
     };
     const FakeViewerType = class FakeViewerType {
       static create() { return Promise.resolve(fakeViewer); }
     };
 
     const PanoManager = loadClassFromFile(PANO_MANAGER_PATH, 'PanoManager');
-    panoManager = await PanoManager.create(FakeViewerType, 'token');
+    const viewerUi = {date: {textContent: ''}, controlLayer: document.getElementById('view-control-layer')};
+    panoManager = await PanoManager.create('token', viewerUi, {viewerType: FakeViewerType, labelRadius: 10},
+      {addPanoMetadata: jest.fn()}, {}, {push: jest.fn(), trackPano: jest.fn()});
   });
 
   afterEach(() => {
@@ -123,7 +176,6 @@ describe('PanoManager clears the pano when no viewer can render it (issue #4810)
     delete global.GsvViewer;
     delete global.MapillaryViewer;
     delete global.PanoLoadTimeoutError;
-    delete global.svv;
   });
 
   /**
@@ -195,7 +247,6 @@ describe('PanoManager clears the pano when no viewer can render it (issue #4810)
 
 describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
   const LABEL_TYPE = 'Obstacle';
-  let LabelContainer;
   let unrenderablePanoIds;
   let slowLoadsLeft; // Per pano, how many more loads come back slow before one succeeds.
   let topUpQueue;   // Successive `labels` arrays the /moreLabels endpoint answers with.
@@ -226,7 +277,7 @@ describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
       getProperty(key) { return this.props[key]; }
     };
 
-    global.svv = {
+    completeDeps({
       adminVersion: false,
       tracker: {push: jest.fn()},
       labelCard: {render: jest.fn()},
@@ -258,7 +309,7 @@ describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
         }),
       },
       panoLoadingStatus: {begin: jest.fn(), setMessage: jest.fn(), end: jest.fn()},
-    };
+    });
 
     LabelContainer = loadClassFromFile(LABEL_CONTAINER_PATH, 'LabelContainer');
   });
@@ -268,7 +319,6 @@ describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
     delete global.util;
     delete global.i18next;
     delete global.Label;
-    delete global.svv;
   });
 
   /** @returns {Array} Three labels' worth of metadata, one per pano. */
@@ -286,12 +336,12 @@ describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
    * @returns {Promise<LabelContainer>}
    */
   function buildContainer(labelList = threeLabels()) {
-    return LabelContainer.create(labelList, LABEL_TYPE);
+    return buildLabelContainer(labelList, LABEL_TYPE);
   }
 
   /** @returns {Array<number>} The label ids the validation UI was actually asked to render, in order. */
   function renderedLabelIds() {
-    return svv.panoManager.renderPanoMarker.mock.calls.map(([label]) => label.getAuditProperty('labelId'));
+    return deps.panoManager.renderPanoMarker.mock.calls.map(([label]) => label.getAuditProperty('labelId'));
   }
 
   test('the unrenderable label is passed over and the next one is shown in its place', async () => {
@@ -303,8 +353,8 @@ describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
     expect(labelContainer.getCurrentLabel().getAuditProperty('labelId')).toBe(3);
     expect(renderedLabelIds()).toEqual([1, 3]);
     // Nothing about the dropped label reaches the UI that asks for a verdict on it.
-    expect(svv.labelCard.render).toHaveBeenCalledTimes(2);
-    expect(svv.validationMenu.resetMenu).toHaveBeenCalledTimes(2);
+    expect(deps.labelCard.render).toHaveBeenCalledTimes(2);
+    expect(deps.validationMenu.resetMenu).toHaveBeenCalledTimes(2);
   });
 
   test('dropping a label is logged, since it is invisible to the user by design', async () => {
@@ -313,7 +363,7 @@ describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
 
     await labelContainer.moveToNextLabel();
 
-    expect(svv.tracker.push).toHaveBeenCalledWith('LabelSkipped_NoImagery', {labelId: 2, panoId: 'panoB'});
+    expect(deps.tracker.push).toHaveBeenCalledWith('LabelSkipped_NoImagery', {labelId: 2, panoId: 'panoB'});
   });
 
   test('undo still lands on the label the user actually saw, not the dropped one', async () => {
@@ -335,10 +385,9 @@ describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
     expect(await labelContainer.undoLabel()).toBe(false);
     expect(labelContainer.getCurrentLabel().getAuditProperty('labelId')).toBe(2);
     // Label 1 was validated, so it isn't a label the mission is short of: nothing is dropped or owed for it.
-    expect(svv.tracker.push)
+    expect(deps.tracker.push)
       .toHaveBeenCalledWith('ValidateUndo_ImageryUnavailable', {labelId: 1, panoId: 'panoA', reason: 'no-imagery'});
-    expect(svv.tracker.push).not.toHaveBeenCalledWith('LabelSkipped_NoImagery', expect.anything());
-    expect(svv.undoValidation.disableUndo).toHaveBeenCalled();
+    expect(deps.tracker.push).not.toHaveBeenCalledWith('LabelSkipped_NoImagery', expect.anything());
   });
 
   test('a dropped label is replaced, so the queue never runs short of what the mission needs', async () => {
@@ -351,7 +400,7 @@ describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
 
     expect(labelContainer.getCurrentLabel().getAuditProperty('labelId')).toBe(4);
     expect(renderedLabelIds()).toEqual([1, 2, 4]);
-    expect(svv.modalNoNewMission.show).not.toHaveBeenCalled();
+    expect(deps.modalNoNewMission.show).not.toHaveBeenCalled();
   });
 
   test('the replacement request names the mission\'s label type and every label it has held', async () => {
@@ -385,7 +434,7 @@ describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
     // Two rounds of replacements, both unrenderable, then it stops asking rather than churning the queue.
     expect(topUpBodies).toHaveLength(2);
     expect(labelContainer.getCurrentLabel()).toBeUndefined();
-    expect(svv.modalNoNewMission.show).toHaveBeenCalledWith({imageryUnavailable: true});
+    expect(deps.modalNoNewMission.show).toHaveBeenCalledWith({imageryUnavailable: true});
   });
 
   test('when the backend has no replacement to give, the modal says imagery, not "nothing left"', async () => {
@@ -395,9 +444,9 @@ describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
 
     await buildContainer();
 
-    expect(svv.modalNoNewMission.show).toHaveBeenCalledWith({imageryUnavailable: true});
-    expect(svv.panoManager.renderPanoMarker).not.toHaveBeenCalled();
-    expect(svv.labelCard.render).not.toHaveBeenCalled();
+    expect(deps.modalNoNewMission.show).toHaveBeenCalledWith({imageryUnavailable: true});
+    expect(deps.panoManager.renderPanoMarker).not.toHaveBeenCalled();
+    expect(deps.labelCard.render).not.toHaveBeenCalled();
   });
 
   test('a failed replacement request falls back to the modal instead of throwing', async () => {
@@ -408,8 +457,8 @@ describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
     await labelContainer.moveToNextLabel();
     await labelContainer.moveToNextLabel();
 
-    expect(svv.tracker.push).toHaveBeenCalledWith('LabelTopUpFailed', {error: 'offline'});
-    expect(svv.modalNoNewMission.show).toHaveBeenCalledWith({imageryUnavailable: true});
+    expect(deps.tracker.push).toHaveBeenCalledWith('LabelTopUpFailed', {error: 'offline'});
+    expect(deps.modalNoNewMission.show).toHaveBeenCalledWith({imageryUnavailable: true});
   });
 
   // Only a dropped label buys a replacement request. A queue that empties on its own — including one the backend
@@ -421,7 +470,7 @@ describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
     await labelContainer.moveToNextLabel();
 
     expect(global.fetch).not.toHaveBeenCalled();
-    expect(svv.modalNoNewMission.show).toHaveBeenCalledWith({imageryUnavailable: false});
+    expect(deps.modalNoNewMission.show).toHaveBeenCalledWith({imageryUnavailable: false});
   });
 
   // A label is dropped as soon as its imagery fails, which is usually mid-queue, but the queue only empties — and the
@@ -434,7 +483,7 @@ describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
     await labelContainer.moveToNextLabel(); // Nothing left, and the backend has no replacement to give.
 
     expect(topUpBodies).toHaveLength(1);
-    expect(svv.modalNoNewMission.show).toHaveBeenCalledWith({imageryUnavailable: true});
+    expect(deps.modalNoNewMission.show).toHaveBeenCalledWith({imageryUnavailable: true});
   });
 
   // On desktop the modals are rendered inside #svv-application-holder, which renderCurrentLabel covers with
@@ -449,7 +498,7 @@ describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
     await buildContainer();
 
     expect(uiReleased()).toBe(true);
-    expect(svv.modalNoNewMission.show).toHaveBeenCalled();
+    expect(deps.modalNoNewMission.show).toHaveBeenCalled();
   });
 
   test('the UI is released on the ordinary path too', async () => {
@@ -460,51 +509,61 @@ describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
 
   test('a render that throws before the marker is drawn reveals the loaded pano before the tool unlocks', async () => {
     // Otherwise a canvas held unpainted for the reveal (#5582) stays blank under a tool that accepts verdicts again.
-    svv.panoManager.revealPendingCanvas = jest.fn();
-    svv.labelCard.render = jest.fn(() => { throw new Error('card broke'); });
+    deps.panoManager.revealPendingCanvas = jest.fn();
+    deps.labelCard.render = jest.fn(() => { throw new Error('card broke'); });
 
     await expect(buildContainer()).rejects.toThrow('card broke');
 
-    expect(svv.panoManager.revealPendingCanvas).toHaveBeenCalled();
+    expect(deps.panoManager.revealPendingCanvas).toHaveBeenCalled();
+    expect(uiReleased()).toBe(true);
+  });
+
+  test('a marker that fails to draw still hands the label to the card and the menu', async () => {
+    // The tool unlocks either way; a menu left on the previous label's verdict would skip this one on the next click.
+    deps.panoManager.renderPanoMarker = jest.fn(() => Promise.reject(new Error('draw broke')));
+
+    await expect(buildContainer()).rejects.toThrow('draw broke');
+
+    expect(deps.labelCard.render).toHaveBeenCalled();
+    expect(deps.validationMenu.resetMenu).toHaveBeenCalled();
     expect(uiReleased()).toBe(true);
   });
 
   test('a status that comes into view is logged against the label loading under it', async () => {
     // How prod counts loads slow enough to be seen that still succeed (#5581).
-    svv.panoLoadingStatus.begin = jest.fn((onShown) => onShown());
+    deps.panoLoadingStatus.begin = jest.fn((onShown) => onShown());
 
     await buildContainer();
 
-    expect(svv.tracker.push).toHaveBeenCalledWith('PanoLoadingStatus_Shown', {labelId: 1, panoId: 'panoA'});
+    expect(deps.tracker.push).toHaveBeenCalledWith('PanoLoadingStatus_Shown', {labelId: 1, panoId: 'panoA'});
   });
 
   test('no loading status starts while the mission-complete modal covers the pano', async () => {
-    svv.modalMissionComplete = {isShowing: () => true};
+    deps.modalMissionComplete.isShowing = () => true;
     await buildContainer();
-    expect(svv.panoLoadingStatus.begin).not.toHaveBeenCalled();
+    expect(deps.panoLoadingStatus.begin).not.toHaveBeenCalled();
 
     // Once the modal is gone the next load gets its status again.
-    svv.modalMissionComplete.isShowing = () => false;
-    svv.panoLoadingStatus.begin.mockClear();
+    deps.modalMissionComplete.isShowing = () => false;
+    deps.panoLoadingStatus.begin.mockClear();
     const labelContainer = await buildContainer();
     await labelContainer.moveToNextLabel();
-    expect(svv.panoLoadingStatus.begin).toHaveBeenCalled();
+    expect(deps.panoLoadingStatus.begin).toHaveBeenCalled();
   });
 
   test('the next two labels\' panos are prefetched once a label is on screen', async () => {
     const labelContainer = await buildContainer();
-    expect(svv.panoManager.prefetchPano.mock.calls.map(([panoId]) => panoId)).toEqual(['panoB', 'panoC']);
+    expect(deps.panoManager.prefetchPano.mock.calls.map(([panoId]) => panoId)).toEqual(['panoB', 'panoC']);
 
-    svv.panoManager.prefetchPano.mockClear();
+    deps.panoManager.prefetchPano.mockClear();
     await labelContainer.moveToNextLabel();
     // The queue ends at C, so only it is left to warm; nothing is fetched past the end.
-    expect(svv.panoManager.prefetchPano.mock.calls.map(([panoId]) => panoId)).toEqual(['panoC']);
+    expect(deps.panoManager.prefetchPano.mock.calls.map(([panoId]) => panoId)).toEqual(['panoC']);
   });
 });
 
 describe('LabelContainer defers a label whose pano is slow rather than dropping it (issue #5581)', () => {
   const LABEL_TYPE = 'Obstacle';
-  let LabelContainer;
   let slowLoadsLeft; // Per pano, how many more loads come back slow before one succeeds.
   let topUpBodies;
 
@@ -528,7 +587,7 @@ describe('LabelContainer defers a label whose pano is slow rather than dropping 
       setProperty(key, value) { this.props[key] = value; }
       getProperty(key) { return this.props[key]; }
     };
-    global.svv = {
+    completeDeps({
       adminVersion: false,
       tracker: {push: jest.fn()},
       labelCard: {render: jest.fn()},
@@ -559,7 +618,7 @@ describe('LabelContainer defers a label whose pano is slow rather than dropping 
         }),
       },
       panoLoadingStatus: {begin: jest.fn(), setMessage: jest.fn(), end: jest.fn()},
-    };
+    });
 
     LabelContainer = loadClassFromFile(LABEL_CONTAINER_PATH, 'LabelContainer');
   });
@@ -569,24 +628,21 @@ describe('LabelContainer defers a label whose pano is slow rather than dropping 
     delete global.util;
     delete global.i18next;
     delete global.Label;
-    delete global.svv;
   });
 
   /** @returns {Promise<LabelContainer>} A container over three labels, one per pano, with its first label shown. */
   function buildContainer() {
-    return LabelContainer.create(
-      [{labelId: 1, panoId: 'panoA'}, {labelId: 2, panoId: 'panoB'}, {labelId: 3, panoId: 'panoC'}], LABEL_TYPE,
-    );
+    return buildLabelContainer([{labelId: 1, panoId: 'panoA'}, {labelId: 2, panoId: 'panoB'}, {labelId: 3, panoId: 'panoC'}], LABEL_TYPE);
   }
 
   /** @returns {Array<number>} The label ids the validation UI was actually asked to render, in order. */
   function renderedLabelIds() {
-    return svv.panoManager.renderPanoMarker.mock.calls.map(([label]) => label.getAuditProperty('labelId'));
+    return deps.panoManager.renderPanoMarker.mock.calls.map(([label]) => label.getAuditProperty('labelId'));
   }
 
   /** @returns {Array<string>} The tracker events pushed so far, by name. */
   function events() {
-    return svv.tracker.push.mock.calls.map(([name]) => name);
+    return deps.tracker.push.mock.calls.map(([name]) => name);
   }
 
   test('a slow label goes to the back of the queue, and the next label is shown in its place', async () => {
@@ -608,11 +664,11 @@ describe('LabelContainer defers a label whose pano is slow rather than dropping 
 
     await labelContainer.moveToNextLabel();
 
-    expect(svv.tracker.push)
+    expect(deps.tracker.push)
       .toHaveBeenCalledWith('LabelDeferred_SlowImagery', {labelId: 2, panoId: 'panoB', attempt: 1});
     expect(events()).not.toContain('LabelSkipped_NoImagery');
     expect(events()).not.toContain('LabelSkipped_SlowImagery');
-    expect(svv.panoManager.prefetchPano).toHaveBeenCalledWith('panoB');
+    expect(deps.panoManager.prefetchPano).toHaveBeenCalledWith('panoB');
     expect(global.fetch).not.toHaveBeenCalled(); // No replacement is asked for: the label is still in the mission.
   });
 
@@ -622,8 +678,8 @@ describe('LabelContainer defers a label whose pano is slow rather than dropping 
 
     await labelContainer.moveToNextLabel();
 
-    expect(svv.panoLoadingStatus.setMessage).toHaveBeenCalledWith('validate:pano-loading.skipping');
-    expect(svv.panoLoadingStatus.end).toHaveBeenCalled();
+    expect(deps.panoLoadingStatus.setMessage).toHaveBeenCalledWith('validate:pano-loading.skipping');
+    expect(deps.panoLoadingStatus.end).toHaveBeenCalled();
   });
 
   test('a label slow a second time is dropped as slow and replaced like any other dropped label', async () => {
@@ -633,11 +689,11 @@ describe('LabelContainer defers a label whose pano is slow rather than dropping 
     await labelContainer.moveToNextLabel(); // Defers label 2, shows label 3.
     await labelContainer.moveToNextLabel(); // Label 2 again, slow again: dropped, and the backend has no replacement.
 
-    expect(svv.tracker.push).toHaveBeenCalledWith('LabelSkipped_SlowImagery', {labelId: 2, panoId: 'panoB'});
+    expect(deps.tracker.push).toHaveBeenCalledWith('LabelSkipped_SlowImagery', {labelId: 2, panoId: 'panoB'});
     expect(events()).not.toContain('LabelSkipped_NoImagery');
     expect(topUpBodies).toHaveLength(1);
     expect(topUpBodies[0].labels_needed).toBe(1);
-    expect(svv.modalNoNewMission.show).toHaveBeenCalledWith({imageryUnavailable: true});
+    expect(deps.modalNoNewMission.show).toHaveBeenCalledWith({imageryUnavailable: true});
   });
 
   test('the last label left comes straight back without claiming to try another', async () => {
@@ -648,7 +704,7 @@ describe('LabelContainer defers a label whose pano is slow rather than dropping 
     await labelContainer.moveToNextLabel(); // Label 3 is slow, and nothing is queued behind it.
 
     expect(labelContainer.getCurrentLabel().getAuditProperty('labelId')).toBe(3);
-    expect(svv.panoLoadingStatus.setMessage).not.toHaveBeenCalled();
+    expect(deps.panoLoadingStatus.setMessage).not.toHaveBeenCalled();
   });
 
   test('when every pano is slow twice the mission still ends at the imagery modal', async () => {
@@ -663,8 +719,8 @@ describe('LabelContainer defers a label whose pano is slow rather than dropping 
     expect(events().filter((name) => name === 'LabelSkipped_SlowImagery')).toHaveLength(3);
     // Replacements would come from the network that just failed every load, so none are asked for.
     expect(global.fetch).not.toHaveBeenCalled();
-    expect(svv.modalNoNewMission.show).toHaveBeenCalledWith({imageryUnavailable: true});
-    expect(svv.panoManager.renderPanoMarker).not.toHaveBeenCalled();
+    expect(deps.modalNoNewMission.show).toHaveBeenCalledWith({imageryUnavailable: true});
+    expect(deps.panoManager.renderPanoMarker).not.toHaveBeenCalled();
   });
 
   test('the third slow load in a row is dropped on its first try instead of deferred', async () => {
@@ -675,7 +731,7 @@ describe('LabelContainer defers a label whose pano is slow rather than dropping 
     const labelContainer = await buildContainer();
 
     // A and B are deferred; C, the third slow load with nothing loading in between, is dropped at once and owed.
-    expect(svv.tracker.push).toHaveBeenCalledWith('LabelSkipped_SlowImagery', {labelId: 3, panoId: 'panoC'});
+    expect(deps.tracker.push).toHaveBeenCalledWith('LabelSkipped_SlowImagery', {labelId: 3, panoId: 'panoC'});
     expect(events().filter((name) => name === 'LabelDeferred_SlowImagery')).toHaveLength(2);
     // Deferred labels still get their second try: A loads on it, which is the success that ends the streak.
     expect(labelContainer.getCurrentLabel().getAuditProperty('labelId')).toBe(1);
@@ -685,7 +741,7 @@ describe('LabelContainer defers a label whose pano is slow rather than dropping 
     slowLoadsLeft.set('panoB', 1);
     slowLoadsLeft.set('panoC', 1);
     slowLoadsLeft.set('panoE', 1);
-    const labelContainer = await LabelContainer.create([
+    const labelContainer = await buildLabelContainer([
       {labelId: 1, panoId: 'panoA'}, {labelId: 2, panoId: 'panoB'}, {labelId: 3, panoId: 'panoC'},
       {labelId: 4, panoId: 'panoD'}, {labelId: 5, panoId: 'panoE'},
     ], LABEL_TYPE);
@@ -694,7 +750,7 @@ describe('LabelContainer defers a label whose pano is slow rather than dropping 
     expect(labelContainer.getCurrentLabel().getAuditProperty('labelId')).toBe(4);
     await labelContainer.moveToNextLabel(); // E is slow: one in a row, so deferred rather than dropped.
 
-    expect(svv.tracker.push).toHaveBeenCalledWith('LabelDeferred_SlowImagery', {labelId: 5, panoId: 'panoE', attempt: 1});
+    expect(deps.tracker.push).toHaveBeenCalledWith('LabelDeferred_SlowImagery', {labelId: 5, panoId: 'panoE', attempt: 1});
     expect(events()).not.toContain('LabelSkipped_SlowImagery');
   });
 
@@ -706,16 +762,15 @@ describe('LabelContainer defers a label whose pano is slow rather than dropping 
     expect(await labelContainer.undoLabel()).toBe(false);
 
     expect(labelContainer.getCurrentLabel().getAuditProperty('labelId')).toBe(2);
-    expect(svv.tracker.push)
+    expect(deps.tracker.push)
       .toHaveBeenCalledWith('ValidateUndo_ImageryUnavailable', {labelId: 1, panoId: 'panoA', reason: 'slow'});
     expect(events()).not.toContain('LabelDeferred_SlowImagery');
-    expect(svv.panoLoadingStatus.setMessage).not.toHaveBeenCalledWith('validate:pano-loading.skipping');
-    expect(svv.undoValidation.disableUndo).toHaveBeenCalled();
+    expect(deps.panoLoadingStatus.setMessage).not.toHaveBeenCalledWith('validate:pano-loading.skipping');
 
     await labelContainer.moveToNextLabel(); // Label 3.
     await labelContainer.moveToNextLabel(); // The end: label 1 doesn't come back, and nothing was owed.
     expect(renderedLabelIds()).toEqual([1, 2, 2, 3]);
     expect(global.fetch).not.toHaveBeenCalled();
-    expect(svv.modalNoNewMission.show).toHaveBeenCalledWith({imageryUnavailable: false});
+    expect(deps.modalNoNewMission.show).toHaveBeenCalledWith({imageryUnavailable: false});
   });
 });

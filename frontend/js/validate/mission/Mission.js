@@ -2,9 +2,15 @@
  * Represents a single validation mission.
  */
 
-import { svv } from '../svv.js';
+/** @typedef {import('./MissionContainer.js').MissionContainer} MissionContainer */
+/** @typedef {import('../status/StatusField.js').StatusField} StatusField */
 
 export class Mission {
+  /** @type {MissionContainer} */
+  #missionContainer;
+  /** @type {StatusField} */
+  #statusField;
+
   #properties = {
     agreeCount: 0,
     disagreeCount: 0,
@@ -19,8 +25,12 @@ export class Mission {
 
   /**
    * @param {object} params - Mission metadata passed in from MissionContainer.js.
+   * @param {MissionContainer} missionContainer - Told when this mission's last label is validated.
+   * @param {StatusField} statusField - Shows this mission's progress and the validator's running count.
    */
-  constructor(params) {
+  constructor(params, missionContainer, statusField) {
+    this.#missionContainer = missionContainer;
+    this.#statusField = statusField;
     this.#init(params);
   }
 
@@ -78,41 +88,34 @@ export class Mission {
   }
 
   /**
-   * Updates status bar (UI) and current mission properties.
-   * @param {boolean} undo - If true, the user clicked the undo button, so we are progressing backwards.
+   * Moves the mission's progress one label forward, or back for an undo, and updates the status bar.
+   * @param {?string} undoneResult - The verdict an undo took back (Agree, Disagree, or Unsure); null for a verdict
+   *     cast, which moves the mission forward.
    */
-  updateMissionProgress(undo) {
+  updateMissionProgress(undoneResult) {
     let labelsProgress = this.getProperty('labelsProgress');
     if (labelsProgress < this.getProperty('labelsValidated')) {
-      if (undo) {
+      if (undoneResult) {
         labelsProgress -= 1;
-        const priorLabelFormData = svv.labelContainer.getPriorLabelFormData();
-        this.updateValidationResult(priorLabelFormData.validation_result, true);
-        svv.statusField.decrementLabelCounts();
-        // We either have or have not submitted the last label to the backend.
-        if (svv.labelContainer.getLabelsToSubmit().length > 0) {
-          svv.labelContainer.pop();
-        } else {
-          svv.labelContainer.pushUndoValidation(priorLabelFormData);
-        }
+        this.updateValidationResult(undoneResult, true);
+        this.#statusField.decrementLabelCounts();
       } else {
         labelsProgress += 1;
-        svv.statusField.incrementLabelCounts();
+        this.#statusField.incrementLabelCounts();
       }
 
       this.setProperty('labelsProgress', labelsProgress);
       // Submit mission if mission is complete.
       if (labelsProgress >= this.getProperty('labelsValidated')) {
         this.setProperty('completed', true);
-        svv.missionContainer.completeAMission();
-        svv.undoValidation.disableUndo();
+        this.#missionContainer.completeAMission();
       }
     }
 
     // Update progress bar.
     const labelsInMission = this.getProperty('labelsValidated');
-    svv.statusField.setProgressBar(labelsProgress, labelsInMission);
-    svv.statusField.setProgressText(labelsProgress, labelsInMission);
+    this.#statusField.setProgressBar(labelsProgress, labelsInMission);
+    this.#statusField.setProgressText(labelsProgress, labelsInMission);
   }
 
   /**

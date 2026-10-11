@@ -33,6 +33,61 @@ function loadClassFromFile(filePath, className) {
   return loadModules(filePath)[className];
 }
 
+/** @type {Function} The LabelContainer class under test. */
+let LabelContainer;
+
+/** @type {Record<string, any>} The collaborators the container under test is built over. */
+let deps;
+
+/**
+ * Fills in the collaborators LabelContainer takes that the suite has no opinion on.
+ * @param {Record<string, any>} suiteDeps - The suite's own fakes, which win where they overlap.
+ */
+function completeDeps(suiteDeps) {
+  const mission = {updateValidationResult: jest.fn(), isComplete: () => true, getProperty: () => 1};
+  deps = {
+    config: {validateParams: {}, source: 'Validate', canvasWidth: () => 720, canvasHeight: () => 480, labelRadius: 10},
+    panoLoadingStatus: {begin: jest.fn(), setMessage: jest.fn(), end: jest.fn()},
+    modalMissionComplete: {isShowing: () => false},
+    missionContainer: {getCurrentMission: () => mission, updateAMission: jest.fn()},
+    ...suiteDeps,
+  };
+  deps.tracker.flushSoon ??= jest.fn();
+  deps.modalNoNewMission.isShowing ??= () => false;
+  Object.assign(deps.panoManager, {
+    blanksPanoWhileLoading: () => false,
+    getActiveViewerName: () => 'Default',
+    revealPendingCanvas: jest.fn(),
+    prefetchBackups: deps.panoManager.prefetchBackups ?? jest.fn(),
+    panoViewer: {getViewerType: () => 'gsv'},
+  });
+}
+
+/**
+ * Builds a container over the fakes, with the card and menu listening the way Main.js wires them.
+ * @param {Array} labelList - Label metadata to start with.
+ * @param {string} labelType - The mission's label type.
+ * @returns {object} The container, before its first render.
+ */
+function newLabelContainer(labelList, labelType) {
+  const labelContainer = new LabelContainer(labelList, labelType, deps.ui, deps.config, deps.panoManager,
+    deps.panoLoadingStatus, deps.modalMissionComplete, deps.modalNoNewMission, deps.missionContainer, deps.tracker);
+  labelContainer.onLabelShown((label) => deps.labelCard.render(label));
+  labelContainer.onLabelShown((label) => deps.validationMenu.resetMenu(label));
+  return labelContainer;
+}
+
+/**
+ * @param {Array} labelList - Label metadata to start with.
+ * @param {string} labelType - The mission's label type.
+ * @returns {Promise<object>} The container with its first label rendered.
+ */
+async function buildLabelContainer(labelList, labelType) {
+  const labelContainer = newLabelContainer(labelList, labelType);
+  await labelContainer.renderCurrentLabel();
+  return labelContainer;
+}
+
 describe('PanoManager skips the provider for a pano it knows is gone (issue #5561)', () => {
   const backupImage = { pano_id: 'backup-pano', camera_heading: 90 };
   let PanoManager;
@@ -40,9 +95,19 @@ describe('PanoManager skips the provider for a pano it knows is gone (issue #556
   let primaryViewer;
   let pannellumViewer;
   let panoData;
+  let tracker;
+
+  /** @returns {Promise<PanoManager>} A manager over the fake viewers, wired the way Main.js wires it. */
+  function createPanoManager() {
+    const viewerUi = { date: { textContent: '' }, controlLayer: document.createElement('div') };
+    return PanoManager.create(
+      'token', viewerUi, { viewerType: FakeViewerType, labelRadius: 10 }, { addPanoMetadata: jest.fn() }, {}, tracker,
+    );
+  }
 
   beforeEach(() => {
     document.body.innerHTML = '<div id="pano-holder"><div id="svv-panorama"></div></div>';
+    tracker = { push: jest.fn(), trackPano: jest.fn() };
 
     global.util = {};
     Object.assign(window, loadModules(THROTTLE_PATH));
@@ -52,11 +117,6 @@ describe('PanoManager skips the provider for a pano it knows is gone (issue #556
     global.GsvViewer = class GsvViewer {};
     global.MapillaryViewer = class MapillaryViewer {};
     global.PanoLoadTimeoutError = class PanoLoadTimeoutError extends Error {};
-    global.svv = {
-      tracker: { push: jest.fn() },
-      panoStore: { addPanoMetadata: jest.fn() },
-      ui: { viewer: { date: { textContent: '' } } },
-    };
 
     // A Date, as PanoData carries since #5549 replaced moment: the desktop callback formats it for the date badge.
     panoData = { getPanoId: () => 'pano1', getProperty: () => new Date(2026, 5, 1) };
@@ -84,31 +144,31 @@ describe('PanoManager skips the provider for a pano it knows is gone (issue #556
   afterEach(() => {
     document.body.innerHTML = '';
     for (const name of ['util', 'i18next', 'createPanoViewerLogo', 'createPanoAttribution', 'GsvViewer',
-      'MapillaryViewer', 'PanoLoadTimeoutError', 'svv', 'PannellumViewer']) {
+      'MapillaryViewer', 'PanoLoadTimeoutError', 'PannellumViewer']) {
       delete global[name];
     }
   });
 
   /** The fallback path, taken: Pannellum holds the pano and the primary viewer was never involved. */
-  function expectFallbackWithoutAskingPrimary(loaded) {
+  function expectFallbackWithoutAskingPrimary(panoManager, loaded) {
     expect(loaded).toEqual({ panoData });
     expect(global.PannellumViewer.create).toHaveBeenCalledTimes(1);
-    expect(svv.panoViewer).toBe(pannellumViewer);
+    expect(panoManager.panoViewer).toBe(pannellumViewer);
     expect(document.getElementById('svv-panorama').style.display).toBe('none');
   }
 
   test('an expired label with a backup loads the backup without asking the provider', async () => {
-    const panoManager = await PanoManager.create(FakeViewerType, 'token');
+    const panoManager = await createPanoManager();
 
     const loaded = await panoManager.setPanorama('pano2', backupImage, { expired: true });
 
     expect(primaryViewer.setPano).not.toHaveBeenCalled();
-    expectFallbackWithoutAskingPrimary(loaded);
+    expectFallbackWithoutAskingPrimary(panoManager, loaded);
     expect(panoManager.getProperty('panoLoaded')).toBe(true);
   });
 
   test('an expired label with no backup still asks the provider, since that is its only chance', async () => {
-    const panoManager = await PanoManager.create(FakeViewerType, 'token');
+    const panoManager = await createPanoManager();
 
     const loaded = await panoManager.setPanorama('pano2', null, { expired: true });
 
@@ -118,7 +178,7 @@ describe('PanoManager skips the provider for a pano it knows is gone (issue #556
   });
 
   test('a label not flagged expired asks the provider first, backup or not', async () => {
-    const panoManager = await PanoManager.create(FakeViewerType, 'token');
+    const panoManager = await createPanoManager();
 
     await panoManager.setPanorama('pano2', backupImage);
 
@@ -127,19 +187,19 @@ describe('PanoManager skips the provider for a pano it knows is gone (issue #556
   });
 
   test('the first label of a mission takes the same shortcut', async () => {
-    const panoManager = await PanoManager.create(FakeViewerType, 'token');
+    const panoManager = await createPanoManager();
     // Nothing is loaded before the first label's own setPanorama, so no provider request can slip in there.
     expect(primaryViewer.setPano).not.toHaveBeenCalled();
 
     const loaded = await panoManager.setPanorama('pano1', backupImage, { expired: true });
 
     expect(primaryViewer.setPano).not.toHaveBeenCalled();
-    expectFallbackWithoutAskingPrimary(loaded);
+    expectFallbackWithoutAskingPrimary(panoManager, loaded);
     expect(panoManager.getActiveViewerName()).toBe('Pannellum');
   });
 
   test('a backup that fails under a stale expired flag still gets the provider as a last resort', async () => {
-    const panoManager = await PanoManager.create(FakeViewerType, 'token');
+    const panoManager = await createPanoManager();
     global.PannellumViewer.create = jest.fn(() => Promise.reject(new Error('503: no copy could be cut')));
     jest.spyOn(console, 'error').mockImplementation(() => {});
 
@@ -147,7 +207,7 @@ describe('PanoManager skips the provider for a pano it knows is gone (issue #556
 
     expect(primaryViewer.setPano).toHaveBeenCalledWith('pano2');
     expect(loaded).toEqual({ panoData });
-    expect(svv.panoViewer).toBe(primaryViewer);
+    expect(panoManager.panoViewer).toBe(primaryViewer);
     expect(panoManager.getProperty('panoLoaded')).toBe(true);
   });
 
@@ -155,7 +215,7 @@ describe('PanoManager skips the provider for a pano it knows is gone (issue #556
     ['a timeout', () => new global.PanoLoadTimeoutError('slow'), 'slow'],
     ['a missing pano', () => new Error('not found'), 'no-imagery'],
   ])('when backup and last-resort provider both fail, %s on the provider sets the reason', async (_, makeErr, why) => {
-    const panoManager = await PanoManager.create(FakeViewerType, 'token');
+    const panoManager = await createPanoManager();
     global.PannellumViewer.create = jest.fn(() => Promise.reject(new Error('503: no copy could be cut')));
     jest.spyOn(console, 'error').mockImplementation(() => {});
     primaryViewer.setPano.mockImplementation(() => Promise.reject(makeErr()));
@@ -171,7 +231,7 @@ describe('PanoManager skips the provider for a pano it knows is gone (issue #556
     global.PannellumViewer.create = jest.fn(() => Promise.reject(new Error('503: no copy could be cut')));
     jest.spyOn(console, 'error').mockImplementation(() => {});
 
-    const panoManager = await PanoManager.create(FakeViewerType, 'token');
+    const panoManager = await createPanoManager();
     const loaded = await panoManager.setPanorama('pano1', backupImage, { expired: true });
 
     expect(primaryViewer.setPano).toHaveBeenCalledWith('pano1');
@@ -180,21 +240,20 @@ describe('PanoManager skips the provider for a pano it knows is gone (issue #556
   });
 
   test('a live label after an expired one hands the pano back to the provider', async () => {
-    const panoManager = await PanoManager.create(FakeViewerType, 'token');
+    const panoManager = await createPanoManager();
     await panoManager.setPanorama('pano1', backupImage, { expired: true });
-    expect(svv.panoViewer).toBe(pannellumViewer);
+    expect(panoManager.panoViewer).toBe(pannellumViewer);
 
     const loaded = await panoManager.setPanorama('pano3', null);
 
     expect(primaryViewer.setPano).toHaveBeenCalledWith('pano3');
     expect(loaded).toEqual({ panoData });
-    expect(svv.panoViewer).toBe(primaryViewer);
+    expect(panoManager.panoViewer).toBe(primaryViewer);
     expect(document.getElementById('svv-panorama').style.display).toBe('');
   });
 });
 
 describe('LabelContainer hands the flag to the PanoManager (issue #5561)', () => {
-  let LabelContainer;
 
   beforeEach(() => {
     global.util = { isMobile: () => false, assetPath: assetPathStub };
@@ -210,8 +269,7 @@ describe('LabelContainer hands the flag to the PanoManager (issue #5561)', () =>
       getProperty(key) { return this.props[key]; }
     };
     const el = () => document.createElement('div');
-    global.svv = {
-      adminVersion: false,
+    completeDeps({
       tracker: { push: jest.fn() },
       labelCard: { render: jest.fn() },
       validationMenu: { resetMenu: jest.fn() },
@@ -230,17 +288,17 @@ describe('LabelContainer hands the flag to the PanoManager (issue #5561)', () =>
         setPanorama: jest.fn((panoId) => Promise.resolve({ panoData: { panoId } })),
         prefetchPano: jest.fn(),
       },
-    };
+    });
     LabelContainer = loadClassFromFile(LABEL_CONTAINER_PATH, 'LabelContainer');
   });
 
   afterEach(() => {
-    for (const name of ['util', 'i18next', 'Label', 'svv']) delete global[name];
+    for (const name of ['util', 'i18next', 'Label']) delete global[name];
   });
 
   test('each label is loaded with its own expired flag', async () => {
     const backup = { pano_id: 'panoB' };
-    const labelContainer = await LabelContainer.create([
+    const labelContainer = await buildLabelContainer([
       { labelId: 1, panoId: 'panoA', backupImage: null, expired: false },
       { labelId: 2, panoId: 'panoB', backupImage: backup, expired: true },
       { labelId: 3, panoId: 'panoC', backupImage: null },
@@ -248,7 +306,7 @@ describe('LabelContainer hands the flag to the PanoManager (issue #5561)', () =>
     await labelContainer.moveToNextLabel();
     await labelContainer.moveToNextLabel();
 
-    expect(svv.panoManager.setPanorama.mock.calls).toEqual([
+    expect(deps.panoManager.setPanorama.mock.calls).toEqual([
       ['panoA', null, { expired: false }],
       ['panoB', backup, { expired: true }],
       ['panoC', null, { expired: false }],
@@ -278,6 +336,6 @@ describe('Label reads the flag off the backend payload (issue #5561)', () => {
     [{ expired: null }, false],
     [{}, false],
   ])('%j reads as %s', (params, expected) => {
-    expect(new Label({ label_type: 'CurbRamp', tags: [], ...params }).getAuditProperty('expired')).toBe(expected);
+    expect(new Label({ label_type: 'CurbRamp', tags: [], ...params }, {}).getAuditProperty('expired')).toBe(expected);
   });
 });

@@ -2,12 +2,51 @@
  * Keeps track of the current and completed validation missions.
  */
 
-import { svv } from '../svv.js';
 import { Mission } from './Mission.js';
+/** @typedef {import('../status/StatusField.js').StatusField} StatusField */
+/** @typedef {import('../modal/ModalMission.js').ModalMission} ModalMission */
+/** @typedef {import('../modal/ModalMissionComplete.js').ModalMissionComplete} ModalMissionComplete */
+/** @typedef {import('../util/MissionLiveMarker.js').MissionLiveMarker} MissionLiveMarker */
+/** @typedef {import('../Tracker.js').Tracker} Tracker */
 
 export class MissionContainer {
   #currentMission = undefined;
   #completedMissions = [];
+  /** @type {number} Missions finished on this page, including a mission finished twice through an undo. */
+  #missionsCompleted = 0;
+  /** @type {StatusField} */
+  #statusField;
+  /** @type {ModalMission} */
+  #modalMission;
+  /** @type {ModalMissionComplete} */
+  #modalMissionComplete;
+  /** @type {MissionLiveMarker} */
+  #missionLiveMarker;
+  /** @type {Array<() => void>} Run as a mission completes: the Form submits it, the undo button turns off. */
+  #completeListeners = [];
+
+  /**
+   * @param {StatusField} statusField - Shows each mission's progress and the title naming its label type.
+   * @param {ModalMission} modalMission - Briefs each new mission.
+   * @param {ModalMissionComplete} modalMissionComplete - Celebrates each finished one.
+   * @param {MissionLiveMarker} missionLiveMarker - Marks the tab live for each mission, so a kill is filed against it.
+   * @param {Tracker} tracker - Files every action under the current mission from here on.
+   */
+  constructor(statusField, modalMission, modalMissionComplete, missionLiveMarker, tracker) {
+    this.#statusField = statusField;
+    this.#modalMission = modalMission;
+    this.#modalMissionComplete = modalMissionComplete;
+    this.#missionLiveMarker = missionLiveMarker;
+    tracker.trackMissions(this);
+  }
+
+  /**
+   * Registers what happens as a mission completes, after its screen is up.
+   * @param {() => void} listener
+   */
+  onMissionComplete(listener) {
+    this.#completeListeners.push(listener);
+  }
 
   /**
    * Adds a mission to in progress or list of completed missions.
@@ -18,7 +57,7 @@ export class MissionContainer {
       this.#addToCompletedMissions(mission);
     } else {
       this.#currentMission = mission;
-      svv.statusField.reset(mission);
+      this.#statusField.reset(mission);
     }
     return this;
   }
@@ -36,13 +75,12 @@ export class MissionContainer {
   }
 
   /**
-   * Submits this mission to the backend.
+   * Shows the mission-complete screen and hands the mission to the listeners, which submit it to the backend.
    */
   completeAMission() {
-    svv.missionsCompleted += 1;
-    svv.modalMissionComplete.show(this.#currentMission);
-    const data = svv.form.compileSubmissionData(true);
-    svv.form.submit(data); // Note that this happens async. Once finished, it enables start next mission button.
+    this.#missionsCompleted += 1;
+    this.#modalMissionComplete.show(this.#currentMission, this.#missionsCompleted);
+    for (const listener of this.#completeListeners) listener();
     this.#addToCompletedMissions(this.#currentMission);
   }
 
@@ -54,10 +92,9 @@ export class MissionContainer {
    *     about mission progress (counts of agree/disagree/unsure labels for this mission).
    */
   createAMission(missionMetadata, progressMetadata) {
-    svv.undoValidation.disableUndo();
     // Each mission re-marks the tab as live, so a kill during a later mission of the page is filed against that
-    // mission and its own age (#5561). Optional only for the tests that build a container without one.
-    svv.missionLiveMarker?.markLive(missionMetadata.mission_id);
+    // mission and its own age (#5561).
+    this.#missionLiveMarker.markLive(missionMetadata.mission_id);
     const metadata = {
       agreeCount: progressMetadata.agree_count,
       completed: missionMetadata.completed,
@@ -69,10 +106,10 @@ export class MissionContainer {
       missionType: missionMetadata.mission_type,
       unsureCount: progressMetadata.unsure_count,
     };
-    const mission = new Mission(metadata);
+    const mission = new Mission(metadata, this, this.#statusField);
     this.addAMission(mission);
-    svv.modalMission.setMissionMessage(mission);
-    svv.statusField.updateLabelText(mission.getProperty('labelType'));
+    this.#modalMission.setMissionMessage(mission);
+    this.#statusField.updateLabelText(mission.getProperty('labelType'), mission.getProperty('labelsValidated'));
   }
 
   /**
@@ -84,16 +121,17 @@ export class MissionContainer {
   }
 
   /**
-   * Updates the status of the current mission.
+   * Counts a validation toward the current mission.
    */
   updateAMission() {
-    this.#currentMission.updateMissionProgress(false);
+    this.#currentMission.updateMissionProgress(null);
   }
 
   /**
-   * Updates the status of the current mission if client clicked the undo button.
+   * Takes a validation back off the current mission, for the undo button.
+   * @param {string} undoneResult - The verdict taken back: Agree, Disagree, or Unsure.
    */
-  updateAMissionUndoValidation() {
-    this.#currentMission.updateMissionProgress(true);
+  updateAMissionUndoValidation(undoneResult) {
+    this.#currentMission.updateMissionProgress(undoneResult);
   }
 }

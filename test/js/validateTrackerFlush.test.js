@@ -27,46 +27,45 @@ const reloadAttempts = () => consoleError.mock.calls.filter(([msg]) => String(ms
 
 describe('Tracker timed flush (issue #4429)', () => {
     let tracker;
+    let form;
     let compiledPayload;
 
     beforeEach(() => {
         jest.useFakeTimers();
         jest.setSystemTime(1_000_000);
 
-        // Minimal svv surface. compileSubmissionData mimics the production Form.js contract: it synchronously drains
-        // the tracker (tracker.refresh()) before returning the payload snapshot.
+        // A minimal Form. compileSubmissionData mimics the production Form.js contract: it synchronously drains the
+        // tracker (tracker.refresh()) before returning the payload snapshot.
         compiledPayload = { interactions: [] };
-        global.svv = {
-            form: {
-                compileSubmissionData: jest.fn(() => {
-                    tracker.refresh();
-                    return compiledPayload;
-                }),
-                submit: jest.fn()
-            }
+        form = {
+            compileSubmissionData: jest.fn(() => {
+                tracker.refresh();
+                return compiledPayload;
+            }),
+            submit: jest.fn()
         };
 
         consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
 
         tracker = new Tracker();
+        tracker.onFlush(() => form.submit(form.compileSubmissionData(false), true));
     });
 
     afterEach(() => {
         jest.useRealTimers();
         jest.restoreAllMocks();
-        delete global.svv;
     });
 
     test('the first push arms a deadline that flushes the compiled payload as an intermediate submit', () => {
         tracker.push('ValidationButtonClick_Agree');
 
-        expect(svv.form.compileSubmissionData).not.toHaveBeenCalled();
+        expect(form.compileSubmissionData).not.toHaveBeenCalled();
         jest.advanceTimersByTime(FLUSH_INTERVAL_MS);
 
-        expect(svv.form.compileSubmissionData).toHaveBeenCalledTimes(1);
-        expect(svv.form.compileSubmissionData).toHaveBeenCalledWith(false);
-        expect(svv.form.submit).toHaveBeenCalledTimes(1);
-        expect(svv.form.submit).toHaveBeenCalledWith(compiledPayload, true);
+        expect(form.compileSubmissionData).toHaveBeenCalledTimes(1);
+        expect(form.compileSubmissionData).toHaveBeenCalledWith(false);
+        expect(form.submit).toHaveBeenCalledTimes(1);
+        expect(form.submit).toHaveBeenCalledWith(compiledPayload, true);
     });
 
     test('the deadline is fixed from the first unflushed push, not slid by later pushes', () => {
@@ -75,21 +74,21 @@ describe('Tracker timed flush (issue #4429)', () => {
         tracker.push('ValidationButtonClick_Disagree'); // 59s in; must not postpone the deadline.
 
         jest.advanceTimersByTime(999);
-        expect(svv.form.submit).not.toHaveBeenCalled();
+        expect(form.submit).not.toHaveBeenCalled();
 
         jest.advanceTimersByTime(1);
-        expect(svv.form.submit).toHaveBeenCalledTimes(1);
+        expect(form.submit).toHaveBeenCalledTimes(1);
     });
 
     test('an idle tab stays quiet after a flush (the RefreshTracker marker never re-arms the deadline)', () => {
         tracker.push('ValidationButtonClick_Agree');
         jest.advanceTimersByTime(FLUSH_INTERVAL_MS);
-        expect(svv.form.submit).toHaveBeenCalledTimes(1);
+        expect(form.submit).toHaveBeenCalledTimes(1);
 
         // The drain left the buffer holding only the synthetic RefreshTracker marker; with no further user activity
         // there must be no second flush, no matter how long the tab sits.
         jest.advanceTimersByTime(10 * 60 * 1000);
-        expect(svv.form.submit).toHaveBeenCalledTimes(1);
+        expect(form.submit).toHaveBeenCalledTimes(1);
         expect(tracker.getActions().map((a) => a.action)).toEqual(['RefreshTracker']);
     });
 
@@ -97,8 +96,8 @@ describe('Tracker timed flush (issue #4429)', () => {
         tracker.refresh();
 
         jest.advanceTimersByTime(10 * 60 * 1000);
-        expect(svv.form.compileSubmissionData).not.toHaveBeenCalled();
-        expect(svv.form.submit).not.toHaveBeenCalled();
+        expect(form.compileSubmissionData).not.toHaveBeenCalled();
+        expect(form.submit).not.toHaveBeenCalled();
     });
 
     // A verdict is worth more than the interactions around it, and on a phone the page can be killed without any
@@ -111,11 +110,11 @@ describe('Tracker timed flush (issue #4429)', () => {
             tracker.flushSoon();
 
             jest.advanceTimersByTime(VERDICT_FLUSH_DELAY_MS - 1);
-            expect(svv.form.submit).not.toHaveBeenCalled();
+            expect(form.submit).not.toHaveBeenCalled();
 
             jest.advanceTimersByTime(1);
-            expect(svv.form.submit).toHaveBeenCalledTimes(1);
-            expect(svv.form.submit).toHaveBeenCalledWith(compiledPayload, true);
+            expect(form.submit).toHaveBeenCalledTimes(1);
+            expect(form.submit).toHaveBeenCalledWith(compiledPayload, true);
         });
 
         test('a quick run of verdicts becomes one flush, timed from the last of them', () => {
@@ -126,21 +125,21 @@ describe('Tracker timed flush (issue #4429)', () => {
             tracker.flushSoon();
 
             jest.advanceTimersByTime(VERDICT_FLUSH_DELAY_MS - 1);
-            expect(svv.form.submit).not.toHaveBeenCalled();
+            expect(form.submit).not.toHaveBeenCalled();
 
             jest.advanceTimersByTime(1);
-            expect(svv.form.submit).toHaveBeenCalledTimes(1);
+            expect(form.submit).toHaveBeenCalledTimes(1);
         });
 
         test('replaces the pending deadline rather than adding a second flush after it', () => {
             tracker.push('ValidationButtonClick_Agree');
             tracker.flushSoon();
             jest.advanceTimersByTime(VERDICT_FLUSH_DELAY_MS);
-            expect(svv.form.submit).toHaveBeenCalledTimes(1);
+            expect(form.submit).toHaveBeenCalledTimes(1);
 
             // Only the post-flush marker is buffered now; the original 60 s deadline must not fire on it.
             jest.advanceTimersByTime(10 * 60 * 1000);
-            expect(svv.form.submit).toHaveBeenCalledTimes(1);
+            expect(form.submit).toHaveBeenCalledTimes(1);
         });
 
         test('an external drain in the meantime cancels it', () => {
@@ -149,7 +148,7 @@ describe('Tracker timed flush (issue #4429)', () => {
             tracker.refresh(); // Mission complete or pagehide got there first.
 
             jest.advanceTimersByTime(10 * 60 * 1000);
-            expect(svv.form.submit).not.toHaveBeenCalled();
+            expect(form.submit).not.toHaveBeenCalled();
         });
 
         test('the next push after it arms an ordinary deadline again', () => {
@@ -159,9 +158,9 @@ describe('Tracker timed flush (issue #4429)', () => {
 
             tracker.push('LowLevelEvent_mousemove');
             jest.advanceTimersByTime(FLUSH_INTERVAL_MS - 1);
-            expect(svv.form.submit).toHaveBeenCalledTimes(1);
+            expect(form.submit).toHaveBeenCalledTimes(1);
             jest.advanceTimersByTime(1);
-            expect(svv.form.submit).toHaveBeenCalledTimes(2);
+            expect(form.submit).toHaveBeenCalledTimes(2);
         });
     });
 
@@ -173,7 +172,7 @@ describe('Tracker timed flush (issue #4429)', () => {
         tracker.refresh();
 
         jest.advanceTimersByTime(10 * 60 * 1000);
-        expect(svv.form.submit).not.toHaveBeenCalled();
+        expect(form.submit).not.toHaveBeenCalled();
     });
 
     test('the action-count backstop still flushes immediately and cancels the pending deadline', () => {
@@ -181,23 +180,32 @@ describe('Tracker timed flush (issue #4429)', () => {
             tracker.push('LowLevelEvent_mousemove');
         }
 
-        expect(svv.form.compileSubmissionData).toHaveBeenCalledTimes(1);
-        expect(svv.form.submit).toHaveBeenCalledTimes(1);
-        expect(svv.form.submit).toHaveBeenCalledWith(compiledPayload, true);
+        expect(form.compileSubmissionData).toHaveBeenCalledTimes(1);
+        expect(form.submit).toHaveBeenCalledTimes(1);
+        expect(form.submit).toHaveBeenCalledWith(compiledPayload, true);
 
         // The deadline armed by the first push must not produce a second, near-empty flush.
         jest.advanceTimersByTime(10 * 60 * 1000);
-        expect(svv.form.submit).toHaveBeenCalledTimes(1);
+        expect(form.submit).toHaveBeenCalledTimes(1);
+    });
+
+    test('record() leaves a buffer at the limit for its caller to drain, so an exit flush is not split in two', () => {
+        for (let i = 0; i < 200; i++) tracker.push('LowLevelEvent_mousemove');
+        tracker.record('Unload');
+
+        expect(form.submit).not.toHaveBeenCalled();
+        expect(tracker.getActions()).toHaveLength(201);
+        expect(tracker.getActions().at(-1).action).toBe('Unload');
     });
 
     test('the next push after a drain arms a fresh deadline', () => {
         tracker.push('ValidationButtonClick_Agree');
         jest.advanceTimersByTime(FLUSH_INTERVAL_MS);
-        expect(svv.form.submit).toHaveBeenCalledTimes(1);
+        expect(form.submit).toHaveBeenCalledTimes(1);
 
         tracker.push('ValidationButtonClick_Disagree');
         jest.advanceTimersByTime(FLUSH_INTERVAL_MS);
-        expect(svv.form.submit).toHaveBeenCalledTimes(2);
+        expect(form.submit).toHaveBeenCalledTimes(2);
     });
 
     test('a >1h gap between pushes does not reload the page', () => {
@@ -209,26 +217,17 @@ describe('Tracker timed flush (issue #4429)', () => {
     });
 
     test('a deadline firing before init finishes is a no-op that self-heals on the next push', () => {
-        global.svv = {}; // svv.form doesn't exist yet.
-        tracker = new Tracker();
+        tracker = new Tracker(); // No Form has registered a flush yet.
 
         tracker.push('ValidationButtonClick_Agree');
         expect(() => jest.advanceTimersByTime(FLUSH_INTERVAL_MS)).not.toThrow();
 
         // Once init has finished, the next push re-arms and the flush goes through.
-        global.svv = {
-            form: {
-                compileSubmissionData: jest.fn(() => {
-                    tracker.refresh();
-                    return compiledPayload;
-                }),
-                submit: jest.fn()
-            }
-        };
+        tracker.onFlush(() => form.submit(form.compileSubmissionData(false), true));
         tracker.push('ValidationButtonClick_Disagree');
         jest.advanceTimersByTime(FLUSH_INTERVAL_MS);
 
-        expect(svv.form.submit).toHaveBeenCalledTimes(1);
-        expect(svv.form.submit).toHaveBeenCalledWith(compiledPayload, true);
+        expect(form.submit).toHaveBeenCalledTimes(1);
+        expect(form.submit).toHaveBeenCalledWith(compiledPayload, true);
     });
 });

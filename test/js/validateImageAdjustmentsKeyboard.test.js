@@ -20,7 +20,7 @@
  *
  * Loaded the same way as validateLabelCardKeyboard.test.js: the class is a plain top-level declaration, so the
  * source is eval'd with an explicit export, and one instance serves the whole file because the constructor registers
- * a window listener that cannot be unregistered. Each test swaps the svv/menu stubs it reads at event time.
+ * a window listener that cannot be unregistered. Each test swaps the collaborator/menu stubs it reads at event time.
  */
 
 const { loadModules } = require('./loadGlobalScript');
@@ -46,6 +46,10 @@ describe('KeyboardManager image adjustments scope', () => {
     // Shared across tests: the constructor's window listener reads these objects' properties at event time.
     const validationMenuUi = {};
     let panelOpen;
+    // The manager keeps the collaborators it was built with, so each test swaps the objects behind these proxies.
+    let current = {};
+    const live = (name) => new Proxy({}, { get: (_, key) => current[name][key] });
+    const config = { adminVersion: false };
 
     beforeAll(() => {
         Object.assign(validationMenuUi, {
@@ -59,7 +63,13 @@ describe('KeyboardManager image adjustments scope', () => {
         });
         // Registered first, as on the page, so its window-capture listener sees every key before the popover's.
         Object.assign(window, loadModules('frontend/js/common/KeyboardShortcuts.js', 'frontend/js/validate/keyboard/KeyboardManager.js'));
-        new window.KeyboardManager(validationMenuUi);
+        new window.KeyboardManager(
+            { validationMenu: validationMenuUi, undoValidation: { undoButton: live('undoButton') } }, config,
+            { isDisabled: () => false, disableKeyboard: () => {}, enableKeyboard: () => {} },
+            { onLoadingChange: () => {} }, live('labelVisibilityControl'), live('labelCard'), live('validationMenu'),
+            live('zoomControl'), live('undoValidation'), live('immersiveMode'), live('imageAdjustmentsPopover'),
+            live('tracker'),
+        );
         Object.assign(window, loadModules('frontend/js/common/PanoImageAdjustments.js'));
         Object.assign(window, loadModules('frontend/js/common/PanoImageAdjustmentsPopover.js'));
     });
@@ -80,8 +90,7 @@ describe('KeyboardManager image adjustments scope', () => {
         panelOpen = false;
         validationMenuUi.submitButton.click = jest.fn();
         validationMenuUi.yesButton = makeControl();
-        window.svv = {
-            imageAdjustmentsPopover: { isOpen: () => panelOpen },
+        current = {
             labelVisibilityControl: {
                 hideLabelCard: jest.fn(),
                 isCardHeldOpen: () => false,
@@ -91,8 +100,11 @@ describe('KeyboardManager image adjustments scope', () => {
                 hideLabel: jest.fn(),
                 unhideLabel: jest.fn(),
             },
-            tracker: { push: jest.fn() },
+            labelCard: { isPopoverOpen: () => false, closeTypeDropdown: () => false },
+            validationMenu: { inWrongTypeView: () => false },
             undoValidation: { canUndo: () => false },
+            imageAdjustmentsPopover: { isOpen: () => panelOpen },
+            tracker: { push: jest.fn() },
         };
     });
 
@@ -107,7 +119,7 @@ describe('KeyboardManager image adjustments scope', () => {
 
             expect(ev.defaultPrevented).toBe(false);
             expect(validationMenuUi.submitButton.click).not.toHaveBeenCalled();
-            expect(window.svv.labelVisibilityControl.hideLabelCard).not.toHaveBeenCalled();
+            expect(current.labelVisibilityControl.hideLabelCard).not.toHaveBeenCalled();
         });
 
         it('Space on the hide-label toggle is left to the browser too', () => {
@@ -140,7 +152,7 @@ describe('KeyboardManager image adjustments scope', () => {
 
                 expect(ev.defaultPrevented).toBe(false);
                 expect(validationMenuUi.submitButton.click).not.toHaveBeenCalled();
-                expect(window.svv.labelVisibilityControl.hideLabelCard).not.toHaveBeenCalled();
+                expect(current.labelVisibilityControl.hideLabelCard).not.toHaveBeenCalled();
             });
 
         it('Enter on a chevron a mouse click focused submits, as from any other clicked button', () => {
@@ -183,28 +195,28 @@ describe('KeyboardManager image adjustments scope', () => {
 
             expect(ev.defaultPrevented).toBe(false);
             expect(validationMenuUi.submitButton.click).not.toHaveBeenCalled();
-            expect(window.svv.labelVisibilityControl.hideLabelCard).not.toHaveBeenCalled();
+            expect(current.labelVisibilityControl.hideLabelCard).not.toHaveBeenCalled();
         });
 
         it('KeyY on a slider does not agree', () => {
             key('KeyY', slider());
 
             expect(validationMenuUi.yesButton.click).not.toHaveBeenCalled();
-            expect(window.svv.labelVisibilityControl.hideLabelCard).not.toHaveBeenCalled();
+            expect(current.labelVisibilityControl.hideLabelCard).not.toHaveBeenCalled();
         });
 
         it('Arrow keys on a slider reach no shortcut', () => {
             const ev = key('ArrowRight', slider());
 
             expect(ev.defaultPrevented).toBe(false);
-            expect(window.svv.labelVisibilityControl.hideLabelCard).not.toHaveBeenCalled();
+            expect(current.labelVisibilityControl.hideLabelCard).not.toHaveBeenCalled();
         });
 
         it('Escape on a slider is left to the panel rather than closing the label card', () => {
             key('Escape', slider());
 
-            expect(window.svv.labelVisibilityControl.hideLabelCard).not.toHaveBeenCalled();
-            expect(window.svv.tracker.push).not.toHaveBeenCalled();
+            expect(current.labelVisibilityControl.hideLabelCard).not.toHaveBeenCalled();
+            expect(current.tracker.push).not.toHaveBeenCalled();
         });
     });
 
@@ -214,14 +226,14 @@ describe('KeyboardManager image adjustments scope', () => {
             key('KeyY', document.body);
 
             expect(validationMenuUi.yesButton.click).not.toHaveBeenCalled();
-            expect(window.svv.labelVisibilityControl.hideLabelCard).not.toHaveBeenCalled();
+            expect(current.labelVisibilityControl.hideLabelCard).not.toHaveBeenCalled();
         });
 
         it('Escape inside the label card is left to the panel', () => {
             panelOpen = true;
             key('Escape', document.getElementById('label-visibility-button-on-label'));
 
-            expect(window.svv.labelVisibilityControl.hideLabelCard).not.toHaveBeenCalled();
+            expect(current.labelVisibilityControl.hideLabelCard).not.toHaveBeenCalled();
         });
     });
 
@@ -233,14 +245,6 @@ describe('KeyboardManager image adjustments scope', () => {
             expect(validationMenuUi.yesButton.click).toHaveBeenCalledTimes(1);
             expect(validationMenuUi.submitButton.click).toHaveBeenCalledTimes(1);
         });
-
-        it('still works on a page without the panel, where there is no popover object', () => {
-            delete window.svv.imageAdjustmentsPopover;
-            document.getElementById('pano-image-adjustments').remove();
-            key('KeyY', document.body);
-
-            expect(validationMenuUi.yesButton.click).toHaveBeenCalledTimes(1);
-        });
     });
 
     // Last in the file: the real popover's document listeners outlive the markup, so nothing runs after it.
@@ -249,7 +253,7 @@ describe('KeyboardManager image adjustments scope', () => {
             const model = new window.PanoImageAdjustments(document.createElement('div'), null);
             const popover = new window.PanoImageAdjustmentsPopover(model, pill(),
                 document.getElementById('pano-image-adjustments'));
-            window.svv.imageAdjustmentsPopover = popover;
+            current.imageAdjustmentsPopover = popover;
             popover.open();
             expect(popover.isOpen()).toBe(true);
             expect(document.activeElement).toBe(slider());
@@ -259,7 +263,7 @@ describe('KeyboardManager image adjustments scope', () => {
             expect(popover.isOpen()).toBe(false);
             expect(document.getElementById('pano-image-adjustments').hidden).toBe(true);
             expect(document.activeElement).toBe(pill());
-            expect(window.svv.labelVisibilityControl.hideLabelCard).not.toHaveBeenCalled();
+            expect(current.labelVisibilityControl.hideLabelCard).not.toHaveBeenCalled();
         });
     });
 });

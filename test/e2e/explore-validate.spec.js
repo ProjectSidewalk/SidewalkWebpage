@@ -57,26 +57,17 @@ test('/explore loads the tutorial without console errors', async ({page, context
 test('/validate falls back to Pannellum and the backup image for an expired pano', async ({page, consoleErrors}) => {
   const onMission = await loadValidate(page, '/validate');
   expect(consoleErrors).toEqual([]);
-  if (onMission) await expectPanoRendered(page, '/validate', 'pannellum');
+  if (onMission) await expectPanoRendered(page, '/validate', await expectedValidateViewer(page));
 });
 
 test('/validate trusts the expired flag over a provider that still answers (#5561)',
   async ({page, context, consoleErrors}) => {
     // Every seeded pano is flagged expired, so even a provider that would serve it is not asked: the backup is the
     // right imagery, just older than it needed to be, and the flag is corrected by the nightly sweep rather than here.
-    // A dev database holds live panos too, for which the provider is right, so the label's flag picks the expectation.
     await serveAnyPano(context);
     const onMission = await loadValidate(page, '/validate');
     expect(consoleErrors).toEqual([]);
-    if (!onMission) return;
-    const {expired, imagerySource} = await page.evaluate(() => {
-      const label = window.svv.labelContainer.getCurrentLabel();
-      return {
-        expired: label.getAuditProperty('expired') === true && Boolean(label.getAuditProperty('backupImage')),
-        imagerySource: JSON.parse(document.getElementById('page-data').textContent).imagerySource,
-      };
-    });
-    await expectPanoRendered(page, '/validate', expired ? 'pannellum' : imagerySource);
+    if (onMission) await expectPanoRendered(page, '/validate', await expectedValidateViewer(page));
   });
 
 test('/validate opens the chevron menu and the image adjustments panel', async ({page, consoleErrors}) => {
@@ -137,6 +128,23 @@ async function loadValidate(page, path) {
 }
 
 /**
+ * The viewer the current label belongs in: the Pannellum fallback for an expired pano with a backup image (every
+ * seeded pano on CI), else the city's own provider. A dev database holds live panos too, so the label's flag decides.
+ * @param {import('@playwright/test').Page} page
+ * @returns {Promise<string>} The viewer type the pano should have rendered in.
+ */
+async function expectedValidateViewer(page) {
+  const {expired, imagerySource} = await page.evaluate(() => {
+    const label = window.svv.labelContainer.getCurrentLabel();
+    return {
+      expired: label.getAuditProperty('expired') === true && Boolean(label.getAuditProperty('backupImage')),
+      imagerySource: JSON.parse(document.getElementById('page-data').textContent).imagerySource,
+    };
+  });
+  return expired ? 'pannellum' : imagerySource;
+}
+
+/**
  * Asserts that a mission's imagery rendered and that the expected viewer rendered it. #4810 drops a label whose
  * imagery won't load silently and by design, so an empty pano area would otherwise look like a healthy one; and
  * the stub decides which viewer can succeed (see the header), so the wrong one means the fallback chain took a
@@ -148,7 +156,7 @@ async function loadValidate(page, path) {
 async function expectPanoRendered(page, path, viewerType) {
   const state = await page.evaluate(() => ({
     panoLoaded: window.svv?.panoManager?.getProperty('panoLoaded'),
-    viewerType: window.svv?.panoViewer?.viewerType,
+    viewerType: window.svv?.panoManager?.panoViewer?.viewerType,
   }));
   expect(state.panoLoaded, `${path} assigned a mission but rendered no panorama`).toBe(true);
   expect(state.viewerType, `${path} rendered its panorama with the wrong viewer`).toBe(viewerType);

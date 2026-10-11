@@ -44,8 +44,16 @@ beforeAll(() => {
   loadClass('frontend/js/validate/label/LabelContainer.js');
 });
 
+/** The page facts the label, the container and the menu read; adminVersion is flipped per describe. */
+const config = {
+  tagsByLabelType: TAGS_BY_TYPE, adminVersion: false, source: 'ExpertValidate',
+  canvasWidth: () => 720, canvasHeight: () => 480, labelRadius: 10,
+};
+let tracker;
+
 beforeEach(() => {
-  window.svv = { tagsByLabelType: TAGS_BY_TYPE, tracker: { push: jest.fn() } };
+  config.adminVersion = false;
+  tracker = { push: jest.fn() };
 });
 
 /** @returns {Label} An Obstacle label with a rating and two tags, as the backend would hand it over. */
@@ -53,7 +61,7 @@ function makeLabel(overrides = {}) {
   return new window.Label({
     label_id: 7, label_type: 'Obstacle', severity: 2, tags: ['pole', 'trash/recycling can'],
     heading: 0, pitch: 0, zoom: 1, canvas_x: 0, canvas_y: 0, pano_id: 'p', ...overrides,
-  });
+  }, config);
 }
 
 describe('Label.setNewLabelType re-bases the editable state on the picked type', () => {
@@ -100,12 +108,10 @@ describe('the submission names the type seen and the type picked', () => {
   let container;
 
   beforeEach(() => {
-    window.svv.canvasHeight = () => 480;
-    window.svv.canvasWidth = () => 720;
-    window.svv.missionContainer = { getCurrentMission: () => ({ getProperty: () => 99 }) };
-    window.svv.form = { getSource: () => 'ExpertValidate' };
-    window.svv.panoManager = { getActiveViewerName: () => 'gsv' };
-    container = new window.LabelContainer([], 'Obstacle');
+    const el = () => document.createElement('div');
+    container = new window.LabelContainer([], 'Obstacle', { holder: el(), busyRegion: [], viewer: { controlLayer: el() } },
+      config, { getActiveViewerName: () => 'gsv' }, {}, {}, {}, { getCurrentMission: () => ({ getProperty: () => 99 }) },
+      tracker);
   });
 
   it('sends label_type always and new_label_type only when the type changed', () => {
@@ -456,16 +462,18 @@ describe('the disagree reasons (#5409)', () => {
     return rest.split('.').reduce((node, part) => (node && typeof node === 'object' ? node[part] : null), EN) ?? null;
   }
 
+  let reasonButtonInfo;
+
   beforeAll(() => {
-    loadClass('frontend/js/validate/util/ConstantsValidate.js', 'defineValidateConstants');
+    loadClass('frontend/js/validate/util/ConstantsValidate.js', 'buildReasonButtonInfo');
   });
 
   beforeEach(() => {
-    window.defineValidateConstants();
+    reasonButtonInfo = window.buildReasonButtonInfo();
   });
 
   it('every type leads with "wrong label type", and no reason names a type of its own any more', () => {
-    for (const [type, reasons] of Object.entries(window.svv.reasonButtonInfo)) {
+    for (const [type, reasons] of Object.entries(reasonButtonInfo)) {
       expect([type, reasons['no-button-1'].wrongType]).toEqual([type, true]);
       for (const info of Object.values(reasons)) expect(info).not.toHaveProperty('newLabelType');
     }
@@ -473,7 +481,7 @@ describe('the disagree reasons (#5409)', () => {
 
   it('every reason still points at a string that exists, so the renumbering left nothing dangling', () => {
     const missing = [];
-    for (const [type, reasons] of Object.entries(window.svv.reasonButtonInfo)) {
+    for (const [type, reasons] of Object.entries(reasonButtonInfo)) {
       for (const [id, info] of Object.entries(reasons)) {
         // The tooltip carries its shortcut number, once.
         const tooltipKey = info.tooltipText.replace(/ \(\d\)$/, '');
@@ -486,7 +494,7 @@ describe('the disagree reasons (#5409)', () => {
   });
 
   it('there are never more disagree reasons than the four buttons the menu has', () => {
-    for (const reasons of Object.values(window.svv.reasonButtonInfo)) {
+    for (const reasons of Object.values(reasonButtonInfo)) {
       const ids = Object.keys(reasons).filter((id) => id.startsWith('no-button-'));
       expect(ids.every((id) => Number(id.split('-')[2]) <= 4)).toBe(true);
     }
@@ -496,12 +504,14 @@ describe('the disagree reasons (#5409)', () => {
 describe('DesktopValidationMenu on Expert Validate', () => {
   let menu;
   let label;
+  let labelCard;
+  let panoManager;
 
   beforeAll(() => {
     window.eval(fs.readFileSync(path.join(REPO_ROOT, 'public/vendor/tom-select/tom-select-2.6.2.base.min.js'), 'utf8'));
     window.util.getImage = () => Promise.resolve('img');
     window.structuredClone ??= (v) => JSON.parse(JSON.stringify(v)); // Missing from this jsdom.
-    loadClass('frontend/js/validate/util/ConstantsValidate.js', 'defineValidateConstants');
+    loadClass('frontend/js/validate/util/ConstantsValidate.js', 'buildReasonButtonInfo');
     loadClass('frontend/js/validate/menu/DesktopValidationMenu.js', 'DesktopValidationMenu');
   });
 
@@ -537,13 +547,12 @@ describe('DesktopValidationMenu on Expert Validate', () => {
       <button id="validate-submit-button" disabled></button>`;
 
     label = makeLabel({ ai_tags: null, ai_tags_not_present: null });
-    Object.assign(window.svv, {
-      adminVersion: true,
-      labelContainer: { getCurrentLabel: () => label, dropInputWhileLoading: () => false },
-      panoManager: { styleMarkerForLabel: jest.fn() },
-      labelCard: { render: jest.fn() },
-    });
-    window.defineValidateConstants();
+    config.adminVersion = true;
+    const labelContainer = {
+      getCurrentLabel: () => label, dropInputWhileLoading: () => false, onLabelShown: jest.fn(),
+    };
+    panoManager = { styleMarkerForLabel: jest.fn() };
+    labelCard = { render: jest.fn(), onTypePicked: jest.fn() };
 
     const byId = (id) => document.getElementById(id);
     menu = new window.DesktopValidationMenu({
@@ -567,7 +576,7 @@ describe('DesktopValidationMenu on Expert Validate', () => {
       aiSuggestionSection: byId('sidewalk-ai-suggestions-block'),
       currentTagTemplate: document.getElementById('current-tag-template'),
       aiSuggestedTagTemplate: document.getElementById('sidewalk-ai-suggested-tag-template'),
-    });
+    }, config, window.buildReasonButtonInfo(), labelContainer, labelCard, panoManager, tracker);
     menu.resetMenu(label);
   });
 
@@ -595,7 +604,7 @@ describe('DesktopValidationMenu on Expert Validate', () => {
 
     expect(label.getProperty('newSeverity')).toBe(3);
     expect(/** @type {HTMLInputElement} */ (document.getElementById('validate-severity-radio-3')).checked).toBe(true);
-    expect(window.svv.tracker.push).toHaveBeenCalledWith('Click=Severity_Old=2_New=3');
+    expect(tracker.push).toHaveBeenCalledWith('Click=Severity_Old=2_New=3');
   });
 
   it('the "wrong label type" reason swaps the reasons for the type picker under a chosen Disagree', () => {
@@ -618,8 +627,8 @@ describe('DesktopValidationMenu on Expert Validate', () => {
     expect(document.getElementById('validate-no-button').classList.contains('is-chosen')).toBe(true);
     expect(shown('validate-tags-section')).toBe(true);
     expect(submitDisabled()).toBe(false);
-    expect(window.svv.panoManager.styleMarkerForLabel).toHaveBeenCalledWith(label);
-    expect(window.svv.labelCard.render).toHaveBeenCalledWith(label);
+    expect(panoManager.styleMarkerForLabel).toHaveBeenCalledWith(label);
+    expect(labelCard.render).toHaveBeenCalledWith(label);
   });
 
   it('going back to Disagree puts the label back on its own type and brings the reasons back', () => {
@@ -630,11 +639,11 @@ describe('DesktopValidationMenu on Expert Validate', () => {
     expect(label.getProperty('validationResult')).toBe('Disagree');
     expect(shown('validate-why-no-section')).toBe(true);
     expect(shown('validate-label-type-section')).toBe(false);
-    expect(window.svv.labelCard.render).toHaveBeenLastCalledWith(label);
+    expect(labelCard.render).toHaveBeenLastCalledWith(label);
   });
 
   it('on regular Validate the reason is a plain disagree reason', () => {
-    window.svv.adminVersion = false;
+    config.adminVersion = false;
     document.getElementById('validate-no-button').click();
     document.getElementById('no-button-1').click();
 

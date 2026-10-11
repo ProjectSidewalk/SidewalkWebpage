@@ -1,12 +1,20 @@
 /**
  * Keeps track of labels that have appeared on the panorama.
  *
- * Construct instances via the `static async create()` factory, which renders the first label before resolving.
+ * Nothing is rendered at construction: everything that describes a label to the validator subscribes first
+ * (onLabelShown, onLoadingChange), and then Main renders the first label with renderCurrentLabel().
  */
 
-import { svv } from '../svv.js';
 import { util } from '../../common/utilities.js';
 import { Label } from './Label.js';
+/** @typedef {import('../Main.js').ValidateUi} ValidateUi */
+/** @typedef {import('../Main.js').ValidateConfig} ValidateConfig */
+/** @typedef {import('../panorama/PanoManager.js').PanoManager} PanoManager */
+/** @typedef {import('../panorama/PanoLoadingStatus.js').PanoLoadingStatus} PanoLoadingStatus */
+/** @typedef {import('../modal/ModalMissionComplete.js').ModalMissionComplete} ModalMissionComplete */
+/** @typedef {import('../modal/ModalNoNewMission.js').ModalNoNewMission} ModalNoNewMission */
+/** @typedef {import('../mission/MissionContainer.js').MissionContainer} MissionContainer */
+/** @typedef {import('../Tracker.js').Tracker} Tracker */
 
 export class LabelContainer {
   // A mission that has had to ask for replacement labels twice and still can't render one is not having a run of bad
@@ -52,7 +60,6 @@ export class LabelContainer {
   #slowStreak = 0;
 
   #labelsToSubmit = [];
-  #submittedLabels = [];
   // Holds prior label's metadata formatted for submission, making it easier to submit an undo. Only read while the
   // undo button is live, and the button is disabled the moment an undo lands, so one undo can't be applied twice.
   #lastLabelFormData;
@@ -69,6 +76,29 @@ export class LabelContainer {
     renderedTimestamp: 0,
   };
 
+  /** @type {ValidateUi} */
+  #ui;
+  /** @type {ValidateConfig} */
+  #config;
+  /** @type {PanoManager} */
+  #panoManager;
+  /** @type {PanoLoadingStatus} */
+  #panoLoadingStatus;
+  /** @type {ModalMissionComplete} */
+  #modalMissionComplete;
+  /** @type {ModalNoNewMission} */
+  #modalNoNewMission;
+  /** @type {MissionContainer} */
+  #missionContainer;
+  /** @type {Tracker} */
+  #tracker;
+
+  /** @type {Array<(loading: boolean) => void>} Told as the tool locks for a label's load and as it is handed back. */
+  #loadingListeners = [];
+
+  /** @type {Array<(label: Label) => void>} Told once a label's pano is on screen, facing it. */
+  #shownListeners = [];
+
   /**
    * How long a label has to have been on screen before a verdict on it counts, in milliseconds.
    *
@@ -82,21 +112,47 @@ export class LabelContainer {
   /**
    * @param {Array} labelList - Initial list of labels to be validated (generated when the page is loaded).
    * @param {string} labelType - Label type of the mission these labels belong to.
+   * @param {ValidateUi} ui - What dims while a label loads, and the pano layer whose cursor says so.
+   * @param {ValidateConfig} config - The frame each validation is measured in, and the queue it is reported under.
+   * @param {PanoManager} panoManager - Loads each label's pano and draws it on it.
+   * @param {PanoLoadingStatus} panoLoadingStatus - Captions a load that turns slow.
+   * @param {ModalMissionComplete} modalMissionComplete - Its being up is its own loading state.
+   * @param {ModalNoNewMission} modalNoNewMission - Shown when the mission runs out of labels that will load.
+   * @param {MissionContainer} missionContainer - The mission each validation counts toward.
+   * @param {Tracker} tracker - Logs loads, drops and verdicts.
    */
-  constructor(labelList, labelType) {
+  constructor(labelList, labelType, ui, config, panoManager, panoLoadingStatus, modalMissionComplete,
+    modalNoNewMission, missionContainer, tracker) {
+    this.#ui = ui;
+    this.#config = config;
+    this.#panoManager = panoManager;
+    this.#panoLoadingStatus = panoLoadingStatus;
+    this.#modalMissionComplete = modalMissionComplete;
+    this.#modalNoNewMission = modalNoNewMission;
+    this.#missionContainer = missionContainer;
+    this.#tracker = tracker;
     this.resetLabelList(labelList, labelType);
   }
 
   /**
-   * Creates a LabelContainer and renders its first label.
-   * @param {Array} labelList - Initial list of labels to be validated.
-   * @param {string} labelType - Label type of the mission these labels belong to.
-   * @returns {Promise<LabelContainer>}
+   * Registers what reacts to the tool locking for a label's load (true) and being handed back (false).
+   * @param {(loading: boolean) => void} listener
    */
-  static async create(labelList, labelType) {
-    const labelContainer = new LabelContainer(labelList, labelType);
-    await labelContainer.renderCurrentLabel();
-    return labelContainer;
+  onLoadingChange(listener) {
+    this.#loadingListeners.push(listener);
+  }
+
+  /**
+   * Registers what describes a label to the validator once its pano is on screen facing it.
+   * @param {(label: Label) => void} listener
+   */
+  onLabelShown(listener) {
+    this.#shownListeners.push(listener);
+  }
+
+  /** @returns {boolean} Whether there is a validated label before the current one to go back to. */
+  hasPreviousLabel() {
+    return this.#currLabelIndex > 0;
   }
 
   /**
@@ -120,11 +176,18 @@ export class LabelContainer {
   }
 
   /**
-   * Returns the last validated label's form data for submission to the back end, useful for undoing a label.
-   * @returns {?object} Form data for last validated label from this mission.
+   * Takes back the last validation, for the undo button: an unsent verdict is dropped from the batch, a sent one gets
+   * a retraction queued behind it.
+   * @returns {Record<string, any>} The verdict taken back, as it was compiled for submission.
    */
-  getPriorLabelFormData() {
-    return this.#lastLabelFormData;
+  retractLastValidation() {
+    const priorLabelFormData = this.#lastLabelFormData;
+    if (this.#labelsToSubmit.length > 0) {
+      this.pop();
+    } else {
+      this.pushUndoValidation(priorLabelFormData);
+    }
+    return priorLabelFormData;
   }
 
   /**
@@ -149,7 +212,7 @@ export class LabelContainer {
    */
   dropInputWhileLoading(source) {
     if (!this.#loading) return false;
-    svv.tracker.push('ValidateInputDropped_Loading', { source });
+    this.#tracker.push('ValidateInputDropped_Loading', { source });
     return true;
   }
 
@@ -161,7 +224,7 @@ export class LabelContainer {
    * already been validated, so it can't be deferred or dropped like an unseen one: deferring it would serve it a
    * second time at the end of the mission, and dropping it would ask the backend to replace a label that counts.
    * Reporting the abandoned undo as a failed one is what keeps mission progress in step: the caller only rolls back a
-   * validation the user can actually redo.
+   * validation the user can actually redo, and turns Back off either way.
    *
    * @returns {Promise<boolean>} True if the previous label is now showing. False also covers an undo dropped for
    * arriving mid-load, which is likewise an undo the caller must not count.
@@ -174,10 +237,7 @@ export class LabelContainer {
     this.#currLabel = previousLabel;
     await this.renderCurrentLabel({ undo: true });
 
-    const undone = this.#currLabel === previousLabel;
-    // renderCurrentLabel re-enabled Back for the label it fell back to; pressing it would only repeat the failure.
-    if (!undone) svv.undoValidation.disableUndo();
-    return undone;
+    return this.#currLabel === previousLabel;
   }
 
   /**
@@ -189,20 +249,9 @@ export class LabelContainer {
 
     this.#currLabelIndex += 1;
     this.#currLabel = this.#labels[this.#currLabelIndex];
+    // Shows the no-more-labels modal when it can't produce a label to show, after asking the backend to replace any
+    // it had to drop, so there is nothing left to set up here.
     await this.renderCurrentLabel();
-
-    // renderCurrentLabel shows the no-more-labels modal when it can't produce a label to show — after asking the
-    // backend to replace any it had to drop — so there is nothing left to set up here.
-    if (!this.#currLabel) return;
-
-    if (svv.labelVisibilityControl && !svv.labelVisibilityControl.isVisible()) {
-      svv.labelVisibilityControl.unhideLabel();
-    }
-
-    // Update zoom availability on desktop.
-    if (svv.zoomControl) {
-      svv.zoomControl.updateZoomAvailability();
-    }
   }
 
   /**
@@ -214,28 +263,18 @@ export class LabelContainer {
   async renderCurrentLabel({ undo = false } = {}) {
     try {
       this.#setUiBusy(true);
-      // The card is anchored to the marker of the label we're leaving, so it can't carry over to the next one. Closed
-      // now rather than once the next pano is up: a card opened on load would otherwise sit over the loading pano, and
-      // the busy lock blocks every way of closing it. (Undefined on the very first render, which happens while
-      // LabelContainer itself is still being constructed.)
-      svv.labelVisibilityControl?.hideLabelCard();
       // A mission modal covering the pano is its own loading state (the "Great job!" button stays disabled until the
       // next mission's first label is up), so a status under it would only show through the backdrop as clutter.
-      const coveredByModal = svv.modalMissionComplete?.isShowing?.() === true
-        || svv.modalNoNewMission?.isShowing?.() === true;
+      const coveredByModal = this.#modalMissionComplete.isShowing() || this.#modalNoNewMission.isShowing();
       // Logged against the label loading when the load turns slow, which a deferral can have moved on from this one.
       if (!coveredByModal) {
-        svv.panoLoadingStatus?.begin(() => {
+        this.#panoLoadingStatus.begin(() => {
           if (!this.#currLabel) return;
-          svv.tracker.push('PanoLoadingStatus_Shown', {
+          this.#tracker.push('PanoLoadingStatus_Shown', {
             labelId: this.#currLabel.getAuditProperty('labelId'),
             panoId: this.#currLabel.getAuditProperty('panoId'),
           });
-        }, { immediate: svv.panoManager?.blanksPanoWhileLoading?.() ?? false });
-      }
-
-      if (this.#currLabelIndex > 0) {
-        svv.undoValidation.enableUndo();
+        }, { immediate: this.#panoManager.blanksPanoWhileLoading() });
       }
 
       // Render the new pano and the label on it, updating the surrounding UI given the new label's info.
@@ -250,24 +289,21 @@ export class LabelContainer {
       // a reload retries them, since the labels dropped this session are only excluded for as long as it lasts.
       if (!this.#currLabel) {
         this.#setUiBusy(false);
-        svv.modalNoNewMission.show({ imageryUnavailable: this.#labelsOwed > 0 });
+        this.#modalNoNewMission.show({ imageryUnavailable: this.#labelsOwed > 0 });
         return;
       }
 
-      svv.labelCard.render(this.#currLabel);
-      svv.validationMenu.resetMenu(this.#currLabel);
-      if (svv.adminVersion) svv.adminInfo.updateAdminInfo(this.#currLabel);
       // Awaited so the tool unlocks only once the pano is on screen facing this label: on a viewer that paints during
       // loads, that is renderPanoMarker's reveal, not setPanorama resolving (#5582).
-      await svv.panoManager.renderPanoMarker(this.#currLabel);
-      // Tell the sign here rather than leave it waiting on a pano_changed: the label that just loaded may have swapped
-      // the active viewer, and the viewer the sign last heard from is then the one that stays silent (#4828). Absent
-      // on mobile, and on the first label, whose render runs inside LabelContainer.create — before SpeedLimit exists.
-      svv.speedLimit?.refresh();
-      // Every label starts visible. Without this the toggle keeps saying "Show Label" over a marker that
-      // renderPanoMarker just drew in full — you'd have to hide and re-show to get the two back in agreement.
-      svv.labelVisibilityControl?.unhideLabel();
-      svv.labelVisibilityControl?.openCardOnLoad();
+      try {
+        await this.#panoManager.renderPanoMarker(this.#currLabel);
+      } finally {
+        // Only now, with the pano facing the label: the label that just loaded may have swapped the active viewer,
+        // so anything that listens to a viewer (the speed limit sign, #4828) has to be told rather than left
+        // waiting. Told even when the draw failed: the finally below hands the tool back, and a menu still showing
+        // the previous label's verdict would submit nothing and skip this label on the next click.
+        for (const listener of this.#shownListeners) listener(this.#currLabel);
+      }
 
       this.setProperty('renderedTimestamp', Date.now());
       // Now that this label's imagery is on screen and the connection is idle, start on the next ones' (#5562, #5581).
@@ -280,17 +316,17 @@ export class LabelContainer {
       // Read defensively rather than as a plain `error.message`: a rejection carrying something other than an Error
       // — a bare `Promise.reject()`, a string thrown by a viewer SDK — would make this line a TypeError of its own,
       // losing the event and handing the caller an exception unrelated to what actually failed.
-      svv.tracker?.push('ValidateRenderFailed', { error: error?.message ?? String(error) });
+      this.#tracker.push('ValidateRenderFailed', { error: error?.message ?? String(error) });
       // The finally hands the tool back, so a canvas still held unpainted for the reveal would leave the validator
-      // judging a blank pano area (#5582). Guarded because a cleanup that throws would replace the error reported.
-      svv.panoManager?.revealPendingCanvas?.();
+      // judging a blank pano area (#5582).
+      this.#panoManager.revealPendingCanvas();
       throw error;
     } finally {
       // The out-of-labels path releases early on purpose, so that the modal's own disableKeyboard is what stands;
       // the condition is what keeps this from re-enabling the keyboard behind it. Every other way out lands here,
       // a throw included — leaving #loading set would drop every tap and keypress for the rest of the session.
       if (this.#loading) this.#setUiBusy(false);
-      svv.panoLoadingStatus?.end();
+      this.#panoLoadingStatus.end();
     }
   }
 
@@ -311,11 +347,9 @@ export class LabelContainer {
     const from = this.#currLabelIndex + 1;
     const upcoming = this.#labels.slice(from, from + LabelContainer.#PREFETCH_AHEAD);
     const goesToBackup = (label) => label.getAuditProperty('expired') === true && label.getAuditProperty('backupImage');
-    if (svv.panoImageCache) {
-      svv.panoImageCache.prefetchBackups(upcoming.filter(goesToBackup).map((l) => l.getAuditProperty('backupImage')));
-    }
+    this.#panoManager.prefetchBackups(upcoming.filter(goesToBackup).map((l) => l.getAuditProperty('backupImage')));
     for (const label of upcoming) {
-      if (!goesToBackup(label)) svv.panoManager.prefetchPano(label.getAuditProperty('panoId'));
+      if (!goesToBackup(label)) this.#panoManager.prefetchPano(label.getAuditProperty('panoId'));
     }
   }
 
@@ -335,7 +369,7 @@ export class LabelContainer {
   #setUiBusy(busy) {
     this.#loading = busy;
     const loadingStatus = document.getElementById('svv-pano-loading');
-    for (const region of svv.ui.busyRegion) {
+    for (const region of this.#ui.busyRegion) {
       region.classList.toggle('validate-disabled', busy);
       // The class is only opacity and pointer-events, so on its own it says nothing to a screen reader. Except on the
       // region holding the loading status's live region (desktop's #svv-application-holder): assistive tech may hold
@@ -344,15 +378,13 @@ export class LabelContainer {
       if (busy && !(loadingStatus && region.contains(loadingStatus))) region.setAttribute('aria-busy', 'true');
       else region.removeAttribute('aria-busy');
     }
-    svv.ui.holder.style.cursor = busy ? 'wait' : '';
-    if (busy) {
-      if (svv.keyboard) svv.keyboard.disableKeyboard();
-    } else {
+    this.#ui.holder.style.cursor = busy ? 'wait' : '';
+    if (!busy) {
       // The cursor is cached by the browser, so a timestamp is attached to invalidate it and force the reset.
       const openHand = `url(${util.assetPath('images/icons/openhand.cur')}?${Date.now()}) 4 4, move`;
-      svv.ui.viewer.controlLayer.style.cursor = openHand;
-      if (svv.keyboard) svv.keyboard.enableKeyboard();
+      this.#ui.viewer.controlLayer.style.cursor = openHand;
     }
+    for (const listener of this.#loadingListeners) listener(busy);
   }
 
   /**
@@ -373,7 +405,7 @@ export class LabelContainer {
       const label = this.#currLabel;
       const panoId = label.getAuditProperty('panoId');
       label.setProperty('startTimestamp', new Date());
-      const { panoData, reason } = await svv.panoManager.setPanorama(
+      const { panoData, reason } = await this.#panoManager.setPanorama(
         panoId, label.getAuditProperty('backupImage'), { expired: label.getAuditProperty('expired') === true },
       );
       if (panoData) {
@@ -387,7 +419,7 @@ export class LabelContainer {
         // Back to the label the user undid from. Nothing is owed and nothing is deferred: the label stays validated
         // where it is, and the one being returned to hasn't been validated yet, so it loads like any other.
         undoing = false;
-        svv.tracker.push('ValidateUndo_ImageryUnavailable', { ...ids, reason });
+        this.#tracker.push('ValidateUndo_ImageryUnavailable', { ...ids, reason });
         this.#currLabelIndex += 1;
         this.#currLabel = this.#labels[this.#currLabelIndex];
         continue;
@@ -400,12 +432,12 @@ export class LabelContainer {
         if (attempt < LabelContainer.#MAX_LOAD_ATTEMPTS && !this.#slowImageryBreakerOpen()) {
           // Nothing is owed: the label is still in the mission, just later. The prefetch keeps the provider working on
           // its pano in the background, so the second attempt usually finds it cached.
-          svv.tracker.push('LabelDeferred_SlowImagery', { ...ids, attempt });
+          this.#tracker.push('LabelDeferred_SlowImagery', { ...ids, attempt });
           this.#labels.push(label);
-          svv.panoManager.prefetchPano(panoId);
+          this.#panoManager.prefetchPano(panoId);
           this.#currLabel = this.#labels[this.#currLabelIndex];
           // A label that was the last one left comes straight back, and "trying the next label" would be untrue.
-          if (this.#currLabel !== label) svv.panoLoadingStatus?.setMessage('validate:pano-loading.skipping');
+          if (this.#currLabel !== label) this.#panoLoadingStatus.setMessage('validate:pano-loading.skipping');
           continue;
         }
       }
@@ -413,7 +445,7 @@ export class LabelContainer {
       // Log it: this is invisible to the user by design, so the tracker is the only signal we have for how often
       // imagery fails in production (#4810). Slow and missing imagery are told apart because they call for different
       // fixes: a slow provider is a network or CDN problem, a missing pano is expired imagery (#5581).
-      svv.tracker.push(reason === 'slow' ? 'LabelSkipped_SlowImagery' : 'LabelSkipped_NoImagery', ids);
+      this.#tracker.push(reason === 'slow' ? 'LabelSkipped_SlowImagery' : 'LabelSkipped_NoImagery', ids);
       this.#labelsOwed += 1;
       this.#currLabel = this.#labels[this.#currLabelIndex];
     }
@@ -451,7 +483,7 @@ export class LabelContainer {
           label_type: this.#labelType,
           labels_needed: this.#labelsOwed,
           excluded_label_ids: [...this.#seenLabelIds],
-          validate_params: svv.validateParams,
+          validate_params: this.#config.validateParams,
         }),
       });
       if (!response.ok) throw new Error(`Replacement labels request failed with HTTP ${response.status}`);
@@ -459,15 +491,15 @@ export class LabelContainer {
     } catch (error) {
       // Nothing to retry into — the caller falls through to the no-more-labels modal, and the mission resumes with a
       // fresh set of labels next time the user opens Validate.
-      svv.tracker.push('LabelTopUpFailed', { error: error.message });
+      this.#tracker.push('LabelTopUpFailed', { error: error.message });
       return false;
     }
 
-    svv.tracker.push('LabelTopUp', { requested: this.#labelsOwed, received: labels.length });
+    this.#tracker.push('LabelTopUp', { requested: this.#labelsOwed, received: labels.length });
     if (labels.length === 0) return false;
 
     for (const labelMetadata of labels) {
-      const label = new Label(labelMetadata);
+      const label = new Label(labelMetadata, this.#config);
       this.#labels.push(label);
       this.#seenLabelIds.add(label.getAuditProperty('labelId'));
     }
@@ -482,7 +514,7 @@ export class LabelContainer {
    * @param {string} labelType - Label type of the mission these labels belong to.
    */
   resetLabelList(labelList, labelType) {
-    this.#labels = labelList.map((key) => new Label(key));
+    this.#labels = labelList.map((key) => new Label(key, this.#config));
     this.#currLabelIndex = 0;
     this.#currLabel = this.#labels[this.#currLabelIndex];
     this.#labelType = labelType;
@@ -500,7 +532,7 @@ export class LabelContainer {
   }
 
   /**
-   * Validates the current label.
+   * Validates the current label and moves on to the next one, unless this one finished the mission.
    *
    * The last gate before a validation is recorded: a verdict that arrives while the label's pano is still loading is
    * dropped here even if it got past the menu that raised it (#5211).
@@ -512,8 +544,29 @@ export class LabelContainer {
   validateCurrentLabel(action, timestamp, comment) {
     if (this.dropInputWhileLoading(`Validate=${action}`)) return;
 
-    this.#currLabel.validate(action, comment);
+    const label = this.#currLabel;
+    label.validate(action, comment, this.#panoManager.panoViewer);
     this.setProperty('validationTimestamp', timestamp);
+
+    if (comment) this.#tracker.push('ValidationTextField_DataEntered', { validation: action, text: comment });
+
+    const mission = this.#missionContainer.getCurrentMission();
+    if (['Agree', 'Disagree', 'Unsure'].includes(action)) {
+      mission.updateValidationResult(action, false);
+      this.pushToLabelsToSubmit(
+        label.getAuditProperty('labelId'), label.getProperties(), label.commentData(mission.getProperty('missionId')),
+      );
+      // A verdict is the thing worth not losing: get it to the server now rather than at the next deadline (#5561).
+      // Armed before the mission's progress moves: a verdict that completes the mission drains everything in the
+      // mission-complete submit, whose drain cancels this timer, so that last verdict costs no extra POST.
+      this.#tracker.flushSoon();
+      this.#missionContainer.updateAMission();
+    }
+
+    // A completed mission's next label arrives with the mission-complete response (Form.js), not from here.
+    if (!mission.isComplete()) {
+      this.moveToNextLabel(); // NOTE That this returns a Promise that we're ignoring right now.
+    }
   }
 
   /**
@@ -540,14 +593,14 @@ export class LabelContainer {
     }
 
     const data = {
-      canvas_height: svv.canvasHeight(),
-      canvas_width: svv.canvasWidth(),
+      canvas_height: this.#config.canvasHeight(),
+      canvas_width: this.#config.canvasWidth(),
       canvas_x: labelMetadata.canvasX,
       canvas_y: labelMetadata.canvasY,
       end_timestamp: labelMetadata.endTimestamp,
       heading: labelMetadata.heading,
       label_id: labelId,
-      mission_id: svv.missionContainer.getCurrentMission().getProperty('missionId'),
+      mission_id: this.#missionContainer.getCurrentMission().getProperty('missionId'),
       pitch: labelMetadata.pitch,
       start_timestamp: labelMetadata.startTimestamp,
       validation_result: labelMetadata.validationResult,
@@ -559,10 +612,10 @@ export class LabelContainer {
       tags: labelMetadata.newTags,
       comment: commentData,
       zoom: labelMetadata.zoom,
-      source: svv.form.getSource(),
+      source: this.#config.source,
       undone: false,
       redone,
-      viewer_type: svv.panoManager.getActiveViewerName(),
+      viewer_type: this.#panoManager.getActiveViewerName(),
     };
     this.#labelsToSubmit.push(data);
     this.#lastLabelFormData = data;
@@ -585,11 +638,8 @@ export class LabelContainer {
     this.#labelsToSubmit.pop();
   }
 
-  /**
-   * Moves the labelsToSubmit to submittedLabels and clears the labelsToSubmit array.
-   */
+  /** Clears the validations buffered for submission, once the form has taken them. */
   refresh() {
-    this.#submittedLabels.concat(this.#labelsToSubmit);
     this.#labelsToSubmit = [];
   }
 }

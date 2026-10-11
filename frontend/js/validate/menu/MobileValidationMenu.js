@@ -2,25 +2,40 @@
  * Initializes the primary validation UI at the bottom of the mobile screen.
  */
 
-import { svv } from '../svv.js';
 import { util } from '../../common/utilities.js';
 import { LabelContainer } from '../label/LabelContainer.js';
 /** @typedef {import('../label/Label.js').Label} Label */
+/** @typedef {import('../Main.js').ValidationMenuUi} ValidationMenuUi */
+/** @typedef {import('../Tracker.js').Tracker} Tracker */
+/** @typedef {import('../util/ConstantsValidate.js').ReasonButton} ReasonButton */
 
 export class MobileValidationMenu {
   #menuUI;
   #disagreeReasonButtons;
   #unsureReasonButtons;
+  /** @type {Record<string, Record<string, ReasonButton>>} */
+  #reasonButtonInfo;
+  /** @type {LabelContainer} */
+  #labelContainer;
+  /** @type {Tracker} */
+  #tracker;
 
   /**
-   * @param {Record<string, HTMLElement>} menuUI - Validation menu UI elements.
+   * @param {ValidationMenuUi} menuUI - Validation menu UI elements.
+   * @param {Record<string, Record<string, ReasonButton>>} reasonButtonInfo - The reasons each type's menu offers.
+   * @param {LabelContainer} labelContainer - Whose current label the verdict is cast on; the menu resets for each.
+   * @param {Tracker} tracker - Logs every tap in the menu.
    */
-  constructor(menuUI) {
+  constructor(menuUI, reasonButtonInfo, labelContainer, tracker) {
     this.#menuUI = menuUI;
+    this.#reasonButtonInfo = reasonButtonInfo;
+    this.#labelContainer = labelContainer;
+    this.#tracker = tracker;
     this.#disagreeReasonButtons = MobileValidationMenu.#reasonButtonsIn(menuUI.disagreeReasonOptions);
     this.#unsureReasonButtons = MobileValidationMenu.#reasonButtonsIn(menuUI.unsureReasonOptions);
 
     this.#init();
+    labelContainer.onLabelShown((label) => this.resetMenu(label));
   }
 
   #init() {
@@ -31,25 +46,25 @@ export class MobileValidationMenu {
       // A tap that lands while the next label's pano is still loading would be answering the label on screen and
       // recording it against the one behind it (#5211). The verdict row is dimmed for that window; this is what
       // catches a tap that beat the class onto the page.
-      if (svv.labelContainer.dropInputWhileLoading('Agree')) return;
-      svv.tracker.push(e.isTrusted ? 'ValidationButtonClick_Agree' : 'ValidationKeyboardShortcut_Agree');
+      if (this.#labelContainer.dropInputWhileLoading('Agree')) return;
+      this.#tracker.push(e.isTrusted ? 'ValidationButtonClick_Agree' : 'ValidationKeyboardShortcut_Agree');
       this.#setYesView();
-      svv.labelContainer.getCurrentLabel().setProperty('validationResult', 'Agree');
+      this.#labelContainer.getCurrentLabel().setProperty('validationResult', 'Agree');
 
       // Not adding comments on mobile when voting yes, just submit the validation.
       this.#validateLabel('Agree', !e.isTrusted);
     });
     menuUI.noButton.addEventListener('click', (e) => {
-      if (svv.labelContainer.dropInputWhileLoading('Disagree')) return;
-      svv.tracker.push(e.isTrusted ? 'ValidationButtonClick_Disagree' : 'ValidationKeyboardShortcut_Disagree');
+      if (this.#labelContainer.dropInputWhileLoading('Disagree')) return;
+      this.#tracker.push(e.isTrusted ? 'ValidationButtonClick_Disagree' : 'ValidationKeyboardShortcut_Disagree');
       this.#setNoView();
-      svv.labelContainer.getCurrentLabel().setProperty('validationResult', 'Disagree');
+      this.#labelContainer.getCurrentLabel().setProperty('validationResult', 'Disagree');
     });
     menuUI.unsureButton.addEventListener('click', (e) => {
-      if (svv.labelContainer.dropInputWhileLoading('Unsure')) return;
-      svv.tracker.push(e.isTrusted ? 'ValidationButtonClick_Unsure' : 'ValidationKeyboardShortcut_Unsure');
+      if (this.#labelContainer.dropInputWhileLoading('Unsure')) return;
+      this.#tracker.push(e.isTrusted ? 'ValidationButtonClick_Unsure' : 'ValidationKeyboardShortcut_Unsure');
       this.#setUnsureView();
-      svv.labelContainer.getCurrentLabel().setProperty('validationResult', 'Unsure');
+      this.#labelContainer.getCurrentLabel().setProperty('validationResult', 'Unsure');
     });
 
     // Add onclick for disagree and unsure reason buttons.
@@ -58,15 +73,15 @@ export class MobileValidationMenu {
     // interaction the load guard exists to refuse is the one that reads in the logs as having landed (#5211).
     for (const reasonButton of this.#disagreeReasonButtons) {
       reasonButton.addEventListener('click', (e) => {
-        if (svv.labelContainer.dropInputWhileLoading('DisagreeReason')) return;
-        svv.tracker.push(`${e.isTrusted ? 'Click=' : 'KeyboardShortcut_'}DisagreeReason_Option=${reasonButton.id}`);
+        if (this.#labelContainer.dropInputWhileLoading('DisagreeReason')) return;
+        this.#tracker.push(`${e.isTrusted ? 'Click=' : 'KeyboardShortcut_'}DisagreeReason_Option=${reasonButton.id}`);
         this.#setDisagreeReason(reasonButton.id);
       });
     }
     for (const reasonButton of this.#unsureReasonButtons) {
       reasonButton.addEventListener('click', (e) => {
-        if (svv.labelContainer.dropInputWhileLoading('UnsureReason')) return;
-        svv.tracker.push(`${e.isTrusted ? 'Click=' : 'KeyboardShortcut_'}UnsureReason_Option=${reasonButton.id}`);
+        if (this.#labelContainer.dropInputWhileLoading('UnsureReason')) return;
+        this.#tracker.push(`${e.isTrusted ? 'Click=' : 'KeyboardShortcut_'}UnsureReason_Option=${reasonButton.id}`);
         this.#setUnsureReason(reasonButton.id);
       });
     }
@@ -74,11 +89,11 @@ export class MobileValidationMenu {
     // Log clicks to the two text boxes.
     menuUI.disagreeReasonTextBox.addEventListener('click', (e) => {
       menuUI.disagreeReasonTextBox.focus();
-      svv.tracker.push(e.isTrusted ? 'Click=DisagreeReasonTextbox' : 'KeyboardShortcut=DisagreeReasonTextbox');
+      this.#tracker.push(e.isTrusted ? 'Click=DisagreeReasonTextbox' : 'KeyboardShortcut=DisagreeReasonTextbox');
     });
     menuUI.unsureReasonTextBox.addEventListener('click', (e) => {
       menuUI.unsureReasonTextBox.focus();
-      svv.tracker.push(e.isTrusted ? 'Click=UnsureReasonTextbox' : 'KeyboardShortcut=UnsureReasonTextbox');
+      this.#tracker.push(e.isTrusted ? 'Click=UnsureReasonTextbox' : 'KeyboardShortcut=UnsureReasonTextbox');
     });
 
     // Add oninput for disagree and unsure other reason text boxes.
@@ -88,19 +103,19 @@ export class MobileValidationMenu {
     // from there, and once one has the box is only reachable by pointer, which is blocked — but half a guard on a
     // handler is a trap for whoever changes it next (#5211).
     menuUI.disagreeReasonTextBox.addEventListener('input', () => {
-      if (svv.labelContainer.dropInputWhileLoading('DisagreeReason')) return;
+      if (this.#labelContainer.dropInputWhileLoading('DisagreeReason')) return;
       if (menuUI.disagreeReasonTextBox.value === '') {
         menuUI.disagreeReasonTextBox.classList.remove('is-chosen');
-        svv.labelContainer.getCurrentLabel().setProperty('disagreeOption', undefined);
+        this.#labelContainer.getCurrentLabel().setProperty('disagreeOption', undefined);
       } else {
         this.#setDisagreeReason('other');
       }
     });
     menuUI.unsureReasonTextBox.addEventListener('input', () => {
-      if (svv.labelContainer.dropInputWhileLoading('UnsureReason')) return;
+      if (this.#labelContainer.dropInputWhileLoading('UnsureReason')) return;
       if (menuUI.unsureReasonTextBox.value === '') {
         menuUI.unsureReasonTextBox.classList.remove('is-chosen');
-        svv.labelContainer.getCurrentLabel().setProperty('unsureOption', undefined);
+        this.#labelContainer.getCurrentLabel().setProperty('unsureOption', undefined);
       } else {
         this.#setUnsureReason('other');
       }
@@ -120,15 +135,15 @@ export class MobileValidationMenu {
     // Their own sources, not the reason setters': a skip is a submit, so a drop here means the validator was ahead
     // of a slow load, which is the opposite of what a dropped reason pick means.
     document.getElementById('no-menu-skip-reason-button').addEventListener('click', (e) => {
-      if (svv.labelContainer.dropInputWhileLoading('DisagreeReason_Skip')) return;
-      svv.tracker.push('Click=DisagreeReason_Skip');
-      svv.labelContainer.getCurrentLabel().setProperty('disagreeOption', undefined);
+      if (this.#labelContainer.dropInputWhileLoading('DisagreeReason_Skip')) return;
+      this.#tracker.push('Click=DisagreeReason_Skip');
+      this.#labelContainer.getCurrentLabel().setProperty('disagreeOption', undefined);
       this.#validateLabel('Disagree', !e.isTrusted);
     });
     document.getElementById('unsure-menu-skip-reason-button').addEventListener('click', (e) => {
-      if (svv.labelContainer.dropInputWhileLoading('UnsureReason_Skip')) return;
-      svv.tracker.push('Click=UnsureReason_Skip');
-      svv.labelContainer.getCurrentLabel().setProperty('unsureOption', undefined);
+      if (this.#labelContainer.dropInputWhileLoading('UnsureReason_Skip')) return;
+      this.#tracker.push('Click=UnsureReason_Skip');
+      this.#labelContainer.getCurrentLabel().setProperty('unsureOption', undefined);
       this.#validateLabel('Unsure', !e.isTrusted);
     });
   }
@@ -218,7 +233,7 @@ export class MobileValidationMenu {
   #renderReasonButtons(label) {
     const labelType = util.camelToKebab(label.getAuditProperty('labelType'));
     for (const reasonButton of [...this.#disagreeReasonButtons, ...this.#unsureReasonButtons]) {
-      const buttonInfo = svv.reasonButtonInfo[labelType][reasonButton.id];
+      const buttonInfo = this.#reasonButtonInfo[labelType][reasonButton.id];
       if (buttonInfo) {
         reasonButton.innerHTML = buttonInfo.buttonText;
 
@@ -299,16 +314,16 @@ export class MobileValidationMenu {
    * @param {string} id - Id of the chosen reason button, or 'other' for the free-text box.
    */
   #setDisagreeReason(id) {
-    if (svv.labelContainer.dropInputWhileLoading('DisagreeReason')) return;
+    if (this.#labelContainer.dropInputWhileLoading('DisagreeReason')) return;
     const menuUI = this.#menuUI;
     MobileValidationMenu.#clearChosen(this.#disagreeReasonButtons);
     if (id === 'other') {
       menuUI.disagreeReasonTextBox.classList.add('is-chosen');
-      svv.labelContainer.getCurrentLabel().setProperty('disagreeOption', 'other');
+      this.#labelContainer.getCurrentLabel().setProperty('disagreeOption', 'other');
     } else {
       menuUI.disagreeReasonTextBox.classList.remove('is-chosen');
       menuUI.disagreeReasonTextBox.value = '';
-      svv.labelContainer.getCurrentLabel().setProperty('disagreeOption', id);
+      this.#labelContainer.getCurrentLabel().setProperty('disagreeOption', id);
       this.#reasonButton(id)?.classList.add('is-chosen');
     }
   }
@@ -326,23 +341,23 @@ export class MobileValidationMenu {
    * @param {string} id - Id of the chosen reason button, or 'other' for the free-text box.
    */
   #setUnsureReason(id) {
-    if (svv.labelContainer.dropInputWhileLoading('UnsureReason')) return;
+    if (this.#labelContainer.dropInputWhileLoading('UnsureReason')) return;
     const menuUI = this.#menuUI;
     MobileValidationMenu.#clearChosen(this.#unsureReasonButtons);
     if (id === 'other') {
       menuUI.unsureReasonTextBox.classList.add('is-chosen');
-      svv.labelContainer.getCurrentLabel().setProperty('unsureOption', 'other');
+      this.#labelContainer.getCurrentLabel().setProperty('unsureOption', 'other');
     } else {
       menuUI.unsureReasonTextBox.classList.remove('is-chosen');
       menuUI.unsureReasonTextBox.value = '';
-      svv.labelContainer.getCurrentLabel().setProperty('unsureOption', id);
+      this.#labelContainer.getCurrentLabel().setProperty('unsureOption', id);
       this.#reasonButton(id)?.classList.add('is-chosen');
     }
   }
 
   saveValidationState() {
     const menuUI = this.#menuUI;
-    const currLabel = svv.labelContainer.getCurrentLabel();
+    const currLabel = this.#labelContainer.getCurrentLabel();
     currLabel.setProperty('disagreeReasonTextBox', menuUI.disagreeReasonTextBox.value);
     currLabel.setProperty('unsureReasonTextBox', menuUI.unsureReasonTextBox.value);
   }
@@ -354,12 +369,12 @@ export class MobileValidationMenu {
    */
   #validateLabel(action, keyboardShortcut) {
     // Everything below writes to whatever getCurrentLabel() returns, which mid-load is already the next label (#5211).
-    if (svv.labelContainer.dropInputWhileLoading(`Submit=${action}`)) return;
+    if (this.#labelContainer.dropInputWhileLoading(`Submit=${action}`)) return;
 
     const actionStr = keyboardShortcut ? 'ValidationKeyboardShortcut_Submit_Validation=' : 'Click=Submit_Validation=';
     const timestamp = new Date();
-    svv.tracker.push(actionStr + action);
-    const currLabel = svv.labelContainer.getCurrentLabel();
+    this.#tracker.push(actionStr + action);
+    const currLabel = this.#labelContainer.getCurrentLabel();
 
     // Save anything they typed in either text box so that it's there again if they undo their validation.
     this.saveValidationState();
@@ -385,12 +400,12 @@ export class MobileValidationMenu {
 
     // A verdict counts once the label has been on screen long enough to have been looked at (LabelContainer has the
     // reasoning). Double-tap protection swallows the rest without a trace on screen, so the log is where it shows.
-    const sinceMs = timestamp.getTime() - svv.labelContainer.getProperty('renderedTimestamp');
+    const sinceMs = timestamp.getTime() - this.#labelContainer.getProperty('renderedTimestamp');
     if (sinceMs > LabelContainer.VERDICT_GRACE_MS) {
       MobileValidationMenu.#floatVerdict(action);
-      svv.labelContainer.validateCurrentLabel(action, timestamp, comment);
+      this.#labelContainer.validateCurrentLabel(action, timestamp, comment);
     } else {
-      svv.tracker.push('ValidateInputDropped_Debounce', { source: `Submit=${action}`, sinceMs });
+      this.#tracker.push('ValidateInputDropped_Debounce', { source: `Submit=${action}`, sinceMs });
     }
   }
 

@@ -2,7 +2,6 @@
  * Displays the mission complete screen at the end of a validation mission.
  */
 
-import { svv } from '../svv.js';
 import { BadgeAchievements } from '../../common/BadgeAchievements.js';
 import { Confetti } from '../../common/Confetti.js';
 import { MissionStartTutorial } from '../../common/MissionStartTutorial.js';
@@ -10,19 +9,48 @@ import { ProgressBar } from '../../common/ProgressBar.js';
 import { util } from '../../common/utilities.js';
 import '../../common/utilitiesSidewalk.js';
 /** @typedef {import('../mission/Mission.js').Mission} Mission */
+/** @typedef {import('../../common/MissionStartTutorial.js').TutorialHooks} TutorialHooks */
+/** @typedef {import('../keyboard/KeyboardLock.js').KeyboardLock} KeyboardLock */
+/** @typedef {import('../status/StatusField.js').StatusField} StatusField */
+/** @typedef {import('../panorama/PanoManager.js').PanoManager} PanoManager */
+/** @typedef {import('../Tracker.js').Tracker} Tracker */
 
 export class ModalMissionComplete {
   #uiModalMissionComplete;
   #language;
+  /** @type {?TutorialHooks} */
+  #tutorialHooks;
+  /** @type {KeyboardLock} */
+  #keyboardLock;
+  /** @type {StatusField} */
+  #statusField;
+  /** @type {PanoManager} */
+  #panoManager;
+  /** @type {Tracker} */
+  #tracker;
+  /** @type {number} How many missions this page has finished, as of the last show(); every third offers Explore. */
+  #missionsCompleted = 0;
+  /** @type {?Mission} The mission that arrived behind this screen (nextMissionLoaded), briefed when it closes. */
+  #nextMission = null;
 
   /**
    * @param {object} uiModalMissionComplete - Mission-complete modal UI elements.
-   * @param {object} user - Current user.
-   * @param {string} [language] - Language code passed on to the mission start tutorial.
+   * @param {string} language - Language code passed on to the mission start tutorial.
+   * @param {?TutorialHooks} tutorialHooks - What the next mission's start tutorial logs through and re-enables when
+   *     it closes; null on mobile, whose briefing is ModalMission's carousel and which has no tutorial markup.
+   * @param {KeyboardLock} keyboardLock - Paused while the screen is up.
+   * @param {StatusField} statusField - The validator's all-time count, for the standing shown.
+   * @param {PanoManager} panoManager - Replays the next label's marker pulse once the screen is out of the way.
+   * @param {Tracker} tracker - Logs the completion.
    */
-  constructor(uiModalMissionComplete, user, language = 'en') {
+  constructor(uiModalMissionComplete, language, tutorialHooks, keyboardLock, statusField, panoManager, tracker) {
     this.#uiModalMissionComplete = uiModalMissionComplete;
     this.#language = language;
+    this.#tutorialHooks = tutorialHooks;
+    this.#keyboardLock = keyboardLock;
+    this.#statusField = statusField;
+    this.#panoManager = panoManager;
+    this.#tracker = tracker;
   }
 
   /**
@@ -30,16 +58,16 @@ export class ModalMissionComplete {
    */
   #handleButtonClick = (button) => {
     // If they've done three missions and clicked the audit button, load the explore page.
-    if (button === 'primary' && svv.missionsCompleted % 3 === 0 && !util.isMobile()) {
+    if (button === 'primary' && this.#missionsCompleted % 3 === 0 && !util.isMobile()) {
       window.location.replace('/explore');
     } else {
       // If there is a new validate mission available, show the mission screens. Desktop only: the phone's briefing is
       // ModalMission's carousel, and this tutorial's markup isn't on that page.
-      const newMission = svv.missionContainer.getCurrentMission();
-      if (!util.isMobile() && newMission && newMission.getProperty('missionType') === 'validation') {
+      const newMission = this.#nextMission;
+      if (this.#tutorialHooks && newMission && newMission.getProperty('missionType') === 'validation') {
         new MissionStartTutorial(
           'validate', newMission.getProperty('labelType'),
-          { nLabels: newMission.getProperty('labelsValidated') }, svv, this.#language,
+          { nLabels: newMission.getProperty('labelsValidated') }, this.#tutorialHooks, this.#language,
         );
       }
 
@@ -48,7 +76,7 @@ export class ModalMissionComplete {
       // The new mission's first label rendered while this modal was still up (Form.js loads it before re-enabling
       // the button), so its halo pulse played unseen. Replay it now that the marker can be seen — or once the
       // mission-start tutorial raised just above clears (#4790).
-      svv.panoManager.replayMarkerPulse();
+      this.#panoManager.replayMarkerPulse();
     }
   };
 
@@ -114,13 +142,11 @@ export class ModalMissionComplete {
   /**
    * Displays the mission complete screen.
    * @param {Mission} mission - Object for the mission that was just completed.
+   * @param {number} missionsCompleted - How many missions this page has finished, this one included.
    */
-  show(mission) {
-    // Disable keyboard on mobile.
-    svv.undoValidation.disableUndo();
-    if (svv.keyboard) {
-      svv.keyboard.disableKeyboard();
-    }
+  show(mission, missionsCompleted) {
+    this.#missionsCompleted = missionsCompleted;
+    this.#keyboardLock.disableKeyboard();
     const totalLabels = mission.getProperty('agreeCount') + mission.getProperty('disagreeCount')
       + mission.getProperty('unsureCount');
     const message = i18next.t(`mission-complete.body-${mission.getProperty('labelType')}`, {
@@ -143,7 +169,7 @@ export class ModalMissionComplete {
     ui.agreeCount.textContent = mission.getProperty('agreeCount');
     ui.disagreeCount.textContent = mission.getProperty('disagreeCount');
     ui.unsureCount.textContent = mission.getProperty('unsureCount');
-    this.#showStanding(svv.statusField.getCompletedValidations());
+    this.#showStanding(this.#statusField.getCompletedValidations());
 
     ui.holder.style.visibility = 'visible';
     ui.foreground.style.visibility = 'visible';
@@ -153,7 +179,7 @@ export class ModalMissionComplete {
     ModalMissionComplete.#celebrate();
 
     // Set primary button text to Explore if they've completed 3 validation missions (and are on a laptop/desktop).
-    if (svv.missionsCompleted % 3 === 0 && !util.isMobile()) {
+    if (missionsCompleted % 3 === 0 && !util.isMobile()) {
       ui.closeButtonPrimary.innerHTML = i18next.t('mission-complete.explore');
       ui.closeButtonPrimary.style.visibility = 'visible';
       ui.closeButtonSecondary.innerHTML = i18next.t('mission-complete.continue');
@@ -165,7 +191,7 @@ export class ModalMissionComplete {
       ui.closeButtonSecondary.classList.add('ps-hidden');
     }
 
-    svv.tracker.push(
+    this.#tracker.push(
       'MissionComplete',
       {
         missionId: mission.getProperty('missionId'),
@@ -190,8 +216,10 @@ export class ModalMissionComplete {
 
   /**
    * Re-enables the start next mission button; called once a new mission has loaded from the back end.
+   * @param {Mission} mission - The mission that loaded, which the close button then briefs.
    */
-  nextMissionLoaded() {
+  nextMissionLoaded(mission) {
+    this.#nextMission = mission;
     // Re-enable the buttons. Handlers are assigned, not added, so a second load can't stack a second handler.
     const ui = this.#uiModalMissionComplete;
     ui.closeButtonPrimary.disabled = false;
