@@ -165,6 +165,7 @@
   "grade-legend-title-by": "Pente de la rue · {{statistic}}",
   "grade-legend-none": "Aucune donnée de pente",
   "grade-legend-hint": "Cliquez sur une classe pour mettre ces rues en évidence ; Ctrl+clic pour en ajouter.",
+  "grade-legend-coarse": "Issues d'un modèle d'élévation peu détaillé : chaque pente est une ligne droite entre les deux extrémités d'une rue.",
   "grade-class-under": "Moins de {{to}}",
   "grade-class-over": "Plus de {{from}}",
   "grade-class-between": "{{from}} – {{to}}",
@@ -209,6 +210,7 @@
   "slope-barrier-threshold": "Une barrière au-delà de",
   "slope-approximate-include": "Inclure les pentes approximatives",
   "slope-approximate-include-help": "Certaines pentes ne sont qu'une ligne droite entre les deux extrémités d'une rue : là où la ville n'a qu'un modèle d'élévation peu détaillé, ou là où le modèle semblait peu fiable. Activez cette option pour que ces pentes comptent aussi.",
+  "slope-coarse-note": "Les pentes de cette ville sont issues d'un modèle d'élévation peu détaillé ; elles sont donc approximatives. Elles ne comptent dans le score que si les pentes approximatives sont incluses ci-dessous.",
   "slope-barrier-effect": "Le tronçon obtient 0 : plus raide que le seuil de barrière de {{limit}}.",
   "popup-slope-barrier": "barrière : 0"
 }

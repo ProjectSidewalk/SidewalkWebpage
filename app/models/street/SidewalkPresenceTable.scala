@@ -4,9 +4,10 @@ import com.google.inject.ImplementedBy
 import models.api.{SidewalkPresenceFiltersForApi, SidewalkPresenceForApi}
 import models.label.StreetSide
 import models.utils.MyPostgresProfile.api.{given, *}
-import models.utils.{FilteredTables, MyPostgresProfile, SqlFragments}
+import models.utils.{Contributors, FilteredTables, MyPostgresProfile, SqlFragments}
 import org.locationtech.jts.geom.LineString
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+import play.api.libs.json.{JsValue, Json, Writes}
 import slick.jdbc.{GetResult, SQLActionBuilder}
 import slick.sql.SqlStreamingAction
 
@@ -49,6 +50,93 @@ case class SidewalkPresence(
     firstNoSidewalkLabelAt: Option[OffsetDateTime],
     lastNoSidewalkLabelAt: Option[OffsetDateTime]
 )
+
+/**
+ * One block face as the admin Sidewalks page reads it (#5724): the stored verdict and its evidence, plus the two
+ * counts the page's review flags need that the table doesn't keep.
+ *
+ * @param problemLabelCount Sided Obstacle and SurfaceProblem labels on this face that validators have not rejected.
+ *                          On a face called `absent` they usually describe hazards in the roadway people walk in (the
+ *                          #5222 study), so they mark mixed evidence worth a look rather than a wrong call.
+ * @param curbRampCount     Sided CurbRamp labels on this face that validators have not rejected.
+ */
+case class SidewalkPresenceFaceForAdmin(
+    streetSide: String,
+    presence: String,
+    presenceBasis: String,
+    noSidewalkLabelCount: Int,
+    noSidewalkUserCount: Int,
+    validatedNoSidewalkCount: Int,
+    rejectedNoSidewalkCount: Int,
+    labelCount: Int,
+    problemLabelCount: Int,
+    curbRampCount: Int,
+    lastNoSidewalkLabelAt: Option[OffsetDateTime]
+)
+
+/**
+ * One open street and its two faces, for the admin Sidewalks page (#5724). Geometry is deliberately absent: the page
+ * joins these rows onto the street GeoJSON it fetches from `/v3/api/streets`, as the Imagery page does.
+ *
+ * @param lengthMeters Geodesic length, for the per-region kilometre roll-ups.
+ * @param auditCount   Completed audits of the street, shared by both faces.
+ * @param faces        The street's faces, left then right.
+ */
+case class SidewalkPresenceStreetForAdmin(
+    streetEdgeId: Int,
+    regionId: Int,
+    regionName: String,
+    wayType: String,
+    lengthMeters: Double,
+    auditCount: Int,
+    faces: Seq[SidewalkPresenceFaceForAdmin]
+)
+
+object SidewalkPresenceStreetForAdmin {
+
+  /**
+   * snake_case per the admin dashboard convention. Hand-built so the field set is stated once, next to the classes:
+   * the page reads every field by name, so a rename on one side only would be a blank column rather than an error.
+   */
+  given faceWrites: Writes[SidewalkPresenceFaceForAdmin] = Writes { face =>
+    Json.obj(
+      "street_side"                 -> face.streetSide,
+      "presence"                    -> face.presence,
+      "presence_basis"              -> face.presenceBasis,
+      "no_sidewalk_label_count"     -> face.noSidewalkLabelCount,
+      "no_sidewalk_user_count"      -> face.noSidewalkUserCount,
+      "validated_no_sidewalk_count" -> face.validatedNoSidewalkCount,
+      "rejected_no_sidewalk_count"  -> face.rejectedNoSidewalkCount,
+      "label_count"                 -> face.labelCount,
+      "problem_label_count"         -> face.problemLabelCount,
+      "curb_ramp_count"             -> face.curbRampCount,
+      "last_no_sidewalk_label_at"   -> face.lastNoSidewalkLabelAt.map(_.toString)
+    )
+  }
+
+  given writes: Writes[SidewalkPresenceStreetForAdmin] = Writes { street =>
+    Json.obj(
+      "street_edge_id" -> street.streetEdgeId,
+      "region_id"      -> street.regionId,
+      "region_name"    -> street.regionName,
+      "way_type"       -> street.wayType,
+      "length_m"       -> street.lengthMeters,
+      "audit_count"    -> street.auditCount,
+      "faces"          -> Json.toJson(street.faces)
+    )
+  }
+
+  /**
+   * The whole endpoint payload.
+   *
+   * @param streets   Every open street with its two faces.
+   * @param rebuiltAt When the nightly table was last rebuilt successfully, so the page can say how old its verdicts
+   *                  are; None if it never has been in this city.
+   * @return          The response body.
+   */
+  def payload(streets: Seq[SidewalkPresenceStreetForAdmin], rebuiltAt: Option[OffsetDateTime]): JsValue =
+    Json.obj("rebuilt_at" -> rebuiltAt.map(_.toString), "streets" -> Json.toJson(streets))
+}
 
 /** What a rebuild did to the `sidewalk_presence` table. `total` is the row count afterwards. */
 case class SidewalkPresenceRebuildCounts(total: Int, inserted: Int, updated: Int, deleted: Int)
@@ -106,6 +194,13 @@ trait SidewalkPresenceTableRepository {
   def getSidewalkPresenceForApi(
       filters: SidewalkPresenceFiltersForApi
   ): SqlStreamingAction[Vector[SidewalkPresenceForApi], SidewalkPresenceForApi, Effect.Read]
+
+  /**
+   * Every open street with its two faces' verdicts and evidence, for the admin Sidewalks page (#5724).
+   *
+   * @return One row per street, ordered by id, each with its left face then its right.
+   */
+  def getForAdmin: DBIO[Seq[SidewalkPresenceStreetForAdmin]]
 }
 
 /**
@@ -254,6 +349,66 @@ class SidewalkPresenceTable @Inject() (protected val dbConfigProvider: DatabaseC
     }
 
     query.as[SidewalkPresenceForApi]
+  }
+
+  def getForAdmin: DBIO[Seq[SidewalkPresenceStreetForAdmin]] = {
+    given GetResult[(SidewalkPresenceStreetForAdmin, SidewalkPresenceFaceForAdmin)] = { r =>
+      val street = SidewalkPresenceStreetForAdmin(
+        streetEdgeId = r.nextInt(), regionId = r.nextInt(), regionName = r.nextString(), wayType = r.nextString(),
+        lengthMeters = r.nextDouble(), auditCount = r.nextInt(), faces = Seq.empty
+      )
+      val face = SidewalkPresenceFaceForAdmin(
+        streetSide = r.nextString(), presence = r.nextString(), presenceBasis = r.nextString(),
+        noSidewalkLabelCount = r.nextInt(), noSidewalkUserCount = r.nextInt(), validatedNoSidewalkCount = r.nextInt(),
+        rejectedNoSidewalkCount = r.nextInt(), labelCount = r.nextInt(), problemLabelCount = r.nextInt(),
+        curbRampCount = r.nextInt(), lastNoSidewalkLabelAt = r.nextOffsetDateTimeOption()
+      )
+      (street, face)
+    }
+
+    // The two extra counts are computed live, while the verdicts they sit beside are as of the last rebuild, so a
+    // label added since then can put a street on a review list before the rebuild has seen it. Storing them in
+    // sidewalk_presence would close that gap at the cost of an evolution; for a review page the lag is acceptable.
+    // They also drop validator-rejected labels, which the derivation's label_count keeps: a rejected curb ramp is not
+    // evidence that a sidewalk is there.
+    sql"""
+      WITH face_evidence AS (
+          SELECT label.street_edge_id, label_point.street_side,
+                 COUNT(*) FILTER (WHERE label.label_type IN ('Obstacle', 'SurfaceProblem')) AS problem_label_count,
+                 COUNT(*) FILTER (WHERE label.label_type = 'CurbRamp') AS curb_ramp_count
+          FROM label
+          INNER JOIN label_point ON label.label_id = label_point.label_id
+          WHERE NOT label.deleted AND NOT label.tutorial AND label_point.street_side IS NOT NULL
+            AND label.correct IS DISTINCT FROM FALSE
+            AND #${FilteredTables.userCounts(None, "label.user_id", Contributors.NotExcluded)}
+            AND label.label_type IN ('Obstacle', 'SurfaceProblem', 'CurbRamp')
+          GROUP BY label.street_edge_id, label_point.street_side
+      )
+      SELECT street_edge.street_edge_id, region.region_id, region.name, street_edge.way_type,
+             ST_Length(street_edge.geom::geography), sidewalk_presence.audit_count, sidewalk_presence.street_side,
+             sidewalk_presence.presence, sidewalk_presence.presence_basis, sidewalk_presence.no_sidewalk_label_count,
+             sidewalk_presence.no_sidewalk_user_count, sidewalk_presence.validated_no_sidewalk_count,
+             sidewalk_presence.rejected_no_sidewalk_count, sidewalk_presence.label_count,
+             COALESCE(face_evidence.problem_label_count, 0)::INTEGER,
+             COALESCE(face_evidence.curb_ramp_count, 0)::INTEGER, sidewalk_presence.last_no_sidewalk_label_at
+      FROM #${FilteredTables.streets()}
+      INNER JOIN sidewalk_presence ON street_edge.street_edge_id = sidewalk_presence.street_edge_id
+      INNER JOIN street_edge_region ON street_edge.street_edge_id = street_edge_region.street_edge_id
+      INNER JOIN region ON street_edge_region.region_id = region.region_id
+      LEFT JOIN face_evidence ON sidewalk_presence.street_edge_id = face_evidence.street_edge_id
+          AND sidewalk_presence.street_side = face_evidence.street_side
+      ORDER BY street_edge.street_edge_id, sidewalk_presence.street_side
+    """.as[(SidewalkPresenceStreetForAdmin, SidewalkPresenceFaceForAdmin)].map { rows =>
+      // Rows arrive grouped by street, so folding consecutive rows keeps the id order without a second sort.
+      rows
+        .foldLeft(Vector.empty[SidewalkPresenceStreetForAdmin]) { case (streets, (street, face)) =>
+          streets.lastOption match {
+            case Some(last) if last.streetEdgeId == street.streetEdgeId =>
+              streets.init :+ last.copy(faces = last.faces :+ face)
+            case _ => streets :+ street.copy(faces = Seq(face))
+          }
+        }
+    }
   }
 }
 

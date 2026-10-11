@@ -1,11 +1,15 @@
 package service
 
-import models.label.{LabelTable, LabelType}
+import models.gallery.{GalleryOrder, GallerySort}
+import models.label.{LabelTable, LabelType, LabelValidationMetadata}
+import models.pano.PanoSource
 import models.utils.MyPostgresProfile.api.given
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import util.{RolledBackDb, SidewalkSpec}
+
+import java.time.OffsetDateTime
 
 import scala.concurrent.Await
 import scala.concurrent.duration.*
@@ -28,6 +32,72 @@ class LabelServiceSpec extends SidewalkSpec with RolledBackDb with GuiceOneAppPe
   private val configService                              = app.injector.instanceOf[ConfigService]
   private def await[T](f: scala.concurrent.Future[T]): T = Await.result(f, 60.seconds)
 
+  /**
+   * Renderable labels that fail the public Gallery's disagree-ratio gate (`disagreeCount < 3 || disagreeCount <
+   * agreeCount * 2`): the crowd has rejected them, and the random Gallery leaves them out.
+   */
+  private def contestedLabelIds(viewer: PanoSource): Seq[Int] = run(
+    labelTable.labels
+      .join(labelTable.labelPoints)
+      .on(_.labelId === _.labelId)
+      .join(labelTable.panoData)
+      .on(_._1.panoId === _.panoId)
+      .join(labelTable.userStats)
+      .on(_._1._1.userId === _.userId)
+      // The query's other gate stays applied, so a contested label here is one only the disagree gate drops.
+      .filter { case (((lb, lp), pd), us) =>
+        lb.disagreeCount >= 3 && lb.disagreeCount >= lb.agreeCount * 2 &&
+        pd.source === viewer && lp.lat.isDefined && lp.lng.isDefined &&
+        (us.highQuality || (lb.correct.isDefined && lb.correct === true))
+      }
+      .map(_._1._1._1.labelId)
+      .take(5)
+      .result
+  )
+
+  // The walk keeps the first n viewable labels of a batch, and the imagery check hands them back crop-first, so
+  // without the restore a sorted page served the batch's cropped labels in place of its top-ranked ones.
+  "LabelServiceImpl.restoreBatchOrder" should {
+    def label(id: Int): LabelValidationMetadata = {
+      import models.label.{LabelValidationInfo, LatLng, LocationXY, POV}
+      LabelValidationMetadata(
+        id,
+        LabelType.CurbRamp,
+        s"pano$id",
+        PanoSource.Gsv,
+        false,
+        "",
+        OffsetDateTime.now,
+        LatLng(0, 0),
+        POV(0, 0, 1),
+        LocationXY(0, 0),
+        720,
+        480,
+        None,
+        None,
+        1,
+        1,
+        None,
+        LabelValidationInfo(0, 0, 0, None, None, None),
+        Seq.empty,
+        None,
+        None,
+        None,
+        false
+      )
+    }
+
+    "keep the batch's order whatever order the check answered in" in {
+      val batch    = Seq(label(1), label(2), label(3), label(4))
+      val viewable = Seq(label(4), label(2)) // crop-first, as checkImageryBatch returns it
+      LabelServiceImpl.restoreBatchOrder(batch, viewable).map(_.labelId) mustBe Seq(2, 4)
+    }
+
+    "drop what the check dropped" in {
+      LabelServiceImpl.restoreBatchOrder(Seq(label(1), label(2)), Seq.empty).map(_.labelId) mustBe empty
+    }
+  }
+
   "LabelService.selectTagsByLabelType" should {
     "return exactly the tags belonging to the requested label type" in {
       val allTags = await(labelService.selectAllTagsFuture)
@@ -44,19 +114,101 @@ class LabelServiceSpec extends SidewalkSpec with RolledBackDb with GuiceOneAppPe
 
   "LabelTable.getGalleryLabelsQuery" should {
     // All correctness options = no correctness filtering, so the query returns whatever the connected DB holds.
-    val allValOptions               = Set("correct", "incorrect", "unsure", "unvalidated")
-    def query(recentFirst: Boolean) = labelTable.getGalleryLabelsQuery(
-      configService.getPanoSource, LabelType.CurbRamp, Set.empty, allValOptions, Set.empty, Set.empty, Set.empty,
-      Set.empty, "00000000-0000-0000-0000-000000000000", recentFirst
+    val allValOptions = Set("correct", "incorrect", "unsure", "unvalidated")
+    val noUser        = "00000000-0000-0000-0000-000000000000"
+    def query(
+        order: GalleryOrder,
+        types: Set[LabelType] = Set(LabelType.CurbRamp),
+        tags: Map[LabelType, Set[String]] = Map.empty
+    ) = labelTable.getGalleryLabelsQuery(
+      configService.getPanoSource, types, Set.empty, allValOptions, Set.empty, Set.empty, tags, Set.empty, noUser, order
     )
+    def sorted(sort: GallerySort, types: Set[LabelType]) =
+      run(query(GalleryOrder.Sorted(sort), types).take(100).result)
 
-    "order labels newest-first when recentFirst is set" in {
-      val timestamps = run(query(recentFirst = true).take(50).result).map(_.timestamp)
+    /** Asserts `rows` is in `sort`'s order, by the same in-memory ordering the service restores after the imagery check. */
+    def mustBeOrdered(rows: Seq[LabelValidationMetadata], sort: GallerySort): Unit =
+      rows.zip(rows.drop(1)).foreach { case (first, second) => sort.ordering.compare(first, second) must be <= 0 }
+
+    "order labels newest-first for the landing grid's recent pool" in {
+      val timestamps = run(query(GalleryOrder.RecentPool).take(50).result).map(_.timestamp)
       timestamps.zip(timestamps.drop(1)).foreach { case (newer, older) => newer.isBefore(older) mustBe false }
     }
 
-    "return the same number of labels regardless of ordering mode" in {
-      run(query(recentFirst = true).length.result) mustBe run(query(recentFirst = false).length.result)
+    "return the same labels for the random order and the recent pool, and no fewer for a sorted one" in {
+      val randomCount = run(query(GalleryOrder.Random).length.result)
+      run(query(GalleryOrder.RecentPool).length.result) mustBe randomCount
+      // A sorted order waives the disagree-ratio gate, so it can only add labels; see the gate test below.
+      run(query(GalleryOrder.Sorted(GallerySort.Newest)).length.result) must be >= randomCount
+    }
+
+    // The SQL order and the in-memory one have to agree, or paging in sorted mode (#2705) skips or repeats labels
+    // at a page boundary: the service restores the in-memory order after the imagery check reshuffles a batch.
+    "order a sorted query the way GallerySort.ordering does, for every sort" in {
+      val rated = Set(LabelType.CurbRamp, LabelType.Obstacle, LabelType.SurfaceProblem)
+      for (sort <- GallerySort.values.filterNot(_ == GallerySort.Random)) {
+        val rows = sorted(sort, rated)
+        withClue(s"$sort: ") { mustBeOrdered(rows, sort) }
+      }
+    }
+
+    "put unrated labels last whichever way severity sorts" in {
+      // NoSidewalk is unrated, so a mixed set has labels with no severity to send to the end.
+      val types = Set(LabelType.CurbRamp, LabelType.NoSidewalk)
+      for (sort <- Seq(GallerySort.MostSevere, GallerySort.LeastSevere)) {
+        val severities = sorted(sort, types).map(_.severity)
+        withClue(s"$sort: ") { severities.dropWhile(_.isDefined).forall(_.isEmpty) mustBe true }
+      }
+    }
+
+    "rank the most-disputed sort by the share of disagreeing votes, unvalidated last" in {
+      val rows = sorted(GallerySort.MostDisputed, Set(LabelType.CurbRamp, LabelType.Obstacle))
+      def votes(l: LabelValidationMetadata) =
+        l.validationInfo.agreeCount + l.validationInfo.disagreeCount + l.validationInfo.unsureCount
+      rows.dropWhile(votes(_) > 0).forall(votes(_) == 0) mustBe true
+      val ratios = rows.takeWhile(votes(_) > 0).map(l => l.validationInfo.disagreeCount.toDouble / votes(l))
+      ratios.zip(ratios.drop(1)).foreach { case (higher, lower) => higher must be >= lower }
+    }
+
+    // "Most disputed" exists to find the labels the gate drops, so a sorted order (admin tooling) waives it; the
+    // random Gallery, which anyone sees, keeps it.
+    "waive the disagree-ratio gate in a sorted order only" in {
+      val contested = contestedLabelIds(configService.getPanoSource).toSet
+      assume(contested.nonEmpty, "connected DB has no renderable label that the disagree-ratio gate drops")
+      val everyType = LabelType.values.toSet
+
+      val sortedIds = run(query(GalleryOrder.Sorted(GallerySort.MostDisputed), everyType).map(_.labelId).result)
+      val randomIds = run(query(GalleryOrder.Random, everyType).map(_.labelId).result)
+      sortedIds.toSet.intersect(contested) must not be empty
+      randomIds.toSet.intersect(contested) mustBe empty
+    }
+
+    // A tag narrows only the type it belongs to (#2705 runs one query across several types, so this is where a
+    // curb-ramp tag could otherwise leak onto obstacles, or an obstacle be dropped for lacking one).
+    "scope tags to their own label type in a multi-type query" in {
+      val tag = run(
+        labelTable
+          .getGalleryLabelsQuery(
+            configService.getPanoSource, Set(LabelType.CurbRamp), Set.empty, allValOptions, Set.empty, Set.empty,
+            Map.empty, Set.empty, noUser, GalleryOrder.Random
+          )
+          .take(50)
+          .result
+      ).flatMap(_.tags).headOption
+      assume(tag.isDefined, "connected database has no tagged curb ramp")
+
+      val rows = run(
+        query(
+          GalleryOrder.Sorted(GallerySort.Newest),
+          Set(LabelType.CurbRamp, LabelType.Obstacle),
+          Map(LabelType.CurbRamp -> Set(tag.get))
+        ).take(200).result
+      )
+      rows.filter(_.labelType == LabelType.CurbRamp).foreach(_.tags must contain(tag.get))
+      rows.map(_.labelType).toSet must contain(LabelType.CurbRamp)
+      // The other half of the scope: the type nobody narrowed is still served, tag or no tag.
+      val obstacles = run(query(GalleryOrder.Random, Set(LabelType.Obstacle)).take(1).result)
+      if (obstacles.nonEmpty) rows.map(_.labelType).toSet must contain(LabelType.Obstacle)
     }
   }
 
@@ -69,12 +221,12 @@ class LabelServiceSpec extends SidewalkSpec with RolledBackDb with GuiceOneAppPe
       labelTable
         .getGalleryLabelsQuery(
           viewer,
-          LabelType.CurbRamp,
+          Set(LabelType.CurbRamp),
           Set.empty,
           Set("correct", "incorrect", "unsure", "unvalidated"),
           Set.empty,
           Set.empty,
-          Set.empty,
+          Map.empty,
           Set.empty,
           userId
         )
@@ -99,22 +251,8 @@ class LabelServiceSpec extends SidewalkSpec with RolledBackDb with GuiceOneAppPe
     }
 
     "return a label the filtered query drops for its disagree ratio" in {
-      // The gate getGalleryLabelsQuery applies is `disagreeCount < 3 || disagreeCount < agreeCount * 2`; these are
-      // the renderable labels that fail it, and a review list has to show them anyway.
-      val contested: Seq[Int] = run(
-        labelTable.labels
-          .join(labelTable.labelPoints)
-          .on(_.labelId === _.labelId)
-          .join(labelTable.panoData)
-          .on(_._1.panoId === _.panoId)
-          .filter { case ((lb, lp), pd) =>
-            lb.disagreeCount >= 3 && lb.disagreeCount >= lb.agreeCount * 2 &&
-            pd.source === viewer && lp.lat.isDefined && lp.lng.isDefined
-          }
-          .map(_._1._1.labelId)
-          .take(5)
-          .result
-      )
+      // A review list has to show the labels the gate drops anyway.
+      val contested: Seq[Int] = contestedLabelIds(viewer)
       assume(contested.nonEmpty, "connected DB has no renderable label that the disagree-ratio gate drops")
 
       run(labelTable.getGalleryLabelsByIdQuery(viewer, contested, userId).result).map(_._1).toSet mustBe contested.toSet

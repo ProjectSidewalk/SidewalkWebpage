@@ -9,6 +9,58 @@
   padding: 0 5px 5px;
 }
 
+/* The admin-only "Sort by" (#2705), above the filter header. It takes the header's 40px of headroom, and the header
+   then drops its own (below), so the column starts at the same distance from the navbar either way. */
+.gallery-sort {
+  display: flex;
+  flex-direction: column;
+  padding: 40px 5px 0;
+  margin: 0 0 16px;
+}
+
+/* Spaced by margins rather than the column's gap: the note is always in the flow (see the view), and a gap would
+   hold its slot open while it has nothing to say. The select's margin is in its block below. */
+.gallery-sort__note:not(:empty) {
+  margin-top: 6px;
+}
+
+.gallery-sort__label {
+  font: var(--text-subtitle-bold);
+  color: var(--color-neutral-black);
+  margin: 0;
+}
+
+/* Own chevron rather than the platform's: the browser pins its arrow to the border edge, which reads as cramped on a
+   full-width control, and only an `appearance: none` select lets the arrow be placed. The right padding leaves room
+   for the 16px icon plus the same 12px inset it sits at. */
+.gallery-sort .ps-select {
+  width: 100%;
+  margin-top: 6px;
+  appearance: none;
+  padding-right: 40px;
+  background-image: url("/images/icons/chevron-down-feather.svg");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px 16px;
+}
+
+/* Forced colors (Windows High Contrast) strip background images, which would leave the select with no affordance
+   at all; the platform arrow survives there. */
+@media (forced-colors: active) {
+  .gallery-sort .ps-select {
+    appearance: auto;
+    padding-right: calc(10px * var(--ui-scale, 1));
+    background-image: none;
+  }
+}
+
+/* A footnote, not a second control: well below the select's own size. */
+.gallery-sort__note {
+  font: var(--text-tiny-regular);
+  color: var(--color-neutral-700);
+  margin: 0;
+}
+
 .gallery-filter-header {
   display: flex;
   align-items: center;
@@ -18,6 +70,10 @@
   /* The 40px of headroom matches the map sidebar's, so the two panels start at the same distance from the navbar. */
   padding: 40px 5px 0;
   margin: 0 0 16px;
+}
+
+.gallery-sort + .gallery-filter-header {
+  padding-top: 0;
 }
 
 #filter-header {
@@ -51,6 +107,12 @@
   .gallery-filter-header {
     padding: 8px 10px 0;
     margin-bottom: 0;
+  }
+
+  /* Stacked, the sort sits as one row above the "Filter By" disclosure, outside it, so it stays reachable. */
+  .gallery-sort {
+    padding: 8px 10px 0;
+    margin-bottom: 8px;
   }
 
   /* The toggle button carries the same "Filter By" text, so the heading would duplicate it. */

@@ -104,6 +104,8 @@ describe('GalleryFilter', () => {
     let tracker;
     /** @type {jest.Mock} What the filter tells to refetch the cards. */
     let onUpdate;
+    /** @type {jest.Mock} What the filter tells to start over in a new order. */
+    let onSortChange;
 
     /** @returns {string} The path + query the page has pushed to the address bar. */
     const currentUrl = () => window.location.pathname + window.location.search;
@@ -123,12 +125,13 @@ describe('GalleryFilter', () => {
      * @param {object} [initialFilters] Overrides for the filters the server parsed out of the URL.
      * @returns {GalleryFilter} The filter under test.
      */
-    function build(initialFilters = {}) {
+    function build(initialFilters = {}, sortSelect = null) {
         buildFixture();
-        const built = new window.GalleryFilter(document.getElementById('card-filter'), clearBtn(), {
+        const built = new window.GalleryFilter(document.getElementById('card-filter'), clearBtn(), sortSelect, {
             regionIds: [], aiValidationOptions: [], ...initialFilters,
         }, tracker);
         built.onUpdate(onUpdate);
+        built.onSortChange(onSortChange);
         return built;
     }
 
@@ -164,6 +167,7 @@ describe('GalleryFilter', () => {
         window.history.replaceState({}, '', '/gallery');
         tracker = { push: jest.fn() };
         onUpdate = jest.fn();
+        onSortChange = jest.fn();
         filter = build();
     });
 
@@ -199,9 +203,9 @@ describe('GalleryFilter', () => {
             // address bar, so it has to construct and keep working against nothing.
             window.history.replaceState({}, '', '/gallery?labelIds=5,6&labelId=6');
             buildFixture();
-            const filter = new window.GalleryFilter(null, null, {
+            const filter = new window.GalleryFilter(null, null, null, {
                 regionIds: [], aiValidationOptions: [], labelIds: [5, 6],
-            });
+            }, tracker);
 
             expect(currentUrl()).toBe('/gallery?labelIds=5,6&labelId=6');
             expect(filter.getStatus().currentLabelTypes).toEqual([]);
@@ -384,6 +388,198 @@ describe('GalleryFilter', () => {
             expect(document.getElementById('card-filter').classList.contains('filter-sidebar--loading')).toBe(false);
             expect(typeBox('Obstacle').disabled).toBe(false);
             expect(clearBtn().disabled).toBe(false);
+        });
+    });
+
+    // The admin's "Sort by" (#2705): an order, not a filter, so it rides in the URL and the card query without
+    // counting as a filter — the reset neither appears for it nor touches it.
+    describe('the sort select', () => {
+        /** @returns {HTMLSelectElement} The sort select. */
+        const sortSelect = () => document.getElementById('gallery-sort');
+
+        /**
+         * Builds the filter over the fixture plus the admin's sort select and footer, as the page renders them.
+         * @returns {GalleryFilter} The filter under test.
+         */
+        function buildAsAdmin() {
+            buildFixture();
+            document.body.insertAdjacentHTML('afterbegin', `
+              <div class="gallery-sort">
+                <label for="gallery-sort">Sort By</label>
+                <select id="gallery-sort" class="ps-select">
+                  <option value="random" selected>Random</option>
+                  <option value="newest">Newest first</option>
+                  <option value="most_severe">Most severe first</option>
+                  <option value="most_disputed">Most disputed first</option>
+                </select>
+                <p id="gallery-sort-note" class="gallery-sort__note" aria-live="polite"></p>
+              </div>`);
+            document.body.insertAdjacentHTML('beforeend', '<div id="gallery-footer">gallery:cards</div>');
+            const built = new window.GalleryFilter(document.getElementById('card-filter'), clearBtn(), sortSelect(), {
+                regionIds: [], aiValidationOptions: [],
+            }, tracker);
+            built.onUpdate(onUpdate);
+            built.onSortChange(onSortChange);
+            return built;
+        }
+
+        /** Picks an option the way a user would, so the change event fires. */
+        function choose(value) {
+            sortSelect().value = value;
+            sortSelect().dispatchEvent(new Event('change'));
+        }
+
+        beforeEach(() => {
+            window.i18next = { t: (key, opts) => (opts ? `${key}:${JSON.stringify(opts)}` : key), language: 'en' };
+            filter = buildAsAdmin();
+        });
+
+        it('answers random with no select at all, as for everyone but an admin', () => {
+            expect(build().getSort()).toBe('random');
+        });
+
+        it('puts a chosen order in the URL, logs it, and refetches in that order', () => {
+            choose('most_severe');
+
+            expect(filter.getSort()).toBe('most_severe');
+            expect(currentUrl()).toBe('/gallery?sort=most_severe');
+            expect(tracker.push).toHaveBeenCalledWith('SortApply', null, { Sort: 'most_severe' });
+            expect(onSortChange).toHaveBeenCalled();
+            expect(onUpdate).not.toHaveBeenCalled();
+        });
+
+        it('leaves the reset hidden for a sort alone, and does not reset the sort', () => {
+            choose('newest');
+            expect(clearBtn().hidden).toBe(true);
+
+            typeBox('Obstacle').click();
+            expect(clearBtn().hidden).toBe(false);
+            expect(currentUrl()).toBe('/gallery?labelType=CurbRamp,Crosswalk,NoSidewalk&sort=newest');
+
+            clearBtn().click();
+            expect(filter.getSort()).toBe('newest');
+            expect(currentUrl()).toBe('/gallery?sort=newest');
+            expect(clearBtn().hidden).toBe(true);
+        });
+
+        it('drops the param again for the random default', () => {
+            choose('newest');
+            choose('random');
+            expect(currentUrl()).toBe('/gallery');
+        });
+
+        it('restates the footer for the order', () => {
+            choose('most_severe');
+            expect(document.getElementById('gallery-footer').textContent)
+                .toBe('gallery:cards-sorted:{"sort":"gallery:sort-most-severe"}');
+
+            choose('random');
+            expect(document.getElementById('gallery-footer').textContent).toBe('gallery:cards');
+        });
+
+        it('is blocked and restored with the filters while cards load', () => {
+            filter.disable();
+            expect(sortSelect().disabled).toBe(true);
+            filter.enable();
+            expect(sortSelect().disabled).toBe(false);
+        });
+
+        // The choice stays (greying it out would have to rewrite the URL under the admin); the page says what it is
+        // really showing instead.
+        describe('when the filters leave the sort nothing to rank', () => {
+            /** @returns {HTMLElement} The note under the select. */
+            const note = () => document.getElementById('gallery-sort-note');
+            /** @returns {string} The footer's text. */
+            const footer = () => document.getElementById('gallery-footer').textContent;
+
+            it('says so under the select and in the footer, and keeps the sort', () => {
+                choose('most_disputed');
+                expect(note().textContent).toBe('');
+
+                // Validations default to correct + unvalidated; "Only" on unvalidated leaves nothing with a vote.
+                document.querySelector('.filter-sidebar__only[data-section="label-validations"][data-value="unvalidated"]')
+                    .click();
+
+                expect(note().textContent).toBe('gallery:sort-moot-no-validated');
+                expect(footer()).toBe('gallery:cards-sorted-moot:{"sort":"gallery:sort-most-disputed"}');
+                expect(filter.getSort()).toBe('most_disputed');
+                expect(currentUrl()).toBe('/gallery?validationOptions=unvalidated&sort=most_disputed');
+            });
+
+            it('clears the note once a filter gives the sort something to rank again', () => {
+                choose('most_disputed');
+                document.querySelector('.filter-sidebar__only[data-section="label-validations"][data-value="unvalidated"]')
+                    .click();
+                expect(note().textContent).not.toBe('');
+
+                document.querySelector('#unsure').click();
+
+                expect(note().textContent).toBe('');
+                expect(footer()).toBe('gallery:cards-sorted:{"sort":"gallery:sort-most-disputed"}');
+            });
+
+            it('calls a severity sort moot once only one level, or no rated type, is left', () => {
+                choose('most_severe');
+                document.querySelector('.filter-sidebar__only[data-section="severity"][data-value="3"]').click();
+                expect(note().textContent).toBe('gallery:sort-moot-one-severity');
+
+                sevBtn(1).click();
+                expect(note().textContent).toBe('');
+
+                // Only NoSidewalk, which carries no rating, so the severity block itself hides.
+                document.querySelector('.filter-sidebar__only[data-section="label-type"][data-value="NoSidewalk"]')
+                    .click();
+                expect(note().textContent).toBe('gallery:sort-moot-no-rated-type');
+            });
+
+            it('is settled on construction, for a page opened with such a URL', () => {
+                filter = buildAsAdmin();
+                sortSelect().value = 'most_disputed';
+                document.querySelector('.filter-sidebar__only[data-section="label-validations"][data-value="unvalidated"]')
+                    .click();
+                filter = new window.GalleryFilter(document.getElementById('card-filter'), clearBtn(), sortSelect(), {
+                    regionIds: [], aiValidationOptions: [],
+                }, tracker);
+                expect(note().textContent).toBe('gallery:sort-moot-no-validated');
+            });
+        });
+
+        // A keyboard user steps a closed select with the arrow keys, and each step fires a change and so a load
+        // that disables the select; disabling the focused element drops focus to the body.
+        it('hands focus back to the select after the load it started', () => {
+            sortSelect().focus();
+            expect(document.activeElement).toBe(sortSelect());
+            onSortChange.mockImplementation(() => filter.disable());
+
+            choose('newest');
+            // A browser drops focus to the body the moment the focused element is disabled; jsdom leaves it (and
+            // won't blur a disabled element), so that is played by hand. What is pinned is the hand-back, which
+            // the browser does not do on its own.
+            document.body.tabIndex = -1;
+            document.body.focus();
+            expect(document.activeElement).toBe(document.body);
+
+            filter.enable();
+            expect(document.activeElement).toBe(sortSelect());
+            document.body.removeAttribute('tabindex');
+        });
+
+        it('does not take focus back from somewhere the admin moved it during the load', () => {
+            sortSelect().focus();
+            onSortChange.mockImplementation(() => filter.disable());
+            choose('newest');
+            const elsewhere = document.querySelector('.filter-sidebar__deselect-all');
+            elsewhere.focus();
+
+            filter.enable();
+            expect(document.activeElement).toBe(elsewhere);
+        });
+
+        it('leaves focus where it was when the select did not have it', () => {
+            typeBox('Obstacle').focus();
+            filter.disable();
+            filter.enable();
+            expect(document.activeElement).not.toBe(sortSelect());
         });
     });
 });

@@ -129,15 +129,16 @@ class StreetGradientApiModelsSpec extends SidewalkSpec {
     }
 
     "credit an unregistered model by the name it was stored under" in {
-      val source = DemSource.forName("inegi-mdt-5m")
-      source.credit mustBe "Elevation: inegi-mdt-5m"
+      val source = DemSource.forName("spec-unregistered-dem")
+      source.credit mustBe "Elevation: spec-unregistered-dem"
       source.url mustBe None
     }
   }
 
   "StreetGradientConfigForApi.toJson" should {
-    "publish the two slope limits and each source's street count" in {
-      val json = StreetGradientConfigForApi(Seq(DemSourceForApi(DemSource.forName("usgs-3dep-10m"), Some(2172)))).toJson
+    "publish the two slope limits and each source's street count and confidence" in {
+      val source = DemSourceForApi(DemSource.forName("usgs-3dep-10m"), Some(2172), Some(StreetGradientConfidence.High))
+      val json   = StreetGradientConfigForApi(Seq(source)).toJson
 
       (json \ "walking_surface_limit").as[Double] mustBe 0.05
       (json \ "ramp_limit").as[Double] mustBe (1.0 / 12.0)
@@ -148,6 +149,29 @@ class StreetGradientApiModelsSpec extends SidewalkSpec {
       val sources = (json \ "sources").as[Seq[JsObject]]
       sources must have size 1
       (sources.head \ "street_count").as[Int] mustBe 2172
+      (sources.head \ "confidence").as[String] mustBe "high"
+      (json \ "approximate").as[Boolean] mustBe false
+    }
+
+    "call a city approximate when at least half of its sampled streets come from a low-confidence model" in {
+      def config(fine: Int, coarse: Int) = StreetGradientConfigForApi(
+        Seq(
+          DemSourceForApi(DemSource.forName("usgs-3dep-10m"), Some(fine), Some(StreetGradientConfidence.High)),
+          DemSourceForApi(DemSource.forName("gedtm30"), Some(coarse), Some(StreetGradientConfidence.Low))
+        ).filter(_.streetCount.exists(_ > 0))
+      )
+      // By street share: a coarse model filling gaps in a fine one is not a coarse city, and half is enough.
+      config(fine = 6, coarse = 5).approximate mustBe false
+      config(fine = 5, coarse = 5).approximate mustBe true
+      config(fine = 0, coarse = 5).approximate mustBe true
+      config(fine = 0, coarse = 0).approximate mustBe false
+      (config(fine = 3, coarse = 5).toJson \ "approximate").as[Boolean] mustBe true
+    }
+
+    "leave out the count and confidence it was not given, as a single street's attribution is" in {
+      val json = DemSourceForApi(DemSource.forName("usgs-3dep-10m")).toJson
+      (json \ "street_count").toOption mustBe None
+      (json \ "confidence").toOption mustBe None
     }
   }
 }

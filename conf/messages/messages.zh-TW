@@ -128,6 +128,7 @@ city.name.houston-tx = 休士頓
 city.name.newport-ky = 紐波特
 city.name.bayonne-fr = 巴約訥
 city.name.laurens-ia = 勞倫斯
+city.name.juneau-ak = 朱諾
 
 state.name.dc = 特區
 state.name.oregon = 奧勒岡州
@@ -150,6 +151,7 @@ state.name.massachusetts = 麻薩諸塞州
 state.name.texas = 德克薩斯州
 state.name.kentucky = 肯塔基州
 state.name.iowa = 愛荷華州
+state.name.alaska = 阿拉斯加州
 
 country.name.usa = 美國
 country.name.mexico = 墨西哥
@@ -625,6 +627,14 @@ gallery.tags = 標籤
 gallery.all = 所有的標記類型
 gallery.labels.not.found = 無相符資料。 <a href="/explore">開始探索</a>以蒐集更多的資料！
 gallery.cards = 所有標記依據所選定的過濾器而隨機排序
+gallery.cards.sorted = 標記依據「{0}」排序，並套用所選定的過濾器
+gallery.sort.by = 排序方式
+gallery.sort.random = 隨機
+gallery.sort.newest = 最新優先
+gallery.sort.oldest = 最舊優先
+gallery.sort.most.severe = 最嚴重優先
+gallery.sort.least.severe = 最輕微優先
+gallery.sort.most.disputed = 最具爭議優先
 gallery.clear.filters = 清除過濾器
 gallery.list.count = 此清單中的 {0} 個標記
 gallery.list.truncated = 有 {0} 個 ID 超過 {1} 個的上限，因此未載入。

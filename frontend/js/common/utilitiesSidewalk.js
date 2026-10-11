@@ -806,9 +806,10 @@ util.misc = { ...UtilitiesMisc(JSON), ...util.misc };
 
 /**
  * Fields PannellumViewer needs to render a backup pano: the subset of PanoData's `requiredParams` that a pano_data
- * row can be missing. See the note there before changing this list.
+ * row can be missing. See the note there before changing this list. Camera pitch and roll are not on it: the viewer
+ * never reads them (#5174), and a Mapillary pano the AI pipeline recorded without a pose is still viewable (#5725).
  */
-util.misc.BACKUP_IMAGE_REQUIRED_FIELDS = ['width', 'height', 'lat', 'lng', 'camera_heading', 'camera_pitch'];
+util.misc.BACKUP_IMAGE_REQUIRED_FIELDS = ['width', 'height', 'lat', 'lng', 'camera_heading'];
 
 /**
  * Whether a backup pano carries the metadata PannellumViewer needs to render it.

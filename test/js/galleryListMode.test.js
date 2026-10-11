@@ -42,7 +42,7 @@ describe('the Gallery in review-list mode', () => {
         function build(labelIds) {
             document.body.innerHTML = '<div class="gallery-list-bar"></div>';
             return new window.GalleryFilter(
-                null, null, { regionIds: [], aiValidationOptions: [], labelIds }, { push: jest.fn() },
+                null, null, null, { regionIds: [], aiValidationOptions: [], labelIds }, { push: jest.fn() },
             );
         }
 
@@ -248,7 +248,9 @@ describe('the Gallery in review-list mode', () => {
                 getAppliedValidationOptions: () => [],
                 getAppliedSeverities: () => [],
                 getAppliedTagsByType: () => ({}),
+                getSort: () => 'random',
                 onUpdate: (listener) => { cardFilter.listener = listener; },
+                onSortChange: () => {},
                 disable: jest.fn(),
                 enable: jest.fn(),
             };
