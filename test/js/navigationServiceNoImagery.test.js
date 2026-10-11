@@ -144,6 +144,7 @@ describe('Explore, when the imagery search runs out along a street', () => {
             CONNECTED_TASK_THRESHOLD: 0.01,
             isOnboarding: () => false,
             isExploreAddressMode: () => false,
+            streetCoverage: { max_uncovered_m: 50 },
             alertController: { showAlert: stub() },
             canvas: { disableLabeling: stub(), enableLabeling: stub(), hideHoverCard: stub() },
             compass: {

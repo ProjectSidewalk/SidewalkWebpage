@@ -42,7 +42,10 @@ object CoveredRange {
  */
 object StreetCoverage {
 
-  /** Most of a street that may stay unseen for it to count as audited; the limit that matters above 100 m. */
+  /**
+   * Most of a street that may stay unseen for it to count as audited; the limit that matters above 100 m. Also how
+   * near the end a regular mission's imagery may run out and still count the street walked (NavigationService).
+   */
   val MaxUncoveredM: Double = 50d
 
   /** Least share of a street that must have been seen; the limit that matters under 100 m. */
