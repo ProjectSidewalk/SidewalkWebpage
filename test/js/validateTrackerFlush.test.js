@@ -189,6 +189,15 @@ describe('Tracker timed flush (issue #4429)', () => {
         expect(form.submit).toHaveBeenCalledTimes(1);
     });
 
+    test('record() leaves a buffer at the limit for its caller to drain, so an exit flush is not split in two', () => {
+        for (let i = 0; i < 200; i++) tracker.push('LowLevelEvent_mousemove');
+        tracker.record('Unload');
+
+        expect(form.submit).not.toHaveBeenCalled();
+        expect(tracker.getActions()).toHaveLength(201);
+        expect(tracker.getActions().at(-1).action).toBe('Unload');
+    });
+
     test('the next push after a drain arms a fresh deadline', () => {
         tracker.push('ValidationButtonClick_Agree');
         jest.advanceTimersByTime(FLUSH_INTERVAL_MS);

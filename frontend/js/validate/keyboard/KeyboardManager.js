@@ -92,7 +92,8 @@ export class KeyboardManager {
   ];
 
   /**
-   * Desktop only: the phone has no shortcuts. Built last, since the shortcuts act on the whole tool.
+   * Desktop only: the phone has no shortcuts. Built last, once the tool is on screen: the shortcuts act on the whole
+   * tool, and none of them should land on the loading screen.
    *
    * @param {ValidateUi} ui - The verdict menu's buttons and boxes, and the undo button, which the shortcuts press.
    * @param {ValidateConfig} config - Whether this is Expert Validate, where the number keys can rate a label.

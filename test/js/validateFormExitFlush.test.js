@@ -35,7 +35,7 @@ function setVisibility(state) {
 describe('Form exit flushes (issue #5561)', () => {
     let form;
     let payload;
-    const tracker = { push: jest.fn(), onFlush: jest.fn() };
+    const tracker = { push: jest.fn(), record: jest.fn(), onFlush: jest.fn() };
 
     // One Form for the whole suite: its constructor leaves exit listeners on the shared window and document, so a
     // Form per test would have every earlier one answering the events too, and the POST counts would be theirs.
@@ -46,6 +46,7 @@ describe('Form exit flushes (issue #5561)', () => {
     beforeEach(() => {
         global.fetch = jest.fn(() => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({}) }));
         tracker.push.mockClear();
+        tracker.record.mockClear();
         consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
 
         payload = { validations: [{ label_id: 1 }], interactions: [] };
@@ -73,15 +74,15 @@ describe('Form exit flushes (issue #5561)', () => {
         expect(options.method).toBe('POST');
         expect(options.keepalive).toBe(true);
         expect(options.body).toBe(JSON.stringify(payload));
-        expect(tracker.push).toHaveBeenCalledWith('PageHidden');
-        expect(tracker.push).not.toHaveBeenCalledWith('Unload');
+        expect(tracker.record).toHaveBeenCalledWith('PageHidden');
+        expect(tracker.record).not.toHaveBeenCalledWith('Unload');
     });
 
     test('coming back into view sends nothing', () => {
         setVisibility('visible');
 
         expect(global.fetch).not.toHaveBeenCalled();
-        expect(tracker.push).not.toHaveBeenCalled();
+        expect(tracker.record).not.toHaveBeenCalled();
     });
 
     test('pagehide still sends the buffer, recorded as an unload', () => {
@@ -89,7 +90,9 @@ describe('Form exit flushes (issue #5561)', () => {
 
         const options = exitPostOptions();
         expect(options.keepalive).toBe(true);
-        expect(tracker.push).toHaveBeenCalledWith('Unload');
+        // Recorded, not pushed: a push could trip the count backstop and send the buffer ahead of this POST.
+        expect(tracker.record).toHaveBeenCalledWith('Unload');
+        expect(tracker.push).not.toHaveBeenCalled();
     });
 
     test('hidden then gone drains the buffer each time, so nothing is sent twice', () => {

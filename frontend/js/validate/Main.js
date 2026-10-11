@@ -401,14 +401,7 @@ export class Main {
     );
     const modalMission = new ModalMission(ui.modalMission, keyboardLock, modalNoNewMission, tracker);
 
-    // Did the last page life in this tab end without a pagehide? On a phone that is the browser killing the tab for
-    // memory (#5561), which from in here is otherwise indistinguishable from a reload. Read before the first mission
-    // is created, which is what marks this life live; the tracker files the row under that mission when the buffer
-    // drains, so it still names this mission alongside the one that was cut short.
     const missionLiveMarker = new MissionLiveMarker(window.sessionStorage);
-    const unexpectedUnload = missionLiveMarker.takeUnexpectedUnload();
-    if (unexpectedUnload) tracker.push('Validate_UnexpectedUnload', unexpectedUnload);
-
     const missionContainer = new MissionContainer(
       statusField, modalMission, modalMissionComplete, missionLiveMarker, tracker,
     );
@@ -484,21 +477,26 @@ export class Main {
       panoControlMenu.setCollapsedIndicator(!imageAdjustments.isDefault());
       const adjustmentsModel = imageAdjustments;
       imageAdjustments.onChange(() => panoControlMenu.setCollapsedIndicator(!adjustmentsModel.isDefault()));
-
-      new KeyboardManager(ui, config, keyboardLock, labelContainer, labelVisibilityControl, labelCard,
-        /** @type {DesktopValidationMenu} */ (validationMenu), zoomControl, undoValidation,
-        /** @type {ImmersiveMode} */ (this.#immersiveMode), imageAdjustmentsPopover, tracker);
     }
 
     await labelContainer.renderCurrentLabel();
 
     if (!util.isMobile()) {
+      // Paused under the tutorial; its Done hands the shortcuts back (TutorialHooks.keyboard).
+      keyboardLock.disableKeyboard();
       new MissionStartTutorial('validate', labelType, { nLabels: mission.labels_validated }, tutorialHooks,
         param.language);
     }
 
     // Now that mission start tutorial has loaded, can unhide the UI under it and remove the loading icon.
     this.#revealTool();
+
+    // Wired only now, so that no shortcut, not even the always-on immersive toggle, acts on the loading screen.
+    if (!util.isMobile()) {
+      new KeyboardManager(ui, config, keyboardLock, labelContainer, labelVisibilityControl, labelCard,
+        /** @type {DesktopValidationMenu} */ (validationMenu), zoomControl, undoValidation,
+        /** @type {ImmersiveMode} */ (this.#immersiveMode), imageAdjustmentsPopover, tracker);
+    }
 
     // The first label rendered while the tool was still invisible (visibility: hidden doesn't pause animations),
     // so its halo pulse played unseen. Replay it now that the marker can be seen — or, on desktop, once the
@@ -541,6 +539,15 @@ export class Main {
     }
 
     this.#showPanoInteractiveHint();
+
+    // Did the last page life in this tab end without a pagehide? On a phone that is the browser killing the tab for
+    // memory (#5561), which from in here is otherwise indistinguishable from a reload. Read only now, with the first
+    // label on screen and just before the first mission is created, which is what marks this life live: a page
+    // killed during that first load would otherwise have taken the marker and reported nothing, and a flush during
+    // it would have sent the row with no mission to file it under. The tracker files it under this mission when the
+    // buffer drains, so it names this mission alongside the one that was cut short.
+    const unexpectedUnload = missionLiveMarker.takeUnexpectedUnload();
+    if (unexpectedUnload) tracker.push('Validate_UnexpectedUnload', unexpectedUnload);
 
     missionContainer.createAMission(mission, progress);
     // Logged only now: the tracker stamps each row with the current mission, and without one this row, the only

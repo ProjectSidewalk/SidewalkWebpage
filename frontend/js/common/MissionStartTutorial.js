@@ -13,15 +13,16 @@ import { util } from './utilities.js';
 import '../../css/components/mission-start-tutorial.css';
 
 /**
- * A full-screen carousel for the mission start tutorial.
- */
-/**
  * What a tool hands the tutorial: where to log, and what to re-enable or refresh when the tutorial closes.
  * @typedef {object} TutorialHooks
  * @property {{push: (action: string, notes?: object, extra?: any) => any}} tracker - Logs the slide clicks.
  * @property {{enableKeyboard: () => void}} [keyboard] - Shortcuts to resume once the overlay clears.
  * @property {{updateZoomAvailability: () => void}} [zoomControl] - Zoom buttons to bring in line with the pano.
  * @property {{getCurrentMission: () => any}} [missionContainer] - Explore only: the mission whose start is logged.
+ */
+
+/**
+ * A full-screen carousel for the mission start tutorial.
  */
 export class MissionStartTutorial {
   static #EXAMPLE_TYPES = {

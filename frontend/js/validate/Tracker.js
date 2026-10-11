@@ -152,13 +152,23 @@ export class Tracker {
   }
 
   /**
+   * Buffers an action for a caller that drains the buffer itself right after (the exit flush), keeping the count
+   * backstop out of it: the exit's own marker tipping the buffer over the limit would otherwise send everything before
+   * it in a request the browser cancels along with the page, and leave the keepalive request holding little else.
+   * @param {string} action
+   * @param {object} [notes] - Notes to be logged into the notes field database.
+   */
+  record(action, notes) {
+    this.#actions.push(this.#createAction(action, notes));
+  }
+
+  /**
    * Pushes information to action list (to be submitted to the database).
    * @param {string} action
    * @param {object} [notes] - Notes to be logged into the notes field database.
    */
   push(action, notes) {
-    const item = this.#createAction(action, notes);
-    this.#actions.push(item);
+    this.record(action, notes);
     if (this.#actions.length > Tracker.#MAX_BUFFERED_ACTIONS) {
       this.#flush();
     } else if (this.#flushTimeout === null) {

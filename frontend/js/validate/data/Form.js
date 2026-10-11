@@ -93,7 +93,7 @@ export class Form {
    * @param {string} reason - The interaction recorded alongside, naming what prompted the flush.
    */
   #flushOnExit(reason) {
-    this.#tracker.push(reason);
+    this.#tracker.record(reason);
     const data = Form.#snapshot(this.compileSubmissionData(false));
     this.#noteProgress(data);
     const body = JSON.stringify(data);

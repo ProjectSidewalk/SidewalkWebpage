@@ -128,15 +128,6 @@ async function loadValidate(page, path) {
 }
 
 /**
- * Asserts that a mission's imagery rendered and that the expected viewer rendered it. #4810 drops a label whose
- * imagery won't load silently and by design, so an empty pano area would otherwise look like a healthy one; and
- * the stub decides which viewer can succeed (see the header), so the wrong one means the fallback chain took a
- * path it shouldn't have. Callers skip this on the no-mission modal, which has nothing to render.
- * @param {import('@playwright/test').Page} page The page under test, settled on the mission path.
- * @param {string} path The page's path, for the failure message.
- * @param {string} viewerType The PanoViewer.viewerType expected to have rendered the pano ('gsv', 'pannellum', …).
- */
-/**
  * The viewer the current label belongs in: the Pannellum fallback for an expired pano with a backup image (every
  * seeded pano on CI), else the city's own provider. A dev database holds live panos too, so the label's flag decides.
  * @param {import('@playwright/test').Page} page
@@ -153,6 +144,15 @@ async function expectedValidateViewer(page) {
   return expired ? 'pannellum' : imagerySource;
 }
 
+/**
+ * Asserts that a mission's imagery rendered and that the expected viewer rendered it. #4810 drops a label whose
+ * imagery won't load silently and by design, so an empty pano area would otherwise look like a healthy one; and
+ * the stub decides which viewer can succeed (see the header), so the wrong one means the fallback chain took a
+ * path it shouldn't have. Callers skip this on the no-mission modal, which has nothing to render.
+ * @param {import('@playwright/test').Page} page The page under test, settled on the mission path.
+ * @param {string} path The page's path, for the failure message.
+ * @param {string} viewerType The PanoViewer.viewerType expected to have rendered the pano ('gsv', 'pannellum', …).
+ */
 async function expectPanoRendered(page, path, viewerType) {
   const state = await page.evaluate(() => ({
     panoLoaded: window.svv?.panoManager?.getProperty('panoLoaded'),

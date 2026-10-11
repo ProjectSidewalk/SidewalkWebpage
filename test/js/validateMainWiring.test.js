@@ -96,6 +96,10 @@ let SpeedLimit;
 let ZoomControl;
 let KeyboardLock;
 let UndoValidation;
+/** @type {{takeUnexpectedUnload: jest.Mock, markLive: jest.Mock}} The live marker Main builds, per test. */
+let marker;
+/** @type {?{keyboardPaused: boolean}} What the mission-start tutorial found when Main built it. */
+let tutorialBuilt;
 
 beforeAll(() => {
   window.matchMedia = () => /** @type {MediaQueryList} */ ({ matches: true }); // jsdom has none; act as a mouse.
@@ -131,7 +135,11 @@ beforeAll(() => {
   window.BadgeAchievements = { seedCounts: jest.fn() };
   window.Toast = { show: jest.fn(), repositionAll: jest.fn() };
   window.ImmersiveMode = class { isActive() { return false; } logRestored() {} };
-  window.MissionStartTutorial = class {};
+  window.MissionStartTutorial = class {
+    constructor(missionType, labelType, data, hooks) {
+      tutorialBuilt = { keyboardPaused: hooks.keyboard.isDisabled() };
+    }
+  };
   window.PanoImageAdjustments = class { isDefault() { return true; } onChange() {} values() { return {}; } };
   window.PanoImageAdjustmentsPopover = class {};
   window.PanoControlMenu = class { setCollapsedIndicator() {} };
@@ -154,7 +162,7 @@ beforeAll(() => {
     setProgressText() {}
     getCompletedValidations() { return 0; }
   };
-  window.MissionLiveMarker = class { takeUnexpectedUnload() { return null; } markLive() {} };
+  window.MissionLiveMarker = class { constructor() { return marker; } };
   window.LabelVisibilityToggle = class { setVisible() {} isVisible() { return true; } };
   window.LabelCardView = class {};
   window.Infra3dViewer = class {};
@@ -186,6 +194,8 @@ describe('Main hooks what describes a label to the label container', () => {
     document.body.innerHTML = FIXTURE;
     tracker = { push: jest.fn(), flushSoon: jest.fn(), trackMissions: jest.fn(), trackPano: jest.fn(), onFlush: jest.fn() };
     window.Tracker = class { constructor() { return tracker; } };
+    marker = { takeUnexpectedUnload: jest.fn(() => null), markLive: jest.fn() };
+    tutorialBuilt = null;
 
     panoManager = {
       setPanorama: jest.fn((panoId) => Promise.resolve({ panoData: { panoId } })),
@@ -331,5 +341,39 @@ describe('Main hooks what describes a label to the label container', () => {
     expect(holder.classList.contains('ps-invisible')).toBe(false);
     expect(loadingOverlay.style.visibility).toBe('hidden');
     expect(shown.labelCard).toHaveBeenCalledTimes(1);
+  });
+
+  test('the shortcuts are wired only once the tool is on screen, so no key acts on the loading screen', async () => {
+    const loadingOverlay = document.getElementById('page-loading');
+    let overlayWhenWired;
+    jest.spyOn(window, 'addEventListener').mockImplementation(function (type, ...rest) {
+      if (type === 'keydown') overlayWhenWired = loadingOverlay.style.visibility;
+      return EventTarget.prototype.addEventListener.call(window, type, ...rest);
+    });
+
+    await start();
+
+    expect(overlayWhenWired).toBe('hidden');
+  });
+
+  test('the keyboard is paused when the mission-start tutorial goes up over the first label', async () => {
+    await start();
+
+    expect(tutorialBuilt).toEqual({ keyboardPaused: true });
+    expect(loading.keyboardOn).not.toHaveBeenCalled();
+  });
+
+  test('an unexpected end to the last page life is reported once the first label is up, against the first mission', async () => {
+    const report = { missionId: 3, ageSec: 40, navType: 'reload' };
+    marker.takeUnexpectedUnload.mockReturnValue(report);
+
+    await start();
+
+    expect(tracker.push).toHaveBeenCalledWith('Validate_UnexpectedUnload', report);
+    // Taken only after the first label rendered, so a page killed during that load still leaves the marker for the
+    // next life, and just before the mission is marked live, so the row is filed under it when the buffer drains.
+    expect(lastCallOrder(marker.takeUnexpectedUnload)).toBeGreaterThan(lastCallOrder(panoManager.renderPanoMarker));
+    expect(lastCallOrder(marker.markLive)).toBeGreaterThan(lastCallOrder(marker.takeUnexpectedUnload));
+    expect(marker.markLive).toHaveBeenCalledWith(7);
   });
 });
