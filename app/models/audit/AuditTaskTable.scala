@@ -11,6 +11,7 @@ import models.utils.MyPostgresProfile.api.{given, *}
 import models.utils.{ConfigTableDef, FilteredTables, LiftedRow, MyPostgresProfile}
 import org.locationtech.jts.geom.{LineString, Point}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+import play.api.libs.json.JsValue
 import service.TimeInterval
 import slick.lifted.{FlatShapeLevel, Shape}
 
@@ -37,7 +38,9 @@ case class AuditTask(
     auditedDistanceM: Option[Double],
     startOffsetM: Option[Double] = None, // Meters from the street's start to where a free-exploration drop-in began.
     outdatedImagery: Boolean = false,    // Machine-managed (#4384); mirrors the column's DEFAULT FALSE.
-    outdatedImageryAt: Option[OffsetDateTime] = None // When the sync last flipped the flag on; NULL while unflagged.
+    outdatedImageryAt: Option[OffsetDateTime] = None, // When the sync last flipped the flag on; NULL while unflagged.
+    // Merged [start_m, end_m] pairs along the street a free-exploration session has seen (#5733); NULL otherwise.
+    coveredRanges: Option[JsValue] = None
 )
 case class NewTask(
     edgeId: Int,
@@ -60,7 +63,8 @@ case class NewTask(
     needsReaudit: Boolean,                // Audited before, but every completed audit predates newer imagery (#4895).
     mappedByThisUser: Boolean,            // This user has a completed audit here, so the notice says "you" (#4895).
     lastMappedAt: Option[OffsetDateTime], // Date the notice quotes: this user's last audit, else the street's.
-    newImageryDate: Option[LocalDate]     // Street's median newest capture, when its imagery has been polled.
+    newImageryDate: Option[LocalDate],    // Street's median newest capture, when its imagery has been polled.
+    coveredRanges: Option[JsValue]        // A resumed free-exploration task's stored coverage (#5733); None otherwise.
 )
 case class AuditedStreetWithTimestamp(
     streetEdgeId: Int,
@@ -160,10 +164,12 @@ class AuditTaskTableDef(tag: slick.lifted.Tag) extends Table[AuditTask](tag, "au
   def outdatedImagery: Rep[Boolean] = column[Boolean]("outdated_imagery", O.Default(false))
   // CHECK (outdated_imagery OR outdated_imagery_at IS NULL) in the DB (no Slick DSL for CHECK constraints).
   def outdatedImageryAt: Rep[Option[OffsetDateTime]] = column[Option[OffsetDateTime]]("outdated_imagery_at")
+  // CHECK (covered_ranges IS NULL OR jsonb_typeof(covered_ranges) = 'array') in the DB (no Slick DSL for CHECK).
+  def coveredRanges: Rep[Option[JsValue]] = column[Option[JsValue]]("covered_ranges")
 
   def * = (auditTaskId, amtAssignmentId, userId, streetEdgeId, taskStart, taskEnd, completed, currentLat, currentLng,
     startPointReversed, currentMissionId, currentMissionStart, lowQuality, incomplete, stale, auditedDistanceM,
-    startOffsetM, outdatedImagery, outdatedImageryAt).mapTo[AuditTask]
+    startOffsetM, outdatedImagery, outdatedImageryAt, coveredRanges).mapTo[AuditTask]
 
   def streetEdge =
     foreignKey("audit_task_street_edge_id_fkey", streetEdgeId, TableQuery[StreetEdgeTableDef])(_.streetEdgeId)
@@ -654,7 +660,8 @@ class AuditTaskTable @Inject() (
       scau.needsReaudit,
       scau.mappedByThisUser,
       scau.lastMappedAt,
-      scau.newImageryDate
+      scau.newImageryDate,
+      LiteralColumn[Option[JsValue]](None) // coveredRanges: a fresh task has none.
     ).mapTo[NewTask]
 
     edges.result.head
@@ -682,15 +689,16 @@ class AuditTaskTable @Inject() (
           false,             // completed is always false for a new task.
           None: Option[Int], // auditTaskId is None for a new task.
           missionId.asColumnOf[Option[Int]],
-          LiteralColumn[Option[Point]](None), // currentMissionStart is None for a new task.
-          None: Option[Int],                  // routeStreetId is None for the tutorial task.
-          None: Option[Int],                  // routeStreetPosition is None for the tutorial task.
-          None: Option[String],               // maxSpeed isn't shown during the tutorial.
-          false,                              // reportedNoImagery is route-scoped; see NewTask.
-          false,                              // needsReaudit: the tutorial street is never a re-audit.
-          false,                              // mappedByThisUser: no notice to phrase, so nothing to attribute.
-          None: Option[OffsetDateTime],       // lastMappedAt
-          None: Option[LocalDate]             // newImageryDate
+          LiteralColumn[Option[Point]](None),  // currentMissionStart is None for a new task.
+          None: Option[Int],                   // routeStreetId is None for the tutorial task.
+          None: Option[Int],                   // routeStreetPosition is None for the tutorial task.
+          None: Option[String],                // maxSpeed isn't shown during the tutorial.
+          false,                               // reportedNoImagery is route-scoped; see NewTask.
+          false,                               // needsReaudit: the tutorial street is never a re-audit.
+          false,                               // mappedByThisUser: no notice to phrase, so nothing to attribute.
+          None: Option[OffsetDateTime],        // lastMappedAt
+          None: Option[LocalDate],             // newImageryDate
+          LiteralColumn[Option[JsValue]](None) // coveredRanges: the tutorial tracks none.
         ).mapTo[NewTask]
       }
       .result
@@ -746,7 +754,8 @@ class AuditTaskTable @Inject() (
               sc.needsReaudit,
               sc.mappedByThisUser,
               sc.lastMappedAt,
-              sc.newImageryDate
+              sc.newImageryDate,
+              LiteralColumn[Option[JsValue]](None) // coveredRanges: a fresh task has none.
             ).mapTo[NewTask]
           }
         highestPriorityTasks.result.headOption.flatMap {
@@ -793,7 +802,7 @@ class AuditTaskTable @Inject() (
       se.streetEdgeId, se.geom, at.currentLng, at.currentLat, se.wayType, at.startPointReversed, at.taskStart,
       sc.completedByAnyUser, sp.priority, at.completed, at.auditTaskId.?, at.currentMissionId, at.currentMissionStart,
       routeStreetId, routeStreetPosition, maxSpeed, false, // reportedNoImagery is route-scoped; see NewTask.
-      sc.needsReaudit, sc.mappedByThisUser, sc.lastMappedAt, sc.newImageryDate
+      sc.needsReaudit, sc.mappedByThisUser, sc.lastMappedAt, sc.newImageryDate, at.coveredRanges
     ).mapTo[NewTask]
 
     newTask.result.headOption
@@ -856,7 +865,9 @@ class AuditTaskTable @Inject() (
       scau.needsReaudit,
       scau.mappedByThisUser,
       scau.lastMappedAt,
-      scau.newImageryDate
+      scau.newImageryDate,
+      // Always empty here: resumableTasksForUser leaves free-exploration tasks out, and nothing else carries coverage.
+      LiteralColumn[Option[JsValue]](None)
     ).mapTo[NewTask]
 
     tasks.result
@@ -1090,7 +1101,8 @@ class AuditTaskTable @Inject() (
       _scau.needsReaudit,
       _scau.mappedByThisUser,
       _scau.lastMappedAt,
-      _scau.newImageryDate
+      _scau.newImageryDate,
+      LiteralColumn[Option[JsValue]](None) // coveredRanges: route tasks track none.
     ).mapTo[NewTask]
 
     tasks.result
@@ -1126,6 +1138,21 @@ class AuditTaskTable @Inject() (
       .filter(_.auditTaskId === auditTaskId)
       .map(t => (t.taskEnd, t.currentLat, t.currentLng, t.currentMissionId, t.currentMissionStart, t.auditedDistanceM))
     q.update((timestamp, lat, lng, Some(missionId), currMissionStart, auditedDistanceM))
+  }
+
+  /** @return A task's stored coverage as written (#5733); None for a regular audit or an unknown id. */
+  def getCoveredRanges(auditTaskId: Int): DBIO[Option[JsValue]] =
+    auditTasks.filter(_.auditTaskId === auditTaskId).map(_.coveredRanges).result.headOption.map(_.flatten)
+
+  /**
+   * Replaces a free-exploration task's stored coverage with the merged list the service computed (#5733), and keeps
+   * `audited_distance_m` equal to its total so everything that reads that column needs no second code path.
+   */
+  def updateTaskCoverage(auditTaskId: Int, coveredRanges: JsValue, coveredM: Double): DBIO[Int] = {
+    auditTasks
+      .filter(_.auditTaskId === auditTaskId)
+      .map(t => (t.coveredRanges, t.auditedDistanceM))
+      .update((Some(coveredRanges), Some(coveredM)))
   }
 
   /**

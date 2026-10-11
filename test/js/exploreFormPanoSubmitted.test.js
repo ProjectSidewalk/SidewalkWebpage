@@ -134,6 +134,7 @@ describe('Form pano submission staging', () => {
             userRouteId: null,
             regionId: 1,
             isOnboarding: () => false,
+            isExploreAddressMode: () => false,
             panoViewer: { getPosition: () => ({ lat: 41.85, lng: -87.65 }) },
             tracker: { setAuditTaskID: jest.fn() },
         };

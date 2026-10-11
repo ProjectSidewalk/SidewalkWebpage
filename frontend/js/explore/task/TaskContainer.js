@@ -44,8 +44,8 @@ export class TaskContainer {
    */
   endTask(task) {
     const svl = this.#svl;
-    // Free-exploration tasks never complete — completing one would mark the street audited and move coverage (#4451).
-    // Callers are individually gated on the mode too; this is the final backstop.
+    // Free exploration never completes a task from the client: the server credits a street from the coverage the task
+    // posts (#4451, #5733). Callers are individually gated on the mode too; this is the final backstop.
     if (svl.isExploreAddressMode()) return task;
     if (this.#tracker) this.#tracker.push('TaskEnd');
     task.complete();
@@ -497,6 +497,57 @@ export class TaskContainer {
 
     // Show AI guidance message if applicable.
     if (svl.aiGuidance) svl.aiGuidance.showAiGuidanceMessage();
+  }
+
+  /**
+   * Free exploration's way of walking streets (#5733): credits the pano to the street the labeler is on, switching
+   * tasks when they have wandered onto another. The street left is posted as it stands (the server decides whether it
+   * is done); a street walked earlier keeps its coverage, so two passes add up.
+   *
+   * @param {{lat: number, lng: number}} latLng - Where the labeler now stands.
+   */
+  recordExploreMove(latLng) {
+    const current = this.#currentTask;
+    const nearest = this.tasksLoaded() ? this.#nearestTask(latLng) : null;
+    if (nearest && current && nearest !== current) {
+      this.#tracker.push('ExploreAddress_StreetSwitch', {
+        from: current.getStreetEdgeId(),
+        to: nearest.getStreetEdgeId(),
+        resumed: nearest.getCoveredRanges().length > 0,
+      });
+      this.#svl.form.submitData(current);
+      // The task starts when the labeler steps onto the street, not when the task list was fetched.
+      if (!nearest.getAuditTaskId() && nearest.getCoveredRanges().length === 0) {
+        nearest.setProperty('taskStart', new Date());
+      }
+      this.setCurrentTask(nearest);
+    }
+    if (this.#currentTask) {
+      this.#currentTask.recordVisit(latLng);
+      this.#currentTask.render();
+    }
+  }
+
+  /**
+   * The loaded street a position is on: the nearest within Task.ON_STREET_MAX_DISTANCE_M. The current street only
+   * loses to a strictly nearer one, so a corner pano equally close to two streets stays on the one being walked.
+   *
+   * @param {{lat: number, lng: number}} latLng
+   * @returns {?Task}
+   */
+  #nearestTask(latLng) {
+    const point = turf.point([latLng.lng, latLng.lat]);
+    let nearest = null;
+    let nearestM = Task.ON_STREET_MAX_DISTANCE_M;
+    const candidates = this.#currentTask ? [this.#currentTask, ...this._tasks] : this._tasks;
+    for (const task of candidates) {
+      const distM = turf.pointToLineDistance(point, task.getGeoJSON(), { units: 'meters' });
+      if (distM < nearestM) {
+        nearest = task;
+        nearestM = distM;
+      }
+    }
+    return nearest;
   }
 
   /**

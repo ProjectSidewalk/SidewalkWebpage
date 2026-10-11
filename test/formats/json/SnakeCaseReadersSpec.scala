@@ -1,6 +1,7 @@
 package formats.json
 
 import controllers.helper.ValidateHelper.ValidateParams
+import models.audit.CoveredRange
 import models.label.LabelType
 import models.mission.MissionType
 import models.pano.PanoSource
@@ -111,7 +112,7 @@ class SnakeCaseReadersSpec extends AnyFunSuite with Matchers {
       s"""{"street_edge_id":1,"task_start":$ts,"audit_task_id":2,"completed":true,"current_lat":1.5,
          |"current_lng":2.5,"start_point_reversed":false,"current_mission_start":{"lat":3.5,"lng":4.5},
          |"last_priority_update_time":$ts,"request_updated_street_priority":true,"audited_distance_m":5.5,
-         |"route_street_id":3}""".stripMargin,
+         |"route_street_id":3,"covered_ranges":[[0,12.5],[20,30]]}""".stripMargin,
       TaskSubmission(
         1,
         t,
@@ -124,7 +125,8 @@ class SnakeCaseReadersSpec extends AnyFunSuite with Matchers {
         t,
         true,
         Some(5.5),
-        Some(3)
+        Some(3),
+        Some(Seq(CoveredRange(0d, 12.5d), CoveredRange(20d, 30d)))
       )
     )
     check(

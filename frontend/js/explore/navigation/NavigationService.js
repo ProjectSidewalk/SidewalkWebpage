@@ -13,10 +13,6 @@ import '../../common/utilitiesSidewalk.js';
 
 export class NavigationService {
   static #END_OF_STREET_THRESHOLD = 25; // Distance from the street endpoint when we consider it complete (meters).
-  // How close to the endpoint imagery has to run out before we treat the street as walked rather than as having
-  // an imagery gap. More generous than #END_OF_STREET_THRESHOLD: the imagery simply ends, so there is nothing
-  // further to walk either way. Task.isAtEnd scales both down on short streets.
-  static #NEAR_END_NO_IMAGERY_THRESHOLD = 50;
   static #MOVE_DELAY = 800; // Move delay prevents users from spamming through a mission.
   // Distance between points on a street when searching it for imagery (km). Public so that PanoManager can sample
   // backup starting points at the same granularity as moveForward()'s search.
@@ -153,9 +149,14 @@ export class NavigationService {
     // Judged at the furthest point reached as well as where the labeler stands: the sweep's exclusions can land a
     // move back near the start of a street already walked to its end, and the exhaustion that follows must not turn
     // that street into a no-imagery report (#5350).
+    //
+    // "Near" is the same number free exploration may leave unseen (StreetCoverage.MaxUncoveredM), so the two modes
+    // agree on what an imagery gap at the end of a street is worth. More generous than #END_OF_STREET_THRESHOLD: the
+    // imagery simply ends, so there is nothing further to walk either way. Task.isAtEnd scales it down on short streets.
+    const nearEndM = svl.streetCoverage.max_uncovered_m;
     const furthest = currentTask.getFurthestPointReached().geometry.coordinates;
-    const nearEnd = currentTask.isAtEnd(svl.panoViewer.getPosition(), NavigationService.#NEAR_END_NO_IMAGERY_THRESHOLD)
-      || currentTask.isAtEnd({ lat: furthest[1], lng: furthest[0] }, NavigationService.#NEAR_END_NO_IMAGERY_THRESHOLD);
+    const nearEnd = currentTask.isAtEnd(svl.panoViewer.getPosition(), nearEndM)
+      || currentTask.isAtEnd({ lat: furthest[1], lng: furthest[0] }, nearEndM);
     const inView = !nearEnd && this.#isWholeStreetInView(currentTask);
     if (inView) svl.tracker.push('NoImagery_StreetInView');
     if (nearEnd || inView) {
@@ -422,16 +423,18 @@ export class NavigationService {
     svl.panoManager.enablePanning();
     svl.canvas.enableLabeling();
 
-    if (!isOnboarding && 'taskContainer' in svl && svl.taskContainer.tasksLoaded()) {
+    if (svl.isExploreAddressMode() && 'taskContainer' in svl) {
+      // Free exploration has no route and no end-of-street: each pano is credited to whichever street it is on, and
+      // the server decides when a street counts (#4451, #5733).
+      svl.taskContainer.recordExploreMove(newLatLng);
+    } else if (!isOnboarding && 'taskContainer' in svl && svl.taskContainer.tasksLoaded()) {
       // End of the task if the user is close enough to the end point, and we aren't in the tutorial.
       // TODO I wonder if ending a task should happen elsewhere? Bc some types of moves might never cause an end task?
       // - that might be because the task was already ended before we moved them, for example...
       // TODO I hardly understand the todo above, and idk why we would end the task in the middle of updating the
       //      UI after a move... especially when #endTheCurrentTask() can result in another move...
       const task = svl.taskContainer.getCurrentTask();
-      // In free exploration (#4451) reaching the end of the street must not end the task or advance to a new street.
-      if (!isOnboarding && !svl.isExploreAddressMode() && task
-        && task.isAtEnd(newLatLng, NavigationService.#END_OF_STREET_THRESHOLD)) {
+      if (task && task.isAtEnd(newLatLng, NavigationService.#END_OF_STREET_THRESHOLD)) {
         // On a route's final street, 25 m-from-endpoint can be a large fraction of a short street, firing "end of
         // route" long before the last reachable pano (#4640 route manifestation). Defer to the imagery-exhaustion
         // path (#handleImageryNotFound) unless they've already walked most of the street — on a long street 25 m
