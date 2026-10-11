@@ -13,6 +13,7 @@
  * per-city activity trend. Owner-only; driven entirely from /adminapi/cityScorecards.
  */
 
+import { FetchWithRetry } from '../common/FetchWithRetry.js';
 import { util } from '../common/utilities.js';
 import { AdminShell } from './AdminShell.js';
 import { MiniLineChart } from './MiniLineChart.js';
@@ -143,7 +144,7 @@ export class AcrossCitiesPage {
     try {
       // Scorecards are required; the cities geo (for the map) is an enhancement, so it degrades gracefully.
       const [data, citiesGeo] = await Promise.all([
-        util.fetchJson(this.#scorecardsUrl),
+        this.#fetchScorecards(),
         this.#citiesUrl ? util.fetchJson(this.#citiesUrl).catch(() => null) : Promise.resolve(null),
       ]);
       this.#cities = (data && data.cities) || [];
@@ -190,6 +191,24 @@ export class AcrossCitiesPage {
       this.#setText('ac-status', 'Could not load city data. Please try again.');
       this.#setText('ac-stories-summary', 'Could not load story counts.');
     }
+  }
+
+  /**
+   * Fetches the scorecards, waiting out a server whose cross-city caches are still cold (#5432): it answers `503`
+   * with a `Retry-After` rather than hold the request past the proxy's timeout, and keeps computing for the retry.
+   *
+   * The pulse line says so, because a retry can sit for up to the server's 45 s cold wait with nothing else moving on
+   * the page. The wording never claims the server is computing: the same path covers the proxy's own `502`/`503`
+   * while the backend restarts mid-deploy.
+   *
+   * @returns {Promise<any>} The scorecards payload, as the endpoint returns it.
+   */
+  #fetchScorecards() {
+    return FetchWithRetry.fetchJsonWithRetry(this.#scorecardsUrl, {
+      onWait: (_attempt, seconds) => {
+        this.#setText('ac-pulse', `Still gathering figures from every city; trying again in ${seconds} s…`);
+      },
+    });
   }
 
   // --- Pulse ------------------------------------------------------------------------------------------------------

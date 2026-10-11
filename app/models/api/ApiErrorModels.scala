@@ -97,6 +97,14 @@ object ApiError {
     ApiError(503, "STILL_COMPUTING", "Service Unavailable", detail)
 
   /**
+   * The `Retry-After`, in seconds, that every [[stillComputing]] answer carries (#5418, #5432). Shared so the
+   * AccessScore endpoints and the Across Cities scorecards hand the one client retry helper the same schedule. Half of
+   * the servers' 45-second cold waits, so a client that retries on the header's schedule typically arrives once the
+   * computation has landed.
+   */
+  val StillComputingRetryAfterSeconds: Int = 30
+
+  /**
    * Creates a 404 problem detail for a missing resource.
    *
    * @param detail Human-readable explanation of what was not found.

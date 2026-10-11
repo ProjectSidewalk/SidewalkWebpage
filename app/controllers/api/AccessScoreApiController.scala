@@ -394,9 +394,6 @@ object AccessScoreApiController {
   /** The `scope` value that turns the Spotlight into a cross-city ranking. */
   val CitiesScope: String = "cities"
 
-  /**
-   * What a `503` for a still-computing full-city score tells the client to wait (#5418). Half of the request's own
-   * cold wait, so a client that retries on the header's schedule typically arrives once the computation has landed.
-   */
-  val StillComputingRetryAfterSeconds: Int = 30
+  /** What a `503` for a still-computing full-city score tells the client to wait (#5418); see the shared constant. */
+  val StillComputingRetryAfterSeconds: Int = ApiError.StillComputingRetryAfterSeconds
 }
