@@ -179,6 +179,19 @@ describe('a Gallery card\'s label marker', () => {
         expect(credit).toEqual({ logo: 'hidden', attribution: 'hidden' });
     });
 
+    it('hides them without a request when there is no source at all (non-GSV imagery, no crop yet)', async () => {
+        const card = renderCard(null, null, null);
+
+        const loaded = card.loadImage();
+        const img = document.querySelector('.static-gallery-image');
+        await expect(loaded).resolves.toBe(false);
+
+        expect(img.getAttribute('src')).toBeNull();
+        expect(img.classList.contains('static-gallery-image--missing')).toBe(true);
+        expect(markerWrapper().classList.contains('gallery-marker-wrapper--missing')).toBe(true);
+        expect(credit).toEqual({ logo: 'hidden', attribution: 'hidden' });
+    });
+
     it('leaves the image and marker visible once a source loads', async () => {
         const card = renderCard('/cropImage/CurbRamp/1', { x: 0.5, y: 0.62 });
 
