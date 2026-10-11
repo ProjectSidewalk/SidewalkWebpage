@@ -38,12 +38,14 @@ walks points along the street (added roughly every 15 m) and flags the street on
 Imagery age: the responses we already fetch also carry a capture date, so for no extra API calls we record each
 street's imagery capture-date range (oldest/newest) into the summary file — telling us not just whether a street has
 imagery but how old it is. GSV and Infra3d each answer with one pano, so their date is simply that pano's. A Mapillary
-bbox query instead returns every image in the box, and the one whose date we record is the one Explore's pano viewer
-would actually display: ``score_pano`` is a port of ``MapillaryViewer.#scorePano``, sharing its weights through
-``conf/pano-scoring.json``. Taking the newest image instead would let us record a fresh date for a street whose
-imagery the viewer never shows, so we would stop flagging it as outdated while users still saw the old panos
-(#4411). The formula matches; the candidate set the formula runs over does not, in four ways, so treat the recorded
-date as the viewer's pick at a sampled point rather than as the pano a user will see:
+or Panoramax box query instead returns every picture in the box, and the one whose date we record is the one Explore's
+pano viewer would actually display: ``score_pano`` and ``panoramax_pano_info`` port ``MapillaryViewer.#scorePano``
+and ``PanoramaxViewer.#scorePano``, sharing their weights through ``conf/pano-scoring.json``, whose Panoramax section
+adds that provider's own 12288 px resolution cap and the age an undated picture is scored at. Taking the newest picture
+instead would let us record a fresh date for a street whose imagery the viewer never shows, so we would stop flagging
+it as outdated while users still saw the old panos (#4411, #5284). The formula matches; the candidate set the formula
+runs over does not, in four ways for Mapillary, so treat the recorded date as the viewer's pick at a sampled point
+rather than as the pano a user will see:
 
   * The sequence-continuity term has no offline meaning — there is no current pano when sampling a street cold — so it
     is a uniform 0 here. This one cannot change a ranking, being a constant shift.
@@ -54,9 +56,9 @@ date as the viewer's pick at a sampled point rather than as the pano a user will
   * ``#fetchImages`` narrows its radius and retries when Mapillary reports too many images in the box, so a dense
     location's viewer box can be smaller than 25 m.
 
-Panoramax searches return a box of pictures too, and ``panoramax_capture_date`` takes the newest of them rather than
-the one ``PanoramaxViewer.#scorePano`` would pick, so its dates carry the mismatch this port removes for Mapillary
-(#5284).
+For Panoramax the first three apply as written (its sequence term keys on the STAC ``collection``), and the fourth
+does not: ``PanoramaxViewer.#searchNear`` never shrinks its radius, and it asks for the same newest-first page of 100
+that ``PANORAMAX_SEARCH_URL`` does.
 
 Search area: every sampled point is queried at ``SEARCH_RADIUS_KM``, the same 25 m the viewer searches, so the scan
 and the tool agree on what counts as imagery at a location. A circle is not quite the right shape for the job — it has
@@ -95,8 +97,8 @@ derived from the checkpoint, so its schema is unchanged.
 
 The pure functions (``create_bounding_box``, ``redistribute_vertices``, ``gsv_has_imagery``, ``mapillary_has_imagery``,
 ``infra3d_pano_info``, ``infra3d_campaigns``, ``standardize_capture_date``, ``gsv_capture_date``, ``score_pano``,
-``best_pano``, ``mapillary_pano_info``, ``cross_track_m``, ``endpoint_distance_m``, ``within_search_radius``,
-``pano_counts``, ``imagery_verdict``,
+``best_pano``, ``mapillary_pano_info``, ``parse_iso_instant_ms``, ``panoramax_pano_info``, ``cross_track_m``,
+``endpoint_distance_m``, ``within_search_radius``, ``pano_counts``, ``imagery_verdict``,
 ``street_has_no_imagery``, ``summarize_dates``) are import-safe and unit-tested in
 ``test/python/test_check_streets_for_imagery.py``; network and file I/O live in thin wrappers and ``main``.
 
@@ -191,10 +193,10 @@ DEFAULT_MAX_QPS = 10.0
 # Spacing between interpolated vertices along a street, in lat/lng degrees (~15 m). Accuracy here is not critical.
 DISTANCE = 0.000135
 
-# Weights and decay scales for ranking the Mapillary panos at a point, shared with MapillaryViewer.#scorePano so the
-# date we record for a street is the date of the pano Explore would actually show (see the JSON file's own comment,
-# and score_pano below). Loaded at import so a malformed file fails once, at startup, rather than as a KeyError from
-# inside a worker thread forty minutes into a scan; the browser half gets the same guarantee from
+# Weights and decay scales for ranking the Mapillary or Panoramax panos at a point, shared with both viewers'
+# #scorePano so the date we record for a street is the date of the pano Explore would actually show (see the JSON
+# file's own comment, and score_pano below). Loaded at import so a malformed file fails once, at startup, rather than
+# as a KeyError from inside a worker thread forty minutes into a scan; the browser half gets the same guarantee from
 # models.utils.PanoScoring.
 PANO_SCORING_FILE = 'conf/pano-scoring.json'
 PANO_SCORING_KEYS = ('distanceWeight', 'resolutionWeight', 'recencyWeight', 'distanceDecayMeters', 'recencyDecayYears')
@@ -223,9 +225,12 @@ def _load_pano_scoring(provider: str = 'mapillary') -> dict:
 
 
 PANO_SCORING = _load_pano_scoring()
+PANORAMAX_SCORING = _load_pano_scoring('panoramax')
+# Only Panoramax's section has this (its viewer scores an undated picture as this old); read it at import for the
+# same reason the loader checks the shared keys.
+PANORAMAX_SCORING['unknownDateAgeYears']
 
-# Milliseconds in an average (Julian) year, for converting a captured_at delta into the age in years that the recency
-# term decays over. Matches the constant MapillaryViewer.#scorePano uses.
+# Must equal util.pano.MS_PER_JULIAN_YEAR, the divisor both viewers' recency term uses.
 MS_PER_YEAR = 365.25 * 24 * 3600 * 1000
 
 # Search radius, in km, around every point we sample — street endpoints and along-street points alike. 25 m is what
@@ -254,8 +259,8 @@ INTERSECTION_ZONE_M = 25.0
 # geom's vertices and the exported x1/y1 come from the same row but not always the same float formatting.
 ENDPOINT_MATCH_DEG = 1e-7
 
-# Panoramax: the federated meta-catalog's STAC search, filtered to 360° pictures (the only kind the viewer serves),
-# newest first so the capture date read from the first result is the street's newest. No key, no documented limit.
+# Panoramax's STAC search, 360° only, with PanoramaxViewer.#searchNear's exact sort and limit so the ranking runs over
+# the viewer's page of candidates. No key, no documented limit.
 PANORAMAX_SEARCH_URL = 'https://api.panoramax.xyz/api/search?filter=field_of_view%3D360&sortby=-ts&limit=100'
 # The API is keyless and community-run, so nothing but this says whose scan traffic it is or where to complain.
 PANORAMAX_HEADERS = {'User-Agent': 'ProjectSidewalk-check-streets/1.0 (sidewalk@cs.uw.edu)'}
@@ -550,21 +555,60 @@ def mapillary_has_imagery(response_json: dict) -> bool:
     return not no_imagery
 
 
+def _score(pano_lat: float, pano_lng: float, width: float, captured_at_ms: float | None,
+           lat: float, lng: float, now_ms: float, scoring: dict) -> float:
+    """
+    The ranking ``MapillaryViewer.#scorePano`` and ``PanoramaxViewer.#scorePano`` share, under one provider's
+    parameters from ``conf/pano-scoring.json``.
+
+    Recency is only a quarter of the decision and distance dominates it, so the newest picture at a point is frequently
+    *not* the one the viewer shows, which is the whole reason this port exists (#4411, #5284). One term is deliberately
+    absent: the viewers add ``sequenceWeight`` for staying in the sequence already on screen, and sampling a street cold
+    there is none, so it would be a uniform shift that cannot change which candidate wins. Distance is measured
+    geodesically (geopy) rather than by turf.js's haversine; over these tens of meters the two agree to well under a
+    percent, far inside the gaps that decide a ranking.
+
+    Args:
+        pano_lat:       Latitude of the candidate picture.
+        pano_lng:       Longitude of the candidate picture.
+        width:          Its width in pixels, 0 when the provider reports none.
+        captured_at_ms: Its capture instant as a Unix epoch timestamp in milliseconds, or ``None`` if unknown.
+        lat:            Latitude of the sampled point.
+        lng:            Longitude of the sampled point.
+        now_ms:         Current time as a Unix epoch timestamp in milliseconds, for the recency term.
+        scoring:        ``PANO_SCORING`` or ``PANORAMAX_SCORING``.
+
+    Returns:
+        A score in ``[0, 1]``, higher being better.
+    """
+    # Distance to the sampled point (dominant factor). Exponential decay, so at the default 10 m scale:
+    # 0 m -> 1.0, 10 m -> 0.37, 25 m -> 0.08.
+    distance_m = geodesic((lat, lng), (pano_lat, pano_lng)).meters
+    distance_score = math.exp(-distance_m / scoring['distanceDecayMeters'])
+
+    # Resolution: linear in width, capped. Against the default 16384 px cap: 2048 -> 0.13, 8192 -> 0.50, 16384 -> 1.0.
+    # A missing width scores 0 rather than dropping the candidate — a real pano with an unknown size still beats none.
+    resolution_score = min(width / scoring['maxImageWidthPx'], 1)
+
+    # Recency: exponential decay by age in years, so at the default 5-year scale: fresh -> 1.0, 3 yr -> 0.55. Only
+    # Panoramax passes an unknown instant: its viewer scores one as unknownDateAgeYears old rather than as NaN.
+    if captured_at_ms is None:
+        age_years = scoring['unknownDateAgeYears']
+    else:
+        age_years = (now_ms - captured_at_ms) / MS_PER_YEAR
+    recency_score = math.exp(-age_years / scoring['recencyDecayYears'])
+
+    return (scoring['distanceWeight'] * distance_score
+            + scoring['resolutionWeight'] * resolution_score
+            + scoring['recencyWeight'] * recency_score)
+
+
 def score_pano(image: dict, lat: float, lng: float, now_ms: float) -> float | None:
     """
     Scores one candidate Mapillary image for a location, the way Explore's pano viewer does.
 
-    This is a port of ``MapillaryViewer.#scorePano`` (``frontend/js/common/pano-viewer/MapillaryViewer.js``); the
-    weights and decay scales come from ``conf/pano-scoring.json`` so the two can't drift. Recency is only a
-    quarter of the decision and distance dominates it, so the newest image at a point is frequently *not* the one the
-    viewer shows — which is the whole reason this port exists (#4411).
-
-    One term is deliberately absent: the viewer adds ``sequenceWeight`` for staying in the sequence it is already
-    viewing, and sampling a street cold there is no current sequence. Scoring it as 0 for every candidate is a uniform
-    shift, so it cannot change which candidate wins here.
-
-    Distance is measured geodesically (geopy) rather than by turf.js's haversine; over these tens of meters the two
-    agree to well under a percent, far inside the gaps that decide a ranking.
+    This is a port of ``MapillaryViewer.#scorePano`` (``frontend/js/common/pano-viewer/MapillaryViewer.js``): the
+    arithmetic is ``_score`` with Mapillary's parameters; this guard is what differs per provider.
 
     Args:
         image:  One entry from the response's ``data`` array.
@@ -586,26 +630,9 @@ def score_pano(image: dict, lat: float, lng: float, now_ms: float) -> float | No
     # bool is a subclass of int, so it would otherwise pass as a timestamp of 0 or 1.
     if len(coordinates) < 2 or isinstance(captured_at, bool) or not isinstance(captured_at, (int, float)):
         return None
-
-    # Distance to the sampled point (dominant factor). Exponential decay, so at the default 10 m scale:
-    # 0 m -> 1.0, 10 m -> 0.37, 25 m -> 0.08. GeoJSON positions may carry an altitude the viewer's turf.point also
-    # ignores, so only the first two ordinates are read.
-    image_lng, image_lat = coordinates[0], coordinates[1]
-    distance_m = geodesic((lat, lng), (image_lat, image_lng)).meters
-    distance_score = math.exp(-distance_m / PANO_SCORING['distanceDecayMeters'])
-
-    # Resolution: linear in width, capped. Against the default 16384 px cap: 2048 -> 0.13, 8192 -> 0.50, 16384 -> 1.0.
-    # A missing width scores 0 rather than dropping the candidate — a real pano with an unknown size still beats none.
-    resolution_score = min((image.get('width') or 0) / PANO_SCORING['maxImageWidthPx'], 1)
-
-    # Recency: exponential decay by age in years, so at the default 5-year scale: fresh -> 1.0, 3 yr -> 0.55.
-    # captured_at is a Unix epoch timestamp in milliseconds, UTC.
-    age_years = (now_ms - captured_at) / MS_PER_YEAR
-    recency_score = math.exp(-age_years / PANO_SCORING['recencyDecayYears'])
-
-    return (PANO_SCORING['distanceWeight'] * distance_score
-            + PANO_SCORING['resolutionWeight'] * resolution_score
-            + PANO_SCORING['recencyWeight'] * recency_score)
+    # GeoJSON positions may carry an altitude the viewer's turf.point also ignores, so only the first two ordinates
+    # are read. captured_at is a Unix epoch timestamp in milliseconds, UTC.
+    return _score(coordinates[1], coordinates[0], image.get('width') or 0, captured_at, lat, lng, now_ms, PANO_SCORING)
 
 
 def best_pano(response_json: dict, lat: float, lng: float, now_ms: float) -> dict | None:
@@ -686,48 +713,81 @@ def panoramax_has_imagery(response_json: dict) -> bool:
     return len(response_json['features']) > 0
 
 
-def panoramax_capture_date(response_json: dict) -> str | None:
+def parse_iso_instant_ms(raw: object) -> float | None:
     """
-    Extracts the newest picture's standardized capture date from a Panoramax search response.
+    Parses an ISO 8601 date-time, as a STAC ``datetime`` carries it, into epoch milliseconds.
+
+    Accepts a ``+00:00`` or ``Z`` suffix, any other offset, fractional seconds, and a bare date (midnight UTC). A naive
+    date-time is read as UTC, the zone STAC specifies; the viewer's ``Date.parse`` would read it as browser-local, a
+    sub-day difference a 5-year recency decay cannot feel.
+
+    Args:
+        raw: The value of the item's ``datetime`` property, whatever type it arrived as.
+
+    Returns:
+        Milliseconds since the Unix epoch, or ``None`` if ``raw`` is not a parseable string. ``None`` rather than an
+        exception because the viewer's ``Date.parse`` yields ``NaN`` there and still scores the picture (as
+        ``unknownDateAgeYears`` old), so the scan must keep it as a candidate too.
+    """
+    if not isinstance(raw, str):
+        return None
+    try:
+        parsed = datetime.fromisoformat(raw)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.timestamp() * 1000
+
+
+def panoramax_pano_info(response_json: dict, lat: float, lng: float, now_ms: float | None = None) -> PanoInfo:
+    """
+    Interprets a Panoramax STAC search response for the point it was queried at.
+
+    A search returns every 360° picture in the box, so the point is reduced to the one ``PanoramaxViewer.#scorePano``
+    would display there, not the newest (#5284, the Panoramax half of #4411). The date and the position describe that
+    same picture, so ``max_cross_track_m`` measures the pano whose date is recorded. As in the viewer, a picture with no
+    readable ``datetime`` still competes, aged at ``unknownDateAgeYears``, and one with no position is skipped (the
+    viewer would throw on ``turf.point(undefined)``). The date is the UTC calendar day of the capture instant, the rule
+    ``mapillary_pano_info`` and the app's imagery poller use.
 
     Args:
         response_json: The decoded JSON from the Panoramax search endpoint (a FeatureCollection).
+        lat:           Latitude of the sampled point.
+        lng:           Longitude of the sampled point.
+        now_ms:        Current time as a Unix epoch timestamp in milliseconds; defaults to now.
 
     Returns:
-        An ISO ``YYYY-MM-DD`` string, or ``None`` if no picture carries a ``datetime``.
-    """
-    dates = [standardize_capture_date(str(f.get('properties', {}).get('datetime', ''))[:10])
-             for f in response_json.get('features', [])]
-    dates = [d for d in dates if d]
-    return max(dates) if dates else None
-
-
-def panoramax_pano_info(response_json: dict) -> PanoInfo:
-    """
-    Interprets a Panoramax STAC search response as one pano.
-
-    The date is the newest picture's, so the position reported is that same picture's — the two have to describe one
-    pano for ``max_cross_track_m`` to mean anything. A picture with no ``datetime`` still establishes presence, so an
-    all-undated box falls back to the first feature's position.
-
-    Args:
-        response_json: The decoded JSON from the Panoramax search endpoint (a FeatureCollection).
-
-    Returns:
-        A ``PanoInfo`` carrying presence, the newest capture date, and that picture's lat/lng.
+        A ``PanoInfo``: imagery presence, plus the winning picture's capture date and position when one was placeable.
 
     Raises:
         ImageryApiError: If the response is not a FeatureCollection.
     """
+    if now_ms is None:
+        now_ms = datetime.now(tz=timezone.utc).timestamp() * 1000
     has_imagery = panoramax_has_imagery(response_json)
-    capture_date = panoramax_capture_date(response_json)
-    features = response_json.get('features', [])
-    chosen = next((f for f in features
-                   if standardize_capture_date(str(f.get('properties', {}).get('datetime', ''))[:10]) == capture_date),
-                  features[0] if features else None)
-    coordinates = ((chosen or {}).get('geometry') or {}).get('coordinates') or []
-    lng, lat = (coordinates[0], coordinates[1]) if len(coordinates) >= 2 else (None, None)
-    return PanoInfo(has_imagery, capture_date, lat, lng)
+    best_score, winner = -1.0, None
+    for feature in response_json['features']:
+        coordinates = (feature.get('geometry') or {}).get('coordinates') or ()
+        if len(coordinates) < 2:
+            continue
+        props = feature.get('properties') or {}
+        dims = (props.get('pers:interior_orientation') or {}).get('sensor_array_dimensions') or ()
+        # The viewer's `?.[0] || 0`: phone and GoPro captures often carry no sensor block. A non-number (bool is an
+        # int subclass) scores 0 too, where JS would coerce a numeric string; the API emits integers.
+        width = dims[0] if dims and isinstance(dims[0], (int, float)) and not isinstance(dims[0], bool) else 0
+        captured_at_ms = parse_iso_instant_ms(props.get('datetime'))
+        score = _score(coordinates[1], coordinates[0], width, captured_at_ms, lat, lng, now_ms, PANORAMAX_SCORING)
+        # Strict, as #selectBestPano's `>` is, so equal scores keep the first of the viewer's newest-first page.
+        if score > best_score:
+            best_score, winner = score, (coordinates[1], coordinates[0], captured_at_ms)
+    if winner is None:
+        return PanoInfo(has_imagery, None)
+    pano_lat, pano_lng, captured_at_ms = winner
+    capture_date = None
+    if captured_at_ms is not None:
+        capture_date = datetime.fromtimestamp(captured_at_ms / 1000, tz=timezone.utc).date().isoformat()
+    return PanoInfo(has_imagery, capture_date, pano_lat, pano_lng)
 
 
 def infra3d_pano_info(response_json: dict, lat: float, lng: float, radius_km: float) -> PanoInfo:
@@ -1051,16 +1111,16 @@ def _pano_info(api: str, response_json: dict, lat: float, lng: float) -> PanoInf
     """
     Builds a ``PanoInfo`` from one provider response.
 
-    GSV's and Panoramax's dates and positions come from the one pano each response is reduced to. Mapillary returns
-    every image in the queried box, so the point it was queried at is needed to rank them; see ``mapillary_pano_info``
-    for which one wins.
+    GSV's date and position come from the one pano its response holds. Mapillary and Panoramax return every picture in
+    the queried box, so the point it was queried at is needed to rank them; see ``mapillary_pano_info`` and
+    ``panoramax_pano_info`` for which one wins.
     """
     if api == 'GSV':
         location = response_json.get('location') or {}
         return PanoInfo(gsv_has_imagery(response_json), gsv_capture_date(response_json),
                         location.get('lat'), location.get('lng'))
     if api == 'Panoramax':
-        return panoramax_pano_info(response_json)
+        return panoramax_pano_info(response_json, lat, lng)
     return mapillary_pano_info(response_json, lat, lng)
 
 
@@ -1569,12 +1629,12 @@ def main(argv: list[str] | None = None) -> int:
         if not math.isfinite(args.max_cross_track_m) or args.max_cross_track_m < 0:
             parser.error('--max-cross-track-m needs a distance of 0 (off) or more.')
     # The limit is GSV's alone. It was measured on Google's car-mounted captures, and GSV answers with the one pano the
-    # viewer would open there. Mapillary's answer is reduced to the viewer's pick by score_pano: holding that pick to
-    # the limit would hide points where an on-street runner-up exists, and filtering candidates before scoring would
-    # record a date the viewer never shows (#4411). Mapillary and Panoramax are also captured on foot and by bike, off
-    # the roadway, so a limit measured on cars would reject their sidewalk captures. Infra3d answers with its nearest
-    # frame as GSV does, but no Infra3d city has been measured. --point-log records every provider's offsets, so each
-    # can be given a limit of its own from its own distribution (#5091).
+    # viewer would open there. Mapillary's and Panoramax's answers are reduced to the viewer's pick: holding that pick
+    # to the limit would hide points where an on-street runner-up exists, and filtering candidates before scoring would
+    # record a date the viewer never shows (#4411, #5284). Mapillary and Panoramax are also captured on foot and by
+    # bike, off the roadway, so a limit measured on cars would reject their sidewalk captures. Infra3d answers with its
+    # nearest frame as GSV does, but no Infra3d city has been measured. --point-log records every provider's offsets,
+    # so each can be given a limit of its own from its own distribution (#5091).
     if api != 'GSV':
         cross_track_limit_m = None
     else:
