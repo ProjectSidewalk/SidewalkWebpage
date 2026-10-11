@@ -133,14 +133,19 @@ object ExploreFormats {
   )
   case class SurveySingleSubmission(surveyQuestionId: String, answerText: String)
 
-  // Includes a list of labels found on a single panorama.
+  /**
+   * The labels an AI model found on a single panorama, all of one type.
+   * @param overwrite Whether to replace the AI user's live labels of this type already on the pano rather than be
+   *                  refused for duplicating them (#5382). Absent means false, so an older payload fails closed.
+   */
   case class AiLabelsSubmission(
       labelType: LabelType,
       modelId: String,
       modelTrainingDate: String,
       apiVersion: String,
       pano: PanoSubmission,
-      labels: Seq[AiLabelDetection]
+      labels: Seq[AiLabelDetection],
+      overwrite: Option[Boolean]
   )
   case class AiLabelDetection(panoX: Int, panoY: Int, confidence: Double)
 
@@ -341,5 +346,15 @@ object ExploreFormats {
 
   given aiLabelDetectionReads: Reads[AiLabelDetection] = Json.reads[AiLabelDetection]
 
-  given aiLabelSubmissionReads: Reads[AiLabelsSubmission] = Json.reads[AiLabelsSubmission]
+  // A label's lat/lng and POV are computed from the pano's size, heading and position, so a submission with labels
+  // that lacks any of them is refused here with a 400 rather than failing a `.get` deep in the write (#4808). They
+  // stay optional on a label-less (pano-only) submission.
+  given aiLabelSubmissionReads: Reads[AiLabelsSubmission] = {
+    val placementError =
+      JsonValidationError("A submission with labels needs the pano's width, height, lat, lng and camera_heading")
+    Json.reads[AiLabelsSubmission].filter(placementError) { s =>
+      val pano = s.pano
+      s.labels.isEmpty || Seq(pano.width, pano.height, pano.lat, pano.lng, pano.cameraHeading).forall(_.isDefined)
+    }
+  }
 }
