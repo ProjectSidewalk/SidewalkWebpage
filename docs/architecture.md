@@ -585,8 +585,10 @@ loaded by the corresponding Twirl view:
 ### Modules and the build
 
 Every first-party file is an **ES module** (#4467): it `import`s what it needs and `export`s what others use, so
-the imports decide load order, not a hand-kept list. Each tool keeps its shared state in one exported object
-(`explore/svl.js`, `validate/svv.js`, `gallery/sg.js`). `util` is the object `common/utilities.js` exports; a file
+the imports decide load order, not a hand-kept list. Explore and Validate still keep their shared state in one
+exported registry object (`explore/svl.js`, `validate/svv.js`); the Gallery instead hands each module what it works
+with as constructor arguments, all wired in `gallery/Main.js` (#5648), which is where the other two are headed.
+`util` is the object `common/utilities.js` exports; a file
 that reads `util.misc`, `util.math`, `util.url` or `util.pano` imports the file that adds it (`utilitiesSidewalk.js`,
 `utilitiesMath.js`, `urlQuery.js`, `pano-viewer/panoUtilities.js`). Vendor libraries (`mapboxgl`, `i18next`, `turf`, …)
 stay `<script>`-tag globals, declared for the type checker in `tools/lint/js-types/globals.d.ts`.

@@ -4,17 +4,29 @@
  * @property {HTMLButtonElement} prevPage
  * @property {HTMLButtonElement} nextPage
  * @property {HTMLElement} pageNumber - Where the current page number is written.
+ * @property {HTMLElement} pageControl - The paging bar, hidden while a page loads.
+ * @property {HTMLElement} pageLoading - The loading notice shown while a page loads.
+ * @property {HTMLElement} labelsNotFound - The "no matches" notice for a filtered query that found nothing.
+ * @property {HTMLElement} expandedView - The `.gallery-expanded-view` element the expanded view is built in.
  */
 
-import { sg } from '../sg.js';
-import { PanoStore } from '../../common/pano-viewer/PanoStore.js';
+/**
+ * What the page was opened with, as gallery.scala.html wrote it into the page.
+ * @typedef {object} PageParams
+ * @property {Record<string, any>} initialFilters - The filters the server parsed out of the URL.
+ * @property {Record<string, string>} regionNames - Region names for the cards' location line, keyed by region id.
+ * @typedef {ViewerParams & PageParams} CardContainerParams
+ */
+
 import { util } from '../../common/utilities.js';
 import { Card } from './Card.js';
 import { CardBucket } from './CardBucket.js';
 import { isSorted } from './cardOrder.js';
 import { ExpandedView } from '../expandedview/ExpandedView.js';
-import { PanoViewer } from '../../common/pano-viewer/PanoViewer.js';
 import '../../common/utilitiesSidewalk.js';
+/** @typedef {import('../data/Tracker.js').Tracker} Tracker */
+/** @typedef {import('../filter/GalleryFilter.js').GalleryFilter} GalleryFilter */
+/** @typedef {import('../expandedview/ExpandedView.js').ViewerParams} ViewerParams */
 
 /**
  * Card Container module. This is responsible for managing the Card objects that are to be rendered.
@@ -34,10 +46,9 @@ export class CardContainer {
   static #filteredCardsPerPage = 9;
 
   #uiCardContainer;
-  #initialFilters;
-  #panoViewerType;
-  #viewerAccessToken;
-  #currUsername;
+  #params;
+  #cardFilter;
+  #tracker;
 
   #currentLabelTypes;
   #currentPage = 1;
@@ -86,67 +97,61 @@ export class CardContainer {
   #pageHasCards = false;
 
   /**
-   * @param {CardContainerUi} uiCardContainer - The card grid and its paging controls.
-   * @param {Record<string, any>} initialFilters - Object containing initial set of filters in sidebar.
-   * @param {typeof PanoViewer} panoViewerType - The type of pano viewer to initialize.
-   * @param {string} viewerAccessToken - An access token that authorizes image requests for the pano viewer.
-   * @param {?string} currUsername - The viewer's username when signed in to a real account, else null.
+   * @param {CardContainerUi} uiCardContainer - The card grid, its paging controls, and the notices around them.
+   * @param {CardContainerParams} params - What the page was opened with.
+   * @param {GalleryFilter} cardFilter - The sidebar, which owns the filter state the cards are fetched for.
+   * @param {Tracker} tracker - Logs the paging.
    */
-  constructor(uiCardContainer, initialFilters, panoViewerType, viewerAccessToken, currUsername) {
+  constructor(uiCardContainer, params, cardFilter, tracker) {
     this.#uiCardContainer = uiCardContainer;
-    this.#initialFilters = initialFilters;
-    this.#panoViewerType = panoViewerType;
-    this.#viewerAccessToken = viewerAccessToken;
-    this.#currUsername = currUsername;
+    this.#params = params;
+    this.#cardFilter = cardFilter;
+    this.#tracker = tracker;
 
-    this.#listLabelIds = initialFilters.labelIds ?? [];
+    this.#listLabelIds = params.initialFilters.labelIds ?? [];
     this.#listMode = this.#listLabelIds.length > 0;
 
     // The sidebar is built first and owns the filter state, so the initial selection comes from it, not the page.
-    this.#currentLabelTypes = sg.cardFilter.getStatus().currentLabelTypes;
+    this.#currentLabelTypes = cardFilter.getStatus().currentLabelTypes;
+    cardFilter.onUpdate(() => this.updateCardsByFilter());
+    cardFilter.onSortChange(() => this.updateCardsBySort());
   }
 
   /**
    * Creates a CardContainer, fetches the first batch of labels, and builds the ExpandedView.
-   * @param {CardContainerUi} uiCardContainer - The card grid and its paging controls.
-   * @param {Record<string, any>} initialFilters - Object containing initial set of filters in sidebar.
-   * @param {typeof PanoViewer} panoViewerType - The type of pano viewer to initialize.
-   * @param {string} viewerAccessToken - An access token that authorizes image requests for the pano viewer.
-   * @param {?string} currUsername - The viewer's username when signed in to a real account, else null.
+   * @param {CardContainerUi} uiCardContainer - The card grid, its paging controls, and the notices around them.
+   * @param {CardContainerParams} params - What the page was opened with.
+   * @param {GalleryFilter} cardFilter - The sidebar, which owns the filter state the cards are fetched for.
+   * @param {Tracker} tracker - Logs the paging.
    * @returns {Promise<CardContainer>}
    */
-  static async create(uiCardContainer, initialFilters, panoViewerType, viewerAccessToken, currUsername) {
-    const cardContainer
-      = new CardContainer(uiCardContainer, initialFilters, panoViewerType, viewerAccessToken, currUsername);
-    // ExpandedView reaches back through sg.cardContainer, and #init can get as far as opening a deep link before
-    // create() returns, so the global is published here rather than waiting for Main to assign what create()
-    // hands back. Main's own assignment then just re-sets the same object.
-    sg.cardContainer = cardContainer;
+  static async create(uiCardContainer, params, cardFilter, tracker) {
+    const cardContainer = new CardContainer(uiCardContainer, params, cardFilter, tracker);
     await cardContainer.#init();
     return cardContainer;
   }
 
   async #init() {
     const uiCardContainer = this.#uiCardContainer;
-    const initialFilters = this.#initialFilters;
+    const initialFilters = this.#params.initialFilters;
 
     // Bind click actions to the forward/backward paging buttons.
     // The buttons also log a *Click event; the expanded view turns pages without one.
     uiCardContainer.nextPage.addEventListener('click', () => {
       this.nextPage();
-      sg.tracker?.push('NextPageClick', null, null);
+      this.#tracker.push('NextPageClick', null, null);
     });
     uiCardContainer.prevPage.addEventListener('click', () => {
       if (this.#currentPage <= 1) return;
       this.prevPage();
-      sg.tracker?.push('PrevPageClick', null, null);
+      this.#tracker.push('PrevPageClick', null, null);
     });
 
     this.#pageNumberDisplay = document.createElement('h2');
     this.#pageNumberDisplay.innerText = '1';
     uiCardContainer.pageNumber.append(this.#pageNumberDisplay);
-    sg.ui.pageControl.style.display = 'none';
-    sg.cardFilter.disable();
+    uiCardContainer.pageControl.style.display = 'none';
+    this.#cardFilter.disable();
     uiCardContainer.prevPage.disabled = true;
 
     // Grab first batch of labels to show.
@@ -163,7 +168,7 @@ export class CardContainer {
         // when the server never answered. Say so instead, and leave the server-rendered count standing.
         if (result === null) {
           CardContainer.#showListError();
-          sg.pageLoading.style.display = 'none';
+          uiCardContainer.pageLoading.style.display = 'none';
           // render() is never reached on this path, so the handover happens here instead: it releases the
           // filters and hands the view an empty page, where a ?labelId= still opens the label by id.
           this.#pageHasCards = false;
@@ -196,11 +201,7 @@ export class CardContainer {
         this.render();
       });
     }
-    // Creates the ExpandedView object in the DOM element currently present.
-    sg.panoStore = new PanoStore();
-    this.#expandedView = await ExpandedView.create(
-      sg.ui.expandedView.container, this.#panoViewerType, this.#viewerAccessToken, this.#currUsername,
-    );
+    this.#expandedView = await ExpandedView.create(uiCardContainer.expandedView, this.#params, this, this.#tracker);
     // The opening query is fired above, before this await, so the request is in flight while the viewer builds —
     // and can finish first. A page rendered in that window has nobody to hand itself to, so this is where it goes.
     if (this.#expandedViewHooksDeferred) this.#notifyExpandedViewRendered();
@@ -225,8 +226,6 @@ export class CardContainer {
         cardId = `label_id_${target.closest('.card-tags').id}`;
       }
       if (!cardId) return;
-      // Sets/Updates the label being displayed in the expanded view.
-      sg.ui.expandedView.container.style.visibility = 'visible';
       this.#expandedView.updateCardIndex(this.#findCardIndex(cardId));
     });
 
@@ -269,9 +268,7 @@ export class CardContainer {
    * Turns to the next page. Also called by the expanded view when stepping past the page's last label.
    */
   nextPage() {
-    // Main assigns sg.tracker after CardContainer.create() resolves, so a turn that beats that is untracked
-    // rather than fatal.
-    sg.tracker?.push('NextPage', null, {
+    this.#tracker.push('NextPage', null, {
       from: this.#currentPage,
       to: this.#currentPage + 1,
     });
@@ -284,7 +281,7 @@ export class CardContainer {
    */
   prevPage() {
     if (this.#currentPage <= 1) return;
-    sg.tracker?.push('PrevPage', null, {
+    this.#tracker.push('PrevPage', null, {
       from: this.#currentPage,
       to: this.#currentPage - 1,
     });
@@ -353,7 +350,7 @@ export class CardContainer {
       return null;
     }
     const newCards = response.labelsOfType.map((labelProp) => {
-      const card = new Card(labelProp.label, labelProp.cropUrl, labelProp.gsvImageUrl, labelProp.cropMarker);
+      const card = new Card(labelProp, this.#params.regionNames, this.#tracker, this.#cardFilter);
       this.push(card);
       this.#loadedLabelIds.add(card.getLabelId());
       this.#fetchOrder.set(card.getLabelId(), this.#fetchOrder.size);
@@ -403,16 +400,17 @@ export class CardContainer {
    *      tagsByType: Record<string, string[]>, sort: string}} The current filter state.
    */
   #currentFilters() {
-    const types = sg.cardFilter.getStatus().currentLabelTypes;
+    const cardFilter = this.#cardFilter;
+    const types = cardFilter.getStatus().currentLabelTypes;
     // Severity is left out entirely when nothing selected can carry one — otherwise the "N/A" toggle, which those
     // labels all fall under, would silently decide whether they show at all.
     const anyHasSeverity = types.some((type) => util.misc.labelTypeHasSeverity(type));
     return {
       types,
-      valOptions: sg.cardFilter.getAppliedValidationOptions(),
-      severities: anyHasSeverity ? sg.cardFilter.getAppliedSeverities() : undefined,
-      tagsByType: sg.cardFilter.getAppliedTagsByType(),
-      sort: sg.cardFilter.getSort(),
+      valOptions: cardFilter.getAppliedValidationOptions(),
+      severities: anyHasSeverity ? cardFilter.getAppliedSeverities() : undefined,
+      tagsByType: cardFilter.getAppliedTagsByType(),
+      sort: cardFilter.getSort(),
     };
   }
 
@@ -492,10 +490,10 @@ export class CardContainer {
         this.getCardsPerPage() * 2,
         filters.valOptions,
         Array.from(this.#loadedLabelIds),
-        this.#initialFilters.regionIds,
+        this.#params.initialFilters.regionIds,
         filters.severities,
         filters.tagsByType,
-        this.#initialFilters.aiValidationOptions,
+        this.#params.initialFilters.aiValidationOptions,
         undefined,
         filters.sort,
       ).then(() => {
@@ -517,7 +515,7 @@ export class CardContainer {
     // empty state would silently throw the list away.
     if (this.#listMode) return;
 
-    const newLabelTypes = sg.cardFilter.getStatus().currentLabelTypes;
+    const newLabelTypes = this.#cardFilter.getStatus().currentLabelTypes;
     // Only need to refresh UI if the label types changed, since the tags are swapped out.
     if (newLabelTypes.join() !== this.#currentLabelTypes.join()) {
       this.#currentLabelTypes = newLabelTypes;
@@ -525,7 +523,7 @@ export class CardContainer {
     }
 
     // In an order, a filter change starts the cache over; see #resetLoadedCards for why.
-    if (isSorted(sg.cardFilter.getSort())) this.#resetLoadedCards();
+    if (isSorted(this.#cardFilter.getSort())) this.#resetLoadedCards();
     this.#setPage(1);
     this.updateCardsNewPage();
   }
@@ -563,19 +561,19 @@ export class CardContainer {
         imagesToLoad.forEach((card) => {
           card.render(uiCardContainer.holder);
         });
-        sg.pageLoading.style.display = 'none';
+        uiCardContainer.pageLoading.style.display = 'none';
         this.#notifyExpandedViewRendered();
       });
     } else if (this.#listMode) {
       // "No matches. Start exploring to contribute more data!" answers a filtered search that found nothing; it
       // answers nothing about a list whose ids this city doesn't have, and with no sidebar to sit beside it, it is
       // absolutely positioned straight over the strip that does explain it.
-      sg.pageLoading.style.display = 'none';
+      uiCardContainer.pageLoading.style.display = 'none';
       this.#notifyExpandedViewRendered();
     } else {
       // The stylesheet hides this notice, so it needs an explicit display value to show.
-      sg.labelsNotFound.style.display = 'block';
-      sg.pageLoading.style.display = 'none';
+      uiCardContainer.labelsNotFound.style.display = 'block';
+      uiCardContainer.pageLoading.style.display = 'none';
       this.#notifyExpandedViewRendered();
     }
   }
@@ -586,8 +584,8 @@ export class CardContainer {
    *
    * This is the one place a page becomes live, and it runs exactly once per render, whichever of the opening query
    * and the viewer build finishes second. Both halves need the view to exist. The paging handlers close the
-   * expanded view and push a tracker event, and in the query-wins ordering neither the view nor `sg.tracker` is up
-   * yet, so the controls stay hidden and the filters disabled until the handover can happen. And `restoreFromUrl()`
+   * expanded view, and in the query-wins ordering the view isn't up yet, so the controls stay hidden and the
+   * filters disabled until the handover can happen. And `restoreFromUrl()`
    * consumes the pending deep-link id on entry, so a render that skips it leaves the id set for a later render to
    * spring open — which is why every branch of `render()` calls this, empty pages included.
    */
@@ -597,8 +595,8 @@ export class CardContainer {
       return;
     }
     this.#expandedViewHooksDeferred = false;
-    if (this.#pageHasCards) sg.ui.pageControl.style.display = '';
-    sg.cardFilter.enable();
+    if (this.#pageHasCards) this.#uiCardContainer.pageControl.style.display = '';
+    this.#cardFilter.enable();
     this.#expandedView.onPageCardsRendered();
     this.#expandedView.restoreFromUrl();
   }
@@ -616,12 +614,13 @@ export class CardContainer {
     window.scrollTo(0, 0);
 
     // Indicate query is sent, loading appropriate cards.
-    sg.pageLoading.style.display = '';
+    const ui = this.#uiCardContainer;
+    ui.pageLoading.style.display = '';
 
     // Disable interactable UI elements while query loads.
-    sg.cardFilter.disable();
-    sg.labelsNotFound.style.display = 'none';
-    sg.ui.pageControl.style.display = 'none';
+    this.#cardFilter.disable();
+    ui.labelsNotFound.style.display = 'none';
+    ui.pageControl.style.display = 'none';
   }
 
   /**

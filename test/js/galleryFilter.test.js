@@ -100,6 +100,12 @@ function buildFixture() {
 
 describe('GalleryFilter', () => {
     let filter;
+    /** @type {{push: jest.Mock}} */
+    let tracker;
+    /** @type {jest.Mock} What the filter tells to refetch the cards. */
+    let onUpdate;
+    /** @type {jest.Mock} What the filter tells to start over in a new order. */
+    let onSortChange;
 
     /** @returns {string} The path + query the page has pushed to the address bar. */
     const currentUrl = () => window.location.pathname + window.location.search;
@@ -119,11 +125,14 @@ describe('GalleryFilter', () => {
      * @param {object} [initialFilters] Overrides for the filters the server parsed out of the URL.
      * @returns {GalleryFilter} The filter under test.
      */
-    function build(initialFilters = {}) {
+    function build(initialFilters = {}, sortSelect = null) {
         buildFixture();
-        return new window.GalleryFilter(document.getElementById('card-filter'), clearBtn(), {
+        const built = new window.GalleryFilter(document.getElementById('card-filter'), clearBtn(), sortSelect, {
             regionIds: [], aiValidationOptions: [], ...initialFilters,
-        });
+        }, tracker);
+        built.onUpdate(onUpdate);
+        built.onSortChange(onSortChange);
+        return built;
     }
 
     beforeAll(() => {
@@ -156,7 +165,9 @@ describe('GalleryFilter', () => {
 
     beforeEach(() => {
         window.history.replaceState({}, '', '/gallery');
-        window.sg = { tracker: { push: jest.fn() }, cardContainer: { updateCardsByFilter: jest.fn() } };
+        tracker = { push: jest.fn() };
+        onUpdate = jest.fn();
+        onSortChange = jest.fn();
         filter = build();
     });
 
@@ -172,7 +183,7 @@ describe('GalleryFilter', () => {
 
             expect(currentUrl()).toBe('/gallery?labelType=CurbRamp,Crosswalk,Obstacle');
             expect(filter.getStatus().currentLabelTypes).toEqual(['CurbRamp', 'Crosswalk', 'Obstacle']);
-            expect(sg.cardContainer.updateCardsByFilter).toHaveBeenCalled();
+            expect(onUpdate).toHaveBeenCalled();
             expect(clearBtn().hidden).toBe(false);
         });
 
@@ -192,9 +203,9 @@ describe('GalleryFilter', () => {
             // address bar, so it has to construct and keep working against nothing.
             window.history.replaceState({}, '', '/gallery?labelIds=5,6&labelId=6');
             buildFixture();
-            const filter = new window.GalleryFilter(null, null, {
+            const filter = new window.GalleryFilter(null, null, null, {
                 regionIds: [], aiValidationOptions: [], labelIds: [5, 6],
-            });
+            }, tracker);
 
             expect(currentUrl()).toBe('/gallery?labelIds=5,6&labelId=6');
             expect(filter.getStatus().currentLabelTypes).toEqual([]);
@@ -319,29 +330,29 @@ describe('GalleryFilter', () => {
     describe('logging', () => {
         it('logs each kind of filter interaction under its section\'s event name', () => {
             typeBox('Obstacle').click();
-            expect(sg.tracker.push).toHaveBeenCalledWith('LabelTypeUnapply', null, { Label_Type: 'Obstacle' });
+            expect(tracker.push).toHaveBeenCalledWith('LabelTypeUnapply', null, { Label_Type: 'Obstacle' });
 
             sevBtn(0).click();
-            expect(sg.tracker.push).toHaveBeenCalledWith('SeverityUnapply', null, { Severity: 'null' });
+            expect(tracker.push).toHaveBeenCalledWith('SeverityUnapply', null, { Severity: 'null' });
 
             document.querySelector('#incorrect').click();
-            expect(sg.tracker.push)
+            expect(tracker.push)
                 .toHaveBeenCalledWith('ValidationOptionApply', null, { ValidationOption: 'incorrect' });
 
             tagPill('Obstacle').click();
-            expect(sg.tracker.push)
+            expect(tracker.push)
                 .toHaveBeenCalledWith('TagApply', null, { Tag: 'obstacle-tag', Label_Type: 'Obstacle' });
         });
 
         it('logs the batch actions the shared sidebar adds', () => {
             document.querySelector('.filter-sidebar__only[data-section="severity"][data-value="2"]').click();
-            expect(sg.tracker.push).toHaveBeenCalledWith('SeverityOnly', null, { Severity: '2' });
+            expect(tracker.push).toHaveBeenCalledWith('SeverityOnly', null, { Severity: '2' });
 
             document.querySelector('.filter-sidebar__deselect-all[data-section="label-validations"]').click();
-            expect(sg.tracker.push).toHaveBeenCalledWith('ValidationOptionSelectAll');
+            expect(tracker.push).toHaveBeenCalledWith('ValidationOptionSelectAll');
 
             document.querySelector('.filter-sidebar__deselect-all[data-section="label-type"]').click();
-            expect(sg.tracker.push).toHaveBeenCalledWith('LabelTypeDeselectAll');
+            expect(tracker.push).toHaveBeenCalledWith('LabelTypeDeselectAll');
         });
     });
 
@@ -404,9 +415,12 @@ describe('GalleryFilter', () => {
                 <p id="gallery-sort-note" class="gallery-sort__note" aria-live="polite"></p>
               </div>`);
             document.body.insertAdjacentHTML('beforeend', '<div id="gallery-footer">gallery:cards</div>');
-            return new window.GalleryFilter(document.getElementById('card-filter'), clearBtn(), {
+            const built = new window.GalleryFilter(document.getElementById('card-filter'), clearBtn(), sortSelect(), {
                 regionIds: [], aiValidationOptions: [],
-            }, sortSelect());
+            }, tracker);
+            built.onUpdate(onUpdate);
+            built.onSortChange(onSortChange);
+            return built;
         }
 
         /** Picks an option the way a user would, so the change event fires. */
@@ -417,7 +431,6 @@ describe('GalleryFilter', () => {
 
         beforeEach(() => {
             window.i18next = { t: (key, opts) => (opts ? `${key}:${JSON.stringify(opts)}` : key), language: 'en' };
-            window.sg.cardContainer.updateCardsBySort = jest.fn();
             filter = buildAsAdmin();
         });
 
@@ -430,9 +443,9 @@ describe('GalleryFilter', () => {
 
             expect(filter.getSort()).toBe('most_severe');
             expect(currentUrl()).toBe('/gallery?sort=most_severe');
-            expect(sg.tracker.push).toHaveBeenCalledWith('SortApply', null, { Sort: 'most_severe' });
-            expect(sg.cardContainer.updateCardsBySort).toHaveBeenCalled();
-            expect(sg.cardContainer.updateCardsByFilter).not.toHaveBeenCalled();
+            expect(tracker.push).toHaveBeenCalledWith('SortApply', null, { Sort: 'most_severe' });
+            expect(onSortChange).toHaveBeenCalled();
+            expect(onUpdate).not.toHaveBeenCalled();
         });
 
         it('leaves the reset hidden for a sort alone, and does not reset the sort', () => {
@@ -524,9 +537,9 @@ describe('GalleryFilter', () => {
                 sortSelect().value = 'most_disputed';
                 document.querySelector('.filter-sidebar__only[data-section="label-validations"][data-value="unvalidated"]')
                     .click();
-                filter = new window.GalleryFilter(document.getElementById('card-filter'), clearBtn(), {
+                filter = new window.GalleryFilter(document.getElementById('card-filter'), clearBtn(), sortSelect(), {
                     regionIds: [], aiValidationOptions: [],
-                }, sortSelect());
+                }, tracker);
                 expect(note().textContent).toBe('gallery:sort-moot-no-validated');
             });
         });
@@ -536,7 +549,7 @@ describe('GalleryFilter', () => {
         it('hands focus back to the select after the load it started', () => {
             sortSelect().focus();
             expect(document.activeElement).toBe(sortSelect());
-            window.sg.cardContainer.updateCardsBySort = jest.fn(() => filter.disable());
+            onSortChange.mockImplementation(() => filter.disable());
 
             choose('newest');
             // A browser drops focus to the body the moment the focused element is disabled; jsdom leaves it (and
@@ -553,7 +566,7 @@ describe('GalleryFilter', () => {
 
         it('does not take focus back from somewhere the admin moved it during the load', () => {
             sortSelect().focus();
-            window.sg.cardContainer.updateCardsBySort = jest.fn(() => filter.disable());
+            onSortChange.mockImplementation(() => filter.disable());
             choose('newest');
             const elsewhere = document.querySelector('.filter-sidebar__deselect-all');
             elsewhere.focus();

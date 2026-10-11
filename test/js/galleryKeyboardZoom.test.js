@@ -59,49 +59,45 @@ function release(init) {
 describe('Gallery Z / Shift+Z shortcut', () => {
     // One KeyboardManager for the file: its constructor adds a window listener that is never removed.
     const expandedView = { open: true, panoManager: null, closeExpandedViewAndRemoveCardTransparency: jest.fn() };
+    const tracker = { push: jest.fn() };
 
     beforeAll(() => {
-        window.sg = { tracker: { push: jest.fn() } };
         const { KeyboardManager } = loadModules('frontend/js/gallery/keyboard/KeyboardManager.js');
-        new KeyboardManager(expandedView);
+        new KeyboardManager(expandedView, tracker);
     });
 
     beforeEach(() => {
-        window.sg.tracker.push.mockClear();
+        tracker.push.mockClear();
         expandedView.open = true;
         expandedView.panoManager = { zoomIn: jest.fn(() => true), zoomOut: jest.fn(() => true) };
         document.body.innerHTML = '';
-    });
-
-    afterAll(() => {
-        delete window.sg;
     });
 
     it('Z zooms in and logs it', () => {
         release({ key: 'z', code: 'KeyZ' });
         expect(expandedView.panoManager.zoomIn).toHaveBeenCalledTimes(1);
         expect(expandedView.panoManager.zoomOut).not.toHaveBeenCalled();
-        expect(window.sg.tracker.push).toHaveBeenCalledWith('KeyboardShortcut_ZoomIn', null, { code: 'KeyZ' });
+        expect(tracker.push).toHaveBeenCalledWith('KeyboardShortcut_ZoomIn', null, { code: 'KeyZ' });
     });
 
     it('Shift+Z zooms out and logs it', () => {
         release({ key: 'Z', code: 'KeyZ', shiftKey: true });
         expect(expandedView.panoManager.zoomOut).toHaveBeenCalledTimes(1);
         expect(expandedView.panoManager.zoomIn).not.toHaveBeenCalled();
-        expect(window.sg.tracker.push).toHaveBeenCalledWith('KeyboardShortcut_ZoomOut', null, { code: 'KeyZ' });
+        expect(tracker.push).toHaveBeenCalledWith('KeyboardShortcut_ZoomOut', null, { code: 'KeyZ' });
     });
 
     it('still logs a press that could not move the view, as Explore and Validate do', () => {
         expandedView.panoManager.zoomIn.mockReturnValue(false);
         release({ key: 'z', code: 'KeyZ' });
-        expect(window.sg.tracker.push).toHaveBeenCalledWith('KeyboardShortcut_ZoomIn', null, { code: 'KeyZ' });
+        expect(tracker.push).toHaveBeenCalledWith('KeyboardShortcut_ZoomIn', null, { code: 'KeyZ' });
     });
 
     it('does nothing while the expanded view is closed', () => {
         expandedView.open = false;
         release({ key: 'z', code: 'KeyZ' });
         expect(expandedView.panoManager.zoomIn).not.toHaveBeenCalled();
-        expect(window.sg.tracker.push).not.toHaveBeenCalled();
+        expect(tracker.push).not.toHaveBeenCalled();
     });
 
     it.each(['INPUT', 'TEXTAREA'])('leaves a z typed into a focused %s alone', (tag) => {
@@ -110,7 +106,7 @@ describe('Gallery Z / Shift+Z shortcut', () => {
         field.focus();
         field.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true, key: 'z', code: 'KeyZ' }));
         expect(expandedView.panoManager.zoomIn).not.toHaveBeenCalled();
-        expect(window.sg.tracker.push).not.toHaveBeenCalled();
+        expect(tracker.push).not.toHaveBeenCalled();
     });
 
     it.each([
@@ -122,14 +118,14 @@ describe('Gallery Z / Shift+Z shortcut', () => {
         document.querySelector(selector).focus();
         release({ key: 'z', code: 'KeyZ' });
         expect(expandedView.panoManager.zoomIn).not.toHaveBeenCalled();
-        expect(window.sg.tracker.push).not.toHaveBeenCalled();
+        expect(tracker.push).not.toHaveBeenCalled();
     });
 
     it('leaves Z alone while a dialog is open and nothing holds focus', () => {
         document.body.innerHTML = '<dialog open><p>Delete this label?</p></dialog>';
         release({ key: 'z', code: 'KeyZ' });
         expect(expandedView.panoManager.zoomIn).not.toHaveBeenCalled();
-        expect(window.sg.tracker.push).not.toHaveBeenCalled();
+        expect(tracker.push).not.toHaveBeenCalled();
     });
 
     it('still zooms from a focused control on the card itself', () => {
@@ -142,7 +138,7 @@ describe('Gallery Z / Shift+Z shortcut', () => {
     it.each(['ctrlKey', 'metaKey', 'altKey'])('leaves Z to the browser with %s held', (modifier) => {
         release({ key: 'z', code: 'KeyZ', [modifier]: true });
         expect(expandedView.panoManager.zoomIn).not.toHaveBeenCalled();
-        expect(window.sg.tracker.push).not.toHaveBeenCalled();
+        expect(tracker.push).not.toHaveBeenCalled();
     });
 
     it('drives a real PopupPanoManager without throwing before any label has been shown (#5142, #5128)', async () => {
@@ -154,7 +150,7 @@ describe('Gallery Z / Shift+Z shortcut', () => {
         expect(() => release({ key: 'Z', code: 'KeyZ', shiftKey: true })).not.toThrow();
         // Zooming must never be what builds the billable viewer.
         expect(viewerType.create).not.toHaveBeenCalled();
-        expect(window.sg.tracker.push).toHaveBeenCalledTimes(2);
+        expect(tracker.push).toHaveBeenCalledTimes(2);
     });
 });
 

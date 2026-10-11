@@ -71,12 +71,11 @@ interface Navigator {
 
 // Values set on `window` by the site-wide layout (common/main.scala.html) or by AppManager from it.
 interface Window {
-  // The running AccessScore app, and the Explore, Validate and Gallery registries: console and browser-test handles
-  // that each page entry sets. Nothing in the app reads them from window.
+  // The running AccessScore app, and the Explore and Validate registries: console and browser-test handles that
+  // each page entry sets. Nothing in the app reads them from window.
   accessScore?: Record<string, any>;
   svl?: Record<string, any>;
   svv?: Record<string, any>;
-  sg?: Record<string, any>;
   // The admin dashboard's shell. `any` because AdminShell is only declared in the run that reads admin-dashboard/.
   adminShell?: any;
   appManager: import('../../../frontend/js/common/AppManager.js').AppManager;
