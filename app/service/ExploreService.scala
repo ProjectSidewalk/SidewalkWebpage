@@ -447,8 +447,8 @@ class ExploreServiceImpl @Inject() (
    * (#4451).
    *
    * The searched lat/lng is used as the task's current position so the pano opens at the address itself. Its offset
-   * along the street is stored on the task so completion can credit only the distance covered beyond the drop-in
-   * point (see `streetWalkedFarEnough`).
+   * along the street is stored as start_offset_m, which is where the walk began and, being set, what keeps the row out
+   * of the regular-mission resume paths (#5733).
    */
   private def resumeOrCreateExploreAddressTask(
       userId: String,
@@ -642,13 +642,13 @@ class ExploreServiceImpl @Inject() (
   ): DBIO[(Int, Option[Seq[CoveredRange]])] = {
     val timestamp: OffsetDateTime = OffsetDateTime.now
     missionTable.getMissionType(missionId).flatMap { (missionType: Option[MissionType]) =>
-      val isFreeExploration: Boolean        = missionType.contains(MissionType.ExploreAddress)
-      val existingTaskId: DBIO[Option[Int]] = task.auditTaskId match {
-        case Some(id)                  => DBIO.successful(Some(id))
-        case None if isFreeExploration =>
+      val isFreeExploration: Boolean = missionType.contains(MissionType.ExploreAddress)
+      // Free exploration never trusts the posted id: the region task list hands the client the ids of the user's
+      // regular audits too, and writing coverage onto one would rewrite a finished audit's distance and mission.
+      val existingTaskId: DBIO[Option[Int]] =
+        if (isFreeExploration) {
           auditTaskTable.findTaskForMission(userId, task.streetEdgeId, missionId).map(_.map(_.auditTaskId))
-        case None => DBIO.successful(None)
-      }
+        } else DBIO.successful(task.auditTaskId)
 
       existingTaskId.flatMap {
         case Some(id) if isFreeExploration =>
@@ -671,8 +671,8 @@ class ExploreServiceImpl @Inject() (
           update.map(_ => (id, None))
         case None if isFreeExploration =>
           mergedCoverage(task, stored = None).flatMap { (merged: Seq[CoveredRange]) =>
-            // start_offset_m keeps the task out of the regular-mission resume paths (resumableTasksForUser), which would
-            // read its coverage total as a furthest point from the street's start.
+            // start_offset_m keeps the task out of the regular-mission resume paths (resumableTasksForUser), which
+            // would read its coverage total as a furthest point from the street's start.
             val startOffsetM: Double = merged.headOption.map(_.startM).getOrElse(0d)
             auditTaskTable
               .insert(
@@ -1091,9 +1091,14 @@ class ExploreServiceImpl @Inject() (
               } yield routeComplete
             } else DBIO.successful(false)
 
-          // Update the MissionTable.
+          // Free exploration's current task is the row just written, not the id the client posted (see
+          // updateAuditTaskTable); a regular mission keeps the client's, which is what its cleanup paths expect.
+          val missionProgress: AuditMissionProgress =
+            if (missionType.contains(MissionType.ExploreAddress))
+              data.missionProgress.copy(auditTaskId = Some(auditTaskId))
+            else data.missionProgress
           val updateMissionAction: DBIO[Option[Mission]] =
-            missionService.updateMissionTableExplore(userId, data.missionProgress)
+            missionService.updateMissionTableExplore(userId, missionProgress)
 
           // Insert any labels.
           val labelSubmitActions: Seq[DBIO[Option[NewLabelData]]] =

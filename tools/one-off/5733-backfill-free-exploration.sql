@@ -9,9 +9,10 @@
 --   * a pano counts for the open street nearest it when that is within 25 m (Task.ON_STREET_MAX_DISTANCE_M)
 --   * it covers 10 m either side of its projection onto that street (PanoWindowM)
 --   * the stretch to the previous pano counts too when that one was on the same street and the hop is at most 50 m
---     (MaxHopM); a detour off the street breaks the chain
---   * everything a user's free-exploration sessions covered on a street is merged, and the street counts as audited
---     once what is left unseen is at most 50 m (MaxUncoveredM) and at most half the street (MinCoveredFrac)
+--     (MaxHopM); a pano off every street, or on another one, breaks the chain
+--   * everything a user's free-exploration sessions covered on a street is merged, together with any coverage the
+--     app has stored on the task since the deploy, and the street counts as audited once what is left unseen is at
+--     most 50 m (MaxUncoveredM) and at most half the street (MinCoveredFrac)
 -- Meters along a street are geodesic lengths of the line up to the pano's projection, the measure the app stores.
 --
 -- Writes, per (user, street) with any coverage:
@@ -47,7 +48,7 @@ WITH params AS (
            0.5 AS min_covered_frac
 ), explore_tasks AS (
     SELECT audit_task.audit_task_id, audit_task.user_id, audit_task.street_edge_id,
-           audit_task.current_mission_id AS mission_id
+           audit_task.current_mission_id AS mission_id, audit_task.covered_ranges
     FROM audit_task
     INNER JOIN mission ON mission.mission_id = audit_task.current_mission_id
     WHERE mission.mission_type = 'exploreAddress'
@@ -65,9 +66,10 @@ WITH params AS (
         AND audit_task_interaction.lat IS NOT NULL
         AND audit_task_interaction.lng IS NOT NULL
 ), located AS (
-    -- Each pano on the open street nearest it (the KNN order uses street_edge_geom_idx), if that is close enough.
+    -- Each pano with the open street nearest it (the KNN order uses street_edge_geom_idx), or no street when that is
+    -- too far; off-street panos stay in the trail so they break the chain, as in the app.
     SELECT trail.audit_task_id, trail.user_id, trail.audit_task_interaction_id, trail.timestamp, trail.lat, trail.lng,
-           nearest.street_edge_id,
+           CASE WHEN nearest.off_m <= params.on_street_m THEN nearest.street_edge_id END AS street_edge_id,
            nearest.len_m,
            ST_Length(ST_LineSubstring(nearest.geom, 0, ST_LineLocatePoint(nearest.geom, trail.pt))::geography) AS loc_m
     FROM trail
@@ -81,9 +83,8 @@ WITH params AS (
         ORDER BY street_edge.geom <-> trail.pt
         LIMIT 1
     ) AS nearest
-    WHERE nearest.off_m <= params.on_street_m
 ), steps AS (
-    -- The previous on-street pano in the same session, whatever street it was on.
+    -- The previous pano in the same session, whatever street it was on, if any.
     SELECT located.*,
            LAG(street_edge_id) OVER w AS prev_street_edge_id,
            LAG(loc_m) OVER w AS prev_loc_m
@@ -94,11 +95,19 @@ WITH params AS (
            GREATEST(0, loc_m - params.window_m) AS s,
            LEAST(len_m, loc_m + params.window_m) AS e
     FROM steps, params
+    WHERE street_edge_id IS NOT NULL
     UNION ALL
     SELECT user_id, street_edge_id, len_m, LEAST(loc_m, prev_loc_m), GREATEST(loc_m, prev_loc_m)
     FROM steps, params
     WHERE prev_street_edge_id = street_edge_id
         AND ABS(loc_m - prev_loc_m) <= params.max_hop_m
+    UNION ALL
+    -- Coverage the app has already stored on the task, so a run after the deploy adds to it rather than replacing it.
+    SELECT explore_tasks.user_id, explore_tasks.street_edge_id, ST_Length(street_edge.geom::geography),
+           (pair ->> 0)::float, (pair ->> 1)::float
+    FROM explore_tasks
+    INNER JOIN street_edge ON street_edge.street_edge_id = explore_tasks.street_edge_id
+    CROSS JOIN LATERAL JSONB_ARRAY_ELEMENTS(explore_tasks.covered_ranges) AS pair
 ), islands AS (
     -- Merge overlapping intervals per (user, street), across every one of the user's sessions.
     SELECT user_id, street_edge_id, len_m, s, e,
@@ -133,6 +142,7 @@ WITH params AS (
            (ARRAY_AGG(lng ORDER BY timestamp DESC, audit_task_interaction_id DESC))[1] AS last_lng,
            (ARRAY_AGG(audit_task_id ORDER BY timestamp DESC, audit_task_interaction_id DESC))[1] AS last_task_id
     FROM located
+    WHERE street_edge_id IS NOT NULL
     GROUP BY user_id, street_edge_id
 ), existing AS (
     -- The user's own free-exploration task on that street, if the drop-in made one (newest if several).
@@ -194,11 +204,11 @@ ANALYZE plan;
   UPDATE label
   SET audit_task_id = COALESCE(plan.existing_task_id, plan.inserted_task_id)
   FROM plan
-  INNER JOIN audit_task AS filed_under ON filed_under.user_id = plan.user_id
-  INNER JOIN mission ON mission.mission_id = filed_under.current_mission_id AND mission.mission_type = 'exploreAddress'
-  WHERE label.audit_task_id = filed_under.audit_task_id
+  INNER JOIN audit_task ON audit_task.user_id = plan.user_id
+  INNER JOIN mission ON mission.mission_id = audit_task.current_mission_id AND mission.mission_type = 'exploreAddress'
+  WHERE label.audit_task_id = audit_task.audit_task_id
     AND label.street_edge_id = plan.street_edge_id
-    AND filed_under.street_edge_id <> plan.street_edge_id;
+    AND audit_task.street_edge_id <> plan.street_edge_id;
 
   COMMIT;
 
@@ -208,8 +218,8 @@ ANALYZE plan;
          COUNT(*) FILTER (WHERE would_complete) AS streets_completed,
          ROUND(SUM(len_m) FILTER (WHERE would_complete)::numeric) AS completed_m,
          (SELECT COUNT(*) FROM label
-          INNER JOIN plan AS p ON p.user_id = label.user_id AND p.street_edge_id = label.street_edge_id
-          WHERE label.audit_task_id = COALESCE(p.existing_task_id, p.inserted_task_id)) AS labels_on_street_tasks
+          INNER JOIN plan ON plan.user_id = label.user_id AND plan.street_edge_id = label.street_edge_id
+          WHERE label.audit_task_id = COALESCE(plan.existing_task_id, plan.inserted_task_id)) AS labels_on_street_tasks
   FROM plan;
 \else
   SELECT :'city' AS city,

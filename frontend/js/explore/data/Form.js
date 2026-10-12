@@ -266,8 +266,10 @@ export class Form {
         }
 
         // The server's list can hold an earlier visit's stretches, which the minimap and done-yet check should show.
+        // Unioned with the local list rather than replacing it: panos visited while this save was in flight are in
+        // the local list only, and would otherwise be lost before the next save.
         if (result.covered_ranges) {
-          task.setCoveredRanges(result.covered_ranges);
+          task.setCoveredRanges([...task.getCoveredRanges(), ...result.covered_ranges]);
           if (svl.minimap) task.render();
         }
 

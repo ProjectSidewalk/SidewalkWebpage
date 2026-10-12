@@ -516,6 +516,7 @@ export class TaskContainer {
         resumed: nearest.getCoveredRanges().length > 0,
       });
       this.#svl.form.submitData(current);
+      current.resetVisitChain();
       // The task starts when the labeler steps onto the street, not when the task list was fetched.
       if (!nearest.getAuditTaskId() && nearest.getCoveredRanges().length === 0) {
         nearest.setProperty('taskStart', new Date());

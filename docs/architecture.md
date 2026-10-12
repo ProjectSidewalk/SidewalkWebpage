@@ -115,8 +115,9 @@ arbitrary line, fewer tiny disconnected pieces, and enough of a plan that the to
   wanders (`TaskContainer.recordExploreMove`), and keeps per task the stretches the panos covered — a ±10 m window
   around each on-street pano plus the stretch between consecutive ones when the hop is under 50 m
   (`Task.recordVisit`). Each submission posts the list; the server unions it into `audit_task.covered_ranges`,
-  reuses the user's open task on that street rather than minting another, derives `audited_distance_m` from the
-  total, and completes the task once what is left unseen is at most half the street and at most 50 m
+  writes it to the user's own free-exploration task on that street (found by user, street and mission, never by the
+  posted id, which can be a regular audit's) or inserts one, derives `audited_distance_m` from the total, and
+  completes the task once what is left unseen is at most half the street and at most 50 m
   (`StreetCoverage`, #5733; the numbers reach the page as `streetCoverage`). The cap governs streets over 100 m, the
   fraction shorter ones; both were fitted to the pano trails of completed and abandoned regular audits fleet-wide,
   where a normal end-to-end walk leaves up to 30 m unseen at the ends and a lone pano at a corner is the usual way a
@@ -125,8 +126,9 @@ arbitrary line, fewer tiny disconnected pieces, and enough of a plan that the to
   `audit_task.completed`, so it needs no second notion of "audited"; `start_offset_m` is set on every
   free-exploration task and is what keeps them out of the regular-mission resume paths, whose furthest-point
   arithmetic doesn't apply to them. The region task list still hands back what those tasks covered, as coverage
-  without a task id, so a reload redraws a part-walked street and a return to it reads as resumed. Sessions from before #5733 are credited by a one-off backfill over their pano
-  trails in `audit_task_interaction`, with the same rule.
+  without a task id, so a reload redraws a part-walked street and a return to it reads as resumed. Sessions from
+  before #5733 are credited by a one-off backfill over their pano trails in `audit_task_interaction`, with the same
+  rule.
 
 ### Media storage
 

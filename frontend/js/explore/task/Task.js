@@ -126,8 +126,10 @@ export class Task {
     if (currMissionId && currMissionStart) {
       this.setMissionStart(currMissionId, { lat: currMissionStart.lat, lng: currMissionStart.lng });
     }
+    // Clipped to this side's length: the server measures the street geodesically and turf a little differently, so
+    // a stored range can run a few decimeters past the line, which the minimap slicing can't take.
     this.#coveredRanges = Array.isArray(this.#geojson.properties.covered_ranges)
-      ? this.#geojson.properties.covered_ranges.map(([startM, endM]) => [startM, endM])
+      ? Task.mergeRanges(this.#geojson.properties.covered_ranges, this.lineDistance({ units: 'meters' }))
       : [];
     // After the direction, never before it: reversing re-seeds the furthest point from the new first coordinate, so a
     // saved position applied first would be thrown away and the walked stretch measured from the wrong end.
@@ -360,6 +362,14 @@ export class Task {
     this.#coveredRanges = Task.mergeRanges(ranges, lengthM);
     this.#lastOnStreetM = alongM;
     return true;
+  }
+
+  /**
+   * Ends the chain of consecutive on-street panos when the labeler leaves for another street: coming back within a
+   * hop of where they left would otherwise credit the stretch between as walked.
+   */
+  resetVisitChain() {
+    this.#lastOnStreetM = null;
   }
 
   /**

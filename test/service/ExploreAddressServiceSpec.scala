@@ -433,6 +433,55 @@ class ExploreAddressServiceSpec
       }
     }
 
+    "leave the user's regular audit of the street alone when the client posts its id" in {
+      completionLatLng match {
+        case None             => cancel("No streets in the connected DB; nothing to exercise.")
+        case Some((lat, lng)) =>
+          val data          = await(exploreService.getDataForExploreAddressPage(completionUser.userId, lat, lng)).value
+          val streetEdgeId  = data.task.value.edgeId
+          val exploreTaskId = data.task.value.auditTaskId.get
+          // A finished regular audit of the same street, whose id the region task list hands to the client.
+          val now           = OffsetDateTime.now
+          val regularTaskId = run(
+            auditTaskTable.insert(
+              AuditTask(0, None, completionUser.userId, streetEdgeId, now, now, completed = true, lat, lng,
+                startPointReversed = false, None, None, lowQuality = false, incomplete = false, stale = false,
+                auditedDistanceM = Some(200d))
+            )
+          )
+          try {
+            val res = await(
+              exploreService.submitExploreData(
+                submission(
+                  data.mission.missionId,
+                  regularTaskId,
+                  streetEdgeId,
+                  data.region.regionId,
+                  completed = false,
+                  None,
+                  coveredRanges = Some(Seq(CoveredRange(0d, 5d)))
+                ),
+                completionUser.userId
+              )
+            )
+
+            res.auditTaskId mustBe exploreTaskId
+            val regular = taskRow(regularTaskId)
+            regular.auditedDistanceM.value mustBe 200d
+            regular.currentMissionId mustBe None
+            regular.coveredRanges mustBe None
+            run(
+              missions.filter(_.missionId === data.mission.missionId).map(_.currentAuditTaskId).result.head
+            ).value mustBe exploreTaskId
+          } finally {
+            val _ = run(
+              missions.filter(_.currentAuditTaskId === regularTaskId).map(_.currentAuditTaskId).update(None)
+                >> auditTasks.filter(_.auditTaskId === regularTaskId).delete
+            )
+          }
+      }
+    }
+
     "hand the stored coverage back in the region task list, without the free-exploration task's id" in {
       completionLatLng match {
         case None             => cancel("No streets in the connected DB; nothing to exercise.")

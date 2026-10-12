@@ -152,7 +152,8 @@ export class NavigationService {
     //
     // "Near" is the same number free exploration may leave unseen (StreetCoverage.MaxUncoveredM), so the two modes
     // agree on what an imagery gap at the end of a street is worth. More generous than #END_OF_STREET_THRESHOLD: the
-    // imagery simply ends, so there is nothing further to walk either way. Task.isAtEnd scales it down on short streets.
+    // imagery simply ends, so there is nothing further to walk either way. Task.isAtEnd scales it down on short
+    // streets.
     const nearEndM = svl.streetCoverage.max_uncovered_m;
     const furthest = currentTask.getFurthestPointReached().geometry.coordinates;
     const nearEnd = currentTask.isAtEnd(svl.panoViewer.getPosition(), nearEndM)
