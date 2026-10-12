@@ -912,6 +912,9 @@
        where each fitted value comes from) so the client-side copy of the estimator (Label.js) can never drift from
        the server-side one. *@
     "latLngEstimation": @jsonForScript(service.PanoDataService.LatLngEstimation.asJson),
+    @* When free exploration has seen enough of a street to count it (#5733). The backend owns the numbers
+       (StreetCoverage) so the client's coverage tracking and the server's completion check agree. *@
+    "streetCoverage": @jsonForScript(models.audit.StreetCoverage.asJson),
     "imagerySource": "@commonData.imagerySource.name",
     "viewerAccessToken": "@commonData.imageryAccessToken"
   }</script>
