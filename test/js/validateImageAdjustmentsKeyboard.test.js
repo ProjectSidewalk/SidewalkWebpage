@@ -65,7 +65,7 @@ describe('KeyboardManager image adjustments scope', () => {
         Object.assign(window, loadModules('frontend/js/common/KeyboardShortcuts.js', 'frontend/js/validate/keyboard/KeyboardManager.js'));
         new window.KeyboardManager(
             { validationMenu: validationMenuUi, undoValidation: { undoButton: live('undoButton') } }, config,
-            { isDisabled: () => false, disableKeyboard: () => {}, enableKeyboard: () => {} },
+            { isDisabled: () => false, hold: () => {}, release: () => {} },
             { onLoadingChange: () => {} }, live('labelVisibilityControl'), live('labelCard'), live('validationMenu'),
             live('zoomControl'), live('undoValidation'), live('immersiveMode'), live('imageAdjustmentsPopover'),
             live('tracker'),

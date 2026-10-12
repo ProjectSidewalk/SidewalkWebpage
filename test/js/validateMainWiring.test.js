@@ -98,7 +98,10 @@ let KeyboardLock;
 let UndoValidation;
 /** @type {{takeUnexpectedUnload: jest.Mock, markLive: jest.Mock}} The live marker Main builds, per test. */
 let marker;
-/** @type {?{keyboardPaused: boolean}} What the mission-start tutorial found when Main built it. */
+/**
+ * @type {?{holdsTaken: string[], hooks: Record<string, any>}} The keyboard holds already taken when Main built the
+ * mission-start tutorial, and the hooks it was handed.
+ */
 let tutorialBuilt;
 
 beforeAll(() => {
@@ -137,7 +140,9 @@ beforeAll(() => {
   window.ImmersiveMode = class { isActive() { return false; } logRestored() {} };
   window.MissionStartTutorial = class {
     constructor(missionType, labelType, data, hooks) {
-      tutorialBuilt = { keyboardPaused: hooks.keyboard.isDisabled() };
+      // The test spies on the prototype before start(), so the calls so far are on the spy.
+      const hold = /** @type {jest.SpyInstance} */ (/** @type {unknown} */ (KeyboardLock.prototype.hold));
+      tutorialBuilt = { holdsTaken: hold.mock.calls.map((call) => call[0]), hooks };
     }
   };
   window.PanoImageAdjustments = class { isDefault() { return true; } onChange() {} values() { return {}; } };
@@ -236,8 +241,8 @@ describe('Main hooks what describes a label to the label container', () => {
       zoomControl: stub(ZoomControl.prototype, 'updateZoomAvailability'),
     };
     loading = {
-      keyboardOff: jest.spyOn(KeyboardLock.prototype, 'disableKeyboard'),
-      keyboardOn: jest.spyOn(KeyboardLock.prototype, 'enableKeyboard'),
+      keyboardOff: jest.spyOn(KeyboardLock.prototype, 'hold'),
+      keyboardOn: jest.spyOn(KeyboardLock.prototype, 'release'),
       undoOff: jest.spyOn(UndoValidation.prototype, 'disableUndo'),
       undoOn: jest.spyOn(UndoValidation.prototype, 'enableUndo'),
       cardHidden: stub(LabelVisibilityControl.prototype, 'hideLabelCard'),
@@ -359,8 +364,20 @@ describe('Main hooks what describes a label to the label container', () => {
   test('the keyboard is paused when the mission-start tutorial goes up over the first label', async () => {
     await start();
 
-    expect(tutorialBuilt).toEqual({ keyboardPaused: true });
+    expect(tutorialBuilt.holdsTaken).toContain('tutorial');
     expect(loading.keyboardOn).not.toHaveBeenCalled();
+  });
+
+  // Every mission starts through the briefing screen, which desktop never shows, so a hold of its own there would
+  // stand for the whole session: the tutorial's Done is the one release desktop gets.
+  test('the tutorial’s Done frees the keyboard: nothing built on the way holds it', async () => {
+    await start();
+    const lock = /** @type {InstanceType<typeof KeyboardLock>} */ (loading.keyboardOff.mock.instances[0]);
+    expect(lock.isDisabled()).toBe(true);
+
+    tutorialBuilt.hooks.keyboard.enableKeyboard();
+
+    expect(lock.isDisabled()).toBe(false);
   });
 
   test('an unexpected end to the last page life is reported once the first label is up, against the first mission', async () => {

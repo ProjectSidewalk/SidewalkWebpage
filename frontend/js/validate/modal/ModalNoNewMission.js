@@ -73,7 +73,7 @@ export class ModalNoNewMission {
    */
   show({ imageryUnavailable = false } = {}) {
     this.#showing = true;
-    this.#keyboardLock.disableKeyboard();
+    this.#keyboardLock.hold('no-mission');
     this.#uiModalMission.background.style.visibility = 'visible';
     this.#uiModalMission.instruction.innerHTML = imageryUnavailable
       ? this.#imageryUnavailable

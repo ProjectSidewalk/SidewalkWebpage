@@ -394,12 +394,15 @@ export class Main {
 
     // What the mission-start tutorial logs through and hands back when it closes. Desktop only: the phone's
     // briefing is ModalMission's carousel.
-    const tutorialHooks = util.isMobile() ? null : { tracker, keyboard: keyboardLock, zoomControl };
+    // Whoever raises the tutorial takes the 'tutorial' hold (below, and the mission-complete screen); its Done lets it go.
+    const tutorialHooks = util.isMobile()
+      ? null
+      : { tracker, keyboard: { enableKeyboard: () => keyboardLock.release('tutorial') }, zoomControl };
 
     const modalMissionComplete = new ModalMissionComplete(
       ui.modalMissionComplete, param.language, tutorialHooks, keyboardLock, statusField, panoManager, tracker,
     );
-    const modalMission = new ModalMission(ui.modalMission, keyboardLock, modalNoNewMission, tracker);
+    const modalMission = new ModalMission(ui.modalMission, modalNoNewMission, tracker);
 
     const missionLiveMarker = new MissionLiveMarker(window.sessionStorage);
     const missionContainer = new MissionContainer(
@@ -483,7 +486,7 @@ export class Main {
 
     if (!util.isMobile()) {
       // Paused under the tutorial; its Done hands the shortcuts back (TutorialHooks.keyboard).
-      keyboardLock.disableKeyboard();
+      keyboardLock.hold('tutorial');
       new MissionStartTutorial('validate', labelType, { nLabels: mission.labels_validated }, tutorialHooks,
         param.language);
     }
@@ -491,7 +494,7 @@ export class Main {
     // Now that mission start tutorial has loaded, can unhide the UI under it and remove the loading icon.
     this.#revealTool();
 
-    // Wired only now, so that no shortcut, not even the always-on immersive toggle, acts on the loading screen.
+    // Wired only now, so that no shortcut acts on the loading screen.
     if (!util.isMobile()) {
       new KeyboardManager(ui, config, keyboardLock, labelContainer, labelVisibilityControl, labelCard,
         /** @type {DesktopValidationMenu} */ (validationMenu), zoomControl, undoValidation,
@@ -586,11 +589,11 @@ export class Main {
     // The auth dialog is absent when signed in; pause keyboard shortcuts while it is open (events from Modal.js).
     const signInModal = document.getElementById('sign-in-modal-container');
     signInModal?.addEventListener('ps:modal:hidden', () => {
-      keyboardLock.enableKeyboard();
+      keyboardLock.release('sign-in');
       ui.holder.style.opacity = '1';
     });
     signInModal?.addEventListener('ps:modal:show', () => {
-      keyboardLock.disableKeyboard();
+      keyboardLock.hold('sign-in');
       ui.holder.style.opacity = '0.5';
     });
 

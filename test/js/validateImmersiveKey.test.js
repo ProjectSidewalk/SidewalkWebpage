@@ -4,7 +4,8 @@
  * The key is Explore's, and the same two things keep it from firing by accident: an f typed anywhere editable is text,
  * and F with a modifier belongs to the browser. What is Validate's own is where the check sits: after the marker and
  * label-card scope and the image-adjustments scope, which take every key of theirs, and before the verdict letters,
- * which the mode never touches. Loaded the way validateNumberKeyShortcuts.test.js loads the manager: eval'd with an
+ * which the mode never touches, and under the same pause as them: a key under a modal or the tutorial is for what
+ * is on top. Loaded the way validateNumberKeyShortcuts.test.js loads the manager: eval'd with an
  * explicit export, one instance for the file, since the constructor's window listener cannot be unregistered.
  */
 
@@ -24,6 +25,7 @@ describe('Validate F shortcut for immersive mode', () => {
     let current = {};
     const live = (name) => new Proxy({}, { get: (_, key) => current[name][key] });
     const config = { adminVersion: false };
+    let keyboardHeld = false;
 
     beforeAll(() => {
         Object.assign(validationMenuUi, {
@@ -38,7 +40,7 @@ describe('Validate F shortcut for immersive mode', () => {
         Object.assign(window, loadModules('frontend/js/common/KeyboardShortcuts.js', 'frontend/js/validate/keyboard/KeyboardManager.js'));
         new window.KeyboardManager(
             { validationMenu: validationMenuUi, undoValidation: { undoButton: live('undoButton') } }, config,
-            { isDisabled: () => false, disableKeyboard: () => {}, enableKeyboard: () => {} },
+            { isDisabled: () => keyboardHeld, hold: () => {}, release: () => {} },
             { onLoadingChange: () => {} }, live('labelVisibilityControl'), live('labelCard'), live('validationMenu'),
             live('zoomControl'), live('undoValidation'), live('immersiveMode'), live('imageAdjustmentsPopover'),
             live('tracker'),
@@ -46,6 +48,7 @@ describe('Validate F shortcut for immersive mode', () => {
     });
 
     beforeEach(() => {
+        keyboardHeld = false;
         document.body.innerHTML = '<input id="field"><div id="note" contenteditable="true"></div>';
         current = {
             immersiveMode: { toggle: jest.fn() },
@@ -93,6 +96,12 @@ describe('Validate F shortcut for immersive mode', () => {
         pressF(document.body, { metaKey: true });
         pressF(document.body, { shiftKey: true });
         pressF(document.body, { altKey: true });
+        expect(current.immersiveMode.toggle).not.toHaveBeenCalled();
+    });
+
+    it('does nothing while the keyboard is held, as it is under a modal, the tutorial or a loading label', () => {
+        keyboardHeld = true;
+        pressF(document.body);
         expect(current.immersiveMode.toggle).not.toHaveBeenCalled();
     });
 

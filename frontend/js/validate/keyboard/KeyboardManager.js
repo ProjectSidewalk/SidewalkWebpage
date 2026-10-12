@@ -44,7 +44,10 @@ export class KeyboardManager {
   #tracker;
   #addingComment = false;
 
-  /** The main shortcuts. Off while a modal is up, while typing in a comment box, and with Ctrl, Alt or Cmd held. */
+  /**
+   * The main shortcuts. Off while anything holds the keyboard (a modal, the tutorial, a label still loading), while
+   * typing in a comment box, and with Ctrl, Alt or Cmd held.
+   */
   #shortcuts = [
     { keys: ['KeyY', 'KeyA'], action: () => this.#validationMenuUi.yesButton.click() },
     { keys: ['KeyN', 'KeyD'], action: () => this.#validationMenuUi.noButton.click() },
@@ -54,6 +57,7 @@ export class KeyboardManager {
     { keys: ['KeyH'], action: (e) => this.#toggleLabelVisibility(e) },
     { keys: ['KeyZ'], action: (e) => this.#zoom(e) }, // Shift+Z zooms out.
     { keys: ['KeyC'], action: (e) => this.#handleCommentBoxShortcut(e) },
+    { keys: ['KeyF'], when: KeyboardManager.#canToggleImmersiveMode, action: (e) => this.#toggleImmersiveMode(e) },
     { keys: ['Digit1', 'Numpad1'], action: (e) => this.#handleNumberKeyShortcut(1, e) },
     { keys: ['Digit2', 'Numpad2'], action: (e) => this.#handleNumberKeyShortcut(2, e) },
     { keys: ['Digit3', 'Numpad3'], action: (e) => this.#handleNumberKeyShortcut(3, e) },
@@ -80,11 +84,6 @@ export class KeyboardManager {
     { keys: ['Enter'], when: () => !this.#inTagPicker(), action: (e) => this.#submit(e) },
   ];
 
-  /** These also work while a modal is open. */
-  #alwaysOnShortcuts = [
-    { keys: ['KeyF'], when: KeyboardManager.#canToggleImmersiveMode, action: (e) => this.#toggleImmersiveMode(e) },
-  ];
-
   /** On the label's marker or inside its card (#4729), where none of the shortcuts above fire. */
   #labelCardShortcuts = [
     { keys: ['Escape'], action: (e) => this.#escapeLabelCard(e) },
@@ -97,8 +96,8 @@ export class KeyboardManager {
    *
    * @param {ValidateUi} ui - The verdict menu's buttons and boxes, and the undo button, which the shortcuts press.
    * @param {ValidateConfig} config - Whether this is Expert Validate, where the number keys can rate a label.
-   * @param {KeyboardLock} keyboardLock - Whether the shortcuts are paused; the modals and the sign-in dialog flip it,
-   *     and this pauses them itself while a label loads.
+   * @param {KeyboardLock} keyboardLock - Whether the shortcuts are paused; the modals and the sign-in dialog hold it,
+   *     and this holds it itself while a label loads.
    * @param {LabelContainer} labelContainer - Whose loads pause the shortcuts.
    * @param {LabelVisibilityControl} labelVisibilityControl - The label and its card, which H, Escape and the marker's
    *     keys act on.
@@ -128,8 +127,8 @@ export class KeyboardManager {
 
     // Shortcuts act on the current label, and while its pano loads that label isn't on screen yet (#5211).
     labelContainer.onLoadingChange((loading) => {
-      if (loading) keyboardLock.disableKeyboard();
-      else keyboardLock.enableKeyboard();
+      if (loading) keyboardLock.hold('loading');
+      else keyboardLock.release('loading');
     });
 
     // Add keydown listeners to the text boxes because esc key press is not being recognized when selected input text.
@@ -153,7 +152,6 @@ export class KeyboardManager {
     }
 
     this.#checkIfTextAreaSelected();
-    if (KeyboardShortcuts.run(this.#alwaysOnShortcuts, e)) return;
     if (this.#keyboardLock.isDisabled()) return;
     KeyboardShortcuts.run(this.#whileTypingShortcuts, e);
     if (this.#addingComment) return;
@@ -290,9 +288,8 @@ export class KeyboardManager {
     // The image adjustments panel is a keyboard scope of its own (#5501): a key on a focused slider nudges it rather
     // than firing a shortcut, and the panel's own document-level listener takes Escape. An open panel counts wherever
     // the key came from, since a click on the panel's whitespace leaves focus on the body. Checked before the card's
-    // scope so an open panel takes Escape even with the card showing. Scoped here rather than with disableKeyboard():
-    // that flag is one boolean shared with the modals and the loading state, and re-enabling it on close could release
-    // a lock the panel never took.
+    // scope so an open panel takes Escape even with the card showing. Read here rather than held on the lock, so
+    // nothing has to keep a hold in step with the panel's own opening and closing.
     const target = /** @type {Element} */ (e.target);
     if (document.getElementById('pano-image-adjustments')?.contains(target) || this.#imageAdjustmentsPopover.isOpen()) {
       return true;
@@ -369,7 +366,8 @@ export class KeyboardManager {
   }
 
   /**
-   * Immersive mode on/off (#5560). Not while typing or with a modifier held.
+   * Immersive mode on/off (#5560). Not with a modifier held, nor from a focused field such as the tag picker's box,
+   * where f is text.
    * @param {KeyboardEvent} e
    * @returns {boolean}
    */

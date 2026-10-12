@@ -99,9 +99,13 @@ test('/validate opens the chevron menu and the image adjustments panel', async (
 test('/validate enters and leaves immersive mode on F', async ({page, consoleErrors}) => {
   const onMission = await loadValidate(page, '/validate');
   test.skip(!onMission, 'Validate settled on the no-mission modal, so the tool was never built');
-  // The mission-start tutorial overlay covers the toggle, so the key is the route that stays out of pano
-  // interaction; it lands on the body, where KeyboardManager listens (#5560).
   await expect(page.locator('#immersive-toggle-holder')).toBeAttached();
+  // Under the mission-start tutorial the key is for the tutorial, like every other shortcut.
+  await page.keyboard.press('f');
+  await expect(page.locator('body')).not.toHaveClass(/svv-immersive/);
+  // Its Done is clicked from the page: the overlay covers the toggle, and the key is the route that stays out of pano
+  // interaction; it lands on the body, where KeyboardManager listens (#5560).
+  await page.evaluate(() => document.querySelector('.mission-start-tutorial-done-btn').click());
   await page.keyboard.press('f');
   await expect(page.locator('body')).toHaveClass(/svv-immersive/);
   await expect(page.locator('html')).toHaveClass(/chromeless/);

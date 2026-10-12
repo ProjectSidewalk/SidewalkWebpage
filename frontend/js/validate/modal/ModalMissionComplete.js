@@ -65,6 +65,8 @@ export class ModalMissionComplete {
       // ModalMission's carousel, and this tutorial's markup isn't on that page.
       const newMission = this.#nextMission;
       if (this.#tutorialHooks && newMission && newMission.getProperty('missionType') === 'validation') {
+        // Taken before this screen's own hold goes, so the shortcuts never come on between the two.
+        this.#keyboardLock.hold('tutorial');
         new MissionStartTutorial(
           'validate', newMission.getProperty('labelType'),
           { nLabels: newMission.getProperty('labelsValidated') }, this.#tutorialHooks, this.#language,
@@ -84,6 +86,7 @@ export class ModalMissionComplete {
    * Hides the mission complete menu.
    */
   hide() {
+    this.#keyboardLock.release('mission-complete');
     const ui = this.#uiModalMissionComplete;
     ui.closeButtonPrimary.onclick = null;
     ui.closeButtonSecondary.onclick = null;
@@ -146,7 +149,7 @@ export class ModalMissionComplete {
    */
   show(mission, missionsCompleted) {
     this.#missionsCompleted = missionsCompleted;
-    this.#keyboardLock.disableKeyboard();
+    this.#keyboardLock.hold('mission-complete');
     const totalLabels = mission.getProperty('agreeCount') + mission.getProperty('disagreeCount')
       + mission.getProperty('unsureCount');
     const message = i18next.t(`mission-complete.body-${mission.getProperty('labelType')}`, {

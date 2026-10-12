@@ -3,22 +3,21 @@
  *
  * Briefs a mobile validator before a mission: what they're about to validate, and what the label type looks like when
  * it's right and when it isn't, as a swipeable carousel of the same examples the desktop tools teach from
- * (MissionStartTutorial.slidesFor).
+ * (MissionStartTutorial.slidesFor). Desktop builds it too, since every mission starts the same way, but there the
+ * markup is display:none and the start tutorial covers the tool instead; so this screen never pauses the keyboard
+ * shortcuts, which the phone does not have and the desktop never sees it over.
  */
 
 import { MissionStartTutorial } from '../../common/MissionStartTutorial.js';
 import { util } from '../../common/utilities.js';
 import '../../common/utilitiesSidewalk.js';
 /** @typedef {import('../mission/Mission.js').Mission} Mission */
-/** @typedef {import('../keyboard/KeyboardLock.js').KeyboardLock} KeyboardLock */
 /** @typedef {import('./ModalNoNewMission.js').ModalNoNewMission} ModalNoNewMission */
 /** @typedef {import('../Tracker.js').Tracker} Tracker */
 
 export class ModalMission {
   #uiModalMission;
   #currentSlideIdx = 0;
-  /** @type {KeyboardLock} */
-  #keyboardLock;
   /** @type {ModalNoNewMission} */
   #modalNoNewMission;
   /** @type {Tracker} */
@@ -28,13 +27,11 @@ export class ModalMission {
 
   /**
    * @param {object} uiModalMission - Mission modal UI elements.
-   * @param {KeyboardLock} keyboardLock - Paused while the briefing is up.
    * @param {ModalNoNewMission} modalNoNewMission - The dead end that paints these same elements and wins over this.
    * @param {Tracker} tracker - Logs the mission start and the swipes.
    */
-  constructor(uiModalMission, keyboardLock, modalNoNewMission, tracker) {
+  constructor(uiModalMission, modalNoNewMission, tracker) {
     this.#uiModalMission = uiModalMission;
-    this.#keyboardLock = keyboardLock;
     this.#modalNoNewMission = modalNoNewMission;
     this.#tracker = tracker;
   }
@@ -62,7 +59,6 @@ export class ModalMission {
    * Hides the new/continuing mission screen.
    */
   hide() {
-    this.#keyboardLock.enableKeyboard();
     this.#uiModalMission.background.style.visibility = 'hidden';
     this.#uiModalMission.holder.style.visibility = 'hidden';
     this.#uiModalMission.foreground.style.visibility = 'hidden';
@@ -230,7 +226,6 @@ export class ModalMission {
     // points that dead end can be hit, so this would otherwise bury it under an "Ok" that just closes (#4810).
     if (this.#modalNoNewMission.isShowing()) return;
 
-    this.#keyboardLock.disableKeyboard();
     if (instruction) {
       this.#uiModalMission.instruction.innerHTML = instruction;
       this.#currentSlideIdx = 0;

@@ -322,9 +322,9 @@ export class LabelContainer {
       this.#panoManager.revealPendingCanvas();
       throw error;
     } finally {
-      // The out-of-labels path releases early on purpose, so that the modal's own disableKeyboard is what stands;
-      // the condition is what keeps this from re-enabling the keyboard behind it. Every other way out lands here,
-      // a throw included — leaving #loading set would drop every tap and keypress for the rest of the session.
+      // The out-of-labels path hands the tool back early on purpose, before its modal goes up; the condition keeps
+      // this from doing it a second time behind the modal. Every other way out lands here, a throw included —
+      // leaving #loading set would drop every tap and keypress for the rest of the session.
       if (this.#loading) this.#setUiBusy(false);
       this.#panoLoadingStatus.end();
     }

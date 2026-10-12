@@ -58,7 +58,7 @@ describe('mobile Validate mission screens', () => {
     let isMobile;
     let tracker;
     let deadEndShowing;
-    const keyboardLock = {disableKeyboard: jest.fn(), enableKeyboard: jest.fn()};
+    const keyboardLock = {hold: jest.fn(), release: jest.fn()};
     const modalNoNewMission = {isShowing: () => deadEndShowing};
     const statusField = {getCompletedValidations: () => 0};
     const panoManager = {replayMarkerPulse: jest.fn()};
@@ -131,7 +131,7 @@ describe('mobile Validate mission screens', () => {
     });
 
     /** @returns {ModalMission} A briefing wired the way Main.js wires it. */
-    const briefing = () => new ModalMission(missionUI(), keyboardLock, modalNoNewMission, tracker);
+    const briefing = () => new ModalMission(missionUI(), modalNoNewMission, tracker);
 
     /** @returns {ModalMissionComplete} A mission-complete screen wired the way Main.js wires it, for the phone. */
     const completion = (ui = completeUI()) =>
@@ -389,7 +389,7 @@ describe('mobile Validate mission screens', () => {
         test('so does the dead end, which can replace a briefing that was scrolled', () => {
             const ui = missionUI();
             const foreground = document.getElementById('modal-mission-foreground');
-            new ModalMission(ui, keyboardLock, modalNoNewMission, tracker).setMissionMessage(makeMission());
+            new ModalMission(ui, modalNoNewMission, tracker).setMissionMessage(makeMission());
             foreground.scrollTop = 240;
 
             new ModalNoNewMission(ui, keyboardLock, tracker).show();
@@ -464,6 +464,61 @@ describe('mobile Validate mission screens', () => {
 
             expect(document.getElementById('modal-mission-complete-your-overall-total-count').textContent)
                 .toBe('1234');
+        });
+    });
+
+    describe('the keyboard behind the mission-complete screen (#5752)', () => {
+        const KeyboardLock = loadClass('frontend/js/validate/keyboard/KeyboardLock.js', 'KeyboardLock');
+        let lock;
+        let hooks;
+
+        beforeEach(() => {
+            isMobile = false;
+            lock = new KeyboardLock();
+            hooks = {tracker, keyboard: {enableKeyboard: () => lock.release('tutorial')}};
+            // The desktop screen raises the next mission's tutorial itself; building it is all this needs of it.
+            global.MissionStartTutorial = class {};
+        });
+
+        /** @returns {{ui: Object, screen: ModalMissionComplete}} A screen up, with the next mission behind it. */
+        function screenUp() {
+            const ui = completeUI();
+            const screen = new ModalMissionComplete(ui, 'en', hooks, lock, statusField, panoManager, tracker);
+            screen.show(makeMission(), 1);
+            screen.nextMissionLoaded(makeMission());
+            return {ui, screen};
+        }
+
+        test('the next label finishing its load behind the screen does not wake the shortcuts', () => {
+            screenUp();
+
+            // As KeyboardManager relays the load of the next mission's first label.
+            lock.hold('loading');
+            lock.release('loading');
+
+            expect(lock.isDisabled()).toBe(true);
+        });
+
+        test('closing the screen hands the pause to the next tutorial, and only its Done lets it go', () => {
+            const {ui} = screenUp();
+
+            ui.closeButtonSecondary.click();
+            expect(lock.isDisabled()).toBe(true);
+
+            hooks.keyboard.enableKeyboard();
+            expect(lock.isDisabled()).toBe(false);
+        });
+
+        test('on the phone, with no tutorial to raise, closing the screen is what lets the pause go', () => {
+            isMobile = true;
+            const ui = completeUI();
+            const screen = new ModalMissionComplete(ui, 'en', null, lock, statusField, panoManager, tracker);
+            screen.show(makeMission(), 1);
+            screen.nextMissionLoaded(makeMission());
+
+            ui.closeButtonSecondary.click();
+
+            expect(lock.isDisabled()).toBe(false);
         });
     });
 });

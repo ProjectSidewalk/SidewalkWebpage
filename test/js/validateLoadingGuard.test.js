@@ -321,20 +321,20 @@ describe('input aimed at a label whose pano is still loading is dropped (issue #
     expect(deps.tracker.push).toHaveBeenCalledWith('ValidateRenderFailed', {error: 'label card blew up'});
   });
 
-  // The no-more-labels path releases the lock before showing its modal, so that the modal's own disableKeyboard is
-  // what stands. A release in the finally has to leave that alone rather than re-enable the keyboard behind it.
+  // The no-more-labels path hands the tool back before showing its modal. The finally has to leave that alone rather
+  // than hand it back a second time behind the modal.
   test('the out-of-labels modal is not handed a re-enabled keyboard', async () => {
-    const keyboard = {enableKeyboard: jest.fn(), disableKeyboard: jest.fn()};
+    const keyboard = {release: jest.fn(), hold: jest.fn()};
     const labelContainer = newLabelContainer([{labelId: 1, panoId: 'panoA'}], LABEL_TYPE);
     // As KeyboardManager subscribes.
-    labelContainer.onLoadingChange((loading) => (loading ? keyboard.disableKeyboard() : keyboard.enableKeyboard()));
+    labelContainer.onLoadingChange((loading) => (loading ? keyboard.hold('loading') : keyboard.release('loading')));
     await labelContainer.renderCurrentLabel();
-    keyboard.enableKeyboard.mockClear();
+    keyboard.release.mockClear();
 
     await labelContainer.moveToNextLabel();
 
     expect(deps.modalNoNewMission.show).toHaveBeenCalled();
-    expect(keyboard.enableKeyboard).toHaveBeenCalledTimes(1); // The deliberate early release, and no second one.
+    expect(keyboard.release).toHaveBeenCalledTimes(1); // The deliberate early release, and no second one.
   });
 });
 

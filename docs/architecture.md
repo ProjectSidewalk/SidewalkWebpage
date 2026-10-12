@@ -593,8 +593,9 @@ built first and what it reports on registers with it (`trackPano`, `trackMission
 the active viewer, reached only through its `panoViewer` accessor because it swaps between the primary viewer and the
 Pannellum fallback; and `LabelContainer` announces `onLoadingChange` and `onLabelShown` so the card, menus, undo
 button, keyboard and admin info subscribe rather than being reached for. A `KeyboardLock` shared by the modals and
-the keyboard replaces a keyboard the modals are built long before. `window.svv` is only the console and e2e handle
-start.js sets.
+the keyboard replaces a keyboard the modals are built long before; each holder pauses the shortcuts under its own
+name, and they resume only once every hold is released, so a label finishing its load behind a modal cannot wake
+them. `window.svv` is only the console and e2e handle start.js sets.
 `util` is the object `common/utilities.js` exports; a file
 that reads `util.misc`, `util.math`, `util.url` or `util.pano` imports the file that adds it (`utilitiesSidewalk.js`,
 `utilitiesMath.js`, `urlQuery.js`, `pano-viewer/panoUtilities.js`). Vendor libraries (`mapboxgl`, `i18next`, `turf`, …)
