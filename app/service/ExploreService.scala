@@ -56,10 +56,7 @@ case class NewLabelData(
     timeCreated: OffsetDateTime
 )
 
-/**
- * @param coveredRanges The task's coverage with this submission merged in (#5733), so a client resuming a street sees
- *                      earlier visits' stretches too; None for a regular audit.
- */
+/** @param coveredRanges The task's coverage with this submission merged in (#5733); None for a regular audit. */
 case class ExploreTaskPostReturnValue(
     auditTaskId: Int,
     mission: Option[Mission],
@@ -447,8 +444,7 @@ class ExploreServiceImpl @Inject() (
    * (#4451).
    *
    * The searched lat/lng is used as the task's current position so the pano opens at the address itself. Its offset
-   * along the street is stored as start_offset_m, which is where the walk began and, being set, what keeps the row out
-   * of the regular-mission resume paths (#5733).
+   * along the street is stored as start_offset_m, which keeps the row out of the regular-mission resume paths.
    */
   private def resumeOrCreateExploreAddressTask(
       userId: String,
@@ -629,9 +625,8 @@ class ExploreServiceImpl @Inject() (
   /**
    * Insert or update the submitted audit task in the database.
    *
-   * Free exploration (#5733) reuses the user's open task on the street when the client posts none (it only learns ids
-   * from responses, so an earlier visit's task is invisible to it) and unions the posted coverage into the task's, so
-   * two visits add up.
+   * Free exploration (#5733) reuses the user's task on the street and unions the posted coverage into it, so two
+   * visits add up.
    *
    * @return The audit_task_id, and for a free-exploration task its merged coverage.
    */
@@ -671,8 +666,7 @@ class ExploreServiceImpl @Inject() (
           update.map(_ => (id, None))
         case None if isFreeExploration =>
           mergedCoverage(task, stored = None).flatMap { (merged: Seq[CoveredRange]) =>
-            // start_offset_m keeps the task out of the regular-mission resume paths (resumableTasksForUser), which
-            // would read its coverage total as a furthest point from the street's start.
+            // start_offset_m keeps the task out of the regular-mission resume paths, which measure from the start.
             val startOffsetM: Double = merged.headOption.map(_.startM).getOrElse(0d)
             auditTaskTable
               .insert(
@@ -696,8 +690,7 @@ class ExploreServiceImpl @Inject() (
   }
 
   /**
-   * The posted coverage unioned with what the task already stored, clipped to the street's geodesic length, which is
-   * the measure the client's ranges are in (turf); a projected length would clip them against a different street size.
+   * The posted coverage unioned with what the task stored, clipped to the street's geodesic length (turf's measure).
    */
   private def mergedCoverage(task: TaskSubmission, stored: Option[JsValue]): DBIO[Seq[CoveredRange]] =
     streetEdgeTable.getStreetLengths(Seq(task.streetEdgeId)).map { (lengths: Map[Int, Double]) =>
@@ -706,8 +699,8 @@ class ExploreServiceImpl @Inject() (
     }
 
   /**
-   * Whether a free-exploration task has seen enough of its street to count as an audit ([[StreetCoverage]], #5733).
-   * Decided here rather than from the client's completed flag, so a forged `completed=true` can't shift coverage.
+   * Whether a free-exploration task has seen enough of its street ([[StreetCoverage]], #5733). Decided here, not
+   * from the client's completed flag, so a forged one can't credit a street.
    *
    * @param merged The task's coverage with this submission merged in; None for a regular audit.
    * @return `false` with no coverage or no geometry.
@@ -1058,12 +1051,9 @@ class ExploreServiceImpl @Inject() (
     val submitAction: DBIO[ExploreTaskPostReturnValue] = updateAuditTaskTable(userId, data.auditTask, missionId)
       .flatMap { case (auditTaskId: Int, coveredRanges: Option[Seq[CoveredRange]]) =>
         missionTable.getMissionType(missionId).flatMap { (missionType: Option[MissionType]) =>
-          // If task is complete, mark it in the db and update the street priority. A normal audit is completed by the
-          // client; a free-exploration task has no such client signal, so the server derives it from the coverage the
-          // task has built up (#4451, #5733). Deriving it also means a forged completed=true can't mark its street
-          // audited. Ordering is load-bearing: updateStreetPriority skips streets the user already completed, so it
-          // must read the completed flag before updateCompleted flips it — flipping first would skip the one
-          // legitimate update, and it is also what keeps re-running this action from shifting priority again.
+          // A regular audit is completed by the client; free exploration has no such signal, so the server derives it
+          // from the task's coverage (#5733), which also stops a forged completed=true. Order matters: the priority
+          // update skips streets the user already completed, so it must run before the completed flag flips.
           val completeTaskAction: DBIO[Int] = for {
             newPriority: Option[Double] <- updateStreetPriority(streetEdgeId, userId)
             atRowsUpdated: Int          <- auditTaskTable.updateCompleted(auditTaskId, completed = true)
@@ -1091,8 +1081,8 @@ class ExploreServiceImpl @Inject() (
               } yield routeComplete
             } else DBIO.successful(false)
 
-          // Free exploration's current task is the row just written, not the id the client posted (see
-          // updateAuditTaskTable); a regular mission keeps the client's, which is what its cleanup paths expect.
+          // Free exploration's current task is the row just written, not the id the client posted; a regular
+          // mission keeps the client's, which is what its cleanup paths expect.
           val missionProgress: AuditMissionProgress =
             if (missionType.contains(MissionType.ExploreAddress))
               data.missionProgress.copy(auditTaskId = Some(auditTaskId))

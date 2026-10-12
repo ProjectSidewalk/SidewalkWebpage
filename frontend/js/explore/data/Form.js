@@ -138,9 +138,8 @@ export class Form {
         // route walk: priorities choose the next street, and a route's next street is fixed by its walking order.
         request_updated_street_priority: !svl.isOnboarding() && !svl.userRouteId
           && (task.getAuditedDistance() / task.lineDistance()) > 0.6,
-        // How far along the street the user has gotten, measured from the street's start, as real partial-audit data
-        // for a future fractional-coverage model. Free exploration has no start to measure from, so it sends its
-        // covered meters instead.
+        // How far along the street the user has gotten, as partial-audit data for a future fractional-coverage model.
+        // Free exploration has no start to measure from, so it sends its covered meters instead.
         audited_distance_m: svl.isExploreAddressMode()
           ? task.getCoveredDistanceM()
           : util.math.kmsToMeters(task.getAuditedDistance()),
@@ -265,9 +264,7 @@ export class Form {
           svl.tracker.setAuditTaskID(result.audit_task_id);
         }
 
-        // The server's list can hold an earlier visit's stretches, which the minimap and done-yet check should show.
-        // Unioned with the local list rather than replacing it: panos visited while this save was in flight are in
-        // the local list only, and would otherwise be lost before the next save.
+        // Unioned, not replaced: the server's list can hold an earlier visit, the local one panos seen mid-save.
         if (result.covered_ranges) {
           task.setCoveredRanges([...task.getCoveredRanges(), ...result.covered_ranges]);
           if (svl.minimap) task.render();

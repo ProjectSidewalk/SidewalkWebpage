@@ -29,22 +29,20 @@ object CoveredRange {
 /**
  * When a free-exploration session has seen enough of a street for it to count as audited (#5733).
  *
- * A regular mission walks a street from its start and finishes within 25 m of its far end. Free exploration has no
- * direction and no fixed start: people arrive mid-street, leave, and come back from the other end. So instead of
- * "how far from the start did they get", each task keeps the stretches of the street its panos covered, and the
- * street is done when what is left unseen is at most half the street and at most 50 m. Both limits were fitted to
- * the pano trails of completed and abandoned regular audits fleet-wide (#5733): a real end-to-end walk leaves up to
- * 30 m unseen at its two ends, so a 90% floor fails 40% of credited walks while a 40–60 m cap passes them all; and
- * under 100 m the cap alone would let one pano at a corner earn the street, which the half-street floor stops.
+ * Free exploration has no direction and no fixed start: people arrive mid-street, leave, and come back from the
+ * other end. So each task keeps the stretches of the street its panos covered, and the street is done when what is
+ * left unseen is at most half the street and at most 50 m. Both limits were fitted to the pano trails of regular
+ * audits fleet-wide: an end-to-end walk leaves up to 30 m unseen at its ends, so a 90% floor fails 40% of real
+ * walks, and under 100 m the cap alone would let one pano at a corner earn the street.
  *
- * The client builds the ranges (it has the pano positions); this object owns the numbers and the arithmetic, so the
- * page gets them from `asJson` and the one-off backfill of pre-#5733 sessions can apply the same rule.
+ * The client builds the ranges; this object owns the numbers and the arithmetic, so the page reads them from
+ * `asJson` and the one-off backfill of older sessions applies the same rule.
  */
 object StreetCoverage {
 
   /**
-   * Most of a street that may stay unseen for it to count as audited; the limit that matters above 100 m. Also how
-   * near the end a regular mission's imagery may run out and still count the street walked (NavigationService).
+   * Most of a street that may stay unseen; the limit that matters above 100 m. Also how near the end a regular
+   * mission's imagery may run out and still count the street walked (NavigationService).
    */
   val MaxUncoveredM: Double = 50d
 
@@ -52,16 +50,12 @@ object StreetCoverage {
   val MinCoveredFrac: Double = 0.5d
 
   /**
-   * How far either side of a pano counts as seen. Roughly GSV's pano spacing, and about as far as a curb ramp or
-   * surface problem can still be judged well enough to label; it also sets how close to an endpoint the last pano has
-   * to be.
+   * How far either side of a pano counts as seen: roughly GSV's pano spacing, and about as far as a curb ramp or
+   * surface problem can still be judged well enough to label.
    */
   val PanoWindowM: Double = 10d
 
-  /**
-   * Longest step between consecutive on-street panos whose in-between stretch counts as walked. A sweep landing or
-   * a long jump skips roadway nobody looked at, so it earns only its own windows.
-   */
+  /** Longest step between consecutive on-street panos whose in-between stretch counts as walked. */
   val MaxHopM: Double = 50d
 
   /** The rule's numbers for the Explore page, so the client's copy of the arithmetic can never drift from this one. */
@@ -75,8 +69,7 @@ object StreetCoverage {
   /**
    * @param ranges        Any mix of stored and freshly posted ranges, in any order.
    * @param streetLengthM The street's geodesic length.
-   * @return              The same coverage clipped to the street, sorted and disjoint, to a decimeter so the stored
-   *                      list stays short.
+   * @return              The same coverage clipped to the street, sorted and disjoint, to a decimeter.
    */
   def merge(ranges: Seq[CoveredRange], streetLengthM: Double): Seq[CoveredRange] = {
     val clipped = ranges
@@ -99,18 +92,12 @@ object StreetCoverage {
   def uncoveredM(merged: Seq[CoveredRange], streetLengthM: Double): Double =
     (streetLengthM - coveredM(merged)).max(0d)
 
-  /**
-   * Whether a merged list earns the street. Nothing seen earns nothing, however short the street: a task that exists
-   * without a single on-street pano is a corner brushed past, not a walk.
-   */
+  /** Whether a merged list earns the street. Nothing seen earns nothing, however short the street. */
   def coveredEnough(merged: Seq[CoveredRange], streetLengthM: Double): Boolean =
     merged.nonEmpty && uncoveredM(merged, streetLengthM) <= MaxUncoveredM &&
       coveredM(merged) >= MinCoveredFrac * streetLengthM
 
-  /**
-   * Reads a stored list back. A row written by this code always parses; anything else (a hand edit, a null) reads
-   * as no coverage rather than failing the submission that tried to add to it.
-   */
+  /** Reads a stored list back; anything unparsable reads as no coverage rather than failing the submission. */
   def fromJson(json: Option[JsValue]): Seq[CoveredRange] =
     json.flatMap(_.asOpt[Seq[CoveredRange]]).getOrElse(Seq.empty)
 

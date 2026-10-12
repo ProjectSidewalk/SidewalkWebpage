@@ -500,9 +500,8 @@ export class TaskContainer {
   }
 
   /**
-   * Free exploration's way of walking streets (#5733): credits the pano to the street the labeler is on, switching
-   * tasks when they have wandered onto another. The street left is posted as it stands (the server decides whether it
-   * is done); a street walked earlier keeps its coverage, so two passes add up.
+   * Free exploration's walking (#5733): credits the pano to the street the labeler is on, switching tasks when they
+   * wander onto another. The street left is posted as it stands; a street walked earlier keeps its coverage.
    *
    * @param {{lat: number, lng: number}} latLng - Where the labeler now stands.
    */

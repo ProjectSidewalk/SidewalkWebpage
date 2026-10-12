@@ -150,10 +150,9 @@ export class NavigationService {
     // move back near the start of a street already walked to its end, and the exhaustion that follows must not turn
     // that street into a no-imagery report (#5350).
     //
-    // "Near" is the same number free exploration may leave unseen (StreetCoverage.MaxUncoveredM), so the two modes
-    // agree on what an imagery gap at the end of a street is worth. More generous than #END_OF_STREET_THRESHOLD: the
-    // imagery simply ends, so there is nothing further to walk either way. Task.isAtEnd scales it down on short
-    // streets.
+    // "Near" is the number free exploration may leave unseen (StreetCoverage.MaxUncoveredM), so the two modes agree
+    // on what an imagery gap at the end of a street is worth. More generous than #END_OF_STREET_THRESHOLD, since the
+    // imagery simply ends; Task.isAtEnd scales it down on short streets.
     const nearEndM = svl.streetCoverage.max_uncovered_m;
     const furthest = currentTask.getFurthestPointReached().geometry.coordinates;
     const nearEnd = currentTask.isAtEnd(svl.panoViewer.getPosition(), nearEndM)
@@ -425,8 +424,7 @@ export class NavigationService {
     svl.canvas.enableLabeling();
 
     if (svl.isExploreAddressMode() && 'taskContainer' in svl) {
-      // Free exploration has no route and no end-of-street: each pano is credited to whichever street it is on, and
-      // the server decides when a street counts (#4451, #5733).
+      // Free exploration has no end-of-street: each pano is credited to the street it is on (#5733).
       svl.taskContainer.recordExploreMove(newLatLng);
     } else if (!isOnboarding && 'taskContainer' in svl && svl.taskContainer.tasksLoaded()) {
       // End of the task if the user is close enough to the end point, and we aren't in the tutorial.

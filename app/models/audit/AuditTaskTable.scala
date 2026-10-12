@@ -832,10 +832,8 @@ class AuditTaskTable @Inject() (
     // street this user already has an up-to-date completed audit of, so the COALESCEs below never have to choose.
     val userResumableStreets = resumableTasksForUser(userId, Some(regionId))
 
-    // What the user's free exploration has seen of each street (#5733), newest task per street. Carried as coverage
-    // only, never as the task id: the id would make a regular mission post its distance onto a free-exploration row,
-    // which is what start_offset_m keeps these out of resumableTasksForUser for. The free-exploration client draws
-    // it and reports a street as resumed from it; a regular mission ignores it.
+    // The user's free-exploration coverage per street (#5733), without the task id: with it, a regular mission would
+    // post its distance onto a free-exploration row.
     val edgesInRegion         = nonDeletedStreetEdgeRegions.filter(_.regionId === regionId)
     val userExploredStreetIds = auditTasks
       .filter(task =>
@@ -1157,10 +1155,7 @@ class AuditTaskTable @Inject() (
   def getCoveredRanges(auditTaskId: Int): DBIO[Option[JsValue]] =
     auditTasks.filter(_.auditTaskId === auditTaskId).map(_.coveredRanges).result.headOption.map(_.flatten)
 
-  /**
-   * Replaces a free-exploration task's stored coverage with the merged list the service computed (#5733), and keeps
-   * `audited_distance_m` equal to its total so everything that reads that column needs no second code path.
-   */
+  /** Stores a free-exploration task's merged coverage and keeps `audited_distance_m` equal to its total (#5733). */
   def updateTaskCoverage(auditTaskId: Int, coveredRanges: JsValue, coveredM: Double): DBIO[Int] = {
     auditTasks
       .filter(_.auditTaskId === auditTaskId)

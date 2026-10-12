@@ -4,9 +4,8 @@ import play.api.libs.json.{JsError, JsSuccess, Json}
 import util.SidewalkSpec
 
 /**
- * The arithmetic behind free exploration's street credit (#5733), pinned on its own because the client has a copy of
- * it (Task.mergeRanges / isCoveredEnough) and the one-off backfill applies it to old sessions: all three must agree on
- * what a list of ranges means.
+ * The arithmetic behind free exploration's street credit (#5733), pinned because the client (Task.mergeRanges,
+ * isCoveredEnough) and the one-off backfill each have a copy of it that must agree with this one.
  */
 class StreetCoverageSpec extends SidewalkSpec {
 

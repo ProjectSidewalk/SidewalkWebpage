@@ -25,11 +25,7 @@ export class Task {
   /* @type {turf.Point} */
   #furthestPoint;
 
-  /**
-   * Free exploration's coverage (#5733): merged [start_m, end_m] pairs in the server's frame, whichever way the task
-   * walks the street.
-   * @type {Array<[number, number]>}
-   */
+  /** @type {Array<[number, number]>} Merged [start_m, end_m] pairs seen, in the server's frame (#5733). */
   #coveredRanges = [];
   // The previous on-street pano's position along the street, so the stretch to the next one can count as walked.
   #lastOnStreetM = null;
@@ -126,8 +122,7 @@ export class Task {
     if (currMissionId && currMissionStart) {
       this.setMissionStart(currMissionId, { lat: currMissionStart.lat, lng: currMissionStart.lng });
     }
-    // Clipped to this side's length: the server measures the street geodesically and turf a little differently, so
-    // a stored range can run a few decimeters past the line, which the minimap slicing can't take.
+    // Clipped to turf's length: the server's can run a few decimeters longer, which the minimap slicing can't take.
     this.#coveredRanges = Array.isArray(this.#geojson.properties.covered_ranges)
       ? Task.mergeRanges(this.#geojson.properties.covered_ranges, this.lineDistance({ units: 'meters' }))
       : [];
@@ -335,8 +330,7 @@ export class Task {
 
   /**
    * Credits what a pano shows of this street (#5733): a window either side of it, plus the stretch back to the previous
-   * on-street pano when the hop is short enough to have been walked rather than jumped. A pano off the street credits
-   * nothing and breaks that chain, so a detour returns without crediting the roadway it skipped.
+   * on-street pano when the hop is short enough to have been walked. A pano off the street breaks that chain.
    *
    * @param {{lat: number, lng: number}} latLng - The pano the labeler is standing at.
    * @returns {boolean} Whether the pano counted as on this street.

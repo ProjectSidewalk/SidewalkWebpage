@@ -1,35 +1,24 @@
 -- =====================================================================
--- Credit the streets that free-exploration sessions walked before per-street tasks existed (#5733). Written against
--- evolution 415 (audit_task.covered_ranges) and the StreetCoverage rule it shipped with; a rerun starts by checking
--- those numbers still match the params row below.
+-- Credit the streets that free-exploration sessions walked before per-street tasks existed (#5733). Needs evolution
+-- 415 (audit_task.covered_ranges); the params row below mirrors StreetCoverage, so check it still matches first.
 --
--- Before #5733 a drop-in session had one task, for the street it landed on, and nothing credited the streets walked
--- after that. This rebuilds each session's pano trail from audit_task_interaction (PanoId_Changed rows carry the new
--- pano's lat/lng), applies the app's coverage rule per (user, street), and writes what the app would have:
---   * a pano counts for the open street nearest it when that is within 25 m (Task.ON_STREET_MAX_DISTANCE_M)
---   * it covers 10 m either side of its projection onto that street (PanoWindowM)
---   * the stretch to the previous pano counts too when that one was on the same street and the hop is at most 50 m
---     (MaxHopM); a pano off every street, or on another one, breaks the chain
---   * everything a user's free-exploration sessions covered on a street is merged, together with any coverage the
---     app has stored on the task since the deploy, and the street counts as audited once what is left unseen is at
---     most 50 m (MaxUncoveredM) and at most half the street (MinCoveredFrac)
--- Meters along a street are geodesic lengths of the line up to the pano's projection, the measure the app stores.
+-- Before #5733 a drop-in session had one task, for the street it landed on. This rebuilds each session's pano trail
+-- from audit_task_interaction (PanoId_Changed rows carry the new pano's lat/lng), applies the app's coverage rule
+-- per (user, street), and writes what the app would have:
+--   * a pano counts for the open street nearest it when that is within 25 m, and covers 10 m either side of itself
+--   * the stretch to the previous pano counts too when that was on the same street at most 50 m away; a pano off
+--     every street, or on another one, breaks the chain
+--   * coverage merges across the user's sessions and with what the app has stored since the deploy; the street is
+--     audited once what is left unseen is at most 50 m and at most half the street
+-- Writes, per (user, street) with any coverage: the user's own drop-in task on the street gets its coverage,
+-- audited_distance_m and completed (never un-completed), else a task is inserted under the last visiting session's
+-- mission; labels placed on the street from a drop-in task on another street move to the street's task. Nothing is
+-- deleted. Afterwards recompute street priority (/adminapi/updateStreetPriority), let the nightly region_completion
+-- and user-stat jobs run, and rerun clustering where Access Score matters. Safe to rerun.
 --
--- Writes, per (user, street) with any coverage:
---   * the user's own drop-in task on that street, if there is one, gets its coverage, audited_distance_m, and
---     completed (never un-completed); otherwise a task is inserted under the mission of the session that last
---     visited the street, dated by its first and last pano there, as the app now does on a street switch
---   * labels the user placed on that street from a drop-in task on another street move to the street's task, which is
---     where the app now files them; label.street_edge_id already pointed at the street
--- Nothing is deleted. Afterwards recompute street priority (/adminapi/updateStreetPriority), let the nightly
--- region_completion and user-stat jobs run, and rerun clustering where Access Score matters.
---
--- Runs per city: the runner sets search_path and passes the city name. Safe to rerun: a task the first run inserted
--- is found as an existing one the next time, and a moved label is already on its street's task.
---
--- DRY RUN BY DEFAULT: prints one row per planned write and changes nothing. Pass -v apply=1 to write. The runner
--- passes no such variable, so send it a copy with `\set apply 1` in place of `\set apply 0` below. The runner opens
--- connections read-only, which the first statement undoes for the temp table and the writes.
+-- DRY RUN BY DEFAULT: prints one row per planned write and changes nothing. The runner passes no variables and
+-- opens connections read-only, so to write, send it a copy with `\set apply 1` in place of `\set apply 0` below;
+-- the first statement undoes the read-only setting.
 -- =====================================================================
 \set QUIET on
 \if :{?apply}
@@ -132,8 +121,7 @@ WITH params AS (
     ) AS island_bounds
     GROUP BY user_id, street_edge_id, len_m
 ), visits AS (
-    -- When and where the user last stood on the street, for the task row's timestamps and position, and which
-    -- session that was, for its mission.
+    -- When and where the user last stood on the street, and in which session, for the task row.
     SELECT user_id, street_edge_id,
            MIN(timestamp) AS first_seen,
            MAX(timestamp) AS last_seen,

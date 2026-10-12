@@ -198,8 +198,7 @@ class ExploreAddressServiceSpec
 
   /**
    * A minimal explore submission for the given session state, label-free unless labels are passed.
-   * @param omitTaskId Post the street with no task id, as the free-exploration client does for a street it has not
-   *                   heard back about yet.
+   * @param omitTaskId Post the street with no task id, as the client does for a street it has not heard back about.
    */
   private def submission(
       missionId: Int,
