@@ -1,12 +1,11 @@
 /**
  * The pause on Validate's keyboard shortcuts, read by KeyboardManager before it runs one.
  *
- * Everything that needs the shortcuts paused holds it under its own name: a modal while it is up, a label while its
- * pano loads, the sign-in dialog. The shortcuts stay off until every holder has let go, because the holds overlap:
- * the next mission's first label loads and lands behind the mission-complete screen, and the end of that load must
- * not switch the shortcuts back on under the screen (#5752). A separate object rather than a flag on the manager
- * because the modals are built long before the manager can be (its shortcuts act on the whole tool), and because the
- * mobile page has modals but no shortcuts at all: there the holds are taken and nothing reads them.
+ * Each thing that needs the shortcuts paused (a modal, the tutorial, a loading label, the sign-in dialog) holds it
+ * under its own name, and the shortcuts stay off until every holder has let go: the next mission's first label
+ * finishes loading behind the mission-complete screen, and that must not wake them under it (#5752). A separate
+ * object rather than a flag on the manager because the modals are built long before the manager can be, and because
+ * the phone has modals but no shortcuts: there the holds are taken and nothing reads them.
  */
 export class KeyboardLock {
   /** @type {Set<string>} */

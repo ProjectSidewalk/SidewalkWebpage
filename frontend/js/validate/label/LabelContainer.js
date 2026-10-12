@@ -2,7 +2,7 @@
  * Keeps track of labels that have appeared on the panorama.
  *
  * Nothing is rendered at construction: everything that describes a label to the validator subscribes first
- * (onLabelShown, onLoadingChange), and then Main renders the first label with renderCurrentLabel().
+ * (onLabelReady, onLabelShown, onLoadingChange), and then Main renders the first label with renderCurrentLabel().
  */
 
 import { util } from '../../common/utilities.js';
@@ -146,9 +146,8 @@ export class LabelContainer {
   }
 
   /**
-   * Registers what describes a label to the validator as soon as it is current, before its pano is drawn: the card,
-   * the menu and the admin panel reset for the new label whether or not the draw then succeeds, so a failed draw
-   * cannot leave the menu holding the previous label's verdict.
+   * Registers what describes a label to the validator as soon as it is current, before its pano is drawn, so the
+   * card, menu and admin panel reset for the new label even when the draw then fails.
    * @param {(label: Label) => void} listener
    */
   onLabelReady(listener) {
@@ -189,8 +188,7 @@ export class LabelContainer {
   }
 
   /**
-   * Takes back the last validation, for the undo button: an unsent verdict is dropped from the batch, a sent one gets
-   * a retraction queued behind it.
+   * Takes back the last validation, for the undo button: an unsent verdict is dropped, a sent one gets a retraction.
    * @returns {Record<string, any>} The verdict taken back, as it was compiled for submission.
    */
   retractLastValidation() {

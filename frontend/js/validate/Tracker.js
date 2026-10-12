@@ -21,16 +21,13 @@ export class Tracker {
   // into one POST, short enough that a page killed between labels has already sent the verdict before it.
   static #VERDICT_FLUSH_DELAY_MS = 1000;
 
-  /**
-   * @type {?PanoManager} Registered by PanoManager's constructor (trackPano): the tracker is built before it, since
-   * the manager logs through the tracker, and each action is stamped with whatever pano its live viewer is showing.
-   */
+  /** @type {?PanoManager} Stamps each action with the pano on screen; registered by PanoManager (trackPano). */
   #panoManager = null;
 
-  /** @type {?MissionContainer} Registered by MissionContainer's constructor (trackMissions), for the same reason. */
+  /** @type {?MissionContainer} Files each action under its mission; registered by MissionContainer (trackMissions). */
   #missionContainer = null;
 
-  /** @type {?(() => void)} Registered by the Form (onFlush), which owns compiling and sending a buffer. */
+  /** @type {?(() => void)} Sends the buffer when a flush is due; registered by the Form (onFlush). */
   #onFlush = null;
 
   /**
@@ -152,9 +149,9 @@ export class Tracker {
   }
 
   /**
-   * Buffers an action for a caller that drains the buffer itself right after (the exit flush), keeping the count
-   * backstop out of it: the exit's own marker tipping the buffer over the limit would otherwise send everything before
-   * it in a request the browser cancels along with the page, and leave the keepalive request holding little else.
+   * Buffers an action without the count backstop, for the exit flush, which drains the buffer itself right after: if
+   * the exit marker itself tipped the buffer over the limit, everything before it would go out in a request the
+   * browser cancels with the page, leaving the keepalive request almost empty.
    * @param {string} action
    * @param {object} [notes] - Notes to be logged into the notes field database.
    */

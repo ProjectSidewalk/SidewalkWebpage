@@ -92,8 +92,7 @@ export class MissionContainer {
    *     about mission progress (counts of agree/disagree/unsure labels for this mission).
    */
   createAMission(missionMetadata, progressMetadata) {
-    // Each mission re-marks the tab as live, so a kill during a later mission of the page is filed against that
-    // mission and its own age (#5561).
+    // Re-marked per mission, so a kill during a later mission is filed against that mission and its age (#5561).
     this.#missionLiveMarker.markLive(missionMetadata.mission_id);
     const metadata = {
       agreeCount: progressMetadata.agree_count,

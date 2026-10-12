@@ -89,9 +89,8 @@ export class LabelVisibilityControl {
       if (loading) this.hideLabelCard();
     });
     // Every label starts visible. Without this the toggle keeps saying "Show Label" over a marker that
-    // renderPanoMarker just drew in full — you'd have to hide and re-show to get the two back in agreement. The
-    // card rendered as the label became current (onLabelReady, from the constructor above), so one opened on load
-    // is filled in.
+    // renderPanoMarker just drew in full — you'd have to hide and re-show to get the two back in agreement. The card
+    // has already rendered for this label (onLabelReady), so one opened on load is filled in.
     labelContainer.onLabelShown(() => {
       this.unhideLabel();
       this.openCardOnLoad();
@@ -212,9 +211,8 @@ export class LabelVisibilityControl {
       // can travel from the marker onto the card's controls before the hide fires.
       marker.addEventListener('focus', (e) => {
         if (pressing) return;
-        // Focus returning from inside the card is not an open request: it is either Escape closing the card
-        // (which must stay closed) or Shift+Tab walking back out (whose focusout just scheduled a hide that
-        // this cancel undoes).
+        // Focus returning from inside the card is not an open request: it is either Escape closing the card, which
+        // must stay closed, or Shift+Tab walking back out, whose focusout just scheduled a hide this cancel undoes.
         const cameFrom = /** @type {Node} */ (e.relatedTarget);
         if (this.#card.contains(cameFrom)) this.cancelScheduledCardHide();
         else this.showLabelCard({ viaKeyboard: true });
@@ -345,9 +343,8 @@ export class LabelVisibilityControl {
   }
 
   /**
-   * Cancels a pending grace-timer hide. The marker's focus handler needs it when focus walks back out of the card
-   * onto the marker: the card should hold, but must not re-open if Escape just closed it — which showLabelCard()
-   * would do.
+   * Cancels a pending grace-timer hide, for focus walking back out of the card onto the marker: the card should
+   * hold, but must not re-open if Escape just closed it, which showLabelCard() would do.
    */
   cancelScheduledCardHide() {
     if (this.#hideCardTimer === null) return;

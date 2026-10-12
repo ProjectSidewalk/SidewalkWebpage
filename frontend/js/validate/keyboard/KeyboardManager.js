@@ -99,8 +99,7 @@ export class KeyboardManager {
    * @param {KeyboardLock} keyboardLock - Whether the shortcuts are paused; the modals and the sign-in dialog hold it,
    *     and this holds it itself while a label loads.
    * @param {LabelContainer} labelContainer - Whose loads pause the shortcuts.
-   * @param {LabelVisibilityControl} labelVisibilityControl - The label and its card, which H, Escape and the marker's
-   *     keys act on.
+   * @param {LabelVisibilityControl} labelVisibilityControl - The label and its card: H, Escape and the marker's keys.
    * @param {LabelCard} labelCard - Whose open popovers take the keys instead.
    * @param {DesktopValidationMenu} validationMenu - Asked which view it is on, for the number keys.
    * @param {ZoomControl} zoomControl - Z and Shift+Z.
@@ -366,8 +365,7 @@ export class KeyboardManager {
   }
 
   /**
-   * Immersive mode on/off (#5560). Not with a modifier held, nor from a focused field such as the tag picker's box,
-   * where f is text.
+   * Immersive mode on/off (#5560). Not with a modifier held, nor from a focused field, where f is text.
    * @param {KeyboardEvent} e
    * @returns {boolean}
    */

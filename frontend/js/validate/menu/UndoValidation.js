@@ -25,8 +25,7 @@ export class UndoValidation {
    * @param {{undoButton: HTMLButtonElement}} uiUndo - Undo button UI elements.
    * @param {LabelContainer} labelContainer - Steps back to the previous label; the button is live while it has one.
    * @param {DesktopValidationMenu|MobileValidationMenu} validationMenu - Whose typed text is saved before going back.
-   * @param {MissionContainer} missionContainer - Whose progress the undone verdict comes off; its completion turns
-   *     the button off.
+   * @param {MissionContainer} missionContainer - Loses the undone verdict; its completion turns the button off.
    * @param {Tracker} tracker - Logs the undo and hurries the retraction to the server.
    */
   constructor(uiUndo, labelContainer, validationMenu, missionContainer, tracker) {

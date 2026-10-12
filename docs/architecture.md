@@ -397,9 +397,8 @@ loaded by the corresponding Twirl view:
   hide-label toggle (`validate/panorama/PanoControlMenu.js`), the same arrangement as Explore's beside Stuck.
   The model takes a list of mounts there, `#svv-panorama` and the `#svv-panorama-pannellum` sibling PanoManager
   swaps in when GSV has no imagery, so the filter is already on whichever viewer shows the label. Validate scopes
-  the keyboard for the panel in `KeyboardManager` rather than taking a hold on the `KeyboardLock`, so nothing has
-  to keep a hold in step with the panel, and the partial sits outside `#svv-application-holder` so the busy
-  state's `pointer-events: none` can't freeze the sliders. Mobile Validate has no panel.
+  the keyboard for the panel in `KeyboardManager`, not through the `KeyboardLock`, and the partial sits outside
+  `#svv-application-holder` so the busy state's `pointer-events: none` can't freeze the sliders.
   **A viewer canvas is painted only while it holds the current label's pano at that label's POV**
   (`validate/panorama/PanoManager.js`). The Pannellum fallback is revealed only once its image has loaded (#5206),
   the primary canvas rejoins the layout unpainted after a fallback label (#5453), and on a primary viewer that paints
@@ -588,16 +587,10 @@ Every first-party file is an **ES module** (#4467): it `import`s what it needs a
 the imports decide load order, not a hand-kept list. Explore still keeps its shared state in one exported registry
 object (`explore/svl.js`); the Gallery and Validate instead hand each module what it works with as constructor
 arguments, all wired in `gallery/Main.js` and `validate/Main.js` (#5648), which is where Explore is headed. In
-Validate the page's facts travel as one frozen `ValidateConfig` and its elements as one `ValidateUi`; the Tracker is
-built first and what it reports on registers with it (`trackPano`, `trackMissions`, `onFlush`); `PanoManager` owns
-the active viewer, reached only through its `panoViewer` accessor because it swaps between the primary viewer and the
-Pannellum fallback; and `LabelContainer` announces `onLoadingChange`, `onLabelReady` (the label is current, its pano
-not yet drawn: card, menus, admin info) and `onLabelShown` (drawn: speed limit, zoom, the card opened on load) so
-they subscribe rather than being reached for. `Form` is built right after `Tracker`, before the viewer loads, and is
-handed the mission's collaborators later (`attachSession`), so the exit flush covers a page closed mid-load. A `KeyboardLock` shared by the modals and
-the keyboard replaces a keyboard the modals are built long before; each holder pauses the shortcuts under its own
-name, and they resume only once every hold is released, so a label finishing its load behind a modal cannot wake
-them. `window.svv` is only the console and e2e handle start.js sets.
+Validate the page's facts travel as one frozen `ValidateConfig` and its elements as one `ValidateUi`; what is built
+first announces (`Tracker.onFlush`, `LabelContainer.onLabelReady` / `onLabelShown` / `onLoadingChange`) and what is
+built later subscribes; and `KeyboardLock` is held by name (a modal, the tutorial, a loading label, the sign-in
+dialog), freeing the shortcuts only once every hold is gone. `window.svv` is only a console and e2e handle.
 `util` is the object `common/utilities.js` exports; a file
 that reads `util.misc`, `util.math`, `util.url` or `util.pano` imports the file that adds it (`utilitiesSidewalk.js`,
 `utilitiesMath.js`, `urlQuery.js`, `pano-viewer/panoUtilities.js`). Vendor libraries (`mapboxgl`, `i18next`, `turf`, …)

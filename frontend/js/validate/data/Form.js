@@ -25,10 +25,7 @@ export class Form {
   #config;
   /** @type {Tracker} */
   #tracker;
-  /**
-   * @type {?FormSession} Null until attachSession, and for good on the dead-end page (no mission to validate): it still
-   * logs the visit, but there is nothing to compile a mission or its labels from and no next mission to move on to.
-   */
+  /** @type {?FormSession} Null until attachSession, and for good on the dead-end page: a visit logged, no mission. */
   #session = null;
 
   // Resubmit a failed POST a bounded number of times before giving up, so a transient mobile-network blip doesn't
@@ -66,8 +63,7 @@ export class Form {
     // The tracker decides when a mid-mission flush is due; this is what sends it.
     tracker.onFlush(() => this.submit(this.compileSubmissionData(false), true));
 
-    // Flush any remaining logs when the page is being dismissed. `pagehide` is the reliable, bfcache-compatible
-    // unload signal (#3935).
+    // Flush what is left when the page is dismissed; `pagehide` is the reliable, bfcache-compatible signal (#3935).
     window.addEventListener('pagehide', () => this.#flushOnExit('Unload'));
     // And when it is merely hidden (#5561): the phone locked, another app in front, the tab switcher. On iOS that is
     // the state a tab is killed from when memory runs short, and a killed page fires no pagehide, so whatever is
@@ -154,9 +150,8 @@ export class Form {
   }
 
   /**
-   * Hands over the mission this page validates, once its collaborators exist: from here on every submit carries
-   * the mission's progress and verdicts, and a finished mission is submitted at once, with its completed flag, so
-   * the response can carry the next one.
+   * Hands over the mission this page validates, once its collaborators exist: every submit from here on carries its
+   * progress and verdicts, and a finished mission is submitted at once so the response can carry the next one.
    * @param {FormSession} session
    */
   attachSession(session) {

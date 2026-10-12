@@ -116,8 +116,7 @@ export class PanoManager {
    * @param {ValidateConfig} config - The viewer class and the marker radius.
    * @param {PanoStore} panoStore - Where each loaded pano's metadata is kept.
    * @param {PanoImageCache} panoImageCache - Backup panos fetched ahead of their labels, for the Pannellum fallback.
-   * @param {Tracker} tracker - Logs pano loads, viewer swaps and pans, and stamps every action with the live viewer's
-   *     pano from here on.
+   * @param {Tracker} tracker - Logs loads, swaps and pans, and from here on stamps each action with the pano on screen.
    */
   constructor(viewerUi, config, panoStore, panoImageCache, tracker) {
     this.#viewerUi = viewerUi;
@@ -157,10 +156,9 @@ export class PanoManager {
   /**
    * Initializes panoViewer on the validate page, without loading a pano.
    *
-   * The first label's pano is loaded by the first setPanorama, like every other label's. Loading it here as well would
-   * make the first label pay two load deadlines on a slow network, the first of them behind the page's loading overlay
-   * with its failure type lost (#5581); setPanorama has the expired shortcut and the Pannellum fallback, and reports a
-   * slow load as slow.
+   * The first label's pano is loaded by the first setPanorama, like every other label's. Loading it here too would make
+   * the first label pay two load deadlines on a slow network, the first behind the loading overlay with its failure
+   * type lost (#5581); setPanorama has the expired shortcut and the Pannellum fallback, and reports slow as slow.
    *
    * @param {typeof PanoViewer} panoViewerType - The type of pano viewer to initialize
    * @param {string} viewerAccessToken - An access token used to request images for the pano viewer

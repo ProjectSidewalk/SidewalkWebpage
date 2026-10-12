@@ -306,7 +306,7 @@ describe('Main hooks what describes a label to the label container', () => {
     expect(ready.adminInfo).toHaveBeenCalledWith(label);
   });
 
-  test('the card, menu and admin panel reset before the marker is drawn; what needs the marker is told after', async () => {
+  test('the card, menu and admin panel reset before the marker is drawn; what needs the marker waits for it', async () => {
     const { labelContainer } = await start();
     for (const listener of Object.values({ ...ready, ...shown })) listener.mockClear();
     panoManager.renderPanoMarker.mockClear();
@@ -321,8 +321,7 @@ describe('Main hooks what describes a label to the label container', () => {
     }
   });
 
-  // The Form owns the exit flush, so a page closed while the viewer loads keeps what it logged only if the Form is
-  // already there.
+  // The Form owns the exit flush, so a page closed mid-load keeps what it logged only if the Form already exists.
   test('the Form is built before the viewer loads', async () => {
     await start();
 

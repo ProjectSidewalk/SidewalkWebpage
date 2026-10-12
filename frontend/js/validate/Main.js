@@ -41,12 +41,10 @@ import './util/throttle.js';
  * @typedef {object} ValidateConfig
  * @property {boolean} adminVersion - Expert Validate: the label's type, rating and tags can be edited.
  * @property {Record<string, any>} validateParams - The queue filters this page validates under, echoed to the server.
- * @property {typeof import('../common/pano-viewer/PanoViewer.js').PanoViewer} viewerType - The primary pano viewer's
- *     class.
+ * @property {typeof import('../common/pano-viewer/PanoViewer.js').PanoViewer} viewerType - The primary viewer class.
  * @property {Record<string, any[]>} tagsByLabelType - Every tag this city offers, keyed by label type.
  * @property {number} labelRadius - The marker's radius in px before UI scaling.
- * @property {string} source - Which Validate UI this is, as the server records it: Validate, ExpertValidate, or
- *     ValidateMobile.
+ * @property {string} source - This UI as the server records it: Validate, ExpertValidate or ValidateMobile.
  * @property {() => number} canvasWidth - The on-screen width of the imagery, measured live.
  * @property {() => number} canvasHeight - The on-screen height of the imagery, measured live.
  */
@@ -135,10 +133,9 @@ import './util/throttle.js';
 /**
  * The elements the busy state covers while a label loads (LabelContainer's `#setUiBusy`, #5211), per layout.
  *
- * Desktop dims the whole tool through its application holder, with the menu column alongside it. Mobile has neither
- * of those elements — its controls are laid over the pano rather than sitting in a column of their own — so they are
- * named one by one: dimming the holder they share would take the imagery, and the fallback viewer's progress box,
- * down with them.
+ * Desktop dims the whole tool through its application holder, with the menu column alongside it. The phone has
+ * neither: its controls lie over the pano, so they are named one by one, since dimming the holder they share would
+ * take the imagery and the fallback viewer's progress box down with them.
  *
  * Every id here has to exist in the matching view, which validateLoadingGuard.test.js checks: a selector that matches
  * nothing fails silently, and that is how mobile came to have no busy state at all.
@@ -244,8 +241,7 @@ export class Main {
   }
 
   /**
-   * Collects the tool's DOM elements. An element only one layout has (mobile's briefing eyebrow, desktop's tag
-   * editor) is null on the other.
+   * Collects the tool's DOM elements.
    * @returns {ValidateUi}
    */
   static #collectUi() {
@@ -346,9 +342,9 @@ export class Main {
     const { mission, labels, progress } = this.#firstMission;
     const labelType = mission.label_type;
 
-    // Logging comes first, so nothing built after it has to cope with its absence.
+    // Logging and the Form that sends it come first, before the viewer loads: nothing built later has to cope with
+    // their absence, and a page closed during that load still flushes what it logged.
     const tracker = new Tracker();
-    // Before the viewer loads, so a page closed during that load still flushes what it logged.
     const form = new Form(param.dataStoreUrl, config, tracker);
     const keyboardLock = new KeyboardLock();
 
@@ -394,9 +390,8 @@ export class Main {
 
     const zoomControl = util.isMobile() ? null : new ZoomControl(ui, panoManager, tracker);
 
-    // What the mission-start tutorial logs through and hands back when it closes. Desktop only: the phone's
-    // briefing is ModalMission's carousel.
-    // Whoever raises the tutorial takes the 'tutorial' hold (below, and the mission-complete screen); its Done lets it go.
+    // What the mission-start tutorial logs through and hands back when it closes; whoever raises it (below, and the
+    // mission-complete screen) takes the 'tutorial' hold. Desktop only; the phone briefs through ModalMission.
     const tutorialHooks = util.isMobile()
       ? null
       : { tracker, keyboard: { enableKeyboard: () => keyboardLock.release('tutorial') }, zoomControl };
@@ -544,11 +539,9 @@ export class Main {
     this.#showPanoInteractiveHint();
 
     // Did the last page life in this tab end without a pagehide? On a phone that is the browser killing the tab for
-    // memory (#5561), which from in here is otherwise indistinguishable from a reload. Read only now, with the first
-    // label on screen and just before the first mission is created, which is what marks this life live: a page
-    // killed during that first load would otherwise have taken the marker and reported nothing, and a flush during
-    // it would have sent the row with no mission to file it under. The tracker files it under this mission when the
-    // buffer drains, so it names this mission alongside the one that was cut short.
+    // memory (#5561), which from in here looks like a reload. Read only now, with the first label up and just before
+    // the first mission is marked live: a page killed during that first load would otherwise take the marker and
+    // report nothing, and a flush during it would send the row with no mission to file it under.
     const unexpectedUnload = missionLiveMarker.takeUnexpectedUnload();
     if (unexpectedUnload) tracker.push('Validate_UnexpectedUnload', unexpectedUnload);
 
@@ -561,9 +554,8 @@ export class Main {
     this.#immersiveMode?.logRestored();
 
     if (!util.isMobile()) {
-      // Read the viewer through closures rather than capturing it here: PanoManager swaps it between the primary
-      // viewer and Pannellum as labels come and go, and a captured viewer keeps reporting the pano from the last
-      // label it showed (#4813).
+      // Read the viewer through closures rather than capturing it: PanoManager swaps it between the primary viewer
+      // and Pannellum as labels come and go, and a captured one would keep reporting its last label's pano (#4813).
       new PanoInfoPopover(
         ui.viewer.dateHolder, () => panoManager.panoViewer,
         () => panoManager.panoViewer.getPosition(), () => panoManager.panoViewer.getPanoId(),
@@ -634,10 +626,9 @@ export class Main {
   }
 
   /**
-   * Re-lays out the desktop tool for its current box, for a layout switch rather than a window resize: the rescale
-   * and the viewer's resize and repaint, plus the toasts, which are anchored to the pano's old box and are told of a
-   * window resize but not of the tool moving under them (Toast.repositionAll). Synchronous, so the immersive toggle
-   * (#5560) lands in one frame.
+   * Re-lays out the desktop tool for its current box on a layout switch rather than a window resize: the rescale, the
+   * viewer's resize and repaint, and the toasts, anchored to the pano's old box and told of a window resize but not of
+   * the tool moving under them (Toast.repositionAll). Synchronous, so the immersive toggle (#5560) lands in one frame.
    *
    * @param {PanoManager} panoManager - Whose marker and live viewer are re-fitted.
    * @param {ImmersiveMode} immersiveMode - Decides which of the tool's boxes the scale has to fit.

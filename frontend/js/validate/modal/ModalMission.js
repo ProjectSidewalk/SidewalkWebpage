@@ -3,9 +3,8 @@
  *
  * Briefs a mobile validator before a mission: what they're about to validate, and what the label type looks like when
  * it's right and when it isn't, as a swipeable carousel of the same examples the desktop tools teach from
- * (MissionStartTutorial.slidesFor). Desktop builds it too, since every mission starts the same way, but there the
- * markup is display:none and the start tutorial covers the tool instead; so this screen never pauses the keyboard
- * shortcuts, which the phone does not have and the desktop never sees it over.
+ * (MissionStartTutorial.slidesFor). Desktop builds it too, since every mission starts the same way, but keeps it
+ * display:none under the start tutorial, so it never pauses the shortcuts: the phone has none, desktop never sees it.
  */
 
 import { MissionStartTutorial } from '../../common/MissionStartTutorial.js';
