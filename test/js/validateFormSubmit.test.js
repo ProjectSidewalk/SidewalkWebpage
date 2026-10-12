@@ -403,7 +403,7 @@ describe('Form.submit (issue #2745 resilience)', () => {
         expect(tracker.push).not.toHaveBeenCalledWith('SubmitFailedGaveUp', expect.anything());
     });
 
-    test('a rejected renderCurrentLabel is logged but never retried or reloaded', async () => {
+    test('a rejected renderCurrentLabel is logged, never retried or reloaded, and still frees the modal', async () => {
         stubFetchOk({ has_mission_available: true, mission: { mission_id: 1 }, progress: {}, labels: [] });
         session.labelContainer.renderCurrentLabel = jest.fn(() => Promise.reject(new Error('render failed')));
         const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
@@ -412,7 +412,7 @@ describe('Form.submit (issue #2745 resilience)', () => {
         await jest.advanceTimersByTimeAsync(60000);
 
         expect(errorSpy).toHaveBeenCalled();
-        expect(session.modalMissionComplete.nextMissionLoaded).not.toHaveBeenCalled();
+        expect(session.modalMissionComplete.nextMissionLoaded).toHaveBeenCalledTimes(1);
         expect(global.fetch).toHaveBeenCalledTimes(1);
         expect(reloadAttempts()).toHaveLength(0);
     });

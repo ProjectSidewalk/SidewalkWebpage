@@ -330,8 +330,12 @@ export class Form {
         if (result.mission) {
           missionContainer.createAMission(result.mission, result.progress);
           labelContainer.resetLabelList(result.labels, result.mission.label_type);
-          await labelContainer.renderCurrentLabel();
-          modalMissionComplete.nextMissionLoaded(missionContainer.getCurrentMission());
+          // The mission exists even if its first label fails to draw; without this the modal traps them (#5755).
+          try {
+            await labelContainer.renderCurrentLabel();
+          } finally {
+            modalMissionComplete.nextMissionLoaded(missionContainer.getCurrentMission());
+          }
         }
       } else {
         // Otherwise, display popup that says there are no more labels left.
