@@ -397,9 +397,8 @@ loaded by the corresponding Twirl view:
   hide-label toggle (`validate/panorama/PanoControlMenu.js`), the same arrangement as Explore's beside Stuck.
   The model takes a list of mounts there, `#svv-panorama` and the `#svv-panorama-pannellum` sibling PanoManager
   swaps in when GSV has no imagery, so the filter is already on whichever viewer shows the label. Validate scopes
-  the keyboard for the panel in `KeyboardManager` rather than suspending it with `disableKeyboard()`, a single flag
-  that the modals and the loading lock also set, and the partial sits outside `#svv-application-holder` so the busy
-  state's `pointer-events: none` can't freeze the sliders. Mobile Validate has no panel.
+  the keyboard for the panel in `KeyboardManager`, not through the `KeyboardLock`, and the partial sits outside
+  `#svv-application-holder` so the busy state's `pointer-events: none` can't freeze the sliders.
   **A viewer canvas is painted only while it holds the current label's pano at that label's POV**
   (`validate/panorama/PanoManager.js`). The Pannellum fallback is revealed only once its image has loaded (#5206),
   the primary canvas rejoins the layout unpainted after a fallback label (#5453), and on a primary viewer that paints
@@ -585,9 +584,13 @@ loaded by the corresponding Twirl view:
 ### Modules and the build
 
 Every first-party file is an **ES module** (#4467): it `import`s what it needs and `export`s what others use, so
-the imports decide load order, not a hand-kept list. Explore and Validate still keep their shared state in one
-exported registry object (`explore/svl.js`, `validate/svv.js`); the Gallery instead hands each module what it works
-with as constructor arguments, all wired in `gallery/Main.js` (#5648), which is where the other two are headed.
+the imports decide load order, not a hand-kept list. Explore still keeps its shared state in one exported registry
+object (`explore/svl.js`); the Gallery and Validate instead hand each module what it works with as constructor
+arguments, all wired in `gallery/Main.js` and `validate/Main.js` (#5648), which is where Explore is headed. In
+Validate the page's facts travel as one frozen `ValidateConfig` and its elements as one `ValidateUi`; what is built
+first announces (`Tracker.onFlush`, `LabelContainer.onLabelReady` / `onLabelShown` / `onLoadingChange`) and what is
+built later subscribes; and `KeyboardLock` is held by name (a modal, the tutorial, a loading label, the sign-in
+dialog), freeing the shortcuts only once every hold is gone. `window.svv` is only a console and e2e handle.
 `util` is the object `common/utilities.js` exports; a file
 that reads `util.misc`, `util.math`, `util.url` or `util.pano` imports the file that adds it (`utilitiesSidewalk.js`,
 `utilitiesMath.js`, `urlQuery.js`, `pano-viewer/panoUtilities.js`). Vendor libraries (`mapboxgl`, `i18next`, `turf`, …)

@@ -85,7 +85,7 @@ export class SpeedLimit {
   /**
    * Points the sign at whichever viewer is active now and updates the value it shows.
    *
-   * Validate swaps `svv.panoViewer` between the primary viewer and Pannellum as labels come and go, and the viewer
+   * Validate swaps its active viewer between the primary viewer and Pannellum as labels come and go, and the viewer
    * that isn't showing fires nothing — so a subscription made once at construction goes quiet for the rest of the
    * mission as soon as the tool switches away from that viewer (#4828). Callers that change which pano is on screen
    * call this; repeated calls are cheap, since each viewer is subscribed at most once.

@@ -2,7 +2,7 @@
  * Tests for util.cappedMarkerDiameter (frontend/js/common/utilities.js, issue #4838), the rule that sizes Validate's
  * pano label marker.
  *
- * Validate's marker is a DOM element (PanoMarker) sized directly in screen px as `(svv.labelRadius * 2 + 2) *
+ * Validate's marker is a DOM element (PanoMarker) sized directly in screen px as `(config.labelRadius * 2 + 2) *
  * --ui-scale`, so at the 1.8x end of util.applyToolScale's range a 22px mark reached 40px — hiding more of the very
  * feature being judged the larger the validator's window, and drifting away from Explore's marker, which #4838
  * capped at 38px. This caps Validate's on the same ceiling.
@@ -18,7 +18,8 @@
 const { realUtil } = require('./loadGlobalScript');
 
 
-// frontend/js/validate/Main.js: svv.labelRadius = util.isMobile() ? 25 : 10, and the marker adds 2px of ring.
+// The desktop radius is ValidateConfig.labelRadius (10, frontend/js/validate/Main.js) and the marker adds 2px of ring;
+// mobile's 52px marker is the touch target mobile-validate.css floors it at.
 const DESKTOP_BASE = 10 * 2 + 2;   // 22
 const MOBILE_BASE = 25 * 2 + 2;    // 52
 

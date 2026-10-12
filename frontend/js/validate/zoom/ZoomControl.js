@@ -2,7 +2,9 @@
  * Handles zooming for the pano. Also called by the Keyboard class to deal with zooming via keyboard shortcuts.
  */
 
-import { svv } from '../svv.js';
+/** @typedef {import('../Main.js').ValidateUi} ValidateUi */
+/** @typedef {import('../panorama/PanoManager.js').PanoManager} PanoManager */
+/** @typedef {import('../Tracker.js').Tracker} Tracker */
 
 export class ZoomControl {
   // Zoom limits for the pano, matching the {1, 2, 3} levels used by the zoom buttons.
@@ -19,15 +21,26 @@ export class ZoomControl {
   #zoomInButton;
   #zoomOutButton;
   #wheelTrackTimeout;
+  /** @type {PanoManager} */
+  #panoManager;
+  /** @type {Tracker} */
+  #tracker;
 
-  constructor() {
-    this.#zoomInButton = svv.ui.status.zoomInButton;
-    this.#zoomOutButton = svv.ui.status.zoomOutButton;
+  /**
+   * @param {ValidateUi} ui - The zoom buttons, and the pano layer the wheel zooms over.
+   * @param {PanoManager} panoManager - Whose live viewer is zoomed.
+   * @param {Tracker} tracker - Logs the zooms.
+   */
+  constructor(ui, panoManager, tracker) {
+    this.#zoomInButton = ui.status.zoomInButton;
+    this.#zoomOutButton = ui.status.zoomOutButton;
+    this.#panoManager = panoManager;
+    this.#tracker = tracker;
 
     this.#zoomInButton.addEventListener('click', this.#clickZoomIn);
     this.#zoomOutButton.addEventListener('click', this.#clickZoomOut);
     // Not passive, so preventDefault can stop the wheel from scrolling the page.
-    svv.ui.viewer.controlLayer.addEventListener('wheel', this.#wheelZoom, { passive: false });
+    ui.viewer.controlLayer.addEventListener('wheel', this.#wheelZoom, { passive: false });
   }
 
   /**
@@ -35,7 +48,7 @@ export class ZoomControl {
    */
   #clickZoomIn = () => {
     if (this.#zoomInButton.getAttribute('aria-disabled') === 'true') return;
-    svv.tracker.push('Click_ZoomIn');
+    this.#tracker.push('Click_ZoomIn');
     this.zoomIn();
   };
 
@@ -44,7 +57,7 @@ export class ZoomControl {
    */
   #clickZoomOut = () => {
     if (this.#zoomOutButton.getAttribute('aria-disabled') === 'true') return;
-    svv.tracker.push('Click_ZoomOut');
+    this.#tracker.push('Click_ZoomOut');
     this.zoomOut();
   };
 
@@ -53,9 +66,9 @@ export class ZoomControl {
    * Zoom levels: {1, 2, 3}
    */
   zoomIn() {
-    const zoomLevel = Math.round(svv.panoViewer.getPov().zoom);
+    const zoomLevel = Math.round(this.#panoManager.getPov().zoom);
     if (zoomLevel <= 2) {
-      svv.panoManager.setZoom(zoomLevel + 1);
+      this.#panoManager.setZoom(zoomLevel + 1);
     }
     this.updateZoomAvailability();
   }
@@ -65,9 +78,9 @@ export class ZoomControl {
    * Zoom levels: {1, 2, 3}
    */
   zoomOut() {
-    const zoomLevel = Math.round(svv.panoViewer.getPov().zoom);
+    const zoomLevel = Math.round(this.#panoManager.getPov().zoom);
     if (zoomLevel >= 2) {
-      svv.panoManager.setZoom(zoomLevel - 1);
+      this.#panoManager.setZoom(zoomLevel - 1);
     }
     this.updateZoomAvailability();
   }
@@ -85,18 +98,16 @@ export class ZoomControl {
     const zoomDelta = -e.deltaY * sensitivity;
 
     const newZoom = Math.max(
-      ZoomControl.#MIN_ZOOM, Math.min(ZoomControl.#MAX_ZOOM, svv.panoViewer.getPov().zoom + zoomDelta),
+      ZoomControl.#MIN_ZOOM, Math.min(ZoomControl.#MAX_ZOOM, this.#panoManager.getPov().zoom + zoomDelta),
     );
-    svv.panoManager.setZoom(newZoom);
+    this.#panoManager.setZoom(newZoom);
     this.updateZoomAvailability();
 
     // Log scroll zooming, but debounce so a single gesture doesn't flood the tracker.
-    if (svv.tracker) {
-      window.clearTimeout(this.#wheelTrackTimeout);
-      this.#wheelTrackTimeout = window.setTimeout(() => {
-        svv.tracker.push(zoomDelta > 0 ? 'Scroll_ZoomIn' : 'Scroll_ZoomOut');
-      }, 250);
-    }
+    window.clearTimeout(this.#wheelTrackTimeout);
+    this.#wheelTrackTimeout = window.setTimeout(() => {
+      this.#tracker.push(zoomDelta > 0 ? 'Scroll_ZoomIn' : 'Scroll_ZoomOut');
+    }, 250);
   };
 
   /**
@@ -106,7 +117,7 @@ export class ZoomControl {
    * Zoom levels: { 1 (Zoom-out Disabled), 2 (Both buttons enabled), 3 (Zoom-In Disabled) }
    */
   updateZoomAvailability() {
-    const zoomLevel = svv.panoViewer.getPov().zoom;
+    const zoomLevel = this.#panoManager.getPov().zoom;
     // `aria-disabled` greys the button out but lets it keep keyboard focus; see pano-overlay-buttons.css.
     this.#zoomInButton.setAttribute('aria-disabled', String(zoomLevel >= 3));
     this.#zoomOutButton.setAttribute('aria-disabled', String(zoomLevel <= 1));

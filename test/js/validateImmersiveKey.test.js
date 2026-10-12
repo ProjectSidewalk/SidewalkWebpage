@@ -4,7 +4,8 @@
  * The key is Explore's, and the same two things keep it from firing by accident: an f typed anywhere editable is text,
  * and F with a modifier belongs to the browser. What is Validate's own is where the check sits: after the marker and
  * label-card scope and the image-adjustments scope, which take every key of theirs, and before the verdict letters,
- * which the mode never touches. Loaded the way validateNumberKeyShortcuts.test.js loads the manager: eval'd with an
+ * which the mode never touches, and under the same pause as them: a key under a modal or the tutorial is for what
+ * is on top. Loaded the way validateNumberKeyShortcuts.test.js loads the manager: eval'd with an
  * explicit export, one instance for the file, since the constructor's window listener cannot be unregistered.
  */
 
@@ -20,6 +21,11 @@ function makeControl() {
 
 describe('Validate F shortcut for immersive mode', () => {
     const validationMenuUi = {};
+    // The manager keeps the collaborators it was built with, so each test swaps the objects behind these proxies.
+    let current = {};
+    const live = (name) => new Proxy({}, { get: (_, key) => current[name][key] });
+    const config = { adminVersion: false };
+    let keyboardHeld = false;
 
     beforeAll(() => {
         Object.assign(validationMenuUi, {
@@ -32,12 +38,19 @@ describe('Validate F shortcut for immersive mode', () => {
             unsureButton: makeControl(),
         });
         Object.assign(window, loadModules('frontend/js/common/KeyboardShortcuts.js', 'frontend/js/validate/keyboard/KeyboardManager.js'));
-        new window.KeyboardManager(validationMenuUi);
+        new window.KeyboardManager(
+            { validationMenu: validationMenuUi, undoValidation: { undoButton: live('undoButton') } }, config,
+            { isDisabled: () => keyboardHeld, hold: () => {}, release: () => {} },
+            { onLoadingChange: () => {} }, live('labelVisibilityControl'), live('labelCard'), live('validationMenu'),
+            live('zoomControl'), live('undoValidation'), live('immersiveMode'), live('imageAdjustmentsPopover'),
+            live('tracker'),
+        );
     });
 
     beforeEach(() => {
+        keyboardHeld = false;
         document.body.innerHTML = '<input id="field"><div id="note" contenteditable="true"></div>';
-        window.svv = {
+        current = {
             immersiveMode: { toggle: jest.fn() },
             labelVisibilityControl: {
                 hideLabelCard: jest.fn(),
@@ -45,6 +58,9 @@ describe('Validate F shortcut for immersive mode', () => {
                 isCardHeldOpen: () => false,
             },
             labelCard: { isPopoverOpen: () => false, closeTypeDropdown: () => false },
+            validationMenu: { inWrongTypeView: () => false },
+            imageAdjustmentsPopover: { isOpen: () => false },
+            undoValidation: { canUndo: () => false },
             tracker: { push: jest.fn() },
         };
         validationMenuUi.yesButton.click.mockClear();
@@ -60,7 +76,7 @@ describe('Validate F shortcut for immersive mode', () => {
 
     it('toggles on a bare F, and logs the toggle as a keyboard shortcut', () => {
         pressF(document.body);
-        expect(window.svv.immersiveMode.toggle).toHaveBeenCalledWith('KeyboardShortcut');
+        expect(current.immersiveMode.toggle).toHaveBeenCalledWith('KeyboardShortcut');
     });
 
     it('leaves an f typed into a text field or an editable region alone', () => {
@@ -72,7 +88,7 @@ describe('Validate F shortcut for immersive mode', () => {
         Object.defineProperty(note, 'isContentEditable', { value: true });
         note.focus();
         pressF(note);
-        expect(window.svv.immersiveMode.toggle).not.toHaveBeenCalled();
+        expect(current.immersiveMode.toggle).not.toHaveBeenCalled();
     });
 
     it('ignores F with a modifier, which belongs to the browser', () => {
@@ -80,14 +96,20 @@ describe('Validate F shortcut for immersive mode', () => {
         pressF(document.body, { metaKey: true });
         pressF(document.body, { shiftKey: true });
         pressF(document.body, { altKey: true });
-        expect(window.svv.immersiveMode.toggle).not.toHaveBeenCalled();
+        expect(current.immersiveMode.toggle).not.toHaveBeenCalled();
+    });
+
+    it('does nothing while the keyboard is held, as it is under a modal, the tutorial or a loading label', () => {
+        keyboardHeld = true;
+        pressF(document.body);
+        expect(current.immersiveMode.toggle).not.toHaveBeenCalled();
     });
 
     it('toggles once for a held F, not on every key repeat', () => {
         pressF(document.body);
         pressF(document.body, { repeat: true });
         pressF(document.body, { repeat: true });
-        expect(window.svv.immersiveMode.toggle).toHaveBeenCalledTimes(1);
+        expect(current.immersiveMode.toggle).toHaveBeenCalledTimes(1);
     });
 
     // Enter submits from any other focused button. On these two it has to reach the button itself: submitting from the
@@ -108,12 +130,5 @@ describe('Validate F shortcut for immersive mode', () => {
         button.focus();
         button.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', bubbles: true, cancelable: true }));
         expect(validationMenuUi.submitButton.click).toHaveBeenCalledTimes(1);
-    });
-
-    it('does nothing on a page without the mode, such as Expert Validate', () => {
-        delete window.svv.immersiveMode;
-        expect(() => pressF(document.body)).not.toThrow();
-        // The key is no verdict either: nothing else in the manager answers to it.
-        expect(validationMenuUi.yesButton.click).not.toHaveBeenCalled();
     });
 });

@@ -30,6 +30,7 @@ describe('PanoManager POV_Changed throttling (issue #2745)', () => {
     let PanoManager;
     let listeners; // event name -> callback captured from the fake viewer's addListener
     let FakeViewerType;
+    let tracker;
 
     beforeEach(() => {
         jest.useFakeTimers();
@@ -50,11 +51,7 @@ describe('PanoManager POV_Changed throttling (issue #2745)', () => {
         global.createPanoAttribution = jest.fn(() => ({ show: jest.fn(), hide: jest.fn() }));
         global.GsvViewer = class GsvViewer {};             // distinct from FakeViewerType, so the GSV-only
         global.MapillaryViewer = class MapillaryViewer {}; // and Mapillary-only attribution paths are skipped
-        global.svv = {
-            tracker: { push: jest.fn() },
-            panoStore: { addPanoMetadata: jest.fn() },
-            ui: { viewer: { date: { text: jest.fn() } } }
-        };
+        tracker = { push: jest.fn(), trackPano: jest.fn() };
 
         const panoData = {
             getPanoId: () => 'pano1',
@@ -82,7 +79,6 @@ describe('PanoManager POV_Changed throttling (issue #2745)', () => {
         delete global.createPanoAttribution;
         delete global.GsvViewer;
         delete global.MapillaryViewer;
-        delete global.svv;
     });
 
     /**
@@ -90,13 +86,17 @@ describe('PanoManager POV_Changed throttling (issue #2745)', () => {
      * @returns {Promise<void>}
      */
     async function loadFirstPano() {
-        const panoManager = await PanoManager.create(FakeViewerType, 'token');
+        const viewerUi = { date: { textContent: '' }, controlLayer: document.createElement('div') };
+        const panoManager = await PanoManager.create(
+            'token', viewerUi, { viewerType: FakeViewerType, labelRadius: 10 }, { addPanoMetadata: jest.fn() }, {},
+            tracker,
+        );
         await panoManager.setPanorama('pano1', null);
     }
 
     /** Count how many times the tracker logged a POV_Changed action. */
     function povChangedLogCount() {
-        return svv.tracker.push.mock.calls.filter(call => call[0] === 'POV_Changed').length;
+        return tracker.push.mock.calls.filter(call => call[0] === 'POV_Changed').length;
     }
 
     test('a pov_changed firehose is coalesced into one leading + one trailing log per window', async () => {
