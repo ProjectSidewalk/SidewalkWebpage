@@ -64,7 +64,7 @@ case class NewTask(
     mappedByThisUser: Boolean,            // This user has a completed audit here, so the notice says "you" (#4895).
     lastMappedAt: Option[OffsetDateTime], // Date the notice quotes: this user's last audit, else the street's.
     newImageryDate: Option[LocalDate],    // Street's median newest capture, when its imagery has been polled.
-    coveredRanges: Option[JsValue]        // A resumed free-exploration task's stored coverage (#5733); None otherwise.
+    coveredRanges: Option[JsValue] // What the user's free exploration has seen of the street (#5733); None otherwise.
 )
 case class AuditedStreetWithTimestamp(
     streetEdgeId: Int,
@@ -832,13 +832,27 @@ class AuditTaskTable @Inject() (
     // street this user already has an up-to-date completed audit of, so the COALESCEs below never have to choose.
     val userResumableStreets = resumableTasksForUser(userId, Some(regionId))
 
-    val edgesInRegion = nonDeletedStreetEdgeRegions.filter(_.regionId === regionId)
-    val tasks         = for {
-      ((ser, ucs), urs) <- edgesInRegion
+    // What the user's free exploration has seen of each street (#5733), newest task per street. Carried as coverage
+    // only, never as the task id: the id would make a regular mission post its distance onto a free-exploration row,
+    // which is what start_offset_m keeps these out of resumableTasksForUser for. The free-exploration client draws
+    // it and reports a street as resumed from it; a regular mission ignores it.
+    val edgesInRegion         = nonDeletedStreetEdgeRegions.filter(_.regionId === regionId)
+    val userExploredStreetIds = auditTasks
+      .filter(task =>
+        task.userId === userId && task.startOffsetM.isDefined && task.streetEdgeId.in(edgesInRegion.map(_.streetEdgeId))
+      )
+      .groupBy(_.streetEdgeId)
+      .map { case (_, tasks) => tasks.map(_.auditTaskId).max }
+    val userExploredStreets = auditTasks.filter(_.auditTaskId.? in userExploredStreetIds)
+
+    val tasks = for {
+      (((ser, ucs), urs), ues) <- edgesInRegion
         .joinLeft(userCompletedStreets)
         .on(_.streetEdgeId === _.streetEdgeId)
         .joinLeft(userResumableStreets)
         .on { case ((ser, _), urs) => ser.streetEdgeId === urs.streetEdgeId }
+        .joinLeft(userExploredStreets)
+        .on { case (((ser, _), _), ues) => ser.streetEdgeId === ues.streetEdgeId }
       se                    <- streetEdgeTable.streets if ser.streetEdgeId === se.streetEdgeId
       sep                   <- streetEdgePriorities if se.streetEdgeId === sep.streetEdgeId
       scau                  <- streetAuditState(userId) if sep.streetEdgeId === scau.streetEdgeId
@@ -866,8 +880,7 @@ class AuditTaskTable @Inject() (
       scau.mappedByThisUser,
       scau.lastMappedAt,
       scau.newImageryDate,
-      // Always empty here: resumableTasksForUser leaves free-exploration tasks out, and nothing else carries coverage.
-      LiteralColumn[Option[JsValue]](None)
+      ues.flatMap(_.coveredRanges)
     ).mapTo[NewTask]
 
     tasks.result

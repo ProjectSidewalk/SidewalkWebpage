@@ -124,7 +124,8 @@ arbitrary line, fewer tiny disconnected pieces, and enough of a plan that the to
   `meters_audited`, Access Score) reads
   `audit_task.completed`, so it needs no second notion of "audited"; `start_offset_m` is set on every
   free-exploration task and is what keeps them out of the regular-mission resume paths, whose furthest-point
-  arithmetic doesn't apply to them. Sessions from before #5733 are credited by a one-off backfill over their pano
+  arithmetic doesn't apply to them. The region task list still hands back what those tasks covered, as coverage
+  without a task id, so a reload redraws a part-walked street and a return to it reads as resumed. Sessions from before #5733 are credited by a one-off backfill over their pano
   trails in `audit_task_interaction`, with the same rule.
 
 ### Media storage

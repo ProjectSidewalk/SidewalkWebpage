@@ -433,6 +433,26 @@ class ExploreAddressServiceSpec
       }
     }
 
+    "hand the stored coverage back in the region task list, without the free-exploration task's id" in {
+      completionLatLng match {
+        case None             => cancel("No streets in the connected DB; nothing to exercise.")
+        case Some((lat, lng)) =>
+          val data         = await(exploreService.getDataForExploreAddressPage(completionUser.userId, lat, lng)).value
+          val streetEdgeId = data.task.value.edgeId
+          val listed       = await(exploreService.selectTasksInARegion(data.region.regionId, completionUser.userId))
+            .find(_.edgeId == streetEdgeId)
+            .value
+
+          // The page reload draws the pieces from this; the id stays off so a regular mission never posts onto the row.
+          StreetCoverage.fromJson(listed.coveredRanges) mustBe StreetCoverage.fromJson(
+            taskRow(data.task.value.auditTaskId.get).coveredRanges
+          )
+          listed.coveredRanges mustBe defined
+          listed.completed mustBe false
+          listed.auditTaskId mustBe None
+      }
+    }
+
     "not credit a street from a sliver at its far end" in {
       completionLatLng match {
         case None             => cancel("No streets in the connected DB; nothing to exercise.")
