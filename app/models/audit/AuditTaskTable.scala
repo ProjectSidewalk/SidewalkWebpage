@@ -390,6 +390,15 @@ class AuditTaskTable @Inject() (
     upToDateCompletedTasks.filter(task => task.streetEdgeId === streetEdgeId && task.userId === user).exists.result
   }
 
+  /** @return The newest of the user's completed, up-to-date audits of the street, if any. */
+  def userUpToDateAuditOf(streetEdgeId: Int, userId: String): DBIO[Option[Int]] =
+    upToDateCompletedTasks
+      .filter(task => task.streetEdgeId === streetEdgeId && task.userId === userId)
+      .sortBy(_.auditTaskId.desc)
+      .map(_.auditTaskId)
+      .result
+      .headOption
+
   /**
    * Return all street edges and whether they have been audited or not. If provided, filter for only given regions.
    */

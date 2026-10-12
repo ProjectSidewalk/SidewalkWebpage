@@ -73,7 +73,7 @@ object StreetCoverage {
    */
   def merge(ranges: Seq[CoveredRange], streetLengthM: Double): Seq[CoveredRange] = {
     val clipped = ranges
-      .map(r => CoveredRange(roundDm(r.startM.max(0d).min(streetLengthM)), roundDm(r.endM.max(0d).min(streetLengthM))))
+      .map(r => CoveredRange(clip(roundDm(r.startM), streetLengthM), clip(roundDm(r.endM), streetLengthM)))
       .filter(r => r.endM > r.startM)
       .sortBy(r => (r.startM, r.endM))
     clipped
@@ -92,16 +92,20 @@ object StreetCoverage {
   def uncoveredM(merged: Seq[CoveredRange], streetLengthM: Double): Double =
     (streetLengthM - coveredM(merged)).max(0d)
 
-  /** Whether a merged list earns the street. Nothing seen earns nothing, however short the street. */
+  /** @return Whether a merged list earns the street. Nothing seen earns nothing, however short the street. */
   def coveredEnough(merged: Seq[CoveredRange], streetLengthM: Double): Boolean =
     merged.nonEmpty && uncoveredM(merged, streetLengthM) <= MaxUncoveredM &&
       coveredM(merged) >= MinCoveredFrac * streetLengthM
 
-  /** Reads a stored list back; anything unparsable reads as no coverage rather than failing the submission. */
+  /** @return A stored list read back; anything unparsable reads as no coverage rather than failing the submission. */
   def fromJson(json: Option[JsValue]): Seq[CoveredRange] =
     json.flatMap(_.asOpt[Seq[CoveredRange]]).getOrElse(Seq.empty)
 
+  /** @return The list as stored on the row and sent to the page. */
   def toJson(merged: Seq[CoveredRange]): JsValue = Json.toJson(merged)
 
   private def roundDm(m: Double): Double = Math.round(m * 10d) / 10d
+
+  // Rounded first, then clipped: rounding after could push an end a few centimeters past the street.
+  private def clip(m: Double, streetLengthM: Double): Double = m.max(0d).min(streetLengthM)
 }

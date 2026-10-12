@@ -120,6 +120,24 @@ describe('Task coverage in free exploration', () => {
         expect(() => reversed.render()).not.toThrow();
     });
 
+    it('never rounds a stored range past a street whose length rounds up', () => {
+        // 100.07 m rounds to 100.1 m; on a reversed street that would put a slice start below zero and crash turf.
+        const oddStreet = straightStreet(STREET_START, 100.07);
+        const lengthM = turf.length(turf.lineString(oddStreet), { units: 'meters' });
+        const reversed = new window.Task(
+            feature(oddStreet, { start_point_reversed: true, covered_ranges: [[50, lengthM]] }), false
+        );
+
+        expect(reversed.getCoveredRanges()[0][1]).toBeLessThanOrEqual(lengthM);
+        expect(() => reversed.render()).not.toThrow();
+    });
+
+    it('drops a malformed stored pair instead of failing the whole street', () => {
+        const task = new window.Task(feature(street, { covered_ranges: [[10, 30], null, [50], ['a', 'b']] }), false);
+
+        expect(task.getCoveredRanges()).toEqual([[10, 30]]);
+    });
+
     it('starts a fresh chain after the labeler left for another street', () => {
         const task = new window.Task(feature(street), false);
 
@@ -232,6 +250,17 @@ describe('TaskContainer walking streets in free exploration', () => {
         expect(container.getCurrentTask()).toBe(cross);
         expect(cross.getCoveredRanges()).toEqual([[20, 40]]);
         expect(tracker.push).toHaveBeenCalledWith('ExploreAddress_StreetSwitch', { from: 1, to: 2, resumed: false });
+    });
+
+    it('dates a street from the step onto it, not from an old regular audit the task list carried', () => {
+        loaded();
+        const oldStart = new Date('2019-01-01T00:00:00Z');
+        cross.setProperty('taskStart', oldStart);
+        cross.setProperty('auditTaskId', 42);
+        container.recordExploreMove(standingAt(street, 190));
+        container.recordExploreMove(standingAt(crossStreet, 30));
+
+        expect(cross.getProperty('taskStart').getTime()).toBeGreaterThan(oldStart.getTime());
     });
 
     it('does not bridge the stretch of a street skipped while on another one', () => {

@@ -374,11 +374,12 @@ export class Task {
    * @returns {Array<[number, number]>} Clipped to the street, sorted, disjoint, to a decimeter.
    */
   static mergeRanges(ranges, lengthM) {
+    // Rounded first, then clipped: rounding after could push an end past the street, which turf can't slice.
     const roundDm = (m) => Math.round(m * 10) / 10;
+    const clip = (m) => Math.min(Math.max(roundDm(m), 0), lengthM);
     const clipped = ranges
-      .map(([startM, endM]) => [
-        roundDm(Math.min(Math.max(startM, 0), lengthM)), roundDm(Math.min(Math.max(endM, 0), lengthM)),
-      ])
+      .filter((range) => Array.isArray(range) && range.length === 2 && range.every(Number.isFinite))
+      .map(([startM, endM]) => [clip(startM), clip(endM)])
       .filter(([startM, endM]) => endM > startM)
       .sort((a, b) => a[0] - b[0] || a[1] - b[1]);
     const merged = [];

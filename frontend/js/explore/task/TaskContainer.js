@@ -495,8 +495,8 @@ export class TaskContainer {
     // Every street switch and direction reversal passes through here, so this is where the crumbs ahead re-aim.
     if (svl.forwardCrumbs) svl.forwardCrumbs.refresh();
 
-    // Show AI guidance message if applicable.
-    if (svl.aiGuidance) svl.aiGuidance.showAiGuidanceMessage();
+    // Show AI guidance message if applicable. Not on free exploration's street switches, which can come every move.
+    if (svl.aiGuidance && !svl.isExploreAddressMode()) svl.aiGuidance.showAiGuidanceMessage();
   }
 
   /**
@@ -516,10 +516,8 @@ export class TaskContainer {
       });
       this.#svl.form.submitData(current);
       current.resetVisitChain();
-      // The task starts when the labeler steps onto the street, not when the task list was fetched.
-      if (!nearest.getAuditTaskId() && nearest.getCoveredRanges().length === 0) {
-        nearest.setProperty('taskStart', new Date());
-      }
+      // The task starts when the labeler steps onto the street, not when the task list or an old audit of it did.
+      if (nearest.getCoveredRanges().length === 0) nearest.setProperty('taskStart', new Date());
       this.setCurrentTask(nearest);
     }
     if (this.#currentTask) {

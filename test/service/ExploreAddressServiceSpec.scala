@@ -432,13 +432,14 @@ class ExploreAddressServiceSpec
       }
     }
 
-    "leave the user's regular audit of the street alone when the client posts its id" in {
+    "file the save under the user's own regular audit of the street, and write nothing" in {
       completionLatLng match {
         case None             => cancel("No streets in the connected DB; nothing to exercise.")
         case Some((lat, lng)) =>
           val data          = await(exploreService.getDataForExploreAddressPage(completionUser.userId, lat, lng)).value
           val streetEdgeId  = data.task.value.edgeId
           val exploreTaskId = data.task.value.auditTaskId.get
+          val len           = streetLengthM(streetEdgeId)
           // A finished regular audit of the same street, whose id the region task list hands to the client.
           val now           = OffsetDateTime.now
           val regularTaskId = run(
@@ -448,6 +449,8 @@ class ExploreAddressServiceSpec
                 auditedDistanceM = Some(200d))
             )
           )
+          val exploreBefore = taskRow(exploreTaskId)
+          val tasksBefore   = run(auditTasks.filter(_.userId === completionUser.userId).length.result)
           try {
             val res = await(
               exploreService.submitExploreData(
@@ -458,20 +461,23 @@ class ExploreAddressServiceSpec
                   data.region.regionId,
                   completed = false,
                   None,
-                  coveredRanges = Some(Seq(CoveredRange(0d, 5d)))
+                  coveredRanges = Some(Seq(CoveredRange(0d, len))),
+                  omitTaskId = true
                 ),
                 completionUser.userId
               )
             )
 
-            res.auditTaskId mustBe exploreTaskId
+            // Labels go under the finished audit; a second completed task would count the street twice.
+            res.auditTaskId mustBe regularTaskId
+            res.coveredRanges mustBe None
             val regular = taskRow(regularTaskId)
             regular.auditedDistanceM.value mustBe 200d
             regular.currentMissionId mustBe None
             regular.coveredRanges mustBe None
-            run(
-              missions.filter(_.missionId === data.mission.missionId).map(_.currentAuditTaskId).result.head
-            ).value mustBe exploreTaskId
+            taskRow(exploreTaskId).coveredRanges mustBe exploreBefore.coveredRanges
+            taskRow(exploreTaskId).completed mustBe exploreBefore.completed
+            run(auditTasks.filter(_.userId === completionUser.userId).length.result) mustBe tasksBefore
           } finally {
             val _ = run(
               missions.filter(_.currentAuditTaskId === regularTaskId).map(_.currentAuditTaskId).update(None)
@@ -608,9 +614,9 @@ class ExploreAddressServiceSpec
           val len            = streetLengthM(streetEdgeId)
           val priorityBefore = priorityOf(streetEdgeId)
 
-          // The user keeps wandering and the client keeps flushing: the coverage stays complete on every POST, and the
-          // completed-flag guard is what stops the priority from being decremented again each time.
-          val _ = await(
+          // The client keeps flushing after completion; a finished street takes no more writes, so no more priority.
+          val before = taskRow(auditTaskId)
+          val res    = await(
             exploreService.submitExploreData(
               submission(
                 data.mission.missionId,
@@ -625,7 +631,10 @@ class ExploreAddressServiceSpec
             )
           )
 
+          res.auditTaskId mustBe auditTaskId
+          res.coveredRanges mustBe None
           taskRow(auditTaskId).completed mustBe true
+          taskRow(auditTaskId).taskEnd mustBe before.taskEnd
           priorityOf(streetEdgeId) mustBe priorityBefore
       }
     }

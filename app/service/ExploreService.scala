@@ -625,10 +625,11 @@ class ExploreServiceImpl @Inject() (
   /**
    * Insert or update the submitted audit task in the database.
    *
-   * Free exploration (#5733) reuses the user's task on the street and unions the posted coverage into it, so two
-   * visits add up.
+   * Free exploration (#5733) resolves its own row, since the posted id can be one of the user's regular audits. A
+   * street the user already has an up-to-date audit of takes no write (a second completed task would count it
+   * twice); an outdated one is not reopened, so new imagery earns a fresh task, as a regular re-audit does.
    *
-   * @return The audit_task_id, and for a free-exploration task its merged coverage.
+   * @return The audit_task_id, and for a free-exploration task that is still open its merged coverage.
    */
   private def updateAuditTaskTable(
       userId: String,
@@ -638,15 +639,22 @@ class ExploreServiceImpl @Inject() (
     val timestamp: OffsetDateTime = OffsetDateTime.now
     missionTable.getMissionType(missionId).flatMap { (missionType: Option[MissionType]) =>
       val isFreeExploration: Boolean = missionType.contains(MissionType.ExploreAddress)
-      // Free exploration never trusts the posted id: the region task list hands the client the ids of the user's
-      // regular audits too, and writing coverage onto one would rewrite a finished audit's distance and mission.
-      val existingTaskId: DBIO[Option[Int]] =
+      // The row to write, and whether it is an audit the user already finished (free exploration only).
+      val target: DBIO[(Option[Int], Boolean)] =
         if (isFreeExploration) {
-          auditTaskTable.findTaskForMission(userId, task.streetEdgeId, missionId).map(_.map(_.auditTaskId))
-        } else DBIO.successful(task.auditTaskId)
+          for {
+            _ <- lockUserForExploreAddress(userId) // Two saves close together must not both insert the street's task.
+            audited: Option[Int]    <- auditTaskTable.userUpToDateAuditOf(task.streetEdgeId, userId)
+            open: Option[AuditTask] <- auditTaskTable.findTaskForMission(userId, task.streetEdgeId, missionId)
+          } yield audited match {
+            case Some(id) => (Some(id), true)
+            case None     => (open.filterNot(_.completed).map(_.auditTaskId), false)
+          }
+        } else DBIO.successful((task.auditTaskId, false))
 
-      existingTaskId.flatMap {
-        case Some(id) if isFreeExploration =>
+      target.flatMap {
+        case (Some(id), true)                   => DBIO.successful((id, None))
+        case (Some(id), _) if isFreeExploration =>
           for {
             stored: Option[JsValue]   <- auditTaskTable.getCoveredRanges(id)
             merged: Seq[CoveredRange] <- mergedCoverage(task, stored)
@@ -654,7 +662,7 @@ class ExploreServiceImpl @Inject() (
               task.currentMissionStart, Some(StreetCoverage.coveredM(merged)))
             _ <- auditTaskTable.updateTaskCoverage(id, StreetCoverage.toJson(merged), StreetCoverage.coveredM(merged))
           } yield (id, Some(merged))
-        case Some(id) =>
+        case (Some(id), _) =>
           // Update the existing audit task row (don't update if they are in the tutorial).
           val update: DBIO[Unit] =
             if (missionType.contains(MissionType.Audit)) {
@@ -664,7 +672,7 @@ class ExploreServiceImpl @Inject() (
                 .map(_ => ())
             } else DBIO.successful(())
           update.map(_ => (id, None))
-        case None if isFreeExploration =>
+        case (None, _) if isFreeExploration =>
           mergedCoverage(task, stored = None).flatMap { (merged: Seq[CoveredRange]) =>
             // start_offset_m keeps the task out of the regular-mission resume paths, which measure from the start.
             val startOffsetM: Double = merged.headOption.map(_.startM).getOrElse(0d)
@@ -677,7 +685,7 @@ class ExploreServiceImpl @Inject() (
               )
               .map(id => (id, Some(merged)))
           }
-        case None =>
+        case (None, _) =>
           auditTaskTable
             .insert(
               AuditTask(0, None, userId, task.streetEdgeId, task.taskStart, timestamp, completed = false,
@@ -689,9 +697,7 @@ class ExploreServiceImpl @Inject() (
     }
   }
 
-  /**
-   * The posted coverage unioned with what the task stored, clipped to the street's geodesic length (turf's measure).
-   */
+  /** @return The posted coverage unioned with what the task stored, clipped to the street's geodesic length. */
   private def mergedCoverage(task: TaskSubmission, stored: Option[JsValue]): DBIO[Seq[CoveredRange]] =
     streetEdgeTable.getStreetLengths(Seq(task.streetEdgeId)).map { (lengths: Map[Int, Double]) =>
       val lengthM: Double = lengths.getOrElse(task.streetEdgeId, 0d)
