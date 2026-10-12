@@ -88,7 +88,7 @@ Street semantics vs. the manual QGIS flow:
     *along* the boundary rather than across it — one side lying entirely within ``--boundary-merge-tol-m`` of the
     other side's region — so a boundary-running road split midway comes back as one street (genuine crossings pull
     away from the boundary and keep their split; merged junctions land in the ``rider_merges`` QA layer). Whatever
-    is still shorter than ``--min-segment-m`` after healing is dropped (the runbook's manual "delete tiny segments"
+    is still shorter than ``MIN_SEGMENT_M`` after healing is dropped (the runbook's manual "delete tiny segments"
     pass) — kept in the QA GeoPackage's ``dropped_segments`` layer for review.
 
 The decision logic lives in pure, import-safe functions; network and file I/O live in the ``fetch_*``/``write_*``
@@ -116,6 +116,8 @@ from pyproj import Geod
 from shapely.geometry import LineString, MultiPolygon, Point, Polygon
 from shapely.ops import linemerge, substring
 
+from setup_new_city import staging_fingerprint
+
 logger = logging.getLogger(__name__)
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -136,6 +138,8 @@ def _osmnx():
 # cache; that path sees only the way a street starts on (osm_way_street_edge holds one way per street), where the
 # build reads every way the street spans.
 STRUCTURE_TAGS = ('bridge', 'tunnel', 'covered')
+# A street shorter than this can't be audited (#4717).
+MIN_SEGMENT_M = 15
 
 # The way types we audit — the same filter the manual QGIS flow applies (the retired QGIS runbook).
 # Every value is a label of the DB's way_type enum, so fill-new-schema.sh's ::way_type cast can't fail.
@@ -844,22 +848,43 @@ def validate_staging(roads, regions, overlaps_are_fatal=True):
     Checks hand-edited (or generated) staging data against what fill-new-schema.sh and the DB schema require.
 
     Args:
-        roads:   GeoDataFrame with ``road_id``, ``osm_ids``, ``highway``, ``region_id``, geometry.
+        roads:   GeoDataFrame with ``road_id``, ``osm_ids``, ``highway``, ``region_id``, ``length_m``, geometry.
         regions: GeoDataFrame with ``region_id``, ``name``, geometry.
 
     Returns:
         A list of error strings; empty when the data is loadable.
     """
+    required = {'qgis_road': (roads, ('road_id', 'osm_ids', 'highway', 'region_id')),
+                'qgis_region': (regions, ('region_id', 'name'))}
+    missing = [f'{layer}.{column}' for layer, (frame, columns) in required.items()
+               for column in columns if column not in frame.columns]
+    if missing:
+        return [f'missing column(s): {missing}']
     errors = []
-    if roads['road_id'].duplicated().any():
-        errors.append(f'duplicate road_id values: {sorted(roads.loc[roads["road_id"].duplicated(), "road_id"])}')
+    if roads['road_id'].isna().any():
+        errors.append('every street needs a road_id')
+    # Whole-number float ids were cast on the way in, so a float column here holds a fraction the SQL can't take.
+    for column, ids in (('road_id', roads['road_id']), ('region_id', roads['region_id']),
+                        ('region_id', regions['region_id'])):
+        if ids.notna().all() and not pd.api.types.is_integer_dtype(ids):
+            errors.append(f'{column} must be whole numbers; a QGIS field calculator column is Decimal unless told '
+                          'otherwise')
+            break
+    duplicated = roads['road_id'].dropna().duplicated()
+    if duplicated.any():
+        errors.append(f'duplicate road_id values: {sorted(roads["road_id"].dropna()[duplicated])}')
     if regions['region_id'].duplicated().any():
         errors.append('duplicate region_id values: '
                       f'{sorted(regions.loc[regions["region_id"].duplicated(), "region_id"])}')
     dangling = set(roads['region_id']) - set(regions['region_id'])
     if dangling:
         errors.append(f'streets reference region id(s) {sorted(dangling)} that do not exist')
-    bad_road_geoms = set(roads.geometry.geom_type) - {'LineString'}
+    present = ~shapely.is_missing(roads.geometry.values) & ~roads.geometry.is_empty.to_numpy()
+    no_geom = sorted(roads.loc[~present, 'road_id'])
+    if no_geom:
+        errors.append(f'streets {no_geom} have no geometry')
+    drawn = roads.geometry[present]
+    bad_road_geoms = set(drawn.geom_type) - {'LineString'}
     if bad_road_geoms:
         errors.append(f'street geometries must be LineString; found {sorted(bad_road_geoms)}')
     bad_region_geoms = set(regions.geometry.geom_type) - {'MultiPolygon'}
@@ -871,7 +896,7 @@ def validate_staging(roads, regions, overlaps_are_fatal=True):
                       '(Vector > Geometry Tools > Fix Geometries) and re-export')
     # A loop road (start == end) is simple; a street that doubles back over itself is not. Nothing downstream can
     # cope with the latter (double length, coincident endpoints), so it never reaches the SQL.
-    not_simple = sorted(roads.loc[~roads.geometry.is_simple, 'road_id'])
+    not_simple = sorted(roads.loc[drawn[~drawn.is_simple].index, 'road_id'])
     if not_simple:
         errors.append(f'street geometries {not_simple} self-overlap or self-intersect — a street must be a simple '
                       'line (a loop road is fine); fix in QGIS and re-export')
@@ -881,9 +906,16 @@ def validate_staging(roads, regions, overlaps_are_fatal=True):
         errors.append('streets must have non-null highway and region_id')
     if roads['osm_ids'].map(lambda way_ids: not isinstance(way_ids, list) or not way_ids).any():
         errors.append('every street needs at least one OSM way id in osm_ids (a hand-built layer: osm_ids = osm_id)')
-    # Overlapping pieces of one OSM way can't be a bridge over a road, so they're wrong (#3067); different ways
-    # might be, and staging data has no tags to tell, so those always only warn.
     if not errors:
+        # The build drops these itself, so a hit is a QGIS cut or snap that left a fragment too small to see (#4717).
+        too_short = roads.loc[roads['length_m'] < MIN_SEGMENT_M].sort_values(['length_m', 'road_id'])
+        if not too_short.empty:
+            more = ' ...' if len(too_short) > 10 else ''
+            offenders = ', '.join(f'{row.road_id} ({row.length_m:.2f} m)' for row in too_short.head(10).itertuples())
+            errors.append(f'{len(too_short)} street(s) are shorter than {MIN_SEGMENT_M} m: {offenders}{more} — '
+                          'merge or delete them in QGIS')
+        # Overlapping pieces of one OSM way can't be a bridge over a road, so they're wrong (#3067); different ways
+        # might be, and staging data has no tags to tell, so those always only warn.
         overlapping = find_overlapping_streets(roads)
         same_way = [(road_a, road_b) for road_a, road_b, shares_way in overlapping if shares_way]
         different_ways = [(road_a, road_b) for road_a, road_b, shares_way in overlapping if not shares_way]
@@ -1707,7 +1739,7 @@ def write_structures_csv(path, roads):
     }).to_csv(path, index=False)
 
 
-def write_sql(path, roads, regions):
+def write_sql(path, roads, regions, fingerprint=None):
     """
     Writes the SQL file that loads ``qgis_road`` and ``qgis_region`` into a city schema.
 
@@ -1715,14 +1747,17 @@ def write_sql(path, roads, regions):
     exactly what fill-new-schema.sh consumes; region provenance travels in ``qgis_region.data_source``.
 
     Args:
-        path:    Output ``.sql`` path.
-        roads:   Final street GeoDataFrame.
-        regions: Final region GeoDataFrame.
+        path:        Output ``.sql`` path.
+        roads:       Final street GeoDataFrame.
+        regions:     Final region GeoDataFrame.
+        fingerprint: :func:`setup_new_city.staging_fingerprint` of the QA GeoPackage this SQL was made from, so the
+                     orchestrator can refuse the SQL once the GeoPackage no longer matches it.
     """
     lines = [
         '-- Generated by tools/city/onboard_city.py — staging tables consumed by db/scripts/fill-new-schema.sh.',
         '-- Load as the city role after `make create-new-schema`:',
         '--   docker exec -i projectsidewalk-db psql -v ON_ERROR_STOP=1 -U <schema> -d sidewalk -f <this file>',
+        *([f'-- Staging fingerprint: {fingerprint}'] if fingerprint else []),
         'BEGIN;',
         'DROP TABLE IF EXISTS qgis_road;',
         'DROP TABLE IF EXISTS qgis_region;',
@@ -1812,7 +1847,7 @@ def write_report(path, args, region_source, roads, regions, dropped, stats, cove
             f'- Merged boundary-running splits: **{heal_stats.n_riders}** (one side ran entirely within '
             f'{args.boundary_merge_tol_m:g} m of the other side\'s region — along the boundary, not across it; '
             'see the `rider_merges` QA layer for the merged junctions)',
-            f'- Dropped segments < {args.min_segment_m:g} m: **{len(dropped)}**{dropped_note}',
+            f'- Dropped segments < {MIN_SEGMENT_M} m: **{len(dropped)}**{dropped_note}',
         ]
     lines += [
         '',
@@ -1913,8 +1948,6 @@ def parse_args(argv=None):
     parser.add_argument('--boundary-merge-tol-m', type=float, default=15,
                         help='Merge a split street back together when one side runs entirely within this distance of '
                              'the other side\'s region, i.e. along the boundary instead of across it (default: 15 m).')
-    parser.add_argument('--min-segment-m', type=float, default=15,
-                        help='Drop street fragments shorter than this after clipping and healing (default: 15 m).')
     parser.add_argument('--max-region-sliver-m', type=float, default=5,
                         help='Regions must never overlap. An overlap thinner than this is taken as two people '
                              'tracing the same border slightly differently and is repaired by giving the ground to '
@@ -1978,6 +2011,14 @@ def run_from_gpkg(args):
     roads = gpd.read_file(gpkg_path, layer='qgis_road')
     regions = gpd.read_file(gpkg_path, layer='qgis_region')
     logger.info('Read %d streets and %d regions from %s', len(roads), len(regions), gpkg_path)
+    if roads.crs is None or regions.crs is None:
+        sys.exit('error: the qgis_road and qgis_region layers need a CRS; set one in QGIS and re-export.')
+    roads, regions = roads.to_crs(epsg=4326), regions.to_crs(epsg=4326)
+    # QGIS's field calculator makes Decimal columns, so ids drawn by hand come in as 1.0, 2.0, ...
+    for frame, column in ((roads, 'road_id'), (roads, 'region_id'), (regions, 'region_id')):
+        if column in frame.columns and pd.api.types.is_float_dtype(frame[column]) and \
+                frame[column].notna().all() and (frame[column] % 1 == 0).all():
+            frame[column] = frame[column].astype(int)
     # QGIS edits can demote a region to a plain Polygon; promote before validating.
     regions['geometry'] = regions.geometry.map(to_multipolygon)
     if args.rename_regions:
@@ -2002,7 +2043,7 @@ def run_from_gpkg(args):
                        'sample the street gradient after the first nightly OSM way refresh (docs/street-gradient.md).')
         # An earlier build's file would otherwise be taken for this one's by the onboarding orchestrator.
         (out_dir / 'street_structures.csv').unlink(missing_ok=True)
-    roads['length_m'] = [geodesic_length_m(geom) for geom in roads.geometry]
+    roads['length_m'] = [geodesic_length_m(geom) if geom is not None else 0.0 for geom in roads.geometry]
 
     errors = validate_staging(roads, regions)
     if errors:
@@ -2024,7 +2065,7 @@ def run_from_gpkg(args):
     sql_path = out_dir / 'qgis_tables.sql'
     report_path = out_dir / 'report.md'
     endpoints_path = out_dir / 'street_edge_endpoints.csv'
-    write_sql(sql_path, roads, regions)
+    write_sql(sql_path, roads, regions, staging_fingerprint(gpkg_path))
     write_endpoints_csv(endpoints_path, roads)
     written = [sql_path, endpoints_path]
     if 'is_structure' in roads.columns:
@@ -2109,7 +2150,7 @@ def main(argv=None):
     logger.info('Merged %d pieces < %g m into a touching piece of the same OSM way (#4717 tier 1); %d edges remain',
                 n_tier1_merged, args.merge_tiny_m, len(streets))
 
-    roads, dropped, heal_stats, rider_junctions = assign_regions(streets, regions, args.min_segment_m,
+    roads, dropped, heal_stats, rider_junctions = assign_regions(streets, regions, MIN_SEGMENT_M,
                                                                  args.heal_segment_m, args.boundary_merge_tol_m)
     if roads.empty:
         sys.exit('error: no street landed in any region — check that the boundary and the regions overlap the '
@@ -2130,7 +2171,7 @@ def main(argv=None):
                 heal_stats.n_riders)
     street_stats = street_length_stats(roads)
     logger.info('Final streets: %d (%.1f km, median %.0f m); dropped %d fragments < %g m; %d (%.0f%%) under 20 m',
-                len(roads), roads['length_m'].sum() / 1000, street_stats.median_m, len(dropped), args.min_segment_m,
+                len(roads), roads['length_m'].sum() / 1000, street_stats.median_m, len(dropped), MIN_SEGMENT_M,
                 street_stats.n_lt20, street_stats.pct_lt20)
     for stat in stats[stats['flag'] != ''].itertuples():
         logger.warning('Region %d (%s): %s', stat.region_id, stat.name, stat.flag)
@@ -2140,7 +2181,7 @@ def main(argv=None):
     endpoints_path = out_dir / 'street_edge_endpoints.csv'
     report_path = out_dir / 'report.md'
     write_gpkg(gpkg_path, roads, regions, boundary, dropped, rider_junctions)
-    write_sql(sql_path, roads, regions)
+    write_sql(sql_path, roads, regions, staging_fingerprint(gpkg_path))
     write_endpoints_csv(endpoints_path, roads)
     write_structures_csv(out_dir / 'street_structures.csv', roads)
     write_report(report_path, args, region_source, roads, regions, dropped, stats, coverage, heal_stats,
