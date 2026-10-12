@@ -8,9 +8,9 @@ a structural change to those files that would break the orchestrator fails here 
 """
 
 import hashlib
-import os
 import re
 import shutil
+import sqlite3
 from datetime import date
 from pathlib import Path
 from types import SimpleNamespace
@@ -1111,6 +1111,43 @@ def _city_artifacts(repo_copy, city_id='testville-wa', preflight=True):
     return city_dir
 
 
+def _staging_gpkg(path):
+    """A bare GeoPackage with the two staging layers, enough for the fingerprint."""
+    db = sqlite3.connect(path)
+    db.execute('CREATE TABLE qgis_road (fid INTEGER PRIMARY KEY, geom BLOB, road_id INTEGER, region_id INTEGER)')
+    db.execute('CREATE TABLE qgis_region (fid INTEGER PRIMARY KEY, geom BLOB, region_id INTEGER, name TEXT)')
+    db.executemany('INSERT INTO qgis_road VALUES (?, ?, ?, ?)', [(1, b'\x01', 1, 1), (2, b'\x02', 2, 1)])
+    db.execute('INSERT INTO qgis_region VALUES (1, ?, 1, ?)', (b'\x03', 'West'))
+    db.commit()
+    db.close()
+    return path
+
+
+def _edit_street(path):
+    db = sqlite3.connect(path)
+    db.execute("UPDATE qgis_road SET geom = x'0102' WHERE road_id = 2")
+    db.commit()
+    db.close()
+
+
+def test_staging_fingerprint_follows_the_rows_not_the_file(tmp_path):
+    gpkg = _staging_gpkg(tmp_path / 'a.gpkg')
+    before = snc.staging_fingerprint(gpkg)
+    assert before == snc.staging_fingerprint(_staging_gpkg(tmp_path / 'b.gpkg'))
+    _edit_street(gpkg)
+    assert snc.staging_fingerprint(gpkg) != before
+
+
+def test_sql_fingerprint_reads_only_the_header(tmp_path):
+    sql = tmp_path / 'qgis_tables.sql'
+    sql.write_text('-- Generated\n-- Staging fingerprint: abc123\nBEGIN;\n-- Staging fingerprint: later\n')
+    assert snc.sql_fingerprint(sql) == 'abc123'
+    sql.write_text('-- Generated\nBEGIN;\nCOMMIT;\n')
+    assert snc.sql_fingerprint(sql) is None
+    sql.write_text('-- Generated\n')
+    assert snc.sql_fingerprint(sql) is None
+
+
 def _answers(monkeypatch, *answers):
     """Scripts input(): each prompt takes the next answer ('' accepts the default)."""
     queue = list(answers)
@@ -1194,13 +1231,13 @@ def test_main_needs_the_build_artifacts_and_running_containers(repo_copy, monkey
     with pytest.raises(SystemExit, match='make build-city-data'):
         snc.main(['testville-wa'])
     city_dir = _city_artifacts(repo_copy)
-    gpkg = city_dir / 'testville-wa_qa.gpkg'
-    gpkg.write_bytes(b'')
-    sql_mtime = (city_dir / 'qgis_tables.sql').stat().st_mtime
-    os.utime(gpkg, (sql_mtime + 60, sql_mtime + 60))
-    with pytest.raises(SystemExit, match='older than testville-wa_qa.gpkg'):
+    gpkg = _staging_gpkg(city_dir / 'testville-wa_qa.gpkg')
+    sql_file = city_dir / 'qgis_tables.sql'
+    sql_file.write_text(f'-- Staging fingerprint: {snc.staging_fingerprint(gpkg)}\n{_QGIS_SQL}')
+    _edit_street(gpkg)
+    with pytest.raises(SystemExit, match='testville-wa_qa.gpkg has changed since qgis_tables.sql'):
         snc.main(['testville-wa'])
-    os.utime(gpkg, (sql_mtime - 60, sql_mtime - 60))
+    sql_file.write_text(f'-- Staging fingerprint: {snc.staging_fingerprint(gpkg)}\n{_QGIS_SQL}')
     _stub_steps(monkeypatch, repo_copy)
     _fake_run(monkeypatch, {'true': (1, '')})
     _answers(monkeypatch, 'y', '', '', '', '', '', '', '')

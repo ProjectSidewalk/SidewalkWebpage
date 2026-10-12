@@ -922,6 +922,9 @@ def test_write_sql_emits_loadable_copy_blocks(tmp_path):
     path = tmp_path / 'qgis_tables.sql'
     oc.write_sql(path, _staged_roads(), _city_regions())
     sql = path.read_text()
+    assert 'fingerprint' not in sql
+    oc.write_sql(path, _staged_roads(), _city_regions(), 'abc123')
+    assert '-- Staging fingerprint: abc123\nBEGIN;' in path.read_text()
     assert sql.count('FROM stdin;') == 2
     assert 'BEGIN;' in sql
     assert sql.rstrip().endswith('COMMIT;')
@@ -998,6 +1001,7 @@ def test_run_from_gpkg_regenerates_sql_from_edited_layers(tmp_path):
     oc.run_from_gpkg(oc.parse_args(['--city-id', 'testville', '--from-gpkg', str(path)]))
     sql = (tmp_path / 'qgis_tables.sql').read_text()
     assert 'COPY qgis_road' in sql
+    assert f'-- Staging fingerprint: {oc.staging_fingerprint(path)}\n' in sql
     assert '\t{101,102}\t' in sql
     assert 'edited GeoPackage (city_qa.gpkg)' in sql
     report = (tmp_path / 'report.md').read_text()
@@ -1095,14 +1099,16 @@ def test_validate_staging_reports_short_streets_and_overlaps_together():
 
 
 def test_validate_staging_reports_a_point_or_missing_geometry_once():
-    roads = _staged_roads()
+    roads = pd.concat([_staged_roads()] * 2, ignore_index=True)
+    roads['road_id'] = [1, 2, 3, 4]
     roads.loc[0, 'geometry'] = Point(0.002, 0.005)
     roads.loc[1, 'geometry'] = None
+    roads.loc[2, 'geometry'] = Point()
     roads['length_m'] = 0.0
     errors = oc.validate_staging(roads, _city_regions())
     assert len(errors) == 2
     assert any('must be LineString' in error for error in errors)
-    assert any('streets [2] have no geometry' in error for error in errors)
+    assert any('streets [2, 3] have no geometry' in error for error in errors)
 
 
 def test_validate_staging_catches_a_missing_road_id():
@@ -1130,6 +1136,54 @@ def test_run_from_gpkg_reports_a_street_without_geometry(tmp_path):
     _city_regions().to_file(path, layer='qgis_region', driver='GPKG')
     with pytest.raises(SystemExit, match=r'streets \[2\] have no geometry'):
         oc.run_from_gpkg(oc.parse_args(['--city-id', 'testville', '--from-gpkg', str(path)]))
+
+
+def test_run_from_gpkg_reprojects_a_layer_saved_in_another_crs(tmp_path):
+    path = tmp_path / 'projected_qa.gpkg'
+    oc.gpkg_frame(_staged_roads()).to_crs(epsg=3857).to_file(path, layer='qgis_road', driver='GPKG')
+    _city_regions().to_crs(epsg=3857).to_file(path, layer='qgis_region', driver='GPKG')
+    oc.run_from_gpkg(oc.parse_args(['--city-id', 'testville', '--from-gpkg', str(path)]))
+    assert '0102000020E610' in (tmp_path / 'qgis_tables.sql').read_text().upper()
+    assert 'median **668 m**' in (tmp_path / 'report.md').read_text()
+
+
+def test_run_from_gpkg_needs_a_crs(tmp_path):
+    path = tmp_path / 'nocrs_qa.gpkg'
+    oc.gpkg_frame(_staged_roads()).set_crs(None, allow_override=True).to_file(path, layer='qgis_road', driver='GPKG')
+    _city_regions().to_file(path, layer='qgis_region', driver='GPKG')
+    with pytest.raises(SystemExit, match='need a CRS'):
+        oc.run_from_gpkg(oc.parse_args(['--city-id', 'testville', '--from-gpkg', str(path)]))
+
+
+def test_run_from_gpkg_casts_whole_number_decimal_ids(tmp_path):
+    roads, regions = _staged_roads(), _city_regions()
+    roads['road_id'], roads['region_id'] = roads['road_id'].astype(float), roads['region_id'].astype(float)
+    regions['region_id'] = regions['region_id'].astype(float)
+    path = tmp_path / 'decimal_qa.gpkg'
+    oc.gpkg_frame(roads).to_file(path, layer='qgis_road', driver='GPKG')
+    regions.to_file(path, layer='qgis_region', driver='GPKG')
+    oc.run_from_gpkg(oc.parse_args(['--city-id', 'testville', '--from-gpkg', str(path)]))
+    sql = (tmp_path / 'qgis_tables.sql').read_text()
+    assert '1.0' not in sql and '\n2\t{101,102}\tprimary\t2\t' in sql
+
+
+def test_validate_staging_rejects_fractional_ids_and_missing_columns():
+    roads = _staged_roads()
+    roads['road_id'] = [1.0, 2.5]
+    errors = oc.validate_staging(roads, _city_regions())
+    assert len(errors) == 1 and errors[0].startswith('road_id must be whole numbers')
+    regions = _city_regions()
+    regions['region_id'] = regions['region_id'].astype(float)
+    assert any(error.startswith('region_id must be whole numbers')
+               for error in oc.validate_staging(_staged_roads(), regions))
+    assert oc.validate_staging(_staged_roads().drop(columns=['road_id']), _city_regions().drop(columns=['name'])) \
+        == ["missing column(s): ['qgis_road.road_id', 'qgis_region.name']"]
+
+
+def test_validate_staging_reports_two_streets_without_ids_once():
+    roads = _staged_roads()
+    roads['road_id'] = [None, None]
+    assert oc.validate_staging(roads, _city_regions()) == ['every street needs a road_id']
 
 
 def test_run_from_gpkg_rejects_broken_edits(tmp_path):
