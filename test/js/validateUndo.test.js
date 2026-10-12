@@ -69,6 +69,7 @@ describe('undoing a validation', () => {
   let modalMissionComplete;
   let holdNextLoad;
   let releaseLoad;
+  let panoManager;
 
   /**
    * Builds the button over a real container and mission, wired the way Main.js wires them, with the first label on
@@ -81,7 +82,7 @@ describe('undoing a validation', () => {
     missionContainer = new MissionContainer(
       statusField, { setMissionMessage: jest.fn() }, modalMissionComplete, { markLive: jest.fn() }, tracker,
     );
-    const panoManager = {
+    panoManager = {
       setPanorama: jest.fn((panoId) => {
         if (!holdNextLoad) return Promise.resolve({ panoData: { panoId } });
         holdNextLoad = false;
@@ -333,6 +334,37 @@ describe('undoing a validation', () => {
     expect(missionCounts()).toEqual(counts);
     expect(labelContainer.getLabelsToSubmit()).toEqual(buffer);
     expect(undoValidation.canUndo()).toBe(false);
+    expect(undoButton.disabled).toBe(true);
+  });
+
+  // Left current, the label would keep its verdict and Submit would count it twice (#5754).
+  test('an undo whose marker fails to draw goes back to the label undone from and rolls nothing back', async () => {
+    await build();
+    await cast('Agree');
+    const counts = missionCounts();
+    const buffer = [...labelContainer.getLabelsToSubmit()];
+    panoManager.renderPanoMarker.mockRejectedValueOnce(new Error('marker'));
+
+    await expect(labelContainer.undoLabel()).resolves.toBe(false);
+
+    expect(tracker.push).toHaveBeenCalledWith('ValidateRenderFailed', { error: 'marker' });
+    expect(currentLabelId()).toBe(2);
+    expect(labelContainer.hasPreviousLabel()).toBe(true);
+    expect(missionCounts()).toEqual(counts);
+    expect(labelContainer.getLabelsToSubmit()).toEqual(buffer);
+  });
+
+  test('Back goes off and nothing is rolled back when neither label can be drawn', async () => {
+    await build();
+    await cast('Agree');
+    const counts = missionCounts();
+    panoManager.renderPanoMarker.mockRejectedValueOnce(new Error('marker')).mockRejectedValueOnce(new Error('again'));
+
+    await pressUndo();
+
+    expect(tracker.push).toHaveBeenCalledWith('ValidateRenderFailed', { error: 'again' });
+    expect(currentLabelId()).toBe(2);
+    expect(missionCounts()).toEqual(counts);
     expect(undoButton.disabled).toBe(true);
   });
 });

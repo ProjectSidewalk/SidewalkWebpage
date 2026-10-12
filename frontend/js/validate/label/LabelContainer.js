@@ -235,7 +235,7 @@ export class LabelContainer {
    * already been validated, so it can't be deferred or dropped like an unseen one: deferring it would serve it a
    * second time at the end of the mission, and dropping it would ask the backend to replace a label that counts.
    * Reporting the abandoned undo as a failed one is what keeps mission progress in step: the caller only rolls back a
-   * validation the user can actually redo, and turns Back off either way.
+   * validation the user can actually redo, and turns Back off either way. A marker that won't draw does the same.
    *
    * @returns {Promise<boolean>} True if the previous label is now showing. False also covers an undo dropped for
    * arriving mid-load, which is likewise an undo the caller must not count.
@@ -246,7 +246,16 @@ export class LabelContainer {
     const previousLabel = this.#labels[this.#currLabelIndex - 1];
     this.#currLabelIndex -= 1;
     this.#currLabel = previousLabel;
-    await this.renderCurrentLabel({ undo: true });
+    try {
+      await this.renderCurrentLabel({ undo: true });
+    } catch {
+      // Its verdict still stands, so leaving it current would let Submit count it twice (#5754).
+      this.#currLabelIndex += 1;
+      this.#currLabel = this.#labels[this.#currLabelIndex];
+      // Already logged as ValidateRenderFailed, and there is nothing left to fall back to.
+      await this.renderCurrentLabel().catch(() => {});
+      return false;
+    }
 
     return this.#currLabel === previousLabel;
   }

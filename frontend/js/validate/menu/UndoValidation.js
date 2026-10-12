@@ -76,17 +76,20 @@ export class UndoValidation {
 
     // Progress is rolled back only once the previous label is actually on screen, so that an undo the label container
     // couldn't complete leaves the mission counting the validation the user still has standing.
-    if (await this.#labelContainer.undoLabel()) {
-      const undone = this.#labelContainer.retractLastValidation();
-      this.#missionContainer.updateAMissionUndoValidation(undone.validation_result);
-      // The verdict being undone has usually reached the server already (verdicts flush within a second, #5561), so
-      // the retraction is a row of its own and is worth the same hurry: a tab killed before it goes out keeps a
-      // verdict the validator took back, and the mission's progress a label ahead of the truth.
-      this.#tracker.flushSoon();
+    try {
+      if (await this.#labelContainer.undoLabel()) {
+        const undone = this.#labelContainer.retractLastValidation();
+        this.#missionContainer.updateAMissionUndoValidation(undone.validation_result);
+        // The verdict being undone has usually reached the server already (verdicts flush within a second, #5561), so
+        // the retraction is a row of its own and is worth the same hurry: a tab killed before it goes out keeps a
+        // verdict the validator took back, and the mission's progress a label ahead of the truth.
+        this.#tracker.flushSoon();
+      }
+    } finally {
+      // Off either way: an undo that worked has nothing further to take back, and one the container abandoned fell
+      // back to the label the user undid from, where pressing Back again would only repeat the failure.
+      this.disableUndo();
     }
-    // Off either way: an undo that worked has nothing further to take back, and one the container abandoned fell
-    // back to the label the user undid from, where pressing Back again would only repeat the failure.
-    this.disableUndo();
   };
 
   /**
