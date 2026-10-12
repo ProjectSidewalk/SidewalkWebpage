@@ -1257,6 +1257,10 @@ def main(argv=None):
     sql_file = city_dir / 'qgis_tables.sql'
     if not sql_file.exists():
         sys.exit(f'error: {sql_file} not found — run `make build-city-data id={city_id} ...` first.')
+    gpkg = city_dir / f'{city_id}_qa.gpkg'
+    if gpkg.exists() and gpkg.stat().st_mtime > sql_file.stat().st_mtime:
+        sys.exit(f'error: {sql_file.name} is older than {gpkg.name}, so it does not match what was QA\'d: run '
+                 f'`make build-city-data id={city_id} args="--from-gpkg"` (and fix what it refuses) first.')
     regions = parse_report(city_id)
 
     print(f'Step 0/9 — what the build produced for {city_id}:')

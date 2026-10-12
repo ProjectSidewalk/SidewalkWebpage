@@ -8,6 +8,7 @@ a structural change to those files that would break the orchestrator fails here 
 """
 
 import hashlib
+import os
 import re
 import shutil
 from datetime import date
@@ -1192,7 +1193,14 @@ def test_main_stops_when_the_data_is_refused(repo_copy, monkeypatch):
 def test_main_needs_the_build_artifacts_and_running_containers(repo_copy, monkeypatch):
     with pytest.raises(SystemExit, match='make build-city-data'):
         snc.main(['testville-wa'])
-    _city_artifacts(repo_copy)
+    city_dir = _city_artifacts(repo_copy)
+    gpkg = city_dir / 'testville-wa_qa.gpkg'
+    gpkg.write_bytes(b'')
+    sql_mtime = (city_dir / 'qgis_tables.sql').stat().st_mtime
+    os.utime(gpkg, (sql_mtime + 60, sql_mtime + 60))
+    with pytest.raises(SystemExit, match='older than testville-wa_qa.gpkg'):
+        snc.main(['testville-wa'])
+    os.utime(gpkg, (sql_mtime - 60, sql_mtime - 60))
     _stub_steps(monkeypatch, repo_copy)
     _fake_run(monkeypatch, {'true': (1, '')})
     _answers(monkeypatch, 'y', '', '', '', '', '', '', '')
