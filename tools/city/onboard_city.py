@@ -839,18 +839,26 @@ def rename_regions(regions, mapping):
     return renamed
 
 
-def validate_staging(roads, regions, overlaps_are_fatal=True):
+def validate_staging(roads, regions, overlaps_are_fatal=True, min_segment_m=0):
     """
     Checks hand-edited (or generated) staging data against what fill-new-schema.sh and the DB schema require.
 
     Args:
-        roads:   GeoDataFrame with ``road_id``, ``osm_ids``, ``highway``, ``region_id``, geometry.
-        regions: GeoDataFrame with ``region_id``, ``name``, geometry.
+        roads:         GeoDataFrame with ``road_id``, ``osm_ids``, ``highway``, ``region_id``, ``length_m``, geometry.
+        regions:       GeoDataFrame with ``region_id``, ``name``, geometry.
+        min_segment_m: Streets shorter than this are an error; 0 skips the check.
 
     Returns:
         A list of error strings; empty when the data is loadable.
     """
     errors = []
+    # The build drops these itself, so a hit here is a QGIS cut or snap that left a fragment too small to see (#4717).
+    if min_segment_m and (roads['length_m'] < min_segment_m).any():
+        too_short = roads.loc[roads['length_m'] < min_segment_m].sort_values('length_m')
+        more = ' ...' if len(too_short) > 10 else ''
+        offenders = ', '.join(f'{row.road_id} ({row.length_m:.2f} m)' for row in too_short.head(10).itertuples())
+        errors.append(f'{len(too_short)} street(s) are shorter than {min_segment_m:g} m: {offenders}{more} — '
+                      'fix them in QGIS or lower --min-segment-m')
     if roads['road_id'].duplicated().any():
         errors.append(f'duplicate road_id values: {sorted(roads.loc[roads["road_id"].duplicated(), "road_id"])}')
     if regions['region_id'].duplicated().any():
@@ -1914,7 +1922,8 @@ def parse_args(argv=None):
                         help='Merge a split street back together when one side runs entirely within this distance of '
                              'the other side\'s region, i.e. along the boundary instead of across it (default: 15 m).')
     parser.add_argument('--min-segment-m', type=float, default=15,
-                        help='Drop street fragments shorter than this after clipping and healing (default: 15 m).')
+                        help='Drop street fragments shorter than this after clipping and healing; a --from-gpkg '
+                             're-export refuses them (default: 15 m).')
     parser.add_argument('--max-region-sliver-m', type=float, default=5,
                         help='Regions must never overlap. An overlap thinner than this is taken as two people '
                              'tracing the same border slightly differently and is repaired by giving the ground to '
@@ -2004,7 +2013,7 @@ def run_from_gpkg(args):
         (out_dir / 'street_structures.csv').unlink(missing_ok=True)
     roads['length_m'] = [geodesic_length_m(geom) for geom in roads.geometry]
 
-    errors = validate_staging(roads, regions)
+    errors = validate_staging(roads, regions, min_segment_m=args.min_segment_m)
     if errors:
         sys.exit('error: edited staging data is not loadable:\n  - ' + '\n  - '.join(errors))
 
@@ -2116,7 +2125,7 @@ def main(argv=None):
                  'street network (the fetch found %d edges).' % len(streets))
     # Overlaps only warn here: prepare_regions has already given each one to a single region, so anything left is
     # worth seeing in QGIS, and dying now would deny the operator the QA GeoPackage that shows it.
-    errors = validate_staging(roads, regions, overlaps_are_fatal=False)
+    errors = validate_staging(roads, regions, overlaps_are_fatal=False, min_segment_m=args.min_segment_m)
     if errors:  # A pipeline-invariant safety net; any hit here is a bug in the steps above.
         sys.exit('error: generated staging data failed validation:\n  - ' + '\n  - '.join(errors))
     stats = region_street_stats(roads, regions, args.max_region_street_km)

@@ -89,9 +89,9 @@ flagged region. Two ways back:
   applied are skipped. A repeated source name is kept as separate regions, `"X (2)"` (logged, not in the report).
 - *Hand edits:* delete a street, reassign its `region_id`, move a boundary — in the GeoPackage — then
   `make build-city-data id=<city-id> args="--from-gpkg"`, which validates the layers (unique ids, region references,
-  geometry types, non-empty names, at least one OSM way id per street, no two streets drawn on top of each other)
-  and rewrites the SQL, report, and endpoints CSV so the load matches what you QA'd. Region edits big enough that
-  streets should re-split go back in as the region source instead:
+  geometry types, non-empty names, at least one OSM way id per street, no two streets drawn on top of each other,
+  no street under `--min-segment-m`) and rewrites the SQL, report, and endpoints CSV so the load matches what you
+  QA'd. Region edits big enough that streets should re-split go back in as the region source instead:
   `--regions-file <the QA gpkg> --regions-source "..."`.
 
 Never load a stale SQL over hand edits.

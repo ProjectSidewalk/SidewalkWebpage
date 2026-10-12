@@ -1067,6 +1067,40 @@ def test_run_from_gpkg_warns_on_overlaps_and_gaps(tmp_path, caplog):
     assert any('cover only' in record.message for record in caplog.records)
 
 
+def test_validate_staging_rejects_streets_under_the_minimum_length():
+    roads = _staged_roads()
+    roads.loc[0, 'geometry'] = LineString([(0.002, 0.005), (0.002005, 0.005)])
+    roads.loc[0, 'length_m'] = oc.geodesic_length_m(roads.geometry.iloc[0])
+    errors = oc.validate_staging(roads, _city_regions(), min_segment_m=15)
+    assert len(errors) == 1
+    assert errors[0].startswith('1 street(s) are shorter than 15 m: 1 (0.56 m)')
+    assert oc.validate_staging(roads, _city_regions()) == []
+    assert oc.validate_staging(roads, _city_regions(), min_segment_m=0.5) == []
+
+
+def test_validate_staging_lists_the_ten_shortest_offenders():
+    roads = pd.concat([_staged_roads()] * 6, ignore_index=True)
+    roads['road_id'] = range(1, len(roads) + 1)
+    roads['length_m'] = [float(n) for n in range(len(roads), 0, -1)]
+    errors = oc.validate_staging(roads, _city_regions(), min_segment_m=15)
+    assert '12 street(s) are shorter than 15 m: 12 (1.00 m), 11 (2.00 m)' in errors[0]
+    assert '3 (10.00 m) ... —' in errors[0]
+    assert '2 (11.00 m)' not in errors[0]
+
+
+def test_run_from_gpkg_refuses_a_street_cut_too_short_in_qgis(tmp_path):
+    roads = _staged_roads()
+    roads.loc[1, 'geometry'] = LineString([(0.012, 0.005), (0.012005, 0.005)])
+    path = tmp_path / 'snapped_qa.gpkg'
+    oc.gpkg_frame(roads).to_file(path, layer='qgis_road', driver='GPKG')
+    _city_regions().to_file(path, layer='qgis_region', driver='GPKG')
+    with pytest.raises(SystemExit, match='shorter than 15 m: 2 \\(0.56 m\\)'):
+        oc.run_from_gpkg(oc.parse_args(['--city-id', 'testville', '--from-gpkg', str(path)]))
+    assert not (tmp_path / 'qgis_tables.sql').exists()
+    oc.run_from_gpkg(oc.parse_args(['--city-id', 'testville', '--from-gpkg', str(path), '--min-segment-m', '0']))
+    assert (tmp_path / 'qgis_tables.sql').exists()
+
+
 def test_run_from_gpkg_rejects_broken_edits(tmp_path):
     roads = _staged_roads()
     roads['region_id'] = 9
