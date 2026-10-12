@@ -241,7 +241,9 @@ class UserStatTable @Inject() (
   private val missionTable         = TableQuery[MissionTableDef]
   private val labelValidationTable = TableQuery[LabelValidationTableDef]
 
-  private val auditMissions = missionTable.filter(_.missionType === MissionType.Audit)
+  // Free exploration earns meters_audited too (#5733); without its labels here, its users read as labeling nothing.
+  private val auditMissions =
+    missionTable.filter(_.missionType inSet Set(MissionType.Audit, MissionType.ExploreAddress))
 
   private val LABEL_PER_METER_THRESHOLD: Double = 0.0375
 

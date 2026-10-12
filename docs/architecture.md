@@ -110,6 +110,18 @@ arbitrary line, fewer tiny disconnected pieces, and enough of a plan that the to
   its street is: going by the mission alone would hide a route's labels from a later visit to the neighborhood they
   are actually in, and going by the street alone would drop a label placed just across a border from its mission's
   region. It is a UNION of two indexed branches on purpose; an OR across the two joins can't use either index.
+- **Free exploration credits streets by coverage, not by reaching the end.** The `?lat&lng` drop-in (#4451) has no
+  route or direction, so the client credits each pano to whichever loaded street it is on, switching tasks as the
+  labeler wanders (`TaskContainer.recordExploreMove`), and keeps per task the stretches seen: 10 m either side of
+  each on-street pano plus the stretch between neighbours under 50 m apart (`Task.recordVisit`). The server unions
+  each submission into `audit_task.covered_ranges` on the user's own open task for that street (found by user,
+  street and mission, never by the posted id), derives `audited_distance_m` from the total, and completes the task
+  once what is left unseen is at most half the street and at most 50 m (`StreetCoverage`, fitted to real walks
+  fleet-wide). A street the user already has an up-to-date audit of takes no new task, so it is never counted
+  twice; one flagged for re-audit gets one, as in a regular mission. Everything downstream reads
+  `audit_task.completed` as usual. `start_offset_m` marks these rows and
+  keeps them out of the regular-mission resume paths, though the region task list still returns their coverage so a
+  reload redraws a part-walked street. Sessions from before #5733 are credited by a one-off backfill.
 
 ### Media storage
 
