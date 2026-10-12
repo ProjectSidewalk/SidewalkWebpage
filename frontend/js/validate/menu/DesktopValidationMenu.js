@@ -58,7 +58,7 @@ export class DesktopValidationMenu {
     this.#unsureReasonButtons = DesktopValidationMenu.#reasonButtonsIn(menuUI.unsureReasonOptions);
 
     this.#init();
-    labelContainer.onLabelShown((label) => this.resetMenu(label));
+    labelContainer.onLabelReady((label) => this.resetMenu(label));
     labelCard.onTypePicked((labelType) => this.pickNewLabelType(labelType));
   }
 

@@ -89,7 +89,7 @@ export class LabelCard {
       this.#typeDropdown.setEditable(true);
     }
 
-    labelContainer.onLabelShown((label) => this.render(label));
+    labelContainer.onLabelReady((label) => this.render(label));
   }
 
   /**

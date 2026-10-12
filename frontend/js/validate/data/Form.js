@@ -1,5 +1,8 @@
 /**
  * Compiles and submits Validate interaction and validation data to the back end.
+ *
+ * Built right after the Tracker, before the viewer loads, so that the exit flush already covers a page closed during
+ * that load. The mission it submits for arrives later (attachSession), since its collaborators need the viewer.
  */
 
 import { util } from '../../common/utilities.js';
@@ -23,10 +26,10 @@ export class Form {
   /** @type {Tracker} */
   #tracker;
   /**
-   * @type {?FormSession} Null on the dead-end page (no mission to validate): it still logs the visit, but there is
-   * nothing to compile a mission or its labels from and no next mission to move on to.
+   * @type {?FormSession} Null until attachSession, and for good on the dead-end page (no mission to validate): it still
+   * logs the visit, but there is nothing to compile a mission or its labels from and no next mission to move on to.
    */
-  #session;
+  #session = null;
 
   // Resubmit a failed POST a bounded number of times before giving up, so a transient mobile-network blip doesn't
   // lose data — and, crucially, never reload the page (a reload mid-mission resets the user to the first label and,
@@ -54,18 +57,14 @@ export class Form {
    * @param {string} url - URL to send validation/interaction data to.
    * @param {ValidateConfig} config - Names the Validate UI the data comes from and carries the validate params.
    * @param {Tracker} tracker - The interaction buffer every submit drains; its timed flushes send through here.
-   * @param {?FormSession} session - The mission being validated, or null on the dead-end page.
    */
-  constructor(url, config, tracker, session) {
+  constructor(url, config, tracker) {
     this.#dataStoreUrl = url;
     this.#config = config;
     this.#tracker = tracker;
-    this.#session = session;
 
     // The tracker decides when a mid-mission flush is due; this is what sends it.
     tracker.onFlush(() => this.submit(this.compileSubmissionData(false), true));
-    // A finished mission is submitted at once, with its completed flag, so the response can carry the next one.
-    session?.missionContainer.onMissionComplete(() => this.submit(this.compileSubmissionData(true)));
 
     // Flush any remaining logs when the page is being dismissed. `pagehide` is the reliable, bfcache-compatible
     // unload signal (#3935).
@@ -152,6 +151,17 @@ export class Form {
     const progress = data.mission_progress;
     const latest = progress && this.#latestProgress.get(progress.mission_id);
     if (latest) data.mission_progress = { ...latest, completed: progress.completed };
+  }
+
+  /**
+   * Hands over the mission this page validates, once its collaborators exist: from here on every submit carries
+   * the mission's progress and verdicts, and a finished mission is submitted at once, with its completed flag, so
+   * the response can carry the next one.
+   * @param {FormSession} session
+   */
+  attachSession(session) {
+    this.#session = session;
+    session.missionContainer.onMissionComplete(() => this.submit(this.compileSubmissionData(true)));
   }
 
   /**

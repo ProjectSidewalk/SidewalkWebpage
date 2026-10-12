@@ -89,7 +89,7 @@ describe('DesktopValidationMenu.clearVerdict', () => {
     labelContainer = {
       getCurrentLabel: () => label,
       dropInputWhileLoading: jest.fn(() => loading),
-      onLabelShown: jest.fn(),
+      onLabelReady: jest.fn(),
     };
 
     const menu = new window.DesktopValidationMenu({

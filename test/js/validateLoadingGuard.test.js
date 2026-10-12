@@ -82,8 +82,8 @@ function completeDeps(suiteDeps) {
 function newLabelContainer(labelList, labelType) {
   const labelContainer = new LabelContainer(labelList, labelType, deps.ui, deps.config, deps.panoManager,
     deps.panoLoadingStatus, deps.modalMissionComplete, deps.modalNoNewMission, deps.missionContainer, deps.tracker);
-  labelContainer.onLabelShown((label) => deps.labelCard.render(label));
-  labelContainer.onLabelShown((label) => deps.validationMenu.resetMenu(label));
+  labelContainer.onLabelReady((label) => deps.labelCard.render(label));
+  labelContainer.onLabelReady((label) => deps.validationMenu.resetMenu(label));
   return labelContainer;
 }
 
@@ -319,6 +319,23 @@ describe('input aimed at a label whose pano is still loading is dropped (issue #
     await expect(labelContainer.moveToNextLabel()).rejects.toThrow('label card blew up');
 
     expect(deps.tracker.push).toHaveBeenCalledWith('ValidateRenderFailed', {error: 'label card blew up'});
+  });
+
+  // The menu resets as the label becomes current, not once its marker is drawn: otherwise a draw that fails would
+  // hand the tool back with the previous label's verdict still selected, which would submit nothing and skip this
+  // label on the next click. What needs the drawn marker (the card opened on load, say) is told only on success.
+  test('a draw that fails has already reset the menu for the new label, and tells nobody the label is shown', async () => {
+    const {labelContainer, inFlight} = await buildContainerMidLoad();
+    await finishLoad(inFlight);
+    const shown = jest.fn();
+    labelContainer.onLabelShown(shown);
+    deps.validationMenu.resetMenu.mockClear();
+    deps.panoManager.renderPanoMarker.mockRejectedValueOnce(new Error('marker did not draw'));
+
+    await expect(labelContainer.moveToNextLabel()).rejects.toThrow('marker did not draw');
+
+    expect(deps.validationMenu.resetMenu).toHaveBeenCalledWith(labelContainer.getCurrentLabel());
+    expect(shown).not.toHaveBeenCalled();
   });
 
   // The no-more-labels path hands the tool back before showing its modal. The finally has to leave that alone rather

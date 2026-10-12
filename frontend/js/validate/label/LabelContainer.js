@@ -96,6 +96,9 @@ export class LabelContainer {
   /** @type {Array<(loading: boolean) => void>} Told as the tool locks for a label's load and as it is handed back. */
   #loadingListeners = [];
 
+  /** @type {Array<(label: Label) => void>} Told as a label becomes current, before its pano is drawn. */
+  #readyListeners = [];
+
   /** @type {Array<(label: Label) => void>} Told once a label's pano is on screen, facing it. */
   #shownListeners = [];
 
@@ -143,7 +146,17 @@ export class LabelContainer {
   }
 
   /**
-   * Registers what describes a label to the validator once its pano is on screen facing it.
+   * Registers what describes a label to the validator as soon as it is current, before its pano is drawn: the card,
+   * the menu and the admin panel reset for the new label whether or not the draw then succeeds, so a failed draw
+   * cannot leave the menu holding the previous label's verdict.
+   * @param {(label: Label) => void} listener
+   */
+  onLabelReady(listener) {
+    this.#readyListeners.push(listener);
+  }
+
+  /**
+   * Registers what needs the drawn marker, told once the pano is on screen facing the label and not on a failed draw.
    * @param {(label: Label) => void} listener
    */
   onLabelShown(listener) {
@@ -293,17 +306,13 @@ export class LabelContainer {
         return;
       }
 
+      for (const listener of this.#readyListeners) listener(this.#currLabel);
       // Awaited so the tool unlocks only once the pano is on screen facing this label: on a viewer that paints during
       // loads, that is renderPanoMarker's reveal, not setPanorama resolving (#5582).
-      try {
-        await this.#panoManager.renderPanoMarker(this.#currLabel);
-      } finally {
-        // Only now, with the pano facing the label: the label that just loaded may have swapped the active viewer,
-        // so anything that listens to a viewer (the speed limit sign, #4828) has to be told rather than left
-        // waiting. Told even when the draw failed: the finally below hands the tool back, and a menu still showing
-        // the previous label's verdict would submit nothing and skip this label on the next click.
-        for (const listener of this.#shownListeners) listener(this.#currLabel);
-      }
+      await this.#panoManager.renderPanoMarker(this.#currLabel);
+      // Only now, with the pano facing the label: the label that just loaded may have swapped the active viewer, so
+      // anything that listens to a viewer (the speed limit sign, #4828) has to be told rather than left waiting.
+      for (const listener of this.#shownListeners) listener(this.#currLabel);
 
       this.setProperty('renderedTimestamp', Date.now());
       // Now that this label's imagery is on screen and the connection is idle, start on the next ones' (#5562, #5581).

@@ -54,7 +54,8 @@ describe('Form.submit (issue #2745 resilience)', () => {
         consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
         consoleError.mockClear();
 
-        form = new Form('/validationTask', CONFIG, tracker, session);
+        form = new Form('/validationTask', CONFIG, tracker);
+        form.attachSession(session);
     });
 
     afterEach(() => {
@@ -111,7 +112,8 @@ describe('Form.submit (issue #2745 resilience)', () => {
         for (const status of [408, 429]) {
             global.fetch = jest.fn(() => Promise.resolve({ ok: false, status, json: () => Promise.resolve({}) }));
             // Its own send queue, so the last status's retries don't hold it.
-            const freshForm = new Form('/validationTask', CONFIG, tracker, session);
+            const freshForm = new Form('/validationTask', CONFIG, tracker);
+            freshForm.attachSession(session);
 
             await freshForm.submit({});
             await jest.advanceTimersByTimeAsync(2000);

@@ -35,7 +35,7 @@ export class MobileValidationMenu {
     this.#unsureReasonButtons = MobileValidationMenu.#reasonButtonsIn(menuUI.unsureReasonOptions);
 
     this.#init();
-    labelContainer.onLabelShown((label) => this.resetMenu(label));
+    labelContainer.onLabelReady((label) => this.resetMenu(label));
   }
 
   #init() {

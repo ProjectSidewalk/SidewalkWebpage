@@ -549,7 +549,7 @@ describe('DesktopValidationMenu on Expert Validate', () => {
     label = makeLabel({ ai_tags: null, ai_tags_not_present: null });
     config.adminVersion = true;
     const labelContainer = {
-      getCurrentLabel: () => label, dropInputWhileLoading: () => false, onLabelShown: jest.fn(),
+      getCurrentLabel: () => label, dropInputWhileLoading: () => false, onLabelReady: jest.fn(),
     };
     panoManager = { styleMarkerForLabel: jest.fn() };
     labelCard = { render: jest.fn(), onTypePicked: jest.fn() };

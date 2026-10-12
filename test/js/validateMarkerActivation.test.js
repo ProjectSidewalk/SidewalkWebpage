@@ -84,7 +84,7 @@ describe('Validate pano marker activation', () => {
         const LabelVisibilityControl = loadClassFromFile(LABEL_VISIBILITY_CONTROL_PATH, 'LabelVisibilityControl');
         control = new LabelVisibilityControl(
             {controlLayer: document.getElementById('view-control-layer')}, {viewerType: class {}},
-            {onLoadingChange: () => {}, onLabelShown: () => {}},
+            {onLoadingChange: () => {}, onLabelReady: () => {}, onLabelShown: () => {}},
             {getPanoMarker: () => null, onMarkerCreated: (listener) => { wireMarker = listener; }, onMarkerDrawn: () => {}},
             {push: jest.fn()},
         );

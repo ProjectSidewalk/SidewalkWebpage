@@ -40,7 +40,7 @@ describe('Form exit flushes (issue #5561)', () => {
     // One Form for the whole suite: its constructor leaves exit listeners on the shared window and document, so a
     // Form per test would have every earlier one answering the events too, and the POST counts would be theirs.
     beforeAll(() => {
-        form = new Form('/validationTask', { source: 'Validate', validateParams: {} }, tracker, null);
+        form = new Form('/validationTask', { source: 'Validate', validateParams: {} }, tracker);
     });
 
     beforeEach(() => {

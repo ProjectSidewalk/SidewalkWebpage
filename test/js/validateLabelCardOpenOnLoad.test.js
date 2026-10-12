@@ -31,7 +31,7 @@ describe('LabelVisibilityControl opening the card on load', () => {
         const { LabelVisibilityControl } = loadModules('frontend/js/validate/label/LabelVisibilityControl.js');
         control = new LabelVisibilityControl(
             { controlLayer: document.getElementById('view-control-layer') }, { viewerType },
-            { onLoadingChange: () => {}, onLabelShown: () => {} },
+            { onLoadingChange: () => {}, onLabelReady: () => {}, onLabelShown: () => {} },
             { getPanoMarker: () => null, onMarkerCreated: () => {}, onMarkerDrawn: () => {} }, tracker,
         );
     }

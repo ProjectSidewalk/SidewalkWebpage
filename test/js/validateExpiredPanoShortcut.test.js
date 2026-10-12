@@ -72,8 +72,8 @@ function completeDeps(suiteDeps) {
 function newLabelContainer(labelList, labelType) {
   const labelContainer = new LabelContainer(labelList, labelType, deps.ui, deps.config, deps.panoManager,
     deps.panoLoadingStatus, deps.modalMissionComplete, deps.modalNoNewMission, deps.missionContainer, deps.tracker);
-  labelContainer.onLabelShown((label) => deps.labelCard.render(label));
-  labelContainer.onLabelShown((label) => deps.validationMenu.resetMenu(label));
+  labelContainer.onLabelReady((label) => deps.labelCard.render(label));
+  labelContainer.onLabelReady((label) => deps.validationMenu.resetMenu(label));
   return labelContainer;
 }
 

@@ -101,7 +101,8 @@ describe('Tracker timed flush (issue #4429)', () => {
     });
 
     // A verdict is worth more than the interactions around it, and on a phone the page can be killed without any
-    // exit event firing (#5561), so Label.validate() asks for the flush now rather than at the deadline.
+    // exit event firing (#5561), so LabelContainer.validateCurrentLabel() asks for the flush now rather than at the
+    // deadline.
     describe('flushSoon() (issue #5561)', () => {
         const VERDICT_FLUSH_DELAY_MS = 1000;
 

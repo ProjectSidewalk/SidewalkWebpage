@@ -90,7 +90,8 @@ export class LabelVisibilityControl {
     });
     // Every label starts visible. Without this the toggle keeps saying "Show Label" over a marker that
     // renderPanoMarker just drew in full — you'd have to hide and re-show to get the two back in agreement. The
-    // card renders first (its own subscription, from the constructor above), so one opened on load is filled in.
+    // card rendered as the label became current (onLabelReady, from the constructor above), so one opened on load
+    // is filled in.
     labelContainer.onLabelShown(() => {
       this.unhideLabel();
       this.openCardOnLoad();

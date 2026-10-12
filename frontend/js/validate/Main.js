@@ -229,7 +229,7 @@ export class Main {
 
     const tracker = new Tracker();
     // The dead end still logs its visit, and the exit flush is the Form's; there is no mission for it to compile.
-    new Form(this.#param.dataStoreUrl, this.#config, tracker, null);
+    new Form(this.#param.dataStoreUrl, this.#config, tracker);
     new ModalNoNewMission(this.#ui.modalMission, new KeyboardLock(), tracker).show();
     // The unhide in #init() never runs on this path, and the page still needs revealing: without it the loading
     // overlay sits on screen forever and the modal is visible only through its own inline visibility override.
@@ -348,6 +348,8 @@ export class Main {
 
     // Logging comes first, so nothing built after it has to cope with its absence.
     const tracker = new Tracker();
+    // Before the viewer loads, so a page closed during that load still flushes what it logged.
+    const form = new Form(param.dataStoreUrl, config, tracker);
     const keyboardLock = new KeyboardLock();
 
     const statusField = new StatusField(this.#firstMission.completed_validations, ui);
@@ -429,12 +431,10 @@ export class Main {
 
     if (config.adminVersion) {
       const adminInfo = new AdminInfo(ui.status.admin);
-      labelContainer.onLabelShown((label) => adminInfo.updateAdminInfo(label));
+      labelContainer.onLabelReady((label) => adminInfo.updateAdminInfo(label));
     }
 
-    new Form(param.dataStoreUrl, config, tracker, {
-      missionContainer, labelContainer, panoStore, modalMissionComplete, modalNoNewMission,
-    });
+    form.attachSession({ missionContainer, labelContainer, panoStore, modalMissionComplete, modalNoNewMission });
 
     /** @type {?PanoImageAdjustmentsPopover} */
     let imageAdjustmentsPopover = null;

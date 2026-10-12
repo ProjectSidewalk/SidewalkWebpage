@@ -1,6 +1,6 @@
 /**
  * Tests that Validate's start-up (frontend/js/validate/Main.js) hooks everything that describes a label to
- * LabelContainer's `onLabelShown` and `onLoadingChange` events (#5648). Every LabelContainer suite re-creates that
+ * LabelContainer's `onLabelReady`, `onLabelShown` and `onLoadingChange` events (#5648). Every LabelContainer suite re-creates that
  * wiring by hand, so none would notice a subscriber Main stopped building or built after the first label rendered.
  *
  * The real Main drives the real container and subscribers on the Expert Validate desktop layout, the one with every
@@ -98,6 +98,10 @@ let KeyboardLock;
 let UndoValidation;
 /** @type {{takeUnexpectedUnload: jest.Mock, markLive: jest.Mock}} The live marker Main builds, per test. */
 let marker;
+/** @type {boolean} Set as the fake PanoManager's create() runs, so the fake Form can say which came first. */
+let viewerCreated;
+/** @type {boolean} What the fake Form found when Main built it. */
+let formBuiltBeforeViewer;
 /**
  * @type {?{holdsTaken: string[], hooks: Record<string, any>}} The keyboard holds already taken when Main built the
  * mission-start tutorial, and the hooks it was handed.
@@ -151,7 +155,10 @@ beforeAll(() => {
   window.PanoImageCache = class {};
   window.PanoStore = class { addPanoMetadata() {} getPanoData() { return { getProperty: () => null }; } };
   window.PanoInfoPopover = class {};
-  window.Form = class {};
+  window.Form = class {
+    constructor() { formBuiltBeforeViewer = !viewerCreated; }
+    attachSession() {}
+  };
   window.ModalMission = class { setMissionMessage() {} };
   window.ModalMissionComplete = class { isShowing() { return false; } show() {} };
   window.ModalNoNewMission = class { isShowing() { return false; } show() {} };
@@ -190,7 +197,9 @@ beforeAll(() => {
 describe('Main hooks what describes a label to the label container', () => {
   let panoManager;
   let tracker;
-  /** @type {Record<string, jest.SpyInstance>} Each subscriber's listener, by the subscriber's name. */
+  /** @type {Record<string, jest.SpyInstance>} Each onLabelReady subscriber's listener, by the subscriber's name. */
+  let ready;
+  /** @type {Record<string, jest.SpyInstance>} Each onLabelShown subscriber's listener, by the subscriber's name. */
   let shown;
   /** @type {Record<string, jest.SpyInstance>} What the loading events switch. */
   let loading;
@@ -227,16 +236,19 @@ describe('Main hooks what describes a label to the label container', () => {
         getViewerType: () => 'gsv',
       },
     };
-    window.PanoManager = class { static create() { return Promise.resolve(panoManager); } };
+    viewerCreated = false;
+    window.PanoManager = class { static create() { viewerCreated = true; return Promise.resolve(panoManager); } };
 
     // The listeners' bodies are stubbed: each is pinned by its own suite, and here only the hook is under test.
     const stub = (proto, method) => jest.spyOn(proto, method).mockImplementation(() => {});
-    shown = {
+    ready = {
       labelCard: stub(LabelCard.prototype, 'render'),
-      labelVisibilityControl: stub(LabelVisibilityControl.prototype, 'unhideLabel'),
-      cardOnLoad: stub(LabelVisibilityControl.prototype, 'openCardOnLoad'),
       validationMenu: stub(DesktopValidationMenu.prototype, 'resetMenu'),
       adminInfo: stub(AdminInfo.prototype, 'updateAdminInfo'),
+    };
+    shown = {
+      labelVisibilityControl: stub(LabelVisibilityControl.prototype, 'unhideLabel'),
+      cardOnLoad: stub(LabelVisibilityControl.prototype, 'openCardOnLoad'),
       speedLimit: stub(SpeedLimit.prototype, 'refresh'),
       zoomControl: stub(ZoomControl.prototype, 'updateZoomAvailability'),
     };
@@ -267,43 +279,54 @@ describe('Main hooks what describes a label to the label container', () => {
     const label = labelContainer.getCurrentLabel();
 
     expect(label.getAuditProperty('labelId')).toBe(1);
-    for (const [name, listener] of Object.entries(shown)) {
+    for (const [name, listener] of Object.entries({ ...ready, ...shown })) {
       // The sign reads the viewer once as it is built, before any label is up; the second read is the hook's.
       const expected = name === 'speedLimit' ? 2 : 1;
       // Keyed by name, so the failure says which subscriber Main stopped hooking rather than just "expected 1".
       expect({ [name]: listener.mock.calls.length }).toEqual({ [name]: expected });
     }
-    expect(shown.labelCard).toHaveBeenCalledWith(label);
-    expect(shown.validationMenu).toHaveBeenCalledWith(label);
-    expect(shown.adminInfo).toHaveBeenCalledWith(label);
+    expect(ready.labelCard).toHaveBeenCalledWith(label);
+    expect(ready.validationMenu).toHaveBeenCalledWith(label);
+    expect(ready.adminInfo).toHaveBeenCalledWith(label);
   });
 
   test('the same listeners fire again for each later label, from the subscription and not from the build', async () => {
     const { labelContainer } = await start();
-    for (const listener of Object.values(shown)) listener.mockClear();
+    for (const listener of Object.values({ ...ready, ...shown })) listener.mockClear();
 
     await labelContainer.moveToNextLabel();
 
     const label = labelContainer.getCurrentLabel();
     expect(label.getAuditProperty('labelId')).toBe(2);
-    for (const [name, listener] of Object.entries(shown)) {
+    for (const [name, listener] of Object.entries({ ...ready, ...shown })) {
       expect({ [name]: listener.mock.calls.length }).toEqual({ [name]: 1 });
     }
-    expect(shown.labelCard).toHaveBeenCalledWith(label);
-    expect(shown.validationMenu).toHaveBeenCalledWith(label);
-    expect(shown.adminInfo).toHaveBeenCalledWith(label);
+    expect(ready.labelCard).toHaveBeenCalledWith(label);
+    expect(ready.validationMenu).toHaveBeenCalledWith(label);
+    expect(ready.adminInfo).toHaveBeenCalledWith(label);
   });
 
-  test('the listeners are told once the pano faces the label, not before', async () => {
+  test('the card, menu and admin panel reset before the marker is drawn; what needs the marker is told after', async () => {
     const { labelContainer } = await start();
-    for (const listener of Object.values(shown)) listener.mockClear();
+    for (const listener of Object.values({ ...ready, ...shown })) listener.mockClear();
     panoManager.renderPanoMarker.mockClear();
 
     await labelContainer.moveToNextLabel();
 
+    for (const listener of Object.values(ready)) {
+      expect(lastCallOrder(listener)).toBeLessThan(lastCallOrder(panoManager.renderPanoMarker));
+    }
     for (const listener of Object.values(shown)) {
       expect(lastCallOrder(listener)).toBeGreaterThan(lastCallOrder(panoManager.renderPanoMarker));
     }
+  });
+
+  // The Form owns the exit flush, so a page closed while the viewer loads keeps what it logged only if the Form is
+  // already there.
+  test('the Form is built before the viewer loads', async () => {
+    await start();
+
+    expect(formBuiltBeforeViewer).toBe(true);
   });
 
   test('a load pauses the keyboard and closes the card, and the keyboard comes back once the label is up', async () => {
@@ -320,7 +343,7 @@ describe('Main hooks what describes a label to the label container', () => {
     await move;
 
     expect(loading.keyboardOn).toHaveBeenCalledTimes(1);
-    expect(lastCallOrder(loading.keyboardOn)).toBeGreaterThan(lastCallOrder(shown.labelCard));
+    expect(lastCallOrder(loading.keyboardOn)).toBeGreaterThan(lastCallOrder(shown.cardOnLoad));
   });
 
   test('the undo button follows the loads: off for the first label, on once there is one to go back to', async () => {
@@ -345,7 +368,7 @@ describe('Main hooks what describes a label to the label container', () => {
 
     expect(holder.classList.contains('ps-invisible')).toBe(false);
     expect(loadingOverlay.style.visibility).toBe('hidden');
-    expect(shown.labelCard).toHaveBeenCalledTimes(1);
+    expect(ready.labelCard).toHaveBeenCalledTimes(1);
   });
 
   test('the shortcuts are wired only once the tool is on screen, so no key acts on the loading screen', async () => {
