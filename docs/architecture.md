@@ -91,9 +91,10 @@ arbitrary line, fewer tiny disconnected pieces, and enough of a plan that the to
 - **`street_edge_region` is an assignment, not geometry.** Every street belongs to exactly one region (UNIQUE on
   `street_edge_id`, evolution 338); that is what files a street's missions and credits its completion. Nothing in
   the app relies on the street lying inside the region's polygon, and Explore never reads the polygon at all.
-  Historically the city build cut streets at region borders so the two coincided; new cities are no longer meant to
-  be cut that way (see [`docs/onboarding-a-city.md`](onboarding-a-city.md)), and existing cuts are to be merged
-  back in a later, staged data repair. Until then a street that was cut at a border is simply two streets.
+  Historically the city build cut streets at region borders so the two coincided; the current build heals the short
+  pieces those cuts leave (see [`docs/onboarding-a-city.md`](onboarding-a-city.md)), and
+  `tools/one-off/4717-consolidate-tiny-streets.sql` applies the same rules to a city built before it, joining the
+  short pieces back onto their neighbours. A longer piece cut off at a border is simply two streets.
 - **A route may run through any number of regions.** `route.region_id` is the region the route **starts** in: the
   first street's region, derived by the server on save and re-derived by `RouteTable.updateStats` whenever the
   street list changes, never taken from the client. Listings carry `region_count` beside it, so a route that leaves
