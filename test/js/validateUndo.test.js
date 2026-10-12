@@ -345,13 +345,32 @@ describe('undoing a validation', () => {
     const buffer = [...labelContainer.getLabelsToSubmit()];
     panoManager.renderPanoMarker.mockRejectedValueOnce(new Error('marker'));
 
-    await expect(labelContainer.undoLabel()).resolves.toBe(false);
+    await pressUndo();
 
     expect(tracker.push).toHaveBeenCalledWith('ValidateRenderFailed', { error: 'marker' });
     expect(currentLabelId()).toBe(2);
-    expect(labelContainer.hasPreviousLabel()).toBe(true);
+    // Label 1's pano is what loaded, so label 2 has to be drawn again, not just made current.
+    expect(panoManager.setPanorama).toHaveBeenLastCalledWith('pano2', null, expect.anything());
+    expect(panoManager.renderPanoMarker.mock.lastCall[0].getAuditProperty('labelId')).toBe(2);
     expect(missionCounts()).toEqual(counts);
     expect(labelContainer.getLabelsToSubmit()).toEqual(buffer);
+    expect(undoButton.disabled).toBe(true);
+  });
+
+  test('a failed pano load followed by a failed marker still lands on the label undone from', async () => {
+    await build();
+    await cast('Agree');
+    const counts = missionCounts();
+    panoManager.setPanorama.mockResolvedValueOnce({ panoData: null, reason: 'no-imagery' });
+    panoManager.renderPanoMarker.mockRejectedValueOnce(new Error('marker'));
+
+    await pressUndo();
+
+    expect(tracker.push).toHaveBeenCalledWith('ValidateUndo_ImageryUnavailable', expect.anything());
+    // Not label 3: label 2 is still owed a verdict.
+    expect(currentLabelId()).toBe(2);
+    expect(missionCounts()).toEqual(counts);
+    expect(undoButton.disabled).toBe(true);
   });
 
   test('Back goes off and nothing is rolled back when neither label can be drawn', async () => {

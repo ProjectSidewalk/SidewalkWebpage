@@ -243,15 +243,17 @@ export class LabelContainer {
   async undoLabel() {
     if (this.dropInputWhileLoading('Undo')) return false;
 
-    const previousLabel = this.#labels[this.#currLabelIndex - 1];
+    const undoneFromIndex = this.#currLabelIndex;
+    const previousLabel = this.#labels[undoneFromIndex - 1];
     this.#currLabelIndex -= 1;
     this.#currLabel = previousLabel;
     try {
       await this.renderCurrentLabel({ undo: true });
     } catch {
-      // Its verdict still stands, so leaving it current would let Submit count it twice (#5754).
-      this.#currLabelIndex += 1;
-      this.#currLabel = this.#labels[this.#currLabelIndex];
+      // Its verdict still stands, so leaving it current would let Submit count it twice (#5754). Not one step
+      // forward: a failed load may already have stepped forward, and a dropped label is spliced out at this index.
+      this.#currLabelIndex = undoneFromIndex;
+      this.#currLabel = this.#labels[undoneFromIndex];
       // Already logged as ValidateRenderFailed, and there is nothing left to fall back to.
       await this.renderCurrentLabel().catch(() => {});
       return false;
@@ -327,8 +329,8 @@ export class LabelContainer {
     } catch (error) {
       // The only trace a render failure leaves. It used to announce itself by stranding the lock, which turned every
       // later tap and keypress into a ValidateInputDropped_Loading — unusable for the validator, but at least loud.
-      // Releasing the lock in the finally takes that away: the caller either swallows the rejection (Form) or drops
-      // it on the floor (moveToNextLabel), so without this the tool would come back looking healthy and say nothing.
+      // Releasing the lock in the finally takes that away: callers swallow the rejection (Form, undoLabel) or drop it
+      // on the floor (moveToNextLabel), so without this the tool would come back looking healthy and say nothing.
       // Read defensively rather than as a plain `error.message`: a rejection carrying something other than an Error
       // — a bare `Promise.reject()`, a string thrown by a viewer SDK — would make this line a TypeError of its own,
       // losing the event and handing the caller an exception unrelated to what actually failed.
