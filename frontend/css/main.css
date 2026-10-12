@@ -2357,6 +2357,12 @@ kbd {
   background: none;
   border: none;
   cursor: pointer;
+
+  /* A control, not text, as a <button> would be. A press that starts no selection can't be caught up in a page's
+     selection handling: in Chrome, a <label> whose press leaves an earlier selection standing won't forward its
+     click to the radio, so the word and padding would ignore clicks while the face still took them (#5749). */
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .severity-button:hover {
@@ -2397,6 +2403,10 @@ kbd {
   width: calc(24px * var(--ui-scale, 1));
   height: calc(24px * var(--ui-scale, 1));
   display: block;
+
+  /* Presses land on the segment instead, so a pixel of movement between press and release can't start a native
+     image drag, which cancels the click (#5749). */
+  pointer-events: none;
 }
 
 .severity-button__label {
