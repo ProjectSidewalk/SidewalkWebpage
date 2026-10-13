@@ -10,15 +10,16 @@ ALTER TYPE street_edge_status_change_source ADD VALUE IF NOT EXISTS 'consolidate
 
 -- One row per street the script deleted: joined onto a survivor (same_way, continuation, border_cut, straightest) or
 -- removed as too short with nothing real on it (residue, no survivor). A status change can't record a street that no
--- longer exists. The dropped id has no foreign key, since its row is gone, and the survivor's is cleared if a later
--- run joins the survivor itself. The dropped way id is kept because osm_way_street_edge holds one way per street, so
--- the survivor's row can't (#5741).
+-- longer exists. Neither street id is a foreign key: the dropped row is gone, and a survivor can itself be deleted
+-- later (joined on in a later run, or removed as residue in this one), when a trace that still names it is the point.
+-- The dropped way id is kept because osm_way_street_edge holds one way per street, so the survivor's row can't
+-- (#5741). It is a BIGINT like osm_way_street_edge.osm_way_id, since OSM way ids passed the INTEGER range in 2025.
 CREATE TABLE street_edge_merge (
   street_edge_merge_id SERIAL PRIMARY KEY,
   dropped_street_edge_id INTEGER NOT NULL,
-  survivor_street_edge_id INTEGER REFERENCES street_edge (street_edge_id) ON DELETE SET NULL,
+  survivor_street_edge_id INTEGER,
   rule TEXT NOT NULL CHECK (rule IN ('same_way', 'continuation', 'border_cut', 'straightest', 'residue')),
-  dropped_osm_way_id INTEGER,
+  dropped_osm_way_id BIGINT,
   dropped_length_m DOUBLE PRECISION NOT NULL CHECK (dropped_length_m >= 0),
   dropped_geom geometry(LineString, 4326) NOT NULL,
   merged_at TIMESTAMPTZ NOT NULL DEFAULT now()

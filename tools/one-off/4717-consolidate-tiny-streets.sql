@@ -9,16 +9,22 @@
 --   1. A street under 20 m (-v merge_m=) joins a touching street of the same OSM way: the shorter neighbour when
 --      there are two, never one that would close a ring. Repeats until nothing is left to join, so a chain of
 --      slivers collapses into one street.
---   2. Two streets of the same status that meet end to end where no third street does are one road (the pipeline
---      joins consecutive OSM ways between intersections, and heals what a region border cut), whatever their way
---      ids or lengths. One exception, as in the pipeline: a street that genuinely crosses a region border, with
---      30 m (-v border_m=) or more on each side and neither side running along the border (within -v rider_m= of
---      the other side's region), stays cut.
+--   2. Two streets that meet end to end where no third street does are one road (the pipeline joins consecutive OSM
+--      ways between intersections, and heals what a region border cut), whatever their way ids or lengths. Two
+--      exceptions, as in the pipeline: a street that genuinely crosses a region border, with 30 m (-v border_m=) or
+--      more on each side and neither side running along the border (within -v rider_m= of the other side's
+--      region), stays cut; and once a joined street runs through a junction, the streets still ending there stay
+--      cut (the pipeline's end-to-end joins happen before its tiny-segment merges, so they never see that junction
+--      as a dead end).
 --   3. In a city without OSM way ids (the Infra3d cities carry -1 everywhere, and the ids never mattered there), a
 --      street under 20 m at an intersection joins the neighbour that continues it most nearly straight, if that
 --      bends less than -v straight_deg= (45).
 --   4. Whatever is still under 15 m (-v drop_m=) with nothing to join is removed: deleted outright when nothing real
 --      hangs off it, otherwise set 'disabled' (the status remove_streets uses) and left out of auditing.
+-- Every join is between streets of the same status, so no open street is buried in a closed one or the other way
+-- round, and none is made when the joined line would cross or touch itself or close a ring. A street with an audit
+-- from the last day sits the run out (its user may be on it, and the app's writes could deadlock with this one);
+-- the summary counts them, and a later run picks them up.
 --
 -- DRY RUN BY DEFAULT: everything runs inside a transaction that is rolled back, and one summary row per city is
 -- printed. Pass -v apply=1 to commit; -v list=1 prints one row per touched street (with its WKT) instead of the
@@ -36,10 +42,14 @@
 --     export picks up changed geometry. The survivor moves region only if most of it now lies in another live one.
 --   * Labels move to the survivor, and their distance from the centre line (which left/right comes from) is
 --     re-measured for every label on the survivor, since its line changed.
---   * Audits, route stops, issues, clusters, comments and places move to the survivor. An audit that walked only the
---     sliver is marked not completed; one with nothing on it (no labels, comments or route record) is deleted
---     instead of becoming a bogus resume. Where the sliver was drawn the other way, routes and paused audits are
---     flipped, and a drop-in audit's distance along the street is re-measured on the new line.
+--   * Audits, route stops, issues, clusters, comments and places move to the survivor. A completed audit stays
+--     completed only while the parts actually walked (the survivor's own line if it had one, plus each joined piece
+--     that had one) cover -v min_cov= (80%) of the joined street; otherwise every completed audit on it is marked not
+--     completed, so the street goes back into the pool instead of counting unwalked length as audited. An audit
+--     with nothing on it (no labels, comments or route record) is deleted instead of becoming a bogus resume. Where
+--     the sliver was drawn the other way, routes and paused audits are flipped; a drop-in audit's distance along the
+--     street and a free-exploration audit's covered stretches are re-measured on the new line. Every route walking
+--     a joined or grown street has its cached length and street count refreshed.
 --   * Its OSM way link, priority and imagery rows go, then the street itself. street_edge_merge (evolution 416) keeps
 --     its id, geometry, way id and survivor: the survivor keeps one way id, as a pipeline-built street does (#5741).
 -- A removed street is deleted outright only when it has no labels (its own, or placed from its audits), no comments,
@@ -127,15 +137,20 @@ SET LOCAL consolidate.straight_deg = :straight_deg;
 -- 1. The streets in play. A way id of -1 is the Infra3d placeholder, not a way. A loop (start = end) is never a
 --    sliver and never a survivor: the pipeline keeps them as OSM maps them, and joining one confuses the app's
 --    end-of-street check. A street shorter than twice the touching tolerance has its ends that close together
---    without being a loop (Seattle has 888 under a metre).
+--    without being a loop (Seattle has 888 under a metre). way_ids starts as the street's own way and grows with each
+--    join, so a sliver of an absorbed way still finds its way under rule 1.
 --    Every column is computed here rather than by an UPDATE afterwards: an index built in the same transaction after
 --    the table was updated is unusable by that transaction (Postgres's HOT-chain rule).
 CREATE TEMP TABLE edge ON COMMIT DROP AS
-SELECT street.*, street.m < :merge_m AND NOT street.is_loop AS pending
+SELECT street.*, street.m < :merge_m AND NOT street.is_loop AND NOT street.active AS pending,
+       CASE WHEN street.osm_way_id IS NULL THEN '{}'::bigint[] ELSE ARRAY[street.osm_way_id] END AS way_ids
 FROM (
   SELECT street_edge.street_edge_id AS id, street_edge.geom, street_edge.status,
          (SELECT NULLIF(min(osm_way_street_edge.osm_way_id), -1) FROM osm_way_street_edge
           WHERE osm_way_street_edge.street_edge_id = street_edge.street_edge_id) AS osm_way_id,
+         EXISTS (SELECT FROM audit_task
+                 WHERE audit_task.street_edge_id = street_edge.street_edge_id
+                   AND audit_task.task_start >= now() - interval '1 day') AS active,
          (SELECT min(street_edge_region.region_id) FROM street_edge_region
           WHERE street_edge_region.street_edge_id = street_edge.street_edge_id) AS region_id,
          ST_Length(street_edge.geom::geography) AS m,
@@ -159,7 +174,7 @@ ALTER TABLE before_merge ADD PRIMARY KEY (id);
 
 CREATE TEMP TABLE count_before ON COMMIT DROP AS
 SELECT count(*) AS streets, count(*) FILTER (WHERE m < :merge_m) AS under_merge_m,
-       count(*) FILTER (WHERE m < :drop_m) AS under_drop_m
+       count(*) FILTER (WHERE m < :drop_m) AS under_drop_m, count(*) FILTER (WHERE active) AS audited_last_day
 FROM edge;
 
 -- Which end of which street meets which end of which other, both directions. Found once with the spatial indexes
@@ -182,7 +197,11 @@ ANALYZE touch;
 
 -- Rule 2 candidates: an end where exactly one other street meets, whatever the length.
 UPDATE edge SET pending = TRUE
-WHERE NOT is_loop AND id IN (SELECT a_id FROM touch GROUP BY a_id, a_end HAVING count(DISTINCT b_id) = 1);
+WHERE NOT is_loop AND NOT active
+  AND id IN (SELECT a_id FROM touch GROUP BY a_id, a_end HAVING count(DISTINCT b_id) = 1);
+
+-- An end at a junction a joined street now runs through: not a dead end, whatever touch says is left there.
+CREATE TEMP TABLE blocked_end (id INTEGER NOT NULL, at_end TEXT NOT NULL, PRIMARY KEY (id, at_end)) ON COMMIT DROP;
 
 -- For rule 2's "runs along the border" test.
 CREATE TEMP TABLE region_buffer ON COMMIT DROP AS
@@ -195,7 +214,7 @@ ALTER TABLE region_buffer ADD PRIMARY KEY (region_id);
 --    on Chicago).
 CREATE TEMP TABLE street_merge (drop_id INTEGER PRIMARY KEY, survivor_id INTEGER NOT NULL, rule TEXT NOT NULL,
                                 reversed BOOLEAN NOT NULL, drop_m DOUBLE PRECISION NOT NULL,
-                                drop_geom geometry NOT NULL, drop_osm_way_id INTEGER) ON COMMIT DROP;
+                                drop_geom geometry NOT NULL, drop_osm_way_id BIGINT) ON COMMIT DROP;
 CREATE TEMP TABLE queue (position SERIAL PRIMARY KEY, id INTEGER NOT NULL) ON COMMIT DROP;
 INSERT INTO queue (id) SELECT id FROM edge WHERE pending ORDER BY m, id;
 DO $$
@@ -212,6 +231,7 @@ DECLARE
   far_end TEXT;
   piece geometry;
   joined geometry;
+  accepted BOOLEAN;
   next_position INTEGER := 0;
 BEGIN
   -- Rule 3 is for a city with no way id anywhere (Infra3d); a few streets missing one just sit out rule 1.
@@ -226,86 +246,106 @@ BEGIN
       CONTINUE; -- Joined onto something, or settled, since it was queued.
     END IF;
 
-    SELECT n.id, n.m, n.geom, touch.a_end AS sliver_end, touch.b_end AS nb_end,
-           CASE WHEN test.same_way_short THEN 'same_way'
-                WHEN test.alone AND n.region_id IS DISTINCT FROM sliver.region_id THEN 'border_cut'
-                WHEN test.alone THEN 'continuation'
-                ELSE 'straightest' END AS rule
-    INTO nb
-    FROM touch
-    JOIN edge AS n ON n.id = touch.b_id
-    LEFT JOIN region_buffer AS around_n ON around_n.region_id = n.region_id
-    LEFT JOIN region_buffer AS around_s ON around_s.region_id = sliver.region_id
-    CROSS JOIN LATERAL (
-      SELECT sliver.m < merge_m AND n.osm_way_id = sliver.osm_way_id AS same_way_short,
-             -- Nothing but the neighbour ends here: a border or a change of way id, not an intersection. Across a
-             -- border, a short side or a side running along the border joins; a genuine crossing stays cut.
-             n.status = sliver.status
-               AND NOT EXISTS (SELECT FROM touch AS third
-                               WHERE third.a_id = sliver.id AND third.a_end = touch.a_end AND third.b_id <> n.id)
-               AND (n.region_id IS NOT DISTINCT FROM sliver.region_id OR sliver.m < border_m OR n.m < border_m
-                    OR ST_Covers(around_n.geom, sliver.geom) OR ST_Covers(around_s.geom, n.geom)) AS alone,
-             -- How far the road bends at the junction (0 is dead straight): bearing in along the sliver vs out
-             -- along the neighbour.
-             abs(mod((degrees(ST_Azimuth(
-                        CASE touch.b_end WHEN 'start' THEN ST_StartPoint(n.geom)
-                                         ELSE ST_EndPoint(n.geom) END::geography,
-                        CASE touch.b_end WHEN 'start' THEN ST_PointN(n.geom, 2)
-                                         ELSE ST_PointN(n.geom, ST_NPoints(n.geom) - 1) END::geography))
-                      - degrees(ST_Azimuth(
-                        CASE touch.a_end WHEN 'start' THEN ST_PointN(sliver.geom, 2)
-                                         ELSE ST_PointN(sliver.geom, ST_NPoints(sliver.geom) - 1) END::geography,
-                        CASE touch.a_end WHEN 'start' THEN ST_StartPoint(sliver.geom)
-                                         ELSE ST_EndPoint(sliver.geom) END::geography))
-                      + 540)::numeric, 360) - 180) AS deflection
-    ) AS test
-    WHERE touch.a_id = sliver.id
-      AND NOT n.is_loop
-      -- The two far ends meeting too would close a ring.
-      AND NOT EXISTS (SELECT FROM touch AS far
-                      WHERE far.a_id = sliver.id AND far.a_end <> touch.a_end
-                        AND far.b_id = n.id AND far.b_end <> touch.b_end)
-      AND (test.same_way_short OR test.alone
-           OR (ways_unknown AND sliver.m < merge_m AND test.deflection <= straight_deg))
-    -- The straightest continuation under rule 3, else the shorter neighbour so lengths even out. A sliver shorter
-    -- than the tolerance meets the neighbour with both ends; either row will do, the same one each run.
-    ORDER BY CASE WHEN test.same_way_short OR test.alone THEN 0 ELSE test.deflection END, n.m, n.id, touch.a_end
-    LIMIT 1;
+    -- Neighbours in order of preference; the first whose joined line is sound wins.
+    accepted := FALSE;
+    FOR nb IN
+      SELECT edge.id, edge.m, edge.geom, touch.a_end AS sliver_end, touch.b_end AS nb_end,
+             CASE WHEN test.same_way_short THEN 'same_way'
+                  WHEN test.alone AND edge.region_id IS DISTINCT FROM sliver.region_id THEN 'border_cut'
+                  WHEN test.alone THEN 'continuation'
+                  ELSE 'straightest' END AS rule
+      FROM touch
+      JOIN edge ON edge.id = touch.b_id
+      LEFT JOIN region_buffer AS around_n ON around_n.region_id = edge.region_id
+      LEFT JOIN region_buffer AS around_s ON around_s.region_id = sliver.region_id
+      CROSS JOIN LATERAL (
+        SELECT sliver.m < merge_m AND edge.way_ids && sliver.way_ids AS same_way_short,
+               -- Nothing but the neighbour ends here, and no joined street runs through: a border or a change of way
+               -- id, not an intersection. Across a border, a short side or a side running along the border joins; a
+               -- genuine crossing stays cut.
+               NOT EXISTS (SELECT FROM touch AS third
+                           WHERE third.a_id = sliver.id AND third.a_end = touch.a_end AND third.b_id <> edge.id)
+                 AND NOT EXISTS (SELECT FROM blocked_end
+                                 WHERE blocked_end.id = sliver.id AND blocked_end.at_end = touch.a_end)
+                 AND (edge.region_id IS NOT DISTINCT FROM sliver.region_id OR sliver.m < border_m OR edge.m < border_m
+                      OR ST_Covers(around_n.geom, sliver.geom) OR ST_Covers(around_s.geom, edge.geom)) AS alone,
+               -- How far the road bends at the junction (0 is dead straight): bearing in along the sliver vs out
+               -- along the neighbour.
+               abs(mod((degrees(ST_Azimuth(
+                          CASE touch.b_end WHEN 'start' THEN ST_StartPoint(edge.geom)
+                                           ELSE ST_EndPoint(edge.geom) END::geography,
+                          CASE touch.b_end WHEN 'start' THEN ST_PointN(edge.geom, 2)
+                                           ELSE ST_PointN(edge.geom, ST_NPoints(edge.geom) - 1) END::geography))
+                        - degrees(ST_Azimuth(
+                          CASE touch.a_end WHEN 'start' THEN ST_PointN(sliver.geom, 2)
+                                           ELSE ST_PointN(sliver.geom, ST_NPoints(sliver.geom) - 1) END::geography,
+                          CASE touch.a_end WHEN 'start' THEN ST_StartPoint(sliver.geom)
+                                           ELSE ST_EndPoint(sliver.geom) END::geography))
+                        + 540)::numeric, 360) - 180) AS deflection
+      ) AS test
+      WHERE touch.a_id = sliver.id
+        AND edge.status = sliver.status
+        AND NOT edge.is_loop
+        AND NOT edge.active
+        -- The two far ends meeting too would close a ring.
+        AND NOT EXISTS (SELECT FROM touch AS far
+                        WHERE far.a_id = sliver.id AND far.a_end <> touch.a_end
+                          AND far.b_id = edge.id AND far.b_end <> touch.b_end)
+        AND (test.same_way_short OR test.alone
+             OR (ways_unknown AND sliver.m < merge_m AND test.deflection <= straight_deg))
+      -- The straightest continuation under rule 3, else the shorter neighbour so lengths even out. A sliver shorter
+      -- than the tolerance meets the neighbour with both ends; either row will do, the same one each run.
+      ORDER BY CASE WHEN test.same_way_short OR test.alone THEN 0 ELSE test.deflection END, edge.m, edge.id,
+               touch.a_end
+    LOOP
+      -- The sliver is turned so its meeting end comes first, snapped onto the survivor's end point, and added there.
+      -- The survivor's own direction never changes, which is what keeps its labels' left/right right. Vertices of
+      -- the sliver within the touching tolerance of each other are noise, so they are dropped. A sliver that is all
+      -- noise adds no line at all and only its data moves. One whose line would cross or touch the survivor's, or
+      -- close a ring with it (a cul-de-sac's loop meeting its own stem), waits for the next neighbour.
+      piece := CASE WHEN nb.sliver_end = 'start' THEN sliver.geom ELSE ST_Reverse(sliver.geom) END;
+      IF nb.nb_end = 'end' THEN
+        piece := ST_RemoveRepeatedPoints(ST_SetPoint(piece, 0, ST_EndPoint(nb.geom)), tol_deg);
+        joined := ST_RemoveRepeatedPoints(ST_MakeLine(nb.geom, piece));
+      ELSE
+        piece := ST_Reverse(piece);
+        piece := ST_RemoveRepeatedPoints(ST_SetPoint(piece, ST_NPoints(piece) - 1, ST_StartPoint(nb.geom)), tol_deg);
+        joined := ST_RemoveRepeatedPoints(ST_MakeLine(piece, nb.geom));
+      END IF;
+      IF ST_Length(piece::geography) < touch_m THEN
+        joined := nb.geom;
+      ELSIF NOT ST_IsSimple(joined)
+            OR ST_DWithin(ST_StartPoint(joined)::geography, ST_EndPoint(joined)::geography, touch_m) THEN
+        CONTINUE;
+      END IF;
+      accepted := TRUE;
+      EXIT;
+    END LOOP;
 
-    IF NOT FOUND THEN
+    IF NOT accepted THEN
       UPDATE edge SET pending = FALSE WHERE id = sliver.id;
       CONTINUE;
-    END IF;
-
-    -- The sliver is turned so its meeting end comes first, snapped onto the survivor's end point, and added there.
-    -- The survivor's own direction never changes, which is what keeps its labels' left/right right. Vertices of the
-    -- sliver within the touching tolerance of each other are noise, so they are dropped. A sliver that is all noise,
-    -- or one lying back along the survivor (a sub-metre piece drawn on top of its neighbour, which would make the
-    -- survivor double back on itself), adds no line at all and only its data moves.
-    piece := CASE WHEN nb.sliver_end = 'start' THEN sliver.geom ELSE ST_Reverse(sliver.geom) END;
-    IF nb.nb_end = 'end' THEN
-      piece := ST_RemoveRepeatedPoints(ST_SetPoint(piece, 0, ST_EndPoint(nb.geom)), tol_deg);
-      joined := ST_RemoveRepeatedPoints(ST_MakeLine(nb.geom, piece));
-    ELSE
-      piece := ST_Reverse(piece);
-      piece := ST_RemoveRepeatedPoints(ST_SetPoint(piece, ST_NPoints(piece) - 1, ST_StartPoint(nb.geom)), tol_deg);
-      joined := ST_RemoveRepeatedPoints(ST_MakeLine(piece, nb.geom));
-    END IF;
-    IF ST_Length(piece::geography) < touch_m OR NOT ST_IsSimple(joined) THEN
-      joined := nb.geom;
     END IF;
 
     UPDATE edge
     SET geom = joined, m = ST_Length(joined::geography),
         start_pt = ST_StartPoint(joined)::geography, end_pt = ST_EndPoint(joined)::geography,
-        pending = ST_Length(joined::geography) < border_m
+        way_ids = edge.way_ids || sliver.way_ids, pending = ST_Length(joined::geography) < border_m
     WHERE id = nb.id;
     INSERT INTO queue (id) VALUES (nb.id);
     DELETE FROM edge WHERE id = sliver.id;
 
-    -- The junction is now inside the survivor, so nothing meets its end there any more; what met the sliver's far
-    -- end now meets that end of the survivor instead.
+    -- The junction is now inside the survivor: nothing meets its end there any more, what met the sliver's far end
+    -- meets that end of the survivor instead, and whatever else still ends there is blocked (a block travels with
+    -- a far end).
     far_end := CASE WHEN nb.sliver_end = 'start' THEN 'end' ELSE 'start' END;
+    INSERT INTO blocked_end (id, at_end)
+    SELECT b_id, b_end FROM touch
+    WHERE ((a_id = nb.id AND a_end = nb.nb_end) OR (a_id = sliver.id AND a_end = nb.sliver_end))
+      AND b_id <> nb.id AND b_id <> sliver.id
+    ON CONFLICT DO NOTHING;
+    DELETE FROM blocked_end WHERE (id = nb.id AND at_end = nb.nb_end) OR (id = sliver.id AND at_end = nb.sliver_end);
+    UPDATE blocked_end SET id = nb.id, at_end = nb.nb_end WHERE id = sliver.id AND at_end = far_end;
     DELETE FROM touch WHERE (a_id = nb.id AND a_end = nb.nb_end) OR (b_id = nb.id AND b_end = nb.nb_end);
     DELETE FROM touch
     WHERE (a_id = sliver.id AND a_end = nb.sliver_end) OR (b_id = sliver.id AND b_end = nb.sliver_end);
@@ -346,13 +386,11 @@ ANALYZE final_merge;
 ANALYZE survivor;
 
 -- 3. Audits on the joined streets. One with nothing on it is a 0 m walk of a street nobody could walk: deleting it
---    beats moving it, which would hand the survivor back to that user as a resume. One from the last day is moved
---    instead: its user may be on it, and the app's writes against a task being deleted could deadlock with this run.
+--    beats moving it, which would hand the survivor back to that user as a resume.
 CREATE TEMP TABLE task_move ON COMMIT DROP AS
 SELECT audit_task.audit_task_id, audit_task.street_edge_id AS from_id, final_merge.survivor_id AS to_id,
        final_merge.reversed, audit_task.completed,
-       audit_task.task_start < now() - interval '1 day'
-         AND NOT EXISTS (SELECT FROM label WHERE label.audit_task_id = audit_task.audit_task_id)
+       NOT EXISTS (SELECT FROM label WHERE label.audit_task_id = audit_task.audit_task_id)
          AND NOT EXISTS (SELECT FROM audit_task_comment
                          WHERE audit_task_comment.audit_task_id = audit_task.audit_task_id)
          AND NOT EXISTS (SELECT FROM audit_task_user_route
@@ -361,6 +399,29 @@ FROM audit_task
 JOIN final_merge ON final_merge.drop_id = audit_task.street_edge_id;
 ALTER TABLE task_move ADD PRIMARY KEY (audit_task_id);
 ANALYZE task_move;
+
+-- How much of each joined street somebody actually walked to the end: its own line if a completed audit covers it,
+-- plus every joined piece with one. Short of min_cov, no completed audit on it can stand for the whole.
+CREATE TEMP TABLE walked_part ON COMMIT DROP AS
+SELECT final_merge.survivor_id AS id, street_merge.drop_m AS m
+FROM final_merge
+JOIN street_merge ON street_merge.drop_id = final_merge.drop_id
+WHERE EXISTS (SELECT FROM audit_task
+              WHERE audit_task.street_edge_id = final_merge.drop_id AND audit_task.completed)
+UNION ALL
+SELECT survivor.id, before_merge.m
+FROM survivor
+JOIN before_merge ON before_merge.id = survivor.id
+WHERE EXISTS (SELECT FROM audit_task WHERE audit_task.street_edge_id = survivor.id AND audit_task.completed);
+CREATE INDEX ON walked_part (id);
+ANALYZE walked_part;
+CREATE TEMP TABLE survivor_walked ON COMMIT DROP AS
+SELECT survivor.id, coalesce(sum(walked_part.m), 0) / NULLIF(max(edge.m), 0) >= :min_cov AS covered
+FROM survivor
+JOIN edge ON edge.id = survivor.id
+LEFT JOIN walked_part ON walked_part.id = survivor.id
+GROUP BY survivor.id;
+ALTER TABLE survivor_walked ADD PRIMARY KEY (id);
 
 -- Where a drop-in audit began, as a point, before the line it was measured along changes.
 CREATE TEMP TABLE task_offset ON COMMIT DROP AS
@@ -372,6 +433,35 @@ JOIN before_merge ON before_merge.id = audit_task.street_edge_id
 WHERE audit_task.start_offset_m IS NOT NULL
   AND (audit_task.street_edge_id IN (SELECT id FROM survivor)
        OR audit_task.street_edge_id IN (SELECT drop_id FROM final_merge));
+
+-- A free-exploration audit's covered stretches (#5733) are metres along a line about to change: each is carried
+-- over as the two points it spans, measured again on the joined line and rounded as the app rounds them. The column
+-- came with evolution 415, which a plan run on an older schema can do without.
+SELECT EXISTS (SELECT FROM pg_attribute
+               WHERE attrelid = 'audit_task'::regclass AND attname = 'covered_ranges' AND NOT attisdropped)
+  AS has_coverage \gset
+\if :has_coverage
+CREATE TEMP TABLE task_range ON COMMIT DROP AS
+SELECT audit_task.audit_task_id,
+       jsonb_agg(jsonb_build_array(least(moved.a, moved.b), greatest(moved.a, moved.b))
+                 ORDER BY least(moved.a, moved.b)) AS covered_ranges
+FROM audit_task
+JOIN before_merge ON before_merge.id = audit_task.street_edge_id
+LEFT JOIN final_merge ON final_merge.drop_id = audit_task.street_edge_id
+JOIN survivor ON survivor.id = coalesce(final_merge.survivor_id, audit_task.street_edge_id)
+JOIN edge ON edge.id = survivor.id
+CROSS JOIN LATERAL jsonb_array_elements(audit_task.covered_ranges) AS seen (pair)
+CROSS JOIN LATERAL (
+  SELECT round((ST_LineLocatePoint(edge.geom, ST_LineInterpolatePoint(before_merge.geom,
+                  least(1.0, (seen.pair ->> 0)::float / NULLIF(before_merge.m, 0)))) * edge.m)::numeric, 1) AS a,
+         round((ST_LineLocatePoint(edge.geom, ST_LineInterpolatePoint(before_merge.geom,
+                  least(1.0, (seen.pair ->> 1)::float / NULLIF(before_merge.m, 0)))) * edge.m)::numeric, 1) AS b
+) AS moved
+WHERE jsonb_typeof(audit_task.covered_ranges) = 'array'
+GROUP BY audit_task.audit_task_id;
+\else
+CREATE TEMP TABLE task_range (audit_task_id INTEGER, covered_ranges JSONB) ON COMMIT DROP;
+\endif
 
 -- 4. Route stops. A stop whose street joins one the route already walks the same way would send the user down it
 --    twice, so the later stop goes (3067's rule; walking a street once each way is a deliberate out-and-back).
@@ -397,8 +487,10 @@ JOIN LATERAL (
 ) AS first_stop ON first_stop.route_street_id <> later_stop.route_street_id
 WHERE later_stop.moved OR first_stop.moved;
 
+-- Every route whose cached length is now off: it walks a joined street, or one that grew.
 CREATE TEMP TABLE route_touched ON COMMIT DROP AS
-SELECT DISTINCT route_id FROM route_street WHERE street_edge_id IN (SELECT drop_id FROM final_merge);
+SELECT DISTINCT route_id FROM route_street
+WHERE street_edge_id IN (SELECT drop_id FROM final_merge) OR street_edge_id IN (SELECT id FROM survivor);
 
 CREATE TEMP TABLE label_move ON COMMIT DROP AS
 SELECT label.label_id, label.street_edge_id AS from_id, final_merge.survivor_id AS to_id
@@ -434,8 +526,7 @@ WHERE survivor_in.deleted AND NOT dropped_in.deleted;
 -- 6. What is still too short to walk, with nothing to join.
 --    "Trivial" means no label (its own or placed from one of its audits), no comment, no route stop and no audit a
 --    route walk recorded, which is everything the app ever shows a user; bare audits, issues and nearby places are
---    not worth a street row. A street audited in the last day is left for a later run: its user may be on it, and
---    the app's writes against rows being deleted could deadlock with this transaction.
+--    not worth a street row.
 --    Judged before anything moves, so a street is judged together with whatever joined it.
 CREATE TEMP TABLE member ON COMMIT DROP AS
 SELECT id AS street_id, id AS part_id FROM edge
@@ -469,15 +560,22 @@ SELECT DISTINCT street_id FROM (
   SELECT short_part.street_id FROM short_part JOIN route_street ON route_street.street_edge_id = short_part.part_id
 ) AS busy;
 CREATE TEMP TABLE residue ON COMMIT DROP AS
-SELECT edge.id, edge.m, edge.geom, edge.status,
+SELECT edge.id, edge.m, edge.geom, edge.status, edge.osm_way_id,
        NOT EXISTS (SELECT FROM short_busy WHERE short_busy.street_id = edge.id) AS trivial
 FROM edge
-WHERE edge.m < :drop_m
-  AND NOT EXISTS (SELECT FROM short_part
-                  JOIN audit_task ON audit_task.street_edge_id = short_part.part_id
-                  WHERE short_part.street_id = edge.id AND audit_task.task_start >= now() - interval '1 day');
+WHERE edge.m < :drop_m AND NOT edge.active;
 ALTER TABLE residue ADD PRIMARY KEY (id);
 ANALYZE residue;
+
+-- Audits that go: the bare ones on joined streets, and every one on a street about to be deleted (nothing real sits
+-- on those, or they would not be deleted).
+CREATE TEMP TABLE task_delete ON COMMIT DROP AS
+SELECT audit_task_id FROM task_move WHERE bare
+UNION
+SELECT audit_task.audit_task_id
+FROM audit_task
+JOIN residue ON residue.id = audit_task.street_edge_id
+WHERE residue.trivial;
 
 -- A label on a disabled street is as good as lost, so it is re-filed under the nearest open street if one is close,
 -- measured against the lines as they will be after the joins: a survivor often grows right past the label.
@@ -510,11 +608,22 @@ SELECT (SELECT count(*) FROM street_merge WHERE rule = 'same_way') AS joined_sam
        (SELECT count(*) FROM region_move) AS survivors_region_changed,
        (SELECT count(*) FROM label_move) AS labels_moved,
        (SELECT count(*) FROM task_move WHERE NOT bare) AS audits_moved,
-       (SELECT count(*) FROM task_move WHERE NOT bare AND completed) AS audits_marked_not_completed,
-       (SELECT count(*) FROM task_move WHERE bare) AS bare_audits_deleted,
+       (SELECT count(*) FROM survivor_walked WHERE NOT covered) AS survivors_short_of_walked,
+       (SELECT count(*) FROM audit_task
+          JOIN survivor_walked ON survivor_walked.id = audit_task.street_edge_id
+          WHERE audit_task.completed AND NOT survivor_walked.covered)
+       + (SELECT count(*) FROM task_move
+            JOIN survivor_walked ON survivor_walked.id = task_move.to_id
+            WHERE task_move.completed AND NOT task_move.bare AND NOT survivor_walked.covered)
+         AS audits_marked_not_completed,
+       (SELECT count(*) FROM task_delete) AS bare_audits_deleted,
        (SELECT count(*) FROM task_offset) AS drop_in_starts_remeasured,
-       (SELECT count(*) FROM route_street WHERE street_edge_id IN (SELECT id FROM survivor)
-          AND route_id IN (SELECT route_id FROM route_touched)) AS route_stops_moved,
+       (SELECT count(*) FROM task_range) AS coverage_remeasured,
+       (SELECT count(*) FROM route_stop_after
+          WHERE moved AND NOT EXISTS (SELECT FROM route_stop_drop
+                                      WHERE route_stop_drop.route_street_id = route_stop_after.route_street_id))
+         AS route_stops_moved,
+       (SELECT count(*) FROM route_touched) AS routes_remeasured,
        (SELECT count(*) FROM route_stop_drop) AS route_stops_dropped_as_repeats,
        (SELECT count(*) FROM residue WHERE trivial) AS residue_deleted,
        (SELECT count(*) FROM residue WHERE NOT trivial) AS residue_disabled,
@@ -525,13 +634,7 @@ SELECT (SELECT count(*) FROM street_merge WHERE rule = 'same_way') AS joined_sam
           JOIN residue ON residue.id = member.street_id
           WHERE NOT EXISTS (SELECT FROM label_refile WHERE label_refile.label_id = label.label_id))
          AS residue_labels_left,
-       (SELECT round(max(distance_m)::numeric, 1) FROM label_refile) AS refiled_label_farthest_m,
-       (SELECT count(*) FROM audit_task
-          WHERE street_edge_id IN (SELECT part_id FROM member JOIN residue ON residue.id = member.street_id
-                                   WHERE residue.trivial)
-            AND NOT EXISTS (SELECT FROM task_move
-                            WHERE task_move.audit_task_id = audit_task.audit_task_id AND task_move.bare))
-         AS residue_bare_audits_deleted;
+       (SELECT round(max(distance_m)::numeric, 1) FROM label_refile) AS refiled_label_farthest_m;
 
 -- 7. Apply the joins. Everything from here on writes to real tables, so a plan run stops before it.
 \if :plan
@@ -556,23 +659,25 @@ WHERE label_point.label_id = label.label_id
   AND label.street_edge_id IN (SELECT id FROM survivor)
   AND label_point.geom IS NOT NULL;
 
+-- interaction_small references interaction, so it goes first.
 UPDATE mission SET current_audit_task_id = NULL
-WHERE current_audit_task_id IN (SELECT audit_task_id FROM task_move WHERE bare);
-DELETE FROM audit_task_environment WHERE audit_task_id IN (SELECT audit_task_id FROM task_move WHERE bare);
-DELETE FROM audit_task_interaction_small WHERE audit_task_id IN (SELECT audit_task_id FROM task_move WHERE bare);
-DELETE FROM audit_task_interaction WHERE audit_task_id IN (SELECT audit_task_id FROM task_move WHERE bare);
-DELETE FROM audit_task WHERE audit_task_id IN (SELECT audit_task_id FROM task_move WHERE bare);
+WHERE current_audit_task_id IN (SELECT audit_task_id FROM task_delete);
+DELETE FROM audit_task_environment WHERE audit_task_id IN (SELECT audit_task_id FROM task_delete);
+DELETE FROM audit_task_interaction_small WHERE audit_task_id IN (SELECT audit_task_id FROM task_delete);
+DELETE FROM audit_task_interaction WHERE audit_task_id IN (SELECT audit_task_id FROM task_delete);
+DELETE FROM audit_task WHERE audit_task_id IN (SELECT audit_task_id FROM task_delete);
 
--- A sliver's audit covered a few metres of what is now a whole street, so it stops counting as finished unless the
--- sliver was most of the result (two slivers joined). A paused audit remembers which end it started from, so a
--- sliver drawn the other way turns that around.
+-- A completed audit stands for the whole street, so it holds only while the walked parts cover enough of the joined
+-- line. A paused audit remembers which end it started from, so a sliver drawn the other way turns that around.
+UPDATE audit_task SET completed = FALSE
+FROM survivor_walked
+WHERE audit_task.street_edge_id = survivor_walked.id AND audit_task.completed AND NOT survivor_walked.covered;
 UPDATE audit_task
 SET street_edge_id = task_move.to_id,
-    completed = audit_task.completed AND street_merge.drop_m / NULLIF(edge.m, 0) >= :min_cov,
+    completed = audit_task.completed AND survivor_walked.covered,
     start_point_reversed = audit_task.start_point_reversed <> task_move.reversed
 FROM task_move
-JOIN street_merge ON street_merge.drop_id = task_move.from_id
-JOIN edge ON edge.id = task_move.to_id
+JOIN survivor_walked ON survivor_walked.id = task_move.to_id
 WHERE audit_task.audit_task_id = task_move.audit_task_id AND NOT task_move.bare;
 
 -- A drop-in audit's start, re-measured along the line it now sits on (the survivor's start is shared unless a sliver
@@ -583,6 +688,10 @@ SET start_offset_m = ST_LineLocatePoint(street_edge.geom, task_offset.started_at
 FROM task_offset, street_edge
 WHERE audit_task.audit_task_id = task_offset.audit_task_id
   AND street_edge.street_edge_id = audit_task.street_edge_id;
+\if :has_coverage
+UPDATE audit_task SET covered_ranges = task_range.covered_ranges
+FROM task_range WHERE audit_task.audit_task_id = task_range.audit_task_id;
+\endif
 
 UPDATE audit_task_user_route SET route_street_id = route_stop_drop.kept_route_street_id
 FROM route_stop_drop WHERE audit_task_user_route.route_street_id = route_stop_drop.route_street_id;
@@ -666,16 +775,7 @@ UPDATE place
 SET nearest_street_edge_id = place_repoint.street_edge_id, nearest_street_distance_m = place_repoint.distance_m
 FROM place_repoint WHERE place.place_id = place_repoint.place_id;
 
--- 11. The trivial residue goes, bare audits and all.
-CREATE TEMP TABLE residue_task ON COMMIT DROP AS
-SELECT audit_task.audit_task_id FROM audit_task
-WHERE audit_task.street_edge_id IN (SELECT id FROM residue WHERE trivial);
-UPDATE mission SET current_audit_task_id = NULL
-WHERE current_audit_task_id IN (SELECT audit_task_id FROM residue_task);
-DELETE FROM audit_task_environment WHERE audit_task_id IN (SELECT audit_task_id FROM residue_task);
-DELETE FROM audit_task_interaction_small WHERE audit_task_id IN (SELECT audit_task_id FROM residue_task);
-DELETE FROM audit_task_interaction WHERE audit_task_id IN (SELECT audit_task_id FROM residue_task);
-DELETE FROM audit_task WHERE audit_task_id IN (SELECT audit_task_id FROM residue_task);
+-- 11. The trivial residue goes (its audits went with task_delete above).
 DELETE FROM street_edge_issue WHERE street_edge_id IN (SELECT id FROM residue WHERE trivial);
 DELETE FROM cluster WHERE street_edge_id IN (SELECT id FROM residue WHERE trivial);
 -- The backups of past label-position migrations (179, 352) name the street each label sat on then. A label whose
@@ -690,12 +790,13 @@ WHERE old_label_point_position.label_id = label.label_id
   AND old_label_point_position.street_edge_id IN (SELECT id FROM residue WHERE trivial);
 DELETE FROM osm_way_street_edge WHERE street_edge_id IN (SELECT id FROM residue WHERE trivial);
 DELETE FROM street_imagery WHERE street_edge_id IN (SELECT id FROM residue WHERE trivial);
-INSERT INTO street_edge_merge (dropped_street_edge_id, survivor_street_edge_id, rule, dropped_length_m, dropped_geom)
-SELECT residue.id, NULL, 'residue', residue.m, residue.geom FROM residue WHERE residue.trivial;
+INSERT INTO street_edge_merge (dropped_street_edge_id, survivor_street_edge_id, rule, dropped_length_m, dropped_geom,
+                               dropped_osm_way_id)
+SELECT residue.id, NULL, 'residue', residue.m, residue.geom, residue.osm_way_id FROM residue WHERE residue.trivial;
 DELETE FROM street_edge WHERE street_edge_id IN (SELECT id FROM residue WHERE trivial);
 
--- 12. Cached figures. Every route's length and street count sit on the route row; region completion refills on the
---     next landing-page load (emptying it locks the table, so a city with nothing to do is skipped).
+-- 12. Cached figures. A route's length and street count sit on its row; region completion refills on the next
+--     landing-page load (emptying it locks the table, so a city with nothing to do is skipped).
 UPDATE route
 SET distance_meters = coalesce(stats.distance_meters, 0), street_count = coalesce(stats.street_count, 0)
 FROM (
