@@ -1,0 +1,55 @@
+/*
+ * Page controls for a long list or table (#5762): Previous / "Page X of Y" / Next, plus optional extras for a big table.
+ *
+ *   .ps-pager           the bar, centered.
+ *   .ps-pager--spread   buttons on the left and extras (rows-per-page) on the right, for a wide data table.
+ *   .ps-pager-controls  groups the buttons and status when the bar also holds extras.
+ *   .ps-pager-btn       one page button.
+ *   .ps-pager-status    "Page X of Y", or a row range.
+ *   .ps-pager-size      the rows-per-page label around a .ps-select.
+ */
+.ps-pager {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+  font: var(--text-small-regular);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-neutral-700);
+}
+
+.ps-pager--spread { justify-content: space-between; }
+
+.ps-pager-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.ps-pager-btn {
+  padding: 4px 10px;
+  border: 1px solid var(--color-neutral-400);
+  border-radius: var(--border-radius);
+  background: var(--color-neutral-white);
+  color: var(--color-neutral-900);
+  font: var(--text-small-regular);
+}
+
+.ps-pager-btn:hover:not(:disabled) { background: var(--color-neutral-100); }
+.ps-pager-btn:disabled { opacity: 0.45; }
+
+.ps-pager-btn:focus-visible {
+  outline: 2px solid var(--color-link-200);
+  outline-offset: 2px;
+}
+
+.ps-pager-status { padding: 0 var(--space-xs); }
+
+.ps-pager-size {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}

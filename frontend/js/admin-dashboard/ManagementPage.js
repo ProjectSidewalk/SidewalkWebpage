@@ -178,7 +178,7 @@ export class ManagementPage {
     const from = (this.#page - 1) * this.#pageSize + 1;
     const to = Math.min(total, this.#page * this.#pageSize);
     const btn = (page, label, disabled) =>
-      `<button type="button" class="mgmt-page-btn" data-page="${page}"${disabled ? ' disabled' : ''}>${label}</button>`;
+      `<button type="button" class="ps-pager-btn" data-page="${page}"${disabled ? ' disabled' : ''}>${label}</button>`;
     const atStart = this.#page <= 1;
     const atEnd = this.#page >= pageCount;
     const sizeOpts = ManagementPage.#PAGE_SIZES.map((s) =>
@@ -186,16 +186,16 @@ export class ManagementPage {
     const html = total === 0
       ? ''
       : [
-          '<div class="mgmt-page-controls">',
+          '<div class="ps-pager-controls">',
           btn('first', '« First', atStart),
           btn('prev', '‹ Prev', atStart),
-          `<span class="mgmt-page-info">${from.toLocaleString()}–${to.toLocaleString()} of ${total.toLocaleString()} `
+          `<span class="ps-pager-status">${from.toLocaleString()}–${to.toLocaleString()} of ${total.toLocaleString()} `
           + `· Page ${this.#page} of ${pageCount}</span>`,
           btn('next', 'Next ›', atEnd),
           btn('last', 'Last »', atEnd),
           '</div>',
-          `<label class="mgmt-page-size-label">Rows per page `
-          + `<select class="ps-select mgmt-page-size">${sizeOpts}</select></label>`,
+          `<label class="ps-pager-size">Rows per page `
+          + `<select class="ps-select">${sizeOpts}</select></label>`,
         ].join('');
     for (const id of ManagementPage.#PAGINATION_IDS) {
       const el = document.getElementById(id);
@@ -260,12 +260,12 @@ export class ManagementPage {
       const bar = document.getElementById(id);
       if (!bar) continue;
       bar.addEventListener('click', (e) => {
-        const btn = /** @type {HTMLButtonElement} */ (/** @type {Element} */ (e.target).closest('.mgmt-page-btn'));
+        const btn = /** @type {HTMLButtonElement} */ (/** @type {Element} */ (e.target).closest('.ps-pager-btn'));
         if (!btn || btn.disabled) return;
         this.#gotoPage(btn.getAttribute('data-page'));
       });
       bar.addEventListener('change', (e) => {
-        const sel = /** @type {HTMLSelectElement} */ (/** @type {Element} */ (e.target).closest('.mgmt-page-size'));
+        const sel = /** @type {HTMLSelectElement} */ (/** @type {Element} */ (e.target).closest('.ps-pager-size select'));
         if (!sel) return;
         this.#pageSize = parseInt(sel.value, 10) || ManagementPage.#PAGE_SIZES[0];
         this.#page = 1;

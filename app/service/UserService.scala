@@ -522,11 +522,19 @@ trait UserService {
    */
   def searchUsers(query: String, limit: Int): Future[Seq[UserSearchResult]]
   def createTeam(name: String, description: String): Future[Int]
+
+  /**
+   * @param n The most rows to return.
+   * @param timePeriod Either "overall" or "weekly".
+   * @param byTeam True to rank teams against each other instead of users.
+   * @param teamId Ranks only this team's members, when given.
+   * @return The ranked rows, best first.
+   */
   def getLeaderboardStats(
       n: Int,
       timePeriod: String = "overall",
       byTeam: Boolean = false,
-      userIdForTeam: Option[String] = None
+      teamId: Option[Int] = None
   ): Future[Seq[LeaderboardStat]]
   def getUserStanding(userId: String): Future[Option[UserStanding]]
 
@@ -887,14 +895,9 @@ class UserServiceImpl @Inject() (
       n: Int,
       timePeriod: String = "overall",
       byTeam: Boolean = false,
-      userIdForTeam: Option[String] = None
+      teamId: Option[Int] = None
   ): Future[Seq[LeaderboardStat]] = {
     db.run(for {
-      // If we are only showing the leaderboard for the user's team, get the teamId.
-      teamId: Option[Int] <- userIdForTeam match {
-        case Some(userId) => userTeamTable.getTeam(userId).map(_.map(_.teamId))
-        case None         => DBIO.successful(None)
-      }
       streetDist: Double          <- streetService.getTotalStreetDistanceDBIO
       stats: Seq[LeaderboardStat] <- userStatTable.getLeaderboardStats(n, timePeriod, byTeam, teamId, streetDist)
     } yield stats)

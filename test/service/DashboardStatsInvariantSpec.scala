@@ -156,6 +156,14 @@ class DashboardStatsInvariantSpec extends SidewalkSpec with GuiceOneAppPerSuite 
     "return a team board with the same invariants" in {
       assertBoardInvariants(await(userService.getLeaderboardStats(10, "overall", byTeam = true)))
     }
+
+    "list only a team's own members on that team's member board (#5762)" in {
+      for (team <- await(userService.getAllTeams)) {
+        val members = await(userService.getTeamOverview(team.teamId)).toSeq.flatMap(_.members.map(_.username)).toSet
+        val board   = await(userService.getLeaderboardStats(Int.MaxValue, teamId = Some(team.teamId)))
+        board.map(_.username).foreach(name => members must contain(name))
+      }
+    }
   }
 
   // Regression for #4533: qualification is by labels placed in the period. A new mapper who has labels but hasn't

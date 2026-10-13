@@ -2,11 +2,12 @@
 @import play.twirl.api.HtmlFormat
 @import service.{CityImpact, CommonPageData, GlobalLeaderboardEntry}
 @import models.api.AggregateStats
-@import models.user.{LeaderboardStat, SidewalkUserWithRole, UserStanding}
+@import models.user.{LeaderboardStat, SidewalkUserWithRole, Team, UserStanding}
 @import play.api.Configuration
 @(commonData: CommonPageData, user: Option[SidewalkUserWithRole], isSignedIn: Boolean, isMetric: Boolean, cityName: String,
     aggregate: AggregateStats, impact: Option[CityImpact], overall: Seq[LeaderboardStat],
-    weekly: Seq[LeaderboardStat], teams: Seq[LeaderboardStat], standing: Option[UserStanding],
+    weekly: Seq[LeaderboardStat], teams: Seq[LeaderboardStat], myTeam: Option[(Team, Seq[LeaderboardStat])],
+    standing: Option[UserStanding],
     global: Option[Seq[GlobalLeaderboardEntry]]
 )(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
@@ -18,6 +19,7 @@
 * fan-out, so every hero number is a strict subset of its cross-city counterpart rather than a second opinion (#4687).
 * PUBLIC page: anyone incl. anonymous can view; personal "you" pieces render only when signed in, with a sign-up CTA
 * otherwise. `impact` and `global` are None when their data is unavailable, which drops those sections entirely.
+* `myTeam` is the viewer's own team and its members, ranked; None when signed out or not on a team (#5762).
 *@
 
 @* Named once because every distance on the board uses it. Twirl compiles this to a def, so it is not memoized. *@
@@ -129,9 +131,9 @@
   }
 }
 
-@statRow(rank: Int, stat: LeaderboardStat, linkUser: Boolean) = {
+@statRow(rank: Int, stat: LeaderboardStat, linkUser: Boolean, hidden: Boolean = false) = {
   @defining(linkUser && isSignedIn && user.exists(_.username == stat.username)) { you =>
-    <tr @if(you){class="is-highlighted"}>
+    <tr @if(you){class="is-highlighted"} @if(hidden){hidden}>
       <td class="ud-lb-rank">@rankCell(rank)</td>
       <td>@if(you){<strong>@Messages("dashboard.you")</strong>}else{
         @if(linkUser){<a href="@routes.UserDashboardController.publicProfile(stat.username)" class="ud-lb-user">@stat.username</a>}else{@stat.username}
@@ -176,6 +178,8 @@
     </tr>
   }
 }
+
+@teamPageSize = @{10}
 
 @podiumSpot(stat: LeaderboardStat, place: Int, medal: String) = {
   <div class="ud-podium-spot ud-podium-@place">
@@ -315,6 +319,43 @@
       <h2 class="page-heading" id="you">@Messages("leaderboard.you.title", cityName) <a href="#you" class="permalink">#</a></h2>
       <p>@Messages("leaderboard.you.intro")</p>
       @userDashboard._standing(standing, seeAllLink = false)
+    </div>
+  }
+
+  @* ---- Your team (signed-in members only, #5762): opens on the page holding the viewer's row ------------- *@
+  @myTeam.map { case (team, members) =>
+    <div class="page-section" id="lb-myteam-section">
+      <h2 class="page-heading" id="team">@Messages("leaderboard.myteam.title", team.name) <a href="#team" class="permalink">#</a></h2>
+      <p>@Messages("leaderboard.myteam.intro", cityName)</p>
+      @if(members.nonEmpty) {
+        @defining(math.max(0, members.indexWhere(m => user.exists(_.username == m.username))) / teamPageSize) { startPage =>
+          @defining((members.length + teamPageSize - 1) / teamPageSize) { pageCount =>
+            <div class="ps-table-scroll-box">
+              <table class="ps-table ps-table--sticky ud-lb-table">
+                <thead>
+                  @lbHead(Messages("leaderboard.header.mapper"))
+                </thead>
+                <tbody id="ud-team-board" data-page-size="@teamPageSize" data-page="@startPage">
+                  @for((stat, i) <- members.zipWithIndex) {
+                    @statRow(i + 1, stat, linkUser = true, hidden = i / teamPageSize != startPage)
+                  }
+                </tbody>
+              </table>
+            </div>
+            @if(pageCount > 1) {
+              @* The page number is its own element so RowPager can update it without re-translating. *@
+              <nav class="ps-pager" id="ud-team-pager" aria-label="@Messages("leaderboard.myteam.pager")">
+                <button type="button" class="ps-pager-btn" data-step="-1" @if(startPage==0){disabled}>@Messages("leaderboard.myteam.prev")</button>
+                <span class="ps-pager-status" aria-live="polite">@Html(Messages("leaderboard.myteam.page",
+                  s"""<span class="ps-pager-page">${startPage + 1}</span>""", pageCount))</span>
+                <button type="button" class="ps-pager-btn" data-step="1" @if(startPage==pageCount-1){disabled}>@Messages("leaderboard.myteam.next")</button>
+              </nav>
+            }
+          }
+        }
+      } else {
+        <div class="ud-nudge">@Messages("leaderboard.myteam.none")</div>
+      }
     </div>
   }
 

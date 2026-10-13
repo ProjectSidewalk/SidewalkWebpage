@@ -135,7 +135,8 @@ class UserDashboardController @Inject() (
 
   /**
    * Renders the redesigned Leaderboard prototype: this city's impact band, podium, weekly/all-time/team tables, a
-   * "you vs community" standing widget, and the cross-city boards, sharing the dashboard shell.
+   * "you vs community" standing widget, a table of the viewer's own teammates, and the cross-city boards, sharing the
+   * dashboard shell.
    *
    * A `UserAwareAction` (#4643), so the general public — including cookie-less visitors and anonymous auto-accounts —
    * can view it without an account being minted. The view shows the community/podium/tables to everyone and gates the
@@ -158,12 +159,17 @@ class UserDashboardController @Inject() (
       standing            <- signedInUser
         .map(u => userService.getUserStanding(u.userId))
         .getOrElse(Future.successful(None))
+      myTeam <- signedInUser.map(u => userService.getUserTeam(u.userId)).getOrElse(Future.successful(None))
+      // The whole team rather than a top 10, so everyone in a class can find themselves; the page splits it into pages.
+      myTeamBoard <- myTeam
+        .map(t => userService.getLeaderboardStats(Int.MaxValue, teamId = Some(t.teamId)).map(stats => Some(t -> stats)))
+        .getOrElse(Future.successful(None))
       global <- globalF
     } yield {
       cc.loggingService.insert(user.map(_.userId), request.ipAddress, "Visit_Leaderboard")
       Ok(
         views.html.userDashboard.leaderboard(commonData, user, isSignedIn, isMetric, cityName, aggregate, impact,
-          overall, weekly, teams, standing, global)
+          overall, weekly, teams, myTeamBoard, standing, global)
       )
     }
   }

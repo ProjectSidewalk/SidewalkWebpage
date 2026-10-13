@@ -1684,57 +1684,8 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
   color: var(--color-neutral-700);
 }
 
-/* Pagination bar beneath the user directory: page controls on the left, rows-per-page on the right. */
-.mgmt-pagination {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-sm);
-  margin-top: var(--space-sm);
-}
+/* The pager above the user directory also needs a gap below it, before the table. */
 #mgmt-pagination-top:not(:empty) { margin-bottom: var(--space-xs); }
-
-.mgmt-page-controls {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-  flex-wrap: wrap;
-}
-
-.mgmt-page-btn {
-  font: var(--text-small-regular);
-  padding: 4px 10px;
-  border: 1px solid var(--color-neutral-400);
-  background: var(--color-neutral-white);
-  color: var(--color-neutral-900);
-  border-radius: 6px;
-  cursor: pointer;
-}
-.mgmt-page-btn:hover:not(:disabled) { background: var(--color-neutral-100); }
-
-.mgmt-page-btn:disabled {
-  opacity: 0.45;
-}
-
-.mgmt-page-btn:focus-visible {
-  outline: 2px solid var(--color-link-200);
-  outline-offset: 2px;
-}
-
-.mgmt-page-info {
-  font: var(--text-small-regular);
-  color: var(--color-neutral-700);
-  padding: 0 var(--space-xs);
-}
-
-.mgmt-page-size-label {
-  font: var(--text-small-regular);
-  color: var(--color-neutral-700);
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
 
 /* --- Team page ----------------------------------------------------------------------------------------------- */
 
