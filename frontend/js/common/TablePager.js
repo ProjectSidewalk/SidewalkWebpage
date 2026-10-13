@@ -2,7 +2,7 @@
 
 import '../../css/components/pager.css';
 
-export class RowPager {
+export class TablePager {
   #rows;
   #pageSize;
   #page;

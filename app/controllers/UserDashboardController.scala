@@ -134,9 +134,8 @@ class UserDashboardController @Inject() (
   }
 
   /**
-   * Renders the redesigned Leaderboard prototype: this city's impact band, podium, weekly/all-time/team tables, a
-   * "you vs community" standing widget, a table of the viewer's own teammates, and the cross-city boards, sharing the
-   * dashboard shell.
+   * Renders the Leaderboard: this city's impact band, podium, weekly/all-time/team tables, the viewer's standing and
+   * teammates, and the cross-city boards, sharing the dashboard shell.
    *
    * A `UserAwareAction` (#4643), so the general public — including cookie-less visitors and anonymous auto-accounts —
    * can view it without an account being minted. The view shows the community/podium/tables to everyone and gates the

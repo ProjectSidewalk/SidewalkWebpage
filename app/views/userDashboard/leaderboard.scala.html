@@ -343,7 +343,7 @@
               </table>
             </div>
             @if(pageCount > 1) {
-              @* The page number is its own element so RowPager can update it without re-translating. *@
+              @* The page number is its own element so TablePager can update it without re-translating. *@
               <nav class="ps-pager" id="ud-team-pager" aria-label="@Messages("leaderboard.myteam.pager")">
                 <button type="button" class="ps-pager-btn" data-step="-1" @if(startPage==0){disabled}>@Messages("leaderboard.myteam.prev")</button>
                 <span class="ps-pager-status" aria-live="polite">@Html(Messages("leaderboard.myteam.page",
