@@ -149,8 +149,8 @@ describe('Toast data-anchor', () => {
     });
 });
 
-describe('RibbonMenu.modeSwitch and the explore-labeling class', () => {
-    let ribbon;
+describe('LabelModes.switchTo and the explore-labeling class', () => {
+    let labelModes;
 
     beforeEach(() => {
         document.body.className = '';
@@ -158,21 +158,22 @@ describe('RibbonMenu.modeSwitch and the explore-labeling class', () => {
         document.body.innerHTML = `<div id="mode-switch-button-other"></div><div id="ribbon-menu-holder"></div>
             <div id="pano-border-frame"></div><div id="ribbon-menu-other-subcategory-holder"></div>`;
         window.util = { misc: { getLabelColors: () => new Proxy({}, { get: () => ({ fillStyle: 'black' }) }) } };
-        window.svl = { ui: { canvas: {} } };
-        Object.assign(window, loadModules('frontend/js/explore/menu/RibbonMenu.js'));
-        ribbon = new window.RibbonMenu({ push: jest.fn() });
+        Object.assign(window, loadModules('frontend/js/explore/menu/LabelModes.js',
+            'frontend/js/explore/menu/RibbonMenu.js'));
+        labelModes = new window.LabelModes({ push: jest.fn() });
+        new window.RibbonMenu(labelModes, { modeSwitchButtonClicked: jest.fn() }, { push: jest.fn() });
     });
 
     test('arming a label type adds the class, and Walk removes it', () => {
-        ribbon.modeSwitch('CurbRamp');
+        labelModes.switchTo('CurbRamp');
         expect(document.body.classList.contains('explore-labeling')).toBe(true);
-        ribbon.modeSwitch('Walk');
+        labelModes.switchTo('Walk');
         expect(document.body.classList.contains('explore-labeling')).toBe(false);
     });
 
-    test('a switch the ribbon refuses leaves the class alone', () => {
-        ribbon.disableModeSwitch();
-        ribbon.modeSwitch('CurbRamp');
+    test('a switch the modes refuse leaves the class alone', () => {
+        labelModes.switching.hold('test');
+        labelModes.switchTo('CurbRamp');
         expect(document.body.classList.contains('explore-labeling')).toBe(false);
     });
 });

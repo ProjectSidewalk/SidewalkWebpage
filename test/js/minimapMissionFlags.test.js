@@ -6,9 +6,9 @@
  * mission-complete modal closes, the red finish flag the user just reached should read as the new mission's green
  * start flag straight away, not after their next step re-runs the per-move progress update.
  *
- * Minimap is loaded as a module with MapLibre's Map and Marker and the UI collaborators stubbed, so the flags go
- * through the real Minimap.addMarker. Real turf: the along-street math that places the finish flag is
- * part of what is being exercised.
+ * Minimap and MinimapMissionProgress are loaded as modules with MapLibre's Map and Marker and the UI collaborators
+ * stubbed, so the flags go through the real Minimap.addMarker. Real turf: the along-street math that places the
+ * finish flag is part of what is being exercised.
  */
 
 const path = require('path');
@@ -80,11 +80,13 @@ const metersAt = (lng) => (lng - START_LNG) * M_PER_DEG_LNG;
 /** The one street both missions run along, with the user's furthest point and each mission's recorded start. */
 function makeTask({ furthestM = 0, missionStarts = {} } = {}) {
     const feature = turf.lineString([[START_LNG, LAT], [lngAt(STREET_LENGTH_M), LAT]]);
+    const furthest = turf.point([lngAt(furthestM), LAT]);
     return {
         getFeature: () => feature,
-        getFurthestPointReached: () => turf.point([lngAt(furthestM), LAT]),
+        getFurthestPointReached: () => furthest,
         getEndCoordinate: () => ({ lat: LAT, lng: lngAt(STREET_LENGTH_M) }),
         getMissionStart: (missionId) => missionStarts[missionId],
+        unwalkedRemainder: () => turf.cleanCoords(turf.lineSlice(furthest, turf.point([lngAt(STREET_LENGTH_M), LAT]), feature)),
     };
 }
 
@@ -92,7 +94,6 @@ function makeMission(missionId, { distanceM, progressM = 0 }) {
     return {
         getProperty: (key) => ({ missionId, distanceProgress: progressM })[key],
         getDistance: () => distanceM,
-        getMissionCompletionRate: () => progressM / distanceM,
     };
 }
 
@@ -100,7 +101,7 @@ function makeMission(missionId, { distanceM, progressM = 0 }) {
 const uiStub = () => document.createElement('div');
 
 describe('Minimap mission flags across a mission boundary', () => {
-    let minimap;
+    let progress;
     let task;
 
     const flagByTitle = (title) => FakeMarker.created.filter((marker) => marker.title === title).at(-1);
@@ -110,35 +111,32 @@ describe('Minimap mission flags across a mission boundary', () => {
         window.util = { assetPath: (logicalPath) => logicalPath };
         window.i18next = { t: (key) => key };
         window.maplibregl = { Map: FakeMap, Marker: FakeMarker };
-        window.svl = {
-            regionModel: { isRoute: false },
-            isOnboarding: () => false,
-            isExploreAddressMode: () => false,
-            taskContainer: { getTasks: () => [task], getCurrentTask: () => task },
-            ui: {
-                minimap: {
-                    holder: uiStub(),
-                    missionProgress: uiStub(),
-                    missionProgressFill: uiStub(),
-                    missionProgressPercent: uiStub(),
-                    missionProgressDistance: uiStub(),
-                },
-            },
+        const ui = {
+            holder: uiStub(),
+            missionProgress: uiStub(),
+            missionProgressFill: uiStub(),
+            missionProgressPercent: uiStub(),
+            missionProgressDistance: uiStub(),
         };
 
-        Object.assign(window, loadModules('frontend/js/explore/navigation/NavigationService.js'));
         Object.assign(window, loadModules('frontend/js/explore/navigation/MinimapStyle.js'));
         // jsdom has no 2D canvas; the chevron's pixels aren't under test.
         window.MinimapStyle.chevronImage = () => ({ width: 1, height: 1, data: new Uint8ClampedArray(4) });
-        Object.assign(window, loadModules('frontend/js/explore/navigation/Minimap.js'));
-        minimap = await window.Minimap.create({ lat: LAT, lng: START_LNG });
+        Object.assign(window, loadModules('frontend/js/explore/navigation/Minimap.js',
+            'frontend/js/explore/navigation/MinimapMissionProgress.js'));
+        const minimap = await window.Minimap.create(ui, { lat: LAT, lng: START_LNG }, { onPanoChanged: () => {} }, { push: jest.fn() });
+        const missionContainer = {
+            getMissionCompletionRate: (mission) => mission.getProperty('distanceProgress') / mission.getDistance(),
+        };
+        progress = new window.MinimapMissionProgress(ui, { isOnboarding: false, isExploreAddressMode: false },
+            { isRoute: false }, { getTasks: () => [task], getCurrentTask: () => task }, missionContainer, minimap);
     });
 
     test('closing the modal turns the reached finish flag into the next mission\'s start flag', () => {
         // Mission 1 began at the street start and has 200 m to go from the user's furthest point at 100 m, so its
         // finish flag stands at 300 m along the street.
         task = makeTask({ furthestM: 100, missionStarts: { 1: { lat: LAT, lng: lngAt(0) } } });
-        minimap.updateMissionProgress(makeMission(1, { distanceM: 300, progressM: 100 }));
+        progress.update(makeMission(1, { distanceM: 300, progressM: 100 }));
 
         const start = flagByTitle('audit:right-ui.minimap.mission-start-flag');
         const finish = flagByTitle('audit:right-ui.minimap.mission-finish-flag');
@@ -151,7 +149,7 @@ describe('Minimap mission flags across a mission boundary', () => {
             furthestM: 300,
             missionStarts: { 1: { lat: LAT, lng: lngAt(0) }, 2: { lat: LAT, lng: lngAt(300) } },
         });
-        minimap.resetMissionProgress(makeMission(2, { distanceM: 1000 }));
+        progress.reset(makeMission(2, { distanceM: 1000 }));
 
         expect(FakeMarker.created).toHaveLength(2); // Moved, not re-planted.
         expect(metersAt(start.position.lng)).toBeCloseTo(300, 0);
@@ -160,7 +158,7 @@ describe('Minimap mission flags across a mission boundary', () => {
 
     test('a short next mission gets its finish flag re-planted on the same street at once', () => {
         task = makeTask({ furthestM: 300, missionStarts: { 2: { lat: LAT, lng: lngAt(300) } } });
-        minimap.resetMissionProgress(makeMission(2, { distanceM: 150 }));
+        progress.reset(makeMission(2, { distanceM: 150 }));
 
         const start = flagByTitle('audit:right-ui.minimap.mission-start-flag');
         const finish = flagByTitle('audit:right-ui.minimap.mission-finish-flag');
@@ -170,10 +168,10 @@ describe('Minimap mission flags across a mission boundary', () => {
 
     test('a reset with no mission leaves the flags alone', () => {
         task = makeTask({ furthestM: 100, missionStarts: { 1: { lat: LAT, lng: lngAt(0) } } });
-        minimap.updateMissionProgress(makeMission(1, { distanceM: 300, progressM: 100 }));
+        progress.update(makeMission(1, { distanceM: 300, progressM: 100 }));
         const finish = flagByTitle('audit:right-ui.minimap.mission-finish-flag');
 
-        minimap.resetMissionProgress();
+        progress.reset();
 
         expect(FakeMarker.created).toHaveLength(2);
         expect(finish.hidden).toBe(false);

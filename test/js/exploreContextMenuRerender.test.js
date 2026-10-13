@@ -12,7 +12,8 @@
  *
  * ContextMenu is a DOM-bound class with private fields, so it is driven through a bare-bones UI the way
  * validateLabelCardKeyboard.test.js drives Validate's KeyboardManager. Only the surface show()/hide() touch is
- * built; the severity and tag sections are switched off through the same flags production uses.
+ * built; the severity and tag sections are switched off through the same flags production uses. The canvas hears
+ * about the panel through onChange, as Canvas subscribes in production.
  */
 
 const { loadModules } = require('./loadGlobalScript');
@@ -36,6 +37,8 @@ function makeLabel({ labelType = 'CurbRamp' } = {}) {
 
 describe('ContextMenu repaints the canvas when the panel opens and closes', () => {
     let menu;
+    let canvas;
+    let tracker;
     let renders;      // One entry per canvas render, recording what Label.render would have seen at that moment.
 
     beforeEach(() => {
@@ -54,28 +57,23 @@ describe('ContextMenu repaints the canvas when the panel opens and closes', () =
             },
         };
 
-        const canvas = {
+        canvas = {
             clear: jest.fn(() => canvas),
             // Recorded from inside the render, since "did the repaint see the new state?" is the whole question.
             render: jest.fn(() => {
-                renders.push({ open: window.svl.contextMenu.isOpen(), target: window.svl.contextMenu.getTargetLabel() });
+                renders.push({ open: menu.isOpen(), target: menu.getTargetLabel() });
                 return canvas;
             }),
-            getStatus: () => false,
         };
-        window.svl = {
-            canvas,
-            tracker: { push: jest.fn() },
-            ribbon: { enableModeSwitch: jest.fn() }, keyboard: { setStatus: jest.fn() },
-            isOnboarding: () => false,
-            LABEL_ICON_RADIUS: 17,
-            navigationService: { setStatus: jest.fn() },
-        };
+        tracker = { push: jest.fn() };
 
         Object.assign(window, loadModules('frontend/js/explore/canvas/ContextMenu.js'));
         // No #context-menu-share element and no ShareWidget global, so the share widget stays null.
-        menu = new window.ContextMenu(makeContextMenuUi());
-        window.svl.contextMenu = menu;
+        menu = new window.ContextMenu(makeContextMenuUi(), { isOnboarding: false }, { iconRadius: 17 },
+            { canDelete: () => true, getAllLabels: () => [], addToLabelsToLog: jest.fn() },
+            { switching: { hold: jest.fn(), release: jest.fn() } }, { onMoveStarted: jest.fn() },
+            { ratingClicked: jest.fn() }, { ensureLabelSaved: jest.fn() }, tracker);
+        menu.onChange(() => canvas.clear().render());
     });
 
     test('show() repaints once, after the panel is already open', () => {
@@ -83,8 +81,8 @@ describe('ContextMenu repaints the canvas when the panel opens and closes', () =
 
         menu.show(label);
 
-        expect(window.svl.canvas.render).toHaveBeenCalledTimes(1);
-        expect(window.svl.canvas.clear).toHaveBeenCalledTimes(1);
+        expect(canvas.render).toHaveBeenCalledTimes(1);
+        expect(canvas.clear).toHaveBeenCalledTimes(1);
         // The repaint has to see the open panel and its target, or the icon it paints is the unfaded one.
         expect(renders).toEqual([{ open: true, target: label }]);
     });
@@ -96,7 +94,7 @@ describe('ContextMenu repaints the canvas when the panel opens and closes', () =
 
         menu.hide();
 
-        expect(window.svl.canvas.render).toHaveBeenCalledTimes(2);
+        expect(canvas.render).toHaveBeenCalledTimes(2);
         // Closed at repaint time, so the icon goes back to full opacity rather than staying faded until the next
         // unrelated render.
         expect(renders).toEqual([{ open: false, target: label }]);
@@ -107,18 +105,18 @@ describe('ContextMenu repaints the canvas when the panel opens and closes', () =
         menu.hide();
         menu.hide();
 
-        expect(window.svl.canvas.render).not.toHaveBeenCalled();
-        expect(window.svl.tracker.push).not.toHaveBeenCalledWith('ContextMenu_Close');
+        expect(canvas.render).not.toHaveBeenCalled();
+        expect(tracker.push).not.toHaveBeenCalledWith('ContextMenu_Close');
     });
 
     test('a second hide() after a real one does not repaint again', () => {
         menu.show(makeLabel());
         menu.hide();
-        expect(window.svl.canvas.render).toHaveBeenCalledTimes(2);
+        expect(canvas.render).toHaveBeenCalledTimes(2);
 
         menu.hide();
 
-        expect(window.svl.canvas.render).toHaveBeenCalledTimes(2);
+        expect(canvas.render).toHaveBeenCalledTimes(2);
     });
 
     test('opening and closing repeatedly leaves the canvas showing the closed state', () => {
@@ -144,6 +142,6 @@ describe('ContextMenu repaints the canvas when the panel opens and closes', () =
 
         expect(menu.isOpen()).toBe(false);
         expect(menu.getTargetLabel()).toBe(null);
-        expect(window.svl.canvas.render).not.toHaveBeenCalled();
+        expect(canvas.render).not.toHaveBeenCalled();
     });
 });

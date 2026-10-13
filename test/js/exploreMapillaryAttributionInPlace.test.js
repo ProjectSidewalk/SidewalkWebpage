@@ -51,9 +51,16 @@ describe('Explore publishes the links clearance from Mapillary\'s in-place pill 
     return {renderer, container};
   }
 
-  /** Sets up Explore's PanoManager on the Mapillary viewer type. */
+  /** Sets up Explore's PanoManager on the Mapillary viewer type and loads its viewer. */
   async function createPanoManager() {
-    await PanoManager.create(global.MapillaryViewer, 'token', {});
+    const ui = {
+      pano: document.getElementById('pano'),
+      viewControlLayer: document.getElementById('view-control-layer'),
+    };
+    const config = { viewerType: global.MapillaryViewer, viewerAccessToken: 'token' };
+    const panoManager = new PanoManager(ui, config, { addPanoMetadata: jest.fn() },
+      { push: jest.fn(), trackPano: jest.fn() }, {}, {}, {});
+    await panoManager.ready;
     await flushObservers();
   }
 
@@ -62,7 +69,6 @@ describe('Explore publishes the links clearance from Mapillary\'s in-place pill 
       <div class="tool-ui">
         <div id="pano" class="window-streetview mapillary-viewer"></div>
         <div id="user-control-layer"><div id="view-control-layer"></div></div>
-        <svg><g id="arrow-group"></g></svg>
       </div>`;
 
     observedNodes = [];
@@ -91,23 +97,13 @@ describe('Explore publishes the links clearance from Mapillary\'s in-place pill 
     global.MapillaryViewer = class MapillaryViewer {
       static create() { return Promise.resolve(fakeViewer); }
     };
-    global.svl = {
-      tracker: {push: jest.fn()},
-      panoStore: {addPanoMetadata: jest.fn()},
-      stuckAlert: {panoVisited: jest.fn()},
-      ui: {streetview: {
-        navArrows: document.getElementById('arrow-group'),
-        viewControlLayer: document.getElementById('view-control-layer'),
-      }},
-    };
-
     PanoManager = loadClassFromFile(PANO_MANAGER_PATH, 'PanoManager');
   });
 
   afterEach(() => {
     document.body.innerHTML = '';
     for (const name of ['ResizeObserver', 'util', 'i18next', 'NoImageryFlagGuard', 'NoImageryError',
-      'createPanoViewerLogo', 'GsvViewer', 'MapillaryViewer', 'svl']) {
+      'createPanoViewerLogo', 'GsvViewer', 'MapillaryViewer']) {
       delete global[name];
     }
   });

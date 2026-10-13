@@ -163,7 +163,7 @@ describe('util.pano projection', () => {
     // horizon — not stored label_point rows. These pin that convention, because the tutorial's arrows are authored
     // against it: a well-meaning "fix" toward inverse symmetry would silently move every one of them.
     describe('horizonRelativeCoordToPov (tutorial annotation convention)', () => {
-        // svl.TUTORIAL_PANO_WIDTH/HEIGHT — the dimensions every tutorial annotation is authored against.
+        // Onboarding.TUTORIAL_PANO_WIDTH/HEIGHT — the dimensions every tutorial annotation is authored against.
         const PANO_WIDTH = 13312;
         const PANO_HEIGHT = 6656;
 

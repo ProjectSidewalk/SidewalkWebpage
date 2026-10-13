@@ -4,9 +4,19 @@
  * one-time celebration when a user first completes a full 360° (#4639).
  */
 
-import { svl } from '../svl.js';
 import { MinimapStyle } from './MinimapStyle.js';
+/** @typedef {import('../Main.js').ExploreConfig} ExploreConfig */
+/** @typedef {import('../Main.js').MinimapUi} MinimapUi */
+/** @typedef {import('../canvas/CanvasFrame.js').CanvasFrame} CanvasFrame */
+/** @typedef {import('./Minimap.js').Minimap} Minimap */
 /** @typedef {import('./Minimap.js').MinimapMarker} MinimapMarker */
+/** @typedef {import('./NavigationService.js').NavigationService} NavigationService */
+/** @typedef {import('../panorama/PanoManager.js').PanoManager} PanoManager */
+/** @typedef {import('./Peg.js').Peg} Peg */
+/** @typedef {import('../region/RegionModel.js').RegionModel} RegionModel */
+/** @typedef {import('./RouteOverview.js').RouteOverview} RouteOverview */
+/** @typedef {import('../data/Storage.js').TemporaryStorage} TemporaryStorage */
+/** @typedef {import('../data/Tracker.js').Tracker} Tracker */
 
 export class ObservedArea {
   static #BASE_RADIUS = 40;  // FOV radius in pixels at UI scale 1 and REFERENCE_ZOOM.
@@ -17,6 +27,16 @@ export class ObservedArea {
   static #REFERENCE_ZOOM = 17;
 
   #uiMinimap;
+  #config;
+  #storage;
+  #frame;
+  #panoManager;
+  #minimap;
+  #peg;
+  #routeOverview;
+  #navigationService;
+  #regionModel;
+  #tracker;
 
   #angle = null;            // User's angle.
   #leftAngle = null;        // Left-most angle of the user's FOV.
@@ -44,16 +64,49 @@ export class ObservedArea {
   #progressCircleCtx;
 
   /**
-   * @param {Record<string, HTMLElement>} uiMinimap - The svl.ui.minimap object holding the minimap's DOM elements.
+   * @param {MinimapUi} uiMinimap - The minimap's DOM elements.
+   * @param {ExploreConfig} config
+   * @param {TemporaryStorage} storage - Remembers the coach mark's dismissal and the one-time celebration.
+   * @param {CanvasFrame} frame - Says how wide a view the viewer renders.
+   * @param {PanoManager} panoManager - Whose view and position are observed.
+   * @param {Minimap} minimap - Where the fog, cone and breadcrumbs are drawn.
+   * @param {Peg} peg - Turned to face where the user looks.
+   * @param {RouteOverview} routeOverview - Redrawn with the fog, since its wedge turns with the peg.
+   * @param {NavigationService} navigationService - Whose moves a breadcrumb click asks for, and whose settling
+   *   heading the cone waits on.
+   * @param {RegionModel} regionModel - Says whether the route inset takes the progress ring's usual corner.
+   * @param {Tracker} tracker
    */
-  constructor(uiMinimap) {
+  constructor(uiMinimap, config, storage, frame, panoManager, minimap, peg, routeOverview, navigationService,
+    regionModel, tracker) {
     this.#uiMinimap = uiMinimap;
+    this.#config = config;
+    this.#storage = storage;
+    this.#frame = frame;
+    this.#panoManager = panoManager;
+    this.#minimap = minimap;
+    this.#peg = peg;
+    this.#routeOverview = routeOverview;
+    this.#navigationService = navigationService;
+    this.#regionModel = regionModel;
+    this.#tracker = tracker;
     this.#baseSize = parseFloat(getComputedStyle(uiMinimap.holder).getPropertyValue('--minimap-base-size'));
     this.#fogOfWarCtx = /** @type {HTMLCanvasElement} */ (uiMinimap.fogOfWar).getContext('2d');
     this.#fovCtx = /** @type {HTMLCanvasElement} */ (uiMinimap.fov).getContext('2d');
     this.#progressCircleCtx = /** @type {HTMLCanvasElement} */ (uiMinimap.progressCircle).getContext('2d');
     this.#syncCanvasSize();
     uiMinimap.coachDismiss.addEventListener('click', () => this.#dismissCoach('Click_MinimapCoach_GotIt'));
+
+    minimap.onMove(() => this.update());
+    // Skipped while the heading settles after a move: the settle poll redraws once it is final, so the cone never
+    // swings through the mid-animation heading (#4174).
+    panoManager.onPovChanged(() => {
+      if (!navigationService.isHeadingSettling()) this.update();
+    });
+    navigationService.onHeadingSettled(() => {
+      this.panoChanged();
+      this.update();
+    });
   }
 
   /**
@@ -94,11 +147,11 @@ export class ObservedArea {
     this.#angle = null;
     this.#leftAngle = null;
     this.#rightAngle = null;
-    const panoId = svl.panoViewer.getPanoId();
+    const panoId = this.#panoManager.getPanoId();
     this.#currArea = this.#observedAreas.find((area) => area.panoId === panoId);
 
     if (!this.#currArea) {
-      this.#currArea = { panoId, latLng: svl.panoViewer.getPosition(), minAngle: null, maxAngle: null };
+      this.#currArea = { panoId, latLng: this.#panoManager.getPosition(), minAngle: null, maxAngle: null };
       this.#observedAreas.push(this.#currArea);
     }
     this.#syncBreadcrumbMarkers();
@@ -144,10 +197,10 @@ export class ObservedArea {
    * Updates all the angle variables necessary to keep track of the user's observed area.
    */
   #updateAngles() {
-    const pov = svl.panoViewer.getPov();
+    const pov = this.#panoManager.getPov();
     let heading = pov.heading;
     // What the viewer actually rendered across the frame (#5083); the curve alone under-counts a wide window at zoom 3.
-    const fov = svl.renderedHFov(pov.zoom);
+    const fov = this.#frame.renderedHFov(pov.zoom);
     if (this.#angle) {
       if (heading - this.#angle > 180) {
         heading -= 360;
@@ -174,7 +227,7 @@ export class ObservedArea {
    * @returns {number}
    */
   #currentRadius() {
-    const zoom = svl.minimap.getZoom();
+    const zoom = this.#minimap.getZoom();
     return ObservedArea.#BASE_RADIUS * this.#scaleFactor * Math.pow(2, zoom - ObservedArea.#REFERENCE_ZOOM);
   }
 
@@ -183,7 +236,7 @@ export class ObservedArea {
    * @returns {{x: number, y: number}} CSS px from the map's top-left corner.
    */
   #pegPoint() {
-    return svl.minimap.project(svl.panoViewer.getPosition());
+    return this.#minimap.project(this.#panoManager.getPosition());
   }
 
   /**
@@ -194,7 +247,7 @@ export class ObservedArea {
     this.#fogOfWarCtx.fillRect(0, 0, this.#width, this.#height);
     this.#fogOfWarCtx.globalCompositeOperation = 'destination-out';
     for (const observedArea of this.#observedAreas) {
-      const center = svl.minimap.project(observedArea.latLng);
+      const center = this.#minimap.project(observedArea.latLng);
       this.#fogOfWarCtx.beginPath();
       if (observedArea.maxAngle - observedArea.minAngle < 360) {
         this.#fogOfWarCtx.moveTo(center.x, center.y);
@@ -267,11 +320,11 @@ export class ObservedArea {
   #createBreadcrumbMarker(area) {
     const content = document.createElement('div');
     content.className = 'minimap-breadcrumb';
-    return svl.minimap.addMarker(area.latLng, content, {
+    return this.#minimap.addMarker(area.latLng, content, {
       title: i18next.t('audit:right-ui.minimap.breadcrumb-title'),
       onClick: () => {
-        svl.tracker.push('Click_MinimapBreadcrumb', { panoId: area.panoId });
-        svl.navigationService.returnToPano(area.panoId);
+        this.#tracker.push('Click_MinimapBreadcrumb', { panoId: area.panoId });
+        this.#navigationService.returnToPano(area.panoId);
       },
     });
   }
@@ -283,7 +336,7 @@ export class ObservedArea {
    * @returns {{x: number, y: number}} Ring center in canvas CSS px.
    */
   #progressRingCenter() {
-    if (svl.regionModel && svl.regionModel.isRoute) {
+    if (this.#regionModel.isRoute) {
       return { x: 18 * this.#scaleFactor, y: 42 * this.#scaleFactor };
     }
     return { x: this.#width - 18 * this.#scaleFactor, y: 18 * this.#scaleFactor };
@@ -334,15 +387,15 @@ export class ObservedArea {
    * the old always-on minimap banner (#4639).
    */
   #maybeShowCoach() {
-    if (this.#coachVisible || svl.isOnboarding() || svl.storage.get('minimapCoachDismissed')) return;
+    if (this.#coachVisible || this.#config.isOnboarding || this.#storage.get('minimapCoachDismissed')) return;
     // Users with a completed mission long ago learned the 360° habit; don't teach them again.
-    if (svl.userHasCompletedAMission) {
-      svl.storage.set('minimapCoachDismissed', true);
+    if (this.#config.userHasCompletedAMission) {
+      this.#storage.set('minimapCoachDismissed', true);
       return;
     }
     this.#coachVisible = true;
     this.#uiMinimap.coach.classList.remove('minimap-coach-hidden');
-    svl.tracker.push('MinimapCoach_Shown');
+    this.#tracker.push('MinimapCoach_Shown');
   }
 
   /**
@@ -352,9 +405,9 @@ export class ObservedArea {
   #dismissCoach(logEvent) {
     if (!this.#coachVisible) return;
     this.#coachVisible = false;
-    svl.storage.set('minimapCoachDismissed', true);
+    this.#storage.set('minimapCoachDismissed', true);
     this.#uiMinimap.coach.classList.add('minimap-coach-hidden');
-    svl.tracker.push(logEvent);
+    this.#tracker.push(logEvent);
   }
 
   /**
@@ -362,9 +415,9 @@ export class ObservedArea {
    * position marker (skipped under prefers-reduced-motion).
    */
   #maybeCelebrate() {
-    if (svl.storage.get('minimap360Celebrated')) return;
-    svl.storage.set('minimap360Celebrated', true);
-    svl.tracker.push('Minimap360Celebration_Shown');
+    if (this.#storage.get('minimap360Celebrated')) return;
+    this.#storage.set('minimap360Celebrated', true);
+    this.#tracker.push('Minimap360Celebration_Shown');
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
     const start = performance.now();
@@ -393,18 +446,18 @@ export class ObservedArea {
       this.#syncCanvasSize();
       // While the heading is settling after a move, hold the FOV at its pre-move angles rather than recomputing
       // from the mid-animation heading; the settle poll recomputes once it's final. (#4174)
-      if (!svl.navigationService || !svl.navigationService.getStatus('headingSettling')) {
+      if (!this.#navigationService.isHeadingSettling()) {
         this.#updateAngles();
       }
       // The fog and cone are drawn to the map's scale; with no map (Minimap.create) there is nothing to align them to.
-      if (svl.minimap && svl.minimap.isAvailable()) {
+      if (this.#minimap.isAvailable()) {
         this.#renderFogOfWar();
         this.#renderFov();
       }
       this.#renderProgressCircle();
       // Point the peg's heading triangle where the user is looking. #angle is unwrapped (continuous), so the CSS
       // rotation transitions the short way across the 0/360 boundary.
-      if (svl.peg && this.#angle !== null) svl.peg.setHeading(this.#angle);
+      if (this.#angle !== null) this.#peg.setHeading(this.#angle);
       // "100%" is one glyph wider than "NN%", so shrink the font a touch only at full to keep it inside the chip.
       this.#uiMinimap.percentObserved.textContent = `${Math.floor(100 * this.#fractionObserved)}%`;
       this.#uiMinimap.percentObserved.classList.toggle('minimap-percent-full', this.#fractionObserved === 1);
@@ -415,6 +468,6 @@ export class ObservedArea {
       }
     }
     // The inset's "you are here" wedge turns with the peg (#4639) and its viewport box follows Minimap's moves.
-    if (svl.routeOverview) svl.routeOverview.render();
+    this.#routeOverview.render();
   }
 }

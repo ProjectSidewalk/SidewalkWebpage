@@ -5,10 +5,9 @@
  * feature the user is rating, so fading it lets them see the feature while they rate it. The dialog's tail still
  * points at the spot.
  *
- * The behavior started life gated on `svl.isOnboarding()` (the tutorial, #4814/#4815). #4824 promoted it to regular
- * Explore labeling, so the gate is gone — the `isOnboarding` cases below are the pin that keeps it gone. What makes
- * the fade *visible* the instant the panel opens or closes is ContextMenu.show()/hide() re-rendering the canvas;
- * that wiring is pinned separately, in exploreContextMenuRerender.test.js.
+ * Whether a label is the open dialog's target is Canvas's call (it holds the context menu); the label only takes the
+ * verdict as render()'s `faded` argument, in and out of the tutorial alike (#4824). The fade showing the instant the
+ * panel opens or closes is ContextMenu.show()/hide() re-rendering the canvas, pinned in exploreContextMenuRerender.
  */
 
 const { loadModules, realUtil } = require('./loadGlobalScript');
@@ -35,8 +34,9 @@ function loadUtil() {
 
 describe('Label render fade while the context menu is open', () => {
     let Label;
+    let frame;
 
-    /** A placed label with a cached lat/lng, so the constructor's toLatLng() short-circuits past the estimator. */
+    /** A placed label with a cached lat/lng, so toLatLng() would short-circuit past the estimator. */
     function newLabel({ labelType = 'CurbRamp', severity = 1 } = {}) {
         const label = new Label({
             labelType,
@@ -48,39 +48,29 @@ describe('Label render fade while the context menu is open', () => {
             panoLng: -122.3035,
             labelLat: 47.6554,
             labelLng: -122.3034,
-        });
+        }, frame, {}, {});
         // The hover card is a DOM concern and is suppressed anyway whenever the context menu is open; keep it out.
         label.setHoverInfoVisibility('hidden');
         return label;
     }
 
-    /** Renders `label` with the context menu reporting `{ open, target }`, returning the alphas it painted at. */
+    /** Renders `label` as Canvas would with the context menu reporting `{ open, target }`, returning the alphas. */
     function renderWith(label, { open, target }) {
-        window.svl.contextMenu = {
-            isOpen: () => open,
-            getTargetLabel: () => target,
-        };
         const ctx = makeRecordingCtx();
-        label.render(ctx, { heading: 90, pitch: -20, zoom: 1 });
+        label.render(ctx, { heading: 90, pitch: -20, zoom: 1 }, open && target === label);
         return ctx;
     }
 
     beforeEach(() => {
         Label = loadLabel();
         const util = loadUtil();
-        window.svl = {
-            CANVAS_FRAME: { width: 720, height: 480 },
-            renderedHFov: () => 90,
-            LABEL_ICON_RADIUS: util.labelIconRadius(1),
-            isOnboarding: () => false,
-        };
+        frame = { width: 720, height: 480, iconRadius: util.labelIconRadius(1), renderedHFov: () => 90 };
         util.pano = { centeredPovToCanvasCoord: () => ({ x: 360, y: 240 }) };
         util.misc = {
             labelTypeHasSeverity: (labelType) => labelType !== 'Occlusion',
             getIconImagePaths: () => ({ iconImagePath: 'CurbRamp.svg' }),
         };
         window.labelIconCache = { 'CurbRamp.svg': {} }; // Truthy, so renderLabelIcon reaches its drawImage.
-        Label.createMinimapMarker = () => ({ setVisible: () => {} });
     });
 
     afterEach(() => {
@@ -115,22 +105,6 @@ describe('Label render fade while the context menu is open', () => {
         const ctx = renderWith(newLabel(), { open: true, target: other });
 
         expect(ctx.alphas.every((a) => a === 1)).toBe(true);
-    });
-
-    test('fades outside the tutorial too (#4824 removed the isOnboarding gate)', () => {
-        window.svl.isOnboarding = () => false;
-        const label = newLabel();
-        const ctx = renderWith(label, { open: true, target: label });
-
-        expect(ctx.alphas.every((a) => a === 0.3)).toBe(true);
-    });
-
-    test('still fades inside the tutorial', () => {
-        window.svl.isOnboarding = () => true;
-        const label = newLabel();
-        const ctx = renderWith(label, { open: true, target: label });
-
-        expect(ctx.alphas.every((a) => a === 0.3)).toBe(true);
     });
 
     test('fades the unrated-severity alert along with the icon', () => {

@@ -9,8 +9,8 @@
  *   - lookups queued for a street the user has left are skipped, not run ahead of the next street's;
  *   - a far crumb over a visited pano takes over the breadcrumb's job and peeks back on click.
  *
- * ForwardCrumbs is loaded as a module against fakes for the globals it closes over. Real turf: the sampler's along-street math is part of
- * what is being exercised.
+ * ForwardCrumbs is loaded as a module and built against fakes of its collaborators. Real turf: the sampler's
+ * along-street math is part of what is being exercised.
  */
 
 const path = require('path');
@@ -58,7 +58,7 @@ function makeTask(streetEdgeId, { lengthM = 500, lat = LAT, furthestM = 0 } = {}
 }
 
 describe('ForwardCrumbs marker lifecycle', () => {
-    let svl;
+    let viewer;
     let nav;
     let tracker;
     let crumbs;
@@ -83,35 +83,43 @@ describe('ForwardCrumbs marker lifecycle', () => {
         visited = new Set();
         task = makeTask(1);
         nav = {
-            getStatus: () => false,
+            walking: { hold: () => {}, release: () => {}, isHeld: () => false, isHeldExcept: () => false, onChanged: () => {} },
+            onMoved: () => {},
             moveToPano: jest.fn(async () => true),
             moveToLocation: jest.fn(async () => true),
             returnToPano: jest.fn(async () => true),
         };
         tracker = { push: jest.fn() };
-        svl = {
-            STREETVIEW_MAX_DISTANCE: 25,
-            isOnboarding: () => false,
-            isExploreAddressMode: () => false,
-            taskContainer: { getCurrentTask: () => task },
-            panoViewer: {
-                supportsLocationSearch: () => true,
-                findPanoNear: jest.fn(async (latLng) => nearestPano(latLng)),
-                getLinkedPanoPositions: async () => [],
-                getPanoId: () => 'standing-here',
-                getPosition: () => ({ lat: LAT, lng: lngAt(0) }),
-                getPov: () => ({ heading: 0 }),
-            },
-            observedArea: { hasVisited: (panoId) => visited.has(panoId) },
-            minimap: { addMarker: (latLng, content, options) => new FakeMarker(latLng, content, options) },
-            compass: { isEnRoute: () => true, getTargetAngle: () => 90 },
-            panoManager: { highlightArrowTo: jest.fn(), clearArrowHighlight: jest.fn() },
+        viewer = {
+            supportsLocationSearch: () => true,
+            findPanoNear: jest.fn(async (latLng) => nearestPano(latLng)),
+            getLinkedPanoPositions: async () => [],
+            getPanoId: () => 'standing-here',
+            getPosition: () => ({ lat: LAT, lng: lngAt(0) }),
+            getPov: () => ({ heading: 0 }),
         };
-        window.svl = svl;
+        const panoManager = {
+            get panoViewer() { return viewer; },
+            onPovChanged: () => {},
+            getPanoId: () => viewer.getPanoId(),
+            getPosition: () => viewer.getPosition(),
+            getPov: () => viewer.getPov(),
+        };
         window.i18next = { t: (key, options) => (options && 'rank' in options ? `${key}#${options.rank}` : key) };
         window.NavigationService = { DIST_INCREMENT: 0.01 };
+        window.PanoViewer = { SEARCH_RADIUS_M: 25 };
         Object.assign(window, loadModules('frontend/js/explore/navigation/ForwardCrumbs.js'));
-        crumbs = new window.ForwardCrumbs(nav, tracker);
+        crumbs = new window.ForwardCrumbs(
+            { isOnboarding: false, isExploreAddressMode: false },
+            panoManager,
+            { getCurrentTask: () => task, onCurrentTaskChanged: () => {} },
+            { isEnRoute: () => true, getTargetAngle: () => 90 },
+            { addMarker: (latLng, content, options) => new FakeMarker(latLng, content, options) },
+            { hasVisited: (panoId) => visited.has(panoId) },
+            nav,
+            { onHover: () => {}, highlightTo: () => {}, clearHighlight: () => {} },
+            tracker,
+        );
     });
 
     const onMap = () => FakeMarker.created.filter((marker) => !marker.removed);
@@ -133,7 +141,7 @@ describe('ForwardCrumbs marker lifecycle', () => {
 
         // One step forward: the first stop is behind now, everything else moves up a rank.
         task = makeTask(1, { furthestM: 30 });
-        svl.panoViewer.getPosition = () => ({ lat: LAT, lng: lngAt(30) });
+        viewer.getPosition = () => ({ lat: LAT, lng: lngAt(30) });
         await crumbs.refresh();
 
         expect(titleOf(lngAt(20))).toBeUndefined();
@@ -141,14 +149,14 @@ describe('ForwardCrumbs marker lifecycle', () => {
         expect(titleOf(lngAt(80))).toBe('audit:right-ui.minimap.forward-crumb-title#3');
         expect(titleOf(lngAt(100))).toBe('audit:right-ui.minimap.route-stop-title#4');
         // The second refresh made no provider calls: every sample point on the street was already memoised.
-        const callsAfterFirst = svl.panoViewer.findPanoNear.mock.calls.length;
+        const callsAfterFirst = viewer.findPanoNear.mock.calls.length;
         await crumbs.refresh();
-        expect(svl.panoViewer.findPanoNear.mock.calls.length).toBe(callsAfterFirst);
+        expect(viewer.findPanoNear.mock.calls.length).toBe(callsAfterFirst);
     });
 
     test('clear() disowns a refresh still waiting on lookups, so nothing reappears afterwards', async () => {
         const pending = [];
-        svl.panoViewer.findPanoNear = jest.fn((latLng) => new Promise((resolve) => {
+        viewer.findPanoNear = jest.fn((latLng) => new Promise((resolve) => {
             pending.push({ latLng, resolve: () => resolve(nearestPano(latLng)) });
         }));
 
@@ -162,7 +170,7 @@ describe('ForwardCrumbs marker lifecycle', () => {
 
     test('lookups queued for a street the user has left are skipped, not run ahead of the next street\'s', async () => {
         const pending = [];
-        svl.panoViewer.findPanoNear = jest.fn((latLng) => new Promise((resolve) => {
+        viewer.findPanoNear = jest.fn((latLng) => new Promise((resolve) => {
             pending.push({ latLng, resolve: () => resolve(nearestPano(latLng)) });
         }));
         const streetOneLat = LAT;
@@ -170,10 +178,10 @@ describe('ForwardCrumbs marker lifecycle', () => {
 
         task = makeTask(1, { lengthM: 2000 }); // 100 sample points: 4 in flight, 96 queued.
         const first = crumbs.refresh();
-        expect(svl.panoViewer.findPanoNear).toHaveBeenCalledTimes(4);
+        expect(viewer.findPanoNear).toHaveBeenCalledTimes(4);
 
         task = makeTask(2, { lengthM: 50, lat: streetTwoLat }); // The next street.
-        svl.panoViewer.getPosition = () => ({ lat: streetTwoLat, lng: lngAt(0) });
+        viewer.getPosition = () => ({ lat: streetTwoLat, lng: lngAt(0) });
         const second = crumbs.refresh();
 
         // Let street one's four in-flight lookups answer; the queue then drains, skipping street one's leftovers.
@@ -181,7 +189,7 @@ describe('ForwardCrumbs marker lifecycle', () => {
         await Promise.all([first, second]);
 
         // Sample points follow a great circle, so their latitude drifts a hair along the street: match by nearness.
-        const calls = svl.panoViewer.findPanoNear.mock.calls.map(([latLng]) => latLng.lat);
+        const calls = viewer.findPanoNear.mock.calls.map(([latLng]) => latLng.lat);
         const near = (target) => (lat) => Math.abs(lat - target) < 0.001;
         expect(calls.filter(near(streetOneLat))).toHaveLength(4);
         expect(calls.filter(near(streetTwoLat)).length).toBeGreaterThan(0);

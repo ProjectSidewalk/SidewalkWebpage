@@ -4,16 +4,20 @@
  */
 
 import { Toast } from '../../common/Toast.js';
-/** @typedef {import('../menu/RibbonMenu.js').RibbonMenu} RibbonMenu */
+/** @typedef {import('../../common/Gate.js').Gate} Gate */
+/** @typedef {import('../navigation/NavigationService.js').NavigationService} NavigationService */
+/** @typedef {import('../mission/MissionContainer.js').MissionContainer} MissionContainer */
+/** @typedef {import('../panorama/PanoManager.js').PanoManager} PanoManager */
 /** @typedef {import('../task/Task.js').Task} Task */
 /** @typedef {import('../task/TaskContainer.js').TaskContainer} TaskContainer */
 /** @typedef {import('../data/Tracker.js').Tracker} Tracker */
 
 export class FeedbackModal {
-  #svl;
-  #tracker;
-  #ribbon;
+  #interactionLock;
+  #missionContainer;
   #taskContainer;
+  #panoManager;
+  #tracker;
 
   #feedbackButton;
   #holder;
@@ -24,16 +28,20 @@ export class FeedbackModal {
   #cancelButton;
 
   /**
-   * @param {Record<string, any>} svl - Shared app object (used for panoViewer, popUpMessage, and missionContainer).
-   * @param {Tracker} tracker
-   * @param {RibbonMenu} ribbon - Used to suspend mode switching while the textarea is focused.
+   * @param {Gate} interactionLock - Held while the dialog is open.
+   * @param {MissionContainer} missionContainer - Provides the current mission for the submitted comment.
    * @param {TaskContainer} taskContainer - Provides the current task for the submitted comment.
+   * @param {PanoManager} panoManager - Provides the pano and view for the submitted comment.
+   * @param {NavigationService} navigationService - Whose moves close the dialog.
+   * @param {Tracker} tracker
    */
-  constructor(svl, tracker, ribbon, taskContainer) {
-    this.#svl = svl;
-    this.#tracker = tracker;
-    this.#ribbon = ribbon;
+  constructor(interactionLock, missionContainer, taskContainer, panoManager, navigationService, tracker) {
+    this.#interactionLock = interactionLock;
+    this.#missionContainer = missionContainer;
     this.#taskContainer = taskContainer;
+    this.#panoManager = panoManager;
+    this.#tracker = tracker;
+    navigationService.onMoveStarted(() => this.hide());
 
     this.#feedbackButton = document.getElementById('explore-control-feedback');
     this.#holder = document.getElementById('modal-comment-holder');
@@ -50,8 +58,6 @@ export class FeedbackModal {
     this.#okButton.addEventListener('click', this.#handleClickOK);
     this.#cancelButton.addEventListener('click', this.#handleClickCancel);
     this.#textarea.addEventListener('input', this.#handleTextareaInput);
-    this.#textarea.addEventListener('focus', () => this.#ribbon.disableModeSwitch());
-    this.#textarea.addEventListener('blur', () => this.#ribbon.enableModeSwitch());
 
     this.#setOkEnabled(false);
   }
@@ -63,14 +69,14 @@ export class FeedbackModal {
     this.#setOkEnabled(false);
     this.#holder.classList.remove('ps-hidden');
     this.#background.style.visibility = 'visible';
-    this.#svl.popUpMessage.disableInteractions();
+    this.#interactionLock.hold('feedback');
   };
 
   /** Hides the feedback dialog and restores interaction with the tool. */
   hide = () => {
     this.#holder.classList.add('ps-hidden');
     this.#background.style.visibility = 'hidden';
-    this.#svl.popUpMessage.enableInteractions();
+    this.#interactionLock.release('feedback');
   };
 
   /** Submits the typed comment, then closes the dialog. */
@@ -79,9 +85,9 @@ export class FeedbackModal {
     this.#tracker.push('ModalComment_ClickOK');
 
     const task = this.#taskContainer.getCurrentTask();
-    const panoId = this.#svl.panoViewer.getPanoId();
-    const latlng = this.#svl.panoViewer.getPosition();
-    const pov = this.#svl.panoViewer.getPov();
+    const panoId = this.#panoManager.getPanoId();
+    const latlng = this.#panoManager.getPosition();
+    const pov = this.#panoManager.getPov();
 
     this.#submitComment(this.#prepareCommentData(panoId, latlng.lat, latlng.lng, pov, task));
     this.hide();
@@ -144,7 +150,7 @@ export class FeedbackModal {
       pitch: pov.pitch,
       street_edge_id: task.getStreetEdgeId(),
       audit_task_id: task.getAuditTaskId(),
-      mission_id: this.#svl.missionContainer.getCurrentMission().getProperty('missionId'),
+      mission_id: this.#missionContainer.getCurrentMission().getProperty('missionId'),
       zoom: pov.zoom,
     };
   }

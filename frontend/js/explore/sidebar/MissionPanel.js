@@ -2,22 +2,33 @@
  * Renders the "Current Mission" header and description at the top of the right sidebar.
  */
 
-import { svl } from '../svl.js';
 import { util } from '../../common/utilities.js';
 import '../../common/utilitiesMath.js';
+/** @typedef {import('../Main.js').ExploreConfig} ExploreConfig */
 /** @typedef {import('../mission/Mission.js').Mission} Mission */
+/** @typedef {import('../region/RegionModel.js').RegionModel} RegionModel */
+/** @typedef {import('../data/Tracker.js').Tracker} Tracker */
 
 export class MissionPanel {
+  #config;
+  #regionModel;
   #headerEl;
   #descriptionEl;
   #exitRouteEl;
 
-  constructor() {
+  /**
+   * @param {ExploreConfig} config - Names the route, when on one.
+   * @param {RegionModel} regionModel - Names the region, and says whether this is a route.
+   * @param {Tracker} tracker
+   */
+  constructor(config, regionModel, tracker) {
+    this.#config = config;
+    this.#regionModel = regionModel;
     this.#headerEl = document.getElementById('current-mission-header');
     this.#descriptionEl = document.getElementById('current-mission-description');
     this.#exitRouteEl = document.getElementById('explore-sidebar__exit-route');
     // The link's href does the navigation; the page-dismissal flush (Form's pagehide handler) submits the event.
-    this.#exitRouteEl.addEventListener('click', () => svl.tracker.push('Click_ExitRoute', { source: 'sidebar' }));
+    this.#exitRouteEl.addEventListener('click', () => tracker.push('Click_ExitRoute', { source: 'sidebar' }));
   }
 
   /**
@@ -26,7 +37,7 @@ export class MissionPanel {
    */
   setMessage(mission) {
     const missionType = mission.getProperty('missionType');
-    const isRoute = svl.regionModel.isRoute;
+    const isRoute = this.#regionModel.isRoute;
 
     if (missionType === 'exploreAddress') {
       this.#headerEl.innerHTML = i18next.t('right-ui.current-mission.header-free-explore');
@@ -46,11 +57,11 @@ export class MissionPanel {
     } else if (isRoute) {
       // On a user-defined route the mission is the route itself, so name it rather than the region.
       missionMessage = i18next.t('right-ui.current-mission.message-route', {
-        routeName: svl.routeName, interpolation: { escapeValue: true },
+        routeName: this.#config.routeName, interpolation: { escapeValue: true },
       });
     } else {
       // The regular mission message names the region being explored.
-      const region = svl.regionModel.currentRegion();
+      const region = this.#regionModel.currentRegion();
       const regionName = region ? region.getProperty('name') : '';
       missionMessage = i18next.t('right-ui.current-mission.message', {
         regionName, interpolation: { escapeValue: true },

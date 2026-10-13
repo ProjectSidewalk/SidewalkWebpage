@@ -8,8 +8,7 @@
  * puts a non-deleted label's marker on the map), that a marker suppressed while earlier comes back once its mission is
  * current again, and that eras are re-derived only when the mission actually changes.
  *
- * Label, LabelContainer and MissionContainer are loaded as modules with the minimap seam, storage, and i18n
- * collaborators stubbed.
+ * Label, LabelContainer and MissionContainer are loaded as modules, with the minimap seam, storage and i18n stubbed.
  */
 
 const { loadModules } = require('./loadGlobalScript');
@@ -64,7 +63,7 @@ function loadMissionContainer() {
     return window.MissionContainer;
 }
 
-/** In-memory stand-in for svl.storage (TemporaryStorage), with the same JSON round trip. */
+/** In-memory stand-in for TemporaryStorage, with the same JSON round trip. */
 function fakeStorage() {
     const store = new Map();
     return {
@@ -76,6 +75,11 @@ function fakeStorage() {
 describe('Label minimap eras (#4945)', () => {
     let Label;
     let currentMissionId;
+    let minimap;
+    let missionContainer;
+    let tracker;
+    let storage;
+    const frame = { width: 720, height: 480, iconRadius: 10, renderedHFov: () => 90 };
 
     /** A resumed label's params as /label/resumeMission hands them over: panoXY present, so no pano store lookup. */
     function newLabelParams() {
@@ -92,24 +96,20 @@ describe('Label minimap eras (#4945)', () => {
         };
     }
 
+    /** A label placed on the minimap for the mission current at the time, as LabelContainer.createLabel does. */
     function newLabel(overrides = {}) {
-        return new Label({ ...newLabelParams(), ...overrides });
+        const label = new Label({ ...newLabelParams(), ...overrides }, frame, {}, {});
+        label.placeOnMinimap(minimap, currentMissionId, () => {});
+        return label;
     }
 
     beforeEach(() => {
         Label = loadLabel();
         currentMissionId = 10;
-        window.svl = {
-            minimap: { addMarker: (latLng, content, options) => new FakeMarker(latLng, content, options) },
-            missionContainer: { getCurrentMission: () => ({ getProperty: () => currentMissionId }) },
-            contextMenu: { isOpen: () => false },
-            LABEL_ICON_RADIUS: 10,
-            CANVAS_FRAME: { width: 720, height: 480 },
-            renderedHFov: () => 90,
-            panoViewer: { getPov: () => ({ heading: 90, pitch: -10, zoom: 1 }) },
-            tracker: { push: jest.fn() },
-            storage: fakeStorage(),
-        };
+        minimap = { addMarker: (latLng, content, options) => new FakeMarker(latLng, content, options) };
+        missionContainer = { getCurrentMission: () => ({ getProperty: () => currentMissionId }), on: jest.fn() };
+        tracker = { push: jest.fn() };
+        storage = fakeStorage();
         window.util = {
             EXPLORE_CANVAS_WIDTH: 720,
             EXPLORE_CANVAS_HEIGHT: 480,
@@ -198,13 +198,13 @@ describe('Label minimap eras (#4945)', () => {
             expect(label.getMinimapEra()).toBe('current');
 
             currentMissionId = 11;
-            label.refreshMinimapEra();
+            label.refreshMinimapEra(currentMissionId);
             expect(label.getMinimapEra()).toBe('prior');
             expect(label.getMinimapMarker().content.className).toBe('minimap-label-icon minimap-label-icon--prior');
             expect(label.getMinimapMarker().clickable).toBe(false);
 
             currentMissionId = 10;
-            label.refreshMinimapEra();
+            label.refreshMinimapEra(currentMissionId);
             expect(label.getMinimapEra()).toBe('current');
             expect(label.getMinimapMarker().content.className).toBe('minimap-label-icon');
             expect(label.getMinimapMarker().clickable).toBe(true);
@@ -224,7 +224,8 @@ describe('Label minimap eras (#4945)', () => {
 
         beforeEach(() => {
             LabelContainer = loadLabelContainer();
-            container = new LabelContainer(1);
+            container = new LabelContainer(1, { isOnboarding: false }, frame, {}, minimap, missionContainer, {},
+                storage, {}, tracker);
         });
 
         it('brings a hidden earlier marker back when its mission becomes current again', () => {
@@ -254,60 +255,63 @@ describe('Label minimap eras (#4945)', () => {
 
         it('moves the markers even when saving the preference throws, and logs the click', () => {
             const label = addLabel(1, { missionId: 9 });
-            window.svl.storage.set = () => { throw new DOMException('full', 'QuotaExceededError'); };
+            storage.set = () => { throw new DOMException('full', 'QuotaExceededError'); };
             const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
             expect(() => container.setEarlierLabelsShown(false)).not.toThrow();
             expect(label.getMinimapMarker().visible).toBe(false);
-            expect(window.svl.tracker.push).toHaveBeenCalledWith(
+            expect(tracker.push).toHaveBeenCalledWith(
                 'Click_MinimapEarlierLabels_Hide', { prior: 1, outdated: 0 }
             );
             warn.mockRestore();
         });
 
         it('reads an unreadable preference as shown rather than throwing', () => {
-            window.svl.storage.get = () => { throw new SyntaxError('bad JSON'); };
+            storage.get = () => { throw new SyntaxError('bad JSON'); };
             const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
-            expect(LabelContainer.earlierLabelsShownPreference()).toBe(true);
+            expect(container.earlierLabelsShownPreference()).toBe(true);
             warn.mockRestore();
         });
 
         it('re-derives eras without writing the preference or logging a click', () => {
             addLabel(1, { missionId: 9 });
-            const set = jest.spyOn(window.svl.storage, 'set');
+            const set = jest.spyOn(storage, 'set');
             container.refreshMinimapEras();
             expect(set).not.toHaveBeenCalled();
-            expect(window.svl.tracker.push).not.toHaveBeenCalled();
+            expect(tracker.push).not.toHaveBeenCalled();
         });
 
-        it('keeps the legend checkbox in step with the applied preference', () => {
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            checkbox.checked = true;
-            window.svl.ui = { minimap: { legendEarlierLabels: checkbox } };
-            window.svl.storage.set(LabelContainer.EARLIER_LABELS_STORAGE_KEY, false);
+        it('tells the legend the applied preference, so its checkbox keeps in step', () => {
+            const applied = [];
+            container.onEarlierLabelsShownChanged((shown) => applied.push(shown));
+            storage.set(LabelContainer.EARLIER_LABELS_STORAGE_KEY, false);
             container.refreshMinimapEras();
-            expect(checkbox.checked).toBe(false);
+            expect(applied).toEqual([false]);
         });
     });
 
     describe('MissionContainer.setCurrentMission', () => {
         it('re-derives minimap eras only when the mission id changes, not on every submission', () => {
             const MissionContainer = loadMissionContainer();
-            window.svl.labelContainer = { refreshMinimapEras: jest.fn() };
-            window.svl.taskContainer = {
+            const LabelContainer = loadLabelContainer();
+            const taskContainer = {
                 getCurrentTask: () => ({ setProperty: () => {}, getProperty: () => false }),
+                onCurrentTaskChanged: () => {},
             };
-            const missionContainer = new MissionContainer({ setMessage: () => {} }, { on: () => {} });
+            const realMissionContainer = new MissionContainer({}, { setMessage: () => {} }, { on: () => {} }, storage,
+                taskContainer, {});
+            const container = new LabelContainer(1, {}, frame, {}, minimap, realMissionContainer, {}, storage, {},
+                tracker);
+            const refresh = jest.spyOn(container, 'refreshMinimapEras').mockImplementation(() => {});
             // distanceProgress 1 skips the mission-start bookkeeping, which needs a real street.
             const mission = (id) => ({ getProperty: (k) => ({ missionId: id, distanceProgress: 1 })[k] });
 
-            missionContainer.setCurrentMission(mission(10));
-            missionContainer.setCurrentMission(mission(10)); // Form.js re-sends the mission after every submit.
-            missionContainer.setCurrentMission(mission(10));
-            expect(window.svl.labelContainer.refreshMinimapEras).toHaveBeenCalledTimes(1);
+            realMissionContainer.setCurrentMission(mission(10));
+            realMissionContainer.setCurrentMission(mission(10)); // Form.js re-sends the mission after every submit.
+            realMissionContainer.setCurrentMission(mission(10));
+            expect(refresh).toHaveBeenCalledTimes(1);
 
-            missionContainer.setCurrentMission(mission(11));
-            expect(window.svl.labelContainer.refreshMinimapEras).toHaveBeenCalledTimes(2);
+            realMissionContainer.setCurrentMission(mission(11));
+            expect(refresh).toHaveBeenCalledTimes(2);
         });
     });
 

@@ -3,7 +3,6 @@
  * Docs: https://developers.google.com/maps/documentation/javascript/reference/street-view
  */
 
-import { svl } from '../../explore/svl.js';
 import { NoImageryError } from './NoImageryError.js';
 import { PanoData } from './PanoData.js';
 import { PanoViewer } from './PanoViewer.js';
@@ -294,13 +293,11 @@ export class GsvViewer extends PanoViewer {
   }
 
   /**
-   * The radius, in meters, every location search asks Google for and every reply is held to. Explore's
-   * svl.STREETVIEW_MAX_DISTANCE is the one definition (the imagery scan mirrors it); it is read at call time because
-   * svl is assembled after this file loads, and only Explore searches GSV by location.
+   * The radius, in meters, every location search asks Google for and every reply is held to.
    * @returns {number}
    */
   static #searchRadiusM() {
-    return svl.STREETVIEW_MAX_DISTANCE;
+    return PanoViewer.SEARCH_RADIUS_M;
   }
 
   /**

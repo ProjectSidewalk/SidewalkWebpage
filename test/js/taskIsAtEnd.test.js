@@ -55,7 +55,6 @@ function positionOn(street, alongM, offsetM = 0) {
 describe('Task.isAtEnd', () => {
     beforeEach(() => {
         window.turf = turf;
-        window.svl = { CLOSE_TO_ROUTE_THRESHOLD: 0.05 };
         window.util ??= realUtil();
         loadModules('frontend/js/common/utilitiesMath.js');
         Object.assign(window, loadModules('frontend/js/explore/task/Task.js'));

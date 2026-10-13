@@ -35,17 +35,14 @@ function loadLabel() {
 
 describe('Label lat/lng estimation parity with the server and the SQL backfill (#5084)', () => {
     let Label;
+    const LAT_LNG_ESTIMATION = {
+        blendDeg: FIXTURE.constants.blend_deg,
+        maxDistanceM: FIXTURE.constants.max_distance_m,
+        cameraHeightM: FIXTURE.constants.camera_height_m,
+    };
 
     beforeEach(() => {
         Label = loadLabel();
-        window.svl = {
-            latLngEstimation: {
-                blendDeg: FIXTURE.constants.blend_deg,
-                maxDistanceM: FIXTURE.constants.max_distance_m,
-                cameraHeightM: FIXTURE.constants.camera_height_m,
-            },
-        };
-        Label.createMinimapMarker = () => ({ setVisible: () => {} });
         // The real vendored turf (UMD), not a stub: the destination step is part of what is being pinned.
         window.turf = require(path.join(REPO_ROOT, 'public/vendor/turf/turf-7.4.0.min.js'));
     });
@@ -63,7 +60,7 @@ describe('Label lat/lng estimation parity with the server and the SQL backfill (
             povOfLabelIfCentered: { heading: c.expected.heading_deg, pitch: c.expected.pitch_deg, zoom: 1 },
             panoLat: c.pano_lat,
             panoLng: c.pano_lng,
-        });
+        }, {}, LAT_LNG_ESTIMATION, {});
         const { lat, lng, latLngComputationMethod } = label.toLatLng();
         expect(latLngComputationMethod).toBe('approximation3');
         expect(Math.abs(lat - c.expected.lat)).toBeLessThan(CLIENT_TOL_DEG);

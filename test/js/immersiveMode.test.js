@@ -20,6 +20,9 @@ describe('ImmersiveMode', () => {
     let tracker;
     let relayout;
     let onboarding;
+    let contextMenu;
+    let canvas;
+    let frame;
 
     /** Builds the module against a fresh page, wired the way Explore's Main.js wires it. */
     function build(extra = {}) {
@@ -27,12 +30,12 @@ describe('ImmersiveMode', () => {
             tracker,
             bodyClass: 'svl-immersive',
             relayout,
-            isDisabled: () => window.svl.isOnboarding(),
+            isDisabled: () => onboarding,
             beforeToggle: () => {
-                if (window.svl.contextMenu.isOpen()) window.svl.contextMenu.hide();
-                window.svl.canvas.showLabelHoverInfo(undefined);
+                if (contextMenu.isOpen()) contextMenu.hide();
+                canvas.showLabelHoverInfo(undefined);
             },
-            frame: () => window.svl.CANVAS_FRAME,
+            frame: () => frame,
             hintReference: () => document.getElementById('pano'),
             urlParam: 'immersive',
             ...extra,
@@ -56,12 +59,9 @@ describe('ImmersiveMode', () => {
         window.util = { assetPath: assetPathStub };
         window.i18next = { t: (key) => key };
         window.Toast = { show: jest.fn() };
-        window.svl = {
-            isOnboarding: () => onboarding,
-            contextMenu: { isOpen: jest.fn(() => false), hide: jest.fn() },
-            canvas: { showLabelHoverInfo: jest.fn() },
-            CANVAS_FRAME: { width: 720, height: 480 },
-        };
+        contextMenu = { isOpen: jest.fn(() => false), hide: jest.fn() };
+        canvas = { showLabelHoverInfo: jest.fn() };
+        frame = { width: 720, height: 480 };
         Object.assign(window, loadModules('frontend/js/common/ImmersiveMode.js'));
         ImmersiveMode = window.ImmersiveMode;
     });
@@ -89,7 +89,7 @@ describe('ImmersiveMode', () => {
 
     it('logs the paired Click_ / KeyboardShortcut_ events with the window and the resulting frame', () => {
         const mode = build();
-        window.svl.CANVAS_FRAME = { width: 720, height: 405 };
+        frame = { width: 720, height: 405 };
 
         document.getElementById('immersive-toggle-button').click();
         expect(tracker.push).toHaveBeenLastCalledWith('Click_ImmersiveMode_Enter', expect.objectContaining({
@@ -101,13 +101,13 @@ describe('ImmersiveMode', () => {
     });
 
     it('closes the anchored panels before the frame changes shape', () => {
-        window.svl.contextMenu.isOpen.mockReturnValue(true);
+        contextMenu.isOpen.mockReturnValue(true);
         build().toggle('Click');
 
-        expect(window.svl.contextMenu.hide).toHaveBeenCalledTimes(1);
-        expect(window.svl.canvas.showLabelHoverInfo).toHaveBeenCalledWith(undefined);
+        expect(contextMenu.hide).toHaveBeenCalledTimes(1);
+        expect(canvas.showLabelHoverInfo).toHaveBeenCalledWith(undefined);
         // The relayout runs after the panels are gone, so it never measures against a stale anchor.
-        expect(window.svl.contextMenu.hide.mock.invocationCallOrder[0])
+        expect(contextMenu.hide.mock.invocationCallOrder[0])
             .toBeLessThan(relayout.mock.invocationCallOrder[0]);
     });
 

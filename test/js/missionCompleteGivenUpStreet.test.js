@@ -7,8 +7,7 @@
  * report supports none of that (#4922). The submission itself still has to happen, since it is what carries the
  * mission's completed flag to the server.
  *
- * MissionController is a top-level `class` written for the Grunt-concatenation world, so we eval the source in the
- * jsdom global scope.
+ * MissionController is loaded as a module and built against the smallest collaborators the wrap-up touches.
  */
 
 const { loadModules } = require('./loadGlobalScript');
@@ -20,10 +19,13 @@ const makeTask = ({ givenUp = false } = {}) => ({
 });
 
 describe('MissionController.wrapUpRouteOrRegion', () => {
-    let svl;
     let controller;
     let currentTask;
     let mission;
+    let regionModel;
+    let form;
+    let modalMissionComplete;
+    let taskContainer;
 
     beforeEach(() => {
         currentTask = makeTask();
@@ -33,26 +35,28 @@ describe('MissionController.wrapUpRouteOrRegion', () => {
             getProperty: (key) => (key === 'missionId' ? 7 : 'audit'),
             getDistance: () => 100,
         };
-        svl = {
-            isExploreAddressMode: () => false,
-            missionsCompleted: 0,
-            form: { submitData: jest.fn() },
-            modalMissionComplete: { update: jest.fn(), show: jest.fn() },
-            regionModel: { isRoute: true },
-            taskContainer: {
-                getCurrentTask: () => currentTask,
-                endTask: jest.fn(),
-                updateAuditedDistance: jest.fn(),
-            },
+        regionModel = { isRoute: true, currentRegion: () => ({ getRegionId: () => 22 }) };
+        form = { submitData: jest.fn() };
+        modalMissionComplete = { update: jest.fn(), show: jest.fn() };
+        taskContainer = {
+            getCurrentTask: () => currentTask,
+            endTask: jest.fn(),
+            updateAuditedDistance: jest.fn(),
         };
-        window.svl = svl;
         window.i18next = { t: (key) => key };
 
         Object.assign(window, loadModules('frontend/js/explore/mission/MissionController.js'));
         controller = new window.MissionController(
+            { isExploreAddressMode: false },
             { on: jest.fn(), completeMission: jest.fn() },
-            { ...svl.regionModel, currentRegion: () => ({ getRegionId: () => 22 }) },
-            { getCurrentMission: () => mission },
+            regionModel,
+            { getCurrentMission: () => mission, finishMission: jest.fn((m) => m.complete()) },
+            taskContainer,
+            form,
+            modalMissionComplete,
+            {}, {}, { onFinishClick: jest.fn() },
+            { onRouteEndReached: jest.fn(), onRegionExhausted: jest.fn() }, { onPovChanged: jest.fn() },
+            {}, {}, {}, {}, {},
             { push: jest.fn() },
         );
     });
@@ -60,7 +64,7 @@ describe('MissionController.wrapUpRouteOrRegion', () => {
     it('finishes a street the labeler walked to its end', () => {
         controller.wrapUpRouteOrRegion();
 
-        expect(svl.taskContainer.endTask).toHaveBeenCalledWith(currentTask);
+        expect(taskContainer.endTask).toHaveBeenCalledWith(currentTask);
     });
 
     it('never finishes a street given up on for missing imagery', () => {
@@ -68,7 +72,7 @@ describe('MissionController.wrapUpRouteOrRegion', () => {
 
         controller.wrapUpRouteOrRegion();
 
-        expect(svl.taskContainer.endTask).not.toHaveBeenCalled();
+        expect(taskContainer.endTask).not.toHaveBeenCalled();
     });
 
     it('still submits that street, since the mission\'s completed flag rides on the submission', () => {
@@ -76,7 +80,7 @@ describe('MissionController.wrapUpRouteOrRegion', () => {
 
         controller.wrapUpRouteOrRegion();
 
-        expect(svl.form.submitData).toHaveBeenCalledWith(currentTask);
+        expect(form.submitData).toHaveBeenCalledWith(currentTask);
     });
 
     it('shows the celebration either way', () => {
@@ -84,12 +88,12 @@ describe('MissionController.wrapUpRouteOrRegion', () => {
 
         controller.wrapUpRouteOrRegion();
 
-        expect(svl.modalMissionComplete.show).toHaveBeenCalled();
+        expect(modalMissionComplete.show).toHaveBeenCalled();
     });
 
     // A region's last mission can read just under done, so the wrap-up has to finish it (#5692).
     it('completes the mission when a region runs out of streets, not only a route', () => {
-        svl.regionModel.isRoute = false;
+        regionModel.isRoute = false;
 
         controller.wrapUpRouteOrRegion();
 
@@ -98,11 +102,11 @@ describe('MissionController.wrapUpRouteOrRegion', () => {
 
     // Completing sends a submission; if it beat the street's, the server would size a new mission for that street.
     it('finishes a region\'s last street before completing its mission', () => {
-        svl.regionModel.isRoute = false;
+        regionModel.isRoute = false;
 
         controller.wrapUpRouteOrRegion();
 
-        const streetDone = svl.taskContainer.endTask.mock.invocationCallOrder[0];
+        const streetDone = taskContainer.endTask.mock.invocationCallOrder[0];
         expect(streetDone).toBeLessThan(mission.complete.mock.invocationCallOrder[0]);
     });
 });

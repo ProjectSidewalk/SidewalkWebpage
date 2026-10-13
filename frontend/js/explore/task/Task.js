@@ -1,25 +1,35 @@
 /**
- * Task module.
- *
- * @memberof svl
+ * One street to audit: its geometry (oriented the way it is walked), how far along it the labeler has been, and its
+ * state. TaskContainer decides how it is drawn on the minimap; this only says what its lines are.
  */
 
-import { svl } from '../svl.js';
+import { PanoViewer } from '../../common/pano-viewer/PanoViewer.js';
 import { util } from '../../common/utilities.js';
 import '../../common/utilitiesMath.js';
 /** @typedef {import('../navigation/Minimap.js').MinimapStreetLine} MinimapStreetLine */
+
+/**
+ * Free exploration's street-credit rule (#5733), as the backend (StreetCoverage) states it.
+ * @typedef {object} StreetCoverage
+ * @property {number} pano_window_m - Meters either side of a pano that count as seen.
+ * @property {number} max_hop_m - The longest hop between on-street panos that still counts as walked.
+ * @property {number} max_uncovered_m - How much of a street may stay unseen for it to count as covered.
+ * @property {number} min_covered_frac - How much of a street must be seen for it to count as covered.
+ */
 
 export class Task {
   // Ceiling on any "am I at the end of this street?" threshold, as a fraction of the street's length. Keeps a
   // fixed metre distance from swallowing most of a short street.
   static END_PROXIMITY_MAX_FRACTION = 0.4;
   // How far from the street's line a position may sit and still count as on the street: past it a pano can neither
-  // advance the furthest point reached nor finish the street. Matches the pano search radius
-  // (svl.STREETVIEW_MAX_DISTANCE), so on GSV anything a street sweep lands on is within it by construction: GsvViewer
-  // holds Google's replies to that radius, which Google itself doesn't (#5114). Mapillary and Panoramax search a square
-  // box of that half-width instead, whose corners reach about 35 m, so for them it bounds a landing only roughly.
-  static ON_STREET_MAX_DISTANCE_M = 25;
+  // advance the furthest point reached nor finish the street. GsvViewer holds Google's replies to the search radius
+  // (#5114); Mapillary and Panoramax search a square box of that half-width, so it bounds their landings only roughly.
+  static ON_STREET_MAX_DISTANCE_M = PanoViewer.SEARCH_RADIUS_M;
+  // How far (km) from a street's line the labeler may stand and still count as on it: advancing along it, the
+  // compass's on-route check, and picking up the next street all use it.
+  static CLOSE_TO_ROUTE_KM = 0.05;
 
+  #streetCoverage;
   #geojson;
 
   /* @type {turf.Point} */
@@ -70,10 +80,12 @@ export class Task {
 
   /**
    * @param {GeoJSON.Feature<GeoJSON.LineString>} geojson
+   * @param {StreetCoverage} streetCoverage - Free exploration's credit rule, for recordVisit and isCoveredEnough.
    * @param {boolean} tutorialTask
    * @param {{lat: number, lng: number}} [currentLatLng] - The user's current lat/lng to use if resuming.
    */
-  constructor(geojson, tutorialTask, currentLatLng) {
+  constructor(geojson, streetCoverage, tutorialTask, currentLatLng) {
+    this.#streetCoverage = streetCoverage;
     this.#properties.tutorialTask = tutorialTask;
     this.initialize(geojson, currentLatLng);
   }
@@ -347,10 +359,10 @@ export class Task {
     const alongM = this.#properties.startPointReversed
       ? lengthM - snapped.properties.location
       : snapped.properties.location;
-    const windowM = svl.streetCoverage.pano_window_m;
+    const windowM = this.#streetCoverage.pano_window_m;
     /** @type {Array<[number, number]>} */
     const ranges = [...this.#coveredRanges, [alongM - windowM, alongM + windowM]];
-    if (this.#lastOnStreetM !== null && Math.abs(alongM - this.#lastOnStreetM) <= svl.streetCoverage.max_hop_m) {
+    if (this.#lastOnStreetM !== null && Math.abs(alongM - this.#lastOnStreetM) <= this.#streetCoverage.max_hop_m) {
       ranges.push([Math.min(alongM, this.#lastOnStreetM), Math.max(alongM, this.#lastOnStreetM)]);
     }
     this.#coveredRanges = Task.mergeRanges(ranges, lengthM);
@@ -414,8 +426,8 @@ export class Task {
     if (this.#coveredRanges.length === 0) return false;
     const lengthM = this.lineDistance({ units: 'meters' });
     const coveredM = this.getCoveredDistanceM();
-    return Math.max(0, lengthM - coveredM) <= svl.streetCoverage.max_uncovered_m
-      && coveredM >= svl.streetCoverage.min_covered_frac * lengthM;
+    return Math.max(0, lengthM - coveredM) <= this.#streetCoverage.max_uncovered_m
+      && coveredM >= this.#streetCoverage.min_covered_frac * lengthM;
   }
 
   /**
@@ -611,67 +623,85 @@ export class Task {
   }
 
   /**
-   * Stops drawing this street on the minimap.
-   */
-  eraseFromMinimap() {
-    svl.minimap.clearStreetLines(this.#minimapKey());
-  }
-
-  /**
    * What identifies this task's lines on the minimap. A route can walk a street twice (out and back), as two tasks
    * with one street id, so on a route it's the route_street row; a region has each street once.
    * @returns {string}
    */
-  #minimapKey() {
+  minimapKey() {
     const routeStreetId = this.getProperty('routeStreetId') ?? null;
     return routeStreetId !== null ? `route-street-${routeStreetId}` : `street-${this.getStreetEdgeId()}`;
   }
 
   /**
-   * Draws this street on the minimap, in the encoding that fits its state (see MinimapStyle.streetLayers). A half
+   * This street's lines on the minimap, in the encoding that fits its state (see MinimapStyle.streetLayers). A half
    * that turf slices down to a single point, when the furthest point sits on an endpoint, is dropped by the minimap.
+   *
+   * @param {object} context - What the task can't know on its own.
+   * @param {boolean} context.exploreAddressMode - Free exploration draws only what the labeler has earned (#5733,
+   *   #4451): with no route, unwalked streets and the walk-this-way half stay off the map.
+   * @param {boolean} context.current - Whether this is the street being walked.
+   * @param {boolean} context.route - Whether the streets form a designated route.
+   * @returns {MinimapStreetLine[]} Nothing to draw is an empty list.
    */
-  render() {
+  minimapLines({ exploreAddressMode, current, route }) {
     const wholeStreet = (kind) => [{ kind, coordinates: this.#geojson.geometry.coordinates }];
 
-    // Free exploration draws only what the labeler has earned (#5733). With no route, unwalked streets and the
-    // walk-this-way half stay off the map, where they would read as progress being scored (#4451).
-    if (svl.isExploreAddressMode()) {
-      this.eraseFromMinimap();
-      if (this.isComplete() || this.isCoveredEnough()) {
-        svl.minimap.setStreetLines(this.#minimapKey(), wholeStreet('completed'));
-      } else if (this.#coveredRanges.length > 0) {
-        svl.minimap.setStreetLines(this.#minimapKey(), this.#coveredLines('completed'));
-      }
-      return;
+    if (exploreAddressMode) {
+      if (this.isComplete() || this.isCoveredEnough()) return wholeStreet('completed');
+      if (this.#coveredRanges.length > 0) return this.#coveredLines('completed');
+      return [];
     }
 
     // A street this session gave up on for lack of imagery draws as walked: the labeler did everything the tool let
     // them, and a grey gap in an otherwise finished route reads as their omission.
-    const drawAsWalked = this.isComplete() || this.wasGivenUpOnImagery();
-    let lines;
-    if (drawAsWalked) {
-      lines = wholeStreet('completed');
-    } else if (this.getStreetEdgeId() === svl.taskContainer.getCurrentTaskStreetEdgeId()) {
-      lines = this.#currentStreetLines();
-    } else if (this.isResumed() && this.getAuditedDistance() > 0) {
+    if (this.isComplete() || this.wasGivenUpOnImagery()) return wholeStreet('completed');
+    if (current) return this.#currentStreetLines();
+    if (this.isResumed() && this.getAuditedDistance() > 0) {
       // Part-walked and not the street being walked right now: show the split, so the labeler can see at a glance
       // which of the streets they left behind still have something on them (#5370). Once it becomes the current
       // street the branch above draws the same split with the route styling.
-      lines = [
+      return [
         { kind: 'completed', coordinates: this.#getPointsOnAuditedSegments() },
         { kind: 'other', coordinates: this.#getPointsOnUnauditedSegments() },
       ];
-    } else if (svl.regionModel.isRoute) {
-      // On a designated route every street ahead is part of the planned path, so paint it as the route-to-walk: a
-      // dashed line with direction chevrons over a white casing — the same encoding as the current street's
-      // remaining half (and RouteBuilder's own rendering) — so the whole route reads as a dotted, arrowed path when
-      // zoomed out. A free region audit has no planned path, so its non-current streets stay quiet context.
-      lines = wholeStreet('remaining');
-    } else {
-      lines = wholeStreet('other');
     }
-    svl.minimap.setStreetLines(this.#minimapKey(), lines);
+    // On a route every street ahead is part of the planned path, so it is painted as route-to-walk (dashed, with
+    // chevrons, over a white casing), the same as the current street's remaining half and RouteBuilder, so the whole
+    // route reads as one arrowed path. A region audit has no planned path, so its other streets stay quiet context.
+    return wholeStreet(route ? 'remaining' : 'other');
+  }
+
+  /**
+   * The unwalked part of the street: from the furthest point the user has reached to the street's end. Shared by
+   * the forward walk, the compass, and the minimap's forward crumbs so they agree on what "ahead" means.
+   * @returns {turf.Feature<turf.LineString>}
+   */
+  unwalkedRemainder() {
+    const from = turf.point(this.getFurthestPointReached().geometry.coordinates);
+    const end = turf.point([this.getEndCoordinate().lng, this.getEndCoordinate().lat]);
+    return turf.cleanCoords(turf.lineSlice(from, end, this.#geojson));
+  }
+
+  /**
+   * The heading from a position toward the next goal along the street: 15 m further along the unwalked remainder,
+   * or its end if less remains. On route this is the way forward; off route it points back toward the route.
+   * @param {{lat: number, lng: number}} latLng - Where the labeler stands.
+   * @returns {number} Degrees clockwise from true north, in [0, 360).
+   */
+  headingAlongRoute(latLng) {
+    const remainder = this.unwalkedRemainder();
+    const distIncrement = Math.min(0.015, turf.length(remainder));
+    const goalLoc = turf.along(remainder, distIncrement).geometry.coordinates;
+    return ((util.math.toDegrees(Math.atan2(goalLoc[0] - latLng.lng, goalLoc[1] - latLng.lat)) + 360) % 360);
+  }
+
+  /**
+   * Whether a position is close enough to this street to count as on its route.
+   * @param {{lat: number, lng: number}} latLng
+   * @returns {boolean}
+   */
+  isNearRoute(latLng) {
+    return turf.pointToLineDistance(turf.point([latLng.lng, latLng.lat]), this.#geojson) < Task.CLOSE_TO_ROUTE_KM;
   }
 
   /**
@@ -698,10 +728,8 @@ export class Task {
   }
 
   updateTheFurthestPointReached(currentLatLng) {
-    const currentPoint = turf.point([currentLatLng.lng, currentLatLng.lat]);
-    if (turf.pointToLineDistance(currentPoint, this.#geojson) < svl.CLOSE_TO_ROUTE_THRESHOLD
-      && this.#hasAdvanced(currentLatLng)) {
-      this.#furthestPoint = currentPoint;
+    if (this.isNearRoute(currentLatLng) && this.#hasAdvanced(currentLatLng)) {
+      this.#furthestPoint = turf.point([currentLatLng.lng, currentLatLng.lat]);
     }
   }
 }

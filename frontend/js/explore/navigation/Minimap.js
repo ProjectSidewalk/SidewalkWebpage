@@ -23,13 +23,12 @@
  * @property {number[][]} coordinates - The line as [lng, lat] pairs, in walking order (chevrons point along it).
  */
 
-import { svl } from '../svl.js';
-import { util } from '../../common/utilities.js';
-import { NavigationService } from './NavigationService.js';
 import { MinimapStyle } from './MinimapStyle.js';
 import { MinimapBasemapStyle } from './MinimapBasemapStyle.js';
-/** @typedef {import('../mission/Mission.js').Mission} Mission */
+/** @typedef {import('../Main.js').MinimapUi} MinimapUi */
+/** @typedef {import('../panorama/PanoManager.js').PanoManager} PanoManager */
 /** @typedef {import('../task/Task.js').Task} Task */
+/** @typedef {import('../data/Tracker.js').Tracker} Tracker */
 
 export class Minimap {
   // Zoom bounds for the minimap. ObservedArea's REFERENCE_ZOOM must match DEFAULT.
@@ -44,19 +43,21 @@ export class Minimap {
   /** @type {number} */
   static #OVERVIEW_MIN_ZOOM = 11;
 
-  // Route start/finish flags reuse RouteBuilder's flag icons at its rasterized size, planted at the pole base.
-  static #ROUTE_FLAG_SIZE_PX = 27;
-  static #START_FLAG_SRC = util.assetPath('images/icons/routebuilder/flag-start.svg');
-  static #FINISH_FLAG_SRC = util.assetPath('images/icons/routebuilder/flag-end.svg');
-
-  /**
-   * A neighborhood mission's start and finish flags, planted on first use and moved after; see updateMissionFlags().
-   * @type {{start: ?MinimapMarker, finish: ?MinimapMarker}}
-   */
-  #missionFlags = { start: null, finish: null };
+  // Room for a flag on any edge of the fitted overview, drawn above and either side of its point.
+  static #OVERVIEW_FLAG_PX = 27;
 
   // Id of the GeoJSON source holding every street line.
   static #STREETS_SOURCE = 'streets';
+
+  #ui;
+  #panoManager;
+  #tracker;
+
+  /** @type {Array<() => void>} */
+  #moveListeners = [];
+
+  /** @type {() => Task[]} What the overview fits; nothing until setOverviewStreets names it. */
+  #overviewStreets = () => [];
 
   /** The map, or null when it couldn't be created (no WebGL2, or MapLibre failed to load); see create(). */
   /** @type {?maplibregl.Map} */
@@ -76,6 +77,36 @@ export class Minimap {
 
   /** True while the minimap is fitted to the whole route/region instead of following the user. */
   #overviewMode = false;
+
+  /**
+   * @param {MinimapUi} ui
+   * @param {PanoManager} panoManager - Whose position the map centers on.
+   * @param {Tracker} tracker
+   */
+  constructor(ui, panoManager, tracker) {
+    this.#ui = ui;
+    this.#panoManager = panoManager;
+    this.#tracker = tracker;
+    panoManager.onPanoChanged(() => this.setMinimapLocation(panoManager.getPosition()));
+  }
+
+  /**
+   * Told whenever the map moves, zooms or resizes, so the overlays drawn over it (the fog, the route inset) can
+   * re-align, through a zoom animation and not just at its end.
+   * @param {() => void} listener
+   */
+  onMove(listener) {
+    this.#moveListeners.push(listener);
+  }
+
+  /**
+   * Names the streets the overview fits: a route's every street, or a region audit's mission streets plus the one
+   * being walked (the whole region would zoom out far past the route, #4639). Set once the tasks exist, after the map.
+   * @param {() => Task[]} provider
+   */
+  setOverviewStreets(provider) {
+    this.#overviewStreets = provider;
+  }
 
   /**
    * Creates the map and its street layers. Resolves as soon as the style is ready to draw on — deliberately not when
@@ -118,15 +149,12 @@ export class Minimap {
 
     // MapLibre gives an interactive canvas a tab stop; it would focus a map the keyboard can't do anything with.
     this.#map.getCanvas().setAttribute('tabindex', '-1');
-    this.#map.on('dragend', () => svl.tracker.push('Minimap_Pan'));
+    this.#map.on('dragend', () => this.#tracker.push('Minimap_Pan'));
 
-    // Keeps the fog/FOV and the route-overview inset aligned through a zoom animation, not just at its end. A resize
-    // is a move too (MapLibre watches its container), so a UI-scale change lands here once the map has caught up.
+    // A resize counts as a move (MapLibre watches its container), so a UI-scale change lands here too.
     this.#map.on('move', () => {
       this.#updateRecenterButton();
-      // ObservedArea.update redraws the inset too, so the inset is drawn here only before ObservedArea exists.
-      if (svl.observedArea) svl.observedArea.update();
-      else if (svl.routeOverview) svl.routeOverview.render();
+      this.#moveListeners.forEach((listener) => listener());
     });
 
     await new Promise((resolve) => this.#map.once('style.load', resolve));
@@ -177,13 +205,13 @@ export class Minimap {
     // MapLibre toggles the class in its own click handler on the button, which runs before this one.
     button.addEventListener('click', () => {
       const isOpen = attribution.classList.contains(opened);
-      svl.tracker.push('Click_MinimapAttribution', { action: isOpen ? 'open' : 'close', trigger: 'button' });
+      this.#tracker.push('Click_MinimapAttribution', { action: isOpen ? 'open' : 'close', trigger: 'button' });
     });
     // Like the legend card, the open credits are a popover: a click elsewhere or Esc dismisses them.
     const dismiss = (trigger) => {
       if (!attribution.classList.contains(opened)) return;
       close();
-      svl.tracker.push('Click_MinimapAttribution', { action: 'close', trigger });
+      this.#tracker.push('Click_MinimapAttribution', { action: 'close', trigger });
     };
     document.addEventListener('pointerdown', (e) => {
       if (!corner.contains(/** @type {Node} */ (e.target))) dismiss('outside');
@@ -223,8 +251,8 @@ export class Minimap {
     if (recenterButton) {
       recenterButton.addEventListener('click', () => {
         this.#targetZoom = Minimap.#DEFAULT_ZOOM;
-        this.#map.easeTo({ center: Minimap.#lngLat(svl.panoViewer.getPosition()), zoom: this.#targetZoom });
-        svl.tracker.push('Click_MinimapRecenter');
+        this.#map.easeTo({ center: Minimap.#lngLat(this.#panoManager.getPosition()), zoom: this.#targetZoom });
+        this.#tracker.push('Click_MinimapRecenter');
       });
     }
   }
@@ -235,9 +263,9 @@ export class Minimap {
    */
   #updateRecenterButton() {
     const button = document.getElementById('minimap-recenter');
-    if (!button || !svl.panoViewer) return;
+    if (!button || !this.#panoManager.panoViewer) return;
     const container = this.#map.getContainer();
-    const pano = this.project(svl.panoViewer.getPosition());
+    const pano = this.project(this.#panoManager.getPosition());
     const offBy = Math.hypot(pano.x - container.clientWidth / 2, pano.y - container.clientHeight / 2);
     // A few px of slack: a pano change recenters, but the easing and subpixel positions never land exactly.
     const panned = !this.#overviewMode && offBy > 8;
@@ -253,13 +281,13 @@ export class Minimap {
    * @param {string} trigger - What initiated the toggle (for interaction logging).
    */
   toggleOverview(trigger) {
-    if (!this.#map || svl.ui.minimap.holder.classList.contains('minimap-tutorial')) return;
+    if (!this.#map || this.#ui.holder.classList.contains('minimap-tutorial')) return;
     if (this.#overviewMode) {
       this.exitOverview(trigger);
     } else {
       this.enterOverview();
     }
-    svl.tracker.push('Click_MinimapFitRoute', { mode: this.#overviewMode ? 'overview' : 'street', trigger });
+    this.#tracker.push('Click_MinimapFitRoute', { mode: this.#overviewMode ? 'overview' : 'street', trigger });
   }
 
   /**
@@ -267,7 +295,7 @@ export class Minimap {
    * @param {number} delta - Number of zoom levels to add (positive zooms in, negative zooms out).
    */
   #changeZoom(delta) {
-    if (!this.#map || svl.ui.minimap.holder.classList.contains('minimap-tutorial')) return;
+    if (!this.#map || this.#ui.holder.classList.contains('minimap-tutorial')) return;
     // Manual zooming while fitted means the user wants street level back; the exit already resets the zoom.
     if (this.#overviewMode) {
       this.exitOverview('zoom');
@@ -279,7 +307,7 @@ export class Minimap {
       this.#targetZoom = newZoom;
       // Naming the center keeps the pano under the peg for the whole animation. easeTo skips the animation itself
       // under prefers-reduced-motion.
-      this.#map.easeTo({ zoom: newZoom, center: Minimap.#lngLat(svl.panoViewer.getPosition()), duration: 200 });
+      this.#map.easeTo({ zoom: newZoom, center: Minimap.#lngLat(this.#panoManager.getPosition()), duration: 200 });
     }
   }
 
@@ -294,11 +322,10 @@ export class Minimap {
     if (!bounds || this.#overviewMode) return;
     this.#overviewMode = true;
     this.#updateFitButtonLabel();
-    svl.ui.minimap.holder.classList.add('minimap-overview');
+    this.#ui.holder.classList.add('minimap-overview');
     this.#map.setMinZoom(Minimap.#OVERVIEW_MIN_ZOOM);
-    // Room for a flag on any edge (drawn above and either side of its point), then rounded down to a whole zoom
-    // level so the route has some air around it rather than a tight fit.
-    const flag = Minimap.#ROUTE_FLAG_SIZE_PX;
+    // Rounded down to a whole zoom level so the route has some air around it rather than a tight fit.
+    const flag = Minimap.#OVERVIEW_FLAG_PX;
     const padding = { top: 12 + flag, bottom: 12, left: 12 + flag / 2, right: 12 + flag / 2 };
     const camera = this.#map.cameraForBounds(bounds, { padding });
     if (camera) this.#map.jumpTo({ center: camera.center, zoom: Math.floor(camera.zoom) });
@@ -312,13 +339,13 @@ export class Minimap {
     if (!this.#overviewMode) return;
     this.#overviewMode = false;
     this.#updateFitButtonLabel();
-    svl.ui.minimap.holder.classList.remove('minimap-overview');
+    this.#ui.holder.classList.remove('minimap-overview');
     // Zoom in before raising the floor: raising it first would make MapLibre clamp the zoom itself, firing a move at
     // the overview's center.
     this.#targetZoom = Minimap.#DEFAULT_ZOOM;
-    this.#map.jumpTo({ zoom: this.#targetZoom, center: Minimap.#lngLat(svl.panoViewer.getPosition()) });
+    this.#map.jumpTo({ zoom: this.#targetZoom, center: Minimap.#lngLat(this.#panoManager.getPosition()) });
     this.#map.setMinZoom(Minimap.#MIN_ZOOM);
-    svl.tracker.push('MinimapOverview_End', { trigger });
+    this.#tracker.push('MinimapOverview_End', { trigger });
   }
 
   /**
@@ -335,26 +362,12 @@ export class Minimap {
   }
 
   /**
-   * Bounds framing "your route": on a designated route, every loaded street; on a region audit, the current
-   * mission's streets plus the one you're on (the region as a whole would zoom out far past the route — #4639).
+   * Bounds framing the overview's streets (setOverviewStreets).
    * @returns {?maplibregl.LngLatBounds} Null if no street geometry is available yet.
    */
   #streetBounds() {
-    if (!svl.taskContainer) return null;
-    let tasks;
-    if (svl.regionModel && svl.regionModel.isRoute) {
-      // On a designated route every loaded street IS the route, so fit them all.
-      tasks = svl.taskContainer.getTasks();
-    } else {
-      // A region audit loads the entire region; fit just this mission's streets plus the street you're on. Early
-      // in a mission that's essentially the current street — i.e. a normal street-level view, not the whole region.
-      const mission = svl.missionContainer && svl.missionContainer.getCurrentMission();
-      tasks = ((mission && mission.getRoute()) || []).slice();
-      const current = svl.taskContainer.getCurrentTask();
-      if (current && !tasks.includes(current)) tasks.push(current);
-    }
     const bounds = new maplibregl.LngLatBounds();
-    for (const task of tasks) {
+    for (const task of this.#overviewStreets()) {
       for (const coord of task.getGeoJSON().geometry.coordinates) {
         bounds.extend(coord);
       }
@@ -363,59 +376,12 @@ export class Minimap {
   }
 
   /**
-   * Updates the minimap's mission-progress bar: fills it to the mission's completion fraction and labels it with the
-   * percentage and the distance explored so far out of the mission's target (e.g. "65%  325/500 ft").
-   * @param {Mission} mission - The current mission.
-   */
-  updateMissionProgress(mission) {
-    this.updateMissionFlags(mission);
-    const totalMeters = mission.getDistance('meters');
-    // Free-exploration missions (#4451) have no distance target; a "0/0" progress bar would be meaningless, so hide it.
-    if (!totalMeters) {
-      svl.ui.minimap.missionProgress.style.display = 'none';
-      return;
-    }
-    svl.ui.minimap.missionProgress.style.display = '';
-
-    const fraction = mission.getMissionCompletionRate();
-    const doneMeters = Math.min(Math.max(mission.getProperty('distanceProgress') || 0, 0), totalMeters);
-    const percent = Math.round(fraction * 100);
-
-    svl.ui.minimap.missionProgressFill.style.width = `${percent}%`;
-    svl.ui.minimap.missionProgressPercent.textContent = `${percent}%`;
-    svl.ui.minimap.missionProgressDistance.textContent
-      = i18next.t('common:distance-progress', { done: doneMeters, total: totalMeters });
-    svl.ui.minimap.missionProgress.setAttribute('aria-valuenow', String(percent));
-  }
-
-  /**
-   * Resets the mission-progress bar to 0% for a freshly started mission, mirroring the sidebar bar's reset when the
-   * mission-complete modal closes. Shows "0 / <target>" so the new mission's length is visible right away, and
-   * re-plants the flags for the new mission: its start is where the last one finished, so the red finish flag the
-   * user just reached becomes the green start flag without waiting for their next step (#5378).
-   * @param {Mission} [mission] - The newly started mission; if absent, the distance label is cleared.
-   */
-  resetMissionProgress(mission) {
-    svl.ui.minimap.missionProgressFill.style.width = '0%';
-    svl.ui.minimap.missionProgressPercent.textContent = '0%';
-    svl.ui.minimap.missionProgress.setAttribute('aria-valuenow', '0');
-    if (mission) {
-      this.updateMissionFlags(mission);
-      const totalMeters = mission.getDistance('meters');
-      svl.ui.minimap.missionProgressDistance.textContent
-        = i18next.t('common:distance-progress', { done: 0, total: totalMeters });
-    } else {
-      svl.ui.minimap.missionProgressDistance.textContent = '';
-    }
-  }
-
-  /**
    * Makes the minimap start to blink; used in the tutorial.
    */
   blinkMinimap() {
     this.stopBlinkingMinimap();
     this.#minimapPaneBlinkInterval = window.setInterval(() => {
-      svl.ui.minimap.overlay.classList.toggle('highlight-50');
+      this.#ui.overlay.classList.toggle('highlight-50');
     }, 500);
   }
 
@@ -424,7 +390,7 @@ export class Minimap {
    */
   stopBlinkingMinimap() {
     window.clearInterval(this.#minimapPaneBlinkInterval);
-    svl.ui.minimap.overlay.classList.remove('highlight-50');
+    this.#ui.overlay.classList.remove('highlight-50');
   }
 
   /**
@@ -558,14 +524,6 @@ export class Minimap {
     this.#scheduleStreetFlush();
   }
 
-  /**
-   * Stops drawing a street.
-   * @param {string|number} key - The key it was drawn under by setStreetLines.
-   */
-  clearStreetLines(key) {
-    if (this.#streetFeatures.delete(key)) this.#scheduleStreetFlush();
-  }
-
   /** @returns {object} Every street's lines as one GeoJSON FeatureCollection. */
   #streetFeatureCollection() {
     return { type: 'FeatureCollection', features: [...this.#streetFeatures.values()].flat() };
@@ -639,92 +597,6 @@ export class Minimap {
   }
 
   /**
-   * Draws the route's start and finish flags on the minimap (routes only), reusing the same flag icons the user
-   * placed while building the route so building and walking read as one experience. The flags reinforce route
-   * status already conveyed textually (progress bar, finish toast, compass message); their tooltip names them for
-   * anyone hovering.
-   * @param {{lat: number, lng: number}} start - Route start (first street's walking-start coordinate).
-   * @param {{lat: number, lng: number}} finish - Route finish (last street's walking-end coordinate).
-   */
-  showRouteEndpoints(start, finish) {
-    this.#plantFlag(start, Minimap.#START_FLAG_SRC, i18next.t('audit:right-ui.minimap.route-start-flag'));
-    this.#plantFlag(finish, Minimap.#FINISH_FLAG_SRC, i18next.t('audit:right-ui.minimap.route-finish-flag'));
-  }
-
-  /**
-   * Plants a neighborhood mission's start and finish flags, so a mission reads the way a RouteBuilder route does.
-   * The start is where the mission began (recorded on the task it began on, and persisted with it). The finish is
-   * only knowable once the mission's remaining distance fits on the current street, since a neighborhood mission
-   * picks each next street as it goes; until then no finish flag shows. Routes keep their whole-route flags; the
-   * tutorial and free exploration have no mission to frame.
-   * @param {Mission} mission - The current mission.
-   */
-  updateMissionFlags(mission) {
-    const noMissionToFrame = (svl.regionModel && svl.regionModel.isRoute) || !svl.taskContainer
-      || (svl.isOnboarding && svl.isOnboarding()) || (svl.isExploreAddressMode && svl.isExploreAddressMode());
-    if (noMissionToFrame) return;
-    const missionId = mission.getProperty('missionId');
-    const startTask = svl.taskContainer.getTasks().find((task) => task.getMissionStart(missionId));
-    this.#placeFlag('start', startTask ? startTask.getMissionStart(missionId) : null,
-      Minimap.#START_FLAG_SRC, 'mission-start-flag');
-    this.#placeFlag('finish', Minimap.missionFinish(mission, svl.taskContainer.getCurrentTask()),
-      Minimap.#FINISH_FLAG_SRC, 'mission-finish-flag');
-  }
-
-  /**
-   * Where a mission will end, once that point lies on the current street: the mission's remaining distance walked
-   * along the street from the furthest point reached. Null while a later, not-yet-chosen street will carry the end.
-   * @param {Mission} mission - The current mission.
-   * @param {?Task} task - The current task.
-   * @returns {?{lat: number, lng: number}}
-   */
-  static missionFinish(mission, task) {
-    const totalMeters = mission.getDistance('meters');
-    if (!totalMeters || !task) return null;
-    const remainingKm = Math.max(0, totalMeters - (mission.getProperty('distanceProgress') || 0)) / 1000;
-    const remainder = NavigationService.remainderOfStreet(task);
-    if (remainingKm > turf.length(remainder)) return null;
-    const [lng, lat] = turf.along(remainder, remainingKm).geometry.coordinates;
-    return { lat, lng };
-  }
-
-  /**
-   * Plants, moves, or hides one of the mission flags.
-   * @param {'start'|'finish'} which - Which flag.
-   * @param {?{lat: number, lng: number}} latLng - Where it goes, or null to hide it.
-   * @param {string} src - The flag image.
-   * @param {string} i18nKey - Key under audit:right-ui.minimap for its tooltip.
-   */
-  #placeFlag(which, latLng, src, i18nKey) {
-    const flag = this.#missionFlags[which];
-    if (!latLng) {
-      if (flag) flag.setVisible(false);
-      return;
-    }
-    if (!flag) {
-      this.#missionFlags[which] = this.#plantFlag(latLng, src, i18next.t(`audit:right-ui.minimap.${i18nKey}`));
-      return;
-    }
-    flag.setLatLng(latLng);
-    flag.setVisible(true);
-  }
-
-  /**
-   * One flag marker, planted with its pole base on the point (the bottom anchor matches RouteBuilder's icon-anchor).
-   * @param {{lat: number, lng: number}} latLng - Where to plant it.
-   * @param {string} src - The flag image.
-   * @param {string} title - Hover tooltip and accessible name.
-   * @returns {MinimapMarker}
-   */
-  #plantFlag(latLng, src, title) {
-    const content = document.createElement('img');
-    content.src = src;
-    content.alt = title;
-    content.style.width = `${Minimap.#ROUTE_FLAG_SIZE_PX}px`;
-    return this.addMarker(latLng, content, { anchor: 'bottom', title });
-  }
-
-  /**
    * Makes MapLibre available as the `maplibregl` global the rest of this class names. It is served as its own files,
    * not bundled (docs/upgrading-libraries.md), so the URL comes from the view's preload link, the one place a vendor
    * file gets its fingerprinted URL. A global already present (the jsdom tests' stand-in) is kept.
@@ -752,10 +624,10 @@ export class Minimap {
     }
     this.#map = null;
     document.getElementById('minimap-attribution')?.remove();
-    svl.ui.minimap.holder.classList.add('minimap-unavailable');
+    this.#ui.holder.classList.add('minimap-unavailable');
     const message = document.getElementById('minimap-unavailable-message');
     if (message) message.hidden = false;
-    svl.tracker.push('Minimap_Unavailable', { error: String(error && error.message ? error.message : error) });
+    this.#tracker.push('Minimap_Unavailable', { error: String(error && error.message ? error.message : error) });
   }
 
   /**
@@ -764,11 +636,14 @@ export class Minimap {
    * Never rejects. MapLibre needs WebGL2 and throws without it (hardware acceleration off, a GPU the browser
    * blocklists, some remote desktops); a minimap that can't draw must not stop the rest of Explore from starting, so
    * that and any failure to load the library leave a minimap that draws nothing and says so.
+   * @param {MinimapUi} ui
    * @param {{lat: number, lng: number}} initialLocation - Initial lat/lng location.
+   * @param {PanoManager} panoManager
+   * @param {Tracker} tracker
    * @returns {Promise<Minimap>} The minimap instance.
    */
-  static async create(initialLocation) {
-    const newMinimap = new Minimap();
+  static async create(ui, initialLocation, panoManager, tracker) {
+    const newMinimap = new Minimap(ui, panoManager, tracker);
     try {
       await Minimap.#loadLibrary();
       await newMinimap.#init(initialLocation);

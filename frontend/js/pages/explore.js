@@ -4,7 +4,6 @@ import { loadPageSession } from '../common/pageSession.js';
 import { viewerClassFor } from '../common/pano-viewer/viewerClassFor.js';
 import { Main } from '../explore/Main.js';
 import '../explore/detectUnsupportedBrowser.js';
-import { svl } from '../explore/svl.js';
 import { util } from '../common/utilities.js';
 import '../../css/components/pano-overlay-buttons.css';
 import '../../css/pages/explore/svl-alert.css';
@@ -79,8 +78,6 @@ mainParam.viewerType = viewerClassFor(mainParam.imagerySource);
 // two overlap (#5650).
 const session = loadPageSession(`${mainParam.sessionUrl}${window.location.search}`);
 
-// Console and e2e handle; the app reaches the registry by import.
-window.svl = svl;
 window.appManager.ready(async () => {
   const exploreSession = await session;
   if (!exploreSession.task) {
@@ -89,5 +86,6 @@ window.appManager.ready(async () => {
     document.getElementById('already-completed-region-overlay').style.display = 'block';
     return;
   }
-  new Main(mainParam, exploreSession);
+  // Console and e2e handle; nothing in the app reads it.
+  window.svl = await new Main(mainParam, exploreSession).start();
 });

@@ -120,27 +120,33 @@ describe('Explore label POV staleness (#4842 regression)', () => {
     let labels;
     let form;
     let viewerPov;
+    let panoManager;
 
     /** Builds a Form wired to stub collaborators around the staged `labels`. */
     function buildForm() {
         const Form = loadForm();
         const missionProps = { missionId: 5, distanceProgress: 0, distance: 100, isComplete: false, skipped: false };
-        const mission = { getProperty: (k) => missionProps[k], updateDistanceProgress: jest.fn() };
+        const mission = { getProperty: (k) => missionProps[k] };
         const labelContainer = { getLabelsToLog: () => labels, clearLabelsToLog: jest.fn(), getAllLabels: () => [] };
         const pano = panoStub();
         const panoStore = {
             getStagedPanoData: () => [pano].filter((p) => !p.getProperty('submitted')),
             getPanoData: () => pano,
         };
-        const taskContainer = { getCurrentTask: taskStub, updateTaskPriorities: jest.fn() };
+        const taskContainer = {
+            getCurrentTask: taskStub, updateTaskPriorities: jest.fn(), renderTask: jest.fn(),
+            onTaskEnded: jest.fn(), onTaskLeft: jest.fn(),
+        };
         return new Form(
+            '/task',
+            { userRouteId: null, regionId: 1, isOnboarding: false, isExploreAddressMode: false },
             labelContainer,
             { on: jest.fn() }, // missionModel
-            { getCurrentMission: () => mission }, // missionContainer
+            { getCurrentMission: () => mission, updateDistanceProgress: jest.fn() }, // missionContainer
             panoStore,
             taskContainer,
-            { getActions: () => [], refresh: jest.fn(), push: jest.fn() }, // tracker
-            '/task'
+            panoManager,
+            { getActions: () => [], refresh: jest.fn(), push: jest.fn(), setAuditTaskID: jest.fn() }, // tracker
         );
     }
 
@@ -188,16 +194,9 @@ describe('Explore label POV staleness (#4842 regression)', () => {
         installDateHelpers();
         window.AsyncLock = class { async acquire(key, fn) { return fn(); } };
         viewerPov = { heading: 128.7, pitch: -12.3, zoom: 2 };
-        window.svl = {
-            userRouteId: null,
-            regionId: 1,
-            isOnboarding: () => false,
-            isExploreAddressMode: () => false,
-            panoViewer: {
-                getPov: jest.fn(() => ({ ...viewerPov })),
-                getPosition: () => ({ lat: 41.85, lng: -87.65 }),
-            },
-            tracker: { setAuditTaskID: jest.fn() },
+        panoManager = {
+            getPov: jest.fn(() => ({ ...viewerPov })),
+            getPosition: () => ({ lat: 41.85, lng: -87.65 }),
         };
         window.i18next = { language: 'en' };
 
@@ -251,7 +250,7 @@ describe('Explore label POV staleness (#4842 regression)', () => {
         // Pan, tilt, and zoom the viewer between the click and the flush — the submitted record must be immune to
         // viewport changes in that window.
         viewerPov = { heading: 291.4, pitch: 8.9, zoom: 1 };
-        window.svl.panoViewer.getPov.mockClear();
+        panoManager.getPov.mockClear();
 
         const bodies = acceptingFetch();
         await form.submitData(taskStub());
@@ -270,6 +269,6 @@ describe('Explore label POV staleness (#4842 regression)', () => {
         expect(dy).toBeLessThanOrEqual(1);
 
         // ...and the serialization path must never have consulted the live viewport's POV.
-        expect(window.svl.panoViewer.getPov).not.toHaveBeenCalled();
+        expect(panoManager.getPov).not.toHaveBeenCalled();
     });
 });

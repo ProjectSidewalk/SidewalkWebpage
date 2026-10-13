@@ -2,10 +2,23 @@
  * Reminds the user to rate severity after they've labeled several times in a row without picking a severity.
  */
 
-import { svl } from '../svl.js';
 import { Alert } from './Alert.js';
 
+/** @typedef {import('../Main.js').ExploreConfig} ExploreConfig */
+/** @typedef {import('./AlertController.js').AlertController} AlertController */
+
 export class RatingReminderAlert extends Alert {
+  #config;
+
+  /**
+   * @param {ExploreConfig} config - The nudge stays quiet in the tutorial.
+   * @param {AlertController} alertController
+   */
+  constructor(config, alertController) {
+    super(alertController);
+    this.#config = config;
+  }
+
   #ratingCount = 0;
 
   // Number of consecutive labels without a severity before the reminder fires.
@@ -27,7 +40,7 @@ export class RatingReminderAlert extends Alert {
       this.#ratingCount = 0;
     }
 
-    if (this.#ratingCount >= RatingReminderAlert.#MINIMUM_NO_RATING_BEFORE_ALERT && !svl.isOnboarding()) {
+    if (this.#ratingCount >= RatingReminderAlert.#MINIMUM_NO_RATING_BEFORE_ALERT && !this.#config.isOnboarding) {
       this._showAlert('popup.severity-shortcuts', 'reminderMessage');
       this.#ratingCount = 0;
     }

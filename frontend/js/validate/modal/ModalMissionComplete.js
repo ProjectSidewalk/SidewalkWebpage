@@ -10,7 +10,7 @@ import { util } from '../../common/utilities.js';
 import '../../common/utilitiesSidewalk.js';
 /** @typedef {import('../mission/Mission.js').Mission} Mission */
 /** @typedef {import('../../common/MissionStartTutorial.js').TutorialHooks} TutorialHooks */
-/** @typedef {import('../keyboard/KeyboardLock.js').KeyboardLock} KeyboardLock */
+/** @typedef {import('../../common/Gate.js').Gate} Gate */
 /** @typedef {import('../status/StatusField.js').StatusField} StatusField */
 /** @typedef {import('../panorama/PanoManager.js').PanoManager} PanoManager */
 /** @typedef {import('../Tracker.js').Tracker} Tracker */
@@ -20,7 +20,7 @@ export class ModalMissionComplete {
   #language;
   /** @type {?TutorialHooks} */
   #tutorialHooks;
-  /** @type {KeyboardLock} */
+  /** @type {Gate} */
   #keyboardLock;
   /** @type {StatusField} */
   #statusField;
@@ -38,7 +38,7 @@ export class ModalMissionComplete {
    * @param {string} language - Language code passed on to the mission start tutorial.
    * @param {?TutorialHooks} tutorialHooks - What the next mission's start tutorial logs through and re-enables when
    *     it closes; null on mobile, whose briefing is ModalMission's carousel and which has no tutorial markup.
-   * @param {KeyboardLock} keyboardLock - Paused while the screen is up.
+   * @param {Gate} keyboardLock - Paused while the screen is up.
    * @param {StatusField} statusField - The validator's all-time count, for the standing shown.
    * @param {PanoManager} panoManager - Replays the next label's marker pulse once the screen is out of the way.
    * @param {Tracker} tracker - Logs the completion.

@@ -7,17 +7,24 @@
  * keeps the bottom-left. On a region audit the route grows street-by-street, so there's nothing to preview and
  * this stays hidden (#4639).
  *
- * It draws the route geometry the tool already has (svl.taskContainer) onto a small canvas — no second map — so
+ * It draws the route geometry the tool already has (the TaskContainer) onto a small canvas — no second map — so
  * it's cheap to redraw whenever the peg moves or a street completes. Clicking it fits the minimap to the whole route
  * (the same action as the ⛶ button).
  */
 
-import { svl } from '../svl.js';
 import { MinimapStyle } from './MinimapStyle.js';
+/** @typedef {import('../Main.js').MinimapUi} MinimapUi */
+/** @typedef {import('./Minimap.js').Minimap} Minimap */
+/** @typedef {import('../panorama/PanoManager.js').PanoManager} PanoManager */
+/** @typedef {import('../region/RegionModel.js').RegionModel} RegionModel */
 /** @typedef {import('../task/Task.js').Task} Task */
+/** @typedef {import('../task/TaskContainer.js').TaskContainer} TaskContainer */
 /** @typedef {import('../data/Tracker.js').Tracker} Tracker */
 
 export class RouteOverview {
+  #taskContainer;
+  #panoManager;
+  #minimap;
   /** @type {Tracker} */
   #tracker;
   /** @type {HTMLCanvasElement} */
@@ -28,21 +35,28 @@ export class RouteOverview {
   #enabled;
 
   /**
-   * @param {Record<string, HTMLElement>} uiMinimap - The svl.ui.minimap object holding the minimap's DOM elements.
+   * @param {MinimapUi} uiMinimap - The minimap's DOM elements.
+   * @param {RegionModel} regionModel - Says whether this is a designated route at all.
+   * @param {TaskContainer} taskContainer - Whose streets are the route.
+   * @param {PanoManager} panoManager - Whose position and heading the "you are here" marker shows.
+   * @param {Minimap} minimap - Whose viewport the box outlines, and which a click fits to the route.
    * @param {Tracker} tracker - Interaction logger.
    */
-  constructor(uiMinimap, tracker) {
+  constructor(uiMinimap, regionModel, taskContainer, panoManager, minimap, tracker) {
+    this.#taskContainer = taskContainer;
+    this.#panoManager = panoManager;
+    this.#minimap = minimap;
     this.#tracker = tracker;
     this.#canvas = /** @type {HTMLCanvasElement} */ (uiMinimap.routeOverviewCanvas);
     this.#ctx = this.#canvas.getContext('2d');
-    this.#enabled = !!(svl.regionModel && svl.regionModel.isRoute);
+    this.#enabled = regionModel.isRoute;
 
     if (this.#enabled) {
       // Reveal the upper-right overview inset (CSS keys off this holder class); the mini-legend stays bottom-left.
       uiMinimap.holder.classList.add('minimap-route-mode');
       uiMinimap.routeOverview.addEventListener('click', () => {
         this.#tracker.push('Click_MinimapRouteOverview');
-        svl.minimap.toggleOverview('route-inset');
+        this.#minimap.toggleOverview('route-inset');
       });
     }
   }
@@ -52,8 +66,8 @@ export class RouteOverview {
    * has no displayed size (e.g. while the minimap is fitted to the route and the inset is hidden by CSS).
    */
   render() {
-    if (!this.#enabled || !svl.taskContainer || !svl.panoViewer) return;
-    const tasks = svl.taskContainer.getTasks();
+    if (!this.#enabled) return;
+    const tasks = this.#taskContainer.getTasks();
     if (!tasks || tasks.length === 0) return;
 
     // Size the backing store to the displayed inset size (× dpr) so the lines stay crisp as the UI scales.
@@ -166,7 +180,7 @@ export class RouteOverview {
    * @param {(lng: number, lat: number) => number[]} project
    */
   #drawEndpoints(ctx, project) {
-    const endpoints = svl.taskContainer.getRouteEndpoints();
+    const endpoints = this.#taskContainer.getRouteEndpoints();
     if (!endpoints) return;
     const [sx, sy] = project(endpoints.start.lng, endpoints.start.lat);
     const [fx, fy] = project(endpoints.finish.lng, endpoints.finish.lat);
@@ -200,8 +214,8 @@ export class RouteOverview {
    * @param {(lng: number, lat: number) => number[]} project
    */
   #drawViewportBox(ctx, project) {
-    if (!svl.minimap || !svl.minimap.isAvailable()) return;
-    const bounds = svl.minimap.getBounds();
+    if (!this.#minimap.isAvailable()) return;
+    const bounds = this.#minimap.getBounds();
     const [x1, y1] = project(bounds.west, bounds.north); // top-left corner of the viewport
     const [x2, y2] = project(bounds.east, bounds.south); // bottom-right corner
     ctx.save();
@@ -219,10 +233,10 @@ export class RouteOverview {
    * @param {(lng: number, lat: number) => number[]} project
    */
   #drawYouAreHere(ctx, project) {
-    const pos = svl.panoViewer.getPosition();
+    const pos = this.#panoManager.getPosition();
     if (!pos) return;
     const [x, y] = project(pos.lng, pos.lat);
-    const pov = svl.panoViewer.getPov();
+    const pov = this.#panoManager.getPov();
     const heading = pov ? pov.heading : 0;
 
     ctx.save();

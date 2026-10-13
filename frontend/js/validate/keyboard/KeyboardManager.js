@@ -5,7 +5,7 @@
  */
 
 import { KeyboardShortcuts } from '../../common/KeyboardShortcuts.js';
-/** @typedef {import('./KeyboardLock.js').KeyboardLock} KeyboardLock */
+/** @typedef {import('../../common/Gate.js').Gate} Gate */
 /** @typedef {import('../Main.js').ValidateUi} ValidateUi */
 /** @typedef {import('../Main.js').ValidateConfig} ValidateConfig */
 /** @typedef {import('../label/LabelContainer.js').LabelContainer} LabelContainer */
@@ -24,7 +24,7 @@ export class KeyboardManager {
   #undoButton;
   /** @type {ValidateConfig} */
   #config;
-  /** @type {KeyboardLock} */
+  /** @type {Gate} */
   #keyboardLock;
   /** @type {LabelVisibilityControl} */
   #labelVisibilityControl;
@@ -96,7 +96,7 @@ export class KeyboardManager {
    *
    * @param {ValidateUi} ui - The verdict menu's buttons and boxes, and the undo button, which the shortcuts press.
    * @param {ValidateConfig} config - Whether this is Expert Validate, where the number keys can rate a label.
-   * @param {KeyboardLock} keyboardLock - Whether the shortcuts are paused; the modals and the sign-in dialog hold it,
+   * @param {Gate} keyboardLock - Whether the shortcuts are paused; the modals and the sign-in dialog hold it,
    *     and this holds it itself while a label loads.
    * @param {LabelContainer} labelContainer - Whose loads pause the shortcuts.
    * @param {LabelVisibilityControl} labelVisibilityControl - The label and its card: H, Escape and the marker's keys.
@@ -151,7 +151,7 @@ export class KeyboardManager {
     }
 
     this.#checkIfTextAreaSelected();
-    if (this.#keyboardLock.isDisabled()) return;
+    if (this.#keyboardLock.isHeld()) return;
     KeyboardShortcuts.run(this.#whileTypingShortcuts, e);
     if (this.#addingComment) return;
 
