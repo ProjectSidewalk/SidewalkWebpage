@@ -10,8 +10,10 @@
  * Real vendored turf for the geometry: the questions are about distances along real street lines.
  */
 
-const path = require('path');
-const { loadModules, realUtil } = require('./loadGlobalScript');
+import path from 'path';
+import { loadModules, realUtil, fakeImport } from './loadGlobalScript.js';
+
+fakeImport('frontend/js/explore/task/Task.js', 'Task');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const turf = require(path.join(REPO_ROOT, 'public/vendor/turf/turf-7.4.0.min.js'));
@@ -61,11 +63,11 @@ describe('Task coverage in free exploration', () => {
     /** A task on a street, with the coverage rule a free-exploration page carries. */
     const makeTask = (geojson) => new window.Task(geojson, CONFIG.streetCoverage, false);
 
-    beforeEach(() => {
+    beforeEach(async () => {
         window.turf = turf;
-        window.util ??= realUtil();
-        loadModules('frontend/js/common/utilitiesMath.js');
-        Object.assign(window, loadModules('frontend/js/explore/task/Task.js'));
+        window.util ??= await realUtil();
+        await loadModules('frontend/js/common/utilitiesMath.js');
+        Object.assign(window, await loadModules('frontend/js/explore/task/Task.js'));
     });
 
     it('credits a window around each pano and the walked stretch between neighbours', () => {
@@ -206,20 +208,20 @@ describe('TaskContainer walking streets in free exploration', () => {
     let current;
     let cross;
 
-    beforeEach(() => {
+    beforeEach(async () => {
         window.turf = turf;
-        window.util ??= realUtil();
-        loadModules('frontend/js/common/utilitiesMath.js');
+        window.util ??= await realUtil();
+        await loadModules('frontend/js/common/utilitiesMath.js');
         Object.assign(
-            window, loadModules('frontend/js/explore/task/Task.js', 'frontend/js/explore/task/TaskContainer.js')
+            window, await loadModules('frontend/js/explore/task/Task.js', 'frontend/js/explore/task/TaskContainer.js')
         );
-        tracker = { push: jest.fn(), setAuditTaskID: jest.fn() };
+        tracker = { push: vi.fn(), setAuditTaskID: vi.fn() };
         current = new window.Task(feature(street, { street_edge_id: 1 }), CONFIG.streetCoverage, false);
         cross = new window.Task(feature(crossStreet, { street_edge_id: 2 }), CONFIG.streetCoverage, false);
         container = new window.TaskContainer(current, CONFIG, { isRoute: false },
-            { setStreetLines: jest.fn() }, {}, {}, tracker);
+            { setStreetLines: vi.fn() }, {}, {}, tracker);
         // What the Form hears, as it would in production: the street being left, to post as it stands.
-        left = jest.fn();
+        left = vi.fn();
         container.onTaskLeft(left);
         container._tasks.push(cross);
     });

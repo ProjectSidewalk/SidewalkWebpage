@@ -13,8 +13,8 @@
  * Third-party libraries under public/vendor/ are out of scope by convention — we neither edit nor lint them.
  */
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const CSS_ROOT = path.join(REPO_ROOT, 'frontend', 'css');

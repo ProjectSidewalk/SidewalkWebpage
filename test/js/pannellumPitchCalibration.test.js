@@ -14,7 +14,10 @@
  * eval'd into the jsdom global scope with a stubbed pannellum library underneath.
  */
 
-const { loadGlobalScript, realUtil, loadModules } = require('./loadGlobalScript');
+import { loadGlobalScript, realUtil, loadModules, stubUtil, fakeImport } from './loadGlobalScript.js';
+
+fakeImport('frontend/js/common/pano-viewer/PanoData.js', 'PanoData');
+fakeImport('frontend/js/common/pano-viewer/PanoViewer.js', 'PanoViewer');
 
 
 window.bowser = {
@@ -23,9 +26,9 @@ window.bowser = {
         getOSName: () => 'TestOS', getPlatformType: () => 'desktop',
     }),
 };
-window.util = realUtil();
-loadGlobalScript('frontend/js/common/utilitiesMath.js');
-loadGlobalScript('frontend/js/common/pano-viewer/panoUtilities.js');
+stubUtil(await realUtil());
+await loadGlobalScript('frontend/js/common/utilitiesMath.js');
+await loadGlobalScript('frontend/js/common/pano-viewer/panoUtilities.js');
 
 const CAMERA_PITCH = 8.5;    // degrees; near the top of the real distribution
 const CAMERA_HEADING = 104.9;
@@ -69,7 +72,7 @@ function makeFakePannellum() {
 async function makeViewer(panoMetadataOverrides = {}) {
     const { state, lib } = makeFakePannellum();
     window.pannellum = lib;
-    Object.assign(window, loadModules('frontend/js/common/pano-viewer/PanoData.js', 'frontend/js/common/pano-viewer/PanoViewer.js', 'frontend/js/common/pano-viewer/PannellumViewer.js'));
+    Object.assign(window, await loadModules('frontend/js/common/pano-viewer/PanoData.js', 'frontend/js/common/pano-viewer/PanoViewer.js', 'frontend/js/common/pano-viewer/PannellumViewer.js'));
     const el = document.createElement('div');
     document.body.appendChild(el);
     const v = new window.PannellumViewer();

@@ -11,7 +11,7 @@
  * export, the same way share-widget.test.js loads ShareWidget.
  */
 
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules, stubUtil } from './loadGlobalScript.js';
 
 
 /**
@@ -52,11 +52,11 @@ const q = (sel) => document.querySelector(sel);
 describe('LabelCardView', () => {
     let LabelCardView;
 
-    beforeEach(() => {
+    beforeEach(async () => {
         // i18next echoes its key so assertions can name the key they expect; the smiley/color helpers are keyed so
         // per-severity values are distinguishable.
         window.i18next = { t: (key) => key };
-        window.util = {
+        stubUtil({
             camelToKebab: (s) => s.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase(),
             misc: {
                 labelTypeName: (type) => window.i18next.t(`common:${window.util.camelToKebab(type)}`),
@@ -68,8 +68,8 @@ describe('LabelCardView', () => {
                 getSeverityLevelColors: (severity) => ({ wash: `wash-${severity}` }),
                 labelTypeHasSeverity: (type) => type !== 'Occlusion',
             },
-        };
-        Object.assign(window, loadModules('frontend/js/common/LabelCardView.js'));
+        });
+        Object.assign(window, await loadModules('frontend/js/common/LabelCardView.js'));
         LabelCardView = window.LabelCardView;
     });
 

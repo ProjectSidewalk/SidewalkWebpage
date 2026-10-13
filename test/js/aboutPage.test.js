@@ -6,10 +6,12 @@
  * otherwise blank a section of the page with no signal. These tests also cover the presentation rules that aren't
  * obvious from the payload — multi-stint dedup, the role line's lead-label dedup, and which publications start visible.
  *
- * Runs under jsdom (set in jest.config.js via testEnvironment).
+ * Runs under jsdom (set in vitest.config.mjs via testEnvironment).
  */
 
-const { loadGlobalScript, loadVendored, mockModule, unmockModule, realUtil } = require('./loadGlobalScript');
+import { loadGlobalScript, loadVendored, mockModule, unmockModule, realUtil, stubUtil, fakeImport } from './loadGlobalScript.js';
+
+fakeImport('frontend/js/ps-map/createPSMap.js', 'createPSMap');
 
 loadVendored('dompurify');
 
@@ -127,10 +129,10 @@ const page = (results) => ({ count: results.length, next: null, previous: null, 
  * Installs a `fetch` stub that dispatches by URL, so each hydrator gets its own fixture.
  *
  * @param {object} routes - Map of URL substring to response body. An unmatched URL rejects, mimicking a dead endpoint.
- * @returns {jest.Mock} The installed fetch mock, for call assertions.
+ * @returns {import('vitest').Mock} The installed fetch mock, for call assertions.
  */
 function stubFetch(routes) {
-  global.fetch = jest.fn((url) => {
+  global.fetch = vi.fn((url) => {
     const key = Object.keys(routes).find((k) => url.includes(k));
     if (!key) return Promise.reject(new Error(`unstubbed URL: ${url}`));
     return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(routes[key]) });
@@ -148,7 +150,7 @@ async function hydrate() {
 const EMPTY_SECTIONS = { '/publications/': page([]), '/grants/': page([]) };
 
 describe('AboutPage', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     document.body.innerHTML = `
       <div id="about-team-live" hidden>
         <ul id="about-team-current"></ul>
@@ -172,11 +174,11 @@ describe('AboutPage', () => {
     localStorage.clear();
     // The page renders asset URLs through util.assetPath, which the real page gets from the blocking utilities.js tag
     // in main.scala.html's <head>. Load it first here for the same reason.
-    window.util = realUtil();
+    stubUtil(await realUtil());
     FakeIntersectionObserver.instances = [];
     // The page entry defers its work to appManager.ready(); capture the callback so each test can run it on demand.
     window.appManager = { ready: (cb) => { window.__aboutReady = cb; } };
-    window.logWebpageActivity = jest.fn();
+    window.logWebpageActivity = vi.fn();
   });
 
   afterEach(() => {
@@ -185,7 +187,7 @@ describe('AboutPage', () => {
     delete window.appManager;
     delete window.__aboutReady;
     delete window.createPSMap;
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('current team', () => {
@@ -202,7 +204,7 @@ describe('AboutPage', () => {
         ]),
         ...EMPTY_SECTIONS,
       });
-      loadGlobalScript(MODULE_PATH);
+      await loadGlobalScript(MODULE_PATH);
       await hydrate();
 
       const lines = [...document.querySelectorAll('#about-team-current .about-team-member')]
@@ -224,7 +226,7 @@ describe('AboutPage', () => {
         ]),
         ...EMPTY_SECTIONS,
       });
-      loadGlobalScript(MODULE_PATH);
+      await loadGlobalScript(MODULE_PATH);
       await hydrate();
 
       const card = document.querySelector('#about-team-current .about-team-member');
@@ -247,7 +249,7 @@ describe('AboutPage', () => {
         ]),
         ...EMPTY_SECTIONS,
       });
-      loadGlobalScript(MODULE_PATH);
+      await loadGlobalScript(MODULE_PATH);
       await hydrate();
 
       expect(document.querySelector('#about-team-current .about-team-role').textContent)
@@ -269,7 +271,7 @@ describe('AboutPage', () => {
         ]),
         ...EMPTY_SECTIONS,
       });
-      loadGlobalScript(MODULE_PATH);
+      await loadGlobalScript(MODULE_PATH);
       await hydrate();
 
       const card = document.querySelector('#about-team-current .about-team-member');
@@ -288,7 +290,7 @@ describe('AboutPage', () => {
         ]),
         ...EMPTY_SECTIONS,
       });
-      loadGlobalScript(MODULE_PATH);
+      await loadGlobalScript(MODULE_PATH);
       await hydrate();
 
       const orgs = [...document.querySelectorAll('#about-team-current .about-team-affiliation')]
@@ -303,7 +305,7 @@ describe('AboutPage', () => {
         ]),
         ...EMPTY_SECTIONS,
       });
-      loadGlobalScript(MODULE_PATH);
+      await loadGlobalScript(MODULE_PATH);
       await hydrate();
 
       expect(document.querySelector('#about-team-current .about-team-affiliation')).toBeNull();
@@ -319,7 +321,7 @@ describe('AboutPage', () => {
         ]),
         ...EMPTY_SECTIONS,
       });
-      loadGlobalScript(MODULE_PATH);
+      await loadGlobalScript(MODULE_PATH);
       await hydrate();
 
       const cards = [...document.querySelectorAll('#about-team-current .about-team-member')];
@@ -340,7 +342,7 @@ describe('AboutPage', () => {
         ]),
         ...EMPTY_SECTIONS,
       });
-      loadGlobalScript(MODULE_PATH);
+      await loadGlobalScript(MODULE_PATH);
       await hydrate();
 
       const names = [...document.querySelectorAll('#about-team-current .about-team-name')].map((el) => el.textContent);
@@ -354,7 +356,7 @@ describe('AboutPage', () => {
         ]),
         ...EMPTY_SECTIONS,
       });
-      loadGlobalScript(MODULE_PATH);
+      await loadGlobalScript(MODULE_PATH);
       await hydrate();
 
       expect(document.querySelector('#about-team-current img[onerror]')).toBeNull();
@@ -371,7 +373,7 @@ describe('AboutPage', () => {
         ]),
         ...EMPTY_SECTIONS,
       });
-      loadGlobalScript(MODULE_PATH);
+      await loadGlobalScript(MODULE_PATH);
       await hydrate();
 
       const photos = [...document.querySelectorAll('#about-team-current, #about-team-past')]
@@ -387,7 +389,7 @@ describe('AboutPage', () => {
         '/people/?format=json': page([personRow({ is_active: false, end_date: '2021-01-01' })]),
         ...EMPTY_SECTIONS,
       });
-      loadGlobalScript(MODULE_PATH);
+      await loadGlobalScript(MODULE_PATH);
       await hydrate();
 
       expect(document.getElementById('about-team-live').hidden).toBe(true);
@@ -406,7 +408,7 @@ describe('AboutPage', () => {
         ]),
         ...EMPTY_SECTIONS,
       });
-      loadGlobalScript(MODULE_PATH);
+      await loadGlobalScript(MODULE_PATH);
       await hydrate();
 
       const contributors = [...document.querySelectorAll('#about-team-all li')].map((el) => el.textContent.trim());
@@ -426,7 +428,7 @@ describe('AboutPage', () => {
         ]),
         ...EMPTY_SECTIONS,
       });
-      loadGlobalScript(MODULE_PATH);
+      await loadGlobalScript(MODULE_PATH);
       await hydrate();
 
       const rows = [...document.querySelectorAll('#about-team-all li')]
@@ -447,7 +449,7 @@ describe('AboutPage', () => {
         ]),
         ...EMPTY_SECTIONS,
       });
-      loadGlobalScript(MODULE_PATH);
+      await loadGlobalScript(MODULE_PATH);
       await hydrate();
 
       expect(document.querySelector('#about-team-all .about-team-credential').textContent).toBe('Undergrad, UW');
@@ -465,7 +467,7 @@ describe('AboutPage', () => {
         ]),
         ...EMPTY_SECTIONS,
       });
-      loadGlobalScript(MODULE_PATH);
+      await loadGlobalScript(MODULE_PATH);
       await hydrate();
 
       expect(document.querySelector('#about-team-all .about-team-credential').textContent).toBe('Undergrad, UMD');
@@ -487,7 +489,7 @@ describe('AboutPage', () => {
         ]),
         ...EMPTY_SECTIONS,
       });
-      loadGlobalScript(MODULE_PATH);
+      await loadGlobalScript(MODULE_PATH);
       await hydrate();
 
       // 26 people across six position levels; 23 of them are students at some level, the coordinators and the
@@ -508,7 +510,7 @@ describe('AboutPage', () => {
         ]),
         ...EMPTY_SECTIONS,
       });
-      loadGlobalScript(MODULE_PATH);
+      await loadGlobalScript(MODULE_PATH);
       await hydrate();
 
       // 13 rows but 12 people, so the ten below is 10 rather than the 13 rows' 10 — and never the 20 a row count
@@ -525,7 +527,7 @@ describe('AboutPage', () => {
         }))),
         ...EMPTY_SECTIONS,
       });
-      loadGlobalScript(MODULE_PATH);
+      await loadGlobalScript(MODULE_PATH);
       await hydrate();
 
       // Exactly 20 contributors is not "more than 20".
@@ -540,7 +542,7 @@ describe('AboutPage', () => {
         ]),
         ...EMPTY_SECTIONS,
       });
-      loadGlobalScript(MODULE_PATH);
+      await loadGlobalScript(MODULE_PATH);
       await hydrate();
 
       expect(document.getElementById('about-team-contributors-intro').textContent)
@@ -558,7 +560,7 @@ describe('AboutPage', () => {
         ]),
         ...EMPTY_SECTIONS,
       });
-      loadGlobalScript(MODULE_PATH);
+      await loadGlobalScript(MODULE_PATH);
       await hydrate();
 
       // Past leads sort by lead rank, so the Co-PI card precedes the Student Lead one.
@@ -579,7 +581,7 @@ describe('AboutPage', () => {
         ]),
         ...EMPTY_SECTIONS,
       });
-      loadGlobalScript(MODULE_PATH);
+      await loadGlobalScript(MODULE_PATH);
       await hydrate();
 
       expect(document.querySelector('#about-team-past .about-team-role').textContent).toBe('Co-PI, 2012');
@@ -592,7 +594,7 @@ describe('AboutPage', () => {
         ]),
         ...EMPTY_SECTIONS,
       });
-      loadGlobalScript(MODULE_PATH);
+      await loadGlobalScript(MODULE_PATH);
       await hydrate();
 
       expect(document.querySelectorAll('#about-team-past li')).toHaveLength(0);
@@ -626,7 +628,7 @@ describe('AboutPage', () => {
       const pubs = [...Array(10)].map((_, i) => pub(i));
       pubs[9] = pub(9, { award: 'Best Paper' });
       stubFetch({ '/publications/': page(pubs), '/people/?format=json': page([]), '/grants/': page([]) });
-      loadGlobalScript(MODULE_PATH);
+      await loadGlobalScript(MODULE_PATH);
       await hydrate();
 
       const articles = [...document.querySelectorAll('.about-pub')];
@@ -651,7 +653,7 @@ describe('AboutPage', () => {
         '/people/?format=json': page([]),
         '/grants/': page([]),
       });
-      loadGlobalScript(MODULE_PATH);
+      await loadGlobalScript(MODULE_PATH);
       await hydrate();
 
       const pills = [...document.querySelectorAll('.about-pub-link')];
@@ -671,7 +673,7 @@ describe('AboutPage', () => {
         '/people/?format=json': page([]),
         '/grants/': page([]),
       });
-      loadGlobalScript(MODULE_PATH);
+      await loadGlobalScript(MODULE_PATH);
       await hydrate();
 
       const link = document.querySelector('.about-pub-thumb').closest('a');
@@ -686,7 +688,7 @@ describe('AboutPage', () => {
         '/people/?format=json': page([]),
         '/grants/': page([]),
       });
-      loadGlobalScript(MODULE_PATH);
+      await loadGlobalScript(MODULE_PATH);
       await hydrate();
 
       expect(document.querySelector('.about-pub-thumb').closest('a')).toBeNull();
@@ -698,7 +700,7 @@ describe('AboutPage', () => {
         '/people/?format=json': page([]),
         '/grants/': page([]),
       });
-      loadGlobalScript(MODULE_PATH);
+      await loadGlobalScript(MODULE_PATH);
       await hydrate();
 
       // An <img src=""> resolves against the page URL, so the browser would re-request the whole document.
@@ -712,7 +714,7 @@ describe('AboutPage', () => {
       stubFetch({
         '/publications/': page([pub(0), pub(1)]), '/people/?format=json': page([]), '/grants/': page([]),
       });
-      loadGlobalScript(MODULE_PATH);
+      await loadGlobalScript(MODULE_PATH);
       await hydrate();
 
       expect(document.getElementById('about-pubs-show-all').hidden).toBe(true);
@@ -724,7 +726,7 @@ describe('AboutPage', () => {
         '/people/?format=json': page([]),
         '/grants/': page([]),
       });
-      loadGlobalScript(MODULE_PATH);
+      await loadGlobalScript(MODULE_PATH);
       await hydrate();
 
       expect(document.querySelector('.about-pub-venue').textContent.trim()).toBe('Proceedings of CHI 2030');
@@ -761,7 +763,7 @@ describe('AboutPage', () => {
         '/people/?format=json': page([]),
         '/grants/': page([]),
       });
-      loadGlobalScript(MODULE_PATH);
+      await loadGlobalScript(MODULE_PATH);
       await hydrate();
 
       expect(document.getElementById('about-cite').hidden).toBe(false);
@@ -779,7 +781,7 @@ describe('AboutPage', () => {
         '/people/?format=json': page([]),
         '/grants/': page([]),
       });
-      loadGlobalScript(MODULE_PATH);
+      await loadGlobalScript(MODULE_PATH);
       await hydrate();
 
       const link = document.querySelector('#about-cite-plain a');
@@ -800,7 +802,7 @@ describe('AboutPage', () => {
         '/people/?format=json': page([]),
         '/grants/': page([]),
       });
-      loadGlobalScript(MODULE_PATH);
+      await loadGlobalScript(MODULE_PATH);
       await hydrate();
 
       const pane = document.getElementById('about-cite-plain');
@@ -813,7 +815,7 @@ describe('AboutPage', () => {
     });
 
     test('copies the pane\'s text and confirms on the button', async () => {
-      const writeText = jest.fn(() => Promise.resolve());
+      const writeText = vi.fn(() => Promise.resolve());
       Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
       stubFetch({
         '/projects/sidewalk/publications/': page([CITED]),
@@ -821,7 +823,7 @@ describe('AboutPage', () => {
         '/people/?format=json': page([]),
         '/grants/': page([]),
       });
-      loadGlobalScript(MODULE_PATH);
+      await loadGlobalScript(MODULE_PATH);
       await hydrate();
 
       const bibtexButton = document.querySelector('[data-copy-target="about-cite-bibtex"]');
@@ -837,7 +839,7 @@ describe('AboutPage', () => {
         '/people/?format=json': page([]),
         '/grants/': page([]),
       });
-      loadGlobalScript(MODULE_PATH);
+      await loadGlobalScript(MODULE_PATH);
       await hydrate();
 
       expect(document.getElementById('about-cite').hidden).toBe(true);
@@ -849,8 +851,8 @@ describe('AboutPage', () => {
         '/people/?format=json': page([]),
         '/grants/': page([]),
       }); // /publications/605/ rejects.
-      jest.spyOn(console, 'warn').mockImplementation(() => {});
-      loadGlobalScript(MODULE_PATH);
+      vi.spyOn(console, 'warn').mockImplementation(() => {});
+      await loadGlobalScript(MODULE_PATH);
       await hydrate();
 
       expect(document.getElementById('about-cite').hidden).toBe(true);
@@ -870,7 +872,7 @@ describe('AboutPage', () => {
         '/people/?format=json': page([]),
         '/publications/': page([]),
       });
-      loadGlobalScript(MODULE_PATH);
+      await loadGlobalScript(MODULE_PATH);
       await hydrate();
 
       const list = document.getElementById('about-funding-grants');
@@ -882,8 +884,8 @@ describe('AboutPage', () => {
 
     test('leaves the static funding paragraph as the fallback when the request fails', async () => {
       stubFetch({ '/people/?format=json': page([]), '/publications/': page([]) }); // /grants/ rejects.
-      jest.spyOn(console, 'warn').mockImplementation(() => {});
-      loadGlobalScript(MODULE_PATH);
+      vi.spyOn(console, 'warn').mockImplementation(() => {});
+      await loadGlobalScript(MODULE_PATH);
       await hydrate();
 
       expect(document.getElementById('about-funding-grants').hidden).toBe(true);
@@ -906,11 +908,11 @@ describe('AboutPage', () => {
     beforeEach(() => {
       renderSections();
       stubFetch({});
-      jest.spyOn(console, 'warn').mockImplementation(() => {});
+      vi.spyOn(console, 'warn').mockImplementation(() => {});
     });
 
     test('lists every section that has a visible heading, in page order, and reveals itself', async () => {
-      loadGlobalScript(MODULE_PATH);
+      await loadGlobalScript(MODULE_PATH);
       await hydrate();
 
       const links = [...document.querySelectorAll('#about-toc-list .about-toc-link')];
@@ -921,14 +923,14 @@ describe('AboutPage', () => {
     });
 
     test('skips a section titled only for screen readers', async () => {
-      loadGlobalScript(MODULE_PATH);
+      await loadGlobalScript(MODULE_PATH);
       await hydrate();
 
       expect(document.getElementById('about-toc-list').textContent).not.toContain('By the numbers');
     });
 
     test('marks the section under the top of the viewport, resolving an overlap by page order', async () => {
-      loadGlobalScript(MODULE_PATH);
+      await loadGlobalScript(MODULE_PATH);
       await hydrate();
 
       const observer = FakeIntersectionObserver.instances.find((o) => o.targets.length === 3);
@@ -948,7 +950,7 @@ describe('AboutPage', () => {
     });
 
     test('withdraws the rail past the ends of the page, where it would float over the hero or the footer', async () => {
-      loadGlobalScript(MODULE_PATH);
+      await loadGlobalScript(MODULE_PATH);
       await hydrate();
 
       const nav = document.getElementById('about-toc');
@@ -965,7 +967,7 @@ describe('AboutPage', () => {
     });
 
     test('logs which section a reader jumped to', async () => {
-      loadGlobalScript(MODULE_PATH);
+      await loadGlobalScript(MODULE_PATH);
       await hydrate();
 
       document.querySelector('[href="#about-team"]').click();
@@ -986,9 +988,9 @@ describe('AboutPage', () => {
       document.body.innerHTML = `<main id="about-page"><div id="about-deployment-map" ${attrs}></div></main>`;
       stubFetch({});
       // The page pulls ps-map in through a dynamic import, so the fake is a module, not a global.
-      window.createPSMap = jest.fn(() => Promise.resolve([{}]));
+      window.createPSMap = vi.fn(() => Promise.resolve([{}]));
       mockModule('frontend/js/ps-map/createPSMap.js', () => ({ createPSMap: window.createPSMap }));
-      jest.spyOn(console, 'warn').mockImplementation(() => {});
+      vi.spyOn(console, 'warn').mockImplementation(() => {});
     });
 
     afterEach(() => unmockModule('frontend/js/ps-map/createPSMap.js'));
@@ -998,7 +1000,7 @@ describe('AboutPage', () => {
       .find((o) => o.targets.some((t) => t.id === 'about-deployment-map'));
 
     test('fetches nothing until the map nears the viewport', async () => {
-      loadGlobalScript(MODULE_PATH);
+      await loadGlobalScript(MODULE_PATH);
       await hydrate();
 
       expect(document.head.querySelectorAll('script[src]')).toHaveLength(0);
@@ -1006,7 +1008,7 @@ describe('AboutPage', () => {
     });
 
     test('loads mapbox and its language plugin in order, then builds the map', async () => {
-      loadGlobalScript(MODULE_PATH);
+      await loadGlobalScript(MODULE_PATH);
       await hydrate();
 
       const observer = mapObserver();
@@ -1028,7 +1030,7 @@ describe('AboutPage', () => {
     });
 
     test('loads the libraries once, however often the section crosses the viewport', async () => {
-      loadGlobalScript(MODULE_PATH);
+      await loadGlobalScript(MODULE_PATH);
       await hydrate();
 
       const observer = mapObserver();
@@ -1042,7 +1044,7 @@ describe('AboutPage', () => {
     });
 
     test('hides the empty frame rather than leaving it looking broken when a library fails', async () => {
-      loadGlobalScript(MODULE_PATH);
+      await loadGlobalScript(MODULE_PATH);
       await hydrate();
 
       const observer = mapObserver();
@@ -1061,8 +1063,8 @@ describe('AboutPage', () => {
       stubFetch({ '/publications/': page([{ title: 'Paper', date: '2025-01-01', year: 2025, forum_name: 'CHI',
         authors: [{ name: 'Jon E. Froehlich' }], thumbnail: '', pdf_url: '', official_url: '', arxiv_url: '',
         code_repo_url: '', forum_url: '', award: null }]), '/grants/': page([]) }); // /people/ rejects.
-      jest.spyOn(console, 'warn').mockImplementation(() => {});
-      loadGlobalScript(MODULE_PATH);
+      vi.spyOn(console, 'warn').mockImplementation(() => {});
+      await loadGlobalScript(MODULE_PATH);
       await hydrate();
 
       expect(document.getElementById('about-team-live').hidden).toBe(true);

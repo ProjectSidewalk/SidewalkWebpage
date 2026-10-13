@@ -11,13 +11,18 @@
  * global scope alongside stubs for the globals it closes over.
  */
 
-const path = require('path');
-const { loadModules } = require('./loadGlobalScript');
+import path from 'path';
+import { loadModules, fakeImport, stubUtil } from './loadGlobalScript.js';
+
+fakeImport('frontend/js/common/pano-viewer/PanoData.js', 'PanoData');
+fakeImport('frontend/js/common/pano-viewer/PanoViewer.js', 'PanoViewer');
+fakeImport('frontend/js/common/pano-viewer/NoImageryError.js', 'NoImageryError');
+
 
 const SRC_DIR = path.resolve(__dirname, '..', '..', 'frontend/js/common/pano-viewer');
 
 /** Loads Infra3dViewer over a stubbed PanoViewer base; PanoViewer's own behavior is panoViewerSeedFallback's job. */
-function loadInfra3dViewer() {
+async function loadInfra3dViewer() {
     window.PanoViewer = class PanoViewer {
         constructor() { this.viewerType = 'infra3d'; }
         getViewerType() { return this.viewerType; }
@@ -27,8 +32,8 @@ function loadInfra3dViewer() {
         getPanoId() { return this.params.panoId; }
     };
     window.proj4 = () => [0, 0];
-    window.util = { math: { toDegrees: (radians) => radians } };
-    Object.assign(window, loadModules(path.join(SRC_DIR, 'Infra3dViewer.js'), path.join(SRC_DIR, 'NoImageryError.js')));
+    stubUtil({ math: { toDegrees: (radians) => radians } });
+    Object.assign(window, await loadModules(path.join(SRC_DIR, 'Infra3dViewer.js'), path.join(SRC_DIR, 'NoImageryError.js')));
     return {
         Infra3dViewer: window.Infra3dViewer,
         PanoData: window.PanoData,
@@ -65,8 +70,8 @@ describe('Infra3dViewer.setLocation rejections', () => {
     let PanoData;
     let NoImageryError;
 
-    beforeAll(() => {
-        const loaded = loadInfra3dViewer();
+    beforeAll(async () => {
+        const loaded = await loadInfra3dViewer();
         Infra3dViewer = loaded.Infra3dViewer;
         PanoData = loaded.PanoData;
         NoImageryError = loaded.NoImageryError;

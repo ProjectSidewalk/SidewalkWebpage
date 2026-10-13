@@ -10,13 +10,13 @@
  * jsdom global scope.
  */
 
-const path = require('path');
-const { loadModules } = require('./loadGlobalScript');
+import path from 'path';
+import { loadModules } from './loadGlobalScript.js';
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 
 window.turf = require(path.join(REPO_ROOT, 'public/vendor/turf/turf-7.4.0.min.js'));
-Object.assign(window, loadModules('frontend/js/explore/navigation/ForwardCrumbs.js'));
+Object.assign(window, await loadModules('frontend/js/explore/navigation/ForwardCrumbs.js'));
 const { ForwardCrumbs } = window;
 const { turf } = window;
 
@@ -199,7 +199,7 @@ describe('ForwardCrumbs.facedPanoId', () => {
     });
 
     test('the route heading is only computed when no link is faced', () => {
-        const routeHeading = jest.fn(() => 0);
+        const routeHeading = vi.fn(() => 0);
         expect(ForwardCrumbs.facedPanoId(links, 100, 'next', routeHeading)).toBe('e');
         expect(routeHeading).not.toHaveBeenCalled();
         expect(ForwardCrumbs.facedPanoId(links, 10, 'next', routeHeading)).toBe('next');

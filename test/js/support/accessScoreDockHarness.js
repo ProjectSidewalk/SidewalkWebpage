@@ -5,10 +5,10 @@
  * the ramp tokens — so each suite can assert on structure and numbers rather than on translated prose.
  */
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
 
-const { installDateHelpers, installUtilitiesMisc, installEscapeHTML, loadModules } = require('../loadGlobalScript');
+import { installDateHelpers, installUtilitiesMisc, installEscapeHTML, loadModules, stubUtil } from '../loadGlobalScript.js';
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..', '..');
 const read = (p) => fs.readFileSync(path.join(REPO_ROOT, p), 'utf8');
@@ -35,33 +35,33 @@ function stubI18next() {
  * label types) so the rating palettes, their words, the icon paths and the shared marker helper are the shipped ones,
  * plus the handful of utilities.js helpers the views lean on, verbatim.
  */
-function installUtil() {
-    window.util = {
+async function installUtil() {
+    stubUtil({
         assetPath: (p) => `/assets/${p}`,
         camelToKebab: (str) => str.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase(),
         lazyIdentityFetch: (...args) => window.fetch(...args),
         EXPLORE_CANVAS_WIDTH: 720,
         EXPLORE_CANVAS_HEIGHT: 480,
-    };
-    installUtilitiesMisc();
-    installDateHelpers();
-    installEscapeHTML();
+    });
+    await installUtilitiesMisc();
+    await installDateHelpers();
+    await installEscapeHTML();
     // The mini-card's side channels: a toast on a refused vote, a badge tick on a first one.
-    window.Toast = {show: jest.fn()};
-    window.BadgeAchievements = {recordValidation: jest.fn()};
+    window.Toast = {show: vi.fn()};
+    window.BadgeAchievements = {recordValidation: vi.fn()};
 }
 
 /** Evaluates the production sources into the jsdom global scope, exporting the bare classes onto window. */
-function loadSources() {
+async function loadSources() {
     RAMP.forEach((hex, i) => document.documentElement.style.setProperty(`--color-score-ramp-${i + 1}`, hex));
-    Object.assign(window, loadModules('frontend/js/common/scoreRamp.js'));
-    Object.assign(window, loadModules('frontend/js/common/LabelMiniCard.js'));
+    Object.assign(window, await loadModules('frontend/js/common/scoreRamp.js'));
+    Object.assign(window, await loadModules('frontend/js/common/LabelMiniCard.js'));
     const classes = ['AccessScoreModel', 'AccessScoreGradeRamp', 'AccessScoreChart', 'AccessScoreHistogram',
         'AccessScoreWhatsHere', 'AccessScoreRankBars', 'AccessScoreClusterSheet', 'AccessScorePhotoStrip',
         'AccessScoreDock'];
     for (const name of classes) {
         const dir = name === 'AccessScoreGradeRamp' ? 'common' : 'access-score';  // Shared with the API docs.
-        Object.assign(window, loadModules(`frontend/js/${dir}/${name}.js`));
+        Object.assign(window, await loadModules(`frontend/js/${dir}/${name}.js`));
     }
 }
 
@@ -122,7 +122,7 @@ const DOCK_HTML = `
  */
 function stubFetch({clustersByRegion = {}, labels = {}} = {}) {
     const json = (body, ok = true) => Promise.resolve({ok, status: ok ? 200 : 404, json: () => Promise.resolve(body)});
-    window.fetch = jest.fn((input) => {
+    window.fetch = vi.fn((input) => {
         const url = new URL(String(input), 'http://localhost');
         if (url.pathname === '/v3/api/labelClusters') {
             // A cluster stub with `coordinates` is a Point, as the feed's are; the strip's viewport filter reads them.
@@ -148,4 +148,4 @@ function rgb(hex) {
     return `rgb(${r}, ${g}, ${b})`;
 }
 
-module.exports = {FIXTURE, RAMP, stubI18next, installUtil, stubFetch, loadSources, feature, DOCK_HTML, rgb};
+export {FIXTURE, RAMP, stubI18next, installUtil, stubFetch, loadSources, feature, DOCK_HTML, rgb};

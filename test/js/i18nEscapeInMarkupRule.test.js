@@ -1,5 +1,5 @@
 /**
- * @jest-environment node
+ * @vitest-environment node
  */
 
 /**
@@ -12,10 +12,10 @@
  * most: a false positive there would push a contributor at a *text* sink into the escaping #5389 removed.
  *
  * Node environment, not the suite's usual jsdom: ESLint's RuleTester calls `structuredClone`, which jsdom's global
- * does not provide. Jest only reads that docblock when it is the file's first one, hence the split header.
+ * does not provide.
  */
 
-const { RuleTester } = require('eslint');
+import { RuleTester } from 'eslint';
 const rule = require('../../tools/lint/eslint-rules/i18n-escape-in-markup');
 
 const ruleTester = new RuleTester({

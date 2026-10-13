@@ -10,7 +10,7 @@
  *   - writes that need a session at the same moment share one mint, so a double-click can't create two accounts.
  */
 
-const { realUtil } = require('./loadGlobalScript');
+import { realUtil, stubUtil } from './loadGlobalScript.js';
 
 /** A minimal Response-shaped object carrying only the fields the helper reads. */
 function response(overrides = {}) {
@@ -19,7 +19,7 @@ function response(overrides = {}) {
 
 const OK = () => response({ ok: true });
 
-beforeEach(() => {
+beforeEach(async () => {
     // utilities.js builds a Bowser parser at load time; the helper never touches it, but the file needs the global.
     window.bowser = {
         getParser: () => ({
@@ -27,12 +27,12 @@ beforeEach(() => {
             getOSName: () => 'TestOS', getPlatformType: () => 'desktop',
         }),
     };
-    window.util = realUtil();
+    stubUtil(await realUtil());
 });
 
 /** Runs the helper against a scripted sequence of responses and returns { result, calls }. */
 async function run(responses, options = { method: 'POST', body: '{"x":1}' }) {
-    const fetchMock = jest.fn();
+    const fetchMock = vi.fn();
     responses.forEach((r) => fetchMock.mockResolvedValueOnce(r));
     window.fetch = fetchMock;
     const result = await window.util.lazyIdentityFetch('/labelmap/validate', options);
@@ -115,7 +115,7 @@ describe('concurrent first writes', () => {
         const mintGate = new Promise((resolve) => { releaseMint = resolve; });
         let failuresLeft = 0;
 
-        const fetchMock = jest.fn((url) => {
+        const fetchMock = vi.fn((url) => {
             urls.push(url);
             if (url === MINT) return mintGate.then(() => response({ ok: true }));
             // The opening writes fail auth; anything after the mint succeeds.

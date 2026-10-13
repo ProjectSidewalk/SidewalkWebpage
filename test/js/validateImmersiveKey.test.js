@@ -9,13 +9,16 @@
  * explicit export, one instance for the file, since the constructor's window listener cannot be unregistered.
  */
 
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules, fakeImport } from './loadGlobalScript.js';
+import { fakeTracker } from './fakes.js';
+
+fakeImport('frontend/js/common/KeyboardShortcuts.js', 'KeyboardShortcuts');
 
 
 /** A menu control with its click spied; a real element, since the manager compares against document.activeElement. */
 function makeControl() {
     const control = document.createElement('textarea');
-    control.click = jest.fn();
+    control.click = vi.fn();
     return control;
 }
 
@@ -27,7 +30,7 @@ describe('Validate F shortcut for immersive mode', () => {
     const config = { adminVersion: false };
     let keyboardHeld = false;
 
-    beforeAll(() => {
+    beforeAll(async () => {
         Object.assign(validationMenuUi, {
             optionalCommentTextBox: makeControl(),
             disagreeReasonTextBox: makeControl(),
@@ -37,7 +40,7 @@ describe('Validate F shortcut for immersive mode', () => {
             noButton: makeControl(),
             unsureButton: makeControl(),
         });
-        Object.assign(window, loadModules('frontend/js/common/KeyboardShortcuts.js', 'frontend/js/validate/keyboard/KeyboardManager.js'));
+        Object.assign(window, await loadModules('frontend/js/common/KeyboardShortcuts.js', 'frontend/js/validate/keyboard/KeyboardManager.js'));
         new window.KeyboardManager(
             { validationMenu: validationMenuUi, undoValidation: { undoButton: live('undoButton') } }, config,
             { isHeld: () => keyboardHeld, hold: () => {}, release: () => {} },
@@ -51,9 +54,9 @@ describe('Validate F shortcut for immersive mode', () => {
         keyboardHeld = false;
         document.body.innerHTML = '<input id="field"><div id="note" contenteditable="true"></div>';
         current = {
-            immersiveMode: { toggle: jest.fn() },
+            immersiveMode: { toggle: vi.fn() },
             labelVisibilityControl: {
-                hideLabelCard: jest.fn(),
+                hideLabelCard: vi.fn(),
                 isCardVisible: () => false,
                 isCardHeldOpen: () => false,
             },
@@ -61,7 +64,7 @@ describe('Validate F shortcut for immersive mode', () => {
             validationMenu: { inWrongTypeView: () => false },
             imageAdjustmentsPopover: { isOpen: () => false },
             undoValidation: { canUndo: () => false },
-            tracker: { push: jest.fn() },
+            tracker: fakeTracker(),
         };
         validationMenuUi.yesButton.click.mockClear();
         validationMenuUi.submitButton.click.mockClear();

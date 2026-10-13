@@ -6,12 +6,12 @@
  * "Cannot read properties of undefined". Here we pin the contract between the snake_case /v3/api/aggregateStats
  * response and the headline cards + per-label-type table.
  *
- * Runs under jsdom (set in jest.config.js via testEnvironment) so `window`/`document` are available.
+ * Runs under jsdom (set in vitest.config.mjs via testEnvironment) so `window`/`document` are available.
  */
 
-const { loadModules, mockModule, unmockModule, installEscapeHTML } = require('./loadGlobalScript');
+import { loadModules, mockModule, unmockModule, installEscapeHTML } from './loadGlobalScript.js';
 
-installEscapeHTML();
+await installEscapeHTML();
 
 const MODULE_PATH = 'frontend/js/api-docs/aggregateStatsPreview.js';
 const CONTAINER_ID = 'aggregate-stats-preview';
@@ -61,7 +61,7 @@ const WRONG_SHAPE_CAMEL = {
  * @param {object} body - The object the stubbed fetch should resolve with as JSON.
  */
 function stubFetch(body) {
-    global.fetch = jest.fn(() =>
+    global.fetch = vi.fn(() =>
         Promise.resolve({
             ok: true,
             status: 200,
@@ -71,14 +71,14 @@ function stubFetch(body) {
 }
 
 describe('AggregateStatsPreview', () => {
-    beforeEach(() => {
+    beforeEach(async () => {
         document.body.innerHTML = `<div id="${CONTAINER_ID}"></div>`;
-        window.AggregateStatsPreview = loadModules(MODULE_PATH).AggregateStatsPreview;
+        window.AggregateStatsPreview = (await loadModules(MODULE_PATH)).AggregateStatsPreview;
     });
 
     afterEach(() => {
         delete global.fetch;
-        jest.restoreAllMocks();
+        vi.restoreAllMocks();
     });
 
     test('exposes the expected global surface', () => {
@@ -133,7 +133,7 @@ describe('AggregateStatsPreview', () => {
         mockModule('frontend/js/api-docs/apiTableWrapper.js', () => ({
             createApiTableWrapper: () => { throw new Error('render failed'); },
         }));
-        window.AggregateStatsPreview = loadModules(MODULE_PATH).AggregateStatsPreview;
+        window.AggregateStatsPreview = (await loadModules(MODULE_PATH)).AggregateStatsPreview;
         unmockModule('frontend/js/api-docs/apiTableWrapper.js');
 
         await expect(window.AggregateStatsPreview.setup({}).init()).resolves.toBeUndefined();
@@ -181,7 +181,7 @@ describe('AggregateStatsPreview', () => {
     });
 
     test('shows an error banner when fetch returns a non-OK status', async () => {
-        global.fetch = jest.fn(() =>
+        global.fetch = vi.fn(() =>
             Promise.resolve({ ok: false, status: 500, json: () => Promise.resolve({}) })
         );
 

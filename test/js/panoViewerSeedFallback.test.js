@@ -12,12 +12,14 @@
  * declarations for those names are eval'd ahead of the source.
  */
 
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules, fakeImport } from './loadGlobalScript.js';
+
+fakeImport('frontend/js/common/pano-viewer/NoImageryError.js', 'NoImageryError');
 
 
 /** Loads fresh PanoViewer and NoImageryError classes into the jsdom global scope. */
-function loadPanoViewer() {
-    Object.assign(window, loadModules('frontend/js/common/pano-viewer/NoImageryError.js', 'frontend/js/common/pano-viewer/PanoViewer.js'));
+async function loadPanoViewer() {
+    Object.assign(window, await loadModules('frontend/js/common/pano-viewer/NoImageryError.js', 'frontend/js/common/pano-viewer/PanoViewer.js'));
     return { PanoViewer: window.PanoViewer, NoImageryError: window.NoImageryError };
 }
 
@@ -31,8 +33,8 @@ describe('PanoViewer._moveToInitialLocation', () => {
     let NoImageryError;
 
     // The classes are stateless, so one eval serves every test (each test builds its own viewer instance).
-    beforeAll(() => {
-        const loaded = loadPanoViewer();
+    beforeAll(async () => {
+        const loaded = await loadPanoViewer();
         NoImageryError = loaded.NoImageryError;
         TestViewer = class extends loaded.PanoViewer {
             calls = [];
@@ -149,7 +151,7 @@ describe('PanoViewer._moveToInitialLocation', () => {
 describe('NoImageryError.allNoImagery', () => {
     let NoImageryError;
 
-    beforeAll(() => { NoImageryError = loadPanoViewer().NoImageryError; });
+    beforeAll(async () => { NoImageryError = (await loadPanoViewer()).NoImageryError; });
 
     test('is false for an empty list, because nothing was ever searched', () => {
         expect(NoImageryError.allNoImagery([])).toBe(false);

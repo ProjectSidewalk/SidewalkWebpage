@@ -7,7 +7,11 @@
  * pins the schedule, the SDK call's shape, the retry ladder, and what gets logged when it all fails.
  */
 
-const { loadInfra3dViewer, jwtExpiringAt, nodeFor } = require('./infra3dViewerHarness');
+import { loadInfra3dViewer, jwtExpiringAt, nodeFor } from './infra3dViewerHarness.js';
+import { fakeImport } from './loadGlobalScript.js';
+
+fakeImport('frontend/js/common/pano-viewer/PanoData.js', 'PanoData');
+
 
 const MINUTE_MS = 60 * 1000;
 const T0 = Date.parse('2026-09-16T12:00:00Z');
@@ -23,10 +27,10 @@ function fakeSdk({ initViewerResolves = true } = {}) {
     };
     const viewer = { _sdk_viewer: sdkViewer, on: () => {}, getCameraView: () => ({ type: 'pano' }) };
     const manager = {
-        initViewer: jest.fn(() => (initViewerResolves ? Promise.resolve(viewer) : new Promise(() => {}))),
-        setTokens: jest.fn(),
+        initViewer: vi.fn(() => (initViewerResolves ? Promise.resolve(viewer) : new Promise(() => {}))),
+        setTokens: vi.fn(),
     };
-    window.infra3dapi = { init: jest.fn(async () => manager) };
+    window.infra3dapi = { init: vi.fn(async () => manager) };
     return manager;
 }
 
@@ -42,25 +46,25 @@ describe('Infra3dViewer access-token renewal', () => {
     let mount;
     let diagnostics;
 
-    beforeAll(() => {
-        Infra3dViewer = loadInfra3dViewer();
+    beforeAll(async () => {
+        Infra3dViewer = await loadInfra3dViewer();
     });
 
     beforeEach(() => {
-        jest.useFakeTimers({ now: T0 });
-        jest.spyOn(console, 'warn').mockImplementation(() => {});
-        global.fetch = jest.fn();
-        window.logWebpageActivity = jest.fn();
+        vi.useFakeTimers({ now: T0 });
+        vi.spyOn(console, 'warn').mockImplementation(() => {});
+        global.fetch = vi.fn();
+        window.logWebpageActivity = vi.fn();
         mount = document.createElement('div');
         mount.id = 'pano-mount';
         document.body.appendChild(mount);
-        diagnostics = jest.fn();
+        diagnostics = vi.fn();
     });
 
     afterEach(() => {
         mount.remove();
-        jest.useRealTimers();
-        jest.restoreAllMocks();
+        vi.useRealTimers();
+        vi.restoreAllMocks();
         delete global.fetch;
         delete window.logWebpageActivity;
         delete window.infra3dapi;
@@ -79,10 +83,10 @@ describe('Infra3dViewer access-token renewal', () => {
         const renewedExpiry = T0 + 55 * MINUTE_MS + 60 * MINUTE_MS;
         fetch.mockImplementation(() => tokenResponse(renewedExpiry));
 
-        await jest.advanceTimersByTimeAsync(55 * MINUTE_MS - 1);
+        await vi.advanceTimersByTimeAsync(55 * MINUTE_MS - 1);
         expect(fetch).not.toHaveBeenCalled();
 
-        await jest.advanceTimersByTimeAsync(1);
+        await vi.advanceTimersByTimeAsync(1);
         expect(fetch).toHaveBeenCalledWith('/imageryAccessToken', expect.objectContaining({ headers: { Accept: 'application/json' } }));
         expect(manager.setTokens).toHaveBeenCalledWith({
             access_token: jwtExpiringAt(renewedExpiry),
@@ -94,9 +98,9 @@ describe('Infra3dViewer access-token renewal', () => {
         expect(diagnostics).toHaveBeenCalledWith('TokenRefreshed', { remainingSec: '3600', attempt: '1' });
 
         // The new token gets its own renewal, again five minutes ahead of its expiry.
-        await jest.advanceTimersByTimeAsync(55 * MINUTE_MS - 1);
+        await vi.advanceTimersByTimeAsync(55 * MINUTE_MS - 1);
         expect(fetch).toHaveBeenCalledTimes(1);
-        await jest.advanceTimersByTimeAsync(1);
+        await vi.advanceTimersByTimeAsync(1);
         expect(fetch).toHaveBeenCalledTimes(2);
     });
 
@@ -104,7 +108,7 @@ describe('Infra3dViewer access-token renewal', () => {
         fetch.mockImplementation(() => tokenResponse(T0 + 60 * MINUTE_MS));
         const { manager } = await createViewer(T0 + 2 * MINUTE_MS);
 
-        await jest.advanceTimersByTimeAsync(0);
+        await vi.advanceTimersByTimeAsync(0);
 
         expect(fetch).toHaveBeenCalledTimes(1);
         expect(manager.setTokens).toHaveBeenCalledTimes(1);
@@ -114,9 +118,9 @@ describe('Infra3dViewer access-token renewal', () => {
         const { manager } = await createViewer(T0 + 60 * MINUTE_MS);
         fetch.mockImplementation(() => Promise.resolve({ ok: false, status: 503 }));
 
-        await jest.advanceTimersByTimeAsync(55 * MINUTE_MS); // attempt 1 at T+55:00
-        await jest.advanceTimersByTimeAsync(30 * 1000); // attempt 2 at T+55:30
-        await jest.advanceTimersByTimeAsync(60 * 1000); // attempt 3 at T+56:30
+        await vi.advanceTimersByTimeAsync(55 * MINUTE_MS); // attempt 1 at T+55:00
+        await vi.advanceTimersByTimeAsync(30 * 1000); // attempt 2 at T+55:30
+        await vi.advanceTimersByTimeAsync(60 * 1000); // attempt 3 at T+56:30
         expect(fetch).toHaveBeenCalledTimes(3);
         expect(diagnostics).toHaveBeenNthCalledWith(1, 'TokenRefreshFailed', { attempt: '1', reason: 'HTTP 503' });
         expect(diagnostics).toHaveBeenNthCalledWith(3, 'TokenRefreshFailed', { attempt: '3', reason: 'HTTP 503' });
@@ -124,14 +128,14 @@ describe('Infra3dViewer access-token renewal', () => {
 
         // The last wait repeats (T+58:30), then is cut to land at the expiry itself (T+60:00), where the failure is
         // final: the SDK's requests are already being refused, so there is nothing left to retry for.
-        await jest.advanceTimersByTimeAsync(120 * 1000);
+        await vi.advanceTimersByTimeAsync(120 * 1000);
         expect(fetch).toHaveBeenCalledTimes(4);
-        await jest.advanceTimersByTimeAsync(90 * 1000);
+        await vi.advanceTimersByTimeAsync(90 * 1000);
         expect(fetch).toHaveBeenCalledTimes(5);
         expect(diagnostics).toHaveBeenLastCalledWith('TokenExpired', { attempts: '5' });
         expect(manager.setTokens).not.toHaveBeenCalled();
 
-        await jest.advanceTimersByTimeAsync(10 * MINUTE_MS);
+        await vi.advanceTimersByTimeAsync(10 * MINUTE_MS);
         expect(fetch).toHaveBeenCalledTimes(5);
     });
 
@@ -141,7 +145,7 @@ describe('Infra3dViewer access-token renewal', () => {
             .mockImplementationOnce(() => Promise.reject(new TypeError('Failed to fetch')))
             .mockImplementation(() => tokenResponse(T0 + 120 * MINUTE_MS));
 
-        await jest.advanceTimersByTimeAsync(55 * MINUTE_MS + 30 * 1000);
+        await vi.advanceTimersByTimeAsync(55 * MINUTE_MS + 30 * 1000);
 
         expect(diagnostics).toHaveBeenNthCalledWith(1, 'TokenRefreshFailed', { attempt: '1', reason: 'Failed to fetch' });
         expect(diagnostics).toHaveBeenNthCalledWith(2, 'TokenRefreshed', expect.objectContaining({ attempt: '2' }));
@@ -158,9 +162,9 @@ describe('Infra3dViewer access-token renewal', () => {
         expect(manager.setTokens).toHaveBeenCalledTimes(1);
         expect(diagnostics).toHaveBeenCalledWith('TokenRefreshed', expect.objectContaining({ attempt: '1' }));
         // The old schedule is gone; the next renewal is five minutes before the renewed token's expiry.
-        await jest.advanceTimersByTimeAsync(55 * MINUTE_MS - 1);
+        await vi.advanceTimersByTimeAsync(55 * MINUTE_MS - 1);
         expect(fetch).toHaveBeenCalledTimes(1);
-        await jest.advanceTimersByTimeAsync(1);
+        await vi.advanceTimersByTimeAsync(1);
         expect(fetch).toHaveBeenCalledTimes(2);
     });
 
@@ -168,7 +172,7 @@ describe('Infra3dViewer access-token renewal', () => {
         await createViewer(T0 + 60 * MINUTE_MS);
         mount.remove();
 
-        await jest.advanceTimersByTimeAsync(60 * MINUTE_MS);
+        await vi.advanceTimersByTimeAsync(60 * MINUTE_MS);
 
         expect(fetch).not.toHaveBeenCalled();
     });
@@ -180,7 +184,7 @@ describe('Infra3dViewer access-token renewal', () => {
         fetch.mockImplementation(() => Promise.resolve({ ok: false, status: 503 }));
 
         await viewer.refreshAccessTokenNow();
-        await jest.advanceTimersByTimeAsync(10 * MINUTE_MS);
+        await vi.advanceTimersByTimeAsync(10 * MINUTE_MS);
 
         expect(fetch).toHaveBeenCalledTimes(1);
         expect(diagnostics).toHaveBeenLastCalledWith('TokenExpired', { attempts: '1' });
@@ -194,7 +198,7 @@ describe('Infra3dViewer access-token renewal', () => {
             json: async () => ({ source: 'gsv', token: 'static-key', expires_at: null }),
         }));
 
-        await jest.advanceTimersByTimeAsync(55 * MINUTE_MS);
+        await vi.advanceTimersByTimeAsync(55 * MINUTE_MS);
 
         expect(manager.setTokens).not.toHaveBeenCalled();
         expect(diagnostics).toHaveBeenCalledWith('TokenRefreshFailed',
@@ -209,7 +213,7 @@ describe('Infra3dViewer access-token renewal', () => {
             json: async () => { throw new SyntaxError('Unexpected token <'); },
         }));
 
-        await jest.advanceTimersByTimeAsync(55 * MINUTE_MS);
+        await vi.advanceTimersByTimeAsync(55 * MINUTE_MS);
 
         expect(manager.setTokens).not.toHaveBeenCalled();
         expect(diagnostics).toHaveBeenCalledWith('TokenRefreshFailed',
@@ -221,7 +225,7 @@ describe('Infra3dViewer access-token renewal', () => {
         const viewer = await Infra3dViewer.create(mount, { accessToken: 'not-a-jwt', startPanoId: 'SEED' });
         viewer.addListener('diagnostic', diagnostics);
 
-        await jest.advanceTimersByTimeAsync(60 * MINUTE_MS);
+        await vi.advanceTimersByTimeAsync(60 * MINUTE_MS);
 
         expect(window.logWebpageActivity).toHaveBeenCalledWith('PanoViewer_TokenUnreadable', true);
         expect(fetch).not.toHaveBeenCalled();
@@ -232,15 +236,15 @@ describe('Infra3dViewer initViewer timeout', () => {
     let Infra3dViewer;
     let mount;
 
-    beforeAll(() => {
-        Infra3dViewer = loadInfra3dViewer();
+    beforeAll(async () => {
+        Infra3dViewer = await loadInfra3dViewer();
     });
 
     beforeEach(() => {
-        jest.useFakeTimers({ now: T0 });
-        jest.spyOn(console, 'warn').mockImplementation(() => {});
-        jest.spyOn(console, 'error').mockImplementation(() => {}); // jsdom logs reload() as "not implemented".
-        window.logWebpageActivity = jest.fn();
+        vi.useFakeTimers({ now: T0 });
+        vi.spyOn(console, 'warn').mockImplementation(() => {});
+        vi.spyOn(console, 'error').mockImplementation(() => {}); // jsdom logs reload() as "not implemented".
+        window.logWebpageActivity = vi.fn();
         mount = document.createElement('div');
         mount.id = 'pano-mount';
         document.body.appendChild(mount);
@@ -248,8 +252,8 @@ describe('Infra3dViewer initViewer timeout', () => {
 
     afterEach(() => {
         mount.remove();
-        jest.useRealTimers();
-        jest.restoreAllMocks();
+        vi.useRealTimers();
+        vi.restoreAllMocks();
         delete window.logWebpageActivity;
         delete window.infra3dapi;
         window.sessionStorage.clear();
@@ -260,7 +264,7 @@ describe('Infra3dViewer initViewer timeout', () => {
         const created = Infra3dViewer.create(mount, { accessToken: jwtExpiringAt(T0 + 60 * MINUTE_MS) });
         created.catch(() => {});
 
-        await jest.advanceTimersByTimeAsync(Infra3dViewer.INIT_TIMEOUT_MS);
+        await vi.advanceTimersByTimeAsync(Infra3dViewer.INIT_TIMEOUT_MS);
 
         expect(window.logWebpageActivity).toHaveBeenCalledWith('PanoViewer_InitTimeout_source=infra3d_reloading=true');
         expect(window.sessionStorage.getItem('infra3dViewerInitReloaded')).toBe('1');
@@ -272,7 +276,7 @@ describe('Infra3dViewer initViewer timeout', () => {
         const created = Infra3dViewer.create(mount, { accessToken: jwtExpiringAt(T0 + 60 * MINUTE_MS) });
         const settled = expect(created).rejects.toThrow(/initViewer did not finish/);
 
-        await jest.advanceTimersByTimeAsync(Infra3dViewer.INIT_TIMEOUT_MS);
+        await vi.advanceTimersByTimeAsync(Infra3dViewer.INIT_TIMEOUT_MS);
 
         await settled;
         expect(window.logWebpageActivity).toHaveBeenCalledWith('PanoViewer_InitTimeout_source=infra3d_reloading=false');

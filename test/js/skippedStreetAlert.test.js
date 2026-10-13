@@ -8,8 +8,9 @@
  * this was found on had it silenced, which is exactly why the teleports looked unexplained.
  */
 
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules, stubUtil, fakeImport } from './loadGlobalScript.js';
 
+fakeImport('frontend/js/explore/alert/Alert.js', 'Alert');
 
 
 describe('the "we moved you off that street" message', () => {
@@ -34,19 +35,19 @@ describe('the "we moved you off that street" message', () => {
         stuckAlert = new window.StuckAlert(alertController, { onPanoChanged: () => {} });
     };
 
-    beforeEach(() => {
+    beforeEach(async () => {
         // jsdom has no Web Animations API, and the banner fades in and out through it.
-        Element.prototype.animate = jest.fn(() => ({
+        Element.prototype.animate = vi.fn(() => ({
             addEventListener: (_event, handler) => handler(),
         }));
 
-        getStreetNameNear = jest.fn(() => Promise.resolve(null));
-        window.util = { misc: { getStreetNameNear } };
+        getStreetNameNear = vi.fn(() => Promise.resolve(null));
+        stubUtil({ misc: { getStreetNameNear } });
         window.i18next = { t: (key, interpolation) => JSON.stringify({ key, ...interpolation }) };
 
-        Object.assign(window, loadModules('frontend/js/explore/alert/Alert.js'));
-        Object.assign(window, loadModules('frontend/js/explore/alert/AlertController.js'));
-        Object.assign(window, loadModules('frontend/js/explore/alert/StuckAlert.js'));
+        Object.assign(window, await loadModules('frontend/js/explore/alert/Alert.js'));
+        Object.assign(window, await loadModules('frontend/js/explore/alert/AlertController.js'));
+        Object.assign(window, await loadModules('frontend/js/explore/alert/StuckAlert.js'));
     });
 
     /** The i18next key the banner currently displays, per the stub's serialization. */

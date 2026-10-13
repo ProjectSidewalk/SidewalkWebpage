@@ -8,7 +8,10 @@
  * neither image loading nor a canvas.
  */
 
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules, stubUtil, fakeImport } from './loadGlobalScript.js';
+
+fakeImport('frontend/js/common/PlaceCategoryIcons.js', 'PlaceCategoryIcons');
+fakeImport('frontend/js/common/scoreRamp.js', 'ScoreRamp');
 
 
 const CATEGORIES = ['school', 'health', 'transit'];
@@ -32,21 +35,21 @@ function fakeMap() {
     const handlers = [];
     return {
         sources, layers, images, handlers,
-        addSource: jest.fn((id, spec) => sources.set(id, { ...spec, setData: jest.fn() })),
+        addSource: vi.fn((id, spec) => sources.set(id, { ...spec, setData: vi.fn() })),
         getSource: (id) => sources.get(id),
-        removeSource: jest.fn((id) => sources.delete(id)),
-        addLayer: jest.fn((spec) => layers.set(spec.id, spec)),
+        removeSource: vi.fn((id) => sources.delete(id)),
+        addLayer: vi.fn((spec) => layers.set(spec.id, spec)),
         getLayer: (id) => layers.get(id),
-        removeLayer: jest.fn((id) => layers.delete(id)),
-        setLayoutProperty: jest.fn((id, name, value) => {
+        removeLayer: vi.fn((id) => layers.delete(id)),
+        setLayoutProperty: vi.fn((id, name, value) => {
             layers.get(id).layout[name] = value;
         }),
         hasImage: (id) => images.has(id),
-        addImage: jest.fn((id, pixels, opts) => images.set(id, { pixels, opts })),
-        removeImage: jest.fn((id) => images.delete(id)),
-        on: jest.fn((event, layerIds, handler) => handlers.push({ event, layerIds, handler })),
-        queryRenderedFeatures: jest.fn(() => []),
-        setFeatureState: jest.fn(),
+        addImage: vi.fn((id, pixels, opts) => images.set(id, { pixels, opts })),
+        removeImage: vi.fn((id) => images.delete(id)),
+        on: vi.fn((event, layerIds, handler) => handlers.push({ event, layerIds, handler })),
+        queryRenderedFeatures: vi.fn(() => []),
+        setFeatureState: vi.fn(),
         getCanvas: () => ({ style: {} }),
     };
 }
@@ -57,24 +60,24 @@ describe('AccessScorePlacesLayer', () => {
     /** The ramp the stubbed ScoreRamp hands out: worst first. The light middle is what flips the glyph dark. */
     const RAMP = { light: ['#a74d32', '#fabf1c'], dark: ['#eb724e', '#5fb38a'] };
 
-    beforeAll(() => {
-        window.util = { assetPath: (p) => `/assets/${p}` };
+    beforeAll(async () => {
+        stubUtil({ assetPath: (p) => `/assets/${p}` });
         window.mapboxgl = { Popup: class { setLngLat() { return this; } setHTML() { return this; } addTo() { return this; } remove() {} } };
         // `at` is read at the two bin centers (0.25, 0.75); with two stops those are the stops' colors blended, so
         // the stub returns the stop nearest the center instead, which is all the discs' identity needs.
-        window.ScoreRamp = { at: jest.fn((score, { mode } = {}) => RAMP[mode ?? 'light'][score < 0.5 ? 0 : 1]) };
+        window.ScoreRamp = { at: vi.fn((score, { mode } = {}) => RAMP[mode ?? 'light'][score < 0.5 ? 0 : 1]) };
         // The tokens the discs read: the marker ink, its halo, and the two unaudited-street greys.
         const tokens = {
             '--color-place-marker': '#121119', '--color-place-marker-halo': '#ffffff', '--color-neutral-white': '#ffffff',
             '--color-neutral-700': '#6b6b6b', '--color-neutral-400': '#c2c2c2',
         };
         window.getComputedStyle = () => ({ getPropertyValue: (name) => tokens[name] ?? '' });
-        window.requestAnimationFrame = jest.fn((cb) => { cb(); return 1; });
-        Object.assign(window, loadModules('frontend/js/common/PlaceCategoryIcons.js'));
-        Object.assign(window, loadModules('frontend/js/access-score/AccessScorePlacesLayer.js'));
+        window.requestAnimationFrame = vi.fn((cb) => { cb(); return 1; });
+        Object.assign(window, await loadModules('frontend/js/common/PlaceCategoryIcons.js'));
+        Object.assign(window, await loadModules('frontend/js/access-score/AccessScorePlacesLayer.js'));
         AccessScorePlacesLayer = window.AccessScorePlacesLayer;
-        AccessScorePlacesLayer.loadGlyph = jest.fn(async (url) => ({ src: url }));
-        AccessScorePlacesLayer.rasterize = jest.fn(() => pixels);
+        AccessScorePlacesLayer.loadGlyph = vi.fn(async (url) => ({ src: url }));
+        AccessScorePlacesLayer.rasterize = vi.fn(() => pixels);
     });
 
     beforeEach(() => {
@@ -85,7 +88,7 @@ describe('AccessScorePlacesLayer', () => {
     function mount(options = {}) {
         const map = fakeMap();
         const layer = new AccessScorePlacesLayer(map, {
-            categories: CATEGORIES, tooltipHtml: () => '', onSelect: jest.fn(), bins: BINS, ...options,
+            categories: CATEGORIES, tooltipHtml: () => '', onSelect: vi.fn(), bins: BINS, ...options,
         });
         return { map, layer };
     }
@@ -160,7 +163,7 @@ describe('AccessScorePlacesLayer', () => {
 
     test('stamps each place with its nearest street\'s bin, and restamps once per frame on a rescore', async () => {
         const bins = { 10: 1, 11: null };
-        const binOf = jest.fn((props) => bins[props.nearest_street_edge_id] ?? null);
+        const binOf = vi.fn((props) => bins[props.nearest_street_edge_id] ?? null);
         const { map, layer } = mount({ binOf });
         await layer.ready;
         const scored = (id, street) => {
@@ -258,11 +261,11 @@ describe('AccessScorePlacesLayer', () => {
     });
 
     test('hands a click on a marker to the page with its position, and marks the event as handled', async () => {
-        const onSelect = jest.fn();
+        const onSelect = vi.fn();
         const { map, layer } = mount({ onSelect });
         await layer.ready;
         const click = map.handlers.find((h) => h.event === 'click');
-        const event = { features: [place(7, 'transit', -74.02, 40.88, 'Stop')], preventDefault: jest.fn() };
+        const event = { features: [place(7, 'transit', -74.02, 40.88, 'Stop')], preventDefault: vi.fn() };
         click.handler(event);
         expect(event.preventDefault).toHaveBeenCalled();
         expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ place_id: 7, name: 'Stop', lngLat: { lng: -74.02, lat: 40.88 } }));

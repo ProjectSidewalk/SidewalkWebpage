@@ -11,8 +11,12 @@
  * panoViewerFindPanoNear.test.js, with the real util.math.haversine doing the distance math.
  */
 
-const path = require('path');
-const { loadGlobalScript, realUtil, loadModules } = require('./loadGlobalScript');
+import path from 'path';
+import { loadGlobalScript, realUtil, loadModules, fakeImport, stubUtil } from './loadGlobalScript.js';
+
+fakeImport('frontend/js/common/pano-viewer/PanoData.js', 'PanoData');
+fakeImport('frontend/js/common/pano-viewer/NoImageryError.js', 'NoImageryError');
+
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const SRC_DIR = path.join(REPO_ROOT, 'frontend/js/common/pano-viewer');
@@ -24,9 +28,9 @@ window.bowser = {
         getOSName: () => 'TestOS', getPlatformType: () => 'desktop',
     }),
 };
-window.util = realUtil();
-loadGlobalScript('frontend/js/common/utilitiesMath.js');
-loadGlobalScript('frontend/js/common/pano-viewer/panoUtilities.js');
+stubUtil(await realUtil());
+await loadGlobalScript('frontend/js/common/utilitiesMath.js');
+await loadGlobalScript('frontend/js/common/pano-viewer/panoUtilities.js');
 window.turf = require(path.join(REPO_ROOT, 'public/vendor/turf/turf-7.4.0.min.js'));
 
 const { turf } = window;
@@ -35,8 +39,8 @@ const { turf } = window;
  * Loads the real PanoViewer and GsvViewer fresh into the jsdom global scope.
  * @returns {{GsvViewer: Function, NoImageryError: Function}}
  */
-function loadGsvViewer() {
-    Object.assign(window, loadModules(path.join(SRC_DIR, 'GsvViewer.js'), path.join(SRC_DIR, 'NoImageryError.js')));
+async function loadGsvViewer() {
+    Object.assign(window, await loadModules(path.join(SRC_DIR, 'GsvViewer.js'), path.join(SRC_DIR, 'NoImageryError.js')));
     return { GsvViewer: window.GsvViewer, NoImageryError: window.NoImageryError };
 }
 
@@ -89,9 +93,9 @@ const reply = (pano, { lat, lng }, copyright = '© 2024 Google') => ({
     },
 });
 
-describe('GsvViewer.isWithinSearchRadius', () => {
-    const { GsvViewer } = loadGsvViewer();
+const { GsvViewer } = await loadGsvViewer();
 
+describe('GsvViewer.isWithinSearchRadius', () => {
     test('rejects the #5114 photosphere about 3,590 km from its 25 m query', () => {
         expect(GsvViewer.isWithinSearchRadius(SEATTLE_QUERY, SYRACUSE_PANO, 25)).toBe(false);
     });
@@ -119,7 +123,7 @@ describe('GsvViewer location searches hold replies to the radius', () => {
     let getPanorama;
     let diagnostics;
 
-    beforeEach(() => {
+    beforeEach(async () => {
         window.google = {
             maps: {
                 importLibrary: async () => ({ LatLng: FakeLatLng }),
@@ -141,16 +145,16 @@ describe('GsvViewer location searches hold replies to the radius', () => {
                 return this.params[key];
             }
         };
-        ({ GsvViewer, NoImageryError } = loadGsvViewer());
+        ({ GsvViewer, NoImageryError } = await loadGsvViewer());
         viewer = new GsvViewer();
-        getPanorama = jest.fn();
+        getPanorama = vi.fn();
         viewer.streetViewService = { getPanorama };
-        viewer.gsvPano = { setPano: jest.fn() };
+        viewer.gsvPano = { setPano: vi.fn() };
         // Stand in for GSV's own load event: the pano "loads" as soon as it is set.
-        viewer._loadPanoWithTimeout = jest.fn(async (_panoId, resolveValue) => resolveValue);
+        viewer._loadPanoWithTimeout = vi.fn(async (_panoId, resolveValue) => resolveValue);
         diagnostics = [];
         viewer.addListener('diagnostic', (name, details) => diagnostics.push({ name, details }));
-        jest.spyOn(console, 'warn').mockImplementation(() => {}); // _fireDiagnostic warns on every event.
+        vi.spyOn(console, 'warn').mockImplementation(() => {}); // _fireDiagnostic warns on every event.
     });
 
     afterEach(() => {

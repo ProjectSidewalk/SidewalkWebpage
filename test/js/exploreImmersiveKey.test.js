@@ -6,29 +6,32 @@
  * cover Space and the mode letters.
  */
 
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules, stubUtil, fakeImport } from './loadGlobalScript.js';
+import { fakeGate, fakeTracker } from './fakes.js';
+
+fakeImport('frontend/js/common/KeyboardShortcuts.js', 'KeyboardShortcuts');
 
 
 describe('Explore F shortcut for immersive mode', () => {
     let contextMenuOpen;
     // The collaborators the manager was constructed with; their methods are replaced per test.
-    const immersiveMode = { toggle: jest.fn() };
+    const immersiveMode = { toggle: vi.fn() };
 
-    beforeAll(() => {
-        window.util = { misc: { VALID_LABEL_TYPES_WITHOUT_OTHER: [], getLabelDescriptions: () => ({}) } };
-        Object.assign(window, loadModules('frontend/js/common/KeyboardShortcuts.js', 'frontend/js/explore/keyboard/KeyboardManager.js'));
+    beforeAll(async () => {
+        stubUtil({ misc: { VALID_LABEL_TYPES_WITHOUT_OTHER: [], getLabelDescriptions: () => ({}) } });
+        Object.assign(window, await loadModules('frontend/js/common/KeyboardShortcuts.js', 'frontend/js/explore/keyboard/KeyboardManager.js'));
         contextMenuOpen = false;
         // One instance for the file: the constructor adds window listeners that are never removed.
         const contextMenu = {
-            isOpen: () => contextMenuOpen, getTargetLabel: () => null, hide: jest.fn(), onTextFieldFocusChanged: jest.fn(),
+            isOpen: () => contextMenuOpen, getTargetLabel: () => null, hide: vi.fn(), onTextFieldFocusChanged: vi.fn(),
         };
-        new window.KeyboardManager({ isHeld: () => false }, { showLabelHoverInfo: jest.fn() }, contextMenu,
-            { walking: { isHeld: () => true } }, {}, {}, {}, {}, immersiveMode, { push: jest.fn() });
+        new window.KeyboardManager(fakeGate(), { showLabelHoverInfo: vi.fn() }, contextMenu,
+            { walking: fakeGate({ isHeld: () => true }) }, {}, {}, {}, {}, immersiveMode, fakeTracker());
     });
 
     beforeEach(() => {
         contextMenuOpen = false;
-        immersiveMode.toggle = jest.fn();
+        immersiveMode.toggle = vi.fn();
         document.body.innerHTML
             = '<input id="field"><div id="note" contenteditable="true"></div><button id="btn"></button>';
     });

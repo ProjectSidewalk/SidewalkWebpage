@@ -7,21 +7,21 @@
  * counted beside them rather than folded in. Third, the cards that explain those counts name the contributors behind
  * them, which means they carry user-supplied text into markup and must escape it twice (see psTooltip's header).
  *
- * Runs under jsdom (jest.config.js). AcrossCitiesPage is loaded fresh per test through loadModules, which brings its
+ * Runs under jsdom (vitest.config.mjs). AcrossCitiesPage is loaded fresh per test through loadModules, which brings its
  * MiniLineChart import with it, so the bars are drawn by the real renderer.
  */
 
-const { loadModules, loadVendored, realUtil } = require('./loadGlobalScript');
+import { loadModules, loadVendored, realUtil, stubUtil } from './loadGlobalScript.js';
 
 loadVendored('dompurify');
 
 // The page fetches through util.fetchJson.
-window.util = realUtil();
+stubUtil(await realUtil());
 
 
 /** Loads MiniLineChart into global scope and returns the AcrossCitiesPage class. */
-function loadPage() {
-  return loadModules('frontend/js/admin-dashboard/AcrossCitiesPage.js').AcrossCitiesPage;
+async function loadPage() {
+  return (await loadModules('frontend/js/admin-dashboard/AcrossCitiesPage.js')).AcrossCitiesPage;
 }
 
 const MARKUP = `
@@ -137,7 +137,7 @@ describe('Across Cities — attribution split and hover breakdowns', () => {
     document.body.innerHTML = MARKUP;
     const windowByCity = {};
     cities.forEach((c) => { windowByCity[c.city.city_id] = c.window; });
-    global.fetch = jest.fn(() => Promise.resolve({
+    global.fetch = vi.fn(() => Promise.resolve({
       ok: true,
       json: () => Promise.resolve({
         cities: cities.map((c) => c.city),
@@ -174,8 +174,8 @@ describe('Across Cities — attribution split and hover breakdowns', () => {
     return barTarget(index, chart).getAttribute('data-ps-tooltip');
   }
 
-  beforeEach(() => {
-    AcrossCitiesPage = loadPage();
+  beforeEach(async () => {
+    AcrossCitiesPage = await loadPage();
   });
 
   describe('tiles', () => {

@@ -12,7 +12,9 @@
  */
 
 
-const { installDateHelpers, loadModules } = require('./loadGlobalScript');
+import { installDateHelpers, loadModules, stubUtil, fakeImport } from './loadGlobalScript.js';
+
+fakeImport('frontend/js/common/scoreRamp.js', 'ScoreRamp');
 
 
 /** Every feature-state call the module made, in order, as `source:id -> hover`. */
@@ -75,13 +77,13 @@ describe('the AccessScore Spotlight', () => {
               </div>
               <div class="spotlight"></div>
             </section>`;
-        window.fetch = jest.fn((url) => Promise.resolve({
+        window.fetch = vi.fn((url) => Promise.resolve({
             ok: true,
             json: () => Promise.resolve(url.includes('unit=streets') ? feeds.streets : feeds.regions),
         }));
         // A null feed is a failed request, which the module reports as a fetch that did not answer with JSON.
         if (feeds.regions === null || feeds.streets === null) {
-            window.fetch = jest.fn((url) => {
+            window.fetch = vi.fn((url) => {
                 const wanted = url.includes('unit=streets') ? feeds.streets : feeds.regions;
                 return wanted === null
                     ? Promise.resolve({ ok: false, status: 500 })
@@ -120,7 +122,7 @@ describe('the AccessScore Spotlight', () => {
         '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', '\'': '&#39;', '/': '&#x2F;',
     })[c]);
 
-    beforeAll(() => {
+    beforeAll(async () => {
         // Keys pass through, with interpolation values appended so a test can tell two renderings of one key apart,
         // except the STRINGS above, which interpolate the way the app configures i18next: values verbatim, escaped
         // only where the call asks for it.
@@ -136,12 +138,12 @@ describe('the AccessScore Spotlight', () => {
                 return vars ? `${key}|${JSON.stringify(vars)}` : key;
             },
         };
-        window.util = {
+        stubUtil({
             onFirstInteractionOrIdle: () => {},
             distanceToString: (m) => `${m} m`,
             longDistanceToString: (km, precision) => `${km.toFixed(precision)} km`,
-        };
-        installDateHelpers();
+        });
+        await installDateHelpers();
         window.ScoreRamp = {
             colors: () => ['#a', '#b', '#c', '#d', '#e'],
             at: (score) => `score:${score}`,
@@ -154,7 +156,7 @@ describe('the AccessScore Spotlight', () => {
         });
         window.choropleth = fakeMap(['region-polygons']);
         window.citiesMap = fakeMap(['cities']);
-        Object.assign(window, loadModules('frontend/js/AccessScoreSpotlight.js'));
+        Object.assign(window, await loadModules('frontend/js/AccessScoreSpotlight.js'));
     });
 
     describe('which unit it opens on', () => {

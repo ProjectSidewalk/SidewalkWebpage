@@ -8,7 +8,7 @@
  * `class` reaching for `util.url`, so the source is eval'd into jsdom with urlQuery.js loaded first.
  */
 
-const { loadModules, realUtil } = require('./loadGlobalScript');
+import { loadModules, realUtil } from './loadGlobalScript.js';
 
 
 describe('ExploreUrlSync', () => {
@@ -33,15 +33,15 @@ describe('ExploreUrlSync', () => {
     const fire = (event) => listeners[event].forEach((handler) => handler());
     const currentUrl = () => `${window.location.pathname}${window.location.search}`;
 
-    beforeAll(() => {
-        window.util ??= realUtil();
-        loadModules('frontend/js/common/urlQuery.js');
-        Object.assign(window, loadModules('frontend/js/explore/navigation/ExploreUrlSync.js'));
+    beforeAll(async () => {
+        window.util ??= await realUtil();
+        await loadModules('frontend/js/common/urlQuery.js');
+        Object.assign(window, await loadModules('frontend/js/explore/navigation/ExploreUrlSync.js'));
         ExploreUrlSync = window.ExploreUrlSync;
     });
 
     beforeEach(() => {
-        jest.useFakeTimers();
+        vi.useFakeTimers();
         window.history.replaceState(null, '', '/explore?routeId=12&resumeRoute=true&placeName=Here');
         immersive = false;
         viewer = makeViewer({
@@ -49,12 +49,12 @@ describe('ExploreUrlSync', () => {
             position: { lat: 47.6062095, lng: -122.3320708 },
             pov: { heading: 91.26, pitch: -3.04, zoom: 1.5 },
         });
-        replaceState = jest.spyOn(window.history, 'replaceState');
+        replaceState = vi.spyOn(window.history, 'replaceState');
     });
 
     afterEach(() => {
         replaceState.mockRestore();
-        jest.useRealTimers();
+        vi.useRealTimers();
     });
 
     test('writes the pano, its position, the view and nothing of the mission, as the read side names them', () => {
@@ -70,7 +70,7 @@ describe('ExploreUrlSync', () => {
         expect(window.location.search).toMatch(/&panoId=abc123&immersive=1$/);
 
         immersive = false;
-        jest.advanceTimersByTime(ExploreUrlSync.WRITE_INTERVAL_MS);
+        vi.advanceTimersByTime(ExploreUrlSync.WRITE_INTERVAL_MS);
         sync.request();
         expect(window.location.search).not.toContain('immersive');
     });
@@ -84,11 +84,11 @@ describe('ExploreUrlSync', () => {
     });
 
     test('never pushes a history entry', () => {
-        const pushState = jest.spyOn(window.history, 'pushState');
+        const pushState = vi.spyOn(window.history, 'pushState');
         const sync = new ExploreUrlSync(viewer, () => immersive);
         sync.start();
         viewer.state.pov = { heading: 10, pitch: 0, zoom: 1 };
-        jest.advanceTimersByTime(ExploreUrlSync.WRITE_INTERVAL_MS);
+        vi.advanceTimersByTime(ExploreUrlSync.WRITE_INTERVAL_MS);
         sync.request();
         expect(pushState).not.toHaveBeenCalled();
         expect(replaceState).toHaveBeenCalledTimes(2);
@@ -104,12 +104,12 @@ describe('ExploreUrlSync', () => {
         for (let frame = 1; frame <= 60; frame++) {
             viewer.state.pov = { heading: frame, pitch: 0, zoom: 1 };
             fire('pov_changed');
-            jest.advanceTimersByTime(5);
+            vi.advanceTimersByTime(5);
         }
         expect(replaceState).toHaveBeenCalledTimes(1);
         expect(window.location.search).toContain('heading=91.3');
 
-        jest.advanceTimersByTime(ExploreUrlSync.WRITE_INTERVAL_MS);
+        vi.advanceTimersByTime(ExploreUrlSync.WRITE_INTERVAL_MS);
         expect(replaceState).toHaveBeenCalledTimes(2);
         expect(window.location.search).toContain('heading=60');
     });
@@ -117,7 +117,7 @@ describe('ExploreUrlSync', () => {
     test('writes a pano change at once when the page has been quiet', () => {
         const sync = new ExploreUrlSync(viewer, () => immersive);
         sync.start();
-        jest.advanceTimersByTime(ExploreUrlSync.WRITE_INTERVAL_MS);
+        vi.advanceTimersByTime(ExploreUrlSync.WRITE_INTERVAL_MS);
 
         viewer.state.panoId = 'next456';
         viewer.state.position = { lat: 47.61, lng: -122.33 };
@@ -129,7 +129,7 @@ describe('ExploreUrlSync', () => {
     test('skips a write that would change nothing', () => {
         const sync = new ExploreUrlSync(viewer, () => immersive);
         sync.start();
-        jest.advanceTimersByTime(ExploreUrlSync.WRITE_INTERVAL_MS);
+        vi.advanceTimersByTime(ExploreUrlSync.WRITE_INTERVAL_MS);
         fire('pov_changed');
         expect(replaceState).toHaveBeenCalledTimes(1);
     });
@@ -163,7 +163,7 @@ describe('ExploreUrlSync', () => {
         // The mission rolled over in-page: the next write names the new one.
         missionId = 43;
         viewer.state.pov = { heading: 10, pitch: 0, zoom: 1 };
-        jest.advanceTimersByTime(ExploreUrlSync.WRITE_INTERVAL_MS);
+        vi.advanceTimersByTime(ExploreUrlSync.WRITE_INTERVAL_MS);
         sync.request();
         expect(window.location.search).toMatch(/&heading=10&pitch=0&zoom=1&panoId=abc123&missionId=43$/);
         // Free exploration passes none, and the default is none.
@@ -177,7 +177,7 @@ describe('ExploreUrlSync', () => {
         sync.start();
         expect(replaceState).not.toHaveBeenCalled();
 
-        jest.advanceTimersByTime(20);
+        vi.advanceTimersByTime(20);
         viewer.state.panoId = 'abc123';
         fire('pov_changed');
         expect(replaceState).toHaveBeenCalledTimes(1);
@@ -185,7 +185,7 @@ describe('ExploreUrlSync', () => {
     });
 
     test('pins the tutorial URL: retakeTutorial kept, the rest dropped, /audit normalized, no Back entry', () => {
-        const pushState = jest.spyOn(window.history, 'pushState');
+        const pushState = vi.spyOn(window.history, 'pushState');
         window.history.replaceState(null, '', '/audit?retakeTutorial=true&routeId=12&immersive=1');
         ExploreUrlSync.pinTutorialUrl();
         expect(currentUrl()).toBe('/explore?retakeTutorial=true');
@@ -203,9 +203,9 @@ describe('ExploreUrlSync', () => {
         expect(() => sync.start()).not.toThrow();
         // The next write is attempted again rather than the module giving up.
         replaceState.mockRestore();
-        replaceState = jest.spyOn(window.history, 'replaceState');
+        replaceState = vi.spyOn(window.history, 'replaceState');
         viewer.state.pov = { heading: 10, pitch: 0, zoom: 1 };
-        jest.advanceTimersByTime(ExploreUrlSync.WRITE_INTERVAL_MS);
+        vi.advanceTimersByTime(ExploreUrlSync.WRITE_INTERVAL_MS);
         sync.request();
         expect(window.location.search).toContain('heading=10');
     });

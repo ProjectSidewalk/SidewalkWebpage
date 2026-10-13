@@ -6,11 +6,15 @@
  * All four are ES modules, loaded fresh through `loadModules`.
  */
 
-const { installDateHelpers, loadModules } = require('./loadGlobalScript');
+import { installDateHelpers, loadModules, fakeImport } from './loadGlobalScript.js';
+
+fakeImport('frontend/js/common/Toast.js', 'Toast');
+fakeImport('frontend/js/common/share/ShareWidget.js', 'ShareWidget');
+fakeImport('frontend/js/community/CommunityListPage.js', 'CommunityListPage');
 
 
-function loadClasses() {
-    Object.assign(window, loadModules(
+async function loadClasses() {
+    Object.assign(window, await loadModules(
         'frontend/js/community/CommunityListPage.js',
         'frontend/js/community/StoryListPage.js',
         'frontend/js/community/RouteListPage.js'
@@ -66,10 +70,10 @@ function newCommunityPage() {
     return page;
 }
 
-beforeEach(() => {
-    loadClasses();
-    window.logWebpageActivity = jest.fn();
-    installDateHelpers();
+beforeEach(async () => {
+    await loadClasses();
+    window.logWebpageActivity = vi.fn();
+    await installDateHelpers();
     // The string sort passes the page language to localeCompare; the Twirl layout always renders <html lang="...">,
     // but jsdom's default is the empty string, which localeCompare rejects.
     document.documentElement.lang = 'en';
@@ -163,7 +167,7 @@ describe('CommunityListPage', () => {
         setupDom(routeCard({ id: '1', created: 1, region: 'A', text: 'x' })
             .replace('<h2>x</h2>', '<h2>x</h2><time class="community-date" datetime="2026-07-24T01:00:00Z">raw</time>'));
         newCommunityPage();
-        // 01:00 UTC on the 24th is still the 23rd in Los Angeles, where jest.config.js pins the clock.
+        // 01:00 UTC on the 24th is still the 23rd in Los Angeles, where vitest.config.mjs pins the clock.
         expect(document.querySelector('.community-date').textContent).toBe('Jul 23, 2026');
     });
 });
@@ -253,7 +257,7 @@ describe('StoryListPage', () => {
         setupDom(storyCard({ id: '7' }));
         const page = new window.StoryListPage();
         page.init();
-        const popup = { showLabel: jest.fn() };
+        const popup = { showLabel: vi.fn() };
         page.setLabelPopup(popup);
 
         const event = new window.MouseEvent('click', { bubbles: true, cancelable: true });
@@ -289,7 +293,7 @@ describe('StoryListPage', () => {
             setupDom(cardHtml);
             const page = new window.StoryListPage();
             page.init();
-            const popup = { showLabel: jest.fn() };
+            const popup = { showLabel: vi.fn() };
             page.setLabelPopup(popup);
             return { page, popup };
         }
@@ -337,7 +341,7 @@ describe('StoryListPage', () => {
             stubHeights(text, { scrollHeight: 300, clientHeight: 110 });
             const page = new window.StoryListPage();
             page.init();
-            const popup = { showLabel: jest.fn() };
+            const popup = { showLabel: vi.fn() };
             page.setLabelPopup(popup);
 
             document.querySelector('.story-card__read-more').click();
@@ -366,8 +370,8 @@ describe('StoryListPage', () => {
     describe('share chips (#4722)', () => {
         
         /** Loads the real ShareWidget (the page builds one per card) plus the collaborators it reaches for. */
-        function loadShareWidget() {
-            Object.assign(window, loadModules('frontend/js/common/share/ShareWidget.js'));
+        async function loadShareWidget() {
+            Object.assign(window, await loadModules('frontend/js/common/share/ShareWidget.js'));
             // The share text key resolves with the excerpt interpolated; everything else echoes its key. Mimics how
             // the app configures i18next — values verbatim unless the call asks for escaping — so a share string
             // that wrongly opted into it would ship visible entities here too, not just in production.
@@ -379,7 +383,7 @@ describe('StoryListPage', () => {
                     return `shared:${escapes ? esc(opts.excerpt) : opts.excerpt}`;
                 },
             };
-            window.matchMedia = jest.fn().mockReturnValue({ matches: false }); // jsdom has none; act as desktop.
+            window.matchMedia = vi.fn().mockReturnValue({ matches: false }); // jsdom has none; act as desktop.
         }
 
         afterEach(() => {
@@ -387,10 +391,10 @@ describe('StoryListPage', () => {
             delete window.i18next;
         });
 
-        test('each story card grows a footer share chip pointed at its story-anchored permalink', () => {
+        test('each story card grows a footer share chip pointed at its story-anchored permalink', async () => {
             setupDom(storyCard({ id: '7', storyId: '42', text: 'Snow piles up here all winter.' }));
-            loadShareWidget();
-            const setTarget = jest.spyOn(window.ShareWidget.prototype, 'setTarget');
+            await loadShareWidget();
+            const setTarget = vi.spyOn(window.ShareWidget.prototype, 'setTarget');
             new window.StoryListPage().init();
 
             expect(document.querySelector(
@@ -404,10 +408,10 @@ describe('StoryListPage', () => {
             expect(target.title).toBe(target.text);
         });
 
-        test("the storyteller's punctuation reaches the share text un-escaped", () => {
+        test("the storyteller's punctuation reaches the share text un-escaped", async () => {
             setupDom(storyCard({ id: '7', storyId: '42', text: "It's icy & the ramp is blocked." }));
-            loadShareWidget();
-            const setTarget = jest.spyOn(window.ShareWidget.prototype, 'setTarget');
+            await loadShareWidget();
+            const setTarget = vi.spyOn(window.ShareWidget.prototype, 'setTarget');
             new window.StoryListPage().init();
 
             // The text feeds only plain-text sinks (intent URLs, mailto, the native sheet), so escaping it would
@@ -415,30 +419,30 @@ describe('StoryListPage', () => {
             expect(setTarget.mock.calls[0][0].text).toBe("shared:It's icy & the ramp is blocked.");
         });
 
-        test('long story text is excerpted at a word boundary with an ellipsis', () => {
+        test('long story text is excerpted at a word boundary with an ellipsis', async () => {
             setupDom(storyCard({ id: '7', storyId: '42', text: 'word '.repeat(40).trim() }));
-            loadShareWidget();
-            const setTarget = jest.spyOn(window.ShareWidget.prototype, 'setTarget');
+            await loadShareWidget();
+            const setTarget = vi.spyOn(window.ShareWidget.prototype, 'setTarget');
             new window.StoryListPage().init();
 
             const excerpt = setTarget.mock.calls[0][0].text.replace('shared:', '');
             expect(excerpt).toBe(`${'word '.repeat(18).trim()}…`); // Cut at the last space inside the 90-char cap.
         });
 
-        test('opening the chip logs surface + story attribution', () => {
+        test('opening the chip logs surface + story attribution', async () => {
             setupDom(storyCard({ id: '7', storyId: '42' }));
-            loadShareWidget();
+            await loadShareWidget();
             new window.StoryListPage().init();
             document.querySelector('.story-card__share .label-detail__share-trigger').click();
             expect(window.logWebpageActivity).toHaveBeenCalledWith('Click_module=StoryCardShare_storyId=42');
         });
 
-        test('a click that dismisses an open share menu does not also open the label', () => {
+        test('a click that dismisses an open share menu does not also open the label', async () => {
             setupDom(storyCard({ id: '7', storyId: '42' }));
-            loadShareWidget();
+            await loadShareWidget();
             const page = new window.StoryListPage();
             page.init();
-            const popup = { showLabel: jest.fn() };
+            const popup = { showLabel: vi.fn() };
             page.setLabelPopup(popup);
 
             document.querySelector('.story-card__share .label-detail__share-trigger').click();
@@ -451,9 +455,9 @@ describe('StoryListPage', () => {
             expect(popup.showLabel).not.toHaveBeenCalled();
         });
 
-        test('a card without a story id gets no chip', () => {
+        test('a card without a story id gets no chip', async () => {
             setupDom(storyCard({ id: '7' })); // No data-story-id.
-            loadShareWidget();
+            await loadShareWidget();
             new window.StoryListPage().init();
             expect(document.querySelector('.story-card__share')).toBeNull();
         });
@@ -464,9 +468,9 @@ describe('RouteListPage', () => {
     beforeEach(() => {
         Object.defineProperty(window.navigator, 'clipboard', {
             configurable: true,
-            value: { writeText: jest.fn() },
+            value: { writeText: vi.fn() },
         });
-        window.Toast = { show: jest.fn() };
+        window.Toast = { show: vi.fn() };
         window.i18next = { t: (key) => key };
     });
 

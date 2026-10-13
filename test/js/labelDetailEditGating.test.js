@@ -25,10 +25,19 @@
  * on `window` first — including the pano manager, whose setPano() promise is the switch every imagery case turns.
  */
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
 
-const { assetPathStub, installDateHelpers, loadModules } = require('./loadGlobalScript');
+import { assetPathStub, installDateHelpers, loadModules, fakeImport, stubUtil } from './loadGlobalScript.js';
+
+fakeImport('frontend/js/common/BadgeAchievements.js', 'BadgeAchievements');
+fakeImport('frontend/js/common/LabelVisibilityToggle.js', 'LabelVisibilityToggle');
+fakeImport('frontend/js/common/label-detail/PopupPanoManager.js', 'PopupPanoManager');
+fakeImport('frontend/js/common/label-detail/StorySection.js', 'StorySection');
+fakeImport('frontend/js/common/pano-viewer/PanoInfoPopover.js', 'PanoInfoPopover');
+fakeImport('frontend/js/common/utilitiesSidewalk.js', 'buildBackupImageData');
+fakeImport('frontend/js/common/label-detail/TagEditor.js', 'TagEditor');
+
 
 const readSrc = (rel) => fs.readFileSync(path.resolve(__dirname, '..', '..', rel), 'utf8');
 /** The shipped English copy, so the wording tests read the strings a user sees rather than the keys. */
@@ -253,12 +262,12 @@ describe('LabelDetail edit gating (#5047)', () => {
     const status = (col) => q(`.label-detail__col--${col} .label-detail__edit-status`);
 
     beforeEach(async () => {
-        jest.resetModules();
+        vi.resetModules();
         card = buildCard();
 
         // /label/edit echoes the saved row back; the card renders the response rather than its optimistic guess,
         // since the server may drop tags that aren't valid for the label type.
-        saveRequest = jest.fn(async (url, opts) => {
+        saveRequest = vi.fn(async (url, opts) => {
             const body = JSON.parse(opts.body);
             return { ok: true, status: 200, json: async () => ({ severity: body.severity, tags: body.tags }) };
         });
@@ -266,10 +275,10 @@ describe('LabelDetail edit gating (#5047)', () => {
         // i18next echoes its key so assertions can name the key they expect rather than an English string that
         // translation churn would break.
         window.i18next = { t: (key) => key };
-        window.logWebpageActivity = jest.fn();
+        window.logWebpageActivity = vi.fn();
         window.camelToKebab = (s) => s.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
         window.buildBackupImageData = () => null;
-        window.util = {
+        stubUtil({
             assetPath: assetPathStub,
             EXPLORE_CANVAS_WIDTH: 720,
             EXPLORE_CANVAS_HEIGHT: 480,
@@ -284,18 +293,18 @@ describe('LabelDetail edit gating (#5047)', () => {
             },
             pano: { centeredPovToCanvasCoord: () => ({ x: 0, y: 0 }), renderedHFov: () => 90 },
             url: { replaceQuery: () => {} },
-        };
-        installDateHelpers();
+        });
+        await installDateHelpers();
         window.BadgeAchievements = { seedCounts: () => {}, recordValidation: () => {} };
         window.LabelVisibilityToggle = class { constructor() {} };
         window.PanoInfoPopover = class { constructor() {} };
 
         setPano = deferred();
         panoManager = {
-            clearLabels: jest.fn(),
-            setLabel: jest.fn(),
-            setLabelsHidden: jest.fn(),
-            setPano: jest.fn(() => setPano.promise),
+            clearLabels: vi.fn(),
+            setLabel: vi.fn(),
+            setLabelsHidden: vi.fn(),
+            setPano: vi.fn(() => setPano.promise),
             activeViewerName: 'Default',
             panoViewer: { currPanoData: null, getViewerType: () => 'gsv' },
             svHolder: document.createElement('div'),
@@ -306,14 +315,14 @@ describe('LabelDetail edit gating (#5047)', () => {
 
         // TagEditor fetches the city's tag catalog on first open; nothing else here goes to the network, so an
         // unexpected call shows up as an unmatched URL rather than a silent pass.
-        window.fetch = jest.fn((url) => {
+        window.fetch = vi.fn((url) => {
             if (String(url).includes('/label/tags')) {
                 return Promise.resolve({ ok: true, json: async () => TAG_CATALOG });
             }
             return Promise.resolve({ ok: true, json: async () => ({}) });
         });
 
-        Object.assign(window, loadModules('frontend/js/common/label-detail/TagEditor.js', 'frontend/js/common/label-detail/LabelDetail.js'));
+        Object.assign(window, await loadModules('frontend/js/common/label-detail/TagEditor.js', 'frontend/js/common/label-detail/LabelDetail.js'));
         LabelDetail = window.LabelDetail;
 
         card.detail = await LabelDetail.create(card, {
@@ -484,7 +493,7 @@ describe('LabelDetail edit gating (#5047)', () => {
         test('imagery that fails outright lands on the same lock', async () => {
             // setPano() resolves its own failures into the fallback chain, so a rejection means the pipeline broke.
             // The card lands on "no imagery" rather than staying locked on a load that will never finish.
-            const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+            const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
             await showLabel();
             setPano.reject(new Error('pipeline broke'));
             await setPano.promise.catch(() => {});
@@ -617,7 +626,7 @@ describe('LabelDetail edit gating (#5047)', () => {
         });
 
         test('a failed save says so on the same column, styled as a failure', async () => {
-            const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+            const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
             saveRequest.mockResolvedValue({ ok: false, status: 500, json: async () => ({}) });
             await showLabel({ severity: 2 });
             await resolveImagery(true);
@@ -657,54 +666,54 @@ describe('LabelDetail edit gating (#5047)', () => {
             // Timers are faked only after the save path is set up, so showLabel/resolveImagery keep real ones.
             await showLabel({ severity: 2 });
             await resolveImagery(true);
-            jest.useFakeTimers();
+            vi.useFakeTimers();
             try {
                 faces()[2].click();
-                await jest.advanceTimersByTimeAsync(0);
+                await vi.advanceTimersByTimeAsync(0);
                 const el = status('severity');
                 expect(el.textContent).toBe('labelmap:edit-saved');
                 expect(el.classList.contains('label-detail__edit-status--fading')).toBe(false);
 
                 // Still fully visible just before the hold is up, so the message can't flash past unread.
-                await jest.advanceTimersByTimeAsync(900);
+                await vi.advanceTimersByTimeAsync(900);
                 expect(el.classList.contains('label-detail__edit-status--fading')).toBe(false);
 
                 // Fading, but the text stays in the DOM until the fade finishes — taking live-region content away
                 // within a beat of adding it can cost the screen-reader announcement.
-                await jest.advanceTimersByTimeAsync(200);
+                await vi.advanceTimersByTimeAsync(200);
                 expect(el.classList.contains('label-detail__edit-status--fading')).toBe(true);
                 expect(el.textContent).toBe('labelmap:edit-saved');
 
-                await jest.advanceTimersByTimeAsync(500);
+                await vi.advanceTimersByTimeAsync(500);
                 expect(el.textContent).toBe('');
                 expect(el.classList.contains('label-detail__edit-status--fading')).toBe(false);
             } finally {
-                jest.useRealTimers();
+                vi.useRealTimers();
             }
         });
 
         test('a failure is held far longer than a confirmation', async () => {
             // The failure line is the only place the rollback is explained, so it outlasts the point where a
             // "Saved" would already be gone.
-            const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+            const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
             saveRequest.mockResolvedValue({ ok: false, status: 500, json: async () => ({}) });
             await showLabel({ severity: 2 });
             await resolveImagery(true);
-            jest.useFakeTimers();
+            vi.useFakeTimers();
             try {
                 faces()[2].click();
-                await jest.advanceTimersByTimeAsync(0);
-                await jest.advanceTimersByTimeAsync(2000);
+                await vi.advanceTimersByTimeAsync(0);
+                await vi.advanceTimersByTimeAsync(2000);
 
                 expect(status('severity').querySelector('.sr-only').textContent).toBe('labelmap:edit-failed');
                 expect(status('severity').classList.contains('label-detail__edit-status--fading')).toBe(false);
 
                 // And it does eventually leave, the same way a confirmation does.
-                await jest.advanceTimersByTimeAsync(3500);
+                await vi.advanceTimersByTimeAsync(3500);
                 expect(status('severity').textContent).toBe('');
                 expect(status('severity').hasAttribute('data-ps-tooltip')).toBe(false);
             } finally {
-                jest.useRealTimers();
+                vi.useRealTimers();
                 consoleError.mockRestore();
             }
         });

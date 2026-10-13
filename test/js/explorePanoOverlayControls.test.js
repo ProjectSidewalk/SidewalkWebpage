@@ -8,11 +8,12 @@
  * explicit export.
  */
 
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules } from './loadGlobalScript.js';
+import { fakeTracker } from './fakes.js';
 
 
-beforeAll(() => {
-    Object.assign(window, loadModules('frontend/js/explore/controls/PanoOverlayControls.js'));
+beforeAll(async () => {
+    Object.assign(window, await loadModules('frontend/js/explore/controls/PanoOverlayControls.js'));
 });
 
 let toggle;
@@ -25,7 +26,7 @@ beforeEach(() => {
         aria-controls="explore-control-menu"></button>
       <div id="explore-control-menu"></div>`;
     toggle = document.getElementById('explore-control-buttons-toggle');
-    tracker = { push: jest.fn() };
+    tracker = fakeTracker();
     new window.PanoOverlayControls(tracker, { walking: { onChanged: () => {} } }, {}, {});
 });
 

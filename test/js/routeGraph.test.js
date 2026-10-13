@@ -18,12 +18,12 @@
  * routing is free to cross into).
  */
 
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules } from './loadGlobalScript.js';
 
 
 /** Loads a fresh RouteGraph class into the jsdom global scope. */
-function loadRouteGraph() {
-    Object.assign(window, loadModules('frontend/js/route-builder/RouteGraph.js'));
+async function loadRouteGraph() {
+    Object.assign(window, await loadModules('frontend/js/route-builder/RouteGraph.js'));
     return window.RouteGraph;
 }
 
@@ -56,8 +56,8 @@ function gridStreets() {
 describe('RouteGraph', () => {
     let RouteGraph;
 
-    beforeEach(() => {
-        RouteGraph = loadRouteGraph();
+    beforeEach(async () => {
+        RouteGraph = await loadRouteGraph();
     });
 
     describe('distance math', () => {

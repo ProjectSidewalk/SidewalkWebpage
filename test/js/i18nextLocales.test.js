@@ -12,9 +12,9 @@
  * The page is told which files exist the way the server tells it, by listing public/locales/.
  */
 
-const fs = require('fs');
-const path = require('path');
-const { loadGlobalScript, loadVendored, REPO_ROOT, assetPathStub } = require('./loadGlobalScript');
+import fs from 'fs';
+import path from 'path';
+import { loadGlobalScript, loadVendored, REPO_ROOT, assetPathStub, stubUtil } from './loadGlobalScript.js';
 
 const LOCALES_DIR = path.join(REPO_ROOT, 'public/locales');
 const LANGUAGES = fs.readdirSync(LOCALES_DIR, { withFileTypes: true })
@@ -60,12 +60,12 @@ const WITHHELD = plainKeys(flatten(readLocale('en', 'common'))).find((key) => !k
  * @param {(url: string) => Promise<object>} [options.fetch] - Replaces the stand-in `fetch`.
  * @param {string[]} [options.missing] - Files, as `<language>/<namespace>.json`, the stand-in `fetch` 404s anyway.
  * @param {string[]} [options.localeFiles] - The locale files the page is told exist, if not the real ones.
- * @returns {Promise<{requested: string[], consoleError: jest.SpyInstance}>} The locale files the page asked for,
+ * @returns {Promise<{requested: string[], consoleError: import('vitest').MockInstance}>} The locale files the page asked for,
  *   as `<language>/<namespace>.json`, and what it reported as errors.
  */
 async function startPage(language, { countryId = 'usa', fetch, missing = [], localeFiles = LOCALE_FILES } = {}) {
     const requested = [];
-    const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
     window.fetch = fetch ?? (async (url) => {
         const relative = String(url).replace('/assets/locales/', '');
         requested.push(relative);
@@ -81,7 +81,7 @@ async function startPage(language, { countryId = 'usa', fetch, missing = [], loc
     });
     loadVendored('i18next');
     loadVendored('i18next-http-backend');
-    window.util = {
+    stubUtil({
         assetPath: assetPathStub,
         isMetric: () => true,
         math: {
@@ -89,8 +89,8 @@ async function startPage(language, { countryId = 'usa', fetch, missing = [], loc
             kmsToMiles: (km) => km * 0.621371,
             roundToTwentyFive: (n) => Math.round(n / 25) * 25,
         },
-    };
-    loadGlobalScript('frontend/js/common/AppManager.js');
+    });
+    await loadGlobalScript('frontend/js/common/AppManager.js');
     await window.appManager._setupI18next({
         language, supportedLanguages: LANGUAGES, localeFiles, defaultNS: 'common', namespaces: NAMESPACES, countryId,
         unitWords: UNIT_WORDS,
@@ -100,7 +100,7 @@ async function startPage(language, { countryId = 'usa', fetch, missing = [], loc
 
 /** Takes down what `startPage` put up, so the next page starts from nothing. */
 function stopPage() {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
     for (const name of ['appManager', 'i18next', 'i18nextHttpBackend', 'util', 'fetch']) delete window[name];
 }
 

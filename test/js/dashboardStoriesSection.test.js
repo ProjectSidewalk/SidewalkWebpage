@@ -13,7 +13,11 @@
  */
 
 
-const { assetPathStub, installUtilitiesMisc, loadModules } = require('./loadGlobalScript');
+import { assetPathStub, installUtilitiesMisc, loadModules, fakeImport, stubUtil } from './loadGlobalScript.js';
+
+fakeImport('frontend/js/common/ConfirmDialog.js', 'ConfirmDialog');
+fakeImport('frontend/js/common/label-detail/StoryComposer.js', 'StoryComposer');
+
 
 /** One story payload, shaped like an entry from GET /userapi/stories/mine. */
 function story(overrides = {}) {
@@ -56,25 +60,25 @@ describe('the dashboard\'s "Your stories" list', () => {
         return section;
     }
 
-    beforeAll(() => {
+    beforeAll(async () => {
         window.i18next = { t: (key) => key };
-        window.util = {
+        stubUtil({
             assetPath: assetPathStub, // The delete confirmation's icon URL.
             camelToKebab: (s) => s.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase(),
-        };
-        installUtilitiesMisc();
+        });
+        await installUtilitiesMisc();
         // Records what the section asks of the shared composer; behavior itself is StoryComposer's own contract.
         window.StoryComposer = class {
             constructor(dialog, opts) {
                 composer = this;
                 this.dialog = dialog;
                 this.opts = opts;
-                this.setCopyVariant = jest.fn();
-                this.openForEdit = jest.fn();
+                this.setCopyVariant = vi.fn();
+                this.openForEdit = vi.fn();
             }
         };
-        window.ConfirmDialog = { confirm: jest.fn(() => Promise.resolve(confirmResult)) };
-        window.StoriesSection = loadModules('frontend/js/user-dashboard/StoriesSection.js').StoriesSection;
+        window.ConfirmDialog = { confirm: vi.fn(() => Promise.resolve(confirmResult)) };
+        window.StoriesSection = (await loadModules('frontend/js/user-dashboard/StoriesSection.js')).StoriesSection;
     });
 
     beforeEach(() => {
@@ -82,7 +86,7 @@ describe('the dashboard\'s "Your stories" list', () => {
         confirmResult = true;
         stories = [story()];
         window.ConfirmDialog.confirm.mockClear();
-        window.fetch = jest.fn((url, init) => {
+        window.fetch = vi.fn((url, init) => {
             if (init && init.method === 'DELETE') return Promise.resolve({ ok: true });
             return Promise.resolve({ ok: true, json: () => Promise.resolve({ max_text_length: 1200, stories }) });
         });

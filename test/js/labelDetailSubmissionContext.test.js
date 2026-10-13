@@ -20,12 +20,12 @@
  * Only the static method is exercised here — constructing a LabelDetail needs a live pano viewer.
  */
 
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules } from './loadGlobalScript.js';
 
 
 /** Loads a fresh LabelDetail class into the jsdom global scope. */
-function loadLabelDetail() {
-    Object.assign(window, loadModules('frontend/js/common/label-detail/LabelDetail.js'));
+async function loadLabelDetail() {
+    Object.assign(window, await loadModules('frontend/js/common/label-detail/LabelDetail.js'));
     return window.LabelDetail;
 }
 
@@ -45,8 +45,8 @@ const META = {
 describe('LabelDetail.submissionContext', () => {
     let LabelDetail;
 
-    beforeEach(() => {
-        LabelDetail = loadLabelDetail();
+    beforeEach(async () => {
+        LabelDetail = await loadLabelDetail();
     });
 
     test('a viewer showing the label wins over the metadata', () => {
@@ -131,8 +131,8 @@ describe('LabelDetail.submissionContext', () => {
 describe('LabelDetail.viewerShowsLabel', () => {
     let LabelDetail;
 
-    beforeEach(() => {
-        LabelDetail = loadLabelDetail();
+    beforeEach(async () => {
+        LabelDetail = await loadLabelDetail();
     });
 
     test.each([

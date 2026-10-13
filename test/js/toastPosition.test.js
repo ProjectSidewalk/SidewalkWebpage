@@ -14,9 +14,9 @@
  */
 
 
-const { assetPathStub, loadModules } = require('./loadGlobalScript');
+import { assetPathStub, loadModules, stubUtil } from './loadGlobalScript.js';
 
-const Toast = loadModules('frontend/js/common/Toast.js').Toast;
+const Toast = (await loadModules('frontend/js/common/Toast.js')).Toast;
 
 // Matches the constants in Toast.#position.
 const EDGE = 8;
@@ -60,7 +60,7 @@ describe('Toast placement', () => {
         document.body.innerHTML = '';
         window.innerWidth = VIEWPORT_WIDTH;
         global.i18next = { t: (key) => key };
-        global.util = { assetPath: assetPathStub }; // The close button's icon URL.
+        stubUtil({ assetPath: assetPathStub }); // The close button's icon URL.
     });
 
     afterEach(() => {

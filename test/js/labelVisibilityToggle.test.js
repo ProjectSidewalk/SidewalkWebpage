@@ -7,14 +7,14 @@
  * the host — that call is how PopupPanoManager gets the hidden class onto a marker it just rebuilt.
  */
 
-const path = require('path');
-const { loadModules } = require('./loadGlobalScript');
+import path from 'path';
+import { loadModules } from './loadGlobalScript.js';
 
 const TOGGLE_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/common/LabelVisibilityToggle.js');
 
 /** Load LabelVisibilityToggle.js (a plain top-level class declaration, concatenation-style). */
-function loadToggle() {
-  return loadModules(TOGGLE_PATH).LabelVisibilityToggle;
+async function loadToggle() {
+  return (await loadModules(TOGGLE_PATH)).LabelVisibilityToggle;
 }
 
 const TEXT = {
@@ -24,8 +24,9 @@ const TEXT = {
   showTooltip: 'Show the label again.',
 };
 
+const LabelVisibilityToggle = await loadToggle();
+
 describe('LabelVisibilityToggle', () => {
-  const LabelVisibilityToggle = loadToggle();
   let buttons;
   let changes;
 

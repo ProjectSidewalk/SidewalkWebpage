@@ -10,12 +10,12 @@
  * explicit `window.X = X` epilogue rather than require()-d, as with ShareWidget.
  */
 
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules } from './loadGlobalScript.js';
 
 
 /** Loads the class fresh into the global scope. */
-function loadClass() {
-    Object.assign(window, loadModules('frontend/js/common/PanoImageAdjustments.js'));
+async function loadClass() {
+    Object.assign(window, await loadModules('frontend/js/common/PanoImageAdjustments.js'));
     return window.PanoImageAdjustments;
 }
 
@@ -33,10 +33,10 @@ function memoryStorage(seed = {}) {
 let PanoImageAdjustments;
 let target;
 
-beforeEach(() => {
+beforeEach(async () => {
     document.body.innerHTML = '<div id="pano"></div>';
     target = document.getElementById('pano');
-    PanoImageAdjustments = loadClass();
+    PanoImageAdjustments = await loadClass();
 });
 
 describe('defaults', () => {
@@ -115,8 +115,8 @@ describe('several mounts', () => {
         model.set('shadows', 50);
         expect(document.querySelectorAll('#ps-pano-tone-curve')).toHaveLength(1);
         expect(document.querySelectorAll('svg.ps-svg-defs')).toHaveLength(1);
-        expect(target.style.filter).toBe('url(#ps-pano-tone-curve)');
-        expect(second.style.filter).toBe('url(#ps-pano-tone-curve)');
+        expect(target.style.filter).toBe('url("#ps-pano-tone-curve")');
+        expect(second.style.filter).toBe('url("#ps-pano-tone-curve")');
     });
 
     test('skips a mount that is missing from the page', () => {
@@ -158,7 +158,7 @@ describe('the Shadows curve', () => {
 
         model.set('shadows', 100);
         expect(Number(funcs[0].getAttribute('exponent'))).toBeCloseTo(0.4, 10);
-        expect(target.style.filter).toBe('url(#ps-pano-tone-curve)');
+        expect(target.style.filter).toBe('url("#ps-pano-tone-curve")');
     });
 
     test('reuses an SVG filter another instance already put in the document', () => {

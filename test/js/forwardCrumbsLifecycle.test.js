@@ -13,8 +13,13 @@
  * along-street math is part of what is being exercised.
  */
 
-const path = require('path');
-const { loadModules } = require('./loadGlobalScript');
+import path from 'path';
+import { loadModules, fakeImport } from './loadGlobalScript.js';
+import { fakeTracker, fakePanoManager, fakeTaskContainer } from './fakes.js';
+
+fakeImport('frontend/js/common/pano-viewer/PanoViewer.js', 'PanoViewer');
+fakeImport('frontend/js/explore/navigation/NavigationService.js', 'NavigationService');
+
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 
@@ -77,7 +82,7 @@ describe('ForwardCrumbs marker lifecycle', () => {
         return best ? { panoId: best.panoId, lat: best.lat, lng: best.lng } : null;
     };
 
-    beforeEach(() => {
+    beforeEach(async () => {
         FakeMarker.created = [];
         panosAlongStreet = new Map([[20, 'p20'], [40, 'p40'], [60, 'p60'], [80, 'p80'], [100, 'p100']]);
         visited = new Set();
@@ -85,34 +90,28 @@ describe('ForwardCrumbs marker lifecycle', () => {
         nav = {
             walking: { hold: () => {}, release: () => {}, isHeld: () => false, isHeldExcept: () => false, onChanged: () => {} },
             onMoved: () => {},
-            moveToPano: jest.fn(async () => true),
-            moveToLocation: jest.fn(async () => true),
-            returnToPano: jest.fn(async () => true),
+            moveToPano: vi.fn(async () => true),
+            moveToLocation: vi.fn(async () => true),
+            returnToPano: vi.fn(async () => true),
         };
-        tracker = { push: jest.fn() };
+        tracker = fakeTracker();
         viewer = {
             supportsLocationSearch: () => true,
-            findPanoNear: jest.fn(async (latLng) => nearestPano(latLng)),
+            findPanoNear: vi.fn(async (latLng) => nearestPano(latLng)),
             getLinkedPanoPositions: async () => [],
             getPanoId: () => 'standing-here',
             getPosition: () => ({ lat: LAT, lng: lngAt(0) }),
             getPov: () => ({ heading: 0 }),
         };
-        const panoManager = {
-            get panoViewer() { return viewer; },
-            onPovChanged: () => {},
-            getPanoId: () => viewer.getPanoId(),
-            getPosition: () => viewer.getPosition(),
-            getPov: () => viewer.getPov(),
-        };
+        const panoManager = fakePanoManager(viewer);
         window.i18next = { t: (key, options) => (options && 'rank' in options ? `${key}#${options.rank}` : key) };
         window.NavigationService = { DIST_INCREMENT: 0.01 };
         window.PanoViewer = { SEARCH_RADIUS_M: 25 };
-        Object.assign(window, loadModules('frontend/js/explore/navigation/ForwardCrumbs.js'));
+        Object.assign(window, await loadModules('frontend/js/explore/navigation/ForwardCrumbs.js'));
         crumbs = new window.ForwardCrumbs(
             { isOnboarding: false, isExploreAddressMode: false },
             panoManager,
-            { getCurrentTask: () => task, onCurrentTaskChanged: () => {} },
+            fakeTaskContainer(() => task),
             { isEnRoute: () => true, getTargetAngle: () => 90 },
             { addMarker: (latLng, content, options) => new FakeMarker(latLng, content, options) },
             { hasVisited: (panoId) => visited.has(panoId) },
@@ -156,7 +155,7 @@ describe('ForwardCrumbs marker lifecycle', () => {
 
     test('clear() disowns a refresh still waiting on lookups, so nothing reappears afterwards', async () => {
         const pending = [];
-        viewer.findPanoNear = jest.fn((latLng) => new Promise((resolve) => {
+        viewer.findPanoNear = vi.fn((latLng) => new Promise((resolve) => {
             pending.push({ latLng, resolve: () => resolve(nearestPano(latLng)) });
         }));
 
@@ -170,7 +169,7 @@ describe('ForwardCrumbs marker lifecycle', () => {
 
     test('lookups queued for a street the user has left are skipped, not run ahead of the next street\'s', async () => {
         const pending = [];
-        viewer.findPanoNear = jest.fn((latLng) => new Promise((resolve) => {
+        viewer.findPanoNear = vi.fn((latLng) => new Promise((resolve) => {
             pending.push({ latLng, resolve: () => resolve(nearestPano(latLng)) });
         }));
         const streetOneLat = LAT;

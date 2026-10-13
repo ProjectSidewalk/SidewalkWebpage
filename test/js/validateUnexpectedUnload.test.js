@@ -9,8 +9,8 @@
  * the middle of Validate's startup.
  */
 
-const path = require('path');
-const { loadModules } = require('./loadGlobalScript');
+import path from 'path';
+import { loadModules } from './loadGlobalScript.js';
 
 const MARKER_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/util/MissionLiveMarker.js');
 
@@ -19,8 +19,8 @@ const MARKER_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/ut
  * into page scope, so wrap the source in an IIFE that returns the class.
  * @returns {Function} The class.
  */
-function loadMarkerClass() {
-    return loadModules(MARKER_PATH).MissionLiveMarker;
+async function loadMarkerClass() {
+    return (await loadModules(MARKER_PATH)).MissionLiveMarker;
 }
 
 /** @returns {Storage} An in-memory stand-in for sessionStorage, shared across the "page lives" of one tab. */
@@ -43,17 +43,17 @@ describe('MissionLiveMarker (issue #5561)', () => {
     let MissionLiveMarker;
     let storage;
 
-    beforeEach(() => {
-        jest.useFakeTimers();
-        jest.setSystemTime(1_000_000);
+    beforeEach(async () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(1_000_000);
         // jsdom's `performance` has no Navigation Timing, so the entry a browser would report is supplied here.
-        performance.getEntriesByType = jest.fn(() => [{ type: 'reload' }]);
-        MissionLiveMarker = loadMarkerClass();
+        performance.getEntriesByType = vi.fn(() => [{ type: 'reload' }]);
+        MissionLiveMarker = await loadMarkerClass();
         storage = fakeStorage();
     });
 
     afterEach(() => {
-        jest.useRealTimers();
+        vi.useRealTimers();
         delete performance.getEntriesByType;
     });
 
@@ -68,7 +68,7 @@ describe('MissionLiveMarker (issue #5561)', () => {
 
     test('a life that ended without a pagehide is reported to the next one, with what it was doing', () => {
         new MissionLiveMarker(storage).markLive(42);
-        jest.advanceTimersByTime(90 * 1000);
+        vi.advanceTimersByTime(90 * 1000);
         // The kill: no pagehide, and a new page life reads the same tab's storage.
 
         expect(new MissionLiveMarker(storage).takeUnexpectedUnload())
@@ -124,15 +124,15 @@ describe('MissionLiveMarker (issue #5561)', () => {
     test('each mission re-marks the life, so a kill names the mission cut short and its own age', () => {
         const marker = new MissionLiveMarker(storage);
         marker.markLive(1);
-        jest.advanceTimersByTime(60 * 1000);
+        vi.advanceTimersByTime(60 * 1000);
         marker.markLive(2);
-        jest.advanceTimersByTime(30 * 1000);
+        vi.advanceTimersByTime(30 * 1000);
 
         expect(new MissionLiveMarker(storage).takeUnexpectedUnload()).toMatchObject({ missionId: 2, ageSec: 30 });
     });
 
     test('the exit listener is registered once however many missions a page runs', () => {
-        const listen = jest.spyOn(window, 'addEventListener');
+        const listen = vi.spyOn(window, 'addEventListener');
         const marker = new MissionLiveMarker(storage);
         marker.markLive(1);
         marker.markLive(2);

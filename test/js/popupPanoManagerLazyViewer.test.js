@@ -10,7 +10,11 @@
  * jsdom global scope with the rest of its collaborators stubbed.
  */
 
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules, fakeImport, stubUtil } from './loadGlobalScript.js';
+
+fakeImport('frontend/js/common/pano-viewer/PannellumViewer.js', 'PannellumViewer');
+fakeImport('frontend/js/common/pano-viewer/PanoAttribution.js', 'createPanoAttribution');
+fakeImport('frontend/js/common/pano-viewer/PanoViewerLogo.js', 'createPanoViewerLogo');
 
 
 const POV = { heading: 10, pitch: 0, zoom: 1 };
@@ -19,11 +23,11 @@ const POV = { heading: 10, pitch: 0, zoom: 1 };
 function fakeViewer() {
     return {
         panos: [],
-        setPano: jest.fn(function setPano(panoId) { this.panos.push(panoId); return Promise.resolve(); }),
-        addListener: jest.fn(),
+        setPano: vi.fn(function setPano(panoId) { this.panos.push(panoId); return Promise.resolve(); }),
+        addListener: vi.fn(),
         getPanoId: () => 'pano-1',
-        resize: jest.fn(),
-        setPov: jest.fn(),
+        resize: vi.fn(),
+        setPov: vi.fn(),
         getPov: () => ({ ...POV }),
     };
 }
@@ -36,41 +40,41 @@ describe('PopupPanoManager builds its viewer lazily', () => {
     let buttonHolder;
     let attributionOverlay;
 
-    beforeEach(() => {
-        jest.resetModules();
+    beforeEach(async () => {
+        vi.resetModules();
         document.body.innerHTML = '<div id="sv-holder"></div><div id="button-holder"></div>';
         svHolder = document.getElementById('sv-holder');
         buttonHolder = document.getElementById('button-holder');
         idleCallbacks = [];
 
-        window.panzoom = () => ({ on: jest.fn(), zoomAbs: jest.fn(), moveTo: jest.fn(), getTransform: () => ({}) });
-        window.util = {
+        window.panzoom = () => ({ on: vi.fn(), zoomAbs: vi.fn(), moveTo: vi.fn(), getTransform: () => ({}) });
+        stubUtil({
             assetPath: (p) => `/assets/${p}`,
             afterLoadIdle: (fn) => idleCallbacks.push(fn),
             isMobile: () => false,
             misc: { getIconImagePaths: () => null, getLabelColors: () => '#000' },
-        };
+        });
         window.i18next = { t: (k) => k };
-        window.createPanoViewerLogo = () => ({ showPrimaryLogo: jest.fn(), showSourceLogo: jest.fn() });
-        attributionOverlay = { show: jest.fn(), hide: jest.fn() };
+        window.createPanoViewerLogo = () => ({ showPrimaryLogo: vi.fn(), showSourceLogo: vi.fn() });
+        attributionOverlay = { show: vi.fn(), hide: vi.fn() };
         window.createPanoAttribution = () => attributionOverlay;
         window.LabelVisibilityToggle = { HIDDEN_CLASS: 'hidden' };
-        window.PannellumViewer = { create: jest.fn(() => Promise.resolve(fakeViewer())) };
+        window.PannellumViewer = { create: vi.fn(() => Promise.resolve(fakeViewer())) };
         // No self-hosted backup for any pano, so a failed live attempt lands on the crop.
-        window.fetch = jest.fn(() => Promise.resolve({ ok: false }));
+        window.fetch = vi.fn(() => Promise.resolve({ ok: false }));
         // A failed build is logged on purpose; keep it out of the test output.
-        jest.spyOn(console, 'error').mockImplementation(() => {});
+        vi.spyOn(console, 'error').mockImplementation(() => {});
 
         viewerType = {
-            create: jest.fn(() => Promise.resolve(fakeViewer())),
-            preloadLibrary: jest.fn(() => Promise.resolve()),
+            create: vi.fn(() => Promise.resolve(fakeViewer())),
+            preloadLibrary: vi.fn(() => Promise.resolve()),
         };
 
-        Object.assign(window, loadModules('frontend/js/common/label-detail/PopupPanoManager.js'));
+        Object.assign(window, await loadModules('frontend/js/common/label-detail/PopupPanoManager.js'));
         PopupPanoManager = window.PopupPanoManager;
     });
 
-    afterEach(() => jest.restoreAllMocks());
+    afterEach(() => vi.restoreAllMocks());
 
     /** Builds a manager the way LabelDetail does. */
     const createManager = () => PopupPanoManager.create(svHolder, buttonHolder, false, viewerType, 'token');

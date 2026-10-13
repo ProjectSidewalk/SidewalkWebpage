@@ -7,14 +7,14 @@
  * cases cover the other direction: i18next escapes interpolated values by default, which is wrong both for a string
  * going into textContent and for one this file escapes itself.
  *
- * Runs under jsdom (jest.config.js).
+ * Runs under jsdom (vitest.config.mjs).
  */
 
-const fs = require('fs');
-const path = require('path');
-const { loadModules, realUtil } = require('./loadGlobalScript');
+import fs from 'fs';
+import path from 'path';
+import { loadModules, realUtil, stubUtil } from './loadGlobalScript.js';
 
-window.util = realUtil();
+stubUtil(await realUtil());
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 
@@ -81,7 +81,7 @@ const city = (overrides) => ({
 /** Runs a full render() against a stubbed endpoint payload and returns the section element. */
 async function render(payload, opts = {}) {
   const section = buildDom();
-  global.fetch = jest.fn().mockResolvedValue({ ok: true, json: async () => payload });
+  global.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => payload });
   await new CrossCityStats(section, { currentCityName: 'Seattle', ...opts }).render();
   return section;
 }
@@ -99,11 +99,11 @@ const payloadOf = (cities, extra = {}) => ({
 
 let CrossCityStats;
 
-beforeAll(() => {
-  window.util ??= realUtil();
-  loadModules('frontend/js/common/utilitiesMath.js');
+beforeAll(async () => {
+  window.util ??= await realUtil();
+  await loadModules('frontend/js/common/utilitiesMath.js');
   global.i18next = i18nextStub;
-  CrossCityStats = loadModules('frontend/js/user-dashboard/CrossCityStats.js').CrossCityStats;
+  CrossCityStats = (await loadModules('frontend/js/user-dashboard/CrossCityStats.js')).CrossCityStats;
 });
 
 const text = (section, id) => section.querySelector(`#${id}`).textContent;
@@ -215,7 +215,7 @@ describe('the section announcement', () => {
 
   test('stays silent when the breakdown cannot be computed', async () => {
     const section = buildDom();
-    global.fetch = jest.fn().mockResolvedValue({ ok: true, json: async () => ({ unavailable: true }) });
+    global.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ unavailable: true }) });
     await new CrossCityStats(section, { currentCityName: 'Seattle' }).render();
 
     expect(section.hidden).toBe(true);

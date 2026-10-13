@@ -17,12 +17,12 @@
  * derived; don't adjust one here to make a test pass.
  */
 
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules, stubUtil } from './loadGlobalScript.js';
 
 
 /** Loads a fresh Label class into the jsdom global scope (a class declaration is not a globalThis property). */
-function loadLabel() {
-    Object.assign(window, loadModules('frontend/js/explore/label/Label.js'));
+async function loadLabel() {
+    Object.assign(window, await loadModules('frontend/js/explore/label/Label.js'));
     return window.Label;
 }
 
@@ -49,19 +49,19 @@ describe('Label lat/lng estimation', () => {
         return label;
     }
 
-    beforeEach(() => {
-        Label = loadLabel();
-        window.util = { misc: { getIconImagePaths: () => ({ iconImagePath: 'x.svg' }), labelTypeName: () => '' } };
+    beforeEach(async () => {
+        Label = await loadLabel();
+        stubUtil({ misc: { getIconImagePaths: () => ({ iconImagePath: 'x.svg' }), labelTypeName: () => '' } });
         window.i18next = { t: () => '' };
         Label.styleMinimapMarker = () => {};
         window.turf = {
             point: (coords) => ({ geometry: { coordinates: coords } }),
-            destination: jest.fn((_start, _distKm, _bearing) => ({ geometry: { coordinates: [-122.303, 47.656] } })),
+            destination: vi.fn((_start, _distKm, _bearing) => ({ geometry: { coordinates: [-122.303, 47.656] } })),
         };
     });
 
     afterEach(() => {
-        jest.restoreAllMocks();
+        vi.restoreAllMocks();
     });
 
     /** The [distanceKm, bearing] the estimator handed to turf.destination for the label's single placement. */

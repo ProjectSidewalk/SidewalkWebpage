@@ -5,7 +5,71 @@
  * kept, any method a mock); the gates are real, so the pop-up policy is checked by holding the lock.
  */
 
-const { assetPathStub, loadModules } = require('./loadGlobalScript');
+import { assetPathStub, loadModules, fakeImport, stubUtil } from './loadGlobalScript.js';
+
+fakeImport('frontend/js/common/ImmersiveMode.js', 'ImmersiveMode');
+fakeImport('frontend/js/common/LabelCardView.js', 'LabelCardView');
+fakeImport('frontend/js/common/MissionStartTutorial.js', 'MissionStartTutorial');
+fakeImport('frontend/js/common/PanoImageAdjustments.js', 'PanoImageAdjustments');
+fakeImport('frontend/js/common/PanoImageAdjustmentsPopover.js', 'PanoImageAdjustmentsPopover');
+fakeImport('frontend/js/common/ProgressBar.js', 'ProgressBar');
+fakeImport('frontend/js/common/SpeedLimit.js', 'SpeedLimit');
+fakeImport('frontend/js/common/Toast.js', 'Toast');
+fakeImport('frontend/js/common/pano-viewer/PanoInfoPopover.js', 'PanoInfoPopover');
+fakeImport('frontend/js/common/pano-viewer/PanoStore.js', 'PanoStore');
+fakeImport('frontend/js/explore/alert/AiGuidance.js', 'AiGuidance');
+fakeImport('frontend/js/explore/alert/AlertController.js', 'AlertController');
+fakeImport('frontend/js/explore/alert/JumpAlert.js', 'JumpAlert');
+fakeImport('frontend/js/explore/alert/KeyboardShortcutAlert.js', 'KeyboardShortcutAlert');
+fakeImport('frontend/js/explore/alert/PopUpMessage.js', 'PopUpMessage');
+fakeImport('frontend/js/explore/alert/RatingReminderAlert.js', 'RatingReminderAlert');
+fakeImport('frontend/js/explore/alert/ReauditNotice.js', 'ReauditNotice');
+fakeImport('frontend/js/explore/alert/StuckAlert.js', 'StuckAlert');
+fakeImport('frontend/js/explore/alert/ZoomShortcutAlert.js', 'ZoomShortcutAlert');
+fakeImport('frontend/js/explore/canvas/Canvas.js', 'Canvas');
+fakeImport('frontend/js/explore/canvas/CanvasFrame.js', 'CanvasFrame');
+fakeImport('frontend/js/explore/canvas/ContextMenu.js', 'ContextMenu');
+fakeImport('frontend/js/explore/controls/PanoOverlayControls.js', 'PanoOverlayControls');
+fakeImport('frontend/js/explore/data/Form.js', 'Form');
+fakeImport('frontend/js/explore/data/Storage.js', 'TemporaryStorage');
+fakeImport('frontend/js/explore/data/Tracker.js', 'Tracker');
+fakeImport('frontend/js/explore/game/AudioEffect.js', 'AudioEffect');
+fakeImport('frontend/js/explore/keyboard/KeyboardManager.js', 'KeyboardManager');
+fakeImport('frontend/js/explore/label/Label.js', 'Label');
+fakeImport('frontend/js/explore/label/LabelContainer.js', 'LabelContainer');
+fakeImport('frontend/js/explore/menu/LabelModes.js', 'LabelModes');
+fakeImport('frontend/js/explore/menu/RibbonMenu.js', 'RibbonMenu');
+fakeImport('frontend/js/explore/mission/MissionContainer.js', 'MissionContainer');
+fakeImport('frontend/js/explore/mission/MissionController.js', 'MissionController');
+fakeImport('frontend/js/explore/mission/MissionModel.js', 'MissionModel');
+fakeImport('frontend/js/explore/modal/FeedbackModal.js', 'FeedbackModal');
+fakeImport('frontend/js/explore/modal/ModalMissionComplete.js', 'ModalMissionComplete');
+fakeImport('frontend/js/explore/modal/ModalMissionCompleteMap.js', 'ModalMissionCompleteMap');
+fakeImport('frontend/js/explore/modal/ModalSurvey.js', 'ModalSurvey');
+fakeImport('frontend/js/explore/navigation/Compass.js', 'Compass');
+fakeImport('frontend/js/explore/navigation/ExploreUrlSync.js', 'ExploreUrlSync');
+fakeImport('frontend/js/explore/navigation/ForwardCrumbs.js', 'ForwardCrumbs');
+fakeImport('frontend/js/explore/navigation/Minimap.js', 'Minimap');
+fakeImport('frontend/js/explore/navigation/MinimapLegend.js', 'MinimapLegend');
+fakeImport('frontend/js/explore/navigation/MinimapMissionProgress.js', 'MinimapMissionProgress');
+fakeImport('frontend/js/explore/navigation/NavigationService.js', 'NavigationService');
+fakeImport('frontend/js/explore/navigation/ObservedArea.js', 'ObservedArea');
+fakeImport('frontend/js/explore/navigation/Peg.js', 'Peg');
+fakeImport('frontend/js/explore/navigation/RouteOverview.js', 'RouteOverview');
+fakeImport('frontend/js/explore/panorama/NavArrows.js', 'NavArrows');
+fakeImport('frontend/js/explore/panorama/PanoDateNote.js', 'PanoDateNote');
+fakeImport('frontend/js/explore/panorama/PanoManager.js', 'PanoManager');
+fakeImport('frontend/js/explore/region/Region.js', 'Region');
+fakeImport('frontend/js/explore/region/RegionModel.js', 'RegionModel');
+fakeImport('frontend/js/explore/sidebar/BadgeProgress.js', 'BadgeProgress');
+fakeImport('frontend/js/explore/sidebar/MissionPanel.js', 'MissionPanel');
+fakeImport('frontend/js/explore/sidebar/OverallStats.js', 'OverallStats');
+fakeImport('frontend/js/explore/sidebar/RegionProgressBar.js', 'RegionProgressBar');
+fakeImport('frontend/js/explore/task/Task.js', 'Task');
+fakeImport('frontend/js/explore/task/TaskContainer.js', 'TaskContainer');
+fakeImport('frontend/js/explore/zoom/ZoomControl.js', 'ZoomControl');
+fakeImport('frontend/js/common/Gate.js', 'Gate');
+
 
 /** @type {Record<string, any>} Every stand-in Main built, by module name, in the order built. */
 let built;
@@ -28,7 +92,7 @@ function standIn(name, answers = {}, statics = {}) {
         get(target, key) {
           // A `then` that is a mock would make the stand-in a thenable that never settles, hanging any await on it.
           if (key in target || typeof key !== 'string' || key === 'then') return target[key];
-          target[key] = jest.fn();
+          target[key] = vi.fn();
           return target[key];
         },
       });
@@ -47,9 +111,9 @@ const makeTask = () => ({
   getStreetEdgeId: () => 42,
   getMidpoint: () => ({ lat: 47.6, lng: -122.3 }),
   getProperty: () => 9,
-  setProperty: jest.fn(),
-  updateTheFurthestPointReached: jest.fn(),
-  recordVisit: jest.fn(),
+  setProperty: vi.fn(),
+  updateTheFurthestPointReached: vi.fn(),
+  recordVisit: vi.fn(),
   getFeature: () => ({ geometry: { coordinates: [] } }),
 });
 const MISSION = {
@@ -90,18 +154,18 @@ const FIXTURE = `
 let Main;
 let Gate;
 
-beforeAll(() => {
-  ({ Gate } = loadModules('frontend/js/common/Gate.js'));
-  window.util = {
+beforeAll(async () => {
+  ({ Gate } = await loadModules('frontend/js/common/Gate.js'));
+  stubUtil({
     assetPath: assetPathStub,
     applyToolScale: () => 1,
     exploreDisplayScale: () => 1,
     localIsoDate: (date) => date,
     math: { kmsToMeters: (km) => km * 1000 },
     misc: { PRIMARY_LABEL_TYPES: ['CurbRamp'] },
-  };
+  });
   window.i18next = { t: (key) => key };
-  window.Toast = { show: jest.fn(), repositionAll: jest.fn() };
+  window.Toast = { show: vi.fn(), repositionAll: vi.fn() };
 });
 
 beforeEach(async () => {
@@ -125,7 +189,7 @@ beforeEach(async () => {
       getPosition: () => ({ lat: 47.6, lng: -122.3 }),
       getPanoId: () => 'pano1',
       getPov: () => ({ heading: 0, pitch: 0, zoom: 1 }),
-      panoViewer: { resize: jest.fn(), repaint: jest.fn() },
+      panoViewer: { resize: vi.fn(), repaint: vi.fn() },
     }, { consumeStreetSkippedNotice: () => null }),
     Task: standIn('task', task),
     Minimap: class {
@@ -140,7 +204,7 @@ beforeEach(async () => {
     MissionPanel: standIn('missionPanel'),
     TaskContainer: standIn('taskContainer', {
       getCurrentTask: () => task,
-      fetchTasks: jest.fn(() => Promise.resolve()),
+      fetchTasks: vi.fn(() => Promise.resolve()),
       hasMaxPriorityTask: () => true,
       getCompletedTaskDistance: () => 0,
     }),
@@ -150,7 +214,7 @@ beforeEach(async () => {
       getCompletedMissionDistance: () => 0,
     }),
     LabelContainer: standIn('labelContainer'),
-    Form: standIn('form', { submitData: jest.fn(() => Promise.resolve()) }),
+    Form: standIn('form', { submitData: vi.fn(() => Promise.resolve()) }),
     Region: standIn('region'),
     Label: class { static preloadIcons() { return Promise.resolve([]); } },
     AudioEffect: standIn('audioEffect'),
@@ -191,17 +255,17 @@ beforeEach(async () => {
     SpeedLimit: standIn('speedLimit'),
     KeyboardManager: standIn('keyboard'),
     MissionStartTutorial: standIn('missionStartTutorial'),
-    ExploreUrlSync: standIn('urlSync', {}, { pinTutorialUrl: jest.fn() }),
+    ExploreUrlSync: standIn('urlSync', {}, { pinTutorialUrl: vi.fn() }),
     CanvasFrame: standIn('frame', { width: 720, height: 480 }),
     GsvViewer: class { static SOURCE = 'gsv'; },
   };
   Object.assign(window, fakes);
-  ({ Main } = loadModules('frontend/js/explore/Main.js'));
+  ({ Main } = await loadModules('frontend/js/explore/Main.js'));
   await new Main(PARAMS, SESSION).start();
 });
 
 afterEach(() => {
-  jest.restoreAllMocks();
+  vi.restoreAllMocks();
 });
 
 /** The keyboard lock and the pop-up lock, which Main builds as plain gates and hands to what holds them. */

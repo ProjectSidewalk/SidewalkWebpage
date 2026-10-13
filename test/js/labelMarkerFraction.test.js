@@ -10,16 +10,16 @@
  * A pure function over plain values; the consumers' own suites cover the wiring.
  */
 
-const { assetPathStub, installUtilitiesMisc } = require('./loadGlobalScript');
+import { assetPathStub, installUtilitiesMisc, stubUtil } from './loadGlobalScript.js';
 
 const CROP_MARKER = { x: 0.5, y: 0.5 };
 
 describe('labelMarkerFraction', () => {
     let labelMarkerFraction;
 
-    beforeEach(() => {
-        window.util = { assetPath: assetPathStub, EXPLORE_CANVAS_WIDTH: 720, EXPLORE_CANVAS_HEIGHT: 480 };
-        installUtilitiesMisc();
+    beforeEach(async () => {
+        stubUtil({ assetPath: assetPathStub, EXPLORE_CANVAS_WIDTH: 720, EXPLORE_CANVAS_HEIGHT: 480 });
+        await installUtilitiesMisc();
         labelMarkerFraction = window.util.misc.labelMarkerFraction;
     });
 

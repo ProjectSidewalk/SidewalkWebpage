@@ -4,10 +4,13 @@
  * in accessScoreModel.test.js; this file pins what the controls emit and what a link can carry.
  */
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const { loadModules, realUtil } = require('./loadGlobalScript');
+import { loadModules, realUtil, stubUtil, fakeImport } from './loadGlobalScript.js';
+
+fakeImport('frontend/js/access-score/AccessScoreModel.js', 'AccessScoreModel');
+fakeImport('frontend/js/common/AccessScoreGradeRamp.js', 'AccessScoreGradeRamp');
 
 const read = (p) => fs.readFileSync(path.join(REPO_ROOT, p), 'utf8');
 
@@ -51,7 +54,7 @@ describe('slope in the AccessScore scoring controls', () => {
     let AccessScoreSlopePanel;
     let AccessScoreUrlSync;
 
-    beforeAll(() => {
+    beforeAll(async () => {
         // Echoes the key with any interpolated values, so a test can see what was handed to a string.
         window.i18next = {
             language: 'en',
@@ -59,12 +62,12 @@ describe('slope in the AccessScore scoring controls', () => {
             t: (key, values = {}) => values.defaultValue
                 ?? [key, ...Object.entries(values).map(([k, v]) => `${k}=${v}`)].join(' '),
         };
-        window.util = { escapeHTML: (text) => String(text) };
-        window.util ??= realUtil();
-        loadModules('frontend/js/common/urlQuery.js');
+        stubUtil({ escapeHTML: (text) => String(text) });
+        window.util ??= await realUtil();
+        await loadModules('frontend/js/common/urlQuery.js');
         for (const name of ['Model', 'GradeRamp', 'SlopePanel', 'UrlSync']) {
             const dir = name === 'GradeRamp' ? 'common' : 'access-score';  // The ramp is shared with the API docs.
-            Object.assign(window, loadModules(`frontend/js/${dir}/AccessScore${name}.js`));
+            Object.assign(window, await loadModules(`frontend/js/${dir}/AccessScore${name}.js`));
         }
         ({ AccessScoreModel, AccessScoreSlopePanel, AccessScoreUrlSync } = window);
     });

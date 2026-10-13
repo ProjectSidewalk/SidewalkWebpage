@@ -14,9 +14,9 @@
  * rather than as an error. These assert the same numbers the other two suites do, through the stamp.
  */
 
-const fs = require('fs');
-const path = require('path');
-const { loadModules, realUtil } = require('./loadGlobalScript');
+import fs from 'fs';
+import path from 'path';
+import { loadModules, realUtil, stubUtil } from './loadGlobalScript.js';
 
 const CONFIG_PATH = path.resolve(__dirname, '..', '..', 'conf/pano-scoring.json');
 const config = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
@@ -25,8 +25,8 @@ const config = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
 const stamped = Object.fromEntries(Object.entries(config).filter(([key]) => !key.startsWith('_')));
 document.documentElement.dataset.panoScoring = JSON.stringify(stamped);
 
-window.util = realUtil();
-loadModules('frontend/js/common/pano-viewer/panoUtilities.js');
+stubUtil(await realUtil());
+await loadModules('frontend/js/common/pano-viewer/panoUtilities.js');
 
 const scoring = window.util.pano.scoring;
 

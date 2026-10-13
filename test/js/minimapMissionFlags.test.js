@@ -11,8 +11,11 @@
  * finish flag is part of what is being exercised.
  */
 
-const path = require('path');
-const { loadModules } = require('./loadGlobalScript');
+import path from 'path';
+import { loadModules, stubUtil, fakeImport } from './loadGlobalScript.js';
+import { fakeTracker, fakePanoManager, fakeTaskContainer } from './fakes.js';
+
+fakeImport('frontend/js/explore/navigation/MinimapStyle.js', 'MinimapStyle');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 
@@ -108,7 +111,7 @@ describe('Minimap mission flags across a mission boundary', () => {
 
     beforeEach(async () => {
         FakeMarker.created = [];
-        window.util = { assetPath: (logicalPath) => logicalPath };
+        stubUtil({ assetPath: (logicalPath) => logicalPath });
         window.i18next = { t: (key) => key };
         window.maplibregl = { Map: FakeMap, Marker: FakeMarker };
         const ui = {
@@ -119,17 +122,17 @@ describe('Minimap mission flags across a mission boundary', () => {
             missionProgressDistance: uiStub(),
         };
 
-        Object.assign(window, loadModules('frontend/js/explore/navigation/MinimapStyle.js'));
+        Object.assign(window, await loadModules('frontend/js/explore/navigation/MinimapStyle.js'));
         // jsdom has no 2D canvas; the chevron's pixels aren't under test.
         window.MinimapStyle.chevronImage = () => ({ width: 1, height: 1, data: new Uint8ClampedArray(4) });
-        Object.assign(window, loadModules('frontend/js/explore/navigation/Minimap.js',
+        Object.assign(window, await loadModules('frontend/js/explore/navigation/Minimap.js',
             'frontend/js/explore/navigation/MinimapMissionProgress.js'));
-        const minimap = await window.Minimap.create(ui, { lat: LAT, lng: START_LNG }, { onPanoChanged: () => {} }, { push: jest.fn() });
+        const minimap = await window.Minimap.create(ui, { lat: LAT, lng: START_LNG }, fakePanoManager(), fakeTracker());
         const missionContainer = {
             getMissionCompletionRate: (mission) => mission.getProperty('distanceProgress') / mission.getDistance(),
         };
         progress = new window.MinimapMissionProgress(ui, { isOnboarding: false, isExploreAddressMode: false },
-            { isRoute: false }, { getTasks: () => [task], getCurrentTask: () => task }, missionContainer, minimap);
+            { isRoute: false }, fakeTaskContainer(() => task, { getTasks: () => [task] }), missionContainer, minimap);
     });
 
     test('closing the modal turns the reached finish flag into the next mission\'s start flag', () => {

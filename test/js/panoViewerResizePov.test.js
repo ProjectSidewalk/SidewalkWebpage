@@ -11,7 +11,9 @@
  * MapillaryViewer is a top-level `class` written for Grunt concatenation, so the sources are eval'd into jsdom with
  * stubs for the sibling classes PanoViewer's constructor compares `new.target` against.
  */
-const { loadGlobalScript, realUtil, loadModules } = require('./loadGlobalScript');
+import { loadGlobalScript, realUtil, loadModules, stubUtil, fakeImport } from './loadGlobalScript.js';
+
+fakeImport('frontend/js/common/pano-viewer/PanoViewer.js', 'PanoViewer');
 
 
 // getPov() converts through util.pano; utilities.js builds a Bowser parser at load time that nothing here consults.
@@ -21,13 +23,13 @@ window.bowser = {
         getOSName: () => 'TestOS', getPlatformType: () => 'desktop',
     }),
 };
-window.util = realUtil();
-loadGlobalScript('frontend/js/common/utilitiesMath.js');
-loadGlobalScript('frontend/js/common/pano-viewer/panoUtilities.js');
+stubUtil(await realUtil());
+await loadGlobalScript('frontend/js/common/utilitiesMath.js');
+await loadGlobalScript('frontend/js/common/pano-viewer/panoUtilities.js');
 
 /** Loads PanoViewer + MapillaryViewer fresh into the jsdom global scope. */
-function loadViewers() {
-    Object.assign(window, loadModules('frontend/js/common/pano-viewer/PanoViewer.js', 'frontend/js/common/pano-viewer/MapillaryViewer.js'));
+async function loadViewers() {
+    Object.assign(window, await loadModules('frontend/js/common/pano-viewer/PanoViewer.js', 'frontend/js/common/pano-viewer/MapillaryViewer.js'));
     return window.MapillaryViewer;
 }
 
@@ -46,13 +48,13 @@ describe('PanoViewer resize reports a POV change once the new box has rendered',
         due.forEach((cb) => cb());
     }
 
-    test('MapillaryViewer reads the new aspect from its container at resize, so getPov() is right at once', () => {
-        const MapillaryViewer = loadViewers();
+    test('MapillaryViewer reads the new aspect from its container at resize, so getPov() is right at once', async () => {
+        const MapillaryViewer = await loadViewers();
         const viewer = new MapillaryViewer();
-        viewer.viewer = { resize: jest.fn() };
+        viewer.viewer = { resize: vi.fn() };
         viewer.currCameraHeading = 180; // What getPov() reads besides the camera cache.
         viewer.currCenter = [0.5, 0.5];
-        const onPov = jest.fn();
+        const onPov = vi.fn();
         viewer.addListener('pov_changed', onPov);
         const camera = (aspect) => ({ perspective: { fov: 90, aspect }, _currentImageId: 'img' });
 
@@ -78,10 +80,10 @@ describe('PanoViewer resize reports a POV change once the new box has rendered',
         expect(onPov).toHaveBeenCalledTimes(2);
     });
 
-    test('a viewer without a camera event reports the POV two frames after resize (the base helper)', () => {
-        const MapillaryViewer = loadViewers();
+    test('a viewer without a camera event reports the POV two frames after resize (the base helper)', async () => {
+        const MapillaryViewer = await loadViewers();
         const viewer = new MapillaryViewer();
-        const onPov = jest.fn();
+        const onPov = vi.fn();
         viewer.addListener('pov_changed', onPov);
         viewer._firePovChangedAfterResize();
         paint();

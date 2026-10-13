@@ -10,9 +10,9 @@
  * Confetti.js declares a top-level class, so the tests evaluate the source rather than using loadGlobalScript.
  */
 
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules } from './loadGlobalScript.js';
 
-const Confetti = loadModules('frontend/js/common/Confetti.js').Confetti;
+const Confetti = (await loadModules('frontend/js/common/Confetti.js')).Confetti;
 
 // iOS Safari's canvas-area ceiling, spelled out here rather than read off the class so a change to the constant
 // has to be a deliberate one rather than something these tests follow silently.
@@ -67,24 +67,24 @@ describe('Confetti.burst', () => {
 
     beforeEach(() => {
         reduceMotion = false;
-        window.matchMedia = jest.fn((query) => ({
+        window.matchMedia = vi.fn((query) => ({
             matches: query.includes('prefers-reduced-motion: reduce') ? reduceMotion : !reduceMotion,
         }));
         // jsdom lays nothing out, so the canvas is told what it covers. The default is the case the cap bites on.
-        jest.spyOn(HTMLCanvasElement.prototype, 'offsetWidth', 'get').mockReturnValue(OVERSIZED_LAYOUT.width);
-        jest.spyOn(HTMLCanvasElement.prototype, 'offsetHeight', 'get').mockReturnValue(OVERSIZED_LAYOUT.height);
+        vi.spyOn(HTMLCanvasElement.prototype, 'offsetWidth', 'get').mockReturnValue(OVERSIZED_LAYOUT.width);
+        vi.spyOn(HTMLCanvasElement.prototype, 'offsetHeight', 'get').mockReturnValue(OVERSIZED_LAYOUT.height);
         ctx = {
-            scale: jest.fn(), clearRect: jest.fn(), save: jest.fn(), restore: jest.fn(),
-            translate: jest.fn(), rotate: jest.fn(), fillRect: jest.fn(),
+            scale: vi.fn(), clearRect: vi.fn(), save: vi.fn(), restore: vi.fn(),
+            translate: vi.fn(), rotate: vi.fn(), fillRect: vi.fn(),
         };
-        jest.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(ctx);
-        window.requestAnimationFrame = jest.fn(); // Hold the first frame so the canvas can be inspected.
+        vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(ctx);
+        window.requestAnimationFrame = vi.fn(); // Hold the first frame so the canvas can be inspected.
         Object.defineProperty(window, 'devicePixelRatio', {value: 3, configurable: true});
         setTokens(['#FBD98C', '#1F7A5C', '#F4772E', '#3B6FD4', '#9A73D8', '#4FBFA8']);
     });
 
     afterEach(() => {
-        jest.restoreAllMocks();
+        vi.restoreAllMocks();
         document.body.innerHTML = '';
     });
 
@@ -118,8 +118,8 @@ describe('Confetti.burst', () => {
     });
 
     test('a display that fits inside the cap keeps its full ratio', () => {
-        jest.spyOn(HTMLCanvasElement.prototype, 'offsetWidth', 'get').mockReturnValue(390);
-        jest.spyOn(HTMLCanvasElement.prototype, 'offsetHeight', 'get').mockReturnValue(844);
+        vi.spyOn(HTMLCanvasElement.prototype, 'offsetWidth', 'get').mockReturnValue(390);
+        vi.spyOn(HTMLCanvasElement.prototype, 'offsetHeight', 'get').mockReturnValue(844);
 
         Confetti.burst();
 

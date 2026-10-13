@@ -14,8 +14,8 @@
  * stub that got the geometry slightly wrong would pass for the wrong reason.
  */
 
-const path = require('path');
-const { loadModules, realUtil } = require('./loadGlobalScript');
+import path from 'path';
+import { loadModules, realUtil } from './loadGlobalScript.js';
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 
@@ -53,11 +53,11 @@ function positionOn(street, alongM, offsetM = 0) {
 }
 
 describe('Task.isAtEnd', () => {
-    beforeEach(() => {
+    beforeEach(async () => {
         window.turf = turf;
-        window.util ??= realUtil();
-        loadModules('frontend/js/common/utilitiesMath.js');
-        Object.assign(window, loadModules('frontend/js/explore/task/Task.js'));
+        window.util ??= await realUtil();
+        await loadModules('frontend/js/common/utilitiesMath.js');
+        Object.assign(window, await loadModules('frontend/js/explore/task/Task.js'));
     });
 
     describe('on the 8.6 m Richmond stub the labeler was bounced around (#5350)', () => {

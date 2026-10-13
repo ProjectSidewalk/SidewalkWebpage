@@ -11,10 +11,10 @@
  */
 
 
-const {assetPathStub, loadModules } = require('./loadGlobalScript');
+import { assetPathStub, loadModules, stubUtil } from './loadGlobalScript.js';
 
-const evalBadgeAchievements = () => loadModules('frontend/js/common/BadgeAchievements.js').BadgeAchievements;
-const BadgeAchievements = evalBadgeAchievements();
+const evalBadgeAchievements = async () => (await loadModules('frontend/js/common/BadgeAchievements.js')).BadgeAchievements;
+const BadgeAchievements = await evalBadgeAchievements();
 
 const TRACKS = ['missions', 'distance', 'labels', 'validations'];
 
@@ -82,7 +82,7 @@ describe('BadgeAchievements.getProgress', () => {
 
     beforeEach(() => {
         global.i18next = {t: (key) => key}; // getBadge localizes the badge's display name.
-        global.util = {assetPath: assetPathStub}; // getBadge resolves the badge artwork's URL.
+        stubUtil({assetPath: assetPathStub}); // getBadge resolves the badge artwork's URL.
     });
 
     afterEach(() => {
@@ -191,7 +191,7 @@ describe('BadgeAchievements.seedCounts', () => {
     const settle = () => new Promise((resolve) => { setTimeout(resolve, 0); });
 
     const respondWith = (status, body) => {
-        global.fetch = jest.fn(() => Promise.resolve({
+        global.fetch = vi.fn(() => Promise.resolve({
             ok: status >= 200 && status < 300,
             status,
             json: () => Promise.resolve(body),
@@ -206,11 +206,11 @@ describe('BadgeAchievements.seedCounts', () => {
         return toasts;
     };
 
-    beforeEach(() => {
-        Badges = evalBadgeAchievements();
-        consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+    beforeEach(async () => {
+        Badges = await evalBadgeAchievements();
+        consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
         global.i18next = {t: (key) => key}; // getBadge localizes the badge's display name.
-        global.util = {hasSession: () => true, assetPath: assetPathStub};
+        stubUtil({hasSession: () => true, assetPath: assetPathStub});
     });
 
     afterEach(() => {
@@ -231,7 +231,7 @@ describe('BadgeAchievements.seedCounts', () => {
     });
 
     test('a page rendered without an identity seeds zero and never requests', async () => {
-        global.util = {...global.util, hasSession: () => false};
+        stubUtil({...global.util, hasSession: () => false});
         respondWith(200, {validation_count: 4000, mission_count: 200});
         Badges.seedCounts();
         await settle();
@@ -243,7 +243,7 @@ describe('BadgeAchievements.seedCounts', () => {
     });
 
     test('a page with no navbar to report session state still requests', async () => {
-        global.util = {...global.util, hasSession: () => null};
+        stubUtil({...global.util, hasSession: () => null});
         respondWith(200, {validation_count: 99, mission_count: 4});
         Badges.seedCounts();
         await settle();

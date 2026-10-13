@@ -9,7 +9,10 @@
  * the source is eval'd into jsdom with those stubbed.
  */
 
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules, fakeImport } from './loadGlobalScript.js';
+
+fakeImport('frontend/js/ps-map/psMapUtilities.js', 'filterLabelLayers', 'filterStreetLayer', 'toggleLabelLayer');
+fakeImport('frontend/js/common/filter-sidebar/FilterSidebar.js', 'FilterSidebar');
 
 
 const LABEL_TYPES = ['CurbRamp', 'Obstacle'];
@@ -119,13 +122,13 @@ describe('MapSidebarFilter counts', () => {
         return new window.MapSidebarFilter(map, mapData);
     }
 
-    beforeAll(() => {
+    beforeAll(async () => {
         window.i18next = { t: (key) => key, language: 'en' };
         window.filterLabelLayers = () => {};
         window.filterStreetLayer = () => {};
         window.toggleLabelLayer = () => {};
-        Object.assign(window, loadModules('frontend/js/common/filter-sidebar/FilterSidebar.js'));
-        Object.assign(window, loadModules('frontend/js/ps-map/MapSidebarFilter.js'));
+        Object.assign(window, await loadModules('frontend/js/common/filter-sidebar/FilterSidebar.js'));
+        Object.assign(window, await loadModules('frontend/js/ps-map/MapSidebarFilter.js'));
     });
 
     it('renders counts as soon as it is constructed, before any interaction', () => {

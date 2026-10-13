@@ -10,7 +10,7 @@
  * DOM before constructing a controller.
  */
 
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules } from './loadGlobalScript.js';
 
 
 /** Builds a navbar with one quick item (the account control) and one panel-only dropdown (language). */
@@ -64,8 +64,8 @@ const isOpen = (id) => document.getElementById(id).classList.contains('is-open')
 const press = (el) => el.dispatchEvent(new Event('pointerdown', { bubbles: true }));
 
 describe('Navbar disclosures', () => {
-    beforeAll(() => {
-        Object.assign(window, loadModules('frontend/js/common/Navbar.js'));
+    beforeAll(async () => {
+        Object.assign(window, await loadModules('frontend/js/common/Navbar.js'));
     });
 
     beforeEach(() => {

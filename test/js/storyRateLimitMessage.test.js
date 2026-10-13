@@ -7,7 +7,7 @@
  * 429 body the controller produces, and the rendered error text is asserted.
  */
 
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules, stubUtil } from './loadGlobalScript.js';
 
 
 /** The elements StoryComposer's constructor looks up, in a <dialog> host. */
@@ -61,7 +61,7 @@ const errorText = () => document.querySelector('.story-composer__error').textCon
 /** Runs a submission that the server refuses with `body` at HTTP 429. */
 async function submitAndFail(body) {
     const composer = new window.StoryComposer(setupDom(), {});
-    window.fetch = jest.fn().mockResolvedValue({
+    window.fetch = vi.fn().mockResolvedValue({
         ok: false, status: 429, json: () => Promise.resolve(body),
     });
     await composer.open(7, 5000);
@@ -71,24 +71,24 @@ async function submitAndFail(body) {
     await flush();
 }
 
-beforeEach(() => {
-    Object.assign(window, loadModules('frontend/js/common/label-detail/StoryComposer.js'));
+beforeEach(async () => {
+    Object.assign(window, await loadModules('frontend/js/common/label-detail/StoryComposer.js'));
     // #postForm posts through util.lazyIdentityFetch (#4442). The real helper passes a non-auth failure like this
     // suite's 429 through unchanged, so a pass-through stub is faithful; the mint/retry path has its own suite
     // (lazyIdentityFetch.test.js).
-    window.util = { lazyIdentityFetch: (url, options) => window.fetch(url, options) };
+    stubUtil({ lazyIdentityFetch: (url, options) => window.fetch(url, options) });
     window.i18next = {
         language: 'en',
         exists: (key) => key in STRINGS,
         t: (key, opts) => (STRINGS[key] || key).replace('{{when}}', (opts && opts.when) || ''),
     };
-    window.logWebpageActivity = jest.fn();
-    window.HTMLDialogElement.prototype.showModal = jest.fn();
-    window.HTMLDialogElement.prototype.close = jest.fn();
+    window.logWebpageActivity = vi.fn();
+    window.HTMLDialogElement.prototype.showModal = vi.fn();
+    window.HTMLDialogElement.prototype.close = vi.fn();
     document.documentElement.lang = 'en';
     // open() looks for a stashed draft in IndexedDB, which jsdom has none of; the composer already handles that by
     // logging and carrying on, so silence the expected noise rather than let it bury a real failure.
-    jest.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
 });
 
 afterEach(() => {

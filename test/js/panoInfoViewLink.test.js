@@ -13,7 +13,7 @@
  */
 
 
-const { assetPathStub, installDateHelpers, loadModules } = require('./loadGlobalScript');
+import { assetPathStub, installDateHelpers, loadModules, stubUtil } from './loadGlobalScript.js';
 
 
 // The parts of app/views/common/panoInfoPopover.scala.html the class actually reads. Kept minimal on purpose: if a
@@ -47,10 +47,10 @@ function makeViewer(panoId, link) {
     return {
         panoId,
         currPanoData: { getPanoId: () => panoId },
-        publicViewerLink: jest.fn(() => (link ? { ...link } : null)),
+        publicViewerLink: vi.fn(() => (link ? { ...link } : null)),
         getPosition: () => ({ lat: 38.9, lng: -77.0 }),
         getPov: () => ({ heading: 12, pitch: -3 }),
-        addListener: jest.fn(),
+        addListener: vi.fn(),
     };
 }
 
@@ -87,9 +87,9 @@ describe('PanoInfoPopover view-in-pano link', () => {
             () => '123 Main St',                   // panoAddress
             () => activeViewer.getPov(),
             true,           // whiteIcon
-            jest.fn(),      // infoLogging
-            jest.fn(),      // clipboardLogging
-            jest.fn(),      // viewPanoLogging
+            vi.fn(),      // infoLogging
+            vi.fn(),      // clipboardLogging
+            vi.fn(),      // viewPanoLogging
         );
     }
 
@@ -103,12 +103,12 @@ describe('PanoInfoPopover view-in-pano link', () => {
         document.getElementById('pano-info-button').click();
     }
 
-    beforeEach(() => {
+    beforeEach(async () => {
         document.body.innerHTML = `<span id="host"></span>${POPOVER_MARKUP}`;
         popoverEl = document.getElementById('pano-info-popover');
         viewLink = popoverEl.querySelector('.pano-info-popover__view-link');
 
-        // jsdom (via jest-environment-jsdom 29) implements neither the Popover API nor the :popover-open
+        // jsdom implements neither the Popover API nor the :popover-open
         // pseudo-class, so stand both up over a simple open flag.
         let open = false;
         popoverEl.showPopover = () => { open = true; };
@@ -118,16 +118,16 @@ describe('PanoInfoPopover view-in-pano link', () => {
 
         // Translations render as their raw keys so assertions stay locale-independent.
         window.i18next = { t: (key) => key };
-        window.util = { assetPath: assetPathStub }; // The info button's icon URL.
-        installDateHelpers();
+        stubUtil({ assetPath: assetPathStub }); // The info button's icon URL.
+        await installDateHelpers();
         window.cityName = 'Washington';
         clipboardText = null;
         Object.defineProperty(navigator, 'clipboard', {
-            value: { writeText: jest.fn((text) => { clipboardText = text; return Promise.resolve(); }) },
+            value: { writeText: vi.fn((text) => { clipboardText = text; return Promise.resolve(); }) },
             configurable: true,
         });
 
-        Object.assign(window, loadModules('frontend/js/common/pano-viewer/PanoInfoPopover.js'));
+        Object.assign(window, await loadModules('frontend/js/common/pano-viewer/PanoInfoPopover.js'));
         PanoInfoPopover = window.PanoInfoPopover;
 
         activeViewer = makeGsvViewer();

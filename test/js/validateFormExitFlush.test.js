@@ -7,16 +7,16 @@
  * lose. Each flush records why it happened, so the interaction log can tell a background kill (`PageHidden` last)
  * from a foreground crash (a verdict last).
  *
- * Runs under jsdom (jest.config.js sets testEnvironment) so window/document exist.
+ * Runs under jsdom (vitest.config.mjs sets testEnvironment) so window/document exist.
  */
 
-const path = require('path');
-const { loadModules } = require('./loadGlobalScript');
+import path from 'path';
+import { loadModules } from './loadGlobalScript.js';
 
 
 const FORM_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/data/Form.js');
 
-const Form = loadModules(FORM_PATH).Form;
+const Form = (await loadModules(FORM_PATH)).Form;
 
 // jsdom reports a page reload as a "Not implemented: navigation" error on the console, so a spy there is how the
 // suite proves the page was never reloaded (the blanket `catch -> location.reload()` #2745 removed).
@@ -35,7 +35,7 @@ function setVisibility(state) {
 describe('Form exit flushes (issue #5561)', () => {
     let form;
     let payload;
-    const tracker = { push: jest.fn(), record: jest.fn(), onFlush: jest.fn() };
+    const tracker = { push: vi.fn(), record: vi.fn(), onFlush: vi.fn() };
 
     // One Form for the whole suite: its constructor leaves exit listeners on the shared window and document, so a
     // Form per test would have every earlier one answering the events too, and the POST counts would be theirs.
@@ -44,17 +44,17 @@ describe('Form exit flushes (issue #5561)', () => {
     });
 
     beforeEach(() => {
-        global.fetch = jest.fn(() => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({}) }));
+        global.fetch = vi.fn(() => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({}) }));
         tracker.push.mockClear();
         tracker.record.mockClear();
-        consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+        consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
 
         payload = { validations: [{ label_id: 1 }], interactions: [] };
-        jest.spyOn(form, 'compileSubmissionData').mockReturnValue(payload);
+        vi.spyOn(form, 'compileSubmissionData').mockReturnValue(payload);
     });
 
     afterEach(() => {
-        jest.restoreAllMocks();
+        vi.restoreAllMocks();
         delete global.fetch;
         setVisibility('visible');
     });
@@ -119,9 +119,9 @@ describe('Form exit flushes (issue #5561)', () => {
     });
 
     test('a hidden flush that fails is logged and retried, since the page usually comes back', async () => {
-        jest.useFakeTimers();
+        vi.useFakeTimers();
         try {
-            global.fetch = jest.fn()
+            global.fetch = vi.fn()
                 .mockImplementationOnce(() => Promise.reject(new Error('blip')))
                 .mockImplementation(() => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({}) }));
 
@@ -130,16 +130,16 @@ describe('Form exit flushes (issue #5561)', () => {
             await Promise.resolve();
             expect(tracker.push).toHaveBeenCalledWith('SubmitFailed', expect.objectContaining({ attempt: 0 }));
 
-            await jest.advanceTimersByTimeAsync(2000);
+            await vi.advanceTimersByTimeAsync(2000);
             expect(global.fetch).toHaveBeenCalledTimes(2);
             expect(global.fetch.mock.calls[1][1].body).toBe(JSON.stringify(payload));
         } finally {
-            jest.useRealTimers();
+            vi.useRealTimers();
         }
     });
 
     test('a pagehide flush that fails is left alone: nothing is there to retry it', async () => {
-        global.fetch = jest.fn(() => Promise.reject(new Error('blip')));
+        global.fetch = vi.fn(() => Promise.reject(new Error('blip')));
 
         window.dispatchEvent(new Event('pagehide'));
         await Promise.resolve();

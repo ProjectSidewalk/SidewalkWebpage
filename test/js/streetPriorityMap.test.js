@@ -7,22 +7,22 @@
  * run under jsdom (no WebGL), so this stands up a `mapboxgl` double that records what the map was asked to do — the
  * arrangement is ours to get right, the rendering is Mapbox's.
  *
- * Runs under jsdom (jest.config.js). StreetPriorityMap is a bare top-level class in a concatenated bundle, so it is
+ * Runs under jsdom (vitest.config.mjs). StreetPriorityMap is a bare top-level class in a concatenated bundle, so it is
  * eval'd into global scope rather than required.
  */
 
 
-const { loadModules, realUtil } = require('./loadGlobalScript');
+import { loadModules, realUtil, stubUtil } from './loadGlobalScript.js';
 
-window.util = realUtil();
+stubUtil(await realUtil());
 
 
 /** Loads AdminShell (the popup escapes through it) and returns the map class. */
-function loadMap() {
-  return loadModules('frontend/js/admin-dashboard/StreetPriorityMap.js');
+async function loadMap() {
+  return await loadModules('frontend/js/admin-dashboard/StreetPriorityMap.js');
 }
 
-const { StreetPriorityMap, StreetPriorityTiers } = loadMap();
+const { StreetPriorityMap, StreetPriorityTiers } = await loadMap();
 
 /** A minimal `mapboxgl` double: records layers, sources, feature states and handlers instead of drawing. */
 function stubMapbox() {
@@ -163,9 +163,9 @@ describe('StreetPriorityMap layers', () => {
     document.body.innerHTML = '<div id="priority-map"></div>';
     map = new StreetPriorityMap('priority-map', {
       mapboxToken: 'pk.test',
-      onRegionClick: jest.fn(),
-      onRegionHover: jest.fn(),
-      onRegionHoverEnd: jest.fn(),
+      onRegionClick: vi.fn(),
+      onRegionHover: vi.fn(),
+      onRegionHoverEnd: vi.fn(),
     });
     const ready = map.init(geojson());
     state.mapInstance.finishLoad();
@@ -225,7 +225,7 @@ describe('StreetPriorityMap interactions', () => {
   beforeEach(async () => {
     state = stubMapbox();
     document.body.innerHTML = '<div id="priority-map"></div>';
-    hooks = { onRegionClick: jest.fn(), onRegionHover: jest.fn(), onRegionHoverEnd: jest.fn() };
+    hooks = { onRegionClick: vi.fn(), onRegionHover: vi.fn(), onRegionHoverEnd: vi.fn() };
     map = new StreetPriorityMap('priority-map', { mapboxToken: 'pk.test', ...hooks });
     const ready = map.init(geojson());
     state.mapInstance.finishLoad();

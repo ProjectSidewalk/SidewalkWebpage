@@ -6,8 +6,18 @@
  * a weight slider mid-drag redraws the views but leaves the map's dim state alone.
  */
 
-const {FIXTURE, stubI18next, installUtil, stubFetch, loadSources, feature, DOCK_HTML} =
-    require('./support/accessScoreDockHarness');
+import {FIXTURE, stubI18next, installUtil, stubFetch, loadSources, feature, DOCK_HTML} from './support/accessScoreDockHarness.js';
+import { fakeImport } from './loadGlobalScript.js';
+
+fakeImport('frontend/js/access-score/AccessScoreChart.js', 'AccessScoreChart');
+fakeImport('frontend/js/access-score/AccessScoreHistogram.js', 'AccessScoreHistogram');
+fakeImport('frontend/js/access-score/AccessScoreModel.js', 'AccessScoreModel');
+fakeImport('frontend/js/access-score/AccessScorePhotoStrip.js', 'AccessScorePhotoStrip');
+fakeImport('frontend/js/access-score/AccessScoreRankBars.js', 'AccessScoreRankBars');
+fakeImport('frontend/js/access-score/AccessScoreWhatsHere.js', 'AccessScoreWhatsHere');
+fakeImport('frontend/js/common/AccessScoreGradeRamp.js', 'AccessScoreGradeRamp');
+fakeImport('frontend/js/common/LabelMiniCard.js', 'LabelMiniCard');
+fakeImport('frontend/js/common/scoreRamp.js', 'ScoreRamp');
 
 /** A flushed microtask queue, for the strip's fetch chain under fake timers. */
 const settle = async () => {
@@ -35,17 +45,17 @@ describe('AccessScoreDock', () => {
         return out;
     }
 
-    const flush = () => jest.advanceTimersByTime(20);
+    const flush = () => vi.advanceTimersByTime(20);
     const lastBrush = () => mapView.setBrush.mock.calls[mapView.setBrush.mock.calls.length - 1][0];
 
-    beforeAll(() => {
+    beforeAll(async () => {
         stubI18next();
-        installUtil();
-        loadSources();
+        await installUtil();
+        await loadSources();
     });
 
     beforeEach(() => {
-        jest.useFakeTimers();
+        vi.useFakeTimers();
         document.body.innerHTML = DOCK_HTML;
         // The last three fixture streets go to a second region, so a region scope is a real subset.
         const features = FIXTURE.streets.map((c, i) =>
@@ -54,23 +64,23 @@ describe('AccessScoreDock', () => {
             {type: 'FeatureCollection', features: []}, REGIONS);
         // The map starts zoomed out over nothing, so the strip's city rule applies until a test moves it.
         mapView = {
-            setBrush: jest.fn(),
-            setGradeSelection: jest.fn(),
-            visibleRegionIds: jest.fn(() => new Set()),
+            setBrush: vi.fn(),
+            setGradeSelection: vi.fn(),
+            visibleRegionIds: vi.fn(() => new Set()),
             regionBoundsOf: (id) => ({getCenter: () => ({lng: id, lat: 0})}),
         };
         map = {
-            on: jest.fn(),
+            on: vi.fn(),
             getPadding: () => ({left: 0, top: 0, right: 0, bottom: 0}),
-            setPadding: jest.fn(),
-            easeTo: jest.fn(),
+            setPadding: vi.fn(),
+            easeTo: vi.fn(),
             getContainer: () => ({getBoundingClientRect: () => ({height: 800})}),
             getZoom: () => 12,
             getCenter: () => ({lng: 0, lat: 0}),
             getBounds: () => ({getWest: () => -1, getSouth: () => -1, getEast: () => 1, getNorth: () => 1}),
         };
-        callbacks = {onRankSelect: jest.fn(), onOpenLabel: jest.fn(), onStateChange: jest.fn(),
-            log: jest.fn()};
+        callbacks = {onRankSelect: vi.fn(), onOpenLabel: vi.fn(), onStateChange: vi.fn(),
+            log: vi.fn()};
         fetchMock = stubFetch({
             clustersByRegion: {
                 1: [
@@ -105,7 +115,7 @@ describe('AccessScoreDock', () => {
     });
 
     afterEach(() => {
-        jest.useRealTimers();
+        vi.useRealTimers();
     });
 
     test('draws the four views and the KPIs for the whole city on its first frame', async () => {
@@ -579,7 +589,7 @@ describe('AccessScoreDock', () => {
         map.getZoom = () => 14;
         mapView.visibleRegionIds.mockImplementation(() => new Set([1, 2]));
         moveend({originalEvent: {}});
-        jest.advanceTimersByTime(window.AccessScoreDock.PHOTO_MOVE_DEBOUNCE_MS);
+        vi.advanceTimersByTime(window.AccessScoreDock.PHOTO_MOVE_DEBOUNCE_MS);
         await settle();
         expect(captionEl()).toBe('photos-from scope=photos-scope-viewport');
         expect(shownIds()).toEqual(['101', '201']);
@@ -590,11 +600,11 @@ describe('AccessScoreDock', () => {
         // A programmatic move (no originalEvent) is not a pan; a pan that keeps the same clusters redraws nothing.
         const ribbonBefore = document.querySelector('.acs-photos__ribbon').innerHTML;
         moveend({});
-        jest.advanceTimersByTime(window.AccessScoreDock.PHOTO_MOVE_DEBOUNCE_MS);
+        vi.advanceTimersByTime(window.AccessScoreDock.PHOTO_MOVE_DEBOUNCE_MS);
         await settle();
         map.getBounds = () => ({getWest: () => -1.0004, getSouth: () => -1, getEast: () => 1, getNorth: () => 1});
         moveend({originalEvent: {}});
-        jest.advanceTimersByTime(window.AccessScoreDock.PHOTO_MOVE_DEBOUNCE_MS);
+        vi.advanceTimersByTime(window.AccessScoreDock.PHOTO_MOVE_DEBOUNCE_MS);
         await settle();
         expect(document.querySelector('.acs-photos__ribbon').innerHTML).toBe(ribbonBefore);
         expect(fetchMock.mock.calls.filter(([u]) => String(u).includes('/v3/api/labelClusters'))).toHaveLength(2);
@@ -602,7 +612,7 @@ describe('AccessScoreDock', () => {
         // A pan that leaves only one cluster in view narrows the strip without a new fetch (feeds are cached).
         map.getBounds = () => ({getWest: () => 0.4, getSouth: () => 0.4, getEast: () => 1, getNorth: () => 1});
         moveend({originalEvent: {}});
-        jest.advanceTimersByTime(window.AccessScoreDock.PHOTO_MOVE_DEBOUNCE_MS);
+        vi.advanceTimersByTime(window.AccessScoreDock.PHOTO_MOVE_DEBOUNCE_MS);
         await settle();
         expect(shownIds()).toEqual(['101']);
         expect(fetchMock.mock.calls.filter(([u]) => String(u).includes('/v3/api/labelClusters'))).toHaveLength(2);
@@ -612,14 +622,14 @@ describe('AccessScoreDock', () => {
         const labelFetches = () => fetchMock.mock.calls.filter(([u]) => String(u).includes('/label/id/')).length;
         map.getBounds = () => ({getWest: () => 0, getSouth: () => 0, getEast: () => 0.15, getNorth: () => 0.15});
         moveend({originalEvent: {}});
-        jest.advanceTimersByTime(window.AccessScoreDock.PHOTO_MOVE_DEBOUNCE_MS);
+        vi.advanceTimersByTime(window.AccessScoreDock.PHOTO_MOVE_DEBOUNCE_MS);
         await settle();
         expect(shownIds()).toEqual([]);
         expect(document.querySelector('.acs-photos__status').textContent).toBe('photos-empty');
         const before = labelFetches();
         map.getBounds = () => ({getWest: () => -0.0004, getSouth: () => 0, getEast: () => 0.15, getNorth: () => 0.15});
         moveend({originalEvent: {}});
-        jest.advanceTimersByTime(window.AccessScoreDock.PHOTO_MOVE_DEBOUNCE_MS);
+        vi.advanceTimersByTime(window.AccessScoreDock.PHOTO_MOVE_DEBOUNCE_MS);
         await settle();
         expect(labelFetches()).toBe(before + 1);
         expect(document.querySelector('.acs-photos__status').textContent).toBe('photos-empty');

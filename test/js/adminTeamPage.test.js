@@ -2,19 +2,22 @@
  * Tests for the admin team page (#5381): what the member table shows, how the totals read, and that the roster
  * controls call the endpoints the server actually exposes.
  *
- * Runs under jsdom (jest.config.js). TeamPage and AdminShell are bare top-level classes loaded by <script> tags, so
+ * Runs under jsdom (vitest.config.mjs). TeamPage and AdminShell are bare top-level classes loaded by <script> tags, so
  * they are eval'd into global scope rather than required.
  */
 
-const { loadModules, realUtil } = require('./loadGlobalScript');
+import { loadModules, realUtil, fakeImport, stubUtil } from './loadGlobalScript.js';
+
+fakeImport('frontend/js/common/ConfirmDialog.js', 'ConfirmDialog');
+
 
 // The page fetches through util.fetchJson.
-window.util = realUtil();
+stubUtil(await realUtil());
 
 let TeamPage;
 
-beforeAll(() => {
-  TeamPage = loadModules('frontend/js/admin-dashboard/TeamPage.js').TeamPage;
+beforeAll(async () => {
+  TeamPage = (await loadModules('frontend/js/admin-dashboard/TeamPage.js')).TeamPage;
 });
 
 const TEAM_ID = 7;
@@ -48,7 +51,7 @@ async function load() {
     <div id="team-add-results"></div>`;
 
   const calls = [];
-  global.fetch = jest.fn((url, opts = {}) => {
+  global.fetch = vi.fn((url, opts = {}) => {
     calls.push({ url, method: opts.method || 'GET' });
     if (url.startsWith('/adminapi/team')) {
       return Promise.resolve({ ok: true, json: () => Promise.resolve(OVERVIEW) });
@@ -61,7 +64,7 @@ async function load() {
     }
     return Promise.resolve({ ok: true, text: () => Promise.resolve('{}') });
   });
-  global.ConfirmDialog = { confirm: jest.fn(() => Promise.resolve(true)) };
+  global.ConfirmDialog = { confirm: vi.fn(() => Promise.resolve(true)) };
 
   const page = new TeamPage(TEAM_ID, {
     overviewUrl: '/adminapi/team',
@@ -164,7 +167,7 @@ describe('the roster controls', () => {
     await load();
     // Held open by hand, so the box is cleared while the request is genuinely outstanding.
     let release;
-    global.fetch = jest.fn((url) => (url.startsWith('/adminapi/userSearch')
+    global.fetch = vi.fn((url) => (url.startsWith('/adminapi/userSearch')
       ? new Promise((resolve) => {
         release = () => resolve({ ok: true, json: () => Promise.resolve([
           { user_id: 'u3', username: 'cyd', email: 'cyd@example.org', role: 'Registered', team: null },

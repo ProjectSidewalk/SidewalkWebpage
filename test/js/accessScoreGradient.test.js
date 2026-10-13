@@ -7,10 +7,14 @@
  * only a real engine config here.
  */
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules, stubUtil, fakeImport } from './loadGlobalScript.js';
+
+fakeImport('frontend/js/access-score/AccessScoreModel.js', 'AccessScoreModel');
+fakeImport('frontend/js/common/AccessScoreGradeRamp.js', 'AccessScoreGradeRamp');
+fakeImport('frontend/js/common/scoreRamp.js', 'ScoreRamp');
 
 const read = (p) => fs.readFileSync(path.join(REPO_ROOT, p), 'utf8');
 
@@ -58,7 +62,7 @@ describe('street slope in the AccessScore tool', () => {
     let AccessScoreElevationProfile;
     let AccessScoreUrlSync;
 
-    beforeAll(() => {
+    beforeAll(async () => {
         // The legend's copy comes through i18next, so `t` echoes the key and whatever was interpolated into it.
         window.i18next = {
             language: 'en',
@@ -66,13 +70,13 @@ describe('street slope in the AccessScore tool', () => {
             t: (key, values = {}) => [key, ...Object.entries(values)
                 .filter(([k]) => k !== 'interpolation').map(([k, v]) => `${k}=${v}`)].join(' '),
         };
-        window.util = { escapeHTML: (t) => String(t).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;') };
-        Object.assign(window, loadModules('frontend/js/common/scoreRamp.js'));
+        stubUtil({ escapeHTML: (t) => String(t).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;') });
+        Object.assign(window, await loadModules('frontend/js/common/scoreRamp.js'));
         for (const name of ['Model', 'GradeRamp', 'ElevationProfile', 'MapLegend', 'UrlSync']) {
-            if (name === 'UrlSync') loadModules('frontend/js/common/urlQuery.js');
+            if (name === 'UrlSync') await loadModules('frontend/js/common/urlQuery.js');
             // The ramp and the chart are shared with the API docs, so they live in common/.
             const dir = ['GradeRamp', 'ElevationProfile'].includes(name) ? 'common' : 'access-score';
-            Object.assign(window, loadModules(`frontend/js/${dir}/AccessScore${name}.js`));
+            Object.assign(window, await loadModules(`frontend/js/${dir}/AccessScore${name}.js`));
         }
         ({ AccessScoreModel, AccessScoreGradeRamp, AccessScoreElevationProfile, AccessScoreUrlSync } = window);
         for (let i = 1; i <= 5; i++) {
@@ -186,7 +190,7 @@ describe('street slope in the AccessScore tool', () => {
         });
 
         test('warns when the backend publishes more classes than there are colors to tell them apart', () => {
-            const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+            const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
             AccessScoreGradeRamp.colors(5);
             expect(warn).not.toHaveBeenCalled();
             const six = AccessScoreGradeRamp.colors(6);
@@ -435,8 +439,9 @@ describe('street slope in the AccessScore tool', () => {
             expect(callout).toContain('grade=12.5%');
             // The bracket starts where the second stretch's ground does and ends where the third's does.
             const bracket = slot.querySelector('.elevation-profile__bracket').getAttribute('d').match(/[\d.]+/g).map(Number);
+            const groundStart = /M([\d.]+)/;
             const groundX = (i) => Number(slot.querySelectorAll('.elevation-profile__ground')[i].getAttribute('d')
-                .match(/M([\d.]+)/)[1]);
+                .match(groundStart)[1]);
             expect(bracket[0]).toBeCloseTo(groundX(1), 0);
             expect(bracket[3]).toBeCloseTo(groundX(3), 0);
         });

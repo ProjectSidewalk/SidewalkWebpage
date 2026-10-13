@@ -10,7 +10,9 @@
  * Popover API nor `:popover-open`, so the test stands up showPopover/hidePopover the way panoInfoViewLink.test.js does.
  */
 
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules, fakeImport } from './loadGlobalScript.js';
+
+fakeImport('frontend/js/common/PanoImageAdjustments.js', 'PanoImageAdjustments');
 
 // The parts of app/views/common/panoImageAdjustments.scala.html and the Explore pill the class actually reads.
 const MARKUP = `
@@ -31,9 +33,9 @@ const MARKUP = `
   <button type="button" data-action="reset"></button>
 </div>`;
 
-function loadClasses() {
-    Object.assign(window, loadModules('frontend/js/common/PanoImageAdjustments.js'));
-    Object.assign(window, loadModules('frontend/js/common/PanoImageAdjustmentsPopover.js'));
+async function loadClasses() {
+    Object.assign(window, await loadModules('frontend/js/common/PanoImageAdjustments.js'));
+    Object.assign(window, await loadModules('frontend/js/common/PanoImageAdjustmentsPopover.js'));
 }
 
 function memoryStorage() {
@@ -55,10 +57,10 @@ function mount(extraHooks = {}) {
     popover = document.getElementById('pano-image-adjustments');
     pano = document.getElementById('pano');
     shown = false;
-    popover.showPopover = jest.fn(() => { shown = true; });
-    popover.hidePopover = jest.fn(() => { shown = false; });
+    popover.showPopover = vi.fn(() => { shown = true; });
+    popover.hidePopover = vi.fn(() => { shown = false; });
     model = new window.PanoImageAdjustments(pano, memoryStorage());
-    hooks = { onOpen: jest.fn(), onClose: jest.fn(), onChange: jest.fn(), onReset: jest.fn(), ...extraHooks };
+    hooks = { onOpen: vi.fn(), onClose: vi.fn(), onChange: vi.fn(), onReset: vi.fn(), ...extraHooks };
     return new window.PanoImageAdjustmentsPopover(model, button, popover, hooks);
 }
 
@@ -95,7 +97,7 @@ describe('setup', () => {
 
     test('survives a missing popover element without wiring anything', () => {
         document.body.innerHTML = '<button id="explore-control-image"></button><div id="pano"></div>';
-        const err = jest.spyOn(console, 'error').mockImplementation(() => {});
+        const err = vi.spyOn(console, 'error').mockImplementation(() => {});
         const m = new window.PanoImageAdjustments(document.getElementById('pano'), memoryStorage());
         expect(() => new window.PanoImageAdjustmentsPopover(m, document.getElementById('explore-control-image'), null))
             .not.toThrow();
@@ -105,7 +107,7 @@ describe('setup', () => {
 
     test('reports closed rather than throwing when the trigger is missing (KeyboardManager asks on every key)', () => {
         document.body.innerHTML = MARKUP;
-        const err = jest.spyOn(console, 'error').mockImplementation(() => {});
+        const err = vi.spyOn(console, 'error').mockImplementation(() => {});
         const m = new window.PanoImageAdjustments(document.getElementById('pano'), memoryStorage());
         const p = document.getElementById('pano-image-adjustments');
         const panel = new window.PanoImageAdjustmentsPopover(m, null, p);
@@ -152,8 +154,8 @@ describe('open and close', () => {
     test('Escape closes it and is stopped before the page sees it, keyup included', () => {
         mount();
         button.click();
-        const pageSawDown = jest.fn();
-        const pageSawUp = jest.fn();
+        const pageSawDown = vi.fn();
+        const pageSawUp = vi.fn();
         window.addEventListener('keydown', pageSawDown);
         window.addEventListener('keyup', pageSawUp);
         const slider = popover.querySelector('[data-adjust="shadows"]');
@@ -329,7 +331,7 @@ describe('screen-reader active state', () => {
     const activeText = () => button.querySelectorAll('.sr-only');
 
     beforeEach(() => {
-        window.i18next = { t: jest.fn((k) => `t(${k})`) };
+        window.i18next = { t: vi.fn((k) => `t(${k})`) };
     });
 
     afterEach(() => {
@@ -404,7 +406,7 @@ describe('placement', () => {
 
     test('a placement function is asked on every open, so a layout change is followed', () => {
         let side = 'below';
-        const placement = jest.fn(() => side);
+        const placement = vi.fn(() => side);
         mountAt(100, 50, { placement });
         expect(placed()).toEqual({ left: '100px', top: '86px' });
         side = 'right';

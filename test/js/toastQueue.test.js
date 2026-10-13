@@ -11,7 +11,7 @@
  */
 
 
-const { assetPathStub, loadModules } = require('./loadGlobalScript');
+import { assetPathStub, loadModules, stubUtil } from './loadGlobalScript.js';
 
 
 /** Every `.ps-toast` currently in the document. */
@@ -25,24 +25,24 @@ describe('Toast queueing', () => {
     let anchorA;
     let anchorB;
 
-    beforeEach(() => {
-        jest.useFakeTimers();
+    beforeEach(async () => {
+        vi.useFakeTimers();
         document.body.innerHTML = '';
         global.i18next = { t: (key) => key };
-        global.util = { assetPath: assetPathStub }; // The close button's icon URL.
+        stubUtil({ assetPath: assetPathStub }); // The close button's icon URL.
         // A fresh class per test: the live/waiting maps are static, so a shared one would leak between cases.
-        Toast = loadModules('frontend/js/common/Toast.js').Toast;
+        Toast = (await loadModules('frontend/js/common/Toast.js')).Toast;
         anchorA = document.createElement('div');
         anchorB = document.createElement('div');
         document.body.append(anchorA, anchorB);
     });
 
     afterEach(() => {
-        jest.useRealTimers();
+        vi.useRealTimers();
     });
 
     /** Advances past a toast of `duration` and the fade that follows it. */
-    const elapse = (duration) => jest.advanceTimersByTime(duration + Toast.FADE_MS);
+    const elapse = (duration) => vi.advanceTimersByTime(duration + Toast.FADE_MS);
 
     it('shows the first toast and holds the second back', () => {
         Toast.show({ message: 'first', reference: anchorA, duration: 1000 });
@@ -56,10 +56,10 @@ describe('Toast queueing', () => {
         Toast.show({ message: 'second', reference: anchorA, duration: 1000 });
 
         // The dismiss timer has fired but the fade is still running: the spot is not free yet.
-        jest.advanceTimersByTime(1000);
+        vi.advanceTimersByTime(1000);
         expect(mountedMessages()).toEqual(['first']);
 
-        jest.advanceTimersByTime(Toast.FADE_MS);
+        vi.advanceTimersByTime(Toast.FADE_MS);
         expect(mountedMessages()).toEqual(['second']);
     });
 
@@ -97,7 +97,7 @@ describe('Toast queueing', () => {
     it('releases the anchor when the only toast is dismissed early', () => {
         const first = Toast.show({ message: 'first', reference: anchorA, duration: 0 });
         first.dismiss();
-        jest.advanceTimersByTime(Toast.FADE_MS);
+        vi.advanceTimersByTime(Toast.FADE_MS);
 
         Toast.show({ message: 'later', reference: anchorA, duration: 0 });
         expect(mountedMessages()).toEqual(['later']);

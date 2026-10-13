@@ -11,9 +11,13 @@
  * Fake PanoManager, in the shape validateSkipUnrenderableLabel.test.js uses.
  */
 
-const path = require('path');
+import path from 'path';
 
-const { assetPathStub, loadModules } = require('./loadGlobalScript');
+import { assetPathStub, loadModules, fakeImport, stubUtil } from './loadGlobalScript.js';
+import { fakeTracker } from './fakes.js';
+
+fakeImport('frontend/js/validate/label/Label.js', 'Label');
+
 
 const LABEL_CONTAINER_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/label/LabelContainer.js');
 
@@ -23,8 +27,8 @@ const LABEL_CONTAINER_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/va
  * @param {string} className - Name of the class the file declares.
  * @returns {Function} The class.
  */
-function loadClassFromFile(filePath, className) {
-  return loadModules(filePath)[className];
+async function loadClassFromFile(filePath, className) {
+  return (await loadModules(filePath))[className];
 }
 
 /** @type {Function} The LabelContainer class under test. */
@@ -38,21 +42,21 @@ let deps;
  * @param {Record<string, any>} suiteDeps - The suite's own fakes, which win where they overlap.
  */
 function completeDeps(suiteDeps) {
-  const mission = {updateValidationResult: jest.fn(), isComplete: () => true, getProperty: () => 1};
+  const mission = {updateValidationResult: vi.fn(), isComplete: () => true, getProperty: () => 1};
   deps = {
     config: {validateParams: {}, source: 'Validate', canvasWidth: () => 720, canvasHeight: () => 480, labelRadius: 10},
-    panoLoadingStatus: {begin: jest.fn(), setMessage: jest.fn(), end: jest.fn()},
+    panoLoadingStatus: {begin: vi.fn(), setMessage: vi.fn(), end: vi.fn()},
     modalMissionComplete: {isShowing: () => false},
-    missionContainer: {getCurrentMission: () => mission, updateAMission: jest.fn()},
+    missionContainer: {getCurrentMission: () => mission, updateAMission: vi.fn()},
     ...suiteDeps,
   };
-  deps.tracker.flushSoon ??= jest.fn();
+  deps.tracker.flushSoon ??= vi.fn();
   deps.modalNoNewMission.isShowing ??= () => false;
   Object.assign(deps.panoManager, {
     blanksPanoWhileLoading: () => false,
     getActiveViewerName: () => 'Default',
-    revealPendingCanvas: jest.fn(),
-    prefetchBackups: deps.panoManager.prefetchBackups ?? jest.fn(),
+    revealPendingCanvas: vi.fn(),
+    prefetchBackups: deps.panoManager.prefetchBackups ?? vi.fn(),
     panoViewer: {getViewerType: () => 'gsv'},
   });
 }
@@ -93,9 +97,9 @@ describe('LabelContainer prefetches upcoming backup panos (issue #5562)', () => 
     { labelId: 6, panoId: 'f', expired: true, backupImage: backup('f') },
   ];
 
-  beforeEach(() => {
-    global.util = { isMobile: () => false, assetPath: assetPathStub };
-    global.i18next = { t: jest.fn((key) => key) };
+  beforeEach(async () => {
+    stubUtil({ isMobile: () => false, assetPath: assetPathStub });
+    global.i18next = { t: vi.fn((key) => key) };
     global.Label = class Label {
       constructor(params) {
         this.auditProps = params;
@@ -108,27 +112,27 @@ describe('LabelContainer prefetches upcoming backup panos (issue #5562)', () => 
     };
     const el = () => document.createElement('div');
     completeDeps({
-      tracker: { push: jest.fn() },
-      labelCard: { render: jest.fn() },
-      validationMenu: { resetMenu: jest.fn() },
-      undoValidation: { enableUndo: jest.fn() },
+      tracker: fakeTracker(),
+      labelCard: { render: vi.fn() },
+      validationMenu: { resetMenu: vi.fn() },
+      undoValidation: { enableUndo: vi.fn() },
       labelVisibilityControl: {
-        hideLabelCard: jest.fn(),
-        unhideLabel: jest.fn(),
-        openCardOnLoad: jest.fn(),
+        hideLabelCard: vi.fn(),
+        unhideLabel: vi.fn(),
+        openCardOnLoad: vi.fn(),
         isVisible: () => true,
       },
-      modalNoNewMission: { show: jest.fn() },
+      modalNoNewMission: { show: vi.fn() },
       validateParams: {},
       ui: { holder: el(), busyRegion: [el()], viewer: { controlLayer: el() } },
       panoManager: {
-        renderPanoMarker: jest.fn(),
-        setPanorama: jest.fn((panoId) => Promise.resolve({ panoData: { panoId } })),
-        prefetchPano: jest.fn(),
-        prefetchBackups: jest.fn(),
+        renderPanoMarker: vi.fn(),
+        setPanorama: vi.fn((panoId) => Promise.resolve({ panoData: { panoId } })),
+        prefetchPano: vi.fn(),
+        prefetchBackups: vi.fn(),
       },
     });
-    LabelContainer = loadClassFromFile(LABEL_CONTAINER_PATH, 'LabelContainer');
+    LabelContainer = await loadClassFromFile(LABEL_CONTAINER_PATH, 'LabelContainer');
   });
 
   afterEach(() => {
@@ -181,7 +185,7 @@ describe('LabelContainer prefetches upcoming backup panos (issue #5562)', () => 
   });
 
   test('a label the mission dropped for bad imagery is not what the window is measured from', async () => {
-    deps.panoManager.setPanorama = jest.fn((panoId) => Promise.resolve(
+    deps.panoManager.setPanorama = vi.fn((panoId) => Promise.resolve(
       panoId === 'b' ? { panoData: null, reason: 'no-imagery' } : { panoData: { panoId } },
     ));
     const labelContainer = await buildLabelContainer(labels, 'CurbRamp');

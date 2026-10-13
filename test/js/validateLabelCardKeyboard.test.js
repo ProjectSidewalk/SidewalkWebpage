@@ -14,13 +14,16 @@
  * window listener that cannot be unregistered — and each test swaps the collaborator/menu stubs it reads at event time.
  */
 
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules, fakeImport } from './loadGlobalScript.js';
+import { fakeTracker } from './fakes.js';
+
+fakeImport('frontend/js/common/KeyboardShortcuts.js', 'KeyboardShortcuts');
 
 
 /** A stand-in for one of the menu's controls, with its click spied. */
 function makeControl() {
     const control = document.createElement('textarea');
-    control.click = jest.fn();
+    control.click = vi.fn();
     return control;
 }
 
@@ -39,7 +42,7 @@ describe('KeyboardManager label-card scope', () => {
     const live = (name) => new Proxy({}, { get: (_, key) => current[name][key] });
     const config = { adminVersion: false };
 
-    beforeAll(() => {
+    beforeAll(async () => {
         Object.assign(validationMenuUi, {
             optionalCommentTextBox: makeControl(),
             disagreeReasonTextBox: makeControl(),
@@ -49,7 +52,7 @@ describe('KeyboardManager label-card scope', () => {
             noButton: makeControl(),
             unsureButton: makeControl(),
         });
-        Object.assign(window, loadModules('frontend/js/common/KeyboardShortcuts.js', 'frontend/js/validate/keyboard/KeyboardManager.js'));
+        Object.assign(window, await loadModules('frontend/js/common/KeyboardShortcuts.js', 'frontend/js/validate/keyboard/KeyboardManager.js'));
         new window.KeyboardManager(
             { validationMenu: validationMenuUi, undoValidation: { undoButton: live('undoButton') } }, config,
             { isHeld: () => false, hold: () => {}, release: () => {} },
@@ -63,24 +66,24 @@ describe('KeyboardManager label-card scope', () => {
         document.body.innerHTML = `
           <div id="view-control-layer"><div id="validate-pano-marker" tabindex="0"></div></div>
           <div id="label-card"><button type="button" id="label-visibility-button-on-label"></button></div>`;
-        validationMenuUi.submitButton.click = jest.fn();
+        validationMenuUi.submitButton.click = vi.fn();
         validationMenuUi.yesButton = makeControl();
         current = {
             labelVisibilityControl: {
-                hideLabelCard: jest.fn(),
+                hideLabelCard: vi.fn(),
                 isCardHeldOpen: () => false,
-                toggleLabelCard: jest.fn(),
+                toggleLabelCard: vi.fn(),
                 // The card starts open in most tests; the Escape-against-nothing case flips this.
                 isCardVisible: () => true,
                 isVisible: () => true,
-                hideLabel: jest.fn(),
-                unhideLabel: jest.fn(),
+                hideLabel: vi.fn(),
+                unhideLabel: vi.fn(),
             },
             labelCard: { isPopoverOpen: () => false, closeTypeDropdown: () => false },
             validationMenu: { inWrongTypeView: () => false },
             imageAdjustmentsPopover: { isOpen: () => false },
             undoValidation: { canUndo: () => false },
-            tracker: { push: jest.fn() },
+            tracker: fakeTracker(),
         };
     });
 

@@ -4,9 +4,9 @@ name: CI
 #
 #   - backend:         `sbt compile` + `scalafmtCheckAll` + `scalafmtSbtCheck`.
 #   - frontend:        asset build (`npm run build`) + the lint steps (ESLint, Stylelint, HTMLHint, locale checks,
-#                      CSS layout, asset paths, vendor versions, JS types, spec base class) + the jsdom `jest` suite in
+#                      CSS layout, asset paths, vendor versions, JS types, spec base class) + the jsdom Vitest suite in
 #                      test/js/.
-#                      Jest reports JS coverage but has no floor — the number can't support one yet, see #5112.
+#                      Vitest reports JS coverage but has no floor — the number can't support one yet, see #5112.
 #   - evolutions-lint: static checks on conf/evolutions/default/*.sql.
 #   - shell-lint:      ShellCheck over the repo's .sh files.
 #   - route-lint:      conf/routes reachability — fails if any route is shadowed by an earlier one.
@@ -146,8 +146,8 @@ jobs:
         if: always()
         run: node tools/lint/check-spec-base.mjs
 
-      # The jsdom unit suite (test/js/). Thin coverage is why there's no `coverageThreshold` (jest.config.js says why).
-      - name: Jest unit tests (blocking)
+      # The jsdom unit suite (test/js/). Thin coverage is why there's no coverage threshold (vitest.config.mjs says why).
+      - name: Vitest unit tests (blocking)
         if: always()
         run: npm run test:js:coverage
 

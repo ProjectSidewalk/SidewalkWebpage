@@ -13,9 +13,19 @@
  * Fake viewers throughout, in the shape validateSkipUnrenderableLabel.test.js uses; no imagery is involved.
  */
 
-const path = require('path');
+import path from 'path';
 
-const { assetPathStub, loadModules } = require('./loadGlobalScript');
+import { assetPathStub, loadModules, fakeImport, stubUtil } from './loadGlobalScript.js';
+import { fakeTracker } from './fakes.js';
+
+fakeImport('frontend/js/common/pano-viewer/GsvViewer.js', 'GsvViewer');
+fakeImport('frontend/js/common/pano-viewer/PannellumViewer.js', 'PannellumViewer');
+fakeImport('frontend/js/common/pano-viewer/PanoAttribution.js', 'createPanoAttribution');
+fakeImport('frontend/js/common/pano-viewer/PanoLoadTimeoutError.js', 'PanoLoadTimeoutError');
+fakeImport('frontend/js/common/pano-viewer/PanoViewerLogo.js', 'createPanoViewerLogo');
+fakeImport('frontend/js/common/utilitiesSidewalk.js', 'buildBackupImageData');
+fakeImport('frontend/js/validate/label/Label.js', 'Label');
+
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const PANO_MANAGER_PATH = path.join(REPO_ROOT, 'frontend/js/validate/panorama/PanoManager.js');
@@ -29,8 +39,8 @@ const THROTTLE_PATH = path.join(REPO_ROOT, 'frontend/js/validate/util/throttle.j
  * @param {string} className - Name of the class the file declares.
  * @returns {Function} The class.
  */
-function loadClassFromFile(filePath, className) {
-  return loadModules(filePath)[className];
+async function loadClassFromFile(filePath, className) {
+  return (await loadModules(filePath))[className];
 }
 
 /** @type {Function} The LabelContainer class under test. */
@@ -44,21 +54,21 @@ let deps;
  * @param {Record<string, any>} suiteDeps - The suite's own fakes, which win where they overlap.
  */
 function completeDeps(suiteDeps) {
-  const mission = {updateValidationResult: jest.fn(), isComplete: () => true, getProperty: () => 1};
+  const mission = {updateValidationResult: vi.fn(), isComplete: () => true, getProperty: () => 1};
   deps = {
     config: {validateParams: {}, source: 'Validate', canvasWidth: () => 720, canvasHeight: () => 480, labelRadius: 10},
-    panoLoadingStatus: {begin: jest.fn(), setMessage: jest.fn(), end: jest.fn()},
+    panoLoadingStatus: {begin: vi.fn(), setMessage: vi.fn(), end: vi.fn()},
     modalMissionComplete: {isShowing: () => false},
-    missionContainer: {getCurrentMission: () => mission, updateAMission: jest.fn()},
+    missionContainer: {getCurrentMission: () => mission, updateAMission: vi.fn()},
     ...suiteDeps,
   };
-  deps.tracker.flushSoon ??= jest.fn();
+  deps.tracker.flushSoon ??= vi.fn();
   deps.modalNoNewMission.isShowing ??= () => false;
   Object.assign(deps.panoManager, {
     blanksPanoWhileLoading: () => false,
     getActiveViewerName: () => 'Default',
-    revealPendingCanvas: jest.fn(),
-    prefetchBackups: deps.panoManager.prefetchBackups ?? jest.fn(),
+    revealPendingCanvas: vi.fn(),
+    prefetchBackups: deps.panoManager.prefetchBackups ?? vi.fn(),
     panoViewer: {getViewerType: () => 'gsv'},
   });
 }
@@ -101,19 +111,19 @@ describe('PanoManager skips the provider for a pano it knows is gone (issue #556
   function createPanoManager() {
     const viewerUi = { date: { textContent: '' }, controlLayer: document.createElement('div') };
     return PanoManager.create(
-      'token', viewerUi, { viewerType: FakeViewerType, labelRadius: 10 }, { addPanoMetadata: jest.fn() }, {}, tracker,
+      'token', viewerUi, { viewerType: FakeViewerType, labelRadius: 10 }, { addPanoMetadata: vi.fn() }, {}, tracker,
     );
   }
 
-  beforeEach(() => {
+  beforeEach(async () => {
     document.body.innerHTML = '<div id="pano-holder"><div id="svv-panorama"></div></div>';
-    tracker = { push: jest.fn(), trackPano: jest.fn() };
+    tracker = { push: vi.fn(), trackPano: vi.fn() };
 
-    global.util = {};
-    Object.assign(window, loadModules(THROTTLE_PATH));
+    stubUtil({});
+    Object.assign(window, await loadModules(THROTTLE_PATH));
     util.isMobile = () => false;
-    global.createPanoViewerLogo = jest.fn(() => ({ showPrimaryLogo: jest.fn(), showSourceLogo: jest.fn() }));
-    global.createPanoAttribution = jest.fn(() => ({ show: jest.fn(), hide: jest.fn() }));
+    global.createPanoViewerLogo = vi.fn(() => ({ showPrimaryLogo: vi.fn(), showSourceLogo: vi.fn() }));
+    global.createPanoAttribution = vi.fn(() => ({ show: vi.fn(), hide: vi.fn() }));
     global.GsvViewer = class GsvViewer {};
     global.MapillaryViewer = class MapillaryViewer {};
     global.PanoLoadTimeoutError = class PanoLoadTimeoutError extends Error {};
@@ -122,23 +132,23 @@ describe('PanoManager skips the provider for a pano it knows is gone (issue #556
     panoData = { getPanoId: () => 'pano1', getProperty: () => new Date(2026, 5, 1) };
     global.i18next = { language: 'en' };
     const fakeViewer = () => ({
-      setPano: jest.fn(() => Promise.resolve(panoData)),
-      addListener: jest.fn(),
-      resize: jest.fn(),
-      setPov: jest.fn(),
+      setPano: vi.fn(() => Promise.resolve(panoData)),
+      addListener: vi.fn(),
+      resize: vi.fn(),
+      setPov: vi.fn(),
       getPov: () => ({ heading: 0, pitch: 0, zoom: 1 }),
     });
     primaryViewer = fakeViewer();
     pannellumViewer = fakeViewer();
     pannellumViewer.currPanoData = panoData;
-    pannellumViewer.loadPano = jest.fn(() => Promise.resolve(panoData));
+    pannellumViewer.loadPano = vi.fn(() => Promise.resolve(panoData));
     global.PannellumViewer = class PannellumViewer {
-      static create = jest.fn(() => Promise.resolve(pannellumViewer));
+      static create = vi.fn(() => Promise.resolve(pannellumViewer));
     };
     FakeViewerType = class FakeViewerType {
       static create() { return Promise.resolve(primaryViewer); }
     };
-    PanoManager = loadClassFromFile(PANO_MANAGER_PATH, 'PanoManager');
+    PanoManager = await loadClassFromFile(PANO_MANAGER_PATH, 'PanoManager');
   });
 
   afterEach(() => {
@@ -200,8 +210,8 @@ describe('PanoManager skips the provider for a pano it knows is gone (issue #556
 
   test('a backup that fails under a stale expired flag still gets the provider as a last resort', async () => {
     const panoManager = await createPanoManager();
-    global.PannellumViewer.create = jest.fn(() => Promise.reject(new Error('503: no copy could be cut')));
-    jest.spyOn(console, 'error').mockImplementation(() => {});
+    global.PannellumViewer.create = vi.fn(() => Promise.reject(new Error('503: no copy could be cut')));
+    vi.spyOn(console, 'error').mockImplementation(() => {});
 
     const loaded = await panoManager.setPanorama('pano2', backupImage, { expired: true });
 
@@ -216,8 +226,8 @@ describe('PanoManager skips the provider for a pano it knows is gone (issue #556
     ['a missing pano', () => new Error('not found'), 'no-imagery'],
   ])('when backup and last-resort provider both fail, %s on the provider sets the reason', async (_, makeErr, why) => {
     const panoManager = await createPanoManager();
-    global.PannellumViewer.create = jest.fn(() => Promise.reject(new Error('503: no copy could be cut')));
-    jest.spyOn(console, 'error').mockImplementation(() => {});
+    global.PannellumViewer.create = vi.fn(() => Promise.reject(new Error('503: no copy could be cut')));
+    vi.spyOn(console, 'error').mockImplementation(() => {});
     primaryViewer.setPano.mockImplementation(() => Promise.reject(makeErr()));
 
     const loaded = await panoManager.setPanorama('pano2', backupImage, { expired: true });
@@ -228,8 +238,8 @@ describe('PanoManager skips the provider for a pano it knows is gone (issue #556
   });
 
   test('a first label whose backup fails does not take Validate down with it', async () => {
-    global.PannellumViewer.create = jest.fn(() => Promise.reject(new Error('503: no copy could be cut')));
-    jest.spyOn(console, 'error').mockImplementation(() => {});
+    global.PannellumViewer.create = vi.fn(() => Promise.reject(new Error('503: no copy could be cut')));
+    vi.spyOn(console, 'error').mockImplementation(() => {});
 
     const panoManager = await createPanoManager();
     const loaded = await panoManager.setPanorama('pano1', backupImage, { expired: true });
@@ -255,9 +265,9 @@ describe('PanoManager skips the provider for a pano it knows is gone (issue #556
 
 describe('LabelContainer hands the flag to the PanoManager (issue #5561)', () => {
 
-  beforeEach(() => {
-    global.util = { isMobile: () => false, assetPath: assetPathStub };
-    global.i18next = { t: jest.fn((key) => key) };
+  beforeEach(async () => {
+    stubUtil({ isMobile: () => false, assetPath: assetPathStub });
+    global.i18next = { t: vi.fn((key) => key) };
     global.Label = class Label {
       constructor(params) {
         this.auditProps = params;
@@ -270,26 +280,26 @@ describe('LabelContainer hands the flag to the PanoManager (issue #5561)', () =>
     };
     const el = () => document.createElement('div');
     completeDeps({
-      tracker: { push: jest.fn() },
-      labelCard: { render: jest.fn() },
-      validationMenu: { resetMenu: jest.fn() },
-      undoValidation: { enableUndo: jest.fn() },
+      tracker: fakeTracker(),
+      labelCard: { render: vi.fn() },
+      validationMenu: { resetMenu: vi.fn() },
+      undoValidation: { enableUndo: vi.fn() },
       labelVisibilityControl: {
-        hideLabelCard: jest.fn(),
-        unhideLabel: jest.fn(),
-        openCardOnLoad: jest.fn(),
+        hideLabelCard: vi.fn(),
+        unhideLabel: vi.fn(),
+        openCardOnLoad: vi.fn(),
         isVisible: () => true,
       },
-      modalNoNewMission: { show: jest.fn() },
+      modalNoNewMission: { show: vi.fn() },
       validateParams: {},
       ui: { holder: el(), busyRegion: [el()], viewer: { controlLayer: el() } },
       panoManager: {
-        renderPanoMarker: jest.fn(),
-        setPanorama: jest.fn((panoId) => Promise.resolve({ panoData: { panoId } })),
-        prefetchPano: jest.fn(),
+        renderPanoMarker: vi.fn(),
+        setPanorama: vi.fn((panoId) => Promise.resolve({ panoData: { panoId } })),
+        prefetchPano: vi.fn(),
       },
     });
-    LabelContainer = loadClassFromFile(LABEL_CONTAINER_PATH, 'LabelContainer');
+    LabelContainer = await loadClassFromFile(LABEL_CONTAINER_PATH, 'LabelContainer');
   });
 
   afterEach(() => {
@@ -317,11 +327,11 @@ describe('LabelContainer hands the flag to the PanoManager (issue #5561)', () =>
 describe('Label reads the flag off the backend payload (issue #5561)', () => {
   let Label;
 
-  beforeEach(() => {
-    global.util = { isMobile: () => false };
-    global.moment = jest.fn(() => ({}));
-    global.buildBackupImageData = jest.fn(() => null);
-    Label = loadClassFromFile(LABEL_PATH, 'Label');
+  beforeEach(async () => {
+    stubUtil({ isMobile: () => false });
+    global.moment = vi.fn(() => ({}));
+    global.buildBackupImageData = vi.fn(() => null);
+    Label = await loadClassFromFile(LABEL_PATH, 'Label');
   });
 
   afterEach(() => {

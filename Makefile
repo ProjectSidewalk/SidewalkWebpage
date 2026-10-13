@@ -342,9 +342,9 @@ test-python-tools:
 # since that first build downloads the base image.
 #
 # The jsdom unit suite (test/js/), a blocking step in CI's `frontend` job. Run in the web container, where the
-# node_modules live. `args` passes through, so `make test-js args="--watch"` or a path filter works.
+# node_modules live. `args` passes through, so `make test-js args=test/js/toastPosition.test.js` runs one suite.
 test-js:
-	@docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd $(container-dir) && $(node-modules)/.bin/jest --config jest.config.js $(args)"
+	@docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd $(container-dir) && $(node-modules)/.bin/vitest run $(args)"
 
 # `--tmpfs /home/node_modules` is load-bearing, not tidiness: NODE_PATH is consulted only after the node_modules
 # walk fails, so the repo's own node_modules — which carries @playwright/test, a devDependency installed into the

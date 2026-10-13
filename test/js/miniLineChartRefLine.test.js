@@ -6,18 +6,18 @@
  * pinning is that the line lands where the data would put it, and that a target above every bar widens the y scale
  * instead of being drawn off the top — which would read as "no target" rather than "target never met".
  *
- * Runs under jsdom (jest.config.js); MiniLineChart.svg is a pure string builder, so tests parse its output into a
+ * Runs under jsdom (vitest.config.mjs); MiniLineChart.svg is a pure string builder, so tests parse its output into a
  * detached container and assert on the resulting DOM.
  */
 
-const { loadModules, realUtil } = require('./loadGlobalScript');
+import { loadModules, realUtil, stubUtil } from './loadGlobalScript.js';
 
-window.util = realUtil();
+stubUtil(await realUtil());
 
 
 /** Loads a fresh MiniLineChart class. */
-function loadMiniLineChart() {
-  return loadModules('frontend/js/admin-dashboard/MiniLineChart.js').MiniLineChart;
+async function loadMiniLineChart() {
+  return (await loadModules('frontend/js/admin-dashboard/MiniLineChart.js')).MiniLineChart;
 }
 
 describe('MiniLineChart reference line', () => {
@@ -36,8 +36,8 @@ describe('MiniLineChart reference line', () => {
   /** The y coordinate of the tallest bar's top edge. */
   const tallestBarTop = (div) => Math.min(...[...div.querySelectorAll('rect.mini-bar')].map((r) => +r.getAttribute('y')));
 
-  beforeEach(() => {
-    MiniLineChart = loadMiniLineChart();
+  beforeEach(async () => {
+    MiniLineChart = await loadMiniLineChart();
   });
 
   test('puts the line exactly where a bar of the same value would end', () => {

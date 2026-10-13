@@ -8,8 +8,11 @@
  * host has to be enough, in both directions (#5068).
  */
 
-const path = require('path');
-const { loadModules } = require('./loadGlobalScript');
+import path from 'path';
+import { loadModules, fakeImport } from './loadGlobalScript.js';
+
+fakeImport('frontend/js/common/label-detail/LabelDetail.js', 'LabelDetail');
+
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const NAV_PATH = path.join(REPO_ROOT, 'frontend/js/ps-map/nearbyLabelNavigator.js');
@@ -42,19 +45,19 @@ describe('LabelPopup paging state', () => {
     beforeEach(async () => {
         renderPopupMarkup();
         // jsdom has no modal dialog implementation, and LabelPopup's init sequence opens and closes the dialog.
-        window.HTMLDialogElement.prototype.showModal = jest.fn();
-        window.HTMLDialogElement.prototype.close = jest.fn();
+        window.HTMLDialogElement.prototype.showModal = vi.fn();
+        window.HTMLDialogElement.prototype.close = vi.fn();
         window.requestAnimationFrame = (cb) => cb();
-        window.logWebpageActivity = jest.fn();
+        window.logWebpageActivity = vi.fn();
         // LabelDetail does the rendering/fetching; the popup only wraps it, so a stub is enough here.
         global.LabelDetail = {
             create: async () => ({ showLabel: async () => ({}) }),
             urlLabelId: () => null,
-            syncUrlLabelId: jest.fn(),
+            syncUrlLabelId: vi.fn(),
         };
 
-        Object.assign(window, loadModules(NAV_PATH));
-        Object.assign(window, loadModules(POPUP_PATH));
+        Object.assign(window, await loadModules(NAV_PATH));
+        Object.assign(window, await loadModules(POPUP_PATH));
 
         // The navigator is created over the map's label set, which is still empty while the viewport data loads.
         // The predicate stands in for LabelMap's sidebar filters (#5124).

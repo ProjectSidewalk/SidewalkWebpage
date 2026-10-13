@@ -6,7 +6,10 @@
  */
 
 
-const { assetPathStub, installDateHelpers, installUtilitiesMisc, installEscapeHTML, loadModules } = require('./loadGlobalScript');
+import { assetPathStub, installDateHelpers, installUtilitiesMisc, installEscapeHTML, loadModules, fakeImport, stubUtil } from './loadGlobalScript.js';
+
+fakeImport('frontend/js/common/BadgeAchievements.js', 'BadgeAchievements');
+fakeImport('frontend/js/common/Toast.js', 'Toast');
 
 
 /** A `/label/id` JSON with a crop, two agrees, and no vote of the reader's own. */
@@ -31,7 +34,7 @@ describe('LabelMiniCard', () => {
     let fetchMock;
     let postedBodies;
 
-    beforeAll(() => {
+    beforeAll(async () => {
         window.i18next = {
             language: 'en',
             t: (key, opts) => {
@@ -42,26 +45,26 @@ describe('LabelMiniCard', () => {
                 return `${bare} ${args.map(([k, v]) => `${k}=${v}`).join(' ')}`;
             },
         };
-        window.util = {
+        stubUtil({
             assetPath: assetPathStub,
             // The site-wide string helper from utilities.js the card leans on, verbatim.
             camelToKebab: (str) => str.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase(),
             lazyIdentityFetch: (...args) => window.fetch(...args),
             EXPLORE_CANVAS_WIDTH: 720,
             EXPLORE_CANVAS_HEIGHT: 480,
-        };
+        });
         // The real util.misc, so the marker helper under test is the shipped one and the palettes are the card's.
-        installUtilitiesMisc();
-        installDateHelpers();
-        installEscapeHTML();
-        window.Toast = {show: jest.fn()};
-        window.BadgeAchievements = {recordValidation: jest.fn()};
-        Object.assign(window, loadModules('frontend/js/common/LabelMiniCard.js'));
+        await installUtilitiesMisc();
+        await installDateHelpers();
+        await installEscapeHTML();
+        window.Toast = {show: vi.fn()};
+        window.BadgeAchievements = {recordValidation: vi.fn()};
+        Object.assign(window, await loadModules('frontend/js/common/LabelMiniCard.js'));
     });
 
     beforeEach(() => {
         postedBodies = [];
-        fetchMock = jest.fn((url, options) => {
+        fetchMock = vi.fn((url, options) => {
             postedBodies.push(JSON.parse(options.body));
             return response(true);
         });
@@ -146,14 +149,14 @@ describe('LabelMiniCard', () => {
     });
 
     test('the picture opens the label', () => {
-        const onOpen = jest.fn();
+        const onOpen = vi.fn();
         const card = mount(label(), {onOpen});
         card.element.querySelector('.lmc__open').click();
         expect(onOpen).toHaveBeenCalledWith(42);
     });
 
     test('a vote posts the static-crop validation payload, counts up at once, and ticks the badge', async () => {
-        const onVote = jest.fn();
+        const onVote = vi.fn();
         const card = mount(label(), {onVote});
         chip(card, 'Agree').click();
         // Optimistic: the count and the pressed state move before the server answers.
@@ -178,7 +181,7 @@ describe('LabelMiniCard', () => {
     });
 
     test('the pressed chip clears the vote (undone), and switching chips is a redo', async () => {
-        const log = jest.fn();
+        const log = vi.fn();
         const card = mount(label({user_validation: 'Agree'}), {log});
         expect(chip(card, 'Agree').getAttribute('aria-pressed')).toBe('true');
         chip(card, 'Agree').click();
@@ -201,8 +204,8 @@ describe('LabelMiniCard', () => {
     });
 
     test('a refused vote rolls the counts back and says so', async () => {
-        window.fetch = jest.fn(() => response(false));
-        const onVote = jest.fn();
+        window.fetch = vi.fn(() => response(false));
+        const onVote = vi.fn();
         const card = mount(label(), {onVote});
         chip(card, 'Disagree').click();
         expect(count(card, 'Disagree')).toBe('2');

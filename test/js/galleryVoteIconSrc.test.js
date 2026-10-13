@@ -8,7 +8,7 @@
  * build would.
  */
 
-const { loadModules, realUtil } = require('./loadGlobalScript');
+import { loadModules, realUtil, stubUtil } from './loadGlobalScript.js';
 
 // A bare `class` declaration, so it has to be evaluated in the page's scope to be reachable, the way its <script>
 // tag makes it reachable in the browser.
@@ -52,11 +52,11 @@ const srcOf = (display, action) => {
   return container.querySelector('.validation-info-image').src;
 };
 
-beforeEach(() => {
+beforeEach(async () => {
   window.assetDigests = { ...DIGESTS };
   window.i18next = { t: (key) => key };
-  window.util = realUtil();
-  Object.assign(window, loadModules('frontend/js/gallery/displays/ValidationInfoDisplay.js'));
+  stubUtil(await realUtil());
+  Object.assign(window, await loadModules('frontend/js/gallery/displays/ValidationInfoDisplay.js'));
 });
 
 afterEach(() => {

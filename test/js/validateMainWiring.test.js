@@ -7,7 +7,33 @@
  * subscriber; each listener's body is stubbed, since what it does with the label is its own suite's business.
  */
 
-const { assetPathStub, installEscapeHTML, installUtilitiesMisc, loadModules, loadVendored } = require('./loadGlobalScript');
+import { assetPathStub, installEscapeHTML, installUtilitiesMisc, loadModules, loadVendored, fakeImport, stubUtil } from './loadGlobalScript.js';
+
+fakeImport('frontend/js/common/BadgeAchievements.js', 'BadgeAchievements');
+fakeImport('frontend/js/common/ImmersiveMode.js', 'ImmersiveMode');
+fakeImport('frontend/js/common/LabelCardView.js', 'LabelCardView');
+fakeImport('frontend/js/common/LabelVisibilityToggle.js', 'LabelVisibilityToggle');
+fakeImport('frontend/js/common/MissionStartTutorial.js', 'MissionStartTutorial');
+fakeImport('frontend/js/common/PanoImageAdjustments.js', 'PanoImageAdjustments');
+fakeImport('frontend/js/common/PanoImageAdjustmentsPopover.js', 'PanoImageAdjustmentsPopover');
+fakeImport('frontend/js/common/Toast.js', 'Toast');
+fakeImport('frontend/js/common/pano-viewer/Infra3dViewer.js', 'Infra3dViewer');
+fakeImport('frontend/js/common/pano-viewer/PanoImageCache.js', 'PanoImageCache');
+fakeImport('frontend/js/common/pano-viewer/PanoInfoPopover.js', 'PanoInfoPopover');
+fakeImport('frontend/js/common/pano-viewer/PanoStore.js', 'PanoStore');
+fakeImport('frontend/js/validate/Tracker.js', 'Tracker');
+fakeImport('frontend/js/validate/data/Form.js', 'Form');
+fakeImport('frontend/js/validate/label/Label.js', 'Label');
+fakeImport('frontend/js/validate/modal/ModalMission.js', 'ModalMission');
+fakeImport('frontend/js/validate/modal/ModalMissionComplete.js', 'ModalMissionComplete');
+fakeImport('frontend/js/validate/modal/ModalNoNewMission.js', 'ModalNoNewMission');
+fakeImport('frontend/js/validate/panorama/PanoControlMenu.js', 'PanoControlMenu');
+fakeImport('frontend/js/validate/panorama/PanoLoadingStatus.js', 'PanoLoadingStatus');
+fakeImport('frontend/js/validate/panorama/PanoManager.js', 'PanoManager');
+fakeImport('frontend/js/validate/panorama/PanoOverlay.js', 'PanoOverlay');
+fakeImport('frontend/js/validate/status/StatusField.js', 'StatusField');
+fakeImport('frontend/js/validate/util/MissionLiveMarker.js', 'MissionLiveMarker');
+
 
 /**
  * The desktop view's elements, trimmed to what the real subscribers need to build: the verdict menu's buttons and
@@ -96,7 +122,7 @@ let SpeedLimit;
 let ZoomControl;
 let Gate;
 let UndoValidation;
-/** @type {{takeUnexpectedUnload: jest.Mock, markLive: jest.Mock}} The live marker Main builds, per test. */
+/** @type {{takeUnexpectedUnload: import('vitest').Mock, markLive: import('vitest').Mock}} The live marker Main builds, per test. */
 let marker;
 /** @type {boolean} Set as the fake PanoManager's create() runs, so the fake Form can say which came first. */
 let viewerCreated;
@@ -108,22 +134,22 @@ let formBuiltBeforeViewer;
  */
 let tutorialBuilt;
 
-beforeAll(() => {
+beforeAll(async () => {
   window.matchMedia = () => /** @type {MediaQueryList} */ ({ matches: true }); // jsdom has none; act as a mouse.
   window.structuredClone ??= (v) => JSON.parse(JSON.stringify(v)); // Missing from this jsdom.
   loadVendored('tom-select'); // The tag box, which the Expert Validate menu builds in its constructor.
-  window.util = {
+  stubUtil({
     assetPath: assetPathStub,
     isMobile: () => false,
     uiScale: () => 1,
     applyToolScale: () => 1,
     camelToKebab: (s) => s.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase(),
-    anchorPanelToLabel: jest.fn(),
-    placePopover: jest.fn(),
+    anchorPanelToLabel: vi.fn(),
+    placePopover: vi.fn(),
     getImage: () => Promise.resolve(''),
-  };
-  installUtilitiesMisc();
-  installEscapeHTML();
+  });
+  await installUtilitiesMisc();
+  await installEscapeHTML();
   window.i18next = { t: (key) => key, isInitialized: false, language: 'en' };
 
   // Only the surface the container and the subscribers' constructors read off a label.
@@ -139,13 +165,13 @@ beforeAll(() => {
   };
 
   // The heavy collaborators, faked down to the calls Main and the real subscribers make while building.
-  window.BadgeAchievements = { seedCounts: jest.fn() };
-  window.Toast = { show: jest.fn(), repositionAll: jest.fn() };
+  window.BadgeAchievements = { seedCounts: vi.fn() };
+  window.Toast = { show: vi.fn(), repositionAll: vi.fn() };
   window.ImmersiveMode = class { isActive() { return false; } logRestored() {} };
   window.MissionStartTutorial = class {
     constructor(missionType, labelType, data, hooks) {
       // The test spies on the prototype before start(), so the calls so far are on the spy.
-      const hold = /** @type {jest.SpyInstance} */ (/** @type {unknown} */ (Gate.prototype.hold));
+      const hold = /** @type {import('vitest').MockInstance} */ (/** @type {unknown} */ (Gate.prototype.hold));
       tutorialBuilt = { holdsTaken: hold.mock.calls.map((call) => call[0]), hooks };
     }
   };
@@ -181,7 +207,7 @@ beforeAll(() => {
 
   // One load for the lot, so the classes Main builds are the very ones the spies below are put on.
   ({ Main, LabelCard, LabelVisibilityControl, DesktopValidationMenu, AdminInfo, SpeedLimit, ZoomControl, Gate,
-    UndoValidation } = loadModules(
+    UndoValidation } = await loadModules(
     'frontend/js/validate/Main.js',
     'frontend/js/validate/label/LabelCard.js',
     'frontend/js/validate/label/LabelVisibilityControl.js',
@@ -197,39 +223,39 @@ beforeAll(() => {
 describe('Main hooks what describes a label to the label container', () => {
   let panoManager;
   let tracker;
-  /** @type {Record<string, jest.SpyInstance>} Each onLabelReady subscriber's listener, by the subscriber's name. */
+  /** @type {Record<string, import('vitest').MockInstance>} Each onLabelReady subscriber's listener, by the subscriber's name. */
   let ready;
-  /** @type {Record<string, jest.SpyInstance>} Each onLabelShown subscriber's listener, by the subscriber's name. */
+  /** @type {Record<string, import('vitest').MockInstance>} Each onLabelShown subscriber's listener, by the subscriber's name. */
   let shown;
-  /** @type {Record<string, jest.SpyInstance>} What the loading events switch. */
+  /** @type {Record<string, import('vitest').MockInstance>} What the loading events switch. */
   let loading;
 
   beforeEach(() => {
     document.body.innerHTML = FIXTURE;
-    tracker = { push: jest.fn(), flushSoon: jest.fn(), trackMissions: jest.fn(), trackPano: jest.fn(), onFlush: jest.fn() };
+    tracker = { push: vi.fn(), flushSoon: vi.fn(), trackMissions: vi.fn(), trackPano: vi.fn(), onFlush: vi.fn() };
     window.Tracker = class { constructor() { return tracker; } };
-    marker = { takeUnexpectedUnload: jest.fn(() => null), markLive: jest.fn() };
+    marker = { takeUnexpectedUnload: vi.fn(() => null), markLive: vi.fn() };
     tutorialBuilt = null;
 
     panoManager = {
-      setPanorama: jest.fn((panoId) => Promise.resolve({ panoData: { panoId } })),
-      renderPanoMarker: jest.fn(),
-      prefetchPano: jest.fn(),
-      prefetchBackups: jest.fn(),
+      setPanorama: vi.fn((panoId) => Promise.resolve({ panoData: { panoId } })),
+      renderPanoMarker: vi.fn(),
+      prefetchPano: vi.fn(),
+      prefetchBackups: vi.fn(),
       blanksPanoWhileLoading: () => false,
       getActiveViewerName: () => 'Default',
-      revealPendingCanvas: jest.fn(),
-      replayMarkerPulse: jest.fn(),
-      setMarkerScale: jest.fn(),
+      revealPendingCanvas: vi.fn(),
+      replayMarkerPulse: vi.fn(),
+      setMarkerScale: vi.fn(),
       getPov: () => ({ heading: 0, pitch: 0, zoom: 1 }),
-      onMarkerCreated: jest.fn(),
-      onMarkerDrawn: jest.fn(),
+      onMarkerCreated: vi.fn(),
+      onMarkerDrawn: vi.fn(),
       getPanoMarker: () => null,
-      styleMarkerForLabel: jest.fn(),
+      styleMarkerForLabel: vi.fn(),
       panoViewer: {
-        resize: jest.fn(),
-        repaint: jest.fn(),
-        addListener: jest.fn(),
+        resize: vi.fn(),
+        repaint: vi.fn(),
+        addListener: vi.fn(),
         getPov: () => ({ heading: 0, pitch: 0, zoom: 1 }),
         getPosition: () => ({ lat: 47.6, lng: -122.3 }),
         getPanoId: () => 'pano1',
@@ -240,7 +266,7 @@ describe('Main hooks what describes a label to the label container', () => {
     window.PanoManager = class { static create() { viewerCreated = true; return Promise.resolve(panoManager); } };
 
     // The listeners' bodies are stubbed: each is pinned by its own suite, and here only the hook is under test.
-    const stub = (proto, method) => jest.spyOn(proto, method).mockImplementation(() => {});
+    const stub = (proto, method) => vi.spyOn(proto, method).mockImplementation(() => {});
     ready = {
       labelCard: stub(LabelCard.prototype, 'render'),
       validationMenu: stub(DesktopValidationMenu.prototype, 'resetMenu'),
@@ -253,16 +279,16 @@ describe('Main hooks what describes a label to the label container', () => {
       zoomControl: stub(ZoomControl.prototype, 'updateZoomAvailability'),
     };
     loading = {
-      keyboardOff: jest.spyOn(Gate.prototype, 'hold'),
-      keyboardOn: jest.spyOn(Gate.prototype, 'release'),
-      undoOff: jest.spyOn(UndoValidation.prototype, 'disableUndo'),
-      undoOn: jest.spyOn(UndoValidation.prototype, 'enableUndo'),
+      keyboardOff: vi.spyOn(Gate.prototype, 'hold'),
+      keyboardOn: vi.spyOn(Gate.prototype, 'release'),
+      undoOff: vi.spyOn(UndoValidation.prototype, 'disableUndo'),
+      undoOn: vi.spyOn(UndoValidation.prototype, 'enableUndo'),
       cardHidden: stub(LabelVisibilityControl.prototype, 'hideLabelCard'),
     };
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
     document.body.innerHTML = '';
   });
 
@@ -373,9 +399,10 @@ describe('Main hooks what describes a label to the label container', () => {
   test('the shortcuts are wired only once the tool is on screen, so no key acts on the loading screen', async () => {
     const loadingOverlay = document.getElementById('page-loading');
     let overlayWhenWired;
-    jest.spyOn(window, 'addEventListener').mockImplementation(function (type, ...rest) {
+    const addEventListener = window.addEventListener;
+    vi.spyOn(window, 'addEventListener').mockImplementation(function (type, ...rest) {
       if (type === 'keydown') overlayWhenWired = loadingOverlay.style.visibility;
-      return EventTarget.prototype.addEventListener.call(window, type, ...rest);
+      return addEventListener(type, ...rest);
     });
 
     await start();

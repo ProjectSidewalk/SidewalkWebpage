@@ -11,28 +11,28 @@
  * tier counts only audits that carry weight in the priority formula — and that difference has its own case, because
  * a reader who noticed it and found no explanation would reasonably conclude one of them is a bug.
  *
- * Runs under jsdom (jest.config.js). The page's classes are bare top-level declarations in a concatenated bundle, so
+ * Runs under jsdom (vitest.config.mjs). The page's classes are bare top-level declarations in a concatenated bundle, so
  * they are eval'd into global scope rather than required.
  */
 
-const { loadModules, mockModule, realUtil } = require('./loadGlobalScript');
+import { loadModules, mockModule, realUtil, stubUtil } from './loadGlobalScript.js';
 
 // The page fetches through util.fetchJson.
-window.util = realUtil();
+stubUtil(await realUtil());
 
 
 /** Chart calls, recorded instead of drawn. */
 const charts = [];
 
 /** Loads the page and every class it collaborates with into global scope. */
-function loadPage() {
+async function loadPage() {
   mockModule('frontend/js/admin-dashboard/MiniLineChart.js', () => ({
     MiniLineChart: { renderInto: (host, labels, series, options) => charts.push({ host, labels, series, options }) },
   }));
-  return loadModules('frontend/js/admin-dashboard/ImageryPage.js').ImageryPage;
+  return (await loadModules('frontend/js/admin-dashboard/ImageryPage.js')).ImageryPage;
 }
 
-const ImageryPage = loadPage();
+const ImageryPage = await loadPage();
 
 /** Mapbox GL cannot run under jsdom; this records what the map was told and fires 'load' immediately. */
 function stubMapbox() {
@@ -171,7 +171,7 @@ async function renderPage({ streets = CITY, features, pipeline = report(), failS
   document.body.innerHTML = MARKUP;
   charts.length = 0;
   const mapState = stubMapbox();
-  global.fetch = jest.fn((url) => {
+  global.fetch = vi.fn((url) => {
     if (url.startsWith('/adminapi/imageryFreshness')) {
       return Promise.resolve({ ok: true, json: async () => pipeline });
     }
@@ -198,10 +198,10 @@ const text = (id) => document.getElementById(id).textContent;
 const regionRows = () => [...document.querySelectorAll('#imagery-region-table tbody tr')];
 const streetRows = () => [...document.querySelectorAll('#imagery-street-table tbody tr')];
 
-beforeEach(() => { jest.spyOn(Date, 'now').mockReturnValue(NOW); });
+beforeEach(() => { vi.spyOn(Date, 'now').mockReturnValue(NOW); });
 
 afterEach(() => {
-  jest.restoreAllMocks();
+  vi.restoreAllMocks();
   delete global.mapboxgl;
 });
 
@@ -616,14 +616,14 @@ describe('ImageryPage loading states', () => {
   });
 
   test('reports a failed street fetch instead of leaving the page on "Loading"', async () => {
-    jest.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
     await renderPage({ failStreets: true });
     expect(text('imagery-status')).toContain('Could not load street priority data');
     expect(document.getElementById('imagery-status').classList.contains('error')).toBe(true);
   });
 
   test('renders the pipeline section even when the street fetch fails, since it needs nothing from it', async () => {
-    jest.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
     await renderPage({ failStreets: true });
     expect(document.querySelectorAll('#imagery-jobs tbody tr')).toHaveLength(1);
   });

@@ -8,13 +8,13 @@
  * stops agreeing with the recorded measurements, and a regenerated fixture whose verdict, clamp bounds, or
  * cells moved. What it does NOT catch: Google changing the renderer — every number here comes from the frozen
  * fixture, so renderer drift shows up only in a fresh probe run, and in production as markers drifting at
- * non-3:2 aspects. CI runs the jest suite as a blocking step in the `frontend` job
+ * non-3:2 aspects. CI runs the Vitest suite as a blocking step in the `frontend` job
  * (docs/testing-and-ci.md), so a code change that breaks the contract stops a merge — but nothing in CI
  * watches Google's renderer, and a green run here is not evidence that it has not moved.
  */
-const fs = require('fs');
-const path = require('path');
-const {loadGlobalScript, realUtil } = require('./loadGlobalScript');
+import fs from 'fs';
+import path from 'path';
+import { loadGlobalScript, realUtil, stubUtil } from './loadGlobalScript.js';
 
 // utilities.js builds a Bowser parser at load time; nothing here consults it.
 window.bowser = {
@@ -23,14 +23,14 @@ window.bowser = {
         getOSName: () => 'TestOS', getPlatformType: () => 'desktop',
     }),
 };
-window.util = realUtil();
-loadGlobalScript('frontend/js/common/utilitiesMath.js'); // hFovToVFov/vFovToHFov use util.math.to{Degrees,Radians}.
-loadGlobalScript('frontend/js/common/pano-viewer/panoUtilities.js');
+stubUtil(await realUtil());
+await loadGlobalScript('frontend/js/common/utilitiesMath.js'); // hFovToVFov/vFovToHFov use util.math.to{Degrees,Radians}.
+await loadGlobalScript('frontend/js/common/pano-viewer/panoUtilities.js');
 const pano = window.util.pano;
 
 const FIXTURE_PATH = path.resolve(__dirname, 'fixtures', 'gsvFovMeasurements.json');
 // The suite self-skips while the recorded fixture doesn't exist yet (it is produced by a completed probe
-// sweep via `analyze.mjs --emit-fixture`), so an in-progress experiment branch keeps the jest tree green.
+// sweep via `analyze.mjs --emit-fixture`), so an in-progress experiment branch keeps the Vitest tree green.
 const fixture = fs.existsSync(FIXTURE_PATH) ? JSON.parse(fs.readFileSync(FIXTURE_PATH, 'utf8')) : null;
 const describeWithFixture = fixture ? describe : describe.skip;
 

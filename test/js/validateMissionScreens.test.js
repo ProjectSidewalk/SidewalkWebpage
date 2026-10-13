@@ -11,7 +11,14 @@
  * The classes are top-level declarations concatenated into page scope by Grunt, so the tests evaluate the sources.
  */
 
-const { assetPathStub, loadModules } = require('./loadGlobalScript');
+import { assetPathStub, loadModules, fakeImport, stubUtil } from './loadGlobalScript.js';
+import { fakeGate, fakeTracker } from './fakes.js';
+
+fakeImport('frontend/js/common/Confetti.js', 'Confetti');
+fakeImport('frontend/js/common/MissionStartTutorial.js', 'MissionStartTutorial');
+fakeImport('frontend/js/common/BadgeAchievements.js', 'BadgeAchievements');
+fakeImport('frontend/js/common/ProgressBar.js', 'ProgressBar');
+
 
 /* global MissionStartTutorial -- put on global by the suite's setup. */
 
@@ -21,17 +28,17 @@ const { assetPathStub, loadModules } = require('./loadGlobalScript');
  * @param {string} className - Name of the class the file declares.
  * @returns {Function} The class.
  */
-function loadClass(relativePath, className) {
-    return loadModules(relativePath)[className];
+async function loadClass(relativePath, className) {
+    return (await loadModules(relativePath))[className];
 }
 
-const ModalMission = loadClass('frontend/js/validate/modal/ModalMission.js', 'ModalMission');
-const ModalMissionComplete = loadClass(
+const ModalMission = await loadClass('frontend/js/validate/modal/ModalMission.js', 'ModalMission');
+const ModalMissionComplete = await loadClass(
     'frontend/js/validate/modal/ModalMissionComplete.js', 'ModalMissionComplete'
 );
-const ModalNoNewMission = loadClass('frontend/js/validate/modal/ModalNoNewMission.js', 'ModalNoNewMission');
-const BadgeAchievements = loadClass('frontend/js/common/BadgeAchievements.js', 'BadgeAchievements');
-const ProgressBar = loadClass('frontend/js/common/ProgressBar.js', 'ProgressBar');
+const ModalNoNewMission = await loadClass('frontend/js/validate/modal/ModalNoNewMission.js', 'ModalNoNewMission');
+const BadgeAchievements = await loadClass('frontend/js/common/BadgeAchievements.js', 'BadgeAchievements');
+const ProgressBar = await loadClass('frontend/js/common/ProgressBar.js', 'ProgressBar');
 
 /** The two slides MissionStartTutorial hands the briefing for a label type: the right example, then a wrong one. */
 const SLIDES = [
@@ -54,19 +61,21 @@ function makeMission(props = {}) {
     return {getProperty: (key) => all[key]};
 }
 
+const Gate = await loadClass('frontend/js/common/Gate.js', 'Gate');
+
 describe('mobile Validate mission screens', () => {
     let isMobile;
     let tracker;
     let deadEndShowing;
-    const keyboardLock = {hold: jest.fn(), release: jest.fn()};
+    const keyboardLock = fakeGate();
     const modalNoNewMission = {isShowing: () => deadEndShowing};
     const statusField = {getCompletedValidations: () => 0};
-    const panoManager = {replayMarkerPulse: jest.fn()};
+    const panoManager = {replayMarkerPulse: vi.fn()};
 
     beforeEach(() => {
         isMobile = true;
         deadEndShowing = false;
-        tracker = {push: jest.fn()};
+        tracker = fakeTracker();
         document.body.innerHTML = `
             <div id="modal-mission-holder">
               <div id="modal-mission-background"></div>
@@ -103,23 +112,23 @@ describe('mobile Validate mission screens', () => {
             // Echo the key plus any interpolation, so assertions can name what a slot was filled with.
             t: (key, opts) => (opts ? `${key}|${JSON.stringify(opts)}` : key),
         };
-        global.util = {
+        stubUtil({
             assetPath: assetPathStub,
             isMobile: () => isMobile,
             misc: {
                 getIconImagePaths: (type) => ({iconImagePath: `/assets/icons/${type}_small.svg`}),
                 labelTypeName: () => 'Curb Ramp',
             },
-        };
+        });
         global.MissionStartTutorial = {
             EXAMPLE_PHOTO: {width: 658, height: 436},
-            slidesFor: jest.fn(() => SLIDES),
+            slidesFor: vi.fn(() => SLIDES),
         };
         global.BadgeAchievements = BadgeAchievements;
-        global.BadgeAchievements.recordMissionComplete = jest.fn();
+        global.BadgeAchievements.recordMissionComplete = vi.fn();
         global.ProgressBar = ProgressBar;
-        global.Confetti = {burst: jest.fn()};
-        window.matchMedia = jest.fn(() => ({matches: false}));
+        global.Confetti = {burst: vi.fn()};
+        window.matchMedia = vi.fn(() => ({matches: false}));
     });
 
     afterEach(() => {
@@ -326,7 +335,7 @@ describe('mobile Validate mission screens', () => {
 
         test('it fits again once the real face has loaded, since the first fit measured the fallback', async () => {
             let resolveFont;
-            const load = jest.fn(() => new Promise((resolve) => { resolveFont = resolve; }));
+            const load = vi.fn(() => new Promise((resolve) => { resolveFont = resolve; }));
             Object.defineProperty(document, 'fonts', {value: {load}, configurable: true});
             measureAs(8, 320); // The fallback face fits, so nothing is stamped...
 
@@ -345,7 +354,7 @@ describe('mobile Validate mission screens', () => {
 
         test('a dead end that arrived while the face was loading keeps the heading’s own size', async () => {
             let resolveFont;
-            const load = jest.fn(() => new Promise((resolve) => { resolveFont = resolve; }));
+            const load = vi.fn(() => new Promise((resolve) => { resolveFont = resolve; }));
             Object.defineProperty(document, 'fonts', {value: {load}, configurable: true});
             measureAs(8, 320);
             briefing().setMissionMessage(makeMission());
@@ -468,7 +477,6 @@ describe('mobile Validate mission screens', () => {
     });
 
     describe('the keyboard behind the mission-complete screen (#5752)', () => {
-        const Gate = loadClass('frontend/js/common/Gate.js', 'Gate');
         let lock;
         let hooks;
 

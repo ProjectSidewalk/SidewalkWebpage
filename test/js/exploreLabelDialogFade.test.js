@@ -10,13 +10,13 @@
  * panel opens or closes is ContextMenu.show()/hide() re-rendering the canvas, pinned in exploreContextMenuRerender.
  */
 
-const { loadModules, realUtil } = require('./loadGlobalScript');
-const { makeRecordingCtx } = require('./canvasCtxStub');
+import { loadModules, realUtil, stubUtil } from './loadGlobalScript.js';
+import { makeRecordingCtx } from './canvasCtxStub.js';
 
 
 /** Loads a fresh Label class into the jsdom global scope (a class declaration is not a globalThis property). */
-function loadLabel() {
-    Object.assign(window, loadModules('frontend/js/explore/label/Label.js'));
+async function loadLabel() {
+    Object.assign(window, await loadModules('frontend/js/explore/label/Label.js'));
     return window.Label;
 }
 
@@ -24,11 +24,11 @@ function loadLabel() {
  * Loads the real utilities.js rather than stubbing it. Label's icon geometry is expressed in terms of
  * util.labelIconHalfExtent/labelIconScale, and a stub of those would be the formula copied into the test.
  */
-function loadUtil() {
+async function loadUtil() {
     // utilities.js builds a Bowser parser at load time; nothing under test here consults it.
     window.bowser = { getParser: () => ({ getBrowserName: () => 'Chrome', getBrowserVersion: () => '1',
         getOSName: () => 'Linux', getPlatformType: () => 'desktop' }) };
-    window.util = realUtil();
+    stubUtil(await realUtil());
     return window.util;
 }
 
@@ -61,9 +61,9 @@ describe('Label render fade while the context menu is open', () => {
         return ctx;
     }
 
-    beforeEach(() => {
-        Label = loadLabel();
-        const util = loadUtil();
+    beforeEach(async () => {
+        Label = await loadLabel();
+        const util = await loadUtil();
         frame = { width: 720, height: 480, iconRadius: util.labelIconRadius(1), renderedHFov: () => 90 };
         util.pano = { centeredPovToCanvasCoord: () => ({ x: 360, y: 240 }) };
         util.misc = {
@@ -74,7 +74,7 @@ describe('Label render fade while the context menu is open', () => {
     });
 
     afterEach(() => {
-        jest.restoreAllMocks();
+        vi.restoreAllMocks();
     });
 
     test('draws at full opacity when no context menu is open', () => {

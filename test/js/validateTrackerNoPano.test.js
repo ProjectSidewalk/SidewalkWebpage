@@ -8,8 +8,8 @@
  * instead.
  */
 
-const path = require('path');
-const { loadModules } = require('./loadGlobalScript');
+import path from 'path';
+import { loadModules } from './loadGlobalScript.js';
 
 const TRACKER_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/Tracker.js');
 
@@ -18,19 +18,19 @@ const TRACKER_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/T
  * scope — by wrapping the source in an IIFE that returns it.
  * @returns {Function} The Tracker class.
  */
-function loadTrackerClass() {
-    return loadModules(TRACKER_PATH).Tracker;
+async function loadTrackerClass() {
+    return (await loadModules(TRACKER_PATH)).Tracker;
 }
 
-const Tracker = loadTrackerClass();
+const Tracker = await loadTrackerClass();
 
 describe('Tracker before the first pano loads', () => {
     beforeEach(() => {
-        jest.useFakeTimers();
+        vi.useFakeTimers();
     });
 
     afterEach(() => {
-        jest.useRealTimers();
+        vi.useRealTimers();
     });
 
     /** A GSV-shaped viewer in its pre-load state: nothing to report yet. */
@@ -94,11 +94,11 @@ describe('Tracker before the first pano loads', () => {
 
 describe('Tracker before the mission exists', () => {
     beforeEach(() => {
-        jest.useFakeTimers();
+        vi.useFakeTimers();
     });
 
     afterEach(() => {
-        jest.useRealTimers();
+        vi.useRealTimers();
     });
 
     /** A mission container reporting one mission, as MissionContainer does once Main has created it. */

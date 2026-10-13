@@ -7,21 +7,21 @@
  * starts sorting on the string it printed instead of the number it holds. The rest pin the interactions the map
  * brushing depends on, and the keyboard path, which nothing else exercises.
  *
- * Runs under jsdom (jest.config.js). StreetPriorityTable is a bare top-level class in a concatenated bundle, so it is
+ * Runs under jsdom (vitest.config.mjs). StreetPriorityTable is a bare top-level class in a concatenated bundle, so it is
  * eval'd into global scope rather than required.
  */
 
-const { loadModules, realUtil } = require('./loadGlobalScript');
+import { loadModules, realUtil, stubUtil } from './loadGlobalScript.js';
 
-window.util = realUtil();
+stubUtil(await realUtil());
 
 
 /** Loads AdminShell (the table escapes through it) and returns the table class. */
-function loadTable() {
-  return loadModules('frontend/js/admin-dashboard/StreetPriorityTable.js').StreetPriorityTable;
+async function loadTable() {
+  return (await loadModules('frontend/js/admin-dashboard/StreetPriorityTable.js')).StreetPriorityTable;
 }
 
-const StreetPriorityTable = loadTable();
+const StreetPriorityTable = await loadTable();
 
 const REGIONS = [
   { region_id: 1, region_name: 'Ballard', reaudit: 12, mean_priority: 0.4 },
@@ -253,7 +253,7 @@ describe('StreetPriorityTable row interactions', () => {
     .find((tr) => tr.cells[0].textContent === name);
 
   beforeEach(() => {
-    hooks = { onRowClick: jest.fn(), onRowHover: jest.fn(), onRowHoverEnd: jest.fn() };
+    hooks = { onRowClick: vi.fn(), onRowHover: vi.fn(), onRowHoverEnd: vi.fn() };
     build(hooks);
   });
 

@@ -13,15 +13,17 @@
  * compares `new.target` against, following panoViewerMountAlignment.test.js.
  */
 
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules, fakeImport } from './loadGlobalScript.js';
+
+fakeImport('frontend/js/common/pano-viewer/PanoViewer.js', 'PanoViewer');
 
 
 /**
  * Loads PanoViewer + GsvViewer fresh into the jsdom global scope.
  * @returns {{PanoViewer: Function, GsvViewer: Function}}
  */
-function loadViewers() {
-            Object.assign(window, loadModules('frontend/js/common/pano-viewer/PanoViewer.js', 'frontend/js/common/pano-viewer/GsvViewer.js'));
+async function loadViewers() {
+            Object.assign(window, await loadModules('frontend/js/common/pano-viewer/PanoViewer.js', 'frontend/js/common/pano-viewer/GsvViewer.js'));
     return { PanoViewer: window.PanoViewer, GsvViewer: window.GsvViewer };
 }
 
@@ -39,14 +41,14 @@ function viewerShowingPov(GsvViewer, pov) {
         // The live object itself, the least forgiving thing GSV could hand back: a nudge that edited it in place
         // before calling setPov would make the set look like no change at all.
         getPov: () => shown,
-        setPov: jest.fn((next) => { Object.assign(shown, next); }),
+        setPov: vi.fn((next) => { Object.assign(shown, next); }),
     };
     return { viewer, shownPov: () => ({ ...shown }), live: shown };
 }
 
 describe('PanoViewer.repaint', () => {
-    test('is a no-op on the base class, so providers without the repaint bug are left alone', () => {
-        const { PanoViewer } = loadViewers();
+    test('is a no-op on the base class, so providers without the repaint bug are left alone', async () => {
+        const { PanoViewer } = await loadViewers();
 
         expect(typeof PanoViewer.prototype.repaint).toBe('function');
         expect(PanoViewer.prototype.repaint.call({})).toBeUndefined();
@@ -56,15 +58,15 @@ describe('PanoViewer.repaint', () => {
 describe('GsvViewer.repaint', () => {
     let GsvViewer;
 
-    beforeEach(() => {
-        ({ GsvViewer } = loadViewers());
+    beforeEach(async () => {
+        ({ GsvViewer } = await loadViewers());
     });
 
     test('does nothing before a pano has loaded, when there is no frame to force', () => {
         const viewer = new GsvViewer();
         expect(() => viewer.repaint()).not.toThrow(); // No gsvPano at all: the earliest resize can beat the SDK.
 
-        viewer.gsvPano = { getPov: () => undefined, setPov: jest.fn() }; // GSV's answer until the first pano paints.
+        viewer.gsvPano = { getPov: () => undefined, setPov: vi.fn() }; // GSV's answer until the first pano paints.
         viewer.repaint();
 
         expect(viewer.gsvPano.setPov).not.toHaveBeenCalled();

@@ -4,13 +4,13 @@
  *
  * The last block pins the guard's field list against PanoData, the authority it and the backend copies answer to.
  *
- * Runs under jsdom (jest.config.js).
+ * Runs under jsdom (vitest.config.mjs).
  */
 
 /* global PanoData, backupImageDataIsComplete, buildBackupImageData -- put on global by loadScript below. */
 
-const path = require('path');
-const { loadModules, realUtil } = require('./loadGlobalScript');
+import path from 'path';
+import { loadModules, realUtil, stubUtil } from './loadGlobalScript.js';
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const UTILITIES_PATH = path.join(REPO_ROOT, 'frontend/js/common/utilitiesSidewalk.js');
@@ -23,8 +23,8 @@ const PANO_DATA_PATH = path.join(REPO_ROOT, 'frontend/js/common/pano-viewer/Pano
  *
  * @param {string} filePath Absolute path to the script.
  */
-function loadScript(filePath) {
-  Object.assign(global, loadModules(filePath));
+async function loadScript(filePath) {
+  Object.assign(global, await loadModules(filePath));
 }
 
 /** A backup pano whose metadata is complete — the shape buildBackupImageData produces. */
@@ -70,10 +70,10 @@ function labelMetadata(panoDataOverrides = {}) {
   };
 }
 
-beforeAll(() => {
-  window.util = realUtil();
-  loadScript(UTILITIES_PATH);
-  loadScript(PANO_DATA_PATH);
+beforeAll(async () => {
+  stubUtil(await realUtil());
+  await loadScript(UTILITIES_PATH);
+  await loadScript(PANO_DATA_PATH);
 });
 
 describe('backupImageDataIsComplete', () => {

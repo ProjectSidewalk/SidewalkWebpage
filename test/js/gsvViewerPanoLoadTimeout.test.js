@@ -11,30 +11,30 @@
  * live inside other methods that these tests never call.
  */
 
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules } from './loadGlobalScript.js';
 
 
 /** Loads a fresh GsvViewer class into the jsdom global scope and returns it. */
-function loadGsvViewer() {
-    Object.assign(window, loadModules('frontend/js/common/pano-viewer/GsvViewer.js'));
+async function loadGsvViewer() {
+    Object.assign(window, await loadModules('frontend/js/common/pano-viewer/GsvViewer.js'));
     return window.GsvViewer;
 }
 
 describe('GsvViewer._loadPanoWithTimeout', () => {
     let GsvViewer;
 
-    beforeAll(() => {
-        GsvViewer = loadGsvViewer();
+    beforeAll(async () => {
+        GsvViewer = await loadGsvViewer();
     });
 
     beforeEach(() => {
-        jest.useFakeTimers();
+        vi.useFakeTimers();
         // The race detaches its position_changed listener via google.maps.event.removeListener.
-        global.google = { maps: { event: { removeListener: jest.fn() } } };
+        global.google = { maps: { event: { removeListener: vi.fn() } } };
     });
 
     afterEach(() => {
-        jest.useRealTimers();
+        vi.useRealTimers();
         delete global.google;
     });
 
@@ -47,7 +47,7 @@ describe('GsvViewer._loadPanoWithTimeout', () => {
         const captured = {};
         viewer.gsvPano = {
             addListener: (event, cb) => { captured.event = event; captured.cb = cb; return { event }; },
-            setPano: jest.fn(),
+            setPano: vi.fn(),
         };
         return { viewer, captured };
     }
@@ -65,7 +65,7 @@ describe('GsvViewer._loadPanoWithTimeout', () => {
         await expect(promise).resolves.toBe(panoData);
         // Listener detached, and the timeout cleared (advancing time must not also reject).
         expect(global.google.maps.event.removeListener).toHaveBeenCalledTimes(1);
-        jest.advanceTimersByTime(60000);
+        vi.advanceTimersByTime(60000);
         await expect(promise).resolves.toBe(panoData);
     });
 
@@ -75,7 +75,7 @@ describe('GsvViewer._loadPanoWithTimeout', () => {
         const promise = viewer._loadPanoWithTimeout('deadpano', { id: 'CURR' });
         const assertion = expect(promise).rejects.toThrow(/Timed out loading pano deadpano/);
 
-        jest.advanceTimersByTime(60000); // well past the load timeout.
+        vi.advanceTimersByTime(60000); // well past the load timeout.
 
         await assertion;
         expect(global.google.maps.event.removeListener).toHaveBeenCalledTimes(1);
@@ -86,7 +86,7 @@ describe('GsvViewer._loadPanoWithTimeout', () => {
 
         const promise = viewer._loadPanoWithTimeout('deadpano', { id: 'CURR' });
         const assertion = expect(promise).rejects.toThrow(/Timed out/);
-        jest.advanceTimersByTime(60000);
+        vi.advanceTimersByTime(60000);
         await assertion;
 
         // A late load event must be a no-op (promises settle once), not throw or resolve.

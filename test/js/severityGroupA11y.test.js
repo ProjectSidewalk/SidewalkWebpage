@@ -23,8 +23,8 @@
  *     `newSeverity`, so its renderer has to write `checked` too or a rating stays announced under the next label.
  */
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const MAIN_CSS_PATH = path.join(REPO_ROOT, 'frontend/css/main.css');

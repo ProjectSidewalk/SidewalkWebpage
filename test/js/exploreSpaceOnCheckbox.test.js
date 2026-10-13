@@ -7,22 +7,25 @@
  * toggle unreachable from the keyboard and walked the user down the street instead.
  */
 
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules, fakeImport } from './loadGlobalScript.js';
+import { fakeGate } from './fakes.js';
+
+fakeImport('frontend/js/common/KeyboardShortcuts.js', 'KeyboardShortcuts');
 
 
 describe('Explore spacebar shortcut and focused form controls', () => {
     let navigationService;
 
-    beforeAll(() => {
-        Object.assign(window, loadModules('frontend/js/common/KeyboardShortcuts.js', 'frontend/js/explore/keyboard/KeyboardManager.js'));
+    beforeAll(async () => {
+        Object.assign(window, await loadModules('frontend/js/common/KeyboardShortcuts.js', 'frontend/js/explore/keyboard/KeyboardManager.js'));
         navigationService = {
             // Walking held makes the route advance a no-op, so the test sees only whether it was attempted.
-            walking: { isHeld: jest.fn(() => true) },
-            moveToLinkedPano: jest.fn(),
+            walking: { isHeld: vi.fn(() => true) },
+            moveToLinkedPano: vi.fn(),
         };
         // One instance for the file: the constructor adds window listeners that are never removed.
-        new window.KeyboardManager({ isHeld: () => false }, {},
-            { isOpen: () => false, onTextFieldFocusChanged: jest.fn() }, navigationService, {}, {}, {}, {}, {}, {});
+        new window.KeyboardManager(fakeGate(), {},
+            { isOpen: () => false, onTextFieldFocusChanged: vi.fn() }, navigationService, {}, {}, {}, {}, {}, {});
     });
 
     beforeEach(() => {

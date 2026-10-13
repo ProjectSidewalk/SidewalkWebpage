@@ -1,12 +1,12 @@
 /**
  * Tests for util.escapeHTML and util.htmlToText.
  *
- * Runs under jsdom (jest.config.js).
+ * Runs under jsdom (vitest.config.mjs).
  */
 
-const { realUtil } = require('./loadGlobalScript');
+import { realUtil, stubUtil } from './loadGlobalScript.js';
 
-window.util = realUtil();
+stubUtil(await realUtil());
 
 describe('util.escapeHTML', () => {
   test('escapes every character that could break out of markup', () => {

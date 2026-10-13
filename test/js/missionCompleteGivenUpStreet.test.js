@@ -10,7 +10,8 @@
  * MissionController is loaded as a module and built against the smallest collaborators the wrap-up touches.
  */
 
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules } from './loadGlobalScript.js';
+import { fakeTracker, fakePanoManager } from './fakes.js';
 
 
 /** A task in one of the two states the wrap-up distinguishes: walked to its end, or given up on for lack of imagery. */
@@ -27,37 +28,37 @@ describe('MissionController.wrapUpRouteOrRegion', () => {
     let modalMissionComplete;
     let taskContainer;
 
-    beforeEach(() => {
+    beforeEach(async () => {
         currentTask = makeTask();
         mission = {
             isComplete: () => false,
-            complete: jest.fn(),
+            complete: vi.fn(),
             getProperty: (key) => (key === 'missionId' ? 7 : 'audit'),
             getDistance: () => 100,
         };
         regionModel = { isRoute: true, currentRegion: () => ({ getRegionId: () => 22 }) };
-        form = { submitData: jest.fn() };
-        modalMissionComplete = { update: jest.fn(), show: jest.fn() };
+        form = { submitData: vi.fn() };
+        modalMissionComplete = { update: vi.fn(), show: vi.fn() };
         taskContainer = {
             getCurrentTask: () => currentTask,
-            endTask: jest.fn(),
-            updateAuditedDistance: jest.fn(),
+            endTask: vi.fn(),
+            updateAuditedDistance: vi.fn(),
         };
         window.i18next = { t: (key) => key };
 
-        Object.assign(window, loadModules('frontend/js/explore/mission/MissionController.js'));
+        Object.assign(window, await loadModules('frontend/js/explore/mission/MissionController.js'));
         controller = new window.MissionController(
             { isExploreAddressMode: false },
-            { on: jest.fn(), completeMission: jest.fn() },
+            { on: vi.fn(), completeMission: vi.fn() },
             regionModel,
-            { getCurrentMission: () => mission, finishMission: jest.fn((m) => m.complete()) },
+            { getCurrentMission: () => mission, finishMission: vi.fn((m) => m.complete()) },
             taskContainer,
             form,
             modalMissionComplete,
-            {}, {}, { onFinishClick: jest.fn() },
-            { onRouteEndReached: jest.fn(), onRegionExhausted: jest.fn() }, { onPovChanged: jest.fn() },
+            {}, {}, { onFinishClick: vi.fn() },
+            { onRouteEndReached: vi.fn(), onRegionExhausted: vi.fn() }, fakePanoManager(),
             {}, {}, {}, {}, {},
-            { push: jest.fn() },
+            fakeTracker(),
         );
     });
 

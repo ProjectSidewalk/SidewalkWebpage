@@ -7,12 +7,12 @@
  * that broke overallStatsPreview.js when `total_validations` moved under `validations.combined`) fails loudly here
  * instead of silently in the browser.
  *
- * Runs under jsdom (set in jest.config.js via testEnvironment) so `window`/`document` are available.
+ * Runs under jsdom (set in vitest.config.mjs via testEnvironment) so `window`/`document` are available.
  */
 
-const { loadModules, mockModule, unmockModule, installEscapeHTML } = require('./loadGlobalScript');
+import { loadModules, mockModule, unmockModule, installEscapeHTML } from './loadGlobalScript.js';
 
-installEscapeHTML();
+await installEscapeHTML();
 
 const MODULE_PATH = 'frontend/js/api-docs/validationResultTypesPreview.js';
 const CONTAINER_ID = 'validation-result-types-preview';
@@ -41,7 +41,7 @@ const WRONG_SHAPE_FIXTURE = {
  * @param {object} body - The object the stubbed fetch should resolve with as JSON.
  */
 function stubFetch(body) {
-    global.fetch = jest.fn(() =>
+    global.fetch = vi.fn(() =>
         Promise.resolve({
             ok: true,
             status: 200,
@@ -51,17 +51,17 @@ function stubFetch(body) {
 }
 
 describe('ValidationResultTypesPreview', () => {
-    beforeEach(() => {
+    beforeEach(async () => {
         // Fresh container per test.
         document.body.innerHTML = `<div id="${CONTAINER_ID}"></div>`;
         // The preview is a singleton; load a clean copy each time so config mutations from setup() in one test don't
         // bleed into the next.
-        window.ValidationResultTypesPreview = loadModules(MODULE_PATH).ValidationResultTypesPreview;
+        window.ValidationResultTypesPreview = (await loadModules(MODULE_PATH)).ValidationResultTypesPreview;
     });
 
     afterEach(() => {
         delete global.fetch;
-        jest.restoreAllMocks();
+        vi.restoreAllMocks();
     });
 
     test('exposes the expected global surface', () => {
@@ -112,7 +112,7 @@ describe('ValidationResultTypesPreview', () => {
         mockModule('frontend/js/api-docs/apiTableWrapper.js', () => ({
             createApiTableWrapper: () => { throw new Error('render failed'); },
         }));
-        window.ValidationResultTypesPreview = loadModules(MODULE_PATH).ValidationResultTypesPreview;
+        window.ValidationResultTypesPreview = (await loadModules(MODULE_PATH)).ValidationResultTypesPreview;
         unmockModule('frontend/js/api-docs/apiTableWrapper.js');
 
         await expect(window.ValidationResultTypesPreview.setup({}).init()).resolves.toBeUndefined();

@@ -15,7 +15,17 @@
  */
 
 
-const { assetPathStub, installDateHelpers, loadModules } = require('./loadGlobalScript');
+import { assetPathStub, installDateHelpers, loadModules, fakeImport, stubUtil } from './loadGlobalScript.js';
+
+fakeImport('frontend/js/common/BadgeAchievements.js', 'BadgeAchievements');
+fakeImport('frontend/js/common/LabelVisibilityToggle.js', 'LabelVisibilityToggle');
+fakeImport('frontend/js/common/Toast.js', 'Toast');
+fakeImport('frontend/js/common/label-detail/PopupPanoManager.js', 'PopupPanoManager');
+fakeImport('frontend/js/common/label-detail/StorySection.js', 'StorySection');
+fakeImport('frontend/js/common/pano-viewer/PanoInfoPopover.js', 'PanoInfoPopover');
+fakeImport('frontend/js/common/utilitiesSidewalk.js', 'buildBackupImageData');
+fakeImport('frontend/js/common/LabelTypePicker.js', 'LabelTypeDropdown');
+fakeImport('frontend/js/common/label-detail/TagEditor.js', 'TagEditor');
 
 
 const TYPES = ['CurbRamp', 'Obstacle', 'SurfaceProblem', 'Signal'];
@@ -153,11 +163,11 @@ describe('changing a label\'s type from the card (#3671)', () => {
   }
 
   beforeEach(async () => {
-    jest.useFakeTimers({ doNotFake: ['setTimeout', 'clearTimeout', 'setImmediate', 'nextTick', 'queueMicrotask'] });
+    vi.useFakeTimers({ toNotFake: ['setTimeout', 'clearTimeout', 'setImmediate', 'nextTick', 'queueMicrotask'] });
     card = buildCard();
     nextReply = null;
-    onEdit = jest.fn();
-    saveRequest = jest.fn(async (url, opts) => {
+    onEdit = vi.fn();
+    saveRequest = vi.fn(async (url, opts) => {
       const body = JSON.parse(opts.body);
       const reply = nextReply ?? {
         status: 200,
@@ -168,10 +178,10 @@ describe('changing a label\'s type from the card (#3671)', () => {
     });
 
     window.i18next = { t: (key, opts) => (opts?.labelType ? `${key}:${opts.labelType}` : key) };
-    window.logWebpageActivity = jest.fn();
+    window.logWebpageActivity = vi.fn();
     window.camelToKebab = (s) => s.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
     window.buildBackupImageData = () => null;
-    window.util = {
+    stubUtil({
       assetPath: assetPathStub,
       camelToKebab: window.camelToKebab,
       EXPLORE_CANVAS_WIDTH: 720,
@@ -191,20 +201,20 @@ describe('changing a label\'s type from the card (#3671)', () => {
       },
       pano: { centeredPovToCanvasCoord: () => ({ x: 0, y: 0 }) },
       url: { replaceQuery: () => {} },
-    };
-    installDateHelpers();
+    });
+    await installDateHelpers();
     window.BadgeAchievements = { seedCounts: () => {}, recordValidation: () => {} };
-    window.Toast = { show: jest.fn() };
+    window.Toast = { show: vi.fn() };
     window.LabelVisibilityToggle = class { constructor() {} };
     window.PanoInfoPopover = class { constructor() {} };
 
     let resolvePano;
     panoManager = {
-      clearLabels: jest.fn(),
-      setLabel: jest.fn(),
-      setLabelType: jest.fn(),
-      setLabelsHidden: jest.fn(),
-      setPano: jest.fn(() => new Promise((res) => { resolvePano = res; })),
+      clearLabels: vi.fn(),
+      setLabel: vi.fn(),
+      setLabelType: vi.fn(),
+      setLabelsHidden: vi.fn(),
+      setPano: vi.fn(() => new Promise((res) => { resolvePano = res; })),
       resolvePano: (shown) => resolvePano(shown),
       activeViewerName: 'Default',
       panoViewer: { currPanoData: null },
@@ -214,14 +224,14 @@ describe('changing a label\'s type from the card (#3671)', () => {
     // The stories disclosure is not what these tests exercise, and its real section wants the composer's markup.
     window.StorySection = class { setLabel() {} };
     // The tag catalog for the tag editor, and the label itself for the vote-count refresh after a type change.
-    window.fetch = jest.fn((url) => {
+    window.fetch = vi.fn((url) => {
       if (String(url).includes('/label/id/')) {
         return Promise.resolve({ ok: true, json: async () => meta({ num_agree: 1, num_disagree: 0, num_unsure: 0 }) });
       }
       return Promise.resolve({ ok: true, json: async () => [] });
     });
 
-    Object.assign(window, loadModules('frontend/js/common/LabelTypePicker.js', 'frontend/js/common/label-detail/TagEditor.js', 'frontend/js/common/label-detail/LabelDetail.js'));
+    Object.assign(window, await loadModules('frontend/js/common/LabelTypePicker.js', 'frontend/js/common/label-detail/TagEditor.js', 'frontend/js/common/label-detail/LabelDetail.js'));
     card.detail = await window.LabelDetail.create(card, {
       admin: false, viewerType: 'Default', currUsername: 'tester', panoOverlaySource: 'test',
       voteColumnSource: 'test', onEdit,
@@ -229,7 +239,7 @@ describe('changing a label\'s type from the card (#3671)', () => {
   });
 
   afterEach(() => {
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   test('the title is a plain span for a viewer who may not edit, and a button for one who may', async () => {
@@ -384,7 +394,7 @@ describe('changing a label\'s type from the card (#3671)', () => {
     typeButton().click();
     chip('Signal').focus();
     const agree = q('[data-result="Agree"]');
-    const clicks = jest.fn();
+    const clicks = vi.fn();
     agree.addEventListener('click', clicks);
 
     chip('Signal').dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyA', key: 'a', bubbles: true }));

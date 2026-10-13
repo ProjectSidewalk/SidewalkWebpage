@@ -11,7 +11,7 @@
  * anyway. The bounding elements are stubbed the same way.
  */
 
-const { realUtil } = require('./loadGlobalScript');
+import { realUtil, stubUtil } from './loadGlobalScript.js';
 
 
 // Explore's frame, as the defaults expect to find it. The pano is 720x480 at scale 1 and sits 100px from the
@@ -46,12 +46,12 @@ const flipped = (panel) => panel.classList.contains('label-anchored-panel--flipp
 describe('util.anchorPanelToLabel', () => {
     let util;
 
-    beforeEach(() => {
+    beforeEach(async () => {
         document.body.innerHTML = '';
         // utilities.js builds a Bowser parser at load time; the geometry under test never consults it.
         window.bowser = { getParser: () => ({ getBrowserName: () => 'Chrome', getBrowserVersion: () => '1',
             getOSName: () => 'Linux', getPlatformType: () => 'desktop' }) };
-        window.util = realUtil();
+        stubUtil(await realUtil());
         util = window.util;
 
         // Explore's frame: the display-scale probe, the coordinate origin, and the horizontal bound.

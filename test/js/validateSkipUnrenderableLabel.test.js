@@ -16,9 +16,18 @@
  * and is dropped only if it is slow again, so a slow CDN no longer ends missions at the imagery-unavailable modal.
  */
 
-const path = require('path');
+import path from 'path';
 
-const { assetPathStub, loadModules } = require('./loadGlobalScript');
+import { assetPathStub, loadModules, fakeImport, stubUtil } from './loadGlobalScript.js';
+import { fakeTracker } from './fakes.js';
+
+fakeImport('frontend/js/common/pano-viewer/GsvViewer.js', 'GsvViewer');
+fakeImport('frontend/js/common/pano-viewer/PanoAttribution.js', 'createPanoAttribution');
+fakeImport('frontend/js/common/pano-viewer/PanoViewerLogo.js', 'createPanoViewerLogo');
+fakeImport('frontend/js/validate/label/Label.js', 'Label');
+fakeImport('frontend/js/common/PanoMarker.js', 'PanoMarker');
+fakeImport('frontend/js/common/pano-viewer/PanoLoadTimeoutError.js', 'PanoLoadTimeoutError');
+
 
 const PANO_MANAGER_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/panorama/PanoManager.js');
 const PANO_MARKER_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/common/PanoMarker.js');
@@ -35,8 +44,8 @@ const TIMEOUT_ERROR_PATH = path.resolve(__dirname, '..', '..',
  * @param {string} className - Name of the class the file declares.
  * @returns {Function} The class.
  */
-function loadClassFromFile(filePath, className) {
-  return loadModules(filePath)[className];
+async function loadClassFromFile(filePath, className) {
+  return (await loadModules(filePath))[className];
 }
 
 
@@ -51,21 +60,21 @@ let deps;
  * @param {Record<string, any>} suiteDeps - The suite's own fakes, which win where they overlap.
  */
 function completeDeps(suiteDeps) {
-  const mission = {updateValidationResult: jest.fn(), isComplete: () => true, getProperty: () => 1};
+  const mission = {updateValidationResult: vi.fn(), isComplete: () => true, getProperty: () => 1};
   deps = {
     config: {validateParams: {}, source: 'Validate', canvasWidth: () => 720, canvasHeight: () => 480, labelRadius: 10},
-    panoLoadingStatus: {begin: jest.fn(), setMessage: jest.fn(), end: jest.fn()},
+    panoLoadingStatus: {begin: vi.fn(), setMessage: vi.fn(), end: vi.fn()},
     modalMissionComplete: {isShowing: () => false},
-    missionContainer: {getCurrentMission: () => mission, updateAMission: jest.fn()},
+    missionContainer: {getCurrentMission: () => mission, updateAMission: vi.fn()},
     ...suiteDeps,
   };
-  deps.tracker.flushSoon ??= jest.fn();
+  deps.tracker.flushSoon ??= vi.fn();
   deps.modalNoNewMission.isShowing ??= () => false;
   Object.assign(deps.panoManager, {
     blanksPanoWhileLoading: () => false,
     getActiveViewerName: () => 'Default',
-    revealPendingCanvas: jest.fn(),
-    prefetchBackups: deps.panoManager.prefetchBackups ?? jest.fn(),
+    revealPendingCanvas: vi.fn(),
+    prefetchBackups: deps.panoManager.prefetchBackups ?? vi.fn(),
     panoViewer: {getViewerType: () => 'gsv'},
   });
 }
@@ -115,13 +124,13 @@ describe('PanoManager clears the pano when no viewer can render it (issue #4810)
     document.body.innerHTML
       = '<div id="pano-holder"><div id="svv-panorama"></div></div><div id="view-control-layer"></div>';
 
-    global.util = {};
+    stubUtil({});
     // utilities.js builds a Bowser parser at load time; the overrides below replace everything read from it.
     global.bowser = { getParser: () => ({ getBrowserName: () => 'Chrome', getBrowserVersion: () => '1',
         getOSName: () => 'Linux', getPlatformType: () => 'desktop' }) };
     // Real utilities, for the marker sizing rule util.cappedMarkerDiameter uses (#4838).
-    Object.assign(window, loadModules(UTILITIES_PATH));
-    Object.assign(window, loadModules(THROTTLE_PATH));
+    Object.assign(window, await loadModules(UTILITIES_PATH));
+    Object.assign(window, await loadModules(THROTTLE_PATH));
     util.isMobile = () => false;
     util.uiScale = () => 1;
     util.camelToKebab = (str) => str.toLowerCase();
@@ -130,28 +139,28 @@ describe('PanoManager clears the pano when no viewer can render it (issue #4810)
       labelTypeName: (type) => window.i18next.t(`common:${window.util.camelToKebab(type)}`),
     };
     // jsdom has no WebGL, so PanoMarker falls back to the 2d projection; where the marker lands is irrelevant here.
-    jest.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
     util.pano = {
       centeredPovToCanvasCoord2d: () => ({x: 0, y: 0}),
       centeredPovToCanvasCoord: () => ({x: 0, y: 0}),
       renderedHFov: () => 90,
     };
 
-    global.PanoMarker = loadClassFromFile(PANO_MARKER_PATH, 'PanoMarker');
+    global.PanoMarker = await loadClassFromFile(PANO_MARKER_PATH, 'PanoMarker');
     global.i18next = {t: () => 'Curb ramp'};
-    global.createPanoViewerLogo = jest.fn(() => ({showPrimaryLogo: jest.fn(), showSourceLogo: jest.fn()}));
-    global.createPanoAttribution = jest.fn(() => ({show: jest.fn(), hide: jest.fn()}));
+    global.createPanoViewerLogo = vi.fn(() => ({showPrimaryLogo: vi.fn(), showSourceLogo: vi.fn()}));
+    global.createPanoAttribution = vi.fn(() => ({show: vi.fn(), hide: vi.fn()}));
     global.GsvViewer = class GsvViewer {};             // distinct from FakeViewerType, so the GSV-only
     global.MapillaryViewer = class MapillaryViewer {}; // and Mapillary-only attribution paths are skipped
-    global.PanoLoadTimeoutError = loadClassFromFile(TIMEOUT_ERROR_PATH, 'PanoLoadTimeoutError');
+    global.PanoLoadTimeoutError = await loadClassFromFile(TIMEOUT_ERROR_PATH, 'PanoLoadTimeoutError');
 
     panoData = {getPanoId: () => 'pano1', getProperty: () => new Date(2026, 5)};
     fakeViewer = {
-      setPano: jest.fn(() => Promise.resolve(panoData)),
-      addListener: jest.fn(),
-      removeListener: jest.fn(),
-      resize: jest.fn(),
-      setPov: jest.fn(),
+      setPano: vi.fn(() => Promise.resolve(panoData)),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      resize: vi.fn(),
+      setPov: vi.fn(),
       getPov: () => ({heading: 0, pitch: 0, zoom: 1}),
       getViewerType: () => 'gsv',
     };
@@ -159,14 +168,14 @@ describe('PanoManager clears the pano when no viewer can render it (issue #4810)
       static create() { return Promise.resolve(fakeViewer); }
     };
 
-    const PanoManager = loadClassFromFile(PANO_MANAGER_PATH, 'PanoManager');
+    const PanoManager = await loadClassFromFile(PANO_MANAGER_PATH, 'PanoManager');
     const viewerUi = {date: {textContent: ''}, controlLayer: document.getElementById('view-control-layer')};
     panoManager = await PanoManager.create('token', viewerUi, {viewerType: FakeViewerType, labelRadius: 10},
-      {addPanoMetadata: jest.fn()}, {}, {push: jest.fn(), trackPano: jest.fn()});
+      {addPanoMetadata: vi.fn()}, {}, {push: vi.fn(), trackPano: vi.fn()});
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
     document.body.innerHTML = '';
     delete global.util;
     delete global.PanoMarker;
@@ -202,7 +211,7 @@ describe('PanoManager clears the pano when no viewer can render it (issue #4810)
   });
 
   test('a load both viewers fail reports failure rather than passing off the pano that is still up', async () => {
-    fakeViewer.setPano = jest.fn(() => Promise.reject(new Error('imagery unavailable')));
+    fakeViewer.setPano = vi.fn(() => Promise.reject(new Error('imagery unavailable')));
 
     // No backup image, so Pannellum is never tried either.
     await expect(panoManager.setPanorama('pano2', null)).resolves.toEqual({panoData: null, reason: 'no-imagery'});
@@ -213,7 +222,7 @@ describe('PanoManager clears the pano when no viewer can render it (issue #4810)
     panoManager.renderPanoMarker(makeLabel());
     expect(document.getElementById('validate-pano-marker')).not.toBeNull();
 
-    fakeViewer.setPano = jest.fn(() => Promise.reject(new Error('imagery unavailable')));
+    fakeViewer.setPano = vi.fn(() => Promise.reject(new Error('imagery unavailable')));
     await panoManager.setPanorama('pano2', null);
 
     expect(document.getElementById('svv-panorama').style.display).toBe('none');
@@ -222,22 +231,22 @@ describe('PanoManager clears the pano when no viewer can render it (issue #4810)
   });
 
   test('a primary load that timed out on a pano that exists is reported as slow, not as no imagery', async () => {
-    fakeViewer.setPano = jest.fn(() => Promise.reject(new global.PanoLoadTimeoutError('pano2', 12000)));
+    fakeViewer.setPano = vi.fn(() => Promise.reject(new global.PanoLoadTimeoutError('pano2', 12000)));
 
     await expect(panoManager.setPanorama('pano2', null)).resolves.toEqual({panoData: null, reason: 'slow'});
   });
 
   test('prefetchPano is handed to the primary viewer', () => {
-    fakeViewer.prefetchPano = jest.fn();
+    fakeViewer.prefetchPano = vi.fn();
     panoManager.prefetchPano('pano9');
     expect(fakeViewer.prefetchPano).toHaveBeenCalledWith('pano9');
   });
 
   test('the next label that does load brings the pano back', async () => {
-    fakeViewer.setPano = jest.fn(() => Promise.reject(new Error('imagery unavailable')));
+    fakeViewer.setPano = vi.fn(() => Promise.reject(new Error('imagery unavailable')));
     await panoManager.setPanorama('pano2', null);
 
-    fakeViewer.setPano = jest.fn(() => Promise.resolve(panoData));
+    fakeViewer.setPano = vi.fn(() => Promise.resolve(panoData));
     await expect(panoManager.setPanorama('pano3', null)).resolves.toEqual({panoData});
 
     expect(document.getElementById('svv-panorama').style.display).toBe('');
@@ -252,19 +261,19 @@ describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
   let topUpQueue;   // Successive `labels` arrays the /moreLabels endpoint answers with.
   let topUpBodies;  // Request bodies it was asked with, so the exclusion list can be asserted.
 
-  beforeEach(() => {
+  beforeEach(async () => {
     unrenderablePanoIds = new Set();
     slowLoadsLeft = new Map();
     topUpQueue = [];
     topUpBodies = [];
 
-    global.fetch = jest.fn((url, options) => {
+    global.fetch = vi.fn((url, options) => {
       topUpBodies.push(JSON.parse(options.body));
       return Promise.resolve({ok: true, json: () => Promise.resolve({labels: topUpQueue.shift() ?? []})});
     });
 
-    global.util = {isMobile: () => false, assetPath: assetPathStub};
-    global.i18next = {t: jest.fn((key) => key)};
+    stubUtil({isMobile: () => false, assetPath: assetPathStub});
+    global.i18next = {t: vi.fn((key) => key)};
     // The bundle's Label class; only the accessors LabelContainer and its collaborators touch.
     global.Label = class Label {
       constructor(params) {
@@ -279,17 +288,17 @@ describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
 
     completeDeps({
       adminVersion: false,
-      tracker: {push: jest.fn()},
-      labelCard: {render: jest.fn()},
-      validationMenu: {resetMenu: jest.fn()},
-      undoValidation: {enableUndo: jest.fn(), disableUndo: jest.fn()},
+      tracker: fakeTracker(),
+      labelCard: {render: vi.fn()},
+      validationMenu: {resetMenu: vi.fn()},
+      undoValidation: {enableUndo: vi.fn(), disableUndo: vi.fn()},
       labelVisibilityControl: {
-        hideLabelCard: jest.fn(),
-        unhideLabel: jest.fn(),
-        openCardOnLoad: jest.fn(),
+        hideLabelCard: vi.fn(),
+        unhideLabel: vi.fn(),
+        openCardOnLoad: vi.fn(),
         isVisible: () => true,
       },
-      modalNoNewMission: {show: jest.fn()},
+      modalNoNewMission: {show: vi.fn()},
       validateParams: {admin_version: false, unvalidated_only: false},
       ui: {
         holder: fakeElement(),
@@ -297,9 +306,9 @@ describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
         viewer: {controlLayer: fakeElement()},
       },
       panoManager: {
-        renderPanoMarker: jest.fn(),
-        prefetchPano: jest.fn(),
-        setPanorama: jest.fn((panoId) => {
+        renderPanoMarker: vi.fn(),
+        prefetchPano: vi.fn(),
+        setPanorama: vi.fn((panoId) => {
           if (unrenderablePanoIds.has(panoId)) return Promise.resolve({panoData: null, reason: 'no-imagery'});
           if (slowLoadsLeft.get(panoId) > 0) {
             slowLoadsLeft.set(panoId, slowLoadsLeft.get(panoId) - 1);
@@ -308,10 +317,10 @@ describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
           return Promise.resolve({panoData: {panoId}});
         }),
       },
-      panoLoadingStatus: {begin: jest.fn(), setMessage: jest.fn(), end: jest.fn()},
+      panoLoadingStatus: {begin: vi.fn(), setMessage: vi.fn(), end: vi.fn()},
     });
 
-    LabelContainer = loadClassFromFile(LABEL_CONTAINER_PATH, 'LabelContainer');
+    LabelContainer = await loadClassFromFile(LABEL_CONTAINER_PATH, 'LabelContainer');
   });
 
   afterEach(() => {
@@ -451,7 +460,7 @@ describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
 
   test('a failed replacement request falls back to the modal instead of throwing', async () => {
     unrenderablePanoIds.add('panoC');
-    global.fetch = jest.fn(() => Promise.reject(new Error('offline')));
+    global.fetch = vi.fn(() => Promise.reject(new Error('offline')));
     const labelContainer = await buildContainer();
 
     await labelContainer.moveToNextLabel();
@@ -509,8 +518,8 @@ describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
 
   test('a render that throws before the marker is drawn reveals the loaded pano before the tool unlocks', async () => {
     // Otherwise a canvas held unpainted for the reveal (#5582) stays blank under a tool that accepts verdicts again.
-    deps.panoManager.revealPendingCanvas = jest.fn();
-    deps.labelCard.render = jest.fn(() => { throw new Error('card broke'); });
+    deps.panoManager.revealPendingCanvas = vi.fn();
+    deps.labelCard.render = vi.fn(() => { throw new Error('card broke'); });
 
     await expect(buildContainer()).rejects.toThrow('card broke');
 
@@ -520,7 +529,7 @@ describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
 
   test('a marker that fails to draw still hands the label to the card and the menu', async () => {
     // The tool unlocks either way; a menu left on the previous label's verdict would skip this one on the next click.
-    deps.panoManager.renderPanoMarker = jest.fn(() => Promise.reject(new Error('draw broke')));
+    deps.panoManager.renderPanoMarker = vi.fn(() => Promise.reject(new Error('draw broke')));
 
     await expect(buildContainer()).rejects.toThrow('draw broke');
 
@@ -531,7 +540,7 @@ describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
 
   test('a status that comes into view is logged against the label loading under it', async () => {
     // How prod counts loads slow enough to be seen that still succeed (#5581).
-    deps.panoLoadingStatus.begin = jest.fn((onShown) => onShown());
+    deps.panoLoadingStatus.begin = vi.fn((onShown) => onShown());
 
     await buildContainer();
 
@@ -567,16 +576,16 @@ describe('LabelContainer defers a label whose pano is slow rather than dropping 
   let slowLoadsLeft; // Per pano, how many more loads come back slow before one succeeds.
   let topUpBodies;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     slowLoadsLeft = new Map();
     topUpBodies = [];
 
-    global.fetch = jest.fn((url, options) => {
+    global.fetch = vi.fn((url, options) => {
       topUpBodies.push(JSON.parse(options.body));
       return Promise.resolve({ok: true, json: () => Promise.resolve({labels: []})});
     });
-    global.util = {isMobile: () => false, assetPath: assetPathStub};
-    global.i18next = {t: jest.fn((key) => key)};
+    stubUtil({isMobile: () => false, assetPath: assetPathStub});
+    global.i18next = {t: vi.fn((key) => key)};
     global.Label = class Label {
       constructor(params) {
         this.auditProps = params;
@@ -589,17 +598,17 @@ describe('LabelContainer defers a label whose pano is slow rather than dropping 
     };
     completeDeps({
       adminVersion: false,
-      tracker: {push: jest.fn()},
-      labelCard: {render: jest.fn()},
-      validationMenu: {resetMenu: jest.fn()},
-      undoValidation: {enableUndo: jest.fn(), disableUndo: jest.fn()},
+      tracker: fakeTracker(),
+      labelCard: {render: vi.fn()},
+      validationMenu: {resetMenu: vi.fn()},
+      undoValidation: {enableUndo: vi.fn(), disableUndo: vi.fn()},
       labelVisibilityControl: {
-        hideLabelCard: jest.fn(),
-        unhideLabel: jest.fn(),
-        openCardOnLoad: jest.fn(),
+        hideLabelCard: vi.fn(),
+        unhideLabel: vi.fn(),
+        openCardOnLoad: vi.fn(),
         isVisible: () => true,
       },
-      modalNoNewMission: {show: jest.fn()},
+      modalNoNewMission: {show: vi.fn()},
       validateParams: {admin_version: false, unvalidated_only: false},
       ui: {
         holder: fakeElement(),
@@ -607,9 +616,9 @@ describe('LabelContainer defers a label whose pano is slow rather than dropping 
         viewer: {controlLayer: fakeElement()},
       },
       panoManager: {
-        renderPanoMarker: jest.fn(),
-        prefetchPano: jest.fn(),
-        setPanorama: jest.fn((panoId) => {
+        renderPanoMarker: vi.fn(),
+        prefetchPano: vi.fn(),
+        setPanorama: vi.fn((panoId) => {
           if (slowLoadsLeft.get(panoId) > 0) {
             slowLoadsLeft.set(panoId, slowLoadsLeft.get(panoId) - 1);
             return Promise.resolve({panoData: null, reason: 'slow'});
@@ -617,10 +626,10 @@ describe('LabelContainer defers a label whose pano is slow rather than dropping 
           return Promise.resolve({panoData: {panoId}});
         }),
       },
-      panoLoadingStatus: {begin: jest.fn(), setMessage: jest.fn(), end: jest.fn()},
+      panoLoadingStatus: {begin: vi.fn(), setMessage: vi.fn(), end: vi.fn()},
     });
 
-    LabelContainer = loadClassFromFile(LABEL_CONTAINER_PATH, 'LabelContainer');
+    LabelContainer = await loadClassFromFile(LABEL_CONTAINER_PATH, 'LabelContainer');
   });
 
   afterEach(() => {

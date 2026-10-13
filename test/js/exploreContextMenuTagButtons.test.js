@@ -3,8 +3,9 @@
  * every tag shows however long a city's list is.
  */
 
-const { assetPathStub, installUtilitiesMisc, loadModules } = require('./loadGlobalScript');
-const { makeContextMenuUi } = require('./contextMenuUiStub');
+import { assetPathStub, installUtilitiesMisc, loadModules, stubUtil } from './loadGlobalScript.js';
+import { makeContextMenuUi } from './contextMenuUiStub.js';
+import { fakeGate, fakeTracker } from './fakes.js';
 
 
 /**
@@ -28,23 +29,23 @@ describe('ContextMenu tag buttons', () => {
     let ui;
     let labelContainer;
 
-    beforeEach(() => {
+    beforeEach(async () => {
         window.i18next = { t: (key) => key };
-        window.util = {
+        stubUtil({
             assetPath: assetPathStub,
             camelToKebab: (s) => s,
-            anchorPanelToLabel: jest.fn(),
+            anchorPanelToLabel: vi.fn(),
             // Never resolves, so the tag tooltips (which need real images) are never built.
             getImage: () => new Promise(() => {}),
-        };
-        installUtilitiesMisc();
+        });
+        await installUtilitiesMisc();
 
-        Object.assign(window, loadModules('frontend/js/explore/canvas/ContextMenu.js'));
+        Object.assign(window, await loadModules('frontend/js/explore/canvas/ContextMenu.js'));
         ui = makeContextMenuUi();
-        labelContainer = { canDelete: () => true, getAllLabels: () => [], addToLabelsToLog: jest.fn() };
+        labelContainer = { canDelete: () => true, getAllLabels: () => [], addToLabelsToLog: vi.fn() };
         menu = new window.ContextMenu(ui, { isOnboarding: false }, { iconRadius: 17 }, labelContainer,
-            { switching: { hold: jest.fn(), release: jest.fn() } }, { onMoveStarted: jest.fn() },
-            { ratingClicked: jest.fn() }, { ensureLabelSaved: jest.fn() }, { push: jest.fn() });
+            { switching: fakeGate() }, { onMoveStarted: vi.fn() },
+            { ratingClicked: vi.fn() }, { ensureLabelSaved: vi.fn() }, fakeTracker());
         menu.labelTags = [
             ...[1, 2, 3].map((id) => ({ tag_id: id, label_type: 'Obstacle', tag: 'trash/recycling can' })),
             { tag_id: 4, label_type: 'CurbRamp', tag: 'narrow' },

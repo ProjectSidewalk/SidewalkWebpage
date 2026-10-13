@@ -13,7 +13,11 @@
  */
 
 
-const { assetPathStub, installUtilitiesMisc, loadModules } = require('./loadGlobalScript');
+import { assetPathStub, installUtilitiesMisc, loadModules, fakeImport, stubUtil } from './loadGlobalScript.js';
+
+fakeImport('frontend/js/common/pano-viewer/PanoAttribution.js', 'createPanoAttribution');
+fakeImport('frontend/js/common/pano-viewer/PanoViewerLogo.js', 'createPanoViewerLogo');
+
 
 const CROP_URL = '/cropImage/Obstacle/501?exp=1&sig=x';
 const GSV_URL = 'https://maps.googleapis.com/maps/api/streetview?pano=abc123';
@@ -46,24 +50,24 @@ describe('the dashboard mistake card\'s image', () => {
         await gallery.render();
     }
 
-    beforeAll(() => {
+    beforeAll(async () => {
         window.i18next = { t: (key) => key };
-        window.util = {
+        stubUtil({
             assetPath: assetPathStub,
             EXPLORE_CANVAS_WIDTH: 720,
             EXPLORE_CANVAS_HEIGHT: 480,
             camelToKebab: (s) => s.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase(),
-        };
-        installUtilitiesMisc(); // The real util.misc, so labelMarkerFraction under test is the shipped one.
+        });
+        await installUtilitiesMisc(); // The real util.misc, so labelMarkerFraction under test is the shipped one.
         // The imagery-credit overlays; dashboardMistakeCardAttribution.test.js checks them for real.
         window.createPanoViewerLogo = () => ({ showSourceLogo: () => {}, hide: () => {} });
         window.createPanoAttribution = () => ({ show: () => {}, hide: () => {} });
-        window.MistakeGallery = loadModules('frontend/js/user-dashboard/MistakeGallery.js').MistakeGallery;
+        window.MistakeGallery = (await loadModules('frontend/js/user-dashboard/MistakeGallery.js')).MistakeGallery;
     });
 
     beforeEach(() => {
         mistakes = [mistake()];
-        window.fetch = jest.fn(() =>
+        window.fetch = vi.fn(() =>
             Promise.resolve({ ok: true, json: () => Promise.resolve({ Obstacle: mistakes }) }));
     });
 

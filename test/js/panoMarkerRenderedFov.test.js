@@ -5,24 +5,24 @@
  * popup's both come through here.
  */
 
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules, stubUtil } from './loadGlobalScript.js';
 
 
 describe('PanoMarker projection', () => {
     let PanoMarker;
     let container;
 
-    beforeEach(() => {
-        window.util = {};
+    beforeEach(async () => {
+        stubUtil({});
         // PanoMarker probes for WebGL on load; jsdom has no canvas contexts and would log a not-implemented error.
         HTMLCanvasElement.prototype.getContext = () => null;
-        Object.assign(window, loadModules('frontend/js/common/PanoMarker.js'));
+        Object.assign(window, await loadModules('frontend/js/common/PanoMarker.js'));
         // Set after the load: importing PanoMarker rebuilds util.pano.
         Object.assign(window.util.pano, {
             // jsdom has no WebGL, so PanoMarker picks the 2d projection; both take the same trailing fov.
-            centeredPovToCanvasCoord2d: jest.fn(() => ({ x: 10, y: 20 })),
-            centeredPovToCanvasCoord: jest.fn(() => ({ x: 10, y: 20 })),
-            renderedHFov: jest.fn(() => 42),
+            centeredPovToCanvasCoord2d: vi.fn(() => ({ x: 10, y: 20 })),
+            centeredPovToCanvasCoord: vi.fn(() => ({ x: 10, y: 20 })),
+            renderedHFov: vi.fn(() => 42),
         });
         PanoMarker = window.PanoMarker;
         container = document.createElement('div');
@@ -36,8 +36,8 @@ describe('PanoMarker projection', () => {
         const panoViewer = {
             getPov: () => ({ heading: 90, pitch: 5, zoom: 3 }),
             getViewerType: () => 'gsv',
-            addListener: jest.fn(),
-            removeListener: jest.fn(),
+            addListener: vi.fn(),
+            removeListener: vi.fn(),
             getPanoId: () => 'pano',
         };
         const marker = new PanoMarker({ panoViewer, markerContainer: container, position: { heading: 95, pitch: 0 } });

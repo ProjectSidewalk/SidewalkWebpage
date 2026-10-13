@@ -7,7 +7,9 @@
  * the source is eval'd into jsdom with those stubbed. The map is a four-method stub; no mapbox-gl involved.
  */
 
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules, fakeImport, stubUtil } from './loadGlobalScript.js';
+
+fakeImport('frontend/js/ps-map/psMapUtilities.js', 'fetchLabelFeed');
 
 
 const DEBOUNCE_MS = 350;
@@ -41,7 +43,7 @@ async function flush() {
 /** Fires a moveend and lets the debounce elapse. */
 async function settleMove(map) {
     map.fire('moveend');
-    jest.advanceTimersByTime(DEBOUNCE_MS);
+    vi.advanceTimersByTime(DEBOUNCE_MS);
     await flush();
 }
 
@@ -49,23 +51,23 @@ describe('ViewportLabelLoader', () => {
     /** @type {Array<{url: URL, resolve: Function, reject: Function}>} */
     let fetches;
 
-    beforeAll(() => {
-        Object.assign(window, loadModules('frontend/js/ps-map/ViewportLabelLoader.js'));
+    beforeAll(async () => {
+        Object.assign(window, await loadModules('frontend/js/ps-map/ViewportLabelLoader.js'));
     });
 
     beforeEach(() => {
-        jest.useFakeTimers();
+        vi.useFakeTimers();
         fetches = [];
         // Deferred-style stub of psMapUtilities' fetchLabelFeed: each call is resolved/rejected by the test,
         // and an abort surfaces as the AbortError the real fetch would throw.
-        window.fetchLabelFeed = jest.fn((url, { signal } = {}) => new Promise((resolve, reject) => {
+        window.fetchLabelFeed = vi.fn((url, { signal } = {}) => new Promise((resolve, reject) => {
             fetches.push({ url: new URL(url), resolve, reject });
             signal?.addEventListener('abort', () => reject(Object.assign(new Error('aborted'), { name: 'AbortError' })));
         }));
     });
 
     afterEach(() => {
-        jest.useRealTimers();
+        vi.useRealTimers();
     });
 
     /** Builds a started loader over the given map, collecting its emissions. */
@@ -238,11 +240,11 @@ describe('ViewportLabelLoader', () => {
 
         map.view = bounds(1, 1, 1.2, 1.2);
         map.fire('moveend');
-        jest.advanceTimersByTime(100);
+        vi.advanceTimersByTime(100);
         map.fire('moveend');
-        jest.advanceTimersByTime(100);
+        vi.advanceTimersByTime(100);
         map.fire('moveend');
-        jest.advanceTimersByTime(DEBOUNCE_MS);
+        vi.advanceTimersByTime(DEBOUNCE_MS);
         await flush();
         expect(fetches).toHaveLength(2);
     });
@@ -353,7 +355,7 @@ describe('ViewportLabelLoader', () => {
         fetches[0].resolve(FC);
         await flush();
 
-        const late = jest.fn();
+        const late = vi.fn();
         loader.onData(late);
         expect(late).toHaveBeenCalledTimes(1);
         expect(late.mock.calls[0][0]).toBe(FC);
@@ -361,7 +363,7 @@ describe('ViewportLabelLoader', () => {
     });
 
     test('the default floor predicate asks util.isMobile', async () => {
-        window.util = { isMobile: () => true };
+        stubUtil({ isMobile: () => true });
         const map = stubMap({ zoom: 10 });
         const loader = new window.ViewportLabelLoader(map, 'http://localhost/labels/all');
         const states = [];

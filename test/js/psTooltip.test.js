@@ -12,7 +12,7 @@
  * and triggers report the rect they were assigned.
  */
 
-const { loadModules, loadVendored } = require('./loadGlobalScript');
+import { loadModules, loadVendored } from './loadGlobalScript.js';
 
 loadVendored('dompurify');
 
@@ -70,7 +70,7 @@ function open(trigger) {
  * counts calls. addEventListener is patched on EventTarget.prototype so it catches document and window alike.
  * @returns {function(): void} Detaches every listener the evaluation added.
  */
-function loadPsTooltip() {
+async function loadPsTooltip() {
     const added = [];
     const original = EventTarget.prototype.addEventListener;
     EventTarget.prototype.addEventListener = function (...args) {
@@ -78,7 +78,7 @@ function loadPsTooltip() {
         return original.apply(this, args);
     };
     try {
-        Object.assign(window, loadModules('frontend/js/common/psTooltip.js'));
+        Object.assign(window, await loadModules('frontend/js/common/psTooltip.js'));
     } finally {
         EventTarget.prototype.addEventListener = original;
     }
@@ -87,13 +87,13 @@ function loadPsTooltip() {
 
 let unloadPsTooltip;
 
-beforeEach(() => {
+beforeEach(async () => {
     document.body.innerHTML = '';
     window.innerWidth = VIEWPORT_WIDTH;
     window.innerHeight = VIEWPORT_HEIGHT;
     cardHeight = CARD_HEIGHT;
     stubLayout();
-    unloadPsTooltip = loadPsTooltip();
+    unloadPsTooltip = await loadPsTooltip();
 });
 
 afterEach(() => {
@@ -319,17 +319,17 @@ describe('psTooltip retirement', () => {
     test('a show still waiting out the hover delay is dropped once the attribute is gone', () => {
         // The AI tag suggestion clicked within the delay: its click removes the attribute, and the card that then
         // opened was empty.
-        jest.useFakeTimers();
+        vi.useFakeTimers();
         try {
             const trigger = addTrigger({ left: 400, top: 300, width: 100, height: 30 }, 'quick');
             trigger.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
             trigger.removeAttribute('data-ps-tooltip');
-            jest.runAllTimers();
+            vi.runAllTimers();
 
             expect(document.getElementById('ps-tooltip')?.classList.contains('ps-tooltip--visible') ?? false)
                 .toBe(false);
         } finally {
-            jest.useRealTimers();
+            vi.useRealTimers();
         }
     });
 

@@ -11,16 +11,16 @@
  * the logical values are an implementation detail that moves with the scale by design.
  */
 
-const { loadModules, realUtil } = require('./loadGlobalScript');
-const { makeRecordingCtx } = require('./canvasCtxStub');
+import { loadModules, realUtil, stubUtil } from './loadGlobalScript.js';
+import { makeRecordingCtx } from './canvasCtxStub.js';
 
 
 /** Loads utilities.js into jsdom, the same way sizeCanvasToDisplay.test.js and anchorPanelToLabel.test.js do. */
-function loadUtil() {
+async function loadUtil() {
     // utilities.js builds a Bowser parser at load time; none of the geometry under test consults it.
     window.bowser = { getParser: () => ({ getBrowserName: () => 'Chrome', getBrowserVersion: () => '1',
         getOSName: () => 'Linux', getPlatformType: () => 'desktop' }) };
-    window.util = realUtil();
+    stubUtil(await realUtil());
     return window.util;
 }
 
@@ -33,8 +33,8 @@ describe('label icon sizing across the UI scale', () => {
     /** On-screen width in CSS px of the square click target Label.isOn tests (2 * margin) at this scale. */
     const targetScreenSize = (scale) => 2 * util.labelHitMargin(scale) * scale;
 
-    beforeEach(() => {
-        util = loadUtil();
+    beforeEach(async () => {
+        util = await loadUtil();
     });
 
     describe('util.labelIconRadius', () => {
@@ -112,12 +112,12 @@ describe('label icon sizing across the UI scale', () => {
     describe('icon decorations follow the radius', () => {
         let Label;
 
-        beforeEach(() => {
-            window.util = util;
+        beforeEach(async () => {
+            stubUtil(util);
             util.misc = { getIconImagePaths: () => ({ iconImagePath: 'CurbRamp.svg' }),
                 labelTypeHasSeverity: () => true };
             window.labelIconCache = { 'CurbRamp.svg': {} };
-            Object.assign(window, loadModules('frontend/js/explore/label/Label.js'));
+            Object.assign(window, await loadModules('frontend/js/explore/label/Label.js'));
             // Set after the load: importing Label rebuilds util.pano.
             util.pano.centeredPovToCanvasCoord = () => ({ x: 100, y: 100 });
             Label = window.Label;
@@ -227,8 +227,8 @@ describe('label icon sizing across the UI scale', () => {
                 {}, {}, { onPovChanged() {} }, { onMoveStarted() {}, onMoveFinished() {} }, {}, {}, {});
         }
 
-        beforeEach(() => {
-            window.util = util;
+        beforeEach(async () => {
+            stubUtil(util);
             util.misc = { getIconImagePaths: () => ({ iconImagePath: 'CurbRamp.svg' }),
                 labelTypeHasSeverity: () => true };
             window.labelIconCache = { 'CurbRamp.svg': {} };
@@ -236,8 +236,8 @@ describe('label icon sizing across the UI scale', () => {
                 width: 720, height: 480, renderedHFov: () => 90,
                 iconRadius: util.labelIconRadius(1), hitMargin: util.labelHitMargin(1),
             };
-            Object.assign(window, loadModules('frontend/js/explore/label/Label.js'));
-            Object.assign(window, loadModules('frontend/js/explore/canvas/Canvas.js'));
+            Object.assign(window, await loadModules('frontend/js/explore/label/Label.js'));
+            Object.assign(window, await loadModules('frontend/js/explore/canvas/Canvas.js'));
             util.pano.centeredPovToCanvasCoord = () => ({ x: 100, y: 100 });
             Label = window.Label;
             Canvas = window.Canvas;

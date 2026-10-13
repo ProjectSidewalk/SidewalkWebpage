@@ -6,13 +6,13 @@
  * free-form label text whose commas and colons must survive a round trip.
  */
 
-const { loadModules, realUtil } = require('./loadGlobalScript');
+import { loadModules, realUtil } from './loadGlobalScript.js';
 
 
 describe('util.url', () => {
-    beforeAll(() => {
-        window.util ??= realUtil();
-        loadModules('frontend/js/common/urlQuery.js');
+    beforeAll(async () => {
+        window.util ??= await realUtil();
+        await loadModules('frontend/js/common/urlQuery.js');
     });
 
     describe('serialize', () => {

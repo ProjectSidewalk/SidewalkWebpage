@@ -11,7 +11,10 @@
  * helpers are eval'd into jsdom.
  */
 
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules, fakeImport } from './loadGlobalScript.js';
+
+fakeImport('frontend/js/common/filter-sidebar/FilterSidebar.js', 'FilterSidebar');
+fakeImport('frontend/js/ps-map/psMapUtilities.js', 'emphasizeStreetState', 'filterStreetLayer');
 
 
 const STREET_ROWS = ['audited-street', 'outdated-street', 'unaudited-street'];
@@ -77,14 +80,14 @@ describe('street row emphasis', () => {
         checkbox.dispatchEvent(new window.FocusEvent('focusin', { bubbles: true }));
     };
 
-    beforeAll(() => {
+    beforeAll(async () => {
         window.i18next = { t: (key) => key, language: 'en' };
         window.filterLabelLayers = () => {};
         window.toggleLabelLayer = () => {};
-        Object.assign(window, loadModules('frontend/js/common/filter-sidebar/FilterSidebar.js'));
+        Object.assign(window, await loadModules('frontend/js/common/filter-sidebar/FilterSidebar.js'));
         // The real helpers, so the width expression under test is the one the layer is actually built with.
-        Object.assign(window, loadModules('frontend/js/ps-map/psMapUtilities.js'));
-        Object.assign(window, loadModules('frontend/js/ps-map/MapSidebarFilter.js'));
+        Object.assign(window, await loadModules('frontend/js/ps-map/psMapUtilities.js'));
+        Object.assign(window, await loadModules('frontend/js/ps-map/MapSidebarFilter.js'));
     });
 
     beforeEach(() => {

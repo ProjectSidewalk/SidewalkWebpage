@@ -11,9 +11,9 @@
  * collaborators (i18next, logWebpageActivity, the map) stubbed.
  */
 
-const fs = require('fs');
-const path = require('path');
-const { installDateHelpers, loadModules } = require('./loadGlobalScript');
+import fs from 'fs';
+import path from 'path';
+import { installDateHelpers, loadModules } from './loadGlobalScript.js';
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const DASHBOARD_CSS = fs.readFileSync(path.join(REPO_ROOT, 'frontend/css/pages/user-dashboard.css'), 'utf8');
@@ -95,15 +95,15 @@ describe('the dashboard\'s needs-re-audit list', () => {
         return section;
     }
 
-    beforeAll(() => {
+    beforeAll(async () => {
         window.i18next = { language: 'en' };
-        installDateHelpers();
-        window.OutdatedStreets = loadModules('frontend/js/user-dashboard/OutdatedStreets.js').OutdatedStreets;
+        await installDateHelpers();
+        window.OutdatedStreets = (await loadModules('frontend/js/user-dashboard/OutdatedStreets.js')).OutdatedStreets;
     });
 
     beforeEach(() => {
-        window.logWebpageActivity = jest.fn();
-        map = { setFeatureState: jest.fn() };
+        window.logWebpageActivity = vi.fn();
+        map = { setFeatureState: vi.fn() };
     });
 
     describe('paging', () => {
@@ -266,7 +266,7 @@ describe('the dashboard\'s needs-re-audit list', () => {
         it('rewrites the server\'s UTC date into the reader\'s timezone', async () => {
             await init(3);
 
-            // 03:04 UTC on Jan 2 is still Jan 1 in Los Angeles, where jest.config.js pins the clock.
+            // 03:04 UTC on Jan 2 is still Jan 1 in Los Angeles, where vitest.config.mjs pins the clock.
             expect(document.querySelector('.ud-reaudit-date').textContent).toBe('Jan 1, 2026');
         });
 

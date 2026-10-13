@@ -5,8 +5,9 @@
  * backend's label-type table rather than a copy of it.
  */
 
-const { assetPathStub, installUtilitiesMisc, loadModules } = require('./loadGlobalScript');
-const { makeContextMenuUi } = require('./contextMenuUiStub');
+import { assetPathStub, installUtilitiesMisc, loadModules, stubUtil } from './loadGlobalScript.js';
+import { makeContextMenuUi } from './contextMenuUiStub.js';
+import { fakeGate, fakeTracker } from './fakes.js';
 
 
 /**
@@ -37,27 +38,27 @@ describe('Explore severity shortcuts', () => {
   let config;
   let keyboardDisabled;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     window.i18next = { t: (key) => key };
-    window.util = {
+    stubUtil({
       assetPath: assetPathStub,
       camelToKebab: (s) => s,
-      anchorPanelToLabel: jest.fn(),
+      anchorPanelToLabel: vi.fn(),
       // Never resolves, so the severity tooltips (which need real DOM) are never built.
       getImage: () => new Promise(() => {}),
-    };
-    installUtilitiesMisc();
+    });
+    await installUtilitiesMisc();
     const canvas = { clear: () => canvas, render: () => canvas };
-    const tracker = { push: jest.fn() };
+    const tracker = fakeTracker();
     config = { isOnboarding: false };
     keyboardDisabled = false;
 
-    Object.assign(window, loadModules('frontend/js/explore/canvas/ContextMenu.js',
+    Object.assign(window, await loadModules('frontend/js/explore/canvas/ContextMenu.js',
       'frontend/js/explore/keyboard/KeyboardManager.js'));
     menu = new window.ContextMenu(makeContextMenuUi(), config, { iconRadius: 17 },
-      { canDelete: () => true, getAllLabels: () => [], addToLabelsToLog: jest.fn() },
-      { switching: { hold: jest.fn(), release: jest.fn() } }, { onMoveStarted: jest.fn() },
-      { ratingClicked: jest.fn() }, { ensureLabelSaved: jest.fn() }, tracker);
+      { canDelete: () => true, getAllLabels: () => [], addToLabelsToLog: vi.fn() },
+      { switching: fakeGate() }, { onMoveStarted: vi.fn() },
+      { ratingClicked: vi.fn() }, { ensureLabelSaved: vi.fn() }, tracker);
     menu.labelTags = [];
     new window.KeyboardManager({ isHeld: () => keyboardDisabled }, canvas, menu, {}, {}, {}, {}, {}, {}, tracker);
   });

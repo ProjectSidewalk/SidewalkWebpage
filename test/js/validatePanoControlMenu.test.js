@@ -7,11 +7,12 @@
  * shared active-dot class. Loaded like the other class-based suites: eval'd with an explicit export.
  */
 
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules } from './loadGlobalScript.js';
+import { fakeTracker } from './fakes.js';
 
 
-beforeAll(() => {
-    Object.assign(window, loadModules('frontend/js/validate/panorama/PanoControlMenu.js'));
+beforeAll(async () => {
+    Object.assign(window, await loadModules('frontend/js/validate/panorama/PanoControlMenu.js'));
 });
 
 let toggle;
@@ -24,7 +25,7 @@ beforeEach(() => {
         aria-controls="validate-control-menu"></button>
       <div id="validate-control-menu"></div>`;
     toggle = document.getElementById('validate-control-buttons-toggle');
-    tracker = { push: jest.fn() };
+    tracker = fakeTracker();
     menu = new window.PanoControlMenu(toggle, tracker);
 });
 

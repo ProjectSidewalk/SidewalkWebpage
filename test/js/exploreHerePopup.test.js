@@ -12,14 +12,14 @@
  * need. The pin/marker/Escape wiring around the popup is covered separately, in labelMapSearchClear.test.js.
  */
 
-const { installEscapeHTML, loadModules } = require('./loadGlobalScript');
+import { installEscapeHTML, loadModules } from './loadGlobalScript.js';
 
-installEscapeHTML();
+await installEscapeHTML();
 
 
 /** Evals the production source fresh and returns the functions under test. */
-function loadModule() {
-    window.__exploreHere = loadModules('frontend/js/labelMapLocationSearch.js');
+async function loadModule() {
+    window.__exploreHere = await loadModules('frontend/js/labelMapLocationSearch.js');
     return window.__exploreHere;
 }
 
@@ -40,12 +40,12 @@ const HREF = '/explore?lat=40.9&lng=-74.02&placeName=Town%20Hall';
 describe('buildExploreHereContent', () => {
     let mod;
 
-    beforeEach(() => {
+    beforeEach(async () => {
         // Identity-t mock, except the percent interpolation which the progress assertions need realized.
         window.i18next = {
             t: (key, opts) => (opts && opts.percent !== undefined ? `${opts.percent}% explored` : key),
         };
-        mod = loadModule();
+        mod = await loadModule();
     });
 
     test('hostile place name and address render as text, not markup', () => {
@@ -90,9 +90,9 @@ describe('buildExploreHereContent', () => {
 describe('streetAddress', () => {
     let mod;
 
-    beforeEach(() => {
+    beforeEach(async () => {
         window.i18next = { t: (key) => key };
-        mod = loadModule();
+        mod = await loadModule();
     });
 
     test('prefers the structured context address', () => {

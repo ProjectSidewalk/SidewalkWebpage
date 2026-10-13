@@ -6,7 +6,7 @@
  * and that the cities map wires the selector its popup template actually uses.
  */
 
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules, stubUtil } from './loadGlobalScript.js';
 
 
 /** Mirrors the link in app/views/common/cityPopupTemplate.scala.html. */
@@ -25,8 +25,8 @@ const POPUP_TEMPLATE = `
   <div id="cities-map"></div>`;
 
 /** Loads the map helpers fresh. */
-function loadGlobals() {
-    return loadModules('frontend/js/ps-map/psMapUtilities.js', 'frontend/js/ps-map/addCitiesToMap.js');
+async function loadGlobals() {
+    return await loadModules('frontend/js/ps-map/psMapUtilities.js', 'frontend/js/ps-map/addCitiesToMap.js');
 }
 
 /**
@@ -84,10 +84,10 @@ describe('logPopupLinkClicks', () => {
         delete window.logWebpageActivity;
     });
 
-    test('logs a click on the link or anything inside it, and ignores the rest of the map', () => {
+    test('logs a click on the link or anything inside it, and ignores the rest of the map', async () => {
         const container = document.getElementById('cities-map');
         container.innerHTML = '<div class="not-a-link"></div><a class="go" data-id="7"><b class="inner">x</b></a>';
-        const { logPopupLinkClicks } = loadGlobals();
+        const { logPopupLinkClicks } = await loadGlobals();
         logPopupLinkClicks(makeFakeMap(container), '.go', (link) => `Click_id=${link.dataset.id}`);
 
         container.querySelector('.inner').click();
@@ -101,10 +101,10 @@ describe('logPopupLinkClicks', () => {
     describe('on the cities map', () => {
         beforeEach(() => {
             global.i18next = { t: (key, opts) => (key === 'common:format-number' ? String(opts.val) : key) };
-            global.util = { isMetric: () => true, longDistanceToString: (km) => `${km} km` };
+            stubUtil({ isMetric: () => true, longDistanceToString: (km) => `${km} km` });
             global.mapboxgl = { Popup: FakePopup, LngLatBounds: FakeLngLatBounds };
             const stats = { km_explored: 1, labels: { count: 2 }, validations: { combined: { total_validations: 3 } } };
-            global.fetch = jest.fn(() => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(stats) }));
+            global.fetch = vi.fn(() => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(stats) }));
         });
 
         afterEach(() => {
@@ -117,7 +117,7 @@ describe('logPopupLinkClicks', () => {
         test('logs the city id of the popup link that was clicked', async () => {
             const container = document.getElementById('cities-map');
             const map = makeFakeMap(container);
-            const { addCitiesToMap } = loadGlobals();
+            const { addCitiesToMap } = await loadGlobals();
             const cities = { features: [{ properties: { city_id: 'seattle' }, geometry: { coordinates: [-122.33, 47.6] } }] };
             await addCitiesToMap(map, cities, { mapName: 'cities-map', logClicks: true });
             await map.handlers['click:cities']({

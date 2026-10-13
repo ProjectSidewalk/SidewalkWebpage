@@ -11,18 +11,22 @@
  */
 
 
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules, stubUtil, fakeImport } from './loadGlobalScript.js';
 
+fakeImport('frontend/js/common/pano-viewer/NoImageryError.js', 'NoImageryError');
+fakeImport('frontend/js/explore/panorama/NoImageryFlagGuard.js', 'NoImageryFlagGuard');
 
 
 describe('a street given up on at page load', () => {
     let reportNoImagery;
     let showAlert;
     let consoleError;
-    const navigations = () => consoleError.mock.calls.filter(([m]) => String(m).includes('Not implemented: navigation'));
+    /** jsdom's reports of the navigation it refuses to do (see beforeEach), one per attempt. */
+    let navigationReports;
+    const navigations = () => navigationReports;
 
     /** A viewer type whose creation fails the given way, standing in for a street with no imagery or a dead SDK. */
-    const viewerTypeFailingWith = (error) => ({ create: jest.fn(() => Promise.reject(error)) });
+    const viewerTypeFailingWith = (error) => ({ create: vi.fn(() => Promise.reject(error)) });
 
     const task = { getStreetEdgeId: () => 101 };
 
@@ -30,14 +34,14 @@ describe('a street given up on at page load', () => {
     const loadAndFail = (error) => {
         const config = { viewerType: viewerTypeFailingWith(error), viewerAccessToken: 'access-token' };
         const panoManager = new window.PanoManager({ pano: document.getElementById('pano') }, config, {},
-            { push: jest.fn(), trackPano: jest.fn() }, { showAlert }, { startPanoId: 'pano-a' }, { task, missionId: 3 });
+            { push: vi.fn(), trackPano: vi.fn() }, { showAlert }, { startPanoId: 'pano-a' }, { task, missionId: 3 });
         return panoManager.ready;
     };
 
     /** Whether an element is readable, i.e. not sitting under an inherited `visibility: hidden`. */
     const isVisible = (id) => window.getComputedStyle(document.getElementById(id)).visibility === 'visible';
 
-    beforeEach(() => {
+    beforeEach(async () => {
         window.sessionStorage.clear();
         // Mirrors explore.scala.html: the alert banner lives inside `.tool-ui`, which the page ships hidden and
         // Main.init() reveals — and init bails long before that whenever there is no viewer. The loading animation
@@ -55,17 +59,21 @@ describe('a street given up on at page load', () => {
         document.head.appendChild(style);
         // The failure path logs the error deliberately — it is the only trace of a transient failure, since nothing
         // is written to the db. Kept out of the test output rather than out of the code.
-        // jsdom refuses real navigation, which the give-up path ends in, and reports the attempt on the console as
-        // "Not implemented: navigation"; that report is how the tests below see the move to /explore happen.
-        consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+        consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
         consoleError.mockClear();
-        reportNoImagery = jest.fn(() => Promise.resolve());
-        showAlert = jest.fn();
+        // jsdom refuses the real navigation the give-up path ends in and reports it on its virtual console, which is
+        // how the tests see the move to /explore; the console is only reachable through jsdom's private settings.
+        navigationReports = [];
+        window._settings.virtualConsole.on('jsdomError', (error) => {
+            if (error.message.includes('Not implemented: navigation')) navigationReports.push(error);
+        });
+        reportNoImagery = vi.fn(() => Promise.resolve());
+        showAlert = vi.fn();
 
-        window.util = { misc: { reportNoImagery } };
+        stubUtil({ misc: { reportNoImagery } });
         window.i18next = { t: (key) => key };
 
-        Object.assign(window, loadModules('frontend/js/explore/panorama/PanoManager.js',
+        Object.assign(window, await loadModules('frontend/js/explore/panorama/PanoManager.js',
             'frontend/js/explore/panorama/NoImageryFlagGuard.js', 'frontend/js/common/pano-viewer/NoImageryError.js'));
     });
 

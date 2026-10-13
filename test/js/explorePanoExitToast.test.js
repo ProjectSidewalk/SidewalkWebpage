@@ -9,7 +9,8 @@
  */
 
 
-const { assetPathStub, loadModules } = require('./loadGlobalScript');
+import { assetPathStub, loadModules, stubUtil } from './loadGlobalScript.js';
+import { fakeTracker } from './fakes.js';
 
 
 describe('Canvas.watchPanoExit', () => {
@@ -37,7 +38,7 @@ describe('Canvas.watchPanoExit', () => {
         }
     }
 
-    beforeEach(() => {
+    beforeEach(async () => {
         document.body.innerHTML = `
             <div id="ribbon"></div>
             <div id="interaction-area-holder"><div id="pano"></div></div>
@@ -52,10 +53,10 @@ describe('Canvas.watchPanoExit', () => {
         panoToast = document.getElementById('pano-toast');
         panoToastClose = document.getElementById('pano-toast-close');
         otherToastClose = document.getElementById('other-toast-close');
-        onExit = jest.fn();
+        onExit = vi.fn();
         abort = new AbortController();
 
-        Object.assign(window, loadModules('frontend/js/explore/canvas/Canvas.js'));
+        Object.assign(window, await loadModules('frontend/js/explore/canvas/Canvas.js'));
         window.Canvas.watchPanoExit(holder, onExit, { signal: abort.signal });
     });
 
@@ -129,11 +130,11 @@ describe('Canvas.watchPanoExit', () => {
 describe('Toast data-anchor', () => {
     let Toast;
 
-    beforeEach(() => {
+    beforeEach(async () => {
         document.body.innerHTML = '<div id="pano"></div><div class="modal"></div>';
         global.i18next = { t: (key) => key };
-        global.util = { assetPath: assetPathStub };
-        Toast = loadModules('frontend/js/common/Toast.js').Toast;
+        stubUtil({ assetPath: assetPathStub });
+        Toast = (await loadModules('frontend/js/common/Toast.js')).Toast;
     });
 
     // svl-canvas.css keys the click-through on data-anchor="pano", so a toast over anything else must not carry it.
@@ -152,16 +153,16 @@ describe('Toast data-anchor', () => {
 describe('LabelModes.switchTo and the explore-labeling class', () => {
     let labelModes;
 
-    beforeEach(() => {
+    beforeEach(async () => {
         document.body.className = '';
         // Only the containers modeSwitch styles; the ribbon's own markup isn't under test.
         document.body.innerHTML = `<div id="mode-switch-button-other"></div><div id="ribbon-menu-holder"></div>
             <div id="pano-border-frame"></div><div id="ribbon-menu-other-subcategory-holder"></div>`;
-        window.util = { misc: { getLabelColors: () => new Proxy({}, { get: () => ({ fillStyle: 'black' }) }) } };
-        Object.assign(window, loadModules('frontend/js/explore/menu/LabelModes.js',
+        stubUtil({ misc: { getLabelColors: () => new Proxy({}, { get: () => ({ fillStyle: 'black' }) }) } });
+        Object.assign(window, await loadModules('frontend/js/explore/menu/LabelModes.js',
             'frontend/js/explore/menu/RibbonMenu.js'));
-        labelModes = new window.LabelModes({ push: jest.fn() });
-        new window.RibbonMenu(labelModes, { modeSwitchButtonClicked: jest.fn() }, { push: jest.fn() });
+        labelModes = new window.LabelModes(fakeTracker());
+        new window.RibbonMenu(labelModes, { modeSwitchButtonClicked: vi.fn() }, fakeTracker());
     });
 
     test('arming a label type adds the class, and Walk removes it', () => {

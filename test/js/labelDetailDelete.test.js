@@ -9,7 +9,17 @@
  */
 
 
-const { assetPathStub, installDateHelpers, loadModules } = require('./loadGlobalScript');
+import { assetPathStub, installDateHelpers, loadModules, fakeImport, stubUtil } from './loadGlobalScript.js';
+
+fakeImport('frontend/js/common/BadgeAchievements.js', 'BadgeAchievements');
+fakeImport('frontend/js/common/ConfirmDialog.js', 'ConfirmDialog');
+fakeImport('frontend/js/common/LabelVisibilityToggle.js', 'LabelVisibilityToggle');
+fakeImport('frontend/js/common/label-detail/PopupPanoManager.js', 'PopupPanoManager');
+fakeImport('frontend/js/common/label-detail/StorySection.js', 'StorySection');
+fakeImport('frontend/js/common/pano-viewer/PanoInfoPopover.js', 'PanoInfoPopover');
+fakeImport('frontend/js/common/utilitiesSidewalk.js', 'buildBackupImageData');
+fakeImport('frontend/js/common/LabelTypePicker.js', 'LabelTypeDropdown');
+fakeImport('frontend/js/common/label-detail/TagEditor.js', 'TagEditor');
 
 
 /**
@@ -160,13 +170,13 @@ describe('deleting a label from the card (#3591)', () => {
   }
 
   beforeEach(async () => {
-    jest.useFakeTimers({ doNotFake: ['setTimeout', 'clearTimeout', 'setImmediate', 'nextTick', 'queueMicrotask'] });
+    vi.useFakeTimers({ toNotFake: ['setTimeout', 'clearTimeout', 'setImmediate', 'nextTick', 'queueMicrotask'] });
     card = buildCard();
     confirmAnswer = true;
     nextStatus = 200;
     nextBody = null;
-    onDelete = jest.fn();
-    request = jest.fn(async (url, opts) => {
+    onDelete = vi.fn();
+    request = vi.fn(async (url, opts) => {
       const status = nextStatus;
       const deleted = opts.method === 'DELETE';
       const body = nextBody ?? { deleted, can_restore: deleted };
@@ -176,10 +186,10 @@ describe('deleting a label from the card (#3591)', () => {
     });
 
     window.i18next = { t: (key) => key };
-    window.logWebpageActivity = jest.fn();
+    window.logWebpageActivity = vi.fn();
     window.camelToKebab = (s) => s.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
     window.buildBackupImageData = () => null;
-    window.util = {
+    stubUtil({
       assetPath: assetPathStub,
       camelToKebab: window.camelToKebab,
       EXPLORE_CANVAS_WIDTH: 720,
@@ -199,21 +209,21 @@ describe('deleting a label from the card (#3591)', () => {
       },
       pano: { centeredPovToCanvasCoord: () => ({ x: 0, y: 0 }) },
       url: { replaceQuery: () => {} },
-    };
-    installDateHelpers();
+    });
+    await installDateHelpers();
     window.BadgeAchievements = { seedCounts: () => {}, recordValidation: () => {} };
-    window.Toast = { show: jest.fn() };
-    window.ConfirmDialog = { confirm: jest.fn(async () => confirmAnswer) };
+    window.Toast = { show: vi.fn() };
+    window.ConfirmDialog = { confirm: vi.fn(async () => confirmAnswer) };
     window.LabelVisibilityToggle = class { constructor() {} };
     window.PanoInfoPopover = class { constructor() {} };
 
     let resolvePano;
     panoManager = {
-      clearLabels: jest.fn(),
-      setLabel: jest.fn(),
-      setLabelType: jest.fn(),
-      setLabelsHidden: jest.fn(),
-      setPano: jest.fn(() => new Promise((res) => { resolvePano = res; })),
+      clearLabels: vi.fn(),
+      setLabel: vi.fn(),
+      setLabelType: vi.fn(),
+      setLabelsHidden: vi.fn(),
+      setPano: vi.fn(() => new Promise((res) => { resolvePano = res; })),
       resolvePano: (shown) => resolvePano(shown),
       activeViewerName: 'Default',
       panoViewer: { currPanoData: null },
@@ -223,7 +233,7 @@ describe('deleting a label from the card (#3591)', () => {
     // The stories disclosure is not what these tests exercise, and its real section wants the composer's markup.
     window.StorySection = class { setLabel() {} };
     // The tag catalog, and the label itself for the vote re-read after an admin's delete.
-    window.fetch = jest.fn((url) => {
+    window.fetch = vi.fn((url) => {
       if (String(url).includes('/label/id/')) {
         return Promise.resolve({
           ok: true, json: async () => meta({ num_disagree: 1, user_validation: 'Disagree', deleted: true }),
@@ -232,7 +242,7 @@ describe('deleting a label from the card (#3591)', () => {
       return Promise.resolve({ ok: true, json: async () => [] });
     });
 
-    Object.assign(window, loadModules('frontend/js/common/LabelTypePicker.js', 'frontend/js/common/label-detail/TagEditor.js', 'frontend/js/common/label-detail/LabelDetail.js'));
+    Object.assign(window, await loadModules('frontend/js/common/LabelTypePicker.js', 'frontend/js/common/label-detail/TagEditor.js', 'frontend/js/common/label-detail/LabelDetail.js'));
     card.detail = await window.LabelDetail.create(card, {
       admin: false, viewerType: 'Default', currUsername: 'tester', panoOverlaySource: 'test',
       voteColumnSource: 'test', onDelete,
@@ -240,7 +250,7 @@ describe('deleting a label from the card (#3591)', () => {
   });
 
   afterEach(() => {
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   test('Delete shows for whoever may edit a live label, and Restore for whoever may undo a deleted one', async () => {
@@ -390,7 +400,7 @@ describe('deleting a label from the card (#3591)', () => {
     // A type-change status with its Undo, as #submitEdit leaves it.
     const typeUndo = document.createElement('button');
     typeUndo.className = 'label-detail__edit-status-action';
-    const undoClick = jest.fn();
+    const undoClick = vi.fn();
     typeUndo.addEventListener('click', undoClick);
     typeStatus().append('changed', typeUndo);
 

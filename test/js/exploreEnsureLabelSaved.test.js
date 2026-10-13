@@ -9,12 +9,12 @@
  * a `this` holding only the submitData it calls; everything else it touches is an argument or a static field.
  */
 
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules } from './loadGlobalScript.js';
 
 
 /** Loads a fresh Form class into the jsdom global scope (a class declaration is not a globalThis property). */
-function loadForm() {
-    Object.assign(window, loadModules('frontend/js/explore/data/Form.js'));
+async function loadForm() {
+    Object.assign(window, await loadModules('frontend/js/explore/data/Form.js'));
     return window.Form;
 }
 
@@ -29,7 +29,7 @@ function labelStub({ labelId = 'DefaultValue', cropUpload = Promise.resolve() } 
     return {
         getProperty: (k) => props[k],
         setProperty: (k, v) => { props[k] = v; },
-        cropUploaded: jest.fn(() => cropUpload),
+        cropUploaded: vi.fn(() => cropUpload),
     };
 }
 
@@ -38,9 +38,9 @@ describe('Form#ensureLabelSaved', () => {
     let ensureLabelSaved;
     let submitData;
 
-    beforeEach(() => {
-        Form = loadForm();
-        submitData = jest.fn().mockResolvedValue(undefined);
+    beforeEach(async () => {
+        Form = await loadForm();
+        submitData = vi.fn().mockResolvedValue(undefined);
         ensureLabelSaved = (label) => Form.prototype.ensureLabelSaved.call({ submitData }, label);
     });
 

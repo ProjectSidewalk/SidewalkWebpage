@@ -6,21 +6,21 @@
  * cases here are the tier boundaries a hand-written formatter tends to get wrong, plus the escaping, which is what
  * stands between user-supplied text and innerHTML.
  *
- * Runs under jsdom (jest.config.js). AdminShell is a bare top-level class in a concatenated bundle, so it is eval'd
+ * Runs under jsdom (vitest.config.mjs). AdminShell is a bare top-level class in a concatenated bundle, so it is eval'd
  * into global scope rather than required.
  */
 
-const { loadModules, realUtil } = require('./loadGlobalScript');
+import { loadModules, realUtil, stubUtil } from './loadGlobalScript.js';
 
-window.util = realUtil();
+stubUtil(await realUtil());
 
 
 /** Load AdminShell.js and return the class binding. */
-function loadShell() {
-  return loadModules('frontend/js/admin-dashboard/AdminShell.js').AdminShell;
+async function loadShell() {
+  return (await loadModules('frontend/js/admin-dashboard/AdminShell.js')).AdminShell;
 }
 
-const AdminShell = loadShell();
+const AdminShell = await loadShell();
 
 describe('AdminShell.nil', () => {
   test('is true only for null and undefined, not for falsy values that are real data', () => {
@@ -82,11 +82,11 @@ describe('AdminShell.relativeTime', () => {
   const NOW = Date.parse('2026-08-20T12:00:00Z');
 
   beforeEach(() => {
-    jest.spyOn(Date, 'now').mockReturnValue(NOW);
+    vi.spyOn(Date, 'now').mockReturnValue(NOW);
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   test('steps through the just-now / minutes / hours / days tiers', () => {
@@ -189,8 +189,8 @@ describe('AdminShell.jobStatusBadge', () => {
 describe('AdminShell.jobLastRun', () => {
   const NOW = Date.parse('2026-08-20T12:00:00Z');
 
-  beforeEach(() => { jest.spyOn(Date, 'now').mockReturnValue(NOW); });
-  afterEach(() => { jest.restoreAllMocks(); });
+  beforeEach(() => { vi.spyOn(Date, 'now').mockReturnValue(NOW); });
+  afterEach(() => { vi.restoreAllMocks(); });
 
   test('reports a job the schedule has never fired as never, not as its manual run', () => {
     // A hand-run job proves the code works, not that anything is firing it, so it must not read as a scheduled run.

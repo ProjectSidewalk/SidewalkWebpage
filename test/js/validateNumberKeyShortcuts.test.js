@@ -14,7 +14,10 @@
  * listener that cannot be unregistered).
  */
 
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules, fakeImport } from './loadGlobalScript.js';
+import { fakeTracker } from './fakes.js';
+
+fakeImport('frontend/js/common/KeyboardShortcuts.js', 'KeyboardShortcuts');
 
 
 /**
@@ -24,7 +27,7 @@ const { loadModules } = require('./loadGlobalScript');
 function makeControl({ chosen = false } = {}) {
     const control = document.createElement('textarea');
     control.classList.toggle('is-chosen', chosen);
-    control.click = jest.fn();
+    control.click = vi.fn();
     return control;
 }
 
@@ -53,7 +56,7 @@ describe('KeyboardManager number-key shortcuts', () => {
     const live = (name) => new Proxy({}, { get: (_, key) => current[name][key] });
     const config = { adminVersion: false };
 
-    beforeAll(() => {
+    beforeAll(async () => {
         Object.assign(validationMenuUi, {
             optionalCommentTextBox: makeControl(),
             disagreeReasonTextBox: makeControl(),
@@ -67,7 +70,7 @@ describe('KeyboardManager number-key shortcuts', () => {
         // The manager looks the reason buttons and severity radios up by id and clicks them natively.
         document.addEventListener('click', (e) => clicks.push(/** @type {Element} */ (e.target).id));
 
-        Object.assign(window, loadModules('frontend/js/common/KeyboardShortcuts.js', 'frontend/js/validate/keyboard/KeyboardManager.js'));
+        Object.assign(window, await loadModules('frontend/js/common/KeyboardShortcuts.js', 'frontend/js/validate/keyboard/KeyboardManager.js'));
         new window.KeyboardManager(
             { validationMenu: validationMenuUi, undoValidation: { undoButton: live('undoButton') } }, config,
             { isHeld: () => false, hold: () => {}, release: () => {} },
@@ -81,15 +84,15 @@ describe('KeyboardManager number-key shortcuts', () => {
         clicks.length = 0;
         config.adminVersion = false;
         current = {
-            labelVisibilityControl: { hideLabelCard: jest.fn(), isVisible: () => true, isCardHeldOpen: () => false },
+            labelVisibilityControl: { hideLabelCard: vi.fn(), isVisible: () => true, isCardHeldOpen: () => false },
             labelCard: { isPopoverOpen: () => false, closeTypeDropdown: () => false },
             validationMenu: { inWrongTypeView: () => false },
             imageAdjustmentsPopover: { isOpen: () => false },
             undoValidation: { canUndo: () => false },
-            tracker: { push: jest.fn() },
+            tracker: fakeTracker(),
         };
         for (const box of ['optionalCommentTextBox', 'disagreeReasonTextBox', 'unsureReasonTextBox']) {
-            validationMenuUi[box].click = jest.fn();
+            validationMenuUi[box].click = vi.fn();
         }
     });
 
@@ -218,7 +221,7 @@ describe('KeyboardManager number-key shortcuts', () => {
 
         beforeEach(() => {
             document.body.innerHTML = '<input id="select-tag-ts-control" type="text"><input id="other" type="text">';
-            validationMenuUi.submitButton.click = jest.fn();
+            validationMenuUi.submitButton.click = vi.fn();
         });
 
         afterEach(() => {
@@ -254,7 +257,7 @@ describe('KeyboardManager number-key shortcuts', () => {
             undoButton = makeControl();
             current.undoButton = undoButton;
             current.undoValidation = { canUndo: () => true };
-            current.zoomControl = { zoomIn: jest.fn(), zoomOut: jest.fn() };
+            current.zoomControl = { zoomIn: vi.fn(), zoomOut: vi.fn() };
         });
 
         it('clicks Back', () => {

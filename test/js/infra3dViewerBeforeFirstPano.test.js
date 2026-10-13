@@ -8,8 +8,11 @@
  * GsvViewer's do.
  */
 
-const path = require('path');
-const { loadModules } = require('./loadGlobalScript');
+import path from 'path';
+import { loadModules, fakeImport, stubUtil } from './loadGlobalScript.js';
+
+fakeImport('frontend/js/common/pano-viewer/PanoViewer.js', 'PanoViewer');
+
 
 const SRC_DIR = path.resolve(__dirname, '..', '..', 'frontend/js/common/pano-viewer');
 
@@ -17,7 +20,7 @@ const SRC_DIR = path.resolve(__dirname, '..', '..', 'frontend/js/common/pano-vie
  * Loads the production Infra3dViewer class with the globals it reads at definition time stubbed.
  * @returns {Function} The class.
  */
-function loadInfra3dViewer() {
+async function loadInfra3dViewer() {
     window.PanoViewer = class PanoViewer {
         constructor() { this.viewerType = 'infra3d'; }
         getViewerType() { return this.viewerType; }
@@ -28,16 +31,16 @@ function loadInfra3dViewer() {
         getProperty(key) { return this.params[key]; }
     };
     window.proj4 = () => [0, 0];
-    window.util = { math: { toDegrees: (radians) => radians } };
-    Object.assign(window, loadModules(path.join(SRC_DIR, 'Infra3dViewer.js'), path.join(SRC_DIR, 'NoImageryError.js')));
+    stubUtil({ math: { toDegrees: (radians) => radians } });
+    Object.assign(window, await loadModules(path.join(SRC_DIR, 'Infra3dViewer.js'), path.join(SRC_DIR, 'NoImageryError.js')));
     return window.Infra3dViewer;
 }
 
 describe('Infra3dViewer before the first pano', () => {
     let viewer;
 
-    beforeAll(() => {
-        const Infra3dViewer = loadInfra3dViewer();
+    beforeAll(async () => {
+        const Infra3dViewer = await loadInfra3dViewer();
         viewer = new Infra3dViewer();
         // The SDK viewer exists from construction; no node has been moved to yet.
         viewer.viewer = { getCameraView: () => ({ lon: 0, lat: 0, type: 'flat' }) };

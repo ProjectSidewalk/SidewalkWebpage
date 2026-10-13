@@ -15,21 +15,23 @@
  * against, following panoViewerAspect.test.js.
  */
 
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules, fakeImport } from './loadGlobalScript.js';
+
+fakeImport('frontend/js/common/pano-viewer/PanoViewer.js', 'PanoViewer');
 
 
 /**
  * Loads PanoViewer + Infra3dViewer fresh into the jsdom global scope.
  * @returns {{PanoViewer: Function, Infra3dViewer: Function}}
  */
-function loadViewers() {
-            Object.assign(window, loadModules('frontend/js/common/pano-viewer/PanoViewer.js', 'frontend/js/common/pano-viewer/Infra3dViewer.js'));
+async function loadViewers() {
+            Object.assign(window, await loadModules('frontend/js/common/pano-viewer/PanoViewer.js', 'frontend/js/common/pano-viewer/Infra3dViewer.js'));
     return { PanoViewer: window.PanoViewer, Infra3dViewer: window.Infra3dViewer };
 }
 
 describe('PanoViewer.create mount alignment', () => {
     test('pins the mount element\'s text-align to left before initializing', async () => {
-        const { PanoViewer } = loadViewers();
+        const { PanoViewer } = await loadViewers();
         class TestViewer extends PanoViewer {
             initialize(canvasElem) {
                 // The guard must already be in place by the time the SDK gets the element.
@@ -47,10 +49,10 @@ describe('PanoViewer.create mount alignment', () => {
 });
 
 describe('Infra3dViewer.resize', () => {
-    test('delegates to the SDK viewer instead of inheriting the base-class no-op', () => {
-        const { Infra3dViewer } = loadViewers();
+    test('delegates to the SDK viewer instead of inheriting the base-class no-op', async () => {
+        const { Infra3dViewer } = await loadViewers();
         const viewer = new Infra3dViewer();
-        const sdkResize = jest.fn();
+        const sdkResize = vi.fn();
         viewer.viewer = { _sdk_viewer: { resize: sdkResize } };
         viewer.resize();
         expect(sdkResize).toHaveBeenCalledTimes(1);

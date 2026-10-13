@@ -10,7 +10,15 @@
  */
 
 
-const { assetPathStub, installUtilitiesMisc, loadModules } = require('./loadGlobalScript');
+import { assetPathStub, installUtilitiesMisc, loadModules, fakeImport, stubUtil } from './loadGlobalScript.js';
+import { fakeTracker } from './fakes.js';
+
+fakeImport('frontend/js/common/pano-viewer/PanoAttribution.js', 'createPanoAttribution');
+fakeImport('frontend/js/common/pano-viewer/PanoViewerLogo.js', 'createPanoViewerLogo');
+fakeImport('frontend/js/gallery/displays/SeverityDisplay.js', 'SeverityDisplay');
+fakeImport('frontend/js/gallery/displays/TagDisplay.js', 'TagDisplay');
+fakeImport('frontend/js/gallery/displays/ValidationInfoDisplay.js', 'ValidationInfoDisplay');
+fakeImport('frontend/js/gallery/validation/ValidationMenu.js', 'ValidationMenu');
 
 
 /** One label payload, shaped like an entry from POST /label/labels. */
@@ -27,7 +35,7 @@ describe('a Gallery card\'s location line', () => {
     const locationLine = () => document.querySelector('.card-location');
     /** The page's region names, which the card reads once on construction. */
     let regionNames;
-    const tracker = { push: jest.fn() };
+    const tracker = fakeTracker();
     const cardFilter = { getAppliedTagNames: () => [] };
 
     /**
@@ -44,16 +52,16 @@ describe('a Gallery card\'s location line', () => {
         return card;
     }
 
-    beforeAll(() => {
+    beforeAll(async () => {
         window.structuredClone ??= (v) => JSON.parse(JSON.stringify(v)); // Missing from this jsdom.
         window.i18next = { t: (key) => key, language: 'en' };
-        window.util = {
+        stubUtil({
             assetPath: assetPathStub,
             camelToKebab: (s) => s.toLowerCase(),
             EXPLORE_CANVAS_WIDTH: 720,
             EXPLORE_CANVAS_HEIGHT: 480,
-        };
-        installUtilitiesMisc(); // Card positions its marker through util.misc.labelMarkerFraction.
+        });
+        await installUtilitiesMisc(); // Card positions its marker through util.misc.labelMarkerFraction.
         // Collaborators the constructor builds but this test doesn't exercise.
         window.SeverityDisplay = class {};
         window.ValidationInfoDisplay = class {};
@@ -61,7 +69,7 @@ describe('a Gallery card\'s location line', () => {
         window.TagDisplay = class {};
         window.createPanoViewerLogo = () => ({ showSourceLogo: () => {}, hide: () => {} });
         window.createPanoAttribution = () => ({ show: () => {}, hide: () => {} });
-        Object.assign(window, loadModules('frontend/js/gallery/cards/Card.js'));
+        Object.assign(window, await loadModules('frontend/js/gallery/cards/Card.js'));
     });
 
     beforeEach(() => {

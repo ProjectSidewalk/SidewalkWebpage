@@ -8,7 +8,9 @@
  * collaborators (fetch, i18next, StoryComposer) stubbed.
  */
 
-const { installDateHelpers, loadModules } = require('./loadGlobalScript');
+import { installDateHelpers, loadModules, fakeImport } from './loadGlobalScript.js';
+
+fakeImport('frontend/js/common/label-detail/StoryComposer.js', 'StoryComposer');
 
 
 /** One story payload, shaped like an entry from GET /label/:labelId/stories. */
@@ -51,8 +53,8 @@ describe("StorySection's linked-story reveal (#4722)", () => {
     let stories;
     let composerCalls;
 
-    beforeEach(() => {
-        Object.assign(window, loadModules('frontend/js/common/label-detail/StorySection.js'));
+    beforeEach(async () => {
+        Object.assign(window, await loadModules('frontend/js/common/label-detail/StorySection.js'));
         composerCalls = { setLabelType: [] };
         window.StoryComposer = class {
             open() {}
@@ -61,12 +63,12 @@ describe("StorySection's linked-story reveal (#4722)", () => {
             setLabelType(name) { composerCalls.setLabelType.push(name); }
         };
         window.i18next = { t: (key) => key };
-        installDateHelpers();
-        window.matchMedia = jest.fn().mockReturnValue({ matches: false }); // No reduced-motion preference.
-        window.HTMLElement.prototype.scrollIntoView = jest.fn(); // jsdom doesn't implement it.
-        window.logWebpageActivity = jest.fn();
+        await installDateHelpers();
+        window.matchMedia = vi.fn().mockReturnValue({ matches: false }); // No reduced-motion preference.
+        window.HTMLElement.prototype.scrollIntoView = vi.fn(); // jsdom doesn't implement it.
+        window.logWebpageActivity = vi.fn();
         stories = [story()];
-        window.fetch = jest.fn().mockImplementation(() => Promise.resolve({
+        window.fetch = vi.fn().mockImplementation(() => Promise.resolve({
             ok: true,
             json: () => Promise.resolve({ max_text_length: 500, access_impact: 'problem', stories }),
         }));
@@ -116,7 +118,7 @@ describe("StorySection's linked-story reveal (#4722)", () => {
     });
 
     test('honors prefers-reduced-motion by scrolling without animation', async () => {
-        window.matchMedia = jest.fn().mockReturnValue({ matches: true });
+        window.matchMedia = vi.fn().mockReturnValue({ matches: true });
         await renderSection({ highlightStoryId: 11 });
         expect(window.HTMLElement.prototype.scrollIntoView)
             .toHaveBeenCalledWith({ block: 'nearest', behavior: 'auto' });

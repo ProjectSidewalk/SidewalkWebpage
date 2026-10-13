@@ -9,9 +9,9 @@
  * how the two combine. The rest pins what the sliders mean.
  */
 
-const fs = require('fs');
-const path = require('path');
-const { loadModules } = require('./loadGlobalScript');
+import fs from 'fs';
+import path from 'path';
+import { loadModules } from './loadGlobalScript.js';
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const FIXTURE = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'test/fixtures/accessScoreParity.json'), 'utf8'));
@@ -62,8 +62,8 @@ describe('AccessScoreModel', () => {
     const tol = FIXTURE.tolerance;
     const streets = { type: 'FeatureCollection', features: FIXTURE.streets.map((c, i) => feature(c, i)) };
 
-    beforeAll(() => {
-        Object.assign(window, loadModules('frontend/js/access-score/AccessScoreModel.js'));
+    beforeAll(async () => {
+        Object.assign(window, await loadModules('frontend/js/access-score/AccessScoreModel.js'));
         AccessScoreModel = window.AccessScoreModel;
     });
 

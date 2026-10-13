@@ -11,8 +11,14 @@
  * ResizeObserver, so a recording stub stands in for it.
  */
 
-const path = require('path');
-const { loadModules } = require('./loadGlobalScript');
+import path from 'path';
+import { loadModules, fakeImport, stubUtil } from './loadGlobalScript.js';
+
+fakeImport('frontend/js/common/pano-viewer/GsvViewer.js', 'GsvViewer');
+fakeImport('frontend/js/common/pano-viewer/MapillaryViewer.js', 'MapillaryViewer');
+fakeImport('frontend/js/common/pano-viewer/PanoViewerLogo.js', 'createPanoViewerLogo');
+fakeImport('frontend/js/explore/panorama/NoImageryFlagGuard.js', 'NoImageryFlagGuard');
+
 
 const PANO_MANAGER_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/explore/panorama/PanoManager.js');
 
@@ -22,8 +28,8 @@ const PANO_MANAGER_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/explo
  * @param {string} className - Name of the class the file declares.
  * @returns {Function} The class.
  */
-function loadClassFromFile(filePath, className) {
-  return loadModules(filePath)[className];
+async function loadClassFromFile(filePath, className) {
+  return (await loadModules(filePath))[className];
 }
 
 /** Let MutationObserver callbacks, which run as microtasks, fire. */
@@ -58,13 +64,13 @@ describe('Explore publishes the links clearance from Mapillary\'s in-place pill 
       viewControlLayer: document.getElementById('view-control-layer'),
     };
     const config = { viewerType: global.MapillaryViewer, viewerAccessToken: 'token' };
-    const panoManager = new PanoManager(ui, config, { addPanoMetadata: jest.fn() },
-      { push: jest.fn(), trackPano: jest.fn() }, {}, {}, {});
+    const panoManager = new PanoManager(ui, config, { addPanoMetadata: vi.fn() },
+      { push: vi.fn(), trackPano: vi.fn() }, {}, {}, {});
     await panoManager.ready;
     await flushObservers();
   }
 
-  beforeEach(() => {
+  beforeEach(async () => {
     document.body.innerHTML = `
       <div class="tool-ui">
         <div id="pano" class="window-streetview mapillary-viewer"></div>
@@ -77,18 +83,18 @@ describe('Explore publishes the links clearance from Mapillary\'s in-place pill 
       disconnect() {}
     };
 
-    global.util = {localIsoDate: () => '2024-11'};
+    stubUtil({localIsoDate: () => '2024-11'});
     global.i18next = {t: (key) => key};
-    global.NoImageryFlagGuard = {reset: jest.fn()};
+    global.NoImageryFlagGuard = {reset: vi.fn()};
     global.NoImageryError = class NoImageryError extends Error {};
-    global.createPanoViewerLogo = jest.fn(() => ({showPrimaryLogo: jest.fn()}));
+    global.createPanoViewerLogo = vi.fn(() => ({showPrimaryLogo: vi.fn()}));
     global.GsvViewer = class GsvViewer {};
 
     const panoData = {getPanoId: () => 'pano1', getProperty: () => 0};
     const fakeViewer = {
-      addListener: jest.fn(),
+      addListener: vi.fn(),
       getPov: () => ({heading: 0, pitch: 0, zoom: 1}),
-      setPov: jest.fn(),
+      setPov: vi.fn(),
       getLinkedPanos: () => [],
       currPanoData: panoData,
       initialSeed: 'pano',
@@ -97,7 +103,7 @@ describe('Explore publishes the links clearance from Mapillary\'s in-place pill 
     global.MapillaryViewer = class MapillaryViewer {
       static create() { return Promise.resolve(fakeViewer); }
     };
-    PanoManager = loadClassFromFile(PANO_MANAGER_PATH, 'PanoManager');
+    PanoManager = await loadClassFromFile(PANO_MANAGER_PATH, 'PanoManager');
   });
 
   afterEach(() => {

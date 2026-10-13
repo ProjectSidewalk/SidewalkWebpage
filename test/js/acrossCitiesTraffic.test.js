@@ -7,14 +7,14 @@
  * "needs attention" panel with a baseline-relative reason, and every unavailability path — `available: false` or a
  * failed request — collapses the section to a note without disturbing the already-rendered page.
  *
- * Runs under jsdom (jest.config.js). AcrossCitiesPage is a bare top-level class in a concatenated bundle, so it is
+ * Runs under jsdom (vitest.config.mjs). AcrossCitiesPage is a bare top-level class in a concatenated bundle, so it is
  * eval'd into global scope rather than required.
  */
 
-const { loadModules, realUtil } = require('./loadGlobalScript');
+import { loadModules, realUtil, stubUtil } from './loadGlobalScript.js';
 
 // The page fetches through util.fetchJson.
-window.util = realUtil();
+stubUtil(await realUtil());
 
 
 /** The text psTooltip's card shows for an element: its attribute is rendered as HTML, so it's decoded once more. */
@@ -25,8 +25,8 @@ function tooltipText(el) {
 }
 
 /** Load AcrossCitiesPage.js, plus the AdminShell helpers every dashboard page reads, and return the class binding. */
-function loadPage() {
-  return loadModules('frontend/js/admin-dashboard/AcrossCitiesPage.js').AcrossCitiesPage;
+async function loadPage() {
+  return (await loadModules('frontend/js/admin-dashboard/AcrossCitiesPage.js')).AcrossCitiesPage;
 }
 
 /** A minimal scorecard row; the traffic section only reads identity/lifecycle from it. */
@@ -94,7 +94,7 @@ describe('Across Cities — traffic section', () => {
    */
   async function render(cities, traffic) {
     document.body.innerHTML = MARKUP;
-    global.fetch = jest.fn((url) => {
+    global.fetch = vi.fn((url) => {
       if (url === '/adminapi/cityScorecards') {
         return Promise.resolve({
           ok: true,
@@ -119,8 +119,8 @@ describe('Across Cities — traffic section', () => {
     return [...document.querySelectorAll('#ac-traffic-tbody tr')].map((tr) => tr.cells[0].textContent.trim());
   }
 
-  beforeEach(() => {
-    AcrossCitiesPage = loadPage();
+  beforeEach(async () => {
+    AcrossCitiesPage = await loadPage();
   });
 
   it('rows only cities with traffic data, busiest sessions first', async () => {
@@ -187,7 +187,7 @@ describe('Across Cities — traffic section', () => {
   it('keeps the loading note when a header is clicked before the traffic fetch lands', async () => {
     document.body.innerHTML = MARKUP;
     let releaseTraffic;
-    global.fetch = jest.fn((url) => {
+    global.fetch = vi.fn((url) => {
       if (url === '/adminapi/cityScorecards') {
         return Promise.resolve({
           ok: true,
@@ -272,7 +272,7 @@ describe('Across Cities — traffic section', () => {
   });
 
   it('collapses the same way when the traffic request fails, leaving the page intact', async () => {
-    jest.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
     await render([makeCity('alpha')], new Error('boom'));
     expect(document.getElementById('ac-traffic-wrap').style.display).toBe('none');
     expect(document.getElementById('ac-traffic-status').textContent).toBe('Traffic data unavailable.');

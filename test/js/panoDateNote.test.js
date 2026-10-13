@@ -12,10 +12,11 @@
  */
 
 
-const { loadModules, realUtil } = require('./loadGlobalScript');
+import { loadModules, realUtil, stubUtil } from './loadGlobalScript.js';
+import { fakeTracker } from './fakes.js';
 
 
-Object.assign(window, loadModules('frontend/js/explore/panorama/PanoDateNote.js'));
+Object.assign(window, await loadModules('frontend/js/explore/panorama/PanoDateNote.js'));
 const { PanoDateNote } = window;
 
 /** A stand-in for Task exposing the reads the note makes. */
@@ -45,8 +46,8 @@ describe('PanoDateNote', () => {
     const noteIsAction = () =>
         document.getElementById('svl-pano-date-note').classList.contains('svl-pano-pill--action');
 
-    beforeEach(() => {
-        tracker = { push: jest.fn() };
+    beforeEach(async () => {
+        tracker = fakeTracker();
         window.i18next = {
             language: 'en',
             t: (key, opts) => {
@@ -55,7 +56,7 @@ describe('PanoDateNote', () => {
                 return key;
             },
         };
-        window.util = realUtil();
+        stubUtil(await realUtil());
         // Mirrors explore.scala.html, including the pill starting hidden. PanoInfoPopover's button would be a second
         // child of the pill on the real page; nothing here reads it.
         document.body.innerHTML =
@@ -102,7 +103,7 @@ describe('PanoDateNote', () => {
 
         test('the chip and its tooltip never disagree about which month an assessment landed in', () => {
             // Where `stateFor` and `util.monthYear` used to part company, one reading the month off the string and
-            // the other converting it. jest.config.js pins the TZ to Los Angeles, where this is October 31, 8 pm.
+            // the other converting it. vitest.config.mjs pins the TZ to Los Angeles, where this is October 31, 8 pm.
             const octoberEvening = { ...MAPPED_BY_ME, lastMappedAt: '2024-11-01T03:00:00Z' };
             note.update('2024-10-01', makeTask(31, octoberEvening));
             expect(corner().note).toBe('right-ui.pano-date-note.already-assessed');

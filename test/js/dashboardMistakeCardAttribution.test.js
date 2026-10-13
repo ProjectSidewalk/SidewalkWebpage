@@ -6,7 +6,10 @@
  * the whole point is checking that the card hooks them up.
  */
 
-const { assetPathStub, installUtilitiesMisc, loadModules } = require('./loadGlobalScript');
+import { assetPathStub, installUtilitiesMisc, loadModules, stubUtil, fakeImport } from './loadGlobalScript.js';
+
+fakeImport('frontend/js/common/pano-viewer/PanoAttribution.js', 'createPanoAttribution');
+fakeImport('frontend/js/common/pano-viewer/PanoViewerLogo.js', 'createPanoViewerLogo');
 
 const CROP_URL = '/cropImage/Obstacle/501?exp=1&sig=x';
 const GSV_URL = 'https://maps.googleapis.com/maps/api/streetview?pano=abc123';
@@ -42,25 +45,25 @@ describe('the dashboard mistake card\'s imagery credit', () => {
     await gallery.render();
   }
 
-  beforeAll(() => {
+  beforeAll(async () => {
     window.i18next = { t: (key) => key };
     // The logo measures itself to report how wide it is. jsdom lays nothing out, so there's nothing to measure.
     window.ResizeObserver = class { observe() {} disconnect() {} };
-    window.util = {
+    stubUtil({
       assetPath: assetPathStub,
       EXPLORE_CANVAS_WIDTH: 720,
       EXPLORE_CANVAS_HEIGHT: 480,
       camelToKebab: (s) => s.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase(),
-    };
-    installUtilitiesMisc();
-    Object.assign(window, loadModules('frontend/js/common/pano-viewer/PanoViewerLogo.js'));
-    Object.assign(window, loadModules('frontend/js/common/pano-viewer/PanoAttribution.js'));
-    window.MistakeGallery = loadModules('frontend/js/user-dashboard/MistakeGallery.js').MistakeGallery;
+    });
+    await installUtilitiesMisc();
+    Object.assign(window, await loadModules('frontend/js/common/pano-viewer/PanoViewerLogo.js'));
+    Object.assign(window, await loadModules('frontend/js/common/pano-viewer/PanoAttribution.js'));
+    window.MistakeGallery = (await loadModules('frontend/js/user-dashboard/MistakeGallery.js')).MistakeGallery;
   });
 
   beforeEach(() => {
     mistakes = [mistake()];
-    window.fetch = jest.fn(() =>
+    window.fetch = vi.fn(() =>
       Promise.resolve({ ok: true, json: () => Promise.resolve({ Obstacle: mistakes }) }));
   });
 

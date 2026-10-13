@@ -6,12 +6,12 @@
  * attempt is retried (the server keeps computing the aborted request and caches its result, so retries converge), and
  * the error shown after all retries fail is human-readable rather than "signal is aborted without reason".
  *
- * Runs under jsdom (set in jest.config.js via testEnvironment) so `window`/`document` are available.
+ * Runs under jsdom (set in vitest.config.mjs via testEnvironment) so `window`/`document` are available.
  */
 
-const { loadGlobalScript, installEscapeHTML } = require('./loadGlobalScript');
+import { loadGlobalScript, installEscapeHTML, stubUtil } from './loadGlobalScript.js';
 
-// jsdom (as bundled with this Jest version) implements AbortSignal but not the static AbortSignal.timeout()
+// jsdom implements AbortSignal but not the static AbortSignal.timeout()
 // (Baseline 2022, present in all supported browsers). Shim it for these tests; fetch is stubbed anyway, so the
 // signal's actual timing behavior never matters here.
 if (typeof AbortSignal.timeout !== 'function') {
@@ -45,7 +45,7 @@ function timeoutError() {
  * Polls an expectation until it passes, failing with its last error after timeoutMs. The script kicks off
  * loadProjectSidewalkStats() fire-and-forget from the appManager.ready callback, so tests can't await it directly —
  * they wait for its DOM effects instead.
- * @param {Function} expectation - Function that throws (e.g. contains Jest expects) until the condition holds.
+ * @param {Function} expectation - Function that throws (e.g. contains `expect` calls) until the condition holds.
  * @param {number} [timeoutMs=8000] - How long to keep polling before giving up.
  */
 async function waitFor(expectation, timeoutMs = 8000) {
@@ -64,7 +64,7 @@ async function waitFor(expectation, timeoutMs = 8000) {
 describe('aggregateStats fetch resilience', () => {
     let readyCallback;
 
-    beforeEach(() => {
+    beforeEach(async () => {
         document.body.innerHTML = `<p id="${STATS_PARAGRAPH_ID}"></p>`;
 
         // The script auto-registers via window.appManager.ready() at load; capture the callback to trigger manually.
@@ -73,14 +73,14 @@ describe('aggregateStats fetch resilience', () => {
 
         // Globals the renderer reaches for (provided by other bundles in production).
         global.i18next = { t: (key, opts) => Number(opts.val).toLocaleString('en-US') };
-        global.util = { math: { kmsToMiles: (km) => km * 0.621371 } };
-        installEscapeHTML();
+        stubUtil({ math: { kmsToMiles: (km) => km * 0.621371 } });
+        await installEscapeHTML();
 
-        // Keep the retry/error logging out of Jest's output.
-        jest.spyOn(console, 'warn').mockImplementation(() => {});
-        jest.spyOn(console, 'error').mockImplementation(() => {});
+        // Keep the retry/error logging out of the test output.
+        vi.spyOn(console, 'warn').mockImplementation(() => {});
+        vi.spyOn(console, 'error').mockImplementation(() => {});
 
-        loadGlobalScript(MODULE_PATH);
+        await loadGlobalScript(MODULE_PATH);
     });
 
     afterEach(() => {
@@ -88,11 +88,11 @@ describe('aggregateStats fetch resilience', () => {
         delete global.i18next;
         delete global.util;
         delete window.appManager;
-        jest.restoreAllMocks();
+        vi.restoreAllMocks();
     });
 
     test('registers with appManager and passes a timeout signal to fetch', async () => {
-        global.fetch = jest.fn(() =>
+        global.fetch = vi.fn(() =>
             Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(GOOD_FIXTURE) })
         );
 
@@ -105,7 +105,7 @@ describe('aggregateStats fetch resilience', () => {
     });
 
     test('retries after a timeout and renders stats from the second attempt', async () => {
-        global.fetch = jest.fn()
+        global.fetch = vi.fn()
             .mockRejectedValueOnce(timeoutError())
             .mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve(GOOD_FIXTURE) });
 
@@ -120,7 +120,7 @@ describe('aggregateStats fetch resilience', () => {
     }, 15000);
 
     test('shows a readable timeout message after every attempt times out', async () => {
-        global.fetch = jest.fn(() => Promise.reject(timeoutError()));
+        global.fetch = vi.fn(() => Promise.reject(timeoutError()));
 
         readyCallback();
 

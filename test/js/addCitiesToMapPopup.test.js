@@ -7,14 +7,14 @@
  * pins the popup's read paths against a realistic overallStats response shape so the same field drift can't recur
  * silently (the `|| 0` fallback turns a moved field into a wrong value, not a thrown error).
  *
- * Runs under jsdom (jest.config.js testEnvironment) so window/document exist. addCitiesToMap is a bare global
+ * Runs under jsdom (vitest.config.mjs testEnvironment) so window/document exist. addCitiesToMap is a bare global
  * function (Project Sidewalk's frontend has no module system), so we execute the file in global scope via
  * `new Function` — unlike the *Preview modules, it never self-assigns onto `window`, so a plain require() wouldn't
  * expose it. Mapbox, i18next and fetch are all stubbed.
  */
 
-const path = require('path');
-const { loadModules } = require('./loadGlobalScript');
+import path from 'path';
+import { loadModules, stubUtil } from './loadGlobalScript.js';
 
 const MODULE_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/ps-map/addCitiesToMap.js');
 
@@ -129,7 +129,7 @@ function makeCitiesData() {
  * @param {object} body - The object the stubbed fetch resolves with as JSON.
  */
 function stubFetch(body) {
-    global.fetch = jest.fn(() => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(body) }));
+    global.fetch = vi.fn(() => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(body) }));
 }
 
 /**
@@ -138,15 +138,15 @@ function stubFetch(body) {
  * global object, matching how Grunt-concatenated scripts behave in the browser.
  * @returns {Function} The addCitiesToMap function.
  */
-function loadAddCitiesToMap() {
-    return loadModules(MODULE_PATH).addCitiesToMap;
+async function loadAddCitiesToMap() {
+    return (await loadModules(MODULE_PATH)).addCitiesToMap;
 }
 
 describe('addCitiesToMap city popup (#4591)', () => {
     let addCitiesToMap;
     let map;
 
-    beforeEach(() => {
+    beforeEach(async () => {
         document.body.innerHTML = POPUP_TEMPLATE;
         lastPopupContent = undefined;
         // format-number echoes the raw value so tests can assert exact numbers; other keys just return the key.
@@ -158,12 +158,12 @@ describe('addCitiesToMap city popup (#4591)', () => {
         };
         // Units come from the server's <html> stamp, which util reads back; these tests run in metric. The real
         // longDistanceToString goes through i18next's `distance` formatter, which AppManager registers.
-        global.util = {
+        stubUtil({
             isMetric: () => true,
             longDistanceToString: (km, precision = 0) => `${km.toFixed(precision)} km`,
-        };
+        });
         global.mapboxgl = { Popup: FakePopup, LngLatBounds: FakeLngLatBounds };
-        addCitiesToMap = loadAddCitiesToMap();
+        addCitiesToMap = await loadAddCitiesToMap();
         map = makeFakeMap();
     });
 
@@ -172,7 +172,7 @@ describe('addCitiesToMap city popup (#4591)', () => {
         delete global.i18next;
         delete global.util;
         delete global.mapboxgl;
-        jest.restoreAllMocks();
+        vi.restoreAllMocks();
     });
 
     /**

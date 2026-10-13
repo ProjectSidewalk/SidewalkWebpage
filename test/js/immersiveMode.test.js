@@ -12,7 +12,10 @@
  */
 
 
-const { assetPathStub, loadModules } = require('./loadGlobalScript');
+import { assetPathStub, loadModules, fakeImport, stubUtil } from './loadGlobalScript.js';
+import { fakeTracker } from './fakes.js';
+
+fakeImport('frontend/js/common/Toast.js', 'Toast');
 
 
 describe('ImmersiveMode', () => {
@@ -42,7 +45,7 @@ describe('ImmersiveMode', () => {
         });
     }
 
-    beforeEach(() => {
+    beforeEach(async () => {
         document.body.innerHTML = `
             <div id="immersive-toggle-holder" class="ps-icon-button-stack">
               <button type="button" id="immersive-toggle-button" class="ps-icon-button">
@@ -54,15 +57,15 @@ describe('ImmersiveMode', () => {
         window.sessionStorage.clear();
         window.history.replaceState(null, '', '/explore');
         onboarding = false;
-        tracker = { push: jest.fn() };
-        relayout = jest.fn();
-        window.util = { assetPath: assetPathStub };
+        tracker = fakeTracker();
+        relayout = vi.fn();
+        stubUtil({ assetPath: assetPathStub });
         window.i18next = { t: (key) => key };
-        window.Toast = { show: jest.fn() };
-        contextMenu = { isOpen: jest.fn(() => false), hide: jest.fn() };
-        canvas = { showLabelHoverInfo: jest.fn() };
+        window.Toast = { show: vi.fn() };
+        contextMenu = { isOpen: vi.fn(() => false), hide: vi.fn() };
+        canvas = { showLabelHoverInfo: vi.fn() };
         frame = { width: 720, height: 480 };
-        Object.assign(window, loadModules('frontend/js/common/ImmersiveMode.js'));
+        Object.assign(window, await loadModules('frontend/js/common/ImmersiveMode.js'));
         ImmersiveMode = window.ImmersiveMode;
     });
 
@@ -125,7 +128,7 @@ describe('ImmersiveMode', () => {
     });
 
     it('still enters when session storage is unavailable', () => {
-        const getItem = jest.spyOn(Storage.prototype, 'getItem')
+        const getItem = vi.spyOn(Storage.prototype, 'getItem')
             .mockImplementation(() => { throw new Error('denied'); });
         const mode = build();
         mode.toggle('Click');
@@ -233,7 +236,7 @@ describe('ImmersiveMode', () => {
     });
 
     it('tells its onChange hook after every toggle, once the tool is laid out (#5480)', () => {
-        const onChange = jest.fn();
+        const onChange = vi.fn();
         const mode = build({ onChange });
         mode.toggle('Click');
         expect(onChange).toHaveBeenCalledTimes(1);

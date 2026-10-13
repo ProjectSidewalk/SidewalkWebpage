@@ -12,7 +12,14 @@
  */
 
 
-const { assetPathStub, installUtilitiesMisc, loadModules } = require('./loadGlobalScript');
+import { assetPathStub, installUtilitiesMisc, loadModules, fakeImport, stubUtil } from './loadGlobalScript.js';
+
+fakeImport('frontend/js/common/pano-viewer/PanoAttribution.js', 'createPanoAttribution');
+fakeImport('frontend/js/common/pano-viewer/PanoViewerLogo.js', 'createPanoViewerLogo');
+fakeImport('frontend/js/gallery/displays/SeverityDisplay.js', 'SeverityDisplay');
+fakeImport('frontend/js/gallery/displays/TagDisplay.js', 'TagDisplay');
+fakeImport('frontend/js/gallery/displays/ValidationInfoDisplay.js', 'ValidationInfoDisplay');
+fakeImport('frontend/js/gallery/validation/ValidationMenu.js', 'ValidationMenu');
 
 
 /** What the source-logo and licence-line stubs were last told: the card owes a credit on a crop and nothing else. */
@@ -53,15 +60,15 @@ describe('a Gallery card\'s label marker', () => {
         return card;
     }
 
-    beforeAll(() => {
+    beforeAll(async () => {
         window.i18next = { t: (key) => key, language: 'en' };
-        window.util = {
+        stubUtil({
             assetPath: assetPathStub,
             camelToKebab: (s) => s.toLowerCase(),
             EXPLORE_CANVAS_WIDTH: 720,
             EXPLORE_CANVAS_HEIGHT: 480,
-        };
-        installUtilitiesMisc(); // The real util.misc, so labelMarkerFraction under test is the shipped one.
+        });
+        await installUtilitiesMisc(); // The real util.misc, so labelMarkerFraction under test is the shipped one.
         // Collaborators the constructor builds but this test doesn't exercise.
         window.SeverityDisplay = class {};
         window.ValidationInfoDisplay = class {};
@@ -75,7 +82,7 @@ describe('a Gallery card\'s label marker', () => {
             show: () => { credit.attribution = 'shown'; },
             hide: () => { credit.attribution = 'hidden'; },
         });
-        Object.assign(window, loadModules('frontend/js/gallery/cards/Card.js'));
+        Object.assign(window, await loadModules('frontend/js/gallery/cards/Card.js'));
     });
 
     beforeEach(() => {

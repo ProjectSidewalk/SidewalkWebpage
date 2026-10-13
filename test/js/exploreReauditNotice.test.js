@@ -11,10 +11,13 @@
  */
 
 
-const { loadModules, realUtil } = require('./loadGlobalScript');
+import { loadModules, realUtil, fakeImport, stubUtil } from './loadGlobalScript.js';
+import { fakeTracker } from './fakes.js';
+
+fakeImport('frontend/js/common/Toast.js', 'Toast');
 
 
-Object.assign(window, loadModules('frontend/js/explore/alert/ReauditNotice.js'));
+Object.assign(window, await loadModules('frontend/js/explore/alert/ReauditNotice.js'));
 const { ReauditNotice } = window;
 
 /** A stand-in for Task exposing the reads the notice makes. */
@@ -34,14 +37,14 @@ const REAUDIT_BY_OTHERS = { ...REAUDIT_BY_ME, mappedByThisUser: false };
 describe('ReauditNotice.showForTask', () => {
     let tracker;
 
-    beforeEach(() => {
-        tracker = { push: jest.fn() };
-        window.Toast = { show: jest.fn() };
+    beforeEach(async () => {
+        tracker = fakeTracker();
+        window.Toast = { show: vi.fn() };
         window.i18next = {
             language: 'en',
             t: (key, opts) => (opts ? `${key}|${opts.lastMapped}|${opts.newImagery}` : key),
         };
-        window.util = realUtil();
+        stubUtil(await realUtil());
         document.body.innerHTML = '<div id="pano"></div>';
     });
 
@@ -73,7 +76,7 @@ describe('ReauditNotice.showForTask', () => {
     });
 
     test('names the month the labeler did the work in, not the UTC month the server wrote', () => {
-        // jest.config.js pins Los Angeles, where 2024-11-01T03:00Z is the evening of October 31.
+        // vitest.config.mjs pins Los Angeles, where 2024-11-01T03:00Z is the evening of October 31.
         const notice = new ReauditNotice({ onCurrentTaskChanged: () => {} }, tracker);
         notice.showForTask(makeTask(7, { ...REAUDIT_BY_ME, lastMappedAt: '2024-11-01T03:00:00Z' }));
         expect(window.Toast.show.mock.calls[0][0].message).toBe('right-ui.reaudit.message-you|October 2024|March 2025');

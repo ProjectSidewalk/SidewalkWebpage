@@ -11,7 +11,7 @@
  *
  * which is what the #5083 experiment compares across container aspect ratios.
  *
- * Pure computation on grayscale Float64Array images — no I/O, no DOM, no dependencies — so the jest suite can
+ * Pure computation on grayscale Float64Array images — no I/O, no DOM, no dependencies — so the Vitest suite can
  * unit-test the estimator against synthetically rendered ground truth (see makeProceduralEquirectSampler /
  * renderPinhole below and test/js/gsvFovProbeEstimator.test.js).
  *

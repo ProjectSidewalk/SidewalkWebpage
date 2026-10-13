@@ -7,17 +7,17 @@
  * their source.
  */
 
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules, stubUtil } from './loadGlobalScript.js';
 
 
 describe('OnboardingStates transitions', () => {
     let states;
     let ids;
 
-    beforeAll(() => {
+    beforeAll(async () => {
         // Only what building the state list touches; message text and icon paths don't matter here.
         window.i18next = { t: (key) => key };
-        window.util = {
+        stubUtil({
             assetPath: (p) => p,
             misc: {
                 getLabelDescriptions: () => ({ tagInfo: new Proxy({}, { get: () => ({ text: '' }) }) }),
@@ -25,8 +25,8 @@ describe('OnboardingStates transitions', () => {
                 getSmileyIconPath: () => '',
             },
             pano: { horizonRelativeCoordToPov: () => ({ heading: 0, pitch: 0 }) },
-        };
-        Object.assign(window, loadModules('frontend/js/explore/onboarding/OnboardingStates.js'));
+        });
+        Object.assign(window, await loadModules('frontend/js/explore/onboarding/OnboardingStates.js'));
         const stub = new Proxy({}, { get: () => () => undefined });
         states = new window.OnboardingStates(stub, stub, stub).get();
         ids = new Set(states.map((state) => state.id));

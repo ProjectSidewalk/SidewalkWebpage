@@ -4,8 +4,8 @@
  * world's stubs for the globals it closes over.
  */
 
-const path = require('path');
-const { loadModules, realUtil } = require('./loadGlobalScript');
+import path from 'path';
+import { loadModules, realUtil, stubUtil } from './loadGlobalScript.js';
 
 const SRC_DIR = path.resolve(__dirname, '..', '..', 'frontend/js/common/pano-viewer');
 
@@ -13,7 +13,7 @@ const SRC_DIR = path.resolve(__dirname, '..', '..', 'frontend/js/common/pano-vie
  * Loads Infra3dViewer and returns the class.
  * @returns {typeof Infra3dViewer}
  */
-function loadInfra3dViewer() {
+async function loadInfra3dViewer() {
   // utilities.js builds a Bowser parser at load time; nothing here consults it.
   window.bowser = {
     getParser: () => ({
@@ -21,15 +21,15 @@ function loadInfra3dViewer() {
       getOSName: () => 'TestOS', getPlatformType: () => 'desktop',
     }),
   };
-  window.util = realUtil();
-  loadModules('frontend/js/common/utilitiesMath.js', 'frontend/js/common/pano-viewer/panoUtilities.js');
+  stubUtil(await realUtil());
+  await loadModules('frontend/js/common/utilitiesMath.js', 'frontend/js/common/pano-viewer/panoUtilities.js');
   window.PanoData = class PanoData {
     constructor(params) { this.params = params; }
     getPanoId() { return this.params.panoId; }
     getProperty(key) { return this.params[key]; }
   };
   window.proj4 = () => [0, 0];
-  Object.assign(window, loadModules(path.join(SRC_DIR, 'Infra3dViewer.js')));
+  Object.assign(window, await loadModules(path.join(SRC_DIR, 'Infra3dViewer.js')));
   return window.Infra3dViewer;
 }
 
@@ -55,4 +55,4 @@ const nodeFor = (id) => ({
   spatialEdges: { cached: true, edges: [] },
 });
 
-module.exports = { loadInfra3dViewer, jwtExpiringAt, nodeFor };
+export { loadInfra3dViewer, jwtExpiringAt, nodeFor };

@@ -17,7 +17,8 @@
  * exploreFormPanoSubmitted pattern) rather than using loadGlobalScript.
  */
 
-const { loadGlobalScript, installDateHelpers, loadModules } = require('./loadGlobalScript');
+import { loadGlobalScript, installDateHelpers, loadModules, stubUtil } from './loadGlobalScript.js';
+import { fakePanoManager, fakeTaskContainer } from './fakes.js';
 
 
 // Explore's boxed labeling frame (util.EXPLORE_CANVAS_WIDTH/HEIGHT in frontend/js/common/utilities.js). The frame is
@@ -50,8 +51,8 @@ const PANO = {
 };
 
 /** Loads a fresh Form class into the jsdom global scope. */
-function loadForm() {
-    Object.assign(window, loadModules('frontend/js/explore/data/Form.js'));
+async function loadForm() {
+    Object.assign(window, await loadModules('frontend/js/explore/data/Form.js'));
     return window.Form;
 }
 
@@ -61,7 +62,7 @@ function panoStub() {
     return {
         getProperties: () => props,
         getProperty: (k) => props[k],
-        setProperty: jest.fn((k, v) => { props[k] = v; }),
+        setProperty: vi.fn((k, v) => { props[k] = v; }),
     };
 }
 
@@ -112,7 +113,7 @@ function taskStub() {
         getMissionStart: () => null,
         getAuditedDistance: () => 0,
         lineDistance: () => 1,
-        setProperty: jest.fn(),
+        setProperty: vi.fn(),
     };
 }
 
@@ -123,37 +124,36 @@ describe('Explore label POV staleness (#4842 regression)', () => {
     let panoManager;
 
     /** Builds a Form wired to stub collaborators around the staged `labels`. */
-    function buildForm() {
-        const Form = loadForm();
+    async function buildForm() {
+        const Form = await loadForm();
         const missionProps = { missionId: 5, distanceProgress: 0, distance: 100, isComplete: false, skipped: false };
         const mission = { getProperty: (k) => missionProps[k] };
-        const labelContainer = { getLabelsToLog: () => labels, clearLabelsToLog: jest.fn(), getAllLabels: () => [] };
+        const labelContainer = { getLabelsToLog: () => labels, clearLabelsToLog: vi.fn(), getAllLabels: () => [] };
         const pano = panoStub();
         const panoStore = {
             getStagedPanoData: () => [pano].filter((p) => !p.getProperty('submitted')),
             getPanoData: () => pano,
         };
-        const taskContainer = {
-            getCurrentTask: taskStub, updateTaskPriorities: jest.fn(), renderTask: jest.fn(),
-            onTaskEnded: jest.fn(), onTaskLeft: jest.fn(),
-        };
+        const taskContainer = fakeTaskContainer(taskStub, {
+            updateTaskPriorities: vi.fn(), renderTask: vi.fn(), onTaskEnded: vi.fn(), onTaskLeft: vi.fn(),
+        });
         return new Form(
             '/task',
             { userRouteId: null, regionId: 1, isOnboarding: false, isExploreAddressMode: false },
             labelContainer,
-            { on: jest.fn() }, // missionModel
-            { getCurrentMission: () => mission, updateDistanceProgress: jest.fn() }, // missionContainer
+            { on: vi.fn() }, // missionModel
+            { getCurrentMission: () => mission, updateDistanceProgress: vi.fn() }, // missionContainer
             panoStore,
             taskContainer,
             panoManager,
-            { getActions: () => [], refresh: jest.fn(), push: jest.fn(), setAuditTaskID: jest.fn() }, // tracker
+            { getActions: () => [], refresh: vi.fn(), push: vi.fn(), setAuditTaskID: vi.fn() }, // tracker
         );
     }
 
     /** Stubs fetch to accept the POST, capturing each request body as parsed JSON. */
     function acceptingFetch() {
         const bodies = [];
-        window.fetch = jest.fn((url, opts) => {
+        window.fetch = vi.fn((url, opts) => {
             bodies.push(JSON.parse(opts.body));
             return Promise.resolve({
                 ok: true,
@@ -180,10 +180,10 @@ describe('Explore label POV staleness (#4842 regression)', () => {
         return { dx: Math.abs(panoXY.x - sent.pano_x), dy: Math.abs(panoXY.y - sent.pano_y) };
     }
 
-    beforeEach(() => {
+    beforeEach(async () => {
         // The real projection math the client places labels with; assigns window.util.pano.
-        window.util = window.util || {};
-        loadGlobalScript('frontend/js/common/pano-viewer/panoUtilities.js');
+        stubUtil(window.util || {});
+        await loadGlobalScript('frontend/js/common/pano-viewer/panoUtilities.js');
         // Form's other collaborators that live on globals rather than constructor args.
         Object.assign(window.util, {
             getBrowser: () => 'chrome',
@@ -191,21 +191,21 @@ describe('Explore label POV staleness (#4842 regression)', () => {
             getOperatingSystem: () => 'linux',
             math: { kmsToMeters: (km) => km * 1000 },
         });
-        installDateHelpers();
+        await installDateHelpers();
         window.AsyncLock = class { async acquire(key, fn) { return fn(); } };
         viewerPov = { heading: 128.7, pitch: -12.3, zoom: 2 };
-        panoManager = {
-            getPov: jest.fn(() => ({ ...viewerPov })),
+        panoManager = fakePanoManager({}, {
+            getPov: vi.fn(() => ({ ...viewerPov })),
             getPosition: () => ({ lat: 41.85, lng: -87.65 }),
-        };
+        });
         window.i18next = { language: 'en' };
 
         labels = [];
-        form = buildForm();
+        form = await buildForm();
     });
 
     afterEach(() => {
-        jest.restoreAllMocks();
+        vi.restoreAllMocks();
     });
 
     test('submits a self-consistent record when the viewport is unchanged', async () => {

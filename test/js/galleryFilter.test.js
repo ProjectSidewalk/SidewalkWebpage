@@ -10,7 +10,11 @@
  * into jsdom with those stubbed.
  */
 
-const { loadModules, realUtil } = require('./loadGlobalScript');
+import { loadModules, realUtil, fakeImport, stubUtil } from './loadGlobalScript.js';
+import { fakeTracker } from './fakes.js';
+
+fakeImport('frontend/js/common/label-detail/LabelDetail.js', 'LabelDetail');
+fakeImport('frontend/js/common/filter-sidebar/FilterSidebar.js', 'FilterSidebar');
 
 
 const LABEL_TYPES = ['CurbRamp', 'Crosswalk', 'Obstacle', 'NoSidewalk'];
@@ -100,11 +104,11 @@ function buildFixture() {
 
 describe('GalleryFilter', () => {
     let filter;
-    /** @type {{push: jest.Mock}} */
+    /** @type {{push: import('vitest').Mock}} */
     let tracker;
-    /** @type {jest.Mock} What the filter tells to refetch the cards. */
+    /** @type {import('vitest').Mock} What the filter tells to refetch the cards. */
     let onUpdate;
-    /** @type {jest.Mock} What the filter tells to start over in a new order. */
+    /** @type {import('vitest').Mock} What the filter tells to start over in a new order. */
     let onSortChange;
 
     /** @returns {string} The path + query the page has pushed to the address bar. */
@@ -135,10 +139,10 @@ describe('GalleryFilter', () => {
         return built;
     }
 
-    beforeAll(() => {
+    beforeAll(async () => {
         window.i18next = { t: (key) => key, language: 'en' };
         // Mirrors util.misc's rating rules (frontend/js/common/utilitiesSidewalk.js), which the real page supplies.
-        window.util = {
+        stubUtil({
             misc: {
                 labelTypeHasSeverity: (t) => !['NoSidewalk', 'Signal', 'Occlusion'].includes(t),
                 isPositiveLabelType: (t) => ['CurbRamp', 'Crosswalk'].includes(t),
@@ -151,23 +155,23 @@ describe('GalleryFilter', () => {
                     return `sev-${severity}-${set}${selected ? '-filled' : ''}.svg`;
                 },
             },
-        };
+        });
         // GalleryFilter is the page's only writer of the address bar, so it reads the open label off LabelDetail to
         // carry the ?labelId= deep link through its rewrite (#5446).
         window.LabelDetail = {
             urlLabelId: () => parseInt(new URLSearchParams(window.location.search).get('labelId'), 10) || null,
         };
-        window.util ??= realUtil();
-        loadModules('frontend/js/common/urlQuery.js');
-        Object.assign(window, loadModules('frontend/js/common/filter-sidebar/FilterSidebar.js'));
-        Object.assign(window, loadModules('frontend/js/gallery/filter/GalleryFilter.js'));
+        window.util ??= await realUtil();
+        await loadModules('frontend/js/common/urlQuery.js');
+        Object.assign(window, await loadModules('frontend/js/common/filter-sidebar/FilterSidebar.js'));
+        Object.assign(window, await loadModules('frontend/js/gallery/filter/GalleryFilter.js'));
     });
 
     beforeEach(() => {
         window.history.replaceState({}, '', '/gallery');
-        tracker = { push: jest.fn() };
-        onUpdate = jest.fn();
-        onSortChange = jest.fn();
+        tracker = fakeTracker();
+        onUpdate = vi.fn();
+        onSortChange = vi.fn();
         filter = build();
     });
 

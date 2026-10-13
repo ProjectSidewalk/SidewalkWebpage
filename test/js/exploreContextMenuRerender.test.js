@@ -16,9 +16,10 @@
  * about the panel through onChange, as Canvas subscribes in production.
  */
 
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules, stubUtil } from './loadGlobalScript.js';
 
-const { makeContextMenuUi } = require('./contextMenuUiStub');
+import { makeContextMenuUi } from './contextMenuUiStub.js';
+import { fakeGate, fakeTracker } from './fakes.js';
 
 /** The label a menu opens for. Only the getters show()/hide() actually call are present. */
 function makeLabel({ labelType = 'CurbRamp' } = {}) {
@@ -41,12 +42,12 @@ describe('ContextMenu repaints the canvas when the panel opens and closes', () =
     let tracker;
     let renders;      // One entry per canvas render, recording what Label.render would have seen at that moment.
 
-    beforeEach(() => {
+    beforeEach(async () => {
         renders = [];
         window.i18next = { t: (key) => key };
-        window.util = {
+        stubUtil({
             camelToKebab: (s) => s,
-            anchorPanelToLabel: jest.fn(),
+            anchorPanelToLabel: vi.fn(),
             misc: {
                 labelTypeName: (type) => window.i18next.t(`common:${window.util.camelToKebab(type)}`),
                 getIconImagePaths: () => ({ iconImagePath: 'CurbRamp.svg' }),
@@ -55,24 +56,24 @@ describe('ContextMenu repaints the canvas when the panel opens and closes', () =
                 labelTypeHasSeverity: () => false,
                 getLabelDescriptions: () => ({ tagInfo: {} }),
             },
-        };
+        });
 
         canvas = {
-            clear: jest.fn(() => canvas),
+            clear: vi.fn(() => canvas),
             // Recorded from inside the render, since "did the repaint see the new state?" is the whole question.
-            render: jest.fn(() => {
+            render: vi.fn(() => {
                 renders.push({ open: menu.isOpen(), target: menu.getTargetLabel() });
                 return canvas;
             }),
         };
-        tracker = { push: jest.fn() };
+        tracker = fakeTracker();
 
-        Object.assign(window, loadModules('frontend/js/explore/canvas/ContextMenu.js'));
+        Object.assign(window, await loadModules('frontend/js/explore/canvas/ContextMenu.js'));
         // No #context-menu-share element and no ShareWidget global, so the share widget stays null.
         menu = new window.ContextMenu(makeContextMenuUi(), { isOnboarding: false }, { iconRadius: 17 },
-            { canDelete: () => true, getAllLabels: () => [], addToLabelsToLog: jest.fn() },
-            { switching: { hold: jest.fn(), release: jest.fn() } }, { onMoveStarted: jest.fn() },
-            { ratingClicked: jest.fn() }, { ensureLabelSaved: jest.fn() }, tracker);
+            { canDelete: () => true, getAllLabels: () => [], addToLabelsToLog: vi.fn() },
+            { switching: fakeGate() }, { onMoveStarted: vi.fn() },
+            { ratingClicked: vi.fn() }, { ensureLabelSaved: vi.fn() }, tracker);
         menu.onChange(() => canvas.clear().render());
     });
 

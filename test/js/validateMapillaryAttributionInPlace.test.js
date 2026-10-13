@@ -11,8 +11,13 @@
  * Drives the REAL PanoManager against a fake viewer and an SDK-shaped DOM; no imagery is involved.
  */
 
-const path = require('path');
-const { loadModules } = require('./loadGlobalScript');
+import path from 'path';
+import { loadModules, fakeImport, stubUtil } from './loadGlobalScript.js';
+
+fakeImport('frontend/js/common/pano-viewer/GsvViewer.js', 'GsvViewer');
+fakeImport('frontend/js/common/pano-viewer/PanoAttribution.js', 'createPanoAttribution');
+fakeImport('frontend/js/common/pano-viewer/PanoViewerLogo.js', 'createPanoViewerLogo');
+
 
 const PANO_MANAGER_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/panorama/PanoManager.js');
 const THROTTLE_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/util/throttle.js');
@@ -23,8 +28,8 @@ const THROTTLE_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/
  * @param {string} className - Name of the class the file declares.
  * @returns {Function} The class.
  */
-function loadClassFromFile(filePath, className) {
-  return loadModules(filePath)[className];
+async function loadClassFromFile(filePath, className) {
+  return (await loadModules(filePath))[className];
 }
 
 /** Let MutationObserver callbacks, which run as microtasks, fire. */
@@ -50,26 +55,26 @@ describe('Validate leaves Mapillary\'s attribution pill in the SDK\'s DOM (issue
     renderer = document.querySelector('.mapillary-dom-renderer');
     attributionContainer = document.querySelector('.mapillary-attribution-container');
 
-    global.util = {};
+    stubUtil({});
     global.i18next = {language: 'en'};
-    Object.assign(window, loadModules(THROTTLE_PATH));
+    Object.assign(window, await loadModules(THROTTLE_PATH));
     util.isMobile = () => false;
 
-    global.createPanoViewerLogo = jest.fn(() => ({showPrimaryLogo: jest.fn(), showSourceLogo: jest.fn()}));
-    global.createPanoAttribution = jest.fn(() => ({show: jest.fn(), hide: jest.fn()}));
+    global.createPanoViewerLogo = vi.fn(() => ({showPrimaryLogo: vi.fn(), showSourceLogo: vi.fn()}));
+    global.createPanoAttribution = vi.fn(() => ({show: vi.fn(), hide: vi.fn()}));
     global.GsvViewer = class GsvViewer {};
     global.PannellumViewer = class PannellumViewer {};
 
-    const fakeViewer = {addListener: jest.fn(), resize: jest.fn(), setPov: jest.fn(), getPov: () => ({})};
+    const fakeViewer = {addListener: vi.fn(), resize: vi.fn(), setPov: vi.fn(), getPov: () => ({})};
     // The viewer type IS the MapillaryViewer global, so every Mapillary-only path in PanoManager runs.
     global.MapillaryViewer = class MapillaryViewer {
       static create() { return Promise.resolve(fakeViewer); }
     };
 
-    const PanoManager = loadClassFromFile(PANO_MANAGER_PATH, 'PanoManager');
+    const PanoManager = await loadClassFromFile(PANO_MANAGER_PATH, 'PanoManager');
     const viewerUi = {date: {textContent: ''}, controlLayer: document.getElementById('view-control-layer')};
     await PanoManager.create('token', viewerUi, {viewerType: global.MapillaryViewer, labelRadius: 10},
-      {addPanoMetadata: jest.fn()}, {}, {push: jest.fn(), trackPano: jest.fn()});
+      {addPanoMetadata: vi.fn()}, {}, {push: vi.fn(), trackPano: vi.fn()});
     await flushObservers();
   });
 

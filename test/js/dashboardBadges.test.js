@@ -9,7 +9,9 @@
  */
 
 
-const {assetPathStub, installEscapeHTML, loadModules } = require('./loadGlobalScript');
+import { assetPathStub, installEscapeHTML, loadModules, stubUtil, fakeImport } from './loadGlobalScript.js';
+
+fakeImport('frontend/js/common/BadgeAchievements.js', 'BadgeAchievements');
 
 
 /**
@@ -18,12 +20,12 @@ const {assetPathStub, installEscapeHTML, loadModules } = require('./loadGlobalSc
  * @param {string} className - Name of the class the file declares.
  * @returns {Function} The class.
  */
-function loadClass(relativePath, className) {
-    return loadModules(relativePath)[className];
+async function loadClass(relativePath, className) {
+    return (await loadModules(relativePath))[className];
 }
 
-const DashboardBadges = loadModules('frontend/js/user-dashboard/DashboardBadges.js').DashboardBadges;
-const BadgeAchievements = loadClass('frontend/js/common/BadgeAchievements.js', 'BadgeAchievements');
+const DashboardBadges = (await loadModules('frontend/js/user-dashboard/DashboardBadges.js')).DashboardBadges;
+const BadgeAchievements = await loadClass('frontend/js/common/BadgeAchievements.js', 'BadgeAchievements');
 
 const TRACKS = ['labels', 'distance', 'missions', 'validations'];
 
@@ -55,11 +57,11 @@ describe('DashboardBadges', () => {
     /** @returns {HTMLElement} The rendered track for a badge type. */
     const track = (type) => document.querySelector(`[data-badge-type="${type}"]`);
 
-    beforeEach(() => {
+    beforeEach(async () => {
         global.BadgeAchievements = BadgeAchievements;
         global.i18next = {t: (key, opts) => (opts ? `${key}|${JSON.stringify(opts)}` : key)};
-        global.util = {math: {milesToKms: (mi) => mi * 1.609344}, assetPath: assetPathStub};
-        installEscapeHTML();
+        stubUtil({math: {milesToKms: (mi) => mi * 1.609344}, assetPath: assetPathStub});
+        await installEscapeHTML();
     });
 
     afterEach(() => {

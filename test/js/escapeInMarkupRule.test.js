@@ -1,15 +1,14 @@
 /**
- * @jest-environment node
+ * @vitest-environment node
  */
 
 /**
  * Tests for the `escape-in-markup` ESLint rule (#5615): what it treats as safe, and where each report lands.
  *
- * Runs under node, not jsdom, because RuleTester needs `structuredClone`. Jest only reads the first docblock, hence
- * the split header.
+ * Runs under node, not jsdom, because RuleTester needs `structuredClone`.
  */
 
-const { RuleTester } = require('eslint');
+import { RuleTester } from 'eslint';
 const rule = require('../../tools/lint/eslint-rules/escape-in-markup');
 
 const ruleTester = new RuleTester({

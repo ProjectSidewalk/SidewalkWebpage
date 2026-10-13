@@ -6,12 +6,12 @@
  * (the `ps/i18n-escape-in-markup` ESLint rule makes them). These cases pin the init option and then run the real
  * i18next with it, so what is asserted is what a reader sees rather than what the options object says.
  *
- * Runs under jsdom (jest.config.js). i18next is not an npm dependency — the page loads the vendored bundle under
+ * Runs under jsdom (vitest.config.mjs). i18next is not an npm dependency — the page loads the vendored bundle under
  * public/vendor — so the library under test is read off disk by directory rather than by a pinned filename, which
  * would go stale the next time `make lint-vendor-versions` sees a newer one.
  */
 
-const { loadGlobalScript, loadVendored } = require('./loadGlobalScript');
+import { loadGlobalScript, loadVendored } from './loadGlobalScript.js';
 
 /** What a labeler-facing string interpolates, in the shapes that broke: an apostrophe, a slash, an ampersand. */
 const RESOURCES = {
@@ -25,7 +25,7 @@ describe('AppManager i18next interpolation', () => {
     /** The options object `_setupI18next` passes to `i18next.init`, captured without touching the network. */
     let initOptions;
 
-    beforeEach(() => {
+    beforeEach(async () => {
         initOptions = null;
         window.i18next = {
             use: () => window.i18next,
@@ -40,7 +40,7 @@ describe('AppManager i18next interpolation', () => {
             services: { formatter: { add: () => {} } },
         };
         window.i18nextHttpBackend = {};
-        loadGlobalScript('frontend/js/common/AppManager.js');
+        await loadGlobalScript('frontend/js/common/AppManager.js');
         window.appManager._setupI18next({
             language: 'en', defaultNS: 'common', namespaces: ['common'], countryId: 'usa', unitWords: {},
         });

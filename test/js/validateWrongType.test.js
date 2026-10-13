@@ -8,18 +8,21 @@
  * The picker is checked as the radio group it claims to be, and the dropdown as the disclosure it is.
  */
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
 
-const { assetPathStub, installUtilitiesMisc, REPO_ROOT, installEscapeHTML, loadModules } = require('./loadGlobalScript');
+import { assetPathStub, installUtilitiesMisc, REPO_ROOT, installEscapeHTML, loadModules, stubUtil, fakeImport } from './loadGlobalScript.js';
+import { fakeTracker } from './fakes.js';
+
+fakeImport('frontend/js/common/LabelTypePicker.js', 'LabelTypePicker');
 
 /**
  * Loads bare top-level declarations out of a production file into window scope.
  * @param {string} relPath - Path under the repo root.
  * @param {...string} names - The classes or functions the file declares.
  */
-function loadClass(relPath) {
-  Object.assign(window, loadModules(relPath));
+async function loadClass(relPath) {
+  Object.assign(window, await loadModules(relPath));
 }
 
 const TAGS_BY_TYPE = {
@@ -28,20 +31,20 @@ const TAGS_BY_TYPE = {
   CurbRamp: [{ tag_name: 'narrow' }],
 };
 
-beforeAll(() => {
+beforeAll(async () => {
   window.matchMedia = () => /** @type {MediaQueryList} */ ({ matches: true }); // jsdom has none; act as a mouse.
-  window.util = {
+  stubUtil({
     assetPath: assetPathStub,
     isMobile: () => false,
     camelToKebab: (s) => s.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase(),
-  };
-  installUtilitiesMisc();
-  installEscapeHTML();
+  });
+  await installUtilitiesMisc();
+  await installEscapeHTML();
   // i18next echoes its key so assertions can name the key they expect rather than an English string.
   window.i18next = { t: (key, opts) => (opts?.labelType ? `${key}:${opts.labelType}` : key) };
-  loadClass('frontend/js/common/LabelTypePicker.js');
-  loadClass('frontend/js/validate/label/Label.js');
-  loadClass('frontend/js/validate/label/LabelContainer.js');
+  await loadClass('frontend/js/common/LabelTypePicker.js');
+  await loadClass('frontend/js/validate/label/Label.js');
+  await loadClass('frontend/js/validate/label/LabelContainer.js');
 });
 
 /** The page facts the label, the container and the menu read; adminVersion is flipped per describe. */
@@ -53,7 +56,7 @@ let tracker;
 
 beforeEach(() => {
   config.adminVersion = false;
-  tracker = { push: jest.fn() };
+  tracker = fakeTracker();
 });
 
 /** @returns {Label} An Obstacle label with a rating and two tags, as the backend would hand it over. */
@@ -464,8 +467,8 @@ describe('the disagree reasons (#5409)', () => {
 
   let reasonButtonInfo;
 
-  beforeAll(() => {
-    loadClass('frontend/js/validate/util/ConstantsValidate.js', 'buildReasonButtonInfo');
+  beforeAll(async () => {
+    await loadClass('frontend/js/validate/util/ConstantsValidate.js', 'buildReasonButtonInfo');
   });
 
   beforeEach(() => {
@@ -507,12 +510,12 @@ describe('DesktopValidationMenu on Expert Validate', () => {
   let labelCard;
   let panoManager;
 
-  beforeAll(() => {
+  beforeAll(async () => {
     window.eval(fs.readFileSync(path.join(REPO_ROOT, 'public/vendor/tom-select/tom-select-2.6.2.base.min.js'), 'utf8'));
     window.util.getImage = () => Promise.resolve('img');
     window.structuredClone ??= (v) => JSON.parse(JSON.stringify(v)); // Missing from this jsdom.
-    loadClass('frontend/js/validate/util/ConstantsValidate.js', 'buildReasonButtonInfo');
-    loadClass('frontend/js/validate/menu/DesktopValidationMenu.js', 'DesktopValidationMenu');
+    await loadClass('frontend/js/validate/util/ConstantsValidate.js', 'buildReasonButtonInfo');
+    await loadClass('frontend/js/validate/menu/DesktopValidationMenu.js', 'DesktopValidationMenu');
   });
 
   beforeEach(() => {
@@ -549,10 +552,10 @@ describe('DesktopValidationMenu on Expert Validate', () => {
     label = makeLabel({ ai_tags: null, ai_tags_not_present: null });
     config.adminVersion = true;
     const labelContainer = {
-      getCurrentLabel: () => label, dropInputWhileLoading: () => false, onLabelReady: jest.fn(),
+      getCurrentLabel: () => label, dropInputWhileLoading: () => false, onLabelReady: vi.fn(),
     };
-    panoManager = { styleMarkerForLabel: jest.fn() };
-    labelCard = { render: jest.fn(), onTypePicked: jest.fn() };
+    panoManager = { styleMarkerForLabel: vi.fn() };
+    labelCard = { render: vi.fn(), onTypePicked: vi.fn() };
 
     const byId = (id) => document.getElementById(id);
     menu = new window.DesktopValidationMenu({

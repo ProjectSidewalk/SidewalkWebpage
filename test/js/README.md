@@ -127,35 +127,47 @@ Each test file has:
 From the repo root:
 
 ```bash
-npm install        # first time only — installs jest + jest-environment-jsdom (devDependencies)
-npm run test:js    # runs the suites in test/js/
-npm run test:js:coverage    # the same, plus the coverage report (what CI runs)
+make test-js                                   # the whole suite, in the web container (where node_modules live)
+make test-js args=test/js/toastPosition.test.js   # one suite
+npm run test:js:coverage                       # the same, plus the coverage report (what CI runs)
 ```
 
-`npm run test:js` is a **new** script; the existing placeholder `npm test` is left untouched.
-
-> Node note: the dev DB / Scala app run in Docker, but Jest runs on the host with plain Node (the plan targets Node 24).
-> No Docker is needed for these tests.
+The runner is [Vitest](https://vitest.dev) (`vitest.config.mjs`, #5649): jsdom, `describe`/`it`/`expect`/`vi` as
+globals, each file in its own VM context whose global is the jsdom window, so `window.X = fake` is a page global to
+the modules under test. `npm test` runs the same suite.
 
 ## How a suite loads its subject
 
-A suite loads its subject with `loadModules('frontend/js/…')` from `loadGlobalScript.js`, which returns the file's
-exports fresh (module state reset) — `loadModules('frontend/js/common/Toast.js').Toast`, say. Under the hood,
-`moduleTransform.js` turns the ES module into CommonJS for Jest and makes each import the subject does **defer to a
-same-named fake on `window`**, so faking a collaborator is `window.Toast = { show: jest.fn() }` before the load; where
-no fake is set the real import is used. To replace a whole module instead, use `mockModule(path, factory)` /
-`unmockModule(path)`; `realUtil()` gives a suite the real `util` when it wants `window.util` populated rather than faked.
+A suite loads its subject with `await loadModules('frontend/js/…')` from `loadGlobalScript.js`, which returns the
+file's exports fresh (module registry reset) — `(await loadModules('frontend/js/common/Toast.js')).Toast`, say. Files
+named in one call share a registry, so one's import of another is the instance the suite gets back; what the suite
+itself loads is always the real module.
+
+Faking a collaborator is explicit, per module:
+
+- `fakeImport('frontend/js/common/Toast.js', 'Toast')` at the top of the file makes every later load's import of
+  `Toast` read `window.Toast` while the suite has set one (`window.Toast = { show: vi.fn() }`), and the real export
+  otherwise. The fake stays on `window` because that is where the suite asserts on it.
+- `stubUtil({ assetPath: assetPathStub, … })` installs the suite's `util` as what modules import from `utilities.js`
+  (and keeps it on `window.util`); `await realUtil()` is the real one, and `installDateHelpers` / `installEscapeHTML` /
+  `installUtilitiesMisc` copy single real pieces onto the stub.
+- `mockModule(path, factory)` / `unmockModule(path)` replace a whole module; the factory gets `importOriginal`, so it
+  can spread the real exports and override one.
+
+The collaborators a constructor is handed when they are not under test -- a gate, a tracker, a task container, a pano
+manager -- come from `fakes.js` (`fakeGate()`, `fakeTracker()`, …), each taking overrides, so a constructor change is
+a one-file edit rather than a pass over every suite.
 
 Each preview test:
 
 1. Sets `document.body.innerHTML` to the container `<div id="...-preview">` the module renders into.
 2. Stubs global `fetch` to resolve a hardcoded fixture object (no network).
-3. Loads the module with `loadModules(...)`; its imports (the table wrapper, the docs theme) come along.
+3. Loads the module with `await loadModules(...)`; its imports (the table wrapper, the docs theme) come along.
 4. Calls `.setup({}).init()` and asserts on the resolved promise + rendered DOM.
 
 ## Globals these modules need
 
-Only one thing is **stubbed**: `fetch` (jsdom does not provide a usable one). Otherwise they use just `window`,
+Only one thing is **stubbed**: `fetch` (Node's would go to the network). Otherwise they use just `window`,
 `document`, `console`, `Promise`, `Object.assign`, and `Number.prototype.toLocaleString`, all of which jsdom/Node
 provide. The table wrapper both renderers use, `createApiTableWrapper` in `frontend/js/api-docs/apiTableWrapper.js`, is
 an import, so it arrives with the module; a suite that wants the render to fail replaces it with `mockModule`.
@@ -165,7 +177,7 @@ an import, so it arrives with the module; a suite that wants the render to fail 
 The remaining `*Preview.js` modules pull in heavier globals. To bring them under test, stub these on `window` in
 `beforeEach` **before** calling `loadModules` on the module:
 
-- **Chart.js** (`label-types`, `validations`, `street-types`, …): set `window.Chart = jest.fn()` — a constructor
+- **Chart.js** (`label-types`, `validations`, `street-types`, …): set `window.Chart = vi.fn()` — a constructor
   spy is enough to assert "a chart was constructed with the right data" without rendering a canvas (jsdom has no 2D
   context).
 - **Mapbox GL** (every map preview): stub `window.mapboxgl` with no-op `Map` (whose instances need `on`, `addSource`,
@@ -173,9 +185,9 @@ The remaining `*Preview.js` modules pull in heavier globals. To bring them under
   `LngLatBounds`, and `Popup`, plus `window.MapboxLanguage`. The previews reach all of it through
   `js/api-docs/apiDocsMap.js` and `js/common/geoBounds.js`, which they import.
 - **i18next / `i18next.t`**: stub `window.i18next = { t: (k) => k }` so translation lookups return the key.
-- **`util.*`** (e.g. `util.math`, formatting helpers in `common/`): `window.util = realUtil()` for the real thing, or
-  stub the specific `util.foo` functions used; the `installDateHelpers` / `installEscapeHTML` / `installUtilitiesMisc`
-  helpers copy single real pieces onto a stub.
+- **`util.*`** (e.g. `util.math`, formatting helpers in `common/`): `stubUtil(await realUtil())` for the real thing,
+  or `stubUtil({…})` with the specific `util.foo` functions used; the `installDateHelpers` / `installEscapeHTML` /
+  `installUtilitiesMisc` helpers copy single real pieces onto the stub.
 
 The general recipe stays the same: container div → stub fetch with a captured snake_case fixture → stub libs on
 `window` → `loadModules` the module → `setup({}).init()` → assert no "Failed to load" + expected content. A shared
@@ -185,22 +197,22 @@ grows.
 ## How this is wired into CI
 
 - **Blocking** (#5132). `npm run test:js:coverage` is a step in the `frontend` job with no `continue-on-error`, so a
-  red suite turns the required `Frontend (build)` check red. Thin coverage is why there is no `coverageThreshold`
-  (see `jest.config.js`); it is not a reason to let a test that exists go red. Run it locally with `make test-js`.
-- **Linted** (#5132). `test/js/` is in ESLint's file globs, with the same rule set as `test/e2e/` plus jest globals.
+  red suite turns the required `Frontend (build)` check red. Thin coverage is why there is no coverage threshold
+  (see `vitest.config.mjs`); it is not a reason to let a test that exists go red. Run it locally with `make test-js`.
+- **Linted** (#5132). `test/js/` is in ESLint's file globs, with the same rule set as `test/e2e/` plus Vitest globals.
   The `@stylistic` house style is deliberately not applied -- these files are 4-space, and reformatting them would
   bury real findings under whitespace. Bundle globals a suite installs on `window` are declared in
   `eslint.config.js`; a subject a suite puts on `global` itself gets a per-file `/* global */` directive.
-- `testMatch` is anchored to `test/js/`, so production JS is only ever loaded as a module under test, never
+- `include` is anchored to `test/js/`, so production JS is only ever loaded as a module under test, never
   collected as one.
 
 ## Coverage
 
-`npm run test:js:coverage` reports over all of `frontend/js/**/*.js`, with `frontend/js` as one of Jest's `roots` so a
-file **no test loads** still counts against the ratio. The console shows totals only; open
-`coverage/lcov-report/index.html` for per-file detail.
+`npm run test:js:coverage` reports over all of `frontend/js/**/*.js` (`coverage.include`), so a file **no test
+loads** still counts against the ratio. The console shows totals only; open `coverage/lcov-report/index.html` for
+per-file detail.
 
-**No floor on it yet (#5112):** the number is a baseline to grow from before a `coverageThreshold` turns it into a gate.
+**No floor on it yet (#5112):** the number is a baseline to grow from before `coverage.thresholds` turns it into a gate.
 
 ## Complementary E2E
 

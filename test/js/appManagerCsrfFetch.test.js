@@ -10,25 +10,22 @@
  * for all three. These tests pin that matrix: same-origin string/URL/Request receive the token, cross-origin
  * string/URL/Request do not.
  *
- * Runs under jsdom (jest.config.js). jsdom implements neither `fetch` nor `Request`, so both are supplied here: the
- * fetch under test is a jest.fn() standing in for the browser's, captured by the wrapper as its `originalFetch`.
+ * Runs under jsdom (vitest.config.mjs). Node's `fetch` and `Request` are not the page's, so both are supplied here: the
+ * fetch under test is a vi.fn() standing in for the browser's, captured by the wrapper as its `originalFetch`.
  */
 
-const { loadGlobalScript } = require('./loadGlobalScript');
+import { loadGlobalScript } from './loadGlobalScript.js';
 
 const CSRF_TOKEN = 'test-csrf-token';
 const CROSS_ORIGIN = 'https://graph.mapillary.com/images?fields=id';
 
-// jsdom ships no Fetch API, so `Request` is absent. Model the one behavior the wrapper relies on: a Request resolves
-// its input against the document's base URL and exposes the resulting absolute address as `.url`. That matches the
-// browser, and it is what distinguishes a Request (address on `.url`) from a `URL` (address via stringification).
-if (typeof global.Request === 'undefined') {
-    global.Request = class Request {
-        constructor(input) {
-            this.url = new URL(String(input), window.location.origin).href;
-        }
-    };
-}
+// Node's `Request` rejects a relative URL; the page's resolves it against the document and exposes the result as
+// `.url`, which is what tells a Request from a `URL` (address via stringification) in the wrapper.
+global.Request = class Request {
+    constructor(input) {
+        this.url = new URL(String(input), window.location.origin).href;
+    }
+};
 
 describe('AppManager CSRF fetch wrapper', () => {
     let originalFetch;
@@ -45,15 +42,15 @@ describe('AppManager CSRF fetch wrapper', () => {
         return originalFetch.mock.lastCall[0];
     }
 
-    beforeEach(() => {
+    beforeEach(async () => {
         sameOriginUrl = `${window.location.origin}/label/geo`;
 
         // Install a stand-in for the browser's fetch *before* loading AppManager, since the wrapper closes over
         // whatever `window.fetch` is at setup time and delegates to it.
-        originalFetch = jest.fn(() => Promise.resolve({ ok: true }));
+        originalFetch = vi.fn(() => Promise.resolve({ ok: true }));
         window.fetch = originalFetch;
 
-        loadGlobalScript('frontend/js/common/AppManager.js');
+        await loadGlobalScript('frontend/js/common/AppManager.js');
         window.appManager._setupCSRF(CSRF_TOKEN);
     });
 

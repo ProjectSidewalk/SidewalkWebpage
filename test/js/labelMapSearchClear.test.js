@@ -13,7 +13,7 @@
  * real EventTarget, which is what the production code listens to.
  */
 
-const { installEscapeHTML, loadModules } = require('./loadGlobalScript');
+import { installEscapeHTML, loadModules, stubUtil } from './loadGlobalScript.js';
 
 
 /** Markers built by the mapboxgl stub during the current test, newest last. */
@@ -63,7 +63,7 @@ class SearchBoxStub extends EventTarget {
 }
 
 /** Installs the globals the file reads off `window`, and mounts the sidebar markup it mounts into. */
-function setUpPage() {
+async function setUpPage() {
     markers = [];
     popups = [];
     logged = [];
@@ -73,8 +73,8 @@ function setUpPage() {
         + '<dialog id="sheet"><button id="in-dialog">Inside</button></dialog>';
 
     window.i18next = { t: (key) => key };
-    window.util = { assetPath: (p) => p };
-    installEscapeHTML();
+    stubUtil({ assetPath: (p) => p });
+    await installEscapeHTML();
     window.logWebpageActivity = (activity) => logged.push(activity);
     // The city-extent fetch is fire-and-forget; an empty collection keeps it from touching the network or warning.
     window.fetch = () => Promise.resolve({ json: () => Promise.resolve({ type: 'FeatureCollection', features: [] }) });
@@ -120,8 +120,8 @@ function setUpPage() {
 const mapStub = { getLayer: () => null };
 
 /** Evals the production source fresh and returns the pieces the tests drive. */
-function loadModule() {
-    window.__search = loadModules('frontend/js/labelMapLocationSearch.js');
+async function loadModule() {
+    window.__search = await loadModules('frontend/js/labelMapLocationSearch.js');
     return window.__search;
 }
 
@@ -145,8 +145,8 @@ function pressEscape() {
 describe('clearing a searched place', () => {
     let search;
 
-    beforeEach(() => {
-        setUpPage();
+    beforeEach(async () => {
+        await setUpPage();
         // Capture the instance the file constructs, so the tests can fire `retrieve` at the object it listens on.
         window.MapboxSearchBox = class extends SearchBoxStub {
             constructor() {
@@ -154,7 +154,7 @@ describe('clearing a searched place', () => {
                 window.__searchBoxInstance = this;
             }
         };
-        search = loadModule().initLabelMapLocationSearch(mapStub, 'test-token');
+        search = (await loadModule()).initLabelMapLocationSearch(mapStub, 'test-token');
     });
 
     afterEach(() => {
@@ -204,22 +204,24 @@ describe('clearing a searched place', () => {
 
     test('the invitation stays open while focus is inside it, and closes once focus has left both it and the pin',
         () => {
-            jest.useFakeTimers();
+            vi.useFakeTimers();
             try {
                 retrieve();
                 const pin = document.querySelector('.ps-search-pin');
                 pin.focus();
                 pin.click();
-                jest.runAllTimers();
+                vi.runAllTimers();
                 expect(popups[0].removed).toBe(false);
 
+                // jsdom counts the pin as hovered from its click() until the pointer is seen elsewhere.
+                document.getElementById('elsewhere').dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
                 document.getElementById('elsewhere').focus();
                 expect(popups[0].removed).toBe(false);
-                jest.runAllTimers();
+                vi.runAllTimers();
                 expect(popups[0].removed).toBe(true);
                 expect(markers[0].removed).toBe(false);
             } finally {
-                jest.useRealTimers();
+                vi.useRealTimers();
             }
         });
 

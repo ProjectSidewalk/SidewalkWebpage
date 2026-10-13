@@ -7,19 +7,19 @@
  * rolling windows (as are the cities-active / top-city tiles above the table), and week-over-week deltas colored by
  * direction. The same generalized sort machinery now drives the Activity table, so its headers are covered here too.
  *
- * Runs under jsdom (jest.config.js). AcrossCitiesPage is a bare top-level class in a concatenated bundle, so it is
+ * Runs under jsdom (vitest.config.mjs). AcrossCitiesPage is a bare top-level class in a concatenated bundle, so it is
  * eval'd into global scope rather than required.
  */
 
-const { loadModules, realUtil } = require('./loadGlobalScript');
+import { loadModules, realUtil, stubUtil } from './loadGlobalScript.js';
 
 // The page fetches through util.fetchJson.
-window.util = realUtil();
+stubUtil(await realUtil());
 
 
 /** Load AcrossCitiesPage.js, plus the AdminShell helpers every dashboard page reads, and return the class binding. */
-function loadPage() {
-  return loadModules('frontend/js/admin-dashboard/AcrossCitiesPage.js').AcrossCitiesPage;
+async function loadPage() {
+  return (await loadModules('frontend/js/admin-dashboard/AcrossCitiesPage.js')).AcrossCitiesPage;
 }
 
 /**
@@ -116,7 +116,7 @@ describe('Across Cities — most active cities', () => {
     document.body.innerHTML = MARKUP;
     const windowByCity = {};
     cities.forEach((c) => { windowByCity[c.city.city_id] = c.window; });
-    global.fetch = jest.fn(() => Promise.resolve({
+    global.fetch = vi.fn(() => Promise.resolve({
       ok: true,
       json: () => Promise.resolve({
         cities: cities.map((c) => c.city),
@@ -142,8 +142,8 @@ describe('Across Cities — most active cities', () => {
     document.querySelector(`#${tableId} thead th[data-sort="${key}"]`).click();
   }
 
-  beforeEach(() => {
-    AcrossCitiesPage = loadPage();
+  beforeEach(async () => {
+    AcrossCitiesPage = await loadPage();
   });
 
   it('ranks by labels + validations and shows only the top five', async () => {

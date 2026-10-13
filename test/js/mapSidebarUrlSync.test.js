@@ -12,7 +12,10 @@
  * precedent).
  */
 
-const { loadModules, realUtil } = require('./loadGlobalScript');
+import { loadModules, realUtil, fakeImport } from './loadGlobalScript.js';
+
+fakeImport('frontend/js/ps-map/psMapUtilities.js', 'filterLabelLayers', 'filterStreetLayer', 'toggleLabelLayer');
+fakeImport('frontend/js/common/filter-sidebar/FilterSidebar.js', 'FilterSidebar');
 
 
 const LABEL_TYPES = ['CurbRamp', 'Obstacle'];
@@ -135,23 +138,23 @@ describe('MapSidebarUrlSync', () => {
         return new window.MapSidebarUrlSync(sidebarFilter, map);
     }
 
-    beforeAll(() => {
+    beforeAll(async () => {
         window.i18next = { t: (key) => key, language: 'en' };
-        window.filterLabelLayers = jest.fn();
-        window.filterStreetLayer = jest.fn();
-        window.toggleLabelLayer = jest.fn();
-        window.logWebpageActivity = jest.fn();
-        window.util ??= realUtil();
-        loadModules('frontend/js/common/urlQuery.js');
-        Object.assign(window, loadModules('frontend/js/common/filter-sidebar/FilterSidebar.js'));
-        Object.assign(window, loadModules('frontend/js/ps-map/MapSidebarFilter.js'));
-        Object.assign(window, loadModules('frontend/js/ps-map/MapSidebarUrlSync.js'));
-        Object.assign(window, loadModules('frontend/js/common/label-detail/LabelDetail.js'));
+        window.filterLabelLayers = vi.fn();
+        window.filterStreetLayer = vi.fn();
+        window.toggleLabelLayer = vi.fn();
+        window.logWebpageActivity = vi.fn();
+        window.util ??= await realUtil();
+        await loadModules('frontend/js/common/urlQuery.js');
+        Object.assign(window, await loadModules('frontend/js/common/filter-sidebar/FilterSidebar.js'));
+        Object.assign(window, await loadModules('frontend/js/ps-map/MapSidebarFilter.js'));
+        Object.assign(window, await loadModules('frontend/js/ps-map/MapSidebarUrlSync.js'));
+        Object.assign(window, await loadModules('frontend/js/common/label-detail/LabelDetail.js'));
     });
 
     beforeEach(() => {
-        jest.useFakeTimers();
-        jest.clearAllMocks();
+        vi.useFakeTimers();
+        vi.clearAllMocks();
         window.history.replaceState({}, '', '/labelMap');
         mapHandlers = {};
         map = {
@@ -161,12 +164,12 @@ describe('MapSidebarUrlSync', () => {
             on: (event, handler) => { mapHandlers[event] = handler; },
             getCenter: () => ({ lat: 47.61234567, lng: -122.33456789 }),
             getZoom: () => 11.256,
-            jumpTo: jest.fn(),
+            jumpTo: vi.fn(),
         };
     });
 
     afterEach(() => {
-        jest.useRealTimers();
+        vi.useRealTimers();
     });
 
     describe('viewport statics', () => {
@@ -295,7 +298,7 @@ describe('MapSidebarUrlSync', () => {
             sevBtn(0).click();
             expect(search()).toBe(''); // Nothing until the debounce elapses.
 
-            jest.advanceTimersByTime(300);
+            vi.advanceTimersByTime(300);
 
             expect(search()).toBe('?severities=1,2,3&lat=47.61235&lng=-122.33457&zoom=11.26');
         });
@@ -303,11 +306,11 @@ describe('MapSidebarUrlSync', () => {
         it('deletes a param when its section returns to the rendered default', () => {
             build();
             sevBtn(0).click();
-            jest.advanceTimersByTime(300);
+            vi.advanceTimersByTime(300);
             expect(search()).toContain('severities=1,2,3');
 
             sevBtn(0).click();
-            jest.advanceTimersByTime(300);
+            vi.advanceTimersByTime(300);
 
             expect(search()).not.toContain('severities');
             expect(search()).toContain('lat=');
@@ -319,7 +322,7 @@ describe('MapSidebarUrlSync', () => {
             checkbox('incorrect').click();
             tagPill('CurbRamp', 'narrow').click();
             checkbox('audited-street').click();
-            jest.advanceTimersByTime(300);
+            vi.advanceTimersByTime(300);
 
             const params = new URLSearchParams(search());
             expect(params.get('labelTypes')).toBe('CurbRamp');
@@ -331,7 +334,7 @@ describe('MapSidebarUrlSync', () => {
         it('leaves the labelType:tag colon literal rather than percent-encoding it (#4782)', () => {
             build();
             tagPill('CurbRamp', 'narrow').click();
-            jest.advanceTimersByTime(300);
+            vi.advanceTimersByTime(300);
 
             expect(search()).toContain('tags=CurbRamp:narrow');
             expect(search()).not.toContain('%3A');
@@ -340,7 +343,7 @@ describe('MapSidebarUrlSync', () => {
         it('round-trips a tag whose own name contains a colon', () => {
             build();
             tagPill('CurbRamp', 'cycle lane: faded paint').click();
-            jest.advanceTimersByTime(300);
+            vi.advanceTimersByTime(300);
 
             // Both colons are literal in the URL; only the first separates the label type from the tag.
             expect(search()).toContain('tags=CurbRamp:cycle+lane:+faded+paint');
@@ -354,7 +357,7 @@ describe('MapSidebarUrlSync', () => {
         it('round-trips a tag whose name contains a comma (#4783)', () => {
             build();
             tagPill('Obstacle', COMMA_TAG).click();
-            jest.advanceTimersByTime(300);
+            vi.advanceTimersByTime(300);
 
             // One occurrence per tag, so the comma inside the name is never mistaken for a separator.
             expect(new URLSearchParams(search()).getAll('tags')).toEqual([`Obstacle:${COMMA_TAG}`]);
@@ -368,7 +371,7 @@ describe('MapSidebarUrlSync', () => {
             build();
             tagPill('CurbRamp', 'narrow').click();
             tagPill('Obstacle', 'shared').click();
-            jest.advanceTimersByTime(300);
+            vi.advanceTimersByTime(300);
 
             const tags = new URLSearchParams(search()).getAll('tags');
             expect(tags).toEqual(['CurbRamp:narrow', 'Obstacle:shared']);
@@ -398,7 +401,7 @@ describe('MapSidebarUrlSync', () => {
         it('round-trips a tag back onto its own type only', () => {
             build();
             tagPill('CurbRamp', 'shared').click();
-            jest.advanceTimersByTime(300);
+            vi.advanceTimersByTime(300);
             expect(new URLSearchParams(search()).get('tags')).toBe('CurbRamp:shared');
 
             window.history.replaceState({}, '', `/labelMap${search()}`);
@@ -412,7 +415,7 @@ describe('MapSidebarUrlSync', () => {
             build();
             document.querySelector('.filter-sidebar__deselect-all[data-section="severity"]').click();
             document.querySelector('.filter-sidebar__deselect-all[data-section="label-type"]').click();
-            jest.advanceTimersByTime(300);
+            vi.advanceTimersByTime(300);
 
             const params = new URLSearchParams(search());
             expect(params.get('severities')).toBe('');
@@ -429,11 +432,11 @@ describe('MapSidebarUrlSync', () => {
 
         it('coalesces a burst of clicks into one URL write', () => {
             build();
-            const replaceState = jest.spyOn(window.history, 'replaceState');
+            const replaceState = vi.spyOn(window.history, 'replaceState');
             sevBtn(0).click();
             sevBtn(1).click();
             checkbox('Obstacle-checkbox').click();
-            jest.advanceTimersByTime(300);
+            vi.advanceTimersByTime(300);
 
             expect(replaceState).toHaveBeenCalledTimes(1);
             expect(search()).toContain('severities=2,3');
@@ -445,7 +448,7 @@ describe('MapSidebarUrlSync', () => {
             window.history.replaceState({}, '', '/labelMap?regions=1,2&labelId=42');
             build();
             sevBtn(0).click();
-            jest.advanceTimersByTime(300);
+            vi.advanceTimersByTime(300);
 
             expect(search()).toContain('regions=1,2');
             expect(search()).toContain('labelId=42');
@@ -457,11 +460,11 @@ describe('MapSidebarUrlSync', () => {
             build();
 
             mapHandlers.moveend({}); // Programmatic move: no originalEvent.
-            jest.advanceTimersByTime(300);
+            vi.advanceTimersByTime(300);
             expect(search()).toBe('');
 
             mapHandlers.moveend({ originalEvent: {} });
-            jest.advanceTimersByTime(300);
+            vi.advanceTimersByTime(300);
             expect(search()).toBe('?lat=47.61235&lng=-122.33457&zoom=11.26');
         });
     });
@@ -470,13 +473,13 @@ describe('MapSidebarUrlSync', () => {
         it('the two URL writers compose rather than clobber (#4696)', () => {
             build();
             sevBtn(0).click();
-            jest.advanceTimersByTime(300);
+            vi.advanceTimersByTime(300);
             expect(search()).toContain('severities=1,2,3');
 
             // Opening a label popup writes labelId without touching the filter params — the two writers have to
             // agree byte for byte on how commas and colons are serialized or they rewrite each other's params.
             tagPill('CurbRamp', 'narrow').click();
-            jest.advanceTimersByTime(300);
+            vi.advanceTimersByTime(300);
             window.LabelDetail.syncUrlLabelId(123);
             expect(search()).toContain('labelId=123');
             expect(search()).toContain('severities=1,2,3');
@@ -486,7 +489,7 @@ describe('MapSidebarUrlSync', () => {
 
             // A further filter change keeps the open label's id in the URL.
             checkbox('Obstacle-checkbox').click();
-            jest.advanceTimersByTime(300);
+            vi.advanceTimersByTime(300);
             expect(search()).toContain('labelId=123');
             expect(search()).toContain('labelTypes=CurbRamp');
 

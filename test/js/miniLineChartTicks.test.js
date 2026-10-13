@@ -6,18 +6,18 @@
  * which is the part worth pinning: these tests cover the scale, the abbreviation, the integer-data case, and that an
  * explicit yMax (the Data Quality agreement chart) still wins.
  *
- * Runs under jsdom (jest.config.js); MiniLineChart.svg is a pure string builder, so tests parse its output into a
+ * Runs under jsdom (vitest.config.mjs); MiniLineChart.svg is a pure string builder, so tests parse its output into a
  * detached container and assert on the resulting DOM.
  */
 
-const { loadModules, realUtil } = require('./loadGlobalScript');
+import { loadModules, realUtil, stubUtil } from './loadGlobalScript.js';
 
-window.util = realUtil();
+stubUtil(await realUtil());
 
 
 /** Loads a fresh MiniLineChart class. */
-function loadMiniLineChart() {
-    return loadModules('frontend/js/admin-dashboard/MiniLineChart.js').MiniLineChart;
+async function loadMiniLineChart() {
+    return (await loadModules('frontend/js/admin-dashboard/MiniLineChart.js')).MiniLineChart;
 }
 
 describe('MiniLineChart y-axis ticks', () => {
@@ -39,8 +39,8 @@ describe('MiniLineChart y-axis ticks', () => {
             .map((t) => t.textContent);
     }
 
-    beforeEach(() => {
-        MiniLineChart = loadMiniLineChart();
+    beforeEach(async () => {
+        MiniLineChart = await loadMiniLineChart();
     });
 
     test('rounds the axis top up so ticks are whole steps, abbreviated', () => {

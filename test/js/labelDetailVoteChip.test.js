@@ -15,31 +15,31 @@
  * exposes the class. Only the static method is exercised here — constructing a LabelDetail needs a live pano viewer.
  */
 
-const fs = require('fs');
-const path = require('path');
-const { loadModules } = require('./loadGlobalScript');
+import fs from 'fs';
+import path from 'path';
+import { loadModules, stubUtil } from './loadGlobalScript.js';
 
 
 /** The two globals voteChipFor reaches for, stubbed so the assertions read against known strings. */
 function stubGlobals() {
-    window.util = { camelToKebab: (s) => s.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase() };
+    stubUtil({ camelToKebab: (s) => s.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase() });
     window.i18next = {
         t: (key, opts) => (key === 'labelmap:commenter-voted' ? `Commenter voted ${opts.vote}` : `t(${key})`)
     };
 }
 
 /** Loads a fresh LabelDetail class into the jsdom global scope. */
-function loadLabelDetail() {
+async function loadLabelDetail() {
     stubGlobals();
-    Object.assign(window, loadModules('frontend/js/common/label-detail/LabelDetail.js'));
+    Object.assign(window, await loadModules('frontend/js/common/label-detail/LabelDetail.js'));
     return window.LabelDetail;
 }
 
 describe('LabelDetail.voteChipFor', () => {
     let LabelDetail;
 
-    beforeEach(() => {
-        LabelDetail = loadLabelDetail();
+    beforeEach(async () => {
+        LabelDetail = await loadLabelDetail();
     });
 
     test.each(['Agree', 'Disagree', 'Unsure'])('%s renders a chip carrying the vote word and its modifier', (vote) => {

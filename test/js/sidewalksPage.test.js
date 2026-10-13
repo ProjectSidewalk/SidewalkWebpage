@@ -5,16 +5,16 @@
  * rows, so the cases drive the real page, table and map (against a `mapboxgl` double) and check that they agree.
  * The review lists are the page's reason to exist, so each list's membership rule has a case of its own.
  *
- * Runs under jsdom (jest.config.js).
+ * Runs under jsdom (vitest.config.mjs).
  */
 
-const { loadModules, realUtil } = require('./loadGlobalScript');
+import { loadModules, realUtil, stubUtil } from './loadGlobalScript.js';
 
-window.util = realUtil();
+stubUtil(await realUtil());
 // jsdom has no layout, so it leaves scrollIntoView out; the region table calls it.
 window.HTMLElement.prototype.scrollIntoView = () => {};
 
-const { SidewalksPage } = loadModules('frontend/js/admin-dashboard/SidewalksPage.js');
+const { SidewalksPage } = await loadModules('frontend/js/admin-dashboard/SidewalksPage.js');
 
 /**
  * Mapbox GL cannot run under jsdom; this records what the map was told and fires 'load' on the next tick, or, with
@@ -159,7 +159,7 @@ const geojson = (ids) => ({
 async function renderPage({ streets = CITY, ids = [1, 2, 3, 4, 5, 6], rebuiltAt = '2026-10-08T03:30:00Z' } = {}) {
   document.body.innerHTML = MARKUP;
   const mapState = stubMapbox();
-  global.fetch = jest.fn((url) => Promise.resolve({
+  global.fetch = vi.fn((url) => Promise.resolve({
     ok: true,
     json: async () => (url === '/presence' ? { rebuilt_at: rebuiltAt, streets } : geojson(ids)),
   }));
@@ -318,7 +318,7 @@ describe('the Sidewalks page', () => {
     const scrolls = [];
     const original = window.HTMLElement.prototype.scrollIntoView;
     window.HTMLElement.prototype.scrollIntoView = function record(options) { scrolls.push([this.id, options]); };
-    window.matchMedia = jest.fn(() => ({ matches: true }));
+    window.matchMedia = vi.fn(() => ({ matches: true }));
     try {
       document.querySelector('#sidewalks-flag-table tbody tr[data-row-id="2"] button').click();
     } finally {
@@ -331,7 +331,7 @@ describe('the Sidewalks page', () => {
   test('a street chosen before the map loads is marked once it does', async () => {
     document.body.innerHTML = MARKUP;
     const map = stubMapbox({ holdLoad: true });
-    global.fetch = jest.fn((url) => Promise.resolve({
+    global.fetch = vi.fn((url) => Promise.resolve({
       ok: true,
       json: async () => (url === '/presence' ? { rebuilt_at: '2026-10-08T03:30:00Z', streets: CITY }
         : geojson([1, 2, 3, 4, 5, 6])),

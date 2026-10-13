@@ -12,8 +12,14 @@
  * involved, so none of this needs imagery.
  */
 
-const path = require('path');
-const { loadModules } = require('./loadGlobalScript');
+import path from 'path';
+import { loadModules, fakeImport, stubUtil } from './loadGlobalScript.js';
+
+fakeImport('frontend/js/common/pano-viewer/GsvViewer.js', 'GsvViewer');
+fakeImport('frontend/js/common/pano-viewer/PannellumViewer.js', 'PannellumViewer');
+fakeImport('frontend/js/common/pano-viewer/PanoAttribution.js', 'createPanoAttribution');
+fakeImport('frontend/js/common/pano-viewer/PanoViewerLogo.js', 'createPanoViewerLogo');
+
 
 const PANO_MANAGER_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/panorama/PanoManager.js');
 const SPEED_LIMIT_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/common/SpeedLimit.js');
@@ -26,8 +32,8 @@ const THROTTLE_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/
  * @param {string} className - Name of the class the file declares.
  * @returns {Function} The class.
  */
-function loadClassFromFile(filePath, className) {
-  return loadModules(filePath)[className];
+async function loadClassFromFile(filePath, className) {
+  return (await loadModules(filePath))[className];
 }
 
 describe('PanoManager logs POV changes from whichever viewer is showing (issue #4828)', () => {
@@ -49,10 +55,10 @@ describe('PanoManager logs POV changes from whichever viewer is showing (issue #
    */
   function makeFakeViewer(listenerSink) {
     return {
-      setPano: jest.fn(() => succeedingSetPano(listenerSink)),
-      addListener: jest.fn((event, cb) => { listenerSink[event] = cb; }),
-      resize: jest.fn(),
-      setPov: jest.fn(),
+      setPano: vi.fn(() => succeedingSetPano(listenerSink)),
+      addListener: vi.fn((event, cb) => { listenerSink[event] = cb; }),
+      resize: vi.fn(),
+      setPov: vi.fn(),
       getPov: () => ({heading: 0, pitch: 0, zoom: 1}),
     };
   }
@@ -68,23 +74,23 @@ describe('PanoManager logs POV changes from whichever viewer is showing (issue #
   }
 
   beforeEach(async () => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
     // Anchor the fake clock away from zero so the throttle's first elapsed check exceeds its window.
-    jest.setSystemTime(1_000_000);
+    vi.setSystemTime(1_000_000);
 
     document.body.innerHTML = '<div id="pano-holder"><div id="svv-panorama"></div></div>';
 
-    global.util = {};
+    stubUtil({});
     global.i18next = {language: 'en'};
-    Object.assign(window, loadModules(THROTTLE_PATH));
+    Object.assign(window, await loadModules(THROTTLE_PATH));
     util.isMobile = () => false;
 
-    global.createPanoViewerLogo = jest.fn(() => ({showPrimaryLogo: jest.fn(), showSourceLogo: jest.fn()}));
-    attributionOverlay = {show: jest.fn(), hide: jest.fn()};
-    global.createPanoAttribution = jest.fn(() => attributionOverlay);
+    global.createPanoViewerLogo = vi.fn(() => ({showPrimaryLogo: vi.fn(), showSourceLogo: vi.fn()}));
+    attributionOverlay = {show: vi.fn(), hide: vi.fn()};
+    global.createPanoAttribution = vi.fn(() => attributionOverlay);
     global.GsvViewer = class GsvViewer {};             // distinct from FakeViewerType, so the GSV-only
     global.MapillaryViewer = class MapillaryViewer {}; // and Mapillary-only attribution paths are skipped
-    tracker = {push: jest.fn(), trackPano: jest.fn()};
+    tracker = {push: vi.fn(), trackPano: vi.fn()};
 
     panoData = {getPanoId: () => 'pano1', getProperty: () => new Date(2026, 5)};
     primaryListeners = {};
@@ -92,7 +98,7 @@ describe('PanoManager logs POV changes from whichever viewer is showing (issue #
     primaryViewer = makeFakeViewer(primaryListeners);
     pannellumViewer = makeFakeViewer(pannellumListeners);
     pannellumViewer.currPanoData = panoData;
-    pannellumViewer.loadPano = jest.fn(() => Promise.resolve(panoData));
+    pannellumViewer.loadPano = vi.fn(() => Promise.resolve(panoData));
 
     global.PannellumViewer = class PannellumViewer {
       static create() { return Promise.resolve(pannellumViewer); }
@@ -101,16 +107,16 @@ describe('PanoManager logs POV changes from whichever viewer is showing (issue #
       static create() { return Promise.resolve(primaryViewer); }
     };
 
-    const PanoManager = loadClassFromFile(PANO_MANAGER_PATH, 'PanoManager');
+    const PanoManager = await loadClassFromFile(PANO_MANAGER_PATH, 'PanoManager');
     const viewerUi = {date: {textContent: ''}, controlLayer: document.createElement('div')};
     panoManager = await PanoManager.create(
-      'token', viewerUi, {viewerType: FakeViewerType, labelRadius: 10}, {addPanoMetadata: jest.fn()}, {}, tracker,
+      'token', viewerUi, {viewerType: FakeViewerType, labelRadius: 10}, {addPanoMetadata: vi.fn()}, {}, tracker,
     );
     await loadPrimaryLabel('pano1'); // The first label's load, which is the first setPanorama (#5581).
   });
 
   afterEach(() => {
-    jest.useRealTimers();
+    vi.useRealTimers();
     document.body.innerHTML = '';
     delete global.util;
     delete global.i18next;
@@ -131,19 +137,19 @@ describe('PanoManager logs POV changes from whichever viewer is showing (issue #
    * Lets a test count the pans it drives without the surrounding pano loads in the tally.
    */
   function resetPovLog() {
-    jest.advanceTimersByTime(1000);
+    vi.advanceTimersByTime(1000);
     tracker.push.mockClear();
   }
 
   /** Load a label whose imagery the primary viewer rejects, so Pannellum takes over. */
   async function loadPannellumLabel() {
-    primaryViewer.setPano = jest.fn(() => Promise.reject(new Error('imagery expired')));
+    primaryViewer.setPano = vi.fn(() => Promise.reject(new Error('imagery expired')));
     await panoManager.setPanorama('pano2', backupImage);
   }
 
   /** Load a label the primary viewer can render, handing the pano back to it. */
   async function loadPrimaryLabel(panoId) {
-    primaryViewer.setPano = jest.fn(() => succeedingSetPano(primaryListeners));
+    primaryViewer.setPano = vi.fn(() => succeedingSetPano(primaryListeners));
     await panoManager.setPanorama(panoId, null);
   }
 
@@ -179,7 +185,7 @@ describe('PanoManager logs POV changes from whichever viewer is showing (issue #
     primaryListeners.pov_changed();
     expect(povChangedLogCount()).toBe(1); // one leading-edge log for the pair, not one per viewer
 
-    jest.advanceTimersByTime(500);
+    vi.advanceTimersByTime(500);
     expect(povChangedLogCount()).toBe(2); // one trailing log so the final POV is still recorded
   });
 
@@ -230,7 +236,7 @@ describe('SpeedLimit follows the active viewer (issue #4828)', () => {
    */
   function makeFakeViewer(listenerSink) {
     return {
-      addListener: jest.fn((event, cb) => { listenerSink[event] = cb; }),
+      addListener: vi.fn((event, cb) => { listenerSink[event] = cb; }),
       getPanoId: () => 'pano1',
       getPosition: () => ({lat: 47.6, lng: -122.3}),
     };
@@ -251,7 +257,7 @@ describe('SpeedLimit follows the active viewer (issue #4828)', () => {
     return document.getElementById('speed-limit').innerText;
   }
 
-  beforeEach(() => {
+  beforeEach(async () => {
     document.body.innerHTML = '<div id="speed-limit-sign">'
       + '<span id="speed-limit"></span><span id="speed-limit-sub"></span></div>';
 
@@ -261,7 +267,7 @@ describe('SpeedLimit follows the active viewer (issue #4828)', () => {
     pannellumViewer = makeFakeViewer(pannellumListeners);
     activeViewer = primaryViewer;
 
-    SpeedLimit = loadClassFromFile(SPEED_LIMIT_PATH, 'SpeedLimit');
+    SpeedLimit = await loadClassFromFile(SPEED_LIMIT_PATH, 'SpeedLimit');
   });
 
   afterEach(() => {

@@ -3,16 +3,16 @@
  * the main.css tokens, so the api-docs maps, the AccessScore tool's layers, and its charts paint one score one color.
  */
 
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules } from './loadGlobalScript.js';
 
 
 // jsdom resolves custom properties set on the root element, which is exactly how the tokens reach the browser.
 const RAMP = ['#a74d32', '#eb724e', '#c2c2c2', '#62c0ac', '#5f9e7b'];
 
 describe('ScoreRamp', () => {
-    beforeAll(() => {
+    beforeAll(async () => {
         RAMP.forEach((hex, i) => document.documentElement.style.setProperty(`--color-score-ramp-${i + 1}`, hex));
-        Object.assign(window, loadModules('frontend/js/common/scoreRamp.js'));
+        Object.assign(window, await loadModules('frontend/js/common/scoreRamp.js'));
     });
 
     it('reads the five ramp tokens in order, low score first', () => {

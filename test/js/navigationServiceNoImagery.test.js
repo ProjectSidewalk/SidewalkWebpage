@@ -18,8 +18,14 @@
  * mission controller is recorded through its events, as Main subscribes them.
  */
 
-const { installDateHelpers, loadModules, realUtil } = require('./loadGlobalScript');
+import { installDateHelpers, loadModules, realUtil, fakeImport, stubUtil } from './loadGlobalScript.js';
+import { fakeGate, fakeTracker, fakePanoManager } from './fakes.js';
 
+fakeImport('frontend/js/common/pano-viewer/PanoData.js', 'PanoData');
+fakeImport('frontend/js/common/pano-viewer/PanoViewer.js', 'PanoViewer');
+fakeImport('frontend/js/explore/task/TaskContainer.js', 'TaskContainer');
+fakeImport('frontend/js/common/pano-viewer/NoImageryError.js', 'NoImageryError');
+fakeImport('frontend/js/explore/panorama/NoImageryFlagGuard.js', 'NoImageryFlagGuard');
 
 
 // Fixtures put every street on one latitude so a street is a straight west-to-east segment and "distance along the
@@ -113,7 +119,7 @@ function makeTask(streetEdgeId, { lengthKm = 0.1, atEnd = false, walkOrder = nul
         unwalkedRemainder() {
             return lineFeature([this.getFurthestPointReached().geometry.coordinates, end]);
         },
-        isAtEnd: jest.fn(() => atEnd),
+        isAtEnd: vi.fn(() => atEnd),
         isConnectedTo: () => true,
         getMidpoint: () => ({ lat: FIXTURE_LAT, lng: (start[0] + end[0]) / 2 }),
         lineDistance: () => lengthKm * 1000,
@@ -137,21 +143,21 @@ describe('Explore, when the imagery search runs out along a street', () => {
     // Every (latLng, excludedPanos) the sweep asked about, in order.
     let searches;
 
-    beforeEach(() => {
-        jest.useFakeTimers();
+    beforeEach(async () => {
+        vi.useFakeTimers();
         window.sessionStorage.clear();
         searches = [];
         respondToPanoHop = () => Promise.resolve();
-        reportNoImagery = jest.fn(() => Promise.resolve());
+        reportNoImagery = vi.fn(() => Promise.resolve());
 
-        const stub = () => jest.fn();
+        const stub = () => vi.fn();
         config = {
             isOnboarding: false,
             isExploreAddressMode: false,
             streetCoverage: { max_uncovered_m: 50 },
             mapboxApiKey: 'mapbox-token',
         };
-        keyboardLock = { hold: jest.fn(), release: jest.fn() };
+        keyboardLock = fakeGate();
         missionController = { wrapUpRouteOrRegion: stub(), onRouteReadyToFinish: stub() };
         const panoViewer = {
             getPanoId: () => 'pano-on-screen',
@@ -164,31 +170,27 @@ describe('Explore, when the imagery search runs out along a street', () => {
         };
         svl = {
             alertController: { showAlert: stub() },
-            form: { submitData: jest.fn(() => Promise.resolve()) },
+            form: { submitData: vi.fn(() => Promise.resolve()) },
             labelContainer: { onMarkerClick: stub() },
             labelModes: { onModeChanged: stub() },
-            missionContainer: { getCurrentMission: () => ({ getProperty: () => 7, pushATaskToTheRoute: jest.fn() }) },
+            missionContainer: { getCurrentMission: () => ({ getProperty: () => 7, pushATaskToTheRoute: vi.fn() }) },
             missionModel: { updateMissionProgress: stub() },
             regionModel: {
                 currentRegion: () => ({}), isRoute: false, isRouteOrRegionComplete: () => false,
-                setComplete: jest.fn(),
+                setComplete: vi.fn(),
             },
             navArrows: { hide: stub(), show: stub(), reset: stub() },
             panoStore: { getPanoData: (panoId) => ({ panoId }) },
-            stuckAlert: { announceSkippedStreetNear: jest.fn(() => Promise.resolve()) },
+            stuckAlert: { announceSkippedStreetNear: vi.fn(() => Promise.resolve()) },
             jumpAlert: { onClickJumpMessage: stub() },
-            tracker: { push: jest.fn() },
+            tracker: fakeTracker(),
             panoViewer,
-            panoManager: {
-                get panoViewer() { return panoViewer; },
-                getPanoId: () => panoViewer.getPanoId(),
-                getPosition: () => panoViewer.getPosition(),
-                getPov: () => panoViewer.getPov(),
+            panoManager: fakePanoManager(panoViewer, {
                 turnTo: stub(),
-                panning: { hold: stub(), release: stub() },
+                panning: fakeGate(),
                 // The link-graph hop, as opposed to the street sweep below: one named pano, no searching.
-                setPanorama: jest.fn(() => respondToPanoHop()),
-                setLocation: jest.fn((latLng, excludedPanos) => {
+                setPanorama: vi.fn(() => respondToPanoHop()),
+                setLocation: vi.fn((latLng, excludedPanos) => {
                     searches.push({
                         latLng,
                         streetEdgeId: svl.taskContainer.getCurrentTask().getStreetEdgeId(),
@@ -197,36 +199,36 @@ describe('Explore, when the imagery search runs out along a street', () => {
                     });
                     return respondToSearch(latLng);
                 }),
-            },
+            }),
             taskContainer: {
                 // Left false so the post-move UI refresh skips the end-of-task branch: what a landing does to task
                 // state is its own concern, and these tests are about the decision that precedes it.
                 tasksLoaded: () => false,
-                getCurrentTask: jest.fn(),
-                setCurrentTask: jest.fn(),
-                nextTask: jest.fn(() => null),
-                endTask: jest.fn(),
+                getCurrentTask: vi.fn(),
+                setCurrentTask: vi.fn(),
+                nextTask: vi.fn(() => null),
+                endTask: vi.fn(),
                 updateCurrentTask: stub(),
                 getNextTaskAfterJump: () => null,
-                setNextTaskAfterJump: jest.fn(),
-                renderTask: jest.fn(),
+                setNextTaskAfterJump: vi.fn(),
+                renderTask: vi.fn(),
             },
         };
 
         window.turf = turfStub;
         window.i18next = { t: (key) => key };
-        window.util = {
+        stubUtil({
             getBrowser: () => 'chrome',
             math: { toRadians: (degrees) => (degrees * Math.PI) / 180 },
             misc: { reportNoImagery },
-        };
+        });
         window.PanoViewer = { SEARCH_RADIUS_M: 25 };
         window.TaskContainer = { CONNECTED_TASK_KM: 0.01 };
-        installDateHelpers();
+        await installDateHelpers();
 
-        Object.assign(window, loadModules('frontend/js/common/pano-viewer/NoImageryError.js'));
-        Object.assign(window, loadModules('frontend/js/explore/panorama/NoImageryFlagGuard.js'));
-        Object.assign(window, loadModules('frontend/js/explore/navigation/NavigationService.js'));
+        Object.assign(window, await loadModules('frontend/js/common/pano-viewer/NoImageryError.js'));
+        Object.assign(window, await loadModules('frontend/js/explore/panorama/NoImageryFlagGuard.js'));
+        Object.assign(window, await loadModules('frontend/js/explore/navigation/NavigationService.js'));
 
         const el = () => document.createElement('div');
         nav = new window.NavigationService(
@@ -240,8 +242,8 @@ describe('Explore, when the imagery search runs out along a street', () => {
     });
 
     afterEach(() => {
-        jest.clearAllTimers();
-        jest.useRealTimers();
+        vi.clearAllTimers();
+        vi.useRealTimers();
     });
 
     /** Queues the streets the labeler will be handed, in order, as `nextTask` hands them out. */
@@ -370,7 +372,7 @@ describe('Explore, when the imagery search runs out along a street', () => {
             await nav.moveForward(); // Walks one step down the dead street, banking both of its panos as stuck.
             // A landing bars walking for MOVE_DELAY so a labeler can't spam through a mission; let it lapse, or the
             // next move is refused before it starts.
-            jest.advanceTimersByTime(1000);
+            vi.advanceTimersByTime(1000);
             await nav.moveForward(); // Finds nothing further, so reports the street and advances to the live one.
 
             // Only the pano the labeler is standing on may be excluded from the new street's search. Excluding the
@@ -398,7 +400,7 @@ describe('Explore, when the imagery search runs out along a street', () => {
             };
 
             await nav.moveForward();
-            jest.advanceTimersByTime(1000);
+            vi.advanceTimersByTime(1000);
             await nav.moveForward();
 
             expect(searches.at(-1).excludedPanos).not.toContain('pano-street-start');
@@ -543,7 +545,7 @@ describe('Explore, when the imagery search runs out along a street', () => {
             respondToSearch = emptyGround;
 
             await nav.moveForward();
-            jest.advanceTimersByTime(1000);
+            vi.advanceTimersByTime(1000);
             await nav.moveForward();
 
             expect(reportNoImagery).toHaveBeenCalledTimes(1);
@@ -588,7 +590,7 @@ describe('Explore, when the imagery search runs out along a street', () => {
             const walkedOut = makeTask(101);
             const endOfStreet = walkedOut.getEndCoordinate();
             walkedOut.getFurthestPointReached = () => pointFeature([endOfStreet.lng, endOfStreet.lat]);
-            walkedOut.isAtEnd = jest.fn((latLng) => latLng.lng === endOfStreet.lng);
+            walkedOut.isAtEnd = vi.fn((latLng) => latLng.lng === endOfStreet.lng);
             assignStreets(walkedOut, makeTask(102));
             respondToSearch = emptyGround;
 
@@ -741,10 +743,10 @@ describe('Explore, when the imagery search runs out along a street', () => {
         let viewer;
         let getPanorama;
 
-        beforeEach(() => {
+        beforeEach(async () => {
             // GsvViewer measures replies with the real haversine; loading utilitiesMath swaps in the full util.math.
-            window.util ??= realUtil();
-            loadModules('frontend/js/common/utilitiesMath.js');
+            window.util ??= await realUtil();
+            await loadModules('frontend/js/common/utilitiesMath.js');
             window.google = {
                 maps: {
                     importLibrary: async () => ({ LatLng: FakeLatLng }),
@@ -767,12 +769,12 @@ describe('Explore, when the imagery search runs out along a street', () => {
             };
             // The one-field stand-in above would be what GsvViewer extends; the real viewer needs the real base.
             delete window.PanoViewer;
-            Object.assign(window, loadModules('frontend/js/common/pano-viewer/GsvViewer.js'));
+            Object.assign(window, await loadModules('frontend/js/common/pano-viewer/GsvViewer.js'));
             viewer = new window.GsvViewer();
-            getPanorama = jest.fn();
+            getPanorama = vi.fn();
             viewer.streetViewService = { getPanorama };
-            viewer._loadPanoWithTimeout = jest.fn(async (_panoId, resolveValue) => resolveValue);
-            jest.spyOn(console, 'warn').mockImplementation(() => {}); // The FarPanoRejected diagnostic warns.
+            viewer._loadPanoWithTimeout = vi.fn(async (_panoId, resolveValue) => resolveValue);
+            vi.spyOn(console, 'warn').mockImplementation(() => {}); // The FarPanoRejected diagnostic warns.
             // The stuck set holds what panoStore returns, and the real viewer asks each of those for its id.
             svl.panoStore.getPanoData = (panoId) => ({ panoId, getPanoId: () => panoId });
             // The sweep's one seam, now backed by the real viewer rather than a scripted answer.

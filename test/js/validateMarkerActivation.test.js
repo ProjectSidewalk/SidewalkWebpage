@@ -12,8 +12,13 @@
  * TouchEvent constructor, so they are plain Events carrying the fields the handlers read).
  */
 
-const path = require('path');
-const { loadModules } = require('./loadGlobalScript');
+import path from 'path';
+import { loadModules, fakeImport, stubUtil } from './loadGlobalScript.js';
+import { fakeTracker } from './fakes.js';
+
+fakeImport('frontend/js/common/LabelVisibilityToggle.js', 'LabelVisibilityToggle');
+fakeImport('frontend/js/validate/label/LabelCard.js', 'LabelCard');
+
 
 /* global PanoMarker -- put on global by the suite's setup. */
 
@@ -28,8 +33,8 @@ const LABEL_VISIBILITY_CONTROL_PATH = path.resolve(
  * @param {string} className - Name of the class the file declares.
  * @returns {Function} The class.
  */
-function loadClassFromFile(filePath, className) {
-    return loadModules(filePath)[className];
+async function loadClassFromFile(filePath, className) {
+    return (await loadModules(filePath))[className];
 }
 
 /**
@@ -58,46 +63,46 @@ describe('Validate pano marker activation', () => {
     /** @returns {HTMLElement} The marker element PanoMarker created. */
     const markerEl = () => document.getElementById('validate-pano-marker');
 
-    beforeEach(() => {
-        jest.useFakeTimers().setSystemTime(new Date('2026-08-15T12:00:00Z'));
+    beforeEach(async () => {
+        vi.useFakeTimers().setSystemTime(new Date('2026-08-15T12:00:00Z'));
         document.body.innerHTML = '<div id="view-control-layer"></div><div id="label-card"></div>';
         isMobile = true;
-        toggleLabelCard = jest.fn();
+        toggleLabelCard = vi.fn();
 
-        global.util = {
+        stubUtil({
             isMobile: () => isMobile,
             pano: {
                 centeredPovToCanvasCoord2d: () => ({x: 0, y: 0}),
                 centeredPovToCanvasCoord: () => ({x: 0, y: 0}),
                 renderedHFov: () => 90,
             },
-        };
+        });
         // jsdom has no WebGL, so PanoMarker takes its 2d projection fallback; where the marker lands is irrelevant
         // here. Returning null directly keeps that deterministic without jsdom's "not implemented" noise.
-        jest.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
-        global.PanoMarker = loadClassFromFile(PANO_MARKER_PATH, 'PanoMarker');
+        vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
+        global.PanoMarker = await loadClassFromFile(PANO_MARKER_PATH, 'PanoMarker');
 
         global.i18next = {t: (key) => key};
         global.LabelCard = class { closePopovers() {} isPopoverOpen() { return false; } };
         global.LabelVisibilityToggle = class { setVisible() {} isVisible() { return true; } };
         global.Infra3dViewer = class {};
-        const LabelVisibilityControl = loadClassFromFile(LABEL_VISIBILITY_CONTROL_PATH, 'LabelVisibilityControl');
+        const LabelVisibilityControl = await loadClassFromFile(LABEL_VISIBILITY_CONTROL_PATH, 'LabelVisibilityControl');
         control = new LabelVisibilityControl(
             {controlLayer: document.getElementById('view-control-layer')}, {viewerType: class {}},
             {onLoadingChange: () => {}, onLabelReady: () => {}, onLabelShown: () => {}},
             {getPanoMarker: () => null, onMarkerCreated: (listener) => { wireMarker = listener; }, onMarkerDrawn: () => {}},
-            {push: jest.fn()},
+            fakeTracker(),
         );
         // Positioning is not under test, so the card's own methods are stubbed out and only their calls are counted.
         control.toggleLabelCard = toggleLabelCard;
         for (const name of ['showLabelCard', 'scheduleHideLabelCard', 'cancelScheduledCardHide']) {
-            control[name] = jest.fn();
+            control[name] = vi.fn();
         }
     });
 
     afterEach(() => {
-        jest.useRealTimers();
-        jest.restoreAllMocks();
+        vi.useRealTimers();
+        vi.restoreAllMocks();
         document.body.innerHTML = '';
         for (const name of ['util', 'PanoMarker', 'i18next', 'LabelCard', 'LabelVisibilityToggle', 'Infra3dViewer']) {
             delete global[name];
@@ -107,7 +112,7 @@ describe('Validate pano marker activation', () => {
     /** Builds the real Validate marker on a fake viewer, wired up the way PanoManager hands it over. */
     function createMarker() {
         const marker = new PanoMarker({
-            panoViewer: {addListener: jest.fn(), getPov: () => ({heading: 0, pitch: 0, zoom: 1})},
+            panoViewer: {addListener: vi.fn(), getPov: () => ({heading: 0, pitch: 0, zoom: 1})},
             markerContainer: document.getElementById('view-control-layer'),
             id: 'validate-pano-marker',
             size: {width: 52, height: 52},
@@ -185,7 +190,7 @@ describe('Validate pano marker activation', () => {
             fireTouch(markerEl(), 'touchend', [touch(0, 100, 100)], []);
             expect(toggleLabelCard).not.toHaveBeenCalled();
 
-            jest.advanceTimersByTime(1000);
+            vi.advanceTimersByTime(1000);
             tap();
             expect(toggleLabelCard).toHaveBeenCalledTimes(1);
         });
@@ -213,7 +218,7 @@ describe('Validate pano marker activation', () => {
 
         test('a click well after the last touch is a real press, not a synthesized one', () => {
             tap();
-            jest.advanceTimersByTime(1000);
+            vi.advanceTimersByTime(1000);
             markerEl().dispatchEvent(new MouseEvent('click', {bubbles: true}));
 
             expect(toggleLabelCard).toHaveBeenCalledTimes(2);
@@ -298,7 +303,7 @@ describe('Validate pano marker activation', () => {
 
     test('a marker that is not Validate’s gets none of this', () => {
         new PanoMarker({
-            panoViewer: {addListener: jest.fn(), getPov: () => ({heading: 0, pitch: 0, zoom: 1})},
+            panoViewer: {addListener: vi.fn(), getPov: () => ({heading: 0, pitch: 0, zoom: 1})},
             markerContainer: document.getElementById('view-control-layer'),
             id: 'some-other-marker',
             size: {width: 32, height: 32},

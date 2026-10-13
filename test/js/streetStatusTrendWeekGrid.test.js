@@ -1,7 +1,8 @@
-/**
- * @jest-environment <rootDir>/test/js/support/timeZoneJsdomEnvironment.js
- * @jest-environment-options {"timeZone": "Australia/Sydney"}
- */
+// Pinned east of UTC: the viewer's-local-date edge cases only appear at some offsets. V8 re-reads the zone on each
+// assignment, so this holds for the whole file and is put back for the worker's next file.
+const previousTimeZone = process.env.TZ;
+process.env.TZ = 'Australia/Sydney';
+afterAll(() => { process.env.TZ = previousTimeZone; });
 
 /**
  * Timezone edge cases of the "Recently changed" week grid on /admin/street-status (#4928).
@@ -16,17 +17,17 @@
  */
 
 
-const { installDateHelpers, loadModules, realUtil } = require('./loadGlobalScript');
+import { installDateHelpers, loadModules, realUtil, stubUtil } from './loadGlobalScript.js';
 
-window.util = realUtil();
+stubUtil(await realUtil());
 
 
-function loadPage() {
-  return loadModules('frontend/js/admin-dashboard/StreetStatusTrend.js').StreetStatusTrend;
+async function loadPage() {
+  return (await loadModules('frontend/js/admin-dashboard/StreetStatusTrend.js')).StreetStatusTrend;
 }
 
-installDateHelpers();
-const StreetStatusTrend = loadPage();
+await installDateHelpers();
+const StreetStatusTrend = await loadPage();
 
 const MARKUP = `
   <div id="street-status-trend-section">
@@ -45,7 +46,7 @@ const MARKUP = `
 
 async function render(data) {
   document.body.innerHTML = MARKUP;
-  global.fetch = jest.fn().mockResolvedValue({ ok: true, status: 200, statusText: 'OK', json: async () => data });
+  global.fetch = vi.fn().mockResolvedValue({ ok: true, status: 200, statusText: 'OK', json: async () => data });
   await new StreetStatusTrend({ trendUrl: '/adminapi/streetStatusTrend', weeks: data.weeks }).init();
 }
 
@@ -61,7 +62,7 @@ function changes(weekStarts) {
 }
 
 afterEach(() => {
-  jest.restoreAllMocks();
+  vi.restoreAllMocks();
 });
 
 test('the test environment really is east of UTC', () => {
@@ -75,7 +76,7 @@ describe('the week grid, for a viewer east of UTC', () => {
     // 02:00 Monday in Sydney is still 16:00 Sunday in UTC. Stopping the grid on "later than Date.now()" compares this
     // Monday's UTC midnight against that earlier instant, breaks a week early, and drops the newest bucket from all
     // three charts — with the headline still counting it, so the page contradicts itself.
-    jest.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-08-17T02:00:00+10:00'));
+    vi.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-08-17T02:00:00+10:00'));
     const weeks = ['2026-07-27', '2026-08-03', '2026-08-10', '2026-08-17'];
     await render({
       weeks: 3,
@@ -96,7 +97,7 @@ describe('the week grid, for a viewer east of UTC', () => {
   test('holds a seven-day step across a daylight-saving change, landing on Mondays throughout', async () => {
     // Sydney leaves daylight saving on 5 April 2026, mid-window. Stepping in local time would put the weeks after it
     // an hour off and land them on a Sunday, generating week starts the server never emits.
-    jest.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-04-13T12:00:00+10:00'));
+    vi.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-04-13T12:00:00+10:00'));
     const weeks = ['2026-03-09', '2026-03-16', '2026-03-23', '2026-03-30', '2026-04-06', '2026-04-13'];
     await render({
       weeks: 5,

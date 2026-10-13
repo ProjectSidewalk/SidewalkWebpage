@@ -10,7 +10,14 @@
  * into jsdom with those stubbed.
  */
 
-const { loadModules, realUtil } = require('./loadGlobalScript');
+import { loadModules, realUtil, fakeImport } from './loadGlobalScript.js';
+import { fakeTracker } from './fakes.js';
+
+fakeImport('frontend/js/common/label-detail/LabelDetail.js', 'LabelDetail');
+fakeImport('frontend/js/common/label-detail/PopupPanoManager.js', 'PopupPanoManager');
+fakeImport('frontend/js/gallery/cards/Card.js', 'Card');
+fakeImport('frontend/js/gallery/expandedview/ExpandedView.js', 'ExpandedView');
+fakeImport('frontend/js/gallery/cards/CardBucket.js', 'CardBucket');
 
 
 const LIST_IDS = [42, 7, 19];
@@ -20,15 +27,15 @@ const FULL_PAGE = [201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212];
 const LONG_LIST = [...FULL_PAGE, 213, 214, 215];
 
 describe('the Gallery in review-list mode', () => {
-    beforeAll(() => {
+    beforeAll(async () => {
         window.i18next = { t: (key, opts) => `${key}:${JSON.stringify(opts ?? {})}` };
-        window.util ??= realUtil();
-        loadModules('frontend/js/common/urlQuery.js');
-        Object.assign(window, loadModules('frontend/js/common/filter-sidebar/FilterSidebar.js'));
-        Object.assign(window, loadModules('frontend/js/gallery/filter/GalleryFilter.js'));
-        Object.assign(window, loadModules('frontend/js/gallery/cards/CardBucket.js'));
-        Object.assign(window, loadModules('frontend/js/gallery/cards/CardContainer.js'));
-        window.ExpandedViewClass = loadModules('frontend/js/gallery/expandedview/ExpandedView.js').ExpandedView;
+        window.util ??= await realUtil();
+        await loadModules('frontend/js/common/urlQuery.js');
+        Object.assign(window, await loadModules('frontend/js/common/filter-sidebar/FilterSidebar.js'));
+        Object.assign(window, await loadModules('frontend/js/gallery/filter/GalleryFilter.js'));
+        Object.assign(window, await loadModules('frontend/js/gallery/cards/CardBucket.js'));
+        Object.assign(window, await loadModules('frontend/js/gallery/cards/CardContainer.js'));
+        window.ExpandedViewClass = (await loadModules('frontend/js/gallery/expandedview/ExpandedView.js')).ExpandedView;
     });
 
     describe('the sidebar and the address bar', () => {
@@ -42,7 +49,7 @@ describe('the Gallery in review-list mode', () => {
         function build(labelIds) {
             document.body.innerHTML = '<div class="gallery-list-bar"></div>';
             return new window.GalleryFilter(
-                null, null, null, { regionIds: [], aiValidationOptions: [], labelIds }, { push: jest.fn() },
+                null, null, null, { regionIds: [], aiValidationOptions: [], labelIds }, fakeTracker(),
             );
         }
 
@@ -118,7 +125,7 @@ describe('the Gallery in review-list mode', () => {
         let ui;
         /** @type {object} The sidebar as the container sees it: the filtered path reads more of it than list mode. */
         let cardFilter;
-        /** @type {{push: jest.Mock}} */
+        /** @type {{push: import('vitest').Mock}} */
         let tracker;
 
         /**
@@ -162,8 +169,8 @@ describe('the Gallery in review-list mode', () => {
                     tags: [],
                 }),
                 loadImage: () => Promise.resolve(),
-                render: jest.fn(),
-                refitTags: jest.fn(),
+                render: vi.fn(),
+                refitTags: vi.fn(),
             };
         }
 
@@ -208,7 +215,7 @@ describe('the Gallery in review-list mode', () => {
 
             requests = [];
             respond = () => {};
-            window.scrollTo = jest.fn(); // jsdom has no implementation; the container scrolls to the top on paging.
+            window.scrollTo = vi.fn(); // jsdom has no implementation; the container scrolls to the top on paging.
             window.fetch = (url, { body }) => new Promise((resolve) => {
                 requests.push(JSON.parse(body));
                 // Held rather than resolved inline, so a test can assert on the request before the cards land.
@@ -230,16 +237,16 @@ describe('the Gallery in review-list mode', () => {
                 // The created instance is kept so a test can assert on the by-id fallback showLabel() call.
                 create: async () => {
                     window.LabelDetail.create.lastDetail = {
-                        panoManager: { warmUp: jest.fn() },
-                        showLabel: jest.fn(() => Promise.resolve()),
+                        panoManager: { warmUp: vi.fn() },
+                        showLabel: vi.fn(() => Promise.resolve()),
                     };
                     return window.LabelDetail.create.lastDetail;
                 },
                 urlLabelId: () => parseInt(new URLSearchParams(window.location.search).get('labelId'), 10) || null,
-                syncUrlLabelId: jest.fn(),
+                syncUrlLabelId: vi.fn(),
             };
             window.ExpandedView = window.ExpandedViewClass;
-            Element.prototype.scrollIntoView = jest.fn(); // jsdom has none; the expanded view scrolls its card in.
+            Element.prototype.scrollIntoView = vi.fn(); // jsdom has none; the expanded view scrolls its card in.
             window.ResizeObserver = class {
                 observe() {}
             };
@@ -251,10 +258,10 @@ describe('the Gallery in review-list mode', () => {
                 getSort: () => 'random',
                 onUpdate: (listener) => { cardFilter.listener = listener; },
                 onSortChange: () => {},
-                disable: jest.fn(),
-                enable: jest.fn(),
+                disable: vi.fn(),
+                enable: vi.fn(),
             };
-            tracker = { push: jest.fn() };
+            tracker = fakeTracker();
         });
 
         /** @returns {string} The rendered "k of N" text, or '' while the indicator is hidden. */
@@ -398,7 +405,7 @@ describe('the Gallery in review-list mode', () => {
             // The container subscribes in its constructor, before anything can be clicked; a subscription made
             // later from Main would leave a window where a filter change silently changed nothing.
             const container = await listContainer(LIST_IDS, [], []);
-            const reload = jest.spyOn(container, 'updateCardsByFilter');
+            const reload = vi.spyOn(container, 'updateCardsByFilter');
 
             cardFilter.listener();
 

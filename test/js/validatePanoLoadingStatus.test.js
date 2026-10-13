@@ -10,9 +10,9 @@
  * region staying rendered, the box inside it being what hides) fails here rather than on a screen reader.
  */
 
-const fs = require('fs');
-const path = require('path');
-const { loadModules } = require('./loadGlobalScript');
+import fs from 'fs';
+import path from 'path';
+import { loadModules } from './loadGlobalScript.js';
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const STATUS_PATH = path.join(REPO_ROOT, 'frontend/js/validate/panorama/PanoLoadingStatus.js');
@@ -26,8 +26,8 @@ const CSS_PATH = path.join(REPO_ROOT, 'frontend/css/pages/validate/svv-panorama.
  * @param {string} className - Name of the class the file declares.
  * @returns {Function} The class.
  */
-function loadClassFromFile(filePath, className) {
-  return loadModules(filePath)[className];
+async function loadClassFromFile(filePath, className) {
+  return (await loadModules(filePath))[className];
 }
 
 /**
@@ -62,11 +62,11 @@ describe.each([
   let text;
   let announce;
 
-  beforeEach(() => {
-    jest.useFakeTimers();
-    global.i18next = {t: jest.fn((key) => `t(${key})`)};
+  beforeEach(async () => {
+    vi.useFakeTimers();
+    global.i18next = {t: vi.fn((key) => `t(${key})`)};
     document.body.innerHTML = `<div id="svv-panorama-holder">${statusMarkup(viewPath)}</div>`;
-    PanoLoadingStatus = loadClassFromFile(STATUS_PATH, 'PanoLoadingStatus');
+    PanoLoadingStatus = await loadClassFromFile(STATUS_PATH, 'PanoLoadingStatus');
     region = document.getElementById('svv-pano-loading');
     box = region.querySelector('.svv-pano-loading__box');
     text = region.querySelector('.svv-pano-loading__text');
@@ -75,7 +75,7 @@ describe.each([
   });
 
   afterEach(() => {
-    jest.useRealTimers();
+    vi.useRealTimers();
     document.body.innerHTML = '';
     delete global.i18next;
   });
@@ -93,18 +93,18 @@ describe.each([
 
   test('stays hidden for a load that finishes inside the delay, so fast loads never flicker it', () => {
     status.begin();
-    jest.advanceTimersByTime(PanoLoadingStatus.DELAY_MS - 1);
+    vi.advanceTimersByTime(PanoLoadingStatus.DELAY_MS - 1);
     expect(hidden(box)).toBe(true);
 
     status.end();
-    jest.advanceTimersByTime(PanoLoadingStatus.DELAY_MS * 5);
+    vi.advanceTimersByTime(PanoLoadingStatus.DELAY_MS * 5);
     expect(hidden(box)).toBe(true);
     expect(status.isShowing()).toBe(false);
   });
 
   test('appears once a load has run for the delay, saying it is loading imagery', () => {
     status.begin();
-    jest.advanceTimersByTime(PanoLoadingStatus.DELAY_MS);
+    vi.advanceTimersByTime(PanoLoadingStatus.DELAY_MS);
 
     expect(hidden(box)).toBe(false);
     expect(status.isShowing()).toBe(true);
@@ -117,25 +117,25 @@ describe.each([
     expect(box.getAttribute('aria-hidden')).toBe('true');
     expect(announce.classList.contains('sr-only')).toBe(true);
 
-    const onShown = jest.fn();
+    const onShown = vi.fn();
     status.begin(onShown, { immediate: true });
     expect(hidden(box)).toBe(false);
     expect(text.textContent).toBe('t(common:loading-imagery)');
     expect(announce.textContent).toBe('');
     expect(onShown).not.toHaveBeenCalled();
 
-    jest.advanceTimersByTime(PanoLoadingStatus.DELAY_MS - 1);
+    vi.advanceTimersByTime(PanoLoadingStatus.DELAY_MS - 1);
     expect(announce.textContent).toBe('');
-    jest.advanceTimersByTime(1);
+    vi.advanceTimersByTime(1);
     expect(announce.textContent).toBe('t(common:loading-imagery)');
     expect(onShown).toHaveBeenCalledTimes(1);
   });
 
   test('an immediate box that ends fast is never announced or reported, like a delayed one', () => {
-    const onShown = jest.fn();
+    const onShown = vi.fn();
     status.begin(onShown, { immediate: true });
     status.end();
-    jest.advanceTimersByTime(PanoLoadingStatus.DELAY_MS * 2);
+    vi.advanceTimersByTime(PanoLoadingStatus.DELAY_MS * 2);
     expect(hidden(box)).toBe(true);
     expect(announce.textContent).toBe('');
     expect(onShown).not.toHaveBeenCalled();
@@ -152,28 +152,28 @@ describe.each([
     expect(text.dataset.i18n).toBe('validate:pano-loading.skipping');
 
     // The pending loading message must not replace it when its timer would have fired.
-    jest.advanceTimersByTime(PanoLoadingStatus.DELAY_MS);
+    vi.advanceTimersByTime(PanoLoadingStatus.DELAY_MS);
     expect(text.textContent).toBe('t(validate:pano-loading.skipping)');
   });
 
   test('reports coming into view once per load, whether by the delay or by a message', () => {
-    const onShown = jest.fn();
+    const onShown = vi.fn();
     status.begin(onShown);
-    jest.advanceTimersByTime(PanoLoadingStatus.DELAY_MS);
+    vi.advanceTimersByTime(PanoLoadingStatus.DELAY_MS);
     status.setMessage('validate:pano-loading.skipping'); // Already showing, so not a second appearance.
     expect(onShown).toHaveBeenCalledTimes(1);
 
-    const shownByMessage = jest.fn();
+    const shownByMessage = vi.fn();
     status.begin(shownByMessage);
     status.setMessage('validate:pano-loading.skipping');
     expect(shownByMessage).toHaveBeenCalledTimes(1);
   });
 
   test('says nothing about a load that ended before it appeared', () => {
-    const onShown = jest.fn();
+    const onShown = vi.fn();
     status.begin(onShown);
     status.end();
-    jest.advanceTimersByTime(PanoLoadingStatus.DELAY_MS * 2);
+    vi.advanceTimersByTime(PanoLoadingStatus.DELAY_MS * 2);
     expect(onShown).not.toHaveBeenCalled();
   });
 
@@ -187,14 +187,14 @@ describe.each([
 
     status.begin();
     expect(hidden(box)).toBe(true);
-    jest.advanceTimersByTime(PanoLoadingStatus.DELAY_MS);
+    vi.advanceTimersByTime(PanoLoadingStatus.DELAY_MS);
     expect(text.textContent).toBe('t(common:loading-imagery)');
   });
 });
 
 describe('the pano loading status degrades quietly without its markup', () => {
-  test('a page without the element gets no status and no errors', () => {
-    const PanoLoadingStatus = loadClassFromFile(STATUS_PATH, 'PanoLoadingStatus');
+  test('a page without the element gets no status and no errors', async () => {
+    const PanoLoadingStatus = await loadClassFromFile(STATUS_PATH, 'PanoLoadingStatus');
     const status = new PanoLoadingStatus(null);
     expect(() => {
       status.begin();
@@ -206,10 +206,10 @@ describe('the pano loading status degrades quietly without its markup', () => {
 });
 
 describe('the pano loading status degrades quietly with its markup half there', () => {
-  test('a box without its text element is treated as no status, rather than throwing mid-render', () => {
-    global.i18next = {t: jest.fn((key) => key)};
+  test('a box without its text element is treated as no status, rather than throwing mid-render', async () => {
+    global.i18next = {t: vi.fn((key) => key)};
     document.body.innerHTML = '<div id="svv-pano-loading"><div class="svv-pano-loading__box ps-hidden"></div></div>';
-    const PanoLoadingStatus = loadClassFromFile(STATUS_PATH, 'PanoLoadingStatus');
+    const PanoLoadingStatus = await loadClassFromFile(STATUS_PATH, 'PanoLoadingStatus');
     const status = new PanoLoadingStatus(document.getElementById('svv-pano-loading'));
     expect(() => {
       status.begin();

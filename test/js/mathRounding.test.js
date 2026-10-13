@@ -6,31 +6,30 @@
  * power of ten misses the intended integer for values binary floating point can't hold exactly — a naive floor turns
  * 0.29 into 0.28, and a naive ceiling turns 1.1 into 1.11.
  *
- * Runs under jsdom (jest.config.js); utilitiesMath.js is a global script assigning onto `window.util`.
+ * Runs under jsdom (vitest.config.mjs); utilitiesMath.js is a global script assigning onto `window.util`.
  */
 
-const path = require('path');
-const { loadModules } = require('./loadGlobalScript');
+import path from 'path';
+import { loadModules, stubUtil } from './loadGlobalScript.js';
 
 const MATH_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/common/utilitiesMath.js');
 
 /** Load utilitiesMath.js (a global script hanging helpers off `window.util`) and return its rounding helpers. */
-function loadMath() {
-  global.window = global;
-  global.util = {};
-  Object.assign(window, loadModules(MATH_PATH));
+async function loadMath() {
+  stubUtil({});
+  Object.assign(window, await loadModules(MATH_PATH));
   return global.util.math;
 }
 
-function loadFloorTo() {
-  return loadMath().floorTo;
+async function loadFloorTo() {
+  return (await loadMath()).floorTo;
 }
 
 describe('util.math.floorTo', () => {
   let floorTo;
 
-  beforeEach(() => {
-    floorTo = loadFloorTo();
+  beforeEach(async () => {
+    floorTo = await loadFloorTo();
   });
 
   it('truncates rather than rounding, so a total never overstates progress', () => {
@@ -65,8 +64,8 @@ describe('util.math.floorTo', () => {
 describe('util.math.ceilTo', () => {
   let ceilTo;
 
-  beforeEach(() => {
-    ceilTo = loadMath().ceilTo;
+  beforeEach(async () => {
+    ceilTo = (await loadMath()).ceilTo;
   });
 
   it('rounds a remainder up so it never reads as nothing left', () => {

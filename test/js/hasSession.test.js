@@ -9,9 +9,9 @@
  * than as "no session".
  */
 
-const { realUtil } = require('./loadGlobalScript');
+import { realUtil, stubUtil } from './loadGlobalScript.js';
 
-beforeEach(() => {
+beforeEach(async () => {
     // utilities.js builds a Bowser parser at load time; this helper never touches it, but the file needs the global.
     window.bowser = {
         getParser: () => ({
@@ -19,7 +19,7 @@ beforeEach(() => {
             getOSName: () => 'TestOS', getPlatformType: () => 'desktop',
         }),
     };
-    window.util = realUtil();
+    stubUtil(await realUtil());
 });
 
 afterEach(() => {

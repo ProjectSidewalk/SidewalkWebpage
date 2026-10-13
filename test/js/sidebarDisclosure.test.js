@@ -9,12 +9,12 @@
  * Loaded the same way as navbarDisclosures.test.js: eval'd with an explicit export.
  */
 
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules } from './loadGlobalScript.js';
 
 
 /** Evaluates the production file and hands back the two entry points the pages use. */
-function load() {
-    Object.assign(window, loadModules('frontend/js/common/sidebarDisclosure.js'));
+async function load() {
+    Object.assign(window, await loadModules('frontend/js/common/sidebarDisclosure.js'));
     return {
         wire: window.wireSidebarDisclosure,
         init: window.initSidebarDisclosure,
@@ -41,8 +41,8 @@ describe('wireSidebarDisclosure', () => {
         };
     }
 
-    it('toggles mobile-visible on the root and tracks it in aria-expanded', () => {
-        const {wire} = load();
+    it('toggles mobile-visible on the root and tracks it in aria-expanded', async () => {
+        const {wire} = await load();
         const {toggle, root} = buildGallery();
         wire(toggle, root);
 
@@ -58,16 +58,16 @@ describe('wireSidebarDisclosure', () => {
         expect(toggle.getAttribute('aria-expanded')).toBe('false');
     });
 
-    it('points aria-controls at what opens', () => {
-        const {wire} = load();
+    it('points aria-controls at what opens', async () => {
+        const {wire} = await load();
         const {toggle, root, sections} = buildGallery();
         wire(toggle, root, {controlled: sections});
 
         expect(toggle.getAttribute('aria-controls')).toBe('gallery-filter-sections');
     });
 
-    it('names an unnamed disclosed element so aria-controls can reference it', () => {
-        const {wire} = load();
+    it('names an unnamed disclosed element so aria-controls can reference it', async () => {
+        const {wire} = await load();
         const {toggle, root} = buildGallery();
         const anonymous = document.createElement('div');
         root.append(anonymous);
@@ -78,8 +78,8 @@ describe('wireSidebarDisclosure', () => {
         expect(toggle.getAttribute('aria-controls')).toBe('some-nav');
     });
 
-    it('reports each state change to the caller, so the Gallery can log the interaction', () => {
-        const {wire} = load();
+    it('reports each state change to the caller, so the Gallery can log the interaction', async () => {
+        const {wire} = await load();
         const {toggle, root} = buildGallery();
         const seen = [];
         wire(toggle, root, {onToggle: (open) => seen.push(open)});
@@ -90,8 +90,8 @@ describe('wireSidebarDisclosure', () => {
         expect(seen).toEqual([true, false]);
     });
 
-    it('adopts a root that is already open, rather than reporting it closed', () => {
-        const {wire} = load();
+    it('adopts a root that is already open, rather than reporting it closed', async () => {
+        const {wire} = await load();
         const {toggle, root} = buildGallery();
         root.classList.add('mobile-visible');
 
@@ -114,8 +114,8 @@ describe('initSidebarDisclosure', () => {
         return document.querySelector('.page-sidebar');
     }
 
-    it('labels the button with the active nav item and discloses the nav', () => {
-        const {init} = load();
+    it('labels the button with the active nav item and discloses the nav', async () => {
+        const {init} = await load();
         const sidebar = buildShell();
 
         init();
@@ -132,8 +132,8 @@ describe('initSidebarDisclosure', () => {
         expect(toggle.getAttribute('aria-expanded')).toBe('true');
     });
 
-    it('labels the button with just the page name when the item also carries a badge and description', () => {
-        const {init} = load();
+    it('labels the button with just the page name when the item also carries a badge and description', async () => {
+        const {init} = await load();
         document.body.innerHTML = `
           <aside class="page-sidebar">
             <nav class="page-nav">
@@ -153,8 +153,8 @@ describe('initSidebarDisclosure', () => {
         expect(toggle.getAttribute('aria-label')).toBe('Across Cities — section navigation');
     });
 
-    it('falls back to the first group header when no item is active', () => {
-        const {init} = load();
+    it('falls back to the first group header when no item is active', async () => {
+        const {init} = await load();
         const sidebar = buildShell({active: false});
 
         init();
@@ -162,8 +162,8 @@ describe('initSidebarDisclosure', () => {
         expect(sidebar.querySelector('.page-sidebar-toggle-label').textContent).toBe('Overview');
     });
 
-    it('carries both the page name and the control it is, with the visible text first (WCAG 2.5.3)', () => {
-        const {init} = load();
+    it('carries both the page name and the control it is, with the visible text first (WCAG 2.5.3)', async () => {
+        const {init} = await load();
         const sidebar = buildShell();
 
         init();
@@ -172,8 +172,8 @@ describe('initSidebarDisclosure', () => {
             .toBe('Raw Labels — section navigation');
     });
 
-    it('renders a page title as text, never as markup', () => {
-        const {init} = load();
+    it('renders a page title as text, never as markup', async () => {
+        const {init} = await load();
         const sidebar = buildShell();
         sidebar.querySelector('.page-nav-item').textContent = '<img src=x onerror=alert(1)>';
 
@@ -184,8 +184,8 @@ describe('initSidebarDisclosure', () => {
         expect(label.textContent).toBe('<img src=x onerror=alert(1)>');
     });
 
-    it('is a no-op on a page with no shell sidebar, and never adds a second button', () => {
-        const {init} = load();
+    it('is a no-op on a page with no shell sidebar, and never adds a second button', async () => {
+        const {init} = await load();
         document.body.innerHTML = '<main></main>';
         expect(() => init()).not.toThrow();
 

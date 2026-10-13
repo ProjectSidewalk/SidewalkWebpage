@@ -6,19 +6,21 @@
  * headings arrive that way: at load there was nothing to spy on, so the listener was never attached, and the rebuilt
  * TOC would look right while never highlighting anything.
  *
- * Runs under jsdom (jest.config.js). AdminShell is a bare top-level class in a concatenated bundle, so it is eval'd
+ * Runs under jsdom (vitest.config.mjs). AdminShell is a bare top-level class in a concatenated bundle, so it is eval'd
  * into global scope rather than required.
  */
 
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules, fakeImport } from './loadGlobalScript.js';
+
+fakeImport('frontend/js/common/sidebarDisclosure.js', 'initSidebarDisclosure');
 
 
 let AdminShell;
 
-beforeAll(() => {
+beforeAll(async () => {
   // init() calls into sidebarDisclosure.js, which lives in a different file of the same bundle.
   global.initSidebarDisclosure = () => {};
-  AdminShell = loadModules('frontend/js/admin-dashboard/AdminShell.js').AdminShell;
+  AdminShell = (await loadModules('frontend/js/admin-dashboard/AdminShell.js')).AdminShell;
 });
 
 /**
@@ -73,7 +75,7 @@ describe('refreshTableOfContents', () => {
 
   test('does not stack a second scroll listener on every rebuild', () => {
     const section = buildDom();
-    const added = jest.spyOn(window, 'addEventListener');
+    const added = vi.spyOn(window, 'addEventListener');
     const shell = new AdminShell();
     shell.init();
 

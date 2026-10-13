@@ -4,12 +4,12 @@
  * let go, and that its listeners hear every hold and release along with whether the gate is still held.
  */
 
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules } from './loadGlobalScript.js';
 
 let Gate;
 
-beforeAll(() => {
-    ({ Gate } = loadModules('frontend/js/common/Gate.js'));
+beforeAll(async () => {
+    ({ Gate } = await loadModules('frontend/js/common/Gate.js'));
 });
 
 describe('Gate', () => {

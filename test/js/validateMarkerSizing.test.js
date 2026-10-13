@@ -15,7 +15,7 @@
  * svv-panorama.css), because the mark must stay the size it was drawn while only the target grows.
  */
 
-const { realUtil } = require('./loadGlobalScript');
+import { realUtil, stubUtil } from './loadGlobalScript.js';
 
 
 // The desktop radius is ValidateConfig.labelRadius (10, frontend/js/validate/Main.js) and the marker adds 2px of ring;
@@ -28,11 +28,11 @@ const MOBILE_BASE = 25 * 2 + 2;    // 52
 const CROSSOVER = 38 / DESKTOP_BASE;   // ~1.7273
 
 /** Loads utilities.js into jsdom, the same way the other utilities suites do. */
-function loadUtil() {
+async function loadUtil() {
     // utilities.js builds a Bowser parser at load time; the sizing under test never consults it.
     window.bowser = { getParser: () => ({ getBrowserName: () => 'Chrome', getBrowserVersion: () => '1',
         getOSName: () => 'Linux', getPlatformType: () => 'desktop' }) };
-    window.util = realUtil();
+    stubUtil(await realUtil());
     return window.util;
 }
 
@@ -42,8 +42,8 @@ describe('util.cappedMarkerDiameter', () => {
     /** Validate's desktop marker at the given UI scale, in on-screen CSS px. */
     const desktop = (scale) => util.cappedMarkerDiameter(DESKTOP_BASE, scale);
 
-    beforeEach(() => {
-        util = loadUtil();
+    beforeEach(async () => {
+        util = await loadUtil();
     });
 
     describe("Validate's desktop marker", () => {

@@ -6,7 +6,7 @@
  * bounds fitted rather than a fixed zoom that can only suit one size of region.
  */
 
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules, stubUtil } from './loadGlobalScript.js';
 
 
 /** A square region feature, as queryRenderedFeatures hands it back. */
@@ -34,28 +34,28 @@ describe('setRegionFocus', () => {
         }
     }
 
-    beforeAll(() => {
+    beforeAll(async () => {
         window.mapboxgl = { LngLatBounds };
-        Object.assign(window, loadModules('frontend/js/ps-map/psMapUtilities.js'));
+        Object.assign(window, await loadModules('frontend/js/ps-map/psMapUtilities.js'));
     });
 
     beforeEach(() => {
-        jest.useFakeTimers();
+        vi.useFakeTimers();
         map = {
             getLayer: () => true,
             queryRenderedFeatures: () => [region(4, [-1, -1], [1, 1]), region(7, [10, 20], [11, 21])],
-            fitBounds: jest.fn(),
+            fitBounds: vi.fn(),
         };
-        window.util = { getURLParameter: () => '7' };
+        stubUtil({ getURLParameter: () => '7' });
     });
 
     afterEach(() => {
-        jest.useRealTimers();
+        vi.useRealTimers();
     });
 
     it('fits the named region\'s own bounds', () => {
         window.setRegionFocus(map);
-        jest.runAllTimers();
+        vi.runAllTimers();
 
         expect(map.fitBounds).toHaveBeenCalledTimes(1);
         const [bounds, options] = map.fitBounds.mock.calls[0];
@@ -64,10 +64,10 @@ describe('setRegionFocus', () => {
     });
 
     it('leaves the map where it is when the URL names no region', () => {
-        window.util = { getURLParameter: () => null };
+        stubUtil({ getURLParameter: () => null });
 
         window.setRegionFocus(map);
-        jest.runAllTimers();
+        vi.runAllTimers();
 
         expect(map.fitBounds).not.toHaveBeenCalled();
     });
@@ -76,7 +76,7 @@ describe('setRegionFocus', () => {
         map.queryRenderedFeatures = () => [region(4, [-1, -1], [1, 1])];
 
         window.setRegionFocus(map);
-        jest.runAllTimers();
+        vi.runAllTimers();
 
         expect(map.fitBounds).not.toHaveBeenCalled();
     });
@@ -85,7 +85,7 @@ describe('setRegionFocus', () => {
         map.getLayer = () => false;
 
         window.setRegionFocus(map);
-        jest.runAllTimers();
+        vi.runAllTimers();
 
         expect(map.fitBounds).not.toHaveBeenCalled();
     });

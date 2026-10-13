@@ -8,25 +8,27 @@
  * change, a viewer east of UTC on a Monday morning — plus the rule that the headline can only ever count bars that
  * are actually on screen.
  *
- * Runs under jsdom (jest.config.js). These are bare top-level classes in a concatenated bundle, so they are eval'd
+ * Runs under jsdom (vitest.config.mjs). These are bare top-level classes in a concatenated bundle, so they are eval'd
  * into global scope rather than required; StreetStatusColors (in StreetStatusMap.js) owns the status palette and
  * MiniLineChart does the drawing, so both have to be present first.
  */
 
 
+import { installDateHelpers, loadModules, realUtil, fakeImport, stubUtil } from './loadGlobalScript.js';
 
-const { installDateHelpers, loadModules, realUtil } = require('./loadGlobalScript');
+fakeImport('frontend/js/common/ConfirmDialog.js', 'ConfirmDialog');
 
-window.util = realUtil();
+
+stubUtil(await realUtil());
 
 
 /** Loads the section's dependencies into global scope and returns the StreetStatusTrend class. */
-function loadPage() {
-  return loadModules('frontend/js/admin-dashboard/StreetStatusTrend.js', 'frontend/js/admin-dashboard/StreetStatusMap.js');
+async function loadPage() {
+  return await loadModules('frontend/js/admin-dashboard/StreetStatusTrend.js', 'frontend/js/admin-dashboard/StreetStatusMap.js');
 }
 
-installDateHelpers();
-const { StreetStatusTrend, StreetStatusColors } = loadPage();
+await installDateHelpers();
+const { StreetStatusTrend, StreetStatusColors } = await loadPage();
 
 const MARKUP = `
   <div id="street-status-trend-section">
@@ -77,7 +79,7 @@ function payload(overrides = {}) {
 
 async function render(data, { weeks = 3, onShowStreet } = {}) {
   document.body.innerHTML = MARKUP;
-  global.fetch = jest.fn().mockResolvedValue({ ok: true, status: 200, statusText: 'OK', json: async () => data });
+  global.fetch = vi.fn().mockResolvedValue({ ok: true, status: 200, statusText: 'OK', json: async () => data });
   await new StreetStatusTrend({ trendUrl: '/adminapi/streetStatusTrend', weeks, onShowStreet }).init();
 }
 
@@ -91,14 +93,14 @@ function weekLabels() {
 }
 
 afterEach(() => {
-  jest.restoreAllMocks();
+  vi.restoreAllMocks();
 });
 
 describe('the week grid', () => {
   const MONDAY = '2026-07-27T00:00:00-07:00';
 
   test('starts at the window the server reported and steps a week at a time', async () => {
-    jest.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-08-17T12:00:00-07:00'));
+    vi.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-08-17T12:00:00-07:00'));
     await render(payload({
       since: MONDAY,
       weeks: 3,
@@ -115,7 +117,7 @@ describe('the week grid', () => {
   });
 
   test('stops at today rather than drawing weeks that have not happened', async () => {
-    jest.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-08-03T12:00:00Z'));
+    vi.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-08-03T12:00:00Z'));
     await render(payload({ since: MONDAY, weeks: 26 }));
     // The window is 26 weeks wide but only two of its Mondays have happened.
     expect(weekLabels()).toEqual(['Jul 27', 'Aug 3']);
@@ -127,7 +129,7 @@ describe('the week grid', () => {
 
 describe('the status-change chart', () => {
   test('counts only what it can draw, so the headline can never exceed the bars', async () => {
-    jest.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-08-17T12:00:00-07:00'));
+    vi.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-08-17T12:00:00-07:00'));
     await render(payload({
       since: '2026-07-27T00:00:00-07:00',
       weeks: 3,
@@ -147,7 +149,7 @@ describe('the status-change chart', () => {
   });
 
   test('draws a line per status, so a flat zero is visible as an answer', async () => {
-    jest.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-08-17T12:00:00-07:00'));
+    vi.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-08-17T12:00:00-07:00'));
     await render(payload({
       since: '2026-07-27T00:00:00-07:00',
       status_changes: [{ week_start: '2026-08-10', new_status: 'closed', street_count: 2 }],
@@ -159,7 +161,7 @@ describe('the status-change chart', () => {
   });
 
   test('names one change as singular', async () => {
-    jest.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-08-17T12:00:00-07:00'));
+    vi.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-08-17T12:00:00-07:00'));
     await render(payload({
       since: '2026-07-27T00:00:00-07:00',
       status_changes: [{ week_start: '2026-08-10', new_status: 'closed', street_count: 1 }],
@@ -175,7 +177,7 @@ describe('the imagery-change chart', () => {
   }
 
   test('charts losses and recoveries as separate series', async () => {
-    jest.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-08-17T12:00:00-07:00'));
+    vi.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-08-17T12:00:00-07:00'));
     await render(payload({
       since: '2026-07-27T00:00:00-07:00',
       pano_imagery_changes: [{ week_start: '2026-08-10', expired_count: 4, returned_count: 2 }],
@@ -187,7 +189,7 @@ describe('the imagery-change chart', () => {
   });
 
   test('leaves a loss in the week it happened when the imagery later comes back', async () => {
-    jest.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-08-17T12:00:00-07:00'));
+    vi.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-08-17T12:00:00-07:00'));
     await render(payload({
       since: '2026-07-27T00:00:00-07:00',
       pano_imagery_changes: [
@@ -202,7 +204,7 @@ describe('the imagery-change chart', () => {
   });
 
   test('zero-fills a week the server had nothing to report for', async () => {
-    jest.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-08-17T12:00:00-07:00'));
+    vi.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-08-17T12:00:00-07:00'));
     await render(payload({
       since: '2026-07-27T00:00:00-07:00',
       pano_imagery_changes: [{ week_start: '2026-08-10', expired_count: 1, returned_count: 0 }],
@@ -262,7 +264,7 @@ describe('the regained-imagery queue', () => {
   });
 
   test('points the street id at the map above rather than at Explore, which cannot serve a retired street', async () => {
-    const onShowStreet = jest.fn().mockReturnValue(true);
+    const onShowStreet = vi.fn().mockReturnValue(true);
     await render(payload({ reopen_candidates: [candidate()] }), { onShowStreet });
     const container = document.getElementById('trend-reopen-candidates');
     // An anchor here would be a link to /explore, which answers a 500 for every street this queue lists.
@@ -312,10 +314,10 @@ describe('the regained-imagery queue', () => {
 
   test('reopens only after confirmation, via PUT, then reloads the trend', async () => {
     await render(payload({ reopen_candidates: [candidate()] }));
-    globalThis.ConfirmDialog = { confirm: jest.fn().mockResolvedValue(true) };
+    globalThis.ConfirmDialog = { confirm: vi.fn().mockResolvedValue(true) };
     const reopenBtn = [...document.querySelectorAll('#trend-reopen-candidates button')]
       .find((b) => b.textContent === 'Reopen');
-    global.fetch = jest.fn().mockResolvedValue({
+    global.fetch = vi.fn().mockResolvedValue({
       ok: true, status: 200, statusText: 'OK', json: async () => payload({ reopen_candidates: [] }),
     });
 
@@ -332,10 +334,10 @@ describe('the regained-imagery queue', () => {
 
   test('does nothing when the confirmation is declined', async () => {
     await render(payload({ reopen_candidates: [candidate()] }));
-    globalThis.ConfirmDialog = { confirm: jest.fn().mockResolvedValue(false) };
+    globalThis.ConfirmDialog = { confirm: vi.fn().mockResolvedValue(false) };
     const reopenBtn = [...document.querySelectorAll('#trend-reopen-candidates button')]
       .find((b) => b.textContent === 'Reopen');
-    global.fetch = jest.fn();
+    global.fetch = vi.fn();
 
     reopenBtn.click();
     await new Promise((resolve) => { setTimeout(resolve, 0); });
@@ -345,10 +347,10 @@ describe('the regained-imagery queue', () => {
 
   test('dismisses without confirmation, via DELETE', async () => {
     await render(payload({ reopen_candidates: [candidate()] }));
-    globalThis.ConfirmDialog = { confirm: jest.fn() };
+    globalThis.ConfirmDialog = { confirm: vi.fn() };
     const dismissBtn = [...document.querySelectorAll('#trend-reopen-candidates button')]
       .find((b) => b.textContent === 'Dismiss');
-    global.fetch = jest.fn().mockResolvedValue({
+    global.fetch = vi.fn().mockResolvedValue({
       ok: true, status: 200, statusText: 'OK', json: async () => payload({ reopen_candidates: [] }),
     });
 
@@ -361,18 +363,18 @@ describe('the regained-imagery queue', () => {
 
   test('quotes the server\'s explanation of a refusal, next to the buttons as well as at the top', async () => {
     await render(payload({ reopen_candidates: [candidate()] }));
-    globalThis.ConfirmDialog = { confirm: jest.fn().mockResolvedValue(true) };
+    globalThis.ConfirmDialog = { confirm: vi.fn().mockResolvedValue(true) };
     const reopenBtn = [...document.querySelectorAll('#trend-reopen-candidates button')]
       .find((b) => b.textContent === 'Reopen');
     // A 409 is the stale-row case, and the server says which status the street actually has -- far more use than
     // the status code, which is all the admin would otherwise get.
-    global.fetch = jest.fn().mockResolvedValue({
+    global.fetch = vi.fn().mockResolvedValue({
       ok: false,
       status: 409,
       statusText: 'Conflict',
       json: async () => ({ status: 'Error', message: "Street 555 is 'open', not 'no_imagery'." }),
     });
-    jest.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
 
     reopenBtn.click();
     await new Promise((resolve) => { setTimeout(resolve, 0); });
@@ -388,11 +390,11 @@ describe('the regained-imagery queue', () => {
 
   test('falls back to the status code when the failure body is not the JSON we expect', async () => {
     await render(payload({ reopen_candidates: [candidate()] }));
-    globalThis.ConfirmDialog = { confirm: jest.fn().mockResolvedValue(true) };
-    global.fetch = jest.fn().mockResolvedValue({
+    globalThis.ConfirmDialog = { confirm: vi.fn().mockResolvedValue(true) };
+    global.fetch = vi.fn().mockResolvedValue({
       ok: false, status: 502, statusText: 'Bad Gateway', json: async () => { throw new Error('not json'); },
     });
-    jest.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
 
     [...document.querySelectorAll('#trend-reopen-candidates button')]
       .find((b) => b.textContent === 'Reopen').click();
@@ -469,7 +471,7 @@ describe('the reports-by-region table', () => {
 describe('loading and failure', () => {
   test('reports a failed fetch without touching the snapshot above it', async () => {
     document.body.innerHTML = MARKUP;
-    global.fetch = jest.fn().mockResolvedValue({ ok: false, status: 503, statusText: 'Service Unavailable' });
+    global.fetch = vi.fn().mockResolvedValue({ ok: false, status: 503, statusText: 'Service Unavailable' });
     await new StreetStatusTrend({ trendUrl: '/adminapi/streetStatusTrend', weeks: 3 }).init();
     const status = document.getElementById('trend-status');
     expect(status.textContent).toMatch(/Could not load recent changes: 503/);

@@ -6,7 +6,7 @@
  * `close` the way a browser does (asynchronously).
  */
 
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules } from './loadGlobalScript.js';
 
 
 function installDialogStub() {
@@ -32,7 +32,7 @@ let logged;
 let posted;
 let survey;
 
-beforeEach(() => {
+beforeEach(async () => {
   document.body.innerHTML = `
     <dialog id="survey-modal-container" tabindex="-1" closedby="none">
       <button type="button" id="survey-skip-button">×</button>
@@ -46,12 +46,12 @@ beforeEach(() => {
   logged = [];
   posted = [];
   window.logWebpageActivity = (name) => logged.push(name);
-  window.fetch = jest.fn((url, opts) => {
+  window.fetch = vi.fn((url, opts) => {
     posted.push(JSON.parse(opts.body));
     return Promise.resolve({ ok: true });
   });
   const noop = () => {};
-  Object.assign(window, loadModules('frontend/js/explore/modal/ModalSurvey.js'));
+  Object.assign(window, await loadModules('frontend/js/explore/modal/ModalSurvey.js'));
   survey = new window.ModalSurvey(
     { hold: noop, release: noop },
     { zoomInGate: { hold: noop, release: noop }, zoomOutGate: { hold: noop, release: noop } },

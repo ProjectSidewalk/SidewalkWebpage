@@ -4,7 +4,11 @@
  * brush by keyboard (Arrow/Shift+Arrow/Enter/Escape) and by pointer (click to toggle, drag to sweep).
  */
 
-const {stubI18next, installUtil, loadSources, rgb} = require('./support/accessScoreDockHarness');
+import {stubI18next, installUtil, loadSources, rgb} from './support/accessScoreDockHarness.js';
+import { fakeImport } from './loadGlobalScript.js';
+
+fakeImport('frontend/js/access-score/AccessScoreChart.js', 'AccessScoreChart');
+fakeImport('frontend/js/common/scoreRamp.js', 'ScoreRamp');
 
 describe('AccessScoreHistogram', () => {
     let onBrush;
@@ -25,17 +29,17 @@ describe('AccessScoreHistogram', () => {
     const buttons = () => Array.from(document.querySelectorAll('.acs-histogram__bin'));
     const bars = () => document.querySelector('.acs-histogram__bars');
 
-    beforeAll(() => {
+    beforeAll(async () => {
         stubI18next();
-        installUtil();
-        loadSources();
+        await installUtil();
+        await loadSources();
     });
 
     beforeEach(() => {
         document.body.innerHTML = '<div id="acs-histogram"></div>';
-        onBrush = jest.fn();
-        onHover = jest.fn();
-        onHoverEnd = jest.fn();
+        onBrush = vi.fn();
+        onHover = vi.fn();
+        onHoverEnd = vi.fn();
         chart = new window.AccessScoreHistogram(document.getElementById('acs-histogram'), {onBrush, onHover, onHoverEnd});
         draw();
     });

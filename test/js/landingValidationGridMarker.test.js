@@ -11,7 +11,10 @@
  */
 
 
-const { assetPathStub, installUtilitiesMisc, loadModules } = require('./loadGlobalScript');
+import { assetPathStub, installUtilitiesMisc, loadModules, fakeImport, stubUtil } from './loadGlobalScript.js';
+
+fakeImport('frontend/js/common/pano-viewer/PanoAttribution.js', 'createPanoAttribution');
+fakeImport('frontend/js/common/pano-viewer/PanoViewerLogo.js', 'createPanoViewerLogo');
 
 
 /** What the source-logo and licence-line stubs were last told: the card owes a credit on a crop and nothing else. */
@@ -50,12 +53,12 @@ describe('the landing validation grid\'s label marker', () => {
             <section id="landing-validation-container" hidden>
               <div id="landing-validation-grid"></div>
             </section>`;
-        window.fetch = jest.fn(() => Promise.resolve({
+        window.fetch = vi.fn(() => Promise.resolve({
             ok: true,
             json: () => Promise.resolve({ labelsOfType: [gridEntry] }),
         }));
         // Votes go through the anonymous-session wrapper, not bare fetch.
-        window.util.lazyIdentityFetch = jest.fn(() => Promise.resolve({ ok: true }));
+        window.util.lazyIdentityFetch = vi.fn(() => Promise.resolve({ ok: true }));
         let start;
         window.util.onFirstInteractionOrIdle = (fn) => { start = fn; };
         // The tests read the DOM the grid builds, not the instance.
@@ -64,9 +67,9 @@ describe('the landing validation grid\'s label marker', () => {
         await start();
     }
 
-    beforeAll(() => {
+    beforeAll(async () => {
         window.i18next = { t: (key) => key };
-        window.util = {
+        stubUtil({
             assetPath: assetPathStub,
             camelToKebab: (s) => s.toLowerCase(),
             saveDataEnabled: () => false,
@@ -74,9 +77,9 @@ describe('the landing validation grid\'s label marker', () => {
             lazyIdentityFetch: () => Promise.resolve({ ok: true }),
             EXPLORE_CANVAS_WIDTH: 720,
             EXPLORE_CANVAS_HEIGHT: 480,
-        };
-        installUtilitiesMisc(); // The real util.misc, so labelMarkerFraction under test is the shipped one.
-        window.logWebpageActivity = jest.fn();
+        });
+        await installUtilitiesMisc(); // The real util.misc, so labelMarkerFraction under test is the shipped one.
+        window.logWebpageActivity = vi.fn();
         // jsdom has no layout, so it has no matchMedia; the grid asks it how many slots this width shows.
         window.matchMedia = () => ({ matches: false });
         window.createPanoViewerLogo = () => ({
@@ -87,7 +90,7 @@ describe('the landing validation grid\'s label marker', () => {
             show: () => { credit.attribution = 'shown'; },
             hide: () => { credit.attribution = 'hidden'; },
         });
-        Object.assign(window, loadModules('frontend/js/LandingValidationGrid.js'));
+        Object.assign(window, await loadModules('frontend/js/LandingValidationGrid.js'));
     });
 
     it('draws the marker where the crop says its label is', async () => {
@@ -130,7 +133,7 @@ describe('the landing validation grid\'s label marker', () => {
         const card = document.querySelector('.lvg-card');
         const img = card.querySelector('.lvg-card-photo');
         // The pool is empty after the first render, so the swap refills it; the refill returns the next label.
-        window.fetch = jest.fn(() => Promise.resolve({
+        window.fetch = vi.fn(() => Promise.resolve({
             ok: true,
             json: () => Promise.resolve({ labelsOfType: [entry({
                 label: { ...entry().label, label_id: 2 }, cropUrl: '/cropImage/CurbRamp/2',

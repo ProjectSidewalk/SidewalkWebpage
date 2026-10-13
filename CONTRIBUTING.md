@@ -178,7 +178,7 @@ asset-path check, so any frontend lint failure blocks the merge), **`Route reach
   can fail the build even when everything still passes. The JS suite reports coverage but has no floor yet (#5112).
 - **Advisory work never blocks.** `Python tests (offline tooling)` is the one check that reports status without
   being required — it covers an operator utility that never runs on the server. Everything else in the checks list
-  gates the merge, the Jest suite included (#5132).
+  gates the merge, the Vitest suite included (#5132).
 
 Full gating policy and rationale: [`docs/testing-and-ci.md`](docs/testing-and-ci.md).
 

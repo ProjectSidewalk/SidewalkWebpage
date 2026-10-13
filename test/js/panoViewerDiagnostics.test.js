@@ -10,11 +10,11 @@
  * global scope alongside stubs for the subclasses its constructor names.
  */
 
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules } from './loadGlobalScript.js';
 
 
-function loadPanoViewer() {
-    Object.assign(window, loadModules('frontend/js/common/pano-viewer/NoImageryError.js', 'frontend/js/common/pano-viewer/PanoViewer.js'));
+async function loadPanoViewer() {
+    Object.assign(window, await loadModules('frontend/js/common/pano-viewer/NoImageryError.js', 'frontend/js/common/pano-viewer/PanoViewer.js'));
     return window.PanoViewer;
 }
 
@@ -22,26 +22,26 @@ describe('PanoViewer diagnostics', () => {
     /** A concrete viewer whose initialize() does nothing, so create() can run against a real mount. */
     let TestViewer;
 
-    beforeAll(() => {
-        const PanoViewer = loadPanoViewer();
+    beforeAll(async () => {
+        const PanoViewer = await loadPanoViewer();
         TestViewer = class extends PanoViewer {
             async initialize() {}
         };
     });
 
     beforeEach(() => {
-        jest.spyOn(console, 'warn').mockImplementation(() => {});
-        window.logWebpageActivity = jest.fn();
+        vi.spyOn(console, 'warn').mockImplementation(() => {});
+        window.logWebpageActivity = vi.fn();
     });
 
     afterEach(() => {
-        jest.restoreAllMocks();
+        vi.restoreAllMocks();
         delete window.logWebpageActivity;
     });
 
     it('hands the event to a subscribed tracker and leaves webpage_activity alone', () => {
         const viewer = new TestViewer();
-        const listener = jest.fn();
+        const listener = vi.fn();
         viewer.addListener('diagnostic', listener);
 
         viewer._fireDiagnostic('TokenRefreshed', { remainingSec: 3595, attempt: 1 });
@@ -60,7 +60,7 @@ describe('PanoViewer diagnostics', () => {
 
     it('flattens values to the note alphabet and drops empty ones', () => {
         const viewer = new TestViewer();
-        const listener = jest.fn();
+        const listener = vi.fn();
         viewer.addListener('diagnostic', listener);
 
         viewer._fireDiagnostic('TokenRefreshFailed', { reason: 'a:b,c', status: undefined, code: null });
@@ -70,7 +70,7 @@ describe('PanoViewer diagnostics', () => {
 
     it('stops delivering to a removed listener', () => {
         const viewer = new TestViewer();
-        const listener = jest.fn();
+        const listener = vi.fn();
         viewer.addListener('diagnostic', listener);
         viewer.removeListener('diagnostic', listener);
 
@@ -85,7 +85,7 @@ describe('PanoViewer diagnostics', () => {
         const mount = document.createElement('div');
         document.body.appendChild(mount);
         const viewer = await TestViewer.create(mount);
-        const listener = jest.fn();
+        const listener = vi.fn();
         viewer.addListener('diagnostic', listener);
         const canvas = document.createElement('canvas');
         mount.appendChild(canvas);

@@ -10,7 +10,10 @@
  * class written for Grunt concatenation.
  */
 
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules, fakeImport, stubUtil } from './loadGlobalScript.js';
+
+fakeImport('frontend/js/common/pano-viewer/PanoAttribution.js', 'createPanoAttribution');
+fakeImport('frontend/js/common/pano-viewer/PanoViewerLogo.js', 'createPanoViewerLogo');
 
 
 const POV = { heading: 10, pitch: 0, zoom: 1 };
@@ -20,11 +23,11 @@ function deferredViewer() {
     const pending = [];
     return {
         pending,
-        setPano: jest.fn(() => new Promise((resolve) => pending.push(resolve))),
-        addListener: jest.fn(),
+        setPano: vi.fn(() => new Promise((resolve) => pending.push(resolve))),
+        addListener: vi.fn(),
         getPanoId: () => 'pano-1',
-        resize: jest.fn(),
-        setPov: jest.fn(),
+        resize: vi.fn(),
+        setPov: vi.fn(),
         getPov: () => ({ ...POV }),
     };
 }
@@ -36,9 +39,9 @@ describe('PopupPanoManager load lifecycle', () => {
     let svHolder;
     let loadingEl;
 
-    beforeEach(() => {
-        jest.useFakeTimers();
-        jest.resetModules();
+    beforeEach(async () => {
+        vi.useFakeTimers();
+        vi.resetModules();
         // The overlay is a sibling of the holder inside the wrap, which is where #init looks for it.
         document.body.innerHTML = `
             <div class="label-detail__pano-wrap">
@@ -49,31 +52,31 @@ describe('PopupPanoManager load lifecycle', () => {
         svHolder = document.getElementById('sv-holder');
         loadingEl = document.querySelector('.label-detail__pano-loading');
 
-        window.panzoom = () => ({ on: jest.fn(), zoomAbs: jest.fn(), moveTo: jest.fn(), getTransform: () => ({}) });
-        window.util = {
+        window.panzoom = () => ({ on: vi.fn(), zoomAbs: vi.fn(), moveTo: vi.fn(), getTransform: () => ({}) });
+        stubUtil({
             assetPath: (p) => `/assets/${p}`,
             afterLoadIdle: () => {},
             isMobile: () => false,
             misc: { getIconImagePaths: () => null, getLabelColors: () => '#000' },
-        };
+        });
         window.i18next = { t: (k) => k };
-        window.createPanoViewerLogo = () => ({ showPrimaryLogo: jest.fn(), showSourceLogo: jest.fn() });
-        window.createPanoAttribution = () => ({ show: jest.fn(), hide: jest.fn() });
+        window.createPanoViewerLogo = () => ({ showPrimaryLogo: vi.fn(), showSourceLogo: vi.fn() });
+        window.createPanoAttribution = () => ({ show: vi.fn(), hide: vi.fn() });
         window.LabelVisibilityToggle = { HIDDEN_CLASS: 'hidden' };
-        window.PannellumViewer = { create: jest.fn() };
-        window.fetch = jest.fn(() => Promise.resolve({ ok: false }));
-        jest.spyOn(console, 'error').mockImplementation(() => {});
+        window.PannellumViewer = { create: vi.fn() };
+        window.fetch = vi.fn(() => Promise.resolve({ ok: false }));
+        vi.spyOn(console, 'error').mockImplementation(() => {});
 
         viewer = deferredViewer();
-        viewerType = { create: jest.fn(() => Promise.resolve(viewer)), preloadLibrary: jest.fn() };
+        viewerType = { create: vi.fn(() => Promise.resolve(viewer)), preloadLibrary: vi.fn() };
 
-        Object.assign(window, loadModules('frontend/js/common/label-detail/PopupPanoManager.js'));
+        Object.assign(window, await loadModules('frontend/js/common/label-detail/PopupPanoManager.js'));
         PopupPanoManager = window.PopupPanoManager;
     });
 
     afterEach(() => {
-        jest.useRealTimers();
-        jest.restoreAllMocks();
+        vi.useRealTimers();
+        vi.restoreAllMocks();
     });
 
     const createManager = () => PopupPanoManager.create(svHolder, document.getElementById('button-holder'),
@@ -92,7 +95,7 @@ describe('PopupPanoManager load lifecycle', () => {
     /** Drains microtasks, then the manager's fixed 250ms reveal delay, then microtasks again. */
     const settle = async () => {
         await flush();
-        jest.advanceTimersByTime(300);
+        vi.advanceTimersByTime(300);
         await flush();
     };
 
