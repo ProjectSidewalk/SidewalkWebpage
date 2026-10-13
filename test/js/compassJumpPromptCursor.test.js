@@ -21,11 +21,13 @@ describe('Compass cursor under the label-before-jump prompt', () => {
             onMoveStarted: (listener) => { nav.moveStarted = listener; },
             onMoveFinished: (listener) => { nav.moveFinished = listener; },
             onHeadingSettled: jest.fn(),
+        };
+        const streetProgress = {
             onLabelBeforeJumpChanged: (listener) => { nav.jumpPrompt = listener; },
             isLabelBeforeJumpArmed: () => false,
         };
         compass = new Compass({ isOnboarding: false }, { isRouteComplete: false, isRegionComplete: false, isRouteOrRegionComplete: () => false },
-            { onCurrentTaskChanged: jest.fn() }, { onPovChanged: jest.fn() }, navigationService, {},
+            { onCurrentTaskChanged: jest.fn() }, { onPovChanged: jest.fn() }, navigationService, streetProgress, {},
             { push: jest.fn() });
     });
 

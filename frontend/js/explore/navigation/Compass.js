@@ -10,6 +10,7 @@ import '../../common/utilitiesMath.js';
 /** @typedef {import('../panorama/PanoManager.js').PanoManager} PanoManager */
 /** @typedef {import('../region/RegionModel.js').RegionModel} RegionModel */
 /** @typedef {import('../alert/StuckAlert.js').StuckAlert} StuckAlert */
+/** @typedef {import('../task/StreetProgress.js').StreetProgress} StreetProgress */
 /** @typedef {import('../task/TaskContainer.js').TaskContainer} TaskContainer */
 /** @typedef {import('../data/Tracker.js').Tracker} Tracker */
 
@@ -19,6 +20,7 @@ export class Compass {
   #taskContainer;
   #panoManager;
   #navigationService;
+  #streetProgress;
   #stuckAlert;
   #tracker;
   /** @type {Array<() => void>} */
@@ -43,16 +45,18 @@ export class Compass {
    * @param {TaskContainer} taskContainer - Whose current street the compass points along; a new street re-aims it.
    * @param {PanoManager} panoManager - Whose view is read and turned, and followed as it changes.
    * @param {NavigationService} navigationService - Makes the moves a compass click asks for; its moves pause the
-   *   click and, once settled, re-aim the compass; its label-before-jump prompt shows here.
+   *   click and, once settled, re-aim the compass.
+   * @param {StreetProgress} streetProgress - Whose label-before-jump prompt shows here, and makes the jump it offers.
    * @param {StuckAlert} stuckAlert - Told of a compass click, which is a sign the user isn't stuck.
    * @param {Tracker} tracker
    */
-  constructor(config, regionModel, taskContainer, panoManager, navigationService, stuckAlert, tracker) {
+  constructor(config, regionModel, taskContainer, panoManager, navigationService, streetProgress, stuckAlert, tracker) {
     this.#config = config;
     this.#regionModel = regionModel;
     this.#taskContainer = taskContainer;
     this.#panoManager = panoManager;
     this.#navigationService = navigationService;
+    this.#streetProgress = streetProgress;
     this.#stuckAlert = stuckAlert;
     this.#tracker = tracker;
 
@@ -84,7 +88,7 @@ export class Compass {
     navigationService.onMoveStarted(() => this.click.hold('move'));
     navigationService.onMoveFinished(() => this.click.release('move'));
     navigationService.onHeadingSettled(() => this.update());
-    navigationService.onLabelBeforeJumpChanged((armed) => {
+    streetProgress.onLabelBeforeJumpChanged((armed) => {
       if (armed) this.showLabelBeforeJumpMessage();
       else this.resetBeforeJump();
     });
@@ -170,7 +174,7 @@ export class Compass {
     } else {
       this.#jumpMessageOnclick = async () => {
         this.#tracker.push('LabelBeforeJump_Jump');
-        await this.#navigationService.jumpToANewTask();
+        await this.#streetProgress.jumpToANewTask();
       };
     }
     this.attachMessageClickHandler(this.#jumpMessageOnclick);
@@ -290,7 +294,7 @@ export class Compass {
   update() {
     // No route guidance in free exploration (#4451): there is no red line to follow or route to return to.
     if (this.#config.isExploreAddressMode) return;
-    if (!this.#navigationService.isLabelBeforeJumpArmed() && !this.#config.isOnboarding) {
+    if (!this.#streetProgress.isLabelBeforeJumpArmed() && !this.#config.isOnboarding) {
       if (this.#checkEnRoute()) {
         this.stopBlinking();
         this.setTurnMessage();

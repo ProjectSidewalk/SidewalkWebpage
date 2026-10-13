@@ -55,7 +55,7 @@ describe('MissionController.wrapUpRouteOrRegion', () => {
             form,
             modalMissionComplete,
             {}, {}, { onFinishClick: jest.fn() },
-            { onRouteEndReached: jest.fn(), onRegionExhausted: jest.fn() }, { onPovChanged: jest.fn() },
+            {}, { onRouteEndReached: jest.fn(), onRegionExhausted: jest.fn() }, { onPovChanged: jest.fn() },
             {}, {}, {}, {}, {},
             { push: jest.fn() },
         );

@@ -1,58 +1,34 @@
 /**
- * The moves along a street, between streets and to a named pano. Whether the labeler may walk is canWalk(): nothing
- * holds the `walking` gate, no move is in flight, and the beat after a landing is over. A move runs idle → moving →
- * settling → idle. What a move means to the rest of the tool is announced (onMoveStarted, onMoved, …) rather than done
- * here, since most of what reacts is built after this.
+ * The moves: along a street, to a named or linked pano, and to the next street. Whether the labeler may walk is
+ * canWalk(): nothing holds the `walking` gate, no move is in flight, and the beat after a landing is over. A move runs
+ * idle → moving → settling → idle. What a move means to the rest of the tool is announced (onMoveStarted, onLanded,
+ * onMoved, …) rather than done here: the street's bookkeeping is StreetProgress's, the search down it StreetSweep's.
  */
 
 import { Gate } from '../../common/Gate.js';
-import { NoImageryError } from '../../common/pano-viewer/NoImageryError.js';
-import { PanoViewer } from '../../common/pano-viewer/PanoViewer.js';
-import { util } from '../../common/utilities.js';
 import { NoImageryFlagGuard } from '../panorama/NoImageryFlagGuard.js';
-import { TaskContainer } from '../task/TaskContainer.js';
+import { util } from '../../common/utilities.js';
 import '../../common/utilitiesMath.js';
-import '../../common/utilitiesSidewalk.js';
 /** @typedef {import('../alert/AlertController.js').AlertController} AlertController */
-/** @typedef {import('../Main.js').ExploreConfig} ExploreConfig */
 /** @typedef {import('../Main.js').StreetviewUi} StreetviewUi */
-/** @typedef {import('../data/Form.js').Form} Form */
-/** @typedef {import('../alert/JumpAlert.js').JumpAlert} JumpAlert */
 /** @typedef {import('../label/LabelContainer.js').LabelContainer} LabelContainer */
 /** @typedef {import('../menu/LabelModes.js').LabelModes} LabelModes */
-/** @typedef {import('../mission/Mission.js').Mission} Mission */
-/** @typedef {import('../mission/MissionContainer.js').MissionContainer} MissionContainer */
-/** @typedef {import('../mission/MissionModel.js').MissionModel} MissionModel */
 /** @typedef {import('../panorama/NavArrows.js').NavArrows} NavArrows */
 /** @typedef {import('../panorama/PanoManager.js').PanoManager} PanoManager */
 /** @typedef {import('../../common/pano-viewer/PanoStore.js').PanoStore} PanoStore */
-/** @typedef {import('../region/RegionModel.js').RegionModel} RegionModel */
-/** @typedef {import('../alert/StuckAlert.js').StuckAlert} StuckAlert */
-/** @typedef {import('../task/Task.js').Task} Task */
-/** @typedef {import('../data/Tracker.js').Tracker} Tracker */
+/** @typedef {import('./StreetSweep.js').StreetSweep} StreetSweep */
 
 export class NavigationService {
-  static #END_OF_STREET_THRESHOLD = 25; // Distance from the street endpoint when we consider it complete (meters).
   static #MOVE_DELAY = 800; // Move delay prevents users from spamming through a mission.
-  // Distance between points on a street when searching it for imagery (km). Public so that PanoManager can sample
-  // backup starting points at the same granularity as moveForward()'s search.
-  static DIST_INCREMENT = 0.01;
 
   #ui;
-  #config;
-  #regionModel;
-  #missionModel;
-  #missionContainer;
-  #taskContainer;
   #panoStore;
   #panoManager;
+  #streetSweep;
+  #labelModes;
   #navArrows;
   #keyboardLock;
   #alertController;
-  #stuckAlert;
-  #jumpAlert;
-  #form;
-  #tracker;
 
   /**
    * Policy holds only (a pop-up, the tutorial, mission complete); moves end on their own, so canWalk() adds them.
@@ -69,17 +45,10 @@ export class NavigationService {
 
   #cooldownTimer = null; // Set for a beat after a move lands, so a mission can't be spam-walked without labeling.
 
-  #labelBeforeJumpArmed = false;
-
-  /**
-   * Tracks which mission a task should be linked to when shown on mission complete modal (I think).
-   * @type {Mission | undefined}
-   */
-  #missionJump = undefined;
-  #stuckPanos = new Set([]);
-  // Traversal the #stuckPanos set belongs to; see the reset in #sweepForward().
-  #stuckPanosTraversalKey = null;
   #povSettlePoll = null; // Interval id; see #refreshHeadingViewsAfterPovSettles.
+
+  /** @type {Array<() => void>} */
+  #landedListeners = [];
 
   /** @type {Array<() => void>} */
   #movedListeners = [];
@@ -93,59 +62,35 @@ export class NavigationService {
   /** @type {Array<() => void>} */
   #headingSettledListeners = [];
 
-  /** @type {Array<(armed: boolean) => void>} */
-  #labelBeforeJumpListeners = [];
-
-  /** @type {Array<() => void>} */
-  #routeEndReachedListeners = [];
-
-  /** @type {Array<() => void>} */
-  #regionExhaustedListeners = [];
-
   /**
    * @param {StreetviewUi} ui - The pano area's layers, whose stacking says whether a click labels or pans.
-   * @param {ExploreConfig} config
-   * @param {RegionModel} regionModel
-   * @param {MissionModel} missionModel - Told of progress after each move.
-   * @param {MissionContainer} missionContainer - Whose current mission a finished street is filed under.
-   * @param {TaskContainer} taskContainer - The streets being walked.
    * @param {PanoStore} panoStore - Names the pano stood on, which a move must leave.
    * @param {PanoManager} panoManager - Makes the moves; its panning is held while one is in flight.
+   * @param {StreetSweep} streetSweep - Finds the next pano along the street for moveForward() and the jump.
    * @param {LabelContainer} labelContainer - Whose minimap markers lead back to a label's pano (#2561).
-   * @param {LabelModes} labelModes - Arming a label type raises the drawing layer over the pano; Walk lowers it.
-   * @param {NavArrows} navArrows - Hidden while walking is off, redrawn once it is back.
+   * @param {LabelModes} labelModes - An armed type raises the drawing layer and hides the arrows; a landing disarms it.
+   * @param {NavArrows} navArrows - Shown only while the labeler can walk in Walk mode.
    * @param {Gate} keyboardLock - Held while a move is in flight.
    * @param {AlertController} alertController - Tells the labeler when imagery can't be loaded.
-   * @param {StuckAlert} stuckAlert - Names the street the labeler is moved to when one runs out of imagery.
-   * @param {JumpAlert} jumpAlert - The tip shown after a jump.
-   * @param {Form} form - Submits a street before the labeler is moved off it.
-   * @param {Tracker} tracker
    */
-  constructor(ui, config, regionModel, missionModel, missionContainer, taskContainer, panoStore, panoManager,
-    labelContainer, labelModes, navArrows, keyboardLock, alertController, stuckAlert, jumpAlert, form, tracker) {
+  constructor(ui, panoStore, panoManager, streetSweep, labelContainer, labelModes, navArrows, keyboardLock,
+    alertController) {
     this.#ui = ui;
-    this.#config = config;
-    this.#regionModel = regionModel;
-    this.#missionModel = missionModel;
-    this.#missionContainer = missionContainer;
-    this.#taskContainer = taskContainer;
     this.#panoStore = panoStore;
     this.#panoManager = panoManager;
+    this.#streetSweep = streetSweep;
+    this.#labelModes = labelModes;
     this.#navArrows = navArrows;
     this.#keyboardLock = keyboardLock;
     this.#alertController = alertController;
-    this.#stuckAlert = stuckAlert;
-    this.#jumpAlert = jumpAlert;
-    this.#form = form;
-    this.#tracker = tracker;
 
     this.walking.onChanged(() => this.#refreshWalkUi());
     labelContainer.onMarkerClick((label) => {
       this.returnToPano(label.getPanoId(), label.getProperty('povOfLabelIfCentered'));
     });
     labelModes.onModeChanged((mode) => {
-      if (mode === 'Walk') this.switchToExploreMode();
-      else this.switchToLabelingMode();
+      this.#raiseDrawingLayer(mode !== 'Walk');
+      this.#refreshWalkUi();
     });
   }
 
@@ -174,31 +119,15 @@ export class NavigationService {
   }
 
   /**
-   * Told when the labeler is asked to finish labeling here before a jump (armed), and when the jump begins (disarmed).
-   * @param {(armed: boolean) => void} listener
-   */
-  onLabelBeforeJumpChanged(listener) {
-    this.#labelBeforeJumpListeners.push(listener);
-  }
-
-  /**
-   * Told when a route's last reachable pano is reached, so the finish can be offered.
+   * Told first when a move lands, after onMoveFinished: the street's bookkeeping, which onMoved's listeners then read.
    * @param {() => void} listener
    */
-  onRouteEndReached(listener) {
-    this.#routeEndReachedListeners.push(listener);
+  onLanded(listener) {
+    this.#landedListeners.push(listener);
   }
 
   /**
-   * Told when a region's streets run out under the labeler, so it can be wrapped up from where they stand.
-   * @param {() => void} listener
-   */
-  onRegionExhausted(listener) {
-    this.#regionExhaustedListeners.push(listener);
-  }
-
-  /**
-   * Told once a move has landed and the task state reflects the new position, after onMoveFinished.
+   * Told once a move has landed and the task state reflects the new position, after onLanded.
    * @param {() => void} listener
    */
   onMoved(listener) {
@@ -223,10 +152,13 @@ export class NavigationService {
     return !this.walking.isHeld() && !this.isMoving() && this.#cooldownTimer === null;
   }
 
-  /** Shows the arrows and the Walk button as usable only while canWalk() says so. */
+  /**
+   * Shows the Walk button as usable only while canWalk() says so, and the arrows only then and in Walk mode, since an
+   * armed label type puts the drawing layer on top (#5768).
+   */
   #refreshWalkUi() {
     const canWalk = this.canWalk();
-    if (canWalk) this.#navArrows.show();
+    if (canWalk && this.#labelModes.getMode() === 'Walk') this.#navArrows.show();
     else this.#navArrows.hide();
     this.#ui.modeSwitchWalk.style.opacity = canWalk ? '1' : '0.5';
   }
@@ -237,20 +169,6 @@ export class NavigationService {
    */
   isHeadingSettling() {
     return this.#moveState !== 'idle';
-  }
-
-  /** @returns {boolean} Whether the labeler has been asked to finish labeling here before the next jump. */
-  isLabelBeforeJumpArmed() {
-    return this.#labelBeforeJumpArmed;
-  }
-
-  /**
-   * Arms or disarms the label-before-jump prompt, and tells the compass, which shows it.
-   * @param {boolean} armed
-   */
-  #setLabelBeforeJumpState(armed) {
-    this.#labelBeforeJumpArmed = armed;
-    this.#labelBeforeJumpListeners.forEach((listener) => listener(armed));
   }
 
   /**
@@ -264,253 +182,6 @@ export class NavigationService {
       this.#navArrows.reset();
       this.#refreshWalkUi();
     }, NavigationService.#MOVE_DELAY);
-  }
-
-  /**
-   * Handle no remaining imagery on current street. Log it if no imagery at all, or let them finish if near the end.
-   *
-   * @param {boolean} streetLooksEmpty - Whether the search that ran out actually established anything about the
-   *     street: true when every sampled point along it got a clean "nothing usable here" from the provider, false
-   *     when any of them failed to get an answer at all (a provider error, a blocked or unreachable API). Only the
-   *     true case may report the street as imagery-less, or move the labeler off it — see the bail-out below.
-   * @returns {Promise<string|null|void>} What moveForward() resolves with if the labeler is moved on, otherwise null.
-   */
-  async #handleImageryNotFound(streetLooksEmpty) {
-    const currentTask = this.#taskContainer.getCurrentTask();
-    const currentMission = this.#missionContainer.getCurrentMission();
-
-    // In free exploration (#4451) there is no task to finish and no street to advance to: don't report the street as
-    // imagery-less (the user is mid-street by design), just tell them why they can't go further. Which reason that is
-    // depends on whether the provider actually answered — "there's nothing more this way" is a claim about the world
-    // that a failed lookup can't support.
-    if (this.#config.isExploreAddressMode) {
-      this.#restoreUiAfterFailedMove();
-      const key = streetLooksEmpty ? 'popup.free-explore-no-imagery' : 'popup.imagery-load-failed';
-      const type = streetLooksEmpty ? 'exploreAddressNoImagery' : 'imageryLoadFailed';
-      this.#alertController.showAlert(i18next.t(key), type, false);
-      return Promise.resolve(null);
-    }
-
-    // If the user is relatively close to the end of the street, tell them to finish labeling before jumping. This is
-    // checked before the provider-failure bail-out below because it rests on where the labeler actually walked, not
-    // on anything the provider said: they covered the street, so a lookup that failed at the far end is no reason to
-    // withhold credit for work that was really done. It is also unreachable by the runaway loop #4918 is about,
-    // which never moves off a street's start point.
-    //
-    // Judged at the furthest point reached as well as where the labeler stands: the sweep's exclusions can land a
-    // move back near the start of a street already walked to its end, and the exhaustion that follows must not turn
-    // that street into a no-imagery report (#5350).
-    //
-    // "Near" is the number free exploration may leave unseen (StreetCoverage.MaxUncoveredM), so the two modes agree
-    // on what an imagery gap at the end of a street is worth. More generous than #END_OF_STREET_THRESHOLD, since the
-    // imagery simply ends; Task.isAtEnd scales it down on short streets.
-    const nearEndM = this.#config.streetCoverage.max_uncovered_m;
-    const furthest = currentTask.getFurthestPointReached().geometry.coordinates;
-    const nearEnd = currentTask.isAtEnd(this.#panoManager.getPosition(), nearEndM)
-      || currentTask.isAtEnd({ lat: furthest[1], lng: furthest[0] }, nearEndM);
-    const inView = !nearEnd && this.#isWholeStreetInView(currentTask);
-    if (inView) this.#tracker.push('NoImagery_StreetInView');
-    if (nearEnd || inView) {
-      this.#endTheCurrentTask(currentTask, currentMission);
-      this.#updateUiAfterMove();
-      return Promise.resolve(null);
-    }
-
-    // The search never got an answer, so nothing is known about this street's imagery: don't report it and don't move
-    // on to the next one. Just say so and let the user retry once the provider recovers. This is the same distinction
-    // the page-load path draws, and it has to be drawn here too — otherwise a provider outage still walks the
-    // region, just three streets at a time instead of unbounded (#4918).
-    if (!streetLooksEmpty) {
-      this.#tracker.push('PanoSearchFailed');
-      // moveForward() locked the UI for a move that isn't going to happen, and this branch leaves the user standing
-      // where they were, so hand the controls back — otherwise the alert is the last thing they can interact with.
-      this.#restoreUiAfterFailedMove();
-      this.#alertController.showAlert(i18next.t('popup.imagery-load-failed'), 'imageryLoadFailed', false);
-      return Promise.resolve(null);
-    }
-
-    // One give-up per street. The terminal branch below hands the controls back — the route's finish gate needs the
-    // labeler able to look around — so they can walk into this path again on the street they are still standing on,
-    // filing a duplicate report and re-firing the finish toast. No other give-up leaves them on a flagged street.
-    if (currentTask.wasGivenUpOnImagery()) {
-      this.#restoreUiAfterFailedMove();
-      return Promise.resolve(null);
-    }
-
-    // Nowhere near the end, so the street really does look like it runs out of imagery ahead of the user. Two
-    // separable decisions follow: whether to *write down* that the street looks imagery-less, and whether to move
-    // the labeler somewhere they can keep working (#4918).
-    //
-    // Writing it down records evidence and nothing else: the task is not completed or submitted, and the street
-    // keeps its priority and its place in the rotation until the offline imagery checker confirms the reports and
-    // retires it (#4922) — one session's verdict is never enough to move coverage. Even as pure evidence, an
-    // unbroken run of reports is far better explained by one broken session than by a run of empty streets, so
-    // reporting stops at MAX_CONSECUTIVE_FLAGS. Moving on costs nothing, so it continues past that point: a labeler
-    // working a patchy area shouldn't be stranded just because we stopped trusting what we're seeing.
-    const mayFlag = NoImageryFlagGuard.canFlag();
-    NoImageryFlagGuard.recordStreetGivenUp();
-    if (mayFlag) {
-      await util.misc.reportNoImagery(currentTask, currentMission.getProperty('missionId'));
-    } else {
-      this.#tracker.push('NoImageryFlagLimitReached');
-    }
-
-    // The advance ceiling still bounds a run: give-ups leave a street eligible for assignment to everyone else, so a
-    // session that keeps finding empty ones is better explained by a broken session than by an empty region.
-    if (!NoImageryFlagGuard.canAdvance()) {
-      this.#tracker.push('NoImageryAdvanceLimitReached');
-      // The run is over, so the budget goes back: what follows can only be the labeler deciding to try again, which
-      // is a fresh decision rather than a continuation of the automatic run this bounds (#4918).
-      NoImageryFlagGuard.reset();
-      this.#restoreUiAfterFailedMove();
-      // Its own message rather than the imagery-load-failed one: nothing failed to load here — the provider answered
-      // every time, and we are the ones who stopped believing it. "Try again in a few minutes" would be wrong
-      // advice, since waiting changes nothing about a run of streets that all read as empty (#4918).
-      this.#alertController.showAlert(i18next.t('popup.imagery-skip-limit'), 'imagerySkipLimit', false);
-      return Promise.resolve(null);
-    }
-
-    // Get a new task and jump to the new task location. The task being left is deliberately not finished — finishing
-    // it submits completed=true, and the regular submission path credits that as a full audit, which is exactly the
-    // claim a no-imagery verdict cannot support (#4922).
-    const newTask = this.#taskContainer.nextTask(currentTask);
-
-    // Set once the labeler is actually being moved off, not when the street is reported: a run stopped by the advance
-    // ceiling above leaves them standing here, and the flag reads as "done with this street" everywhere — full length
-    // credited toward progress, drawn as walked, never handed back. Client-side only; nothing reaches the server's
-    // notion of completion (#4922).
-    currentTask.giveUpOnImagery();
-    this.#taskContainer.renderTask(currentTask);
-
-    if (newTask) {
-      // Flush what the labeler did here before the current task changes under the buffer. Interactions carry no task
-      // id of their own — the server files them against whichever audit_task the submission names — so anything still
-      // queued would land on the street they are about to be moved to. This is a plain submission, not endTask(): the
-      // task is left unfinished, since finishing it submits completed=true and credits a full audit (#4922).
-      await this.#form.submitData(currentTask);
-      this.#taskContainer.setCurrentTask(newTask);
-      // Not awaited: naming the destination takes a network round trip, and the move should not wait on decoration.
-      this.#stuckAlert.announceSkippedStreetNear(newTask.getMidpoint(), this.#config.mapboxApiKey);
-      // Carries on inside this move; moveForward() would refuse it and strand the labeler on the old pano (#4921).
-      // Announced as a new start, so what closes on a move (Feedback, the context menu) closes for the new street.
-      this.#updateUiBeforeMove();
-      return this.#sweepForward();
-    } else {
-      // Nothing left to walk. This path skips #updateUiAfterMove(), so the move ends here.
-      this.#restoreUiAfterFailedMove();
-      this.#regionModel.setComplete();
-      // Same ending a route gets when its last street is walked normally: the finish toast, then the celebration once
-      // the labeler has looked around. Firing the modal straight from here made the route end mid-stride (#5008).
-      if (this.#regionModel.isRoute) {
-        this.#routeEndReachedListeners.forEach((listener) => listener());
-      } else {
-        this.#regionExhaustedListeners.forEach((listener) => listener());
-      }
-      return Promise.resolve(null);
-    }
-  }
-
-  /**
-   * Whether the user can see the whole street from where they stand. Short streets often can't be walked, since the
-   * search skips the pano the user is on, so seeing it counts (#5474).
-   * @param {Task} task
-   * @returns {boolean}
-   */
-  #isWholeStreetInView(task) {
-    const position = this.#panoManager.getPosition();
-    const here = turf.point([position.lng, position.lat]);
-    return task.getFeature().geometry.coordinates.every((coord) =>
-      turf.distance(here, turf.point(coord), { units: 'meters' }) <= PanoViewer.SEARCH_RADIUS_M);
-  }
-
-  /**
-   * @param {Mission} mission - The mission to associate the current task to.
-   */
-  #finishCurrentTaskBeforeJumping(mission) {
-    mission = mission || this.#missionJump;
-
-    // Finish the current task.
-    const currentTask = this.#taskContainer.getCurrentTask();
-    this.#taskContainer.endTask(currentTask);
-    mission.pushATaskToTheRoute(currentTask);
-  }
-
-  async jumpToANewTask() {
-    // Free exploration (#4451) pins the session to the searched location — there is no next street to jump to. The
-    // beat after a landing counts too: the prompt can arm on the landing a double-click's first half made.
-    if (this.#config.isExploreAddressMode || this.isMoving() || this.#cooldownTimer !== null) return;
-
-    // Start the move before setCurrentTask() below, which synchronously re-aims the compass while still at the old
-    // location — otherwise it would flash the off-route warning (#4174).
-    this.#updateUiBeforeMove();
-
-    try {
-      // Finish the current task.
-      const mission = this.#missionJump || this.#missionContainer.getCurrentMission();
-      this.#finishCurrentTaskBeforeJumping(mission);
-      // The compass takes its prompt down with this.
-      this.#setLabelBeforeJumpState(false);
-
-      const currTask = this.#taskContainer.getCurrentTask();
-      const task = this.#taskContainer.getNextTaskAfterJump() || this.#taskContainer.nextTask(currTask);
-      this.#taskContainer.setCurrentTask(task);
-      this.#taskContainer.setNextTaskAfterJump(null);
-    } catch (err) {
-      // Everything is locked for the move by now, and no move is coming to unlock it.
-      this.#restoreUiAfterFailedMove();
-      throw err;
-    }
-
-    // Not moveForward(), which refuses mid-move. The move can land past `task` if that street has no imagery.
-    await this.#sweepForward();
-    const landedOn = this.#taskContainer.getCurrentTask();
-    this.#panoManager.turnTo(landedOn.headingAlongRoute(this.#panoManager.getPosition()));
-    this.#jumpAlert.onClickJumpMessage();
-  }
-
-  /**
-   * Get a new task and check if it's disconnected from the current task. If yes, then finish the current task after
-   * the user has finished labeling the current location.
-   * @param {Task} task - The task that the user has neared the end of.
-   * @param {Mission} mission - The mission that the task should be associated with.
-   */
-  #endTheCurrentTask(task, mission) {
-    if (!this.#labelBeforeJumpArmed) {
-      this.#missionJump = mission;
-      const nextTask = this.#taskContainer.nextTask(task);
-
-      // A jump to a discontinuous street, or the last street of the route or region, is the user's one chance to
-      // finish labeling this location, so they are asked to before proceeding.
-      if (this.#regionModel.isRouteOrRegionComplete()
-        || !nextTask
-        || !task.isConnectedTo(nextTask, TaskContainer.CONNECTED_TASK_KM, { units: 'kilometers' })) {
-        // If we are out of streets, set the route/region as complete.
-        if (!nextTask) {
-          this.#regionModel.setComplete();
-          // A route completes at its last reachable pano: show the finish toast and arm the 360°-gated auto-complete.
-          // Regions keep the manual compass-click flow.
-          if (this.#regionModel.isRoute) this.#routeEndReachedListeners.forEach((listener) => listener());
-        } else if (!task.isConnectedTo(nextTask, TaskContainer.CONNECTED_TASK_KM, { units: 'kilometers' })) {
-          // If jumping to a new place, record what the next task will be.
-          this.#taskContainer.setNextTaskAfterJump(nextTask);
-        }
-
-        if (nextTask) {
-          // Clear prefetch cache from the previous street and start prefetching for the new street.
-          this.#panoManager.panoViewer.clearPrefetchCache();
-          this.prefetchAlongStreet(nextTask.getFeature());
-        }
-
-        // The compass tells the user to label the current location before moving on.
-        this.#tracker.push('LabelBeforeJump_ShowMsg');
-        this.#setLabelBeforeJumpState(true);
-      } else {
-        // If there is another contiguous task, end the current one and show the next one.
-        this.#taskContainer.endTask(task);
-        mission.pushATaskToTheRoute(task);
-        this.#taskContainer.setCurrentTask(nextTask);
-      }
-    }
   }
 
   /**
@@ -528,54 +199,21 @@ export class NavigationService {
    * Updates the UI after moving to a new location, re-enabling certain elements and interactions.
    */
   #updateUiAfterMove() {
-    const isOnboarding = this.#config.isOnboarding;
-    const newLatLng = this.#panoManager.getPosition();
-    const region = this.#regionModel.currentRegion();
-    const currentMission = this.#missionContainer.getCurrentMission();
-
     this.#startCooldown();
 
-    this.switchToExploreMode();
+    // A move puts the labeler back in Walk mode, as placing a label does, so the mode and the layer order can't drift
+    // apart: ArrowUp walks with a label type armed (#5768).
+    if (this.#labelModes.getMode() !== 'Walk') this.#labelModes.backToWalk();
     this.#panoManager.panning.release('move');
     this.#moveFinishedListeners.forEach((listener) => listener());
 
     try {
-      if (this.#config.isExploreAddressMode) {
-        // Free exploration has no end-of-street: each pano is credited to the street it is on (#5733).
-        this.#taskContainer.recordExploreMove(newLatLng);
-      } else if (!isOnboarding && this.#taskContainer.tasksLoaded()) {
-        // End of the task if the user is close enough to the end point, and we aren't in the tutorial.
-        // TODO I wonder if ending a task should happen elsewhere? Bc some types of moves might never cause an end task?
-        // - that might be because the task was already ended before we moved them, for example...
-        // TODO I hardly understand the todo above, and idk why we would end the task in the middle of updating the
-        //      UI after a move... especially when #endTheCurrentTask() can result in another move...
-        const task = this.#taskContainer.getCurrentTask();
-        if (task && task.isAtEnd(newLatLng, NavigationService.#END_OF_STREET_THRESHOLD)) {
-          // On a route's final street, 25 m-from-endpoint can be a large fraction of a short street, firing "end of
-          // route" long before the last reachable pano (#4640 route manifestation). Defer to the imagery-exhaustion
-          // path (#handleImageryNotFound) unless they've already walked most of the street — on a long street 25 m
-          // really is the end, so preserve today's behavior there.
-          const finalRouteStreet = this.#regionModel.isRoute && !this.#taskContainer.nextTask(task);
-          const streetLen = task.lineDistance({ units: 'meters' });
-          const walkedMostOfStreet = streetLen > 0
-            && task.getDistanceFromStart(newLatLng, { units: 'meters' }) / streetLen >= 0.9;
-          if (!finalRouteStreet || walkedMostOfStreet) {
-            this.#endTheCurrentTask(task, currentMission);
-          }
-        }
-        this.#taskContainer.updateCurrentTask();
-      }
-      this.#missionModel.updateMissionProgress(currentMission, region);
+      this.#landedListeners.forEach((listener) => listener());
     } finally {
-      // Even if the task bookkeeping above throws: leaving 'moving' is what lets the labeler walk again.
+      // Even if the bookkeeping on landing throws: leaving 'moving' is what lets the labeler walk again.
       // Position is final, so position-dependent checks can run again; heading views wait for the pov to settle.
       this.#moveState = 'settling';
       this.#refreshHeadingViewsAfterPovSettles();
-
-      // Now that the task state reflects the new position, predict where the next move will go and pre-download
-      // that pano so the move doesn't wait on the network.
-      this.#preloadNextMoveTarget();
-
       this.#keyboardLock.release('move');
     }
     this.#movedListeners.forEach((listener) => listener());
@@ -616,118 +254,14 @@ export class NavigationService {
     }, pollMs);
   }
 
-  // Moves label drawing layer to the top and hides navigation arrows.
-  switchToLabelingMode() {
-    this.#ui.drawingLayer.style.zIndex = '1';
-    this.#ui.viewControlLayer.style.zIndex = '0';
-    this.#navArrows.hide();
-  }
-
-  // Moves label drawing layer to the bottom. Shows navigation arrows if walk is enabled.
-  switchToExploreMode() {
-    this.#ui.viewControlLayer.style.zIndex = '1';
-    this.#ui.drawingLayer.style.zIndex = '0';
-    if (this.canWalk()) this.#navArrows.show();
+  /** @param {boolean} raise - Drawing layer over the pano (clicks label) or under it (clicks pan and walk). */
+  #raiseDrawingLayer(raise) {
+    this.#ui.drawingLayer.style.zIndex = raise ? '1' : '0';
+    this.#ui.viewControlLayer.style.zIndex = raise ? '0' : '1';
   }
 
   /**
-   * Prefetches Mapillary images for all potential goal points along a street. Fires off requests asynchronously so
-   * that subsequent setLocation() calls can skip the API round-trip. Safe to call multiple times for the same street
-   * — prefetchLocation() deduplicates requests, so only the first call actually fires API requests.
-   * @param {turf.Feature<turf.LineString>} streetGeometry - A Turf LineString of the full street geometry.
-   */
-  prefetchAlongStreet(streetGeometry) {
-    const totalLength = turf.length(streetGeometry); // km
-    let dist = 0;
-    while (dist <= totalLength) {
-      const point = turf.along(streetGeometry, dist);
-      this.#panoManager.panoViewer.prefetchLocation({
-        lat: point.geometry.coordinates[1], lng: point.geometry.coordinates[0],
-      });
-      dist += NavigationService.DIST_INCREMENT;
-    }
-  }
-
-  /**
-   * Computes the location that moveForward() will search first, along with the unwalked remainder of the street.
-   *
-   * The target is the start of the remainder (the user's furthest point reached), bumped one DIST_INCREMENT
-   * forward when the user is already near that point — so we search for imagery that's actually ahead rather
-   * than cycling through other panos clustered at the current location. If they've wandered away from the route,
-   * the target stays at the furthest point to bring them back.
-   *
-   * @param {Task} currentTask - The task whose street is being walked.
-   * @returns {{currLoc: {lat: number, lng: number}, remainder: turf.Feature<turf.LineString>}}
-   */
-  #computeMoveTarget(currentTask) {
-    const startLatLng = turf.point(currentTask.getFurthestPointReached().geometry.coordinates);
-    const streetEndpoint = turf.point([currentTask.getEndCoordinate().lng, currentTask.getEndCoordinate().lat]);
-
-    let remainder = currentTask.unwalkedRemainder();
-    let currLoc = { lat: remainder.geometry.coordinates[0][1], lng: remainder.geometry.coordinates[0][0] };
-
-    const currPosition = this.#panoManager.getPosition();
-    const distFromFurthest = turf.distance(
-      turf.point([currPosition.lng, currPosition.lat]), startLatLng, { units: 'meters' },
-    );
-    if (distFromFurthest <= PanoViewer.SEARCH_RADIUS_M
-      && turf.length(remainder, { units: 'kilometers' }) > NavigationService.DIST_INCREMENT) {
-      remainder = turf.cleanCoords(turf.lineSliceAlong(remainder, NavigationService.DIST_INCREMENT, streetEndpoint));
-      currLoc = { lat: remainder.geometry.coordinates[0][1], lng: remainder.geometry.coordinates[0][0] };
-    }
-    return { currLoc, remainder };
-  }
-
-  /**
-   * Predicts where the next moveForward() will search and pre-downloads the pano that search would pick, so the
-   * next move doesn't wait on the network. Runs the same target computation and (in the viewer) the same search +
-   * scoring as the real move; a misprediction just costs one unused download.
-   */
-  #preloadNextMoveTarget() {
-    // Best-effort: called from post-move UI updates, so never let a prediction error break those.
-    try {
-      if (!this.#taskContainer.tasksLoaded()) return;
-      // No forward move can happen while something holds walking, so there is nothing to preload.
-      if (this.walking.isHeld()) return;
-
-      // When the label-before-jump state is armed, the next forward move is the jump itself: predict the start of
-      // the street being jumped to rather than a point on the street the user is about to leave (which would also
-      // pollute the prefetch cache that #endTheCurrentTask() just re-primed for the new street). No jump target
-      // means the route/region is complete, so there is nothing to preload.
-      const targetTask = this.#labelBeforeJumpArmed
-        ? this.#taskContainer.getNextTaskAfterJump()
-        : this.#taskContainer.getCurrentTask();
-      if (!targetTask) return;
-
-      // Mirror the exclusions the next moveForward() will use: the stuck set plus the pano the user is on now
-      // (moveForward() adds the current pano to the stuck set before searching).
-      const excludedPanos = new Set(this.#stuckPanos);
-      const currentPano = this.#panoStore.getPanoData(this.#panoManager.getPanoId());
-      if (currentPano) excludedPanos.add(currentPano);
-
-      const { currLoc } = this.#computeMoveTarget(targetTask);
-      this.#panoManager.panoViewer.preloadPanoNear(currLoc, excludedPanos);
-    } catch (err) {
-      console.warn('Failed to preload the next move target:', err);
-    }
-  }
-
-  /**
-   * Identity of the walk a #stuckPanos set belongs to. Namespaced because route walk orders and street edge ids are
-   * both small integers from unrelated sequences.
-   *
-   * @param {Task} task - The task being walked.
-   * @returns {string} The route traversal's key, or the street's when not on a route.
-   */
-  #stuckPanosKeyFor(task) {
-    const walkOrder = task.getWalkOrder();
-    return this.#regionModel.isRoute && walkOrder !== null && walkOrder !== undefined
-      ? `route:${walkOrder}`
-      : `street:${task.getStreetEdgeId()}`;
-  }
-
-  /**
-   * Attempts to move the user forward by incrementally checking for imagery every few meters along the route.
+   * Moves the labeler forward along the street, searching for imagery a few meters at a time.
    * @returns {Promise<string|null|void>} Resolves with the new pano ID on a successful move, null if the street ran
    *     out of imagery, or undefined if the labeler can't walk now.
    */
@@ -738,74 +272,48 @@ export class NavigationService {
   }
 
   /**
-   * Searches the current street for imagery ahead and lands on it, inside a move that has already started: a
-   * forward step, a jump, or carrying on past a street with no imagery.
-   * @returns {Promise<string|null|void>} As for moveForward().
+   * Starts a move, runs `switchStreet`, then sweeps the new street. A walking hold doesn't refuse it (finishing the
+   * street can raise the sign-in prompt); a move in flight or the beat after a landing does, so a double-click
+   * can't skip the jump prompt.
+   * @param {() => void} switchStreet - Finishes the street being left and makes the next one current.
+   * @returns {Promise<boolean>} Whether the move happened at all (it may still stop short of a new pano).
    */
-  #sweepForward() {
-    // TODO show loading icon. Add when resolving issue #2403.
+  async moveToNextStreet(switchStreet) {
+    if (this.isMoving() || this.#cooldownTimer !== null) return false;
 
-    const currentTask = this.#taskContainer.getCurrentTask();
-    const streetEndpoint = turf.point([currentTask.getEndCoordinate().lng, currentTask.getEndCoordinate().lat]);
-
-    // The stuck set exists to stop the user cycling among panos they have already stood at on *this* street.
-    // Carrying it onto the next street poisons the search there: the nearest pano to a new street's start is
-    // routinely one visited on the street just finished, and setLocation() rejects an excluded pano exactly as it
-    // rejects empty ground — so a street with perfectly good imagery can scan as having none, and then be falsely
-    // reported on that basis (#4918). Short streets are the worst case, since every sample point on them can fall
-    // within range of the same already-visited pano.
-    //
-    // A route can walk the same street twice (out-and-back), and those passes are separate walks: keying on the
-    // street would hand pass two every pano pass one banked, leaving the return leg nothing to land on. Walk order
-    // names the traversal, matching TaskContainer.nextTask (#5008).
-    const traversalKey = this.#stuckPanosKeyFor(currentTask);
-    if (traversalKey !== this.#stuckPanosTraversalKey) {
-      this.#stuckPanos.clear();
-      this.#stuckPanosTraversalKey = traversalKey;
+    // Start the move before switchStreet() sets the new street, which synchronously re-aims the compass while still
+    // at the old location — otherwise it would flash the off-route warning (#4174).
+    this.#updateUiBeforeMove();
+    try {
+      switchStreet();
+    } catch (err) {
+      // Everything is locked for the move by now, and no move is coming to unlock it.
+      this.#restoreUiAfterFailedMove();
+      throw err;
     }
+    await this.#sweepForward();
+    return true;
+  }
 
-    // Prefetch images for the full street geometry. Using the full street (not just the remainder) ensures the
-    // sampled points are identical on every moveForward() call, so the dedup in prefetchLocation() makes this
-    // effectively a no-op after the first call on a given street.
-    this.prefetchAlongStreet(currentTask.getFeature());
-
-    // Find where to start searching for imagery, and the part of the street geometry that hasn't been walked yet.
-    let { currLoc, remainder } = this.#computeMoveTarget(currentTask);
-
-    // Save the current pano as one that you're stuck at.
-    const currentPano = this.#panoStore.getPanoData(this.#panoManager.getPanoId());
-    this.#stuckPanos.add(currentPano);
-
-    const successCallback = () => {
-      // Save current pano as one that doesn't work in case they try to move before clicking 'stuck' again.
-      const newPanoId = this.#panoManager.getPanoId();
-      this.#stuckPanos.add(this.#panoStore.getPanoData(newPanoId));
-      // A move that lands ends any run of imagery failures, restoring the session's full flag allowance (#4918).
-      NoImageryFlagGuard.reset();
-      this.#updateUiAfterMove();
-      return Promise.resolve(newPanoId);
-    };
-
-    // Every rejection from the walk down the street, so the end of the search can tell an empty street from a
-    // provider that stopped answering (#4918).
-    const searchFailures = [];
-
-    const failureCallback = (err) => {
-      searchFailures.push(err);
-      // If there is room to move forward then try again, recursively calling getPanorama with this callback.
-      if (turf.length(remainder) > 0) {
-        // Try `DIST_INCREMENT` further down the street.
-        const distIncrement = Math.min(NavigationService.DIST_INCREMENT, turf.length(remainder));
-        remainder = turf.cleanCoords(turf.lineSliceAlong(remainder, distIncrement, streetEndpoint));
-        currLoc = { lat: remainder.geometry.coordinates[0][1], lng: remainder.geometry.coordinates[0][0] };
-        return this.#panoManager.setLocation(currLoc, this.#stuckPanos).then(successCallback, failureCallback);
-      } else {
-        return this.#handleImageryNotFound(NoImageryError.allNoImagery(searchFailures));
-      }
-    };
-
-    // Initial call to getPanorama with using the recursive callback function.
-    return this.#panoManager.setLocation(currLoc, this.#stuckPanos).then(successCallback, failureCallback);
+  /**
+   * Sweeps for the next pano inside a move that has already started, then ends the move.
+   * @returns {Promise<string|null>} As for moveForward().
+   */
+  async #sweepForward() {
+    let result;
+    try {
+      result = await this.#streetSweep.sweep(() => this.#updateUiBeforeMove());
+    } catch (err) {
+      this.#restoreUiAfterFailedMove();
+      throw err;
+    }
+    if (result.outcome === 'stopped') {
+      this.#restoreUiAfterFailedMove();
+      return null;
+    }
+    // A street that ran out of imagery near its end lands where the labeler stands, so the landing can end it.
+    this.#updateUiAfterMove();
+    return result.outcome === 'landed' ? result.panoId : null;
   }
 
   /**

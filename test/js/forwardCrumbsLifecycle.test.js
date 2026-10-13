@@ -107,7 +107,7 @@ describe('ForwardCrumbs marker lifecycle', () => {
             getPov: () => viewer.getPov(),
         };
         window.i18next = { t: (key, options) => (options && 'rank' in options ? `${key}#${options.rank}` : key) };
-        window.NavigationService = { DIST_INCREMENT: 0.01 };
+        window.StreetSweep = { DIST_INCREMENT: 0.01 };
         window.PanoViewer = { SEARCH_RADIUS_M: 25 };
         Object.assign(window, loadModules('frontend/js/explore/navigation/ForwardCrumbs.js'));
         crumbs = new window.ForwardCrumbs(

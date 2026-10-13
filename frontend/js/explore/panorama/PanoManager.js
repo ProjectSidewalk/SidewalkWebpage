@@ -10,7 +10,7 @@ import { MapillaryViewer } from '../../common/pano-viewer/MapillaryViewer.js';
 import { NoImageryError } from '../../common/pano-viewer/NoImageryError.js';
 import { createPanoViewerLogo } from '../../common/pano-viewer/PanoViewerLogo.js';
 import { util } from '../../common/utilities.js';
-import { NavigationService } from '../navigation/NavigationService.js';
+import { StreetSweep } from '../navigation/StreetSweep.js';
 import { NoImageryFlagGuard } from './NoImageryFlagGuard.js';
 import '../../common/utilitiesSidewalk.js';
 /** @typedef {import('../alert/AlertController.js').AlertController} AlertController */
@@ -161,7 +161,7 @@ export class PanoManager {
   static backupPointsAlongStreet(street, end, seed) {
     const streetLength = turf.length(street); // km
     const samples = [];
-    for (let dist = NavigationService.DIST_INCREMENT; dist < streetLength; dist += NavigationService.DIST_INCREMENT) {
+    for (let dist = StreetSweep.DIST_INCREMENT; dist < streetLength; dist += StreetSweep.DIST_INCREMENT) {
       const point = turf.along(street, dist);
       samples.push({ km: dist, latLng: { lat: point.geometry.coordinates[1], lng: point.geometry.coordinates[0] } });
     }

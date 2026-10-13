@@ -14,8 +14,9 @@
  * able to do. Everything below it (viewer, network) is out of scope; `test/js/panoViewerSeedFallback.test.js`
  * covers the provider-side classification that decides which error type arrives here.
  *
- * NavigationService is loaded as a module and built against fakes of its collaborators; what it announces to the
- * mission controller is recorded through its events, as Main subscribes them.
+ * The sweep, the mover and the street bookkeeping (StreetSweep, NavigationService, StreetProgress) are loaded as modules
+ * and built together against fakes of their collaborators, as Main builds them; what they announce to the mission
+ * controller is recorded through StreetProgress's events, as Main subscribes them.
  */
 
 const { installDateHelpers, loadModules, realUtil } = require('./loadGlobalScript');
@@ -66,7 +67,7 @@ function interpolate(coordinates, distKm) {
 }
 
 /**
- * The slice of turf that NavigationService uses. `lineSliceAlong` mirrors the production call, which passes the
+ * The slice of turf that StreetSweep uses. `lineSliceAlong` mirrors the production call, which passes the
  * street endpoint as the third argument where turf documents a stop *distance* — an object never compares greater
  * than the distance travelled, so real turf slices to the end of the line, which is what the caller means.
  */
@@ -125,6 +126,11 @@ function makeTask(streetEdgeId, { lengthKm = 0.1, atEnd = false, walkOrder = nul
 describe('Explore, when the imagery search runs out along a street', () => {
     let svl;
     let nav;
+    let progress;
+    let sweep;
+    let ui;
+    // Arms a label type ('Walk' disarms), telling whoever listens for mode changes as LabelModes does.
+    let switchMode;
     let config;
     let keyboardLock;
     let missionController;
@@ -145,6 +151,12 @@ describe('Explore, when the imagery search runs out along a street', () => {
         reportNoImagery = jest.fn(() => Promise.resolve());
 
         const stub = () => jest.fn();
+        let mode = 'Walk';
+        const modeListeners = [];
+        switchMode = (newMode) => {
+            mode = newMode;
+            modeListeners.forEach((listener) => listener(newMode));
+        };
         config = {
             isOnboarding: false,
             isExploreAddressMode: false,
@@ -166,7 +178,7 @@ describe('Explore, when the imagery search runs out along a street', () => {
             alertController: { showAlert: stub() },
             form: { submitData: jest.fn(() => Promise.resolve()) },
             labelContainer: { onMarkerClick: stub() },
-            labelModes: { onModeChanged: stub() },
+            labelModes: { onModeChanged: (listener) => modeListeners.push(listener), getMode: () => mode },
             missionContainer: { getCurrentMission: () => ({ getProperty: () => 7, pushATaskToTheRoute: jest.fn() }) },
             missionModel: { updateMissionProgress: stub() },
             regionModel: {
@@ -198,8 +210,8 @@ describe('Explore, when the imagery search runs out along a street', () => {
                 }),
             },
             taskContainer: {
-                // Left false so the post-move UI refresh skips the end-of-task branch: what a landing does to task
-                // state is its own concern, and these tests are about the decision that precedes it.
+                // Left false so a landing skips the end-of-street check: what a landing does to task state is its own
+                // concern, and these tests are about the decision that precedes it.
                 tasksLoaded: () => false,
                 getCurrentTask: jest.fn(),
                 setCurrentTask: jest.fn(),
@@ -225,17 +237,22 @@ describe('Explore, when the imagery search runs out along a street', () => {
 
         Object.assign(window, loadModules('frontend/js/common/pano-viewer/NoImageryError.js'));
         Object.assign(window, loadModules('frontend/js/explore/panorama/NoImageryFlagGuard.js'));
+        Object.assign(window, loadModules('frontend/js/explore/navigation/StreetSweep.js'));
         Object.assign(window, loadModules('frontend/js/explore/navigation/NavigationService.js'));
+        Object.assign(window, loadModules('frontend/js/explore/task/StreetProgress.js'));
 
+        svl.labelModes.backToWalk = jest.fn(() => switchMode('Walk'));
         const el = () => document.createElement('div');
-        nav = new window.NavigationService(
-            { modeSwitchWalk: el(), viewControlLayer: el(), drawingLayer: el() }, config, svl.regionModel,
-            svl.missionModel, svl.missionContainer, svl.taskContainer, svl.panoStore, svl.panoManager,
-            svl.labelContainer, svl.labelModes, svl.navArrows, keyboardLock, svl.alertController, svl.stuckAlert,
-            svl.jumpAlert, svl.form, svl.tracker,
+        ui = { modeSwitchWalk: el(), viewControlLayer: el(), drawingLayer: el() };
+        sweep = new window.StreetSweep(config, svl.missionContainer, svl.taskContainer, svl.panoStore,
+            svl.panoManager, svl.alertController, svl.stuckAlert, svl.form, svl.tracker);
+        nav = new window.NavigationService(ui, svl.panoStore, svl.panoManager, sweep, svl.labelContainer, svl.labelModes, svl.navArrows, keyboardLock,
+            svl.alertController,
         );
-        nav.onRouteEndReached(() => missionController.onRouteReadyToFinish());
-        nav.onRegionExhausted(() => missionController.wrapUpRouteOrRegion());
+        progress = new window.StreetProgress(config, svl.regionModel, svl.missionModel, svl.missionContainer,
+            svl.taskContainer, svl.panoManager, nav, sweep, svl.jumpAlert, svl.tracker);
+        progress.onRouteEndReached(() => missionController.onRouteReadyToFinish());
+        progress.onRegionExhausted(() => missionController.wrapUpRouteOrRegion());
     });
 
     afterEach(() => {
@@ -345,7 +362,7 @@ describe('Explore, when the imagery search runs out along a street', () => {
             svl.taskContainer.endTask.mockImplementation(() => nav.walking.hold('interaction'));
             respondToSearch = () => (svl.taskContainer.getCurrentTask() === dead ? emptyGround() : foundImagery());
 
-            await nav.jumpToANewTask();
+            await progress.jumpToANewTask();
 
             expect(searches.map(({ streetEdgeId }) => streetEdgeId)).toContain(102);
             // The target street had no imagery, so the camera follows the one reached.
@@ -806,12 +823,12 @@ describe('Explore, when the imagery search runs out along a street', () => {
             await nav.moveForward();
             searches.length = 0;
 
-            await nav.jumpToANewTask();
+            await progress.jumpToANewTask();
             expect(searches).toHaveLength(0);
             expect(svl.taskContainer.endTask).not.toHaveBeenCalled();
 
             jest.advanceTimersByTime(800);
-            await nav.jumpToANewTask();
+            await progress.jumpToANewTask();
             expect(searches.length).toBeGreaterThan(0);
         });
 
@@ -831,11 +848,89 @@ describe('Explore, when the imagery search runs out along a street', () => {
             assignStreets(makeTask(100), makeTask(101));
             svl.taskContainer.endTask.mockImplementationOnce(() => { throw new Error('boom'); });
 
-            await expect(nav.jumpToANewTask()).rejects.toThrow('boom');
+            await expect(progress.jumpToANewTask()).rejects.toThrow('boom');
 
             expect(nav.canWalk()).toBe(true);
             expect(keyboardLock.release).toHaveBeenCalledWith('move');
             expect(svl.panoManager.panning.release).toHaveBeenCalledWith('move');
+        });
+    });
+
+    describe('and the labeler has a label type armed (#5768)', () => {
+        it('keeps the arrows hidden when a pop-up lets go of walking, until the type is disarmed', () => {
+            switchMode('CurbRamp');
+            svl.navArrows.show.mockClear();
+
+            nav.walking.hold('interaction');
+            nav.walking.release('interaction');
+            expect(svl.navArrows.show).not.toHaveBeenCalled();
+
+            switchMode('Walk');
+            expect(svl.navArrows.show).toHaveBeenCalled();
+        });
+
+        it('lands a move in Walk mode, with the pano on top and the arrows back after the beat', async () => {
+            assignStreets(makeTask(101));
+            respondToSearch = foundImagery;
+            switchMode('CurbRamp');
+            expect(ui.drawingLayer.style.zIndex).toBe('1');
+
+            await nav.moveForward();
+            expect(svl.labelModes.backToWalk).toHaveBeenCalledTimes(1);
+            expect(ui.drawingLayer.style.zIndex).toBe('0');
+            expect(ui.viewControlLayer.style.zIndex).toBe('1');
+
+            svl.navArrows.show.mockClear();
+            jest.advanceTimersByTime(800);
+            expect(svl.navArrows.show).toHaveBeenCalled();
+        });
+
+        it('does not switch modes on a landing already in Walk mode, which would log a switch nobody made', async () => {
+            assignStreets(makeTask(101));
+            respondToSearch = foundImagery;
+
+            await nav.moveForward();
+            expect(svl.labelModes.backToWalk).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('the sweep on its own, without a move around it (#5766)', () => {
+        it('resolves with the pano it landed on', async () => {
+            assignStreets(makeTask(101));
+            respondToSearch = foundImagery;
+
+            await expect(sweep.sweep(jest.fn())).resolves.toEqual({ outcome: 'landed', panoId: 'pano-on-screen' });
+        });
+
+        it('carries on to the next street past an empty one, saying so as it does', async () => {
+            const [dead, live] = [makeTask(101), makeTask(102)];
+            assignStreets(dead, live);
+            respondToSearch = () => (svl.taskContainer.getCurrentTask() === dead ? emptyGround() : foundImagery());
+            const onNextStreet = jest.fn();
+
+            const result = await sweep.sweep(onNextStreet);
+            expect(result.outcome).toBe('landed');
+            expect(onNextStreet).toHaveBeenCalledTimes(1);
+            expect(svl.taskContainer.getCurrentTask()).toBe(live);
+        });
+
+        it('stops, leaving the street where it was, when the provider never answered', async () => {
+            assignStreets(makeTask(101), makeTask(102));
+            respondToSearch = providerFailure;
+
+            await expect(sweep.sweep(jest.fn())).resolves.toEqual({ outcome: 'stopped' });
+            expect(svl.taskContainer.setCurrentTask).not.toHaveBeenCalled();
+        });
+
+        it('says a street that ran out near its end was walked, before it resolves', async () => {
+            const nearlyDone = makeTask(101, { atEnd: true });
+            assignStreets(nearlyDone);
+            respondToSearch = emptyGround;
+            const walkedOut = jest.fn();
+            sweep.onStreetWalkedOut(walkedOut);
+
+            await expect(sweep.sweep(jest.fn())).resolves.toEqual({ outcome: 'walkedOut' });
+            expect(walkedOut).toHaveBeenCalledWith(nearlyDone);
         });
     });
 

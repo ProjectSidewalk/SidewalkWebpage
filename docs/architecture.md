@@ -605,6 +605,10 @@ last. What is built first announces and what is built later subscribes in its ow
 such as what a pop-up stops. Anything that can be switched off is a `common/Gate`, held by name (a modal, the
 tutorial, a move in flight) and open only once every holder has let go. Explore's `walking` gate is the exception: it
 holds only policy, and a move in flight or just landed is `NavigationService.canWalk()`'s to add (#5765).
+Explore's walking is three modules (#5766): `NavigationService` makes moves and announces them, `StreetSweep` searches
+a street for the next pano and decides what an empty search may conclude (report, give up, stop), and `StreetProgress`
+reacts to each landing (`onLanded`, before the views' `onMoved`) by ending a street at its end, arming the
+label-before-jump prompt and making the jump.
 `window.svl` and `window.svv` are only console and e2e handles, returned by each page's `Main.start()`.
 `util` is the object `common/utilities.js` exports; a file
 that reads `util.misc`, `util.math`, `util.url` or `util.pano` imports the file that adds it (`utilitiesSidewalk.js`,

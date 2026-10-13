@@ -23,6 +23,7 @@ import { util } from '../../common/utilities.js';
 /** @typedef {import('../region/Region.js').Region} Region */
 /** @typedef {import('../region/RegionModel.js').RegionModel} RegionModel */
 /** @typedef {import('../sidebar/RegionProgressBar.js').RegionProgressBar} RegionProgressBar */
+/** @typedef {import('../task/StreetProgress.js').StreetProgress} StreetProgress */
 /** @typedef {import('../task/TaskContainer.js').TaskContainer} TaskContainer */
 /** @typedef {import('../data/Tracker.js').Tracker} Tracker */
 
@@ -61,7 +62,8 @@ export class MissionController {
    * @param {AlertController} alertController - Shows the route's finish toast.
    * @param {Compass} compass - Wraps the route or region up on its finish click, and drops the finish prompt once a
    *   route auto-completes on its own.
-   * @param {NavigationService} navigationService - Announces the route's end and a region's last street.
+   * @param {NavigationService} navigationService - Whose heading settling after a move holds off the auto-finish.
+   * @param {StreetProgress} streetProgress - Announces the route's end and a region's last street.
    * @param {PanoManager} panoManager - Each turn of whose view may complete a finished route.
    * @param {ObservedArea} observedArea - Says how much of the final pano the user has looked around.
    * @param {OverallStats} overallStats - Shown the audited distance.
@@ -71,7 +73,7 @@ export class MissionController {
    * @param {Tracker} tracker
    */
   constructor(config, missionModel, regionModel, missionContainer, taskContainer, form, modalMissionComplete,
-    modalSurvey, alertController, compass, navigationService, panoManager, observedArea, overallStats,
+    modalSurvey, alertController, compass, navigationService, streetProgress, panoManager, observedArea, overallStats,
     regionProgressBar, missionProgressBar, minimapMissionProgress, tracker) {
     this.#config = config;
     this.#missionModel = missionModel;
@@ -93,8 +95,8 @@ export class MissionController {
     missionModel.on('MissionProgress:update', (parameters) => {
       this.update(parameters.mission, parameters.region);
     });
-    navigationService.onRouteEndReached(() => this.onRouteReadyToFinish());
-    navigationService.onRegionExhausted(() => this.wrapUpRouteOrRegion());
+    streetProgress.onRouteEndReached(() => this.onRouteReadyToFinish());
+    streetProgress.onRegionExhausted(() => this.wrapUpRouteOrRegion());
     compass.onFinishClick(() => this.wrapUpRouteOrRegion());
     // Once at the route's last pano, auto-finish as soon as the user has looked all the way around it. Not while
     // the heading settles after a move, when the observed area is still the pre-move one (#4174).

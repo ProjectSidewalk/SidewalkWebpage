@@ -12,17 +12,18 @@
  *
  * Positions come live from the pano viewer: arrow destinations through getLinkedPanoPositions(), route stops by
  * sampling the street with the metadata-only findPanoNear(), which every provider answers through the same search
- * setLocation() moves with. The street is sampled on the same fixed grid NavigationService.moveForward() walks
+ * setLocation() moves with. The street is sampled on the same fixed grid StreetSweep walks
  * (DIST_INCREMENT along the full street geometry, never the remainder), which keeps the sample points identical
  * from move to move: the answers are memoised per street, so after the first burst every later refresh is free.
  */
 
 import { PanoViewer } from '../../common/pano-viewer/PanoViewer.js';
-import { NavigationService } from './NavigationService.js';
+import { StreetSweep } from './StreetSweep.js';
 /** @typedef {import('../Main.js').ExploreConfig} ExploreConfig */
 /** @typedef {import('./Compass.js').Compass} Compass */
 /** @typedef {import('./Minimap.js').Minimap} Minimap */
 /** @typedef {import('./Minimap.js').MinimapMarker} MinimapMarker */
+/** @typedef {import('./NavigationService.js').NavigationService} NavigationService */
 /** @typedef {import('../panorama/NavArrows.js').NavArrows} NavArrows */
 /** @typedef {import('./ObservedArea.js').ObservedArea} ObservedArea */
 /** @typedef {import('../panorama/PanoManager.js').PanoManager} PanoManager */
@@ -402,7 +403,7 @@ export class ForwardCrumbs {
    * maxSamples * maxStepKm (4 km with the defaults; Seattle's longest street is 1.5 km), and #IN_FLIGHT_LIMIT still
    * bounds the burst there.
    * @param {number} lengthKm - The street's length.
-   * @param {number} stepKm - The preferred spacing (NavigationService.DIST_INCREMENT, so caches primed by the
+   * @param {number} stepKm - The preferred spacing (StreetSweep.DIST_INCREMENT, so caches primed by the
    *     forward walk are hit).
    * @param {number} maxSamples - Cap on the number of offsets, short of the spacing cap.
    * @param {number} [maxStepKm=Infinity] - The widest spacing allowed (see maxSampleStepKm).
@@ -533,13 +534,13 @@ export class ForwardCrumbs {
     const hereKm = turf.nearestPointOnLine(street, turf.point([here.lng, here.lat])).properties.location;
     const originKm = Math.min(furthestKm, hereKm);
     const offsets = ForwardCrumbs.sampleOffsetsKm(
-      turf.length(street), NavigationService.DIST_INCREMENT, ForwardCrumbs.MAX_SAMPLES,
+      turf.length(street), StreetSweep.DIST_INCREMENT, ForwardCrumbs.MAX_SAMPLES,
       ForwardCrumbs.maxSampleStepKm(PanoViewer.SEARCH_RADIUS_M),
     );
     const pending = [];
     offsets.forEach((offsetKm, i) => {
       // Points already walked can't hold a crumb, so they are never asked about.
-      if (offsetKm < originKm - NavigationService.DIST_INCREMENT) return;
+      if (offsetKm < originKm - StreetSweep.DIST_INCREMENT) return;
       if (!this.#memo.has(i)) {
         if (this.#providerFailed) return;
         const [lng, lat] = turf.along(street, offsetKm).geometry.coordinates;
@@ -573,7 +574,7 @@ export class ForwardCrumbs {
   }
 
   /**
-   * The stop the route walk lands on, mirroring NavigationService.#computeMoveTarget: near the furthest point the
+   * The stop the route walk lands on, mirroring StreetSweep.#computeMoveTarget: near the furthest point the
    * walk searches one step beyond it, so the first stop ahead of it; farther away (off the street) it searches at
    * the furthest point itself, so the stop nearest that point.
    * @param {MeasuredCrumb[]} measured - Panos located by {@link measureAgainstStreet}.
