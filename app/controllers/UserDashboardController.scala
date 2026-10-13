@@ -13,7 +13,7 @@ import play.api.libs.json.{JsError, JsSuccess, Json}
 import play.api.mvc.{AnyContent, Result}
 import play.silhouette.api.actions.SecuredRequest
 import play.silhouette.api.Silhouette
-import service.{AdminService, ConfigService, GlobalLeaderboardEntry, UserService}
+import service.{AdminService, ConfigService, GlobalLeaderboardEntry, TeamBoard, UserService}
 
 import javax.inject.*
 import scala.concurrent.{ExecutionContext, Future}
@@ -142,6 +142,8 @@ class UserDashboardController @Inject() (
     val cityName                                   = configService.getCityName(request2Messages.lang)
     // Kicked off before the for-comprehension so the cross-city union overlaps the per-city queries on a cache miss.
     val globalF: Future[Option[Seq[GlobalLeaderboardEntry]]] = userService.getGlobalLeaderboardStats(10)
+    val myTeamF: Future[Option[TeamBoard]]                   =
+      signedInUser.map(u => userService.getTeamBoard(u.userId)).getOrElse(Future.successful(None))
     for {
       commonData          <- configService.getCommonPageData(request2Messages.lang)
       (aggregate, impact) <- configService.getAggregateStatsWithCurrentCity()
@@ -151,17 +153,13 @@ class UserDashboardController @Inject() (
       standing            <- signedInUser
         .map(u => userService.getUserStanding(u.userId))
         .getOrElse(Future.successful(None))
-      myTeam <- signedInUser.map(u => userService.getUserTeam(u.userId)).getOrElse(Future.successful(None))
-      // The whole team rather than a top 10, so everyone in a class can find themselves; the page splits it into pages.
-      myTeamBoard <- myTeam
-        .map(t => userService.getLeaderboardStats(Int.MaxValue, teamId = Some(t.teamId)).map(stats => Some(t -> stats)))
-        .getOrElse(Future.successful(None))
+      myTeam <- myTeamF
       global <- globalF
     } yield {
       cc.loggingService.insert(user.map(_.userId), request.ipAddress, "Visit_Leaderboard")
       Ok(
         views.html.userDashboard.leaderboard(commonData, user, isSignedIn, isMetric, cityName, aggregate, impact,
-          overall, weekly, teams, myTeamBoard, standing, global)
+          overall, weekly, teams, myTeam, standing, global)
       )
     }
   }

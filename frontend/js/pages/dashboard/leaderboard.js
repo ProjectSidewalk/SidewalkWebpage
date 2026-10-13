@@ -5,5 +5,6 @@ import { TablePager } from '../../common/TablePager.js';
 const teamBoard = /** @type {HTMLTableSectionElement|null} */ (document.getElementById('ud-team-board'));
 const teamPager = /** @type {HTMLElement|null} */ (document.getElementById('ud-team-pager'));
 if (teamBoard && teamPager) {
-  new TablePager(teamBoard, teamPager, (page) => window.logWebpageActivity(`Click_module=TeamBoardPage_page=${page}`));
+  const logPage = (page) => window.logWebpageActivity?.(`Click_module=TeamBoardPage_page=${page}`);
+  new TablePager(teamBoard, teamPager, logPage);
 }

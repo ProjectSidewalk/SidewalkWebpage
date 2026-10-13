@@ -396,7 +396,8 @@
         @userDashboard._teamActions(profileData.userTeam, user.userId, createIsPrimary = true, readOnly = adminView)
         @profileData.userTeam.map { _ =>
           @* An admin viewing someone else's dashboard would land on their own team's table, so they get the all-teams one. *@
-          <a class="ud-see-all" href="@routes.UserDashboardController.leaderboard#@{if (adminView) "teams" else "team"}">@Messages("dashboard.team.see.board")</a>
+          <a class="ud-see-all" href="@routes.UserDashboardController.leaderboard#@{if (adminView) "teams" else "team"}">
+            @Messages("dashboard.team.see.board")</a>
         }
       </div>
     </div>

@@ -1,12 +1,12 @@
 @import controllers.helper.ControllerUtils.distanceUnitWords
 @import play.twirl.api.HtmlFormat
-@import service.{CityImpact, CommonPageData, GlobalLeaderboardEntry}
+@import service.{CityImpact, CommonPageData, GlobalLeaderboardEntry, TeamBoard}
 @import models.api.AggregateStats
-@import models.user.{LeaderboardStat, SidewalkUserWithRole, Team, UserStanding}
+@import models.user.{LeaderboardStat, SidewalkUserWithRole, UserStanding}
 @import play.api.Configuration
 @(commonData: CommonPageData, user: Option[SidewalkUserWithRole], isSignedIn: Boolean, isMetric: Boolean, cityName: String,
     aggregate: AggregateStats, impact: Option[CityImpact], overall: Seq[LeaderboardStat],
-    weekly: Seq[LeaderboardStat], teams: Seq[LeaderboardStat], myTeam: Option[(Team, Seq[LeaderboardStat])],
+    weekly: Seq[LeaderboardStat], teams: Seq[LeaderboardStat], myTeam: Option[TeamBoard],
     standing: Option[UserStanding],
     global: Option[Seq[GlobalLeaderboardEntry]]
 )(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
@@ -319,20 +319,20 @@
   }
 
   @* ---- Your team (signed-in members only, #5762): opens on the page holding the viewer's row ------------- *@
-  @myTeam.map { case (team, members) =>
+  @for(board <- myTeam; viewerIndex = board.members.indexWhere(m => user.exists(_.username == m.username))) {
     <div class="page-section" id="lb-myteam-section">
-      <h2 class="page-heading" id="team">@Messages("leaderboard.myteam.title", team.name) <a href="#team" class="permalink">#</a></h2>
+      <h2 class="page-heading" id="team">@Messages("leaderboard.myteam.title", board.team.name) <a href="#team" class="permalink">#</a></h2>
       <p>@Messages("leaderboard.myteam.intro", cityName)</p>
-      @if(members.nonEmpty) {
-        @defining(math.max(0, members.indexWhere(m => user.exists(_.username == m.username))) / teamPageSize) { startPage =>
-          @defining((members.length + teamPageSize - 1) / teamPageSize) { pageCount =>
+      @if(board.members.nonEmpty) {
+        @defining(math.max(0, viewerIndex) / teamPageSize) { startPage =>
+          @defining((board.members.length + teamPageSize - 1) / teamPageSize) { pageCount =>
             <div class="ps-table-scroll-box">
               <table class="ps-table ps-table--sticky ud-lb-table">
                 <thead>
                   @lbHead(Messages("leaderboard.header.mapper"))
                 </thead>
                 <tbody id="ud-team-board" data-page-size="@teamPageSize" data-page="@startPage">
-                  @for((stat, i) <- members.zipWithIndex) {
+                  @for((stat, i) <- board.members.zipWithIndex) {
                     @statRow(i + 1, stat, linkUser = true, hidden = i / teamPageSize != startPage)
                   }
                 </tbody>
@@ -342,7 +342,7 @@
               @* The page number is its own element so TablePager can update it without re-translating. *@
               <nav class="ps-pager" id="ud-team-pager" aria-label="@Messages("leaderboard.myteam.pager")">
                 <button type="button" class="ps-pager-btn" data-step="-1" @if(startPage==0){disabled}>@Messages("leaderboard.myteam.prev")</button>
-                <span class="ps-pager-status" aria-live="polite">@Html(Messages("leaderboard.myteam.page",
+                <span class="ps-pager-status" aria-live="polite" aria-atomic="true">@Html(Messages("leaderboard.myteam.page",
                   s"""<span class="ps-pager-page">${startPage + 1}</span>""", pageCount))</span>
                 <button type="button" class="ps-pager-btn" data-step="1" @if(startPage==pageCount-1){disabled}>@Messages("leaderboard.myteam.next")</button>
               </nav>
@@ -351,6 +351,13 @@
         }
       } else {
         <div class="ud-nudge">@Messages("leaderboard.myteam.none")</div>
+      }
+      @if(viewerIndex < 0) {
+        @if(board.viewerOptedOut) {
+          <p>@Messages("leaderboard.myteam.you.hidden", Messages("dashboard.settings.leaderboard.toggle")) <a href="@routes.UserDashboardController.settings">@Messages("leaderboard.myteam.you.settings")</a></p>
+        } else {
+          <p>@Messages("leaderboard.myteam.you.nolabels")</p>
+        }
       }
     </div>
   }

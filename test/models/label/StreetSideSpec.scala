@@ -224,13 +224,13 @@ class StreetSideSpec extends SidewalkSpec with GuiceOneAppPerSuite with OptionVa
       // off by meters.
       val (labelled, stale) = run(
         sql"""SELECT count(*),
-                     count(*) FILTER (WHERE (label_point.centerline_offset_m IS NULL) <>
-                                            (label_centerline_offset_m(label_point.geom, street_edge.geom) IS NULL)
-                                         OR abs(label_point.centerline_offset_m
-                                                - label_centerline_offset_m(label_point.geom, street_edge.geom)) > 0.001)
+                     count(*) FILTER (WHERE (label_point.centerline_offset_m IS NULL) <> (fresh.offset_m IS NULL)
+                                         OR abs(label_point.centerline_offset_m - fresh.offset_m) > 0.001)
               FROM label_point
               INNER JOIN label ON label.label_id = label_point.label_id
-              INNER JOIN street_edge ON street_edge.street_edge_id = label.street_edge_id""".as[(Int, Int)].head
+              INNER JOIN street_edge ON street_edge.street_edge_id = label.street_edge_id
+              CROSS JOIN LATERAL (SELECT label_centerline_offset_m(label_point.geom, street_edge.geom) AS offset_m) fresh
+           """.as[(Int, Int)].head
       )
       assume(labelled > 0, "no labels in this schema; cache freshness needs a seeded DB")
       stale mustBe 0

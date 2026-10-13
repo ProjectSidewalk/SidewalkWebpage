@@ -17,7 +17,8 @@
 #page-number {
   align-self: center;
   padding: 0 var(--space-xs);
-  font-weight: bold;
+  font: var(--text-h3-bold);
+  font-size: 30px; /* Matches the arrow buttons beside it. */
 }
 
 .paging:disabled {

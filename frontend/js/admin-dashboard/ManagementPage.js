@@ -254,7 +254,12 @@ export class ManagementPage {
       bar.addEventListener('click', (e) => {
         const btn = /** @type {HTMLButtonElement} */ (/** @type {Element} */ (e.target).closest('.ps-pager-btn'));
         if (!btn || btn.disabled) return;
-        this.#gotoPage(btn.getAttribute('data-page'));
+        const token = btn.getAttribute('data-page');
+        this.#gotoPage(token);
+        // Each render rebuilds the bars, so put focus back on the same button, or the nearest usable one.
+        const same = /** @type {HTMLButtonElement|null} */ (bar.querySelector(`.ps-pager-btn[data-page="${token}"]`));
+        const target = same && !same.disabled ? same : bar.querySelector('.ps-pager-btn:not(:disabled)');
+        /** @type {HTMLElement|null} */ (target)?.focus();
       });
       bar.addEventListener('change', (e) => {
         const target = /** @type {Element} */ (e.target);
@@ -263,6 +268,7 @@ export class ManagementPage {
         this.#pageSize = parseInt(sel.value, 10) || ManagementPage.#PAGE_SIZES[0];
         this.#page = 1;
         this.#renderUsers();
+        /** @type {HTMLSelectElement|null} */ (bar.querySelector('.ps-pager-size select'))?.focus();
       });
     }
   }
