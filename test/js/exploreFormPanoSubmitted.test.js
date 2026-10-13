@@ -89,6 +89,7 @@ describe('Form pano submission staging', () => {
     let panos;
     let labels;
     let form;
+    let tracker;
     // What TaskContainer would answer at the moment the response lands — reassigned by the mid-flight switch test.
     let currentTask;
 
@@ -96,21 +97,26 @@ describe('Form pano submission staging', () => {
     function buildForm() {
         const Form = loadForm();
         const missionProps = { missionId: 5, distanceProgress: 0, distance: 100, isComplete: false, skipped: false };
-        const mission = { getProperty: (k) => missionProps[k], updateDistanceProgress: jest.fn() };
+        const mission = { getProperty: (k) => missionProps[k] };
         const labelContainer = { getLabelsToLog: () => labels, clearLabelsToLog: jest.fn(), getAllLabels: () => [] };
         const panoStore = {
             getStagedPanoData: () => panos.filter((p) => !p.getProperty('submitted')),
             getPanoData: (id) => panos.find((p) => p.getProperty('panoId') === id) ?? null,
         };
-        const taskContainer = { getCurrentTask: () => currentTask, updateTaskPriorities: jest.fn() };
+        const taskContainer = {
+            getCurrentTask: () => currentTask, updateTaskPriorities: jest.fn(), renderTask: jest.fn(),
+            onTaskEnded: jest.fn(), onTaskLeft: jest.fn(),
+        };
         return new Form(
+            '/task',
+            { userRouteId: null, regionId: 1, isOnboarding: false, isExploreAddressMode: false },
             labelContainer,
             { on: jest.fn() }, // missionModel
-            { getCurrentMission: () => mission }, // missionContainer
+            { getCurrentMission: () => mission, updateDistanceProgress: jest.fn() }, // missionContainer
             panoStore,
             taskContainer,
-            { getActions: () => [], refresh: jest.fn(), push: jest.fn() }, // tracker
-            '/task'
+            { getPosition: () => ({ lat: 41.85, lng: -87.65 }) }, // panoManager
+            tracker,
         );
     }
 
@@ -130,14 +136,7 @@ describe('Form pano submission staging', () => {
     beforeEach(() => {
         // Form's collaborators that live on globals rather than constructor args.
         window.AsyncLock = class { async acquire(key, fn) { return fn(); } };
-        window.svl = {
-            userRouteId: null,
-            regionId: 1,
-            isOnboarding: () => false,
-            isExploreAddressMode: () => false,
-            panoViewer: { getPosition: () => ({ lat: 41.85, lng: -87.65 }) },
-            tracker: { setAuditTaskID: jest.fn() },
-        };
+        tracker = { getActions: () => [], refresh: jest.fn(), push: jest.fn(), setAuditTaskID: jest.fn() };
         window.util = {
             getBrowser: () => 'chrome',
             getBrowserVersion: () => '1',
@@ -196,7 +195,7 @@ describe('Form pano submission staging', () => {
         // The task's own id is still recorded — that is how the next submission updates the right row — but the
         // tracker stays on the street being walked now.
         expect(submitted.setProperty).toHaveBeenCalledWith('auditTaskId', 12);
-        expect(window.svl.tracker.setAuditTaskID).not.toHaveBeenCalled();
+        expect(tracker.setAuditTaskID).not.toHaveBeenCalled();
     });
 
     test('still moves the tracker when the submitted street is the one still being walked', async () => {
@@ -204,7 +203,7 @@ describe('Form pano submission staging', () => {
 
         await form.submitData(taskStub(34));
 
-        expect(window.svl.tracker.setAuditTaskID).toHaveBeenCalledWith(12);
+        expect(tracker.setAuditTaskID).toHaveBeenCalledWith(12);
     });
 
     test('keeps panos staged for the next submission when the server rejects the POST', async () => {
@@ -218,7 +217,7 @@ describe('Form pano submission staging', () => {
         // And the success handler must not run against the error body — that would clobber the task's and the
         // tracker's audit_task_id with undefined and desync every later submission.
         expect(task.setProperty).not.toHaveBeenCalled();
-        expect(window.svl.tracker.setAuditTaskID).not.toHaveBeenCalled();
+        expect(tracker.setAuditTaskID).not.toHaveBeenCalled();
     });
 
     test('keeps panos staged when the POST fails at the network level', async () => {

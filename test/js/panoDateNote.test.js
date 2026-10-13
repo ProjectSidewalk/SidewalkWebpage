@@ -63,11 +63,15 @@ describe('PanoDateNote', () => {
             + '<span id="svl-panorama-date-pill"><span id="svl-panorama-date"></span>'
             + '<i id="pano-info-button"></i></span>'
             + '</div>';
+        // No pano on screen yet, so the note starts blank and each test hands it a pano and street itself.
         note = new PanoDateNote(
-            tracker,
             document.getElementById('svl-panorama-date-holder'),
             document.getElementById('svl-panorama-date-pill'),
-            document.getElementById('svl-panorama-date')
+            document.getElementById('svl-panorama-date'),
+            { getPanoId: () => null, onPanoChanged: () => {} },
+            { getPanoData: () => null },
+            { getCurrentTask: () => null },
+            tracker,
         );
     });
 

@@ -3,7 +3,6 @@
  * Docs: https://developers.infra3d.com/javascript-api/reference/classes/Viewer.Viewer.html
  */
 
-import { svl } from '../../explore/svl.js';
 import { NoImageryError } from './NoImageryError.js';
 import { PanoData } from './PanoData.js';
 import { PanoViewer } from './PanoViewer.js';
@@ -347,7 +346,7 @@ export class Infra3dViewer extends PanoViewer {
     const newPosition = { easting, northing };
 
     // Using the internal function that returns a node, since the usual one in the API does not.
-    // TODO We should be checking if the new location is within STREETVIEW_MAX_DISTANCE. But we always have imagery
+    // TODO We should be checking if the new location is within SEARCH_RADIUS_M. But we always have imagery
     //      in the zurich test city, so this should never be a problem.
     const node = await this.viewer._sdk_viewer.movePosition(newPosition, 3857);
     const panoData = await this.#finishRecordingMetadata(node);
@@ -369,7 +368,7 @@ export class Infra3dViewer extends PanoViewer {
   //         });
   //     });
   //
-  //     // TODO We should be checking if the new location is within STREETVIEW_MAX_DISTANCE. But we always have imagery
+  //     // TODO We should be checking if the new location is within SEARCH_RADIUS_M. But we always have imagery
   //     //      in the zurich test city, so this should never be a problem. But can we get that info from the KNN data?
   //     return closestPano.then(this.setPano);
   // };
@@ -433,7 +432,7 @@ export class Infra3dViewer extends PanoViewer {
     const metersAway = turf.distance(
       turf.point([latLng.lng, latLng.lat]), turf.point([lng, lat]), { units: 'meters' },
     );
-    if (metersAway > svl.STREETVIEW_MAX_DISTANCE) return null;
+    if (metersAway > PanoViewer.SEARCH_RADIUS_M) return null;
     if ([...excludedPanos].some((pano) => pano.getPanoId() === nearest.key)) return null;
     return { panoId: nearest.key, lat, lng };
   };

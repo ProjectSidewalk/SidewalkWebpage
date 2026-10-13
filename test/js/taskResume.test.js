@@ -74,11 +74,10 @@ describe('Task resumed from an earlier session', () => {
         ? { lat: props.current_lat, lng: props.current_lng }
         : undefined);
 
-    const makeTask = (geojson) => new window.Task(geojson, false, resumeAt(geojson.properties));
+    const makeTask = (geojson) => new window.Task(geojson, {}, false, resumeAt(geojson.properties));
 
     beforeEach(() => {
         window.turf = turf;
-        window.svl = { CLOSE_TO_ROUTE_THRESHOLD: 0.05 };
         window.util ??= realUtil();
         loadModules('frontend/js/common/utilitiesMath.js');
         Object.assign(window, loadModules('frontend/js/explore/task/Task.js'));
@@ -167,7 +166,8 @@ describe('TaskContainer handing out a part-walked street', () => {
         setStreetEdgeDirection: jest.fn(),
         reverseStreetDirection: jest.fn(),
         setProperty: jest.fn(),
-        render: jest.fn(),
+        minimapKey: () => 'street-101',
+        minimapLines: () => [],
     });
 
     /** A just-finished street to hand nextTask, standing where the next one begins. */
@@ -181,10 +181,10 @@ describe('TaskContainer handing out a part-walked street', () => {
         window.turf = { point: (coords) => ({ type: 'Point', coordinates: coords }), pointToLineDistance: () => 0 };
         window.util = { math: { kmsToMeters: (km) => km * 1000 } };
         tracker = { push: jest.fn(), setAuditTaskID: jest.fn() };
+        window.Task = { CLOSE_TO_ROUTE_KM: 0.05 };
         Object.assign(window, loadModules('frontend/js/explore/task/TaskContainer.js'));
-        const regionModel = { isRoute: false };
-        const svl = { regionModel, CONNECTED_TASK_THRESHOLD: 0.025, CLOSE_TO_ROUTE_THRESHOLD: 0.05 };
-        container = new window.TaskContainer(regionModel, svl, tracker);
+        container = new window.TaskContainer(finishedTask(), {}, { isRoute: false }, { setStreetLines: jest.fn() },
+            {}, {}, tracker);
     });
 
     describe('nextTask', () => {
@@ -209,46 +209,43 @@ describe('TaskContainer handing out a part-walked street', () => {
     });
 
     describe('setCurrentTask', () => {
-        let offset;
         let missionContainer;
+        let tasks;
 
+        /** The real MissionContainer adopting each street the container switches to, as it does in production. */
         beforeEach(() => {
-            offset = 500;
-            missionContainer = {
-                getCurrentMission: () => ({ getProperty: () => 7 }),
-                getTasksMissionsOffset: () => offset,
-                setTasksMissionsOffset: jest.fn((value) => { offset = value; }),
-            };
+            Object.assign(window, loadModules('frontend/js/explore/EventEmitter.js',
+                'frontend/js/explore/mission/MissionContainer.js'));
+            tasks = container;
+            missionContainer = new window.MissionContainer({}, { setMessage: () => {} }, { on: () => {} }, {}, tasks,
+                {});
+            missionContainer.setTasksMissionsOffset(500);
+            // The mission the streets are adopted into; its start is marked only on a fresh street, which this isn't.
+            const currentTask = { setProperty: () => {}, getProperty: () => true };
+            jest.spyOn(tasks, 'getCurrentTask').mockReturnValue(currentTask);
+            missionContainer.setCurrentMission({ getProperty: (k) => ({ missionId: 7, distanceProgress: 1 })[k] });
         });
-
-        /** setCurrentTask reads svl off the container, so the mission container has to be there before the call. */
-        const withMissionContainer = () => {
-            const regionModel = { isRoute: false };
-            const svl = { regionModel, missionContainer, CONNECTED_TASK_THRESHOLD: 0.025 };
-            return new window.TaskContainer(regionModel, svl, tracker);
-        };
 
         it('takes the pre-walked metres back out of the mission offset, once', () => {
             // Those metres are already in the server's mission progress, which the page load folded into the offset;
             // counting them again would jump the mission bar the moment the labeler switches streets.
             const resumed = makeTask({ resumed: true, auditTaskId: 9385, prewalkedKm: 0.071 });
-            const tasks = withMissionContainer();
 
             tasks.setCurrentTask(resumed);
-            expect(offset).toBeCloseTo(429, 6);
+            expect(missionContainer.getTasksMissionsOffset()).toBeCloseTo(429, 6);
 
             tasks.setCurrentTask(resumed);
-            expect(offset).toBeCloseTo(429, 6);
+            expect(missionContainer.getTasksMissionsOffset()).toBeCloseTo(429, 6);
         });
 
         it('leaves the offset alone for a fresh street', () => {
-            withMissionContainer().setCurrentTask(makeTask());
+            tasks.setCurrentTask(makeTask());
 
-            expect(missionContainer.setTasksMissionsOffset).not.toHaveBeenCalled();
+            expect(missionContainer.getTasksMissionsOffset()).toBe(500);
         });
 
         it('moves the interaction log onto the resumed task and says the street was resumed', () => {
-            withMissionContainer().setCurrentTask(makeTask({ resumed: true, auditTaskId: 9385 }));
+            tasks.setCurrentTask(makeTask({ resumed: true, auditTaskId: 9385 }));
 
             expect(tracker.setAuditTaskID).toHaveBeenCalledWith(9385);
             expect(tracker.push).toHaveBeenCalledWith(
@@ -259,15 +256,15 @@ describe('TaskContainer handing out a part-walked street', () => {
         it('marks the page payload\'s own task as a page load, not a resume of an abandoned street', () => {
             // An ordinary reload of the street in progress, and every free-exploration drop-in, carry an open row
             // too — so counting `resumed` alone would count them as pick-ups of abandoned streets.
-            withMissionContainer().setCurrentTask(makeTask({ resumed: true, auditTaskId: 9385, fromTaskList: false }));
+            tasks.setCurrentTask(makeTask({ resumed: true, auditTaskId: 9385, fromTaskList: false }));
 
             expect(tracker.push).toHaveBeenCalledWith(
                 'TaskStart', { resumed: true, auditTaskId: 9385, source: 'pageLoad' },
             );
         });
 
-        it('logs a fresh street with no note, as before', () => {
-            withMissionContainer().setCurrentTask(makeTask());
+        it('logs a fresh street with no note', () => {
+            tasks.setCurrentTask(makeTask());
 
             expect(tracker.push).toHaveBeenCalledWith('TaskStart', undefined);
         });
@@ -283,7 +280,6 @@ describe('TaskContainer.fetchTasks', () => {
 
     beforeEach(() => {
         window.turf = turf;
-        window.svl = { CLOSE_TO_ROUTE_THRESHOLD: 0.05 };
         window.util ??= realUtil();
         loadModules('frontend/js/common/utilitiesMath.js');
         // One eval so TaskContainer's `new Task(...)` resolves to the class evaluated beside it.
@@ -305,16 +301,16 @@ describe('TaskContainer.fetchTasks', () => {
         }));
 
         const regionModel = { isRoute: false, currentRegion: () => ({ getRegionId: () => 5 }) };
-        const missionContainer = {
-            getCurrentMission: () => ({ getProperty: () => 7, pushATaskToTheRoute: jest.fn() }),
-        };
-        container = new window.TaskContainer(regionModel, { regionModel, missionContainer }, { push: jest.fn() });
+        // The page's own street, which fetchTasks skips by id.
+        const initialTask = new window.Task(feature(straightStreet([-77.1, 38.8], 50), { street_edge_id: 3 }), {}, false);
+        container = new window.TaskContainer(initialTask, { streetCoverage: {} }, regionModel, {}, {}, {},
+            { push: jest.fn() });
     });
 
     it('seeds an open task at its saved position and a fresh one at its own start', async () => {
-        await container.fetchTasks();
+        await container.fetchTasks({ getProperty: () => 7, pushATaskToTheRoute: jest.fn() });
 
-        const [open, fresh] = container.getTasks();
+        const [, open, fresh] = container.getTasks();
         expect(open.isResumed()).toBe(true);
         // What separates a real pick-up from a reload in the logs; the page payload's task never comes through here.
         expect(open.cameFromTaskList()).toBe(true);

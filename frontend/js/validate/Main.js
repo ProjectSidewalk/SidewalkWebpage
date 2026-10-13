@@ -13,7 +13,7 @@ import { PanoStore } from '../common/pano-viewer/PanoStore.js';
 import { util } from '../common/utilities.js';
 import { Tracker } from './Tracker.js';
 import { Form } from './data/Form.js';
-import { KeyboardLock } from './keyboard/KeyboardLock.js';
+import { Gate } from '../common/Gate.js';
 import { KeyboardManager } from './keyboard/KeyboardManager.js';
 import { LabelContainer } from './label/LabelContainer.js';
 import { LabelVisibilityControl } from './label/LabelVisibilityControl.js';
@@ -227,7 +227,7 @@ export class Main {
     const tracker = new Tracker();
     // The dead end still logs its visit, and the exit flush is the Form's; there is no mission for it to compile.
     new Form(this.#param.dataStoreUrl, this.#config, tracker);
-    new ModalNoNewMission(this.#ui.modalMission, new KeyboardLock(), tracker).show();
+    new ModalNoNewMission(this.#ui.modalMission, new Gate(), tracker).show();
     // The unhide in #init() never runs on this path, and the page still needs revealing: without it the loading
     // overlay sits on screen forever and the modal is visible only through its own inline visibility override.
     this.#revealTool();
@@ -346,7 +346,7 @@ export class Main {
     // their absence, and a page closed during that load still flushes what it logged.
     const tracker = new Tracker();
     const form = new Form(param.dataStoreUrl, config, tracker);
-    const keyboardLock = new KeyboardLock();
+    const keyboardLock = new Gate();
 
     const statusField = new StatusField(this.#firstMission.completed_validations, ui);
 

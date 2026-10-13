@@ -8,8 +8,8 @@
  *     fixed by its walking order;
  *   - a priority refresh that names a street this page has no task for is skipped, not applied to `_tasks[-1]`.
  *
- * LabelContainer, Form and TaskContainer are top-level `class`es written for the Grunt-concatenation world, so the
- * tests eval each source into the jsdom global scope.
+ * LabelContainer, Form and TaskContainer are loaded as modules and built against the smallest collaborators each
+ * contract needs.
  */
 
 const { loadModules } = require('./loadGlobalScript');
@@ -28,9 +28,9 @@ describe('LabelContainer.fetchLabelsToResumeMission', () => {
     let container;
 
     beforeEach(() => {
-        window.svl = { tracker: { push: jest.fn() } };
         Object.assign(window, loadModules('frontend/js/explore/label/LabelContainer.js'));
-        container = new window.LabelContainer(1);
+        container = new window.LabelContainer(1, {}, {}, {}, {}, { on: jest.fn() }, {}, { get: () => null }, {},
+            { push: jest.fn() });
     });
 
     afterEach(() => {
@@ -79,24 +79,25 @@ describe('Form.submitData street-priority refresh on a route walk', () => {
     }
 
     /** Builds a Form with no labels or panos staged, posting to a fetch that records each request body. */
-    function buildForm() {
+    function buildForm(userRouteId) {
         Object.assign(window, loadModules('frontend/js/explore/data/Form.js'));
         const missionProps = { missionId: 5, distanceProgress: 0, distance: 100, isComplete: false, skipped: false };
-        const mission = { getProperty: (k) => missionProps[k], updateDistanceProgress: jest.fn() };
+        const mission = { getProperty: (k) => missionProps[k] };
         return new window.Form(
+            '/task',
+            { userRouteId, regionId: 1, isOnboarding: false, isExploreAddressMode: false },
             { getLabelsToLog: () => [], clearLabelsToLog: jest.fn(), getAllLabels: () => [] }, // labelContainer
             { on: jest.fn() }, // missionModel
-            { getCurrentMission: () => mission }, // missionContainer
+            { getCurrentMission: () => mission, updateDistanceProgress: jest.fn() }, // missionContainer
             { getStagedPanoData: () => [], getPanoData: () => null }, // panoStore
-            { getCurrentTask: nearlyDoneTask, updateTaskPriorities: jest.fn() }, // taskContainer
-            { getActions: () => [], refresh: jest.fn(), push: jest.fn() }, // tracker
-            '/task'
+            { getCurrentTask: nearlyDoneTask, updateTaskPriorities: jest.fn(), onTaskEnded: jest.fn(), onTaskLeft: jest.fn() },
+            { getPosition: () => ({ lat: 41.85, lng: -87.65 }) }, // panoManager
+            { getActions: () => [], refresh: jest.fn(), push: jest.fn(), setAuditTaskID: jest.fn() }, // tracker
         );
     }
 
     /** Submits once and returns the `audit_task` block of the request body the server would have received. */
     async function submittedAuditTask(userRouteId) {
-        window.svl.userRouteId = userRouteId;
         const bodies = [];
         window.fetch = jest.fn((url, opts) => {
             bodies.push(JSON.parse(opts.body));
@@ -105,20 +106,12 @@ describe('Form.submitData street-priority refresh on a route walk', () => {
                 json: async () => ({ audit_task_id: 12, label_ids: [], refresh_page: false }),
             });
         });
-        await buildForm().submitData(nearlyDoneTask());
+        await buildForm(userRouteId).submitData(nearlyDoneTask());
         return bodies[0].audit_task;
     }
 
     beforeEach(() => {
         window.AsyncLock = class { async acquire(key, fn) { return fn(); } };
-        window.svl = {
-            userRouteId: null,
-            regionId: 1,
-            isOnboarding: () => false,
-            isExploreAddressMode: () => false,
-            panoViewer: { getPosition: () => ({ lat: 41.85, lng: -87.65 }) },
-            tracker: { setAuditTaskID: jest.fn() },
-        };
         window.util = {
             getBrowser: () => 'chrome',
             getBrowserVersion: () => '1',
@@ -153,8 +146,10 @@ describe('TaskContainer.updateTaskPriorities', () => {
 
     beforeEach(() => {
         Object.assign(window, loadModules('frontend/js/explore/task/TaskContainer.js'));
-        const regionModel = { isRoute: true };
-        container = new window.TaskContainer(regionModel, { regionModel }, { push: jest.fn() });
+        const initialTask = {
+            getAuditTaskId: () => null, isResumed: () => false, cameFromTaskList: () => false, getProperty: () => false,
+        };
+        container = new window.TaskContainer(initialTask, {}, { isRoute: true }, {}, {}, {}, { push: jest.fn() });
     });
 
     it('applies a new priority to the task that street belongs to', () => {

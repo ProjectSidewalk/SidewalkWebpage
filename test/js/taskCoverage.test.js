@@ -49,31 +49,27 @@ function feature(coordinates, properties = {}) {
     };
 }
 
-/** The explore-page globals Task and TaskContainer read, with a minimap that only records what it is told. */
-function exploreSvl() {
-    return {
-        CLOSE_TO_ROUTE_THRESHOLD: 0.05,
-        streetCoverage: { ...COVERAGE_RULE },
-        isExploreAddressMode: () => true,
-        isOnboarding: () => false,
-        minimap: { setStreetLines: jest.fn(), clearStreetLines: jest.fn() },
-        form: { submitData: jest.fn() },
-    };
-}
+/** The free-exploration page facts Task and TaskContainer read. */
+const CONFIG = { streetCoverage: { ...COVERAGE_RULE }, isExploreAddressMode: true, isOnboarding: false };
+
+/** How free exploration draws a street that isn't the one being walked. */
+const FREE_EXPLORATION = { exploreAddressMode: true, current: false, route: false };
 
 describe('Task coverage in free exploration', () => {
     const street = straightStreet(STREET_START, STREET_LENGTH_M);
 
+    /** A task on a street, with the coverage rule a free-exploration page carries. */
+    const makeTask = (geojson) => new window.Task(geojson, CONFIG.streetCoverage, false);
+
     beforeEach(() => {
         window.turf = turf;
-        window.svl = exploreSvl();
         window.util ??= realUtil();
         loadModules('frontend/js/common/utilitiesMath.js');
         Object.assign(window, loadModules('frontend/js/explore/task/Task.js'));
     });
 
     it('credits a window around each pano and the walked stretch between neighbours', () => {
-        const task = new window.Task(feature(street), false);
+        const task = makeTask(feature(street));
 
         expect(task.recordVisit(standingAt(street, 5))).toBe(true);
         expect(task.getCoveredRanges()).toEqual([[0, 15]]);
@@ -84,7 +80,7 @@ describe('Task coverage in free exploration', () => {
     });
 
     it('credits only the windows across a hop too long to have been walked', () => {
-        const task = new window.Task(feature(street), false);
+        const task = makeTask(feature(street));
 
         task.recordVisit(standingAt(street, 20));
         task.recordVisit(standingAt(street, 100));
@@ -92,7 +88,7 @@ describe('Task coverage in free exploration', () => {
     });
 
     it('ignores a pano off the street and breaks the chain there', () => {
-        const task = new window.Task(feature(street), false);
+        const task = makeTask(feature(street));
 
         task.recordVisit(standingAt(street, 20));
         expect(task.recordVisit(standingAt(street, 50, 40))).toBe(false);
@@ -102,7 +98,7 @@ describe('Task coverage in free exploration', () => {
     });
 
     it('measures from the server\'s start whichever way the street was turned', () => {
-        const reversed = new window.Task(feature(street, { start_point_reversed: true }), false);
+        const reversed = makeTask(feature(street, { start_point_reversed: true }));
 
         reversed.recordVisit(standingAt(street, 180));
         expect(reversed.getCoveredRanges()).toEqual([[170, 190]]);
@@ -112,34 +108,34 @@ describe('Task coverage in free exploration', () => {
         // The server's geodesic length and turf's differ by decimeters; a reversed street turns the overshoot into a
         // negative slice start, which must never reach the minimap.
         const lengthM = turf.length(turf.lineString(street), { units: 'meters' });
-        const reversed = new window.Task(
-            feature(street, { start_point_reversed: true, covered_ranges: [[150, lengthM + 0.4]] }), false
+        const reversed = makeTask(
+            feature(street, { start_point_reversed: true, covered_ranges: [[150, lengthM + 0.4]] }),
         );
 
         expect(reversed.getCoveredRanges()[0][1]).toBeCloseTo(lengthM, 1);
-        expect(() => reversed.render()).not.toThrow();
+        expect(() => reversed.minimapLines(FREE_EXPLORATION)).not.toThrow();
     });
 
     it('never rounds a stored range past a street whose length rounds up', () => {
         // 100.07 m rounds to 100.1 m; on a reversed street that would put a slice start below zero and crash turf.
         const oddStreet = straightStreet(STREET_START, 100.07);
         const lengthM = turf.length(turf.lineString(oddStreet), { units: 'meters' });
-        const reversed = new window.Task(
-            feature(oddStreet, { start_point_reversed: true, covered_ranges: [[50, lengthM]] }), false
+        const reversed = makeTask(
+            feature(oddStreet, { start_point_reversed: true, covered_ranges: [[50, lengthM]] }),
         );
 
         expect(reversed.getCoveredRanges()[0][1]).toBeLessThanOrEqual(lengthM);
-        expect(() => reversed.render()).not.toThrow();
+        expect(() => reversed.minimapLines(FREE_EXPLORATION)).not.toThrow();
     });
 
     it('drops a malformed stored pair instead of failing the whole street', () => {
-        const task = new window.Task(feature(street, { covered_ranges: [[10, 30], null, [50], ['a', 'b']] }), false);
+        const task = makeTask(feature(street, { covered_ranges: [[10, 30], null, [50], ['a', 'b']] }));
 
         expect(task.getCoveredRanges()).toEqual([[10, 30]]);
     });
 
     it('starts a fresh chain after the labeler left for another street', () => {
-        const task = new window.Task(feature(street), false);
+        const task = makeTask(feature(street));
 
         task.recordVisit(standingAt(street, 20));
         task.resetVisitChain();
@@ -149,7 +145,7 @@ describe('Task coverage in free exploration', () => {
     });
 
     it('is covered enough once at most the cap is left, and never with nothing seen', () => {
-        const task = new window.Task(feature(street), false);
+        const task = makeTask(feature(street));
         expect(task.isCoveredEnough()).toBe(false);
 
         // Either side of the 50 m cap on a 200 m street; the exact boundary is the server's call (StreetCoverageSpec).
@@ -160,7 +156,7 @@ describe('Task coverage in free exploration', () => {
     });
 
     it('holds a short street to the half-covered floor where the cap would pass it', () => {
-        const short = new window.Task(feature(straightStreet(STREET_START, 60)), false);
+        const short = makeTask(feature(straightStreet(STREET_START, 60)));
 
         // One pano window at a corner of a 60 m street leaves 50 m, within the cap, but is only a sixth of it.
         short.setCoveredRanges([[0, 10]]);
@@ -170,7 +166,7 @@ describe('Task coverage in free exploration', () => {
     });
 
     it('starts from the coverage the server stored for a resumed task', () => {
-        const task = new window.Task(feature(street, { audit_task_id: 77, covered_ranges: [[0, 30]] }), false);
+        const task = makeTask(feature(street, { audit_task_id: 77, covered_ranges: [[0, 30]] }));
 
         expect(task.getCoveredRanges()).toEqual([[0, 30]]);
         task.recordVisit(standingAt(street, 35));
@@ -183,18 +179,16 @@ describe('Task coverage in free exploration', () => {
     });
 
     it('draws covered stretches, and the whole street once it counts', () => {
-        const task = new window.Task(feature(street), false);
+        const task = makeTask(feature(street));
 
         task.setCoveredRanges([[0, 30], [100, 120]]);
-        task.render();
-        let lines = window.svl.minimap.setStreetLines.mock.calls.at(-1)[1];
+        let lines = task.minimapLines(FREE_EXPLORATION);
         expect(lines).toHaveLength(2);
         expect(lines.every((line) => line.kind === 'completed')).toBe(true);
         expect(turf.length(turf.lineString(lines[0].coordinates), { units: 'meters' })).toBeCloseTo(30, 0);
 
         task.setCoveredRanges([[0, 160]]);
-        task.render();
-        lines = window.svl.minimap.setStreetLines.mock.calls.at(-1)[1];
+        lines = task.minimapLines(FREE_EXPLORATION);
         expect(lines).toHaveLength(1);
         expect(lines[0].coordinates).toEqual(street);
     });
@@ -208,22 +202,25 @@ describe('TaskContainer walking streets in free exploration', () => {
 
     let container;
     let tracker;
+    let left;
     let current;
     let cross;
 
     beforeEach(() => {
         window.turf = turf;
-        window.svl = exploreSvl();
         window.util ??= realUtil();
         loadModules('frontend/js/common/utilitiesMath.js');
         Object.assign(
             window, loadModules('frontend/js/explore/task/Task.js', 'frontend/js/explore/task/TaskContainer.js')
         );
         tracker = { push: jest.fn(), setAuditTaskID: jest.fn() };
-        container = new window.TaskContainer({}, window.svl, tracker);
-        current = new window.Task(feature(street, { street_edge_id: 1 }), false);
-        cross = new window.Task(feature(crossStreet, { street_edge_id: 2 }), false);
-        container.setCurrentTask(current);
+        current = new window.Task(feature(street, { street_edge_id: 1 }), CONFIG.streetCoverage, false);
+        cross = new window.Task(feature(crossStreet, { street_edge_id: 2 }), CONFIG.streetCoverage, false);
+        container = new window.TaskContainer(current, CONFIG, { isRoute: false },
+            { setStreetLines: jest.fn(), clearStreetLines: jest.fn() }, {}, {}, tracker);
+        // What the Form hears, as it would in production: the street being left, to post as it stands.
+        left = jest.fn();
+        container.onTaskLeft(left);
         container._tasks.push(cross);
     });
 
@@ -238,7 +235,7 @@ describe('TaskContainer walking streets in free exploration', () => {
 
         expect(container.getCurrentTask()).toBe(current);
         expect(current.getCoveredRanges()).toEqual([[40, 60]]);
-        expect(window.svl.form.submitData).not.toHaveBeenCalled();
+        expect(left).not.toHaveBeenCalled();
     });
 
     it('posts the street being left and switches when the labeler is nearer another street', () => {
@@ -246,7 +243,7 @@ describe('TaskContainer walking streets in free exploration', () => {
         container.recordExploreMove(standingAt(street, 190));
         container.recordExploreMove(standingAt(crossStreet, 30));
 
-        expect(window.svl.form.submitData).toHaveBeenCalledWith(current);
+        expect(left).toHaveBeenCalledWith(current);
         expect(container.getCurrentTask()).toBe(cross);
         expect(cross.getCoveredRanges()).toEqual([[20, 40]]);
         expect(tracker.push).toHaveBeenCalledWith('ExploreAddress_StreetSwitch', { from: 1, to: 2, resumed: false });
@@ -280,7 +277,7 @@ describe('TaskContainer walking streets in free exploration', () => {
         container.recordExploreMove({ lat: corner[1], lng: corner[0] });
 
         expect(container.getCurrentTask()).toBe(current);
-        expect(window.svl.form.submitData).not.toHaveBeenCalled();
+        expect(left).not.toHaveBeenCalled();
     });
 
     it('only credits the current street until the region\'s streets have loaded', () => {

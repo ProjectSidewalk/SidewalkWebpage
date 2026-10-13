@@ -40,7 +40,7 @@ describe('Validate F shortcut for immersive mode', () => {
         Object.assign(window, loadModules('frontend/js/common/KeyboardShortcuts.js', 'frontend/js/validate/keyboard/KeyboardManager.js'));
         new window.KeyboardManager(
             { validationMenu: validationMenuUi, undoValidation: { undoButton: live('undoButton') } }, config,
-            { isDisabled: () => keyboardHeld, hold: () => {}, release: () => {} },
+            { isHeld: () => keyboardHeld, hold: () => {}, release: () => {} },
             { onLoadingChange: () => {} }, live('labelVisibilityControl'), live('labelCard'), live('validationMenu'),
             live('zoomControl'), live('undoValidation'), live('immersiveMode'), live('imageAdjustmentsPopover'),
             live('tracker'),

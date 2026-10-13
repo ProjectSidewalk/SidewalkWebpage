@@ -468,13 +468,13 @@ describe('mobile Validate mission screens', () => {
     });
 
     describe('the keyboard behind the mission-complete screen (#5752)', () => {
-        const KeyboardLock = loadClass('frontend/js/validate/keyboard/KeyboardLock.js', 'KeyboardLock');
+        const Gate = loadClass('frontend/js/common/Gate.js', 'Gate');
         let lock;
         let hooks;
 
         beforeEach(() => {
             isMobile = false;
-            lock = new KeyboardLock();
+            lock = new Gate();
             hooks = {tracker, keyboard: {enableKeyboard: () => lock.release('tutorial')}};
             // The desktop screen raises the next mission's tutorial itself; building it is all this needs of it.
             global.MissionStartTutorial = class {};
@@ -496,17 +496,17 @@ describe('mobile Validate mission screens', () => {
             lock.hold('loading');
             lock.release('loading');
 
-            expect(lock.isDisabled()).toBe(true);
+            expect(lock.isHeld()).toBe(true);
         });
 
         test('closing the screen hands the pause to the next tutorial, and only its Done lets it go', () => {
             const {ui} = screenUp();
 
             ui.closeButtonSecondary.click();
-            expect(lock.isDisabled()).toBe(true);
+            expect(lock.isHeld()).toBe(true);
 
             hooks.keyboard.enableKeyboard();
-            expect(lock.isDisabled()).toBe(false);
+            expect(lock.isHeld()).toBe(false);
         });
 
         test('on the phone, with no tutorial to raise, closing the screen is what lets the pause go', () => {
@@ -518,7 +518,7 @@ describe('mobile Validate mission screens', () => {
 
             ui.closeButtonSecondary.click();
 
-            expect(lock.isDisabled()).toBe(false);
+            expect(lock.isHeld()).toBe(false);
         });
     });
 });

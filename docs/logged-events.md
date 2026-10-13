@@ -28,6 +28,11 @@ The core call is **`tracker.push(action, note)`** (see `Tracker.push` in each Tr
 - `note` — an optional object of extra fields (e.g. `{labelType}`, `{cursorX, cursorY}`, `{code}`) stored with the
   event.
 
+On Explore, `push` takes the label an event is about as a third argument (a placement, a context-menu edit, a delete),
+and that row and the ones after it carry the label's `temporary_label_id` and its own `audit_task_id` (a label from
+an earlier session is filed under the task it was placed in) until the labeler is done with the label: the menu
+closes, the label is removed, or an Occlusion is placed, which opens no menu.
+
 Each pushed event is buffered with a timestamp and context (pano, task, lat/lng, …) and flushed to the backend
 periodically — on mission complete, after enough interactions accumulate, or (in Validate) roughly a minute after the
 first interaction since the last flush (#4429) — which is itself recorded as a `RefreshTracker` event.

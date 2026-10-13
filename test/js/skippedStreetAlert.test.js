@@ -27,14 +27,11 @@ describe('the "we moved you off that street" message', () => {
               <button id="alert-dont-show"></button>
             </div>`;
         stored = { alertDontShowList: silenced };
-        window.svl = {
-            storage: {
-                get: (key) => stored[key],
-                set: (key, value) => { stored[key] = value; },
-            },
-        };
-        alertController = new window.AlertController();
-        stuckAlert = new window.StuckAlert(alertController);
+        alertController = new window.AlertController({
+            get: (key) => stored[key],
+            set: (key, value) => { stored[key] = value; },
+        });
+        stuckAlert = new window.StuckAlert(alertController, { onPanoChanged: () => {} });
     };
 
     beforeEach(() => {

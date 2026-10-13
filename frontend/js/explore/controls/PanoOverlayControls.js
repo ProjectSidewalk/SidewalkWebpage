@@ -30,7 +30,10 @@ export class PanoOverlayControls {
     this.#stuck = document.getElementById('explore-control-stuck');
     this.#controlButtonsToggle = document.getElementById('explore-control-buttons-toggle');
 
-    // The stuck handler is attached once and gated by #stuckEnabled; enable/disable just flip the flag.
+    // The stuck handler is attached once and gated by #stuckEnabled, which follows walking.
+    navigationService.walking.onChanged((held) => {
+      this.#stuckEnabled = !held;
+    });
     this.#stuck.addEventListener('click', this.#handleClickStuck);
     this.#controlButtonsToggle.addEventListener('click', this.#handleToggleControls);
   }
@@ -76,16 +79,6 @@ export class PanoOverlayControls {
    */
   setCollapsedIndicator = (active) => {
     this.#controlButtonsToggle.classList.toggle('pano-overlay-button--active', active);
-  };
-
-  /* Enable the stuck button. */
-  enableStuckButton = () => {
-    this.#stuckEnabled = true;
-  };
-
-  /* Disable the stuck button. */
-  disableStuckButton = () => {
-    this.#stuckEnabled = false;
   };
 
   /* Disable the stuck and control-toggle buttons (used while onboarding takes over the UI). */

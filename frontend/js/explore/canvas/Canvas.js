@@ -1,13 +1,29 @@
 /**
- * Canvas Module. Owns the label canvas: drawing labels, hit-testing the cursor, and pano pan/cursor handling.
+ * Canvas Module. Owns the label canvas: drawing labels, hit-testing the cursor, pano pan/cursor handling, and the
+ * hover card a hovered label gets.
  */
 
-import { svl } from '../svl.js';
 import { ShareWidget } from '../../common/share/ShareWidget.js';
+import { Gate } from '../../common/Gate.js';
 import { util } from '../../common/utilities.js';
 import { Label } from '../label/Label.js';
 import '../../common/pano-viewer/panoUtilities.js';
 import '../../common/utilitiesSidewalk.js';
+/** @typedef {import('../Main.js').CanvasUi} CanvasUi */
+/** @typedef {import('../Main.js').ExploreConfig} ExploreConfig */
+/** @typedef {import('../Main.js').StreetviewUi} StreetviewUi */
+/** @typedef {import('../game/AudioEffect.js').AudioEffect} AudioEffect */
+/** @typedef {import('./CanvasFrame.js').CanvasFrame} CanvasFrame */
+/** @typedef {import('./ContextMenu.js').ContextMenu} ContextMenu */
+/** @typedef {import('../data/Form.js').Form} Form */
+/** @typedef {import('../../common/LabelCardView.js').LabelCardView} LabelCardView */
+/** @typedef {import('../label/LabelContainer.js').LabelContainer} LabelContainer */
+/** @typedef {import('../mission/MissionContainer.js').MissionContainer} MissionContainer */
+/** @typedef {import('../panorama/PanoManager.js').PanoManager} PanoManager */
+/** @typedef {import('../menu/LabelModes.js').LabelModes} LabelModes */
+/** @typedef {import('../navigation/NavigationService.js').NavigationService} NavigationService */
+/** @typedef {import('../task/TaskContainer.js').TaskContainer} TaskContainer */
+/** @typedef {import('../data/Tracker.js').Tracker} Tracker */
 
 export class Canvas {
   // Widest crop we store, in px: what the boxed tool's HiDPI canvas has always produced (1440x960), and the size the
@@ -17,21 +33,36 @@ export class Canvas {
   // travel from the icon onto the card (e.g. to reach its Edit/Delete buttons) without the card vanishing mid-way.
   static #HOVER_CARD_HIDE_DELAY_MS = 200;
 
-  // How long a share click will wait on a just-placed label's crop before opening the popover regardless. Short
-  // enough that the button still feels like it responded to the click.
-  static #CROP_WAIT_CAP_MS = 800;
+  #ui;
+  #streetviewUi;
+  #config;
+  #frame;
+  #labelCardView;
+  #labelModes;
+  #contextMenu;
+  #labelContainer;
+  #missionContainer;
+  #taskContainer;
+  #panoManager;
+  #form;
+  #audioEffect;
+  #tracker;
 
-  #ribbon;
   #ctx;
   #hoverCardHideTimer = null;
   #shareWidget = null;
   #shareUrl = null;
+  // The pano the labels were last filtered for, so a re-render only re-filters once the pano changes.
+  #currPanoId;
   #status = {
     currentLabel: null,
-    disableLabelDelete: false,
-    disableLabeling: false,
-    lockDisableLabelDelete: false,
   };
+
+  /**
+   * Whether a click on the drawing layer places a label: held by a move in flight and by a pop-up.
+   * @type {Gate}
+   */
+  labeling = new Gate();
 
   // Mouse status and mouse event callback functions.
   #mouseStatus = {
@@ -41,11 +72,63 @@ export class Canvas {
   };
 
   /**
-   * @param {object} ribbon - The RibbonMenu, queried for the selected label type / mode.
+   * @param {CanvasUi} ui - The drawing layer and the hover card's elements.
+   * @param {StreetviewUi} streetviewUi - The pano's layers; panning happens on its control layer.
+   * @param {ExploreConfig} config
+   * @param {CanvasFrame} frame - The frame labels are placed in.
+   * @param {LabelCardView} labelCardView - Fills the hover card's content.
+   * @param {LabelModes} labelModes - Says which label type is armed; arming one takes the hover card down.
+   * @param {ContextMenu} contextMenu - Opened for a clicked label; its changes re-render the canvas.
+   * @param {LabelContainer} labelContainer - Owns the labels; a placed or removed label re-renders the canvas.
+   * @param {MissionContainer} missionContainer - Whose current mission a new label belongs to.
+   * @param {TaskContainer} taskContainer - Whose current street a new label belongs to.
+   * @param {PanoManager} panoManager - Whose view is panned and projected through, and redrawn for as it changes.
+   * @param {NavigationService} navigationService - Whose moves pause labeling and take the hover card down.
+   * @param {Form} form - Submits a placed label, and saves one before it is shared.
+   * @param {AudioEffect} audioEffect - The placement sound.
+   * @param {Tracker} tracker
    */
-  constructor(ribbon) {
-    this.#ribbon = ribbon;
+  constructor(ui, streetviewUi, config, frame, labelCardView, labelModes, contextMenu, labelContainer,
+    missionContainer, taskContainer, panoManager, navigationService, form, audioEffect, tracker) {
+    this.#ui = ui;
+    this.#streetviewUi = streetviewUi;
+    this.#config = config;
+    this.#frame = frame;
+    this.#labelCardView = labelCardView;
+    this.#labelModes = labelModes;
+    this.#contextMenu = contextMenu;
+    this.#labelContainer = labelContainer;
+    this.#missionContainer = missionContainer;
+    this.#taskContainer = taskContainer;
+    this.#panoManager = panoManager;
+    this.#form = form;
+    this.#audioEffect = audioEffect;
+    this.#tracker = tracker;
     this.#init();
+
+    labelModes.onModeChanged((mode) => {
+      if (mode === 'Walk') return;
+      // A lingering hover card would sit above the drawing layer and swallow the label-placement click.
+      this.showLabelHoverInfo(undefined);
+      // Change the cursor before the mouse moves. Doesn't bubble, so the tracker never logs it.
+      ui.drawingLayer.dispatchEvent(new MouseEvent('mousemove'));
+      // Safari requires audio to be loaded before each play, which takes time, so the placement sound loads when a
+      // label type is armed rather than when the label is placed.
+      this.#audioEffect.load('drip');
+    });
+    panoManager.onPovChanged(() => this.update());
+    navigationService.onMoveStarted(() => {
+      this.hideHoverCard();
+      this.labeling.hold('move');
+    });
+    navigationService.onMoveFinished(() => this.labeling.release('move'));
+    contextMenu.onChange(() => this.clear().render());
+    labelContainer.onLabelPlaced((label) => this.#saveCropFor(label));
+    labelContainer.onLabelRemoved(() => {
+      this.hideHoverCard();
+      this.setCurrentLabel(undefined);
+      this.clear().render();
+    });
   }
 
   /**
@@ -64,24 +147,26 @@ export class Canvas {
     util.sizeCanvasToDisplay(/** @type {HTMLCanvasElement} */ (el), this.#ctx);
 
     // Attach listeners to dom elements. view-control-layer handles panning, drawing-layer handles adding labels.
-    svl.ui.canvas.drawingLayer.addEventListener('mousedown', (e) => this.#handleDrawingLayerMouseDown(e));
-    svl.ui.canvas.drawingLayer.addEventListener('mouseup', (e) => this.#handleDrawingLayerMouseUp(e));
-    svl.ui.canvas.drawingLayer.addEventListener('mousemove', (e) => this.#handleDrawingLayerMouseMove(e));
+    const ui = this.#ui;
+    const viewControlLayer = this.#streetviewUi.viewControlLayer;
+    ui.drawingLayer.addEventListener('mousedown', (e) => this.#handleDrawingLayerMouseDown(e));
+    ui.drawingLayer.addEventListener('mouseup', (e) => this.#handleDrawingLayerMouseUp(e));
+    ui.drawingLayer.addEventListener('mousemove', (e) => this.#handleDrawingLayerMouseMove(e));
     Canvas.watchPanoExit(document.getElementById('interaction-area-holder'), () => this.#handleDrawingLayerMouseOut());
-    svl.ui.canvas.hoverCard.addEventListener('click', () => this.#handleHoverCardClick('card'));
-    svl.ui.canvas.hoverCard.addEventListener('mouseenter', () => this.#cancelScheduledHoverCardHide());
-    svl.ui.canvas.hoverCard.addEventListener('mouseleave', () => this.#scheduleHoverCardHide());
-    svl.ui.canvas.hoverCardEdit.addEventListener('click', (e) => {
+    ui.hoverCard.addEventListener('click', () => this.#handleHoverCardClick('card'));
+    ui.hoverCard.addEventListener('mouseenter', () => this.#cancelScheduledHoverCardHide());
+    ui.hoverCard.addEventListener('mouseleave', () => this.#scheduleHoverCardHide());
+    ui.hoverCardEdit.addEventListener('click', (e) => {
       e.stopPropagation(); // So the card's own click handler doesn't open the menu a second time.
       this.#handleHoverCardClick('edit-button');
     });
-    svl.ui.canvas.hoverCardDelete.addEventListener('click', (e) => this.#handleHoverCardDeleteClick(e));
+    ui.hoverCardDelete.addEventListener('click', (e) => this.#handleHoverCardDeleteClick(e));
     this.#initShareWidget();
-    svl.ui.streetview.viewControlLayer.addEventListener('mousedown', (e) => this.#handlerViewControlLayerMouseDown(e));
-    svl.ui.streetview.viewControlLayer.addEventListener('mouseup', (e) => this.#handlerViewControlLayerMouseUp(e));
-    svl.ui.streetview.viewControlLayer.addEventListener('mousemove', (e) => this.#handlerViewControlLayerMouseMove(e));
-    svl.ui.streetview.viewControlLayer.addEventListener('mouseleave', () => this.#handlerViewControlLayerMouseLeave());
-    svl.ui.streetview.viewControlLayer.onselectstart = () => false;
+    viewControlLayer.addEventListener('mousedown', (e) => this.#handlerViewControlLayerMouseDown(e));
+    viewControlLayer.addEventListener('mouseup', (e) => this.#handlerViewControlLayerMouseUp(e));
+    viewControlLayer.addEventListener('mousemove', (e) => this.#handlerViewControlLayerMouseMove(e));
+    viewControlLayer.addEventListener('mouseleave', () => this.#handlerViewControlLayerMouseLeave());
+    viewControlLayer.onselectstart = () => false;
   }
 
   /**
@@ -91,51 +176,45 @@ export class Canvas {
    */
   #createLabel(canvasX, canvasY) {
     // Generate some metadata for the new label.
-    const labelType = this.#ribbon.getStatus('selectedLabelType');
-    const pov = svl.panoViewer.getPov();
+    const labelType = this.#labelModes.getSelectedLabelType();
+    const pov = this.#panoManager.getPov();
     // The click is projected through the frame it was made in, and the label keeps that frame (#5085): it is stored
     // beside canvas_x/canvas_y so every later reader can project the point the same way.
-    const frame = svl.CANVAS_FRAME;
-    const hFov = svl.renderedHFov(pov.zoom);
+    const frame = this.#frame;
+    const hFov = frame.renderedHFov(pov.zoom);
     const povOfLabel = util.pano.canvasCoordToCenteredPov(pov, canvasX, canvasY, frame.width, frame.height, hFov);
     const rerenderCanvasCoord = util.pano.centeredPovToCanvasCoord(
-      povOfLabel, pov, frame.width, frame.height, svl.LABEL_ICON_RADIUS, hFov,
+      povOfLabel, pov, frame.width, frame.height, frame.iconRadius, hFov,
     );
     const param = {
-      tutorial: svl.missionContainer.getCurrentMission().getProperty('missionType') === 'auditOnboarding',
-      missionId: svl.missionContainer.getCurrentMission().getProperty('missionId'),
-      auditTaskId: svl.taskContainer.getCurrentTask().getAuditTaskId(),
+      tutorial: this.#config.isOnboarding,
+      missionId: this.#missionContainer.getCurrentMission().getProperty('missionId'),
+      auditTaskId: this.#taskContainer.getCurrentTask().getAuditTaskId(),
       labelType,
       originalCanvasXY: { x: canvasX, y: canvasY },
       originalCanvasFrame: { width: frame.width, height: frame.height },
       currCanvasXY: rerenderCanvasCoord,
       povOfLabelIfCentered: povOfLabel,
-      panoId: svl.panoViewer.getPanoId(),
+      panoId: this.#panoManager.getPanoId(),
       originalPov: pov,
     };
 
-    // Create the label and render the context menu.
-    this.#status.currentLabel = svl.labelContainer.createLabel(param, true);
-    svl.contextMenu.show(this.#status.currentLabel);
+    this.#status.currentLabel = this.#labelContainer.createLabel(param, true);
+    this.#contextMenu.show(this.#status.currentLabel);
 
     // Log the labeling event.
-    svl.tracker.push('LabelingCanvas_FinishLabeling', {
+    this.#tracker.push('LabelingCanvas_FinishLabeling', {
       labelType,
       canvasX,
       canvasY,
       canvasWidth: frame.width,
       canvasHeight: frame.height,
-    }, {
-      temporaryLabelId: this.#status.currentLabel.getProperty('temporaryLabelId'),
-    });
+    }, this.#status.currentLabel);
 
-    // Play labeling sound effect.
-    if ('audioEffect' in svl) {
-      svl.audioEffect.play('drip');
-    }
+    this.#audioEffect.play('drip');
 
-    // If in the tutorial, send an event to the onboarding module.
-    if (svl.onboarding) {
+    // The tutorial checks where the label landed.
+    if (this.#config.isOnboarding) {
       const customEvent = new CustomEvent('addTutorialLabel', {
         detail: { label: this.#status.currentLabel },
       });
@@ -148,7 +227,7 @@ export class Canvas {
     // Trying to keep the timeout as low as possible to avoid any delay in switching back to walk mode for now.
     // Can try increasing it if we save crops with the road labels.
     setTimeout(() => {
-      this.#ribbon.backToWalk();
+      this.#labelModes.backToWalk();
     }, 20);
   }
 
@@ -157,7 +236,7 @@ export class Canvas {
    * @param {string} type - One of 'OpenHand', 'ClosedHand', or 'Pointer'; uses 'default' for any other input.
    */
   #setViewControlLayerCursor(type) {
-    const layer = svl.ui.streetview.viewControlLayer;
+    const layer = this.#streetviewUi.viewControlLayer;
     switch (type) {
       case 'OpenHand':
         layer.style.cursor = `url(${util.assetPath('images/icons/openhand.cur')}) 4 4, move`;
@@ -195,7 +274,7 @@ export class Canvas {
   #handlerViewControlLayerMouseDown(e) {
     const currMousePosition = this.#canvasMousePosition(e);
     this.#mouseStatus.isLeftDown = true;
-    svl.tracker.push('ViewControl_MouseDown', currMousePosition);
+    this.#tracker.push('ViewControl_MouseDown', currMousePosition);
     this.#setViewControlLayerCursor('ClosedHand');
   }
 
@@ -206,28 +285,20 @@ export class Canvas {
   #handlerViewControlLayerMouseUp(e) {
     const currMousePosition = this.#canvasMousePosition(e);
     this.#mouseStatus.isLeftDown = false;
-    svl.tracker.push('ViewControl_MouseUp', currMousePosition);
+    this.#tracker.push('ViewControl_MouseUp', currMousePosition);
     const currTime = new Date();
 
     const selectedLabel = this.onLabel(currMousePosition.x, currMousePosition.y);
     if (selectedLabel && selectedLabel.className === 'Label') {
       this.setCurrentLabel(selectedLabel);
       this.#setViewControlLayerCursor('Pointer');
-
-      if ('contextMenu' in svl) {
-        if (this.#status.contextMenuWasOpen) {
-          svl.contextMenu.hide();
-        } else {
-          svl.contextMenu.show(selectedLabel);
-        }
-        this.#status.contextMenuWasOpen = false;
-      }
+      this.#contextMenu.show(selectedLabel);
     } else {
       this.#setViewControlLayerCursor('OpenHand');
       if (currTime.getTime() - this.#mouseStatus.prevMouseUpTime < 300) {
         // Continue logging double click. We don't have any features for it now, but it's good to know how
         // frequently people are trying to double-click. They might be trying to zoom?
-        svl.tracker.push('ViewControl_DoubleClick');
+        this.#tracker.push('ViewControl_DoubleClick');
       }
     }
     this.#mouseStatus.prevMouseUpTime = currTime;
@@ -249,13 +320,13 @@ export class Canvas {
     const currMousePosition = this.#canvasMousePosition(e);
 
     const item = this.onLabel(currMousePosition.x, currMousePosition.y);
-    if (this.#mouseStatus.isLeftDown && svl.panoManager.getStatus('disablePanning') === false) {
+    if (this.#mouseStatus.isLeftDown && !this.#panoManager.panning.isHeld()) {
       // If a mouse is being dragged on the control layer, move the pano.
-      const pov = svl.panoViewer.getPov();
+      const pov = this.#panoManager.getPov();
       const zoomScaling = Math.pow(2, pov.zoom);
       const dx = (currMousePosition.x - this.#mouseStatus.prevX) / zoomScaling;
       const dy = (currMousePosition.y - this.#mouseStatus.prevY) / zoomScaling;
-      svl.panoManager.updatePov(dx, dy);
+      this.#panoManager.updatePov(dx, dy);
       this.#setViewControlLayerCursor('ClosedHand');
 
       // Hide any label hover info while panning so it doesn't linger over the moving pano.
@@ -315,8 +386,8 @@ export class Canvas {
    * When mousing out of the canvas, stop trying to add a label type, switching back to Explore mode.
    */
   #handleDrawingLayerMouseOut() {
-    svl.tracker.push('LabelingCanvas_MouseOut');
-    if (!svl.isOnboarding()) this.#ribbon.backToWalk();
+    this.#tracker.push('LabelingCanvas_MouseOut');
+    if (!this.#config.isOnboarding) this.#labelModes.backToWalk();
   }
 
   /**
@@ -324,7 +395,7 @@ export class Canvas {
    * @param {MouseEvent} e
    */
   #handleDrawingLayerMouseDown(e) {
-    svl.tracker.push('LabelingCanvas_MouseDown', this.#canvasMousePosition(e));
+    this.#tracker.push('LabelingCanvas_MouseDown', this.#canvasMousePosition(e));
   }
 
   /**
@@ -334,15 +405,15 @@ export class Canvas {
   async #handleDrawingLayerMouseUp(e) {
     const currMousePosition = this.#canvasMousePosition(e);
 
-    if (!this.#status.disableLabeling) {
+    if (!this.labeling.isHeld()) {
       this.#createLabel(currMousePosition.x, currMousePosition.y);
       this.clear();
-      this.setOnlyLabelsOnPanoAsVisible(svl.panoViewer.getPanoId());
+      this.setOnlyLabelsOnPanoAsVisible(this.#panoManager.getPanoId());
       this.render();
     }
 
-    svl.tracker.push('LabelingCanvas_MouseUp', currMousePosition);
-    await svl.form.submitData(); // Submit the label to the back end.
+    this.#tracker.push('LabelingCanvas_MouseUp', currMousePosition);
+    await this.#form.submitData(); // Submit the label to the back end.
   }
 
   /**
@@ -351,7 +422,7 @@ export class Canvas {
    */
   #handleDrawingLayerMouseMove(e) {
     // Change the cursor according to the label type.
-    const cursorUrl = Label.getCursorImageUrl(this.#ribbon.getStatus('mode'));
+    const cursorUrl = Label.getCursorImageUrl(this.#labelModes.getMode());
     if (cursorUrl) {
       const hotspot = Label.CURSOR_ICON_SIZE / 2;
       // Need to reset the cursor first, otherwise Safari strangely doesn't update the cursor.
@@ -367,17 +438,10 @@ export class Canvas {
    */
   #handleHoverCardDeleteClick(e) {
     e.stopPropagation(); // Deleting must not also trigger the card's open-context-menu click.
-    if (!this.#status.disableLabelDelete) {
-      const currLabel = this.getCurrentLabel();
-      // If in tutorial, only delete if it's the last label that the user added to the canvas.
-      if (currLabel
-        && (!svl.onboarding || svl.onboarding.getCurrentLabelId() === currLabel.getProperty('temporaryLabelId'))) {
-        svl.tracker.push('Click_LabelDelete', { labelType: currLabel.getProperty('labelType') });
-        svl.labelContainer.removeLabel(currLabel);
-        this.hideHoverCard();
-        this.setCurrentLabel(undefined);
-      }
-    }
+    const currLabel = this.getCurrentLabel();
+    if (!this.#labelContainer.canDelete(currLabel)) return;
+    this.#tracker.push('Click_LabelDelete', { labelType: currLabel.getProperty('labelType') }, currLabel);
+    this.#labelContainer.removeLabel(currLabel);
   }
 
   /**
@@ -387,10 +451,10 @@ export class Canvas {
    */
   #handleHoverCardClick(via) {
     const currLabel = this.getCurrentLabel();
-    if (currLabel && currLabel.getLabelType() !== 'Occlusion' && 'contextMenu' in svl) {
-      svl.tracker.push('Click_LabelHoverCard', { labelType: currLabel.getLabelType(), via });
+    if (currLabel && currLabel.getLabelType() !== 'Occlusion') {
+      this.#tracker.push('Click_LabelHoverCard', { labelType: currLabel.getLabelType(), via });
       this.showLabelHoverInfo(undefined);
-      svl.contextMenu.show(currLabel);
+      this.#contextMenu.show(currLabel);
     }
   }
 
@@ -403,7 +467,7 @@ export class Canvas {
    * for and the button is hidden instead (see #pointShareAtLabel).
    */
   #initShareWidget() {
-    const trigger = svl.ui.canvas.hoverCardShare;
+    const trigger = this.#ui.hoverCardShare;
     if (!trigger) return;
 
     // The card as a whole opens the context menu; nothing in the share control may also do that. The listener goes
@@ -414,7 +478,7 @@ export class Canvas {
     trigger.addEventListener('click', () => {
       // Only the opening click. The same handler runs on the click that dismisses the popover, which is not a share.
       if (this.#shareWidget?.isOpen()) return;
-      svl.tracker.push('Click_LabelCardShare', { labelType: this.getCurrentLabel()?.getLabelType() });
+      this.#tracker.push('Click_LabelCardShare', { labelType: this.getCurrentLabel()?.getLabelType() });
     });
 
     this.#shareWidget = new ShareWidget(trigger, {
@@ -424,10 +488,10 @@ export class Canvas {
       onDismiss: () => this.#handleShareDismissed(),
       beforeOpen: async () => {
         const label = this.getCurrentLabel();
-        await this.ensureLabelSaved(label);
+        await this.#form.ensureLabelSaved(label);
         // The label now has an id it didn't have a moment ago, so re-point past the no-op guard.
         this.#shareUrl = null;
-        if (label) this.pointShareAtLabel(label);
+        if (label) this.#pointShareAtLabel(label);
       },
     });
   }
@@ -441,22 +505,21 @@ export class Canvas {
    * on the card, where it is meant to stay.
    */
   #handleShareDismissed() {
-    if (!svl.ui.canvas.hoverCard.matches(':hover')) this.#scheduleHoverCardHide();
+    if (!this.#ui.hoverCard.matches(':hover')) this.#scheduleHoverCardHide();
   }
 
   /**
    * Points the share control at a label, or hides the button when that label can never have a public URL.
    *
-   * Called from Label#updateHoverCard, which re-runs on every canvas frame while a label is hovered — so this only
-   * touches the widget when the target actually changes. setTarget closes an open popover, which on every frame
-   * would make the popover impossible to use at all.
+   * Re-run on every canvas frame while a label is hovered, so this only touches the widget when the target actually
+   * changes. setTarget closes an open popover, which on every frame would make the popover impossible to use at all.
    *
    * @param {Label} label - The hovered label.
    */
-  pointShareAtLabel(label) {
+  #pointShareAtLabel(label) {
     // Tutorial labels are never submitted, so no id is coming and the button would be a dead end.
-    const shareable = !svl.isOnboarding() && !label.isDeleted();
-    svl.ui.canvas.hoverCard.classList.toggle('label-hover-card--no-share', !shareable);
+    const shareable = !this.#config.isOnboarding && !label.isDeleted();
+    this.#ui.hoverCard.classList.toggle('label-hover-card--no-share', !shareable);
     if (!this.#shareWidget || !shareable) return;
 
     const id = label.getProperty('labelId');
@@ -475,32 +538,55 @@ export class Canvas {
   }
 
   /**
-   * Makes sure a label exists server-side, submitting the session's pending labels if it doesn't yet.
+   * Populates and positions the hover card next to a label, showing its type, severity, tags, and description,
+   * plus its Delete/Edit action buttons. The populate itself lives in the shared LabelCardView (#4730); what stays
+   * here is everything Explore-specific — the context-menu guard, the card's mode classes, and the anchoring.
    *
-   * Shared by both panels' share controls, which is why it lives here rather than behind either one. Resolves
-   * quietly when there is nothing to do, and also when the submission fails to produce an id — the caller then
-   * finds an empty target and does nothing, which is the right outcome for a share that can't be built.
-   *
-   * The crop upload is awaited too, not just the id: /label/:id/image falls back to a fetched Street View still (or
-   * the branded placeholder) when no crop is on disk, and caches whatever it built there permanently. Sharing a
-   * label the instant it is placed is exactly the race that would bake that fallback in for good.
-   *
-   * That wait is capped, though. The upload sleeps a fixed 3s when the canvas hasn't produced a crop yet, and a
-   * share button that does nothing for three seconds reads as broken. Past the cap the popover opens anyway: the
-   * link works, and ImageController drops the cached preview when the crop does land, so the picture corrects
-   * itself on the next fetch. A stalled button would not.
-   *
-   * @param {Label} label - The label about to be shared.
-   * @returns {Promise<void>}
+   * The card is a single shared DOM element positioned in on-screen pixels, so the label's logical canvas
+   * coordinate is scaled to the displayed pano size (see util.exploreDisplayScale).
+   * @param {Label} label - The hovered label.
    */
-  async ensureLabelSaved(label) {
-    if (!label || Number.isInteger(label.getProperty('labelId'))) return;
-    await svl.form.submitData();
-    if (!Number.isInteger(label.getProperty('labelId'))) return;
-    await Promise.race([
-      label.cropUploaded(),
-      new Promise((resolve) => setTimeout(resolve, Canvas.#CROP_WAIT_CAP_MS)),
-    ]);
+  #updateHoverCard(label) {
+    // Don't show the hover card while the context menu is open or before the label has a canvas position.
+    if (this.#contextMenu.isOpen() || !label.getCanvasXY()) {
+      this.hideHoverCard();
+      return;
+    }
+
+    const ui = this.#ui;
+    this.#labelCardView.render({
+      labelType: label.getLabelType(),
+      severity: label.getProperty('severity'),
+      tagNames: this.#tagNamesOf(label),
+      description: label.getProperty('description'),
+    });
+
+    // Occlusion labels have no context menu, so the card isn't a click target and the Edit button is hidden.
+    ui.hoverCard.classList.toggle('label-hover-card--static', label.getLabelType() === 'Occlusion');
+    // The tutorial's delete lock hides the Delete button.
+    ui.hoverCard.classList.toggle('label-hover-card--no-delete', !this.#labelContainer.canDelete(label));
+    // Aims the share control at this label (and hides it for labels that can never have a public URL).
+    this.#pointShareAtLabel(label);
+
+    // The card and the context menu it opens into share one anchor so the panel expands roughly in place.
+    util.anchorPanelToLabel(ui.hoverCard, label.getCanvasXY(), this.#frame.iconRadius);
+    ui.hoverCard.style.visibility = 'visible';
+  }
+
+  /**
+   * The localized, plain-text names of a label's tags.
+   * @param {Label} label
+   * @returns {Array<string>}
+   */
+  #tagNamesOf(label) {
+    const allTags = this.#contextMenu.labelTags;
+    if (!allTags) return [];
+    const tagInfo = util.misc.getLabelDescriptions(label.getLabelType())?.tagInfo ?? {};
+    return label.getProperty('tagIds')
+      .map((tagId) => allTags.find((tag) => tag.tag_id === tagId))
+      .filter(Boolean)
+      // The localized tag texts embed <tag-underline> keyboard-shortcut markup; the pills show plain text.
+      .map((tag) => util.htmlToText(tagInfo[tag.tag]?.text ?? tag.tag));
   }
 
   /**
@@ -531,7 +617,7 @@ export class Canvas {
    * Hides the hover card immediately, without the grace period.
    */
   hideHoverCard() {
-    svl.ui.canvas.hoverCard.style.visibility = 'hidden';
+    this.#ui.hoverCard.style.visibility = 'hidden';
   }
 
   /**
@@ -540,40 +626,7 @@ export class Canvas {
    */
   clear() {
     // clearRect() operates in the logical frame thanks to the context transform set in util.sizeCanvasToDisplay.
-    this.#ctx.clearRect(0, 0, svl.CANVAS_FRAME.width, svl.CANVAS_FRAME.height);
-    return this;
-  }
-
-  /**
-   * Disables the use of delete buttons for labels. Used primarily in the tutorial.
-   * @returns {Canvas|boolean} this, or false if delete is locked.
-   */
-  disableLabelDelete() {
-    if (!this.#status.lockDisableLabelDelete) {
-      this.#status.disableLabelDelete = true;
-      return this;
-    }
-    return false;
-  }
-
-  /** @returns {Canvas} this. */
-  disableLabeling() {
-    this.#status.disableLabeling = true;
-    return this;
-  }
-
-  /** @returns {Canvas|boolean} this, or false if delete is locked. */
-  enableLabelDelete() {
-    if (!this.#status.lockDisableLabelDelete) {
-      this.#status.disableLabelDelete = false;
-      return this;
-    }
-    return false;
-  }
-
-  /** @returns {Canvas} this. */
-  enableLabeling() {
-    this.#status.disableLabeling = false;
+    this.#ctx.clearRect(0, 0, this.#frame.width, this.#frame.height);
     return this;
   }
 
@@ -596,7 +649,7 @@ export class Canvas {
    * @returns {Label|false}
    */
   onLabel(x, y) {
-    const labels = svl.labelContainer.getCanvasLabels();
+    const labels = this.#labelContainer.getCanvasLabels();
 
     // Walked back to front, because render() draws this same list in order and so the *last* match is the one the
     // user can actually see. Searching forward returned the label underneath. That was mostly hidden while the click
@@ -611,31 +664,39 @@ export class Canvas {
     return false;
   }
 
-  /** @returns {Canvas} this. */
-  lockDisableLabelDelete() {
-    this.#status.lockDisableLabelDelete = true;
-    return this;
-  }
-
   /**
-   * Renders labels on the canvas.
+   * Renders labels on the canvas, and the hover card beside the hovered one.
    * @returns {Canvas} this.
    */
   render() {
     if (!this.#ctx) {
       return this;
     }
-    const labels = svl.labelContainer.getCanvasLabels();
-    const pov = svl.panoViewer.getPov();
+    const labels = this.#labelContainer.getCanvasLabels();
+    const pov = this.#panoManager.getPov();
+    const dialogTarget = this.#contextMenu.isOpen() ? this.#contextMenu.getTargetLabel() : null;
 
-    // Render labels.
     for (let i = 0; i < labels.length; i += 1) {
-      labels[i].render(this.#ctx, pov);
+      labels[i].render(this.#ctx, pov, labels[i] === dialogTarget);
+      // The card follows the label's freshly projected position, so it keeps up as the pano pans.
+      if (labels[i].isVisible() && !labels[i].isDeleted() && labels[i].getHoverInfoVisibility() === 'visible') {
+        this.#updateHoverCard(labels[i]);
+      }
     }
-
-    // Update the opacity of Zoom In and Zoom Out buttons.
-    if (svl.zoomControl) svl.zoomControl.updateOpacity();
     return this;
+  }
+
+  /**
+   * Redraws for the current view, re-filtering which labels show once the pano has changed under it.
+   */
+  update() {
+    this.clear();
+    const panoId = this.#panoManager.getPanoId();
+    if (this.#currPanoId !== panoId) {
+      this.setOnlyLabelsOnPanoAsVisible(panoId);
+    }
+    this.#currPanoId = panoId;
+    this.render();
   }
 
   /**
@@ -677,7 +738,7 @@ export class Canvas {
     if (!label) this.#shareWidget?.close();
 
     // Hide the hover info on all the labels.
-    const labels = svl.labelContainer.getCanvasLabels();
+    const labels = this.#labelContainer.getCanvasLabels();
     let hoverVisibility;
     for (let i = 0; i < labels.length; i += 1) {
       hoverVisibility = labels[i].getHoverInfoVisibility();
@@ -705,7 +766,7 @@ export class Canvas {
 
   /** @returns {Canvas} this. */
   setVisibility(visibility) {
-    const labels = svl.labelContainer.getCanvasLabels();
+    const labels = this.#labelContainer.getCanvasLabels();
     for (let i = 0; i < labels.length; i += 1) {
       labels[i].setVisibility(visibility);
     }
@@ -717,7 +778,7 @@ export class Canvas {
    * @param {string} panoId
    */
   setOnlyLabelsOnPanoAsVisible(panoId) {
-    const labels = svl.labelContainer.getCanvasLabels();
+    const labels = this.#labelContainer.getCanvasLabels();
     for (let i = 0; i < labels.length; i += 1) {
       if (labels[i].getPanoId() === panoId && !labels[i].isDeleted()) {
         labels[i].setVisibility('visible');
@@ -727,10 +788,21 @@ export class Canvas {
     }
   }
 
-  /** @returns {Canvas} this. */
-  unlockDisableLabelDelete() {
-    this.#status.lockDisableLabelDelete = false;
-    return this;
+  /**
+   * Saves a screenshot of the pano for a label just placed, to be uploaded to the server later. Off the UI thread's
+   * path, so the placement never waits on it.
+   * @param {Label} label
+   */
+  #saveCropFor(label) {
+    if (!this.#config.makeCrops || label.getProperty('tutorial')) return;
+    setTimeout(() => {
+      try {
+        this.saveCanvasScreenshot(label);
+      } catch (e) {
+        // todo: better logging
+        console.log('Error saving pano screenshot: ', e);
+      }
+    }, 0);
   }
 
   /**
@@ -745,7 +817,9 @@ export class Canvas {
     }
 
     // Save a high-res version of the image to the label object. Uploaded after label is saved to the db.
-    const source = /** @type {HTMLCanvasElement} */ (document.querySelector(`.${svl.panoViewer.getCanvasClass()}`));
+    const source = /** @type {HTMLCanvasElement} */ (document.querySelector(
+      `.${this.#panoManager.panoViewer.getCanvasClass()}`,
+    ));
     label.setProperty('crop', Canvas.#cropDataUrl(source));
   }
 

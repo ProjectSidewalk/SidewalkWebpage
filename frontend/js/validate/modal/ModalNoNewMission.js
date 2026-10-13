@@ -4,7 +4,7 @@
  */
 
 import { util } from '../../common/utilities.js';
-/** @typedef {import('../keyboard/KeyboardLock.js').KeyboardLock} KeyboardLock */
+/** @typedef {import('../../common/Gate.js').Gate} Gate */
 /** @typedef {import('../Tracker.js').Tracker} Tracker */
 
 export class ModalNoNewMission {
@@ -12,14 +12,14 @@ export class ModalNoNewMission {
   #noMissionsRemaining;
   #imageryUnavailable;
   #showing = false;
-  /** @type {KeyboardLock} */
+  /** @type {Gate} */
   #keyboardLock;
   /** @type {Tracker} */
   #tracker;
 
   /**
    * @param {object} uiModalMission - Mission modal UI elements.
-   * @param {KeyboardLock} keyboardLock - Pauses the shortcuts while the dead end is up.
+   * @param {Gate} keyboardLock - Pauses the shortcuts while the dead end is up.
    * @param {Tracker} tracker - Logs the button clicks.
    */
   constructor(uiModalMission, keyboardLock, tracker) {

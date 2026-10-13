@@ -39,7 +39,6 @@ document.documentElement.dataset.panoScoring = JSON.stringify(
 );
 loadGlobalScript('frontend/js/common/pano-viewer/panoUtilities.js');
 window.turf = require(path.join(REPO_ROOT, 'public/vendor/turf/turf-7.4.0.min.js'));
-window.svl = { STREETVIEW_MAX_DISTANCE: 25 };
 
 const { turf } = window;
 

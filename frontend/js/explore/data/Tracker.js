@@ -1,28 +1,47 @@
 /**
  * Logs interaction data from the Explore/Audit interface.
  *
- * @memberof svl
+ * Built first, before anything that logs, so nothing has to cope with its absence. The pano each row is stamped with
+ * arrives through trackPano(), the flush through onFlush(). A row about a label is filed under it by the caller
+ * passing the label to push(), and stays filed under it until the labeler is done with that label.
  */
 
-import { svl } from '../svl.js';
+/** @typedef {import('../label/Label.js').Label} Label */
+/** @typedef {import('../panorama/PanoManager.js').PanoManager} PanoManager */
 
 export class Tracker {
   #actions = [];
   #waitingOnSubmit = false;
+
+  /** @type {?Label} The label being placed or edited, which each row is filed under until it is let go of. */
   #currentLabel = null;
-  #updatedLabels = [];
+
   #currentAuditTask = null;
 
-  constructor() {
-    this.init();
-  }
+  /** @type {?PanoManager} Stamps each action with the pano on screen and the view of it. */
+  #panoManager = null;
 
-  init() {
+  /** @type {?(() => Promise<void>)} Sends the buffer when it grows long; registered by Main once the Form exists. */
+  #onFlush = null;
+
+  constructor() {
     this.trackWindowEvents();
   }
 
-  getCurrentLabel() {
-    return this.#currentLabel;
+  /**
+   * Names the pano manager whose live viewer stamps each action with the pano on screen.
+   * @param {PanoManager} panoManager
+   */
+  trackPano(panoManager) {
+    this.#panoManager = panoManager;
+  }
+
+  /**
+   * Registers what sends the buffer once it holds more than 200 actions.
+   * @param {() => Promise<void>} listener
+   */
+  onFlush(listener) {
+    this.#onFlush = listener;
   }
 
   setAuditTaskID(taskID) {
@@ -50,6 +69,11 @@ export class Tracker {
         this.push(prefix + e.type, isPassword ? {} : { code: e.code });
       });
     }
+
+    const logPageFocus = () => this.push(document.hasFocus() ? 'PageGainedFocus' : 'PageLostFocus');
+    window.addEventListener('focus', logPageFocus);
+    window.addEventListener('blur', logPageFocus);
+    logPageFocus();
   }
 
   #isCanvasInteraction(action) {
@@ -60,24 +84,16 @@ export class Tracker {
     return action.indexOf('ContextMenu') >= 0;
   }
 
-  #isContextMenuClose(action) {
-    return action === 'ContextMenu_Close';
-  }
-
-  #isDeleteLabelAction(action) {
-    return action.indexOf('RemoveLabel') >= 0;
-  }
-
-  #isClickLabelDeleteAction(action) {
-    return action.indexOf('Click_LabelDelete') >= 0;
-  }
-
-  #isSeverityShortcutAction(action) {
-    return action.indexOf('KeyboardShortcut_Severity') >= 0;
-  }
-
-  #isFinishLabelingAction(action) {
-    return action.indexOf('LabelingCanvas_FinishLabeling') >= 0;
+  /**
+   * Whether an action is the labeler being done with the label the rows were filed under: the menu closing, the
+   * label going, or an Occlusion placed, which opens no menu.
+   * @param {string} action
+   * @param {?Record<string, any>} notes
+   * @returns {boolean}
+   */
+  #isDoneWithLabel(action, notes) {
+    return action === 'ContextMenu_Close' || action.indexOf('RemoveLabel') >= 0
+      || (action.indexOf('LabelingCanvas_FinishLabeling') >= 0 && notes?.labelType === 'Occlusion');
   }
 
   /** Returns actions */
@@ -99,29 +115,15 @@ export class Tracker {
   }
 
   /**
-   * This function pushes action type, time stamp, current pov, and current panoId into actions list.
+   * The row for an action: the action, when, the pano and view it happened on, and the label it is filed under.
+   * @param {string} action
+   * @param {?Record<string, any>} notes
+   * @returns {Record<string, any>}
    */
-  create(action, notes, extraData) {
-    extraData = extraData || {};
-
-    let auditTaskId;
-    if ('canvas' in svl && svl.canvas.getCurrentLabel()) {
-      auditTaskId = svl.canvas.getCurrentLabel().getProperties().auditTaskId;
-    } else {
-      auditTaskId = this.#currentAuditTask;
-    }
-
-    if ('temporaryLabelId' in extraData) {
-      if (this.#currentLabel !== null) {
-        this.#updatedLabels.push(this.#currentLabel);
-        svl.labelContainer.addToLabelsToLog(this.#currentLabel);
-      }
-      this.#currentLabel = extraData.temporaryLabelId;
-    }
-
-    // Initialize variables. The viewer's getters return null until the first pano has loaded (e.g. during
-    // onboarding startup), so fall back to null fields rather than assuming a loaded pano.
-    const panoViewer = svl.panoViewer ? svl.panoViewer : null;
+  create(action, notes) {
+    // The viewer's getters return null until the first pano has loaded (e.g. during onboarding startup), so fall
+    // back to null fields rather than assuming a loaded pano.
+    const panoViewer = this.#panoManager?.panoViewer ?? null;
     const latlng = panoViewer?.getPosition() ?? { lat: null, lng: null };
     const pov = panoViewer?.getPov() ?? { heading: null, pitch: null, zoom: null };
 
@@ -134,8 +136,8 @@ export class Tracker {
       pitch: pov.pitch,
       zoom: pov.zoom,
       note: this.#notesToString(notes || {}),
-      temporary_label_id: this.#currentLabel,
-      audit_task_id: auditTaskId,
+      temporary_label_id: this.#currentLabel?.getProperty('temporaryLabelId') ?? null,
+      audit_task_id: this.#currentLabel?.getProperty('auditTaskId') ?? this.#currentAuditTask,
       timestamp: new Date(),
     };
   }
@@ -143,60 +145,27 @@ export class Tracker {
   /**
    * @param {string} action - The action to be stored in the database
    * @param {?Record<string, any>} [notes] - The notes field in the database
-   * @param {?object} [extraData] - Extra data that should not be stored in the notes field in db
+   * @param {?Label} [label] - The label the action is about, which this and the rows that follow are filed under
+   *   until the labeler is done with it. A label from an earlier session is filed under its own audit task.
    */
-  push(action, notes, extraData) {
-    let labelProperties;
-    if (this.#isContextMenuAction(action) || this.#isSeverityShortcutAction(action)) {
-      labelProperties = svl.contextMenu.getTargetLabel().getProperties();
-      this.#currentLabel = labelProperties.temporaryLabelId;
-
-      if (notes === null || typeof (notes) === 'undefined') {
-        notes = { auditTaskId: labelProperties.auditTaskId };
-      } else {
-        notes.auditTaskId = labelProperties.auditTaskId;
-      }
-
-      // Reset currentLabel to null if this is a context menu event that fired after the menu already closed.
-      if (svl.contextMenu.isOpen()) {
-        this.#updatedLabels.push(this.#currentLabel);
-        svl.labelContainer.addToLabelsToLog(this.#currentLabel);
-      } else {
-        this.#currentLabel = null;
-      }
-    } else if (this.#isClickLabelDeleteAction(action)) {
-      labelProperties = svl.canvas.getCurrentLabel().getProperties();
-      this.#currentLabel = labelProperties.temporaryLabelId;
-      this.#updatedLabels.push(this.#currentLabel);
-      svl.labelContainer.addToLabelsToLog(this.#currentLabel);
-
-      if (notes === null || typeof (notes) === 'undefined') {
-        notes = { auditTaskId: labelProperties.auditTaskId };
-      } else {
-        notes.auditTaskId = labelProperties.auditTaskId;
-      }
+  push(action, notes, label) {
+    if (label) {
+      this.#currentLabel = label;
+      notes = { ...(notes ?? {}), auditTaskId: label.getProperty('auditTaskId') };
     }
 
-    const item = this.create(action, notes, extraData);
+    const item = this.create(action, notes);
     const prevItem = this.#actions.slice(-1)[0];
     this.#actions.push(item);
-    let contextMenuLabel = true;
 
-    if (this.#isFinishLabelingAction(action) && (notes.labelType === 'Occlusion')) {
-      contextMenuLabel = false;
-    }
-
-    // We are done interacting with a label, so set currentLabel to null.
-    if (this.#isContextMenuClose(action) || this.#isDeleteLabelAction(action) || !contextMenuLabel) {
-      this.#currentLabel = null;
-    }
+    if (this.#isDoneWithLabel(action, notes)) this.#currentLabel = null;
 
     // Submit the data collected thus far if actions is too long.
     if (!this.#waitingOnSubmit && this.#actions.length > 200
       && !this.#isCanvasInteraction(action) && !this.#isContextMenuAction(action)) {
-      if (Object.hasOwn(svl, 'form') && Object.hasOwn(svl, 'taskContainer')) {
+      if (this.#onFlush) {
         this.#waitingOnSubmit = true;
-        svl.form.submitData().then(() => this.#waitingOnSubmit = false);
+        this.#onFlush().then(() => this.#waitingOnSubmit = false);
       }
     }
 
@@ -211,13 +180,6 @@ export class Tracker {
    */
   refresh() {
     this.#actions = [];
-
-    this.#updatedLabels = [];
-    if (this.#currentLabel !== null) {
-      this.#updatedLabels.push(this.#currentLabel);
-      svl.labelContainer.addToLabelsToLog(this.#currentLabel);
-    }
-
     this.push('RefreshTracker');
   }
 }

@@ -37,16 +37,13 @@ describe('ContextMenu tag buttons', () => {
             getImage: () => new Promise(() => {}),
         };
         installUtilitiesMisc();
-        const canvas = { clear: () => canvas, render: () => canvas, getStatus: () => false };
-        window.svl = {
-            canvas, tracker: { push: jest.fn() }, ribbon: { enableModeSwitch: jest.fn() },
-            keyboard: { setStatus: jest.fn() }, isOnboarding: () => false, LABEL_ICON_RADIUS: 17,
-        };
 
         Object.assign(window, loadModules('frontend/js/explore/canvas/ContextMenu.js'));
         ui = makeContextMenuUi();
-        menu = new window.ContextMenu(ui);
-        window.svl.contextMenu = menu;
+        menu = new window.ContextMenu(ui, { isOnboarding: false }, { iconRadius: 17 },
+            { canDelete: () => true, getAllLabels: () => [], addToLabelsToLog: jest.fn() },
+            { switching: { hold: jest.fn(), release: jest.fn() } }, { onMoveStarted: jest.fn() },
+            { ratingClicked: jest.fn() }, { ensureLabelSaved: jest.fn() }, { push: jest.fn() });
         menu.labelTags = [
             ...[1, 2, 3].map((id) => ({ tag_id: id, label_type: 'Obstacle', tag: 'trash/recycling can' })),
             { tag_id: 4, label_type: 'CurbRamp', tag: 'narrow' },

@@ -1,22 +1,23 @@
 /**
- * Tests for Canvas#ensureLabelSaved (frontend/js/explore/canvas/Canvas.js, issue #4726).
+ * Tests for Form#ensureLabelSaved (frontend/js/explore/data/Form.js, issue #4726).
  *
  * This is the step the share button runs before it opens: a label placed this session has no server-side id until
  * the next form submit, so clicking share submits first and then shares. The method is small but every branch is a
  * user-visible outcome — a share that opens against the wrong URL, that opens against no URL, or that hangs.
  *
- * Canvas's constructor wires up the whole tool (60-odd `svl.*` collaborators), so these call the method off the
- * prototype with a bare `this`. That works because everything it touches is an argument or a global — the 800ms cap
- * it reads is a *static* private field, resolved through the class binding rather than the instance.
+ * Form's constructor subscribes to the task and mission containers, so these call the method off the prototype
+ * with a `this` that holds only the submitData it calls. That works because everything else it touches is an
+ * argument — the 800ms cap it reads is a *static* private field, resolved through the class binding rather than
+ * the instance.
  */
 
 const { loadModules } = require('./loadGlobalScript');
 
 
-/** Loads a fresh Canvas class into the jsdom global scope (a class declaration is not a globalThis property). */
-function loadCanvas() {
-    Object.assign(window, loadModules('frontend/js/explore/canvas/Canvas.js'));
-    return window.Canvas;
+/** Loads a fresh Form class into the jsdom global scope (a class declaration is not a globalThis property). */
+function loadForm() {
+    Object.assign(window, loadModules('frontend/js/explore/data/Form.js'));
+    return window.Form;
 }
 
 /**
@@ -34,15 +35,15 @@ function labelStub({ labelId = 'DefaultValue', cropUpload = Promise.resolve() } 
     };
 }
 
-describe('Canvas#ensureLabelSaved', () => {
-    let Canvas;
+describe('Form#ensureLabelSaved', () => {
+    let Form;
     let ensureLabelSaved;
+    let submitData;
 
     beforeEach(() => {
-        Canvas = loadCanvas();
-        // Bare `this`: the method reaches only its argument, svl.form, and the class's own static private field.
-        ensureLabelSaved = (label) => Canvas.prototype.ensureLabelSaved.call({}, label);
-        window.svl = { form: { submitData: jest.fn().mockResolvedValue(undefined) } };
+        Form = loadForm();
+        submitData = jest.fn().mockResolvedValue(undefined);
+        ensureLabelSaved = (label) => Form.prototype.ensureLabelSaved.call({ submitData }, label);
     });
 
     test('does nothing for a label that already has a server-side id', async () => {
@@ -50,23 +51,23 @@ describe('Canvas#ensureLabelSaved', () => {
 
         await ensureLabelSaved(label);
 
-        expect(window.svl.form.submitData).not.toHaveBeenCalled();
+        expect(submitData).not.toHaveBeenCalled();
         expect(label.cropUploaded).not.toHaveBeenCalled();
     });
 
     test('does nothing when there is no label at all', async () => {
         await expect(ensureLabelSaved(undefined)).resolves.toBeUndefined();
-        expect(window.svl.form.submitData).not.toHaveBeenCalled();
+        expect(submitData).not.toHaveBeenCalled();
     });
 
     test('submits the session, then waits on the crop the submit kicked off', async () => {
         const label = labelStub();
         // Form.js writes the id back onto the label out of the submit response.
-        window.svl.form.submitData.mockImplementation(async () => label.setProperty('labelId', 7));
+        submitData.mockImplementation(async () => label.setProperty('labelId', 7));
 
         await ensureLabelSaved(label);
 
-        expect(window.svl.form.submitData).toHaveBeenCalledTimes(1);
+        expect(submitData).toHaveBeenCalledTimes(1);
         expect(label.getProperty('labelId')).toBe(7);
         // The crop matters as much as the id: /label/:id/image caches whatever base image it can find, so a share
         // handed out before the crop lands would bake in the Street View stand-in.
@@ -80,7 +81,7 @@ describe('Canvas#ensureLabelSaved', () => {
 
         await ensureLabelSaved(label);
 
-        expect(window.svl.form.submitData).toHaveBeenCalledTimes(1);
+        expect(submitData).toHaveBeenCalledTimes(1);
         expect(label.cropUploaded).not.toHaveBeenCalled();
     });
 
@@ -89,7 +90,7 @@ describe('Canvas#ensureLabelSaved', () => {
         // for three seconds reads as broken, so the wait is capped — the link works either way, and ImageController
         // drops the cached preview when the crop does land.
         const label = labelStub({ cropUpload: new Promise(() => { /* never settles */ }) });
-        window.svl.form.submitData.mockImplementation(async () => label.setProperty('labelId', 7));
+        submitData.mockImplementation(async () => label.setProperty('labelId', 7));
 
         const started = Date.now();
         await ensureLabelSaved(label);

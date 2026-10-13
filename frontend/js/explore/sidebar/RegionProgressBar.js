@@ -3,31 +3,32 @@
  * everyone but the current user, then distance audited by the current user.
  */
 
-import { svl } from '../svl.js';
 import { ProgressBar } from '../../common/ProgressBar.js';
 import { util } from '../../common/utilities.js';
+/** @typedef {import('../region/RegionModel.js').RegionModel} RegionModel */
+/** @typedef {import('../task/TaskContainer.js').TaskContainer} TaskContainer */
 
 export class RegionProgressBar {
+  #regionModel;
+  #taskContainer;
   #fillEl;
   #youEl;
   #communityEl;
   #rateEl;
 
   /**
-   * @param {object} [elementIds] - Overrides for the element ids, letting the same bar be reused elsewhere.
-   * @param {string} [elementIds.fill] - Id of the rounded fill pill.
-   * @param {string} [elementIds.you] - Id of the current-user segment.
-   * @param {string} [elementIds.community] - Id of the community segment.
-   * @param {string} [elementIds.rate] - Id of the percentage label.
+   * @param {object} ids - The element ids, so the same bar can be drawn in the sidebar and in the mission-complete
+   *   modal.
+   * @param {string} ids.fill - Id of the rounded fill pill.
+   * @param {string} ids.you - Id of the current-user segment.
+   * @param {string} ids.community - Id of the community segment.
+   * @param {string} ids.rate - Id of the percentage label.
+   * @param {RegionModel} regionModel - Says whether this is a route, where community progress isn't shown.
+   * @param {TaskContainer} taskContainer - Whose streets' distances fill the bar.
    */
-  constructor(elementIds = {}) {
-    const ids = {
-      fill: 'region-progress-fill',
-      you: 'region-progress-you',
-      community: 'region-progress-community',
-      rate: 'region-progress-rate',
-      ...elementIds,
-    };
+  constructor(ids, regionModel, taskContainer) {
+    this.#regionModel = regionModel;
+    this.#taskContainer = taskContainer;
     this.#fillEl = document.getElementById(ids.fill);
     this.#youEl = document.getElementById(ids.you);
     this.#communityEl = document.getElementById(ids.community);
@@ -39,26 +40,25 @@ export class RegionProgressBar {
    * Uses the same priority-based distances as the mission-complete modal.
    */
   update() {
-    if (!this.#fillEl || !this.#youEl || !this.#communityEl || !this.#rateEl
-      || !('taskContainer' in svl) || !svl.taskContainer) return;
+    if (!this.#fillEl || !this.#youEl || !this.#communityEl || !this.#rateEl) return;
 
     const unit = { units: util.turfDistanceUnits() };
-    const totalDistance = svl.taskContainer.getTotalTaskDistance(unit);
+    const totalDistance = this.#taskContainer.getTotalTaskDistance(unit);
     if (!totalDistance) return;
 
     // Your segment uses your *live* audited distance, which folds in progress on the street you're currently on.
-    const userDistance = svl.taskContainer.getCompletedTaskDistance(unit);
+    const userDistance = this.#taskContainer.getCompletedTaskDistance(unit);
 
     // The community segment is everyone's audited distance minus your *completed-street* distance, deliberately
     // excluding your live in-progress partial. Both of those only change when a whole street is finished (a
     // street's priority drops below 1 only on completion), so the community segment holds steady between street
     // completions instead of being dragged around — and ticking down — on every step as you audit.
-    const allDistance = svl.taskContainer.getAllUsersCompletedTaskDistance();
-    const userCompletedDistance = (svl.taskContainer.getCompletedTasks() || [])
+    const allDistance = this.#taskContainer.getAllUsersCompletedTaskDistance();
+    const userCompletedDistance = (this.#taskContainer.getCompletedTasks() || [])
       .reduce((sum, task) => sum + turf.length(task.getGeoJSON(), unit), 0);
 
     // On a user-defined route we only track this user's own contributions, so don't show community progress.
-    const otherDistance = svl.regionModel.isRoute ? 0 : Math.max(0, allDistance - userCompletedDistance);
+    const otherDistance = this.#regionModel.isRoute ? 0 : Math.max(0, allDistance - userCompletedDistance);
 
     // Clamp each fraction to [0, 1] and keep their sum within 100% so the fill never overflows the track.
     const youFraction = Math.min(1, Math.max(0, userDistance / totalDistance));

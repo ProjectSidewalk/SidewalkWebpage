@@ -14,7 +14,7 @@
 const { loadModules, realUtil } = require('./loadGlobalScript');
 
 
-// The tutorial pano's real dimensions (svl.TUTORIAL_PANO_WIDTH in Main.js), so the seam cases are the real ones.
+// The tutorial pano's real dimensions (Onboarding.TUTORIAL_PANO_WIDTH), so the seam cases are the real ones.
 const PANO_WIDTH = 13312;
 const SEAM_ZONE = PANO_WIDTH / 4; // 3328
 

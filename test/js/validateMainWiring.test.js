@@ -94,7 +94,7 @@ let DesktopValidationMenu;
 let AdminInfo;
 let SpeedLimit;
 let ZoomControl;
-let KeyboardLock;
+let Gate;
 let UndoValidation;
 /** @type {{takeUnexpectedUnload: jest.Mock, markLive: jest.Mock}} The live marker Main builds, per test. */
 let marker;
@@ -145,7 +145,7 @@ beforeAll(() => {
   window.MissionStartTutorial = class {
     constructor(missionType, labelType, data, hooks) {
       // The test spies on the prototype before start(), so the calls so far are on the spy.
-      const hold = /** @type {jest.SpyInstance} */ (/** @type {unknown} */ (KeyboardLock.prototype.hold));
+      const hold = /** @type {jest.SpyInstance} */ (/** @type {unknown} */ (Gate.prototype.hold));
       tutorialBuilt = { holdsTaken: hold.mock.calls.map((call) => call[0]), hooks };
     }
   };
@@ -180,7 +180,7 @@ beforeAll(() => {
   window.Infra3dViewer = class {};
 
   // One load for the lot, so the classes Main builds are the very ones the spies below are put on.
-  ({ Main, LabelCard, LabelVisibilityControl, DesktopValidationMenu, AdminInfo, SpeedLimit, ZoomControl, KeyboardLock,
+  ({ Main, LabelCard, LabelVisibilityControl, DesktopValidationMenu, AdminInfo, SpeedLimit, ZoomControl, Gate,
     UndoValidation } = loadModules(
     'frontend/js/validate/Main.js',
     'frontend/js/validate/label/LabelCard.js',
@@ -189,7 +189,7 @@ beforeAll(() => {
     'frontend/js/validate/status/AdminInfo.js',
     'frontend/js/common/SpeedLimit.js',
     'frontend/js/validate/zoom/ZoomControl.js',
-    'frontend/js/validate/keyboard/KeyboardLock.js',
+    'frontend/js/common/Gate.js',
     'frontend/js/validate/menu/UndoValidation.js',
   ));
 });
@@ -253,8 +253,8 @@ describe('Main hooks what describes a label to the label container', () => {
       zoomControl: stub(ZoomControl.prototype, 'updateZoomAvailability'),
     };
     loading = {
-      keyboardOff: jest.spyOn(KeyboardLock.prototype, 'hold'),
-      keyboardOn: jest.spyOn(KeyboardLock.prototype, 'release'),
+      keyboardOff: jest.spyOn(Gate.prototype, 'hold'),
+      keyboardOn: jest.spyOn(Gate.prototype, 'release'),
       undoOff: jest.spyOn(UndoValidation.prototype, 'disableUndo'),
       undoOn: jest.spyOn(UndoValidation.prototype, 'enableUndo'),
       cardHidden: stub(LabelVisibilityControl.prototype, 'hideLabelCard'),
@@ -394,12 +394,12 @@ describe('Main hooks what describes a label to the label container', () => {
   // stand for the whole session: the tutorial's Done is the one release desktop gets.
   test('the tutorial’s Done frees the keyboard: nothing built on the way holds it', async () => {
     await start();
-    const lock = /** @type {InstanceType<typeof KeyboardLock>} */ (loading.keyboardOff.mock.instances[0]);
-    expect(lock.isDisabled()).toBe(true);
+    const lock = /** @type {InstanceType<typeof Gate>} */ (loading.keyboardOff.mock.instances[0]);
+    expect(lock.isHeld()).toBe(true);
 
     tutorialBuilt.hooks.keyboard.enableKeyboard();
 
-    expect(lock.isDisabled()).toBe(false);
+    expect(lock.isHeld()).toBe(false);
   });
 
   test('an unexpected end to the last page life is reported once the first label is up, against the first mission', async () => {

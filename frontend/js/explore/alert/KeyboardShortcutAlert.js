@@ -2,12 +2,25 @@
  * Nudges the user toward keyboard shortcuts after they've repeatedly clicked the mode buttons or the Stuck button.
  */
 
-import { svl } from '../svl.js';
 import { util } from '../../common/utilities.js';
 import { Alert } from './Alert.js';
 import '../../common/utilitiesSidewalk.js';
 
+/** @typedef {import('../Main.js').ExploreConfig} ExploreConfig */
+/** @typedef {import('./AlertController.js').AlertController} AlertController */
+
 export class KeyboardShortcutAlert extends Alert {
+  #config;
+
+  /**
+   * @param {ExploreConfig} config - The nudge stays quiet in the tutorial.
+   * @param {AlertController} alertController
+   */
+  constructor(config, alertController) {
+    super(alertController);
+    this.#config = config;
+  }
+
   /** @type {Record<string, number>} */
   #clickCount = {};
 
@@ -28,7 +41,8 @@ export class KeyboardShortcutAlert extends Alert {
       this.#clickCount[labelType] = 1;
     }
 
-    if (this.#clickCount[labelType] >= KeyboardShortcutAlert.#MINIMUM_CLICKS_BEFORE_ALERT && !svl.isOnboarding()) {
+    if (this.#clickCount[labelType] >= KeyboardShortcutAlert.#MINIMUM_CLICKS_BEFORE_ALERT
+      && !this.#config.isOnboarding) {
       const labelDescription = util.misc.getLabelDescriptions(labelType);
       if ('keyChar' in labelDescription) {
         const translationKey = `popup.label-shortcuts-${util.camelToKebab(labelType)}`;
@@ -51,7 +65,7 @@ export class KeyboardShortcutAlert extends Alert {
     }
 
     if (this.#clickCount.Stuck >= KeyboardShortcutAlert.#MINIMUM_STUCK_CLICKS_BEFORE_ALERT
-      && !svl.isOnboarding()) {
+      && !this.#config.isOnboarding) {
       this._showAlert('popup.move-forward-shortcut', 'MoveForwardShortcut');
       this.#clickCount.Stuck = 0;
     }

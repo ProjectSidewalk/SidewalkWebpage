@@ -241,11 +241,6 @@ How to show one depends on where its color comes from:
   so a stroke-drawn icon needs a stroke color in the file or nothing shows. Put the mask on a child `<span>`, never on
   a button or link itself, since it would hide their focus ring too.
 
-**Deferred namespace mismatch:** the reorg renamed the app *directories* (`SVLabel → explore`, `SVValidate →
-validate`, `Progress → user-dashboard`), but Explore's internal registry object `svl` is an identifier, not a
-filename, and was intentionally left as-is. It is going away altogether under #5648 (the Gallery's `sg` and
-Validate's `svv` already have), so don't rename it as a drive-by.
-
 ## Scala
 
 Formatting is handled by **scalafmt** ([`.scalafmt.conf`](../.scalafmt.conf)) — run `make scalafmt-fix` before

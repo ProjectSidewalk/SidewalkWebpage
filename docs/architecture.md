@@ -409,7 +409,7 @@ loaded by the corresponding Twirl view:
   hide-label toggle (`validate/panorama/PanoControlMenu.js`), the same arrangement as Explore's beside Stuck.
   The model takes a list of mounts there, `#svv-panorama` and the `#svv-panorama-pannellum` sibling PanoManager
   swaps in when GSV has no imagery, so the filter is already on whichever viewer shows the label. Validate scopes
-  the keyboard for the panel in `KeyboardManager`, not through the `KeyboardLock`, and the partial sits outside
+  the keyboard for the panel in `KeyboardManager`, not through the keyboard lock's `Gate`, and the partial sits outside
   `#svv-application-holder` so the busy state's `pointer-events: none` can't freeze the sliders.
   **A viewer canvas is painted only while it holds the current label's pano at that label's POV**
   (`validate/panorama/PanoManager.js`). The Pannellum fallback is revealed only once its image has loaded (#5206),
@@ -577,7 +577,7 @@ loaded by the corresponding Twirl view:
   inside a viewer that no return value carries reach the logs through `PanoViewer._fireDiagnostic`
   (`docs/logged-events.md`). A GSV search by location is held to its radius on our side: Google's `radius` is only a
   hint and has answered a 25 m query with a photosphere in another state (#5114), so `GsvViewer` treats a reply
-  beyond `svl.STREETVIEW_MAX_DISTANCE` exactly like `ZERO_RESULTS`. Mapillary and Panoramax search a square box of
+  beyond `PanoViewer.SEARCH_RADIUS_M` exactly like `ZERO_RESULTS`. Mapillary and Panoramax search a square box of
   that half-width, so their corners reach about 35 m; Infra3d checks the radius in `findPanoNear` but not yet in
   `setLocation`.
   `PanoViewer.setPano` types its rejections, because callers decide from them whether to give up on what needed the
@@ -596,13 +596,25 @@ loaded by the corresponding Twirl view:
 ### Modules and the build
 
 Every first-party file is an **ES module** (#4467): it `import`s what it needs and `export`s what others use, so
-the imports decide load order, not a hand-kept list. Explore still keeps its shared state in one exported registry
-object (`explore/svl.js`); the Gallery and Validate instead hand each module what it works with as constructor
-arguments, all wired in `gallery/Main.js` and `validate/Main.js` (#5648), which is where Explore is headed. In
-Validate the page's facts travel as one frozen `ValidateConfig` and its elements as one `ValidateUi`; what is built
-first announces (`Tracker.onFlush`, `LabelContainer.onLabelReady` / `onLabelShown` / `onLoadingChange`) and what is
-built later subscribes; and `KeyboardLock` is held by name (a modal, the tutorial, a loading label, the sign-in
-dialog), freeing the shortcuts only once every hold is gone. `window.svv` is only a console and e2e handle.
+the imports decide load order, not a hand-kept list. No page keeps a shared registry object: each module is handed
+what it works with as constructor arguments, all wired in `gallery/Main.js`, `validate/Main.js` and
+`explore/Main.js` (#5648). The page's facts travel as one frozen config (`ValidateConfig`, `ExploreConfig`) and its
+elements as one UI object (`ValidateUi`, `ExploreUi`), page data and elements first and collaborators last, every
+argument positional and required. What is built first announces and what is built later subscribes to it in its own
+constructor (`Tracker.onFlush`, `LabelContainer.onLabelPlaced`, `TaskContainer.onCurrentTaskChanged`,
+`PanoManager.onPovChanged`, `NavigationService.onMoveStarted` / `onMoved`, …), so there are no late setters and no
+cycles, and a `Main` wires only the policy that spans modules: on Explore, what a pop-up stops. Anything that can be
+switched off is a `common/Gate`, held by name and open only once every holder has let go: the keyboard shortcuts (a
+modal, the tutorial, a move in flight, the sign-in dialog), and on Explore walking (`NavigationService.walking`),
+panning (`PanoManager.panning`), labeling (`Canvas.labeling`), mode switching (`LabelModes.switching`), each zoom
+button, the compass click, and the pop-up lock itself, whose hold `Main` fans out to the others. A tool's facts about
+the current mode live apart from the widget that shows them: `explore/menu/LabelModes` is the armed label type and
+whether a type may be armed, `RibbonMenu` only its buttons. Explore's `PanoManager` and `Minimap` are built
+synchronously and load side by side (`PanoManager.ready`, `Minimap.create`); everything that needs neither is built
+meanwhile, and the one `await` in `Main` is for the first pano. Constants that used to hang off the registry live on
+the class they describe (`PanoViewer.SEARCH_RADIUS_M`, `Task.CLOSE_TO_ROUTE_KM`, `TaskContainer.CONNECTED_TASK_KM`,
+`Onboarding.TUTORIAL_PANO_WIDTH`). `window.svv` and `window.svl` are only console and e2e handles, returned by each
+page's `Main.start()`.
 `util` is the object `common/utilities.js` exports; a file
 that reads `util.misc`, `util.math`, `util.url` or `util.pano` imports the file that adds it (`utilitiesSidewalk.js`,
 `utilitiesMath.js`, `urlQuery.js`, `pano-viewer/panoUtilities.js`). Vendor libraries (`mapboxgl`, `i18next`, `turf`, …)

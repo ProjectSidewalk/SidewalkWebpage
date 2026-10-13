@@ -43,12 +43,6 @@ export class PanoramaxViewer extends PanoViewer {
   /** The federated meta-catalog, which searches every Panoramax instance at once. */
   static API_BASE = 'https://api.panoramax.xyz/api';
 
-  /**
-   * How far from a requested location a picture may be and still count as "here", in meters. Mirrors Explore's
-   * svl.STREETVIEW_MAX_DISTANCE, which isn't defined on the other pages this viewer serves (Validate, Gallery).
-   */
-  static #SEARCH_RADIUS_M = 25;
-
   /** How far a picture may be from the current one and still be offered as a navigation link, in meters. */
   static #LINK_RADIUS_M = 30;
 
@@ -189,7 +183,7 @@ export class PanoramaxViewer extends PanoViewer {
       // its only pictures are ones already excluded. Both are answers, so both are NoImageryError; a failure to
       // reach the API at all propagates untyped from the calls above instead (#4918).
       throw new NoImageryError(
-        `No usable Panoramax picture within ${PanoramaxViewer.#SEARCH_RADIUS_M}m of ${latLng.lat},${latLng.lng}.`,
+        `No usable Panoramax picture within ${PanoViewer.SEARCH_RADIUS_M}m of ${latLng.lat},${latLng.lng}.`,
       );
     }
     return this.setPano(best.id);
@@ -444,7 +438,7 @@ export class PanoramaxViewer extends PanoViewer {
   };
 
   #storePrefetch = (centerPoint) => {
-    const entry = { centerPoint, promise: this.#searchNear(centerPoint, PanoramaxViewer.#SEARCH_RADIUS_M) };
+    const entry = { centerPoint, promise: this.#searchNear(centerPoint, PanoViewer.SEARCH_RADIUS_M) };
     this.#prefetchedSearches.push(entry);
     return entry;
   };

@@ -26,7 +26,7 @@ beforeEach(() => {
       <div id="explore-control-menu"></div>`;
     toggle = document.getElementById('explore-control-buttons-toggle');
     tracker = { push: jest.fn() };
-    new window.PanoOverlayControls(tracker, {}, {}, {});
+    new window.PanoOverlayControls(tracker, { walking: { onChanged: () => {} } }, {}, {});
 });
 
 test('the chevron opens and closes the menu, logging the resulting state each time', () => {

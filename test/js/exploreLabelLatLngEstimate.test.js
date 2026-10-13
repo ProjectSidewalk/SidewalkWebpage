@@ -6,7 +6,7 @@
  * computation method.
  *
  * What these pin is the *formula*, not the constants. The constants reach the browser from the backend at runtime
- * (svl.latLngEstimation, PanoDataService.LatLngEstimation.asJson injected by explore.scala.html), so the shipped
+ * (ExploreConfig.latLngEstimation, PanoDataService.LatLngEstimation.asJson injected by explore.scala.html), so the shipped
  * client cannot hold a stale copy of them; the fixture below is a hand-copy of that payload standing in for the
  * injection. It follows that a refit which changes the camera height or the blend angle must update this fixture and
  * its expected distances alongside PanoDataServiceSpec's pins — nothing here fails on its own if it doesn't.
@@ -29,28 +29,31 @@ function loadLabel() {
 describe('Label lat/lng estimation', () => {
     let Label;
 
-    /** A label mid-placement: no cached labelLat, so the constructor's toLatLng call runs the estimator. */
+    const LAT_LNG_ESTIMATION = {
+        blendDeg: 11.25,
+        maxDistanceM: 50.0,
+        cameraHeightM: 2.341219672825709,
+    };
+
+    /** A label mid-placement: no cached labelLat, so placing it on the minimap runs the estimator. */
     function newLabel({ labelType = 'CurbRamp', pitch, heading = 90 } = {}) {
-        return new Label({
+        const label = new Label({
             labelType,
             temporaryLabelId: 1,
             panoXY: { x: 10, y: 20 },   // Present, so the constructor skips the pano-store lookup.
             povOfLabelIfCentered: { heading, pitch, zoom: 1 },
             panoLat: 47.6553,
             panoLng: -122.3035,
-        });
+        }, {}, LAT_LNG_ESTIMATION, {});
+        label.placeOnMinimap({ addMarker: () => ({ setVisible: () => {} }) }, null, () => {});
+        return label;
     }
 
     beforeEach(() => {
         Label = loadLabel();
-        window.svl = {
-            latLngEstimation: {
-                blendDeg: 11.25,
-                maxDistanceM: 50.0,
-                cameraHeightM: 2.341219672825709,
-            },
-        };
-        Label.createMinimapMarker = () => ({ setVisible: () => {} });
+        window.util = { misc: { getIconImagePaths: () => ({ iconImagePath: 'x.svg' }), labelTypeName: () => '' } };
+        window.i18next = { t: () => '' };
+        Label.styleMinimapMarker = () => {};
         window.turf = {
             point: (coords) => ({ geometry: { coordinates: coords } }),
             destination: jest.fn((_start, _distKm, _bearing) => ({ geometry: { coordinates: [-122.303, 47.656] } })),
@@ -61,7 +64,7 @@ describe('Label lat/lng estimation', () => {
         jest.restoreAllMocks();
     });
 
-    /** The [distanceKm, bearing] the estimator handed to turf.destination for the label's single construction. */
+    /** The [distanceKm, bearing] the estimator handed to turf.destination for the label's single placement. */
     function destinationArgs() {
         expect(window.turf.destination).toHaveBeenCalledTimes(1);
         const [, distKm, bearing] = window.turf.destination.mock.calls[0];

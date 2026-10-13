@@ -209,6 +209,14 @@ function buildDom() {
     <button id="minimap-zoom-out" type="button"></button>`;
 }
 
+/** The tracker every Minimap built by createMinimap logs through. */
+let tracker;
+
+/** Builds a Minimap over the page's holder, centered on the pano. */
+const createMinimap = () => window.Minimap.create(
+  { holder: document.getElementById('minimap-holder') }, PANO, { panoViewer: {}, getPosition: () => PANO, onPanoChanged: () => {} }, tracker,
+);
+
 /** Loads the sources and the globals they read, against a fresh DOM and a fresh stand-in for MapLibre. */
 function setUpGlobals(frames) {
   FakeMap.instances = [];
@@ -219,11 +227,7 @@ function setUpGlobals(frames) {
   window.maplibregl = {
     Map: FakeMap, Marker: FakeMarker, AttributionControl: FakeAttributionControl, LngLatBounds: FakeLngLatBounds,
   };
-  window.svl = {
-    ui: { minimap: { holder: document.getElementById('minimap-holder') } },
-    tracker: { push: jest.fn() },
-    panoViewer: { getPosition: () => PANO },
-  };
+  tracker = { push: jest.fn() };
   // MinimapStyle is loaded first and put on window so Minimap's import resolves to this patched copy: jsdom has no 2D
   // canvas, and the chevron's pixels aren't under test.
   Object.assign(window, loadModules('frontend/js/explore/navigation/MinimapStyle.js'));
@@ -239,12 +243,12 @@ describe('Minimap seam', () => {
 
   const flushFrame = () => frames.splice(0).forEach((callback) => callback());
   const click = (id) => document.getElementById(id).click();
-  const tracked = (eventName) => window.svl.tracker.push.mock.calls.filter(([name]) => name === eventName);
+  const tracked = (eventName) => tracker.push.mock.calls.filter(([name]) => name === eventName);
 
   beforeEach(async () => {
     frames = [];
     setUpGlobals(frames);
-    minimap = await window.Minimap.create(PANO);
+    minimap = await createMinimap();
     [map] = FakeMap.instances;
   });
 
@@ -300,10 +304,9 @@ describe('Minimap seam', () => {
     });
 
     test('the recenter button stays hidden in the overview, whose own button leads back', () => {
-      window.svl.regionModel = { isRoute: true };
-      window.svl.taskContainer = {
-        getTasks: () => [{ getGeoJSON: () => ({ geometry: { coordinates: [[-122.3, 47.6], [-122.31, 47.61]] } }) }],
-      };
+      minimap.setOverviewStreets(
+        () => [{ getGeoJSON: () => ({ geometry: { coordinates: [[-122.3, 47.6], [-122.31, 47.61]] } }) }],
+      );
       map.panoPoint = { x: 10, y: 10 };
       minimap.enterOverview();
       map.fire('move');
@@ -393,8 +396,7 @@ describe('Minimap seam', () => {
     const ROUTE = [[-122.34, 47.60], [-122.33, 47.61]];
 
     beforeEach(() => {
-      window.svl.regionModel = { isRoute: true };
-      window.svl.taskContainer = { getTasks: () => [{ getGeoJSON: () => ({ geometry: { coordinates: ROUTE } }) }] };
+      minimap.setOverviewStreets(() => [{ getGeoJSON: () => ({ geometry: { coordinates: ROUTE } }) }]);
     });
 
     const zoomCalls = () => map.callsTo('setMinZoom', 'cameraForBounds', 'jumpTo').map(([name, arg]) => [name, arg]);
@@ -467,7 +469,7 @@ describe('Minimap seam', () => {
     });
 
     test('with no street geometry loaded yet there is nothing to fit, so the mode doesn\'t change', () => {
-      window.svl.taskContainer = { getTasks: () => [] };
+      minimap.setOverviewStreets(() => []);
       minimap.enterOverview();
       expect(map.calls).toEqual([]);
       expect(document.getElementById('minimap-holder').classList.contains('minimap-overview')).toBe(false);
@@ -705,7 +707,7 @@ describe('Minimap without a map', () => {
 
   const holder = () => document.getElementById('minimap-holder');
   const message = () => document.getElementById('minimap-unavailable-message');
-  const unavailableEvents = () => window.svl.tracker.push.mock.calls.filter(([name]) => name === 'Minimap_Unavailable');
+  const unavailableEvents = () => tracker.push.mock.calls.filter(([name]) => name === 'Minimap_Unavailable');
 
   test('with no WebGL2, creation still resolves, and the minimap says it can\'t draw', async () => {
     window.maplibregl.Map = class {
@@ -714,7 +716,7 @@ describe('Minimap without a map', () => {
       }
     };
 
-    const minimap = await window.Minimap.create(PANO);
+    const minimap = await createMinimap();
 
     expect(minimap.isAvailable()).toBe(false);
     expect(holder().classList.contains('minimap-unavailable')).toBe(true);
@@ -728,7 +730,7 @@ describe('Minimap without a map', () => {
         throw new Error('Failed to initialize WebGL');
       }
     };
-    const minimap = await window.Minimap.create(PANO);
+    const minimap = await createMinimap();
 
     const onClick = jest.fn();
     const marker = minimap.addMarker(PANO, document.createElement('div'), { onClick, title: 'Go' });
@@ -755,7 +757,7 @@ describe('Minimap without a map', () => {
       }
     };
 
-    const minimap = await window.Minimap.create(PANO);
+    const minimap = await createMinimap();
     const [map] = FakeMap.instances;
 
     expect(minimap.isAvailable()).toBe(false);
@@ -767,7 +769,7 @@ describe('Minimap without a map', () => {
   test('with no MapLibre loaded and no preload link to import it from, the reason names the link', async () => {
     delete window.maplibregl;
 
-    const minimap = await window.Minimap.create(PANO);
+    const minimap = await createMinimap();
 
     expect(minimap.isAvailable()).toBe(false);
     const [[, { error }]] = unavailableEvents();

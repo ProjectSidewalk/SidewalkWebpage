@@ -11,26 +11,24 @@ const { loadModules } = require('./loadGlobalScript');
 
 describe('Explore F shortcut for immersive mode', () => {
     let contextMenuOpen;
-    // The svl the manager was constructed with; its collaborators are replaced per test.
-    const svl = {};
+    // The collaborators the manager was constructed with; their methods are replaced per test.
+    const immersiveMode = { toggle: jest.fn() };
 
     beforeAll(() => {
         window.util = { misc: { VALID_LABEL_TYPES_WITHOUT_OTHER: [], getLabelDescriptions: () => ({}) } };
         Object.assign(window, loadModules('frontend/js/common/KeyboardShortcuts.js', 'frontend/js/explore/keyboard/KeyboardManager.js'));
         contextMenuOpen = false;
         // One instance for the file: the constructor adds window listeners that are never removed.
-        const contextMenu = { isOpen: () => contextMenuOpen, getTargetLabel: () => null, hide: jest.fn() };
-        new window.KeyboardManager(svl, {}, contextMenu, { getStatus: () => true }, {}, {});
+        const contextMenu = {
+            isOpen: () => contextMenuOpen, getTargetLabel: () => null, hide: jest.fn(), onTextFieldFocusChanged: jest.fn(),
+        };
+        new window.KeyboardManager({ isHeld: () => false }, { showLabelHoverInfo: jest.fn() }, contextMenu,
+            { walking: { isHeld: () => true } }, {}, {}, {}, {}, immersiveMode, { push: jest.fn() });
     });
 
     beforeEach(() => {
         contextMenuOpen = false;
-        Object.assign(svl, {
-            tracker: { push: jest.fn() },
-            canvas: { showLabelHoverInfo: jest.fn() },
-            immersiveMode: { toggle: jest.fn() },
-        });
-        window.svl = svl;
+        immersiveMode.toggle = jest.fn();
         document.body.innerHTML
             = '<input id="field"><div id="note" contenteditable="true"></div><button id="btn"></button>';
     });
@@ -42,13 +40,13 @@ describe('Explore F shortcut for immersive mode', () => {
 
     it('toggles on a bare F, and logs the toggle as a keyboard shortcut', () => {
         releaseF(document.body);
-        expect(window.svl.immersiveMode.toggle).toHaveBeenCalledWith('KeyboardShortcut');
+        expect(immersiveMode.toggle).toHaveBeenCalledWith('KeyboardShortcut');
     });
 
     it('leaves F to the context menu while it is open', () => {
         contextMenuOpen = true;
         releaseF(document.body);
-        expect(window.svl.immersiveMode.toggle).not.toHaveBeenCalled();
+        expect(immersiveMode.toggle).not.toHaveBeenCalled();
     });
 
     it('leaves an f typed into a text field or an editable region alone', () => {
@@ -60,7 +58,7 @@ describe('Explore F shortcut for immersive mode', () => {
         Object.defineProperty(note, 'isContentEditable', { value: true });
         note.focus();
         releaseF(note);
-        expect(window.svl.immersiveMode.toggle).not.toHaveBeenCalled();
+        expect(immersiveMode.toggle).not.toHaveBeenCalled();
     });
 
     it('ignores F with a modifier, which belongs to the browser', () => {
@@ -68,6 +66,6 @@ describe('Explore F shortcut for immersive mode', () => {
         releaseF(document.body, { metaKey: true });
         releaseF(document.body, { shiftKey: true });
         releaseF(document.body, { altKey: true });
-        expect(window.svl.immersiveMode.toggle).not.toHaveBeenCalled();
+        expect(immersiveMode.toggle).not.toHaveBeenCalled();
     });
 });

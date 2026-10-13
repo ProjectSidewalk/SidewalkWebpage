@@ -46,14 +46,14 @@ describe('ReauditNotice.showForTask', () => {
     });
 
     test('does nothing for a street that is not a re-audit', () => {
-        const notice = new ReauditNotice(tracker);
+        const notice = new ReauditNotice({ onCurrentTaskChanged: () => {} }, tracker);
         expect(notice.showForTask(makeTask(7, { needsReaudit: false }))).toBe(false);
         expect(window.Toast.show).not.toHaveBeenCalled();
         expect(tracker.push).not.toHaveBeenCalled();
     });
 
     test('says "you mapped this" when the earlier pass was the labeler\'s own, and logs it', () => {
-        const notice = new ReauditNotice(tracker);
+        const notice = new ReauditNotice({ onCurrentTaskChanged: () => {} }, tracker);
         expect(notice.showForTask(makeTask(7, REAUDIT_BY_ME))).toBe(true);
 
         expect(window.Toast.show).toHaveBeenCalledTimes(1);
@@ -74,13 +74,13 @@ describe('ReauditNotice.showForTask', () => {
 
     test('names the month the labeler did the work in, not the UTC month the server wrote', () => {
         // jest.config.js pins Los Angeles, where 2024-11-01T03:00Z is the evening of October 31.
-        const notice = new ReauditNotice(tracker);
+        const notice = new ReauditNotice({ onCurrentTaskChanged: () => {} }, tracker);
         notice.showForTask(makeTask(7, { ...REAUDIT_BY_ME, lastMappedAt: '2024-11-01T03:00:00Z' }));
         expect(window.Toast.show.mock.calls[0][0].message).toBe('right-ui.reaudit.message-you|October 2024|March 2025');
     });
 
     test('says "someone mapped this" when the earlier pass was not the labeler\'s', () => {
-        const notice = new ReauditNotice(tracker);
+        const notice = new ReauditNotice({ onCurrentTaskChanged: () => {} }, tracker);
         expect(notice.showForTask(makeTask(7, REAUDIT_BY_OTHERS))).toBe(true);
 
         expect(window.Toast.show.mock.calls[0][0].message)
@@ -95,7 +95,7 @@ describe('ReauditNotice.showForTask', () => {
         ['an unparseable date', { lastMappedAt: 'not-a-date', newImageryDate: '2025-03-01' },
             'right-ui.reaudit.message-you-no-dates'],
     ])('falls back to the dateless wording with %s', (_label, dates, expected) => {
-        const notice = new ReauditNotice(tracker);
+        const notice = new ReauditNotice({ onCurrentTaskChanged: () => {} }, tracker);
         const task = makeTask(7, { needsReaudit: true, mappedByThisUser: true, ...dates });
         expect(notice.showForTask(task)).toBe(true);
         // Half a comparison reads worse than none, and a raw ISO string must never reach the sentence.
@@ -103,20 +103,20 @@ describe('ReauditNotice.showForTask', () => {
     });
 
     test('the dateless wording also splits on who mapped it', () => {
-        const notice = new ReauditNotice(tracker);
+        const notice = new ReauditNotice({ onCurrentTaskChanged: () => {} }, tracker);
         expect(notice.showForTask(makeTask(7, { needsReaudit: true, mappedByThisUser: false }))).toBe(true);
         expect(window.Toast.show.mock.calls[0][0].message).toBe('right-ui.reaudit.message-others-no-dates');
     });
 
     test('the close button logs a dismissal distinct from a fade', () => {
-        const notice = new ReauditNotice(tracker);
+        const notice = new ReauditNotice({ onCurrentTaskChanged: () => {} }, tracker);
         notice.showForTask(makeTask(7, REAUDIT_BY_ME));
         window.Toast.show.mock.calls[0][0].onClose();
         expect(tracker.push).toHaveBeenCalledWith('Click_ReauditToast_Close', { streetEdgeId: 7 });
     });
 
     test('announces each street once, but every re-audit street', () => {
-        const notice = new ReauditNotice(tracker);
+        const notice = new ReauditNotice({ onCurrentTaskChanged: () => {} }, tracker);
         expect(notice.showForTask(makeTask(7, REAUDIT_BY_ME))).toBe(true);
         expect(notice.showForTask(makeTask(7, REAUDIT_BY_ME))).toBe(false);
         expect(notice.showForTask(makeTask(8, REAUDIT_BY_ME))).toBe(true);
