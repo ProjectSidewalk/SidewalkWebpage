@@ -47,9 +47,13 @@ export class LabelModes {
   /**
    * Told when the mode switches, with the new mode: 'Walk' or a label type.
    * @param {(mode: string) => void} listener
+   * @returns {() => void} Stops telling it; the tutorial listens for one step at a time.
    */
   onModeChanged(listener) {
     this.#modeChangedListeners.push(listener);
+    return () => {
+      this.#modeChangedListeners = this.#modeChangedListeners.filter((l) => l !== listener);
+    };
   }
 
   /**
@@ -86,8 +90,6 @@ export class LabelModes {
   switchTo(mode) {
     this.#tracker.push(`ModeSwitch_${mode}`);
     if (!this.isUsable(mode)) return;
-    // Triggers onboarding states.
-    document.dispatchEvent(new CustomEvent(`ModeSwitch_${mode}`));
     this.#mode = mode;
     this.#modeChangedListeners.forEach((listener) => listener(mode));
   }

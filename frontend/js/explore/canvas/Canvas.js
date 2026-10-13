@@ -54,6 +54,9 @@ export class Canvas {
   #shareUrl = null;
   // The pano the labels were last filtered for, so a re-render only re-filters once the pano changes.
   #currPanoId;
+  /** @type {Array<(label: Label) => void>} */
+  #labeledListeners = [];
+
   #status = {
     currentLabel: null,
   };
@@ -213,13 +216,7 @@ export class Canvas {
 
     this.#audioEffect.play('drip');
 
-    // The tutorial checks where the label landed.
-    if (this.#config.isOnboarding) {
-      const customEvent = new CustomEvent('addTutorialLabel', {
-        detail: { label: this.#status.currentLabel },
-      });
-      document.dispatchEvent(customEvent);
-    }
+    this.#labeledListeners.forEach((listener) => listener(this.#status.currentLabel));
 
     // Wait for the crop to be saved before switching back to walk mode.
     // We are hiding the 'road labels' in the labeling mode as we don't want them to show in the crop.
@@ -628,6 +625,19 @@ export class Canvas {
     // clearRect() operates in the logical frame thanks to the context transform set in util.sizeCanvasToDisplay.
     this.#ctx.clearRect(0, 0, this.#frame.width, this.#frame.height);
     return this;
+  }
+
+  /**
+   * Told of each label placed here, after its menu has opened: the tutorial checks where it landed and then works
+   * the menu.
+   * @param {(label: Label) => void} listener
+   * @returns {() => void} Stops telling it.
+   */
+  onLabeled(listener) {
+    this.#labeledListeners.push(listener);
+    return () => {
+      this.#labeledListeners = this.#labeledListeners.filter((l) => l !== listener);
+    };
   }
 
   /**

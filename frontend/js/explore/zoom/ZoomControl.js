@@ -35,6 +35,9 @@ export class ZoomControl {
     isBlinking: false,
   };
 
+  /** @type {Array<(direction: 'in'|'out') => void>} */
+  #zoomedListeners = [];
+
   #blinkInterval;
   #wheelTrackTimeout;
 
@@ -71,6 +74,18 @@ export class ZoomControl {
     viewControlLayer.addEventListener('wheel', (e) => this.#handleZoomWheel(e), { passive: false });
     // A move keeps the previous pano's zoom, so the buttons follow the view rather than this control's own calls.
     panoManager.onPovChanged(() => this.syncButtonsToZoom(panoManager.getPov().zoom));
+  }
+
+  /**
+   * Told of each zoom step taken by button or key (the tutorial's zoom steps wait for one).
+   * @param {(direction: 'in'|'out') => void} listener
+   * @returns {() => void} Stops telling it.
+   */
+  onZoomed(listener) {
+    this.#zoomedListeners.push(listener);
+    return () => {
+      this.#zoomedListeners = this.#zoomedListeners.filter((l) => l !== listener);
+    };
   }
 
   /**
@@ -149,7 +164,7 @@ export class ZoomControl {
     }
 
     this.#setZoom(pov.zoom + 1);
-    document.dispatchEvent(new CustomEvent('ZoomIn'));
+    this.#zoomedListeners.forEach((listener) => listener('in'));
   }
 
   /**
@@ -165,7 +180,7 @@ export class ZoomControl {
     }
 
     this.#setZoom(pov.zoom - 1);
-    document.dispatchEvent(new CustomEvent('ZoomOut'));
+    this.#zoomedListeners.forEach((listener) => listener('out'));
   }
 
   /**
@@ -200,7 +215,7 @@ export class ZoomControl {
     if (!this.zoomInGate.isHeld()) {
       const pov = this.#panoManager.getPov();
       this.#setZoom(pov.zoom + 1);
-      document.dispatchEvent(new CustomEvent('ZoomIn'));
+      this.#zoomedListeners.forEach((listener) => listener('in'));
       return this;
     } else {
       return false;
@@ -215,7 +230,7 @@ export class ZoomControl {
     if (!this.zoomOutGate.isHeld()) {
       const pov = this.#panoManager.getPov();
       this.#setZoom(pov.zoom - 1);
-      document.dispatchEvent(new CustomEvent('ZoomOut'));
+      this.#zoomedListeners.forEach((listener) => listener('out'));
       return this;
     } else {
       return false;

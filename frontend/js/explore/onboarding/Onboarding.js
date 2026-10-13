@@ -11,6 +11,7 @@ import '../../common/utilitiesMath.js';
 import '../../common/utilitiesSidewalk.js';
 /** @typedef {import('../canvas/CanvasFrame.js').CanvasFrame} CanvasFrame */
 /** @typedef {import('../navigation/Compass.js').Compass} Compass */
+/** @typedef {import('../canvas/Canvas.js').Canvas} Canvas */
 /** @typedef {import('../canvas/ContextMenu.js').ContextMenu} ContextMenu */
 /** @typedef {import('../Main.js').ExploreUi} ExploreUi */
 /** @typedef {import('../data/Form.js').Form} Form */
@@ -50,6 +51,7 @@ export class Onboarding {
   #labelModes;
   #ribbon;
   #tracker;
+  #canvas;
   #uiCanvas;
   #contextMenu;
   #uiOnboarding;
@@ -86,13 +88,15 @@ export class Onboarding {
    * @param {PanoOverlayControls} panoOverlayControls
    * @param {LabelModes} labelModes - Held shut, letting one label type through per step.
    * @param {RibbonMenu} ribbon - Whose button for that type is lit.
+   * @param {Canvas} canvas - Says where each label the labeler places landed.
    * @param {ContextMenu} contextMenu
    * @param {ZoomControl} zoomControl
    * @param {Tracker} tracker
    */
   constructor(ui, frame, onboardingStates, minimap, panoManager, navArrows, compass, navigationService,
     missionContainer, labelContainer, observedArea, form, missionProgressBar, panoOverlayControls, labelModes, ribbon,
-    contextMenu, zoomControl, tracker) {
+    canvas, contextMenu, zoomControl, tracker) {
+    this.#canvas = canvas;
     this.#ui = ui;
     this.#frame = frame;
     this.#minimap = minimap;
@@ -1108,19 +1112,18 @@ export class Onboarding {
       this.#labelModes.disableMode(labelType);
     };
 
-    const callback = () => {
+    const stopListening = this.#labelModes.onModeChanged((mode) => {
+      if (mode !== labelType) return;
+      stopListening();
       this.#labelModes.enableMode('Walk');
 
       // Disable only when the user places the label
       this.#uiCanvas.drawingLayer.addEventListener('mousedown', this.#mouseDownCanvasDrawingHandler);
 
       this.#ribbon.stopBlinking();
-      document.removeEventListener(`ModeSwitch_${labelType}`, callback);
       if (listener) google.maps.event.removeListener(listener);
       this.#transitionTo(state.transition);
-    };
-
-    document.addEventListener(`ModeSwitch_${labelType}`, callback);
+    });
   }
 
   /**
@@ -1130,30 +1133,26 @@ export class Onboarding {
    */
   #visitZoomState(state, listener) {
     const zoomType = state.properties.type;
-    let event;
 
     if (zoomType === 'in') {
-      event = 'ZoomIn';
       this.#zoomControl.blinkZoomIn();
       this.#zoomControl.zoomInGate.release('tutorial');
     } else {
-      event = 'ZoomOut';
       this.#zoomControl.blinkZoomOut();
       this.#zoomControl.zoomOutGate.release('tutorial');
     }
 
-    const callback = () => {
+    const stopListening = this.#zoomControl.onZoomed((direction) => {
+      if (direction !== zoomType) return;
+      stopListening();
       this.#zoomControl.stopBlinking();
       if (zoomType === 'in') this.#zoomControl.zoomInGate.hold('tutorial');
       else this.#zoomControl.zoomOutGate.hold('tutorial');
       this.#labelModes.enableMode('Walk');
-      document.removeEventListener(event, callback);
 
       if (listener) google.maps.event.removeListener(listener);
       this.#transitionTo(state.transition);
-    };
-
-    document.addEventListener(event, callback);
+    });
   }
 
   /**
@@ -1165,11 +1164,11 @@ export class Onboarding {
     const properties = state.properties[0];
     const transition = state.transition;
 
-    // Add an event that fires when a label is added and checks if the label was placed in the right spot.
-    const _tutorialLabelListener = (event) => {
+    // Checks whether the label was placed in the right spot.
+    const stopListening = this.#canvas.onLabeled((label) => {
+      stopListening();
       if (listener) google.maps.event.removeListener(listener);
 
-      const label = event.detail.label;
       const panoX = label.getProperty('panoXY').x * Onboarding.TUTORIAL_PANO_SCALE_FACTOR;
       const panoY = label.getProperty('panoXY').y * Onboarding.TUTORIAL_PANO_SCALE_FACTOR;
       const imageX = properties.imageX;
@@ -1196,8 +1195,7 @@ export class Onboarding {
       } else {
         this.#transitionTo(transition[0], { accurate: false });
       }
-    };
-    document.addEventListener('addTutorialLabel', _tutorialLabelListener, { once: true });
+    });
   }
 
   /**
@@ -1213,14 +1211,12 @@ export class Onboarding {
     this.#labelContainer.enableDelete();
     this.#labelContainer.lockDelete();
 
-    // Callback for deleted label.
-    const deleteLabelCallback = () => {
+    const stopListening = this.#labelContainer.onLabelRemoved(() => {
+      stopListening();
       if (listener) google.maps.event.removeListener(listener);
-      document.removeEventListener('RemoveLabel', deleteLabelCallback);
       this.clear();
       this.#removeFlashingFromArrow(); // TODO remove this if it turns out that we don't need it.
       this.#transitionTo(state.transition);
-    };
-    document.addEventListener('RemoveLabel', deleteLabelCallback);
+    });
   }
 }

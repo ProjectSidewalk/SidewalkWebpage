@@ -670,7 +670,7 @@ export class Main {
       const onboardingStates = new OnboardingStates(m.contextMenu, m.compass, m.panoManager, this.#ui.minimap);
       this.#onboarding = new Onboarding(this.#ui, this.#frame, onboardingStates, m.minimap, m.panoManager,
         m.navArrows, m.compass, m.navigationService, m.missionContainer, m.labelContainer, m.observedArea, m.form,
-        m.missionProgressBar, m.panoOverlayControls, m.labelModes, m.ribbon, m.contextMenu, m.zoomControl,
+        m.missionProgressBar, m.panoOverlayControls, m.labelModes, m.ribbon, m.canvas, m.contextMenu, m.zoomControl,
         m.tracker);
     }
     this.#onboarding.start();

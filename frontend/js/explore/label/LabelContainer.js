@@ -107,9 +107,13 @@ export class LabelContainer {
   /**
    * Told when a label is removed.
    * @param {(label: Label) => void} listener
+   * @returns {() => void} Stops telling it.
    */
   onLabelRemoved(listener) {
     this.#removedListeners.push(listener);
+    return () => {
+      this.#removedListeners = this.#removedListeners.filter((l) => l !== listener);
+    };
   }
 
   /**
@@ -410,7 +414,6 @@ export class LabelContainer {
   removeLabel(label) {
     if (!this.canDelete(label)) return false;
     this.#tracker.push('RemoveLabel', { labelType: label.getProperty('labelType') }, label);
-    if (this.#config.isOnboarding) document.dispatchEvent(new CustomEvent('RemoveLabel'));
     this.#overallStats.decrementLabelCount();
     label.remove();
     this.#addLabelToListObject(this.#labelsToLog, label);
