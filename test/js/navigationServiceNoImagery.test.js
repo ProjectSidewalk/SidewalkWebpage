@@ -312,6 +312,18 @@ describe('Explore, when the imagery search runs out along a street', () => {
             expect(searches.map(({ streetEdgeId }) => streetEdgeId)).toContain(102);
         });
 
+        it('announces the advance as a new move start, so what closes on a move closes for the new street', async () => {
+            const [dead, live] = [makeTask(101), makeTask(102)];
+            assignStreets(dead, live);
+            respondToSearch = () => (svl.taskContainer.getCurrentTask() === dead ? emptyGround() : foundImagery());
+            const starts = jest.fn();
+            nav.onMoveStarted(starts);
+
+            await nav.moveForward();
+
+            expect(starts).toHaveBeenCalledTimes(2);
+        });
+
         it('still advances when a pop-up took hold of walking during the move', async () => {
             const [dead, live] = [makeTask(101), makeTask(102)];
             assignStreets(dead, live);
@@ -746,29 +758,85 @@ describe('Explore, when the imagery search runs out along a street', () => {
             expect(svl.navArrows.show).toHaveBeenCalled();
         });
 
-        it('does not let an earlier landing\'s timer reopen walking during, or cut short the beat after, a later move',
-            async () => {
-                assignStreets(makeTask(100), makeTask(101));
-                respondToSearch = foundImagery;
-                await nav.moveForward();
-                jest.advanceTimersByTime(600);
+        /** Holds the next pano hop in flight until the returned function lands it. */
+        const holdNextHop = () => {
+            let land;
+            respondToPanoHop = () => new Promise((resolve) => { land = resolve; });
+            return () => land();
+        };
 
-                // A jump can start inside the beat, since the prompt that starts it isn't gated on walking.
-                let land;
-                respondToSearch = () => new Promise((resolve) => { land = () => resolve({ panoId: 'pano-found' }); });
-                const jump = nav.jumpToANewTask();
-                svl.navArrows.show.mockClear();
-                jest.advanceTimersByTime(300); // Past the first landing's beat, with the jump still in flight.
-                expect(nav.canWalk()).toBe(false);
-                expect(svl.navArrows.show).not.toHaveBeenCalled();
+        it('does not let an earlier landing\'s timer reopen walking while a later move is in flight', async () => {
+            assignStreets(makeTask(101));
+            respondToSearch = foundImagery;
+            await nav.moveForward();
+            jest.advanceTimersByTime(600);
 
-                land();
-                await jump;
-                jest.advanceTimersByTime(500); // Past where the first landing's beat would have ended, again.
-                expect(nav.canWalk()).toBe(false);
-                jest.advanceTimersByTime(300);
-                expect(nav.canWalk()).toBe(true);
-            });
+            // Only the tutorial's forced hop can start inside the beat.
+            const land = holdNextHop();
+            const hop = nav.moveToPano('pano-next', true);
+            svl.navArrows.show.mockClear();
+            jest.advanceTimersByTime(300); // Past the first landing's beat, with the hop still in flight.
+            expect(nav.canWalk()).toBe(false);
+            expect(svl.navArrows.show).not.toHaveBeenCalled();
+            land();
+            await hop;
+        });
+
+        it('does not let an earlier landing\'s timer cut short the beat after a later one', async () => {
+            assignStreets(makeTask(101));
+            respondToSearch = foundImagery;
+            await nav.moveForward(); // Lands at 0 ms: its beat would end at 800.
+            jest.advanceTimersByTime(600);
+
+            const land = holdNextHop();
+            const hop = nav.moveToPano('pano-next', true);
+            jest.advanceTimersByTime(100);
+            land();
+            await hop; // Lands at 700 ms: its beat ends at 1500, with the first timer still pending.
+
+            jest.advanceTimersByTime(150);
+            expect(nav.canWalk()).toBe(false);
+            jest.advanceTimersByTime(650);
+            expect(nav.canWalk()).toBe(true);
+        });
+
+        it('keeps the jump prompt from firing inside the beat, so a double-click can\'t skip it', async () => {
+            assignStreets(makeTask(100), makeTask(101));
+            respondToSearch = foundImagery;
+            await nav.moveForward();
+            searches.length = 0;
+
+            await nav.jumpToANewTask();
+            expect(searches).toHaveLength(0);
+            expect(svl.taskContainer.endTask).not.toHaveBeenCalled();
+
+            jest.advanceTimersByTime(800);
+            await nav.jumpToANewTask();
+            expect(searches.length).toBeGreaterThan(0);
+        });
+
+        it('lets the labeler walk again when the bookkeeping after a landing throws', async () => {
+            assignStreets(makeTask(101));
+            respondToSearch = foundImagery;
+            svl.missionModel.updateMissionProgress.mockImplementationOnce(() => { throw new Error('boom'); });
+
+            await expect(nav.moveForward()).rejects.toThrow('boom');
+            jest.advanceTimersByTime(800);
+
+            expect(nav.canWalk()).toBe(true);
+            expect(keyboardLock.release).toHaveBeenCalledWith('move');
+        });
+
+        it('unlocks everything when a jump fails before its move starts', async () => {
+            assignStreets(makeTask(100), makeTask(101));
+            svl.taskContainer.endTask.mockImplementationOnce(() => { throw new Error('boom'); });
+
+            await expect(nav.jumpToANewTask()).rejects.toThrow('boom');
+
+            expect(nav.canWalk()).toBe(true);
+            expect(keyboardLock.release).toHaveBeenCalledWith('move');
+            expect(svl.panoManager.panning.release).toHaveBeenCalledWith('move');
+        });
     });
 
     it('samples its way down the street rather than giving up at the first empty point', async () => {

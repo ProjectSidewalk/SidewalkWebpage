@@ -274,8 +274,9 @@ describe('Explore Main wires what a pop-up stops', () => {
     interactionLock().hold('popup');
     expect(gates.every((gate) => gate.isHeld())).toBe(true);
     interactionLock().release('popup');
-    // The mission-start screen still holds the shortcuts; nothing else should.
-    expect(gates.slice(0, -1).some((gate) => gate.isHeld())).toBe(false);
+    // The mission-start screen still holds the shortcuts; once it's dismissed, nothing should.
+    built.missionStartTutorial.ctorArgs[3].keyboard.enableKeyboard();
+    expect(gates.some((gate) => gate.isHeld())).toBe(false);
   });
 
   it('the sign-in dialog is one of those pop-ups', () => {
