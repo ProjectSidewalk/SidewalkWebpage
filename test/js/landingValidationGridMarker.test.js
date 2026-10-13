@@ -6,8 +6,7 @@
  * pin that `cropMarker` is used for the crop and only for the crop, and that the validation the card submits reports
  * the same position it drew.
  *
- * LandingValidationGrid is a Grunt-concatenated `class` that reaches for page globals, so the source is eval'd into
- * jsdom with the collaborators it touches stubbed out.
+ * The page globals LandingValidationGrid touches are stubbed on `window`.
  */
 
 

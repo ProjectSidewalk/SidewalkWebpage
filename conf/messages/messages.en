@@ -167,9 +167,7 @@ seo.description.api = Free and open sidewalk accessibility data for {0}: raw lab
 seo.description.about = Learn about Project Sidewalk: our mission to map the world''s sidewalks, the research team behind it, and the open data it produces.
 seo.og.image.alt = Screenshot of Project Sidewalk''s virtual street-view exploration with accessibility labels placed along a sidewalk.
 
-# About page (#4237, redesigned in #4631). Static copy is server-rendered and doubles as the no-JS/crawler fallback;
-# numbers in data-live-stat spans are hydrated from /v3/api/aggregateStats (aggregateStats.js), and the team,
-# publications, and funders sections are hydrated from the Makeability Lab API (aboutPage.js).
+# About page (#4237, #4631). Numbers, team, publications, and funders load from APIs, not from here.
 about.title = About Project Sidewalk
 about.hero.title = We''re mapping and assessing <span class="about-hero-accent">every sidewalk</span> in the world.
 about.hero.subtitle = Project Sidewalk is an open-source academic research project at the University of Washington and the University of Illinois Chicago that combines crowdsourcing and AI to map and assess city sidewalks — and opens every data point to researchers, governments, and communities.
@@ -649,7 +647,7 @@ sharedlabel.stat.labels = labels
 sharedlabel.stat.validations = validations
 sharedlabel.stat.miles = miles explored
 sharedlabel.legend.title = What these labels mean
-# Redesigned user dashboard, leaderboard, settings, and public profile (#4323, #4475).
+# User dashboard, leaderboard, settings, and public profile (#4323, #4475).
 dashboard.title = Your dashboard
 dashboard.you = You
 dashboard.hero.greeting = Welcome back, {0} 👋

@@ -19,12 +19,8 @@ import javax.inject.*
 import scala.concurrent.{ExecutionContext, Future}
 
 /**
- * Controller for the User Dashboard, Leaderboard, Settings, and public profiles (#4323 redesign, cut over in #4474),
- * plus the admin's view of another user's dashboard (#4964).
- *
- * The pages share the API-docs/admin shell (left nav + content + right "On this page" TOC). The pre-cutover
- * `/preview` URLs permanently redirect to the production ones. Unlike the pre-redesign dashboard, mobile visitors are
- * served the page itself (it is responsive) rather than being redirected to /mobileLanding.
+ * Controller for the User Dashboard, Leaderboard, Settings, and public profiles (#4323), plus the admin's view of
+ * another user's dashboard (#4964). The pages are responsive, so mobile visitors get them rather than /mobileLanding.
  */
 @Singleton
 class UserDashboardController @Inject() (
@@ -48,10 +44,7 @@ class UserDashboardController @Inject() (
   private val ReauditListSize: Int = ReauditPageSize * 3
 
   /**
-   * Renders the redesigned User Dashboard: a single page of "your impact" sections (hero stats, activity streak,
-   * badges + trophies, your standing, learning/mistakes, map, team, streets needing a re-audit) on the shared shell.
-   *
-   * Secured to any signed-in user.
+   * Renders the User Dashboard: the user's stats, streak, badges, standing, mistakes, map, team, and streets to redo.
    */
   def dashboard = cc.securityService.SecuredAction(WithSignedIn()) { implicit request =>
     cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_UserDashboard")

@@ -1,11 +1,5 @@
 /*
- * Styles for the redesigned admin dashboard (#4272).
- *
- * The three-column shell (sidebar / content / TOC), the KPI tiles, and the table add-ons come from components/
- * (page-shell.css, kpi.css, tables.css). This file only adds what those don't have: the nav's scope badges and
- * descriptions and the Coverage page's map, legend, chart, and details panel. Type, color, and spacing come from
- * the design-system tokens in main.css — avoid hardcoding values that already exist as tokens. Type is set with the
- * composite --text-* tokens.
+ * Admin dashboard styles (#4272): only what the shared shell and components don't already provide.
  *
  * Coverage sequential color scale (--coverage-*: ColorBrewer "Blues", colorblind-safe). Keep these in sync with
  * CoverageColors.STOPS in coverage-map.js so the map, legend, and bar chart all agree.

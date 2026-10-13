@@ -12,14 +12,10 @@
 )(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @*
-* Redesigned Leaderboard, all real data. Sections run this-city first, then all-cities: the hero impact band
-* (getCurrentCityImpact), the podium + this-week + teams tables and "your place" (getLeaderboardStats /
-* getUserStanding), then the all-time board spanning every deployment (getGlobalLeaderboardStats, a cross-schema
-* union) and the community-impact band (getAggregateStats). The hero and that closing band read the same cached
-* fan-out, so every hero number is a strict subset of its cross-city counterpart rather than a second opinion (#4687).
-* PUBLIC page: anyone incl. anonymous can view; personal "you" pieces render only when signed in, with a sign-up CTA
-* otherwise. `impact` and `global` are None when their data is unavailable, which drops those sections entirely.
-* `myTeam` is the viewer's own team and its members, ranked; None when signed out or not on a team (#5762).
+* Leaderboard: this city's sections first, then the ones spanning every city. The top band and the closing community
+* band read the same cached numbers, so the city's figures never exceed the all-cities ones (#4687).
+* Public: the "you" pieces render only when signed in. `impact` and `global` are None when their data is unavailable,
+* which drops those sections; `myTeam` is None when signed out or not on a team (#5762).
 *@
 
 @* Named once because every distance on the board uses it. Twirl compiles this to a def, so it is not memoized. *@

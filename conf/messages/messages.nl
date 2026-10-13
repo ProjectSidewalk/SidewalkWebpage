@@ -383,7 +383,7 @@ authenticate.terms = Je gaat akkoord met onze <a target="_blank" href="/terms">G
 authenticate.signup = Een account maken
 authenticate.has.account = Heb je een account? <a href="#" id="form-open-sign-in">Log in</a>
 
-# Sign-in/sign-up redesign (#4375) — draft translations, pending native-speaker polish (#4494).
+# Sign-in/sign-up (#4375): draft translations, pending native-speaker polish (#4494).
 authenticate.welcome.back = Welkom terug
 authenticate.join = Doe mee met Project Sidewalk
 authenticate.tagline = Breng trottoirs in kaart. Help je stad toegankelijk te maken voor iedereen.
@@ -661,7 +661,7 @@ sharedlabel.stat.labels = labels
 sharedlabel.stat.validations = validaties
 sharedlabel.stat.miles = mijl verkend
 sharedlabel.legend.title = Wat deze labels betekenen
-# Redesigned user dashboard, leaderboard, settings, and public profile (#4323, #4475).
+# User dashboard, leaderboard, settings, and public profile (#4323, #4475).
 dashboard.title = Je dashboard
 dashboard.you = Jij
 dashboard.hero.greeting = Welkom terug, {0} 👋

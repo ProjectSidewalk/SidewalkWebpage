@@ -12,10 +12,7 @@
  * comment carries Edit/Delete instead, which is what keeps a second submission from silently destroying the first.
  * Cancel and Escape are the two ways out that keep the box from being a one-way door.
  *
- * Fixture and stub strategy follow labelDetailEditGating.test.js: LabelDetail is a top-level `class` written for
- * Grunt concatenation, so its source is eval'd into the jsdom global with an epilogue exposing it, TagEditor rides
- * along because LabelDetail closes over that binding, and the collaborators it reaches for as bare globals are
- * stubbed on `window` first.
+ * Fixtures and stubs follow labelDetailEditGating.test.js.
  */
 
 

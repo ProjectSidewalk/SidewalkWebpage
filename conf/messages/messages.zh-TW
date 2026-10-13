@@ -460,7 +460,7 @@ authenticate.terms = 您同意我們的<a target="_blank" href="/terms">使用�
 authenticate.signup = 註冊
 authenticate.has.account = 已有帳號了嗎？ <a href="#" id="form-open-sign-in">請登入</a>
 
-# Sign-in/sign-up redesign (#4375) — draft translations, pending native-speaker polish (#4494).
+# Sign-in/sign-up (#4375): draft translations, pending native-speaker polish (#4494).
 authenticate.welcome.back = 歡迎回來
 authenticate.join = 加入 Project Sidewalk
 authenticate.tagline = 標記人行道，幫助讓您的城市對所有人更友善。
@@ -739,7 +739,7 @@ sharedlabel.stat.labels = 個標記
 sharedlabel.stat.validations = 次驗證
 sharedlabel.stat.miles = 英里已探索
 sharedlabel.legend.title = 這些標記代表什麼
-# Redesigned user dashboard, leaderboard, settings, and public profile (#4323, #4475).
+# User dashboard, leaderboard, settings, and public profile (#4323, #4475).
 dashboard.title = 您的儀表板
 dashboard.you = 您
 dashboard.hero.greeting = 歡迎回來，{0} 👋

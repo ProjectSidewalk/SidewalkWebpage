@@ -19,7 +19,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.DurationInt
 
 /**
- * DB-backed invariant tests for every stat surface the redesigned dashboard/leaderboard/profile presents.
+ * DB-backed invariant tests for every stat the dashboard, leaderboard, and public profile show.
  *
  * The suite's philosophy is contract/shape over data values, so these assertions are written to hold against
  * *whatever* the connected DB contains (dev seed, CI seed, or a live dev DB): ordering, caps, ranges, and

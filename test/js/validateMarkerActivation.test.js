@@ -23,7 +23,7 @@ const LABEL_VISIBILITY_CONTROL_PATH = path.resolve(
 );
 
 /**
- * Load a bare `class` declaration out of a production file, the way the Grunt bundle would put it in page scope.
+ * Loads one class from a production file.
  * @param {string} filePath - Absolute path to the production file.
  * @param {string} className - Name of the class the file declares.
  * @returns {Function} The class.

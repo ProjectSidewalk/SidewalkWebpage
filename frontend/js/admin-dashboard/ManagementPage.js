@@ -1,17 +1,9 @@
 /**
- * Renders the admin Management page (#4272): the operational console for deployment-wide, state-changing actions.
+ * Renders the admin Management page (#4272): the Users table, team settings, and maintenance jobs.
  *
- * Three sections, all driven from /adminapi/getUserStats (users + teams) plus the existing admin mutation endpoints:
- *   - Users: a searchable, sortable, paginated directory with inline role and team assignment.
- *   - Teams: open/closed and visible/hidden toggles.
- *   - Maintenance: recalc user stats, recalc street priority, generate crops, clear cache (each confirmed first).
- *
- * The full user list (~13k on a large deployment like Seattle, after anonymous-with-no-activity are filtered out) is
- * downloaded once and then filtered/sorted/paginated entirely client-side — small enough to keep every column sortable
- * without a per-page server round-trip, but paginated in the DOM so we never render thousands of rows at once.
- *
- * Built as an accessible HTML/CSS table, consistent with the rest of the redesign. Mutations update local state
- * optimistically-then-confirm: the request fires, and the row reverts with a message if it fails.
+ * The user list (over 10k in a big city) is downloaded once, then searched, sorted, and paged in the browser: small
+ * enough that every column can sort without a server trip, too big to put on the page all at once. A change shows
+ * right away and reverts with a message if the server refuses it.
  */
 
 import { ConfirmDialog } from '../common/ConfirmDialog.js';

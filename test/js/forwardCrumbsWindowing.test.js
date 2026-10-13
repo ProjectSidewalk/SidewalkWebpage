@@ -5,9 +5,6 @@
  * These are the pure statics ForwardCrumbs keeps off its instance for exactly this reason; the marker lifecycle and
  * the provider lookups around them need a map and a viewer and are covered by the manual GSV checklist. Real turf,
  * not a stub: the along-line and offset measurements are the thing being pinned.
- *
- * ForwardCrumbs is a top-level `class` written for the Grunt-concatenation world, so the source is eval'd into the
- * jsdom global scope.
  */
 
 const path = require('path');

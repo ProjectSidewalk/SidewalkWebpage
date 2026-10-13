@@ -7,9 +7,6 @@
  *   - a submission on a walk never asks for the region's live street priorities, since the route's next street is
  *     fixed by its walking order;
  *   - a priority refresh that names a street this page has no task for is skipped, not applied to `_tasks[-1]`.
- *
- * LabelContainer, Form and TaskContainer are top-level `class`es written for the Grunt-concatenation world, so the
- * tests eval each source into the jsdom global scope.
  */
 
 const { loadModules } = require('./loadGlobalScript');

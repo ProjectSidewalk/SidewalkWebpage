@@ -6,9 +6,6 @@
  * the regular submission path credits as a full audit: region coverage, priority drop, audited meters. A no-imagery
  * report supports none of that (#4922). The submission itself still has to happen, since it is what carries the
  * mission's completed flag to the server.
- *
- * MissionController is a top-level `class` written for the Grunt-concatenation world, so we eval the source in the
- * jsdom global scope.
  */
 
 const { loadModules } = require('./loadGlobalScript');

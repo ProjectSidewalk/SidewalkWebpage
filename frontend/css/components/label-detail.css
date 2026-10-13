@@ -1,5 +1,5 @@
 /*
- * Styles for the redesigned label detail view (see app/views/common/labelDetail.scala.html).
+ * Styles for the label detail card (app/views/common/labelDetail.scala.html).
  *
  * The base `.label-detail` rules style a self-contained label-info card. Two host modes are supported:
  *   - Modal popup (LabelMap, Dashboard, Admin): the host is a <dialog id="label-modal" class="label-detail">.
@@ -727,8 +727,7 @@ button.label-detail__meta-cell:focus-visible {
 }
 
 
-/* Validation count display — non-interactive icon + count groups, modeled on the Figma redesign
-   (LabelMap-Redesign frame 537:17). The actual validate action lives on the pano hover overlay. */
+/* Vote counts, display only (Figma "LabelMap-Redesign" frame 537:17); voting lives on the pano's hover overlay. */
 .label-detail__vote-display {
   display: flex;
   gap: 8px;

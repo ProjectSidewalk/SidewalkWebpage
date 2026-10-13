@@ -14,8 +14,7 @@
  * left able to do. Everything below it (viewer, network) is out of scope; `test/js/panoViewerSeedFallback.test.js`
  * covers the provider-side classification that decides which error type arrives here.
  *
- * NavigationService is a top-level `class` declaration for the Grunt-concatenation world, so the source is evaluated
- * into the jsdom global scope alongside the two collaborators it names as bare globals.
+ * The two collaborators NavigationService reads as page globals are stubbed on `window`.
  */
 
 const { installDateHelpers, loadModules, realUtil } = require('./loadGlobalScript');

@@ -225,7 +225,7 @@ describe('util.pano projection', () => {
     describe('consumer call sites pass the stored canvas coordinate through unchanged', () => {
         it('Validate: getOriginalPov returns the authored POV for a center-canvas label', () => {
             const ValidateLabel = loadModules(VALIDATE_LABEL_PATH).Label;
-            // Label's init reaches for the backup-image helper the Grunt bundle concatenates alongside it.
+            // Label's init reaches for the backup-image helper, so a no-op stands in for it.
             global.buildBackupImageData = () => null;
             const authored = {heading: 212.75, pitch: -9.5, zoom: 2};
             const label = new ValidateLabel({

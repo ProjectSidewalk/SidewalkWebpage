@@ -4,8 +4,7 @@
  * highlights the row, and scrolls it into view — exactly once. A story that is gone (deleted, or hidden by
  * moderators) must degrade silently to the plain label page.
  *
- * StorySection is a page-global `class` (Grunt-concatenation world), so the source is eval'd into jsdom with its
- * collaborators (fetch, i18next, StoryComposer) stubbed.
+ * fetch, i18next and StoryComposer are stubbed.
  */
 
 const { installDateHelpers, loadModules } = require('./loadGlobalScript');

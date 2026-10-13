@@ -22,8 +22,7 @@ const THROTTLE_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/
 const UTILITIES_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/common/utilities.js');
 
 /**
- * Load a bare `class` declaration out of a production file. The Grunt bundle concatenates these into page scope,
- * so wrap the source in an IIFE that returns the named class (same trick as validatePanoPovThrottle.test.js).
+ * Loads one class from a production file.
  * @param {string} filePath - Absolute path to the production file.
  * @param {string} className - Name of the class the file declares.
  * @returns {Function} The class.

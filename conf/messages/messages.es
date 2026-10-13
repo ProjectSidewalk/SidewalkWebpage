@@ -396,7 +396,7 @@ authenticate.terms = Usted acepta nuestros <a target="_blank" href="/terms">Tér
 authenticate.signup = Regístrate
 authenticate.has.account = ¿Tienes una cuenta? <a href="#" id="form-open-sign-in">Iniciar sesión</a>
 
-# Sign-in/sign-up redesign (#4375) — draft translations, pending native-speaker polish (#4494).
+# Sign-in/sign-up (#4375): draft translations, pending native-speaker polish (#4494).
 authenticate.welcome.back = Bienvenido/a de nuevo
 authenticate.join = Únete a Project Sidewalk
 authenticate.tagline = Mapea las aceras. Ayuda a que tu ciudad sea accesible para todos.
@@ -675,7 +675,7 @@ sharedlabel.stat.labels = etiquetas
 sharedlabel.stat.validations = validaciones
 sharedlabel.stat.miles = millas exploradas
 sharedlabel.legend.title = Qué significan estas etiquetas
-# Redesigned user dashboard, leaderboard, settings, and public profile (#4323, #4475).
+# User dashboard, leaderboard, settings, and public profile (#4323, #4475).
 dashboard.title = Tu panel
 dashboard.you = Tú
 dashboard.hero.greeting = ¡Hola de nuevo, {0}! 👋

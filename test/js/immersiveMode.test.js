@@ -7,8 +7,7 @@
  * describes the action it now offers, the paired Click_/KeyboardShortcut_ events carry the frame, the exit hint
  * shows once per session, and none of it is reachable during the tutorial.
  *
- * ImmersiveMode is a Grunt-concatenated `class` reaching for page globals (util, i18next, Toast), so the source is
- * eval'd into jsdom with those stubbed; the tool-specific collaborators arrive through its options.
+ * util, i18next and Toast are stubbed on `window`; the tool-specific collaborators arrive through its options.
  */
 
 

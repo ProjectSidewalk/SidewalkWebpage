@@ -6,8 +6,7 @@
  * filter sidebar speak for the page. Each of those failing looks like an ordinary Gallery rather than a broken one —
  * a re-fetch silently reshuffles a rater's queue — so they are pinned here.
  *
- * Both classes are Grunt-concatenated `class` declarations that reach for page globals, so the sources are eval'd
- * into jsdom with those stubbed.
+ * The page globals both classes reach for are stubbed on `window`.
  */
 
 const { loadModules, realUtil } = require('./loadGlobalScript');

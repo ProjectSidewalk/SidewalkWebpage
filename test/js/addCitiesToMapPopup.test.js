@@ -7,10 +7,7 @@
  * pins the popup's read paths against a realistic overallStats response shape so the same field drift can't recur
  * silently (the `|| 0` fallback turns a moved field into a wrong value, not a thrown error).
  *
- * Runs under jsdom (jest.config.js testEnvironment) so window/document exist. addCitiesToMap is a bare global
- * function (Project Sidewalk's frontend has no module system), so we execute the file in global scope via
- * `new Function` — unlike the *Preview modules, it never self-assigns onto `window`, so a plain require() wouldn't
- * expose it. Mapbox, i18next and fetch are all stubbed.
+ * Mapbox, i18next and fetch are stubbed.
  */
 
 const path = require('path');
@@ -133,9 +130,7 @@ function stubFetch(body) {
 }
 
 /**
- * Load addCitiesToMap into global scope. It's a top-level `function` declaration with no `window.X = ...` self-assign,
- * so require() would keep it module-scoped; executing the source via `new Function` puts the declaration on the
- * global object, matching how Grunt-concatenated scripts behave in the browser.
+ * Loads a fresh addCitiesToMap.
  * @returns {Function} The addCitiesToMap function.
  */
 function loadAddCitiesToMap() {

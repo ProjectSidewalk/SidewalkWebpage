@@ -7,9 +7,6 @@
  * loop a frame later. Explore redraws its label canvas as soon as resize() returns, so without this notification the
  * labels kept the old projection until the next pan moved them: a label placed in immersive mode sat beside its
  * feature after leaving the mode, then snapped onto it on the first pan.
- *
- * MapillaryViewer is a top-level `class` written for Grunt concatenation, so the sources are eval'd into jsdom with
- * stubs for the sibling classes PanoViewer's constructor compares `new.target` against.
  */
 const { loadGlobalScript, realUtil, loadModules } = require('./loadGlobalScript');
 

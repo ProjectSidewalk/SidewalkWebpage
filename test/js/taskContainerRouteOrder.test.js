@@ -5,9 +5,6 @@
  * it audited. But "incomplete" is also how the route decides what is left to walk, so without a separate memory of
  * the give-up the route keeps offering the same dead street back, and finishing the last real street teleports the
  * labeler onto one instead of ending.
- *
- * TaskContainer is a top-level `class` written for the Grunt-concatenation world, so we eval the source in the jsdom
- * global scope.
  */
 
 const { loadModules } = require('./loadGlobalScript');

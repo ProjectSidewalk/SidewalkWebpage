@@ -3,9 +3,7 @@
  * attach to — "Write your story about this Missing Curb Ramp" — and falls back to the generic wording for a label
  * whose type name doesn't read as a thing you can have a story "about" (Other, Can't See the Sidewalk).
  *
- * StoryComposer is a page-global `class` (Grunt-concatenation world), so the source is eval'd into jsdom. Its title
- * lives behind private instance fields, so the class is constructed for real against the dialog skeleton its
- * constructor queries rather than called off the prototype.
+ * The title lives in private fields, so the class is built for real against the dialog skeleton it queries.
  */
 
 const { loadModules } = require('./loadGlobalScript');

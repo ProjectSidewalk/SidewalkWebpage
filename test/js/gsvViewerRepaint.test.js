@@ -7,10 +7,6 @@
  * fraction of a degree to force that frame. Two properties make it safe to call on every resize event, and both are
  * pinned here: it does nothing before a pano has painted (there is no POV to nudge), and consecutive calls cancel
  * out, so a long session of window drags cannot walk the heading away from where the labeler left it.
- *
- * The viewer classes are top-level `class` declarations written for the Grunt-concatenation world, so the sources
- * are eval'd into the jsdom global scope with stub declarations for the sibling classes PanoViewer's constructor
- * compares `new.target` against, following panoViewerMountAlignment.test.js.
  */
 
 const { loadModules } = require('./loadGlobalScript');
