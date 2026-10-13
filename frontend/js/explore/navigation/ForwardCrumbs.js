@@ -87,7 +87,6 @@ export class ForwardCrumbs {
   #facedPanoId = null;
   #nextStepPanoId = null; // The crumb the spacebar would step to; tinted until the next refresh moves it.
   #highlightedPanoId = null;
-  #blocked = false; // Whether something other than a move holds walking, so nothing is steppable.
   #memo = new Map(); // sampleIndex -> Promise<?PanoHit> for the street #memoKey names.
   #memoKey = null; // Identity of the traversal the memo belongs to; see memoKeyFor().
   #providerFailed = false; // The last lookup here rejected: stop asking until one answers or the street changes.
@@ -123,22 +122,15 @@ export class ForwardCrumbs {
     panoManager.onPovChanged((heading) => this.setFacing(heading));
     navigationService.onMoved(() => this.refresh());
     taskContainer.onCurrentTaskChanged(() => this.refresh());
-    // A modal or pop-up's hold on walking can come or go during a move, which holds walking itself.
-    navigationService.walking.onChanged(() => this.#followWalking());
+    navigationService.walking.onChanged((held) => {
+      if (held) this.clear();
+      else this.refresh();
+    });
     navArrows.onHover((target) => {
       if (!target) this.clearHighlight();
       else if ('panoId' in target) this.highlight(target.panoId);
       else this.highlightNextStop();
     });
-  }
-
-  /** Clears the crumbs while something other than a move holds walking, and redraws them once it lets go. */
-  #followWalking() {
-    const blocked = this.#navigationService.walking.isHeldExcept('move');
-    if (blocked === this.#blocked) return;
-    this.#blocked = blocked;
-    if (blocked) this.clear();
-    else this.refresh();
   }
 
   /**
@@ -162,8 +154,8 @@ export class ForwardCrumbs {
    */
   async #refresh() {
     const generation = ++this.#generation;
-    // Nothing is steppable in the tutorial or while anything but a move holds walking (mission-complete modal).
-    if (this.#config.isOnboarding || this.#navigationService.walking.isHeldExcept('move')) {
+    // Nothing is steppable in the tutorial or while something holds walking (mission-complete modal).
+    if (this.#config.isOnboarding || this.#navigationService.walking.isHeld()) {
       this.clear();
       return;
     }
@@ -734,7 +726,7 @@ export class ForwardCrumbs {
    */
   async #moveTo(crumb) {
     const nav = this.#navigationService;
-    if (nav.walking.isHeld()) return;
+    if (!nav.canWalk()) return;
     this.#tracker.push('Click_MinimapForwardCrumb', { panoId: crumb.panoId, kind: crumb.kind, rank: crumb.rank });
     const moved = await nav.moveToPano(crumb.panoId, false, { alertOnFailure: false });
     if (moved) return;
