@@ -1,5 +1,6 @@
 {
   "card-image-alt": "Foto do Street View de uma etiqueta de {{labelType}}",
+  "cards": "Os rótulos são ordenados aleatoriamente com base nos filtros selecionados",
   "cards-sorted": "Os rótulos são ordenados por \"{{sort}}\" com base nos filtros selecionados",
   "cards-sorted-moot": "\"{{sort}}\" não tem efeito com os filtros selecionados; os rótulos são mostrados do mais recente ao mais antigo",
   "clear-filters": "Limpar filtros",

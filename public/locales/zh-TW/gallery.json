@@ -1,5 +1,6 @@
 {
   "card-image-alt": "{{labelType}}標記的街景照片",
+  "cards": "所有標記依據所選定的過濾器而隨機排序",
   "cards-sorted": "標記依據「{{sort}}」排序，並套用所選定的過濾器",
   "cards-sorted-moot": "「{{sort}}」對所選定的過濾器無效；標記以最新優先顯示",
   "clear-filters": "清除過濾器",

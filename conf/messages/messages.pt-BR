@@ -557,7 +557,7 @@ gallery.filter.by = Filtrar por
 gallery.tags = Etiquetas
 gallery.all = Todos os tipos de rótulos
 gallery.labels.not.found = Nenhum resultado encontrado. <a href="/explore">Comece a explorar</a> para contribuir com mais dados!
-gallery.cards = Os rótulos são ordenadas aleatoriamente com base nos filtros selecionados
+gallery.cards = Os rótulos são ordenados aleatoriamente com base nos filtros selecionados
 gallery.cards.sorted = Os rótulos são ordenados por "{0}" com base nos filtros selecionados
 gallery.sort.by = Ordenar por
 gallery.sort.random = Aleatório
