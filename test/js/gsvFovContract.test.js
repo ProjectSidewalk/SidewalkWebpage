@@ -14,7 +14,7 @@
  */
 import fs from 'fs';
 import path from 'path';
-import { loadGlobalScript, realUtil, stubUtil } from './loadGlobalScript.js';
+import { loadGlobalScript, realUtil, stubUtil } from './loader.js';
 
 // utilities.js builds a Bowser parser at load time; nothing here consults it.
 window.bowser = {

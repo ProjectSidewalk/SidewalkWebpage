@@ -11,7 +11,7 @@
  */
 
 
-import { loadModules, realUtil, fakeImport, stubUtil } from './loadGlobalScript.js';
+import { loadModules, realUtil, fakeImport, stubUtil } from './loader.js';
 import { fakeTracker } from './fakes.js';
 
 fakeImport('frontend/js/common/Toast.js', 'Toast');

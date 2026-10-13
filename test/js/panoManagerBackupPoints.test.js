@@ -11,7 +11,7 @@
  * global scope with real turf; nothing it touches at class-definition time needs more.
  */
 
-import { loadVendored, loadModules, fakeImport } from './loadGlobalScript.js';
+import { loadVendored, loadModules, fakeImport } from './loader.js';
 
 fakeImport('frontend/js/explore/navigation/NavigationService.js', 'NavigationService');
 

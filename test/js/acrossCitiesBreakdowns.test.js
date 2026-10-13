@@ -11,7 +11,7 @@
  * MiniLineChart import with it, so the bars are drawn by the real renderer.
  */
 
-import { loadModules, loadVendored, realUtil, stubUtil } from './loadGlobalScript.js';
+import { loadModules, loadVendored, realUtil, stubUtil } from './loader.js';
 
 loadVendored('dompurify');
 

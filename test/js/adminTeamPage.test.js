@@ -6,7 +6,7 @@
  * they are eval'd into global scope rather than required.
  */
 
-import { loadModules, realUtil, fakeImport, stubUtil } from './loadGlobalScript.js';
+import { loadModules, realUtil, fakeImport, stubUtil } from './loader.js';
 
 fakeImport('frontend/js/common/ConfirmDialog.js', 'ConfirmDialog');
 

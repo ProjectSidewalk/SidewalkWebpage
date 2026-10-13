@@ -12,7 +12,7 @@
  * declarations for those names are eval'd ahead of the source.
  */
 
-import { loadModules, fakeImport } from './loadGlobalScript.js';
+import { loadModules, fakeImport } from './loader.js';
 
 fakeImport('frontend/js/common/pano-viewer/NoImageryError.js', 'NoImageryError');
 

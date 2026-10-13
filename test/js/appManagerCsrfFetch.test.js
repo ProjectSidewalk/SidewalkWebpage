@@ -14,7 +14,7 @@
  * fetch under test is a vi.fn() standing in for the browser's, captured by the wrapper as its `originalFetch`.
  */
 
-import { loadGlobalScript } from './loadGlobalScript.js';
+import { loadGlobalScript } from './loader.js';
 
 const CSRF_TOKEN = 'test-csrf-token';
 const CROSS_ORIGIN = 'https://graph.mapillary.com/images?fields=id';

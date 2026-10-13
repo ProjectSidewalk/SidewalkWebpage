@@ -11,7 +11,7 @@
 
 import path from 'path';
 
-import { loadModules } from './loadGlobalScript.js';
+import { loadModules } from './loader.js';
 
 const FORM_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/data/Form.js');
 

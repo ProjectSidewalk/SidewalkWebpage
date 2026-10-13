@@ -17,7 +17,7 @@
  * exploreFormPanoSubmitted pattern) rather than using loadGlobalScript.
  */
 
-import { loadGlobalScript, installDateHelpers, loadModules, stubUtil } from './loadGlobalScript.js';
+import { loadGlobalScript, installDateHelpers, loadModules, stubUtil } from './loader.js';
 import { fakePanoManager, fakeTaskContainer } from './fakes.js';
 
 

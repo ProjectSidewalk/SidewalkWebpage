@@ -10,7 +10,7 @@
  * into global scope rather than required.
  */
 
-import { loadModules } from './loadGlobalScript.js';
+import { loadModules } from './loader.js';
 
 
 const PartnersPage = (await loadModules('frontend/js/admin-dashboard/PartnersPage.js')).PartnersPage;

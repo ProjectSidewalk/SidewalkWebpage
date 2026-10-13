@@ -4,7 +4,7 @@
  * let go, and that its listeners hear every hold and release along with whether the gate is still held.
  */
 
-import { loadModules } from './loadGlobalScript.js';
+import { loadModules } from './loader.js';
 
 let Gate;
 

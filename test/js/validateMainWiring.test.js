@@ -7,7 +7,7 @@
  * subscriber; each listener's body is stubbed, since what it does with the label is its own suite's business.
  */
 
-import { assetPathStub, installEscapeHTML, installUtilitiesMisc, loadModules, loadVendored, fakeImport, stubUtil } from './loadGlobalScript.js';
+import { assetPathStub, installEscapeHTML, installUtilitiesMisc, loadModules, loadVendored, fakeImport, stubUtil } from './loader.js';
 
 fakeImport('frontend/js/common/BadgeAchievements.js', 'BadgeAchievements');
 fakeImport('frontend/js/common/ImmersiveMode.js', 'ImmersiveMode');

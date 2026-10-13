@@ -10,7 +10,7 @@
  * width. Loaded the same way as navbarDisclosures.test.js: eval'd with an explicit export.
  */
 
-import { loadModules } from './loadGlobalScript.js';
+import { loadModules } from './loader.js';
 
 
 const SIDEBAR_WIDTH = 350;

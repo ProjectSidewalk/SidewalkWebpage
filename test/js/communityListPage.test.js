@@ -6,7 +6,7 @@
  * All four are ES modules, loaded fresh through `loadModules`.
  */
 
-import { installDateHelpers, loadModules, fakeImport } from './loadGlobalScript.js';
+import { installDateHelpers, loadModules, fakeImport } from './loader.js';
 
 fakeImport('frontend/js/common/Toast.js', 'Toast');
 fakeImport('frontend/js/common/share/ShareWidget.js', 'ShareWidget');

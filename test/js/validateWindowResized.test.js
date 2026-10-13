@@ -11,7 +11,7 @@
  */
 
 import path from 'path';
-import { loadModules, stubUtil } from './loadGlobalScript.js';
+import { loadModules, stubUtil } from './loader.js';
 import { fakeTracker } from './fakes.js';
 
 const MAIN_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/Main.js');

@@ -9,7 +9,7 @@
  * explicit export, one instance for the file, since the constructor's window listener cannot be unregistered.
  */
 
-import { loadModules, fakeImport } from './loadGlobalScript.js';
+import { loadModules, fakeImport } from './loader.js';
 import { fakeTracker } from './fakes.js';
 
 fakeImport('frontend/js/common/KeyboardShortcuts.js', 'KeyboardShortcuts');

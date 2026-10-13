@@ -8,7 +8,7 @@
  * explicit export.
  */
 
-import { loadModules } from './loadGlobalScript.js';
+import { loadModules } from './loader.js';
 import { fakeTracker } from './fakes.js';
 
 

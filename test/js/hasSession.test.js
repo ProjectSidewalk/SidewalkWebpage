@@ -9,7 +9,7 @@
  * than as "no session".
  */
 
-import { realUtil, stubUtil } from './loadGlobalScript.js';
+import { realUtil, stubUtil } from './loader.js';
 
 beforeEach(async () => {
     // utilities.js builds a Bowser parser at load time; this helper never touches it, but the file needs the global.

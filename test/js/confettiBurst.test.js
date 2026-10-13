@@ -10,7 +10,7 @@
  * Confetti.js declares a top-level class, so the tests evaluate the source rather than using loadGlobalScript.
  */
 
-import { loadModules } from './loadGlobalScript.js';
+import { loadModules } from './loader.js';
 
 const Confetti = (await loadModules('frontend/js/common/Confetti.js')).Confetti;
 

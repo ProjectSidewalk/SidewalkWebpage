@@ -11,7 +11,7 @@
  * that records what the routine set on it — which is all this routine touches.
  */
 
-import { realUtil, stubUtil } from './loadGlobalScript.js';
+import { realUtil, stubUtil } from './loader.js';
 
 
 /** A canvas whose on-screen box is fixed, since jsdom's real getBoundingClientRect is all zeroes. */

@@ -9,7 +9,7 @@
  * Runs under jsdom (set in vitest.config.mjs via testEnvironment).
  */
 
-import { loadGlobalScript, loadVendored, mockModule, unmockModule, realUtil, stubUtil, fakeImport } from './loadGlobalScript.js';
+import { loadGlobalScript, loadVendored, mockModule, unmockModule, realUtil, stubUtil, fakeImport } from './loader.js';
 
 fakeImport('frontend/js/ps-map/createPSMap.js', 'createPSMap');
 

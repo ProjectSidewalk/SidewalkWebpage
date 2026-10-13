@@ -10,7 +10,7 @@
  */
 
 import path from 'path';
-import { loadModules } from './loadGlobalScript.js';
+import { loadModules } from './loader.js';
 
 const MARKER_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/util/MissionLiveMarker.js');
 

@@ -10,7 +10,7 @@
  * Real vendored turf for the geometry: the questions are about distances along real street lines.
  */
 
-import { loadVendored, loadModules, realUtil, fakeImport } from './loadGlobalScript.js';
+import { loadVendored, loadModules, realUtil, fakeImport } from './loader.js';
 
 fakeImport('frontend/js/explore/task/Task.js', 'Task');
 

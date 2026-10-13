@@ -13,7 +13,7 @@
  * real EventTarget, which is what the production code listens to.
  */
 
-import { installEscapeHTML, loadModules, stubUtil } from './loadGlobalScript.js';
+import { installEscapeHTML, loadModules, stubUtil } from './loader.js';
 
 
 /** Markers built by the mapboxgl stub during the current test, newest last. */

@@ -11,7 +11,7 @@
  * These are pure functions over plain objects, so no DOM stubbing is needed beyond loading the source.
  */
 
-import { loadModules, realUtil } from './loadGlobalScript.js';
+import { loadModules, realUtil } from './loader.js';
 
 
 // The tutorial pano's real dimensions (Onboarding.TUTORIAL_PANO_WIDTH), so the seam cases are the real ones.

@@ -16,7 +16,7 @@
  * about the panel through onChange, as Canvas subscribes in production.
  */
 
-import { loadModules, stubUtil } from './loadGlobalScript.js';
+import { loadModules, stubUtil } from './loader.js';
 
 import { makeContextMenuUi } from './contextMenuUiStub.js';
 import { fakeGate, fakeTracker } from './fakes.js';

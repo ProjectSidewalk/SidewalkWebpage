@@ -7,7 +7,7 @@
  * their source.
  */
 
-import { loadModules, stubUtil } from './loadGlobalScript.js';
+import { loadModules, stubUtil } from './loader.js';
 
 
 describe('OnboardingStates transitions', () => {

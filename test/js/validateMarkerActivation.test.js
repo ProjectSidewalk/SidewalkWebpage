@@ -13,7 +13,7 @@
  */
 
 import path from 'path';
-import { loadModules, fakeImport, stubUtil } from './loadGlobalScript.js';
+import { loadModules, fakeImport, stubUtil } from './loader.js';
 import { fakeTracker } from './fakes.js';
 
 fakeImport('frontend/js/common/LabelVisibilityToggle.js', 'LabelVisibilityToggle');

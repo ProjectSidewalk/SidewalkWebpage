@@ -11,7 +11,7 @@
  * LabelContainer, Form and TaskContainer are loaded as modules and built against the fewest collaborators each needs.
  */
 
-import { loadModules, stubUtil } from './loadGlobalScript.js';
+import { loadModules, stubUtil } from './loader.js';
 import { fakeTracker } from './fakes.js';
 
 

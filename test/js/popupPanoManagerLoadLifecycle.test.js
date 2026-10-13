@@ -10,7 +10,7 @@
  * class written for Grunt concatenation.
  */
 
-import { loadModules, fakeImport, stubUtil } from './loadGlobalScript.js';
+import { loadModules, fakeImport, stubUtil } from './loader.js';
 
 fakeImport('frontend/js/common/pano-viewer/PanoAttribution.js', 'createPanoAttribution');
 fakeImport('frontend/js/common/pano-viewer/PanoViewerLogo.js', 'createPanoViewerLogo');

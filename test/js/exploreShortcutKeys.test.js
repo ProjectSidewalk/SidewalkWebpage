@@ -3,7 +3,7 @@
  * with the context menu open aren't also handled as menu-closed shortcuts.
  */
 
-import { loadModules, stubUtil, fakeImport } from './loadGlobalScript.js';
+import { loadModules, stubUtil, fakeImport } from './loader.js';
 import { fakeGate, fakeTracker } from './fakes.js';
 
 fakeImport('frontend/js/common/KeyboardShortcuts.js', 'KeyboardShortcuts');

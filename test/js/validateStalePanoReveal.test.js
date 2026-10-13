@@ -22,7 +22,7 @@
  */
 
 import path from 'path';
-import { loadModules, fakeImport, stubUtil } from './loadGlobalScript.js';
+import { loadModules, fakeImport, stubUtil } from './loader.js';
 
 fakeImport('frontend/js/common/PanoMarker.js', 'PanoMarker');
 fakeImport('frontend/js/common/pano-viewer/GsvViewer.js', 'GsvViewer');

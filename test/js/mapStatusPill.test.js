@@ -4,7 +4,7 @@
  * button and its hover/focus pause follow the shared Toast convention (#5415).
  */
 
-import { loadModules } from './loadGlobalScript.js';
+import { loadModules } from './loader.js';
 
 
 describe('MapStatusPill', () => {

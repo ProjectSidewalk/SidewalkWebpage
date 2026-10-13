@@ -12,7 +12,7 @@
  * precedent).
  */
 
-import { loadModules, realUtil, fakeImport } from './loadGlobalScript.js';
+import { loadModules, realUtil, fakeImport } from './loader.js';
 
 fakeImport('frontend/js/ps-map/psMapUtilities.js', 'filterLabelLayers', 'filterStreetLayer', 'toggleLabelLayer');
 fakeImport('frontend/js/common/filter-sidebar/FilterSidebar.js', 'FilterSidebar');

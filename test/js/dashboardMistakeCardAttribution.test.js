@@ -6,7 +6,7 @@
  * the whole point is checking that the card hooks them up.
  */
 
-import { assetPathStub, installUtilitiesMisc, loadModules, stubUtil, fakeImport } from './loadGlobalScript.js';
+import { assetPathStub, installUtilitiesMisc, loadModules, stubUtil, fakeImport } from './loader.js';
 
 fakeImport('frontend/js/common/pano-viewer/PanoAttribution.js', 'createPanoAttribution');
 fakeImport('frontend/js/common/pano-viewer/PanoViewerLogo.js', 'createPanoViewerLogo');

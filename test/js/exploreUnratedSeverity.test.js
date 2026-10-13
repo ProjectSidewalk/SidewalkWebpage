@@ -5,7 +5,7 @@
  * backend's label-type table rather than a copy of it.
  */
 
-import { assetPathStub, installUtilitiesMisc, loadModules, stubUtil } from './loadGlobalScript.js';
+import { assetPathStub, installUtilitiesMisc, loadModules, stubUtil } from './loader.js';
 import { makeContextMenuUi } from './contextMenuUiStub.js';
 import { fakeGate, fakeTracker } from './fakes.js';
 

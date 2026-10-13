@@ -17,7 +17,7 @@
  * derived; don't adjust one here to make a test pass.
  */
 
-import { loadModules, stubUtil } from './loadGlobalScript.js';
+import { loadModules, stubUtil } from './loader.js';
 
 
 /** Loads a fresh Label class into the jsdom global scope (a class declaration is not a globalThis property). */

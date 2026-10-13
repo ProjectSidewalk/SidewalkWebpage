@@ -8,7 +8,7 @@
  * collaborators (fetch, i18next, StoryComposer) stubbed.
  */
 
-import { installDateHelpers, loadModules, fakeImport } from './loadGlobalScript.js';
+import { installDateHelpers, loadModules, fakeImport } from './loader.js';
 
 fakeImport('frontend/js/common/label-detail/StoryComposer.js', 'StoryComposer');
 

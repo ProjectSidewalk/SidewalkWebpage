@@ -7,7 +7,7 @@
  */
 
 import path from 'path';
-import { loadModules } from './loadGlobalScript.js';
+import { loadModules } from './loader.js';
 
 const ATTRIBUTION_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/common/pano-viewer/PanoAttribution.js');
 

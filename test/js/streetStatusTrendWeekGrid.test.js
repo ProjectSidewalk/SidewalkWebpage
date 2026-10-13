@@ -17,7 +17,7 @@ afterAll(() => { process.env.TZ = previousTimeZone; });
  */
 
 
-import { installDateHelpers, loadModules, realUtil, stubUtil } from './loadGlobalScript.js';
+import { installDateHelpers, loadModules, realUtil, stubUtil } from './loader.js';
 
 stubUtil(await realUtil());
 

@@ -10,7 +10,7 @@
  * Popover API nor `:popover-open`, so the test stands up showPopover/hidePopover the way panoInfoViewLink.test.js does.
  */
 
-import { loadModules, fakeImport } from './loadGlobalScript.js';
+import { loadModules, fakeImport } from './loader.js';
 
 fakeImport('frontend/js/common/PanoImageAdjustments.js', 'PanoImageAdjustments');
 

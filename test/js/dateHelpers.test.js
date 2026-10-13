@@ -4,7 +4,7 @@
  * vitest.config.mjs pins the clock to Los Angeles, which is exactly where reading a bare month as UTC goes wrong.
  */
 
-import { installDateHelpers } from './loadGlobalScript.js';
+import { installDateHelpers } from './loader.js';
 
 beforeAll(async () => {
     window.i18next = { language: 'en' };

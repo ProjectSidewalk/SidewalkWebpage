@@ -8,7 +8,7 @@
  * neither image loading nor a canvas.
  */
 
-import { loadModules, stubUtil, fakeImport } from './loadGlobalScript.js';
+import { loadModules, stubUtil, fakeImport } from './loader.js';
 
 fakeImport('frontend/js/common/PlaceCategoryIcons.js', 'PlaceCategoryIcons');
 fakeImport('frontend/js/common/scoreRamp.js', 'ScoreRamp');

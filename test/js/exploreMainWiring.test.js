@@ -5,7 +5,7 @@
  * kept, any method a mock); the gates are real, so the pop-up policy is checked by holding the lock.
  */
 
-import { assetPathStub, loadModules, fakeImport, stubUtil } from './loadGlobalScript.js';
+import { assetPathStub, loadModules, fakeImport, stubUtil } from './loader.js';
 
 fakeImport('frontend/js/common/ImmersiveMode.js', 'ImmersiveMode');
 fakeImport('frontend/js/common/LabelCardView.js', 'LabelCardView');

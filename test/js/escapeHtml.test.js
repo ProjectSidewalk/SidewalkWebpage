@@ -4,7 +4,7 @@
  * Runs under jsdom (vitest.config.mjs).
  */
 
-import { realUtil, stubUtil } from './loadGlobalScript.js';
+import { realUtil, stubUtil } from './loader.js';
 
 stubUtil(await realUtil());
 

@@ -15,7 +15,7 @@
  * they are eval'd into global scope rather than required.
  */
 
-import { loadModules, mockModule, realUtil, stubUtil } from './loadGlobalScript.js';
+import { loadModules, mockModule, realUtil, stubUtil } from './loader.js';
 
 // The page fetches through util.fetchJson.
 stubUtil(await realUtil());

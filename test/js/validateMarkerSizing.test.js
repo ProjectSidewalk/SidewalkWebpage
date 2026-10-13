@@ -15,7 +15,7 @@
  * svv-panorama.css), because the mark must stay the size it was drawn while only the target grows.
  */
 
-import { realUtil, stubUtil } from './loadGlobalScript.js';
+import { realUtil, stubUtil } from './loader.js';
 
 
 // The desktop radius is ValidateConfig.labelRadius (10, frontend/js/validate/Main.js) and the marker adds 2px of ring;

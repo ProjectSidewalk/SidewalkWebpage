@@ -11,7 +11,7 @@
  */
 
 
-import { loadModules, stubUtil, fakeImport } from './loadGlobalScript.js';
+import { loadModules, stubUtil, fakeImport } from './loader.js';
 
 fakeImport('frontend/js/common/pano-viewer/NoImageryError.js', 'NoImageryError');
 fakeImport('frontend/js/explore/panorama/NoImageryFlagGuard.js', 'NoImageryFlagGuard');

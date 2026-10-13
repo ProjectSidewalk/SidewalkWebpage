@@ -7,7 +7,7 @@
  * imagery source must never see it.
  */
 
-import { loadModules, fakeImport, stubUtil } from './loadGlobalScript.js';
+import { loadModules, fakeImport, stubUtil } from './loader.js';
 import { fakeTracker } from './fakes.js';
 
 fakeImport('frontend/js/common/pano-viewer/Infra3dViewer.js', 'Infra3dViewer');

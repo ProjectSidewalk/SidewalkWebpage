@@ -12,7 +12,7 @@
  * along real street geometry, and a stub that got it slightly wrong would pass for the wrong reason.
  */
 
-import { loadVendored, loadModules, realUtil, fakeImport, stubUtil } from './loadGlobalScript.js';
+import { loadVendored, loadModules, realUtil, fakeImport, stubUtil } from './loader.js';
 import { fakeTracker } from './fakes.js';
 
 fakeImport('frontend/js/explore/task/Task.js', 'Task');

@@ -16,7 +16,7 @@
 
 import fs from 'fs';
 import path from 'path';
-import { loadModules, realUtil, stubUtil } from './loadGlobalScript.js';
+import { loadModules, realUtil, stubUtil } from './loader.js';
 
 const CONFIG_PATH = path.resolve(__dirname, '..', '..', 'conf/pano-scoring.json');
 const config = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));

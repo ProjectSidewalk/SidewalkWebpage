@@ -12,7 +12,7 @@
  * and triggers report the rect they were assigned.
  */
 
-import { loadModules, loadVendored } from './loadGlobalScript.js';
+import { loadModules, loadVendored } from './loader.js';
 
 loadVendored('dompurify');
 

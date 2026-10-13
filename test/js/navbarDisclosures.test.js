@@ -10,7 +10,7 @@
  * DOM before constructing a controller.
  */
 
-import { loadModules } from './loadGlobalScript.js';
+import { loadModules } from './loader.js';
 
 
 /** Builds a navbar with one quick item (the account control) and one panel-only dropdown (language). */

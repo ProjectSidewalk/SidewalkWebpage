@@ -12,7 +12,7 @@
  */
 
 
-import { loadModules, realUtil, stubUtil } from './loadGlobalScript.js';
+import { loadModules, realUtil, stubUtil } from './loader.js';
 
 stubUtil(await realUtil());
 

@@ -19,7 +19,7 @@
  * compares `new.target` against.
  */
 
-import { loadGlobalScript, realUtil, loadModules, stubUtil, fakeImport } from './loadGlobalScript.js';
+import { loadGlobalScript, realUtil, loadModules, stubUtil, fakeImport } from './loader.js';
 
 fakeImport('frontend/js/common/pano-viewer/PanoViewer.js', 'PanoViewer');
 

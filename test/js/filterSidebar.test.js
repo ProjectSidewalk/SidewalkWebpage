@@ -10,7 +10,7 @@
  * into the jsdom global scope rather than require()d.
  */
 
-import { loadModules } from './loadGlobalScript.js';
+import { loadModules } from './loader.js';
 
 
 /** Label types the fixture renders, mirroring the real sidebar's ids (`<LabelType>-checkbox`). */

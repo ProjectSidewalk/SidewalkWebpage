@@ -10,7 +10,7 @@
  * into global scope rather than required.
  */
 
-import { loadModules, realUtil, stubUtil } from './loadGlobalScript.js';
+import { loadModules, realUtil, stubUtil } from './loader.js';
 
 stubUtil(await realUtil());
 

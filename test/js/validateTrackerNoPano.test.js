@@ -9,7 +9,7 @@
  */
 
 import path from 'path';
-import { loadModules } from './loadGlobalScript.js';
+import { loadModules } from './loader.js';
 
 const TRACKER_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/Tracker.js');
 

@@ -7,7 +7,7 @@
  * is left with `keepalive`, so the POST can outlive the page.
  */
 
-import { loadModules, stubUtil } from './loadGlobalScript.js';
+import { loadModules, stubUtil } from './loader.js';
 
 
 describe('the Gallery interaction log', () => {

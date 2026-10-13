@@ -11,7 +11,7 @@
  */
 
 
-import { assetPathStub, loadModules, stubUtil } from './loadGlobalScript.js';
+import { assetPathStub, loadModules, stubUtil } from './loader.js';
 
 
 /** Every `.ps-toast` currently in the document. */

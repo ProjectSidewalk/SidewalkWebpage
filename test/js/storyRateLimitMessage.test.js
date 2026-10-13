@@ -7,7 +7,7 @@
  * 429 body the controller produces, and the rendered error text is asserted.
  */
 
-import { loadModules, stubUtil } from './loadGlobalScript.js';
+import { loadModules, stubUtil } from './loader.js';
 
 
 /** The elements StoryComposer's constructor looks up, in a <dialog> host. */

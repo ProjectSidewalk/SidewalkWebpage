@@ -11,7 +11,7 @@
  * banner is hidden or positioned non-fixed (the /mobile app's absolute layout).
  */
 
-import { loadModules } from './loadGlobalScript.js';
+import { loadModules } from './loader.js';
 
 
 const STORAGE_KEY = 'hideTestServerWarningBanner';

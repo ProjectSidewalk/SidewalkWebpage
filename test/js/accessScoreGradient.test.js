@@ -10,7 +10,7 @@
 import fs from 'fs';
 import path from 'path';
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
-import { loadModules, stubUtil, fakeImport } from './loadGlobalScript.js';
+import { loadModules, stubUtil, fakeImport } from './loader.js';
 
 fakeImport('frontend/js/access-score/AccessScoreModel.js', 'AccessScoreModel');
 fakeImport('frontend/js/common/AccessScoreGradeRamp.js', 'AccessScoreGradeRamp');

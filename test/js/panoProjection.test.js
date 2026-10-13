@@ -16,7 +16,7 @@
  */
 
 import path from 'path';
-import { loadGlobalScript, realUtil, loadModules, fakeImport, stubUtil } from './loadGlobalScript.js';
+import { loadGlobalScript, realUtil, loadModules, fakeImport, stubUtil } from './loader.js';
 
 fakeImport('frontend/js/common/utilitiesSidewalk.js', 'buildBackupImageData');
 

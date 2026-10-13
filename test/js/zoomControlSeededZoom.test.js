@@ -3,7 +3,7 @@
  * card's "Explore here" hop seeds a zoomed-in view before the control exists, so no view change tells it (#4637).
  */
 
-import { loadModules, fakeImport } from './loadGlobalScript.js';
+import { loadModules, fakeImport } from './loader.js';
 import { fakeTracker, fakePanoManager } from './fakes.js';
 
 fakeImport('frontend/js/common/Gate.js', 'Gate');

@@ -6,7 +6,7 @@
  * on it leaves the user stuck behind the overlay with the keyboard off.
  */
 
-import { assetPathStub, loadModules, stubUtil } from './loadGlobalScript.js';
+import { assetPathStub, loadModules, stubUtil } from './loader.js';
 import { fakeTracker } from './fakes.js';
 
 

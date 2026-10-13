@@ -16,7 +16,7 @@
 
 import fs from 'fs';
 import path from 'path';
-import { loadVendored, loadGlobalScript, realUtil, loadModules, stubUtil } from './loadGlobalScript.js';
+import { loadVendored, loadGlobalScript, realUtil, loadModules, stubUtil } from './loader.js';
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const SRC_DIR = path.join(REPO_ROOT, 'frontend/js/common/pano-viewer');

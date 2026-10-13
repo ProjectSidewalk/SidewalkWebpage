@@ -13,7 +13,7 @@
 
 import fs from 'fs';
 import path from 'path';
-import { installDateHelpers, loadModules } from './loadGlobalScript.js';
+import { installDateHelpers, loadModules } from './loader.js';
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const DASHBOARD_CSS = fs.readFileSync(path.join(REPO_ROOT, 'frontend/css/pages/user-dashboard.css'), 'utf8');

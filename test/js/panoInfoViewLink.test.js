@@ -13,7 +13,7 @@
  */
 
 
-import { assetPathStub, installDateHelpers, loadModules, stubUtil } from './loadGlobalScript.js';
+import { assetPathStub, installDateHelpers, loadModules, stubUtil } from './loader.js';
 
 
 // The parts of app/views/common/panoInfoPopover.scala.html the class actually reads. Kept minimal on purpose: if a

@@ -8,7 +8,7 @@
  * second finger lands inside the same window, and cancelling it would cancel the page's pinch zoom.
  */
 
-import { loadModules, stubUtil } from './loadGlobalScript.js';
+import { loadModules, stubUtil } from './loader.js';
 
 
 describe('mobile Validate page behavior', () => {

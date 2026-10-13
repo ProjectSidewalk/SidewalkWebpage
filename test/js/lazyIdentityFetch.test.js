@@ -10,7 +10,7 @@
  *   - writes that need a session at the same moment share one mint, so a double-click can't create two accounts.
  */
 
-import { realUtil, stubUtil } from './loadGlobalScript.js';
+import { realUtil, stubUtil } from './loader.js';
 
 /** A minimal Response-shaped object carrying only the fields the helper reads. */
 function response(overrides = {}) {

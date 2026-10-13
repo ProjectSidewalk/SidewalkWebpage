@@ -7,7 +7,7 @@
  * a character would 404 an image in dev while staging looked fine.
  */
 
-import { realUtil, stubUtil } from './loadGlobalScript.js';
+import { realUtil, stubUtil } from './loader.js';
 
 const MD5 = '0123456789abcdef0123456789abcdef';
 

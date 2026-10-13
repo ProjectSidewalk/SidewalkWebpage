@@ -14,7 +14,7 @@
  * stubbed on `window` first.
  */
 
-import { assetPathStub, installDateHelpers, loadModules, fakeImport, stubUtil } from './loadGlobalScript.js';
+import { assetPathStub, installDateHelpers, loadModules, fakeImport, stubUtil } from './loader.js';
 
 fakeImport('frontend/js/common/BadgeAchievements.js', 'BadgeAchievements');
 fakeImport('frontend/js/common/LabelVisibilityToggle.js', 'LabelVisibilityToggle');

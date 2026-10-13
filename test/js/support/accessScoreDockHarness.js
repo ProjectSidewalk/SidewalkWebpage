@@ -8,7 +8,7 @@
 import fs from 'fs';
 import path from 'path';
 
-import { installDateHelpers, installUtilitiesMisc, installEscapeHTML, loadModules, stubUtil } from '../loadGlobalScript.js';
+import { installDateHelpers, installUtilitiesMisc, installEscapeHTML, loadModules, stubUtil } from '../loader.js';
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..', '..');
 const read = (p) => fs.readFileSync(path.join(REPO_ROOT, p), 'utf8');

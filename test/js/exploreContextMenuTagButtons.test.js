@@ -3,7 +3,7 @@
  * every tag shows however long a city's list is.
  */
 
-import { assetPathStub, installUtilitiesMisc, loadModules, stubUtil } from './loadGlobalScript.js';
+import { assetPathStub, installUtilitiesMisc, loadModules, stubUtil } from './loader.js';
 import { makeContextMenuUi } from './contextMenuUiStub.js';
 import { fakeGate, fakeTracker } from './fakes.js';
 

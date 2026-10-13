@@ -10,7 +10,7 @@
  * Runs under jsdom (vitest.config.mjs).
  */
 
-import { installDateHelpers, loadModules, realUtil, stubUtil } from './loadGlobalScript.js';
+import { installDateHelpers, loadModules, realUtil, stubUtil } from './loader.js';
 
 stubUtil(await realUtil());
 

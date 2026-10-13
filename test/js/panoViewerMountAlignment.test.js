@@ -15,7 +15,7 @@
  * against, following panoViewerAspect.test.js.
  */
 
-import { loadModules, fakeImport } from './loadGlobalScript.js';
+import { loadModules, fakeImport } from './loader.js';
 
 fakeImport('frontend/js/common/pano-viewer/PanoViewer.js', 'PanoViewer');
 

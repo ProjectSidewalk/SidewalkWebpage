@@ -5,7 +5,7 @@
  */
 
 import path from 'path';
-import { loadModules, realUtil, stubUtil } from './loadGlobalScript.js';
+import { loadModules, realUtil, stubUtil } from './loader.js';
 
 const SRC_DIR = path.resolve(__dirname, '..', '..', 'frontend/js/common/pano-viewer');
 

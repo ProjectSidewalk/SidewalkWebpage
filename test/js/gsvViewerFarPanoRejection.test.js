@@ -12,7 +12,7 @@
  */
 
 import path from 'path';
-import { loadVendored, loadGlobalScript, realUtil, loadModules, fakeImport, stubUtil } from './loadGlobalScript.js';
+import { loadVendored, loadGlobalScript, realUtil, loadModules, fakeImport, stubUtil } from './loader.js';
 
 fakeImport('frontend/js/common/pano-viewer/PanoData.js', 'PanoData');
 fakeImport('frontend/js/common/pano-viewer/NoImageryError.js', 'NoImageryError');

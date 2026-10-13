@@ -9,7 +9,7 @@
  * TaskContainer is loaded as a module and built against the smallest collaborators these choices touch.
  */
 
-import { loadModules, stubUtil } from './loadGlobalScript.js';
+import { loadModules, stubUtil } from './loader.js';
 import { fakeTracker } from './fakes.js';
 
 

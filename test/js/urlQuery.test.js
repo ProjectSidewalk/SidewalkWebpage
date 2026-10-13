@@ -6,7 +6,7 @@
  * free-form label text whose commas and colons must survive a round trip.
  */
 
-import { loadModules, realUtil } from './loadGlobalScript.js';
+import { loadModules, realUtil } from './loader.js';
 
 
 describe('util.url', () => {

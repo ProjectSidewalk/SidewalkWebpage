@@ -10,7 +10,7 @@
  */
 
 import path from 'path';
-import { loadModules, stubUtil } from './loadGlobalScript.js';
+import { loadModules, stubUtil } from './loader.js';
 
 const MATH_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/common/utilitiesMath.js');
 

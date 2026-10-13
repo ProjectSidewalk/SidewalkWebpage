@@ -12,7 +12,7 @@
 
 import fs from 'fs';
 import path from 'path';
-import { loadModules, realUtil, stubUtil } from './loadGlobalScript.js';
+import { loadModules, realUtil, stubUtil } from './loader.js';
 
 stubUtil(await realUtil());
 

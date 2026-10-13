@@ -6,7 +6,7 @@
  * cover Space and the mode letters.
  */
 
-import { loadModules, stubUtil, fakeImport } from './loadGlobalScript.js';
+import { loadModules, stubUtil, fakeImport } from './loader.js';
 import { fakeGate, fakeTracker } from './fakes.js';
 
 fakeImport('frontend/js/common/KeyboardShortcuts.js', 'KeyboardShortcuts');

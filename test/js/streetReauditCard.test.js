@@ -11,7 +11,7 @@
  * mapboxgl, i18next, and util stubbed.
  */
 
-import { installDateHelpers, installEscapeHTML, loadModules, stubUtil } from './loadGlobalScript.js';
+import { installDateHelpers, installEscapeHTML, loadModules, stubUtil } from './loader.js';
 
 
 const STREET_ID = 776;

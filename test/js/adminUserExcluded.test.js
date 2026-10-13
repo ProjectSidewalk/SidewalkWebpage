@@ -5,7 +5,7 @@
  * Runs under jsdom (vitest.config.mjs).
  */
 
-import { installDateHelpers, loadModules } from './loadGlobalScript.js';
+import { installDateHelpers, loadModules } from './loader.js';
 
 let AdminUser;
 

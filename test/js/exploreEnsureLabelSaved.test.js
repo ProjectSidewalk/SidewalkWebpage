@@ -9,7 +9,7 @@
  * a `this` holding only the submitData it calls; everything else it touches is an argument or a static field.
  */
 
-import { loadModules } from './loadGlobalScript.js';
+import { loadModules } from './loader.js';
 
 
 /** Loads a fresh Form class into the jsdom global scope (a class declaration is not a globalThis property). */

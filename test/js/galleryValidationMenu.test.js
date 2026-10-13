@@ -5,7 +5,7 @@
  * `aria-pressed`. Overwriting the class list instead would wipe the color class and turn the button white.
  */
 
-import { loadModules } from './loadGlobalScript.js';
+import { loadModules } from './loader.js';
 import { fakeTracker } from './fakes.js';
 
 /**

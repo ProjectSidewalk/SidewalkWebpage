@@ -11,7 +11,7 @@
  * would go stale the next time `make lint-vendor-versions` sees a newer one.
  */
 
-import { loadGlobalScript, loadVendored } from './loadGlobalScript.js';
+import { loadGlobalScript, loadVendored } from './loader.js';
 
 /** What a labeler-facing string interpolates, in the shapes that broke: an apostrophe, a slash, an ampersand. */
 const RESOURCES = {

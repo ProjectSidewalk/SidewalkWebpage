@@ -18,7 +18,7 @@
  * mission controller is recorded through its events, as Main subscribes them.
  */
 
-import { installDateHelpers, loadModules, realUtil, fakeImport, stubUtil } from './loadGlobalScript.js';
+import { installDateHelpers, loadModules, realUtil, fakeImport, stubUtil } from './loader.js';
 import { fakeGate, fakeTracker, fakePanoManager } from './fakes.js';
 
 fakeImport('frontend/js/common/pano-viewer/PanoData.js', 'PanoData');

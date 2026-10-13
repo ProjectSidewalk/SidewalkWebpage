@@ -5,7 +5,7 @@
  */
 
 import {stubI18next, installUtil, loadSources, rgb} from './support/accessScoreDockHarness.js';
-import { fakeImport } from './loadGlobalScript.js';
+import { fakeImport } from './loader.js';
 
 fakeImport('frontend/js/access-score/AccessScoreChart.js', 'AccessScoreChart');
 fakeImport('frontend/js/common/scoreRamp.js', 'ScoreRamp');

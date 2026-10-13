@@ -7,7 +7,7 @@
  */
 
 import {FIXTURE, stubI18next, installUtil, stubFetch, loadSources, feature, DOCK_HTML} from './support/accessScoreDockHarness.js';
-import { fakeImport } from './loadGlobalScript.js';
+import { fakeImport } from './loader.js';
 
 fakeImport('frontend/js/access-score/AccessScoreChart.js', 'AccessScoreChart');
 fakeImport('frontend/js/access-score/AccessScoreHistogram.js', 'AccessScoreHistogram');

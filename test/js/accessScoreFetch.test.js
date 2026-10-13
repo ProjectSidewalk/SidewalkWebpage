@@ -8,7 +8,7 @@
  * (`Date.now`, `performance.now`), so advancing the timers is what moves the wall clock the total-wait cap reads.
  */
 
-import { loadModules } from './loadGlobalScript.js';
+import { loadModules } from './loader.js';
 
 
 /**

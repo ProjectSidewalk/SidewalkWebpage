@@ -13,7 +13,7 @@
  */
 
 
-import { assetPathStub, installUtilitiesMisc, loadModules, fakeImport, stubUtil } from './loadGlobalScript.js';
+import { assetPathStub, installUtilitiesMisc, loadModules, fakeImport, stubUtil } from './loader.js';
 
 fakeImport('frontend/js/common/ConfirmDialog.js', 'ConfirmDialog');
 fakeImport('frontend/js/common/label-detail/StoryComposer.js', 'StoryComposer');

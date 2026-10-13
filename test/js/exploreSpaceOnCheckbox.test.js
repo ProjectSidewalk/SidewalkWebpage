@@ -7,7 +7,7 @@
  * toggle unreachable from the keyboard and walked the user down the street instead.
  */
 
-import { loadModules, fakeImport } from './loadGlobalScript.js';
+import { loadModules, fakeImport } from './loader.js';
 import { fakeGate } from './fakes.js';
 
 fakeImport('frontend/js/common/KeyboardShortcuts.js', 'KeyboardShortcuts');

@@ -7,7 +7,7 @@
  * the source is eval'd into jsdom with those stubbed. The map is a four-method stub; no mapbox-gl involved.
  */
 
-import { loadModules, fakeImport, stubUtil } from './loadGlobalScript.js';
+import { loadModules, fakeImport, stubUtil } from './loader.js';
 
 fakeImport('frontend/js/ps-map/psMapUtilities.js', 'fetchLabelFeed');
 

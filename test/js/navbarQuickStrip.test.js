@@ -12,7 +12,7 @@
  * stubbing the hamburger's offsetParent, which is what the real code tests.
  */
 
-import { loadModules } from './loadGlobalScript.js';
+import { loadModules } from './loader.js';
 
 
 const LOGO_WIDTH = 110;

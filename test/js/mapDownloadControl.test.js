@@ -10,7 +10,7 @@
  * download anchor URLs, the post-click busy state, and activity logging.
  */
 
-import { installEscapeHTML, loadModules } from './loadGlobalScript.js';
+import { installEscapeHTML, loadModules } from './loader.js';
 
 await installEscapeHTML();
 

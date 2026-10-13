@@ -9,7 +9,7 @@
  * Runs under jsdom (set in vitest.config.mjs via testEnvironment) so `window`/`document` are available.
  */
 
-import { loadModules, mockModule, unmockModule, installEscapeHTML } from './loadGlobalScript.js';
+import { loadModules, mockModule, unmockModule, installEscapeHTML } from './loader.js';
 
 await installEscapeHTML();
 

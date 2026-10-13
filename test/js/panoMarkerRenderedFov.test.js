@@ -5,7 +5,7 @@
  * popup's both come through here.
  */
 
-import { loadModules, stubUtil } from './loadGlobalScript.js';
+import { loadModules, stubUtil } from './loader.js';
 
 
 describe('PanoMarker projection', () => {

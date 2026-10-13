@@ -11,7 +11,7 @@
  * the logical values are an implementation detail that moves with the scale by design.
  */
 
-import { loadModules, realUtil, stubUtil } from './loadGlobalScript.js';
+import { loadModules, realUtil, stubUtil } from './loader.js';
 import { makeRecordingCtx } from './canvasCtxStub.js';
 
 

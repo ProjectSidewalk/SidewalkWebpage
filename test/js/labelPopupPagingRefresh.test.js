@@ -9,7 +9,7 @@
  */
 
 import path from 'path';
-import { loadModules, fakeImport } from './loadGlobalScript.js';
+import { loadModules, fakeImport } from './loader.js';
 
 fakeImport('frontend/js/common/label-detail/LabelDetail.js', 'LabelDetail');
 

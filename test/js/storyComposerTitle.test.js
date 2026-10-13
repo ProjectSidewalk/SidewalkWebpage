@@ -8,7 +8,7 @@
  * constructor queries rather than called off the prototype.
  */
 
-import { loadModules } from './loadGlobalScript.js';
+import { loadModules } from './loader.js';
 
 
 /** The elements StoryComposer's constructor looks up, in a <dialog> host. */

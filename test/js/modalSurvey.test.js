@@ -6,7 +6,7 @@
  * `close` the way a browser does (asynchronously).
  */
 
-import { loadModules } from './loadGlobalScript.js';
+import { loadModules } from './loader.js';
 
 
 function installDialogStub() {

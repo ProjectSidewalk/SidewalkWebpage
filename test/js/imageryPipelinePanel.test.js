@@ -17,7 +17,7 @@ afterAll(() => { process.env.TZ = previousTimeZone; });
  * UTC-only worker would make every "does the axis line up with the server's nights" assertion vacuous.
  */
 
-import { loadModules, mockModule, realUtil, stubUtil } from './loadGlobalScript.js';
+import { loadModules, mockModule, realUtil, stubUtil } from './loader.js';
 
 stubUtil(await realUtil());
 

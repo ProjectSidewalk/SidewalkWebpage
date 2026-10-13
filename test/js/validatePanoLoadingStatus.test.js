@@ -12,7 +12,7 @@
 
 import fs from 'fs';
 import path from 'path';
-import { loadModules } from './loadGlobalScript.js';
+import { loadModules } from './loader.js';
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const STATUS_PATH = path.join(REPO_ROOT, 'frontend/js/validate/panorama/PanoLoadingStatus.js');

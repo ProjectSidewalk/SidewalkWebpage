@@ -7,7 +7,7 @@
  * shared active-dot class. Loaded like the other class-based suites: eval'd with an explicit export.
  */
 
-import { loadModules } from './loadGlobalScript.js';
+import { loadModules } from './loader.js';
 import { fakeTracker } from './fakes.js';
 
 

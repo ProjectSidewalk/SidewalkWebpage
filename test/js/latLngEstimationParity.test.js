@@ -21,7 +21,7 @@
 
 import fs from 'fs';
 import path from 'path';
-import { loadVendored, loadModules } from './loadGlobalScript.js';
+import { loadVendored, loadModules } from './loader.js';
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const FIXTURE = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'test/fixtures/latLngEstimationParity.json'), 'utf8'));

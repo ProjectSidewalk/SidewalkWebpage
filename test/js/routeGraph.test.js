@@ -18,7 +18,7 @@
  * routing is free to cross into).
  */
 
-import { loadModules } from './loadGlobalScript.js';
+import { loadModules } from './loader.js';
 
 
 /** Loads a fresh RouteGraph class into the jsdom global scope. */

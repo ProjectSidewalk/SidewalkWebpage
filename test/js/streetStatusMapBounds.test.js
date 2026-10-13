@@ -11,7 +11,7 @@
  * eval'd into scope rather than required; the static helper touches no Mapbox API, so no `mapboxgl` global is needed.
  */
 
-import { loadModules } from './loadGlobalScript.js';
+import { loadModules } from './loader.js';
 
 const StreetStatusMap = (await loadModules('frontend/js/admin-dashboard/StreetStatusMap.js')).StreetStatusMap;
 

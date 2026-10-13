@@ -14,7 +14,7 @@
  * jsdom global scope.
  */
 
-import { loadModules } from './loadGlobalScript.js';
+import { loadModules } from './loader.js';
 
 
 /** Loads a fresh NoImageryFlagGuard class into the jsdom global scope and returns it. */

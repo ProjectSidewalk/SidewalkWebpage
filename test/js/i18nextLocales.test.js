@@ -14,7 +14,7 @@
 
 import fs from 'fs';
 import path from 'path';
-import { loadGlobalScript, loadVendored, REPO_ROOT, assetPathStub, stubUtil } from './loadGlobalScript.js';
+import { loadGlobalScript, loadVendored, REPO_ROOT, assetPathStub, stubUtil } from './loader.js';
 
 const LOCALES_DIR = path.join(REPO_ROOT, 'public/locales');
 const LANGUAGES = fs.readdirSync(LOCALES_DIR, { withFileTypes: true })

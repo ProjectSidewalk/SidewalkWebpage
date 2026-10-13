@@ -10,7 +10,7 @@
  * explicit `window.X = X` epilogue rather than require()-d, as with ShareWidget.
  */
 
-import { loadModules } from './loadGlobalScript.js';
+import { loadModules } from './loader.js';
 
 
 /** Loads the class fresh into the global scope. */

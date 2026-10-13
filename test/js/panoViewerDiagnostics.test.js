@@ -10,7 +10,7 @@
  * global scope alongside stubs for the subclasses its constructor names.
  */
 
-import { loadModules } from './loadGlobalScript.js';
+import { loadModules } from './loader.js';
 
 
 async function loadPanoViewer() {

@@ -10,7 +10,7 @@
  * A pure function over plain values; the consumers' own suites cover the wiring.
  */
 
-import { assetPathStub, installUtilitiesMisc, stubUtil } from './loadGlobalScript.js';
+import { assetPathStub, installUtilitiesMisc, stubUtil } from './loader.js';
 
 const CROP_MARKER = { x: 0.5, y: 0.5 };
 

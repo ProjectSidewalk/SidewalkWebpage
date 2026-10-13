@@ -10,7 +10,7 @@
  * panel opens or closes is ContextMenu.show()/hide() re-rendering the canvas, pinned in exploreContextMenuRerender.
  */
 
-import { loadModules, realUtil, stubUtil } from './loadGlobalScript.js';
+import { loadModules, realUtil, stubUtil } from './loader.js';
 import { makeRecordingCtx } from './canvasCtxStub.js';
 
 

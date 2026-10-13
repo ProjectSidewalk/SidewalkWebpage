@@ -17,7 +17,7 @@
 
 import fs from 'fs';
 import path from 'path';
-import { loadModules, stubUtil } from './loadGlobalScript.js';
+import { loadModules, stubUtil } from './loader.js';
 
 
 /** The two globals voteChipFor reaches for, stubbed so the assertions read against known strings. */

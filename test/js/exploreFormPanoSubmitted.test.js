@@ -11,7 +11,7 @@
  * ShareWidget/PanoInfoPopover pattern) rather than using loadGlobalScript.
  */
 
-import { installDateHelpers, loadModules, stubUtil } from './loadGlobalScript.js';
+import { installDateHelpers, loadModules, stubUtil } from './loader.js';
 import { fakePanoManager, fakeTaskContainer } from './fakes.js';
 
 

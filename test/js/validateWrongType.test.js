@@ -11,7 +11,7 @@
 import fs from 'fs';
 import path from 'path';
 
-import { assetPathStub, installUtilitiesMisc, REPO_ROOT, installEscapeHTML, loadModules, stubUtil, fakeImport } from './loadGlobalScript.js';
+import { assetPathStub, installUtilitiesMisc, REPO_ROOT, installEscapeHTML, loadModules, stubUtil, fakeImport } from './loader.js';
 import { fakeTracker } from './fakes.js';
 
 fakeImport('frontend/js/common/LabelTypePicker.js', 'LabelTypePicker');

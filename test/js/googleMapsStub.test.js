@@ -11,7 +11,7 @@
  * pointing that at a loader-shaped URL and evaluating the source in the jsdom window, the way a `<script>` would.
  */
 
-import { loadModules } from './loadGlobalScript.js';
+import { loadModules } from './loader.js';
 
 const LOADER_URL = 'https://maps.googleapis.com/maps/api/js?key=DUMMY&v=weekly&callback=google.maps.__ib__';
 

@@ -11,7 +11,7 @@
  */
 
 
-import { assetPathStub, loadModules, stubUtil } from './loadGlobalScript.js';
+import { assetPathStub, loadModules, stubUtil } from './loader.js';
 
 const evalBadgeAchievements = async () => (await loadModules('frontend/js/common/BadgeAchievements.js')).BadgeAchievements;
 const BadgeAchievements = await evalBadgeAchievements();

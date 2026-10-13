@@ -10,7 +10,7 @@
 /* global PanoData, backupImageDataIsComplete, buildBackupImageData -- put on global by loadScript below. */
 
 import path from 'path';
-import { loadModules, realUtil, stubUtil } from './loadGlobalScript.js';
+import { loadModules, realUtil, stubUtil } from './loader.js';
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const UTILITIES_PATH = path.join(REPO_ROOT, 'frontend/js/common/utilitiesSidewalk.js');

@@ -10,7 +10,7 @@
  * jsdom global scope.
  */
 
-import { loadVendored, loadModules } from './loadGlobalScript.js';
+import { loadVendored, loadModules } from './loader.js';
 
 
 loadVendored('turf');

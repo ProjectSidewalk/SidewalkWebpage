@@ -7,7 +7,7 @@
  * the projection needs.
  */
 
-import { realUtil, stubUtil } from './loadGlobalScript.js';
+import { realUtil, stubUtil } from './loader.js';
 
 
 /** Puts a drawing layer of the given on-screen size in the document (jsdom's real rect is all zeroes). */

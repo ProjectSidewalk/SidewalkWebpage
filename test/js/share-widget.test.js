@@ -10,7 +10,7 @@
  * state, share-intent URLs, activity logging, and setTarget's stale-popover guard.
  */
 
-import { loadModules } from './loadGlobalScript.js';
+import { loadModules } from './loader.js';
 
 
 /** Loads a fresh ShareWidget class into the jsdom global scope. */

@@ -14,7 +14,7 @@
  */
 
 
-import { installDateHelpers, loadModules, realUtil, fakeImport, stubUtil } from './loadGlobalScript.js';
+import { installDateHelpers, loadModules, realUtil, fakeImport, stubUtil } from './loader.js';
 
 fakeImport('frontend/js/common/ConfirmDialog.js', 'ConfirmDialog');
 

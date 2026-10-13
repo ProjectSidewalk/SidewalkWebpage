@@ -7,7 +7,7 @@
  * different module, so these suites drive the real button, container and mission together.
  */
 
-import { assetPathStub, installUtilitiesMisc, loadModules, stubUtil } from './loadGlobalScript.js';
+import { assetPathStub, installUtilitiesMisc, loadModules, stubUtil } from './loader.js';
 
 const TAGS_BY_TYPE = {
   Obstacle: [{ tag_name: 'pole' }],

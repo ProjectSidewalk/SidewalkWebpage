@@ -8,7 +8,7 @@
  */
 
 import path from 'path';
-import { loadModules } from './loadGlobalScript.js';
+import { loadModules } from './loader.js';
 
 const TOGGLE_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/common/LabelVisibilityToggle.js');
 

@@ -20,7 +20,7 @@
  * Only the static method is exercised here — constructing a LabelDetail needs a live pano viewer.
  */
 
-import { loadModules } from './loadGlobalScript.js';
+import { loadModules } from './loader.js';
 
 
 /** Loads a fresh LabelDetail class into the jsdom global scope. */

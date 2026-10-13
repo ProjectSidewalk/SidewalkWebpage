@@ -10,7 +10,7 @@
  * eval'd into global scope rather than required.
  */
 
-import { loadModules } from './loadGlobalScript.js';
+import { loadModules } from './loader.js';
 
 
 /** Load StreetPriorityMap.js and return its tier class. */

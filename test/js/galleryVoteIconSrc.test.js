@@ -8,7 +8,7 @@
  * build would.
  */
 
-import { loadModules, realUtil, stubUtil } from './loadGlobalScript.js';
+import { loadModules, realUtil, stubUtil } from './loader.js';
 
 // A bare `class` declaration, so it has to be evaluated in the page's scope to be reachable, the way its <script>
 // tag makes it reachable in the browser.

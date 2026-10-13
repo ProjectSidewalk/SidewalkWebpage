@@ -10,7 +10,7 @@
  * MissionController is loaded as a module and built against the smallest collaborators the wrap-up touches.
  */
 
-import { loadModules } from './loadGlobalScript.js';
+import { loadModules } from './loader.js';
 import { fakeTracker, fakePanoManager } from './fakes.js';
 
 

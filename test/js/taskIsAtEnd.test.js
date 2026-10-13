@@ -14,7 +14,7 @@
  * stub that got the geometry slightly wrong would pass for the wrong reason.
  */
 
-import { loadVendored, loadModules, realUtil } from './loadGlobalScript.js';
+import { loadVendored, loadModules, realUtil } from './loader.js';
 
 
 // Loaded once, up front: the fixtures below are built while the suite is collected, before any beforeEach runs.

@@ -9,7 +9,7 @@
  */
 
 
-import { assetPathStub, loadModules, stubUtil } from './loadGlobalScript.js';
+import { assetPathStub, loadModules, stubUtil } from './loader.js';
 import { fakeTracker } from './fakes.js';
 
 

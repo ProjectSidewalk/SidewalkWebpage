@@ -8,7 +8,7 @@
  * Runs under jsdom (vitest.config.mjs).
  */
 
-import { loadModules, realUtil, stubUtil } from './loadGlobalScript.js';
+import { loadModules, realUtil, stubUtil } from './loader.js';
 
 stubUtil(await realUtil());
 // jsdom has no layout, so it leaves scrollIntoView out; the region table calls it.

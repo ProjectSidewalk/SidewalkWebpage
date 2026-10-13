@@ -17,7 +17,7 @@
 import fs from 'fs';
 import path from 'path';
 
-import { assetPathStub, loadModules, fakeImport, stubUtil } from './loadGlobalScript.js';
+import { assetPathStub, loadModules, fakeImport, stubUtil } from './loader.js';
 import { fakeTracker } from './fakes.js';
 
 fakeImport('frontend/js/validate/label/Label.js', 'Label');

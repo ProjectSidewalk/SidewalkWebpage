@@ -4,7 +4,7 @@
  * real, so these also catch the form drifting from the markup `wireAsyncSubmit` expects.
  */
 
-import { loadModules, fakeImport } from './loadGlobalScript.js';
+import { loadModules, fakeImport } from './loader.js';
 
 fakeImport('frontend/js/common/AuthModal.js', 'wireAsyncSubmit');
 

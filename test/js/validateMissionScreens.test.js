@@ -11,7 +11,7 @@
  * The classes are top-level declarations concatenated into page scope by Grunt, so the tests evaluate the sources.
  */
 
-import { assetPathStub, loadModules, fakeImport, stubUtil } from './loadGlobalScript.js';
+import { assetPathStub, loadModules, fakeImport, stubUtil } from './loader.js';
 import { fakeGate, fakeTracker } from './fakes.js';
 
 fakeImport('frontend/js/common/Confetti.js', 'Confetti');

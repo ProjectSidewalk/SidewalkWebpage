@@ -13,7 +13,7 @@
  * along-street math is part of what is being exercised.
  */
 
-import { loadVendored, loadModules, fakeImport } from './loadGlobalScript.js';
+import { loadVendored, loadModules, fakeImport } from './loader.js';
 import { fakeTracker, fakePanoManager, fakeTaskContainer } from './fakes.js';
 
 fakeImport('frontend/js/common/pano-viewer/PanoViewer.js', 'PanoViewer');

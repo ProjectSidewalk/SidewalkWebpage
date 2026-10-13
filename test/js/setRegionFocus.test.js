@@ -6,7 +6,7 @@
  * bounds fitted rather than a fixed zoom that can only suit one size of region.
  */
 
-import { loadModules, stubUtil } from './loadGlobalScript.js';
+import { loadModules, stubUtil } from './loader.js';
 
 
 /** A square region feature, as queryRenderedFeatures hands it back. */

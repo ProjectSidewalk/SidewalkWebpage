@@ -11,7 +11,7 @@
 
 import fs from 'fs';
 import path from 'path';
-import { loadModules } from './loadGlobalScript.js';
+import { loadModules } from './loader.js';
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const FIXTURE = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'test/fixtures/accessScoreParity.json'), 'utf8'));

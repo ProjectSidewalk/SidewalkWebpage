@@ -8,7 +8,7 @@
  * this was found on had it silenced, which is exactly why the teleports looked unexplained.
  */
 
-import { loadModules, stubUtil, fakeImport } from './loadGlobalScript.js';
+import { loadModules, stubUtil, fakeImport } from './loader.js';
 
 fakeImport('frontend/js/explore/alert/Alert.js', 'Alert');
 

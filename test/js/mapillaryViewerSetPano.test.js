@@ -12,7 +12,7 @@
  * MapillaryViewer is a top-level `class` written for Grunt concatenation, so the sources are eval'd into jsdom with
  * stubs for the sibling classes PanoViewer's constructor compares `new.target` against. The SDK and fetch are fakes.
  */
-import { loadGlobalScript, realUtil, loadModules, stubUtil, fakeImport } from './loadGlobalScript.js';
+import { loadGlobalScript, realUtil, loadModules, stubUtil, fakeImport } from './loader.js';
 
 fakeImport('frontend/js/common/pano-viewer/NoImageryError.js', 'NoImageryError');
 fakeImport('frontend/js/common/pano-viewer/PanoData.js', 'PanoData');

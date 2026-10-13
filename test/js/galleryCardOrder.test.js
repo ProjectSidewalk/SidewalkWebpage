@@ -6,7 +6,7 @@
  * the page can say so instead of claiming an order it isn't applying.
  */
 
-import { loadModules } from './loadGlobalScript.js';
+import { loadModules } from './loader.js';
 
 describe('cardOrder', () => {
     let cardOrder;

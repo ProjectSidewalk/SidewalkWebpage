@@ -7,7 +7,7 @@
  * including wheel-set zooms between steps and the views (crop, no imagery, no label yet) with nothing to zoom.
  */
 
-import { loadModules, fakeImport, stubUtil } from './loadGlobalScript.js';
+import { loadModules, fakeImport, stubUtil } from './loader.js';
 import { fakeTracker } from './fakes.js';
 
 fakeImport('frontend/js/common/pano-viewer/PanoAttribution.js', 'createPanoAttribution');

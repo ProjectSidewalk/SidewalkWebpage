@@ -9,7 +9,7 @@
  * this card's own pills rather than whatever else the document holds.
  */
 
-import { loadModules } from './loadGlobalScript.js';
+import { loadModules } from './loader.js';
 
 
 /** Widths the stub reports, in the units the production code compares: CSS px. */

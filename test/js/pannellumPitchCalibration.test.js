@@ -14,7 +14,7 @@
  * eval'd into the jsdom global scope with a stubbed pannellum library underneath.
  */
 
-import { loadGlobalScript, realUtil, loadModules, stubUtil, fakeImport } from './loadGlobalScript.js';
+import { loadGlobalScript, realUtil, loadModules, stubUtil, fakeImport } from './loader.js';
 
 fakeImport('frontend/js/common/pano-viewer/PanoData.js', 'PanoData');
 fakeImport('frontend/js/common/pano-viewer/PanoViewer.js', 'PanoViewer');

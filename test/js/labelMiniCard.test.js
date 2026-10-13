@@ -6,7 +6,7 @@
  */
 
 
-import { assetPathStub, installDateHelpers, installUtilitiesMisc, installEscapeHTML, loadModules, fakeImport, stubUtil } from './loadGlobalScript.js';
+import { assetPathStub, installDateHelpers, installUtilitiesMisc, installEscapeHTML, loadModules, fakeImport, stubUtil } from './loader.js';
 
 fakeImport('frontend/js/common/BadgeAchievements.js', 'BadgeAchievements');
 fakeImport('frontend/js/common/Toast.js', 'Toast');

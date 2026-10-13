@@ -9,7 +9,7 @@
  */
 
 
-import { assetPathStub, installEscapeHTML, loadModules, stubUtil, fakeImport } from './loadGlobalScript.js';
+import { assetPathStub, installEscapeHTML, loadModules, stubUtil, fakeImport } from './loader.js';
 
 fakeImport('frontend/js/common/BadgeAchievements.js', 'BadgeAchievements');
 

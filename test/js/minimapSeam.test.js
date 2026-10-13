@@ -18,7 +18,7 @@
  * The sources are loaded as modules against a stand-in for the MapLibre global.
  */
 
-import { loadModules, stubUtil, fakeImport } from './loadGlobalScript.js';
+import { loadModules, stubUtil, fakeImport } from './loader.js';
 import { fakeTracker, fakePanoManager } from './fakes.js';
 
 fakeImport('frontend/js/explore/navigation/MinimapBasemapStyle.js', 'MinimapBasemapStyle');

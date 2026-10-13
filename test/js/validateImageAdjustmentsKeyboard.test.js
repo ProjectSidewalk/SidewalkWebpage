@@ -23,7 +23,7 @@
  * a window listener that cannot be unregistered. Each test swaps the collaborator/menu stubs it reads at event time.
  */
 
-import { loadModules, fakeImport } from './loadGlobalScript.js';
+import { loadModules, fakeImport } from './loader.js';
 import { fakeTracker } from './fakes.js';
 
 fakeImport('frontend/js/common/KeyboardShortcuts.js', 'KeyboardShortcuts');

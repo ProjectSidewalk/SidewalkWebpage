@@ -12,7 +12,7 @@
  * need. The pin/marker/Escape wiring around the popup is covered separately, in labelMapSearchClear.test.js.
  */
 
-import { installEscapeHTML, loadModules } from './loadGlobalScript.js';
+import { installEscapeHTML, loadModules } from './loader.js';
 
 await installEscapeHTML();
 

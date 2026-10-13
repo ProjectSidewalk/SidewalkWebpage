@@ -6,7 +6,7 @@
  * and that the cities map wires the selector its popup template actually uses.
  */
 
-import { loadModules, stubUtil } from './loadGlobalScript.js';
+import { loadModules, stubUtil } from './loader.js';
 
 
 /** Mirrors the link in app/views/common/cityPopupTemplate.scala.html. */

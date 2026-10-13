@@ -11,7 +11,7 @@
  * anyway. The bounding elements are stubbed the same way.
  */
 
-import { realUtil, stubUtil } from './loadGlobalScript.js';
+import { realUtil, stubUtil } from './loader.js';
 
 
 // Explore's frame, as the defaults expect to find it. The pano is 720x480 at scale 1 and sits 100px from the

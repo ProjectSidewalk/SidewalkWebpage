@@ -3,7 +3,7 @@
  * label-before-jump prompt stays clickable through a move, which pauses the ordinary compass click.
  */
 
-import { loadModules, fakeImport } from './loadGlobalScript.js';
+import { loadModules, fakeImport } from './loader.js';
 import { fakeTracker, fakePanoManager, fakeTaskContainer } from './fakes.js';
 
 fakeImport('frontend/js/common/Gate.js', 'Gate');

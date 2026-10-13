@@ -14,7 +14,7 @@
  * one static that puts a marker on the minimap.
  */
 
-import { loadModules } from './loadGlobalScript.js';
+import { loadModules } from './loader.js';
 
 
 const CROP_B64 = 'data:image/png;base64,iVBORw0KGgo=';

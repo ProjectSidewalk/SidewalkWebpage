@@ -11,7 +11,7 @@
  * helpers are eval'd into jsdom.
  */
 
-import { loadModules, fakeImport } from './loadGlobalScript.js';
+import { loadModules, fakeImport } from './loader.js';
 
 fakeImport('frontend/js/common/filter-sidebar/FilterSidebar.js', 'FilterSidebar');
 fakeImport('frontend/js/ps-map/psMapUtilities.js', 'emphasizeStreetState', 'filterStreetLayer');

@@ -10,7 +10,7 @@
 import fs from 'fs';
 import path from 'path';
 
-import { assetPathStub, installUtilitiesMisc, REPO_ROOT, installEscapeHTML, loadModules, stubUtil } from './loadGlobalScript.js';
+import { assetPathStub, installUtilitiesMisc, REPO_ROOT, installEscapeHTML, loadModules, stubUtil } from './loader.js';
 import { fakeTracker } from './fakes.js';
 
 /**

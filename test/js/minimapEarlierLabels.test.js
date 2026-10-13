@@ -11,7 +11,7 @@
  * Label, LabelContainer and MissionContainer are loaded as modules, with the minimap seam, storage and i18n stubbed.
  */
 
-import { loadModules, stubUtil, fakeImport } from './loadGlobalScript.js';
+import { loadModules, stubUtil, fakeImport } from './loader.js';
 import { makeRecordingCtx } from './canvasCtxStub.js';
 import { fakeTracker, fakeTaskContainer } from './fakes.js';
 

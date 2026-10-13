@@ -9,7 +9,7 @@
  * Runs under jsdom (set in vitest.config.mjs via testEnvironment) so `window`/`document` are available.
  */
 
-import { loadGlobalScript, installEscapeHTML, stubUtil } from './loadGlobalScript.js';
+import { loadGlobalScript, installEscapeHTML, stubUtil } from './loader.js';
 
 // jsdom implements AbortSignal but not the static AbortSignal.timeout()
 // (Baseline 2022, present in all supported browsers). Shim it for these tests; fetch is stubbed anyway, so the

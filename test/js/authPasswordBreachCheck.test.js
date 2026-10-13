@@ -8,7 +8,7 @@
 
 import crypto from 'node:crypto';
 import { TextEncoder } from 'node:util';
-import { loadGlobalScript, fakeImport } from './loadGlobalScript.js';
+import { loadGlobalScript, fakeImport } from './loader.js';
 
 fakeImport('frontend/js/common/Modal.js', 'Modal');
 

@@ -10,7 +10,7 @@
  * into jsdom with those stubbed.
  */
 
-import { loadModules, realUtil, fakeImport, stubUtil } from './loadGlobalScript.js';
+import { loadModules, realUtil, fakeImport, stubUtil } from './loader.js';
 import { fakeTracker } from './fakes.js';
 
 fakeImport('frontend/js/common/label-detail/LabelDetail.js', 'LabelDetail');

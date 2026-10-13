@@ -11,7 +11,7 @@
  * export, the same way share-widget.test.js loads ShareWidget.
  */
 
-import { loadModules, stubUtil } from './loadGlobalScript.js';
+import { loadModules, stubUtil } from './loader.js';
 
 
 /**

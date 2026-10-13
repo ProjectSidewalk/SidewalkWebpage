@@ -10,7 +10,7 @@
  * into global scope rather than required.
  */
 
-import { loadModules, fakeImport } from './loadGlobalScript.js';
+import { loadModules, fakeImport } from './loader.js';
 
 fakeImport('frontend/js/common/sidebarDisclosure.js', 'initSidebarDisclosure');
 

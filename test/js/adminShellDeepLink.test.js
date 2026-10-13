@@ -16,7 +16,7 @@
  * its own `hashchange` rather than waiting for jsdom's.
  */
 
-import { loadModules, fakeImport } from './loadGlobalScript.js';
+import { loadModules, fakeImport } from './loader.js';
 
 fakeImport('frontend/js/common/sidebarDisclosure.js', 'initSidebarDisclosure');
 

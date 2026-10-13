@@ -3,7 +3,7 @@
  * the main.css tokens, so the api-docs maps, the AccessScore tool's layers, and its charts paint one score one color.
  */
 
-import { loadModules } from './loadGlobalScript.js';
+import { loadModules } from './loader.js';
 
 
 // jsdom resolves custom properties set on the root element, which is exactly how the tokens reach the browser.

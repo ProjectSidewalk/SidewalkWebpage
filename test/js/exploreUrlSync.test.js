@@ -8,7 +8,7 @@
  * `class` reaching for `util.url`, so the source is eval'd into jsdom with urlQuery.js loaded first.
  */
 
-import { loadModules, realUtil } from './loadGlobalScript.js';
+import { loadModules, realUtil } from './loader.js';
 
 
 describe('ExploreUrlSync', () => {

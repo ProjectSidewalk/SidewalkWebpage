@@ -11,7 +11,7 @@
  * live inside other methods that these tests never call.
  */
 
-import { loadModules } from './loadGlobalScript.js';
+import { loadModules } from './loader.js';
 
 
 /** Loads a fresh GsvViewer class into the jsdom global scope and returns it. */
