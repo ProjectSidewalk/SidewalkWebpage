@@ -10,12 +10,10 @@
  * jsdom global scope.
  */
 
-import path from 'path';
-import { loadModules } from './loadGlobalScript.js';
+import { loadVendored, loadModules } from './loadGlobalScript.js';
 
-const REPO_ROOT = path.resolve(__dirname, '..', '..');
 
-window.turf = require(path.join(REPO_ROOT, 'public/vendor/turf/turf-7.4.0.min.js'));
+loadVendored('turf');
 Object.assign(window, await loadModules('frontend/js/explore/navigation/ForwardCrumbs.js'));
 const { ForwardCrumbs } = window;
 const { turf } = window;

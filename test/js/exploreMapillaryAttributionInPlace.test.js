@@ -63,7 +63,7 @@ describe('Explore publishes the links clearance from Mapillary\'s in-place pill 
       pano: document.getElementById('pano'),
       viewControlLayer: document.getElementById('view-control-layer'),
     };
-    const config = { viewerType: global.MapillaryViewer, viewerAccessToken: 'token' };
+    const config = { viewerType: window.MapillaryViewer, viewerAccessToken: 'token' };
     const panoManager = new PanoManager(ui, config, { addPanoMetadata: vi.fn() },
       { push: vi.fn(), trackPano: vi.fn() }, {}, {}, {});
     await panoManager.ready;
@@ -78,17 +78,17 @@ describe('Explore publishes the links clearance from Mapillary\'s in-place pill 
       </div>`;
 
     observedNodes = [];
-    global.ResizeObserver = class {
+    window.ResizeObserver = class {
       observe(node) { observedNodes.push(node); }
       disconnect() {}
     };
 
     stubUtil({localIsoDate: () => '2024-11'});
-    global.i18next = {t: (key) => key};
-    global.NoImageryFlagGuard = {reset: vi.fn()};
-    global.NoImageryError = class NoImageryError extends Error {};
-    global.createPanoViewerLogo = vi.fn(() => ({showPrimaryLogo: vi.fn()}));
-    global.GsvViewer = class GsvViewer {};
+    window.i18next = {t: (key) => key};
+    window.NoImageryFlagGuard = {reset: vi.fn()};
+    window.NoImageryError = class NoImageryError extends Error {};
+    window.createPanoViewerLogo = vi.fn(() => ({showPrimaryLogo: vi.fn()}));
+    window.GsvViewer = class GsvViewer {};
 
     const panoData = {getPanoId: () => 'pano1', getProperty: () => 0};
     const fakeViewer = {
@@ -100,7 +100,7 @@ describe('Explore publishes the links clearance from Mapillary\'s in-place pill 
       initialSeed: 'pano',
     };
     // The viewer type IS the MapillaryViewer global, so every Mapillary-only path in PanoManager runs.
-    global.MapillaryViewer = class MapillaryViewer {
+    window.MapillaryViewer = class MapillaryViewer {
       static create() { return Promise.resolve(fakeViewer); }
     };
     PanoManager = await loadClassFromFile(PANO_MANAGER_PATH, 'PanoManager');

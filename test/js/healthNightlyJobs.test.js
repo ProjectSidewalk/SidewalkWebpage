@@ -76,7 +76,7 @@ function job(overrides = {}) {
 /** Renders the panel for a set of job rows and returns the page's DOM. */
 async function render(jobs) {
   document.body.innerHTML = MARKUP;
-  global.fetch = vi.fn().mockResolvedValue({
+  window.fetch = vi.fn().mockResolvedValue({
     ok: true,
     status: 200,
     json: async () => ({
@@ -105,10 +105,6 @@ function rows() {
   return [...document.querySelectorAll('#health-jobs tbody tr')]
     .map((tr) => [...tr.cells].map((td) => td.textContent.replace(/\s+/g, ' ').trim()));
 }
-
-afterEach(() => {
-  vi.restoreAllMocks();
-});
 
 describe('the nightly jobs panel', () => {
   test('renders a row per job with its schedule, duration and recorded counts', async () => {

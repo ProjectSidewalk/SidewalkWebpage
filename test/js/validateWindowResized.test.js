@@ -52,7 +52,7 @@ describe('desktop Validate resize handling (#5367)', () => {
         if (handler) window.removeEventListener('resize', handler);
         handler = undefined;
         vi.useRealTimers();
-        delete global.util;
+        delete window.util;
     });
 
     /** The notes of every Window_Resized the tracker was handed. */

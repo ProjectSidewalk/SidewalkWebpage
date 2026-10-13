@@ -99,8 +99,8 @@ describe('LabelContainer prefetches upcoming backup panos (issue #5562)', () => 
 
   beforeEach(async () => {
     stubUtil({ isMobile: () => false, assetPath: assetPathStub });
-    global.i18next = { t: vi.fn((key) => key) };
-    global.Label = class Label {
+    window.i18next = { t: vi.fn((key) => key) };
+    window.Label = class Label {
       constructor(params) {
         this.auditProps = params;
         this.props = {};

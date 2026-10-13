@@ -288,7 +288,6 @@ describe('Main hooks what describes a label to the label container', () => {
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
     document.body.innerHTML = '';
   });
 

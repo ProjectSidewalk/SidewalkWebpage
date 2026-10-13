@@ -54,10 +54,6 @@ describe('TestServerBanner', () => {
         TestServerBanner = await loadTestServerBanner();
     });
 
-    afterEach(() => {
-        vi.restoreAllMocks();
-    });
-
     describe('permanent dismissal state', () => {
         test('hides the banner up front when "don\'t show again" was stored', () => {
             window.localStorage.setItem(STORAGE_KEY, 'true');

@@ -56,6 +56,8 @@ const queryOf = (url) => new URLSearchParams(url.split('?')[1]);
 /** Flushes pending promise microtasks / zero-delay timeouts (several listeners defer registration). */
 const flushTimeouts = () => new Promise((resolve) => setTimeout(resolve, 0));
 
+afterEach(() => { vi.useRealTimers(); });
+
 describe('MapDownloadControl.buildDownloadUrl', () => {
     let MapDownloadControl;
 
@@ -194,7 +196,6 @@ describe('MapDownloadControl panel', () => {
     });
 
     afterEach(() => {
-        vi.restoreAllMocks();
         delete window.logWebpageActivity;
         delete window.i18next;
         delete window.fetch;
@@ -267,49 +268,41 @@ describe('MapDownloadControl panel', () => {
 
     test('acknowledges the click with a busy pill and a live-region status, then restores itself', async () => {
         vi.useFakeTimers();
-        try {
-            mount();
-            button().click();
-            items()[0].click();
-            await settle();
+        mount();
+        button().click();
+        items()[0].click();
+        await settle();
 
-            expect(anchorClicks).toHaveLength(1);
-            expect(button().getAttribute('aria-busy')).toBe('true');
-            expect(busyLabel().hidden).toBe(false);
-            expect(container.querySelector('[role="status"]').textContent).toBe('Preparing your download…');
+        expect(anchorClicks).toHaveLength(1);
+        expect(button().getAttribute('aria-busy')).toBe('true');
+        expect(busyLabel().hidden).toBe(false);
+        expect(container.querySelector('[role="status"]').textContent).toBe('Preparing your download…');
 
-            vi.advanceTimersByTime(4000);
-            expect(button().getAttribute('aria-busy')).toBe('false');
-            expect(busyLabel().hidden).toBe(true);
-            expect(container.querySelector('[role="status"]').textContent).toBe('');
-        } finally {
-            vi.useRealTimers();
-        }
+        vi.advanceTimersByTime(4000);
+        expect(button().getAttribute('aria-busy')).toBe('false');
+        expect(busyLabel().hidden).toBe(true);
+        expect(container.querySelector('[role="status"]').textContent).toBe('');
     });
 
     test('says so instead of downloading when the server is already building that file', async () => {
         vi.useFakeTimers();
-        try {
-            window.fetch.mockResolvedValue({ status: 429 });
-            mount();
-            button().click();
-            items()[0].click();
-            await settle();
+        window.fetch.mockResolvedValue({ status: 429 });
+        mount();
+        button().click();
+        items()[0].click();
+        await settle();
 
-            expect(anchorClicks).toHaveLength(0);
-            const refused = container.querySelector('.map-download-control__label--refused');
-            expect(refused.hidden).toBe(false);
-            expect(busyLabel().hidden).toBe(true);
-            expect(button().getAttribute('aria-busy')).toBe('false');
-            expect(container.querySelector('[role="status"]').textContent)
-                .toBe('This file is already being prepared for another request. Please try again shortly.');
+        expect(anchorClicks).toHaveLength(0);
+        const refused = container.querySelector('.map-download-control__label--refused');
+        expect(refused.hidden).toBe(false);
+        expect(busyLabel().hidden).toBe(true);
+        expect(button().getAttribute('aria-busy')).toBe('false');
+        expect(container.querySelector('[role="status"]').textContent)
+            .toBe('This file is already being prepared for another request. Please try again shortly.');
 
-            vi.advanceTimersByTime(4000);
-            expect(refused.hidden).toBe(true);
-            expect(container.querySelector('[role="status"]').textContent).toBe('');
-        } finally {
-            vi.useRealTimers();
-        }
+        vi.advanceTimersByTime(4000);
+        expect(refused.hidden).toBe(true);
+        expect(container.querySelector('[role="status"]').textContent).toBe('');
     });
 
     test('Escape closes the panel and returns focus to the button', () => {

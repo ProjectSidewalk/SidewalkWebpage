@@ -157,10 +157,6 @@ describe('Form pano submission staging', () => {
         vi.spyOn(console, 'error').mockImplementation(() => {});
     });
 
-    afterEach(() => {
-        vi.restoreAllMocks();
-    });
-
     test('marks panos submitted only once the server has accepted them', async () => {
         window.fetch = vi.fn(() => {
             // At POST time the panos must still be staged: the mark means "accepted", not "sent".

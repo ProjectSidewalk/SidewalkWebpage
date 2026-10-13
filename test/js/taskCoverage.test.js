@@ -10,13 +10,12 @@
  * Real vendored turf for the geometry: the questions are about distances along real street lines.
  */
 
-import path from 'path';
-import { loadModules, realUtil, fakeImport } from './loadGlobalScript.js';
+import { loadVendored, loadModules, realUtil, fakeImport } from './loadGlobalScript.js';
 
 fakeImport('frontend/js/explore/task/Task.js', 'Task');
 
-const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const turf = require(path.join(REPO_ROOT, 'public/vendor/turf/turf-7.4.0.min.js'));
+loadVendored('turf');
+const turf = window.turf;
 
 const STREET_START = [-77.02, 38.9];
 const STREET_LENGTH_M = 200;

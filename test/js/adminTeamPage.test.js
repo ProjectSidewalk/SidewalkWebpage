@@ -51,7 +51,7 @@ async function load() {
     <div id="team-add-results"></div>`;
 
   const calls = [];
-  global.fetch = vi.fn((url, opts = {}) => {
+  window.fetch = vi.fn((url, opts = {}) => {
     calls.push({ url, method: opts.method || 'GET' });
     if (url.startsWith('/adminapi/team')) {
       return Promise.resolve({ ok: true, json: () => Promise.resolve(OVERVIEW) });
@@ -64,7 +64,7 @@ async function load() {
     }
     return Promise.resolve({ ok: true, text: () => Promise.resolve('{}') });
   });
-  global.ConfirmDialog = { confirm: vi.fn(() => Promise.resolve(true)) };
+  window.ConfirmDialog = { confirm: vi.fn(() => Promise.resolve(true)) };
 
   const page = new TeamPage(TEAM_ID, {
     overviewUrl: '/adminapi/team',
@@ -150,7 +150,7 @@ describe('the roster controls', () => {
     document.querySelector('.team-remove[data-user-id="u1"]').click();
     await Promise.resolve();
     await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(global.ConfirmDialog.confirm).toHaveBeenCalled();
+    expect(window.ConfirmDialog.confirm).toHaveBeenCalled();
     expect(calls.some((c) => c.url === '/userapi/leaveTeam?userId=u1' && c.method === 'PUT')).toBe(true);
     expect(calls.filter((c) => c.url.startsWith('/adminapi/team')).length).toBe(2);
   });
@@ -167,7 +167,7 @@ describe('the roster controls', () => {
     await load();
     // Held open by hand, so the box is cleared while the request is genuinely outstanding.
     let release;
-    global.fetch = vi.fn((url) => (url.startsWith('/adminapi/userSearch')
+    window.fetch = vi.fn((url) => (url.startsWith('/adminapi/userSearch')
       ? new Promise((resolve) => {
         release = () => resolve({ ok: true, json: () => Promise.resolve([
           { user_id: 'u3', username: 'cyd', email: 'cyd@example.org', role: 'Registered', team: null },

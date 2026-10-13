@@ -122,15 +122,15 @@ describe('PanoManager skips the provider for a pano it knows is gone (issue #556
     stubUtil({});
     Object.assign(window, await loadModules(THROTTLE_PATH));
     util.isMobile = () => false;
-    global.createPanoViewerLogo = vi.fn(() => ({ showPrimaryLogo: vi.fn(), showSourceLogo: vi.fn() }));
-    global.createPanoAttribution = vi.fn(() => ({ show: vi.fn(), hide: vi.fn() }));
-    global.GsvViewer = class GsvViewer {};
-    global.MapillaryViewer = class MapillaryViewer {};
-    global.PanoLoadTimeoutError = class PanoLoadTimeoutError extends Error {};
+    window.createPanoViewerLogo = vi.fn(() => ({ showPrimaryLogo: vi.fn(), showSourceLogo: vi.fn() }));
+    window.createPanoAttribution = vi.fn(() => ({ show: vi.fn(), hide: vi.fn() }));
+    window.GsvViewer = class GsvViewer {};
+    window.MapillaryViewer = class MapillaryViewer {};
+    window.PanoLoadTimeoutError = class PanoLoadTimeoutError extends Error {};
 
     // A Date, as PanoData carries since #5549 replaced moment: the desktop callback formats it for the date badge.
     panoData = { getPanoId: () => 'pano1', getProperty: () => new Date(2026, 5, 1) };
-    global.i18next = { language: 'en' };
+    window.i18next = { language: 'en' };
     const fakeViewer = () => ({
       setPano: vi.fn(() => Promise.resolve(panoData)),
       addListener: vi.fn(),
@@ -142,7 +142,7 @@ describe('PanoManager skips the provider for a pano it knows is gone (issue #556
     pannellumViewer = fakeViewer();
     pannellumViewer.currPanoData = panoData;
     pannellumViewer.loadPano = vi.fn(() => Promise.resolve(panoData));
-    global.PannellumViewer = class PannellumViewer {
+    window.PannellumViewer = class PannellumViewer {
       static create = vi.fn(() => Promise.resolve(pannellumViewer));
     };
     FakeViewerType = class FakeViewerType {
@@ -162,7 +162,7 @@ describe('PanoManager skips the provider for a pano it knows is gone (issue #556
   /** The fallback path, taken: Pannellum holds the pano and the primary viewer was never involved. */
   function expectFallbackWithoutAskingPrimary(panoManager, loaded) {
     expect(loaded).toEqual({ panoData });
-    expect(global.PannellumViewer.create).toHaveBeenCalledTimes(1);
+    expect(window.PannellumViewer.create).toHaveBeenCalledTimes(1);
     expect(panoManager.panoViewer).toBe(pannellumViewer);
     expect(document.getElementById('svv-panorama').style.display).toBe('none');
   }
@@ -184,7 +184,7 @@ describe('PanoManager skips the provider for a pano it knows is gone (issue #556
 
     expect(primaryViewer.setPano).toHaveBeenCalledWith('pano2');
     expect(loaded).toEqual({ panoData });
-    expect(global.PannellumViewer.create).not.toHaveBeenCalled();
+    expect(window.PannellumViewer.create).not.toHaveBeenCalled();
   });
 
   test('a label not flagged expired asks the provider first, backup or not', async () => {
@@ -193,7 +193,7 @@ describe('PanoManager skips the provider for a pano it knows is gone (issue #556
     await panoManager.setPanorama('pano2', backupImage);
 
     expect(primaryViewer.setPano).toHaveBeenCalledWith('pano2');
-    expect(global.PannellumViewer.create).not.toHaveBeenCalled();
+    expect(window.PannellumViewer.create).not.toHaveBeenCalled();
   });
 
   test('the first label of a mission takes the same shortcut', async () => {
@@ -210,7 +210,7 @@ describe('PanoManager skips the provider for a pano it knows is gone (issue #556
 
   test('a backup that fails under a stale expired flag still gets the provider as a last resort', async () => {
     const panoManager = await createPanoManager();
-    global.PannellumViewer.create = vi.fn(() => Promise.reject(new Error('503: no copy could be cut')));
+    window.PannellumViewer.create = vi.fn(() => Promise.reject(new Error('503: no copy could be cut')));
     vi.spyOn(console, 'error').mockImplementation(() => {});
 
     const loaded = await panoManager.setPanorama('pano2', backupImage, { expired: true });
@@ -222,11 +222,11 @@ describe('PanoManager skips the provider for a pano it knows is gone (issue #556
   });
 
   test.each([
-    ['a timeout', () => new global.PanoLoadTimeoutError('slow'), 'slow'],
+    ['a timeout', () => new window.PanoLoadTimeoutError('slow'), 'slow'],
     ['a missing pano', () => new Error('not found'), 'no-imagery'],
   ])('when backup and last-resort provider both fail, %s on the provider sets the reason', async (_, makeErr, why) => {
     const panoManager = await createPanoManager();
-    global.PannellumViewer.create = vi.fn(() => Promise.reject(new Error('503: no copy could be cut')));
+    window.PannellumViewer.create = vi.fn(() => Promise.reject(new Error('503: no copy could be cut')));
     vi.spyOn(console, 'error').mockImplementation(() => {});
     primaryViewer.setPano.mockImplementation(() => Promise.reject(makeErr()));
 
@@ -238,7 +238,7 @@ describe('PanoManager skips the provider for a pano it knows is gone (issue #556
   });
 
   test('a first label whose backup fails does not take Validate down with it', async () => {
-    global.PannellumViewer.create = vi.fn(() => Promise.reject(new Error('503: no copy could be cut')));
+    window.PannellumViewer.create = vi.fn(() => Promise.reject(new Error('503: no copy could be cut')));
     vi.spyOn(console, 'error').mockImplementation(() => {});
 
     const panoManager = await createPanoManager();
@@ -267,8 +267,8 @@ describe('LabelContainer hands the flag to the PanoManager (issue #5561)', () =>
 
   beforeEach(async () => {
     stubUtil({ isMobile: () => false, assetPath: assetPathStub });
-    global.i18next = { t: vi.fn((key) => key) };
-    global.Label = class Label {
+    window.i18next = { t: vi.fn((key) => key) };
+    window.Label = class Label {
       constructor(params) {
         this.auditProps = params;
         this.props = {};
@@ -329,15 +329,15 @@ describe('Label reads the flag off the backend payload (issue #5561)', () => {
 
   beforeEach(async () => {
     stubUtil({ isMobile: () => false });
-    global.moment = vi.fn(() => ({}));
-    global.buildBackupImageData = vi.fn(() => null);
+    window.moment = vi.fn(() => ({}));
+    window.buildBackupImageData = vi.fn(() => null);
     Label = await loadClassFromFile(LABEL_PATH, 'Label');
   });
 
   afterEach(() => {
-    delete global.util;
-    delete global.moment;
-    delete global.buildBackupImageData;
+    delete window.util;
+    delete window.moment;
+    delete window.buildBackupImageData;
   });
 
   test.each([

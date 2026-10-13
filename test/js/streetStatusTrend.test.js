@@ -79,7 +79,7 @@ function payload(overrides = {}) {
 
 async function render(data, { weeks = 3, onShowStreet } = {}) {
   document.body.innerHTML = MARKUP;
-  global.fetch = vi.fn().mockResolvedValue({ ok: true, status: 200, statusText: 'OK', json: async () => data });
+  window.fetch = vi.fn().mockResolvedValue({ ok: true, status: 200, statusText: 'OK', json: async () => data });
   await new StreetStatusTrend({ trendUrl: '/adminapi/streetStatusTrend', weeks, onShowStreet }).init();
 }
 
@@ -91,10 +91,6 @@ function weekLabels() {
   return [...document.querySelectorAll('#trend-status-chart text.mini-axis[text-anchor="middle"]')]
     .map((t) => t.textContent);
 }
-
-afterEach(() => {
-  vi.restoreAllMocks();
-});
 
 describe('the week grid', () => {
   const MONDAY = '2026-07-27T00:00:00-07:00';
@@ -314,61 +310,61 @@ describe('the regained-imagery queue', () => {
 
   test('reopens only after confirmation, via PUT, then reloads the trend', async () => {
     await render(payload({ reopen_candidates: [candidate()] }));
-    globalThis.ConfirmDialog = { confirm: vi.fn().mockResolvedValue(true) };
+    window.ConfirmDialog = { confirm: vi.fn().mockResolvedValue(true) };
     const reopenBtn = [...document.querySelectorAll('#trend-reopen-candidates button')]
       .find((b) => b.textContent === 'Reopen');
-    global.fetch = vi.fn().mockResolvedValue({
+    window.fetch = vi.fn().mockResolvedValue({
       ok: true, status: 200, statusText: 'OK', json: async () => payload({ reopen_candidates: [] }),
     });
 
     reopenBtn.click();
     await new Promise((resolve) => { setTimeout(resolve, 0); });
 
-    expect(globalThis.ConfirmDialog.confirm).toHaveBeenCalled();
-    expect(global.fetch).toHaveBeenCalledWith('/adminapi/streets/555/reopen', { method: 'PUT' });
+    expect(window.ConfirmDialog.confirm).toHaveBeenCalled();
+    expect(window.fetch).toHaveBeenCalledWith('/adminapi/streets/555/reopen', { method: 'PUT' });
     // The reload after a successful action, so the queue and the status-change chart both reflect the reopen.
-    expect(global.fetch).toHaveBeenLastCalledWith('/adminapi/streetStatusTrend?weeks=3', expect.anything());
+    expect(window.fetch).toHaveBeenLastCalledWith('/adminapi/streetStatusTrend?weeks=3', expect.anything());
     expect(document.getElementById('trend-reopen-candidates').textContent)
       .toMatch(/No retired street has regained imagery/);
   });
 
   test('does nothing when the confirmation is declined', async () => {
     await render(payload({ reopen_candidates: [candidate()] }));
-    globalThis.ConfirmDialog = { confirm: vi.fn().mockResolvedValue(false) };
+    window.ConfirmDialog = { confirm: vi.fn().mockResolvedValue(false) };
     const reopenBtn = [...document.querySelectorAll('#trend-reopen-candidates button')]
       .find((b) => b.textContent === 'Reopen');
-    global.fetch = vi.fn();
+    window.fetch = vi.fn();
 
     reopenBtn.click();
     await new Promise((resolve) => { setTimeout(resolve, 0); });
 
-    expect(global.fetch).not.toHaveBeenCalled();
+    expect(window.fetch).not.toHaveBeenCalled();
   });
 
   test('dismisses without confirmation, via DELETE', async () => {
     await render(payload({ reopen_candidates: [candidate()] }));
-    globalThis.ConfirmDialog = { confirm: vi.fn() };
+    window.ConfirmDialog = { confirm: vi.fn() };
     const dismissBtn = [...document.querySelectorAll('#trend-reopen-candidates button')]
       .find((b) => b.textContent === 'Dismiss');
-    global.fetch = vi.fn().mockResolvedValue({
+    window.fetch = vi.fn().mockResolvedValue({
       ok: true, status: 200, statusText: 'OK', json: async () => payload({ reopen_candidates: [] }),
     });
 
     dismissBtn.click();
     await new Promise((resolve) => { setTimeout(resolve, 0); });
 
-    expect(globalThis.ConfirmDialog.confirm).not.toHaveBeenCalled();
-    expect(global.fetch).toHaveBeenCalledWith('/adminapi/streets/555/reopenCandidate', { method: 'DELETE' });
+    expect(window.ConfirmDialog.confirm).not.toHaveBeenCalled();
+    expect(window.fetch).toHaveBeenCalledWith('/adminapi/streets/555/reopenCandidate', { method: 'DELETE' });
   });
 
   test('quotes the server\'s explanation of a refusal, next to the buttons as well as at the top', async () => {
     await render(payload({ reopen_candidates: [candidate()] }));
-    globalThis.ConfirmDialog = { confirm: vi.fn().mockResolvedValue(true) };
+    window.ConfirmDialog = { confirm: vi.fn().mockResolvedValue(true) };
     const reopenBtn = [...document.querySelectorAll('#trend-reopen-candidates button')]
       .find((b) => b.textContent === 'Reopen');
     // A 409 is the stale-row case, and the server says which status the street actually has -- far more use than
     // the status code, which is all the admin would otherwise get.
-    global.fetch = vi.fn().mockResolvedValue({
+    window.fetch = vi.fn().mockResolvedValue({
       ok: false,
       status: 409,
       statusText: 'Conflict',
@@ -381,7 +377,7 @@ describe('the regained-imagery queue', () => {
 
     expect(document.getElementById('trend-status').textContent).toMatch(/Street 555 is 'open', not 'no_imagery'\./);
     // A 409 says this row is stale, and reloading is what clears it: the server's queue read filters on status.
-    expect(global.fetch).toHaveBeenLastCalledWith('/adminapi/streetStatusTrend?weeks=3', expect.anything());
+    expect(window.fetch).toHaveBeenLastCalledWith('/adminapi/streetStatusTrend?weeks=3', expect.anything());
     // #trend-status is at the top of the section, several screens above these buttons.
     expect(document.querySelector('.reopen-queue-error').textContent).toMatch(/Could not reopen street 555/);
     [...document.querySelectorAll('#trend-reopen-candidates button')]
@@ -390,8 +386,8 @@ describe('the regained-imagery queue', () => {
 
   test('falls back to the status code when the failure body is not the JSON we expect', async () => {
     await render(payload({ reopen_candidates: [candidate()] }));
-    globalThis.ConfirmDialog = { confirm: vi.fn().mockResolvedValue(true) };
-    global.fetch = vi.fn().mockResolvedValue({
+    window.ConfirmDialog = { confirm: vi.fn().mockResolvedValue(true) };
+    window.fetch = vi.fn().mockResolvedValue({
       ok: false, status: 502, statusText: 'Bad Gateway', json: async () => { throw new Error('not json'); },
     });
     vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -471,7 +467,7 @@ describe('the reports-by-region table', () => {
 describe('loading and failure', () => {
   test('reports a failed fetch without touching the snapshot above it', async () => {
     document.body.innerHTML = MARKUP;
-    global.fetch = vi.fn().mockResolvedValue({ ok: false, status: 503, statusText: 'Service Unavailable' });
+    window.fetch = vi.fn().mockResolvedValue({ ok: false, status: 503, statusText: 'Service Unavailable' });
     await new StreetStatusTrend({ trendUrl: '/adminapi/streetStatusTrend', weeks: 3 }).init();
     const status = document.getElementById('trend-status');
     expect(status.textContent).toMatch(/Could not load recent changes: 503/);
@@ -480,7 +476,7 @@ describe('loading and failure', () => {
 
   test('requests the window the selector shows', async () => {
     await render(payload(), { weeks: 26 });
-    expect(global.fetch).toHaveBeenCalledWith('/adminapi/streetStatusTrend?weeks=26', expect.anything());
+    expect(window.fetch).toHaveBeenCalledWith('/adminapi/streetStatusTrend?weeks=26', expect.anything());
   });
 
   test('refetches when the window changes', async () => {
@@ -490,6 +486,6 @@ describe('loading and failure', () => {
     range.dispatchEvent(new Event('change'));
     await Promise.resolve();
     await Promise.resolve();
-    expect(global.fetch).toHaveBeenLastCalledWith('/adminapi/streetStatusTrend?weeks=13', expect.anything());
+    expect(window.fetch).toHaveBeenLastCalledWith('/adminapi/streetStatusTrend?weeks=13', expect.anything());
   });
 });

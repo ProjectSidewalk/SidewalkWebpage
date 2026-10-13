@@ -32,7 +32,7 @@ const NEXT_URL = '/backupImage/p2';
 function installFakePannellum(failingUrls = new Set()) {
     const attempted = [];
     const loaded = [];
-    global.pannellum = {
+    window.pannellum = {
         viewer: vi.fn((_el, config) => {
             const handlers = { load: new Set(), error: new Set() };
             const scenes = { ...config.scenes };
@@ -94,7 +94,7 @@ describe('PannellumViewer loads from the image cache first (issue #5562)', () =>
             parseDate: (value) => new Date(value),
             pano: { zoomToFov: (zoom) => 126.5 - zoom * 36.75, fovToZoom: (fov) => (126.5 - fov) / 36.75 },
         });
-        global.PanoViewer = class PanoViewer {
+        window.PanoViewer = class PanoViewer {
             constructor() {
                 this.panoChangedListeners = [];
                 this.povChangedListeners = [];
@@ -102,20 +102,19 @@ describe('PannellumViewer loads from the image cache first (issue #5562)', () =>
 
             getViewerType() { return 'pannellum'; }
         };
-        global.PanoData = class PanoData {
+        window.PanoData = class PanoData {
             constructor(props) { Object.assign(this, props); }
 
             getPanoId() { return this.panoId; }
 
             getProperty(key) { return this[key]; }
         };
-        global.moment = function moment() { return {}; };
+        window.moment = function moment() { return {}; };
 
         PannellumViewer = (await loadModules(VIEWER_PATH)).PannellumViewer;
     });
 
     afterEach(() => {
-        vi.restoreAllMocks();
         document.body.innerHTML = '';
         for (const name of ['util', 'PanoViewer', 'PanoData', 'moment', 'pannellum']) delete global[name];
     });

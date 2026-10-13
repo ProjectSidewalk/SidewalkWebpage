@@ -11,15 +11,13 @@
  * global scope with real turf; nothing it touches at class-definition time needs more.
  */
 
-import path from 'path';
-import { loadModules, fakeImport } from './loadGlobalScript.js';
+import { loadVendored, loadModules, fakeImport } from './loadGlobalScript.js';
 
 fakeImport('frontend/js/explore/navigation/NavigationService.js', 'NavigationService');
 
 
-const REPO_ROOT = path.resolve(__dirname, '..', '..');
 
-window.turf = require(path.join(REPO_ROOT, 'public/vendor/turf/turf-7.4.0.min.js'));
+loadVendored('turf');
 window.NavigationService = { DIST_INCREMENT: 0.01 }; // 10 m, as in NavigationService.
 Object.assign(window, await loadModules('frontend/js/explore/panorama/PanoManager.js'));
 const { PanoManager, turf } = window;

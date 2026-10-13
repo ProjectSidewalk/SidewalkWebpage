@@ -12,7 +12,7 @@
  */
 
 import path from 'path';
-import { loadGlobalScript, realUtil, loadModules, fakeImport, stubUtil } from './loadGlobalScript.js';
+import { loadVendored, loadGlobalScript, realUtil, loadModules, fakeImport, stubUtil } from './loadGlobalScript.js';
 
 fakeImport('frontend/js/common/pano-viewer/PanoData.js', 'PanoData');
 fakeImport('frontend/js/common/pano-viewer/NoImageryError.js', 'NoImageryError');
@@ -31,7 +31,7 @@ window.bowser = {
 stubUtil(await realUtil());
 await loadGlobalScript('frontend/js/common/utilitiesMath.js');
 await loadGlobalScript('frontend/js/common/pano-viewer/panoUtilities.js');
-window.turf = require(path.join(REPO_ROOT, 'public/vendor/turf/turf-7.4.0.min.js'));
+loadVendored('turf');
 
 const { turf } = window;
 

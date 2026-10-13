@@ -27,7 +27,7 @@ const reloadAttempts = () => consoleError.mock.calls.filter(([msg]) => String(ms
 
 /** Stub `fetch` to resolve with the given JSON body and an OK status. */
 function stubFetchOk(body) {
-    global.fetch = vi.fn(() => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(body) }));
+    window.fetch = vi.fn(() => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(body) }));
 }
 
 describe('Form.submit (issue #2745 resilience)', () => {
@@ -60,31 +60,30 @@ describe('Form.submit (issue #2745 resilience)', () => {
 
     afterEach(() => {
         vi.useRealTimers();
-        vi.restoreAllMocks();
-        delete global.fetch;
+        delete window.fetch;
     });
 
     test('a failed POST retries the same snapshot instead of reloading the page', async () => {
         const payload = { validations: [{ label_id: 1 }] };
-        global.fetch = vi.fn(() => Promise.reject(new Error('network down')));
+        window.fetch = vi.fn(() => Promise.reject(new Error('network down')));
 
         await form.submit(payload);
 
         // The page must never reload, and the first attempt is logged as a failure.
         expect(reloadAttempts()).toHaveLength(0);
-        expect(global.fetch).toHaveBeenCalledTimes(1);
+        expect(window.fetch).toHaveBeenCalledTimes(1);
         expect(tracker.push).toHaveBeenCalledWith('SubmitFailed', expect.objectContaining({ attempt: 0 }));
 
         // The retry fires after the backoff and resends the exact same snapshot.
         await vi.advanceTimersByTimeAsync(2000);
-        expect(global.fetch).toHaveBeenCalledTimes(2);
-        expect(global.fetch).toHaveBeenLastCalledWith('/validationTask', expect.objectContaining({
+        expect(window.fetch).toHaveBeenCalledTimes(2);
+        expect(window.fetch).toHaveBeenLastCalledWith('/validationTask', expect.objectContaining({
             body: JSON.stringify(payload)
         }));
     });
 
     test('a non-OK HTTP response is treated as a failure and retried, not reloaded', async () => {
-        global.fetch = vi.fn(() => Promise.resolve({ ok: false, status: 500, json: () => Promise.resolve({}) }));
+        window.fetch = vi.fn(() => Promise.resolve({ ok: false, status: 500, json: () => Promise.resolve({}) }));
 
         await form.submit({});
 
@@ -93,13 +92,13 @@ describe('Form.submit (issue #2745 resilience)', () => {
     });
 
     test('a 4xx response is abandoned immediately instead of being retried (#4377)', async () => {
-        global.fetch = vi.fn(() => Promise.resolve({ ok: false, status: 400, json: () => Promise.resolve({}) }));
+        window.fetch = vi.fn(() => Promise.resolve({ ok: false, status: 400, json: () => Promise.resolve({}) }));
         const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
         await form.submit({});
         await vi.advanceTimersByTimeAsync(60000); // long enough for every retry in the budget to have fired
 
-        expect(global.fetch).toHaveBeenCalledTimes(1);
+        expect(window.fetch).toHaveBeenCalledTimes(1);
         // Still logged, tagged with the status, so an abandoned 4xx stays separable from a network blip.
         expect(tracker.push).toHaveBeenCalledWith('SubmitFailed',
             expect.objectContaining({ attempt: 0, status: 400 }));
@@ -110,7 +109,7 @@ describe('Form.submit (issue #2745 resilience)', () => {
 
     test('408 and 429 are retried even though they are 4xx', async () => {
         for (const status of [408, 429]) {
-            global.fetch = vi.fn(() => Promise.resolve({ ok: false, status, json: () => Promise.resolve({}) }));
+            window.fetch = vi.fn(() => Promise.resolve({ ok: false, status, json: () => Promise.resolve({}) }));
             // Its own send queue, so the last status's retries don't hold it.
             const freshForm = new Form('/validationTask', CONFIG, tracker);
             freshForm.attachSession(session);
@@ -118,27 +117,27 @@ describe('Form.submit (issue #2745 resilience)', () => {
             await freshForm.submit({});
             await vi.advanceTimersByTimeAsync(2000);
 
-            expect(global.fetch).toHaveBeenCalledTimes(2);
+            expect(window.fetch).toHaveBeenCalledTimes(2);
         }
     });
 
     test('a 5xx response is still retried', async () => {
-        global.fetch = vi.fn(() => Promise.resolve({ ok: false, status: 500, json: () => Promise.resolve({}) }));
+        window.fetch = vi.fn(() => Promise.resolve({ ok: false, status: 500, json: () => Promise.resolve({}) }));
 
         await form.submit({});
         await vi.advanceTimersByTimeAsync(2000);
 
-        expect(global.fetch).toHaveBeenCalledTimes(2);
+        expect(window.fetch).toHaveBeenCalledTimes(2);
     });
 
     test('gives up after the retry cap without ever reloading', async () => {
-        global.fetch = vi.fn(() => Promise.reject(new Error('down')));
+        window.fetch = vi.fn(() => Promise.reject(new Error('down')));
 
         await form.submit({});
         // Initial attempt + 5 retries (backoff 2000 * attempt#): 2000+4000+6000+8000+10000 = 30000ms.
         await vi.advanceTimersByTimeAsync(30100);
 
-        expect(global.fetch).toHaveBeenCalledTimes(6);
+        expect(window.fetch).toHaveBeenCalledTimes(6);
         expect(tracker.push).toHaveBeenCalledWith('SubmitFailedGaveUp', expect.anything());
         expect(reloadAttempts()).toHaveLength(0);
     });
@@ -152,7 +151,7 @@ describe('Form.submit (issue #2745 resilience)', () => {
 
         expect(errorSpy).toHaveBeenCalled();
         expect(reloadAttempts()).toHaveLength(0);
-        expect(global.fetch).toHaveBeenCalledTimes(1); // response handling errors must not resubmit
+        expect(window.fetch).toHaveBeenCalledTimes(1); // response handling errors must not resubmit
     });
 
     test('an intermediate (mid-mission) submit skips mission-transition handling', async () => {
@@ -189,12 +188,12 @@ describe('Form.submit (issue #2745 resilience)', () => {
         await form.submit({});
         await vi.advanceTimersByTimeAsync(60000); // let any erroneously-scheduled retry fire
 
-        expect(global.fetch).toHaveBeenCalledTimes(1);
+        expect(window.fetch).toHaveBeenCalledTimes(1);
         expect(tracker.push).not.toHaveBeenCalledWith('SubmitFailed', expect.anything());
     });
 
     test('an unparseable response body is treated as a transient failure and retried', async () => {
-        global.fetch = vi.fn(() => Promise.resolve({
+        window.fetch = vi.fn(() => Promise.resolve({
             ok: true,
             status: 200,
             json: () => Promise.reject(new SyntaxError('Unexpected token < in JSON'))
@@ -205,7 +204,7 @@ describe('Form.submit (issue #2745 resilience)', () => {
         expect(reloadAttempts()).toHaveLength(0);
         expect(tracker.push).toHaveBeenCalledWith('SubmitFailed', expect.objectContaining({ attempt: 0 }));
         await vi.advanceTimersByTimeAsync(2000);
-        expect(global.fetch).toHaveBeenCalledTimes(2);
+        expect(window.fetch).toHaveBeenCalledTimes(2);
     });
 
     test('a non-intermediate submit with no mission available shows the no-new-mission modal', async () => {
@@ -235,7 +234,7 @@ describe('Form.submit (issue #2745 resilience)', () => {
 
         await form.submit(payload);
 
-        expect(global.fetch).toHaveBeenCalledWith('/validationTask', {
+        expect(window.fetch).toHaveBeenCalledWith('/validationTask', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json; charset=utf-8' },
             body: JSON.stringify(payload),
@@ -244,23 +243,23 @@ describe('Form.submit (issue #2745 resilience)', () => {
     });
 
     test('submits go out one at a time: a second payload waits behind the first one\'s retry', async () => {
-        global.fetch = vi.fn()
+        window.fetch = vi.fn()
             .mockImplementationOnce(() => Promise.reject(new Error('blip')))
             .mockImplementation(() => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({}) }));
 
         await form.submit({ validations: [{ label_id: 1 }] }, true);
         form.submit({ validations: [{ label_id: 2 }] }, true);
         await Promise.resolve();
-        expect(global.fetch).toHaveBeenCalledTimes(1); // The second is waiting behind the first's retry.
+        expect(window.fetch).toHaveBeenCalledTimes(1); // The second is waiting behind the first's retry.
 
         await vi.advanceTimersByTimeAsync(2000);
-        const labelIds = global.fetch.mock.calls.map(([, options]) => JSON.parse(options.body).validations[0].label_id);
+        const labelIds = window.fetch.mock.calls.map(([, options]) => JSON.parse(options.body).validations[0].label_id);
         expect(labelIds).toEqual([1, 1, 2]);
     });
 
     test('a resend carries the latest progress compiled for its mission, so it cannot move progress backwards',
         async () => {
-            global.fetch = vi.fn()
+            window.fetch = vi.fn()
                 .mockImplementationOnce(() => Promise.reject(new Error('blip')))
                 .mockImplementation(() => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({}) }));
 
@@ -268,25 +267,25 @@ describe('Form.submit (issue #2745 resilience)', () => {
             form.submit({ mission_progress: { mission_id: 5, labels_progress: 3 }, validations: [] }, true); // An undo.
             await vi.advanceTimersByTimeAsync(2000);
 
-            const progress = global.fetch.mock.calls.map(([, options]) => JSON.parse(options.body).mission_progress);
+            const progress = window.fetch.mock.calls.map(([, options]) => JSON.parse(options.body).mission_progress);
             expect(progress.map((p) => p.labels_progress)).toEqual([4, 3, 3]);
         });
 
     test('a resend sends the snapshot it was given, untouched by later edits to the buffered verdict', async () => {
-        global.fetch = vi.fn(() => Promise.reject(new Error('blip')));
+        window.fetch = vi.fn(() => Promise.reject(new Error('blip')));
         const verdict = { label_id: 1, undone: false };
 
         await form.submit({ validations: [verdict] }, true);
         verdict.undone = true; // What an undo does to the buffered object.
         await vi.advanceTimersByTimeAsync(2000);
 
-        expect(global.fetch).toHaveBeenCalledTimes(2);
-        expect(JSON.parse(global.fetch.mock.calls[1][1].body).validations[0].undone).toBe(false);
+        expect(window.fetch).toHaveBeenCalledTimes(2);
+        expect(JSON.parse(window.fetch.mock.calls[1][1].body).validations[0].undone).toBe(false);
     });
 
     test('a submit made while an earlier one is still in flight waits behind that one\'s retries too', async () => {
         let failFirst;
-        global.fetch = vi.fn()
+        window.fetch = vi.fn()
             .mockImplementationOnce(() => new Promise((_, reject) => { failFirst = reject; }))
             .mockImplementation(() => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({}) }));
 
@@ -296,12 +295,12 @@ describe('Form.submit (issue #2745 resilience)', () => {
         failFirst(new Error('timed out'));
         await vi.advanceTimersByTimeAsync(2000);
 
-        const labelIds = global.fetch.mock.calls.map(([, options]) => JSON.parse(options.body).validations[0].label_id);
+        const labelIds = window.fetch.mock.calls.map(([, options]) => JSON.parse(options.body).validations[0].label_id);
         expect(labelIds).toEqual([1, 1, 2]);
     });
 
     test('a resend of the mission-complete submit stays the mission-complete submit', async () => {
-        global.fetch = vi.fn()
+        window.fetch = vi.fn()
             .mockImplementationOnce(() => Promise.reject(new Error('blip')))
             .mockImplementation(() => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({}) }));
 
@@ -310,12 +309,12 @@ describe('Form.submit (issue #2745 resilience)', () => {
         form.submit({ mission_progress: { mission_id: 5, labels_progress: 10, completed: false }, validations: [] }, true);
         await vi.advanceTimersByTimeAsync(2000);
 
-        const completed = global.fetch.mock.calls.map(([, options]) => JSON.parse(options.body).mission_progress.completed);
+        const completed = window.fetch.mock.calls.map(([, options]) => JSON.parse(options.body).mission_progress.completed);
         expect(completed).toEqual([true, true, false]);
     });
 
     test('a resend of a flush does not become a mission-complete submit', async () => {
-        global.fetch = vi.fn()
+        window.fetch = vi.fn()
             .mockImplementationOnce(() => Promise.reject(new Error('blip')))
             .mockImplementation(() => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({}) }));
 
@@ -323,12 +322,12 @@ describe('Form.submit (issue #2745 resilience)', () => {
         form.submit({ mission_progress: { mission_id: 5, labels_progress: 10, completed: true }, validations: [] });
         await vi.advanceTimersByTimeAsync(2000);
 
-        const progress = global.fetch.mock.calls.map(([, options]) => JSON.parse(options.body).mission_progress);
+        const progress = window.fetch.mock.calls.map(([, options]) => JSON.parse(options.body).mission_progress);
         expect(progress.map((p) => [p.labels_progress, p.completed])).toEqual([[9, false], [10, false], [10, true]]);
     });
 
     test('never rejects, even when every attempt fails (callers do not catch)', async () => {
-        global.fetch = vi.fn(() => Promise.reject(new Error('down')));
+        window.fetch = vi.fn(() => Promise.reject(new Error('down')));
 
         await expect(form.submit({})).resolves.toBeUndefined();
         // Flush all scheduled retries; a rejection from any of them would surface as an unhandled rejection.
@@ -336,32 +335,32 @@ describe('Form.submit (issue #2745 resilience)', () => {
     });
 
     test('retries back off linearly (2s, then 4s, then 6s)', async () => {
-        global.fetch = vi.fn(() => Promise.reject(new Error('down')));
+        window.fetch = vi.fn(() => Promise.reject(new Error('down')));
 
         await form.submit({});
-        expect(global.fetch).toHaveBeenCalledTimes(1);
+        expect(window.fetch).toHaveBeenCalledTimes(1);
 
         // Retry 1 is scheduled 2000ms after the initial failure...
         await vi.advanceTimersByTimeAsync(1999);
-        expect(global.fetch).toHaveBeenCalledTimes(1);
+        expect(window.fetch).toHaveBeenCalledTimes(1);
         await vi.advanceTimersByTimeAsync(1);
-        expect(global.fetch).toHaveBeenCalledTimes(2);
+        expect(window.fetch).toHaveBeenCalledTimes(2);
 
         // ...retry 2 comes 4000ms after retry 1...
         await vi.advanceTimersByTimeAsync(3999);
-        expect(global.fetch).toHaveBeenCalledTimes(2);
+        expect(window.fetch).toHaveBeenCalledTimes(2);
         await vi.advanceTimersByTimeAsync(1);
-        expect(global.fetch).toHaveBeenCalledTimes(3);
+        expect(window.fetch).toHaveBeenCalledTimes(3);
 
         // ...and retry 3 comes 6000ms after retry 2.
         await vi.advanceTimersByTimeAsync(5999);
-        expect(global.fetch).toHaveBeenCalledTimes(3);
+        expect(window.fetch).toHaveBeenCalledTimes(3);
         await vi.advanceTimersByTimeAsync(1);
-        expect(global.fetch).toHaveBeenCalledTimes(4);
+        expect(window.fetch).toHaveBeenCalledTimes(4);
     });
 
     test('logs increasing attempt numbers, gives up with the final count, and never retries again', async () => {
-        global.fetch = vi.fn(() => Promise.reject(new Error('down')));
+        window.fetch = vi.fn(() => Promise.reject(new Error('down')));
 
         await form.submit({});
         await vi.advanceTimersByTimeAsync(30100); // 2+4+6+8+10s of backoff exhausts the 5 retries
@@ -374,12 +373,12 @@ describe('Form.submit (issue #2745 resilience)', () => {
 
         // Once it has given up, no further attempt may ever fire.
         await vi.advanceTimersByTimeAsync(600000);
-        expect(global.fetch).toHaveBeenCalledTimes(6);
+        expect(window.fetch).toHaveBeenCalledTimes(6);
     });
 
     test('a submit that fails once still completes the mission transition after a successful retry', async () => {
         let calls = 0;
-        global.fetch = vi.fn(() => {
+        window.fetch = vi.fn(() => {
             calls += 1;
             if (calls === 1) return Promise.reject(new Error('blip'));
             return Promise.resolve({
@@ -397,7 +396,7 @@ describe('Form.submit (issue #2745 resilience)', () => {
         await form.submit({});
         await vi.advanceTimersByTimeAsync(2000);
 
-        expect(global.fetch).toHaveBeenCalledTimes(2);
+        expect(window.fetch).toHaveBeenCalledTimes(2);
         expect(session.missionContainer.createAMission).toHaveBeenCalledWith({ mission_id: 4 }, {});
         expect(session.modalMissionComplete.nextMissionLoaded).toHaveBeenCalled();
         expect(tracker.push).not.toHaveBeenCalledWith('SubmitFailedGaveUp', expect.anything());
@@ -413,14 +412,14 @@ describe('Form.submit (issue #2745 resilience)', () => {
 
         expect(errorSpy).toHaveBeenCalled();
         expect(session.modalMissionComplete.nextMissionLoaded).not.toHaveBeenCalled();
-        expect(global.fetch).toHaveBeenCalledTimes(1);
+        expect(window.fetch).toHaveBeenCalledTimes(1);
         expect(reloadAttempts()).toHaveLength(0);
     });
 
     test('a failed intermediate submit stays intermediate across retries (never loads a mission)', async () => {
         let calls = 0;
         // Fail the first attempt, then succeed with a response that WOULD trigger mission handling if not intermediate.
-        global.fetch = vi.fn(() => {
+        window.fetch = vi.fn(() => {
             calls += 1;
             if (calls === 1) return Promise.reject(new Error('blip'));
             return Promise.resolve({
@@ -433,7 +432,7 @@ describe('Form.submit (issue #2745 resilience)', () => {
         await form.submit({}, true);
         await vi.advanceTimersByTimeAsync(2000);
 
-        expect(global.fetch).toHaveBeenCalledTimes(2);
+        expect(window.fetch).toHaveBeenCalledTimes(2);
         // Even though the retry succeeded with has_mission_available:false, the intermediate flag must persist so the
         // "no new mission" modal is never shown mid-mission.
         expect(session.modalNoNewMission.show).not.toHaveBeenCalled();

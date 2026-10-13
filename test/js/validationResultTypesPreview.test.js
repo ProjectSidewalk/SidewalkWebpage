@@ -41,7 +41,7 @@ const WRONG_SHAPE_FIXTURE = {
  * @param {object} body - The object the stubbed fetch should resolve with as JSON.
  */
 function stubFetch(body) {
-    global.fetch = vi.fn(() =>
+    window.fetch = vi.fn(() =>
         Promise.resolve({
             ok: true,
             status: 200,
@@ -60,8 +60,7 @@ describe('ValidationResultTypesPreview', () => {
     });
 
     afterEach(() => {
-        delete global.fetch;
-        vi.restoreAllMocks();
+        delete window.fetch;
     });
 
     test('exposes the expected global surface', () => {
@@ -125,7 +124,7 @@ describe('ValidationResultTypesPreview', () => {
         stubFetch(GOOD_FIXTURE);
         await window.ValidationResultTypesPreview.setup({}).init();
         // The preview tags its request with utm_source=apiDocs so the API analytics can attribute doc-page traffic.
-        expect(global.fetch).toHaveBeenCalledWith('/v3/api/validationResultTypes?utm_source=apiDocs');
+        expect(window.fetch).toHaveBeenCalledWith('/v3/api/validationResultTypes?utm_source=apiDocs');
     });
 
     // Documents the drift-detection value of this layer: the wrong (camelCase) shape does not throw — the module is

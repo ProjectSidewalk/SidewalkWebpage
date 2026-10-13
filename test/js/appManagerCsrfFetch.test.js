@@ -21,7 +21,7 @@ const CROSS_ORIGIN = 'https://graph.mapillary.com/images?fields=id';
 
 // Node's `Request` rejects a relative URL; the page's resolves it against the document and exposes the result as
 // `.url`, which is what tells a Request from a `URL` (address via stringification) in the wrapper.
-global.Request = class Request {
+window.Request = class Request {
     constructor(input) {
         this.url = new URL(String(input), window.location.origin).href;
     }

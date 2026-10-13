@@ -47,15 +47,15 @@ describe('PanoManager POV_Changed throttling (issue #2745)', () => {
 
         // Real throttle implementation — the unit under integration here.
         stubUtil({});
-        global.i18next = { language: 'en' };
+        window.i18next = { language: 'en' };
         Object.assign(window, await loadModules(THROTTLE_PATH));
 
         // Globals PanoManager's init path reads.
         util.isMobile = () => false;
-        global.createPanoViewerLogo = vi.fn(() => ({ showPrimaryLogo: vi.fn(), showSourceLogo: vi.fn() }));
-        global.createPanoAttribution = vi.fn(() => ({ show: vi.fn(), hide: vi.fn() }));
-        global.GsvViewer = class GsvViewer {};             // distinct from FakeViewerType, so the GSV-only
-        global.MapillaryViewer = class MapillaryViewer {}; // and Mapillary-only attribution paths are skipped
+        window.createPanoViewerLogo = vi.fn(() => ({ showPrimaryLogo: vi.fn(), showSourceLogo: vi.fn() }));
+        window.createPanoAttribution = vi.fn(() => ({ show: vi.fn(), hide: vi.fn() }));
+        window.GsvViewer = class GsvViewer {};             // distinct from FakeViewerType, so the GSV-only
+        window.MapillaryViewer = class MapillaryViewer {}; // and Mapillary-only attribution paths are skipped
         tracker = { push: vi.fn(), trackPano: vi.fn() };
 
         const panoData = {
@@ -78,12 +78,12 @@ describe('PanoManager POV_Changed throttling (issue #2745)', () => {
     afterEach(() => {
         vi.useRealTimers();
         document.body.innerHTML = '';
-        delete global.util;
-        delete global.i18next;
-        delete global.createPanoViewerLogo;
-        delete global.createPanoAttribution;
-        delete global.GsvViewer;
-        delete global.MapillaryViewer;
+        delete window.util;
+        delete window.i18next;
+        delete window.createPanoViewerLogo;
+        delete window.createPanoAttribution;
+        delete window.GsvViewer;
+        delete window.MapillaryViewer;
     });
 
     /**

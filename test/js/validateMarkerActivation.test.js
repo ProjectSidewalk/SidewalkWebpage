@@ -80,12 +80,12 @@ describe('Validate pano marker activation', () => {
         // jsdom has no WebGL, so PanoMarker takes its 2d projection fallback; where the marker lands is irrelevant
         // here. Returning null directly keeps that deterministic without jsdom's "not implemented" noise.
         vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
-        global.PanoMarker = await loadClassFromFile(PANO_MARKER_PATH, 'PanoMarker');
+        window.PanoMarker = await loadClassFromFile(PANO_MARKER_PATH, 'PanoMarker');
 
-        global.i18next = {t: (key) => key};
-        global.LabelCard = class { closePopovers() {} isPopoverOpen() { return false; } };
-        global.LabelVisibilityToggle = class { setVisible() {} isVisible() { return true; } };
-        global.Infra3dViewer = class {};
+        window.i18next = {t: (key) => key};
+        window.LabelCard = class { closePopovers() {} isPopoverOpen() { return false; } };
+        window.LabelVisibilityToggle = class { setVisible() {} isVisible() { return true; } };
+        window.Infra3dViewer = class {};
         const LabelVisibilityControl = await loadClassFromFile(LABEL_VISIBILITY_CONTROL_PATH, 'LabelVisibilityControl');
         control = new LabelVisibilityControl(
             {controlLayer: document.getElementById('view-control-layer')}, {viewerType: class {}},
@@ -102,7 +102,6 @@ describe('Validate pano marker activation', () => {
 
     afterEach(() => {
         vi.useRealTimers();
-        vi.restoreAllMocks();
         document.body.innerHTML = '';
         for (const name of ['util', 'PanoMarker', 'i18next', 'LabelCard', 'LabelVisibilityToggle', 'Infra3dViewer']) {
             delete global[name];

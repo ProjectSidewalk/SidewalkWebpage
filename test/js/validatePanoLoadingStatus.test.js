@@ -64,7 +64,7 @@ describe.each([
 
   beforeEach(async () => {
     vi.useFakeTimers();
-    global.i18next = {t: vi.fn((key) => `t(${key})`)};
+    window.i18next = {t: vi.fn((key) => `t(${key})`)};
     document.body.innerHTML = `<div id="svv-panorama-holder">${statusMarkup(viewPath)}</div>`;
     PanoLoadingStatus = await loadClassFromFile(STATUS_PATH, 'PanoLoadingStatus');
     region = document.getElementById('svv-pano-loading');
@@ -77,7 +77,7 @@ describe.each([
   afterEach(() => {
     vi.useRealTimers();
     document.body.innerHTML = '';
-    delete global.i18next;
+    delete window.i18next;
   });
 
   test('is a polite status region that is always rendered, with only its box hidden at rest', () => {
@@ -207,7 +207,7 @@ describe('the pano loading status degrades quietly without its markup', () => {
 
 describe('the pano loading status degrades quietly with its markup half there', () => {
   test('a box without its text element is treated as no status, rather than throwing mid-render', async () => {
-    global.i18next = {t: vi.fn((key) => key)};
+    window.i18next = {t: vi.fn((key) => key)};
     document.body.innerHTML = '<div id="svv-pano-loading"><div class="svv-pano-loading__box ps-hidden"></div></div>';
     const PanoLoadingStatus = await loadClassFromFile(STATUS_PATH, 'PanoLoadingStatus');
     const status = new PanoLoadingStatus(document.getElementById('svv-pano-loading'));
@@ -218,7 +218,7 @@ describe('the pano loading status degrades quietly with its markup half there', 
     }).not.toThrow();
     expect(status.isShowing()).toBe(false);
     document.body.innerHTML = '';
-    delete global.i18next;
+    delete window.i18next;
   });
 });
 

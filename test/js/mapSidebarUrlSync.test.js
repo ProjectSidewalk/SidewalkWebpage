@@ -154,7 +154,6 @@ describe('MapSidebarUrlSync', () => {
 
     beforeEach(() => {
         vi.useFakeTimers();
-        vi.clearAllMocks();
         window.history.replaceState({}, '', '/labelMap');
         mapHandlers = {};
         map = {

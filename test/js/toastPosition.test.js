@@ -59,7 +59,7 @@ describe('Toast placement', () => {
     beforeEach(() => {
         document.body.innerHTML = '';
         window.innerWidth = VIEWPORT_WIDTH;
-        global.i18next = { t: (key) => key };
+        window.i18next = { t: (key) => key };
         stubUtil({ assetPath: assetPathStub }); // The close button's icon URL.
     });
 
@@ -95,8 +95,8 @@ describe('Toast placement', () => {
 
     it('follows its reference when that is re-laid out without a window resize', () => {
         const observed = [];
-        const realResizeObserver = global.ResizeObserver;
-        global.ResizeObserver = class {
+        const realResizeObserver = window.ResizeObserver;
+        window.ResizeObserver = class {
             constructor(callback) { this.callback = callback; }
             observe(el) { observed.push({ el, fire: () => this.callback([]) }); }
             disconnect() { this.disconnected = true; }
@@ -109,7 +109,7 @@ describe('Toast placement', () => {
             observed[0].fire();
             expect(parseFloat(document.querySelector('.ps-toast').style.left)).toBe(750);
         } finally {
-            global.ResizeObserver = realResizeObserver;
+            window.ResizeObserver = realResizeObserver;
         }
     });
 

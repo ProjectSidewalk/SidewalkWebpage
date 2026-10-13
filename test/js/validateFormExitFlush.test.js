@@ -32,6 +32,8 @@ function setVisibility(state) {
     document.dispatchEvent(new Event('visibilitychange'));
 }
 
+afterEach(() => { vi.useRealTimers(); });
+
 describe('Form exit flushes (issue #5561)', () => {
     let form;
     let payload;
@@ -44,7 +46,7 @@ describe('Form exit flushes (issue #5561)', () => {
     });
 
     beforeEach(() => {
-        global.fetch = vi.fn(() => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({}) }));
+        window.fetch = vi.fn(() => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({}) }));
         tracker.push.mockClear();
         tracker.record.mockClear();
         consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -54,15 +56,14 @@ describe('Form exit flushes (issue #5561)', () => {
     });
 
     afterEach(() => {
-        vi.restoreAllMocks();
-        delete global.fetch;
+        delete window.fetch;
         setVisibility('visible');
     });
 
     /** @returns {object} The options the one exit POST was sent with. */
     function exitPostOptions() {
-        expect(global.fetch).toHaveBeenCalledTimes(1);
-        const [url, options] = global.fetch.mock.calls[0];
+        expect(window.fetch).toHaveBeenCalledTimes(1);
+        const [url, options] = window.fetch.mock.calls[0];
         expect(url).toBe('/validationTask');
         return options;
     }
@@ -81,7 +82,7 @@ describe('Form exit flushes (issue #5561)', () => {
     test('coming back into view sends nothing', () => {
         setVisibility('visible');
 
-        expect(global.fetch).not.toHaveBeenCalled();
+        expect(window.fetch).not.toHaveBeenCalled();
         expect(tracker.record).not.toHaveBeenCalled();
     });
 
@@ -105,8 +106,8 @@ describe('Form exit flushes (issue #5561)', () => {
         setVisibility('hidden');
         window.dispatchEvent(new Event('pagehide'));
 
-        expect(global.fetch).toHaveBeenCalledTimes(2);
-        const bodies = global.fetch.mock.calls.map(([, options]) => JSON.parse(options.body));
+        expect(window.fetch).toHaveBeenCalledTimes(2);
+        const bodies = window.fetch.mock.calls.map(([, options]) => JSON.parse(options.body));
         expect(bodies[0].validations).toHaveLength(1);
         expect(bodies[1].validations).toHaveLength(0);
     });
@@ -120,32 +121,28 @@ describe('Form exit flushes (issue #5561)', () => {
 
     test('a hidden flush that fails is logged and retried, since the page usually comes back', async () => {
         vi.useFakeTimers();
-        try {
-            global.fetch = vi.fn()
-                .mockImplementationOnce(() => Promise.reject(new Error('blip')))
-                .mockImplementation(() => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({}) }));
+        window.fetch = vi.fn()
+            .mockImplementationOnce(() => Promise.reject(new Error('blip')))
+            .mockImplementation(() => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({}) }));
 
-            setVisibility('hidden');
-            await Promise.resolve();
-            await Promise.resolve();
-            expect(tracker.push).toHaveBeenCalledWith('SubmitFailed', expect.objectContaining({ attempt: 0 }));
+        setVisibility('hidden');
+        await Promise.resolve();
+        await Promise.resolve();
+        expect(tracker.push).toHaveBeenCalledWith('SubmitFailed', expect.objectContaining({ attempt: 0 }));
 
-            await vi.advanceTimersByTimeAsync(2000);
-            expect(global.fetch).toHaveBeenCalledTimes(2);
-            expect(global.fetch.mock.calls[1][1].body).toBe(JSON.stringify(payload));
-        } finally {
-            vi.useRealTimers();
-        }
+        await vi.advanceTimersByTimeAsync(2000);
+        expect(window.fetch).toHaveBeenCalledTimes(2);
+        expect(window.fetch.mock.calls[1][1].body).toBe(JSON.stringify(payload));
     });
 
     test('a pagehide flush that fails is left alone: nothing is there to retry it', async () => {
-        global.fetch = vi.fn(() => Promise.reject(new Error('blip')));
+        window.fetch = vi.fn(() => Promise.reject(new Error('blip')));
 
         window.dispatchEvent(new Event('pagehide'));
         await Promise.resolve();
         await Promise.resolve();
 
-        expect(global.fetch).toHaveBeenCalledTimes(1);
+        expect(window.fetch).toHaveBeenCalledTimes(1);
         expect(tracker.push).not.toHaveBeenCalledWith('SubmitFailed', expect.anything());
     });
 

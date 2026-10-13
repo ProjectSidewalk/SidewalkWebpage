@@ -81,13 +81,13 @@ describe('BadgeAchievements.getProgress', () => {
     const V = BadgeAchievements.THRESHOLDS.validations;
 
     beforeEach(() => {
-        global.i18next = {t: (key) => key}; // getBadge localizes the badge's display name.
+        window.i18next = {t: (key) => key}; // getBadge localizes the badge's display name.
         stubUtil({assetPath: assetPathStub}); // getBadge resolves the badge artwork's URL.
     });
 
     afterEach(() => {
-        delete global.i18next;
-        delete global.util;
+        delete window.i18next;
+        delete window.util;
     });
 
     test('someone with no badge yet is on the first tier, measured from zero', () => {
@@ -191,7 +191,7 @@ describe('BadgeAchievements.seedCounts', () => {
     const settle = () => new Promise((resolve) => { setTimeout(resolve, 0); });
 
     const respondWith = (status, body) => {
-        global.fetch = vi.fn(() => Promise.resolve({
+        window.fetch = vi.fn(() => Promise.resolve({
             ok: status >= 200 && status < 300,
             status,
             json: () => Promise.resolve(body),
@@ -209,15 +209,15 @@ describe('BadgeAchievements.seedCounts', () => {
     beforeEach(async () => {
         Badges = await evalBadgeAchievements();
         consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
-        global.i18next = {t: (key) => key}; // getBadge localizes the badge's display name.
+        window.i18next = {t: (key) => key}; // getBadge localizes the badge's display name.
         stubUtil({hasSession: () => true, assetPath: assetPathStub});
     });
 
     afterEach(() => {
         consoleError.mockRestore();
-        delete global.fetch;
-        delete global.i18next;
-        delete global.util;
+        delete window.fetch;
+        delete window.i18next;
+        delete window.util;
     });
 
     test('seeds the counts from a signed-in response', async () => {
@@ -237,7 +237,7 @@ describe('BadgeAchievements.seedCounts', () => {
         await settle();
 
         // The request is what has to not happen: the browser logs a 401 as a console error whatever we catch.
-        expect(global.fetch).not.toHaveBeenCalled();
+        expect(window.fetch).not.toHaveBeenCalled();
         expect(consoleError).not.toHaveBeenCalled();
         expect(validate(100)).toHaveLength(1); // Seeded at zero, so this session's own activity still counts.
     });
@@ -248,7 +248,7 @@ describe('BadgeAchievements.seedCounts', () => {
         Badges.seedCounts();
         await settle();
 
-        expect(global.fetch).toHaveBeenCalledTimes(1);
+        expect(window.fetch).toHaveBeenCalledTimes(1);
         expect(validate(1)).toHaveLength(1);
     });
 
@@ -280,6 +280,6 @@ describe('BadgeAchievements.seedCounts', () => {
         Badges.seedCounts();
         await settle();
 
-        expect(global.fetch).toHaveBeenCalledTimes(1);
+        expect(window.fetch).toHaveBeenCalledTimes(1);
     });
 });

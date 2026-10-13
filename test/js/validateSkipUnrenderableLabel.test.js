@@ -126,7 +126,7 @@ describe('PanoManager clears the pano when no viewer can render it (issue #4810)
 
     stubUtil({});
     // utilities.js builds a Bowser parser at load time; the overrides below replace everything read from it.
-    global.bowser = { getParser: () => ({ getBrowserName: () => 'Chrome', getBrowserVersion: () => '1',
+    window.bowser = { getParser: () => ({ getBrowserName: () => 'Chrome', getBrowserVersion: () => '1',
         getOSName: () => 'Linux', getPlatformType: () => 'desktop' }) };
     // Real utilities, for the marker sizing rule util.cappedMarkerDiameter uses (#4838).
     Object.assign(window, await loadModules(UTILITIES_PATH));
@@ -146,13 +146,13 @@ describe('PanoManager clears the pano when no viewer can render it (issue #4810)
       renderedHFov: () => 90,
     };
 
-    global.PanoMarker = await loadClassFromFile(PANO_MARKER_PATH, 'PanoMarker');
-    global.i18next = {t: () => 'Curb ramp'};
-    global.createPanoViewerLogo = vi.fn(() => ({showPrimaryLogo: vi.fn(), showSourceLogo: vi.fn()}));
-    global.createPanoAttribution = vi.fn(() => ({show: vi.fn(), hide: vi.fn()}));
-    global.GsvViewer = class GsvViewer {};             // distinct from FakeViewerType, so the GSV-only
-    global.MapillaryViewer = class MapillaryViewer {}; // and Mapillary-only attribution paths are skipped
-    global.PanoLoadTimeoutError = await loadClassFromFile(TIMEOUT_ERROR_PATH, 'PanoLoadTimeoutError');
+    window.PanoMarker = await loadClassFromFile(PANO_MARKER_PATH, 'PanoMarker');
+    window.i18next = {t: () => 'Curb ramp'};
+    window.createPanoViewerLogo = vi.fn(() => ({showPrimaryLogo: vi.fn(), showSourceLogo: vi.fn()}));
+    window.createPanoAttribution = vi.fn(() => ({show: vi.fn(), hide: vi.fn()}));
+    window.GsvViewer = class GsvViewer {};             // distinct from FakeViewerType, so the GSV-only
+    window.MapillaryViewer = class MapillaryViewer {}; // and Mapillary-only attribution paths are skipped
+    window.PanoLoadTimeoutError = await loadClassFromFile(TIMEOUT_ERROR_PATH, 'PanoLoadTimeoutError');
 
     panoData = {getPanoId: () => 'pano1', getProperty: () => new Date(2026, 5)};
     fakeViewer = {
@@ -175,16 +175,15 @@ describe('PanoManager clears the pano when no viewer can render it (issue #4810)
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
     document.body.innerHTML = '';
-    delete global.util;
-    delete global.PanoMarker;
-    delete global.i18next;
-    delete global.createPanoViewerLogo;
-    delete global.createPanoAttribution;
-    delete global.GsvViewer;
-    delete global.MapillaryViewer;
-    delete global.PanoLoadTimeoutError;
+    delete window.util;
+    delete window.PanoMarker;
+    delete window.i18next;
+    delete window.createPanoViewerLogo;
+    delete window.createPanoAttribution;
+    delete window.GsvViewer;
+    delete window.MapillaryViewer;
+    delete window.PanoLoadTimeoutError;
   });
 
   /**
@@ -231,7 +230,7 @@ describe('PanoManager clears the pano when no viewer can render it (issue #4810)
   });
 
   test('a primary load that timed out on a pano that exists is reported as slow, not as no imagery', async () => {
-    fakeViewer.setPano = vi.fn(() => Promise.reject(new global.PanoLoadTimeoutError('pano2', 12000)));
+    fakeViewer.setPano = vi.fn(() => Promise.reject(new window.PanoLoadTimeoutError('pano2', 12000)));
 
     await expect(panoManager.setPanorama('pano2', null)).resolves.toEqual({panoData: null, reason: 'slow'});
   });
@@ -267,15 +266,15 @@ describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
     topUpQueue = [];
     topUpBodies = [];
 
-    global.fetch = vi.fn((url, options) => {
+    window.fetch = vi.fn((url, options) => {
       topUpBodies.push(JSON.parse(options.body));
       return Promise.resolve({ok: true, json: () => Promise.resolve({labels: topUpQueue.shift() ?? []})});
     });
 
     stubUtil({isMobile: () => false, assetPath: assetPathStub});
-    global.i18next = {t: vi.fn((key) => key)};
+    window.i18next = {t: vi.fn((key) => key)};
     // The bundle's Label class; only the accessors LabelContainer and its collaborators touch.
-    global.Label = class Label {
+    window.Label = class Label {
       constructor(params) {
         this.auditProps = params;
         this.props = {};
@@ -324,10 +323,10 @@ describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
   });
 
   afterEach(() => {
-    delete global.fetch;
-    delete global.util;
-    delete global.i18next;
-    delete global.Label;
+    delete window.fetch;
+    delete window.util;
+    delete window.i18next;
+    delete window.Label;
   });
 
   /** @returns {Array} Three labels' worth of metadata, one per pano. */
@@ -420,7 +419,7 @@ describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
     await labelContainer.moveToNextLabel();
     await labelContainer.moveToNextLabel();
 
-    expect(global.fetch).toHaveBeenCalledWith('/validationTask/moreLabels', expect.objectContaining({method: 'POST'}));
+    expect(window.fetch).toHaveBeenCalledWith('/validationTask/moreLabels', expect.objectContaining({method: 'POST'}));
     expect(topUpBodies).toHaveLength(1);
     expect(topUpBodies[0].label_type).toBe(LABEL_TYPE);
     expect(topUpBodies[0].labels_needed).toBe(1);
@@ -460,7 +459,7 @@ describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
 
   test('a failed replacement request falls back to the modal instead of throwing', async () => {
     unrenderablePanoIds.add('panoC');
-    global.fetch = vi.fn(() => Promise.reject(new Error('offline')));
+    window.fetch = vi.fn(() => Promise.reject(new Error('offline')));
     const labelContainer = await buildContainer();
 
     await labelContainer.moveToNextLabel();
@@ -478,7 +477,7 @@ describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
 
     await labelContainer.moveToNextLabel();
 
-    expect(global.fetch).not.toHaveBeenCalled();
+    expect(window.fetch).not.toHaveBeenCalled();
     expect(deps.modalNoNewMission.show).toHaveBeenCalledWith({imageryUnavailable: false});
   });
 
@@ -580,13 +579,13 @@ describe('LabelContainer defers a label whose pano is slow rather than dropping 
     slowLoadsLeft = new Map();
     topUpBodies = [];
 
-    global.fetch = vi.fn((url, options) => {
+    window.fetch = vi.fn((url, options) => {
       topUpBodies.push(JSON.parse(options.body));
       return Promise.resolve({ok: true, json: () => Promise.resolve({labels: []})});
     });
     stubUtil({isMobile: () => false, assetPath: assetPathStub});
-    global.i18next = {t: vi.fn((key) => key)};
-    global.Label = class Label {
+    window.i18next = {t: vi.fn((key) => key)};
+    window.Label = class Label {
       constructor(params) {
         this.auditProps = params;
         this.props = {};
@@ -633,10 +632,10 @@ describe('LabelContainer defers a label whose pano is slow rather than dropping 
   });
 
   afterEach(() => {
-    delete global.fetch;
-    delete global.util;
-    delete global.i18next;
-    delete global.Label;
+    delete window.fetch;
+    delete window.util;
+    delete window.i18next;
+    delete window.Label;
   });
 
   /** @returns {Promise<LabelContainer>} A container over three labels, one per pano, with its first label shown. */
@@ -678,7 +677,7 @@ describe('LabelContainer defers a label whose pano is slow rather than dropping 
     expect(events()).not.toContain('LabelSkipped_NoImagery');
     expect(events()).not.toContain('LabelSkipped_SlowImagery');
     expect(deps.panoManager.prefetchPano).toHaveBeenCalledWith('panoB');
-    expect(global.fetch).not.toHaveBeenCalled(); // No replacement is asked for: the label is still in the mission.
+    expect(window.fetch).not.toHaveBeenCalled(); // No replacement is asked for: the label is still in the mission.
   });
 
   test('the validator is told the tool is moving on, not left watching a frozen pano', async () => {
@@ -727,7 +726,7 @@ describe('LabelContainer defers a label whose pano is slow rather than dropping 
     expect(events().filter((name) => name === 'LabelDeferred_SlowImagery')).toHaveLength(2);
     expect(events().filter((name) => name === 'LabelSkipped_SlowImagery')).toHaveLength(3);
     // Replacements would come from the network that just failed every load, so none are asked for.
-    expect(global.fetch).not.toHaveBeenCalled();
+    expect(window.fetch).not.toHaveBeenCalled();
     expect(deps.modalNoNewMission.show).toHaveBeenCalledWith({imageryUnavailable: true});
     expect(deps.panoManager.renderPanoMarker).not.toHaveBeenCalled();
   });
@@ -779,7 +778,7 @@ describe('LabelContainer defers a label whose pano is slow rather than dropping 
     await labelContainer.moveToNextLabel(); // Label 3.
     await labelContainer.moveToNextLabel(); // The end: label 1 doesn't come back, and nothing was owed.
     expect(renderedLabelIds()).toEqual([1, 2, 2, 3]);
-    expect(global.fetch).not.toHaveBeenCalled();
+    expect(window.fetch).not.toHaveBeenCalled();
     expect(deps.modalNoNewMission.show).toHaveBeenCalledWith({imageryUnavailable: false});
   });
 });

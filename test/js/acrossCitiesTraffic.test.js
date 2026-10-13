@@ -94,7 +94,7 @@ describe('Across Cities — traffic section', () => {
    */
   async function render(cities, traffic) {
     document.body.innerHTML = MARKUP;
-    global.fetch = vi.fn((url) => {
+    window.fetch = vi.fn((url) => {
       if (url === '/adminapi/cityScorecards') {
         return Promise.resolve({
           ok: true,
@@ -187,7 +187,7 @@ describe('Across Cities — traffic section', () => {
   it('keeps the loading note when a header is clicked before the traffic fetch lands', async () => {
     document.body.innerHTML = MARKUP;
     let releaseTraffic;
-    global.fetch = vi.fn((url) => {
+    window.fetch = vi.fn((url) => {
       if (url === '/adminapi/cityScorecards') {
         return Promise.resolve({
           ok: true,

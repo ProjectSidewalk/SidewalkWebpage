@@ -37,7 +37,7 @@ const ImageryPage = await loadPage();
 /** Mapbox GL cannot run under jsdom; this records what the map was told and fires 'load' immediately. */
 function stubMapbox() {
   const state = { featureStates: [], handlers: [] };
-  global.mapboxgl = {
+  window.mapboxgl = {
     accessToken: null,
     Map: class {
       constructor(options) {
@@ -171,7 +171,7 @@ async function renderPage({ streets = CITY, features, pipeline = report(), failS
   document.body.innerHTML = MARKUP;
   charts.length = 0;
   const mapState = stubMapbox();
-  global.fetch = vi.fn((url) => {
+  window.fetch = vi.fn((url) => {
     if (url.startsWith('/adminapi/imageryFreshness')) {
       return Promise.resolve({ ok: true, json: async () => pipeline });
     }
@@ -201,8 +201,7 @@ const streetRows = () => [...document.querySelectorAll('#imagery-street-table tb
 beforeEach(() => { vi.spyOn(Date, 'now').mockReturnValue(NOW); });
 
 afterEach(() => {
-  vi.restoreAllMocks();
-  delete global.mapboxgl;
+  delete window.mapboxgl;
 });
 
 describe('ImageryPage KPIs', () => {

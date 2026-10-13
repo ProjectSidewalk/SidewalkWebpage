@@ -80,7 +80,7 @@ describe('Validate marker halo pulse (issue #4790)', () => {
 
         stubUtil({});
         // utilities.js builds a Bowser parser at load time; the overrides below replace everything read from it.
-        global.bowser = { getParser: () => ({ getBrowserName: () => 'Chrome', getBrowserVersion: () => '1',
+        window.bowser = { getParser: () => ({ getBrowserName: () => 'Chrome', getBrowserVersion: () => '1',
             getOSName: () => 'Linux', getPlatformType: () => 'desktop' }) };
         // Real utilities, for util.cappedMarkerDiameter: these tests read the marker's rendered diameter back, so
         // the sizing rule needs to be production's rather than a formula copied into a stub (#4838).
@@ -103,12 +103,12 @@ describe('Validate marker halo pulse (issue #4790)', () => {
             renderedHFov: () => 90,
         };
 
-        global.PanoMarker = await loadClassFromFile(PANO_MARKER_PATH, 'PanoMarker');
-        global.i18next = { t: () => 'Curb ramp' };
-        global.createPanoViewerLogo = vi.fn(() => ({ showPrimaryLogo: vi.fn(), showSourceLogo: vi.fn() }));
-        global.createPanoAttribution = vi.fn(() => ({ show: vi.fn(), hide: vi.fn() }));
-        global.GsvViewer = class GsvViewer {};             // distinct from FakeViewerType, so the GSV-only
-        global.MapillaryViewer = class MapillaryViewer {}; // and Mapillary-only attribution paths are skipped
+        window.PanoMarker = await loadClassFromFile(PANO_MARKER_PATH, 'PanoMarker');
+        window.i18next = { t: () => 'Curb ramp' };
+        window.createPanoViewerLogo = vi.fn(() => ({ showPrimaryLogo: vi.fn(), showSourceLogo: vi.fn() }));
+        window.createPanoAttribution = vi.fn(() => ({ show: vi.fn(), hide: vi.fn() }));
+        window.GsvViewer = class GsvViewer {};             // distinct from FakeViewerType, so the GSV-only
+        window.MapillaryViewer = class MapillaryViewer {}; // and Mapillary-only attribution paths are skipped
 
         const panoData = {
             getPanoId: () => 'pano1',
@@ -134,15 +134,14 @@ describe('Validate marker halo pulse (issue #4790)', () => {
     });
 
     afterEach(() => {
-        vi.restoreAllMocks();
         document.body.innerHTML = '';
-        delete global.util;
-        delete global.PanoMarker;
-        delete global.i18next;
-        delete global.createPanoViewerLogo;
-        delete global.createPanoAttribution;
-        delete global.GsvViewer;
-        delete global.MapillaryViewer;
+        delete window.util;
+        delete window.PanoMarker;
+        delete window.i18next;
+        delete window.createPanoViewerLogo;
+        delete window.createPanoAttribution;
+        delete window.GsvViewer;
+        delete window.MapillaryViewer;
     });
 
     /** @returns {HTMLElement} The marker element PanoMarker created. */

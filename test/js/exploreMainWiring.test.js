@@ -264,10 +264,6 @@ beforeEach(async () => {
   await new Main(PARAMS, SESSION).start();
 });
 
-afterEach(() => {
-  vi.restoreAllMocks();
-});
-
 /** The keyboard lock and the pop-up lock, which Main builds as plain gates and hands to what holds them. */
 const keyboardLock = () => built.keyboard.ctorArgs[0];
 const interactionLock = () => built.popUpMessage.ctorArgs[1];

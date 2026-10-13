@@ -14,7 +14,7 @@ fakeImport('frontend/js/common/Modal.js', 'Modal');
 
 
 // jsdom leaves TextEncoder out of the page globals; every browser that runs this code has it.
-if (typeof global.TextEncoder === 'undefined') global.TextEncoder = TextEncoder;
+if (typeof window.TextEncoder === 'undefined') window.TextEncoder = TextEncoder;
 
 const RANGE_URL = 'https://api.pwnedpasswords.com/range/';
 const BREACH_MESSAGE = 'This password has shown up in a known data breach.';
@@ -136,7 +136,6 @@ beforeEach(() => {
 afterEach(() => {
   // Restores the window.addEventListener spy however the test body exited; leaving it installed would swallow
   // every later load's DOMContentLoaded registration and misattribute the failures.
-  vi.restoreAllMocks();
   vi.useRealTimers();
   delete window.fetch;
   delete window.Modal;

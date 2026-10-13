@@ -73,10 +73,6 @@ describe('Label render fade while the context menu is open', () => {
         window.labelIconCache = { 'CurbRamp.svg': {} }; // Truthy, so renderLabelIcon reaches its drawImage.
     });
 
-    afterEach(() => {
-        vi.restoreAllMocks();
-    });
-
     test('draws at full opacity when no context menu is open', () => {
         const ctx = renderWith(newLabel(), { open: false, target: null });
 

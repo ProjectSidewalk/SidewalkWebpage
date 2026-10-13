@@ -30,12 +30,12 @@ describe('GsvViewer._loadPanoWithTimeout', () => {
     beforeEach(() => {
         vi.useFakeTimers();
         // The race detaches its position_changed listener via google.maps.event.removeListener.
-        global.google = { maps: { event: { removeListener: vi.fn() } } };
+        window.google = { maps: { event: { removeListener: vi.fn() } } };
     });
 
     afterEach(() => {
         vi.useRealTimers();
-        delete global.google;
+        delete window.google;
     });
 
     /**
@@ -64,7 +64,7 @@ describe('GsvViewer._loadPanoWithTimeout', () => {
 
         await expect(promise).resolves.toBe(panoData);
         // Listener detached, and the timeout cleared (advancing time must not also reject).
-        expect(global.google.maps.event.removeListener).toHaveBeenCalledTimes(1);
+        expect(window.google.maps.event.removeListener).toHaveBeenCalledTimes(1);
         vi.advanceTimersByTime(60000);
         await expect(promise).resolves.toBe(panoData);
     });
@@ -78,7 +78,7 @@ describe('GsvViewer._loadPanoWithTimeout', () => {
         vi.advanceTimersByTime(60000); // well past the load timeout.
 
         await assertion;
-        expect(global.google.maps.event.removeListener).toHaveBeenCalledTimes(1);
+        expect(window.google.maps.event.removeListener).toHaveBeenCalledTimes(1);
     });
 
     test('a late position_changed after the timeout does not flip the rejected promise', async () => {

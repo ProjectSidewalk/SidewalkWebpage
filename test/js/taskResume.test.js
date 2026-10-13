@@ -12,18 +12,17 @@
  * along real street geometry, and a stub that got it slightly wrong would pass for the wrong reason.
  */
 
-import path from 'path';
-import { loadModules, realUtil, fakeImport, stubUtil } from './loadGlobalScript.js';
+import { loadVendored, loadModules, realUtil, fakeImport, stubUtil } from './loadGlobalScript.js';
 import { fakeTracker } from './fakes.js';
 
 fakeImport('frontend/js/explore/task/Task.js', 'Task');
 fakeImport('frontend/js/explore/EventEmitter.js', 'EventEmitter');
 
 
-const REPO_ROOT = path.resolve(__dirname, '..', '..');
 
 // Loaded once, up front: the fixtures below are built while the suite is collected, before any beforeEach runs.
-const turf = require(path.join(REPO_ROOT, 'public/vendor/turf/turf-7.4.0.min.js'));
+loadVendored('turf');
+const turf = window.turf;
 
 const STREET_START = [-77.02, 38.9];
 const STREET_LENGTH_M = 200;

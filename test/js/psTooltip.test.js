@@ -87,6 +87,8 @@ async function loadPsTooltip() {
 
 let unloadPsTooltip;
 
+afterEach(() => { vi.useRealTimers(); });
+
 beforeEach(async () => {
     document.body.innerHTML = '';
     window.innerWidth = VIEWPORT_WIDTH;
@@ -320,17 +322,13 @@ describe('psTooltip retirement', () => {
         // The AI tag suggestion clicked within the delay: its click removes the attribute, and the card that then
         // opened was empty.
         vi.useFakeTimers();
-        try {
-            const trigger = addTrigger({ left: 400, top: 300, width: 100, height: 30 }, 'quick');
-            trigger.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
-            trigger.removeAttribute('data-ps-tooltip');
-            vi.runAllTimers();
+        const trigger = addTrigger({ left: 400, top: 300, width: 100, height: 30 }, 'quick');
+        trigger.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+        trigger.removeAttribute('data-ps-tooltip');
+        vi.runAllTimers();
 
-            expect(document.getElementById('ps-tooltip')?.classList.contains('ps-tooltip--visible') ?? false)
-                .toBe(false);
-        } finally {
-            vi.useRealTimers();
-        }
+        expect(document.getElementById('ps-tooltip')?.classList.contains('ps-tooltip--visible') ?? false)
+            .toBe(false);
     });
 
     test('a trigger removed from the page takes its card with it', async () => {

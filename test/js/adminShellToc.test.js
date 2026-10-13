@@ -19,7 +19,7 @@ let AdminShell;
 
 beforeAll(async () => {
   // init() calls into sidebarDisclosure.js, which lives in a different file of the same bundle.
-  global.initSidebarDisclosure = () => {};
+  window.initSidebarDisclosure = () => {};
   AdminShell = (await loadModules('frontend/js/admin-dashboard/AdminShell.js')).AdminShell;
 });
 

@@ -84,7 +84,6 @@ describe('Confetti.burst', () => {
     });
 
     afterEach(() => {
-        vi.restoreAllMocks();
         document.body.innerHTML = '';
     });
 

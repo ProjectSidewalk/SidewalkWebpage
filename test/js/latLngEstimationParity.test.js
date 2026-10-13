@@ -21,7 +21,7 @@
 
 import fs from 'fs';
 import path from 'path';
-import { loadModules } from './loadGlobalScript.js';
+import { loadVendored, loadModules } from './loadGlobalScript.js';
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const FIXTURE = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'test/fixtures/latLngEstimationParity.json'), 'utf8'));
@@ -44,7 +44,7 @@ describe('Label lat/lng estimation parity with the server and the SQL backfill (
     beforeEach(async () => {
         Label = await loadLabel();
         // The real vendored turf (UMD), not a stub: the destination step is part of what is being pinned.
-        window.turf = require(path.join(REPO_ROOT, 'public/vendor/turf/turf-7.4.0.min.js'));
+        loadVendored('turf');
     });
 
     test('the fixture was generated for the constants this test injects', () => {

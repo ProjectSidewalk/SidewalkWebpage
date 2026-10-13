@@ -100,10 +100,9 @@ export function stubUtil(fake) {
 fakeImport(UTILITIES, 'util');
 
 /**
- * Evaluates a vendored library into the page, the way its <script> tag would.
- *
+ * Runs a vendored library into the page the way its <script> tag does. (Most of these bundles are UMD, but
+ * i18next-http-backend is a plain `var x = (function(){...})()` script, which only a script evaluation makes global.)
  * Found by folder rather than by filename, which carries the version and would go stale on the next bump.
- *
  * @param {string} folder - The library's folder under public/vendor/, e.g. "i18next".
  */
 export function loadVendored(folder) {

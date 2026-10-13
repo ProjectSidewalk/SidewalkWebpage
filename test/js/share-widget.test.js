@@ -28,6 +28,8 @@ const TARGET = {
 /** Flushes pending promise microtasks (clipboard flow resolves through a .then chain). */
 const flushPromises = () => new Promise((resolve) => setTimeout(resolve, 0));
 
+afterEach(() => { vi.useRealTimers(); });
+
 describe('ShareWidget', () => {
     let ShareWidget;
     let trigger;
@@ -226,26 +228,22 @@ describe('ShareWidget', () => {
     describe('share actions', () => {
         test('Copy Link writes the URL to the clipboard and shows a transient Copied state', async () => {
             vi.useFakeTimers();
-            try {
-                buildWidget();
-                trigger.click();
-                item('share.copy-link').click();
-                // Flush the clipboard promise without advancing the 1500ms reset timer.
-                await Promise.resolve();
-                await Promise.resolve();
+            buildWidget();
+            trigger.click();
+            item('share.copy-link').click();
+            // Flush the clipboard promise without advancing the 1500ms reset timer.
+            await Promise.resolve();
+            await Promise.resolve();
 
-                expect(navigator.clipboard.writeText).toHaveBeenCalledWith(TARGET.url);
-                expect(window.logWebpageActivity).toHaveBeenCalledWith('Share_CopyLink');
-                const copyButton = item('share.copied');
-                expect(copyButton.classList.contains('is-copied')).toBe(true);
+            expect(navigator.clipboard.writeText).toHaveBeenCalledWith(TARGET.url);
+            expect(window.logWebpageActivity).toHaveBeenCalledWith('Share_CopyLink');
+            const copyButton = item('share.copied');
+            expect(copyButton.classList.contains('is-copied')).toBe(true);
 
-                vi.advanceTimersByTime(1500);
-                expect(copyButton.querySelector('.label-detail__share-item-label').textContent)
-                    .toBe('share.copy-link');
-                expect(copyButton.classList.contains('is-copied')).toBe(false);
-            } finally {
-                vi.useRealTimers();
-            }
+            vi.advanceTimersByTime(1500);
+            expect(copyButton.querySelector('.label-detail__share-item-label').textContent)
+                .toBe('share.copy-link');
+            expect(copyButton.classList.contains('is-copied')).toBe(false);
         });
 
         test('X opens a tweet intent with the encoded URL and text, then closes', () => {

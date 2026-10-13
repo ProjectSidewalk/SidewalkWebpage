@@ -68,10 +68,6 @@ describe('PopupPanoManager fallback marker', () => {
         PopupPanoManager = window.PopupPanoManager;
     });
 
-    afterEach(() => {
-        vi.restoreAllMocks();
-    });
-
     /**
      * Builds a manager whose fallback container has a layout, since jsdom gives every element a 0x0 box and the
      * marker is only placed on a box with a size.

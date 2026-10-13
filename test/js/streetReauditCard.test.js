@@ -80,7 +80,7 @@ describe('the street re-audit hover card', () => {
         popupElement = null;
         map = {};
         window.logWebpageActivity = vi.fn();
-        global.fetch = vi.fn(async () => ({ ok: true, json: async () => SUMMARY }));
+        window.fetch = vi.fn(async () => ({ ok: true, json: async () => SUMMARY }));
     });
 
     afterEach(() => {
@@ -103,16 +103,16 @@ describe('the street re-audit hover card', () => {
             hoverStreet();
 
             await settle(200);
-            expect(global.fetch).not.toHaveBeenCalled();
+            expect(window.fetch).not.toHaveBeenCalled();
 
             await settle(100);
-            expect(global.fetch).toHaveBeenCalledWith(`/contribution/street/${STREET_ID}/reauditSummary`);
+            expect(window.fetch).toHaveBeenCalledWith(`/contribution/street/${STREET_ID}/reauditSummary`);
             expect(card()).not.toBeNull();
         });
 
         it('drops a card whose street the pointer already left while the request was in flight', async () => {
             let respond;
-            global.fetch = vi.fn(() => new Promise((resolve) => { respond = resolve; }));
+            window.fetch = vi.fn(() => new Promise((resolve) => { respond = resolve; }));
 
             const instance = hoverStreet();
             await settle(250); // The delay elapses and the request goes out, but hangs.
@@ -124,7 +124,7 @@ describe('the street re-audit hover card', () => {
         });
 
         it('says nothing at all for a street the server no longer considers stale', async () => {
-            global.fetch = vi.fn(async () => ({ ok: false, status: 404 }));
+            window.fetch = vi.fn(async () => ({ ok: false, status: 404 }));
 
             hoverStreet();
             await settle(250);
@@ -133,7 +133,7 @@ describe('the street re-audit hover card', () => {
         });
 
         it('stays silent when the request fails outright rather than showing an empty card', async () => {
-            global.fetch = vi.fn(async () => { throw new Error('offline'); });
+            window.fetch = vi.fn(async () => { throw new Error('offline'); });
 
             hoverStreet();
             await settle(250);
@@ -150,7 +150,7 @@ describe('the street re-audit hover card', () => {
             instance.scheduleFor(STREET_ID, { lng: 1, lat: 2 });
             await settle(250);
 
-            expect(global.fetch).toHaveBeenCalledTimes(1);
+            expect(window.fetch).toHaveBeenCalledTimes(1);
             expect(card()).not.toBeNull();
         });
 
@@ -161,18 +161,18 @@ describe('the street re-audit hover card', () => {
             instance.scheduleFor(STREET_ID, { lng: 1, lat: 2 });
             await settle(250);
 
-            expect(global.fetch).toHaveBeenCalledTimes(1);
+            expect(window.fetch).toHaveBeenCalledTimes(1);
         });
 
         it('remembers a 404 rather than re-asking about the same street', async () => {
-            global.fetch = vi.fn(async () => ({ ok: false, status: 404 }));
+            window.fetch = vi.fn(async () => ({ ok: false, status: 404 }));
 
             const instance = hoverStreet();
             await settle(250);
             instance.scheduleFor(STREET_ID, { lng: 1, lat: 2 });
             await settle(250);
 
-            expect(global.fetch).toHaveBeenCalledTimes(1);
+            expect(window.fetch).toHaveBeenCalledTimes(1);
         });
     });
 
@@ -228,7 +228,7 @@ describe('the street re-audit hover card', () => {
         });
 
         it('offers a street with no labels left an explanation rather than an empty table', async () => {
-            global.fetch = vi.fn(async () => ({ ok: true, json: async () => ({ ...SUMMARY, label_counts: [] }) }));
+            window.fetch = vi.fn(async () => ({ ok: true, json: async () => ({ ...SUMMARY, label_counts: [] }) }));
 
             hoverStreet();
             await settle(250);
@@ -239,7 +239,7 @@ describe('the street re-audit hover card', () => {
         });
 
         it('omits the imagery row when the latest poll cleared the capture date', async () => {
-            global.fetch = vi.fn(async () => (
+            window.fetch = vi.fn(async () => (
                 { ok: true, json: async () => ({ ...SUMMARY, new_imagery_date: null }) }));
 
             hoverStreet();

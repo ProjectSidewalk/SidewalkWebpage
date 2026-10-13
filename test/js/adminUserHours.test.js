@@ -47,7 +47,7 @@ function buildDom() {
  */
 async function load(response) {
   buildDom();
-  global.fetch = vi.fn(() => (response instanceof Error
+  window.fetch = vi.fn(() => (response instanceof Error
     ? Promise.reject(response)
     : Promise.resolve({ ok: true, json: () => Promise.resolve(response) })));
   new AdminUser({
@@ -78,8 +78,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  vi.restoreAllMocks();
-  delete global.fetch;
+  delete window.fetch;
 });
 
 describe('AdminUser cross-city hours', () => {

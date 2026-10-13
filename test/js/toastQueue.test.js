@@ -28,7 +28,7 @@ describe('Toast queueing', () => {
     beforeEach(async () => {
         vi.useFakeTimers();
         document.body.innerHTML = '';
-        global.i18next = { t: (key) => key };
+        window.i18next = { t: (key) => key };
         stubUtil({ assetPath: assetPathStub }); // The close button's icon URL.
         // A fresh class per test: the live/waiting maps are static, so a shared one would leak between cases.
         Toast = (await loadModules('frontend/js/common/Toast.js')).Toast;

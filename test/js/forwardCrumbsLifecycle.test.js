@@ -13,17 +13,15 @@
  * along-street math is part of what is being exercised.
  */
 
-import path from 'path';
-import { loadModules, fakeImport } from './loadGlobalScript.js';
+import { loadVendored, loadModules, fakeImport } from './loadGlobalScript.js';
 import { fakeTracker, fakePanoManager, fakeTaskContainer } from './fakes.js';
 
 fakeImport('frontend/js/common/pano-viewer/PanoViewer.js', 'PanoViewer');
 fakeImport('frontend/js/explore/navigation/NavigationService.js', 'NavigationService');
 
 
-const REPO_ROOT = path.resolve(__dirname, '..', '..');
 
-window.turf = require(path.join(REPO_ROOT, 'public/vendor/turf/turf-7.4.0.min.js'));
+loadVendored('turf');
 const { turf } = window;
 
 /** Stands in for a marker made by Minimap.addMarker: records where it is, its options, and whether it was removed. */

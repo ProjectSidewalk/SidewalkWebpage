@@ -18,7 +18,7 @@ const MATH_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/common/utilit
 async function loadMath() {
   stubUtil({});
   Object.assign(window, await loadModules(MATH_PATH));
-  return global.util.math;
+  return window.util.math;
 }
 
 async function loadFloorTo() {

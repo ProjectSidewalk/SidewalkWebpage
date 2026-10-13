@@ -100,7 +100,7 @@ const report = (overrides = {}) => ({
 async function renderPanel(payload = report(), opts = {}) {
   document.body.innerHTML = MARKUP;
   charts.length = 0;
-  global.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => payload });
+  window.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => payload });
   const panel = new ImageryPipelinePanel({ pipelineUrl: '/adminapi/imageryFreshness', days: 30, ...opts });
   await panel.init();
   return panel;
@@ -114,7 +114,6 @@ beforeAll(() => {
   expect(new Date(Date.parse('2026-08-17T16:00:00Z')).getDate()).toBe(18);
 });
 
-afterEach(() => { vi.restoreAllMocks(); });
 
 describe('ImageryPipelinePanel banner', () => {
   test('reports a healthy pipeline with what it actually did', async () => {
@@ -300,7 +299,7 @@ describe('ImageryPipelinePanel window selector', () => {
   test('opens on the window the server chose as its default', async () => {
     await renderPanel(report(), { days: 90 });
     expect(document.getElementById('imagery-range').value).toBe('90');
-    expect(global.fetch).toHaveBeenCalledWith('/adminapi/imageryFreshness?days=90', expect.anything());
+    expect(window.fetch).toHaveBeenCalledWith('/adminapi/imageryFreshness?days=90', expect.anything());
   });
 
   test('refetches when the reader picks another window', async () => {
@@ -309,7 +308,7 @@ describe('ImageryPipelinePanel window selector', () => {
     select.value = '365';
     select.dispatchEvent(new window.Event('change'));
     await new Promise(process.nextTick);
-    expect(global.fetch).toHaveBeenLastCalledWith('/adminapi/imageryFreshness?days=365', expect.anything());
+    expect(window.fetch).toHaveBeenLastCalledWith('/adminapi/imageryFreshness?days=365', expect.anything());
     expect(panel).toBeDefined();
   });
 
@@ -320,7 +319,7 @@ describe('ImageryPipelinePanel window selector', () => {
     document.body.innerHTML = MARKUP;
     charts.length = 0;
     const resolvers = [];
-    global.fetch = vi.fn(() => new Promise((resolve) => {
+    window.fetch = vi.fn(() => new Promise((resolve) => {
       resolvers.push(() => resolve({ ok: true, json: async () => report() }));
     }));
 
@@ -334,8 +333,8 @@ describe('ImageryPipelinePanel window selector', () => {
 
     resolvers[0]();
     await new Promise(process.nextTick);
-    expect(global.fetch).toHaveBeenCalledTimes(2);
-    expect(global.fetch).toHaveBeenLastCalledWith('/adminapi/imageryFreshness?days=365', expect.anything());
+    expect(window.fetch).toHaveBeenCalledTimes(2);
+    expect(window.fetch).toHaveBeenLastCalledWith('/adminapi/imageryFreshness?days=365', expect.anything());
 
     resolvers[1]();
     await started;
@@ -344,7 +343,7 @@ describe('ImageryPipelinePanel window selector', () => {
   test('does not refetch when the queued window is the one already showing', async () => {
     document.body.innerHTML = MARKUP;
     const resolvers = [];
-    global.fetch = vi.fn(() => new Promise((resolve) => {
+    window.fetch = vi.fn(() => new Promise((resolve) => {
       resolvers.push(() => resolve({ ok: true, json: async () => report() }));
     }));
 
@@ -359,7 +358,7 @@ describe('ImageryPipelinePanel window selector', () => {
     resolvers[0]();
     await started;
     await new Promise(process.nextTick);
-    expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect(window.fetch).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -367,7 +366,7 @@ describe('ImageryPipelinePanel failure handling', () => {
   test('says the history could not be read rather than leaving the loading line up', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     document.body.innerHTML = MARKUP;
-    global.fetch = vi.fn().mockResolvedValue({ ok: false, status: 503 });
+    window.fetch = vi.fn().mockResolvedValue({ ok: false, status: 503 });
     await new ImageryPipelinePanel({ pipelineUrl: '/adminapi/imageryFreshness', days: 30 }).init();
     expect(statusText()).toContain('Could not load the pipeline history');
     expect(document.getElementById('imagery-pipeline-status').classList.contains('error')).toBe(true);
@@ -377,7 +376,7 @@ describe('ImageryPipelinePanel failure handling', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     const onLoaded = vi.fn();
     document.body.innerHTML = MARKUP;
-    global.fetch = vi.fn().mockRejectedValue(new Error('offline'));
+    window.fetch = vi.fn().mockRejectedValue(new Error('offline'));
     await new ImageryPipelinePanel({ pipelineUrl: '/x', days: 30, onLoaded }).init();
     expect(onLoaded).not.toHaveBeenCalled();
   });

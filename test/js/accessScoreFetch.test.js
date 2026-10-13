@@ -44,11 +44,11 @@ describe('AccessScoreFetch.fetchJsonWithRetry', () => {
 
     afterEach(() => {
         vi.useRealTimers();
-        delete global.fetch;
+        delete window.fetch;
     });
 
     test('returns the JSON of a first-try success without waiting', async () => {
-        global.fetch = vi.fn().mockResolvedValue(response(200, { body: { type: 'FeatureCollection' } }));
+        window.fetch = vi.fn().mockResolvedValue(response(200, { body: { type: 'FeatureCollection' } }));
         const onWait = vi.fn();
 
         const result = AccessScoreFetch.fetchJsonWithRetry(URL, { onWait });
@@ -58,7 +58,7 @@ describe('AccessScoreFetch.fetchJsonWithRetry', () => {
     });
 
     test('retries a 503 after exactly the Retry-After the server named, and reports the wait', async () => {
-        global.fetch = vi.fn()
+        window.fetch = vi.fn()
             .mockResolvedValueOnce(response(503, { headers: { 'Retry-After': '30' } }))
             .mockResolvedValueOnce(response(200, { body: { features: [1] } }));
         const onWait = vi.fn();
@@ -79,7 +79,7 @@ describe('AccessScoreFetch.fetchJsonWithRetry', () => {
     });
 
     test('retries a 502 with no Retry-After on the 5, 10, 20, 30 s backoff', async () => {
-        global.fetch = vi.fn()
+        window.fetch = vi.fn()
             .mockResolvedValueOnce(response(502))
             .mockResolvedValueOnce(response(502))
             .mockResolvedValueOnce(response(504))
@@ -103,7 +103,7 @@ describe('AccessScoreFetch.fetchJsonWithRetry', () => {
     });
 
     test('never retries a 4xx: the request itself is wrong', async () => {
-        global.fetch = vi.fn().mockResolvedValue(response(404));
+        window.fetch = vi.fn().mockResolvedValue(response(404));
         const onWait = vi.fn();
 
         await expect(AccessScoreFetch.fetchJsonWithRetry(URL, { onWait })).rejects.toThrow('HTTP 404');
@@ -112,14 +112,14 @@ describe('AccessScoreFetch.fetchJsonWithRetry', () => {
     });
 
     test('never retries a 500 either, only the "not yet" statuses', async () => {
-        global.fetch = vi.fn().mockResolvedValue(response(500));
+        window.fetch = vi.fn().mockResolvedValue(response(500));
 
         await expect(AccessScoreFetch.fetchJsonWithRetry(URL)).rejects.toThrow('HTTP 500');
         expect(fetch).toHaveBeenCalledTimes(1);
     });
 
     test('gives up with the last failure once the next wait would end past the total cap', async () => {
-        global.fetch = vi.fn().mockResolvedValue(response(503, { headers: { 'Retry-After': '40' } }));
+        window.fetch = vi.fn().mockResolvedValue(response(503, { headers: { 'Retry-After': '40' } }));
         const onWait = vi.fn();
 
         // A 100 s cap admits two 40 s waits (80 s) and refuses the third (120 s): three attempts, two waits.
@@ -135,7 +135,7 @@ describe('AccessScoreFetch.fetchJsonWithRetry', () => {
     });
 
     test('reads a Retry-After of 0 as one second rather than hammering the server', async () => {
-        global.fetch = vi.fn()
+        window.fetch = vi.fn()
             .mockResolvedValueOnce(response(503, { headers: { 'Retry-After': '0' } }))
             .mockResolvedValueOnce(response(200, { body: {} }));
         const onWait = vi.fn();
@@ -148,7 +148,7 @@ describe('AccessScoreFetch.fetchJsonWithRetry', () => {
     });
 
     test('falls back to the backoff when Retry-After is an HTTP date', async () => {
-        global.fetch = vi.fn()
+        window.fetch = vi.fn()
             .mockResolvedValueOnce(response(503, { headers: { 'Retry-After': 'Wed, 21 Oct 2026 07:28:00 GMT' } }))
             .mockResolvedValueOnce(response(200, { body: {} }));
         const onWait = vi.fn();
@@ -164,7 +164,7 @@ describe('AccessScoreFetch.fetchJsonWithRetry', () => {
         // Each attempt is held for 45 s before the 503 comes back, the way a still-cold server holds a request for
         // its own deadline. Sleeps alone would be 30 + 30 = 60 s inside a 100 s cap; on the wall clock the third
         // attempt would end at 45 + 30 + 45 + 30 + 45 = 195 s, so the second wait is the one that gets refused.
-        global.fetch = vi.fn(async () => {
+        window.fetch = vi.fn(async () => {
             await vi.advanceTimersByTimeAsync(45_000);
             return response(503, { headers: { 'Retry-After': '30' } });
         });
@@ -181,7 +181,7 @@ describe('AccessScoreFetch.fetchJsonWithRetry', () => {
     });
 
     test('tells the page about each attempt before its request goes out, numbering them from 1', async () => {
-        global.fetch = vi.fn()
+        window.fetch = vi.fn()
             .mockResolvedValueOnce(response(503, { headers: { 'Retry-After': '10' } }))
             .mockResolvedValueOnce(response(503, { headers: { 'Retry-After': '10' } }))
             .mockResolvedValueOnce(response(200, { body: { ok: true } }));

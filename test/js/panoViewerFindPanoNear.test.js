@@ -16,7 +16,7 @@
 
 import fs from 'fs';
 import path from 'path';
-import { loadGlobalScript, realUtil, loadModules, stubUtil } from './loadGlobalScript.js';
+import { loadVendored, loadGlobalScript, realUtil, loadModules, stubUtil } from './loadGlobalScript.js';
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const SRC_DIR = path.join(REPO_ROOT, 'frontend/js/common/pano-viewer');
@@ -38,7 +38,7 @@ document.documentElement.dataset.panoScoring = JSON.stringify(
     Object.fromEntries(Object.entries(scoringConfig).filter(([key]) => !key.startsWith('_'))),
 );
 await loadGlobalScript('frontend/js/common/pano-viewer/panoUtilities.js');
-window.turf = require(path.join(REPO_ROOT, 'public/vendor/turf/turf-7.4.0.min.js'));
+loadVendored('turf');
 
 const { turf } = window;
 
@@ -65,6 +65,8 @@ const excludedPano = (panoId, capturedAt = 0) => ({
     getPanoId: () => panoId,
     getProperty: (key) => (key === 'captureDate' ? new Date(capturedAt) : null),
 });
+
+afterEach(() => { vi.useRealTimers(); });
 
 describe('PanoViewer.findPanoNear (base)', () => {
     test('a provider with no location search has nothing to offer', async () => {
@@ -178,14 +180,10 @@ describe('GsvViewer.findPanoNear', () => {
 
     test('a lookup that never settles rejects after the budget instead of hanging', async () => {
         vi.useFakeTimers();
-        try {
-            getPanorama.mockReturnValue(new Promise(() => {}));
-            const lookup = viewer.findPanoNear(HERE);
-            vi.advanceTimersByTime(PanoViewer.FIND_PANO_TIMEOUT_MS);
-            await expect(lookup).rejects.toThrow(/Timed out/);
-        } finally {
-            vi.useRealTimers();
-        }
+        getPanorama.mockReturnValue(new Promise(() => {}));
+        const lookup = viewer.findPanoNear(HERE);
+        vi.advanceTimersByTime(PanoViewer.FIND_PANO_TIMEOUT_MS);
+        await expect(lookup).rejects.toThrow(/Timed out/);
     });
 });
 

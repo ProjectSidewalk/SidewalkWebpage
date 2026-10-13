@@ -86,8 +86,7 @@ afterAll(() => {
 beforeAll(() => {
     // The production file translates tag names and the "Tags" header through i18next; identity keeps the test
     // readable, since a pill's text is also how the stub looks up its width.
-    global.i18next = {t: (key) => key.replace(/^tag\./, '')};
-    window.i18next = global.i18next;
+    window.i18next = {t: (key) => key.replace(/^tag\./, '')};
 
     // jsdom implements no layout, and therefore no innerText; the pills set their text through it.
     Object.defineProperty(window.HTMLElement.prototype, 'innerText', {

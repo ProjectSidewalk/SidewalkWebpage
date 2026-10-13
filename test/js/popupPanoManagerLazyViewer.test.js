@@ -74,7 +74,6 @@ describe('PopupPanoManager builds its viewer lazily', () => {
         PopupPanoManager = window.PopupPanoManager;
     });
 
-    afterEach(() => vi.restoreAllMocks());
 
     /** Builds a manager the way LabelDetail does. */
     const createManager = () => PopupPanoManager.create(svHolder, buttonHolder, false, viewerType, 'token');

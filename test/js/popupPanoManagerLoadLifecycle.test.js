@@ -76,7 +76,6 @@ describe('PopupPanoManager load lifecycle', () => {
 
     afterEach(() => {
         vi.useRealTimers();
-        vi.restoreAllMocks();
     });
 
     const createManager = () => PopupPanoManager.create(svHolder, document.getElementById('button-holder'),

@@ -46,7 +46,7 @@ const globalPartner = (id, name) => ({ ...cityPartner(id, name), city_id: null }
 /** Stubs fetch with a queue-less handler and records every call. */
 function stubFetch(listPayload) {
   const calls = [];
-  global.fetch = vi.fn(async (url, options = {}) => {
+  window.fetch = vi.fn(async (url, options = {}) => {
     calls.push({ url, options });
     if (url === '/adminapi/partners' && !options.method) {
       return { ok: true, json: async () => listPayload() };
@@ -111,7 +111,7 @@ describe('PartnersPage', () => {
     // Hold the reorder PUT open so the second click lands while the first is still in flight.
     let releasePut;
     const calls = [];
-    global.fetch = vi.fn(async (url, options = {}) => {
+    window.fetch = vi.fn(async (url, options = {}) => {
       calls.push({ url, options });
       if (options.method === 'PUT') await new Promise((resolve) => { releasePut = resolve; });
       return {
@@ -223,7 +223,7 @@ describe('PartnersPage official-contact form (#5462)', () => {
    */
   function stubContactFetch(saved, putReply) {
     const calls = [];
-    global.fetch = vi.fn(async (url, options = {}) => {
+    window.fetch = vi.fn(async (url, options = {}) => {
       calls.push({ url, options });
       if (url === '/adminapi/officialContact' && options.method === 'PUT') return putReply;
       if (url === '/adminapi/officialContact') return { ok: true, json: async () => saved };

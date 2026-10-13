@@ -53,7 +53,6 @@ describe('Tracker timed flush (issue #4429)', () => {
 
     afterEach(() => {
         vi.useRealTimers();
-        vi.restoreAllMocks();
     });
 
     test('the first push arms a deadline that flushes the compiled payload as an intermediate submit', () => {

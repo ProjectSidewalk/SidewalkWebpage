@@ -46,7 +46,7 @@ const MARKUP = `
 
 async function render(data) {
   document.body.innerHTML = MARKUP;
-  global.fetch = vi.fn().mockResolvedValue({ ok: true, status: 200, statusText: 'OK', json: async () => data });
+  window.fetch = vi.fn().mockResolvedValue({ ok: true, status: 200, statusText: 'OK', json: async () => data });
   await new StreetStatusTrend({ trendUrl: '/adminapi/streetStatusTrend', weeks: data.weeks }).init();
 }
 
@@ -60,10 +60,6 @@ function weekLabels() {
 function changes(weekStarts) {
   return weekStarts.map((week) => ({ week_start: week, new_status: 'no_imagery', street_count: 1 }));
 }
-
-afterEach(() => {
-  vi.restoreAllMocks();
-});
 
 test('the test environment really is east of UTC', () => {
   // Without this the two cases below would pass for the wrong reason: in a UTC process the local date and the UTC

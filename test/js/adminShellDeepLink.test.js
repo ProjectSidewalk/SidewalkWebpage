@@ -28,7 +28,7 @@ let resizeCallbacks = [];
 let observed = [];
 
 beforeAll(async () => {
-  global.initSidebarDisclosure = () => {};
+  window.initSidebarDisclosure = () => {};
   AdminShell = (await loadModules('frontend/js/admin-dashboard/AdminShell.js')).AdminShell;
 });
 

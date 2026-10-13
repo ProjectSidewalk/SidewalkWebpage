@@ -56,37 +56,37 @@ describe('Validate leaves Mapillary\'s attribution pill in the SDK\'s DOM (issue
     attributionContainer = document.querySelector('.mapillary-attribution-container');
 
     stubUtil({});
-    global.i18next = {language: 'en'};
+    window.i18next = {language: 'en'};
     Object.assign(window, await loadModules(THROTTLE_PATH));
     util.isMobile = () => false;
 
-    global.createPanoViewerLogo = vi.fn(() => ({showPrimaryLogo: vi.fn(), showSourceLogo: vi.fn()}));
-    global.createPanoAttribution = vi.fn(() => ({show: vi.fn(), hide: vi.fn()}));
-    global.GsvViewer = class GsvViewer {};
-    global.PannellumViewer = class PannellumViewer {};
+    window.createPanoViewerLogo = vi.fn(() => ({showPrimaryLogo: vi.fn(), showSourceLogo: vi.fn()}));
+    window.createPanoAttribution = vi.fn(() => ({show: vi.fn(), hide: vi.fn()}));
+    window.GsvViewer = class GsvViewer {};
+    window.PannellumViewer = class PannellumViewer {};
 
     const fakeViewer = {addListener: vi.fn(), resize: vi.fn(), setPov: vi.fn(), getPov: () => ({})};
     // The viewer type IS the MapillaryViewer global, so every Mapillary-only path in PanoManager runs.
-    global.MapillaryViewer = class MapillaryViewer {
+    window.MapillaryViewer = class MapillaryViewer {
       static create() { return Promise.resolve(fakeViewer); }
     };
 
     const PanoManager = await loadClassFromFile(PANO_MANAGER_PATH, 'PanoManager');
     const viewerUi = {date: {textContent: ''}, controlLayer: document.getElementById('view-control-layer')};
-    await PanoManager.create('token', viewerUi, {viewerType: global.MapillaryViewer, labelRadius: 10},
+    await PanoManager.create('token', viewerUi, {viewerType: window.MapillaryViewer, labelRadius: 10},
       {addPanoMetadata: vi.fn()}, {}, {push: vi.fn(), trackPano: vi.fn()});
     await flushObservers();
   });
 
   afterEach(() => {
     document.body.innerHTML = '';
-    delete global.util;
-    delete global.i18next;
-    delete global.createPanoViewerLogo;
-    delete global.createPanoAttribution;
-    delete global.GsvViewer;
-    delete global.MapillaryViewer;
-    delete global.PannellumViewer;
+    delete window.util;
+    delete window.i18next;
+    delete window.createPanoViewerLogo;
+    delete window.createPanoAttribution;
+    delete window.GsvViewer;
+    delete window.MapillaryViewer;
+    delete window.PannellumViewer;
   });
 
   test('the pill stays under the SDK\'s renderer root after the viewer is set up', () => {

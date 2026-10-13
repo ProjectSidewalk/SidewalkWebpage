@@ -100,18 +100,18 @@ describe('logPopupLinkClicks', () => {
 
     describe('on the cities map', () => {
         beforeEach(() => {
-            global.i18next = { t: (key, opts) => (key === 'common:format-number' ? String(opts.val) : key) };
+            window.i18next = { t: (key, opts) => (key === 'common:format-number' ? String(opts.val) : key) };
             stubUtil({ isMetric: () => true, longDistanceToString: (km) => `${km} km` });
-            global.mapboxgl = { Popup: FakePopup, LngLatBounds: FakeLngLatBounds };
+            window.mapboxgl = { Popup: FakePopup, LngLatBounds: FakeLngLatBounds };
             const stats = { km_explored: 1, labels: { count: 2 }, validations: { combined: { total_validations: 3 } } };
-            global.fetch = vi.fn(() => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(stats) }));
+            window.fetch = vi.fn(() => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(stats) }));
         });
 
         afterEach(() => {
-            delete global.i18next;
-            delete global.util;
-            delete global.mapboxgl;
-            delete global.fetch;
+            delete window.i18next;
+            delete window.util;
+            delete window.mapboxgl;
+            delete window.fetch;
         });
 
         test('logs the city id of the popup link that was clicked', async () => {

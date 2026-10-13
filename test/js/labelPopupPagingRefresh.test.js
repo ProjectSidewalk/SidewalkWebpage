@@ -50,7 +50,7 @@ describe('LabelPopup paging state', () => {
         window.requestAnimationFrame = (cb) => cb();
         window.logWebpageActivity = vi.fn();
         // LabelDetail does the rendering/fetching; the popup only wraps it, so a stub is enough here.
-        global.LabelDetail = {
+        window.LabelDetail = {
             create: async () => ({ showLabel: async () => ({}) }),
             urlLabelId: () => null,
             syncUrlLabelId: vi.fn(),
@@ -63,10 +63,10 @@ describe('LabelPopup paging state', () => {
         // The predicate stands in for LabelMap's sidebar filters (#5124).
         mapData = { sortedLabels: {} };
         hiddenByFilters = new Set();
-        nav = global.createNearbyLabelNavigator(mapData, {
+        nav = window.createNearbyLabelNavigator(mapData, {
             isCandidate: (labelType, feature) => !hiddenByFilters.has(feature.properties.label_id),
         });
-        popup = await global.LabelPopup(false, null, null, null, {});
+        popup = await window.LabelPopup(false, null, null, null, {});
         popup.setNearbyNavigator(nav);
         prevBtn = document.querySelector('.label-detail__paging--prev');
         nextBtn = document.querySelector('.label-detail__paging--next');
@@ -139,8 +139,8 @@ describe('LabelPopup paging state', () => {
         expect(nextBtn.disabled).toBe(false);
 
         // Rebuild the popup over a label fetch that never settles, so the pre-await state is observable.
-        global.LabelDetail.create = async () => ({ showLabel: () => new Promise(() => {}) });
-        const pending = await global.LabelPopup(false, null, null, null, {});
+        window.LabelDetail.create = async () => ({ showLabel: () => new Promise(() => {}) });
+        const pending = await window.LabelPopup(false, null, null, null, {});
         pending.setNearbyNavigator(nav);
         hiddenByFilters.add(1); // From label 2, the only other label (1) is filtered out: nowhere to go.
         pending.showLabel(2, 'LabelMap');

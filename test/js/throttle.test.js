@@ -20,7 +20,7 @@ async function loadThrottle() {
     // Reset the shared util global each load so state can't leak between tests, then execute the global script.
     stubUtil({});
     Object.assign(window, await loadModules(THROTTLE_PATH));
-    return global.util.throttle;
+    return window.util.throttle;
 }
 
 describe('util.throttle', () => {
@@ -35,7 +35,7 @@ describe('util.throttle', () => {
 
     afterEach(() => {
         vi.useRealTimers();
-        delete global.util;
+        delete window.util;
     });
 
     test('runs immediately on the leading edge', () => {

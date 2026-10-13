@@ -58,17 +58,17 @@ describe('DashboardBadges', () => {
     const track = (type) => document.querySelector(`[data-badge-type="${type}"]`);
 
     beforeEach(async () => {
-        global.BadgeAchievements = BadgeAchievements;
-        global.i18next = {t: (key, opts) => (opts ? `${key}|${JSON.stringify(opts)}` : key)};
+        window.BadgeAchievements = BadgeAchievements;
+        window.i18next = {t: (key, opts) => (opts ? `${key}|${JSON.stringify(opts)}` : key)};
         stubUtil({math: {milesToKms: (mi) => mi * 1.609344}, assetPath: assetPathStub});
         await installEscapeHTML();
     });
 
     afterEach(() => {
         document.body.innerHTML = '';
-        delete global.BadgeAchievements;
-        delete global.i18next;
-        delete global.util;
+        delete window.BadgeAchievements;
+        delete window.i18next;
+        delete window.util;
     });
 
     test('every track fills to the same fraction the shared badge math reports', () => {

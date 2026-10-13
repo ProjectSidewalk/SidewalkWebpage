@@ -128,7 +128,7 @@ describe('input aimed at a label whose pano is still loading is dropped (issue #
 
     // Only the surface LabelContainer reaches for: it stamps a timestamp on the label it is about to load, reads the
     // pano to load off it, and hands it to the UI. `validate` stands in for the real submission path.
-    global.Label = class Label {
+    window.Label = class Label {
       constructor(params) {
         this.auditProps = params;
         this.props = {};
@@ -174,8 +174,8 @@ describe('input aimed at a label whose pano is still loading is dropped (issue #
   });
 
   afterEach(() => {
-    delete global.util;
-    delete global.Label;
+    delete window.util;
+    delete window.Label;
   });
 
   /**

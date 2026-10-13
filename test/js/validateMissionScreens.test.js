@@ -108,7 +108,7 @@ describe('mobile Validate mission screens', () => {
               </div>
             </div>`;
 
-        global.i18next = {
+        window.i18next = {
             // Echo the key plus any interpolation, so assertions can name what a slot was filled with.
             t: (key, opts) => (opts ? `${key}|${JSON.stringify(opts)}` : key),
         };
@@ -120,14 +120,14 @@ describe('mobile Validate mission screens', () => {
                 labelTypeName: () => 'Curb Ramp',
             },
         });
-        global.MissionStartTutorial = {
+        window.MissionStartTutorial = {
             EXAMPLE_PHOTO: {width: 658, height: 436},
             slidesFor: vi.fn(() => SLIDES),
         };
-        global.BadgeAchievements = BadgeAchievements;
-        global.BadgeAchievements.recordMissionComplete = vi.fn();
-        global.ProgressBar = ProgressBar;
-        global.Confetti = {burst: vi.fn()};
+        window.BadgeAchievements = BadgeAchievements;
+        window.BadgeAchievements.recordMissionComplete = vi.fn();
+        window.ProgressBar = ProgressBar;
+        window.Confetti = {burst: vi.fn()};
         window.matchMedia = vi.fn(() => ({matches: false}));
     });
 
@@ -485,7 +485,7 @@ describe('mobile Validate mission screens', () => {
             lock = new Gate();
             hooks = {tracker, keyboard: {enableKeyboard: () => lock.release('tutorial')}};
             // The desktop screen raises the next mission's tutorial itself; building it is all this needs of it.
-            global.MissionStartTutorial = class {};
+            window.MissionStartTutorial = class {};
         });
 
         /** @returns {{ui: Object, screen: ModalMissionComplete}} A screen up, with the next mission behind it. */

@@ -29,7 +29,7 @@ function load(quality, excluded) {
     </select>
     <input type="checkbox" id="au-excluded" ${excluded ? 'checked' : ''}>`;
   document.getElementById('au-quality').value = quality;
-  global.fetch = vi.fn(() => new Promise(() => {}));
+  window.fetch = vi.fn(() => new Promise(() => {}));
   new AdminUser({
     userId: 'u1', username: 'mapper', saveUrl: '/save', flagsUrl: '/flags', hoursUrl: '/hours',
     pageUrlFor: (u) => `/admin/user/${u}/manage`,

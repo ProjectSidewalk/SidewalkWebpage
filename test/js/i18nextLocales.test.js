@@ -100,7 +100,6 @@ async function startPage(language, { countryId = 'usa', fetch, missing = [], loc
 
 /** Takes down what `startPage` put up, so the next page starts from nothing. */
 function stopPage() {
-    vi.restoreAllMocks();
     for (const name of ['appManager', 'i18next', 'i18nextHttpBackend', 'util', 'fetch']) delete window[name];
 }
 

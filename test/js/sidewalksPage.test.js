@@ -22,7 +22,7 @@ const { SidewalksPage } = await loadModules('frontend/js/admin-dashboard/Sidewal
  */
 function stubMapbox({ holdLoad = false } = {}) {
   const state = { filters: [], halos: [], fits: [], featureStates: [], fireLoad: null };
-  global.mapboxgl = {
+  window.mapboxgl = {
     accessToken: null,
     Map: class {
       constructor(options) {
@@ -159,7 +159,7 @@ const geojson = (ids) => ({
 async function renderPage({ streets = CITY, ids = [1, 2, 3, 4, 5, 6], rebuiltAt = '2026-10-08T03:30:00Z' } = {}) {
   document.body.innerHTML = MARKUP;
   const mapState = stubMapbox();
-  global.fetch = vi.fn((url) => Promise.resolve({
+  window.fetch = vi.fn((url) => Promise.resolve({
     ok: true,
     json: async () => (url === '/presence' ? { rebuilt_at: rebuiltAt, streets } : geojson(ids)),
   }));
@@ -331,7 +331,7 @@ describe('the Sidewalks page', () => {
   test('a street chosen before the map loads is marked once it does', async () => {
     document.body.innerHTML = MARKUP;
     const map = stubMapbox({ holdLoad: true });
-    global.fetch = vi.fn((url) => Promise.resolve({
+    window.fetch = vi.fn((url) => Promise.resolve({
       ok: true,
       json: async () => (url === '/presence' ? { rebuilt_at: '2026-10-08T03:30:00Z', streets: CITY }
         : geojson([1, 2, 3, 4, 5, 6])),

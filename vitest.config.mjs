@@ -28,6 +28,10 @@ export default defineConfig({
 
     include: ['test/js/**/*.test.js'],
 
+    // Spies and `vi.stubGlobal` stubs are undone before every test, so no suite needs an afterEach for it.
+    restoreMocks: true,
+    unstubGlobals: true,
+
     coverage: {
       // The whole first-party frontend, so an untested file counts against the ratio rather than being invisible
       // (the built bundles live in public/build/, outside it).

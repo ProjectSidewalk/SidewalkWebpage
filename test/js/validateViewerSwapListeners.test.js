@@ -81,15 +81,15 @@ describe('PanoManager logs POV changes from whichever viewer is showing (issue #
     document.body.innerHTML = '<div id="pano-holder"><div id="svv-panorama"></div></div>';
 
     stubUtil({});
-    global.i18next = {language: 'en'};
+    window.i18next = {language: 'en'};
     Object.assign(window, await loadModules(THROTTLE_PATH));
     util.isMobile = () => false;
 
-    global.createPanoViewerLogo = vi.fn(() => ({showPrimaryLogo: vi.fn(), showSourceLogo: vi.fn()}));
+    window.createPanoViewerLogo = vi.fn(() => ({showPrimaryLogo: vi.fn(), showSourceLogo: vi.fn()}));
     attributionOverlay = {show: vi.fn(), hide: vi.fn()};
-    global.createPanoAttribution = vi.fn(() => attributionOverlay);
-    global.GsvViewer = class GsvViewer {};             // distinct from FakeViewerType, so the GSV-only
-    global.MapillaryViewer = class MapillaryViewer {}; // and Mapillary-only attribution paths are skipped
+    window.createPanoAttribution = vi.fn(() => attributionOverlay);
+    window.GsvViewer = class GsvViewer {};             // distinct from FakeViewerType, so the GSV-only
+    window.MapillaryViewer = class MapillaryViewer {}; // and Mapillary-only attribution paths are skipped
     tracker = {push: vi.fn(), trackPano: vi.fn()};
 
     panoData = {getPanoId: () => 'pano1', getProperty: () => new Date(2026, 5)};
@@ -100,7 +100,7 @@ describe('PanoManager logs POV changes from whichever viewer is showing (issue #
     pannellumViewer.currPanoData = panoData;
     pannellumViewer.loadPano = vi.fn(() => Promise.resolve(panoData));
 
-    global.PannellumViewer = class PannellumViewer {
+    window.PannellumViewer = class PannellumViewer {
       static create() { return Promise.resolve(pannellumViewer); }
     };
     const FakeViewerType = class FakeViewerType {
@@ -118,13 +118,13 @@ describe('PanoManager logs POV changes from whichever viewer is showing (issue #
   afterEach(() => {
     vi.useRealTimers();
     document.body.innerHTML = '';
-    delete global.util;
-    delete global.i18next;
-    delete global.createPanoViewerLogo;
-    delete global.createPanoAttribution;
-    delete global.GsvViewer;
-    delete global.MapillaryViewer;
-    delete global.PannellumViewer;
+    delete window.util;
+    delete window.i18next;
+    delete window.createPanoViewerLogo;
+    delete window.createPanoAttribution;
+    delete window.GsvViewer;
+    delete window.MapillaryViewer;
+    delete window.PannellumViewer;
   });
 
   /** Count how many times the tracker logged a POV_Changed action. */
@@ -205,7 +205,7 @@ describe('PanoManager logs POV changes from whichever viewer is showing (issue #
   test('the imagery attribution shows while Pannellum is up and goes when the primary viewer takes the pano back', async () => {
     // Pannellum shows Project Sidewalk's own copy of the imagery, which owes the attribution the provider's live
     // viewer would otherwise draw itself (#4865); the primary viewer draws its own, so the pill must not linger.
-    expect(global.createPanoAttribution).toHaveBeenCalledWith(document.getElementById('pano-holder'));
+    expect(window.createPanoAttribution).toHaveBeenCalledWith(document.getElementById('pano-holder'));
     expect(attributionOverlay.show).not.toHaveBeenCalled();
 
     await loadPannellumLabel();

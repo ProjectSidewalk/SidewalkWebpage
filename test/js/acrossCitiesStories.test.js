@@ -57,7 +57,7 @@ describe('Across Cities — stories', () => {
    */
   async function render(stories) {
     document.body.innerHTML = MARKUP;
-    global.fetch = vi.fn(() => Promise.resolve({
+    window.fetch = vi.fn(() => Promise.resolve({
       ok: true,
       json: () => Promise.resolve({
         cities: [], stories, summary: {}, over_time_all_time: [], over_time_daily: [], window_by_city: {},

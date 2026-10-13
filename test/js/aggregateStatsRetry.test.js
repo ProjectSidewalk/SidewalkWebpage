@@ -72,7 +72,7 @@ describe('aggregateStats fetch resilience', () => {
         window.appManager = { ready: (cb) => { readyCallback = cb; } };
 
         // Globals the renderer reaches for (provided by other bundles in production).
-        global.i18next = { t: (key, opts) => Number(opts.val).toLocaleString('en-US') };
+        window.i18next = { t: (key, opts) => Number(opts.val).toLocaleString('en-US') };
         stubUtil({ math: { kmsToMiles: (km) => km * 0.621371 } });
         await installEscapeHTML();
 
@@ -84,28 +84,27 @@ describe('aggregateStats fetch resilience', () => {
     });
 
     afterEach(() => {
-        delete global.fetch;
-        delete global.i18next;
-        delete global.util;
+        delete window.fetch;
+        delete window.i18next;
+        delete window.util;
         delete window.appManager;
-        vi.restoreAllMocks();
     });
 
     test('registers with appManager and passes a timeout signal to fetch', async () => {
-        global.fetch = vi.fn(() =>
+        window.fetch = vi.fn(() =>
             Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(GOOD_FIXTURE) })
         );
 
         expect(readyCallback).toBeDefined();
         readyCallback();
 
-        await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
-        const options = global.fetch.mock.calls[0][1];
+        await waitFor(() => expect(window.fetch).toHaveBeenCalledTimes(1));
+        const options = window.fetch.mock.calls[0][1];
         expect(options.signal).toBeInstanceOf(AbortSignal);
     });
 
     test('retries after a timeout and renders stats from the second attempt', async () => {
-        global.fetch = vi.fn()
+        window.fetch = vi.fn()
             .mockRejectedValueOnce(timeoutError())
             .mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve(GOOD_FIXTURE) });
 
@@ -115,12 +114,12 @@ describe('aggregateStats fetch resilience', () => {
             const html = document.getElementById(STATS_PARAGRAPH_ID).innerHTML;
             expect(html).toContain('18 cities');
         });
-        expect(global.fetch).toHaveBeenCalledTimes(2);
+        expect(window.fetch).toHaveBeenCalledTimes(2);
         expect(document.getElementById(STATS_PARAGRAPH_ID).innerHTML).not.toContain('Unable to load');
     }, 15000);
 
     test('shows a readable timeout message after every attempt times out', async () => {
-        global.fetch = vi.fn(() => Promise.reject(timeoutError()));
+        window.fetch = vi.fn(() => Promise.reject(timeoutError()));
 
         readyCallback();
 
@@ -129,7 +128,7 @@ describe('aggregateStats fetch resilience', () => {
             expect(html).toContain('Request timed out after 15 seconds');
         });
         // Initial attempt + CONFIG.RETRY_ATTEMPTS retries.
-        expect(global.fetch).toHaveBeenCalledTimes(3);
+        expect(window.fetch).toHaveBeenCalledTimes(3);
         expect(document.getElementById(STATS_PARAGRAPH_ID).innerHTML).not.toContain('signal is aborted');
     }, 15000);
 });

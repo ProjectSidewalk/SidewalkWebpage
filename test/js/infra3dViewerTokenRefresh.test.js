@@ -53,7 +53,7 @@ describe('Infra3dViewer access-token renewal', () => {
     beforeEach(() => {
         vi.useFakeTimers({ now: T0 });
         vi.spyOn(console, 'warn').mockImplementation(() => {});
-        global.fetch = vi.fn();
+        window.fetch = vi.fn();
         window.logWebpageActivity = vi.fn();
         mount = document.createElement('div');
         mount.id = 'pano-mount';
@@ -64,8 +64,7 @@ describe('Infra3dViewer access-token renewal', () => {
     afterEach(() => {
         mount.remove();
         vi.useRealTimers();
-        vi.restoreAllMocks();
-        delete global.fetch;
+        delete window.fetch;
         delete window.logWebpageActivity;
         delete window.infra3dapi;
         window.sessionStorage.clear();
@@ -253,7 +252,6 @@ describe('Infra3dViewer initViewer timeout', () => {
     afterEach(() => {
         mount.remove();
         vi.useRealTimers();
-        vi.restoreAllMocks();
         delete window.logWebpageActivity;
         delete window.infra3dapi;
         window.sessionStorage.clear();

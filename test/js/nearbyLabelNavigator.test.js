@@ -15,7 +15,7 @@ const NAV_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/ps-map/nearbyL
 /** Loads the global script fresh and returns the factory. */
 async function loadFactory() {
     Object.assign(window, await loadModules(NAV_PATH));
-    return global.createNearbyLabelNavigator;
+    return window.createNearbyLabelNavigator;
 }
 
 /**

@@ -132,7 +132,7 @@ describe('Toast data-anchor', () => {
 
     beforeEach(async () => {
         document.body.innerHTML = '<div id="pano"></div><div class="modal"></div>';
-        global.i18next = { t: (key) => key };
+        window.i18next = { t: (key) => key };
         stubUtil({ assetPath: assetPathStub });
         Toast = (await loadModules('frontend/js/common/Toast.js')).Toast;
     });

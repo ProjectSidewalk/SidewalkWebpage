@@ -130,15 +130,14 @@ describe('MapillaryViewer.setPano tells a missing pano from a slow one (issue #5
   beforeEach(async () => {
     vi.useFakeTimers();
     classes = await loadViewer();
-    global.fetch = vi.fn();
+    window.fetch = vi.fn();
     vi.spyOn(console, 'error').mockImplementation(() => {});
     vi.spyOn(console, 'warn').mockImplementation(() => {});
   });
 
   afterEach(() => {
     vi.useRealTimers();
-    vi.restoreAllMocks();
-    delete global.fetch;
+    delete window.fetch;
   });
 
   /**
@@ -163,23 +162,23 @@ describe('MapillaryViewer.setPano tells a missing pano from a slow one (issue #5
     expect(panoData.getProperty('linkedPanos').map((link) => link.panoId)).toEqual(['neighbor']);
     // A timer left behind per move would pile up on a page that moves often.
     expect(vi.getTimerCount()).toBe(0);
-    expect(global.fetch).not.toHaveBeenCalled(); // No existence check on the happy path.
+    expect(window.fetch).not.toHaveBeenCalled(); // No existence check on the happy path.
     expect(viewer.changingPanoOurselves).toBe(false);
   });
 
   test('a move that times out on an image Graph says is missing is a NoImageryError', async () => {
     buildViewer(hangs);
-    global.fetch.mockReturnValue(graphAnswers(404, MISSING_BODY));
+    window.fetch.mockReturnValue(graphAnswers(404, MISSING_BODY));
 
     const { error } = await settle('gone');
 
     expect(error).toBeInstanceOf(classes.NoImageryError);
-    expect(global.fetch.mock.calls[0][0]).toContain('https://graph.mapillary.com/gone?fields=id');
+    expect(window.fetch.mock.calls[0][0]).toContain('https://graph.mapillary.com/gone?fields=id');
   });
 
   test('Graph\'s "does not exist" error code counts as missing even without a 404', async () => {
     buildViewer(hangs);
-    global.fetch.mockReturnValue(graphAnswers(400, MISSING_BODY));
+    window.fetch.mockReturnValue(graphAnswers(400, MISSING_BODY));
 
     const { error } = await settle('gone');
 
@@ -188,7 +187,7 @@ describe('MapillaryViewer.setPano tells a missing pano from a slow one (issue #5
 
   test('a move that times out on an image Graph still serves is a PanoLoadTimeoutError, not "no imagery"', async () => {
     buildViewer(hangs);
-    global.fetch.mockReturnValue(graphAnswers(200, { id: 'slow' }));
+    window.fetch.mockReturnValue(graphAnswers(200, { id: 'slow' }));
 
     const { error } = await settle('slow');
 
@@ -201,7 +200,7 @@ describe('MapillaryViewer.setPano tells a missing pano from a slow one (issue #5
   test('a timeout whose existence check can\'t reach Graph is slow, never missing', async () => {
     // "Missing" drops the label, so a guess must never produce it: an unreachable Graph is "unknown".
     buildViewer(hangs);
-    global.fetch.mockImplementation(() => Promise.reject(new TypeError('Failed to fetch')));
+    window.fetch.mockImplementation(() => Promise.reject(new TypeError('Failed to fetch')));
 
     const { error } = await settle('slow');
 
@@ -210,7 +209,7 @@ describe('MapillaryViewer.setPano tells a missing pano from a slow one (issue #5
 
   test('a timeout whose existence check never answers is slow once the check gives up', async () => {
     buildViewer(hangs);
-    global.fetch.mockReturnValue(new Promise(() => {}));
+    window.fetch.mockReturnValue(new Promise(() => {}));
 
     const { error } = await settle('slow');
 
@@ -221,7 +220,7 @@ describe('MapillaryViewer.setPano tells a missing pano from a slow one (issue #5
   test('a rate-limited or unauthorized existence check is inconclusive, so the timeout stays slow', async () => {
     buildViewer(hangs);
     const rateLimited = { error: { message: 'Application request limit reached', code: 4 } };
-    global.fetch.mockReturnValue(graphAnswers(400, rateLimited));
+    window.fetch.mockReturnValue(graphAnswers(400, rateLimited));
 
     const { error } = await settle('slow');
 
@@ -230,7 +229,7 @@ describe('MapillaryViewer.setPano tells a missing pano from a slow one (issue #5
 
   test('a move the SDK rejects on an image Graph says is missing is a NoImageryError', async () => {
     buildViewer(() => Promise.reject(new Error('MLY image not found')));
-    global.fetch.mockReturnValue(graphAnswers(404, MISSING_BODY));
+    window.fetch.mockReturnValue(graphAnswers(404, MISSING_BODY));
 
     const { error } = await settle('gone');
 
@@ -241,7 +240,7 @@ describe('MapillaryViewer.setPano tells a missing pano from a slow one (issue #5
   test('a move the SDK rejects on an image that exists passes the SDK\'s own error through', async () => {
     const sdkError = new Error('WebGL texture upload failed');
     buildViewer(() => Promise.reject(sdkError));
-    global.fetch.mockReturnValue(graphAnswers(200, { id: 'there' }));
+    window.fetch.mockReturnValue(graphAnswers(200, { id: 'there' }));
 
     const { error } = await settle('there');
 
@@ -253,7 +252,7 @@ describe('MapillaryViewer.setPano tells a missing pano from a slow one (issue #5
     // Offline, a 429 or a 5xx makes the SDK's own request reject in milliseconds, never as a TimeoutError, and the
     // existence check then fails on the same network. "Unknown" must still never read as "gone".
     buildViewer(() => Promise.reject(new Error('Request error: 0')));
-    global.fetch.mockImplementation(() => Promise.reject(new TypeError('Failed to fetch')));
+    window.fetch.mockImplementation(() => Promise.reject(new TypeError('Failed to fetch')));
 
     const { error } = await settle('offline');
 
@@ -264,7 +263,7 @@ describe('MapillaryViewer.setPano tells a missing pano from a slow one (issue #5
 
   test('an SDK that fails fast on an image Graph answers 404 for is a NoImageryError', async () => {
     buildViewer(() => Promise.reject(new Error('Response status error')));
-    global.fetch.mockReturnValue(graphAnswers(404, {}));
+    window.fetch.mockReturnValue(graphAnswers(404, {}));
 
     const { error } = await settle('gone');
 
@@ -273,7 +272,7 @@ describe('MapillaryViewer.setPano tells a missing pano from a slow one (issue #5
 
   test('Graph\'s code 100 without subcode 33 is a malformed request, not a missing image, so it stays slow', async () => {
     buildViewer(hangs);
-    global.fetch.mockReturnValue(graphAnswers(400, { error: { message: 'Invalid parameter', code: 100 } }));
+    window.fetch.mockReturnValue(graphAnswers(400, { error: { message: 'Invalid parameter', code: 100 } }));
 
     const { error } = await settle('slow');
 
@@ -283,7 +282,7 @@ describe('MapillaryViewer.setPano tells a missing pano from a slow one (issue #5
   test('a failure reading the loaded image\'s metadata is classified like a failed move', async () => {
     buildViewer(() => Promise.resolve(makeImage('pano1')));
     sdk.getCenter = vi.fn(() => Promise.reject(new Error('Request error: 0')));
-    global.fetch.mockImplementation(() => Promise.reject(new TypeError('Failed to fetch')));
+    window.fetch.mockImplementation(() => Promise.reject(new TypeError('Failed to fetch')));
 
     const { error } = await settle('pano1');
 
@@ -292,11 +291,11 @@ describe('MapillaryViewer.setPano tells a missing pano from a slow one (issue #5
 
   test('the existence check hands fetch a signal, so an abandoned check doesn\'t hold a connection open', async () => {
     buildViewer(hangs);
-    global.fetch.mockReturnValue(graphAnswers(200, { id: 'slow' }));
+    window.fetch.mockReturnValue(graphAnswers(200, { id: 'slow' }));
 
     await settle('slow');
 
-    expect(global.fetch.mock.calls[0][1].signal).toBeDefined();
+    expect(window.fetch.mock.calls[0][1].signal).toBeDefined();
   });
 
   test('a move a newer one superseded is rethrown as is: no existence check, no error logged', async () => {
@@ -307,7 +306,7 @@ describe('MapillaryViewer.setPano tells a missing pano from a slow one (issue #5
     const { error } = await settle('older');
 
     expect(error).toBe(cancelled);
-    expect(global.fetch).not.toHaveBeenCalled();
+    expect(window.fetch).not.toHaveBeenCalled();
     expect(console.error).not.toHaveBeenCalled();
   });
 
@@ -336,7 +335,7 @@ describe('MapillaryViewer.setPano tells a missing pano from a slow one (issue #5
 
   test('a failed load clears the flag that makes nav-arrow moves skip their metadata update', async () => {
     buildViewer(hangs);
-    global.fetch.mockReturnValue(graphAnswers(200, { id: 'slow' }));
+    window.fetch.mockReturnValue(graphAnswers(200, { id: 'slow' }));
 
     await settle('slow');
 
@@ -407,7 +406,7 @@ describe('MapillaryViewer.setPano tells a missing pano from a slow one (issue #5
     );
 
     await expect(outcome).resolves.toBeTruthy();
-    expect(global.fetch).not.toHaveBeenCalled();
+    expect(window.fetch).not.toHaveBeenCalled();
   });
 });
 

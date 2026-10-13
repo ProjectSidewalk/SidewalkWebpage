@@ -137,7 +137,7 @@ describe('Across Cities — attribution split and hover breakdowns', () => {
     document.body.innerHTML = MARKUP;
     const windowByCity = {};
     cities.forEach((c) => { windowByCity[c.city.city_id] = c.window; });
-    global.fetch = vi.fn(() => Promise.resolve({
+    window.fetch = vi.fn(() => Promise.resolve({
       ok: true,
       json: () => Promise.resolve({
         cities: cities.map((c) => c.city),

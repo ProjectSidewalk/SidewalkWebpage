@@ -51,7 +51,6 @@ describe('Infra3dViewer image download retries', () => {
   afterEach(() => {
     mount.remove();
     vi.useRealTimers();
-    vi.restoreAllMocks();
     delete window.logWebpageActivity;
     delete window.infra3dapi;
   });

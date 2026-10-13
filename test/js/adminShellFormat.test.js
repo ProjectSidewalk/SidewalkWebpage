@@ -85,10 +85,6 @@ describe('AdminShell.relativeTime', () => {
     vi.spyOn(Date, 'now').mockReturnValue(NOW);
   });
 
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
   test('steps through the just-now / minutes / hours / days tiers', () => {
     expect(AdminShell.relativeTime(new Date(NOW - 30 * 1000))).toBe('just now');
     expect(AdminShell.relativeTime(new Date(NOW - 12 * 60 * 1000))).toBe('12m ago');
@@ -190,7 +186,6 @@ describe('AdminShell.jobLastRun', () => {
   const NOW = Date.parse('2026-08-20T12:00:00Z');
 
   beforeEach(() => { vi.spyOn(Date, 'now').mockReturnValue(NOW); });
-  afterEach(() => { vi.restoreAllMocks(); });
 
   test('reports a job the schedule has never fired as never, not as its manual run', () => {
     // A hand-run job proves the code works, not that anything is firing it, so it must not read as a scheduled run.

@@ -44,6 +44,8 @@ function fetchStub(byUrl = {}) {
     });
 }
 
+afterEach(() => { vi.useRealTimers(); });
+
 describe('PanoImageCache (issue #5562)', () => {
     let PanoImageCache;
     let cache;
@@ -53,9 +55,9 @@ describe('PanoImageCache (issue #5562)', () => {
         nextObjectUrl = 0;
         URL.createObjectURL = vi.fn(() => `blob:pano-${nextObjectUrl++}`);
         URL.revokeObjectURL = vi.fn();
-        global.fetch = fetchStub();
+        window.fetch = fetchStub();
         // The viewer's own URL builder; the cache only needs it to be the same function the viewer uses.
-        global.panoramaUrlFor = vi.fn((metadata) => `${metadata.image_url}?maxWidth=8192`);
+        window.panoramaUrlFor = vi.fn((metadata) => `${metadata.image_url}?maxWidth=8192`);
         delete navigator.connection;
 
         PanoImageCache = await loadCacheClass();
@@ -65,15 +67,15 @@ describe('PanoImageCache (issue #5562)', () => {
     afterEach(() => {
         delete URL.createObjectURL;
         delete URL.revokeObjectURL;
-        delete global.fetch;
-        delete global.panoramaUrlFor;
+        delete window.fetch;
+        delete window.panoramaUrlFor;
         delete navigator.connection;
     });
 
     test('a prefetched URL resolves to a local copy of its bytes', async () => {
         await expect(cache.prefetch('/backupImage/p1')).resolves.toBe(true);
 
-        expect(global.fetch).toHaveBeenCalledWith('/backupImage/p1');
+        expect(window.fetch).toHaveBeenCalledWith('/backupImage/p1');
         expect(cache.has('/backupImage/p1')).toBe(true);
         expect(cache.resolve('/backupImage/p1')).toBe('blob:pano-0');
     });
@@ -88,18 +90,18 @@ describe('PanoImageCache (issue #5562)', () => {
         const second = cache.prefetch('/backupImage/p1');
 
         await expect(Promise.all([first, second])).resolves.toEqual([true, true]);
-        expect(global.fetch).toHaveBeenCalledTimes(1);
+        expect(window.fetch).toHaveBeenCalledTimes(1);
     });
 
     test('asking again for a held URL downloads nothing', async () => {
         await cache.prefetch('/backupImage/p1');
         await cache.prefetch('/backupImage/p1');
 
-        expect(global.fetch).toHaveBeenCalledTimes(1);
+        expect(window.fetch).toHaveBeenCalledTimes(1);
     });
 
     test('a reply that is not OK is not held, and is reported rather than thrown', async () => {
-        global.fetch = fetchStub({ '/backupImage/gone': { status: 404 } });
+        window.fetch = fetchStub({ '/backupImage/gone': { status: 404 } });
 
         await expect(cache.prefetch('/backupImage/gone')).resolves.toBe(false);
         expect(cache.has('/backupImage/gone')).toBe(false);
@@ -107,17 +109,17 @@ describe('PanoImageCache (issue #5562)', () => {
     });
 
     test('a network error is not held, and is reported rather than thrown', async () => {
-        global.fetch = fetchStub({ '/backupImage/p1': { throws: true } });
+        window.fetch = fetchStub({ '/backupImage/p1': { throws: true } });
 
         await expect(cache.prefetch('/backupImage/p1')).resolves.toBe(false);
         expect(cache.has('/backupImage/p1')).toBe(false);
     });
 
     test('a failed download can be asked for again', async () => {
-        global.fetch = fetchStub({ '/backupImage/p1': { throws: true } });
+        window.fetch = fetchStub({ '/backupImage/p1': { throws: true } });
         await cache.prefetch('/backupImage/p1');
 
-        global.fetch = fetchStub();
+        window.fetch = fetchStub();
         await expect(cache.prefetch('/backupImage/p1')).resolves.toBe(true);
     });
 
@@ -125,12 +127,12 @@ describe('PanoImageCache (issue #5562)', () => {
         navigator.connection = { saveData: true };
 
         await expect(cache.prefetch('/backupImage/p1')).resolves.toBe(false);
-        expect(global.fetch).not.toHaveBeenCalled();
+        expect(window.fetch).not.toHaveBeenCalled();
     });
 
     test('an empty URL is declined without a request', async () => {
         await expect(cache.prefetch(undefined)).resolves.toBe(false);
-        expect(global.fetch).not.toHaveBeenCalled();
+        expect(window.fetch).not.toHaveBeenCalled();
     });
 
     test('releasing an entry frees its bytes and forgets it', async () => {
@@ -162,29 +164,29 @@ describe('PanoImageCache (issue #5562)', () => {
 
         await cache.prefetchBackups(backups);
 
-        expect(global.panoramaUrlFor).toHaveBeenCalledTimes(2);
-        expect(global.fetch.mock.calls.map(([url]) => url))
+        expect(window.panoramaUrlFor).toHaveBeenCalledTimes(2);
+        expect(window.fetch.mock.calls.map(([url]) => url))
             .toEqual(['/backupImage/p1?maxWidth=8192', '/backupImage/p2?maxWidth=8192']);
     });
 
     test('prefetchBackups downloads one at a time: the second starts once the first has settled', async () => {
         let finishFirst;
-        global.fetch = vi.fn((url) => (url.includes('p1')
+        window.fetch = vi.fn((url) => (url.includes('p1')
             ? new Promise((resolve) => { finishFirst = resolve; })
             : Promise.resolve({ ok: true, status: 200, blob: () => Promise.resolve(new Blob(['p2'])) })));
 
         const done = cache.prefetchBackups([{ image_url: '/backupImage/p1' }, { image_url: '/backupImage/p2' }]);
         await Promise.resolve();
-        expect(global.fetch).toHaveBeenCalledTimes(1);
+        expect(window.fetch).toHaveBeenCalledTimes(1);
 
         finishFirst({ ok: true, status: 200, blob: () => Promise.resolve(new Blob(['p1'])) });
         await done;
-        expect(global.fetch).toHaveBeenCalledTimes(2);
+        expect(window.fetch).toHaveBeenCalledTimes(2);
     });
 
     test('settle() waits for a download in flight and then hands over its bytes', async () => {
         let finish;
-        global.fetch = vi.fn(() => new Promise((resolve) => { finish = resolve; }));
+        window.fetch = vi.fn(() => new Promise((resolve) => { finish = resolve; }));
         cache.prefetch('/backupImage/p1');
 
         let settled;
@@ -199,27 +201,23 @@ describe('PanoImageCache (issue #5562)', () => {
 
     test('settle() gives up on a stalled download after the timeout', async () => {
         vi.useFakeTimers();
-        try {
-            global.fetch = vi.fn(() => new Promise(() => {})); // Never answers.
-            cache.prefetch('/backupImage/p1');
+        window.fetch = vi.fn(() => new Promise(() => {})); // Never answers.
+        cache.prefetch('/backupImage/p1');
 
-            const waiting = cache.settle('/backupImage/p1', 10000);
-            await vi.advanceTimersByTimeAsync(10000);
+        const waiting = cache.settle('/backupImage/p1', 10000);
+        await vi.advanceTimersByTimeAsync(10000);
 
-            await expect(waiting).resolves.toBeUndefined();
-        } finally {
-            vi.useRealTimers();
-        }
+        await expect(waiting).resolves.toBeUndefined();
     });
 
     test('settle() on a URL with nothing in flight answers at once', async () => {
         await expect(cache.settle('/backupImage/p1', 10000)).resolves.toBeUndefined();
-        expect(global.fetch).not.toHaveBeenCalled();
+        expect(window.fetch).not.toHaveBeenCalled();
     });
 
     test('a URL released while its download is in flight is dropped on arrival, not held', async () => {
         let finish;
-        global.fetch = vi.fn(() => new Promise((resolve) => { finish = resolve; }));
+        window.fetch = vi.fn(() => new Promise((resolve) => { finish = resolve; }));
         const download = cache.prefetch('/backupImage/p1');
 
         cache.release('/backupImage/p1'); // The viewer loaded it from the network meanwhile and is done with it.
@@ -239,7 +237,7 @@ describe('PanoImageCache (issue #5562)', () => {
 
     test('asking again for an abandoned download in flight keeps its bytes after all', async () => {
         let finish;
-        global.fetch = vi.fn(() => new Promise((resolve) => { finish = resolve; }));
+        window.fetch = vi.fn(() => new Promise((resolve) => { finish = resolve; }));
         const download = cache.prefetch('/backupImage/p1');
         cache.release('/backupImage/p1');
 
@@ -252,7 +250,7 @@ describe('PanoImageCache (issue #5562)', () => {
 
     test('settle() on an abandoned download in flight un-abandons it, so the wait is not for nothing', async () => {
         let finish;
-        global.fetch = vi.fn(() => new Promise((resolve) => { finish = resolve; }));
+        window.fetch = vi.fn(() => new Promise((resolve) => { finish = resolve; }));
         cache.prefetch('/backupImage/p1');
         cache.release('/backupImage/p1');
 
@@ -264,61 +262,49 @@ describe('PanoImageCache (issue #5562)', () => {
 
     test('a refused download is retried once after Retry-After, and held if the retry succeeds', async () => {
         vi.useFakeTimers();
-        try {
-            global.fetch = vi.fn()
-                .mockImplementationOnce(() => Promise.resolve({
-                    ok: false, status: 503, headers: { get: () => '3' }, blob: () => Promise.resolve(new Blob([])),
-                }))
-                .mockImplementation(() => Promise.resolve({
-                    ok: true, status: 200, blob: () => Promise.resolve(new Blob(['p1'])),
-                }));
+        window.fetch = vi.fn()
+            .mockImplementationOnce(() => Promise.resolve({
+                ok: false, status: 503, headers: { get: () => '3' }, blob: () => Promise.resolve(new Blob([])),
+            }))
+            .mockImplementation(() => Promise.resolve({
+                ok: true, status: 200, blob: () => Promise.resolve(new Blob(['p1'])),
+            }));
 
-            const download = cache.prefetch('/backupImage/p1');
-            await Promise.resolve();
-            expect(global.fetch).toHaveBeenCalledTimes(1);
-            await vi.advanceTimersByTimeAsync(3000);
+        const download = cache.prefetch('/backupImage/p1');
+        await Promise.resolve();
+        expect(window.fetch).toHaveBeenCalledTimes(1);
+        await vi.advanceTimersByTimeAsync(3000);
 
-            await expect(download).resolves.toBe(true);
-            expect(global.fetch).toHaveBeenCalledTimes(2);
-        } finally {
-            vi.useRealTimers();
-        }
+        await expect(download).resolves.toBe(true);
+        expect(window.fetch).toHaveBeenCalledTimes(2);
     });
 
     test('a refused download released during its wait is not retried', async () => {
         vi.useFakeTimers();
-        try {
-            global.fetch = vi.fn(() => Promise.resolve({
-                ok: false, status: 503, headers: { get: () => '2' }, blob: () => Promise.resolve(new Blob([])),
-            }));
+        window.fetch = vi.fn(() => Promise.resolve({
+            ok: false, status: 503, headers: { get: () => '2' }, blob: () => Promise.resolve(new Blob([])),
+        }));
 
-            const download = cache.prefetch('/backupImage/p1');
-            await Promise.resolve();
-            cache.release('/backupImage/p1');
-            await vi.advanceTimersByTimeAsync(2000);
+        const download = cache.prefetch('/backupImage/p1');
+        await Promise.resolve();
+        cache.release('/backupImage/p1');
+        await vi.advanceTimersByTimeAsync(2000);
 
-            await expect(download).resolves.toBe(false);
-            expect(global.fetch).toHaveBeenCalledTimes(1);
-        } finally {
-            vi.useRealTimers();
-        }
+        await expect(download).resolves.toBe(false);
+        expect(window.fetch).toHaveBeenCalledTimes(1);
     });
 
     test('a download refused twice is a miss, not a loop', async () => {
         vi.useFakeTimers();
-        try {
-            global.fetch = vi.fn(() => Promise.resolve({
-                ok: false, status: 503, headers: { get: () => null }, blob: () => Promise.resolve(new Blob([])),
-            }));
+        window.fetch = vi.fn(() => Promise.resolve({
+            ok: false, status: 503, headers: { get: () => null }, blob: () => Promise.resolve(new Blob([])),
+        }));
 
-            const download = cache.prefetch('/backupImage/p1');
-            await vi.advanceTimersByTimeAsync(PanoImageCache.RETRY_AFTER_DEFAULT_SEC * 1000);
+        const download = cache.prefetch('/backupImage/p1');
+        await vi.advanceTimersByTimeAsync(PanoImageCache.RETRY_AFTER_DEFAULT_SEC * 1000);
 
-            await expect(download).resolves.toBe(false);
-            expect(global.fetch).toHaveBeenCalledTimes(2);
-        } finally {
-            vi.useRealTimers();
-        }
+        await expect(download).resolves.toBe(false);
+        expect(window.fetch).toHaveBeenCalledTimes(2);
     });
 
     test('clear() releases everything', async () => {

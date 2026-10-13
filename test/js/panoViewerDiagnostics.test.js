@@ -35,7 +35,6 @@ describe('PanoViewer diagnostics', () => {
     });
 
     afterEach(() => {
-        vi.restoreAllMocks();
         delete window.logWebpageActivity;
     });
 

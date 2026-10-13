@@ -60,10 +60,6 @@ describe('Label lat/lng estimation', () => {
         };
     });
 
-    afterEach(() => {
-        vi.restoreAllMocks();
-    });
-
     /** The [distanceKm, bearing] the estimator handed to turf.destination for the label's single placement. */
     function destinationArgs() {
         expect(window.turf.destination).toHaveBeenCalledTimes(1);

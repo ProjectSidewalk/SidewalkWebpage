@@ -61,7 +61,7 @@ const WRONG_SHAPE_CAMEL = {
  * @param {object} body - The object the stubbed fetch should resolve with as JSON.
  */
 function stubFetch(body) {
-    global.fetch = vi.fn(() =>
+    window.fetch = vi.fn(() =>
         Promise.resolve({
             ok: true,
             status: 200,
@@ -77,8 +77,7 @@ describe('AggregateStatsPreview', () => {
     });
 
     afterEach(() => {
-        delete global.fetch;
-        vi.restoreAllMocks();
+        delete window.fetch;
     });
 
     test('exposes the expected global surface', () => {
@@ -146,7 +145,7 @@ describe('AggregateStatsPreview', () => {
         stubFetch(GOOD_FIXTURE);
         await window.AggregateStatsPreview.setup({}).init();
         // The preview tags its request with utm_source=apiDocs so the API analytics can attribute doc-page traffic.
-        expect(global.fetch).toHaveBeenCalledWith('/v3/api/aggregateStats?utm_source=apiDocs');
+        expect(window.fetch).toHaveBeenCalledWith('/v3/api/aggregateStats?utm_source=apiDocs');
     });
 
     // The renderer is null-safe (every field goes through `fmt()`), so a missing top-level `total_validations` does
@@ -181,7 +180,7 @@ describe('AggregateStatsPreview', () => {
     });
 
     test('shows an error banner when fetch returns a non-OK status', async () => {
-        global.fetch = vi.fn(() =>
+        window.fetch = vi.fn(() =>
             Promise.resolve({ ok: false, status: 500, json: () => Promise.resolve({}) })
         );
 

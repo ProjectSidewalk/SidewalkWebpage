@@ -129,7 +129,7 @@ function makeCitiesData() {
  * @param {object} body - The object the stubbed fetch resolves with as JSON.
  */
 function stubFetch(body) {
-    global.fetch = vi.fn(() => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(body) }));
+    window.fetch = vi.fn(() => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(body) }));
 }
 
 /**
@@ -150,7 +150,7 @@ describe('addCitiesToMap city popup (#4591)', () => {
         document.body.innerHTML = POPUP_TEMPLATE;
         lastPopupContent = undefined;
         // format-number echoes the raw value so tests can assert exact numbers; other keys just return the key.
-        global.i18next = {
+        window.i18next = {
             t: (key, opts) => {
                 if (key === 'common:format-number') return String(opts.val);
                 return key;
@@ -162,17 +162,16 @@ describe('addCitiesToMap city popup (#4591)', () => {
             isMetric: () => true,
             longDistanceToString: (km, precision = 0) => `${km.toFixed(precision)} km`,
         });
-        global.mapboxgl = { Popup: FakePopup, LngLatBounds: FakeLngLatBounds };
+        window.mapboxgl = { Popup: FakePopup, LngLatBounds: FakeLngLatBounds };
         addCitiesToMap = await loadAddCitiesToMap();
         map = makeFakeMap();
     });
 
     afterEach(() => {
-        delete global.fetch;
-        delete global.i18next;
-        delete global.util;
-        delete global.mapboxgl;
-        vi.restoreAllMocks();
+        delete window.fetch;
+        delete window.i18next;
+        delete window.util;
+        delete window.mapboxgl;
     });
 
     /**
@@ -191,7 +190,7 @@ describe('addCitiesToMap city popup (#4591)', () => {
 
     test('fetches overallStats from the clicked city origin', async () => {
         await clickCity(GOOD_STATS);
-        expect(global.fetch).toHaveBeenCalledWith('https://example.org/v3/api/overallStats');
+        expect(window.fetch).toHaveBeenCalledWith('https://example.org/v3/api/overallStats');
     });
 
     test('populates all three stat cells from the current overallStats shape', async () => {
@@ -218,7 +217,7 @@ describe('addCitiesToMap city popup (#4591)', () => {
 
         test('makes no stats request at all', async () => {
             await clickCity(GOOD_STATS, PRIVATE);
-            expect(global.fetch).not.toHaveBeenCalled();
+            expect(window.fetch).not.toHaveBeenCalled();
         });
 
         test('drops the stats grid rather than showing placeholder dashes', async () => {
@@ -237,7 +236,7 @@ describe('addCitiesToMap city popup (#4591)', () => {
         // leave it rendering href="null/explore" on the public cities map.
         test('withholds the link for an unrecognized visibility too, whenever the url is absent', async () => {
             await clickCity(GOOD_STATS, { url: null, visibility: 'beta' });
-            expect(global.fetch).not.toHaveBeenCalled();
+            expect(window.fetch).not.toHaveBeenCalled();
             expect(lastPopupContent.querySelector('.popup-link')).toBeNull();
         });
     });

@@ -256,10 +256,6 @@ describe('Minimap seam', () => {
     [map] = FakeMap.instances;
   });
 
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
   test('creation resolves once the style is ready, without waiting for basemap tiles', () => {
     // Reaching this line is the assertion: FakeMap never fires 'load' or 'idle'.
     expect(map.options.center).toEqual([PANO.lng, PANO.lat]);
@@ -700,10 +696,6 @@ describe('Minimap without a map', () => {
     frames = [];
     await setUpGlobals(frames);
     vi.spyOn(console, 'error').mockImplementation(() => {});
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
   });
 
   const holder = () => document.getElementById('minimap-holder');

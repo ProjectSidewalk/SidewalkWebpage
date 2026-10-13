@@ -229,7 +229,7 @@ describe('util.pano projection', () => {
         it('Validate: getOriginalPov returns the authored POV for a center-canvas label', async () => {
             const ValidateLabel = (await loadModules(VALIDATE_LABEL_PATH)).Label;
             // Label's init reaches for the backup-image helper the Grunt bundle concatenates alongside it.
-            global.buildBackupImageData = () => null;
+            window.buildBackupImageData = () => null;
             const authored = {heading: 212.75, pitch: -9.5, zoom: 2};
             const label = new ValidateLabel({
                 canvas_x: CANVAS_WIDTH / 2, canvas_y: CANVAS_HEIGHT / 2,
@@ -249,7 +249,7 @@ describe('util.pano projection', () => {
         // label that predates the columns, so it decodes through the boxed 720x480.
         it('Validate: getOriginalPov projects through the label\'s own frame, defaulting to 720x480', async () => {
             const ValidateLabel = (await loadModules(VALIDATE_LABEL_PATH)).Label;
-            global.buildBackupImageData = () => null;
+            window.buildBackupImageData = () => null;
             const authored = {heading: 212.75, pitch: -9.5, zoom: 2};
             const common = {canvas_x: 360, canvas_y: 202, heading: authored.heading, pitch: authored.pitch, zoom: 2};
 

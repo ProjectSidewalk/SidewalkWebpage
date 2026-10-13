@@ -81,7 +81,7 @@ const city = (overrides) => ({
 /** Runs a full render() against a stubbed endpoint payload and returns the section element. */
 async function render(payload, opts = {}) {
   const section = buildDom();
-  global.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => payload });
+  window.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => payload });
   await new CrossCityStats(section, { currentCityName: 'Seattle', ...opts }).render();
   return section;
 }
@@ -102,7 +102,7 @@ let CrossCityStats;
 beforeAll(async () => {
   window.util ??= await realUtil();
   await loadModules('frontend/js/common/utilitiesMath.js');
-  global.i18next = i18nextStub;
+  window.i18next = i18nextStub;
   CrossCityStats = (await loadModules('frontend/js/user-dashboard/CrossCityStats.js')).CrossCityStats;
 });
 
@@ -215,7 +215,7 @@ describe('the section announcement', () => {
 
   test('stays silent when the breakdown cannot be computed', async () => {
     const section = buildDom();
-    global.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ unavailable: true }) });
+    window.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ unavailable: true }) });
     await new CrossCityStats(section, { currentCityName: 'Seattle' }).render();
 
     expect(section.hidden).toBe(true);

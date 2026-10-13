@@ -226,6 +226,8 @@ function meta(overrides = {}) {
     };
 }
 
+afterEach(() => { vi.useRealTimers(); });
+
 describe('LabelDetail edit gating (#5047)', () => {
     let LabelDetail;
     let card;
@@ -667,29 +669,25 @@ describe('LabelDetail edit gating (#5047)', () => {
             await showLabel({ severity: 2 });
             await resolveImagery(true);
             vi.useFakeTimers();
-            try {
-                faces()[2].click();
-                await vi.advanceTimersByTimeAsync(0);
-                const el = status('severity');
-                expect(el.textContent).toBe('labelmap:edit-saved');
-                expect(el.classList.contains('label-detail__edit-status--fading')).toBe(false);
+            faces()[2].click();
+            await vi.advanceTimersByTimeAsync(0);
+            const el = status('severity');
+            expect(el.textContent).toBe('labelmap:edit-saved');
+            expect(el.classList.contains('label-detail__edit-status--fading')).toBe(false);
 
-                // Still fully visible just before the hold is up, so the message can't flash past unread.
-                await vi.advanceTimersByTimeAsync(900);
-                expect(el.classList.contains('label-detail__edit-status--fading')).toBe(false);
+            // Still fully visible just before the hold is up, so the message can't flash past unread.
+            await vi.advanceTimersByTimeAsync(900);
+            expect(el.classList.contains('label-detail__edit-status--fading')).toBe(false);
 
-                // Fading, but the text stays in the DOM until the fade finishes — taking live-region content away
-                // within a beat of adding it can cost the screen-reader announcement.
-                await vi.advanceTimersByTimeAsync(200);
-                expect(el.classList.contains('label-detail__edit-status--fading')).toBe(true);
-                expect(el.textContent).toBe('labelmap:edit-saved');
+            // Fading, but the text stays in the DOM until the fade finishes — taking live-region content away
+            // within a beat of adding it can cost the screen-reader announcement.
+            await vi.advanceTimersByTimeAsync(200);
+            expect(el.classList.contains('label-detail__edit-status--fading')).toBe(true);
+            expect(el.textContent).toBe('labelmap:edit-saved');
 
-                await vi.advanceTimersByTimeAsync(500);
-                expect(el.textContent).toBe('');
-                expect(el.classList.contains('label-detail__edit-status--fading')).toBe(false);
-            } finally {
-                vi.useRealTimers();
-            }
+            await vi.advanceTimersByTimeAsync(500);
+            expect(el.textContent).toBe('');
+            expect(el.classList.contains('label-detail__edit-status--fading')).toBe(false);
         });
 
         test('a failure is held far longer than a confirmation', async () => {
@@ -700,22 +698,18 @@ describe('LabelDetail edit gating (#5047)', () => {
             await showLabel({ severity: 2 });
             await resolveImagery(true);
             vi.useFakeTimers();
-            try {
-                faces()[2].click();
-                await vi.advanceTimersByTimeAsync(0);
-                await vi.advanceTimersByTimeAsync(2000);
+            faces()[2].click();
+            await vi.advanceTimersByTimeAsync(0);
+            await vi.advanceTimersByTimeAsync(2000);
 
-                expect(status('severity').querySelector('.sr-only').textContent).toBe('labelmap:edit-failed');
-                expect(status('severity').classList.contains('label-detail__edit-status--fading')).toBe(false);
+            expect(status('severity').querySelector('.sr-only').textContent).toBe('labelmap:edit-failed');
+            expect(status('severity').classList.contains('label-detail__edit-status--fading')).toBe(false);
 
-                // And it does eventually leave, the same way a confirmation does.
-                await vi.advanceTimersByTimeAsync(3500);
-                expect(status('severity').textContent).toBe('');
-                expect(status('severity').hasAttribute('data-ps-tooltip')).toBe(false);
-            } finally {
-                vi.useRealTimers();
-                consoleError.mockRestore();
-            }
+            // And it does eventually leave, the same way a confirmation does.
+            await vi.advanceTimersByTimeAsync(3500);
+            expect(status('severity').textContent).toBe('');
+            expect(status('severity').hasAttribute('data-ps-tooltip')).toBe(false);
+            consoleError.mockRestore();
         });
 
         test('an edit queued behind a page-through still saves to the label it was made on', async () => {

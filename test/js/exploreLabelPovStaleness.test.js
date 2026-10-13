@@ -204,10 +204,6 @@ describe('Explore label POV staleness (#4842 regression)', () => {
         form = await buildForm();
     });
 
-    afterEach(() => {
-        vi.restoreAllMocks();
-    });
-
     test('submits a self-consistent record when the viewport is unchanged', async () => {
         labels = [labelPlacedAt(viewerPov, { x: 431, y: 302 })];
         const bodies = acceptingFetch();

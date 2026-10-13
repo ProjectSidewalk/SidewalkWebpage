@@ -23,8 +23,8 @@ const ML_API = 'https://makeabilitylab.cs.washington.edu/api/v1';
 if (typeof AbortSignal.timeout !== 'function') {
   AbortSignal.timeout = () => new AbortController().signal;
 }
-if (typeof globalThis.CSS?.escape !== 'function') {
-  globalThis.CSS = { ...globalThis.CSS, escape: (value) => String(value).replace(/["\\\]]/g, '\\$&') };
+if (typeof window.CSS?.escape !== 'function') {
+  window.CSS = { ...globalThis.CSS, escape: (value) => String(value).replace(/["\\\]]/g, '\\$&') };
 }
 
 /**
@@ -62,7 +62,7 @@ class FakeIntersectionObserver {
     this.callback(this.targets.map((target) => ({ target, isIntersecting: intersecting.includes(target) })), this);
   }
 }
-globalThis.IntersectionObserver = FakeIntersectionObserver;
+window.IntersectionObserver = FakeIntersectionObserver;
 
 /** Lets pending promise jobs and timers run. */
 const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
@@ -132,12 +132,12 @@ const page = (results) => ({ count: results.length, next: null, previous: null, 
  * @returns {import('vitest').Mock} The installed fetch mock, for call assertions.
  */
 function stubFetch(routes) {
-  global.fetch = vi.fn((url) => {
+  window.fetch = vi.fn((url) => {
     const key = Object.keys(routes).find((k) => url.includes(k));
     if (!key) return Promise.reject(new Error(`unstubbed URL: ${url}`));
     return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(routes[key]) });
   });
-  return global.fetch;
+  return window.fetch;
 }
 
 /** Runs the page's ready callback and lets every hydrator's promise chain settle. */
@@ -183,11 +183,10 @@ describe('AboutPage', () => {
 
   afterEach(() => {
     document.head.querySelectorAll('script[src], link[rel="stylesheet"]').forEach((el) => el.remove());
-    delete global.fetch;
+    delete window.fetch;
     delete window.appManager;
     delete window.__aboutReady;
     delete window.createPSMap;
-    vi.restoreAllMocks();
   });
 
   describe('current team', () => {

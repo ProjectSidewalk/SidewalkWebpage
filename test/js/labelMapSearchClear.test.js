@@ -142,6 +142,8 @@ function pressEscape() {
     document.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape' }));
 }
 
+afterEach(() => { vi.useRealTimers(); });
+
 describe('clearing a searched place', () => {
     let search;
 
@@ -205,24 +207,20 @@ describe('clearing a searched place', () => {
     test('the invitation stays open while focus is inside it, and closes once focus has left both it and the pin',
         () => {
             vi.useFakeTimers();
-            try {
-                retrieve();
-                const pin = document.querySelector('.ps-search-pin');
-                pin.focus();
-                pin.click();
-                vi.runAllTimers();
-                expect(popups[0].removed).toBe(false);
+            retrieve();
+            const pin = document.querySelector('.ps-search-pin');
+            pin.focus();
+            pin.click();
+            vi.runAllTimers();
+            expect(popups[0].removed).toBe(false);
 
-                // jsdom counts the pin as hovered from its click() until the pointer is seen elsewhere.
-                document.getElementById('elsewhere').dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
-                document.getElementById('elsewhere').focus();
-                expect(popups[0].removed).toBe(false);
-                vi.runAllTimers();
-                expect(popups[0].removed).toBe(true);
-                expect(markers[0].removed).toBe(false);
-            } finally {
-                vi.useRealTimers();
-            }
+            // jsdom counts the pin as hovered from its click() until the pointer is seen elsewhere.
+            document.getElementById('elsewhere').dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+            document.getElementById('elsewhere').focus();
+            expect(popups[0].removed).toBe(false);
+            vi.runAllTimers();
+            expect(popups[0].removed).toBe(true);
+            expect(markers[0].removed).toBe(false);
         });
 
     test('Escape with focus on the invitation\'s button closes it and returns focus to the pin', () => {

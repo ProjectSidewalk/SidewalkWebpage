@@ -16,7 +16,7 @@ const NEW_TAB_CUE = '(opens in a new tab)';
 
 /** Load PanoAttribution.js (a plain top-level function declaration, concatenation-style). */
 async function loadAttribution() {
-  global.i18next = {
+  window.i18next = {
     t: (key) => (key === 'common:pano-attribution.opens-new-tab' ? NEW_TAB_CUE : `MISSING:${key}`),
   };
   return (await loadModules(ATTRIBUTION_PATH)).createPanoAttribution;

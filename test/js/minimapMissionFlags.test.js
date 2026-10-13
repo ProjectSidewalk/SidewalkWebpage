@@ -11,16 +11,14 @@
  * finish flag is part of what is being exercised.
  */
 
-import path from 'path';
-import { loadModules, stubUtil, fakeImport } from './loadGlobalScript.js';
+import { loadVendored, loadModules, stubUtil, fakeImport } from './loadGlobalScript.js';
 import { fakeTracker, fakePanoManager, fakeTaskContainer } from './fakes.js';
 
 fakeImport('frontend/js/explore/navigation/MinimapStyle.js', 'MinimapStyle');
 
-const REPO_ROOT = path.resolve(__dirname, '..', '..');
 
 
-window.turf = require(path.join(REPO_ROOT, 'public/vendor/turf/turf-7.4.0.min.js'));
+loadVendored('turf');
 const { turf } = window;
 
 /**

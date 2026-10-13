@@ -33,10 +33,6 @@ describe('LabelContainer.fetchLabelsToResumeMission', () => {
             fakeTracker());
     });
 
-    afterEach(() => {
-        vi.restoreAllMocks();
-    });
-
     it('names the route walk so the server gathers labels from every region it runs through', async () => {
         const fetch = fetchAnswering({ labels: [] });
         const callback = vi.fn();
@@ -120,10 +116,6 @@ describe('Form.submitData street-priority refresh on a route walk', () => {
             pano: { TUTORIAL_PANO_IDS: new Set(['tutorial', 'afterWalkTutorial']) },
         });
         window.i18next = { language: 'en' };
-    });
-
-    afterEach(() => {
-        vi.restoreAllMocks();
     });
 
     it('asks for fresh priorities on a region audit once most of the street is walked', async () => {
