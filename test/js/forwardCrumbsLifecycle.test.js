@@ -83,7 +83,8 @@ describe('ForwardCrumbs marker lifecycle', () => {
         visited = new Set();
         task = makeTask(1);
         nav = {
-            walking: { hold: () => {}, release: () => {}, isHeld: () => false, isHeldExcept: () => false, onChanged: () => {} },
+            walking: { hold: () => {}, release: () => {}, isHeld: () => false, onChanged: () => {} },
+            canWalk: () => true,
             onMoved: () => {},
             moveToPano: jest.fn(async () => true),
             moveToLocation: jest.fn(async () => true),

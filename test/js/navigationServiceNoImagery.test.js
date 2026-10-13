@@ -193,7 +193,6 @@ describe('Explore, when the imagery search runs out along a street', () => {
                         latLng,
                         streetEdgeId: svl.taskContainer.getCurrentTask().getStreetEdgeId(),
                         excludedPanos: [...excludedPanos].map((pano) => pano.panoId),
-                        walkingDisabled: nav.walking.isHeld(),
                     });
                     return respondToSearch(latLng);
                 }),
@@ -308,10 +307,8 @@ describe('Explore, when the imagery search runs out along a street', () => {
 
             await nav.moveForward();
 
-            // The advance is a recursive moveForward(), and moveForward() returns immediately while walking is
-            // disabled — which every move disables on its way in. So the new street being searched at all is the
-            // assertion: without re-enabling walking first, the advance switches the task and nothing else happens,
-            // leaving the labeler on the old street's pano with the whole panorama pane inert.
+            // moveForward() refuses mid-move, so an advance routed through it would switch the task and stop there,
+            // leaving the labeler on the old street's pano.
             expect(searches.map(({ streetEdgeId }) => streetEdgeId)).toContain(102);
         });
 
@@ -427,7 +424,7 @@ describe('Explore, when the imagery search runs out along a street', () => {
             expect(svl.alertController.showAlert)
                 .toHaveBeenCalledWith('popup.imagery-load-failed', 'imageryLoadFailed', false);
             expect(keyboardLock.release).toHaveBeenCalledWith('move');
-            expect(nav.walking.isHeld()).toBe(false);
+            expect(nav.canWalk()).toBe(true);
         });
 
         it('still writes nothing when only one sampled point failed to get an answer', async () => {
@@ -467,7 +464,7 @@ describe('Explore, when the imagery search runs out along a street', () => {
             // which is a fresh decision rather than more of the automatic run this bounds.
             expect(window.NoImageryFlagGuard.count()).toBe(0);
             expect(svl.tracker.push).toHaveBeenCalledWith('NoImageryAdvanceLimitReached');
-            expect(nav.walking.isHeld()).toBe(false);
+            expect(nav.canWalk()).toBe(true);
         });
 
         it('leaves the street they are left standing on unmarked, having never moved them off it (#5008)', async () => {
@@ -532,7 +529,7 @@ describe('Explore, when the imagery search runs out along a street', () => {
             expect(missionController.onRouteReadyToFinish).toHaveBeenCalled();
             expect(missionController.wrapUpRouteOrRegion).not.toHaveBeenCalled();
             // The labeler has to be able to look around for that gate to ever open.
-            expect(nav.walking.isHeld()).toBe(false);
+            expect(nav.canWalk()).toBe(true);
         });
 
         it('gives up on a street once, however many times the labeler tries to walk off it (#5008)', async () => {
@@ -724,6 +721,54 @@ describe('Explore, when the imagery search runs out along a street', () => {
             expect(svl.alertController.showAlert)
                 .toHaveBeenCalledWith('popup.imagery-load-failed', 'imageryLoadFailed', false);
         });
+    });
+
+    describe('and the labeler tries to move again before the last move is done (#5765)', () => {
+        it('refuses a second move without holding walking, and hides the arrows until the beat after landing', async () => {
+            assignStreets(makeTask(101));
+            let land;
+            respondToSearch = () => new Promise((resolve) => { land = () => resolve({ panoId: 'pano-found' }); });
+
+            const first = nav.moveForward();
+            // A move in flight isn't a hold on walking, so a pop-up opening and closing under it can't strand anything.
+            expect(nav.walking.isHeld()).toBe(false);
+            expect(nav.canWalk()).toBe(false);
+            expect(svl.navArrows.hide).toHaveBeenCalled();
+            await nav.moveForward();
+            expect(searches).toHaveLength(1);
+
+            land();
+            await first;
+            expect(nav.canWalk()).toBe(false);
+            svl.navArrows.show.mockClear();
+            jest.advanceTimersByTime(800);
+            expect(nav.canWalk()).toBe(true);
+            expect(svl.navArrows.show).toHaveBeenCalled();
+        });
+
+        it('does not let an earlier landing\'s timer reopen walking during, or cut short the beat after, a later move',
+            async () => {
+                assignStreets(makeTask(100), makeTask(101));
+                respondToSearch = foundImagery;
+                await nav.moveForward();
+                jest.advanceTimersByTime(600);
+
+                // A jump can start inside the beat, since the prompt that starts it isn't gated on walking.
+                let land;
+                respondToSearch = () => new Promise((resolve) => { land = () => resolve({ panoId: 'pano-found' }); });
+                const jump = nav.jumpToANewTask();
+                svl.navArrows.show.mockClear();
+                jest.advanceTimersByTime(300); // Past the first landing's beat, with the jump still in flight.
+                expect(nav.canWalk()).toBe(false);
+                expect(svl.navArrows.show).not.toHaveBeenCalled();
+
+                land();
+                await jump;
+                jest.advanceTimersByTime(500); // Past where the first landing's beat would have ended, again.
+                expect(nav.canWalk()).toBe(false);
+                jest.advanceTimersByTime(300);
+                expect(nav.canWalk()).toBe(true);
+            });
     });
 
     it('samples its way down the street rather than giving up at the first empty point', async () => {

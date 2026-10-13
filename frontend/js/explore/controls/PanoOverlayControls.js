@@ -11,7 +11,6 @@
 
 export class PanoOverlayControls {
   #blinkInterval = null;
-  #stuckEnabled = true;
   #stuck;
   #controlButtonsToggle;
 
@@ -30,10 +29,6 @@ export class PanoOverlayControls {
     this.#stuck = document.getElementById('explore-control-stuck');
     this.#controlButtonsToggle = document.getElementById('explore-control-buttons-toggle');
 
-    // The stuck handler is attached once and gated by #stuckEnabled, which follows walking.
-    navigationService.walking.onChanged((held) => {
-      this.#stuckEnabled = !held;
-    });
     this.#stuck.addEventListener('click', this.#handleClickStuck);
     this.#controlButtonsToggle.addEventListener('click', this.#handleToggleControls);
   }
@@ -60,7 +55,7 @@ export class PanoOverlayControls {
    */
   #handleClickStuck = (e) => {
     e.preventDefault();
-    if (!this.#stuckEnabled) return;
+    if (!this.navigationService.canWalk()) return;
     this.stuckAlert.compassOrStuckClicked();
     this.keyboardShortcutAlert.stuckButtonClicked();
     this.tracker.push('ModalStuck_ClickStuck');
