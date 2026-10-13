@@ -1,5 +1,5 @@
 /*
- * Page controls for a long list or table (#5762): Previous / "Page X of Y" / Next, plus optional extras for a big table.
+ * Page controls for a long list or table (#5762): Previous / "Page X of Y" / Next, plus extras for a big table.
  *
  *   .ps-pager           the bar, centered.
  *   .ps-pager--spread   buttons on the left and extras (rows-per-page) on the right, for a wide data table.

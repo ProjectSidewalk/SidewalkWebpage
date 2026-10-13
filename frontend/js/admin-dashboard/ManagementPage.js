@@ -265,7 +265,8 @@ export class ManagementPage {
         this.#gotoPage(btn.getAttribute('data-page'));
       });
       bar.addEventListener('change', (e) => {
-        const sel = /** @type {HTMLSelectElement} */ (/** @type {Element} */ (e.target).closest('.ps-pager-size select'));
+        const target = /** @type {Element} */ (e.target);
+        const sel = /** @type {HTMLSelectElement} */ (target.closest('.ps-pager-size select'));
         if (!sel) return;
         this.#pageSize = parseInt(sel.value, 10) || ManagementPage.#PAGE_SIZES[0];
         this.#page = 1;
