@@ -36,7 +36,8 @@ Run the three from the **main checkout**: `db/` is the bind mount the db contain
   *filed* (for missions and completion), and routes run across borders freely, so the cutting is to be replaced by
   assigning each whole street to the region holding most of it (`docs/architecture.md` → "Streets, regions, and
   routes"). Until that lands, expect the border pieces in the report's tiny-segment share, and don't hand-split a
-  street to make it fit a region. A
+  street to make it fit a region. A city built before this tool is brought in line with it by
+  `tools/one-off/4717-consolidate-tiny-streets.sql`, which applies the same merge and 15 m rules to its streets. A
   hairline where two borders were traced a metre apart is repaired for you, by giving that ground to the smaller
   region (`--max-region-sliver-m`, 5 m). An overlap thicker than that is a real disagreement about where a region
   is, so the build stops and names the pairs for you to settle in QGIS.
