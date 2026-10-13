@@ -13,7 +13,8 @@ export class Gate {
   #listeners = [];
 
   /**
-   * Told whenever the gate goes from open to held or back, with the holder that tipped it.
+   * Told of each hold taken and let go, with whether the gate is still held: a listener that ignores one holder (the
+   * forward crumbs ignore a move's) would otherwise miss a hold that comes or goes under it.
    * @param {(held: boolean, holder: string) => void} listener
    */
   onChanged(listener) {
@@ -25,9 +26,9 @@ export class Gate {
    * @param {string} holder - What needs it shut.
    */
   hold(holder) {
-    const wasHeld = this.isHeld();
+    if (this.#holds.has(holder)) return;
     this.#holds.add(holder);
-    if (!wasHeld) this.#listeners.forEach((listener) => listener(true, holder));
+    this.#listeners.forEach((listener) => listener(true, holder));
   }
 
   /**
@@ -36,7 +37,8 @@ export class Gate {
    */
   release(holder) {
     if (!this.#holds.delete(holder)) return;
-    if (!this.isHeld()) this.#listeners.forEach((listener) => listener(false, holder));
+    const held = this.isHeld();
+    this.#listeners.forEach((listener) => listener(held, holder));
   }
 
   /** @returns {boolean} Whether anything still holds the gate shut. */

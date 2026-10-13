@@ -169,6 +169,7 @@ export class ContextMenu {
     this.#tracker.push('ContextMenu_TextBoxChange', { Description: description }, this.#status.targetLabel);
     if (this.#status.targetLabel) {
       this.#status.targetLabel.setProperty('description', description);
+      this.#edited(this.#status.targetLabel);
     }
   }
 
@@ -210,6 +211,14 @@ export class ContextMenu {
     this.#labelContainer.removeLabel(label);
   }
 
+  /**
+   * Per edit, not per opening: a save while the menu is open (a share, the tracker's flush) empties the list.
+   * @param {Label} label
+   */
+  #edited(label) {
+    this.#labelContainer.addToLabelsToLog(label);
+  }
+
   handleSeverityPopup() {
     const labels = this.#labelContainer.getAllLabels();
     if (labels.length > 0) {
@@ -229,6 +238,7 @@ export class ContextMenu {
     this.updateRadioButtonImages();
     if (label) {
       label.setProperty('severity', severity);
+      this.#edited(label);
       this.#changeListeners.forEach((listener) => listener());
     }
   }
@@ -350,6 +360,7 @@ export class ContextMenu {
         this.#tracker.push('KeyboardShortcut_TagRemoved', { tagId: tag.tag_id, tagName: tag.tag }, label);
       }
     }
+    this.#edited(label);
     button.classList.toggle('tag-pill--active');
     this.#status.targetLabel.setProperty('tagIds', labelTags);
     button.blur();
@@ -613,8 +624,6 @@ export class ContextMenu {
 
     if (labelType !== 'Occlusion') {
       this.#setStatus('targetLabel', targetLabel);
-      // Whatever the menu changes on the label is submitted with it.
-      this.#labelContainer.addToLabelsToLog(targetLabel);
 
       // Identify the label being edited, the way the collapsed card does. Without this the panel opens on its
       // first field and never says what it belongs to.

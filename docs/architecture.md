@@ -602,8 +602,9 @@ what it works with as constructor arguments, all wired in `gallery/Main.js`, `va
 elements as one UI object (`ValidateUi`, `ExploreUi`), page data and elements first and collaborators last, every
 argument positional and required. What is built first announces and what is built later subscribes to it in its own
 constructor (`Tracker.onFlush`, `LabelContainer.onLabelPlaced`, `TaskContainer.onCurrentTaskChanged`,
-`PanoManager.onPovChanged`, `NavigationService.onMoveStarted` / `onMoved`, …), so there are no late setters and no
-cycles, and a `Main` wires only the policy that spans modules: on Explore, what a pop-up stops. Anything that can be
+`PanoManager.onPovChanged`, `NavigationService.onMoveStarted` / `onMoved`, …), so the late setters are down to the
+two a real cycle needs (`Tracker.trackPano`, since the tracker that stamps the pano is built before it, and
+`Minimap.setOverviewStreets`), and a `Main` wires only the policy that spans modules: on Explore, what a pop-up stops. Anything that can be
 switched off is a `common/Gate`, held by name and open only once every holder has let go: the keyboard shortcuts (a
 modal, the tutorial, a move in flight, the sign-in dialog), and on Explore walking (`NavigationService.walking`),
 panning (`PanoManager.panning`), labeling (`Canvas.labeling`), mode switching (`LabelModes.switching`), each zoom

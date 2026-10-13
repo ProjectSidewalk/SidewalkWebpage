@@ -1,7 +1,7 @@
 /**
  * Tests the Gate (frontend/js/common/Gate.js): the named holds the tools' keyboard shortcuts, walking, panning,
  * labeling and pop-up stop are built on (#5648). What matters is that a gate held by two things opens only once both
- * let go, and that its listeners hear the first hold and the last release, not every one in between.
+ * let go, and that its listeners hear every hold and release along with whether the gate is still held.
  */
 
 const { loadModules } = require('./loadGlobalScript');
@@ -33,15 +33,16 @@ describe('Gate', () => {
         expect(gate.isHeld()).toBe(false);
     });
 
-    it('tells its listeners of the first hold and the last release, naming the holder that tipped it', () => {
+    it('tells its listeners of every hold and release, saying whether it is still held and by whose change', () => {
         const gate = new Gate();
         const changes = [];
         gate.onChanged((held, holder) => changes.push([held, holder]));
         gate.hold('move');
         gate.hold('popup');
+        gate.hold('popup');
         gate.release('move');
         gate.release('popup');
-        expect(changes).toEqual([[true, 'move'], [false, 'popup']]);
+        expect(changes).toEqual([[true, 'move'], [true, 'popup'], [true, 'move'], [false, 'popup']]);
     });
 
     it('can tell a hold that lifts on its own from any other', () => {

@@ -118,6 +118,7 @@ function makeTask(streetEdgeId, { lengthKm = 0.1, atEnd = false, walkOrder = nul
         getMidpoint: () => ({ lat: FIXTURE_LAT, lng: (start[0] + end[0]) / 2 }),
         lineDistance: () => lengthKm * 1000,
         getDistanceFromStart: () => 0,
+        headingAlongRoute: () => streetEdgeId,
     };
 }
 
@@ -207,6 +208,7 @@ describe('Explore, when the imagery search runs out along a street', () => {
                 endTask: jest.fn(),
                 updateCurrentTask: stub(),
                 getNextTaskAfterJump: () => null,
+                setNextTaskAfterJump: jest.fn(),
                 renderTask: jest.fn(),
             },
         };
@@ -311,6 +313,34 @@ describe('Explore, when the imagery search runs out along a street', () => {
             // assertion: without re-enabling walking first, the advance switches the task and nothing else happens,
             // leaving the labeler on the old street's pano with the whole panorama pane inert.
             expect(searches.map(({ streetEdgeId }) => streetEdgeId)).toContain(102);
+        });
+
+        it('still advances when a pop-up took hold of walking during the move', async () => {
+            const [dead, live] = [makeTask(101), makeTask(102)];
+            assignStreets(dead, live);
+            respondToSearch = () => {
+                // A pop-up's hold, taken mid-move, so it never lifts on its own.
+                nav.walking.hold('interaction');
+                return svl.taskContainer.getCurrentTask() === dead ? emptyGround() : foundImagery();
+            };
+
+            await nav.moveForward();
+
+            expect(searches.map(({ streetEdgeId }) => streetEdgeId)).toContain(102);
+        });
+
+        it('jumps on under the sign-in prompt that ending the street raised, facing the street it lands on', async () => {
+            const [done, dead, live] = [makeTask(100), makeTask(101), makeTask(102)];
+            assignStreets(done, dead, live);
+            // The prompt opens from the task's end, before the jump's own move, and holds until answered.
+            svl.taskContainer.endTask.mockImplementation(() => nav.walking.hold('interaction'));
+            respondToSearch = () => (svl.taskContainer.getCurrentTask() === dead ? emptyGround() : foundImagery());
+
+            await nav.jumpToANewTask();
+
+            expect(searches.map(({ streetEdgeId }) => streetEdgeId)).toContain(102);
+            // The target street had no imagery, so the camera follows the one reached.
+            expect(svl.panoManager.turnTo).toHaveBeenCalledWith(102);
         });
 
         it('gives the session its flag allowance back once a street loads', async () => {

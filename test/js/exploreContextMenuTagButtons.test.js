@@ -26,6 +26,7 @@ function makeLabel(labelType) {
 describe('ContextMenu tag buttons', () => {
     let menu;
     let ui;
+    let labelContainer;
 
     beforeEach(() => {
         window.i18next = { t: (key) => key };
@@ -40,8 +41,8 @@ describe('ContextMenu tag buttons', () => {
 
         Object.assign(window, loadModules('frontend/js/explore/canvas/ContextMenu.js'));
         ui = makeContextMenuUi();
-        menu = new window.ContextMenu(ui, { isOnboarding: false }, { iconRadius: 17 },
-            { canDelete: () => true, getAllLabels: () => [], addToLabelsToLog: jest.fn() },
+        labelContainer = { canDelete: () => true, getAllLabels: () => [], addToLabelsToLog: jest.fn() };
+        menu = new window.ContextMenu(ui, { isOnboarding: false }, { iconRadius: 17 }, labelContainer,
             { switching: { hold: jest.fn(), release: jest.fn() } }, { onMoveStarted: jest.fn() },
             { ratingClicked: jest.fn() }, { ensureLabelSaved: jest.fn() }, { push: jest.fn() });
         menu.labelTags = [
@@ -61,6 +62,26 @@ describe('ContextMenu tag buttons', () => {
         buttons[2].click();
         expect(menu.getTargetLabel().getProperty('tagIds')).toEqual([3]);
         expect(buttons[2].classList.contains('tag-pill--active')).toBe(true);
+    });
+
+    test('files the label for the next submission on each edit, not only when the menu opens', () => {
+        const label = makeLabel('Obstacle');
+        menu.show(label);
+        // As a save while the menu is open (a share, the tracker's flush) does.
+        labelContainer.addToLabelsToLog.mockClear();
+
+        ui.tagHolder.querySelector('button').click();
+        expect(labelContainer.addToLabelsToLog).toHaveBeenCalledWith(label);
+
+        labelContainer.addToLabelsToLog.mockClear();
+        ui.radioButtons[1].checked = true;
+        ui.radioButtons[1].dispatchEvent(new Event('change'));
+        expect(labelContainer.addToLabelsToLog).toHaveBeenCalledWith(label);
+
+        labelContainer.addToLabelsToLog.mockClear();
+        ui.textBox.value = 'a bin';
+        ui.textBox.dispatchEvent(new Event('change'));
+        expect(labelContainer.addToLabelsToLog).toHaveBeenCalledWith(label);
     });
 
     test('opening a label of another type rebuilds the row for that type', () => {

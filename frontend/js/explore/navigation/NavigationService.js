@@ -377,13 +377,9 @@ export class NavigationService {
       this.#taskContainer.setCurrentTask(newTask);
       // Not awaited: naming the destination takes a network round trip, and the move should not wait on decoration.
       this.#stuckAlert.announceSkippedStreetNear(newTask.getMidpoint(), this.#config.mapboxApiKey);
-      // The failed search that brought us here left walking disabled, and moveForward() returns immediately in that
-      // state — so without this the advance silently does nothing: the labeler is left standing on the old street's
-      // pano with the panorama pane inert (no walking, panning, labeling, or keyboard) while the current task has
-      // already been switched out from under them, and only a page reload gets them out (#4921). jumpToANewTask()
-      // re-enables walking before its own moveForward() for the same reason.
-      this.walking.release('move');
-      return this.moveForward();
+      // Not moveForward(): the search that brought us here still holds walking, as may a pop-up, and returning at
+      // once would strand the labeler on the old pano with the task already switched (#4921).
+      return this.#moveForward();
     } else {
       // Nothing left to walk. This path skips #updateUiAfterMove(), so the move ends here.
       this.#restoreUiAfterFailedMove();
@@ -442,10 +438,12 @@ export class NavigationService {
     const task = this.#taskContainer.getNextTaskAfterJump() || this.#taskContainer.nextTask(currTask);
     this.#taskContainer.setCurrentTask(task);
     this.#taskContainer.setNextTaskAfterJump(null);
-    this.walking.release('move');
 
-    await this.moveForward();
-    this.#panoManager.turnTo(task.headingAlongRoute(this.#panoManager.getPosition()));
+    // Not moveForward(): ending the street can raise the sign-in prompt, whose hold would stop the jump with the task
+    // already switched. The move can land past `task` if that street has no imagery.
+    await this.#moveForward();
+    const landedOn = this.#taskContainer.getCurrentTask();
+    this.#panoManager.turnTo(landedOn.headingAlongRoute(this.#panoManager.getPosition()));
     this.#jumpAlert.onClickJumpMessage();
   }
 
@@ -714,7 +712,14 @@ export class NavigationService {
    */
   moveForward() {
     if (this.walking.isHeld()) return Promise.resolve();
+    return this.#moveForward();
+  }
 
+  /**
+   * The move without the walking check, for continuations of a move already under way (an empty street, a jump).
+   * @returns {Promise<string|null|void>} As for moveForward().
+   */
+  #moveForward() {
     this.#updateUiBeforeMove();
 
     // TODO show loading icon. Add when resolving issue #2403.

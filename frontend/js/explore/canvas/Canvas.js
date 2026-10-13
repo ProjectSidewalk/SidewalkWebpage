@@ -638,10 +638,6 @@ export class Canvas {
     return this.#status.currentLabel;
   }
 
-  getStatus(key) {
-    return this.#status[key];
-  }
-
   /**
    * Takes cursor coordinates x and y on the canvas and returns the label right below the cursor, or false if none.
    * @param {number} x
@@ -712,14 +708,6 @@ export class Canvas {
 
   setCurrentLabel(label) {
     this.#status.currentLabel = label;
-  }
-
-  setStatus(key, value) {
-    if (key in this.#status) {
-      this.#status[key] = value;
-    } else {
-      throw new Error('Canvas: Illegal status name.');
-    }
   }
 
   /**

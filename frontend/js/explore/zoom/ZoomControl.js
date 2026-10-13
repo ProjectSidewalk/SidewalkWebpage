@@ -28,7 +28,7 @@ export class ZoomControl {
   /** @type {Gate} Whether zooming in is allowed; zoomIn() does nothing while it is held. */
   zoomInGate = new Gate();
 
-  /** @type {Gate} Whether zooming out is allowed; held by the limit at first, since the pano opens at minimum zoom. */
+  /** @type {Gate} Whether zooming out is allowed; the limit holds it while at minimum zoom. */
   zoomOutGate = new Gate();
 
   #zoomBlink = {
@@ -55,17 +55,21 @@ export class ZoomControl {
       zoomOut: document.getElementById('zoom-out-button'),
     };
 
-    const showGate = (button, gate) => gate.onChanged((held) => button.setAttribute('aria-disabled', String(held)));
+    // The view a label card's "Explore here" hop opens on is already zoomed in (#4637).
+    this.syncButtonsToZoom(panoManager.getPov().zoom);
+    const showGate = (button, gate) => {
+      const show = (held) => button.setAttribute('aria-disabled', String(held));
+      show(gate.isHeld());
+      gate.onChanged(show);
+    };
     showGate(this.#uiZoomControl.zoomIn, this.zoomInGate);
     showGate(this.#uiZoomControl.zoomOut, this.zoomOutGate);
-    this.zoomOutGate.hold('limit');
 
     this.#uiZoomControl.zoomIn.addEventListener('click', () => this.#handleZoomInButtonClick());
     this.#uiZoomControl.zoomOut.addEventListener('click', () => this.#handleZoomOutButtonClick());
     // Not passive: the handler stops the page from scrolling under the pano.
     viewControlLayer.addEventListener('wheel', (e) => this.#handleZoomWheel(e), { passive: false });
-    // The buttons follow the pano's zoom wherever it is set: here, by a seeded view (#4637), or by a move that
-    // keeps the previous pano's zoom.
+    // A move keeps the previous pano's zoom, so the buttons follow the view rather than this control's own calls.
     panoManager.onPovChanged(() => this.syncButtonsToZoom(panoManager.getPov().zoom));
   }
 
@@ -144,10 +148,8 @@ export class ZoomControl {
       this.#zoomShortcutAlert.zoomClicked();
     }
 
-    if (!this.zoomInGate.isHeld()) {
-      this.#setZoom(pov.zoom + 1);
-      document.dispatchEvent(new CustomEvent('ZoomIn'));
-    }
+    this.#setZoom(pov.zoom + 1);
+    document.dispatchEvent(new CustomEvent('ZoomIn'));
   }
 
   /**
@@ -162,10 +164,8 @@ export class ZoomControl {
       this.#zoomShortcutAlert.zoomClicked();
     }
 
-    if (!this.zoomOutGate.isHeld()) {
-      this.#setZoom(pov.zoom - 1);
-      document.dispatchEvent(new CustomEvent('ZoomOut'));
-    }
+    this.#setZoom(pov.zoom - 1);
+    document.dispatchEvent(new CustomEvent('ZoomOut'));
   }
 
   /**

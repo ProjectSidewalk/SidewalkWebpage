@@ -102,7 +102,7 @@ imagery" signal alongside the `street_edge_status` work (#3888) — is tracked a
 ### Search radius, and how far off the street a pano sits
 
 Every sampled point — street endpoints and the points between them alike — is queried at **25 m**, the radius Explore
-searches (`svl.STREETVIEW_MAX_DISTANCE`). Matching it is what makes the hide list mean "Explore has no imagery of this
+searches (`PanoViewer.SEARCH_RADIUS_M`). Matching it is what makes the hide list mean "Explore has no imagery of this
 street"; and the radius has to clear each provider's capture interval anyway, or the box can straddle a gap and report
 no imagery where there is some. Mapillary's smart spacing targets 20 m on highways, and 12.6% of Budapest's
 consecutive captures exceed 20 m.

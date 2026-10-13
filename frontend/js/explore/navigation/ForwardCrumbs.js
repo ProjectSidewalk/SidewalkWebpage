@@ -87,6 +87,7 @@ export class ForwardCrumbs {
   #facedPanoId = null;
   #nextStepPanoId = null; // The crumb the spacebar would step to; tinted until the next refresh moves it.
   #highlightedPanoId = null;
+  #blocked = false; // Whether something other than a move holds walking, so nothing is steppable.
   #memo = new Map(); // sampleIndex -> Promise<?PanoHit> for the street #memoKey names.
   #memoKey = null; // Identity of the traversal the memo belongs to; see memoKeyFor().
   #providerFailed = false; // The last lookup here rejected: stop asking until one answers or the street changes.
@@ -123,17 +124,21 @@ export class ForwardCrumbs {
     panoManager.onPovChanged((heading) => this.setFacing(heading));
     navigationService.onMoved(() => this.refresh());
     taskContainer.onCurrentTaskChanged(() => this.refresh());
-    // Nothing is steppable while something other than a move holds walking (the mission-complete screen, a pop-up).
-    navigationService.walking.onChanged((held, holder) => {
-      if (holder === 'move') return;
-      if (held) this.clear();
-      else this.refresh();
-    });
+    // A modal or pop-up's hold on walking can come or go during a move, which holds walking itself.
+    navigationService.walking.onChanged(() => this.#followWalking());
     navArrows.onHover((target) => {
       if (!target) this.clearHighlight();
       else if ('panoId' in target) this.highlight(target.panoId);
       else this.highlightNextStop();
     });
+  }
+
+  #followWalking() {
+    const blocked = this.#navigationService.walking.isHeldExcept('move');
+    if (blocked === this.#blocked) return;
+    this.#blocked = blocked;
+    if (blocked) this.clear();
+    else this.refresh();
   }
 
   /**

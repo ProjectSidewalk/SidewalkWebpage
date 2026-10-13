@@ -229,7 +229,7 @@ PANO_SCORING = _load_pano_scoring()
 MS_PER_YEAR = 365.25 * 24 * 3600 * 1000
 
 # Search radius, in km, around every point we sample — street endpoints and along-street points alike. 25 m is what
-# Explore searches (`svl.STREETVIEW_MAX_DISTANCE`), so the scan and the tool agree on what counts as imagery at a
+# Explore searches (`PanoViewer.SEARCH_RADIUS_M`), so the scan and the tool agree on what counts as imagery at a
 # location and a street we hide is one Explore genuinely cannot serve. It also has to clear the providers' capture
 # interval, or the box can straddle a gap and report no imagery where there is some: Mapillary's smart spacing targets
 # 20 m on highways, and 12.6% of Budapest's consecutive captures exceed 20 m (#5091 collects the measurements).
