@@ -666,7 +666,7 @@ describe('Minimap seam', () => {
       flushFrame();
       expect(uploaded().map((feature) => feature.properties.kind)).toEqual(['audited', 'remaining']);
 
-      minimap.clearStreetLines('route-street-1');
+      minimap.setStreetLines('route-street-1', []);
       flushFrame();
       expect(uploaded().map((feature) => feature.properties.kind)).toEqual(['remaining']);
     });
@@ -678,14 +678,11 @@ describe('Minimap seam', () => {
       expect(uploaded().map((feature) => feature.properties.kind)).toEqual(['remaining']);
     });
 
-    test('clearing a street removes it, and clearing one that was never drawn uploads nothing', () => {
+    test('a street drawn with no lines comes off the map', () => {
       minimap.setStreetLines('street-7', [line('other', [0, 0], [1, 1])]);
       flushFrame();
 
-      minimap.clearStreetLines('street-99');
-      expect(frames).toHaveLength(0);
-
-      minimap.clearStreetLines('street-7');
+      minimap.setStreetLines('street-7', []);
       flushFrame();
       expect(uploaded()).toHaveLength(0);
     });
@@ -739,7 +736,6 @@ describe('Minimap without a map', () => {
       marker.setVisible(false);
       marker.remove();
       minimap.setStreetLines('street-1', [{ kind: 'other', coordinates: [[0, 0], [1, 1]] }]);
-      minimap.clearStreetLines('street-1');
       minimap.setMinimapLocation({ lat: 47.61, lng: -122.34 });
       minimap.setBasemapVisible(false);
       minimap.toggleOverview('fit-button');

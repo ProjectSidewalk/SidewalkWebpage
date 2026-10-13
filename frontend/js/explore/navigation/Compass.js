@@ -27,6 +27,8 @@ export class Compass {
   #blinkTimer;
   #uiCompass;
   #directionIcons;
+  /** @type {Set<Function>} */
+  #messageClickHandlers = new Set();
 
   /**
    * Whether clicking the message turns the labeler toward the route: held by a move in flight, by the
@@ -377,15 +379,22 @@ export class Compass {
    */
   attachMessageClickHandler(handler) {
     this.#uiCompass.messageHolder.addEventListener('click', handler);
-    this.#uiCompass.messageHolder.style.cursor = 'pointer';
+    this.#messageClickHandlers.add(handler);
+    this.#syncMessageCursor();
   }
 
   /**
-   * Detaches an attached external click handler from the compass message and restores the default cursor.
+   * Detaches an attached external click handler from the compass message.
    * @param {Function} handler
    */
   detachMessageClickHandler(handler) {
     this.#uiCompass.messageHolder.removeEventListener('click', handler);
-    this.#uiCompass.messageHolder.style.cursor = 'default';
+    this.#messageClickHandlers.delete(handler);
+    this.#syncMessageCursor();
+  }
+
+  /** The pointer cursor promises a click does something, so it stays while any handler is attached. */
+  #syncMessageCursor() {
+    this.#uiCompass.messageHolder.style.cursor = this.#messageClickHandlers.size > 0 ? 'pointer' : 'default';
   }
 }

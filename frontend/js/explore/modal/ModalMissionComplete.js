@@ -18,7 +18,7 @@ import '../../common/utilitiesSidewalk.js';
 /** @typedef {import('../sidebar/MissionPanel.js').MissionPanel} MissionPanel */
 /** @typedef {import('./ModalMissionCompleteMap.js').ModalMissionCompleteMap} ModalMissionCompleteMap */
 /** @typedef {import('../sidebar/OverallStats.js').OverallStats} OverallStats */
-/** @typedef {import('../navigation/NavigationService.js').NavigationService} NavigationService */
+/** @typedef {import('../../common/Gate.js').Gate} Gate */
 /** @typedef {import('../panorama/PanoManager.js').PanoManager} PanoManager */
 /** @typedef {import('../../common/ProgressBar.js').ProgressBar} ProgressBar */
 /** @typedef {import('../region/Region.js').Region} Region */
@@ -36,7 +36,7 @@ export class ModalMissionComplete {
   #minimapMissionProgress;
   #audioEffect;
   #panoManager;
-  #navigationService;
+  #interactionLock;
   #map;
   #progressBar;
   #els;
@@ -59,11 +59,11 @@ export class ModalMissionComplete {
    * @param {MinimapMissionProgress} minimapMissionProgress - Reset for the next mission.
    * @param {AudioEffect} audioEffect - The success chime.
    * @param {PanoManager} panoManager - Where a finished route hands free exploration off.
-   * @param {NavigationService} navigationService - Whose walking is held while the screen is up.
+   * @param {Gate} interactionLock - Held while the screen is up, so nothing behind it responds.
    * @param {ModalMissionCompleteMap} modalMissionCompleteMap - The map component for the modal.
    */
   constructor(missionContainer, missionModel, taskContainer, regionModel, labelContainer, overallStats, missionPanel,
-    missionProgressBar, minimapMissionProgress, audioEffect, panoManager, navigationService,
+    missionProgressBar, minimapMissionProgress, audioEffect, panoManager, interactionLock,
     modalMissionCompleteMap) {
     this.#missionContainer = missionContainer;
     this.#taskContainer = taskContainer;
@@ -75,7 +75,7 @@ export class ModalMissionComplete {
     this.#minimapMissionProgress = minimapMissionProgress;
     this.#audioEffect = audioEffect;
     this.#panoManager = panoManager;
-    this.#navigationService = navigationService;
+    this.#interactionLock = interactionLock;
     this.#map = modalMissionCompleteMap;
 
     this.#els = {
@@ -351,14 +351,14 @@ export class ModalMissionComplete {
     return { type: 'FeatureCollection', features };
   }
 
-  /** Shows the modal and decides which actions the buttons take; walking is held under it. */
+  /** Shows the modal and decides which actions the buttons take; the tool is stopped under it. */
   show() {
     this.#isOpen = true;
 
     this.#audioEffect.load('success');
     this.#audioEffect.play('success');
 
-    this.#navigationService.walking.hold('mission-complete');
+    this.#interactionLock.hold('mission-complete');
 
     this.#els.holder.style.visibility = 'visible';
     this.#els.foreground.style.visibility = 'visible';
@@ -435,7 +435,7 @@ export class ModalMissionComplete {
       window.location.replace(`/explore?${params.toString()}`);
     } else {
       this.#missionPanel.setMessage(this.#missionContainer.getCurrentMission());
-      this.#navigationService.walking.release('mission-complete');
+      this.#interactionLock.release('mission-complete');
       this.hide();
     }
   }

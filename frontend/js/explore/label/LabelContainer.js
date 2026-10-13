@@ -4,6 +4,7 @@
  * legend draw, since both are built after this.
  */
 
+import { Gate } from '../../common/Gate.js';
 import { util } from '../../common/utilities.js';
 import { Label } from './Label.js';
 import '../../common/pano-viewer/panoUtilities.js';
@@ -39,10 +40,8 @@ export class LabelContainer {
   /** @type {?Label} The label placed most recently this session; the tutorial lets only it be deleted. */
   #latestLabel = null;
 
-  // Whether labels may be deleted at all, and whether the tutorial has pinned that: it switches deleting off for
-  // most steps and on for the one that asks for a deletion, locking the choice against the rest of the tool.
-  #deleteEnabled = true;
-  #deleteLocked = false;
+  /** Deleting labels; the tutorial holds it except on the step that asks for a deletion. */
+  deleting = new Gate();
 
   // The mission the minimap's label eras were last derived for (#4945): the mission container announces after every
   // submission, not only at mission changes, and re-deriving is a pass over every label in the region.
@@ -374,34 +373,14 @@ export class LabelContainer {
   }
 
   /**
-   * Whether a label may be deleted right now: deleting is on, and in the tutorial it is the label just placed, since
-   * the tutorial's delete step is about the misplaced label it asked for.
+   * Whether a label may be deleted right now: nothing holds deleting, and in the tutorial it is the label just placed,
+   * since the tutorial's delete step is about the misplaced label it asked for.
    * @param {Label} label
    * @returns {boolean}
    */
   canDelete(label) {
-    if (!label || !this.#deleteEnabled) return false;
+    if (!label || this.deleting.isHeld()) return false;
     return !this.#config.isOnboarding || label === this.#latestLabel;
-  }
-
-  /** Switches deleting off, unless the tutorial has locked the setting. */
-  disableDelete() {
-    if (!this.#deleteLocked) this.#deleteEnabled = false;
-  }
-
-  /** Switches deleting on, unless the tutorial has locked the setting. */
-  enableDelete() {
-    if (!this.#deleteLocked) this.#deleteEnabled = true;
-  }
-
-  /** Pins the delete setting, so nothing but the tutorial changes it. */
-  lockDelete() {
-    this.#deleteLocked = true;
-  }
-
-  /** Lets the delete setting be changed again. */
-  unlockDelete() {
-    this.#deleteLocked = false;
   }
 
   /**

@@ -435,7 +435,7 @@ export class Main {
       regionModel, taskContainer);
     const modalMissionComplete = new ModalMissionComplete(missionContainer, missionModel, taskContainer, regionModel,
       labelContainer, overallStats, missionPanel, missionProgressBar, minimapMissionProgress, audioEffect,
-      panoManager, navigationService, modalMissionCompleteMap);
+      panoManager, interactionLock, modalMissionCompleteMap);
     new FeedbackModal(interactionLock, missionContainer, taskContainer, panoManager, navigationService, tracker);
     const panoOverlayControls = new PanoOverlayControls(tracker, navigationService, stuckAlert, keyboardShortcutAlert);
     const modalSurvey = new ModalSurvey(interactionLock, zoomControl);
@@ -554,6 +554,7 @@ export class Main {
     return { config, panoManager, taskContainer, labelContainer, missionContainer, navigationService };
   }
 
+  /** Fetches the region's tasks and missions, or in the tutorial just the mission that frames it. */
   #loadData() {
     const { taskContainer, missionModel, missionContainer, regionModel, contextMenu, minimapMissionProgress }
       = this.#modules;

@@ -4,6 +4,7 @@
  * the moves belong to NavigationService and the matching minimap crumb to ForwardCrumbs, both built after this.
  */
 
+import { Gate } from '../../common/Gate.js';
 import { util } from '../../common/utilities.js';
 import { ForwardCrumbs } from '../navigation/ForwardCrumbs.js';
 import { MinimapStyle } from '../navigation/MinimapStyle.js';
@@ -22,7 +23,8 @@ export class NavArrows {
   #config;
   #taskContainer;
   #panoManager;
-  #lockHidden = false;
+  /** Showing the arrows; the tutorial holds it outside its walk step. */
+  showing = new Gate();
 
   /** @type {Array<(panoId: string) => void>} */
   #linkClickListeners = [];
@@ -47,6 +49,9 @@ export class NavArrows {
     this.#taskContainer = taskContainer;
     this.#panoManager = panoManager;
     panoManager.onPovChanged((heading) => this.rotate(heading));
+    this.showing.onChanged((held) => {
+      if (held) this.hide();
+    });
 
     group.addEventListener('click', (event) => {
       // The tutorial's walk step handles arrow clicks itself.
@@ -111,18 +116,7 @@ export class NavArrows {
   }
 
   show() {
-    if (!this.#lockHidden) this.#container.style.display = '';
-  }
-
-  /** Keeps show() from showing the arrows; the tutorial keeps them hidden. */
-  lockHidden() {
-    this.hide();
-    this.#lockHidden = true;
-  }
-
-  /** Lets show() show the arrows again. */
-  unlockHidden() {
-    this.#lockHidden = false;
+    if (!this.showing.isHeld()) this.#container.style.display = '';
   }
 
   /**

@@ -28,7 +28,7 @@ export class PanoViewer {
   /**
    * How far from a requested location a pano may be and still count as "here", in meters. Every location search asks
    * the provider for this radius and holds its reply to it, since providers treat it as a hint (#5114). Explore's
-   * street sweeps, Task.ON_STREET_MAX_DISTANCE_M and tools/city/check_streets_for_imagery.py all mirror it.
+   * street sweeps and tools/city/check_streets_for_imagery.py mirror it; Task reads it.
    */
   static SEARCH_RADIUS_M = 25;
 

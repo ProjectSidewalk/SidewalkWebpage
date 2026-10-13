@@ -524,14 +524,6 @@ export class Minimap {
     this.#scheduleStreetFlush();
   }
 
-  /**
-   * Stops drawing a street.
-   * @param {string|number} key - The key it was drawn under by setStreetLines.
-   */
-  clearStreetLines(key) {
-    if (this.#streetFeatures.delete(key)) this.#scheduleStreetFlush();
-  }
-
   /** @returns {object} Every street's lines as one GeoJSON FeatureCollection. */
   #streetFeatureCollection() {
     return { type: 'FeatureCollection', features: [...this.#streetFeatures.values()].flat() };

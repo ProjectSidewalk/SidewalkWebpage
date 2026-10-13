@@ -3,6 +3,7 @@
  * state. TaskContainer decides how it is drawn on the minimap; this only says what its lines are.
  */
 
+import { PanoViewer } from '../../common/pano-viewer/PanoViewer.js';
 import { util } from '../../common/utilities.js';
 import '../../common/utilitiesMath.js';
 /** @typedef {import('../navigation/Minimap.js').MinimapStreetLine} MinimapStreetLine */
@@ -21,10 +22,9 @@ export class Task {
   // fixed metre distance from swallowing most of a short street.
   static END_PROXIMITY_MAX_FRACTION = 0.4;
   // How far from the street's line a position may sit and still count as on the street: past it a pano can neither
-  // advance the furthest point reached nor finish the street. Equal to the pano search radius
-  // (PanoViewer.SEARCH_RADIUS_M), which GsvViewer holds Google's replies to (#5114); Mapillary and Panoramax search a
-  // square box of that half-width, so for them it bounds a landing only roughly.
-  static ON_STREET_MAX_DISTANCE_M = 25;
+  // advance the furthest point reached nor finish the street. GsvViewer holds Google's replies to the search radius
+  // (#5114); Mapillary and Panoramax search a square box of that half-width, so it bounds their landings only roughly.
+  static ON_STREET_MAX_DISTANCE_M = PanoViewer.SEARCH_RADIUS_M;
   // How far (km) from a street's line the labeler may stand and still count as on it: advancing along it, the
   // compass's on-route check, and picking up the next street all use it.
   static CLOSE_TO_ROUTE_KM = 0.05;

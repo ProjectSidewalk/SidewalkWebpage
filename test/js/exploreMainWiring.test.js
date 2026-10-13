@@ -256,7 +256,7 @@ describe('Explore Main builds in dependency order', () => {
     expect(m.forwardCrumbs.ctorArgs).toEqual(expect.arrayContaining([m.navigationService, m.navArrows]));
     expect(m.missionController.ctorArgs).toEqual(expect.arrayContaining(
       [m.compass, m.navigationService, m.panoManager]));
-    expect(m.modalMissionComplete.ctorArgs).toEqual(expect.arrayContaining([m.navigationService]));
+    expect(m.modalMissionComplete.ctorArgs).toEqual(expect.arrayContaining([interactionLock()]));
     expect(m.ribbon.ctorArgs).toEqual(expect.arrayContaining([m.labelModes]));
     expect(m.stuckAlert.ctorArgs).toEqual(expect.arrayContaining([m.panoManager]));
     expect(m.reauditNotice.ctorArgs).toEqual(expect.arrayContaining([m.taskContainer]));

@@ -132,6 +132,7 @@ export class ForwardCrumbs {
     });
   }
 
+  /** Clears the crumbs while something other than a move holds walking, and redraws them once it lets go. */
   #followWalking() {
     const blocked = this.#navigationService.walking.isHeldExcept('move');
     if (blocked === this.#blocked) return;

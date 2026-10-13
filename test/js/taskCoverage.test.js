@@ -217,7 +217,7 @@ describe('TaskContainer walking streets in free exploration', () => {
         current = new window.Task(feature(street, { street_edge_id: 1 }), CONFIG.streetCoverage, false);
         cross = new window.Task(feature(crossStreet, { street_edge_id: 2 }), CONFIG.streetCoverage, false);
         container = new window.TaskContainer(current, CONFIG, { isRoute: false },
-            { setStreetLines: jest.fn(), clearStreetLines: jest.fn() }, {}, {}, tracker);
+            { setStreetLines: jest.fn() }, {}, {}, tracker);
         // What the Form hears, as it would in production: the street being left, to post as it stands.
         left = jest.fn();
         container.onTaskLeft(left);

@@ -249,7 +249,7 @@ export class KeyboardManager {
 
   /** Enter closes the menu, keeping what was entered. */
   #saveAndCloseContextMenu() {
-    this.#tracker.push('KeyboardShortcut_CloseContextMenu');
+    this.#tracker.push('KeyboardShortcut_CloseContextMenu', null, this.#contextMenu.getTargetLabel());
     this.#contextMenu.handleSeverityPopup();
     this.#tracker.push('ContextMenu_ClosePressEnter', null, this.#contextMenu.getTargetLabel());
     this.#contextMenu.hide();
@@ -305,7 +305,7 @@ export class KeyboardManager {
    */
   #zoom(e) {
     if (this.#contextMenu.isOpen()) {
-      this.#tracker.push('KeyboardShortcut_CloseContextMenu');
+      this.#tracker.push('KeyboardShortcut_CloseContextMenu', null, this.#contextMenu.getTargetLabel());
       this.#contextMenu.hide();
     }
     if (e.shiftKey) {
@@ -338,7 +338,7 @@ export class KeyboardManager {
    */
   #closeContextMenu(e) {
     if (this.#contextMenu.isOpen()) {
-      this.#tracker.push('KeyboardShortcut_CloseContextMenu');
+      this.#tracker.push('KeyboardShortcut_CloseContextMenu', null, this.#contextMenu.getTargetLabel());
       this.#tracker.push('ContextMenu_CloseKeyboardShortcut', { code: e.code }, this.#contextMenu.getTargetLabel());
       this.#contextMenu.hide();
     }

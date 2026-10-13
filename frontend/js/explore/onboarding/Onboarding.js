@@ -139,11 +139,8 @@ export class Onboarding {
     }
     this.#uiOnboarding.holder.style.visibility = 'visible';
 
-    this.#navArrows.lockHidden();
-
-    this.#labelContainer.unlockDelete();
-    this.#labelContainer.disableDelete();
-    this.#labelContainer.lockDelete();
+    this.#navArrows.showing.hold('tutorial');
+    this.#labelContainer.deleting.hold('tutorial');
 
     this.#navigationService.walking.hold('tutorial');
     this.#zoomControl.zoomInGate.hold('tutorial');
@@ -951,14 +948,14 @@ export class Onboarding {
     const nextPanoId = 'afterWalkTutorial';
 
     // Add a link to the second pano so that the user can click on it.
-    this.#navArrows.unlockHidden();
+    this.#navArrows.showing.release('tutorial');
     this.#navArrows.show();
 
     // A callback to disable walking after user has moved to 2nd pano, then moves to next state.
     const callback = () => {
       this.#navigationService.walking.hold('tutorial');
       this.#compass.detachMessageClickHandler(clickToNextPano);
-      this.#navArrows.lockHidden();
+      this.#navArrows.showing.hold('tutorial');
       this.#ui.streetview.navArrows.removeEventListener('click', clickToNextPano);
       if (listener) google.maps.event.removeListener(listener);
       this.#transitionTo(state.transition);
@@ -1181,10 +1178,7 @@ export class Onboarding {
       if (distance < tolerance * tolerance) {
         label.setProperty('tutorialLabelNumber', properties.labelNumber);
 
-        // Disable deleting of label.
-        this.#labelContainer.unlockDelete();
-        this.#labelContainer.disableDelete();
-        this.#labelContainer.lockDelete();
+        this.#labelContainer.deleting.hold('tutorial');
 
         // Disable labeling mode.
         this.#labelModes.disableMode(label.getLabelType());
@@ -1207,9 +1201,7 @@ export class Onboarding {
   #visitDeleteAccessibilityAttributeState(state, listener) {
     this.#labelModes.disableMode(state.properties.labelType);
     this.#labelModes.enableMode('Walk');
-    this.#labelContainer.unlockDelete();
-    this.#labelContainer.enableDelete();
-    this.#labelContainer.lockDelete();
+    this.#labelContainer.deleting.release('tutorial');
 
     const stopListening = this.#labelContainer.onLabelRemoved(() => {
       stopListening();
