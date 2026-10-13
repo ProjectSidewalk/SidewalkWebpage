@@ -391,7 +391,7 @@ authenticate.terms = Você concorda com nossos <a target="_blank" href="/terms">
 authenticate.signup = Cadastre-se
 authenticate.has.account = Já tem uma conta? <a href="#" id="form-open-sign-in">Entrar</a>
 
-# Sign-in/sign-up redesign (#4375) — draft translations, pending native-speaker polish (#4494).
+# Sign-in/sign-up (#4375): draft translations, pending native-speaker polish (#4494).
 authenticate.welcome.back = Bem-vindo(a) de volta
 authenticate.join = Participe do Project Sidewalk
 authenticate.tagline = Mapeie calçadas. Ajude a tornar sua cidade acessível para todos.
@@ -557,7 +557,7 @@ gallery.filter.by = Filtrar por
 gallery.tags = Etiquetas
 gallery.all = Todos os tipos de rótulos
 gallery.labels.not.found = Nenhum resultado encontrado. <a href="/explore">Comece a explorar</a> para contribuir com mais dados!
-gallery.cards = Os rótulos são ordenadas aleatoriamente com base nos filtros selecionados
+gallery.cards = Os rótulos são ordenados aleatoriamente com base nos filtros selecionados
 gallery.cards.sorted = Os rótulos são ordenados por "{0}" com base nos filtros selecionados
 gallery.sort.by = Ordenar por
 gallery.sort.random = Aleatório
@@ -670,7 +670,7 @@ sharedlabel.stat.labels = rótulos
 sharedlabel.stat.validations = validações
 sharedlabel.stat.miles = milhas exploradas
 sharedlabel.legend.title = O que esses rótulos significam
-# Redesigned user dashboard, leaderboard, settings, and public profile (#4323, #4475).
+# User dashboard, leaderboard, settings, and public profile (#4323, #4475).
 dashboard.title = Seu painel
 dashboard.you = Você
 dashboard.hero.greeting = Bem-vindo(a) de volta, {0} 👋
@@ -864,6 +864,16 @@ leaderboard.thisweek.none = ✨ Ainda sem rótulos esta semana — seja a primei
 leaderboard.teams.title = Equipes em {0}
 leaderboard.teams.intro = Crie ou entre em uma equipe para fazer a diferença em conjunto!
 leaderboard.teams.none = 👥 Ainda sem equipes — seja a primeira! Crie uma e convide amigos ou colegas.
+leaderboard.myteam.title = Sua equipe: {0}
+leaderboard.myteam.intro = Como você se compara com seus colegas de equipe em {0}.
+leaderboard.myteam.none = 👥 Ninguém da sua equipe está na classificação ainda.
+leaderboard.myteam.you.hidden = Você não aparece porque desativou “{0}”.
+leaderboard.myteam.you.settings = Altere nas Configurações
+leaderboard.myteam.you.nolabels = Você aparecerá aqui assim que colocar seu primeiro rótulo.
+leaderboard.myteam.pager = Páginas da classificação da equipe
+leaderboard.myteam.prev = ‹ Anterior
+leaderboard.myteam.next = Próxima ›
+leaderboard.myteam.page = Página {0} de {1}
 leaderboard.allcities.title = Todas as cidades, desde sempre
 leaderboard.allcities.intro = Os melhores mapeadores de todas as cidades do Project Sidewalk, classificados pelo total de rótulos.
 leaderboard.allcities.note = A distância é atualizada uma vez por dia.

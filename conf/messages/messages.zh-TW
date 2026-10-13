@@ -460,7 +460,7 @@ authenticate.terms = 您同意我們的<a target="_blank" href="/terms">使用�
 authenticate.signup = 註冊
 authenticate.has.account = 已有帳號了嗎？ <a href="#" id="form-open-sign-in">請登入</a>
 
-# Sign-in/sign-up redesign (#4375) — draft translations, pending native-speaker polish (#4494).
+# Sign-in/sign-up (#4375): draft translations, pending native-speaker polish (#4494).
 authenticate.welcome.back = 歡迎回來
 authenticate.join = 加入 Project Sidewalk
 authenticate.tagline = 標記人行道，幫助讓您的城市對所有人更友善。
@@ -739,7 +739,7 @@ sharedlabel.stat.labels = 個標記
 sharedlabel.stat.validations = 次驗證
 sharedlabel.stat.miles = 英里已探索
 sharedlabel.legend.title = 這些標記代表什麼
-# Redesigned user dashboard, leaderboard, settings, and public profile (#4323, #4475).
+# User dashboard, leaderboard, settings, and public profile (#4323, #4475).
 dashboard.title = 您的儀表板
 dashboard.you = 您
 dashboard.hero.greeting = 歡迎回來，{0} 👋
@@ -933,6 +933,16 @@ leaderboard.thisweek.none = ✨ 本週還沒有任何標記——成為第一個
 leaderboard.teams.title = {0}的團隊
 leaderboard.teams.intro = 建立或加入團隊，一起創造改變！
 leaderboard.teams.none = 👥 還沒有任何團隊——成為第一個！建立團隊並邀請朋友或同學。
+leaderboard.myteam.title = 您的團隊：{0}
+leaderboard.myteam.intro = 看看您在{0}與隊友相比的表現。
+leaderboard.myteam.none = 👥 您的團隊還沒有人出現在排行榜上。
+leaderboard.myteam.you.hidden = 您沒有出現在這裡，因為您關閉了「{0}」。
+leaderboard.myteam.you.settings = 在設定中變更
+leaderboard.myteam.you.nolabels = 您放置第一個標籤後就會出現在這裡。
+leaderboard.myteam.pager = 團隊排行榜頁面
+leaderboard.myteam.prev = ‹ 上一頁
+leaderboard.myteam.next = 下一頁 ›
+leaderboard.myteam.page = 第 {0} 頁，共 {1} 頁
 leaderboard.allcities.title = 所有城市歷來總計
 leaderboard.allcities.intro = 所有 Project Sidewalk 城市中最頂尖的標記者，依標記總數排名。
 leaderboard.allcities.note = 距離每天更新一次。

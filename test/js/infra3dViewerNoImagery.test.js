@@ -6,9 +6,6 @@
  * retry rather than moved on. So a viewer that answers "nothing usable here" with a plain Error strands the labeler
  * on the street with no way past it — the failure mode #5008 hit on a route through an 11.6 m street, where the only
  * image in range was the one already being stood on.
- *
- * Infra3dViewer is a top-level `class` written for the Grunt-concatenation world, so we eval the source in the jsdom
- * global scope alongside stubs for the globals it closes over.
  */
 
 const path = require('path');

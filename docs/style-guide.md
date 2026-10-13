@@ -171,7 +171,7 @@ consistent with it.
 - **`frontend/css/` is organized by what each file is** (#5030), and its root has exactly four entries. `main.css` and
   `fonts.css` (tokens and `.ps-*` primitives, no layout knowledge). `css/components/` holds anything more than one page
   uses, one component per file with a `ps-` or component-named class prefix (`page-shell.css` — the sidebar + content +
-  TOC template the API docs, both dashboards, and the labeling guide build on, `kpi.css`, `tables.css`,
+  TOC template the API docs, both dashboards, and the labeling guide build on, `kpi.css`, `tables.css`, `pager.css`,
   `label-detail.css`, `toast.css`, …). `css/pages/` holds everything page-specific: a single file for a single page
   (`about.css`, `auth.css`, `admin-dashboard.css`, `user-dashboard.css`, …) and a subdir for a page family with several
   files (`pages/explore/`, `pages/validate/`, `pages/gallery/`, `pages/api-docs/`). Four rules keep the split honest,

@@ -6,9 +6,7 @@
  * the street's panos, so on a partly-refreshed street the two ends disagree — the note has to get that right from the
  * pano's own capture date, and has to refuse to claim a re-audit it cannot prove from month-granular dates.
  *
- * PanoDateNote is a top-level `class` written for the Grunt-concatenation world, so the source is eval'd into the
- * jsdom global scope. `util.monthYear` is loaded for real, not stubbed: the printed month is half of what is being
- * asserted here.
+ * `util.monthYear` is real, not stubbed: the printed month is half of what these tests check.
  */
 
 

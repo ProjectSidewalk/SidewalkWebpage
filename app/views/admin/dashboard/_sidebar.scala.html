@@ -1,17 +1,13 @@
 @(activePage: String, isOwner: Boolean, cityName: String)
 
 @*
-* Left navigation for the redesigned admin dashboard. Mirrors the API-docs sidebar markup/classes so the two share a look.
+* Left navigation for the admin dashboard, in the API docs sidebar's markup so the two look alike.
 *
-* Pages cover the current city, and the "All cities" badge marks the ones that span every deployment; the scope line
-* under the header names the city, because the deployment strip above the h1 is easy to miss when choosing a page. Scope
-* that doesn't follow the page (roles are shared by every city; Health's job panels are this city's) is named in the
-* link's description. Every link carries a description, since there are too many pages to tell apart by name
-* alone. The name sits in its own span so sidebarDisclosure.js can label the mobile toggle with it and not with the
-* description.
+* The scope line names the city because the deployment strip is easy to miss; "All cities" badges mark pages that span
+* every deployment. Every link has a description, since there are too many pages to tell apart by name. The name sits
+* in its own span so sidebarDisclosure.js can label the mobile toggle with it.
 *
-* The Owner-only pages (Across Cities #4329, Health) are linked only when `isOwner` is true — a per-city Administrator
-* would only get a 403, so we don't surface a link they can't use.
+* Owner-only pages (Across Cities, Health) are linked only for Owners; anyone else would just get a 403.
 *@
 
 @navItem(page: String, href: Call, name: String, desc: String, allCities: Boolean) = {

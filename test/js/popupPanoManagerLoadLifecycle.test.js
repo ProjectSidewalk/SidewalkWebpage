@@ -5,9 +5,6 @@
  * All three exist because the viewer is now built on the first open, which put a visible wait on the card and made
  * a load outlive the label that started it. Every one of them mutates the single shared `.label-detail__pano`
  * holder, so a stale load reaching them paints over whatever replaced it.
- *
- * Like popupPanoManagerLazyViewer.test.js, the source is eval'd into jsdom, since it is a top-level
- * class written for Grunt concatenation.
  */
 
 const { loadModules } = require('./loadGlobalScript');

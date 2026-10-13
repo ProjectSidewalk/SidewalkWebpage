@@ -7,8 +7,7 @@
  * to load (the 720x480 Explore frame again, so the canvas fraction). The card is handed the crop's marker with the
  * crop; these pin that it uses it for the crop, and only for the crop.
  *
- * Card is a Grunt-concatenated `class` that reaches for page globals, so the source is eval'd into jsdom with the
- * collaborators it touches during construction stubbed out.
+ * The collaborators Card touches during construction are stubbed on `window`.
  */
 
 

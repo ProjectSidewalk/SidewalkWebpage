@@ -6,9 +6,6 @@
  * drive it and they overlap, so the two are tracked separately — a pointer leaving the panel must not cancel an
  * emphasis the keyboard still holds, and a mouse click, which also focuses the row's checkbox, must not strand the
  * emphasis on after the pointer moves away.
- *
- * MapSidebarFilter is a Grunt-concatenated `class` that reaches for page globals, so both it and the shared street
- * helpers are eval'd into jsdom.
  */
 
 const { loadModules } = require('./loadGlobalScript');

@@ -5,9 +5,6 @@
  * while hosts (LabelMap's MapSidebarFilter today, the Gallery next) apply the resulting state. These tests pin the
  * rules that the hosts depend on — what a click does to the DOM, what `getState()` reports, and what the change
  * descriptor carries — so the Gallery adoption can't silently redefine them.
- *
- * Like ShareWidget, it's a top-level `class` declaration written for Grunt concatenation, so the source is eval'd
- * into the jsdom global scope rather than require()d.
  */
 
 const { loadModules } = require('./loadGlobalScript');

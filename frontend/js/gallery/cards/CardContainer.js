@@ -147,9 +147,8 @@ export class CardContainer {
       this.#tracker.push('PrevPageClick', null, null);
     });
 
-    this.#pageNumberDisplay = document.createElement('h2');
+    this.#pageNumberDisplay = uiCardContainer.pageNumber;
     this.#pageNumberDisplay.innerText = '1';
-    uiCardContainer.pageNumber.append(this.#pageNumberDisplay);
     uiCardContainer.pageControl.style.display = 'none';
     this.#cardFilter.disable();
     uiCardContainer.prevPage.disabled = true;

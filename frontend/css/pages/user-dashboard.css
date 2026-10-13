@@ -1,19 +1,9 @@
 /*
- * User Dashboard + Leaderboard redesign — gamification components.
+ * User dashboard and leaderboard styles: only what the shared shell and components don't already provide.
  *
- * Layered on top of the shared page shell and components (components/page-shell.css, kpi.css, tables.css): this file
- * adds ONLY what those don't already provide (hero banner, streak heatmap, badge tracks, trophy case, podium, medals,
- * standing widget, mistake gallery cards). It styles everything from the main.css design-system tokens (--text-*,
- * --space-*, --color-* ramps) rather than introducing new literals, so the three surfaces stay visually unified.
- * Label-type colors come from the --color-label-* tokens (source of truth: /v3/api/labelTypes) — never hardcoded hex.
- *
- * Type scale policy (per design review): ALL content — table cells, badge/trophy detail, card text, stat labels,
- * podium — is at least --text-body-* (16px). The smaller steps (small/caption) are reserved for legends
- * (.ud-heatmap-legend), chart captions (.ud-acc-note), and small decorative pills/ribbons (.ud-trophy-tag,
- * .ud-standing-tag, .ud-card-verdict, .ud-public-tag). Never size real content below body — and avoid footnote-style
- * asides (design review: if a note matters it belongs in real copy). The sanctioned exceptions are captions that
- * explain the thing they sit under: the accuracy chart's min-validations rule (.ud-acc-note) and the global
- * leaderboard's daily distance refresh (.ud-lb-note) — both owner calls.
+ * Type scale (design review): all content is at least body size (16px). Smaller sizes are only for legends, small
+ * decorative tags, and two captions that explain what they sit under (.ud-acc-note, .ud-lb-note). If a note matters,
+ * it belongs in real copy, not a footnote.
  */
 
 /* The ranked boards are the page, not a data appendix, so their cells read at body size rather than .ps-table's

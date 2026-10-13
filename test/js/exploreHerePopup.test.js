@@ -7,9 +7,7 @@
  * hostile strings through `buildExploreHereContent` and assert nothing parses as an element. Also pins the
  * progress-bar gating (no "100% explored" pitch), the href passthrough, and `streetAddress`'s fallback chain.
  *
- * The file's functions are top-level declarations written for the Grunt-concatenation world, so (like
- * share-widget.test.js) the source is eval'd into the jsdom global scope with an epilogue exposing what the tests
- * need. The pin/marker/Escape wiring around the popup is covered separately, in labelMapSearchClear.test.js.
+ * The pin/marker/Escape wiring around the popup is covered in labelMapSearchClear.test.js.
  */
 
 const { installEscapeHTML, loadModules } = require('./loadGlobalScript');

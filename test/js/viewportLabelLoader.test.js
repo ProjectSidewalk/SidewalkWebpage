@@ -3,8 +3,7 @@
  * padded-bbox construction and maxBounds clamping, the containment skip, moveend debouncing, the in-flight /
  * stale-response guards, the zoom floor, failure/retry recovery, and late-subscriber replay.
  *
- * ViewportLabelLoader is a Grunt-concatenated `class` that reaches for page globals (fetchLabelFeed, util), so
- * the source is eval'd into jsdom with those stubbed. The map is a four-method stub; no mapbox-gl involved.
+ * fetchLabelFeed and util are stubbed, and the map is a four-method stub with no mapbox-gl.
  */
 
 const { loadModules } = require('./loadGlobalScript');

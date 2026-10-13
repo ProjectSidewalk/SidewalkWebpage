@@ -4,8 +4,7 @@
  *
  * What the module has to get right is the contract with the read side (ExploreController binds these names), that
  * the mission's own params never survive into a link, that a pan is not a Back entry, and that a drag's per-frame
- * POV events collapse to one write per interval with the last view winning. ExploreUrlSync is a Grunt-concatenated
- * `class` reaching for `util.url`, so the source is eval'd into jsdom with urlQuery.js loaded first.
+ * POV events collapse to one write per interval with the last view winning.
  */
 
 const { loadModules, realUtil } = require('./loadGlobalScript');

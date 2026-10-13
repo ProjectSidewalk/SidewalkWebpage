@@ -15,9 +15,7 @@
  * viewerShowsLabel() is the other half: it decides whether there's a viewer worth believing in the first place, and
  * the card feeds its answer to submissionContext(). Both are exercised here.
  *
- * LabelDetail is a top-level `class` declaration written for the Grunt-concatenation world, so (like
- * share-widget.test.js) the source is eval'd into the jsdom global scope with an epilogue that exposes the class.
- * Only the static method is exercised here — constructing a LabelDetail needs a live pano viewer.
+ * Only the static method is exercised: constructing a LabelDetail needs a live pano viewer.
  */
 
 const { loadModules } = require('./loadGlobalScript');

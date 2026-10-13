@@ -7,10 +7,8 @@
  * (the centre, unless the window shifted off a pole). The label payload carries that as `cropMarker`; these pin that
  * the fallback marker follows it when present and the canvas fraction otherwise.
  *
- * Like the other PopupPanoManager tests, the source is eval'd into jsdom, since it is a top-level class
- * written for Grunt concatenation. The fallback is reached by declaring the imagery expired (no live attempt) with
- * no self-hosted copy (no Pannellum attempt), which is the popup's path for an old label whose pano Google has
- * dropped.
+ * The fallback is reached by marking the imagery expired with no self-hosted copy: the popup's path for an old label
+ * whose pano Google has dropped.
  */
 
 const { installUtilitiesMisc, loadModules } = require('./loadGlobalScript');

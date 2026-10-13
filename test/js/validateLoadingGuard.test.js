@@ -28,8 +28,7 @@ const MOBILE_VIEW_PATH = path.join(REPO_ROOT, 'app/views/apps/mobileValidate.sca
 const LABEL_TYPE = 'CurbRamp';
 
 /**
- * Load a bare `class` or `const` declaration out of a production file. The Grunt bundle concatenates these into page
- * scope, so wrap the source in an IIFE that returns the named binding (same trick as validateSkipUnrenderableLabel).
+ * Loads one export from a production file.
  * @param {string} filePath - Absolute path to the production file.
  * @param {string} name - Name of the binding the file declares.
  * @returns {*} The binding's value.

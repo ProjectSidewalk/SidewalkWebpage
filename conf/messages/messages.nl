@@ -383,7 +383,7 @@ authenticate.terms = Je gaat akkoord met onze <a target="_blank" href="/terms">G
 authenticate.signup = Een account maken
 authenticate.has.account = Heb je een account? <a href="#" id="form-open-sign-in">Log in</a>
 
-# Sign-in/sign-up redesign (#4375) — draft translations, pending native-speaker polish (#4494).
+# Sign-in/sign-up (#4375): draft translations, pending native-speaker polish (#4494).
 authenticate.welcome.back = Welkom terug
 authenticate.join = Doe mee met Project Sidewalk
 authenticate.tagline = Breng trottoirs in kaart. Help je stad toegankelijk te maken voor iedereen.
@@ -661,7 +661,7 @@ sharedlabel.stat.labels = labels
 sharedlabel.stat.validations = validaties
 sharedlabel.stat.miles = mijl verkend
 sharedlabel.legend.title = Wat deze labels betekenen
-# Redesigned user dashboard, leaderboard, settings, and public profile (#4323, #4475).
+# User dashboard, leaderboard, settings, and public profile (#4323, #4475).
 dashboard.title = Je dashboard
 dashboard.you = Jij
 dashboard.hero.greeting = Welkom terug, {0} 👋
@@ -855,6 +855,16 @@ leaderboard.thisweek.none = ✨ Nog geen labels deze week — wees de eerste op 
 leaderboard.teams.title = Teams in {0}
 leaderboard.teams.intro = Maak een team aan of sluit je aan om samen het verschil te maken!
 leaderboard.teams.none = 👥 Nog geen teams — wees de eerste! Maak er een aan en nodig vrienden of klasgenoten uit.
+leaderboard.myteam.title = Jouw team: {0}
+leaderboard.myteam.intro = Zo sta je ervoor ten opzichte van je teamgenoten in {0}.
+leaderboard.myteam.none = 👥 Nog niemand van je team staat in het klassement.
+leaderboard.myteam.you.hidden = Je staat er niet bij omdat je „{0}” hebt uitgezet.
+leaderboard.myteam.you.settings = Wijzig dit in Instellingen
+leaderboard.myteam.you.nolabels = Je verschijnt hier zodra je je eerste label plaatst.
+leaderboard.myteam.pager = Pagina''s van het teamklassement
+leaderboard.myteam.prev = ‹ Vorige
+leaderboard.myteam.next = Volgende ›
+leaderboard.myteam.page = Pagina {0} van {1}
 leaderboard.allcities.title = Alle steden, aller tijden
 leaderboard.allcities.intro = De beste deelnemers uit alle Project Sidewalk-steden, gerangschikt op het totale aantal labels.
 leaderboard.allcities.note = De afstand wordt één keer per dag bijgewerkt.

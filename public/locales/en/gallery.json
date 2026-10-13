@@ -1,5 +1,6 @@
 {
   "card-image-alt": "Street view photo of a {{labelType}} label",
+  "cards": "Labels are sorted randomly based on selected filters",
   "cards-sorted": "Labels are sorted by \"{{sort}}\" based on selected filters",
   "cards-sorted-moot": "\"{{sort}}\" has no effect on the selected filters; labels are shown newest first",
   "clear-filters": "Clear Filters",

@@ -15,8 +15,7 @@ const { loadModules } = require('./loadGlobalScript');
 const MARKER_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/util/MissionLiveMarker.js');
 
 /**
- * Load the bare `class MissionLiveMarker` declaration out of the production file: the Grunt bundle concatenates it
- * into page scope, so wrap the source in an IIFE that returns the class.
+ * Loads a fresh MissionLiveMarker class.
  * @returns {Function} The class.
  */
 function loadMarkerClass() {

@@ -2,9 +2,7 @@
  * The Explore re-audit notice (#4895): which tasks earn the "this street has newer imagery" toast, which of the four
  * wordings it picks, that it shows once per street, and what it logs.
  *
- * Everything the notice needs now rides on the task payload, so there is no request to stub and no in-flight race to
- * cover. ReauditNotice is a top-level `class` written for the Grunt-concatenation world, so the source is eval'd into
- * the jsdom global scope with the globals it reads (`Toast`, `i18next`, `util`) stubbed or loaded around it.
+ * The notice needs only the task payload, so no request is stubbed; `Toast` and `i18next` are stubbed on `window`.
  *
  * `util.monthYear` is loaded for real rather than stubbed: the month wording is half of what these assertions check,
  * and a stub would let the shared formatter drift from what the toast actually prints (#5413).

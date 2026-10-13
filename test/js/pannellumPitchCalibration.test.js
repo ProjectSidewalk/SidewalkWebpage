@@ -10,8 +10,7 @@
  * These cases only bite on a pano with a nonzero cameraPitch: with the zero-tilt fixtures the other suites use,
  * both conventions produce identical numbers, which is exactly why this went unnoticed.
  *
- * The viewers are top-level `class` declarations written for the Grunt-concatenation world, so the sources are
- * eval'd into the jsdom global scope with a stubbed pannellum library underneath.
+ * The pannellum library underneath is stubbed.
  */
 
 const { loadGlobalScript, realUtil, loadModules } = require('./loadGlobalScript');
