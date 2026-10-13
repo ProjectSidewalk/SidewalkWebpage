@@ -18,11 +18,8 @@
  *   - Neither control takes the `disabled` attribute: a natively disabled element swallows the hover that opens
  *     its tooltip, so both are aria-disabled, and a face that has a reason to give stays focusable.
  *
- * LabelDetail is a top-level `class` declaration written for the Grunt-concatenation world, so (like
- * labelDetailSubmissionContext.test.js) the source is eval'd into the jsdom global scope with an epilogue that
- * exposes it. TagEditor is eval'd in the same string because LabelDetail closes over that binding. Unlike that
- * file, these tests need a real instance, so the collaborators LabelDetail reaches for as bare globals are stubbed
- * on `window` first — including the pano manager, whose setPano() promise is the switch every imagery case turns.
+ * These tests need a real instance, so LabelDetail's collaborators are stubbed on `window` first, including the
+ * pano manager, whose setPano() promise is the switch every imagery case turns.
  */
 
 const fs = require('fs');

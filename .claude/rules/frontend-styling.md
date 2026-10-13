@@ -22,6 +22,10 @@ Full rules: `docs/style-guide.md` (tokens, primitives, file layout, naming) and 
   builds them and the view emits the `<link>`s with `@ViteAssets.stylesheets("<entry>")` beside the entry's
   `<script>`; a page inside the admin or user dashboard or the API docs adds `alreadyLinked = "<shell entry>"`.
   Sources live in `frontend/css/`; nothing there is served. Never `@import`.
+- **Look for an existing control before building one** (pager, tabs, toggle, dialog, tooltip): search `frontend/` and
+  `app/views/` for the site's versions. If one fits, reuse it. If the match is page-scoped (an admin `mgmt-*`, a
+  `ud-*`), don't borrow it in place: move it to `components/` under a generic `ps-` name and point the old page at
+  that. If you still make a one-off, say so and why in your reply.
 - **`frontend/css/` layout is linted** (`make lint-css-layout`): root holds only `main.css` + `fonts.css`;
   `components/` for anything two pages use (prefix `ps-` or component-named); `pages/` for page-specific files,
   registered in the lint's `PAGES` map and imported only by their page's modules; a page's class prefix lives only in

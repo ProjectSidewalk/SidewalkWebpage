@@ -8,10 +8,7 @@
  * caller must not read "unknown" as "empty" (#4918); and a lookup that never settles is given up on rather than left
  * to hang a sampler.
  *
- * The viewers are top-level `class` declarations written for the Grunt-concatenation world, so each provider's
- * source is eval'd into the jsdom global scope over the real PanoViewer base, with stub declarations for the sibling
- * viewer classes PanoViewer's constructor compares `new.target` against. Real turf and the real pano utilities run
- * the distance and scoring math, so the pick is the production pick.
+ * Real turf and the real pano utilities run the distance and scoring math, so the pick is the production pick.
  */
 
 const fs = require('fs');

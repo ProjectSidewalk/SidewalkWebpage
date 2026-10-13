@@ -1,5 +1,6 @@
 {
   "card-image-alt": "Street View-foto van een {{labelType}}-label",
+  "cards": "Labels worden willekeurig gesorteerd op basis van geselecteerde filters",
   "cards-sorted": "Labels worden gesorteerd op \"{{sort}}\" op basis van geselecteerde filters",
   "cards-sorted-moot": "\"{{sort}}\" heeft geen effect op de geselecteerde filters; labels worden nieuwste eerst getoond",
   "clear-filters": "Filters Wissen",

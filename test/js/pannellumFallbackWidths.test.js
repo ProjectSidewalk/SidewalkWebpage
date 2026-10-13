@@ -8,9 +8,7 @@
  * rungs at or above the pano width, and the server answers those with the native file — so the retry re-fetches the
  * image that just failed and the ladder never reaches a size the device can hold.
  *
- * The source is eval'd into jsdom, since it is a top-level class written for Grunt concatenation. Each case
- * re-evaluates it: the GPU cap is read once and cached in a module-scope variable, so one scope cannot answer for
- * two different devices.
+ * Each case reloads the module: it caches the GPU cap on first read, so one load can't answer for two devices.
  */
 
 const { loadModules } = require('./loadGlobalScript');

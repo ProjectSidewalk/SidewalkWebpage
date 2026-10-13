@@ -9,9 +9,6 @@
  * The counter lives in sessionStorage specifically because one of those paths is a page reload, which is exactly what
  * made the loop invisible to in-memory state. These tests therefore drive the real sessionStorage jsdom provides, and
  * the storage-unavailable case (some privacy modes throw on access) is covered by replacing it with a thrower.
- *
- * NoImageryFlagGuard is a top-level `class` declaration for the Grunt-concatenation world, so we eval the source in the
- * jsdom global scope.
  */
 
 const { loadModules } = require('./loadGlobalScript');

@@ -7,8 +7,7 @@
  * tests pin that the fallback starts at the seed's projection onto the street and works outward from there, rather
  * than from the start of the street, and that a seed at the street's start keeps the start-to-end order.
  *
- * PanoManager is a top-level `class` written for the Grunt-concatenation world, so the source is eval'd into the jsdom
- * global scope with real turf; nothing it touches at class-definition time needs more.
+ * Runs on real turf.
  */
 
 const path = require('path');

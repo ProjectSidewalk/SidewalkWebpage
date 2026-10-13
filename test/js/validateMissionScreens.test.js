@@ -7,8 +7,6 @@
  * shown over and over. The desktop tool runs the same code against a `display: none` copy of the markup, where a
  * measurement reads zero and a fetched tutorial photo is never seen. And the title is fitted to one line by
  * measuring it, which is only meaningful once the face it is set in has loaded.
- *
- * The classes are top-level declarations concatenated into page scope by Grunt, so the tests evaluate the sources.
  */
 
 const { assetPathStub, loadModules } = require('./loadGlobalScript');

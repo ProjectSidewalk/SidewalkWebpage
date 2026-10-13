@@ -6,8 +6,7 @@
  * in step with the selected label type. These tests pin that translation, since a wrong query param shows the wrong
  * cards without anything looking broken.
  *
- * Both classes are Grunt-concatenated `class` declarations that reach for page globals, so the sources are eval'd
- * into jsdom with those stubbed.
+ * The page globals both classes reach for are stubbed on `window`.
  */
 
 const { loadModules, realUtil } = require('./loadGlobalScript');

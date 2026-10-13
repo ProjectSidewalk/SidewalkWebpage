@@ -6,10 +6,6 @@
  * That second property is the one with teeth. The caller records a NoImageryError rejection against the street, which
  * marks it audited and takes it out of the assignment rotation — so a transport or SDK failure that leaks through as
  * a NoImageryError costs coverage on a street nobody ever looked at.
- *
- * PanoViewer is a top-level `class` declaration written for the Grunt-concatenation world, so we eval the source in
- * the jsdom global scope. Its constructor compares `new.target` against the concrete viewer classes, so stub
- * declarations for those names are eval'd ahead of the source.
  */
 
 const { loadModules } = require('./loadGlobalScript');

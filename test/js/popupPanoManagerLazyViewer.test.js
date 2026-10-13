@@ -6,8 +6,7 @@
  * must be reused; and a build that fails must fall back to the label's crop and be retried by the next label rather
  * than leaving the popup imagery-less for the rest of the page.
  *
- * PopupPanoManager is a top-level `class` written for the Grunt-concatenation world, so the source is eval'd into the
- * jsdom global scope with the rest of its collaborators stubbed.
+ * PopupPanoManager's other collaborators are stubbed.
  */
 
 const { loadModules } = require('./loadGlobalScript');

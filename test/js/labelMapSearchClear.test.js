@@ -7,10 +7,8 @@
  * invitation popup and search text — from each of its triggers, and that the pin itself only opens the invitation
  * rather than leaving the page.
  *
- * Like exploreHerePopup.test.js, the source is a set of top-level declarations written for the Grunt-concatenation
- * world, so it is eval'd into the jsdom global scope with an epilogue exposing what the tests need. Mapbox's Search
- * JS component and GL marker/popup are stubbed to the narrow surface the file uses; `retrieve` is a real event on a
- * real EventTarget, which is what the production code listens to.
+ * Mapbox's Search JS component and GL marker/popup are stubbed to the narrow surface the file uses; `retrieve` is a
+ * real event on a real EventTarget, which is what the production code listens to.
  */
 
 const { installEscapeHTML, loadModules } = require('./loadGlobalScript');

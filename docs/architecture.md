@@ -507,7 +507,7 @@ loaded by the corresponding Twirl view:
   pages (and the user dashboard's) and holds the shared shell behaviors — the "On this page" list and its
   scroll-spy, and keeping a deep link's target in place while sections above it are still loading — plus the shared
   formatting helpers (escaping, numbers, durations, relative times, the standard table markup).
-- **`user-dashboard/`** — the redesigned user dashboard, settings, leaderboard, and public profiles, plus the admin's view of a user's dashboard (`/admin/user/:username`). Entries in `pages/dashboard/`.
+- **`user-dashboard/`** — the user dashboard, settings, leaderboard, and public profiles, plus the admin's view of a user's dashboard (`/admin/user/:username`). Entries in `pages/dashboard/`.
 - **`api-docs/`** — the `/api-docs` reference pages: one `<endpoint>Preview.js` per page renders a live sample of
   that endpoint, alongside `apiDocs.js` (shell behavior), `apiTableWrapper.js`, and `apiDocsTheme.js`
   (`ApiDocsTheme.color(token, alpha?)`, the one way preview code reads a CSS color token for Chart.js/Mapbox so

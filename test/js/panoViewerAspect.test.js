@@ -13,10 +13,6 @@
  *   3. MapillaryViewer.getPov/setPov — the wiring: conversions read the cached render-camera aspect, and the
  *      cached vertical fov mirrors the [14.25°, 90°] band Mapillary can actually render a spherical image at,
  *      so getPov() never reports a zoom the viewer isn't showing.
- *
- * MapillaryViewer is a top-level `class` written for the Grunt-concatenation world, so the sources are eval'd
- * into the jsdom global scope, with stub declarations for the sibling viewer classes PanoViewer's constructor
- * compares `new.target` against.
  */
 
 const { loadGlobalScript, realUtil, loadModules } = require('./loadGlobalScript');
