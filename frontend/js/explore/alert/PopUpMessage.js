@@ -2,16 +2,22 @@
  * Instructional (or sign in/up) pop-ups shown over the Explore page.
  */
 
-import { svl } from '../svl.js';
 import { util } from '../../common/utilities.js';
+/** @typedef {import('../Main.js').ExploreConfig} ExploreConfig */
+/** @typedef {import('../../common/Gate.js').Gate} Gate */
 /** @typedef {import('../task/TaskContainer.js').TaskContainer} TaskContainer */
 /** @typedef {import('../data/Tracker.js').Tracker} Tracker */
 
 export class PopUpMessage {
+  // How far (km) an anonymous labeler walks before being asked to sign in.
+  static #SIGN_IN_PROMPT_KM = 0.15;
+
+  #config;
+  #interactionLock;
   #taskContainer;
   #tracker;
   #ui;
-  #status = { haveAskedToSignIn: false, signUp: false, isVisible: false };
+  #status = { haveAskedToSignIn: false, isVisible: false };
   #buttons = [];
 
   // Set while an OK button is showing; invoked by the Enter shortcut. Stored as an action (rather than synthesizing
@@ -19,10 +25,14 @@ export class PopUpMessage {
   #okAction = null;
 
   /**
-   * @param {TaskContainer} taskContainer
+   * @param {ExploreConfig} config
+   * @param {Gate} interactionLock - Held while a pop-up is showing.
+   * @param {TaskContainer} taskContainer - Whose finished streets prompt an anonymous labeler to sign in.
    * @param {Tracker} tracker
    */
-  constructor(taskContainer, tracker) {
+  constructor(config, interactionLock, taskContainer, tracker) {
+    this.#config = config;
+    this.#interactionLock = interactionLock;
     this.#taskContainer = taskContainer;
     this.#tracker = tracker;
     this.#ui = {
@@ -41,28 +51,17 @@ export class PopUpMessage {
         this.#okAction();
       }
     });
+
+    taskContainer.onTaskEnded(() => this.#maybePromptSignIn());
   }
 
-  /**
-   * Disables the user's ability to interact with the Explore tool while a pop-up is showing.
-   */
-  disableInteractions() {
-    svl.panoManager.hideNavArrows();
-    svl.navigationService.disableWalking();
-    svl.panoManager.unlockDisablePanning().disablePanning();
-    svl.canvas.disableLabeling();
-    svl.keyboard.disableKeyboard();
-  }
-
-  /**
-   * Re-enables the user's ability to interact with the Explore tool.
-   */
-  enableInteractions() {
-    svl.panoManager.showNavArrows();
-    svl.navigationService.enableWalking();
-    svl.panoManager.enablePanning();
-    svl.canvas.enableLabeling();
-    svl.keyboard.enableKeyboard();
+  /** Asks an anonymous labeler to sign in once they have walked far enough to have something worth keeping. */
+  #maybePromptSignIn() {
+    if (this.#config.userRole === 'Anonymous'
+      && this.#taskContainer.getCompletedTaskDistance({ units: 'kilometers' }) > PopUpMessage.#SIGN_IN_PROMPT_KM
+      && !this.haveAskedToSignIn()) {
+      this.promptSignIn();
+    }
   }
 
   /**
@@ -89,7 +88,6 @@ export class PopUpMessage {
           auditTaskId: task.getAuditTaskId(),
           auditStreetEdgeId: task.getStreetEdgeId(),
         });
-        this.#status.signUp = true;
         window.psAuthModal?.open('signUp');
       });
 
@@ -164,7 +162,7 @@ export class PopUpMessage {
    * Shows the message box, blocking interactions with the rest of the interface.
    */
   #show() {
-    this.disableInteractions();
+    this.#interactionLock.hold('popup');
     this.#showBackground();
     this.#ui.holder.classList.remove('ps-hidden');
     this.#ui.holder.classList.add('visible');
@@ -177,9 +175,8 @@ export class PopUpMessage {
   #hide() {
     this.#ui.holder.classList.remove('visible');
     this.#ui.holder.classList.add('ps-hidden');
-    if (!this.#status.signUp) {
-      this.enableInteractions();
-    }
+    // The sign-in dialog a button opened takes its own hold before this one goes, so the tool stays stopped under it.
+    this.#interactionLock.release('popup');
     this.#hideBackground();
     this.#reset();
     this.#status.isVisible = false;
@@ -210,7 +207,6 @@ export class PopUpMessage {
     this.#buttons.forEach((button) => button.remove());
     this.#buttons = [];
     this.#okAction = null;
-    this.#status.signUp = false;
   }
 
   #setTitle(title) {
@@ -272,7 +268,6 @@ export class PopUpMessage {
   #appendOkButton(callback) {
     const handleClickOk = () => {
       this.#tracker.push('PopUpMessage_ClickOk');
-      this.enableInteractions();
       document.getElementById('pop-up-message-ok-button')?.remove();
       document.getElementById('pop-up-message-image')?.remove();
     };

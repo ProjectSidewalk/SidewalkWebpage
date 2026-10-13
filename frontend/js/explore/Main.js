@@ -1,10 +1,9 @@
 /**
- * Main module of SVLabel. Bootstraps the Explore/Audit tool: constructs all the modules, loads data, and starts the
- * first mission or the onboarding tutorial.
+ * Builds Explore's modules in one place, so every dependency is visible, then starts the first mission or tutorial.
  */
 
-import { svl } from './svl.js';
 import { ImmersiveMode } from '../common/ImmersiveMode.js';
+import { Gate } from '../common/Gate.js';
 import { LabelCardView } from '../common/LabelCardView.js';
 import { MissionStartTutorial } from '../common/MissionStartTutorial.js';
 import { PanoImageAdjustments } from '../common/PanoImageAdjustments.js';
@@ -26,6 +25,7 @@ import { ReauditNotice } from './alert/ReauditNotice.js';
 import { StuckAlert } from './alert/StuckAlert.js';
 import { ZoomShortcutAlert } from './alert/ZoomShortcutAlert.js';
 import { Canvas } from './canvas/Canvas.js';
+import { CanvasFrame } from './canvas/CanvasFrame.js';
 import { ContextMenu } from './canvas/ContextMenu.js';
 import { PanoOverlayControls } from './controls/PanoOverlayControls.js';
 import { Form } from './data/Form.js';
@@ -35,6 +35,7 @@ import { AudioEffect } from './game/AudioEffect.js';
 import { KeyboardManager } from './keyboard/KeyboardManager.js';
 import { Label } from './label/Label.js';
 import { LabelContainer } from './label/LabelContainer.js';
+import { LabelModes } from './menu/LabelModes.js';
 import { RibbonMenu } from './menu/RibbonMenu.js';
 import { MissionContainer } from './mission/MissionContainer.js';
 import { MissionController } from './mission/MissionController.js';
@@ -48,6 +49,7 @@ import { ExploreUrlSync } from './navigation/ExploreUrlSync.js';
 import { ForwardCrumbs } from './navigation/ForwardCrumbs.js';
 import { Minimap } from './navigation/Minimap.js';
 import { MinimapLegend } from './navigation/MinimapLegend.js';
+import { MinimapMissionProgress } from './navigation/MinimapMissionProgress.js';
 import { NavigationService } from './navigation/NavigationService.js';
 import { ObservedArea } from './navigation/ObservedArea.js';
 import { Peg } from './navigation/Peg.js';
@@ -56,6 +58,7 @@ import { InitialMissionInstruction } from './onboarding/InitialMissionInstructio
 import { Onboarding } from './onboarding/Onboarding.js';
 import { OnboardingStates } from './onboarding/OnboardingStates.js';
 import { TutorialIntro } from './onboarding/TutorialIntro.js';
+import { NavArrows } from './panorama/NavArrows.js';
 import { PanoDateNote } from './panorama/PanoDateNote.js';
 import { PanoManager } from './panorama/PanoManager.js';
 import { Region } from './region/Region.js';
@@ -66,11 +69,127 @@ import { OverallStats } from './sidebar/OverallStats.js';
 import { RegionProgressBar } from './sidebar/RegionProgressBar.js';
 import { Task } from './task/Task.js';
 import { TaskContainer } from './task/TaskContainer.js';
-import { User } from './user/User.js';
 import { ZoomControl } from './zoom/ZoomControl.js';
 import '../common/pano-viewer/panoUtilities.js';
 import '../common/utilitiesMath.js';
 import '../common/utilitiesSidewalk.js';
+
+/**
+ * What the page was opened with, read once.
+ * @typedef {object} ExploreConfig
+ * @property {boolean} isOnboarding - Whether this session is the tutorial.
+ * @property {boolean} isExploreAddressMode - Free exploration at a searched address (#4451): labeling works
+ *   normally, there is no route or mission to finish, and the server credits each street from the coverage the
+ *   client posts rather than from a completed flag (#5733).
+ * @property {number} regionId - The region being explored.
+ * @property {?number} routeId - The route being walked, if any.
+ * @property {?number} userRouteId - The user's walk of that route, if any.
+ * @property {?string} routeName - The route's name, if any.
+ * @property {boolean} userHasCompletedAMission - Whether the user has ever finished a mission.
+ * @property {string} userRole - The user's role, as the server names it ('Anonymous', 'Registered', ...).
+ * @property {boolean} makeCrops - Whether a placed label's imagery is cropped and uploaded.
+ * @property {import('./label/Label.js').LatLngEstimation} latLngEstimation - The label lat/lng estimator's
+ *   constants, owned by the backend (PanoDataService.LatLngEstimation) and used by Label.toLatLng.
+ * @property {import('./task/Task.js').StreetCoverage} streetCoverage - Free exploration's street-credit rule
+ *   (#5733), owned by the backend (StreetCoverage).
+ * @property {string} mapboxApiKey
+ * @property {string} countryId - The city's country, for the speed limit sign.
+ * @property {string} language - The page's language code.
+ * @property {typeof import('../common/pano-viewer/PanoViewer.js').PanoViewer} viewerType - The viewer class for
+ *   the city's imagery; the tutorial always uses GSV, whose panos it ships.
+ * @property {string} viewerAccessToken - The token the viewer loads imagery with.
+ */
+
+/**
+ * The minimap's elements.
+ * @typedef {object} MinimapUi
+ * @property {HTMLElement} holder
+ * @property {HTMLElement} overlay
+ * @property {HTMLCanvasElement} fogOfWar
+ * @property {HTMLCanvasElement} fov
+ * @property {HTMLCanvasElement} progressCircle
+ * @property {HTMLElement} percentObserved
+ * @property {HTMLElement} missionProgress
+ * @property {HTMLElement} missionProgressFill
+ * @property {HTMLElement} missionProgressPercent
+ * @property {HTMLElement} missionProgressDistance
+ * @property {HTMLElement} coach
+ * @property {HTMLElement} coachDismiss
+ * @property {HTMLElement} legendToggle
+ * @property {HTMLElement} legendCard
+ * @property {HTMLElement} legendClose
+ * @property {HTMLInputElement} legendEarlierLabels
+ * @property {HTMLElement} routeOverview
+ * @property {HTMLCanvasElement} routeOverviewCanvas
+ */
+
+/**
+ * The pano area's layers and the bottom-left corner.
+ * @typedef {object} StreetviewUi
+ * @property {HTMLElement} drawingLayer - Where a click places a label; on top while a label type is armed.
+ * @property {HTMLElement} pano - The viewer's mount.
+ * @property {HTMLElement} viewControlLayer - Where a drag pans; on top while walking.
+ * @property {HTMLElement} modeSwitchWalk
+ * @property {SVGElement} navArrows - The `<g>` the navigation arrows are drawn into.
+ * @property {HTMLElement} navArrowsContainer - What hides and shows the whole arrow set.
+ * @property {HTMLElement} dateHolder
+ * @property {HTMLElement} datePill
+ * @property {HTMLElement} date
+ */
+
+/**
+ * The label canvas's drawing layer and the hover card's elements.
+ * @typedef {object} CanvasUi
+ * @property {HTMLElement} drawingLayer
+ * @property {HTMLElement} hoverCard
+ * @property {HTMLElement} hoverCardDelete
+ * @property {HTMLElement} hoverCardEdit
+ * @property {?HTMLElement} hoverCardShare
+ */
+
+/**
+ * The context menu's elements.
+ * @typedef {object} ContextMenuUi
+ * @property {HTMLElement} holder
+ * @property {HTMLElement} severityMenu
+ * @property {HTMLElement} severityRadioHolder
+ * @property {HTMLInputElement[]} radioButtons
+ * @property {HTMLElement} tagSection
+ * @property {HTMLElement} tagHolder
+ * @property {HTMLInputElement} textBox
+ * @property {HTMLElement} closeButton
+ */
+
+/**
+ * The tutorial's elements.
+ * @typedef {object} OnboardingUi
+ * @property {HTMLElement} holder
+ * @property {HTMLElement} messageHolder
+ * @property {HTMLElement} background
+ * @property {HTMLCanvasElement} canvas
+ * @property {HTMLElement} handGestureHolder
+ */
+
+/**
+ * The tool's DOM elements, collected once.
+ * @typedef {object} ExploreUi
+ * @property {MinimapUi} minimap
+ * @property {StreetviewUi} streetview
+ * @property {CanvasUi} canvas
+ * @property {ContextMenuUi} contextMenu
+ * @property {OnboardingUi} onboarding
+ */
+
+/**
+ * The handle pages/explore.js puts on `window.svl` for the console and e2e tests. Nothing in the app reads it.
+ * @typedef {object} ExploreHandle
+ * @property {ExploreConfig} config
+ * @property {PanoManager} [panoManager]
+ * @property {TaskContainer} [taskContainer]
+ * @property {LabelContainer} [labelContainer]
+ * @property {MissionContainer} [missionContainer]
+ * @property {NavigationService} [navigationService]
+ */
 
 export class Main {
   // sessionStorage key for an unresolvable-?routeId= notice waiting out the tutorial (#5156).
@@ -81,12 +200,47 @@ export class Main {
   // The session this visit opens on, as /explore/session answered: the task, mission, region, route and pano seed.
   #session;
 
+  /** @type {ExploreConfig} */
+  #config;
+
+  /** @type {ExploreUi} */
+  #ui;
+
+  /** @type {CanvasFrame} */
+  #frame;
+
   // Initialize things that need data loading.
   #loadingTasksCompleted = false;
   #loadingMissionsCompleted = false;
   #loadLabelTags = false;
 
-  #onboardingStates = null;
+  /** @type {?Onboarding} The tutorial, once it has started. */
+  #onboarding = null;
+
+  /** @type {?ExploreUrlSync} Set once the URL is handed over (#syncURL, #5480); the immersive toggle looks it up. */
+  #urlSync = null;
+
+  /** @type {?(() => void)} Set once the tool is laid out; the immersive toggle looks it up at toggle time. */
+  #relayout = null;
+
+  // Whether the user clicked through to a route that is still waiting for them past the tutorial; the intro says so.
+  #tutorialRouteWaiting = false;
+
+  /**
+   * The modules start-up's later steps act on, kept since the data load finishes well after they are built.
+   * @type {?{tracker: Tracker, keyboardLock: Gate, alertController: AlertController, regionModel: RegionModel,
+   *   missionModel: MissionModel, panoManager: PanoManager, navArrows: NavArrows, minimap: Minimap,
+   *   minimapMissionProgress: MinimapMissionProgress, taskContainer: TaskContainer,
+   *   missionContainer: MissionContainer, labelContainer: LabelContainer, form: Form, canvas: Canvas,
+   *   contextMenu: ContextMenu, navigationService: NavigationService, compass: Compass, observedArea: ObservedArea,
+   *   forwardCrumbs: ForwardCrumbs, routeOverview: RouteOverview, zoomControl: ZoomControl,
+   *   overallStats: OverallStats, missionPanel: MissionPanel, popUpMessage: PopUpMessage, aiGuidance: AiGuidance,
+   *   reauditNotice: ReauditNotice, panoOverlayControls: PanoOverlayControls, labelModes: LabelModes,
+   *   ribbon: RibbonMenu,
+   *   missionProgressBar: ProgressBar, immersiveMode: ImmersiveMode, keyboard: KeyboardManager,
+   *   iconsPreloaded: Promise<void[]>}}
+   */
+  #modules = null;
 
   /**
    * @param {Record<string, any>} params - The page's session scalars, from the view's page-data block.
@@ -96,92 +250,91 @@ export class Main {
     this.#params = params;
     this.#session = session;
 
-    svl.onboarding = null;
-    svl.isOnboarding = () => this.#session.mission.mission_type === 'auditOnboarding';
-    // Free exploration at a searched address (#4451): labeling works normally, there is no route or mission to finish,
-    // and the server credits each street from the coverage the client posts rather than from a completed flag (#5733).
-    svl.isExploreAddressMode = () => this.#session.mission.mission_type === 'exploreAddress';
-    svl.regionId = session.region_id;
-
-    // All three are derived from the displayed pano's size and refreshed by applyExploreScale() below. They start at
-    // their scale-1, boxed values because the tool renders at scale 1 until that first call (#4838, #5085).
-    svl.CANVAS_FRAME = { width: util.EXPLORE_CANVAS_WIDTH, height: util.EXPLORE_CANVAS_HEIGHT };
-    svl.LABEL_ICON_RADIUS = util.labelIconRadius(1);
-    svl.LABEL_HIT_MARGIN = util.labelHitMargin(1);
-    /**
-     * The horizontal fov the pano viewer renders at a zoom for the current frame, which the projection has to be fed
-     * off 3:2 because GSV clamps its vertical field on wide viewports (#5083, #5085).
-     * @param {number} zoom - The viewer zoom.
-     * @returns {number} Degrees.
-     */
-    svl.renderedHFov = (zoom) => util.pano.renderedHFov(
-      zoom, svl.CANVAS_FRAME.width / svl.CANVAS_FRAME.height, svl.panoViewer.getViewerType(),
-    );
-    svl.TUTORIAL_PANO_HEIGHT = 6656;
-    svl.TUTORIAL_PANO_WIDTH = 13312;
-    svl.TUTORIAL_PANO_SCALE_FACTOR = 3.25;
-    // Pano search radius in meters. GsvViewer also rejects any reply farther than this, since Google's radius is only
-    // a hint (#5114); tools/city/check_streets_for_imagery.py and Task.ON_STREET_MAX_DISTANCE_M mirror it.
-    svl.STREETVIEW_MAX_DISTANCE = 25;
-    svl.CLOSE_TO_ROUTE_THRESHOLD = 0.05; // 50 meters.
-    svl.CONNECTED_TASK_THRESHOLD = 0.025; // 25 meters.
-
-    // Gets all the text on the explore page for the correct language.
-    // TODO this should really happen in explore.scala.html before we call Main().
-    window.appManager.ready(() => {
-      this.#initUI();
-      this.#init();
+    const isOnboarding = session.mission.mission_type === 'auditOnboarding';
+    this.#config = Object.freeze({
+      isOnboarding,
+      isExploreAddressMode: session.mission.mission_type === 'exploreAddress',
+      regionId: session.region_id,
+      routeId: session.route_id ?? null,
+      userRouteId: session.user_route_id ?? null,
+      routeName: session.route_name ?? null,
+      userHasCompletedAMission: session.has_completed_mission,
+      userRole: params.user.role,
+      makeCrops: params.makeCrops,
+      latLngEstimation: params.latLngEstimation,
+      streetCoverage: params.streetCoverage,
+      mapboxApiKey: params.mapboxApiKey,
+      countryId: params.countryId,
+      language: params.language,
+      viewerType: isOnboarding ? GsvViewer : params.viewerType,
+      viewerAccessToken: params.viewerAccessToken,
     });
   }
 
+  /**
+   * Builds the tool's modules and starts it.
+   * @returns {Promise<ExploreHandle>} The console handle, once the tool is wired.
+   */
+  start() {
+    this.#ui = Main.#collectUi();
+    this.#frame = new CanvasFrame(this.#config.viewerType.SOURCE);
+    return this.#init();
+  }
+
+  /**
+   * Builds the modules in dependency order; what is built later subscribes to what came first. Only policy that
+   * spans modules is wired here: what a pop-up stops.
+   * @returns {Promise<ExploreHandle>}
+   */
   async #init() {
     const params = this.#params;
     const session = this.#session;
+    const config = this.#config;
+    const ui = this.#ui;
+    const frame = this.#frame;
 
-    // Record any params that are important enough to attach directly to the svl object.
-    svl.missionsCompleted = 0; // Just since loading the page.
-    svl.userHasCompletedAMission = session.has_completed_mission;
-    svl.routeId = session.route_id;
-    svl.userRouteId = session.user_route_id;
-    svl.routeName = session.route_name;
-    svl.makeCrops = params.makeCrops;
-    // Lat/lng estimator constants, owned by the backend (PanoDataService.LatLngEstimation) and used by Label.toLatLng.
-    svl.latLngEstimation = params.latLngEstimation;
-    // Free exploration's street-credit rule (#5733), owned by the backend (StreetCoverage); read by Task.
-    svl.streetCoverage = params.streetCoverage;
+    const storage = new TemporaryStorage(JSON);
+    const tracker = new Tracker();
+    const keyboardLock = new Gate();
+    const interactionLock = new Gate();
 
-    svl.mapboxApiKey = params.mapboxApiKey;
-    svl.storage = new TemporaryStorage(JSON);
-    svl.tracker = new Tracker();
-    svl.user = new User(params.user);
-
-    // Models
-    svl.regionModel = new RegionModel();
-    svl.regionModel.setAsRouteOrRegion(svl.userRouteId ? 'route' : 'region');
-    svl.missionModel = new MissionModel();
-
-    svl.alertController = new AlertController();
-    svl.stuckAlert = new StuckAlert(svl.alertController);
+    const regionModel = new RegionModel(config.userRouteId, tracker);
+    const missionModel = new MissionModel(config.regionId);
+    const alertController = new AlertController(storage);
+    const panoStore = new PanoStore();
 
     // The task's current position is the default start; an explicit seed (an admin auditing a street from a given
     // pano/lat-lng, or an address drop-in per #4451) takes precedence. A pano seed keeps the lat/lng alongside it as
     // the fallback for a pano that fails to load (#4635).
     const startLat = session.start_lat ?? session.task.properties.current_lat;
     const startLng = session.start_lng ?? session.task.properties.current_lng;
-    svl.panoStore = new PanoStore();
-    svl.viewerType = svl.isOnboarding() ? GsvViewer : params.viewerType;
-
-    // Set up the PanoManager and PanoViewer.
     const isTutorialTask = session.task.properties.street_edge_id === params.tutorialStreetId;
-    const newTask = new Task(session.task, isTutorialTask);
-    let initParams;
-    if (isTutorialTask) initParams = { startPanoId: 'tutorial' };
-    else initParams = { startPanoId: session.start_pano_id, startLat, startLng, startPov: session.start_pov };
-    const errorParams = { task: newTask, missionId: session.mission.mission_id };
-    svl.panoManager = await PanoManager.create(svl.viewerType, params.viewerAccessToken, initParams, errorParams);
+    const newTask = new Task(session.task, config.streetCoverage, isTutorialTask);
+    const seed = isTutorialTask
+      ? { startPanoId: 'tutorial' }
+      : { startPanoId: session.start_pano_id, startLat, startLng, startPov: session.start_pov };
+    // The viewer and the minimap load side by side; what needs neither is built meanwhile.
+    const panoManager = new PanoManager(ui.streetview, config, panoStore, tracker, alertController, seed,
+      { task: newTask, missionId: session.mission.mission_id });
+    const minimapLoading = Minimap.create(ui.minimap, { lat: startLat, lng: startLng }, panoManager, tracker);
+    const stuckAlert = new StuckAlert(alertController, panoManager);
+
+    const badgeProgress = new BadgeProgress();
+    const overallStats = new OverallStats(config, badgeProgress);
+    const missionPanel = new MissionPanel(config, regionModel, tracker);
+    const audioEffect = new AudioEffect(storage);
+    const keyboardShortcutAlert = new KeyboardShortcutAlert(config, alertController);
+    const ratingReminderAlert = new RatingReminderAlert(config, alertController);
+    const zoomShortcutAlert = new ZoomShortcutAlert(config, alertController);
+    const jumpAlert = new JumpAlert(alertController);
+    const labelModes = new LabelModes(tracker);
+    // Warm the label-icon cache up front so canvas renders draw icons in the right order. See Label.preloadIcons.
+    const iconsPreloaded = Label.preloadIcons();
+
+    const [loaded, minimap] = await Promise.all([panoManager.ready, minimapLoading]);
     // No viewer means PanoManager found no usable imagery and has already scheduled a redirect; stop initializing
     // so nothing dereferences the missing viewer while the navigation lands.
-    if (!svl.panoViewer) return;
+    if (!loaded) return { config };
 
     // Arriving here from a load that gave up on its street: that reload is the only thing the labeler saw, and it
     // took the banner explaining the move down with it, so the explanation is delivered on arrival instead (#4918).
@@ -189,230 +342,235 @@ export class Main {
     // again (#4922) — announce the move only when the labeler actually landed somewhere else.
     const skippedStreetId = PanoManager.consumeStreetSkippedNotice();
     if (skippedStreetId !== null && skippedStreetId !== newTask.getStreetEdgeId()) {
-      svl.stuckAlert.announceSkippedStreetNear(newTask.getMidpoint(), params.mapboxApiKey);
+      stuckAlert.announceSkippedStreetNear(newTask.getMidpoint(), config.mapboxApiKey);
     }
-    const currLatLng = svl.panoViewer.getPosition();
+    const currLatLng = panoManager.getPosition();
     newTask.updateTheFurthestPointReached(currLatLng);
     // The drop-in pano is the first one seen of its street (#5733).
-    if (svl.isExploreAddressMode()) newTask.recordVisit(currLatLng);
+    if (config.isExploreAddressMode) newTask.recordVisit(currLatLng);
+    minimap.setMinimapLocation(currLatLng);
+    const peg = new Peg(minimap, panoManager);
 
-    svl.minimap = await Minimap.create(currLatLng);
-    svl.peg = new Peg(svl.minimap, currLatLng);
+    // The containers subscribe to one another, so the first mission is created only once all three exist.
+    const taskContainer = new TaskContainer(newTask, config, regionModel, minimap, panoManager, overallStats, tracker);
+    const missionContainer = new MissionContainer(config, missionPanel, missionModel, storage, taskContainer,
+      panoManager);
+    const labelContainer = new LabelContainer(session.next_temporary_label_id, config, frame, panoStore, minimap,
+      missionContainer, panoManager, storage, overallStats, tracker);
+    const form = new Form(params.dataStoreUrl, config, labelContainer, missionModel, missionContainer, panoStore,
+      taskContainer, panoManager, tracker);
+    tracker.onFlush(() => form.submitData());
 
-    svl.ribbon = new RibbonMenu(svl.tracker);
-    svl.canvas = new Canvas(svl.ribbon);
-    // The shared populator for the hover card's content; Label.#updateHoverCard re-points it per label (#4730).
-    // Explore truncates the description because clicking the label reopens the full text in an editable field.
-    svl.labelCardView = new LabelCardView(svl.ui.canvas.hoverCard, { descriptionMaxLength: 90 });
+    regionModel.setCurrentRegion(new Region({ regionId: session.region_id, name: session.region_name }));
+    missionModel.createAMission(session.mission); // create current mission and set as current
+    if (session.mission.current_audit_task_id) {
+      const currTask = taskContainer.getCurrentTask();
+      if (!currTask.getProperty('auditTaskId')) {
+        currTask.setProperty('auditTaskId', session.mission.current_audit_task_id);
+      }
+    } else {
+      await form.submitData(); // Get an audit_task_id from the back end.
+    }
 
-    // Warm the label-icon cache up front so canvas renders draw icons in the right order. See Label.preloadIcons.
-    svl.iconsPreloaded = Label.preloadIcons();
+    const popUpMessage = new PopUpMessage(config, interactionLock, taskContainer, tracker);
+    const aiGuidance = new AiGuidance(config, taskContainer, popUpMessage, tracker);
+    const reauditNotice = new ReauditNotice(taskContainer, tracker);
 
-    svl.navigationService = new NavigationService(svl.regionModel, svl.ui.streetview);
+    // The arrows announce their clicks, since the service that answers them is built after.
+    const navArrows = new NavArrows(ui.streetview.navArrows, ui.streetview.navArrowsContainer, config, taskContainer,
+      panoManager);
+    const navigationService = new NavigationService(ui.streetview, config, regionModel, missionModel,
+      missionContainer, taskContainer, panoStore, panoManager, labelContainer, labelModes, navArrows, keyboardLock,
+      alertController, stuckAlert, jumpAlert, form, tracker);
+    navArrows.onLinkClick((panoId) => navigationService.moveToPano(panoId));
+    navArrows.onRouteForwardClick(() => {
+      tracker.push('Click_RouteForwardArrow');
+      navigationService.moveForward()
+        .then(() => tracker.push('RouteForwardArrow_Success'))
+        .catch(() => tracker.push('RouteForwardArrow_PanoNotAvailable'));
+    });
+    navArrows.reset();
+    const compass = new Compass(config, regionModel, taskContainer, panoManager, navigationService, stuckAlert,
+      tracker);
 
-    svl.taskContainer = new TaskContainer(svl.regionModel, svl, svl.tracker);
-    svl.taskContainer._tasks.push(newTask);
-    svl.taskContainer.setCurrentTask(newTask);
-    svl.labelContainer = new LabelContainer(session.next_temporary_label_id);
+    const ribbon = new RibbonMenu(labelModes, keyboardShortcutAlert, tracker);
+    const contextMenu = new ContextMenu(ui.contextMenu, config, frame, labelContainer, labelModes, navigationService,
+      ratingReminderAlert, form, tracker);
+    // The shared populator for the hover card's content (#4730). Explore truncates the description because clicking
+    // the label reopens the full text in an editable field.
+    const labelCardView = new LabelCardView(ui.canvas.hoverCard, { descriptionMaxLength: 90 });
+    const canvas = new Canvas(ui.canvas, ui.streetview, config, frame, labelCardView, labelModes, contextMenu,
+      labelContainer, missionContainer, taskContainer, panoManager, navigationService, form, audioEffect, tracker);
+    const zoomControl = new ZoomControl(ui.streetview.viewControlLayer, canvas, panoManager, zoomShortcutAlert,
+      tracker);
 
-    // Set map parameters and instantiate it.
-    svl.compass = new Compass(svl.navigationService, svl.taskContainer);
-    svl.keyboardShortcutAlert = new KeyboardShortcutAlert(svl.alertController);
-    svl.ratingReminderAlert = new RatingReminderAlert(svl.alertController);
-    svl.zoomShortcutAlert = new ZoomShortcutAlert(svl.alertController);
-    svl.jumpAlert = new JumpAlert(svl.alertController);
+    const routeOverview = new RouteOverview(ui.minimap, regionModel, taskContainer, panoManager, minimap, tracker);
+    const observedArea = new ObservedArea(ui.minimap, config, storage, frame, panoManager, minimap, peg,
+      routeOverview, navigationService, regionModel, tracker);
+    new MinimapLegend(ui.minimap, labelContainer, tracker);
+    const forwardCrumbs = new ForwardCrumbs(config, panoManager, taskContainer, compass, minimap, observedArea,
+      navigationService, navArrows, tracker);
+    const minimapMissionProgress = new MinimapMissionProgress(ui.minimap, config, regionModel, taskContainer,
+      missionContainer, minimap);
+    // What the ⛶ button fits: a route's every street; a region audit's mission streets plus the one being walked.
+    minimap.setOverviewStreets(() => {
+      if (regionModel.isRoute) return taskContainer.getTasks();
+      const tasks = (missionContainer.getCurrentMission()?.getRoute() ?? []).slice();
+      const current = taskContainer.getCurrentTask();
+      if (current && !tasks.includes(current)) tasks.push(current);
+      return tasks;
+    });
 
-    svl.badgeProgress = new BadgeProgress();
-    svl.overallStats = new OverallStats();
-    svl.missionProgressBar = new ProgressBar(
+    const missionProgressBar = new ProgressBar(
       'status-current-mission-completion-bar-filler', 'status-current-mission-completion-rate',
     );
-    svl.missionProgressBar.update(0);
-    svl.regionProgressBar = new RegionProgressBar();
-    svl.missionPanel = new MissionPanel();
+    missionProgressBar.update(0);
+    const regionProgressBar = new RegionProgressBar({
+      fill: 'region-progress-fill',
+      you: 'region-progress-you',
+      community: 'region-progress-community',
+      rate: 'region-progress-rate',
+    }, regionModel, taskContainer);
+    const modalMissionCompleteMap = new ModalMissionCompleteMap('modal-mission-complete-map', config.mapboxApiKey,
+      regionModel, taskContainer);
+    const modalMissionComplete = new ModalMissionComplete(missionContainer, missionModel, taskContainer, regionModel,
+      labelContainer, overallStats, missionPanel, missionProgressBar, minimapMissionProgress, audioEffect,
+      panoManager, interactionLock, modalMissionCompleteMap);
+    new FeedbackModal(interactionLock, missionContainer, taskContainer, panoManager, navigationService, tracker);
+    const panoOverlayControls = new PanoOverlayControls(tracker, navigationService, stuckAlert, keyboardShortcutAlert);
+    const modalSurvey = new ModalSurvey(interactionLock, zoomControl);
+    new MissionController(config, missionModel, regionModel, missionContainer, taskContainer, form,
+      modalMissionComplete, modalSurvey, alertController, compass, navigationService, panoManager, observedArea,
+      overallStats, regionProgressBar, missionProgressBar, minimapMissionProgress, tracker);
 
-    svl.contextMenu = new ContextMenu(svl.ui.contextMenu);
-
-    // Game effects
-    svl.audioEffect = new AudioEffect(svl.storage);
-
-    const region = new Region({
-      regionId: session.region_id, name: session.region_name,
-    });
-    svl.regionModel.setCurrentRegion(region);
-
-    svl.observedArea = new ObservedArea(svl.ui.minimap);
-    svl.minimapLegend = new MinimapLegend(svl.ui.minimap, svl.tracker);
-    svl.routeOverview = new RouteOverview(svl.ui.minimap, svl.tracker);
-    svl.forwardCrumbs = new ForwardCrumbs(svl.navigationService, svl.tracker);
-
-    // Mission
-    svl.missionContainer = new MissionContainer(svl.missionPanel, svl.missionModel);
-    svl.missionController = new MissionController(svl.missionModel, svl.regionModel,
-      svl.missionContainer, svl.tracker);
-    svl.missionModel.createAMission(session.mission); // create current mission and set as current
-    svl.form = new Form(svl.labelContainer, svl.missionModel, svl.missionContainer, svl.panoStore,
-      svl.taskContainer, svl.tracker, params.dataStoreUrl);
-    if (session.mission.current_audit_task_id) {
-      const currTask = svl.taskContainer.getCurrentTask();
-      const currTaskId = currTask.getProperty('auditTaskId');
-      if (!currTaskId) currTask.setProperty('auditTaskId', session.mission.current_audit_task_id);
-    } else {
-      await svl.form.submitData(); // Get an audit_task_id from the back end.
-    }
-    svl.popUpMessage = new PopUpMessage(svl.taskContainer, svl.tracker);
-    svl.aiGuidance = new AiGuidance(svl.tracker, svl.popUpMessage);
-    svl.reauditNotice = new ReauditNotice(svl.tracker);
-
-    // Logs when the page's focus changes.
-    const logPageFocus = () => {
-      if (document.hasFocus()) {
-        svl.tracker.push('PageGainedFocus');
-      } else {
-        svl.tracker.push('PageLostFocus');
-      }
-    };
-    window.addEventListener('focus', () => logPageFocus());
-    window.addEventListener('blur', () => logPageFocus());
-    logPageFocus();
-
-    // Modals
-    const modalMissionCompleteMap = new ModalMissionCompleteMap('modal-mission-complete-map', params.mapboxApiKey);
-    svl.modalMissionComplete = new ModalMissionComplete(svl.missionContainer, svl.missionModel,
-      svl.taskContainer, modalMissionCompleteMap);
-    svl.modalMissionComplete.hide();
-
-    svl.feedbackModal = new FeedbackModal(svl, svl.tracker, svl.ribbon, svl.taskContainer);
-    svl.panoOverlayControls = new PanoOverlayControls(svl.tracker, svl.navigationService, svl.stuckAlert,
-      svl.keyboardShortcutAlert);
-    // svl.relayout is assigned once the tool is laid out (below) and svl.urlSync once the URL is handed over
-    // (#syncURL, #5480); the arrows look them up at toggle time.
-    svl.immersiveMode = new ImmersiveMode({
-      tracker: svl.tracker,
+    const immersiveMode = new ImmersiveMode({
+      tracker,
       bodyClass: 'svl-immersive',
-      relayout: () => svl.relayout?.(),
-      isDisabled: () => svl.isOnboarding(),
+      relayout: () => this.#relayout?.(),
+      isDisabled: () => config.isOnboarding,
       // The hover card and context menu are anchored against the frame that is about to change shape.
       beforeToggle: () => {
-        if (svl.contextMenu.isOpen()) svl.contextMenu.hide();
-        svl.canvas.showLabelHoverInfo(undefined);
+        if (contextMenu.isOpen()) contextMenu.hide();
+        canvas.showLabelHoverInfo(undefined);
       },
-      frame: () => svl.CANVAS_FRAME,
+      frame: () => ({ width: frame.width, height: frame.height }),
       hintReference: () => document.getElementById('pano'),
       urlParam: 'immersive',
-      onChange: () => svl.urlSync?.request(),
+      onChange: () => this.#urlSync?.request(),
     });
 
     // Shadows/brightness/contrast as a display-only filter on the pano mount (#3136); crops read the raw canvas, so
-    // they never carry it. svl.keyboard is built later, hence the lookups at call time. Suspending the shortcuts
-    // while the panel is open keeps Arrow keys on the focused slider instead of panning the pano; the suspension is
-    // only undone if the panel was what suspended them, since a pop-up can disable the keyboard while it is open.
-    svl.imageAdjustments = new PanoImageAdjustments(document.getElementById('pano'));
+    // they never carry it. The shortcuts are paused while the panel is open, which keeps Arrow keys on the focused
+    // slider instead of panning the pano.
+    const imageAdjustments = new PanoImageAdjustments(document.getElementById('pano'));
     // Settings carried in from an earlier visit (or from Validate) change what the labeler sees before they touch the
     // panel, so the load records them; ImageAdjustments_Change only covers edits made on this page.
-    if (!svl.imageAdjustments.isDefault()) {
-      svl.tracker.push('ImageAdjustments_Restored', svl.imageAdjustments.values());
+    if (!imageAdjustments.isDefault()) {
+      tracker.push('ImageAdjustments_Restored', imageAdjustments.values());
     }
-    let panelSuspendedKeyboard = false;
-    svl.imageAdjustmentsPopover = new PanoImageAdjustmentsPopover(svl.imageAdjustments,
+    new PanoImageAdjustmentsPopover(imageAdjustments,
       document.getElementById('explore-control-image'), document.getElementById('pano-image-adjustments'), {
         // The pills form a row, so opening to the right would cover Sound and Feedback; full screen stacks them in a
         // column, where the right is clear and below would cover them instead.
-        placement: () => (svl.immersiveMode.isActive() ? 'right' : 'below'),
+        placement: () => (immersiveMode.isActive() ? 'right' : 'below'),
         onOpen: () => {
-          svl.tracker.push('Click_ImageAdjustments_Open');
-          panelSuspendedKeyboard = !!svl.keyboard && !svl.keyboard.getStatus('disableKeyboard');
-          if (panelSuspendedKeyboard) svl.keyboard.disableKeyboard();
+          tracker.push('Click_ImageAdjustments_Open');
+          keyboardLock.hold('image-adjustments');
         },
         onClose: (via) => {
-          svl.tracker.push('Click_ImageAdjustments_Close', { via });
-          if (panelSuspendedKeyboard) svl.keyboard.enableKeyboard();
-          panelSuspendedKeyboard = false;
+          tracker.push('Click_ImageAdjustments_Close', { via });
+          keyboardLock.release('image-adjustments');
         },
-        onChange: (values) => svl.tracker.push('ImageAdjustments_Change', values),
-        onReset: () => svl.tracker.push('Click_ImageAdjustments_Reset'),
+        onChange: (values) => tracker.push('ImageAdjustments_Change', values),
+        onReset: () => tracker.push('Click_ImageAdjustments_Reset'),
       });
     // The Image pill hides in the chevron's menu, so mirror its active state onto the chevron while the menu is closed.
-    svl.panoOverlayControls.setCollapsedIndicator(!svl.imageAdjustments.isDefault());
-    svl.imageAdjustments.onChange(() =>
-      svl.panoOverlayControls.setCollapsedIndicator(!svl.imageAdjustments.isDefault()));
+    panoOverlayControls.setCollapsedIndicator(!imageAdjustments.isDefault());
+    imageAdjustments.onChange(() => panoOverlayControls.setCollapsedIndicator(!imageAdjustments.isDefault()));
 
     // Mounted inside the date pill rather than beside it: what the button explains is the imagery, so between the
     // capture date and the audit note is the one place it would read as belonging to neither (#5413).
-    svl.infoPopover = new PanoInfoPopover(svl.ui.streetview.datePill, () => svl.panoViewer,
-      () => svl.panoViewer.getPosition(), () => svl.panoViewer.getPanoId(),
-      () => svl.taskContainer.getCurrentTaskStreetEdgeId(),
-      () => svl.regionModel.currentRegion().getRegionId(),
-      () => svl.panoStore.getPanoData(svl.panoViewer.getPanoId()).getProperty('captureDate'),
-      () => svl.panoStore.getPanoData(svl.panoViewer.getPanoId()).getProperty('address'),
-      () => svl.panoViewer.getPov(), true,
-      () => {
-        svl.tracker.push('PanoInfoButton_Click');
-      },
-      () => {
-        svl.tracker.push('PanoInfoCopyToClipboard_Click');
-      },
-      () => {
-        svl.tracker.push('PanoInfoViewInPano_Click');
-      },
+    new PanoInfoPopover(ui.streetview.datePill, () => panoManager.panoViewer,
+      () => panoManager.getPosition(), () => panoManager.getPanoId(),
+      () => taskContainer.getCurrentTaskStreetEdgeId(),
+      () => regionModel.currentRegion().getRegionId(),
+      () => panoStore.getPanoData(panoManager.getPanoId()).getProperty('captureDate'),
+      () => panoStore.getPanoData(panoManager.getPanoId()).getProperty('address'),
+      () => panoManager.getPov(), true,
+      () => tracker.push('PanoInfoButton_Click'),
+      () => tracker.push('PanoInfoCopyToClipboard_Click'),
+      () => tracker.push('PanoInfoViewInPano_Click'),
     );
+    new PanoDateNote(ui.streetview.dateHolder, ui.streetview.datePill, ui.streetview.date, panoManager, panoStore,
+      taskContainer, tracker);
+    new SpeedLimit(() => panoManager.panoViewer, () => panoManager.getPosition(), () => config.isOnboarding,
+      config.countryId, { taskContainer });
 
-    svl.panoDateNote = new PanoDateNote(svl.tracker, svl.ui.streetview.dateHolder,
-      svl.ui.streetview.datePill, svl.ui.streetview.date);
-    // The first pano and the first task both land before this line, so their own updates find no note to draw on and
-    // the corner stays empty until the labeler's first step (#4671 closed the same gap for the nav arrows).
-    const initialCaptureDate = svl.panoStore.getPanoData(svl.panoViewer.getPanoId())?.getProperty('captureDate');
-    svl.panoDateNote.update(
-      initialCaptureDate ? util.localIsoDate(initialCaptureDate) : null,
-      svl.taskContainer.getCurrentTask(),
-    );
+    // Last, so no shortcut acts before the tool is wired.
+    const keyboard = new KeyboardManager(keyboardLock, canvas, contextMenu, navigationService, labelModes, zoomControl,
+      panoManager, compass, immersiveMode, tracker);
 
-    // Speed limit
-    svl.speedLimit = new SpeedLimit(() => svl.panoViewer, () => svl.panoViewer.getPosition(), svl.isOnboarding,
-      params.countryId, { taskContainer: svl.taskContainer });
+    this.#modules = {
+      tracker, keyboardLock, alertController, regionModel, missionModel, panoManager, navArrows, minimap,
+      minimapMissionProgress, taskContainer, missionContainer, labelContainer, form, canvas, contextMenu,
+      navigationService, compass, observedArea, forwardCrumbs, routeOverview, zoomControl, overallStats, missionPanel,
+      popUpMessage, aiGuidance, reauditNotice, panoOverlayControls, labelModes, ribbon, missionProgressBar,
+      immersiveMode, keyboard, iconsPreloaded,
+    };
 
-    // Survey for select users
-    svl.modalSurvey = new ModalSurvey();
+    // A pop-up stops the tool under it until it closes.
+    const stopped = [navigationService.walking, panoManager.panning, canvas.labeling, labelModes.switching,
+      keyboardLock];
+    interactionLock.onChanged((held) => {
+      for (const gate of stopped) {
+        if (held) gate.hold('interaction');
+        else gate.release('interaction');
+      }
+    });
+    // Absent when signed in; the tool dims under it (events from common/Modal.js).
+    const signInModal = document.getElementById('sign-in-modal-container');
+    const toolUi = document.querySelectorAll('.tool-ui');
+    signInModal?.addEventListener('ps:modal:hidden', () => {
+      interactionLock.release('sign-in');
+      toolUi.forEach((el) => el.style.opacity = '1');
+    });
+    signInModal?.addEventListener('ps:modal:show', () => {
+      interactionLock.hold('sign-in');
+      toolUi.forEach((el) => el.style.opacity = '0.5');
+    });
+    // Some viewers (Infra3D) fire pano_changed before their metadata names the new pano, so the URL could read the
+    // old one; by now every viewer's metadata is current.
+    panoManager.onPanoChanged(() => this.#urlSync?.request());
 
-    svl.zoomControl = new ZoomControl(svl.canvas, svl.tracker);
-    svl.keyboard = new KeyboardManager(
-      svl, svl.canvas, svl.contextMenu, svl.navigationService, svl.ribbon, svl.zoomControl,
-    );
-    this.#loadData(svl.taskContainer, svl.missionModel, svl.regionModel, svl.contextMenu);
+    this.#loadData();
 
     document.getElementById('navbar-retake-tutorial-btn')?.addEventListener('click', () => {
       window.location.replace('/explore?retakeTutorial=true');
     });
 
-    // The auth dialog is absent when signed in; dim the tool UI while it's open (events from common/Modal.js).
-    const signInModal = document.getElementById('sign-in-modal-container');
-    const toolUi = document.querySelectorAll('.tool-ui');
-    signInModal?.addEventListener('ps:modal:hidden', () => {
-      svl.popUpMessage.enableInteractions();
-      toolUi.forEach((el) => el.style.opacity = '1');
-    });
-    signInModal?.addEventListener('ps:modal:show', () => {
-      svl.popUpMessage.disableInteractions();
-      toolUi.forEach((el) => el.style.opacity = '0.5');
-    });
-
     // Hand the address bar to the labeler's position from here on (#5480).
     this.#syncURL();
+
+    return { config, panoManager, taskContainer, labelContainer, missionContainer, navigationService };
   }
 
-  #loadData(taskContainer, missionModel, regionModel, contextMenu) {
+  /** Fetches the region's tasks and missions, or in the tutorial just the mission that frames it. */
+  #loadData() {
+    const { taskContainer, missionModel, missionContainer, regionModel, contextMenu, minimapMissionProgress }
+      = this.#modules;
+
     // If in the tutorial, we already have the tutorial task. If not, get the rest of the tasks in the region.
-    if (svl.isOnboarding()) {
+    if (this.#config.isOnboarding) {
       this.#loadingTasksCompleted = true;
       this.#handleDataLoadComplete();
     } else {
-      taskContainer.fetchTasks().then(() => {
+      taskContainer.fetchTasks(missionContainer.getCurrentMission()).then(() => {
         this.#loadingTasksCompleted = true;
         this.#handleDataLoadComplete();
         // Plant start/finish flags on the minimap so a route walk shows where it begins and ends.
-        if (svl.regionModel.isRoute) {
+        if (regionModel.isRoute) {
           const endpoints = taskContainer.getRouteEndpoints();
-          if (endpoints) svl.minimap.showRouteEndpoints(endpoints.start, endpoints.finish);
+          if (endpoints) minimapMissionProgress.showRouteEndpoints(endpoints.start, endpoints.finish);
         }
       });
     }
@@ -434,11 +592,10 @@ export class Main {
    * "Skip" bypasses it. This runs before #startOnboarding so the intro is not part of the onboarding state machine.
    */
   #startTutorialIntro() {
-    svl.tutorialIntro = new TutorialIntro(svl.tracker, {
+    new TutorialIntro(this.#tutorialRouteWaiting, this.#modules.tracker, {
       onStart: () => this.#startOnboarding(),
       onSkip: () => this.#skipTutorial(),
-    });
-    svl.tutorialIntro.show();
+    }).show();
   }
 
   /**
@@ -487,293 +644,284 @@ export class Main {
    * a real Explore mission. Mirrors how the onboarding itself ends on skip.
    */
   #skipTutorial() {
-    svl.tracker.push('Onboarding_Skip');
-    const mission = svl.missionContainer.getCurrentMission();
+    const { tracker, missionContainer, form } = this.#modules;
+    tracker.push('Onboarding_Skip');
+    const mission = missionContainer.getCurrentMission();
     mission.setProperty('skipped', true);
     mission.setProperty('isComplete', true);
-    svl.form.submitData().then(() => window.location.replace('/explore'));
+    form.submitData().then(() => window.location.replace('/explore'));
   }
 
   #startOnboarding() {
+    const m = this.#modules;
     // TODO probably have a GET endpoint to get onboarding mission..?
-    // hide any alerts
-    svl.alertController.hideAlert();
+    m.alertController.hideAlert();
 
-    if (!this.#onboardingStates) {
-      this.#onboardingStates = new OnboardingStates(svl.contextMenu, svl.compass, svl.panoManager);
+    if (!this.#onboarding) {
+      const onboardingStates = new OnboardingStates(m.contextMenu, m.compass, m.panoManager, this.#ui.minimap);
+      this.#onboarding = new Onboarding(this.#ui, this.#frame, onboardingStates, m.minimap, m.panoManager,
+        m.navArrows, m.compass, m.navigationService, m.missionContainer, m.labelContainer, m.observedArea, m.form,
+        m.missionProgressBar, m.panoOverlayControls, m.labelModes, m.ribbon, m.canvas, m.contextMenu, m.zoomControl,
+        m.tracker);
     }
-
-    if (!('onboarding' in svl && svl.onboarding)) {
-      svl.onboarding = new Onboarding(svl, svl.compass, svl.navigationService, svl.missionContainer,
-        svl.panoOverlayControls, this.#onboardingStates, svl.ribbon, svl.tracker, svl.canvas, svl.ui.canvas,
-        svl.contextMenu, svl.ui.onboarding, svl.zoomControl);
-    }
-    svl.onboarding.start();
+    this.#onboarding.start();
   }
 
   #startTheMission(mission, region) {
+    const m = this.#modules;
     // Popup the message explaining the goal of the current mission.
-    if (svl.missionContainer.isTheFirstMission()) {
-      region = svl.regionModel.currentRegion();
-      svl.initialMissionInstruction = new InitialMissionInstruction(
-        svl.compass, svl.navigationService, svl.popUpMessage,
-        svl.taskContainer, svl.labelContainer, svl.aiGuidance, svl.tracker,
-      );
-      svl.initialMissionInstruction.start(region);
+    if (m.missionContainer.isTheFirstMission()) {
+      region = m.regionModel.currentRegion();
+      new InitialMissionInstruction(
+        m.compass, m.navigationService, m.popUpMessage, m.taskContainer, m.labelContainer, m.aiGuidance, m.minimap,
+        m.panoManager, m.observedArea, m.tracker,
+      ).start(region);
     } else {
       // Show AI guidance message for the first street. Handled by InitialMissionInstruction if 1st mission.
-      svl.aiGuidance.showAiGuidanceMessage();
+      m.aiGuidance.showAiGuidanceMessage();
     }
 
-    svl.missionModel.updateMissionProgress(mission, region);
-    svl.missionPanel.setMessage(mission);
-    svl.minimap.updateMissionProgress(mission);
+    m.missionModel.updateMissionProgress(mission, region);
+    m.missionPanel.setMessage(mission);
+    m.minimapMissionProgress.update(mission);
 
-    svl.labelContainer.fetchLabelsToResumeMission(region.getRegionId(), svl.userRouteId ?? null, () => {
-      svl.canvas.setOnlyLabelsOnPanoAsVisible(svl.panoViewer.getPanoId());
+    m.labelContainer.fetchLabelsToResumeMission(region.getRegionId(), this.#config.userRouteId, () => {
+      m.canvas.setOnlyLabelsOnPanoAsVisible(m.panoManager.getPanoId());
       // Wait for the icon cache before this first paint (resolves immediately if already warm).
-      svl.iconsPreloaded.then(() => {
-        svl.canvas.render();
+      m.iconsPreloaded.then(() => {
+        m.canvas.render();
       });
     });
 
-    svl.taskContainer.renderAllTasks();
-    const distance = svl.taskContainer.getCompletedTaskDistance();
-    svl.overallStats.setRegionAuditedDistance(distance);
+    m.taskContainer.renderAllTasks();
+    // The route overview inset's explored/ahead colors follow the streets (routes only; no-op otherwise).
+    m.routeOverview.render();
+    const distance = m.taskContainer.getCompletedTaskDistance();
+    m.overallStats.setRegionAuditedDistance(distance);
 
     // Prefetch Mapillary data on images along the street to improve load times for images along the street.
-    svl.navigationService.prefetchAlongStreet(svl.taskContainer.getCurrentTask().getFeature());
+    m.navigationService.prefetchAlongStreet(m.taskContainer.getCurrentTask().getFeature());
   }
 
   // This is a callback function that is executed after every loading process is done.
   #handleDataLoadComplete() {
-    if (this.#loadingTasksCompleted && this.#loadingMissionsCompleted && this.#loadLabelTags) {
-      // Mark region as complete if there are no streets left with max priority (= 1).
-      if (!svl.taskContainer.hasMaxPriorityTask()) {
-        svl.regionModel.setRegionCompleteAcrossAllUsers();
-      }
+    if (!(this.#loadingTasksCompleted && this.#loadingMissionsCompleted && this.#loadLabelTags)) return;
+    const m = this.#modules;
+    const config = this.#config;
 
-      // Set up a few initial views now that everything has loaded. A seeded POV (the labeler's stored view from the
-      // label card's "Explore here" hop, #4637) wins over the default route-facing camera.
-      if (this.#session.start_pov) {
-        // The seed set the pano zoom straight on the viewer, before ZoomControl existed — sync its buttons to that
-        // zoom so zoom-out isn't left dead (#4637).
-        svl.zoomControl.syncButtonsToZoom(svl.panoViewer.getPov().zoom);
+    // Mark region as complete if there are no streets left with max priority (= 1).
+    if (!m.taskContainer.hasMaxPriorityTask()) {
+      m.regionModel.setRegionCompleteAcrossAllUsers();
+    }
+
+    // Set up a few initial views now that everything has loaded. A seeded POV (the labeler's stored view from the
+    // label card's "Explore here" hop, #4637) wins over the default route-facing camera; the zoom buttons already
+    // follow the seeded zoom (ZoomControl).
+    if (!this.#session.start_pov) m.compass.faceRoute();
+    m.minimap.setMinimapLocation(m.panoManager.getPosition());
+    m.observedArea.panoChanged();
+    m.observedArea.update();
+    m.compass.update();
+    // The first task was set before the crumbs existed, so draw the ones ahead now (#4669).
+    m.forwardCrumbs.refresh();
+    // Re-render the nav arrows now that the compass and task exist, so the route-forward arrow is highlighted on
+    // the very first pano too (#4671).
+    m.navArrows.reset();
+
+    document.getElementById('page-loading').style.visibility = 'hidden';
+    document.querySelectorAll('.tool-ui').forEach((el) => el.classList.remove('ps-invisible'));
+
+    const mission = m.missionContainer.getCurrentMission();
+    if (mission.getProperty('missionType') === 'auditOnboarding') {
+      this.#parkRouteUnavailableNotice();
+      this.#startTutorialIntro();
+    } else {
+      this.#calculateAndSetTasksMissionsOffset();
+
+      const currentRegion = m.regionModel.currentRegion();
+      if (config.isExploreAddressMode) {
+        // Free exploration (#4451): hide the mission progress UI, and skip the mission-start modal (its copy
+        // interpolates a mission distance, which this mission type doesn't have).
+        document.getElementById('mission-progress-group').classList.add('ps-hidden');
+        document.getElementById('compass-message-holder').classList.add('ps-hidden');
+        m.tracker.push('ExploreAddress_SessionStart');
+        // Name the place when the search supplied one — "dropped near Teaneck High School" orients the user far
+        // better than a generic greeting. The name comes from a URL param and the alert banner renders its
+        // message as HTML, so the value is escaped here while the <b> in the string itself renders.
+        const placeName = this.#session.start_place_name;
+        const startMessage = placeName
+          ? i18next.t('popup.free-explore-start-named', { placeName, interpolation: { escapeValue: true } })
+          : i18next.t('popup.free-explore-start');
+        m.alertController.showAlert(startMessage, 'exploreAddressStart', true);
+        m.reauditNotice.showForTask(m.taskContainer.getCurrentTask());
       } else {
-        svl.panoManager.setPovToRouteDirection();
-      }
-      svl.minimap.setMinimapLocation(svl.panoViewer.getPosition());
-      svl.observedArea.panoChanged();
-      svl.observedArea.update();
-      svl.compass.update();
-      svl.compass.enableCompassClick();
-      // The first task was set before the crumbs existed, so draw the ones ahead now (#4669).
-      svl.forwardCrumbs.refresh();
-      // Re-render the nav arrows now that the compass and task exist, so the route-forward arrow is highlighted on
-      // the very first pano too — PanoManager's own initial resetNavArrows ran before those were wired up. (#4671)
-      svl.panoManager.resetNavArrows();
-
-      // Remove the loading cover page and make the tool visible.
-      document.getElementById('page-loading').style.visibility = 'hidden';
-      document.querySelectorAll('.tool-ui').forEach((el) => el.classList.remove('ps-invisible'));
-
-      // Check if the user has completed the onboarding tutorial.
-      const mission = svl.missionContainer.getCurrentMission();
-      if (mission.getProperty('missionType') === 'auditOnboarding') {
-        this.#parkRouteUnavailableNotice();
-        this.#startTutorialIntro();
-      } else {
-        this.#calculateAndSetTasksMissionsOffset();
-
-        const currentRegion = svl.regionModel.currentRegion();
-        if (svl.isExploreAddressMode()) {
-          // Free exploration (#4451): hide the mission progress UI, and skip the mission-start modal (its copy
-          // interpolates a mission distance, which this mission type doesn't have).
-          document.getElementById('mission-progress-group').classList.add('ps-hidden');
-          document.getElementById('compass-message-holder').classList.add('ps-hidden');
-          svl.tracker.push('ExploreAddress_SessionStart');
-          // Name the place when the search supplied one — "dropped near Teaneck High School" orients the user far
-          // better than a generic greeting. The name comes from a URL param and the alert banner renders its
-          // message as HTML, so the value is escaped here while the <b> in the string itself renders.
-          const placeName = this.#session.start_place_name;
-          const startMessage = placeName
-            ? i18next.t('popup.free-explore-start-named', { placeName, interpolation: { escapeValue: true } })
-            : i18next.t('popup.free-explore-start');
-          svl.alertController.showAlert(startMessage, 'exploreAddressStart', true);
-          svl.reauditNotice.showForTask(svl.taskContainer.getCurrentTask());
-        } else {
-          // Initialize explore mission screens focused on a randomized label type, though users can switch between
-          // them.
-          const potentialLabelTypes = util.misc.PRIMARY_LABEL_TYPES;
-          const labelType = potentialLabelTypes[Math.floor(Math.random() * potentialLabelTypes.length)];
-          const currentMission = svl.missionContainer.getCurrentMission();
-          const missionProgressM = currentMission.getProperty('distanceProgress') || 0;
-          // A pre-existing in-progress street also counts as resuming — the server sets audit_task_id on the task
-          // only when handing one back — since a labeler mid-street may have zero mission distance banked.
-          const resuming = currentMission.getProperty('missionType') === 'audit'
-            && (missionProgressM > 0 || Boolean(this.#session.task.properties.audit_task_id));
-          new MissionStartTutorial('audit', labelType, {
-            nLength: currentMission.getDistance('miles'),
-            region: currentRegion.getProperty('name'),
-            resuming,
-          }, { tracker: svl.tracker, keyboard: svl.keyboard, missionContainer: svl.missionContainer },
-          this.#params.language);
-
-          // Toasts for a visit that resumed something (#4833) or didn't go where the URL asked: a route that couldn't
-          // open (#5156), or a neighborhood already done (#5692). They wait for the mission-start screen to close so
-          // they aren't hidden under it, and only one shows; "didn't go where asked" wins over a resume note. `Toast`
-          // queues the re-audit notice (#4895) behind whichever one shows.
-          if (this.#takeRouteUnavailableNotice()) {
-            document.addEventListener('ps:mission-start-tutorial:done', () => {
-              svl.tracker.push('RouteUnavailableToast_Shown');
-              Toast.show({
-                message: i18next.t('right-ui.route-unavailable.message'),
-                reference: document.getElementById('pano'),
-                dark: true,
-                duration: 10000,
-              });
-            }, { once: true });
-          } else if (this.#session.region_finished) {
-            document.addEventListener('ps:mission-start-tutorial:done', () => {
-              svl.tracker.push('RegionFinishedToast_Shown');
-              Toast.show({
-                message: i18next.t('right-ui.region-finished.message', {
-                  regionName: currentRegion.getProperty('name'),
-                }),
-                reference: document.getElementById('pano'),
-                dark: true,
-                duration: 10000,
-              });
-            }, { once: true });
-          } else if (svl.userRouteId && this.#session.route_resumed) {
-            document.addEventListener('ps:mission-start-tutorial:done', () => {
-              svl.tracker.push('RouteResumeToast_Shown');
-              Toast.show({
-                message: i18next.t('right-ui.route-resume.message', { routeName: svl.routeName }),
-                button: {
-                  label: i18next.t('right-ui.route-resume.exit'),
-                  onClick: () => {
-                    svl.tracker.push('Click_ExitRoute', { source: 'toast' });
-                    window.location.href = '/explore?resumeRoute=false';
-                  },
-                },
-                reference: document.getElementById('pano'),
-                dark: true,
-                duration: 10000,
-              });
-            }, { once: true });
-          } else if (!svl.userRouteId && resuming) {
-            document.addEventListener('ps:mission-start-tutorial:done', () => {
-              svl.tracker.push('MissionResumeToast_Shown');
-              Toast.show({
-                message: i18next.t('right-ui.mission-resume.message', {
-                  regionName: currentRegion.getProperty('name'),
-                  distanceLeft: Math.max(currentMission.getDistance('meters') - missionProgressM, 0),
-                }),
-                reference: document.getElementById('pano'),
-                dark: true,
-                duration: 10000,
-              });
-            }, { once: true });
-          }
-          document.addEventListener('ps:mission-start-tutorial:done', () => {
-            svl.reauditNotice.showForTask(svl.taskContainer.getCurrentTask());
-          }, { once: true });
-        }
-
-        this.#startTheMission(mission, currentRegion);
+        this.#showMissionStart(currentRegion);
       }
 
-      // Update the observed area now that everything has loaded.
-      svl.observedArea.panoChanged();
-      svl.observedArea.update();
+      this.#startTheMission(mission, currentRegion);
+    }
 
-      // Uniformly scale the whole tool to fit the viewport (like browser zoom) using var(--ui-scale).
-      const applyExploreScale = () => {
-        // Immersive mode (#5085) sizes the pano with CSS and floats the controls over it, so the scale fits only the
-        // pano-wide ribbon and its own height into the whole window, with no page margins to keep clear of.
-        const immersive = svl.immersiveMode?.isActive() ?? false;
-        util.applyToolScale(
-          immersive ? ['--pano-base-width'] : ['--pano-base-width', '--sidebar-base-gap', '--sidebar-base-width'],
-          ['--ribbon-base-top', '--ribbon-base-height', '--pano-base-height'],
-          immersive ? { maxScale: 3, hMargin: 0, bottomReserve: 0 } : {},
-        );
-        // The logical frame follows the displayed pano's aspect (#5085), and the label icon and its click target are
-        // capped in screen px, so they depend on the pano's display scale (#4838), which is --ui-scale in the boxed
-        // tool but not in a fill-window one. Cached rather than computed per render: they're read once per label per
-        // canvas render, and per label on every mousemove, and each read would otherwise force a style recalculation.
-        const displayScale = util.exploreDisplayScale();
-        svl.CANVAS_FRAME = util.exploreCanvasFrame();
-        svl.LABEL_ICON_RADIUS = util.labelIconRadius(displayScale);
-        svl.LABEL_HIT_MARGIN = util.labelHitMargin(displayScale);
-        // Toasts float 10% down the pano, which in immersive mode is where the label-type strip is; keep them under it.
-        const pano = document.getElementById('pano');
-        const ribbon = document.getElementById('ribbon-menu-holder');
-        if (immersive && pano && ribbon) {
-          pano.style.setProperty('--toast-min-top', `${ribbon.getBoundingClientRect().bottom + 8 * displayScale}px`);
-        } else if (pano) {
-          pano.style.removeProperty('--toast-min-top');
-        }
-      };
-      /**
-       * Re-lays out the tool for its current box: rescale, then re-raster the canvases and tell the pano viewer its
-       * element changed size. Synchronous, so a layout switch (immersive mode, #5085) lands in one frame.
-       */
-      svl.relayout = () => {
-        applyExploreScale();
-        // A live toast is anchored to the pano's old box; nothing else tells it the box moved.
-        Toast.repositionAll();
-        // The pano was painted at scale 1 and its box has just changed size, which is exactly what can leave GSV
-        // black until the camera moves (#2468): tell the viewer its box moved, then have it force a frame. The
-        // workaround lives in the viewer (PanoViewer.repaint()) so only the provider that needs it does anything.
-        svl.panoViewer?.resize();
-        svl.panoViewer?.repaint();
-        // The canvas was rasterized at scale 1 during init; re-raster it at the chosen scale.
-        if (svl.canvas) svl.canvas.resize();
-        if (svl.onboarding) svl.onboarding.resize();
-        // The minimap resizes itself a moment later and redraws the fog of war again once it has (see Minimap's move
-        // handler); this pass keeps the overlay from sitting at the wrong size in between.
-        if (svl.observedArea) svl.observedArea.update();
-      };
-      svl.relayout();
-      window.dispatchEvent(new Event('resize'));
+    // Update the observed area now that everything has loaded.
+    m.observedArea.panoChanged();
+    m.observedArea.update();
 
-      // Attached below the synthetic resize above, so page load never logs one: nothing was resized there, and the
-      // rescale, re-raster and repaint that event stands in for have just been run inline.
-      let resizeRasterTimer;
-      window.addEventListener('resize', () => {
-        applyExploreScale();
-        clearTimeout(resizeRasterTimer);
-        resizeRasterTimer = setTimeout(() => {
-          // The viewer hears about the settled size, after the rescale above has changed its box — telling it per
-          // event would describe the box it already had, and the last event of a drag would go unanswered. It also
-          // keeps the providers whose resize() is a full re-measure (Mapillary, Infra3d, Panoramax) off the event
-          // firehose. The repaint is GSV's #2468 workaround; PanoViewer.repaint() is a no-op elsewhere.
-          svl.panoViewer.resize();
-          svl.panoViewer.repaint();
-          if (svl.canvas) svl.canvas.resize();
-          if (svl.onboarding) svl.onboarding.resize();
-          if (svl.observedArea) svl.observedArea.update();
-          // Logged on the settled size rather than per event, so a window drag is one line (#5367). The repaint
-          // above bypasses the POV path that logs POV_Changed, so none follows this one.
-          svl.tracker.push('Window_Resized', {
-            width: document.documentElement.clientWidth,
-            height: document.documentElement.clientHeight,
-          });
-        }, 150);
+    this.#layOut();
+  }
+
+  /**
+   * Raises the mission-start screen, with the one toast this visit may owe queued behind it.
+   * @param {Region} currentRegion
+   */
+  #showMissionStart(currentRegion) {
+    const m = this.#modules;
+    // Initialize explore mission screens focused on a randomized label type, though users can switch between them.
+    const potentialLabelTypes = util.misc.PRIMARY_LABEL_TYPES;
+    const labelType = potentialLabelTypes[Math.floor(Math.random() * potentialLabelTypes.length)];
+    const currentMission = m.missionContainer.getCurrentMission();
+    const missionProgressM = currentMission.getProperty('distanceProgress') || 0;
+    // A pre-existing in-progress street also counts as resuming — the server sets audit_task_id on the task
+    // only when handing one back — since a labeler mid-street may have zero mission distance banked.
+    const resuming = currentMission.getProperty('missionType') === 'audit'
+      && (missionProgressM > 0 || Boolean(this.#session.task.properties.audit_task_id));
+    // The screen's Done hands the shortcuts back (TutorialHooks.keyboard).
+    m.keyboardLock.hold('tutorial');
+    new MissionStartTutorial('audit', labelType, {
+      nLength: currentMission.getDistance('miles'),
+      region: currentRegion.getProperty('name'),
+      resuming,
+    }, {
+      tracker: m.tracker,
+      keyboard: { enableKeyboard: () => m.keyboardLock.release('tutorial') },
+      missionContainer: m.missionContainer,
+    }, this.#config.language);
+
+    // Toasts for a visit that resumed something (#4833) or didn't go where the URL asked: a route that couldn't
+    // open (#5156), or a neighborhood already done (#5692). They wait for the mission-start screen to close so
+    // they aren't hidden under it, and only one shows; "didn't go where asked" wins over a resume note. `Toast`
+    // queues the re-audit notice (#4895) behind whichever one shows.
+    const toastOnDone = (event, options) => {
+      document.addEventListener('ps:mission-start-tutorial:done', () => {
+        m.tracker.push(event);
+        Toast.show({ reference: document.getElementById('pano'), dark: true, duration: 10000, ...options });
+      }, { once: true });
+    };
+    if (this.#takeRouteUnavailableNotice()) {
+      toastOnDone('RouteUnavailableToast_Shown', { message: i18next.t('right-ui.route-unavailable.message') });
+    } else if (this.#session.region_finished) {
+      toastOnDone('RegionFinishedToast_Shown', {
+        message: i18next.t('right-ui.region-finished.message', { regionName: currentRegion.getProperty('name') }),
+      });
+    } else if (this.#config.userRouteId && this.#session.route_resumed) {
+      toastOnDone('RouteResumeToast_Shown', {
+        message: i18next.t('right-ui.route-resume.message', { routeName: this.#config.routeName }),
+        button: {
+          label: i18next.t('right-ui.route-resume.exit'),
+          onClick: () => {
+            m.tracker.push('Click_ExitRoute', { source: 'toast' });
+            window.location.href = '/explore?resumeRoute=false';
+          },
+        },
+      });
+    } else if (!this.#config.userRouteId && resuming) {
+      toastOnDone('MissionResumeToast_Shown', {
+        message: i18next.t('right-ui.mission-resume.message', {
+          regionName: currentRegion.getProperty('name'),
+          distanceLeft: Math.max(currentMission.getDistance('meters') - missionProgressM, 0),
+        }),
       });
     }
+    document.addEventListener('ps:mission-start-tutorial:done', () => {
+      m.reauditNotice.showForTask(m.taskContainer.getCurrentTask());
+    }, { once: true });
+  }
+
+  /**
+   * Scales the whole tool to fit the viewport (like browser zoom) using var(--ui-scale), now and on every resize.
+   */
+  #layOut() {
+    const m = this.#modules;
+    const frame = this.#frame;
+
+    const applyExploreScale = () => {
+      // Immersive mode (#5085) sizes the pano with CSS and floats the controls over it, so the scale fits only the
+      // pano-wide ribbon and its own height into the whole window, with no page margins to keep clear of.
+      const immersive = m.immersiveMode.isActive();
+      util.applyToolScale(
+        immersive ? ['--pano-base-width'] : ['--pano-base-width', '--sidebar-base-gap', '--sidebar-base-width'],
+        ['--ribbon-base-top', '--ribbon-base-height', '--pano-base-height'],
+        immersive ? { maxScale: 3, hMargin: 0, bottomReserve: 0 } : {},
+      );
+      // The logical frame follows the displayed pano's aspect (#5085), and the label icon and its click target are
+      // capped in screen px, so they depend on the pano's display scale (#4838), which is --ui-scale in the boxed
+      // tool but not in a fill-window one.
+      const displayScale = util.exploreDisplayScale();
+      frame.refresh(displayScale);
+      // Toasts float 10% down the pano, which in immersive mode is where the label-type strip is; keep them under it.
+      const pano = document.getElementById('pano');
+      const ribbon = document.getElementById('ribbon-menu-holder');
+      if (immersive && pano && ribbon) {
+        pano.style.setProperty('--toast-min-top', `${ribbon.getBoundingClientRect().bottom + 8 * displayScale}px`);
+      } else if (pano) {
+        pano.style.removeProperty('--toast-min-top');
+      }
+    };
+    /** Re-rasters the canvases for the box they now have, and tells the viewer its element changed size. */
+    const refit = () => {
+      // The pano was painted at scale 1 and its box has just changed size, which is exactly what can leave GSV
+      // black until the camera moves (#2468): tell the viewer its box moved, then have it force a frame. The
+      // workaround lives in the viewer (PanoViewer.repaint()) so only the provider that needs it does anything.
+      m.panoManager.panoViewer.resize();
+      m.panoManager.panoViewer.repaint();
+      m.canvas.resize();
+      this.#onboarding?.resize();
+      // The minimap resizes itself a moment later and redraws the fog of war again once it has (see Minimap's move
+      // handler); this pass keeps the overlay from sitting at the wrong size in between.
+      m.observedArea.update();
+    };
+    /**
+     * Re-lays out the tool for its current box: rescale, then re-raster the canvases and tell the pano viewer its
+     * element changed size. Synchronous, so a layout switch (immersive mode, #5085) lands in one frame.
+     */
+    this.#relayout = () => {
+      applyExploreScale();
+      // A live toast is anchored to the pano's old box; nothing else tells it the box moved.
+      Toast.repositionAll();
+      refit();
+    };
+    this.#relayout();
+    window.dispatchEvent(new Event('resize'));
+
+    // Attached below the synthetic resize above, so page load never logs one: nothing was resized there, and the
+    // rescale, re-raster and repaint that event stands in for have just been run inline.
+    let resizeRasterTimer;
+    window.addEventListener('resize', () => {
+      applyExploreScale();
+      clearTimeout(resizeRasterTimer);
+      resizeRasterTimer = setTimeout(() => {
+        // The viewer hears about the settled size, after the rescale above has changed its box: told per event it
+        // would measure the box it already had, and the last event of a drag would go unanswered. It also keeps the
+        // providers whose resize() is a full re-measure (Mapillary, Infra3d, Panoramax) off the event stream.
+        refit();
+        // Logged on the settled size rather than per event, so a window drag is one line (#5367). The repaint
+        // above bypasses the POV path that logs POV_Changed, so none follows this one.
+        m.tracker.push('Window_Resized', {
+          width: document.documentElement.clientWidth,
+          height: document.documentElement.clientHeight,
+        });
+      }, 150);
+    });
   }
 
   #calculateAndSetTasksMissionsOffset() {
+    const { taskContainer, missionContainer } = this.#modules;
     const completedTasksDistance = util.math.kmsToMeters(
-      svl.taskContainer.getCompletedTaskDistance({ units: 'kilometers' }),
+      taskContainer.getCompletedTaskDistance({ units: 'kilometers' }),
     );
-    const completedMissionsDistance = svl.missionContainer.getCompletedMissionDistance();
-    const curMission = svl.missionContainer.getCurrentMission();
+    const completedMissionsDistance = missionContainer.getCompletedMissionDistance();
+    const curMission = missionContainer.getCurrentMission();
     const missProgress = curMission.getProperty('distanceProgress') ? curMission.getProperty('distanceProgress') : 0;
 
-    svl.missionContainer.setTasksMissionsOffset(completedMissionsDistance - completedTasksDistance + missProgress);
+    missionContainer.setTasksMissionsOffset(completedMissionsDistance - completedTasksDistance + missProgress);
   }
 
   /**
@@ -788,95 +936,86 @@ export class Main {
    * The tutorial is the exception: its pano is synthetic, so its URL is only pinned (ExploreUrlSync.pinTutorialUrl).
    */
   #syncURL() {
-    if (svl.isOnboarding()) {
+    const { panoManager, immersiveMode, missionContainer } = this.#modules;
+    if (this.#config.isOnboarding) {
       // The tutorial intro says "your route is still waiting" to a user who clicked through to one; that fact
       // lives only in the URL about to be pinned, and a route that failed to resolve (#5156) is not waiting.
-      svl.tutorialRouteWaiting = new URLSearchParams(window.location.search).has('routeId')
+      this.#tutorialRouteWaiting = new URLSearchParams(window.location.search).has('routeId')
         && !this.#session.route_unavailable;
       ExploreUrlSync.pinTutorialUrl();
       return;
     }
     // Read at write time: a mission completes and its successor arrives in-page, and the URL has to name the one
     // the labeler is in now for the server to seed their reload.
-    const sessionParams = () => (svl.isExploreAddressMode()
+    const sessionParams = () => (this.#config.isExploreAddressMode
       ? {}
-      : { missionId: svl.missionContainer.getCurrentMission().getProperty('missionId') });
-    svl.urlSync = new ExploreUrlSync(
-      svl.panoViewer, () => svl.immersiveMode?.isActive() ?? false, sessionParams,
-    );
-    svl.urlSync.start();
+      : { missionId: missionContainer.getCurrentMission().getProperty('missionId') });
+    this.#urlSync = new ExploreUrlSync(panoManager.panoViewer, () => immersiveMode.isActive(), sessionParams);
+    this.#urlSync.start();
   }
 
   /**
-   * Store DOM elements under svl.ui.
-   * Todo. Once we update all the modules to take ui elements as injected arguments, get rid of the svl.ui namespace.
+   * Collects the tool's DOM elements.
+   * @returns {ExploreUi}
    */
-  #initUI() {
+  static #collectUi() {
     const byId = (id) => document.getElementById(id);
-    svl.ui = {};
-
-    // Minimap DOMs.
-    svl.ui.minimap = {
-      holder: byId('minimap-holder'),
-      overlay: byId('minimap-overlay'),
-      fogOfWar: byId('minimap-fog-of-war-canvas'),
-      fov: byId('minimap-fov-canvas'),
-      progressCircle: byId('minimap-progress-circle-canvas'),
-      percentObserved: byId('minimap-percent-observed'),
-      missionProgress: byId('minimap-mission-progress'),
-      missionProgressFill: byId('minimap-mission-progress-fill'),
-      missionProgressPercent: byId('minimap-mission-progress-percent'),
-      missionProgressDistance: byId('minimap-mission-progress-distance'),
-      coach: byId('minimap-coach'),
-      coachDismiss: byId('minimap-coach-dismiss'),
-      legendToggle: byId('minimap-legend-toggle'),
-      legendCard: byId('minimap-legend-card'),
-      legendClose: byId('minimap-legend-close'),
-      legendEarlierLabels: byId('minimap-legend-earlier-labels'),
-      routeOverview: byId('minimap-route-overview'),
-      routeOverviewCanvas: byId('minimap-route-overview-canvas'),
-    };
-
-    // Street view area DOM elements.
-    svl.ui.streetview = {
-      drawingLayer: byId('label-drawing-layer'),
-      pano: byId('pano'),
-      viewControlLayer: byId('view-control-layer'),
-      modeSwitchWalk: byId('mode-switch-button-walk'),
-      navArrows: byId('arrow-group'),
-      dateHolder: byId('svl-panorama-date-holder'),
-      datePill: byId('svl-panorama-date-pill'),
-      date: byId('svl-panorama-date'),
-    };
-
-    // Canvas for the labeling area.
-    svl.ui.canvas = {
-      drawingLayer: byId('label-drawing-layer'),
-      hoverCard: byId('label-hover-card'),
-      hoverCardDelete: byId('label-hover-card-delete'),
-      hoverCardEdit: byId('label-hover-card-edit'),
-      hoverCardShare: byId('label-hover-card-share'),
-    };
-
-    // Context menu.
-    svl.ui.contextMenu = {
-      holder: byId('context-menu-holder'),
-      severityMenu: byId('severity-menu'),
-      severityRadioHolder: byId('severity-radio-holder'),
-      radioButtons: Array.from(document.querySelectorAll('input[name=\'label-severity\']')),
-      tagSection: byId('context-menu-tag-section'),
-      tagHolder: byId('context-menu-tag-holder'),
-      textBox: byId('context-menu-description-text-box'),
-      closeButton: byId('context-menu-close-button'),
-    };
-
-    // Tutorial.
-    svl.ui.onboarding = {
-      holder: byId('onboarding-holder'),
-      messageHolder: byId('onboarding-message-holder'),
-      background: byId('onboarding-background'),
-      canvas: byId('onboarding-canvas'),
-      handGestureHolder: byId('hand-gesture-holder'),
+    return {
+      minimap: {
+        holder: byId('minimap-holder'),
+        overlay: byId('minimap-overlay'),
+        fogOfWar: /** @type {HTMLCanvasElement} */ (byId('minimap-fog-of-war-canvas')),
+        fov: /** @type {HTMLCanvasElement} */ (byId('minimap-fov-canvas')),
+        progressCircle: /** @type {HTMLCanvasElement} */ (byId('minimap-progress-circle-canvas')),
+        percentObserved: byId('minimap-percent-observed'),
+        missionProgress: byId('minimap-mission-progress'),
+        missionProgressFill: byId('minimap-mission-progress-fill'),
+        missionProgressPercent: byId('minimap-mission-progress-percent'),
+        missionProgressDistance: byId('minimap-mission-progress-distance'),
+        coach: byId('minimap-coach'),
+        coachDismiss: byId('minimap-coach-dismiss'),
+        legendToggle: byId('minimap-legend-toggle'),
+        legendCard: byId('minimap-legend-card'),
+        legendClose: byId('minimap-legend-close'),
+        legendEarlierLabels: /** @type {HTMLInputElement} */ (byId('minimap-legend-earlier-labels')),
+        routeOverview: byId('minimap-route-overview'),
+        routeOverviewCanvas: /** @type {HTMLCanvasElement} */ (byId('minimap-route-overview-canvas')),
+      },
+      streetview: {
+        drawingLayer: byId('label-drawing-layer'),
+        pano: byId('pano'),
+        viewControlLayer: byId('view-control-layer'),
+        modeSwitchWalk: byId('mode-switch-button-walk'),
+        navArrows: /** @type {SVGElement} */ (/** @type {unknown} */ (byId('arrow-group'))),
+        navArrowsContainer: byId('nav-arrows-container'),
+        dateHolder: byId('svl-panorama-date-holder'),
+        datePill: byId('svl-panorama-date-pill'),
+        date: byId('svl-panorama-date'),
+      },
+      canvas: {
+        drawingLayer: byId('label-drawing-layer'),
+        hoverCard: byId('label-hover-card'),
+        hoverCardDelete: byId('label-hover-card-delete'),
+        hoverCardEdit: byId('label-hover-card-edit'),
+        hoverCardShare: byId('label-hover-card-share'),
+      },
+      contextMenu: {
+        holder: byId('context-menu-holder'),
+        severityMenu: byId('severity-menu'),
+        severityRadioHolder: byId('severity-radio-holder'),
+        radioButtons: Array.from(document.querySelectorAll('input[name=\'label-severity\']')),
+        tagSection: byId('context-menu-tag-section'),
+        tagHolder: byId('context-menu-tag-holder'),
+        textBox: /** @type {HTMLInputElement} */ (byId('context-menu-description-text-box')),
+        closeButton: byId('context-menu-close-button'),
+      },
+      onboarding: {
+        holder: byId('onboarding-holder'),
+        messageHolder: byId('onboarding-message-holder'),
+        background: byId('onboarding-background'),
+        canvas: /** @type {HTMLCanvasElement} */ (byId('onboarding-canvas')),
+        handGestureHolder: byId('hand-gesture-holder'),
+      },
     };
   }
 }

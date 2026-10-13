@@ -16,16 +16,17 @@ describe('Explore spacebar shortcut and focused form controls', () => {
     beforeAll(() => {
         Object.assign(window, loadModules('frontend/js/common/KeyboardShortcuts.js', 'frontend/js/explore/keyboard/KeyboardManager.js'));
         navigationService = {
-            // Walking disabled makes the route advance a no-op, so the test sees only whether it was attempted.
-            getStatus: jest.fn(() => true),
+            // Walking barred makes the route advance a no-op, so the test sees only whether it was attempted.
+            canWalk: jest.fn(() => false),
             moveToLinkedPano: jest.fn(),
         };
         // One instance for the file: the constructor adds window listeners that are never removed.
-        new window.KeyboardManager({}, {}, { isOpen: () => false }, navigationService, {}, {});
+        new window.KeyboardManager({ isHeld: () => false }, {},
+            { isOpen: () => false, onTextFieldFocusChanged: jest.fn() }, navigationService, {}, {}, {}, {}, {}, {});
     });
 
     beforeEach(() => {
-        navigationService.getStatus.mockClear();
+        navigationService.canWalk.mockClear();
         document.body.innerHTML = '<input id="cb" type="checkbox"><button id="btn" type="button">Stuck</button>';
     });
 
@@ -39,12 +40,12 @@ describe('Explore spacebar shortcut and focused form controls', () => {
     it('leaves Space to a focused checkbox and does not advance', () => {
         const e = pressSpaceOn(document.getElementById('cb'));
         expect(e.defaultPrevented).toBe(false);
-        expect(navigationService.getStatus).not.toHaveBeenCalled();
+        expect(navigationService.canWalk).not.toHaveBeenCalled();
     });
 
     it('still takes Space from a focused button and advances along the route', () => {
         const e = pressSpaceOn(document.getElementById('btn'));
         expect(e.defaultPrevented).toBe(true);
-        expect(navigationService.getStatus).toHaveBeenCalledWith('disableWalking');
+        expect(navigationService.canWalk).toHaveBeenCalled();
     });
 });

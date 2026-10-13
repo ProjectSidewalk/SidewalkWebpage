@@ -27,9 +27,12 @@ describe('a street given up on at page load', () => {
     const task = { getStreetEdgeId: () => 101 };
 
     /** Runs one page load that fails to seed its viewer. */
-    const loadAndFail = (error) => window.PanoManager.create(
-        viewerTypeFailingWith(error), 'access-token', { startPanoId: 'pano-a' }, { task, missionId: 3 },
-    );
+    const loadAndFail = (error) => {
+        const config = { viewerType: viewerTypeFailingWith(error), viewerAccessToken: 'access-token' };
+        const panoManager = new window.PanoManager({ pano: document.getElementById('pano') }, config, {},
+            { push: jest.fn(), trackPano: jest.fn() }, { showAlert }, { startPanoId: 'pano-a' }, { task, missionId: 3 });
+        return panoManager.ready;
+    };
 
     /** Whether an element is readable, i.e. not sitting under an inherited `visibility: hidden`. */
     const isVisible = (id) => window.getComputedStyle(document.getElementById(id)).visibility === 'visible';
@@ -59,7 +62,6 @@ describe('a street given up on at page load', () => {
         reportNoImagery = jest.fn(() => Promise.resolve());
         showAlert = jest.fn();
 
-        window.svl = { tracker: { push: jest.fn() }, alertController: { showAlert } };
         window.util = { misc: { reportNoImagery } };
         window.i18next = { t: (key) => key };
 

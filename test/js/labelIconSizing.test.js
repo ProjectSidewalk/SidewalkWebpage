@@ -117,8 +117,6 @@ describe('label icon sizing across the UI scale', () => {
             util.misc = { getIconImagePaths: () => ({ iconImagePath: 'CurbRamp.svg' }),
                 labelTypeHasSeverity: () => true };
             window.labelIconCache = { 'CurbRamp.svg': {} };
-            window.svl = { LABEL_ICON_RADIUS: 17, CANVAS_FRAME: { width: 720, height: 480 }, renderedHFov: () => 90,
-                minimap: { addMarker: (latLng, content) => ({ content, setVisible() {}, setTitle() {}, setClickable() {}, setZIndex() {} }) } };
             Object.assign(window, loadModules('frontend/js/explore/label/Label.js'));
             // Set after the load: importing Label rebuilds util.pano.
             util.pano.centeredPovToCanvasCoord = () => ({ x: 100, y: 100 });
@@ -127,9 +125,8 @@ describe('label icon sizing across the UI scale', () => {
 
         /** Renders the icon at `radius` and returns its recording context. */
         function renderIcon(radius) {
-            window.svl.LABEL_ICON_RADIUS = radius;
             const ctx = makeRecordingCtx();
-            Label.renderLabelIcon(ctx, 'CurbRamp', 100, 100);
+            Label.renderLabelIcon(ctx, 'CurbRamp', 100, 100, radius);
             return ctx;
         }
 
@@ -173,20 +170,19 @@ describe('label icon sizing across the UI scale', () => {
 
         test('the unrated-severity badge scales and stays pinned to the icon corner', () => {
             const render = (radius) => {
-                window.svl.LABEL_ICON_RADIUS = radius;
+                const frame = { width: 720, height: 480, iconRadius: radius, renderedHFov: () => 90 };
                 const label = new Label({
                     labelType: 'CurbRamp',
                     severity: null,
                     panoXY: { x: 1, y: 1 },
                     povOfLabelIfCentered: { heading: 90, pitch: -20, zoom: 1 },
                     labelLat: 47.6, labelLng: -122.3,
-                });
+                }, frame, {}, {});
                 label.setHoverInfoVisibility('hidden');
                 const ctx = makeRecordingCtx();
                 label.render(ctx, { heading: 90, pitch: -20, zoom: 1 });
                 return ctx;
             };
-            Label.createMinimapMarker = () => ({ setVisible: () => {} });
 
             const base = render(util.LABEL_ICON_BASE_RADIUS).ellipses[0];
             const capped = render(util.labelIconRadius(1.8)).ellipses[0];
@@ -201,13 +197,14 @@ describe('label icon sizing across the UI scale', () => {
     });
 
     /**
-     * The click target itself, as Explore actually consumes it: Label.isOn reads svl.LABEL_HIT_MARGIN (which Main.js
+     * The click target itself, as Explore actually consumes it: Label.isOn reads the frame's hitMargin (which Main.js
      * refreshes from util.labelHitMargin whenever the UI scale changes), and Canvas.onLabel decides which label a
      * click belongs to when more than one target covers the point.
      */
     describe('hit testing', () => {
         let Label;
         let Canvas;
+        let frame;
 
         /** A label pinned to (100, 100) on the canvas. */
         function newLabel() {
@@ -217,10 +214,17 @@ describe('label icon sizing across the UI scale', () => {
                 panoXY: { x: 1, y: 1 },
                 povOfLabelIfCentered: { heading: 90, pitch: -20, zoom: 1 },
                 labelLat: 47.6, labelLng: -122.3,
-            });
+            }, frame, {}, {});
             label.setHoverInfoVisibility('hidden');
             label.render(makeRecordingCtx(), { heading: 90, pitch: -20, zoom: 1 }); // Sets currCanvasXY.
             return label;
+        }
+
+        /** A Canvas over the given labels. No #label-canvas in the DOM, so its init binds no listeners. */
+        function newCanvas(labels) {
+            const labelContainer = { getCanvasLabels: () => labels, onLabelPlaced() {}, onLabelRemoved() {} };
+            return new Canvas({}, {}, {}, frame, {}, { onModeChanged() {} }, { onChange() {} }, labelContainer,
+                {}, {}, { onPovChanged() {} }, { onMoveStarted() {}, onMoveFinished() {} }, {}, {}, {});
         }
 
         beforeEach(() => {
@@ -228,18 +232,15 @@ describe('label icon sizing across the UI scale', () => {
             util.misc = { getIconImagePaths: () => ({ iconImagePath: 'CurbRamp.svg' }),
                 labelTypeHasSeverity: () => true };
             window.labelIconCache = { 'CurbRamp.svg': {} };
-            window.svl = {
-                CANVAS_FRAME: { width: 720, height: 480 },
-                renderedHFov: () => 90,
-                LABEL_ICON_RADIUS: util.labelIconRadius(1),
-                LABEL_HIT_MARGIN: util.labelHitMargin(1),
+            frame = {
+                width: 720, height: 480, renderedHFov: () => 90,
+                iconRadius: util.labelIconRadius(1), hitMargin: util.labelHitMargin(1),
             };
             Object.assign(window, loadModules('frontend/js/explore/label/Label.js'));
             Object.assign(window, loadModules('frontend/js/explore/canvas/Canvas.js'));
             util.pano.centeredPovToCanvasCoord = () => ({ x: 100, y: 100 });
             Label = window.Label;
             Canvas = window.Canvas;
-            Label.createMinimapMarker = () => ({ setVisible: () => {} });
         });
 
         test('Label.isOn covers the whole drawn icon', () => {
@@ -261,17 +262,17 @@ describe('label icon sizing across the UI scale', () => {
             expect(label.isOn(100, 100 + halfIcon + 0.1)).toBe(false);
         });
 
-        test('Label.isOn tracks svl.LABEL_HIT_MARGIN, so it follows the UI scale', () => {
+        test('Label.isOn tracks the frame\'s hitMargin, so it follows the UI scale', () => {
             const label = newLabel();
 
             // Capped: the target shrinks in logical px so it holds still on screen.
-            window.svl.LABEL_HIT_MARGIN = util.labelHitMargin(1.8);         // ~10.6 logical px.
+            frame.hitMargin = util.labelHitMargin(1.8);         // ~10.6 logical px.
             expect(label.isOn(100 + util.labelHitMargin(1.8) - 0.1, 100)).toBe(true);
             expect(label.isOn(100 + util.labelHitMargin(1.8) + 0.1, 100)).toBe(false);
 
             // Floored: at the small end the target grows in logical px to hold the WCAG minimum on screen, which is
             // well past where the icon ends — and past anything the old radius / 2 + 2 rule ever reached.
-            window.svl.LABEL_HIT_MARGIN = util.labelHitMargin(0.65);        // ~18.5 logical px.
+            frame.hitMargin = util.labelHitMargin(0.65);        // ~18.5 logical px.
             expect(label.isOn(100 + util.labelHitMargin(0.65) - 0.1, 100)).toBe(true);
             expect(label.isOn(100 + util.labelHitMargin(0.65) + 0.1, 100)).toBe(false);
         });
@@ -288,9 +289,7 @@ describe('label icon sizing across the UI scale', () => {
             // #4838's larger target this rarely mattered; now two icons that visually touch overlap.
             const under = newLabel();
             const over = newLabel();
-            window.svl.labelContainer = { getCanvasLabels: () => [under, over] };
-            // No #label-canvas in the DOM, so Canvas#init returns before it binds any listeners.
-            const canvas = new Canvas({});
+            const canvas = newCanvas([under, over]);
 
             expect(canvas.onLabel(100, 100)).toBe(over);
             expect(canvas.getCurrentLabel()).toBe(over);
@@ -298,8 +297,7 @@ describe('label icon sizing across the UI scale', () => {
 
         test('Canvas.onLabel still finds a lone label, and reports a miss', () => {
             const label = newLabel();
-            window.svl.labelContainer = { getCanvasLabels: () => [label] };
-            const canvas = new Canvas({});
+            const canvas = newCanvas([label]);
 
             expect(canvas.onLabel(100, 100)).toBe(label);
             expect(canvas.onLabel(400, 400)).toBe(false);

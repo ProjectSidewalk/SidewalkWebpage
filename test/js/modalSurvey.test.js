@@ -51,13 +51,11 @@ beforeEach(() => {
     return Promise.resolve({ ok: true });
   });
   const noop = () => {};
-  window.svl = {
-    popUpMessage: { disableInteractions: noop, enableInteractions: noop },
-    ribbon: { disableModeSwitch: noop, enableModeSwitch: noop },
-    zoomControl: { disableZoomIn: noop, disableZoomOut: noop, enableZoomIn: noop, enableZoomOut: noop },
-  };
   Object.assign(window, loadModules('frontend/js/explore/modal/ModalSurvey.js'));
-  survey = new window.ModalSurvey();
+  survey = new window.ModalSurvey(
+    { hold: noop, release: noop },
+    { zoomInGate: { hold: noop, release: noop }, zoomOutGate: { hold: noop, release: noop } },
+  );
 });
 
 test('opens with focus on the dialog itself, not the skip X', () => {

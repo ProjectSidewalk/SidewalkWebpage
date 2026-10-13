@@ -9,22 +9,34 @@ import { KeyboardShortcuts } from '../../common/KeyboardShortcuts.js';
 import { util } from '../../common/utilities.js';
 import '../../common/utilitiesSidewalk.js';
 /** @typedef {import('../../common/KeyboardShortcuts.js').KeyboardShortcut} KeyboardShortcut */
+/** @typedef {import('../canvas/Canvas.js').Canvas} Canvas */
+/** @typedef {import('../navigation/Compass.js').Compass} Compass */
+/** @typedef {import('../canvas/ContextMenu.js').ContextMenu} ContextMenu */
+/** @typedef {import('../../common/ImmersiveMode.js').ImmersiveMode} ImmersiveMode */
+/** @typedef {import('../../common/Gate.js').Gate} Gate */
+/** @typedef {import('../navigation/NavigationService.js').NavigationService} NavigationService */
+/** @typedef {import('../panorama/PanoManager.js').PanoManager} PanoManager */
+/** @typedef {import('../menu/LabelModes.js').LabelModes} LabelModes */
+/** @typedef {import('../data/Tracker.js').Tracker} Tracker */
+/** @typedef {import('../zoom/ZoomControl.js').ZoomControl} ZoomControl */
 
 export class KeyboardManager {
   /** @type {?KeyboardShortcut[]} */
   #labelTypeRows = null;
 
-  #svl;
+  #keyboardLock;
+  #canvas;
   #contextMenu;
   #navigationService;
-  #ribbon;
+  #labelModes;
   #zoomControl;
+  #panoManager;
+  #compass;
+  #immersiveMode;
+  #tracker;
 
-  #status = {
-    focusOnTextField: false,
-    isOnboarding: false,
-    disableKeyboard: false,
-  };
+  // Typing in the context menu's description box: the shortcuts stand aside for the letters.
+  #focusOnTextField = false;
 
   /** Moving and turning, while the context menu is closed. On keydown, so holding a key keeps it going. */
   #walkingShortcuts = [
@@ -55,12 +67,34 @@ export class KeyboardManager {
     { keys: ['Digit3', 'Numpad3'], when: () => this.#canRateSeverity(), action: (e) => this.#rateSeverity(3, e) },
   ];
 
-  constructor(svl, canvas, contextMenu, navigationService, ribbon, zoomControl) {
-    this.#svl = svl;
+  /**
+   * @param {Gate} keyboardLock - Held by whatever needs the shortcuts paused (a move, a pop-up, a panel).
+   * @param {Canvas} canvas
+   * @param {ContextMenu} contextMenu
+   * @param {NavigationService} navigationService
+   * @param {LabelModes} labelModes - Switched by the label-type keys.
+   * @param {ZoomControl} zoomControl
+   * @param {PanoManager} panoManager
+   * @param {Compass} compass - Says which way the route goes, for the spacebar.
+   * @param {ImmersiveMode} immersiveMode - Toggled by F.
+   * @param {Tracker} tracker
+   */
+  constructor(keyboardLock, canvas, contextMenu, navigationService, labelModes, zoomControl, panoManager, compass,
+    immersiveMode, tracker) {
+    this.#keyboardLock = keyboardLock;
+    this.#canvas = canvas;
     this.#contextMenu = contextMenu;
     this.#navigationService = navigationService;
-    this.#ribbon = ribbon;
+    this.#labelModes = labelModes;
     this.#zoomControl = zoomControl;
+    this.#panoManager = panoManager;
+    this.#compass = compass;
+    this.#immersiveMode = immersiveMode;
+    this.#tracker = tracker;
+
+    contextMenu.onTextFieldFocusChanged((focused) => {
+      this.#focusOnTextField = focused;
+    });
 
     // We need { capture: true } for keydown to overwrite pano's shortcuts.
     window.addEventListener('keydown', this.#documentKeyDown, { capture: true });
@@ -71,7 +105,7 @@ export class KeyboardManager {
    * @param {KeyboardEvent} e
    */
   #documentKeyDown = (e) => {
-    if (this.#status.disableKeyboard || this.#status.focusOnTextField) return;
+    if (this.#keyboardLock.isHeld() || this.#focusOnTextField) return;
     if (!this.#contextMenu.isOpen()) KeyboardShortcuts.run(this.#walkingShortcuts, e);
   };
 
@@ -80,11 +114,11 @@ export class KeyboardManager {
    * @param {KeyboardEvent} e
    */
   #documentKeyUp = (e) => {
-    if (this.#status.disableKeyboard) return;
+    if (this.#keyboardLock.isHeld()) return;
     if (this.#contextMenu.isOpen() && KeyboardShortcuts.run(this.#closeMenuShortcuts, e)) return;
 
     // Ctrl/Alt/Cmd combos belong to the browser. Shift is ours (Shift+Z).
-    if (this.#status.focusOnTextField || e.ctrlKey || e.altKey || e.metaKey) return;
+    if (this.#focusOnTextField || e.ctrlKey || e.altKey || e.metaKey) return;
     this.#labelTypeRows ??= this.#labelTypeShortcuts();
     KeyboardShortcuts.run([...this.#labelTypeRows, ...this.#generalShortcuts], e);
     if (this.#contextMenu.isOpen()) {
@@ -147,34 +181,18 @@ export class KeyboardManager {
     return punctuation[char];
   }
 
-  disableKeyboard() {
-    this.#status.disableKeyboard = true;
-  }
-
-  enableKeyboard() {
-    this.#status.disableKeyboard = false;
-  }
-
   /**
    * Change the heading of the current panorama point of view by a particular degree value.
    *
    * @param {number} degree
    */
   #rotatePovByDegree(degree) {
-    const svl = this.#svl;
-    if (!svl.panoManager.getStatus('disablePanning')) {
-      svl.contextMenu.hide();
+    if (!this.#panoManager.panning.isHeld()) {
+      this.#contextMenu.hide();
       // Panning hides the label hover card.
-      const labels = svl.labelContainer.getCanvasLabels();
-      const labelLen = labels.length;
-      for (let i = 0; i < labelLen; i++) {
-        labels[i].setHoverInfoVisibility('hidden');
-      }
-      svl.canvas.hideHoverCard();
-      const pitch = svl.panoViewer.getPov().pitch;
-      const zoom = svl.panoViewer.getPov().zoom;
-      const heading = (svl.panoViewer.getPov().heading + degree + 360) % 360;
-      svl.panoManager.setPov({ heading, pitch, zoom });
+      this.#canvas.showLabelHoverInfo(undefined);
+      const pov = this.#panoManager.getPov();
+      this.#panoManager.setPov({ heading: (pov.heading + degree + 360) % 360, pitch: pov.pitch, zoom: pov.zoom });
     }
   }
 
@@ -187,16 +205,15 @@ export class KeyboardManager {
    * the spacebar shortcut for the "routed where there's no forward arrow" case from #619/#1041.
    */
   async #advanceForwardAlongRoute() {
-    const svl = this.#svl;
     // No-op while walking is disabled (e.g. mid-load), matching the arrow keys — otherwise moveToLinkedPano()
     // resolves false and we'd both fall through to a no-op moveForward() and log a move that never happened.
-    if (this.#navigationService.getStatus('disableWalking')) return;
+    if (!this.#navigationService.canWalk()) return;
 
     try {
       // Bias the forward step toward the route direction rather than wherever the camera is currently pointed.
       // moveToLinkedPano() takes a heading offset relative to the current heading, so subtract the current one.
-      const routeHeading = svl.compass.getTargetAngle();
-      const currHeading = svl.panoViewer.getPov().heading;
+      const routeHeading = this.#compass.getTargetAngle();
+      const currHeading = this.#panoManager.getPov().heading;
       // Silent on failure: a link that won't load is not the end of this shortcut, it's the reason for the
       // moveForward() fallback below — which reports its own outcome. Alerting here would tell the labeler imagery
       // couldn't be loaded on the same keypress that walked them down the street (#4918).
@@ -205,7 +222,7 @@ export class KeyboardManager {
       if (!moved) {
         await this.#navigationService.moveForward();
       }
-      svl.tracker.push('KeyboardShortcut_MoveForwardAlongRoute', { usedRoute: !moved });
+      this.#tracker.push('KeyboardShortcut_MoveForwardAlongRoute', { usedRoute: !moved });
     } catch (e) {
       // Keep a failed forward step from surfacing as an unhandled promise rejection out of a key event.
       console.error('Spacebar route-advance failed:', e);
@@ -232,9 +249,9 @@ export class KeyboardManager {
 
   /** Enter closes the menu, keeping what was entered. */
   #saveAndCloseContextMenu() {
-    this.#svl.tracker.push('KeyboardShortcut_CloseContextMenu');
+    this.#tracker.push('KeyboardShortcut_CloseContextMenu', null, this.#contextMenu.getTargetLabel());
     this.#contextMenu.handleSeverityPopup();
-    this.#svl.tracker.push('ContextMenu_ClosePressEnter');
+    this.#tracker.push('ContextMenu_ClosePressEnter', null, this.#contextMenu.getTargetLabel());
     this.#contextMenu.hide();
   }
 
@@ -243,8 +260,8 @@ export class KeyboardManager {
    */
   #cancelContextMenu(e) {
     this.#closeContextMenu(e);
-    this.#ribbon.backToWalk();
-    this.#svl.canvas.showLabelHoverInfo(undefined);
+    this.#labelModes.backToWalk();
+    this.#canvas.showLabelHoverInfo(undefined);
   }
 
   /**
@@ -252,9 +269,9 @@ export class KeyboardManager {
    * @param {KeyboardEvent} e
    */
   #backToExploreMode(e) {
-    this.#ribbon.backToWalk();
-    this.#svl.canvas.showLabelHoverInfo(undefined);
-    this.#svl.tracker.push('KeyboardShortcut_ModeSwitch_Walk', { code: e.code });
+    this.#labelModes.backToWalk();
+    this.#canvas.showLabelHoverInfo(undefined);
+    this.#tracker.push('KeyboardShortcut_ModeSwitch_Walk', { code: e.code });
   }
 
   /**
@@ -263,8 +280,8 @@ export class KeyboardManager {
    */
   #switchMode(mode, e) {
     this.#closeContextMenu(e);
-    this.#ribbon.modeSwitch(mode);
-    this.#svl.tracker.push(`KeyboardShortcut_ModeSwitch_${mode}`, { code: e.code });
+    this.#labelModes.switchTo(mode);
+    this.#tracker.push(`KeyboardShortcut_ModeSwitch_${mode}`, { code: e.code });
   }
 
   /**
@@ -275,12 +292,11 @@ export class KeyboardManager {
   #canToggleImmersiveMode(e) {
     const editing = ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)
       || /** @type {?HTMLElement} */ (document.activeElement)?.isContentEditable;
-    return !e.shiftKey && !e.altKey && !e.metaKey && !this.#contextMenu.isOpen() && !editing
-      && Boolean(this.#svl.immersiveMode);
+    return !e.shiftKey && !e.altKey && !e.metaKey && !this.#contextMenu.isOpen() && !editing;
   }
 
   #toggleImmersiveMode() {
-    this.#svl.immersiveMode.toggle('KeyboardShortcut');
+    this.#immersiveMode.toggle('KeyboardShortcut');
   }
 
   /**
@@ -289,15 +305,15 @@ export class KeyboardManager {
    */
   #zoom(e) {
     if (this.#contextMenu.isOpen()) {
-      this.#svl.tracker.push('KeyboardShortcut_CloseContextMenu');
+      this.#tracker.push('KeyboardShortcut_CloseContextMenu', null, this.#contextMenu.getTargetLabel());
       this.#contextMenu.hide();
     }
     if (e.shiftKey) {
       this.#zoomControl.zoomOut();
-      this.#svl.tracker.push('KeyboardShortcut_ZoomOut', { code: e.code });
+      this.#tracker.push('KeyboardShortcut_ZoomOut', { code: e.code });
     } else {
       this.#zoomControl.zoomIn();
-      this.#svl.tracker.push('KeyboardShortcut_ZoomIn', { code: e.code });
+      this.#tracker.push('KeyboardShortcut_ZoomIn', { code: e.code });
     }
   }
 
@@ -313,8 +329,8 @@ export class KeyboardManager {
   #rateSeverity(severity, e) {
     this.#contextMenu.checkRadioButton(severity);
     this.#contextMenu.getTargetLabel().setProperty('severity', severity);
-    this.#svl.tracker.push(`KeyboardShortcut_Severity_${severity}`, { code: e.code });
-    this.#svl.canvas.clear().render();
+    this.#tracker.push(`KeyboardShortcut_Severity_${severity}`, { code: e.code }, this.#contextMenu.getTargetLabel());
+    this.#canvas.clear().render();
   }
 
   /**
@@ -322,32 +338,9 @@ export class KeyboardManager {
    */
   #closeContextMenu(e) {
     if (this.#contextMenu.isOpen()) {
-      this.#svl.tracker.push('KeyboardShortcut_CloseContextMenu');
-      this.#svl.tracker.push('ContextMenu_CloseKeyboardShortcut', { code: e.code });
+      this.#tracker.push('KeyboardShortcut_CloseContextMenu', null, this.#contextMenu.getTargetLabel());
+      this.#tracker.push('ContextMenu_CloseKeyboardShortcut', { code: e.code }, this.#contextMenu.getTargetLabel());
       this.#contextMenu.hide();
-    }
-  }
-
-  /**
-   * Get status
-   * @param {string} key - Field name
-   * @returns {*}
-   */
-  getStatus(key) {
-    if (!(key in this.#status)) {
-      console.warn('You have passed an invalid key for status.');
-    }
-    return this.#status[key];
-  }
-
-  /**
-   * Set status
-   * @param {string} key - Field name
-   * @param {boolean} value - Field value
-   */
-  setStatus(key, value) {
-    if (key in this.#status) {
-      this.#status[key] = value;
     }
   }
 }

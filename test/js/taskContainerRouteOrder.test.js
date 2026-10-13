@@ -5,6 +5,8 @@
  * it audited. But "incomplete" is also how the route decides what is left to walk, so without a separate memory of
  * the give-up the route keeps offering the same dead street back, and finishing the last real street teleports the
  * labeler onto one instead of ending.
+ *
+ * TaskContainer is loaded as a module and built against the smallest collaborators these choices touch.
  */
 
 const { loadModules } = require('./loadGlobalScript');
@@ -21,20 +23,27 @@ const makeTask = (walkOrder, { complete = false, givenUp = false, km = 1 } = {})
     wasGivenUpOnImagery: () => givenUp,
     // Route tasks are never handed back part-walked (#5370 covers region audits only); taskResume.test.js has that.
     isResumed: () => false,
+    cameFromTaskList: () => false,
     getGeoJSON: () => ({ properties: { km } }),
     lineDistance: () => km,
     getAuditedDistance: () => 0,
     setProperty: jest.fn(),
-    render: jest.fn(),
+    minimapKey: () => `street-${100 + walkOrder}`,
+    minimapLines: () => [],
 });
+
+/** A container on a route, born with a throwaway first street. */
+function makeContainer() {
+    Object.assign(window, loadModules('frontend/js/explore/task/TaskContainer.js'));
+    return new window.TaskContainer(makeTask(0), {}, { isRoute: true }, { setStreetLines: jest.fn() }, {}, {},
+        { push: jest.fn() });
+}
 
 describe('TaskContainer.nextTask on a route', () => {
     let container;
 
     beforeEach(() => {
-        Object.assign(window, loadModules('frontend/js/explore/task/TaskContainer.js'));
-        const regionModel = { isRoute: true };
-        container = new window.TaskContainer(regionModel, { regionModel }, { push: jest.fn() });
+        container = makeContainer();
     });
 
     it('walks the route in its saved order', () => {
@@ -80,9 +89,7 @@ describe('TaskContainer distance credit', () => {
     beforeEach(() => {
         window.turf = { length: (feature) => feature.properties.km };
         window.util = { turfDistanceUnits: () => 'kilometers', array: { sum: (a) => a.reduce((x, y) => x + y, 0) } };
-        Object.assign(window, loadModules('frontend/js/explore/task/TaskContainer.js'));
-        const regionModel = { isRoute: true };
-        container = new window.TaskContainer(regionModel, { regionModel }, { push: jest.fn() });
+        container = makeContainer();
     });
 
     it('counts a given-up street as walked, so the route can reach 100%', () => {

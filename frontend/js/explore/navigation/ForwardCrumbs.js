@@ -17,10 +17,17 @@
  * from move to move: the answers are memoised per street, so after the first burst every later refresh is free.
  */
 
-import { svl } from '../svl.js';
+import { PanoViewer } from '../../common/pano-viewer/PanoViewer.js';
 import { NavigationService } from './NavigationService.js';
+/** @typedef {import('../Main.js').ExploreConfig} ExploreConfig */
+/** @typedef {import('./Compass.js').Compass} Compass */
+/** @typedef {import('./Minimap.js').Minimap} Minimap */
 /** @typedef {import('./Minimap.js').MinimapMarker} MinimapMarker */
+/** @typedef {import('../panorama/NavArrows.js').NavArrows} NavArrows */
+/** @typedef {import('./ObservedArea.js').ObservedArea} ObservedArea */
+/** @typedef {import('../panorama/PanoManager.js').PanoManager} PanoManager */
 /** @typedef {import('../task/Task.js').Task} Task */
+/** @typedef {import('../task/TaskContainer.js').TaskContainer} TaskContainer */
 /** @typedef {import('../data/Tracker.js').Tracker} Tracker */
 
 /**
@@ -65,7 +72,14 @@ export class ForwardCrumbs {
   /** Provider lookups allowed in flight at once; the rest queue. Keeps a fresh street from bursting the provider. */
   static #IN_FLIGHT_LIMIT = 4;
 
+  #config;
+  #panoManager;
+  #taskContainer;
+  #compass;
+  #minimap;
+  #observedArea;
   #navigationService;
+  #navArrows;
   #tracker;
   #markers = new Map(); // panoId -> { marker: MinimapMarker, kind, clickable, visited, rank }.
   #links = []; // The current pano's positioned links, kept for setFacing().
@@ -81,12 +95,42 @@ export class ForwardCrumbs {
   #queue = []; // Pending lookups as { key, run }; a job whose street is no longer current is skipped, not run.
 
   /**
-   * @param {NavigationService} navigationService - Makes the moves a crumb click asks for.
+   * @param {ExploreConfig} config
+   * @param {PanoManager} panoManager - Whose viewer positions the links and samples the street.
+   * @param {TaskContainer} taskContainer - Whose current street carries the route stops.
+   * @param {Compass} compass - Says which way the route goes from here.
+   * @param {Minimap} minimap - Where the crumbs go.
+   * @param {ObservedArea} observedArea - Says which panos the breadcrumb trail already marks.
+   * @param {NavigationService} navigationService - Makes a crumb click's move; the crumbs follow its moves and walking.
+   * @param {NavArrows} navArrows - The on-pano arrows: hovering a crumb lights the arrow that leads there, and hovering
+   *   an arrow lights its crumb (#4682).
    * @param {Tracker} tracker - Interaction logger.
    */
-  constructor(navigationService, tracker) {
+  constructor(config, panoManager, taskContainer, compass, minimap, observedArea, navigationService, navArrows,
+    tracker) {
+    this.#config = config;
+    this.#panoManager = panoManager;
+    this.#taskContainer = taskContainer;
+    this.#compass = compass;
+    this.#minimap = minimap;
+    this.#observedArea = observedArea;
     this.#navigationService = navigationService;
+    this.#navArrows = navArrows;
     this.#tracker = tracker;
+
+    // The minimap fills in the crumb the user now faces: the one the forward arrow / up key would take them to.
+    panoManager.onPovChanged((heading) => this.setFacing(heading));
+    navigationService.onMoved(() => this.refresh());
+    taskContainer.onCurrentTaskChanged(() => this.refresh());
+    navigationService.walking.onChanged((held) => {
+      if (held) this.clear();
+      else this.refresh();
+    });
+    navArrows.onHover((target) => {
+      if (!target) this.clearHighlight();
+      else if ('panoId' in target) this.highlight(target.panoId);
+      else this.highlightNextStop();
+    });
   }
 
   /**
@@ -110,8 +154,8 @@ export class ForwardCrumbs {
    */
   async #refresh() {
     const generation = ++this.#generation;
-    // Nothing is steppable in the tutorial or while walking is hard-locked (mission-complete modal).
-    if (!svl.panoViewer || svl.isOnboarding() || this.#navigationService.getStatus('lockDisableWalking')) {
+    // Nothing is steppable in the tutorial or while something holds walking (mission-complete modal).
+    if (this.#config.isOnboarding || this.#navigationService.walking.isHeld()) {
       this.clear();
       return;
     }
@@ -124,15 +168,15 @@ export class ForwardCrumbs {
 
     this.#links = links;
     this.#walkNextPanoId = stops.walkNextPanoId;
-    const currentPanoId = svl.panoViewer.getPanoId();
+    const currentPanoId = this.#panoManager.getPanoId();
     const crumbs = ForwardCrumbs.mergeSources(stops.ahead, links, {
       currentPanoId,
-      isVisited: (panoId) => Boolean(svl.observedArea && svl.observedArea.hasVisited(panoId)),
+      isVisited: (panoId) => this.#observedArea.hasVisited(panoId),
       reachableCount: ForwardCrumbs.REACHABLE_COUNT,
     });
     this.#render(crumbs);
     this.#markNextStep(ForwardCrumbs.nextStepPanoId(links, this.#targetAngle(), this.#walkNextPanoId));
-    this.setFacing(svl.panoViewer.getPov().heading);
+    this.setFacing(this.#panoManager.getPov().heading);
   }
 
   /**
@@ -342,7 +386,7 @@ export class ForwardCrumbs {
    * The widest sample spacing (km) that still reaches every crumb-worthy pano: one up to MAX_OFFSET_M off the street
    * and midway between two samples must be within `searchRadiusM` of one of them, since GsvViewer rejects anything
    * farther (#5114). That is 2 * sqrt(r^2 - offset^2), 40 m at a 25 m radius.
-   * @param {number} searchRadiusM - The provider search radius (svl.STREETVIEW_MAX_DISTANCE).
+   * @param {number} searchRadiusM - The provider search radius (PanoViewer.SEARCH_RADIUS_M).
    * @returns {number} The spacing cap in km; Infinity when the radius doesn't reach MAX_OFFSET_M at all, since no
    *     spacing could then guarantee coverage and the sample cap alone should decide.
    */
@@ -421,9 +465,9 @@ export class ForwardCrumbs {
    * @returns {?Task}
    */
   #taskToSample() {
-    if (svl.isExploreAddressMode() || !svl.taskContainer) return null;
-    if (!svl.panoViewer.supportsLocationSearch()) return null; // Pannellum: nothing to sample the street with.
-    const task = svl.taskContainer.getCurrentTask();
+    if (this.#config.isExploreAddressMode) return null;
+    if (!this.#panoManager.panoViewer.supportsLocationSearch()) return null; // Pannellum: nothing to sample with.
+    const task = this.#taskContainer.getCurrentTask();
     return task && !task.isComplete() ? task : null;
   }
 
@@ -434,7 +478,7 @@ export class ForwardCrumbs {
    * @returns {?number}
    */
   #routeHeading() {
-    if (!svl.compass || !svl.compass.isEnRoute()) return null;
+    if (!this.#compass.isEnRoute()) return null;
     return this.#targetAngle();
   }
 
@@ -444,10 +488,9 @@ export class ForwardCrumbs {
    * @returns {?number}
    */
   #targetAngle() {
-    if (!svl.compass || svl.isExploreAddressMode() || !svl.taskContainer) return null;
-    if (!svl.taskContainer.getCurrentTask()) return null;
+    if (this.#config.isExploreAddressMode || !this.#taskContainer.getCurrentTask()) return null;
     try {
-      return (svl.compass.getTargetAngle() + 360) % 360;
+      return (this.#compass.getTargetAngle() + 360) % 360;
     } catch {
       return null;
     }
@@ -459,7 +502,7 @@ export class ForwardCrumbs {
    */
   async #positionedLinks() {
     try {
-      return await svl.panoViewer.getLinkedPanoPositions();
+      return await this.#panoManager.panoViewer.getLinkedPanoPositions();
     } catch (err) {
       console.warn('Could not position the current pano\'s links:', err);
       return [];
@@ -486,12 +529,12 @@ export class ForwardCrumbs {
     }
 
     const furthestKm = turf.nearestPointOnLine(street, task.getFurthestPointReached()).properties.location;
-    const here = svl.panoViewer.getPosition();
+    const here = this.#panoManager.getPosition();
     const hereKm = turf.nearestPointOnLine(street, turf.point([here.lng, here.lat])).properties.location;
     const originKm = Math.min(furthestKm, hereKm);
     const offsets = ForwardCrumbs.sampleOffsetsKm(
       turf.length(street), NavigationService.DIST_INCREMENT, ForwardCrumbs.MAX_SAMPLES,
-      ForwardCrumbs.maxSampleStepKm(svl.STREETVIEW_MAX_DISTANCE),
+      ForwardCrumbs.maxSampleStepKm(PanoViewer.SEARCH_RADIUS_M),
     );
     const pending = [];
     offsets.forEach((offsetKm, i) => {
@@ -500,7 +543,8 @@ export class ForwardCrumbs {
       if (!this.#memo.has(i)) {
         if (this.#providerFailed) return;
         const [lng, lat] = turf.along(street, offsetKm).geometry.coordinates;
-        this.#memo.set(i, this.#enqueue(key, () => svl.panoViewer.findPanoNear({ lat, lng }).then((hit) => {
+        const viewer = this.#panoManager.panoViewer;
+        this.#memo.set(i, this.#enqueue(key, () => viewer.findPanoNear({ lat, lng }).then((hit) => {
           this.#providerFailed = false; // An answer, empty or not: the provider is reachable again.
           return hit;
         }, (err) => {
@@ -523,7 +567,7 @@ export class ForwardCrumbs {
       turf.point([here.lng, here.lat]), task.getFurthestPointReached(), { units: 'meters' },
     );
     const walkNext = ForwardCrumbs.walkLandingStop(measured, furthestKm, metersFromFurthest, {
-      ...window, searchRadiusM: svl.STREETVIEW_MAX_DISTANCE,
+      ...window, searchRadiusM: PanoViewer.SEARCH_RADIUS_M,
     });
     return { ahead, walkNextPanoId: walkNext ? walkNext.panoId : null };
   }
@@ -654,7 +698,7 @@ export class ForwardCrumbs {
     } else if (crumb.clickable) {
       onClick = () => this.#moveTo(crumb);
     }
-    const marker = svl.minimap.addMarker({ lat: crumb.lat, lng: crumb.lng }, content, {
+    const marker = this.#minimap.addMarker({ lat: crumb.lat, lng: crumb.lng }, content, {
       onClick,
       // Above the visited breadcrumbs and label icons, well below the peg (1000), which is click-through anyway.
       zIndex: crumb.clickable ? (crumb.kind === 'route' ? 30 : 25) : 20,
@@ -663,8 +707,8 @@ export class ForwardCrumbs {
     if (crumb.clickable) {
       // Hovering or focusing a crumb lights the on-pano arrow that leads to it, the reverse of hovering the arrow
       // (#4682). Focus lands on the marker's wrapper element, which is what the keyboard reaches.
-      const light = () => svl.panoManager && svl.panoManager.highlightArrowTo(crumb.panoId);
-      const unlight = () => svl.panoManager && svl.panoManager.clearArrowHighlight();
+      const light = () => this.#navArrows.highlightTo(crumb.panoId, this.isWalkNextStop(crumb.panoId));
+      const unlight = () => this.#navArrows.clearHighlight();
       content.addEventListener('mouseenter', light);
       content.addEventListener('mouseleave', unlight);
       marker.element.addEventListener('focus', light);
@@ -682,7 +726,7 @@ export class ForwardCrumbs {
    */
   async #moveTo(crumb) {
     const nav = this.#navigationService;
-    if (nav.getStatus('disableWalking')) return;
+    if (!nav.canWalk()) return;
     this.#tracker.push('Click_MinimapForwardCrumb', { panoId: crumb.panoId, kind: crumb.kind, rank: crumb.rank });
     const moved = await nav.moveToPano(crumb.panoId, false, { alertOnFailure: false });
     if (moved) return;

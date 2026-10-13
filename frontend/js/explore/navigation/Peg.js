@@ -6,6 +6,7 @@
 
 /** @typedef {import('./Minimap.js').MinimapMarker} MinimapMarker */
 /** @typedef {import('./Minimap.js').Minimap} Minimap */
+/** @typedef {import('../panorama/PanoManager.js').PanoManager} PanoManager */
 
 export class Peg {
   /** @type {HTMLElement} The marker's DOM content; its --peg-heading custom property drives the triangle's rotation. */
@@ -16,9 +17,9 @@ export class Peg {
 
   /**
    * @param {Minimap} minimap - The minimap to put the peg on.
-   * @param {{lat: number, lng: number}} initialLocation - Initial lat/lng location.
+   * @param {PanoManager} panoManager - Whose position the peg marks, from the pano on screen on.
    */
-  constructor(minimap, initialLocation) {
+  constructor(minimap, panoManager) {
     // .minimap-peg rotates about its own center, which the marker keeps on the location, so the dot stays planted
     // while the triangle swings to the heading. The dot is drawn after the triangle so its white ring sits on top
     // where they meet.
@@ -32,7 +33,8 @@ export class Peg {
       </svg>`;
 
     // No title and no click handler: the peg is decoration, so clicks pass through it to the crumbs beneath.
-    this.#marker = minimap.addMarker(initialLocation, this.#content, { zIndex: 1000 });
+    this.#marker = minimap.addMarker(panoManager.getPosition(), this.#content, { zIndex: 1000 });
+    panoManager.onPanoChanged(() => this.setLocation(panoManager.getPosition()));
   }
 
   /**

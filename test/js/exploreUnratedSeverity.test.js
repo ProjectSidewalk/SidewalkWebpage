@@ -34,7 +34,8 @@ function pressKey(key) {
 
 describe('Explore severity shortcuts', () => {
   let menu;
-  let keyboard;
+  let config;
+  let keyboardDisabled;
 
   beforeEach(() => {
     window.i18next = { t: (key) => key };
@@ -46,24 +47,25 @@ describe('Explore severity shortcuts', () => {
       getImage: () => new Promise(() => {}),
     };
     installUtilitiesMisc();
-    const canvas = { clear: () => canvas, render: () => canvas, getStatus: () => false };
-    window.svl = {
-      canvas, tracker: { push: jest.fn() }, ribbon: { enableModeSwitch: jest.fn() }, keyboard: { setStatus: jest.fn() },
-      isOnboarding: () => false, LABEL_ICON_RADIUS: 17,
-    };
+    const canvas = { clear: () => canvas, render: () => canvas };
+    const tracker = { push: jest.fn() };
+    config = { isOnboarding: false };
+    keyboardDisabled = false;
 
     Object.assign(window, loadModules('frontend/js/explore/canvas/ContextMenu.js',
       'frontend/js/explore/keyboard/KeyboardManager.js'));
-    menu = new window.ContextMenu(makeContextMenuUi());
+    menu = new window.ContextMenu(makeContextMenuUi(), config, { iconRadius: 17 },
+      { canDelete: () => true, getAllLabels: () => [], addToLabelsToLog: jest.fn() },
+      { switching: { hold: jest.fn(), release: jest.fn() } }, { onMoveStarted: jest.fn() },
+      { ratingClicked: jest.fn() }, { ensureLabelSaved: jest.fn() }, tracker);
     menu.labelTags = [];
-    window.svl.contextMenu = menu;
-    keyboard = new window.KeyboardManager(window.svl, canvas, menu, {}, {}, {});
+    new window.KeyboardManager({ isHeld: () => keyboardDisabled }, canvas, menu, {}, {}, {}, {}, {}, {}, tracker);
   });
 
   afterEach(() => {
     menu.hide();
     // Its window listeners can't be removed from outside, so switch them off before the next test adds its own.
-    keyboard.disableKeyboard();
+    keyboardDisabled = true;
   });
 
   test.each(['Signal', 'NoSidewalk'])('pressing 2 leaves an unrated %s label unrated', (labelType) => {
@@ -86,7 +88,7 @@ describe('Explore severity shortcuts', () => {
 
   describe('in the tutorial', () => {
     beforeEach(() => {
-      window.svl.isOnboarding = () => true;
+      config.isOnboarding = true;
     });
 
     test('rating stays off until the tutorial reaches that label', () => {

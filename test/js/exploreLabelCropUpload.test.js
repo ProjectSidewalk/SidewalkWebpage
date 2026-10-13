@@ -43,7 +43,7 @@ describe('Label crop upload', () => {
 
     beforeEach(() => {
         Label = loadLabel();
-        // The real one goes through svl.minimap.addMarker; nothing under test reads the marker back.
+        // The real one goes through the minimap's addMarker; nothing under test reads the marker back.
         Label.createMinimapMarker = () => ({ setVisible: () => {} });
         global.fetch = jest.fn().mockResolvedValue({ ok: true });
         jest.spyOn(console, 'log').mockImplementation(() => {});

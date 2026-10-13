@@ -3,7 +3,6 @@
  * Docs: https://mapillary.github.io/mapillary-js/api/classes/viewer.Viewer
  */
 
-import { svl } from '../../explore/svl.js';
 import { createMapillaryChunkedDataProvider } from './MapillaryChunkedDataProvider.js';
 import { NoImageryError } from './NoImageryError.js';
 import { PanoData } from './PanoData.js';
@@ -422,7 +421,7 @@ export class MapillaryViewer extends PanoViewer {
 
   setLocation = async (latLng, excludedPanos = new Set()) => {
     const center = turf.point([latLng.lng, latLng.lat]);
-    const radius = svl.STREETVIEW_MAX_DISTANCE / 1000.0; // Convert search radius to kms.
+    const radius = PanoViewer.SEARCH_RADIUS_M / 1000.0; // Convert search radius to kms.
 
     try {
       const bestPano = await this.#searchAndSelectPano(center, radius, excludedPanos);
@@ -452,7 +451,7 @@ export class MapillaryViewer extends PanoViewer {
    */
   prefetchLocation = (latLng) => {
     const centerPoint = turf.point([latLng.lng, latLng.lat]);
-    const radius = svl.STREETVIEW_MAX_DISTANCE / 1000.0;
+    const radius = PanoViewer.SEARCH_RADIUS_M / 1000.0;
     if (!this.#findNearestPrefetch(centerPoint)) {
       this.#storePrefetch(centerPoint, radius);
     }
@@ -470,7 +469,7 @@ export class MapillaryViewer extends PanoViewer {
   preloadPanoNear = async (latLng, excludedPanos = new Set()) => {
     try {
       const center = turf.point([latLng.lng, latLng.lat]);
-      const radius = svl.STREETVIEW_MAX_DISTANCE / 1000.0; // Convert search radius to kms.
+      const radius = PanoViewer.SEARCH_RADIUS_M / 1000.0; // Convert search radius to kms.
       const bestPano = await this.#searchAndSelectPano(center, radius, excludedPanos);
       if (bestPano) this.#cachePanoAssets(bestPano.id);
     } catch (err) {
@@ -487,7 +486,7 @@ export class MapillaryViewer extends PanoViewer {
    */
   findPanoNear = async (latLng, excludedPanos = new Set()) => {
     const center = turf.point([latLng.lng, latLng.lat]);
-    const radius = svl.STREETVIEW_MAX_DISTANCE / 1000.0; // Convert search radius to kms.
+    const radius = PanoViewer.SEARCH_RADIUS_M / 1000.0; // Convert search radius to kms.
     const bestPano = await PanoViewer._withTimeout(
       this.#searchAndSelectPano(center, radius, excludedPanos), PanoViewer.FIND_PANO_TIMEOUT_MS,
       `Mapillary search near ${latLng.lat},${latLng.lng}`,

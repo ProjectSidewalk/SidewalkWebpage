@@ -28,7 +28,7 @@ util.exploreDisplayScale = function () {
  * a direction (focal length and click offsets scale together), so a 720-wide frame is exactly as good as the
  * on-screen size, and every label placed in the boxed tool keeps the 720x480 the whole corpus is in. Measured from
  * the same element `util.mousePosition` reports clicks against, so the click and its frame share one coordinate
- * space; callers cache the result per layout (svl.CANVAS_FRAME) rather than measuring per render.
+ * space; callers cache the result per layout (Explore's CanvasFrame) rather than measuring per render.
  *
  * @returns {{width: number, height: number}} The frame in logical px; 720x480 when the street view is unmeasurable.
  */
@@ -110,7 +110,7 @@ util.labelIconScale = function (radius) {
  * instead: below ~1.23x scale this returns the unchanged base radius, and above it the icon holds still while the
  * rest of the tool keeps growing.
  *
- * Callers should re-read this whenever --ui-scale changes; Explore caches it in svl.LABEL_ICON_RADIUS, which its
+ * Callers should re-read this whenever --ui-scale changes; Explore caches it in its CanvasFrame, which its
  * scale-applying path refreshes.
  *
  * @param {number} [scale] - The tool's UI scale. Read from the page when omitted.
