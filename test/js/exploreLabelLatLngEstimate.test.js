@@ -6,9 +6,9 @@
  * computation method.
  *
  * What these pin is the *formula*, not the constants. The constants reach the browser from the backend at runtime
- * (ExploreConfig.latLngEstimation, PanoDataService.LatLngEstimation.asJson injected by explore.scala.html), so the shipped
- * client cannot hold a stale copy of them; the fixture below is a hand-copy of that payload standing in for the
- * injection. It follows that a refit which changes the camera height or the blend angle must update this fixture and
+ * (ExploreConfig.latLngEstimation, from PanoDataService.LatLngEstimation.asJson in explore.scala.html), so the
+ * shipped client cannot hold a stale copy of them; the fixture below is a hand-copy of that payload standing in for
+ * the injection. So a refit that changes the camera height or the blend angle must update this fixture and
  * its expected distances alongside PanoDataServiceSpec's pins — nothing here fails on its own if it doesn't.
  *
  * The fixture's values are the fitted ones: camera height from `final_coefficients` in `data/modern-truth-summary.json`

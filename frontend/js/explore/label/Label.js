@@ -1,6 +1,6 @@
 /**
- * A label placed on a pano: where it is, what it says, how it is drawn on the label canvas, and the marker that
- * stands for it on the minimap. Its hover card is Canvas's, which draws it from the label's properties.
+ * A label placed on a pano: where it is, what it says, how it is drawn on the canvas, and its marker on the minimap.
+ * Its hover card belongs to Canvas, which draws it from the label's properties.
  */
 
 import { util } from '../../common/utilities.js';
@@ -150,12 +150,11 @@ export class Label {
   }
 
   /**
-   * Puts the label on the minimap, styled for the era it belongs to (#4945). LabelContainer calls this once per
-   * label; the tutorial's example labels use createMinimapMarker directly instead.
+   * Puts the label on the minimap, styled for its era (#4945). The tutorial's example labels use createMinimapMarker.
    * @param {Minimap} minimap
    * @param {?number} currentMissionId - The mission the user is on, which decides the era.
-   * @param {() => void} onClick - What clicking the marker does while its era is current (styleMinimapMarker leaves
-   *   only a current-era marker clickable, since the click only returns to current-mission labels, #2561).
+   * @param {() => void} onClick - What clicking the marker does. Only a current-era marker is clickable, since the
+   *   click returns to the label and that only works within the current mission (#2561).
    */
   placeOnMinimap(minimap, currentMissionId, onClick) {
     this.#minimapEra = Label.minimapEra(this.#properties, currentMissionId);
@@ -293,8 +292,7 @@ export class Label {
    * @returns {boolean}
    */
   isOn(x, y) {
-    // Sized to the drawn icon rather than derived from its radius, so the target is never smaller than the icon
-    // under it. See util.labelHitMargin.
+    // Sized to the drawn icon (util.labelHitMargin), so the click target is never smaller than the icon under it.
     const margin = this.#frame.hitMargin;
     return !this.#status.deleted
       && this.#status.visibility === 'visible'
@@ -584,10 +582,8 @@ export class Label {
     const icon = window.labelIconCache[util.misc.getIconImagePaths(labelType).iconImagePath];
     if (icon) ctx.drawImage(icon, x - radius + 2, y - radius + 2, size, size);
 
-    // The rings are a hairline straddling the icon's edge, so they're offsets from the drawn icon rather than fixed
-    // radii: the icon's size moves with the UI scale, and stops moving once the cap engages (#4838). The offsets and
-    // the stroke scale with it too: left absolute, the outline would read about 47% heavier against a capped icon
-    // than against a full-size one.
+    // The rings are offsets from the drawn icon rather than fixed radii, and the stroke scales with it too: the icon
+    // stops growing once its cap engages (#4838), and an absolute outline would read far heavier against a capped one.
     const k = util.labelIconScale(radius);
     ctx.lineWidth = 0.7 * k;
     ctx.beginPath();

@@ -8,8 +8,7 @@
  * puts a non-deleted label's marker on the map), that a marker suppressed while earlier comes back once its mission is
  * current again, and that eras are re-derived only when the mission actually changes.
  *
- * Label, LabelContainer and MissionContainer are loaded as modules and built against the minimap seam, storage,
- * and i18n collaborators stubbed.
+ * Label, LabelContainer and MissionContainer are loaded as modules, with the minimap seam, storage and i18n stubbed.
  */
 
 const { loadModules } = require('./loadGlobalScript');

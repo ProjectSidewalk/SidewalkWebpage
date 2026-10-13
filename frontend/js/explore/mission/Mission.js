@@ -1,6 +1,6 @@
 /**
- * Mission objects, stores data from mission table, as well as associated tasks. How far along a mission is comes from
- * the streets walked, which MissionContainer measures (updateDistanceProgress, getMissionCompletionRate).
+ * A mission from the mission table and its tasks. MissionContainer measures how far along it is from the streets
+ * walked (updateDistanceProgress, getMissionCompletionRate).
  */
 
 import { util } from '../../common/utilities.js';
@@ -42,8 +42,8 @@ export class Mission {
   }
 
   /**
-   * Set the isComplete property to true. MissionContainer.finishMission is how a mission is finished, since the
-   * mission's overshoot has to come off the offset it keeps.
+   * Set the isComplete property to true. Finish a mission through MissionContainer.finishMission, which also takes
+   * the mission's overshoot off the offset it keeps.
    * @returns {void}
    */
   complete = () => {

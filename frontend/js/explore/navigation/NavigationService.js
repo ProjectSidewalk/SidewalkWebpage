@@ -1,8 +1,7 @@
 /**
  * The moves along a street, between streets and to a named pano. Whether the labeler may walk is the `walking` gate;
- * a move runs idle → moving → settling → idle. What a move means to the rest of the tool is announced rather than
- * done here (onMoveStarted, onMoveFinished, onHeadingSettled, onMoved, onLabelBeforeJumpChanged, onRouteEndReached,
- * onRegionExhausted), since most of what reacts is built after this and several of them command it back.
+ * a move runs idle → moving → settling → idle. What a move means to the rest of the tool is announced (onMoveStarted,
+ * onMoved, …) rather than done here, since most of what reacts is built after this.
  */
 
 import { Gate } from '../../common/Gate.js';
@@ -55,8 +54,8 @@ export class NavigationService {
   #tracker;
 
   /**
-   * Whether the labeler may walk: held by a move ('move', released a beat after it lands so a mission can't be
-   * spammed through), a pop-up, the tutorial and the mission-complete screen. The arrows and walk button follow it.
+   * Whether the labeler may walk: held by a move (and for a beat after it lands, so a mission can't be spammed
+   * through), a pop-up, the tutorial and the mission-complete screen.
    * @type {Gate}
    */
   walking = new Gate();
@@ -169,8 +168,7 @@ export class NavigationService {
   }
 
   /**
-   * Told once the viewer's heading has stopped settling after a move (Mapillary keeps animating it briefly), with
-   * the settled pov; the heading-dependent views redraw then rather than mid-animation (#4174).
+   * Told once the heading has settled after a move (Mapillary animates it briefly), so views of it redraw then (#4174).
    * @param {() => void} listener
    */
   onHeadingSettled(listener) {
@@ -178,8 +176,7 @@ export class NavigationService {
   }
 
   /**
-   * Told when the labeler reaches the end of a street the next one doesn't continue from (armed: label here, then
-   * jump), and when the jump begins (disarmed).
+   * Told when the labeler is asked to finish labeling here before a jump (armed), and when the jump begins (disarmed).
    * @param {(armed: boolean) => void} listener
    */
   onLabelBeforeJumpChanged(listener) {
@@ -195,8 +192,7 @@ export class NavigationService {
   }
 
   /**
-   * Told when a region's streets run out with the labeler standing on one with no imagery left, so the region can be
-   * wrapped up from where they are.
+   * Told when a region's streets run out under the labeler, so it can be wrapped up from where they stand.
    * @param {() => void} listener
    */
   onRegionExhausted(listener) {
@@ -225,8 +221,8 @@ export class NavigationService {
   }
 
   /**
-   * @returns {boolean} Whether the heading is still settling after a move (or the move is still in flight), so the
-   *   heading-dependent views should keep their pre-move orientation (#4174).
+   * @returns {boolean} Whether a move or the heading settle after it is still under way, so views of the heading
+   *   should keep their pre-move orientation (#4174).
    */
   isHeadingSettling() {
     return this.#moveState !== 'idle';
@@ -559,10 +555,9 @@ export class NavigationService {
   }
 
   /**
-   * Once the viewer's heading stops changing after a move (Mapillary keeps animating it briefly), tells the
-   * heading-dependent views — peg, observed-area FOV, compass — to redraw with the settled pov. Until then those
-   * views keep their pre-move orientation. Aborts if a new move begins (it runs its own refresh); GSV, whose pov is
-   * final immediately, settles after the first couple of ticks.
+   * Once the heading stops changing after a move (Mapillary animates it briefly), tells the views of it (peg, fog
+   * cone, compass) to redraw; until then they keep their pre-move orientation. Stops if a new move begins, which
+   * runs its own; GSV's pov is final at once, so it settles after a couple of ticks.
    */
   #refreshHeadingViewsAfterPovSettles() {
     if (this.#povSettlePoll) window.clearInterval(this.#povSettlePoll); // Replace any in-flight poll from a prior move.
@@ -665,8 +660,7 @@ export class NavigationService {
     // Best-effort: called from post-move UI updates, so never let a prediction error break those.
     try {
       if (!this.#taskContainer.tasksLoaded()) return;
-      // Held by something other than the move itself (the tutorial, the mission-complete screen, a pop-up), no
-      // forward move can happen, so don't preload for one.
+      // No forward move can happen while anything but the move itself holds walking, so there is nothing to preload.
       if (this.walking.isHeldExcept('move')) return;
 
       // When the label-before-jump state is armed, the next forward move is the jump itself: predict the start of
@@ -850,8 +844,7 @@ export class NavigationService {
   /**
    * Moves to whatever pano the provider serves nearest a location, as a real move (the task advances, walking is
    * timed out, the views update). The minimap's forward crumbs use it when a crumb's pano id won't load (GSV retires
-   * panos): the crumb still marks where imagery was, so the coordinate search moveForward() relies on is the right
-   * retry.
+   * panos): the crumb still marks where imagery was, so searching there as moveForward() does is the right retry.
    *
    * The current pano is excluded from the search because a location a few metres ahead is usually still nearest to
    * the pano being stood on, and "moving" there would go nowhere.

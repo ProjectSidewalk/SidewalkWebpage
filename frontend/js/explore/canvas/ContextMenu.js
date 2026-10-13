@@ -1,7 +1,6 @@
 /**
- * Context Menu module. Responsible for displaying the context menu when clicking on a label on the canvas. What
- * changes the label's look on the canvas (opening, closing, a severity pick) is announced (onChange), since the
- * canvas is built after this.
+ * The menu a clicked label opens, for rating, tagging and describing it. Whatever changes the label's look on the
+ * canvas (opening, closing, a severity pick) is announced through onChange, since the canvas is built after this.
  */
 
 import { ShareWidget } from '../../common/share/ShareWidget.js';
@@ -101,8 +100,7 @@ export class ContextMenu {
   }
 
   /**
-   * Told when something the canvas draws has changed: the menu opened or closed (the target label's icon fades while
-   * it is open), or a severity was picked (the unrated "?" goes).
+   * Told when the menu opened or closed or a severity was picked, each of which changes how the label is drawn.
    * @param {() => void} listener
    */
   onChange(listener) {

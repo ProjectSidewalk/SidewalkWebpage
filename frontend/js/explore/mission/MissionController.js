@@ -59,8 +59,8 @@ export class MissionController {
    * @param {ModalMissionComplete} modalMissionComplete - Shown when a mission completes.
    * @param {ModalSurvey} modalSurvey - Shown partway through a mission, when the server says so.
    * @param {AlertController} alertController - Shows the route's finish toast.
-   * @param {Compass} compass - Whose finish prompt is dropped once a route auto-completes, and whose finish click
-   *   wraps the route or region up.
+   * @param {Compass} compass - Wraps the route or region up on its finish click, and drops the finish prompt once a
+   *   route auto-completes on its own.
    * @param {NavigationService} navigationService - Announces the route's end and a region's last street.
    * @param {PanoManager} panoManager - Each turn of whose view may complete a finished route.
    * @param {ObservedArea} observedArea - Says how much of the final pano the user has looked around.

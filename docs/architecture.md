@@ -597,25 +597,13 @@ loaded by the corresponding Twirl view:
 
 Every first-party file is an **ES module** (#4467): it `import`s what it needs and `export`s what others use, so
 the imports decide load order, not a hand-kept list. No page keeps a shared registry object: each module is handed
-what it works with as constructor arguments, all wired in `gallery/Main.js`, `validate/Main.js` and
-`explore/Main.js` (#5648). The page's facts travel as one frozen config (`ValidateConfig`, `ExploreConfig`) and its
-elements as one UI object (`ValidateUi`, `ExploreUi`), page data and elements first and collaborators last, every
-argument positional and required. What is built first announces and what is built later subscribes to it in its own
-constructor (`Tracker.onFlush`, `LabelContainer.onLabelPlaced`, `TaskContainer.onCurrentTaskChanged`,
-`PanoManager.onPovChanged`, `NavigationService.onMoveStarted` / `onMoved`, …), so the late setters are down to the
-two a real cycle needs (`Tracker.trackPano`, since the tracker that stamps the pano is built before it, and
-`Minimap.setOverviewStreets`), and a `Main` wires only the policy that spans modules: on Explore, what a pop-up stops. Anything that can be
-switched off is a `common/Gate`, held by name and open only once every holder has let go: the keyboard shortcuts (a
-modal, the tutorial, a move in flight, the sign-in dialog), and on Explore walking (`NavigationService.walking`),
-panning (`PanoManager.panning`), labeling (`Canvas.labeling`), mode switching (`LabelModes.switching`), each zoom
-button, the compass click, and the pop-up lock itself, whose hold `Main` fans out to the others. A tool's facts about
-the current mode live apart from the widget that shows them: `explore/menu/LabelModes` is the armed label type and
-whether a type may be armed, `RibbonMenu` only its buttons. Explore's `PanoManager` and `Minimap` are built
-synchronously and load side by side (`PanoManager.ready`, `Minimap.create`); everything that needs neither is built
-meanwhile, and the one `await` in `Main` is for the first pano. Constants that used to hang off the registry live on
-the class they describe (`PanoViewer.SEARCH_RADIUS_M`, `Task.CLOSE_TO_ROUTE_KM`, `TaskContainer.CONNECTED_TASK_KM`,
-`Onboarding.TUTORIAL_PANO_WIDTH`). `window.svv` and `window.svl` are only console and e2e handles, returned by each
-page's `Main.start()`.
+what it works with as constructor arguments, wired in the page's `Main.js` (#5648). The page's facts travel as one
+frozen config (`ExploreConfig`, `ValidateConfig`) and its elements as one UI object, page data first and collaborators
+last. What is built first announces and what is built later subscribes in its own constructor (`Tracker.onFlush`,
+`TaskContainer.onCurrentTaskChanged`, `NavigationService.onMoved`, …); `Main` wires only policy that spans modules,
+such as what a pop-up stops. Anything that can be switched off is a `common/Gate`, held by name (a modal, the
+tutorial, a move in flight) and open only once every holder has let go. `window.svl` and `window.svv` are only
+console and e2e handles, returned by each page's `Main.start()`.
 `util` is the object `common/utilities.js` exports; a file
 that reads `util.misc`, `util.math`, `util.url` or `util.pano` imports the file that adds it (`utilitiesSidewalk.js`,
 `utilitiesMath.js`, `urlQuery.js`, `pano-viewer/panoUtilities.js`). Vendor libraries (`mapboxgl`, `i18next`, `turf`, …)

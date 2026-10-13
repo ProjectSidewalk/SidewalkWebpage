@@ -1,7 +1,7 @@
 /**
- * Which label type is armed ('Walk' when none is). The ribbon's buttons and the keyboard both switch through here, and
- * what follows a switch subscribes to onModeChanged. Switching is the `switching` gate: a pop-up and a description
- * being typed hold it; the tutorial holds it and lets one type through at a time (enableMode).
+ * Which label type is armed ('Walk' when none is). The ribbon's buttons and the keyboard both switch through here.
+ * The `switching` gate stops switches: a pop-up and a description being typed hold it, and the tutorial holds it
+ * while letting one type through at a time (enableMode).
  */
 
 import { Gate } from '../../common/Gate.js';
@@ -47,7 +47,7 @@ export class LabelModes {
   /**
    * Told when the mode switches, with the new mode: 'Walk' or a label type.
    * @param {(mode: string) => void} listener
-   * @returns {() => void} Stops telling it; the tutorial listens for one step at a time.
+   * @returns {() => void} Unsubscribes (the tutorial listens for one step at a time).
    */
   onModeChanged(listener) {
     this.#modeChangedListeners.push(listener);

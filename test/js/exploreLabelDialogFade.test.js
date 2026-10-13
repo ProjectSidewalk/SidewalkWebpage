@@ -6,9 +6,8 @@
  * points at the spot.
  *
  * Whether a label is the open dialog's target is Canvas's call (it holds the context menu); the label only takes the
- * verdict as render()'s `faded` argument, in and out of the tutorial alike (#4824). What makes the fade *visible* the
- * instant the panel opens or closes is ContextMenu.show()/hide() re-rendering the canvas; that wiring is pinned
- * separately, in exploreContextMenuRerender.test.js.
+ * verdict as render()'s `faded` argument, in and out of the tutorial alike (#4824). The fade showing the instant the
+ * panel opens or closes is ContextMenu.show()/hide() re-rendering the canvas, pinned in exploreContextMenuRerender.
  */
 
 const { loadModules, realUtil } = require('./loadGlobalScript');

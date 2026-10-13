@@ -173,10 +173,9 @@ export class NavArrows {
   }
 
   /**
-   * The absolute heading (degrees, from true north) toward the route's next goal. On route this is the way forward;
-   * off route it points back toward the route. Null only when there is no route at all: free exploration, the
-   * scripted tutorial, no current task, or before the task's geometry is ready. Drives which arrow is highlighted
-   * forward. (#4671)
+   * The heading (degrees from true north) toward the route's next goal, which picks the arrow highlighted forward
+   * (#4671): the way forward on route, back toward the route off it. Null when there is no route at all: free
+   * exploration, the tutorial, no current task, or a task whose geometry isn't ready.
    * @returns {?number}
    */
   #routeForwardHeading() {
@@ -249,11 +248,9 @@ export class NavArrows {
   }
 
   /**
-   * The blue "go this way" forward arrow: the same chevron as a link arrow, filled with the navigation blue
-   * (MinimapStyle.pegColor(), the --color-link-100 peg/"you" token) via an inline data-URI SVG, so the color stays
-   * sourced from the design token rather than a hardcoded hex. Carries route-forward-highlight for its hover style;
-   * the caller either keeps its pano-id (a highlighted real link) or adds route-forward-arrow (a synthesized
-   * arrow at a dead-end). (#4671)
+   * The blue "go this way" arrow (#4671): a link arrow's chevron filled with the peg's navigation blue through an
+   * inline SVG, so the color stays sourced from the design token. The caller keeps its pano-id (a real link,
+   * highlighted) or adds route-forward-arrow (synthesized at a dead end).
    * @returns {SVGImageElement}
    */
   static #createForwardArrow() {

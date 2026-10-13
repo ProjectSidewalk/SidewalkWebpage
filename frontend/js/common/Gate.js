@@ -1,9 +1,6 @@
 /**
- * Something allowed only while nothing holds it shut (shortcuts, walking, panning, labeling, the tool under a pop-up).
- * Holders are named and the gate opens only once every one has let go: a label finishing its load behind Validate's
- * mission-complete screen must not wake the shortcuts under it (#5752), and one Explore dialog closing under another
- * must not hand the tool back early. Its own object because the holders are built long before the owner, which
- * reacts through onChanged rather than being told by each holder.
+ * Something allowed only while nothing holds it shut (shortcuts, walking, panning, labeling). Holders are named and
+ * the gate opens only once all have let go, so a dialog closing under another can't hand the tool back early (#5752).
  */
 export class Gate {
   /** @type {Set<string>} */
@@ -14,7 +11,7 @@ export class Gate {
 
   /**
    * Told of each hold taken and let go, with whether the gate is still held: a listener that ignores one holder (the
-   * forward crumbs ignore a move's) would otherwise miss a hold that comes or goes under it.
+   * forward crumbs ignore a move's) must still see the others come and go.
    * @param {(held: boolean, holder: string) => void} listener
    */
   onChanged(listener) {
@@ -47,8 +44,7 @@ export class Gate {
   }
 
   /**
-   * Whether anything but the named holder holds the gate shut: a hold that always lifts on its own (a move in
-   * flight) versus one that may not (a modal, the tutorial).
+   * Whether anything but the named holder holds the gate shut, telling a hold that lifts on its own from a modal's.
    * @param {string} holder
    * @returns {boolean}
    */

@@ -1,9 +1,7 @@
 /**
- * Owns Explore's pano viewer: loads it at the session's starting point, moves it, keeps its view within bounds, and
- * announces each new pano (onPanoChanged) and each new view of it (onPovChanged) to whatever draws on top.
- *
- * Built synchronously, with the load already under way: `ready` resolves once there is a viewer (or there won't be
- * one), so the rest of the tool is wired without waiting, and only what needs the first pano awaits it.
+ * Owns Explore's pano viewer: loads it at the session's start, moves it, keeps its view in bounds, and announces each
+ * new pano (onPanoChanged) and view (onPovChanged) to whatever draws on top. Built synchronously with the load under
+ * way: `ready` says when there is a viewer, so only what needs the first pano waits for it.
  */
 
 import { Gate } from '../../common/Gate.js';
@@ -85,8 +83,8 @@ export class PanoManager {
   #mapillaryAttributionArrivalObserver = null;
 
   /**
-   * Starts loading the viewer at the seed; `ready` says when it is there. From here on the tracker stamps each action
-   * with the pano on screen, so what logs during the load already carries it once it lands.
+   * Starts loading the viewer at the seed (`ready` says when it is there) and has the tracker stamp each action with
+   * the pano on screen from here on.
    * @param {StreetviewUi} ui - The pano area's elements.
    * @param {ExploreConfig} config - Names the viewer class and the token it loads imagery with.
    * @param {PanoStore} panoStore - Keeps the metadata of every pano seen.

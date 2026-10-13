@@ -102,8 +102,7 @@ export class ForwardCrumbs {
    * @param {Compass} compass - Says which way the route goes from here.
    * @param {Minimap} minimap - Where the crumbs go.
    * @param {ObservedArea} observedArea - Says which panos the breadcrumb trail already marks.
-   * @param {NavigationService} navigationService - Makes the moves a crumb click asks for; the crumbs follow its moves
-   *   and its walking.
+   * @param {NavigationService} navigationService - Makes a crumb click's move; the crumbs follow its moves and walking.
    * @param {NavArrows} navArrows - The on-pano arrows: hovering a crumb lights the arrow that leads there, and hovering
    *   an arrow lights its crumb (#4682).
    * @param {Tracker} tracker - Interaction logger.

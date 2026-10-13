@@ -100,9 +100,8 @@ export class Minimap {
   }
 
   /**
-   * Names the streets the overview fits (toggleOverview): a route's every street, or a region audit's mission streets
-   * plus the one being walked (the region as a whole would zoom out far past the route, #4639). Set once the tasks
-   * exist, which is after the map does.
+   * Names the streets the overview fits: a route's every street, or a region audit's mission streets plus the one
+   * being walked (the whole region would zoom out far past the route, #4639). Set once the tasks exist, after the map.
    * @param {() => Task[]} provider
    */
   setOverviewStreets(provider) {
@@ -152,8 +151,7 @@ export class Minimap {
     this.#map.getCanvas().setAttribute('tabindex', '-1');
     this.#map.on('dragend', () => this.#tracker.push('Minimap_Pan'));
 
-    // A resize is a move too (MapLibre watches its container), so a UI-scale change lands here once the map has
-    // caught up.
+    // A resize counts as a move (MapLibre watches its container), so a UI-scale change lands here too.
     this.#map.on('move', () => {
       this.#updateRecenterButton();
       this.#moveListeners.forEach((listener) => listener());

@@ -37,8 +37,7 @@ export class MissionContainer extends EventEmitter {
    * @param {MissionPanel} missionPanel - Renders the current mission's header and description in the sidebar.
    * @param {MissionModel} missionModel - Mission model object.
    * @param {TemporaryStorage} storage - Remembers across sessions that a first mission was ever finished.
-   * @param {TaskContainer} taskContainer - Whose walked streets measure a mission's progress, and whose current
-   *   street each mission is tied to.
+   * @param {TaskContainer} taskContainer - Walked streets measure progress; a mission is tied to the current street.
    * @param {PanoManager} panoManager - Whose position marks where a mission began on its street.
    */
   constructor(config, missionPanel, missionModel, storage, taskContainer, panoManager) {

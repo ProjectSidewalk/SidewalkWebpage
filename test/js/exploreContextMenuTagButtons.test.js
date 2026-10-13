@@ -67,7 +67,7 @@ describe('ContextMenu tag buttons', () => {
     test('files the label for the next submission on each edit, not only when the menu opens', () => {
         const label = makeLabel('Obstacle');
         menu.show(label);
-        // As a save while the menu is open (a share, the tracker's flush) does.
+        // A save while the menu is open (a share, the tracker's flush) empties the list the same way.
         labelContainer.addToLabelsToLog.mockClear();
 
         ui.tagHolder.querySelector('button').click();

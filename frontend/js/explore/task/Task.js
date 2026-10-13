@@ -1,6 +1,6 @@
 /**
  * One street to audit: its geometry (oriented the way it is walked), how far along it the labeler has been, and its
- * state. How it is drawn on the minimap is TaskContainer's call (renderTask); this only says what its lines are.
+ * state. TaskContainer decides how it is drawn on the minimap; this only says what its lines are.
  */
 
 import { util } from '../../common/utilities.js';
@@ -21,13 +21,12 @@ export class Task {
   // fixed metre distance from swallowing most of a short street.
   static END_PROXIMITY_MAX_FRACTION = 0.4;
   // How far from the street's line a position may sit and still count as on the street: past it a pano can neither
-  // advance the furthest point reached nor finish the street. Matches the pano search radius
-  // (PanoViewer.SEARCH_RADIUS_M), so on GSV anything a street sweep lands on is within it by construction: GsvViewer
-  // holds Google's replies to that radius, which Google itself doesn't (#5114). Mapillary and Panoramax search a square
-  // box of that half-width instead, whose corners reach about 35 m, so for them it bounds a landing only roughly.
+  // advance the furthest point reached nor finish the street. Equal to the pano search radius
+  // (PanoViewer.SEARCH_RADIUS_M), which GsvViewer holds Google's replies to (#5114); Mapillary and Panoramax search a
+  // square box of that half-width, so for them it bounds a landing only roughly.
   static ON_STREET_MAX_DISTANCE_M = 25;
-  // How far (km) from a street's line the labeler may stand and still count as on it: for advancing along it, for
-  // the compass's on-route check, and for picking up the next street.
+  // How far (km) from a street's line the labeler may stand and still count as on it: advancing along it, the
+  // compass's on-route check, and picking up the next street all use it.
   static CLOSE_TO_ROUTE_KM = 0.05;
 
   #streetCoverage;
@@ -173,8 +172,7 @@ export class Task {
   }
 
   /**
-   * The street as the minimap draws it while it is the one being walked: the audited half and the walk-this-way half
-   * (#4639).
+   * The current street as the minimap draws it: the audited half and the walk-this-way half (#4639).
    * @returns {MinimapStreetLine[]}
    */
   #currentStreetLines() {
@@ -639,9 +637,8 @@ export class Task {
    * that turf slices down to a single point, when the furthest point sits on an endpoint, is dropped by the minimap.
    *
    * @param {object} context - What the task can't know on its own.
-   * @param {boolean} context.exploreAddressMode - Free exploration draws only what the labeler has earned (#5733): with
-   *   no route, unwalked streets and the walk-this-way half stay off the map, where they would read as progress
-   *   being scored (#4451).
+   * @param {boolean} context.exploreAddressMode - Free exploration draws only what the labeler has earned (#5733,
+   *   #4451): with no route, unwalked streets and the walk-this-way half stay off the map.
    * @param {boolean} context.current - Whether this is the street being walked.
    * @param {boolean} context.route - Whether the streets form a designated route.
    * @returns {MinimapStreetLine[]} Nothing to draw is an empty list.
@@ -668,10 +665,9 @@ export class Task {
         { kind: 'other', coordinates: this.#getPointsOnUnauditedSegments() },
       ];
     }
-    // On a designated route every street ahead is part of the planned path, so paint it as the route-to-walk: a
-    // dashed line with direction chevrons over a white casing, the same encoding as the current street's remaining
-    // half (and RouteBuilder's own rendering), so the whole route reads as a dotted, arrowed path when zoomed out.
-    // A free region audit has no planned path, so its non-current streets stay quiet context.
+    // On a route every street ahead is part of the planned path, so it is painted as route-to-walk (dashed, with
+    // chevrons, over a white casing), the same as the current street's remaining half and RouteBuilder, so the whole
+    // route reads as one arrowed path. A region audit has no planned path, so its other streets stay quiet context.
     return wholeStreet(route ? 'remaining' : 'other');
   }
 

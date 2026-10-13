@@ -25,8 +25,7 @@ export class TutorialIntro {
   #motionPaused = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   /**
-   * @param {boolean} routeWaiting - Whether the user clicked through to a route that is still waiting for them past
-   *   the tutorial, so the intro can say so.
+   * @param {boolean} routeWaiting - Whether a route waits for the user past the tutorial, so the intro can say so.
    * @param {Tracker} tracker - Interaction logger.
    * @param {object} callbacks - Callbacks fired when the user leaves the intro.
    * @param {Function} callbacks.onStart - Invoked when the user finishes the intro and starts the tutorial.

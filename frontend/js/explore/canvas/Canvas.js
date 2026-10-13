@@ -535,9 +535,8 @@ export class Canvas {
   }
 
   /**
-   * Populates and positions the hover card next to a label, showing its type, severity, tags, and description,
-   * plus its Delete/Edit action buttons. The populate itself lives in the shared LabelCardView (#4730); what stays
-   * here is everything Explore-specific — the context-menu guard, the card's mode classes, and the anchoring.
+   * Shows the hover card beside a label. Its content comes from the shared LabelCardView (#4730); what is here is
+   * the Explore-specific part: the context-menu guard, the card's mode classes, and the anchoring.
    *
    * The card is a single shared DOM element positioned in on-screen pixels, so the label's logical canvas
    * coordinate is scaled to the displayed pano size (see util.exploreDisplayScale).
@@ -628,10 +627,9 @@ export class Canvas {
   }
 
   /**
-   * Told of each label placed here, after its menu has opened: the tutorial checks where it landed and then works
-   * the menu.
+   * Told of each label placed here, once its menu is open (the tutorial checks where it landed, then works the menu).
    * @param {(label: Label) => void} listener
-   * @returns {() => void} Stops telling it.
+   * @returns {() => void} Unsubscribes.
    */
   onLabeled(listener) {
     this.#labeledListeners.push(listener);
@@ -787,8 +785,7 @@ export class Canvas {
   }
 
   /**
-   * Saves a screenshot of the pano for a label just placed, to be uploaded to the server later. Off the UI thread's
-   * path, so the placement never waits on it.
+   * Saves a screenshot of the pano for a label just placed, for the later upload. The placement never waits on it.
    * @param {Label} label
    */
   #saveCropFor(label) {

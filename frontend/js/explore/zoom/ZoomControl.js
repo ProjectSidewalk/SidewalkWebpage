@@ -79,7 +79,7 @@ export class ZoomControl {
   /**
    * Told of each zoom step taken by button or key (the tutorial's zoom steps wait for one).
    * @param {(direction: 'in'|'out') => void} listener
-   * @returns {() => void} Stops telling it.
+   * @returns {() => void} Unsubscribes.
    */
   onZoomed(listener) {
     this.#zoomedListeners.push(listener);
@@ -125,10 +125,8 @@ export class ZoomControl {
   }
 
   /**
-   * Syncs the zoom buttons' enabled/disabled state to the pano's zoom, so a zoom applied outside this control (a
-   * seeded view, a move that carries the previous pano's zoom over) can't leave zoom-out dead until the first
-   * zoom-in (#4637). Runs on every view change; the gates only touch the DOM when a button actually changes state.
-   * Only touches the button UI; it does not re-apply the zoom to the pano.
+   * Holds or releases each button's limit for the pano's zoom, so a zoom set outside this control (a seeded view, a
+   * move) can't leave zoom-out dead until the first zoom-in (#4637). Only the buttons change; the pano isn't re-zoomed.
    * @param {number} zoomLevel - The pano's current zoom level.
    */
   syncButtonsToZoom(zoomLevel) {
@@ -248,8 +246,7 @@ export class ZoomControl {
     }
 
     const zoomLevel = Math.min(Math.max(zoomLevelIn, this.#properties.minZoomLevel), this.#properties.maxZoomLevel);
-    // The hover card is anchored to a label that is about to move; the view change itself re-renders the canvas and
-    // syncs the buttons.
+    // The hover card is anchored to a label about to move; the view change itself redraws the canvas and the buttons.
     this.#canvas.showLabelHoverInfo(undefined);
     this.#panoManager.setZoom(zoomLevel);
     return zoomLevel;

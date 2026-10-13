@@ -87,7 +87,6 @@ export class RibbonMenu {
     // Lets a toast over the pano go click-through while a label type is armed (svl-canvas.css, #5496).
     document.body.classList.toggle('explore-labeling', mode !== 'Walk');
     this.#setLabelTypeButtonBorderColors(mode);
-    // Recolor the panorama frame to match the selected label type (black while in Walk mode).
     const borderColor = util.misc.getLabelColors()[mode].fillStyle;
     if (this.#uiRibbonMenu.panoFrame) this.#uiRibbonMenu.panoFrame.style.borderColor = borderColor;
   }

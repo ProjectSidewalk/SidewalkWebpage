@@ -1,10 +1,9 @@
 /**
  * The streets of the region or route being explored, which one is being walked, and how they are drawn on the
- * minimap. What happens when the current street changes or ends is announced (onCurrentTaskChanged, onTaskEnded,
- * onTaskLeft) rather than done here, since the compass, the crumbs, the mission and the Form are built after this.
+ * minimap. A street changing or ending is announced (onCurrentTaskChanged, onTaskEnded, onTaskLeft) rather than acted
+ * on here, since the compass, the crumbs, the mission and the Form are built after this.
  *
- * TODO Split the responsibilities. Storing tasks should remain here, but fetching data from the server could go to
- * a TaskModel.
+ * TODO Split the responsibilities: storing tasks stays here, fetching from the server could go to a TaskModel.
  */
 
 import { util } from '../../common/utilities.js';
@@ -115,8 +114,7 @@ export class TaskContainer {
     // Updates the segments that the user has already explored.
     this.updateCurrentTask();
 
-    // After task.complete(), so the just-finished task is filtered out of
-    // getIncompleteTasksAcrossAllUsersUsingPriority() naturally.
+    // After task.complete(), so getIncompleteTasksAcrossAllUsersUsingPriority() leaves the just-finished task out.
     this.#updateRegionCompleteAcrossAllUsersStatus();
 
     return task;

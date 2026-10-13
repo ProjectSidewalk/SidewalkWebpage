@@ -332,20 +332,12 @@ export class Form {
   }
 
   /**
-   * Makes sure a label exists server-side, submitting the session's pending labels if it doesn't yet.
+   * Makes sure a label exists server-side before it is shared, submitting the pending labels if it doesn't yet.
+   * Resolves quietly when the submission produces no id: the caller then finds nothing to share.
    *
-   * Both label panels' share controls use it, which is why it lives here rather than behind either one. Resolves
-   * quietly when there is nothing to do, and also when the submission fails to produce an id — the caller then
-   * finds an empty target and does nothing, which is the right outcome for a share that can't be built.
-   *
-   * The crop upload is awaited too, not just the id: /label/:id/image falls back to a fetched Street View still (or
-   * the branded placeholder) when no crop is on disk, and caches whatever it built there permanently. Sharing a
-   * label the instant it is placed is exactly the race that would bake that fallback in for good.
-   *
-   * That wait is capped, though. The upload sleeps a fixed 3s when the canvas hasn't produced a crop yet, and a
-   * share button that does nothing for three seconds reads as broken. Past the cap the popover opens anyway: the
-   * link works, and ImageController drops the cached preview when the crop does land, so the picture corrects
-   * itself on the next fetch. A stalled button would not.
+   * The crop upload is awaited too, since /label/:id/image caches a Street View still for good when no crop is on
+   * disk yet. The wait is capped so the share button never reads as broken; past the cap the link still works, and
+   * ImageController drops the cached preview once the crop lands.
    *
    * @param {?Label} label - The label about to be shared.
    * @returns {Promise<void>}

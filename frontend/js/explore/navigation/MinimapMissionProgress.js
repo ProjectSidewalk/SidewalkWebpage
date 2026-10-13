@@ -37,8 +37,7 @@ export class MinimapMissionProgress {
    * @param {MinimapUi} ui
    * @param {ExploreConfig} config
    * @param {RegionModel} regionModel
-   * @param {TaskContainer} taskContainer - Whose streets carry the mission's start, and whose current street may
-   *   carry its finish.
+   * @param {TaskContainer} taskContainer - Whose streets carry the mission's start and may carry its finish.
    * @param {MissionContainer} missionContainer - Measures a mission's completion.
    * @param {Minimap} minimap - Where the flags are planted.
    */

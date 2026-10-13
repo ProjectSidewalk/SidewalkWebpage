@@ -5,10 +5,8 @@
  * the next form submit, so clicking share submits first and then shares. The method is small but every branch is a
  * user-visible outcome — a share that opens against the wrong URL, that opens against no URL, or that hangs.
  *
- * Form's constructor subscribes to the task and mission containers, so these call the method off the prototype
- * with a `this` that holds only the submitData it calls. That works because everything else it touches is an
- * argument — the 800ms cap it reads is a *static* private field, resolved through the class binding rather than
- * the instance.
+ * Form's constructor subscribes to the task and mission containers, so these call the method off the prototype with
+ * a `this` holding only the submitData it calls; everything else it touches is an argument or a static field.
  */
 
 const { loadModules } = require('./loadGlobalScript');

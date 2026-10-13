@@ -1,9 +1,8 @@
 /**
  * Logs interaction data from the Explore/Audit interface.
  *
- * Built first, before anything that logs, so nothing has to cope with its absence. The pano each row is stamped with
- * arrives through trackPano(), the flush through onFlush(). A row about a label is filed under it by the caller
- * passing the label to push(), and stays filed under it until the labeler is done with that label.
+ * Built before anything that logs, so the pano manager and the flush register later (trackPano, onFlush). A row is
+ * filed under the label passed to push(), as are the rows after it until the labeler is done with that label.
  */
 
 /** @typedef {import('../label/Label.js').Label} Label */

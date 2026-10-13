@@ -1,6 +1,6 @@
 /**
- * Onboarding module: the hands-on tutorial, which takes over the whole tool and walks the user through a scripted
- * street (OnboardingStates). It touches nearly every control, so it takes nearly every one.
+ * The hands-on tutorial: it takes over the whole tool and walks the user through a scripted street
+ * (OnboardingStates), so it is handed nearly every control.
  * Todo. So many dependencies! If possible, break the module down into pieces.
  */
 

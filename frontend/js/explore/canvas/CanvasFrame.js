@@ -1,9 +1,7 @@
 /**
  * The logical frame Explore labels in: the 720-wide canvas every click is projected through, plus the label icon's
- * radius and click target in it. All three follow the displayed pano's size (#4838, #5085), so one object holds
- * them and Main refreshes it whenever the tool is laid out, rather than each reader measuring the page per render.
- *
- * The values start at their scale-1, boxed defaults because the tool renders at scale 1 until the first layout.
+ * radius and click target. All three follow the displayed pano's size (#4838, #5085), so Main refreshes this one
+ * object per layout rather than every reader measuring the page per render. The defaults are the scale-1 values.
  */
 
 import { util } from '../../common/utilities.js';
@@ -37,11 +35,9 @@ export class CanvasFrame {
   }
 
   /**
-   * Re-measures the frame for the pano's current box. Cached here rather than computed per render: the values are
-   * read once per label per canvas render, and per label on every mousemove, and each read would otherwise force a
-   * style recalculation.
-   * @param {number} displayScale - The pano's display scale (util.exploreDisplayScale), which caps the icon in
-   *   screen px.
+   * Re-measures the frame for the pano's current box. Cached, since the values are read per label on every render and
+   * mousemove, and each read would otherwise force a style recalculation.
+   * @param {number} displayScale - The pano's display scale (util.exploreDisplayScale), capping the icon's screen px.
    */
   refresh(displayScale) {
     const frame = util.exploreCanvasFrame();

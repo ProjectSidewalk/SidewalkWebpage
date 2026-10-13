@@ -8,8 +8,7 @@
  *     fixed by its walking order;
  *   - a priority refresh that names a street this page has no task for is skipped, not applied to `_tasks[-1]`.
  *
- * LabelContainer, Form and TaskContainer are loaded as modules and built against the smallest collaborators each
- * contract needs.
+ * LabelContainer, Form and TaskContainer are loaded as modules and built against the fewest collaborators each needs.
  */
 
 const { loadModules } = require('./loadGlobalScript');

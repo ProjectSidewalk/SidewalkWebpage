@@ -1,6 +1,5 @@
 /**
- * Wires Explore together: the one place its modules are built, so every dependency between them is visible. Loads
- * the pano viewer and the page's data, then starts the first mission or the onboarding tutorial.
+ * Builds Explore's modules in one place, so every dependency is visible, then starts the first mission or tutorial.
  */
 
 import { ImmersiveMode } from '../common/ImmersiveMode.js';
@@ -76,7 +75,7 @@ import '../common/utilitiesMath.js';
 import '../common/utilitiesSidewalk.js';
 
 /**
- * What the page was opened with, read once and shared by every module that needs a page-level fact.
+ * What the page was opened with, read once.
  * @typedef {object} ExploreConfig
  * @property {boolean} isOnboarding - Whether this session is the tutorial.
  * @property {boolean} isExploreAddressMode - Free exploration at a searched address (#4451): labeling works
@@ -182,8 +181,7 @@ import '../common/utilitiesSidewalk.js';
  */
 
 /**
- * The console and e2e handle pages/explore.js puts on `window.svl`: the few live objects a test or a developer
- * inspects. Nothing in the app reads it.
+ * The handle pages/explore.js puts on `window.svl` for the console and e2e tests. Nothing in the app reads it.
  * @typedef {object} ExploreHandle
  * @property {ExploreConfig} config
  * @property {PanoManager} [panoManager]
@@ -229,8 +227,7 @@ export class Main {
   #tutorialRouteWaiting = false;
 
   /**
-   * The modules the start-up's later steps act on, kept together since the data load completes well after they are
-   * built.
+   * The modules start-up's later steps act on, kept since the data load finishes well after they are built.
    * @type {?{tracker: Tracker, keyboardLock: Gate, alertController: AlertController, regionModel: RegionModel,
    *   missionModel: MissionModel, panoManager: PanoManager, navArrows: NavArrows, minimap: Minimap,
    *   minimapMissionProgress: MinimapMissionProgress, taskContainer: TaskContainer,
@@ -285,9 +282,8 @@ export class Main {
   }
 
   /**
-   * Instantiates the tool's components in dependency order: what each one needs is built before it, and what is
-   * built later subscribes to what came first. Only the policy that spans modules is wired here: what a pop-up
-   * stops, and the sign-in dialog that is one.
+   * Builds the modules in dependency order; what is built later subscribes to what came first. Only policy that
+   * spans modules is wired here: what a pop-up stops.
    * @returns {Promise<ExploreHandle>}
    */
   async #init() {
@@ -297,11 +293,9 @@ export class Main {
     const ui = this.#ui;
     const frame = this.#frame;
 
-    // Logging comes first, before anything that logs; the two locks before anything that holds them.
     const storage = new TemporaryStorage(JSON);
     const tracker = new Tracker();
     const keyboardLock = new Gate();
-    // The hold a pop-up puts on the whole tool; what it stops is wired below, once those things exist.
     const interactionLock = new Gate();
 
     const regionModel = new RegionModel(config.userRouteId, tracker);
@@ -319,7 +313,7 @@ export class Main {
     const seed = isTutorialTask
       ? { startPanoId: 'tutorial' }
       : { startPanoId: session.start_pano_id, startLat, startLng, startPov: session.start_pov };
-    // The viewer and the minimap load side by side; everything that needs neither is built meanwhile.
+    // The viewer and the minimap load side by side; what needs neither is built meanwhile.
     const panoManager = new PanoManager(ui.streetview, config, panoStore, tracker, alertController, seed,
       { task: newTask, missionId: session.mission.mission_id });
     const minimapLoading = Minimap.create(ui.minimap, { lat: startLat, lng: startLng }, panoManager, tracker);
@@ -354,12 +348,10 @@ export class Main {
     newTask.updateTheFurthestPointReached(currLatLng);
     // The drop-in pano is the first one seen of its street (#5733).
     if (config.isExploreAddressMode) newTask.recordVisit(currLatLng);
-    // The first pano landed while the map was still loading, so it is centered on it here.
     minimap.setMinimapLocation(currLatLng);
     const peg = new Peg(minimap, panoManager);
 
-    // The streets, the missions and the labels. The containers subscribe to one another, so the first mission is
-    // created only once all three exist.
+    // The containers subscribe to one another, so the first mission is created only once all three exist.
     const taskContainer = new TaskContainer(newTask, config, regionModel, minimap, panoManager, overallStats, tracker);
     const missionContainer = new MissionContainer(config, missionPanel, missionModel, storage, taskContainer,
       panoManager);
@@ -384,8 +376,7 @@ export class Main {
     const aiGuidance = new AiGuidance(config, taskContainer, popUpMessage, tracker);
     const reauditNotice = new ReauditNotice(taskContainer, tracker);
 
-    // Walking: the arrows on the pano, and the service that moves. The arrows announce their clicks since the
-    // service that answers them is built after.
+    // The arrows announce their clicks, since the service that answers them is built after.
     const navArrows = new NavArrows(ui.streetview.navArrows, ui.streetview.navArrowsContainer, config, taskContainer,
       panoManager);
     const navigationService = new NavigationService(ui.streetview, config, regionModel, missionModel,
@@ -515,7 +506,7 @@ export class Main {
     new SpeedLimit(() => panoManager.panoViewer, () => panoManager.getPosition(), () => config.isOnboarding,
       config.countryId, { taskContainer });
 
-    // Wired last, so that no shortcut acts before the tool is wired.
+    // Last, so no shortcut acts before the tool is wired.
     const keyboard = new KeyboardManager(keyboardLock, canvas, contextMenu, navigationService, labelModes, zoomControl,
       panoManager, compass, immersiveMode, tracker);
 
@@ -527,7 +518,7 @@ export class Main {
       immersiveMode, keyboard, iconsPreloaded,
     };
 
-    // A pop-up stops the tool under it: no walking, panning, labeling, mode switching or shortcuts until it closes.
+    // A pop-up stops the tool under it until it closes.
     const stopped = [navigationService.walking, panoManager.panning, canvas.labeling, labelModes.switching,
       keyboardLock];
     interactionLock.onChanged((held) => {
@@ -536,7 +527,7 @@ export class Main {
         else gate.release('interaction');
       }
     });
-    // The auth dialog is absent when signed in; the tool stops and dims while it's open (events from common/Modal.js).
+    // Absent when signed in; the tool dims under it (events from common/Modal.js).
     const signInModal = document.getElementById('sign-in-modal-container');
     const toolUi = document.querySelectorAll('.tool-ui');
     signInModal?.addEventListener('ps:modal:hidden', () => {
@@ -547,8 +538,8 @@ export class Main {
       interactionLock.hold('sign-in');
       toolUi.forEach((el) => el.style.opacity = '0.5');
     });
-    // Some viewers (Infra3D) fire pano_changed before their metadata names the new pano, so the URL can still read
-    // the old one. Every viewer's metadata is current by now, so ask again from here.
+    // Some viewers (Infra3D) fire pano_changed before their metadata names the new pano, so the URL could read the
+    // old one; by now every viewer's metadata is current.
     panoManager.onPanoChanged(() => this.#urlSync?.request());
 
     this.#loadData();
@@ -663,7 +654,6 @@ export class Main {
   #startOnboarding() {
     const m = this.#modules;
     // TODO probably have a GET endpoint to get onboarding mission..?
-    // hide any alerts
     m.alertController.hideAlert();
 
     if (!this.#onboarding) {
@@ -778,7 +768,7 @@ export class Main {
   }
 
   /**
-   * Raises the mission-start screen, and queues behind it the one toast this visit may owe.
+   * Raises the mission-start screen, with the one toast this visit may owe queued behind it.
    * @param {Region} currentRegion
    */
   #showMissionStart(currentRegion) {
@@ -792,7 +782,7 @@ export class Main {
     // only when handing one back — since a labeler mid-street may have zero mission distance banked.
     const resuming = currentMission.getProperty('missionType') === 'audit'
       && (missionProgressM > 0 || Boolean(this.#session.task.properties.audit_task_id));
-    // Paused under the screen; its Done hands the shortcuts back (TutorialHooks.keyboard).
+    // The screen's Done hands the shortcuts back (TutorialHooks.keyboard).
     m.keyboardLock.hold('tutorial');
     new MissionStartTutorial('audit', labelType, {
       nLength: currentMission.getDistance('miles'),
@@ -907,10 +897,9 @@ export class Main {
       applyExploreScale();
       clearTimeout(resizeRasterTimer);
       resizeRasterTimer = setTimeout(() => {
-        // The viewer hears about the settled size, after the rescale above has changed its box — telling it per
-        // event would describe the box it already had, and the last event of a drag would go unanswered. It also
-        // keeps the providers whose resize() is a full re-measure (Mapillary, Infra3d, Panoramax) off the event
-        // firehose.
+        // The viewer hears about the settled size, after the rescale above has changed its box: told per event it
+        // would measure the box it already had, and the last event of a drag would go unanswered. It also keeps the
+        // providers whose resize() is a full re-measure (Mapillary, Infra3d, Panoramax) off the event stream.
         refit();
         // Logged on the settled size rather than per event, so a window drag is one line (#5367). The repaint
         // above bypasses the POV path that logs POV_Changed, so none follows this one.

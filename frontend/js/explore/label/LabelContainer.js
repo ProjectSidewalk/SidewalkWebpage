@@ -1,8 +1,7 @@
 /**
- * The labels of this session: the ones placed here and the ones fetched to resume the mission, bucketed by pano.
- * Owns a label's lifecycle (creating it, placing it on the minimap, removing it, whether it may be deleted) and
- * announces what the canvas and the legend need to draw (onLabelPlaced, onLabelRemoved, onEarlierLabelsShownChanged),
- * since both are built after this.
+ * The labels of this session, placed here or fetched to resume the mission, bucketed by pano. Owns their lifecycle
+ * (creating, placing on the minimap, removing, whether deleting is allowed) and announces what the canvas and the
+ * legend draw, since both are built after this.
  */
 
 import { util } from '../../common/utilities.js';
@@ -45,9 +44,8 @@ export class LabelContainer {
   #deleteEnabled = true;
   #deleteLocked = false;
 
-  // The mission id the minimap's label eras were last derived against (#4945). The mission container announces after
-  // every successful data submission, not only when the mission changes, so this is what keeps the re-derivation (a
-  // pass over every label in the region) to actual mission boundaries.
+  // The mission the minimap's label eras were last derived for (#4945): the mission container announces after every
+  // submission, not only at mission changes, and re-deriving is a pass over every label in the region.
   #minimapEraMissionId = null;
 
   /** @type {Array<(label: Label) => void>} */
@@ -407,7 +405,6 @@ export class LabelContainer {
   }
 
   /**
-   * Removes a label, updates the canvas, and updates label counts.
    * @param {Label} label
    * @returns {boolean} False when the label may not be deleted (see canDelete).
    */

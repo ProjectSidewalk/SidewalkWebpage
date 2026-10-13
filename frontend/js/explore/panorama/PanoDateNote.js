@@ -72,8 +72,8 @@ export class PanoDateNote {
     const noteCaptureDate = (captureDate) => {
       this.update(captureDate ? util.localIsoDate(captureDate) : null, taskContainer.getCurrentTask());
     };
-    // The first pano landed before the note existed, so it is drawn for it here; the corner would otherwise stay
-    // empty until the labeler's first step (#4671 closed the same gap for the nav arrows).
+    // The first pano landed before the note existed, so it is noted here; the corner would otherwise stay empty until
+    // the labeler's first step (#4671 closed the same gap for the nav arrows).
     noteCaptureDate(panoStore.getPanoData(panoManager.getPanoId())?.getProperty('captureDate'));
     panoManager.onPanoChanged((panoData) => noteCaptureDate(panoData.getProperty('captureDate')));
   }

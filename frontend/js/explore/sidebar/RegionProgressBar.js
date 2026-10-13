@@ -17,8 +17,7 @@ export class RegionProgressBar {
   #rateEl;
 
   /**
-   * @param {object} ids - The element ids, so the same bar can be drawn in the sidebar and in the mission-complete
-   *   modal.
+   * @param {object} ids - The element ids; the same bar is drawn in the sidebar and in the mission-complete modal.
    * @param {string} ids.fill - Id of the rounded fill pill.
    * @param {string} ids.you - Id of the current-user segment.
    * @param {string} ids.community - Id of the community segment.
