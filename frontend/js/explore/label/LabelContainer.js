@@ -163,6 +163,8 @@ export class LabelContainer {
     }
     const label = new Label(params, this.#frame, this.#config.latLngEstimation, this.#panoStore);
     label.placeOnMinimap(this.#minimap, this.#currentMissionId(), () => this.#returnToLabel(label));
+    // Restored labels too: editing one from an earlier session has to reach the server as well.
+    label.onEdited(() => this.#addLabelToListObject(this.#labelsToLog, label));
 
     // Add to list of labels. If new, also add to current canvas labels.
     if (isNew) {
@@ -280,14 +282,6 @@ export class LabelContainer {
   /** @returns {?Label} The label placed most recently this session. */
   getLatestLabel() {
     return this.#latestLabel;
-  }
-
-  /**
-   * Adds a label to the list of labels that should be logged; called when a user interacts with an existing label.
-   * @param {Label} label
-   */
-  addToLabelsToLog(label) {
-    this.#addLabelToListObject(this.#labelsToLog, label);
   }
 
   clearLabelsToLog() {
