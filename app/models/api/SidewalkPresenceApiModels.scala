@@ -92,6 +92,8 @@ object SidewalkPresenceForApi extends ApiFields[SidewalkPresenceForApi] {
     // so a positional CSV or .dbf reader written against it keeps its column indexes (#5285).
     field("validated_no_sidewalk_count")(_.validatedNoSidewalkCount),
     field("rejected_no_sidewalk_count")(_.rejectedNoSidewalkCount),
+    // Last among the shared fields, so a JSON or .dbf reader written before #5741 keeps its indexes; the CSV's
+    // start_point and end_point columns, which follow these, each move one to the right.
     field("osm_ways")(_.osmWays)
   )
 

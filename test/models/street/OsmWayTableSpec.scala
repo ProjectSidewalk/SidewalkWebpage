@@ -2,6 +2,7 @@ package models.street
 
 import models.utils.MyPostgresProfile.api.given
 import org.scalatest.BeforeAndAfterAll
+import org.locationtech.jts.geom.{Coordinate, GeometryFactory, PrecisionModel}
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
@@ -58,6 +59,24 @@ class OsmWayTableSpec
   }
 
   private def micros(time: OffsetDateTime): Instant = time.toInstant.truncatedTo(ChronoUnit.MICROS)
+
+  "OsmWayTable.upsert" should {
+    "keep the edit version and timestamp the refresh stored when an on-demand lookup rewrites the way" in {
+      val fetchedAt = OffsetDateTime.now.minusDays(2)
+      val edited    = OffsetDateTime.now.minusDays(30)
+      run(osmWayTable.upsertBatch(Seq((wayId, OsmWayFetched(bridgeTags, Some(7), Some(edited)), None)), Nil, fetchedAt))
+      val line = GeometryFactory(PrecisionModel(), 4326).createLineString(Array(Coordinate(0, 0), Coordinate(1, 0)))
+      run(
+        osmWayTable.upsert(OsmWay(wayId, bridgeTags, Some("40 mph"), Some(line), "on_demand", OffsetDateTime.now, None))
+      ) mustBe 1
+      val (version, timestamp, source, hasGeom) = run(
+        sql"""SELECT osm_version, osm_timestamp, source, geom IS NOT NULL FROM osm_way WHERE osm_way_id = $wayId"""
+          .as[(Option[Int], Option[OffsetDateTime], String, Boolean)]
+          .head
+      )
+      (version, timestamp.map(micros), source, hasGeom) mustBe (Some(7), Some(micros(edited)), "on_demand", true)
+    }
+  }
 
   "OsmWayTable.upsertBatch" should {
     "store a found way's tags with no missing mark" in {

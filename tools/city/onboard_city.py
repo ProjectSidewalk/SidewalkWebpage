@@ -1280,7 +1280,7 @@ def street_lineage(roads, ways):
                'same_direction']
     if ways is None:
         rows = [(road.road_id, way_id, None, None, None, None, None)
-                for road in roads.itertuples() for way_id in road.osm_ids]
+                for road in roads.itertuples() for way_id in dict.fromkeys(road.osm_ids)]
         frame = pd.DataFrame(rows, columns=columns)
         return gpd.GeoDataFrame(frame, geometry=[None] * len(frame), crs='EPSG:4326'), None
     lineages = compute_lineage(((road.road_id, road.geometry, road.osm_ids) for road in roads.itertuples()),

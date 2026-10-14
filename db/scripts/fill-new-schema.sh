@@ -249,8 +249,9 @@ psql -v ON_ERROR_STOP=1 -d sidewalk -U "$SCHEMA_NAME" <<-EOSQL
         END LOOP;
     END \$\$;
 
-    -- Remove the staging tables — qgis_road first, since onboard_city.py's staging SQL gives it a foreign key to
-    -- qgis_region.
+    -- Remove the staging tables, each before the one it holds a foreign key to (onboard_city.py's staging SQL):
+    -- the way positions point at qgis_road, which points at qgis_region.
+    DROP TABLE IF EXISTS qgis_road_osm_way;
     DROP TABLE qgis_road;
     DROP TABLE qgis_region;
 

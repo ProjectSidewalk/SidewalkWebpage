@@ -310,7 +310,7 @@ export const SidewalkPresencePreview = {
             rel="noopener noreferrer">${util.escapeHTML(props.osm_way_id)}</a>`
         : 'N/A';
       // Which side of each OSM way this face is: what a sidewalk:left / sidewalk:right tag on the way would mean.
-      const osmSides = (props.osm_ways || []).map((way) => {
+      const osmSides = (ApiDocsMap.featureProp(props, 'osm_ways') || []).map((way) => {
         const side = way.osm_side === null ? 'side unknown' : `its ${util.escapeHTML(way.osm_side)} side`;
         return `<a href="https://www.openstreetmap.org/way/${util.escapeHTML(way.osm_way_id)}" target="_blank"
             rel="noopener noreferrer">${util.escapeHTML(way.osm_way_id)}</a> (${side})`;

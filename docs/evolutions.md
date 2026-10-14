@@ -168,6 +168,11 @@ backfill is the template); `StreetSideSpec` fails if a stored value differs from
 case is the easiest to miss and the worst to get wrong: a street re-import that **reverses** an edge's digitization
 flips the sign of every offset on it, so labels silently swap sides while every value still looks plausible.
 
+`osm_way_street_edge.is_primary` (#5741) is a cached ranking rather than a distance, and the one cache a trigger
+maintains: the table has many writers (the onboarding fill, the lineage imports, the #4717 consolidation, spec
+fixtures) and no nightly refresh, so statement triggers re-rank the streets each insert, delete or position change
+touches. `OsmWayStreetEdgeSpec` still fails on a flag that disagrees with a fresh ranking.
+
 ## A new table that cross-schema queries read
 
 `ConfigTable`'s fan-out queries read other cities' schemas, and each city instance applies its own evolutions when it

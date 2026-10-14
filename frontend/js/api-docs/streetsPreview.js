@@ -406,7 +406,7 @@ export const StreetsPreview = {
             rel="noopener noreferrer">${util.escapeHTML(props.osm_way_id)}</a>`
         : 'N/A';
       // A street built from several OSM ways lists each with the stretch of the street it covers.
-      const osmWays = (props.osm_ways || []).map((way) => {
+      const osmWays = (ApiDocsMap.featureProp(props, 'osm_ways') || []).map((way) => {
         const stretch = way.street_from_frac === null
           ? ''
           : ` (${Math.round(way.street_from_frac * 100)}–${Math.round(way.street_to_frac * 100)}% of the street${

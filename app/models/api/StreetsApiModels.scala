@@ -48,9 +48,28 @@ case class OsmWayLinkForApi(
     wayToFrac,
     sameDirection.map(same => if (same) streetSide else if (streetSide == "left") "right" else "left")
   )
+
+  /**
+   * The link as a shapefile cell: `way:from-to:+` (`-` where the way runs the other direction), the stretch of the
+   * street to three places, or just the way id without a position. A .dbf text field holds 254 bytes, which the JSON
+   * list overruns at two ways.
+   */
+  def shapefileText: String =
+    OsmWayLinkForApi.shapefileText(osmWayId, streetFromFrac, streetToFrac, sameDirection.map(if (_) "+" else "-"))
 }
 
 object OsmWayLinkForApi {
+
+  /** `way:from-to:tail`, or `way` alone without a position; `tail` is the direction or side mark. */
+  def shapefileText(
+      osmWayId: Long,
+      streetFromFrac: Option[Double],
+      streetToFrac: Option[Double],
+      tail: Option[String]
+  ): String = (streetFromFrac, streetToFrac, tail) match {
+    case (Some(from), Some(to), Some(mark)) => f"$osmWayId:$from%.3f-$to%.3f:$mark"
+    case _                                  => osmWayId.toString
+  }
 
   /** The field names, shared by the JSON written out and the JSON the queries aggregate in SQL. */
   given osmWayLinkWrites: Writes[OsmWayLinkForApi] = (link: OsmWayLinkForApi) =>
@@ -107,7 +126,11 @@ case class OsmWaySideForApi(
     wayFromFrac: Option[Double],
     wayToFrac: Option[Double],
     osmSide: Option[String]
-)
+) {
+
+  /** The link as a shapefile cell, `way:from-to:left` or `:right`, or just the way id without a position. */
+  def shapefileText: String = OsmWayLinkForApi.shapefileText(osmWayId, streetFromFrac, streetToFrac, osmSide)
+}
 
 object OsmWaySideForApi {
   given osmWaySideWrites: Writes[OsmWaySideForApi] = (link: OsmWaySideForApi) =>
@@ -188,7 +211,8 @@ object StreetDataForApi extends ApiFields[StreetDataForApi] {
     field("user_count")(_.userIds.size),
     field("first_label_date")(_.firstLabelDate.map(_.toString)),
     field("last_label_date")(_.lastLabelDate.map(_.toString)),
-    // Last, so a positional CSV or .dbf reader written before #5741 keeps its column indexes.
+    // Last among the shared fields, so a JSON or .dbf reader written before #5741 keeps its indexes; the CSV's
+    // start_point and end_point columns, which follow these, each move one to the right.
     field("osm_ways")(_.osmWays)
   )
 

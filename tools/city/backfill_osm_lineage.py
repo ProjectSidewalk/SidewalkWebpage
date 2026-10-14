@@ -70,7 +70,8 @@ def read_input(path):
 
 def hull_of(streets, buffer_m):
     """The area to fetch ways for: the streets' convex hull, widened by ``buffer_m``, in lon/lat."""
-    hull = shapely.convex_hull(shapely.union_all([geom for _, _, _, geom in streets]))
+    # A hull needs no union of the lines first, which on a large city is the slow and memory-hungry step.
+    hull = shapely.MultiLineString([geom for _, _, _, geom in streets]).convex_hull
     buffer_deg = buffer_m / (111_320 * cos(radians(hull.centroid.y)))
     return hull.buffer(buffer_deg)
 

@@ -27,13 +27,75 @@ ALTER TABLE osm_way_street_edge
   ADD CONSTRAINT osm_way_street_edge_street_way_position_key
     UNIQUE NULLS NOT DISTINCT (street_edge_id, osm_way_id, street_from_frac);
 
--- The one way per street the APIs name as *the* way: the way covering most of the street, an unpositioned row counting
--- as the whole street, ties to the lowest id. The DISTINCT ON columns are what a join filters on, so the planner pushes
--- a street id filter inside.
+-- The one way per street the APIs name as *the* way, stored as a flag: a placed row before an unplaced one (a placed
+-- row is confirmed to lie there), then the row covering most of the street, then the lowest way id. A view ranking
+-- the rows on the fly (DISTINCT ON) is re-ranked over the whole table whenever a query joins it to a set of streets,
+-- which Explore's next-street query does on every request. Statement triggers re-rank the streets any insert,
+-- delete or position change touches, so no writer (the onboarding fill, the lineage imports, a spec's fixture) has
+-- to know, and OsmWayStreetEdgeSpec fails if a stored flag disagrees with a fresh ranking all the same. The function
+-- returns how many streets got a primary way.
+ALTER TABLE osm_way_street_edge ADD COLUMN is_primary BOOLEAN NOT NULL DEFAULT FALSE;
+CREATE FUNCTION osm_way_street_edge_set_primary(streets integer[]) RETURNS integer
+LANGUAGE sql AS
+$BODY$
+  UPDATE osm_way_street_edge SET is_primary = FALSE WHERE street_edge_id = ANY(streets) AND is_primary;;
+  WITH ranked AS (
+    SELECT DISTINCT ON (street_edge_id) osm_way_street_edge_id
+    FROM osm_way_street_edge
+    WHERE street_edge_id = ANY(streets)
+    ORDER BY street_edge_id, (street_from_frac IS NOT NULL) DESC, street_to_frac - street_from_frac DESC NULLS LAST,
+             osm_way_id, osm_way_street_edge_id
+  ),
+  flagged AS (
+    UPDATE osm_way_street_edge SET is_primary = TRUE
+    WHERE osm_way_street_edge_id IN (SELECT osm_way_street_edge_id FROM ranked)
+    RETURNING 1
+  )
+  SELECT COUNT(*)::integer FROM flagged
+$BODY$;
+SELECT osm_way_street_edge_set_primary(ARRAY(SELECT DISTINCT street_edge_id FROM osm_way_street_edge));
+CREATE UNIQUE INDEX osm_way_street_edge_primary_idx ON osm_way_street_edge (street_edge_id) WHERE is_primary;
+CREATE FUNCTION osm_way_street_edge_rank_primary() RETURNS trigger
+LANGUAGE plpgsql AS
+$BODY$
+DECLARE
+  streets integer[];;
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    streets := ARRAY(SELECT DISTINCT street_edge_id FROM new_rows);;
+  ELSIF TG_OP = 'DELETE' THEN
+    streets := ARRAY(SELECT DISTINCT street_edge_id FROM old_rows);;
+  ELSE
+    -- Only a changed ranking column counts, so the re-rank's own flag writes (and any other update) end here.
+    streets := ARRAY(SELECT old_rows.street_edge_id FROM old_rows
+                     INNER JOIN new_rows ON old_rows.osm_way_street_edge_id = new_rows.osm_way_street_edge_id
+                     WHERE (old_rows.street_edge_id, old_rows.osm_way_id, old_rows.street_from_frac,
+                            old_rows.street_to_frac)
+                           IS DISTINCT FROM (new_rows.street_edge_id, new_rows.osm_way_id, new_rows.street_from_frac,
+                                             new_rows.street_to_frac)
+                     UNION SELECT new_rows.street_edge_id FROM new_rows
+                     INNER JOIN old_rows ON old_rows.osm_way_street_edge_id = new_rows.osm_way_street_edge_id
+                     WHERE old_rows.street_edge_id <> new_rows.street_edge_id);;
+  END IF;;
+  IF cardinality(streets) > 0 THEN
+    PERFORM osm_way_street_edge_set_primary(streets);;
+  END IF;;
+  RETURN NULL;;
+END
+$BODY$;
+CREATE TRIGGER osm_way_street_edge_rank_primary_insert
+  AFTER INSERT ON osm_way_street_edge REFERENCING NEW TABLE AS new_rows
+  FOR EACH STATEMENT EXECUTE FUNCTION osm_way_street_edge_rank_primary();
+CREATE TRIGGER osm_way_street_edge_rank_primary_delete
+  AFTER DELETE ON osm_way_street_edge REFERENCING OLD TABLE AS old_rows
+  FOR EACH STATEMENT EXECUTE FUNCTION osm_way_street_edge_rank_primary();
+CREATE TRIGGER osm_way_street_edge_rank_primary_update
+  AFTER UPDATE ON osm_way_street_edge REFERENCING OLD TABLE AS old_rows NEW TABLE AS new_rows
+  FOR EACH STATEMENT EXECUTE FUNCTION osm_way_street_edge_rank_primary();
 CREATE VIEW osm_way_street_edge_primary AS
-SELECT DISTINCT ON (street_edge_id) street_edge_id, osm_way_id
+SELECT street_edge_id, osm_way_id
 FROM osm_way_street_edge
-ORDER BY street_edge_id, COALESCE(street_to_frac - street_from_frac, 1) DESC, osm_way_id;
+WHERE is_primary;
 
 -- The way under a point of the street (a label, a cluster, an end), by its fraction along the street. A street with
 -- no positioned row covering the point answers with its primary way, so the call never comes back empty for a
@@ -44,8 +106,7 @@ $BODY$
   SELECT osm_way_id
   FROM osm_way_street_edge
   WHERE street_edge_id = street
-  ORDER BY (street_from_frac <= frac AND frac <= street_to_frac) DESC NULLS LAST,
-           COALESCE(street_to_frac - street_from_frac, 1) DESC, osm_way_id
+  ORDER BY (street_from_frac <= frac AND frac <= street_to_frac) DESC NULLS LAST, is_primary DESC, osm_way_id
   LIMIT 1
 $BODY$;
 
@@ -68,7 +129,14 @@ USING (SELECT street_edge_id, MIN(osm_way_street_edge_id) AS keep_id
 WHERE osm_way_street_edge.street_edge_id = keeper.street_edge_id
   AND osm_way_street_edge.osm_way_street_edge_id <> keeper.keep_id;
 DROP VIEW osm_way_street_edge_primary;
+DROP TRIGGER osm_way_street_edge_rank_primary_update ON osm_way_street_edge;
+DROP TRIGGER osm_way_street_edge_rank_primary_delete ON osm_way_street_edge;
+DROP TRIGGER osm_way_street_edge_rank_primary_insert ON osm_way_street_edge;
+DROP FUNCTION osm_way_street_edge_rank_primary();
+DROP INDEX osm_way_street_edge_primary_idx;
+DROP FUNCTION osm_way_street_edge_set_primary(integer[]);
 ALTER TABLE osm_way_street_edge
+  DROP COLUMN is_primary,
   DROP CONSTRAINT osm_way_street_edge_street_way_position_key,
   DROP CONSTRAINT osm_way_street_edge_intervals_ascend_check,
   DROP CONSTRAINT osm_way_street_edge_position_all_or_none_check,

@@ -148,19 +148,34 @@ def candidate_runs(street, way, positions, tol_m=LATERAL_TOL_M, min_run_m=MIN_RU
     points = shapely.line_interpolate_point(street, positions)
     near = shapely.distance(points, way) <= tol_m
     street_length = street.length
+    # Where the way's end nodes fall along the street, for the ends that lie on it. The samples just past an end node
+    # are still within tolerance of it, so a run reaches up to tol_m beyond the way; the way stops at the node.
+    way_ends = shapely.points(np.asarray(way.coords)[[0, -1]])
+    end_positions = shapely.line_locate_point(street, way_ends)[shapely.distance(way_ends, street) <= tol_m]
     runs = []
     for first, last in _runs(near):
         if last == first:
             continue
-        run_length = positions[last] - positions[first]
+        run_from, run_to = positions[first], positions[last]
+        # Each end of the run pulls in to the nearest end node on its own half, so a way shorter than the overhang
+        # cannot have its start trimmed to its far end.
+        middle = (run_from + run_to) / 2
+        starts = end_positions[(run_from < end_positions) & (end_positions <= min(run_from + tol_m, middle))]
+        if starts.size:
+            run_from = starts.min()
+        finishes = end_positions[(max(run_to - tol_m, middle) <= end_positions) & (end_positions < run_to)]
+        if finishes.size:
+            run_to = finishes.max()
+        run_length = run_to - run_from
         # A stretch too short to mean anything, unless it is the whole of a street that short.
         if run_length < min_run_m and run_length < street_length:
             continue
-        along = shapely.line_locate_point(way, points[last]) - shapely.line_locate_point(way, points[first])
+        ends = shapely.line_interpolate_point(street, [run_from, run_to])
+        along = shapely.line_locate_point(way, ends[1]) - shapely.line_locate_point(way, ends[0])
         # Near the way but not going anywhere along it: a cross street at the junction, or the far side of a loop.
         if abs(along) < min_along * run_length:
             continue
-        runs.append((float(positions[first]), float(positions[last]), bool(along > 0)))
+        runs.append((float(run_from), float(run_to), bool(along > 0)))
     return runs
 
 
@@ -258,7 +273,10 @@ def compute_lineage(streets, ways, tol_m=LATERAL_TOL_M, min_run_m=MIN_RUN_M, ste
     Returns:
         A list of :class:`StreetLineage`, one per street, in input order.
     """
-    streets = [(street_id, geom, tuple(int(way_id) for way_id in hint_ids)) for street_id, geom, hint_ids in streets]
+    # Hints deduplicated: a street that returns to a way is exported with that way twice, and an unpositioned link
+    # can be stored only once.
+    streets = [(street_id, geom, tuple(dict.fromkeys(int(way_id) for way_id in hint_ids)))
+               for street_id, geom, hint_ids in streets]
     if not streets:
         return []
     bounds = shapely.total_bounds([geom for _, geom, _ in streets])

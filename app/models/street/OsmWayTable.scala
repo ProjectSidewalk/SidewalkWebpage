@@ -29,8 +29,10 @@ import scala.concurrent.ExecutionContext
  *                     present. The tags of a missing way are its last known ones, kept because they still describe
  *                     the street geometry we imported (#5244).
  * @param osmVersion   The way's OSM edit version as of the last refresh; None on a row the refresh has not written.
- * @param osmTimestamp When OSM last edited the way, as of the last refresh. A street link positioned before this
- *                     (`osm_way_street_edge.matched_at`) may no longer fit the way (#5741).
+ * @param osmTimestamp When OSM last edited the way itself, as of the last refresh. A street link positioned before
+ *                     this (`osm_way_street_edge.matched_at`) may no longer fit the way (#5741). Moving one of the
+ *                     way's nodes edits the node, not the way, so this misses most geometry edits; a re-match is
+ *                     the only sure check.
  */
 case class OsmWay(
     osmWayId: Long,
@@ -213,9 +215,22 @@ class OsmWayTable @Inject() (
   }
 
   /**
-   * Inserts or updates a single way, including its geometry. Used by the on-demand point-lookup path.
+   * Inserts or updates a single way, including its geometry. Used by the on-demand point-lookup path, whose Overpass
+   * query carries no edit version, so an existing row keeps the version and timestamp the nightly refresh stored.
    */
-  def upsert(way: OsmWay): DBIO[Int] = osmWays.insertOrUpdate(way)
+  def upsert(way: OsmWay): DBIO[Int] =
+    sqlu"""
+      INSERT INTO osm_way (osm_way_id, tags, maxspeed, geom, source, updated_at, missing_since, osm_version,
+                           osm_timestamp)
+      VALUES (${way.osmWayId}, ${Json.stringify(way.tags)}::jsonb, ${way.maxspeed},
+              ST_GeomFromText(${way.geom.map(_.toText)}, 4326), ${way.source}, ${way.updatedAt}, ${way.missingSince},
+              ${way.osmVersion}, ${way.osmTimestamp})
+      ON CONFLICT (osm_way_id) DO UPDATE
+      SET tags = EXCLUDED.tags, maxspeed = EXCLUDED.maxspeed, geom = EXCLUDED.geom, source = EXCLUDED.source,
+          updated_at = EXCLUDED.updated_at, missing_since = EXCLUDED.missing_since,
+          osm_version = COALESCE(EXCLUDED.osm_version, osm_way.osm_version),
+          osm_timestamp = COALESCE(EXCLUDED.osm_timestamp, osm_way.osm_timestamp)
+    """
 
   /**
    * Records one refresh chunk: the ways the OSM API holds, as (osm_way_id, what the API said, maxspeed) triples written

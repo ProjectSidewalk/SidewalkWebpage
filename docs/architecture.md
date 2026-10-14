@@ -103,10 +103,14 @@ arbitrary line, fewer tiny disconnected pieces, and enough of a plan that the to
   `tools/city/backfill_osm_lineage.py` does it for a live city against the ways OSM holds today (export, match,
   import, like the street gradient). A row with no position still names the way: a city linked before the positions
   existed, a hand-built street layer, the Infra3d placeholder way `-1`. Readers that need one way per street use the
-  `osm_way_street_edge_primary` view (the way covering most of the street) and ones that need the way under a point
-  call `osm_way_at_fraction(street_edge_id, fraction)`; the Streets and Sidewalk Presence APIs return the whole list,
-  the latter with each way's side for the face. The nightly `osm_way` refresh stores each way's `osm_version` and
-  `osm_timestamp`, so a link whose `matched_at` predates the way's last edit is one to re-match.
+  `osm_way_street_edge_primary` view, the rows flagged `is_primary` (a placed row first, then the one covering most
+  of the street, then the lowest id); the flag is stored because a view ranking rows on the fly is re-ranked over the
+  whole table under a join, and statement triggers keep it ranked under any writer (`OsmWayStreetEdgeSpec` fails on
+  a flag that disagrees with a fresh ranking all the same). Readers that
+  need the way under a point call `osm_way_at_fraction(street_edge_id, fraction)`; the Streets and Sidewalk Presence
+  APIs return the whole list, the latter with each way's side for the face. The nightly `osm_way` refresh stores each
+  way's `osm_version` and `osm_timestamp`, so a link whose `matched_at` predates the way's last edit is one to
+  re-match (an edit that only moves the way's nodes bumps neither, so that check is a hint, not a guarantee).
 - **A route may run through any number of regions.** `route.region_id` is the region the route **starts** in: the
   first street's region, derived by the server on save and re-derived by `RouteTable.updateStats` whenever the
   street list changes, never taken from the client. Listings carry `region_count` beside it, so a route that leaves

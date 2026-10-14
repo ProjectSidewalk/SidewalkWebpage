@@ -33,7 +33,8 @@ case class OsmWayStreetEdge(
     wayFromFrac: Option[Double],
     wayToFrac: Option[Double],
     sameDirection: Option[Boolean],
-    matchedAt: Option[OffsetDateTime]
+    matchedAt: Option[OffsetDateTime],
+    isPrimary: Boolean
 )
 
 class OsmWayStreetEdgeTableDef(tag: Tag) extends Table[OsmWayStreetEdge](tag, "osm_way_street_edge") {
@@ -48,10 +49,12 @@ class OsmWayStreetEdgeTableDef(tag: Tag) extends Table[OsmWayStreetEdge](tag, "o
   def wayToFrac: Rep[Option[Double]]         = column[Option[Double]]("way_to_frac")
   def sameDirection: Rep[Option[Boolean]]    = column[Option[Boolean]]("same_direction")
   def matchedAt: Rep[Option[OffsetDateTime]] = column[Option[OffsetDateTime]]("matched_at")
+  // Kept ranked by the table's statement triggers (evolution 417); never written from here.
+  def isPrimary: Rep[Boolean] = column[Boolean]("is_primary")
 
   def * = (
     osmWayStreetEdgeId, osmWayId, streetEdgeId, streetFromFrac, streetToFrac, wayFromFrac, wayToFrac, sameDirection,
-    matchedAt
+    matchedAt, isPrimary
   ).mapTo[OsmWayStreetEdge]
 
   def streetEdge =
@@ -62,8 +65,8 @@ class OsmWayStreetEdgeTableDef(tag: Tag) extends Table[OsmWayStreetEdge](tag, "o
 }
 
 /**
- * The `osm_way_street_edge_primary` view (evolution 417): the one way per street the APIs name as *the* way, the way
- * covering most of the street, ties to the lowest id. Read-only.
+ * The `osm_way_street_edge_primary` view (evolution 417): the one way per street the APIs name as *the* way, the rows
+ * flagged `is_primary` (a placed row first, then the one covering most of the street, then the lowest id). Read-only.
  */
 class OsmWayStreetEdgePrimaryTableDef(tag: Tag) extends Table[(Int, Long)](tag, "osm_way_street_edge_primary") {
   def streetEdgeId: Rep[Int] = column[Int]("street_edge_id")

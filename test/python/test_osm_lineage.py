@@ -57,8 +57,9 @@ def test_a_street_joined_from_two_ways_lists_both_in_street_order_with_their_str
     lineages = ol.compute_lineage([(1, street, [20, 10])], {10: way_a, 20: way_b})
     links = links_of(lineages)
     assert [link[0] for link in links] == [10, 20]
-    assert links[0][1:3] == pytest.approx((0.0, 0.6), abs=1e-4)
-    assert links[1][1:3] == pytest.approx((0.6, 1.0), abs=1e-4)
+    # Exact: the run along each way is trimmed at the way's end node, not at the last sample within tolerance of it.
+    assert links[0][1:3] == (0.0, 0.6)
+    assert links[1][1:3] == (0.6, 1.0)
     assert links[0][3:] == pytest.approx((0.0, 1.0, True), abs=1e-6)
     assert links[1][3:] == pytest.approx((0.0, 1.0, False), abs=1e-6)
     assert lineages[0].status == 'matched'
@@ -100,9 +101,19 @@ def test_a_hint_way_the_matching_cannot_place_is_listed_without_a_position():
     assert [link.way_id for link in links] == [10, 99]
     assert links[0].positioned and not links[1].positioned
     assert links[1] == ol.WayLink(99)
-    # A hint way the fetch did not return at all is listed the same way.
-    lineages = ol.compute_lineage([(1, way, [77])], {10: way})
+    # A hint way the fetch did not return at all is listed the same way, once however often the export named it.
+    lineages = ol.compute_lineage([(1, way, [77, 77])], {10: way})
     assert [(link.way_id, link.positioned) for link in lineages[0].links] == [(10, True), (77, False)]
+
+
+def test_a_short_way_between_two_long_ones_gets_exactly_the_stretch_between_its_nodes():
+    # 15 m is shorter than the tolerance reaches on both sides together, so without trimming at the way's nodes the
+    # run along it would be mostly overhang and read as merely touching it.
+    way_a, way_b, way_c = lonlat((0, 0), (40, 0)), lonlat((40, 0), (55, 0)), lonlat((55, 0), (100, 0))
+    street = lonlat((0, 0), (40, 0), (55, 0), (100, 0))
+    lineages = ol.compute_lineage([(1, street, [])], {1: way_a, 2: way_b, 3: way_c})
+    assert [link[:3] for link in links_of(lineages)] == [(1, 0.0, 0.4), (2, 0.4, 0.55), (3, 0.55, 1.0)]
+    assert lineages[0].status == 'matched'
 
 
 def test_partial_and_unmatched_streets_report_their_coverage():
@@ -126,19 +137,19 @@ def test_a_street_shorter_than_the_minimum_run_still_matches_whole():
 
 
 def test_what_is_left_of_a_run_between_claimed_stretches_must_still_be_long_enough():
-    # Ways 10 and 30 are the street's own ways, with a 10 m gap between them; way 20 runs along the whole middle.
-    # The samples within tolerance of 10 and 30 leave way 20 a 5 m gap, which a 6 m minimum run rejects.
+    # Ways 10 and 30 are the street's own ways, with a 6 m gap between them; way 20 runs along the whole middle and
+    # gets only that gap, which a 7 m minimum run rejects.
     project = ol.metric_projection(0, 0)
     street = project(lonlat((0, 0), (100, 0)))
-    ways = {10: project(lonlat((0, 0), (48, 0))), 30: project(lonlat((58, 0), (100, 0))),
+    ways = {10: project(lonlat((0, 0), (48, 0))), 30: project(lonlat((54, 0), (100, 0))),
             20: project(lonlat((30, 0), (70, 0)))}
-    links, coverage = ol.match_street(street, ways, hint_ids=(10, 30), min_run_m=6)
+    links, coverage = ol.match_street(street, ways, hint_ids=(10, 30), min_run_m=7)
     assert [link.way_id for link in links] == [10, 30]
-    assert coverage == pytest.approx(0.95, abs=1e-3)
+    assert coverage == pytest.approx(0.94, abs=1e-3)
     links, coverage = ol.match_street(street, ways, hint_ids=(10, 30))
     assert [link.way_id for link in links] == [10, 20, 30]
-    assert links[1].street_from == pytest.approx(0.5, abs=1e-4)
-    assert links[1].street_to == pytest.approx(0.55, abs=1e-4)
+    assert links[1].street_from == pytest.approx(0.48, abs=1e-4)
+    assert links[1].street_to == pytest.approx(0.54, abs=1e-4)
     assert coverage == pytest.approx(1.0)
 
 
