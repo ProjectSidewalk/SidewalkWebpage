@@ -22,8 +22,10 @@ import '../../common/utilitiesSidewalk.js';
 /** @typedef {import('../data/Tracker.js').Tracker} Tracker */
 
 /**
- * 'walkedOut': no pano ahead, but the street counts as walked, so the labeler lands where they stand.
- * @typedef {{outcome: 'landed', panoId: string} | {outcome: 'walkedOut'} | {outcome: 'stopped'}} SweepResult
+ * 'walkedOut': no pano ahead, but the street counts as walked, so the labeler lands where they stand. A stop's
+ * `afterMove` is what to announce once the move is undone, so a finish screen never opens over a move's locks.
+ * @typedef {{outcome: 'landed', panoId: ?string} | {outcome: 'walkedOut'}
+ *   | {outcome: 'stopped', afterMove?: () => void}} SweepResult
  */
 
 export class StreetSweep {
@@ -85,7 +87,7 @@ export class StreetSweep {
   }
 
   /**
-   * Told when a street is given up on and there is no other street left to hand out.
+   * Told when a street is given up on and there is no other street left to hand out, once the move is undone.
    * @param {() => void} listener
    */
   onStreetsRanOut(listener) {
@@ -134,10 +136,13 @@ export class StreetSweep {
   async sweep(onNextStreet) {
     for (;;) {
       const task = this.#taskContainer.getCurrentTask();
-      const { panoId, streetLooksEmpty } = await this.#searchStreet(task);
-      if (panoId) return { outcome: 'landed', panoId };
+      const { found, panoId, streetLooksEmpty } = await this.#searchStreet(task);
+      if (found) return { outcome: 'landed', panoId };
 
       const verdict = await this.#concludeEmptySearch(task, streetLooksEmpty);
+      if (verdict === 'ranOut') {
+        return { outcome: 'stopped', afterMove: () => this.#streetsRanOutListeners.forEach((listener) => listener()) };
+      }
       if (verdict !== 'nextStreet') return { outcome: verdict };
       // Announced as a new start, so what closes on a move (Feedback, the context menu) closes for the new street.
       onNextStreet();
@@ -147,8 +152,8 @@ export class StreetSweep {
   /**
    * Searches a street for imagery ahead of the labeler, a DIST_INCREMENT at a time, and lands on the first pano found.
    * @param {Task} task - The street being walked.
-   * @returns {Promise<{panoId?: string, streetLooksEmpty?: boolean}>} The pano landed on; or, when none was found,
-   *   whether every sampled point got a clean "nothing usable here" rather than no answer at all (#4918).
+   * @returns {Promise<{found: boolean, panoId?: ?string, streetLooksEmpty?: boolean}>} The pano landed on; or, when
+   *   none was found, whether every sampled point got a clean "nothing usable here" rather than no answer at all.
    */
   async #searchStreet(task) {
     // TODO show loading icon. Add when resolving issue #2403.
@@ -200,10 +205,12 @@ export class StreetSweep {
         this.#stuckPanos.add(this.#panoStore.getPanoData(panoId));
         // A move that lands ends any run of imagery failures, restoring the session's full flag allowance (#4918).
         NoImageryFlagGuard.reset();
-        return { panoId };
+        return { found: true, panoId };
       }
 
-      if (turf.length(remainder) <= 0) return { streetLooksEmpty: NoImageryError.allNoImagery(searchFailures) };
+      if (turf.length(remainder) <= 0) {
+        return { found: false, streetLooksEmpty: NoImageryError.allNoImagery(searchFailures) };
+      }
       // Try `DIST_INCREMENT` further down the street.
       const distIncrement = Math.min(StreetSweep.DIST_INCREMENT, turf.length(remainder));
       remainder = turf.cleanCoords(turf.lineSliceAlong(remainder, distIncrement, streetEndpoint));
@@ -219,7 +226,8 @@ export class StreetSweep {
    *     street: true when every sampled point along it got a clean "nothing usable here" from the provider, false
    *     when any of them failed to get an answer at all (a provider error, a blocked or unreachable API). Only the
    *     true case may report the street as imagery-less, or move the labeler off it — see the bail-out below.
-   * @returns {Promise<'walkedOut'|'stopped'|'nextStreet'>} 'nextStreet' once another street is current.
+   * @returns {Promise<'walkedOut'|'stopped'|'ranOut'|'nextStreet'>} 'nextStreet' once another street is current;
+   *   'ranOut' when the street was given up and none is left.
    */
   async #concludeEmptySearch(task, streetLooksEmpty) {
     // In free exploration (#4451) there is no task to finish and no street to advance to: don't report the street as
@@ -316,10 +324,7 @@ export class StreetSweep {
     task.giveUpOnImagery();
     this.#taskContainer.renderTask(task);
 
-    if (!newTask) {
-      this.#streetsRanOutListeners.forEach((listener) => listener());
-      return 'stopped';
-    }
+    if (!newTask) return 'ranOut';
 
     // Flush what the labeler did here before the current task changes under the buffer. Interactions carry no task id
     // of their own — the server files them against whichever audit_task the submission names — so anything still

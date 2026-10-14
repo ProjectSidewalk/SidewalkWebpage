@@ -14,9 +14,9 @@
  * able to do. Everything below it (viewer, network) is out of scope; `test/js/panoViewerSeedFallback.test.js`
  * covers the provider-side classification that decides which error type arrives here.
  *
- * The sweep, the mover and the street bookkeeping (StreetSweep, NavigationService, StreetProgress) are loaded as modules
- * and built together against fakes of their collaborators, as Main builds them; what they announce to the mission
- * controller is recorded through StreetProgress's events, as Main subscribes them.
+ * The sweep, the mover and the street bookkeeping (StreetSweep, NavigationService, StreetProgress) are loaded as
+ * modules and built together against fakes of their collaborators, as Main builds them; what they announce to the
+ * mission controller is recorded through StreetProgress's events, as Main subscribes them.
  */
 
 const { installDateHelpers, loadModules, realUtil } = require('./loadGlobalScript');
@@ -178,7 +178,11 @@ describe('Explore, when the imagery search runs out along a street', () => {
             alertController: { showAlert: stub() },
             form: { submitData: jest.fn(() => Promise.resolve()) },
             labelContainer: { onMarkerClick: stub() },
-            labelModes: { onModeChanged: (listener) => modeListeners.push(listener), getMode: () => mode },
+            labelModes: {
+                onModeChanged: (listener) => modeListeners.push(listener),
+                getMode: () => mode,
+                isUsable: () => true,
+            },
             missionContainer: { getCurrentMission: () => ({ getProperty: () => 7, pushATaskToTheRoute: jest.fn() }) },
             missionModel: { updateMissionProgress: stub() },
             regionModel: {
@@ -367,6 +371,27 @@ describe('Explore, when the imagery search runs out along a street', () => {
             expect(searches.map(({ streetEdgeId }) => streetEdgeId)).toContain(102);
             // The target street had no imagery, so the camera follows the one reached.
             expect(svl.panoManager.turnTo).toHaveBeenCalledWith(102);
+        });
+
+        it('neither turns the camera nor shows the jump tip when the jump lands nowhere', async () => {
+            assignStreets(makeTask(100), makeTask(101));
+            respondToSearch = providerFailure;
+
+            await progress.jumpToANewTask();
+
+            expect(svl.panoManager.turnTo).not.toHaveBeenCalled();
+            expect(svl.jumpAlert.onClickJumpMessage).not.toHaveBeenCalled();
+        });
+
+        it('counts a load that finished as a landing, even when the viewer has no id for the pano yet', async () => {
+            assignStreets(makeTask(101), makeTask(102));
+            respondToSearch = foundImagery;
+            svl.panoViewer.getPanoId = () => null;
+
+            await nav.moveForward();
+
+            expect(svl.alertController.showAlert).not.toHaveBeenCalled();
+            expect(svl.missionModel.updateMissionProgress).toHaveBeenCalled();
         });
 
         it('gives the session its flag allowance back once a street loads', async () => {
@@ -559,6 +584,22 @@ describe('Explore, when the imagery search runs out along a street', () => {
             expect(missionController.wrapUpRouteOrRegion).not.toHaveBeenCalled();
             // The labeler has to be able to look around for that gate to ever open.
             expect(nav.canWalk()).toBe(true);
+        });
+
+        it('announces the end only once the move is undone, so the finish never opens over its locks', async () => {
+            svl.regionModel.isRoute = true;
+            assignStreets(makeTask(101, { walkOrder: 1 }));
+            respondToSearch = emptyGround;
+            let movingAtAnnouncement;
+            missionController.onRouteReadyToFinish.mockImplementation(() => {
+                movingAtAnnouncement = nav.isMoving();
+            });
+
+            await nav.moveForward();
+
+            expect(movingAtAnnouncement).toBe(false);
+            expect(keyboardLock.release.mock.invocationCallOrder[0])
+                .toBeLessThan(missionController.onRouteReadyToFinish.mock.invocationCallOrder[0]);
         });
 
         it('gives up on a street once, however many times the labeler tries to walk off it (#5008)', async () => {
@@ -883,6 +924,16 @@ describe('Explore, when the imagery search runs out along a street', () => {
             svl.navArrows.show.mockClear();
             jest.advanceTimersByTime(800);
             expect(svl.navArrows.show).toHaveBeenCalled();
+        });
+
+        it('leaves the type armed when switching is held, rather than log a switch that is refused', async () => {
+            assignStreets(makeTask(101));
+            respondToSearch = foundImagery;
+            switchMode('CurbRamp');
+            svl.labelModes.isUsable = () => false;
+
+            await nav.moveForward();
+            expect(svl.labelModes.backToWalk).not.toHaveBeenCalled();
         });
 
         it('does not switch modes on a landing already in Walk mode, which would log a switch nobody made', async () => {

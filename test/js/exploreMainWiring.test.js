@@ -239,8 +239,8 @@ describe('Explore Main builds in dependency order', () => {
 
   it('builds the arrows before the service that answers them, and the keyboard after everything it drives', () => {
     expect(buildOrder.indexOf('navArrows')).toBeLessThan(buildOrder.indexOf('navigationService'));
-    // Street progress subscribes to landings ahead of every view that reads the task state they update.
-    expect(buildOrder.indexOf('streetProgress')).toBe(buildOrder.indexOf('navigationService') + 1);
+    // The compass shows street progress's jump prompt, so it needs street progress built first.
+    expect(buildOrder.indexOf('streetProgress')).toBeLessThan(buildOrder.indexOf('compass'));
     const keyboard = buildOrder.indexOf('keyboard');
     for (const driven of ['canvas', 'contextMenu', 'navigationService', 'ribbon', 'zoomControl', 'compass']) {
       expect(buildOrder.indexOf(driven)).toBeLessThan(keyboard);

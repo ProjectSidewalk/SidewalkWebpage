@@ -202,8 +202,9 @@ export class NavigationService {
     this.#startCooldown();
 
     // A move puts the labeler back in Walk mode, as placing a label does, so the mode and the layer order can't drift
-    // apart: ArrowUp walks with a label type armed (#5768).
-    if (this.#labelModes.getMode() !== 'Walk') this.#labelModes.backToWalk();
+    // apart: ArrowUp walks with a label type armed (#5768). Not while switching is held (a pop-up, the tutorial), when
+    // the switch would be refused but still logged.
+    if (this.#labelModes.getMode() !== 'Walk' && this.#labelModes.isUsable('Walk')) this.#labelModes.backToWalk();
     this.#panoManager.panning.release('move');
     this.#moveFinishedListeners.forEach((listener) => listener());
 
@@ -265,10 +266,11 @@ export class NavigationService {
    * @returns {Promise<string|null|void>} Resolves with the new pano ID on a successful move, null if the street ran
    *     out of imagery, or undefined if the labeler can't walk now.
    */
-  moveForward() {
-    if (!this.canWalk()) return Promise.resolve();
+  async moveForward() {
+    if (!this.canWalk()) return undefined;
     this.#updateUiBeforeMove();
-    return this.#sweepForward();
+    const result = await this.#sweepForward();
+    return result.outcome === 'landed' ? result.panoId : null;
   }
 
   /**
@@ -276,7 +278,7 @@ export class NavigationService {
    * street can raise the sign-in prompt); a move in flight or the beat after a landing does, so a double-click
    * can't skip the jump prompt.
    * @param {() => void} switchStreet - Finishes the street being left and makes the next one current.
-   * @returns {Promise<boolean>} Whether the move happened at all (it may still stop short of a new pano).
+   * @returns {Promise<boolean>} Whether the move landed on a new pano.
    */
   async moveToNextStreet(switchStreet) {
     if (this.isMoving() || this.#cooldownTimer !== null) return false;
@@ -291,13 +293,13 @@ export class NavigationService {
       this.#restoreUiAfterFailedMove();
       throw err;
     }
-    await this.#sweepForward();
-    return true;
+    const result = await this.#sweepForward();
+    return result.outcome === 'landed';
   }
 
   /**
    * Sweeps for the next pano inside a move that has already started, then ends the move.
-   * @returns {Promise<string|null>} As for moveForward().
+   * @returns {Promise<import('./StreetSweep.js').SweepResult>}
    */
   async #sweepForward() {
     let result;
@@ -309,11 +311,12 @@ export class NavigationService {
     }
     if (result.outcome === 'stopped') {
       this.#restoreUiAfterFailedMove();
-      return null;
+      result.afterMove?.();
+    } else {
+      // A street that ran out of imagery near its end (already ended by StreetProgress) still lands where they stand.
+      this.#updateUiAfterMove();
     }
-    // A street that ran out of imagery near its end lands where the labeler stands, so the landing can end it.
-    this.#updateUiAfterMove();
-    return result.outcome === 'landed' ? result.panoId : null;
+    return result;
   }
 
   /**

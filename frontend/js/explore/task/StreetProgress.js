@@ -125,7 +125,7 @@ export class StreetProgress {
     // Free exploration (#4451) pins the session to the searched location — there is no next street to jump to.
     if (this.#config.isExploreAddressMode) return;
 
-    const started = await this.#navigationService.moveToNextStreet(() => {
+    const landed = await this.#navigationService.moveToNextStreet(() => {
       const mission = this.#missionJump || this.#missionContainer.getCurrentMission();
       const currentTask = this.#taskContainer.getCurrentTask();
       this.#taskContainer.endTask(currentTask);
@@ -137,7 +137,7 @@ export class StreetProgress {
       this.#taskContainer.setCurrentTask(task);
       this.#taskContainer.setNextTaskAfterJump(null);
     });
-    if (!started) return;
+    if (!landed) return;
 
     // The move can land past the street jumped to if that street has no imagery.
     const landedOn = this.#taskContainer.getCurrentTask();
@@ -231,6 +231,7 @@ export class StreetProgress {
     }
   }
 
+  /** Has the sweep pre-download the pano the next forward move would land on, so that move doesn't wait on it. */
   #preloadNextMove() {
     // Best-effort: runs after every landing, so never let a prediction error break it.
     try {

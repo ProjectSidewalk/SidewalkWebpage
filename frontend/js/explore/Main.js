@@ -191,6 +191,7 @@ import '../common/utilitiesSidewalk.js';
  * @property {LabelContainer} [labelContainer]
  * @property {MissionContainer} [missionContainer]
  * @property {NavigationService} [navigationService]
+ * @property {StreetProgress} [streetProgress]
  */
 
 export class Main {
@@ -385,7 +386,6 @@ export class Main {
       alertController, stuckAlert, form, tracker);
     const navigationService = new NavigationService(ui.streetview, panoStore, panoManager, streetSweep,
       labelContainer, labelModes, navArrows, keyboardLock, alertController);
-    // Right after the service, so a landing's street bookkeeping is in place before anything reads the task state.
     const streetProgress = new StreetProgress(config, regionModel, missionModel, missionContainer, taskContainer,
       panoManager, navigationService, streetSweep, jumpAlert, tracker);
     navArrows.onLinkClick((panoId) => navigationService.moveToPano(panoId));
@@ -447,8 +447,7 @@ export class Main {
     const modalSurvey = new ModalSurvey(interactionLock, zoomControl);
     new MissionController(config, missionModel, regionModel, missionContainer, taskContainer, form,
       modalMissionComplete, modalSurvey, alertController, compass, navigationService, streetProgress, panoManager,
-      observedArea,
-      overallStats, regionProgressBar, missionProgressBar, minimapMissionProgress, tracker);
+      observedArea, overallStats, regionProgressBar, missionProgressBar, minimapMissionProgress, tracker);
 
     const immersiveMode = new ImmersiveMode({
       tracker,
@@ -558,7 +557,7 @@ export class Main {
     // Hand the address bar to the labeler's position from here on (#5480).
     this.#syncURL();
 
-    return { config, panoManager, taskContainer, labelContainer, missionContainer, navigationService };
+    return { config, panoManager, taskContainer, labelContainer, missionContainer, navigationService, streetProgress };
   }
 
   /** Fetches the region's tasks and missions, or in the tutorial just the mission that frames it. */

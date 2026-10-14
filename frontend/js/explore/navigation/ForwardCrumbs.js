@@ -374,7 +374,7 @@ export class ForwardCrumbs {
 
   /**
    * Identity of the traversal a memo belongs to. Walk order separates the two passes of an out-and-back route
-   * (the same reasoning as NavigationService's stuck-pano set), and the direction flag is in because reversing a
+   * (the same reasoning as StreetSweep's stuck-pano set), and the direction flag is in because reversing a
    * street reverses the sample grid, so the answers no longer line up with their indices.
    * @param {Task} task
    * @returns {string}
