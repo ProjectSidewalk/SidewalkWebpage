@@ -35,23 +35,33 @@ ALTER TABLE osm_way_street_edge
 -- to know, and OsmWayStreetEdgeSpec fails if a stored flag disagrees with a fresh ranking all the same. The function
 -- returns how many streets got a primary way.
 ALTER TABLE osm_way_street_edge ADD COLUMN is_primary BOOLEAN NOT NULL DEFAULT FALSE;
-CREATE FUNCTION osm_way_street_edge_set_primary(streets integer[]) RETURNS integer
-LANGUAGE sql AS
+CREATE FUNCTION osm_way_street_edge_set_primary(streets integer[], schema text DEFAULT current_schema())
+RETURNS integer
+LANGUAGE plpgsql AS
 $BODY$
-  UPDATE osm_way_street_edge SET is_primary = FALSE WHERE street_edge_id = ANY(streets) AND is_primary;;
-  WITH ranked AS (
-    SELECT DISTINCT ON (street_edge_id) osm_way_street_edge_id
-    FROM osm_way_street_edge
-    WHERE street_edge_id = ANY(streets)
-    ORDER BY street_edge_id, (street_from_frac IS NOT NULL) DESC, street_to_frac - street_from_frac DESC NULLS LAST,
-             osm_way_id, osm_way_street_edge_id
-  ),
-  flagged AS (
-    UPDATE osm_way_street_edge SET is_primary = TRUE
-    WHERE osm_way_street_edge_id IN (SELECT osm_way_street_edge_id FROM ranked)
-    RETURNING 1
-  )
-  SELECT COUNT(*)::integer FROM flagged
+DECLARE
+  flagged integer;;
+BEGIN
+  -- The table is named through its schema rather than the search path, so the triggers can re-rank from a session
+  -- whose search path does not include this schema (the CI seed loads as postgres with qualified names).
+  EXECUTE format('UPDATE %I.osm_way_street_edge SET is_primary = FALSE WHERE street_edge_id = ANY($1) AND is_primary',
+                 schema) USING streets;;
+  EXECUTE format($RANK$
+    WITH ranked AS (
+      SELECT DISTINCT ON (street_edge_id) osm_way_street_edge_id
+      FROM %1$I.osm_way_street_edge
+      WHERE street_edge_id = ANY($1)
+      ORDER BY street_edge_id, (street_from_frac IS NOT NULL) DESC, street_to_frac - street_from_frac DESC NULLS LAST,
+               osm_way_id, osm_way_street_edge_id
+    ),
+    flagged AS (
+      UPDATE %1$I.osm_way_street_edge SET is_primary = TRUE
+      WHERE osm_way_street_edge_id IN (SELECT osm_way_street_edge_id FROM ranked)
+      RETURNING 1
+    )
+    SELECT COUNT(*)::integer FROM flagged$RANK$, schema) INTO flagged USING streets;;
+  RETURN flagged;;
+END
 $BODY$;
 SELECT osm_way_street_edge_set_primary(ARRAY(SELECT DISTINCT street_edge_id FROM osm_way_street_edge));
 CREATE UNIQUE INDEX osm_way_street_edge_primary_idx ON osm_way_street_edge (street_edge_id) WHERE is_primary;
@@ -78,7 +88,8 @@ BEGIN
                      WHERE old_rows.street_edge_id <> new_rows.street_edge_id);;
   END IF;;
   IF cardinality(streets) > 0 THEN
-    PERFORM osm_way_street_edge_set_primary(streets);;
+    EXECUTE format('SELECT %I.osm_way_street_edge_set_primary($1, $2)', TG_TABLE_SCHEMA)
+      USING streets, TG_TABLE_SCHEMA;;
   END IF;;
   RETURN NULL;;
 END
@@ -134,7 +145,7 @@ DROP TRIGGER osm_way_street_edge_rank_primary_delete ON osm_way_street_edge;
 DROP TRIGGER osm_way_street_edge_rank_primary_insert ON osm_way_street_edge;
 DROP FUNCTION osm_way_street_edge_rank_primary();
 DROP INDEX osm_way_street_edge_primary_idx;
-DROP FUNCTION osm_way_street_edge_set_primary(integer[]);
+DROP FUNCTION osm_way_street_edge_set_primary(integer[], text);
 ALTER TABLE osm_way_street_edge
   DROP COLUMN is_primary,
   DROP CONSTRAINT osm_way_street_edge_street_way_position_key,

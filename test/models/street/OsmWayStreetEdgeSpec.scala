@@ -107,6 +107,21 @@ class OsmWayStreetEdgeSpec extends SidewalkSpec with GuiceOneAppPerSuite with Ro
       set mustBe 1
     }
 
+    "re-rank from a session whose search path does not name this schema, the way the CI seed loads" in {
+      val primary = runRolledBack(for {
+        street <- insertStreet()
+        schema <- sql"SELECT current_schema()".as[String].head
+        _      <- sqlu"SET LOCAL search_path = pg_catalog"
+        _      <- sqlu"""INSERT INTO #$schema.osm_way_street_edge (osm_way_street_edge_id, osm_way_id, street_edge_id)
+                         VALUES ((SELECT COALESCE(MAX(osm_way_street_edge_id), 0) + 1
+                                  FROM #$schema.osm_way_street_edge), 5, $street)"""
+        p <- sql"""SELECT osm_way_id FROM #$schema.osm_way_street_edge
+                        WHERE street_edge_id = $street AND is_primary""".as[Long].headOption
+        _ <- sqlu"SET LOCAL search_path = #$schema, public"
+      } yield p)
+      primary mustBe Some(5L)
+    }
+
     "be flagged on every street the way a fresh ranking would flag it" in {
       // The flag is cached (docs/evolutions.md): a trigger left disabled, or a load that bypassed it, shows here.
       run(driftedPrimaries) mustBe 0
