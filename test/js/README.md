@@ -45,9 +45,9 @@ one-file edit. The same file holds the mock sets several suites share; larger ha
 
 ## Lint and coverage
 
-`test/js/` is linted with the same ESLint rules as `test/e2e/`, plus the Vitest globals and the house style's 2-space
-indent. The browser, Node and Vitest globals are declared in `eslint.config.js`, so no suite needs a `/* global */`
-directive.
+`test/js/` is linted with the same ESLint rules as `test/e2e/`, plus the Vitest globals and the house style's
+2-space indent. The browser, Node and Vitest globals are declared in `eslint.config.js`, so no suite needs a
+`/* global */` directive.
 
 Coverage is reported over all of `frontend/js/**/*.js`, so a file no test loads still counts against the ratio. The
 console shows totals; `coverage/lcov-report/index.html` has per-file detail. `coverage.thresholds` in

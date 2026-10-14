@@ -16,6 +16,20 @@ const i18nEscapeInMarkup = require('./tools/lint/eslint-rules/i18n-escape-in-mar
 const escapeInMarkup = require('./tools/lint/eslint-rules/escape-in-markup');
 const psPlugin = {rules: {'i18n-escape-in-markup': i18nEscapeInMarkup, 'escape-in-markup': escapeInMarkup}};
 
+// The house style: stylistic.configs.customize({...}) supplies ~50 whitespace/formatting rules as one maintained set,
+// and these options encode ours. Named so test/js can share its indent rule rather than restate it.
+// See https://eslint.style/guide/config-presets#configuration-factory
+const houseStyle = stylistic.configs.customize({
+  indent: 2,
+  quotes: 'single',
+  semi: true,
+  jsx: false,
+  arrowParens: true,
+  braceStyle: '1tbs',
+  blockSpacing: true,
+  commaDangle: 'always-multiline',
+}).rules;
+
 module.exports = [
   // ESLint core "recommended" -- ~45 correctness rules. Listed first so the explicit block below overrides it.
   // Scoped to JS rather than left global: these are JavaScript-correctness rules, and on the translation JSON they
@@ -123,20 +137,9 @@ module.exports = [
       'no-useless-concat': 'error',
       'require-await': 'error', // An async function with no await is usually a mistake.
 
-      // --- Formatting: @stylistic preset baseline ---
-      // stylistic.configs.customize({...}) supplies ~50 whitespace/formatting rules as one maintained set; the
-      // options below encode our house style. The block after it holds the rules the preset doesn't cover and
-      // our deliberate divergences. See https://eslint.style/guide/config-presets#configuration-factory
-      ...stylistic.configs.customize({
-        indent: 2,
-        quotes: 'single',
-        semi: true,
-        jsx: false,
-        arrowParens: true,
-        braceStyle: '1tbs',
-        blockSpacing: true,
-        commaDangle: 'always-multiline',
-      }).rules,
+      // --- Formatting: @stylistic preset baseline (houseStyle, above) ---
+      // The block after it holds the rules the preset doesn't cover and our deliberate divergences.
+      ...houseStyle,
 
       // Rules the preset doesn't set -- keep our own:
       '@stylistic/eol-last': ['error', 'always'], // Every file ends with a single trailing newline (docs/style-guide.md).
@@ -269,7 +272,8 @@ module.exports = [
 
   // --- jsdom unit suite (test/js/) ---
   // `no-undef` stays on: a typo'd helper in a rarely-run branch is otherwise invisible; the page globals the suites
-  // stub are listed below. Of the @stylistic house style only the indent is applied (#5778).
+  // stub are listed below. Of the house style only the indent is applied (#5778): the rest would flag ~1,400 lines,
+  // mostly `{a}` vs `{ a }` spacing, a churn no reader gains from.
   {files: ['test/js/**/*.js'], ...js.configs.recommended},
   {
     files: ['test/js/**/*.js'],
@@ -284,11 +288,17 @@ module.exports = [
     },
     plugins: {'@stylistic': stylistic},
     rules: {
-      '@stylistic/indent': ['error', 2],
+      '@stylistic/indent': houseStyle['@stylistic/indent'],
       'no-unused-vars': ['error', {argsIgnorePattern: '^_'}],
       'no-var': 'error',
       'prefer-const': 'error',
       'eqeqeq': ['error', 'always'],
     },
+  },
+  // The suite's Node-side scripts (the gsv-fov-probe recorder and analyzer) get the same indent and nothing else.
+  {
+    files: ['test/js/**/*.mjs', 'test/js/**/*.cjs'],
+    plugins: {'@stylistic': stylistic},
+    rules: {'@stylistic/indent': houseStyle['@stylistic/indent']},
   },
 ];
