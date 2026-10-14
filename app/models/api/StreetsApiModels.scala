@@ -14,8 +14,7 @@ import play.api.libs.functional.syntax.*
 import java.time.OffsetDateTime
 
 /**
- * One OpenStreetMap way a street lies on, and where the two share a stretch (#5741). The positions are null on a link
- * recorded without them (a city linked before they were computed, a hand-built street layer).
+ * One OpenStreetMap way a street lies on and the stretch they share (#5741); the positions are null when unrecorded.
  *
  * @param osmWayId       The OSM way.
  * @param streetFromFrac Where along the street (0 at its first coordinate, 1 at its last) the way starts covering it.
@@ -50,9 +49,8 @@ case class OsmWayLinkForApi(
   )
 
   /**
-   * The link as a shapefile cell: `way:from-to:+` (`-` where the way runs the other direction), the stretch of the
-   * street to three places, or just the way id without a position. A .dbf text field holds 254 bytes, which the JSON
-   * list overruns at two ways.
+   * The link as a shapefile cell, which holds 254 bytes, too few for the JSON list: `way:from-to:+` (`-` where the
+   * way runs the other direction), the street's stretch to three places, or the bare way id without a position.
    */
   def shapefileText: String =
     OsmWayLinkForApi.shapefileText(osmWayId, streetFromFrac, streetToFrac, sameDirection.map(if (_) "+" else "-"))

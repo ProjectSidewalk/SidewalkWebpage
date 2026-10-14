@@ -96,7 +96,7 @@ class StreetEdgeTable @Inject() (protected val dbConfigProvider: DatabaseConfigP
   val auditTasks        = TableQuery[AuditTaskTableDef]
   val streetsUnfiltered = TableQuery[StreetEdgeTableDef]
   val streetEdgeRegion  = TableQuery[StreetEdgeRegionTableDef]
-  // The way the APIs name as a street's way is its primary one: the way covering most of it (#5741).
+  // The way the APIs name for a street is its primary one (#5741).
   val osmWayStreetEdge = TableQuery[OsmWayStreetEdgePrimaryTableDef]
   val regions          = TableQuery[RegionTableDef]
   val userStats        = TableQuery[UserStatTableDef]

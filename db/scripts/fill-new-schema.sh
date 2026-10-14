@@ -154,9 +154,8 @@ psql -v ON_ERROR_STOP=1 -d sidewalk -U "$SCHEMA_NAME" <<-EOSQL
                ST_X(ST_StartPoint(geom)), ST_Y(ST_StartPoint(geom)), ST_X(ST_EndPoint(geom)), ST_Y(ST_EndPoint(geom))
         FROM qgis_road;
 
-    -- Link each street to every OSM way it lies on, with where on each (#5741): one row per street-way pair from the
-    -- build's qgis_road_osm_way, positioned rows stamped as matched now. A staging load from before that table
-    -- existed links each street to its way ids without positions, for the lineage backfill to fill in later.
+    -- Link each street to every OSM way it lies on (#5741): one row per street-way pair from the build's
+    -- qgis_road_osm_way, positioned rows stamped as matched now; an older staging load gives way ids without positions.
     INSERT INTO osm_way_street_edge (osm_way_id, street_edge_id, street_from_frac, street_to_frac, way_from_frac,
                                      way_to_frac, same_direction, matched_at)
         SELECT osm_way_id, road_id, street_from_frac, street_to_frac, way_from_frac, way_to_frac, same_direction,
@@ -249,8 +248,7 @@ psql -v ON_ERROR_STOP=1 -d sidewalk -U "$SCHEMA_NAME" <<-EOSQL
         END LOOP;
     END \$\$;
 
-    -- Remove the staging tables, each before the one it holds a foreign key to (onboard_city.py's staging SQL):
-    -- the way positions point at qgis_road, which points at qgis_region.
+    -- Remove the staging tables, each before the one its foreign key points at.
     DROP TABLE IF EXISTS qgis_road_osm_way;
     DROP TABLE qgis_road;
     DROP TABLE qgis_region;

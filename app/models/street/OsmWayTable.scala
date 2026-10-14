@@ -29,10 +29,9 @@ import scala.concurrent.ExecutionContext
  *                     present. The tags of a missing way are its last known ones, kept because they still describe
  *                     the street geometry we imported (#5244).
  * @param osmVersion   The way's OSM edit version as of the last refresh; None on a row the refresh has not written.
- * @param osmTimestamp When OSM last edited the way itself, as of the last refresh. A street link positioned before
- *                     this (`osm_way_street_edge.matched_at`) may no longer fit the way (#5741). Moving one of the
- *                     way's nodes edits the node, not the way, so this misses most geometry edits; a re-match is
- *                     the only sure check.
+ * @param osmTimestamp When OSM last edited the way itself, as of the last refresh; a link positioned before this
+ *                     (`osm_way_street_edge.matched_at`) may no longer fit it (#5741). A node move edits only the
+ *                     node, so most geometry edits go unseen here.
  */
 case class OsmWay(
     osmWayId: Long,
@@ -84,7 +83,7 @@ class OsmWayTable @Inject() (
 
   val osmWays           = TableQuery[OsmWayTableDef]
   val osmWayStreetEdges = TableQuery[OsmWayStreetEdgeTableDef]
-  // A street's maxspeed and name come from its primary way: the way covering most of it (#5741).
+  // A street's maxspeed and name come from its primary way (#5741).
   val primaryWays = TableQuery[OsmWayStreetEdgePrimaryTableDef]
 
   /**

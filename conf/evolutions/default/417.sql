@@ -1,10 +1,10 @@
 # --- !Ups
--- #5741: a street's full OpenStreetMap lineage. The street builder joins consecutive OSM ways between intersections
--- and tools/one-off/4717-consolidate-tiny-streets.sql joins more, so one street can lie on several ways and one way
--- usually holds several streets. Contributing street-side data back to OSM (sidewalk:left=no on a way) needs, per
--- street and way, which stretch of each the pair shares and whether they run the same direction. The link table now
--- holds one row per street-way pair with that position, and a row without one (a city built before this, a hand-built
--- street layer, the Infra3d placeholder way -1) still names the way.
+-- #5741: every OpenStreetMap way a street lies on, and where. The street builder joins consecutive OSM ways between
+-- intersections (and tools/one-off/4717-consolidate-tiny-streets.sql joins more), so one street can lie on several ways
+-- and one way holds several streets. Handing street-side data back to OSM (sidewalk:left=no on a way) needs, per street
+-- and way, the stretch of each the pair shares and whether they run the same direction. The link table now holds one
+-- row per street-way pair with that position. A row without one (a city built before this, a hand-built street layer,
+-- the Infra3d placeholder way -1) still names the way.
 ALTER TABLE osm_way_street_edge DROP CONSTRAINT osm_way_street_edge_street_edge_id_key;
 ALTER TABLE osm_way_street_edge
   ADD COLUMN street_from_frac DOUBLE PRECISION CHECK (street_from_frac >= 0 AND street_from_frac <= 1),
@@ -27,13 +27,11 @@ ALTER TABLE osm_way_street_edge
   ADD CONSTRAINT osm_way_street_edge_street_way_position_key
     UNIQUE NULLS NOT DISTINCT (street_edge_id, osm_way_id, street_from_frac);
 
--- The one way per street the APIs name as *the* way, stored as a flag: a placed row before an unplaced one (a placed
--- row is confirmed to lie there), then the row covering most of the street, then the lowest way id. A view ranking
--- the rows on the fly (DISTINCT ON) is re-ranked over the whole table whenever a query joins it to a set of streets,
--- which Explore's next-street query does on every request. Statement triggers re-rank the streets any insert,
--- delete or position change touches, so no writer (the onboarding fill, the lineage imports, a spec's fixture) has
--- to know, and OsmWayStreetEdgeSpec fails if a stored flag disagrees with a fresh ranking all the same. The function
--- returns how many streets got a primary way.
+-- The one way per street the APIs name as *the* way, stored as a flag: a placed row before an unplaced one, then the
+-- row covering most of the street, then the lowest way id. Ranking on the fly (a DISTINCT ON view) is re-ranked over
+-- the whole table whenever a query joins it to a set of streets, as Explore's next-street query does on every request.
+-- Statement triggers re-rank the streets an insert, delete or position change touches, so no writer has to know.
+-- OsmWayStreetEdgeSpec fails if a stored flag ever disagrees with a fresh ranking.
 ALTER TABLE osm_way_street_edge ADD COLUMN is_primary BOOLEAN NOT NULL DEFAULT FALSE;
 CREATE FUNCTION osm_way_street_edge_set_primary(streets integer[], schema text DEFAULT current_schema())
 RETURNS integer

@@ -160,18 +160,17 @@ recompute would produce, so changing a distance query means recomputing its cach
 nightly refresh that maintains them has to reach every row a full recompute would touch (#4774).
 `GeodesicDistanceSpec` checks both (for `meters_audited` and `high_quality` it compares evolution 347's backfill SQL
 with the runtime recompute, since the two must stay one formula). It needs a *seeded* database, since its
-cache-freshness tests cancel on empty tables. `centerline_offset_m` is the odd one out: nothing refreshes it nightly,
-so an evolution that moves `label_point.geom`, changes `label.street_edge_id`, or edits `street_edge.geom` must
-recompute it in the same statement with `label_centerline_offset_m(label_point.geom, street_edge.geom)` (377.sql's
-backfill is the template); `StreetSideSpec` fails if a stored value differs from a fresh call by over a millimetre
-(the slack a PROJ or PostGIS upgrade needs). The `street_edge.geom`
-case is the easiest to miss and the worst to get wrong: a street re-import that **reverses** an edge's digitization
-flips the sign of every offset on it, so labels silently swap sides while every value still looks plausible.
+cache-freshness tests cancel on empty tables. `centerline_offset_m` is the odd one out: nothing refreshes it nightly, so
+an evolution that moves `label_point.geom`, changes `label.street_edge_id`, or edits `street_edge.geom` must recompute
+it in the same statement with `label_centerline_offset_m(label_point.geom, street_edge.geom)` (377.sql's backfill is the
+template); `StreetSideSpec` fails if a stored value differs from a fresh call by over a millimetre (the slack a PROJ or
+PostGIS upgrade needs). The `street_edge.geom` case is the easiest to miss and the worst to get wrong: a street
+re-import that **reverses** an edge's digitization flips the sign of every offset on it, so labels silently swap sides
+while every value still looks plausible.
 
-`osm_way_street_edge.is_primary` (#5741) is a cached ranking rather than a distance, and the one cache a trigger
-maintains: the table has many writers (the onboarding fill, the lineage imports, the #4717 consolidation, spec
-fixtures) and no nightly refresh, so statement triggers re-rank the streets each insert, delete or position change
-touches. `OsmWayStreetEdgeSpec` still fails on a flag that disagrees with a fresh ranking.
+`osm_way_street_edge.is_primary` (#5741) is the one cache a trigger maintains: the table has several writers and no
+nightly refresh, so statement triggers re-rank the streets each insert, delete or position change touches, and
+`OsmWayStreetEdgeSpec` fails on a flag that disagrees with a fresh ranking.
 
 ## A new table that cross-schema queries read
 

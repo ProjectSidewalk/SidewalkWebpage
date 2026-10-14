@@ -3,20 +3,16 @@ set -euo pipefail
 
 # Step 3 of positioning a live city's streets on their OpenStreetMap ways (#5741): load the CSV
 # tools/city/backfill_osm_lineage.py wrote (db/onboarding/<city-id>/osm_lineage.csv) into osm_way_street_edge. Each
-# street in the file has its rows replaced whole: the matching claims a street's stretches way by way, so a street's
-# rows only make sense as a set.
-#
-# A street's rows are only loaded when the file's geom_md5 still matches the street's geometry. street_edge_id is a
-# per-city serial, so a CSV pointed at the wrong schema matches thousands of ids by accident, and the geometry hash is
-# what tells a street from its namesake in another city. The same test skips a street edited between the export and
-# this import, which keeps its old rows. A few skipped rows are normal and are reported; most of a sizeable file
-# failing the test means the wrong city or a stale export, and aborts the import.
+# street in the file has its rows replaced whole, and only while the file's geom_md5 still matches the street's
+# geometry: street_edge_id is a per-city serial, so a CSV pointed at the wrong schema would match thousands of ids, and
+# the hash is what tells the streets apart. The same test skips a street edited since the export, which keeps its old
+# rows. A few skipped streets are normal and reported; most of a sizeable file failing means the wrong city or a stale
+# export, and the import aborts.
 
 # shellcheck source=helpers.sh
 source /opt/scripts/helpers.sh
 
-# Optional positional args ($1 schema, $2 CSV path relative to the db dir) so a caller can drive the script without
-# its prompts.
+# Optional positional args ($1 schema, $2 CSV path relative to the db dir), so a caller can skip the prompts.
 SCHEMA_NAME=${1:-$(prompt_with_default "Schema name")}
 CSV_FILENAME=${2:-$(prompt_with_default \
   "Path to CSV file (relative to db dir, e.g. onboarding/seattle-wa/osm_lineage.csv)")}
@@ -83,8 +79,8 @@ psql -v ON_ERROR_STOP=1 -d sidewalk -U "$SCHEMA_NAME" <<EOSQL
     END
     \$\$;
 
-    -- A schema restored from a dump can have the id sequence behind the table. Before the DELETE: a sequence change
-    -- survives a rollback, so set after it the sequence could end up below rows the rollback brings back.
+    -- A dump-restored schema can have the id sequence behind the table. Set before the DELETE, since a sequence change
+    -- survives a rollback and must never end up below a row the rollback brings back.
     SELECT setval(pg_get_serial_sequence('osm_way_street_edge', 'osm_way_street_edge_id'),
                   (SELECT COALESCE(MAX(osm_way_street_edge_id), 0) + 1 FROM osm_way_street_edge), false);
     DELETE FROM osm_way_street_edge

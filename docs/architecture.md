@@ -95,22 +95,20 @@ arbitrary line, fewer tiny disconnected pieces, and enough of a plan that the to
   pieces those cuts leave (see [`docs/onboarding-a-city.md`](onboarding-a-city.md)), and
   `tools/one-off/4717-consolidate-tiny-streets.sql` applies the same rules to a city built before it, joining the
   short pieces back onto their neighbours. A longer piece cut off at a border is simply two streets.
-- **A street knows every OSM way it lies on, and where (#5741).** `osm_way_street_edge` holds one row per
-  street-way pair: which stretch of the street the way covers and which stretch of the way that is (fractions along
-  each line in its own direction), plus `same_direction`, since OSM's `sidewalk:left` / `:right` are relative to the
-  way's drawn direction while our `street_side` is relative to our line. The positions are matched by geometry
-  (`tools/city/osm_lineage.py`): the street build does it against the whole ways it fetched, and
-  `tools/city/backfill_osm_lineage.py` does it for a live city against the ways OSM holds today (export, match,
-  import, like the street gradient). A row with no position still names the way: a city linked before the positions
-  existed, a hand-built street layer, the Infra3d placeholder way `-1`. Readers that need one way per street use the
-  `osm_way_street_edge_primary` view, the rows flagged `is_primary` (a placed row first, then the one covering most
-  of the street, then the lowest id); the flag is stored because a view ranking rows on the fly is re-ranked over the
-  whole table under a join, and statement triggers keep it ranked under any writer (`OsmWayStreetEdgeSpec` fails on
-  a flag that disagrees with a fresh ranking all the same). Readers that
-  need the way under a point call `osm_way_at_fraction(street_edge_id, fraction)`; the Streets and Sidewalk Presence
-  APIs return the whole list, the latter with each way's side for the face. The nightly `osm_way` refresh stores each
-  way's `osm_version` and `osm_timestamp`, so a link whose `matched_at` predates the way's last edit is one to
-  re-match (an edit that only moves the way's nodes bumps neither, so that check is a hint, not a guarantee).
+- **A street knows every OSM way it lies on, and where (#5741).** `osm_way_street_edge` holds one row per street-way
+  pair: the stretch of the street the way covers, the stretch of the way that is (fractions along each line in its own
+  direction) and `same_direction`, since OSM's `sidewalk:left` / `:right` follow the way's drawn direction while our
+  `street_side` follows our line. `tools/city/osm_lineage.py` matches them by geometry: the street build against the
+  ways it fetched, `tools/city/backfill_osm_lineage.py` for a live city against today's OSM (export, match, import, like
+  the street gradient). A row with no position still names the way (a city linked before the positions existed, a
+  hand-built layer, the Infra3d placeholder `-1`). Readers that need one way per street use the
+  `osm_way_street_edge_primary` view: the row flagged `is_primary`, a placed row first, then the one covering most of
+  the street, then the lowest id. The flag is stored because ranking on the fly is re-ranked over the whole table under
+  a join; statement triggers keep it right under any writer, and `OsmWayStreetEdgeSpec` fails on a flag that disagrees
+  with a fresh ranking. Readers that need the way under a point call `osm_way_at_fraction(street_edge_id, fraction)`;
+  the Streets and Sidewalk Presence APIs return the whole list. The nightly `osm_way` refresh stores `osm_version` and
+  `osm_timestamp`, so a link whose `matched_at` predates the way's last edit is one to re-match (a node move bumps
+  neither, so that is a hint, not a guarantee).
 - **A route may run through any number of regions.** `route.region_id` is the region the route **starts** in: the
   first street's region, derived by the server on save and re-derived by `RouteTable.updateStats` whenever the
   street list changes, never taken from the client. Listings carry `region_count` beside it, so a route that leaves

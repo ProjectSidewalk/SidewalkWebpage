@@ -57,9 +57,9 @@ Workflow:
 The staging tables match what ``db/scripts/fill-new-schema.sh`` consumes: ``qgis_road`` (``road_id`` int PK that
 becomes ``street_edge_id``, ``geom`` LineString 4326 pre-split at intersections, ``highway`` way-type column,
 ``osm_ids`` bigint[] of the OSM ways the street spans, ``region_id``), ``qgis_region`` (``region_id`` int PK,
-``name``, ``data_source`` provenance, ``geom`` MultiPolygon 4326) and ``qgis_road_osm_way`` (one row per street and
-OSM way it lies on, with the stretch of each the two share and whether they run the same direction, #5741; see
-``osm_lineage.py``). A hand-built export sets ``osm_ids = ARRAY[osm_id]`` and gets unpositioned lineage rows.
+``name``, ``data_source`` provenance, ``geom`` MultiPolygon 4326) and ``qgis_road_osm_way`` (one row per street and OSM
+way it lies on, with the shared stretch of each and whether they run the same direction, #5741). A hand-built export
+sets ``osm_ids = ARRAY[osm_id]`` and gets unpositioned lineage rows.
 
 Street semantics vs. the manual QGIS flow:
 
@@ -187,8 +187,7 @@ def as_id_list(value):
     Normalizes an osmnx ``osmid`` attribute to a list of OSM way ids.
 
     When osmnx simplifies a graph, an edge merged from several OSM ways carries ``osmid`` as a list; an unmerged edge
-    carries a scalar, and either way the list has no order and says nothing about each way's direction, which is
-    why :func:`street_lineage` matches the finished streets to the ways by geometry.
+    carries a scalar. Every way id is kept, for the GeoPackage, the staging SQL and :func:`street_lineage`.
 
     Args:
         value: A scalar way id, or a non-empty list of them.
@@ -1240,16 +1239,14 @@ def fetch_ways(boundary_poly, include_alleys, fetch_buffer_m, fresh=False):
     """
     Fetches the OSM ways the streets are cut from, whole and in their drawn direction, for :func:`street_lineage`.
 
-    A second request over the same area as :func:`fetch_streets`, since the graph fetch keeps a merged edge's way ids
-    as an unordered set and drops each way's direction (#5741). Same highway filter, same buffer, so every way a street
-    was cut from is here.
+    A second request over the same area as :func:`fetch_streets`, with the same filter and buffer, since the graph fetch
+    drops the ways' order and direction (#5741).
 
     Args:
         boundary_poly:  Shapely (Multi)Polygon of the city, in lon/lat.
         include_alleys: Also fetch ``service=alley`` ways.
         fetch_buffer_m: How far outside the boundary to fetch, in meters.
-        fresh:          Skip osmnx's cache: a backfill positions streets on the ways OSM holds today, not on a copy
-                        an earlier run left behind.
+        fresh:          Skip osmnx's cache, so a backfill matches against the ways OSM holds today.
 
     Returns:
         A GeoDataFrame of ways: ``osm_way_id``, ``highway``, LineString geometry in lon/lat.
@@ -1749,8 +1746,7 @@ def write_gpkg(path, roads, regions, boundary, dropped, rider_junctions, ways=No
         boundary:        City boundary GeoDataFrame.
         dropped:         Too-short street fragments that were removed.
         rider_junctions: Junction points where boundary-running splits were merged.
-        ways:            The :func:`fetch_ways` frame, kept so a ``--from-gpkg`` re-export can re-match edited
-                         streets offline.
+        ways:            The :func:`fetch_ways` frame, which a ``--from-gpkg`` re-export re-matches against.
         lineage:         The :func:`street_lineage` frame, drawn as the stretch of each street every way covers.
     """
     gpkg_frame(roads).to_file(path, layer='qgis_road', driver='GPKG')

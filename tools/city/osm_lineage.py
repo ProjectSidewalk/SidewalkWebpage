@@ -1,24 +1,20 @@
 """
-Where each street lies on OpenStreetMap (#5741): which ways it runs along, which stretch of the street each way covers,
-which stretch of the way that is, and whether the two run the same direction.
+Where each street lies on OpenStreetMap (#5741): the ways it runs along, the stretch of the street each covers, the
+stretch of the way that is, and whether the two run the same direction.
 
-A street built by ``onboard_city.py`` is one or more consecutive OSM ways joined between intersections, cut where a
-region border or a tiny-piece merge decided, so one street can sit on several ways and one way usually holds several
-streets. OSM's ``sidewalk:left`` / ``sidewalk:right`` tags are relative to the direction a way was drawn, while our
-street sides are relative to our own line, so handing street-side data back to OSM needs all three facts per
-street-way pair. They are found by geometry, not by bookkeeping: osmnx hands the build the set of way ids an edge was
-merged from with no order and no per-way direction, and a live city has nothing but its one recorded way id, so the
-same matching serves both. ``compute_lineage`` is the pure core (unit-tested in ``test/python/test_osm_lineage.py``);
-``onboard_city.py`` calls it on a fresh build and ``backfill_osm_lineage.py`` on a city's exported streets.
+A street built by ``onboard_city.py`` is one or more consecutive OSM ways joined between intersections, so one street
+can sit on several ways and one way usually holds several streets. OSM's ``sidewalk:left`` / ``sidewalk:right`` tags
+follow the way's drawn direction while our street sides follow our own line, so handing street-side data back to OSM
+needs all of this per street-way pair. It is found by geometry: osmnx gives the build an unordered set of way ids per
+edge with no direction, and a live city has nothing but its recorded way ids. ``compute_lineage`` is the pure core;
+``onboard_city.py`` calls it on a fresh build and ``backfill_osm_lineage.py`` on a live city.
 
-How a street is matched. Both lines are projected to a local metric plane, the street is sampled at its own vertices
-and every ``SAMPLE_STEP_M`` along it, and every way within ``LATERAL_TOL_M`` of the street is tried: the samples
-within that distance of the way form runs along the street, and a run is a match when it is at least ``MIN_RUN_M``
-long and the sample points advance along the way by a comparable distance (a cross street is near the street for a
-few metres at the junction but goes nowhere along it). The way the street was built from, when known, is tried first,
-then the others by run length, each taking whatever stretch of the street is still unclaimed, so two ways never
-claim the same stretch. A way that lies within tolerance but could not be positioned (a looped way whose closure
-point falls inside the street, say) is still listed, without a position, when the build named it.
+How a street is matched: both lines go onto a local metric plane, the street is sampled at its vertices and every
+``SAMPLE_STEP_M`` along it, and every way within ``LATERAL_TOL_M`` is tried. The samples within that distance of a way
+form runs along the street; a run counts when it is at least ``MIN_RUN_M`` long and advances along the way by a
+comparable distance (a cross street is near the street at the junction but goes nowhere along it). The way the street
+was built from is tried first, then the others by run length, each taking only the stretch still unclaimed. A way the
+build named that could not be positioned is still listed, without a position.
 """
 from dataclasses import dataclass
 
@@ -229,8 +225,8 @@ def match_street(street, ways, hint_ids=(), tol_m=LATERAL_TOL_M, min_run_m=MIN_R
         hint_ids: Way ids the street is known to have been built from; tried first and listed even when unpositioned.
 
     Returns:
-        ``(links, coverage)``: the :class:`WayLink` list in street order (unpositioned hints last) and the covered
-        share of the street.
+        ``(links, coverage)``: the :class:`WayLink` list in street order, unpositioned hints last, and the share
+        of the street they cover.
     """
     positions = sample_positions(street, step_m)
     street_length = street.length
@@ -266,8 +262,7 @@ def compute_lineage(streets, ways, tol_m=LATERAL_TOL_M, min_run_m=MIN_RUN_M, ste
     Matches every street to the ways it lies on.
 
     Args:
-        streets: An iterable of ``(street_id, LineString, hint_way_ids)`` in lon/lat, hint ids an iterable (empty
-                 when unknown).
+        streets: An iterable of ``(street_id, LineString, hint_way_ids)`` in lon/lat; the hints may be empty.
         ways:    ``{way_id: LineString}`` in lon/lat, each in the way's drawn direction.
 
     Returns:

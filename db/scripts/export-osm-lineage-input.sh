@@ -1,14 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Step 1 of positioning a live city's streets on their OpenStreetMap ways (#5741): write every served street with the
-# way ids it is linked to into db/onboarding/<city-id>/osm_lineage_input.csv, for tools/city/backfill_osm_lineage.py
-# to match against the ways OSM holds today. Every street is exported, whether or not it already has positions: the
-# matching claims a street's stretches way by way, so it is only right over the whole street at once. The tutorial
-# street is never exported: it is the shared DC geometry, on no way of this city's.
-#
-# A city whose streets did not come from OSM (the Infra3d cities, linked to the placeholder way -1 throughout) has
-# nothing to position, and the export stops rather than send the matcher looking for ways that are not there.
+# Step 1 of positioning a live city's streets on their OpenStreetMap ways (#5741): write every served street with its
+# way ids into db/onboarding/<city-id>/osm_lineage_input.csv, for tools/city/backfill_osm_lineage.py to match against
+# today's OSM. Every street is exported, positioned or not, since the matching only comes out right over a whole street
+# at once. The tutorial street (the shared DC geometry) is never exported, and a city whose streets did not come from
+# OSM (the Infra3d cities, linked to the placeholder way -1 throughout) stops here with nothing to position.
 
 # shellcheck source=helpers.sh
 source /opt/scripts/helpers.sh
@@ -33,8 +30,7 @@ fi
 OUT_DIR=/opt/onboarding/$CITY_ID
 mkdir -p "$OUT_DIR"
 OUT_FILE=$OUT_DIR/osm_lineage_input.csv
-# Written beside the target and moved into place on success, so a failed export never leaves a partial file under the
-# name the matcher reads.
+# Written beside the target and moved into place on success, so a failed export never leaves a partial file behind.
 TMP_FILE=$OUT_FILE.partial
 trap 'rm -f "$TMP_FILE"' EXIT
 

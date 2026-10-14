@@ -305,9 +305,8 @@ street-gradient:
 import-street-gradient:
 	@docker exec -it $(db-container) sh -c "/opt/scripts/import-street-gradient.sh $(args)"
 
-# OSM way positions for a live city (#5741, docs/architecture.md "Streets, regions, and routes") in three steps, like
-# the gradient: export every served street with its way ids, match them by geometry against the ways OSM holds today
-# (tools/city/backfill_osm_lineage.py, in the web container), load the result. Main checkout only, like the gradient.
+# A live city's OSM way positions (#5741), in the gradient's three steps: export the streets, match them against today's
+# OSM (tools/city/backfill_osm_lineage.py, in the web container), import. Main checkout only, like the gradient.
 export-osm-lineage-input:
 	@docker exec -it $(db-container) sh -c "/opt/scripts/export-osm-lineage-input.sh $(args)"
 

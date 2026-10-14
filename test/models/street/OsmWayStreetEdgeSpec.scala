@@ -9,8 +9,9 @@ import util.{RolledBackDb, SidewalkSpec, StreetFixtures}
 
 /**
  * A street's OSM way lineage (#5741): the `osm_way_street_edge_primary` view, the triggers that keep `is_primary`
- * ranked, `osm_way_at_fraction`, the table's constraints, and the siding of a link for one face (evolution 417). Every DB case but the drift check runs inside a rolled-back transaction on a street the fixtures seed along
- * x from 0 to 1, so a fraction along it is its x.
+ * ranked, `osm_way_at_fraction`, the table's constraints, and the siding of a link for one face. Every DB case but
+ * the drift check runs in a rolled-back transaction on a street the fixtures seed along x from 0 to 1, so a fraction
+ * along it is its x.
  */
 class OsmWayStreetEdgeSpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledBackDb with StreetFixtures {
 

@@ -163,10 +163,10 @@ Their versions are in [`docs/upgrading-libraries.md`](upgrading-libraries.md).
   fails loudly rather than silently measuring less.
 - **Split by interpreter (#4396).** Each script is tested on the Python that runs it: `label_clustering.py` on
   **`python3` (3.8)**, since the app shells out to it and prod's system Python is 3.8; the offline tooling
-  (`check_streets_for_imagery.py`, `onboard_city.py`, `osm_lineage.py`, `backfill_osm_lineage.py`,
-  `street_gradient.py`) on **`python3.13`**, since its libraries need ≥ 3.12. `make test-python` runs both halves (`test-python-app` / `test-python-tools` for one). Each takes the
-  whole directory minus the files the other owns, so a new test file runs in both by default; one that only works on one
-  gets an `--ignore` in the other.
+  (`check_streets_for_imagery.py`, `onboard_city.py`, `osm_lineage.py`, `backfill_osm_lineage.py`, `street_gradient.py`)
+  on **`python3.13`**, since its libraries need ≥ 3.12. `make test-python` runs both halves (`test-python-app` /
+  `test-python-tools` for one). Each takes the whole directory minus the files the other owns, so a new test file runs
+  in both by default; one that only works on one gets an `--ignore` in the other.
 - Deps, all installed into the web container by the `Dockerfile`: `requirements.txt` (the in-band script's) into 3.8,
   `requirements-offline-tools.txt` (the offline `check_streets` utility's) into 3.13, and `requirements-dev.txt`
   (`pytest`, `pytest-cov`, environment-marked per interpreter) into both.

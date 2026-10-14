@@ -734,8 +734,8 @@ SELECT DISTINCT COALESCE(final_merge.survivor_id, osm_way_street_edge.street_edg
 FROM osm_way_street_edge
 LEFT JOIN final_merge ON final_merge.drop_id = osm_way_street_edge.street_edge_id
 WHERE final_merge.drop_id IS NOT NULL OR osm_way_street_edge.street_edge_id IN (SELECT id FROM survivor);
---    A schema restored from a dump can have the id sequence behind the table. Before the DELETE: a sequence change
---    survives a rollback, so set after it the sequence could end up below rows the rollback brings back.
+--    A dump-restored schema can have the id sequence behind the table. Set before the DELETE, since a sequence change
+--    survives a rollback and must never end up below a row the rollback brings back.
 SELECT setval(pg_get_serial_sequence('osm_way_street_edge', 'osm_way_street_edge_id'),
               (SELECT COALESCE(MAX(osm_way_street_edge_id), 0) + 1 FROM osm_way_street_edge), false);
 DELETE FROM osm_way_street_edge

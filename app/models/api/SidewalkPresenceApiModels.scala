@@ -17,9 +17,8 @@ import java.time.OffsetDateTime
  * @param streetEdgeId              Project Sidewalk's street segment identifier
  * @param streetSide                `left` or `right` of the street's digitized direction (its coordinate order)
  * @param osmWayId                  OpenStreetMap way identifier: the way covering most of the street
- * @param osmWays                   Every OpenStreetMap way the street lies on, each with the stretch shared and
- *                                  which of the way's sides this face is, the side an OSM `sidewalk:left` /
- *                                  `sidewalk:right` tag refers to
+ * @param osmWays                   Every OpenStreetMap way the street lies on, with the stretch shared and which
+ *                                  side of the way this face is (what an OSM `sidewalk:left` / `:right` tag means)
  * @param regionId                  Region ID where the street is located
  * @param regionName                Name of the region where the street is located
  * @param wayType                   Type of way (e.g., "residential", "primary", etc.)

@@ -404,7 +404,7 @@ object OsmWayService {
    * Parses an OSM API multi-fetch (`/ways.json?ways=…`) response into a map from way id to what the API says of it,
    * for the ways that still exist. A deleted way is returned with `visible: false` and no tags; it is left out, so
    * absence from the result means "gone from OSM". A live way with no `tags` field maps to an empty tag map. The edit
-   * version and timestamp are taken when present, so a link positioned against an older version can be told (#5741).
+   * version and timestamp come along when present (#5741).
    *
    * A body with no `elements` array is not a multi-fetch response (a gateway page, a truncated body) and throws, so
    * the caller retries rather than reading every requested way as gone.

@@ -1,23 +1,17 @@
 """
 Positions a live city's streets on their OpenStreetMap ways (#5741), for cities linked before the positions existed.
 
-Step 2 of three. ``db/scripts/export-osm-lineage-input.sh`` writes every served street with the way ids it is linked
-to; this fetches the OSM ways around the city, matches each street to them by geometry (``osm_lineage.py``), and
-writes ``osm_lineage.csv`` beside the input for ``db/scripts/import-osm-lineage.sh`` to load, plus
-``osm_lineage_review.csv`` naming each street that could not be matched along its whole length, with its line as WKT
-for QGIS. Run from anywhere; files are resolved under the repo's ``db/onboarding/<city-id>/``:
+Step 2 of three: ``db/scripts/export-osm-lineage-input.sh`` writes every served street with its way ids, this fetches
+the OSM ways around the city and matches each street to them by geometry (``osm_lineage.py``), and
+``db/scripts/import-osm-lineage.sh`` loads the result. Files live under the repo's ``db/onboarding/<city-id>/``:
 
     make export-osm-lineage-input          (prompts for the schema and city id)
     make osm-lineage id=seattle-wa
     make import-osm-lineage                (prompts for the schema and the CSV path)
 
-A street's recorded way ids are tried first, so a street that still sits where OSM has it keeps the way it was built
-from; where OSM has since split or redrawn a way, the matching finds the way that is there now, and the review file
-lists what it could not place. The import keeps the recorded ways of an unmatched street, unpositioned, so no street
-loses its link.
-
-The pure parts (``read_input``, ``hull_of``, ``lineage_output``, ``review_output``) are unit-tested in
-``test/python/test_backfill_osm_lineage.py``; the fetch is ``onboard_city.fetch_ways``, stubbed there.
+A street's recorded ways are tried first; where OSM has since split or redrawn a way, the matching finds what is there
+now. ``osm_lineage_review.csv`` lists every street not matched along its whole length, with its line as WKT for QGIS,
+and the import keeps such a street's recorded ways without positions.
 """
 import argparse
 import csv
@@ -50,8 +44,8 @@ def read_input(path):
     Reads the export: one street per row.
 
     Returns:
-        A list of ``(street_edge_id, geom_md5, hint_way_ids, LineString)`` tuples, the way ids as ints with the Infra3d
-        placeholder -1 left out.
+        A list of ``(street_edge_id, geom_md5, hint_way_ids, LineString)`` tuples; the Infra3d placeholder way -1
+        is dropped from the hints.
 
     Raises:
         SystemExit: when the file does not have the export's columns.

@@ -10,8 +10,7 @@ import javax.inject.{Inject, Singleton}
 
 /**
  * One OpenStreetMap way a street lies on, and where (#5741): one row per street-way pair. The position columns are
- * all set or all null; null on a link made before the position was recorded (a city built before evolution 417, a
- * hand-built street layer) and on the Infra3d placeholder way -1, which names no OSM way at all.
+ * all set or all null; null means no position was recorded (an older city, a hand-built layer, Infra3d's way -1).
  *
  * @param osmWayId       The OSM way, or -1 in a city whose streets did not come from OSM.
  * @param streetEdgeId   The street.
@@ -65,8 +64,7 @@ class OsmWayStreetEdgeTableDef(tag: Tag) extends Table[OsmWayStreetEdge](tag, "o
 }
 
 /**
- * The `osm_way_street_edge_primary` view (evolution 417): the one way per street the APIs name as *the* way, the rows
- * flagged `is_primary` (a placed row first, then the one covering most of the street, then the lowest id). Read-only.
+ * The `osm_way_street_edge_primary` view: the read-only row per street flagged `is_primary`, the way the APIs name.
  */
 class OsmWayStreetEdgePrimaryTableDef(tag: Tag) extends Table[(Int, Long)](tag, "osm_way_street_edge_primary") {
   def streetEdgeId: Rep[Int] = column[Int]("street_edge_id")
