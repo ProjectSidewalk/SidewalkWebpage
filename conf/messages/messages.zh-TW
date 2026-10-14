@@ -417,6 +417,10 @@ audit.center.ui.tags.info = 請為您的標籤新增標籤，以便為資料提�
 audit.center.ui.description.header = 描述（可選）
 audit.center.ui.description.placeholder = 描述
 
+audit.all.regions.finished.title = 您已探索完{0}的所有社區！
+audit.all.regions.finished.body = 謝謝您！您已檢查完我們在{0}的每一條街道。您可以繼續協助驗證其他人的標籤，或探索另一個城市。
+audit.all.regions.finished.validate = 驗證標籤
+audit.all.regions.finished.other.cities = 探索另一個城市
 audit.survey.title = 請協助完成關於Project Sidewalk的一次性問卷調查
 audit.survey.enjoyment.question = 您對使用Project Sidewalk平台的滿意度？
 audit.survey.enjoyment.option.1 = 很無聊

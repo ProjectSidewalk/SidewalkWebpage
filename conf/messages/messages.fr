@@ -354,6 +354,10 @@ audit.center.ui.tags.info = Ajoutez des tags à vos étiquettes pour enrichir le
 audit.center.ui.description.header = Décrire (facultatif)
 audit.center.ui.description.placeholder = Description
 
+audit.all.regions.finished.title = Vous avez exploré tous les quartiers de {0} !
+audit.all.regions.finished.body = Merci ! Vous avez vérifié toutes les rues que nous avons à {0}. Vous pouvez continuer à aider en validant les étiquettes des autres, ou en explorant une autre ville.
+audit.all.regions.finished.validate = Valider des étiquettes
+audit.all.regions.finished.other.cities = Explorer une autre ville
 audit.survey.title = Merci de répondre à cette enquête unique sur Project Sidewalk
 audit.survey.enjoyment.question = Dans quelle mesure appréciez-vous utiliser Project Sidewalk ?
 audit.survey.enjoyment.option.1 = Très ennuyeux

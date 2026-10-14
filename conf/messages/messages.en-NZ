@@ -51,3 +51,4 @@ leaderboard.intro.you = Every label makes footpaths more accessible and safe for
 # Community listing pages: /stories and /routes (#4688).
 community.page.sort.region = Neighbourhood
 stories.page.intro = Personal stories that community members have attached to footpath labels — real accounts of how accessibility barriers and features affect people''s lives.
+audit.all.regions.finished.title = You''ve explored every neighbourhood in {0}!

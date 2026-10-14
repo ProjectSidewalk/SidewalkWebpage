@@ -214,6 +214,45 @@ input[type="radio"] {
   background: rgb(45 42 63 / 55%);
 }
 
+.all-regions-finished {
+  width: calc(520px * var(--ui-scale, 1));
+  max-width: calc(100vw - 32px);
+  padding: calc(32px * var(--ui-scale, 1));
+  border: none;
+  border-radius: var(--border-radius-lg);
+  background: var(--color-neutral-white);
+  color: var(--color-neutral-900);
+  box-shadow: var(--box-shadow-lg);
+  text-align: center;
+}
+
+/* ::backdrop can't read :root custom properties in all Baseline browsers, so the asphalt-500 tint is spelled out. */
+.all-regions-finished::backdrop {
+  background: rgb(45 42 63 / 55%);
+}
+
+.all-regions-finished__image {
+  width: calc(160px * var(--ui-scale, 1));
+}
+
+.all-regions-finished__title {
+  margin: calc(16px * var(--ui-scale, 1)) 0 calc(8px * var(--ui-scale, 1));
+  font: var(--text-title-bold);
+}
+
+.all-regions-finished__body {
+  margin: 0;
+  font: var(--text-body-regular);
+}
+
+.all-regions-finished__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: calc(12px * var(--ui-scale, 1));
+  margin-top: calc(24px * var(--ui-scale, 1));
+}
+
 .survey-dialog__header {
   display: flex;
   align-items: center;
