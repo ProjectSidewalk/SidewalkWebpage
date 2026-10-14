@@ -11,7 +11,7 @@
  */
 
 import { loadModules, useUtil } from './loader.js';
-import { fakeTracker } from './fakes.js';
+import { fakeTracker, navigationAttempts } from './fakes.js';
 
 describe('a street given up on at page load', () => {
     let PanoManager;
@@ -19,10 +19,8 @@ describe('a street given up on at page load', () => {
     let NoImageryError;
     let reportNoImagery;
     let showAlert;
-    let consoleError;
-    /** jsdom's reports of the navigation it refuses to do (see beforeEach), one per attempt. */
-    let navigationReports;
-    const navigations = () => navigationReports;
+    /** How the tests see the move to /explore the give-up path ends in. */
+    const navigations = navigationAttempts();
 
     /** A viewer type whose creation fails the given way, standing in for a street with no imagery or a dead SDK. */
     const viewerTypeFailingWith = (error) => ({ create: vi.fn(() => Promise.reject(error)) });
@@ -58,14 +56,7 @@ describe('a street given up on at page load', () => {
         document.head.appendChild(style);
         // The failure path logs the error deliberately — it is the only trace of a transient failure, since nothing
         // is written to the db. Kept out of the test output rather than out of the code.
-        consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
-        consoleError.mockClear();
-        // jsdom refuses the real navigation the give-up path ends in and reports it on its virtual console, which is
-        // how the tests see the move to /explore; the console is only reachable through jsdom's private settings.
-        navigationReports = [];
-        window._settings.virtualConsole.on('jsdomError', (error) => {
-            if (error.message.includes('Not implemented: navigation')) navigationReports.push(error);
-        });
+        vi.spyOn(console, 'error').mockImplementation(() => {});
         reportNoImagery = vi.fn(() => Promise.resolve());
         showAlert = vi.fn();
 
@@ -82,7 +73,7 @@ describe('a street given up on at page load', () => {
         await loadAndFail(new NoImageryError('nothing usable here'));
 
         expect(reportNoImagery).toHaveBeenCalledWith(task, 3);
-        expect(navigations()).toHaveLength(1);
+        expect(navigations).toHaveBeenCalledTimes(1);
         // The note names the street, so the arrival can tell a retry of this street from a move to another.
         expect(PanoManager.consumeStreetSkippedNotice()).toBe(101);
     });
@@ -102,7 +93,7 @@ describe('a street given up on at page load', () => {
         await loadAndFail(new Error('the maps library never loaded'));
 
         expect(reportNoImagery).not.toHaveBeenCalled();
-        expect(navigations()).toHaveLength(0);
+        expect(navigations).not.toHaveBeenCalled();
         expect(PanoManager.consumeStreetSkippedNotice()).toBeNull();
         expect(showAlert).toHaveBeenCalledWith('popup.imagery-load-failed', 'imageryLoadFailed', false);
     });
@@ -117,7 +108,7 @@ describe('a street given up on at page load', () => {
         // Past the flag budget nothing is recorded and nobody is moved, so the transient-failure wording ("try
         // again in a few minutes") would be doubly wrong: nothing failed, and waiting changes nothing.
         expect(reportNoImagery).not.toHaveBeenCalled();
-        expect(navigations()).toHaveLength(0);
+        expect(navigations).not.toHaveBeenCalled();
         expect(showAlert).toHaveBeenCalledWith('popup.imagery-skip-limit', 'imagerySkipLimit', false);
     });
 

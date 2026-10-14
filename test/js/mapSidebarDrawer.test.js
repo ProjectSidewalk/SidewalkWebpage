@@ -232,7 +232,7 @@ describe('MapSidebarDrawer', () => {
             expect(sidebar.style.width).toBe('');
         });
 
-        it('gives a dragged width back on the way to a wide viewport, rather than losing it to a rotation', async () => {
+        it('gives a dragged width back on the way to a wide viewport, not lost to a rotation', async () => {
             const {sidebar, viewport} = await build();
             sidebar.style.width = '520px';
 

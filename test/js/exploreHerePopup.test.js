@@ -7,7 +7,7 @@
  * hostile strings through `buildExploreHereContent` and assert nothing parses as an element. Also pins the
  * progress-bar gating (no "100% explored" pitch), the href passthrough, and `streetAddress`'s fallback chain.
  *
- * The pin/marker/Escape wiring around the popup is covered separately, in labelMapSearchClear.test.js.
+ * The pin/marker/Escape wiring around the popup is covered in labelMapSearchClear.test.js.
  */
 
 import { loadModules } from './loader.js';

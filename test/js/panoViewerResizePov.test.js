@@ -31,7 +31,7 @@ describe('PanoViewer resize reports a POV change once the new box has rendered',
         due.forEach((cb) => cb());
     }
 
-    test('MapillaryViewer reads the new aspect from its container at resize, so getPov() is right at once', async () => {
+    test('MapillaryViewer reads the new aspect from its container at resize, so getPov() is right', async () => {
         const MapillaryViewer = await loadViewers();
         const viewer = new MapillaryViewer();
         viewer.viewer = { resize: vi.fn() };

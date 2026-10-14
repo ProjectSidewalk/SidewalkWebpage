@@ -146,7 +146,7 @@ jobs:
         if: always()
         run: node tools/lint/check-spec-base.mjs
 
-      # The jsdom unit suite (test/js/). Thin coverage is why there's no coverage threshold (vitest.config.mjs says why).
+      # The jsdom unit suite (test/js/). Thin coverage is why there's no coverage threshold (vitest.config.mjs).
       - name: Vitest unit tests (blocking)
         if: always()
         run: npm run test:js:coverage

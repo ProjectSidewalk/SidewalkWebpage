@@ -5,7 +5,7 @@
  * is trusted. The synthetic renderer samples an analytic texture (no source-image interpolation), so the
  * recovery error here is pure estimator error.
  */
-const {
+import {
     fitFocal,
     crossShiftEstimate,
     fovsFromFocal,
@@ -16,9 +16,10 @@ const {
     madSigma,
     makeProceduralEquirectSampler,
     renderPinhole,
-} = require('./gsv-fov-probe/estimator.cjs');
+} from './gsv-fov-probe/estimator.cjs';
 
-// V8 coverage instrumentation (what CI runs) makes the synthetic renders several times slower than the default 5 s allows.
+// V8 coverage instrumentation (what CI runs) makes the synthetic renders several times slower than the default 5 s
+// allows.
 vi.setConfig({ testTimeout: 30_000 });
 
 const W = 720;

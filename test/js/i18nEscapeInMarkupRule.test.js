@@ -16,7 +16,7 @@
  */
 
 import { RuleTester } from 'eslint';
-const rule = require('../../tools/lint/eslint-rules/i18n-escape-in-markup');
+import rule from '../../tools/lint/eslint-rules/i18n-escape-in-markup.js';
 
 const ruleTester = new RuleTester({
     languageOptions: { ecmaVersion: 2022, sourceType: 'script' },

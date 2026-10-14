@@ -1,8 +1,7 @@
 /**
  * Tests for the TestServerBanner class (frontend/js/common/TestServerBanner.js).
  *
- * The module auto-inits against whatever banner is on the page, so it is loaded into an empty body and each test
- * constructs the banner itself.
+ * Each load starts from an empty body, so the module's own auto-init does nothing and each test builds its banner.
  *
  * Coverage: the pre-paint "don't show again" dismissal, the two dismiss controls (permanent vs this-visit) and their
  * localStorage contract, and the --test-banner-height reservation — including the guard that publishes 0 when the

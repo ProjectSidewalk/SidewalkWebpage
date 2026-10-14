@@ -60,12 +60,14 @@ const WITHHELD = plainKeys(flatten(readLocale('en', 'common'))).find((key) => !k
  * @param {(url: string) => Promise<object>} [options.fetch] - Replaces the stand-in `fetch`.
  * @param {string[]} [options.missing] - Files, as `<language>/<namespace>.json`, the stand-in `fetch` 404s anyway.
  * @param {string[]} [options.localeFiles] - The locale files the page is told exist, if not the real ones.
- * @returns {Promise<{requested: string[], consoleError: import('vitest').MockInstance}>} The locale files the page asked for,
- *   as `<language>/<namespace>.json`, and what it reported as errors.
+ * @returns {Promise<{requested: string[], errors: unknown[][]}>} The locale files the page asked for, as
+ *   `<language>/<namespace>.json`, and the arguments of each `console.error` it made.
  */
 async function startPage(language, { countryId = 'usa', fetch, missing = [], localeFiles = LOCALE_FILES } = {}) {
     const requested = [];
-    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    // Collected by hand: a page started in beforeAll would have a mock's record emptied before the test runs.
+    const errors = [];
+    console.error = (...args) => errors.push(args);
     window.fetch = fetch ?? (async (url) => {
         const relative = String(url).replace('/assets/locales/', '');
         requested.push(relative);
@@ -88,12 +90,15 @@ async function startPage(language, { countryId = 'usa', fetch, missing = [], loc
         language, supportedLanguages: LANGUAGES, localeFiles, defaultNS: 'common', namespaces: NAMESPACES, countryId,
         unitWords: UNIT_WORDS,
     });
-    return { requested, consoleError };
+    return { requested, errors };
 }
+
+const realConsoleError = console.error;
 
 /** Takes down what `startPage` put up, so the next page starts from nothing. */
 function stopPage() {
     for (const name of ['appManager', 'i18next', 'i18nextHttpBackend', 'fetch']) delete window[name];
+    console.error = realConsoleError;
 }
 
 describe('the vendored i18next over our locale files', () => {
@@ -107,7 +112,7 @@ describe('the vendored i18next over our locale files', () => {
         afterAll(stopPage);
 
         test('loads without an error, asking only for languages we have', () => {
-            expect(page.consoleError).not.toHaveBeenCalled();
+            expect(page.errors).toEqual([]);
             expect(window.i18next.language).toBe(language);
             expect([...new Set(page.requested.map((file) => file.split('/')[0]))].sort())
                 .toEqual([...new Set([language, 'en'])].sort());
@@ -167,12 +172,12 @@ describe('the vendored i18next over our locale files', () => {
         afterEach(stopPage);
 
         test('reads its override strings in place of the standard ones', async () => {
-            const { consoleError } = await startPage('en', { countryId });
+            const { errors } = await startPage('en', { countryId });
             const namespace = NAMESPACES.find((ns) => readLocale('en', `${ns}-${suffix}`));
             const overrides = flatten(readLocale('en', `${namespace}-${suffix}`));
             const key = plainKeys(overrides)[0];
             expect(window.i18next.t(`${namespace}:${key}`)).toBe(overrides[key]);
-            expect(consoleError).not.toHaveBeenCalled();
+            expect(errors).toEqual([]);
         });
 
         test('asks only for override files that exist, in every language', async () => {
@@ -189,9 +194,9 @@ describe('the vendored i18next over our locale files', () => {
         afterEach(stopPage);
 
         test('is reported, and the rest of the page is still translated', async () => {
-            const { consoleError } = await startPage('en', { countryId: 'india', missing: ['en/validate.json'] });
-            expect(consoleError).toHaveBeenCalledTimes(1);
-            expect(String(consoleError.mock.calls[0][0])).toContain('status code: 404');
+            const { errors } = await startPage('en', { countryId: 'india', missing: ['en/validate.json'] });
+            expect(errors).toHaveLength(1);
+            expect(String(errors[0][0])).toContain('status code: 404');
             const overrides = flatten(readLocale('en', 'common-india'));
             const key = plainKeys(overrides)[0];
             expect(window.i18next.t(`common:${key}`)).toBe(overrides[key]);
@@ -202,9 +207,9 @@ describe('the vendored i18next over our locale files', () => {
         afterEach(stopPage);
 
         test('reports it, instead of quietly showing raw keys', async () => {
-            const { requested, consoleError } = await startPage('en', { localeFiles: [] });
+            const { requested, errors } = await startPage('en', { localeFiles: [] });
             expect(requested).toEqual([]);
-            expect(String(consoleError.mock.calls[0][0])).toContain('no locale files listed');
+            expect(String(errors[0][0])).toContain('no locale files listed');
         });
     });
 
@@ -212,11 +217,11 @@ describe('the vendored i18next over our locale files', () => {
         afterEach(stopPage);
 
         test('is reported, even when it arrives as an Error object and not as text', async () => {
-            const { consoleError } = await startPage('en', {
+            const { errors } = await startPage('en', {
                 fetch: async () => { throw new Error('The operation was aborted.'); },
             });
-            expect(consoleError).toHaveBeenCalledTimes(1);
-            expect(String(consoleError.mock.calls[0][0])).toContain('The operation was aborted.');
+            expect(errors).toHaveLength(1);
+            expect(String(errors[0][0])).toContain('The operation was aborted.');
         });
     });
 });

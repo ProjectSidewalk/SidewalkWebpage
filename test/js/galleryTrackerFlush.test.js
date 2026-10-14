@@ -24,7 +24,9 @@ describe('the Gallery interaction log', () => {
             sent.push({ url, body: JSON.parse(body), keepalive: !!keepalive });
             return Promise.resolve({ ok: true });
         });
-        const { Form, Tracker } = await loadModules('frontend/js/gallery/data/Form.js', 'frontend/js/gallery/data/Tracker.js');
+        const { Form, Tracker } = await loadModules(
+            'frontend/js/gallery/data/Form.js', 'frontend/js/gallery/data/Tracker.js',
+        );
         tracker = new Tracker(new Form('/galleryTask'));
     });
 

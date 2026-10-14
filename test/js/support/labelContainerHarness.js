@@ -27,7 +27,9 @@ export class FakeLabel {
 export function fakeLabelContainerDeps(suiteDeps) {
     const mission = { updateValidationResult: vi.fn(), isComplete: () => true, getProperty: () => 1 };
     const deps = {
-        config: { validateParams: {}, source: 'Validate', canvasWidth: () => 720, canvasHeight: () => 480, labelRadius: 10 },
+        config: {
+            validateParams: {}, source: 'Validate', canvasWidth: () => 720, canvasHeight: () => 480, labelRadius: 10,
+        },
         panoLoadingStatus: { begin: vi.fn(), setMessage: vi.fn(), end: vi.fn() },
         modalMissionComplete: { isShowing: () => false },
         missionContainer: { getCurrentMission: () => mission, updateAMission: vi.fn() },

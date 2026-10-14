@@ -18,7 +18,7 @@ import fs from 'fs';
 import path from 'path';
 
 import { REPO_ROOT, loadModules, mockModule } from './loader.js';
-import { fakeTracker } from './fakes.js';
+import { fakeGate, fakeTracker } from './fakes.js';
 import {
   FakeLabel, fakeLabelContainerDeps, newLabelContainer, buildLabelContainer,
 } from './support/labelContainerHarness.js';
@@ -262,7 +262,7 @@ describe('input aimed at a label whose pano is still loading is dropped (issue #
   // The no-more-labels path hands the tool back before showing its modal. The finally has to leave that alone rather
   // than hand it back a second time behind the modal.
   test('the out-of-labels modal is not handed a re-enabled keyboard', async () => {
-    const keyboard = {release: vi.fn(), hold: vi.fn()};
+    const keyboard = fakeGate();
     const labelContainer = newLabelContainer(LabelContainer, deps, [{labelId: 1, panoId: 'panoA'}], LABEL_TYPE);
     // As KeyboardManager subscribes.
     labelContainer.onLoadingChange((loading) => (loading ? keyboard.hold('loading') : keyboard.release('loading')));

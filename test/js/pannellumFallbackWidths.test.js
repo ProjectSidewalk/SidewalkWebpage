@@ -8,8 +8,7 @@
  * rungs at or above the pano width, and the server answers those with the native file — so the retry re-fetches the
  * image that just failed and the ladder never reaches a size the device can hold.
  *
- * Each case loads the module fresh: the GPU cap is read once and cached in module scope, so one copy cannot answer
- * for two different devices.
+ * Each case reloads the module: it caches the GPU cap on first read, so one load can't answer for two devices.
  */
 
 import { loadModules, useUtil } from './loader.js';
@@ -102,7 +101,8 @@ describe('panoramaUrlCandidates on a phone (issue #5561)', () => {
 
     it('takes the lower of the GPU cap and the phone cap', async () => {
         // MAX_TEXTURE_SIZE 2048 -> a 4096 ceiling, under the phone's 8192: the GPU is the tighter bound here.
-        expect(widthsOf(await candidatesFor(2048, { image_url: IMAGE_URL, width: 16384 }, mobile))).toEqual([4096, 2048]);
+        expect(widthsOf(await candidatesFor(2048, { image_url: IMAGE_URL, width: 16384 }, mobile)))
+            .toEqual([4096, 2048]);
     });
 
     it('applies the phone cap when the GPU cannot be read at all', async () => {
@@ -111,6 +111,7 @@ describe('panoramaUrlCandidates on a phone (issue #5561)', () => {
     });
 
     it('changes nothing for a desktop browser', async () => {
-        expect(widthsOf(await candidatesFor(16384, { image_url: IMAGE_URL, width: 16384 }))).toEqual([null, 8192, 4096]);
+        expect(widthsOf(await candidatesFor(16384, { image_url: IMAGE_URL, width: 16384 })))
+            .toEqual([null, 8192, 4096]);
     });
 });

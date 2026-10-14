@@ -2,10 +2,9 @@
  * The Explore re-audit notice (#4895): which tasks earn the "this street has newer imagery" toast, which of the four
  * wordings it picks, that it shows once per street, and what it logs.
  *
- * Everything the notice needs now rides on the task payload, so there is no request to stub and no in-flight race to
- * cover.
+ * The notice needs only the task payload, so no request is stubbed.
  *
- * `util.monthYear` is the real one rather than a stub: the month wording is half of what these assertions check,
+ * `util.monthYear` is loaded for real rather than stubbed: the month wording is half of what these assertions check,
  * and a stub would let the shared formatter drift from what the toast actually prints (#5413).
  */
 

@@ -8,17 +8,15 @@
  */
 
 import { loadModules } from './loader.js';
-import { fakeTracker } from './fakes.js';
+import { fakeTracker, navigationAttempts } from './fakes.js';
 
 const { Form } = await loadModules('frontend/js/validate/data/Form.js');
 
 /** The page facts the Form reads: which UI it is, and the validate params it echoes. */
 const CONFIG = { source: 'Validate', validateParams: {} };
 
-// jsdom reports a page reload as a "Not implemented: navigation" error on the console, so a spy there is how the
-// suite proves the page was never reloaded (the blanket `catch -> location.reload()` #2745 removed).
-let consoleError;
-const reloadAttempts = () => consoleError.mock.calls.filter(([msg]) => String(msg).includes('Not implemented: navigation'));
+// How the suite proves the page was never reloaded (the blanket `catch -> location.reload()` #2745 removed).
+const reloads = navigationAttempts();
 
 /** Stub `fetch` to resolve with the given JSON body and an OK status. */
 function stubFetchOk(body) {
@@ -46,8 +44,7 @@ describe('Form.submit (issue #2745 resilience)', () => {
             modalNoNewMission: { show: vi.fn() }
         };
 
-        consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
-        consoleError.mockClear();
+        vi.spyOn(console, 'error').mockImplementation(() => {});
 
         form = new Form('/validationTask', CONFIG, tracker);
         form.attachSession(session);
@@ -65,7 +62,7 @@ describe('Form.submit (issue #2745 resilience)', () => {
         await form.submit(payload);
 
         // The page must never reload, and the first attempt is logged as a failure.
-        expect(reloadAttempts()).toHaveLength(0);
+        expect(reloads).not.toHaveBeenCalled();
         expect(window.fetch).toHaveBeenCalledTimes(1);
         expect(tracker.push).toHaveBeenCalledWith('SubmitFailed', expect.objectContaining({ attempt: 0 }));
 
@@ -82,7 +79,7 @@ describe('Form.submit (issue #2745 resilience)', () => {
 
         await form.submit({});
 
-        expect(reloadAttempts()).toHaveLength(0);
+        expect(reloads).not.toHaveBeenCalled();
         expect(tracker.push).toHaveBeenCalledWith('SubmitFailed', expect.anything());
     });
 
@@ -99,7 +96,7 @@ describe('Form.submit (issue #2745 resilience)', () => {
             expect.objectContaining({ attempt: 0, status: 400 }));
         expect(tracker.push).toHaveBeenCalledWith('SubmitFailedGaveUp', { attempts: 0, retryable: false });
         expect(errorSpy).toHaveBeenCalled();
-        expect(reloadAttempts()).toHaveLength(0);
+        expect(reloads).not.toHaveBeenCalled();
     });
 
     test('408 and 429 are retried even though they are 4xx', async () => {
@@ -134,7 +131,7 @@ describe('Form.submit (issue #2745 resilience)', () => {
 
         expect(window.fetch).toHaveBeenCalledTimes(6);
         expect(tracker.push).toHaveBeenCalledWith('SubmitFailedGaveUp', expect.anything());
-        expect(reloadAttempts()).toHaveLength(0);
+        expect(reloads).not.toHaveBeenCalled();
     });
 
     test('an error while applying the response is logged but not retried or reloaded', async () => {
@@ -145,7 +142,7 @@ describe('Form.submit (issue #2745 resilience)', () => {
         await form.submit({});
 
         expect(errorSpy).toHaveBeenCalled();
-        expect(reloadAttempts()).toHaveLength(0);
+        expect(reloads).not.toHaveBeenCalled();
         expect(window.fetch).toHaveBeenCalledTimes(1); // response handling errors must not resubmit
     });
 
@@ -174,7 +171,7 @@ describe('Form.submit (issue #2745 resilience)', () => {
         // The label type rides along so the container can ask for replacement labels of the right type (#4810).
         expect(session.labelContainer.resetLabelList).toHaveBeenCalledWith([{ label_id: 9 }], 'Obstacle');
         expect(session.modalMissionComplete.nextMissionLoaded).toHaveBeenCalled();
-        expect(reloadAttempts()).toHaveLength(0);
+        expect(reloads).not.toHaveBeenCalled();
     });
 
     test('a successful submit schedules no retry', async () => {
@@ -196,7 +193,7 @@ describe('Form.submit (issue #2745 resilience)', () => {
 
         await form.submit({});
 
-        expect(reloadAttempts()).toHaveLength(0);
+        expect(reloads).not.toHaveBeenCalled();
         expect(tracker.push).toHaveBeenCalledWith('SubmitFailed', expect.objectContaining({ attempt: 0 }));
         await vi.advanceTimersByTimeAsync(2000);
         expect(window.fetch).toHaveBeenCalledTimes(2);
@@ -220,7 +217,7 @@ describe('Form.submit (issue #2745 resilience)', () => {
 
         expect(session.missionContainer.createAMission).not.toHaveBeenCalled();
         expect(session.modalNoNewMission.show).not.toHaveBeenCalled();
-        expect(reloadAttempts()).toHaveLength(0);
+        expect(reloads).not.toHaveBeenCalled();
     });
 
     test('sends a JSON POST to the configured URL', async () => {
@@ -304,7 +301,8 @@ describe('Form.submit (issue #2745 resilience)', () => {
         form.submit({ mission_progress: { mission_id: 5, labels_progress: 10, completed: false }, validations: [] }, true);
         await vi.advanceTimersByTimeAsync(2000);
 
-        const completed = window.fetch.mock.calls.map(([, options]) => JSON.parse(options.body).mission_progress.completed);
+        const completed = window.fetch.mock.calls
+            .map(([, options]) => JSON.parse(options.body).mission_progress.completed);
         expect(completed).toEqual([true, true, false]);
     });
 
@@ -408,7 +406,7 @@ describe('Form.submit (issue #2745 resilience)', () => {
         expect(errorSpy).toHaveBeenCalled();
         expect(session.modalMissionComplete.nextMissionLoaded).not.toHaveBeenCalled();
         expect(window.fetch).toHaveBeenCalledTimes(1);
-        expect(reloadAttempts()).toHaveLength(0);
+        expect(reloads).not.toHaveBeenCalled();
     });
 
     test('a failed intermediate submit stays intermediate across retries (never loads a mission)', async () => {

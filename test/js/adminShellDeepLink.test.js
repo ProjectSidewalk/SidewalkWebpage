@@ -95,7 +95,9 @@ function contentResized() {
   resizeCallbacks.forEach((cb) => cb([]));
 }
 
-const scrollCalls = () => /** @type {import('vitest').Mock} */ (window.HTMLElement.prototype.scrollIntoView).mock.contexts;
+const scrollCalls = () => (
+    /** @type {import('vitest').Mock} */ (window.HTMLElement.prototype.scrollIntoView).mock.contexts
+);
 
 describe('deep-link target while sections above it load', () => {
   test('re-scrolls the fragment target each time the content column changes height', () => {

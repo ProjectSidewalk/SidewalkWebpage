@@ -7,7 +7,7 @@
  * regression the issue calls out explicitly: the two URL writers on the page (this sync and
  * LabelDetail.syncUrlLabelId) must compose rather than clobber each other.
  *
- * jsdom's real History API backs the URL assertions (galleryFilter.test.js precedent).
+ * jsdom's real History API backs the URL assertions.
  */
 
 import { loadModules, mockModule } from './loader.js';

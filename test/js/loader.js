@@ -108,6 +108,7 @@ function applyUtilOverrides() {
                 if (m.previous === undefined) delete sub[subKey];
                 else sub[subKey] = m.previous;
             }
+            if (sub === entry.created) delete util[key];
         } else if (util[key] === entry.value) {
             if (entry.previous === undefined) delete util[key];
             else util[key] = entry.previous;
@@ -122,6 +123,18 @@ function applyUtilOverrides() {
                 util[key][subKey] = subValue;
             }
             applied.set(key, { members });
+        } else if (isPlainObject(value) && util[key] === undefined) {
+            // The module that builds this sub-object has not loaded yet, and utilitiesSidewalk.js spreads whatever
+            // `util.misc` already holds into the real one. Kept out of that spread, a stand-in never becomes the
+            // "real" helper a later `useUtil` restores.
+            const sub = {};
+            const members = new Map();
+            for (const [subKey, subValue] of Object.entries(value)) {
+                Object.defineProperty(sub, subKey, { value: subValue, configurable: true, writable: true });
+                members.set(subKey, { previous: undefined, value: subValue });
+            }
+            util[key] = sub;
+            applied.set(key, { members, created: sub });
         } else {
             applied.set(key, { previous: util[key], value });
             util[key] = value;
@@ -130,7 +143,9 @@ function applyUtilOverrides() {
 }
 
 /** @returns {boolean} Whether `value` is an object literal (not a class instance, array or function). */
-const isPlainObject = (value) => value !== null && typeof value === 'object' && Object.getPrototypeOf(value) === Object.prototype;
+const isPlainObject = (value) => (
+    value !== null && typeof value === 'object' && Object.getPrototypeOf(value) === Object.prototype
+);
 
 // Registered once, up front. Vitest keeps a mocked module across `vi.resetModules()`, so the mock reads through to
 // whatever utilities.js the current registry holds instead of the one it was first built from.

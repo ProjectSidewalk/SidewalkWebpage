@@ -45,7 +45,7 @@ Also covered, beyond the api-docs previews:
   and expression, and the legend gradient.
 - `common/AppManager.js` → `appManagerCsrfFetch.test.js` — the `window.fetch` CSRF wrapper (#4232): the token must
   reach same-origin requests and *only* same-origin requests, across all three argument types `fetch` accepts
-  (string, `URL`, `Request`). jsdom implements neither `fetch` nor `Request`, so the test supplies both.
+  (string, `URL`, `Request`). Node's `fetch` and `Request` are not the page's, so the test supplies both.
 - `community/*.js` → `communityListPage.test.js` — the /stories + /routes listing pages' client layer (#4688):
   search filtering (hidden attr, live count, no-results), sort orders and tie-breaks, localized dates, type-chip
   tinting, the read-more clamp toggle, view-label popup-vs-navigation routing, and the copy-share-link fallbacks.
@@ -108,9 +108,9 @@ Also covered, beyond the api-docs previews:
   street, and how they split into the nearest clickable few and the faint rest (#2561). Real turf.
 - `test/js/gsv-fov-probe/estimator.cjs` → `gsvFovProbeEstimator.test.js` — the probe's focal-length fitter against
   synthetic pinhole ground truth (#5083), gate 1 of that experiment's protocol: no live measurement is trusted until
-  the estimator recovers a known focal length to better than 0.2%. This is the slowest suite in the tree (~40 s,
-  nearly all of it in the synthetic renders); if it grows further, shrink the synthetic image rather than raising
-  `testTimeout`.
+  the estimator recovers a known focal length to better than 0.2%. This is the slowest suite in the tree (~5 s, and
+  ~18 s under coverage, nearly all of it in the synthetic renders); if it grows further, shrink the synthetic image
+  rather than raising its `testTimeout`.
 
 Each test file has:
 
@@ -205,8 +205,8 @@ grows.
   (see `vitest.config.mjs`); it is not a reason to let a test that exists go red. Run it locally with `make test-js`.
 - **Linted** (#5132). `test/js/` is in ESLint's file globs, with the same rule set as `test/e2e/` plus Vitest globals.
   The `@stylistic` house style is deliberately not applied -- these files are 4-space, and reformatting them would
-  bury real findings under whitespace. Bundle globals a suite installs on `window` are declared in
-  `eslint.config.js`; a subject a suite puts on `global` itself gets a per-file `/* global */` directive.
+  bury real findings under whitespace. The browser, Node and Vitest globals are declared in `eslint.config.js`;
+  nothing a suite loads is a global, so no suite needs a `/* global */` directive.
 - `include` is anchored to `test/js/`, so production JS is only ever loaded as a module under test, never
   collected as one.
 

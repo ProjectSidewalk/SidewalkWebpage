@@ -10,7 +10,7 @@
  * hardcode `stroke="#242424"` at a width that thins to a sub-pixel hairline at chip size. Inlined, it inherits
  * `currentColor`, which is what keeps the glyph at the chip text's contrast.
  *
- * Only the static method is exercised here: constructing a LabelDetail needs a live pano viewer.
+ * Only the static method is exercised: constructing a LabelDetail needs a live pano viewer.
  */
 
 import fs from 'fs';

@@ -2,8 +2,7 @@
  * Tests for RouteGraph (frontend/js/route-builder/RouteGraph.js, issue #4579) — the client-side street graph
  * behind RouteBuilder's start/end auto-routing.
  *
- * The class is pure geometry/graph logic with no DOM or map dependencies, so the tests exercise it directly on a
- * small synthetic street grid.
+ * RouteGraph is pure graph logic with no DOM or map, so the tests run it directly on a small synthetic street grid.
  *
  * The grid (region 1), ~111 m per 0.001°:
  *

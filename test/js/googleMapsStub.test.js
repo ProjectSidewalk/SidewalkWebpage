@@ -62,7 +62,8 @@ describe('loader hand-off', () => {
   });
 
   test('tolerates a script URL with no callback', async () => {
-    await expect(install({ url: 'https://maps.googleapis.com/maps/api/js', callback: undefined })).resolves.toBeDefined();
+    await expect(install({ url: 'https://maps.googleapis.com/maps/api/js', callback: undefined }))
+      .resolves.toBeDefined();
     expect(window.google.maps.version).toBe('stub');
   });
 

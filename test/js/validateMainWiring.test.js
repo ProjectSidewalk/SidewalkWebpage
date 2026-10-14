@@ -129,7 +129,7 @@ let SpeedLimit;
 let ZoomControl;
 let Gate;
 let UndoValidation;
-/** @type {{takeUnexpectedUnload: import('vitest').Mock, markLive: import('vitest').Mock}} The live marker Main builds, per test. */
+/** @type {{takeUnexpectedUnload: import('vitest').Mock, markLive: import('vitest').Mock}} The live marker Main builds. */
 let marker;
 /** @type {boolean} Set as the fake PanoManager's create() runs, so the fake Form can say which came first. */
 let viewerCreated;
@@ -230,9 +230,9 @@ beforeAll(async () => {
 });
 
 describe('Main hooks what describes a label to the label container', () => {
-  /** @type {Record<string, import('vitest').MockInstance>} Each onLabelReady subscriber's listener, by the subscriber's name. */
+  /** @type {Record<string, import('vitest').MockInstance>} Each onLabelReady subscriber's listener, by its name. */
   let ready;
-  /** @type {Record<string, import('vitest').MockInstance>} Each onLabelShown subscriber's listener, by the subscriber's name. */
+  /** @type {Record<string, import('vitest').MockInstance>} Each onLabelShown subscriber's listener, by its name. */
   let shown;
   /** @type {Record<string, import('vitest').MockInstance>} What the loading events switch. */
   let loading;
@@ -433,7 +433,7 @@ describe('Main hooks what describes a label to the label container', () => {
     expect(lock.isHeld()).toBe(false);
   });
 
-  test('an unexpected end to the last page life is reported once the first label is up, against the first mission', async () => {
+  test('an unexpected end to the last page life is reported to the first mission once a label is up', async () => {
     const report = { missionId: 3, ageSec: 40, navType: 'reload' };
     marker.takeUnexpectedUnload.mockReturnValue(report);
 

@@ -9,14 +9,12 @@
  */
 
 import { loadModules } from './loader.js';
-import { fakeTracker } from './fakes.js';
+import { fakeTracker, navigationAttempts } from './fakes.js';
 
 const { Form } = await loadModules('frontend/js/validate/data/Form.js');
 
-// jsdom reports a page reload as a "Not implemented: navigation" error on the console, so a spy there is how the
-// suite proves the page was never reloaded (the blanket `catch -> location.reload()` #2745 removed).
-let consoleError;
-const reloadAttempts = () => consoleError.mock.calls.filter(([msg]) => String(msg).includes('Not implemented: navigation'));
+// How the suite proves the page was never reloaded (the blanket `catch -> location.reload()` #2745 removed).
+const reloads = navigationAttempts();
 
 /**
  * Puts the document into the given visibility state and announces it, the way the browser does.
@@ -44,7 +42,7 @@ describe('Form exit flushes (issue #5561)', () => {
         window.fetch = vi.fn(() => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({}) }));
         tracker.push.mockClear();
         tracker.record.mockClear();
-        consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+        vi.spyOn(console, 'error').mockImplementation(() => {});
 
         payload = { validations: [{ label_id: 1 }], interactions: [] };
         vi.spyOn(form, 'compileSubmissionData').mockReturnValue(payload);
@@ -111,7 +109,7 @@ describe('Form exit flushes (issue #5561)', () => {
         setVisibility('hidden');
         window.dispatchEvent(new Event('pagehide'));
 
-        expect(reloadAttempts()).toHaveLength(0);
+        expect(reloads).not.toHaveBeenCalled();
     });
 
     test('a hidden flush that fails is logged and retried, since the page usually comes back', async () => {

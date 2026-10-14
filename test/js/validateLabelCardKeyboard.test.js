@@ -14,7 +14,7 @@
  */
 
 import { loadModules } from './loader.js';
-import { fakeTracker } from './fakes.js';
+import { fakeGate, fakeTracker } from './fakes.js';
 
 /** A stand-in for one of the menu's controls, with its click spied. */
 function makeControl() {
@@ -51,7 +51,7 @@ describe('KeyboardManager label-card scope', () => {
         const { KeyboardManager } = await loadModules('frontend/js/validate/keyboard/KeyboardManager.js');
         new KeyboardManager(
             { validationMenu: validationMenuUi, undoValidation: { undoButton: live('undoButton') } }, config,
-            { isHeld: () => false, hold: () => {}, release: () => {} },
+            fakeGate(),
             { onLoadingChange: () => {} }, live('labelVisibilityControl'), live('labelCard'), live('validationMenu'),
             live('zoomControl'), live('undoValidation'), live('immersiveMode'), live('imageAdjustmentsPopover'),
             live('tracker'),

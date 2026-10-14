@@ -15,7 +15,7 @@
  * viewerShowsLabel() is the other half: it decides whether there's a viewer worth believing in the first place, and
  * the card feeds its answer to submissionContext(). Both are exercised here.
  *
- * Only the static methods are exercised here: constructing a LabelDetail needs a live pano viewer.
+ * Only the static methods are exercised: constructing a LabelDetail needs a live pano viewer.
  */
 
 import { loadModules } from './loader.js';

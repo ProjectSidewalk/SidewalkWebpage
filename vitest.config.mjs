@@ -13,8 +13,8 @@ export default defineConfig({
     // The page's address is `http://localhost/`, as the suites' expected URLs were written for.
     environmentOptions: { jsdom: { url: 'http://localhost/' } },
 
-    // Each file gets a VM context whose global is the jsdom window, so `window.X = fake` is a page global to the modules
-    // under test and `view: window` is a real Window; it is also the fastest pool here (workers are reused, not forked).
+    // Each file gets a VM context whose global is the jsdom window, so `window.X = fake` is a page global to the
+    // modules under test and `view: window` is a real Window; it is also the fastest pool here (workers are reused).
     pool: 'vmForks',
 
     // Pinned, or the suite inherits the machine's zone and a bug that only bites west of Greenwich -- a UTC timestamp

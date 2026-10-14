@@ -9,7 +9,7 @@
  */
 
 import { loadModules } from './loader.js';
-import { fakeTracker } from './fakes.js';
+import { fakeGate, fakeTracker } from './fakes.js';
 
 /** A menu control with its click spied; a real element, since the manager compares against document.activeElement. */
 function makeControl() {
@@ -39,7 +39,7 @@ describe('Validate F shortcut for immersive mode', () => {
         const { KeyboardManager } = await loadModules('frontend/js/validate/keyboard/KeyboardManager.js');
         new KeyboardManager(
             { validationMenu: validationMenuUi, undoValidation: { undoButton: live('undoButton') } }, config,
-            { isHeld: () => keyboardHeld, hold: () => {}, release: () => {} },
+            fakeGate({ isHeld: () => keyboardHeld }),
             { onLoadingChange: () => {} }, live('labelVisibilityControl'), live('labelCard'), live('validationMenu'),
             live('zoomControl'), live('undoValidation'), live('immersiveMode'), live('imageAdjustmentsPopover'),
             live('tracker'),

@@ -9,15 +9,14 @@
  */
 
 import { loadModules } from './loader.js';
+import { navigationAttempts } from './fakes.js';
 
 const FLUSH_INTERVAL_MS = 60000;
 
 const { Tracker } = await loadModules('frontend/js/validate/Tracker.js');
 
-// jsdom reports a page reload as a "Not implemented: navigation" error on the console, so a spy there is how the
-// suite proves the page was never reloaded (the blanket `catch -> location.reload()` #2745 removed).
-let consoleError;
-const reloadAttempts = () => consoleError.mock.calls.filter(([msg]) => String(msg).includes('Not implemented: navigation'));
+// How the suite proves the page was never reloaded (the blanket `catch -> location.reload()` #2745 removed).
+const reloads = navigationAttempts();
 
 describe('Tracker timed flush (issue #4429)', () => {
     let tracker;
@@ -39,7 +38,7 @@ describe('Tracker timed flush (issue #4429)', () => {
             submit: vi.fn()
         };
 
-        consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+        vi.spyOn(console, 'error').mockImplementation(() => {});
 
         tracker = new Tracker();
         tracker.onFlush(() => form.submit(form.compileSubmissionData(false), true));
@@ -206,7 +205,7 @@ describe('Tracker timed flush (issue #4429)', () => {
         vi.setSystemTime(1_000_000 + 2 * 60 * 60 * 1000);
         tracker.push('ValidationButtonClick_Disagree');
 
-        expect(reloadAttempts()).toHaveLength(0);
+        expect(reloads).not.toHaveBeenCalled();
     });
 
     test('a deadline firing before init finishes is a no-op that self-heals on the next push', () => {

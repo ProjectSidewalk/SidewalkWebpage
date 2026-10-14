@@ -16,10 +16,22 @@ export function fakeGate(overrides = {}) {
         hold: vi.fn(),
         release: vi.fn(),
         isHeld: () => false,
-        isHeldExcept: () => false,
         onChanged: vi.fn(),
         ...overrides,
     };
+}
+
+/**
+ * Counts the page navigations jsdom refuses (a `location.reload()`, say). jsdom reports them only on its own virtual
+ * console, never through `console.error`, so a spy there would miss every one.
+ * @returns {import('vitest').Mock} Called once per attempt with jsdom's error.
+ */
+export function navigationAttempts() {
+    const attempts = vi.fn();
+    window._settings.virtualConsole.on('jsdomError', (error) => {
+        if (error.message.includes('Not implemented: navigation')) attempts(error);
+    });
+    return attempts;
 }
 
 /**

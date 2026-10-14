@@ -14,6 +14,6 @@ if (typeof document !== 'undefined') {
     // jsdom ships the Popover API's stylesheet (a closed `[popover]` is `display: none`) without the API, and refuses
     // to focus anything not displayed. The suites model a browser without the API, where no such rule exists.
     const style = document.createElement('style');
-    style.textContent = '[popover] { display: block !important; }';
+    style.textContent = '[popover]:not([hidden]) { display: block !important; }';
     document.head.appendChild(style);
 }

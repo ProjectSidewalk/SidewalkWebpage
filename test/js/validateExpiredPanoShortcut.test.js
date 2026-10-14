@@ -17,7 +17,7 @@ import { loadModules, mockModule } from './loader.js';
 import { fakeTracker, fakePanoOverlays } from './fakes.js';
 import { FakeLabel, fakeLabelContainerDeps, buildLabelContainer } from './support/labelContainerHarness.js';
 
-/** The logo, attribution and backup viewer the PanoManager suite hands its subject, rebuilt per test. */
+/** The backup viewer the PanoManager suite hands its subject; the logo and attribution are fakes for the file. */
 let PannellumViewer;
 fakePanoOverlays();
 mockModule('frontend/js/common/pano-viewer/PannellumViewer.js', () => ({ PannellumViewer }));

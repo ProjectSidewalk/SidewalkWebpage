@@ -11,7 +11,6 @@
  * mirrors what a story of your own already does (`StorySection`): once yours exists the compose box closes and the
  * comment carries Edit/Delete instead, which is what keeps a second submission from silently destroying the first.
  * Cancel and Escape are the two ways out that keep the box from being a one-way door.
- *
  */
 
 import { loadModules, mockModule, useUtil } from './loader.js';

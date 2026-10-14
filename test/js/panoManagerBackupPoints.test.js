@@ -7,7 +7,7 @@
  * tests pin that the fallback starts at the seed's projection onto the street and works outward from there, rather
  * than from the start of the street, and that a seed at the street's start keeps the start-to-end order.
  *
- * Real turf: the along-street math is what is being exercised.
+ * Runs on real turf.
  */
 
 import { loadVendored, loadModules } from './loader.js';
