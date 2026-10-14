@@ -23,40 +23,40 @@ const NEXT_URL = '/backupImage/p2';
  * @returns {{attempted: string[], loaded: string[]}} Every URL a load was tried for, and the ones that succeeded.
  */
 function installFakePannellum(failingUrls = new Set()) {
-    const attempted = [];
-    const loaded = [];
-    vi.stubGlobal('pannellum', {
-        viewer: vi.fn((_el, config) => {
-            const handlers = { load: new Set(), error: new Set() };
-            const scenes = { ...config.scenes };
-            const settle = (url) => Promise.resolve().then(() => {
-                attempted.push(url);
-                if (failingUrls.has(url)) {
-                    [...handlers.error].forEach((h) => h('load failed'));
-                } else {
-                    loaded.push(url);
-                    [...handlers.load].forEach((h) => h());
-                }
-            });
-            settle(scenes[config.default.firstScene].panorama);
-            return {
-                on: (event, handler) => handlers[event].add(handler),
-                off: (event, handler) => handlers[event].delete(handler),
-                addScene: (id, scene) => { scenes[id] = scene; },
-                loadScene: (id) => settle(scenes[id].panorama),
-                removeScene: vi.fn(() => true),
-                destroy: vi.fn(),
-                resize: vi.fn(),
-                getYaw: () => 0,
-                getPitch: () => 0,
-                getHfov: () => 90,
-                setYaw: vi.fn(),
-                setPitch: vi.fn(),
-                setHfov: vi.fn(),
-            };
-        }),
-    });
-    return { attempted, loaded };
+  const attempted = [];
+  const loaded = [];
+  vi.stubGlobal('pannellum', {
+    viewer: vi.fn((_el, config) => {
+      const handlers = { load: new Set(), error: new Set() };
+      const scenes = { ...config.scenes };
+      const settle = (url) => Promise.resolve().then(() => {
+        attempted.push(url);
+        if (failingUrls.has(url)) {
+          [...handlers.error].forEach((h) => h('load failed'));
+        } else {
+          loaded.push(url);
+          [...handlers.load].forEach((h) => h());
+        }
+      });
+      settle(scenes[config.default.firstScene].panorama);
+      return {
+        on: (event, handler) => handlers[event].add(handler),
+        off: (event, handler) => handlers[event].delete(handler),
+        addScene: (id, scene) => { scenes[id] = scene; },
+        loadScene: (id) => settle(scenes[id].panorama),
+        removeScene: vi.fn(() => true),
+        destroy: vi.fn(),
+        resize: vi.fn(),
+        getYaw: () => 0,
+        getPitch: () => 0,
+        getHfov: () => 90,
+        setYaw: vi.fn(),
+        setPitch: vi.fn(),
+        setHfov: vi.fn(),
+      };
+    }),
+  });
+  return { attempted, loaded };
 }
 
 /**
@@ -65,135 +65,135 @@ function installFakePannellum(failingUrls = new Set()) {
  * @returns {{resolve: import('vitest').Mock, release: import('vitest').Mock}}
  */
 function fakeCache(held) {
-    return {
-        resolve: vi.fn((url) => held[url]),
-        settle: vi.fn((url) => Promise.resolve(held[url])),
-        release: vi.fn((url) => { delete held[url]; }),
-    };
+  return {
+    resolve: vi.fn((url) => held[url]),
+    settle: vi.fn((url) => Promise.resolve(held[url])),
+    release: vi.fn((url) => { delete held[url]; }),
+  };
 }
 
 describe('PannellumViewer loads from the image cache first (issue #5562)', () => {
-    let PannellumViewer;
-    let canvas;
+  let PannellumViewer;
+  let canvas;
 
-    beforeEach(async () => {
-        canvas = document.createElement('div');
-        document.body.appendChild(canvas);
+  beforeEach(async () => {
+    canvas = document.createElement('div');
+    document.body.appendChild(canvas);
 
-        // No WebGL in jsdom, so the width cap is unknown and rung 0 is the native file.
-        vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
+    // No WebGL in jsdom, so the width cap is unknown and rung 0 is the native file.
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
 
-        ({ PannellumViewer } = await loadModules('frontend/js/common/pano-viewer/PannellumViewer.js'));
-    });
+    ({ PannellumViewer } = await loadModules('frontend/js/common/pano-viewer/PannellumViewer.js'));
+  });
 
-    afterEach(() => {
-        document.body.innerHTML = '';
-    });
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
 
-    const metadata = (panoId, imageUrl) => ({
-        pano_id: panoId, image_url: imageUrl, width: 16384, height: 8192, camera_heading: 0, lat: 47.6, lng: -122.3,
-    });
+  const metadata = (panoId, imageUrl) => ({
+    pano_id: panoId, image_url: imageUrl, width: 16384, height: 8192, camera_heading: 0, lat: 47.6, lng: -122.3,
+  });
 
-    /**
+  /**
      * Creates a viewer on the first pano.
      * @param {?object} imageCache - The cache to attach, or null for none.
      * @returns {Promise<PannellumViewer>}
      */
-    async function viewerWith(imageCache) {
-        const viewer = new PannellumViewer();
-        await viewer.initialize(canvas, { panoMetadata: metadata('p1', NATIVE_URL), imageCache });
-        return viewer;
-    }
+  async function viewerWith(imageCache) {
+    const viewer = new PannellumViewer();
+    await viewer.initialize(canvas, { panoMetadata: metadata('p1', NATIVE_URL), imageCache });
+    return viewer;
+  }
 
-    test('a held copy is loaded in place of the network URL, and released once it has loaded', async () => {
-        const { attempted } = installFakePannellum();
-        const cache = fakeCache({ [NATIVE_URL]: 'blob:p1' });
+  test('a held copy is loaded in place of the network URL, and released once it has loaded', async () => {
+    const { attempted } = installFakePannellum();
+    const cache = fakeCache({ [NATIVE_URL]: 'blob:p1' });
 
-        const viewer = await viewerWith(cache);
+    const viewer = await viewerWith(cache);
 
-        expect(attempted).toEqual(['blob:p1']);
-        expect(cache.release).toHaveBeenCalledWith(NATIVE_URL);
-        expect(viewer.lastLoadPrefetched).toBe(true);
-    });
+    expect(attempted).toEqual(['blob:p1']);
+    expect(cache.release).toHaveBeenCalledWith(NATIVE_URL);
+    expect(viewer.lastLoadPrefetched).toBe(true);
+  });
 
-    test('with nothing held the network URL is loaded, and the miss is recorded', async () => {
-        const { attempted } = installFakePannellum();
-        const cache = fakeCache({});
+  test('with nothing held the network URL is loaded, and the miss is recorded', async () => {
+    const { attempted } = installFakePannellum();
+    const cache = fakeCache({});
 
-        const viewer = await viewerWith(cache);
+    const viewer = await viewerWith(cache);
 
-        expect(attempted).toEqual([NATIVE_URL]);
-        expect(viewer.lastLoadPrefetched).toBe(false);
-    });
+    expect(attempted).toEqual([NATIVE_URL]);
+    expect(viewer.lastLoadPrefetched).toBe(false);
+  });
 
-    test('a held copy that fails steps down to a smaller network copy rather than the same bytes again', async () => {
-        const { attempted, loaded } = installFakePannellum(new Set(['blob:p1']));
-        const cache = fakeCache({ [NATIVE_URL]: 'blob:p1' });
+  test('a held copy that fails steps down to a smaller network copy rather than the same bytes again', async () => {
+    const { attempted, loaded } = installFakePannellum(new Set(['blob:p1']));
+    const cache = fakeCache({ [NATIVE_URL]: 'blob:p1' });
 
-        const viewer = await viewerWith(cache);
+    const viewer = await viewerWith(cache);
 
-        expect(attempted).toEqual(['blob:p1', `${NATIVE_URL}?maxWidth=8192`]);
-        expect(loaded).toEqual([`${NATIVE_URL}?maxWidth=8192`]);
-        expect(cache.release).toHaveBeenCalledWith(NATIVE_URL);
-        expect(viewer.lastLoadPrefetched).toBe(false); // The network was paid for after all.
-    });
+    expect(attempted).toEqual(['blob:p1', `${NATIVE_URL}?maxWidth=8192`]);
+    expect(loaded).toEqual([`${NATIVE_URL}?maxWidth=8192`]);
+    expect(cache.release).toHaveBeenCalledWith(NATIVE_URL);
+    expect(viewer.lastLoadPrefetched).toBe(false); // The network was paid for after all.
+  });
 
-    test('a load waits for a prefetch still in flight rather than downloading beside it', async () => {
-        const { attempted } = installFakePannellum();
-        const cache = fakeCache({});
-        // Nothing held yet, but a download about to finish: settle() is what hands it over.
-        cache.settle = vi.fn(() => new Promise((resolve) => setTimeout(() => resolve('blob:p1'), 0)));
+  test('a load waits for a prefetch still in flight rather than downloading beside it', async () => {
+    const { attempted } = installFakePannellum();
+    const cache = fakeCache({});
+    // Nothing held yet, but a download about to finish: settle() is what hands it over.
+    cache.settle = vi.fn(() => new Promise((resolve) => setTimeout(() => resolve('blob:p1'), 0)));
 
-        const viewer = await viewerWith(cache);
+    const viewer = await viewerWith(cache);
 
-        expect(cache.settle).toHaveBeenCalledWith(NATIVE_URL, PannellumViewer.PREFETCH_WAIT_MS);
-        expect(attempted).toEqual(['blob:p1']);
-        expect(viewer.lastLoadPrefetched).toBe(true);
-    });
+    expect(cache.settle).toHaveBeenCalledWith(NATIVE_URL, PannellumViewer.PREFETCH_WAIT_MS);
+    expect(attempted).toEqual(['blob:p1']);
+    expect(viewer.lastLoadPrefetched).toBe(true);
+  });
 
-    test('the next pano is looked up the same way', async () => {
-        const { attempted } = installFakePannellum();
-        const cache = fakeCache({ [NEXT_URL]: 'blob:p2' });
-        const viewer = await viewerWith(cache);
+  test('the next pano is looked up the same way', async () => {
+    const { attempted } = installFakePannellum();
+    const cache = fakeCache({ [NEXT_URL]: 'blob:p2' });
+    const viewer = await viewerWith(cache);
 
-        await viewer.loadPano('p2', metadata('p2', NEXT_URL), { heading: 0, pitch: 0, zoom: 1 });
+    await viewer.loadPano('p2', metadata('p2', NEXT_URL), { heading: 0, pitch: 0, zoom: 1 });
 
-        expect(attempted).toEqual([NATIVE_URL, 'blob:p2']);
-        expect(cache.release).toHaveBeenLastCalledWith(NEXT_URL);
-        expect(viewer.lastLoadPrefetched).toBe(true);
-        expect(viewer.getPanoId()).toBe('p2');
-    });
+    expect(attempted).toEqual([NATIVE_URL, 'blob:p2']);
+    expect(cache.release).toHaveBeenLastCalledWith(NEXT_URL);
+    expect(viewer.lastLoadPrefetched).toBe(true);
+    expect(viewer.getPanoId()).toBe('p2');
+  });
 
-    test('asking for the pano already shown fetches nothing and reports no prefetch outcome', async () => {
-        const { attempted } = installFakePannellum();
-        const cache = fakeCache({});
-        const viewer = await viewerWith(cache);
-        expect(viewer.lastLoadPrefetched).toBe(false);
+  test('asking for the pano already shown fetches nothing and reports no prefetch outcome', async () => {
+    const { attempted } = installFakePannellum();
+    const cache = fakeCache({});
+    const viewer = await viewerWith(cache);
+    expect(viewer.lastLoadPrefetched).toBe(false);
 
-        await viewer.loadPano('p1', metadata('p1', NATIVE_URL), { heading: 0, pitch: 0, zoom: 1 });
+    await viewer.loadPano('p1', metadata('p1', NATIVE_URL), { heading: 0, pitch: 0, zoom: 1 });
 
-        expect(attempted).toEqual([NATIVE_URL]);
-        expect(viewer.lastLoadPrefetched).toBeNull();
-    });
+    expect(attempted).toEqual([NATIVE_URL]);
+    expect(viewer.lastLoadPrefetched).toBeNull();
+  });
 
-    test('a next pano that fails even at the smallest copy is still released', async () => {
-        const failing = new Set(['blob:p2', `${NEXT_URL}?maxWidth=8192`, `${NEXT_URL}?maxWidth=4096`]);
-        installFakePannellum(failing);
-        const cache = fakeCache({ [NEXT_URL]: 'blob:p2' });
-        const viewer = await viewerWith(cache);
+  test('a next pano that fails even at the smallest copy is still released', async () => {
+    const failing = new Set(['blob:p2', `${NEXT_URL}?maxWidth=8192`, `${NEXT_URL}?maxWidth=4096`]);
+    installFakePannellum(failing);
+    const cache = fakeCache({ [NEXT_URL]: 'blob:p2' });
+    const viewer = await viewerWith(cache);
 
-        await expect(viewer.loadPano('p2', metadata('p2', NEXT_URL), { heading: 0, pitch: 0, zoom: 1 }))
-            .rejects.toThrow();
+    await expect(viewer.loadPano('p2', metadata('p2', NEXT_URL), { heading: 0, pitch: 0, zoom: 1 }))
+      .rejects.toThrow();
 
-        expect(cache.release).toHaveBeenLastCalledWith(NEXT_URL);
-    });
+    expect(cache.release).toHaveBeenLastCalledWith(NEXT_URL);
+  });
 
-    test('a viewer with no cache loads from the network and reports the question as not applicable', async () => {
-        const { attempted } = installFakePannellum();
+  test('a viewer with no cache loads from the network and reports the question as not applicable', async () => {
+    const { attempted } = installFakePannellum();
 
-        const viewer = await viewerWith(null);
+    const viewer = await viewerWith(null);
 
-        expect(attempted).toEqual([NATIVE_URL]);
-        expect(viewer.lastLoadPrefetched).toBeNull();
-    });
+    expect(attempted).toEqual([NATIVE_URL]);
+    expect(viewer.lastLoadPrefetched).toBeNull();
+  });
 });

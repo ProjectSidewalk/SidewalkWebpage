@@ -25,9 +25,9 @@ fakePanoOverlays();
  * @param {string} animationName - The keyframes name to report.
  */
 function fireAnimationEnd(el, animationName) {
-    const event = new Event('animationend', { bubbles: true });
-    event.animationName = animationName;
-    el.dispatchEvent(event);
+  const event = new Event('animationend', { bubbles: true });
+  event.animationName = animationName;
+  el.dispatchEvent(event);
 }
 
 /**
@@ -36,135 +36,135 @@ function fireAnimationEnd(el, animationName) {
  * @returns {object} The fake label.
  */
 function makeLabel(auditPropOverrides = {}) {
-    const auditProps = {
-        heading: 10, pitch: 5, zoom: 1, panoId: 'pano1', labelType: 'CurbRamp', aiGenerated: false,
-        ...auditPropOverrides,
-    };
-    return {
-        getOriginalPov: () => ({ heading: 10, pitch: 5, zoom: 1 }),
-        getAuditProperty: (key) => auditProps[key],
-        getProperty: (key) => (key === 'newLabelType' ? auditProps.labelType : undefined),
-        getIconUrl: () => '/assets/fake-icon.svg',
-        getIconColor: () => '#abcdef', // arbitrary test value, not a real label-type color
-    };
+  const auditProps = {
+    heading: 10, pitch: 5, zoom: 1, panoId: 'pano1', labelType: 'CurbRamp', aiGenerated: false,
+    ...auditPropOverrides,
+  };
+  return {
+    getOriginalPov: () => ({ heading: 10, pitch: 5, zoom: 1 }),
+    getAuditProperty: (key) => auditProps[key],
+    getProperty: (key) => (key === 'newLabelType' ? auditProps.labelType : undefined),
+    getIconUrl: () => '/assets/fake-icon.svg',
+    getIconColor: () => '#abcdef', // arbitrary test value, not a real label-type color
+  };
 }
 
 describe('Validate marker halo pulse (issue #4790)', () => {
-    let panoManager;
+  let panoManager;
 
-    beforeEach(async () => {
-        // The pano canvas #init looks up (with a parent for the fallback canvas + viewer logo to attach to),
-        // plus the marker layer renderPanoMarker creates the PanoMarker in.
-        document.body.innerHTML
-            = '<div id="pano-holder"><div id="svv-panorama"></div></div><div id="view-control-layer"></div>';
+  beforeEach(async () => {
+    // The pano canvas #init looks up (with a parent for the fallback canvas + viewer logo to attach to),
+    // plus the marker layer renderPanoMarker creates the PanoMarker in.
+    document.body.innerHTML
+      = '<div id="pano-holder"><div id="svv-panorama"></div></div><div id="view-control-layer"></div>';
 
-        // jsdom has no WebGL, so PanoMarker falls back to the 2d projection; where the marker lands is irrelevant
-        // here, only what classes/properties it carries. Returning null directly (jsdom's effective behavior)
-        // keeps the fallback deterministic without jsdom's "not implemented" console noise.
-        vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
-        window.i18next = { t: () => 'Curb ramp' };
+    // jsdom has no WebGL, so PanoMarker falls back to the 2d projection; where the marker lands is irrelevant
+    // here, only what classes/properties it carries. Returning null directly (jsdom's effective behavior)
+    // keeps the fallback deterministic without jsdom's "not implemented" console noise.
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
+    window.i18next = { t: () => 'Curb ramp' };
 
-        const panoData = {
-            getPanoId: () => 'pano1',
-            getProperty: () => new Date(2026, 5)
-        };
-        const fakeViewer = {
-            setPano: vi.fn(() => Promise.resolve(panoData)),
-            addListener: vi.fn(),
-            resize: vi.fn(),
-            setPov: vi.fn(),
-            getPov: () => ({ heading: 0, pitch: 0, zoom: 1 }),
-            getViewerType: () => 'gsv',
-        };
-        const FakeViewerType = class FakeViewerType {
-            static create() { return Promise.resolve(fakeViewer); }
-        };
+    const panoData = {
+      getPanoId: () => 'pano1',
+      getProperty: () => new Date(2026, 5)
+    };
+    const fakeViewer = {
+      setPano: vi.fn(() => Promise.resolve(panoData)),
+      addListener: vi.fn(),
+      resize: vi.fn(),
+      setPov: vi.fn(),
+      getPov: () => ({ heading: 0, pitch: 0, zoom: 1 }),
+      getViewerType: () => 'gsv',
+    };
+    const FakeViewerType = class FakeViewerType {
+      static create() { return Promise.resolve(fakeViewer); }
+    };
 
-        const { PanoManager } = await loadModules('frontend/js/validate/panorama/PanoManager.js');
-        const viewerUi = { date: { textContent: '' }, controlLayer: document.getElementById('view-control-layer') };
-        // labelRadius 10: marker diameter = (10 * 2 + 2) * uiScale = 22px, desktop Validate's real size.
-        panoManager = await PanoManager.create('token', viewerUi, { viewerType: FakeViewerType, labelRadius: 10 },
-            { addPanoMetadata: vi.fn() }, {}, fakeTracker());
-    });
+    const { PanoManager } = await loadModules('frontend/js/validate/panorama/PanoManager.js');
+    const viewerUi = { date: { textContent: '' }, controlLayer: document.getElementById('view-control-layer') };
+    // labelRadius 10: marker diameter = (10 * 2 + 2) * uiScale = 22px, desktop Validate's real size.
+    panoManager = await PanoManager.create('token', viewerUi, { viewerType: FakeViewerType, labelRadius: 10 },
+      { addPanoMetadata: vi.fn() }, {}, fakeTracker());
+  });
 
-    afterEach(() => {
-        document.body.innerHTML = '';
-    });
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
 
-    /** @returns {HTMLElement} The marker element PanoMarker created. */
-    function markerEl() {
-        return document.getElementById('validate-pano-marker');
-    }
+  /** @returns {HTMLElement} The marker element PanoMarker created. */
+  function markerEl() {
+    return document.getElementById('validate-pano-marker');
+  }
 
-    test('rendering a label applies the pulse class and publishes the marker diameter for the halo', () => {
-        panoManager.renderPanoMarker(makeLabel());
+  test('rendering a label applies the pulse class and publishes the marker diameter for the halo', () => {
+    panoManager.renderPanoMarker(makeLabel());
 
-        expect(markerEl().classList.contains('label-marker-pulse')).toBe(true);
-        expect(markerEl().style.getPropertyValue('--marker-diameter')).toBe('22px');
-    });
+    expect(markerEl().classList.contains('label-marker-pulse')).toBe(true);
+    expect(markerEl().style.getPropertyValue('--marker-diameter')).toBe('22px');
+  });
 
-    test('animationend for the pulse takes the class off; other animations ending on the marker leave it alone', () => {
-        panoManager.renderPanoMarker(makeLabel());
+  test('animationend for the pulse takes the class off; other animations ending on the marker leave it alone', () => {
+    panoManager.renderPanoMarker(makeLabel());
 
-        fireAnimationEnd(markerEl(), 'some-other-animation');
-        expect(markerEl().classList.contains('label-marker-pulse')).toBe(true);
+    fireAnimationEnd(markerEl(), 'some-other-animation');
+    expect(markerEl().classList.contains('label-marker-pulse')).toBe(true);
 
-        fireAnimationEnd(markerEl(), 'label-marker-pulse');
-        expect(markerEl().classList.contains('label-marker-pulse')).toBe(false);
-    });
+    fireAnimationEnd(markerEl(), 'label-marker-pulse');
+    expect(markerEl().classList.contains('label-marker-pulse')).toBe(false);
+  });
 
-    test('the pulse replays on the next label after the previous one finished', () => {
-        panoManager.renderPanoMarker(makeLabel());
-        fireAnimationEnd(markerEl(), 'label-marker-pulse');
+  test('the pulse replays on the next label after the previous one finished', () => {
+    panoManager.renderPanoMarker(makeLabel());
+    fireAnimationEnd(markerEl(), 'label-marker-pulse');
 
-        panoManager.renderPanoMarker(makeLabel({ labelType: 'Obstacle' }));
-        expect(markerEl().classList.contains('label-marker-pulse')).toBe(true);
-    });
+    panoManager.renderPanoMarker(makeLabel({ labelType: 'Obstacle' }));
+    expect(markerEl().classList.contains('label-marker-pulse')).toBe(true);
+  });
 
-    test('advancing mid-pulse still pulses the new label, and the cleanup listener stays wired', () => {
-        panoManager.renderPanoMarker(makeLabel());
+  test('advancing mid-pulse still pulses the new label, and the cleanup listener stays wired', () => {
+    panoManager.renderPanoMarker(makeLabel());
 
-        // No animationend in between: the first pulse is interrupted (animationcancel in a real browser).
-        panoManager.renderPanoMarker(makeLabel({ labelType: 'Obstacle' }));
-        expect(markerEl().classList.contains('label-marker-pulse')).toBe(true);
+    // No animationend in between: the first pulse is interrupted (animationcancel in a real browser).
+    panoManager.renderPanoMarker(makeLabel({ labelType: 'Obstacle' }));
+    expect(markerEl().classList.contains('label-marker-pulse')).toBe(true);
 
-        // The once-per-element listener still cleans up after re-renders reused the marker.
-        fireAnimationEnd(markerEl(), 'label-marker-pulse');
-        expect(markerEl().classList.contains('label-marker-pulse')).toBe(false);
-    });
+    // The once-per-element listener still cleans up after re-renders reused the marker.
+    fireAnimationEnd(markerEl(), 'label-marker-pulse');
+    expect(markerEl().classList.contains('label-marker-pulse')).toBe(false);
+  });
 
-    test('setSize republishes --marker-diameter so the halo tracks setMarkerScale', () => {
-        panoManager.renderPanoMarker(makeLabel());
+  test('setSize republishes --marker-diameter so the halo tracks setMarkerScale', () => {
+    panoManager.renderPanoMarker(makeLabel());
 
-        panoManager.labelMarker.setSize({ width: 52, height: 52 });
-        expect(markerEl().style.getPropertyValue('--marker-diameter')).toBe('52px');
-    });
+    panoManager.labelMarker.setSize({ width: 52, height: 52 });
+    expect(markerEl().style.getPropertyValue('--marker-diameter')).toBe('52px');
+  });
 
-    // A mission's first label renders behind page chrome (the loading overlay at boot, the mission-complete modal
-    // on later missions), where its pulse plays unseen — visibility: hidden doesn't pause animations. The reveal
-    // choreography calls replayMarkerPulse once the marker can be seen.
+  // A mission's first label renders behind page chrome (the loading overlay at boot, the mission-complete modal
+  // on later missions), where its pulse plays unseen — visibility: hidden doesn't pause animations. The reveal
+  // choreography calls replayMarkerPulse once the marker can be seen.
 
-    test('replayMarkerPulse pulses immediately when no mission-start tutorial overlay is up', () => {
-        panoManager.renderPanoMarker(makeLabel());
-        fireAnimationEnd(markerEl(), 'label-marker-pulse'); // the unseen pulse, already spent
+  test('replayMarkerPulse pulses immediately when no mission-start tutorial overlay is up', () => {
+    panoManager.renderPanoMarker(makeLabel());
+    fireAnimationEnd(markerEl(), 'label-marker-pulse'); // the unseen pulse, already spent
 
-        panoManager.replayMarkerPulse();
-        expect(markerEl().classList.contains('label-marker-pulse')).toBe(true);
-    });
+    panoManager.replayMarkerPulse();
+    expect(markerEl().classList.contains('label-marker-pulse')).toBe(true);
+  });
 
-    test('replayMarkerPulse holds the pulse until a showing mission-start tutorial is dismissed', () => {
-        const overlay = document.createElement('div');
-        overlay.className = 'mission-start-tutorial-overlay';
-        overlay.style.display = 'flex';
-        document.body.appendChild(overlay);
+  test('replayMarkerPulse holds the pulse until a showing mission-start tutorial is dismissed', () => {
+    const overlay = document.createElement('div');
+    overlay.className = 'mission-start-tutorial-overlay';
+    overlay.style.display = 'flex';
+    document.body.appendChild(overlay);
 
-        panoManager.renderPanoMarker(makeLabel());
-        fireAnimationEnd(markerEl(), 'label-marker-pulse');
+    panoManager.renderPanoMarker(makeLabel());
+    fireAnimationEnd(markerEl(), 'label-marker-pulse');
 
-        panoManager.replayMarkerPulse();
-        expect(markerEl().classList.contains('label-marker-pulse')).toBe(false); // held back, not spent under it
+    panoManager.replayMarkerPulse();
+    expect(markerEl().classList.contains('label-marker-pulse')).toBe(false); // held back, not spent under it
 
-        document.dispatchEvent(new CustomEvent('ps:mission-start-tutorial:done'));
-        expect(markerEl().classList.contains('label-marker-pulse')).toBe(true);
-    });
+    document.dispatchEvent(new CustomEvent('ps:mission-start-tutorial:done'));
+    expect(markerEl().classList.contains('label-marker-pulse')).toBe(true);
+  });
 });

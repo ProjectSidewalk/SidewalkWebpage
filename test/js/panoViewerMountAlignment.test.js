@@ -14,36 +14,36 @@
 import { loadModules } from './loader.js';
 
 function loadViewers() {
-    return loadModules('frontend/js/common/pano-viewer/PanoViewer.js',
-        'frontend/js/common/pano-viewer/Infra3dViewer.js');
+  return loadModules('frontend/js/common/pano-viewer/PanoViewer.js',
+    'frontend/js/common/pano-viewer/Infra3dViewer.js');
 }
 
 describe('PanoViewer.create mount alignment', () => {
-    test('pins the mount element\'s text-align to left before initializing', async () => {
-        const { PanoViewer } = await loadViewers();
-        class TestViewer extends PanoViewer {
-            initialize(canvasElem) {
-                // The guard must already be in place by the time the SDK gets the element.
-                expect(canvasElem.style.textAlign).toBe('left');
-                return Promise.resolve();
-            }
-        }
+  test('pins the mount element\'s text-align to left before initializing', async () => {
+    const { PanoViewer } = await loadViewers();
+    class TestViewer extends PanoViewer {
+      initialize(canvasElem) {
+        // The guard must already be in place by the time the SDK gets the element.
+        expect(canvasElem.style.textAlign).toBe('left');
+        return Promise.resolve();
+      }
+    }
 
-        const mount = document.createElement('div');
-        expect(mount.style.textAlign).toBe('');
-        const viewer = await TestViewer.create(mount);
-        expect(mount.style.textAlign).toBe('left');
-        expect(viewer.canvasElem).toBe(mount);
-    });
+    const mount = document.createElement('div');
+    expect(mount.style.textAlign).toBe('');
+    const viewer = await TestViewer.create(mount);
+    expect(mount.style.textAlign).toBe('left');
+    expect(viewer.canvasElem).toBe(mount);
+  });
 });
 
 describe('Infra3dViewer.resize', () => {
-    test('delegates to the SDK viewer instead of inheriting the base-class no-op', async () => {
-        const { Infra3dViewer } = await loadViewers();
-        const viewer = new Infra3dViewer();
-        const sdkResize = vi.fn();
-        viewer.viewer = { _sdk_viewer: { resize: sdkResize } };
-        viewer.resize();
-        expect(sdkResize).toHaveBeenCalledTimes(1);
-    });
+  test('delegates to the SDK viewer instead of inheriting the base-class no-op', async () => {
+    const { Infra3dViewer } = await loadViewers();
+    const viewer = new Infra3dViewer();
+    const sdkResize = vi.fn();
+    viewer.viewer = { _sdk_viewer: { resize: sdkResize } };
+    viewer.resize();
+    expect(sdkResize).toHaveBeenCalledTimes(1);
+  });
 });

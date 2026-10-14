@@ -16,16 +16,16 @@ const RAMP = ['#a74d32', '#eb724e', '#c2c2c2', '#62c0ac', '#5f9e7b'];
 
 /** An i18next that returns the key (namespace stripped) followed by its arguments, so text stays inspectable. */
 function stubI18next() {
-    window.i18next = {
-        language: 'en',
-        t: (key, opts) => {
-            const bare = key.replace(/^[a-z]+:/, '');
-            // `interpolation` is i18next's own escaping switch, not an argument the text would show.
-            const args = Object.entries(opts || {}).filter(([k]) => k !== 'interpolation');
-            if (args.length === 0) return bare;
-            return `${bare} ${args.map(([k, v]) => `${k}=${v}`).join(' ')}`;
-        },
-    };
+  window.i18next = {
+    language: 'en',
+    t: (key, opts) => {
+      const bare = key.replace(/^[a-z]+:/, '');
+      // `interpolation` is i18next's own escaping switch, not an argument the text would show.
+      const args = Object.entries(opts || {}).filter(([k]) => k !== 'interpolation');
+      if (args.length === 0) return bare;
+      return `${bare} ${args.map(([k, v]) => `${k}=${v}`).join(' ')}`;
+    },
+  };
 }
 
 /**
@@ -33,30 +33,30 @@ function stubI18next() {
  * @returns {Promise<object>} The classes by name, `ScoreRamp` through `AccessScoreDock`.
  */
 async function loadSources() {
-    RAMP.forEach((hex, i) => document.documentElement.style.setProperty(`--color-score-ramp-${i + 1}`, hex));
-    const classes = ['AccessScoreModel', 'AccessScoreGradeRamp', 'AccessScoreChart', 'AccessScoreHistogram',
-        'AccessScoreWhatsHere', 'AccessScoreRankBars', 'AccessScoreClusterSheet', 'AccessScorePhotoStrip',
-        'AccessScoreDock'];
-    const dirOf = (name) => (name === 'AccessScoreGradeRamp' ? 'common' : 'access-score');
-    const paths = classes.map((name) => `frontend/js/${dirOf(name)}/${name}.js`);
-    return loadModules('frontend/js/common/scoreRamp.js', 'frontend/js/common/LabelMiniCard.js', ...paths);
+  RAMP.forEach((hex, i) => document.documentElement.style.setProperty(`--color-score-ramp-${i + 1}`, hex));
+  const classes = ['AccessScoreModel', 'AccessScoreGradeRamp', 'AccessScoreChart', 'AccessScoreHistogram',
+    'AccessScoreWhatsHere', 'AccessScoreRankBars', 'AccessScoreClusterSheet', 'AccessScorePhotoStrip',
+    'AccessScoreDock'];
+  const dirOf = (name) => (name === 'AccessScoreGradeRamp' ? 'common' : 'access-score');
+  const paths = classes.map((name) => `frontend/js/${dirOf(name)}/${name}.js`);
+  return loadModules('frontend/js/common/scoreRamp.js', 'frontend/js/common/LabelMiniCard.js', ...paths);
 }
 
 /** A street feature in the API's shape, from a fixture case. */
 function feature(c, i, extra = {}) {
-    return {
-        type: 'Feature',
-        geometry: null,
-        properties: {
-            street_edge_id: i + 1,
-            region_id: 1,
-            audit_count: 1,
-            length_meters: 100,
-            severity_counts: c.severity_counts,
-            tag_adjustments: c.tag_adjustments,
-            ...extra,
-        },
-    };
+  return {
+    type: 'Feature',
+    geometry: null,
+    properties: {
+      street_edge_id: i + 1,
+      region_id: 1,
+      audit_count: 1,
+      length_meters: 100,
+      severity_counts: c.severity_counts,
+      tag_adjustments: c.tag_adjustments,
+      ...extra,
+    },
+  };
 }
 
 /** The dock's shell markup, with the ids AccessScoreDock reads (mirrors app/views/apps/accessScore.scala.html). */
@@ -98,31 +98,31 @@ const DOCK_HTML = `
  * mock so a test can inspect the URLs asked for.
  */
 function stubFetch({clustersByRegion = {}, labels = {}} = {}) {
-    const json = (body, ok = true) => Promise.resolve({ok, status: ok ? 200 : 404, json: () => Promise.resolve(body)});
-    window.fetch = vi.fn((input) => {
-        const url = new URL(String(input), 'http://localhost');
-        if (url.pathname === '/v3/api/labelClusters') {
-            // A cluster stub with `coordinates` is a Point, as the feed's are; the strip's viewport filter reads them.
-            const features = (clustersByRegion[url.searchParams.get('regionId')] || [])
-                .map(({coordinates = null, ...properties}) => ({
-                    type: 'Feature',
-                    geometry: coordinates ? {type: 'Point', coordinates} : null,
-                    properties,
-                }));
-            return json({type: 'FeatureCollection', features});
-        }
-        const m = /^\/label\/id\/(\d+)$/.exec(url.pathname);
-        if (m && labels[m[1]]) return json(labels[m[1]]);
-        return json({}, false);
-    });
-    return window.fetch;
+  const json = (body, ok = true) => Promise.resolve({ok, status: ok ? 200 : 404, json: () => Promise.resolve(body)});
+  window.fetch = vi.fn((input) => {
+    const url = new URL(String(input), 'http://localhost');
+    if (url.pathname === '/v3/api/labelClusters') {
+      // A cluster stub with `coordinates` is a Point, as the feed's are; the strip's viewport filter reads them.
+      const features = (clustersByRegion[url.searchParams.get('regionId')] || [])
+        .map(({coordinates = null, ...properties}) => ({
+          type: 'Feature',
+          geometry: coordinates ? {type: 'Point', coordinates} : null,
+          properties,
+        }));
+      return json({type: 'FeatureCollection', features});
+    }
+    const m = /^\/label\/id\/(\d+)$/.exec(url.pathname);
+    if (m && labels[m[1]]) return json(labels[m[1]]);
+    return json({}, false);
+  });
+  return window.fetch;
 }
 
 /** The hex a `style.backgroundColor` assignment reads back as under jsdom (`rgb(r, g, b)`). */
 function rgb(hex) {
-    const h = hex.replace('#', '');
-    const [r, g, b] = [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16));
-    return `rgb(${r}, ${g}, ${b})`;
+  const h = hex.replace('#', '');
+  const [r, g, b] = [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16));
+  return `rgb(${r}, ${g}, ${b})`;
 }
 
 export {FIXTURE, RAMP, stubI18next, stubFetch, loadSources, feature, DOCK_HTML, rgb};

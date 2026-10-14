@@ -14,83 +14,83 @@ import { loadModules, useUtil } from './loader.js';
 import { fakeTracker } from './fakes.js';
 
 describe('desktop Validate resize handling (#5367)', () => {
-    let Main;
-    let viewer;
-    let panoManager;
-    let tracker;
-    const immersiveMode = { isActive: () => false };
-    let handler; // The listener a test attached, so the next test's dispatches don't reach it too.
+  let Main;
+  let viewer;
+  let panoManager;
+  let tracker;
+  const immersiveMode = { isActive: () => false };
+  let handler; // The listener a test attached, so the next test's dispatches don't reach it too.
 
-    beforeEach(async () => {
-        vi.useFakeTimers();
+  beforeEach(async () => {
+    vi.useFakeTimers();
 
-        // jsdom does no layout, so the viewport the note reports has to be stated outright.
-        Object.defineProperty(document.documentElement, 'clientWidth', { value: 1280, configurable: true });
-        Object.defineProperty(document.documentElement, 'clientHeight', { value: 720, configurable: true });
+    // jsdom does no layout, so the viewport the note reports has to be stated outright.
+    Object.defineProperty(document.documentElement, 'clientWidth', { value: 1280, configurable: true });
+    Object.defineProperty(document.documentElement, 'clientHeight', { value: 720, configurable: true });
 
-        useUtil({ applyToolScale: vi.fn(() => 1.5) });
+    useUtil({ applyToolScale: vi.fn(() => 1.5) });
 
-        viewer = { resize: vi.fn(), repaint: vi.fn() };
-        tracker = fakeTracker();
-        panoManager = { setMarkerScale: vi.fn(), panoViewer: viewer };
+    viewer = { resize: vi.fn(), repaint: vi.fn() };
+    tracker = fakeTracker();
+    panoManager = { setMarkerScale: vi.fn(), panoViewer: viewer };
 
-        ({ Main } = await loadModules('frontend/js/validate/Main.js'));
-    });
+    ({ Main } = await loadModules('frontend/js/validate/Main.js'));
+  });
 
-    afterEach(() => {
-        if (handler) window.removeEventListener('resize', handler);
-        handler = undefined;
-    });
+  afterEach(() => {
+    if (handler) window.removeEventListener('resize', handler);
+    handler = undefined;
+  });
 
-    /** The notes of every Window_Resized the tracker was handed. */
-    function windowResizedNotes() {
-        return tracker.push.mock.calls.filter((call) => call[0] === 'Window_Resized').map((call) => call[1]);
+  /** The notes of every Window_Resized the tracker was handed. */
+  function windowResizedNotes() {
+    return tracker.push.mock.calls.filter((call) => call[0] === 'Window_Resized').map((call) => call[1]);
+  }
+
+  test('the startup rescale tells the viewer to repaint but logs nothing', () => {
+    Main.applyValidateScale(panoManager, immersiveMode);
+
+    expect(panoManager.setMarkerScale).toHaveBeenCalledWith(1.5);
+    expect(viewer.resize).toHaveBeenCalledTimes(1);
+    expect(viewer.repaint).toHaveBeenCalledTimes(1);
+    expect(windowResizedNotes()).toEqual([]); // Nothing was resized: the page had only just loaded.
+  });
+
+  test('a drag rescales on every event but logs one line, on the size that stuck', () => {
+    handler = Main.createDesktopResizeHandler(panoManager, immersiveMode, tracker);
+    window.addEventListener('resize', handler);
+
+    // A drag that outlasts the quiet window many times over: the burst shape a throttle would log repeatedly.
+    for (let i = 0; i < 6; i++) {
+      window.dispatchEvent(new Event('resize'));
+      vi.advanceTimersByTime(100);
     }
 
-    test('the startup rescale tells the viewer to repaint but logs nothing', () => {
-        Main.applyValidateScale(panoManager, immersiveMode);
+    // Every event rescales — a frame drawn at the old scale is visibly wrong — while nothing has been logged:
+    // the drag is still going as far as the tool can tell.
+    expect(viewer.resize).toHaveBeenCalledTimes(6);
+    expect(viewer.repaint).toHaveBeenCalledTimes(6);
+    expect(windowResizedNotes()).toEqual([]);
 
-        expect(panoManager.setMarkerScale).toHaveBeenCalledWith(1.5);
-        expect(viewer.resize).toHaveBeenCalledTimes(1);
-        expect(viewer.repaint).toHaveBeenCalledTimes(1);
-        expect(windowResizedNotes()).toEqual([]); // Nothing was resized: the page had only just loaded.
-    });
+    // 100 ms of the 150 ms quiet window have already passed since the last event.
+    vi.advanceTimersByTime(50);
+    expect(windowResizedNotes()).toEqual([{ width: 1280, height: 720 }]);
+    vi.advanceTimersByTime(5000);
+    expect(windowResizedNotes()).toHaveLength(1);
+  });
 
-    test('a drag rescales on every event but logs one line, on the size that stuck', () => {
-        handler = Main.createDesktopResizeHandler(panoManager, immersiveMode, tracker);
-        window.addEventListener('resize', handler);
+  test('the handler talks to whichever viewer is current, not the one that was up when it was attached', () => {
+    handler = Main.createDesktopResizeHandler(panoManager, immersiveMode, tracker);
+    window.addEventListener('resize', handler);
+    window.dispatchEvent(new Event('resize'));
 
-        // A drag that outlasts the quiet window many times over: the burst shape a throttle would log repeatedly.
-        for (let i = 0; i < 6; i++) {
-            window.dispatchEvent(new Event('resize'));
-            vi.advanceTimersByTime(100);
-        }
+    // A label whose imagery expired swaps the manager's viewer for the Pannellum fallback mid-mission (#4828).
+    const fallback = { resize: vi.fn(), repaint: vi.fn() };
+    panoManager.panoViewer = fallback;
+    window.dispatchEvent(new Event('resize'));
 
-        // Every event rescales — a frame drawn at the old scale is visibly wrong — while nothing has been logged:
-        // the drag is still going as far as the tool can tell.
-        expect(viewer.resize).toHaveBeenCalledTimes(6);
-        expect(viewer.repaint).toHaveBeenCalledTimes(6);
-        expect(windowResizedNotes()).toEqual([]);
-
-        // 100 ms of the 150 ms quiet window have already passed since the last event.
-        vi.advanceTimersByTime(50);
-        expect(windowResizedNotes()).toEqual([{ width: 1280, height: 720 }]);
-        vi.advanceTimersByTime(5000);
-        expect(windowResizedNotes()).toHaveLength(1);
-    });
-
-    test('the handler talks to whichever viewer is current, not the one that was up when it was attached', () => {
-        handler = Main.createDesktopResizeHandler(panoManager, immersiveMode, tracker);
-        window.addEventListener('resize', handler);
-        window.dispatchEvent(new Event('resize'));
-
-        // A label whose imagery expired swaps the manager's viewer for the Pannellum fallback mid-mission (#4828).
-        const fallback = { resize: vi.fn(), repaint: vi.fn() };
-        panoManager.panoViewer = fallback;
-        window.dispatchEvent(new Event('resize'));
-
-        expect(viewer.repaint).toHaveBeenCalledTimes(1);
-        expect(fallback.resize).toHaveBeenCalledTimes(1);
-        expect(fallback.repaint).toHaveBeenCalledTimes(1);
-    });
+    expect(viewer.repaint).toHaveBeenCalledTimes(1);
+    expect(fallback.resize).toHaveBeenCalledTimes(1);
+    expect(fallback.repaint).toHaveBeenCalledTimes(1);
+  });
 });

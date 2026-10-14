@@ -13,121 +13,121 @@ import { fakeGate, fakeTracker } from './fakes.js';
 
 /** A menu control with its click spied; a real element, since the manager compares against document.activeElement. */
 function makeControl() {
-    const control = document.createElement('textarea');
-    control.click = vi.fn();
-    return control;
+  const control = document.createElement('textarea');
+  control.click = vi.fn();
+  return control;
 }
 
 describe('Validate F shortcut for immersive mode', () => {
-    const validationMenuUi = {};
-    // The manager keeps the collaborators it was built with, so each test swaps the objects behind these proxies.
-    let current = {};
-    const live = (name) => new Proxy({}, { get: (_, key) => current[name][key] });
-    const config = { adminVersion: false };
-    let keyboardHeld = false;
+  const validationMenuUi = {};
+  // The manager keeps the collaborators it was built with, so each test swaps the objects behind these proxies.
+  let current = {};
+  const live = (name) => new Proxy({}, { get: (_, key) => current[name][key] });
+  const config = { adminVersion: false };
+  let keyboardHeld = false;
 
-    beforeAll(async () => {
-        Object.assign(validationMenuUi, {
-            optionalCommentTextBox: makeControl(),
-            disagreeReasonTextBox: makeControl(),
-            unsureReasonTextBox: makeControl(),
-            submitButton: makeControl(),
-            yesButton: makeControl(),
-            noButton: makeControl(),
-            unsureButton: makeControl(),
-        });
-        const { KeyboardManager } = await loadModules('frontend/js/validate/keyboard/KeyboardManager.js');
-        new KeyboardManager(
-            { validationMenu: validationMenuUi, undoValidation: { undoButton: live('undoButton') } }, config,
-            fakeGate({ isHeld: () => keyboardHeld }),
-            { onLoadingChange: () => {} }, live('labelVisibilityControl'), live('labelCard'), live('validationMenu'),
-            live('zoomControl'), live('undoValidation'), live('immersiveMode'), live('imageAdjustmentsPopover'),
-            live('tracker'),
-        );
+  beforeAll(async () => {
+    Object.assign(validationMenuUi, {
+      optionalCommentTextBox: makeControl(),
+      disagreeReasonTextBox: makeControl(),
+      unsureReasonTextBox: makeControl(),
+      submitButton: makeControl(),
+      yesButton: makeControl(),
+      noButton: makeControl(),
+      unsureButton: makeControl(),
     });
+    const { KeyboardManager } = await loadModules('frontend/js/validate/keyboard/KeyboardManager.js');
+    new KeyboardManager(
+      { validationMenu: validationMenuUi, undoValidation: { undoButton: live('undoButton') } }, config,
+      fakeGate({ isHeld: () => keyboardHeld }),
+      { onLoadingChange: () => {} }, live('labelVisibilityControl'), live('labelCard'), live('validationMenu'),
+      live('zoomControl'), live('undoValidation'), live('immersiveMode'), live('imageAdjustmentsPopover'),
+      live('tracker'),
+    );
+  });
 
-    beforeEach(() => {
-        keyboardHeld = false;
-        document.body.innerHTML = '<input id="field"><div id="note" contenteditable="true"></div>';
-        current = {
-            immersiveMode: { toggle: vi.fn() },
-            labelVisibilityControl: {
-                hideLabelCard: vi.fn(),
-                isCardVisible: () => false,
-                isCardHeldOpen: () => false,
-            },
-            labelCard: { isPopoverOpen: () => false, closeTypeDropdown: () => false },
-            validationMenu: { inWrongTypeView: () => false },
-            imageAdjustmentsPopover: { isOpen: () => false },
-            undoValidation: { canUndo: () => false },
-            tracker: fakeTracker(),
-        };
-        validationMenuUi.yesButton.click.mockClear();
-        validationMenuUi.submitButton.click.mockClear();
-    });
+  beforeEach(() => {
+    keyboardHeld = false;
+    document.body.innerHTML = '<input id="field"><div id="note" contenteditable="true"></div>';
+    current = {
+      immersiveMode: { toggle: vi.fn() },
+      labelVisibilityControl: {
+        hideLabelCard: vi.fn(),
+        isCardVisible: () => false,
+        isCardHeldOpen: () => false,
+      },
+      labelCard: { isPopoverOpen: () => false, closeTypeDropdown: () => false },
+      validationMenu: { inWrongTypeView: () => false },
+      imageAdjustmentsPopover: { isOpen: () => false },
+      undoValidation: { canUndo: () => false },
+      tracker: fakeTracker(),
+    };
+    validationMenuUi.yesButton.click.mockClear();
+    validationMenuUi.submitButton.click.mockClear();
+  });
 
-    /** Presses F on the element, as a physical KeyF, with the given modifier state. */
-    function pressF(el, init = {}) {
-        el.dispatchEvent(new KeyboardEvent('keydown', {
-            key: 'f', code: 'KeyF', bubbles: true, cancelable: true, ...init,
-        }));
-    }
+  /** Presses F on the element, as a physical KeyF, with the given modifier state. */
+  function pressF(el, init = {}) {
+    el.dispatchEvent(new KeyboardEvent('keydown', {
+      key: 'f', code: 'KeyF', bubbles: true, cancelable: true, ...init,
+    }));
+  }
 
-    it('toggles on a bare F, and logs the toggle as a keyboard shortcut', () => {
-        pressF(document.body);
-        expect(current.immersiveMode.toggle).toHaveBeenCalledWith('KeyboardShortcut');
-    });
+  it('toggles on a bare F, and logs the toggle as a keyboard shortcut', () => {
+    pressF(document.body);
+    expect(current.immersiveMode.toggle).toHaveBeenCalledWith('KeyboardShortcut');
+  });
 
-    it('leaves an f typed into a text field or an editable region alone', () => {
-        const field = document.getElementById('field');
-        field.focus();
-        pressF(field);
-        const note = document.getElementById('note');
-        // jsdom does not implement isContentEditable, which is what a browser reports for the attribute.
-        Object.defineProperty(note, 'isContentEditable', { value: true });
-        note.focus();
-        pressF(note);
-        expect(current.immersiveMode.toggle).not.toHaveBeenCalled();
-    });
+  it('leaves an f typed into a text field or an editable region alone', () => {
+    const field = document.getElementById('field');
+    field.focus();
+    pressF(field);
+    const note = document.getElementById('note');
+    // jsdom does not implement isContentEditable, which is what a browser reports for the attribute.
+    Object.defineProperty(note, 'isContentEditable', { value: true });
+    note.focus();
+    pressF(note);
+    expect(current.immersiveMode.toggle).not.toHaveBeenCalled();
+  });
 
-    it('ignores F with a modifier, which belongs to the browser', () => {
-        pressF(document.body, { ctrlKey: true });
-        pressF(document.body, { metaKey: true });
-        pressF(document.body, { shiftKey: true });
-        pressF(document.body, { altKey: true });
-        expect(current.immersiveMode.toggle).not.toHaveBeenCalled();
-    });
+  it('ignores F with a modifier, which belongs to the browser', () => {
+    pressF(document.body, { ctrlKey: true });
+    pressF(document.body, { metaKey: true });
+    pressF(document.body, { shiftKey: true });
+    pressF(document.body, { altKey: true });
+    expect(current.immersiveMode.toggle).not.toHaveBeenCalled();
+  });
 
-    it('does nothing while the keyboard is held, as it is under a modal, the tutorial or a loading label', () => {
-        keyboardHeld = true;
-        pressF(document.body);
-        expect(current.immersiveMode.toggle).not.toHaveBeenCalled();
-    });
+  it('does nothing while the keyboard is held, as it is under a modal, the tutorial or a loading label', () => {
+    keyboardHeld = true;
+    pressF(document.body);
+    expect(current.immersiveMode.toggle).not.toHaveBeenCalled();
+  });
 
-    it('toggles once for a held F, not on every key repeat', () => {
-        pressF(document.body);
-        pressF(document.body, { repeat: true });
-        pressF(document.body, { repeat: true });
-        expect(current.immersiveMode.toggle).toHaveBeenCalledTimes(1);
-    });
+  it('toggles once for a held F, not on every key repeat', () => {
+    pressF(document.body);
+    pressF(document.body, { repeat: true });
+    pressF(document.body, { repeat: true });
+    expect(current.immersiveMode.toggle).toHaveBeenCalledTimes(1);
+  });
 
-    // Enter submits from any other focused button. On these two it has to reach the button itself: submitting from the
-    // X would send the very answer it was pressed to take back.
-    it.each(['validate-verdict-clear', 'immersive-toggle-button'])('leaves Enter on #%s to the button', (id) => {
-        document.body.insertAdjacentHTML('beforeend', `<button id="${id}"><span class="icon"></span></button>`);
-        const button = document.getElementById(id);
-        button.focus();
-        const enter = new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', bubbles: true, cancelable: true });
-        button.querySelector('.icon').dispatchEvent(enter);
-        expect(enter.defaultPrevented).toBe(false);
-        expect(validationMenuUi.submitButton.click).not.toHaveBeenCalled();
-    });
+  // Enter submits from any other focused button. On these two it has to reach the button itself: submitting from the
+  // X would send the very answer it was pressed to take back.
+  it.each(['validate-verdict-clear', 'immersive-toggle-button'])('leaves Enter on #%s to the button', (id) => {
+    document.body.insertAdjacentHTML('beforeend', `<button id="${id}"><span class="icon"></span></button>`);
+    const button = document.getElementById(id);
+    button.focus();
+    const enter = new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', bubbles: true, cancelable: true });
+    button.querySelector('.icon').dispatchEvent(enter);
+    expect(enter.defaultPrevented).toBe(false);
+    expect(validationMenuUi.submitButton.click).not.toHaveBeenCalled();
+  });
 
-    it('still submits on Enter from any other button', () => {
-        document.body.insertAdjacentHTML('beforeend', '<button id="other"></button>');
-        const button = document.getElementById('other');
-        button.focus();
-        button.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', bubbles: true, cancelable: true }));
-        expect(validationMenuUi.submitButton.click).toHaveBeenCalledTimes(1);
-    });
+  it('still submits on Enter from any other button', () => {
+    document.body.insertAdjacentHTML('beforeend', '<button id="other"></button>');
+    const button = document.getElementById('other');
+    button.focus();
+    button.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', bubbles: true, cancelable: true }));
+    expect(validationMenuUi.submitButton.click).toHaveBeenCalledTimes(1);
+  });
 });

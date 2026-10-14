@@ -28,49 +28,49 @@ ALLOW_UNFLAGGED=FALSE
 STRUCTURES_FILE=
 POSITIONAL=()
 while (($#)); do
-    case "$1" in
-        --all) EXPORT_ALL=TRUE ;;
-        --allow-empty-osm-way) ALLOW_EMPTY_OSM_WAY=true ;;   # Moot with --structures, which never reads osm_way.
-        --allow-unflagged-streets) ALLOW_UNFLAGGED=TRUE ;;
-        --structures)
-            # The path lands inside a quoted SQL literal, so it is held to the characters a path under db/ needs.
-            if (($# < 2)) || [[ ! "$2" =~ ^[A-Za-z0-9_./-]+$ ]]; then
-                echo "Error: --structures needs a path relative to the db dir (letters, digits, . _ - /), e.g." >&2
-                echo "onboarding/seattle-wa/street_structures.csv." >&2
-                exit 1
-            fi
-            STRUCTURES_FILE=/opt/$2
-            shift ;;
-        -*) echo "Error: unknown option \"$1\". Options: --all, --allow-empty-osm-way, --structures <path>," >&2
-            echo "--allow-unflagged-streets." >&2
-            exit 1 ;;
-        *) POSITIONAL+=("$1") ;;
-    esac
-    shift
+  case "$1" in
+    --all) EXPORT_ALL=TRUE ;;
+    --allow-empty-osm-way) ALLOW_EMPTY_OSM_WAY=true ;;   # Moot with --structures, which never reads osm_way.
+    --allow-unflagged-streets) ALLOW_UNFLAGGED=TRUE ;;
+    --structures)
+      # The path lands inside a quoted SQL literal, so it is held to the characters a path under db/ needs.
+      if (($# < 2)) || [[ ! "$2" =~ ^[A-Za-z0-9_./-]+$ ]]; then
+        echo "Error: --structures needs a path relative to the db dir (letters, digits, . _ - /), e.g." >&2
+        echo "onboarding/seattle-wa/street_structures.csv." >&2
+        exit 1
+      fi
+      STRUCTURES_FILE=/opt/$2
+      shift ;;
+    -*) echo "Error: unknown option \"$1\". Options: --all, --allow-empty-osm-way, --structures <path>," >&2
+      echo "--allow-unflagged-streets." >&2
+      exit 1 ;;
+    *) POSITIONAL+=("$1") ;;
+  esac
+  shift
 done
 SCHEMA_NAME=${POSITIONAL[0]:-$(prompt_with_default "Schema name")}
 CITY_ID=${POSITIONAL[1]:-$(prompt_with_default \
     "City id (the db/onboarding/<city-id> dir to write into, e.g. seattle-wa)")}
 # The same shape tools/city/street_gradient.py accepts, so a typo cannot create a directory the sampler then refuses.
 if [[ ! "$CITY_ID" =~ ^[a-z0-9]+(-[a-z0-9]+)*$ ]]; then
-    echo "Error: city id \"$CITY_ID\" is not lowercase kebab-case (e.g. seattle-wa)." >&2
-    exit 1
+  echo "Error: city id \"$CITY_ID\" is not lowercase kebab-case (e.g. seattle-wa)." >&2
+  exit 1
 fi
 
 if [[ -n "$STRUCTURES_FILE" && ! -f "$STRUCTURES_FILE" ]]; then
-    echo "Error: structures file not found at $STRUCTURES_FILE. tools/city/onboard_city.py writes it beside the" >&2
-    echo "build's other artifacts (make build-city-data)." >&2
-    exit 1
+  echo "Error: structures file not found at $STRUCTURES_FILE. tools/city/onboard_city.py writes it beside the" >&2
+  echo "build's other artifacts (make build-city-data)." >&2
+  exit 1
 fi
 if [[ -z "$STRUCTURES_FILE" ]]; then
-    OSM_WAYS=$(psql -v ON_ERROR_STOP=1 -d sidewalk -U "$SCHEMA_NAME" -At -c "SELECT COUNT(*) FROM osm_way")
-    if [[ "$OSM_WAYS" -eq 0 && "$ALLOW_EMPTY_OSM_WAY" != true ]]; then
-        echo "Error: $SCHEMA_NAME.osm_way is empty, so no street can be recognized as a bridge or tunnel and each" >&2
-        echo "would be sampled as the ground beneath it. Export after the nightly OSM refresh has filled it, pass" >&2
-        echo "--structures <the build's street_structures.csv>, or pass --allow-empty-osm-way if an empty cache is" >&2
-        echo "expected here." >&2
-        exit 1
-    fi
+  OSM_WAYS=$(psql -v ON_ERROR_STOP=1 -d sidewalk -U "$SCHEMA_NAME" -At -c "SELECT COUNT(*) FROM osm_way")
+  if [[ "$OSM_WAYS" -eq 0 && "$ALLOW_EMPTY_OSM_WAY" != true ]]; then
+    echo "Error: $SCHEMA_NAME.osm_way is empty, so no street can be recognized as a bridge or tunnel and each" >&2
+    echo "would be sampled as the ground beneath it. Export after the nightly OSM refresh has filled it, pass" >&2
+    echo "--structures <the build's street_structures.csv>, or pass --allow-empty-osm-way if an empty cache is" >&2
+    echo "expected here." >&2
+    exit 1
+  fi
 fi
 
 OUT_DIR=/opt/onboarding/$CITY_ID
@@ -84,14 +84,14 @@ SQL_FILE=$(mktemp)
 trap 'rm -f "$TMP_FILE" "$SQL_FILE"' EXIT
 
 if [[ -n "$STRUCTURES_FILE" ]]; then
-    # The file and the schema must name the same streets, in both directions, with the same geometry: every build
-    # numbers its roads 1..N, so a file from another build marks the wrong streets as bridges while its ids look
-    # right, and a rebuild that dropped streets leaves a file whose ids are a subset of the schema's, which the
-    # one-directional check would pass. The file's geom_md5 is the hash this script computes for the export, so a
-    # street whose geometry differs from the file's came from another build. Only streets inserted by hand after
-    # the build (nothing in onboarding does) leave a street unflagged, and --allow-unflagged-streets says so; those
-    # read as not on a structure.
-    cat >> "$SQL_FILE" <<EOSQL
+  # The file and the schema must name the same streets, in both directions, with the same geometry: every build
+  # numbers its roads 1..N, so a file from another build marks the wrong streets as bridges while its ids look
+  # right, and a rebuild that dropped streets leaves a file whose ids are a subset of the schema's, which the
+  # one-directional check would pass. The file's geom_md5 is the hash this script computes for the export, so a
+  # street whose geometry differs from the file's came from another build. Only streets inserted by hand after
+  # the build (nothing in onboarding does) leave a street unflagged, and --allow-unflagged-streets says so; those
+  # read as not on a structure.
+  cat >> "$SQL_FILE" <<EOSQL
     CREATE TEMP TABLE street_structures_import (
         street_edge_id INTEGER PRIMARY KEY, is_structure BOOLEAN NOT NULL, geom_md5 TEXT NOT NULL);
     \\copy street_structures_import FROM '$STRUCTURES_FILE' WITH (FORMAT csv, HEADER true)
@@ -136,13 +136,13 @@ if [[ -n "$STRUCTURES_FILE" ]]; then
         END IF;
     END \$\$;
 EOSQL
-    STRUCTURE_JOIN="LEFT JOIN street_structures_import
+  STRUCTURE_JOIN="LEFT JOIN street_structures_import
             ON street_edge.street_edge_id = street_structures_import.street_edge_id"
-    STRUCTURE_EXPR="COALESCE(street_structures_import.is_structure, FALSE)"
+  STRUCTURE_EXPR="COALESCE(street_structures_import.is_structure, FALSE)"
 else
-    STRUCTURE_JOIN="LEFT JOIN osm_way_street_edge ON street_edge.street_edge_id = osm_way_street_edge.street_edge_id
+  STRUCTURE_JOIN="LEFT JOIN osm_way_street_edge ON street_edge.street_edge_id = osm_way_street_edge.street_edge_id
         LEFT JOIN osm_way ON osm_way_street_edge.osm_way_id = osm_way.osm_way_id"
-    STRUCTURE_EXPR="(COALESCE(osm_way.tags ->> 'bridge', 'no') <> 'no'
+  STRUCTURE_EXPR="(COALESCE(osm_way.tags ->> 'bridge', 'no') <> 'no'
                 OR COALESCE(osm_way.tags ->> 'tunnel', 'no') <> 'no'
                 OR COALESCE(osm_way.tags ->> 'covered', 'no') = 'yes')"
 fi

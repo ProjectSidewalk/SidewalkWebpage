@@ -17,7 +17,7 @@ const filterLabelLayers = vi.fn();
 const filterStreetLayer = vi.fn();
 const toggleLabelLayer = vi.fn();
 mockModule('frontend/js/ps-map/psMapUtilities.js', async (importOriginal) => ({
-    ...await importOriginal(), filterLabelLayers, filterStreetLayer, toggleLabelLayer,
+  ...await importOriginal(), filterLabelLayers, filterStreetLayer, toggleLabelLayer,
 }));
 
 const LABEL_TYPES = ['CurbRamp', 'Obstacle'];
@@ -27,20 +27,20 @@ const LABEL_TYPES = ['CurbRamp', 'Obstacle'];
 // comma-joined list (#4783).
 const COMMA_TAG = 'yellow box, accessibility features not visible';
 const TAGS_BY_TYPE = {
-    CurbRamp: ['narrow', 'shared', 'cycle lane: faded paint'],
-    Obstacle: ['shared', COMMA_TAG],
+  CurbRamp: ['narrow', 'shared', 'cycle lane: faded paint'],
+  Obstacle: ['shared', COMMA_TAG],
 };
 
 /** Builds the sidebar markup the classes bind to, mirroring the Twirl partial's hooks and default state. */
 function buildFixture() {
-    const severityCells = [0, 1, 2, 3].map((severity) => `
+  const severityCells = [0, 1, 2, 3].map((severity) => `
         <div class="filter-sidebar__severity-cell">
           <button type="button" class="severity-button" data-severity="${severity}" aria-pressed="true">
             <span class="severity-button__label">sev ${severity}</span>
           </button>
         </div>`).join('');
 
-    const typeRows = LABEL_TYPES.map((type) => `
+  const typeRows = LABEL_TYPES.map((type) => `
         <li class="filter-sidebar__item filter-sidebar__item--expandable">
           <div class="filter-sidebar__item-row">
             <input type="checkbox" id="${type}-checkbox" class="filter-sidebar__checkbox" checked
@@ -60,7 +60,7 @@ function buildFixture() {
           </div>
         </li>`).join('');
 
-    const validationRows = ['correct', 'incorrect', 'unsure', 'unvalidated'].map((option) => `
+  const validationRows = ['correct', 'incorrect', 'unsure', 'unvalidated'].map((option) => `
         <li class="filter-sidebar__item">
           <input type="checkbox" id="${option}" class="filter-sidebar__checkbox"
                  ${option === 'incorrect' ? '' : 'checked'} data-filter-type="label-validations" disabled>
@@ -69,7 +69,7 @@ function buildFixture() {
           </label>
         </li>`).join('');
 
-    const streetRows = ['audited-street', 'unaudited-street'].map((id) => `
+  const streetRows = ['audited-street', 'unaudited-street'].map((id) => `
         <li class="filter-sidebar__item">
           <input type="checkbox" id="${id}" class="filter-sidebar__checkbox" data-filter-type="streets" disabled>
           <label class="filter-sidebar__item-label" for="${id}">
@@ -77,7 +77,7 @@ function buildFixture() {
           </label>
         </li>`).join('');
 
-    document.body.innerHTML = `
+  document.body.innerHTML = `
       <div id="filter-sidebar">
         <button type="button" id="filter-sidebar-close">close</button>
         <section class="filter-sidebar__section">
@@ -102,396 +102,396 @@ function buildFixture() {
 
 /** Builds the mapData tracker at its defaults, mirroring CreateMapLayerTracker's shape. */
 function buildMapData() {
-    const mapData = {
-        correct: true,
-        incorrect: false,
-        unsure: true,
-        unvalidated: true,
-        lowQualityUsers: false,
-        notAdminValidated: false,
-        severities: { 0: true, 1: true, 2: true, 3: true },
-        selectedTags: {},
-        sortedLabels: {},
-        layerNames: {},
-    };
-    for (const type of LABEL_TYPES) {
-        mapData.sortedLabels[type] = [];
-        mapData.layerNames[type] = `${type}-layer`;
-        mapData.selectedTags[type] = new Set();
-    }
-    return mapData;
+  const mapData = {
+    correct: true,
+    incorrect: false,
+    unsure: true,
+    unvalidated: true,
+    lowQualityUsers: false,
+    notAdminValidated: false,
+    severities: { 0: true, 1: true, 2: true, 3: true },
+    selectedTags: {},
+    sortedLabels: {},
+    layerNames: {},
+  };
+  for (const type of LABEL_TYPES) {
+    mapData.sortedLabels[type] = [];
+    mapData.layerNames[type] = `${type}-layer`;
+    mapData.selectedTags[type] = new Set();
+  }
+  return mapData;
 }
 
 describe('MapSidebarUrlSync', () => {
-    let MapSidebarFilter;
-    let MapSidebarUrlSync;
-    let LabelDetail;
-    let mapData;
-    let map;
-    let mapHandlers;
+  let MapSidebarFilter;
+  let MapSidebarUrlSync;
+  let LabelDetail;
+  let mapData;
+  let map;
+  let mapHandlers;
 
-    const search = () => window.location.search;
-    const sevBtn = (severity) => document.querySelector(`.severity-button[data-severity="${severity}"]`);
-    const checkbox = (id) => document.getElementById(id);
-    const tagPill = (type, tag) => document.querySelector(`.tag-pill[data-label-type="${type}"][data-tag="${tag}"]`);
+  const search = () => window.location.search;
+  const sevBtn = (severity) => document.querySelector(`.severity-button[data-severity="${severity}"]`);
+  const checkbox = (id) => document.getElementById(id);
+  const tagPill = (type, tag) => document.querySelector(`.tag-pill[data-label-type="${type}"][data-tag="${tag}"]`);
 
-    /** Builds the sidebar + URL sync over the fixture with a stub map; the URL should be set before calling. */
-    function build() {
-        buildFixture();
-        mapData = buildMapData();
-        const sidebarFilter = new MapSidebarFilter(map, mapData);
-        return new MapSidebarUrlSync(sidebarFilter, map);
-    }
+  /** Builds the sidebar + URL sync over the fixture with a stub map; the URL should be set before calling. */
+  function build() {
+    buildFixture();
+    mapData = buildMapData();
+    const sidebarFilter = new MapSidebarFilter(map, mapData);
+    return new MapSidebarUrlSync(sidebarFilter, map);
+  }
 
-    beforeAll(async () => {
-        window.i18next = { t: (key) => key, language: 'en' };
-        window.logWebpageActivity = vi.fn();
-        ({ MapSidebarFilter, MapSidebarUrlSync, LabelDetail } = await loadModules(
-            'frontend/js/ps-map/MapSidebarFilter.js', 'frontend/js/ps-map/MapSidebarUrlSync.js',
-            'frontend/js/common/label-detail/LabelDetail.js'));
+  beforeAll(async () => {
+    window.i18next = { t: (key) => key, language: 'en' };
+    window.logWebpageActivity = vi.fn();
+    ({ MapSidebarFilter, MapSidebarUrlSync, LabelDetail } = await loadModules(
+      'frontend/js/ps-map/MapSidebarFilter.js', 'frontend/js/ps-map/MapSidebarUrlSync.js',
+      'frontend/js/common/label-detail/LabelDetail.js'));
+  });
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    window.history.replaceState({}, '', '/labelMap');
+    mapHandlers = {};
+    map = {
+      getLayer: () => true,
+      easeTo: () => {},
+      setPadding: () => {},
+      on: (event, handler) => { mapHandlers[event] = handler; },
+      getCenter: () => ({ lat: 47.61234567, lng: -122.33456789 }),
+      getZoom: () => 11.256,
+      jumpTo: vi.fn(),
+    };
+  });
+
+  describe('viewport statics', () => {
+    it('reports and applies a complete lat/lng(/zoom) viewport', () => {
+      window.history.replaceState({}, '', '/labelMap?lat=47.6&lng=-122.3&zoom=14.5');
+
+      expect(MapSidebarUrlSync.hasUrlViewport()).toBe(true);
+      expect(MapSidebarUrlSync.applyUrlViewport(map)).toBe(true);
+      expect(map.jumpTo).toHaveBeenCalledWith({ center: [-122.3, 47.6], zoom: 14.5 });
     });
 
-    beforeEach(() => {
-        vi.useFakeTimers();
-        window.history.replaceState({}, '', '/labelMap');
-        mapHandlers = {};
-        map = {
-            getLayer: () => true,
-            easeTo: () => {},
-            setPadding: () => {},
-            on: (event, handler) => { mapHandlers[event] = handler; },
-            getCenter: () => ({ lat: 47.61234567, lng: -122.33456789 }),
-            getZoom: () => 11.256,
-            jumpTo: vi.fn(),
-        };
+    it('applies lat/lng without a zoom, leaving the map\'s zoom alone', () => {
+      window.history.replaceState({}, '', '/labelMap?lat=47.6&lng=-122.3');
+
+      expect(MapSidebarUrlSync.applyUrlViewport(map)).toBe(true);
+      expect(map.jumpTo).toHaveBeenCalledWith({ center: [-122.3, 47.6] });
     });
 
-    describe('viewport statics', () => {
-        it('reports and applies a complete lat/lng(/zoom) viewport', () => {
-            window.history.replaceState({}, '', '/labelMap?lat=47.6&lng=-122.3&zoom=14.5');
+    it('does not move the map on an incomplete or invalid viewport', () => {
+      for (const query of ['', '?lat=47.6', '?lng=-122.3', '?lat=abc&lng=-122.3']) {
+        window.history.replaceState({}, '', `/labelMap${query}`);
+        expect(MapSidebarUrlSync.hasUrlViewport()).toBe(false);
+        expect(MapSidebarUrlSync.applyUrlViewport(map)).toBe(false);
+      }
+      expect(map.jumpTo).not.toHaveBeenCalled();
+    });
+  });
 
-            expect(MapSidebarUrlSync.hasUrlViewport()).toBe(true);
-            expect(MapSidebarUrlSync.applyUrlViewport(map)).toBe(true);
-            expect(map.jumpTo).toHaveBeenCalledWith({ center: [-122.3, 47.6], zoom: 14.5 });
-        });
+  describe('reading filters from the URL', () => {
+    it('restores every filter section onto the controls and the map', () => {
+      const query = 'severities=null,2&labelTypes=CurbRamp&validationOptions=correct&tags=CurbRamp:shared';
+      window.history.replaceState({}, '', `/labelMap?${query}&streets=audited`);
+      build();
 
-        it('applies lat/lng without a zoom, leaving the map\'s zoom alone', () => {
-            window.history.replaceState({}, '', '/labelMap?lat=47.6&lng=-122.3');
+      expect(sevBtn(0).getAttribute('aria-pressed')).toBe('true');
+      expect(sevBtn(1).getAttribute('aria-pressed')).toBe('false');
+      expect(sevBtn(2).getAttribute('aria-pressed')).toBe('true');
+      expect(sevBtn(3).getAttribute('aria-pressed')).toBe('false');
+      expect(mapData.severities).toEqual({ 0: true, 1: false, 2: true, 3: false });
 
-            expect(MapSidebarUrlSync.applyUrlViewport(map)).toBe(true);
-            expect(map.jumpTo).toHaveBeenCalledWith({ center: [-122.3, 47.6] });
-        });
+      expect(checkbox('CurbRamp-checkbox').checked).toBe(true);
+      expect(checkbox('Obstacle-checkbox').checked).toBe(false);
 
-        it('does not move the map on an incomplete or invalid viewport', () => {
-            for (const query of ['', '?lat=47.6', '?lng=-122.3', '?lat=abc&lng=-122.3']) {
-                window.history.replaceState({}, '', `/labelMap${query}`);
-                expect(MapSidebarUrlSync.hasUrlViewport()).toBe(false);
-                expect(MapSidebarUrlSync.applyUrlViewport(map)).toBe(false);
-            }
-            expect(map.jumpTo).not.toHaveBeenCalled();
-        });
+      expect(checkbox('correct').checked).toBe(true);
+      expect(checkbox('unsure').checked).toBe(false);
+      expect(checkbox('unvalidated').checked).toBe(false);
+      expect(mapData.correct).toBe(true);
+      expect(mapData.unsure).toBe(false);
+      expect(mapData.unvalidated).toBe(false);
+
+      expect(checkbox('audited-street').checked).toBe(true);
+      expect(checkbox('unaudited-street').checked).toBe(false);
+      expect(filterStreetLayer).toHaveBeenCalled();
+
+      // The restore ran the full pipeline: layer filters reapplied, the hidden type's layer toggled off.
+      expect(filterLabelLayers).toHaveBeenCalled();
+      expect(toggleLabelLayer).toHaveBeenCalledWith('Obstacle', false, map, mapData);
     });
 
-    describe('reading filters from the URL', () => {
-        it('restores every filter section onto the controls and the map', () => {
-            const query = 'severities=null,2&labelTypes=CurbRamp&validationOptions=correct&tags=CurbRamp:shared';
-            window.history.replaceState({}, '', `/labelMap?${query}&streets=audited`);
-            build();
+    it('activates a restored tag on checked types only, with its drawer opened', () => {
+      window.history.replaceState({}, '', '/labelMap?labelTypes=CurbRamp&tags=CurbRamp:shared');
+      build();
 
-            expect(sevBtn(0).getAttribute('aria-pressed')).toBe('true');
-            expect(sevBtn(1).getAttribute('aria-pressed')).toBe('false');
-            expect(sevBtn(2).getAttribute('aria-pressed')).toBe('true');
-            expect(sevBtn(3).getAttribute('aria-pressed')).toBe('false');
-            expect(mapData.severities).toEqual({ 0: true, 1: false, 2: true, 3: false });
+      expect(tagPill('CurbRamp', 'shared').classList.contains('tag-pill--active')).toBe(true);
+      expect(mapData.selectedTags.CurbRamp.has('shared')).toBe(true);
+      const drawer = tagPill('CurbRamp', 'shared').closest('.filter-sidebar__tag-pills');
+      expect(drawer.hidden).toBe(false);
 
-            expect(checkbox('CurbRamp-checkbox').checked).toBe(true);
-            expect(checkbox('Obstacle-checkbox').checked).toBe(false);
-
-            expect(checkbox('correct').checked).toBe(true);
-            expect(checkbox('unsure').checked).toBe(false);
-            expect(checkbox('unvalidated').checked).toBe(false);
-            expect(mapData.correct).toBe(true);
-            expect(mapData.unsure).toBe(false);
-            expect(mapData.unvalidated).toBe(false);
-
-            expect(checkbox('audited-street').checked).toBe(true);
-            expect(checkbox('unaudited-street').checked).toBe(false);
-            expect(filterStreetLayer).toHaveBeenCalled();
-
-            // The restore ran the full pipeline: layer filters reapplied, the hidden type's layer toggled off.
-            expect(filterLabelLayers).toHaveBeenCalled();
-            expect(toggleLabelLayer).toHaveBeenCalledWith('Obstacle', false, map, mapData);
-        });
-
-        it('activates a restored tag on checked types only, with its drawer opened', () => {
-            window.history.replaceState({}, '', '/labelMap?labelTypes=CurbRamp&tags=CurbRamp:shared');
-            build();
-
-            expect(tagPill('CurbRamp', 'shared').classList.contains('tag-pill--active')).toBe(true);
-            expect(mapData.selectedTags.CurbRamp.has('shared')).toBe(true);
-            const drawer = tagPill('CurbRamp', 'shared').closest('.filter-sidebar__tag-pills');
-            expect(drawer.hidden).toBe(false);
-
-            // Obstacle also renders "shared", but the URL excluded the type; implying it on would break round-trips.
-            expect(tagPill('Obstacle', 'shared').classList.contains('tag-pill--active')).toBe(false);
-            expect(checkbox('Obstacle-checkbox').checked).toBe(false);
-            expect(mapData.selectedTags.Obstacle.size).toBe(0);
-        });
-
-        it('scopes a tag to the type it was paired with, leaving a sibling type carrying the same name alone', () => {
-            // Both types render "shared" and both stay checked, so only the pairing says which one was narrowed.
-            window.history.replaceState({}, '', '/labelMap?tags=CurbRamp:shared');
-            build();
-
-            expect(checkbox('Obstacle-checkbox').checked).toBe(true);
-            expect(tagPill('CurbRamp', 'shared').classList.contains('tag-pill--active')).toBe(true);
-            expect(tagPill('Obstacle', 'shared').classList.contains('tag-pill--active')).toBe(false);
-            expect(mapData.selectedTags.Obstacle.size).toBe(0);
-        });
-
-        it('drops unknown tokens and treats a fully-invalid param as absent', () => {
-            window.history.replaceState({}, '', '/labelMap?labelTypes=CurbRamp,Bogus&severities=9,foo&tags=Bogus:x');
-            build();
-
-            // "Bogus" is dropped but "CurbRamp" survives, so the param still narrows the types.
-            expect(checkbox('CurbRamp-checkbox').checked).toBe(true);
-            expect(checkbox('Obstacle-checkbox').checked).toBe(false);
-
-            // No severity token was valid, so the section stays at its default (everything on).
-            for (const severity of [0, 1, 2, 3]) {
-                expect(sevBtn(severity).getAttribute('aria-pressed')).toBe('true');
-            }
-
-            // A tag pair naming a type or tag the sidebar doesn't render activates nothing.
-            expect(document.querySelectorAll('.tag-pill--active')).toHaveLength(0);
-        });
-
-        it('restores a deselected section as empty rather than falling back to its default', () => {
-            window.history.replaceState({}, '', '/labelMap?severities=&labelTypes=&validationOptions=');
-            build();
-
-            for (const severity of [0, 1, 2, 3]) {
-                expect(sevBtn(severity).getAttribute('aria-pressed')).toBe('false');
-            }
-            expect(mapData.severities).toEqual({ 0: false, 1: false, 2: false, 3: false });
-
-            for (const type of LABEL_TYPES) {
-                expect(checkbox(`${type}-checkbox`).checked).toBe(false);
-            }
-
-            for (const option of ['correct', 'incorrect', 'unsure', 'unvalidated']) {
-                expect(checkbox(option).checked).toBe(false);
-                expect(mapData[option]).toBe(false);
-            }
-        });
+      // Obstacle also renders "shared", but the URL excluded the type; implying it on would break round-trips.
+      expect(tagPill('Obstacle', 'shared').classList.contains('tag-pill--active')).toBe(false);
+      expect(checkbox('Obstacle-checkbox').checked).toBe(false);
+      expect(mapData.selectedTags.Obstacle.size).toBe(0);
     });
 
-    describe('writing filters to the URL', () => {
-        it('writes the changed section after the debounce, always stamping the viewport', () => {
-            build();
-            sevBtn(0).click();
-            expect(search()).toBe(''); // Nothing until the debounce elapses.
+    it('scopes a tag to the type it was paired with, leaving a sibling type carrying the same name alone', () => {
+      // Both types render "shared" and both stay checked, so only the pairing says which one was narrowed.
+      window.history.replaceState({}, '', '/labelMap?tags=CurbRamp:shared');
+      build();
 
-            vi.advanceTimersByTime(300);
-
-            expect(search()).toBe('?severities=1,2,3&lat=47.61235&lng=-122.33457&zoom=11.26');
-        });
-
-        it('deletes a param when its section returns to the rendered default', () => {
-            build();
-            sevBtn(0).click();
-            vi.advanceTimersByTime(300);
-            expect(search()).toContain('severities=1,2,3');
-
-            sevBtn(0).click();
-            vi.advanceTimersByTime(300);
-
-            expect(search()).not.toContain('severities');
-            expect(search()).toContain('lat=');
-        });
-
-        it('serializes each filter section under its own param', () => {
-            build();
-            checkbox('Obstacle-checkbox').click();
-            checkbox('incorrect').click();
-            tagPill('CurbRamp', 'narrow').click();
-            checkbox('audited-street').click();
-            vi.advanceTimersByTime(300);
-
-            const params = new URLSearchParams(search());
-            expect(params.get('labelTypes')).toBe('CurbRamp');
-            expect(params.get('validationOptions')).toBe('correct,incorrect,unsure,unvalidated');
-            expect(params.get('tags')).toBe('CurbRamp:narrow');
-            expect(params.get('streets')).toBe('audited');
-        });
-
-        it('leaves the labelType:tag colon literal rather than percent-encoding it (#4782)', () => {
-            build();
-            tagPill('CurbRamp', 'narrow').click();
-            vi.advanceTimersByTime(300);
-
-            expect(search()).toContain('tags=CurbRamp:narrow');
-            expect(search()).not.toContain('%3A');
-        });
-
-        it('round-trips a tag whose own name contains a colon', () => {
-            build();
-            tagPill('CurbRamp', 'cycle lane: faded paint').click();
-            vi.advanceTimersByTime(300);
-
-            // Both colons are literal in the URL; only the first separates the label type from the tag.
-            expect(search()).toContain('tags=CurbRamp:cycle+lane:+faded+paint');
-            expect(search()).not.toContain('%3A');
-
-            window.history.replaceState({}, '', `/labelMap${search()}`);
-            build();
-            expect(Array.from(mapData.selectedTags.CurbRamp)).toEqual(['cycle lane: faded paint']);
-        });
-
-        it('round-trips a tag whose name contains a comma (#4783)', () => {
-            build();
-            tagPill('Obstacle', COMMA_TAG).click();
-            vi.advanceTimersByTime(300);
-
-            // One occurrence per tag, so the comma inside the name is never mistaken for a separator.
-            expect(new URLSearchParams(search()).getAll('tags')).toEqual([`Obstacle:${COMMA_TAG}`]);
-
-            window.history.replaceState({}, '', `/labelMap${search()}`);
-            build();
-            expect(Array.from(mapData.selectedTags.Obstacle)).toEqual([COMMA_TAG]);
-        });
-
-        it('writes one occurrence per tag rather than a comma-joined list', () => {
-            build();
-            tagPill('CurbRamp', 'narrow').click();
-            tagPill('Obstacle', 'shared').click();
-            vi.advanceTimersByTime(300);
-
-            const tags = new URLSearchParams(search()).getAll('tags');
-            expect(tags).toEqual(['CurbRamp:narrow', 'Obstacle:shared']);
-
-            window.history.replaceState({}, '', `/labelMap${search()}`);
-            build();
-            expect(Array.from(mapData.selectedTags.CurbRamp)).toEqual(['narrow']);
-            expect(Array.from(mapData.selectedTags.Obstacle)).toEqual(['shared']);
-        });
-
-        it('still restores a link written in the older comma-joined form', () => {
-            window.history.replaceState({}, '', '/labelMap?tags=CurbRamp:narrow,Obstacle:shared');
-            build();
-
-            expect(Array.from(mapData.selectedTags.CurbRamp)).toEqual(['narrow']);
-            expect(Array.from(mapData.selectedTags.Obstacle)).toEqual(['shared']);
-        });
-
-        it('rescues a comma-carrying tag from an older comma-joined link when it stands alone', () => {
-            // The whole value matches a rendered pill, so it is taken before any comma splitting happens.
-            window.history.replaceState({}, '', `/labelMap?tags=Obstacle:${COMMA_TAG}`);
-            build();
-
-            expect(Array.from(mapData.selectedTags.Obstacle)).toEqual([COMMA_TAG]);
-        });
-
-        it('round-trips a tag back onto its own type only', () => {
-            build();
-            tagPill('CurbRamp', 'shared').click();
-            vi.advanceTimersByTime(300);
-            expect(new URLSearchParams(search()).get('tags')).toBe('CurbRamp:shared');
-
-            window.history.replaceState({}, '', `/labelMap${search()}`);
-            build();
-
-            expect(Array.from(mapData.selectedTags.CurbRamp)).toEqual(['shared']);
-            expect(mapData.selectedTags.Obstacle.size).toBe(0);
-        });
-
-        it('round-trips a deselected section, which the default-omitting rule must not swallow', () => {
-            build();
-            document.querySelector('.filter-sidebar__deselect-all[data-section="severity"]').click();
-            document.querySelector('.filter-sidebar__deselect-all[data-section="label-type"]').click();
-            vi.advanceTimersByTime(300);
-
-            const params = new URLSearchParams(search());
-            expect(params.get('severities')).toBe('');
-            expect(params.get('labelTypes')).toBe('');
-
-            window.history.replaceState({}, '', `/labelMap${search()}`);
-            build();
-
-            expect(sevBtn(0).getAttribute('aria-pressed')).toBe('false');
-            expect(mapData.severities).toEqual({ 0: false, 1: false, 2: false, 3: false });
-            expect(checkbox('CurbRamp-checkbox').checked).toBe(false);
-            expect(checkbox('Obstacle-checkbox').checked).toBe(false);
-        });
-
-        it('coalesces a burst of clicks into one URL write', () => {
-            build();
-            const replaceState = vi.spyOn(window.history, 'replaceState');
-            sevBtn(0).click();
-            sevBtn(1).click();
-            checkbox('Obstacle-checkbox').click();
-            vi.advanceTimersByTime(300);
-
-            expect(replaceState).toHaveBeenCalledTimes(1);
-            expect(search()).toContain('severities=2,3');
-            expect(search()).toContain('labelTypes=CurbRamp');
-            replaceState.mockRestore();
-        });
-
-        it('preserves foreign params, keeping their commas readable', () => {
-            window.history.replaceState({}, '', '/labelMap?regions=1,2&labelId=42');
-            build();
-            sevBtn(0).click();
-            vi.advanceTimersByTime(300);
-
-            expect(search()).toContain('regions=1,2');
-            expect(search()).toContain('labelId=42');
-            expect(search()).toContain('severities=1,2,3');
-            expect(search()).not.toContain('%2C');
-        });
-
-        it('writes the viewport on a user-initiated move only', () => {
-            build();
-
-            mapHandlers.moveend({}); // Programmatic move: no originalEvent.
-            vi.advanceTimersByTime(300);
-            expect(search()).toBe('');
-
-            mapHandlers.moveend({ originalEvent: {} });
-            vi.advanceTimersByTime(300);
-            expect(search()).toBe('?lat=47.61235&lng=-122.33457&zoom=11.26');
-        });
+      expect(checkbox('Obstacle-checkbox').checked).toBe(true);
+      expect(tagPill('CurbRamp', 'shared').classList.contains('tag-pill--active')).toBe(true);
+      expect(tagPill('Obstacle', 'shared').classList.contains('tag-pill--active')).toBe(false);
+      expect(mapData.selectedTags.Obstacle.size).toBe(0);
     });
 
-    describe('composition with LabelDetail.syncUrlLabelId', () => {
-        it('the two URL writers compose rather than clobber (#4696)', () => {
-            build();
-            sevBtn(0).click();
-            vi.advanceTimersByTime(300);
-            expect(search()).toContain('severities=1,2,3');
+    it('drops unknown tokens and treats a fully-invalid param as absent', () => {
+      window.history.replaceState({}, '', '/labelMap?labelTypes=CurbRamp,Bogus&severities=9,foo&tags=Bogus:x');
+      build();
 
-            // Opening a label popup writes labelId without touching the filter params — the two writers have to
-            // agree byte for byte on how commas and colons are serialized or they rewrite each other's params.
-            tagPill('CurbRamp', 'narrow').click();
-            vi.advanceTimersByTime(300);
-            LabelDetail.syncUrlLabelId(123);
-            expect(search()).toContain('labelId=123');
-            expect(search()).toContain('severities=1,2,3');
-            expect(search()).toContain('tags=CurbRamp:narrow');
-            expect(search()).not.toContain('%2C');
-            expect(search()).not.toContain('%3A');
+      // "Bogus" is dropped but "CurbRamp" survives, so the param still narrows the types.
+      expect(checkbox('CurbRamp-checkbox').checked).toBe(true);
+      expect(checkbox('Obstacle-checkbox').checked).toBe(false);
 
-            // A further filter change keeps the open label's id in the URL.
-            checkbox('Obstacle-checkbox').click();
-            vi.advanceTimersByTime(300);
-            expect(search()).toContain('labelId=123');
-            expect(search()).toContain('labelTypes=CurbRamp');
+      // No severity token was valid, so the section stays at its default (everything on).
+      for (const severity of [0, 1, 2, 3]) {
+        expect(sevBtn(severity).getAttribute('aria-pressed')).toBe('true');
+      }
 
-            // Closing the popup removes only labelId.
-            LabelDetail.syncUrlLabelId(null);
-            expect(search()).not.toContain('labelId');
-            expect(search()).toContain('severities=1,2,3');
-            expect(search()).toContain('labelTypes=CurbRamp');
-        });
+      // A tag pair naming a type or tag the sidebar doesn't render activates nothing.
+      expect(document.querySelectorAll('.tag-pill--active')).toHaveLength(0);
     });
+
+    it('restores a deselected section as empty rather than falling back to its default', () => {
+      window.history.replaceState({}, '', '/labelMap?severities=&labelTypes=&validationOptions=');
+      build();
+
+      for (const severity of [0, 1, 2, 3]) {
+        expect(sevBtn(severity).getAttribute('aria-pressed')).toBe('false');
+      }
+      expect(mapData.severities).toEqual({ 0: false, 1: false, 2: false, 3: false });
+
+      for (const type of LABEL_TYPES) {
+        expect(checkbox(`${type}-checkbox`).checked).toBe(false);
+      }
+
+      for (const option of ['correct', 'incorrect', 'unsure', 'unvalidated']) {
+        expect(checkbox(option).checked).toBe(false);
+        expect(mapData[option]).toBe(false);
+      }
+    });
+  });
+
+  describe('writing filters to the URL', () => {
+    it('writes the changed section after the debounce, always stamping the viewport', () => {
+      build();
+      sevBtn(0).click();
+      expect(search()).toBe(''); // Nothing until the debounce elapses.
+
+      vi.advanceTimersByTime(300);
+
+      expect(search()).toBe('?severities=1,2,3&lat=47.61235&lng=-122.33457&zoom=11.26');
+    });
+
+    it('deletes a param when its section returns to the rendered default', () => {
+      build();
+      sevBtn(0).click();
+      vi.advanceTimersByTime(300);
+      expect(search()).toContain('severities=1,2,3');
+
+      sevBtn(0).click();
+      vi.advanceTimersByTime(300);
+
+      expect(search()).not.toContain('severities');
+      expect(search()).toContain('lat=');
+    });
+
+    it('serializes each filter section under its own param', () => {
+      build();
+      checkbox('Obstacle-checkbox').click();
+      checkbox('incorrect').click();
+      tagPill('CurbRamp', 'narrow').click();
+      checkbox('audited-street').click();
+      vi.advanceTimersByTime(300);
+
+      const params = new URLSearchParams(search());
+      expect(params.get('labelTypes')).toBe('CurbRamp');
+      expect(params.get('validationOptions')).toBe('correct,incorrect,unsure,unvalidated');
+      expect(params.get('tags')).toBe('CurbRamp:narrow');
+      expect(params.get('streets')).toBe('audited');
+    });
+
+    it('leaves the labelType:tag colon literal rather than percent-encoding it (#4782)', () => {
+      build();
+      tagPill('CurbRamp', 'narrow').click();
+      vi.advanceTimersByTime(300);
+
+      expect(search()).toContain('tags=CurbRamp:narrow');
+      expect(search()).not.toContain('%3A');
+    });
+
+    it('round-trips a tag whose own name contains a colon', () => {
+      build();
+      tagPill('CurbRamp', 'cycle lane: faded paint').click();
+      vi.advanceTimersByTime(300);
+
+      // Both colons are literal in the URL; only the first separates the label type from the tag.
+      expect(search()).toContain('tags=CurbRamp:cycle+lane:+faded+paint');
+      expect(search()).not.toContain('%3A');
+
+      window.history.replaceState({}, '', `/labelMap${search()}`);
+      build();
+      expect(Array.from(mapData.selectedTags.CurbRamp)).toEqual(['cycle lane: faded paint']);
+    });
+
+    it('round-trips a tag whose name contains a comma (#4783)', () => {
+      build();
+      tagPill('Obstacle', COMMA_TAG).click();
+      vi.advanceTimersByTime(300);
+
+      // One occurrence per tag, so the comma inside the name is never mistaken for a separator.
+      expect(new URLSearchParams(search()).getAll('tags')).toEqual([`Obstacle:${COMMA_TAG}`]);
+
+      window.history.replaceState({}, '', `/labelMap${search()}`);
+      build();
+      expect(Array.from(mapData.selectedTags.Obstacle)).toEqual([COMMA_TAG]);
+    });
+
+    it('writes one occurrence per tag rather than a comma-joined list', () => {
+      build();
+      tagPill('CurbRamp', 'narrow').click();
+      tagPill('Obstacle', 'shared').click();
+      vi.advanceTimersByTime(300);
+
+      const tags = new URLSearchParams(search()).getAll('tags');
+      expect(tags).toEqual(['CurbRamp:narrow', 'Obstacle:shared']);
+
+      window.history.replaceState({}, '', `/labelMap${search()}`);
+      build();
+      expect(Array.from(mapData.selectedTags.CurbRamp)).toEqual(['narrow']);
+      expect(Array.from(mapData.selectedTags.Obstacle)).toEqual(['shared']);
+    });
+
+    it('still restores a link written in the older comma-joined form', () => {
+      window.history.replaceState({}, '', '/labelMap?tags=CurbRamp:narrow,Obstacle:shared');
+      build();
+
+      expect(Array.from(mapData.selectedTags.CurbRamp)).toEqual(['narrow']);
+      expect(Array.from(mapData.selectedTags.Obstacle)).toEqual(['shared']);
+    });
+
+    it('rescues a comma-carrying tag from an older comma-joined link when it stands alone', () => {
+      // The whole value matches a rendered pill, so it is taken before any comma splitting happens.
+      window.history.replaceState({}, '', `/labelMap?tags=Obstacle:${COMMA_TAG}`);
+      build();
+
+      expect(Array.from(mapData.selectedTags.Obstacle)).toEqual([COMMA_TAG]);
+    });
+
+    it('round-trips a tag back onto its own type only', () => {
+      build();
+      tagPill('CurbRamp', 'shared').click();
+      vi.advanceTimersByTime(300);
+      expect(new URLSearchParams(search()).get('tags')).toBe('CurbRamp:shared');
+
+      window.history.replaceState({}, '', `/labelMap${search()}`);
+      build();
+
+      expect(Array.from(mapData.selectedTags.CurbRamp)).toEqual(['shared']);
+      expect(mapData.selectedTags.Obstacle.size).toBe(0);
+    });
+
+    it('round-trips a deselected section, which the default-omitting rule must not swallow', () => {
+      build();
+      document.querySelector('.filter-sidebar__deselect-all[data-section="severity"]').click();
+      document.querySelector('.filter-sidebar__deselect-all[data-section="label-type"]').click();
+      vi.advanceTimersByTime(300);
+
+      const params = new URLSearchParams(search());
+      expect(params.get('severities')).toBe('');
+      expect(params.get('labelTypes')).toBe('');
+
+      window.history.replaceState({}, '', `/labelMap${search()}`);
+      build();
+
+      expect(sevBtn(0).getAttribute('aria-pressed')).toBe('false');
+      expect(mapData.severities).toEqual({ 0: false, 1: false, 2: false, 3: false });
+      expect(checkbox('CurbRamp-checkbox').checked).toBe(false);
+      expect(checkbox('Obstacle-checkbox').checked).toBe(false);
+    });
+
+    it('coalesces a burst of clicks into one URL write', () => {
+      build();
+      const replaceState = vi.spyOn(window.history, 'replaceState');
+      sevBtn(0).click();
+      sevBtn(1).click();
+      checkbox('Obstacle-checkbox').click();
+      vi.advanceTimersByTime(300);
+
+      expect(replaceState).toHaveBeenCalledTimes(1);
+      expect(search()).toContain('severities=2,3');
+      expect(search()).toContain('labelTypes=CurbRamp');
+      replaceState.mockRestore();
+    });
+
+    it('preserves foreign params, keeping their commas readable', () => {
+      window.history.replaceState({}, '', '/labelMap?regions=1,2&labelId=42');
+      build();
+      sevBtn(0).click();
+      vi.advanceTimersByTime(300);
+
+      expect(search()).toContain('regions=1,2');
+      expect(search()).toContain('labelId=42');
+      expect(search()).toContain('severities=1,2,3');
+      expect(search()).not.toContain('%2C');
+    });
+
+    it('writes the viewport on a user-initiated move only', () => {
+      build();
+
+      mapHandlers.moveend({}); // Programmatic move: no originalEvent.
+      vi.advanceTimersByTime(300);
+      expect(search()).toBe('');
+
+      mapHandlers.moveend({ originalEvent: {} });
+      vi.advanceTimersByTime(300);
+      expect(search()).toBe('?lat=47.61235&lng=-122.33457&zoom=11.26');
+    });
+  });
+
+  describe('composition with LabelDetail.syncUrlLabelId', () => {
+    it('the two URL writers compose rather than clobber (#4696)', () => {
+      build();
+      sevBtn(0).click();
+      vi.advanceTimersByTime(300);
+      expect(search()).toContain('severities=1,2,3');
+
+      // Opening a label popup writes labelId without touching the filter params — the two writers have to
+      // agree byte for byte on how commas and colons are serialized or they rewrite each other's params.
+      tagPill('CurbRamp', 'narrow').click();
+      vi.advanceTimersByTime(300);
+      LabelDetail.syncUrlLabelId(123);
+      expect(search()).toContain('labelId=123');
+      expect(search()).toContain('severities=1,2,3');
+      expect(search()).toContain('tags=CurbRamp:narrow');
+      expect(search()).not.toContain('%2C');
+      expect(search()).not.toContain('%3A');
+
+      // A further filter change keeps the open label's id in the URL.
+      checkbox('Obstacle-checkbox').click();
+      vi.advanceTimersByTime(300);
+      expect(search()).toContain('labelId=123');
+      expect(search()).toContain('labelTypes=CurbRamp');
+
+      // Closing the popup removes only labelId.
+      LabelDetail.syncUrlLabelId(null);
+      expect(search()).not.toContain('labelId');
+      expect(search()).toContain('severities=1,2,3');
+      expect(search()).toContain('labelTypes=CurbRamp');
+    });
+  });
 });

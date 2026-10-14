@@ -12,33 +12,33 @@ import { loadModules } from './loader.js';
 import { fakeTracker } from './fakes.js';
 
 describe('Canvas.watchPanoExit', () => {
-    let Canvas;
-    let holder;
-    let pano;
-    let panoToast;
-    let panoToastClose;
-    let otherToastClose;
-    let ribbon;
-    let onExit;
-    let abort;
+  let Canvas;
+  let holder;
+  let pano;
+  let panoToast;
+  let panoToastClose;
+  let otherToastClose;
+  let ribbon;
+  let onExit;
+  let abort;
 
-    /** Fires what a browser fires when the pointer moves from `from` onto `to` (null = out of the window). */
-    function movePointer(from, to) {
-        from.dispatchEvent(new MouseEvent('mouseout', { bubbles: true, relatedTarget: to }));
-        // mouseleave fires, without bubbling, on each ancestor of `from` the pointer is no longer inside; mouseenter
-        // likewise on each ancestor of `to` it newly entered.
-        for (let el = from; el && el !== document; el = el.parentNode) {
-            if (to && el.contains(to)) break;
-            el.dispatchEvent(new MouseEvent('mouseleave', { relatedTarget: to }));
-        }
-        for (let el = to; el && el !== document; el = el.parentNode) {
-            if (el.contains(from)) break;
-            el.dispatchEvent(new MouseEvent('mouseenter', { relatedTarget: from }));
-        }
+  /** Fires what a browser fires when the pointer moves from `from` onto `to` (null = out of the window). */
+  function movePointer(from, to) {
+    from.dispatchEvent(new MouseEvent('mouseout', { bubbles: true, relatedTarget: to }));
+    // mouseleave fires, without bubbling, on each ancestor of `from` the pointer is no longer inside; mouseenter
+    // likewise on each ancestor of `to` it newly entered.
+    for (let el = from; el && el !== document; el = el.parentNode) {
+      if (to && el.contains(to)) break;
+      el.dispatchEvent(new MouseEvent('mouseleave', { relatedTarget: to }));
     }
+    for (let el = to; el && el !== document; el = el.parentNode) {
+      if (el.contains(from)) break;
+      el.dispatchEvent(new MouseEvent('mouseenter', { relatedTarget: from }));
+    }
+  }
 
-    beforeEach(async () => {
-        document.body.innerHTML = `
+  beforeEach(async () => {
+    document.body.innerHTML = `
             <div id="ribbon"></div>
             <div id="interaction-area-holder"><div id="pano"></div></div>
             <div class="ps-toast" id="pano-toast">
@@ -46,132 +46,132 @@ describe('Canvas.watchPanoExit', () => {
               <button class="ps-toast__close" id="pano-toast-close"></button>
             </div>
             <div class="ps-toast" id="other-toast"><button class="ps-toast__close" id="other-toast-close"></button></div>`;
-        holder = document.getElementById('interaction-area-holder');
-        pano = document.getElementById('pano');
-        ribbon = document.getElementById('ribbon');
-        panoToast = document.getElementById('pano-toast');
-        panoToastClose = document.getElementById('pano-toast-close');
-        otherToastClose = document.getElementById('other-toast-close');
-        onExit = vi.fn();
-        abort = new AbortController();
+    holder = document.getElementById('interaction-area-holder');
+    pano = document.getElementById('pano');
+    ribbon = document.getElementById('ribbon');
+    panoToast = document.getElementById('pano-toast');
+    panoToastClose = document.getElementById('pano-toast-close');
+    otherToastClose = document.getElementById('other-toast-close');
+    onExit = vi.fn();
+    abort = new AbortController();
 
-        ({ Canvas } = await loadModules('frontend/js/explore/canvas/Canvas.js'));
-        Canvas.watchPanoExit(holder, onExit, { signal: abort.signal });
-    });
+    ({ Canvas } = await loadModules('frontend/js/explore/canvas/Canvas.js'));
+    Canvas.watchPanoExit(holder, onExit, { signal: abort.signal });
+  });
 
-    afterEach(() => abort.abort());
+  afterEach(() => abort.abort());
 
-    test('leaving the pano for the page is an exit', () => {
-        movePointer(pano, ribbon);
-        expect(onExit).toHaveBeenCalledTimes(1);
-    });
+  test('leaving the pano for the page is an exit', () => {
+    movePointer(pano, ribbon);
+    expect(onExit).toHaveBeenCalledTimes(1);
+  });
 
-    test('leaving the window is an exit', () => {
-        movePointer(pano, null);
-        expect(onExit).toHaveBeenCalledTimes(1);
-    });
+  test('leaving the window is an exit', () => {
+    movePointer(pano, null);
+    expect(onExit).toHaveBeenCalledTimes(1);
+  });
 
-    test('reaching a toast\'s close X from the pano is not an exit', () => {
-        movePointer(pano, panoToastClose);
-        expect(onExit).not.toHaveBeenCalled();
-    });
+  test('reaching a toast\'s close X from the pano is not an exit', () => {
+    movePointer(pano, panoToastClose);
+    expect(onExit).not.toHaveBeenCalled();
+  });
 
-    test('moving within the toast is not an exit', () => {
-        movePointer(pano, panoToastClose);
-        movePointer(panoToastClose, panoToast);
-        expect(onExit).not.toHaveBeenCalled();
-    });
+  test('moving within the toast is not an exit', () => {
+    movePointer(pano, panoToastClose);
+    movePointer(panoToastClose, panoToast);
+    expect(onExit).not.toHaveBeenCalled();
+  });
 
-    test('going from the close X back onto the pano is not an exit', () => {
-        movePointer(pano, panoToastClose);
-        movePointer(panoToastClose, pano);
-        expect(onExit).not.toHaveBeenCalled();
-    });
+  test('going from the close X back onto the pano is not an exit', () => {
+    movePointer(pano, panoToastClose);
+    movePointer(panoToastClose, pano);
+    expect(onExit).not.toHaveBeenCalled();
+  });
 
-    test('leaving the close X for the page is an exit, once', () => {
-        movePointer(pano, panoToastClose);
-        movePointer(panoToastClose, ribbon);
-        expect(onExit).toHaveBeenCalledTimes(1);
-    });
+  test('leaving the close X for the page is an exit, once', () => {
+    movePointer(pano, panoToastClose);
+    movePointer(panoToastClose, ribbon);
+    expect(onExit).toHaveBeenCalledTimes(1);
+  });
 
-    test('returning to the pano forgets the toast visit, so a later off-pano toast is not an exit', () => {
-        movePointer(pano, panoToastClose);
-        movePointer(panoToastClose, pano);
-        movePointer(pano, ribbon);
-        movePointer(ribbon, otherToastClose);
-        movePointer(otherToastClose, ribbon);
-        expect(onExit).toHaveBeenCalledTimes(1);
-    });
+  test('returning to the pano forgets the toast visit, so a later off-pano toast is not an exit', () => {
+    movePointer(pano, panoToastClose);
+    movePointer(panoToastClose, pano);
+    movePointer(pano, ribbon);
+    movePointer(ribbon, otherToastClose);
+    movePointer(otherToastClose, ribbon);
+    expect(onExit).toHaveBeenCalledTimes(1);
+  });
 
-    test('crossing a toast that was never reached from the pano is not an exit', () => {
-        // The badge-unlock toast over the mission-complete modal, say: the pointer comes from the page, not the pano.
-        movePointer(ribbon, otherToastClose);
-        movePointer(otherToastClose, ribbon);
-        expect(onExit).not.toHaveBeenCalled();
-    });
+  test('crossing a toast that was never reached from the pano is not an exit', () => {
+    // The badge-unlock toast over the mission-complete modal, say: the pointer comes from the page, not the pano.
+    movePointer(ribbon, otherToastClose);
+    movePointer(otherToastClose, ribbon);
+    expect(onExit).not.toHaveBeenCalled();
+  });
 
-    test('a missing holder watches nothing rather than throwing', () => {
-        expect(() => Canvas.watchPanoExit(null, onExit)).not.toThrow();
-    });
+  test('a missing holder watches nothing rather than throwing', () => {
+    expect(() => Canvas.watchPanoExit(null, onExit)).not.toThrow();
+  });
 
-    test('mouseout from elements that are not toasts is ignored', () => {
-        movePointer(ribbon, document.body);
-        expect(onExit).not.toHaveBeenCalled();
-    });
+  test('mouseout from elements that are not toasts is ignored', () => {
+    movePointer(ribbon, document.body);
+    expect(onExit).not.toHaveBeenCalled();
+  });
 
-    test('aborting the signal removes the listeners', () => {
-        abort.abort();
-        movePointer(pano, ribbon);
-        expect(onExit).not.toHaveBeenCalled();
-    });
+  test('aborting the signal removes the listeners', () => {
+    abort.abort();
+    movePointer(pano, ribbon);
+    expect(onExit).not.toHaveBeenCalled();
+  });
 });
 
 describe('Toast data-anchor', () => {
-    let Toast;
+  let Toast;
 
-    beforeEach(async () => {
-        document.body.innerHTML = '<div id="pano"></div><div class="modal"></div>';
-        window.i18next = { t: (key) => key };
-        ({ Toast } = await loadModules('frontend/js/common/Toast.js'));
-    });
+  beforeEach(async () => {
+    document.body.innerHTML = '<div id="pano"></div><div class="modal"></div>';
+    window.i18next = { t: (key) => key };
+    ({ Toast } = await loadModules('frontend/js/common/Toast.js'));
+  });
 
-    // svl-canvas.css keys the click-through on data-anchor="pano", so a toast over anything else must not carry it.
-    test('names the reference it floats over', () => {
-        Toast.show({ message: 'm', reference: document.getElementById('pano') });
-        expect(document.querySelector('.ps-toast').dataset.anchor).toBe('pano');
-    });
+  // svl-canvas.css keys the click-through on data-anchor="pano", so a toast over anything else must not carry it.
+  test('names the reference it floats over', () => {
+    Toast.show({ message: 'm', reference: document.getElementById('pano') });
+    expect(document.querySelector('.ps-toast').dataset.anchor).toBe('pano');
+  });
 
-    test('is absent for a reference without an id, or no reference', () => {
-        Toast.show({ message: 'm', reference: document.querySelector('.modal') });
-        Toast.show({ message: 'm' });
-        document.querySelectorAll('.ps-toast').forEach((el) => expect(el.hasAttribute('data-anchor')).toBe(false));
-    });
+  test('is absent for a reference without an id, or no reference', () => {
+    Toast.show({ message: 'm', reference: document.querySelector('.modal') });
+    Toast.show({ message: 'm' });
+    document.querySelectorAll('.ps-toast').forEach((el) => expect(el.hasAttribute('data-anchor')).toBe(false));
+  });
 });
 
 describe('LabelModes.switchTo and the explore-labeling class', () => {
-    let labelModes;
+  let labelModes;
 
-    beforeEach(async () => {
-        document.body.className = '';
-        // Only the containers modeSwitch styles; the ribbon's own markup isn't under test.
-        document.body.innerHTML = `<div id="mode-switch-button-other"></div><div id="ribbon-menu-holder"></div>
+  beforeEach(async () => {
+    document.body.className = '';
+    // Only the containers modeSwitch styles; the ribbon's own markup isn't under test.
+    document.body.innerHTML = `<div id="mode-switch-button-other"></div><div id="ribbon-menu-holder"></div>
             <div id="pano-border-frame"></div><div id="ribbon-menu-other-subcategory-holder"></div>`;
-        const { LabelModes, RibbonMenu } = await loadModules('frontend/js/explore/menu/LabelModes.js',
-            'frontend/js/explore/menu/RibbonMenu.js');
-        labelModes = new LabelModes(fakeTracker());
-        new RibbonMenu(labelModes, { modeSwitchButtonClicked: vi.fn() }, fakeTracker());
-    });
+    const { LabelModes, RibbonMenu } = await loadModules('frontend/js/explore/menu/LabelModes.js',
+      'frontend/js/explore/menu/RibbonMenu.js');
+    labelModes = new LabelModes(fakeTracker());
+    new RibbonMenu(labelModes, { modeSwitchButtonClicked: vi.fn() }, fakeTracker());
+  });
 
-    test('arming a label type adds the class, and Walk removes it', () => {
-        labelModes.switchTo('CurbRamp');
-        expect(document.body.classList.contains('explore-labeling')).toBe(true);
-        labelModes.switchTo('Walk');
-        expect(document.body.classList.contains('explore-labeling')).toBe(false);
-    });
+  test('arming a label type adds the class, and Walk removes it', () => {
+    labelModes.switchTo('CurbRamp');
+    expect(document.body.classList.contains('explore-labeling')).toBe(true);
+    labelModes.switchTo('Walk');
+    expect(document.body.classList.contains('explore-labeling')).toBe(false);
+  });
 
-    test('a switch the modes refuse leaves the class alone', () => {
-        labelModes.switching.hold('test');
-        labelModes.switchTo('CurbRamp');
-        expect(document.body.classList.contains('explore-labeling')).toBe(false);
-    });
+  test('a switch the modes refuse leaves the class alone', () => {
+    labelModes.switching.hold('test');
+    labelModes.switchTo('CurbRamp');
+    expect(document.body.classList.contains('explore-labeling')).toBe(false);
+  });
 });

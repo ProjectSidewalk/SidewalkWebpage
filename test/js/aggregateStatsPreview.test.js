@@ -14,42 +14,42 @@ const CONTAINER_ID = 'aggregate-stats-preview';
 
 // Realistic captured-shape response: flat, snake_case keys per the v3 API naming convention (issue #3871).
 const GOOD_FIXTURE = {
-    km_explored: 1234,
-    km_explored_no_overlap: 1000,
-    total_labels: 50000,
-    total_validations: 30000,
-    total_users: 12345,
-    num_cities: 18,
-    num_countries: 9,
-    num_languages: 7,
-    by_label_type: {
-        CurbRamp: { labels: 5000, labels_validated: 3000, labels_validated_agree: 2000, labels_validated_disagree: 1000 },
-        Obstacle: { labels: 1200, labels_validated: 800, labels_validated_agree: 500, labels_validated_disagree: 300 }
-    }
+  km_explored: 1234,
+  km_explored_no_overlap: 1000,
+  total_labels: 50000,
+  total_validations: 30000,
+  total_users: 12345,
+  num_cities: 18,
+  num_countries: 9,
+  num_languages: 7,
+  by_label_type: {
+    CurbRamp: { labels: 5000, labels_validated: 3000, labels_validated_agree: 2000, labels_validated_disagree: 1000 },
+    Obstacle: { labels: 1200, labels_validated: 800, labels_validated_agree: 500, labels_validated_disagree: 300 }
+  }
 };
 
 // Wrong shape #1: headline totals nested under a sub-object instead of flat — directly analogous to the
 // overallStatsPreview.js bug (`validations.total_validations` moving under `validations.combined`).
 const WRONG_SHAPE_NESTED = {
-    km_explored: 1234,
-    total_labels: 50000,
-    // total_validations is NOT at the top level anymore — it moved under `validations`.
-    validations: { combined: { total_validations: 30000 } },
-    num_cities: 18,
-    num_countries: 9,
-    num_languages: 7,
-    by_label_type: {}
+  km_explored: 1234,
+  total_labels: 50000,
+  // total_validations is NOT at the top level anymore — it moved under `validations`.
+  validations: { combined: { total_validations: 30000 } },
+  num_cities: 18,
+  num_countries: 9,
+  num_languages: 7,
+  by_label_type: {}
 };
 
 // Wrong shape #2: camelCase keys (the pre-snake_case-migration shape).
 const WRONG_SHAPE_CAMEL = {
-    kmExplored: 1234,
-    totalLabels: 50000,
-    totalValidations: 30000,
-    numCities: 18,
-    numCountries: 9,
-    numLanguages: 7,
-    byLabelType: {}
+  kmExplored: 1234,
+  totalLabels: 50000,
+  totalValidations: 30000,
+  numCities: 18,
+  numCountries: 9,
+  numLanguages: 7,
+  byLabelType: {}
 };
 
 /**
@@ -57,136 +57,136 @@ const WRONG_SHAPE_CAMEL = {
  * @param {object} body - The object the stubbed fetch should resolve with as JSON.
  */
 function stubFetch(body) {
-    window.fetch = vi.fn(() =>
-        Promise.resolve({
-            ok: true,
-            status: 200,
-            json: () => Promise.resolve(body)
-        })
-    );
+  window.fetch = vi.fn(() =>
+    Promise.resolve({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve(body)
+    })
+  );
 }
 
 describe('AggregateStatsPreview', () => {
-    let AggregateStatsPreview;
+  let AggregateStatsPreview;
 
-    beforeEach(async () => {
-        document.body.innerHTML = `<div id="${CONTAINER_ID}"></div>`;
-        ({ AggregateStatsPreview } = await loadModules(MODULE_PATH));
-    });
+  beforeEach(async () => {
+    document.body.innerHTML = `<div id="${CONTAINER_ID}"></div>`;
+    ({ AggregateStatsPreview } = await loadModules(MODULE_PATH));
+  });
 
-    afterEach(() => {
-        delete window.fetch;
-    });
+  afterEach(() => {
+    delete window.fetch;
+  });
 
-    test('exposes setup and init', () => {
-        expect(AggregateStatsPreview).toBeDefined();
-        expect(typeof AggregateStatsPreview.setup).toBe('function');
-        expect(typeof AggregateStatsPreview.init).toBe('function');
-    });
+  test('exposes setup and init', () => {
+    expect(AggregateStatsPreview).toBeDefined();
+    expect(typeof AggregateStatsPreview.setup).toBe('function');
+    expect(typeof AggregateStatsPreview.init).toBe('function');
+  });
 
-    test('renders the correct (snake_case) fixture without error', async () => {
-        stubFetch(GOOD_FIXTURE);
+  test('renders the correct (snake_case) fixture without error', async () => {
+    stubFetch(GOOD_FIXTURE);
 
-        await expect(
-            AggregateStatsPreview.setup({}).init()
-        ).resolves.toBeUndefined(); // render() returns nothing on success
+    await expect(
+      AggregateStatsPreview.setup({}).init()
+    ).resolves.toBeUndefined(); // render() returns nothing on success
 
-        const container = document.getElementById(CONTAINER_ID);
-        expect(container.innerHTML).not.toContain('Failed to load');
+    const container = document.getElementById(CONTAINER_ID);
+    expect(container.innerHTML).not.toContain('Failed to load');
 
-        // Headline cards show the real numbers (toLocaleString formats 30000 -> "30,000").
-        expect(container.textContent).toContain('Cities');
-        expect(container.textContent).toContain('18');
-        expect(container.textContent).toContain('30,000'); // total_validations
-        expect(container.textContent).toContain('50,000'); // total_labels
-        expect(container.textContent).toContain('Total Users');
-        expect(container.textContent).toContain('12,345'); // total_users
+    // Headline cards show the real numbers (toLocaleString formats 30000 -> "30,000").
+    expect(container.textContent).toContain('Cities');
+    expect(container.textContent).toContain('18');
+    expect(container.textContent).toContain('30,000'); // total_validations
+    expect(container.textContent).toContain('50,000'); // total_labels
+    expect(container.textContent).toContain('Total Users');
+    expect(container.textContent).toContain('12,345'); // total_users
 
-        // Per-label-type table rendered both rows.
-        expect(container.querySelectorAll('tbody tr')).toHaveLength(2);
-        expect(container.textContent).toContain('CurbRamp');
-        expect(container.textContent).toContain('Obstacle');
-    });
+    // Per-label-type table rendered both rows.
+    expect(container.querySelectorAll('tbody tr')).toHaveLength(2);
+    expect(container.textContent).toContain('CurbRamp');
+    expect(container.textContent).toContain('Obstacle');
+  });
 
-    test('puts the label-type table inside the shared scroll region', async () => {
-        stubFetch(GOOD_FIXTURE);
+  test('puts the label-type table inside the shared scroll region', async () => {
+    stubFetch(GOOD_FIXTURE);
 
-        await AggregateStatsPreview.setup({}).init();
+    await AggregateStatsPreview.setup({}).init();
 
-        // The narrow-viewport scroller (#4883) is styled as `.ps-table-wrapper > table`, so the table has to be a
-        // direct child; the region needs a focus stop with a role and a name so its off-screen columns are reachable
-        // and announced without a pointer (WCAG 2.1.1).
-        const container = document.getElementById(CONTAINER_ID);
-        expect(container.querySelector('.ps-table-wrapper[role="region"] > table')).not.toBeNull();
-        const wrapper = container.querySelector('.ps-table-wrapper');
-        expect(wrapper.getAttribute('tabindex')).toBe('0');
-        expect(wrapper.getAttribute('aria-label')).toBe('Labels by label type');
-    });
+    // The narrow-viewport scroller (#4883) is styled as `.ps-table-wrapper > table`, so the table has to be a
+    // direct child; the region needs a focus stop with a role and a name so its off-screen columns are reachable
+    // and announced without a pointer (WCAG 2.1.1).
+    const container = document.getElementById(CONTAINER_ID);
+    expect(container.querySelector('.ps-table-wrapper[role="region"] > table')).not.toBeNull();
+    const wrapper = container.querySelector('.ps-table-wrapper');
+    expect(wrapper.getAttribute('tabindex')).toBe('0');
+    expect(wrapper.getAttribute('aria-label')).toBe('Labels by label type');
+  });
 
-    // A render-time throw has to land in the banner: init() is fire-and-forget at every call site, so an escaping
-    // rejection would leave "Loading..." on screen with nothing to explain it.
-    test('a render-time throw reaches the error banner instead of escaping init()', async () => {
-        stubFetch(GOOD_FIXTURE);
-        mockModule('frontend/js/api-docs/apiTableWrapper.js', () => ({
-            createApiTableWrapper: () => { throw new Error('render failed'); },
-        }));
-        ({ AggregateStatsPreview } = await loadModules(MODULE_PATH));
-        unmockModule('frontend/js/api-docs/apiTableWrapper.js');
+  // A render-time throw has to land in the banner: init() is fire-and-forget at every call site, so an escaping
+  // rejection would leave "Loading..." on screen with nothing to explain it.
+  test('a render-time throw reaches the error banner instead of escaping init()', async () => {
+    stubFetch(GOOD_FIXTURE);
+    mockModule('frontend/js/api-docs/apiTableWrapper.js', () => ({
+      createApiTableWrapper: () => { throw new Error('render failed'); },
+    }));
+    ({ AggregateStatsPreview } = await loadModules(MODULE_PATH));
+    unmockModule('frontend/js/api-docs/apiTableWrapper.js');
 
-        await expect(AggregateStatsPreview.setup({}).init()).resolves.toBeUndefined();
+    await expect(AggregateStatsPreview.setup({}).init()).resolves.toBeUndefined();
 
-        const container = document.getElementById(CONTAINER_ID);
-        expect(container.innerHTML).toContain('Failed to load');
-    });
+    const container = document.getElementById(CONTAINER_ID);
+    expect(container.innerHTML).toContain('Failed to load');
+  });
 
-    test('fetch is called against the expected endpoint, tagged utm_source=apiDocs', async () => {
-        stubFetch(GOOD_FIXTURE);
-        await AggregateStatsPreview.setup({}).init();
-        // The preview tags its request with utm_source=apiDocs so the API analytics can attribute doc-page traffic.
-        expect(window.fetch).toHaveBeenCalledWith('/v3/api/aggregateStats?utm_source=apiDocs');
-    });
+  test('fetch is called against the expected endpoint, tagged utm_source=apiDocs', async () => {
+    stubFetch(GOOD_FIXTURE);
+    await AggregateStatsPreview.setup({}).init();
+    // The preview tags its request with utm_source=apiDocs so the API analytics can attribute doc-page traffic.
+    expect(window.fetch).toHaveBeenCalledWith('/v3/api/aggregateStats?utm_source=apiDocs');
+  });
 
-    // The renderer is null-safe (every field goes through `fmt()`), so a missing top-level `total_validations` does
-    // NOT throw the way the original overall-stats bug did — instead the "Total Validations" card silently shows 0.
-    // This test documents/locks that degraded behavior: the promise resolves, there's no error banner, but the real
-    // value (30,000) is gone. If a future refactor removes the null-guard, the "renders without error" test above
-    // would catch the throw; this one catches the silent data loss.
-    test('nested-shape fixture renders 0 for the moved field instead of the real value', async () => {
-        stubFetch(WRONG_SHAPE_NESTED);
+  // The renderer is null-safe (every field goes through `fmt()`), so a missing top-level `total_validations` does
+  // NOT throw the way the original overall-stats bug did — instead the "Total Validations" card silently shows 0.
+  // This test documents/locks that degraded behavior: the promise resolves, there's no error banner, but the real
+  // value (30,000) is gone. If a future refactor removes the null-guard, the "renders without error" test above
+  // would catch the throw; this one catches the silent data loss.
+  test('nested-shape fixture renders 0 for the moved field instead of the real value', async () => {
+    stubFetch(WRONG_SHAPE_NESTED);
 
-        await expect(AggregateStatsPreview.setup({}).init()).resolves.toBeUndefined();
+    await expect(AggregateStatsPreview.setup({}).init()).resolves.toBeUndefined();
 
-        const container = document.getElementById(CONTAINER_ID);
-        expect(container.innerHTML).not.toContain('Failed to load');
-        // total_validations is no longer at the top level, so the card shows the fmt() fallback of 0...
-        expect(container.textContent).toContain('Total Validations');
-        // ...and crucially the real value is absent.
-        expect(container.textContent).not.toContain('30,000');
-    });
+    const container = document.getElementById(CONTAINER_ID);
+    expect(container.innerHTML).not.toContain('Failed to load');
+    // total_validations is no longer at the top level, so the card shows the fmt() fallback of 0...
+    expect(container.textContent).toContain('Total Validations');
+    // ...and crucially the real value is absent.
+    expect(container.textContent).not.toContain('30,000');
+  });
 
-    test('camelCase-shape fixture loses every headline value (all show 0)', async () => {
-        stubFetch(WRONG_SHAPE_CAMEL);
+  test('camelCase-shape fixture loses every headline value (all show 0)', async () => {
+    stubFetch(WRONG_SHAPE_CAMEL);
 
-        await expect(AggregateStatsPreview.setup({}).init()).resolves.toBeUndefined();
+    await expect(AggregateStatsPreview.setup({}).init()).resolves.toBeUndefined();
 
-        const container = document.getElementById(CONTAINER_ID);
-        expect(container.innerHTML).not.toContain('Failed to load');
-        // None of the real numbers survive the snake_case -> camelCase drift.
-        expect(container.textContent).not.toContain('30,000');
-        expect(container.textContent).not.toContain('50,000');
-        expect(container.textContent).not.toContain('18');
-    });
+    const container = document.getElementById(CONTAINER_ID);
+    expect(container.innerHTML).not.toContain('Failed to load');
+    // None of the real numbers survive the snake_case -> camelCase drift.
+    expect(container.textContent).not.toContain('30,000');
+    expect(container.textContent).not.toContain('50,000');
+    expect(container.textContent).not.toContain('18');
+  });
 
-    test('shows an error banner when fetch returns a non-OK status', async () => {
-        window.fetch = vi.fn(() =>
-            Promise.resolve({ ok: false, status: 500, json: () => Promise.resolve({}) })
-        );
+  test('shows an error banner when fetch returns a non-OK status', async () => {
+    window.fetch = vi.fn(() =>
+      Promise.resolve({ ok: false, status: 500, json: () => Promise.resolve({}) })
+    );
 
-        // init() settles even on failure: the banner is how the error reaches the user, and every call site is
-        // fire-and-forget, so a rejection here would surface as an unhandled rejection instead.
-        await expect(AggregateStatsPreview.setup({}).init()).resolves.toBeUndefined();
+    // init() settles even on failure: the banner is how the error reaches the user, and every call site is
+    // fire-and-forget, so a rejection here would surface as an unhandled rejection instead.
+    await expect(AggregateStatsPreview.setup({}).init()).resolves.toBeUndefined();
 
-        const container = document.getElementById(CONTAINER_ID);
-        expect(container.innerHTML).toContain('Failed to load');
-    });
+    const container = document.getElementById(CONTAINER_ID);
+    expect(container.innerHTML).toContain('Failed to load');
+  });
 });

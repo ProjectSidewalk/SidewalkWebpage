@@ -80,7 +80,8 @@ file, and this table says which doc to read first:
 - **Comments say *why*, never what.** ScalaDoc (`@return`) / JSDoc (`@returns`, typed `@param`) on every class and
   non-trivial method, including private ones. Never describe what code *used to* do; git history has that, and a
   hook flags it. Templates: `docs/style-guide.md` → "Comments".
-- 120-char lines (exceptions where a break would hurt readability), 2-space indent. SQL: no table aliases.
+- 120-char lines (exceptions where a break would hurt readability), 2-space indent (Python: 4, per PEP 8). SQL: no
+  table aliases.
   Distances are geodesic (`ST_Length(geom::geography)`, Slick `lengthGeodesic`, turf.js), never via a fixed SRID.
 - A server-to-server POST authenticated by the internal key (`ControllerUtils.internalKeyValid`) needs a `+ nocsrf`
   line above its `conf/routes` entry, or the CSRF filter 403s every real request while curl tests look fine.

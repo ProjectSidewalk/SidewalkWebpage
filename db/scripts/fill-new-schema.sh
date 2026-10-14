@@ -39,46 +39,46 @@ REGIONS_SHOWN=""
 REGIONS_HIDDEN=""
 
 if [[ -n "$REGIONS_SPEC" ]]; then
-    case $REGIONS_SPEC in
-        all)       INCLUDE_ALL_REGIONS="y" ;;
-        include:*) INCLUDE_ALL_REGIONS="n"; MODE="include"; REGIONS_SHOWN=${REGIONS_SPEC#include:} ;;
-        exclude:*) INCLUDE_ALL_REGIONS="n"; MODE="exclude"; REGIONS_HIDDEN=${REGIONS_SPEC#exclude:} ;;
-        *)
-            echo "Error: regions spec must be 'all', 'include:<space-separated ids>', or 'exclude:<ids>'" >&2
-            exit 1
-            ;;
-    esac
+  case $REGIONS_SPEC in
+    all)       INCLUDE_ALL_REGIONS="y" ;;
+    include:*) INCLUDE_ALL_REGIONS="n"; MODE="include"; REGIONS_SHOWN=${REGIONS_SPEC#include:} ;;
+    exclude:*) INCLUDE_ALL_REGIONS="n"; MODE="exclude"; REGIONS_HIDDEN=${REGIONS_SPEC#exclude:} ;;
+    *)
+      echo "Error: regions spec must be 'all', 'include:<space-separated ids>', or 'exclude:<ids>'" >&2
+      exit 1
+      ;;
+  esac
 else
-    INCLUDE_ALL_REGIONS=$(prompt_with_default "Including all regions?" "y" "y|n")
-    if [ "$INCLUDE_ALL_REGIONS" = "n" ]; then
-        MODE=$(prompt_with_default "Is it easier to list regions to include or exclude?" "include" "include|exclude")
-        if [ "$MODE" = "include" ]; then
-            REGIONS_SHOWN=$(prompt_with_default "Enter IDs to include (space-separated)" "")
-        else
-            REGIONS_HIDDEN=$(prompt_with_default "Enter IDs to exclude (space-separated)" "")
-        fi
+  INCLUDE_ALL_REGIONS=$(prompt_with_default "Including all regions?" "y" "y|n")
+  if [ "$INCLUDE_ALL_REGIONS" = "n" ]; then
+    MODE=$(prompt_with_default "Is it easier to list regions to include or exclude?" "include" "include|exclude")
+    if [ "$MODE" = "include" ]; then
+      REGIONS_SHOWN=$(prompt_with_default "Enter IDs to include (space-separated)" "")
+    else
+      REGIONS_HIDDEN=$(prompt_with_default "Enter IDs to exclude (space-separated)" "")
     fi
+  fi
 fi
 
 # Everything interpolated into SQL below is an integer or a space-separated list of them.
 if [[ ! "$TUTORIAL_REGION_ID" =~ ^[0-9]+$ ]]; then
-    echo "Error: the tutorial region id must be an integer (got '$TUTORIAL_REGION_ID')." >&2
-    exit 1
+  echo "Error: the tutorial region id must be an integer (got '$TUTORIAL_REGION_ID')." >&2
+  exit 1
 fi
 if [[ "$MODE" == "include" && ! "$REGIONS_SHOWN" =~ ^[0-9]+( [0-9]+)*$ ]] ||
-   [[ "$MODE" == "exclude" && ! "$REGIONS_HIDDEN" =~ ^[0-9]+( [0-9]+)*$ ]]; then
-    echo "Error: region ids must be a non-empty, space-separated list of integers (e.g. '1 2 3')." >&2
-    exit 1
+  [[ "$MODE" == "exclude" && ! "$REGIONS_HIDDEN" =~ ^[0-9]+( [0-9]+)*$ ]]; then
+  echo "Error: region ids must be a non-empty, space-separated list of integers (e.g. '1 2 3')." >&2
+  exit 1
 fi
 
 # The tutorial region must end up open (space-padded literal containment, not a regex).
 if [ "$MODE" = "include" ] && [[ " $REGIONS_SHOWN " != *" $TUTORIAL_REGION_ID "* ]]; then
-    echo "Error: Tutorial region $TUTORIAL_REGION_ID must be in the include list" >&2
-    exit 1
+  echo "Error: Tutorial region $TUTORIAL_REGION_ID must be in the include list" >&2
+  exit 1
 fi
 if [ "$MODE" = "exclude" ] && [[ " $REGIONS_HIDDEN " == *" $TUTORIAL_REGION_ID "* ]]; then
-    echo "Error: Tutorial region $TUTORIAL_REGION_ID cannot be in the exclude list" >&2
-    exit 1
+  echo "Error: Tutorial region $TUTORIAL_REGION_ID cannot be in the exclude list" >&2
+  exit 1
 fi
 
 # Print configs to the user.
@@ -86,32 +86,32 @@ echo -e "\nConfiguration Summary:"
 echo "schema name: $SCHEMA_NAME"
 echo "tutorial region id: $TUTORIAL_REGION_ID"
 if [ "$INCLUDE_ALL_REGIONS" = "y" ]; then
-    echo "regions to include: all"
+  echo "regions to include: all"
 elif [ "$MODE" = "include" ]; then
-    echo "regions to include: $REGIONS_SHOWN"
+  echo "regions to include: $REGIONS_SHOWN"
 else
-    echo "regions to exclude: $REGIONS_HIDDEN"
+  echo "regions to exclude: $REGIONS_HIDDEN"
 fi
 
 # Check for confirmation before making changes to the db — skipped when everything was supplied as args (a scripted
 # caller already chose).
 if [[ $# -lt 3 ]]; then
-    PROCEED=$(prompt_with_default "Proceed?" "y" "y|n")
-    if [ "$PROCEED" = "n" ]; then
-        exit 1
-    fi
+  PROCEED=$(prompt_with_default "Proceed?" "y" "y|n")
+  if [ "$PROCEED" = "n" ]; then
+    exit 1
+  fi
 fi
 
 # Create some pieces of the queries that change based on user input.
 if [ "$INCLUDE_ALL_REGIONS" = "y" ]; then
-    REGION_DELETED_Q="FALSE"
-    OPEN_STATUS_Q="fully"
+  REGION_DELETED_Q="FALSE"
+  OPEN_STATUS_Q="fully"
 elif [ "$MODE" = "include" ]; then
-    REGION_DELETED_Q="region_id NOT IN (${REGIONS_SHOWN// /,})"
-    OPEN_STATUS_Q="partially"
+  REGION_DELETED_Q="region_id NOT IN (${REGIONS_SHOWN// /,})"
+  OPEN_STATUS_Q="partially"
 else
-    REGION_DELETED_Q="region_id IN (${REGIONS_HIDDEN// /,})"
-    OPEN_STATUS_Q="partially"
+  REGION_DELETED_Q="region_id IN (${REGIONS_HIDDEN// /,})"
+  OPEN_STATUS_Q="partially"
 fi
 
 # Run the queries.

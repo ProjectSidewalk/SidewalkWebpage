@@ -20,7 +20,8 @@ These apply across every language in the repo.
 
 - **Line length: 120 characters max**, with sensible exceptions where a break would hurt readability (e.g. long
   URLs, string literals). For multi-line comments, treat 120 as a target, not a hard cap.
-- **Indent with spaces, never tabs.** Scala, JS, and CSS all use 2-space indent.
+- **Indent with spaces, never tabs.** Scala, JS, CSS, HTML, shell and SQL use 2-space indent; Python uses 4, per
+  PEP 8. Old evolutions are 4-space and stay that way, since Play hashes each applied one.
 - **End every file with a single newline.** A missing final newline shows up as a red marker on the GitHub diff.
 - **Comments explain _why_, not _what_** — well-named identifiers cover the *what*. Start a comment with a capital
   letter and end it with a period (full rules and the doc-header templates in [Comments](#comments) below):

@@ -18,89 +18,89 @@ const mounted = () => document.querySelectorAll('.ps-toast');
 const mountedMessages = () => [...mounted()].map((el) => el.querySelector('.ps-toast__message').textContent);
 
 describe('Toast queueing', () => {
-    let Toast;
-    let anchorA;
-    let anchorB;
+  let Toast;
+  let anchorA;
+  let anchorB;
 
-    beforeEach(async () => {
-        vi.useFakeTimers();
-        document.body.innerHTML = '';
-        window.i18next = { t: (key) => key };
-        // A fresh class per test: the live/waiting maps are static, so a shared one would leak between cases.
-        ({ Toast } = await loadModules('frontend/js/common/Toast.js'));
-        anchorA = document.createElement('div');
-        anchorB = document.createElement('div');
-        document.body.append(anchorA, anchorB);
-    });
+  beforeEach(async () => {
+    vi.useFakeTimers();
+    document.body.innerHTML = '';
+    window.i18next = { t: (key) => key };
+    // A fresh class per test: the live/waiting maps are static, so a shared one would leak between cases.
+    ({ Toast } = await loadModules('frontend/js/common/Toast.js'));
+    anchorA = document.createElement('div');
+    anchorB = document.createElement('div');
+    document.body.append(anchorA, anchorB);
+  });
 
-    /** Advances past a toast of `duration` and the fade that follows it. */
-    const elapse = (duration) => vi.advanceTimersByTime(duration + Toast.FADE_MS);
+  /** Advances past a toast of `duration` and the fade that follows it. */
+  const elapse = (duration) => vi.advanceTimersByTime(duration + Toast.FADE_MS);
 
-    it('shows the first toast and holds the second back', () => {
-        Toast.show({ message: 'first', reference: anchorA, duration: 1000 });
-        Toast.show({ message: 'second', reference: anchorA, duration: 1000 });
+  it('shows the first toast and holds the second back', () => {
+    Toast.show({ message: 'first', reference: anchorA, duration: 1000 });
+    Toast.show({ message: 'second', reference: anchorA, duration: 1000 });
 
-        expect(mountedMessages()).toEqual(['first']);
-    });
+    expect(mountedMessages()).toEqual(['first']);
+  });
 
-    it('shows the queued toast once its predecessor has faded, never during the fade', () => {
-        Toast.show({ message: 'first', reference: anchorA, duration: 1000 });
-        Toast.show({ message: 'second', reference: anchorA, duration: 1000 });
+  it('shows the queued toast once its predecessor has faded, never during the fade', () => {
+    Toast.show({ message: 'first', reference: anchorA, duration: 1000 });
+    Toast.show({ message: 'second', reference: anchorA, duration: 1000 });
 
-        // The dismiss timer has fired but the fade is still running: the spot is not free yet.
-        vi.advanceTimersByTime(1000);
-        expect(mountedMessages()).toEqual(['first']);
+    // The dismiss timer has fired but the fade is still running: the spot is not free yet.
+    vi.advanceTimersByTime(1000);
+    expect(mountedMessages()).toEqual(['first']);
 
-        vi.advanceTimersByTime(Toast.FADE_MS);
-        expect(mountedMessages()).toEqual(['second']);
-    });
+    vi.advanceTimersByTime(Toast.FADE_MS);
+    expect(mountedMessages()).toEqual(['second']);
+  });
 
-    it('never has two live status regions on one anchor', () => {
-        Toast.show({ message: 'first', reference: anchorA, duration: 1000 });
-        Toast.show({ message: 'second', reference: anchorA, duration: 1000 });
-        Toast.show({ message: 'third', reference: anchorA, duration: 1000 });
+  it('never has two live status regions on one anchor', () => {
+    Toast.show({ message: 'first', reference: anchorA, duration: 1000 });
+    Toast.show({ message: 'second', reference: anchorA, duration: 1000 });
+    Toast.show({ message: 'third', reference: anchorA, duration: 1000 });
 
-        for (const expected of ['first', 'second', 'third']) {
-            expect(document.querySelectorAll('[role="status"]')).toHaveLength(1);
-            expect(mountedMessages()).toEqual([expected]);
-            elapse(1000);
-        }
-        expect(mounted()).toHaveLength(0);
-    });
+    for (const expected of ['first', 'second', 'third']) {
+      expect(document.querySelectorAll('[role="status"]')).toHaveLength(1);
+      expect(mountedMessages()).toEqual([expected]);
+      elapse(1000);
+    }
+    expect(mounted()).toHaveLength(0);
+  });
 
-    it('does not serialize toasts on different anchors', () => {
-        Toast.show({ message: 'on A', reference: anchorA, duration: 1000 });
-        Toast.show({ message: 'on B', reference: anchorB, duration: 1000 });
+  it('does not serialize toasts on different anchors', () => {
+    Toast.show({ message: 'on A', reference: anchorA, duration: 1000 });
+    Toast.show({ message: 'on B', reference: anchorB, duration: 1000 });
 
-        expect(mountedMessages()).toEqual(['on A', 'on B']);
-    });
+    expect(mountedMessages()).toEqual(['on A', 'on B']);
+  });
 
-    it('drops a queued toast that is dismissed before its turn, and promotes the one behind it', () => {
-        Toast.show({ message: 'first', reference: anchorA, duration: 1000 });
-        const cancelled = Toast.show({ message: 'cancelled', reference: anchorA, duration: 1000 });
-        Toast.show({ message: 'third', reference: anchorA, duration: 1000 });
+  it('drops a queued toast that is dismissed before its turn, and promotes the one behind it', () => {
+    Toast.show({ message: 'first', reference: anchorA, duration: 1000 });
+    const cancelled = Toast.show({ message: 'cancelled', reference: anchorA, duration: 1000 });
+    Toast.show({ message: 'third', reference: anchorA, duration: 1000 });
 
-        cancelled.dismiss();
-        elapse(1000);
+    cancelled.dismiss();
+    elapse(1000);
 
-        expect(mountedMessages()).toEqual(['third']);
-    });
+    expect(mountedMessages()).toEqual(['third']);
+  });
 
-    it('releases the anchor when the only toast is dismissed early', () => {
-        const first = Toast.show({ message: 'first', reference: anchorA, duration: 0 });
-        first.dismiss();
-        vi.advanceTimersByTime(Toast.FADE_MS);
+  it('releases the anchor when the only toast is dismissed early', () => {
+    const first = Toast.show({ message: 'first', reference: anchorA, duration: 0 });
+    first.dismiss();
+    vi.advanceTimersByTime(Toast.FADE_MS);
 
-        Toast.show({ message: 'later', reference: anchorA, duration: 0 });
-        expect(mountedMessages()).toEqual(['later']);
-    });
+    Toast.show({ message: 'later', reference: anchorA, duration: 0 });
+    expect(mountedMessages()).toEqual(['later']);
+  });
 
-    it('queues anchorless toasts against each other, since they share one position', () => {
-        Toast.show({ message: 'first', duration: 1000 });
-        Toast.show({ message: 'second', duration: 1000 });
+  it('queues anchorless toasts against each other, since they share one position', () => {
+    Toast.show({ message: 'first', duration: 1000 });
+    Toast.show({ message: 'second', duration: 1000 });
 
-        expect(mountedMessages()).toEqual(['first']);
-        elapse(1000);
-        expect(mountedMessages()).toEqual(['second']);
-    });
+    expect(mountedMessages()).toEqual(['first']);
+    elapse(1000);
+    expect(mountedMessages()).toEqual(['second']);
+  });
 });

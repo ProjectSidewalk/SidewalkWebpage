@@ -34,12 +34,12 @@ mockModule('frontend/js/common/Toast.js', () => ({ Toast: toast }));
  * @returns {HTMLElement} The card root, mounted in the document.
  */
 function buildCard({ paging = true, asDialog = false } = {}) {
-    const tag = asDialog ? 'dialog' : 'div';
-    const arrows = paging
-        ? `<button type="button" class="label-detail__paging label-detail__paging--prev" aria-label="Previous label"></button>
+  const tag = asDialog ? 'dialog' : 'div';
+  const arrows = paging
+    ? `<button type="button" class="label-detail__paging label-detail__paging--prev" aria-label="Previous label"></button>
            <button type="button" class="label-detail__paging label-detail__paging--next" aria-label="Next label"></button>`
-        : '';
-    document.body.innerHTML = `
+    : '';
+  document.body.innerHTML = `
       <button type="button" id="outside">Somewhere else on the page</button>
       <${tag} id="card" class="label-detail">
         <header class="label-detail__header">
@@ -162,15 +162,15 @@ function buildCard({ paging = true, asDialog = false } = {}) {
           <a class="label-detail__labelmap-link" hidden></a>
         </div>
       </${tag}>`;
-    return document.getElementById('card');
+  return document.getElementById('card');
 }
 
 /** A deferred promise, so a test decides when this label's imagery resolves. */
 function deferred() {
-    let resolve;
-    let reject;
-    const promise = new Promise((res, rej) => { resolve = res; reject = rej; });
-    return { promise, resolve, reject };
+  let resolve;
+  let reject;
+  const promise = new Promise((res, rej) => { resolve = res; reject = rej; });
+  return { promise, resolve, reject };
 }
 
 /**
@@ -180,338 +180,338 @@ function deferred() {
  * @returns {Object}
  */
 function meta(overrides = {}) {
-    return {
-        label_id: 42,
-        label_type: 'Obstacle',
-        severity: 2,
-        tags: [],
-        can_edit: false,
-        from_current_user: false,
-        description: '',
-        pano_id: 'pano-1',
-        lat: 47.61,
-        lng: -122.33,
-        camera_lat: 47.615,
-        camera_lng: -122.335,
-        heading: 250.5,
-        pitch: -12,
-        zoom: 2,
-        canvas_x: 100,
-        canvas_y: 200,
-        street_edge_id: 7,
-        region_id: 3,
-        timestamp: '2026-08-01T12:00:00Z',
-        image_capture_date: '2025-06-01',
-        num_agree: 0,
-        num_disagree: 0,
-        num_unsure: 0,
-        user_validation: null,
-        ai_validation: null,
-        comments: [],
-        ...overrides,
-    };
+  return {
+    label_id: 42,
+    label_type: 'Obstacle',
+    severity: 2,
+    tags: [],
+    can_edit: false,
+    from_current_user: false,
+    description: '',
+    pano_id: 'pano-1',
+    lat: 47.61,
+    lng: -122.33,
+    camera_lat: 47.615,
+    camera_lng: -122.335,
+    heading: 250.5,
+    pitch: -12,
+    zoom: 2,
+    canvas_x: 100,
+    canvas_y: 200,
+    street_edge_id: 7,
+    region_id: 3,
+    timestamp: '2026-08-01T12:00:00Z',
+    image_capture_date: '2025-06-01',
+    num_agree: 0,
+    num_disagree: 0,
+    num_unsure: 0,
+    user_validation: null,
+    ai_validation: null,
+    comments: [],
+    ...overrides,
+  };
 }
 
 describe('the label card\'s open event (#5139)', () => {
-    let card;
-    let setPano;
-    /** Every POST the card makes: validations and comments go through util.lazyIdentityFetch, not window.fetch. */
-    let post;
+  let card;
+  let setPano;
+  /** Every POST the card makes: validations and comments go through util.lazyIdentityFetch, not window.fetch. */
+  let post;
 
-    /** Drains the microtask queue that the card's promise chains spread work across. */
-    const flush = () => new Promise((resolve) => { setTimeout(resolve, 0); });
+  /** Drains the microtask queue that the card's promise chains spread work across. */
+  const flush = () => new Promise((resolve) => { setTimeout(resolve, 0); });
 
-    const q = (sel) => card.querySelector(sel);
+  const q = (sel) => card.querySelector(sel);
 
-    /** The open events logged so far, oldest first. */
-    const showEvents = () => window.logWebpageActivity.mock.calls
-        .map(([activity]) => activity)
-        .filter((activity) => activity.startsWith('LabelDetail_Show_'));
+  /** The open events logged so far, oldest first. */
+  const showEvents = () => window.logWebpageActivity.mock.calls
+    .map(([activity]) => activity)
+    .filter((activity) => activity.startsWith('LabelDetail_Show_'));
 
-    /** Answers `/label/id/:id` with that label's metadata. */
-    const labelFetch = (url) => {
-        const id = Number(String(url).split('/').pop());
-        return Promise.resolve({ ok: true, status: 200, json: async () => meta({ label_id: id }) });
+  /** Answers `/label/id/:id` with that label's metadata. */
+  const labelFetch = (url) => {
+    const id = Number(String(url).split('/').pop());
+    return Promise.resolve({ ok: true, status: 200, json: async () => meta({ label_id: id }) });
+  };
+
+  /** Shows a label from a meta object and settles its imagery, which is what unlocks the card's controls. */
+  async function showMeta(overrides) {
+    const payload = meta(overrides);
+    await card.detail.showLabel(payload, 'TestSource');
+    setPano.resolve(true);
+    await setPano.promise;
+    await flush();
+    return payload;
+  }
+
+  beforeEach(async () => {
+    post = vi.fn(async () => ({ ok: true, status: 200, json: async () => ({}) }));
+
+    window.i18next = { t: (key) => key };
+    window.logWebpageActivity = vi.fn();
+    window.alert = vi.fn();
+    useUtil({ lazyIdentityFetch: post });
+
+    // Every label's imagery resolves at once unless a test swaps the deferred out first.
+    setPano = deferred();
+    panoManager = {
+      clearLabels: vi.fn(),
+      setLabel: vi.fn(),
+      setLabelsHidden: vi.fn(),
+      setPano: vi.fn(() => setPano.promise),
+      warmUp: vi.fn(),
+      activeViewerName: 'Default',
+      panoViewer: {
+        currPanoData: null,
+        getPanoId: () => 'pano-1',
+        getPosition: () => ({ lat: 47.61, lng: -122.33 }),
+        getViewerType: () => 'gsv',
+      },
+      getPov: () => ({ heading: 250.5, pitch: -12, zoom: 2 }),
+      getOriginalPosition: () => ({ heading: 250.5, pitch: -12 }),
+      // Measured when a vote is submitted; jsdom lays nothing out.
+      svHolder: Object.defineProperties(document.createElement('div'), {
+        clientWidth: { value: 720 }, clientHeight: { value: 480 },
+      }),
+      label: { labelId: 42, label_type: 'Obstacle' },
     };
 
-    /** Shows a label from a meta object and settles its imagery, which is what unlocks the card's controls. */
-    async function showMeta(overrides) {
-        const payload = meta(overrides);
-        await card.detail.showLabel(payload, 'TestSource');
-        setPano.resolve(true);
-        await setPano.promise;
-        await flush();
-        return payload;
+    window.fetch = vi.fn(labelFetch);
+
+    const { LabelDetail } = await loadModules('frontend/js/common/label-detail/LabelDetail.js');
+
+    card = buildCard();
+    card.detail = await LabelDetail.create(card, {
+      admin: false,
+      viewerType: 'Default',
+      currUsername: 'tester',
+      panoOverlaySource: 'test',
+    });
+  });
+
+  test('a label shown from a meta object logs one open, and nothing else is logged', async () => {
+    // The Gallery's expanded view hands the card the data it already holds, so no fetch is involved.
+    await showMeta();
+
+    expect(window.logWebpageActivity.mock.calls).toEqual([['LabelDetail_Show_labelId=42_source=TestSource']]);
+    expect(window.fetch).not.toHaveBeenCalledWith('/label/id/42', expect.anything());
+  });
+
+  test('a label shown by id logs its open before the fetch resolves', async () => {
+    let resolveFetch;
+    window.fetch.mockImplementationOnce(() => new Promise((res) => { resolveFetch = res; }));
+
+    const shown = card.detail.showLabel(7, 'LabelMap');
+
+    expect(showEvents()).toEqual(['LabelDetail_Show_labelId=7_source=LabelMap']);
+    resolveFetch({ ok: true, status: 200, json: async () => meta({ label_id: 7 }) });
+    await shown;
+    expect(showEvents()).toHaveLength(1);
+  });
+
+  test('paging from one label to the next logs an open for each, in order', async () => {
+    await card.detail.showLabel(1, 'LabelMap');
+    await card.detail.showLabel(2, 'LabelMap');
+
+    expect(showEvents()).toEqual([
+      'LabelDetail_Show_labelId=1_source=LabelMap',
+      'LabelDetail_Show_labelId=2_source=LabelMap',
+    ]);
+  });
+
+  test('showing the same label again counts again', async () => {
+    // A close and reopen is a second look, so the event is not deduplicated by label.
+    await card.detail.showLabel(5, 'AdminLabelMap');
+    await card.detail.showLabel(5, 'AdminLabelMap');
+
+    expect(showEvents()).toEqual([
+      'LabelDetail_Show_labelId=5_source=AdminLabelMap',
+      'LabelDetail_Show_labelId=5_source=AdminLabelMap',
+    ]);
+  });
+
+  test('an open whose label fails to load is still counted', async () => {
+    window.fetch.mockImplementationOnce(() => Promise.resolve({ ok: false, status: 404, json: async () => ({}) }));
+
+    await expect(card.detail.showLabel(999, 'SharedLabel')).rejects.toThrow('HTTP error 404');
+
+    expect(window.alert).toHaveBeenCalledTimes(1);
+    expect(showEvents()).toEqual(['LabelDetail_Show_labelId=999_source=SharedLabel']);
+  });
+
+  test('the redraw after a vote the server refused with a 409 is not another open', async () => {
+    await showMeta();
+    post.mockImplementationOnce(async () => ({ ok: false, status: 409, json: async () => ({}) }));
+
+    q('.label-detail__pano-overlay-button--agree').click();
+    await flush();
+    await flush();
+
+    // The redraw did happen (it refetched the label and said why), it just isn't counted.
+    expect(window.fetch).toHaveBeenCalledWith('/label/id/42', expect.anything());
+    expect(toast.show).toHaveBeenCalled();
+    expect(showEvents()).toEqual(['LabelDetail_Show_labelId=42_source=TestSource']);
+  });
+
+  test('the redraw after a comment the server refused with a 409 is not another open', async () => {
+    await showMeta();
+    post.mockImplementationOnce(async () => ({ ok: false, status: 409, json: async () => ({}) }));
+
+    q('.label-detail__comment-input').value = 'Not an obstacle';
+    q('.label-detail__comment-submit').click();
+    await flush();
+    await flush();
+
+    expect(window.fetch).toHaveBeenCalledWith('/label/id/42', expect.anything());
+    expect(showEvents()).toEqual(['LabelDetail_Show_labelId=42_source=TestSource']);
+  });
+
+  test('the 409 redraw still runs through a host\'s showLabel wrapper, and the next open is counted', async () => {
+    // LabelPopup replaces showLabel on the instance with a wrapper whose onMetadata tells LabelMap the label's
+    // new type, so the redraw must reach that wrapper rather than the card's own fetch-and-render.
+    const inner = card.detail.showLabel;
+    const wrapped = vi.fn((id, source) => inner(id, source));
+    Object.assign(card.detail, { showLabel: wrapped });
+    await card.detail.showLabel(42, 'LabelMap');
+    setPano.resolve(true);
+    await flush();
+    post.mockImplementationOnce(async () => ({ ok: false, status: 409, json: async () => ({}) }));
+
+    q('.label-detail__pano-overlay-button--agree').click();
+    await flush();
+    await flush();
+    await card.detail.showLabel(43, 'LabelMap');
+
+    expect(wrapped).toHaveBeenCalledTimes(3);
+    // Re-shown with the source the label was opened with, not the overlay button's ('test'): a LabelPopup host
+    // keeps whatever source the wrapper last saw for its paging arrows, and the card uses it for edits.
+    expect(wrapped).toHaveBeenNthCalledWith(2, 42, 'LabelMap');
+    expect(showEvents()).toEqual([
+      'LabelDetail_Show_labelId=42_source=LabelMap',
+      'LabelDetail_Show_labelId=43_source=LabelMap',
+    ]);
+  });
+
+  test('a wrapper that throws during the 409 redraw does not swallow the next open', async () => {
+    // The suppression flag is cleared in a finally, so a wrapper that fails before reaching the card's own
+    // showLabel() can't leave it raised for whatever the user opens next.
+    const inner = card.detail.showLabel;
+    let failNext = false;
+    const wrapped = vi.fn((id, source) => {
+      if (failNext) {
+        failNext = false;
+        throw new Error('host wrapper failed');
+      }
+      return inner(id, source);
+    });
+    Object.assign(card.detail, { showLabel: wrapped });
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    await card.detail.showLabel(42, 'LabelMap');
+    setPano.resolve(true);
+    await flush();
+    post.mockImplementationOnce(async () => ({ ok: false, status: 409, json: async () => ({}) }));
+
+    failNext = true;
+    q('.label-detail__pano-overlay-button--agree').click();
+    await flush();
+    await flush();
+    await card.detail.showLabel(43, 'LabelMap');
+
+    expect(wrapped).toHaveBeenCalledTimes(3);
+    expect(showEvents()).toEqual([
+      'LabelDetail_Show_labelId=42_source=LabelMap',
+      'LabelDetail_Show_labelId=43_source=LabelMap',
+    ]);
+    console.error.mockRestore();
+  });
+
+  describe('through the real LabelPopup', () => {
+    // The flag design depends on LabelPopup's wrapper reaching the card's own showLabel() before its first
+    // await, and the deep link and paging arrows are opens that only LabelPopup makes, so these run the real
+    // module over the real card rather than a stand-in.
+    let popup;
+    let dialog;
+    const onMetadata = vi.fn();
+
+    /** A navigator that always has somewhere to go: one id up or down. */
+    const steppingNav = {
+      next: (id) => id + 1,
+      prev: (id) => id - 1,
+      hasPrev: () => true,
+      hasNext: () => true,
+      onRefresh: () => {},
+    };
+
+    /** Builds the popup the way LabelMap does, optionally over a `?labelId=` deep link. */
+    async function buildPopup({ deepLinkId = null } = {}) {
+      dialog = buildCard({ asDialog: true });
+      dialog.id = 'label-modal';
+      dialog.insertAdjacentHTML('afterbegin', '<button type="button" data-action="close-label-detail"></button>');
+      window.history.replaceState({}, '', deepLinkId ? `/labelMap?labelId=${deepLinkId}` : '/labelMap');
+      window.logWebpageActivity.mockClear();
+      const { LabelPopup } = await loadModules('frontend/js/common/label-detail/LabelPopup.js');
+      popup = await LabelPopup(false, 'Default', null, 'tester', { syncUrlSource: 'LabelMap', onMetadata });
+      card = dialog;
     }
 
-    beforeEach(async () => {
-        post = vi.fn(async () => ({ ok: true, status: 200, json: async () => ({}) }));
-
-        window.i18next = { t: (key) => key };
-        window.logWebpageActivity = vi.fn();
-        window.alert = vi.fn();
-        useUtil({ lazyIdentityFetch: post });
-
-        // Every label's imagery resolves at once unless a test swaps the deferred out first.
-        setPano = deferred();
-        panoManager = {
-            clearLabels: vi.fn(),
-            setLabel: vi.fn(),
-            setLabelsHidden: vi.fn(),
-            setPano: vi.fn(() => setPano.promise),
-            warmUp: vi.fn(),
-            activeViewerName: 'Default',
-            panoViewer: {
-                currPanoData: null,
-                getPanoId: () => 'pano-1',
-                getPosition: () => ({ lat: 47.61, lng: -122.33 }),
-                getViewerType: () => 'gsv',
-            },
-            getPov: () => ({ heading: 250.5, pitch: -12, zoom: 2 }),
-            getOriginalPosition: () => ({ heading: 250.5, pitch: -12 }),
-            // Measured when a vote is submitted; jsdom lays nothing out.
-            svHolder: Object.defineProperties(document.createElement('div'), {
-                clientWidth: { value: 720 }, clientHeight: { value: 480 },
-            }),
-            label: { labelId: 42, label_type: 'Obstacle' },
-        };
-
-        window.fetch = vi.fn(labelFetch);
-
-        const { LabelDetail } = await loadModules('frontend/js/common/label-detail/LabelDetail.js');
-
-        card = buildCard();
-        card.detail = await LabelDetail.create(card, {
-            admin: false,
-            viewerType: 'Default',
-            currUsername: 'tester',
-            panoOverlaySource: 'test',
-        });
+    beforeEach(() => {
+      onMetadata.mockClear();
+      // jsdom has no modal dialog implementation.
+      window.HTMLDialogElement.prototype.showModal = function () { this.setAttribute('open', ''); };
+      window.HTMLDialogElement.prototype.close = function () { this.removeAttribute('open'); };
     });
 
-    test('a label shown from a meta object logs one open, and nothing else is logged', async () => {
-        // The Gallery's expanded view hands the card the data it already holds, so no fetch is involved.
-        await showMeta();
-
-        expect(window.logWebpageActivity.mock.calls).toEqual([['LabelDetail_Show_labelId=42_source=TestSource']]);
-        expect(window.fetch).not.toHaveBeenCalledWith('/label/id/42', expect.anything());
+    afterEach(() => {
+      window.history.replaceState({}, '', '/');
     });
 
-    test('a label shown by id logs its open before the fetch resolves', async () => {
-        let resolveFetch;
-        window.fetch.mockImplementationOnce(() => new Promise((res) => { resolveFetch = res; }));
+    test('a ?labelId= deep link logs one open, with the host\'s source', async () => {
+      await buildPopup({ deepLinkId: 7 });
+      await flush();
 
-        const shown = card.detail.showLabel(7, 'LabelMap');
-
-        expect(showEvents()).toEqual(['LabelDetail_Show_labelId=7_source=LabelMap']);
-        resolveFetch({ ok: true, status: 200, json: async () => meta({ label_id: 7 }) });
-        await shown;
-        expect(showEvents()).toHaveLength(1);
+      expect(showEvents()).toEqual(['LabelDetail_Show_labelId=7_source=LabelMap']);
     });
 
-    test('paging from one label to the next logs an open for each, in order', async () => {
-        await card.detail.showLabel(1, 'LabelMap');
-        await card.detail.showLabel(2, 'LabelMap');
+    test('each paging arrow press logs one open for the label it lands on', async () => {
+      await buildPopup();
+      popup.setNearbyNavigator(steppingNav);
+      await popup.showLabel(10, 'LabelMap');
 
-        expect(showEvents()).toEqual([
-            'LabelDetail_Show_labelId=1_source=LabelMap',
-            'LabelDetail_Show_labelId=2_source=LabelMap',
-        ]);
+      q('.label-detail__paging--next').click();
+      await flush();
+      q('.label-detail__paging--prev').click();
+      await flush();
+
+      expect(showEvents()).toEqual([
+        'LabelDetail_Show_labelId=10_source=LabelMap',
+        'LabelDetail_Show_labelId=11_source=LabelMap',
+        'LabelDetail_Show_labelId=10_source=LabelMap',
+      ]);
     });
 
-    test('showing the same label again counts again', async () => {
-        // A close and reopen is a second look, so the event is not deduplicated by label.
-        await card.detail.showLabel(5, 'AdminLabelMap');
-        await card.detail.showLabel(5, 'AdminLabelMap');
+    test('the 409 redraw reaches the host\'s onMetadata with the new type, and is not counted', async () => {
+      await buildPopup();
+      popup.setNearbyNavigator(steppingNav);
+      await popup.showLabel(42, 'LabelMap');
+      setPano.resolve(true);
+      await flush();
+      // Someone changed the label's type elsewhere, so the vote is refused and the redraw sees the new type.
+      window.fetch.mockImplementationOnce(() => Promise.resolve({
+        ok: true, status: 200, json: async () => meta({ label_id: 42, label_type: 'CurbRamp' }),
+      }));
+      post.mockImplementationOnce(async () => ({ ok: false, status: 409, json: async () => ({}) }));
 
-        expect(showEvents()).toEqual([
-            'LabelDetail_Show_labelId=5_source=AdminLabelMap',
-            'LabelDetail_Show_labelId=5_source=AdminLabelMap',
-        ]);
+      q('.label-detail__pano-overlay-button--agree').click();
+      await flush();
+      await flush();
+      q('.label-detail__paging--next').click();
+      await flush();
+
+      expect(onMetadata).toHaveBeenCalledWith(42, expect.objectContaining({ label_type: 'CurbRamp' }));
+      expect(showEvents()).toEqual([
+        'LabelDetail_Show_labelId=42_source=LabelMap',
+        'LabelDetail_Show_labelId=43_source=LabelMap',
+      ]);
     });
-
-    test('an open whose label fails to load is still counted', async () => {
-        window.fetch.mockImplementationOnce(() => Promise.resolve({ ok: false, status: 404, json: async () => ({}) }));
-
-        await expect(card.detail.showLabel(999, 'SharedLabel')).rejects.toThrow('HTTP error 404');
-
-        expect(window.alert).toHaveBeenCalledTimes(1);
-        expect(showEvents()).toEqual(['LabelDetail_Show_labelId=999_source=SharedLabel']);
-    });
-
-    test('the redraw after a vote the server refused with a 409 is not another open', async () => {
-        await showMeta();
-        post.mockImplementationOnce(async () => ({ ok: false, status: 409, json: async () => ({}) }));
-
-        q('.label-detail__pano-overlay-button--agree').click();
-        await flush();
-        await flush();
-
-        // The redraw did happen (it refetched the label and said why), it just isn't counted.
-        expect(window.fetch).toHaveBeenCalledWith('/label/id/42', expect.anything());
-        expect(toast.show).toHaveBeenCalled();
-        expect(showEvents()).toEqual(['LabelDetail_Show_labelId=42_source=TestSource']);
-    });
-
-    test('the redraw after a comment the server refused with a 409 is not another open', async () => {
-        await showMeta();
-        post.mockImplementationOnce(async () => ({ ok: false, status: 409, json: async () => ({}) }));
-
-        q('.label-detail__comment-input').value = 'Not an obstacle';
-        q('.label-detail__comment-submit').click();
-        await flush();
-        await flush();
-
-        expect(window.fetch).toHaveBeenCalledWith('/label/id/42', expect.anything());
-        expect(showEvents()).toEqual(['LabelDetail_Show_labelId=42_source=TestSource']);
-    });
-
-    test('the 409 redraw still runs through a host\'s showLabel wrapper, and the next open is counted', async () => {
-        // LabelPopup replaces showLabel on the instance with a wrapper whose onMetadata tells LabelMap the label's
-        // new type, so the redraw must reach that wrapper rather than the card's own fetch-and-render.
-        const inner = card.detail.showLabel;
-        const wrapped = vi.fn((id, source) => inner(id, source));
-        Object.assign(card.detail, { showLabel: wrapped });
-        await card.detail.showLabel(42, 'LabelMap');
-        setPano.resolve(true);
-        await flush();
-        post.mockImplementationOnce(async () => ({ ok: false, status: 409, json: async () => ({}) }));
-
-        q('.label-detail__pano-overlay-button--agree').click();
-        await flush();
-        await flush();
-        await card.detail.showLabel(43, 'LabelMap');
-
-        expect(wrapped).toHaveBeenCalledTimes(3);
-        // Re-shown with the source the label was opened with, not the overlay button's ('test'): a LabelPopup host
-        // keeps whatever source the wrapper last saw for its paging arrows, and the card uses it for edits.
-        expect(wrapped).toHaveBeenNthCalledWith(2, 42, 'LabelMap');
-        expect(showEvents()).toEqual([
-            'LabelDetail_Show_labelId=42_source=LabelMap',
-            'LabelDetail_Show_labelId=43_source=LabelMap',
-        ]);
-    });
-
-    test('a wrapper that throws during the 409 redraw does not swallow the next open', async () => {
-        // The suppression flag is cleared in a finally, so a wrapper that fails before reaching the card's own
-        // showLabel() can't leave it raised for whatever the user opens next.
-        const inner = card.detail.showLabel;
-        let failNext = false;
-        const wrapped = vi.fn((id, source) => {
-            if (failNext) {
-                failNext = false;
-                throw new Error('host wrapper failed');
-            }
-            return inner(id, source);
-        });
-        Object.assign(card.detail, { showLabel: wrapped });
-        vi.spyOn(console, 'error').mockImplementation(() => {});
-        await card.detail.showLabel(42, 'LabelMap');
-        setPano.resolve(true);
-        await flush();
-        post.mockImplementationOnce(async () => ({ ok: false, status: 409, json: async () => ({}) }));
-
-        failNext = true;
-        q('.label-detail__pano-overlay-button--agree').click();
-        await flush();
-        await flush();
-        await card.detail.showLabel(43, 'LabelMap');
-
-        expect(wrapped).toHaveBeenCalledTimes(3);
-        expect(showEvents()).toEqual([
-            'LabelDetail_Show_labelId=42_source=LabelMap',
-            'LabelDetail_Show_labelId=43_source=LabelMap',
-        ]);
-        console.error.mockRestore();
-    });
-
-    describe('through the real LabelPopup', () => {
-        // The flag design depends on LabelPopup's wrapper reaching the card's own showLabel() before its first
-        // await, and the deep link and paging arrows are opens that only LabelPopup makes, so these run the real
-        // module over the real card rather than a stand-in.
-        let popup;
-        let dialog;
-        const onMetadata = vi.fn();
-
-        /** A navigator that always has somewhere to go: one id up or down. */
-        const steppingNav = {
-            next: (id) => id + 1,
-            prev: (id) => id - 1,
-            hasPrev: () => true,
-            hasNext: () => true,
-            onRefresh: () => {},
-        };
-
-        /** Builds the popup the way LabelMap does, optionally over a `?labelId=` deep link. */
-        async function buildPopup({ deepLinkId = null } = {}) {
-            dialog = buildCard({ asDialog: true });
-            dialog.id = 'label-modal';
-            dialog.insertAdjacentHTML('afterbegin', '<button type="button" data-action="close-label-detail"></button>');
-            window.history.replaceState({}, '', deepLinkId ? `/labelMap?labelId=${deepLinkId}` : '/labelMap');
-            window.logWebpageActivity.mockClear();
-            const { LabelPopup } = await loadModules('frontend/js/common/label-detail/LabelPopup.js');
-            popup = await LabelPopup(false, 'Default', null, 'tester', { syncUrlSource: 'LabelMap', onMetadata });
-            card = dialog;
-        }
-
-        beforeEach(() => {
-            onMetadata.mockClear();
-            // jsdom has no modal dialog implementation.
-            window.HTMLDialogElement.prototype.showModal = function () { this.setAttribute('open', ''); };
-            window.HTMLDialogElement.prototype.close = function () { this.removeAttribute('open'); };
-        });
-
-        afterEach(() => {
-            window.history.replaceState({}, '', '/');
-        });
-
-        test('a ?labelId= deep link logs one open, with the host\'s source', async () => {
-            await buildPopup({ deepLinkId: 7 });
-            await flush();
-
-            expect(showEvents()).toEqual(['LabelDetail_Show_labelId=7_source=LabelMap']);
-        });
-
-        test('each paging arrow press logs one open for the label it lands on', async () => {
-            await buildPopup();
-            popup.setNearbyNavigator(steppingNav);
-            await popup.showLabel(10, 'LabelMap');
-
-            q('.label-detail__paging--next').click();
-            await flush();
-            q('.label-detail__paging--prev').click();
-            await flush();
-
-            expect(showEvents()).toEqual([
-                'LabelDetail_Show_labelId=10_source=LabelMap',
-                'LabelDetail_Show_labelId=11_source=LabelMap',
-                'LabelDetail_Show_labelId=10_source=LabelMap',
-            ]);
-        });
-
-        test('the 409 redraw reaches the host\'s onMetadata with the new type, and is not counted', async () => {
-            await buildPopup();
-            popup.setNearbyNavigator(steppingNav);
-            await popup.showLabel(42, 'LabelMap');
-            setPano.resolve(true);
-            await flush();
-            // Someone changed the label's type elsewhere, so the vote is refused and the redraw sees the new type.
-            window.fetch.mockImplementationOnce(() => Promise.resolve({
-                ok: true, status: 200, json: async () => meta({ label_id: 42, label_type: 'CurbRamp' }),
-            }));
-            post.mockImplementationOnce(async () => ({ ok: false, status: 409, json: async () => ({}) }));
-
-            q('.label-detail__pano-overlay-button--agree').click();
-            await flush();
-            await flush();
-            q('.label-detail__paging--next').click();
-            await flush();
-
-            expect(onMetadata).toHaveBeenCalledWith(42, expect.objectContaining({ label_type: 'CurbRamp' }));
-            expect(showEvents()).toEqual([
-                'LabelDetail_Show_labelId=42_source=LabelMap',
-                'LabelDetail_Show_labelId=43_source=LabelMap',
-            ]);
-        });
-    });
+  });
 });
