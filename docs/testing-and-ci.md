@@ -322,12 +322,7 @@ is split into private helpers (#5605).
 
 **JavaScript — Vitest (#5112).** The floors are `coverage.thresholds` in `vitest.config.mjs`, one per metric
 (statements, branches, functions, lines), each 1-2 points under CI's figure: 53.07 / 48.81 / 49.41 / 53.78 at the
-time they were set. Adding a large file with no tests can trip a floor as readily as deleting tests can. `coverage.include` is
-`frontend/js/**/*.js` (the built output in `public/build/` is outside it), so an untested file counts against the ratio
-instead of being invisible. Every suite reaches its subject through `loadModules` (`vi.importActual`), so everything a
-test runs is instrumented; under Jest, `eval`-loaded suites recorded nothing and the number could not be gated. The suite
-needs no database, but V8's coverage differs between Node versions (22 read about 0.45 points higher), so measure with
-`make test-js args=--coverage`, which uses the container's Node 24 as CI does.
+time they were set. Measure with `make test-js args=--coverage`.
 
 ## Phased rollout (each phase independently mergeable)
 

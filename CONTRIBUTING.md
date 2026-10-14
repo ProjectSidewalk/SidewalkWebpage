@@ -175,7 +175,7 @@ asset-path check, so any frontend lint failure blocks the merge), **`Route reach
 - **Does not require review approvals.** Tooling won't force a second person to sign off, so you can still open and
   merge your own PR. Review is by convention (and expected for external contributions), not enforced by a gate.
 - **Coverage can block too.** `Backend tests (API, PostGIS)` and the Vitest step of `Frontend (build)` each end on a
-  coverage ratchet, so removing tests, or adding a large untested file, can fail the build even when everything passes.
+  coverage ratchet, so removing tests can fail the build even when everything still passes.
 - **Advisory work never blocks.** `Python tests (offline tooling)` is the one check that reports status without
   being required — it covers an operator utility that never runs on the server. Everything else in the checks list
   gates the merge, the Vitest suite included (#5132).

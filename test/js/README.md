@@ -51,10 +51,8 @@ is not applied, since these files are 4-space. The browser, Node and Vitest glob
 
 Coverage is reported over all of `frontend/js/**/*.js`, so a file no test loads still counts against the ratio. The
 console shows totals; `coverage/lcov-report/index.html` has per-file detail. `coverage.thresholds` in
-`vitest.config.mjs` is a ratchet: a run that drops below any floor fails even when every test passes. Deleting tests
-can trip it, and so can adding a large file with no tests, since every file counts. Measure with
-`make test-js args=--coverage` (the container's Node 24, as CI uses); a host Node of another version reads differently.
-Raise the floors when a PR adds the headroom.
+`vitest.config.mjs` is a ratchet: a run that drops below any floor fails even when every test passes. Raise the floors
+when a PR adds the headroom.
 
 ## Complementary E2E
 
