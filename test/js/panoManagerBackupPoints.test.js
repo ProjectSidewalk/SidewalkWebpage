@@ -16,7 +16,7 @@ const { loadModules } = require('./loadGlobalScript');
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 
 window.turf = require(path.join(REPO_ROOT, 'public/vendor/turf/turf-7.4.0.min.js'));
-window.NavigationService = { DIST_INCREMENT: 0.01 }; // 10 m, as in NavigationService.
+window.StreetSweep = { DIST_INCREMENT: 0.01 }; // 10 m, as in StreetSweep.
 Object.assign(window, loadModules('frontend/js/explore/panorama/PanoManager.js'));
 const { PanoManager, turf } = window;
 

@@ -42,7 +42,7 @@ object StreetCoverage {
 
   /**
    * Most of a street that may stay unseen; the limit that matters above 100 m. Also how near the end a regular
-   * mission's imagery may run out and still count the street walked (NavigationService).
+   * mission's imagery may run out and still count the street walked (StreetSweep).
    */
   val MaxUncoveredM: Double = 50d
 

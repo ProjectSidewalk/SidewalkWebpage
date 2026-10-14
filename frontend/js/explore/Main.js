@@ -51,6 +51,7 @@ import { Minimap } from './navigation/Minimap.js';
 import { MinimapLegend } from './navigation/MinimapLegend.js';
 import { MinimapMissionProgress } from './navigation/MinimapMissionProgress.js';
 import { NavigationService } from './navigation/NavigationService.js';
+import { StreetSweep } from './navigation/StreetSweep.js';
 import { ObservedArea } from './navigation/ObservedArea.js';
 import { Peg } from './navigation/Peg.js';
 import { RouteOverview } from './navigation/RouteOverview.js';
@@ -68,6 +69,7 @@ import { MissionPanel } from './sidebar/MissionPanel.js';
 import { OverallStats } from './sidebar/OverallStats.js';
 import { RegionProgressBar } from './sidebar/RegionProgressBar.js';
 import { Task } from './task/Task.js';
+import { StreetProgress } from './task/StreetProgress.js';
 import { TaskContainer } from './task/TaskContainer.js';
 import { ZoomControl } from './zoom/ZoomControl.js';
 import '../common/pano-viewer/panoUtilities.js';
@@ -189,6 +191,7 @@ import '../common/utilitiesSidewalk.js';
  * @property {LabelContainer} [labelContainer]
  * @property {MissionContainer} [missionContainer]
  * @property {NavigationService} [navigationService]
+ * @property {StreetProgress} [streetProgress]
  */
 
 export class Main {
@@ -232,12 +235,11 @@ export class Main {
    *   missionModel: MissionModel, panoManager: PanoManager, navArrows: NavArrows, minimap: Minimap,
    *   minimapMissionProgress: MinimapMissionProgress, taskContainer: TaskContainer,
    *   missionContainer: MissionContainer, labelContainer: LabelContainer, form: Form, canvas: Canvas,
-   *   contextMenu: ContextMenu, navigationService: NavigationService, compass: Compass, observedArea: ObservedArea,
-   *   forwardCrumbs: ForwardCrumbs, routeOverview: RouteOverview, zoomControl: ZoomControl,
+   *   contextMenu: ContextMenu, navigationService: NavigationService, streetSweep: StreetSweep, compass: Compass,
+   *   observedArea: ObservedArea, forwardCrumbs: ForwardCrumbs, routeOverview: RouteOverview, zoomControl: ZoomControl,
    *   overallStats: OverallStats, missionPanel: MissionPanel, popUpMessage: PopUpMessage, aiGuidance: AiGuidance,
    *   reauditNotice: ReauditNotice, panoOverlayControls: PanoOverlayControls, labelModes: LabelModes,
-   *   ribbon: RibbonMenu,
-   *   missionProgressBar: ProgressBar, immersiveMode: ImmersiveMode, keyboard: KeyboardManager,
+   *   ribbon: RibbonMenu, missionProgressBar: ProgressBar, immersiveMode: ImmersiveMode, keyboard: KeyboardManager,
    *   iconsPreloaded: Promise<void[]>}}
    */
   #modules = null;
@@ -379,9 +381,12 @@ export class Main {
     // The arrows announce their clicks, since the service that answers them is built after.
     const navArrows = new NavArrows(ui.streetview.navArrows, ui.streetview.navArrowsContainer, config, taskContainer,
       panoManager);
-    const navigationService = new NavigationService(ui.streetview, config, regionModel, missionModel,
-      missionContainer, taskContainer, panoStore, panoManager, labelContainer, labelModes, navArrows, keyboardLock,
-      alertController, stuckAlert, jumpAlert, form, tracker);
+    const streetSweep = new StreetSweep(config, missionContainer, taskContainer, panoStore, panoManager,
+      alertController, stuckAlert, form, tracker);
+    const navigationService = new NavigationService(ui.streetview, panoStore, panoManager, streetSweep,
+      labelContainer, labelModes, navArrows, keyboardLock, alertController);
+    const streetProgress = new StreetProgress(config, regionModel, missionModel, missionContainer, taskContainer,
+      panoManager, navigationService, streetSweep, jumpAlert, tracker);
     navArrows.onLinkClick((panoId) => navigationService.moveToPano(panoId));
     navArrows.onRouteForwardClick(() => {
       tracker.push('Click_RouteForwardArrow');
@@ -390,8 +395,8 @@ export class Main {
         .catch(() => tracker.push('RouteForwardArrow_PanoNotAvailable'));
     });
     navArrows.reset();
-    const compass = new Compass(config, regionModel, taskContainer, panoManager, navigationService, stuckAlert,
-      tracker);
+    const compass = new Compass(config, regionModel, taskContainer, panoManager, navigationService, streetProgress,
+      stuckAlert, tracker);
 
     const ribbon = new RibbonMenu(labelModes, keyboardShortcutAlert, tracker);
     const contextMenu = new ContextMenu(ui.contextMenu, config, frame, labelContainer, labelModes, navigationService,
@@ -440,8 +445,8 @@ export class Main {
     const panoOverlayControls = new PanoOverlayControls(tracker, navigationService, stuckAlert, keyboardShortcutAlert);
     const modalSurvey = new ModalSurvey(interactionLock, zoomControl);
     new MissionController(config, missionModel, regionModel, missionContainer, taskContainer, form,
-      modalMissionComplete, modalSurvey, alertController, compass, navigationService, panoManager, observedArea,
-      overallStats, regionProgressBar, missionProgressBar, minimapMissionProgress, tracker);
+      modalMissionComplete, modalSurvey, alertController, compass, navigationService, streetProgress, panoManager,
+      observedArea, overallStats, regionProgressBar, missionProgressBar, minimapMissionProgress, tracker);
 
     const immersiveMode = new ImmersiveMode({
       tracker,
@@ -513,9 +518,9 @@ export class Main {
     this.#modules = {
       tracker, keyboardLock, alertController, regionModel, missionModel, panoManager, navArrows, minimap,
       minimapMissionProgress, taskContainer, missionContainer, labelContainer, form, canvas, contextMenu,
-      navigationService, compass, observedArea, forwardCrumbs, routeOverview, zoomControl, overallStats, missionPanel,
-      popUpMessage, aiGuidance, reauditNotice, panoOverlayControls, labelModes, ribbon, missionProgressBar,
-      immersiveMode, keyboard, iconsPreloaded,
+      navigationService, streetSweep, compass, observedArea, forwardCrumbs, routeOverview, zoomControl, overallStats,
+      missionPanel, popUpMessage, aiGuidance, reauditNotice, panoOverlayControls, labelModes, ribbon,
+      missionProgressBar, immersiveMode, keyboard, iconsPreloaded,
     };
 
     // A pop-up stops the tool under it until it closes.
@@ -551,7 +556,7 @@ export class Main {
     // Hand the address bar to the labeler's position from here on (#5480).
     this.#syncURL();
 
-    return { config, panoManager, taskContainer, labelContainer, missionContainer, navigationService };
+    return { config, panoManager, taskContainer, labelContainer, missionContainer, navigationService, streetProgress };
   }
 
   /** Fetches the region's tasks and missions, or in the tutorial just the mission that frames it. */
@@ -700,7 +705,7 @@ export class Main {
     m.overallStats.setRegionAuditedDistance(distance);
 
     // Prefetch Mapillary data on images along the street to improve load times for images along the street.
-    m.navigationService.prefetchAlongStreet(m.taskContainer.getCurrentTask().getFeature());
+    m.streetSweep.prefetchAlongStreet(m.taskContainer.getCurrentTask().getFeature());
   }
 
   // This is a callback function that is executed after every loading process is done.

@@ -1,9 +1,9 @@
 /**
  * What an Infra3dViewer rejection is allowed to claim about a street (#4918, #5008).
  *
- * NavigationService's street sweep only concludes "this street has no imagery ahead" when *every* rejection it
- * collected is a NoImageryError; a single untyped one means the provider never answered, and the labeler is told to
- * retry rather than moved on. So a viewer that answers "nothing usable here" with a plain Error strands the labeler
+ * StreetSweep only concludes "this street has no imagery ahead" when *every* rejection it collected is a
+ * NoImageryError; a single untyped one means the provider never answered, and the labeler is told to retry rather
+ * than moved on. So a viewer that answers "nothing usable here" with a plain Error strands the labeler
  * on the street with no way past it — the failure mode #5008 hit on a route through an 11.6 m street, where the only
  * image in range was the one already being stood on.
  */

@@ -101,7 +101,7 @@ export class PanoramaxViewer extends PanoViewer {
 
   /**
    * Prefetched search results, keyed by location: { centerPoint, promise: Promise<Array<object>> }. Same contract
-   * as MapillaryViewer's, so NavigationService can warm them as it walks a street.
+   * as MapillaryViewer's, so StreetSweep can warm them as it walks a street.
    * @type {Array<{centerPoint: turf.Feature<turf.Point>, promise: Promise<Array<Record<string, any>>>}>}
    */
   #prefetchedSearches = [];

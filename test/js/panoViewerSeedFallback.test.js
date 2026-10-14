@@ -162,8 +162,8 @@ describe('NoImageryError.allNoImagery', () => {
         expect(new NoImageryError('empty', { cause: provider }).cause).toBe(provider);
     });
 
-    // The verdict that NavigationService.moveForward() builds from a street-long walk before deciding whether the
-    // street may be reported as imagery-less. Named cases, because each is a scenario the fix has to get right.
+    // The verdict that StreetSweep builds from a street-long walk before deciding whether the street may be reported
+    // as imagery-less. Named cases, because each is a scenario the fix has to get right.
     describe('as the verdict on a walk down a street', () => {
         test('a street whose every sample point came back empty is reportable', () => {
             const walk = [new NoImageryError('10m'), new NoImageryError('20m'), new NoImageryError('30m')];

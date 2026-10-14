@@ -22,7 +22,7 @@ const REPO_ROOT = path.resolve(__dirname, '..', '..');
 // Loaded once, up front: the fixtures below are built while the suite is collected, before any beforeEach runs.
 const turf = require(path.join(REPO_ROOT, 'public/vendor/turf/turf-7.4.0.min.js'));
 
-// The thresholds NavigationService passes: the post-move end-of-street check and the imagery-ran-out credit.
+// The thresholds for the post-move end-of-street check (StreetProgress) and the imagery-ran-out credit (StreetSweep).
 const END_OF_STREET_M = 25;
 const NEAR_END_NO_IMAGERY_M = 50;
 
