@@ -327,8 +327,7 @@ export class KeyboardManager {
    * @param {KeyboardEvent} e
    */
   #rateSeverity(severity, e) {
-    this.#contextMenu.checkRadioButton(severity);
-    this.#contextMenu.getTargetLabel().setProperty('severity', severity);
+    this.#contextMenu.checkRadioButton(severity); // Its change event sets the severity, as a click would.
     this.#tracker.push(`KeyboardShortcut_Severity_${severity}`, { code: e.code }, this.#contextMenu.getTargetLabel());
     this.#canvas.clear().render();
   }

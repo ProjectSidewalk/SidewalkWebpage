@@ -31,7 +31,7 @@ function makeLabel({ labelType = 'CurbRamp' } = {}) {
         getProperty: (key) => props[key],
         getProperties: () => props,
         isDeleted: () => false,
-        setProperty: (key, value) => { props[key] = value; },
+        edit: (changes) => { Object.assign(props, changes); },
     };
 }
 
@@ -61,7 +61,7 @@ describe('ContextMenu repaints the canvas when the panel opens and closes', () =
         useUtil({ misc: { labelTypeHasSeverity: () => false } });
         // No #context-menu-share element, so the share widget stays null.
         menu = new ContextMenu(makeContextMenuUi(), { isOnboarding: false }, { iconRadius: 17 },
-            { canDelete: () => true, getAllLabels: () => [], addToLabelsToLog: vi.fn() },
+            { canDelete: () => true, getAllLabels: () => [] },
             { switching: fakeGate() }, { onMoveStarted: vi.fn() },
             { ratingClicked: vi.fn() }, { ensureLabelSaved: vi.fn() }, tracker);
         menu.onChange(() => canvas.clear().render());

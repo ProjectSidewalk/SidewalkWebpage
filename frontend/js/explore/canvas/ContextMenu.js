@@ -166,8 +166,7 @@ export class ContextMenu {
     const description = /** @type {HTMLInputElement} */ (e.currentTarget).value;
     this.#tracker.push('ContextMenu_TextBoxChange', { Description: description }, this.#status.targetLabel);
     if (this.#status.targetLabel) {
-      this.#status.targetLabel.setProperty('description', description);
-      this.#edited(this.#status.targetLabel);
+      this.#status.targetLabel.edit({ description });
     }
   }
 
@@ -209,14 +208,6 @@ export class ContextMenu {
     this.#labelContainer.removeLabel(label);
   }
 
-  /**
-   * Per edit, not per opening: a save while the menu is open (a share, the tracker's flush) empties the list.
-   * @param {Label} label
-   */
-  #edited(label) {
-    this.#labelContainer.addToLabelsToLog(label);
-  }
-
   handleSeverityPopup() {
     const labels = this.#labelContainer.getAllLabels();
     if (labels.length > 0) {
@@ -235,8 +226,7 @@ export class ContextMenu {
 
     this.updateRadioButtonImages();
     if (label) {
-      label.setProperty('severity', severity);
-      this.#edited(label);
+      label.edit({ severity });
       this.#changeListeners.forEach((listener) => listener());
     }
   }
@@ -358,9 +348,8 @@ export class ContextMenu {
         this.#tracker.push('KeyboardShortcut_TagRemoved', { tagId: tag.tag_id, tagName: tag.tag }, label);
       }
     }
-    this.#edited(label);
     button.classList.toggle('tag-pill--active');
-    this.#status.targetLabel.setProperty('tagIds', labelTags);
+    this.#status.targetLabel.edit({ tagIds: labelTags });
     button.blur();
     // For events that depend on up-to-date tagIds.
     this.#tagHolder.dispatchEvent(new CustomEvent('tagIds-updated'));
