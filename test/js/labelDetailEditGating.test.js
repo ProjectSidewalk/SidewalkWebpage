@@ -18,9 +18,8 @@
  *   - Neither control takes the `disabled` attribute: a natively disabled element swallows the hover that opens
  *     its tooltip, so both are aria-disabled, and a face that has a reason to give stays focusable.
  *
- * The card's flourishes (badges, stories, the info popover, the hide toggle) are stand-ins, since the real ones
- * want page markup none of this reads. So is the pano manager, whose setPano() promise is the switch every imagery
- * case turns.
+ * The card's flourishes (badges, stories, the info popover, the hide toggle) are stand-ins, since the real ones want
+ * page markup none of this reads; so is the pano manager, whose setPano() promise every imagery case turns.
  */
 
 import fs from 'fs';

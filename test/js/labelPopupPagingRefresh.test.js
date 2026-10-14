@@ -10,8 +10,7 @@
 
 import { loadModules, mockModule } from './loader.js';
 
-// LabelDetail does the rendering and fetching; the popup only wraps it, so a stand-in whose `create` each test can
-// re-script is enough.
+// The popup only wraps LabelDetail, so a stand-in whose `create` each test re-scripts is enough.
 const labelDetail = { create: null, urlLabelId: () => null, syncUrlLabelId: vi.fn() };
 mockModule('frontend/js/common/label-detail/LabelDetail.js', () => ({ LabelDetail: labelDetail }));
 

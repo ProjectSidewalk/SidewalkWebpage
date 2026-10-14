@@ -14,8 +14,7 @@ import { loadModules } from './loader.js';
 /**
  * Loads fresh copies of the viewer classes and both error types, so an `instanceof` here is against the same class
  * the viewer throws.
- * @returns {Promise<{PanoViewer: Function, MapillaryViewer: Function, NoImageryError: Function,
- *     PanoLoadTimeoutError: Function}>}
+ * @returns {Promise<Record<string, Function>>} The two viewer classes and both error types.
  */
 async function loadViewer() {
   return loadModules('frontend/js/common/pano-viewer/PanoViewer.js',

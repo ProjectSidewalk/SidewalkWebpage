@@ -7,8 +7,7 @@
  * conservative independent width estimate (a generic sans at 11px averages well under 5.2px per digit/letter), so
  * they fail if a margin ever stops making room rather than only if a specific pixel value changes.
  *
- * MiniLineChart.svg is a pure string builder, so tests parse its output into a detached container and assert on the
- * resulting DOM.
+ * MiniLineChart.svg builds a string, so the tests parse its output into a detached container and assert on that DOM.
  */
 
 import { loadModules } from './loader.js';

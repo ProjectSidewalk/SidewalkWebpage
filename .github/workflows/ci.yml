@@ -6,7 +6,7 @@ name: CI
 #   - frontend:        asset build (`npm run build`) + the lint steps (ESLint, Stylelint, HTMLHint, locale checks,
 #                      CSS layout, asset paths, vendor versions, JS types, spec base class) + the jsdom Vitest suite in
 #                      test/js/.
-#                      Vitest reports JS coverage but has no floor — the number can't support one yet, see #5112.
+#                      Vitest reports JS coverage; there is no floor on it yet.
 #   - evolutions-lint: static checks on conf/evolutions/default/*.sql.
 #   - shell-lint:      ShellCheck over the repo's .sh files.
 #   - route-lint:      conf/routes reachability — fails if any route is shadowed by an earlier one.

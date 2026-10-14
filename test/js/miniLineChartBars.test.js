@@ -6,8 +6,7 @@
  * band, which draws no rect), the --emphasis classes landing on exactly the requested index, and the default bar
  * output staying label-free so other MiniLineChart callers are unaffected.
  *
- * MiniLineChart.svg is a pure string builder, so tests parse its output into a detached container and assert on the
- * resulting DOM.
+ * MiniLineChart.svg builds a string, so the tests parse its output into a detached container and assert on that DOM.
  */
 
 import { loadModules } from './loader.js';

@@ -18,8 +18,7 @@ import {
     renderPinhole,
 } from './gsv-fov-probe/estimator.cjs';
 
-// V8 coverage instrumentation (what CI runs) makes the synthetic renders several times slower than the default 5 s
-// allows.
+// Under V8 coverage (what CI runs) the synthetic renders take several times the default 5 s.
 vi.setConfig({ testTimeout: 30_000 });
 
 const W = 720;

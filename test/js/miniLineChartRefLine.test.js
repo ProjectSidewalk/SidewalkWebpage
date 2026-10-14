@@ -6,8 +6,7 @@
  * pinning is that the line lands where the data would put it, and that a target above every bar widens the y scale
  * instead of being drawn off the top — which would read as "no target" rather than "target never met".
  *
- * MiniLineChart.svg is a pure string builder, so tests parse its output into a detached container and assert on the
- * resulting DOM.
+ * MiniLineChart.svg builds a string, so the tests parse its output into a detached container and assert on that DOM.
  */
 
 import { loadModules } from './loader.js';

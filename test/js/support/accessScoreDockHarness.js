@@ -30,8 +30,7 @@ function stubI18next() {
 
 /**
  * Loads the ramp tokens and the production sources together, so the dock's views are the very classes handed back.
- * @returns {Promise<object>} The classes by name: `ScoreRamp`, `LabelMiniCard`, `AccessScoreModel`, ...,
- *   `AccessScoreDock`.
+ * @returns {Promise<object>} The classes by name, `ScoreRamp` through `AccessScoreDock`.
  */
 async function loadSources() {
     RAMP.forEach((hex, i) => document.documentElement.style.setProperty(`--color-score-ramp-${i + 1}`, hex));

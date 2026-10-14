@@ -2,9 +2,8 @@
  * Tests for PanoControlMenu (frontend/js/validate/panorama/PanoControlMenu.js), the chevron that opens the menu
  * holding the Image pill in desktop Validate's top-left corner (#5501).
  *
- * The CSS shows the menu from the chevron's `aria-expanded`, so the attribute is the contract: these pin that a click
- * flips it both ways, that each flip is logged with the resulting state, and that the collapsed indicator toggles the
- * shared active-dot class.
+ * The CSS shows the menu from the chevron's `aria-expanded`, so the attribute is the contract: a click flips it both
+ * ways, each flip is logged with the resulting state, and the collapsed indicator toggles the active-dot class.
  */
 
 import { loadModules } from './loader.js';

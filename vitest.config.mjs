@@ -1,8 +1,6 @@
 /**
- * Vitest configuration for Project Sidewalk's frontend test layer (#5649).
- *
- * Run it with `make test-js` (or `npm run test:js`; `test:js:coverage` for the report). CI runs the latter as a
- * blocking step in the frontend job. See test/js/README.md and docs/testing-and-ci.md.
+ * Vitest configuration for the jsdom unit suite in test/js/. Run it with `make test-js` (`args=--coverage` for the
+ * report CI gates on); see test/js/README.md.
  */
 import { defineConfig } from 'vitest/config';
 
@@ -17,8 +15,8 @@ export default defineConfig({
     // modules under test and `view: window` is a real Window; it is also the fastest pool here (workers are reused).
     pool: 'vmForks',
 
-    // Pinned, or the suite inherits the machine's zone and a bug that only bites west of Greenwich -- a UTC timestamp
-    // near midnight printing as the month before -- passes in a UTC runner while failing for the labelers it reaches.
+    // Pinned west of Greenwich, so a date bug that only shows there (a UTC timestamp near midnight printing as the
+    // month before) fails here rather than only for the labelers it reaches.
     env: { TZ: 'America/Los_Angeles' },
 
     setupFiles: ['test/js/setup.js'],
@@ -35,12 +33,11 @@ export default defineConfig({
     unstubGlobals: true,
 
     coverage: {
-      // The whole first-party frontend, so an untested file counts against the ratio rather than being invisible
-      // (the built bundles live in public/build/, outside it).
+      // The whole first-party frontend, so an untested file counts against the ratio rather than being invisible.
       include: ['frontend/js/**/*.js'],
       // The default per-file table is 229 rows of mostly zeroes, which buries the totals; lcov keeps the detail.
       reporter: ['text-summary', 'lcov'],
-      // No `thresholds` yet: the number is a baseline to grow from before it becomes a floor (#5112).
+      // No `thresholds` yet: the number is a baseline to grow from before it becomes a floor.
     },
   },
 });

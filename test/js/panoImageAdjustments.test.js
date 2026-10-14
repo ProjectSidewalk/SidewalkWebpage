@@ -2,11 +2,10 @@
  * Tests for PanoImageAdjustments (frontend/js/common/PanoImageAdjustments.js), the display-only shadows / brightness /
  * contrast model behind the Image pill on Explore (#3136) and Validate (#5501).
  *
- * What is worth pinning: the filter string's composition (the gamma curve runs first, default terms are omitted, an
- * all-default state removes the inline filter entirely so the untouched pano never references the SVG), the gamma
- * mapping's endpoints, the SVG curve's sRGB interpolation flag (linearRGB would quietly lift far less), persistence
- * with field-by-field validation of whatever is in storage, and that a blocked storage degrades to "not remembered"
- * rather than throwing.
+ * Pinned here: the filter string's composition (the gamma curve runs first, default terms are omitted, an all-default
+ * state removes the inline filter so the untouched pano never references the SVG), the gamma mapping's endpoints, the
+ * SVG curve's sRGB interpolation flag (linearRGB would quietly lift far less), field-by-field validation of whatever is
+ * in storage, and a blocked storage reading as "not remembered" instead of throwing.
  */
 
 import { loadModules } from './loader.js';

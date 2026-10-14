@@ -6,8 +6,7 @@
  * which is the part worth pinning: these tests cover the scale, the abbreviation, the integer-data case, and that an
  * explicit yMax (the Data Quality agreement chart) still wins.
  *
- * MiniLineChart.svg is a pure string builder, so tests parse its output into a detached container and assert on the
- * resulting DOM.
+ * MiniLineChart.svg builds a string, so the tests parse its output into a detached container and assert on that DOM.
  */
 
 import { loadModules } from './loader.js';

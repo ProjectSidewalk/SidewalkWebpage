@@ -10,8 +10,7 @@ const Infra3dViewer = await loadInfra3dViewer();
 /**
  * Stubs the SDK with an engine whose downloads answer from `outcomes`, one entry per call: true loads, false fails.
  * @param {{outcomes?: boolean[], withEngine?: boolean}} [options]
- * @returns {{requestTexture: import('vitest').Mock, engine: object}|null} The unwrapped download stub and the engine,
- *   or null.
+ * @returns {{requestTexture: import('vitest').Mock, engine: object}|null} The download stub and the engine, or null.
  */
 function fakeSdk({ outcomes = [], withEngine = true } = {}) {
   const requestTexture = vi.fn((url, priority, onLoad, onError) => {

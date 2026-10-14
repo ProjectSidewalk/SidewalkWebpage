@@ -7,8 +7,8 @@
  * findPanoNear() resolves null, so no minimap crumb is drawn there — and that each distinct far pano is reported once
  * through the `FarPanoRejected` diagnostic.
  *
- * The real PanoViewer base and util.math.haversine do the distance math, as in panoViewerFindPanoNear.test.js; only
- * Google's service is faked.
+ * Only Google's service is faked: as in panoViewerFindPanoNear.test.js, the real PanoViewer base and
+ * util.math.haversine do the distance math.
  */
 
 import { loadVendored, loadModules } from './loader.js';

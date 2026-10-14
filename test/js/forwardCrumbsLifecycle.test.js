@@ -9,8 +9,7 @@
  *   - lookups queued for a street the user has left are skipped, not run ahead of the next street's;
  *   - a far crumb over a visited pano takes over the breadcrumb's job and peeks back on click.
  *
- * ForwardCrumbs is built against fakes of its collaborators. Real turf: the sampler's along-street math is part of
- * what is being exercised.
+ * Built against fakes of its collaborators, on real turf: the sampler's along-street math is part of what is tested.
  */
 
 import { loadVendored, loadModules } from './loader.js';

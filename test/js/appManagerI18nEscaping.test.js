@@ -6,8 +6,7 @@
  * (the `ps/i18n-escape-in-markup` ESLint rule makes them). These cases pin the init option and then run the real
  * i18next with it, so what is asserted is what a reader sees rather than what the options object says.
  *
- * i18next is not an npm dependency; the page loads the vendored bundle under public/vendor, so that is the library
- * under test.
+ * i18next is not an npm dependency, so the library under test is the vendored bundle the page loads.
  */
 
 import { loadModules, loadVendored } from './loader.js';

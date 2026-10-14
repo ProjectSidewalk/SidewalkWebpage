@@ -1,7 +1,6 @@
 /**
- * Loads frontend/js source files into jsdom for the unit suites. Vitest runs them as the ES modules they are; the
- * module registry is reset per load so state can't leak between tests, and a suite that wants a collaborator replaced
- * says which module (`mockModule`) or which `util` member (`useUtil`) rather than relying on anything implicit.
+ * Loads frontend/js source files into jsdom for the unit suites. The module registry is reset per load so state can't
+ * leak between tests; a suite names the module (`mockModule`) or the `util` member (`useUtil`) it wants replaced.
  */
 
 import fs from 'fs';
@@ -90,9 +89,8 @@ async function takeLiveUtilities() {
 }
 
 /**
- * Takes the previous overrides off the live `util` and puts the current ones on. Only what is still ours comes off:
- * a module loaded in between may have rebuilt a sub-object (utilitiesMath.js does `util.math = {}`), and that is the
- * real thing now.
+ * Swaps the previous overrides for the current ones on the live `util`. Only what is still ours comes off: a module
+ * loaded in between may have rebuilt a sub-object (utilitiesMath.js does `util.math = {}`) into the real thing.
  */
 function applyUtilOverrides() {
     if (!liveUtilities) return;
@@ -123,9 +121,8 @@ function applyUtilOverrides() {
             }
             applied.set(key, { members });
         } else if (isPlainObject(value) && util[key] === undefined) {
-            // The module that builds this sub-object has not loaded yet, and utilitiesSidewalk.js spreads whatever
-            // `util.misc` already holds into the real one. Kept out of that spread, a stand-in never becomes the
-            // "real" helper a later `useUtil` restores.
+            // Not built yet. utilitiesSidewalk.js spreads whatever `util.misc` already holds into the real one, so the
+            // stand-ins are non-enumerable to stay out of that spread.
             const sub = {};
             const members = new Map();
             for (const [subKey, subValue] of Object.entries(value)) {
@@ -159,9 +156,8 @@ vi.doMock(abs(UTILITIES), async (importOriginal) => {
 });
 
 /**
- * Runs a vendored library into the page the way its <script> tag does. (Most of these bundles are UMD, but
- * i18next-http-backend is a plain `var x = (function(){...})()` script, which only a script evaluation makes global.)
- * Found by folder rather than by filename, which carries the version and would go stale on the next bump.
+ * Runs a vendored library into the page the way its <script> tag does, since not every bundle is UMD
+ * (i18next-http-backend is a plain `var x = …` script). Found by folder, since the filename carries the version.
  * @param {string} folder - The library's folder under public/vendor/, e.g. "i18next".
  */
 export function loadVendored(folder) {

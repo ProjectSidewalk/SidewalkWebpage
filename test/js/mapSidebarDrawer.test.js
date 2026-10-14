@@ -6,8 +6,7 @@
  * what has to be pinned is that the state machine is complete on its own: the chrome, the accessibility state, and
  * the map padding all follow the drawer, in both directions, including across a breakpoint crossing.
  *
- * jsdom has no layout and no matchMedia, so the viewport is a controllable stub and the sidebar reports a fixed
- * width.
+ * jsdom has no layout and no matchMedia, so the viewport is a stub the test controls and the sidebar's width is fixed.
  */
 
 import { loadModules } from './loader.js';
