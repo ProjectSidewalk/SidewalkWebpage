@@ -547,9 +547,12 @@ jobs:
             pytest-args: >-
               test/python --ignore=test/python/test_check_streets_for_imagery.py
               --ignore=test/python/test_onboard_city.py --ignore=test/python/test_street_gradient.py
+              --ignore=test/python/test_osm_lineage.py --ignore=test/python/test_backfill_osm_lineage.py
             coverage-omit: tools/city/check_streets_for_imagery.py
             coverage-omit-2: tools/city/onboard_city.py
             coverage-omit-3: tools/city/street_gradient.py
+            coverage-omit-4: tools/city/osm_lineage.py
+            coverage-omit-5: tools/city/backfill_osm_lineage.py
           - half: offline tooling
             advisory: true
             python: '3.13'
@@ -574,6 +577,8 @@ jobs:
           COVERAGE_OMIT: ${{ matrix['coverage-omit'] }}
           COVERAGE_OMIT2: ${{ matrix['coverage-omit-2'] }}
           COVERAGE_OMIT3: ${{ matrix['coverage-omit-3'] }}
+          COVERAGE_OMIT4: ${{ matrix['coverage-omit-4'] }}
+          COVERAGE_OMIT5: ${{ matrix['coverage-omit-5'] }}
 
   dependency-review:
     name: Dependency review

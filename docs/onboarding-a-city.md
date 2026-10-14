@@ -74,8 +74,8 @@ It never touches the database. It writes, under `db/onboarding/<city-id>/`:
 | File | What for |
 |---|---|
 | `report.md` | Read this first: street count, km, the **tiny-segment share** (production averages 18% under 20 m; Bayonne rebuilt at 4%), loop roads (start = end — kept as OSM maps them), regions flagged `OVERSIZED` (> 60 km of streets — split it), `SPARSE`/`EMPTY` (fold it), boundary coverage. |
-| `<city-id>_qa.gpkg` | The QA GeoPackage for QGIS: `qgis_road`, `qgis_region`, `city_boundary`, plus `dropped_segments` and `rider_merges` so you can see what the rules did. |
-| `qgis_tables.sql` | The staging tables `fill-new-schema.sh` consumes (`qgis_road`: `road_id`, `osm_ids bigint[]`, `highway`, `region_id`, `geom`; `qgis_region`: `region_id`, `name`, `data_source`, `geom`). |
+| `<city-id>_qa.gpkg` | The QA GeoPackage for QGIS: `qgis_road`, `qgis_region`, `city_boundary`, plus `dropped_segments` and `rider_merges` so you can see what the rules did, `osm_way` (the whole OSM ways the streets were cut from) and `qgis_road_osm_way` (the stretch of each street every way covers, #5741; the report counts the streets it could not match whole, which are worth a look). |
+| `qgis_tables.sql` | The staging tables `fill-new-schema.sh` consumes (`qgis_road`: `road_id`, `osm_ids bigint[]`, `highway`, `region_id`, `geom`; `qgis_region`: `region_id`, `name`, `data_source`, `geom`; `qgis_road_osm_way`: one row per street and OSM way with the shared stretch of each and `same_direction`). |
 | `street_edge_endpoints.csv` | The imagery scan's input, so step 2 can run before any database exists. |
 | `street_structures.csv` | Which streets lie on a bridge, in a tunnel, or under cover, from the OSM tags the build already fetched. The street-gradient export (step 8 of the setup) reads it in place of the `osm_way` cache, which is empty until the city's first nightly refresh (#5223); each row carries the street's geometry hash, so the export refuses a file from another build. It also rides in the GeoPackage's `qgis_road` layer, so a `--from-gpkg` re-export rewrites it; a hand-built layer without the column gets no file, and the grade is sampled after launch instead. |
 
@@ -91,9 +91,10 @@ flagged region. Two ways back:
 - *Hand edits:* delete a street, reassign its `region_id`, move a boundary — in the GeoPackage — then
   `make build-city-data id=<city-id> args="--from-gpkg"`, which validates the layers (unique ids, region references,
   geometry types, non-empty names, at least one OSM way id per street, no two streets drawn on top of each other,
-  no street under 15 m) and rewrites the SQL, report, and endpoints CSV so the load matches what you QA'd. Region
-  edits big enough that streets should re-split go back in as the region source instead:
-  `--regions-file <the QA gpkg> --regions-source "..."`.
+  no street under 15 m), re-matches the streets to the GeoPackage's `osm_way` layer (a hand-built GeoPackage without
+  that layer links its streets to their way ids without positions) and rewrites the SQL, report, and endpoints CSV so
+  the load matches what you QA'd. Region edits big enough that streets should re-split go back in as the region
+  source instead: `--regions-file <the QA gpkg> --regions-source "..."`.
 
 Never load a stale SQL over hand edits.
 

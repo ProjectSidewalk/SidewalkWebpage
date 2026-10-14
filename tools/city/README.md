@@ -1,11 +1,10 @@
 # City tools
 
-Scripts that build, check or update one city's data. `onboard_city.py`, `check_streets_for_imagery.py` and
-`street_gradient.py` run in the web container as `python3.13` with
+Scripts that build, check or update one city's data. `onboard_city.py`, `check_streets_for_imagery.py`,
+`street_gradient.py`, `osm_lineage.py` and `backfill_osm_lineage.py` run in the web container as `python3.13` with
 [`requirements-offline-tools.txt`](../../requirements-offline-tools.txt) (host-side: >= 3.12), which is what their
-`make` targets do; the other three are stdlib-only and run on the host as `python3`. All resolve their paths relative
-to the repo root, so they can be launched from any working directory. Unit tests live in
-[`test/python/`](../../test/python).
+`make` targets do; the other three are stdlib-only and run on the host as `python3`. All resolve paths from the repo
+root, so they run from any directory; unit tests live in [`test/python/`](../../test/python).
 
 | Script | Run with | What it does |
 | --- | --- | --- |
@@ -15,6 +14,8 @@ to the repo root, so they can be launched from any working directory. Unit tests
 | `create_ga_properties.py` | `make onboard-city`, or by hand | Creates a city's Google Analytics properties |
 | `maps_key_referrers.py` | `make onboard-city`, or by hand | Adds a city's hostnames to the Maps key's referrer list |
 | `street_gradient.py` | `make street-gradient` | Samples an elevation model along every street |
+| `osm_lineage.py` | (imported) | Matches streets to the OSM ways they lie on, by geometry (#5741); the build and the backfill both use it |
+| `backfill_osm_lineage.py` | `make osm-lineage` | Positions a live city's streets on today's OSM ways, between `make export-osm-lineage-input` and `make import-osm-lineage` |
 
 The whole new-city sequence is [`docs/onboarding-a-city.md`](../../docs/onboarding-a-city.md); `setup_new_city.py`,
 `create_ga_properties.py` and `maps_key_referrers.py` are documented in their headers.
@@ -267,23 +268,24 @@ Streets come from OSM (osmnx, the runbook's highway filter minus `area=yes` plaz
 closing a ring); region-boundary fragments under `--heal-segment-m` are reabsorbed; boundary-running splits are merged
 (`rider_merges` QA layer); truncated ends riding within `--boundary-merge-tol-m` of the covered area are restored.
 osmnx joins consecutive OSM ways between intersections into one edge, so a street lists every way it spans in
-`osm_ids` (the fill records the first in `osm_way_street_edge`, which is one row per street). Regions come from the
+`osm_ids`, and `qgis_road_osm_way` records where each lies on the street (#5741), matched by geometry against the
+whole ways, which the build fetches separately and keeps in the GeoPackage's `osm_way` layer. Regions come from the
 first source that works: `--regions-file` (any OGR format/CRS; `--region-name-col` names its name column, and
 `--regions-source` records the provenance in `region.data_source`), OSM neighbourhood polygons (auto-rejected under
 75% city coverage), US census tracts (TIGERweb), or the city boundary as a single region.
 
-Outputs land in `db/onboarding/<city-id>/` (git-ignored; visible to the db container at `/opt/onboarding/` when run
-from the main checkout): the QA GeoPackage, `qgis_tables.sql`, `street_edge_endpoints.csv` (the scan's input, so the
-preflight below runs before any database exists), `street_structures.csv` (which streets are on a bridge, in a
-tunnel or covered, from the OSM tags, with each street's geometry hash, so the street-gradient export can run before
-the nightly `osm_way` cache exists and can refuse a file from another build; it rides in the GeoPackage too, so a
-`--from-gpkg` re-export rewrites it), and `report.md` with the tiny-segment histogram (production
-averages 18% of streets under 20 m; Bayonne rebuilt at 4%), per-region km with `SPARSE`/`OVERSIZED`/`EMPTY` flags,
-and boundary coverage. The QA loop: rerun with tweaked flags — `--merge-regions
-"Census Tract 513:Census Tract 523.01"` folds regions by *name* and re-splits the streets against the merged
-boundaries, and `--rename-regions` applies `db/onboarding/<city-id>/region_renames.csv` — or hand-edit the
-GeoPackage in QGIS and regenerate the SQL with `make build-city-data id=<city-id> args="--from-gpkg"`, which
-validates the layers first (a hand-built layer with a single `osm_id` column is accepted).
+Outputs land in `db/onboarding/<city-id>/` (git-ignored; visible to the db container at `/opt/onboarding/` when run from
+the main checkout): the QA GeoPackage (with `osm_way` and `qgis_road_osm_way` layers beside the staging ones),
+`qgis_tables.sql`, `street_edge_endpoints.csv` (the scan's input, so the preflight below runs before any database
+exists), `street_structures.csv` (which streets are on a bridge, in a tunnel or covered, from the OSM tags, with each
+street's geometry hash, so the street-gradient export can run before the nightly `osm_way` cache exists and can refuse a
+file from another build; it rides in the GeoPackage too, so a `--from-gpkg` re-export rewrites it), and `report.md` with
+the tiny-segment histogram (production averages 18% of streets under 20 m; Bayonne rebuilt at 4%), per-region km with
+`SPARSE`/`OVERSIZED`/`EMPTY` flags, and boundary coverage. The QA loop: rerun with tweaked flags — `--merge-regions
+"Census Tract 513:Census Tract 523.01"` folds regions by *name* and re-splits the streets against the merged boundaries,
+and `--rename-regions` applies `db/onboarding/<city-id>/region_renames.csv` — or hand-edit the GeoPackage in QGIS and
+regenerate the SQL with `make build-city-data id=<city-id> args="--from-gpkg"`, which validates the layers first (a
+hand-built layer with a single `osm_id` column is accepted).
 
 ## `street_gradient.py`
 

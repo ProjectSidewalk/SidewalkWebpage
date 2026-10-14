@@ -2,27 +2,38 @@ package controllers.api
 
 import org.apache.pekko.stream.Materializer
 import org.apache.pekko.util.ByteString
+import models.utils.MyPostgresProfile.api.given
+import org.scalatest.BeforeAndAfterAll
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.JsObject
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
-import util.SidewalkSpec
+import util.{RolledBackDb, SidewalkSpec, StreetFixtures}
 
 /**
  * Locks the response contract of the Sidewalk Presence API (#5279): GET /v3/api/sidewalkPresence returns a GeoJSON
  * FeatureCollection by default, a snake_case CSV header for filetype=csv, 400 INVALID_PARAMETER on a bad
  * `presence`, `status`, bbox, or regionId, 400 on a non-integer `minValidatedNoSidewalkLabels`, and the two GIS
- * exports assemble end to end. Asserts shape, not data.
+ * exports assemble end to end. Asserts shape, not data, except for the OSM siding (#5741), which needs a street with
+ * positioned way links and presence faces: CI's seed carries neither, so the spec seeds one street of its own in
+ * its own region and deletes it in `afterAll` (a request runs in its own transaction, so a rollback cannot do it).
  *
  * Boots the real application (real Slick/PostGIS) and exercises the route end to end. The endpoint is
  * `UserAwareAction` (no auth needed) and makes no external WS calls on the request path. The eager scheduling actors
  * are disabled so they don't fire background DB/WS work during the test.
  *
  * Requires a Postgres+PostGIS database (via DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD env, as in dev/CI).
+ *
+ * `BeforeAndAfterAll` is mixed in before `GuiceOneAppPerSuite` so that `afterAll` runs while the app is still up.
  */
-class SidewalkPresenceApiSpec extends SidewalkSpec with GuiceOneAppPerSuite {
+class SidewalkPresenceApiSpec
+    extends SidewalkSpec
+    with BeforeAndAfterAll
+    with GuiceOneAppPerSuite
+    with RolledBackDb
+    with StreetFixtures {
 
   override def fakeApplication(): Application =
     GuiceApplicationBuilder()
@@ -35,6 +46,40 @@ class SidewalkPresenceApiSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   // A tiny near-empty bbox keeps the streamed body cheap regardless of how much data the connected DB holds.
   private val tinyBbox = "bbox=0,0,0.001,0.001"
+
+  private var sidedRegion: Int = 0
+  private var sidedStreet: Int = 0
+  private val AlongWay         = 9_000_001L // Drawn the street's way, so the face keeps its side.
+  private val AgainstWay       = 9_000_002L // Drawn the other way, so the face's side flips.
+
+  override def beforeAll(): Unit = {
+    super.beforeAll()
+    sidedRegion = run(insertRegion())
+    sidedStreet = run(insertStreet(Some(sidedRegion)))
+    val _ = run(
+      sqlu"""INSERT INTO osm_way_street_edge (osm_way_street_edge_id, osm_way_id, street_edge_id, street_from_frac,
+                                              street_to_frac, way_from_frac, way_to_frac, same_direction, matched_at)
+             VALUES ((SELECT COALESCE(MAX(osm_way_street_edge_id), 0) + 1 FROM osm_way_street_edge), $AlongWay,
+                     $sidedStreet, 0, 0.5, 0.2, 1, TRUE, now()),
+                    ((SELECT COALESCE(MAX(osm_way_street_edge_id), 0) + 2 FROM osm_way_street_edge), $AgainstWay,
+                     $sidedStreet, 0.5, 1, 0, 0.7, FALSE, now())""" andThen
+        sqlu"""INSERT INTO sidewalk_presence (street_edge_id, street_side, presence, presence_basis,
+                                              no_sidewalk_label_count, no_sidewalk_user_count, label_count, audit_count)
+               VALUES ($sidedStreet, 'left', 'unknown', 'unaudited', 0, 0, 0, 0),
+                      ($sidedStreet, 'right', 'unknown', 'unaudited', 0, 0, 0, 0)"""
+    )
+  }
+
+  override def afterAll(): Unit = {
+    try {
+      // The presence faces and the region link go with the street; the way links have no cascade.
+      val _ = run(
+        sqlu"DELETE FROM osm_way_street_edge WHERE street_edge_id = $sidedStreet" andThen
+          sqlu"DELETE FROM street_edge WHERE street_edge_id = $sidedStreet" andThen
+          sqlu"DELETE FROM region WHERE region_id = $sidedRegion"
+      )
+    } finally super.afterAll()
+  }
 
   "GET /v3/api/sidewalkPresence" should {
     "return 200 GeoJSON FeatureCollection by default" in {
@@ -55,6 +100,29 @@ class SidewalkPresenceApiSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       }
     }
 
+    "side each of the street's OSM ways for the face, flipping where the way runs the other direction (#5741)" in {
+      val resp = route(app, FakeRequest(GET, s"/v3/api/sidewalkPresence?regionId=$sidedRegion")).get
+      status(resp) mustBe OK
+      val faces = (contentAsJson(resp) \ "features").as[Seq[JsObject]].map(f => (f \ "properties").as[JsObject])
+      faces.map(f => (f \ "street_side").as[String]).sorted mustBe Seq("left", "right")
+
+      faces.foreach { face =>
+        val streetSide = (face \ "street_side").as[String]
+        val otherSide  = if (streetSide == "left") "right" else "left"
+        // Both ways cover half the street, so the primary is the lower id.
+        (face \ "osm_way_id").as[Long] mustBe AlongWay
+
+        val ways = (face \ "osm_ways").as[Seq[JsObject]]
+        ways.map(_.keys).distinct mustBe Seq(
+          Set("osm_way_id", "street_from_frac", "street_to_frac", "way_from_frac", "way_to_frac", "osm_side")
+        )
+        ways.map(w => ((w \ "osm_way_id").as[Long], (w \ "osm_side").as[String])) mustBe
+          Seq((AlongWay, streetSide), (AgainstWay, otherSide))
+        ways.map(w => ((w \ "street_from_frac").as[Double], (w \ "way_to_frac").as[Double])) mustBe
+          Seq((0.0, 1.0), (0.5, 0.7))
+      }
+    }
+
     "return CSV with the documented snake_case header when filetype=csv" in {
       val resp = route(app, FakeRequest(GET, s"/v3/api/sidewalkPresence?$tinyBbox&filetype=csv")).get
       status(resp) mustBe OK
@@ -64,7 +132,8 @@ class SidewalkPresenceApiSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       body must include(
         "street_edge_id,street_side,osm_way_id,region_id,region_name,way_type,status,presence,presence_basis," +
           "no_sidewalk_label_count,no_sidewalk_user_count,label_count,audit_count,first_no_sidewalk_label_date," +
-          "last_no_sidewalk_label_date,validated_no_sidewalk_count,rejected_no_sidewalk_count,start_point,end_point"
+          "last_no_sidewalk_label_date,validated_no_sidewalk_count,rejected_no_sidewalk_count,osm_ways,start_point," +
+          "end_point"
       )
       body must not include "streetEdgeId"
       body must not include "noSidewalkLabelCount"
@@ -138,6 +207,7 @@ class SidewalkPresenceApiSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       bytes.containsSlice(ByteString("presence_basis")) mustBe true
       bytes.containsSlice(ByteString("no_sidewalk_label_count")) mustBe true
       bytes.containsSlice(ByteString("validated_no_sidewalk_count")) mustBe true
+      bytes.containsSlice(ByteString("osm_ways")) mustBe true
     }
   }
 
