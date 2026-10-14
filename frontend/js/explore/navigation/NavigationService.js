@@ -68,7 +68,7 @@ export class NavigationService {
    * @param {PanoManager} panoManager - Makes the moves; its panning is held while one is in flight.
    * @param {StreetSweep} streetSweep - Finds the next pano along the street for moveForward() and the jump.
    * @param {LabelContainer} labelContainer - Whose minimap markers lead back to a label's pano (#2561).
-   * @param {LabelModes} labelModes - An armed type raises the drawing layer and hides the arrows; a landing disarms it.
+   * @param {LabelModes} labelModes - An armed type raises the drawing layer and hides the arrows; a move disarms it.
    * @param {NavArrows} navArrows - Shown only while the labeler can walk in Walk mode.
    * @param {Gate} keyboardLock - Held while a move is in flight.
    * @param {AlertController} alertController - Tells the labeler when imagery can't be loaded.
@@ -188,6 +188,11 @@ export class NavigationService {
    * Updates the UI before moving to a new location, hiding certain elements and preventing interaction.
    */
   #updateUiBeforeMove() {
+    // A move puts the labeler back in Walk mode, as placing a label does, so the mode and the layer order can't drift
+    // apart: ArrowUp walks with a label type armed (#5768). At the start, so a type chosen mid-move stays chosen, and
+    // before anything locks. Not while switching is held (a pop-up, the tutorial): the switch would be refused but
+    // still logged.
+    if (this.#labelModes.getMode() !== 'Walk' && this.#labelModes.isUsable('Walk')) this.#labelModes.backToWalk();
     this.#moveState = 'moving';
     this.#moveStartedListeners.forEach((listener) => listener());
     this.#keyboardLock.hold('move');
@@ -200,11 +205,6 @@ export class NavigationService {
    */
   #updateUiAfterMove() {
     this.#startCooldown();
-
-    // A move puts the labeler back in Walk mode, as placing a label does, so the mode and the layer order can't drift
-    // apart: ArrowUp walks with a label type armed (#5768). Not while switching is held (a pop-up, the tutorial), when
-    // the switch would be refused but still logged.
-    if (this.#labelModes.getMode() !== 'Walk' && this.#labelModes.isUsable('Walk')) this.#labelModes.backToWalk();
     this.#panoManager.panning.release('move');
     this.#moveFinishedListeners.forEach((listener) => listener());
 

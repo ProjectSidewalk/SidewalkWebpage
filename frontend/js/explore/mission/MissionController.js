@@ -48,6 +48,7 @@ export class MissionController {
   #missionProgressBar;
   #minimapMissionProgress;
   #tracker;
+  #navigationService;
   #routeAutoCompleteFired = false;
 
   /**
@@ -91,6 +92,7 @@ export class MissionController {
     this.#missionProgressBar = missionProgressBar;
     this.#minimapMissionProgress = minimapMissionProgress;
     this.#tracker = tracker;
+    this.#navigationService = navigationService;
 
     missionModel.on('MissionProgress:update', (parameters) => {
       this.update(parameters.mission, parameters.region);
@@ -103,6 +105,8 @@ export class MissionController {
     panoManager.onPovChanged(() => {
       if (!navigationService.isHeadingSettling()) this.maybeAutoCompleteRoute();
     });
+    // The observed area resets to the new pano only once the heading settles, so that is the first fair check.
+    navigationService.onHeadingSettled(() => this.maybeAutoCompleteRoute());
   }
 
   /**
@@ -149,8 +153,9 @@ export class MissionController {
   onRouteReadyToFinish() {
     this.#alertController.showAlert(i18next.t('center-ui.compass.route-finish-look-around'), 'routeFinish', false);
     this.#tracker.push('RouteFinishToast_Shown', { userRouteId: this.#config.userRouteId });
-    // Fire immediately if they already looked all the way around at this pano before reaching the end.
-    this.maybeAutoCompleteRoute();
+    // Fire immediately if they already looked all the way around at this pano before reaching the end. Mid-move the
+    // observed area is still the last pano's, so the check waits for the heading to settle instead.
+    if (!this.#navigationService.isHeadingSettling()) this.maybeAutoCompleteRoute();
   }
 
   /**

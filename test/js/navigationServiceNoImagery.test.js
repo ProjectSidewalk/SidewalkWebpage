@@ -250,9 +250,8 @@ describe('Explore, when the imagery search runs out along a street', () => {
         ui = { modeSwitchWalk: el(), viewControlLayer: el(), drawingLayer: el() };
         sweep = new window.StreetSweep(config, svl.missionContainer, svl.taskContainer, svl.panoStore,
             svl.panoManager, svl.alertController, svl.stuckAlert, svl.form, svl.tracker);
-        nav = new window.NavigationService(ui, svl.panoStore, svl.panoManager, sweep, svl.labelContainer, svl.labelModes, svl.navArrows, keyboardLock,
-            svl.alertController,
-        );
+        nav = new window.NavigationService(ui, svl.panoStore, svl.panoManager, sweep, svl.labelContainer,
+            svl.labelModes, svl.navArrows, keyboardLock, svl.alertController);
         progress = new window.StreetProgress(config, svl.regionModel, svl.missionModel, svl.missionContainer,
             svl.taskContainer, svl.panoManager, nav, sweep, svl.jumpAlert, svl.tracker);
         progress.onRouteEndReached(() => missionController.onRouteReadyToFinish());
@@ -926,6 +925,20 @@ describe('Explore, when the imagery search runs out along a street', () => {
             expect(svl.navArrows.show).toHaveBeenCalled();
         });
 
+        it('keeps a type the labeler chose while the move was loading', async () => {
+            assignStreets(makeTask(101));
+            let land;
+            respondToSearch = () => new Promise((resolve) => { land = () => resolve({ panoId: 'pano-found' }); });
+
+            const move = nav.moveForward();
+            switchMode('CurbRamp');
+            land();
+            await move;
+
+            expect(svl.labelModes.backToWalk).not.toHaveBeenCalled();
+            expect(ui.drawingLayer.style.zIndex).toBe('1');
+        });
+
         it('leaves the type armed when switching is held, rather than log a switch that is refused', async () => {
             assignStreets(makeTask(101));
             respondToSearch = foundImagery;
@@ -936,12 +949,47 @@ describe('Explore, when the imagery search runs out along a street', () => {
             expect(svl.labelModes.backToWalk).not.toHaveBeenCalled();
         });
 
-        it('does not switch modes on a landing already in Walk mode, which would log a switch nobody made', async () => {
+        it('does not switch modes on a move already in Walk mode, which would log a switch nobody made', async () => {
             assignStreets(makeTask(101));
             respondToSearch = foundImagery;
 
             await nav.moveForward();
             expect(svl.labelModes.backToWalk).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('and a move lands with the streets loaded (#5766)', () => {
+        beforeEach(() => {
+            svl.taskContainer.tasksLoaded = () => true;
+            respondToSearch = foundImagery;
+        });
+
+        it('hands over the next street when the labeler reaches the end of one that joins it', async () => {
+            const [ending, next] = [makeTask(101, { atEnd: true }), makeTask(102)];
+            assignStreets(ending, next);
+
+            await nav.moveForward();
+
+            expect(svl.taskContainer.endTask).toHaveBeenCalledWith(ending);
+            expect(svl.taskContainer.setCurrentTask).toHaveBeenCalledWith(next);
+        });
+
+        it('keeps a route\'s short last street open until most of it is walked (#4640)', async () => {
+            svl.regionModel.isRoute = true;
+            assignStreets(makeTask(101, { atEnd: true, walkOrder: 1 }));
+
+            await nav.moveForward();
+
+            expect(svl.regionModel.setComplete).not.toHaveBeenCalled();
+            expect(missionController.onRouteReadyToFinish).not.toHaveBeenCalled();
+        });
+
+        it('preloads where the next step forward will land', async () => {
+            assignStreets(makeTask(101));
+
+            await nav.moveForward();
+
+            expect(svl.panoViewer.preloadPanoNear).toHaveBeenCalled();
         });
     });
 
