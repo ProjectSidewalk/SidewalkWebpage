@@ -125,10 +125,16 @@ logger = logging.getLogger(__name__)
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 
 
-def _osmnx():
-    """Imports osmnx with its HTTP cache pointed into the git-ignored onboarding dir instead of CWD-relative cache/."""
+def _osmnx(fresh=False):
+    """
+    Imports osmnx with its HTTP cache pointed into the git-ignored onboarding dir instead of CWD-relative cache/.
+
+    Args:
+        fresh: Skip the cache, which never expires, so the fetch is what OSM holds today.
+    """
     import osmnx as ox
     ox.settings.cache_folder = str(REPO_ROOT / 'db' / 'onboarding' / 'osmnx-cache')
+    ox.settings.use_cache = not fresh
     # osmnx keeps bridge and tunnel on every edge by default but drops covered; is_structure needs all three.
     tags = list(getattr(ox.settings, 'useful_tags_way', []))
     ox.settings.useful_tags_way = tags + [tag for tag in STRUCTURE_TAGS if tag not in tags]
@@ -1230,7 +1236,7 @@ def fetch_streets(boundary_poly, include_alleys, fetch_buffer_m):
     return edges[['u', 'v', 'osm_ids', 'highway', 'is_structure', 'geometry']]
 
 
-def fetch_ways(boundary_poly, include_alleys, fetch_buffer_m):
+def fetch_ways(boundary_poly, include_alleys, fetch_buffer_m, fresh=False):
     """
     Fetches the OSM ways the streets are cut from, whole and in their drawn direction, for :func:`street_lineage`.
 
@@ -1242,11 +1248,13 @@ def fetch_ways(boundary_poly, include_alleys, fetch_buffer_m):
         boundary_poly:  Shapely (Multi)Polygon of the city, in lon/lat.
         include_alleys: Also fetch ``service=alley`` ways.
         fetch_buffer_m: How far outside the boundary to fetch, in meters.
+        fresh:          Skip osmnx's cache: a backfill positions streets on the ways OSM holds today, not on a copy
+                        an earlier run left behind.
 
     Returns:
         A GeoDataFrame of ways: ``osm_way_id``, ``highway``, LineString geometry in lon/lat.
     """
-    ox = _osmnx()
+    ox = _osmnx(fresh)
     buffer_deg = fetch_buffer_m / (111_320 * cos(radians(boundary_poly.centroid.y)))
     highways = list(DEFAULT_WAY_TYPES) + (['service'] if include_alleys else [])
     features = ox.features_from_polygon(boundary_poly.buffer(buffer_deg), tags={'highway': highways})

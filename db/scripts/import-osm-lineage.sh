@@ -83,13 +83,14 @@ psql -v ON_ERROR_STOP=1 -d sidewalk -U "$SCHEMA_NAME" <<EOSQL
     END
     \$\$;
 
+    -- A schema restored from a dump can have the id sequence behind the table. Before the DELETE: a sequence change
+    -- survives a rollback, so set after it the sequence could end up below rows the rollback brings back.
+    SELECT setval(pg_get_serial_sequence('osm_way_street_edge', 'osm_way_street_edge_id'),
+                  (SELECT COALESCE(MAX(osm_way_street_edge_id), 0) + 1 FROM osm_way_street_edge), false);
     DELETE FROM osm_way_street_edge
     USING osm_lineage_match
     WHERE osm_way_street_edge.street_edge_id = osm_lineage_match.street_edge_id;
 
-    -- A schema restored from a dump can have the id sequence behind the table.
-    SELECT setval(pg_get_serial_sequence('osm_way_street_edge', 'osm_way_street_edge_id'),
-                  (SELECT COALESCE(MAX(osm_way_street_edge_id), 0) + 1 FROM osm_way_street_edge), false);
     INSERT INTO osm_way_street_edge (osm_way_id, street_edge_id, street_from_frac, street_to_frac, way_from_frac,
                                      way_to_frac, same_direction, matched_at)
     SELECT osm_lineage_import.osm_way_id,

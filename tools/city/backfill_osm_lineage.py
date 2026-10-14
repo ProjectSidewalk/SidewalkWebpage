@@ -152,7 +152,7 @@ def main(argv=None, fetch=fetch_ways):
         logger.error('%s holds no streets.', input_path)
         return 1
     logger.info('Read %d streets from %s', len(streets), input_path)
-    ways = fetch(hull_of(streets, args.fetch_buffer_m), True, 0)
+    ways = fetch(hull_of(streets, args.fetch_buffer_m), True, 0, fresh=True)
     logger.info('Fetched %d OSM ways around them', len(ways))
     lineages = compute_lineage(((street_edge_id, geom, hints) for street_edge_id, _, hints, geom in streets),
                                dict(zip(ways['osm_way_id'], ways.geometry)))

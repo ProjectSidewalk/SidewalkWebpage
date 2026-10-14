@@ -76,13 +76,13 @@ def test_main_matches_the_export_and_writes_both_files(tmp_path, monkeypatch, ca
     write_input(city_dir / bl.INPUT_NAME, [input_row(1, way, '10'), input_row(2, lonlat((0, 300), (100, 300)), '10')])
     seen = {}
 
-    def fetch(poly, include_alleys, buffer_m):
-        seen['poly'], seen['alleys'] = poly, include_alleys
+    def fetch(poly, include_alleys, buffer_m, fresh=False):
+        seen['poly'], seen['alleys'], seen['fresh'] = poly, include_alleys, fresh
         return gpd.GeoDataFrame({'osm_way_id': [10], 'highway': ['residential']}, geometry=[way], crs='EPSG:4326')
 
     with caplog.at_level(logging.INFO):
         assert bl.main(['--city-id', 'testville'], fetch=fetch) == 0
-    assert seen['alleys'] and seen['poly'].contains(way)
+    assert seen['alleys'] and seen['fresh'] and seen['poly'].contains(way)
     with open(city_dir / bl.OUTPUT_NAME, newline='') as f:
         rows = list(csv.DictReader(f))
     assert [(r['street_edge_id'], r['osm_way_id'], r['street_to_frac']) for r in rows] == [('1', '10', '1.0'),
