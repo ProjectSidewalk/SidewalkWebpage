@@ -19,11 +19,11 @@ source /opt/scripts/helpers.sh
 # its prompts.
 SCHEMA_NAME=${1:-$(prompt_with_default "Schema name")}
 CSV_FILENAME=${2:-$(prompt_with_default \
-    "Path to CSV file (relative to db dir, e.g. onboarding/seattle-wa/osm_lineage.csv)")}
+  "Path to CSV file (relative to db dir, e.g. onboarding/seattle-wa/osm_lineage.csv)")}
 CSV_FILENAME=/opt/$CSV_FILENAME
 if [[ ! -f "$CSV_FILENAME" ]]; then
-    echo "Error: CSV not found at $CSV_FILENAME. Generate it with tools/city/backfill_osm_lineage.py first." >&2
-    exit 1
+  echo "Error: CSV not found at $CSV_FILENAME. Generate it with tools/city/backfill_osm_lineage.py first." >&2
+  exit 1
 fi
 
 # COPY maps columns by position, so a CSV with other columns would fail on whichever column first disagrees, with an
@@ -34,10 +34,10 @@ geom_md5"
 # there. The error prints both headers, since an empty or wrong file fails this test too.
 ACTUAL_HEADER=$(head -n 1 "$CSV_FILENAME" | tr -d '\r' | sed $'1s/^\xef\xbb\xbf//')
 if [[ "$ACTUAL_HEADER" != "$EXPECTED_HEADER" ]]; then
-    echo "Error: $CSV_FILENAME does not have the columns tools/city/backfill_osm_lineage.py writes." >&2
-    echo "Expected: $EXPECTED_HEADER" >&2
-    echo "Found:    $ACTUAL_HEADER" >&2
-    exit 1
+  echo "Error: $CSV_FILENAME does not have the columns tools/city/backfill_osm_lineage.py writes." >&2
+  echo "Expected: $EXPECTED_HEADER" >&2
+  echo "Found:    $ACTUAL_HEADER" >&2
+  exit 1
 fi
 
 # Staged as text so the matcher's empty fields survive as '' and become NULL here. The table's CHECK constraints then

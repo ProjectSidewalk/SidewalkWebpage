@@ -119,14 +119,14 @@ fi
 # import arrives with string-typed columns, add explicit CAST()s here rather than relying on implicit coercion.
 # The build's lineage table, or, for a staging load from before it existed, each street's way ids unpositioned.
 HAS_LINEAGE=$(psql -v ON_ERROR_STOP=1 -d sidewalk -U "$SCHEMA_NAME" -At \
-    -c "SELECT to_regclass('qgis_road_osm_way') IS NOT NULL")
+  -c "SELECT to_regclass('qgis_road_osm_way') IS NOT NULL")
 if [[ "$HAS_LINEAGE" == t ]]; then
-    LINEAGE_SOURCE_Q="qgis_road_osm_way"
+  LINEAGE_SOURCE_Q="qgis_road_osm_way"
 else
-    LINEAGE_SOURCE_Q="(SELECT road_id, unnest(osm_ids) AS osm_way_id, NULL::double precision AS street_from_frac,
-                              NULL::double precision AS street_to_frac, NULL::double precision AS way_from_frac,
-                              NULL::double precision AS way_to_frac, NULL::boolean AS same_direction
-                       FROM qgis_road) lineage"
+  LINEAGE_SOURCE_Q="(SELECT road_id, unnest(osm_ids) AS osm_way_id, NULL::double precision AS street_from_frac,
+                            NULL::double precision AS street_to_frac, NULL::double precision AS way_from_frac,
+                            NULL::double precision AS way_to_frac, NULL::boolean AS same_direction
+                     FROM qgis_road) lineage"
 fi
 
 psql -v ON_ERROR_STOP=1 -d sidewalk -U "$SCHEMA_NAME" <<-EOSQL

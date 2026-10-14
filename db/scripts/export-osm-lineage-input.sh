@@ -18,16 +18,16 @@ SCHEMA_NAME=${1:-$(prompt_with_default "Schema name")}
 CITY_ID=${2:-$(prompt_with_default "City id (the db/onboarding/<city-id> dir to write into, e.g. seattle-wa)")}
 # The same shape tools/city/backfill_osm_lineage.py accepts, so a typo cannot create a directory it then refuses.
 if [[ ! "$CITY_ID" =~ ^[a-z0-9]+(-[a-z0-9]+)*$ ]]; then
-    echo "Error: city id \"$CITY_ID\" is not lowercase kebab-case (e.g. seattle-wa)." >&2
-    exit 1
+  echo "Error: city id \"$CITY_ID\" is not lowercase kebab-case (e.g. seattle-wa)." >&2
+  exit 1
 fi
 
 OSM_LINKED=$(psql -v ON_ERROR_STOP=1 -d sidewalk -U "$SCHEMA_NAME" -At \
-    -c "SELECT COUNT(*) FROM osm_way_street_edge WHERE osm_way_id <> -1")
+  -c "SELECT COUNT(*) FROM osm_way_street_edge WHERE osm_way_id <> -1")
 if [[ "$OSM_LINKED" -eq 0 ]]; then
-    echo "Error: no street in $SCHEMA_NAME is linked to an OpenStreetMap way (an Infra3d city?), so there is" >&2
-    echo "nothing to position." >&2
-    exit 1
+  echo "Error: no street in $SCHEMA_NAME is linked to an OpenStreetMap way (an Infra3d city?), so there is" >&2
+  echo "nothing to position." >&2
+  exit 1
 fi
 
 OUT_DIR=/opt/onboarding/$CITY_ID
