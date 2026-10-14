@@ -6,19 +6,10 @@
  * compiled, a failed POST would permanently drop the pano's metadata while later submissions keep referencing its
  * pano_id in labels, orphaning them. These tests pin the contract: panos are marked `submitted` only on a 2xx
  * response, and stay staged (to ride along with the next submission) on an HTTP error or a network failure.
- *
- * Form is a top-level `class` declaration, so the test evals the source into the jsdom global scope (the
- * ShareWidget/PanoInfoPopover pattern) rather than using loadGlobalScript.
  */
 
-const { installDateHelpers, loadModules } = require('./loadGlobalScript');
-
-
-/** Loads a fresh Form class into the jsdom global scope. */
-function loadForm() {
-    Object.assign(window, loadModules('frontend/js/explore/data/Form.js'));
-    return window.Form;
-}
+import { loadModules, useUtil } from './loader.js';
+import { fakePanoManager, fakeTaskContainer, fakeTracker } from './fakes.js';
 
 /** A stand-in for a PanoStore pano whose metadata hasn't been submitted yet. */
 function panoStub(panoId) {
@@ -44,7 +35,7 @@ function panoStub(panoId) {
     return {
         getProperties: () => props,
         getProperty: (k) => props[k],
-        setProperty: jest.fn((k, v) => { props[k] = v; }),
+        setProperty: vi.fn((k, v) => { props[k] = v; }),
     };
 }
 
@@ -81,7 +72,7 @@ function taskStub(streetEdgeId = 34) {
         getMissionStart: () => null,
         getAuditedDistance: () => 0,
         lineDistance: () => 1,
-        setProperty: jest.fn(),
+        setProperty: vi.fn(),
     };
 }
 
@@ -94,28 +85,27 @@ describe('Form pano submission staging', () => {
     let currentTask;
 
     /** Builds a Form wired to stub collaborators, staging the given panos and labels. */
-    function buildForm() {
-        const Form = loadForm();
+    async function buildForm() {
+        const { Form } = await loadModules('frontend/js/explore/data/Form.js');
         const missionProps = { missionId: 5, distanceProgress: 0, distance: 100, isComplete: false, skipped: false };
         const mission = { getProperty: (k) => missionProps[k] };
-        const labelContainer = { getLabelsToLog: () => labels, clearLabelsToLog: jest.fn(), getAllLabels: () => [] };
+        const labelContainer = { getLabelsToLog: () => labels, clearLabelsToLog: vi.fn(), getAllLabels: () => [] };
         const panoStore = {
             getStagedPanoData: () => panos.filter((p) => !p.getProperty('submitted')),
             getPanoData: (id) => panos.find((p) => p.getProperty('panoId') === id) ?? null,
         };
-        const taskContainer = {
-            getCurrentTask: () => currentTask, updateTaskPriorities: jest.fn(), renderTask: jest.fn(),
-            onTaskEnded: jest.fn(), onTaskLeft: jest.fn(),
-        };
+        const taskContainer = fakeTaskContainer(() => currentTask, {
+            updateTaskPriorities: vi.fn(), renderTask: vi.fn(), onTaskEnded: vi.fn(), onTaskLeft: vi.fn(),
+        });
         return new Form(
             '/task',
             { userRouteId: null, regionId: 1, isOnboarding: false, isExploreAddressMode: false },
             labelContainer,
-            { on: jest.fn() }, // missionModel
-            { getCurrentMission: () => mission, updateDistanceProgress: jest.fn() }, // missionContainer
+            { on: vi.fn() }, // missionModel
+            { getCurrentMission: () => mission, updateDistanceProgress: vi.fn() }, // missionContainer
             panoStore,
             taskContainer,
-            { getPosition: () => ({ lat: 41.85, lng: -87.65 }) }, // panoManager
+            fakePanoManager({ getPosition: () => ({ lat: 41.85, lng: -87.65 }) }),
             tracker,
         );
     }
@@ -123,7 +113,7 @@ describe('Form pano submission staging', () => {
     /** Stubs fetch to accept the POST, capturing each request body as parsed JSON. */
     function acceptingFetch() {
         const bodies = [];
-        window.fetch = jest.fn((url, opts) => {
+        window.fetch = vi.fn((url, opts) => {
             bodies.push(JSON.parse(opts.body));
             return Promise.resolve({
                 ok: true,
@@ -133,36 +123,26 @@ describe('Form pano submission staging', () => {
         return bodies;
     }
 
-    beforeEach(() => {
+    beforeEach(async () => {
         // Form's collaborators that live on globals rather than constructor args.
         window.AsyncLock = class { async acquire(key, fn) { return fn(); } };
-        tracker = { getActions: () => [], refresh: jest.fn(), push: jest.fn(), setAuditTaskID: jest.fn() };
-        window.util = {
-            getBrowser: () => 'chrome',
-            getBrowserVersion: () => '1',
-            getOperatingSystem: () => 'linux',
-            math: { kmsToMeters: (km) => km * 1000 },
-            pano: { TUTORIAL_PANO_IDS: new Set(['tutorial', 'afterWalkTutorial']) },
-        };
-        installDateHelpers();
+        tracker = fakeTracker();
+        // The real ones ask the vendored bowser script, which no page here loads.
+        useUtil({ getBrowser: () => 'chrome', getBrowserVersion: () => '1', getOperatingSystem: () => 'linux' });
         window.i18next = { language: 'en' };
 
         panos = [panoStub('pano-A'), panoStub('pano-B')];
         labels = [];
         currentTask = taskStub();
-        form = buildForm();
+        form = await buildForm();
 
         // The failure paths end in window.location.reload(), which jsdom reports as "Not implemented: navigation"
         // through console.error; swallow that expected noise without hiding real errors from the assertions.
-        jest.spyOn(console, 'error').mockImplementation(() => {});
-    });
-
-    afterEach(() => {
-        jest.restoreAllMocks();
+        vi.spyOn(console, 'error').mockImplementation(() => {});
     });
 
     test('marks panos submitted only once the server has accepted them', async () => {
-        window.fetch = jest.fn(() => {
+        window.fetch = vi.fn(() => {
             // At POST time the panos must still be staged: the mark means "accepted", not "sent".
             for (const pano of panos) expect(pano.getProperty('submitted')).toBe(false);
             return Promise.resolve({
@@ -182,7 +162,7 @@ describe('Form pano submission staging', () => {
         // after the switch. Applying its audit_task_id would file every following interaction under the old street
         // (#5370).
         const submitted = taskStub(34);
-        window.fetch = jest.fn(() => {
+        window.fetch = vi.fn(() => {
             currentTask = taskStub(99); // the switch happens while the POST is in flight
             return Promise.resolve({
                 ok: true,
@@ -207,7 +187,7 @@ describe('Form pano submission staging', () => {
     });
 
     test('keeps panos staged for the next submission when the server rejects the POST', async () => {
-        window.fetch = jest.fn(() => Promise.resolve({ ok: false, json: async () => ({}) }));
+        window.fetch = vi.fn(() => Promise.resolve({ ok: false, json: async () => ({}) }));
         const task = taskStub();
 
         await form.submitData(task);
@@ -221,7 +201,7 @@ describe('Form pano submission staging', () => {
     });
 
     test('keeps panos staged when the POST fails at the network level', async () => {
-        window.fetch = jest.fn(() => Promise.reject(new Error('network down')));
+        window.fetch = vi.fn(() => Promise.reject(new Error('network down')));
 
         await form.submitData(taskStub());
 

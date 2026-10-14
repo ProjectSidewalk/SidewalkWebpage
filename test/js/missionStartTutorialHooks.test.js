@@ -6,7 +6,8 @@
  * on it leaves the user stuck behind the overlay with the keyboard off.
  */
 
-const { assetPathStub, loadModules } = require('./loadGlobalScript');
+import { loadModules } from './loader.js';
+import { fakeTracker } from './fakes.js';
 
 
 /** The markup the tutorial fills in, reduced to the elements it reaches for. */
@@ -43,17 +44,16 @@ describe('the mission-start tutorial closing', () => {
     let MissionStartTutorial;
     let hooks;
 
-    beforeAll(() => {
+    beforeAll(async () => {
         window.i18next = { t: (key) => key };
-        window.util = { assetPath: assetPathStub };
-        ({ MissionStartTutorial } = loadModules('frontend/js/common/MissionStartTutorial.js'));
+        ({ MissionStartTutorial } = await loadModules('frontend/js/common/MissionStartTutorial.js'));
     });
 
     beforeEach(() => {
         buildFixture();
         hooks = {
-            tracker: { push: jest.fn() },
-            keyboard: { enableKeyboard: jest.fn() },
+            tracker: fakeTracker(),
+            keyboard: { enableKeyboard: vi.fn() },
             missionContainer: {
                 getCurrentMission: () => ({
                     getProperty: (key) => ({ distanceProgress: 0, missionId: 7, missionType: 'audit', regionId: 3 })[key],
@@ -65,7 +65,7 @@ describe('the mission-start tutorial closing', () => {
 
     it('hands Explore its tool back with the hooks Explore has, which do not include a zoom control', () => {
         new MissionStartTutorial('audit', 'CurbRamp', { nLength: 0.3, region: 'Downtown', resuming: false }, hooks);
-        const done = jest.fn();
+        const done = vi.fn();
         document.addEventListener('ps:mission-start-tutorial:done', done, { once: true });
 
         document.querySelector('.mission-start-tutorial-done-btn').click();
@@ -79,7 +79,7 @@ describe('the mission-start tutorial closing', () => {
     });
 
     it('refreshes the zoom buttons for a tool that hands one in', () => {
-        hooks.zoomControl = { updateZoomAvailability: jest.fn() };
+        hooks.zoomControl = { updateZoomAvailability: vi.fn() };
         new MissionStartTutorial('validate', 'CurbRamp', { nLabels: 10 }, hooks);
 
         document.querySelector('.mission-start-tutorial-done-btn').click();

@@ -6,16 +6,12 @@
  * street has no name to show, a row identifies itself by brushing the contribution map above it — which loads
  * asynchronously and may not load at all, so hovering has to be safe before and without it. And the audited-on date
  * is rendered in UTC by the server and rewritten to the reader's timezone here.
- *
- * OutdatedStreets is a page-global `class` that reaches for globals, so the source is eval'd into jsdom with its
- * collaborators (i18next, logWebpageActivity, the map) stubbed.
  */
 
-const fs = require('fs');
-const path = require('path');
-const { installDateHelpers, loadModules } = require('./loadGlobalScript');
+import fs from 'fs';
+import path from 'path';
+import { loadModules, REPO_ROOT } from './loader.js';
 
-const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const DASHBOARD_CSS = fs.readFileSync(path.join(REPO_ROOT, 'frontend/css/pages/user-dashboard.css'), 'utf8');
 
 const PAGE_SIZE = 5;
@@ -78,6 +74,7 @@ describe('the dashboard\'s needs-re-audit list', () => {
     const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
     let map;
+    let OutdatedStreets;
 
     /**
      * Wires the section over the rendered markup.
@@ -87,7 +84,7 @@ describe('the dashboard\'s needs-re-audit list', () => {
      */
     async function init(total, opts = {}) {
         renderSection(total, opts.datetime);
-        const section = new window.OutdatedStreets(document.getElementById('ud-reaudit-list'), {
+        const section = new OutdatedStreets(document.getElementById('ud-reaudit-list'), {
             mapReady: 'mapReady' in opts ? opts.mapReady : Promise.resolve(map),
         });
         section.init();
@@ -95,15 +92,14 @@ describe('the dashboard\'s needs-re-audit list', () => {
         return section;
     }
 
-    beforeAll(() => {
+    beforeAll(async () => {
         window.i18next = { language: 'en' };
-        installDateHelpers();
-        window.OutdatedStreets = loadModules('frontend/js/user-dashboard/OutdatedStreets.js').OutdatedStreets;
+        ({ OutdatedStreets } = await loadModules('frontend/js/user-dashboard/OutdatedStreets.js'));
     });
 
     beforeEach(() => {
-        window.logWebpageActivity = jest.fn();
-        map = { setFeatureState: jest.fn() };
+        window.logWebpageActivity = vi.fn();
+        map = { setFeatureState: vi.fn() };
     });
 
     describe('paging', () => {
@@ -187,7 +183,7 @@ describe('the dashboard\'s needs-re-audit list', () => {
         it('highlights the hovered row\'s street', async () => {
             await init(3);
 
-            rows()[0].dispatchEvent(new window.MouseEvent('mouseenter'));
+            rows()[0].dispatchEvent(new MouseEvent('mouseenter'));
 
             expect(map.setFeatureState).toHaveBeenCalledWith({ source: 'streets', id: 101 }, { hover: true });
         });
@@ -195,9 +191,9 @@ describe('the dashboard\'s needs-re-audit list', () => {
         it('clears the previous highlight when the pointer moves to another row', async () => {
             await init(3);
 
-            rows()[0].dispatchEvent(new window.MouseEvent('mouseenter'));
+            rows()[0].dispatchEvent(new MouseEvent('mouseenter'));
             map.setFeatureState.mockClear();
-            rows()[1].dispatchEvent(new window.MouseEvent('mouseenter'));
+            rows()[1].dispatchEvent(new MouseEvent('mouseenter'));
 
             expect(map.setFeatureState.mock.calls).toEqual([
                 [{ source: 'streets', id: 101 }, { hover: false }],
@@ -208,9 +204,9 @@ describe('the dashboard\'s needs-re-audit list', () => {
         it('clears the highlight when the pointer leaves', async () => {
             await init(3);
 
-            rows()[0].dispatchEvent(new window.MouseEvent('mouseenter'));
+            rows()[0].dispatchEvent(new MouseEvent('mouseenter'));
             map.setFeatureState.mockClear();
-            rows()[0].dispatchEvent(new window.MouseEvent('mouseleave'));
+            rows()[0].dispatchEvent(new MouseEvent('mouseleave'));
 
             expect(map.setFeatureState).toHaveBeenCalledWith({ source: 'streets', id: 101 }, { hover: false });
         });
@@ -218,11 +214,11 @@ describe('the dashboard\'s needs-re-audit list', () => {
         it('brushes on keyboard focus too, so the list is navigable without a pointer', async () => {
             await init(3);
 
-            rows()[0].dispatchEvent(new window.FocusEvent('focusin', { bubbles: true }));
+            rows()[0].dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
             expect(map.setFeatureState).toHaveBeenCalledWith({ source: 'streets', id: 101 }, { hover: true });
 
             map.setFeatureState.mockClear();
-            rows()[0].dispatchEvent(new window.FocusEvent('focusout', { bubbles: true }));
+            rows()[0].dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
             expect(map.setFeatureState).toHaveBeenCalledWith({ source: 'streets', id: 101 }, { hover: false });
         });
 
@@ -230,7 +226,7 @@ describe('the dashboard\'s needs-re-audit list', () => {
             await init(15);
 
             showMoreButton().click();
-            rows()[PAGE_SIZE].dispatchEvent(new window.MouseEvent('mouseenter'));
+            rows()[PAGE_SIZE].dispatchEvent(new MouseEvent('mouseenter'));
 
             expect(map.setFeatureState).toHaveBeenCalledWith({ source: 'streets', id: 106 }, { hover: true });
         });
@@ -240,25 +236,25 @@ describe('the dashboard\'s needs-re-audit list', () => {
             let resolveMap;
             await init(3, { mapReady: new Promise((resolve) => { resolveMap = resolve; }) });
 
-            expect(() => rows()[0].dispatchEvent(new window.MouseEvent('mouseenter'))).not.toThrow();
+            expect(() => rows()[0].dispatchEvent(new MouseEvent('mouseenter'))).not.toThrow();
             expect(map.setFeatureState).not.toHaveBeenCalled();
 
             resolveMap(map);
             await flush();
-            rows()[1].dispatchEvent(new window.MouseEvent('mouseenter'));
+            rows()[1].dispatchEvent(new MouseEvent('mouseenter'));
             expect(map.setFeatureState).toHaveBeenCalledWith({ source: 'streets', id: 102 }, { hover: true });
         });
 
         it('survives a map that failed to load', async () => {
             await init(3, { mapReady: Promise.resolve(null) });
 
-            expect(() => rows()[0].dispatchEvent(new window.MouseEvent('mouseenter'))).not.toThrow();
+            expect(() => rows()[0].dispatchEvent(new MouseEvent('mouseenter'))).not.toThrow();
         });
 
         it('survives a map promise that rejected', async () => {
             await init(3, { mapReady: Promise.reject(new Error('map blew up')) });
 
-            expect(() => rows()[0].dispatchEvent(new window.MouseEvent('mouseenter'))).not.toThrow();
+            expect(() => rows()[0].dispatchEvent(new MouseEvent('mouseenter'))).not.toThrow();
         });
     });
 
@@ -266,7 +262,7 @@ describe('the dashboard\'s needs-re-audit list', () => {
         it('rewrites the server\'s UTC date into the reader\'s timezone', async () => {
             await init(3);
 
-            // 03:04 UTC on Jan 2 is still Jan 1 in Los Angeles, where jest.config.js pins the clock.
+            // 03:04 UTC on Jan 2 is still Jan 1 in Los Angeles, where vitest.config.mjs pins the clock.
             expect(document.querySelector('.ud-reaudit-date').textContent).toBe('Jan 1, 2026');
         });
 
@@ -288,7 +284,7 @@ describe('the dashboard\'s needs-re-audit list', () => {
     it('logs a revisit with the street it sends the mapper to', async () => {
         await init(3);
 
-        document.querySelector('.ud-reaudit-explore').dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+        document.querySelector('.ud-reaudit-explore').dispatchEvent(new MouseEvent('click', { bubbles: true }));
 
         expect(window.logWebpageActivity).toHaveBeenCalledWith('Click_module=ReauditRevisit_streetEdgeId=101');
     });

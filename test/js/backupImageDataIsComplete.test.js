@@ -3,29 +3,15 @@
  * a pano_data row with null width/height from reaching PannellumViewer and throwing (#4804).
  *
  * The last block pins the guard's field list against PanoData, the authority it and the backend copies answer to.
- *
- * Runs under jsdom (jest.config.js).
  */
 
-/* global PanoData, backupImageDataIsComplete, buildBackupImageData -- put on global by loadScript below. */
+import { loadModules } from './loader.js';
 
-const path = require('path');
-const { loadModules, realUtil } = require('./loadGlobalScript');
-
-const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const UTILITIES_PATH = path.join(REPO_ROOT, 'frontend/js/common/utilitiesSidewalk.js');
-const PANO_DATA_PATH = path.join(REPO_ROOT, 'frontend/js/common/pano-viewer/PanoData.js');
-
-/**
- * Execute a production global script in the jsdom global scope, then hoist the named bindings onto `global`.
- *
- * Indirect eval puts top-level `function` declarations on globalThis, but not `const`/`class` — hence the epilogue.
- *
- * @param {string} filePath Absolute path to the script.
- */
-function loadScript(filePath) {
-  Object.assign(global, loadModules(filePath));
-}
+const { backupImageDataIsComplete, buildBackupImageData, PanoData, util } = await loadModules(
+  'frontend/js/common/utilitiesSidewalk.js',
+  'frontend/js/common/pano-viewer/PanoData.js',
+  'frontend/js/common/utilities.js',
+);
 
 /** A backup pano whose metadata is complete — the shape buildBackupImageData produces. */
 function completeBackupImageData() {
@@ -69,12 +55,6 @@ function labelMetadata(panoDataOverrides = {}) {
     },
   };
 }
-
-beforeAll(() => {
-  window.util = realUtil();
-  loadScript(UTILITIES_PATH);
-  loadScript(PANO_DATA_PATH);
-});
 
 describe('backupImageDataIsComplete', () => {
   test('accepts metadata with every required field', () => {

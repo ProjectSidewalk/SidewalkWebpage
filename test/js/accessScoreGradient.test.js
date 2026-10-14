@@ -7,10 +7,9 @@
  * only a real engine config here.
  */
 
-const fs = require('fs');
-const path = require('path');
-const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const { loadModules } = require('./loadGlobalScript');
+import fs from 'fs';
+import path from 'path';
+import { loadModules, REPO_ROOT } from './loader.js';
 
 const read = (p) => fs.readFileSync(path.join(REPO_ROOT, p), 'utf8');
 
@@ -56,9 +55,10 @@ describe('street slope in the AccessScore tool', () => {
     let AccessScoreModel;
     let AccessScoreGradeRamp;
     let AccessScoreElevationProfile;
+    let AccessScoreMapLegend;
     let AccessScoreUrlSync;
 
-    beforeAll(() => {
+    beforeAll(async () => {
         // The legend's copy comes through i18next, so `t` echoes the key and whatever was interpolated into it.
         window.i18next = {
             language: 'en',
@@ -66,15 +66,11 @@ describe('street slope in the AccessScore tool', () => {
             t: (key, values = {}) => [key, ...Object.entries(values)
                 .filter(([k]) => k !== 'interpolation').map(([k, v]) => `${k}=${v}`)].join(' '),
         };
-        window.util = { escapeHTML: (t) => String(t).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;') };
-        Object.assign(window, loadModules('frontend/js/common/scoreRamp.js'));
-        for (const name of ['Model', 'GradeRamp', 'ElevationProfile', 'MapLegend', 'UrlSync']) {
-            if (name === 'UrlSync') loadModules('frontend/js/common/urlQuery.js');
-            // The ramp and the chart are shared with the API docs, so they live in common/.
-            const dir = ['GradeRamp', 'ElevationProfile'].includes(name) ? 'common' : 'access-score';
-            Object.assign(window, loadModules(`frontend/js/${dir}/AccessScore${name}.js`));
-        }
-        ({ AccessScoreModel, AccessScoreGradeRamp, AccessScoreElevationProfile, AccessScoreUrlSync } = window);
+        ({ AccessScoreModel, AccessScoreGradeRamp, AccessScoreElevationProfile, AccessScoreMapLegend,
+            AccessScoreUrlSync }
+            = await loadModules('frontend/js/access-score/AccessScoreModel.js',
+                'frontend/js/common/AccessScoreGradeRamp.js', 'frontend/js/common/AccessScoreElevationProfile.js',
+                'frontend/js/access-score/AccessScoreMapLegend.js', 'frontend/js/access-score/AccessScoreUrlSync.js'));
         for (let i = 1; i <= 5; i++) {
             document.documentElement.style.setProperty(`--color-grade-ramp-${i}`, `#00000${i}`);
             document.documentElement.style.setProperty(`--color-grade-ramp-dark-${i}`, `#fffff${i}`);
@@ -186,7 +182,7 @@ describe('street slope in the AccessScore tool', () => {
         });
 
         test('warns when the backend publishes more classes than there are colors to tell them apart', () => {
-            const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+            const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
             AccessScoreGradeRamp.colors(5);
             expect(warn).not.toHaveBeenCalled();
             const six = AccessScoreGradeRamp.colors(6);
@@ -259,7 +255,7 @@ describe('street slope in the AccessScore tool', () => {
          */
         function mount(options = {}) {
             selected = [];
-            legend = new window.AccessScoreMapLegend({
+            legend = new AccessScoreMapLegend({
                 gradeBreaks: breaks, onGradeClasses: (c) => selected.push(c), ...options,
             });
             document.body.innerHTML = '';
@@ -272,7 +268,7 @@ describe('street slope in the AccessScore tool', () => {
 
         /** A click carrying the modifiers a pointer would. */
         const click = (button, modifiers = {}) =>
-            button.dispatchEvent(new window.MouseEvent('click', { bubbles: true, ...modifiers }));
+            button.dispatchEvent(new MouseEvent('click', { bubbles: true, ...modifiers }));
 
         test('offers one button per class plus the no-slope one, and names the statistic it is classing', () => {
             const buttons = mount();
@@ -340,7 +336,7 @@ describe('street slope in the AccessScore tool', () => {
             // The no-slope class is not on the scale, so it joins one at a time rather than filling a run.
             click(buttons[5], { shiftKey: true });
             expect(selected[2]).toEqual([AccessScoreGradeRamp.NO_GRADE, 1, 2, 3, 4]);
-            buttons[2].dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+            buttons[2].dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
             expect(selected[3]).toEqual([]);
         });
 
@@ -349,10 +345,10 @@ describe('street slope in the AccessScore tool', () => {
             // The arrow keys walk the rows as displayed.
             const shown = rowsInOrder();
             expect(shown.filter((b) => b.tabIndex === 0)).toHaveLength(1);
-            shown[0].dispatchEvent(new window.KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+            shown[0].dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
             expect(shown[1].tabIndex).toBe(0);
             expect(document.activeElement).toBe(shown[1]);
-            shown[1].dispatchEvent(new window.KeyboardEvent('keydown', { key: 'End', bubbles: true }));
+            shown[1].dispatchEvent(new KeyboardEvent('keydown', { key: 'End', bubbles: true }));
             expect(document.activeElement).toBe(shown[shown.length - 1]);
             // Told, not asked: a selection from a link or from the dock's Clear emits nothing back.
             legend.setSelection([2, 4]);
@@ -435,8 +431,9 @@ describe('street slope in the AccessScore tool', () => {
             expect(callout).toContain('grade=12.5%');
             // The bracket starts where the second stretch's ground does and ends where the third's does.
             const bracket = slot.querySelector('.elevation-profile__bracket').getAttribute('d').match(/[\d.]+/g).map(Number);
+            const groundStart = /M([\d.]+)/;
             const groundX = (i) => Number(slot.querySelectorAll('.elevation-profile__ground')[i].getAttribute('d')
-                .match(/M([\d.]+)/)[1]);
+                .match(groundStart)[1]);
             expect(bracket[0]).toBeCloseTo(groundX(1), 0);
             expect(bracket[3]).toBeCloseTo(groundX(3), 0);
         });

@@ -1,5 +1,5 @@
 /**
- * @jest-environment node
+ * @vitest-environment node
  */
 
 /**
@@ -11,12 +11,11 @@
  * silent widening there would turn the whole tree red on the next lint run. The `append`/`before` cases matter
  * most: a false positive there would push a contributor at a *text* sink into the escaping #5389 removed.
  *
- * Node environment, not the suite's usual jsdom: ESLint's RuleTester calls `structuredClone`, which jsdom's global
- * does not provide. Jest only reads that docblock when it is the file's first one, hence the split header.
+ * Runs in Node rather than the suite's usual jsdom, since ESLint's RuleTester needs a `structuredClone` jsdom lacks.
  */
 
-const { RuleTester } = require('eslint');
-const rule = require('../../tools/lint/eslint-rules/i18n-escape-in-markup');
+import { RuleTester } from 'eslint';
+import rule from '../../tools/lint/eslint-rules/i18n-escape-in-markup.js';
 
 const ruleTester = new RuleTester({
     languageOptions: { ecmaVersion: 2022, sourceType: 'script' },

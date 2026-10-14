@@ -6,13 +6,9 @@
  * asynchronously. It must survive the pointer moving *into* it, which is the only way its Explore link can be
  * clicked (WCAG 1.4.13), and Escape must close it. And the label breakdown has to render through the shared
  * icon/type-name helpers rather than reinventing either.
- *
- * StreetReauditCard is a page-global `class` that reaches for globals, so the source is eval'd into jsdom with
- * mapboxgl, i18next, and util stubbed.
  */
 
-const { installDateHelpers, installEscapeHTML, loadModules } = require('./loadGlobalScript');
-
+import { loadModules } from './loader.js';
 
 const STREET_ID = 776;
 
@@ -32,7 +28,7 @@ describe('the street re-audit hover card', () => {
     const card = () => document.querySelector('.street-reaudit');
     /** Lets pending timers and promises settle. */
     const settle = async (ms = 0) => {
-        jest.advanceTimersByTime(ms);
+        vi.advanceTimersByTime(ms);
         await Promise.resolve();
         await Promise.resolve();
         await Promise.resolve();
@@ -40,18 +36,10 @@ describe('the street re-audit hover card', () => {
 
     let map;
     let popupElement;
+    let StreetReauditCard;
 
-    beforeAll(() => {
+    beforeAll(async () => {
         window.i18next = { language: 'en', t: (key) => key };
-        window.util = {
-            camelToKebab: (s) => s.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase(),
-            misc: {
-                getIconImagePaths: (type) => ({ iconImagePath: `/assets/icons/${type}_small.svg` }),
-                labelTypeName: (type) => window.i18next.t(`common:${window.util.camelToKebab(type)}`),
-            },
-        };
-        installDateHelpers();
-        installEscapeHTML();
         // A Popup stub that renders into the document the way Mapbox does, so :hover and listeners are testable.
         window.mapboxgl = {
             Popup: class {
@@ -71,20 +59,16 @@ describe('the street re-audit hover card', () => {
                 remove() { popupElement.remove(); }
             },
         };
-        Object.assign(window, loadModules('frontend/js/ps-map/StreetReauditCard.js'));
+        ({ StreetReauditCard } = await loadModules('frontend/js/ps-map/StreetReauditCard.js'));
     });
 
     beforeEach(() => {
-        jest.useFakeTimers();
+        vi.useFakeTimers();
         document.body.innerHTML = '';
         popupElement = null;
         map = {};
-        window.logWebpageActivity = jest.fn();
-        global.fetch = jest.fn(async () => ({ ok: true, json: async () => SUMMARY }));
-    });
-
-    afterEach(() => {
-        jest.useRealTimers();
+        window.logWebpageActivity = vi.fn();
+        window.fetch = vi.fn(async () => ({ ok: true, json: async () => SUMMARY }));
     });
 
     /**
@@ -93,7 +77,7 @@ describe('the street re-audit hover card', () => {
      * @returns {object} The card.
      */
     const hoverStreet = (opts = {}) => {
-        const instance = new window.StreetReauditCard(map, { mapName: 'labelmap-choropleth', ...opts });
+        const instance = new StreetReauditCard(map, { mapName: 'labelmap-choropleth', ...opts });
         instance.scheduleFor(STREET_ID, { lng: 1, lat: 2 });
         return instance;
     };
@@ -103,16 +87,16 @@ describe('the street re-audit hover card', () => {
             hoverStreet();
 
             await settle(200);
-            expect(global.fetch).not.toHaveBeenCalled();
+            expect(window.fetch).not.toHaveBeenCalled();
 
             await settle(100);
-            expect(global.fetch).toHaveBeenCalledWith(`/contribution/street/${STREET_ID}/reauditSummary`);
+            expect(window.fetch).toHaveBeenCalledWith(`/contribution/street/${STREET_ID}/reauditSummary`);
             expect(card()).not.toBeNull();
         });
 
         it('drops a card whose street the pointer already left while the request was in flight', async () => {
             let respond;
-            global.fetch = jest.fn(() => new Promise((resolve) => { respond = resolve; }));
+            window.fetch = vi.fn(() => new Promise((resolve) => { respond = resolve; }));
 
             const instance = hoverStreet();
             await settle(250); // The delay elapses and the request goes out, but hangs.
@@ -124,7 +108,7 @@ describe('the street re-audit hover card', () => {
         });
 
         it('says nothing at all for a street the server no longer considers stale', async () => {
-            global.fetch = jest.fn(async () => ({ ok: false, status: 404 }));
+            window.fetch = vi.fn(async () => ({ ok: false, status: 404 }));
 
             hoverStreet();
             await settle(250);
@@ -133,7 +117,7 @@ describe('the street re-audit hover card', () => {
         });
 
         it('stays silent when the request fails outright rather than showing an empty card', async () => {
-            global.fetch = jest.fn(async () => { throw new Error('offline'); });
+            window.fetch = vi.fn(async () => { throw new Error('offline'); });
 
             hoverStreet();
             await settle(250);
@@ -150,7 +134,7 @@ describe('the street re-audit hover card', () => {
             instance.scheduleFor(STREET_ID, { lng: 1, lat: 2 });
             await settle(250);
 
-            expect(global.fetch).toHaveBeenCalledTimes(1);
+            expect(window.fetch).toHaveBeenCalledTimes(1);
             expect(card()).not.toBeNull();
         });
 
@@ -161,18 +145,18 @@ describe('the street re-audit hover card', () => {
             instance.scheduleFor(STREET_ID, { lng: 1, lat: 2 });
             await settle(250);
 
-            expect(global.fetch).toHaveBeenCalledTimes(1);
+            expect(window.fetch).toHaveBeenCalledTimes(1);
         });
 
         it('remembers a 404 rather than re-asking about the same street', async () => {
-            global.fetch = jest.fn(async () => ({ ok: false, status: 404 }));
+            window.fetch = vi.fn(async () => ({ ok: false, status: 404 }));
 
             const instance = hoverStreet();
             await settle(250);
             instance.scheduleFor(STREET_ID, { lng: 1, lat: 2 });
             await settle(250);
 
-            expect(global.fetch).toHaveBeenCalledTimes(1);
+            expect(window.fetch).toHaveBeenCalledTimes(1);
         });
     });
 
@@ -205,7 +189,7 @@ describe('the street re-audit hover card', () => {
             await settle(250);
             expect(card()).not.toBeNull();
 
-            document.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape' }));
+            document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
 
             expect(card()).toBeNull();
         });
@@ -219,8 +203,10 @@ describe('the street re-audit hover card', () => {
             const types = [...document.querySelectorAll('.street-reaudit__type')].map((el) => el.textContent.trim());
             const icons = [...document.querySelectorAll('.street-reaudit__type img')];
             expect(types).toEqual(['common:no-sidewalk', 'common:curb-ramp']);
-            expect(icons.map((i) => i.getAttribute('src')))
-                .toEqual(['/assets/icons/NoSidewalk_small.svg', '/assets/icons/CurbRamp_small.svg']);
+            expect(icons.map((i) => i.getAttribute('src'))).toEqual([
+                '/assets/images/icons/label_type_icons/NoSidewalk_small.svg',
+                '/assets/images/icons/label_type_icons/CurbRamp_small.svg',
+            ]);
             // The type name beside it is the accessible text, so the icon must not repeat it.
             expect(icons.every((i) => i.getAttribute('alt') === '')).toBe(true);
             expect([...document.querySelectorAll('.street-reaudit__count')].map((el) => el.textContent))
@@ -228,7 +214,7 @@ describe('the street re-audit hover card', () => {
         });
 
         it('offers a street with no labels left an explanation rather than an empty table', async () => {
-            global.fetch = jest.fn(async () => ({ ok: true, json: async () => ({ ...SUMMARY, label_counts: [] }) }));
+            window.fetch = vi.fn(async () => ({ ok: true, json: async () => ({ ...SUMMARY, label_counts: [] }) }));
 
             hoverStreet();
             await settle(250);
@@ -239,7 +225,7 @@ describe('the street re-audit hover card', () => {
         });
 
         it('omits the imagery row when the latest poll cleared the capture date', async () => {
-            global.fetch = jest.fn(async () => (
+            window.fetch = vi.fn(async () => (
                 { ok: true, json: async () => ({ ...SUMMARY, new_imagery_date: null }) }));
 
             hoverStreet();
@@ -257,7 +243,7 @@ describe('the street re-audit hover card', () => {
             const link = document.querySelector('.street-reaudit__explore');
             expect(link.getAttribute('href')).toBe(`/explore?streetEdgeId=${STREET_ID}`);
 
-            link.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+            link.dispatchEvent(new MouseEvent('click', { bubbles: true }));
             expect(window.logWebpageActivity).toHaveBeenCalledWith(
                 `Click_module=labelmap-choropleth_action=StreetReauditCardExplore_streetId=${STREET_ID}`
             );
@@ -268,7 +254,7 @@ describe('the street re-audit hover card', () => {
             await settle(250);
 
             document.querySelector('.street-reaudit__explore')
-                .dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+                .dispatchEvent(new MouseEvent('click', { bubbles: true }));
 
             expect(window.logWebpageActivity).not.toHaveBeenCalled();
         });

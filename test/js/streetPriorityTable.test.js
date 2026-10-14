@@ -6,22 +6,11 @@
  * with a colored swatch, a priority shown to three decimals, a date shown as "never" — because that is where a table
  * starts sorting on the string it printed instead of the number it holds. The rest pin the interactions the map
  * brushing depends on, and the keyboard path, which nothing else exercises.
- *
- * Runs under jsdom (jest.config.js). StreetPriorityTable is a bare top-level class in a concatenated bundle, so it is
- * eval'd into global scope rather than required.
  */
 
-const { loadModules, realUtil } = require('./loadGlobalScript');
+import { loadModules } from './loader.js';
 
-window.util = realUtil();
-
-
-/** Loads AdminShell (the table escapes through it) and returns the table class. */
-function loadTable() {
-  return loadModules('frontend/js/admin-dashboard/StreetPriorityTable.js').StreetPriorityTable;
-}
-
-const StreetPriorityTable = loadTable();
+const { StreetPriorityTable } = await loadModules('frontend/js/admin-dashboard/StreetPriorityTable.js');
 
 const REGIONS = [
   { region_id: 1, region_name: 'Ballard', reaudit: 12, mean_priority: 0.4 },
@@ -60,7 +49,7 @@ const header = (key) => document.querySelector(`#work th[data-key="${key}"]`);
 /** Clicks a header by its label. */
 const clickHeader = (label) => {
   const th = [...document.querySelectorAll('#work th')].find((el) => el.textContent.startsWith(label));
-  th.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+  th.dispatchEvent(new MouseEvent('click', { bubbles: true }));
   return th;
 };
 
@@ -173,16 +162,16 @@ describe('StreetPriorityTable sorting', () => {
 
   test('sorts from the keyboard, since the headers advertise themselves as buttons', () => {
     build();
-    header('region_name').dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    header('region_name').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
     expect(renderedNames()).toEqual(['Ballard', 'Capitol Hill', 'Downtown']);
-    header('region_name').dispatchEvent(new window.KeyboardEvent('keydown', { key: ' ', bubbles: true }));
+    header('region_name').dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true }));
     expect(renderedNames()).toEqual(['Downtown', 'Capitol Hill', 'Ballard']);
   });
 
   test('keeps focus on the header a keyboard user just sorted', () => {
     build();
     header('region_name').focus();
-    header('region_name').dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    header('region_name').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
     // Sorting replaces the thead, so without restoring focus the user is dropped to the top of the document and
     // cannot reverse the sort without tabbing all the way back (WCAG 2.4.3).
     expect(document.activeElement.dataset.key).toBe('region_name');
@@ -197,7 +186,7 @@ describe('StreetPriorityTable sorting', () => {
 
   test('ignores keys that are not the activation keys', () => {
     build();
-    header('region_name').dispatchEvent(new window.KeyboardEvent('keydown', { key: 'a', bubbles: true }));
+    header('region_name').dispatchEvent(new KeyboardEvent('keydown', { key: 'a', bubbles: true }));
     expect(renderedNames()).toEqual(['Downtown', 'Ballard', 'Capitol Hill']);
   });
 
@@ -216,7 +205,7 @@ describe('StreetPriorityTable search', () => {
     build();
     const search = document.getElementById('work-search');
     search.value = 'BAL';
-    search.dispatchEvent(new window.Event('input'));
+    search.dispatchEvent(new Event('input'));
     expect(renderedNames()).toEqual(['Ballard']);
   });
 
@@ -224,7 +213,7 @@ describe('StreetPriorityTable search', () => {
     build();
     const search = document.getElementById('work-search');
     search.value = 'nowhere';
-    search.dispatchEvent(new window.Event('input'));
+    search.dispatchEvent(new Event('input'));
     expect(document.querySelector('#work tbody').textContent).toContain('Nothing to show');
   });
 
@@ -233,7 +222,7 @@ describe('StreetPriorityTable search', () => {
     clickHeader('Region');
     const search = document.getElementById('work-search');
     search.value = 'a';
-    search.dispatchEvent(new window.Event('input'));
+    search.dispatchEvent(new Event('input'));
     expect(renderedNames()).toEqual(['Ballard', 'Capitol Hill']);
   });
 
@@ -241,7 +230,7 @@ describe('StreetPriorityTable search', () => {
     build();
     const search = document.getElementById('work-search');
     search.value = '0.9';
-    search.dispatchEvent(new window.Event('input'));
+    search.dispatchEvent(new Event('input'));
     expect(document.querySelector('#work tbody').textContent).toContain('Nothing to show');
   });
 });
@@ -253,20 +242,20 @@ describe('StreetPriorityTable row interactions', () => {
     .find((tr) => tr.cells[0].textContent === name);
 
   beforeEach(() => {
-    hooks = { onRowClick: jest.fn(), onRowHover: jest.fn(), onRowHoverEnd: jest.fn() };
+    hooks = { onRowClick: vi.fn(), onRowHover: vi.fn(), onRowHoverEnd: vi.fn() };
     build(hooks);
   });
 
   test('pins the clicked row\'s id', () => {
-    rowFor('Ballard').dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+    rowFor('Ballard').dispatchEvent(new MouseEvent('click', { bubbles: true }));
     expect(hooks.onRowClick).toHaveBeenCalledWith(1);
   });
 
   test('still pins and hovers after the table is rendered again with new rows', () => {
     const table = build(hooks);
     table.render([REGIONS[1]]);
-    rowFor('Downtown').dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
-    rowFor('Downtown').dispatchEvent(new window.Event('pointerover', { bubbles: true }));
+    rowFor('Downtown').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    rowFor('Downtown').dispatchEvent(new Event('pointerover', { bubbles: true }));
     expect(hooks.onRowClick).toHaveBeenCalledWith(2);
     expect(hooks.onRowHover).toHaveBeenCalledWith(2);
   });
@@ -275,27 +264,27 @@ describe('StreetPriorityTable row interactions', () => {
     build({ ...hooks,
       columns: [{ key: 'region_name', label: 'Region', numeric: false,
         format: (r) => `<a href="/explore">${r.region_name}</a>` }] });
-    document.querySelector('#work tbody a').dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+    document.querySelector('#work tbody a').dispatchEvent(new MouseEvent('click', { bubbles: true }));
     expect(hooks.onRowClick).not.toHaveBeenCalled();
   });
 
   test('brushes on hover and stops when the pointer leaves the body', () => {
-    rowFor('Ballard').dispatchEvent(new window.Event('pointerover', { bubbles: true }));
+    rowFor('Ballard').dispatchEvent(new Event('pointerover', { bubbles: true }));
     expect(hooks.onRowHover).toHaveBeenCalledWith(1);
-    document.querySelector('#work tbody').dispatchEvent(new window.Event('pointerleave'));
+    document.querySelector('#work tbody').dispatchEvent(new Event('pointerleave'));
     expect(hooks.onRowHoverEnd).toHaveBeenCalled();
   });
 
   test('does not re-brush while the pointer moves within one row', () => {
     const row = rowFor('Ballard');
-    row.dispatchEvent(new window.Event('pointerover', { bubbles: true }));
-    row.cells[1].dispatchEvent(new window.Event('pointerover', { bubbles: true }));
+    row.dispatchEvent(new Event('pointerover', { bubbles: true }));
+    row.cells[1].dispatchEvent(new Event('pointerover', { bubbles: true }));
     expect(hooks.onRowHover).toHaveBeenCalledTimes(1);
   });
 
   test('reports leaving a row for the gap between rows, so the brush does not stick', () => {
-    rowFor('Ballard').dispatchEvent(new window.Event('pointerover', { bubbles: true }));
-    document.querySelector('#work tbody').dispatchEvent(new window.Event('pointerover', { bubbles: true }));
+    rowFor('Ballard').dispatchEvent(new Event('pointerover', { bubbles: true }));
+    document.querySelector('#work tbody').dispatchEvent(new Event('pointerover', { bubbles: true }));
     expect(hooks.onRowHoverEnd).toHaveBeenCalled();
   });
 });

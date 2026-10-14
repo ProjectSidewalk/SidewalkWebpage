@@ -9,27 +9,8 @@
  * measuring it, which is only meaningful once the face it is set in has loaded.
  */
 
-const { assetPathStub, loadModules } = require('./loadGlobalScript');
-
-/* global MissionStartTutorial -- put on global by the suite's setup. */
-
-/**
- * Load a bare `class` declaration out of a production file.
- * @param {string} relativePath - Path to the file relative to the repo root.
- * @param {string} className - Name of the class the file declares.
- * @returns {Function} The class.
- */
-function loadClass(relativePath, className) {
-    return loadModules(relativePath)[className];
-}
-
-const ModalMission = loadClass('frontend/js/validate/modal/ModalMission.js', 'ModalMission');
-const ModalMissionComplete = loadClass(
-    'frontend/js/validate/modal/ModalMissionComplete.js', 'ModalMissionComplete'
-);
-const ModalNoNewMission = loadClass('frontend/js/validate/modal/ModalNoNewMission.js', 'ModalNoNewMission');
-const BadgeAchievements = loadClass('frontend/js/common/BadgeAchievements.js', 'BadgeAchievements');
-const ProgressBar = loadClass('frontend/js/common/ProgressBar.js', 'ProgressBar');
+import { loadModules, mockModule, useUtil } from './loader.js';
+import { fakeGate, fakeTracker } from './fakes.js';
 
 /** The two slides MissionStartTutorial hands the briefing for a label type: the right example, then a wrong one. */
 const SLIDES = [
@@ -42,6 +23,22 @@ const SLIDES = [
         imageURL: '/assets/images/tutorials/curb-ramp-2.png', labelOnImage: {position: {left: '100px', top: '40px'}},
     },
 ];
+
+/** The briefing reads the tutorial's slides and photo frame; the desktop completion raises one, and needs no more. */
+class FakeMissionStartTutorial {
+    static EXAMPLE_PHOTO = {width: 658, height: 436};
+
+    static slidesFor = vi.fn(() => SLIDES);
+}
+mockModule('frontend/js/common/MissionStartTutorial.js', () => ({MissionStartTutorial: FakeMissionStartTutorial}));
+// jsdom has no canvas to burst confetti on.
+mockModule('frontend/js/common/Confetti.js', () => ({Confetti: {burst: vi.fn()}}));
+
+const {ModalMission, ModalMissionComplete, ModalNoNewMission, BadgeAchievements, Gate} = await loadModules(
+    'frontend/js/validate/modal/ModalMission.js', 'frontend/js/validate/modal/ModalMissionComplete.js',
+    'frontend/js/validate/modal/ModalNoNewMission.js', 'frontend/js/common/BadgeAchievements.js',
+    'frontend/js/common/Gate.js',
+);
 
 /** A minimal Mission, with just the properties the two screens read. @returns {Object} */
 function makeMission(props = {}) {
@@ -56,15 +53,15 @@ describe('mobile Validate mission screens', () => {
     let isMobile;
     let tracker;
     let deadEndShowing;
-    const keyboardLock = {hold: jest.fn(), release: jest.fn()};
+    const keyboardLock = fakeGate();
     const modalNoNewMission = {isShowing: () => deadEndShowing};
     const statusField = {getCompletedValidations: () => 0};
-    const panoManager = {replayMarkerPulse: jest.fn()};
+    const panoManager = {replayMarkerPulse: vi.fn()};
 
     beforeEach(() => {
         isMobile = true;
         deadEndShowing = false;
-        tracker = {push: jest.fn()};
+        tracker = fakeTracker();
         document.body.innerHTML = `
             <div id="modal-mission-holder">
               <div id="modal-mission-background"></div>
@@ -97,35 +94,19 @@ describe('mobile Validate mission screens', () => {
               </div>
             </div>`;
 
-        global.i18next = {
+        window.i18next = {
             // Echo the key plus any interpolation, so assertions can name what a slot was filled with.
             t: (key, opts) => (opts ? `${key}|${JSON.stringify(opts)}` : key),
         };
-        global.util = {
-            assetPath: assetPathStub,
-            isMobile: () => isMobile,
-            misc: {
-                getIconImagePaths: (type) => ({iconImagePath: `/assets/icons/${type}_small.svg`}),
-                labelTypeName: () => 'Curb Ramp',
-            },
-        };
-        global.MissionStartTutorial = {
-            EXAMPLE_PHOTO: {width: 658, height: 436},
-            slidesFor: jest.fn(() => SLIDES),
-        };
-        global.BadgeAchievements = BadgeAchievements;
-        global.BadgeAchievements.recordMissionComplete = jest.fn();
-        global.ProgressBar = ProgressBar;
-        global.Confetti = {burst: jest.fn()};
-        window.matchMedia = jest.fn(() => ({matches: false}));
+        useUtil({isMobile: () => isMobile});
+        FakeMissionStartTutorial.slidesFor = vi.fn(() => SLIDES);
+        // The real one counts missions toward a badge toast; nothing here is about that.
+        vi.spyOn(BadgeAchievements, 'recordMissionComplete').mockImplementation(() => {});
+        window.matchMedia = vi.fn(() => ({matches: false}));
     });
 
     afterEach(() => {
         document.body.innerHTML = '';
-        for (const key of ['i18next', 'util', 'MissionStartTutorial', 'BadgeAchievements', 'ProgressBar',
-            'Confetti']) {
-            delete global[key];
-        }
     });
 
     /** @returns {ModalMission} A briefing wired the way Main.js wires it. */
@@ -216,7 +197,7 @@ describe('mobile Validate mission screens', () => {
 
             briefing().setMissionMessage(makeMission());
 
-            expect(MissionStartTutorial.slidesFor).not.toHaveBeenCalled();
+            expect(FakeMissionStartTutorial.slidesFor).not.toHaveBeenCalled();
             expect(document.querySelector('.mv-examples')).toBeNull();
             expect(document.querySelectorAll('#modal-mission-instruction img')).toHaveLength(0);
         });
@@ -324,7 +305,7 @@ describe('mobile Validate mission screens', () => {
 
         test('it fits again once the real face has loaded, since the first fit measured the fallback', async () => {
             let resolveFont;
-            const load = jest.fn(() => new Promise((resolve) => { resolveFont = resolve; }));
+            const load = vi.fn(() => new Promise((resolve) => { resolveFont = resolve; }));
             Object.defineProperty(document, 'fonts', {value: {load}, configurable: true});
             measureAs(8, 320); // The fallback face fits, so nothing is stamped...
 
@@ -343,7 +324,7 @@ describe('mobile Validate mission screens', () => {
 
         test('a dead end that arrived while the face was loading keeps the heading’s own size', async () => {
             let resolveFont;
-            const load = jest.fn(() => new Promise((resolve) => { resolveFont = resolve; }));
+            const load = vi.fn(() => new Promise((resolve) => { resolveFont = resolve; }));
             Object.defineProperty(document, 'fonts', {value: {load}, configurable: true});
             measureAs(8, 320);
             briefing().setMissionMessage(makeMission());
@@ -466,7 +447,6 @@ describe('mobile Validate mission screens', () => {
     });
 
     describe('the keyboard behind the mission-complete screen (#5752)', () => {
-        const Gate = loadClass('frontend/js/common/Gate.js', 'Gate');
         let lock;
         let hooks;
 
@@ -474,8 +454,6 @@ describe('mobile Validate mission screens', () => {
             isMobile = false;
             lock = new Gate();
             hooks = {tracker, keyboard: {enableKeyboard: () => lock.release('tutorial')}};
-            // The desktop screen raises the next mission's tutorial itself; building it is all this needs of it.
-            global.MissionStartTutorial = class {};
         });
 
         /** @returns {{ui: Object, screen: ModalMissionComplete}} A screen up, with the next mission behind it. */

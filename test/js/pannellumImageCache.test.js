@@ -12,10 +12,7 @@
  * assertions read the URLs it was handed, in order.
  */
 
-const path = require('path');
-const { loadModules } = require('./loadGlobalScript');
-
-const VIEWER_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/common/pano-viewer/PannellumViewer.js');
+import { loadModules } from './loader.js';
 
 const NATIVE_URL = '/backupImage/p1';
 const NEXT_URL = '/backupImage/p2';
@@ -28,8 +25,8 @@ const NEXT_URL = '/backupImage/p2';
 function installFakePannellum(failingUrls = new Set()) {
     const attempted = [];
     const loaded = [];
-    global.pannellum = {
-        viewer: jest.fn((_el, config) => {
+    vi.stubGlobal('pannellum', {
+        viewer: vi.fn((_el, config) => {
             const handlers = { load: new Set(), error: new Set() };
             const scenes = { ...config.scenes };
             const settle = (url) => Promise.resolve().then(() => {
@@ -47,31 +44,31 @@ function installFakePannellum(failingUrls = new Set()) {
                 off: (event, handler) => handlers[event].delete(handler),
                 addScene: (id, scene) => { scenes[id] = scene; },
                 loadScene: (id) => settle(scenes[id].panorama),
-                removeScene: jest.fn(() => true),
-                destroy: jest.fn(),
-                resize: jest.fn(),
+                removeScene: vi.fn(() => true),
+                destroy: vi.fn(),
+                resize: vi.fn(),
                 getYaw: () => 0,
                 getPitch: () => 0,
                 getHfov: () => 90,
-                setYaw: jest.fn(),
-                setPitch: jest.fn(),
-                setHfov: jest.fn(),
+                setYaw: vi.fn(),
+                setPitch: vi.fn(),
+                setHfov: vi.fn(),
             };
         }),
-    };
+    });
     return { attempted, loaded };
 }
 
 /**
  * A cache holding the given network URL -> blob URL entries, recording what the viewer releases.
  * @param {Object<string, string>} held
- * @returns {{resolve: jest.Mock, release: jest.Mock}}
+ * @returns {{resolve: import('vitest').Mock, release: import('vitest').Mock}}
  */
 function fakeCache(held) {
     return {
-        resolve: jest.fn((url) => held[url]),
-        settle: jest.fn((url) => Promise.resolve(held[url])),
-        release: jest.fn((url) => { delete held[url]; }),
+        resolve: vi.fn((url) => held[url]),
+        settle: vi.fn((url) => Promise.resolve(held[url])),
+        release: vi.fn((url) => { delete held[url]; }),
     };
 }
 
@@ -79,45 +76,22 @@ describe('PannellumViewer loads from the image cache first (issue #5562)', () =>
     let PannellumViewer;
     let canvas;
 
-    beforeEach(() => {
+    beforeEach(async () => {
         canvas = document.createElement('div');
         document.body.appendChild(canvas);
 
-        // No WebGL in jsdom, so the width cap is unknown and rung 0 is the native file; a desktop page.
-        jest.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
-        global.util = {
-            isMobile: () => false,
-            parseDate: (value) => new Date(value),
-            pano: { zoomToFov: (zoom) => 126.5 - zoom * 36.75, fovToZoom: (fov) => (126.5 - fov) / 36.75 },
-        };
-        global.PanoViewer = class PanoViewer {
-            constructor() {
-                this.panoChangedListeners = [];
-                this.povChangedListeners = [];
-            }
+        // No WebGL in jsdom, so the width cap is unknown and rung 0 is the native file.
+        vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
 
-            getViewerType() { return 'pannellum'; }
-        };
-        global.PanoData = class PanoData {
-            constructor(props) { Object.assign(this, props); }
-
-            getPanoId() { return this.panoId; }
-
-            getProperty(key) { return this[key]; }
-        };
-        global.moment = function moment() { return {}; };
-
-        PannellumViewer = loadModules(VIEWER_PATH).PannellumViewer;
+        ({ PannellumViewer } = await loadModules('frontend/js/common/pano-viewer/PannellumViewer.js'));
     });
 
     afterEach(() => {
-        jest.restoreAllMocks();
         document.body.innerHTML = '';
-        for (const name of ['util', 'PanoViewer', 'PanoData', 'moment', 'pannellum']) delete global[name];
     });
 
     const metadata = (panoId, imageUrl) => ({
-        pano_id: panoId, image_url: imageUrl, width: 16384, height: 8192, camera_heading: 0,
+        pano_id: panoId, image_url: imageUrl, width: 16384, height: 8192, camera_heading: 0, lat: 47.6, lng: -122.3,
     });
 
     /**
@@ -168,7 +142,7 @@ describe('PannellumViewer loads from the image cache first (issue #5562)', () =>
         const { attempted } = installFakePannellum();
         const cache = fakeCache({});
         // Nothing held yet, but a download about to finish: settle() is what hands it over.
-        cache.settle = jest.fn(() => new Promise((resolve) => setTimeout(() => resolve('blob:p1'), 0)));
+        cache.settle = vi.fn(() => new Promise((resolve) => setTimeout(() => resolve('blob:p1'), 0)));
 
         const viewer = await viewerWith(cache);
 

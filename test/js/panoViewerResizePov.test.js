@@ -8,24 +8,12 @@
  * labels kept the old projection until the next pan moved them: a label placed in immersive mode sat beside its
  * feature after leaving the mode, then snapped onto it on the first pan.
  */
-const { loadGlobalScript, realUtil, loadModules } = require('./loadGlobalScript');
 
+import { loadModules } from './loader.js';
 
-// getPov() converts through util.pano; utilities.js builds a Bowser parser at load time that nothing here consults.
-window.bowser = {
-    getParser: () => ({
-        getBrowserName: () => 'Test', getBrowserVersion: () => '1',
-        getOSName: () => 'TestOS', getPlatformType: () => 'desktop',
-    }),
-};
-window.util = realUtil();
-loadGlobalScript('frontend/js/common/utilitiesMath.js');
-loadGlobalScript('frontend/js/common/pano-viewer/panoUtilities.js');
-
-/** Loads PanoViewer + MapillaryViewer fresh into the jsdom global scope. */
-function loadViewers() {
-    Object.assign(window, loadModules('frontend/js/common/pano-viewer/PanoViewer.js', 'frontend/js/common/pano-viewer/MapillaryViewer.js'));
-    return window.MapillaryViewer;
+async function loadViewers() {
+    const { MapillaryViewer } = await loadModules('frontend/js/common/pano-viewer/MapillaryViewer.js');
+    return MapillaryViewer;
 }
 
 describe('PanoViewer resize reports a POV change once the new box has rendered', () => {
@@ -43,13 +31,13 @@ describe('PanoViewer resize reports a POV change once the new box has rendered',
         due.forEach((cb) => cb());
     }
 
-    test('MapillaryViewer reads the new aspect from its container at resize, so getPov() is right at once', () => {
-        const MapillaryViewer = loadViewers();
+    test('MapillaryViewer reads the new aspect from its container at resize, so getPov() is right', async () => {
+        const MapillaryViewer = await loadViewers();
         const viewer = new MapillaryViewer();
-        viewer.viewer = { resize: jest.fn() };
+        viewer.viewer = { resize: vi.fn() };
         viewer.currCameraHeading = 180; // What getPov() reads besides the camera cache.
         viewer.currCenter = [0.5, 0.5];
-        const onPov = jest.fn();
+        const onPov = vi.fn();
         viewer.addListener('pov_changed', onPov);
         const camera = (aspect) => ({ perspective: { fov: 90, aspect }, _currentImageId: 'img' });
 
@@ -75,10 +63,10 @@ describe('PanoViewer resize reports a POV change once the new box has rendered',
         expect(onPov).toHaveBeenCalledTimes(2);
     });
 
-    test('a viewer without a camera event reports the POV two frames after resize (the base helper)', () => {
-        const MapillaryViewer = loadViewers();
+    test('a viewer without a camera event reports the POV two frames after resize (the base helper)', async () => {
+        const MapillaryViewer = await loadViewers();
         const viewer = new MapillaryViewer();
-        const onPov = jest.fn();
+        const onPov = vi.fn();
         viewer.addListener('pov_changed', onPov);
         viewer._firePovChangedAfterResize();
         paint();

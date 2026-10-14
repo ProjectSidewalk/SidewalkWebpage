@@ -8,22 +8,11 @@
  * icons, and the units the "N more" line is written in are this file's own and are pinned alongside.
  */
 
+import { loadModules } from './loader.js';
 
-const {assetPathStub, installEscapeHTML, loadModules } = require('./loadGlobalScript');
-
-
-/**
- * Loads one class from a production file.
- * @param {string} relativePath - Path to the file relative to the repo root.
- * @param {string} className - Name of the class the file declares.
- * @returns {Function} The class.
- */
-function loadClass(relativePath, className) {
-    return loadModules(relativePath)[className];
-}
-
-const DashboardBadges = loadModules('frontend/js/user-dashboard/DashboardBadges.js').DashboardBadges;
-const BadgeAchievements = loadClass('frontend/js/common/BadgeAchievements.js', 'BadgeAchievements');
+// One load, so the BadgeAchievements the tests compare against is the one DashboardBadges renders from.
+const { DashboardBadges, BadgeAchievements } = await loadModules('frontend/js/user-dashboard/DashboardBadges.js',
+    'frontend/js/common/BadgeAchievements.js');
 
 const TRACKS = ['labels', 'distance', 'missions', 'validations'];
 
@@ -56,17 +45,12 @@ describe('DashboardBadges', () => {
     const track = (type) => document.querySelector(`[data-badge-type="${type}"]`);
 
     beforeEach(() => {
-        global.BadgeAchievements = BadgeAchievements;
-        global.i18next = {t: (key, opts) => (opts ? `${key}|${JSON.stringify(opts)}` : key)};
-        global.util = {math: {milesToKms: (mi) => mi * 1.609344}, assetPath: assetPathStub};
-        installEscapeHTML();
+        window.i18next = {t: (key, opts) => (opts ? `${key}|${JSON.stringify(opts)}` : key)};
     });
 
     afterEach(() => {
         document.body.innerHTML = '';
-        delete global.BadgeAchievements;
-        delete global.i18next;
-        delete global.util;
+        delete window.i18next;
     });
 
     test('every track fills to the same fraction the shared badge math reports', () => {

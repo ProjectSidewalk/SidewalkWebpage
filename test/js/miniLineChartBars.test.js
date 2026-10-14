@@ -6,18 +6,14 @@
  * band, which draws no rect), the --emphasis classes landing on exactly the requested index, and the default bar
  * output staying label-free so other MiniLineChart callers are unaffected.
  *
- * Runs under jsdom (jest.config.js); MiniLineChart.svg is a pure string builder, so tests parse its output into a
- * detached container and assert on the resulting DOM.
+ * MiniLineChart.svg builds a string, so the tests parse its output into a detached container and assert on that DOM.
  */
 
-const { loadModules, realUtil } = require('./loadGlobalScript');
-
-window.util = realUtil();
-
+import { loadModules } from './loader.js';
 
 /** Loads a fresh MiniLineChart class. */
-function loadMiniLineChart() {
-    return loadModules('frontend/js/admin-dashboard/MiniLineChart.js').MiniLineChart;
+async function loadMiniLineChart() {
+    return (await loadModules('frontend/js/admin-dashboard/MiniLineChart.js')).MiniLineChart;
 }
 
 describe('MiniLineChart bar mode', () => {
@@ -33,8 +29,8 @@ describe('MiniLineChart bar mode', () => {
         return div;
     }
 
-    beforeEach(() => {
-        MiniLineChart = loadMiniLineChart();
+    beforeEach(async () => {
+        MiniLineChart = await loadMiniLineChart();
     });
 
     test('barValues draws one formatted label per bar, including "0" over a zero band with no rect', () => {

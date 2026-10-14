@@ -349,8 +349,8 @@ cancel in both directions: most want rows your schema may not have, while `Night
 CI's seeded schema (#5115) is expected to cancel nothing, so a CANCELED line there means the seed stopped covering
 something.
 
-There are also Python unit tests for the `scripts/` utilities (`make test-python`) and a jsdom Jest suite for
-frontend modules (`make test-js` — Jest's `node_modules` are in the container, not on your host).
+There are also Python unit tests for the `scripts/` utilities (`make test-python`) and a jsdom Vitest suite for
+frontend modules (`make test-js` — Vitest's `node_modules` are in the container, not on your host).
 [`docs/testing-and-ci.md`](testing-and-ci.md) covers what each layer is for.
 
 ### Checking that pages still load in a browser

@@ -23,12 +23,17 @@
  * keep logging the keyboard apart from the mouse — and how the vote echo tells the two apart, since a pointer
  * already has the button it pressed as feedback and only the keyboard needs the change pointed out.
  *
- * Fixtures and stubs follow labelDetailEditGating.test.js.
+ * The pano manager and the card's flourishes (badges, stories, the info popover, the hide toggle) are stand-ins:
+ * the real ones want a viewer and page markup, and none is what a shortcut exercises.
  */
 
+import { loadModules, useUtil } from './loader.js';
+import { mockLabelDetailCollaborators } from './fakes.js';
 
-const { assetPathStub, installDateHelpers, loadModules } = require('./loadGlobalScript');
+/** The pano manager the card is handed; rebuilt per test so a test can settle its setPano() when it likes. */
+let panoManager;
 
+mockLabelDetailCollaborators(() => panoManager);
 
 /**
  * Builds the card markup as views/common/labelDetail.scala.html renders it, reduced to the elements
@@ -223,7 +228,6 @@ function meta(overrides = {}) {
 describe('the label card\'s keyboard shortcuts (#5194)', () => {
     let LabelDetail;
     let card;
-    let panoManager;
     let setPano;
     /** Every POST the card makes: validations go through util.lazyIdentityFetch, not window.fetch. */
     let post;
@@ -252,7 +256,7 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
      * @returns {KeyboardEvent} The dispatched event, for asserting on defaultPrevented.
      */
     function press(code, init = {}) {
-        const event = new window.KeyboardEvent('keydown', { code, bubbles: true, cancelable: true, ...init });
+        const event = new KeyboardEvent('keydown', { code, bubbles: true, cancelable: true, ...init });
         (document.activeElement || document.body).dispatchEvent(event);
         return event;
     }
@@ -284,42 +288,20 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
     }
 
     beforeEach(async () => {
-        jest.resetModules();
         hostOpen = true;
 
-        post = jest.fn(async () => ({ ok: true, status: 200, json: async () => ({}) }));
+        post = vi.fn(async () => ({ ok: true, status: 200, json: async () => ({}) }));
 
         window.i18next = { t: (key) => key };
-        window.logWebpageActivity = jest.fn();
-        window.buildBackupImageData = () => null;
-        window.camelToKebab = (s) => s.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
-        window.util = {
-            assetPath: assetPathStub,
-            EXPLORE_CANVAS_WIDTH: 720,
-            EXPLORE_CANVAS_HEIGHT: 480,
-            isMobile: () => false,
-            lazyIdentityFetch: post,
-            misc: {
-                labelTypeName: (type) => window.i18next.t(`common:${window.camelToKebab(type)}`),
-                getRatingLevelKeys: () => ({ 1: 'low', 2: 'medium', 3: 'high' }),
-                getSmileyIconPath: (sev, type, selected) => `${type}-${sev}-${selected}.svg`,
-                isPositiveLabelType: () => false,
-                labelTypeHasSeverity: () => true,
-            },
-            pano: { centeredPovToCanvasCoord: () => ({ x: 0, y: 0 }), renderedHFov: () => 90 },
-            url: { replaceQuery: () => {} },
-        };
-        installDateHelpers();
-        window.BadgeAchievements = { seedCounts: () => {}, recordValidation: () => {} };
-        window.LabelVisibilityToggle = class { constructor() {} };
-        window.PanoInfoPopover = class { constructor() {} };
+        window.logWebpageActivity = vi.fn();
+        useUtil({ lazyIdentityFetch: post });
 
         setPano = deferred();
         panoManager = {
-            clearLabels: jest.fn(),
-            setLabel: jest.fn(),
-            setLabelsHidden: jest.fn(),
-            setPano: jest.fn(() => setPano.promise),
+            clearLabels: vi.fn(),
+            setLabel: vi.fn(),
+            setLabelsHidden: vi.fn(),
+            setPano: vi.fn(() => setPano.promise),
             activeViewerName: 'Default',
             panoViewer: {
                 currPanoData: null,
@@ -335,14 +317,10 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
             }),
             label: { labelId: 42, label_type: 'Obstacle' },
         };
-        window.PopupPanoManager = { create: async () => panoManager };
-        // The stories disclosure is not what these tests exercise, and its real section wants the composer's markup.
-        window.StorySection = class { setLabel() {} };
 
-        window.fetch = jest.fn(async () => ({ ok: true, status: 200, json: async () => ({}) }));
+        window.fetch = vi.fn(async () => ({ ok: true, status: 200, json: async () => ({}) }));
 
-        Object.assign(window, loadModules('frontend/js/common/label-detail/TagEditor.js', 'frontend/js/common/label-detail/LabelDetail.js'));
-        LabelDetail = window.LabelDetail;
+        ({ LabelDetail } = await loadModules('frontend/js/common/label-detail/LabelDetail.js'));
 
         await mount();
     });
@@ -408,8 +386,8 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
     describe('the arrow keys', () => {
         test('left and right press the card\'s prev/next arrows', async () => {
             await showLabel();
-            const prev = jest.fn();
-            const next = jest.fn();
+            const prev = vi.fn();
+            const next = vi.fn();
             prevArrow().addEventListener('click', prev);
             nextArrow().addEventListener('click', next);
 
@@ -425,7 +403,7 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
             // Nothing to page to, so nothing to swallow: the arrow keys have to keep scrolling the host page.
             await showLabel();
             nextArrow().disabled = true;
-            const next = jest.fn();
+            const next = vi.fn();
             nextArrow().addEventListener('click', next);
 
             const event = press('ArrowRight');
@@ -439,7 +417,7 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
             // once the viewport's labels have loaded (#5068).
             await showLabel();
             nextArrow().hidden = true;
-            const next = jest.fn();
+            const next = vi.fn();
             nextArrow().addEventListener('click', next);
 
             const event = press('ArrowRight');
@@ -463,7 +441,7 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
         test('a key typed into the comment box', async () => {
             // The comment box is inside the card, so "a" has to stay an "a" and the arrows have to move the caret.
             await showLabel({ user_validation: 'Disagree', num_disagree: 1 });
-            const prev = jest.fn();
+            const prev = vi.fn();
             prevArrow().addEventListener('click', prev);
             q('.label-detail__comment-input').focus();
 
@@ -493,7 +471,7 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
             // Holding an arrow down would otherwise page through labels at the OS repeat rate, each step firing a
             // fresh imagery load.
             await showLabel();
-            const next = jest.fn();
+            const next = vi.fn();
             nextArrow().addEventListener('click', next);
 
             press('ArrowRight', { repeat: true });
@@ -603,7 +581,7 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
             await showLabel();
 
             overlayButton('agree').dispatchEvent(
-                new window.MouseEvent('click', { bubbles: true, cancelable: true, detail: 1 })
+                new MouseEvent('click', { bubbles: true, cancelable: true, detail: 1 })
             );
             await flush();
 
@@ -624,7 +602,7 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
 
         test('prefers-reduced-motion skips it entirely', async () => {
             // Skipped rather than slowed: it is an optional flourish, the way Confetti and StorySection treat theirs.
-            window.matchMedia = () => ({ matches: true });
+            vi.stubGlobal('matchMedia', () => ({ matches: true }));
             await showLabel();
 
             press('KeyA');
@@ -632,7 +610,6 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
 
             expect(validations().map((v) => v.validation_result)).toEqual(['Agree']);
             expect(echo()).toBeNull();
-            delete window.matchMedia;
         });
 
         test('paging away takes the echo with it, so it cannot report a vote on the next label', async () => {
@@ -734,7 +711,7 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
             await showLabel({ user_validation: null });
 
             overlayButton('disagree').dispatchEvent(
-                new window.MouseEvent('click', { bubbles: true, cancelable: true, detail: 1 })
+                new MouseEvent('click', { bubbles: true, cancelable: true, detail: 1 })
             );
             await flush();
 
@@ -746,7 +723,7 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
     describe('claiming a key', () => {
         test('stops it, so nothing further down the page acts on it as well', async () => {
             await showLabel();
-            const downstream = jest.fn();
+            const downstream = vi.fn();
             document.addEventListener('keydown', downstream);
 
             const event = press('KeyA');
@@ -759,7 +736,7 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
 
         test('a key the card has no use for passes straight through', async () => {
             await showLabel();
-            const downstream = jest.fn();
+            const downstream = vi.fn();
             document.addEventListener('keydown', downstream);
 
             const event = press('KeyK');

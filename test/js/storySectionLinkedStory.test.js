@@ -3,12 +3,20 @@
  * passes that id down as highlightStoryId, and the first render containing the story opens the disclosure,
  * highlights the row, and scrolls it into view — exactly once. A story that is gone (deleted, or hidden by
  * moderators) must degrade silently to the plain label page.
- *
- * fetch, i18next and StoryComposer are stubbed.
  */
 
-const { installDateHelpers, loadModules } = require('./loadGlobalScript');
+import { loadModules, mockModule } from './loader.js';
 
+let composerCalls;
+
+mockModule('frontend/js/common/label-detail/StoryComposer.js', () => ({
+    StoryComposer: class {
+        open() {}
+        openForEdit() {}
+        setCopyVariant() {}
+        setLabelType(name) { composerCalls.setLabelType.push(name); }
+    },
+}));
 
 /** One story payload, shaped like an entry from GET /label/:labelId/stories. */
 function story(overrides = {}) {
@@ -48,24 +56,17 @@ function setupDom() {
 
 describe("StorySection's linked-story reveal (#4722)", () => {
     let stories;
-    let composerCalls;
+    let StorySection;
 
-    beforeEach(() => {
-        Object.assign(window, loadModules('frontend/js/common/label-detail/StorySection.js'));
+    beforeEach(async () => {
+        ({ StorySection } = await loadModules('frontend/js/common/label-detail/StorySection.js'));
         composerCalls = { setLabelType: [] };
-        window.StoryComposer = class {
-            open() {}
-            openForEdit() {}
-            setCopyVariant() {}
-            setLabelType(name) { composerCalls.setLabelType.push(name); }
-        };
         window.i18next = { t: (key) => key };
-        installDateHelpers();
-        window.matchMedia = jest.fn().mockReturnValue({ matches: false }); // No reduced-motion preference.
-        window.HTMLElement.prototype.scrollIntoView = jest.fn(); // jsdom doesn't implement it.
-        window.logWebpageActivity = jest.fn();
+        window.matchMedia = vi.fn().mockReturnValue({ matches: false }); // No reduced-motion preference.
+        window.HTMLElement.prototype.scrollIntoView = vi.fn(); // jsdom doesn't implement it.
+        window.logWebpageActivity = vi.fn();
         stories = [story()];
-        window.fetch = jest.fn().mockImplementation(() => Promise.resolve({
+        window.fetch = vi.fn().mockImplementation(() => Promise.resolve({
             ok: true,
             json: () => Promise.resolve({ max_text_length: 500, access_impact: 'problem', stories }),
         }));
@@ -73,7 +74,7 @@ describe("StorySection's linked-story reveal (#4722)", () => {
 
     /** Builds the section against a fresh skeleton and shows label 1. */
     async function renderSection(opts = {}) {
-        const section = new window.StorySection(setupDom(), opts);
+        const section = new StorySection(setupDom(), opts);
         section.setLabel(1);
         await flush();
         return section;
@@ -83,7 +84,7 @@ describe("StorySection's linked-story reveal (#4722)", () => {
     const linkedRow = () => document.querySelector('.label-detail__story--linked');
 
     test('the label type rides down to the composer, so its title can name the label', async () => {
-        const section = new window.StorySection(setupDom(), {});
+        const section = new StorySection(setupDom(), {});
         section.setLabel(1, 'Missing Curb Ramp');
         await flush();
         expect(composerCalls.setLabelType).toEqual(['Missing Curb Ramp']);
@@ -115,7 +116,7 @@ describe("StorySection's linked-story reveal (#4722)", () => {
     });
 
     test('honors prefers-reduced-motion by scrolling without animation', async () => {
-        window.matchMedia = jest.fn().mockReturnValue({ matches: true });
+        window.matchMedia = vi.fn().mockReturnValue({ matches: true });
         await renderSection({ highlightStoryId: 11 });
         expect(window.HTMLElement.prototype.scrollIntoView)
             .toHaveBeenCalledWith({ block: 'nearest', behavior: 'auto' });

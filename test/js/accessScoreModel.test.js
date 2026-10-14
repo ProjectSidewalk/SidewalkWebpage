@@ -9,11 +9,10 @@
  * how the two combine. The rest pins what the sliders mean.
  */
 
-const fs = require('fs');
-const path = require('path');
-const { loadModules } = require('./loadGlobalScript');
+import fs from 'fs';
+import path from 'path';
+import { loadModules, REPO_ROOT } from './loader.js';
 
-const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const FIXTURE = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'test/fixtures/accessScoreParity.json'), 'utf8'));
 
 /** A street feature in the API's shape, from a fixture case. */
@@ -62,9 +61,8 @@ describe('AccessScoreModel', () => {
     const tol = FIXTURE.tolerance;
     const streets = { type: 'FeatureCollection', features: FIXTURE.streets.map((c, i) => feature(c, i)) };
 
-    beforeAll(() => {
-        Object.assign(window, loadModules('frontend/js/access-score/AccessScoreModel.js'));
-        AccessScoreModel = window.AccessScoreModel;
+    beforeAll(async () => {
+        ({ AccessScoreModel } = await loadModules('frontend/js/access-score/AccessScoreModel.js'));
     });
 
     test('the fixture carries the engine config and enough cases to mean something', () => {

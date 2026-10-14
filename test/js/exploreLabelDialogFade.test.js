@@ -10,27 +10,8 @@
  * panel opens or closes is ContextMenu.show()/hide() re-rendering the canvas, pinned in exploreContextMenuRerender.
  */
 
-const { loadModules, realUtil } = require('./loadGlobalScript');
-const { makeRecordingCtx } = require('./canvasCtxStub');
-
-
-/** Loads a fresh Label class into the jsdom global scope (a class declaration is not a globalThis property). */
-function loadLabel() {
-    Object.assign(window, loadModules('frontend/js/explore/label/Label.js'));
-    return window.Label;
-}
-
-/**
- * Loads the real utilities.js rather than stubbing it. Label's icon geometry is expressed in terms of
- * util.labelIconHalfExtent/labelIconScale, and a stub of those would be the formula copied into the test.
- */
-function loadUtil() {
-    // utilities.js builds a Bowser parser at load time; nothing under test here consults it.
-    window.bowser = { getParser: () => ({ getBrowserName: () => 'Chrome', getBrowserVersion: () => '1',
-        getOSName: () => 'Linux', getPlatformType: () => 'desktop' }) };
-    window.util = realUtil();
-    return window.util;
-}
+import { loadModules, useUtil } from './loader.js';
+import { makeRecordingCtx } from './canvasCtxStub.js';
 
 describe('Label render fade while the context menu is open', () => {
     let Label;
@@ -61,20 +42,17 @@ describe('Label render fade while the context menu is open', () => {
         return ctx;
     }
 
-    beforeEach(() => {
-        Label = loadLabel();
-        const util = loadUtil();
+    beforeEach(async () => {
+        let util;
+        // Label's icon geometry is expressed in terms of util.labelIconHalfExtent/labelIconScale, and a stub of
+        // those would be the formula copied into the test.
+        ({ Label, util } = await loadModules('frontend/js/explore/label/Label.js', 'frontend/js/common/utilities.js'));
         frame = { width: 720, height: 480, iconRadius: util.labelIconRadius(1), renderedHFov: () => 90 };
-        util.pano = { centeredPovToCanvasCoord: () => ({ x: 360, y: 240 }) };
-        util.misc = {
-            labelTypeHasSeverity: (labelType) => labelType !== 'Occlusion',
-            getIconImagePaths: () => ({ iconImagePath: 'CurbRamp.svg' }),
-        };
+        useUtil({
+            pano: { centeredPovToCanvasCoord: () => ({ x: 360, y: 240 }) },
+            misc: { getIconImagePaths: () => ({ iconImagePath: 'CurbRamp.svg' }) },
+        });
         window.labelIconCache = { 'CurbRamp.svg': {} }; // Truthy, so renderLabelIcon reaches its drawImage.
-    });
-
-    afterEach(() => {
-        jest.restoreAllMocks();
     });
 
     test('draws at full opacity when no context menu is open', () => {

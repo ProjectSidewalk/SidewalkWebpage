@@ -5,16 +5,25 @@
  * a crop's `label_crop` row says where a job-cut window put it, while the still reproduces the Explore frame. These
  * pin that `cropMarker` is used for the crop and only for the crop, and that the validation the card submits reports
  * the same position it drew.
- *
- * The page globals LandingValidationGrid touches are stubbed on `window`.
  */
 
+import { loadModules, mockModule, useUtil } from './loader.js';
 
-const { assetPathStub, installUtilitiesMisc, loadModules } = require('./loadGlobalScript');
-
-
-/** What the source-logo and licence-line stubs were last told: the card owes a credit on a crop and nothing else. */
+/** What the source-logo and licence-line stand-ins were last told: a card owes a credit on a crop and nothing else. */
 const credit = { logo: null, attribution: null };
+
+mockModule('frontend/js/common/pano-viewer/PanoViewerLogo.js', () => ({
+    createPanoViewerLogo: () => ({
+        showSourceLogo: () => { credit.logo = 'shown'; },
+        hide: () => { credit.logo = 'hidden'; },
+    }),
+}));
+mockModule('frontend/js/common/pano-viewer/PanoAttribution.js', () => ({
+    createPanoAttribution: () => ({
+        show: () => { credit.attribution = 'shown'; },
+        hide: () => { credit.attribution = 'hidden'; },
+    }),
+}));
 
 /** One /label/labels entry; the click sits at 1/4, 3/4 of the 720x480 Explore canvas. */
 function entry(overrides = {}) {
@@ -31,6 +40,9 @@ function entry(overrides = {}) {
 }
 
 describe('the landing validation grid\'s label marker', () => {
+    let LandingValidationGrid;
+    let lazyIdentityFetch;
+
     const marker = () => document.querySelector('.lvg-card-marker');
 
     /** The fractions the marker is placed at, as percentages. */
@@ -49,44 +61,26 @@ describe('the landing validation grid\'s label marker', () => {
             <section id="landing-validation-container" hidden>
               <div id="landing-validation-grid"></div>
             </section>`;
-        window.fetch = jest.fn(() => Promise.resolve({
+        window.fetch = vi.fn(() => Promise.resolve({
             ok: true,
             json: () => Promise.resolve({ labelsOfType: [gridEntry] }),
         }));
-        // Votes go through the anonymous-session wrapper, not bare fetch.
-        window.util.lazyIdentityFetch = jest.fn(() => Promise.resolve({ ok: true }));
+        // Votes go through the anonymous-session wrapper, not bare fetch; the grid's start is held for the test to run.
+        lazyIdentityFetch = vi.fn(() => Promise.resolve({ ok: true }));
         let start;
-        window.util.onFirstInteractionOrIdle = (fn) => { start = fn; };
+        useUtil({ lazyIdentityFetch, onFirstInteractionOrIdle: (fn) => { start = fn; } });
         // The tests read the DOM the grid builds, not the instance.
-        const grid = new window.LandingValidationGrid(document.getElementById('landing-validation-container'));
-        expect(grid).toBeInstanceOf(window.LandingValidationGrid);
+        const grid = new LandingValidationGrid(document.getElementById('landing-validation-container'));
+        expect(grid).toBeInstanceOf(LandingValidationGrid);
         await start();
     }
 
-    beforeAll(() => {
+    beforeAll(async () => {
         window.i18next = { t: (key) => key };
-        window.util = {
-            assetPath: assetPathStub,
-            camelToKebab: (s) => s.toLowerCase(),
-            saveDataEnabled: () => false,
-            onFirstInteractionOrIdle: () => {},
-            lazyIdentityFetch: () => Promise.resolve({ ok: true }),
-            EXPLORE_CANVAS_WIDTH: 720,
-            EXPLORE_CANVAS_HEIGHT: 480,
-        };
-        installUtilitiesMisc(); // The real util.misc, so labelMarkerFraction under test is the shipped one.
-        window.logWebpageActivity = jest.fn();
+        window.logWebpageActivity = vi.fn();
         // jsdom has no layout, so it has no matchMedia; the grid asks it how many slots this width shows.
         window.matchMedia = () => ({ matches: false });
-        window.createPanoViewerLogo = () => ({
-            showSourceLogo: () => { credit.logo = 'shown'; },
-            hide: () => { credit.logo = 'hidden'; },
-        });
-        window.createPanoAttribution = () => ({
-            show: () => { credit.attribution = 'shown'; },
-            hide: () => { credit.attribution = 'hidden'; },
-        });
-        Object.assign(window, loadModules('frontend/js/LandingValidationGrid.js'));
+        ({ LandingValidationGrid } = await loadModules('frontend/js/LandingValidationGrid.js'));
     });
 
     it('draws the marker where the crop says its label is', async () => {
@@ -115,7 +109,7 @@ describe('the landing validation grid\'s label marker', () => {
         expect(markerPercents()).toEqual({ left: 50, top: 62 });
 
         const img = document.querySelector('.lvg-card-photo');
-        img.dispatchEvent(new window.Event('error')); // The crop 404s; the card retries with the still.
+        img.dispatchEvent(new Event('error')); // The crop 404s; the card retries with the still.
 
         expect(document.querySelector('.lvg-card').dataset.imageSource).toBe('api');
         expect(markerPercents()).toEqual({ left: 25, top: 75 });
@@ -129,15 +123,15 @@ describe('the landing validation grid\'s label marker', () => {
         const card = document.querySelector('.lvg-card');
         const img = card.querySelector('.lvg-card-photo');
         // The pool is empty after the first render, so the swap refills it; the refill returns the next label.
-        window.fetch = jest.fn(() => Promise.resolve({
+        window.fetch = vi.fn(() => Promise.resolve({
             ok: true,
             json: () => Promise.resolve({ labelsOfType: [entry({
                 label: { ...entry().label, label_id: 2 }, cropUrl: '/cropImage/CurbRamp/2',
             })] }),
         }));
 
-        img.dispatchEvent(new window.Event('error')); // The crop 404s; the card retries with the still.
-        img.dispatchEvent(new window.Event('error')); // The still 404s too.
+        img.dispatchEvent(new Event('error')); // The crop 404s; the card retries with the still.
+        img.dispatchEvent(new Event('error')); // The still 404s too.
         await new Promise((resolve) => setTimeout(resolve, 0)); // The refill's fetch and json both settle.
 
         expect(document.contains(card)).toBe(false);
@@ -159,7 +153,7 @@ describe('the landing validation grid\'s label marker', () => {
         document.querySelector('.lvg-btn-agree').click();
         await Promise.resolve();
 
-        const validate = window.util.lazyIdentityFetch.mock.calls.find(([url]) => url === '/labelmap/validate');
+        const validate = lazyIdentityFetch.mock.calls.find(([url]) => url === '/labelmap/validate');
         expect(validate).toBeDefined();
         const payload = JSON.parse(validate[1].body);
         expect([payload.canvas_x, payload.canvas_y]).toEqual([150, 124]); // 0.5 x 300, 0.62 x 200.

@@ -14,21 +14,19 @@
  * rather than as an error. These assert the same numbers the other two suites do, through the stamp.
  */
 
-const fs = require('fs');
-const path = require('path');
-const { loadModules, realUtil } = require('./loadGlobalScript');
+import fs from 'fs';
+import path from 'path';
+import { loadModules, REPO_ROOT } from './loader.js';
 
-const CONFIG_PATH = path.resolve(__dirname, '..', '..', 'conf/pano-scoring.json');
-const config = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
+const config = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'conf/pano-scoring.json'), 'utf8'));
 
 // What main.scala.html stamps: the parsed params, minus the file's own `_`-prefixed documentation.
 const stamped = Object.fromEntries(Object.entries(config).filter(([key]) => !key.startsWith('_')));
 document.documentElement.dataset.panoScoring = JSON.stringify(stamped);
 
-window.util = realUtil();
-loadModules('frontend/js/common/pano-viewer/panoUtilities.js');
-
-const scoring = window.util.pano.scoring;
+const { util } = await loadModules('frontend/js/common/pano-viewer/panoUtilities.js',
+    'frontend/js/common/utilities.js');
+const scoring = util.pano.scoring;
 
 describe('util.pano.scoring', () => {
     it('reads the shared weights back off the layout stamp', () => {

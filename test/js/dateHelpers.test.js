@@ -1,15 +1,13 @@
 /**
  * Tests for the date helpers in frontend/js/common/utilities.js that fill the gaps in the browser's `Intl` (#5549).
  *
- * jest.config.js pins the clock to Los Angeles, which is exactly where reading a bare month as UTC goes wrong.
+ * vitest.config.mjs pins the clock to Los Angeles, which is exactly where reading a bare month as UTC goes wrong.
  */
 
-const { installDateHelpers } = require('./loadGlobalScript');
+import { loadModules } from './loader.js';
 
-beforeAll(() => {
-    window.i18next = { language: 'en' };
-    installDateHelpers();
-});
+window.i18next = { language: 'en' };
+const { util } = await loadModules('frontend/js/common/utilities.js');
 
 describe('util.parseDate', () => {
     test('reads a bare month or day as local midnight, not UTC', () => {

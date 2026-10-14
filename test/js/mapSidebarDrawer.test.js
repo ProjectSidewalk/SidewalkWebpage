@@ -6,12 +6,10 @@
  * what has to be pinned is that the state machine is complete on its own: the chrome, the accessibility state, and
  * the map padding all follow the drawer, in both directions, including across a breakpoint crossing.
  *
- * jsdom has no layout and no matchMedia, so the viewport is a controllable stub and the sidebar reports a fixed
- * width. Loaded the same way as navbarDisclosures.test.js: eval'd with an explicit export.
+ * jsdom has no layout and no matchMedia, so the viewport is a stub the test controls and the sidebar's width is fixed.
  */
 
-const { loadModules } = require('./loadGlobalScript');
-
+import { loadModules } from './loader.js';
 
 const SIDEBAR_WIDTH = 350;
 
@@ -34,8 +32,8 @@ function installViewport() {
 /** A stand-in for the mapbox map, recording the padding the drawer asks for. */
 function fakeMap() {
     return {
-        easeTo: jest.fn(),
-        setPadding: jest.fn(),
+        easeTo: vi.fn(),
+        setPadding: vi.fn(),
         /** The drawer merges its left edge into whatever padding the map holds, so the stub has to report one. */
         getPadding() {
             return this.lastPadding() || {left: 0, top: 0, right: 0, bottom: 0};
@@ -59,7 +57,7 @@ function fakeMap() {
  * @param {boolean} [options.startCollapsed=false] Pass the same-named drawer option.
  * @returns {object} The drawer, its elements, the map stub, and the viewport control.
  */
-function build({narrow = false, startCollapsed = false} = {}) {
+async function build({narrow = false, startCollapsed = false} = {}) {
     document.body.innerHTML = `
       <div id="filter-sidebar" class="filter-sidebar ps-invisible" role="complementary">
         <button type="button" id="filter-sidebar-close"></button>
@@ -74,11 +72,11 @@ function build({narrow = false, startCollapsed = false} = {}) {
 
     const viewport = installViewport();
     viewport.setNarrow(narrow);
-    window.logWebpageActivity = jest.fn();
+    window.logWebpageActivity = vi.fn();
 
-    Object.assign(window, loadModules('frontend/js/ps-map/MapSidebarDrawer.js'));
+    const { MapSidebarDrawer } = await loadModules('frontend/js/ps-map/MapSidebarDrawer.js');
     const map = fakeMap();
-    const drawer = new window.MapSidebarDrawer(map, sidebar, {startCollapsed});
+    const drawer = new MapSidebarDrawer(map, sidebar, {startCollapsed});
 
     return {
         drawer, map, viewport, sidebar,
@@ -93,8 +91,8 @@ const isCollapsed = (sidebar) => sidebar.classList.contains('filter-sidebar--hid
 
 describe('MapSidebarDrawer', () => {
     describe('initial state', () => {
-        it('opens on a wide viewport and pushes the map centre clear of the panel', () => {
-            const {sidebar, map, openBtn, drawer} = build();
+        it('opens on a wide viewport and pushes the map centre clear of the panel', async () => {
+            const {sidebar, map, openBtn, drawer} = await build();
 
             expect(drawer.isOpen).toBe(true);
             expect(isCollapsed(sidebar)).toBe(false);
@@ -102,8 +100,8 @@ describe('MapSidebarDrawer', () => {
             expect(map.lastPadding()).toEqual({left: SIDEBAR_WIDTH, top: 0, right: 0, bottom: 0});
         });
 
-        it('starts collapsed below the breakpoint, with the reopen button already usable', () => {
-            const {sidebar, openBtn, drawer} = build({narrow: true});
+        it('starts collapsed below the breakpoint, with the reopen button already usable', async () => {
+            const {sidebar, openBtn, drawer} = await build({narrow: true});
 
             expect(drawer.isOpen).toBe(false);
             expect(isCollapsed(sidebar)).toBe(true);
@@ -115,30 +113,30 @@ describe('MapSidebarDrawer', () => {
             expect(isCollapsed(sidebar)).toBe(false);
         });
 
-        it('honours startCollapsed on a wide viewport', () => {
-            const {drawer, sidebar} = build({startCollapsed: true});
+        it('honours startCollapsed on a wide viewport', async () => {
+            const {drawer, sidebar} = await build({startCollapsed: true});
 
             expect(drawer.isOpen).toBe(false);
             expect(isCollapsed(sidebar)).toBe(true);
         });
 
-        it('does not log its own initial state, and does not steal focus on load', () => {
-            build({narrow: true});
+        it('does not log its own initial state, and does not steal focus on load', async () => {
+            await build({narrow: true});
 
             expect(window.logWebpageActivity).not.toHaveBeenCalled();
             expect(document.activeElement).toBe(document.body);
         });
 
-        it('leaves the camera centred when the drawer covers the map', () => {
-            const {map} = build({narrow: true});
+        it('leaves the camera centred when the drawer covers the map', async () => {
+            const {map} = await build({narrow: true});
 
             expect(map.lastPadding()).toEqual({left: 0, top: 0, right: 0, bottom: 0});
         });
     });
 
     describe('opening and closing', () => {
-        it('keeps the off-canvas panel out of the tab order and the accessibility tree', () => {
-            const {sidebar, closeBtn, openBtn} = build();
+        it('keeps the off-canvas panel out of the tab order and the accessibility tree', async () => {
+            const {sidebar, closeBtn, openBtn} = await build();
 
             expect(sidebar.inert).toBe(false);
             expect(sidebar.getAttribute('aria-hidden')).toBe('false');
@@ -153,8 +151,8 @@ describe('MapSidebarDrawer', () => {
             expect(openBtn.getAttribute('aria-expanded')).toBe('true');
         });
 
-        it('moves focus to whichever control is now the way back out', () => {
-            const {closeBtn, openBtn} = build();
+        it('moves focus to whichever control is now the way back out', async () => {
+            const {closeBtn, openBtn} = await build();
 
             closeBtn.click();
             expect(document.activeElement).toBe(openBtn);
@@ -163,8 +161,8 @@ describe('MapSidebarDrawer', () => {
             expect(document.activeElement).toBe(closeBtn);
         });
 
-        it('logs each user-driven change, and nothing for a programmatic one', () => {
-            const {drawer, closeBtn} = build();
+        it('logs each user-driven change, and nothing for a programmatic one', async () => {
+            const {drawer, closeBtn} = await build();
 
             closeBtn.click();
             expect(window.logWebpageActivity).toHaveBeenCalledWith('Click_module=MapSidebar_Close');
@@ -174,24 +172,24 @@ describe('MapSidebarDrawer', () => {
             expect(window.logWebpageActivity).not.toHaveBeenCalled();
         });
 
-        it('closes on Escape while the drawer covers the map', () => {
-            const {drawer, openBtn} = build({narrow: true});
+        it('closes on Escape while the drawer covers the map', async () => {
+            const {drawer, openBtn} = await build({narrow: true});
             openBtn.click();
             expect(drawer.isOpen).toBe(true);
 
-            document.dispatchEvent(new window.KeyboardEvent('keydown', {key: 'Escape'}));
+            document.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape'}));
             expect(drawer.isOpen).toBe(false);
         });
 
-        it('leaves Escape alone on a wide viewport, where the map is still reachable beside the panel', () => {
-            const {drawer} = build();
+        it('leaves Escape alone on a wide viewport, where the map is still reachable beside the panel', async () => {
+            const {drawer} = await build();
 
-            document.dispatchEvent(new window.KeyboardEvent('keydown', {key: 'Escape'}));
+            document.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape'}));
             expect(drawer.isOpen).toBe(true);
         });
 
-        it('does not animate the camera to padding it already has', () => {
-            const {drawer, map} = build({narrow: true});
+        it('does not animate the camera to padding it already has', async () => {
+            const {drawer, map} = await build({narrow: true});
             map.easeTo.mockClear();
             map.setPadding.mockClear();
 
@@ -203,8 +201,8 @@ describe('MapSidebarDrawer', () => {
             expect(map.setPadding).not.toHaveBeenCalled();
         });
 
-        it('hides the resize handle whenever the panel is not a resizable column', () => {
-            const {handle, closeBtn} = build();
+        it('hides the resize handle whenever the panel is not a resizable column', async () => {
+            const {handle, closeBtn} = await build();
             expect(handle.style.display).toBe('');
 
             closeBtn.click();
@@ -213,8 +211,8 @@ describe('MapSidebarDrawer', () => {
     });
 
     describe('crossing the breakpoint', () => {
-        it('collapses a drawer that would otherwise cover the whole map', () => {
-            const {drawer, sidebar, viewport, openBtn} = build();
+        it('collapses a drawer that would otherwise cover the whole map', async () => {
+            const {drawer, sidebar, viewport, openBtn} = await build();
             expect(drawer.isOpen).toBe(true);
 
             viewport.setNarrow(true);
@@ -224,8 +222,8 @@ describe('MapSidebarDrawer', () => {
             expect(openBtn.style.display).toBe('block');
         });
 
-        it('drops an inline width from a drag session, which would beat the full-width rule', () => {
-            const {sidebar, viewport} = build();
+        it('drops an inline width from a drag session, which would beat the full-width rule', async () => {
+            const {sidebar, viewport} = await build();
             sidebar.style.width = '520px';
 
             viewport.setNarrow(true);
@@ -233,8 +231,8 @@ describe('MapSidebarDrawer', () => {
             expect(sidebar.style.width).toBe('');
         });
 
-        it('gives a dragged width back on the way to a wide viewport, rather than losing it to a rotation', () => {
-            const {sidebar, viewport} = build();
+        it('gives a dragged width back on the way to a wide viewport, not lost to a rotation', async () => {
+            const {sidebar, viewport} = await build();
             sidebar.style.width = '520px';
 
             viewport.setNarrow(true);
@@ -244,8 +242,8 @@ describe('MapSidebarDrawer', () => {
             expect(sidebar.style.width).toBe('520px');
         });
 
-        it('re-derives the padding on the way back to a wide viewport', () => {
-            const {map, viewport, openBtn} = build({narrow: true});
+        it('re-derives the padding on the way back to a wide viewport', async () => {
+            const {map, viewport, openBtn} = await build({narrow: true});
             openBtn.click();
             expect(map.lastPadding()).toEqual({left: 0, top: 0, right: 0, bottom: 0});
 
@@ -254,8 +252,8 @@ describe('MapSidebarDrawer', () => {
             expect(map.lastPadding()).toEqual({left: SIDEBAR_WIDTH, top: 0, right: 0, bottom: 0});
         });
 
-        it('reconciles a crossing without logging it or moving focus', () => {
-            const {viewport} = build();
+        it('reconciles a crossing without logging it or moving focus', async () => {
+            const {viewport} = await build();
             window.logWebpageActivity.mockClear();
 
             viewport.setNarrow(true);

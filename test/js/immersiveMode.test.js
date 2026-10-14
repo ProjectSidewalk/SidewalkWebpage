@@ -7,12 +7,14 @@
  * describes the action it now offers, the paired Click_/KeyboardShortcut_ events carry the frame, the exit hint
  * shows once per session, and none of it is reachable during the tutorial.
  *
- * util, i18next and Toast are stubbed on `window`; the tool-specific collaborators arrive through its options.
+ * The tool-specific collaborators arrive through the module's options; Toast is the one import it reaches for.
  */
 
+import { loadModules, mockModule } from './loader.js';
+import { fakeTracker } from './fakes.js';
 
-const { assetPathStub, loadModules } = require('./loadGlobalScript');
-
+const toast = { show: vi.fn() };
+mockModule('frontend/js/common/Toast.js', () => ({ Toast: toast }));
 
 describe('ImmersiveMode', () => {
     let ImmersiveMode;
@@ -41,7 +43,7 @@ describe('ImmersiveMode', () => {
         });
     }
 
-    beforeEach(() => {
+    beforeEach(async () => {
         document.body.innerHTML = `
             <div id="immersive-toggle-holder" class="ps-icon-button-stack">
               <button type="button" id="immersive-toggle-button" class="ps-icon-button">
@@ -53,16 +55,14 @@ describe('ImmersiveMode', () => {
         window.sessionStorage.clear();
         window.history.replaceState(null, '', '/explore');
         onboarding = false;
-        tracker = { push: jest.fn() };
-        relayout = jest.fn();
-        window.util = { assetPath: assetPathStub };
+        tracker = fakeTracker();
+        relayout = vi.fn();
+        toast.show = vi.fn();
         window.i18next = { t: (key) => key };
-        window.Toast = { show: jest.fn() };
-        contextMenu = { isOpen: jest.fn(() => false), hide: jest.fn() };
-        canvas = { showLabelHoverInfo: jest.fn() };
+        contextMenu = { isOpen: vi.fn(() => false), hide: vi.fn() };
+        canvas = { showLabelHoverInfo: vi.fn() };
         frame = { width: 720, height: 480 };
-        Object.assign(window, loadModules('frontend/js/common/ImmersiveMode.js'));
-        ImmersiveMode = window.ImmersiveMode;
+        ({ ImmersiveMode } = await loadModules('frontend/js/common/ImmersiveMode.js'));
     });
 
     it('flips both layout classes, re-lays out, and updates the button on enter and exit', () => {
@@ -115,21 +115,21 @@ describe('ImmersiveMode', () => {
         mode.toggle('Click');
         mode.toggle('Click');
         mode.toggle('Click');
-        expect(window.Toast.show).toHaveBeenCalledTimes(1);
-        expect(window.Toast.show).toHaveBeenCalledWith(expect.objectContaining({ dark: true }));
+        expect(toast.show).toHaveBeenCalledTimes(1);
+        expect(toast.show).toHaveBeenCalledWith(expect.objectContaining({ dark: true }));
 
         // A second module in the same session (a page reload) stays quiet.
         build().toggle('Click');
-        expect(window.Toast.show).toHaveBeenCalledTimes(1);
+        expect(toast.show).toHaveBeenCalledTimes(1);
     });
 
     it('still enters when session storage is unavailable', () => {
-        const getItem = jest.spyOn(Storage.prototype, 'getItem')
+        const getItem = vi.spyOn(Storage.prototype, 'getItem')
             .mockImplementation(() => { throw new Error('denied'); });
         const mode = build();
         mode.toggle('Click');
         expect(mode.isActive()).toBe(true);
-        expect(window.Toast.show).toHaveBeenCalledTimes(1);
+        expect(toast.show).toHaveBeenCalledTimes(1);
         getItem.mockRestore();
     });
 
@@ -232,7 +232,7 @@ describe('ImmersiveMode', () => {
     });
 
     it('tells its onChange hook after every toggle, once the tool is laid out (#5480)', () => {
-        const onChange = jest.fn();
+        const onChange = vi.fn();
         const mode = build({ onChange });
         mode.toggle('Click');
         expect(onChange).toHaveBeenCalledTimes(1);

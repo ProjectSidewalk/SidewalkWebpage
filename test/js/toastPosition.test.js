@@ -7,16 +7,13 @@
  * than the viewport (where centering is impossible and it left-aligns instead). Like the anchoring geometry, these
  * only misbehave at the edges, which is where a manual pass is least likely to look.
  *
- * Toast.js declares a top-level class: on a page that makes it a global binding, but under require() it stays
- * module-scoped, so the test evaluates the source directly (the same approach badgeAchievements.test.js takes).
  * jsdom has no layout engine, so getBoundingClientRect is stubbed — the toast reports the width each test states and
  * the reference reports the rect it was given, which is what a geometry test wants anyway.
  */
 
+import { loadModules } from './loader.js';
 
-const { assetPathStub, loadModules } = require('./loadGlobalScript');
-
-const Toast = loadModules('frontend/js/common/Toast.js').Toast;
+const { Toast } = await loadModules('frontend/js/common/Toast.js');
 
 // Matches the constants in Toast.#position.
 const EDGE = 8;
@@ -59,8 +56,7 @@ describe('Toast placement', () => {
     beforeEach(() => {
         document.body.innerHTML = '';
         window.innerWidth = VIEWPORT_WIDTH;
-        global.i18next = { t: (key) => key };
-        global.util = { assetPath: assetPathStub }; // The close button's icon URL.
+        window.i18next = { t: (key) => key };
     });
 
     afterEach(() => {
@@ -95,22 +91,17 @@ describe('Toast placement', () => {
 
     it('follows its reference when that is re-laid out without a window resize', () => {
         const observed = [];
-        const realResizeObserver = global.ResizeObserver;
-        global.ResizeObserver = class {
+        vi.stubGlobal('ResizeObserver', class {
             constructor(callback) { this.callback = callback; }
             observe(el) { observed.push({ el, fire: () => this.callback([]) }); }
             disconnect() { this.disconnected = true; }
-        };
-        try {
-            expect(place(300, { left: 200, top: 100, width: 600, height: 400 }).left).toBe(500);
-            expect(observed).toHaveLength(1);
-            // A panel opens beside the reference, narrowing it to the right half of the window.
-            stubLayout(300, { left: 500, top: 100, width: 500, height: 400 });
-            observed[0].fire();
-            expect(parseFloat(document.querySelector('.ps-toast').style.left)).toBe(750);
-        } finally {
-            global.ResizeObserver = realResizeObserver;
-        }
+        });
+        expect(place(300, { left: 200, top: 100, width: 600, height: 400 }).left).toBe(500);
+        expect(observed).toHaveLength(1);
+        // A panel opens beside the reference, narrowing it to the right half of the window.
+        stubLayout(300, { left: 500, top: 100, width: 500, height: 400 });
+        observed[0].fire();
+        expect(parseFloat(document.querySelector('.ps-toast').style.left)).toBe(750);
     });
 
     it('centers on the reference and sits 10% down it when there is room on both sides', () => {

@@ -15,17 +15,10 @@
  * viewerShowsLabel() is the other half: it decides whether there's a viewer worth believing in the first place, and
  * the card feeds its answer to submissionContext(). Both are exercised here.
  *
- * Only the static method is exercised: constructing a LabelDetail needs a live pano viewer.
+ * Only the static methods are exercised: constructing a LabelDetail needs a live pano viewer.
  */
 
-const { loadModules } = require('./loadGlobalScript');
-
-
-/** Loads a fresh LabelDetail class into the jsdom global scope. */
-function loadLabelDetail() {
-    Object.assign(window, loadModules('frontend/js/common/label-detail/LabelDetail.js'));
-    return window.LabelDetail;
-}
+import { loadModules } from './loader.js';
 
 /** A label whose metadata carries everything: its pano, that pano's camera location, and the stored POV. */
 const META = {
@@ -43,8 +36,8 @@ const META = {
 describe('LabelDetail.submissionContext', () => {
     let LabelDetail;
 
-    beforeEach(() => {
-        LabelDetail = loadLabelDetail();
+    beforeEach(async () => {
+        ({ LabelDetail } = await loadModules('frontend/js/common/label-detail/LabelDetail.js'));
     });
 
     test('a viewer showing the label wins over the metadata', () => {
@@ -129,8 +122,8 @@ describe('LabelDetail.submissionContext', () => {
 describe('LabelDetail.viewerShowsLabel', () => {
     let LabelDetail;
 
-    beforeEach(() => {
-        LabelDetail = loadLabelDetail();
+    beforeEach(async () => {
+        ({ LabelDetail } = await loadModules('frontend/js/common/label-detail/LabelDetail.js'));
     });
 
     test.each([

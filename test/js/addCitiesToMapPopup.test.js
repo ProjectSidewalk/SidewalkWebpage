@@ -6,14 +6,9 @@
  * The result was that the "Validations" cell always rendered 0 while distance and labels populated correctly. This
  * pins the popup's read paths against a realistic overallStats response shape so the same field drift can't recur
  * silently (the `|| 0` fallback turns a moved field into a wrong value, not a thrown error).
- *
- * Mapbox, i18next and fetch are stubbed.
  */
 
-const path = require('path');
-const { loadModules } = require('./loadGlobalScript');
-
-const MODULE_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/ps-map/addCitiesToMap.js');
+import { loadModules, useUtil } from './loader.js';
 
 // Realistic slice of /v3/api/overallStats: validation totals live under validations.combined/human/ai (#4591),
 // labels under labels.count, distance at km_explored.
@@ -126,48 +121,32 @@ function makeCitiesData() {
  * @param {object} body - The object the stubbed fetch resolves with as JSON.
  */
 function stubFetch(body) {
-    global.fetch = jest.fn(() => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(body) }));
-}
-
-/**
- * Loads a fresh addCitiesToMap.
- * @returns {Function} The addCitiesToMap function.
- */
-function loadAddCitiesToMap() {
-    return loadModules(MODULE_PATH).addCitiesToMap;
+    vi.stubGlobal('fetch', vi.fn(() => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(body) })));
 }
 
 describe('addCitiesToMap city popup (#4591)', () => {
     let addCitiesToMap;
     let map;
 
-    beforeEach(() => {
+    beforeEach(async () => {
         document.body.innerHTML = POPUP_TEMPLATE;
         lastPopupContent = undefined;
         // format-number echoes the raw value so tests can assert exact numbers; other keys just return the key.
-        global.i18next = {
+        vi.stubGlobal('i18next', {
             t: (key, opts) => {
                 if (key === 'common:format-number') return String(opts.val);
                 return key;
             },
-        };
+        });
         // Units come from the server's <html> stamp, which util reads back; these tests run in metric. The real
         // longDistanceToString goes through i18next's `distance` formatter, which AppManager registers.
-        global.util = {
+        useUtil({
             isMetric: () => true,
             longDistanceToString: (km, precision = 0) => `${km.toFixed(precision)} km`,
-        };
-        global.mapboxgl = { Popup: FakePopup, LngLatBounds: FakeLngLatBounds };
-        addCitiesToMap = loadAddCitiesToMap();
+        });
+        vi.stubGlobal('mapboxgl', { Popup: FakePopup, LngLatBounds: FakeLngLatBounds });
+        ({ addCitiesToMap } = await loadModules('frontend/js/ps-map/addCitiesToMap.js'));
         map = makeFakeMap();
-    });
-
-    afterEach(() => {
-        delete global.fetch;
-        delete global.i18next;
-        delete global.util;
-        delete global.mapboxgl;
-        jest.restoreAllMocks();
     });
 
     /**
@@ -186,7 +165,7 @@ describe('addCitiesToMap city popup (#4591)', () => {
 
     test('fetches overallStats from the clicked city origin', async () => {
         await clickCity(GOOD_STATS);
-        expect(global.fetch).toHaveBeenCalledWith('https://example.org/v3/api/overallStats');
+        expect(window.fetch).toHaveBeenCalledWith('https://example.org/v3/api/overallStats');
     });
 
     test('populates all three stat cells from the current overallStats shape', async () => {
@@ -213,7 +192,7 @@ describe('addCitiesToMap city popup (#4591)', () => {
 
         test('makes no stats request at all', async () => {
             await clickCity(GOOD_STATS, PRIVATE);
-            expect(global.fetch).not.toHaveBeenCalled();
+            expect(window.fetch).not.toHaveBeenCalled();
         });
 
         test('drops the stats grid rather than showing placeholder dashes', async () => {
@@ -232,7 +211,7 @@ describe('addCitiesToMap city popup (#4591)', () => {
         // leave it rendering href="null/explore" on the public cities map.
         test('withholds the link for an unrecognized visibility too, whenever the url is absent', async () => {
             await clickCity(GOOD_STATS, { url: null, visibility: 'beta' });
-            expect(global.fetch).not.toHaveBeenCalled();
+            expect(window.fetch).not.toHaveBeenCalled();
             expect(lastPopupContent.querySelector('.popup-link')).toBeNull();
         });
     });

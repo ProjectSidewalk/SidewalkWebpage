@@ -14,28 +14,21 @@
  * and so matched nothing at all.
  */
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
 
-const { assetPathStub, loadModules } = require('./loadGlobalScript');
+import { REPO_ROOT, loadModules, mockModule } from './loader.js';
+import { fakeGate, fakeTracker } from './fakes.js';
+import {
+  FakeLabel, fakeLabelContainerDeps, newLabelContainer, buildLabelContainer,
+} from './support/labelContainerHarness.js';
 
-const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const LABEL_CONTAINER_PATH = path.join(REPO_ROOT, 'frontend/js/validate/label/LabelContainer.js');
-const MAIN_PATH = path.join(REPO_ROOT, 'frontend/js/validate/Main.js');
 const DESKTOP_VIEW_PATH = path.join(REPO_ROOT, 'app/views/apps/validate.scala.html');
 const MOBILE_VIEW_PATH = path.join(REPO_ROOT, 'app/views/apps/mobileValidate.scala.html');
 
 const LABEL_TYPE = 'CurbRamp';
 
-/**
- * Loads one export from a production file.
- * @param {string} filePath - Absolute path to the production file.
- * @param {string} name - Name of the binding the file declares.
- * @returns {*} The binding's value.
- */
-function loadBindingFromFile(filePath, name) {
-  return loadModules(filePath)[name];
-}
+mockModule('frontend/js/validate/label/Label.js', () => ({ Label: FakeLabel }));
 
 /** @returns {HTMLElement} A stand-in for an element Validate dims or re-cursors. */
 function fakeElement() {
@@ -47,55 +40,6 @@ let LabelContainer;
 
 /** @type {Record<string, any>} The collaborators the container under test is built over. */
 let deps;
-
-/**
- * Fills in the collaborators LabelContainer takes that the suite has no opinion on.
- * @param {Record<string, any>} suiteDeps - The suite's own fakes, which win where they overlap.
- */
-function completeDeps(suiteDeps) {
-  const mission = {updateValidationResult: jest.fn(), isComplete: () => true, getProperty: () => 1};
-  deps = {
-    config: {validateParams: {}, source: 'Validate', canvasWidth: () => 720, canvasHeight: () => 480, labelRadius: 10},
-    panoLoadingStatus: {begin: jest.fn(), setMessage: jest.fn(), end: jest.fn()},
-    modalMissionComplete: {isShowing: () => false},
-    missionContainer: {getCurrentMission: () => mission, updateAMission: jest.fn()},
-    ...suiteDeps,
-  };
-  deps.tracker.flushSoon ??= jest.fn();
-  deps.modalNoNewMission.isShowing ??= () => false;
-  Object.assign(deps.panoManager, {
-    blanksPanoWhileLoading: () => false,
-    getActiveViewerName: () => 'Default',
-    revealPendingCanvas: jest.fn(),
-    prefetchBackups: deps.panoManager.prefetchBackups ?? jest.fn(),
-    panoViewer: {getViewerType: () => 'gsv'},
-  });
-}
-
-/**
- * Builds a container over the fakes, with the card and menu listening the way Main.js wires them.
- * @param {Array} labelList - Label metadata to start with.
- * @param {string} labelType - The mission's label type.
- * @returns {object} The container, before its first render.
- */
-function newLabelContainer(labelList, labelType) {
-  const labelContainer = new LabelContainer(labelList, labelType, deps.ui, deps.config, deps.panoManager,
-    deps.panoLoadingStatus, deps.modalMissionComplete, deps.modalNoNewMission, deps.missionContainer, deps.tracker);
-  labelContainer.onLabelReady((label) => deps.labelCard.render(label));
-  labelContainer.onLabelReady((label) => deps.validationMenu.resetMenu(label));
-  return labelContainer;
-}
-
-/**
- * @param {Array} labelList - Label metadata to start with.
- * @param {string} labelType - The mission's label type.
- * @returns {Promise<object>} The container with its first label rendered.
- */
-async function buildLabelContainer(labelList, labelType) {
-  const labelContainer = newLabelContainer(labelList, labelType);
-  await labelContainer.renderCurrentLabel();
-  return labelContainer;
-}
 
 /** @returns {boolean} Whether every busy-region element carries the busy class and aria-busy. */
 function busyRegionIsBusy() {
@@ -115,49 +59,31 @@ describe('input aimed at a label whose pano is still loading is dropped (issue #
   let releaseLoad; // Resolves the held-open setPanorama, if one is being held.
   let holdNextLoad;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     holdNextLoad = false;
     releaseLoad = null;
 
-    global.util = {assetPath: assetPathStub, isMobile: () => false};
-
-    // Only the surface LabelContainer reaches for: it stamps a timestamp on the label it is about to load, reads the
-    // pano to load off it, and hands it to the UI. `validate` stands in for the real submission path.
-    global.Label = class Label {
-      constructor(params) {
-        this.auditProps = params;
-        this.props = {};
-        this.validate = jest.fn();
-      }
-
-      getAuditProperty(key) { return this.auditProps[key]; }
-      setProperty(key, value) { this.props[key] = value; }
-      getProperty(key) { return this.props[key]; }
-      getProperties() { return this.props; }
-      commentData() { return null; }
-    };
-
-    completeDeps({
-      tracker: {push: jest.fn()},
-      labelCard: {render: jest.fn()},
-      validationMenu: {resetMenu: jest.fn()},
-      undoValidation: {enableUndo: jest.fn()},
+    deps = fakeLabelContainerDeps({
+      tracker: fakeTracker(),
+      labelCard: {render: vi.fn()},
+      validationMenu: {resetMenu: vi.fn()},
+      undoValidation: {enableUndo: vi.fn()},
       labelVisibilityControl: {
-        hideLabelCard: jest.fn(),
-        unhideLabel: jest.fn(),
-        openCardOnLoad: jest.fn(),
+        hideLabelCard: vi.fn(),
+        unhideLabel: vi.fn(),
+        openCardOnLoad: vi.fn(),
         isVisible: () => true,
       },
-      modalNoNewMission: {show: jest.fn()},
+      modalNoNewMission: {show: vi.fn()},
       ui: {
         holder: fakeElement(),
         busyRegion: [fakeElement(), fakeElement()],
         viewer: {controlLayer: fakeElement()},
       },
       panoManager: {
-        renderPanoMarker: jest.fn(),
-        prefetchPano: jest.fn(),
-        setPanorama: jest.fn((panoId) => {
+        renderPanoMarker: vi.fn(),
+        prefetchPano: vi.fn(),
+        setPanorama: vi.fn((panoId) => {
           if (!holdNextLoad) return Promise.resolve({panoData: {panoId}});
           holdNextLoad = false;
           return new Promise((resolve) => { releaseLoad = () => resolve({panoData: {panoId}}); });
@@ -165,12 +91,7 @@ describe('input aimed at a label whose pano is still loading is dropped (issue #
       },
     });
 
-    LabelContainer = loadBindingFromFile(LABEL_CONTAINER_PATH, 'LabelContainer');
-  });
-
-  afterEach(() => {
-    delete global.util;
-    delete global.Label;
+    ({ LabelContainer } = await loadModules('frontend/js/validate/label/LabelContainer.js'));
   });
 
   /**
@@ -178,7 +99,8 @@ describe('input aimed at a label whose pano is still loading is dropped (issue #
    * @returns {Promise<{labelContainer: object, inFlight: Promise}>} The container, mid-load, and the pending move.
    */
   async function buildContainerMidLoad() {
-    const labelContainer = await buildLabelContainer([{labelId: 1, panoId: 'panoA'}, {labelId: 2, panoId: 'panoB'}, {labelId: 3, panoId: 'panoC'}], LABEL_TYPE);
+    const labelContainer = await buildLabelContainer(LabelContainer, deps,
+        [{labelId: 1, panoId: 'panoA'}, {labelId: 2, panoId: 'panoB'}, {labelId: 3, panoId: 'panoC'}], LABEL_TYPE);
     deps.tracker.push.mockClear();
     holdNextLoad = true;
     // Not awaited: moveToNextLabel runs as far as the pano load and stops there, which is the window under test.
@@ -326,7 +248,7 @@ describe('input aimed at a label whose pano is still loading is dropped (issue #
   test('a draw that fails has already reset the menu for the new label, and tells nobody the label is shown', async () => {
     const {labelContainer, inFlight} = await buildContainerMidLoad();
     await finishLoad(inFlight);
-    const shown = jest.fn();
+    const shown = vi.fn();
     labelContainer.onLabelShown(shown);
     deps.validationMenu.resetMenu.mockClear();
     deps.panoManager.renderPanoMarker.mockRejectedValueOnce(new Error('marker did not draw'));
@@ -340,8 +262,8 @@ describe('input aimed at a label whose pano is still loading is dropped (issue #
   // The no-more-labels path hands the tool back before showing its modal. The finally has to leave that alone rather
   // than hand it back a second time behind the modal.
   test('the out-of-labels modal is not handed a re-enabled keyboard', async () => {
-    const keyboard = {release: jest.fn(), hold: jest.fn()};
-    const labelContainer = newLabelContainer([{labelId: 1, panoId: 'panoA'}], LABEL_TYPE);
+    const keyboard = fakeGate();
+    const labelContainer = newLabelContainer(LabelContainer, deps, [{labelId: 1, panoId: 'panoA'}], LABEL_TYPE);
     // As KeyboardManager subscribes.
     labelContainer.onLoadingChange((loading) => (loading ? keyboard.hold('loading') : keyboard.release('loading')));
     await labelContainer.renderCurrentLabel();
@@ -436,9 +358,9 @@ describe('every menu path that writes onto the current label refuses one that is
 
 // An id missing from the view matches nothing, silently, which is how mobile came to have no busy state (#5211).
 // These check the selector lists against the markup they cover.
-describe('every element the busy state covers exists in the view it covers it in', () => {
-  const busySelectors = loadBindingFromFile(MAIN_PATH, 'VALIDATE_BUSY_SELECTORS');
+const { VALIDATE_BUSY_SELECTORS: busySelectors } = await loadModules('frontend/js/validate/Main.js');
 
+describe('every element the busy state covers exists in the view it covers it in', () => {
   test.each([
     ['desktop', DESKTOP_VIEW_PATH],
     ['mobile', MOBILE_VIEW_PATH],

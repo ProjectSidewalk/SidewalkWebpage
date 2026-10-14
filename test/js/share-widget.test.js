@@ -6,14 +6,7 @@
  * state, share-intent URLs, activity logging, and setTarget's stale-popover guard.
  */
 
-const { loadModules } = require('./loadGlobalScript');
-
-
-/** Loads a fresh ShareWidget class into the jsdom global scope. */
-function loadShareWidget() {
-    Object.assign(window, loadModules('frontend/js/common/share/ShareWidget.js'));
-    return window.ShareWidget;
-}
+import { loadModules } from './loader.js';
 
 const TARGET = {
     url: 'https://sidewalk-test.example.org/label/123',
@@ -43,7 +36,7 @@ describe('ShareWidget', () => {
         [...document.querySelectorAll('.label-detail__share-item')]
             .find((btn) => btn.querySelector('.label-detail__share-item-label').textContent === labelKey);
 
-    beforeEach(() => {
+    beforeEach(async () => {
         document.body.innerHTML =
             '<div class="label-detail__share"><button type="button" class="label-detail__share-trigger"></button></div>';
         trigger = document.querySelector('.label-detail__share-trigger');
@@ -53,18 +46,18 @@ describe('ShareWidget', () => {
         window.i18next = { t: (key) => key.replace(/^common:/, '') };
         // The widget reserves the native share sheet for touch-primary devices, which jsdom can't answer for —
         // it has no matchMedia at all. Default to a desktop pointer; the touch tests override per-case.
-        window.matchMedia = jest.fn().mockReturnValue({ matches: false });
-        window.logWebpageActivity = jest.fn();
-        window.open = jest.fn();
+        window.matchMedia = vi.fn().mockReturnValue({ matches: false });
+        window.logWebpageActivity = vi.fn();
+        window.open = vi.fn();
         // jsdom has no navigator.share by default (the popover path); native-share tests define one explicitly.
         delete navigator.share;
         delete navigator.canShare;
         Object.defineProperty(navigator, 'clipboard', {
-            value: { writeText: jest.fn().mockResolvedValue(undefined) },
+            value: { writeText: vi.fn().mockResolvedValue(undefined) },
             configurable: true
         });
 
-        ShareWidget = loadShareWidget();
+        ({ ShareWidget } = await loadModules('frontend/js/common/share/ShareWidget.js'));
     });
 
     describe('constructor', () => {
@@ -221,27 +214,23 @@ describe('ShareWidget', () => {
 
     describe('share actions', () => {
         test('Copy Link writes the URL to the clipboard and shows a transient Copied state', async () => {
-            jest.useFakeTimers();
-            try {
-                buildWidget();
-                trigger.click();
-                item('share.copy-link').click();
-                // Flush the clipboard promise without advancing the 1500ms reset timer.
-                await Promise.resolve();
-                await Promise.resolve();
+            vi.useFakeTimers();
+            buildWidget();
+            trigger.click();
+            item('share.copy-link').click();
+            // Flush the clipboard promise without advancing the 1500ms reset timer.
+            await Promise.resolve();
+            await Promise.resolve();
 
-                expect(navigator.clipboard.writeText).toHaveBeenCalledWith(TARGET.url);
-                expect(window.logWebpageActivity).toHaveBeenCalledWith('Share_CopyLink');
-                const copyButton = item('share.copied');
-                expect(copyButton.classList.contains('is-copied')).toBe(true);
+            expect(navigator.clipboard.writeText).toHaveBeenCalledWith(TARGET.url);
+            expect(window.logWebpageActivity).toHaveBeenCalledWith('Share_CopyLink');
+            const copyButton = item('share.copied');
+            expect(copyButton.classList.contains('is-copied')).toBe(true);
 
-                jest.advanceTimersByTime(1500);
-                expect(copyButton.querySelector('.label-detail__share-item-label').textContent)
-                    .toBe('share.copy-link');
-                expect(copyButton.classList.contains('is-copied')).toBe(false);
-            } finally {
-                jest.useRealTimers();
-            }
+            vi.advanceTimersByTime(1500);
+            expect(copyButton.querySelector('.label-detail__share-item-label').textContent)
+                .toBe('share.copy-link');
+            expect(copyButton.classList.contains('is-copied')).toBe(false);
         });
 
         test('X opens a tweet intent with the encoded URL and text, then closes', () => {
@@ -286,8 +275,8 @@ describe('ShareWidget', () => {
 
         test('prefers navigator.share on a touch device when canShare approves, without a popover', () => {
             asTouchDevice();
-            navigator.share = jest.fn().mockResolvedValue(undefined);
-            navigator.canShare = jest.fn().mockReturnValue(true);
+            navigator.share = vi.fn().mockResolvedValue(undefined);
+            navigator.canShare = vi.fn().mockReturnValue(true);
             buildWidget();
             trigger.click();
 
@@ -300,8 +289,8 @@ describe('ShareWidget', () => {
 
         test('falls back to the popover when canShare rejects the payload', () => {
             asTouchDevice();
-            navigator.share = jest.fn();
-            navigator.canShare = jest.fn().mockReturnValue(false);
+            navigator.share = vi.fn();
+            navigator.canShare = vi.fn().mockReturnValue(false);
             buildWidget();
             trigger.click();
 
@@ -313,8 +302,8 @@ describe('ShareWidget', () => {
         // Desktop Chrome and Safari both implement navigator.share, and their OS sheets are a poor fit for this —
         // macOS's doesn't even offer copy-URL (#4660). A fine pointer means our own popover, always.
         test('never uses the OS sheet on a fine-pointer device, even where the API exists', () => {
-            navigator.share = jest.fn().mockResolvedValue(undefined);
-            navigator.canShare = jest.fn().mockReturnValue(true);
+            navigator.share = vi.fn().mockResolvedValue(undefined);
+            navigator.canShare = vi.fn().mockReturnValue(true);
             buildWidget();
             trigger.click();
 
@@ -512,7 +501,7 @@ describe('ShareWidget', () => {
     // left by the time it closes and no second mouseleave is coming, so they need telling when to resume (#4726).
     describe('onDismiss', () => {
         test('fires when the user dismisses with a second click on the trigger', () => {
-            const onDismiss = jest.fn();
+            const onDismiss = vi.fn();
             const widget = new ShareWidget(trigger, { onDismiss });
             widget.setTarget(TARGET);
 
@@ -524,7 +513,7 @@ describe('ShareWidget', () => {
         });
 
         test('fires on ESC and on an outside click', async () => {
-            const onDismiss = jest.fn();
+            const onDismiss = vi.fn();
             const widget = new ShareWidget(trigger, { onDismiss });
             widget.setTarget(TARGET);
 
@@ -540,7 +529,7 @@ describe('ShareWidget', () => {
         });
 
         test('fires when the user picks an action', () => {
-            const onDismiss = jest.fn();
+            const onDismiss = vi.fn();
             const widget = new ShareWidget(trigger, { onDismiss });
             widget.setTarget(TARGET);
 
@@ -553,7 +542,7 @@ describe('ShareWidget', () => {
         // The host asked for these itself, so telling it would send it round in a circle — Validate's
         // hideLabelCard() closes the popover, and a dismissal notice would schedule another hide behind it.
         test('does not fire when the host closes the widget itself', () => {
-            const onDismiss = jest.fn();
+            const onDismiss = vi.fn();
             const widget = new ShareWidget(trigger, { onDismiss });
             widget.setTarget(TARGET);
 
@@ -578,7 +567,7 @@ describe('ShareWidget', () => {
         });
 
         test('does not re-run the host beforeOpen step', async () => {
-            const beforeOpen = jest.fn().mockResolvedValue(undefined);
+            const beforeOpen = vi.fn().mockResolvedValue(undefined);
             const widget = new ShareWidget(trigger, { beforeOpen });
             widget.setTarget(TARGET);
 
@@ -629,7 +618,7 @@ describe('ShareWidget', () => {
         });
 
         test('ignores a second click while the host step is still in flight', async () => {
-            const beforeOpen = jest.fn().mockResolvedValue(undefined);
+            const beforeOpen = vi.fn().mockResolvedValue(undefined);
             const widget = new ShareWidget(trigger, { beforeOpen });
             widget.setTarget(TARGET);
 
@@ -642,7 +631,7 @@ describe('ShareWidget', () => {
         });
 
         test('stays closed when the host step throws, rather than opening a share with no URL', async () => {
-            const errSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+            const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
             const widget = new ShareWidget(trigger, { beforeOpen: () => Promise.reject(new Error('submit failed')) });
             widget.setTarget(TARGET);
 
@@ -669,7 +658,7 @@ describe('ShareWidget', () => {
                   </div>
                 </div>`;
             trigger = document.querySelector('.label-detail__share-trigger');
-            panelClick = jest.fn();
+            panelClick = vi.fn();
             document.getElementById('host-panel').addEventListener('click', panelClick);
             // The guard Canvas.js installs: on the wrapper, so it covers the popover as well as the trigger.
             trigger.parentElement.addEventListener('click', (e) => e.stopPropagation());

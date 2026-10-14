@@ -23,10 +23,10 @@
  *     `newSeverity`, so its renderer has to write `checked` too or a rating stays announced under the next label.
  */
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
+import { REPO_ROOT } from './loader.js';
 
-const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const MAIN_CSS_PATH = path.join(REPO_ROOT, 'frontend/css/main.css');
 const VALIDATE_VIEW_PATH = path.join(REPO_ROOT, 'app/views/apps/validate.scala.html');
 const EXPLORE_VIEW_PATH = path.join(REPO_ROOT, 'app/views/apps/explore.scala.html');

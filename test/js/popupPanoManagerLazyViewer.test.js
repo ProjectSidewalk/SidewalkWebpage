@@ -5,12 +5,10 @@
  * popup never open a label. So the manager must not build its viewer until a label needs live imagery; once built it
  * must be reused; and a build that fails must fall back to the label's crop and be retried by the next label rather
  * than leaving the popup imagery-less for the rest of the page.
- *
- * PopupPanoManager's other collaborators are stubbed.
  */
 
-const { loadModules } = require('./loadGlobalScript');
-
+import { loadModules, mockModule, useUtil } from './loader.js';
+import { fakePanoOverlays } from './fakes.js';
 
 const POV = { heading: 10, pitch: 0, zoom: 1 };
 
@@ -18,14 +16,21 @@ const POV = { heading: 10, pitch: 0, zoom: 1 };
 function fakeViewer() {
     return {
         panos: [],
-        setPano: jest.fn(function setPano(panoId) { this.panos.push(panoId); return Promise.resolve(); }),
-        addListener: jest.fn(),
+        setPano: vi.fn(function setPano(panoId) { this.panos.push(panoId); return Promise.resolve(); }),
+        addListener: vi.fn(),
         getPanoId: () => 'pano-1',
-        resize: jest.fn(),
-        setPov: jest.fn(),
+        resize: vi.fn(),
+        setPov: vi.fn(),
         getPov: () => ({ ...POV }),
     };
 }
+
+// The overlay the manager shows and hides is what the attribution test asserts on.
+let attributionOverlay;
+// Pannellum needs WebGL; the expired-label test only needs a viewer that resolves.
+mockModule('frontend/js/common/pano-viewer/PannellumViewer.js', () => ({
+    PannellumViewer: { create: vi.fn(() => Promise.resolve(fakeViewer())) },
+}));
 
 describe('PopupPanoManager builds its viewer lazily', () => {
     let PopupPanoManager;
@@ -33,43 +38,31 @@ describe('PopupPanoManager builds its viewer lazily', () => {
     let idleCallbacks;
     let svHolder;
     let buttonHolder;
-    let attributionOverlay;
 
-    beforeEach(() => {
-        jest.resetModules();
+    beforeEach(async () => {
         document.body.innerHTML = '<div id="sv-holder"></div><div id="button-holder"></div>';
         svHolder = document.getElementById('sv-holder');
         buttonHolder = document.getElementById('button-holder');
         idleCallbacks = [];
 
-        window.panzoom = () => ({ on: jest.fn(), zoomAbs: jest.fn(), moveTo: jest.fn(), getTransform: () => ({}) });
-        window.util = {
-            assetPath: (p) => `/assets/${p}`,
-            afterLoadIdle: (fn) => idleCallbacks.push(fn),
-            isMobile: () => false,
-            misc: { getIconImagePaths: () => null, getLabelColors: () => '#000' },
-        };
+        window.panzoom = () => ({ on: vi.fn(), zoomAbs: vi.fn(), moveTo: vi.fn(), getTransform: () => ({}) });
+        // The preload is scheduled for idle time; the test runs it by hand to show it is the only thing scheduled.
+        useUtil({ afterLoadIdle: (fn) => idleCallbacks.push(fn) });
         window.i18next = { t: (k) => k };
-        window.createPanoViewerLogo = () => ({ showPrimaryLogo: jest.fn(), showSourceLogo: jest.fn() });
-        attributionOverlay = { show: jest.fn(), hide: jest.fn() };
-        window.createPanoAttribution = () => attributionOverlay;
-        window.LabelVisibilityToggle = { HIDDEN_CLASS: 'hidden' };
-        window.PannellumViewer = { create: jest.fn(() => Promise.resolve(fakeViewer())) };
+        attributionOverlay = fakePanoOverlays().attribution;
         // No self-hosted backup for any pano, so a failed live attempt lands on the crop.
-        window.fetch = jest.fn(() => Promise.resolve({ ok: false }));
+        window.fetch = vi.fn(() => Promise.resolve({ ok: false }));
         // A failed build is logged on purpose; keep it out of the test output.
-        jest.spyOn(console, 'error').mockImplementation(() => {});
+        vi.spyOn(console, 'error').mockImplementation(() => {});
 
         viewerType = {
-            create: jest.fn(() => Promise.resolve(fakeViewer())),
-            preloadLibrary: jest.fn(() => Promise.resolve()),
+            create: vi.fn(() => Promise.resolve(fakeViewer())),
+            preloadLibrary: vi.fn(() => Promise.resolve()),
         };
 
-        Object.assign(window, loadModules('frontend/js/common/label-detail/PopupPanoManager.js'));
-        PopupPanoManager = window.PopupPanoManager;
+        ({ PopupPanoManager } = await loadModules('frontend/js/common/label-detail/PopupPanoManager.js'));
     });
 
-    afterEach(() => jest.restoreAllMocks());
 
     /** Builds a manager the way LabelDetail does. */
     const createManager = () => PopupPanoManager.create(svHolder, buttonHolder, false, viewerType, 'token');

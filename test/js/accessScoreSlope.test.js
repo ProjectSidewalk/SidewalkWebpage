@@ -4,10 +4,9 @@
  * in accessScoreModel.test.js; this file pins what the controls emit and what a link can carry.
  */
 
-const fs = require('fs');
-const path = require('path');
-const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const { loadModules, realUtil } = require('./loadGlobalScript');
+import fs from 'fs';
+import path from 'path';
+import { loadModules, REPO_ROOT } from './loader.js';
 
 const read = (p) => fs.readFileSync(path.join(REPO_ROOT, p), 'utf8');
 
@@ -51,7 +50,7 @@ describe('slope in the AccessScore scoring controls', () => {
     let AccessScoreSlopePanel;
     let AccessScoreUrlSync;
 
-    beforeAll(() => {
+    beforeAll(async () => {
         // Echoes the key with any interpolated values, so a test can see what was handed to a string.
         window.i18next = {
             language: 'en',
@@ -59,14 +58,9 @@ describe('slope in the AccessScore scoring controls', () => {
             t: (key, values = {}) => values.defaultValue
                 ?? [key, ...Object.entries(values).map(([k, v]) => `${k}=${v}`)].join(' '),
         };
-        window.util = { escapeHTML: (text) => String(text) };
-        window.util ??= realUtil();
-        loadModules('frontend/js/common/urlQuery.js');
-        for (const name of ['Model', 'GradeRamp', 'SlopePanel', 'UrlSync']) {
-            const dir = name === 'GradeRamp' ? 'common' : 'access-score';  // The ramp is shared with the API docs.
-            Object.assign(window, loadModules(`frontend/js/${dir}/AccessScore${name}.js`));
-        }
-        ({ AccessScoreModel, AccessScoreSlopePanel, AccessScoreUrlSync } = window);
+        ({ AccessScoreModel, AccessScoreSlopePanel, AccessScoreUrlSync } = await loadModules(
+            'frontend/js/access-score/AccessScoreModel.js', 'frontend/js/access-score/AccessScoreSlopePanel.js',
+            'frontend/js/access-score/AccessScoreUrlSync.js'));
     });
 
     /** Builds the panel over fresh markup, collecting what it emits. */

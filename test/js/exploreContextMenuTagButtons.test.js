@@ -3,9 +3,9 @@
  * every tag shows however long a city's list is.
  */
 
-const { assetPathStub, installUtilitiesMisc, loadModules } = require('./loadGlobalScript');
-const { makeContextMenuUi } = require('./contextMenuUiStub');
-
+import { loadModules, useUtil } from './loader.js';
+import { makeContextMenuUi } from './contextMenuUiStub.js';
+import { fakeGate, fakeTracker } from './fakes.js';
 
 /**
  * @param {string} labelType
@@ -28,23 +28,17 @@ describe('ContextMenu tag buttons', () => {
     let ui;
     let labelContainer;
 
-    beforeEach(() => {
+    beforeEach(async () => {
         window.i18next = { t: (key) => key };
-        window.util = {
-            assetPath: assetPathStub,
-            camelToKebab: (s) => s,
-            anchorPanelToLabel: jest.fn(),
-            // Never resolves, so the tag tooltips (which need real images) are never built.
-            getImage: () => new Promise(() => {}),
-        };
-        installUtilitiesMisc();
+        // Never resolves, so the tag tooltips (which need real images) are never built.
+        useUtil({ getImage: () => new Promise(() => {}) });
 
-        Object.assign(window, loadModules('frontend/js/explore/canvas/ContextMenu.js'));
+        const { ContextMenu } = await loadModules('frontend/js/explore/canvas/ContextMenu.js');
         ui = makeContextMenuUi();
-        labelContainer = { canDelete: () => true, getAllLabels: () => [], addToLabelsToLog: jest.fn() };
-        menu = new window.ContextMenu(ui, { isOnboarding: false }, { iconRadius: 17 }, labelContainer,
-            { switching: { hold: jest.fn(), release: jest.fn() } }, { onMoveStarted: jest.fn() },
-            { ratingClicked: jest.fn() }, { ensureLabelSaved: jest.fn() }, { push: jest.fn() });
+        labelContainer = { canDelete: () => true, getAllLabels: () => [], addToLabelsToLog: vi.fn() };
+        menu = new ContextMenu(ui, { isOnboarding: false }, { iconRadius: 17 }, labelContainer,
+            { switching: fakeGate() }, { onMoveStarted: vi.fn() },
+            { ratingClicked: vi.fn() }, { ensureLabelSaved: vi.fn() }, fakeTracker());
         menu.labelTags = [
             ...[1, 2, 3].map((id) => ({ tag_id: id, label_type: 'Obstacle', tag: 'trash/recycling can' })),
             { tag_id: 4, label_type: 'CurbRamp', tag: 'narrow' },

@@ -13,23 +13,10 @@
  * uses to size the halo to the marker it decorates (22px on desktop Validate vs 52px on mobile).
  */
 
-const path = require('path');
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules } from './loader.js';
+import { fakeTracker, fakePanoOverlays } from './fakes.js';
 
-const PANO_MANAGER_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/panorama/PanoManager.js');
-const PANO_MARKER_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/common/PanoMarker.js');
-const THROTTLE_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/util/throttle.js');
-const UTILITIES_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/common/utilities.js');
-
-/**
- * Loads one class from a production file.
- * @param {string} filePath - Absolute path to the production file.
- * @param {string} className - Name of the class the file declares.
- * @returns {Function} The class.
- */
-function loadClassFromFile(filePath, className) {
-    return loadModules(filePath)[className];
-}
+fakePanoOverlays();
 
 /**
  * Dispatch a synthetic animationend on an element. A plain Event with an expando `animationName` — the only
@@ -71,47 +58,21 @@ describe('Validate marker halo pulse (issue #4790)', () => {
         document.body.innerHTML
             = '<div id="pano-holder"><div id="svv-panorama"></div></div><div id="view-control-layer"></div>';
 
-        global.util = {};
-        // utilities.js builds a Bowser parser at load time; the overrides below replace everything read from it.
-        global.bowser = { getParser: () => ({ getBrowserName: () => 'Chrome', getBrowserVersion: () => '1',
-            getOSName: () => 'Linux', getPlatformType: () => 'desktop' }) };
-        // Real utilities, for util.cappedMarkerDiameter: these tests read the marker's rendered diameter back, so
-        // the sizing rule needs to be production's rather than a formula copied into a stub (#4838).
-        Object.assign(window, loadModules(UTILITIES_PATH));
-        Object.assign(window, loadModules(THROTTLE_PATH));
-        util.isMobile = () => false;
-        util.uiScale = () => 1;
-        util.camelToKebab = (str) => str.toLowerCase();
-        util.misc = {
-            ...util.misc,
-            labelTypeName: (type) => window.i18next.t(`common:${window.util.camelToKebab(type)}`),
-        };
         // jsdom has no WebGL, so PanoMarker falls back to the 2d projection; where the marker lands is irrelevant
         // here, only what classes/properties it carries. Returning null directly (jsdom's effective behavior)
         // keeps the fallback deterministic without jsdom's "not implemented" console noise.
-        jest.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
-        util.pano = {
-            centeredPovToCanvasCoord2d: () => ({ x: 0, y: 0 }),
-            centeredPovToCanvasCoord: () => ({ x: 0, y: 0 }),
-            renderedHFov: () => 90,
-        };
-
-        global.PanoMarker = loadClassFromFile(PANO_MARKER_PATH, 'PanoMarker');
-        global.i18next = { t: () => 'Curb ramp' };
-        global.createPanoViewerLogo = jest.fn(() => ({ showPrimaryLogo: jest.fn(), showSourceLogo: jest.fn() }));
-        global.createPanoAttribution = jest.fn(() => ({ show: jest.fn(), hide: jest.fn() }));
-        global.GsvViewer = class GsvViewer {};             // distinct from FakeViewerType, so the GSV-only
-        global.MapillaryViewer = class MapillaryViewer {}; // and Mapillary-only attribution paths are skipped
+        vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
+        window.i18next = { t: () => 'Curb ramp' };
 
         const panoData = {
             getPanoId: () => 'pano1',
             getProperty: () => new Date(2026, 5)
         };
         const fakeViewer = {
-            setPano: jest.fn(() => Promise.resolve(panoData)),
-            addListener: jest.fn(),
-            resize: jest.fn(),
-            setPov: jest.fn(),
+            setPano: vi.fn(() => Promise.resolve(panoData)),
+            addListener: vi.fn(),
+            resize: vi.fn(),
+            setPov: vi.fn(),
             getPov: () => ({ heading: 0, pitch: 0, zoom: 1 }),
             getViewerType: () => 'gsv',
         };
@@ -119,23 +80,15 @@ describe('Validate marker halo pulse (issue #4790)', () => {
             static create() { return Promise.resolve(fakeViewer); }
         };
 
-        const PanoManager = loadClassFromFile(PANO_MANAGER_PATH, 'PanoManager');
+        const { PanoManager } = await loadModules('frontend/js/validate/panorama/PanoManager.js');
         const viewerUi = { date: { textContent: '' }, controlLayer: document.getElementById('view-control-layer') };
         // labelRadius 10: marker diameter = (10 * 2 + 2) * uiScale = 22px, desktop Validate's real size.
         panoManager = await PanoManager.create('token', viewerUi, { viewerType: FakeViewerType, labelRadius: 10 },
-            { addPanoMetadata: jest.fn() }, {}, { push: jest.fn(), trackPano: jest.fn() });
+            { addPanoMetadata: vi.fn() }, {}, fakeTracker());
     });
 
     afterEach(() => {
-        jest.restoreAllMocks();
         document.body.innerHTML = '';
-        delete global.util;
-        delete global.PanoMarker;
-        delete global.i18next;
-        delete global.createPanoViewerLogo;
-        delete global.createPanoAttribution;
-        delete global.GsvViewer;
-        delete global.MapillaryViewer;
     });
 
     /** @returns {HTMLElement} The marker element PanoMarker created. */

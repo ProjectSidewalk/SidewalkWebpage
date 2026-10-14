@@ -15,21 +15,10 @@
  *      so getPov() never reports a zoom the viewer isn't showing.
  */
 
-const { loadGlobalScript, realUtil, loadModules } = require('./loadGlobalScript');
+import { loadModules } from './loader.js';
 
-
-// utilities.js builds a Bowser parser at load time; nothing here consults it.
-window.bowser = {
-    getParser: () => ({
-        getBrowserName: () => 'Test', getBrowserVersion: () => '1',
-        getOSName: () => 'TestOS', getPlatformType: () => 'desktop',
-    }),
-};
-window.util = realUtil();
-loadGlobalScript('frontend/js/common/utilitiesMath.js');
-loadGlobalScript('frontend/js/common/pano-viewer/panoUtilities.js');
-
-const util = window.util;
+const { util } = await loadModules('frontend/js/common/pano-viewer/panoUtilities.js',
+    'frontend/js/common/utilities.js');
 const pano = util.pano;
 
 /** The horizontal fov a 3:2 Explore canvas renders for a given vertical fov, longhand — the desktop invariant. */
@@ -67,20 +56,11 @@ describe('util.pano.vFovToHFov / hFovToVFov', () => {
     });
 });
 
-/**
- * Loads PanoViewer + MapillaryViewer fresh into the jsdom global scope.
- * @returns {{PanoViewer: Function, MapillaryViewer: Function}}
- */
-function loadViewers() {
-            Object.assign(window, loadModules('frontend/js/common/pano-viewer/PanoViewer.js', 'frontend/js/common/pano-viewer/MapillaryViewer.js'));
-    return { PanoViewer: window.PanoViewer, MapillaryViewer: window.MapillaryViewer };
-}
-
-/** A MapillaryViewer poked into a renderable state without a real SDK viewer behind it. */
-function bareMapillaryViewer(overrides = {}) {
-    const { MapillaryViewer } = loadViewers();
+/** A fresh MapillaryViewer poked into a renderable state without a real SDK viewer behind it. */
+async function bareMapillaryViewer(overrides = {}) {
+    const { MapillaryViewer } = await loadModules('frontend/js/common/pano-viewer/MapillaryViewer.js');
     const viewer = new MapillaryViewer();
-    viewer.viewer = { setCenter: jest.fn(), setFieldOfView: jest.fn() };
+    viewer.viewer = { setCenter: vi.fn(), setFieldOfView: vi.fn() };
     viewer.currCameraHeading = 180;
     viewer.currCenter = [0.5, 0.5];
     viewer.currVerticalFov = 90;
@@ -88,16 +68,16 @@ function bareMapillaryViewer(overrides = {}) {
 }
 
 describe('PanoViewer._viewportAspect', () => {
-    test('measures the element the viewer was mounted into', () => {
-        const viewer = bareMapillaryViewer();
+    test('measures the element the viewer was mounted into', async () => {
+        const viewer = await bareMapillaryViewer();
         viewer.canvasElem = {
             getBoundingClientRect: () => ({ width: 390, height: 844 }),
         };
         expect(viewer._viewportAspect()).toBeCloseTo(390 / 844, 10);
     });
 
-    test('falls back to the Explore-canvas ratio when the element has no measurable box', () => {
-        const viewer = bareMapillaryViewer();
+    test('falls back to the Explore-canvas ratio when the element has no measurable box', async () => {
+        const viewer = await bareMapillaryViewer();
         viewer.canvasElem = { getBoundingClientRect: () => ({ width: 0, height: 0 }) }; // display: none
         expect(viewer._viewportAspect()).toBe(util.EXPLORE_CANVAS_ASPECT_RATIO);
         viewer.canvasElem = undefined; // never mounted
@@ -109,16 +89,16 @@ describe('PanoViewer._viewportAspect', () => {
 const LANDSCAPE_ASPECT = 844 / 310;
 
 describe('MapillaryViewer aspect wiring', () => {
-    test('getPov converts through the cached render-camera aspect, not a constant', () => {
-        const portraitZoom = bareMapillaryViewer({ currAspect: 390 / 844 }).getPov().zoom;
-        const desktopZoom = bareMapillaryViewer({ currAspect: 1.5 }).getPov().zoom;
+    test('getPov converts through the cached render-camera aspect, not a constant', async () => {
+        const portraitZoom = (await bareMapillaryViewer({ currAspect: 390 / 844 })).getPov().zoom;
+        const desktopZoom = (await bareMapillaryViewer({ currAspect: 1.5 })).getPov().zoom;
         // Same vertical fov renders a narrower horizontal field on portrait, i.e. a higher zoom.
         expect(portraitZoom).toBeGreaterThan(desktopZoom);
         expect(desktopZoom).toBeCloseTo(pano.fovToZoom(hFovOnExploreCanvas(90)), 10);
     });
 
-    test('setPov mirrors the 90° ceiling of what Mapillary renders, so getPov reports the rendered zoom', () => {
-        const viewer = bareMapillaryViewer({ currAspect: 390 / 844 });
+    test('setPov mirrors the 90° ceiling of what Mapillary renders, so getPov reports the rendered zoom', async () => {
+        const viewer = await bareMapillaryViewer({ currAspect: 390 / 844 });
         // On a portrait viewport, zoom 1 (hFov 90°) needs a vertical fov far beyond what Mapillary renders.
         viewer.setPov({ heading: 0, pitch: 0, zoom: 1 });
         expect(viewer.currVerticalFov).toBe(90);
@@ -129,8 +109,8 @@ describe('MapillaryViewer aspect wiring', () => {
         expect(viewer.getPov().zoom).toBeCloseTo(renderedZoom, 8);
     });
 
-    test('setPov mirrors the 14.25° floor too, which a wide viewport hits at our max zoom', () => {
-        const viewer = bareMapillaryViewer({ currAspect: LANDSCAPE_ASPECT });
+    test('setPov mirrors the 14.25° floor too, which a wide viewport hits at our max zoom', async () => {
+        const viewer = await bareMapillaryViewer({ currAspect: LANDSCAPE_ASPECT });
         // Mapillary caps zoom at 3, rendering fov = 2·atan(1/8); our zoom 3 asks for a narrower field than that.
         viewer.setPov({ heading: 0, pitch: 0, zoom: 3 });
         expect(viewer.currVerticalFov).toBeCloseTo(util.math.toDegrees(2 * Math.atan(1 / 8)), 10);
@@ -140,16 +120,16 @@ describe('MapillaryViewer aspect wiring', () => {
         expect(viewer.getPov().zoom).toBeCloseTo(renderedZoom, 8);
     });
 
-    test('a viewport wider than ~2:1 reports a negative zoom, which still round-trips', () => {
-        const viewer = bareMapillaryViewer({ currAspect: LANDSCAPE_ASPECT });
+    test('a viewport wider than ~2:1 reports a negative zoom, which still round-trips', async () => {
+        const viewer = await bareMapillaryViewer({ currAspect: LANDSCAPE_ASPECT });
         const zoom = viewer.getPov().zoom; // Fully zoomed out (vertical fov 90°) on a landscape phone.
         expect(zoom).toBeLessThan(0);
         viewer.setPov({ heading: 0, pitch: 0, zoom });
         expect(viewer.getPov().zoom).toBeCloseTo(zoom, 8);
     });
 
-    test('an unclamped zoom passes through the cache untouched', () => {
-        const viewer = bareMapillaryViewer({ currAspect: 1.5 });
+    test('an unclamped zoom passes through the cache untouched', async () => {
+        const viewer = await bareMapillaryViewer({ currAspect: 1.5 });
         viewer.setPov({ heading: 0, pitch: 0, zoom: 3 });
         expect(viewer.viewer.setFieldOfView).toHaveBeenCalledWith(viewer.currVerticalFov);
         expect(viewer.getPov().zoom).toBeCloseTo(3, 8);

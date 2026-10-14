@@ -3,22 +3,22 @@
  * card's "Explore here" hop seeds a zoomed-in view before the control exists, so no view change tells it (#4637).
  */
 
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules } from './loader.js';
+import { fakeTracker, fakePanoManager } from './fakes.js';
 
 describe('ZoomControl at a seeded zoom', () => {
     let ZoomControl;
     let buttons;
 
-    beforeEach(() => {
+    beforeEach(async () => {
         document.body.innerHTML = '<button id="zoom-in-button"></button><button id="zoom-out-button"></button>';
         buttons = { zoomIn: document.getElementById('zoom-in-button'), zoomOut: document.getElementById('zoom-out-button') };
-        Object.assign(window, loadModules('frontend/js/common/Gate.js'));
-        ({ ZoomControl } = loadModules('frontend/js/explore/zoom/ZoomControl.js'));
+        ({ ZoomControl } = await loadModules('frontend/js/explore/zoom/ZoomControl.js'));
     });
 
-    const build = (zoom) => new ZoomControl(document.createElement('div'), { showLabelHoverInfo: jest.fn() },
-        { getPov: () => ({ heading: 0, pitch: 0, zoom }), setZoom: jest.fn(), onPovChanged: jest.fn() },
-        { zoomClicked: jest.fn() }, { push: jest.fn() });
+    const build = (zoom) => new ZoomControl(document.createElement('div'), { showLabelHoverInfo: vi.fn() },
+        fakePanoManager({ getPov: () => ({ heading: 0, pitch: 0, zoom }) }, { setZoom: vi.fn() }),
+        { zoomClicked: vi.fn() }, fakeTracker());
 
     it('lets the labeler zoom back out when the pano opened zoomed in', () => {
         const control = build(2);

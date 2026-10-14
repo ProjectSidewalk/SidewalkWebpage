@@ -7,8 +7,9 @@
  * is left with `keepalive`, so the POST can outlive the page.
  */
 
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules, loadVendored } from './loader.js';
 
+loadVendored('bowser'); // The batch's environment block reads the browser and OS off it.
 
 describe('the Gallery interaction log', () => {
     let tracker;
@@ -17,14 +18,15 @@ describe('the Gallery interaction log', () => {
 
     // One tracker for the file: its constructor adds a window listener that is never removed, so a second one would
     // answer the page-dismissal test twice.
-    beforeAll(() => {
+    beforeAll(async () => {
         window.i18next = { language: 'en' };
-        window.util = { getBrowser: () => 'b', getBrowserVersion: () => '1', getOperatingSystem: () => 'os' };
-        window.fetch = jest.fn((url, { body, keepalive }) => {
+        window.fetch = vi.fn((url, { body, keepalive }) => {
             sent.push({ url, body: JSON.parse(body), keepalive: !!keepalive });
             return Promise.resolve({ ok: true });
         });
-        const { Form, Tracker } = loadModules('frontend/js/gallery/data/Form.js', 'frontend/js/gallery/data/Tracker.js');
+        const { Form, Tracker } = await loadModules(
+            'frontend/js/gallery/data/Form.js', 'frontend/js/gallery/data/Tracker.js',
+        );
         tracker = new Tracker(new Form('/galleryTask'));
     });
 

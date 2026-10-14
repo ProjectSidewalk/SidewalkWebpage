@@ -4,21 +4,17 @@
  * real, so these also catch the form drifting from the markup `wireAsyncSubmit` expects.
  */
 
-const { loadModules } = require('./loadGlobalScript');
-
+import { loadModules } from './loader.js';
 
 const GENERIC_ERROR = 'Something went wrong on our end. Please try again.';
 
-
 /**
- * The class under test, with AuthModal.js's helpers in the page scope as on the page, and `fetch` supplied per test.
  * @param {Function} fetchImpl - Stands in for `fetch`.
  * @returns {Function} A fresh AccountForm class.
  */
-function formFactory(fetchImpl) {
+async function formFactory(fetchImpl) {
   window.fetch = fetchImpl;
-  Object.assign(window, loadModules('frontend/js/common/AuthModal.js'));
-  return loadModules('frontend/js/user-dashboard/AccountForm.js').AccountForm;
+  return (await loadModules('frontend/js/user-dashboard/AccountForm.js')).AccountForm;
 }
 
 /** A cut-down copy of the password section in userDashboard/settings.scala.html. */
@@ -55,7 +51,7 @@ const renderForm = () => {
  * @param {HTMLFormElement} form - The form to submit.
  */
 async function submit(form) {
-  form.dispatchEvent(new window.Event('submit', { cancelable: true }));
+  form.dispatchEvent(new Event('submit', { cancelable: true }));
   for (let i = 0; i < 5; i++) await new Promise((resolve) => setTimeout(resolve, 0));
 }
 
@@ -68,7 +64,7 @@ async function submit(form) {
  */
 async function submitWith(fetchImpl, beforeSubmit = () => {}) {
   const form = renderForm();
-  const AccountForm = formFactory(fetchImpl);
+  const AccountForm = await formFactory(fetchImpl);
   new AccountForm(form);
   beforeSubmit(form);
   await submit(form);
@@ -76,7 +72,7 @@ async function submitWith(fetchImpl, beforeSubmit = () => {}) {
 }
 
 /** @returns {Function} A fetch that answers with this status and JSON body. */
-const respondWith = (status, body) => jest.fn(async () => ({
+const respondWith = (status, body) => vi.fn(async () => ({
   ok: status >= 200 && status < 300,
   status,
   json: async () => body,
@@ -130,7 +126,7 @@ test('a form-level error, like a mismatch, is a banner above the form and keeps 
 });
 
 test('a request that never reaches the server still explains itself, and a retry clears the old error', async () => {
-  const form = await submitWith(jest.fn(async () => { throw new TypeError('Failed to fetch'); }));
+  const form = await submitWith(vi.fn(async () => { throw new TypeError('Failed to fetch'); }));
 
   expect(form.previousElementSibling.textContent).toContain(GENERIC_ERROR);
   expect(form.querySelector('button').disabled).toBe(false);
@@ -143,7 +139,7 @@ test('the next submit clears an earlier "changed" message before its own reply a
   const form = await submitWith(respondWith(200, { success: true, message: 'Your password has been changed.' }));
   expect(status().textContent).toBe('Your password has been changed.');
 
-  form.dispatchEvent(new window.Event('submit', { cancelable: true }));
+  form.dispatchEvent(new Event('submit', { cancelable: true }));
   expect(status().textContent).toBe('');
   expect(status().classList.contains('ud-save-ok')).toBe(false);
 });
@@ -155,7 +151,7 @@ test('a form with no fields, like "Sign out of other devices", shows the server\
       <span class="ud-save-status" role="status"></span>
     </form>`;
   const form = document.getElementById('set-devices-form');
-  new (formFactory(respondWith(200, { success: true, message: 'Signed out.' })))(form);
+  new (await formFactory(respondWith(200, { success: true, message: 'Signed out.' })))(form);
   await submit(form);
   expect(status().textContent).toBe('Signed out.');
 });

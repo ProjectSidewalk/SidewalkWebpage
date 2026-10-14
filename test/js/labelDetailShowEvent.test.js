@@ -8,10 +8,19 @@
  * type changed under it) is not an open and must not add a row. That redraw still has to run through a LabelPopup
  * host's showLabel wrapper, whose onMetadata is how LabelMap learns the new type, so it is checked through one.
  *
- * Fixtures and stubs follow labelDetailEditGating.test.js.
+ * The pano manager, the toast and the card's flourishes (badges, stories, the info popover, the hide toggle) are
+ * stand-ins: the real ones want a viewer and page markup, and none is what an open logs.
  */
 
-const { assetPathStub, installDateHelpers, loadModules } = require('./loadGlobalScript');
+import { loadModules, mockModule, useUtil } from './loader.js';
+import { mockLabelDetailCollaborators } from './fakes.js';
+
+/** The pano manager the card is handed; rebuilt per test so a test can settle its setPano() when it likes. */
+let panoManager;
+const toast = { show: vi.fn() };
+
+mockLabelDetailCollaborators(() => panoManager);
+mockModule('frontend/js/common/Toast.js', () => ({ Toast: toast }));
 
 /**
  * Builds the card markup as views/common/labelDetail.scala.html renders it, reduced to the elements
@@ -205,7 +214,6 @@ function meta(overrides = {}) {
 
 describe('the label card\'s open event (#5139)', () => {
     let card;
-    let panoManager;
     let setPano;
     /** Every POST the card makes: validations and comments go through util.lazyIdentityFetch, not window.fetch. */
     let post;
@@ -237,44 +245,21 @@ describe('the label card\'s open event (#5139)', () => {
     }
 
     beforeEach(async () => {
-        jest.resetModules();
-        post = jest.fn(async () => ({ ok: true, status: 200, json: async () => ({}) }));
+        post = vi.fn(async () => ({ ok: true, status: 200, json: async () => ({}) }));
 
         window.i18next = { t: (key) => key };
-        window.logWebpageActivity = jest.fn();
-        window.alert = jest.fn();
-        window.buildBackupImageData = () => null;
-        window.camelToKebab = (s) => s.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
-        window.util = {
-            assetPath: assetPathStub,
-            EXPLORE_CANVAS_WIDTH: 720,
-            EXPLORE_CANVAS_HEIGHT: 480,
-            isMobile: () => false,
-            lazyIdentityFetch: post,
-            misc: {
-                labelTypeName: (type) => window.i18next.t(`common:${window.camelToKebab(type)}`),
-                getRatingLevelKeys: () => ({ 1: 'low', 2: 'medium', 3: 'high' }),
-                getSmileyIconPath: (sev, type, selected) => `${type}-${sev}-${selected}.svg`,
-                isPositiveLabelType: () => false,
-                labelTypeHasSeverity: () => true,
-            },
-            pano: { centeredPovToCanvasCoord: () => ({ x: 0, y: 0 }), renderedHFov: () => 90 },
-            url: { replaceQuery: () => {} },
-        };
-        installDateHelpers();
-        window.BadgeAchievements = { seedCounts: () => {}, recordValidation: () => {} };
-        window.Toast = { show: jest.fn() };
-        window.LabelVisibilityToggle = class { constructor() {} };
-        window.PanoInfoPopover = class { constructor() {} };
+        window.logWebpageActivity = vi.fn();
+        window.alert = vi.fn();
+        useUtil({ lazyIdentityFetch: post });
 
         // Every label's imagery resolves at once unless a test swaps the deferred out first.
         setPano = deferred();
         panoManager = {
-            clearLabels: jest.fn(),
-            setLabel: jest.fn(),
-            setLabelsHidden: jest.fn(),
-            setPano: jest.fn(() => setPano.promise),
-            warmUp: jest.fn(),
+            clearLabels: vi.fn(),
+            setLabel: vi.fn(),
+            setLabelsHidden: vi.fn(),
+            setPano: vi.fn(() => setPano.promise),
+            warmUp: vi.fn(),
             activeViewerName: 'Default',
             panoViewer: {
                 currPanoData: null,
@@ -290,16 +275,13 @@ describe('the label card\'s open event (#5139)', () => {
             }),
             label: { labelId: 42, label_type: 'Obstacle' },
         };
-        window.PopupPanoManager = { create: async () => panoManager };
-        // The stories disclosure is not what these tests exercise, and its real section wants the composer's markup.
-        window.StorySection = class { setLabel() {} };
 
-        window.fetch = jest.fn(labelFetch);
+        window.fetch = vi.fn(labelFetch);
 
-        Object.assign(window, loadModules('frontend/js/common/label-detail/TagEditor.js', 'frontend/js/common/label-detail/LabelDetail.js'));
+        const { LabelDetail } = await loadModules('frontend/js/common/label-detail/LabelDetail.js');
 
         card = buildCard();
-        card.detail = await window.LabelDetail.create(card, {
+        card.detail = await LabelDetail.create(card, {
             admin: false,
             viewerType: 'Default',
             currUsername: 'tester',
@@ -367,7 +349,7 @@ describe('the label card\'s open event (#5139)', () => {
 
         // The redraw did happen (it refetched the label and said why), it just isn't counted.
         expect(window.fetch).toHaveBeenCalledWith('/label/id/42', expect.anything());
-        expect(window.Toast.show).toHaveBeenCalled();
+        expect(toast.show).toHaveBeenCalled();
         expect(showEvents()).toEqual(['LabelDetail_Show_labelId=42_source=TestSource']);
     });
 
@@ -388,7 +370,7 @@ describe('the label card\'s open event (#5139)', () => {
         // LabelPopup replaces showLabel on the instance with a wrapper whose onMetadata tells LabelMap the label's
         // new type, so the redraw must reach that wrapper rather than the card's own fetch-and-render.
         const inner = card.detail.showLabel;
-        const wrapped = jest.fn((id, source) => inner(id, source));
+        const wrapped = vi.fn((id, source) => inner(id, source));
         Object.assign(card.detail, { showLabel: wrapped });
         await card.detail.showLabel(42, 'LabelMap');
         setPano.resolve(true);
@@ -415,7 +397,7 @@ describe('the label card\'s open event (#5139)', () => {
         // showLabel() can't leave it raised for whatever the user opens next.
         const inner = card.detail.showLabel;
         let failNext = false;
-        const wrapped = jest.fn((id, source) => {
+        const wrapped = vi.fn((id, source) => {
             if (failNext) {
                 failNext = false;
                 throw new Error('host wrapper failed');
@@ -423,7 +405,7 @@ describe('the label card\'s open event (#5139)', () => {
             return inner(id, source);
         });
         Object.assign(card.detail, { showLabel: wrapped });
-        jest.spyOn(console, 'error').mockImplementation(() => {});
+        vi.spyOn(console, 'error').mockImplementation(() => {});
         await card.detail.showLabel(42, 'LabelMap');
         setPano.resolve(true);
         await flush();
@@ -449,7 +431,7 @@ describe('the label card\'s open event (#5139)', () => {
         // module over the real card rather than a stand-in.
         let popup;
         let dialog;
-        const onMetadata = jest.fn();
+        const onMetadata = vi.fn();
 
         /** A navigator that always has somewhere to go: one id up or down. */
         const steppingNav = {
@@ -467,8 +449,8 @@ describe('the label card\'s open event (#5139)', () => {
             dialog.insertAdjacentHTML('afterbegin', '<button type="button" data-action="close-label-detail"></button>');
             window.history.replaceState({}, '', deepLinkId ? `/labelMap?labelId=${deepLinkId}` : '/labelMap');
             window.logWebpageActivity.mockClear();
-            Object.assign(window, loadModules('frontend/js/common/label-detail/LabelPopup.js'));
-            popup = await window.LabelPopup(false, 'Default', null, 'tester', { syncUrlSource: 'LabelMap', onMetadata });
+            const { LabelPopup } = await loadModules('frontend/js/common/label-detail/LabelPopup.js');
+            popup = await LabelPopup(false, 'Default', null, 'tester', { syncUrlSource: 'LabelMap', onMetadata });
             card = dialog;
         }
 

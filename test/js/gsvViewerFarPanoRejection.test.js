@@ -7,38 +7,23 @@
  * findPanoNear() resolves null, so no minimap crumb is drawn there — and that each distinct far pano is reported once
  * through the `FarPanoRejected` diagnostic.
  *
- * The viewer source is eval'd into the jsdom global scope over the real PanoViewer base, as in
- * panoViewerFindPanoNear.test.js, with the real util.math.haversine doing the distance math.
+ * Only Google's service is faked: as in panoViewerFindPanoNear.test.js, the real PanoViewer base and
+ * util.math.haversine do the distance math.
  */
 
-const path = require('path');
-const { loadGlobalScript, realUtil, loadModules } = require('./loadGlobalScript');
+import { loadVendored, loadModules } from './loader.js';
 
-const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const SRC_DIR = path.join(REPO_ROOT, 'frontend/js/common/pano-viewer');
-
-// utilities.js builds a Bowser parser at load time; nothing here consults it.
-window.bowser = {
-    getParser: () => ({
-        getBrowserName: () => 'Test', getBrowserVersion: () => '1',
-        getOSName: () => 'TestOS', getPlatformType: () => 'desktop',
-    }),
-};
-window.util = realUtil();
-loadGlobalScript('frontend/js/common/utilitiesMath.js');
-loadGlobalScript('frontend/js/common/pano-viewer/panoUtilities.js');
-window.turf = require(path.join(REPO_ROOT, 'public/vendor/turf/turf-7.4.0.min.js'));
+loadVendored('turf');
 
 const { turf } = window;
 
 /**
- * Loads the real PanoViewer and GsvViewer fresh into the jsdom global scope.
- * @returns {{GsvViewer: Function, NoImageryError: Function}}
+ * Loads GsvViewer fresh, with the NoImageryError its searches reject with.
+ * @returns {Promise<{GsvViewer: Function, NoImageryError: Function}>}
  */
-function loadGsvViewer() {
-    Object.assign(window, loadModules(path.join(SRC_DIR, 'GsvViewer.js'), path.join(SRC_DIR, 'NoImageryError.js')));
-    return { GsvViewer: window.GsvViewer, NoImageryError: window.NoImageryError };
-}
+const loadGsvViewer = () => loadModules(
+    'frontend/js/common/pano-viewer/GsvViewer.js', 'frontend/js/common/pano-viewer/NoImageryError.js',
+);
 
 // The #5114 reproduction: Seattle street 7208's second endpoint, and where Google's answer to it actually was.
 const SEATTLE_QUERY = { lat: 47.6196811, lng: -122.3100703 };
@@ -89,9 +74,9 @@ const reply = (pano, { lat, lng }, copyright = '© 2024 Google') => ({
     },
 });
 
-describe('GsvViewer.isWithinSearchRadius', () => {
-    const { GsvViewer } = loadGsvViewer();
+const { GsvViewer } = await loadGsvViewer();
 
+describe('GsvViewer.isWithinSearchRadius', () => {
     test('rejects the #5114 photosphere about 3,590 km from its 25 m query', () => {
         expect(GsvViewer.isWithinSearchRadius(SEATTLE_QUERY, SYRACUSE_PANO, 25)).toBe(false);
     });
@@ -119,7 +104,7 @@ describe('GsvViewer location searches hold replies to the radius', () => {
     let getPanorama;
     let diagnostics;
 
-    beforeEach(() => {
+    beforeEach(async () => {
         window.google = {
             maps: {
                 importLibrary: async () => ({ LatLng: FakeLatLng }),
@@ -128,33 +113,16 @@ describe('GsvViewer location searches hold replies to the radius', () => {
                 StreetViewSource: { OUTDOOR: 'outdoor' },
             },
         };
-        window.PanoData = class {
-            constructor(params) {
-                this.params = params;
-            }
-
-            getPanoId() {
-                return this.params.panoId;
-            }
-
-            getProperty(key) {
-                return this.params[key];
-            }
-        };
-        ({ GsvViewer, NoImageryError } = loadGsvViewer());
+        ({ GsvViewer, NoImageryError } = await loadGsvViewer());
         viewer = new GsvViewer();
-        getPanorama = jest.fn();
+        getPanorama = vi.fn();
         viewer.streetViewService = { getPanorama };
-        viewer.gsvPano = { setPano: jest.fn() };
+        viewer.gsvPano = { setPano: vi.fn() };
         // Stand in for GSV's own load event: the pano "loads" as soon as it is set.
-        viewer._loadPanoWithTimeout = jest.fn(async (_panoId, resolveValue) => resolveValue);
+        viewer._loadPanoWithTimeout = vi.fn(async (_panoId, resolveValue) => resolveValue);
         diagnostics = [];
         viewer.addListener('diagnostic', (name, details) => diagnostics.push({ name, details }));
-        jest.spyOn(console, 'warn').mockImplementation(() => {}); // _fireDiagnostic warns on every event.
-    });
-
-    afterEach(() => {
-        console.warn.mockRestore();
+        vi.spyOn(console, 'warn').mockImplementation(() => {}); // _fireDiagnostic warns on every event.
     });
 
     test('setLocation rejects a far pano as NoImageryError and never loads it', async () => {

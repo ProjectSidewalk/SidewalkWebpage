@@ -2,9 +2,9 @@
  * Tests for frontend/js/common/TablePager.js, which pages a server-rendered table by hiding rows (#5762).
  */
 
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules } from './loader.js';
 
-const { TablePager } = loadModules('frontend/js/common/TablePager.js');
+const { TablePager } = await loadModules('frontend/js/common/TablePager.js');
 
 /**
  * Builds a 23-row table at 10 rows a page, opening on `page`, with buttons in the state the markup claims.

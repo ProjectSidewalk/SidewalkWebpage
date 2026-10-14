@@ -3,30 +3,32 @@
  * label-before-jump prompt stays clickable through a move, which pauses the ordinary compass click.
  */
 
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules } from './loader.js';
+import { fakeTracker, fakePanoManager, fakeTaskContainer } from './fakes.js';
 
 describe('Compass cursor under the label-before-jump prompt', () => {
     let compass;
     let holder;
     let nav;
 
-    beforeEach(() => {
+    beforeEach(async () => {
         document.body.innerHTML = '<div id="compass-message-holder"><div id="compass-message"></div></div>';
         holder = document.getElementById('compass-message-holder');
         window.i18next = { t: (key) => key };
-        Object.assign(window, loadModules('frontend/js/common/Gate.js'));
-        const { Compass } = loadModules('frontend/js/explore/navigation/Compass.js');
+        const { Compass } = await loadModules('frontend/js/explore/navigation/Compass.js');
         nav = {};
         const navigationService = {
             onMoveStarted: (listener) => { nav.moveStarted = listener; },
             onMoveFinished: (listener) => { nav.moveFinished = listener; },
-            onHeadingSettled: jest.fn(),
+            onHeadingSettled: vi.fn(),
+        };
+        const streetProgress = {
             onLabelBeforeJumpChanged: (listener) => { nav.jumpPrompt = listener; },
             isLabelBeforeJumpArmed: () => false,
         };
         compass = new Compass({ isOnboarding: false }, { isRouteComplete: false, isRegionComplete: false, isRouteOrRegionComplete: () => false },
-            { onCurrentTaskChanged: jest.fn() }, { onPovChanged: jest.fn() }, navigationService, {},
-            { push: jest.fn() });
+            fakeTaskContainer(), fakePanoManager(), navigationService, streetProgress, {},
+            fakeTracker());
     });
 
     afterEach(() => compass.stopBlinking());

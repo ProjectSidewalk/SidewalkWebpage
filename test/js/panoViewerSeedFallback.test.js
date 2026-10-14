@@ -8,14 +8,11 @@
  * a NoImageryError costs coverage on a street nobody ever looked at.
  */
 
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules } from './loader.js';
 
-
-/** Loads fresh PanoViewer and NoImageryError classes into the jsdom global scope. */
-function loadPanoViewer() {
-    Object.assign(window, loadModules('frontend/js/common/pano-viewer/NoImageryError.js', 'frontend/js/common/pano-viewer/PanoViewer.js'));
-    return { PanoViewer: window.PanoViewer, NoImageryError: window.NoImageryError };
-}
+// The classes are stateless, so one load serves every test (each test builds its own viewer instance).
+const { PanoViewer, NoImageryError } = await loadModules('frontend/js/common/pano-viewer/NoImageryError.js',
+    'frontend/js/common/pano-viewer/PanoViewer.js');
 
 const START = { lat: 47.61, lng: -122.33 };
 const BACKUP_1 = { lat: 47.62, lng: -122.33 };
@@ -23,39 +20,31 @@ const BACKUP_2 = { lat: 47.63, lng: -122.33 };
 
 describe('PanoViewer._moveToInitialLocation', () => {
     /** A viewer whose setPano/setLocation record their calls and fail per the dead/broken-set config. */
-    let TestViewer;
-    let NoImageryError;
+    class TestViewer extends PanoViewer {
+        calls = [];
+        deadPanoIds = new Set();
+        /** Locations the provider searched and found empty — the only failure that says anything about a street. */
+        deadLatLngs = [];
+        /** Locations whose lookup failed for another reason (network, SDK, quota): imagery unknown, not absent. */
+        brokenLatLngs = [];
 
-    // The classes are stateless, so one eval serves every test (each test builds its own viewer instance).
-    beforeAll(() => {
-        const loaded = loadPanoViewer();
-        NoImageryError = loaded.NoImageryError;
-        TestViewer = class extends loaded.PanoViewer {
-            calls = [];
-            deadPanoIds = new Set();
-            /** Locations the provider searched and found empty — the only failure that says anything about a street. */
-            deadLatLngs = [];
-            /** Locations whose lookup failed for another reason (network, SDK, quota): imagery unknown, not absent. */
-            brokenLatLngs = [];
+        setPano(panoId) {
+            this.calls.push(`pano:${panoId}`);
+            return this.deadPanoIds.has(panoId)
+                ? Promise.reject(new Error(`dead pano: ${panoId}`))
+                : Promise.resolve();
+        }
 
-            setPano(panoId) {
-                this.calls.push(`pano:${panoId}`);
-                return this.deadPanoIds.has(panoId)
-                    ? Promise.reject(new Error(`dead pano: ${panoId}`))
-                    : Promise.resolve();
+        setLocation(latLng) {
+            this.calls.push(`loc:${latLng.lat}`);
+            if (this.brokenLatLngs.some((broken) => broken.lat === latLng.lat)) {
+                return Promise.reject(new Error(`lookup failed at: ${latLng.lat}`));
             }
-
-            setLocation(latLng) {
-                this.calls.push(`loc:${latLng.lat}`);
-                if (this.brokenLatLngs.some((broken) => broken.lat === latLng.lat)) {
-                    return Promise.reject(new Error(`lookup failed at: ${latLng.lat}`));
-                }
-                return this.deadLatLngs.some((dead) => dead.lat === latLng.lat)
-                    ? Promise.reject(new NoImageryError(`no imagery at: ${latLng.lat}`))
-                    : Promise.resolve();
-            }
-        };
-    });
+            return this.deadLatLngs.some((dead) => dead.lat === latLng.lat)
+                ? Promise.reject(new NoImageryError(`no imagery at: ${latLng.lat}`))
+                : Promise.resolve();
+        }
+    }
 
     test('a loadable startPanoId wins and the lat/lngs are never consulted', async () => {
         const viewer = new TestViewer();
@@ -143,10 +132,6 @@ describe('PanoViewer._moveToInitialLocation', () => {
 });
 
 describe('NoImageryError.allNoImagery', () => {
-    let NoImageryError;
-
-    beforeAll(() => { NoImageryError = loadPanoViewer().NoImageryError; });
-
     test('is false for an empty list, because nothing was ever searched', () => {
         expect(NoImageryError.allNoImagery([])).toBe(false);
     });
@@ -162,8 +147,8 @@ describe('NoImageryError.allNoImagery', () => {
         expect(new NoImageryError('empty', { cause: provider }).cause).toBe(provider);
     });
 
-    // The verdict that NavigationService.moveForward() builds from a street-long walk before deciding whether the
-    // street may be reported as imagery-less. Named cases, because each is a scenario the fix has to get right.
+    // The verdict that StreetSweep builds from a street-long walk before deciding whether the street may be reported
+    // as imagery-less. Named cases, because each is a scenario the fix has to get right.
     describe('as the verdict on a walk down a street', () => {
         test('a street whose every sample point came back empty is reportable', () => {
             const walk = [new NoImageryError('10m'), new NoImageryError('20m'), new NoImageryError('30m')];

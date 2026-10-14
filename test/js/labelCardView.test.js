@@ -6,13 +6,9 @@
  * line — so the tests run it against both variants and pin the behaviors that used to live in two forked copies:
  * the rating chip and its wash, the tag pills staying inert, the truncation rules, the two empty states, and the
  * AI provenance strip that stays out of those empty states (#5359).
- *
- * The class is a plain top-level declaration (no window assignment), so the source is eval'd with an explicit
- * export, the same way share-widget.test.js loads ShareWidget.
  */
 
-const { loadModules } = require('./loadGlobalScript');
-
+import { loadModules, useUtil } from './loader.js';
 
 /**
  * Builds the card markup the way views/components/labelCard.scala.html renders it: the not-rated nudge and the
@@ -52,25 +48,12 @@ const q = (sel) => document.querySelector(sel);
 describe('LabelCardView', () => {
     let LabelCardView;
 
-    beforeEach(() => {
-        // i18next echoes its key so assertions can name the key they expect; the smiley/color helpers are keyed so
-        // per-severity values are distinguishable.
+    beforeEach(async () => {
+        // i18next echoes its key so assertions can name the key they expect. The real label-type table plays the
+        // scales: CurbRamp is rated for quality, Obstacle for severity, Occlusion not at all.
         window.i18next = { t: (key) => key };
-        window.util = {
-            camelToKebab: (s) => s.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase(),
-            misc: {
-                labelTypeName: (type) => window.i18next.t(`common:${window.util.camelToKebab(type)}`),
-                getIconImagePaths: (type) => ({ iconImagePath: `/icons/${type}.svg` }),
-                // CurbRamp plays the positive type (rated for quality), Obstacle the negative one.
-                getRatingLevelKeys: () => ({ 1: 'level-one', 2: 'level-two', 3: 'level-three' }),
-                isPositiveLabelType: (type) => type === 'CurbRamp',
-                getSmileyIconPath: (severity, type) => `/smiley/${type}-${severity}.svg`,
-                getSeverityLevelColors: (severity) => ({ wash: `wash-${severity}` }),
-                labelTypeHasSeverity: (type) => type !== 'Occlusion',
-            },
-        };
-        Object.assign(window, loadModules('frontend/js/common/LabelCardView.js'));
-        LabelCardView = window.LabelCardView;
+        useUtil();
+        ({ LabelCardView } = await loadModules('frontend/js/common/LabelCardView.js'));
     });
 
     describe('header', () => {
@@ -78,7 +61,7 @@ describe('LabelCardView', () => {
             const view = new LabelCardView(buildCard());
             const typeName = view.render({ labelType: 'CurbRamp' });
 
-            expect(q('.label-hover-card__icon').src).toContain('/icons/CurbRamp.svg');
+            expect(q('.label-hover-card__icon').src).toContain('/images/icons/label_type_icons/CurbRamp_small.svg');
             expect(q('.label-hover-card__type').textContent).toBe('common:curb-ramp');
             expect(typeName).toBe('common:curb-ramp');
         });
@@ -89,22 +72,23 @@ describe('LabelCardView', () => {
             const view = new LabelCardView(buildCard());
 
             view.render({ labelType: 'Obstacle', severity: 3 });
-            expect(q('.label-hover-card__severity-text').textContent).toBe('common:severity: common:level-three');
+            expect(q('.label-hover-card__severity-text').textContent).toBe('common:severity: common:high');
             expect(q('.label-hover-card__severity').style.display).toBe('flex');
-            expect(q('.label-hover-card__severity-icon').src).toContain('/smiley/Obstacle-3.svg');
+            expect(q('.label-hover-card__severity-icon').src).toContain('/smileys/sev-3-negative-filled.svg');
 
             view.render({ labelType: 'CurbRamp', severity: 1 });
-            expect(q('.label-hover-card__severity-text').textContent).toBe('common:quality: common:level-one');
+            expect(q('.label-hover-card__severity-text').textContent).toBe('common:quality: common:good');
         });
 
         it('carries the rating level wash, and clears it when the next level has no colors', () => {
             const view = new LabelCardView(buildCard());
 
             view.render({ labelType: 'Obstacle', severity: 2 });
-            expect(q('.label-hover-card__severity').style.getPropertyValue('--level-wash')).toBe('wash-2');
+            expect(q('.label-hover-card__severity').style.getPropertyValue('--level-wash'))
+                .toBe('var(--color-banana-300)');
 
             // A level without colors must not inherit the previous label's wash.
-            window.util.misc.getSeverityLevelColors = () => null;
+            useUtil({ misc: { getSeverityLevelColors: () => null } });
             view.render({ labelType: 'Obstacle', severity: 3 });
             expect(q('.label-hover-card__severity').style.getPropertyValue('--level-wash')).toBe('');
         });

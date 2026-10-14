@@ -12,7 +12,7 @@
  * stubbing the hamburger's offsetParent, which is what the real code tests.
  */
 
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules } from './loader.js';
 
 
 const LOGO_WIDTH = 110;
@@ -123,10 +123,12 @@ function panelIds() {
 }
 
 describe('Navbar quick strip', () => {
-    beforeAll(() => {
+    let NavbarController;
+
+    beforeAll(async () => {
         // The source self-instantiates on load; with no #header in the document that constructor returns immediately,
         // so each test can build its own DOM and construct explicitly.
-        Object.assign(window, loadModules('frontend/js/common/Navbar.js'));
+        ({ NavbarController } = await loadModules('frontend/js/common/Navbar.js'));
     });
 
     /**
@@ -138,7 +140,7 @@ describe('Navbar quick strip', () => {
     function render(opts) {
         buildNavbar();
         stubLayout(opts);
-        return new window.NavbarController();
+        return new NavbarController();
     }
 
     describe('when the nav is collapsed', () => {

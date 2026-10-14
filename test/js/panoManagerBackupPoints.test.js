@@ -10,15 +10,11 @@
  * Runs on real turf.
  */
 
-const path = require('path');
-const { loadModules } = require('./loadGlobalScript');
+import { loadVendored, loadModules } from './loader.js';
 
-const REPO_ROOT = path.resolve(__dirname, '..', '..');
-
-window.turf = require(path.join(REPO_ROOT, 'public/vendor/turf/turf-7.4.0.min.js'));
-window.NavigationService = { DIST_INCREMENT: 0.01 }; // 10 m, as in NavigationService.
-Object.assign(window, loadModules('frontend/js/explore/panorama/PanoManager.js'));
-const { PanoManager, turf } = window;
+loadVendored('turf');
+const { turf } = window;
+const { PanoManager } = await loadModules('frontend/js/explore/panorama/PanoManager.js');
 
 // A straight ~400 m street running east along one latitude, so "along" is plain metres east of the start.
 const LAT = 47.6;

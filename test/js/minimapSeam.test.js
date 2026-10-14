@@ -14,11 +14,17 @@
  * - the zoom model: whole-level steps within fixed bounds, from the level being animated to rather than the fraction
  *   on screen, and an overview whose lower floor is lowered before fitting and raised only after returning.
  * - that the credits MapLibre opens on its own are closed once, and only once.
- *
- * The sources are loaded as modules against a stand-in for the MapLibre global.
  */
 
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules, mockModule } from './loader.js';
+import { fakeTracker, fakePanoManager } from './fakes.js';
+
+// jsdom has no 2D canvas; the chevron's pixels aren't under test.
+mockModule('frontend/js/explore/navigation/MinimapStyle.js', async (importOriginal) => {
+  const actual = await importOriginal();
+  actual.MinimapStyle.chevronImage = () => ({ width: 1, height: 1, data: new Uint8ClampedArray(4) });
+  return { ...actual };
+});
 
 // The class MapLibre's compact attribution carries while its credits are showing.
 const CREDITS_SHOWN = 'maplibregl-compact-show';
@@ -37,7 +43,7 @@ class FakeMap {
     this.layers = [];
     this.calls = [];
     this.zoom = options.zoom;
-    this.source = { setData: jest.fn() };
+    this.source = { setData: vi.fn() };
     this.handlers = {};
     this.canvas = document.createElement('canvas');
     this.dragPan = {
@@ -211,29 +217,26 @@ function buildDom() {
 
 /** The tracker every Minimap built by createMinimap logs through. */
 let tracker;
+let Minimap;
+let MinimapBasemapStyle;
 
 /** Builds a Minimap over the page's holder, centered on the pano. */
-const createMinimap = () => window.Minimap.create(
-  { holder: document.getElementById('minimap-holder') }, PANO, { panoViewer: {}, getPosition: () => PANO, onPanoChanged: () => {} }, tracker,
+const createMinimap = () => Minimap.create(
+  { holder: document.getElementById('minimap-holder') }, PANO, fakePanoManager({ getPosition: () => PANO }), tracker,
 );
 
 /** Loads the sources and the globals they read, against a fresh DOM and a fresh stand-in for MapLibre. */
-function setUpGlobals(frames) {
+async function setUpGlobals(frames) {
   FakeMap.instances = [];
   buildDom();
   window.requestAnimationFrame = (callback) => frames.push(callback);
-  window.util = { assetPath: (logicalPath) => logicalPath };
   window.i18next = { t: (key) => key, language: 'pt-BR' };
   window.maplibregl = {
     Map: FakeMap, Marker: FakeMarker, AttributionControl: FakeAttributionControl, LngLatBounds: FakeLngLatBounds,
   };
-  tracker = { push: jest.fn() };
-  // MinimapStyle is loaded first and put on window so Minimap's import resolves to this patched copy: jsdom has no 2D
-  // canvas, and the chevron's pixels aren't under test.
-  Object.assign(window, loadModules('frontend/js/explore/navigation/MinimapStyle.js'));
-  window.MinimapStyle.chevronImage = () => ({ width: 1, height: 1, data: new Uint8ClampedArray(4) });
-  Object.assign(window, loadModules('frontend/js/explore/navigation/MinimapBasemapStyle.js'));
-  Object.assign(window, loadModules('frontend/js/explore/navigation/Minimap.js'));
+  tracker = fakeTracker();
+  ({ Minimap, MinimapBasemapStyle } = await loadModules('frontend/js/explore/navigation/Minimap.js',
+    'frontend/js/explore/navigation/MinimapBasemapStyle.js'));
 }
 
 describe('Minimap seam', () => {
@@ -247,13 +250,9 @@ describe('Minimap seam', () => {
 
   beforeEach(async () => {
     frames = [];
-    setUpGlobals(frames);
+    await setUpGlobals(frames);
     minimap = await createMinimap();
     [map] = FakeMap.instances;
-  });
-
-  afterEach(() => {
-    jest.restoreAllMocks();
   });
 
   test('creation resolves once the style is ready, without waiting for basemap tiles', () => {
@@ -554,7 +553,7 @@ describe('Minimap seam', () => {
 
   test('hiding the basemap hides the background and basemap layers only, leaving the streets drawn', () => {
     const basemapLayerIds = map.options.style.layers
-      .filter((layer) => layer.type === 'background' || layer.source === window.MinimapBasemapStyle.SOURCE_ID)
+      .filter((layer) => layer.type === 'background' || layer.source === MinimapBasemapStyle.SOURCE_ID)
       .map((layer) => layer.id);
     expect(basemapLayerIds).toContain('background');
 
@@ -572,7 +571,7 @@ describe('Minimap seam', () => {
 
   describe('addMarker', () => {
     test('a marker with a click handler is a named button that click and Enter activate', () => {
-      const onClick = jest.fn();
+      const onClick = vi.fn();
       const { element } = minimap.addMarker(PANO, document.createElement('div'), { onClick, title: 'Go' });
 
       expect(element.getAttribute('role')).toBe('button');
@@ -586,7 +585,7 @@ describe('Minimap seam', () => {
     });
 
     test('Space does not activate a marker: it is Explore\'s step-forward key, and would fire both', () => {
-      const onClick = jest.fn();
+      const onClick = vi.fn();
       const { element } = minimap.addMarker(PANO, document.createElement('div'), { onClick, title: 'Go' });
 
       const space = new KeyboardEvent('keydown', { key: ' ', cancelable: true, bubbles: true });
@@ -692,14 +691,10 @@ describe('Minimap seam', () => {
 describe('Minimap without a map', () => {
   let frames;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     frames = [];
-    setUpGlobals(frames);
-    jest.spyOn(console, 'error').mockImplementation(() => {});
-  });
-
-  afterEach(() => {
-    jest.restoreAllMocks();
+    await setUpGlobals(frames);
+    vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   const holder = () => document.getElementById('minimap-holder');
@@ -729,7 +724,7 @@ describe('Minimap without a map', () => {
     };
     const minimap = await createMinimap();
 
-    const onClick = jest.fn();
+    const onClick = vi.fn();
     const marker = minimap.addMarker(PANO, document.createElement('div'), { onClick, title: 'Go' });
     expect(() => {
       marker.setLatLng({ lat: 47.61, lng: -122.34 });
