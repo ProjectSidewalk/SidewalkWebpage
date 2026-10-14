@@ -4,7 +4,8 @@
 @(commonData: CommonPageData, user: SidewalkUserWithRole
 )(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
-@* Overview landing page for the redesigned admin dashboard (#4272). Deliberately built last: it introduces no new analysis, it's the at-a-glance snapshot that routes into the six detailed pages. A "needs attention" panel of deep-linked action items, one KPI card per lens (with a week-over-week trend + sparkline), and a live recent-activity strip. Driven by /adminapi/overviewSummary (headline numbers + attention counts), /adminapi/activityByDay (trends + sparklines), and /adminapi/recentActivity (the strip). *@
+@* Admin Overview page (#4272): a snapshot that links into the detailed pages, with no analysis of its own. Data from
+   /adminapi/overviewSummary, /adminapi/activityByDay (trends), and /adminapi/recentActivity. *@
 
 @content = {
   <div class="page-section" id="ov-intro-section">

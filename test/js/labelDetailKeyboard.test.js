@@ -23,10 +23,7 @@
  * keep logging the keyboard apart from the mouse — and how the vote echo tells the two apart, since a pointer
  * already has the button it pressed as feedback and only the keyboard needs the change pointed out.
  *
- * Fixture and stub strategy follow labelDetailComments.test.js: LabelDetail is a top-level `class` written for
- * Grunt concatenation, so its source is eval'd into the jsdom global with an epilogue exposing it, TagEditor rides
- * along because LabelDetail closes over that binding, and the collaborators it reaches for as bare globals are
- * stubbed on `window` first.
+ * Fixtures and stubs follow labelDetailEditGating.test.js.
  */
 
 

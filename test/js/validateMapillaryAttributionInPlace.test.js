@@ -18,7 +18,7 @@ const PANO_MANAGER_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/valid
 const THROTTLE_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/util/throttle.js');
 
 /**
- * Load a bare `class` declaration out of a production file, the way the Grunt bundle puts it in page scope.
+ * Loads one class from a production file.
  * @param {string} filePath - Absolute path to the production file.
  * @param {string} className - Name of the class the file declares.
  * @returns {Function} The class.

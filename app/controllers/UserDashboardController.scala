@@ -13,18 +13,14 @@ import play.api.libs.json.{JsError, JsSuccess, Json}
 import play.api.mvc.{AnyContent, Result}
 import play.silhouette.api.actions.SecuredRequest
 import play.silhouette.api.Silhouette
-import service.{AdminService, ConfigService, GlobalLeaderboardEntry, UserService}
+import service.{AdminService, ConfigService, GlobalLeaderboardEntry, TeamBoard, UserService}
 
 import javax.inject.*
 import scala.concurrent.{ExecutionContext, Future}
 
 /**
- * Controller for the User Dashboard, Leaderboard, Settings, and public profiles (#4323 redesign, cut over in #4474),
- * plus the admin's view of another user's dashboard (#4964).
- *
- * The pages share the API-docs/admin shell (left nav + content + right "On this page" TOC). The pre-cutover
- * `/preview` URLs permanently redirect to the production ones. Unlike the pre-redesign dashboard, mobile visitors are
- * served the page itself (it is responsive) rather than being redirected to /mobileLanding.
+ * Controller for the User Dashboard, Leaderboard, Settings, and public profiles (#4323), plus the admin's view of
+ * another user's dashboard (#4964). The pages are responsive, so mobile visitors get them rather than /mobileLanding.
  */
 @Singleton
 class UserDashboardController @Inject() (
@@ -48,10 +44,7 @@ class UserDashboardController @Inject() (
   private val ReauditListSize: Int = ReauditPageSize * 3
 
   /**
-   * Renders the redesigned User Dashboard: a single page of "your impact" sections (hero stats, activity streak,
-   * badges + trophies, your standing, learning/mistakes, map, team, streets needing a re-audit) on the shared shell.
-   *
-   * Secured to any signed-in user.
+   * Renders the User Dashboard: the user's stats, streak, badges, standing, mistakes, map, team, and streets to redo.
    */
   def dashboard = cc.securityService.SecuredAction(WithSignedIn()) { implicit request =>
     cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_UserDashboard")
@@ -134,8 +127,8 @@ class UserDashboardController @Inject() (
   }
 
   /**
-   * Renders the redesigned Leaderboard prototype: this city's impact band, podium, weekly/all-time/team tables, a
-   * "you vs community" standing widget, and the cross-city boards, sharing the dashboard shell.
+   * Renders the Leaderboard: this city's impact band, podium, weekly/all-time/team tables, the viewer's standing and
+   * teammates, and the cross-city boards, sharing the dashboard shell.
    *
    * A `UserAwareAction` (#4643), so the general public — including cookie-less visitors and anonymous auto-accounts —
    * can view it without an account being minted. The view shows the community/podium/tables to everyone and gates the
@@ -149,6 +142,8 @@ class UserDashboardController @Inject() (
     val cityName                                   = configService.getCityName(request2Messages.lang)
     // Kicked off before the for-comprehension so the cross-city union overlaps the per-city queries on a cache miss.
     val globalF: Future[Option[Seq[GlobalLeaderboardEntry]]] = userService.getGlobalLeaderboardStats(10)
+    val myTeamF: Future[Option[TeamBoard]]                   =
+      signedInUser.map(u => userService.getTeamBoard(u.userId)).getOrElse(Future.successful(None))
     for {
       commonData          <- configService.getCommonPageData(request2Messages.lang)
       (aggregate, impact) <- configService.getAggregateStatsWithCurrentCity()
@@ -158,12 +153,13 @@ class UserDashboardController @Inject() (
       standing            <- signedInUser
         .map(u => userService.getUserStanding(u.userId))
         .getOrElse(Future.successful(None))
+      myTeam <- myTeamF
       global <- globalF
     } yield {
       cc.loggingService.insert(user.map(_.userId), request.ipAddress, "Visit_Leaderboard")
       Ok(
         views.html.userDashboard.leaderboard(commonData, user, isSignedIn, isMetric, cityName, aggregate, impact,
-          overall, weekly, teams, standing, global)
+          overall, weekly, teams, myTeam, standing, global)
       )
     }
   }

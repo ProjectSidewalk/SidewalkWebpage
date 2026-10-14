@@ -5,8 +5,7 @@
  * active filter applies, but the option's own on/off state doesn't, so unchecking a row never zeroes its own count.
  * That rule is easy to break silently — the numbers still render, they're just wrong — so it's pinned here.
  *
- * MapSidebarFilter is a Grunt-concatenated `class` that reaches for page globals (the Mapbox helpers, i18next), so
- * the source is eval'd into jsdom with those stubbed.
+ * The page globals MapSidebarFilter reaches for (the Mapbox helpers, i18next) are stubbed on `window`.
  */
 
 const { loadModules } = require('./loadGlobalScript');

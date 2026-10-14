@@ -13,7 +13,7 @@ const {assetPathStub, installEscapeHTML, loadModules } = require('./loadGlobalSc
 
 
 /**
- * Load a bare `class` declaration out of a production file, as the Grunt bundle puts it in page scope.
+ * Loads one class from a production file.
  * @param {string} relativePath - Path to the file relative to the repo root.
  * @param {string} className - Name of the class the file declares.
  * @returns {Function} The class.

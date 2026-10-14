@@ -18,8 +18,7 @@ const PANO_MANAGER_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/valid
 const THROTTLE_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/util/throttle.js');
 
 /**
- * Load the `PanoManager` class out of the production file. Like Form.js, it is a bare `class` declaration that the
- * Grunt bundle concatenates into page scope, so wrap it in an IIFE that returns the class.
+ * Loads a fresh PanoManager class.
  * @returns {Function} The PanoManager class.
  */
 function loadPanoManagerClass() {

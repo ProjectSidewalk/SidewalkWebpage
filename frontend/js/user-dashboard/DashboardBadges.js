@@ -1,10 +1,6 @@
 /**
- * Renders the redesigned dashboard's badge tracks from a user's real contribution counts.
- *
- * Reads each track's type + value from data attributes on the server-rendered skeleton, then uses BadgeAchievements
- * (the single source of truth for thresholds and level names) to compute the earned level and fill in the tier pill,
- * the earned/locked badge icons, the progress bar, and the "N more → next tier" nudge. Distance is handled in the
- * user's unit system (thresholds are canonical miles; km is converted for display).
+ * Fills in the dashboard's badge tracks from the user's counts, using BadgeAchievements for the thresholds. Distance
+ * thresholds are in miles and converted for metric users.
  */
 
 import { BadgeAchievements } from '../common/BadgeAchievements.js';

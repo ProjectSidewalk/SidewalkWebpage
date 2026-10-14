@@ -7,9 +7,7 @@
  * regression the issue calls out explicitly: the two URL writers on the page (this sync and
  * LabelDetail.syncUrlLabelId) must compose rather than clobber each other.
  *
- * The classes are Grunt-concatenated top-level `class` declarations reaching for page globals, so the sources are
- * eval'd into jsdom with those stubbed. jsdom's real History API backs the URL assertions (galleryFilter.test.js
- * precedent).
+ * Page globals are stubbed on `window`; jsdom's real History API backs the URL assertions.
  */
 
 const { loadModules, realUtil } = require('./loadGlobalScript');

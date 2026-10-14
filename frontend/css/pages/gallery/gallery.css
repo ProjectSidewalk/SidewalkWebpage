@@ -14,6 +14,13 @@
   margin: 0 2px;
 }
 
+#page-number {
+  align-self: center;
+  padding: 0 var(--space-xs);
+  font: var(--text-h3-bold);
+  font-size: 30px; /* Matches the arrow buttons beside it. */
+}
+
 .paging:disabled {
   border-width: 0.2px;
   opacity: 0.5;

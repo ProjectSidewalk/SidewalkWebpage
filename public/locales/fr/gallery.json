@@ -1,5 +1,6 @@
 {
   "card-image-alt": "Photo de rue d'une étiquette {{labelType}}",
+  "cards": "Les étiquettes sont triées aléatoirement selon les filtres sélectionnés",
   "cards-sorted": "Les étiquettes sont triées par « {{sort}} » selon les filtres sélectionnés",
   "cards-sorted-moot": "« {{sort}} » est sans effet avec les filtres sélectionnés ; les étiquettes sont affichées des plus récentes aux plus anciennes",
   "clear-filters": "Effacer les filtres",

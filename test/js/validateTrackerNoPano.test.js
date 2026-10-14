@@ -14,8 +14,7 @@ const { loadModules } = require('./loadGlobalScript');
 const TRACKER_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/Tracker.js');
 
 /**
- * Loads the `Tracker` class out of the production file — a bare `class` the Grunt bundle concatenates into page
- * scope — by wrapping the source in an IIFE that returns it.
+ * Loads a fresh Tracker class.
  * @returns {Function} The Tracker class.
  */
 function loadTrackerClass() {

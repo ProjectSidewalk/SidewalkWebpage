@@ -55,7 +55,7 @@ GET     /cityMapParams                                  controllers.ConfigContro
 GET     /imageryAccessToken                             controllers.ConfigController.getImageryAccessToken()
 
 # Admin
-# Admin dashboard (redesign #4272).
+# Admin dashboard (#4272).
 GET     /admin                                          controllers.AdminDashboardController.overview
 GET     /admin/overview                                 controllers.AdminDashboardController.overview
 GET     /admin/coverage                                 controllers.AdminDashboardController.coverage
@@ -198,7 +198,7 @@ GET     /contribution/streets/all                       controllers.UserProfileC
 # Deliberately its own request rather than more properties on the feed above: only the hovered street needs these,
 # and per-street label breakdowns for a whole city would multiply an already-uncached payload.
 GET     /contribution/street/:streetEdgeId/reauditSummary  controllers.UserProfileController.getStreetReauditSummary(streetEdgeId: Int)
-# User dashboard, settings, and public profiles (redesigned in #4323, cut over in #4474; /leaderboard is up top).
+# User dashboard, settings, and public profiles (#4323); /leaderboard is up top.
 GET     /dashboard                                      controllers.UserDashboardController.dashboard
 GET     /dashboard/settings                             controllers.UserDashboardController.settings
 POST    /dashboard/settings                             controllers.UserDashboardController.saveSettings

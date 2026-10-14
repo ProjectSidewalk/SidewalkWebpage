@@ -8,10 +8,7 @@
  * type changed under it) is not an open and must not add a row. That redraw still has to run through a LabelPopup
  * host's showLabel wrapper, whose onMetadata is how LabelMap learns the new type, so it is checked through one.
  *
- * Fixture and stub strategy follow labelDetailKeyboard.test.js: LabelDetail is a top-level `class` written for
- * Grunt concatenation, so its source is eval'd into the jsdom global with an epilogue exposing it, TagEditor rides
- * along because LabelDetail closes over that binding, and the collaborators it reaches for as bare globals are
- * stubbed on `window` first.
+ * Fixtures and stubs follow labelDetailEditGating.test.js.
  */
 
 const { assetPathStub, installDateHelpers, loadModules } = require('./loadGlobalScript');

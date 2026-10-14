@@ -1,7 +1,6 @@
 /**
- * Test helper: loads the real Infra3dViewer (over the real PanoViewer base and panoUtilities) into the jsdom global
- * scope, plus the fixtures its suites share. Infra3dViewer is a top-level `class` written for the Grunt-concatenation
- * world's stubs for the globals it closes over.
+ * Test helper: loads the real Infra3dViewer (over the real PanoViewer base and panoUtilities) with stubs for the
+ * globals it reads, plus the fixtures its suites share.
  */
 
 const path = require('path');

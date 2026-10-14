@@ -193,7 +193,6 @@ describe('Explore, when the imagery search runs out along a street', () => {
                         latLng,
                         streetEdgeId: svl.taskContainer.getCurrentTask().getStreetEdgeId(),
                         excludedPanos: [...excludedPanos].map((pano) => pano.panoId),
-                        walkingDisabled: nav.walking.isHeld(),
                     });
                     return respondToSearch(latLng);
                 }),
@@ -308,11 +307,21 @@ describe('Explore, when the imagery search runs out along a street', () => {
 
             await nav.moveForward();
 
-            // The advance is a recursive moveForward(), and moveForward() returns immediately while walking is
-            // disabled — which every move disables on its way in. So the new street being searched at all is the
-            // assertion: without re-enabling walking first, the advance switches the task and nothing else happens,
-            // leaving the labeler on the old street's pano with the whole panorama pane inert.
+            // moveForward() refuses mid-move, so an advance routed through it would switch the task and stop there,
+            // leaving the labeler on the old street's pano.
             expect(searches.map(({ streetEdgeId }) => streetEdgeId)).toContain(102);
+        });
+
+        it('announces the advance as a new move start, so what closes on a move closes for the new street', async () => {
+            const [dead, live] = [makeTask(101), makeTask(102)];
+            assignStreets(dead, live);
+            respondToSearch = () => (svl.taskContainer.getCurrentTask() === dead ? emptyGround() : foundImagery());
+            const starts = jest.fn();
+            nav.onMoveStarted(starts);
+
+            await nav.moveForward();
+
+            expect(starts).toHaveBeenCalledTimes(2);
         });
 
         it('still advances when a pop-up took hold of walking during the move', async () => {
@@ -427,7 +436,7 @@ describe('Explore, when the imagery search runs out along a street', () => {
             expect(svl.alertController.showAlert)
                 .toHaveBeenCalledWith('popup.imagery-load-failed', 'imageryLoadFailed', false);
             expect(keyboardLock.release).toHaveBeenCalledWith('move');
-            expect(nav.walking.isHeld()).toBe(false);
+            expect(nav.canWalk()).toBe(true);
         });
 
         it('still writes nothing when only one sampled point failed to get an answer', async () => {
@@ -467,7 +476,7 @@ describe('Explore, when the imagery search runs out along a street', () => {
             // which is a fresh decision rather than more of the automatic run this bounds.
             expect(window.NoImageryFlagGuard.count()).toBe(0);
             expect(svl.tracker.push).toHaveBeenCalledWith('NoImageryAdvanceLimitReached');
-            expect(nav.walking.isHeld()).toBe(false);
+            expect(nav.canWalk()).toBe(true);
         });
 
         it('leaves the street they are left standing on unmarked, having never moved them off it (#5008)', async () => {
@@ -532,7 +541,7 @@ describe('Explore, when the imagery search runs out along a street', () => {
             expect(missionController.onRouteReadyToFinish).toHaveBeenCalled();
             expect(missionController.wrapUpRouteOrRegion).not.toHaveBeenCalled();
             // The labeler has to be able to look around for that gate to ever open.
-            expect(nav.walking.isHeld()).toBe(false);
+            expect(nav.canWalk()).toBe(true);
         });
 
         it('gives up on a street once, however many times the labeler tries to walk off it (#5008)', async () => {
@@ -723,6 +732,110 @@ describe('Explore, when the imagery search runs out along a street', () => {
 
             expect(svl.alertController.showAlert)
                 .toHaveBeenCalledWith('popup.imagery-load-failed', 'imageryLoadFailed', false);
+        });
+    });
+
+    describe('and the labeler tries to move again before the last move is done (#5765)', () => {
+        it('refuses a second move without holding walking, and hides the arrows until the beat after landing', async () => {
+            assignStreets(makeTask(101));
+            let land;
+            respondToSearch = () => new Promise((resolve) => { land = () => resolve({ panoId: 'pano-found' }); });
+
+            const first = nav.moveForward();
+            // A move in flight isn't a hold on walking, so a pop-up opening and closing under it can't strand anything.
+            expect(nav.walking.isHeld()).toBe(false);
+            expect(nav.canWalk()).toBe(false);
+            expect(svl.navArrows.hide).toHaveBeenCalled();
+            await nav.moveForward();
+            expect(searches).toHaveLength(1);
+
+            land();
+            await first;
+            expect(nav.canWalk()).toBe(false);
+            svl.navArrows.show.mockClear();
+            jest.advanceTimersByTime(800);
+            expect(nav.canWalk()).toBe(true);
+            expect(svl.navArrows.show).toHaveBeenCalled();
+        });
+
+        /** Holds the next pano hop in flight until the returned function lands it. */
+        const holdNextHop = () => {
+            let land;
+            respondToPanoHop = () => new Promise((resolve) => { land = resolve; });
+            return () => land();
+        };
+
+        it('does not let an earlier landing\'s timer reopen walking while a later move is in flight', async () => {
+            assignStreets(makeTask(101));
+            respondToSearch = foundImagery;
+            await nav.moveForward();
+            jest.advanceTimersByTime(600);
+
+            // Only the tutorial's forced hop can start inside the beat.
+            const land = holdNextHop();
+            const hop = nav.moveToPano('pano-next', true);
+            svl.navArrows.show.mockClear();
+            jest.advanceTimersByTime(300); // Past the first landing's beat, with the hop still in flight.
+            expect(nav.canWalk()).toBe(false);
+            expect(svl.navArrows.show).not.toHaveBeenCalled();
+            land();
+            await hop;
+        });
+
+        it('does not let an earlier landing\'s timer cut short the beat after a later one', async () => {
+            assignStreets(makeTask(101));
+            respondToSearch = foundImagery;
+            await nav.moveForward(); // Lands at 0 ms: its beat would end at 800.
+            jest.advanceTimersByTime(600);
+
+            const land = holdNextHop();
+            const hop = nav.moveToPano('pano-next', true);
+            jest.advanceTimersByTime(100);
+            land();
+            await hop; // Lands at 700 ms: its beat ends at 1500, with the first timer still pending.
+
+            jest.advanceTimersByTime(150);
+            expect(nav.canWalk()).toBe(false);
+            jest.advanceTimersByTime(650);
+            expect(nav.canWalk()).toBe(true);
+        });
+
+        it('keeps the jump prompt from firing inside the beat, so a double-click can\'t skip it', async () => {
+            assignStreets(makeTask(100), makeTask(101));
+            respondToSearch = foundImagery;
+            await nav.moveForward();
+            searches.length = 0;
+
+            await nav.jumpToANewTask();
+            expect(searches).toHaveLength(0);
+            expect(svl.taskContainer.endTask).not.toHaveBeenCalled();
+
+            jest.advanceTimersByTime(800);
+            await nav.jumpToANewTask();
+            expect(searches.length).toBeGreaterThan(0);
+        });
+
+        it('lets the labeler walk again when the bookkeeping after a landing throws', async () => {
+            assignStreets(makeTask(101));
+            respondToSearch = foundImagery;
+            svl.missionModel.updateMissionProgress.mockImplementationOnce(() => { throw new Error('boom'); });
+
+            await expect(nav.moveForward()).rejects.toThrow('boom');
+            jest.advanceTimersByTime(800);
+
+            expect(nav.canWalk()).toBe(true);
+            expect(keyboardLock.release).toHaveBeenCalledWith('move');
+        });
+
+        it('unlocks everything when a jump fails before its move starts', async () => {
+            assignStreets(makeTask(100), makeTask(101));
+            svl.taskContainer.endTask.mockImplementationOnce(() => { throw new Error('boom'); });
+
+            await expect(nav.jumpToANewTask()).rejects.toThrow('boom');
+
+            expect(nav.canWalk()).toBe(true);
+            expect(keyboardLock.release).toHaveBeenCalledWith('move');
+            expect(svl.panoManager.panning.release).toHaveBeenCalledWith('move');
         });
     });
 

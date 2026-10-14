@@ -9,8 +9,7 @@
  * whatever the SDK said; the SDK's own error when the image exists. And a linked-pano wait that never finishes must
  * cost the pano its arrows, never the pano.
  *
- * MapillaryViewer is a top-level `class` written for Grunt concatenation, so the sources are eval'd into jsdom with
- * stubs for the sibling classes PanoViewer's constructor compares `new.target` against. The SDK and fetch are fakes.
+ * The SDK and fetch are fakes.
  */
 const { loadGlobalScript, realUtil, loadModules } = require('./loadGlobalScript');
 

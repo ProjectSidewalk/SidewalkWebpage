@@ -6,13 +6,12 @@ export class Gate {
   /** @type {Set<string>} */
   #holds = new Set();
 
-  /** @type {Array<(held: boolean, holder: string) => void>} */
+  /** @type {Array<(held: boolean) => void>} */
   #listeners = [];
 
   /**
-   * Told of each hold taken and let go, with whether the gate is still held: a listener that ignores one holder (the
-   * forward crumbs ignore a move's) must still see the others come and go.
-   * @param {(held: boolean, holder: string) => void} listener
+   * Told when the gate shuts or opens; a second hold, or a release that leaves another, changes nothing.
+   * @param {(held: boolean) => void} listener
    */
   onChanged(listener) {
     this.#listeners.push(listener);
@@ -25,7 +24,7 @@ export class Gate {
   hold(holder) {
     if (this.#holds.has(holder)) return;
     this.#holds.add(holder);
-    this.#listeners.forEach((listener) => listener(true, holder));
+    if (this.#holds.size === 1) this.#listeners.forEach((listener) => listener(true));
   }
 
   /**
@@ -34,21 +33,11 @@ export class Gate {
    */
   release(holder) {
     if (!this.#holds.delete(holder)) return;
-    const held = this.isHeld();
-    this.#listeners.forEach((listener) => listener(held, holder));
+    if (!this.isHeld()) this.#listeners.forEach((listener) => listener(false));
   }
 
   /** @returns {boolean} Whether anything still holds the gate shut. */
   isHeld() {
     return this.#holds.size > 0;
-  }
-
-  /**
-   * Whether anything but the named holder holds the gate shut, telling a hold that lifts on its own from a modal's.
-   * @param {string} holder
-   * @returns {boolean}
-   */
-  isHeldExcept(holder) {
-    return this.#holds.size > (this.#holds.has(holder) ? 1 : 0);
   }
 }

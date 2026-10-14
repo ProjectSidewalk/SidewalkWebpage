@@ -1,7 +1,8 @@
 /**
- * The moves along a street, between streets and to a named pano. Whether the labeler may walk is the `walking` gate;
- * a move runs idle → moving → settling → idle. What a move means to the rest of the tool is announced (onMoveStarted,
- * onMoved, …) rather than done here, since most of what reacts is built after this.
+ * The moves along a street, between streets and to a named pano. Whether the labeler may walk is canWalk(): nothing
+ * holds the `walking` gate, no move is in flight, and the beat after a landing is over. A move runs idle → moving →
+ * settling → idle. What a move means to the rest of the tool is announced (onMoveStarted, onMoved, …) rather than done
+ * here, since most of what reacts is built after this.
  */
 
 import { Gate } from '../../common/Gate.js';
@@ -54,8 +55,7 @@ export class NavigationService {
   #tracker;
 
   /**
-   * Whether the labeler may walk: held by a move (and for a beat after it lands, so a mission can't be spammed
-   * through), a pop-up, the tutorial and the mission-complete screen.
+   * Policy holds only (a pop-up, the tutorial, mission complete); moves end on their own, so canWalk() adds them.
    * @type {Gate}
    */
   walking = new Gate();
@@ -67,6 +67,8 @@ export class NavigationService {
    */
   #moveState = 'idle';
 
+  #cooldownTimer = null; // Set for a beat after a move lands, so a mission can't be spam-walked without labeling.
+
   #labelBeforeJumpArmed = false;
 
   /**
@@ -75,7 +77,7 @@ export class NavigationService {
    */
   #missionJump = undefined;
   #stuckPanos = new Set([]);
-  // Traversal the #stuckPanos set belongs to; see the reset in moveForward().
+  // Traversal the #stuckPanos set belongs to; see the reset in #sweepForward().
   #stuckPanosTraversalKey = null;
   #povSettlePoll = null; // Interval id; see #refreshHeadingViewsAfterPovSettles.
 
@@ -137,11 +139,7 @@ export class NavigationService {
     this.#form = form;
     this.#tracker = tracker;
 
-    this.walking.onChanged((held) => {
-      if (held) this.#navArrows.hide();
-      else this.#navArrows.show();
-      this.#ui.modeSwitchWalk.style.opacity = held ? '0.5' : '1';
-    });
+    this.walking.onChanged(() => this.#refreshWalkUi());
     labelContainer.onMarkerClick((label) => {
       this.returnToPano(label.getPanoId(), label.getProperty('povOfLabelIfCentered'));
     });
@@ -220,6 +218,19 @@ export class NavigationService {
     return this.#moveState === 'moving';
   }
 
+  /** @returns {boolean} Whether a move may start: nothing holds walking, and no move is in flight or just landed. */
+  canWalk() {
+    return !this.walking.isHeld() && !this.isMoving() && this.#cooldownTimer === null;
+  }
+
+  /** Shows the arrows and the Walk button as usable only while canWalk() says so. */
+  #refreshWalkUi() {
+    const canWalk = this.canWalk();
+    if (canWalk) this.#navArrows.show();
+    else this.#navArrows.hide();
+    this.#ui.modeSwitchWalk.style.opacity = canWalk ? '1' : '0.5';
+  }
+
   /**
    * @returns {boolean} Whether a move or the heading settle after it is still under way, so views of the heading
    *   should keep their pre-move orientation (#4174).
@@ -242,10 +253,17 @@ export class NavigationService {
     this.#labelBeforeJumpListeners.forEach((listener) => listener(armed));
   }
 
-  /** Redraws the arrows for the pano stood on and lets the move's hold on walking go. */
-  #resetWalking() {
-    this.#navArrows.reset();
-    this.walking.release('move');
+  /**
+   * Bars walking for a beat after a landing. A new landing restarts the beat, so an earlier move's timer can't end
+   * a later move's.
+   */
+  #startCooldown() {
+    window.clearTimeout(this.#cooldownTimer);
+    this.#cooldownTimer = window.setTimeout(() => {
+      this.#cooldownTimer = null;
+      this.#navArrows.reset();
+      this.#refreshWalkUi();
+    }, NavigationService.#MOVE_DELAY);
   }
 
   /**
@@ -373,9 +391,10 @@ export class NavigationService {
       this.#taskContainer.setCurrentTask(newTask);
       // Not awaited: naming the destination takes a network round trip, and the move should not wait on decoration.
       this.#stuckAlert.announceSkippedStreetNear(newTask.getMidpoint(), this.#config.mapboxApiKey);
-      // Not moveForward(): the search that brought us here still holds walking, as may a pop-up, and returning at
-      // once would strand the labeler on the old pano with the task already switched (#4921).
-      return this.#moveForward();
+      // Carries on inside this move; moveForward() would refuse it and strand the labeler on the old pano (#4921).
+      // Announced as a new start, so what closes on a move (Feedback, the context menu) closes for the new street.
+      this.#updateUiBeforeMove();
+      return this.#sweepForward();
     } else {
       // Nothing left to walk. This path skips #updateUiAfterMove(), so the move ends here.
       this.#restoreUiAfterFailedMove();
@@ -417,27 +436,33 @@ export class NavigationService {
   }
 
   async jumpToANewTask() {
-    // Free exploration (#4451) pins the session to the searched location — there is no next street to jump to.
-    if (this.#config.isExploreAddressMode) return;
+    // Free exploration (#4451) pins the session to the searched location — there is no next street to jump to. The
+    // beat after a landing counts too: the prompt can arm on the landing a double-click's first half made.
+    if (this.#config.isExploreAddressMode || this.isMoving() || this.#cooldownTimer !== null) return;
 
-    // Flag the move before setCurrentTask() below, which synchronously re-aims the compass while still at the old
-    // location — otherwise it would flash the off-route warning before moveForward() sets this. (#4174)
-    this.#moveState = 'moving';
+    // Start the move before setCurrentTask() below, which synchronously re-aims the compass while still at the old
+    // location — otherwise it would flash the off-route warning (#4174).
+    this.#updateUiBeforeMove();
 
-    // Finish the current task.
-    const mission = this.#missionJump || this.#missionContainer.getCurrentMission();
-    this.#finishCurrentTaskBeforeJumping(mission);
-    // The compass takes its prompt down with this.
-    this.#setLabelBeforeJumpState(false);
+    try {
+      // Finish the current task.
+      const mission = this.#missionJump || this.#missionContainer.getCurrentMission();
+      this.#finishCurrentTaskBeforeJumping(mission);
+      // The compass takes its prompt down with this.
+      this.#setLabelBeforeJumpState(false);
 
-    const currTask = this.#taskContainer.getCurrentTask();
-    const task = this.#taskContainer.getNextTaskAfterJump() || this.#taskContainer.nextTask(currTask);
-    this.#taskContainer.setCurrentTask(task);
-    this.#taskContainer.setNextTaskAfterJump(null);
+      const currTask = this.#taskContainer.getCurrentTask();
+      const task = this.#taskContainer.getNextTaskAfterJump() || this.#taskContainer.nextTask(currTask);
+      this.#taskContainer.setCurrentTask(task);
+      this.#taskContainer.setNextTaskAfterJump(null);
+    } catch (err) {
+      // Everything is locked for the move by now, and no move is coming to unlock it.
+      this.#restoreUiAfterFailedMove();
+      throw err;
+    }
 
-    // Not moveForward(): ending the street can raise the sign-in prompt, whose hold would stop the jump with the task
-    // already switched. The move can land past `task` if that street has no imagery.
-    await this.#moveForward();
+    // Not moveForward(), which refuses mid-move. The move can land past `task` if that street has no imagery.
+    await this.#sweepForward();
     const landedOn = this.#taskContainer.getCurrentTask();
     this.#panoManager.turnTo(landedOn.headingAlongRoute(this.#panoManager.getPosition()));
     this.#jumpAlert.onClickJumpMessage();
@@ -496,7 +521,7 @@ export class NavigationService {
     this.#moveStartedListeners.forEach((listener) => listener());
     this.#keyboardLock.hold('move');
     this.#panoManager.panning.hold('move');
-    this.walking.hold('move');
+    this.#refreshWalkUi();
   }
 
   /**
@@ -508,49 +533,51 @@ export class NavigationService {
     const region = this.#regionModel.currentRegion();
     const currentMission = this.#missionContainer.getCurrentMission();
 
-    // Walking stays held for a beat after the move lands, so a mission can't be spam-run through without labeling.
-    setTimeout(() => this.#resetWalking(), NavigationService.#MOVE_DELAY);
+    this.#startCooldown();
 
     this.switchToExploreMode();
     this.#panoManager.panning.release('move');
     this.#moveFinishedListeners.forEach((listener) => listener());
 
-    if (this.#config.isExploreAddressMode) {
-      // Free exploration has no end-of-street: each pano is credited to the street it is on (#5733).
-      this.#taskContainer.recordExploreMove(newLatLng);
-    } else if (!isOnboarding && this.#taskContainer.tasksLoaded()) {
-      // End of the task if the user is close enough to the end point, and we aren't in the tutorial.
-      // TODO I wonder if ending a task should happen elsewhere? Bc some types of moves might never cause an end task?
-      // - that might be because the task was already ended before we moved them, for example...
-      // TODO I hardly understand the todo above, and idk why we would end the task in the middle of updating the
-      //      UI after a move... especially when #endTheCurrentTask() can result in another move...
-      const task = this.#taskContainer.getCurrentTask();
-      if (task && task.isAtEnd(newLatLng, NavigationService.#END_OF_STREET_THRESHOLD)) {
-        // On a route's final street, 25 m-from-endpoint can be a large fraction of a short street, firing "end of
-        // route" long before the last reachable pano (#4640 route manifestation). Defer to the imagery-exhaustion
-        // path (#handleImageryNotFound) unless they've already walked most of the street — on a long street 25 m
-        // really is the end, so preserve today's behavior there.
-        const finalRouteStreet = this.#regionModel.isRoute && !this.#taskContainer.nextTask(task);
-        const streetLen = task.lineDistance({ units: 'meters' });
-        const walkedMostOfStreet = streetLen > 0
-          && task.getDistanceFromStart(newLatLng, { units: 'meters' }) / streetLen >= 0.9;
-        if (!finalRouteStreet || walkedMostOfStreet) {
-          this.#endTheCurrentTask(task, currentMission);
+    try {
+      if (this.#config.isExploreAddressMode) {
+        // Free exploration has no end-of-street: each pano is credited to the street it is on (#5733).
+        this.#taskContainer.recordExploreMove(newLatLng);
+      } else if (!isOnboarding && this.#taskContainer.tasksLoaded()) {
+        // End of the task if the user is close enough to the end point, and we aren't in the tutorial.
+        // TODO I wonder if ending a task should happen elsewhere? Bc some types of moves might never cause an end task?
+        // - that might be because the task was already ended before we moved them, for example...
+        // TODO I hardly understand the todo above, and idk why we would end the task in the middle of updating the
+        //      UI after a move... especially when #endTheCurrentTask() can result in another move...
+        const task = this.#taskContainer.getCurrentTask();
+        if (task && task.isAtEnd(newLatLng, NavigationService.#END_OF_STREET_THRESHOLD)) {
+          // On a route's final street, 25 m-from-endpoint can be a large fraction of a short street, firing "end of
+          // route" long before the last reachable pano (#4640 route manifestation). Defer to the imagery-exhaustion
+          // path (#handleImageryNotFound) unless they've already walked most of the street — on a long street 25 m
+          // really is the end, so preserve today's behavior there.
+          const finalRouteStreet = this.#regionModel.isRoute && !this.#taskContainer.nextTask(task);
+          const streetLen = task.lineDistance({ units: 'meters' });
+          const walkedMostOfStreet = streetLen > 0
+            && task.getDistanceFromStart(newLatLng, { units: 'meters' }) / streetLen >= 0.9;
+          if (!finalRouteStreet || walkedMostOfStreet) {
+            this.#endTheCurrentTask(task, currentMission);
+          }
         }
+        this.#taskContainer.updateCurrentTask();
       }
-      this.#taskContainer.updateCurrentTask();
+      this.#missionModel.updateMissionProgress(currentMission, region);
+    } finally {
+      // Even if the task bookkeeping above throws: leaving 'moving' is what lets the labeler walk again.
+      // Position is final, so position-dependent checks can run again; heading views wait for the pov to settle.
+      this.#moveState = 'settling';
+      this.#refreshHeadingViewsAfterPovSettles();
+
+      // Now that the task state reflects the new position, predict where the next move will go and pre-download
+      // that pano so the move doesn't wait on the network.
+      this.#preloadNextMoveTarget();
+
+      this.#keyboardLock.release('move');
     }
-    this.#missionModel.updateMissionProgress(currentMission, region);
-
-    // Position is final, so position-dependent checks can run again; heading views wait for the pov to settle.
-    this.#moveState = 'settling';
-    this.#refreshHeadingViewsAfterPovSettles();
-
-    // Now that the task state reflects the new position, predict where the next move will go and pre-download
-    // that pano so the move doesn't wait on the network.
-    this.#preloadNextMoveTarget();
-
-    this.#keyboardLock.release('move');
     this.#movedListeners.forEach((listener) => listener());
   }
 
@@ -600,7 +627,7 @@ export class NavigationService {
   switchToExploreMode() {
     this.#ui.viewControlLayer.style.zIndex = '1';
     this.#ui.drawingLayer.style.zIndex = '0';
-    if (!this.walking.isHeld()) this.#navArrows.show();
+    if (this.canWalk()) this.#navArrows.show();
   }
 
   /**
@@ -660,8 +687,8 @@ export class NavigationService {
     // Best-effort: called from post-move UI updates, so never let a prediction error break those.
     try {
       if (!this.#taskContainer.tasksLoaded()) return;
-      // No forward move can happen while anything but the move itself holds walking, so there is nothing to preload.
-      if (this.walking.isHeldExcept('move')) return;
+      // No forward move can happen while something holds walking, so there is nothing to preload.
+      if (this.walking.isHeld()) return;
 
       // When the label-before-jump state is armed, the next forward move is the jump itself: predict the start of
       // the street being jumped to rather than a point on the street the user is about to leave (which would also
@@ -702,20 +729,20 @@ export class NavigationService {
   /**
    * Attempts to move the user forward by incrementally checking for imagery every few meters along the route.
    * @returns {Promise<string|null|void>} Resolves with the new pano ID on a successful move, null if the street ran
-   *     out of imagery, or undefined if walking is disabled.
+   *     out of imagery, or undefined if the labeler can't walk now.
    */
   moveForward() {
-    if (this.walking.isHeld()) return Promise.resolve();
-    return this.#moveForward();
+    if (!this.canWalk()) return Promise.resolve();
+    this.#updateUiBeforeMove();
+    return this.#sweepForward();
   }
 
   /**
-   * The move without the walking check, for continuations of a move already under way (an empty street, a jump).
+   * Searches the current street for imagery ahead and lands on it, inside a move that has already started: a
+   * forward step, a jump, or carrying on past a street with no imagery.
    * @returns {Promise<string|null|void>} As for moveForward().
    */
-  #moveForward() {
-    this.#updateUiBeforeMove();
-
+  #sweepForward() {
     // TODO show loading icon. Add when resolving issue #2403.
 
     const currentTask = this.#taskContainer.getCurrentTask();
@@ -788,7 +815,7 @@ export class NavigationService {
    * @returns {Promise<boolean>}
    */
   moveToLinkedPano(heading, options) {
-    if (this.walking.isHeld()) return Promise.resolve(false);
+    if (!this.canWalk()) return Promise.resolve(false);
 
     // Figure out if there's a link close to the given heading.
     const currHeading = this.#panoManager.getPov().heading;
@@ -816,7 +843,7 @@ export class NavigationService {
    * @returns {Promise<boolean>}
    */
   async moveToPano(panoId, force = false, { alertOnFailure = true } = {}) {
-    if (this.walking.isHeld() && !force) return Promise.resolve(false);
+    if (!this.canWalk() && !force) return Promise.resolve(false);
 
     this.#updateUiBeforeMove();
     try {
@@ -854,7 +881,7 @@ export class NavigationService {
    * @returns {Promise<boolean>} Whether the move succeeded (false if walking is disabled or nothing loads there).
    */
   async moveToLocation(latLng, { alertOnFailure = true } = {}) {
-    if (this.walking.isHeld()) return false;
+    if (!this.canWalk()) return false;
 
     this.#updateUiBeforeMove();
     try {
@@ -886,7 +913,7 @@ export class NavigationService {
    * @returns {Promise<boolean>} Whether the move succeeded (false if walking is disabled or the move failed).
    */
   async returnToPano(panoId, pov) {
-    if (this.walking.isHeld()) return false;
+    if (!this.canWalk()) return false;
     const moved = this.#panoManager.getPanoId() === panoId ? true : await this.moveToPano(panoId);
     if (moved && pov) this.#panoManager.setPov(pov);
     return moved;
@@ -897,7 +924,8 @@ export class NavigationService {
    */
   #restoreUiAfterFailedMove() {
     this.#moveState = 'idle';
-    this.#resetWalking();
+    this.#navArrows.reset();
+    this.#refreshWalkUi();
     this.#panoManager.panning.release('move');
     this.#moveFinishedListeners.forEach((listener) => listener());
     this.#keyboardLock.release('move');

@@ -83,7 +83,8 @@ describe('ForwardCrumbs marker lifecycle', () => {
         visited = new Set();
         task = makeTask(1);
         nav = {
-            walking: { hold: () => {}, release: () => {}, isHeld: () => false, isHeldExcept: () => false, onChanged: () => {} },
+            walking: new (loadModules('frontend/js/common/Gate.js').Gate)(),
+            canWalk: () => true,
             onMoved: () => {},
             moveToPano: jest.fn(async () => true),
             moveToLocation: jest.fn(async () => true),
@@ -193,6 +194,19 @@ describe('ForwardCrumbs marker lifecycle', () => {
         const near = (target) => (lat) => Math.abs(lat - target) < 0.001;
         expect(calls.filter(near(streetOneLat))).toHaveLength(4);
         expect(calls.filter(near(streetTwoLat)).length).toBeGreaterThan(0);
+    });
+
+    test('a pop-up\'s hold on walking clears the crumbs, and letting go redraws them', async () => {
+        await crumbs.refresh();
+        const drawn = onMap().length;
+        expect(drawn).toBeGreaterThan(0);
+
+        nav.walking.hold('interaction');
+        expect(onMap()).toEqual([]);
+
+        nav.walking.release('interaction');
+        for (let i = 0; i < 10 && onMap().length === 0; i++) await new Promise((resolve) => setTimeout(resolve, 0));
+        expect(onMap()).toHaveLength(drawn);
     });
 
     test('a far crumb over a visited pano peeks back on click, as the breadcrumb under it would', async () => {

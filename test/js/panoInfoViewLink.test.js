@@ -6,10 +6,6 @@
  * provider has dropped, and a static crop when neither exists. Only the first of those has anywhere to link to, so
  * the popover resolves the active viewer on every open and offers the link only when that viewer both publishes a
  * public site and is holding the pano on screen.
- *
- * PanoInfoPopover is a top-level `class` declaration written for the Grunt-concatenation world, so — as with
- * ShareWidget — the source is eval'd into the jsdom global scope with an explicit `window.X = X` epilogue rather
- * than require()-d.
  */
 
 

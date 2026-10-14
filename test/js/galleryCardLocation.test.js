@@ -5,8 +5,7 @@
  * city data rather than ours, so it goes in as text; these tests pin that along with the absent-name case, since a
  * card with no known region must simply not show the line rather than show an empty one.
  *
- * Card is a Grunt-concatenated `class` that reaches for page globals, so the source is eval'd into jsdom with the
- * collaborators it touches during construction stubbed out.
+ * The collaborators Card touches during construction are stubbed on `window`.
  */
 
 

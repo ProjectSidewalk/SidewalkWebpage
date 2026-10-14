@@ -6,9 +6,7 @@
  * pano and the minimap. The guard rejects after a timeout so the move can recover. These tests exercise that race
  * directly: resolve on position_changed, reject on timeout, and settle only once.
  *
- * GsvViewer is a top-level `class` written for Grunt concatenation, so we eval the source into the jsdom global scope.
- * It only needs its parent `PanoViewer` defined at class-definition time — the google.maps/PanoData references
- * live inside other methods that these tests never call.
+ * No google.maps stub is needed: its references live in methods these tests never call.
  */
 
 const { loadModules } = require('./loadGlobalScript');
