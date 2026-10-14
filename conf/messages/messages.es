@@ -396,7 +396,7 @@ authenticate.terms = Usted acepta nuestros <a target="_blank" href="/terms">Tér
 authenticate.signup = Regístrate
 authenticate.has.account = ¿Tienes una cuenta? <a href="#" id="form-open-sign-in">Iniciar sesión</a>
 
-# Sign-in/sign-up redesign (#4375) — draft translations, pending native-speaker polish (#4494).
+# Sign-in/sign-up (#4375): draft translations, pending native-speaker polish (#4494).
 authenticate.welcome.back = Bienvenido/a de nuevo
 authenticate.join = Únete a Project Sidewalk
 authenticate.tagline = Mapea las aceras. Ayuda a que tu ciudad sea accesible para todos.
@@ -675,7 +675,7 @@ sharedlabel.stat.labels = etiquetas
 sharedlabel.stat.validations = validaciones
 sharedlabel.stat.miles = millas exploradas
 sharedlabel.legend.title = Qué significan estas etiquetas
-# Redesigned user dashboard, leaderboard, settings, and public profile (#4323, #4475).
+# User dashboard, leaderboard, settings, and public profile (#4323, #4475).
 dashboard.title = Tu panel
 dashboard.you = Tú
 dashboard.hero.greeting = ¡Hola de nuevo, {0}! 👋
@@ -869,6 +869,16 @@ leaderboard.thisweek.none = ✨ Aún no hay etiquetas esta semana. ¡Sé la prim
 leaderboard.teams.title = Equipos en {0}
 leaderboard.teams.intro = ¡Crea o únete a un equipo para marcar la diferencia en conjunto!
 leaderboard.teams.none = 👥 Aún no hay equipos. ¡Sé el primero! Crea uno e invita a amistades o compañeros/as.
+leaderboard.myteam.title = Tu equipo: {0}
+leaderboard.myteam.intro = Cómo te comparas con tus compañeros/as de equipo en {0}.
+leaderboard.myteam.none = 👥 Todavía nadie de tu equipo aparece en la clasificación.
+leaderboard.myteam.you.hidden = No apareces porque desactivaste «{0}».
+leaderboard.myteam.you.settings = Cámbialo en Configuración
+leaderboard.myteam.you.nolabels = Aparecerás aquí cuando coloques tu primera etiqueta.
+leaderboard.myteam.pager = Páginas de la clasificación del equipo
+leaderboard.myteam.prev = ‹ Anterior
+leaderboard.myteam.next = Siguiente ›
+leaderboard.myteam.page = Página {0} de {1}
 leaderboard.allcities.title = Todas las ciudades, histórico
 leaderboard.allcities.intro = Las mejores personas mapeadoras de todas las ciudades de Project Sidewalk, clasificadas por el total de etiquetas.
 leaderboard.allcities.note = La distancia se actualiza una vez al día.

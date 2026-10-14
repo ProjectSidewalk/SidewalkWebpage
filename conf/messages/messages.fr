@@ -174,9 +174,7 @@ seo.description.api = Données ouvertes et gratuites sur l''accessibilité des t
 seo.description.about = Découvrez Project Sidewalk : notre mission de cartographier les trottoirs du monde, l''équipe de recherche qui le porte et les données ouvertes qu''il produit.
 seo.og.image.alt = Capture d''écran de l''exploration virtuelle de Project Sidewalk, avec des étiquettes d''accessibilité placées le long d''un trottoir.
 
-# About page (#4237, redesigned in #4631). Static copy is server-rendered and doubles as the no-JS/crawler fallback;
-# numbers in data-live-stat spans are hydrated from /v3/api/aggregateStats (aggregateStats.js), and the team,
-# publications, and funders sections are hydrated from the Makeability Lab API (aboutPage.js).
+# About page (#4237, #4631). Numbers, team, publications, and funders load from APIs, not from here.
 about.title = À propos de Project Sidewalk
 about.hero.title = Nous cartographions et évaluons <span class="about-hero-accent">chaque trottoir</span> du monde.
 about.hero.subtitle = Project Sidewalk est un projet de recherche universitaire en source ouverte de l''Université de Washington et de l''Université de l''Illinois à Chicago qui combine la participation citoyenne et l''IA pour cartographier et évaluer les trottoirs des villes — et qui ouvre chaque donnée aux chercheurs, aux collectivités et aux communautés.
@@ -658,7 +656,7 @@ sharedlabel.stat.labels = étiquettes
 sharedlabel.stat.validations = validations
 sharedlabel.stat.miles = miles explorés
 sharedlabel.legend.title = Signification de ces étiquettes
-# Redesigned user dashboard, leaderboard, settings, and public profile (#4323, #4475).
+# User dashboard, leaderboard, settings, and public profile (#4323, #4475).
 dashboard.title = Votre tableau de bord
 dashboard.you = Vous
 dashboard.hero.greeting = Bon retour, {0} 👋
@@ -875,6 +873,16 @@ leaderboard.thisweek.none = ✨ Pas encore d''étiquette cette semaine — soyez
 leaderboard.teams.title = Équipes à {0}
 leaderboard.teams.intro = Créez ou rejoignez une équipe pour faire la différence ensemble !
 leaderboard.teams.none = 👥 Pas encore d''équipe — soyez le premier ! Créez-en une et invitez des amis ou des camarades.
+leaderboard.myteam.title = Votre équipe : {0}
+leaderboard.myteam.intro = Comment vous vous situez par rapport à vos coéquipiers à {0}.
+leaderboard.myteam.none = 👥 Personne de votre équipe n''apparaît encore au classement.
+leaderboard.myteam.you.hidden = Vous n''apparaissez pas, car vous avez désactivé « {0} ».
+leaderboard.myteam.you.settings = Modifier dans les paramètres
+leaderboard.myteam.you.nolabels = Vous apparaîtrez ici dès que vous aurez placé votre première étiquette.
+leaderboard.myteam.pager = Pages du classement de l''équipe
+leaderboard.myteam.prev = ‹ Précédent
+leaderboard.myteam.next = Suivant ›
+leaderboard.myteam.page = Page {0} sur {1}
 leaderboard.allcities.title = Toutes les villes, tous les temps
 leaderboard.allcities.intro = Les meilleurs cartographes de toutes les villes Project Sidewalk, classés par nombre total d''étiquettes.
 leaderboard.allcities.note = La distance est actualisée une fois par jour.

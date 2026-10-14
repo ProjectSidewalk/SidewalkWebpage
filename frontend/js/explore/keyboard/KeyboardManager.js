@@ -207,7 +207,7 @@ export class KeyboardManager {
   async #advanceForwardAlongRoute() {
     // No-op while walking is disabled (e.g. mid-load), matching the arrow keys — otherwise moveToLinkedPano()
     // resolves false and we'd both fall through to a no-op moveForward() and log a move that never happened.
-    if (this.#navigationService.walking.isHeld()) return;
+    if (!this.#navigationService.canWalk()) return;
 
     try {
       // Bias the forward step toward the route direction rather than wherever the camera is currently pointed.

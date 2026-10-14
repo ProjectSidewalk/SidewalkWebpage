@@ -22,12 +22,8 @@ import javax.inject.*
 import scala.concurrent.{ExecutionContext, Future}
 
 /**
- * Controller for the redesigned Admin dashboard (issue #4272).
- *
- * These pages are a clean-slate rebuild of the legacy `/admin` monolith, structured one page per route and styled
- * after the API docs shell (left nav + content + right "On this page" TOC). They are built incrementally and coexist
- * with the legacy `/admin` page until they reach parity; only then does `/admin` flip to this dashboard. Each action
- * is admin-gated and renders a self-contained Twirl page that loads just the libraries that page needs.
+ * Controller for the Admin dashboard (#4272): one admin-gated page per route on the shared page shell, each loading
+ * only the libraries it needs.
  */
 @Singleton
 class AdminDashboardController @Inject() (
@@ -177,8 +173,7 @@ class AdminDashboardController @Inject() (
    *
    * Answers "where are the labels, and what's there?" — every label as a point colored by type, with the shared map
    * sidebar (filter by label type, severity, tags, validation status, and the admin-only "not validated by an admin"
-   * filter), and click-to-open the label-detail popup. A label-ID search box jumps straight to any label's popup. This
-   * is the redesign's home for the legacy admin "Map" tab; it reuses the shared PSMap component and `/adminapi/labels/all`.
+   * filter), and click-to-open the label-detail popup. A label-ID search box jumps straight to any label's popup.
    */
   def labelMap = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     for {

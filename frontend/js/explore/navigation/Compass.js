@@ -359,6 +359,8 @@ export class Compass {
       this.#tracker.push(`Click_Compass_Direction=${direction}`);
 
       if (direction === 'straight') {
+        // A refused move resolves too, and must not be logged as one that happened.
+        if (!this.#navigationService.canWalk()) return;
         await this.#navigationService.moveForward()
           .then(() => this.#tracker.push('CompassMove_Success'))
           .catch(() => this.#tracker.push('CompassMove_PanoNotAvailable'));

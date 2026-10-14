@@ -1,11 +1,7 @@
 /**
- * Shell behaviors for the redesigned admin dashboard (#4272): builds the right-hand "On this page" table of
- * contents from the page's headings, highlights the active section on scroll (scroll-spy), smooth-scrolls anchor
- * clicks past the fixed navbar, keeps a deep link's target in place while sections above it are still loading, and
- * adds the left nav's mobile disclosure (sidebarDisclosure.js).
- *
- * This is a clean ES6 reimplementation of the equivalent api-docs.js logic, operating on the same .api-* markup so
- * the look and behavior match. It self-initializes on DOMContentLoaded.
+ * Page-shell behavior for the admin and user dashboards (#4272): builds the "On this page" contents from the headings,
+ * highlights the section in view, scrolls anchor jumps clear of the navbar, and holds a deep link's target in place
+ * while sections above it are still loading.
  */
 
 import { initSidebarDisclosure } from '../common/sidebarDisclosure.js';

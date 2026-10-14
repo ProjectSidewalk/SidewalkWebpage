@@ -1,4 +1,5 @@
 /** Entry point for the admin dashboard's management page. */
+import '../../../css/components/pager.css';
 import { ManagementPage } from '../../admin-dashboard/ManagementPage.js';
 
 const data = document.getElementById('page-entry').dataset;

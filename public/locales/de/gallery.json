@@ -1,5 +1,6 @@
 {
   "card-image-alt": "Street-View-Foto einer {{labelType}}-Markierung",
+  "cards": "Beschriftungen werden zufällig sortiert, basierend auf gewählten Filtern",
   "cards-sorted": "Beschriftungen werden nach \"{{sort}}\" sortiert, basierend auf gewählten Filtern",
   "cards-sorted-moot": "\"{{sort}}\" hat bei den gewählten Filtern keine Wirkung; Beschriftungen werden neueste zuerst angezeigt",
   "clear-filters": "Filter löschen",

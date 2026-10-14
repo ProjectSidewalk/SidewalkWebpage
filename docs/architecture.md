@@ -507,7 +507,7 @@ loaded by the corresponding Twirl view:
   pages (and the user dashboard's) and holds the shared shell behaviors — the "On this page" list and its
   scroll-spy, and keeping a deep link's target in place while sections above it are still loading — plus the shared
   formatting helpers (escaping, numbers, durations, relative times, the standard table markup).
-- **`user-dashboard/`** — the redesigned user dashboard, settings, leaderboard, and public profiles, plus the admin's view of a user's dashboard (`/admin/user/:username`). Entries in `pages/dashboard/`.
+- **`user-dashboard/`** — the user dashboard, settings, leaderboard, and public profiles, plus the admin's view of a user's dashboard (`/admin/user/:username`). Entries in `pages/dashboard/`.
 - **`api-docs/`** — the `/api-docs` reference pages: one `<endpoint>Preview.js` per page renders a live sample of
   that endpoint, alongside `apiDocs.js` (shell behavior), `apiTableWrapper.js`, and `apiDocsTheme.js`
   (`ApiDocsTheme.color(token, alpha?)`, the one way preview code reads a CSS color token for Chart.js/Mapbox so
@@ -603,8 +603,9 @@ frozen config (`ExploreConfig`, `ValidateConfig`) and its elements as one UI obj
 last. What is built first announces and what is built later subscribes in its own constructor (`Tracker.onFlush`,
 `TaskContainer.onCurrentTaskChanged`, `NavigationService.onMoved`, …); `Main` wires only policy that spans modules,
 such as what a pop-up stops. Anything that can be switched off is a `common/Gate`, held by name (a modal, the
-tutorial, a move in flight) and open only once every holder has let go. `window.svl` and `window.svv` are only
-console and e2e handles, returned by each page's `Main.start()`.
+tutorial, a move in flight) and open only once every holder has let go. Explore's `walking` gate is the exception: it
+holds only policy, and a move in flight or just landed is `NavigationService.canWalk()`'s to add (#5765).
+`window.svl` and `window.svv` are only console and e2e handles, returned by each page's `Main.start()`.
 `util` is the object `common/utilities.js` exports; a file
 that reads `util.misc`, `util.math`, `util.url` or `util.pano` imports the file that adds it (`utilitiesSidewalk.js`,
 `utilitiesMath.js`, `urlQuery.js`, `pano-viewer/panoUtilities.js`). Vendor libraries (`mapboxgl`, `i18next`, `turf`, …)

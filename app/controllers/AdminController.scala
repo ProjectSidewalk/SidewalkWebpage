@@ -131,11 +131,8 @@ class AdminController @Inject() (
   }
 
   /**
-   * Unified daily activity time series for the redesigned admin dashboard's Activity page (#4272).
-   *
-   * Returns one row per calendar day with the volume of each contribution type (labels, validations, audits, missions),
-   * sign-ins and active users split registered-vs-anonymous, and new registered accounts. Only days with activity are
-   * emitted; the client zero-fills and rolls up by range/granularity. snake_case output per the dashboard convention.
+   * Daily activity for the admin Activity page (#4272): per day, each contribution type's volume, sign-ins and active
+   * users (registered vs anonymous), and new accounts. Only active days are sent; the page fills in the gaps.
    */
   def getActivityByDay = cc.securityService.SecuredAction(WithAdmin()) { _ =>
     adminService.getActivityByDay.map { series =>
@@ -419,9 +416,8 @@ class AdminController @Inject() (
   }
 
   /**
-   * Recent-activity stream for the redesigned admin dashboard's Activity page (#4272): the latest labels, validations,
-   * and comments interleaved by recency, each tagged with who did it and (where applicable) the label it points at.
-   * snake_case output per the dashboard convention.
+   * Recent activity for the admin Activity page (#4272): the latest labels, validations, and comments, newest first,
+   * each with who did it and the label it points at.
    *
    * @param n Number of feed items; kept within 1 to [[service.AdminService.MaxRecentActivity]].
    */
@@ -482,8 +478,8 @@ class AdminController @Inject() (
   }
 
   /**
-   * Contributors-page leaderboards for the redesigned admin dashboard (#4272): top labelers (with label-type mix and
-   * severity distribution) and top validators (with agree/disagree/unsure split). snake_case per the dashboard convention.
+   * Leaderboards for the admin Contributors page (#4272): top labelers, with label-type and severity mix, and top
+   * validators, with their agree/disagree/unsure split.
    *
    * @param n Rows per leaderboard; kept within 1 to [[service.AdminService.MaxLeaderboardRows]].
    */
@@ -526,9 +522,8 @@ class AdminController @Inject() (
   }
 
   /**
-   * Humans-vs-AI comparison for the redesigned admin dashboard: AI vs human as labeler, validator, and tagger.
-   * Output is snake_case per the v3 naming convention; the AI group is always present (all-zero where there's no AI
-   * activity) so the page can render consistent empty states.
+   * AI vs humans as labeler, validator, and tagger, for the admin dashboard. The AI group is always present (zeros when
+   * it has done nothing) so the page's empty states stay consistent.
    */
   def getHumanVsAiStats = cc.securityService.SecuredAction(WithAdmin()) { _ =>
     adminService.getHumanVsAiStats.map { stats =>
@@ -569,9 +564,8 @@ class AdminController @Inject() (
   }
 
   /**
-   * Top-line snapshot for the redesigned admin dashboard's Overview landing page (#4272): one KPI cluster per lens
-   * (coverage, data quality, contributors, activity pulse, humans-vs-AI share, API usage). snake_case per the dashboard
-   * convention. Every percentage's denominator is included so the page can show its N.
+   * Headline numbers for the admin Overview page (#4272), one group per dashboard page. Each percentage comes with its
+   * denominator so the page can show its N.
    */
   def getOverviewSummary = cc.securityService.SecuredAction(WithAdmin()) { _ =>
     adminService.getOverviewSummary.map { s =>
@@ -1291,10 +1285,8 @@ class AdminController @Inject() (
   }
 
   /**
-   * Returns v3 API usage split by source (external vs the docs "Try it" widgets) for the redesigned admin dashboard.
-   *
-   * Pivots the per-source rows into `external`/`api_docs` columns per endpoint, day, and format so the page can show
-   * real external adoption alongside docs-driven traffic in one request.
+   * v3 API usage per endpoint, day, and format, split into external calls and the API docs' "Try it" widgets, so the
+   * admin page can tell real adoption from docs traffic.
    *
    * @param days Number of past days to include (0 = all time).
    */

@@ -80,8 +80,11 @@ describe('ForwardCrumbs marker lifecycle', () => {
         panosAlongStreet = new Map([[20, 'p20'], [40, 'p40'], [60, 'p60'], [80, 'p80'], [100, 'p100']]);
         visited = new Set();
         task = makeTask(1);
+        const { ForwardCrumbs, Gate } = await loadModules('frontend/js/explore/navigation/ForwardCrumbs.js',
+            'frontend/js/common/Gate.js');
         nav = {
-            walking: { hold: () => {}, release: () => {}, isHeld: () => false, isHeldExcept: () => false, onChanged: () => {} },
+            walking: new Gate(),
+            canWalk: () => true,
             onMoved: () => {},
             moveToPano: vi.fn(async () => true),
             moveToLocation: vi.fn(async () => true),
@@ -98,7 +101,6 @@ describe('ForwardCrumbs marker lifecycle', () => {
         };
         const panoManager = fakePanoManager(viewer);
         window.i18next = { t: (key, options) => (options && 'rank' in options ? `${key}#${options.rank}` : key) };
-        const { ForwardCrumbs } = await loadModules('frontend/js/explore/navigation/ForwardCrumbs.js');
         crumbs = new ForwardCrumbs(
             { isOnboarding: false, isExploreAddressMode: false },
             panoManager,
@@ -183,6 +185,19 @@ describe('ForwardCrumbs marker lifecycle', () => {
         const near = (target) => (lat) => Math.abs(lat - target) < 0.001;
         expect(calls.filter(near(streetOneLat))).toHaveLength(4);
         expect(calls.filter(near(streetTwoLat)).length).toBeGreaterThan(0);
+    });
+
+    test('a pop-up\'s hold on walking clears the crumbs, and letting go redraws them', async () => {
+        await crumbs.refresh();
+        const drawn = onMap().length;
+        expect(drawn).toBeGreaterThan(0);
+
+        nav.walking.hold('interaction');
+        expect(onMap()).toEqual([]);
+
+        nav.walking.release('interaction');
+        for (let i = 0; i < 10 && onMap().length === 0; i++) await new Promise((resolve) => setTimeout(resolve, 0));
+        expect(onMap()).toHaveLength(drawn);
     });
 
     test('a far crumb over a visited pano peeks back on click, as the breadcrumb under it would', async () => {
