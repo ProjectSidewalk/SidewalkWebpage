@@ -95,6 +95,18 @@ arbitrary line, fewer tiny disconnected pieces, and enough of a plan that the to
   pieces those cuts leave (see [`docs/onboarding-a-city.md`](onboarding-a-city.md)), and
   `tools/one-off/4717-consolidate-tiny-streets.sql` applies the same rules to a city built before it, joining the
   short pieces back onto their neighbours. A longer piece cut off at a border is simply two streets.
+- **A street knows every OSM way it lies on, and where (#5741).** `osm_way_street_edge` holds one row per
+  street-way pair: which stretch of the street the way covers and which stretch of the way that is (fractions along
+  each line in its own direction), plus `same_direction`, since OSM's `sidewalk:left` / `:right` are relative to the
+  way's drawn direction while our `street_side` is relative to our line. The positions are matched by geometry
+  (`tools/city/osm_lineage.py`): the street build does it against the whole ways it fetched, and
+  `tools/city/backfill_osm_lineage.py` does it for a live city against the ways OSM holds today (export, match,
+  import, like the street gradient). A row with no position still names the way: a city linked before the positions
+  existed, a hand-built street layer, the Infra3d placeholder way `-1`. Readers that need one way per street use the
+  `osm_way_street_edge_primary` view (the way covering most of the street) and ones that need the way under a point
+  call `osm_way_at_fraction(street_edge_id, fraction)`; the Streets and Sidewalk Presence APIs return the whole list,
+  the latter with each way's side for the face. The nightly `osm_way` refresh stores each way's `osm_version` and
+  `osm_timestamp`, so a link whose `matched_at` predates the way's last edit is one to re-match.
 - **A route may run through any number of regions.** `route.region_id` is the region the route **starts** in: the
   first street's region, derived by the server on save and re-derived by `RouteTable.updateStats` whenever the
   street list changes, never taken from the client. Listings carry `region_count` beside it, so a route that leaves

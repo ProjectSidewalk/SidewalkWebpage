@@ -8,16 +8,126 @@ package models.api
 import models.utils.LatLngBBox
 import models.utils.MyPostgresProfile.api.given
 import org.locationtech.jts.geom.LineString
-import play.api.libs.json.{JsObject, Json, OFormat, Writes}
+import play.api.libs.json.{JsObject, JsPath, Json, OFormat, Reads, Writes}
+import play.api.libs.functional.syntax.*
 
 import java.time.OffsetDateTime
+
+/**
+ * One OpenStreetMap way a street lies on, and where the two share a stretch (#5741). The positions are null on a link
+ * recorded without them (a city linked before they were computed, a hand-built street layer).
+ *
+ * @param osmWayId       The OSM way.
+ * @param streetFromFrac Where along the street (0 at its first coordinate, 1 at its last) the way starts covering it.
+ * @param streetToFrac   Where along the street the coverage ends.
+ * @param wayFromFrac    Where along the way, in its drawn direction, the shared stretch starts.
+ * @param wayToFrac      Where along the way it ends.
+ * @param sameDirection  Whether the street runs the way in its drawn direction; when false, the street's left side is
+ *                       the way's `:right`.
+ */
+case class OsmWayLinkForApi(
+    osmWayId: Long,
+    streetFromFrac: Option[Double],
+    streetToFrac: Option[Double],
+    wayFromFrac: Option[Double],
+    wayToFrac: Option[Double],
+    sameDirection: Option[Boolean]
+) {
+
+  /**
+   * This link seen from one side of the street: the way's side that face is, flipped where the two run opposite ways
+   * and unknown without a position.
+   *
+   * @param streetSide `left` or `right` of the street's digitized direction.
+   */
+  def withOsmSide(streetSide: String): OsmWaySideForApi = OsmWaySideForApi(
+    osmWayId,
+    streetFromFrac,
+    streetToFrac,
+    wayFromFrac,
+    wayToFrac,
+    sameDirection.map(same => if (same) streetSide else if (streetSide == "left") "right" else "left")
+  )
+}
+
+object OsmWayLinkForApi {
+
+  /** The field names, shared by the JSON written out and the JSON the queries aggregate in SQL. */
+  given osmWayLinkWrites: Writes[OsmWayLinkForApi] = (link: OsmWayLinkForApi) =>
+    Json.obj(
+      "osm_way_id"       -> link.osmWayId,
+      "street_from_frac" -> link.streetFromFrac,
+      "street_to_frac"   -> link.streetToFrac,
+      "way_from_frac"    -> link.wayFromFrac,
+      "way_to_frac"      -> link.wayToFrac,
+      "same_direction"   -> link.sameDirection
+    )
+
+  given osmWayLinkReads: Reads[OsmWayLinkForApi] = (
+    (JsPath \ "osm_way_id").read[Long] and
+      (JsPath \ "street_from_frac").readNullable[Double] and
+      (JsPath \ "street_to_frac").readNullable[Double] and
+      (JsPath \ "way_from_frac").readNullable[Double] and
+      (JsPath \ "way_to_frac").readNullable[Double] and
+      (JsPath \ "same_direction").readNullable[Boolean]
+  )(OsmWayLinkForApi.apply)
+
+  /**
+   * A SQL scalar subquery giving one street's ways as a JSON array text, in street order, for a query to select
+   * beside its other columns and `parseJsonList` to read. The Infra3d placeholder way -1 names no way and is left out.
+   *
+   * @param streetEdgeIdSql The SQL expression for the street's id in the enclosing query.
+   */
+  def jsonListSql(streetEdgeIdSql: String): String =
+    s"""(SELECT COALESCE(jsonb_agg(jsonb_build_object(
+             'osm_way_id', osm_way_street_edge.osm_way_id,
+             'street_from_frac', osm_way_street_edge.street_from_frac,
+             'street_to_frac', osm_way_street_edge.street_to_frac,
+             'way_from_frac', osm_way_street_edge.way_from_frac,
+             'way_to_frac', osm_way_street_edge.way_to_frac,
+             'same_direction', osm_way_street_edge.same_direction
+           ) ORDER BY osm_way_street_edge.street_from_frac NULLS LAST, osm_way_street_edge.osm_way_id),
+           '[]'::jsonb)::text
+       FROM osm_way_street_edge
+       WHERE osm_way_street_edge.street_edge_id = $streetEdgeIdSql AND osm_way_street_edge.osm_way_id <> -1)"""
+
+  def parseJsonList(json: String): Seq[OsmWayLinkForApi] = Json.parse(json).as[Seq[OsmWayLinkForApi]]
+}
+
+/**
+ * An [[OsmWayLinkForApi]] seen from one side of the street, for the Sidewalk Presence API.
+ *
+ * @param osmSide The way's side the face is on, `left` or `right` of the way's drawn direction, which is what an OSM
+ *                `sidewalk:left` / `sidewalk:right` tag refers to; None when the link has no position.
+ */
+case class OsmWaySideForApi(
+    osmWayId: Long,
+    streetFromFrac: Option[Double],
+    streetToFrac: Option[Double],
+    wayFromFrac: Option[Double],
+    wayToFrac: Option[Double],
+    osmSide: Option[String]
+)
+
+object OsmWaySideForApi {
+  given osmWaySideWrites: Writes[OsmWaySideForApi] = (link: OsmWaySideForApi) =>
+    Json.obj(
+      "osm_way_id"       -> link.osmWayId,
+      "street_from_frac" -> link.streetFromFrac,
+      "street_to_frac"   -> link.streetToFrac,
+      "way_from_frac"    -> link.wayFromFrac,
+      "way_to_frac"      -> link.wayToFrac,
+      "osm_side"         -> link.osmSide
+    )
+}
 
 /**
  * Represents a street segment with associated metadata for the Streets API.
  * Implements StreamingApiType to support streaming output formats like GeoJSON and CSV.
  *
  * @param streetEdgeId Project Sidewalk's street segment identifier
- * @param osmWayId OpenStreetMap way identifier
+ * @param osmWayId OpenStreetMap way identifier: the way covering most of the street
+ * @param osmWays Every OpenStreetMap way the street lies on, with the stretch shared and the relative direction
  * @param regionId Region ID where the street is located
  * @param regionName Name of the region where the street is located
  * @param wayType Type of way (e.g., "residential", "primary", etc.)
@@ -34,6 +144,7 @@ import java.time.OffsetDateTime
 case class StreetDataForApi(
     streetEdgeId: Int,
     osmWayId: Long,
+    osmWays: Seq[OsmWayLinkForApi],
     regionId: Int,
     regionName: String,
     wayType: String,
@@ -76,7 +187,9 @@ object StreetDataForApi extends ApiFields[StreetDataForApi] {
     field("outdated")(_.outdated),
     field("user_count")(_.userIds.size),
     field("first_label_date")(_.firstLabelDate.map(_.toString)),
-    field("last_label_date")(_.lastLabelDate.map(_.toString))
+    field("last_label_date")(_.lastLabelDate.map(_.toString)),
+    // Last, so a positional CSV or .dbf reader written before #5741 keeps its column indexes.
+    field("osm_ways")(_.osmWays)
   )
 
   override val csvOnlyFields: Seq[ApiField[StreetDataForApi]] = Seq(

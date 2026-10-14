@@ -62,7 +62,9 @@ class OsmWayTableSpec
   "OsmWayTable.upsertBatch" should {
     "store a found way's tags with no missing mark" in {
       val fetchedAt = OffsetDateTime.now
-      run(osmWayTable.upsertBatch(Seq((wayId, bridgeTags, Some("40 mph"))), Nil, fetchedAt)) mustBe 1
+      run(
+        osmWayTable.upsertBatch(Seq((wayId, OsmWayFetched(bridgeTags, None, None), Some("40 mph"))), Nil, fetchedAt)
+      ) mustBe 1
       row(wayId) mustBe ((bridgeTags, Some("40 mph"), micros(fetchedAt), None))
     }
 
@@ -86,7 +88,7 @@ class OsmWayTableSpec
     "take the new tags and clear missing_since when the way is back" in {
       val backTags = Json.obj("highway" -> "primary", "bridge" -> "yes", "layer" -> "1")
       val backAt   = OffsetDateTime.now
-      run(osmWayTable.upsertBatch(Seq((wayId, backTags, None)), Nil, backAt))
+      run(osmWayTable.upsertBatch(Seq((wayId, OsmWayFetched(backTags, None, None), None)), Nil, backAt))
       row(wayId) mustBe ((backTags, None, micros(backAt), None))
     }
 
@@ -97,7 +99,13 @@ class OsmWayTableSpec
     }
 
     "count found and missing ways together, and write nothing for an empty chunk" in {
-      run(osmWayTable.upsertBatch(Seq((wayId, bridgeTags, Some("40 mph"))), Seq(unseenId), OffsetDateTime.now)) mustBe 2
+      run(
+        osmWayTable.upsertBatch(
+          Seq((wayId, OsmWayFetched(bridgeTags, None, None), Some("40 mph"))),
+          Seq(unseenId),
+          OffsetDateTime.now
+        )
+      ) mustBe 2
       run(osmWayTable.upsertBatch(Nil, Nil, OffsetDateTime.now)) mustBe 0
     }
   }
@@ -204,7 +212,11 @@ class OsmWayTableSpec
       val (written, stored) = runRolledBack(for {
         _ <- insertGoneWay(blankedId, Json.obj(), "batch", OffsetDateTime.now)
         // Another run's refresh found the way in OSM again and wrote its live tags.
-        _       <- osmWayTable.upsertBatch(Seq((blankedId, bridgeTags, Some("40 mph"))), Nil, OffsetDateTime.now)
+        _ <- osmWayTable.upsertBatch(
+          Seq((blankedId, OsmWayFetched(bridgeTags, None, None), Some("40 mph"))),
+          Nil,
+          OffsetDateTime.now
+        )
         written <- osmWayTable.recordHistoryTags(blankedId, Some(Json.obj("highway" -> "footway")), None)
         stored  <- storedRow(blankedId)
       } yield (written, stored))

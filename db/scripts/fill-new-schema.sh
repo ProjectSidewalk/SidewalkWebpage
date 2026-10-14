@@ -117,6 +117,18 @@ fi
 # Run the queries.
 # NOTE: this assumes qgis_road/qgis_region columns already have the expected types (e.g. integer ids). If a future
 # import arrives with string-typed columns, add explicit CAST()s here rather than relying on implicit coercion.
+# The build's lineage table, or, for a staging load from before it existed, each street's way ids unpositioned.
+HAS_LINEAGE=$(psql -v ON_ERROR_STOP=1 -d sidewalk -U "$SCHEMA_NAME" -At \
+    -c "SELECT to_regclass('qgis_road_osm_way') IS NOT NULL")
+if [[ "$HAS_LINEAGE" == t ]]; then
+    LINEAGE_SOURCE_Q="qgis_road_osm_way"
+else
+    LINEAGE_SOURCE_Q="(SELECT road_id, unnest(osm_ids) AS osm_way_id, NULL::double precision AS street_from_frac,
+                              NULL::double precision AS street_to_frac, NULL::double precision AS way_from_frac,
+                              NULL::double precision AS way_to_frac, NULL::boolean AS same_direction
+                       FROM qgis_road) lineage"
+fi
+
 psql -v ON_ERROR_STOP=1 -d sidewalk -U "$SCHEMA_NAME" <<-EOSQL
     BEGIN;
     -- The schema arrives holding exactly one street: the shared DC tutorial street (so config's tutorial_street_edge_id
@@ -142,11 +154,14 @@ psql -v ON_ERROR_STOP=1 -d sidewalk -U "$SCHEMA_NAME" <<-EOSQL
                ST_X(ST_StartPoint(geom)), ST_Y(ST_StartPoint(geom)), ST_X(ST_EndPoint(geom)), ST_Y(ST_EndPoint(geom))
         FROM qgis_road;
 
-    -- Fill in the osm_way_street_edge table to link streets to their original OSM ways. The table holds one row per
-    -- street (UNIQUE street_edge_id), so a street that spans several ways -- osmnx joins consecutive ways between
-    -- intersections -- records the way it starts on; the full list stays in the QA GeoPackage's osm_ids column.
-    INSERT INTO osm_way_street_edge (osm_way_id, street_edge_id)
-        SELECT osm_ids[1], road_id FROM qgis_road;
+    -- Link each street to every OSM way it lies on, with where on each (#5741): one row per street-way pair from the
+    -- build's qgis_road_osm_way, positioned rows stamped as matched now. A staging load from before that table
+    -- existed links each street to its way ids without positions, for the lineage backfill to fill in later.
+    INSERT INTO osm_way_street_edge (osm_way_id, street_edge_id, street_from_frac, street_to_frac, way_from_frac,
+                                     way_to_frac, same_direction, matched_at)
+        SELECT osm_way_id, road_id, street_from_frac, street_to_frac, way_from_frac, way_to_frac, same_direction,
+               CASE WHEN street_from_frac IS NOT NULL THEN now() END
+        FROM $LINEAGE_SOURCE_Q;
 
     -- Fill in the region table using the qgis_region table. Names go in exactly as staged: fixing them needs judgment
     -- about the local language (#4619), so it happens during onboarding review, not here.

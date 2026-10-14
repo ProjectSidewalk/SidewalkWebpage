@@ -140,11 +140,16 @@ EOSQL
             ON street_edge.street_edge_id = street_structures_import.street_edge_id"
     STRUCTURE_EXPR="COALESCE(street_structures_import.is_structure, FALSE)"
 else
-    STRUCTURE_JOIN="LEFT JOIN osm_way_street_edge ON street_edge.street_edge_id = osm_way_street_edge.street_edge_id
-        LEFT JOIN osm_way ON osm_way_street_edge.osm_way_id = osm_way.osm_way_id"
-    STRUCTURE_EXPR="(COALESCE(osm_way.tags ->> 'bridge', 'no') <> 'no'
-                OR COALESCE(osm_way.tags ->> 'tunnel', 'no') <> 'no'
-                OR COALESCE(osm_way.tags ->> 'covered', 'no') = 'yes')"
+    # A street lies on one or more ways (#5741); it is on a structure when any of them is.
+    STRUCTURE_JOIN=""
+    STRUCTURE_EXPR="EXISTS (
+                SELECT 1
+                FROM osm_way_street_edge
+                INNER JOIN osm_way ON osm_way_street_edge.osm_way_id = osm_way.osm_way_id
+                WHERE osm_way_street_edge.street_edge_id = street_edge.street_edge_id
+                    AND (COALESCE(osm_way.tags ->> 'bridge', 'no') <> 'no'
+                         OR COALESCE(osm_way.tags ->> 'tunnel', 'no') <> 'no'
+                         OR COALESCE(osm_way.tags ->> 'covered', 'no') = 'yes'))"
 fi
 
 cat >> "$SQL_FILE" <<EOSQL

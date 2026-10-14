@@ -5,6 +5,7 @@
         import-users import-dump create-new-schema fill-new-schema onboard-city build-city-data check-imagery \
         hide-streets-without-imagery \
         import-street-imagery export-street-gradient-input street-gradient import-street-gradient \
+        export-osm-lineage-input osm-lineage import-osm-lineage \
         reveal-or-hide-regions \
         lint lint-fix lint-evolutions lint-locales lint-css-layout lint-asset-paths lint-vendor-versions lint-js-types \
         lint-spec-base lint-shellcheck shellcheck \
@@ -304,16 +305,30 @@ street-gradient:
 import-street-gradient:
 	@docker exec -it $(db-container) sh -c "/opt/scripts/import-street-gradient.sh $(args)"
 
+# OSM way positions for a live city (#5741, docs/architecture.md "Streets, regions, and routes") in three steps, like
+# the gradient: export every served street with its way ids, match them by geometry against the ways OSM holds today
+# (tools/city/backfill_osm_lineage.py, in the web container), load the result. Main checkout only, like the gradient.
+export-osm-lineage-input:
+	@docker exec -it $(db-container) sh -c "/opt/scripts/export-osm-lineage-input.sh $(args)"
+
+osm-lineage:
+	@docker exec -it $(web-container) sh -c "cd /home && python3.13 tools/city/backfill_osm_lineage.py --city-id $(id) $(args)"
+
+import-osm-lineage:
+	@docker exec -it $(db-container) sh -c "/opt/scripts/import-osm-lineage.sh $(args)"
+
 # Python utility tests (test/python/) in the web container; extra pytest flags via args=, e.g. args="-k bbox -v".
 # Split by interpreter because the scripts are: label_clustering.py runs in-band on prod's `python3` (3.8), while the
 # offline tooling needs >= 3.12. Each half runs the whole directory minus the files only the other's interpreter can
 # import, so a new test file runs in both by default instead of silently in neither. The COVERAGE_OMIT* slots are
 # explained in pyproject.toml.
 pytest-args-app   = test/python --ignore=test/python/test_check_streets_for_imagery.py \
-                    --ignore=test/python/test_onboard_city.py --ignore=test/python/test_street_gradient.py
+                    --ignore=test/python/test_onboard_city.py --ignore=test/python/test_street_gradient.py \
+                    --ignore=test/python/test_osm_lineage.py --ignore=test/python/test_backfill_osm_lineage.py
 pytest-args-tools = test/python --ignore=test/python/test_label_clustering.py
 cov-omit-app      = -e COVERAGE_OMIT=tools/city/check_streets_for_imagery.py -e COVERAGE_OMIT2=tools/city/onboard_city.py \
-                    -e COVERAGE_OMIT3=tools/city/street_gradient.py
+                    -e COVERAGE_OMIT3=tools/city/street_gradient.py -e COVERAGE_OMIT4=tools/city/osm_lineage.py \
+                    -e COVERAGE_OMIT5=tools/city/backfill_osm_lineage.py
 cov-omit-tools    = -e COVERAGE_OMIT=scripts/label_clustering.py
 
 # Both halves run even when the first fails, matching CI's `fail-fast: false`; prerequisites would stop at the first.

@@ -344,7 +344,7 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
           cluster.label_type::text,
           cluster.street_edge_id,
           cluster.intersection_id,
-          osm_way_street_edge.osm_way_id,
+          osm_way_at_fraction(cluster.street_edge_id, ST_LineLocatePoint(street_edge.geom, cluster.geom)) AS osm_way_id,
           street_edge_region.region_id,
           region.name AS region_name,
           avg_image_capture_dates.avg_capture_date AS avg_image_capture_date,
@@ -363,7 +363,8 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
     INNER JOIN street_edge ON cluster.street_edge_id = street_edge.street_edge_id
     INNER JOIN street_edge_region ON street_edge.street_edge_id = street_edge_region.street_edge_id
     INNER JOIN region ON street_edge_region.region_id = region.region_id
-    INNER JOIN osm_way_street_edge ON cluster.street_edge_id = osm_way_street_edge.street_edge_id
+    -- A street without a linked way yields no cluster, as before; the way named is the one under the cluster (#5741).
+    INNER JOIN osm_way_street_edge_primary ON cluster.street_edge_id = osm_way_street_edge_primary.street_edge_id
     INNER JOIN (#$labelAggregates) label_aggregates ON cluster.cluster_id = label_aggregates.cluster_id
     INNER JOIN (#$avgImageCaptureDates) avg_image_capture_dates ON cluster.cluster_id = avg_image_capture_dates.cluster_id
     INNER JOIN (#$tagCounts) cluster_tag_counts ON cluster.cluster_id = cluster_tag_counts.cluster_id

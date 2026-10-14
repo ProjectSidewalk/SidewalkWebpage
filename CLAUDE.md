@@ -37,6 +37,7 @@ file, and this table says which doc to read first:
 | Google Maps keys, quotas, or a Google Cloud bill | `docs/google-cloud.md` |
 | The label lat/lng estimator or the labeling viewport frame | `docs/label-latlng-estimation.md` |
 | Street gradient / slope (`street_gradient`, `tools/city/street_gradient.py`) | `docs/street-gradient.md` |
+| Which OSM ways a street lies on (`osm_way_street_edge`, `tools/city/osm_lineage.py`) | `docs/architecture.md` → "Streets, regions, and routes" |
 
 ## Workflow
 

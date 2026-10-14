@@ -1,7 +1,7 @@
 package service
 
 import com.google.inject.ImplementedBy
-import models.street.{OsmWay, OsmWayTable, WayType}
+import models.street.{OsmWay, OsmWayFetched, OsmWayTable, WayType}
 import models.utils.MyPostgresProfile
 import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.pattern.after
@@ -18,7 +18,7 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.duration.*
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
-import scala.util.{Failure, Success}
+import scala.util.{Failure, Success, Try}
 
 /**
  * What one run of the OSM way refresh did.
@@ -169,8 +169,8 @@ class OsmWayServiceImpl @Inject() (
               }
               (liveIds, deadIds) = chunk.partition(fetched.live.contains)
               rows               = liveIds.map { wayId =>
-                val tags = fetched.live(wayId)
-                (wayId, tags: JsValue, maxspeedFrom(tags))
+                val way = fetched.live(wayId)
+                (wayId, way, maxspeedFrom(way.tags))
               }
               n <- db.run(osmWayTable.upsertBatch(rows, deadIds, OffsetDateTime.now))
             } yield acc + OsmWayRefreshResult(n, deadIds.size, 0, 0)
@@ -258,7 +258,10 @@ class OsmWayServiceImpl @Inject() (
    * whole run. Waits BATCH_RETRY_DELAY x attempt between tries to give a loaded server breathing room. A 404 is an
    * answer, not a failure, and is passed through for the caller to split on.
    */
-  private def fetchTagsForWaysWithRetry(wayIds: Seq[Long], attempt: Int = 1): Future[Option[Map[Long, JsObject]]] = {
+  private def fetchTagsForWaysWithRetry(
+      wayIds: Seq[Long],
+      attempt: Int = 1
+  ): Future[Option[Map[Long, OsmWayFetched]]] = {
     fetchTagsForWays(wayIds).recoverWith {
       case NonFatal(e) if attempt < BATCH_MAX_ATTEMPTS =>
         logger.warn(s"OSM API batch attempt $attempt/$BATCH_MAX_ATTEMPTS failed (${e.getMessage}); retrying.")
@@ -274,9 +277,9 @@ class OsmWayServiceImpl @Inject() (
    * saying which id (measured 2026-09-09: one bad id among live ones, 404), so that is reported as None for
    * `fetchSplittingOnNotFound` to narrow down rather than treated as an error.
    *
-   * @return The live ways' tag maps, or None when some requested id has never existed.
+   * @return The live ways, or None when some requested id has never existed.
    */
-  private def fetchTagsForWays(wayIds: Seq[Long]): Future[Option[Map[Long, JsObject]]] = {
+  private def fetchTagsForWays(wayIds: Seq[Long]): Future[Option[Map[Long, OsmWayFetched]]] = {
     ws.url(s"$OSM_API_URL/ways.json?ways=${wayIds.mkString(",")}")
       .addHttpHeaders("User-Agent" -> OutboundHttp.UserAgent)
       .withRequestTimeout(1.minute)
@@ -398,19 +401,28 @@ object OsmWayService {
   private val geometryFactory = GeometryFactory(PrecisionModel(), 4326)
 
   /**
-   * Parses an OSM API multi-fetch (`/ways.json?ways=…`) response into a map from way id to its tag map, for the
-   * ways that still exist. A deleted way is returned with `visible: false` and no tags; it is left out, so absence
-   * from the result means "gone from OSM". A live way with no `tags` field maps to an empty tag map.
+   * Parses an OSM API multi-fetch (`/ways.json?ways=…`) response into a map from way id to what the API says of it,
+   * for the ways that still exist. A deleted way is returned with `visible: false` and no tags; it is left out, so
+   * absence from the result means "gone from OSM". A live way with no `tags` field maps to an empty tag map. The edit
+   * version and timestamp are taken when present, so a link positioned against an older version can be told (#5741).
    *
    * A body with no `elements` array is not a multi-fetch response (a gateway page, a truncated body) and throws, so
    * the caller retries rather than reading every requested way as gone.
    */
-  def parseWaysResponse(json: JsValue): Map[Long, JsObject] = {
+  def parseWaysResponse(json: JsValue): Map[Long, OsmWayFetched] = {
     (json \ "elements")
       .asOpt[Seq[JsObject]]
       .getOrElse(throw RuntimeException("OSM API multi-fetch response has no elements array."))
       .filter { el => (el \ "type").asOpt[String].contains("way") && (el \ "visible").asOpt[Boolean].getOrElse(true) }
-      .flatMap { el => (el \ "id").asOpt[Long].map { id => id -> (el \ "tags").asOpt[JsObject].getOrElse(Json.obj()) } }
+      .flatMap { el =>
+        (el \ "id").asOpt[Long].map { id =>
+          id -> OsmWayFetched(
+            tags = (el \ "tags").asOpt[JsObject].getOrElse(Json.obj()),
+            version = (el \ "version").asOpt[Int],
+            timestamp = (el \ "timestamp").asOpt[String].flatMap(t => Try(OffsetDateTime.parse(t)).toOption)
+          )
+        }
+      }
       .toMap
   }
 
@@ -420,7 +432,7 @@ object OsmWayService {
    * A way that is neither live nor never-held was deleted (returned with `visible: false`). The caller marks both
    * kinds missing, but only the never-held ones are worth a warning and the whole-chunk sanity check.
    */
-  case class ChunkFetch(live: Map[Long, JsObject], neverHeld: Seq[Long])
+  case class ChunkFetch[V](live: Map[Long, V], neverHeld: Seq[Long])
 
   /**
    * Fetches a chunk of way ids, narrowing down any id the API has never held.
@@ -431,14 +443,14 @@ object OsmWayService {
    * (both halves at each level are fetched); once its row is marked, `getWayIdsMissingOrStale` stops re-asking.
    *
    * @param wayIds The chunk to fetch.
-   * @param fetch  One request: the live ways' tags by id, or None when the API answered 404.
+   * @param fetch  One request: the live ways by id, or None when the API answered 404.
    * @param pause  Run before every request after the first, so a narrowing is paced like the chunks are.
-   * @return       The live ways' tags for every id the API holds, and the ids it has never held.
+   * @return       The live ways for every id the API holds, and the ids it has never held.
    */
-  def fetchSplittingOnNotFound(wayIds: Seq[Long])(
-      fetch: Seq[Long] => Future[Option[Map[Long, JsObject]]],
+  def fetchSplittingOnNotFound[V](wayIds: Seq[Long])(
+      fetch: Seq[Long] => Future[Option[Map[Long, V]]],
       pause: () => Future[Unit] = () => Future.unit
-  )(using ec: ExecutionContext): Future[ChunkFetch] = {
+  )(using ec: ExecutionContext): Future[ChunkFetch[V]] = {
     fetch(wayIds).flatMap {
       case Some(found)              => Future.successful(ChunkFetch(found, Nil))
       case None if wayIds.size <= 1 => Future.successful(ChunkFetch(Map.empty, wayIds))

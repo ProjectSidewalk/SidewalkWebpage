@@ -55,6 +55,26 @@ class SidewalkPresenceApiSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       }
     }
 
+    "side each of the street's OSM ways for the face, flipping where the way runs the other direction (#5741)" in {
+      val resp = route(app, FakeRequest(GET, "/v3/api/sidewalkPresence")).get
+      status(resp) mustBe OK
+      val features = (contentAsJson(resp) \ "features").as[Seq[JsObject]]
+      features must not be empty
+      features.foreach { feature =>
+        val props = feature \ "properties"
+        (props \ "osm_ways").as[Seq[JsObject]].foreach { way =>
+          way.keys mustBe Set("osm_way_id", "street_from_frac", "street_to_frac", "way_from_frac", "way_to_frac",
+            "osm_side")
+          (way \ "osm_side").asOpt[String].foreach { osmSide =>
+            osmSide must (be("left") or be("right"))
+            // The way side is the street side or its opposite, never undefined on a positioned link.
+            (way \ "way_from_frac").asOpt[Double] mustBe defined
+          }
+          if ((way \ "way_from_frac").asOpt[Double].isEmpty) (way \ "osm_side").asOpt[String] mustBe None
+        }
+      }
+    }
+
     "return CSV with the documented snake_case header when filetype=csv" in {
       val resp = route(app, FakeRequest(GET, s"/v3/api/sidewalkPresence?$tinyBbox&filetype=csv")).get
       status(resp) mustBe OK
@@ -64,7 +84,8 @@ class SidewalkPresenceApiSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       body must include(
         "street_edge_id,street_side,osm_way_id,region_id,region_name,way_type,status,presence,presence_basis," +
           "no_sidewalk_label_count,no_sidewalk_user_count,label_count,audit_count,first_no_sidewalk_label_date," +
-          "last_no_sidewalk_label_date,validated_no_sidewalk_count,rejected_no_sidewalk_count,start_point,end_point"
+          "last_no_sidewalk_label_date,validated_no_sidewalk_count,rejected_no_sidewalk_count,osm_ways,start_point," +
+          "end_point"
       )
       body must not include "streetEdgeId"
       body must not include "noSidewalkLabelCount"
@@ -138,6 +159,7 @@ class SidewalkPresenceApiSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       bytes.containsSlice(ByteString("presence_basis")) mustBe true
       bytes.containsSlice(ByteString("no_sidewalk_label_count")) mustBe true
       bytes.containsSlice(ByteString("validated_no_sidewalk_count")) mustBe true
+      bytes.containsSlice(ByteString("osm_ways")) mustBe true
     }
   }
 

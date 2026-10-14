@@ -5,7 +5,7 @@ import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api.*
 import org.locationtech.jts.geom.LineString
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import play.api.libs.json.{JsValue, Json}
+import play.api.libs.json.{JsObject, JsValue, Json}
 
 import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
@@ -28,6 +28,9 @@ import scala.concurrent.ExecutionContext
  * @param missingSince When the refresh first found the way absent from OSM (deleted or merged away); None while it is
  *                     present. The tags of a missing way are its last known ones, kept because they still describe
  *                     the street geometry we imported (#5244).
+ * @param osmVersion   The way's OSM edit version as of the last refresh; None on a row the refresh has not written.
+ * @param osmTimestamp When OSM last edited the way, as of the last refresh. A street link positioned before this
+ *                     (`osm_way_street_edge.matched_at`) may no longer fit the way (#5741).
  */
 case class OsmWay(
     osmWayId: Long,
@@ -36,8 +39,15 @@ case class OsmWay(
     geom: Option[LineString],
     source: String,
     updatedAt: OffsetDateTime,
-    missingSince: Option[OffsetDateTime]
+    missingSince: Option[OffsetDateTime],
+    osmVersion: Option[Int] = None,
+    osmTimestamp: Option[OffsetDateTime] = None
 )
+
+/**
+ * What one OSM API multi-fetch says about a live way: its tags, plus edit version and time when the response has them.
+ */
+case class OsmWayFetched(tags: JsObject, version: Option[Int], timestamp: Option[OffsetDateTime])
 
 class OsmWayTableDef(tag: Tag) extends Table[OsmWay](tag, "osm_way") {
   def osmWayId: Rep[Long]           = column[Long]("osm_way_id", O.PrimaryKey)
@@ -49,8 +59,10 @@ class OsmWayTableDef(tag: Tag) extends Table[OsmWay](tag, "osm_way") {
   // DEFAULT now() in the DB (O.Default holds a value, not an expression).
   def updatedAt: Rep[OffsetDateTime]            = column[OffsetDateTime]("updated_at")
   def missingSince: Rep[Option[OffsetDateTime]] = column[Option[OffsetDateTime]]("missing_since")
+  def osmVersion: Rep[Option[Int]]              = column[Option[Int]]("osm_version")
+  def osmTimestamp: Rep[Option[OffsetDateTime]] = column[Option[OffsetDateTime]]("osm_timestamp")
 
-  def * = (osmWayId, tags, maxspeed, geom, source, updatedAt, missingSince).mapTo[OsmWay]
+  def * = (osmWayId, tags, maxspeed, geom, source, updatedAt, missingSince, osmVersion, osmTimestamp).mapTo[OsmWay]
 }
 
 @ImplementedBy(classOf[OsmWayTable])
@@ -70,6 +82,8 @@ class OsmWayTable @Inject() (
 
   val osmWays           = TableQuery[OsmWayTableDef]
   val osmWayStreetEdges = TableQuery[OsmWayStreetEdgeTableDef]
+  // A street's maxspeed and name come from its primary way: the way covering most of it (#5741).
+  val primaryWays = TableQuery[OsmWayStreetEdgePrimaryTableDef]
 
   /**
    * Sub query with columns (street_edge_id, maxspeed): (Int, Option[String]).
@@ -80,7 +94,7 @@ class OsmWayTable @Inject() (
    * would silently drop every street that lacks a cached OSM way from task selection.
    */
   def streetMaxSpeeds: Query[(Rep[Int], Rep[Option[String]]), (Int, Option[String]), Seq] = {
-    val speedByStreet = osmWayStreetEdges
+    val speedByStreet = primaryWays
       .join(osmWays)
       .on(_.osmWayId === _.osmWayId)
       .map { case (wayStreet, way) => (wayStreet.streetEdgeId, way.maxspeed) }
@@ -97,7 +111,7 @@ class OsmWayTable @Inject() (
    * @return Map from street_edge_id to raw maxspeed tag; streets with no cached way or no maxspeed tag are absent.
    */
   def getMaxSpeeds(streetEdgeIds: Seq[Int]): DBIO[Map[Int, String]] = {
-    osmWayStreetEdges
+    primaryWays
       .filter(_.streetEdgeId inSetBind streetEdgeIds)
       .join(osmWays)
       .on(_.osmWayId === _.osmWayId)
@@ -117,7 +131,7 @@ class OsmWayTable @Inject() (
   def getStreetNames(streetEdgeIds: Seq[Int]): DBIO[Map[Int, String]] = {
     if (streetEdgeIds.isEmpty) DBIO.successful(Map.empty[Int, String])
     else
-      osmWayStreetEdges
+      primaryWays
         .filter(_.streetEdgeId inSet streetEdgeIds)
         .join(osmWays)
         .on(_.osmWayId === _.osmWayId)
@@ -204,8 +218,8 @@ class OsmWayTable @Inject() (
   def upsert(way: OsmWay): DBIO[Int] = osmWays.insertOrUpdate(way)
 
   /**
-   * Records one refresh chunk: the ways the OSM API holds, as (osm_way_id, tags, maxspeed) triples written with source
-   * 'batch', and the requested ids it did not return, which are marked missing.
+   * Records one refresh chunk: the ways the OSM API holds, as (osm_way_id, what the API said, maxspeed) triples written
+   * with source 'batch', and the requested ids it did not return, which are marked missing.
    *
    * A found way takes the new tags and loses any `missing_since` mark. A missing way keeps its tags, maxspeed, and
    * source untouched -- the last known tags still describe the geometry we imported, and blanking them silently turned
@@ -219,17 +233,18 @@ class OsmWayTable @Inject() (
    * @return Number of rows written, found and missing together.
    */
   def upsertBatch(
-      found: Seq[(Long, JsValue, Option[String])],
+      found: Seq[(Long, OsmWayFetched, Option[String])],
       missingWayIds: Seq[Long],
       timestamp: OffsetDateTime
   ): DBIO[Int] = {
-    val foundActions = found.map { case (wayId, tags, maxspeed) =>
+    val foundActions = found.map { case (wayId, way, maxspeed) =>
       sqlu"""
-        INSERT INTO osm_way (osm_way_id, tags, maxspeed, source, updated_at, missing_since)
-        VALUES ($wayId, ${Json.stringify(tags)}::jsonb, $maxspeed, 'batch', $timestamp, NULL)
+        INSERT INTO osm_way (osm_way_id, tags, maxspeed, source, updated_at, missing_since, osm_version, osm_timestamp)
+        VALUES ($wayId, ${Json.stringify(way.tags)}::jsonb, $maxspeed, 'batch', $timestamp, NULL, ${way.version},
+                ${way.timestamp})
         ON CONFLICT (osm_way_id) DO UPDATE
         SET tags = EXCLUDED.tags, maxspeed = EXCLUDED.maxspeed, source = 'batch', updated_at = EXCLUDED.updated_at,
-            missing_since = NULL
+            missing_since = NULL, osm_version = EXCLUDED.osm_version, osm_timestamp = EXCLUDED.osm_timestamp
       """
     }
     val missingActions = missingWayIds.map { wayId =>

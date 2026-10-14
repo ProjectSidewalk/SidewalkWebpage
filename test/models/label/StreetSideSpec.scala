@@ -219,11 +219,14 @@ class StreetSideSpec extends SidewalkSpec with GuiceOneAppPerSuite with OptionVa
     "match a fresh recompute from the same function for every label" in {
       // The backfill and the insert path share label_centerline_offset_m, so the only way to drift is a reposition
       // that forgot to recompute (docs/evolutions.md, cached distance columns). Unpositioned labels are in scope
-      // too: their offset must be absent, not merely unequal to a recompute that never ran.
+      // too: their offset must be absent, not merely unequal to a recompute that never ran. A millimetre of slack,
+      // since a PROJ or PostGIS upgrade moves the last digits of a projection without moving any label.
       val (labelled, stale) = run(
         sql"""SELECT count(*),
-                     count(*) FILTER (WHERE label_point.centerline_offset_m IS DISTINCT FROM
-                                            label_centerline_offset_m(label_point.geom, street_edge.geom))
+                     count(*) FILTER (WHERE (label_point.centerline_offset_m IS NULL)
+                                            <> (label_centerline_offset_m(label_point.geom, street_edge.geom) IS NULL)
+                                        OR abs(label_point.centerline_offset_m
+                                               - label_centerline_offset_m(label_point.geom, street_edge.geom)) > 0.001)
               FROM label_point
               INNER JOIN label ON label.label_id = label_point.label_id
               INNER JOIN street_edge ON street_edge.street_edge_id = label.street_edge_id""".as[(Int, Int)].head

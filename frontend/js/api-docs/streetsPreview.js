@@ -405,6 +405,15 @@ export const StreetsPreview = {
         ? `<a href="https://www.openstreetmap.org/way/${util.escapeHTML(props.osm_way_id)}" target="_blank"
             rel="noopener noreferrer">${util.escapeHTML(props.osm_way_id)}</a>`
         : 'N/A';
+      // A street built from several OSM ways lists each with the stretch of the street it covers.
+      const osmWays = (props.osm_ways || []).map((way) => {
+        const stretch = way.street_from_frac === null
+          ? ''
+          : ` (${Math.round(way.street_from_frac * 100)}–${Math.round(way.street_to_frac * 100)}% of the street${
+            way.same_direction ? '' : ', drawn the other way'})`;
+        return `<a href="https://www.openstreetmap.org/way/${util.escapeHTML(way.osm_way_id)}" target="_blank"
+            rel="noopener noreferrer">${util.escapeHTML(way.osm_way_id)}</a>${stretch}`;
+      });
 
       ApiDocsMap.popup(map, e.lngLat, `
         <h4>Street Segment ${util.escapeHTML(props.street_edge_id)}</h4>
@@ -415,6 +424,7 @@ export const StreetsPreview = {
         <p><strong>Last Label:</strong> ${lastLabelDate}</p>
         <p><strong>Audit Age:</strong> ${formatAuditAge(props.last_label_date)}</p>
         <p><strong>OSM ID:</strong> ${osmLink}</p>
+        ${osmWays.length > 1 ? `<p><strong>All OSM ways:</strong> ${osmWays.join('; ')}</p>` : ''}
         <a href="/explore?streetEdgeId=${util.escapeHTML(props.street_edge_id)}"
           class="button button--primary button--tiny" target="_blank">
           Explore Street in Project Sidewalk
