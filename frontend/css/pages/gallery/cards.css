@@ -70,6 +70,22 @@ with respect to the image holder. This allows the validation menu to be placed o
   visibility: hidden;
 }
 
+/* The mini cards' placeholder over the transparent image (#5757). Sized in cqw like the rest of the card; scoped
+   under .image-holder to outrank the mini card's own sizes. */
+.image-holder .gallery-image-placeholder {
+  position: absolute;
+  inset: 0;
+  gap: 1.6cqw;
+  font-size: max(12px, 3.6cqw);
+  border-top-left-radius: 20px;
+  border-top-right-radius: 20px;
+}
+
+.image-holder .gallery-image-placeholder img {
+  width: clamp(28px, 12cqw, 48px);
+  height: clamp(28px, 12cqw, 48px);
+}
+
 /* Imagery credit on the card's own still (#4865, #5202; look in css/components/pano-attribution.css). It shares the
    bottom edge with the vote row, so it steps aside when that row comes up rather than being occluded by it. 4.6px
    puts the pill's center on the logo's art center, both 12.6px above the image's bottom edge. */

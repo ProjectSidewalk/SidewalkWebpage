@@ -52,6 +52,7 @@
   height: 100%;
   font: var(--text-tiny-regular);
   color: var(--color-neutral-700);
+  background: var(--color-neutral-100); /* Its own panel, so a host that isn't a mini card needn't supply one. */
 }
 
 .lmc__placeholder img {

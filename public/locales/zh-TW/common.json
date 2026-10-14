@@ -358,7 +358,8 @@
     "via-email": "透過電子郵件分享"
   },
   "mini-card": {
-    "no-image": "沒有圖片",
+    "image-unavailable": "無法取得圖片",
+    "image-coming": "圖片即將提供！",
     "open": "開啟此標籤：{{label}}",
     "votes": "驗證此標籤",
     "no-image-to-judge": "沒有可用來判斷此標籤的圖片",

@@ -7,6 +7,7 @@ import { createPanoAttribution } from '../../common/pano-viewer/PanoAttribution.
 import { createPanoViewerLogo } from '../../common/pano-viewer/PanoViewerLogo.js';
 import { util } from '../../common/utilities.js';
 import { buildBackupImageData } from '../../common/utilitiesSidewalk.js';
+import { LabelMiniCard } from '../../common/LabelMiniCard.js';
 import { SeverityDisplay } from '../displays/SeverityDisplay.js';
 import { TagDisplay } from '../displays/TagDisplay.js';
 import { ValidationInfoDisplay } from '../displays/ValidationInfoDisplay.js';
@@ -88,6 +89,9 @@ export class Card {
 
   // The static pano image.
   #panoImage;
+
+  // What the frame shows when no image loads, or null while the image is up.
+  #placeholder = null;
 
   /**
    * @param {CardRecord} record - The label and its imagery, as the server sent them.
@@ -339,7 +343,7 @@ export class Card {
         const fallbackUrl = this.#cropUrl ? this.#gsvImageUrl : null;
         // Non-GSV imagery with no crop cut yet has no source at all; assigning the null would request "/null".
         if (!primaryUrl) {
-          this.#hideMissingImage();
+          this.#hideMissingImage('coming');
           resolve(false);
           return;
         }
@@ -402,9 +406,16 @@ export class Card {
   /**
    * Hides the image and its marker once no source has loaded (#5327): with `return_error_code` on the still, an
    * expired pano answers 404 rather than a grey "no imagery" card. Type, severity, tags and votes are still worth
-   * showing; a broken-image icon and a marker pointing into an empty frame are not.
+   * showing; a broken-image icon and a marker pointing into an empty frame are not. The mini cards' placeholder fills
+   * the frame so it reads as "no picture here", not as a broken card (#5757).
+   * @param {('unavailable'|'coming')} [reason='unavailable'] - 'coming' when the crop just hasn't been cut yet.
    */
-  #hideMissingImage() {
+  #hideMissingImage(reason = 'unavailable') {
+    this.#placeholder?.remove();
+    this.#placeholder = LabelMiniCard.placeholder(this.#properties.label_type, reason);
+    this.#placeholder.classList.add('gallery-image-placeholder');
+    // Right after the image, so the logo, credit and hover menu that follow it still draw on top.
+    this.#panoImage.after(this.#placeholder);
     this.#panoImage.classList.add('static-gallery-image--missing');
     // The image stays in the tree, transparent, as the click target that opens the card; its alt would describe a
     // picture that isn't there.
@@ -415,6 +426,8 @@ export class Card {
 
   /** Undoes #hideMissingImage once a source has loaded, so a retry after a transient failure shows the image. */
   #showImage() {
+    this.#placeholder?.remove();
+    this.#placeholder = null;
     this.#panoImage.classList.remove('static-gallery-image--missing');
     this.#panoImage.removeAttribute('aria-hidden');
     this.#markerWrapper.classList.remove('gallery-marker-wrapper--missing');
@@ -492,6 +505,8 @@ export class Card {
     const labelTypeName = util.misc.labelTypeName(labelType);
     const icon = /** @type {HTMLImageElement} */ (this.#card.querySelector('.label-icon'));
     if (icon) icon.src = util.misc.getIconImagePaths(labelType).iconImagePath;
+    const placeholderIcon = this.#placeholder?.querySelector('img');
+    if (placeholderIcon) placeholderIcon.src = util.misc.getIconImagePaths(labelType).iconImagePath;
     const header = this.#card.querySelector('.card-header__type');
     if (header) header.textContent = labelTypeName;
     const image = /** @type {HTMLImageElement} */ (this.#card.querySelector('.static-gallery-image'));

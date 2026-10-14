@@ -47,6 +47,9 @@ describe('a Gallery card\'s label marker', () => {
   const tracker = { push: () => {} };
   const cardFilter = { getAppliedTagNames: () => [] };
 
+  /** @returns {?string} The placeholder's line, or null when the frame has none. */
+  const placeholderText = () => document.querySelector('.gallery-image-placeholder span')?.textContent ?? null;
+
   /** The fractions the wrapper hands the stylesheet, as percentages. */
   function markerPercents() {
     const pct = (name) => 100 * Number(markerWrapper().style.getPropertyValue(name));
@@ -134,6 +137,7 @@ describe('a Gallery card\'s label marker', () => {
     expect(img.getAttribute('aria-hidden')).toBe('true'); // Its alt would describe a picture that isn't there.
     expect(markerWrapper().classList.contains('gallery-marker-wrapper--missing')).toBe(true);
     expect(credit).toEqual({ logo: 'hidden', attribution: 'hidden' }); // Nothing is owed on no image.
+    expect(placeholderText()).toBe('common:mini-card.image-unavailable');
   });
 
   // The container loads every card again on each page and filter render, so a transient failure (a crop 502 during
@@ -154,6 +158,7 @@ describe('a Gallery card\'s label marker', () => {
     expect(img.classList.contains('static-gallery-image--missing')).toBe(false);
     expect(img.hasAttribute('aria-hidden')).toBe(false);
     expect(markerWrapper().classList.contains('gallery-marker-wrapper--missing')).toBe(false);
+    expect(placeholderText()).toBeNull();
     // The retry starts over from the crop, so the marker and the credit are the crop's again.
     expect(card.getStatus().imageSource).toBe('crop');
     expect(markerPercents()).toEqual({ left: 50, top: 62 });
@@ -184,6 +189,18 @@ describe('a Gallery card\'s label marker', () => {
     expect(img.classList.contains('static-gallery-image--missing')).toBe(true);
     expect(markerWrapper().classList.contains('gallery-marker-wrapper--missing')).toBe(true);
     expect(credit).toEqual({ logo: 'hidden', attribution: 'hidden' });
+    // The nightly job will cut it, so this frame says the picture is on its way rather than gone (#5757).
+    expect(placeholderText()).toBe('common:mini-card.image-coming');
+  });
+
+  it('keeps one placeholder across repeated failures, with the icon following a type change', async () => {
+    const card = renderCard(null, null, null);
+    await card.loadImage();
+    await card.loadImage();
+    expect(document.querySelectorAll('.gallery-image-placeholder')).toHaveLength(1);
+
+    card.updateLabelType('Obstacle');
+    expect(document.querySelector('.gallery-image-placeholder img').getAttribute('src')).toContain('Obstacle');
   });
 
   it('leaves the image and marker visible once a source loads', async () => {
@@ -197,6 +214,7 @@ describe('a Gallery card\'s label marker', () => {
     expect(img.classList.contains('static-gallery-image--missing')).toBe(false);
     expect(markerWrapper().classList.contains('gallery-marker-wrapper--missing')).toBe(false);
     expect(credit).toEqual({ logo: 'shown', attribution: 'shown' });
+    expect(placeholderText()).toBeNull();
   });
 
   it('hands the crop marker on to whoever opens the label', () => {

@@ -360,7 +360,8 @@
     "via-email": "Delen via e-mail"
   },
   "mini-card": {
-    "no-image": "Geen afbeelding",
+    "image-unavailable": "Afbeelding niet beschikbaar",
+    "image-coming": "Afbeelding volgt binnenkort!",
     "open": "Dit label openen: {{label}}",
     "votes": "Dit label valideren",
     "no-image-to-judge": "Geen afbeelding om dit label op te beoordelen",
