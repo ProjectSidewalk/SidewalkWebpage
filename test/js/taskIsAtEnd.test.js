@@ -22,7 +22,7 @@ const turf = window.turf;
 
 let Task;
 
-// The thresholds NavigationService passes: the post-move end-of-street check and the imagery-ran-out credit.
+// The thresholds for the post-move end-of-street check (StreetProgress) and the imagery-ran-out credit (StreetSweep).
 const END_OF_STREET_M = 25;
 const NEAR_END_NO_IMAGERY_M = 50;
 

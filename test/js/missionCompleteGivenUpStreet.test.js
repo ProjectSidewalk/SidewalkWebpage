@@ -56,7 +56,8 @@ describe('MissionController.wrapUpRouteOrRegion', () => {
             form,
             modalMissionComplete,
             {}, {}, { onFinishClick: vi.fn() },
-            { onRouteEndReached: vi.fn(), onRegionExhausted: vi.fn() }, fakePanoManager(),
+            { onHeadingSettled: vi.fn() }, { onRouteEndReached: vi.fn(), onRegionExhausted: vi.fn() },
+            fakePanoManager(),
             {}, {}, {}, {}, {},
             fakeTracker(),
         );

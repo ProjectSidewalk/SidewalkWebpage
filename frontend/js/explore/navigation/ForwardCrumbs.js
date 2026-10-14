@@ -1,28 +1,28 @@
 /**
  * Crumbs on the Explore minimap for where the user can go next (#4669, #4655): a ring at the destination of every
- * on-pano arrow, and rings along the route ahead on the street being audited, including past the gaps where the
- * imagery provider's link graph dead-ends and the arrows fall silent. The crumb the user is facing fills in, so a
- * filled disc has one meaning on the whole map: a step forward takes you here (the up key's own rule for a link; at a
- * link-graph dead end, the synthesized forward arrow or the spacebar). The crumb the spacebar
- * would step to (the link nearest the route's direction, else the route walk's next stop) is always tinted the
- * route line's light blue, so the next step along the route reads at a glance whichever way the user looks. Route
- * stops are deep blue (the forward arrow's family, darker than the peg), other directions gold; the nearest few
- * route stops and every link are clickable and step the user there, the rest of the route is shown but not
- * steppable (#2561).
+ * on-pano arrow, and rings along the route ahead on the street being audited, including past the gaps where the imagery
+ * provider's link graph dead-ends and the arrows fall silent. The crumb the user is facing fills in, so a filled disc
+ * has one meaning on the whole map: a step forward takes you here (the up key's own rule for a link; at a link-graph
+ * dead end, the synthesized forward arrow or the spacebar). The crumb the spacebar would step to (the link nearest the
+ * route's direction, else the route walk's next stop) is always tinted the route line's light blue, so the next step
+ * along the route reads at a glance whichever way the user looks. Route stops are deep blue (the forward arrow's
+ * family, darker than the peg), other directions gold; the nearest few route stops and every link are clickable and
+ * step the user there (#2561), the rest of the route only shown.
  *
  * Positions come live from the pano viewer: arrow destinations through getLinkedPanoPositions(), route stops by
  * sampling the street with the metadata-only findPanoNear(), which every provider answers through the same search
- * setLocation() moves with. The street is sampled on the same fixed grid NavigationService.moveForward() walks
- * (DIST_INCREMENT along the full street geometry, never the remainder), which keeps the sample points identical
- * from move to move: the answers are memoised per street, so after the first burst every later refresh is free.
+ * setLocation() moves with. The street is sampled on the same fixed grid StreetSweep walks (DIST_INCREMENT along the
+ * full street, never the remainder), so the sample points stay identical from move to move: the answers are memoised
+ * per street, and after the first burst every later refresh is free.
  */
 
 import { PanoViewer } from '../../common/pano-viewer/PanoViewer.js';
-import { NavigationService } from './NavigationService.js';
+import { StreetSweep } from './StreetSweep.js';
 /** @typedef {import('../Main.js').ExploreConfig} ExploreConfig */
 /** @typedef {import('./Compass.js').Compass} Compass */
 /** @typedef {import('./Minimap.js').Minimap} Minimap */
 /** @typedef {import('./Minimap.js').MinimapMarker} MinimapMarker */
+/** @typedef {import('./NavigationService.js').NavigationService} NavigationService */
 /** @typedef {import('../panorama/NavArrows.js').NavArrows} NavArrows */
 /** @typedef {import('./ObservedArea.js').ObservedArea} ObservedArea */
 /** @typedef {import('../panorama/PanoManager.js').PanoManager} PanoManager */
@@ -373,7 +373,7 @@ export class ForwardCrumbs {
 
   /**
    * Identity of the traversal a memo belongs to. Walk order separates the two passes of an out-and-back route
-   * (the same reasoning as NavigationService's stuck-pano set), and the direction flag is in because reversing a
+   * (the same reasoning as StreetSweep's stuck-pano set), and the direction flag is in because reversing a
    * street reverses the sample grid, so the answers no longer line up with their indices.
    * @param {Task} task
    * @returns {string}
@@ -398,12 +398,10 @@ export class ForwardCrumbs {
   /**
    * Distances along a street at which to look for panos: every `stepKm` from the start, widened so that a long street
    * needs no more than `maxSamples` lookups but never past `maxStepKm`, always ending at the street's end. The spacing
-   * cap wins over the sample cap because a gap wider than it drops real crumbs; it only binds on streets longer than
-   * maxSamples * maxStepKm (4 km with the defaults; Seattle's longest street is 1.5 km), and #IN_FLIGHT_LIMIT still
-   * bounds the burst there.
+   * cap wins over the sample cap because a gap wider than it drops real crumbs; it only binds on streets over
+   * maxSamples * maxStepKm (4 km by default, longer than any Seattle street), where #IN_FLIGHT_LIMIT bounds the burst.
    * @param {number} lengthKm - The street's length.
-   * @param {number} stepKm - The preferred spacing (NavigationService.DIST_INCREMENT, so caches primed by the
-   *     forward walk are hit).
+   * @param {number} stepKm - The preferred spacing (StreetSweep.DIST_INCREMENT, so the walk's prefetch cache is hit).
    * @param {number} maxSamples - Cap on the number of offsets, short of the spacing cap.
    * @param {number} [maxStepKm=Infinity] - The widest spacing allowed (see maxSampleStepKm).
    * @returns {number[]} Ascending offsets in km, starting at 0.
@@ -533,13 +531,13 @@ export class ForwardCrumbs {
     const hereKm = turf.nearestPointOnLine(street, turf.point([here.lng, here.lat])).properties.location;
     const originKm = Math.min(furthestKm, hereKm);
     const offsets = ForwardCrumbs.sampleOffsetsKm(
-      turf.length(street), NavigationService.DIST_INCREMENT, ForwardCrumbs.MAX_SAMPLES,
+      turf.length(street), StreetSweep.DIST_INCREMENT, ForwardCrumbs.MAX_SAMPLES,
       ForwardCrumbs.maxSampleStepKm(PanoViewer.SEARCH_RADIUS_M),
     );
     const pending = [];
     offsets.forEach((offsetKm, i) => {
       // Points already walked can't hold a crumb, so they are never asked about.
-      if (offsetKm < originKm - NavigationService.DIST_INCREMENT) return;
+      if (offsetKm < originKm - StreetSweep.DIST_INCREMENT) return;
       if (!this.#memo.has(i)) {
         if (this.#providerFailed) return;
         const [lng, lat] = turf.along(street, offsetKm).geometry.coordinates;
@@ -573,7 +571,7 @@ export class ForwardCrumbs {
   }
 
   /**
-   * The stop the route walk lands on, mirroring NavigationService.#computeMoveTarget: near the furthest point the
+   * The stop the route walk lands on, mirroring StreetSweep.#computeMoveTarget: near the furthest point the
    * walk searches one step beyond it, so the first stop ahead of it; farther away (off the street) it searches at
    * the furthest point itself, so the stop nearest that point.
    * @param {MeasuredCrumb[]} measured - Panos located by {@link measureAgainstStreet}.

@@ -14,8 +14,9 @@
  * able to do. Everything below it (viewer, network) is out of scope; `test/js/panoViewerSeedFallback.test.js`
  * covers the provider-side classification that decides which error type arrives here.
  *
- * NavigationService is built against fakes of its collaborators; what it announces to the mission controller is
- * recorded through its events, as Main subscribes them.
+ * The sweep, the mover and the street bookkeeping (StreetSweep, NavigationService, StreetProgress) are built
+ * together against fakes of their collaborators, as Main builds them; what they announce to the mission controller
+ * is recorded through StreetProgress's events, as Main subscribes them.
  */
 
 import { loadModules, mockModule, useUtil } from './loader.js';
@@ -82,7 +83,7 @@ function interpolate(coordinates, distKm) {
 }
 
 /**
- * The slice of turf that NavigationService uses. `lineSliceAlong` mirrors the production call, which passes the
+ * The slice of turf that StreetSweep uses. `lineSliceAlong` mirrors the production call, which passes the
  * street endpoint as the third argument where turf documents a stop *distance* — an object never compares greater
  * than the distance travelled, so real turf slices to the end of the line, which is what the caller means.
  */
@@ -141,6 +142,11 @@ function makeTask(streetEdgeId, { lengthKm = 0.1, atEnd = false, walkOrder = nul
 describe('Explore, when the imagery search runs out along a street', () => {
     let svl;
     let nav;
+    let progress;
+    let sweep;
+    let ui;
+    // Arms a label type ('Walk' disarms), telling whoever listens for mode changes as LabelModes does.
+    let switchMode;
     let NoImageryError;
     let NoImageryFlagGuard;
     let GsvViewer;
@@ -164,6 +170,12 @@ describe('Explore, when the imagery search runs out along a street', () => {
         reportNoImagery = vi.fn(() => Promise.resolve());
 
         const stub = () => vi.fn();
+        let mode = 'Walk';
+        const modeListeners = [];
+        switchMode = (newMode) => {
+            mode = newMode;
+            modeListeners.forEach((listener) => listener(newMode));
+        };
         config = {
             isOnboarding: false,
             isExploreAddressMode: false,
@@ -185,7 +197,11 @@ describe('Explore, when the imagery search runs out along a street', () => {
             alertController: { showAlert: stub() },
             form: { submitData: vi.fn(() => Promise.resolve()) },
             labelContainer: { onMarkerClick: stub() },
-            labelModes: { onModeChanged: stub() },
+            labelModes: {
+                onModeChanged: (listener) => modeListeners.push(listener),
+                getMode: () => mode,
+                isUsable: () => true,
+            },
             missionContainer: { getCurrentMission: () => ({ getProperty: () => 7, pushATaskToTheRoute: vi.fn() }) },
             missionModel: { updateMissionProgress: stub() },
             regionModel: {
@@ -213,8 +229,8 @@ describe('Explore, when the imagery search runs out along a street', () => {
                 }),
             }),
             taskContainer: {
-                // Left false so the post-move UI refresh skips the end-of-task branch: what a landing does to task
-                // state is its own concern, and these tests are about the decision that precedes it.
+                // Left false so a landing skips the end-of-street check: what a landing does to task state is its own
+                // concern, and these tests are about the decision that precedes it.
                 tasksLoaded: () => false,
                 getCurrentTask: vi.fn(),
                 setCurrentTask: vi.fn(),
@@ -231,22 +247,28 @@ describe('Explore, when the imagery search runs out along a street', () => {
         window.i18next = { t: (key) => key };
         useUtil({ misc: { reportNoImagery } });
 
-        // GsvViewer rides along so the NoImageryError it throws is the one class NavigationService checks for.
+        // GsvViewer rides along so the NoImageryError it throws is the one class StreetSweep checks for.
+        let StreetSweep;
         let NavigationService;
-        ({ NoImageryError, NoImageryFlagGuard, NavigationService, GsvViewer } = await loadModules(
-            'frontend/js/common/pano-viewer/NoImageryError.js', 'frontend/js/explore/panorama/NoImageryFlagGuard.js',
-            'frontend/js/explore/navigation/NavigationService.js', 'frontend/js/common/pano-viewer/GsvViewer.js',
-        ));
+        let StreetProgress;
+        ({ NoImageryError, NoImageryFlagGuard, StreetSweep, NavigationService, StreetProgress, GsvViewer } =
+            await loadModules(
+                'frontend/js/common/pano-viewer/NoImageryError.js', 'frontend/js/explore/panorama/NoImageryFlagGuard.js',
+                'frontend/js/explore/navigation/StreetSweep.js', 'frontend/js/explore/navigation/NavigationService.js',
+                'frontend/js/explore/task/StreetProgress.js', 'frontend/js/common/pano-viewer/GsvViewer.js',
+            ));
 
+        svl.labelModes.backToWalk = vi.fn(() => switchMode('Walk'));
         const el = () => document.createElement('div');
-        nav = new NavigationService(
-            { modeSwitchWalk: el(), viewControlLayer: el(), drawingLayer: el() }, config, svl.regionModel,
-            svl.missionModel, svl.missionContainer, svl.taskContainer, svl.panoStore, svl.panoManager,
-            svl.labelContainer, svl.labelModes, svl.navArrows, keyboardLock, svl.alertController, svl.stuckAlert,
-            svl.jumpAlert, svl.form, svl.tracker,
-        );
-        nav.onRouteEndReached(() => missionController.onRouteReadyToFinish());
-        nav.onRegionExhausted(() => missionController.wrapUpRouteOrRegion());
+        ui = { modeSwitchWalk: el(), viewControlLayer: el(), drawingLayer: el() };
+        sweep = new StreetSweep(config, svl.missionContainer, svl.taskContainer, svl.panoStore, svl.panoManager,
+            svl.alertController, svl.stuckAlert, svl.form, svl.tracker);
+        nav = new NavigationService(ui, svl.panoStore, svl.panoManager, sweep, svl.labelContainer, svl.labelModes,
+            svl.navArrows, keyboardLock, svl.alertController);
+        progress = new StreetProgress(config, svl.regionModel, svl.missionModel, svl.missionContainer,
+            svl.taskContainer, svl.panoManager, nav, sweep, svl.jumpAlert, svl.tracker);
+        progress.onRouteEndReached(() => missionController.onRouteReadyToFinish());
+        progress.onRegionExhausted(() => missionController.wrapUpRouteOrRegion());
     });
 
     afterEach(() => {
@@ -356,11 +378,32 @@ describe('Explore, when the imagery search runs out along a street', () => {
             svl.taskContainer.endTask.mockImplementation(() => nav.walking.hold('interaction'));
             respondToSearch = () => (svl.taskContainer.getCurrentTask() === dead ? emptyGround() : foundImagery());
 
-            await nav.jumpToANewTask();
+            await progress.jumpToANewTask();
 
             expect(searches.map(({ streetEdgeId }) => streetEdgeId)).toContain(102);
             // The target street had no imagery, so the camera follows the one reached.
             expect(svl.panoManager.turnTo).toHaveBeenCalledWith(102);
+        });
+
+        it('neither turns the camera nor shows the jump tip when the jump lands nowhere', async () => {
+            assignStreets(makeTask(100), makeTask(101));
+            respondToSearch = providerFailure;
+
+            await progress.jumpToANewTask();
+
+            expect(svl.panoManager.turnTo).not.toHaveBeenCalled();
+            expect(svl.jumpAlert.onClickJumpMessage).not.toHaveBeenCalled();
+        });
+
+        it('counts a load that finished as a landing, even when the viewer has no id for the pano yet', async () => {
+            assignStreets(makeTask(101), makeTask(102));
+            respondToSearch = foundImagery;
+            svl.panoViewer.getPanoId = () => null;
+
+            await nav.moveForward();
+
+            expect(svl.alertController.showAlert).not.toHaveBeenCalled();
+            expect(svl.missionModel.updateMissionProgress).toHaveBeenCalled();
         });
 
         it('gives the session its flag allowance back once a street loads', async () => {
@@ -553,6 +596,22 @@ describe('Explore, when the imagery search runs out along a street', () => {
             expect(missionController.wrapUpRouteOrRegion).not.toHaveBeenCalled();
             // The labeler has to be able to look around for that gate to ever open.
             expect(nav.canWalk()).toBe(true);
+        });
+
+        it('announces the end only once the move is undone, so the finish never opens over its locks', async () => {
+            svl.regionModel.isRoute = true;
+            assignStreets(makeTask(101, { walkOrder: 1 }));
+            respondToSearch = emptyGround;
+            let movingAtAnnouncement;
+            missionController.onRouteReadyToFinish.mockImplementation(() => {
+                movingAtAnnouncement = nav.isMoving();
+            });
+
+            await nav.moveForward();
+
+            expect(movingAtAnnouncement).toBe(false);
+            expect(keyboardLock.release.mock.invocationCallOrder[0])
+                .toBeLessThan(missionController.onRouteReadyToFinish.mock.invocationCallOrder[0]);
         });
 
         it('gives up on a street once, however many times the labeler tries to walk off it (#5008)', async () => {
@@ -817,12 +876,12 @@ describe('Explore, when the imagery search runs out along a street', () => {
             await nav.moveForward();
             searches.length = 0;
 
-            await nav.jumpToANewTask();
+            await progress.jumpToANewTask();
             expect(searches).toHaveLength(0);
             expect(svl.taskContainer.endTask).not.toHaveBeenCalled();
 
             vi.advanceTimersByTime(800);
-            await nav.jumpToANewTask();
+            await progress.jumpToANewTask();
             expect(searches.length).toBeGreaterThan(0);
         });
 
@@ -842,11 +901,148 @@ describe('Explore, when the imagery search runs out along a street', () => {
             assignStreets(makeTask(100), makeTask(101));
             svl.taskContainer.endTask.mockImplementationOnce(() => { throw new Error('boom'); });
 
-            await expect(nav.jumpToANewTask()).rejects.toThrow('boom');
+            await expect(progress.jumpToANewTask()).rejects.toThrow('boom');
 
             expect(nav.canWalk()).toBe(true);
             expect(keyboardLock.release).toHaveBeenCalledWith('move');
             expect(svl.panoManager.panning.release).toHaveBeenCalledWith('move');
+        });
+    });
+
+    describe('and the labeler has a label type armed (#5768)', () => {
+        it('keeps the arrows hidden when a pop-up lets go of walking, until the type is disarmed', () => {
+            switchMode('CurbRamp');
+            svl.navArrows.show.mockClear();
+
+            nav.walking.hold('interaction');
+            nav.walking.release('interaction');
+            expect(svl.navArrows.show).not.toHaveBeenCalled();
+
+            switchMode('Walk');
+            expect(svl.navArrows.show).toHaveBeenCalled();
+        });
+
+        it('lands a move in Walk mode, with the pano on top and the arrows back after the beat', async () => {
+            assignStreets(makeTask(101));
+            respondToSearch = foundImagery;
+            switchMode('CurbRamp');
+            expect(ui.drawingLayer.style.zIndex).toBe('1');
+
+            await nav.moveForward();
+            expect(svl.labelModes.backToWalk).toHaveBeenCalledTimes(1);
+            expect(ui.drawingLayer.style.zIndex).toBe('0');
+            expect(ui.viewControlLayer.style.zIndex).toBe('1');
+
+            svl.navArrows.show.mockClear();
+            vi.advanceTimersByTime(800);
+            expect(svl.navArrows.show).toHaveBeenCalled();
+        });
+
+        it('keeps a type the labeler chose while the move was loading', async () => {
+            assignStreets(makeTask(101));
+            let land;
+            respondToSearch = () => new Promise((resolve) => { land = () => resolve({ panoId: 'pano-found' }); });
+
+            const move = nav.moveForward();
+            switchMode('CurbRamp');
+            land();
+            await move;
+
+            expect(svl.labelModes.backToWalk).not.toHaveBeenCalled();
+            expect(ui.drawingLayer.style.zIndex).toBe('1');
+        });
+
+        it('leaves the type armed when switching is held, rather than log a switch that is refused', async () => {
+            assignStreets(makeTask(101));
+            respondToSearch = foundImagery;
+            switchMode('CurbRamp');
+            svl.labelModes.isUsable = () => false;
+
+            await nav.moveForward();
+            expect(svl.labelModes.backToWalk).not.toHaveBeenCalled();
+        });
+
+        it('does not switch modes on a move already in Walk mode, which would log a switch nobody made', async () => {
+            assignStreets(makeTask(101));
+            respondToSearch = foundImagery;
+
+            await nav.moveForward();
+            expect(svl.labelModes.backToWalk).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('and a move lands with the streets loaded (#5766)', () => {
+        beforeEach(() => {
+            svl.taskContainer.tasksLoaded = () => true;
+            respondToSearch = foundImagery;
+        });
+
+        it('hands over the next street when the labeler reaches the end of one that joins it', async () => {
+            const [ending, next] = [makeTask(101, { atEnd: true }), makeTask(102)];
+            assignStreets(ending, next);
+
+            await nav.moveForward();
+
+            expect(svl.taskContainer.endTask).toHaveBeenCalledWith(ending);
+            expect(svl.taskContainer.setCurrentTask).toHaveBeenCalledWith(next);
+        });
+
+        it('keeps a route\'s short last street open until most of it is walked (#4640)', async () => {
+            svl.regionModel.isRoute = true;
+            assignStreets(makeTask(101, { atEnd: true, walkOrder: 1 }));
+
+            await nav.moveForward();
+
+            expect(svl.regionModel.setComplete).not.toHaveBeenCalled();
+            expect(missionController.onRouteReadyToFinish).not.toHaveBeenCalled();
+        });
+
+        it('preloads where the next step forward will land', async () => {
+            assignStreets(makeTask(101));
+
+            await nav.moveForward();
+
+            expect(svl.panoViewer.preloadPanoNear).toHaveBeenCalled();
+        });
+    });
+
+    describe('the sweep on its own, without a move around it (#5766)', () => {
+        it('resolves with the pano it landed on', async () => {
+            assignStreets(makeTask(101));
+            respondToSearch = foundImagery;
+
+            await expect(sweep.sweep(vi.fn())).resolves.toEqual({ outcome: 'landed', panoId: 'pano-on-screen' });
+        });
+
+        it('carries on to the next street past an empty one, saying so as it does', async () => {
+            const [dead, live] = [makeTask(101), makeTask(102)];
+            assignStreets(dead, live);
+            respondToSearch = () => (svl.taskContainer.getCurrentTask() === dead ? emptyGround() : foundImagery());
+            const onNextStreet = vi.fn();
+
+            const result = await sweep.sweep(onNextStreet);
+            expect(result.outcome).toBe('landed');
+            expect(onNextStreet).toHaveBeenCalledTimes(1);
+            expect(svl.taskContainer.getCurrentTask()).toBe(live);
+        });
+
+        it('stops, leaving the street where it was, when the provider never answered', async () => {
+            assignStreets(makeTask(101), makeTask(102));
+            respondToSearch = providerFailure;
+
+            await expect(sweep.sweep(vi.fn())).resolves.toEqual({ outcome: 'stopped' });
+            expect(svl.taskContainer.setCurrentTask).not.toHaveBeenCalled();
+        });
+
+        it('says a street that ran out near its end was walked, before it resolves', async () => {
+            const nearlyDone = makeTask(101, { atEnd: true });
+            assignStreets(nearlyDone);
+            respondToSearch = emptyGround;
+            const walkedOut = vi.fn();
+            sweep.onStreetWalkedOut(walkedOut);
+
+            await expect(sweep.sweep(vi.fn())).resolves.toEqual({ outcome: 'walkedOut' });
+            expect(walkedOut).toHaveBeenCalledWith(nearlyDone);
         });
     });
 

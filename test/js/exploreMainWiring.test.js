@@ -61,6 +61,7 @@ const FAKED_EXPORTS = {
   'frontend/js/explore/navigation/ObservedArea.js': 'ObservedArea',
   'frontend/js/explore/navigation/Peg.js': 'Peg',
   'frontend/js/explore/navigation/RouteOverview.js': 'RouteOverview',
+  'frontend/js/explore/navigation/StreetSweep.js': 'StreetSweep',
   'frontend/js/explore/panorama/NavArrows.js': 'NavArrows',
   'frontend/js/explore/panorama/PanoDateNote.js': 'PanoDateNote',
   'frontend/js/explore/panorama/PanoManager.js': 'PanoManager',
@@ -70,6 +71,7 @@ const FAKED_EXPORTS = {
   'frontend/js/explore/sidebar/MissionPanel.js': 'MissionPanel',
   'frontend/js/explore/sidebar/OverallStats.js': 'OverallStats',
   'frontend/js/explore/sidebar/RegionProgressBar.js': 'RegionProgressBar',
+  'frontend/js/explore/task/StreetProgress.js': 'StreetProgress',
   'frontend/js/explore/task/Task.js': 'Task',
   'frontend/js/explore/task/TaskContainer.js': 'TaskContainer',
   'frontend/js/explore/zoom/ZoomControl.js': 'ZoomControl',
@@ -224,7 +226,9 @@ beforeEach(async () => {
     AiGuidance: standIn('aiGuidance'),
     ReauditNotice: standIn('reauditNotice'),
     NavArrows: standIn('navArrows'),
+    StreetSweep: standIn('streetSweep'),
     NavigationService: standIn('navigationService', { walking: new Gate(), isHeadingSettling: () => false }),
+    StreetProgress: standIn('streetProgress'),
     Compass: standIn('compass'),
     LabelModes: standIn('labelModes', { switching: new Gate() }),
     RibbonMenu: standIn('ribbon'),
@@ -293,6 +297,8 @@ describe('Explore Main builds in dependency order', () => {
 
   it('builds the arrows before the service that answers them, and the keyboard after everything it drives', () => {
     expect(buildOrder.indexOf('navArrows')).toBeLessThan(buildOrder.indexOf('navigationService'));
+    // The compass shows street progress's jump prompt, so it needs street progress built first.
+    expect(buildOrder.indexOf('streetProgress')).toBeLessThan(buildOrder.indexOf('compass'));
     const keyboard = buildOrder.indexOf('keyboard');
     for (const driven of ['canvas', 'contextMenu', 'navigationService', 'ribbon', 'zoomControl', 'compass']) {
       expect(buildOrder.indexOf(driven)).toBeLessThan(keyboard);
@@ -303,15 +309,19 @@ describe('Explore Main builds in dependency order', () => {
 
   it('hands each module what it subscribes to', () => {
     const m = built;
+    expect(m.streetSweep.ctorArgs).toEqual(expect.arrayContaining([m.taskContainer, m.panoManager, m.form]));
     expect(m.navigationService.ctorArgs).toEqual(expect.arrayContaining(
-      [m.labelContainer, m.labelModes, m.navArrows, keyboardLock(), m.form]));
+      [m.streetSweep, m.labelContainer, m.labelModes, m.navArrows, keyboardLock()]));
+    expect(m.streetProgress.ctorArgs).toEqual(expect.arrayContaining(
+      [m.taskContainer, m.missionContainer, m.navigationService, m.streetSweep]));
     expect(m.canvas.ctorArgs).toEqual(expect.arrayContaining(
       [m.labelModes, m.contextMenu, m.labelContainer, m.panoManager, m.navigationService]));
-    expect(m.compass.ctorArgs).toEqual(expect.arrayContaining([m.taskContainer, m.panoManager, m.navigationService]));
+    expect(m.compass.ctorArgs).toEqual(expect.arrayContaining(
+      [m.taskContainer, m.panoManager, m.navigationService, m.streetProgress]));
     expect(m.contextMenu.ctorArgs).toEqual(expect.arrayContaining([m.labelModes, m.navigationService]));
     expect(m.forwardCrumbs.ctorArgs).toEqual(expect.arrayContaining([m.navigationService, m.navArrows]));
     expect(m.missionController.ctorArgs).toEqual(expect.arrayContaining(
-      [m.compass, m.navigationService, m.panoManager]));
+      [m.compass, m.navigationService, m.streetProgress, m.panoManager]));
     expect(m.modalMissionComplete.ctorArgs).toEqual(expect.arrayContaining([interactionLock()]));
     expect(m.ribbon.ctorArgs).toEqual(expect.arrayContaining([m.labelModes]));
     expect(m.stuckAlert.ctorArgs).toEqual(expect.arrayContaining([m.panoManager]));
