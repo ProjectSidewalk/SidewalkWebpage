@@ -32,92 +32,92 @@ SAMPLE_POOL = ["a/b", "1", "zqx", "abc123", "12", "a-b_c"]
 
 
 def parse_routes(path):
-    """(method, path, handler) for each declared route, in declaration (match-priority) order."""
-    routes = []
-    for raw in path.read_text(encoding="utf-8").splitlines():
-        line = raw.strip()
-        if not line or line.startswith("#") or line.startswith("+") or line.startswith("->"):
-            continue  # comments, route modifiers (+ nocsrf), and sub-router includes
-        parts = line.split(None, 2)
-        if len(parts) < 2 or parts[0] not in METHODS:
-            continue
-        routes.append((parts[0], parts[1], parts[2] if len(parts) > 2 else ""))
-    return routes
+  """(method, path, handler) for each declared route, in declaration (match-priority) order."""
+  routes = []
+  for raw in path.read_text(encoding="utf-8").splitlines():
+    line = raw.strip()
+    if not line or line.startswith("#") or line.startswith("+") or line.startswith("->"):
+      continue  # comments, route modifiers (+ nocsrf), and sub-router includes
+    parts = line.split(None, 2)
+    if len(parts) < 2 or parts[0] not in METHODS:
+      continue
+    routes.append((parts[0], parts[1], parts[2] if len(parts) > 2 else ""))
+  return routes
 
 
 def _seg_regex(seg):
-    """Regex source for one path segment (no surrounding slashes)."""
-    m = re.fullmatch(r":([^<]+)<(.+)>", seg)  # :name<regex>
-    if m:
-        return m.group(2)
-    if seg.startswith(":"):                   # :name -> one path segment
-        return r"[^/]+"
-    if seg.startswith("*"):                   # *name -> rest of path (may contain /)
-        return r".+"
-    return re.escape(seg)                     # literal
+  """Regex source for one path segment (no surrounding slashes)."""
+  m = re.fullmatch(r":([^<]+)<(.+)>", seg)  # :name<regex>
+  if m:
+    return m.group(2)
+  if seg.startswith(":"):                   # :name -> one path segment
+    return r"[^/]+"
+  if seg.startswith("*"):                   # *name -> rest of path (may contain /)
+    return r".+"
+  return re.escape(seg)                     # literal
 
 
 def path_to_regex(p):
-    return re.compile("^" + "/".join(_seg_regex(s) for s in p.split("/")) + "$")
+  return re.compile("^" + "/".join(_seg_regex(s) for s in p.split("/")) + "$")
 
 
 def _seg_samples(seg):
-    """Up to two concrete tokens the segment accepts, or None if its regex is unsampleable."""
-    if seg.startswith(":") or seg.startswith("*"):
-        rx = _seg_regex(seg)
-        toks = [t for t in SAMPLE_POOL if re.fullmatch(rx, t)]
-        return toks[:2] if toks else None
-    return [seg]
+  """Up to two concrete tokens the segment accepts, or None if its regex is unsampleable."""
+  if seg.startswith(":") or seg.startswith("*"):
+    rx = _seg_regex(seg)
+    toks = [t for t in SAMPLE_POOL if re.fullmatch(rx, t)]
+    return toks[:2] if toks else None
+  return [seg]
 
 
 def path_samples(p):
-    """A couple of concrete example paths this route accepts, or None if any segment is unsampleable."""
-    per_seg = [_seg_samples(s) for s in p.split("/")]
-    if any(s is None for s in per_seg):
-        return None
-    k = max(len(s) for s in per_seg)
-    samples = ["/".join(s[i] if i < len(s) else s[0] for s in per_seg) for i in range(min(k, 2))]
-    return list(dict.fromkeys(samples))
+  """A couple of concrete example paths this route accepts, or None if any segment is unsampleable."""
+  per_seg = [_seg_samples(s) for s in p.split("/")]
+  if any(s is None for s in per_seg):
+    return None
+  k = max(len(s) for s in per_seg)
+  samples = ["/".join(s[i] if i < len(s) else s[0] for s in per_seg) for i in range(min(k, 2))]
+  return list(dict.fromkeys(samples))
 
 
 def find_shadowed(routes):
-    compiled = [(m, p, h, path_to_regex(p)) for (m, p, h) in routes]
-    violations, skipped = [], []
-    for j, (mj, pj, hj, _) in enumerate(compiled):
-        samples = path_samples(pj)
-        if samples is None:
-            skipped.append(f"{mj} {pj}")
-            continue
-        for mi, pi, hi, rxi in compiled[:j]:
-            if mi == mj and all(rxi.match(s) for s in samples):
-                violations.append((mj, pj, hj, mi, pi, hi))
-                break
-    return violations, skipped
+  compiled = [(m, p, h, path_to_regex(p)) for (m, p, h) in routes]
+  violations, skipped = [], []
+  for j, (mj, pj, hj, _) in enumerate(compiled):
+    samples = path_samples(pj)
+    if samples is None:
+      skipped.append(f"{mj} {pj}")
+      continue
+    for mi, pi, hi, rxi in compiled[:j]:
+      if mi == mj and all(rxi.match(s) for s in samples):
+        violations.append((mj, pj, hj, mi, pi, hi))
+        break
+  return violations, skipped
 
 
 def main():
-    routes_path = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(__file__).resolve().parent.parent.parent / "conf" / "routes"
-    routes = parse_routes(routes_path)
-    violations, skipped = find_shadowed(routes)
+  routes_path = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(__file__).resolve().parent.parent.parent / "conf" / "routes"
+  routes = parse_routes(routes_path)
+  violations, skipped = find_shadowed(routes)
 
-    for note in (f"note: could not sample (skipped): {s}" for s in skipped):
-        print(note, file=sys.stderr)
+  for note in (f"note: could not sample (skipped): {s}" for s in skipped):
+    print(note, file=sys.stderr)
 
-    if violations:
-        print(f"✗ route reachability: {len(violations)} unreachable route(s) in {routes_path}\n", file=sys.stderr)
-        for mj, pj, hj, mi, pi, hi in violations:
-            print(f"  {mj} {pj} -> {hj}", file=sys.stderr)
-            print(f"      is shadowed by earlier  {mi} {pi} -> {hi}", file=sys.stderr)
-        print(
-            "\nPlay matches routes top-to-bottom and 400s on a typed-param mismatch instead of falling through, so the "
-            "shadowed route is unreachable. Move the more specific route ABOVE the broader one in conf/routes.",
-            file=sys.stderr,
-        )
-        return 1
+  if violations:
+    print(f"✗ route reachability: {len(violations)} unreachable route(s) in {routes_path}\n", file=sys.stderr)
+    for mj, pj, hj, mi, pi, hi in violations:
+      print(f"  {mj} {pj} -> {hj}", file=sys.stderr)
+      print(f"      is shadowed by earlier  {mi} {pi} -> {hi}", file=sys.stderr)
+    print(
+        "\nPlay matches routes top-to-bottom and 400s on a typed-param mismatch instead of falling through, so the "
+        "shadowed route is unreachable. Move the more specific route ABOVE the broader one in conf/routes.",
+        file=sys.stderr,
+    )
+    return 1
 
-    print(f"✓ route reachability: all {len(routes)} routes reachable (none shadowed by an earlier same-method route)")
-    return 0
+  print(f"✓ route reachability: all {len(routes)} routes reachable (none shadowed by an earlier same-method route)")
+  return 0
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+  sys.exit(main())

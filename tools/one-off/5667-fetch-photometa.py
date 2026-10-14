@@ -60,120 +60,120 @@ OUT_COLUMNS = [
 
 
 def at(value, *path):
-    """Index into the nested response, returning None the moment the path runs out rather than raising."""
-    for key in path:
-        if value is None:
-            return None
-        try:
-            value = value[key]
-        except (IndexError, KeyError, TypeError):
-            return None
-    return value
+  """Index into the nested response, returning None the moment the path runs out rather than raising."""
+  for key in path:
+    if value is None:
+      return None
+    try:
+      value = value[key]
+    except (IndexError, KeyError, TypeError):
+      return None
+  return value
 
 
 def fetch(pano_id, timeout):
-    """Returns (parsed_json, error_string). Google prefixes its response with an anti-JSON-hijack guard."""
-    request = urllib.request.Request(PHOTOMETA_URL.format(pano_id=urllib.parse.quote(pano_id)), headers=HEADERS)
-    try:
-        with urllib.request.urlopen(request, timeout=timeout) as response:
-            raw = response.read()
-            if response.headers.get("Content-Encoding") == "gzip":
-                raw = gzip.decompress(raw)
-            elif response.headers.get("Content-Encoding") == "deflate":
-                raw = zlib.decompress(raw, -zlib.MAX_WBITS)
-            body = raw.decode("utf-8")
-        return json.loads(body[body.index("["):]), ""
-    except urllib.error.HTTPError as e:
-        return None, "HTTP {}".format(e.code)
-    except Exception as e:
-        return None, type(e).__name__
+  """Returns (parsed_json, error_string). Google prefixes its response with an anti-JSON-hijack guard."""
+  request = urllib.request.Request(PHOTOMETA_URL.format(pano_id=urllib.parse.quote(pano_id)), headers=HEADERS)
+  try:
+    with urllib.request.urlopen(request, timeout=timeout) as response:
+      raw = response.read()
+      if response.headers.get("Content-Encoding") == "gzip":
+        raw = gzip.decompress(raw)
+      elif response.headers.get("Content-Encoding") == "deflate":
+        raw = zlib.decompress(raw, -zlib.MAX_WBITS)
+      body = raw.decode("utf-8")
+    return json.loads(body[body.index("["):]), ""
+  except urllib.error.HTTPError as e:
+    return None, "HTTP {}".format(e.code)
+  except Exception as e:
+    return None, type(e).__name__
 
 
 def parse(payload):
-    """Flatten a photometa response into pano_data-shaped fields. Empty dict when the pano no longer exists."""
-    pano = at(payload, 1, 0)
-    if at(pano, 2) is None:
-        return {}
+  """Flatten a photometa response into pano_data-shaped fields. Empty dict when the pano no longer exists."""
+  pano = at(payload, 1, 0)
+  if at(pano, 2) is None:
+    return {}
 
-    size = at(pano, 2, 2) or []
-    tile = at(pano, 2, 3, 1) or []
-    position = at(pano, 5, 0, 1, 0) or []
-    angles = at(pano, 5, 0, 1, 2) or []
-    date = at(pano, 6, 7) or []
-    address = [line[0] for line in (at(pano, 3, 2) or []) if line]
+  size = at(pano, 2, 2) or []
+  tile = at(pano, 2, 3, 1) or []
+  position = at(pano, 5, 0, 1, 0) or []
+  angles = at(pano, 5, 0, 1, 2) or []
+  date = at(pano, 6, 7) or []
+  address = [line[0] for line in (at(pano, 3, 2) or []) if line]
 
-    return {
-        "width": at(size, 1),
-        "height": at(size, 0),
-        "tile_width": at(tile, 1),
-        "tile_height": at(tile, 0),
-        "lat": at(position, 2),
-        "lng": at(position, 3),
-        "heading": at(angles, 0),
-        "raw_pitch": at(angles, 1),
-        "roll": at(angles, 2),
-        "capture_date": "{:04d}-{:02d}".format(date[0], date[1]) if len(date) >= 2 else "",
-        "address": ", ".join(address),
-        "copyright": at(pano, 4, 0, 0, 0, 0),
-        "n_links": len(at(pano, 5, 0, 3, 0) or []),
-    }
+  return {
+      "width": at(size, 1),
+      "height": at(size, 0),
+      "tile_width": at(tile, 1),
+      "tile_height": at(tile, 0),
+      "lat": at(position, 2),
+      "lng": at(position, 3),
+      "heading": at(angles, 0),
+      "raw_pitch": at(angles, 1),
+      "roll": at(angles, 2),
+      "capture_date": "{:04d}-{:02d}".format(date[0], date[1]) if len(date) >= 2 else "",
+      "address": ", ".join(address),
+      "copyright": at(pano, 4, 0, 0, 0, 0),
+      "n_links": len(at(pano, 5, 0, 3, 0) or []),
+  }
 
 
 def read_input(path, only_status):
-    with open(path, newline="", encoding="utf-8") as f:
-        rows = list(csv.DictReader(f))
-    if only_status:
-        rows = [row for row in rows if row.get("status", "") == only_status]
-    return rows
+  with open(path, newline="", encoding="utf-8") as f:
+    rows = list(csv.DictReader(f))
+  if only_status:
+    rows = [row for row in rows if row.get("status", "") == only_status]
+  return rows
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("-o", "--output", required=True, help="Where to write the results CSV")
-    parser.add_argument("--input", help="CSV with a pano_id column (city/n_labels carried through when present)")
-    parser.add_argument("--panos", nargs="+", default=[], help="Pano IDs to fetch instead of --input")
-    parser.add_argument("--only-status", help="With --input, keep only rows whose status column equals this")
-    parser.add_argument("--delay", type=float, default=0.5, help="Seconds between requests")
-    parser.add_argument("--retries", type=int, default=3, help="Attempts before calling a pano gone")
-    parser.add_argument("--timeout", type=float, default=20.0, help="Per-request timeout in seconds")
-    args = parser.parse_args()
+  parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+  parser.add_argument("-o", "--output", required=True, help="Where to write the results CSV")
+  parser.add_argument("--input", help="CSV with a pano_id column (city/n_labels carried through when present)")
+  parser.add_argument("--panos", nargs="+", default=[], help="Pano IDs to fetch instead of --input")
+  parser.add_argument("--only-status", help="With --input, keep only rows whose status column equals this")
+  parser.add_argument("--delay", type=float, default=0.5, help="Seconds between requests")
+  parser.add_argument("--retries", type=int, default=3, help="Attempts before calling a pano gone")
+  parser.add_argument("--timeout", type=float, default=20.0, help="Per-request timeout in seconds")
+  args = parser.parse_args()
 
-    if args.input:
-        panos = read_input(args.input, args.only_status)
-    else:
-        panos = [{"pano_id": pano_id} for pano_id in args.panos]
-    if not panos:
-        sys.exit("Nothing to fetch.")
+  if args.input:
+    panos = read_input(args.input, args.only_status)
+  else:
+    panos = [{"pano_id": pano_id} for pano_id in args.panos]
+  if not panos:
+    sys.exit("Nothing to fetch.")
 
-    print("Fetching {} panos...".format(len(panos)), file=sys.stderr)
-    rows, found = [], 0
-    for i, pano in enumerate(panos, 1):
-        # An empty record is how Google reports a deleted pano, but it also comes back intermittently for panos that
-        # do exist, so treat it as a miss only after it repeats.
-        for attempt in range(args.retries):
-            payload, error = fetch(pano["pano_id"], args.timeout)
-            fields = parse(payload) if payload else {}
-            if fields:
-                break
-            if attempt < args.retries - 1:
-                time.sleep(args.delay * (attempt + 2))
-        status = error or ("OK" if fields else "NOT_FOUND")
-        found += 1 if fields else 0
-        row = {column: "" for column in OUT_COLUMNS}
-        row.update({"city": pano.get("city", ""), "pano_id": pano["pano_id"], "n_labels": pano.get("n_labels", "")})
-        row.update(fields)
-        row["status"] = status
-        rows.append(row)
-        print("  [{}/{}] {:<16} {}  {}".format(i, len(panos), row["city"], pano["pano_id"], status), file=sys.stderr)
-        if i < len(panos):
-            time.sleep(args.delay)
+  print("Fetching {} panos...".format(len(panos)), file=sys.stderr)
+  rows, found = [], 0
+  for i, pano in enumerate(panos, 1):
+    # An empty record is how Google reports a deleted pano, but it also comes back intermittently for panos that
+    # do exist, so treat it as a miss only after it repeats.
+    for attempt in range(args.retries):
+      payload, error = fetch(pano["pano_id"], args.timeout)
+      fields = parse(payload) if payload else {}
+      if fields:
+        break
+      if attempt < args.retries - 1:
+        time.sleep(args.delay * (attempt + 2))
+    status = error or ("OK" if fields else "NOT_FOUND")
+    found += 1 if fields else 0
+    row = {column: "" for column in OUT_COLUMNS}
+    row.update({"city": pano.get("city", ""), "pano_id": pano["pano_id"], "n_labels": pano.get("n_labels", "")})
+    row.update(fields)
+    row["status"] = status
+    rows.append(row)
+    print("  [{}/{}] {:<16} {}  {}".format(i, len(panos), row["city"], pano["pano_id"], status), file=sys.stderr)
+    if i < len(panos):
+      time.sleep(args.delay)
 
-    with open(args.output, "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=OUT_COLUMNS)
-        writer.writeheader()
-        writer.writerows(rows)
-    print("\n{}/{} resolved. Wrote {}".format(found, len(rows), args.output), file=sys.stderr)
+  with open(args.output, "w", newline="", encoding="utf-8") as f:
+    writer = csv.DictWriter(f, fieldnames=OUT_COLUMNS)
+    writer.writeheader()
+    writer.writerows(rows)
+  print("\n{}/{} resolved. Wrote {}".format(found, len(rows), args.output), file=sys.stderr)
 
 
 if __name__ == "__main__":
-    main()
+  main()
