@@ -304,13 +304,12 @@ a known vulnerability. It is **not a required check**, because some fixes can't 
 
 ## Coverage
 
-JS is report-only. Scala holds a **ratchet**, a floor just under the measured number, raised in whichever PR earns the
-headroom. Python holds a real **100%** floor (small, pure scripts; see [Python utility
-testing](#python-utility-testing)).
+JS is report-only. Python holds a real **100%** floor (small, pure scripts; see
+[Python utility testing](#python-utility-testing)). Scala holds a **ratchet**, a floor just under the measured number,
+raised in whichever PR earns the headroom.
 
-**Scala — `sbt-scoverage` (#4743).** `backend-tests` runs both spec steps under `coverage` and ends on a blocking
-`coverageReport` (`sbt clean coverage test coverageReport` locally); the floor is `coverageMinimumStmtTotal` in
-`build.sbt`.
+**Scala — `sbt-scoverage` (#4743).** The floor is `coverageMinimumStmtTotal` in `build.sbt`. `backend-tests` runs both
+spec steps under `coverage` and ends on a blocking `coverageReport` (`sbt clean coverage test coverageReport` locally).
 
 **A coverage number is only comparable to one measured the same way**, so read the new figure off a CI run before
 raising the floor. CI and a local run now execute the same specs (#5042), but CI's schema is empty where a local one is
