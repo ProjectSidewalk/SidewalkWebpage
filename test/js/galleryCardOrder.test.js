@@ -6,13 +6,13 @@
  * the page can say so instead of claiming an order it isn't applying.
  */
 
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules } from './loader.js';
 
 describe('cardOrder', () => {
     let cardOrder;
 
-    beforeAll(() => {
-        cardOrder = loadModules('frontend/js/gallery/cards/cardOrder.js');
+    beforeAll(async () => {
+        cardOrder = await loadModules('frontend/js/gallery/cards/cardOrder.js');
     });
 
     it('treats only the random default as unsorted', () => {

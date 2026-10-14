@@ -7,67 +7,67 @@
  * imagery path Validate takes. A stub that drifted from the API in one of those would let the suite pass on
  * behaviour production never sees, which is exactly the failure a fake invites. So each of those is a test here.
  *
- * The stub is a browser IIFE that reads its callback name from `document.currentScript.src`; installing it means
- * pointing that at a loader-shaped URL and evaluating the source in the jsdom window, the way a `<script>` would.
+ * The stub is a browser IIFE that reads its callback name from `document.currentScript.src`, so installing it means
+ * pointing that at a loader-shaped URL before the load.
  */
 
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules } from './loader.js';
 
 const LOADER_URL = 'https://maps.googleapis.com/maps/api/js?key=DUMMY&v=weekly&callback=google.maps.__ib__';
 
 /**
- * Evaluates the stub in the jsdom window as the app's inline loader would have loaded it.
+ * Loads the stub as the app's inline loader would have.
  * @param {{options?: object, url?: string, callback?: Function}} [p] `options` becomes `window.googleMapsStubOptions`
  *   (the init-script knob), `url` the script's `src`, `callback` the loader's resolver parked at `google.maps.__ib__`.
  * @returns {{maps: object, callback: Function}} The installed namespace and the resolver.
  */
-function install({ options, url = LOADER_URL, callback = jest.fn() } = {}) {
+async function install({ options, url = LOADER_URL, callback = vi.fn() } = {}) {
   if (options) window.googleMapsStubOptions = options;
   // The loader's state when the script lands: the namespace exists and holds only the parked resolver.
   window.google = { maps: { __ib__: callback } };
   const script = document.createElement('script');
   script.src = url;
   Object.defineProperty(document, 'currentScript', { value: script, configurable: true });
-  Object.assign(window, loadModules('test/e2e/fixtures/google-maps-stub.js'));
+  await loadModules('test/e2e/fixtures/google-maps-stub.js');
   return { maps: window.google.maps, callback };
 }
 
 /** Settles every `setTimeout(0)` the stub scheduled, plus the promise reactions behind them. */
 async function flush() {
-  jest.runOnlyPendingTimers();
+  vi.runOnlyPendingTimers();
   await Promise.resolve();
 }
 
 beforeEach(() => {
-  jest.useFakeTimers();
+  vi.useFakeTimers();
 });
 
 afterEach(() => {
-  jest.useRealTimers();
   delete window.google;
   delete window.googleMapsStubOptions;
   delete document.currentScript;
 });
 
 describe('loader hand-off', () => {
-  test('installs importLibrary and the stub marker before releasing the loader', () => {
+  test('installs importLibrary and the stub marker before releasing the loader', async () => {
     const seen = {};
-    const callback = jest.fn(() => {
+    const callback = vi.fn(() => {
       seen.importLibrary = typeof window.google.maps.importLibrary;
       seen.version = window.google.maps.version;
     });
-    install({ callback });
+    await install({ callback });
     expect(callback).toHaveBeenCalledTimes(1);
     expect(seen).toEqual({ importLibrary: 'function', version: 'stub' });
   });
 
-  test('tolerates a script URL with no callback', () => {
-    expect(() => install({ url: 'https://maps.googleapis.com/maps/api/js', callback: undefined })).not.toThrow();
+  test('tolerates a script URL with no callback', async () => {
+    await expect(install({ url: 'https://maps.googleapis.com/maps/api/js', callback: undefined }))
+      .resolves.toBeDefined();
     expect(window.google.maps.version).toBe('stub');
   });
 
   test('importLibrary resolves the two libraries the app imports and rejects any other', async () => {
-    const { maps } = install();
+    const { maps } = await install();
     await expect(maps.importLibrary('core')).resolves.toMatchObject({ LatLng: expect.any(Function) });
     await expect(maps.importLibrary('streetView')).resolves.toMatchObject({
       StreetViewPanorama: expect.any(Function), StreetViewService: expect.any(Function),
@@ -78,18 +78,18 @@ describe('loader hand-off', () => {
     await expect(maps.importLibrary('places')).rejects.toThrow('no library "places"');
   });
 
-  test('reads its options from the init-script global and exposes what it read', () => {
-    expect(install().maps.__stub.options).toEqual({ serveAnyPano: false });
+  test('reads its options from the init-script global and exposes what it read', async () => {
+    expect((await install()).maps.__stub.options).toEqual({ serveAnyPano: false });
     delete window.google;
-    expect(install({ options: { serveAnyPano: true } }).maps.__stub.options).toEqual({ serveAnyPano: true });
+    expect((await install({ options: { serveAnyPano: true } })).maps.__stub.options).toEqual({ serveAnyPano: true });
   });
 });
 
 describe('events', () => {
-  test('addListener / trigger / removeListener on any object', () => {
-    const { maps } = install();
+  test('addListener / trigger / removeListener on any object', async () => {
+    const { maps } = await install();
     const target = {};
-    const fn = jest.fn();
+    const fn = vi.fn();
     const handle = maps.event.addListener(target, 'ping', fn);
     maps.event.trigger(target, 'ping', 1, 2);
     expect(fn).toHaveBeenCalledWith(1, 2);
@@ -99,11 +99,11 @@ describe('events', () => {
     expect(() => maps.event.removeListener(undefined)).not.toThrow();
   });
 
-  test('addListenerOnce fires once, even when other listeners share the event', () => {
-    const { maps } = install();
+  test('addListenerOnce fires once, even when other listeners share the event', async () => {
+    const { maps } = await install();
     const target = {};
-    const once = jest.fn();
-    const always = jest.fn();
+    const once = vi.fn();
+    const always = vi.fn();
     maps.event.addListenerOnce(target, 'idle', once);
     maps.event.addListener(target, 'idle', always);
     maps.event.trigger(target, 'idle');
@@ -113,9 +113,9 @@ describe('events', () => {
   });
 
   test('MVCObject.set stores the value and fires <key>_changed on the next macrotask', async () => {
-    const { maps } = install();
+    const { maps } = await install();
     const obj = new maps.MVCObject();
-    const fn = jest.fn();
+    const fn = vi.fn();
     obj.addListener('linksControl_changed', fn);
     obj.set('linksControl', false);
     expect(obj.get('linksControl')).toBe(false);
@@ -126,8 +126,8 @@ describe('events', () => {
 });
 
 describe('geometry', () => {
-  test('LatLng takes numbers or a literal and answers through methods', () => {
-    const { maps } = install();
+  test('LatLng takes numbers or a literal and answers through methods', async () => {
+    const { maps } = await install();
     const a = new maps.LatLng(47.6, -122.3);
     const b = new maps.LatLng({ lat: '47.6', lng: '-122.3' });
     expect([a.lat(), a.lng()]).toEqual([47.6, -122.3]);
@@ -137,7 +137,7 @@ describe('geometry', () => {
 
 describe('StreetViewService', () => {
   test('a location search mints a pano at the point, stably, and the id is then known', async () => {
-    const { maps } = install();
+    const { maps } = await install();
     const service = new maps.StreetViewService();
     const first = service.getPanorama({ location: { lat: 47.6, lng: -122.3 }, radius: 50 });
     await flush();
@@ -154,13 +154,13 @@ describe('StreetViewService', () => {
   });
 
   test('an id nobody has seen is ZERO_RESULTS, in both the promise and the callback form', async () => {
-    const { maps } = install();
+    const { maps } = await install();
     const service = new maps.StreetViewService();
     const rejected = service.getPanorama({ pano: 'expired-pano' });
     rejected.catch(() => {}); // Observed below; this keeps the runner from reporting it as unhandled meanwhile.
     await flush();
     await expect(rejected).rejects.toMatchObject({ code: 'ZERO_RESULTS' });
-    const callback = jest.fn();
+    const callback = vi.fn();
     service.getPanorama({ pano: 'expired-pano' }, callback).catch(() => {});
     await flush();
     await flush();
@@ -169,7 +169,7 @@ describe('StreetViewService', () => {
   });
 
   test('an empty request is ZERO_RESULTS too', async () => {
-    const { maps } = install();
+    const { maps } = await install();
     const rejected = new maps.StreetViewService().getPanorama({});
     rejected.catch(() => {});
     await flush();
@@ -177,9 +177,9 @@ describe('StreetViewService', () => {
   });
 
   test('serveAnyPano resolves an unseen id at null island instead', async () => {
-    const { maps } = install({ options: { serveAnyPano: true } });
+    const { maps } = await install({ options: { serveAnyPano: true } });
     const service = new maps.StreetViewService();
-    const callback = jest.fn();
+    const callback = vi.fn();
     const resolved = service.getPanorama({ pano: 'retired-but-served' }, callback);
     await flush();
     const { data } = await resolved;
@@ -201,7 +201,7 @@ describe('StreetViewPanorama', () => {
   }
 
   test('setPano on a known id moves there and fires the load events in order', async () => {
-    const { maps } = install();
+    const { maps } = await install();
     const el = document.createElement('div');
     const pano = new maps.StreetViewPanorama(el, { pov: { heading: 90, pitch: 5 } });
     expect(el.dataset.googleMapsStub).toBe('streetview');
@@ -222,7 +222,7 @@ describe('StreetViewPanorama', () => {
   });
 
   test('setPano on an unknown id reports ZERO_RESULTS without moving', async () => {
-    const { maps } = install();
+    const { maps } = await install();
     const pano = new maps.StreetViewPanorama(document.createElement('div'));
     const order = recordEvents(pano);
     pano.setPano('expired-pano');
@@ -234,9 +234,9 @@ describe('StreetViewPanorama', () => {
   });
 
   test('a registered pano provider answers for its ids, ahead of the fake world', async () => {
-    const { maps } = install();
+    const { maps } = await install();
     const pano = new maps.StreetViewPanorama(document.createElement('div'));
-    const provider = jest.fn((id) => (
+    const provider = vi.fn((id) => (
       id === 'tutorial' ? { location: { pano: id, latLng: { lat: 38.94, lng: -77.07 } }, links: [] } : null
     ));
     pano.registerPanoProvider(provider);
@@ -251,7 +251,7 @@ describe('StreetViewPanorama', () => {
   });
 
   test('a pano given to the constructor loads after a provider registered right after construction', async () => {
-    const { maps } = install({ options: { serveAnyPano: true } });
+    const { maps } = await install({ options: { serveAnyPano: true } });
     const pano = new maps.StreetViewPanorama(document.createElement('div'), { pano: 'tutorial' });
     pano.registerPanoProvider((id) => (
       id === 'tutorial' ? { location: { pano: id, latLng: { lat: 38.94, lng: -77.07 } } } : null
@@ -265,7 +265,7 @@ describe('StreetViewPanorama', () => {
   });
 
   test('setPov merges into the current view and fires pov_changed; set() drives the MVC properties', async () => {
-    const { maps } = install();
+    const { maps } = await install();
     const pano = new maps.StreetViewPanorama(document.createElement('div'));
     const order = recordEvents(pano);
     pano.setPov({ heading: 180 });

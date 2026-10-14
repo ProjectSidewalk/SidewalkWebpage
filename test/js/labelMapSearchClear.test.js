@@ -11,8 +11,7 @@
  * real event on a real EventTarget, which is what the production code listens to.
  */
 
-const { installEscapeHTML, loadModules } = require('./loadGlobalScript');
-
+import { loadModules } from './loader.js';
 
 /** Markers built by the mapboxgl stub during the current test, newest last. */
 let markers = [];
@@ -20,6 +19,8 @@ let markers = [];
 let popups = [];
 /** Everything passed to window.logWebpageActivity during the current test. */
 let logged = [];
+/** The search box the file built, so the tests can fire `retrieve` at the object it listens on. */
+let searchBoxInstance;
 
 /** A stand-in for Mapbox Search JS's `<mapbox-search-box>`: an EventTarget owning the input the file writes to. */
 class SearchBoxStub extends EventTarget {
@@ -71,8 +72,6 @@ function setUpPage() {
         + '<dialog id="sheet"><button id="in-dialog">Inside</button></dialog>';
 
     window.i18next = { t: (key) => key };
-    window.util = { assetPath: (p) => p };
-    installEscapeHTML();
     window.logWebpageActivity = (activity) => logged.push(activity);
     // The city-extent fetch is fire-and-forget; an empty collection keeps it from touching the network or warning.
     window.fetch = () => Promise.resolve({ json: () => Promise.resolve({ type: 'FeatureCollection', features: [] }) });
@@ -117,15 +116,9 @@ function setUpPage() {
 /** A map stub with no rendered neighborhood layer, so the popup body skips its completion pitch. */
 const mapStub = { getLayer: () => null };
 
-/** Evals the production source fresh and returns the pieces the tests drive. */
-function loadModule() {
-    window.__search = loadModules('frontend/js/labelMapLocationSearch.js');
-    return window.__search;
-}
-
 /** Selects a place the way Search JS does: a `retrieve` event carrying the chosen feature. */
 function retrieve(name = 'Teaneck Public Library') {
-    window.__searchBoxInstance.dispatchEvent(new CustomEvent('retrieve', {
+    searchBoxInstance.dispatchEvent(new CustomEvent('retrieve', {
         detail: {
             features: [{
                 geometry: { coordinates: [-74.02, 40.9] },
@@ -137,22 +130,22 @@ function retrieve(name = 'Teaneck Public Library') {
 
 /** Presses Escape on the document, where the file binds its handler. */
 function pressEscape() {
-    document.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape' }));
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
 }
 
 describe('clearing a searched place', () => {
     let search;
 
-    beforeEach(() => {
+    beforeEach(async () => {
         setUpPage();
-        // Capture the instance the file constructs, so the tests can fire `retrieve` at the object it listens on.
         window.MapboxSearchBox = class extends SearchBoxStub {
             constructor() {
                 super();
-                window.__searchBoxInstance = this;
+                searchBoxInstance = this;
             }
         };
-        search = loadModule().initLabelMapLocationSearch(mapStub, 'test-token');
+        const { initLabelMapLocationSearch } = await loadModules('frontend/js/labelMapLocationSearch.js');
+        search = initLabelMapLocationSearch(mapStub, 'test-token');
     });
 
     afterEach(() => {
@@ -163,7 +156,7 @@ describe('clearing a searched place', () => {
 
     test('nothing is cleared, or logged, until a place is selected', () => {
         expect(search.clear()).toBe(false);
-        window.__searchBoxInstance.input.focus();
+        searchBoxInstance.input.focus();
         pressEscape();
         expect(logged).toEqual([]);
     });
@@ -180,11 +173,11 @@ describe('clearing a searched place', () => {
 
     test('the search box\'s own clear event removes the pin and empties the box', () => {
         retrieve();
-        window.__searchBoxInstance.dispatchEvent(new CustomEvent('clear'));
+        searchBoxInstance.dispatchEvent(new CustomEvent('clear'));
 
         expect(markers[0].removed).toBe(true);
         expect(document.querySelectorAll('.ps-search-pin')).toHaveLength(0);
-        expect(window.__searchBoxInstance.value).toBe('');
+        expect(searchBoxInstance.value).toBe('');
         expect(logged).toEqual(['Click_module=ClearSearchResult']);
     });
 
@@ -202,23 +195,21 @@ describe('clearing a searched place', () => {
 
     test('the invitation stays open while focus is inside it, and closes once focus has left both it and the pin',
         () => {
-            jest.useFakeTimers();
-            try {
-                retrieve();
-                const pin = document.querySelector('.ps-search-pin');
-                pin.focus();
-                pin.click();
-                jest.runAllTimers();
-                expect(popups[0].removed).toBe(false);
+            vi.useFakeTimers();
+            retrieve();
+            const pin = document.querySelector('.ps-search-pin');
+            pin.focus();
+            pin.click();
+            vi.runAllTimers();
+            expect(popups[0].removed).toBe(false);
 
-                document.getElementById('elsewhere').focus();
-                expect(popups[0].removed).toBe(false);
-                jest.runAllTimers();
-                expect(popups[0].removed).toBe(true);
-                expect(markers[0].removed).toBe(false);
-            } finally {
-                jest.useRealTimers();
-            }
+            // jsdom counts the pin as hovered from its click() until the pointer is seen elsewhere.
+            document.getElementById('elsewhere').dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+            document.getElementById('elsewhere').focus();
+            expect(popups[0].removed).toBe(false);
+            vi.runAllTimers();
+            expect(popups[0].removed).toBe(true);
+            expect(markers[0].removed).toBe(false);
         });
 
     test('Escape with focus on the invitation\'s button closes it and returns focus to the pin', () => {
@@ -252,7 +243,7 @@ describe('clearing a searched place', () => {
 
     test('Escape from the search input clears the place', () => {
         retrieve();
-        window.__searchBoxInstance.input.focus();
+        searchBoxInstance.input.focus();
         pressEscape();
 
         expect(markers[0].removed).toBe(true);
@@ -289,13 +280,13 @@ describe('clearing a searched place', () => {
 
     test('Escape that closes the suggestion list leaves the place and the typed query alone', () => {
         retrieve();
-        const box = window.__searchBoxInstance;
+        const box = searchBoxInstance;
         box.input.focus();
         box.input.value = 'Second sea';
         box.openResults();
 
         // Dispatched at the input, so the SDK's handler and the file's capture-phase one both see it in real order.
-        box.input.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+        box.input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
 
         expect(box.input.getAttribute('aria-expanded')).toBe('false');
         expect(markers[0].removed).toBe(false);
@@ -303,7 +294,7 @@ describe('clearing a searched place', () => {
         expect(logged).toEqual([]);
 
         // With the list gone, the next Escape is the clear.
-        box.input.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+        box.input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
         expect(markers[0].removed).toBe(true);
         expect(logged).toEqual(['KeyboardShortcut_module=ClearSearchResult']);
     });
@@ -326,13 +317,13 @@ describe('clearing a searched place', () => {
         document.querySelector('.ps-search-pin').focus();
         expect(search.clear()).toBe(true);
         // Not document.body: a keyboard user whose focus target is removed out from under them loses their place.
-        expect(document.activeElement).toBe(window.__searchBoxInstance.input);
+        expect(document.activeElement).toBe(searchBoxInstance.input);
 
         retrieve();
         document.querySelector('.ps-search-pin').click();
         expect(document.activeElement.className).toContain('explore-here-button');
         expect(search.clear()).toBe(true);
-        expect(document.activeElement).toBe(window.__searchBoxInstance.input);
+        expect(document.activeElement).toBe(searchBoxInstance.input);
     });
 
     test('a second search replaces the first place rather than stacking pins', () => {

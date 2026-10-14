@@ -8,22 +8,13 @@
  * firehose and asserts the tracker sees at most one `POV_Changed` per window — pinning the wiring itself, not just
  * the throttle in isolation (throttle.test.js covers that).
  *
- * Runs under jsdom (jest.config.js) with fake timers (which also mock Date.now for the throttle's elapsed-time math).
+ * Fake timers also mock Date.now, which the throttle's elapsed-time math reads.
  */
 
-const path = require('path');
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules } from './loader.js';
+import { fakeTracker, fakePanoOverlays } from './fakes.js';
 
-const PANO_MANAGER_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/panorama/PanoManager.js');
-const THROTTLE_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/util/throttle.js');
-
-/**
- * Loads a fresh PanoManager class.
- * @returns {Function} The PanoManager class.
- */
-function loadPanoManagerClass() {
-    return loadModules(PANO_MANAGER_PATH).PanoManager;
-}
+fakePanoOverlays();
 
 describe('PanoManager POV_Changed throttling (issue #2745)', () => {
     let PanoManager;
@@ -31,26 +22,16 @@ describe('PanoManager POV_Changed throttling (issue #2745)', () => {
     let FakeViewerType;
     let tracker;
 
-    beforeEach(() => {
-        jest.useFakeTimers();
+    beforeEach(async () => {
+        vi.useFakeTimers();
         // Anchor the fake clock at a non-zero time so the throttle's first elapsed check reliably exceeds the window.
-        jest.setSystemTime(1_000_000);
+        vi.setSystemTime(1_000_000);
 
         // The pano canvas #init looks up, with a parent for the fallback canvas + viewer logo to attach to.
         document.body.innerHTML = '<div id="pano-holder"><div id="svv-panorama"></div></div>';
 
-        // Real throttle implementation — the unit under integration here.
-        global.util = {};
-        global.i18next = { language: 'en' };
-        Object.assign(window, loadModules(THROTTLE_PATH));
-
-        // Globals PanoManager's init path reads.
-        util.isMobile = () => false;
-        global.createPanoViewerLogo = jest.fn(() => ({ showPrimaryLogo: jest.fn(), showSourceLogo: jest.fn() }));
-        global.createPanoAttribution = jest.fn(() => ({ show: jest.fn(), hide: jest.fn() }));
-        global.GsvViewer = class GsvViewer {};             // distinct from FakeViewerType, so the GSV-only
-        global.MapillaryViewer = class MapillaryViewer {}; // and Mapillary-only attribution paths are skipped
-        tracker = { push: jest.fn(), trackPano: jest.fn() };
+        window.i18next = { language: 'en' };
+        tracker = fakeTracker();
 
         const panoData = {
             getPanoId: () => 'pano1',
@@ -58,26 +39,19 @@ describe('PanoManager POV_Changed throttling (issue #2745)', () => {
         };
         listeners = {};
         const fakeViewer = {
-            setPano: jest.fn(() => Promise.resolve(panoData)),
-            addListener: jest.fn((event, cb) => { listeners[event] = cb; }),
-            resize: jest.fn()
+            setPano: vi.fn(() => Promise.resolve(panoData)),
+            addListener: vi.fn((event, cb) => { listeners[event] = cb; }),
+            resize: vi.fn()
         };
         FakeViewerType = class FakeViewerType {
             static create() { return Promise.resolve(fakeViewer); }
         };
 
-        PanoManager = loadPanoManagerClass();
+        ({ PanoManager } = await loadModules('frontend/js/validate/panorama/PanoManager.js'));
     });
 
     afterEach(() => {
-        jest.useRealTimers();
         document.body.innerHTML = '';
-        delete global.util;
-        delete global.i18next;
-        delete global.createPanoViewerLogo;
-        delete global.createPanoAttribution;
-        delete global.GsvViewer;
-        delete global.MapillaryViewer;
     });
 
     /**
@@ -87,7 +61,7 @@ describe('PanoManager POV_Changed throttling (issue #2745)', () => {
     async function loadFirstPano() {
         const viewerUi = { date: { textContent: '' }, controlLayer: document.createElement('div') };
         const panoManager = await PanoManager.create(
-            'token', viewerUi, { viewerType: FakeViewerType, labelRadius: 10 }, { addPanoMetadata: jest.fn() }, {},
+            'token', viewerUi, { viewerType: FakeViewerType, labelRadius: 10 }, { addPanoMetadata: vi.fn() }, {},
             tracker,
         );
         await panoManager.setPanorama('pano1', null);
@@ -108,7 +82,7 @@ describe('PanoManager POV_Changed throttling (issue #2745)', () => {
         }
         expect(povChangedLogCount()).toBe(1); // leading edge only
 
-        jest.advanceTimersByTime(500);
+        vi.advanceTimersByTime(500);
         expect(povChangedLogCount()).toBe(2); // one trailing log so the final POV is still recorded
     });
 
@@ -118,7 +92,7 @@ describe('PanoManager POV_Changed throttling (issue #2745)', () => {
         listeners.pov_changed();
         expect(povChangedLogCount()).toBe(1);
 
-        jest.advanceTimersByTime(5000); // quiet period, well past the window (no burst, so no trailing call)
+        vi.advanceTimersByTime(5000); // quiet period, well past the window (no burst, so no trailing call)
         expect(povChangedLogCount()).toBe(1);
 
         listeners.pov_changed();
@@ -131,7 +105,7 @@ describe('PanoManager POV_Changed throttling (issue #2745)', () => {
         // 100 frames of dragging, 50ms apart (~5s of continuous panning).
         for (let i = 0; i < 100; i++) {
             listeners.pov_changed();
-            jest.advanceTimersByTime(50);
+            vi.advanceTimersByTime(50);
         }
 
         // ~one per 500ms window over ~5s: on the order of 10 logs, nowhere near the 100 raw events.

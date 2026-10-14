@@ -3,30 +3,24 @@
  * with the context menu open aren't also handled as menu-closed shortcuts.
  */
 
-const { loadModules } = require('./loadGlobalScript');
-
+import { loadModules } from './loader.js';
+import { fakeGate, fakeTracker } from './fakes.js';
 
 describe('Explore shortcut keys', () => {
-    const tracker = { push: jest.fn() };
-    const canvas = { showLabelHoverInfo: jest.fn() };
-    const labelModes = { switchTo: jest.fn(), backToWalk: jest.fn() };
+    const tracker = fakeTracker();
+    const canvas = { showLabelHoverInfo: vi.fn() };
+    const labelModes = { switchTo: vi.fn(), backToWalk: vi.fn() };
     let menuOpen = false;
 
-    beforeAll(() => {
-        const keyChars = { Walk: 'E', CurbRamp: 'C' };
-        window.util = {
-            misc: {
-                VALID_LABEL_TYPES_WITHOUT_OTHER: ['CurbRamp'],
-                getLabelDescriptions: (type) => ({ keyChar: keyChars[type] }),
-            },
-        };
-        Object.assign(window, loadModules('frontend/js/common/KeyboardShortcuts.js', 'frontend/js/explore/keyboard/KeyboardManager.js'));
+    beforeAll(async () => {
+        window.i18next = { t: (key) => key };
+        const { KeyboardManager } = await loadModules('frontend/js/explore/keyboard/KeyboardManager.js');
         // One instance for the file: the constructor adds window listeners that are never removed.
         const contextMenu = {
             isOpen: () => menuOpen, getTargetLabel: () => null, hide: () => { menuOpen = false; },
-            onTextFieldFocusChanged: jest.fn(),
+            onTextFieldFocusChanged: vi.fn(),
         };
-        new window.KeyboardManager({ isHeld: () => false }, canvas, contextMenu, { walking: { isHeld: () => true } },
+        new KeyboardManager(fakeGate(), canvas, contextMenu, { walking: fakeGate({ isHeld: () => true }) },
             labelModes, {}, {}, {}, {}, tracker);
     });
 
@@ -34,8 +28,8 @@ describe('Explore shortcut keys', () => {
         labelModes.switchTo.mockClear();
         labelModes.backToWalk.mockClear();
         menuOpen = false;
-        tracker.push = jest.fn();
-        canvas.showLabelHoverInfo = jest.fn();
+        tracker.push = vi.fn();
+        canvas.showLabelHoverInfo = vi.fn();
     });
 
     /** Releases a key on the page. */

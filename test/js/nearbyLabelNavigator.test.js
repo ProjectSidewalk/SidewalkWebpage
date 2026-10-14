@@ -7,16 +7,10 @@
  * trail-based prev with hasPrev gating, cross-type flattening, and the deep-link coordinate lookup.
  */
 
-const path = require('path');
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules } from './loader.js';
 
-const NAV_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/ps-map/nearbyLabelNavigator.js');
-
-/** Loads the global script fresh and returns the factory. */
-function loadFactory() {
-    Object.assign(window, loadModules(NAV_PATH));
-    return global.createNearbyLabelNavigator;
-}
+const loadFactory = async () =>
+    (await loadModules('frontend/js/ps-map/nearbyLabelNavigator.js')).createNearbyLabelNavigator;
 
 /**
  * Builds a map-data stub in the shape addLabelsToMap produces: features bucketed by label type. A label is
@@ -37,8 +31,8 @@ describe('createNearbyLabelNavigator', () => {
     // Five labels along a street: 1..4 clustered 111m apart, 5 further down the block.
     const LINE = { CurbRamp: [[1, 0, 0], [2, 0.001, 0], [3, 0.002, 0], [4, 0.003, 0], [5, 0.01, 0]] };
 
-    test('next() tours nearest-first without revisiting, and returns null when exhausted', () => {
-        const nav = loadFactory()(mapDataWith(LINE));
+    test('next() tours nearest-first without revisiting, and returns null when exhausted', async () => {
+        const nav = (await loadFactory())(mapDataWith(LINE));
         expect(nav.next(1)).toBe(2);
         expect(nav.next(2)).toBe(3);
         // 2 is nearer to 3 than 4 is, but it's visited — the walk continues outward instead of bouncing back.
@@ -47,8 +41,8 @@ describe('createNearbyLabelNavigator', () => {
         expect(nav.next(5)).toBeNull();
     });
 
-    test('prev() retraces the trail and hasPrev() gates the button', () => {
-        const nav = loadFactory()(mapDataWith(LINE));
+    test('prev() retraces the trail and hasPrev() gates the button', async () => {
+        const nav = (await loadFactory())(mapDataWith(LINE));
         expect(nav.hasPrev(1)).toBe(false);
         nav.next(1); // -> 2
         nav.next(2); // -> 3
@@ -58,8 +52,8 @@ describe('createNearbyLabelNavigator', () => {
         expect(nav.prev(1)).toBeNull();
     });
 
-    test('next() after prev() returns to the abandoned label (back/forward semantics)', () => {
-        const nav = loadFactory()(mapDataWith(LINE));
+    test('next() after prev() returns to the abandoned label (back/forward semantics)', async () => {
+        const nav = (await loadFactory())(mapDataWith(LINE));
         nav.next(1); // -> 2
         nav.next(2); // -> 3
         nav.prev(3); // back to 2
@@ -68,8 +62,8 @@ describe('createNearbyLabelNavigator', () => {
         expect(nav.next(3)).toBe(4);
     });
 
-    test('flattens labels across types and looks up coordinates and types for deep links', () => {
-        const nav = loadFactory()(mapDataWith({
+    test('flattens labels across types and looks up coordinates and types for deep links', async () => {
+        const nav = (await loadFactory())(mapDataWith({
             CurbRamp: [[1, 0, 0]],
             Obstacle: [[2, 0.0005, 0]],
         }));
@@ -81,13 +75,13 @@ describe('createNearbyLabelNavigator', () => {
         expect(nav.getLabelType(999)).toBeNull();
     });
 
-    test('next() from an unknown label is a harmless no-op', () => {
-        const nav = loadFactory()(mapDataWith(LINE));
+    test('next() from an unknown label is a harmless no-op', async () => {
+        const nav = (await loadFactory())(mapDataWith(LINE));
         expect(nav.next(999)).toBeNull();
     });
 
-    test('hasNext() gates the Next button: true mid-tour, false when exhausted or the label is unknown', () => {
-        const nav = loadFactory()(mapDataWith(LINE));
+    test('hasNext() gates the Next button: true mid-tour, false when exhausted or the label is unknown', async () => {
+        const nav = (await loadFactory())(mapDataWith(LINE));
         expect(nav.hasNext(999)).toBe(false); // Unknown label, e.g. a deep link outside the loaded set.
         expect(nav.hasNext(1)).toBe(true);
         nav.next(1); // -> 2
@@ -99,9 +93,9 @@ describe('createNearbyLabelNavigator', () => {
     });
 
     // A viewport refetch (#5002) swaps mapData.sortedLabels' contents in place; refresh() re-reads them.
-    test('refresh() picks up added labels and drops removed ones', () => {
+    test('refresh() picks up added labels and drops removed ones', async () => {
         const mapData = mapDataWith({ CurbRamp: [[1, 0, 0], [2, 0.001, 0]] });
-        const nav = loadFactory()(mapData);
+        const nav = (await loadFactory())(mapData);
         expect(nav.getCoords(3)).toBeNull();
 
         // Simulate setLabelData: mutate the arrays in place, as production does, rather than reassigning.
@@ -117,9 +111,9 @@ describe('createNearbyLabelNavigator', () => {
         expect(nav.next(2)).toBe(3);
     });
 
-    test('refresh() preserves the prev() trail through labels the refetch dropped', () => {
+    test('refresh() preserves the prev() trail through labels the refetch dropped', async () => {
         const mapData = mapDataWith({ CurbRamp: [[1, 0, 0], [2, 0.001, 0], [3, 0.002, 0]] });
-        const nav = loadFactory()(mapData);
+        const nav = (await loadFactory())(mapData);
         nav.next(1); // -> 2
         nav.next(2); // -> 3
 
@@ -134,9 +128,9 @@ describe('createNearbyLabelNavigator', () => {
         expect(nav.next(1)).toBeNull();
     });
 
-    test('refresh() notifies onRefresh subscribers, after the new label set is readable', () => {
+    test('refresh() notifies onRefresh subscribers, after the new label set is readable', async () => {
         const mapData = mapDataWith({ CurbRamp: [[1, 0, 0]] });
-        const nav = loadFactory()(mapData);
+        const nav = (await loadFactory())(mapData);
         const seen = [];
         // Subscribers exist to re-derive state from the label set (the popup's arrow states), so what they can
         // read when they run is the contract, not just that they ran.
@@ -160,18 +154,18 @@ describe('createNearbyLabelNavigator', () => {
             Obstacle: [[2, 0.001, 0], [4, 0.003, 0]],
         };
 
-        test('next() skips labels the predicate rejects and hasNext() agrees', () => {
+        test('next() skips labels the predicate rejects and hasNext() agrees', async () => {
             const onlyCurbRamps = (labelType) => labelType === 'CurbRamp';
-            const nav = loadFactory()(mapDataWith(MIXED), { isCandidate: onlyCurbRamps });
+            const nav = (await loadFactory())(mapDataWith(MIXED), { isCandidate: onlyCurbRamps });
             expect(nav.hasNext(1)).toBe(true);
             expect(nav.next(1)).toBe(3); // Not the nearer Obstacle at 2.
             expect(nav.hasNext(3)).toBe(false); // The only other labels are Obstacles.
             expect(nav.next(3)).toBeNull();
         });
 
-        test('the predicate sees the label type and its full feature', () => {
+        test('the predicate sees the label type and its full feature', async () => {
             const seen = [];
-            const nav = loadFactory()(mapDataWith({ CurbRamp: [[1, 0, 0], [2, 0.001, 0, { severity: 3 }]] }), {
+            const nav = (await loadFactory())(mapDataWith({ CurbRamp: [[1, 0, 0], [2, 0.001, 0, { severity: 3 }]] }), {
                 isCandidate: (labelType, feature) => {
                     seen.push([labelType, feature.properties.severity]);
                     return true;
@@ -181,9 +175,9 @@ describe('createNearbyLabelNavigator', () => {
             expect(seen).toEqual([['CurbRamp', 3]]);
         });
 
-        test('is evaluated live, so a filter change takes effect on the next click', () => {
+        test('is evaluated live, so a filter change takes effect on the next click', async () => {
             let hidden = new Set();
-            const nav = loadFactory()(mapDataWith(MIXED), {
+            const nav = (await loadFactory())(mapDataWith(MIXED), {
                 isCandidate: (labelType, feature) => !hidden.has(feature.properties.label_id),
             });
             expect(nav.hasNext(1)).toBe(true);
@@ -196,9 +190,9 @@ describe('createNearbyLabelNavigator', () => {
             expect(nav.next(1)).toBe(3);
         });
 
-        test('filtersChanged() restarts the tour, keeps the trail, and notifies subscribers', () => {
+        test('filtersChanged() restarts the tour, keeps the trail, and notifies subscribers', async () => {
             let hidden = new Set();
-            const nav = loadFactory()(mapDataWith(MIXED), {
+            const nav = (await loadFactory())(mapDataWith(MIXED), {
                 isCandidate: (labelType, feature) => !hidden.has(feature.properties.label_id),
             });
             const notified = [];
@@ -219,9 +213,9 @@ describe('createNearbyLabelNavigator', () => {
             expect(nav.prev(4)).toBe(3);
         });
 
-        test('prev() still retraces a label the predicate now rejects', () => {
+        test('prev() still retraces a label the predicate now rejects', async () => {
             let hidden = new Set();
-            const nav = loadFactory()(mapDataWith(MIXED), {
+            const nav = (await loadFactory())(mapDataWith(MIXED), {
                 isCandidate: (labelType, feature) => !hidden.has(feature.properties.label_id),
             });
             nav.next(1); // -> 2
@@ -232,8 +226,8 @@ describe('createNearbyLabelNavigator', () => {
             expect(nav.prev(3)).toBe(2);
         });
 
-        test('defaults to every loaded label when the host passes no predicate', () => {
-            const nav = loadFactory()(mapDataWith(MIXED));
+        test('defaults to every loaded label when the host passes no predicate', async () => {
+            const nav = (await loadFactory())(mapDataWith(MIXED));
             expect(nav.next(1)).toBe(2);
         });
     });

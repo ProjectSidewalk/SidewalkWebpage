@@ -8,30 +8,15 @@
  * image in range was the one already being stood on.
  */
 
-const path = require('path');
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules, mockModule } from './loader.js';
 
-const SRC_DIR = path.resolve(__dirname, '..', '..', 'frontend/js/common/pano-viewer');
+/** The exclusion check only compares pano ids, so the excluded set is built from a PanoData that validates nothing. */
+class PanoData {
+    constructor(params) { this.params = params; }
 
-/** Loads Infra3dViewer over a stubbed PanoViewer base; PanoViewer's own behavior is panoViewerSeedFallback's job. */
-function loadInfra3dViewer() {
-    window.PanoViewer = class PanoViewer {
-        constructor() { this.viewerType = 'infra3d'; }
-        getViewerType() { return this.viewerType; }
-    };
-    window.PanoData = class PanoData {
-        constructor(params) { this.params = params; }
-        getPanoId() { return this.params.panoId; }
-    };
-    window.proj4 = () => [0, 0];
-    window.util = { math: { toDegrees: (radians) => radians } };
-    Object.assign(window, loadModules(path.join(SRC_DIR, 'Infra3dViewer.js'), path.join(SRC_DIR, 'NoImageryError.js')));
-    return {
-        Infra3dViewer: window.Infra3dViewer,
-        PanoData: window.PanoData,
-        NoImageryError: window.NoImageryError,
-    };
+    getPanoId() { return this.params.panoId; }
 }
+mockModule('frontend/js/common/pano-viewer/PanoData.js', () => ({ PanoData }));
 
 /** An Infra3d node with the fields #finishRecordingMetadata reads. `cameraType` decides panoramic vs flat. */
 const nodeFor = (id, cameraType = 'cubemap') => ({
@@ -59,14 +44,12 @@ const SOMEWHERE = { lat: 47.413137835, lng: 8.4747970537 };
 
 describe('Infra3dViewer.setLocation rejections', () => {
     let Infra3dViewer;
-    let PanoData;
     let NoImageryError;
 
-    beforeAll(() => {
-        const loaded = loadInfra3dViewer();
-        Infra3dViewer = loaded.Infra3dViewer;
-        PanoData = loaded.PanoData;
-        NoImageryError = loaded.NoImageryError;
+    beforeAll(async () => {
+        window.proj4 = () => [0, 0];
+        ({ Infra3dViewer, NoImageryError } = await loadModules('frontend/js/common/pano-viewer/Infra3dViewer.js',
+            'frontend/js/common/pano-viewer/NoImageryError.js'));
     });
 
     /**

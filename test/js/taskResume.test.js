@@ -12,13 +12,12 @@
  * along real street geometry, and a stub that got it slightly wrong would pass for the wrong reason.
  */
 
-const path = require('path');
-const { loadModules, realUtil } = require('./loadGlobalScript');
-
-const REPO_ROOT = path.resolve(__dirname, '..', '..');
+import { loadVendored, loadModules } from './loader.js';
+import { fakeTracker } from './fakes.js';
 
 // Loaded once, up front: the fixtures below are built while the suite is collected, before any beforeEach runs.
-const turf = require(path.join(REPO_ROOT, 'public/vendor/turf/turf-7.4.0.min.js'));
+loadVendored('turf');
+const turf = window.turf;
 
 const STREET_START = [-77.02, 38.9];
 const STREET_LENGTH_M = 200;
@@ -74,13 +73,13 @@ describe('Task resumed from an earlier session', () => {
         ? { lat: props.current_lat, lng: props.current_lng }
         : undefined);
 
-    const makeTask = (geojson) => new window.Task(geojson, {}, false, resumeAt(geojson.properties));
+    let Task;
 
-    beforeEach(() => {
+    const makeTask = (geojson) => new Task(geojson, {}, false, resumeAt(geojson.properties));
+
+    beforeEach(async () => {
         window.turf = turf;
-        window.util ??= realUtil();
-        loadModules('frontend/js/common/utilitiesMath.js');
-        Object.assign(window, loadModules('frontend/js/explore/task/Task.js'));
+        ({ Task } = await loadModules('frontend/js/explore/task/Task.js'));
     });
 
     it('starts where the labeler stopped, at the end the row says they started from', () => {
@@ -160,12 +159,12 @@ describe('TaskContainer handing out a part-walked street', () => {
         isResumed: () => resumed,
         cameFromTaskList: () => fromTaskList,
         getProperty: () => null,
-        claimSavedProgress: jest.fn()
+        claimSavedProgress: vi.fn()
             .mockImplementationOnce(() => prewalkedKm)
             .mockImplementation(() => 0),
-        setStreetEdgeDirection: jest.fn(),
-        reverseStreetDirection: jest.fn(),
-        setProperty: jest.fn(),
+        setStreetEdgeDirection: vi.fn(),
+        reverseStreetDirection: vi.fn(),
+        setProperty: vi.fn(),
         minimapKey: () => 'street-101',
         minimapLines: () => [],
     });
@@ -176,15 +175,13 @@ describe('TaskContainer handing out a part-walked street', () => {
         getStreetEdgeId: () => 100,
     });
 
-    beforeEach(() => {
+    beforeEach(async () => {
         // Only the two turf calls nextTask itself makes; the geometry questions are covered above against real turf.
         window.turf = { point: (coords) => ({ type: 'Point', coordinates: coords }), pointToLineDistance: () => 0 };
-        window.util = { math: { kmsToMeters: (km) => km * 1000 } };
-        tracker = { push: jest.fn(), setAuditTaskID: jest.fn() };
-        window.Task = { CLOSE_TO_ROUTE_KM: 0.05 };
-        Object.assign(window, loadModules('frontend/js/explore/task/TaskContainer.js'));
-        container = new window.TaskContainer(finishedTask(), {}, { isRoute: false }, { setStreetLines: jest.fn() },
-            {}, {}, tracker);
+        tracker = fakeTracker();
+        const { TaskContainer } = await loadModules('frontend/js/explore/task/TaskContainer.js');
+        container = new TaskContainer(finishedTask(), {}, { isRoute: false }, { setStreetLines: vi.fn() }, {}, {},
+            tracker);
     });
 
     describe('nextTask', () => {
@@ -213,16 +210,14 @@ describe('TaskContainer handing out a part-walked street', () => {
         let tasks;
 
         /** The real MissionContainer adopting each street the container switches to, as it does in production. */
-        beforeEach(() => {
-            Object.assign(window, loadModules('frontend/js/explore/EventEmitter.js',
-                'frontend/js/explore/mission/MissionContainer.js'));
+        beforeEach(async () => {
+            const { MissionContainer } = await loadModules('frontend/js/explore/mission/MissionContainer.js');
             tasks = container;
-            missionContainer = new window.MissionContainer({}, { setMessage: () => {} }, { on: () => {} }, {}, tasks,
-                {});
+            missionContainer = new MissionContainer({}, { setMessage: () => {} }, { on: () => {} }, {}, tasks, {});
             missionContainer.setTasksMissionsOffset(500);
             // The mission the streets are adopted into; its start is marked only on a fresh street, which this isn't.
             const currentTask = { setProperty: () => {}, getProperty: () => true };
-            jest.spyOn(tasks, 'getCurrentTask').mockReturnValue(currentTask);
+            vi.spyOn(tasks, 'getCurrentTask').mockReturnValue(currentTask);
             missionContainer.setCurrentMission({ getProperty: (k) => ({ missionId: 7, distanceProgress: 1 })[k] });
         });
 
@@ -278,14 +273,12 @@ describe('TaskContainer.fetchTasks', () => {
 
     let container;
 
-    beforeEach(() => {
+    beforeEach(async () => {
         window.turf = turf;
-        window.util ??= realUtil();
-        loadModules('frontend/js/common/utilitiesMath.js');
-        // One eval so TaskContainer's `new Task(...)` resolves to the class evaluated beside it.
-        Object.assign(window, loadModules('frontend/js/explore/task/Task.js', 'frontend/js/explore/task/TaskContainer.js'));
+        const { Task, TaskContainer } = await loadModules('frontend/js/explore/task/Task.js',
+            'frontend/js/explore/task/TaskContainer.js');
 
-        window.fetch = jest.fn(() => Promise.resolve({
+        window.fetch = vi.fn(() => Promise.resolve({
             json: () => Promise.resolve({
                 features: [
                     feature(openStreet, {
@@ -302,13 +295,12 @@ describe('TaskContainer.fetchTasks', () => {
 
         const regionModel = { isRoute: false, currentRegion: () => ({ getRegionId: () => 5 }) };
         // The page's own street, which fetchTasks skips by id.
-        const initialTask = new window.Task(feature(straightStreet([-77.1, 38.8], 50), { street_edge_id: 3 }), {}, false);
-        container = new window.TaskContainer(initialTask, { streetCoverage: {} }, regionModel, {}, {}, {},
-            { push: jest.fn() });
+        const initialTask = new Task(feature(straightStreet([-77.1, 38.8], 50), { street_edge_id: 3 }), {}, false);
+        container = new TaskContainer(initialTask, { streetCoverage: {} }, regionModel, {}, {}, {}, fakeTracker());
     });
 
     it('seeds an open task at its saved position and a fresh one at its own start', async () => {
-        await container.fetchTasks({ getProperty: () => 7, pushATaskToTheRoute: jest.fn() });
+        await container.fetchTasks({ getProperty: () => 7, pushATaskToTheRoute: vi.fn() });
 
         const [, open, fresh] = container.getTasks();
         expect(open.isResumed()).toBe(true);

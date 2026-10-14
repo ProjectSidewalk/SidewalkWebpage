@@ -11,13 +11,16 @@
  * mirrors what a story of your own already does (`StorySection`): once yours exists the compose box closes and the
  * comment carries Edit/Delete instead, which is what keeps a second submission from silently destroying the first.
  * Cancel and Escape are the two ways out that keep the box from being a one-way door.
- *
- * Fixtures and stubs follow labelDetailEditGating.test.js.
  */
 
+import { loadModules, mockModule, useUtil } from './loader.js';
+import { mockLabelDetailCollaborators } from './fakes.js';
 
-const { assetPathStub, installDateHelpers, loadModules } = require('./loadGlobalScript');
+let panoManager;
+const confirmDialog = { confirm: vi.fn() };
 
+mockLabelDetailCollaborators(() => panoManager);
+mockModule('frontend/js/common/ConfirmDialog.js', () => ({ ConfirmDialog: confirmDialog }));
 
 /**
  * Builds the card markup as views/common/labelDetail.scala.html renders it for a non-admin host, reduced to the
@@ -204,9 +207,9 @@ const comment = (text, mine, extra = {}) => (
 describe('the validator comment box (#5015)', () => {
     let LabelDetail;
     let card;
-    let panoManager;
     let setPano;
     let confirmResult;
+    let lazyIdentityFetch;
 
     /** Drains the microtask queue that the card's promise chains spread work across. */
     const flush = () => new Promise((resolve) => { setTimeout(resolve, 0); });
@@ -234,50 +237,28 @@ describe('the validator comment box (#5015)', () => {
     const status = () => q('.label-detail__comment-confirmation');
     /** Sends one half of an Escape press to the comment input, the way a browser routes it to the focused element. */
     const escape = (type) => document.activeElement.dispatchEvent(
-        new window.KeyboardEvent(type, { key: 'Escape', bubbles: true })
+        new KeyboardEvent(type, { key: 'Escape', bubbles: true })
     );
 
     beforeEach(async () => {
-        jest.resetModules();
         card = buildCard();
 
         window.i18next = { t: (key) => key };
-        window.logWebpageActivity = jest.fn();
-        window.buildBackupImageData = () => null;
-        // The card reaches for this both bare and through `util`, so both spellings have to answer.
-        window.camelToKebab = (s) => s.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
-        window.util = {
-            assetPath: assetPathStub,
-            EXPLORE_CANVAS_WIDTH: 720,
-            EXPLORE_CANVAS_HEIGHT: 480,
-            isMobile: () => false,
-            lazyIdentityFetch: jest.fn(async () => (
-                { ok: true, status: 200, json: async () => ({ username: 'tester', comment_id: 1 }) }
-            )),
-            camelToKebab: (s) => s.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase(),
-            misc: {
-                labelTypeName: (type) => window.i18next.t(`common:${window.util.camelToKebab(type)}`),
-                getRatingLevelKeys: () => ({ 1: 'low', 2: 'medium', 3: 'high' }),
-                getSmileyIconPath: (sev, type, selected) => `${type}-${sev}-${selected}.svg`,
-                isPositiveLabelType: () => false,
-                labelTypeHasSeverity: () => true,
-            },
-            pano: { centeredPovToCanvasCoord: () => ({ x: 0, y: 0 }), renderedHFov: () => 90 },
-            url: { replaceQuery: () => {} },
-        };
-        installDateHelpers();
-        window.BadgeAchievements = { seedCounts: () => {}, recordValidation: () => {} };
-        window.LabelVisibilityToggle = class { constructor() {} };
-        window.PanoInfoPopover = class { constructor() {} };
+        window.logWebpageActivity = vi.fn();
+        // Comment saves go through util.lazyIdentityFetch (#4442), not window.fetch.
+        lazyIdentityFetch = vi.fn(async () => (
+            { ok: true, status: 200, json: async () => ({ username: 'tester', comment_id: 1 }) }
+        ));
+        useUtil({ lazyIdentityFetch });
         confirmResult = true;
-        window.ConfirmDialog = { confirm: jest.fn(async () => confirmResult) };
+        confirmDialog.confirm = vi.fn(async () => confirmResult);
 
         setPano = deferred();
         panoManager = {
-            clearLabels: jest.fn(),
-            setLabel: jest.fn(),
-            setLabelsHidden: jest.fn(),
-            setPano: jest.fn(() => setPano.promise),
+            clearLabels: vi.fn(),
+            setLabel: vi.fn(),
+            setLabelsHidden: vi.fn(),
+            setPano: vi.fn(() => setPano.promise),
             activeViewerName: 'Default',
             panoViewer: {
                 currPanoData: null,
@@ -293,17 +274,13 @@ describe('the validator comment box (#5015)', () => {
             }),
             label: { labelId: 42, label_type: 'Obstacle' },
         };
-        window.PopupPanoManager = { create: async () => panoManager };
-        // The stories disclosure is not what these tests exercise, and its real section wants the composer's markup.
-        window.StorySection = class { setLabel() {} };
 
-        window.fetch = jest.fn(async (url) => {
+        window.fetch = vi.fn(async (url) => {
             if (String(url).includes('/label/tags')) return { ok: true, json: async () => [] };
             return { ok: true, status: 200, json: async () => ({ username: 'tester', comment_id: 1, deleted: 1 }) };
         });
 
-        Object.assign(window, loadModules('frontend/js/common/label-detail/TagEditor.js', 'frontend/js/common/label-detail/LabelDetail.js'));
-        LabelDetail = window.LabelDetail;
+        ({ LabelDetail } = await loadModules('frontend/js/common/label-detail/LabelDetail.js'));
 
         card.detail = await LabelDetail.create(card, {
             admin: false,
@@ -466,8 +443,7 @@ describe('the validator comment box (#5015)', () => {
             expect(boxOpen()).toBe(false);
             expect(input().value).toBe('');
             expect(q('.label-detail__validator-comments').textContent).toContain('unchanged');
-            // Comment saves go through util.lazyIdentityFetch (#4442), not window.fetch.
-            expect(window.util.lazyIdentityFetch).not.toHaveBeenCalled();
+            expect(lazyIdentityFetch).not.toHaveBeenCalled();
         });
 
         test('Escape abandons the edit', async () => {
@@ -600,7 +576,7 @@ describe('the validator comment box (#5015)', () => {
         });
 
         test('a save that fails says so, in the failure colour', async () => {
-            window.util.lazyIdentityFetch = jest.fn(async () => ({ ok: false, status: 500 }));
+            useUtil({ lazyIdentityFetch: vi.fn(async () => ({ ok: false, status: 500 })) });
             await showLabel({ user_validation: 'Agree' });
             await resolveImagery();
             input().value = 'never lands';
@@ -613,7 +589,7 @@ describe('the validator comment box (#5015)', () => {
 
         test('a delete that fails says so instead of looking like a no-op', async () => {
             // They confirmed a destructive action in a modal; silence is indistinguishable from it having worked.
-            window.fetch = jest.fn(async () => ({ ok: false, status: 500 }));
+            window.fetch = vi.fn(async () => ({ ok: false, status: 500 }));
             await showLabel({ comments: [comment('still here', true)] });
             await resolveImagery();
             deleteBtn().click();
@@ -627,7 +603,7 @@ describe('the validator comment box (#5015)', () => {
         test('a removal holds on screen longer than a save, and a failure longer still', async () => {
             // A save is a second opinion on the comment that just appeared below it; a removal reports an absence,
             // which gives the reader nothing to check it against. So the tiers have to stay ordered.
-            jest.spyOn(window, 'setTimeout');
+            vi.spyOn(window, 'setTimeout');
 
             /** The hold the flash was scheduled with, found by running pending timers until one hides the region. */
             const holdMs = () => {
@@ -653,7 +629,7 @@ describe('the validator comment box (#5015)', () => {
 
             // The delete left the box open with nothing of theirs in it, so a fresh attempt is one keystroke away.
             window.setTimeout.mockClear();
-            window.util.lazyIdentityFetch = jest.fn(async () => ({ ok: false, status: 500 }));
+            useUtil({ lazyIdentityFetch: vi.fn(async () => ({ ok: false, status: 500 })) });
             input().value = 'never lands';
             submitBtn().click();
             await flush();

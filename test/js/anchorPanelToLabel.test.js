@@ -11,8 +11,9 @@
  * anyway. The bounding elements are stubbed the same way.
  */
 
-const { realUtil } = require('./loadGlobalScript');
+import { loadModules } from './loader.js';
 
+const { util } = await loadModules('frontend/js/common/utilities.js');
 
 // Explore's frame, as the defaults expect to find it. The pano is 720x480 at scale 1 and sits 100px from the
 // viewport's left edge; the whole tool (pano + gap + sidebar) runs to x=1136.
@@ -44,15 +45,8 @@ const tailTop = (panel) => parseFloat(panel.style.getPropertyValue('--panel-tail
 const flipped = (panel) => panel.classList.contains('label-anchored-panel--flipped');
 
 describe('util.anchorPanelToLabel', () => {
-    let util;
-
     beforeEach(() => {
         document.body.innerHTML = '';
-        // utilities.js builds a Bowser parser at load time; the geometry under test never consults it.
-        window.bowser = { getParser: () => ({ getBrowserName: () => 'Chrome', getBrowserVersion: () => '1',
-            getOSName: () => 'Linux', getPlatformType: () => 'desktop' }) };
-        window.util = realUtil();
-        util = window.util;
 
         // Explore's frame: the display-scale probe, the coordinate origin, and the horizontal bound.
         makeRectEl({ width: 720 }, 'label-drawing-layer');

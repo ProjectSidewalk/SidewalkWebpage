@@ -9,8 +9,8 @@
  * TaskContainer is loaded as a module and built against the smallest collaborators these choices touch.
  */
 
-const { loadModules } = require('./loadGlobalScript');
-
+import { loadModules } from './loader.js';
+import { fakeTracker } from './fakes.js';
 
 /** A route street at `walkOrder`, in whichever of the three states the route's next-street choice cares about. */
 const makeTask = (walkOrder, { complete = false, givenUp = false, km = 1 } = {}) => ({
@@ -27,23 +27,22 @@ const makeTask = (walkOrder, { complete = false, givenUp = false, km = 1 } = {})
     getGeoJSON: () => ({ properties: { km } }),
     lineDistance: () => km,
     getAuditedDistance: () => 0,
-    setProperty: jest.fn(),
+    setProperty: vi.fn(),
     minimapKey: () => `street-${100 + walkOrder}`,
     minimapLines: () => [],
 });
 
 /** A container on a route, born with a throwaway first street. */
-function makeContainer() {
-    Object.assign(window, loadModules('frontend/js/explore/task/TaskContainer.js'));
-    return new window.TaskContainer(makeTask(0), {}, { isRoute: true }, { setStreetLines: jest.fn() }, {}, {},
-        { push: jest.fn() });
+async function makeContainer() {
+    const { TaskContainer } = await loadModules('frontend/js/explore/task/TaskContainer.js');
+    return new TaskContainer(makeTask(0), {}, { isRoute: true }, { setStreetLines: vi.fn() }, {}, {}, fakeTracker());
 }
 
 describe('TaskContainer.nextTask on a route', () => {
     let container;
 
-    beforeEach(() => {
-        container = makeContainer();
+    beforeEach(async () => {
+        container = await makeContainer();
     });
 
     it('walks the route in its saved order', () => {
@@ -86,10 +85,9 @@ describe('TaskContainer.nextTask on a route', () => {
 describe('TaskContainer distance credit', () => {
     let container;
 
-    beforeEach(() => {
+    beforeEach(async () => {
         window.turf = { length: (feature) => feature.properties.km };
-        window.util = { turfDistanceUnits: () => 'kilometers', array: { sum: (a) => a.reduce((x, y) => x + y, 0) } };
-        container = makeContainer();
+        container = await makeContainer();
     });
 
     it('counts a given-up street as walked, so the route can reach 100%', () => {

@@ -7,28 +7,18 @@
  * their source.
  */
 
-const { loadModules } = require('./loadGlobalScript');
-
+import { loadModules } from './loader.js';
 
 describe('OnboardingStates transitions', () => {
     let states;
     let ids;
 
-    beforeAll(() => {
-        // Only what building the state list touches; message text and icon paths don't matter here.
+    beforeAll(async () => {
+        // Message text doesn't matter here; only the state list is read.
         window.i18next = { t: (key) => key };
-        window.util = {
-            assetPath: (p) => p,
-            misc: {
-                getLabelDescriptions: () => ({ tagInfo: new Proxy({}, { get: () => ({ text: '' }) }) }),
-                getRatingLevelKeys: () => ({ 1: 'good', 2: 'okay', 3: 'bad' }),
-                getSmileyIconPath: () => '',
-            },
-            pano: { horizonRelativeCoordToPov: () => ({ heading: 0, pitch: 0 }) },
-        };
-        Object.assign(window, loadModules('frontend/js/explore/onboarding/OnboardingStates.js'));
+        const { OnboardingStates } = await loadModules('frontend/js/explore/onboarding/OnboardingStates.js');
         const stub = new Proxy({}, { get: () => () => undefined });
-        states = new window.OnboardingStates(stub, stub, stub).get();
+        states = new OnboardingStates(stub, stub, stub).get();
         ids = new Set(states.map((state) => state.id));
     });
 

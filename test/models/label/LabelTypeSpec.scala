@@ -115,7 +115,7 @@ class LabelTypeSpec extends SidewalkSpec {
 
   "the page stamp" should {
     "match the fixture the jsdom suite builds util.misc from" in {
-      // test/js/loadGlobalScript.js stamps that fixture as window.labelTypes. If it stops matching what the pages
+      // test/js/setup.js stamps that fixture as window.labelTypes. If it stops matching what the pages
       // actually stamp, the JS suite is testing a table no browser ever sees — so fail here instead, with the diff.
       val fixture = Json.parse(File("test/resources/label-types-stamp.json").toURI.toURL.openStream())
       Json.parse(LabelType.pageStampJson) mustBe fixture

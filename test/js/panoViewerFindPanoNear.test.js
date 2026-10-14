@@ -11,41 +11,29 @@
  * Real turf and the real pano utilities run the distance and scoring math, so the pick is the production pick.
  */
 
-const fs = require('fs');
-const path = require('path');
-const { loadGlobalScript, realUtil, loadModules } = require('./loadGlobalScript');
+import fs from 'fs';
+import path from 'path';
+import { loadVendored, loadModules, REPO_ROOT } from './loader.js';
 
-const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const SRC_DIR = path.join(REPO_ROOT, 'frontend/js/common/pano-viewer');
+const SRC_DIR = 'frontend/js/common/pano-viewer';
 
-
-// utilities.js builds a Bowser parser at load time; nothing here consults it.
-window.bowser = {
-    getParser: () => ({
-        getBrowserName: () => 'Test', getBrowserVersion: () => '1',
-        getOSName: () => 'TestOS', getPlatformType: () => 'desktop',
-    }),
-};
-window.util = realUtil();
-loadGlobalScript('frontend/js/common/utilitiesMath.js');
 // The ranking weights the providers score candidates with, stamped onto <html> the way main.scala.html does it
 // (minus the file's own `_`-prefixed documentation), so the pick here is the production pick.
 const scoringConfig = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'conf/pano-scoring.json'), 'utf8'));
 document.documentElement.dataset.panoScoring = JSON.stringify(
     Object.fromEntries(Object.entries(scoringConfig).filter(([key]) => !key.startsWith('_'))),
 );
-loadGlobalScript('frontend/js/common/pano-viewer/panoUtilities.js');
-window.turf = require(path.join(REPO_ROOT, 'public/vendor/turf/turf-7.4.0.min.js'));
+loadVendored('turf');
 
 const { turf } = window;
 
 /**
- * Loads the real PanoViewer plus one provider fresh into the jsdom global scope.
+ * Loads one provider fresh, with the PanoViewer base it extends.
  * @param {string} name - The provider class to load, e.g. 'GsvViewer'.
  * @returns {{PanoViewer: Function, Viewer: Function, NoImageryError: Function}}
  */
-function loadViewer(name) {
-    const mods = loadModules(path.join(SRC_DIR, `${name}.js`), path.join(SRC_DIR, 'PanoViewer.js'), path.join(SRC_DIR, 'NoImageryError.js'));
+async function loadViewer(name) {
+    const mods = await loadModules(`${SRC_DIR}/${name}.js`, `${SRC_DIR}/PanoViewer.js`, `${SRC_DIR}/NoImageryError.js`);
     return { PanoViewer: mods.PanoViewer, Viewer: mods[name], NoImageryError: mods.NoImageryError };
 }
 
@@ -65,25 +53,21 @@ const excludedPano = (panoId, capturedAt = 0) => ({
 
 describe('PanoViewer.findPanoNear (base)', () => {
     test('a provider with no location search has nothing to offer', async () => {
-        const { PanoViewer } = loadViewer('PannellumViewer');
+        const { PanoViewer } = await loadViewer('PannellumViewer');
         const viewer = new (class Probe extends PanoViewer {})();
         await expect(viewer.findPanoNear(HERE)).resolves.toBeNull();
     });
 
     test('_withTimeout gives up after the budget and clears its timer when the call settles first', async () => {
-        jest.useFakeTimers();
-        const { PanoViewer } = loadViewer('PannellumViewer');
-        try {
-            const hung = PanoViewer._withTimeout(new Promise(() => {}), 1000, 'a hung call');
-            jest.advanceTimersByTime(1000);
-            await expect(hung).rejects.toThrow('Timed out: a hung call');
+        vi.useFakeTimers();
+        const { PanoViewer } = await loadViewer('PannellumViewer');
+        const hung = PanoViewer._withTimeout(new Promise(() => {}), 1000, 'a hung call');
+        vi.advanceTimersByTime(1000);
+        await expect(hung).rejects.toThrow('Timed out: a hung call');
 
-            await expect(PanoViewer._withTimeout(Promise.resolve('answer'), 1000, 'a quick call'))
-                .resolves.toBe('answer');
-            expect(jest.getTimerCount()).toBe(0);
-        } finally {
-            jest.useRealTimers();
-        }
+        await expect(PanoViewer._withTimeout(Promise.resolve('answer'), 1000, 'a quick call'))
+            .resolves.toBe('answer');
+        expect(vi.getTimerCount()).toBe(0);
     });
 });
 
@@ -110,7 +94,7 @@ describe('GsvViewer.findPanoNear', () => {
 
     const reply = (pano, { lat, lng }) => ({ data: { location: { pano, latLng: { lat: () => lat, lng: () => lng } } } });
 
-    beforeEach(() => {
+    beforeEach(async () => {
         window.google = {
             maps: {
                 importLibrary: async () => ({ LatLng: FakeLatLng }),
@@ -119,12 +103,12 @@ describe('GsvViewer.findPanoNear', () => {
                 StreetViewSource: { OUTDOOR: 'outdoor' },
             },
         };
-        const loaded = loadViewer('GsvViewer');
+        const loaded = await loadViewer('GsvViewer');
         ({ PanoViewer } = loaded);
         viewer = new loaded.Viewer();
-        getPanorama = jest.fn();
+        getPanorama = vi.fn();
         viewer.streetViewService = { getPanorama };
-        viewer.gsvPano = { setPano: jest.fn() };
+        viewer.gsvPano = { setPano: vi.fn() };
     });
 
     test('answers with the nearest outdoor pano and its position, and leaves the viewer where it is', async () => {
@@ -174,15 +158,11 @@ describe('GsvViewer.findPanoNear', () => {
     });
 
     test('a lookup that never settles rejects after the budget instead of hanging', async () => {
-        jest.useFakeTimers();
-        try {
-            getPanorama.mockReturnValue(new Promise(() => {}));
-            const lookup = viewer.findPanoNear(HERE);
-            jest.advanceTimersByTime(PanoViewer.FIND_PANO_TIMEOUT_MS);
-            await expect(lookup).rejects.toThrow(/Timed out/);
-        } finally {
-            jest.useRealTimers();
-        }
+        vi.useFakeTimers();
+        getPanorama.mockReturnValue(new Promise(() => {}));
+        const lookup = viewer.findPanoNear(HERE);
+        vi.advanceTimersByTime(PanoViewer.FIND_PANO_TIMEOUT_MS);
+        await expect(lookup).rejects.toThrow(/Timed out/);
     });
 });
 
@@ -202,17 +182,13 @@ describe('MapillaryViewer.findPanoNear', () => {
         width,
     });
 
-    beforeEach(() => {
-        jest.spyOn(console, 'log').mockImplementation(() => {}); // #fetchImages logs every reply.
+    beforeEach(async () => {
+        vi.spyOn(console, 'log').mockImplementation(() => {}); // #fetchImages logs every reply.
         images = [];
-        fetchMock = jest.fn(async () => ({ json: async () => ({ data: images }) }));
+        fetchMock = vi.fn(async () => ({ json: async () => ({ data: images }) }));
         window.fetch = fetchMock;
-        viewer = new (loadViewer('MapillaryViewer').Viewer)();
-        viewer.viewer = { _navigator: { _api: { _data: { _accessToken: 'token' } } }, moveTo: jest.fn() };
-    });
-
-    afterEach(() => {
-        console.log.mockRestore();
+        viewer = new ((await loadViewer('MapillaryViewer')).Viewer)();
+        viewer.viewer = { _navigator: { _api: { _data: { _accessToken: 'token' } } }, moveTo: vi.fn() };
     });
 
     test('picks the image setLocation() would pick and reports its refined position', async () => {
@@ -270,11 +246,11 @@ describe('PanoramaxViewer.findPanoNear', () => {
         assets: {},
     });
 
-    beforeEach(() => {
+    beforeEach(async () => {
         items = [];
-        fetchMock = jest.fn(async () => ({ ok: true, json: async () => ({ features: items }) }));
+        fetchMock = vi.fn(async () => ({ ok: true, json: async () => ({ features: items }) }));
         window.fetch = fetchMock;
-        viewer = new (loadViewer('PanoramaxViewer').Viewer)();
+        viewer = new ((await loadViewer('PanoramaxViewer')).Viewer)();
     });
 
     test('picks the picture setLocation() would pick and reads its GeoJSON position as lat/lng', async () => {
@@ -312,13 +288,13 @@ describe('Infra3dViewer.findPanoNear', () => {
         key, l: { lat, lon: lng }, camera_projection_type: cameraType,
     });
 
-    beforeEach(() => {
-        viewer = new (loadViewer('Infra3dViewer').Viewer)();
-        imagesByKNN = jest.fn();
+    beforeEach(async () => {
+        viewer = new ((await loadViewer('Infra3dViewer')).Viewer)();
+        imagesByKNN = vi.fn();
         viewer.viewer = {
             _sdk_viewer: {
-                movePosition: jest.fn(),
-                moveToKey: jest.fn(),
+                movePosition: vi.fn(),
+                moveToKey: vi.fn(),
                 _navigator: { _api: { imagesByKNN$: imagesByKNN } },
             },
         };
@@ -365,7 +341,7 @@ describe('Infra3dViewer.findPanoNear', () => {
 
 describe('PanoViewer.getLinkedPanoPositions (base)', () => {
     test('passes through links the provider positioned, resolves the rest, and drops what it cannot place', async () => {
-        const { PanoViewer } = loadViewer('PannellumViewer');
+        const { PanoViewer } = await loadViewer('PannellumViewer');
         const there = metersFromHere(10);
         const viewer = new (class Probe extends PanoViewer {
             getLinkedPanos() {
@@ -383,14 +359,10 @@ describe('PanoViewer.getLinkedPanoPositions (base)', () => {
                 return Promise.resolve(null);
             }
         })();
-        jest.spyOn(console, 'warn').mockImplementation(() => {});
-        try {
-            const links = await viewer.getLinkedPanoPositions();
-            expect(links.map((l) => l.panoId)).toEqual(['placed', 'lookup']);
-            expect(links[1]).toMatchObject({ heading: 90, ...metersFromHere(12, 90) });
-        } finally {
-            console.warn.mockRestore();
-        }
+        vi.spyOn(console, 'warn').mockImplementation(() => {});
+        const links = await viewer.getLinkedPanoPositions();
+        expect(links.map((l) => l.panoId)).toEqual(['placed', 'lookup']);
+        expect(links[1]).toMatchObject({ heading: 90, ...metersFromHere(12, 90) });
     });
 });
 
@@ -400,7 +372,7 @@ describe('GsvViewer.lookupPanoPosition', () => {
 
     const reply = (pano, { lat, lng }) => ({ data: { location: { pano, latLng: new FakeLatLng(lat, lng) } } });
 
-    beforeEach(() => {
+    beforeEach(async () => {
         window.google = {
             maps: {
                 importLibrary: async () => ({ LatLng: FakeLatLng }),
@@ -409,13 +381,10 @@ describe('GsvViewer.lookupPanoPosition', () => {
                 StreetViewSource: { OUTDOOR: 'outdoor' },
             },
         };
-        window.util = window.util || {};
-        window.util.pano = window.util.pano || {};
-        window.util.pano.TUTORIAL_PANO_IDS = new Set(['tutorial', 'afterWalkTutorial']);
-        viewer = new (loadViewer('GsvViewer').Viewer)();
-        getPanorama = jest.fn();
+        viewer = new ((await loadViewer('GsvViewer')).Viewer)();
+        getPanorama = vi.fn();
         viewer.streetViewService = { getPanorama };
-        viewer.gsvPano = { setPano: jest.fn(), addListener: jest.fn() };
+        viewer.gsvPano = { setPano: vi.fn(), addListener: vi.fn() };
     });
 
     test('answers with the pano\'s position from the by-id metadata reply, without loading it', async () => {
@@ -455,9 +424,9 @@ describe('MapillaryViewer.lookupPanoPosition', () => {
     let viewer;
     let nodes;
 
-    beforeEach(() => {
+    beforeEach(async () => {
         nodes = {};
-        viewer = new (loadViewer('MapillaryViewer').Viewer)();
+        viewer = new ((await loadViewer('MapillaryViewer')).Viewer)();
         viewer.viewer = {
             _navigator: {
                 _api: { _data: { _accessToken: 'token' } },
@@ -465,19 +434,19 @@ describe('MapillaryViewer.lookupPanoPosition', () => {
                     _graph$: {
                         subscribe: (next) => {
                             next({ hasNode: (id) => id in nodes, getNode: (id) => nodes[id] });
-                            return { unsubscribe: jest.fn() };
+                            return { unsubscribe: vi.fn() };
                         },
                     },
                 },
             },
-            moveTo: jest.fn(),
+            moveTo: vi.fn(),
         };
     });
 
     test('reads a link target straight out of the SDK graph, no network', async () => {
         const there = metersFromHere(9);
         nodes.img1 = { lngLat: { lat: there.lat, lng: there.lng } };
-        window.fetch = jest.fn();
+        window.fetch = vi.fn();
         await expect(viewer.lookupPanoPosition('img1')).resolves.toEqual({ lat: there.lat, lng: there.lng });
         expect(window.fetch).not.toHaveBeenCalled();
         expect(viewer.viewer.moveTo).not.toHaveBeenCalled();
@@ -486,7 +455,7 @@ describe('MapillaryViewer.lookupPanoPosition', () => {
     test('an image the graph has evicted is fetched once from the Graph API, refined position preferred', async () => {
         const gps = metersFromHere(9);
         const refined = metersFromHere(10);
-        window.fetch = jest.fn(async () => ({
+        window.fetch = vi.fn(async () => ({
             json: async () => ({
                 id: 'img2',
                 geometry: { type: 'Point', coordinates: [gps.lng, gps.lat] },
@@ -498,14 +467,14 @@ describe('MapillaryViewer.lookupPanoPosition', () => {
     });
 
     test('a Graph API error rejects rather than reading as "no such image"', async () => {
-        window.fetch = jest.fn(async () => ({ json: async () => ({ error: { message: 'bad token' } }) }));
+        window.fetch = vi.fn(async () => ({ json: async () => ({ error: { message: 'bad token' } }) }));
         await expect(viewer.lookupPanoPosition('img3')).rejects.toThrow('bad token');
     });
 });
 
 describe('Infra3dViewer.lookupPanoPosition', () => {
     test('reads a link target out of the SDK graph as lat/lon, and answers null for an unknown key', async () => {
-        const viewer = new (loadViewer('Infra3dViewer').Viewer)();
+        const viewer = new ((await loadViewer('Infra3dViewer')).Viewer)();
         const there = metersFromHere(9);
         const nodes = { f1: { latLon: { lat: there.lat, lon: there.lng } } };
         viewer.viewer = {
@@ -515,7 +484,7 @@ describe('Infra3dViewer.lookupPanoPosition', () => {
                         _graph$: {
                             subscribe: (next) => {
                                 next({ hasNode: (key) => key in nodes, getNode: (key) => nodes[key] });
-                                return { unsubscribe: jest.fn() };
+                                return { unsubscribe: vi.fn() };
                             },
                         },
                     },
@@ -529,9 +498,9 @@ describe('Infra3dViewer.lookupPanoPosition', () => {
 
 describe('PanoramaxViewer link positions', () => {
     test('a cached picture answers by id; an unknown one is null', async () => {
-        const viewer = new (loadViewer('PanoramaxViewer').Viewer)();
+        const viewer = new ((await loadViewer('PanoramaxViewer')).Viewer)();
         const there = metersFromHere(9);
-        window.fetch = jest.fn(async () => ({ ok: true, json: async () => ({ features: [
+        window.fetch = vi.fn(async () => ({ ok: true, json: async () => ({ features: [
             { id: 'pic1', collection: 'c', geometry: { type: 'Point', coordinates: [there.lng, there.lat] },
               properties: { datetime: '2026-08-11T15:02:33+00:00' }, assets: {} },
         ] }) }));
@@ -543,18 +512,18 @@ describe('PanoramaxViewer link positions', () => {
 
 describe('PannellumViewer.findPanoNear', () => {
     test('cannot search by location, so it has no crumbs to offer', async () => {
-        const viewer = new (loadViewer('PannellumViewer').Viewer)();
+        const viewer = new ((await loadViewer('PannellumViewer')).Viewer)();
         await expect(viewer.findPanoNear(HERE)).resolves.toBeNull();
         expect(viewer.supportsLocationSearch()).toBe(false);
     });
 });
 
 describe('PanoViewer.supportsLocationSearch', () => {
-    test('is a real capability flag: true for every provider with a location search, false otherwise', () => {
+    test('is a real capability flag: true for every provider with a location search, false otherwise', async () => {
         for (const name of ['GsvViewer', 'MapillaryViewer', 'PanoramaxViewer', 'Infra3dViewer']) {
-            expect(new (loadViewer(name).Viewer)().supportsLocationSearch()).toBe(true);
+            expect(new ((await loadViewer(name)).Viewer)().supportsLocationSearch()).toBe(true);
         }
-        const { PanoViewer } = loadViewer('PannellumViewer');
+        const { PanoViewer } = await loadViewer('PannellumViewer');
         expect(new (class Probe extends PanoViewer {})().supportsLocationSearch()).toBe(false);
     });
 });

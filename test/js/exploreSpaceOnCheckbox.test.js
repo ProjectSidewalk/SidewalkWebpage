@@ -7,22 +7,22 @@
  * toggle unreachable from the keyboard and walked the user down the street instead.
  */
 
-const { loadModules } = require('./loadGlobalScript');
-
+import { loadModules } from './loader.js';
+import { fakeGate } from './fakes.js';
 
 describe('Explore spacebar shortcut and focused form controls', () => {
     let navigationService;
 
-    beforeAll(() => {
-        Object.assign(window, loadModules('frontend/js/common/KeyboardShortcuts.js', 'frontend/js/explore/keyboard/KeyboardManager.js'));
+    beforeAll(async () => {
+        const { KeyboardManager } = await loadModules('frontend/js/explore/keyboard/KeyboardManager.js');
         navigationService = {
             // Walking barred makes the route advance a no-op, so the test sees only whether it was attempted.
-            canWalk: jest.fn(() => false),
-            moveToLinkedPano: jest.fn(),
+            canWalk: vi.fn(() => false),
+            moveToLinkedPano: vi.fn(),
         };
         // One instance for the file: the constructor adds window listeners that are never removed.
-        new window.KeyboardManager({ isHeld: () => false }, {},
-            { isOpen: () => false, onTextFieldFocusChanged: jest.fn() }, navigationService, {}, {}, {}, {}, {}, {});
+        new KeyboardManager(fakeGate(), {},
+            { isOpen: () => false, onTextFieldFocusChanged: vi.fn() }, navigationService, {}, {}, {}, {}, {}, {});
     });
 
     beforeEach(() => {

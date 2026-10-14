@@ -8,17 +8,14 @@
  * banner is hidden or positioned non-fixed (the /mobile app's absolute layout).
  */
 
-const { loadModules } = require('./loadGlobalScript');
-
+import { loadModules } from './loader.js';
 
 const STORAGE_KEY = 'hideTestServerWarningBanner';
 const HEIGHT_VAR = '--test-banner-height';
 
-/** Loads a fresh TestServerBanner class into the jsdom global scope (body is empty, so auto-init no-ops). */
-function loadTestServerBanner() {
+async function loadTestServerBanner() {
     document.body.innerHTML = '';
-    Object.assign(window, loadModules('frontend/js/common/TestServerBanner.js'));
-    return window.TestServerBanner;
+    return (await loadModules('frontend/js/common/TestServerBanner.js')).TestServerBanner;
 }
 
 /** Inserts the banner markup and returns the `.test-server-banner` element. */
@@ -38,21 +35,17 @@ function insertBanner() {
 
 /** Forces getComputedStyle().position and offsetHeight, since jsdom does no layout. */
 function stubLayout(el, { position = 'fixed', height = 40 } = {}) {
-    jest.spyOn(window, 'getComputedStyle').mockReturnValue({ position });
+    vi.spyOn(window, 'getComputedStyle').mockReturnValue({ position });
     Object.defineProperty(el, 'offsetHeight', { configurable: true, value: height });
 }
 
 describe('TestServerBanner', () => {
     let TestServerBanner;
 
-    beforeEach(() => {
+    beforeEach(async () => {
         window.localStorage.clear();
         document.documentElement.style.removeProperty(HEIGHT_VAR);
-        TestServerBanner = loadTestServerBanner();
-    });
-
-    afterEach(() => {
-        jest.restoreAllMocks();
+        TestServerBanner = await loadTestServerBanner();
     });
 
     describe('permanent dismissal state', () => {
@@ -151,7 +144,7 @@ describe('TestServerBanner', () => {
             const banner = insertBanner();
             stubLayout(banner);
             new TestServerBanner(banner);
-            jest.spyOn(window.localStorage.__proto__, 'setItem').mockImplementation(() => {
+            vi.spyOn(window.localStorage.__proto__, 'setItem').mockImplementation(() => {
                 throw new Error('QuotaExceeded / private mode');
             });
 

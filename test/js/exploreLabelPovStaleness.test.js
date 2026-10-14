@@ -12,13 +12,16 @@
  *
  * The projection math used here is the real production code (panoUtilities.js), so the self-consistency assertion
  * is the same replay the server guard runs: the record's POV + canvas_x/y must reproduce its pano_x/y.
- *
- * Form is a top-level `class` declaration, so the test evals the source into the jsdom global scope (the
- * exploreFormPanoSubmitted pattern) rather than using loadGlobalScript.
  */
 
-const { loadGlobalScript, installDateHelpers, loadModules } = require('./loadGlobalScript');
+import { loadModules, useUtil } from './loader.js';
+import { fakePanoManager, fakeTaskContainer, fakeTracker } from './fakes.js';
 
+// The real ones ask the vendored bowser script, which no page here loads.
+useUtil({ getBrowser: () => 'chrome', getBrowserVersion: () => '1', getOperatingSystem: () => 'linux' });
+
+/** The `util` Form sees, for its real projection math (util.pano) in building the labels and the replay. */
+let util;
 
 // Explore's boxed labeling frame (util.EXPLORE_CANVAS_WIDTH/HEIGHT in frontend/js/common/utilities.js). The frame is
 // always 720 wide; its height follows the displayed aspect (util.exploreCanvasFrame, #5085), so a 16:9 window is
@@ -49,19 +52,13 @@ const PANO = {
     submitted: false,
 };
 
-/** Loads a fresh Form class into the jsdom global scope. */
-function loadForm() {
-    Object.assign(window, loadModules('frontend/js/explore/data/Form.js'));
-    return window.Form;
-}
-
 /** A stand-in for the PanoStore pano the label sits on. */
 function panoStub() {
     const props = { ...PANO };
     return {
         getProperties: () => props,
         getProperty: (k) => props[k],
-        setProperty: jest.fn((k, v) => { props[k] = v; }),
+        setProperty: vi.fn((k, v) => { props[k] = v; }),
     };
 }
 
@@ -112,7 +109,7 @@ function taskStub() {
         getMissionStart: () => null,
         getAuditedDistance: () => 0,
         lineDistance: () => 1,
-        setProperty: jest.fn(),
+        setProperty: vi.fn(),
     };
 }
 
@@ -123,37 +120,37 @@ describe('Explore label POV staleness (#4842 regression)', () => {
     let panoManager;
 
     /** Builds a Form wired to stub collaborators around the staged `labels`. */
-    function buildForm() {
-        const Form = loadForm();
+    async function buildForm() {
+        let Form;
+        ({ Form, util } = await loadModules('frontend/js/explore/data/Form.js', 'frontend/js/common/utilities.js'));
         const missionProps = { missionId: 5, distanceProgress: 0, distance: 100, isComplete: false, skipped: false };
         const mission = { getProperty: (k) => missionProps[k] };
-        const labelContainer = { getLabelsToLog: () => labels, clearLabelsToLog: jest.fn(), getAllLabels: () => [] };
+        const labelContainer = { getLabelsToLog: () => labels, clearLabelsToLog: vi.fn(), getAllLabels: () => [] };
         const pano = panoStub();
         const panoStore = {
             getStagedPanoData: () => [pano].filter((p) => !p.getProperty('submitted')),
             getPanoData: () => pano,
         };
-        const taskContainer = {
-            getCurrentTask: taskStub, updateTaskPriorities: jest.fn(), renderTask: jest.fn(),
-            onTaskEnded: jest.fn(), onTaskLeft: jest.fn(),
-        };
+        const taskContainer = fakeTaskContainer(taskStub, {
+            updateTaskPriorities: vi.fn(), renderTask: vi.fn(), onTaskEnded: vi.fn(), onTaskLeft: vi.fn(),
+        });
         return new Form(
             '/task',
             { userRouteId: null, regionId: 1, isOnboarding: false, isExploreAddressMode: false },
             labelContainer,
-            { on: jest.fn() }, // missionModel
-            { getCurrentMission: () => mission, updateDistanceProgress: jest.fn() }, // missionContainer
+            { on: vi.fn() }, // missionModel
+            { getCurrentMission: () => mission, updateDistanceProgress: vi.fn() }, // missionContainer
             panoStore,
             taskContainer,
             panoManager,
-            { getActions: () => [], refresh: jest.fn(), push: jest.fn(), setAuditTaskID: jest.fn() }, // tracker
+            fakeTracker(),
         );
     }
 
     /** Stubs fetch to accept the POST, capturing each request body as parsed JSON. */
     function acceptingFetch() {
         const bodies = [];
-        window.fetch = jest.fn((url, opts) => {
+        window.fetch = vi.fn((url, opts) => {
             bodies.push(JSON.parse(opts.body));
             return Promise.resolve({
                 ok: true,
@@ -180,32 +177,18 @@ describe('Explore label POV staleness (#4842 regression)', () => {
         return { dx: Math.abs(panoXY.x - sent.pano_x), dy: Math.abs(panoXY.y - sent.pano_y) };
     }
 
-    beforeEach(() => {
-        // The real projection math the client places labels with; assigns window.util.pano.
-        window.util = window.util || {};
-        loadGlobalScript('frontend/js/common/pano-viewer/panoUtilities.js');
-        // Form's other collaborators that live on globals rather than constructor args.
-        Object.assign(window.util, {
-            getBrowser: () => 'chrome',
-            getBrowserVersion: () => '1',
-            getOperatingSystem: () => 'linux',
-            math: { kmsToMeters: (km) => km * 1000 },
-        });
-        installDateHelpers();
+    beforeEach(async () => {
+        // Form's one collaborator that lives on a global rather than a constructor arg.
         window.AsyncLock = class { async acquire(key, fn) { return fn(); } };
         viewerPov = { heading: 128.7, pitch: -12.3, zoom: 2 };
-        panoManager = {
-            getPov: jest.fn(() => ({ ...viewerPov })),
+        panoManager = fakePanoManager({}, {
+            getPov: vi.fn(() => ({ ...viewerPov })),
             getPosition: () => ({ lat: 41.85, lng: -87.65 }),
-        };
+        });
         window.i18next = { language: 'en' };
 
         labels = [];
-        form = buildForm();
-    });
-
-    afterEach(() => {
-        jest.restoreAllMocks();
+        form = await buildForm();
     });
 
     test('submits a self-consistent record when the viewport is unchanged', async () => {

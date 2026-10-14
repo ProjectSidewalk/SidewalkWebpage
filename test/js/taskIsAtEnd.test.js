@@ -14,13 +14,13 @@
  * stub that got the geometry slightly wrong would pass for the wrong reason.
  */
 
-const path = require('path');
-const { loadModules, realUtil } = require('./loadGlobalScript');
-
-const REPO_ROOT = path.resolve(__dirname, '..', '..');
+import { loadVendored, loadModules } from './loader.js';
 
 // Loaded once, up front: the fixtures below are built while the suite is collected, before any beforeEach runs.
-const turf = require(path.join(REPO_ROOT, 'public/vendor/turf/turf-7.4.0.min.js'));
+loadVendored('turf');
+const turf = window.turf;
+
+let Task;
 
 // The thresholds for the post-move end-of-street check (StreetProgress) and the imagery-ran-out credit (StreetSweep).
 const END_OF_STREET_M = 25;
@@ -28,7 +28,7 @@ const NEAR_END_NO_IMAGERY_M = 50;
 
 /** A task over a street given as [lng, lat] coordinates, with the properties `Task.initialize` reads. */
 function makeTask(coordinates, streetEdgeId = 1) {
-    return new window.Task({
+    return new Task({
         type: 'Feature',
         geometry: { type: 'LineString', coordinates },
         properties: { street_edge_id: streetEdgeId, task_start: '2026-09-15T18:44:14Z' },
@@ -53,11 +53,9 @@ function positionOn(street, alongM, offsetM = 0) {
 }
 
 describe('Task.isAtEnd', () => {
-    beforeEach(() => {
+    beforeEach(async () => {
         window.turf = turf;
-        window.util ??= realUtil();
-        loadModules('frontend/js/common/utilitiesMath.js');
-        Object.assign(window, loadModules('frontend/js/explore/task/Task.js'));
+        ({ Task } = await loadModules('frontend/js/explore/task/Task.js'));
     });
 
     describe('on the 8.6 m Richmond stub the labeler was bounced around (#5350)', () => {

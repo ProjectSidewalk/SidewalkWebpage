@@ -11,8 +11,7 @@
  * These are pure functions over plain objects, so no DOM stubbing is needed beyond loading the source.
  */
 
-const { loadModules, realUtil } = require('./loadGlobalScript');
-
+import { loadModules } from './loader.js';
 
 // The tutorial pano's real dimensions (Onboarding.TUTORIAL_PANO_WIDTH), so the seam cases are the real ones.
 const PANO_WIDTH = 13312;
@@ -27,12 +26,12 @@ const transient = (id, type = 'arrow') => ({ id, type });
 describe('tutorial annotation helpers', () => {
     let misc;
 
-    beforeEach(() => {
+    beforeEach(async () => {
         // utilitiesSidewalk.js reads i18next at call time for label descriptions; the helpers here never do.
         window.i18next = { t: (k) => k };
-        window.util ??= realUtil();
-        loadModules('frontend/js/common/utilitiesSidewalk.js');
-        misc = window.util.misc;
+        const { util } = await loadModules('frontend/js/common/utilitiesSidewalk.js',
+            'frontend/js/common/utilities.js');
+        misc = util.misc;
     });
 
     describe('mergeOnboardingAnnotations', () => {

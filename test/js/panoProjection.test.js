@@ -15,29 +15,18 @@
  * PanoDataServiceSpec's, so both ports are pinned to the same pov_replay.py values rather than to each other.
  */
 
-const path = require('path');
-const {loadGlobalScript, realUtil, loadModules } = require('./loadGlobalScript');
+import { loadModules } from './loader.js';
 
-const VALIDATE_LABEL_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/label/Label.js');
+const VALIDATE_LABEL_PATH = 'frontend/js/validate/label/Label.js';
 
-// utilities.js builds a Bowser parser at load time; nothing here consults it.
-window.bowser = {
-    getParser: () => ({
-        getBrowserName: () => 'Test', getBrowserVersion: () => '1',
-        getOSName: () => 'TestOS', getPlatformType: () => 'desktop',
-    }),
-};
-window.util = realUtil();
-// renderedHFov's aspect bridges use util.math.to{Degrees,Radians}.
-loadGlobalScript('frontend/js/common/utilitiesMath.js');
-loadGlobalScript('frontend/js/common/pano-viewer/panoUtilities.js');
-
-const pano = window.util.pano;
+const { util } = await loadModules('frontend/js/common/pano-viewer/panoUtilities.js',
+    'frontend/js/common/utilities.js');
+const pano = util.pano;
 
 // The authoring canvas every stored canvas_x/canvas_y is expressed in, read from the constant itself rather than
 // copied as a literal. LabelPointTable.canvasWidth/canvasHeight is the backend half of the same pair.
-const CANVAS_WIDTH = window.util.EXPLORE_CANVAS_WIDTH;
-const CANVAS_HEIGHT = window.util.EXPLORE_CANVAS_HEIGHT;
+const CANVAS_WIDTH = util.EXPLORE_CANVAS_WIDTH;
+const CANVAS_HEIGHT = util.EXPLORE_CANVAS_HEIGHT;
 
 describe('util.pano projection', () => {
     describe('canvasCoordToCenteredPov', () => {
@@ -223,10 +212,8 @@ describe('util.pano projection', () => {
     // itself — it lived in each consumer's copy, and today's equivalent is a nudge on the arguments at a call site.
     // So pin the consumer too: a label stored at the canvas center must read back as the POV it was authored at.
     describe('consumer call sites pass the stored canvas coordinate through unchanged', () => {
-        it('Validate: getOriginalPov returns the authored POV for a center-canvas label', () => {
-            const ValidateLabel = loadModules(VALIDATE_LABEL_PATH).Label;
-            // Label's init reaches for the backup-image helper, so a no-op stands in for it.
-            global.buildBackupImageData = () => null;
+        it('Validate: getOriginalPov returns the authored POV for a center-canvas label', async () => {
+            const ValidateLabel = (await loadModules(VALIDATE_LABEL_PATH)).Label;
             const authored = {heading: 212.75, pitch: -9.5, zoom: 2};
             const label = new ValidateLabel({
                 canvas_x: CANVAS_WIDTH / 2, canvas_y: CANVAS_HEIGHT / 2,
@@ -244,9 +231,8 @@ describe('util.pano projection', () => {
         // The frame contract (#5085): a label placed in a 16:9 viewport carries a 720x405 frame, and its mid-frame
         // click (y = 202) decodes to the authored pitch only through that frame. A payload without the frame is a
         // label that predates the columns, so it decodes through the boxed 720x480.
-        it('Validate: getOriginalPov projects through the label\'s own frame, defaulting to 720x480', () => {
-            const ValidateLabel = loadModules(VALIDATE_LABEL_PATH).Label;
-            global.buildBackupImageData = () => null;
+        it('Validate: getOriginalPov projects through the label\'s own frame, defaulting to 720x480', async () => {
+            const ValidateLabel = (await loadModules(VALIDATE_LABEL_PATH)).Label;
             const authored = {heading: 212.75, pitch: -9.5, zoom: 2};
             const common = {canvas_x: 360, canvas_y: 202, heading: authored.heading, pitch: authored.pitch, zoom: 2};
 

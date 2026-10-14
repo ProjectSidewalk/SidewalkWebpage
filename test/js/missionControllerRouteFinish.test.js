@@ -4,7 +4,8 @@
  * would read the previous pano's coverage and could finish the route the moment the labeler steps onto the last pano.
  */
 
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules } from './loader.js';
+import { fakeTracker, fakePanoManager } from './fakes.js';
 
 describe('MissionController finishing a route on its own', () => {
     let controller;
@@ -12,31 +13,31 @@ describe('MissionController finishing a route on its own', () => {
     let fractionObserved;
     let headingSettled;
 
-    beforeEach(() => {
+    beforeEach(async () => {
         settling = false;
         fractionObserved = 0;
         window.i18next = { t: (key) => key };
-        Object.assign(window, loadModules('frontend/js/explore/mission/MissionController.js'));
+        const { MissionController } = await loadModules('frontend/js/explore/mission/MissionController.js');
         const navigationService = {
             isHeadingSettling: () => settling,
             onHeadingSettled: (listener) => { headingSettled = listener; },
         };
-        controller = new window.MissionController(
+        controller = new MissionController(
             { isExploreAddressMode: false },
-            { on: jest.fn() },
+            { on: vi.fn() },
             { isRoute: true, isRouteComplete: true },
             { getCurrentMission: () => ({ isComplete: () => false }) },
             {}, {}, {}, {},
-            { showAlert: jest.fn() },
-            { onFinishClick: jest.fn(), removeLabelBeforeJumpMessage: jest.fn() },
+            { showAlert: vi.fn() },
+            { onFinishClick: vi.fn(), removeLabelBeforeJumpMessage: vi.fn() },
             navigationService,
-            { onRouteEndReached: jest.fn(), onRegionExhausted: jest.fn() },
-            { onPovChanged: jest.fn() },
+            { onRouteEndReached: vi.fn(), onRegionExhausted: vi.fn() },
+            fakePanoManager(),
             { getFractionObserved: () => fractionObserved },
             {}, {}, {}, {},
-            { push: jest.fn() },
+            fakeTracker(),
         );
-        jest.spyOn(controller, 'wrapUpRouteOrRegion').mockImplementation(() => {});
+        vi.spyOn(controller, 'wrapUpRouteOrRegion').mockImplementation(() => {});
     });
 
     it('waits for the heading to settle on the last pano, not the coverage of the one before it', () => {

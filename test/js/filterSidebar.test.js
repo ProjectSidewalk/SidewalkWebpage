@@ -7,8 +7,7 @@
  * descriptor carries — so the Gallery adoption can't silently redefine them.
  */
 
-const { loadModules } = require('./loadGlobalScript');
-
+import { loadModules } from './loader.js';
 
 /** Label types the fixture renders, mirroring the real sidebar's ids (`<LabelType>-checkbox`). */
 const LABEL_TYPES = ['CurbRamp', 'NoCurbRamp', 'Obstacle'];
@@ -97,13 +96,6 @@ function buildFixture() {
     return document.getElementById('filter-sidebar');
 }
 
-
-/** Loads a fresh FilterSidebar class into the jsdom global scope. */
-function loadFilterSidebar() {
-    Object.assign(window, loadModules('frontend/js/common/filter-sidebar/FilterSidebar.js'));
-    return window.FilterSidebar;
-}
-
 describe('FilterSidebar', () => {
     let FilterSidebar;
     let root;
@@ -137,9 +129,9 @@ describe('FilterSidebar', () => {
         window.i18next = { t: (key) => key, language: 'en' };
     });
 
-    beforeEach(() => {
+    beforeEach(async () => {
         root = buildFixture();
-        FilterSidebar = loadFilterSidebar();
+        ({ FilterSidebar } = await loadModules('frontend/js/common/filter-sidebar/FilterSidebar.js'));
     });
 
     describe('getState', () => {

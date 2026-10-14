@@ -4,12 +4,17 @@
  * The counts beside each row answer "how many labels would this option contribute if it were enabled": every *other*
  * active filter applies, but the option's own on/off state doesn't, so unchecking a row never zeroes its own count.
  * That rule is easy to break silently — the numbers still render, they're just wrong — so it's pinned here.
- *
- * The page globals MapSidebarFilter reaches for (the Mapbox helpers, i18next) are stubbed on `window`.
  */
 
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules, mockModule } from './loader.js';
 
+// The layer helpers drive a Mapbox map; the counts are what is under test, so they do nothing here.
+mockModule('frontend/js/ps-map/psMapUtilities.js', async (importOriginal) => ({
+    ...await importOriginal(),
+    filterLabelLayers: () => {},
+    filterStreetLayer: () => {},
+    toggleLabelLayer: () => {},
+}));
 
 const LABEL_TYPES = ['CurbRamp', 'Obstacle'];
 const VALIDATIONS = ['correct', 'incorrect', 'unsure', 'unvalidated'];
@@ -104,6 +109,7 @@ function buildMapData(labelsByType) {
 }
 
 describe('MapSidebarFilter counts', () => {
+    let MapSidebarFilter;
     let mapData;
 
     /** @returns {string} The rendered count for a row. */
@@ -115,16 +121,12 @@ describe('MapSidebarFilter counts', () => {
         mapData = buildMapData(labelsByType);
         mapData.streetCounts = streetCounts;
         const map = { getLayer: () => true, easeTo: () => {}, setPadding: () => {} };
-        return new window.MapSidebarFilter(map, mapData);
+        return new MapSidebarFilter(map, mapData);
     }
 
-    beforeAll(() => {
+    beforeAll(async () => {
         window.i18next = { t: (key) => key, language: 'en' };
-        window.filterLabelLayers = () => {};
-        window.filterStreetLayer = () => {};
-        window.toggleLabelLayer = () => {};
-        Object.assign(window, loadModules('frontend/js/common/filter-sidebar/FilterSidebar.js'));
-        Object.assign(window, loadModules('frontend/js/ps-map/MapSidebarFilter.js'));
+        ({ MapSidebarFilter } = await loadModules('frontend/js/ps-map/MapSidebarFilter.js'));
     });
 
     it('renders counts as soon as it is constructed, before any interaction', () => {
@@ -288,7 +290,7 @@ describe('MapSidebarFilter counts', () => {
                 setPadding: () => {},
                 getBounds: () => ({ contains: () => false }),
             };
-            const sidebar = new window.MapSidebarFilter(map, mapData, { viewportCounts: true });
+            const sidebar = new MapSidebarFilter(map, mapData, { viewportCounts: true });
             const offScreen = { ...label({ correct: true }), geometry: { coordinates: [5, 5] } };
             expect(sidebar.matchesFilters('CurbRamp', offScreen)).toBe(true);
         });
@@ -312,7 +314,7 @@ describe('MapSidebarFilter counts', () => {
                     contains: ([lng, lat]) => Math.abs(lng) <= 1 && Math.abs(lat) <= 1,
                 }),
             };
-            return new window.MapSidebarFilter(map, mapData, { viewportCounts: true });
+            return new MapSidebarFilter(map, mapData, { viewportCounts: true });
         }
 
         it('counts only labels inside the current view', () => {

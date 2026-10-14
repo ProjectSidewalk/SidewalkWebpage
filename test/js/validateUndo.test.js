@@ -7,7 +7,8 @@
  * different module, so these suites drive the real button, container and mission together.
  */
 
-const { assetPathStub, installUtilitiesMisc, loadModules } = require('./loadGlobalScript');
+import { loadModules } from './loader.js';
+import { fakeTracker } from './fakes.js';
 
 const TAGS_BY_TYPE = {
   Obstacle: [{ tag_name: 'pole' }],
@@ -24,27 +25,13 @@ let LabelContainer;
 let UndoValidation;
 let MissionContainer;
 
-beforeAll(() => {
-  window.util = {
-    assetPath: assetPathStub,
-    isMobile: () => false,
-    uiScale: () => 1,
-    camelToKebab: (s) => s.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase(),
-  };
-  installUtilitiesMisc();
+beforeAll(async () => {
   window.i18next = { t: (key) => key };
-  ({ LabelContainer, UndoValidation, MissionContainer } = loadModules(
-    'frontend/js/validate/label/Label.js',
+  ({ LabelContainer, UndoValidation, MissionContainer } = await loadModules(
     'frontend/js/validate/label/LabelContainer.js',
     'frontend/js/validate/menu/UndoValidation.js',
     'frontend/js/validate/mission/MissionContainer.js',
   ));
-  // Where the validator was looking is not under test; the projection only has to answer.
-  window.util.pano = {
-    canvasCoordToCenteredPov: () => ({ heading: 0, pitch: 0, zoom: 1 }),
-    centeredPovToCanvasCoord: () => ({ x: 360, y: 240 }),
-    renderedHFov: () => 90,
-  };
 });
 
 /** @returns {Array} Three Obstacle labels, one per pano, as the backend would hand them over. */
@@ -79,26 +66,26 @@ describe('undoing a validation', () => {
   async function build(labelsValidated = 5, labels = threeLabels()) {
     const el = () => document.createElement('div');
     missionContainer = new MissionContainer(
-      statusField, { setMissionMessage: jest.fn() }, modalMissionComplete, { markLive: jest.fn() }, tracker,
+      statusField, { setMissionMessage: vi.fn() }, modalMissionComplete, { markLive: vi.fn() }, tracker,
     );
     const panoManager = {
-      setPanorama: jest.fn((panoId) => {
+      setPanorama: vi.fn((panoId) => {
         if (!holdNextLoad) return Promise.resolve({ panoData: { panoId } });
         holdNextLoad = false;
         return new Promise((resolve) => { releaseLoad = () => resolve({ panoData: { panoId } }); });
       }),
-      renderPanoMarker: jest.fn(),
-      prefetchPano: jest.fn(),
-      prefetchBackups: jest.fn(),
+      renderPanoMarker: vi.fn(),
+      prefetchPano: vi.fn(),
+      prefetchBackups: vi.fn(),
       blanksPanoWhileLoading: () => false,
       getActiveViewerName: () => 'Default',
-      revealPendingCanvas: jest.fn(),
+      revealPendingCanvas: vi.fn(),
       panoViewer: { getViewerType: () => 'gsv', getPov: () => ({ heading: 10, pitch: 5, zoom: 1 }) },
     };
     labelContainer = new LabelContainer(labels, 'Obstacle',
       { holder: el(), busyRegion: [el()], viewer: { controlLayer: el() } }, config, panoManager,
-      { begin: jest.fn(), setMessage: jest.fn(), end: jest.fn() }, modalMissionComplete,
-      { show: jest.fn(), isShowing: () => false }, missionContainer, tracker);
+      { begin: vi.fn(), setMessage: vi.fn(), end: vi.fn() }, modalMissionComplete,
+      { show: vi.fn(), isShowing: () => false }, missionContainer, tracker);
     undoValidation = new UndoValidation({ undoButton }, labelContainer, validationMenu, missionContainer, tracker);
 
     const render = labelContainer.renderCurrentLabel();
@@ -113,13 +100,13 @@ describe('undoing a validation', () => {
   beforeEach(() => {
     document.body.innerHTML = '<button type="button" id="validate-undo-button"></button>';
     undoButton = document.getElementById('validate-undo-button');
-    tracker = { push: jest.fn(), flushSoon: jest.fn(), trackMissions: jest.fn() };
+    tracker = fakeTracker();
     statusField = {
-      reset: jest.fn(), updateLabelText: jest.fn(), incrementLabelCounts: jest.fn(), decrementLabelCounts: jest.fn(),
-      setProgressBar: jest.fn(), setProgressText: jest.fn(),
+      reset: vi.fn(), updateLabelText: vi.fn(), incrementLabelCounts: vi.fn(), decrementLabelCounts: vi.fn(),
+      setProgressBar: vi.fn(), setProgressText: vi.fn(),
     };
-    validationMenu = { saveValidationState: jest.fn() };
-    modalMissionComplete = { show: jest.fn(), isShowing: () => false };
+    validationMenu = { saveValidationState: vi.fn() };
+    modalMissionComplete = { show: vi.fn(), isShowing: () => false };
     holdNextLoad = false;
     releaseLoad = null;
   });
@@ -202,7 +189,7 @@ describe('undoing a validation', () => {
       expect(labelContainer.getLabelsToSubmit()).toEqual([expect.objectContaining({ label_id: 1, ...buffered })]);
       expect(statusField.incrementLabelCounts).toHaveBeenCalledTimes(1);
 
-      const undoSpy = jest.spyOn(missionContainer, 'updateAMissionUndoValidation');
+      const undoSpy = vi.spyOn(missionContainer, 'updateAMissionUndoValidation');
       await pressUndo();
 
       expect(currentLabelId()).toBe(1);
@@ -326,7 +313,7 @@ describe('undoing a validation', () => {
     await cast('Agree');
     const counts = missionCounts();
     const buffer = [...labelContainer.getLabelsToSubmit()];
-    jest.spyOn(labelContainer, 'undoLabel').mockResolvedValue(false);
+    vi.spyOn(labelContainer, 'undoLabel').mockResolvedValue(false);
 
     await pressUndo();
 

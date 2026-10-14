@@ -7,15 +7,13 @@
  * Hide/Show toggle — it relabels itself on click with the pointer still resting on it, so a card that only read the
  * text on open would sit there describing the state the user just left.
  *
- * psTooltip.js is an IIFE that wires document listeners on load, so the test evaluates the source directly.
  * jsdom has no layout engine, so getBoundingClientRect is stubbed: the tooltip reports the size each test states,
  * and triggers report the rect they were assigned.
  */
 
-const { loadModules, loadVendored } = require('./loadGlobalScript');
+import { loadModules, loadVendored } from './loader.js';
 
 loadVendored('dompurify');
-
 
 // Matches the constants in psTooltip.js.
 const TRIGGER_GAP = 8;
@@ -61,16 +59,16 @@ function open(trigger) {
 }
 
 /**
- * Evaluates psTooltip.js, returning a teardown that detaches the listeners that evaluation registered.
+ * Loads psTooltip.js, returning a teardown that detaches the listeners that load registered.
  *
- * Each test needs its own evaluation, because the module keeps `activeTrigger` and its card in a closure with no
- * way to reset them from outside. But it wires six document/window listeners on load, so without the teardown
- * every test would leave its set attached and the file would finish with nine of them stacked up — harmless here,
- * since a stale set only ever touches its own detached card, but not something to hand to the next test that
- * counts calls. addEventListener is patched on EventTarget.prototype so it catches document and window alike.
- * @returns {function(): void} Detaches every listener the evaluation added.
+ * Each test needs its own load, because the module keeps `activeTrigger` and its card in a closure with no way to
+ * reset them from outside. But it wires six document/window listeners on load, so without the teardown every test
+ * would leave its set attached and the file would finish with nine of them stacked up — harmless here, since a
+ * stale set only ever touches its own detached card, but not something to hand to the next test that counts calls.
+ * addEventListener is patched on EventTarget.prototype so it catches document and window alike.
+ * @returns {function(): void} Detaches every listener the load added.
  */
-function loadPsTooltip() {
+async function loadPsTooltip() {
     const added = [];
     const original = EventTarget.prototype.addEventListener;
     EventTarget.prototype.addEventListener = function (...args) {
@@ -78,7 +76,7 @@ function loadPsTooltip() {
         return original.apply(this, args);
     };
     try {
-        Object.assign(window, loadModules('frontend/js/common/psTooltip.js'));
+        await loadModules('frontend/js/common/psTooltip.js');
     } finally {
         EventTarget.prototype.addEventListener = original;
     }
@@ -87,13 +85,13 @@ function loadPsTooltip() {
 
 let unloadPsTooltip;
 
-beforeEach(() => {
+beforeEach(async () => {
     document.body.innerHTML = '';
     window.innerWidth = VIEWPORT_WIDTH;
     window.innerHeight = VIEWPORT_HEIGHT;
     cardHeight = CARD_HEIGHT;
     stubLayout();
-    unloadPsTooltip = loadPsTooltip();
+    unloadPsTooltip = await loadPsTooltip();
 });
 
 afterEach(() => {
@@ -319,18 +317,14 @@ describe('psTooltip retirement', () => {
     test('a show still waiting out the hover delay is dropped once the attribute is gone', () => {
         // The AI tag suggestion clicked within the delay: its click removes the attribute, and the card that then
         // opened was empty.
-        jest.useFakeTimers();
-        try {
-            const trigger = addTrigger({ left: 400, top: 300, width: 100, height: 30 }, 'quick');
-            trigger.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
-            trigger.removeAttribute('data-ps-tooltip');
-            jest.runAllTimers();
+        vi.useFakeTimers();
+        const trigger = addTrigger({ left: 400, top: 300, width: 100, height: 30 }, 'quick');
+        trigger.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+        trigger.removeAttribute('data-ps-tooltip');
+        vi.runAllTimers();
 
-            expect(document.getElementById('ps-tooltip')?.classList.contains('ps-tooltip--visible') ?? false)
-                .toBe(false);
-        } finally {
-            jest.useRealTimers();
-        }
+        expect(document.getElementById('ps-tooltip')?.classList.contains('ps-tooltip--visible') ?? false)
+            .toBe(false);
     });
 
     test('a trigger removed from the page takes its card with it', async () => {

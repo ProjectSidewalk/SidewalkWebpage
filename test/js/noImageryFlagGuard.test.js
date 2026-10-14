@@ -11,21 +11,17 @@
  * the storage-unavailable case (some privacy modes throw on access) is covered by replacing it with a thrower.
  */
 
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules } from './loader.js';
 
-
-/** Loads a fresh NoImageryFlagGuard class into the jsdom global scope and returns it. */
-function loadGuard() {
-    Object.assign(window, loadModules('frontend/js/explore/panorama/NoImageryFlagGuard.js'));
-    return window.NoImageryFlagGuard;
-}
+const loadGuard = async () =>
+    (await loadModules('frontend/js/explore/panorama/NoImageryFlagGuard.js')).NoImageryFlagGuard;
 
 describe('NoImageryFlagGuard', () => {
     let NoImageryFlagGuard;
 
-    beforeEach(() => {
+    beforeEach(async () => {
         window.sessionStorage.clear();
-        NoImageryFlagGuard = loadGuard();
+        NoImageryFlagGuard = await loadGuard();
     });
 
     test('starts with a full allowance', () => {
@@ -97,12 +93,12 @@ describe('NoImageryFlagGuard', () => {
         expect(NoImageryFlagGuard.canFlag()).toBe(true);
     });
 
-    test('the count survives a page reload, which is what the page-load path does between streets', () => {
+    test('the count survives a page reload, which is what the page-load path does between streets', async () => {
         NoImageryFlagGuard.recordStreetGivenUp();
         NoImageryFlagGuard.recordStreetGivenUp();
 
         // A reload re-evaluates the script: fresh class, fresh in-memory state, same session storage.
-        const reloaded = loadGuard();
+        const reloaded = await loadGuard();
         expect(reloaded.count()).toBe(2);
     });
 

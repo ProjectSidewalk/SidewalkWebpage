@@ -5,16 +5,17 @@
  * Pins the two contracts DashboardBadges.js relies on: (1) the THRESHOLDS / LEVEL_NAMES / ROMAN tables stay parallel
  * (4 tracks x 5 ascending levels — a missing name or out-of-order threshold silently mislabels every user's badges),
  * and (2) getLevelForValue's boundary behavior (a value exactly at a threshold earns that level).
- *
- * BadgeAchievements.js declares a top-level class: on a page that makes it a global binding, but under require() it
- * stays module-scoped, so the test evaluates the source directly instead of using loadGlobalScript.
  */
 
+import { loadModules, useUtil } from './loader.js';
 
-const {assetPathStub, loadModules } = require('./loadGlobalScript');
+// What the navbar reports about the session; seedCounts reads it through util, and its tests move it per test.
+let hasSession = null;
+useUtil({ hasSession: () => hasSession });
 
-const evalBadgeAchievements = () => loadModules('frontend/js/common/BadgeAchievements.js').BadgeAchievements;
-const BadgeAchievements = evalBadgeAchievements();
+const loadBadgeAchievements = async () =>
+    (await loadModules('frontend/js/common/BadgeAchievements.js')).BadgeAchievements;
+const BadgeAchievements = await loadBadgeAchievements();
 
 const TRACKS = ['missions', 'distance', 'labels', 'validations'];
 
@@ -81,13 +82,11 @@ describe('BadgeAchievements.getProgress', () => {
     const V = BadgeAchievements.THRESHOLDS.validations;
 
     beforeEach(() => {
-        global.i18next = {t: (key) => key}; // getBadge localizes the badge's display name.
-        global.util = {assetPath: assetPathStub}; // getBadge resolves the badge artwork's URL.
+        window.i18next = {t: (key) => key}; // getBadge localizes the badge's display name.
     });
 
     afterEach(() => {
-        delete global.i18next;
-        delete global.util;
+        delete window.i18next;
     });
 
     test('someone with no badge yet is on the first tier, measured from zero', () => {
@@ -191,7 +190,7 @@ describe('BadgeAchievements.seedCounts', () => {
     const settle = () => new Promise((resolve) => { setTimeout(resolve, 0); });
 
     const respondWith = (status, body) => {
-        global.fetch = jest.fn(() => Promise.resolve({
+        window.fetch = vi.fn(() => Promise.resolve({
             ok: status >= 200 && status < 300,
             status,
             json: () => Promise.resolve(body),
@@ -206,18 +205,16 @@ describe('BadgeAchievements.seedCounts', () => {
         return toasts;
     };
 
-    beforeEach(() => {
-        Badges = evalBadgeAchievements();
-        consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
-        global.i18next = {t: (key) => key}; // getBadge localizes the badge's display name.
-        global.util = {hasSession: () => true, assetPath: assetPathStub};
+    beforeEach(async () => {
+        Badges = await loadBadgeAchievements();
+        consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+        window.i18next = {t: (key) => key}; // getBadge localizes the badge's display name.
+        hasSession = true;
     });
 
     afterEach(() => {
-        consoleError.mockRestore();
-        delete global.fetch;
-        delete global.i18next;
-        delete global.util;
+        delete window.fetch;
+        delete window.i18next;
     });
 
     test('seeds the counts from a signed-in response', async () => {
@@ -231,24 +228,24 @@ describe('BadgeAchievements.seedCounts', () => {
     });
 
     test('a page rendered without an identity seeds zero and never requests', async () => {
-        global.util = {...global.util, hasSession: () => false};
+        hasSession = false;
         respondWith(200, {validation_count: 4000, mission_count: 200});
         Badges.seedCounts();
         await settle();
 
         // The request is what has to not happen: the browser logs a 401 as a console error whatever we catch.
-        expect(global.fetch).not.toHaveBeenCalled();
+        expect(window.fetch).not.toHaveBeenCalled();
         expect(consoleError).not.toHaveBeenCalled();
         expect(validate(100)).toHaveLength(1); // Seeded at zero, so this session's own activity still counts.
     });
 
     test('a page with no navbar to report session state still requests', async () => {
-        global.util = {...global.util, hasSession: () => null};
+        hasSession = null;
         respondWith(200, {validation_count: 99, mission_count: 4});
         Badges.seedCounts();
         await settle();
 
-        expect(global.fetch).toHaveBeenCalledTimes(1);
+        expect(window.fetch).toHaveBeenCalledTimes(1);
         expect(validate(1)).toHaveLength(1);
     });
 
@@ -280,6 +277,6 @@ describe('BadgeAchievements.seedCounts', () => {
         Badges.seedCounts();
         await settle();
 
-        expect(global.fetch).toHaveBeenCalledTimes(1);
+        expect(window.fetch).toHaveBeenCalledTimes(1);
     });
 });

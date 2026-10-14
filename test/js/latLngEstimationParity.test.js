@@ -19,19 +19,12 @@
  * destination.
  */
 
-const fs = require('fs');
-const path = require('path');
-const { loadModules } = require('./loadGlobalScript');
+import fs from 'fs';
+import path from 'path';
+import { loadVendored, loadModules, REPO_ROOT } from './loader.js';
 
-const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const FIXTURE = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'test/fixtures/latLngEstimationParity.json'), 'utf8'));
 const CLIENT_TOL_DEG = 1e-8;
-
-/** Loads a fresh Label class into the jsdom global scope (a class declaration is not a globalThis property). */
-function loadLabel() {
-    Object.assign(window, loadModules('frontend/js/explore/label/Label.js'));
-    return window.Label;
-}
 
 describe('Label lat/lng estimation parity with the server and the SQL backfill (#5084)', () => {
     let Label;
@@ -41,10 +34,10 @@ describe('Label lat/lng estimation parity with the server and the SQL backfill (
         cameraHeightM: FIXTURE.constants.camera_height_m,
     };
 
-    beforeEach(() => {
-        Label = loadLabel();
+    beforeEach(async () => {
+        ({ Label } = await loadModules('frontend/js/explore/label/Label.js'));
         // The real vendored turf (UMD), not a stub: the destination step is part of what is being pinned.
-        window.turf = require(path.join(REPO_ROOT, 'public/vendor/turf/turf-7.4.0.min.js'));
+        loadVendored('turf');
     });
 
     test('the fixture was generated for the constants this test injects', () => {

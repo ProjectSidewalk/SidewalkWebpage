@@ -1,19 +1,12 @@
 /**
  * Tests for how the Manage user page's Excluded box drives the quality dropdown (#3956), chiefly that a stray
  * check-and-uncheck restores the admin's earlier choice.
- *
- * Runs under jsdom (jest.config.js).
  */
 
-const { installDateHelpers, loadModules } = require('./loadGlobalScript');
+import { loadModules } from './loader.js';
 
-let AdminUser;
-
-beforeAll(() => {
-  window.i18next = { language: 'en' };
-  installDateHelpers();
-  AdminUser = loadModules('frontend/js/user-dashboard/AdminUser.js').AdminUser;
-});
+window.i18next = { language: 'en' };
+const { AdminUser } = await loadModules('frontend/js/user-dashboard/AdminUser.js');
 
 /**
  * Builds the account form's quality and exclusion controls, then the page controller.
@@ -29,7 +22,7 @@ function load(quality, excluded) {
     </select>
     <input type="checkbox" id="au-excluded" ${excluded ? 'checked' : ''}>`;
   document.getElementById('au-quality').value = quality;
-  global.fetch = jest.fn(() => new Promise(() => {}));
+  window.fetch = vi.fn(() => new Promise(() => {}));
   new AdminUser({
     userId: 'u1', username: 'mapper', saveUrl: '/save', flagsUrl: '/flags', hoursUrl: '/hours',
     pageUrlFor: (u) => `/admin/user/${u}/manage`,

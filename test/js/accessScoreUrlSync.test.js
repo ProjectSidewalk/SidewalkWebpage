@@ -4,11 +4,10 @@
  * to the defaults; writing omits params at their defaults and preserves params the tool doesn't own.
  */
 
-const fs = require('fs');
-const path = require('path');
-const { loadModules, realUtil } = require('./loadGlobalScript');
+import fs from 'fs';
+import path from 'path';
+import { loadModules, REPO_ROOT } from './loader.js';
 
-const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const read = (p) => fs.readFileSync(path.join(REPO_ROOT, p), 'utf8');
 const FIXTURE = JSON.parse(read('test/fixtures/accessScoreParity.json'));
 
@@ -17,13 +16,9 @@ describe('AccessScoreUrlSync', () => {
     let AccessScoreModel;
     const config = FIXTURE.config;
 
-    beforeAll(() => {
-        window.util ??= realUtil();
-        loadModules('frontend/js/common/urlQuery.js');
-        Object.assign(window, loadModules('frontend/js/access-score/AccessScoreModel.js'));
-        Object.assign(window, loadModules('frontend/js/access-score/AccessScoreUrlSync.js'));
-        AccessScoreUrlSync = window.AccessScoreUrlSync;
-        AccessScoreModel = window.AccessScoreModel;
+    beforeAll(async () => {
+        ({ AccessScoreModel, AccessScoreUrlSync } = await loadModules('frontend/js/access-score/AccessScoreModel.js',
+            'frontend/js/access-score/AccessScoreUrlSync.js'));
     });
 
     test('reads a full state, filling unnamed weights from the engine defaults', () => {

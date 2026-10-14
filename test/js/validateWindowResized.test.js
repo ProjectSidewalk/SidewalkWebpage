@@ -10,18 +10,8 @@
  * long it lasts. They drive the real static handlers over a fake viewer and tracker.
  */
 
-const path = require('path');
-const { loadModules } = require('./loadGlobalScript');
-
-const MAIN_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/Main.js');
-
-/**
- * Loads the `Main` class out of the production file.
- * @returns {Function} The Main class.
- */
-function loadMainClass() {
-    return loadModules(MAIN_PATH).Main;
-}
+import { loadModules, useUtil } from './loader.js';
+import { fakeTracker } from './fakes.js';
 
 describe('desktop Validate resize handling (#5367)', () => {
     let Main;
@@ -31,27 +21,25 @@ describe('desktop Validate resize handling (#5367)', () => {
     const immersiveMode = { isActive: () => false };
     let handler; // The listener a test attached, so the next test's dispatches don't reach it too.
 
-    beforeEach(() => {
-        jest.useFakeTimers();
+    beforeEach(async () => {
+        vi.useFakeTimers();
 
         // jsdom does no layout, so the viewport the note reports has to be stated outright.
         Object.defineProperty(document.documentElement, 'clientWidth', { value: 1280, configurable: true });
         Object.defineProperty(document.documentElement, 'clientHeight', { value: 720, configurable: true });
 
-        global.util = { applyToolScale: jest.fn(() => 1.5) };
+        useUtil({ applyToolScale: vi.fn(() => 1.5) });
 
-        viewer = { resize: jest.fn(), repaint: jest.fn() };
-        tracker = { push: jest.fn() };
-        panoManager = { setMarkerScale: jest.fn(), panoViewer: viewer };
+        viewer = { resize: vi.fn(), repaint: vi.fn() };
+        tracker = fakeTracker();
+        panoManager = { setMarkerScale: vi.fn(), panoViewer: viewer };
 
-        Main = loadMainClass();
+        ({ Main } = await loadModules('frontend/js/validate/Main.js'));
     });
 
     afterEach(() => {
         if (handler) window.removeEventListener('resize', handler);
         handler = undefined;
-        jest.useRealTimers();
-        delete global.util;
     });
 
     /** The notes of every Window_Resized the tracker was handed. */
@@ -75,7 +63,7 @@ describe('desktop Validate resize handling (#5367)', () => {
         // A drag that outlasts the quiet window many times over: the burst shape a throttle would log repeatedly.
         for (let i = 0; i < 6; i++) {
             window.dispatchEvent(new Event('resize'));
-            jest.advanceTimersByTime(100);
+            vi.advanceTimersByTime(100);
         }
 
         // Every event rescales — a frame drawn at the old scale is visibly wrong — while nothing has been logged:
@@ -85,9 +73,9 @@ describe('desktop Validate resize handling (#5367)', () => {
         expect(windowResizedNotes()).toEqual([]);
 
         // 100 ms of the 150 ms quiet window have already passed since the last event.
-        jest.advanceTimersByTime(50);
+        vi.advanceTimersByTime(50);
         expect(windowResizedNotes()).toEqual([{ width: 1280, height: 720 }]);
-        jest.advanceTimersByTime(5000);
+        vi.advanceTimersByTime(5000);
         expect(windowResizedNotes()).toHaveLength(1);
     });
 
@@ -97,7 +85,7 @@ describe('desktop Validate resize handling (#5367)', () => {
         window.dispatchEvent(new Event('resize'));
 
         // A label whose imagery expired swaps the manager's viewer for the Pannellum fallback mid-mission (#4828).
-        const fallback = { resize: jest.fn(), repaint: jest.fn() };
+        const fallback = { resize: vi.fn(), repaint: vi.fn() };
         panoManager.panoViewer = fallback;
         window.dispatchEvent(new Event('resize'));
 

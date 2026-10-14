@@ -13,31 +13,19 @@
  * Only the static method is exercised: constructing a LabelDetail needs a live pano viewer.
  */
 
-const fs = require('fs');
-const path = require('path');
-const { loadModules } = require('./loadGlobalScript');
-
-
-/** The two globals voteChipFor reaches for, stubbed so the assertions read against known strings. */
-function stubGlobals() {
-    window.util = { camelToKebab: (s) => s.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase() };
-    window.i18next = {
-        t: (key, opts) => (key === 'labelmap:commenter-voted' ? `Commenter voted ${opts.vote}` : `t(${key})`)
-    };
-}
-
-/** Loads a fresh LabelDetail class into the jsdom global scope. */
-function loadLabelDetail() {
-    stubGlobals();
-    Object.assign(window, loadModules('frontend/js/common/label-detail/LabelDetail.js'));
-    return window.LabelDetail;
-}
+import fs from 'fs';
+import path from 'path';
+import { loadModules, REPO_ROOT } from './loader.js';
 
 describe('LabelDetail.voteChipFor', () => {
     let LabelDetail;
 
-    beforeEach(() => {
-        LabelDetail = loadLabelDetail();
+    beforeEach(async () => {
+        // Echoes the keys, so the assertions read against known strings rather than the English copy.
+        window.i18next = {
+            t: (key, opts) => (key === 'labelmap:commenter-voted' ? `Commenter voted ${opts.vote}` : `t(${key})`)
+        };
+        ({ LabelDetail } = await loadModules('frontend/js/common/label-detail/LabelDetail.js'));
     });
 
     test.each(['Agree', 'Disagree', 'Unsure'])('%s renders a chip carrying the vote word and its modifier', (vote) => {
@@ -73,9 +61,7 @@ describe('LabelDetail.voteChipFor', () => {
     // icons from Figma would silently leave the chips drawing the old shape. This is the tie.
     test.each(['Agree', 'Disagree', 'Unsure'])(
         '%s draws the same geometry as its icon file, so a re-export cannot drift from the inlined copy', (vote) => {
-            const file = path.resolve(
-                __dirname, '..', '..', `public/images/icons/validation/${vote.toLowerCase()}-outline.svg`
-            );
+            const file = path.join(REPO_ROOT, `public/images/icons/validation/${vote.toLowerCase()}-outline.svg`);
             const fromFile = [...fs.readFileSync(file, 'utf8').matchAll(/<path[^>]*\sd="([^"]*)"/g)].map((m) => m[1]);
             const inlined = [...LabelDetail.voteChipFor({ validation: vote }).querySelectorAll('path')]
                 .map((p) => p.getAttribute('d'));

@@ -7,44 +7,36 @@
  * including wheel-set zooms between steps and the views (crop, no imagery, no label yet) with nothing to zoom.
  */
 
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules } from './loader.js';
+import { fakeTracker, fakePanoOverlays } from './fakes.js';
 
+fakePanoOverlays();
 
 /** A stand-in for a GSV/Mapillary/Pannellum viewer whose POV setPov() really changes. */
 function fakeViewer(zoom = 1) {
     let pov = { heading: 10, pitch: 0, zoom };
     return {
-        setPano: jest.fn(() => Promise.resolve()),
-        addListener: jest.fn(),
+        setPano: vi.fn(() => Promise.resolve()),
+        addListener: vi.fn(),
         getPanoId: () => 'pano-1',
         getViewerType: () => 'gsv',
-        resize: jest.fn(),
-        setPov: jest.fn((next) => { pov = { ...next }; }),
+        resize: vi.fn(),
+        setPov: vi.fn((next) => { pov = { ...next }; }),
         getPov: () => ({ ...pov }),
     };
 }
 
-/** Stubs the globals PopupPanoManager reaches for and loads it fresh. */
-function loadPopupPanoManager() {
-    window.panzoom = () => ({ on: jest.fn(), zoomAbs: jest.fn(), moveTo: jest.fn(), getTransform: () => ({}) });
-    window.util = {
-        assetPath: (p) => `/assets/${p}`,
-        afterLoadIdle: () => {},
-        isMobile: () => false,
-        misc: { getIconImagePaths: () => null, getLabelColors: () => 'currentColor' },
-    };
+async function loadPopupPanoManager() {
+    window.panzoom = () => ({ on: vi.fn(), zoomAbs: vi.fn(), moveTo: vi.fn(), getTransform: () => ({}) });
     window.i18next = { t: (k) => k };
-    window.createPanoViewerLogo = () => ({ showPrimaryLogo: jest.fn(), showSourceLogo: jest.fn() });
-    window.createPanoAttribution = () => ({ show: jest.fn(), hide: jest.fn() });
-    window.LabelVisibilityToggle = { HIDDEN_CLASS: 'hidden' };
-    window.fetch = jest.fn(() => Promise.resolve({ ok: false }));
-    return loadModules('frontend/js/common/label-detail/PopupPanoManager.js').PopupPanoManager;
+    window.fetch = vi.fn(() => Promise.resolve({ ok: false }));
+    return (await loadModules('frontend/js/common/label-detail/PopupPanoManager.js')).PopupPanoManager;
 }
 
 /** Builds a manager the way LabelDetail does, with a viewer type whose create() returns `viewer`. */
 function createManager(PopupPanoManager, viewer) {
     document.body.innerHTML = '<div id="sv-holder"></div><div id="button-holder"></div>';
-    const viewerType = { create: jest.fn(() => Promise.resolve(viewer)), preloadLibrary: () => Promise.resolve() };
+    const viewerType = { create: vi.fn(() => Promise.resolve(viewer)), preloadLibrary: () => Promise.resolve() };
     const manager = PopupPanoManager.create(
         document.getElementById('sv-holder'), document.getElementById('button-holder'), false, viewerType, 'token',
     );
@@ -58,18 +50,18 @@ function release(init) {
 
 describe('Gallery Z / Shift+Z shortcut', () => {
     // One KeyboardManager for the file: its constructor adds a window listener that is never removed.
-    const expandedView = { open: true, panoManager: null, closeExpandedViewAndRemoveCardTransparency: jest.fn() };
-    const tracker = { push: jest.fn() };
+    const expandedView = { open: true, panoManager: null, closeExpandedViewAndRemoveCardTransparency: vi.fn() };
+    const tracker = fakeTracker();
 
-    beforeAll(() => {
-        const { KeyboardManager } = loadModules('frontend/js/gallery/keyboard/KeyboardManager.js');
+    beforeAll(async () => {
+        const { KeyboardManager } = await loadModules('frontend/js/gallery/keyboard/KeyboardManager.js');
         new KeyboardManager(expandedView, tracker);
     });
 
     beforeEach(() => {
         tracker.push.mockClear();
         expandedView.open = true;
-        expandedView.panoManager = { zoomIn: jest.fn(() => true), zoomOut: jest.fn(() => true) };
+        expandedView.panoManager = { zoomIn: vi.fn(() => true), zoomOut: vi.fn(() => true) };
         document.body.innerHTML = '';
     });
 
@@ -142,7 +134,7 @@ describe('Gallery Z / Shift+Z shortcut', () => {
     });
 
     it('drives a real PopupPanoManager without throwing before any label has been shown (#5142, #5128)', async () => {
-        const PopupPanoManager = loadPopupPanoManager();
+        const PopupPanoManager = await loadPopupPanoManager();
         const { manager, viewerType } = createManager(PopupPanoManager, fakeViewer());
         expandedView.panoManager = await manager;
 
@@ -157,13 +149,9 @@ describe('Gallery Z / Shift+Z shortcut', () => {
 describe('PopupPanoManager zoomIn() / zoomOut()', () => {
     let PopupPanoManager;
 
-    beforeEach(() => {
-        jest.useFakeTimers();
-        PopupPanoManager = loadPopupPanoManager();
-    });
-
-    afterEach(() => {
-        jest.useRealTimers();
+    beforeEach(async () => {
+        vi.useFakeTimers();
+        PopupPanoManager = await loadPopupPanoManager();
     });
 
     /** A manager showing a live pano on a viewer that starts at `zoom`. */
@@ -172,7 +160,7 @@ describe('PopupPanoManager zoomIn() / zoomOut()', () => {
         const { manager: created } = createManager(PopupPanoManager, viewer);
         const manager = await created;
         const shown = manager.setPano('pano-1', { heading: 10, pitch: 0, zoom }, null);
-        await jest.runAllTimersAsync();
+        await vi.runAllTimersAsync();
         await shown;
         viewer.setPov.mockClear();
         return { manager, viewer };

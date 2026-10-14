@@ -16,14 +16,7 @@
  * routing is free to cross into).
  */
 
-const { loadModules } = require('./loadGlobalScript');
-
-
-/** Loads a fresh RouteGraph class into the jsdom global scope. */
-function loadRouteGraph() {
-    Object.assign(window, loadModules('frontend/js/route-builder/RouteGraph.js'));
-    return window.RouteGraph;
-}
+import { loadModules } from './loader.js';
 
 /** Builds a GeoJSON LineString street feature. */
 function street(id, coords, regionId = 1) {
@@ -54,8 +47,8 @@ function gridStreets() {
 describe('RouteGraph', () => {
     let RouteGraph;
 
-    beforeEach(() => {
-        RouteGraph = loadRouteGraph();
+    beforeEach(async () => {
+        ({ RouteGraph } = await loadModules('frontend/js/route-builder/RouteGraph.js'));
     });
 
     describe('distance math', () => {

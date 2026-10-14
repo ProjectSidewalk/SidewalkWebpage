@@ -7,13 +7,11 @@
  * for that era, that the legend's "hide earlier labels" suppression survives a canvas render (render() is also what
  * puts a non-deleted label's marker on the map), that a marker suppressed while earlier comes back once its mission is
  * current again, and that eras are re-derived only when the mission actually changes.
- *
- * Label, LabelContainer and MissionContainer are loaded as modules, with the minimap seam, storage and i18n stubbed.
  */
 
-const { loadModules } = require('./loadGlobalScript');
-const { makeRecordingCtx } = require('./canvasCtxStub');
-
+import { loadModules } from './loader.js';
+import { makeRecordingCtx } from './canvasCtxStub.js';
+import { fakeTracker, fakeTaskContainer } from './fakes.js';
 
 /** Stands in for a marker made by Minimap.addMarker: keeps what the seam would apply to the element as plain fields. */
 class FakeMarker {
@@ -45,24 +43,6 @@ class FakeMarker {
     }
 }
 
-/** Loads a fresh Label class into the jsdom global scope (a class declaration is not a globalThis property). */
-function loadLabel() {
-    Object.assign(window, loadModules('frontend/js/explore/label/Label.js'));
-    return window.Label;
-}
-
-/** Loads LabelContainer beside the already-loaded Label, which it resolves through the global scope. */
-function loadLabelContainer() {
-    Object.assign(window, loadModules('frontend/js/explore/label/LabelContainer.js'));
-    return window.LabelContainer;
-}
-
-/** Loads MissionContainer with the EventEmitter it extends, in one eval so `extends` resolves. */
-function loadMissionContainer() {
-    Object.assign(window, loadModules('frontend/js/explore/EventEmitter.js', 'frontend/js/explore/mission/MissionContainer.js'));
-    return window.MissionContainer;
-}
-
 /** In-memory stand-in for TemporaryStorage, with the same JSON round trip. */
 function fakeStorage() {
     const store = new Map();
@@ -74,6 +54,8 @@ function fakeStorage() {
 
 describe('Label minimap eras (#4945)', () => {
     let Label;
+    let LabelContainer;
+    let MissionContainer;
     let currentMissionId;
     let minimap;
     let missionContainer;
@@ -103,24 +85,15 @@ describe('Label minimap eras (#4945)', () => {
         return label;
     }
 
-    beforeEach(() => {
-        Label = loadLabel();
+    beforeEach(async () => {
+        // One load for all three, so the LabelContainer under test builds the same Label class patched below.
+        ({ Label, LabelContainer, MissionContainer } = await loadModules('frontend/js/explore/label/Label.js',
+            'frontend/js/explore/label/LabelContainer.js', 'frontend/js/explore/mission/MissionContainer.js'));
         currentMissionId = 10;
         minimap = { addMarker: (latLng, content, options) => new FakeMarker(latLng, content, options) };
-        missionContainer = { getCurrentMission: () => ({ getProperty: () => currentMissionId }), on: jest.fn() };
-        tracker = { push: jest.fn() };
+        missionContainer = { getCurrentMission: () => ({ getProperty: () => currentMissionId }), on: vi.fn() };
+        tracker = fakeTracker();
         storage = fakeStorage();
-        window.util = {
-            EXPLORE_CANVAS_WIDTH: 720,
-            EXPLORE_CANVAS_HEIGHT: 480,
-            camelToKebab: (s) => s.replace(/([A-Z])/g, (m, c, i) => (i ? '-' : '') + c.toLowerCase()),
-            misc: {
-                labelTypeName: (type) => window.i18next.t(`common:${window.util.camelToKebab(type)}`),
-                getIconImagePaths: (t) => ({ iconImagePath: `/icons/${t}_small.svg` }),
-                labelTypeHasSeverity: () => false,
-            },
-            pano: { centeredPovToCanvasCoord: () => ({ x: 100, y: 100 }), renderedHFov: () => 90 },
-        };
         window.i18next = { t: (key, opts) => `${key}|${opts?.labelType ?? ''}` };
         // The icon raster and hover card are DOM/canvas work outside what these tests exercise.
         Label.renderLabelIcon = () => {};
@@ -188,7 +161,7 @@ describe('Label minimap eras (#4945)', () => {
 
         it('always draws the icon the shared icon path resolves to', () => {
             const marker = newLabel({ labelType: 'Obstacle', missionId: 9 }).getMinimapMarker();
-            expect(marker.content.src).toContain('/icons/Obstacle_small.svg');
+            expect(marker.content.src).toContain('/assets/images/icons/label_type_icons/Obstacle_small.svg');
         });
     });
 
@@ -212,7 +185,6 @@ describe('Label minimap eras (#4945)', () => {
     });
 
     describe('LabelContainer legend toggle', () => {
-        let LabelContainer;
         let container;
 
         /** A resumed label added through the container, as fetchLabelsToResumeMission does. */
@@ -223,7 +195,6 @@ describe('Label minimap eras (#4945)', () => {
         }
 
         beforeEach(() => {
-            LabelContainer = loadLabelContainer();
             container = new LabelContainer(1, { isOnboarding: false }, frame, {}, minimap, missionContainer, {},
                 storage, {}, tracker);
         });
@@ -256,7 +227,7 @@ describe('Label minimap eras (#4945)', () => {
         it('moves the markers even when saving the preference throws, and logs the click', () => {
             const label = addLabel(1, { missionId: 9 });
             storage.set = () => { throw new DOMException('full', 'QuotaExceededError'); };
-            const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+            const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
             expect(() => container.setEarlierLabelsShown(false)).not.toThrow();
             expect(label.getMinimapMarker().visible).toBe(false);
             expect(tracker.push).toHaveBeenCalledWith(
@@ -267,14 +238,14 @@ describe('Label minimap eras (#4945)', () => {
 
         it('reads an unreadable preference as shown rather than throwing', () => {
             storage.get = () => { throw new SyntaxError('bad JSON'); };
-            const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+            const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
             expect(container.earlierLabelsShownPreference()).toBe(true);
             warn.mockRestore();
         });
 
         it('re-derives eras without writing the preference or logging a click', () => {
             addLabel(1, { missionId: 9 });
-            const set = jest.spyOn(storage, 'set');
+            const set = vi.spyOn(storage, 'set');
             container.refreshMinimapEras();
             expect(set).not.toHaveBeenCalled();
             expect(tracker.push).not.toHaveBeenCalled();
@@ -291,17 +262,12 @@ describe('Label minimap eras (#4945)', () => {
 
     describe('MissionContainer.setCurrentMission', () => {
         it('re-derives minimap eras only when the mission id changes, not on every submission', () => {
-            const MissionContainer = loadMissionContainer();
-            const LabelContainer = loadLabelContainer();
-            const taskContainer = {
-                getCurrentTask: () => ({ setProperty: () => {}, getProperty: () => false }),
-                onCurrentTaskChanged: () => {},
-            };
+            const taskContainer = fakeTaskContainer(() => ({ setProperty: () => {}, getProperty: () => false }));
             const realMissionContainer = new MissionContainer({}, { setMessage: () => {} }, { on: () => {} }, storage,
                 taskContainer, {});
             const container = new LabelContainer(1, {}, frame, {}, minimap, realMissionContainer, {}, storage, {},
                 tracker);
-            const refresh = jest.spyOn(container, 'refreshMinimapEras').mockImplementation(() => {});
+            const refresh = vi.spyOn(container, 'refreshMinimapEras').mockImplementation(() => {});
             // distanceProgress 1 skips the mission-start bookkeeping, which needs a real street.
             const mission = (id) => ({ getProperty: (k) => ({ missionId: id, distanceProgress: 1 })[k] });
 

@@ -10,17 +10,17 @@
  * A pure function over plain values; the consumers' own suites cover the wiring.
  */
 
-const { assetPathStub, installUtilitiesMisc } = require('./loadGlobalScript');
+import { loadModules } from './loader.js';
 
 const CROP_MARKER = { x: 0.5, y: 0.5 };
 
 describe('labelMarkerFraction', () => {
     let labelMarkerFraction;
 
-    beforeEach(() => {
-        window.util = { assetPath: assetPathStub, EXPLORE_CANVAS_WIDTH: 720, EXPLORE_CANVAS_HEIGHT: 480 };
-        installUtilitiesMisc();
-        labelMarkerFraction = window.util.misc.labelMarkerFraction;
+    beforeEach(async () => {
+        const { util } = await loadModules('frontend/js/common/utilitiesSidewalk.js',
+            'frontend/js/common/utilities.js');
+        labelMarkerFraction = util.misc.labelMarkerFraction;
     });
 
     it('takes the recorded position when a crop is showing', () => {

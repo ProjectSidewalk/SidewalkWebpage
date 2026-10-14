@@ -14,14 +14,30 @@
  * able to do. Everything below it (viewer, network) is out of scope; `test/js/panoViewerSeedFallback.test.js`
  * covers the provider-side classification that decides which error type arrives here.
  *
- * The sweep, the mover and the street bookkeeping (StreetSweep, NavigationService, StreetProgress) are loaded as
- * modules and built together against fakes of their collaborators, as Main builds them; what they announce to the
- * mission controller is recorded through StreetProgress's events, as Main subscribes them.
+ * The sweep, the mover and the street bookkeeping (StreetSweep, NavigationService, StreetProgress) are built
+ * together against fakes of their collaborators, as Main builds them; what they announce to the mission controller
+ * is recorded through StreetProgress's events, as Main subscribes them.
  */
 
-const { installDateHelpers, loadModules, realUtil } = require('./loadGlobalScript');
+import { loadModules, mockModule, useUtil } from './loader.js';
+import { fakeGate, fakeTracker, fakePanoManager } from './fakes.js';
 
+// The GsvViewer replies below carry only the fields the sweep reads, not the full set the real PanoData validates.
+mockModule('frontend/js/common/pano-viewer/PanoData.js', () => ({
+    PanoData: class {
+        constructor(params) {
+            this.params = params;
+        }
 
+        getPanoId() {
+            return this.params.panoId;
+        }
+
+        getProperty(key) {
+            return this.params[key];
+        }
+    },
+}));
 
 // Fixtures put every street on one latitude so a street is a straight west-to-east segment and "distance along the
 // street" is unambiguous. Real turf isn't a dependency of the JS test layer, and the sweep only needs lengths and
@@ -114,7 +130,7 @@ function makeTask(streetEdgeId, { lengthKm = 0.1, atEnd = false, walkOrder = nul
         unwalkedRemainder() {
             return lineFeature([this.getFurthestPointReached().geometry.coordinates, end]);
         },
-        isAtEnd: jest.fn(() => atEnd),
+        isAtEnd: vi.fn(() => atEnd),
         isConnectedTo: () => true,
         getMidpoint: () => ({ lat: FIXTURE_LAT, lng: (start[0] + end[0]) / 2 }),
         lineDistance: () => lengthKm * 1000,
@@ -131,6 +147,9 @@ describe('Explore, when the imagery search runs out along a street', () => {
     let ui;
     // Arms a label type ('Walk' disarms), telling whoever listens for mode changes as LabelModes does.
     let switchMode;
+    let NoImageryError;
+    let NoImageryFlagGuard;
+    let GsvViewer;
     let config;
     let keyboardLock;
     let missionController;
@@ -143,14 +162,14 @@ describe('Explore, when the imagery search runs out along a street', () => {
     // Every (latLng, excludedPanos) the sweep asked about, in order.
     let searches;
 
-    beforeEach(() => {
-        jest.useFakeTimers();
+    beforeEach(async () => {
+        vi.useFakeTimers();
         window.sessionStorage.clear();
         searches = [];
         respondToPanoHop = () => Promise.resolve();
-        reportNoImagery = jest.fn(() => Promise.resolve());
+        reportNoImagery = vi.fn(() => Promise.resolve());
 
-        const stub = () => jest.fn();
+        const stub = () => vi.fn();
         let mode = 'Walk';
         const modeListeners = [];
         switchMode = (newMode) => {
@@ -163,7 +182,7 @@ describe('Explore, when the imagery search runs out along a street', () => {
             streetCoverage: { max_uncovered_m: 50 },
             mapboxApiKey: 'mapbox-token',
         };
-        keyboardLock = { hold: jest.fn(), release: jest.fn() };
+        keyboardLock = fakeGate();
         missionController = { wrapUpRouteOrRegion: stub(), onRouteReadyToFinish: stub() };
         const panoViewer = {
             getPanoId: () => 'pano-on-screen',
@@ -176,35 +195,31 @@ describe('Explore, when the imagery search runs out along a street', () => {
         };
         svl = {
             alertController: { showAlert: stub() },
-            form: { submitData: jest.fn(() => Promise.resolve()) },
+            form: { submitData: vi.fn(() => Promise.resolve()) },
             labelContainer: { onMarkerClick: stub() },
             labelModes: {
                 onModeChanged: (listener) => modeListeners.push(listener),
                 getMode: () => mode,
                 isUsable: () => true,
             },
-            missionContainer: { getCurrentMission: () => ({ getProperty: () => 7, pushATaskToTheRoute: jest.fn() }) },
+            missionContainer: { getCurrentMission: () => ({ getProperty: () => 7, pushATaskToTheRoute: vi.fn() }) },
             missionModel: { updateMissionProgress: stub() },
             regionModel: {
                 currentRegion: () => ({}), isRoute: false, isRouteOrRegionComplete: () => false,
-                setComplete: jest.fn(),
+                setComplete: vi.fn(),
             },
             navArrows: { hide: stub(), show: stub(), reset: stub() },
             panoStore: { getPanoData: (panoId) => ({ panoId }) },
-            stuckAlert: { announceSkippedStreetNear: jest.fn(() => Promise.resolve()) },
+            stuckAlert: { announceSkippedStreetNear: vi.fn(() => Promise.resolve()) },
             jumpAlert: { onClickJumpMessage: stub() },
-            tracker: { push: jest.fn() },
+            tracker: fakeTracker(),
             panoViewer,
-            panoManager: {
-                get panoViewer() { return panoViewer; },
-                getPanoId: () => panoViewer.getPanoId(),
-                getPosition: () => panoViewer.getPosition(),
-                getPov: () => panoViewer.getPov(),
+            panoManager: fakePanoManager(panoViewer, {
                 turnTo: stub(),
-                panning: { hold: stub(), release: stub() },
+                panning: fakeGate(),
                 // The link-graph hop, as opposed to the street sweep below: one named pano, no searching.
-                setPanorama: jest.fn(() => respondToPanoHop()),
-                setLocation: jest.fn((latLng, excludedPanos) => {
+                setPanorama: vi.fn(() => respondToPanoHop()),
+                setLocation: vi.fn((latLng, excludedPanos) => {
                     searches.push({
                         latLng,
                         streetEdgeId: svl.taskContainer.getCurrentTask().getStreetEdgeId(),
@@ -212,55 +227,49 @@ describe('Explore, when the imagery search runs out along a street', () => {
                     });
                     return respondToSearch(latLng);
                 }),
-            },
+            }),
             taskContainer: {
                 // Left false so a landing skips the end-of-street check: what a landing does to task state is its own
                 // concern, and these tests are about the decision that precedes it.
                 tasksLoaded: () => false,
-                getCurrentTask: jest.fn(),
-                setCurrentTask: jest.fn(),
-                nextTask: jest.fn(() => null),
-                endTask: jest.fn(),
+                getCurrentTask: vi.fn(),
+                setCurrentTask: vi.fn(),
+                nextTask: vi.fn(() => null),
+                endTask: vi.fn(),
                 updateCurrentTask: stub(),
                 getNextTaskAfterJump: () => null,
-                setNextTaskAfterJump: jest.fn(),
-                renderTask: jest.fn(),
+                setNextTaskAfterJump: vi.fn(),
+                renderTask: vi.fn(),
             },
         };
 
         window.turf = turfStub;
         window.i18next = { t: (key) => key };
-        window.util = {
-            getBrowser: () => 'chrome',
-            math: { toRadians: (degrees) => (degrees * Math.PI) / 180 },
-            misc: { reportNoImagery },
-        };
-        window.PanoViewer = { SEARCH_RADIUS_M: 25 };
-        window.TaskContainer = { CONNECTED_TASK_KM: 0.01 };
-        installDateHelpers();
+        useUtil({ misc: { reportNoImagery } });
 
-        Object.assign(window, loadModules('frontend/js/common/pano-viewer/NoImageryError.js'));
-        Object.assign(window, loadModules('frontend/js/explore/panorama/NoImageryFlagGuard.js'));
-        Object.assign(window, loadModules('frontend/js/explore/navigation/StreetSweep.js'));
-        Object.assign(window, loadModules('frontend/js/explore/navigation/NavigationService.js'));
-        Object.assign(window, loadModules('frontend/js/explore/task/StreetProgress.js'));
+        // GsvViewer rides along so the NoImageryError it throws is the one class StreetSweep checks for.
+        let StreetSweep;
+        let NavigationService;
+        let StreetProgress;
+        ({ NoImageryError, NoImageryFlagGuard, StreetSweep, NavigationService, StreetProgress, GsvViewer } =
+            await loadModules(
+                'frontend/js/common/pano-viewer/NoImageryError.js',
+                'frontend/js/explore/panorama/NoImageryFlagGuard.js',
+                'frontend/js/explore/navigation/StreetSweep.js', 'frontend/js/explore/navigation/NavigationService.js',
+                'frontend/js/explore/task/StreetProgress.js', 'frontend/js/common/pano-viewer/GsvViewer.js',
+            ));
 
-        svl.labelModes.backToWalk = jest.fn(() => switchMode('Walk'));
+        svl.labelModes.backToWalk = vi.fn(() => switchMode('Walk'));
         const el = () => document.createElement('div');
         ui = { modeSwitchWalk: el(), viewControlLayer: el(), drawingLayer: el() };
-        sweep = new window.StreetSweep(config, svl.missionContainer, svl.taskContainer, svl.panoStore,
-            svl.panoManager, svl.alertController, svl.stuckAlert, svl.form, svl.tracker);
-        nav = new window.NavigationService(ui, svl.panoStore, svl.panoManager, sweep, svl.labelContainer,
-            svl.labelModes, svl.navArrows, keyboardLock, svl.alertController);
-        progress = new window.StreetProgress(config, svl.regionModel, svl.missionModel, svl.missionContainer,
+        sweep = new StreetSweep(config, svl.missionContainer, svl.taskContainer, svl.panoStore, svl.panoManager,
+            svl.alertController, svl.stuckAlert, svl.form, svl.tracker);
+        nav = new NavigationService(ui, svl.panoStore, svl.panoManager, sweep, svl.labelContainer, svl.labelModes,
+            svl.navArrows, keyboardLock, svl.alertController);
+        progress = new StreetProgress(config, svl.regionModel, svl.missionModel, svl.missionContainer,
             svl.taskContainer, svl.panoManager, nav, sweep, svl.jumpAlert, svl.tracker);
         progress.onRouteEndReached(() => missionController.onRouteReadyToFinish());
         progress.onRegionExhausted(() => missionController.wrapUpRouteOrRegion());
-    });
-
-    afterEach(() => {
-        jest.clearAllTimers();
-        jest.useRealTimers();
     });
 
     /** Queues the streets the labeler will be handed, in order, as `nextTask` hands them out. */
@@ -273,7 +282,7 @@ describe('Explore, when the imagery search runs out along a street', () => {
         });
     };
 
-    const emptyGround = () => Promise.reject(new window.NoImageryError('nothing usable here'));
+    const emptyGround = () => Promise.reject(new NoImageryError('nothing usable here'));
     const providerFailure = () => Promise.reject(new Error('the maps library never loaded'));
     const foundImagery = () => Promise.resolve({ panoId: 'pano-found' });
 
@@ -336,7 +345,7 @@ describe('Explore, when the imagery search runs out along a street', () => {
             const [dead, live] = [makeTask(101), makeTask(102)];
             assignStreets(dead, live);
             respondToSearch = () => (svl.taskContainer.getCurrentTask() === dead ? emptyGround() : foundImagery());
-            const starts = jest.fn();
+            const starts = vi.fn();
             nav.onMoveStarted(starts);
 
             await nav.moveForward();
@@ -400,7 +409,7 @@ describe('Explore, when the imagery search runs out along a street', () => {
 
             await nav.moveForward();
 
-            expect(window.NoImageryFlagGuard.count()).toBe(0);
+            expect(NoImageryFlagGuard.count()).toBe(0);
         });
 
         it('does not carry a street\'s accumulated stuck panos into the search of the next (#4918)', async () => {
@@ -420,7 +429,7 @@ describe('Explore, when the imagery search runs out along a street', () => {
             await nav.moveForward(); // Walks one step down the dead street, banking both of its panos as stuck.
             // A landing bars walking for MOVE_DELAY so a labeler can't spam through a mission; let it lapse, or the
             // next move is refused before it starts.
-            jest.advanceTimersByTime(1000);
+            vi.advanceTimersByTime(1000);
             await nav.moveForward(); // Finds nothing further, so reports the street and advances to the live one.
 
             // Only the pano the labeler is standing on may be excluded from the new street's search. Excluding the
@@ -448,7 +457,7 @@ describe('Explore, when the imagery search runs out along a street', () => {
             };
 
             await nav.moveForward();
-            jest.advanceTimersByTime(1000);
+            vi.advanceTimersByTime(1000);
             await nav.moveForward();
 
             expect(searches.at(-1).excludedPanos).not.toContain('pano-street-start');
@@ -515,7 +524,7 @@ describe('Explore, when the imagery search runs out along a street', () => {
             expect(svl.taskContainer.setCurrentTask).toHaveBeenCalledTimes(5);
             // The budget goes back when the run ends: whatever happens next is the labeler deciding to try again,
             // which is a fresh decision rather than more of the automatic run this bounds.
-            expect(window.NoImageryFlagGuard.count()).toBe(0);
+            expect(NoImageryFlagGuard.count()).toBe(0);
             expect(svl.tracker.push).toHaveBeenCalledWith('NoImageryAdvanceLimitReached');
             expect(nav.canWalk()).toBe(true);
         });
@@ -609,7 +618,7 @@ describe('Explore, when the imagery search runs out along a street', () => {
             respondToSearch = emptyGround;
 
             await nav.moveForward();
-            jest.advanceTimersByTime(1000);
+            vi.advanceTimersByTime(1000);
             await nav.moveForward();
 
             expect(reportNoImagery).toHaveBeenCalledTimes(1);
@@ -641,7 +650,7 @@ describe('Explore, when the imagery search runs out along a street', () => {
             await nav.moveForward();
 
             expect(reportNoImagery).not.toHaveBeenCalled();
-            expect(window.NoImageryFlagGuard.count()).toBe(0);
+            expect(NoImageryFlagGuard.count()).toBe(0);
             // Unlike a report, this is a real completion: the labeler walked the street to within reach of its end,
             // so the task is finished through the same call the normal end-of-street flow uses.
             expect(svl.taskContainer.endTask).toHaveBeenCalled();
@@ -654,7 +663,7 @@ describe('Explore, when the imagery search runs out along a street', () => {
             const walkedOut = makeTask(101);
             const endOfStreet = walkedOut.getEndCoordinate();
             walkedOut.getFurthestPointReached = () => pointFeature([endOfStreet.lng, endOfStreet.lat]);
-            walkedOut.isAtEnd = jest.fn((latLng) => latLng.lng === endOfStreet.lng);
+            walkedOut.isAtEnd = vi.fn((latLng) => latLng.lng === endOfStreet.lng);
             assignStreets(walkedOut, makeTask(102));
             respondToSearch = emptyGround;
 
@@ -731,13 +740,13 @@ describe('Explore, when the imagery search runs out along a street', () => {
             // is, so a run of failures ends here too — otherwise a session that gave up on a few streets and then
             // audited normally for an hour would still be refusing to report the next genuinely empty one.
             assignStreets(makeTask(101));
-            window.NoImageryFlagGuard.recordStreetGivenUp();
-            window.NoImageryFlagGuard.recordStreetGivenUp();
+            NoImageryFlagGuard.recordStreetGivenUp();
+            NoImageryFlagGuard.recordStreetGivenUp();
             svl.panoViewer.getLinkedPanos = () => [{ panoId: 'pano-next', heading: 0 }];
 
             await nav.moveToLinkedPano(0);
 
-            expect(window.NoImageryFlagGuard.count()).toBe(0);
+            expect(NoImageryFlagGuard.count()).toBe(0);
         });
 
         it('keeps quiet about a failed step when the caller has a fallback that may still move them', async () => {
@@ -810,7 +819,7 @@ describe('Explore, when the imagery search runs out along a street', () => {
             await first;
             expect(nav.canWalk()).toBe(false);
             svl.navArrows.show.mockClear();
-            jest.advanceTimersByTime(800);
+            vi.advanceTimersByTime(800);
             expect(nav.canWalk()).toBe(true);
             expect(svl.navArrows.show).toHaveBeenCalled();
         });
@@ -826,13 +835,13 @@ describe('Explore, when the imagery search runs out along a street', () => {
             assignStreets(makeTask(101));
             respondToSearch = foundImagery;
             await nav.moveForward();
-            jest.advanceTimersByTime(600);
+            vi.advanceTimersByTime(600);
 
             // Only the tutorial's forced hop can start inside the beat.
             const land = holdNextHop();
             const hop = nav.moveToPano('pano-next', true);
             svl.navArrows.show.mockClear();
-            jest.advanceTimersByTime(300); // Past the first landing's beat, with the hop still in flight.
+            vi.advanceTimersByTime(300); // Past the first landing's beat, with the hop still in flight.
             expect(nav.canWalk()).toBe(false);
             expect(svl.navArrows.show).not.toHaveBeenCalled();
             land();
@@ -843,17 +852,17 @@ describe('Explore, when the imagery search runs out along a street', () => {
             assignStreets(makeTask(101));
             respondToSearch = foundImagery;
             await nav.moveForward(); // Lands at 0 ms: its beat would end at 800.
-            jest.advanceTimersByTime(600);
+            vi.advanceTimersByTime(600);
 
             const land = holdNextHop();
             const hop = nav.moveToPano('pano-next', true);
-            jest.advanceTimersByTime(100);
+            vi.advanceTimersByTime(100);
             land();
             await hop; // Lands at 700 ms: its beat ends at 1500, with the first timer still pending.
 
-            jest.advanceTimersByTime(150);
+            vi.advanceTimersByTime(150);
             expect(nav.canWalk()).toBe(false);
-            jest.advanceTimersByTime(650);
+            vi.advanceTimersByTime(650);
             expect(nav.canWalk()).toBe(true);
         });
 
@@ -867,7 +876,7 @@ describe('Explore, when the imagery search runs out along a street', () => {
             expect(searches).toHaveLength(0);
             expect(svl.taskContainer.endTask).not.toHaveBeenCalled();
 
-            jest.advanceTimersByTime(800);
+            vi.advanceTimersByTime(800);
             await progress.jumpToANewTask();
             expect(searches.length).toBeGreaterThan(0);
         });
@@ -878,7 +887,7 @@ describe('Explore, when the imagery search runs out along a street', () => {
             svl.missionModel.updateMissionProgress.mockImplementationOnce(() => { throw new Error('boom'); });
 
             await expect(nav.moveForward()).rejects.toThrow('boom');
-            jest.advanceTimersByTime(800);
+            vi.advanceTimersByTime(800);
 
             expect(nav.canWalk()).toBe(true);
             expect(keyboardLock.release).toHaveBeenCalledWith('move');
@@ -921,7 +930,7 @@ describe('Explore, when the imagery search runs out along a street', () => {
             expect(ui.viewControlLayer.style.zIndex).toBe('1');
 
             svl.navArrows.show.mockClear();
-            jest.advanceTimersByTime(800);
+            vi.advanceTimersByTime(800);
             expect(svl.navArrows.show).toHaveBeenCalled();
         });
 
@@ -998,14 +1007,14 @@ describe('Explore, when the imagery search runs out along a street', () => {
             assignStreets(makeTask(101));
             respondToSearch = foundImagery;
 
-            await expect(sweep.sweep(jest.fn())).resolves.toEqual({ outcome: 'landed', panoId: 'pano-on-screen' });
+            await expect(sweep.sweep(vi.fn())).resolves.toEqual({ outcome: 'landed', panoId: 'pano-on-screen' });
         });
 
         it('carries on to the next street past an empty one, saying so as it does', async () => {
             const [dead, live] = [makeTask(101), makeTask(102)];
             assignStreets(dead, live);
             respondToSearch = () => (svl.taskContainer.getCurrentTask() === dead ? emptyGround() : foundImagery());
-            const onNextStreet = jest.fn();
+            const onNextStreet = vi.fn();
 
             const result = await sweep.sweep(onNextStreet);
             expect(result.outcome).toBe('landed');
@@ -1017,7 +1026,7 @@ describe('Explore, when the imagery search runs out along a street', () => {
             assignStreets(makeTask(101), makeTask(102));
             respondToSearch = providerFailure;
 
-            await expect(sweep.sweep(jest.fn())).resolves.toEqual({ outcome: 'stopped' });
+            await expect(sweep.sweep(vi.fn())).resolves.toEqual({ outcome: 'stopped' });
             expect(svl.taskContainer.setCurrentTask).not.toHaveBeenCalled();
         });
 
@@ -1025,10 +1034,10 @@ describe('Explore, when the imagery search runs out along a street', () => {
             const nearlyDone = makeTask(101, { atEnd: true });
             assignStreets(nearlyDone);
             respondToSearch = emptyGround;
-            const walkedOut = jest.fn();
+            const walkedOut = vi.fn();
             sweep.onStreetWalkedOut(walkedOut);
 
-            await expect(sweep.sweep(jest.fn())).resolves.toEqual({ outcome: 'walkedOut' });
+            await expect(sweep.sweep(vi.fn())).resolves.toEqual({ outcome: 'walkedOut' });
             expect(walkedOut).toHaveBeenCalledWith(nearlyDone);
         });
     });
@@ -1049,9 +1058,6 @@ describe('Explore, when the imagery search runs out along a street', () => {
         let getPanorama;
 
         beforeEach(() => {
-            // GsvViewer measures replies with the real haversine; loading utilitiesMath swaps in the full util.math.
-            window.util ??= realUtil();
-            loadModules('frontend/js/common/utilitiesMath.js');
             window.google = {
                 maps: {
                     importLibrary: async () => ({ LatLng: FakeLatLng }),
@@ -1059,27 +1065,11 @@ describe('Explore, when the imagery search runs out along a street', () => {
                     StreetViewSource: { OUTDOOR: 'outdoor' },
                 },
             };
-            window.PanoData = class {
-                constructor(params) {
-                    this.params = params;
-                }
-
-                getPanoId() {
-                    return this.params.panoId;
-                }
-
-                getProperty(key) {
-                    return this.params[key];
-                }
-            };
-            // The one-field stand-in above would be what GsvViewer extends; the real viewer needs the real base.
-            delete window.PanoViewer;
-            Object.assign(window, loadModules('frontend/js/common/pano-viewer/GsvViewer.js'));
-            viewer = new window.GsvViewer();
-            getPanorama = jest.fn();
+            viewer = new GsvViewer();
+            getPanorama = vi.fn();
             viewer.streetViewService = { getPanorama };
-            viewer._loadPanoWithTimeout = jest.fn(async (_panoId, resolveValue) => resolveValue);
-            jest.spyOn(console, 'warn').mockImplementation(() => {}); // The FarPanoRejected diagnostic warns.
+            viewer._loadPanoWithTimeout = vi.fn(async (_panoId, resolveValue) => resolveValue);
+            vi.spyOn(console, 'warn').mockImplementation(() => {}); // The FarPanoRejected diagnostic warns.
             // The stuck set holds what panoStore returns, and the real viewer asks each of those for its id.
             svl.panoStore.getPanoData = (panoId) => ({ panoId, getPanoId: () => panoId });
             // The sweep's one seam, now backed by the real viewer rather than a scripted answer.
@@ -1087,10 +1077,6 @@ describe('Explore, when the imagery search runs out along a street', () => {
                 searches.push({ latLng, streetEdgeId: svl.taskContainer.getCurrentTask().getStreetEdgeId() });
                 return viewer.setLocation(latLng, excludedPanos);
             });
-        });
-
-        afterEach(() => {
-            console.warn.mockRestore();
         });
 
         /** A getPanorama() reply for a pano at `[lng, lat]`, with the fields the viewer reads. */

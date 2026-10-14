@@ -8,8 +8,15 @@
  * emphasis on after the pointer moves away.
  */
 
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules, mockModule } from './loader.js';
 
+// The label-layer helpers drive a Mapbox map and have no part in the street emphasis; the street helpers stay real,
+// so the width expression under test is the one the layer is actually built with.
+mockModule('frontend/js/ps-map/psMapUtilities.js', async (importOriginal) => ({
+    ...await importOriginal(),
+    filterLabelLayers: () => {},
+    toggleLabelLayer: () => {},
+}));
 
 const STREET_ROWS = ['audited-street', 'outdated-street', 'unaudited-street'];
 
@@ -35,6 +42,8 @@ function buildFixture() {
 }
 
 describe('street row emphasis', () => {
+    let MapSidebarFilter;
+    let streetLineWidth;
     let paint;
 
     /**
@@ -45,14 +54,14 @@ describe('street row emphasis', () => {
     const emphasizedState = () => {
         const painted = JSON.stringify(paint['line-width']);
         const match = STREET_ROWS.map((id) => id.replace('-street', ''))
-            .find((state) => painted === JSON.stringify(window.streetLineWidth(state)));
+            .find((state) => painted === JSON.stringify(streetLineWidth(state)));
         if (match) return match;
-        return painted === JSON.stringify(window.streetLineWidth()) ? null : 'unrecognized';
+        return painted === JSON.stringify(streetLineWidth()) ? null : 'unrecognized';
     };
 
     const row = (id) => document.getElementById(id).closest('.filter-sidebar__item');
     const fire = (id, type, target = null) =>
-        (target ?? row(id)).dispatchEvent(new window.Event(type, { bubbles: type.startsWith('focus') }));
+        (target ?? row(id)).dispatchEvent(new Event(type, { bubbles: type.startsWith('focus') }));
 
     /**
      * Focuses a row's checkbox the way a keyboard user would, so it reports `:focus-visible`.
@@ -61,7 +70,7 @@ describe('street row emphasis', () => {
     const focusByKeyboard = (id) => {
         const checkbox = document.getElementById(id);
         checkbox.matches = (selector) => selector === ':focus-visible';
-        checkbox.dispatchEvent(new window.FocusEvent('focusin', { bubbles: true }));
+        checkbox.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
     };
 
     /**
@@ -71,22 +80,18 @@ describe('street row emphasis', () => {
     const focusByPointer = (id) => {
         const checkbox = document.getElementById(id);
         checkbox.matches = () => false;
-        checkbox.dispatchEvent(new window.FocusEvent('focusin', { bubbles: true }));
+        checkbox.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
     };
 
-    beforeAll(() => {
+    beforeAll(async () => {
         window.i18next = { t: (key) => key, language: 'en' };
-        window.filterLabelLayers = () => {};
-        window.toggleLabelLayer = () => {};
-        Object.assign(window, loadModules('frontend/js/common/filter-sidebar/FilterSidebar.js'));
-        // The real helpers, so the width expression under test is the one the layer is actually built with.
-        Object.assign(window, loadModules('frontend/js/ps-map/psMapUtilities.js'));
-        Object.assign(window, loadModules('frontend/js/ps-map/MapSidebarFilter.js'));
+        ({ MapSidebarFilter, streetLineWidth } = await loadModules('frontend/js/ps-map/psMapUtilities.js',
+            'frontend/js/ps-map/MapSidebarFilter.js'));
     });
 
     beforeEach(() => {
         buildFixture();
-        paint = { 'line-width': window.streetLineWidth() };
+        paint = { 'line-width': streetLineWidth() };
         const map = {
             getLayer: () => true,
             easeTo: () => {},
@@ -100,7 +105,7 @@ describe('street row emphasis', () => {
             notAdminValidated: false, spotlightLabelId: null, severities: {}, selectedTags: {}, sortedLabels: {},
             layerNames: {}, streetCounts: null,
         };
-        return new window.MapSidebarFilter(map, mapData);
+        return new MapSidebarFilter(map, mapData);
     });
 
     it('starts with no state emphasized', () => {

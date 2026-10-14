@@ -14,16 +14,9 @@
  * one static that puts a marker on the minimap.
  */
 
-const { loadModules } = require('./loadGlobalScript');
-
+import { loadModules } from './loader.js';
 
 const CROP_B64 = 'data:image/png;base64,iVBORw0KGgo=';
-
-/** Loads a fresh Label class into the jsdom global scope (a class declaration is not a globalThis property). */
-function loadLabel() {
-    Object.assign(window, loadModules('frontend/js/explore/label/Label.js'));
-    return window.Label;
-}
 
 describe('Label crop upload', () => {
     let Label;
@@ -41,17 +34,12 @@ describe('Label crop upload', () => {
         });
     }
 
-    beforeEach(() => {
-        Label = loadLabel();
+    beforeEach(async () => {
+        ({ Label } = await loadModules('frontend/js/explore/label/Label.js'));
         // The real one goes through the minimap's addMarker; nothing under test reads the marker back.
         Label.createMinimapMarker = () => ({ setVisible: () => {} });
-        global.fetch = jest.fn().mockResolvedValue({ ok: true });
-        jest.spyOn(console, 'log').mockImplementation(() => {});
-    });
-
-    afterEach(() => {
-        jest.restoreAllMocks();
-        jest.useRealTimers();
+        window.fetch = vi.fn().mockResolvedValue({ ok: true });
+        vi.spyOn(console, 'log').mockImplementation(() => {});
     });
 
     test('records the id and uploads the crop under crop_<labelId>', async () => {
@@ -60,8 +48,8 @@ describe('Label crop upload', () => {
         await label.updateLabelIdAndUploadCrop(99);
 
         expect(label.getProperty('labelId')).toBe(99);
-        expect(global.fetch).toHaveBeenCalledTimes(1);
-        const [url, opts] = global.fetch.mock.calls[0];
+        expect(window.fetch).toHaveBeenCalledTimes(1);
+        const [url, opts] = window.fetch.mock.calls[0];
         expect(url).toBe('saveImage');
         expect(JSON.parse(opts.body)).toEqual({ label_id: 99, label_type: 'CurbRamp', b64: CROP_B64 });
         // Dropped once it's on the server; the base64 string is large and the label outlives the upload.
@@ -71,29 +59,29 @@ describe('Label crop upload', () => {
     test('records the id even when no crop is ready, so the share permalink still resolves', async () => {
         // A label whose id never lands keeps 'DefaultValue', and nothing that addresses a label by id — the share
         // permalink most visibly — can work on it. The crop is on its own clock and must not gate that.
-        jest.useFakeTimers();
+        vi.useFakeTimers();
         const label = newLabel(); // No crop.
 
         const upload = label.updateLabelIdAndUploadCrop(99);
 
         expect(label.getProperty('labelId')).toBe(99); // Set up front, before the upload is even attempted.
 
-        await jest.advanceTimersByTimeAsync(3000); // The one retry the upload allows itself.
+        await vi.advanceTimersByTimeAsync(3000); // The one retry the upload allows itself.
         await upload;
-        expect(global.fetch).not.toHaveBeenCalled();
+        expect(window.fetch).not.toHaveBeenCalled();
     });
 
     test('uploads on the retry when the canvas produces the crop late', async () => {
-        jest.useFakeTimers();
+        vi.useFakeTimers();
         const label = newLabel();
 
         const upload = label.updateLabelIdAndUploadCrop(99);
         label.setProperty('crop', CROP_B64); // The canvas finishes while the upload is sleeping.
 
-        await jest.advanceTimersByTimeAsync(3000);
+        await vi.advanceTimersByTimeAsync(3000);
         await upload;
 
-        expect(global.fetch).toHaveBeenCalledTimes(1);
+        expect(window.fetch).toHaveBeenCalledTimes(1);
     });
 
     test('cropUploaded resolves immediately when no upload was ever started', async () => {
@@ -102,12 +90,12 @@ describe('Label crop upload', () => {
         const label = newLabel({ crop: CROP_B64 });
 
         await expect(label.cropUploaded()).resolves.toBeUndefined();
-        expect(global.fetch).not.toHaveBeenCalled();
+        expect(window.fetch).not.toHaveBeenCalled();
     });
 
     test('cropUploaded resolves only once the crop has actually reached the server', async () => {
         let release;
-        global.fetch.mockReturnValue(new Promise((resolve) => { release = () => resolve({ ok: true }); }));
+        window.fetch.mockReturnValue(new Promise((resolve) => { release = () => resolve({ ok: true }); }));
         const label = newLabel({ crop: CROP_B64 });
 
         label.updateLabelIdAndUploadCrop(99);
@@ -125,8 +113,8 @@ describe('Label crop upload', () => {
     test('a failed upload resolves rather than rejects, so it cannot break the share flow', async () => {
         // Canvas#ensureLabelSaved races this promise against a timeout; a rejection there would propagate out of the
         // widget's beforeOpen hook and suppress the popover entirely over a preview image that will heal itself.
-        jest.spyOn(console, 'error').mockImplementation(() => {});
-        global.fetch.mockRejectedValue(new Error('network down'));
+        vi.spyOn(console, 'error').mockImplementation(() => {});
+        window.fetch.mockRejectedValue(new Error('network down'));
         const label = newLabel({ crop: CROP_B64 });
 
         await expect(label.updateLabelIdAndUploadCrop(99)).resolves.toBeUndefined();

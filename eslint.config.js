@@ -268,24 +268,19 @@ module.exports = [
   },
 
   // --- jsdom unit suite (test/js/) ---
-  // `no-undef` stays on: a typo'd helper in a rarely-run branch is otherwise invisible. Only the registries a suite
-  // fakes on `window` (test/js/moduleTransform.js) are project-wide names; anything else hoisted onto `global` is
-  // declared per-file with `/* global */`. The @stylistic house style is not applied: these files are 4-space, and
+  // `no-undef` stays on: a typo'd helper in a rarely-run branch is otherwise invisible; the page globals the suites
+  // stub are listed below. The @stylistic house style is not applied: these files are 4-space, and
   // reformatting 26k lines would bury every real finding (#2487).
   {files: ['test/js/**/*.js'], ...js.configs.recommended},
   {
     files: ['test/js/**/*.js'],
     languageOptions: {
       ecmaVersion: 2022,
-      sourceType: 'commonjs',
+      sourceType: 'module',
       globals: {
         ...globals.node,
-        ...globals.jest,
+        ...globals.vitest,
         ...globals.browser,
-        svl: 'writable',
-        svv: 'writable',
-        sg: 'writable',
-        util: 'writable',
       },
     },
     rules: {

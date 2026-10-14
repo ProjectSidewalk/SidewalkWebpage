@@ -8,10 +8,10 @@
  * rendered page: the layer's paint lives in JS and the swatch's stroke in CSS, and no single runtime holds both.
  */
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
+import { REPO_ROOT } from './loader.js';
 
-const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const read = (p) => fs.readFileSync(path.join(REPO_ROOT, p), 'utf8');
 
 const MAIN_CSS = read('frontend/css/main.css');

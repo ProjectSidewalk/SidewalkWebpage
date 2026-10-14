@@ -8,29 +8,22 @@
  * stops agreeing with the recorded measurements, and a regenerated fixture whose verdict, clamp bounds, or
  * cells moved. What it does NOT catch: Google changing the renderer — every number here comes from the frozen
  * fixture, so renderer drift shows up only in a fresh probe run, and in production as markers drifting at
- * non-3:2 aspects. CI runs the jest suite as a blocking step in the `frontend` job
+ * non-3:2 aspects. CI runs the Vitest suite as a blocking step in the `frontend` job
  * (docs/testing-and-ci.md), so a code change that breaks the contract stops a merge — but nothing in CI
  * watches Google's renderer, and a green run here is not evidence that it has not moved.
  */
-const fs = require('fs');
-const path = require('path');
-const {loadGlobalScript, realUtil } = require('./loadGlobalScript');
+import fs from 'fs';
+import path from 'path';
+import { loadModules, REPO_ROOT } from './loader.js';
 
-// utilities.js builds a Bowser parser at load time; nothing here consults it.
-window.bowser = {
-    getParser: () => ({
-        getBrowserName: () => 'Test', getBrowserVersion: () => '1',
-        getOSName: () => 'TestOS', getPlatformType: () => 'desktop',
-    }),
-};
-window.util = realUtil();
-loadGlobalScript('frontend/js/common/utilitiesMath.js'); // hFovToVFov/vFovToHFov use util.math.to{Degrees,Radians}.
-loadGlobalScript('frontend/js/common/pano-viewer/panoUtilities.js');
-const pano = window.util.pano;
+const { util } = await loadModules(
+    'frontend/js/common/pano-viewer/panoUtilities.js', 'frontend/js/common/utilities.js',
+);
+const { pano } = util;
 
-const FIXTURE_PATH = path.resolve(__dirname, 'fixtures', 'gsvFovMeasurements.json');
+const FIXTURE_PATH = path.join(REPO_ROOT, 'test/js/fixtures/gsvFovMeasurements.json');
 // The suite self-skips while the recorded fixture doesn't exist yet (it is produced by a completed probe
-// sweep via `analyze.mjs --emit-fixture`), so an in-progress experiment branch keeps the jest tree green.
+// sweep via `analyze.mjs --emit-fixture`), so an in-progress experiment branch keeps the Vitest tree green.
 const fixture = fs.existsSync(FIXTURE_PATH) ? JSON.parse(fs.readFileSync(FIXTURE_PATH, 'utf8')) : null;
 const describeWithFixture = fixture ? describe : describe.skip;
 
@@ -266,8 +259,7 @@ describeWithFixture('GSV FOV contract (recorded fixture, #5083)', () => {
         // test/js/gsv-fov-probe/analyze.mjs keeps its own copy of the curve (it is an ES module run outside
         // jsdom and cannot load panoUtilities.js). Nothing links the two definitions, and the tracked
         // zoom-3 correction would silently desync them — so compare them here.
-        const src = fs.readFileSync(
-            path.join(__dirname, 'gsv-fov-probe', 'analyze.mjs'), 'utf8');
+        const src = fs.readFileSync(path.join(REPO_ROOT, 'test/js/gsv-fov-probe/analyze.mjs'), 'utf8');
         const match = src.match(/const zoomToFov = \(zoom\) =>\s*(\([^;]*?\));/);
         expect(match).not.toBeNull();
         const analyzerCurve = new Function('zoom', `return ${match[1]};`);

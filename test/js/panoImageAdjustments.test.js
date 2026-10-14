@@ -2,22 +2,13 @@
  * Tests for PanoImageAdjustments (frontend/js/common/PanoImageAdjustments.js), the display-only shadows / brightness /
  * contrast model behind the Image pill on Explore (#3136) and Validate (#5501).
  *
- * What is worth pinning: the filter string's composition (the gamma curve runs first, default terms are omitted, an
- * all-default state removes the inline filter entirely so the untouched pano never references the SVG), the gamma
- * mapping's endpoints, the SVG curve's sRGB interpolation flag (linearRGB would quietly lift far less), persistence
- * with field-by-field validation of whatever is in storage, and that a blocked storage degrades to "not remembered"
- * rather than throwing. The class is a top-level `class`, so the source is eval'd into the jsdom global scope with an
- * explicit `window.X = X` epilogue rather than require()-d, as with ShareWidget.
+ * Pinned here: the filter string's composition (the gamma curve runs first, default terms are omitted, an all-default
+ * state removes the inline filter so the untouched pano never references the SVG), the gamma mapping's endpoints, the
+ * SVG curve's sRGB interpolation flag (linearRGB would quietly lift far less), field-by-field validation of whatever is
+ * in storage, and a blocked storage reading as "not remembered" instead of throwing.
  */
 
-const { loadModules } = require('./loadGlobalScript');
-
-
-/** Loads the class fresh into the global scope. */
-function loadClass() {
-    Object.assign(window, loadModules('frontend/js/common/PanoImageAdjustments.js'));
-    return window.PanoImageAdjustments;
-}
+import { loadModules } from './loader.js';
 
 /** A Storage stand-in backed by a plain object, so tests can plant arbitrary values and read back writes. */
 function memoryStorage(seed = {}) {
@@ -33,10 +24,10 @@ function memoryStorage(seed = {}) {
 let PanoImageAdjustments;
 let target;
 
-beforeEach(() => {
+beforeEach(async () => {
     document.body.innerHTML = '<div id="pano"></div>';
     target = document.getElementById('pano');
-    PanoImageAdjustments = loadClass();
+    ({ PanoImageAdjustments } = await loadModules('frontend/js/common/PanoImageAdjustments.js'));
 });
 
 describe('defaults', () => {
@@ -115,8 +106,8 @@ describe('several mounts', () => {
         model.set('shadows', 50);
         expect(document.querySelectorAll('#ps-pano-tone-curve')).toHaveLength(1);
         expect(document.querySelectorAll('svg.ps-svg-defs')).toHaveLength(1);
-        expect(target.style.filter).toBe('url(#ps-pano-tone-curve)');
-        expect(second.style.filter).toBe('url(#ps-pano-tone-curve)');
+        expect(target.style.filter).toBe('url("#ps-pano-tone-curve")');
+        expect(second.style.filter).toBe('url("#ps-pano-tone-curve")');
     });
 
     test('skips a mount that is missing from the page', () => {
@@ -158,7 +149,7 @@ describe('the Shadows curve', () => {
 
         model.set('shadows', 100);
         expect(Number(funcs[0].getAttribute('exponent'))).toBeCloseTo(0.4, 10);
-        expect(target.style.filter).toBe('url(#ps-pano-tone-curve)');
+        expect(target.style.filter).toBe('url("#ps-pano-tone-curve")');
     });
 
     test('reuses an SVG filter another instance already put in the document', () => {

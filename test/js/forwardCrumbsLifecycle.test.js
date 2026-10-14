@@ -9,16 +9,13 @@
  *   - lookups queued for a street the user has left are skipped, not run ahead of the next street's;
  *   - a far crumb over a visited pano takes over the breadcrumb's job and peeks back on click.
  *
- * ForwardCrumbs is loaded as a module and built against fakes of its collaborators. Real turf: the sampler's
- * along-street math is part of what is being exercised.
+ * Built against fakes of its collaborators, on real turf: the sampler's along-street math is part of what is tested.
  */
 
-const path = require('path');
-const { loadModules } = require('./loadGlobalScript');
+import { loadVendored, loadModules } from './loader.js';
+import { fakeTracker, fakePanoManager, fakeTaskContainer } from './fakes.js';
 
-const REPO_ROOT = path.resolve(__dirname, '..', '..');
-
-window.turf = require(path.join(REPO_ROOT, 'public/vendor/turf/turf-7.4.0.min.js'));
+loadVendored('turf');
 const { turf } = window;
 
 /** Stands in for a marker made by Minimap.addMarker: records where it is, its options, and whether it was removed. */
@@ -77,43 +74,36 @@ describe('ForwardCrumbs marker lifecycle', () => {
         return best ? { panoId: best.panoId, lat: best.lat, lng: best.lng } : null;
     };
 
-    beforeEach(() => {
+    beforeEach(async () => {
         FakeMarker.created = [];
         panosAlongStreet = new Map([[20, 'p20'], [40, 'p40'], [60, 'p60'], [80, 'p80'], [100, 'p100']]);
         visited = new Set();
         task = makeTask(1);
+        const { ForwardCrumbs, Gate } = await loadModules('frontend/js/explore/navigation/ForwardCrumbs.js',
+            'frontend/js/common/Gate.js');
         nav = {
-            walking: new (loadModules('frontend/js/common/Gate.js').Gate)(),
+            walking: new Gate(),
             canWalk: () => true,
             onMoved: () => {},
-            moveToPano: jest.fn(async () => true),
-            moveToLocation: jest.fn(async () => true),
-            returnToPano: jest.fn(async () => true),
+            moveToPano: vi.fn(async () => true),
+            moveToLocation: vi.fn(async () => true),
+            returnToPano: vi.fn(async () => true),
         };
-        tracker = { push: jest.fn() };
+        tracker = fakeTracker();
         viewer = {
             supportsLocationSearch: () => true,
-            findPanoNear: jest.fn(async (latLng) => nearestPano(latLng)),
+            findPanoNear: vi.fn(async (latLng) => nearestPano(latLng)),
             getLinkedPanoPositions: async () => [],
             getPanoId: () => 'standing-here',
             getPosition: () => ({ lat: LAT, lng: lngAt(0) }),
             getPov: () => ({ heading: 0 }),
         };
-        const panoManager = {
-            get panoViewer() { return viewer; },
-            onPovChanged: () => {},
-            getPanoId: () => viewer.getPanoId(),
-            getPosition: () => viewer.getPosition(),
-            getPov: () => viewer.getPov(),
-        };
+        const panoManager = fakePanoManager(viewer);
         window.i18next = { t: (key, options) => (options && 'rank' in options ? `${key}#${options.rank}` : key) };
-        window.StreetSweep = { DIST_INCREMENT: 0.01 };
-        window.PanoViewer = { SEARCH_RADIUS_M: 25 };
-        Object.assign(window, loadModules('frontend/js/explore/navigation/ForwardCrumbs.js'));
-        crumbs = new window.ForwardCrumbs(
+        crumbs = new ForwardCrumbs(
             { isOnboarding: false, isExploreAddressMode: false },
             panoManager,
-            { getCurrentTask: () => task, onCurrentTaskChanged: () => {} },
+            fakeTaskContainer(() => task),
             { isEnRoute: () => true, getTargetAngle: () => 90 },
             { addMarker: (latLng, content, options) => new FakeMarker(latLng, content, options) },
             { hasVisited: (panoId) => visited.has(panoId) },
@@ -157,7 +147,7 @@ describe('ForwardCrumbs marker lifecycle', () => {
 
     test('clear() disowns a refresh still waiting on lookups, so nothing reappears afterwards', async () => {
         const pending = [];
-        viewer.findPanoNear = jest.fn((latLng) => new Promise((resolve) => {
+        viewer.findPanoNear = vi.fn((latLng) => new Promise((resolve) => {
             pending.push({ latLng, resolve: () => resolve(nearestPano(latLng)) });
         }));
 
@@ -171,7 +161,7 @@ describe('ForwardCrumbs marker lifecycle', () => {
 
     test('lookups queued for a street the user has left are skipped, not run ahead of the next street\'s', async () => {
         const pending = [];
-        viewer.findPanoNear = jest.fn((latLng) => new Promise((resolve) => {
+        viewer.findPanoNear = vi.fn((latLng) => new Promise((resolve) => {
             pending.push({ latLng, resolve: () => resolve(nearestPano(latLng)) });
         }));
         const streetOneLat = LAT;

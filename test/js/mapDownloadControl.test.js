@@ -7,15 +7,10 @@
  * download anchor URLs, the post-click busy state, and activity logging.
  */
 
-const { installEscapeHTML, loadModules } = require('./loadGlobalScript');
+import { loadModules } from './loader.js';
 
-installEscapeHTML();
-
-
-/** Loads a fresh MapDownloadControl class into the jsdom global scope. */
-function loadControl() {
-    Object.assign(window, loadModules('frontend/js/ps-map/MapDownloadControl.js'));
-    return window.MapDownloadControl;
+async function loadControl() {
+    return (await loadModules('frontend/js/ps-map/MapDownloadControl.js')).MapDownloadControl;
 }
 
 /** The nine label types the public LabelMap renders. */
@@ -56,8 +51,8 @@ const flushTimeouts = () => new Promise((resolve) => setTimeout(resolve, 0));
 describe('MapDownloadControl.buildDownloadUrl', () => {
     let MapDownloadControl;
 
-    beforeEach(() => {
-        MapDownloadControl = loadControl();
+    beforeEach(async () => {
+        MapDownloadControl = await loadControl();
     });
 
     test('always sets filetype and highQualityUserOnly, omitting all-selected sections', () => {
@@ -176,22 +171,21 @@ describe('MapDownloadControl panel', () => {
     const items = () => [...container.querySelectorAll('.map-download-control__item')];
     const busyLabel = () => container.querySelector('.map-download-control__label--busy');
 
-    beforeEach(() => {
+    beforeEach(async () => {
         document.body.innerHTML = '';
-        MapDownloadControl = loadControl();
-        window.logWebpageActivity = jest.fn();
+        MapDownloadControl = await loadControl();
+        window.logWebpageActivity = vi.fn();
         // Locale-independent count line: render the key with the interpolated count.
         window.i18next = { t: (key, opts) => `${key}[${opts?.count}]` };
         anchorClicks = [];
-        jest.spyOn(window.HTMLAnchorElement.prototype, 'click').mockImplementation(function () {
+        vi.spyOn(window.HTMLAnchorElement.prototype, 'click').mockImplementation(function () {
             anchorClicks.push(this.getAttribute('href'));
         });
         // The control asks the server (HEAD) before it downloads; by default the answer is "go ahead".
-        window.fetch = jest.fn().mockResolvedValue({ status: 200 });
+        window.fetch = vi.fn().mockResolvedValue({ status: 200 });
     });
 
     afterEach(() => {
-        jest.restoreAllMocks();
         delete window.logWebpageActivity;
         delete window.i18next;
         delete window.fetch;
@@ -263,50 +257,42 @@ describe('MapDownloadControl panel', () => {
     });
 
     test('acknowledges the click with a busy pill and a live-region status, then restores itself', async () => {
-        jest.useFakeTimers();
-        try {
-            mount();
-            button().click();
-            items()[0].click();
-            await settle();
+        vi.useFakeTimers();
+        mount();
+        button().click();
+        items()[0].click();
+        await settle();
 
-            expect(anchorClicks).toHaveLength(1);
-            expect(button().getAttribute('aria-busy')).toBe('true');
-            expect(busyLabel().hidden).toBe(false);
-            expect(container.querySelector('[role="status"]').textContent).toBe('Preparing your download…');
+        expect(anchorClicks).toHaveLength(1);
+        expect(button().getAttribute('aria-busy')).toBe('true');
+        expect(busyLabel().hidden).toBe(false);
+        expect(container.querySelector('[role="status"]').textContent).toBe('Preparing your download…');
 
-            jest.advanceTimersByTime(4000);
-            expect(button().getAttribute('aria-busy')).toBe('false');
-            expect(busyLabel().hidden).toBe(true);
-            expect(container.querySelector('[role="status"]').textContent).toBe('');
-        } finally {
-            jest.useRealTimers();
-        }
+        vi.advanceTimersByTime(4000);
+        expect(button().getAttribute('aria-busy')).toBe('false');
+        expect(busyLabel().hidden).toBe(true);
+        expect(container.querySelector('[role="status"]').textContent).toBe('');
     });
 
     test('says so instead of downloading when the server is already building that file', async () => {
-        jest.useFakeTimers();
-        try {
-            window.fetch.mockResolvedValue({ status: 429 });
-            mount();
-            button().click();
-            items()[0].click();
-            await settle();
+        vi.useFakeTimers();
+        window.fetch.mockResolvedValue({ status: 429 });
+        mount();
+        button().click();
+        items()[0].click();
+        await settle();
 
-            expect(anchorClicks).toHaveLength(0);
-            const refused = container.querySelector('.map-download-control__label--refused');
-            expect(refused.hidden).toBe(false);
-            expect(busyLabel().hidden).toBe(true);
-            expect(button().getAttribute('aria-busy')).toBe('false');
-            expect(container.querySelector('[role="status"]').textContent)
-                .toBe('This file is already being prepared for another request. Please try again shortly.');
+        expect(anchorClicks).toHaveLength(0);
+        const refused = container.querySelector('.map-download-control__label--refused');
+        expect(refused.hidden).toBe(false);
+        expect(busyLabel().hidden).toBe(true);
+        expect(button().getAttribute('aria-busy')).toBe('false');
+        expect(container.querySelector('[role="status"]').textContent)
+            .toBe('This file is already being prepared for another request. Please try again shortly.');
 
-            jest.advanceTimersByTime(4000);
-            expect(refused.hidden).toBe(true);
-            expect(container.querySelector('[role="status"]').textContent).toBe('');
-        } finally {
-            jest.useRealTimers();
-        }
+        vi.advanceTimersByTime(4000);
+        expect(refused.hidden).toBe(true);
+        expect(container.querySelector('[role="status"]').textContent).toBe('');
     });
 
     test('Escape closes the panel and returns focus to the button', () => {
@@ -353,7 +339,7 @@ describe('MapDownloadControl panel', () => {
         mount();
         button().click();
         button().click(); // Close again within the same tick, before the deferred registration runs.
-        const addedAfterClose = jest.spyOn(document, 'addEventListener');
+        const addedAfterClose = vi.spyOn(document, 'addEventListener');
         await flushTimeouts();
         expect(addedAfterClose).not.toHaveBeenCalled();
     });

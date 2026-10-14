@@ -7,21 +7,17 @@
  * conservative independent width estimate (a generic sans at 11px averages well under 5.2px per digit/letter), so
  * they fail if a margin ever stops making room rather than only if a specific pixel value changes.
  *
- * Runs under jsdom (jest.config.js); MiniLineChart.svg is a pure string builder, so tests parse its output into a
- * detached container and assert on the resulting DOM.
+ * MiniLineChart.svg builds a string, so the tests parse its output into a detached container and assert on that DOM.
  */
 
-const { loadModules, realUtil } = require('./loadGlobalScript');
-
-window.util = realUtil();
-
+import { loadModules } from './loader.js';
 
 /** Lower bound on rendered width, in px, of an axis label at the chart's 11px font. */
 const MIN_PX_PER_CHAR = 5.2;
 
 /** Loads a fresh MiniLineChart class. */
-function loadMiniLineChart() {
-    return loadModules('frontend/js/admin-dashboard/MiniLineChart.js').MiniLineChart;
+async function loadMiniLineChart() {
+    return (await loadModules('frontend/js/admin-dashboard/MiniLineChart.js')).MiniLineChart;
 }
 
 describe('MiniLineChart axis labels', () => {
@@ -55,8 +51,8 @@ describe('MiniLineChart axis labels', () => {
             .map((t) => ({ text: t.textContent, x: Number(t.getAttribute('x')) }));
     }
 
-    beforeEach(() => {
-        MiniLineChart = loadMiniLineChart();
+    beforeEach(async () => {
+        MiniLineChart = await loadMiniLineChart();
     });
 
     test('wide y ticks fit between the SVG edge and the plot', () => {

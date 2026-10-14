@@ -5,12 +5,51 @@
  * client must show them as they arrived, never re-fetch while paging through them, and never let the (unrendered)
  * filter sidebar speak for the page. Each of those failing looks like an ordinary Gallery rather than a broken one —
  * a re-fetch silently reshuffles a rater's queue — so they are pinned here.
- *
- * The page globals both classes reach for are stubbed on `window`.
  */
 
-const { loadModules, realUtil } = require('./loadGlobalScript');
+import { loadModules, mockModule } from './loader.js';
+import { fakeTracker } from './fakes.js';
 
+/** The shared LabelDetail behind the filter and the expanded view, scripted per test. */
+const labelDetail = {};
+/** What the real LabelDetail.urlLabelId answers: the ?labelId= in the address bar, if any. */
+const urlLabelId = () => parseInt(new URLSearchParams(window.location.search).get('labelId'), 10) || null;
+/** What CardContainer builds its expanded view with: the real class's create, or a slowed one (slowExpandedView). */
+const expandedViewSeam = { create: null };
+
+mockModule('frontend/js/common/label-detail/LabelDetail.js', () => ({ LabelDetail: labelDetail }));
+mockModule('frontend/js/common/label-detail/PopupPanoManager.js', () => ({
+    PopupPanoManager: { DEEP_LINK_BUILD_WAIT_MS: 0 },
+}));
+mockModule('frontend/js/gallery/expandedview/ExpandedView.js', () => ({ ExpandedView: expandedViewSeam }));
+mockModule('frontend/js/gallery/cards/Card.js', () => ({
+    Card: class {
+        constructor({ label }) { return stubCard(label.label_id); }
+    },
+}));
+
+/** A Card stand-in: the container only needs an id, a type to bucket it under, and a render pass. */
+function stubCard(labelId) {
+    return {
+        getLabelId: () => labelId,
+        getLabelType: () => 'CurbRamp',
+        getImageId: () => `label_id_${labelId}`,
+        getCropUrl: () => null,
+        getCropMarker: () => null,
+        getBackupImageData: () => null,
+        getProperties: () => ({
+            label_id: labelId,
+            label_type: 'CurbRamp',
+            image_capture_date: { toISOString: () => '2020-01-01' },
+            label_timestamp: { toISOString: () => '2020-01-01' },
+            val_counts: { Agree: 0, Disagree: 0, Unsure: 0 },
+            tags: [],
+        }),
+        loadImage: () => Promise.resolve(),
+        render: vi.fn(),
+        refitTags: vi.fn(),
+    };
+}
 
 const LIST_IDS = [42, 7, 19];
 /** Exactly one list-mode page (12), so the boundary between "one page" and "two" is pinned from both sides. */
@@ -19,15 +58,17 @@ const FULL_PAGE = [201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212];
 const LONG_LIST = [...FULL_PAGE, 213, 214, 215];
 
 describe('the Gallery in review-list mode', () => {
-    beforeAll(() => {
+    let GalleryFilter;
+    let CardContainer;
+    /** The real ExpandedView, so the "k of N" indicator and the cross-page handoff are actually exercised. */
+    let ExpandedView;
+
+    beforeAll(async () => {
         window.i18next = { t: (key, opts) => `${key}:${JSON.stringify(opts ?? {})}` };
-        window.util ??= realUtil();
-        loadModules('frontend/js/common/urlQuery.js');
-        Object.assign(window, loadModules('frontend/js/common/filter-sidebar/FilterSidebar.js'));
-        Object.assign(window, loadModules('frontend/js/gallery/filter/GalleryFilter.js'));
-        Object.assign(window, loadModules('frontend/js/gallery/cards/CardBucket.js'));
-        Object.assign(window, loadModules('frontend/js/gallery/cards/CardContainer.js'));
-        window.ExpandedViewClass = loadModules('frontend/js/gallery/expandedview/ExpandedView.js').ExpandedView;
+        ({ GalleryFilter, CardContainer, ExpandedView } = await loadModules(
+            'frontend/js/gallery/filter/GalleryFilter.js', 'frontend/js/gallery/cards/CardContainer.js',
+            'frontend/js/gallery/expandedview/ExpandedView.js',
+        ));
     });
 
     describe('the sidebar and the address bar', () => {
@@ -40,17 +81,15 @@ describe('the Gallery in review-list mode', () => {
          */
         function build(labelIds) {
             document.body.innerHTML = '<div class="gallery-list-bar"></div>';
-            return new window.GalleryFilter(
-                null, null, null, { regionIds: [], aiValidationOptions: [], labelIds }, { push: jest.fn() },
+            return new GalleryFilter(
+                null, null, null, { regionIds: [], aiValidationOptions: [], labelIds }, fakeTracker(),
             );
         }
 
         beforeEach(() => {
             window.history.replaceState({}, '', '/gallery?labelIds=42,7,19');
             // GalleryFilter reads the open label off LabelDetail to carry it through its rewrite (#5446).
-            window.LabelDetail = {
-                urlLabelId: () => parseInt(new URLSearchParams(window.location.search).get('labelId'), 10) || null,
-            };
+            labelDetail.urlLabelId = urlLabelId;
         });
 
         it('keeps the list in the URL, and claims no filters it is not applying', () => {
@@ -117,7 +156,7 @@ describe('the Gallery in review-list mode', () => {
         let ui;
         /** @type {object} The sidebar as the container sees it: the filtered path reads more of it than list mode. */
         let cardFilter;
-        /** @type {{push: jest.Mock}} */
+        /** @type {{push: import('vitest').Mock}} */
         let tracker;
 
         /**
@@ -142,29 +181,6 @@ describe('the Gallery in review-list mode', () => {
         const flushRenderOnly = async () => {
             for (let tick = 0; tick < 5; tick += 1) await Promise.resolve();
         };
-
-        /** A Card stand-in: the container only needs an id, a type to bucket it under, and a render pass. */
-        function stubCard(labelId) {
-            return {
-                getLabelId: () => labelId,
-                getLabelType: () => 'CurbRamp',
-                getImageId: () => `label_id_${labelId}`,
-                getCropUrl: () => null,
-                getCropMarker: () => null,
-                getBackupImageData: () => null,
-                getProperties: () => ({
-                    label_id: labelId,
-                    label_type: 'CurbRamp',
-                    image_capture_date: { toISOString: () => '2020-01-01' },
-                    label_timestamp: { toISOString: () => '2020-01-01' },
-                    val_counts: { Agree: 0, Disagree: 0, Unsure: 0 },
-                    tags: [],
-                }),
-                loadImage: () => Promise.resolve(),
-                render: jest.fn(),
-                refitTags: jest.fn(),
-            };
-        }
 
         /** @returns {boolean} Whether the container has shown the filtered grid's "no matches" notice. */
         const labelsNotFoundShown = () => ui.labelsNotFound.style.display === 'block';
@@ -207,7 +223,7 @@ describe('the Gallery in review-list mode', () => {
 
             requests = [];
             respond = () => {};
-            window.scrollTo = jest.fn(); // jsdom has no implementation; the container scrolls to the top on paging.
+            window.scrollTo = vi.fn(); // jsdom has no implementation; the container scrolls to the top on paging.
             window.fetch = (url, { body }) => new Promise((resolve) => {
                 requests.push(JSON.parse(body));
                 // Held rather than resolved inline, so a test can assert on the request before the cards land.
@@ -218,27 +234,18 @@ describe('the Gallery in review-list mode', () => {
                 });
                 failRequest = () => resolve({ ok: false, status: 500 });
             });
-            window.Card = class {
-                constructor({ label }) { return stubCard(label.label_id); }
+            // The created instance is kept so a test can assert on the by-id fallback showLabel() call.
+            labelDetail.create = async () => {
+                labelDetail.create.lastDetail = {
+                    panoManager: { warmUp: vi.fn() },
+                    showLabel: vi.fn(() => Promise.resolve()),
+                };
+                return labelDetail.create.lastDetail;
             };
-            window.PanoStore = class {};
-            // The real ExpandedView, so the "k of N" indicator and the cross-page handoff are actually exercised;
-            // only the shared LabelDetail behind it is stubbed.
-            window.PopupPanoManager = { DEEP_LINK_BUILD_WAIT_MS: 0 };
-            window.LabelDetail = {
-                // The created instance is kept so a test can assert on the by-id fallback showLabel() call.
-                create: async () => {
-                    window.LabelDetail.create.lastDetail = {
-                        panoManager: { warmUp: jest.fn() },
-                        showLabel: jest.fn(() => Promise.resolve()),
-                    };
-                    return window.LabelDetail.create.lastDetail;
-                },
-                urlLabelId: () => parseInt(new URLSearchParams(window.location.search).get('labelId'), 10) || null,
-                syncUrlLabelId: jest.fn(),
-            };
-            window.ExpandedView = window.ExpandedViewClass;
-            Element.prototype.scrollIntoView = jest.fn(); // jsdom has none; the expanded view scrolls its card in.
+            labelDetail.urlLabelId = urlLabelId;
+            labelDetail.syncUrlLabelId = vi.fn();
+            expandedViewSeam.create = (...args) => ExpandedView.create(...args);
+            Element.prototype.scrollIntoView = vi.fn(); // jsdom has none; the expanded view scrolls its card in.
             window.ResizeObserver = class {
                 observe() {}
             };
@@ -250,10 +257,10 @@ describe('the Gallery in review-list mode', () => {
                 getSort: () => 'random',
                 onUpdate: (listener) => { cardFilter.listener = listener; },
                 onSortChange: () => {},
-                disable: jest.fn(),
-                enable: jest.fn(),
+                disable: vi.fn(),
+                enable: vi.fn(),
             };
-            tracker = { push: jest.fn() };
+            tracker = fakeTracker();
         });
 
         /** @returns {string} The rendered "k of N" text, or '' while the indicator is hidden. */
@@ -272,7 +279,7 @@ describe('the Gallery in review-list mode', () => {
             document.getElementById('cards').innerHTML
                 = served.map((labelId) => `<div id="gallery_card_${labelId}"></div>`).join('');
             freshControls();
-            const created = window.CardContainer.create(ui, pageParams(requested), cardFilter, tracker);
+            const created = CardContainer.create(ui, pageParams(requested), cardFilter, tracker);
             respond(served.map(stubCard), unavailable);
             return created;
         }
@@ -365,12 +372,12 @@ describe('the Gallery in review-list mode', () => {
 
             const view = empty.getExpandedView();
             expect(view.initialUrlLabelId).toBeNull(); // Consumed, not left pending.
-            expect(window.LabelDetail.create.lastDetail.showLabel).toHaveBeenCalledWith(LIST_IDS[0], 'GalleryExpanded');
+            expect(labelDetail.create.lastDetail.showLabel).toHaveBeenCalledWith(LIST_IDS[0], 'GalleryExpanded');
         });
 
         it('says the list could not be loaded, rather than showing an empty queue', async () => {
             freshControls();
-            const created = window.CardContainer.create(ui, pageParams(LIST_IDS), cardFilter, tracker);
+            const created = CardContainer.create(ui, pageParams(LIST_IDS), cardFilter, tracker);
             requests.length = 0;
             failRequest();
             await created;
@@ -385,7 +392,7 @@ describe('the Gallery in review-list mode', () => {
         it('treats an answer with no labels in it as a failed request', async () => {
             // A 200 with an unexpected body must still release the filters and the loading overlay.
             freshControls();
-            const created = window.CardContainer.create(ui, pageParams(LIST_IDS), cardFilter, tracker);
+            const created = CardContainer.create(ui, pageParams(LIST_IDS), cardFilter, tracker);
             respondWith({});
             await created;
 
@@ -397,7 +404,7 @@ describe('the Gallery in review-list mode', () => {
             // The container subscribes in its constructor, before anything can be clicked; a subscription made
             // later from Main would leave a window where a filter change silently changed nothing.
             const container = await listContainer(LIST_IDS, [], []);
-            const reload = jest.spyOn(container, 'updateCardsByFilter');
+            const reload = vi.spyOn(container, 'updateCardsByFilter');
 
             cardFilter.listener();
 
@@ -497,12 +504,9 @@ describe('the Gallery in review-list mode', () => {
 
             /** Makes the viewer build lose the race to the opening query, which is the ordering that broke. */
             function slowExpandedView() {
-                const build = window.ExpandedViewClass.create.bind(window.ExpandedViewClass);
-                window.ExpandedView = {
-                    create: async (...args) => {
-                        await new Promise((resolve) => { setTimeout(resolve, 0); });
-                        return build(...args);
-                    },
+                expandedViewSeam.create = async (...args) => {
+                    await new Promise((resolve) => { setTimeout(resolve, 0); });
+                    return ExpandedView.create(...args);
                 };
             }
 
@@ -528,7 +532,7 @@ describe('the Gallery in review-list mode', () => {
                 // This block's beforeEach already built one container; only the one below is under test here.
                 freshControls();
                 cardFilter.enable.mockClear();
-                const created = window.CardContainer.create(ui, pageParams(LONG_LIST), cardFilter, tracker);
+                const created = CardContainer.create(ui, pageParams(LONG_LIST), cardFilter, tracker);
                 respond(LONG_LIST.map(stubCard), []);
                 await flushRenderOnly();
 

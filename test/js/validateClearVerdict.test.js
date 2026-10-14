@@ -7,36 +7,23 @@
  * the X, like every other menu control, refuses to act while the next label's pano is still loading (#5211).
  */
 
-const fs = require('fs');
-const path = require('path');
+import { loadModules, loadVendored, useUtil } from './loader.js';
+import { fakeTracker } from './fakes.js';
 
-const { assetPathStub, installUtilitiesMisc, REPO_ROOT, installEscapeHTML, loadModules } = require('./loadGlobalScript');
+let Label;
+let DesktopValidationMenu;
+let buildReasonButtonInfo;
 
-/**
- * Loads bare top-level declarations out of a production file into window scope.
- * @param {string} relPath - Path under the repo root.
- * @param {...string} names - The classes or functions the file declares.
- */
-function loadClass(relPath) {
-  Object.assign(window, loadModules(relPath));
-}
-
-beforeAll(() => {
+beforeAll(async () => {
   window.matchMedia = () => /** @type {MediaQueryList} */ ({ matches: true }); // jsdom has none; act as a mouse.
-  window.util = {
-    assetPath: assetPathStub,
-    isMobile: () => false,
-    camelToKebab: (s) => s.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase(),
-    getImage: () => Promise.resolve('img'),
-  };
-  installUtilitiesMisc();
-  installEscapeHTML();
+  // The real one fetches the severity icons over the network.
+  useUtil({ getImage: () => Promise.resolve('img') });
   window.i18next = { t: (key) => key };
   window.structuredClone ??= (v) => JSON.parse(JSON.stringify(v)); // Missing from this jsdom.
-  window.eval(fs.readFileSync(path.join(REPO_ROOT, 'public/vendor/tom-select/tom-select-2.6.2.base.min.js'), 'utf8'));
-  loadClass('frontend/js/validate/util/ConstantsValidate.js');
-  loadClass('frontend/js/validate/label/Label.js');
-  loadClass('frontend/js/validate/menu/DesktopValidationMenu.js');
+  loadVendored('tom-select');
+  ({ Label, DesktopValidationMenu, buildReasonButtonInfo } = await loadModules(
+    'frontend/js/validate/util/ConstantsValidate.js', 'frontend/js/validate/label/Label.js',
+    'frontend/js/validate/menu/DesktopValidationMenu.js'));
 });
 
 describe('DesktopValidationMenu.clearVerdict', () => {
@@ -80,19 +67,19 @@ describe('DesktopValidationMenu.clearVerdict', () => {
         <button id="validate-submit-button" disabled></button>
       </div>`;
 
-    label = new window.Label({
+    label = new Label({
       label_id: 7, label_type: 'Obstacle', severity: 2, tags: [], ai_tags: null, ai_tags_not_present: null,
       heading: 0, pitch: 0, zoom: 1, canvas_x: 0, canvas_y: 0, pano_id: 'p',
     }, config);
     loading = false;
-    tracker = { push: jest.fn() };
+    tracker = fakeTracker();
     labelContainer = {
       getCurrentLabel: () => label,
-      dropInputWhileLoading: jest.fn(() => loading),
-      onLabelReady: jest.fn(),
+      dropInputWhileLoading: vi.fn(() => loading),
+      onLabelReady: vi.fn(),
     };
 
-    const menu = new window.DesktopValidationMenu({
+    const menu = new DesktopValidationMenu({
       holder: byId('validation-menu-holder'),
       verdictClearButton: byId('validate-verdict-clear'),
       yesButton: byId('validate-yes-button'),
@@ -113,8 +100,8 @@ describe('DesktopValidationMenu.clearVerdict', () => {
       aiSuggestionSection: byId('sidewalk-ai-suggestions-block'),
       currentTagTemplate: byId('current-tag-template'),
       aiSuggestedTagTemplate: byId('sidewalk-ai-suggested-tag-template'),
-    }, config, window.buildReasonButtonInfo(), labelContainer, { render: jest.fn(), onTypePicked: jest.fn() },
-    { styleMarkerForLabel: jest.fn() }, tracker);
+    }, config, buildReasonButtonInfo(), labelContainer, { render: vi.fn(), onTypePicked: vi.fn() },
+    { styleMarkerForLabel: vi.fn() }, tracker);
     menu.resetMenu(label);
   });
 

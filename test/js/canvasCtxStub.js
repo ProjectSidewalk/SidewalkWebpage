@@ -61,4 +61,4 @@ function makeRecordingCtx() {
     };
 }
 
-module.exports = { makeRecordingCtx };
+export { makeRecordingCtx };

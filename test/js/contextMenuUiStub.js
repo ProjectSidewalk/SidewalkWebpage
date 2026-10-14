@@ -23,4 +23,4 @@ function makeContextMenuUi() {
     };
 }
 
-module.exports = { makeContextMenuUi };
+export { makeContextMenuUi };

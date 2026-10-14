@@ -6,8 +6,7 @@
  * The title lives in private fields, so the class is built for real against the dialog skeleton it queries.
  */
 
-const { loadModules } = require('./loadGlobalScript');
-
+import { loadModules } from './loader.js';
 
 /** The elements StoryComposer's constructor looks up, in a <dialog> host. */
 function setupDom() {
@@ -39,20 +38,22 @@ function setupDom() {
     return document.querySelector('.story-composer');
 }
 
+let StoryComposer;
+
 function newComposer() {
-    return new window.StoryComposer(setupDom(), {});
+    return new StoryComposer(setupDom(), {});
 }
 
 const title = () => document.querySelector('.story-composer__title').textContent;
 
-beforeEach(() => {
-    Object.assign(window, loadModules('frontend/js/common/label-detail/StoryComposer.js'));
+beforeEach(async () => {
+    ({ StoryComposer } = await loadModules('frontend/js/common/label-detail/StoryComposer.js'));
     // Echo the key, with any interpolation appended so both halves are assertable.
     window.i18next = {
         t: (key, opts) => (opts && opts.labelType !== undefined ? `${key}[${opts.labelType}]` : key),
     };
-    window.logWebpageActivity = jest.fn();
-    window.HTMLDialogElement.prototype.showModal = jest.fn(); // jsdom's is a no-op stub in some versions.
+    window.logWebpageActivity = vi.fn();
+    window.HTMLDialogElement.prototype.showModal = vi.fn(); // jsdom's is a no-op stub in some versions.
 });
 
 describe("the story composer's dialog title", () => {

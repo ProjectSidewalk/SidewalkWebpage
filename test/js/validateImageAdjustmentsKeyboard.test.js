@@ -18,17 +18,17 @@
  * KeyboardManager's window-capture listener to the panel's own handler and actually closes it. jsdom has no Popover
  * API, so the popover runs on its `hidden` fallback there.
  *
- * Loaded the same way as validateLabelCardKeyboard.test.js: the class is a plain top-level declaration, so the
- * source is eval'd with an explicit export, and one instance serves the whole file because the constructor registers
- * a window listener that cannot be unregistered. Each test swaps the collaborator/menu stubs it reads at event time.
+ * One instance serves the whole file because the constructor registers a window listener that cannot be
+ * unregistered. Each test swaps the collaborator/menu stubs it reads at event time.
  */
 
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules } from './loader.js';
+import { fakeGate, fakeTracker } from './fakes.js';
 
 /** A stand-in for one of the menu's controls, with its click spied. */
 function makeControl() {
     const control = document.createElement('textarea');
-    control.click = jest.fn();
+    control.click = vi.fn();
     return control;
 }
 
@@ -50,8 +50,10 @@ describe('KeyboardManager image adjustments scope', () => {
     let current = {};
     const live = (name) => new Proxy({}, { get: (_, key) => current[name][key] });
     const config = { adminVersion: false };
+    let PanoImageAdjustments;
+    let PanoImageAdjustmentsPopover;
 
-    beforeAll(() => {
+    beforeAll(async () => {
         Object.assign(validationMenuUi, {
             optionalCommentTextBox: makeControl(),
             disagreeReasonTextBox: makeControl(),
@@ -61,17 +63,18 @@ describe('KeyboardManager image adjustments scope', () => {
             noButton: makeControl(),
             unsureButton: makeControl(),
         });
-        // Registered first, as on the page, so its window-capture listener sees every key before the popover's.
-        Object.assign(window, loadModules('frontend/js/common/KeyboardShortcuts.js', 'frontend/js/validate/keyboard/KeyboardManager.js'));
-        new window.KeyboardManager(
+        let KeyboardManager;
+        ({ KeyboardManager, PanoImageAdjustments, PanoImageAdjustmentsPopover } = await loadModules(
+            'frontend/js/validate/keyboard/KeyboardManager.js', 'frontend/js/common/PanoImageAdjustments.js',
+            'frontend/js/common/PanoImageAdjustmentsPopover.js'));
+        // Built first, as on the page, so its window-capture listener sees every key before the popover's.
+        new KeyboardManager(
             { validationMenu: validationMenuUi, undoValidation: { undoButton: live('undoButton') } }, config,
-            { isHeld: () => false, hold: () => {}, release: () => {} },
+            fakeGate(),
             { onLoadingChange: () => {} }, live('labelVisibilityControl'), live('labelCard'), live('validationMenu'),
             live('zoomControl'), live('undoValidation'), live('immersiveMode'), live('imageAdjustmentsPopover'),
             live('tracker'),
         );
-        Object.assign(window, loadModules('frontend/js/common/PanoImageAdjustments.js'));
-        Object.assign(window, loadModules('frontend/js/common/PanoImageAdjustmentsPopover.js'));
     });
 
     beforeEach(() => {
@@ -88,23 +91,23 @@ describe('KeyboardManager image adjustments scope', () => {
             <input type="range" id="pano-image-adjustments-shadows" data-adjust="shadows">
           </div>`;
         panelOpen = false;
-        validationMenuUi.submitButton.click = jest.fn();
+        validationMenuUi.submitButton.click = vi.fn();
         validationMenuUi.yesButton = makeControl();
         current = {
             labelVisibilityControl: {
-                hideLabelCard: jest.fn(),
+                hideLabelCard: vi.fn(),
                 isCardHeldOpen: () => false,
-                toggleLabelCard: jest.fn(),
+                toggleLabelCard: vi.fn(),
                 isCardVisible: () => true,
                 isVisible: () => true,
-                hideLabel: jest.fn(),
-                unhideLabel: jest.fn(),
+                hideLabel: vi.fn(),
+                unhideLabel: vi.fn(),
             },
             labelCard: { isPopoverOpen: () => false, closeTypeDropdown: () => false },
             validationMenu: { inWrongTypeView: () => false },
             undoValidation: { canUndo: () => false },
             imageAdjustmentsPopover: { isOpen: () => panelOpen },
-            tracker: { push: jest.fn() },
+            tracker: fakeTracker(),
         };
     });
 
@@ -250,8 +253,8 @@ describe('KeyboardManager image adjustments scope', () => {
     // Last in the file: the real popover's document listeners outlive the markup, so nothing runs after it.
     describe('with the real popover', () => {
         it('Escape from a slider closes the panel and returns focus to the pill', () => {
-            const model = new window.PanoImageAdjustments(document.createElement('div'), null);
-            const popover = new window.PanoImageAdjustmentsPopover(model, pill(),
+            const model = new PanoImageAdjustments(document.createElement('div'), null);
+            const popover = new PanoImageAdjustmentsPopover(model, pill(),
                 document.getElementById('pano-image-adjustments'));
             current.imageAdjustmentsPopover = popover;
             popover.open();

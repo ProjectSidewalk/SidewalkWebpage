@@ -3,11 +3,9 @@
  * nothing for a password field (#5618).
  */
 
-const path = require('path');
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules } from './loader.js';
 
-const TRACKER_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/Tracker.js');
-const Tracker = loadModules(TRACKER_PATH).Tracker;
+const { Tracker } = await loadModules('frontend/js/validate/Tracker.js');
 
 describe('Tracker key notes', () => {
     let tracker;

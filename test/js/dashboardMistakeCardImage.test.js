@@ -7,13 +7,16 @@
  * Which source is showing also decides where the marker goes (#2660). A crop the nightly job cut is a window around
  * the label, not the labeler's canvas, so only its `label_crop` row places it; `canvas_x/y` is right on the Street
  * View still and is the only answer left for a crop nothing recorded. A runtime fall back has to re-place it.
- *
- * MistakeGallery is a page-global `class` reaching for globals, so the source is eval'd into jsdom with its
- * collaborators (fetch, i18next, util) stubbed.
  */
 
+import { loadModules } from './loader.js';
+import { fakePanoOverlays } from './fakes.js';
 
-const { assetPathStub, installUtilitiesMisc, loadModules } = require('./loadGlobalScript');
+// The imagery-credit overlays; dashboardMistakeCardAttribution.test.js checks them for real.
+fakePanoOverlays();
+
+window.i18next = { t: (key) => key };
+const { MistakeGallery } = await loadModules('frontend/js/user-dashboard/MistakeGallery.js');
 
 const CROP_URL = '/cropImage/Obstacle/501?exp=1&sig=x';
 const GSV_URL = 'https://maps.googleapis.com/maps/api/streetview?pano=abc123';
@@ -41,29 +44,13 @@ describe('the dashboard mistake card\'s image', () => {
      */
     async function renderGallery(opts = {}) {
         document.body.innerHTML = '<div id="ud-mistakes"></div>';
-        const gallery = new window.MistakeGallery(document.getElementById('ud-mistakes'),
-            { userId: 'ada', ...opts });
+        const gallery = new MistakeGallery(document.getElementById('ud-mistakes'), { userId: 'ada', ...opts });
         await gallery.render();
     }
 
-    beforeAll(() => {
-        window.i18next = { t: (key) => key };
-        window.util = {
-            assetPath: assetPathStub,
-            EXPLORE_CANVAS_WIDTH: 720,
-            EXPLORE_CANVAS_HEIGHT: 480,
-            camelToKebab: (s) => s.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase(),
-        };
-        installUtilitiesMisc(); // The real util.misc, so labelMarkerFraction under test is the shipped one.
-        // The imagery-credit overlays; dashboardMistakeCardAttribution.test.js checks them for real.
-        window.createPanoViewerLogo = () => ({ showSourceLogo: () => {}, hide: () => {} });
-        window.createPanoAttribution = () => ({ show: () => {}, hide: () => {} });
-        window.MistakeGallery = loadModules('frontend/js/user-dashboard/MistakeGallery.js').MistakeGallery;
-    });
-
     beforeEach(() => {
         mistakes = [mistake()];
-        window.fetch = jest.fn(() =>
+        window.fetch = vi.fn(() =>
             Promise.resolve({ ok: true, json: () => Promise.resolve({ Obstacle: mistakes }) }));
     });
 
@@ -101,7 +88,7 @@ describe('the dashboard mistake card\'s image', () => {
 
     it('falls back to the Street View image when the crop\'s signed URL has expired', async () => {
         await renderGallery();
-        photo().dispatchEvent(new window.Event('error'));
+        photo().dispatchEvent(new Event('error'));
 
         expect(photo().src).toBe(GSV_URL);
         expect(photo().dataset.udSource).toBe('api');
@@ -112,7 +99,7 @@ describe('the dashboard mistake card\'s image', () => {
     it('drops the photo on the first failure when the crop is the only source', async () => {
         mistakes = [mistake({ image_url: null })];
         await renderGallery();
-        photo().dispatchEvent(new window.Event('error'));
+        photo().dispatchEvent(new Event('error'));
 
         expect(photo()).toBeNull();
     });
@@ -123,7 +110,7 @@ describe('the dashboard mistake card\'s image', () => {
         await renderGallery();
         expect(marker().style.left).toBe('50%');
 
-        photo().dispatchEvent(new window.Event('error'));
+        photo().dispatchEvent(new Event('error'));
 
         expect(marker().style.left).toBe('25%');
         expect(marker().style.top).toBe('75%');
@@ -131,8 +118,8 @@ describe('the dashboard mistake card\'s image', () => {
 
     it('drops the photo when the Street View image fails too, leaving the wrapper\'s gradient', async () => {
         await renderGallery();
-        photo().dispatchEvent(new window.Event('error')); // Crop 404s; falls back to the API image.
-        photo().dispatchEvent(new window.Event('error')); // That fails as well.
+        photo().dispatchEvent(new Event('error')); // Crop 404s; falls back to the API image.
+        photo().dispatchEvent(new Event('error')); // That fails as well.
 
         expect(photo()).toBeNull();
         expect(document.querySelector('.ud-card-img')).not.toBeNull();
@@ -167,7 +154,7 @@ describe('the dashboard mistake card\'s image', () => {
         await renderGallery();
         expect(marker().style.left).toBe('50%');
 
-        photo().dispatchEvent(new window.Event('error'));
+        photo().dispatchEvent(new Event('error'));
 
         expect(marker().style.left).toBe('25%');
         expect(marker().style.top).toBe('75%');

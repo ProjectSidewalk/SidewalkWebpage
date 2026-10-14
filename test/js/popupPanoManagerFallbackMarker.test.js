@@ -11,8 +11,10 @@
  * whose pano Google has dropped.
  */
 
-const { installUtilitiesMisc, loadModules } = require('./loadGlobalScript');
+import { loadModules, useUtil } from './loader.js';
+import { fakePanoOverlays } from './fakes.js';
 
+fakePanoOverlays();
 
 const POV = { heading: 10, pitch: 0, zoom: 1 };
 
@@ -28,8 +30,7 @@ describe('PopupPanoManager fallback marker', () => {
     let PopupPanoManager;
     let svHolder;
 
-    beforeEach(() => {
-        jest.resetModules();
+    beforeEach(async () => {
         document.body.innerHTML = `
             <div class="label-detail__pano-wrap">
               <div id="sv-holder" class="label-detail__pano"></div>
@@ -41,30 +42,15 @@ describe('PopupPanoManager fallback marker', () => {
 
         // Identity transform: the marker lands at the fraction of the container's size, nothing else.
         window.panzoom = () => ({
-            on: jest.fn(), zoomAbs: jest.fn(), moveTo: jest.fn(), getTransform: () => ({ x: 0, y: 0, scale: 1 }),
+            on: vi.fn(), zoomAbs: vi.fn(), moveTo: vi.fn(), getTransform: () => ({ x: 0, y: 0, scale: 1 }),
         });
-        window.util = {
-            assetPath: (p) => `/assets/${p}`,
-            afterLoadIdle: () => {},
-            isMobile: () => false,
-            misc: { getIconImagePaths: () => ({ iconImagePath: 'icon.png' }), getLabelColors: () => '#000' },
-        };
-        // The real util.misc, so the labelMarkerFraction the fallback places by is the shipped one.
-        installUtilitiesMisc();
+        // The library preload would otherwise fire on a timer after the test is over.
+        useUtil({ afterLoadIdle: () => {} });
         window.i18next = { t: (k) => k };
-        window.createPanoViewerLogo = () => ({ showPrimaryLogo: jest.fn(), showSourceLogo: jest.fn() });
-        window.createPanoAttribution = () => ({ show: jest.fn(), hide: jest.fn() });
-        window.LabelVisibilityToggle = { HIDDEN_CLASS: 'hidden' };
-        window.PannellumViewer = { create: jest.fn() };
-        window.fetch = jest.fn(() => Promise.resolve({ ok: false }));
-        jest.spyOn(console, 'error').mockImplementation(() => {});
+        window.fetch = vi.fn(() => Promise.resolve({ ok: false }));
+        vi.spyOn(console, 'error').mockImplementation(() => {});
 
-        Object.assign(window, loadModules('frontend/js/common/label-detail/PopupPanoManager.js'));
-        PopupPanoManager = window.PopupPanoManager;
-    });
-
-    afterEach(() => {
-        jest.restoreAllMocks();
+        ({ PopupPanoManager } = await loadModules('frontend/js/common/label-detail/PopupPanoManager.js'));
     });
 
     /**
@@ -72,7 +58,7 @@ describe('PopupPanoManager fallback marker', () => {
      * marker is only placed on a box with a size.
      */
     async function createManager() {
-        const viewerType = { create: jest.fn(), preloadLibrary: jest.fn() };
+        const viewerType = { create: vi.fn(), preloadLibrary: vi.fn() };
         const manager = await PopupPanoManager.create(svHolder, document.getElementById('button-holder'), false,
             viewerType, 'token');
         const container = document.getElementById('pano-fallback-container');
