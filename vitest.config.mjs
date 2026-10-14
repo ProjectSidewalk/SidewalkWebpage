@@ -37,7 +37,14 @@ export default defineConfig({
       include: ['frontend/js/**/*.js'],
       // The default per-file table is 229 rows of mostly zeroes, which buries the totals; lcov keeps the detail.
       reporter: ['text-summary', 'lcov'],
-      // No `thresholds` yet: the number is a baseline to grow from before it becomes a floor.
+      // A ratchet (#5112): each floor sits ~1.5 points under the measured figure, so deleting a tested suite fails the
+      // run. Raise them in whichever PR earns the headroom. Measured at 53.52 / 49.13 / 49.83 / 54.23.
+      thresholds: {
+        statements: 52,
+        branches: 47,
+        functions: 48,
+        lines: 52,
+      },
     },
   },
 });

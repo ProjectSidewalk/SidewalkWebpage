@@ -50,8 +50,9 @@ is not applied, since these files are 4-space. The browser, Node and Vitest glob
 `eslint.config.js`, so no suite needs a `/* global */` directive.
 
 Coverage is reported over all of `frontend/js/**/*.js`, so a file no test loads still counts against the ratio. The
-console shows totals; `coverage/lcov-report/index.html` has per-file detail. There is no floor yet: the number is a
-baseline to grow from before `coverage.thresholds` turns it into a gate.
+console shows totals; `coverage/lcov-report/index.html` has per-file detail. `coverage.thresholds` in
+`vitest.config.mjs` is a ratchet: a run that drops below any floor fails, so removing tests can turn CI red even when
+every test passes. Raise the floors when a PR adds the headroom.
 
 ## Complementary E2E
 

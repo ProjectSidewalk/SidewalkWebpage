@@ -232,8 +232,8 @@ Parallel jobs:
   'frontend/css/**/*.css'`, `npx htmlhint app/views`, `node tools/lint/check-locale-parity.mjs`, `node
   tools/lint/check-css-layout.mjs`, `node tools/lint/check-asset-paths.mjs`, `node
   tools/lint/check-vendor-versions.mjs`, `node tools/lint/check-js-types.mjs`, `node tools/lint/check-spec-base.mjs`,
-  then `npm run test:js:coverage`. No `--max-warnings 0`: the one `warn` rule, `max-len`, is advisory. Thin coverage is
-  why there is no coverage threshold, not a reason to let an existing suite go red.
+  then `npm run test:js:coverage`, which also enforces the JS coverage ratchet (see "Coverage" below). No
+  `--max-warnings 0`: the one `warn` rule, `max-len`, is advisory.
 - **e2e-smoke** — the Playwright browser smoke suite ([`test/e2e/`](../test/e2e), #4504). Reuses `backend-tests`' DB
   recipe (repo `db` image, TCP readiness probe, `sidewalk_init` → `sidewalk_teaneck` schema rename), builds the frontend
   assets (`npm run build`), then `sbt stage` and boots the **prod-mode binary** on `:9000` (evolutions auto-apply at
@@ -304,9 +304,8 @@ a known vulnerability. It is **not a required check**, because some fixes can't 
 
 ## Coverage
 
-JS is report-only. Python holds a real **100%** floor (small, pure scripts; see
-[Python utility testing](#python-utility-testing)). Scala holds a **ratchet**, a floor just under the measured number,
-raised in whichever PR earns the headroom.
+Python holds a real **100%** floor (small, pure scripts; see [Python utility testing](#python-utility-testing)). Scala
+and JS each hold a **ratchet**, a floor just under the measured number, raised in whichever PR earns the headroom.
 
 **Scala — `sbt-scoverage` (#4743).** The floor is `coverageMinimumStmtTotal` in `build.sbt`. `backend-tests` runs both
 spec steps under `coverage` and ends on a blocking `coverageReport` (`sbt clean coverage test coverageReport` locally).
@@ -321,10 +320,12 @@ requests, so their coverage is real, and excluding them would move the number by
 won't instrument a method over 3000 tree nodes, and under `-Werror` its warning fails the build, so a method that big
 is split into private helpers (#5605).
 
-**JavaScript — Vitest, report-only.** `coverage.include` is `frontend/js/**/*.js` (the built output in `public/build/`
-is outside it), so an untested file counts against the ratio instead of being invisible. The baseline is about 53% of
-statements, and there is deliberately **no threshold** yet: the number is one to grow from before it becomes a floor,
-and a floor set now would move for reasons unrelated to whether anything is tested.
+**JavaScript — Vitest (#5112).** The floors are `coverage.thresholds` in `vitest.config.mjs`, one per metric
+(statements, branches, functions, lines), each about 1.5 points under the measured figure. `coverage.include` is
+`frontend/js/**/*.js` (the built output in `public/build/` is outside it), so an untested file counts against the ratio
+instead of being invisible. Every suite reaches its subject through `loadModules` (`vi.importActual`), so everything a
+test runs is instrumented; under Jest, `eval`-loaded suites recorded nothing and the number could not be gated. Unlike
+Scala, the suite needs no database, so a local `npm run test:js:coverage` reads the same as CI.
 
 ## Phased rollout (each phase independently mergeable)
 
