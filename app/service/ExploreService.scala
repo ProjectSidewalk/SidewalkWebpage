@@ -275,7 +275,10 @@ class ExploreServiceImpl @Inject() (
             userCurrentRegionTable
               .insertOrUpdate(userId, route.regionId)
               .flatMap(rId => regionTable.getRegion(rId))
-              .map((_, false))
+              .flatMap {
+                case Some(region) => DBIO.successful((Some(region), false))
+                case None => DBIO.failed(new NoSuchElementException(s"Route ${route.routeId}'s region is gone."))
+              }
           // If we aren't trying to do anything special and user already has a region assigned, use that region.
           case (_, _, _, false, Some(r)) =>
             isTaskAvailable(userId, r.regionId).flatMap {

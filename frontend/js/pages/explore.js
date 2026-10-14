@@ -98,13 +98,11 @@ window.appManager.ready(async () => {
 function showAllRegionsFinished() {
   document.getElementById('page-loading').style.visibility = 'hidden';
   const dialog = /** @type {HTMLDialogElement} */ (document.getElementById('all-regions-finished'));
-  // There is no tool behind it to go back to, so Escape mustn't close it where `closedby` isn't supported.
-  dialog.addEventListener('cancel', (e) => e.preventDefault());
   document.getElementById('all-regions-finished-validate').addEventListener('click', () => {
     window.logWebpageActivity('Click_AllRegionsFinished_Validate');
   });
   document.getElementById('all-regions-finished-cities').addEventListener('click', () => {
     window.logWebpageActivity('Click_AllRegionsFinished_OtherCities');
   });
-  dialog.showModal();
+  dialog.show();
 }
