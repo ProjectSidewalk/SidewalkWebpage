@@ -23,17 +23,17 @@ image=$(sed -n 's/^FROM //p' docker/shellcheck/Dockerfile)
 
 files=()
 if [[ $# -gt 0 ]]; then
-    # Absolute paths are made repo-relative, since that's where the container sees the files.
-    for f in "$@"; do
-        f="${f#"$ROOT"/}"
-        [[ -e "$f" ]] || { echo "shellcheck: no such file: $f" >&2; exit 2; }
-        files+=("$f")
-    done
+  # Absolute paths are made repo-relative, since that's where the container sees the files.
+  for f in "$@"; do
+    f="${f#"$ROOT"/}"
+    [[ -e "$f" ]] || { echo "shellcheck: no such file: $f" >&2; exit 2; }
+    files+=("$f")
+  done
 else
-    # Untracked scripts count too, so a new file is checked before it's staged; a deleted one is skipped until then.
-    while IFS= read -r f; do
-        [[ -e "$f" ]] && files+=("$f")
-    done < <(git ls-files --cached --others --exclude-standard '*.sh' ':!public/vendor/')
+  # Untracked scripts count too, so a new file is checked before it's staged; a deleted one is skipped until then.
+  while IFS= read -r f; do
+    [[ -e "$f" ]] && files+=("$f")
+  done < <(git ls-files --cached --others --exclude-standard '*.sh' ':!public/vendor/')
 fi
 [[ ${#files[@]} -gt 0 ]] || { echo "shellcheck: no shell scripts found" >&2; exit 2; }
 

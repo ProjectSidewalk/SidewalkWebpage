@@ -1,0 +1,7 @@
+# Whitespace-only commits that `git blame` should look past. GitHub's blame view reads this file on its own; locally,
+# run `git config blame.ignoreRevsFile .git-blame-ignore-revs` once.
+
+# Reindent to 2 spaces (#5778)
+1f6b1ce05a97915afdb9d15661b3b6b147e214e2
+b331178e86b4c6d937283685c0d3a5a1fb1cc4ec
+d242bfcf014f4dc9d4fb8b6c843e3875ed40d5d5

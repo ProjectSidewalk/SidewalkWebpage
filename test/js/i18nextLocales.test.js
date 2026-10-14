@@ -18,34 +18,34 @@ import { loadModules, loadVendored, REPO_ROOT, useUtil } from './loader.js';
 
 const LOCALES_DIR = path.join(REPO_ROOT, 'public/locales');
 const LANGUAGES = fs.readdirSync(LOCALES_DIR, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory()).map((entry) => entry.name);
+  .filter((entry) => entry.isDirectory()).map((entry) => entry.name);
 const NAMESPACES = fs.readdirSync(path.join(LOCALES_DIR, 'en'))
-    .filter((file) => file.endsWith('.json') && !/-(india|zurich)\.json$/.test(file))
-    .map((file) => file.replace('.json', ''));
+  .filter((file) => file.endsWith('.json') && !/-(india|zurich)\.json$/.test(file))
+  .map((file) => file.replace('.json', ''));
 const LOCALE_FILES = LANGUAGES.flatMap((language) => fs.readdirSync(path.join(LOCALES_DIR, language))
-    .map((file) => `locales/${language}/${file}`));
+  .map((file) => `locales/${language}/${file}`));
 const UNIT_WORDS = { unitAbbr: 'km', unitAbbrSmall: 'm', unitName: 'kilometers', unitNameSingular: 'kilometer' };
 const PLURAL_SUFFIX = /_(zero|one|other)$/;
 
 /** Reads one locale file, or null where that language has no such file. */
 function readLocale(language, namespace) {
-    const file = path.join(LOCALES_DIR, language, `${namespace}.json`);
-    return fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : null;
+  const file = path.join(LOCALES_DIR, language, `${namespace}.json`);
+  return fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : null;
 }
 
 /** Flattens nested translations into `a.b.c` keys, the form `t()` takes. */
 function flatten(tree, prefix = '', out = {}) {
-    for (const [key, value] of Object.entries(tree ?? {})) {
-        const full = prefix ? `${prefix}.${key}` : key;
-        if (value && typeof value === 'object') flatten(value, full, out);
-        else out[full] = value;
-    }
-    return out;
+  for (const [key, value] of Object.entries(tree ?? {})) {
+    const full = prefix ? `${prefix}.${key}` : key;
+    if (value && typeof value === 'object') flatten(value, full, out);
+    else out[full] = value;
+  }
+  return out;
 }
 
 /** The keys whose string comes back from `t()` exactly as written: no plural forms, variables, or nested keys. */
 function plainKeys(strings) {
-    return Object.keys(strings).filter((key) => !PLURAL_SUFFIX.test(key) && !/\{\{|\$t\(/.test(strings[key]));
+  return Object.keys(strings).filter((key) => !PLURAL_SUFFIX.test(key) && !/\{\{|\$t\(/.test(strings[key]));
 }
 
 // One English string that the stand-in `fetch` leaves out of every other language, so there is always a string to
@@ -64,164 +64,164 @@ const WITHHELD = plainKeys(flatten(readLocale('en', 'common'))).find((key) => !k
  *   `<language>/<namespace>.json`, and the arguments of each `console.error` it made.
  */
 async function startPage(language, { countryId = 'usa', fetch, missing = [], localeFiles = LOCALE_FILES } = {}) {
-    const requested = [];
-    // Collected by hand: a page started in beforeAll would have a mock's record emptied before the test runs.
-    const errors = [];
-    console.error = (...args) => errors.push(args);
-    window.fetch = fetch ?? (async (url) => {
-        const relative = String(url).replace('/assets/locales/', '');
-        requested.push(relative);
-        const file = path.join(LOCALES_DIR, relative);
-        const found = fs.existsSync(file) && !missing.includes(relative);
-        let body = found ? fs.readFileSync(file, 'utf8') : '';
-        if (found && relative !== 'en/common.json' && relative.endsWith('/common.json')) {
-            const strings = JSON.parse(body);
-            delete strings[WITHHELD];
-            body = JSON.stringify(strings);
-        }
-        return { ok: found, status: found ? 200 : 404, statusText: '', headers: new Map(), text: async () => body };
-    });
-    loadVendored('i18next');
-    loadVendored('i18next-http-backend');
-    // The distance formatter is checked in metres, whatever locale jsdom reports.
-    useUtil({ isMetric: () => true });
-    await loadModules('frontend/js/common/AppManager.js');
-    await window.appManager._setupI18next({
-        language, supportedLanguages: LANGUAGES, localeFiles, defaultNS: 'common', namespaces: NAMESPACES, countryId,
-        unitWords: UNIT_WORDS,
-    });
-    return { requested, errors };
+  const requested = [];
+  // Collected by hand: a page started in beforeAll would have a mock's record emptied before the test runs.
+  const errors = [];
+  console.error = (...args) => errors.push(args);
+  window.fetch = fetch ?? (async (url) => {
+    const relative = String(url).replace('/assets/locales/', '');
+    requested.push(relative);
+    const file = path.join(LOCALES_DIR, relative);
+    const found = fs.existsSync(file) && !missing.includes(relative);
+    let body = found ? fs.readFileSync(file, 'utf8') : '';
+    if (found && relative !== 'en/common.json' && relative.endsWith('/common.json')) {
+      const strings = JSON.parse(body);
+      delete strings[WITHHELD];
+      body = JSON.stringify(strings);
+    }
+    return { ok: found, status: found ? 200 : 404, statusText: '', headers: new Map(), text: async () => body };
+  });
+  loadVendored('i18next');
+  loadVendored('i18next-http-backend');
+  // The distance formatter is checked in metres, whatever locale jsdom reports.
+  useUtil({ isMetric: () => true });
+  await loadModules('frontend/js/common/AppManager.js');
+  await window.appManager._setupI18next({
+    language, supportedLanguages: LANGUAGES, localeFiles, defaultNS: 'common', namespaces: NAMESPACES, countryId,
+    unitWords: UNIT_WORDS,
+  });
+  return { requested, errors };
 }
 
 const realConsoleError = console.error;
 
 /** Takes down what `startPage` put up, so the next page starts from nothing. */
 function stopPage() {
-    for (const name of ['appManager', 'i18next', 'i18nextHttpBackend', 'fetch']) delete window[name];
-    console.error = realConsoleError;
+  for (const name of ['appManager', 'i18next', 'i18nextHttpBackend', 'fetch']) delete window[name];
+  console.error = realConsoleError;
 }
 
 describe('the vendored i18next over our locale files', () => {
-    describe.each(LANGUAGES)('in %s', (language) => {
-        let page;
+  describe.each(LANGUAGES)('in %s', (language) => {
+    let page;
 
-        beforeAll(async () => {
-            page = await startPage(language);
-        });
-
-        afterAll(stopPage);
-
-        test('loads without an error, asking only for languages we have', () => {
-            expect(page.errors).toEqual([]);
-            expect(window.i18next.language).toBe(language);
-            expect([...new Set(page.requested.map((file) => file.split('/')[0]))].sort())
-                .toEqual([...new Set([language, 'en'])].sort());
-        });
-
-        test('shows its own strings, not the English ones', () => {
-            const wrong = [];
-            for (const namespace of NAMESPACES) {
-                const own = flatten(readLocale(language, namespace));
-                for (const key of plainKeys(own)) {
-                    if (language !== 'en' && namespace === 'common' && key === WITHHELD) continue;
-                    if (window.i18next.t(`${namespace}:${key}`) !== own[key]) wrong.push(`${namespace}:${key}`);
-                }
-            }
-            expect(wrong).toEqual([]);
-        });
-
-        test('falls back to English for a string it does not have', () => {
-            expect(window.i18next.t(`common:${WITHHELD}`)).toBe(readLocale('en', 'common')[WITHHELD]);
-        });
-
-        test('picks the plural form the count calls for', () => {
-            const own = flatten(readLocale(language, 'common'));
-            const english = flatten(readLocale('en', 'common'));
-            const key = Object.keys(english).find((k) => k.endsWith('_one') && `${k.slice(0, -4)}_other` in english)
-                .slice(0, -4);
-            const expected = (suffix, count) => (own[`${key}_${suffix}`] ?? english[`${key}_${suffix}`])
-                .replace(/\{\{count(, number)?\}\}/, new Intl.NumberFormat(language).format(count));
-            // Chinese has a single plural form, so a count of one reads the `_other` string there.
-            const singular = new Intl.PluralRules(language).select(1);
-            expect(window.i18next.t(`common:${key}`, { count: 1 })).toBe(expected(singular, 1));
-            expect(window.i18next.t(`common:${key}`, { count: 5 })).toBe(expected('other', 5));
-        });
-
-        test('renders a distance through our formatter, with the unit the page was given', () => {
-            const rendered = window.i18next.t('accessscore:length', { meters: 412 });
-            expect(rendered).toContain(new Intl.NumberFormat(language).format(400));
-            expect(rendered).toContain(UNIT_WORDS.unitAbbrSmall);
-            expect(rendered).not.toContain('{{');
-        });
+    beforeAll(async () => {
+      page = await startPage(language);
     });
 
-    describe.each(['en-US', 'en-NZ'])('the %s overlay', (language) => {
-        afterEach(stopPage);
+    afterAll(stopPage);
 
-        test('uses plain English for everything it leaves alone', async () => {
-            await startPage(language);
-            const namespace = NAMESPACES.find((ns) => readLocale(language, ns));
-            const overlay = flatten(readLocale(language, namespace));
-            const english = flatten(readLocale('en', namespace));
-            const inherited = plainKeys(english).find((key) => !(key in overlay));
-            expect(window.i18next.t(`${namespace}:${inherited}`)).toBe(english[inherited]);
-        });
+    test('loads without an error, asking only for languages we have', () => {
+      expect(page.errors).toEqual([]);
+      expect(window.i18next.language).toBe(language);
+      expect([...new Set(page.requested.map((file) => file.split('/')[0]))].sort())
+        .toEqual([...new Set([language, 'en'])].sort());
     });
 
-    describe.each([['india', 'india'], ['switzerland', 'zurich']])('a deployment in %s', (countryId, suffix) => {
-        afterEach(stopPage);
-
-        test('reads its override strings in place of the standard ones', async () => {
-            const { errors } = await startPage('en', { countryId });
-            const namespace = NAMESPACES.find((ns) => readLocale('en', `${ns}-${suffix}`));
-            const overrides = flatten(readLocale('en', `${namespace}-${suffix}`));
-            const key = plainKeys(overrides)[0];
-            expect(window.i18next.t(`${namespace}:${key}`)).toBe(overrides[key]);
-            expect(errors).toEqual([]);
-        });
-
-        test('asks only for override files that exist, in every language', async () => {
-            for (const language of LANGUAGES) {
-                const { requested } = await startPage(language, { countryId });
-                expect(requested.filter((file) => !fs.existsSync(path.join(LOCALES_DIR, file)))).toEqual([]);
-                expect(requested).toContain(`en/common-${suffix}.json`);
-                stopPage();
-            }
-        });
+    test('shows its own strings, not the English ones', () => {
+      const wrong = [];
+      for (const namespace of NAMESPACES) {
+        const own = flatten(readLocale(language, namespace));
+        for (const key of plainKeys(own)) {
+          if (language !== 'en' && namespace === 'common' && key === WITHHELD) continue;
+          if (window.i18next.t(`${namespace}:${key}`) !== own[key]) wrong.push(`${namespace}:${key}`);
+        }
+      }
+      expect(wrong).toEqual([]);
     });
 
-    describe('a locale file the page expects but cannot load', () => {
-        afterEach(stopPage);
-
-        test('is reported, and the rest of the page is still translated', async () => {
-            const { errors } = await startPage('en', { countryId: 'india', missing: ['en/validate.json'] });
-            expect(errors).toHaveLength(1);
-            expect(String(errors[0][0])).toContain('status code: 404');
-            const overrides = flatten(readLocale('en', 'common-india'));
-            const key = plainKeys(overrides)[0];
-            expect(window.i18next.t(`common:${key}`)).toBe(overrides[key]);
-        });
+    test('falls back to English for a string it does not have', () => {
+      expect(window.i18next.t(`common:${WITHHELD}`)).toBe(readLocale('en', 'common')[WITHHELD]);
     });
 
-    describe('a page given no locale file list', () => {
-        afterEach(stopPage);
-
-        test('reports it, instead of quietly showing raw keys', async () => {
-            const { requested, errors } = await startPage('en', { localeFiles: [] });
-            expect(requested).toEqual([]);
-            expect(String(errors[0][0])).toContain('no locale files listed');
-        });
+    test('picks the plural form the count calls for', () => {
+      const own = flatten(readLocale(language, 'common'));
+      const english = flatten(readLocale('en', 'common'));
+      const key = Object.keys(english).find((k) => k.endsWith('_one') && `${k.slice(0, -4)}_other` in english)
+        .slice(0, -4);
+      const expected = (suffix, count) => (own[`${key}_${suffix}`] ?? english[`${key}_${suffix}`])
+        .replace(/\{\{count(, number)?\}\}/, new Intl.NumberFormat(language).format(count));
+      // Chinese has a single plural form, so a count of one reads the `_other` string there.
+      const singular = new Intl.PluralRules(language).select(1);
+      expect(window.i18next.t(`common:${key}`, { count: 1 })).toBe(expected(singular, 1));
+      expect(window.i18next.t(`common:${key}`, { count: 5 })).toBe(expected('other', 5));
     });
 
-    describe('a request that fails outright', () => {
-        afterEach(stopPage);
-
-        test('is reported, even when it arrives as an Error object and not as text', async () => {
-            const { errors } = await startPage('en', {
-                fetch: async () => { throw new Error('The operation was aborted.'); },
-            });
-            expect(errors).toHaveLength(1);
-            expect(String(errors[0][0])).toContain('The operation was aborted.');
-        });
+    test('renders a distance through our formatter, with the unit the page was given', () => {
+      const rendered = window.i18next.t('accessscore:length', { meters: 412 });
+      expect(rendered).toContain(new Intl.NumberFormat(language).format(400));
+      expect(rendered).toContain(UNIT_WORDS.unitAbbrSmall);
+      expect(rendered).not.toContain('{{');
     });
+  });
+
+  describe.each(['en-US', 'en-NZ'])('the %s overlay', (language) => {
+    afterEach(stopPage);
+
+    test('uses plain English for everything it leaves alone', async () => {
+      await startPage(language);
+      const namespace = NAMESPACES.find((ns) => readLocale(language, ns));
+      const overlay = flatten(readLocale(language, namespace));
+      const english = flatten(readLocale('en', namespace));
+      const inherited = plainKeys(english).find((key) => !(key in overlay));
+      expect(window.i18next.t(`${namespace}:${inherited}`)).toBe(english[inherited]);
+    });
+  });
+
+  describe.each([['india', 'india'], ['switzerland', 'zurich']])('a deployment in %s', (countryId, suffix) => {
+    afterEach(stopPage);
+
+    test('reads its override strings in place of the standard ones', async () => {
+      const { errors } = await startPage('en', { countryId });
+      const namespace = NAMESPACES.find((ns) => readLocale('en', `${ns}-${suffix}`));
+      const overrides = flatten(readLocale('en', `${namespace}-${suffix}`));
+      const key = plainKeys(overrides)[0];
+      expect(window.i18next.t(`${namespace}:${key}`)).toBe(overrides[key]);
+      expect(errors).toEqual([]);
+    });
+
+    test('asks only for override files that exist, in every language', async () => {
+      for (const language of LANGUAGES) {
+        const { requested } = await startPage(language, { countryId });
+        expect(requested.filter((file) => !fs.existsSync(path.join(LOCALES_DIR, file)))).toEqual([]);
+        expect(requested).toContain(`en/common-${suffix}.json`);
+        stopPage();
+      }
+    });
+  });
+
+  describe('a locale file the page expects but cannot load', () => {
+    afterEach(stopPage);
+
+    test('is reported, and the rest of the page is still translated', async () => {
+      const { errors } = await startPage('en', { countryId: 'india', missing: ['en/validate.json'] });
+      expect(errors).toHaveLength(1);
+      expect(String(errors[0][0])).toContain('status code: 404');
+      const overrides = flatten(readLocale('en', 'common-india'));
+      const key = plainKeys(overrides)[0];
+      expect(window.i18next.t(`common:${key}`)).toBe(overrides[key]);
+    });
+  });
+
+  describe('a page given no locale file list', () => {
+    afterEach(stopPage);
+
+    test('reports it, instead of quietly showing raw keys', async () => {
+      const { requested, errors } = await startPage('en', { localeFiles: [] });
+      expect(requested).toEqual([]);
+      expect(String(errors[0][0])).toContain('no locale files listed');
+    });
+  });
+
+  describe('a request that fails outright', () => {
+    afterEach(stopPage);
+
+    test('is reported, even when it arrives as an Error object and not as text', async () => {
+      const { errors } = await startPage('en', {
+        fetch: async () => { throw new Error('The operation was aborted.'); },
+      });
+      expect(errors).toHaveLength(1);
+      expect(String(errors[0][0])).toContain('The operation was aborted.');
+    });
+  });
 });

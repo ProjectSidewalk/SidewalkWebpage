@@ -160,10 +160,10 @@ describe('the roster controls', () => {
     let release;
     window.fetch = vi.fn((url) => (url.startsWith('/adminapi/userSearch')
       ? new Promise((resolve) => {
-        release = () => resolve({ ok: true, json: () => Promise.resolve([
-          { user_id: 'u3', username: 'cyd', email: 'cyd@example.org', role: 'Registered', team: null },
-        ]) });
-      })
+          release = () => resolve({ ok: true, json: () => Promise.resolve([
+            { user_id: 'u3', username: 'cyd', email: 'cyd@example.org', role: 'Registered', team: null },
+          ]) });
+        })
       : Promise.resolve({ ok: true, json: () => Promise.resolve(OVERVIEW) })));
 
     await search('cyd');

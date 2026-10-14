@@ -25,93 +25,93 @@ const IMAGE_URL = '/backupImage/pano1';
  * @returns {string[]}
  */
 async function candidatesFor(maxTextureSize, metadata, { mobile = false } = {}) {
-    useUtil({ isMobile: () => mobile });
-    window.HTMLCanvasElement.prototype.getContext = () => maxTextureSize === null ? null : {
-        MAX_TEXTURE_SIZE: 0x0d33,
-        getParameter: () => maxTextureSize,
-        getExtension: () => null,
-    };
-    const { panoramaUrlCandidates } = await loadModules('frontend/js/common/pano-viewer/PannellumViewer.js');
-    return panoramaUrlCandidates(metadata);
+  useUtil({ isMobile: () => mobile });
+  window.HTMLCanvasElement.prototype.getContext = () => maxTextureSize === null ? null : {
+    MAX_TEXTURE_SIZE: 0x0d33,
+    getParameter: () => maxTextureSize,
+    getExtension: () => null,
+  };
+  const { panoramaUrlCandidates } = await loadModules('frontend/js/common/pano-viewer/PannellumViewer.js');
+  return panoramaUrlCandidates(metadata);
 }
 
 /** The `maxWidth` each candidate asks for; null for the native file, which carries no parameter. */
 const widthsOf = (urls) => urls.map((u) => {
-    const m = /[?&]maxWidth=([^&]*)/.exec(u);
-    return m ? Number(m[1]) : null;
+  const m = /[?&]maxWidth=([^&]*)/.exec(u);
+  return m ? Number(m[1]) : null;
 });
 
 describe('panoramaUrlCandidates', () => {
-    it('steps down from the pano width, not the GPU cap, when the pano is the narrower of the two', async () => {
-        // MAX_TEXTURE_SIZE 16384 -> a 32768 ceiling, far above this 8192-wide pano, so rung 0 is the native file.
-        // Anchored on the cap, the rungs would be 16384 and 8192 -- both of which the server answers with that same
-        // native file, making every attempt identical to the one that just failed.
-        expect(widthsOf(await candidatesFor(16384, { image_url: IMAGE_URL, width: 8192 }))).toEqual([null, 4096, 2048]);
-    });
+  it('steps down from the pano width, not the GPU cap, when the pano is the narrower of the two', async () => {
+    // MAX_TEXTURE_SIZE 16384 -> a 32768 ceiling, far above this 8192-wide pano, so rung 0 is the native file.
+    // Anchored on the cap, the rungs would be 16384 and 8192 -- both of which the server answers with that same
+    // native file, making every attempt identical to the one that just failed.
+    expect(widthsOf(await candidatesFor(16384, { image_url: IMAGE_URL, width: 8192 }))).toEqual([null, 4096, 2048]);
+  });
 
-    it('never offers a rung at or above the width that just failed', async () => {
-        for (const [maxTextureSize, panoWidth] of [[16384, 8192], [8192, 8192], [8192, 16384], [4096, 16384]]) {
-            const widths = widthsOf(await candidatesFor(maxTextureSize, { image_url: IMAGE_URL, width: panoWidth }));
-            const served = widths[0] === null ? panoWidth : widths[0];
-            expect(widths.slice(1).every((w) => w < served)).toBe(true);
-        }
-    });
+  it('never offers a rung at or above the width that just failed', async () => {
+    for (const [maxTextureSize, panoWidth] of [[16384, 8192], [8192, 8192], [8192, 16384], [4096, 16384]]) {
+      const widths = widthsOf(await candidatesFor(maxTextureSize, { image_url: IMAGE_URL, width: panoWidth }));
+      const served = widths[0] === null ? panoWidth : widths[0];
+      expect(widths.slice(1).every((w) => w < served)).toBe(true);
+    }
+  });
 
-    it('asks for the cap first when the pano is wider than the device can texture', async () => {
-        // MAX_TEXTURE_SIZE 4096 -> an 8192 ceiling, under this pano's 16384, so even rung 0 needs a copy.
-        expect(widthsOf(await candidatesFor(4096, { image_url: IMAGE_URL, width: 16384 }))).toEqual([8192, 4096, 2048]);
-    });
+  it('asks for the cap first when the pano is wider than the device can texture', async () => {
+    // MAX_TEXTURE_SIZE 4096 -> an 8192 ceiling, under this pano's 16384, so even rung 0 needs a copy.
+    expect(widthsOf(await candidatesFor(4096, { image_url: IMAGE_URL, width: 16384 }))).toEqual([8192, 4096, 2048]);
+  });
 
-    it('stops at the narrowest width the server will cut', async () => {
-        const widths = widthsOf(await candidatesFor(2048, { image_url: IMAGE_URL, width: 16384 }));
-        expect(Math.min(...widths.filter((w) => w !== null))).toBeGreaterThanOrEqual(2048);
-    });
+  it('stops at the narrowest width the server will cut', async () => {
+    const widths = widthsOf(await candidatesFor(2048, { image_url: IMAGE_URL, width: 16384 }));
+    expect(Math.min(...widths.filter((w) => w !== null))).toBeGreaterThanOrEqual(2048);
+  });
 
-    it('offers at most three attempts', async () => {
-        expect((await candidatesFor(16384, { image_url: IMAGE_URL, width: 16384 })).length).toBeLessThanOrEqual(3);
-    });
+  it('offers at most three attempts', async () => {
+    expect((await candidatesFor(16384, { image_url: IMAGE_URL, width: 16384 })).length).toBeLessThanOrEqual(3);
+  });
 
-    it('still ladders down for a browser that reports no WebGL context', async () => {
-        // No cap to read, but the pano width alone is enough to know what smaller looks like.
-        expect(widthsOf(await candidatesFor(null, { image_url: IMAGE_URL, width: 16384 }))).toEqual([null, 8192, 4096]);
-    });
+  it('still ladders down for a browser that reports no WebGL context', async () => {
+    // No cap to read, but the pano width alone is enough to know what smaller looks like.
+    expect(widthsOf(await candidatesFor(null, { image_url: IMAGE_URL, width: 16384 }))).toEqual([null, 8192, 4096]);
+  });
 
-    it('offers only the native file when neither the cap nor the width is known', async () => {
-        const urls = await candidatesFor(null, { image_url: IMAGE_URL });
-        expect(urls).toEqual([IMAGE_URL]);
-        expect(urls.join()).not.toContain('Infinity');
-    });
+  it('offers only the native file when neither the cap nor the width is known', async () => {
+    const urls = await candidatesFor(null, { image_url: IMAGE_URL });
+    expect(urls).toEqual([IMAGE_URL]);
+    expect(urls.join()).not.toContain('Infinity');
+  });
 });
 
 // A phone's GPU says the native 16384-wide file can be textured, and it can; what it can't survive is the memory
 // the load costs, which iOS answers by killing the tab (#5561). Nothing tells the ladder about that, so the cap has
 // to be lowered up front rather than found by failing.
 describe('panoramaUrlCandidates on a phone (issue #5561)', () => {
-    const mobile = { mobile: true };
+  const mobile = { mobile: true };
 
-    it('asks for an 8192 copy of a native-width pano even though the GPU could texture the native file', async () => {
-        expect(widthsOf(await candidatesFor(16384, { image_url: IMAGE_URL, width: 16384 }, mobile)))
-            .toEqual([8192, 4096, 2048]);
-    });
+  it('asks for an 8192 copy of a native-width pano even though the GPU could texture the native file', async () => {
+    expect(widthsOf(await candidatesFor(16384, { image_url: IMAGE_URL, width: 16384 }, mobile)))
+      .toEqual([8192, 4096, 2048]);
+  });
 
-    it('leaves a pano that already fits the phone cap untouched', async () => {
-        expect(widthsOf(await candidatesFor(16384, { image_url: IMAGE_URL, width: 8192 }, mobile)))
-            .toEqual([null, 4096, 2048]);
-    });
+  it('leaves a pano that already fits the phone cap untouched', async () => {
+    expect(widthsOf(await candidatesFor(16384, { image_url: IMAGE_URL, width: 8192 }, mobile)))
+      .toEqual([null, 4096, 2048]);
+  });
 
-    it('takes the lower of the GPU cap and the phone cap', async () => {
-        // MAX_TEXTURE_SIZE 2048 -> a 4096 ceiling, under the phone's 8192: the GPU is the tighter bound here.
-        expect(widthsOf(await candidatesFor(2048, { image_url: IMAGE_URL, width: 16384 }, mobile)))
-            .toEqual([4096, 2048]);
-    });
+  it('takes the lower of the GPU cap and the phone cap', async () => {
+    // MAX_TEXTURE_SIZE 2048 -> a 4096 ceiling, under the phone's 8192: the GPU is the tighter bound here.
+    expect(widthsOf(await candidatesFor(2048, { image_url: IMAGE_URL, width: 16384 }, mobile)))
+      .toEqual([4096, 2048]);
+  });
 
-    it('applies the phone cap when the GPU cannot be read at all', async () => {
-        expect(widthsOf(await candidatesFor(null, { image_url: IMAGE_URL, width: 16384 }, mobile)))
-            .toEqual([8192, 4096, 2048]);
-    });
+  it('applies the phone cap when the GPU cannot be read at all', async () => {
+    expect(widthsOf(await candidatesFor(null, { image_url: IMAGE_URL, width: 16384 }, mobile)))
+      .toEqual([8192, 4096, 2048]);
+  });
 
-    it('changes nothing for a desktop browser', async () => {
-        expect(widthsOf(await candidatesFor(16384, { image_url: IMAGE_URL, width: 16384 })))
-            .toEqual([null, 8192, 4096]);
-    });
+  it('changes nothing for a desktop browser', async () => {
+    expect(widthsOf(await candidatesFor(16384, { image_url: IMAGE_URL, width: 16384 })))
+      .toEqual([null, 8192, 4096]);
+  });
 });

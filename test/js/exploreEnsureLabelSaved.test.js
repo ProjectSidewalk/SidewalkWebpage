@@ -18,77 +18,77 @@ import { loadModules } from './loader.js';
  * @param {?Promise} [opts.cropUpload] - What cropUploaded() resolves with; omit for an already-settled upload.
  */
 function labelStub({ labelId = 'DefaultValue', cropUpload = Promise.resolve() } = {}) {
-    const props = { labelId };
-    return {
-        getProperty: (k) => props[k],
-        setProperty: (k, v) => { props[k] = v; },
-        cropUploaded: vi.fn(() => cropUpload),
-    };
+  const props = { labelId };
+  return {
+    getProperty: (k) => props[k],
+    setProperty: (k, v) => { props[k] = v; },
+    cropUploaded: vi.fn(() => cropUpload),
+  };
 }
 
 describe('Form#ensureLabelSaved', () => {
-    let Form;
-    let ensureLabelSaved;
-    let submitData;
+  let Form;
+  let ensureLabelSaved;
+  let submitData;
 
-    beforeEach(async () => {
-        ({ Form } = await loadModules('frontend/js/explore/data/Form.js'));
-        submitData = vi.fn().mockResolvedValue(undefined);
-        ensureLabelSaved = (label) => Form.prototype.ensureLabelSaved.call({ submitData }, label);
-    });
+  beforeEach(async () => {
+    ({ Form } = await loadModules('frontend/js/explore/data/Form.js'));
+    submitData = vi.fn().mockResolvedValue(undefined);
+    ensureLabelSaved = (label) => Form.prototype.ensureLabelSaved.call({ submitData }, label);
+  });
 
-    test('does nothing for a label that already has a server-side id', async () => {
-        const label = labelStub({ labelId: 42 });
+  test('does nothing for a label that already has a server-side id', async () => {
+    const label = labelStub({ labelId: 42 });
 
-        await ensureLabelSaved(label);
+    await ensureLabelSaved(label);
 
-        expect(submitData).not.toHaveBeenCalled();
-        expect(label.cropUploaded).not.toHaveBeenCalled();
-    });
+    expect(submitData).not.toHaveBeenCalled();
+    expect(label.cropUploaded).not.toHaveBeenCalled();
+  });
 
-    test('does nothing when there is no label at all', async () => {
-        await expect(ensureLabelSaved(undefined)).resolves.toBeUndefined();
-        expect(submitData).not.toHaveBeenCalled();
-    });
+  test('does nothing when there is no label at all', async () => {
+    await expect(ensureLabelSaved(undefined)).resolves.toBeUndefined();
+    expect(submitData).not.toHaveBeenCalled();
+  });
 
-    test('submits the session, then waits on the crop the submit kicked off', async () => {
-        const label = labelStub();
-        // Form.js writes the id back onto the label out of the submit response.
-        submitData.mockImplementation(async () => label.setProperty('labelId', 7));
+  test('submits the session, then waits on the crop the submit kicked off', async () => {
+    const label = labelStub();
+    // Form.js writes the id back onto the label out of the submit response.
+    submitData.mockImplementation(async () => label.setProperty('labelId', 7));
 
-        await ensureLabelSaved(label);
+    await ensureLabelSaved(label);
 
-        expect(submitData).toHaveBeenCalledTimes(1);
-        expect(label.getProperty('labelId')).toBe(7);
-        // The crop matters as much as the id: /label/:id/image caches whatever base image it can find, so a share
-        // handed out before the crop lands would bake in the Street View stand-in.
-        expect(label.cropUploaded).toHaveBeenCalledTimes(1);
-    });
+    expect(submitData).toHaveBeenCalledTimes(1);
+    expect(label.getProperty('labelId')).toBe(7);
+    // The crop matters as much as the id: /label/:id/image caches whatever base image it can find, so a share
+    // handed out before the crop lands would bake in the Street View stand-in.
+    expect(label.cropUploaded).toHaveBeenCalledTimes(1);
+  });
 
-    test('gives up quietly when the submit produces no id, rather than waiting on a crop that cannot come', async () => {
-        // The submit failed, or the label was rejected. The caller then finds an empty share target and does nothing,
-        // which is the right outcome for a share that can't be built.
-        const label = labelStub();
+  test('gives up quietly when the submit produces no id, rather than waiting on a crop that cannot come', async () => {
+    // The submit failed, or the label was rejected. The caller then finds an empty share target and does nothing,
+    // which is the right outcome for a share that can't be built.
+    const label = labelStub();
 
-        await ensureLabelSaved(label);
+    await ensureLabelSaved(label);
 
-        expect(submitData).toHaveBeenCalledTimes(1);
-        expect(label.cropUploaded).not.toHaveBeenCalled();
-    });
+    expect(submitData).toHaveBeenCalledTimes(1);
+    expect(label.cropUploaded).not.toHaveBeenCalled();
+  });
 
-    test('opens anyway when the crop upload stalls, instead of leaving the button dead', async () => {
-        // The upload sleeps a fixed 3s when the canvas hasn't produced a crop yet. A share button that does nothing
-        // for three seconds reads as broken, so the wait is capped — the link works either way, and ImageController
-        // drops the cached preview when the crop does land.
-        const label = labelStub({ cropUpload: new Promise(() => { /* never settles */ }) });
-        submitData.mockImplementation(async () => label.setProperty('labelId', 7));
+  test('opens anyway when the crop upload stalls, instead of leaving the button dead', async () => {
+    // The upload sleeps a fixed 3s when the canvas hasn't produced a crop yet. A share button that does nothing
+    // for three seconds reads as broken, so the wait is capped — the link works either way, and ImageController
+    // drops the cached preview when the crop does land.
+    const label = labelStub({ cropUpload: new Promise(() => { /* never settles */ }) });
+    submitData.mockImplementation(async () => label.setProperty('labelId', 7));
 
-        const started = Date.now();
-        await ensureLabelSaved(label);
-        const waited = Date.now() - started;
+    const started = Date.now();
+    await ensureLabelSaved(label);
+    const waited = Date.now() - started;
 
-        expect(label.cropUploaded).toHaveBeenCalledTimes(1);
-        // Resolving at all is the assertion; the bound guards against the cap being raised to something unusable.
-        expect(waited).toBeLessThan(2000);
-    });
+    expect(label.cropUploaded).toHaveBeenCalledTimes(1);
+    // Resolving at all is the assertion; the bound guards against the cap being raised to something unusable.
+    expect(waited).toBeLessThan(2000);
+  });
 });

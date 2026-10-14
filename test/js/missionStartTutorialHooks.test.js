@@ -12,7 +12,7 @@ import { fakeTracker } from './fakes.js';
 
 /** The markup the tutorial fills in, reduced to the elements it reaches for. */
 function buildFixture() {
-    document.body.innerHTML = `
+  document.body.innerHTML = `
       <div class="mission-start-tutorial-overlay">
         <div class="mst-instruction-1"></div>
         <div class="mst-instruction-2"></div>
@@ -41,59 +41,59 @@ function buildFixture() {
 }
 
 describe('the mission-start tutorial closing', () => {
-    let MissionStartTutorial;
-    let hooks;
+  let MissionStartTutorial;
+  let hooks;
 
-    beforeAll(async () => {
-        window.i18next = { t: (key) => key };
-        ({ MissionStartTutorial } = await loadModules('frontend/js/common/MissionStartTutorial.js'));
-    });
+  beforeAll(async () => {
+    window.i18next = { t: (key) => key };
+    ({ MissionStartTutorial } = await loadModules('frontend/js/common/MissionStartTutorial.js'));
+  });
 
-    beforeEach(() => {
-        buildFixture();
-        hooks = {
-            tracker: fakeTracker(),
-            keyboard: { enableKeyboard: vi.fn() },
-            missionContainer: {
-                getCurrentMission: () => ({
-                    getProperty: (key) => ({ distanceProgress: 0, missionId: 7, missionType: 'audit', regionId: 3 })[key],
-                    getDistance: () => 500,
-                }),
-            },
-        };
-    });
+  beforeEach(() => {
+    buildFixture();
+    hooks = {
+      tracker: fakeTracker(),
+      keyboard: { enableKeyboard: vi.fn() },
+      missionContainer: {
+        getCurrentMission: () => ({
+          getProperty: (key) => ({ distanceProgress: 0, missionId: 7, missionType: 'audit', regionId: 3 })[key],
+          getDistance: () => 500,
+        }),
+      },
+    };
+  });
 
-    it('hands Explore its tool back with the hooks Explore has, which do not include a zoom control', () => {
-        new MissionStartTutorial('audit', 'CurbRamp', { nLength: 0.3, region: 'Downtown', resuming: false }, hooks);
-        const done = vi.fn();
-        document.addEventListener('ps:mission-start-tutorial:done', done, { once: true });
+  it('hands Explore its tool back with the hooks Explore has, which do not include a zoom control', () => {
+    new MissionStartTutorial('audit', 'CurbRamp', { nLength: 0.3, region: 'Downtown', resuming: false }, hooks);
+    const done = vi.fn();
+    document.addEventListener('ps:mission-start-tutorial:done', done, { once: true });
 
-        document.querySelector('.mission-start-tutorial-done-btn').click();
+    document.querySelector('.mission-start-tutorial-done-btn').click();
 
-        expect(document.querySelector('.mission-start-tutorial-overlay').style.display).toBe('none');
-        expect(document.querySelector('.explore-mission-start-tab-bar').classList.contains('ps-hidden')).toBe(true);
-        expect(hooks.keyboard.enableKeyboard).toHaveBeenCalled();
-        expect(done).toHaveBeenCalled();
-        expect(hooks.tracker.push).toHaveBeenCalledWith('MSTDoneButton_Click', { currentSlideIdx: 0 }, null);
-        expect(hooks.tracker.push).toHaveBeenCalledWith('MissionStart', expect.objectContaining({ missionId: 7 }));
-    });
+    expect(document.querySelector('.mission-start-tutorial-overlay').style.display).toBe('none');
+    expect(document.querySelector('.explore-mission-start-tab-bar').classList.contains('ps-hidden')).toBe(true);
+    expect(hooks.keyboard.enableKeyboard).toHaveBeenCalled();
+    expect(done).toHaveBeenCalled();
+    expect(hooks.tracker.push).toHaveBeenCalledWith('MSTDoneButton_Click', { currentSlideIdx: 0 }, null);
+    expect(hooks.tracker.push).toHaveBeenCalledWith('MissionStart', expect.objectContaining({ missionId: 7 }));
+  });
 
-    it('refreshes the zoom buttons for a tool that hands one in', () => {
-        hooks.zoomControl = { updateZoomAvailability: vi.fn() };
-        new MissionStartTutorial('validate', 'CurbRamp', { nLabels: 10 }, hooks);
+  it('refreshes the zoom buttons for a tool that hands one in', () => {
+    hooks.zoomControl = { updateZoomAvailability: vi.fn() };
+    new MissionStartTutorial('validate', 'CurbRamp', { nLabels: 10 }, hooks);
 
-        document.querySelector('.mission-start-tutorial-done-btn').click();
+    document.querySelector('.mission-start-tutorial-done-btn').click();
 
-        expect(hooks.zoomControl.updateZoomAvailability).toHaveBeenCalled();
-    });
+    expect(hooks.zoomControl.updateZoomAvailability).toHaveBeenCalled();
+  });
 
-    it('rebuilds itself from the same hooks when Explore switches the label type tab', () => {
-        new MissionStartTutorial('audit', 'CurbRamp', { nLength: 0.3, region: 'Downtown', resuming: false }, hooks);
+  it('rebuilds itself from the same hooks when Explore switches the label type tab', () => {
+    new MissionStartTutorial('audit', 'CurbRamp', { nLength: 0.3, region: 'Downtown', resuming: false }, hooks);
 
-        document.querySelector('.explore-mission-start-tab').click();
-        document.querySelector('.mission-start-tutorial-done-btn').click();
+    document.querySelector('.explore-mission-start-tab').click();
+    document.querySelector('.mission-start-tutorial-done-btn').click();
 
-        expect(document.querySelector('.mission-start-tutorial-overlay').style.display).toBe('none');
-        expect(hooks.keyboard.enableKeyboard).toHaveBeenCalled();
-    });
+    expect(document.querySelector('.mission-start-tutorial-overlay').style.display).toBe('none');
+    expect(hooks.keyboard.enableKeyboard).toHaveBeenCalled();
+  });
 });

@@ -11,18 +11,18 @@
 import { loadModules } from './loader.js';
 
 describe('Infra3dViewer before the first pano', () => {
-    let viewer;
+  let viewer;
 
-    beforeAll(async () => {
-        const { Infra3dViewer } = await loadModules('frontend/js/common/pano-viewer/Infra3dViewer.js');
-        viewer = new Infra3dViewer();
-        // The SDK viewer exists from construction; no node has been moved to yet.
-        viewer.viewer = { getCameraView: () => ({ lon: 0, lat: 0, type: 'flat' }) };
-    });
+  beforeAll(async () => {
+    const { Infra3dViewer } = await loadModules('frontend/js/common/pano-viewer/Infra3dViewer.js');
+    viewer = new Infra3dViewer();
+    // The SDK viewer exists from construction; no node has been moved to yet.
+    viewer.viewer = { getCameraView: () => ({ lon: 0, lat: 0, type: 'flat' }) };
+  });
 
-    test('answers null for the pano id, position and POV rather than throwing', () => {
-        expect(viewer.getPanoId()).toBeNull();
-        expect(viewer.getPosition()).toBeNull();
-        expect(viewer.getPov()).toBeNull();
-    });
+  test('answers null for the pano id, position and POV rather than throwing', () => {
+    expect(viewer.getPanoId()).toBeNull();
+    expect(viewer.getPosition()).toBeNull();
+    expect(viewer.getPov()).toBeNull();
+  });
 });

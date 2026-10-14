@@ -14,7 +14,7 @@ import { loadModules } from './loader.js';
 
 /** Builds a navbar with one quick item (the account control) and one panel-only dropdown (language). */
 function buildNavbar() {
-    document.body.innerHTML = `
+  document.body.innerHTML = `
       <div id="page">page content</div>
       <nav id="header">
         <div class="navbar-container">
@@ -44,18 +44,18 @@ function buildNavbar() {
 
 /** Stubs enough layout for the responsive pass to treat the nav as collapsed with room for the quick item. */
 function stubLayout() {
-    const rect = (el, w) => Object.defineProperty(el, 'getBoundingClientRect', {
-        configurable: true, value: () => ({ width: w, height: 38, x: 0, y: 0, top: 0, left: 0 }),
-    });
-    const hamburger = document.querySelector('[data-nav-toggle]');
-    Object.defineProperty(hamburger, 'offsetParent', { configurable: true, get: () => document.body });
-    rect(hamburger, 44);
-    rect(document.querySelector('.navbar-logo'), 110);
-    rect(document.getElementById('navbar-quick'), 40);
-    for (const group of document.querySelectorAll('#navbar > .navbar-list')) rect(group, 100);
-    const row = document.querySelector('.navbar-brand-area');
-    Object.defineProperty(row, 'clientWidth', { configurable: true, get: () => 800 });
-    Object.defineProperty(document.getElementById('navbar'), 'clientWidth', { configurable: true, get: () => 800 });
+  const rect = (el, w) => Object.defineProperty(el, 'getBoundingClientRect', {
+    configurable: true, value: () => ({ width: w, height: 38, x: 0, y: 0, top: 0, left: 0 }),
+  });
+  const hamburger = document.querySelector('[data-nav-toggle]');
+  Object.defineProperty(hamburger, 'offsetParent', { configurable: true, get: () => document.body });
+  rect(hamburger, 44);
+  rect(document.querySelector('.navbar-logo'), 110);
+  rect(document.getElementById('navbar-quick'), 40);
+  for (const group of document.querySelectorAll('#navbar > .navbar-list')) rect(group, 100);
+  const row = document.querySelector('.navbar-brand-area');
+  Object.defineProperty(row, 'clientWidth', { configurable: true, get: () => 800 });
+  Object.defineProperty(document.getElementById('navbar'), 'clientWidth', { configurable: true, get: () => 800 });
 }
 
 const panelOpen = () => document.getElementById('navbar').classList.contains('is-open');
@@ -63,162 +63,162 @@ const isOpen = (id) => document.getElementById(id).classList.contains('is-open')
 const press = (el) => el.dispatchEvent(new Event('pointerdown', { bubbles: true }));
 
 describe('Navbar disclosures', () => {
-    let NavbarController;
+  let NavbarController;
 
-    beforeAll(async () => {
-        ({ NavbarController } = await loadModules('frontend/js/common/Navbar.js'));
-    });
+  beforeAll(async () => {
+    ({ NavbarController } = await loadModules('frontend/js/common/Navbar.js'));
+  });
 
-    beforeEach(() => {
-        buildNavbar();
-        stubLayout();
-        new NavbarController();
-        // The account control is promoted into the strip, which is what makes it a peer of the panel.
-        expect(document.getElementById('navbar-quick').children).toHaveLength(1);
-    });
+  beforeEach(() => {
+    buildNavbar();
+    stubLayout();
+    new NavbarController();
+    // The account control is promoted into the strip, which is what makes it a peer of the panel.
+    expect(document.getElementById('navbar-quick').children).toHaveLength(1);
+  });
 
-    const hamburger = () => document.querySelector('[data-nav-toggle]');
-    const userBtn = () => document.getElementById('user-btn');
-    const langBtn = () => document.getElementById('lang-btn');
+  const hamburger = () => document.querySelector('[data-nav-toggle]');
+  const userBtn = () => document.getElementById('user-btn');
+  const langBtn = () => document.getElementById('lang-btn');
 
-    /**
+  /**
      * Puts the bar in its collapsed or inline layout and lets the debounced re-fit run.
      * The hamburger's visibility is what the controller reads the layout from.
      */
-    async function setStacked(stacked) {
-        Object.defineProperty(hamburger(), 'offsetParent', {
-            configurable: true, get: () => (stacked ? document.body : null),
-        });
-        window.dispatchEvent(new Event('resize'));
-        await new Promise((resolve) => requestAnimationFrame(resolve));
-    }
+  async function setStacked(stacked) {
+    Object.defineProperty(hamburger(), 'offsetParent', {
+      configurable: true, get: () => (stacked ? document.body : null),
+    });
+    window.dispatchEvent(new Event('resize'));
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+  }
 
-    it('closes the panel when a quick-strip dropdown opens', () => {
-        hamburger().click();
-        expect(panelOpen()).toBe(true);
+  it('closes the panel when a quick-strip dropdown opens', () => {
+    hamburger().click();
+    expect(panelOpen()).toBe(true);
 
-        userBtn().click();
+    userBtn().click();
 
-        expect(isOpen('li-user')).toBe(true);
-        expect(panelOpen()).toBe(false);
+    expect(isOpen('li-user')).toBe(true);
+    expect(panelOpen()).toBe(false);
+  });
+
+  it('closes a quick-strip dropdown when the panel opens', () => {
+    userBtn().click();
+    expect(isOpen('li-user')).toBe(true);
+
+    hamburger().click();
+
+    expect(panelOpen()).toBe(true);
+    expect(isOpen('li-user')).toBe(false);
+  });
+
+  it('keeps the panel open for a dropdown that is still inside it', () => {
+    hamburger().click();
+
+    langBtn().click();
+
+    expect(isOpen('language-dropdown')).toBe(true);
+    expect(panelOpen()).toBe(true);
+  });
+
+  it('keeps the hamburger button aria-expanded in step with the panel', () => {
+    hamburger().click();
+    expect(hamburger().getAttribute('aria-expanded')).toBe('true');
+
+    userBtn().click();
+
+    expect(hamburger().getAttribute('aria-expanded')).toBe('false');
+  });
+
+  it('dismisses the panel on a press outside it', () => {
+    hamburger().click();
+
+    press(document.getElementById('page'));
+
+    expect(panelOpen()).toBe(false);
+  });
+
+  it('does not dismiss the panel on a press on the hamburger, which owns its own toggle', () => {
+    hamburger().click();
+
+    press(hamburger());
+
+    expect(panelOpen()).toBe(true);
+  });
+
+  it('dismisses on press rather than click, since closing a dropdown reflows the panel mid-tap', () => {
+    hamburger().click();
+    // A click whose target retargeted to an ancestor after a reflow must not read as an outside tap.
+    document.getElementById('page').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    expect(panelOpen()).toBe(true);
+  });
+
+  it('closes the panel on Escape', () => {
+    hamburger().click();
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+
+    expect(panelOpen()).toBe(false);
+  });
+
+  it('leaves the panel open when Escape was already consumed by a dropdown inside it', () => {
+    hamburger().click();
+    langBtn().click();
+
+    // The dropdown's own handler calls preventDefault, which is how the panel knows the key was spoken for.
+    const consumed = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
+    document.getElementById('nav-language-menu').dispatchEvent(consumed);
+
+    expect(isOpen('language-dropdown')).toBe(false);
+    expect(panelOpen()).toBe(true);
+  });
+
+  it('closes a dropdown inside the panel when the panel is dismissed', () => {
+    hamburger().click();
+    langBtn().click();
+    expect(isOpen('language-dropdown')).toBe(true);
+
+    press(document.getElementById('page'));
+
+    expect(panelOpen()).toBe(false);
+    expect(isOpen('language-dropdown')).toBe(false);
+    expect(langBtn().getAttribute('aria-expanded')).toBe('false');
+  });
+
+  // `.navbar-item.is-open > .navbar-menu` is not scoped by breakpoint, so an item that crosses the collapse
+  // boundary still carrying `is-open` renders its panel in a bar the user never opened it from.
+  describe('when the bar crosses the collapse boundary', () => {
+    it('closes a quick-strip dropdown as its item returns to the inline bar', async () => {
+      userBtn().click();
+      expect(isOpen('li-user')).toBe(true);
+
+      await setStacked(false);
+
+      expect(document.getElementById('navbar-quick').children).toHaveLength(0);
+      expect(isOpen('li-user')).toBe(false);
+      expect(userBtn().getAttribute('aria-expanded')).toBe('false');
     });
 
-    it('closes a quick-strip dropdown when the panel opens', () => {
-        userBtn().click();
-        expect(isOpen('li-user')).toBe(true);
+    it('closes the panel and a dropdown open inside it', async () => {
+      hamburger().click();
+      langBtn().click();
+      expect(panelOpen()).toBe(true);
 
-        hamburger().click();
+      await setStacked(false);
 
-        expect(panelOpen()).toBe(true);
-        expect(isOpen('li-user')).toBe(false);
+      expect(panelOpen()).toBe(false);
+      expect(isOpen('language-dropdown')).toBe(false);
     });
 
-    it('keeps the panel open for a dropdown that is still inside it', () => {
-        hamburger().click();
+    it('leaves an open dropdown alone on a resize that stays on one side of it', async () => {
+      userBtn().click();
 
-        langBtn().click();
+      // What an on-screen keyboard or a collapsing URL bar looks like: a resize, same layout, menu still in use.
+      await setStacked(true);
 
-        expect(isOpen('language-dropdown')).toBe(true);
-        expect(panelOpen()).toBe(true);
+      expect(isOpen('li-user')).toBe(true);
     });
-
-    it('keeps the hamburger button aria-expanded in step with the panel', () => {
-        hamburger().click();
-        expect(hamburger().getAttribute('aria-expanded')).toBe('true');
-
-        userBtn().click();
-
-        expect(hamburger().getAttribute('aria-expanded')).toBe('false');
-    });
-
-    it('dismisses the panel on a press outside it', () => {
-        hamburger().click();
-
-        press(document.getElementById('page'));
-
-        expect(panelOpen()).toBe(false);
-    });
-
-    it('does not dismiss the panel on a press on the hamburger, which owns its own toggle', () => {
-        hamburger().click();
-
-        press(hamburger());
-
-        expect(panelOpen()).toBe(true);
-    });
-
-    it('dismisses on press rather than click, since closing a dropdown reflows the panel mid-tap', () => {
-        hamburger().click();
-        // A click whose target retargeted to an ancestor after a reflow must not read as an outside tap.
-        document.getElementById('page').dispatchEvent(new MouseEvent('click', { bubbles: true }));
-
-        expect(panelOpen()).toBe(true);
-    });
-
-    it('closes the panel on Escape', () => {
-        hamburger().click();
-
-        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-
-        expect(panelOpen()).toBe(false);
-    });
-
-    it('leaves the panel open when Escape was already consumed by a dropdown inside it', () => {
-        hamburger().click();
-        langBtn().click();
-
-        // The dropdown's own handler calls preventDefault, which is how the panel knows the key was spoken for.
-        const consumed = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
-        document.getElementById('nav-language-menu').dispatchEvent(consumed);
-
-        expect(isOpen('language-dropdown')).toBe(false);
-        expect(panelOpen()).toBe(true);
-    });
-
-    it('closes a dropdown inside the panel when the panel is dismissed', () => {
-        hamburger().click();
-        langBtn().click();
-        expect(isOpen('language-dropdown')).toBe(true);
-
-        press(document.getElementById('page'));
-
-        expect(panelOpen()).toBe(false);
-        expect(isOpen('language-dropdown')).toBe(false);
-        expect(langBtn().getAttribute('aria-expanded')).toBe('false');
-    });
-
-    // `.navbar-item.is-open > .navbar-menu` is not scoped by breakpoint, so an item that crosses the collapse
-    // boundary still carrying `is-open` renders its panel in a bar the user never opened it from.
-    describe('when the bar crosses the collapse boundary', () => {
-        it('closes a quick-strip dropdown as its item returns to the inline bar', async () => {
-            userBtn().click();
-            expect(isOpen('li-user')).toBe(true);
-
-            await setStacked(false);
-
-            expect(document.getElementById('navbar-quick').children).toHaveLength(0);
-            expect(isOpen('li-user')).toBe(false);
-            expect(userBtn().getAttribute('aria-expanded')).toBe('false');
-        });
-
-        it('closes the panel and a dropdown open inside it', async () => {
-            hamburger().click();
-            langBtn().click();
-            expect(panelOpen()).toBe(true);
-
-            await setStacked(false);
-
-            expect(panelOpen()).toBe(false);
-            expect(isOpen('language-dropdown')).toBe(false);
-        });
-
-        it('leaves an open dropdown alone on a resize that stays on one side of it', async () => {
-            userBtn().click();
-
-            // What an on-screen keyboard or a collapsing URL bar looks like: a resize, same layout, menu still in use.
-            await setStacked(true);
-
-            expect(isOpen('li-user')).toBe(true);
-        });
-    });
+  });
 });

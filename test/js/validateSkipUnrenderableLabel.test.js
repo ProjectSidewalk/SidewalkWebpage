@@ -499,7 +499,7 @@ describe('LabelContainer defers a label whose pano is slow rather than dropping 
   /** @returns {Promise<LabelContainer>} A container over three labels, one per pano, with its first label shown. */
   function buildContainer() {
     return buildLabelContainer(LabelContainer, deps,
-        [{labelId: 1, panoId: 'panoA'}, {labelId: 2, panoId: 'panoB'}, {labelId: 3, panoId: 'panoC'}], LABEL_TYPE);
+      [{labelId: 1, panoId: 'panoA'}, {labelId: 2, panoId: 'panoB'}, {labelId: 3, panoId: 'panoC'}], LABEL_TYPE);
   }
 
   /** @returns {Array<number>} The label ids the validation UI was actually asked to render, in order. */

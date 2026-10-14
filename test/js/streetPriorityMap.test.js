@@ -11,7 +11,7 @@
 import { loadModules } from './loader.js';
 
 const { StreetPriorityMap, StreetPriorityTiers } =
-    await loadModules('frontend/js/admin-dashboard/StreetPriorityMap.js');
+  await loadModules('frontend/js/admin-dashboard/StreetPriorityMap.js');
 
 /** A minimal `mapboxgl` double: records layers, sources, feature states and handlers instead of drawing. */
 function stubMapbox() {

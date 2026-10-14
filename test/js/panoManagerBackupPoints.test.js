@@ -30,46 +30,46 @@ const alongM = ({ lat, lng }) => turf.nearestPointOnLine(STREET, turf.point([lng
 const offStreetM = ({ lat, lng }) => turf.pointToLineDistance(turf.point([lng, lat]), STREET, { units: 'meters' });
 
 describe('PanoManager.backupPointsAlongStreet', () => {
-    test('with no seed, walks the street every 10 m from the start and ends at the endpoint', () => {
-        const points = PanoManager.backupPointsAlongStreet(STREET, END);
-        expect(points).toHaveLength(40);
-        expect(alongM(points[0])).toBeCloseTo(10, 0);
-        expect(alongM(points[1])).toBeCloseTo(20, 0);
-        expect(points.at(-1)).toEqual(END);
-    });
+  test('with no seed, walks the street every 10 m from the start and ends at the endpoint', () => {
+    const points = PanoManager.backupPointsAlongStreet(STREET, END);
+    expect(points).toHaveLength(40);
+    expect(alongM(points[0])).toBeCloseTo(10, 0);
+    expect(alongM(points[1])).toBeCloseTo(20, 0);
+    expect(points.at(-1)).toEqual(END);
+  });
 
-    test('a seed at the street start keeps the start-to-end order, and is not asked about twice', () => {
-        const points = PanoManager.backupPointsAlongStreet(STREET, END, { lat: LAT, lng: START_LNG });
-        expect(points).toEqual(PanoManager.backupPointsAlongStreet(STREET, END));
-    });
+  test('a seed at the street start keeps the start-to-end order, and is not asked about twice', () => {
+    const points = PanoManager.backupPointsAlongStreet(STREET, END, { lat: LAT, lng: START_LNG });
+    expect(points).toEqual(PanoManager.backupPointsAlongStreet(STREET, END));
+  });
 
-    test('an off-street seed retries at its projection onto the street first, then works outward from it', () => {
-        // An address drop-in 30 m north of the street, 300 m along it.
-        const seed = { lat: LAT + 30 / 111320, lng: lngAt(300) };
-        const points = PanoManager.backupPointsAlongStreet(STREET, END, seed);
+  test('an off-street seed retries at its projection onto the street first, then works outward from it', () => {
+    // An address drop-in 30 m north of the street, 300 m along it.
+    const seed = { lat: LAT + 30 / 111320, lng: lngAt(300) };
+    const points = PanoManager.backupPointsAlongStreet(STREET, END, seed);
 
-        expect(offStreetM(points[0])).toBeLessThan(0.5);
-        expect(alongM(points[0])).toBeCloseTo(300, 0);
-        // Then the grid, nearest the seed first: 290/310 before 280/320, and never the street's start early on.
-        const nextFour = points.slice(1, 5).map((p) => Math.round(alongM(p)));
-        expect(nextFour.sort((a, b) => a - b)).toEqual([280, 290, 310, 320]);
-        expect(Math.round(alongM(points.at(-1)))).toBe(10); // The far end of the street from the seed comes last.
-        // Only the 300 m grid point, which sits on the projection, is dropped: projection + 38 grid points + endpoint.
-        expect(points).toHaveLength(40);
-        expect(points.filter((p) => Math.round(alongM(p)) === 300)).toHaveLength(1);
-        expect(points).toContainEqual(END);
-    });
+    expect(offStreetM(points[0])).toBeLessThan(0.5);
+    expect(alongM(points[0])).toBeCloseTo(300, 0);
+    // Then the grid, nearest the seed first: 290/310 before 280/320, and never the street's start early on.
+    const nextFour = points.slice(1, 5).map((p) => Math.round(alongM(p)));
+    expect(nextFour.sort((a, b) => a - b)).toEqual([280, 290, 310, 320]);
+    expect(Math.round(alongM(points.at(-1)))).toBe(10); // The far end of the street from the seed comes last.
+    // Only the 300 m grid point, which sits on the projection, is dropped: projection + 38 grid points + endpoint.
+    expect(points).toHaveLength(40);
+    expect(points.filter((p) => Math.round(alongM(p)) === 300)).toHaveLength(1);
+    expect(points).toContainEqual(END);
+  });
 
-    test('equidistant grid points keep their start-to-end order', () => {
-        const seed = { lat: LAT + 30 / 111320, lng: lngAt(300) };
-        const [, first, second] = PanoManager.backupPointsAlongStreet(STREET, END, seed).map(alongM);
-        expect(first).toBeLessThan(second); // 290 before 310.
-    });
+  test('equidistant grid points keep their start-to-end order', () => {
+    const seed = { lat: LAT + 30 / 111320, lng: lngAt(300) };
+    const [, first, second] = PanoManager.backupPointsAlongStreet(STREET, END, seed).map(alongM);
+    expect(first).toBeLessThan(second); // 290 before 310.
+  });
 
-    test('a seed on the street mid-way (a resumed walk) is not re-asked, and the fallback starts beside it', () => {
-        const seed = { lat: LAT, lng: lngAt(155) };
-        const points = PanoManager.backupPointsAlongStreet(STREET, END, seed);
-        expect(points).toHaveLength(40);
-        expect([150, 160]).toContain(Math.round(alongM(points[0])));
-    });
+  test('a seed on the street mid-way (a resumed walk) is not re-asked, and the fallback starts beside it', () => {
+    const seed = { lat: LAT, lng: lngAt(155) };
+    const points = PanoManager.backupPointsAlongStreet(STREET, END, seed);
+    expect(points).toHaveLength(40);
+    expect([150, 160]).toContain(Math.round(alongM(points[0])));
+  });
 });

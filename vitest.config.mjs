@@ -35,9 +35,17 @@ export default defineConfig({
     coverage: {
       // The whole first-party frontend, so an untested file counts against the ratio rather than being invisible.
       include: ['frontend/js/**/*.js'],
-      // The default per-file table is 229 rows of mostly zeroes, which buries the totals; lcov keeps the detail.
+      // The default per-file table is a long run of mostly zeroes that buries the totals; lcov keeps the detail.
       reporter: ['text-summary', 'lcov'],
-      // No `thresholds` yet: the number is a baseline to grow from before it becomes a floor.
+      // A ratchet (#5112): each floor sits 1-2 points under CI's figure, so a sizable drop fails the run. Read the new
+      // figure off CI, or `make test-js args=--coverage`, before raising one.
+      // Applies to any `--coverage` run, so add `--coverage.thresholds=false` to measure a single file.
+      thresholds: {
+        statements: 52,
+        branches: 47,
+        functions: 48,
+        lines: 52,
+      },
     },
   },
 });
