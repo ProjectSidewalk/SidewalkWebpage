@@ -316,7 +316,7 @@ export class ContextMenu {
   #handleTagClick(e) {
     const button = /** @type {HTMLButtonElement} */ (e.currentTarget);
     const label = this.#status.targetLabel;
-    let labelTags = label.getProperty('tagIds');
+    let labelTags = [...label.getProperty('tagIds')]; // A copy: the label's own list changes only through edit().
 
     // A shortcut key's click and Enter on a focused button have no cursor position, so both count as keyboard.
     const wasClickedByMouse = e.isTrusted && e.clientX !== 0 && e.clientY !== 0;
@@ -349,7 +349,7 @@ export class ContextMenu {
       }
     }
     button.classList.toggle('tag-pill--active');
-    this.#status.targetLabel.edit({ tagIds: labelTags });
+    label.edit({ tagIds: labelTags });
     button.blur();
     // For events that depend on up-to-date tagIds.
     this.#tagHolder.dispatchEvent(new CustomEvent('tagIds-updated'));

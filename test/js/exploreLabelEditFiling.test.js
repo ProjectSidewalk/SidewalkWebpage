@@ -52,5 +52,10 @@ describe('Label edits file the label for the next submission', () => {
         const label = container.createLabel(params(), true);
         expect(() => label.setProperty('severity', 1)).toThrow();
         expect(() => label.edit({ labelType: 'Obstacle' })).toThrow();
+        // Nothing is written when any key is bad, so the label can't show an edit that never gets filed.
+        container.clearLabelsToLog();
+        expect(() => label.edit({ severity: 2, labelType: 'Obstacle' })).toThrow();
+        expect(label.getProperty('severity')).toBeNull();
+        expect(container.getLabelsToLog()).toEqual([]);
     });
 });

@@ -247,10 +247,10 @@ export class Label {
    * @param {{severity?: ?number, tagIds?: number[], description?: ?string}} changes
    */
   edit(changes) {
-    for (const [key, value] of Object.entries(changes)) {
-      if (!Label.#EDITABLE.has(key)) throw new Error(`Label.edit: '${key}' is not an editable property.`);
-      this.#properties[key] = value;
-    }
+    // Checked before any write, so a bad key can't leave the label half-edited and unfiled.
+    const badKey = Object.keys(changes).find((key) => !Label.#EDITABLE.has(key));
+    if (badKey) throw new Error(`Label.edit: '${badKey}' is not an editable property.`);
+    Object.assign(this.#properties, changes);
     this.#editListeners.forEach((listener) => listener());
   }
 
