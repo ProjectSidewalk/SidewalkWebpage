@@ -1,8 +1,6 @@
 /**
- * When the street being walked is done and what comes next. After each landing it ends a street the labeler has
- * reached the end of, either handing them the next street or, when that street is far away or there is none, asking
- * them to finish labeling here before the jump. It makes that jump, and says when a route or region runs out of
- * streets.
+ * Decides when a street is done and what comes next: after each landing it ends a street that's been walked, hands
+ * over the next one or asks the labeler to finish here before a jump, makes the jump, and says when streets run out.
  */
 
 import { TaskContainer } from './TaskContainer.js';
@@ -19,7 +17,7 @@ import { TaskContainer } from './TaskContainer.js';
 /** @typedef {import('../data/Tracker.js').Tracker} Tracker */
 
 export class StreetProgress {
-  static #END_OF_STREET_THRESHOLD = 25; // Distance from the street endpoint when we consider it complete (meters).
+  static #END_OF_STREET_THRESHOLD = 25; // How close to a street's end counts as done (meters).
 
   #config;
   #regionModel;
@@ -34,10 +32,7 @@ export class StreetProgress {
 
   #labelBeforeJumpArmed = false;
 
-  /**
-   * The mission the street being left is filed under when the jump finishes it.
-   * @type {Mission | undefined}
-   */
+  /** @type {Mission | undefined} The mission the street being left is filed under when the jump finishes it. */
   #missionJump = undefined;
 
   /** @type {Array<(armed: boolean) => void>} */
@@ -80,7 +75,7 @@ export class StreetProgress {
   }
 
   /**
-   * Told when the labeler is asked to finish labeling here before a jump (armed), and when the jump begins (disarmed).
+   * Told when the "finish labeling here before jumping" prompt goes up (true) or down (false).
    * @param {(armed: boolean) => void} listener
    */
   onLabelBeforeJumpChanged(listener) {
@@ -88,7 +83,7 @@ export class StreetProgress {
   }
 
   /**
-   * Told when a route's last reachable pano is reached, so the finish can be offered.
+   * Told when a route's last reachable pano is reached.
    * @param {() => void} listener
    */
   onRouteEndReached(listener) {
@@ -96,33 +91,30 @@ export class StreetProgress {
   }
 
   /**
-   * Told when a region's streets run out under the labeler, so it can be wrapped up from where they stand.
+   * Told when a region has no streets left.
    * @param {() => void} listener
    */
   onRegionExhausted(listener) {
     this.#regionExhaustedListeners.push(listener);
   }
 
-  /** @returns {boolean} Whether the labeler has been asked to finish labeling here before the next jump. */
+  /** @returns {boolean} Whether the "finish labeling here before jumping" prompt is up. */
   isLabelBeforeJumpArmed() {
     return this.#labelBeforeJumpArmed;
   }
 
-  /**
-   * Arms or disarms the label-before-jump prompt, and tells the compass, which shows it.
-   * @param {boolean} armed
-   */
+  /** @param {boolean} armed - Whether the "finish labeling here before jumping" prompt is up. */
   #setLabelBeforeJumpState(armed) {
     this.#labelBeforeJumpArmed = armed;
     this.#labelBeforeJumpListeners.forEach((listener) => listener(armed));
   }
 
   /**
-   * Finishes the street being left and moves to the one the prompt was armed for, else the next in line.
+   * Finishes the current street and moves to the one the prompt was for, or else the next in line.
    * @returns {Promise<void>}
    */
   async jumpToANewTask() {
-    // Free exploration (#4451) pins the session to the searched location — there is no next street to jump to.
+    // Free exploration (#4451) has no next street to jump to.
     if (this.#config.isExploreAddressMode) return;
 
     const landed = await this.#navigationService.moveToNextStreet(() => {
@@ -130,7 +122,6 @@ export class StreetProgress {
       const currentTask = this.#taskContainer.getCurrentTask();
       this.#taskContainer.endTask(currentTask);
       mission.pushATaskToTheRoute(currentTask);
-      // The compass takes its prompt down with this.
       this.#setLabelBeforeJumpState(false);
 
       const task = this.#taskContainer.getNextTaskAfterJump() || this.#taskContainer.nextTask(currentTask);
@@ -139,13 +130,13 @@ export class StreetProgress {
     });
     if (!landed) return;
 
-    // The move can land past the street jumped to if that street has no imagery.
+    // Read again: the move may have passed a street with no imagery.
     const landedOn = this.#taskContainer.getCurrentTask();
     this.#panoManager.turnTo(landedOn.headingAlongRoute(this.#panoManager.getPosition()));
     this.#jumpAlert.onClickJumpMessage();
   }
 
-  /** Ends the street if the labeler has reached its end, then updates the progress shown and preloads the next move. */
+  /** Ends the street if the labeler reached its end, updates progress, and preloads the next move. */
   #afterLanding() {
     const position = this.#panoManager.getPosition();
     const region = this.#regionModel.currentRegion();
@@ -158,10 +149,8 @@ export class StreetProgress {
       } else if (!this.#config.isOnboarding && this.#taskContainer.tasksLoaded()) {
         const task = this.#taskContainer.getCurrentTask();
         if (task && task.isAtEnd(position, StreetProgress.#END_OF_STREET_THRESHOLD)) {
-          // On a route's final street, 25 m-from-endpoint can be a large fraction of a short street, firing "end of
-          // route" long before the last reachable pano (#4640 route manifestation). Defer to the sweep running out of
-          // imagery (StreetSweep.onStreetWalkedOut) unless they've already walked most of the street — on a long
-          // street 25 m really is the end, so preserve today's behavior there.
+          // On a route's short last street, 25 m can end the route well before its last pano (#4640), so wait until
+          // most of it is walked; running out of imagery ends it otherwise.
           const finalRouteStreet = this.#regionModel.isRoute && !this.#taskContainer.nextTask(task);
           const streetLen = task.lineDistance({ units: 'meters' });
           const walkedMostOfStreet = streetLen > 0
@@ -174,17 +163,14 @@ export class StreetProgress {
       }
       this.#missionModel.updateMissionProgress(currentMission, region);
     } finally {
-      // Now that the task state reflects the new position, predict where the next move will go and pre-download
-      // that pano so the move doesn't wait on the network.
       this.#preloadNextMove();
     }
   }
 
   /**
-   * Ends a street the labeler has reached the end of. If the next street joins this one, it is handed over now;
-   * if it is far away, or there is none, the labeler is asked to finish labeling here before the jump.
-   * @param {Task} task - The street that the user has neared the end of.
-   * @param {Mission} mission - The mission that the street should be filed under.
+   * Ends a street. A joining next street is handed over now; otherwise the labeler is asked to finish here first.
+   * @param {Task} task - The street being ended.
+   * @param {Mission} mission - The mission it's filed under.
    */
   #endStreet(task, mission) {
     if (this.#labelBeforeJumpArmed) return;
@@ -194,22 +180,18 @@ export class StreetProgress {
     const connected = nextTask
       && task.isConnectedTo(nextTask, TaskContainer.CONNECTED_TASK_KM, { units: 'kilometers' });
 
-    // A jump to a discontinuous street, or the last street of the route or region, is the user's one chance to
-    // finish labeling this location, so they are asked to before proceeding.
+    // Before a jump, or at the very end, this is their last chance to label here, so ask first.
     if (this.#regionModel.isRouteOrRegionComplete() || !connected) {
       if (!nextTask) {
         this.#regionModel.setComplete();
-        // A route completes at its last reachable pano: show the finish toast and arm the 360°-gated auto-complete.
-        // Regions keep the manual compass-click flow.
+        // Regions finish with a compass click instead.
         if (this.#regionModel.isRoute) this.#routeEndReachedListeners.forEach((listener) => listener());
       } else {
         if (!connected) this.#taskContainer.setNextTaskAfterJump(nextTask);
-        // Clear prefetch cache from the previous street and start prefetching for the new street.
         this.#panoManager.panoViewer.clearPrefetchCache();
         this.#streetSweep.prefetchAlongStreet(nextTask.getFeature());
       }
 
-      // The compass tells the user to label the current location before moving on.
       this.#tracker.push('LabelBeforeJump_ShowMsg');
       this.#setLabelBeforeJumpState(true);
     } else {
@@ -219,11 +201,10 @@ export class StreetProgress {
     }
   }
 
-  /** The sweep gave up on the last street there was: the route or region is done, from where the labeler stands. */
+  /** The last street had no imagery, so the route or region is done where the labeler stands. */
   #streetsRanOut() {
     this.#regionModel.setComplete();
-    // Same ending a route gets when its last street is walked normally: the finish toast, then the celebration once
-    // the labeler has looked around. Firing the modal straight from here made the route end mid-stride (#5008).
+    // A route ends the normal way (look around, then finish) rather than jumping straight to the modal (#5008).
     if (this.#regionModel.isRoute) {
       this.#routeEndReachedListeners.forEach((listener) => listener());
     } else {
@@ -231,18 +212,14 @@ export class StreetProgress {
     }
   }
 
-  /** Has the sweep pre-download the pano the next forward move would land on, so that move doesn't wait on it. */
+  /** Pre-downloads where the next forward move will land. */
   #preloadNextMove() {
-    // Best-effort: runs after every landing, so never let a prediction error break it.
+    // Best-effort: a bad guess must never break a landing.
     try {
       if (!this.#taskContainer.tasksLoaded()) return;
-      // No forward move can happen while something holds walking, so there is nothing to preload.
       if (this.#navigationService.walking.isHeld()) return;
 
-      // When the label-before-jump state is armed, the next forward move is the jump itself: predict the start of
-      // the street being jumped to rather than a point on the street the user is about to leave (which would also
-      // pollute the prefetch cache that #endStreet() just re-primed for the new street). No jump target means the
-      // route/region is complete, so there is nothing to preload.
+      // With the jump prompt up, the next move is the jump, so preload the street it goes to (none at the end).
       const targetTask = this.#labelBeforeJumpArmed
         ? this.#taskContainer.getNextTaskAfterJump()
         : this.#taskContainer.getCurrentTask();

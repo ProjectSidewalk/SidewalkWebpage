@@ -239,8 +239,7 @@ export class Main {
    *   observedArea: ObservedArea, forwardCrumbs: ForwardCrumbs, routeOverview: RouteOverview, zoomControl: ZoomControl,
    *   overallStats: OverallStats, missionPanel: MissionPanel, popUpMessage: PopUpMessage, aiGuidance: AiGuidance,
    *   reauditNotice: ReauditNotice, panoOverlayControls: PanoOverlayControls, labelModes: LabelModes,
-   *   ribbon: RibbonMenu,
-   *   missionProgressBar: ProgressBar, immersiveMode: ImmersiveMode, keyboard: KeyboardManager,
+   *   ribbon: RibbonMenu, missionProgressBar: ProgressBar, immersiveMode: ImmersiveMode, keyboard: KeyboardManager,
    *   iconsPreloaded: Promise<void[]>}}
    */
   #modules = null;

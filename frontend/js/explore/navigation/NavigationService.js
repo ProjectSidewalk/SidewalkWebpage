@@ -1,8 +1,7 @@
 /**
- * The moves: along a street, to a named or linked pano, and to the next street. Whether the labeler may walk is
- * canWalk(): nothing holds the `walking` gate, no move is in flight, and the beat after a landing is over. A move runs
- * idle → moving → settling → idle. What a move means to the rest of the tool is announced (onMoveStarted, onLanded,
- * onMoved, …) rather than done here: the street's bookkeeping is StreetProgress's, the search down it StreetSweep's.
+ * Makes the moves: along a street, to a pano, and to the next street. The labeler may walk when canWalk() says so.
+ * A move runs idle → moving → settling → idle, and is announced (onMoveStarted, onLanded, onMoved, …) so other
+ * modules react to it; the street's bookkeeping is StreetProgress's, and the search for imagery StreetSweep's.
  */
 
 import { Gate } from '../../common/Gate.js';
@@ -119,7 +118,7 @@ export class NavigationService {
   }
 
   /**
-   * Told first when a move lands, after onMoveFinished: the street's bookkeeping, which onMoved's listeners then read.
+   * Told first when a move lands, for the street bookkeeping that onMoved's listeners then read.
    * @param {() => void} listener
    */
   onLanded(listener) {
@@ -127,7 +126,7 @@ export class NavigationService {
   }
 
   /**
-   * Told once a move has landed and the task state reflects the new position, after onLanded.
+   * Told once a move has landed and the street state is up to date.
    * @param {() => void} listener
    */
   onMoved(listener) {
@@ -153,8 +152,7 @@ export class NavigationService {
   }
 
   /**
-   * Shows the Walk button as usable only while canWalk() says so, and the arrows only then and in Walk mode, since an
-   * armed label type puts the drawing layer on top (#5768).
+   * Dims the Walk button unless canWalk(); shows the arrows only then and in Walk mode (#5768).
    */
   #refreshWalkUi() {
     const canWalk = this.canWalk();
@@ -188,10 +186,8 @@ export class NavigationService {
    * Updates the UI before moving to a new location, hiding certain elements and preventing interaction.
    */
   #updateUiBeforeMove() {
-    // A move puts the labeler back in Walk mode, as placing a label does, so the mode and the layer order can't drift
-    // apart: ArrowUp walks with a label type armed (#5768). At the start, so a type chosen mid-move stays chosen, and
-    // before anything locks. Not while switching is held (a pop-up, the tutorial): the switch would be refused but
-    // still logged.
+    // A move returns to Walk mode, as placing a label does (#5768). Done first, so a type picked mid-move sticks.
+    // Skipped while switching is held, where the switch would be refused but still logged.
     if (this.#labelModes.getMode() !== 'Walk' && this.#labelModes.isUsable('Walk')) this.#labelModes.backToWalk();
     this.#moveState = 'moving';
     this.#moveStartedListeners.forEach((listener) => listener());
@@ -211,7 +207,7 @@ export class NavigationService {
     try {
       this.#landedListeners.forEach((listener) => listener());
     } finally {
-      // Even if the bookkeeping on landing throws: leaving 'moving' is what lets the labeler walk again.
+      // Even if the bookkeeping throws, so the labeler can walk again.
       // Position is final, so position-dependent checks can run again; heading views wait for the pov to settle.
       this.#moveState = 'settling';
       this.#refreshHeadingViewsAfterPovSettles();
@@ -262,9 +258,8 @@ export class NavigationService {
   }
 
   /**
-   * Moves the labeler forward along the street, searching for imagery a few meters at a time.
-   * @returns {Promise<string|null|void>} Resolves with the new pano ID on a successful move, null if the street ran
-   *     out of imagery, or undefined if the labeler can't walk now.
+   * Moves the labeler forward along the street.
+   * @returns {Promise<string|null|void>} The new pano id; null if nothing loaded; undefined if they can't walk now.
    */
   async moveForward() {
     if (!this.canWalk()) return undefined;
@@ -274,22 +269,20 @@ export class NavigationService {
   }
 
   /**
-   * Starts a move, runs `switchStreet`, then sweeps the new street. A walking hold doesn't refuse it (finishing the
-   * street can raise the sign-in prompt); a move in flight or the beat after a landing does, so a double-click
-   * can't skip the jump prompt.
+   * Starts a move, runs `switchStreet`, then searches the new street. Allowed under a walking hold (finishing a
+   * street can open the sign-in prompt), but not mid-move or just after one, so a double-click can't skip the prompt.
    * @param {() => void} switchStreet - Finishes the street being left and makes the next one current.
    * @returns {Promise<boolean>} Whether the move landed on a new pano.
    */
   async moveToNextStreet(switchStreet) {
     if (this.isMoving() || this.#cooldownTimer !== null) return false;
 
-    // Start the move before switchStreet() sets the new street, which synchronously re-aims the compass while still
-    // at the old location — otherwise it would flash the off-route warning (#4174).
+    // Before switchStreet(), or the compass flashes the off-route warning at the old location (#4174).
     this.#updateUiBeforeMove();
     try {
       switchStreet();
     } catch (err) {
-      // Everything is locked for the move by now, and no move is coming to unlock it.
+      // The move locked everything, and no landing is coming to unlock it.
       this.#restoreUiAfterFailedMove();
       throw err;
     }
@@ -313,7 +306,7 @@ export class NavigationService {
       this.#restoreUiAfterFailedMove();
       result.afterMove?.();
     } else {
-      // A street that ran out of imagery near its end (already ended by StreetProgress) still lands where they stand.
+      // 'walkedOut' lands where they stand too.
       this.#updateUiAfterMove();
     }
     return result;

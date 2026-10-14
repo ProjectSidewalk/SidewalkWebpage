@@ -63,7 +63,7 @@ export class MissionController {
    * @param {AlertController} alertController - Shows the route's finish toast.
    * @param {Compass} compass - Wraps the route or region up on its finish click, and drops the finish prompt once a
    *   route auto-completes on its own.
-   * @param {NavigationService} navigationService - Whose heading settling after a move holds off the auto-finish.
+   * @param {NavigationService} navigationService - The auto-finish waits for the heading to settle after a move.
    * @param {StreetProgress} streetProgress - Announces the route's end and a region's last street.
    * @param {PanoManager} panoManager - Each turn of whose view may complete a finished route.
    * @param {ObservedArea} observedArea - Says how much of the final pano the user has looked around.
@@ -105,7 +105,7 @@ export class MissionController {
     panoManager.onPovChanged(() => {
       if (!navigationService.isHeadingSettling()) this.maybeAutoCompleteRoute();
     });
-    // The observed area resets to the new pano only once the heading settles, so that is the first fair check.
+    // The observed area only switches to the new pano once the heading settles.
     navigationService.onHeadingSettled(() => this.maybeAutoCompleteRoute());
   }
 
@@ -153,8 +153,7 @@ export class MissionController {
   onRouteReadyToFinish() {
     this.#alertController.showAlert(i18next.t('center-ui.compass.route-finish-look-around'), 'routeFinish', false);
     this.#tracker.push('RouteFinishToast_Shown', { userRouteId: this.#config.userRouteId });
-    // Fire immediately if they already looked all the way around at this pano before reaching the end. Mid-move the
-    // observed area is still the last pano's, so the check waits for the heading to settle instead.
+    // Finish now if they already looked around here; mid-move the check waits for the heading to settle.
     if (!this.#navigationService.isHeadingSettling()) this.maybeAutoCompleteRoute();
   }
 
