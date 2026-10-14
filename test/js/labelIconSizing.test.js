@@ -11,18 +11,8 @@
  * the logical values are an implementation detail that moves with the scale by design.
  */
 
-import { loadModules, realUtil, stubUtil } from './loader.js';
+import { loadModules, useUtil } from './loader.js';
 import { makeRecordingCtx } from './canvasCtxStub.js';
-
-
-/** Loads utilities.js into jsdom, the same way sizeCanvasToDisplay.test.js and anchorPanelToLabel.test.js do. */
-async function loadUtil() {
-    // utilities.js builds a Bowser parser at load time; none of the geometry under test consults it.
-    window.bowser = { getParser: () => ({ getBrowserName: () => 'Chrome', getBrowserVersion: () => '1',
-        getOSName: () => 'Linux', getPlatformType: () => 'desktop' }) };
-    stubUtil(await realUtil());
-    return window.util;
-}
 
 describe('label icon sizing across the UI scale', () => {
     let util;
@@ -34,7 +24,7 @@ describe('label icon sizing across the UI scale', () => {
     const targetScreenSize = (scale) => 2 * util.labelHitMargin(scale) * scale;
 
     beforeEach(async () => {
-        util = await loadUtil();
+        ({ util } = await loadModules('frontend/js/common/utilities.js'));
     });
 
     describe('util.labelIconRadius', () => {
@@ -113,14 +103,11 @@ describe('label icon sizing across the UI scale', () => {
         let Label;
 
         beforeEach(async () => {
-            stubUtil(util);
-            util.misc = { getIconImagePaths: () => ({ iconImagePath: 'CurbRamp.svg' }),
-                labelTypeHasSeverity: () => true };
-            window.labelIconCache = { 'CurbRamp.svg': {} };
-            Object.assign(window, await loadModules('frontend/js/explore/label/Label.js'));
-            // Set after the load: importing Label rebuilds util.pano.
-            util.pano.centeredPovToCanvasCoord = () => ({ x: 100, y: 100 });
-            Label = window.Label;
+            // Every label lands at (100, 100), so the decorations can be read off against a known centre.
+            useUtil({ pano: { centeredPovToCanvasCoord: () => ({ x: 100, y: 100 }) } });
+            ({ Label, util } = await loadModules('frontend/js/explore/label/Label.js',
+                'frontend/js/common/utilities.js'));
+            window.labelIconCache = { [util.misc.getIconImagePaths('CurbRamp').iconImagePath]: {} };
         });
 
         /** Renders the icon at `radius` and returns its recording context. */
@@ -228,19 +215,14 @@ describe('label icon sizing across the UI scale', () => {
         }
 
         beforeEach(async () => {
-            stubUtil(util);
-            util.misc = { getIconImagePaths: () => ({ iconImagePath: 'CurbRamp.svg' }),
-                labelTypeHasSeverity: () => true };
-            window.labelIconCache = { 'CurbRamp.svg': {} };
+            useUtil({ pano: { centeredPovToCanvasCoord: () => ({ x: 100, y: 100 }) } });
+            ({ Label, Canvas, util } = await loadModules('frontend/js/explore/label/Label.js',
+                'frontend/js/explore/canvas/Canvas.js', 'frontend/js/common/utilities.js'));
+            window.labelIconCache = { [util.misc.getIconImagePaths('CurbRamp').iconImagePath]: {} };
             frame = {
                 width: 720, height: 480, renderedHFov: () => 90,
                 iconRadius: util.labelIconRadius(1), hitMargin: util.labelHitMargin(1),
             };
-            Object.assign(window, await loadModules('frontend/js/explore/label/Label.js'));
-            Object.assign(window, await loadModules('frontend/js/explore/canvas/Canvas.js'));
-            util.pano.centeredPovToCanvasCoord = () => ({ x: 100, y: 100 });
-            Label = window.Label;
-            Canvas = window.Canvas;
         });
 
         test('Label.isOn covers the whole drawn icon', () => {

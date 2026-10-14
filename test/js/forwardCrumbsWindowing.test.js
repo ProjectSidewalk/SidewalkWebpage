@@ -5,18 +5,13 @@
  * These are the pure statics ForwardCrumbs keeps off its instance for exactly this reason; the marker lifecycle and
  * the provider lookups around them need a map and a viewer and are covered by the manual GSV checklist. Real turf,
  * not a stub: the along-line and offset measurements are the thing being pinned.
- *
- * ForwardCrumbs is a top-level `class` written for the Grunt-concatenation world, so the source is eval'd into the
- * jsdom global scope.
  */
 
 import { loadVendored, loadModules } from './loader.js';
 
-
 loadVendored('turf');
-Object.assign(window, await loadModules('frontend/js/explore/navigation/ForwardCrumbs.js'));
-const { ForwardCrumbs } = window;
 const { turf } = window;
+const { ForwardCrumbs } = await loadModules('frontend/js/explore/navigation/ForwardCrumbs.js');
 
 // A straight ~500 m street running east along one latitude, so "along" is unambiguous and offsets are northward.
 const LAT = 47.6;

@@ -5,15 +5,11 @@
  * worth pinning are the ones a casual manual test misses: that the payload sent on reorder is the *whole* permuted
  * id list for the right scope's endpoint, that a non-Owner gets no edit controls on the global list while the city
  * list keeps them, and that a create with no file is refused client-side before any request is made.
- *
- * Runs under jsdom (vitest.config.mjs). PartnersPage is a bare top-level class served file-by-file, so it is eval'd
- * into global scope rather than required.
  */
 
 import { loadModules } from './loader.js';
 
-
-const PartnersPage = (await loadModules('frontend/js/admin-dashboard/PartnersPage.js')).PartnersPage;
+const { PartnersPage } = await loadModules('frontend/js/admin-dashboard/PartnersPage.js');
 
 /** The Twirl page's containers and per-scope add forms, reduced to what the class touches. */
 function buildDom({ ownerForms }) {

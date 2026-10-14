@@ -4,22 +4,16 @@
  * real, so these also catch the form drifting from the markup `wireAsyncSubmit` expects.
  */
 
-import { loadModules, fakeImport } from './loader.js';
-
-fakeImport('frontend/js/common/AuthModal.js', 'wireAsyncSubmit');
-
+import { loadModules } from './loader.js';
 
 const GENERIC_ERROR = 'Something went wrong on our end. Please try again.';
 
-
 /**
- * The class under test, with AuthModal.js's helpers in the page scope as on the page, and `fetch` supplied per test.
  * @param {Function} fetchImpl - Stands in for `fetch`.
  * @returns {Function} A fresh AccountForm class.
  */
 async function formFactory(fetchImpl) {
   window.fetch = fetchImpl;
-  Object.assign(window, await loadModules('frontend/js/common/AuthModal.js'));
   return (await loadModules('frontend/js/user-dashboard/AccountForm.js')).AccountForm;
 }
 
@@ -57,7 +51,7 @@ const renderForm = () => {
  * @param {HTMLFormElement} form - The form to submit.
  */
 async function submit(form) {
-  form.dispatchEvent(new window.Event('submit', { cancelable: true }));
+  form.dispatchEvent(new Event('submit', { cancelable: true }));
   for (let i = 0; i < 5; i++) await new Promise((resolve) => setTimeout(resolve, 0));
 }
 
@@ -145,7 +139,7 @@ test('the next submit clears an earlier "changed" message before its own reply a
   const form = await submitWith(respondWith(200, { success: true, message: 'Your password has been changed.' }));
   expect(status().textContent).toBe('Your password has been changed.');
 
-  form.dispatchEvent(new window.Event('submit', { cancelable: true }));
+  form.dispatchEvent(new Event('submit', { cancelable: true }));
   expect(status().textContent).toBe('');
   expect(status().classList.contains('ud-save-ok')).toBe(false);
 });

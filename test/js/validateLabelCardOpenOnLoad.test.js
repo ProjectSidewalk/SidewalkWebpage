@@ -7,17 +7,18 @@
  * imagery source must never see it.
  */
 
-import { loadModules, fakeImport, stubUtil } from './loader.js';
+import { loadModules, mockModule, useUtil } from './loader.js';
 import { fakeTracker } from './fakes.js';
 
-fakeImport('frontend/js/common/pano-viewer/Infra3dViewer.js', 'Infra3dViewer');
-fakeImport('frontend/js/validate/label/LabelCard.js', 'LabelCard');
-
+/** Stands in for the Infra3d viewer class; only its identity matters. */
+class FakeInfra3dViewer {}
+mockModule('frontend/js/common/pano-viewer/Infra3dViewer.js', () => ({ Infra3dViewer: FakeInfra3dViewer }));
+// The card's own contents are LabelCard's; here only its opening is under test.
+mockModule('frontend/js/validate/label/LabelCard.js', () => ({
+    LabelCard: class { closePopovers() {} isPopoverOpen() { return false; } },
+}));
 
 describe('LabelVisibilityControl opening the card on load', () => {
-    /** Stands in for the Infra3d viewer class; only its identity matters. */
-    class FakeInfra3dViewer {}
-
     let control;
     let tracker;
     const card = () => document.getElementById('label-card');
@@ -29,10 +30,7 @@ describe('LabelVisibilityControl opening the card on load', () => {
      */
     async function build(viewerType, mobile = false) {
         tracker = fakeTracker();
-        stubUtil({ isMobile: () => mobile, anchorPanelToLabel: vi.fn() });
-        window.Infra3dViewer = FakeInfra3dViewer;
-        // The card's own contents are LabelCard's; here only its opening is under test.
-        window.LabelCard = class { closePopovers() {} isPopoverOpen() { return false; } };
+        useUtil({ isMobile: () => mobile });
         const { LabelVisibilityControl } = await loadModules('frontend/js/validate/label/LabelVisibilityControl.js');
         control = new LabelVisibilityControl(
             { controlLayer: document.getElementById('view-control-layer') }, { viewerType },

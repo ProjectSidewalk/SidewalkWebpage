@@ -9,17 +9,12 @@
  *   - lookups queued for a street the user has left are skipped, not run ahead of the next street's;
  *   - a far crumb over a visited pano takes over the breadcrumb's job and peeks back on click.
  *
- * ForwardCrumbs is loaded as a module and built against fakes of its collaborators. Real turf: the sampler's
- * along-street math is part of what is being exercised.
+ * ForwardCrumbs is built against fakes of its collaborators. Real turf: the sampler's along-street math is part of
+ * what is being exercised.
  */
 
-import { loadVendored, loadModules, fakeImport } from './loader.js';
+import { loadVendored, loadModules } from './loader.js';
 import { fakeTracker, fakePanoManager, fakeTaskContainer } from './fakes.js';
-
-fakeImport('frontend/js/common/pano-viewer/PanoViewer.js', 'PanoViewer');
-fakeImport('frontend/js/explore/navigation/NavigationService.js', 'NavigationService');
-
-
 
 loadVendored('turf');
 const { turf } = window;
@@ -103,10 +98,8 @@ describe('ForwardCrumbs marker lifecycle', () => {
         };
         const panoManager = fakePanoManager(viewer);
         window.i18next = { t: (key, options) => (options && 'rank' in options ? `${key}#${options.rank}` : key) };
-        window.NavigationService = { DIST_INCREMENT: 0.01 };
-        window.PanoViewer = { SEARCH_RADIUS_M: 25 };
-        Object.assign(window, await loadModules('frontend/js/explore/navigation/ForwardCrumbs.js'));
-        crumbs = new window.ForwardCrumbs(
+        const { ForwardCrumbs } = await loadModules('frontend/js/explore/navigation/ForwardCrumbs.js');
+        crumbs = new ForwardCrumbs(
             { isOnboarding: false, isExploreAddressMode: false },
             panoManager,
             fakeTaskContainer(() => task),

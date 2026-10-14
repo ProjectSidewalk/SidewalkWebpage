@@ -5,15 +5,11 @@
  * and F with a modifier belongs to the browser. What is Validate's own is where the check sits: after the marker and
  * label-card scope and the image-adjustments scope, which take every key of theirs, and before the verdict letters,
  * which the mode never touches, and under the same pause as them: a key under a modal or the tutorial is for what
- * is on top. Loaded the way validateNumberKeyShortcuts.test.js loads the manager: eval'd with an
- * explicit export, one instance for the file, since the constructor's window listener cannot be unregistered.
+ * is on top. One instance for the file, since the constructor's window listener cannot be unregistered.
  */
 
-import { loadModules, fakeImport } from './loader.js';
+import { loadModules } from './loader.js';
 import { fakeTracker } from './fakes.js';
-
-fakeImport('frontend/js/common/KeyboardShortcuts.js', 'KeyboardShortcuts');
-
 
 /** A menu control with its click spied; a real element, since the manager compares against document.activeElement. */
 function makeControl() {
@@ -40,8 +36,8 @@ describe('Validate F shortcut for immersive mode', () => {
             noButton: makeControl(),
             unsureButton: makeControl(),
         });
-        Object.assign(window, await loadModules('frontend/js/common/KeyboardShortcuts.js', 'frontend/js/validate/keyboard/KeyboardManager.js'));
-        new window.KeyboardManager(
+        const { KeyboardManager } = await loadModules('frontend/js/validate/keyboard/KeyboardManager.js');
+        new KeyboardManager(
             { validationMenu: validationMenuUi, undoValidation: { undoButton: live('undoButton') } }, config,
             { isHeld: () => keyboardHeld, hold: () => {}, release: () => {} },
             { onLoadingChange: () => {} }, live('labelVisibilityControl'), live('labelCard'), live('validationMenu'),

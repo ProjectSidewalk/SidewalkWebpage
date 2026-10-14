@@ -5,23 +5,11 @@
  * TOC built at load and calls refreshTableOfContents() once it renders. The edge worth pinning is the page whose only
  * headings arrive that way: at load there was nothing to spy on, so the listener was never attached, and the rebuilt
  * TOC would look right while never highlighting anything.
- *
- * Runs under jsdom (vitest.config.mjs). AdminShell is a bare top-level class in a concatenated bundle, so it is eval'd
- * into global scope rather than required.
  */
 
-import { loadModules, fakeImport } from './loader.js';
+import { loadModules } from './loader.js';
 
-fakeImport('frontend/js/common/sidebarDisclosure.js', 'initSidebarDisclosure');
-
-
-let AdminShell;
-
-beforeAll(async () => {
-  // init() calls into sidebarDisclosure.js, which lives in a different file of the same bundle.
-  window.initSidebarDisclosure = () => {};
-  AdminShell = (await loadModules('frontend/js/admin-dashboard/AdminShell.js')).AdminShell;
-});
+const { AdminShell } = await loadModules('frontend/js/admin-dashboard/AdminShell.js');
 
 /**
  * A page whose only section is hidden at load, as the dashboard's cross-city section is.

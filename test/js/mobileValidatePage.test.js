@@ -8,19 +8,18 @@
  * second finger lands inside the same window, and cancelling it would cancel the page's pinch zoom.
  */
 
-import { loadModules, stubUtil } from './loader.js';
+import { loadModules, useUtil } from './loader.js';
 
 
 describe('mobile Validate page behavior', () => {
     let modalForeground;
     let panoCanvas;
 
-    /** Loads mobileValidate.js into jsdom with the globals it reaches for at load time. */
     async function loadPage() {
-        // The DOM-ready handler is a no-op here; the subject is the touchstart listener beside it.
+        // Captured rather than left to fire on its own: the subject is the touchstart listener beside the handler.
         const ready = [];
-        stubUtil({ onDomReady: (fn) => ready.push(fn) });
-        Object.assign(window, await loadModules('frontend/js/mobileValidate.js'));
+        useUtil({ onDomReady: (fn) => ready.push(fn) });
+        await loadModules('frontend/js/mobileValidate.js');
         ready.forEach((fn) => fn());
     }
 

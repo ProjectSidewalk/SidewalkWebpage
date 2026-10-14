@@ -6,27 +6,15 @@
  * week-over-week chips read the traffic windows and color by direction, anomaly flags mark the row and feed the
  * "needs attention" panel with a baseline-relative reason, and every unavailability path — `available: false` or a
  * failed request — collapses the section to a note without disturbing the already-rendered page.
- *
- * Runs under jsdom (vitest.config.mjs). AcrossCitiesPage is a bare top-level class in a concatenated bundle, so it is
- * eval'd into global scope rather than required.
  */
 
-import { loadModules, realUtil, stubUtil } from './loader.js';
-
-// The page fetches through util.fetchJson.
-stubUtil(await realUtil());
-
+import { loadModules } from './loader.js';
 
 /** The text psTooltip's card shows for an element: its attribute is rendered as HTML, so it's decoded once more. */
 function tooltipText(el) {
   const card = document.createElement('div');
   card.innerHTML = el.getAttribute('data-ps-tooltip');
   return card.textContent;
-}
-
-/** Load AcrossCitiesPage.js, plus the AdminShell helpers every dashboard page reads, and return the class binding. */
-async function loadPage() {
-  return (await loadModules('frontend/js/admin-dashboard/AcrossCitiesPage.js')).AcrossCitiesPage;
 }
 
 /** A minimal scorecard row; the traffic section only reads identity/lifecycle from it. */
@@ -120,7 +108,7 @@ describe('Across Cities — traffic section', () => {
   }
 
   beforeEach(async () => {
-    AcrossCitiesPage = await loadPage();
+    ({ AcrossCitiesPage } = await loadModules('frontend/js/admin-dashboard/AcrossCitiesPage.js'));
   });
 
   it('rows only cities with traffic data, busiest sessions first', async () => {

@@ -1,24 +1,16 @@
 /**
  * Tests for the MapDownloadControl class (frontend/js/ps-map/MapDownloadControl.js, issue #4095).
  *
- * Like ShareWidget, MapDownloadControl is a top-level `class` declaration written for the Grunt-concatenation
- * world, so the source is eval'd into the jsdom global scope with an explicit window epilogue.
- *
  * Coverage: the buildDownloadUrl state→query-parameter mapping (all-selected omission, severity `none` token,
  * validation token mapping, one repeated `tags` parameter per tag, regionId), and the panel behavior — the
  * disclosure ARIA contract, count line and zero-count disabling, keyboard navigation, outside-click close,
  * download anchor URLs, the post-click busy state, and activity logging.
  */
 
-import { installEscapeHTML, loadModules } from './loader.js';
+import { loadModules } from './loader.js';
 
-await installEscapeHTML();
-
-
-/** Loads a fresh MapDownloadControl class into the jsdom global scope. */
 async function loadControl() {
-    Object.assign(window, await loadModules('frontend/js/ps-map/MapDownloadControl.js'));
-    return window.MapDownloadControl;
+    return (await loadModules('frontend/js/ps-map/MapDownloadControl.js')).MapDownloadControl;
 }
 
 /** The nine label types the public LabelMap renders. */

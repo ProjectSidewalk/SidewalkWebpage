@@ -8,28 +8,13 @@
  * firehose and asserts the tracker sees at most one `POV_Changed` per window — pinning the wiring itself, not just
  * the throttle in isolation (throttle.test.js covers that).
  *
- * Runs under jsdom (vitest.config.mjs) with fake timers (which also mock Date.now for the throttle's elapsed-time math).
+ * Fake timers also mock Date.now, which the throttle's elapsed-time math reads.
  */
 
-import path from 'path';
-import { loadModules, fakeImport, stubUtil } from './loader.js';
+import { loadModules } from './loader.js';
+import { fakeTracker, fakePanoOverlays } from './fakes.js';
 
-fakeImport('frontend/js/common/pano-viewer/GsvViewer.js', 'GsvViewer');
-fakeImport('frontend/js/common/pano-viewer/PanoAttribution.js', 'createPanoAttribution');
-fakeImport('frontend/js/common/pano-viewer/PanoViewerLogo.js', 'createPanoViewerLogo');
-
-
-const PANO_MANAGER_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/panorama/PanoManager.js');
-const THROTTLE_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/util/throttle.js');
-
-/**
- * Load the `PanoManager` class out of the production file. Like Form.js, it is a bare `class` declaration that the
- * Grunt bundle concatenates into page scope, so wrap it in an IIFE that returns the class.
- * @returns {Function} The PanoManager class.
- */
-async function loadPanoManagerClass() {
-    return (await loadModules(PANO_MANAGER_PATH)).PanoManager;
-}
+fakePanoOverlays();
 
 describe('PanoManager POV_Changed throttling (issue #2745)', () => {
     let PanoManager;
@@ -45,18 +30,8 @@ describe('PanoManager POV_Changed throttling (issue #2745)', () => {
         // The pano canvas #init looks up, with a parent for the fallback canvas + viewer logo to attach to.
         document.body.innerHTML = '<div id="pano-holder"><div id="svv-panorama"></div></div>';
 
-        // Real throttle implementation — the unit under integration here.
-        stubUtil({});
         window.i18next = { language: 'en' };
-        Object.assign(window, await loadModules(THROTTLE_PATH));
-
-        // Globals PanoManager's init path reads.
-        util.isMobile = () => false;
-        window.createPanoViewerLogo = vi.fn(() => ({ showPrimaryLogo: vi.fn(), showSourceLogo: vi.fn() }));
-        window.createPanoAttribution = vi.fn(() => ({ show: vi.fn(), hide: vi.fn() }));
-        window.GsvViewer = class GsvViewer {};             // distinct from FakeViewerType, so the GSV-only
-        window.MapillaryViewer = class MapillaryViewer {}; // and Mapillary-only attribution paths are skipped
-        tracker = { push: vi.fn(), trackPano: vi.fn() };
+        tracker = fakeTracker();
 
         const panoData = {
             getPanoId: () => 'pano1',
@@ -72,18 +47,12 @@ describe('PanoManager POV_Changed throttling (issue #2745)', () => {
             static create() { return Promise.resolve(fakeViewer); }
         };
 
-        PanoManager = await loadPanoManagerClass();
+        ({ PanoManager } = await loadModules('frontend/js/validate/panorama/PanoManager.js'));
     });
 
     afterEach(() => {
         vi.useRealTimers();
         document.body.innerHTML = '';
-        delete window.util;
-        delete window.i18next;
-        delete window.createPanoViewerLogo;
-        delete window.createPanoAttribution;
-        delete window.GsvViewer;
-        delete window.MapillaryViewer;
     });
 
     /**

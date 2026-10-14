@@ -7,25 +7,12 @@
  * fraction of a degree to force that frame. Two properties make it safe to call on every resize event, and both are
  * pinned here: it does nothing before a pano has painted (there is no POV to nudge), and consecutive calls cancel
  * out, so a long session of window drags cannot walk the heading away from where the labeler left it.
- *
- * The viewer classes are top-level `class` declarations written for the Grunt-concatenation world, so the sources
- * are eval'd into the jsdom global scope with stub declarations for the sibling classes PanoViewer's constructor
- * compares `new.target` against, following panoViewerMountAlignment.test.js.
  */
 
-import { loadModules, fakeImport } from './loader.js';
+import { loadModules } from './loader.js';
 
-fakeImport('frontend/js/common/pano-viewer/PanoViewer.js', 'PanoViewer');
-
-
-/**
- * Loads PanoViewer + GsvViewer fresh into the jsdom global scope.
- * @returns {{PanoViewer: Function, GsvViewer: Function}}
- */
-async function loadViewers() {
-            Object.assign(window, await loadModules('frontend/js/common/pano-viewer/PanoViewer.js', 'frontend/js/common/pano-viewer/GsvViewer.js'));
-    return { PanoViewer: window.PanoViewer, GsvViewer: window.GsvViewer };
-}
+const loadViewers = () => loadModules('frontend/js/common/pano-viewer/PanoViewer.js',
+    'frontend/js/common/pano-viewer/GsvViewer.js');
 
 /**
  * A GsvViewer over a fake StreetViewPanorama that actually holds a POV, so a test can read back where a sequence of

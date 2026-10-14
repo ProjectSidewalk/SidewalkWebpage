@@ -6,11 +6,8 @@
  * cover Space and the mode letters.
  */
 
-import { loadModules, stubUtil, fakeImport } from './loader.js';
+import { loadModules } from './loader.js';
 import { fakeGate, fakeTracker } from './fakes.js';
-
-fakeImport('frontend/js/common/KeyboardShortcuts.js', 'KeyboardShortcuts');
-
 
 describe('Explore F shortcut for immersive mode', () => {
     let contextMenuOpen;
@@ -18,14 +15,14 @@ describe('Explore F shortcut for immersive mode', () => {
     const immersiveMode = { toggle: vi.fn() };
 
     beforeAll(async () => {
-        stubUtil({ misc: { VALID_LABEL_TYPES_WITHOUT_OTHER: [], getLabelDescriptions: () => ({}) } });
-        Object.assign(window, await loadModules('frontend/js/common/KeyboardShortcuts.js', 'frontend/js/explore/keyboard/KeyboardManager.js'));
+        window.i18next = { t: (key) => key };
+        const { KeyboardManager } = await loadModules('frontend/js/explore/keyboard/KeyboardManager.js');
         contextMenuOpen = false;
         // One instance for the file: the constructor adds window listeners that are never removed.
         const contextMenu = {
             isOpen: () => contextMenuOpen, getTargetLabel: () => null, hide: vi.fn(), onTextFieldFocusChanged: vi.fn(),
         };
-        new window.KeyboardManager(fakeGate(), { showLabelHoverInfo: vi.fn() }, contextMenu,
+        new KeyboardManager(fakeGate(), { showLabelHoverInfo: vi.fn() }, contextMenu,
             { walking: fakeGate({ isHeld: () => true }) }, {}, {}, {}, {}, immersiveMode, fakeTracker());
     });
 

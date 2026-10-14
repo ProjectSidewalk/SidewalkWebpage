@@ -6,19 +6,13 @@
  * post-flush RefreshTracker marker) never flushes on its own; the 200-action count remains as an event-storm
  * backstop. Also pins the removal of the one-hour-gap page reload (#3226's temporary_label_id guard, which Validate
  * never needed — it has no temp label ids).
- *
- * Runs under jsdom (vitest.config.mjs sets testEnvironment) so window/document exist.
  */
 
-import path from 'path';
 import { loadModules } from './loader.js';
-
-
-const TRACKER_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/Tracker.js');
 
 const FLUSH_INTERVAL_MS = 60000;
 
-const Tracker = (await loadModules(TRACKER_PATH)).Tracker;
+const { Tracker } = await loadModules('frontend/js/validate/Tracker.js');
 
 // jsdom reports a page reload as a "Not implemented: navigation" error on the console, so a spy there is how the
 // suite proves the page was never reloaded (the blanket `catch -> location.reload()` #2745 removed).

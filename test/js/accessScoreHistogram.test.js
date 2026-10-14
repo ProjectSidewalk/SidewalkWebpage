@@ -4,13 +4,11 @@
  * brush by keyboard (Arrow/Shift+Arrow/Enter/Escape) and by pointer (click to toggle, drag to sweep).
  */
 
-import {stubI18next, installUtil, loadSources, rgb} from './support/accessScoreDockHarness.js';
-import { fakeImport } from './loader.js';
-
-fakeImport('frontend/js/access-score/AccessScoreChart.js', 'AccessScoreChart');
-fakeImport('frontend/js/common/scoreRamp.js', 'ScoreRamp');
+import {stubI18next, loadSources, rgb} from './support/accessScoreDockHarness.js';
 
 describe('AccessScoreHistogram', () => {
+    let AccessScoreHistogram;
+    let ScoreRamp;
     let onBrush;
     let onHover;
     let onHoverEnd;
@@ -31,8 +29,7 @@ describe('AccessScoreHistogram', () => {
 
     beforeAll(async () => {
         stubI18next();
-        await installUtil();
-        await loadSources();
+        ({ AccessScoreHistogram, ScoreRamp } = await loadSources());
     });
 
     beforeEach(() => {
@@ -40,7 +37,7 @@ describe('AccessScoreHistogram', () => {
         onBrush = vi.fn();
         onHover = vi.fn();
         onHoverEnd = vi.fn();
-        chart = new window.AccessScoreHistogram(document.getElementById('acs-histogram'), {onBrush, onHover, onHoverEnd});
+        chart = new AccessScoreHistogram(document.getElementById('acs-histogram'), {onBrush, onHover, onHoverEnd});
         draw();
     });
 
@@ -55,8 +52,8 @@ describe('AccessScoreHistogram', () => {
         expect(fills[5].style.height).toBe('50%');
         expect(document.querySelector('.acs-histogram__gridline--top span').textContent).toBe('length-large km=10');
         // Each bar wears the map's color for the scores it counts.
-        expect(fills[0].style.backgroundColor).toBe(rgb(window.ScoreRamp.at(0.05)));
-        expect(fills[9].style.backgroundColor).toBe(rgb(window.ScoreRamp.at(0.95)));
+        expect(fills[0].style.backgroundColor).toBe(rgb(ScoreRamp.at(0.05)));
+        expect(fills[9].style.backgroundColor).toBe(rgb(ScoreRamp.at(0.95)));
         // Only the first bin is in the tab order; the rest are reached with the arrow keys.
         expect(buttons().map((b) => b.getAttribute('tabindex'))).toEqual(['0', ...Array(N - 1).fill('-1')]);
         // The axis doubles as the legend for which end is which; the no-score swatch lives on the map's own legend.

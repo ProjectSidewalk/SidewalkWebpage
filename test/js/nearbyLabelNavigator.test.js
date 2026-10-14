@@ -7,16 +7,10 @@
  * trail-based prev with hasPrev gating, cross-type flattening, and the deep-link coordinate lookup.
  */
 
-import path from 'path';
 import { loadModules } from './loader.js';
 
-const NAV_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/ps-map/nearbyLabelNavigator.js');
-
-/** Loads the global script fresh and returns the factory. */
-async function loadFactory() {
-    Object.assign(window, await loadModules(NAV_PATH));
-    return window.createNearbyLabelNavigator;
-}
+const loadFactory = async () =>
+    (await loadModules('frontend/js/ps-map/nearbyLabelNavigator.js')).createNearbyLabelNavigator;
 
 /**
  * Builds a map-data stub in the shape addLabelsToMap produces: features bucketed by label type. A label is

@@ -3,15 +3,20 @@
  * passes that id down as highlightStoryId, and the first render containing the story opens the disclosure,
  * highlights the row, and scrolls it into view — exactly once. A story that is gone (deleted, or hidden by
  * moderators) must degrade silently to the plain label page.
- *
- * StorySection is a page-global `class` (Grunt-concatenation world), so the source is eval'd into jsdom with its
- * collaborators (fetch, i18next, StoryComposer) stubbed.
  */
 
-import { installDateHelpers, loadModules, fakeImport } from './loader.js';
+import { loadModules, mockModule } from './loader.js';
 
-fakeImport('frontend/js/common/label-detail/StoryComposer.js', 'StoryComposer');
+let composerCalls;
 
+mockModule('frontend/js/common/label-detail/StoryComposer.js', () => ({
+    StoryComposer: class {
+        open() {}
+        openForEdit() {}
+        setCopyVariant() {}
+        setLabelType(name) { composerCalls.setLabelType.push(name); }
+    },
+}));
 
 /** One story payload, shaped like an entry from GET /label/:labelId/stories. */
 function story(overrides = {}) {
@@ -51,19 +56,12 @@ function setupDom() {
 
 describe("StorySection's linked-story reveal (#4722)", () => {
     let stories;
-    let composerCalls;
+    let StorySection;
 
     beforeEach(async () => {
-        Object.assign(window, await loadModules('frontend/js/common/label-detail/StorySection.js'));
+        ({ StorySection } = await loadModules('frontend/js/common/label-detail/StorySection.js'));
         composerCalls = { setLabelType: [] };
-        window.StoryComposer = class {
-            open() {}
-            openForEdit() {}
-            setCopyVariant() {}
-            setLabelType(name) { composerCalls.setLabelType.push(name); }
-        };
         window.i18next = { t: (key) => key };
-        await installDateHelpers();
         window.matchMedia = vi.fn().mockReturnValue({ matches: false }); // No reduced-motion preference.
         window.HTMLElement.prototype.scrollIntoView = vi.fn(); // jsdom doesn't implement it.
         window.logWebpageActivity = vi.fn();
@@ -76,7 +74,7 @@ describe("StorySection's linked-story reveal (#4722)", () => {
 
     /** Builds the section against a fresh skeleton and shows label 1. */
     async function renderSection(opts = {}) {
-        const section = new window.StorySection(setupDom(), opts);
+        const section = new StorySection(setupDom(), opts);
         section.setLabel(1);
         await flush();
         return section;
@@ -86,7 +84,7 @@ describe("StorySection's linked-story reveal (#4722)", () => {
     const linkedRow = () => document.querySelector('.label-detail__story--linked');
 
     test('the label type rides down to the composer, so its title can name the label', async () => {
-        const section = new window.StorySection(setupDom(), {});
+        const section = new StorySection(setupDom(), {});
         section.setLabel(1, 'Missing Curb Ramp');
         await flush();
         expect(composerCalls.setLabelType).toEqual(['Missing Curb Ramp']);

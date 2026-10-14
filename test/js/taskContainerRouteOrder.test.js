@@ -9,9 +9,8 @@
  * TaskContainer is loaded as a module and built against the smallest collaborators these choices touch.
  */
 
-import { loadModules, stubUtil } from './loader.js';
+import { loadModules } from './loader.js';
 import { fakeTracker } from './fakes.js';
-
 
 /** A route street at `walkOrder`, in whichever of the three states the route's next-street choice cares about. */
 const makeTask = (walkOrder, { complete = false, givenUp = false, km = 1 } = {}) => ({
@@ -35,9 +34,8 @@ const makeTask = (walkOrder, { complete = false, givenUp = false, km = 1 } = {})
 
 /** A container on a route, born with a throwaway first street. */
 async function makeContainer() {
-    Object.assign(window, await loadModules('frontend/js/explore/task/TaskContainer.js'));
-    return new window.TaskContainer(makeTask(0), {}, { isRoute: true }, { setStreetLines: vi.fn() }, {}, {},
-        fakeTracker());
+    const { TaskContainer } = await loadModules('frontend/js/explore/task/TaskContainer.js');
+    return new TaskContainer(makeTask(0), {}, { isRoute: true }, { setStreetLines: vi.fn() }, {}, {}, fakeTracker());
 }
 
 describe('TaskContainer.nextTask on a route', () => {
@@ -89,7 +87,6 @@ describe('TaskContainer distance credit', () => {
 
     beforeEach(async () => {
         window.turf = { length: (feature) => feature.properties.km };
-        stubUtil({ turfDistanceUnits: () => 'kilometers', array: { sum: (a) => a.reduce((x, y) => x + y, 0) } });
         container = await makeContainer();
     });
 

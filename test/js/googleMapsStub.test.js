@@ -7,8 +7,8 @@
  * imagery path Validate takes. A stub that drifted from the API in one of those would let the suite pass on
  * behaviour production never sees, which is exactly the failure a fake invites. So each of those is a test here.
  *
- * The stub is a browser IIFE that reads its callback name from `document.currentScript.src`; installing it means
- * pointing that at a loader-shaped URL and evaluating the source in the jsdom window, the way a `<script>` would.
+ * The stub is a browser IIFE that reads its callback name from `document.currentScript.src`, so installing it means
+ * pointing that at a loader-shaped URL before the load.
  */
 
 import { loadModules } from './loader.js';
@@ -16,7 +16,7 @@ import { loadModules } from './loader.js';
 const LOADER_URL = 'https://maps.googleapis.com/maps/api/js?key=DUMMY&v=weekly&callback=google.maps.__ib__';
 
 /**
- * Evaluates the stub in the jsdom window as the app's inline loader would have loaded it.
+ * Loads the stub as the app's inline loader would have.
  * @param {{options?: object, url?: string, callback?: Function}} [p] `options` becomes `window.googleMapsStubOptions`
  *   (the init-script knob), `url` the script's `src`, `callback` the loader's resolver parked at `google.maps.__ib__`.
  * @returns {{maps: object, callback: Function}} The installed namespace and the resolver.
@@ -28,7 +28,7 @@ async function install({ options, url = LOADER_URL, callback = vi.fn() } = {}) {
   const script = document.createElement('script');
   script.src = url;
   Object.defineProperty(document, 'currentScript', { value: script, configurable: true });
-  Object.assign(window, await loadModules('test/e2e/fixtures/google-maps-stub.js'));
+  await loadModules('test/e2e/fixtures/google-maps-stub.js');
   return { maps: window.google.maps, callback };
 }
 

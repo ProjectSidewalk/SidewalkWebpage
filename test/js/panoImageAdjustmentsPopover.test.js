@@ -10,9 +10,7 @@
  * Popover API nor `:popover-open`, so the test stands up showPopover/hidePopover the way panoInfoViewLink.test.js does.
  */
 
-import { loadModules, fakeImport } from './loader.js';
-
-fakeImport('frontend/js/common/PanoImageAdjustments.js', 'PanoImageAdjustments');
+import { loadModules } from './loader.js';
 
 // The parts of app/views/common/panoImageAdjustments.scala.html and the Explore pill the class actually reads.
 const MARKUP = `
@@ -33,10 +31,8 @@ const MARKUP = `
   <button type="button" data-action="reset"></button>
 </div>`;
 
-async function loadClasses() {
-    Object.assign(window, await loadModules('frontend/js/common/PanoImageAdjustments.js'));
-    Object.assign(window, await loadModules('frontend/js/common/PanoImageAdjustmentsPopover.js'));
-}
+let PanoImageAdjustments;
+let PanoImageAdjustmentsPopover;
 
 function memoryStorage() {
     const data = {};
@@ -59,16 +55,19 @@ function mount(extraHooks = {}) {
     shown = false;
     popover.showPopover = vi.fn(() => { shown = true; });
     popover.hidePopover = vi.fn(() => { shown = false; });
-    model = new window.PanoImageAdjustments(pano, memoryStorage());
+    model = new PanoImageAdjustments(pano, memoryStorage());
     hooks = { onOpen: vi.fn(), onClose: vi.fn(), onChange: vi.fn(), onReset: vi.fn(), ...extraHooks };
-    return new window.PanoImageAdjustmentsPopover(model, button, popover, hooks);
+    return new PanoImageAdjustmentsPopover(model, button, popover, hooks);
 }
 
 const slider = (key) => popover.querySelector(`[data-adjust="${key}"]`);
 const output = (key) => popover.querySelector(`[data-adjust-value="${key}"]`);
 const fire = (el, type) => el.dispatchEvent(new Event(type, { bubbles: true }));
 
-beforeAll(loadClasses);
+beforeAll(async () => {
+    ({ PanoImageAdjustments, PanoImageAdjustmentsPopover } = await loadModules(
+        'frontend/js/common/PanoImageAdjustments.js', 'frontend/js/common/PanoImageAdjustmentsPopover.js'));
+});
 
 describe('setup', () => {
     test('gives the trigger the disclosure ARIA and sliders their range from SPECS', () => {
@@ -85,10 +84,10 @@ describe('setup', () => {
         document.body.innerHTML = MARKUP;
         const storage = memoryStorage();
         storage.data.panoImageAdjustments = JSON.stringify({ v: 1, shadows: 30, brightness: 100, contrast: 100 });
-        const m = new window.PanoImageAdjustments(document.getElementById('pano'), storage);
+        const m = new PanoImageAdjustments(document.getElementById('pano'), storage);
         const b = document.getElementById('explore-control-image');
         const p = document.getElementById('pano-image-adjustments');
-        new window.PanoImageAdjustmentsPopover(m, b, p);
+        new PanoImageAdjustmentsPopover(m, b, p);
         expect(p.querySelector('[data-adjust="shadows"]').value).toBe('30');
         expect(p.querySelector('[data-adjust-value="shadows"]').textContent).toBe('+30');
         expect(p.querySelector('[data-action="reset"]').disabled).toBe(false);
@@ -98,8 +97,8 @@ describe('setup', () => {
     test('survives a missing popover element without wiring anything', () => {
         document.body.innerHTML = '<button id="explore-control-image"></button><div id="pano"></div>';
         const err = vi.spyOn(console, 'error').mockImplementation(() => {});
-        const m = new window.PanoImageAdjustments(document.getElementById('pano'), memoryStorage());
-        expect(() => new window.PanoImageAdjustmentsPopover(m, document.getElementById('explore-control-image'), null))
+        const m = new PanoImageAdjustments(document.getElementById('pano'), memoryStorage());
+        expect(() => new PanoImageAdjustmentsPopover(m, document.getElementById('explore-control-image'), null))
             .not.toThrow();
         expect(err).toHaveBeenCalled();
         err.mockRestore();
@@ -108,9 +107,9 @@ describe('setup', () => {
     test('reports closed rather than throwing when the trigger is missing (KeyboardManager asks on every key)', () => {
         document.body.innerHTML = MARKUP;
         const err = vi.spyOn(console, 'error').mockImplementation(() => {});
-        const m = new window.PanoImageAdjustments(document.getElementById('pano'), memoryStorage());
+        const m = new PanoImageAdjustments(document.getElementById('pano'), memoryStorage());
         const p = document.getElementById('pano-image-adjustments');
-        const panel = new window.PanoImageAdjustmentsPopover(m, null, p);
+        const panel = new PanoImageAdjustmentsPopover(m, null, p);
         expect(panel.isOpen()).toBe(false);
         err.mockRestore();
     });
@@ -240,9 +239,9 @@ describe('open and close', () => {
     test('falls back to the hidden attribute where the Popover API is missing, hiding it from Tab until opened', () => {
         document.body.innerHTML = MARKUP;
         const p = document.getElementById('pano-image-adjustments');
-        const m = new window.PanoImageAdjustments(document.getElementById('pano'), memoryStorage());
+        const m = new PanoImageAdjustments(document.getElementById('pano'), memoryStorage());
         const b = document.getElementById('explore-control-image');
-        new window.PanoImageAdjustmentsPopover(m, b, p);
+        new PanoImageAdjustmentsPopover(m, b, p);
         expect(p.hasAttribute('hidden')).toBe(true);
         b.click();
         expect(p.hasAttribute('hidden')).toBe(false);
@@ -331,11 +330,7 @@ describe('screen-reader active state', () => {
     const activeText = () => button.querySelectorAll('.sr-only');
 
     beforeEach(() => {
-        window.i18next = { t: vi.fn((k) => `t(${k})`) };
-    });
-
-    afterEach(() => {
-        delete window.i18next;
+        vi.stubGlobal('i18next', { t: vi.fn((k) => `t(${k})`) });
     });
 
     test('adds one hidden sr-only span to the trigger at defaults', () => {
@@ -358,8 +353,8 @@ describe('screen-reader active state', () => {
         document.body.innerHTML = MARKUP;
         const b = document.getElementById('explore-control-image');
         b.insertAdjacentHTML('beforeend', '<span class="sr-only pano-image-adjustments-active-text" hidden></span>');
-        const m = new window.PanoImageAdjustments(document.getElementById('pano'), memoryStorage());
-        new window.PanoImageAdjustmentsPopover(m, b, document.getElementById('pano-image-adjustments'));
+        const m = new PanoImageAdjustments(document.getElementById('pano'), memoryStorage());
+        new PanoImageAdjustmentsPopover(m, b, document.getElementById('pano-image-adjustments'));
         expect(b.querySelectorAll('.sr-only')).toHaveLength(1);
     });
 });

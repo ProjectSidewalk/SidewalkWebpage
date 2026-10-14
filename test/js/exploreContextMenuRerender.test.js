@@ -16,8 +16,7 @@
  * about the panel through onChange, as Canvas subscribes in production.
  */
 
-import { loadModules, stubUtil } from './loader.js';
-
+import { loadModules, useUtil } from './loader.js';
 import { makeContextMenuUi } from './contextMenuUiStub.js';
 import { fakeGate, fakeTracker } from './fakes.js';
 
@@ -45,18 +44,6 @@ describe('ContextMenu repaints the canvas when the panel opens and closes', () =
     beforeEach(async () => {
         renders = [];
         window.i18next = { t: (key) => key };
-        stubUtil({
-            camelToKebab: (s) => s,
-            anchorPanelToLabel: vi.fn(),
-            misc: {
-                labelTypeName: (type) => window.i18next.t(`common:${window.util.camelToKebab(type)}`),
-                getIconImagePaths: () => ({ iconImagePath: 'CurbRamp.svg' }),
-                // False everywhere, which is what switches off the severity menu, its smiley images, and its
-                // tooltips — none of which this file is about.
-                labelTypeHasSeverity: () => false,
-                getLabelDescriptions: () => ({ tagInfo: {} }),
-            },
-        });
 
         canvas = {
             clear: vi.fn(() => canvas),
@@ -68,9 +55,12 @@ describe('ContextMenu repaints the canvas when the panel opens and closes', () =
         };
         tracker = fakeTracker();
 
-        Object.assign(window, await loadModules('frontend/js/explore/canvas/ContextMenu.js'));
-        // No #context-menu-share element and no ShareWidget global, so the share widget stays null.
-        menu = new window.ContextMenu(makeContextMenuUi(), { isOnboarding: false }, { iconRadius: 17 },
+        const { ContextMenu } = await loadModules('frontend/js/explore/canvas/ContextMenu.js');
+        // False everywhere, which is what switches off the severity menu, its smiley images, and its tooltips —
+        // none of which this file is about.
+        useUtil({ misc: { labelTypeHasSeverity: () => false } });
+        // No #context-menu-share element, so the share widget stays null.
+        menu = new ContextMenu(makeContextMenuUi(), { isOnboarding: false }, { iconRadius: 17 },
             { canDelete: () => true, getAllLabels: () => [], addToLabelsToLog: vi.fn() },
             { switching: fakeGate() }, { onMoveStarted: vi.fn() },
             { ratingClicked: vi.fn() }, { ensureLabelSaved: vi.fn() }, tracker);

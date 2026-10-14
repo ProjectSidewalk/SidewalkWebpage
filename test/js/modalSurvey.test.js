@@ -7,6 +7,7 @@
  */
 
 import { loadModules } from './loader.js';
+import { fakeGate } from './fakes.js';
 
 
 function installDialogStub() {
@@ -50,12 +51,8 @@ beforeEach(async () => {
     posted.push(JSON.parse(opts.body));
     return Promise.resolve({ ok: true });
   });
-  const noop = () => {};
-  Object.assign(window, await loadModules('frontend/js/explore/modal/ModalSurvey.js'));
-  survey = new window.ModalSurvey(
-    { hold: noop, release: noop },
-    { zoomInGate: { hold: noop, release: noop }, zoomOutGate: { hold: noop, release: noop } },
-  );
+  const { ModalSurvey } = await loadModules('frontend/js/explore/modal/ModalSurvey.js');
+  survey = new ModalSurvey(fakeGate(), { zoomInGate: fakeGate(), zoomOutGate: fakeGate() });
 });
 
 test('opens with focus on the dialog itself, not the skip X', () => {

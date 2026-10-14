@@ -10,29 +10,17 @@
  * The two counts the page shows *are* deliberately different — the KPI uses the site-wide re-audit flag, the map
  * tier counts only audits that carry weight in the priority formula — and that difference has its own case, because
  * a reader who noticed it and found no explanation would reasonably conclude one of them is a bug.
- *
- * Runs under jsdom (vitest.config.mjs). The page's classes are bare top-level declarations in a concatenated bundle, so
- * they are eval'd into global scope rather than required.
  */
 
-import { loadModules, mockModule, realUtil, stubUtil } from './loader.js';
-
-// The page fetches through util.fetchJson.
-stubUtil(await realUtil());
-
+import { loadModules, mockModule } from './loader.js';
 
 /** Chart calls, recorded instead of drawn. */
 const charts = [];
 
-/** Loads the page and every class it collaborates with into global scope. */
-async function loadPage() {
-  mockModule('frontend/js/admin-dashboard/MiniLineChart.js', () => ({
-    MiniLineChart: { renderInto: (host, labels, series, options) => charts.push({ host, labels, series, options }) },
-  }));
-  return (await loadModules('frontend/js/admin-dashboard/ImageryPage.js')).ImageryPage;
-}
-
-const ImageryPage = await loadPage();
+mockModule('frontend/js/admin-dashboard/MiniLineChart.js', () => ({
+  MiniLineChart: { renderInto: (host, labels, series, options) => charts.push({ host, labels, series, options }) },
+}));
+const { ImageryPage } = await loadModules('frontend/js/admin-dashboard/ImageryPage.js');
 
 /** Mapbox GL cannot run under jsdom; this records what the map was told and fires 'load' immediately. */
 function stubMapbox() {
@@ -420,7 +408,7 @@ describe('ImageryPage tables', () => {
 
   test('narrows the street queue to a pinned region, and says whose queue it is', async () => {
     await renderPage();
-    regionRows()[1].dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+    regionRows()[1].dispatchEvent(new MouseEvent('click', { bubbles: true }));
     expect(streetRows().map((tr) => tr.dataset.rowId)).toEqual(['4']);
     expect(text('imagery-street-intro')).toContain('Downtown');
     expect(text('imagery-street-note')).toContain('The top 1 of 1 routable streets by priority');
@@ -428,9 +416,9 @@ describe('ImageryPage tables', () => {
 
   test('goes back to the city-wide ranking when the pinned region is clicked again', async () => {
     await renderPage();
-    regionRows()[1].dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+    regionRows()[1].dispatchEvent(new MouseEvent('click', { bubbles: true }));
     const pinned = regionRows().find((tr) => tr.cells[0].textContent === 'Downtown');
-    pinned.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+    pinned.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     expect(streetRows()).toHaveLength(4);
     expect(text('imagery-street-intro')).toContain('city-wide');
   });
@@ -463,7 +451,7 @@ describe('ImageryPage tables', () => {
 describe('ImageryPage brushing', () => {
   test('brushes a hovered region across the map and the region table', async () => {
     const { mapState } = await renderPage();
-    regionRows()[0].dispatchEvent(new window.Event('pointerover', { bubbles: true }));
+    regionRows()[0].dispatchEvent(new Event('pointerover', { bubbles: true }));
     const selected = mapState.featureStates.filter((s) => s.value.selected === true).map((s) => s.target.id);
     expect(selected.sort()).toEqual([1, 2, 3]);
     expect(regionRows()[0].classList.contains('is-highlighted')).toBe(true);
@@ -472,11 +460,11 @@ describe('ImageryPage brushing', () => {
   test('reverts a transient hover to the pinned region rather than to nothing', async () => {
     const { mapState } = await renderPage();
     regionRows().find((tr) => tr.cells[0].textContent === 'Downtown')
-      .dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+      .dispatchEvent(new MouseEvent('click', { bubbles: true }));
     mapState.featureStates.length = 0;
 
-    regionRows()[0].dispatchEvent(new window.Event('pointerover', { bubbles: true }));
-    document.querySelector('#imagery-region-table tbody').dispatchEvent(new window.Event('pointerleave'));
+    regionRows()[0].dispatchEvent(new Event('pointerover', { bubbles: true }));
+    document.querySelector('#imagery-region-table tbody').dispatchEvent(new Event('pointerleave'));
 
     const stillSelected = mapState.featureStates.filter((s) => s.value.selected === true).map((s) => s.target.id);
     expect(stillSelected).toContain(4);
@@ -487,7 +475,7 @@ describe('ImageryPage brushing', () => {
   test('does not narrow the street queue on hover, only on a pin', async () => {
     await renderPage();
     regionRows().find((tr) => tr.cells[0].textContent === 'Downtown')
-      .dispatchEvent(new window.Event('pointerover', { bubbles: true }));
+      .dispatchEvent(new Event('pointerover', { bubbles: true }));
     expect(streetRows()).toHaveLength(4);
   });
 });

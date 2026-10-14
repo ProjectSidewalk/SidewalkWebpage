@@ -5,71 +5,76 @@
  * kept, any method a mock); the gates are real, so the pop-up policy is checked by holding the lock.
  */
 
-import { assetPathStub, loadModules, fakeImport, stubUtil } from './loader.js';
+import { loadModules, mockModule, useUtil } from './loader.js';
 
-fakeImport('frontend/js/common/ImmersiveMode.js', 'ImmersiveMode');
-fakeImport('frontend/js/common/LabelCardView.js', 'LabelCardView');
-fakeImport('frontend/js/common/MissionStartTutorial.js', 'MissionStartTutorial');
-fakeImport('frontend/js/common/PanoImageAdjustments.js', 'PanoImageAdjustments');
-fakeImport('frontend/js/common/PanoImageAdjustmentsPopover.js', 'PanoImageAdjustmentsPopover');
-fakeImport('frontend/js/common/ProgressBar.js', 'ProgressBar');
-fakeImport('frontend/js/common/SpeedLimit.js', 'SpeedLimit');
-fakeImport('frontend/js/common/Toast.js', 'Toast');
-fakeImport('frontend/js/common/pano-viewer/PanoInfoPopover.js', 'PanoInfoPopover');
-fakeImport('frontend/js/common/pano-viewer/PanoStore.js', 'PanoStore');
-fakeImport('frontend/js/explore/alert/AiGuidance.js', 'AiGuidance');
-fakeImport('frontend/js/explore/alert/AlertController.js', 'AlertController');
-fakeImport('frontend/js/explore/alert/JumpAlert.js', 'JumpAlert');
-fakeImport('frontend/js/explore/alert/KeyboardShortcutAlert.js', 'KeyboardShortcutAlert');
-fakeImport('frontend/js/explore/alert/PopUpMessage.js', 'PopUpMessage');
-fakeImport('frontend/js/explore/alert/RatingReminderAlert.js', 'RatingReminderAlert');
-fakeImport('frontend/js/explore/alert/ReauditNotice.js', 'ReauditNotice');
-fakeImport('frontend/js/explore/alert/StuckAlert.js', 'StuckAlert');
-fakeImport('frontend/js/explore/alert/ZoomShortcutAlert.js', 'ZoomShortcutAlert');
-fakeImport('frontend/js/explore/canvas/Canvas.js', 'Canvas');
-fakeImport('frontend/js/explore/canvas/CanvasFrame.js', 'CanvasFrame');
-fakeImport('frontend/js/explore/canvas/ContextMenu.js', 'ContextMenu');
-fakeImport('frontend/js/explore/controls/PanoOverlayControls.js', 'PanoOverlayControls');
-fakeImport('frontend/js/explore/data/Form.js', 'Form');
-fakeImport('frontend/js/explore/data/Storage.js', 'TemporaryStorage');
-fakeImport('frontend/js/explore/data/Tracker.js', 'Tracker');
-fakeImport('frontend/js/explore/game/AudioEffect.js', 'AudioEffect');
-fakeImport('frontend/js/explore/keyboard/KeyboardManager.js', 'KeyboardManager');
-fakeImport('frontend/js/explore/label/Label.js', 'Label');
-fakeImport('frontend/js/explore/label/LabelContainer.js', 'LabelContainer');
-fakeImport('frontend/js/explore/menu/LabelModes.js', 'LabelModes');
-fakeImport('frontend/js/explore/menu/RibbonMenu.js', 'RibbonMenu');
-fakeImport('frontend/js/explore/mission/MissionContainer.js', 'MissionContainer');
-fakeImport('frontend/js/explore/mission/MissionController.js', 'MissionController');
-fakeImport('frontend/js/explore/mission/MissionModel.js', 'MissionModel');
-fakeImport('frontend/js/explore/modal/FeedbackModal.js', 'FeedbackModal');
-fakeImport('frontend/js/explore/modal/ModalMissionComplete.js', 'ModalMissionComplete');
-fakeImport('frontend/js/explore/modal/ModalMissionCompleteMap.js', 'ModalMissionCompleteMap');
-fakeImport('frontend/js/explore/modal/ModalSurvey.js', 'ModalSurvey');
-fakeImport('frontend/js/explore/navigation/Compass.js', 'Compass');
-fakeImport('frontend/js/explore/navigation/ExploreUrlSync.js', 'ExploreUrlSync');
-fakeImport('frontend/js/explore/navigation/ForwardCrumbs.js', 'ForwardCrumbs');
-fakeImport('frontend/js/explore/navigation/Minimap.js', 'Minimap');
-fakeImport('frontend/js/explore/navigation/MinimapLegend.js', 'MinimapLegend');
-fakeImport('frontend/js/explore/navigation/MinimapMissionProgress.js', 'MinimapMissionProgress');
-fakeImport('frontend/js/explore/navigation/NavigationService.js', 'NavigationService');
-fakeImport('frontend/js/explore/navigation/ObservedArea.js', 'ObservedArea');
-fakeImport('frontend/js/explore/navigation/Peg.js', 'Peg');
-fakeImport('frontend/js/explore/navigation/RouteOverview.js', 'RouteOverview');
-fakeImport('frontend/js/explore/panorama/NavArrows.js', 'NavArrows');
-fakeImport('frontend/js/explore/panorama/PanoDateNote.js', 'PanoDateNote');
-fakeImport('frontend/js/explore/panorama/PanoManager.js', 'PanoManager');
-fakeImport('frontend/js/explore/region/Region.js', 'Region');
-fakeImport('frontend/js/explore/region/RegionModel.js', 'RegionModel');
-fakeImport('frontend/js/explore/sidebar/BadgeProgress.js', 'BadgeProgress');
-fakeImport('frontend/js/explore/sidebar/MissionPanel.js', 'MissionPanel');
-fakeImport('frontend/js/explore/sidebar/OverallStats.js', 'OverallStats');
-fakeImport('frontend/js/explore/sidebar/RegionProgressBar.js', 'RegionProgressBar');
-fakeImport('frontend/js/explore/task/Task.js', 'Task');
-fakeImport('frontend/js/explore/task/TaskContainer.js', 'TaskContainer');
-fakeImport('frontend/js/explore/zoom/ZoomControl.js', 'ZoomControl');
-fakeImport('frontend/js/common/Gate.js', 'Gate');
+/** @type {Record<string, any>} The stand-ins for this test, by export name; the mocks below hand them to Main. */
+let fakes = {};
 
+/** Every module Main builds its collaborators from, path to the export it takes. Gate stays real. */
+const FAKED_EXPORTS = {
+  'frontend/js/common/ImmersiveMode.js': 'ImmersiveMode',
+  'frontend/js/common/LabelCardView.js': 'LabelCardView',
+  'frontend/js/common/MissionStartTutorial.js': 'MissionStartTutorial',
+  'frontend/js/common/PanoImageAdjustments.js': 'PanoImageAdjustments',
+  'frontend/js/common/PanoImageAdjustmentsPopover.js': 'PanoImageAdjustmentsPopover',
+  'frontend/js/common/ProgressBar.js': 'ProgressBar',
+  'frontend/js/common/SpeedLimit.js': 'SpeedLimit',
+  'frontend/js/common/Toast.js': 'Toast',
+  'frontend/js/common/pano-viewer/PanoInfoPopover.js': 'PanoInfoPopover',
+  'frontend/js/common/pano-viewer/PanoStore.js': 'PanoStore',
+  'frontend/js/explore/alert/AiGuidance.js': 'AiGuidance',
+  'frontend/js/explore/alert/AlertController.js': 'AlertController',
+  'frontend/js/explore/alert/JumpAlert.js': 'JumpAlert',
+  'frontend/js/explore/alert/KeyboardShortcutAlert.js': 'KeyboardShortcutAlert',
+  'frontend/js/explore/alert/PopUpMessage.js': 'PopUpMessage',
+  'frontend/js/explore/alert/RatingReminderAlert.js': 'RatingReminderAlert',
+  'frontend/js/explore/alert/ReauditNotice.js': 'ReauditNotice',
+  'frontend/js/explore/alert/StuckAlert.js': 'StuckAlert',
+  'frontend/js/explore/alert/ZoomShortcutAlert.js': 'ZoomShortcutAlert',
+  'frontend/js/explore/canvas/Canvas.js': 'Canvas',
+  'frontend/js/explore/canvas/CanvasFrame.js': 'CanvasFrame',
+  'frontend/js/explore/canvas/ContextMenu.js': 'ContextMenu',
+  'frontend/js/explore/controls/PanoOverlayControls.js': 'PanoOverlayControls',
+  'frontend/js/explore/data/Form.js': 'Form',
+  'frontend/js/explore/data/Storage.js': 'TemporaryStorage',
+  'frontend/js/explore/data/Tracker.js': 'Tracker',
+  'frontend/js/explore/game/AudioEffect.js': 'AudioEffect',
+  'frontend/js/explore/keyboard/KeyboardManager.js': 'KeyboardManager',
+  'frontend/js/explore/label/Label.js': 'Label',
+  'frontend/js/explore/label/LabelContainer.js': 'LabelContainer',
+  'frontend/js/explore/menu/LabelModes.js': 'LabelModes',
+  'frontend/js/explore/menu/RibbonMenu.js': 'RibbonMenu',
+  'frontend/js/explore/mission/MissionContainer.js': 'MissionContainer',
+  'frontend/js/explore/mission/MissionController.js': 'MissionController',
+  'frontend/js/explore/mission/MissionModel.js': 'MissionModel',
+  'frontend/js/explore/modal/FeedbackModal.js': 'FeedbackModal',
+  'frontend/js/explore/modal/ModalMissionComplete.js': 'ModalMissionComplete',
+  'frontend/js/explore/modal/ModalMissionCompleteMap.js': 'ModalMissionCompleteMap',
+  'frontend/js/explore/modal/ModalSurvey.js': 'ModalSurvey',
+  'frontend/js/explore/navigation/Compass.js': 'Compass',
+  'frontend/js/explore/navigation/ExploreUrlSync.js': 'ExploreUrlSync',
+  'frontend/js/explore/navigation/ForwardCrumbs.js': 'ForwardCrumbs',
+  'frontend/js/explore/navigation/Minimap.js': 'Minimap',
+  'frontend/js/explore/navigation/MinimapLegend.js': 'MinimapLegend',
+  'frontend/js/explore/navigation/MinimapMissionProgress.js': 'MinimapMissionProgress',
+  'frontend/js/explore/navigation/NavigationService.js': 'NavigationService',
+  'frontend/js/explore/navigation/ObservedArea.js': 'ObservedArea',
+  'frontend/js/explore/navigation/Peg.js': 'Peg',
+  'frontend/js/explore/navigation/RouteOverview.js': 'RouteOverview',
+  'frontend/js/explore/panorama/NavArrows.js': 'NavArrows',
+  'frontend/js/explore/panorama/PanoDateNote.js': 'PanoDateNote',
+  'frontend/js/explore/panorama/PanoManager.js': 'PanoManager',
+  'frontend/js/explore/region/Region.js': 'Region',
+  'frontend/js/explore/region/RegionModel.js': 'RegionModel',
+  'frontend/js/explore/sidebar/BadgeProgress.js': 'BadgeProgress',
+  'frontend/js/explore/sidebar/MissionPanel.js': 'MissionPanel',
+  'frontend/js/explore/sidebar/OverallStats.js': 'OverallStats',
+  'frontend/js/explore/sidebar/RegionProgressBar.js': 'RegionProgressBar',
+  'frontend/js/explore/task/Task.js': 'Task',
+  'frontend/js/explore/task/TaskContainer.js': 'TaskContainer',
+  'frontend/js/explore/zoom/ZoomControl.js': 'ZoomControl',
+};
+for (const [path, name] of Object.entries(FAKED_EXPORTS)) mockModule(path, () => ({ [name]: fakes[name] }));
 
 /** @type {Record<string, any>} Every stand-in Main built, by module name, in the order built. */
 let built;
@@ -156,16 +161,9 @@ let Gate;
 
 beforeAll(async () => {
   ({ Gate } = await loadModules('frontend/js/common/Gate.js'));
-  stubUtil({
-    assetPath: assetPathStub,
-    applyToolScale: () => 1,
-    exploreDisplayScale: () => 1,
-    localIsoDate: (date) => date,
-    math: { kmsToMeters: (km) => km * 1000 },
-    misc: { PRIMARY_LABEL_TYPES: ['CurbRamp'] },
-  });
+  // jsdom lays nothing out, so the real one would size the tool from empty computed styles.
+  useUtil({ applyToolScale: () => 1 });
   window.i18next = { t: (key) => key };
-  window.Toast = { show: vi.fn(), repositionAll: vi.fn() };
 });
 
 beforeEach(async () => {
@@ -174,8 +172,8 @@ beforeEach(async () => {
   buildOrder = [];
   const task = makeTask();
 
-  const fakes = {
-    Gate,
+  fakes = {
+    Toast: { show: vi.fn(), repositionAll: vi.fn() },
     Tracker: standIn('tracker'),
     TemporaryStorage: standIn('storage'),
     RegionModel: standIn('regionModel', { isRoute: false, currentRegion: () => REGION }),
@@ -257,9 +255,7 @@ beforeEach(async () => {
     MissionStartTutorial: standIn('missionStartTutorial'),
     ExploreUrlSync: standIn('urlSync', {}, { pinTutorialUrl: vi.fn() }),
     CanvasFrame: standIn('frame', { width: 720, height: 480 }),
-    GsvViewer: class { static SOURCE = 'gsv'; },
   };
-  Object.assign(window, fakes);
   ({ Main } = await loadModules('frontend/js/explore/Main.js'));
   await new Main(PARAMS, SESSION).start();
 });

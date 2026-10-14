@@ -6,20 +6,10 @@
  * compiled, a failed POST would permanently drop the pano's metadata while later submissions keep referencing its
  * pano_id in labels, orphaning them. These tests pin the contract: panos are marked `submitted` only on a 2xx
  * response, and stay staged (to ride along with the next submission) on an HTTP error or a network failure.
- *
- * Form is a top-level `class` declaration, so the test evals the source into the jsdom global scope (the
- * ShareWidget/PanoInfoPopover pattern) rather than using loadGlobalScript.
  */
 
-import { installDateHelpers, loadModules, stubUtil } from './loader.js';
-import { fakePanoManager, fakeTaskContainer } from './fakes.js';
-
-
-/** Loads a fresh Form class into the jsdom global scope. */
-async function loadForm() {
-    Object.assign(window, await loadModules('frontend/js/explore/data/Form.js'));
-    return window.Form;
-}
+import { loadModules, useUtil } from './loader.js';
+import { fakePanoManager, fakeTaskContainer, fakeTracker } from './fakes.js';
 
 /** A stand-in for a PanoStore pano whose metadata hasn't been submitted yet. */
 function panoStub(panoId) {
@@ -96,7 +86,7 @@ describe('Form pano submission staging', () => {
 
     /** Builds a Form wired to stub collaborators, staging the given panos and labels. */
     async function buildForm() {
-        const Form = await loadForm();
+        const { Form } = await loadModules('frontend/js/explore/data/Form.js');
         const missionProps = { missionId: 5, distanceProgress: 0, distance: 100, isComplete: false, skipped: false };
         const mission = { getProperty: (k) => missionProps[k] };
         const labelContainer = { getLabelsToLog: () => labels, clearLabelsToLog: vi.fn(), getAllLabels: () => [] };
@@ -136,15 +126,9 @@ describe('Form pano submission staging', () => {
     beforeEach(async () => {
         // Form's collaborators that live on globals rather than constructor args.
         window.AsyncLock = class { async acquire(key, fn) { return fn(); } };
-        tracker = { getActions: () => [], refresh: vi.fn(), push: vi.fn(), setAuditTaskID: vi.fn() };
-        stubUtil({
-            getBrowser: () => 'chrome',
-            getBrowserVersion: () => '1',
-            getOperatingSystem: () => 'linux',
-            math: { kmsToMeters: (km) => km * 1000 },
-            pano: { TUTORIAL_PANO_IDS: new Set(['tutorial', 'afterWalkTutorial']) },
-        });
-        await installDateHelpers();
+        tracker = fakeTracker();
+        // The real ones ask the vendored bowser script, which no page here loads.
+        useUtil({ getBrowser: () => 'chrome', getBrowserVersion: () => '1', getOperatingSystem: () => 'linux' });
         window.i18next = { language: 'en' };
 
         panos = [panoStub('pano-A'), panoStub('pano-B')];

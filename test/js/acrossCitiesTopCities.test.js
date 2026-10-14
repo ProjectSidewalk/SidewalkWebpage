@@ -6,21 +6,9 @@
  * ordering the busiest five rather than re-ranking, zero-activity cities excluded, counts read from the per-city
  * rolling windows (as are the cities-active / top-city tiles above the table), and week-over-week deltas colored by
  * direction. The same generalized sort machinery now drives the Activity table, so its headers are covered here too.
- *
- * Runs under jsdom (vitest.config.mjs). AcrossCitiesPage is a bare top-level class in a concatenated bundle, so it is
- * eval'd into global scope rather than required.
  */
 
-import { loadModules, realUtil, stubUtil } from './loader.js';
-
-// The page fetches through util.fetchJson.
-stubUtil(await realUtil());
-
-
-/** Load AcrossCitiesPage.js, plus the AdminShell helpers every dashboard page reads, and return the class binding. */
-async function loadPage() {
-  return (await loadModules('frontend/js/admin-dashboard/AcrossCitiesPage.js')).AcrossCitiesPage;
-}
+import { loadModules } from './loader.js';
 
 /**
  * Builds one scorecard row plus its rolling window.
@@ -143,7 +131,7 @@ describe('Across Cities — most active cities', () => {
   }
 
   beforeEach(async () => {
-    AcrossCitiesPage = await loadPage();
+    ({ AcrossCitiesPage } = await loadModules('frontend/js/admin-dashboard/AcrossCitiesPage.js'));
   });
 
   it('ranks by labels + validations and shows only the top five', async () => {
@@ -229,10 +217,10 @@ describe('Across Cities — most active cities', () => {
     await render();
     const th = document.querySelector('#ac-top-table thead th[data-sort="activity_window.contributors_7d"]');
     expect(th.getAttribute('tabindex')).toBe('0');
-    th.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    th.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
     expect(topCityOrder()[0]).toBe('charlie');
     // Space flips the same column, as a native button would.
-    th.dispatchEvent(new window.KeyboardEvent('keydown', { key: ' ', bubbles: true }));
+    th.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true }));
     expect(topCityOrder()[0]).toBe('echo');
   });
 

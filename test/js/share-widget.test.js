@@ -1,23 +1,12 @@
 /**
  * Tests for the ShareWidget class (frontend/js/common/share/ShareWidget.js, issue #456).
  *
- * ShareWidget is a top-level `class` declaration written for the Grunt-concatenation world, so unlike the
- * `window.X = ...` IIFE modules, require()-ing it would leave the class module-scoped. We instead eval the source in
- * the jsdom global scope with an explicit `window.ShareWidget = ShareWidget` epilogue.
- *
  * Coverage: the native-share vs popover fork, popover construction + ARIA contract, ESC/outside-click close with
  * focus management, arrow-key/Home/End menu navigation, copy-link clipboard flow with the transient "Copied!"
  * state, share-intent URLs, activity logging, and setTarget's stale-popover guard.
  */
 
 import { loadModules } from './loader.js';
-
-
-/** Loads a fresh ShareWidget class into the jsdom global scope. */
-async function loadShareWidget() {
-    Object.assign(window, await loadModules('frontend/js/common/share/ShareWidget.js'));
-    return window.ShareWidget;
-}
 
 const TARGET = {
     url: 'https://sidewalk-test.example.org/label/123',
@@ -70,7 +59,7 @@ describe('ShareWidget', () => {
             configurable: true
         });
 
-        ShareWidget = await loadShareWidget();
+        ({ ShareWidget } = await loadModules('frontend/js/common/share/ShareWidget.js'));
     });
 
     describe('constructor', () => {

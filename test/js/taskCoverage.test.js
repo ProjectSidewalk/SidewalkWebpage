@@ -10,9 +10,8 @@
  * Real vendored turf for the geometry: the questions are about distances along real street lines.
  */
 
-import { loadVendored, loadModules, realUtil, fakeImport } from './loader.js';
-
-fakeImport('frontend/js/explore/task/Task.js', 'Task');
+import { loadVendored, loadModules } from './loader.js';
+import { fakeTracker } from './fakes.js';
 
 loadVendored('turf');
 const turf = window.turf;
@@ -59,14 +58,14 @@ const FREE_EXPLORATION = { exploreAddressMode: true, current: false, route: fals
 describe('Task coverage in free exploration', () => {
     const street = straightStreet(STREET_START, STREET_LENGTH_M);
 
+    let Task;
+
     /** A task on a street, with the coverage rule a free-exploration page carries. */
-    const makeTask = (geojson) => new window.Task(geojson, CONFIG.streetCoverage, false);
+    const makeTask = (geojson) => new Task(geojson, CONFIG.streetCoverage, false);
 
     beforeEach(async () => {
         window.turf = turf;
-        window.util ??= await realUtil();
-        await loadModules('frontend/js/common/utilitiesMath.js');
-        Object.assign(window, await loadModules('frontend/js/explore/task/Task.js'));
+        ({ Task } = await loadModules('frontend/js/explore/task/Task.js'));
     });
 
     it('credits a window around each pano and the walked stretch between neighbours', () => {
@@ -175,7 +174,7 @@ describe('Task coverage in free exploration', () => {
     });
 
     it('merges like the server: clipped, sorted, touching ranges joined, to a decimeter', () => {
-        expect(window.Task.mergeRanges([[40, 60], [-5, 20.04], [20, 30], [55, 70], [190, 230]], 200))
+        expect(Task.mergeRanges([[40, 60], [-5, 20.04], [20, 30], [55, 70], [190, 230]], 200))
             .toEqual([[0, 30], [40, 70], [190, 200]]);
     });
 
@@ -209,16 +208,13 @@ describe('TaskContainer walking streets in free exploration', () => {
 
     beforeEach(async () => {
         window.turf = turf;
-        window.util ??= await realUtil();
-        await loadModules('frontend/js/common/utilitiesMath.js');
-        Object.assign(
-            window, await loadModules('frontend/js/explore/task/Task.js', 'frontend/js/explore/task/TaskContainer.js')
-        );
-        tracker = { push: vi.fn(), setAuditTaskID: vi.fn() };
-        current = new window.Task(feature(street, { street_edge_id: 1 }), CONFIG.streetCoverage, false);
-        cross = new window.Task(feature(crossStreet, { street_edge_id: 2 }), CONFIG.streetCoverage, false);
-        container = new window.TaskContainer(current, CONFIG, { isRoute: false },
-            { setStreetLines: vi.fn() }, {}, {}, tracker);
+        const { Task, TaskContainer } = await loadModules('frontend/js/explore/task/Task.js',
+            'frontend/js/explore/task/TaskContainer.js');
+        tracker = fakeTracker();
+        current = new Task(feature(street, { street_edge_id: 1 }), CONFIG.streetCoverage, false);
+        cross = new Task(feature(crossStreet, { street_edge_id: 2 }), CONFIG.streetCoverage, false);
+        container = new TaskContainer(current, CONFIG, { isRoute: false }, { setStreetLines: vi.fn() }, {}, {},
+            tracker);
         // What the Form hears, as it would in production: the street being left, to post as it stands.
         left = vi.fn();
         container.onTaskLeft(left);

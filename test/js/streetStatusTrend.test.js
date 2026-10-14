@@ -8,27 +8,17 @@
  * change, a viewer east of UTC on a Monday morning — plus the rule that the headline can only ever count bars that
  * are actually on screen.
  *
- * Runs under jsdom (vitest.config.mjs). These are bare top-level classes in a concatenated bundle, so they are eval'd
- * into global scope rather than required; StreetStatusColors (in StreetStatusMap.js) owns the status palette and
- * MiniLineChart does the drawing, so both have to be present first.
+ * StreetStatusColors (in StreetStatusMap.js) owns the status palette the chart legend is checked against.
  */
 
+import { loadModules, mockModule } from './loader.js';
 
-import { installDateHelpers, loadModules, realUtil, fakeImport, stubUtil } from './loader.js';
+const confirmDialog = { confirm: vi.fn() };
+mockModule('frontend/js/common/ConfirmDialog.js', () => ({ ConfirmDialog: confirmDialog }));
 
-fakeImport('frontend/js/common/ConfirmDialog.js', 'ConfirmDialog');
-
-
-stubUtil(await realUtil());
-
-
-/** Loads the section's dependencies into global scope and returns the StreetStatusTrend class. */
-async function loadPage() {
-  return await loadModules('frontend/js/admin-dashboard/StreetStatusTrend.js', 'frontend/js/admin-dashboard/StreetStatusMap.js');
-}
-
-await installDateHelpers();
-const { StreetStatusTrend, StreetStatusColors } = await loadPage();
+const { StreetStatusTrend, StreetStatusColors } = await loadModules(
+  'frontend/js/admin-dashboard/StreetStatusTrend.js', 'frontend/js/admin-dashboard/StreetStatusMap.js',
+);
 
 const MARKUP = `
   <div id="street-status-trend-section">
@@ -310,7 +300,7 @@ describe('the regained-imagery queue', () => {
 
   test('reopens only after confirmation, via PUT, then reloads the trend', async () => {
     await render(payload({ reopen_candidates: [candidate()] }));
-    window.ConfirmDialog = { confirm: vi.fn().mockResolvedValue(true) };
+    confirmDialog.confirm = vi.fn().mockResolvedValue(true);
     const reopenBtn = [...document.querySelectorAll('#trend-reopen-candidates button')]
       .find((b) => b.textContent === 'Reopen');
     window.fetch = vi.fn().mockResolvedValue({
@@ -320,7 +310,7 @@ describe('the regained-imagery queue', () => {
     reopenBtn.click();
     await new Promise((resolve) => { setTimeout(resolve, 0); });
 
-    expect(window.ConfirmDialog.confirm).toHaveBeenCalled();
+    expect(confirmDialog.confirm).toHaveBeenCalled();
     expect(window.fetch).toHaveBeenCalledWith('/adminapi/streets/555/reopen', { method: 'PUT' });
     // The reload after a successful action, so the queue and the status-change chart both reflect the reopen.
     expect(window.fetch).toHaveBeenLastCalledWith('/adminapi/streetStatusTrend?weeks=3', expect.anything());
@@ -330,7 +320,7 @@ describe('the regained-imagery queue', () => {
 
   test('does nothing when the confirmation is declined', async () => {
     await render(payload({ reopen_candidates: [candidate()] }));
-    window.ConfirmDialog = { confirm: vi.fn().mockResolvedValue(false) };
+    confirmDialog.confirm = vi.fn().mockResolvedValue(false);
     const reopenBtn = [...document.querySelectorAll('#trend-reopen-candidates button')]
       .find((b) => b.textContent === 'Reopen');
     window.fetch = vi.fn();
@@ -343,7 +333,7 @@ describe('the regained-imagery queue', () => {
 
   test('dismisses without confirmation, via DELETE', async () => {
     await render(payload({ reopen_candidates: [candidate()] }));
-    window.ConfirmDialog = { confirm: vi.fn() };
+    confirmDialog.confirm = vi.fn();
     const dismissBtn = [...document.querySelectorAll('#trend-reopen-candidates button')]
       .find((b) => b.textContent === 'Dismiss');
     window.fetch = vi.fn().mockResolvedValue({
@@ -353,13 +343,13 @@ describe('the regained-imagery queue', () => {
     dismissBtn.click();
     await new Promise((resolve) => { setTimeout(resolve, 0); });
 
-    expect(window.ConfirmDialog.confirm).not.toHaveBeenCalled();
+    expect(confirmDialog.confirm).not.toHaveBeenCalled();
     expect(window.fetch).toHaveBeenCalledWith('/adminapi/streets/555/reopenCandidate', { method: 'DELETE' });
   });
 
   test('quotes the server\'s explanation of a refusal, next to the buttons as well as at the top', async () => {
     await render(payload({ reopen_candidates: [candidate()] }));
-    window.ConfirmDialog = { confirm: vi.fn().mockResolvedValue(true) };
+    confirmDialog.confirm = vi.fn().mockResolvedValue(true);
     const reopenBtn = [...document.querySelectorAll('#trend-reopen-candidates button')]
       .find((b) => b.textContent === 'Reopen');
     // A 409 is the stale-row case, and the server says which status the street actually has -- far more use than
@@ -386,7 +376,7 @@ describe('the regained-imagery queue', () => {
 
   test('falls back to the status code when the failure body is not the JSON we expect', async () => {
     await render(payload({ reopen_candidates: [candidate()] }));
-    window.ConfirmDialog = { confirm: vi.fn().mockResolvedValue(true) };
+    confirmDialog.confirm = vi.fn().mockResolvedValue(true);
     window.fetch = vi.fn().mockResolvedValue({
       ok: false, status: 502, statusText: 'Bad Gateway', json: async () => { throw new Error('not json'); },
     });

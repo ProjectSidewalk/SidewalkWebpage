@@ -4,22 +4,17 @@
  * A card says which region its label sits in, looked up from the id -> name map the page carries. The name is
  * city data rather than ours, so it goes in as text; these tests pin that along with the absent-name case, since a
  * card with no known region must simply not show the line rather than show an empty one.
- *
- * Card is a Grunt-concatenated `class` that reaches for page globals, so the source is eval'd into jsdom with the
- * collaborators it touches during construction stubbed out.
  */
 
+import { loadModules, mockModule } from './loader.js';
+import { fakeTracker, fakePanoOverlays } from './fakes.js';
 
-import { assetPathStub, installUtilitiesMisc, loadModules, fakeImport, stubUtil } from './loader.js';
-import { fakeTracker } from './fakes.js';
-
-fakeImport('frontend/js/common/pano-viewer/PanoAttribution.js', 'createPanoAttribution');
-fakeImport('frontend/js/common/pano-viewer/PanoViewerLogo.js', 'createPanoViewerLogo');
-fakeImport('frontend/js/gallery/displays/SeverityDisplay.js', 'SeverityDisplay');
-fakeImport('frontend/js/gallery/displays/TagDisplay.js', 'TagDisplay');
-fakeImport('frontend/js/gallery/displays/ValidationInfoDisplay.js', 'ValidationInfoDisplay');
-fakeImport('frontend/js/gallery/validation/ValidationMenu.js', 'ValidationMenu');
-
+// Collaborators the constructor builds but this test doesn't exercise.
+mockModule('frontend/js/gallery/displays/SeverityDisplay.js', () => ({ SeverityDisplay: class {} }));
+mockModule('frontend/js/gallery/displays/ValidationInfoDisplay.js', () => ({ ValidationInfoDisplay: class {} }));
+mockModule('frontend/js/gallery/validation/ValidationMenu.js', () => ({ ValidationMenu: class {} }));
+mockModule('frontend/js/gallery/displays/TagDisplay.js', () => ({ TagDisplay: class {} }));
+fakePanoOverlays();
 
 /** One label payload, shaped like an entry from POST /label/labels. */
 function label(overrides = {}) {
@@ -35,6 +30,7 @@ describe('a Gallery card\'s location line', () => {
     const locationLine = () => document.querySelector('.card-location');
     /** The page's region names, which the card reads once on construction. */
     let regionNames;
+    let Card;
     const tracker = fakeTracker();
     const cardFilter = { getAppliedTagNames: () => [] };
 
@@ -45,7 +41,7 @@ describe('a Gallery card\'s location line', () => {
      */
     function renderCard(labelOverrides) {
         document.body.innerHTML = '<div id="cards"></div>';
-        const card = new window.Card(
+        const card = new Card(
             { label: label(labelOverrides), cropUrl: null, gsvImageUrl: null }, regionNames, tracker, cardFilter,
         );
         card.render(document.getElementById('cards'));
@@ -55,21 +51,7 @@ describe('a Gallery card\'s location line', () => {
     beforeAll(async () => {
         window.structuredClone ??= (v) => JSON.parse(JSON.stringify(v)); // Missing from this jsdom.
         window.i18next = { t: (key) => key, language: 'en' };
-        stubUtil({
-            assetPath: assetPathStub,
-            camelToKebab: (s) => s.toLowerCase(),
-            EXPLORE_CANVAS_WIDTH: 720,
-            EXPLORE_CANVAS_HEIGHT: 480,
-        });
-        await installUtilitiesMisc(); // Card positions its marker through util.misc.labelMarkerFraction.
-        // Collaborators the constructor builds but this test doesn't exercise.
-        window.SeverityDisplay = class {};
-        window.ValidationInfoDisplay = class {};
-        window.ValidationMenu = class {};
-        window.TagDisplay = class {};
-        window.createPanoViewerLogo = () => ({ showSourceLogo: () => {}, hide: () => {} });
-        window.createPanoAttribution = () => ({ show: () => {}, hide: () => {} });
-        Object.assign(window, await loadModules('frontend/js/gallery/cards/Card.js'));
+        ({ Card } = await loadModules('frontend/js/gallery/cards/Card.js'));
     });
 
     beforeEach(() => {

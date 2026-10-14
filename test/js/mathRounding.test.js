@@ -6,19 +6,13 @@
  * power of ten misses the intended integer for values binary floating point can't hold exactly — a naive floor turns
  * 0.29 into 0.28, and a naive ceiling turns 1.1 into 1.11.
  *
- * Runs under jsdom (vitest.config.mjs); utilitiesMath.js is a global script assigning onto `window.util`.
  */
 
-import path from 'path';
-import { loadModules, stubUtil } from './loader.js';
+import { loadModules } from './loader.js';
 
-const MATH_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/common/utilitiesMath.js');
-
-/** Load utilitiesMath.js (a global script hanging helpers off `window.util`) and return its rounding helpers. */
 async function loadMath() {
-  stubUtil({});
-  Object.assign(window, await loadModules(MATH_PATH));
-  return window.util.math;
+  const { util } = await loadModules('frontend/js/common/utilitiesMath.js', 'frontend/js/common/utilities.js');
+  return util.math;
 }
 
 async function loadFloorTo() {

@@ -11,9 +11,11 @@
  * LabelContainer, Form and TaskContainer are loaded as modules and built against the fewest collaborators each needs.
  */
 
-import { loadModules, stubUtil } from './loader.js';
-import { fakeTracker } from './fakes.js';
+import { loadModules, useUtil } from './loader.js';
+import { fakePanoManager, fakeTaskContainer, fakeTracker } from './fakes.js';
 
+// The real ones ask the vendored bowser script, which no page here loads.
+useUtil({ getBrowser: () => 'chrome', getBrowserVersion: () => '1', getOperatingSystem: () => 'linux' });
 
 /** Stubs fetch to answer every request with `body`, and returns the mock so the URL it was called with can be read. */
 function fetchAnswering(body) {
@@ -28,8 +30,8 @@ describe('LabelContainer.fetchLabelsToResumeMission', () => {
     let container;
 
     beforeEach(async () => {
-        Object.assign(window, await loadModules('frontend/js/explore/label/LabelContainer.js'));
-        container = new window.LabelContainer(1, {}, {}, {}, {}, { on: vi.fn() }, {}, { get: () => null }, {},
+        const { LabelContainer } = await loadModules('frontend/js/explore/label/LabelContainer.js');
+        container = new LabelContainer(1, {}, {}, {}, {}, { on: vi.fn() }, {}, { get: () => null }, {},
             fakeTracker());
     });
 
@@ -76,19 +78,20 @@ describe('Form.submitData street-priority refresh on a route walk', () => {
 
     /** Builds a Form with no labels or panos staged, posting to a fetch that records each request body. */
     async function buildForm(userRouteId) {
-        Object.assign(window, await loadModules('frontend/js/explore/data/Form.js'));
+        const { Form } = await loadModules('frontend/js/explore/data/Form.js');
         const missionProps = { missionId: 5, distanceProgress: 0, distance: 100, isComplete: false, skipped: false };
         const mission = { getProperty: (k) => missionProps[k] };
-        return new window.Form(
+        return new Form(
             '/task',
             { userRouteId, regionId: 1, isOnboarding: false, isExploreAddressMode: false },
             { getLabelsToLog: () => [], clearLabelsToLog: vi.fn(), getAllLabels: () => [] }, // labelContainer
             { on: vi.fn() }, // missionModel
             { getCurrentMission: () => mission, updateDistanceProgress: vi.fn() }, // missionContainer
             { getStagedPanoData: () => [], getPanoData: () => null }, // panoStore
-            { getCurrentTask: nearlyDoneTask, updateTaskPriorities: vi.fn(), onTaskEnded: vi.fn(), onTaskLeft: vi.fn() },
-            { getPosition: () => ({ lat: 41.85, lng: -87.65 }) }, // panoManager
-            { getActions: () => [], refresh: vi.fn(), push: vi.fn(), setAuditTaskID: vi.fn() }, // tracker
+            fakeTaskContainer(nearlyDoneTask,
+                { updateTaskPriorities: vi.fn(), onTaskEnded: vi.fn(), onTaskLeft: vi.fn() }),
+            fakePanoManager({ getPosition: () => ({ lat: 41.85, lng: -87.65 }) }),
+            fakeTracker(),
         );
     }
 
@@ -108,13 +111,6 @@ describe('Form.submitData street-priority refresh on a route walk', () => {
 
     beforeEach(() => {
         window.AsyncLock = class { async acquire(key, fn) { return fn(); } };
-        stubUtil({
-            getBrowser: () => 'chrome',
-            getBrowserVersion: () => '1',
-            getOperatingSystem: () => 'linux',
-            math: { kmsToMeters: (km) => km * 1000 },
-            pano: { TUTORIAL_PANO_IDS: new Set(['tutorial', 'afterWalkTutorial']) },
-        });
         window.i18next = { language: 'en' };
     });
 
@@ -137,11 +133,11 @@ describe('TaskContainer.updateTaskPriorities', () => {
     let container;
 
     beforeEach(async () => {
-        Object.assign(window, await loadModules('frontend/js/explore/task/TaskContainer.js'));
+        const { TaskContainer } = await loadModules('frontend/js/explore/task/TaskContainer.js');
         const initialTask = {
             getAuditTaskId: () => null, isResumed: () => false, cameFromTaskList: () => false, getProperty: () => false,
         };
-        container = new window.TaskContainer(initialTask, {}, { isRoute: true }, {}, {}, {}, fakeTracker());
+        container = new TaskContainer(initialTask, {}, { isRoute: true }, {}, {}, {}, fakeTracker());
     });
 
     it('applies a new priority to the task that street belongs to', () => {

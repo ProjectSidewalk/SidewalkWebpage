@@ -2,9 +2,8 @@
  * Tests for RouteGraph (frontend/js/route-builder/RouteGraph.js, issue #4579) — the client-side street graph
  * behind RouteBuilder's start/end auto-routing.
  *
- * RouteGraph is a top-level `class` declaration written for the Grunt-concatenation world, so (like ShareWidget's
- * test) we eval the source in the jsdom global scope. The class is pure geometry/graph logic with no DOM or map
- * dependencies, so the tests exercise it directly on a small synthetic street grid.
+ * The class is pure geometry/graph logic with no DOM or map dependencies, so the tests exercise it directly on a
+ * small synthetic street grid.
  *
  * The grid (region 1), ~111 m per 0.001°:
  *
@@ -19,13 +18,6 @@
  */
 
 import { loadModules } from './loader.js';
-
-
-/** Loads a fresh RouteGraph class into the jsdom global scope. */
-async function loadRouteGraph() {
-    Object.assign(window, await loadModules('frontend/js/route-builder/RouteGraph.js'));
-    return window.RouteGraph;
-}
 
 /** Builds a GeoJSON LineString street feature. */
 function street(id, coords, regionId = 1) {
@@ -57,7 +49,7 @@ describe('RouteGraph', () => {
     let RouteGraph;
 
     beforeEach(async () => {
-        RouteGraph = await loadRouteGraph();
+        ({ RouteGraph } = await loadModules('frontend/js/route-builder/RouteGraph.js'));
     });
 
     describe('distance math', () => {

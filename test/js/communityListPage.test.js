@@ -2,22 +2,26 @@
  * Tests for the community listing pages' client layer (#4688): CommunityListPage (search / sort / live count /
  * localized dates) plus the page-specific StoryListPage (type-chip tinting, read-more clamp toggle, view-label
  * popup routing) and RouteListPage (copy-share-link fallbacks).
- *
- * All four are ES modules, loaded fresh through `loadModules`.
  */
 
-import { installDateHelpers, loadModules, fakeImport } from './loader.js';
+import { loadModules, mockModule } from './loader.js';
 
-fakeImport('frontend/js/common/Toast.js', 'Toast');
-fakeImport('frontend/js/common/share/ShareWidget.js', 'ShareWidget');
-fakeImport('frontend/js/community/CommunityListPage.js', 'CommunityListPage');
+// RouteListPage confirms a copy with a toast; the suite only checks that it asked for one.
+const toast = { show: vi.fn(), CONFIRMATION_MS: 0 };
+mockModule('frontend/js/common/Toast.js', () => ({ Toast: toast }));
 
+let CommunityListPage;
+let StoryListPage;
+let RouteListPage;
+let ShareWidget;
 
+/** The three pages, plus the ShareWidget the story page builds a chip from, so its prototype can be spied. */
 async function loadClasses() {
-    Object.assign(window, await loadModules(
+    ({ CommunityListPage, StoryListPage, RouteListPage, ShareWidget } = await loadModules(
         'frontend/js/community/CommunityListPage.js',
         'frontend/js/community/StoryListPage.js',
-        'frontend/js/community/RouteListPage.js'
+        'frontend/js/community/RouteListPage.js',
+        'frontend/js/common/share/ShareWidget.js'
     ));
 }
 
@@ -51,17 +55,17 @@ function cardIds() {
 function search(query) {
     const el = document.getElementById('community-search');
     el.value = query;
-    el.dispatchEvent(new window.Event('input', { bubbles: true }));
+    el.dispatchEvent(new Event('input', { bubbles: true }));
 }
 
 function sortBy(value) {
     const el = document.getElementById('community-sort');
     el.value = value;
-    el.dispatchEvent(new window.Event('change', { bubbles: true }));
+    el.dispatchEvent(new Event('change', { bubbles: true }));
 }
 
 function newCommunityPage() {
-    const page = new window.CommunityListPage('SpecPage', {
+    const page = new CommunityListPage('SpecPage', {
         newest: { key: 'created', numeric: true, desc: true },
         neighborhood: { key: 'region' },
         longest: { key: 'distance', numeric: true, desc: true },
@@ -73,7 +77,6 @@ function newCommunityPage() {
 beforeEach(async () => {
     await loadClasses();
     window.logWebpageActivity = vi.fn();
-    await installDateHelpers();
     // The string sort passes the page language to localeCompare; the Twirl layout always renders <html lang="...">,
     // but jsdom's default is the empty string, which localeCompare rejects.
     document.documentElement.lang = 'en';
@@ -198,7 +201,7 @@ describe('StoryListPage', () => {
 
     test('tints each type chip from its backend-sourced canonical color', () => {
         setupDom(storyCard({ id: '1' }));
-        new window.StoryListPage().init();
+        new StoryListPage().init();
         const chip = document.querySelector('.community-chip--type');
         // jsdom normalizes the #RRGGBB + 20%-alpha suffix into rgba(); the exact channels come from #78B0EA.
         expect(chip.style.backgroundColor).toBe('rgba(120, 176, 234, 0.2)');
@@ -208,10 +211,10 @@ describe('StoryListPage', () => {
     // cover image across the top of the card, so a broken-image icon there reads as a page fault.
     test('drops a card photo that fails to load, leaving the rest of the card and its neighbours alone', () => {
         setupDom(storyCard({ id: '1', photo: '/expired.jpg' }) + storyCard({ id: '2', photo: '/fine.jpg' }));
-        new window.StoryListPage().init();
+        new StoryListPage().init();
         const [expired, fine] = Array.from(document.querySelectorAll('.story-card__photo'));
 
-        expired.dispatchEvent(new window.Event('error'));
+        expired.dispatchEvent(new Event('error'));
 
         expect(Array.from(document.querySelectorAll('.story-card__photo'))).toEqual([fine]);
         expect(document.querySelectorAll('.story-card').length).toBe(2);
@@ -225,7 +228,7 @@ describe('StoryListPage', () => {
         Object.defineProperty(photo, 'complete', { value: true });
         Object.defineProperty(photo, 'naturalWidth', { value: 0 });
 
-        new window.StoryListPage().init();
+        new StoryListPage().init();
 
         expect(document.querySelector('.story-card__photo')).toBeNull();
     });
@@ -235,7 +238,7 @@ describe('StoryListPage', () => {
         const [long, short] = Array.from(document.querySelectorAll('.story-card__text'));
         stubHeights(long, { scrollHeight: 300, clientHeight: 110 });
         stubHeights(short, { scrollHeight: 44, clientHeight: 44 });
-        new window.StoryListPage().init();
+        new StoryListPage().init();
 
         expect(short.parentElement.querySelector('.story-card__read-more')).toBeNull();
         const toggle = long.parentElement.querySelector('.story-card__read-more');
@@ -255,12 +258,12 @@ describe('StoryListPage', () => {
 
     test('view-label opens the popup (and suppresses navigation) once a LabelPopup is attached', () => {
         setupDom(storyCard({ id: '7' }));
-        const page = new window.StoryListPage();
+        const page = new StoryListPage();
         page.init();
         const popup = { showLabel: vi.fn() };
         page.setLabelPopup(popup);
 
-        const event = new window.MouseEvent('click', { bubbles: true, cancelable: true });
+        const event = new MouseEvent('click', { bubbles: true, cancelable: true });
         document.querySelector('.story-card__label-link').dispatchEvent(event);
         expect(popup.showLabel).toHaveBeenCalledWith(7, 'StoryListPage');
         expect(event.defaultPrevented).toBe(true);
@@ -269,9 +272,9 @@ describe('StoryListPage', () => {
 
     test('view-label falls back to plain navigation (default not prevented) when the popup never initialized', () => {
         setupDom(storyCard({ id: '7' }));
-        new window.StoryListPage().init();
+        new StoryListPage().init();
         const link = document.querySelector('.story-card__label-link');
-        const event = new window.MouseEvent('click', { bubbles: true, cancelable: true });
+        const event = new MouseEvent('click', { bubbles: true, cancelable: true });
         // jsdom can't navigate; swallow the default at the end of the dispatch without affecting the page's handler.
         link.addEventListener('click', (e) => e.preventDefault());
         link.dispatchEvent(event);
@@ -280,7 +283,7 @@ describe('StoryListPage', () => {
 
     test('following the location line to the LabelMap is logged', () => {
         setupDom(storyCard({ id: '9' }));
-        new window.StoryListPage().init();
+        new StoryListPage().init();
         const link = document.querySelector('.story-card__location');
         link.addEventListener('click', (e) => e.preventDefault());
         link.click();
@@ -291,7 +294,7 @@ describe('StoryListPage', () => {
         /** Builds a page with a story card and a stub popup attached, and hands back the pieces a test needs. */
         function pageWithPopup(cardHtml) {
             setupDom(cardHtml);
-            const page = new window.StoryListPage();
+            const page = new StoryListPage();
             page.init();
             const popup = { showLabel: vi.fn() };
             page.setLabelPopup(popup);
@@ -300,7 +303,7 @@ describe('StoryListPage', () => {
 
         function clickOn(selector) {
             document.querySelector(selector)
-                .dispatchEvent(new window.MouseEvent('click', { bubbles: true, cancelable: true }));
+                .dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
         }
 
         afterEach(() => window.getSelection().removeAllRanges());
@@ -315,7 +318,7 @@ describe('StoryListPage', () => {
         test('the card is only marked clickable once its handler is wired', () => {
             setupDom(storyCard({ id: '7' }));
             expect(document.querySelector('.story-card').classList.contains('story-card--clickable')).toBe(false);
-            new window.StoryListPage().init();
+            new StoryListPage().init();
             expect(document.querySelector('.story-card').classList.contains('story-card--clickable')).toBe(true);
         });
 
@@ -339,7 +342,7 @@ describe('StoryListPage', () => {
             setupDom(storyCard({ id: '7', text: 'long story' }));
             const text = document.querySelector('.story-card__text');
             stubHeights(text, { scrollHeight: 300, clientHeight: 110 });
-            const page = new window.StoryListPage();
+            const page = new StoryListPage();
             page.init();
             const popup = { showLabel: vi.fn() };
             page.setLabelPopup(popup);
@@ -361,17 +364,14 @@ describe('StoryListPage', () => {
 
         test('without a LabelPopup the card click falls back to the label on the LabelMap', () => {
             setupDom(storyCard({ id: '7' }));
-            new window.StoryListPage().init();
+            new StoryListPage().init();
             clickOn('.story-card__text'); // The href navigation itself is a jsdom no-op.
             expect(window.logWebpageActivity).toHaveBeenCalledWith('Click_module=StoryListPage_Card_LabelId=7');
         });
     });
 
     describe('share chips (#4722)', () => {
-        
-        /** Loads the real ShareWidget (the page builds one per card) plus the collaborators it reaches for. */
-        async function loadShareWidget() {
-            Object.assign(window, await loadModules('frontend/js/common/share/ShareWidget.js'));
+        function setupShareWidget() {
             // The share text key resolves with the excerpt interpolated; everything else echoes its key. Mimics how
             // the app configures i18next — values verbatim unless the call asks for escaping — so a share string
             // that wrongly opted into it would ship visible entities here too, not just in production.
@@ -387,15 +387,14 @@ describe('StoryListPage', () => {
         }
 
         afterEach(() => {
-            delete window.ShareWidget;
             delete window.i18next;
         });
 
-        test('each story card grows a footer share chip pointed at its story-anchored permalink', async () => {
+        test('each story card grows a footer share chip pointed at its story-anchored permalink', () => {
             setupDom(storyCard({ id: '7', storyId: '42', text: 'Snow piles up here all winter.' }));
-            await loadShareWidget();
-            const setTarget = vi.spyOn(window.ShareWidget.prototype, 'setTarget');
-            new window.StoryListPage().init();
+            setupShareWidget();
+            const setTarget = vi.spyOn(ShareWidget.prototype, 'setTarget');
+            new StoryListPage().init();
 
             expect(document.querySelector(
                 '.story-card__foot .story-card__share .label-detail__share-trigger')).not.toBeNull();
@@ -408,39 +407,39 @@ describe('StoryListPage', () => {
             expect(target.title).toBe(target.text);
         });
 
-        test("the storyteller's punctuation reaches the share text un-escaped", async () => {
+        test("the storyteller's punctuation reaches the share text un-escaped", () => {
             setupDom(storyCard({ id: '7', storyId: '42', text: "It's icy & the ramp is blocked." }));
-            await loadShareWidget();
-            const setTarget = vi.spyOn(window.ShareWidget.prototype, 'setTarget');
-            new window.StoryListPage().init();
+            setupShareWidget();
+            const setTarget = vi.spyOn(ShareWidget.prototype, 'setTarget');
+            new StoryListPage().init();
 
             // The text feeds only plain-text sinks (intent URLs, mailto, the native sheet), so escaping it would
             // ship "It&#39;s icy &amp;…" verbatim — the call must leave the storyteller's words alone.
             expect(setTarget.mock.calls[0][0].text).toBe("shared:It's icy & the ramp is blocked.");
         });
 
-        test('long story text is excerpted at a word boundary with an ellipsis', async () => {
+        test('long story text is excerpted at a word boundary with an ellipsis', () => {
             setupDom(storyCard({ id: '7', storyId: '42', text: 'word '.repeat(40).trim() }));
-            await loadShareWidget();
-            const setTarget = vi.spyOn(window.ShareWidget.prototype, 'setTarget');
-            new window.StoryListPage().init();
+            setupShareWidget();
+            const setTarget = vi.spyOn(ShareWidget.prototype, 'setTarget');
+            new StoryListPage().init();
 
             const excerpt = setTarget.mock.calls[0][0].text.replace('shared:', '');
             expect(excerpt).toBe(`${'word '.repeat(18).trim()}…`); // Cut at the last space inside the 90-char cap.
         });
 
-        test('opening the chip logs surface + story attribution', async () => {
+        test('opening the chip logs surface + story attribution', () => {
             setupDom(storyCard({ id: '7', storyId: '42' }));
-            await loadShareWidget();
-            new window.StoryListPage().init();
+            setupShareWidget();
+            new StoryListPage().init();
             document.querySelector('.story-card__share .label-detail__share-trigger').click();
             expect(window.logWebpageActivity).toHaveBeenCalledWith('Click_module=StoryCardShare_storyId=42');
         });
 
-        test('a click that dismisses an open share menu does not also open the label', async () => {
+        test('a click that dismisses an open share menu does not also open the label', () => {
             setupDom(storyCard({ id: '7', storyId: '42' }));
-            await loadShareWidget();
-            const page = new window.StoryListPage();
+            setupShareWidget();
+            const page = new StoryListPage();
             page.init();
             const popup = { showLabel: vi.fn() };
             page.setLabelPopup(popup);
@@ -449,16 +448,16 @@ describe('StoryListPage', () => {
             // ShareWidget closes on a capture-phase document listener, so by the time the card's own handler runs
             // the menu already looks closed; the card has to have noticed at pointerdown.
             document.querySelector('.story-card__text')
-                .dispatchEvent(new window.Event('pointerdown', { bubbles: true }));
+                .dispatchEvent(new Event('pointerdown', { bubbles: true }));
             document.querySelector('.story-card__text')
-                .dispatchEvent(new window.MouseEvent('click', { bubbles: true, cancelable: true }));
+                .dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
             expect(popup.showLabel).not.toHaveBeenCalled();
         });
 
-        test('a card without a story id gets no chip', async () => {
+        test('a card without a story id gets no chip', () => {
             setupDom(storyCard({ id: '7' })); // No data-story-id.
-            await loadShareWidget();
-            new window.StoryListPage().init();
+            setupShareWidget();
+            new StoryListPage().init();
             expect(document.querySelector('.story-card__share')).toBeNull();
         });
     });
@@ -470,7 +469,7 @@ describe('RouteListPage', () => {
             configurable: true,
             value: { writeText: vi.fn() },
         });
-        window.Toast = { show: vi.fn() };
+        toast.show = vi.fn();
         window.i18next = { t: (key) => key };
     });
 
@@ -488,24 +487,24 @@ describe('RouteListPage', () => {
 
     test('copy prefers the /r/<slug> short link and confirms with a toast', () => {
         setupDom(routeCardWithActions({ id: '5', slug: 'abc123' }));
-        new window.RouteListPage().init();
+        new RouteListPage().init();
         const btn = document.querySelector('.route-card__copy');
         btn.click();
         expect(window.navigator.clipboard.writeText).toHaveBeenCalledWith('http://localhost/r/abc123');
-        expect(window.Toast.show).toHaveBeenCalledWith(expect.objectContaining({ reference: btn }));
+        expect(toast.show).toHaveBeenCalledWith(expect.objectContaining({ reference: btn }));
         expect(window.logWebpageActivity).toHaveBeenCalledWith('Click_module=RouteListPage_Copy_RouteId=5');
     });
 
     test('copy falls back to the routeId explore link for a card without a slug', () => {
         setupDom(routeCardWithActions({ id: '6' }));
-        new window.RouteListPage().init();
+        new RouteListPage().init();
         document.querySelector('.route-card__copy').click();
         expect(window.navigator.clipboard.writeText).toHaveBeenCalledWith('http://localhost/explore?routeId=6');
     });
 
     test('explore and label-map clicks are logged with their route id', () => {
         setupDom(routeCardWithActions({ id: '8' }));
-        new window.RouteListPage().init();
+        new RouteListPage().init();
         for (const selector of ['.route-card__explore', '.route-card__labelmap']) {
             const link = document.querySelector(selector);
             link.addEventListener('click', (e) => e.preventDefault());

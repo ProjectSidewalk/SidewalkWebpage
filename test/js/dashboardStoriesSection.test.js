@@ -7,17 +7,27 @@
  * rather than re-derived here), and Delete is a hard, unrecoverable retraction — so it must never fire without a
  * confirmation. The list refreshes on the page-level `ps:story:changed` signal (emitted by StoryComposer and the
  * label card's own delete path), which also repairs the focus the re-render drops.
- *
- * StoriesSection is a page-global `class` that reaches for globals, so the source is eval'd into jsdom with its
- * collaborators (fetch, i18next, StoryComposer, ConfirmDialog) stubbed.
  */
 
+import { loadModules, mockModule } from './loader.js';
 
-import { assetPathStub, installUtilitiesMisc, loadModules, fakeImport, stubUtil } from './loader.js';
+let composer;
+let confirmResult;
 
-fakeImport('frontend/js/common/ConfirmDialog.js', 'ConfirmDialog');
-fakeImport('frontend/js/common/label-detail/StoryComposer.js', 'StoryComposer');
-
+// Records what the section asks of the shared composer; behavior itself is StoryComposer's own contract.
+mockModule('frontend/js/common/label-detail/StoryComposer.js', () => ({
+    StoryComposer: class {
+        constructor(dialog, opts) {
+            composer = this;
+            this.dialog = dialog;
+            this.opts = opts;
+            this.setCopyVariant = vi.fn();
+            this.openForEdit = vi.fn();
+        }
+    },
+}));
+const confirmDialog = { confirm: vi.fn(() => Promise.resolve(confirmResult)) };
+mockModule('frontend/js/common/ConfirmDialog.js', () => ({ ConfirmDialog: confirmDialog }));
 
 /** One story payload, shaped like an entry from GET /userapi/stories/mine. */
 function story(overrides = {}) {
@@ -36,9 +46,8 @@ describe('the dashboard\'s "Your stories" list', () => {
         Array.from(document.querySelectorAll('.ud-story-row:first-child .ud-story-meta button'))
             .map((btn) => btn.className);
 
-    let composer;
-    let confirmResult;
     let stories;
+    let StoriesSection;
 
     /** Drains the microtask queue (a macrotask runs after all pending promise continuations). */
     const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
@@ -50,7 +59,7 @@ describe('the dashboard\'s "Your stories" list', () => {
      */
     async function renderSection(opts = {}) {
         document.body.innerHTML = '<div id="ud-stories"></div><dialog id="ud-story-composer"></dialog>';
-        const section = new window.StoriesSection(document.getElementById('ud-stories'), {
+        const section = new StoriesSection(document.getElementById('ud-stories'), {
             labelPopup: null,
             composerDialog: document.getElementById('ud-story-composer'),
             currUsername: 'ada',
@@ -62,30 +71,14 @@ describe('the dashboard\'s "Your stories" list', () => {
 
     beforeAll(async () => {
         window.i18next = { t: (key) => key };
-        stubUtil({
-            assetPath: assetPathStub, // The delete confirmation's icon URL.
-            camelToKebab: (s) => s.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase(),
-        });
-        await installUtilitiesMisc();
-        // Records what the section asks of the shared composer; behavior itself is StoryComposer's own contract.
-        window.StoryComposer = class {
-            constructor(dialog, opts) {
-                composer = this;
-                this.dialog = dialog;
-                this.opts = opts;
-                this.setCopyVariant = vi.fn();
-                this.openForEdit = vi.fn();
-            }
-        };
-        window.ConfirmDialog = { confirm: vi.fn(() => Promise.resolve(confirmResult)) };
-        window.StoriesSection = (await loadModules('frontend/js/user-dashboard/StoriesSection.js')).StoriesSection;
+        ({ StoriesSection } = await loadModules('frontend/js/user-dashboard/StoriesSection.js'));
     });
 
     beforeEach(() => {
         composer = null;
         confirmResult = true;
         stories = [story()];
-        window.ConfirmDialog.confirm.mockClear();
+        confirmDialog.confirm.mockClear();
         window.fetch = vi.fn((url, init) => {
             if (init && init.method === 'DELETE') return Promise.resolve({ ok: true });
             return Promise.resolve({ ok: true, json: () => Promise.resolve({ max_text_length: 1200, stories }) });
@@ -172,7 +165,7 @@ describe('the dashboard\'s "Your stories" list', () => {
 
         await document.querySelector('.ud-story-delete').click();
 
-        expect(window.ConfirmDialog.confirm).toHaveBeenCalled();
+        expect(confirmDialog.confirm).toHaveBeenCalled();
         expect(window.fetch).not.toHaveBeenCalledWith(expect.anything(), { method: 'DELETE' });
         expect(rows()).toHaveLength(1);
     });

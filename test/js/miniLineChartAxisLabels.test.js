@@ -7,14 +7,11 @@
  * conservative independent width estimate (a generic sans at 11px averages well under 5.2px per digit/letter), so
  * they fail if a margin ever stops making room rather than only if a specific pixel value changes.
  *
- * Runs under jsdom (vitest.config.mjs); MiniLineChart.svg is a pure string builder, so tests parse its output into a
- * detached container and assert on the resulting DOM.
+ * MiniLineChart.svg is a pure string builder, so tests parse its output into a detached container and assert on the
+ * resulting DOM.
  */
 
-import { loadModules, realUtil, stubUtil } from './loader.js';
-
-stubUtil(await realUtil());
-
+import { loadModules } from './loader.js';
 
 /** Lower bound on rendered width, in px, of an axis label at the chart's 11px font. */
 const MIN_PX_PER_CHAR = 5.2;

@@ -5,21 +5,9 @@
  * unavailable, and when every count failed the summary says so instead of "no stories". Also pinned: rows are only the
  * cities with stories, newest first, each linked to that city's own Stories page (the only place Hide and Delete work),
  * and the attention item counts only visible stories, so hiding one there clears it.
- *
- * Runs under jsdom (vitest.config.mjs). AcrossCitiesPage is a bare top-level class in a concatenated bundle, so it is
- * eval'd into global scope rather than required.
  */
 
-import { loadModules, realUtil, stubUtil } from './loader.js';
-
-// The page fetches through util.fetchJson.
-stubUtil(await realUtil());
-
-
-/** Load AcrossCitiesPage.js, plus the AdminShell helpers every dashboard page reads, and return the class binding. */
-async function loadPage() {
-  return (await loadModules('frontend/js/admin-dashboard/AcrossCitiesPage.js')).AcrossCitiesPage;
-}
+import { loadModules } from './loader.js';
 
 const MARKUP = `
   <div id="ac-attention"></div>
@@ -70,7 +58,7 @@ describe('Across Cities — stories', () => {
   const rows = () => [...document.querySelectorAll('#ac-stories-tbody tr')];
 
   beforeEach(async () => {
-    AcrossCitiesPage = await loadPage();
+    ({ AcrossCitiesPage } = await loadModules('frontend/js/admin-dashboard/AcrossCitiesPage.js'));
   });
 
   it('lists only cities with stories, newest first, linked to their own Stories page', async () => {

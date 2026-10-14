@@ -4,16 +4,13 @@
  *
  * The CSS shows the menu from the chevron's `aria-expanded`, so the attribute is the contract: these pin that a click
  * flips it both ways, that each flip is logged with the resulting state, and that the collapsed indicator toggles the
- * shared active-dot class. Loaded like the other class-based suites: eval'd with an explicit export.
+ * shared active-dot class.
  */
 
 import { loadModules } from './loader.js';
 import { fakeTracker } from './fakes.js';
 
-
-beforeAll(async () => {
-    Object.assign(window, await loadModules('frontend/js/validate/panorama/PanoControlMenu.js'));
-});
+const { PanoControlMenu } = await loadModules('frontend/js/validate/panorama/PanoControlMenu.js');
 
 let toggle;
 let tracker;
@@ -26,7 +23,7 @@ beforeEach(() => {
       <div id="validate-control-menu"></div>`;
     toggle = document.getElementById('validate-control-buttons-toggle');
     tracker = fakeTracker();
-    menu = new window.PanoControlMenu(toggle, tracker);
+    menu = new PanoControlMenu(toggle, tracker);
 });
 
 test('a click opens the menu and a second closes it, logging each with the resulting state', () => {

@@ -17,14 +17,7 @@
  * derived; don't adjust one here to make a test pass.
  */
 
-import { loadModules, stubUtil } from './loader.js';
-
-
-/** Loads a fresh Label class into the jsdom global scope (a class declaration is not a globalThis property). */
-async function loadLabel() {
-    Object.assign(window, await loadModules('frontend/js/explore/label/Label.js'));
-    return window.Label;
-}
+import { loadModules } from './loader.js';
 
 describe('Label lat/lng estimation', () => {
     let Label;
@@ -50,8 +43,7 @@ describe('Label lat/lng estimation', () => {
     }
 
     beforeEach(async () => {
-        Label = await loadLabel();
-        stubUtil({ misc: { getIconImagePaths: () => ({ iconImagePath: 'x.svg' }), labelTypeName: () => '' } });
+        ({ Label } = await loadModules('frontend/js/explore/label/Label.js'));
         window.i18next = { t: () => '' };
         Label.styleMinimapMarker = () => {};
         window.turf = {

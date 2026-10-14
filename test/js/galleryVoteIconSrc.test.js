@@ -8,10 +8,9 @@
  * build would.
  */
 
-import { loadModules, realUtil, stubUtil } from './loader.js';
+import { loadModules } from './loader.js';
 
-// A bare `class` declaration, so it has to be evaluated in the page's scope to be reachable, the way its <script>
-// tag makes it reachable in the browser.
+let ValidationInfoDisplay;
 
 /** A distinct digest per file, so a URL built by carrying one file's fingerprint onto another's name is visible. */
 const DIGESTS = {
@@ -39,7 +38,7 @@ const urlFor = (logicalPath) => {
 function makeDisplay(aiValidation = null) {
   const container = document.createElement('div');
   document.body.replaceChildren(container);
-  return new window.ValidationInfoDisplay(container, 3, 1, aiValidation, null);
+  return new ValidationInfoDisplay(container, 3, 1, aiValidation, null);
 }
 
 /**
@@ -55,8 +54,7 @@ const srcOf = (display, action) => {
 beforeEach(async () => {
   window.assetDigests = { ...DIGESTS };
   window.i18next = { t: (key) => key };
-  stubUtil(await realUtil());
-  Object.assign(window, await loadModules('frontend/js/gallery/displays/ValidationInfoDisplay.js'));
+  ({ ValidationInfoDisplay } = await loadModules('frontend/js/gallery/displays/ValidationInfoDisplay.js'));
 });
 
 afterEach(() => {

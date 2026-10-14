@@ -46,8 +46,8 @@ describe('MissionController.wrapUpRouteOrRegion', () => {
         };
         window.i18next = { t: (key) => key };
 
-        Object.assign(window, await loadModules('frontend/js/explore/mission/MissionController.js'));
-        controller = new window.MissionController(
+        const { MissionController } = await loadModules('frontend/js/explore/mission/MissionController.js');
+        controller = new MissionController(
             { isExploreAddressMode: false },
             { on: vi.fn(), completeMission: vi.fn() },
             regionModel,

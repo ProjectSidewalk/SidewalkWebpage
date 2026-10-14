@@ -15,8 +15,8 @@
 
 import fs from 'fs';
 import path from 'path';
+import { REPO_ROOT } from './loader.js';
 
-const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const CSS_ROOT = path.join(REPO_ROOT, 'frontend', 'css');
 
 /** @returns {string[]} Every .css file under frontend/css/, recursively, as repo-relative paths. */

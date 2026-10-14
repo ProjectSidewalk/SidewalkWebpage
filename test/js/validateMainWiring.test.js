@@ -7,33 +7,40 @@
  * subscriber; each listener's body is stubbed, since what it does with the label is its own suite's business.
  */
 
-import { assetPathStub, installEscapeHTML, installUtilitiesMisc, loadModules, loadVendored, fakeImport, stubUtil } from './loader.js';
+import { loadModules, loadVendored, mockModule, useUtil } from './loader.js';
+import { fakeTracker } from './fakes.js';
 
-fakeImport('frontend/js/common/BadgeAchievements.js', 'BadgeAchievements');
-fakeImport('frontend/js/common/ImmersiveMode.js', 'ImmersiveMode');
-fakeImport('frontend/js/common/LabelCardView.js', 'LabelCardView');
-fakeImport('frontend/js/common/LabelVisibilityToggle.js', 'LabelVisibilityToggle');
-fakeImport('frontend/js/common/MissionStartTutorial.js', 'MissionStartTutorial');
-fakeImport('frontend/js/common/PanoImageAdjustments.js', 'PanoImageAdjustments');
-fakeImport('frontend/js/common/PanoImageAdjustmentsPopover.js', 'PanoImageAdjustmentsPopover');
-fakeImport('frontend/js/common/Toast.js', 'Toast');
-fakeImport('frontend/js/common/pano-viewer/Infra3dViewer.js', 'Infra3dViewer');
-fakeImport('frontend/js/common/pano-viewer/PanoImageCache.js', 'PanoImageCache');
-fakeImport('frontend/js/common/pano-viewer/PanoInfoPopover.js', 'PanoInfoPopover');
-fakeImport('frontend/js/common/pano-viewer/PanoStore.js', 'PanoStore');
-fakeImport('frontend/js/validate/Tracker.js', 'Tracker');
-fakeImport('frontend/js/validate/data/Form.js', 'Form');
-fakeImport('frontend/js/validate/label/Label.js', 'Label');
-fakeImport('frontend/js/validate/modal/ModalMission.js', 'ModalMission');
-fakeImport('frontend/js/validate/modal/ModalMissionComplete.js', 'ModalMissionComplete');
-fakeImport('frontend/js/validate/modal/ModalNoNewMission.js', 'ModalNoNewMission');
-fakeImport('frontend/js/validate/panorama/PanoControlMenu.js', 'PanoControlMenu');
-fakeImport('frontend/js/validate/panorama/PanoLoadingStatus.js', 'PanoLoadingStatus');
-fakeImport('frontend/js/validate/panorama/PanoManager.js', 'PanoManager');
-fakeImport('frontend/js/validate/panorama/PanoOverlay.js', 'PanoOverlay');
-fakeImport('frontend/js/validate/status/StatusField.js', 'StatusField');
-fakeImport('frontend/js/validate/util/MissionLiveMarker.js', 'MissionLiveMarker');
+/** @type {Record<string, any>} The heavy collaborators' stand-ins, by export name; the mocks hand them to Main. */
+let fakes = {};
 
+/** Every module Main builds a faked collaborator from, path to the export it takes. The subscribers stay real. */
+const FAKED_EXPORTS = {
+  'frontend/js/common/BadgeAchievements.js': 'BadgeAchievements',
+  'frontend/js/common/ImmersiveMode.js': 'ImmersiveMode',
+  'frontend/js/common/LabelCardView.js': 'LabelCardView',
+  'frontend/js/common/LabelVisibilityToggle.js': 'LabelVisibilityToggle',
+  'frontend/js/common/MissionStartTutorial.js': 'MissionStartTutorial',
+  'frontend/js/common/PanoImageAdjustments.js': 'PanoImageAdjustments',
+  'frontend/js/common/PanoImageAdjustmentsPopover.js': 'PanoImageAdjustmentsPopover',
+  'frontend/js/common/Toast.js': 'Toast',
+  'frontend/js/common/pano-viewer/Infra3dViewer.js': 'Infra3dViewer',
+  'frontend/js/common/pano-viewer/PanoImageCache.js': 'PanoImageCache',
+  'frontend/js/common/pano-viewer/PanoInfoPopover.js': 'PanoInfoPopover',
+  'frontend/js/common/pano-viewer/PanoStore.js': 'PanoStore',
+  'frontend/js/validate/Tracker.js': 'Tracker',
+  'frontend/js/validate/data/Form.js': 'Form',
+  'frontend/js/validate/label/Label.js': 'Label',
+  'frontend/js/validate/modal/ModalMission.js': 'ModalMission',
+  'frontend/js/validate/modal/ModalMissionComplete.js': 'ModalMissionComplete',
+  'frontend/js/validate/modal/ModalNoNewMission.js': 'ModalNoNewMission',
+  'frontend/js/validate/panorama/PanoControlMenu.js': 'PanoControlMenu',
+  'frontend/js/validate/panorama/PanoLoadingStatus.js': 'PanoLoadingStatus',
+  'frontend/js/validate/panorama/PanoManager.js': 'PanoManager',
+  'frontend/js/validate/panorama/PanoOverlay.js': 'PanoOverlay',
+  'frontend/js/validate/status/StatusField.js': 'StatusField',
+  'frontend/js/validate/util/MissionLiveMarker.js': 'MissionLiveMarker',
+};
+for (const [path, name] of Object.entries(FAKED_EXPORTS)) mockModule(path, () => ({ [name]: fakes[name] }));
 
 /**
  * The desktop view's elements, trimmed to what the real subscribers need to build: the verdict menu's buttons and
@@ -134,76 +141,78 @@ let formBuiltBeforeViewer;
  */
 let tutorialBuilt;
 
+/** @type {Record<string, any>} The tracker Main builds, per test. */
+let tracker;
+/** @type {Record<string, any>} The pano manager Main's viewer load answers with, per test. */
+let panoManager;
+
 beforeAll(async () => {
   window.matchMedia = () => /** @type {MediaQueryList} */ ({ matches: true }); // jsdom has none; act as a mouse.
   window.structuredClone ??= (v) => JSON.parse(JSON.stringify(v)); // Missing from this jsdom.
   loadVendored('tom-select'); // The tag box, which the Expert Validate menu builds in its constructor.
-  stubUtil({
-    assetPath: assetPathStub,
-    isMobile: () => false,
-    uiScale: () => 1,
+  useUtil({
+    // jsdom lays nothing out, so the real one would size the tool from empty computed styles.
     applyToolScale: () => 1,
-    camelToKebab: (s) => s.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase(),
-    anchorPanelToLabel: vi.fn(),
-    placePopover: vi.fn(),
+    // The real one fetches the severity icons over the network.
     getImage: () => Promise.resolve(''),
   });
-  await installUtilitiesMisc();
-  await installEscapeHTML();
   window.i18next = { t: (key) => key, isInitialized: false, language: 'en' };
 
-  // Only the surface the container and the subscribers' constructors read off a label.
-  window.Label = class {
-    constructor(params) {
-      this.auditProps = params;
-      this.props = {};
-    }
+  fakes = {
+    // Only the surface the container and the subscribers' constructors read off a label.
+    Label: class {
+      constructor(params) {
+        this.auditProps = params;
+        this.props = {};
+      }
 
-    getAuditProperty(key) { return this.auditProps[key] ?? null; }
-    getProperty(key) { return this.props[key]; }
-    setProperty(key, value) { this.props[key] = value; }
+      getAuditProperty(key) { return this.auditProps[key] ?? null; }
+      getProperty(key) { return this.props[key]; }
+      setProperty(key, value) { this.props[key] = value; }
+    },
+    // The heavy collaborators, faked down to the calls Main and the real subscribers make while building. Those
+    // built per test read the current test's object as Main builds them.
+    BadgeAchievements: { seedCounts: vi.fn() },
+    Toast: { show: vi.fn(), repositionAll: vi.fn() },
+    ImmersiveMode: class { isActive() { return false; } logRestored() {} },
+    MissionStartTutorial: class {
+      constructor(missionType, labelType, data, hooks) {
+        // The test spies on the prototype before start(), so the calls so far are on the spy.
+        const hold = /** @type {import('vitest').MockInstance} */ (/** @type {unknown} */ (Gate.prototype.hold));
+        tutorialBuilt = { holdsTaken: hold.mock.calls.map((call) => call[0]), hooks };
+      }
+    },
+    PanoImageAdjustments: class { isDefault() { return true; } onChange() {} values() { return {}; } },
+    PanoImageAdjustmentsPopover: class {},
+    PanoControlMenu: class { setCollapsedIndicator() {} },
+    PanoImageCache: class {},
+    PanoStore: class { addPanoMetadata() {} getPanoData() { return { getProperty: () => null }; } },
+    PanoInfoPopover: class {},
+    Form: class {
+      constructor() { formBuiltBeforeViewer = !viewerCreated; }
+      attachSession() {}
+    },
+    ModalMission: class { setMissionMessage() {} },
+    ModalMissionComplete: class { isShowing() { return false; } show() {} },
+    ModalNoNewMission: class { isShowing() { return false; } show() {} },
+    PanoLoadingStatus: class { begin() {} setMessage() {} end() {} },
+    PanoOverlay: class {},
+    StatusField: class {
+      reset() {}
+      updateLabelText() {}
+      incrementLabelCounts() {}
+      decrementLabelCounts() {}
+      setProgressBar() {}
+      setProgressText() {}
+      getCompletedValidations() { return 0; }
+    },
+    MissionLiveMarker: class { constructor() { return marker; } },
+    LabelVisibilityToggle: class { setVisible() {} isVisible() { return true; } },
+    LabelCardView: class {},
+    Infra3dViewer: class {},
+    Tracker: class { constructor() { return tracker; } },
+    PanoManager: class { static create() { viewerCreated = true; return Promise.resolve(panoManager); } },
   };
-
-  // The heavy collaborators, faked down to the calls Main and the real subscribers make while building.
-  window.BadgeAchievements = { seedCounts: vi.fn() };
-  window.Toast = { show: vi.fn(), repositionAll: vi.fn() };
-  window.ImmersiveMode = class { isActive() { return false; } logRestored() {} };
-  window.MissionStartTutorial = class {
-    constructor(missionType, labelType, data, hooks) {
-      // The test spies on the prototype before start(), so the calls so far are on the spy.
-      const hold = /** @type {import('vitest').MockInstance} */ (/** @type {unknown} */ (Gate.prototype.hold));
-      tutorialBuilt = { holdsTaken: hold.mock.calls.map((call) => call[0]), hooks };
-    }
-  };
-  window.PanoImageAdjustments = class { isDefault() { return true; } onChange() {} values() { return {}; } };
-  window.PanoImageAdjustmentsPopover = class {};
-  window.PanoControlMenu = class { setCollapsedIndicator() {} };
-  window.PanoImageCache = class {};
-  window.PanoStore = class { addPanoMetadata() {} getPanoData() { return { getProperty: () => null }; } };
-  window.PanoInfoPopover = class {};
-  window.Form = class {
-    constructor() { formBuiltBeforeViewer = !viewerCreated; }
-    attachSession() {}
-  };
-  window.ModalMission = class { setMissionMessage() {} };
-  window.ModalMissionComplete = class { isShowing() { return false; } show() {} };
-  window.ModalNoNewMission = class { isShowing() { return false; } show() {} };
-  window.PanoLoadingStatus = class { begin() {} setMessage() {} end() {} };
-  window.PanoOverlay = class {};
-  window.PinchZoomDetector = class {};
-  window.StatusField = class {
-    reset() {}
-    updateLabelText() {}
-    incrementLabelCounts() {}
-    decrementLabelCounts() {}
-    setProgressBar() {}
-    setProgressText() {}
-    getCompletedValidations() { return 0; }
-  };
-  window.MissionLiveMarker = class { constructor() { return marker; } };
-  window.LabelVisibilityToggle = class { setVisible() {} isVisible() { return true; } };
-  window.LabelCardView = class {};
-  window.Infra3dViewer = class {};
 
   // One load for the lot, so the classes Main builds are the very ones the spies below are put on.
   ({ Main, LabelCard, LabelVisibilityControl, DesktopValidationMenu, AdminInfo, SpeedLimit, ZoomControl, Gate,
@@ -221,8 +230,6 @@ beforeAll(async () => {
 });
 
 describe('Main hooks what describes a label to the label container', () => {
-  let panoManager;
-  let tracker;
   /** @type {Record<string, import('vitest').MockInstance>} Each onLabelReady subscriber's listener, by the subscriber's name. */
   let ready;
   /** @type {Record<string, import('vitest').MockInstance>} Each onLabelShown subscriber's listener, by the subscriber's name. */
@@ -232,8 +239,7 @@ describe('Main hooks what describes a label to the label container', () => {
 
   beforeEach(() => {
     document.body.innerHTML = FIXTURE;
-    tracker = { push: vi.fn(), flushSoon: vi.fn(), trackMissions: vi.fn(), trackPano: vi.fn(), onFlush: vi.fn() };
-    window.Tracker = class { constructor() { return tracker; } };
+    tracker = fakeTracker();
     marker = { takeUnexpectedUnload: vi.fn(() => null), markLive: vi.fn() };
     tutorialBuilt = null;
 
@@ -263,7 +269,6 @@ describe('Main hooks what describes a label to the label container', () => {
       },
     };
     viewerCreated = false;
-    window.PanoManager = class { static create() { viewerCreated = true; return Promise.resolve(panoManager); } };
 
     // The listeners' bodies are stubbed: each is pinned by its own suite, and here only the hook is under test.
     const stub = (proto, method) => vi.spyOn(proto, method).mockImplementation(() => {});

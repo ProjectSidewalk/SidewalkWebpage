@@ -8,15 +8,11 @@
  * rungs at or above the pano width, and the server answers those with the native file — so the retry re-fetches the
  * image that just failed and the ladder never reaches a size the device can hold.
  *
- * The source is eval'd into jsdom, since it is a top-level class written for Grunt concatenation. Each case
- * re-evaluates it: the GPU cap is read once and cached in a module-scope variable, so one scope cannot answer for
- * two different devices.
+ * Each case loads the module fresh: the GPU cap is read once and cached in module scope, so one copy cannot answer
+ * for two different devices.
  */
 
-import { loadModules, fakeImport, stubUtil } from './loader.js';
-
-fakeImport('frontend/js/common/pano-viewer/PanoViewer.js', 'PanoViewer');
-
+import { loadModules, useUtil } from './loader.js';
 
 const IMAGE_URL = '/backupImage/pano1';
 
@@ -30,15 +26,14 @@ const IMAGE_URL = '/backupImage/pano1';
  * @returns {string[]}
  */
 async function candidatesFor(maxTextureSize, metadata, { mobile = false } = {}) {
-    window.PanoViewer = class {}; // PannellumViewer extends it at definition time.
-    stubUtil({ isMobile: () => mobile });
+    useUtil({ isMobile: () => mobile });
     window.HTMLCanvasElement.prototype.getContext = () => maxTextureSize === null ? null : {
         MAX_TEXTURE_SIZE: 0x0d33,
         getParameter: () => maxTextureSize,
         getExtension: () => null,
     };
-    window.__candidates = (await loadModules('frontend/js/common/pano-viewer/PannellumViewer.js')).panoramaUrlCandidates;
-    return window.__candidates(metadata);
+    const { panoramaUrlCandidates } = await loadModules('frontend/js/common/pano-viewer/PannellumViewer.js');
+    return panoramaUrlCandidates(metadata);
 }
 
 /** The `maxWidth` each candidate asks for; null for the native file, which carries no parameter. */

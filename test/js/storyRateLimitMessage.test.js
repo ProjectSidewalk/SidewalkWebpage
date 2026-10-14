@@ -7,8 +7,7 @@
  * 429 body the controller produces, and the rendered error text is asserted.
  */
 
-import { loadModules, stubUtil } from './loader.js';
-
+import { loadModules } from './loader.js';
 
 /** The elements StoryComposer's constructor looks up, in a <dialog> host. */
 function setupDom() {
@@ -58,9 +57,11 @@ const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 const errorText = () => document.querySelector('.story-composer__error').textContent;
 
+let StoryComposer;
+
 /** Runs a submission that the server refuses with `body` at HTTP 429. */
 async function submitAndFail(body) {
-    const composer = new window.StoryComposer(setupDom(), {});
+    const composer = new StoryComposer(setupDom(), {});
     window.fetch = vi.fn().mockResolvedValue({
         ok: false, status: 429, json: () => Promise.resolve(body),
     });
@@ -72,11 +73,9 @@ async function submitAndFail(body) {
 }
 
 beforeEach(async () => {
-    Object.assign(window, await loadModules('frontend/js/common/label-detail/StoryComposer.js'));
-    // #postForm posts through util.lazyIdentityFetch (#4442). The real helper passes a non-auth failure like this
-    // suite's 429 through unchanged, so a pass-through stub is faithful; the mint/retry path has its own suite
-    // (lazyIdentityFetch.test.js).
-    stubUtil({ lazyIdentityFetch: (url, options) => window.fetch(url, options) });
+    ({ StoryComposer } = await loadModules('frontend/js/common/label-detail/StoryComposer.js'));
+    // #postForm posts through util.lazyIdentityFetch (#4442), which passes a non-auth failure like this suite's 429
+    // through unchanged; the mint/retry path has its own suite (lazyIdentityFetch.test.js).
     window.i18next = {
         language: 'en',
         exists: (key) => key in STRINGS,

@@ -15,8 +15,9 @@
  * svv-panorama.css), because the mark must stay the size it was drawn while only the target grows.
  */
 
-import { realUtil, stubUtil } from './loader.js';
+import { loadModules } from './loader.js';
 
+const { util } = await loadModules('frontend/js/common/utilities.js');
 
 // The desktop radius is ValidateConfig.labelRadius (10, frontend/js/validate/Main.js) and the marker adds 2px of ring;
 // mobile's 52px marker is the touch target mobile-validate.css floors it at.
@@ -27,24 +28,9 @@ const MOBILE_BASE = 25 * 2 + 2;    // 52
 // Spelled out rather than read off util so the cases below can't drift with the constant they are pinning.
 const CROSSOVER = 38 / DESKTOP_BASE;   // ~1.7273
 
-/** Loads utilities.js into jsdom, the same way the other utilities suites do. */
-async function loadUtil() {
-    // utilities.js builds a Bowser parser at load time; the sizing under test never consults it.
-    window.bowser = { getParser: () => ({ getBrowserName: () => 'Chrome', getBrowserVersion: () => '1',
-        getOSName: () => 'Linux', getPlatformType: () => 'desktop' }) };
-    stubUtil(await realUtil());
-    return window.util;
-}
-
 describe('util.cappedMarkerDiameter', () => {
-    let util;
-
     /** Validate's desktop marker at the given UI scale, in on-screen CSS px. */
     const desktop = (scale) => util.cappedMarkerDiameter(DESKTOP_BASE, scale);
-
-    beforeEach(async () => {
-        util = await loadUtil();
-    });
 
     describe("Validate's desktop marker", () => {
         test('is unchanged at scale 1', () => {

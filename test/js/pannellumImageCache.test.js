@@ -12,14 +12,7 @@
  * assertions read the URLs it was handed, in order.
  */
 
-import path from 'path';
-import { loadModules, fakeImport, stubUtil } from './loader.js';
-
-fakeImport('frontend/js/common/pano-viewer/PanoData.js', 'PanoData');
-fakeImport('frontend/js/common/pano-viewer/PanoViewer.js', 'PanoViewer');
-
-
-const VIEWER_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/common/pano-viewer/PannellumViewer.js');
+import { loadModules } from './loader.js';
 
 const NATIVE_URL = '/backupImage/p1';
 const NEXT_URL = '/backupImage/p2';
@@ -32,7 +25,7 @@ const NEXT_URL = '/backupImage/p2';
 function installFakePannellum(failingUrls = new Set()) {
     const attempted = [];
     const loaded = [];
-    window.pannellum = {
+    vi.stubGlobal('pannellum', {
         viewer: vi.fn((_el, config) => {
             const handlers = { load: new Set(), error: new Set() };
             const scenes = { ...config.scenes };
@@ -62,7 +55,7 @@ function installFakePannellum(failingUrls = new Set()) {
                 setHfov: vi.fn(),
             };
         }),
-    };
+    });
     return { attempted, loaded };
 }
 
@@ -87,40 +80,18 @@ describe('PannellumViewer loads from the image cache first (issue #5562)', () =>
         canvas = document.createElement('div');
         document.body.appendChild(canvas);
 
-        // No WebGL in jsdom, so the width cap is unknown and rung 0 is the native file; a desktop page.
+        // No WebGL in jsdom, so the width cap is unknown and rung 0 is the native file.
         vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
-        stubUtil({
-            isMobile: () => false,
-            parseDate: (value) => new Date(value),
-            pano: { zoomToFov: (zoom) => 126.5 - zoom * 36.75, fovToZoom: (fov) => (126.5 - fov) / 36.75 },
-        });
-        window.PanoViewer = class PanoViewer {
-            constructor() {
-                this.panoChangedListeners = [];
-                this.povChangedListeners = [];
-            }
 
-            getViewerType() { return 'pannellum'; }
-        };
-        window.PanoData = class PanoData {
-            constructor(props) { Object.assign(this, props); }
-
-            getPanoId() { return this.panoId; }
-
-            getProperty(key) { return this[key]; }
-        };
-        window.moment = function moment() { return {}; };
-
-        PannellumViewer = (await loadModules(VIEWER_PATH)).PannellumViewer;
+        ({ PannellumViewer } = await loadModules('frontend/js/common/pano-viewer/PannellumViewer.js'));
     });
 
     afterEach(() => {
         document.body.innerHTML = '';
-        for (const name of ['util', 'PanoViewer', 'PanoData', 'moment', 'pannellum']) delete global[name];
     });
 
     const metadata = (panoId, imageUrl) => ({
-        pano_id: panoId, image_url: imageUrl, width: 16384, height: 8192, camera_heading: 0,
+        pano_id: panoId, image_url: imageUrl, width: 16384, height: 8192, camera_heading: 0, lat: 47.6, lng: -122.3,
     });
 
     /**

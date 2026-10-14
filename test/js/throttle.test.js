@@ -6,22 +6,10 @@
  * tests pin its contract: leading-edge fire, in-window coalescing into a single trailing call, the next window
  * starting clean, and latest-args forwarding.
  *
- * Runs under jsdom (vitest.config.mjs) and uses fake timers, which also mock Date.now so elapsed-time math is
- * deterministic.
+ * Uses fake timers, which also mock Date.now so elapsed-time math is deterministic.
  */
 
-import path from 'path';
-import { loadModules, stubUtil } from './loader.js';
-
-const THROTTLE_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/util/throttle.js');
-
-/** Load Throttle.js (a `var util = util || {}` global script) and return the throttle factory. */
-async function loadThrottle() {
-    // Reset the shared util global each load so state can't leak between tests, then execute the global script.
-    stubUtil({});
-    Object.assign(window, await loadModules(THROTTLE_PATH));
-    return window.util.throttle;
-}
+import { loadModules } from './loader.js';
 
 describe('util.throttle', () => {
     let throttle;
@@ -30,12 +18,13 @@ describe('util.throttle', () => {
         vi.useFakeTimers();
         // Anchor the fake clock at a non-zero time so the first call's elapsed (now - 0) reliably exceeds `wait`.
         vi.setSystemTime(1_000_000);
-        throttle = await loadThrottle();
+        // throttle.js puts the factory on `util` rather than exporting it.
+        ({ util: { throttle } } = await loadModules('frontend/js/validate/util/throttle.js',
+            'frontend/js/common/utilities.js'));
     });
 
     afterEach(() => {
         vi.useRealTimers();
-        delete window.util;
     });
 
     test('runs immediately on the leading edge', () => {

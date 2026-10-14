@@ -6,24 +6,30 @@
  * Explore canvas (label at the canvas fraction), or the Street View still the card falls back to when the crop fails
  * to load (the 720x480 Explore frame again, so the canvas fraction). The card is handed the crop's marker with the
  * crop; these pin that it uses it for the crop, and only for the crop.
- *
- * Card is a Grunt-concatenated `class` that reaches for page globals, so the source is eval'd into jsdom with the
- * collaborators it touches during construction stubbed out.
  */
 
-
-import { assetPathStub, installUtilitiesMisc, loadModules, fakeImport, stubUtil } from './loader.js';
-
-fakeImport('frontend/js/common/pano-viewer/PanoAttribution.js', 'createPanoAttribution');
-fakeImport('frontend/js/common/pano-viewer/PanoViewerLogo.js', 'createPanoViewerLogo');
-fakeImport('frontend/js/gallery/displays/SeverityDisplay.js', 'SeverityDisplay');
-fakeImport('frontend/js/gallery/displays/TagDisplay.js', 'TagDisplay');
-fakeImport('frontend/js/gallery/displays/ValidationInfoDisplay.js', 'ValidationInfoDisplay');
-fakeImport('frontend/js/gallery/validation/ValidationMenu.js', 'ValidationMenu');
-
+import { loadModules, mockModule } from './loader.js';
 
 /** What the source-logo and licence-line stubs were last told: the card owes a credit on a crop and nothing else. */
 const credit = { logo: null, attribution: null };
+
+// Collaborators the constructor builds but this test doesn't exercise.
+mockModule('frontend/js/gallery/displays/SeverityDisplay.js', () => ({ SeverityDisplay: class {} }));
+mockModule('frontend/js/gallery/displays/ValidationInfoDisplay.js', () => ({ ValidationInfoDisplay: class {} }));
+mockModule('frontend/js/gallery/validation/ValidationMenu.js', () => ({ ValidationMenu: class {} }));
+mockModule('frontend/js/gallery/displays/TagDisplay.js', () => ({ TagDisplay: class {} }));
+mockModule('frontend/js/common/pano-viewer/PanoViewerLogo.js', () => ({
+    createPanoViewerLogo: () => ({
+        showSourceLogo: () => { credit.logo = 'shown'; },
+        hide: () => { credit.logo = 'hidden'; },
+    }),
+}));
+mockModule('frontend/js/common/pano-viewer/PanoAttribution.js', () => ({
+    createPanoAttribution: () => ({
+        show: () => { credit.attribution = 'shown'; },
+        hide: () => { credit.attribution = 'hidden'; },
+    }),
+}));
 
 /** One label payload, shaped like an entry from POST /label/labels; the click sits at 1/4, 3/4 of the canvas. */
 function label(overrides = {}) {
@@ -36,6 +42,7 @@ function label(overrides = {}) {
 describe('a Gallery card\'s label marker', () => {
     /** @returns {HTMLElement} The wrapper positioned over the image. */
     const markerWrapper = () => document.querySelector('.gallery-marker-wrapper');
+    let Card;
     // Collaborators the card takes but this test never exercises.
     const tracker = { push: () => {} };
     const cardFilter = { getAppliedTagNames: () => [] };
@@ -55,34 +62,14 @@ describe('a Gallery card\'s label marker', () => {
      */
     function renderCard(cropUrl, cropMarker, gsvImageUrl = 'https://maps.example/still.jpg') {
         document.body.innerHTML = '<div id="cards"></div>';
-        const card = new window.Card({ label: label(), cropUrl, gsvImageUrl, cropMarker }, {}, tracker, cardFilter);
+        const card = new Card({ label: label(), cropUrl, gsvImageUrl, cropMarker }, {}, tracker, cardFilter);
         card.render(document.getElementById('cards'));
         return card;
     }
 
     beforeAll(async () => {
         window.i18next = { t: (key) => key, language: 'en' };
-        stubUtil({
-            assetPath: assetPathStub,
-            camelToKebab: (s) => s.toLowerCase(),
-            EXPLORE_CANVAS_WIDTH: 720,
-            EXPLORE_CANVAS_HEIGHT: 480,
-        });
-        await installUtilitiesMisc(); // The real util.misc, so labelMarkerFraction under test is the shipped one.
-        // Collaborators the constructor builds but this test doesn't exercise.
-        window.SeverityDisplay = class {};
-        window.ValidationInfoDisplay = class {};
-        window.ValidationMenu = class {};
-        window.TagDisplay = class {};
-        window.createPanoViewerLogo = () => ({
-            showSourceLogo: () => { credit.logo = 'shown'; },
-            hide: () => { credit.logo = 'hidden'; },
-        });
-        window.createPanoAttribution = () => ({
-            show: () => { credit.attribution = 'shown'; },
-            hide: () => { credit.attribution = 'hidden'; },
-        });
-        Object.assign(window, await loadModules('frontend/js/gallery/cards/Card.js'));
+        ({ Card } = await loadModules('frontend/js/gallery/cards/Card.js'));
     });
 
     beforeEach(() => {

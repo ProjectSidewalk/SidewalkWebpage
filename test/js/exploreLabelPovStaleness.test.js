@@ -12,14 +12,16 @@
  *
  * The projection math used here is the real production code (panoUtilities.js), so the self-consistency assertion
  * is the same replay the server guard runs: the record's POV + canvas_x/y must reproduce its pano_x/y.
- *
- * Form is a top-level `class` declaration, so the test evals the source into the jsdom global scope (the
- * exploreFormPanoSubmitted pattern) rather than using loadGlobalScript.
  */
 
-import { loadGlobalScript, installDateHelpers, loadModules, stubUtil } from './loader.js';
-import { fakePanoManager, fakeTaskContainer } from './fakes.js';
+import { loadModules, useUtil } from './loader.js';
+import { fakePanoManager, fakeTaskContainer, fakeTracker } from './fakes.js';
 
+// The real ones ask the vendored bowser script, which no page here loads.
+useUtil({ getBrowser: () => 'chrome', getBrowserVersion: () => '1', getOperatingSystem: () => 'linux' });
+
+/** The `util` Form sees, for its real projection math (util.pano) in building the labels and the replay. */
+let util;
 
 // Explore's boxed labeling frame (util.EXPLORE_CANVAS_WIDTH/HEIGHT in frontend/js/common/utilities.js). The frame is
 // always 720 wide; its height follows the displayed aspect (util.exploreCanvasFrame, #5085), so a 16:9 window is
@@ -49,12 +51,6 @@ const PANO = {
     address: null,
     submitted: false,
 };
-
-/** Loads a fresh Form class into the jsdom global scope. */
-async function loadForm() {
-    Object.assign(window, await loadModules('frontend/js/explore/data/Form.js'));
-    return window.Form;
-}
 
 /** A stand-in for the PanoStore pano the label sits on. */
 function panoStub() {
@@ -125,7 +121,8 @@ describe('Explore label POV staleness (#4842 regression)', () => {
 
     /** Builds a Form wired to stub collaborators around the staged `labels`. */
     async function buildForm() {
-        const Form = await loadForm();
+        let Form;
+        ({ Form, util } = await loadModules('frontend/js/explore/data/Form.js', 'frontend/js/common/utilities.js'));
         const missionProps = { missionId: 5, distanceProgress: 0, distance: 100, isComplete: false, skipped: false };
         const mission = { getProperty: (k) => missionProps[k] };
         const labelContainer = { getLabelsToLog: () => labels, clearLabelsToLog: vi.fn(), getAllLabels: () => [] };
@@ -146,7 +143,7 @@ describe('Explore label POV staleness (#4842 regression)', () => {
             panoStore,
             taskContainer,
             panoManager,
-            { getActions: () => [], refresh: vi.fn(), push: vi.fn(), setAuditTaskID: vi.fn() }, // tracker
+            fakeTracker(),
         );
     }
 
@@ -181,17 +178,7 @@ describe('Explore label POV staleness (#4842 regression)', () => {
     }
 
     beforeEach(async () => {
-        // The real projection math the client places labels with; assigns window.util.pano.
-        stubUtil(window.util || {});
-        await loadGlobalScript('frontend/js/common/pano-viewer/panoUtilities.js');
-        // Form's other collaborators that live on globals rather than constructor args.
-        Object.assign(window.util, {
-            getBrowser: () => 'chrome',
-            getBrowserVersion: () => '1',
-            getOperatingSystem: () => 'linux',
-            math: { kmsToMeters: (km) => km * 1000 },
-        });
-        await installDateHelpers();
+        // Form's one collaborator that lives on a global rather than a constructor arg.
         window.AsyncLock = class { async acquire(key, fn) { return fn(); } };
         viewerPov = { heading: 128.7, pitch: -12.3, zoom: 2 };
         panoManager = fakePanoManager({}, {

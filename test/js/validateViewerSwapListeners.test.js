@@ -12,29 +12,8 @@
  * involved, so none of this needs imagery.
  */
 
-import path from 'path';
-import { loadModules, fakeImport, stubUtil } from './loader.js';
-
-fakeImport('frontend/js/common/pano-viewer/GsvViewer.js', 'GsvViewer');
-fakeImport('frontend/js/common/pano-viewer/PannellumViewer.js', 'PannellumViewer');
-fakeImport('frontend/js/common/pano-viewer/PanoAttribution.js', 'createPanoAttribution');
-fakeImport('frontend/js/common/pano-viewer/PanoViewerLogo.js', 'createPanoViewerLogo');
-
-
-const PANO_MANAGER_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/panorama/PanoManager.js');
-const SPEED_LIMIT_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/common/SpeedLimit.js');
-const THROTTLE_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/util/throttle.js');
-
-/**
- * Load a bare `class` declaration out of a production file. The Grunt bundle concatenates these into page scope, so
- * wrap the source in an IIFE that returns the named class (same trick as validateSkipUnrenderableLabel.test.js).
- * @param {string} filePath - Absolute path to the production file.
- * @param {string} className - Name of the class the file declares.
- * @returns {Function} The class.
- */
-async function loadClassFromFile(filePath, className) {
-  return (await loadModules(filePath))[className];
-}
+import { loadModules, mockModule } from './loader.js';
+import { fakePanoOverlays, fakeTracker } from './fakes.js';
 
 describe('PanoManager logs POV changes from whichever viewer is showing (issue #4828)', () => {
   let panoManager;
@@ -47,6 +26,7 @@ describe('PanoManager logs POV changes from whichever viewer is showing (issue #
   const attribution = {holder: '© jacobwhall', provider: 'Mapillary', license: 'CC BY-SA 4.0', license_url: 'x'};
   const backupImage = {pano_id: 'pano2', camera_heading: 90, attribution};
   let attributionOverlay;
+  let createPanoAttribution;
 
   /**
    * Build a fake viewer that records the listeners it is handed.
@@ -80,17 +60,10 @@ describe('PanoManager logs POV changes from whichever viewer is showing (issue #
 
     document.body.innerHTML = '<div id="pano-holder"><div id="svv-panorama"></div></div>';
 
-    stubUtil({});
-    window.i18next = {language: 'en'};
-    Object.assign(window, await loadModules(THROTTLE_PATH));
-    util.isMobile = () => false;
+    vi.stubGlobal('i18next', {language: 'en'});
 
-    window.createPanoViewerLogo = vi.fn(() => ({showPrimaryLogo: vi.fn(), showSourceLogo: vi.fn()}));
-    attributionOverlay = {show: vi.fn(), hide: vi.fn()};
-    window.createPanoAttribution = vi.fn(() => attributionOverlay);
-    window.GsvViewer = class GsvViewer {};             // distinct from FakeViewerType, so the GSV-only
-    window.MapillaryViewer = class MapillaryViewer {}; // and Mapillary-only attribution paths are skipped
-    tracker = {push: vi.fn(), trackPano: vi.fn()};
+    ({ attribution: attributionOverlay, createPanoAttribution } = fakePanoOverlays());
+    tracker = fakeTracker();
 
     panoData = {getPanoId: () => 'pano1', getProperty: () => new Date(2026, 5)};
     primaryListeners = {};
@@ -100,14 +73,17 @@ describe('PanoManager logs POV changes from whichever viewer is showing (issue #
     pannellumViewer.currPanoData = panoData;
     pannellumViewer.loadPano = vi.fn(() => Promise.resolve(panoData));
 
-    window.PannellumViewer = class PannellumViewer {
-      static create() { return Promise.resolve(pannellumViewer); }
-    };
+    mockModule('frontend/js/common/pano-viewer/PannellumViewer.js', () => ({
+      PannellumViewer: class PannellumViewer {
+        static create() { return Promise.resolve(pannellumViewer); }
+      },
+    }));
+    // Neither GsvViewer nor MapillaryViewer, so the attribution paths specific to those two are skipped.
     const FakeViewerType = class FakeViewerType {
       static create() { return Promise.resolve(primaryViewer); }
     };
 
-    const PanoManager = await loadClassFromFile(PANO_MANAGER_PATH, 'PanoManager');
+    const { PanoManager } = await loadModules('frontend/js/validate/panorama/PanoManager.js');
     const viewerUi = {date: {textContent: ''}, controlLayer: document.createElement('div')};
     panoManager = await PanoManager.create(
       'token', viewerUi, {viewerType: FakeViewerType, labelRadius: 10}, {addPanoMetadata: vi.fn()}, {}, tracker,
@@ -118,13 +94,6 @@ describe('PanoManager logs POV changes from whichever viewer is showing (issue #
   afterEach(() => {
     vi.useRealTimers();
     document.body.innerHTML = '';
-    delete window.util;
-    delete window.i18next;
-    delete window.createPanoViewerLogo;
-    delete window.createPanoAttribution;
-    delete window.GsvViewer;
-    delete window.MapillaryViewer;
-    delete window.PannellumViewer;
   });
 
   /** Count how many times the tracker logged a POV_Changed action. */
@@ -205,7 +174,7 @@ describe('PanoManager logs POV changes from whichever viewer is showing (issue #
   test('the imagery attribution shows while Pannellum is up and goes when the primary viewer takes the pano back', async () => {
     // Pannellum shows Project Sidewalk's own copy of the imagery, which owes the attribution the provider's live
     // viewer would otherwise draw itself (#4865); the primary viewer draws its own, so the pill must not linger.
-    expect(window.createPanoAttribution).toHaveBeenCalledWith(document.getElementById('pano-holder'));
+    expect(createPanoAttribution).toHaveBeenCalledWith(document.getElementById('pano-holder'));
     expect(attributionOverlay.show).not.toHaveBeenCalled();
 
     await loadPannellumLabel();
@@ -267,7 +236,7 @@ describe('SpeedLimit follows the active viewer (issue #4828)', () => {
     pannellumViewer = makeFakeViewer(pannellumListeners);
     activeViewer = primaryViewer;
 
-    SpeedLimit = await loadClassFromFile(SPEED_LIMIT_PATH, 'SpeedLimit');
+    ({ SpeedLimit } = await loadModules('frontend/js/common/SpeedLimit.js'));
   });
 
   afterEach(() => {

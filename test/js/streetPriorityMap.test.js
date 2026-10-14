@@ -6,23 +6,12 @@
  * brushes a region across the rest of the page, and the popup that explains one street's priority. Mapbox GL cannot
  * run under jsdom (no WebGL), so this stands up a `mapboxgl` double that records what the map was asked to do — the
  * arrangement is ours to get right, the rendering is Mapbox's.
- *
- * Runs under jsdom (vitest.config.mjs). StreetPriorityMap is a bare top-level class in a concatenated bundle, so it is
- * eval'd into global scope rather than required.
  */
 
+import { loadModules } from './loader.js';
 
-import { loadModules, realUtil, stubUtil } from './loader.js';
-
-stubUtil(await realUtil());
-
-
-/** Loads AdminShell (the popup escapes through it) and returns the map class. */
-async function loadMap() {
-  return await loadModules('frontend/js/admin-dashboard/StreetPriorityMap.js');
-}
-
-const { StreetPriorityMap, StreetPriorityTiers } = await loadMap();
+const { StreetPriorityMap, StreetPriorityTiers } =
+    await loadModules('frontend/js/admin-dashboard/StreetPriorityMap.js');
 
 /** A minimal `mapboxgl` double: records layers, sources, feature states and handlers instead of drawing. */
 function stubMapbox() {

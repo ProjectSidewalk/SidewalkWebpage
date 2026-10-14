@@ -9,19 +9,7 @@
  * the middle of Validate's startup.
  */
 
-import path from 'path';
 import { loadModules } from './loader.js';
-
-const MARKER_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/util/MissionLiveMarker.js');
-
-/**
- * Load the bare `class MissionLiveMarker` declaration out of the production file: the Grunt bundle concatenates it
- * into page scope, so wrap the source in an IIFE that returns the class.
- * @returns {Function} The class.
- */
-async function loadMarkerClass() {
-    return (await loadModules(MARKER_PATH)).MissionLiveMarker;
-}
 
 /** @returns {Storage} An in-memory stand-in for sessionStorage, shared across the "page lives" of one tab. */
 function fakeStorage() {
@@ -48,7 +36,7 @@ describe('MissionLiveMarker (issue #5561)', () => {
         vi.setSystemTime(1_000_000);
         // jsdom's `performance` has no Navigation Timing, so the entry a browser would report is supplied here.
         performance.getEntriesByType = vi.fn(() => [{ type: 'reload' }]);
-        MissionLiveMarker = await loadMarkerClass();
+        ({ MissionLiveMarker } = await loadModules('frontend/js/validate/util/MissionLiveMarker.js'));
         storage = fakeStorage();
     });
 

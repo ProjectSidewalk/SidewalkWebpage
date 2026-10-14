@@ -5,22 +5,11 @@
  * only ever render the same value the same way. That guarantee is worth exactly as much as the edges are pinned: the
  * cases here are the tier boundaries a hand-written formatter tends to get wrong, plus the escaping, which is what
  * stands between user-supplied text and innerHTML.
- *
- * Runs under jsdom (vitest.config.mjs). AdminShell is a bare top-level class in a concatenated bundle, so it is eval'd
- * into global scope rather than required.
  */
 
-import { loadModules, realUtil, stubUtil } from './loader.js';
+import { loadModules } from './loader.js';
 
-stubUtil(await realUtil());
-
-
-/** Load AdminShell.js and return the class binding. */
-async function loadShell() {
-  return (await loadModules('frontend/js/admin-dashboard/AdminShell.js')).AdminShell;
-}
-
-const AdminShell = await loadShell();
+const { AdminShell } = await loadModules('frontend/js/admin-dashboard/AdminShell.js');
 
 describe('AdminShell.nil', () => {
   test('is true only for null and undefined, not for falsy values that are real data', () => {

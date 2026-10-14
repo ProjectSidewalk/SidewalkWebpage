@@ -6,18 +6,7 @@
  * a weight slider mid-drag redraws the views but leaves the map's dim state alone.
  */
 
-import {FIXTURE, stubI18next, installUtil, stubFetch, loadSources, feature, DOCK_HTML} from './support/accessScoreDockHarness.js';
-import { fakeImport } from './loader.js';
-
-fakeImport('frontend/js/access-score/AccessScoreChart.js', 'AccessScoreChart');
-fakeImport('frontend/js/access-score/AccessScoreHistogram.js', 'AccessScoreHistogram');
-fakeImport('frontend/js/access-score/AccessScoreModel.js', 'AccessScoreModel');
-fakeImport('frontend/js/access-score/AccessScorePhotoStrip.js', 'AccessScorePhotoStrip');
-fakeImport('frontend/js/access-score/AccessScoreRankBars.js', 'AccessScoreRankBars');
-fakeImport('frontend/js/access-score/AccessScoreWhatsHere.js', 'AccessScoreWhatsHere');
-fakeImport('frontend/js/common/AccessScoreGradeRamp.js', 'AccessScoreGradeRamp');
-fakeImport('frontend/js/common/LabelMiniCard.js', 'LabelMiniCard');
-fakeImport('frontend/js/common/scoreRamp.js', 'ScoreRamp');
+import {FIXTURE, stubI18next, stubFetch, loadSources, feature, DOCK_HTML} from './support/accessScoreDockHarness.js';
 
 /** A flushed microtask queue, for the strip's fetch chain under fake timers. */
 const settle = async () => {
@@ -29,6 +18,9 @@ describe('AccessScoreDock', () => {
         {region_id: 1, name: 'Fixture', rate: 1, total_distance_m: 6100, completed_distance_m: 6100},
         {region_id: 2, name: 'Other', rate: 1, total_distance_m: 300, completed_distance_m: 300},
     ];
+    let AccessScoreDock;
+    let AccessScoreModel;
+    let AccessScorePhotoStrip;
     let model;
     let mapView;
     let map;
@@ -50,8 +42,7 @@ describe('AccessScoreDock', () => {
 
     beforeAll(async () => {
         stubI18next();
-        await installUtil();
-        await loadSources();
+        ({ AccessScoreDock, AccessScoreModel, AccessScorePhotoStrip } = await loadSources());
     });
 
     beforeEach(() => {
@@ -60,7 +51,7 @@ describe('AccessScoreDock', () => {
         // The last three fixture streets go to a second region, so a region scope is a real subset.
         const features = FIXTURE.streets.map((c, i) =>
             feature(c, i, {region_id: i >= FIXTURE.streets.length - 3 ? 2 : 1}));
-        model = new window.AccessScoreModel(FIXTURE.config, {type: 'FeatureCollection', features},
+        model = new AccessScoreModel(FIXTURE.config, {type: 'FeatureCollection', features},
             {type: 'FeatureCollection', features: []}, REGIONS);
         // The map starts zoomed out over nothing, so the strip's city rule applies until a test moves it.
         mapView = {
@@ -108,7 +99,7 @@ describe('AccessScoreDock', () => {
                 201: {label_id: 201, label_type: 'SurfaceProblem', severity: 2, crop_url: null, backup_image_url: null},
             },
         });
-        dock = new window.AccessScoreDock(document.getElementById('acs-dock'), {
+        dock = new AccessScoreDock(document.getElementById('acs-dock'), {
             cityName: 'Fixture City', model, mapView, map,
             config: FIXTURE.config, ...callbacks});
         flush();
@@ -123,7 +114,7 @@ describe('AccessScoreDock', () => {
         expect(document.querySelectorAll('.acs-whats-here__row')).toHaveLength(FIXTURE.config.scored_types.length);
         expect(document.querySelector('.acs-whats-here__caption').textContent).toBe('scope-city');
         // The streets unit ranks streets, and 66 fixture streets is more than the leaderboard holds.
-        expect(document.querySelectorAll('.acs-rank__row')).toHaveLength(window.AccessScoreModel.RANK_LIMIT);
+        expect(document.querySelectorAll('.acs-rank__row')).toHaveLength(AccessScoreModel.RANK_LIMIT);
         expect(document.getElementById('acs-dock-body').classList).not.toContain('acs-dock__body--no-rank');
         // With nothing selected the strip reads the lowest-ranked region and says so.
         const ranked = model.rankedRegions();
@@ -195,10 +186,10 @@ describe('AccessScoreDock', () => {
         const features = FIXTURE.streets.map((c, i) => feature(c, i, {
             region_id: i >= FIXTURE.streets.length - 3 ? 2 : 1, ...(i < 2 ? gradient([0.3, 0.01][i]) : {}),
         }));
-        model = new window.AccessScoreModel(FIXTURE.config, {type: 'FeatureCollection', features},
+        model = new AccessScoreModel(FIXTURE.config, {type: 'FeatureCollection', features},
             {type: 'FeatureCollection', features: []}, REGIONS);
         const breaks = [1 / 48, 0.05, 1 / 12, 0.125];
-        dock = new window.AccessScoreDock(document.getElementById('acs-dock'), {
+        dock = new AccessScoreDock(document.getElementById('acs-dock'), {
             cityName: 'Fixture City', model, mapView, map, gradeBreaks: breaks, ...callbacks});
         flush();
 
@@ -238,7 +229,7 @@ describe('AccessScoreDock', () => {
 
     test('a slope brush is dropped where its classes stop describing the map', () => {
         const breaks = [1 / 48, 0.05, 1 / 12, 0.125];
-        dock = new window.AccessScoreDock(document.getElementById('acs-dock'), {
+        dock = new AccessScoreDock(document.getElementById('acs-dock'), {
             cityName: 'Fixture City', model, mapView, map, gradeBreaks: breaks, ...callbacks});
         flush();
         for (const kind of ['Unit', 'GradeStat', 'ResetAll']) {
@@ -319,7 +310,7 @@ describe('AccessScoreDock', () => {
         // The map fades everything outside the selected street's region.
         expect(lastBrush()).toEqual(model.regionStreetIds(2));
         // The rank list is never reduced to the selection: it is where a street sits among the others.
-        expect(document.querySelectorAll('.acs-rank__row')).toHaveLength(window.AccessScoreModel.RANK_LIMIT);
+        expect(document.querySelectorAll('.acs-rank__row')).toHaveLength(AccessScoreModel.RANK_LIMIT);
 
         // A brush outranks the selection on the map; clearing it hands the map back to the selection.
         dock.setBrush({from: 5, to: 10});
@@ -405,7 +396,7 @@ describe('AccessScoreDock', () => {
     });
 
     test('the streets unit ranks one end of the street leaderboard, with a toggle to the other (#5223)', () => {
-        const limit = window.AccessScoreModel.RANK_LIMIT;
+        const limit = AccessScoreModel.RANK_LIMIT;
         const order = document.getElementById('acs-rank-order');
         const scores = () => [...document.querySelectorAll('.acs-rank__row')]
             .map((r) => model.explainStreet(Number(r.dataset.rowId)).score);
@@ -510,7 +501,7 @@ describe('AccessScoreDock', () => {
             .toEqual(expectedIds);
     });
     test('the strip ranks worst first, the confirmed ahead of the unchecked and the disputed last (#5386)', async () => {
-        const rank = window.AccessScorePhotoStrip.compareWorstFirst;
+        const rank = AccessScorePhotoStrip.compareWorstFirst;
         const entries = [
             {id: 'sev2-confirmed', severity: 2, agree: 3, disagree: 0},
             {id: 'sev3-disputed', severity: 3, agree: 1, disagree: 2},
@@ -589,7 +580,7 @@ describe('AccessScoreDock', () => {
         map.getZoom = () => 14;
         mapView.visibleRegionIds.mockImplementation(() => new Set([1, 2]));
         moveend({originalEvent: {}});
-        vi.advanceTimersByTime(window.AccessScoreDock.PHOTO_MOVE_DEBOUNCE_MS);
+        vi.advanceTimersByTime(AccessScoreDock.PHOTO_MOVE_DEBOUNCE_MS);
         await settle();
         expect(captionEl()).toBe('photos-from scope=photos-scope-viewport');
         expect(shownIds()).toEqual(['101', '201']);
@@ -600,11 +591,11 @@ describe('AccessScoreDock', () => {
         // A programmatic move (no originalEvent) is not a pan; a pan that keeps the same clusters redraws nothing.
         const ribbonBefore = document.querySelector('.acs-photos__ribbon').innerHTML;
         moveend({});
-        vi.advanceTimersByTime(window.AccessScoreDock.PHOTO_MOVE_DEBOUNCE_MS);
+        vi.advanceTimersByTime(AccessScoreDock.PHOTO_MOVE_DEBOUNCE_MS);
         await settle();
         map.getBounds = () => ({getWest: () => -1.0004, getSouth: () => -1, getEast: () => 1, getNorth: () => 1});
         moveend({originalEvent: {}});
-        vi.advanceTimersByTime(window.AccessScoreDock.PHOTO_MOVE_DEBOUNCE_MS);
+        vi.advanceTimersByTime(AccessScoreDock.PHOTO_MOVE_DEBOUNCE_MS);
         await settle();
         expect(document.querySelector('.acs-photos__ribbon').innerHTML).toBe(ribbonBefore);
         expect(fetchMock.mock.calls.filter(([u]) => String(u).includes('/v3/api/labelClusters'))).toHaveLength(2);
@@ -612,7 +603,7 @@ describe('AccessScoreDock', () => {
         // A pan that leaves only one cluster in view narrows the strip without a new fetch (feeds are cached).
         map.getBounds = () => ({getWest: () => 0.4, getSouth: () => 0.4, getEast: () => 1, getNorth: () => 1});
         moveend({originalEvent: {}});
-        vi.advanceTimersByTime(window.AccessScoreDock.PHOTO_MOVE_DEBOUNCE_MS);
+        vi.advanceTimersByTime(AccessScoreDock.PHOTO_MOVE_DEBOUNCE_MS);
         await settle();
         expect(shownIds()).toEqual(['101']);
         expect(fetchMock.mock.calls.filter(([u]) => String(u).includes('/v3/api/labelClusters'))).toHaveLength(2);
@@ -622,14 +613,14 @@ describe('AccessScoreDock', () => {
         const labelFetches = () => fetchMock.mock.calls.filter(([u]) => String(u).includes('/label/id/')).length;
         map.getBounds = () => ({getWest: () => 0, getSouth: () => 0, getEast: () => 0.15, getNorth: () => 0.15});
         moveend({originalEvent: {}});
-        vi.advanceTimersByTime(window.AccessScoreDock.PHOTO_MOVE_DEBOUNCE_MS);
+        vi.advanceTimersByTime(AccessScoreDock.PHOTO_MOVE_DEBOUNCE_MS);
         await settle();
         expect(shownIds()).toEqual([]);
         expect(document.querySelector('.acs-photos__status').textContent).toBe('photos-empty');
         const before = labelFetches();
         map.getBounds = () => ({getWest: () => -0.0004, getSouth: () => 0, getEast: () => 0.15, getNorth: () => 0.15});
         moveend({originalEvent: {}});
-        vi.advanceTimersByTime(window.AccessScoreDock.PHOTO_MOVE_DEBOUNCE_MS);
+        vi.advanceTimersByTime(AccessScoreDock.PHOTO_MOVE_DEBOUNCE_MS);
         await settle();
         expect(labelFetches()).toBe(before + 1);
         expect(document.querySelector('.acs-photos__status').textContent).toBe('photos-empty');
@@ -649,10 +640,10 @@ describe('AccessScoreDock', () => {
 
     test('a named street is captioned by its name in what\'s here and the strip', async () => {
         const named = FIXTURE.streets.map((c, i) => feature(c, i, i === 0 ? {street_name: 'Cedar Lane'} : {}));
-        model = new window.AccessScoreModel(FIXTURE.config, {type: 'FeatureCollection', features: named},
+        model = new AccessScoreModel(FIXTURE.config, {type: 'FeatureCollection', features: named},
             {type: 'FeatureCollection', features: []}, REGIONS);
         document.body.innerHTML = DOCK_HTML;
-        dock = new window.AccessScoreDock(document.getElementById('acs-dock'), {model, mapView, map,
+        dock = new AccessScoreDock(document.getElementById('acs-dock'), {model, mapView, map,
             config: FIXTURE.config, ...callbacks});
         dock.setSelection({unit: 'streets', id: 1});
         flush();
@@ -667,17 +658,17 @@ describe('AccessScoreDock', () => {
     test('a city with one neighborhood ranks its streets but drops the neighborhoods list', async () => {
         const oneRegion = [REGIONS[0]];
         const features = FIXTURE.streets.map((c, i) => feature(c, i, {region_id: 1}));
-        model = new window.AccessScoreModel(FIXTURE.config, {type: 'FeatureCollection', features},
+        model = new AccessScoreModel(FIXTURE.config, {type: 'FeatureCollection', features},
             {type: 'FeatureCollection', features: []}, oneRegion);
         document.body.innerHTML = DOCK_HTML;
-        dock = new window.AccessScoreDock(document.getElementById('acs-dock'), {model, mapView, map,
+        dock = new AccessScoreDock(document.getElementById('acs-dock'), {model, mapView, map,
             config: FIXTURE.config, ...callbacks});
         flush();
         const panel = document.querySelector('.acs-dock__panel--rank');
         const body = document.getElementById('acs-dock-body');
         // The streets leaderboard is a real list in such a city, so the panel opens exactly as anywhere else.
         expect(panel.hidden).toBe(false);
-        expect(document.querySelectorAll('.acs-rank__row')).toHaveLength(window.AccessScoreModel.RANK_LIMIT);
+        expect(document.querySelectorAll('.acs-rank__row')).toHaveLength(AccessScoreModel.RANK_LIMIT);
         expect(body.classList).not.toContain('acs-dock__body--no-rank');
 
         // The rows outlive the suppression, so a mark left on one would still be there when the panel comes back.
@@ -711,7 +702,7 @@ describe('AccessScoreDock', () => {
         flush();
         expect(panel.hidden).toBe(false);
         expect(body.classList).not.toContain('acs-dock__body--no-rank');
-        expect(document.querySelectorAll('.acs-rank__row')).toHaveLength(window.AccessScoreModel.RANK_LIMIT);
+        expect(document.querySelectorAll('.acs-rank__row')).toHaveLength(AccessScoreModel.RANK_LIMIT);
         expect(document.querySelectorAll('.acs-rank__row--hover')).toHaveLength(0);
 
         await settle();

@@ -4,17 +4,13 @@
  *
  * The CSS shows the menu from the chevron's `aria-expanded`, and the toggle is logged as Click_PanoControlMenu_Toggle,
  * the same event Validate's PanoControlMenu writes, so one query covers both tools. These pin that a click flips the
- * attribute both ways and logs the resulting state each time. Loaded like the other class-based suites: eval'd with an
- * explicit export.
+ * attribute both ways and logs the resulting state each time.
  */
 
 import { loadModules } from './loader.js';
 import { fakeTracker } from './fakes.js';
 
-
-beforeAll(async () => {
-    Object.assign(window, await loadModules('frontend/js/explore/controls/PanoOverlayControls.js'));
-});
+const { PanoOverlayControls } = await loadModules('frontend/js/explore/controls/PanoOverlayControls.js');
 
 let toggle;
 let tracker;
@@ -27,7 +23,7 @@ beforeEach(() => {
       <div id="explore-control-menu"></div>`;
     toggle = document.getElementById('explore-control-buttons-toggle');
     tracker = fakeTracker();
-    new window.PanoOverlayControls(tracker, { walking: { onChanged: () => {} } }, {}, {});
+    new PanoOverlayControls(tracker, { walking: { onChanged: () => {} } }, {}, {});
 });
 
 test('the chevron opens and closes the menu, logging the resulting state each time', () => {

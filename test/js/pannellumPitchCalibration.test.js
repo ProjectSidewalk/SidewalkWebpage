@@ -9,26 +9,9 @@
  *
  * These cases only bite on a pano with a nonzero cameraPitch: with the zero-tilt fixtures the other suites use,
  * both conventions produce identical numbers, which is exactly why this went unnoticed.
- *
- * The viewers are top-level `class` declarations written for the Grunt-concatenation world, so the sources are
- * eval'd into the jsdom global scope with a stubbed pannellum library underneath.
  */
 
-import { loadGlobalScript, realUtil, loadModules, stubUtil, fakeImport } from './loader.js';
-
-fakeImport('frontend/js/common/pano-viewer/PanoData.js', 'PanoData');
-fakeImport('frontend/js/common/pano-viewer/PanoViewer.js', 'PanoViewer');
-
-
-window.bowser = {
-    getParser: () => ({
-        getBrowserName: () => 'Test', getBrowserVersion: () => '1',
-        getOSName: () => 'TestOS', getPlatformType: () => 'desktop',
-    }),
-};
-stubUtil(await realUtil());
-await loadGlobalScript('frontend/js/common/utilitiesMath.js');
-await loadGlobalScript('frontend/js/common/pano-viewer/panoUtilities.js');
+import { loadModules } from './loader.js';
 
 const CAMERA_PITCH = 8.5;    // degrees; near the top of the real distribution
 const CAMERA_HEADING = 104.9;
@@ -72,10 +55,10 @@ function makeFakePannellum() {
 async function makeViewer(panoMetadataOverrides = {}) {
     const { state, lib } = makeFakePannellum();
     window.pannellum = lib;
-    Object.assign(window, await loadModules('frontend/js/common/pano-viewer/PanoData.js', 'frontend/js/common/pano-viewer/PanoViewer.js', 'frontend/js/common/pano-viewer/PannellumViewer.js'));
+    const { PannellumViewer } = await loadModules('frontend/js/common/pano-viewer/PannellumViewer.js');
     const el = document.createElement('div');
     document.body.appendChild(el);
-    const v = new window.PannellumViewer();
+    const v = new PannellumViewer();
     await v.initialize(el, {
         panoMetadata: {
             pano_id: 'p1', image_url: '/backupImage/p1', width: 13312, height: 6656,

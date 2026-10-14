@@ -8,12 +8,11 @@
  * buttons take the pointer, so the realistic toast-side path is through the close X.
  */
 
-
-import { assetPathStub, loadModules, stubUtil } from './loader.js';
+import { loadModules } from './loader.js';
 import { fakeTracker } from './fakes.js';
 
-
 describe('Canvas.watchPanoExit', () => {
+    let Canvas;
     let holder;
     let pano;
     let panoToast;
@@ -56,8 +55,8 @@ describe('Canvas.watchPanoExit', () => {
         onExit = vi.fn();
         abort = new AbortController();
 
-        Object.assign(window, await loadModules('frontend/js/explore/canvas/Canvas.js'));
-        window.Canvas.watchPanoExit(holder, onExit, { signal: abort.signal });
+        ({ Canvas } = await loadModules('frontend/js/explore/canvas/Canvas.js'));
+        Canvas.watchPanoExit(holder, onExit, { signal: abort.signal });
     });
 
     afterEach(() => abort.abort());
@@ -112,7 +111,7 @@ describe('Canvas.watchPanoExit', () => {
     });
 
     test('a missing holder watches nothing rather than throwing', () => {
-        expect(() => window.Canvas.watchPanoExit(null, onExit)).not.toThrow();
+        expect(() => Canvas.watchPanoExit(null, onExit)).not.toThrow();
     });
 
     test('mouseout from elements that are not toasts is ignored', () => {
@@ -133,8 +132,7 @@ describe('Toast data-anchor', () => {
     beforeEach(async () => {
         document.body.innerHTML = '<div id="pano"></div><div class="modal"></div>';
         window.i18next = { t: (key) => key };
-        stubUtil({ assetPath: assetPathStub });
-        Toast = (await loadModules('frontend/js/common/Toast.js')).Toast;
+        ({ Toast } = await loadModules('frontend/js/common/Toast.js'));
     });
 
     // svl-canvas.css keys the click-through on data-anchor="pano", so a toast over anything else must not carry it.
@@ -158,11 +156,10 @@ describe('LabelModes.switchTo and the explore-labeling class', () => {
         // Only the containers modeSwitch styles; the ribbon's own markup isn't under test.
         document.body.innerHTML = `<div id="mode-switch-button-other"></div><div id="ribbon-menu-holder"></div>
             <div id="pano-border-frame"></div><div id="ribbon-menu-other-subcategory-holder"></div>`;
-        stubUtil({ misc: { getLabelColors: () => new Proxy({}, { get: () => ({ fillStyle: 'black' }) }) } });
-        Object.assign(window, await loadModules('frontend/js/explore/menu/LabelModes.js',
-            'frontend/js/explore/menu/RibbonMenu.js'));
-        labelModes = new window.LabelModes(fakeTracker());
-        new window.RibbonMenu(labelModes, { modeSwitchButtonClicked: vi.fn() }, fakeTracker());
+        const { LabelModes, RibbonMenu } = await loadModules('frontend/js/explore/menu/LabelModes.js',
+            'frontend/js/explore/menu/RibbonMenu.js');
+        labelModes = new LabelModes(fakeTracker());
+        new RibbonMenu(labelModes, { modeSwitchButtonClicked: vi.fn() }, fakeTracker());
     });
 
     test('arming a label type adds the class, and Walk removes it', () => {

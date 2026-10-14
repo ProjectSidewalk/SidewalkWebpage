@@ -12,22 +12,11 @@ afterAll(() => { process.env.TZ = previousTimeZone; });
  * neither is reachable from a UTC test process — so this file pins itself to Sydney, which is east of UTC (where the
  * current week can be dropped) and observes daylight saving (where a local-time step lands off Monday). The rest of
  * the section's behavior is covered in streetStatusTrend.test.js under the default zone.
- *
- * Runs under jsdom. These are bare top-level classes in a concatenated bundle, so they are eval'd into global scope.
  */
 
+import { loadModules } from './loader.js';
 
-import { installDateHelpers, loadModules, realUtil, stubUtil } from './loader.js';
-
-stubUtil(await realUtil());
-
-
-async function loadPage() {
-  return (await loadModules('frontend/js/admin-dashboard/StreetStatusTrend.js')).StreetStatusTrend;
-}
-
-await installDateHelpers();
-const StreetStatusTrend = await loadPage();
+const { StreetStatusTrend } = await loadModules('frontend/js/admin-dashboard/StreetStatusTrend.js');
 
 const MARKUP = `
   <div id="street-status-trend-section">

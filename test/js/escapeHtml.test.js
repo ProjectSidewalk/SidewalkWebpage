@@ -1,12 +1,10 @@
 /**
  * Tests for util.escapeHTML and util.htmlToText.
- *
- * Runs under jsdom (vitest.config.mjs).
  */
 
-import { realUtil, stubUtil } from './loader.js';
+import { loadModules } from './loader.js';
 
-stubUtil(await realUtil());
+const { util } = await loadModules('frontend/js/common/utilities.js');
 
 describe('util.escapeHTML', () => {
   test('escapes every character that could break out of markup', () => {

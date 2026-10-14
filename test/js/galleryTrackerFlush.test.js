@@ -7,8 +7,9 @@
  * is left with `keepalive`, so the POST can outlive the page.
  */
 
-import { loadModules, stubUtil } from './loader.js';
+import { loadModules, loadVendored } from './loader.js';
 
+loadVendored('bowser'); // The batch's environment block reads the browser and OS off it.
 
 describe('the Gallery interaction log', () => {
     let tracker;
@@ -19,7 +20,6 @@ describe('the Gallery interaction log', () => {
     // answer the page-dismissal test twice.
     beforeAll(async () => {
         window.i18next = { language: 'en' };
-        stubUtil({ getBrowser: () => 'b', getBrowserVersion: () => '1', getOperatingSystem: () => 'os' });
         window.fetch = vi.fn((url, { body, keepalive }) => {
             sent.push({ url, body: JSON.parse(body), keepalive: !!keepalive });
             return Promise.resolve({ ok: true });

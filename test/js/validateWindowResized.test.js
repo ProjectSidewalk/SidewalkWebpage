@@ -10,19 +10,8 @@
  * long it lasts. They drive the real static handlers over a fake viewer and tracker.
  */
 
-import path from 'path';
-import { loadModules, stubUtil } from './loader.js';
+import { loadModules, useUtil } from './loader.js';
 import { fakeTracker } from './fakes.js';
-
-const MAIN_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/Main.js');
-
-/**
- * Loads the `Main` class out of the production file.
- * @returns {Function} The Main class.
- */
-async function loadMainClass() {
-    return (await loadModules(MAIN_PATH)).Main;
-}
 
 describe('desktop Validate resize handling (#5367)', () => {
     let Main;
@@ -39,20 +28,19 @@ describe('desktop Validate resize handling (#5367)', () => {
         Object.defineProperty(document.documentElement, 'clientWidth', { value: 1280, configurable: true });
         Object.defineProperty(document.documentElement, 'clientHeight', { value: 720, configurable: true });
 
-        stubUtil({ applyToolScale: vi.fn(() => 1.5) });
+        useUtil({ applyToolScale: vi.fn(() => 1.5) });
 
         viewer = { resize: vi.fn(), repaint: vi.fn() };
         tracker = fakeTracker();
         panoManager = { setMarkerScale: vi.fn(), panoViewer: viewer };
 
-        Main = await loadMainClass();
+        ({ Main } = await loadModules('frontend/js/validate/Main.js'));
     });
 
     afterEach(() => {
         if (handler) window.removeEventListener('resize', handler);
         handler = undefined;
         vi.useRealTimers();
-        delete window.util;
     });
 
     /** The notes of every Window_Resized the tracker was handed. */

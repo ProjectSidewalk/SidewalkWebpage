@@ -6,13 +6,10 @@
  * over `#pano`. The queue is what makes that safe, and it is easy to get subtly wrong (a successor mounting during its
  * predecessor's fade, a cancelled toast leaving the anchor stuck), so each of those cases is pinned here.
  *
- * Toast.js declares a top-level class, so the source is evaluated directly rather than required — the same approach
- * toastPosition.test.js takes. A fresh class is built per test because the queue lives in static state.
+ * A fresh class is loaded per test because the queue lives in static state.
  */
 
-
-import { assetPathStub, loadModules, stubUtil } from './loader.js';
-
+import { loadModules } from './loader.js';
 
 /** Every `.ps-toast` currently in the document. */
 const mounted = () => document.querySelectorAll('.ps-toast');
@@ -29,9 +26,8 @@ describe('Toast queueing', () => {
         vi.useFakeTimers();
         document.body.innerHTML = '';
         window.i18next = { t: (key) => key };
-        stubUtil({ assetPath: assetPathStub }); // The close button's icon URL.
         // A fresh class per test: the live/waiting maps are static, so a shared one would leak between cases.
-        Toast = (await loadModules('frontend/js/common/Toast.js')).Toast;
+        ({ Toast } = await loadModules('frontend/js/common/Toast.js'));
         anchorA = document.createElement('div');
         anchorB = document.createElement('div');
         document.body.append(anchorA, anchorB);

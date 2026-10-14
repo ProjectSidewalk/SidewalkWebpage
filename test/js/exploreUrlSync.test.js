@@ -4,12 +4,10 @@
  *
  * What the module has to get right is the contract with the read side (ExploreController binds these names), that
  * the mission's own params never survive into a link, that a pan is not a Back entry, and that a drag's per-frame
- * POV events collapse to one write per interval with the last view winning. ExploreUrlSync is a Grunt-concatenated
- * `class` reaching for `util.url`, so the source is eval'd into jsdom with urlQuery.js loaded first.
+ * POV events collapse to one write per interval with the last view winning.
  */
 
-import { loadModules, realUtil } from './loader.js';
-
+import { loadModules } from './loader.js';
 
 describe('ExploreUrlSync', () => {
     let ExploreUrlSync;
@@ -34,10 +32,7 @@ describe('ExploreUrlSync', () => {
     const currentUrl = () => `${window.location.pathname}${window.location.search}`;
 
     beforeAll(async () => {
-        window.util ??= await realUtil();
-        await loadModules('frontend/js/common/urlQuery.js');
-        Object.assign(window, await loadModules('frontend/js/explore/navigation/ExploreUrlSync.js'));
-        ExploreUrlSync = window.ExploreUrlSync;
+        ({ ExploreUrlSync } = await loadModules('frontend/js/explore/navigation/ExploreUrlSync.js'));
     });
 
     beforeEach(() => {
@@ -53,7 +48,6 @@ describe('ExploreUrlSync', () => {
     });
 
     afterEach(() => {
-        replaceState.mockRestore();
         vi.useRealTimers();
     });
 

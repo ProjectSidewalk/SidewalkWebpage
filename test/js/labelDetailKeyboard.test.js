@@ -23,23 +23,17 @@
  * keep logging the keyboard apart from the mouse — and how the vote echo tells the two apart, since a pointer
  * already has the button it pressed as feedback and only the keyboard needs the change pointed out.
  *
- * Fixture and stub strategy follow labelDetailComments.test.js: LabelDetail is a top-level `class` written for
- * Grunt concatenation, so its source is eval'd into the jsdom global with an epilogue exposing it, TagEditor rides
- * along because LabelDetail closes over that binding, and the collaborators it reaches for as bare globals are
- * stubbed on `window` first.
+ * The pano manager and the card's flourishes (badges, stories, the info popover, the hide toggle) are stand-ins:
+ * the real ones want a viewer and page markup, and none is what a shortcut exercises.
  */
 
+import { loadModules, useUtil } from './loader.js';
+import { mockLabelDetailCollaborators } from './fakes.js';
 
-import { assetPathStub, installDateHelpers, loadModules, fakeImport, stubUtil } from './loader.js';
+/** The pano manager the card is handed; rebuilt per test so a test can settle its setPano() when it likes. */
+let panoManager;
 
-fakeImport('frontend/js/common/BadgeAchievements.js', 'BadgeAchievements');
-fakeImport('frontend/js/common/LabelVisibilityToggle.js', 'LabelVisibilityToggle');
-fakeImport('frontend/js/common/label-detail/PopupPanoManager.js', 'PopupPanoManager');
-fakeImport('frontend/js/common/label-detail/StorySection.js', 'StorySection');
-fakeImport('frontend/js/common/pano-viewer/PanoInfoPopover.js', 'PanoInfoPopover');
-fakeImport('frontend/js/common/utilitiesSidewalk.js', 'buildBackupImageData');
-fakeImport('frontend/js/common/label-detail/TagEditor.js', 'TagEditor');
-
+mockLabelDetailCollaborators(() => panoManager);
 
 /**
  * Builds the card markup as views/common/labelDetail.scala.html renders it, reduced to the elements
@@ -234,7 +228,6 @@ function meta(overrides = {}) {
 describe('the label card\'s keyboard shortcuts (#5194)', () => {
     let LabelDetail;
     let card;
-    let panoManager;
     let setPano;
     /** Every POST the card makes: validations go through util.lazyIdentityFetch, not window.fetch. */
     let post;
@@ -263,7 +256,7 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
      * @returns {KeyboardEvent} The dispatched event, for asserting on defaultPrevented.
      */
     function press(code, init = {}) {
-        const event = new window.KeyboardEvent('keydown', { code, bubbles: true, cancelable: true, ...init });
+        const event = new KeyboardEvent('keydown', { code, bubbles: true, cancelable: true, ...init });
         (document.activeElement || document.body).dispatchEvent(event);
         return event;
     }
@@ -295,35 +288,13 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
     }
 
     beforeEach(async () => {
-        vi.resetModules();
         hostOpen = true;
 
         post = vi.fn(async () => ({ ok: true, status: 200, json: async () => ({}) }));
 
         window.i18next = { t: (key) => key };
         window.logWebpageActivity = vi.fn();
-        window.buildBackupImageData = () => null;
-        window.camelToKebab = (s) => s.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
-        stubUtil({
-            assetPath: assetPathStub,
-            EXPLORE_CANVAS_WIDTH: 720,
-            EXPLORE_CANVAS_HEIGHT: 480,
-            isMobile: () => false,
-            lazyIdentityFetch: post,
-            misc: {
-                labelTypeName: (type) => window.i18next.t(`common:${window.camelToKebab(type)}`),
-                getRatingLevelKeys: () => ({ 1: 'low', 2: 'medium', 3: 'high' }),
-                getSmileyIconPath: (sev, type, selected) => `${type}-${sev}-${selected}.svg`,
-                isPositiveLabelType: () => false,
-                labelTypeHasSeverity: () => true,
-            },
-            pano: { centeredPovToCanvasCoord: () => ({ x: 0, y: 0 }), renderedHFov: () => 90 },
-            url: { replaceQuery: () => {} },
-        });
-        await installDateHelpers();
-        window.BadgeAchievements = { seedCounts: () => {}, recordValidation: () => {} };
-        window.LabelVisibilityToggle = class { constructor() {} };
-        window.PanoInfoPopover = class { constructor() {} };
+        useUtil({ lazyIdentityFetch: post });
 
         setPano = deferred();
         panoManager = {
@@ -346,14 +317,10 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
             }),
             label: { labelId: 42, label_type: 'Obstacle' },
         };
-        window.PopupPanoManager = { create: async () => panoManager };
-        // The stories disclosure is not what these tests exercise, and its real section wants the composer's markup.
-        window.StorySection = class { setLabel() {} };
 
         window.fetch = vi.fn(async () => ({ ok: true, status: 200, json: async () => ({}) }));
 
-        Object.assign(window, await loadModules('frontend/js/common/label-detail/TagEditor.js', 'frontend/js/common/label-detail/LabelDetail.js'));
-        LabelDetail = window.LabelDetail;
+        ({ LabelDetail } = await loadModules('frontend/js/common/label-detail/LabelDetail.js'));
 
         await mount();
     });
@@ -614,7 +581,7 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
             await showLabel();
 
             overlayButton('agree').dispatchEvent(
-                new window.MouseEvent('click', { bubbles: true, cancelable: true, detail: 1 })
+                new MouseEvent('click', { bubbles: true, cancelable: true, detail: 1 })
             );
             await flush();
 
@@ -635,7 +602,7 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
 
         test('prefers-reduced-motion skips it entirely', async () => {
             // Skipped rather than slowed: it is an optional flourish, the way Confetti and StorySection treat theirs.
-            window.matchMedia = () => ({ matches: true });
+            vi.stubGlobal('matchMedia', () => ({ matches: true }));
             await showLabel();
 
             press('KeyA');
@@ -643,7 +610,6 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
 
             expect(validations().map((v) => v.validation_result)).toEqual(['Agree']);
             expect(echo()).toBeNull();
-            delete window.matchMedia;
         });
 
         test('paging away takes the echo with it, so it cannot report a vote on the next label', async () => {
@@ -745,7 +711,7 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
             await showLabel({ user_validation: null });
 
             overlayButton('disagree').dispatchEvent(
-                new window.MouseEvent('click', { bubbles: true, cancelable: true, detail: 1 })
+                new MouseEvent('click', { bubbles: true, cancelable: true, detail: 1 })
             );
             await flush();
 

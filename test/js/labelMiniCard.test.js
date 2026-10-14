@@ -5,12 +5,13 @@
  * the reader's own.
  */
 
+import { loadModules, mockModule } from './loader.js';
 
-import { assetPathStub, installDateHelpers, installUtilitiesMisc, installEscapeHTML, loadModules, fakeImport, stubUtil } from './loader.js';
-
-fakeImport('frontend/js/common/BadgeAchievements.js', 'BadgeAchievements');
-fakeImport('frontend/js/common/Toast.js', 'Toast');
-
+// The card tells Toast and the badge tracker about a vote; neither is under test, so each is a spy the suite reads.
+const toast = { show: vi.fn() };
+const badges = { recordValidation: vi.fn() };
+mockModule('frontend/js/common/Toast.js', () => ({ Toast: toast }));
+mockModule('frontend/js/common/BadgeAchievements.js', () => ({ BadgeAchievements: badges }));
 
 /** A `/label/id` JSON with a crop, two agrees, and no vote of the reader's own. */
 function label(overrides = {}) {
@@ -31,6 +32,7 @@ const settle = async () => {
 };
 
 describe('LabelMiniCard', () => {
+    let LabelMiniCard;
     let fetchMock;
     let postedBodies;
 
@@ -45,21 +47,7 @@ describe('LabelMiniCard', () => {
                 return `${bare} ${args.map(([k, v]) => `${k}=${v}`).join(' ')}`;
             },
         };
-        stubUtil({
-            assetPath: assetPathStub,
-            // The site-wide string helper from utilities.js the card leans on, verbatim.
-            camelToKebab: (str) => str.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase(),
-            lazyIdentityFetch: (...args) => window.fetch(...args),
-            EXPLORE_CANVAS_WIDTH: 720,
-            EXPLORE_CANVAS_HEIGHT: 480,
-        });
-        // The real util.misc, so the marker helper under test is the shipped one and the palettes are the card's.
-        await installUtilitiesMisc();
-        await installDateHelpers();
-        await installEscapeHTML();
-        window.Toast = {show: vi.fn()};
-        window.BadgeAchievements = {recordValidation: vi.fn()};
-        Object.assign(window, await loadModules('frontend/js/common/LabelMiniCard.js'));
+        ({ LabelMiniCard } = await loadModules('frontend/js/common/LabelMiniCard.js'));
     });
 
     beforeEach(() => {
@@ -69,13 +57,13 @@ describe('LabelMiniCard', () => {
             return response(true);
         });
         window.fetch = fetchMock;
-        window.Toast.show.mockClear();
-        window.BadgeAchievements.recordValidation.mockClear();
+        toast.show.mockClear();
+        badges.recordValidation.mockClear();
         document.body.innerHTML = '<ul id="host"></ul>';
     });
 
     const mount = (data, opts = {}) => {
-        const card = new window.LabelMiniCard(data, {source: 'TestSurface', ...opts});
+        const card = new LabelMiniCard(data, {source: 'TestSurface', ...opts});
         document.getElementById('host').appendChild(card.element);
         return card;
     };
@@ -112,7 +100,7 @@ describe('LabelMiniCard', () => {
         const marker = card.element.querySelector('.lmc__marker');
         expect(marker.style.getPropertyValue('--lmc-marker-x')).toBe(String(310 / 720));
         expect(marker.style.getPropertyValue('--lmc-marker-y')).toBe(String(220 / 480));
-        card.element.querySelector('.lmc__image').dispatchEvent(new window.Event('error'));
+        card.element.querySelector('.lmc__image').dispatchEvent(new Event('error'));
         expect(card.element.querySelector('.lmc__placeholder')).not.toBeNull();
         expect(card.element.querySelector('.lmc__marker')).toBeNull();
     });
@@ -176,7 +164,7 @@ describe('LabelMiniCard', () => {
         expect(chip(card, 'Disagree').disabled).toBe(false);
         expect(chip(card, 'Agree').querySelector('img').getAttribute('src'))
             .toBe('/assets/images/icons/validation/agree-filled.svg');
-        expect(window.BadgeAchievements.recordValidation).toHaveBeenCalledTimes(1);
+        expect(badges.recordValidation).toHaveBeenCalledTimes(1);
         expect(onVote).toHaveBeenCalledWith('Agree', expect.objectContaining({num_agree: 3, user_validation: 'Agree'}));
     });
 
@@ -190,7 +178,7 @@ describe('LabelMiniCard', () => {
         expect(count(card, 'Agree')).toBe('1');
         expect(chip(card, 'Agree').getAttribute('aria-pressed')).toBe('false');
         expect(log).toHaveBeenCalledWith('ClearVote_result=Agree_labelId=42');
-        expect(window.BadgeAchievements.recordValidation).not.toHaveBeenCalled();
+        expect(badges.recordValidation).not.toHaveBeenCalled();
 
         chip(card, 'Disagree').click();
         await settle();
@@ -213,7 +201,7 @@ describe('LabelMiniCard', () => {
         expect(count(card, 'Disagree')).toBe('1');
         expect(chip(card, 'Disagree').getAttribute('aria-pressed')).toBe('false');
         expect(chip(card, 'Disagree').disabled).toBe(false);
-        expect(window.Toast.show).toHaveBeenCalledTimes(1);
+        expect(toast.show).toHaveBeenCalledTimes(1);
         expect(onVote).not.toHaveBeenCalled();
     });
 

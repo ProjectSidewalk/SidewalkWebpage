@@ -1,19 +1,12 @@
 /**
  * Tests for how the Manage user page's Excluded box drives the quality dropdown (#3956), chiefly that a stray
  * check-and-uncheck restores the admin's earlier choice.
- *
- * Runs under jsdom (vitest.config.mjs).
  */
 
-import { installDateHelpers, loadModules } from './loader.js';
+import { loadModules } from './loader.js';
 
-let AdminUser;
-
-beforeAll(async () => {
-  window.i18next = { language: 'en' };
-  await installDateHelpers();
-  AdminUser = (await loadModules('frontend/js/user-dashboard/AdminUser.js')).AdminUser;
-});
+window.i18next = { language: 'en' };
+const { AdminUser } = await loadModules('frontend/js/user-dashboard/AdminUser.js');
 
 /**
  * Builds the account form's quality and exclusion controls, then the page controller.

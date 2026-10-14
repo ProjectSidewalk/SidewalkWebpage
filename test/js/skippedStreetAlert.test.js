@@ -8,16 +8,15 @@
  * this was found on had it silenced, which is exactly why the teleports looked unexplained.
  */
 
-import { loadModules, stubUtil, fakeImport } from './loader.js';
-
-fakeImport('frontend/js/explore/alert/Alert.js', 'Alert');
-
+import { loadModules, useUtil } from './loader.js';
 
 describe('the "we moved you off that street" message', () => {
     let stored;
     let getStreetNameNear;
     let alertController;
     let stuckAlert;
+    let AlertController;
+    let StuckAlert;
 
     /** Builds the banner markup AlertController binds to, and the collaborators it reads at construction. */
     const setUp = ({ silenced = [] } = {}) => {
@@ -28,11 +27,11 @@ describe('the "we moved you off that street" message', () => {
               <button id="alert-dont-show"></button>
             </div>`;
         stored = { alertDontShowList: silenced };
-        alertController = new window.AlertController({
+        alertController = new AlertController({
             get: (key) => stored[key],
             set: (key, value) => { stored[key] = value; },
         });
-        stuckAlert = new window.StuckAlert(alertController, { onPanoChanged: () => {} });
+        stuckAlert = new StuckAlert(alertController, { onPanoChanged: () => {} });
     };
 
     beforeEach(async () => {
@@ -42,12 +41,11 @@ describe('the "we moved you off that street" message', () => {
         }));
 
         getStreetNameNear = vi.fn(() => Promise.resolve(null));
-        stubUtil({ misc: { getStreetNameNear } });
+        useUtil({ misc: { getStreetNameNear } });
         window.i18next = { t: (key, interpolation) => JSON.stringify({ key, ...interpolation }) };
 
-        Object.assign(window, await loadModules('frontend/js/explore/alert/Alert.js'));
-        Object.assign(window, await loadModules('frontend/js/explore/alert/AlertController.js'));
-        Object.assign(window, await loadModules('frontend/js/explore/alert/StuckAlert.js'));
+        ({ AlertController, StuckAlert } = await loadModules('frontend/js/explore/alert/AlertController.js',
+            'frontend/js/explore/alert/StuckAlert.js'));
     });
 
     /** The i18next key the banner currently displays, per the stub's serialization. */

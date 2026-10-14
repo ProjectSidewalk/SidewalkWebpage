@@ -8,10 +8,6 @@
  */
 
 import { loadInfra3dViewer, jwtExpiringAt, nodeFor } from './infra3dViewerHarness.js';
-import { fakeImport } from './loader.js';
-
-fakeImport('frontend/js/common/pano-viewer/PanoData.js', 'PanoData');
-
 
 const MINUTE_MS = 60 * 1000;
 const T0 = Date.parse('2026-09-16T12:00:00Z');

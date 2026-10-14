@@ -5,17 +5,12 @@
  * mid-mission reset the user to the first validation and, when it looped, produced the browser's "A problem
  * repeatedly occurred" crash page). Instead a failed submit retries the same snapshot, and an error thrown while
  * applying the response is logged but never retried (the data already reached the server).
- *
- * Runs under jsdom (vitest.config.mjs sets testEnvironment) so window/document exist.
  */
 
-import path from 'path';
-
 import { loadModules } from './loader.js';
+import { fakeTracker } from './fakes.js';
 
-const FORM_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/data/Form.js');
-
-const Form = (await loadModules(FORM_PATH)).Form;
+const { Form } = await loadModules('frontend/js/validate/data/Form.js');
 
 /** The page facts the Form reads: which UI it is, and the validate params it echoes. */
 const CONFIG = { source: 'Validate', validateParams: {} };
@@ -39,7 +34,7 @@ describe('Form.submit (issue #2745 resilience)', () => {
         vi.useFakeTimers();
 
         // The minimal collaborators submit() touches.
-        tracker = { push: vi.fn(), onFlush: vi.fn() };
+        tracker = fakeTracker();
         session = {
             missionContainer: { createAMission: vi.fn(), getCurrentMission: vi.fn(), onMissionComplete: vi.fn() },
             labelContainer: {

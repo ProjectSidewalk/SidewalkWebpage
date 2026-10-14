@@ -6,21 +6,14 @@
  * which providers carry a licence: it links whatever licence it is handed and nothing else.
  */
 
-import path from 'path';
 import { loadModules } from './loader.js';
-
-const ATTRIBUTION_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/common/pano-viewer/PanoAttribution.js');
 
 /** The one string the overlay translates: the new-tab cue on the licence link. */
 const NEW_TAB_CUE = '(opens in a new tab)';
 
-/** Load PanoAttribution.js (a plain top-level function declaration, concatenation-style). */
-async function loadAttribution() {
-  window.i18next = {
-    t: (key) => (key === 'common:pano-attribution.opens-new-tab' ? NEW_TAB_CUE : `MISSING:${key}`),
-  };
-  return (await loadModules(ATTRIBUTION_PATH)).createPanoAttribution;
-}
+window.i18next = {
+  t: (key) => (key === 'common:pano-attribution.opens-new-tab' ? NEW_TAB_CUE : `MISSING:${key}`),
+};
 
 const MAPILLARY = {
   holder: '© jacobwhall',
@@ -29,7 +22,7 @@ const MAPILLARY = {
   license_url: 'https://creativecommons.org/licenses/by-sa/4.0/',
 };
 
-const createPanoAttribution = await loadAttribution();
+const { createPanoAttribution } = await loadModules('frontend/js/common/pano-viewer/PanoAttribution.js');
 
 describe('createPanoAttribution', () => {
   let container;

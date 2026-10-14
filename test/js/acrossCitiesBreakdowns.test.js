@@ -7,22 +7,12 @@
  * counted beside them rather than folded in. Third, the cards that explain those counts name the contributors behind
  * them, which means they carry user-supplied text into markup and must escape it twice (see psTooltip's header).
  *
- * Runs under jsdom (vitest.config.mjs). AcrossCitiesPage is loaded fresh per test through loadModules, which brings its
- * MiniLineChart import with it, so the bars are drawn by the real renderer.
+ * AcrossCitiesPage is loaded fresh per test with its real MiniLineChart, so the bars are drawn by the real renderer.
  */
 
-import { loadModules, loadVendored, realUtil, stubUtil } from './loader.js';
+import { loadModules, loadVendored } from './loader.js';
 
 loadVendored('dompurify');
-
-// The page fetches through util.fetchJson.
-stubUtil(await realUtil());
-
-
-/** Loads MiniLineChart into global scope and returns the AcrossCitiesPage class. */
-async function loadPage() {
-  return (await loadModules('frontend/js/admin-dashboard/AcrossCitiesPage.js')).AcrossCitiesPage;
-}
 
 const MARKUP = `
   <span id="now-labels-today">—</span><span id="now-labels-today-ai"></span>
@@ -125,6 +115,8 @@ function dayCity(id, labels, validations, url = `https://sidewalk-${id}.example.
 
 describe('Across Cities — attribution split and hover breakdowns', () => {
   let AcrossCitiesPage;
+  /** The page's own `util`, so a card is sanitized by the same code psTooltip uses. */
+  let util;
 
   /**
    * Renders the page against a fixture and returns the initialized instance.
@@ -175,7 +167,8 @@ describe('Across Cities — attribution split and hover breakdowns', () => {
   }
 
   beforeEach(async () => {
-    AcrossCitiesPage = await loadPage();
+    ({ AcrossCitiesPage, util } = await loadModules('frontend/js/admin-dashboard/AcrossCitiesPage.js',
+      'frontend/js/common/utilities.js'));
   });
 
   describe('tiles', () => {

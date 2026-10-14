@@ -4,13 +4,10 @@
  * The map, KPIs, review lists and region table all derive from one join of street geometry onto per-face presence
  * rows, so the cases drive the real page, table and map (against a `mapboxgl` double) and check that they agree.
  * The review lists are the page's reason to exist, so each list's membership rule has a case of its own.
- *
- * Runs under jsdom (vitest.config.mjs).
  */
 
-import { loadModules, realUtil, stubUtil } from './loader.js';
+import { loadModules } from './loader.js';
 
-stubUtil(await realUtil());
 // jsdom has no layout, so it leaves scrollIntoView out; the region table calls it.
 window.HTMLElement.prototype.scrollIntoView = () => {};
 
@@ -318,12 +315,11 @@ describe('the Sidewalks page', () => {
     const scrolls = [];
     const original = window.HTMLElement.prototype.scrollIntoView;
     window.HTMLElement.prototype.scrollIntoView = function record(options) { scrolls.push([this.id, options]); };
-    window.matchMedia = vi.fn(() => ({ matches: true }));
+    vi.stubGlobal('matchMedia', vi.fn(() => ({ matches: true })));
     try {
       document.querySelector('#sidewalks-flag-table tbody tr[data-row-id="2"] button').click();
     } finally {
       window.HTMLElement.prototype.scrollIntoView = original;
-      delete window.matchMedia;
     }
     expect(scrolls).toEqual([['sidewalks-map', { behavior: 'auto', block: 'center' }]]);
   });

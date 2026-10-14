@@ -6,17 +6,12 @@
  * and a killed page fires no `pagehide` at all, so what is buffered when it goes hidden is exactly what a kill would
  * lose. Each flush records why it happened, so the interaction log can tell a background kill (`PageHidden` last)
  * from a foreground crash (a verdict last).
- *
- * Runs under jsdom (vitest.config.mjs sets testEnvironment) so window/document exist.
  */
 
-import path from 'path';
 import { loadModules } from './loader.js';
+import { fakeTracker } from './fakes.js';
 
-
-const FORM_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/data/Form.js');
-
-const Form = (await loadModules(FORM_PATH)).Form;
+const { Form } = await loadModules('frontend/js/validate/data/Form.js');
 
 // jsdom reports a page reload as a "Not implemented: navigation" error on the console, so a spy there is how the
 // suite proves the page was never reloaded (the blanket `catch -> location.reload()` #2745 removed).
@@ -37,7 +32,7 @@ afterEach(() => { vi.useRealTimers(); });
 describe('Form exit flushes (issue #5561)', () => {
     let form;
     let payload;
-    const tracker = { push: vi.fn(), record: vi.fn(), onFlush: vi.fn() };
+    const tracker = fakeTracker({ record: vi.fn() });
 
     // One Form for the whole suite: its constructor leaves exit listeners on the shared window and document, so a
     // Form per test would have every earlier one answering the events too, and the POST counts would be theirs.

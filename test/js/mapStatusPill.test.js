@@ -6,13 +6,13 @@
 
 import { loadModules } from './loader.js';
 
-
 describe('MapStatusPill', () => {
     let container;
+    let MapStatusPill;
 
     beforeAll(async () => {
         window.i18next = { t: (key) => key };
-        Object.assign(window, await loadModules('frontend/js/ps-map/MapStatusPill.js'));
+        ({ MapStatusPill } = await loadModules('frontend/js/ps-map/MapStatusPill.js'));
     });
 
     beforeEach(() => {
@@ -31,7 +31,7 @@ describe('MapStatusPill', () => {
     const closeEl = () => container.querySelector('.map-status-pill__close');
 
     test('belowFloor shows the zoom hint immediately', () => {
-        const pill = new window.MapStatusPill(container);
+        const pill = new MapStatusPill(container);
         expect(pillEl().hidden).toBe(true);
 
         pill.setState('belowFloor');
@@ -41,14 +41,14 @@ describe('MapStatusPill', () => {
     });
 
     test('the zoom hint fades after a few seconds, and only comes back after the floor is crossed again', () => {
-        const pill = new window.MapStatusPill(container);
+        const pill = new MapStatusPill(container);
         pill.setState('belowFloor');
-        vi.advanceTimersByTime(window.MapStatusPill.HINT_DURATION_MS - 1);
+        vi.advanceTimersByTime(MapStatusPill.HINT_DURATION_MS - 1);
         expect(pillEl().hidden).toBe(false);
         vi.advanceTimersByTime(1);
         expect(pillEl().classList.contains('map-status-pill--leaving')).toBe(true);
         expect(pillEl().hidden).toBe(false); // still painted while it fades
-        vi.advanceTimersByTime(window.MapStatusPill.FADE_MS);
+        vi.advanceTimersByTime(MapStatusPill.FADE_MS);
         expect(pillEl().hidden).toBe(true);
 
         // Still below the floor: a repeat of the same state is not a new arrival.
@@ -62,7 +62,7 @@ describe('MapStatusPill', () => {
     });
 
     test('loading shows only after the anti-flicker delay', () => {
-        const pill = new window.MapStatusPill(container);
+        const pill = new MapStatusPill(container);
         pill.setState('loading');
         expect(pillEl().hidden).toBe(true);
 
@@ -73,7 +73,7 @@ describe('MapStatusPill', () => {
     });
 
     test('a fast refetch (loading then idle inside the delay) never shows the pill', () => {
-        const pill = new window.MapStatusPill(container);
+        const pill = new MapStatusPill(container);
         pill.setState('loading');
         vi.advanceTimersByTime(200);
         pill.setState('idle');
@@ -82,14 +82,14 @@ describe('MapStatusPill', () => {
     });
 
     test('loading stays hidden while suppressed (the full overlay is already up)', () => {
-        const pill = new window.MapStatusPill(container, { suppressLoading: () => true });
+        const pill = new MapStatusPill(container, { suppressLoading: () => true });
         pill.setState('loading');
         vi.advanceTimersByTime(400);
         expect(pillEl().hidden).toBe(true);
     });
 
     test('idle and error both hide an active hint', () => {
-        const pill = new window.MapStatusPill(container);
+        const pill = new MapStatusPill(container);
         pill.setState('belowFloor');
         pill.setState('idle');
         expect(pillEl().hidden).toBe(true);
@@ -100,7 +100,7 @@ describe('MapStatusPill', () => {
     });
 
     test('the zoom hint offers a labeled close button', () => {
-        const pill = new window.MapStatusPill(container);
+        const pill = new MapStatusPill(container);
         pill.setState('belowFloor');
         expect(closeEl().tagName).toBe('BUTTON');
         expect(closeEl().type).toBe('button');
@@ -110,7 +110,7 @@ describe('MapStatusPill', () => {
     });
 
     test('closing hides the hint at once and logs it, until the floor is crossed again', () => {
-        const pill = new window.MapStatusPill(container);
+        const pill = new MapStatusPill(container);
         pill.setState('belowFloor');
         closeEl().click();
         expect(pillEl().hidden).toBe(true);
@@ -120,7 +120,7 @@ describe('MapStatusPill', () => {
 
         pill.setState('belowFloor');
         expect(pillEl().hidden).toBe(true);
-        vi.advanceTimersByTime(window.MapStatusPill.HINT_DURATION_MS + window.MapStatusPill.FADE_MS);
+        vi.advanceTimersByTime(MapStatusPill.HINT_DURATION_MS + MapStatusPill.FADE_MS);
         expect(pillEl().hidden).toBe(true);
 
         pill.setState('idle');
@@ -130,7 +130,7 @@ describe('MapStatusPill', () => {
 
     test('closing from the keyboard returns focus to the map canvas, not the top of the page', () => {
         container.innerHTML = '<canvas class="mapboxgl-canvas" tabindex="0"></canvas>';
-        const pill = new window.MapStatusPill(container);
+        const pill = new MapStatusPill(container);
         pill.setState('belowFloor');
         closeEl().focus();
         closeEl().click();
@@ -142,7 +142,7 @@ describe('MapStatusPill', () => {
         ['hover', 'mouseenter', 'mouseleave'],
         ['focus', 'focusin', 'focusout'],
     ])('%s holds the fade, and leaving restarts the full countdown', (_name, enterEvent, leaveEvent) => {
-        const pill = new window.MapStatusPill(container);
+        const pill = new MapStatusPill(container);
         pill.setState('belowFloor');
         vi.advanceTimersByTime(5000);
         // Only the X is hit-testable, but a browser sends mouseenter/mouseleave to the pill as the pointer crosses
@@ -154,14 +154,14 @@ describe('MapStatusPill', () => {
         expect(pillEl().classList.contains('map-status-pill--leaving')).toBe(false);
 
         target.dispatchEvent(new Event(leaveEvent, { bubbles: leaveEvent !== 'mouseleave' }));
-        vi.advanceTimersByTime(window.MapStatusPill.HINT_DURATION_MS - 1);
+        vi.advanceTimersByTime(MapStatusPill.HINT_DURATION_MS - 1);
         expect(pillEl().classList.contains('map-status-pill--leaving')).toBe(false);
         vi.advanceTimersByTime(1);
         expect(pillEl().classList.contains('map-status-pill--leaving')).toBe(true);
     });
 
     test('a hint that follows the loading note gets its close button back', () => {
-        const pill = new window.MapStatusPill(container);
+        const pill = new MapStatusPill(container);
         pill.setState('loading');
         vi.advanceTimersByTime(400);
         expect(closeEl().hidden).toBe(true);
@@ -173,7 +173,7 @@ describe('MapStatusPill', () => {
 
     test('a state change that hides the hint while its X holds focus returns focus to the map canvas', () => {
         container.innerHTML = '<canvas class="mapboxgl-canvas" tabindex="0"></canvas>';
-        const pill = new window.MapStatusPill(container);
+        const pill = new MapStatusPill(container);
         pill.setState('belowFloor');
         closeEl().focus();
 

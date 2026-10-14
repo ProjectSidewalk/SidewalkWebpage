@@ -11,26 +11,21 @@
  * ResizeObserver, so a recording stub stands in for it.
  */
 
-import path from 'path';
-import { loadModules, fakeImport, stubUtil } from './loader.js';
+import { loadModules, mockModule } from './loader.js';
+import { fakeTracker } from './fakes.js';
 
-fakeImport('frontend/js/common/pano-viewer/GsvViewer.js', 'GsvViewer');
-fakeImport('frontend/js/common/pano-viewer/MapillaryViewer.js', 'MapillaryViewer');
-fakeImport('frontend/js/common/pano-viewer/PanoViewerLogo.js', 'createPanoViewerLogo');
-fakeImport('frontend/js/explore/panorama/NoImageryFlagGuard.js', 'NoImageryFlagGuard');
+let fakeViewer;
 
-
-const PANO_MANAGER_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/explore/panorama/PanoManager.js');
-
-/**
- * Load a bare `class` declaration out of a production file, the way the Grunt bundle puts it in page scope.
- * @param {string} filePath - Absolute path to the production file.
- * @param {string} className - Name of the class the file declares.
- * @returns {Function} The class.
- */
-async function loadClassFromFile(filePath, className) {
-  return (await loadModules(filePath))[className];
+// The viewer type the config names must be the very class PanoManager imports, so every Mapillary-only path runs.
+class MapillaryViewer {
+  static create() { return Promise.resolve(fakeViewer); }
 }
+mockModule('frontend/js/common/pano-viewer/MapillaryViewer.js', () => ({ MapillaryViewer }));
+mockModule('frontend/js/common/pano-viewer/GsvViewer.js', () => ({ GsvViewer: class GsvViewer {} }));
+mockModule('frontend/js/common/pano-viewer/PanoViewerLogo.js', () => ({
+  createPanoViewerLogo: () => ({ showPrimaryLogo: () => {} }),
+}));
+mockModule('frontend/js/explore/panorama/NoImageryFlagGuard.js', () => ({ NoImageryFlagGuard: { reset() {} } }));
 
 /** Let MutationObserver callbacks, which run as microtasks, fire. */
 const flushObservers = () => new Promise((resolve) => setTimeout(resolve, 0));
@@ -63,9 +58,9 @@ describe('Explore publishes the links clearance from Mapillary\'s in-place pill 
       pano: document.getElementById('pano'),
       viewControlLayer: document.getElementById('view-control-layer'),
     };
-    const config = { viewerType: window.MapillaryViewer, viewerAccessToken: 'token' };
+    const config = { viewerType: MapillaryViewer, viewerAccessToken: 'token' };
     const panoManager = new PanoManager(ui, config, { addPanoMetadata: vi.fn() },
-      { push: vi.fn(), trackPano: vi.fn() }, {}, {}, {});
+      fakeTracker(), {}, {}, {});
     await panoManager.ready;
     await flushObservers();
   }
@@ -78,20 +73,15 @@ describe('Explore publishes the links clearance from Mapillary\'s in-place pill 
       </div>`;
 
     observedNodes = [];
-    window.ResizeObserver = class {
+    vi.stubGlobal('ResizeObserver', class {
       observe(node) { observedNodes.push(node); }
       disconnect() {}
-    };
+    });
 
-    stubUtil({localIsoDate: () => '2024-11'});
     window.i18next = {t: (key) => key};
-    window.NoImageryFlagGuard = {reset: vi.fn()};
-    window.NoImageryError = class NoImageryError extends Error {};
-    window.createPanoViewerLogo = vi.fn(() => ({showPrimaryLogo: vi.fn()}));
-    window.GsvViewer = class GsvViewer {};
 
     const panoData = {getPanoId: () => 'pano1', getProperty: () => 0};
-    const fakeViewer = {
+    fakeViewer = {
       addListener: vi.fn(),
       getPov: () => ({heading: 0, pitch: 0, zoom: 1}),
       setPov: vi.fn(),
@@ -99,19 +89,11 @@ describe('Explore publishes the links clearance from Mapillary\'s in-place pill 
       currPanoData: panoData,
       initialSeed: 'pano',
     };
-    // The viewer type IS the MapillaryViewer global, so every Mapillary-only path in PanoManager runs.
-    window.MapillaryViewer = class MapillaryViewer {
-      static create() { return Promise.resolve(fakeViewer); }
-    };
-    PanoManager = await loadClassFromFile(PANO_MANAGER_PATH, 'PanoManager');
+    ({ PanoManager } = await loadModules('frontend/js/explore/panorama/PanoManager.js'));
   });
 
   afterEach(() => {
     document.body.innerHTML = '';
-    for (const name of ['ResizeObserver', 'util', 'i18next', 'NoImageryFlagGuard', 'NoImageryError',
-      'createPanoViewerLogo', 'GsvViewer', 'MapillaryViewer']) {
-      delete global[name];
-    }
   });
 
   test('a pill the SDK rendered before setup is measured where it is and left there', async () => {

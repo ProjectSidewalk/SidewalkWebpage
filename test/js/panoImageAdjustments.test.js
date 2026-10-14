@@ -6,18 +6,10 @@
  * all-default state removes the inline filter entirely so the untouched pano never references the SVG), the gamma
  * mapping's endpoints, the SVG curve's sRGB interpolation flag (linearRGB would quietly lift far less), persistence
  * with field-by-field validation of whatever is in storage, and that a blocked storage degrades to "not remembered"
- * rather than throwing. The class is a top-level `class`, so the source is eval'd into the jsdom global scope with an
- * explicit `window.X = X` epilogue rather than require()-d, as with ShareWidget.
+ * rather than throwing.
  */
 
 import { loadModules } from './loader.js';
-
-
-/** Loads the class fresh into the global scope. */
-async function loadClass() {
-    Object.assign(window, await loadModules('frontend/js/common/PanoImageAdjustments.js'));
-    return window.PanoImageAdjustments;
-}
 
 /** A Storage stand-in backed by a plain object, so tests can plant arbitrary values and read back writes. */
 function memoryStorage(seed = {}) {
@@ -36,7 +28,7 @@ let target;
 beforeEach(async () => {
     document.body.innerHTML = '<div id="pano"></div>';
     target = document.getElementById('pano');
-    PanoImageAdjustments = await loadClass();
+    ({ PanoImageAdjustments } = await loadModules('frontend/js/common/PanoImageAdjustments.js'));
 });
 
 describe('defaults', () => {

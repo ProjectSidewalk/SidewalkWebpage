@@ -5,23 +5,11 @@
  * decide whether a row reads as healthy: an unrecognized status must not render green, a hand-triggered run must sit
  * beside the schedule's record rather than replace it, an empty panel is a failed read rather than a quiet night, and
  * the rows sort worst-first because on a healthy night every row says the same thing.
- *
- * Runs under jsdom (vitest.config.mjs). HealthPage and AdminShell are bare top-level classes in a concatenated bundle,
- * so they are eval'd into global scope rather than required.
  */
 
-import { loadModules, realUtil, stubUtil } from './loader.js';
+import { loadModules } from './loader.js';
 
-// The page fetches through util.fetchJson.
-stubUtil(await realUtil());
-
-
-/** Loads AdminShell into global scope and returns the HealthPage class. */
-async function loadPage() {
-  return (await loadModules('frontend/js/admin-dashboard/HealthPage.js')).HealthPage;
-}
-
-const HealthPage = await loadPage();
+const { HealthPage } = await loadModules('frontend/js/admin-dashboard/HealthPage.js');
 
 const MARKUP = `
   <span id="kpi-locks"></span><span id="kpi-idle"></span><span id="kpi-slow"></span>
@@ -96,7 +84,7 @@ async function render(jobs) {
     }),
   });
   // init() also starts poll and age tickers; stub them so jsdom isn't left with live intervals.
-  vi.spyOn(global, 'setInterval').mockImplementation(() => 0);
+  vi.spyOn(window, 'setInterval').mockImplementation(() => 0);
   await new HealthPage({ healthUrl: '/adminapi/dbHealth' }).init();
 }
 

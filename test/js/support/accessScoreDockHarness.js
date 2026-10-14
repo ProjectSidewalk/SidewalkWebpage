@@ -1,16 +1,14 @@
 /**
  * Shared setup for the AccessScore insights-dock suites (#5217): loads the model, the ramp, the chart base and
- * views, and the dock into jsdom with what they read — an i18next that echoes keys and their arguments, the real
- * `util.misc` (label-type helpers and the marker helper the cards share), the mini-card's toast and badge hooks, and
- * the ramp tokens — so each suite can assert on structure and numbers rather than on translated prose.
+ * views, and the dock into jsdom with what they read — an i18next that echoes keys and their arguments, and the
+ * ramp tokens — so each suite can assert on structure and numbers rather than on translated prose.
  */
 
 import fs from 'fs';
 import path from 'path';
 
-import { installDateHelpers, installUtilitiesMisc, installEscapeHTML, loadModules, stubUtil } from '../loader.js';
+import { loadModules, REPO_ROOT } from '../loader.js';
 
-const REPO_ROOT = path.resolve(__dirname, '..', '..', '..');
 const read = (p) => fs.readFileSync(path.join(REPO_ROOT, p), 'utf8');
 
 const FIXTURE = JSON.parse(read('test/fixtures/accessScoreParity.json'));
@@ -31,38 +29,18 @@ function stubI18next() {
 }
 
 /**
- * `window.util` as the views see it: the real `util.misc` (frontend/js/common/utilitiesSidewalk.js, over the stamped
- * label types) so the rating palettes, their words, the icon paths and the shared marker helper are the shipped ones,
- * plus the handful of utilities.js helpers the views lean on, verbatim.
+ * Loads the ramp tokens and the production sources together, so the dock's views are the very classes handed back.
+ * @returns {Promise<object>} The classes by name: `ScoreRamp`, `LabelMiniCard`, `AccessScoreModel`, ...,
+ *   `AccessScoreDock`.
  */
-async function installUtil() {
-    stubUtil({
-        assetPath: (p) => `/assets/${p}`,
-        camelToKebab: (str) => str.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase(),
-        lazyIdentityFetch: (...args) => window.fetch(...args),
-        EXPLORE_CANVAS_WIDTH: 720,
-        EXPLORE_CANVAS_HEIGHT: 480,
-    });
-    await installUtilitiesMisc();
-    await installDateHelpers();
-    await installEscapeHTML();
-    // The mini-card's side channels: a toast on a refused vote, a badge tick on a first one.
-    window.Toast = {show: vi.fn()};
-    window.BadgeAchievements = {recordValidation: vi.fn()};
-}
-
-/** Evaluates the production sources into the jsdom global scope, exporting the bare classes onto window. */
 async function loadSources() {
     RAMP.forEach((hex, i) => document.documentElement.style.setProperty(`--color-score-ramp-${i + 1}`, hex));
-    Object.assign(window, await loadModules('frontend/js/common/scoreRamp.js'));
-    Object.assign(window, await loadModules('frontend/js/common/LabelMiniCard.js'));
     const classes = ['AccessScoreModel', 'AccessScoreGradeRamp', 'AccessScoreChart', 'AccessScoreHistogram',
         'AccessScoreWhatsHere', 'AccessScoreRankBars', 'AccessScoreClusterSheet', 'AccessScorePhotoStrip',
         'AccessScoreDock'];
-    for (const name of classes) {
-        const dir = name === 'AccessScoreGradeRamp' ? 'common' : 'access-score';  // Shared with the API docs.
-        Object.assign(window, await loadModules(`frontend/js/${dir}/${name}.js`));
-    }
+    const dirOf = (name) => (name === 'AccessScoreGradeRamp' ? 'common' : 'access-score');
+    const paths = classes.map((name) => `frontend/js/${dirOf(name)}/${name}.js`);
+    return loadModules('frontend/js/common/scoreRamp.js', 'frontend/js/common/LabelMiniCard.js', ...paths);
 }
 
 /** A street feature in the API's shape, from a fixture case. */
@@ -148,4 +126,4 @@ function rgb(hex) {
     return `rgb(${r}, ${g}, ${b})`;
 }
 
-export {FIXTURE, RAMP, stubI18next, installUtil, stubFetch, loadSources, feature, DOCK_HTML, rgb};
+export {FIXTURE, RAMP, stubI18next, stubFetch, loadSources, feature, DOCK_HTML, rgb};

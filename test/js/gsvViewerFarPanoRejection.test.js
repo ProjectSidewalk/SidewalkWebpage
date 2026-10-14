@@ -7,42 +7,23 @@
  * findPanoNear() resolves null, so no minimap crumb is drawn there — and that each distinct far pano is reported once
  * through the `FarPanoRejected` diagnostic.
  *
- * The viewer source is eval'd into the jsdom global scope over the real PanoViewer base, as in
- * panoViewerFindPanoNear.test.js, with the real util.math.haversine doing the distance math.
+ * The real PanoViewer base and util.math.haversine do the distance math, as in panoViewerFindPanoNear.test.js; only
+ * Google's service is faked.
  */
 
-import path from 'path';
-import { loadVendored, loadGlobalScript, realUtil, loadModules, fakeImport, stubUtil } from './loader.js';
+import { loadVendored, loadModules } from './loader.js';
 
-fakeImport('frontend/js/common/pano-viewer/PanoData.js', 'PanoData');
-fakeImport('frontend/js/common/pano-viewer/NoImageryError.js', 'NoImageryError');
-
-
-const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const SRC_DIR = path.join(REPO_ROOT, 'frontend/js/common/pano-viewer');
-
-// utilities.js builds a Bowser parser at load time; nothing here consults it.
-window.bowser = {
-    getParser: () => ({
-        getBrowserName: () => 'Test', getBrowserVersion: () => '1',
-        getOSName: () => 'TestOS', getPlatformType: () => 'desktop',
-    }),
-};
-stubUtil(await realUtil());
-await loadGlobalScript('frontend/js/common/utilitiesMath.js');
-await loadGlobalScript('frontend/js/common/pano-viewer/panoUtilities.js');
 loadVendored('turf');
 
 const { turf } = window;
 
 /**
- * Loads the real PanoViewer and GsvViewer fresh into the jsdom global scope.
- * @returns {{GsvViewer: Function, NoImageryError: Function}}
+ * Loads GsvViewer fresh, with the NoImageryError its searches reject with.
+ * @returns {Promise<{GsvViewer: Function, NoImageryError: Function}>}
  */
-async function loadGsvViewer() {
-    Object.assign(window, await loadModules(path.join(SRC_DIR, 'GsvViewer.js'), path.join(SRC_DIR, 'NoImageryError.js')));
-    return { GsvViewer: window.GsvViewer, NoImageryError: window.NoImageryError };
-}
+const loadGsvViewer = () => loadModules(
+    'frontend/js/common/pano-viewer/GsvViewer.js', 'frontend/js/common/pano-viewer/NoImageryError.js',
+);
 
 // The #5114 reproduction: Seattle street 7208's second endpoint, and where Google's answer to it actually was.
 const SEATTLE_QUERY = { lat: 47.6196811, lng: -122.3100703 };
@@ -132,19 +113,6 @@ describe('GsvViewer location searches hold replies to the radius', () => {
                 StreetViewSource: { OUTDOOR: 'outdoor' },
             },
         };
-        window.PanoData = class {
-            constructor(params) {
-                this.params = params;
-            }
-
-            getPanoId() {
-                return this.params.panoId;
-            }
-
-            getProperty(key) {
-                return this.params[key];
-            }
-        };
         ({ GsvViewer, NoImageryError } = await loadGsvViewer());
         viewer = new GsvViewer();
         getPanorama = vi.fn();
@@ -155,10 +123,6 @@ describe('GsvViewer location searches hold replies to the radius', () => {
         diagnostics = [];
         viewer.addListener('diagnostic', (name, details) => diagnostics.push({ name, details }));
         vi.spyOn(console, 'warn').mockImplementation(() => {}); // _fireDiagnostic warns on every event.
-    });
-
-    afterEach(() => {
-        console.warn.mockRestore();
     });
 
     test('setLocation rejects a far pano as NoImageryError and never loads it', async () => {

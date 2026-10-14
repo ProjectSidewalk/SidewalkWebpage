@@ -5,10 +5,9 @@
  * backend's label-type table rather than a copy of it.
  */
 
-import { assetPathStub, installUtilitiesMisc, loadModules, stubUtil } from './loader.js';
+import { loadModules, useUtil } from './loader.js';
 import { makeContextMenuUi } from './contextMenuUiStub.js';
 import { fakeGate, fakeTracker } from './fakes.js';
-
 
 /**
  * @param {string} labelType
@@ -40,27 +39,21 @@ describe('Explore severity shortcuts', () => {
 
   beforeEach(async () => {
     window.i18next = { t: (key) => key };
-    stubUtil({
-      assetPath: assetPathStub,
-      camelToKebab: (s) => s,
-      anchorPanelToLabel: vi.fn(),
-      // Never resolves, so the severity tooltips (which need real DOM) are never built.
-      getImage: () => new Promise(() => {}),
-    });
-    await installUtilitiesMisc();
+    // Never resolves, so the severity tooltips (which need real DOM) are never built.
+    useUtil({ getImage: () => new Promise(() => {}) });
     const canvas = { clear: () => canvas, render: () => canvas };
     const tracker = fakeTracker();
     config = { isOnboarding: false };
     keyboardDisabled = false;
 
-    Object.assign(window, await loadModules('frontend/js/explore/canvas/ContextMenu.js',
-      'frontend/js/explore/keyboard/KeyboardManager.js'));
-    menu = new window.ContextMenu(makeContextMenuUi(), config, { iconRadius: 17 },
+    const { ContextMenu, KeyboardManager } = await loadModules('frontend/js/explore/canvas/ContextMenu.js',
+      'frontend/js/explore/keyboard/KeyboardManager.js');
+    menu = new ContextMenu(makeContextMenuUi(), config, { iconRadius: 17 },
       { canDelete: () => true, getAllLabels: () => [], addToLabelsToLog: vi.fn() },
       { switching: fakeGate() }, { onMoveStarted: vi.fn() },
       { ratingClicked: vi.fn() }, { ensureLabelSaved: vi.fn() }, tracker);
     menu.labelTags = [];
-    new window.KeyboardManager({ isHeld: () => keyboardDisabled }, canvas, menu, {}, {}, {}, {}, {}, {}, tracker);
+    new KeyboardManager({ isHeld: () => keyboardDisabled }, canvas, menu, {}, {}, {}, {}, {}, {}, tracker);
   });
 
   afterEach(() => {

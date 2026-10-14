@@ -15,19 +15,10 @@
  * viewerShowsLabel() is the other half: it decides whether there's a viewer worth believing in the first place, and
  * the card feeds its answer to submissionContext(). Both are exercised here.
  *
- * LabelDetail is a top-level `class` declaration written for the Grunt-concatenation world, so (like
- * share-widget.test.js) the source is eval'd into the jsdom global scope with an epilogue that exposes the class.
- * Only the static method is exercised here — constructing a LabelDetail needs a live pano viewer.
+ * Only the static methods are exercised here: constructing a LabelDetail needs a live pano viewer.
  */
 
 import { loadModules } from './loader.js';
-
-
-/** Loads a fresh LabelDetail class into the jsdom global scope. */
-async function loadLabelDetail() {
-    Object.assign(window, await loadModules('frontend/js/common/label-detail/LabelDetail.js'));
-    return window.LabelDetail;
-}
 
 /** A label whose metadata carries everything: its pano, that pano's camera location, and the stored POV. */
 const META = {
@@ -46,7 +37,7 @@ describe('LabelDetail.submissionContext', () => {
     let LabelDetail;
 
     beforeEach(async () => {
-        LabelDetail = await loadLabelDetail();
+        ({ LabelDetail } = await loadModules('frontend/js/common/label-detail/LabelDetail.js'));
     });
 
     test('a viewer showing the label wins over the metadata', () => {
@@ -132,7 +123,7 @@ describe('LabelDetail.viewerShowsLabel', () => {
     let LabelDetail;
 
     beforeEach(async () => {
-        LabelDetail = await loadLabelDetail();
+        ({ LabelDetail } = await loadModules('frontend/js/common/label-detail/LabelDetail.js'));
     });
 
     test.each([

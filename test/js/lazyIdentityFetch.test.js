@@ -10,7 +10,9 @@
  *   - writes that need a session at the same moment share one mint, so a double-click can't create two accounts.
  */
 
-import { realUtil, stubUtil } from './loader.js';
+import { loadModules } from './loader.js';
+
+const { util } = await loadModules('frontend/js/common/utilities.js');
 
 /** A minimal Response-shaped object carrying only the fields the helper reads. */
 function response(overrides = {}) {
@@ -19,23 +21,12 @@ function response(overrides = {}) {
 
 const OK = () => response({ ok: true });
 
-beforeEach(async () => {
-    // utilities.js builds a Bowser parser at load time; the helper never touches it, but the file needs the global.
-    window.bowser = {
-        getParser: () => ({
-            getBrowserName: () => 'Test', getBrowserVersion: () => '1',
-            getOSName: () => 'TestOS', getPlatformType: () => 'desktop',
-        }),
-    };
-    stubUtil(await realUtil());
-});
-
 /** Runs the helper against a scripted sequence of responses and returns { result, calls }. */
 async function run(responses, options = { method: 'POST', body: '{"x":1}' }) {
     const fetchMock = vi.fn();
     responses.forEach((r) => fetchMock.mockResolvedValueOnce(r));
     window.fetch = fetchMock;
-    const result = await window.util.lazyIdentityFetch('/labelmap/validate', options);
+    const result = await util.lazyIdentityFetch('/labelmap/validate', options);
     return { result, options, calls: fetchMock.mock.calls };
 }
 
@@ -140,8 +131,8 @@ describe('concurrent first writes', () => {
         s.failFirst(2); // Both openers reach the server unauthenticated.
 
         const both = Promise.all([
-            window.util.lazyIdentityFetch('/labelmap/validate', { method: 'POST', body: '{"a":1}' }),
-            window.util.lazyIdentityFetch('/labelmap/validate', { method: 'POST', body: '{"b":2}' }),
+            util.lazyIdentityFetch('/labelmap/validate', { method: 'POST', body: '{"a":1}' }),
+            util.lazyIdentityFetch('/labelmap/validate', { method: 'POST', body: '{"b":2}' }),
         ]);
 
         await flush();
@@ -162,12 +153,12 @@ describe('concurrent first writes', () => {
         s.failFirst(1);
         s.release(); // No need to hold it open; these two writes are sequential.
 
-        expect((await window.util.lazyIdentityFetch('/labelmap/validate', { method: 'POST' })).ok).toBe(true);
+        expect((await util.lazyIdentityFetch('/labelmap/validate', { method: 'POST' })).ok).toBe(true);
         expect(s.mintCalls()).toBe(1);
 
         // Second write, much later, whose session is gone again. Sharing must be per-burst, not a permanent cache.
         s.failFirst(1);
-        expect((await window.util.lazyIdentityFetch('/labelmap/validate', { method: 'POST' })).ok).toBe(true);
+        expect((await util.lazyIdentityFetch('/labelmap/validate', { method: 'POST' })).ok).toBe(true);
         expect(s.mintCalls()).toBe(2);
     });
 });

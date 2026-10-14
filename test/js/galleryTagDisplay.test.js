@@ -11,7 +11,6 @@
 
 import { loadModules } from './loader.js';
 
-
 /** Widths the stub reports, in the units the production code compares: CSS px. */
 const HOLDER_WIDTH = 400;
 const TAG_MARGIN = 2;
@@ -37,14 +36,14 @@ function stubLayout(widthOf) {
             : Math.min(max, widthOf(this) + PILL_CHROME);
         return {width: borderBox};
     };
-    window.getComputedStyle = (el) => ({
+    vi.stubGlobal('getComputedStyle', (el) => ({
         marginLeft: el.classList.contains('gallery-tag') ? `${TAG_MARGIN}px` : '0px',
         marginRight: el.classList.contains('gallery-tag') ? `${TAG_MARGIN}px` : '0px',
         paddingLeft: '0px',
         paddingRight: '0px',
         borderLeftWidth: '0px',
         borderRightWidth: '0px',
-    });
+    }));
     return {layoutReads: reads};
 }
 
@@ -64,8 +63,8 @@ async function render(tags, widths, holderWidth = HOLDER_WIDTH) {
         if (el.classList.contains('label-tags-holder')) return holderWidth;
         return widths[el.textContent] ?? el.textContent.length * CHAR_PX;
     });
-    Object.assign(window, await loadModules('frontend/js/gallery/displays/TagDisplay.js'));
-    new window.TagDisplay(container, tags, []);
+    const {TagDisplay} = await loadModules('frontend/js/gallery/displays/TagDisplay.js');
+    new TagDisplay(container, tags, []);
     return {container, layoutReads: probe.layoutReads};
 }
 
@@ -76,11 +75,9 @@ const shownTags = (container) => [...container.querySelectorAll('.thumbnail-tag'
 const overflowPill = (container) => container.querySelector('.additional-count')?.textContent ?? null;
 
 const realGetBoundingClientRect = window.HTMLElement.prototype.getBoundingClientRect;
-const realGetComputedStyle = window.getComputedStyle;
 
 afterAll(() => {
     window.HTMLElement.prototype.getBoundingClientRect = realGetBoundingClientRect;
-    window.getComputedStyle = realGetComputedStyle;
 });
 
 beforeAll(() => {

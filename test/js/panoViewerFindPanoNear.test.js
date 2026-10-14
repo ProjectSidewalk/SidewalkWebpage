@@ -8,47 +8,32 @@
  * caller must not read "unknown" as "empty" (#4918); and a lookup that never settles is given up on rather than left
  * to hang a sampler.
  *
- * The viewers are top-level `class` declarations written for the Grunt-concatenation world, so each provider's
- * source is eval'd into the jsdom global scope over the real PanoViewer base, with stub declarations for the sibling
- * viewer classes PanoViewer's constructor compares `new.target` against. Real turf and the real pano utilities run
- * the distance and scoring math, so the pick is the production pick.
+ * Real turf and the real pano utilities run the distance and scoring math, so the pick is the production pick.
  */
 
 import fs from 'fs';
 import path from 'path';
-import { loadVendored, loadGlobalScript, realUtil, loadModules, stubUtil } from './loader.js';
+import { loadVendored, loadModules, REPO_ROOT } from './loader.js';
 
-const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const SRC_DIR = path.join(REPO_ROOT, 'frontend/js/common/pano-viewer');
+const SRC_DIR = 'frontend/js/common/pano-viewer';
 
-
-// utilities.js builds a Bowser parser at load time; nothing here consults it.
-window.bowser = {
-    getParser: () => ({
-        getBrowserName: () => 'Test', getBrowserVersion: () => '1',
-        getOSName: () => 'TestOS', getPlatformType: () => 'desktop',
-    }),
-};
-stubUtil(await realUtil());
-await loadGlobalScript('frontend/js/common/utilitiesMath.js');
 // The ranking weights the providers score candidates with, stamped onto <html> the way main.scala.html does it
 // (minus the file's own `_`-prefixed documentation), so the pick here is the production pick.
 const scoringConfig = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'conf/pano-scoring.json'), 'utf8'));
 document.documentElement.dataset.panoScoring = JSON.stringify(
     Object.fromEntries(Object.entries(scoringConfig).filter(([key]) => !key.startsWith('_'))),
 );
-await loadGlobalScript('frontend/js/common/pano-viewer/panoUtilities.js');
 loadVendored('turf');
 
 const { turf } = window;
 
 /**
- * Loads the real PanoViewer plus one provider fresh into the jsdom global scope.
+ * Loads one provider fresh, with the PanoViewer base it extends.
  * @param {string} name - The provider class to load, e.g. 'GsvViewer'.
  * @returns {{PanoViewer: Function, Viewer: Function, NoImageryError: Function}}
  */
 async function loadViewer(name) {
-    const mods = await loadModules(path.join(SRC_DIR, `${name}.js`), path.join(SRC_DIR, 'PanoViewer.js'), path.join(SRC_DIR, 'NoImageryError.js'));
+    const mods = await loadModules(`${SRC_DIR}/${name}.js`, `${SRC_DIR}/PanoViewer.js`, `${SRC_DIR}/NoImageryError.js`);
     return { PanoViewer: mods.PanoViewer, Viewer: mods[name], NoImageryError: mods.NoImageryError };
 }
 
@@ -78,17 +63,13 @@ describe('PanoViewer.findPanoNear (base)', () => {
     test('_withTimeout gives up after the budget and clears its timer when the call settles first', async () => {
         vi.useFakeTimers();
         const { PanoViewer } = await loadViewer('PannellumViewer');
-        try {
-            const hung = PanoViewer._withTimeout(new Promise(() => {}), 1000, 'a hung call');
-            vi.advanceTimersByTime(1000);
-            await expect(hung).rejects.toThrow('Timed out: a hung call');
+        const hung = PanoViewer._withTimeout(new Promise(() => {}), 1000, 'a hung call');
+        vi.advanceTimersByTime(1000);
+        await expect(hung).rejects.toThrow('Timed out: a hung call');
 
-            await expect(PanoViewer._withTimeout(Promise.resolve('answer'), 1000, 'a quick call'))
-                .resolves.toBe('answer');
-            expect(vi.getTimerCount()).toBe(0);
-        } finally {
-            vi.useRealTimers();
-        }
+        await expect(PanoViewer._withTimeout(Promise.resolve('answer'), 1000, 'a quick call'))
+            .resolves.toBe('answer');
+        expect(vi.getTimerCount()).toBe(0);
     });
 });
 
@@ -210,10 +191,6 @@ describe('MapillaryViewer.findPanoNear', () => {
         window.fetch = fetchMock;
         viewer = new ((await loadViewer('MapillaryViewer')).Viewer)();
         viewer.viewer = { _navigator: { _api: { _data: { _accessToken: 'token' } } }, moveTo: vi.fn() };
-    });
-
-    afterEach(() => {
-        console.log.mockRestore();
     });
 
     test('picks the image setLocation() would pick and reports its refined position', async () => {
@@ -385,13 +362,9 @@ describe('PanoViewer.getLinkedPanoPositions (base)', () => {
             }
         })();
         vi.spyOn(console, 'warn').mockImplementation(() => {});
-        try {
-            const links = await viewer.getLinkedPanoPositions();
-            expect(links.map((l) => l.panoId)).toEqual(['placed', 'lookup']);
-            expect(links[1]).toMatchObject({ heading: 90, ...metersFromHere(12, 90) });
-        } finally {
-            console.warn.mockRestore();
-        }
+        const links = await viewer.getLinkedPanoPositions();
+        expect(links.map((l) => l.panoId)).toEqual(['placed', 'lookup']);
+        expect(links[1]).toMatchObject({ heading: 90, ...metersFromHere(12, 90) });
     });
 });
 
@@ -410,9 +383,6 @@ describe('GsvViewer.lookupPanoPosition', () => {
                 StreetViewSource: { OUTDOOR: 'outdoor' },
             },
         };
-        stubUtil(window.util || {});
-        window.util.pano = window.util.pano || {};
-        window.util.pano.TUTORIAL_PANO_IDS = new Set(['tutorial', 'afterWalkTutorial']);
         viewer = new ((await loadViewer('GsvViewer')).Viewer)();
         getPanorama = vi.fn();
         viewer.streetViewService = { getPanorama };

@@ -10,14 +10,13 @@
  * could walk 44 streets in 33 seconds without anyone in the seat realizing anything had happened.
  */
 
-
-import { loadModules, stubUtil, fakeImport } from './loader.js';
-
-fakeImport('frontend/js/common/pano-viewer/NoImageryError.js', 'NoImageryError');
-fakeImport('frontend/js/explore/panorama/NoImageryFlagGuard.js', 'NoImageryFlagGuard');
-
+import { loadModules, useUtil } from './loader.js';
+import { fakeTracker } from './fakes.js';
 
 describe('a street given up on at page load', () => {
+    let PanoManager;
+    let NoImageryFlagGuard;
+    let NoImageryError;
     let reportNoImagery;
     let showAlert;
     let consoleError;
@@ -33,8 +32,8 @@ describe('a street given up on at page load', () => {
     /** Runs one page load that fails to seed its viewer. */
     const loadAndFail = (error) => {
         const config = { viewerType: viewerTypeFailingWith(error), viewerAccessToken: 'access-token' };
-        const panoManager = new window.PanoManager({ pano: document.getElementById('pano') }, config, {},
-            { push: vi.fn(), trackPano: vi.fn() }, { showAlert }, { startPanoId: 'pano-a' }, { task, missionId: 3 });
+        const panoManager = new PanoManager({ pano: document.getElementById('pano') }, config, {},
+            fakeTracker(), { showAlert }, { startPanoId: 'pano-a' }, { task, missionId: 3 });
         return panoManager.ready;
     };
 
@@ -70,31 +69,33 @@ describe('a street given up on at page load', () => {
         reportNoImagery = vi.fn(() => Promise.resolve());
         showAlert = vi.fn();
 
-        stubUtil({ misc: { reportNoImagery } });
+        useUtil({ misc: { reportNoImagery } });
         window.i18next = { t: (key) => key };
 
-        Object.assign(window, await loadModules('frontend/js/explore/panorama/PanoManager.js',
-            'frontend/js/explore/panorama/NoImageryFlagGuard.js', 'frontend/js/common/pano-viewer/NoImageryError.js'));
+        ({ PanoManager, NoImageryFlagGuard, NoImageryError } = await loadModules(
+            'frontend/js/explore/panorama/PanoManager.js', 'frontend/js/explore/panorama/NoImageryFlagGuard.js',
+            'frontend/js/common/pano-viewer/NoImageryError.js',
+        ));
     });
 
     it('leaves a note for the load that follows, so the move can be explained', async () => {
-        await loadAndFail(new window.NoImageryError('nothing usable here'));
+        await loadAndFail(new NoImageryError('nothing usable here'));
 
         expect(reportNoImagery).toHaveBeenCalledWith(task, 3);
         expect(navigations()).toHaveLength(1);
         // The note names the street, so the arrival can tell a retry of this street from a move to another.
-        expect(window.PanoManager.consumeStreetSkippedNotice()).toBe(101);
+        expect(PanoManager.consumeStreetSkippedNotice()).toBe(101);
     });
 
     it('explains the move once, not on every load thereafter', async () => {
-        await loadAndFail(new window.NoImageryError('nothing usable here'));
+        await loadAndFail(new NoImageryError('nothing usable here'));
 
-        expect(window.PanoManager.consumeStreetSkippedNotice()).toBe(101);
-        expect(window.PanoManager.consumeStreetSkippedNotice()).toBeNull();
+        expect(PanoManager.consumeStreetSkippedNotice()).toBe(101);
+        expect(PanoManager.consumeStreetSkippedNotice()).toBeNull();
     });
 
     it('says nothing on an ordinary load', () => {
-        expect(window.PanoManager.consumeStreetSkippedNotice()).toBeNull();
+        expect(PanoManager.consumeStreetSkippedNotice()).toBeNull();
     });
 
     it('leaves no note when the provider never answered, since nobody was moved', async () => {
@@ -102,16 +103,16 @@ describe('a street given up on at page load', () => {
 
         expect(reportNoImagery).not.toHaveBeenCalled();
         expect(navigations()).toHaveLength(0);
-        expect(window.PanoManager.consumeStreetSkippedNotice()).toBeNull();
+        expect(PanoManager.consumeStreetSkippedNotice()).toBeNull();
         expect(showAlert).toHaveBeenCalledWith('popup.imagery-load-failed', 'imageryLoadFailed', false);
     });
 
     it('tells a labeler whose session has spent its budget that the run stopped', async () => {
-        window.NoImageryFlagGuard.recordStreetGivenUp();
-        window.NoImageryFlagGuard.recordStreetGivenUp();
-        window.NoImageryFlagGuard.recordStreetGivenUp();
+        NoImageryFlagGuard.recordStreetGivenUp();
+        NoImageryFlagGuard.recordStreetGivenUp();
+        NoImageryFlagGuard.recordStreetGivenUp();
 
-        await loadAndFail(new window.NoImageryError('nothing usable here'));
+        await loadAndFail(new NoImageryError('nothing usable here'));
 
         // Past the flag budget nothing is recorded and nobody is moved, so the transient-failure wording ("try
         // again in a few minutes") would be doubly wrong: nothing failed, and waiting changes nothing.
@@ -121,15 +122,15 @@ describe('a street given up on at page load', () => {
     });
 
     it('hands the budget back when it stops, so the reload it suggests actually starts over', async () => {
-        for (let i = 0; i < window.NoImageryFlagGuard.MAX_CONSECUTIVE_FLAGS; i++) {
-            window.NoImageryFlagGuard.recordStreetGivenUp();
+        for (let i = 0; i < NoImageryFlagGuard.MAX_CONSECUTIVE_FLAGS; i++) {
+            NoImageryFlagGuard.recordStreetGivenUp();
         }
 
-        await loadAndFail(new window.NoImageryError('nothing usable here'));
+        await loadAndFail(new NoImageryError('nothing usable here'));
 
         // The message tells the labeler to reload to start again. A budget that survived the reload would make that
         // advice false and leave the tab unable to show them a street ever again.
-        expect(window.NoImageryFlagGuard.count()).toBe(0);
+        expect(NoImageryFlagGuard.count()).toBe(0);
     });
 
     describe('when the load stops instead of reloading', () => {
@@ -157,11 +158,11 @@ describe('a street given up on at page load', () => {
         });
 
         it('does the same when the run ended on the flag budget rather than on an error', async () => {
-            for (let i = 0; i < window.NoImageryFlagGuard.MAX_CONSECUTIVE_FLAGS; i++) {
-                window.NoImageryFlagGuard.recordStreetGivenUp();
+            for (let i = 0; i < NoImageryFlagGuard.MAX_CONSECUTIVE_FLAGS; i++) {
+                NoImageryFlagGuard.recordStreetGivenUp();
             }
 
-            await loadAndFail(new window.NoImageryError('nothing usable here'));
+            await loadAndFail(new NoImageryError('nothing usable here'));
 
             expect(isVisible('alert-holder')).toBe(true);
             expect(isVisible('page-loading')).toBe(false);

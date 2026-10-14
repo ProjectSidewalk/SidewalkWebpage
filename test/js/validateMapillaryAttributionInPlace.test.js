@@ -11,26 +11,13 @@
  * Drives the REAL PanoManager against a fake viewer and an SDK-shaped DOM; no imagery is involved.
  */
 
-import path from 'path';
-import { loadModules, fakeImport, stubUtil } from './loader.js';
+import { loadModules, mockModule } from './loader.js';
+import { fakePanoOverlays, fakeTracker } from './fakes.js';
 
-fakeImport('frontend/js/common/pano-viewer/GsvViewer.js', 'GsvViewer');
-fakeImport('frontend/js/common/pano-viewer/PanoAttribution.js', 'createPanoAttribution');
-fakeImport('frontend/js/common/pano-viewer/PanoViewerLogo.js', 'createPanoViewerLogo');
-
-
-const PANO_MANAGER_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/panorama/PanoManager.js');
-const THROTTLE_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/util/throttle.js');
-
-/**
- * Load a bare `class` declaration out of a production file, the way the Grunt bundle puts it in page scope.
- * @param {string} filePath - Absolute path to the production file.
- * @param {string} className - Name of the class the file declares.
- * @returns {Function} The class.
- */
-async function loadClassFromFile(filePath, className) {
-  return (await loadModules(filePath))[className];
-}
+/** The viewer type IS the MapillaryViewer the manager imports, so every Mapillary-only path in PanoManager runs. */
+let MapillaryViewer;
+mockModule('frontend/js/common/pano-viewer/MapillaryViewer.js', () => ({ MapillaryViewer }));
+fakePanoOverlays();
 
 /** Let MutationObserver callbacks, which run as microtasks, fire. */
 const flushObservers = () => new Promise((resolve) => setTimeout(resolve, 0));
@@ -55,38 +42,22 @@ describe('Validate leaves Mapillary\'s attribution pill in the SDK\'s DOM (issue
     renderer = document.querySelector('.mapillary-dom-renderer');
     attributionContainer = document.querySelector('.mapillary-attribution-container');
 
-    stubUtil({});
-    window.i18next = {language: 'en'};
-    Object.assign(window, await loadModules(THROTTLE_PATH));
-    util.isMobile = () => false;
-
-    window.createPanoViewerLogo = vi.fn(() => ({showPrimaryLogo: vi.fn(), showSourceLogo: vi.fn()}));
-    window.createPanoAttribution = vi.fn(() => ({show: vi.fn(), hide: vi.fn()}));
-    window.GsvViewer = class GsvViewer {};
-    window.PannellumViewer = class PannellumViewer {};
+    vi.stubGlobal('i18next', {language: 'en'});
 
     const fakeViewer = {addListener: vi.fn(), resize: vi.fn(), setPov: vi.fn(), getPov: () => ({})};
-    // The viewer type IS the MapillaryViewer global, so every Mapillary-only path in PanoManager runs.
-    window.MapillaryViewer = class MapillaryViewer {
+    MapillaryViewer = class MapillaryViewer {
       static create() { return Promise.resolve(fakeViewer); }
     };
 
-    const PanoManager = await loadClassFromFile(PANO_MANAGER_PATH, 'PanoManager');
+    const { PanoManager } = await loadModules('frontend/js/validate/panorama/PanoManager.js');
     const viewerUi = {date: {textContent: ''}, controlLayer: document.getElementById('view-control-layer')};
-    await PanoManager.create('token', viewerUi, {viewerType: window.MapillaryViewer, labelRadius: 10},
-      {addPanoMetadata: vi.fn()}, {}, {push: vi.fn(), trackPano: vi.fn()});
+    await PanoManager.create('token', viewerUi, {viewerType: MapillaryViewer, labelRadius: 10},
+      {addPanoMetadata: vi.fn()}, {}, fakeTracker());
     await flushObservers();
   });
 
   afterEach(() => {
     document.body.innerHTML = '';
-    delete window.util;
-    delete window.i18next;
-    delete window.createPanoViewerLogo;
-    delete window.createPanoAttribution;
-    delete window.GsvViewer;
-    delete window.MapillaryViewer;
-    delete window.PannellumViewer;
   });
 
   test('the pill stays under the SDK\'s renderer root after the viewer is set up', () => {

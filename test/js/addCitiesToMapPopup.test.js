@@ -6,17 +6,9 @@
  * The result was that the "Validations" cell always rendered 0 while distance and labels populated correctly. This
  * pins the popup's read paths against a realistic overallStats response shape so the same field drift can't recur
  * silently (the `|| 0` fallback turns a moved field into a wrong value, not a thrown error).
- *
- * Runs under jsdom (vitest.config.mjs testEnvironment) so window/document exist. addCitiesToMap is a bare global
- * function (Project Sidewalk's frontend has no module system), so we execute the file in global scope via
- * `new Function` — unlike the *Preview modules, it never self-assigns onto `window`, so a plain require() wouldn't
- * expose it. Mapbox, i18next and fetch are all stubbed.
  */
 
-import path from 'path';
-import { loadModules, stubUtil } from './loader.js';
-
-const MODULE_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/ps-map/addCitiesToMap.js');
+import { loadModules, useUtil } from './loader.js';
 
 // Realistic slice of /v3/api/overallStats: validation totals live under validations.combined/human/ai (#4591),
 // labels under labels.count, distance at km_explored.
@@ -129,17 +121,7 @@ function makeCitiesData() {
  * @param {object} body - The object the stubbed fetch resolves with as JSON.
  */
 function stubFetch(body) {
-    window.fetch = vi.fn(() => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(body) }));
-}
-
-/**
- * Load addCitiesToMap into global scope. It's a top-level `function` declaration with no `window.X = ...` self-assign,
- * so require() would keep it module-scoped; executing the source via `new Function` puts the declaration on the
- * global object, matching how Grunt-concatenated scripts behave in the browser.
- * @returns {Function} The addCitiesToMap function.
- */
-async function loadAddCitiesToMap() {
-    return (await loadModules(MODULE_PATH)).addCitiesToMap;
+    vi.stubGlobal('fetch', vi.fn(() => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(body) })));
 }
 
 describe('addCitiesToMap city popup (#4591)', () => {
@@ -150,28 +132,21 @@ describe('addCitiesToMap city popup (#4591)', () => {
         document.body.innerHTML = POPUP_TEMPLATE;
         lastPopupContent = undefined;
         // format-number echoes the raw value so tests can assert exact numbers; other keys just return the key.
-        window.i18next = {
+        vi.stubGlobal('i18next', {
             t: (key, opts) => {
                 if (key === 'common:format-number') return String(opts.val);
                 return key;
             },
-        };
+        });
         // Units come from the server's <html> stamp, which util reads back; these tests run in metric. The real
         // longDistanceToString goes through i18next's `distance` formatter, which AppManager registers.
-        stubUtil({
+        useUtil({
             isMetric: () => true,
             longDistanceToString: (km, precision = 0) => `${km.toFixed(precision)} km`,
         });
-        window.mapboxgl = { Popup: FakePopup, LngLatBounds: FakeLngLatBounds };
-        addCitiesToMap = await loadAddCitiesToMap();
+        vi.stubGlobal('mapboxgl', { Popup: FakePopup, LngLatBounds: FakeLngLatBounds });
+        ({ addCitiesToMap } = await loadModules('frontend/js/ps-map/addCitiesToMap.js'));
         map = makeFakeMap();
-    });
-
-    afterEach(() => {
-        delete window.fetch;
-        delete window.i18next;
-        delete window.util;
-        delete window.mapboxgl;
     });
 
     /**

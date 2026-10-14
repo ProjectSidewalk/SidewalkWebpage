@@ -10,11 +10,11 @@
  * for all three. These tests pin that matrix: same-origin string/URL/Request receive the token, cross-origin
  * string/URL/Request do not.
  *
- * Runs under jsdom (vitest.config.mjs). Node's `fetch` and `Request` are not the page's, so both are supplied here: the
- * fetch under test is a vi.fn() standing in for the browser's, captured by the wrapper as its `originalFetch`.
+ * Node's `fetch` and `Request` are not the page's, so both are supplied here: the fetch under test is a vi.fn()
+ * standing in for the browser's, captured by the wrapper as its `originalFetch`.
  */
 
-import { loadGlobalScript } from './loader.js';
+import { loadModules } from './loader.js';
 
 const CSRF_TOKEN = 'test-csrf-token';
 const CROSS_ORIGIN = 'https://graph.mapillary.com/images?fields=id';
@@ -50,7 +50,7 @@ describe('AppManager CSRF fetch wrapper', () => {
         originalFetch = vi.fn(() => Promise.resolve({ ok: true }));
         window.fetch = originalFetch;
 
-        await loadGlobalScript('frontend/js/common/AppManager.js');
+        await loadModules('frontend/js/common/AppManager.js');
         window.appManager._setupCSRF(CSRF_TOKEN);
     });
 

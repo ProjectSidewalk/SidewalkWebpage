@@ -8,6 +8,8 @@
 import { loadModules } from './loader.js';
 import { fakeTracker } from './fakes.js';
 
+let ValidationMenu;
+
 /**
  * @param {?string} userValidation - The vote the viewer already had on this label when the page loaded.
  * @returns {{menu: Object, card: HTMLElement}} A menu built on a fresh card, and that card.
@@ -23,7 +25,7 @@ function makeMenu(userValidation = null) {
     validationInfoDisplay: { agreeContainer: document.createElement('div'),
       disagreeContainer: document.createElement('div'), setVoteIconFilled: () => {} },
   };
-  return { menu: new window.ValidationMenu(refCard, image, fakeTracker()), card };
+  return { menu: new ValidationMenu(refCard, image, fakeTracker()), card };
 }
 
 /**
@@ -35,7 +37,7 @@ const button = (option) => document.querySelector(`.gallery-card-${option}-butto
 describe('Gallery card vote buttons', () => {
   beforeAll(async () => {
     window.i18next = { t: (key) => key };
-    Object.assign(window, await loadModules('frontend/js/gallery/validation/ValidationMenu.js'));
+    ({ ValidationMenu } = await loadModules('frontend/js/gallery/validation/ValidationMenu.js'));
   });
 
   it('starts with nothing pressed', () => {

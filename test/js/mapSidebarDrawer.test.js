@@ -7,11 +7,10 @@
  * the map padding all follow the drawer, in both directions, including across a breakpoint crossing.
  *
  * jsdom has no layout and no matchMedia, so the viewport is a controllable stub and the sidebar reports a fixed
- * width. Loaded the same way as navbarDisclosures.test.js: eval'd with an explicit export.
+ * width.
  */
 
 import { loadModules } from './loader.js';
-
 
 const SIDEBAR_WIDTH = 350;
 
@@ -76,9 +75,9 @@ async function build({narrow = false, startCollapsed = false} = {}) {
     viewport.setNarrow(narrow);
     window.logWebpageActivity = vi.fn();
 
-    Object.assign(window, await loadModules('frontend/js/ps-map/MapSidebarDrawer.js'));
+    const { MapSidebarDrawer } = await loadModules('frontend/js/ps-map/MapSidebarDrawer.js');
     const map = fakeMap();
-    const drawer = new window.MapSidebarDrawer(map, sidebar, {startCollapsed});
+    const drawer = new MapSidebarDrawer(map, sidebar, {startCollapsed});
 
     return {
         drawer, map, viewport, sidebar,
@@ -179,14 +178,14 @@ describe('MapSidebarDrawer', () => {
             openBtn.click();
             expect(drawer.isOpen).toBe(true);
 
-            document.dispatchEvent(new window.KeyboardEvent('keydown', {key: 'Escape'}));
+            document.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape'}));
             expect(drawer.isOpen).toBe(false);
         });
 
         it('leaves Escape alone on a wide viewport, where the map is still reachable beside the panel', async () => {
             const {drawer} = await build();
 
-            document.dispatchEvent(new window.KeyboardEvent('keydown', {key: 'Escape'}));
+            document.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape'}));
             expect(drawer.isOpen).toBe(true);
         });
 

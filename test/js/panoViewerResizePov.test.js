@@ -7,30 +7,13 @@
  * loop a frame later. Explore redraws its label canvas as soon as resize() returns, so without this notification the
  * labels kept the old projection until the next pan moved them: a label placed in immersive mode sat beside its
  * feature after leaving the mode, then snapped onto it on the first pan.
- *
- * MapillaryViewer is a top-level `class` written for Grunt concatenation, so the sources are eval'd into jsdom with
- * stubs for the sibling classes PanoViewer's constructor compares `new.target` against.
  */
-import { loadGlobalScript, realUtil, loadModules, stubUtil, fakeImport } from './loader.js';
 
-fakeImport('frontend/js/common/pano-viewer/PanoViewer.js', 'PanoViewer');
+import { loadModules } from './loader.js';
 
-
-// getPov() converts through util.pano; utilities.js builds a Bowser parser at load time that nothing here consults.
-window.bowser = {
-    getParser: () => ({
-        getBrowserName: () => 'Test', getBrowserVersion: () => '1',
-        getOSName: () => 'TestOS', getPlatformType: () => 'desktop',
-    }),
-};
-stubUtil(await realUtil());
-await loadGlobalScript('frontend/js/common/utilitiesMath.js');
-await loadGlobalScript('frontend/js/common/pano-viewer/panoUtilities.js');
-
-/** Loads PanoViewer + MapillaryViewer fresh into the jsdom global scope. */
 async function loadViewers() {
-    Object.assign(window, await loadModules('frontend/js/common/pano-viewer/PanoViewer.js', 'frontend/js/common/pano-viewer/MapillaryViewer.js'));
-    return window.MapillaryViewer;
+    const { MapillaryViewer } = await loadModules('frontend/js/common/pano-viewer/MapillaryViewer.js');
+    return MapillaryViewer;
 }
 
 describe('PanoViewer resize reports a POV change once the new box has rendered', () => {

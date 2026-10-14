@@ -9,16 +9,12 @@
  * a regression on the inside submits validations from a control that means "open", and one on the outside breaks
  * every existing shortcut.
  *
- * The class is a plain top-level declaration, so the source is eval'd with an explicit export, the same way
- * share-widget.test.js loads ShareWidget. One instance is created for the whole file — the constructor registers a
- * window listener that cannot be unregistered — and each test swaps the collaborator/menu stubs it reads at event time.
+ * One instance is created for the whole file — the constructor registers a window listener that cannot be
+ * unregistered — and each test swaps the collaborator/menu stubs it reads at event time.
  */
 
-import { loadModules, fakeImport } from './loader.js';
+import { loadModules } from './loader.js';
 import { fakeTracker } from './fakes.js';
-
-fakeImport('frontend/js/common/KeyboardShortcuts.js', 'KeyboardShortcuts');
-
 
 /** A stand-in for one of the menu's controls, with its click spied. */
 function makeControl() {
@@ -52,8 +48,8 @@ describe('KeyboardManager label-card scope', () => {
             noButton: makeControl(),
             unsureButton: makeControl(),
         });
-        Object.assign(window, await loadModules('frontend/js/common/KeyboardShortcuts.js', 'frontend/js/validate/keyboard/KeyboardManager.js'));
-        new window.KeyboardManager(
+        const { KeyboardManager } = await loadModules('frontend/js/validate/keyboard/KeyboardManager.js');
+        new KeyboardManager(
             { validationMenu: validationMenuUi, undoValidation: { undoButton: live('undoButton') } }, config,
             { isHeld: () => false, hold: () => {}, release: () => {} },
             { onLoadingChange: () => {} }, live('labelVisibilityControl'), live('labelCard'), live('validationMenu'),

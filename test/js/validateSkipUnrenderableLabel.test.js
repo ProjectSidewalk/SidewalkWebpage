@@ -16,93 +16,19 @@
  * and is dropped only if it is slow again, so a slow CDN no longer ends missions at the imagery-unavailable modal.
  */
 
-import path from 'path';
+import { loadModules, mockModule } from './loader.js';
+import { fakeTracker, fakePanoOverlays } from './fakes.js';
+import { FakeLabel, fakeLabelContainerDeps, buildLabelContainer } from './support/labelContainerHarness.js';
 
-import { assetPathStub, loadModules, fakeImport, stubUtil } from './loader.js';
-import { fakeTracker } from './fakes.js';
+fakePanoOverlays();
 
-fakeImport('frontend/js/common/pano-viewer/GsvViewer.js', 'GsvViewer');
-fakeImport('frontend/js/common/pano-viewer/PanoAttribution.js', 'createPanoAttribution');
-fakeImport('frontend/js/common/pano-viewer/PanoViewerLogo.js', 'createPanoViewerLogo');
-fakeImport('frontend/js/validate/label/Label.js', 'Label');
-fakeImport('frontend/js/common/PanoMarker.js', 'PanoMarker');
-fakeImport('frontend/js/common/pano-viewer/PanoLoadTimeoutError.js', 'PanoLoadTimeoutError');
-
-
-const PANO_MANAGER_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/panorama/PanoManager.js');
-const PANO_MARKER_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/common/PanoMarker.js');
-const LABEL_CONTAINER_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/label/LabelContainer.js');
-const THROTTLE_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/util/throttle.js');
-const UTILITIES_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/common/utilities.js');
-const TIMEOUT_ERROR_PATH = path.resolve(__dirname, '..', '..',
-  'frontend/js/common/pano-viewer/PanoLoadTimeoutError.js');
-
-/**
- * Load a bare `class` declaration out of a production file. The Grunt bundle concatenates these into page scope,
- * so wrap the source in an IIFE that returns the named class (same trick as validateMarkerPulse.test.js).
- * @param {string} filePath - Absolute path to the production file.
- * @param {string} className - Name of the class the file declares.
- * @returns {Function} The class.
- */
-async function loadClassFromFile(filePath, className) {
-  return (await loadModules(filePath))[className];
-}
-
+mockModule('frontend/js/validate/label/Label.js', () => ({Label: FakeLabel}));
 
 /** @type {Function} The LabelContainer class under test. */
 let LabelContainer;
 
 /** @type {Record<string, any>} The collaborators the container under test is built over. */
 let deps;
-
-/**
- * Fills in the collaborators LabelContainer takes that the suite has no opinion on.
- * @param {Record<string, any>} suiteDeps - The suite's own fakes, which win where they overlap.
- */
-function completeDeps(suiteDeps) {
-  const mission = {updateValidationResult: vi.fn(), isComplete: () => true, getProperty: () => 1};
-  deps = {
-    config: {validateParams: {}, source: 'Validate', canvasWidth: () => 720, canvasHeight: () => 480, labelRadius: 10},
-    panoLoadingStatus: {begin: vi.fn(), setMessage: vi.fn(), end: vi.fn()},
-    modalMissionComplete: {isShowing: () => false},
-    missionContainer: {getCurrentMission: () => mission, updateAMission: vi.fn()},
-    ...suiteDeps,
-  };
-  deps.tracker.flushSoon ??= vi.fn();
-  deps.modalNoNewMission.isShowing ??= () => false;
-  Object.assign(deps.panoManager, {
-    blanksPanoWhileLoading: () => false,
-    getActiveViewerName: () => 'Default',
-    revealPendingCanvas: vi.fn(),
-    prefetchBackups: deps.panoManager.prefetchBackups ?? vi.fn(),
-    panoViewer: {getViewerType: () => 'gsv'},
-  });
-}
-
-/**
- * Builds a container over the fakes, with the card and menu listening the way Main.js wires them.
- * @param {Array} labelList - Label metadata to start with.
- * @param {string} labelType - The mission's label type.
- * @returns {object} The container, before its first render.
- */
-function newLabelContainer(labelList, labelType) {
-  const labelContainer = new LabelContainer(labelList, labelType, deps.ui, deps.config, deps.panoManager,
-    deps.panoLoadingStatus, deps.modalMissionComplete, deps.modalNoNewMission, deps.missionContainer, deps.tracker);
-  labelContainer.onLabelReady((label) => deps.labelCard.render(label));
-  labelContainer.onLabelReady((label) => deps.validationMenu.resetMenu(label));
-  return labelContainer;
-}
-
-/**
- * @param {Array} labelList - Label metadata to start with.
- * @param {string} labelType - The mission's label type.
- * @returns {Promise<object>} The container with its first label rendered.
- */
-async function buildLabelContainer(labelList, labelType) {
-  const labelContainer = newLabelContainer(labelList, labelType);
-  await labelContainer.renderCurrentLabel();
-  return labelContainer;
-}
 
 /** @returns {HTMLElement} A stand-in for an element Validate dims or re-cursors. */
 function fakeElement() {
@@ -119,40 +45,15 @@ describe('PanoManager clears the pano when no viewer can render it (issue #4810)
   let panoManager;
   let fakeViewer;
   let panoData;
+  let PanoLoadTimeoutError;
 
   beforeEach(async () => {
     document.body.innerHTML
       = '<div id="pano-holder"><div id="svv-panorama"></div></div><div id="view-control-layer"></div>';
 
-    stubUtil({});
-    // utilities.js builds a Bowser parser at load time; the overrides below replace everything read from it.
-    window.bowser = { getParser: () => ({ getBrowserName: () => 'Chrome', getBrowserVersion: () => '1',
-        getOSName: () => 'Linux', getPlatformType: () => 'desktop' }) };
-    // Real utilities, for the marker sizing rule util.cappedMarkerDiameter uses (#4838).
-    Object.assign(window, await loadModules(UTILITIES_PATH));
-    Object.assign(window, await loadModules(THROTTLE_PATH));
-    util.isMobile = () => false;
-    util.uiScale = () => 1;
-    util.camelToKebab = (str) => str.toLowerCase();
-    util.misc = {
-      ...util.misc,
-      labelTypeName: (type) => window.i18next.t(`common:${window.util.camelToKebab(type)}`),
-    };
     // jsdom has no WebGL, so PanoMarker falls back to the 2d projection; where the marker lands is irrelevant here.
     vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
-    util.pano = {
-      centeredPovToCanvasCoord2d: () => ({x: 0, y: 0}),
-      centeredPovToCanvasCoord: () => ({x: 0, y: 0}),
-      renderedHFov: () => 90,
-    };
-
-    window.PanoMarker = await loadClassFromFile(PANO_MARKER_PATH, 'PanoMarker');
     window.i18next = {t: () => 'Curb ramp'};
-    window.createPanoViewerLogo = vi.fn(() => ({showPrimaryLogo: vi.fn(), showSourceLogo: vi.fn()}));
-    window.createPanoAttribution = vi.fn(() => ({show: vi.fn(), hide: vi.fn()}));
-    window.GsvViewer = class GsvViewer {};             // distinct from FakeViewerType, so the GSV-only
-    window.MapillaryViewer = class MapillaryViewer {}; // and Mapillary-only attribution paths are skipped
-    window.PanoLoadTimeoutError = await loadClassFromFile(TIMEOUT_ERROR_PATH, 'PanoLoadTimeoutError');
 
     panoData = {getPanoId: () => 'pano1', getProperty: () => new Date(2026, 5)};
     fakeViewer = {
@@ -168,22 +69,17 @@ describe('PanoManager clears the pano when no viewer can render it (issue #4810)
       static create() { return Promise.resolve(fakeViewer); }
     };
 
-    const PanoManager = await loadClassFromFile(PANO_MANAGER_PATH, 'PanoManager');
+    // Loaded together so the timeout error the test throws is the class PanoManager checks for.
+    const modules = await loadModules('frontend/js/validate/panorama/PanoManager.js',
+      'frontend/js/common/pano-viewer/PanoLoadTimeoutError.js');
+    PanoLoadTimeoutError = modules.PanoLoadTimeoutError;
     const viewerUi = {date: {textContent: ''}, controlLayer: document.getElementById('view-control-layer')};
-    panoManager = await PanoManager.create('token', viewerUi, {viewerType: FakeViewerType, labelRadius: 10},
-      {addPanoMetadata: vi.fn()}, {}, {push: vi.fn(), trackPano: vi.fn()});
+    panoManager = await modules.PanoManager.create('token', viewerUi, {viewerType: FakeViewerType, labelRadius: 10},
+      {addPanoMetadata: vi.fn()}, {}, fakeTracker());
   });
 
   afterEach(() => {
     document.body.innerHTML = '';
-    delete window.util;
-    delete window.PanoMarker;
-    delete window.i18next;
-    delete window.createPanoViewerLogo;
-    delete window.createPanoAttribution;
-    delete window.GsvViewer;
-    delete window.MapillaryViewer;
-    delete window.PanoLoadTimeoutError;
   });
 
   /**
@@ -230,7 +126,7 @@ describe('PanoManager clears the pano when no viewer can render it (issue #4810)
   });
 
   test('a primary load that timed out on a pano that exists is reported as slow, not as no imagery', async () => {
-    fakeViewer.setPano = vi.fn(() => Promise.reject(new window.PanoLoadTimeoutError('pano2', 12000)));
+    fakeViewer.setPano = vi.fn(() => Promise.reject(new PanoLoadTimeoutError('pano2', 12000)));
 
     await expect(panoManager.setPanorama('pano2', null)).resolves.toEqual({panoData: null, reason: 'slow'});
   });
@@ -266,26 +162,13 @@ describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
     topUpQueue = [];
     topUpBodies = [];
 
-    window.fetch = vi.fn((url, options) => {
+    vi.stubGlobal('fetch', vi.fn((url, options) => {
       topUpBodies.push(JSON.parse(options.body));
       return Promise.resolve({ok: true, json: () => Promise.resolve({labels: topUpQueue.shift() ?? []})});
-    });
-
-    stubUtil({isMobile: () => false, assetPath: assetPathStub});
+    }));
     window.i18next = {t: vi.fn((key) => key)};
-    // The bundle's Label class; only the accessors LabelContainer and its collaborators touch.
-    window.Label = class Label {
-      constructor(params) {
-        this.auditProps = params;
-        this.props = {};
-      }
 
-      getAuditProperty(key) { return this.auditProps[key]; }
-      setProperty(key, value) { this.props[key] = value; }
-      getProperty(key) { return this.props[key]; }
-    };
-
-    completeDeps({
+    deps = fakeLabelContainerDeps({
       adminVersion: false,
       tracker: fakeTracker(),
       labelCard: {render: vi.fn()},
@@ -319,14 +202,7 @@ describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
       panoLoadingStatus: {begin: vi.fn(), setMessage: vi.fn(), end: vi.fn()},
     });
 
-    LabelContainer = await loadClassFromFile(LABEL_CONTAINER_PATH, 'LabelContainer');
-  });
-
-  afterEach(() => {
-    delete window.fetch;
-    delete window.util;
-    delete window.i18next;
-    delete window.Label;
+    ({ LabelContainer } = await loadModules('frontend/js/validate/label/LabelContainer.js'));
   });
 
   /** @returns {Array} Three labels' worth of metadata, one per pano. */
@@ -344,7 +220,7 @@ describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
    * @returns {Promise<LabelContainer>}
    */
   function buildContainer(labelList = threeLabels()) {
-    return buildLabelContainer(labelList, LABEL_TYPE);
+    return buildLabelContainer(LabelContainer, deps, labelList, LABEL_TYPE);
   }
 
   /** @returns {Array<number>} The label ids the validation UI was actually asked to render, in order. */
@@ -579,23 +455,12 @@ describe('LabelContainer defers a label whose pano is slow rather than dropping 
     slowLoadsLeft = new Map();
     topUpBodies = [];
 
-    window.fetch = vi.fn((url, options) => {
+    vi.stubGlobal('fetch', vi.fn((url, options) => {
       topUpBodies.push(JSON.parse(options.body));
       return Promise.resolve({ok: true, json: () => Promise.resolve({labels: []})});
-    });
-    stubUtil({isMobile: () => false, assetPath: assetPathStub});
+    }));
     window.i18next = {t: vi.fn((key) => key)};
-    window.Label = class Label {
-      constructor(params) {
-        this.auditProps = params;
-        this.props = {};
-      }
-
-      getAuditProperty(key) { return this.auditProps[key]; }
-      setProperty(key, value) { this.props[key] = value; }
-      getProperty(key) { return this.props[key]; }
-    };
-    completeDeps({
+    deps = fakeLabelContainerDeps({
       adminVersion: false,
       tracker: fakeTracker(),
       labelCard: {render: vi.fn()},
@@ -628,19 +493,13 @@ describe('LabelContainer defers a label whose pano is slow rather than dropping 
       panoLoadingStatus: {begin: vi.fn(), setMessage: vi.fn(), end: vi.fn()},
     });
 
-    LabelContainer = await loadClassFromFile(LABEL_CONTAINER_PATH, 'LabelContainer');
-  });
-
-  afterEach(() => {
-    delete window.fetch;
-    delete window.util;
-    delete window.i18next;
-    delete window.Label;
+    ({ LabelContainer } = await loadModules('frontend/js/validate/label/LabelContainer.js'));
   });
 
   /** @returns {Promise<LabelContainer>} A container over three labels, one per pano, with its first label shown. */
   function buildContainer() {
-    return buildLabelContainer([{labelId: 1, panoId: 'panoA'}, {labelId: 2, panoId: 'panoB'}, {labelId: 3, panoId: 'panoC'}], LABEL_TYPE);
+    return buildLabelContainer(LabelContainer, deps,
+        [{labelId: 1, panoId: 'panoA'}, {labelId: 2, panoId: 'panoB'}, {labelId: 3, panoId: 'panoC'}], LABEL_TYPE);
   }
 
   /** @returns {Array<number>} The label ids the validation UI was actually asked to render, in order. */
@@ -749,7 +608,7 @@ describe('LabelContainer defers a label whose pano is slow rather than dropping 
     slowLoadsLeft.set('panoB', 1);
     slowLoadsLeft.set('panoC', 1);
     slowLoadsLeft.set('panoE', 1);
-    const labelContainer = await buildLabelContainer([
+    const labelContainer = await buildLabelContainer(LabelContainer, deps, [
       {labelId: 1, panoId: 'panoA'}, {labelId: 2, panoId: 'panoB'}, {labelId: 3, panoId: 'panoC'},
       {labelId: 4, panoId: 'panoD'}, {labelId: 5, panoId: 'panoE'},
     ], LABEL_TYPE);

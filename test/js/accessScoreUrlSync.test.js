@@ -6,11 +6,8 @@
 
 import fs from 'fs';
 import path from 'path';
-import { loadModules, realUtil, fakeImport } from './loader.js';
+import { loadModules, REPO_ROOT } from './loader.js';
 
-fakeImport('frontend/js/access-score/AccessScoreModel.js', 'AccessScoreModel');
-
-const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const read = (p) => fs.readFileSync(path.join(REPO_ROOT, p), 'utf8');
 const FIXTURE = JSON.parse(read('test/fixtures/accessScoreParity.json'));
 
@@ -20,12 +17,8 @@ describe('AccessScoreUrlSync', () => {
     const config = FIXTURE.config;
 
     beforeAll(async () => {
-        window.util ??= await realUtil();
-        await loadModules('frontend/js/common/urlQuery.js');
-        Object.assign(window, await loadModules('frontend/js/access-score/AccessScoreModel.js'));
-        Object.assign(window, await loadModules('frontend/js/access-score/AccessScoreUrlSync.js'));
-        AccessScoreUrlSync = window.AccessScoreUrlSync;
-        AccessScoreModel = window.AccessScoreModel;
+        ({ AccessScoreModel, AccessScoreUrlSync } = await loadModules('frontend/js/access-score/AccessScoreModel.js',
+            'frontend/js/access-score/AccessScoreUrlSync.js'));
     });
 
     test('reads a full state, filling unnamed weights from the engine defaults', () => {

@@ -16,14 +16,7 @@
 
 import { loadModules } from './loader.js';
 
-
 const CROP_B64 = 'data:image/png;base64,iVBORw0KGgo=';
-
-/** Loads a fresh Label class into the jsdom global scope (a class declaration is not a globalThis property). */
-async function loadLabel() {
-    Object.assign(window, await loadModules('frontend/js/explore/label/Label.js'));
-    return window.Label;
-}
 
 describe('Label crop upload', () => {
     let Label;
@@ -42,7 +35,7 @@ describe('Label crop upload', () => {
     }
 
     beforeEach(async () => {
-        Label = await loadLabel();
+        ({ Label } = await loadModules('frontend/js/explore/label/Label.js'));
         // The real one goes through the minimap's addMarker; nothing under test reads the marker back.
         Label.createMinimapMarker = () => ({ setVisible: () => {} });
         window.fetch = vi.fn().mockResolvedValue({ ok: true });

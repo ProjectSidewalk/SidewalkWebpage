@@ -6,14 +6,11 @@
  * pinning is that the line lands where the data would put it, and that a target above every bar widens the y scale
  * instead of being drawn off the top — which would read as "no target" rather than "target never met".
  *
- * Runs under jsdom (vitest.config.mjs); MiniLineChart.svg is a pure string builder, so tests parse its output into a
- * detached container and assert on the resulting DOM.
+ * MiniLineChart.svg is a pure string builder, so tests parse its output into a detached container and assert on the
+ * resulting DOM.
  */
 
-import { loadModules, realUtil, stubUtil } from './loader.js';
-
-stubUtil(await realUtil());
-
+import { loadModules } from './loader.js';
 
 /** Loads a fresh MiniLineChart class. */
 async function loadMiniLineChart() {

@@ -6,12 +6,11 @@
  * (the `ps/i18n-escape-in-markup` ESLint rule makes them). These cases pin the init option and then run the real
  * i18next with it, so what is asserted is what a reader sees rather than what the options object says.
  *
- * Runs under jsdom (vitest.config.mjs). i18next is not an npm dependency — the page loads the vendored bundle under
- * public/vendor — so the library under test is read off disk by directory rather than by a pinned filename, which
- * would go stale the next time `make lint-vendor-versions` sees a newer one.
+ * i18next is not an npm dependency; the page loads the vendored bundle under public/vendor, so that is the library
+ * under test.
  */
 
-import { loadGlobalScript, loadVendored } from './loader.js';
+import { loadModules, loadVendored } from './loader.js';
 
 /** What a labeler-facing string interpolates, in the shapes that broke: an apostrophe, a slash, an ampersand. */
 const RESOURCES = {
@@ -40,7 +39,7 @@ describe('AppManager i18next interpolation', () => {
             services: { formatter: { add: () => {} } },
         };
         window.i18nextHttpBackend = {};
-        await loadGlobalScript('frontend/js/common/AppManager.js');
+        await loadModules('frontend/js/common/AppManager.js');
         window.appManager._setupI18next({
             language: 'en', defaultNS: 'common', namespaces: ['common'], countryId: 'usa', unitWords: {},
         });

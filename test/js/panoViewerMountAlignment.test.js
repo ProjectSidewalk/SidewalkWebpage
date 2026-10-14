@@ -9,24 +9,13 @@
  *
  * Infra3dViewer additionally lacked a resize() override, so the base class's no-op silently swallowed the
  * re-measure that PanoManager requests after sizing the pano to the phone viewport.
- *
- * The viewer classes are written for the Grunt-concatenation world, so the sources are eval'd into the jsdom
- * global scope with stub declarations for the sibling classes PanoViewer's constructor compares `new.target`
- * against, following panoViewerAspect.test.js.
  */
 
-import { loadModules, fakeImport } from './loader.js';
+import { loadModules } from './loader.js';
 
-fakeImport('frontend/js/common/pano-viewer/PanoViewer.js', 'PanoViewer');
-
-
-/**
- * Loads PanoViewer + Infra3dViewer fresh into the jsdom global scope.
- * @returns {{PanoViewer: Function, Infra3dViewer: Function}}
- */
-async function loadViewers() {
-            Object.assign(window, await loadModules('frontend/js/common/pano-viewer/PanoViewer.js', 'frontend/js/common/pano-viewer/Infra3dViewer.js'));
-    return { PanoViewer: window.PanoViewer, Infra3dViewer: window.Infra3dViewer };
+function loadViewers() {
+    return loadModules('frontend/js/common/pano-viewer/PanoViewer.js',
+        'frontend/js/common/pano-viewer/Infra3dViewer.js');
 }
 
 describe('PanoViewer.create mount alignment', () => {

@@ -5,20 +5,14 @@
  * renders its own in Twirl so the label goes through Play's i18n — so what has to be pinned is that both end up with
  * the same behaviour: the open state lives on the sidebar root as `mobile-visible`, `aria-expanded` tracks it, and
  * `aria-controls` names what actually opens. A drift here is invisible until a screen reader hits it.
- *
- * Loaded the same way as navbarDisclosures.test.js: eval'd with an explicit export.
  */
 
 import { loadModules } from './loader.js';
 
-
-/** Evaluates the production file and hands back the two entry points the pages use. */
 async function load() {
-    Object.assign(window, await loadModules('frontend/js/common/sidebarDisclosure.js'));
-    return {
-        wire: window.wireSidebarDisclosure,
-        init: window.initSidebarDisclosure,
-    };
+    const { wireSidebarDisclosure: wire, initSidebarDisclosure: init } =
+        await loadModules('frontend/js/common/sidebarDisclosure.js');
+    return { wire, init };
 }
 
 describe('wireSidebarDisclosure', () => {

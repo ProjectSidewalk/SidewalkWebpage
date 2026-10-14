@@ -12,30 +12,16 @@
  * TouchEvent constructor, so they are plain Events carrying the fields the handlers read).
  */
 
-import path from 'path';
-import { loadModules, fakeImport, stubUtil } from './loader.js';
+import { loadModules, mockModule, useUtil } from './loader.js';
 import { fakeTracker } from './fakes.js';
 
-fakeImport('frontend/js/common/LabelVisibilityToggle.js', 'LabelVisibilityToggle');
-fakeImport('frontend/js/validate/label/LabelCard.js', 'LabelCard');
-
-
-/* global PanoMarker -- put on global by the suite's setup. */
-
-const PANO_MARKER_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/common/PanoMarker.js');
-const LABEL_VISIBILITY_CONTROL_PATH = path.resolve(
-    __dirname, '..', '..', 'frontend/js/validate/label/LabelVisibilityControl.js',
-);
-
-/**
- * Load a bare `class` declaration out of a production file, the way the Grunt bundle would put it in page scope.
- * @param {string} filePath - Absolute path to the production file.
- * @param {string} className - Name of the class the file declares.
- * @returns {Function} The class.
- */
-async function loadClassFromFile(filePath, className) {
-    return (await loadModules(filePath))[className];
-}
+// The card's contents and the toggle's state are their own suites' business; here only the marker's activation is.
+mockModule('frontend/js/validate/label/LabelCard.js', () => ({
+    LabelCard: class { closePopovers() {} isPopoverOpen() { return false; } },
+}));
+mockModule('frontend/js/common/LabelVisibilityToggle.js', () => ({
+    LabelVisibilityToggle: class { setVisible() {} isVisible() { return true; } },
+}));
 
 /**
  * Dispatch a synthetic touch event carrying the fields PanoMarker reads.
@@ -59,6 +45,7 @@ describe('Validate pano marker activation', () => {
     let isMobile;
     let control;
     let wireMarker; // What LabelVisibilityControl registered with the pano manager for each marker built.
+    let PanoMarker;
 
     /** @returns {HTMLElement} The marker element PanoMarker created. */
     const markerEl = () => document.getElementById('validate-pano-marker');
@@ -69,7 +56,7 @@ describe('Validate pano marker activation', () => {
         isMobile = true;
         toggleLabelCard = vi.fn();
 
-        stubUtil({
+        useUtil({
             isMobile: () => isMobile,
             pano: {
                 centeredPovToCanvasCoord2d: () => ({x: 0, y: 0}),
@@ -80,13 +67,10 @@ describe('Validate pano marker activation', () => {
         // jsdom has no WebGL, so PanoMarker takes its 2d projection fallback; where the marker lands is irrelevant
         // here. Returning null directly keeps that deterministic without jsdom's "not implemented" noise.
         vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
-        window.PanoMarker = await loadClassFromFile(PANO_MARKER_PATH, 'PanoMarker');
-
-        window.i18next = {t: (key) => key};
-        window.LabelCard = class { closePopovers() {} isPopoverOpen() { return false; } };
-        window.LabelVisibilityToggle = class { setVisible() {} isVisible() { return true; } };
-        window.Infra3dViewer = class {};
-        const LabelVisibilityControl = await loadClassFromFile(LABEL_VISIBILITY_CONTROL_PATH, 'LabelVisibilityControl');
+        vi.stubGlobal('i18next', {t: (key) => key});
+        let LabelVisibilityControl;
+        ({ PanoMarker, LabelVisibilityControl } = await loadModules('frontend/js/common/PanoMarker.js',
+            'frontend/js/validate/label/LabelVisibilityControl.js'));
         control = new LabelVisibilityControl(
             {controlLayer: document.getElementById('view-control-layer')}, {viewerType: class {}},
             {onLoadingChange: () => {}, onLabelReady: () => {}, onLabelShown: () => {}},
@@ -103,9 +87,6 @@ describe('Validate pano marker activation', () => {
     afterEach(() => {
         vi.useRealTimers();
         document.body.innerHTML = '';
-        for (const name of ['util', 'PanoMarker', 'i18next', 'LabelCard', 'LabelVisibilityToggle', 'Infra3dViewer']) {
-            delete global[name];
-        }
     });
 
     /** Builds the real Validate marker on a fake viewer, wired up the way PanoManager hands it over. */

@@ -6,8 +6,7 @@
  * be open at once and overlap. A dropdown still *inside* the panel is a child, not a peer, and must leave it open —
  * that asymmetry is the whole reason this is worth pinning.
  *
- * Loaded the same way as navbarQuickStrip.test.js: eval'd with an explicit export, with each test building its own
- * DOM before constructing a controller.
+ * Each test builds its own DOM before constructing a controller.
  */
 
 import { loadModules } from './loader.js';
@@ -64,14 +63,16 @@ const isOpen = (id) => document.getElementById(id).classList.contains('is-open')
 const press = (el) => el.dispatchEvent(new Event('pointerdown', { bubbles: true }));
 
 describe('Navbar disclosures', () => {
+    let NavbarController;
+
     beforeAll(async () => {
-        Object.assign(window, await loadModules('frontend/js/common/Navbar.js'));
+        ({ NavbarController } = await loadModules('frontend/js/common/Navbar.js'));
     });
 
     beforeEach(() => {
         buildNavbar();
         stubLayout();
-        new window.NavbarController();
+        new NavbarController();
         // The account control is promoted into the strip, which is what makes it a peer of the panel.
         expect(document.getElementById('navbar-quick').children).toHaveLength(1);
     });

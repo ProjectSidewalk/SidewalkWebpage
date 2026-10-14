@@ -3,13 +3,11 @@
  * attach to — "Write your story about this Missing Curb Ramp" — and falls back to the generic wording for a label
  * whose type name doesn't read as a thing you can have a story "about" (Other, Can't See the Sidewalk).
  *
- * StoryComposer is a page-global `class` (Grunt-concatenation world), so the source is eval'd into jsdom. Its title
- * lives behind private instance fields, so the class is constructed for real against the dialog skeleton its
- * constructor queries rather than called off the prototype.
+ * The title lives behind private instance fields, so the class is constructed for real against the dialog skeleton
+ * its constructor queries rather than called off the prototype.
  */
 
 import { loadModules } from './loader.js';
-
 
 /** The elements StoryComposer's constructor looks up, in a <dialog> host. */
 function setupDom() {
@@ -41,14 +39,16 @@ function setupDom() {
     return document.querySelector('.story-composer');
 }
 
+let StoryComposer;
+
 function newComposer() {
-    return new window.StoryComposer(setupDom(), {});
+    return new StoryComposer(setupDom(), {});
 }
 
 const title = () => document.querySelector('.story-composer__title').textContent;
 
 beforeEach(async () => {
-    Object.assign(window, await loadModules('frontend/js/common/label-detail/StoryComposer.js'));
+    ({ StoryComposer } = await loadModules('frontend/js/common/label-detail/StoryComposer.js'));
     // Echo the key, with any interpolation appended so both halves are assertable.
     window.i18next = {
         t: (key, opts) => (opts && opts.labelType !== undefined ? `${key}[${opts.labelType}]` : key),

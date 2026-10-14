@@ -18,28 +18,23 @@
  *   - Neither control takes the `disabled` attribute: a natively disabled element swallows the hover that opens
  *     its tooltip, so both are aria-disabled, and a face that has a reason to give stays focusable.
  *
- * LabelDetail is a top-level `class` declaration written for the Grunt-concatenation world, so (like
- * labelDetailSubmissionContext.test.js) the source is eval'd into the jsdom global scope with an epilogue that
- * exposes it. TagEditor is eval'd in the same string because LabelDetail closes over that binding. Unlike that
- * file, these tests need a real instance, so the collaborators LabelDetail reaches for as bare globals are stubbed
- * on `window` first — including the pano manager, whose setPano() promise is the switch every imagery case turns.
+ * The card's flourishes (badges, stories, the info popover, the hide toggle) are stand-ins, since the real ones
+ * want page markup none of this reads. So is the pano manager, whose setPano() promise is the switch every imagery
+ * case turns.
  */
 
 import fs from 'fs';
 import path from 'path';
 
-import { assetPathStub, installDateHelpers, loadModules, fakeImport, stubUtil } from './loader.js';
+import { loadModules, REPO_ROOT, useUtil } from './loader.js';
+import { mockLabelDetailCollaborators } from './fakes.js';
 
-fakeImport('frontend/js/common/BadgeAchievements.js', 'BadgeAchievements');
-fakeImport('frontend/js/common/LabelVisibilityToggle.js', 'LabelVisibilityToggle');
-fakeImport('frontend/js/common/label-detail/PopupPanoManager.js', 'PopupPanoManager');
-fakeImport('frontend/js/common/label-detail/StorySection.js', 'StorySection');
-fakeImport('frontend/js/common/pano-viewer/PanoInfoPopover.js', 'PanoInfoPopover');
-fakeImport('frontend/js/common/utilitiesSidewalk.js', 'buildBackupImageData');
-fakeImport('frontend/js/common/label-detail/TagEditor.js', 'TagEditor');
+/** The pano manager the card is handed; rebuilt per test so a test can settle its setPano() when it likes. */
+let panoManager;
 
+mockLabelDetailCollaborators(() => panoManager);
 
-const readSrc = (rel) => fs.readFileSync(path.resolve(__dirname, '..', '..', rel), 'utf8');
+const readSrc = (rel) => fs.readFileSync(path.join(REPO_ROOT, rel), 'utf8');
 /** The shipped English copy, so the wording tests read the strings a user sees rather than the keys. */
 const EN_LABELMAP = JSON.parse(readSrc('public/locales/en/labelmap.json'));
 
@@ -229,9 +224,7 @@ function meta(overrides = {}) {
 afterEach(() => { vi.useRealTimers(); });
 
 describe('LabelDetail edit gating (#5047)', () => {
-    let LabelDetail;
     let card;
-    let panoManager;
     let setPano;
     /** Every save the card makes: #saveEdit posts through util.lazyIdentityFetch, not window.fetch. */
     let saveRequest;
@@ -264,7 +257,6 @@ describe('LabelDetail edit gating (#5047)', () => {
     const status = (col) => q(`.label-detail__col--${col} .label-detail__edit-status`);
 
     beforeEach(async () => {
-        vi.resetModules();
         card = buildCard();
 
         // /label/edit echoes the saved row back; the card renders the response rather than its optimistic guess,
@@ -278,28 +270,7 @@ describe('LabelDetail edit gating (#5047)', () => {
         // translation churn would break.
         window.i18next = { t: (key) => key };
         window.logWebpageActivity = vi.fn();
-        window.camelToKebab = (s) => s.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
-        window.buildBackupImageData = () => null;
-        stubUtil({
-            assetPath: assetPathStub,
-            EXPLORE_CANVAS_WIDTH: 720,
-            EXPLORE_CANVAS_HEIGHT: 480,
-            isMobile: () => false,
-            lazyIdentityFetch: saveRequest,
-            misc: {
-                labelTypeName: (type) => window.i18next.t(`common:${window.camelToKebab(type)}`),
-                getRatingLevelKeys: () => ({ 1: 'low', 2: 'medium', 3: 'high' }),
-                getSmileyIconPath: (sev, type, selected) => `${type}-${sev}-${selected}.svg`,
-                isPositiveLabelType: () => false,
-                labelTypeHasSeverity: () => true,
-            },
-            pano: { centeredPovToCanvasCoord: () => ({ x: 0, y: 0 }), renderedHFov: () => 90 },
-            url: { replaceQuery: () => {} },
-        });
-        await installDateHelpers();
-        window.BadgeAchievements = { seedCounts: () => {}, recordValidation: () => {} };
-        window.LabelVisibilityToggle = class { constructor() {} };
-        window.PanoInfoPopover = class { constructor() {} };
+        useUtil({ lazyIdentityFetch: saveRequest });
 
         setPano = deferred();
         panoManager = {
@@ -311,9 +282,6 @@ describe('LabelDetail edit gating (#5047)', () => {
             panoViewer: { currPanoData: null, getViewerType: () => 'gsv' },
             svHolder: document.createElement('div'),
         };
-        window.PopupPanoManager = { create: async () => panoManager };
-        // The stories disclosure is not what these tests exercise, and its real section wants the composer's markup.
-        window.StorySection = class { setLabel() {} };
 
         // TagEditor fetches the city's tag catalog on first open; nothing else here goes to the network, so an
         // unexpected call shows up as an unmatched URL rather than a silent pass.
@@ -324,9 +292,7 @@ describe('LabelDetail edit gating (#5047)', () => {
             return Promise.resolve({ ok: true, json: async () => ({}) });
         });
 
-        Object.assign(window, await loadModules('frontend/js/common/label-detail/TagEditor.js', 'frontend/js/common/label-detail/LabelDetail.js'));
-        LabelDetail = window.LabelDetail;
-
+        const { LabelDetail } = await loadModules('frontend/js/common/label-detail/LabelDetail.js');
         card.detail = await LabelDetail.create(card, {
             admin: false,
             viewerType: 'Default',

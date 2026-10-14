@@ -8,21 +8,9 @@
  * instead.
  */
 
-import path from 'path';
 import { loadModules } from './loader.js';
 
-const TRACKER_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/Tracker.js');
-
-/**
- * Loads the `Tracker` class out of the production file — a bare `class` the Grunt bundle concatenates into page
- * scope — by wrapping the source in an IIFE that returns it.
- * @returns {Function} The Tracker class.
- */
-async function loadTrackerClass() {
-    return (await loadModules(TRACKER_PATH)).Tracker;
-}
-
-const Tracker = await loadTrackerClass();
+const { Tracker } = await loadModules('frontend/js/validate/Tracker.js');
 
 describe('Tracker before the first pano loads', () => {
     beforeEach(() => {

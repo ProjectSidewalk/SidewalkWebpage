@@ -5,13 +5,9 @@
  * while hosts (LabelMap's MapSidebarFilter today, the Gallery next) apply the resulting state. These tests pin the
  * rules that the hosts depend on — what a click does to the DOM, what `getState()` reports, and what the change
  * descriptor carries — so the Gallery adoption can't silently redefine them.
- *
- * Like ShareWidget, it's a top-level `class` declaration written for Grunt concatenation, so the source is eval'd
- * into the jsdom global scope rather than require()d.
  */
 
 import { loadModules } from './loader.js';
-
 
 /** Label types the fixture renders, mirroring the real sidebar's ids (`<LabelType>-checkbox`). */
 const LABEL_TYPES = ['CurbRamp', 'NoCurbRamp', 'Obstacle'];
@@ -100,13 +96,6 @@ function buildFixture() {
     return document.getElementById('filter-sidebar');
 }
 
-
-/** Loads a fresh FilterSidebar class into the jsdom global scope. */
-async function loadFilterSidebar() {
-    Object.assign(window, await loadModules('frontend/js/common/filter-sidebar/FilterSidebar.js'));
-    return window.FilterSidebar;
-}
-
 describe('FilterSidebar', () => {
     let FilterSidebar;
     let root;
@@ -142,7 +131,7 @@ describe('FilterSidebar', () => {
 
     beforeEach(async () => {
         root = buildFixture();
-        FilterSidebar = await loadFilterSidebar();
+        ({ FilterSidebar } = await loadModules('frontend/js/common/filter-sidebar/FilterSidebar.js'));
     });
 
     describe('getState', () => {

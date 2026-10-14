@@ -11,13 +11,6 @@
 
 import { loadModules } from './loader.js';
 
-
-/** Loads a fresh Form class into the jsdom global scope (a class declaration is not a globalThis property). */
-async function loadForm() {
-    Object.assign(window, await loadModules('frontend/js/explore/data/Form.js'));
-    return window.Form;
-}
-
 /**
  * A stand-in for a label placed this session.
  * @param {object} [opts]
@@ -39,7 +32,7 @@ describe('Form#ensureLabelSaved', () => {
     let submitData;
 
     beforeEach(async () => {
-        Form = await loadForm();
+        ({ Form } = await loadModules('frontend/js/explore/data/Form.js'));
         submitData = vi.fn().mockResolvedValue(undefined);
         ensureLabelSaved = (label) => Form.prototype.ensureLabelSaved.call({ submitData }, label);
     });

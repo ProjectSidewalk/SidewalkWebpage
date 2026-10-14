@@ -14,12 +14,13 @@
  * stub that got the geometry slightly wrong would pass for the wrong reason.
  */
 
-import { loadVendored, loadModules, realUtil } from './loader.js';
-
+import { loadVendored, loadModules } from './loader.js';
 
 // Loaded once, up front: the fixtures below are built while the suite is collected, before any beforeEach runs.
 loadVendored('turf');
 const turf = window.turf;
+
+let Task;
 
 // The thresholds NavigationService passes: the post-move end-of-street check and the imagery-ran-out credit.
 const END_OF_STREET_M = 25;
@@ -27,7 +28,7 @@ const NEAR_END_NO_IMAGERY_M = 50;
 
 /** A task over a street given as [lng, lat] coordinates, with the properties `Task.initialize` reads. */
 function makeTask(coordinates, streetEdgeId = 1) {
-    return new window.Task({
+    return new Task({
         type: 'Feature',
         geometry: { type: 'LineString', coordinates },
         properties: { street_edge_id: streetEdgeId, task_start: '2026-09-15T18:44:14Z' },
@@ -54,9 +55,7 @@ function positionOn(street, alongM, offsetM = 0) {
 describe('Task.isAtEnd', () => {
     beforeEach(async () => {
         window.turf = turf;
-        window.util ??= await realUtil();
-        await loadModules('frontend/js/common/utilitiesMath.js');
-        Object.assign(window, await loadModules('frontend/js/explore/task/Task.js'));
+        ({ Task } = await loadModules('frontend/js/explore/task/Task.js'));
     });
 
     describe('on the 8.6 m Richmond stub the labeler was bounced around (#5350)', () => {

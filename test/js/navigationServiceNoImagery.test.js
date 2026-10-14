@@ -14,19 +14,29 @@
  * able to do. Everything below it (viewer, network) is out of scope; `test/js/panoViewerSeedFallback.test.js`
  * covers the provider-side classification that decides which error type arrives here.
  *
- * NavigationService is loaded as a module and built against fakes of its collaborators; what it announces to the
- * mission controller is recorded through its events, as Main subscribes them.
+ * NavigationService is built against fakes of its collaborators; what it announces to the mission controller is
+ * recorded through its events, as Main subscribes them.
  */
 
-import { installDateHelpers, loadModules, realUtil, fakeImport, stubUtil } from './loader.js';
+import { loadModules, mockModule, useUtil } from './loader.js';
 import { fakeGate, fakeTracker, fakePanoManager } from './fakes.js';
 
-fakeImport('frontend/js/common/pano-viewer/PanoData.js', 'PanoData');
-fakeImport('frontend/js/common/pano-viewer/PanoViewer.js', 'PanoViewer');
-fakeImport('frontend/js/explore/task/TaskContainer.js', 'TaskContainer');
-fakeImport('frontend/js/common/pano-viewer/NoImageryError.js', 'NoImageryError');
-fakeImport('frontend/js/explore/panorama/NoImageryFlagGuard.js', 'NoImageryFlagGuard');
+// The GsvViewer replies below carry only the fields the sweep reads, not the full set the real PanoData validates.
+mockModule('frontend/js/common/pano-viewer/PanoData.js', () => ({
+    PanoData: class {
+        constructor(params) {
+            this.params = params;
+        }
 
+        getPanoId() {
+            return this.params.panoId;
+        }
+
+        getProperty(key) {
+            return this.params[key];
+        }
+    },
+}));
 
 // Fixtures put every street on one latitude so a street is a straight west-to-east segment and "distance along the
 // street" is unambiguous. Real turf isn't a dependency of the JS test layer, and the sweep only needs lengths and
@@ -131,6 +141,9 @@ function makeTask(streetEdgeId, { lengthKm = 0.1, atEnd = false, walkOrder = nul
 describe('Explore, when the imagery search runs out along a street', () => {
     let svl;
     let nav;
+    let NoImageryError;
+    let NoImageryFlagGuard;
+    let GsvViewer;
     let config;
     let keyboardLock;
     let missionController;
@@ -217,21 +230,17 @@ describe('Explore, when the imagery search runs out along a street', () => {
 
         window.turf = turfStub;
         window.i18next = { t: (key) => key };
-        stubUtil({
-            getBrowser: () => 'chrome',
-            math: { toRadians: (degrees) => (degrees * Math.PI) / 180 },
-            misc: { reportNoImagery },
-        });
-        window.PanoViewer = { SEARCH_RADIUS_M: 25 };
-        window.TaskContainer = { CONNECTED_TASK_KM: 0.01 };
-        await installDateHelpers();
+        useUtil({ misc: { reportNoImagery } });
 
-        Object.assign(window, await loadModules('frontend/js/common/pano-viewer/NoImageryError.js'));
-        Object.assign(window, await loadModules('frontend/js/explore/panorama/NoImageryFlagGuard.js'));
-        Object.assign(window, await loadModules('frontend/js/explore/navigation/NavigationService.js'));
+        // GsvViewer rides along so the NoImageryError it throws is the one class NavigationService checks for.
+        let NavigationService;
+        ({ NoImageryError, NoImageryFlagGuard, NavigationService, GsvViewer } = await loadModules(
+            'frontend/js/common/pano-viewer/NoImageryError.js', 'frontend/js/explore/panorama/NoImageryFlagGuard.js',
+            'frontend/js/explore/navigation/NavigationService.js', 'frontend/js/common/pano-viewer/GsvViewer.js',
+        ));
 
         const el = () => document.createElement('div');
-        nav = new window.NavigationService(
+        nav = new NavigationService(
             { modeSwitchWalk: el(), viewControlLayer: el(), drawingLayer: el() }, config, svl.regionModel,
             svl.missionModel, svl.missionContainer, svl.taskContainer, svl.panoStore, svl.panoManager,
             svl.labelContainer, svl.labelModes, svl.navArrows, keyboardLock, svl.alertController, svl.stuckAlert,
@@ -256,7 +265,7 @@ describe('Explore, when the imagery search runs out along a street', () => {
         });
     };
 
-    const emptyGround = () => Promise.reject(new window.NoImageryError('nothing usable here'));
+    const emptyGround = () => Promise.reject(new NoImageryError('nothing usable here'));
     const providerFailure = () => Promise.reject(new Error('the maps library never loaded'));
     const foundImagery = () => Promise.resolve({ panoId: 'pano-found' });
 
@@ -352,7 +361,7 @@ describe('Explore, when the imagery search runs out along a street', () => {
 
             await nav.moveForward();
 
-            expect(window.NoImageryFlagGuard.count()).toBe(0);
+            expect(NoImageryFlagGuard.count()).toBe(0);
         });
 
         it('does not carry a street\'s accumulated stuck panos into the search of the next (#4918)', async () => {
@@ -467,7 +476,7 @@ describe('Explore, when the imagery search runs out along a street', () => {
             expect(svl.taskContainer.setCurrentTask).toHaveBeenCalledTimes(5);
             // The budget goes back when the run ends: whatever happens next is the labeler deciding to try again,
             // which is a fresh decision rather than more of the automatic run this bounds.
-            expect(window.NoImageryFlagGuard.count()).toBe(0);
+            expect(NoImageryFlagGuard.count()).toBe(0);
             expect(svl.tracker.push).toHaveBeenCalledWith('NoImageryAdvanceLimitReached');
             expect(nav.walking.isHeld()).toBe(false);
         });
@@ -577,7 +586,7 @@ describe('Explore, when the imagery search runs out along a street', () => {
             await nav.moveForward();
 
             expect(reportNoImagery).not.toHaveBeenCalled();
-            expect(window.NoImageryFlagGuard.count()).toBe(0);
+            expect(NoImageryFlagGuard.count()).toBe(0);
             // Unlike a report, this is a real completion: the labeler walked the street to within reach of its end,
             // so the task is finished through the same call the normal end-of-street flow uses.
             expect(svl.taskContainer.endTask).toHaveBeenCalled();
@@ -667,13 +676,13 @@ describe('Explore, when the imagery search runs out along a street', () => {
             // is, so a run of failures ends here too — otherwise a session that gave up on a few streets and then
             // audited normally for an hour would still be refusing to report the next genuinely empty one.
             assignStreets(makeTask(101));
-            window.NoImageryFlagGuard.recordStreetGivenUp();
-            window.NoImageryFlagGuard.recordStreetGivenUp();
+            NoImageryFlagGuard.recordStreetGivenUp();
+            NoImageryFlagGuard.recordStreetGivenUp();
             svl.panoViewer.getLinkedPanos = () => [{ panoId: 'pano-next', heading: 0 }];
 
             await nav.moveToLinkedPano(0);
 
-            expect(window.NoImageryFlagGuard.count()).toBe(0);
+            expect(NoImageryFlagGuard.count()).toBe(0);
         });
 
         it('keeps quiet about a failed step when the caller has a fallback that may still move them', async () => {
@@ -743,10 +752,7 @@ describe('Explore, when the imagery search runs out along a street', () => {
         let viewer;
         let getPanorama;
 
-        beforeEach(async () => {
-            // GsvViewer measures replies with the real haversine; loading utilitiesMath swaps in the full util.math.
-            window.util ??= await realUtil();
-            await loadModules('frontend/js/common/utilitiesMath.js');
+        beforeEach(() => {
             window.google = {
                 maps: {
                     importLibrary: async () => ({ LatLng: FakeLatLng }),
@@ -754,23 +760,7 @@ describe('Explore, when the imagery search runs out along a street', () => {
                     StreetViewSource: { OUTDOOR: 'outdoor' },
                 },
             };
-            window.PanoData = class {
-                constructor(params) {
-                    this.params = params;
-                }
-
-                getPanoId() {
-                    return this.params.panoId;
-                }
-
-                getProperty(key) {
-                    return this.params[key];
-                }
-            };
-            // The one-field stand-in above would be what GsvViewer extends; the real viewer needs the real base.
-            delete window.PanoViewer;
-            Object.assign(window, await loadModules('frontend/js/common/pano-viewer/GsvViewer.js'));
-            viewer = new window.GsvViewer();
+            viewer = new GsvViewer();
             getPanorama = vi.fn();
             viewer.streetViewService = { getPanorama };
             viewer._loadPanoWithTimeout = vi.fn(async (_panoId, resolveValue) => resolveValue);
@@ -782,10 +772,6 @@ describe('Explore, when the imagery search runs out along a street', () => {
                 searches.push({ latLng, streetEdgeId: svl.taskContainer.getCurrentTask().getStreetEdgeId() });
                 return viewer.setLocation(latLng, excludedPanos);
             });
-        });
-
-        afterEach(() => {
-            console.warn.mockRestore();
         });
 
         /** A getPanorama() reply for a pano at `[lng, lat]`, with the fields the viewer reads. */

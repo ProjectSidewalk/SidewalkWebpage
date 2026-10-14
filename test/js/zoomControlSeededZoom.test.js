@@ -3,10 +3,8 @@
  * card's "Explore here" hop seeds a zoomed-in view before the control exists, so no view change tells it (#4637).
  */
 
-import { loadModules, fakeImport } from './loader.js';
+import { loadModules } from './loader.js';
 import { fakeTracker, fakePanoManager } from './fakes.js';
-
-fakeImport('frontend/js/common/Gate.js', 'Gate');
 
 describe('ZoomControl at a seeded zoom', () => {
     let ZoomControl;
@@ -15,7 +13,6 @@ describe('ZoomControl at a seeded zoom', () => {
     beforeEach(async () => {
         document.body.innerHTML = '<button id="zoom-in-button"></button><button id="zoom-out-button"></button>';
         buttons = { zoomIn: document.getElementById('zoom-in-button'), zoomOut: document.getElementById('zoom-out-button') };
-        Object.assign(window, await loadModules('frontend/js/common/Gate.js'));
         ({ ZoomControl } = await loadModules('frontend/js/explore/zoom/ZoomControl.js'));
     });
 

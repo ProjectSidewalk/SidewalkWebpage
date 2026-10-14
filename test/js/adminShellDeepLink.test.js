@@ -6,9 +6,7 @@
  * for height changes and re-scrolls the target — until the reader scrolls, keys, or touches, after which the page
  * must never move under them.
  *
- * Runs under jsdom (vitest.config.mjs), which has neither ResizeObserver nor Element.scrollIntoView: the observer is
- * stubbed so a test can fire it by hand, and scrollIntoView is a spy. AdminShell is a bare top-level class in a
- * concatenated bundle, so it is eval'd into global scope rather than required.
+ * jsdom has neither ResizeObserver nor Element.scrollIntoView, so the observer is a stub a test fires by hand.
  *
  * jsdom fires `hashchange` for a `location.hash` assignment on a later task, after the synchronous test body, and
  * every AdminShell built here leaves its window listeners behind. Those late events reach stale instances whose
@@ -16,10 +14,7 @@
  * its own `hashchange` rather than waiting for jsdom's.
  */
 
-import { loadModules, fakeImport } from './loader.js';
-
-fakeImport('frontend/js/common/sidebarDisclosure.js', 'initSidebarDisclosure');
-
+import { loadModules } from './loader.js';
 
 let AdminShell;
 /** The callbacks handed to `new ResizeObserver(cb)`, so a test can simulate the content column changing height. */
@@ -28,7 +23,6 @@ let resizeCallbacks = [];
 let observed = [];
 
 beforeAll(async () => {
-  window.initSidebarDisclosure = () => {};
   AdminShell = (await loadModules('frontend/js/admin-dashboard/AdminShell.js')).AdminShell;
 });
 

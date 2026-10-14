@@ -10,21 +10,11 @@
  * jsdom has no object URLs, so `URL.createObjectURL` / `revokeObjectURL` are stubbed to hand out and record ids.
  */
 
-import path from 'path';
-import { loadModules, fakeImport } from './loader.js';
+import { loadModules, mockModule } from './loader.js';
 
-fakeImport('frontend/js/common/pano-viewer/PannellumViewer.js', 'panoramaUrlFor');
-
-
-const CACHE_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/common/pano-viewer/PanoImageCache.js');
-
-/**
- * Load the bare `class PanoImageCache` declaration out of the production file, wrapped in an IIFE that returns it.
- * @returns {Function} The class.
- */
-async function loadCacheClass() {
-    return (await loadModules(CACHE_PATH)).PanoImageCache;
-}
+// The viewer's own URL builder; the cache only needs it to be the same function the viewer uses.
+let panoramaUrlFor;
+mockModule('frontend/js/common/pano-viewer/PannellumViewer.js', () => ({ panoramaUrlFor }));
 
 /**
  * A `fetch` that answers each URL with a small Blob, or as told.
@@ -55,20 +45,17 @@ describe('PanoImageCache (issue #5562)', () => {
         nextObjectUrl = 0;
         URL.createObjectURL = vi.fn(() => `blob:pano-${nextObjectUrl++}`);
         URL.revokeObjectURL = vi.fn();
-        window.fetch = fetchStub();
-        // The viewer's own URL builder; the cache only needs it to be the same function the viewer uses.
-        window.panoramaUrlFor = vi.fn((metadata) => `${metadata.image_url}?maxWidth=8192`);
+        vi.stubGlobal('fetch', fetchStub());
+        panoramaUrlFor = vi.fn((metadata) => `${metadata.image_url}?maxWidth=8192`);
         delete navigator.connection;
 
-        PanoImageCache = await loadCacheClass();
+        ({ PanoImageCache } = await loadModules('frontend/js/common/pano-viewer/PanoImageCache.js'));
         cache = new PanoImageCache();
     });
 
     afterEach(() => {
         delete URL.createObjectURL;
         delete URL.revokeObjectURL;
-        delete window.fetch;
-        delete window.panoramaUrlFor;
         delete navigator.connection;
     });
 
@@ -164,7 +151,7 @@ describe('PanoImageCache (issue #5562)', () => {
 
         await cache.prefetchBackups(backups);
 
-        expect(window.panoramaUrlFor).toHaveBeenCalledTimes(2);
+        expect(panoramaUrlFor).toHaveBeenCalledTimes(2);
         expect(window.fetch.mock.calls.map(([url]) => url))
             .toEqual(['/backupImage/p1?maxWidth=8192', '/backupImage/p2?maxWidth=8192']);
     });

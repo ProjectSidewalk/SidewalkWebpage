@@ -6,40 +6,17 @@
  * retry rather than moved on. So a viewer that answers "nothing usable here" with a plain Error strands the labeler
  * on the street with no way past it — the failure mode #5008 hit on a route through an 11.6 m street, where the only
  * image in range was the one already being stood on.
- *
- * Infra3dViewer is a top-level `class` written for the Grunt-concatenation world, so we eval the source in the jsdom
- * global scope alongside stubs for the globals it closes over.
  */
 
-import path from 'path';
-import { loadModules, fakeImport, stubUtil } from './loader.js';
+import { loadModules, mockModule } from './loader.js';
 
-fakeImport('frontend/js/common/pano-viewer/PanoData.js', 'PanoData');
-fakeImport('frontend/js/common/pano-viewer/PanoViewer.js', 'PanoViewer');
-fakeImport('frontend/js/common/pano-viewer/NoImageryError.js', 'NoImageryError');
+/** The exclusion check only compares pano ids, so the excluded set is built from a PanoData that validates nothing. */
+class PanoData {
+    constructor(params) { this.params = params; }
 
-
-const SRC_DIR = path.resolve(__dirname, '..', '..', 'frontend/js/common/pano-viewer');
-
-/** Loads Infra3dViewer over a stubbed PanoViewer base; PanoViewer's own behavior is panoViewerSeedFallback's job. */
-async function loadInfra3dViewer() {
-    window.PanoViewer = class PanoViewer {
-        constructor() { this.viewerType = 'infra3d'; }
-        getViewerType() { return this.viewerType; }
-    };
-    window.PanoData = class PanoData {
-        constructor(params) { this.params = params; }
-        getPanoId() { return this.params.panoId; }
-    };
-    window.proj4 = () => [0, 0];
-    stubUtil({ math: { toDegrees: (radians) => radians } });
-    Object.assign(window, await loadModules(path.join(SRC_DIR, 'Infra3dViewer.js'), path.join(SRC_DIR, 'NoImageryError.js')));
-    return {
-        Infra3dViewer: window.Infra3dViewer,
-        PanoData: window.PanoData,
-        NoImageryError: window.NoImageryError,
-    };
+    getPanoId() { return this.params.panoId; }
 }
+mockModule('frontend/js/common/pano-viewer/PanoData.js', () => ({ PanoData }));
 
 /** An Infra3d node with the fields #finishRecordingMetadata reads. `cameraType` decides panoramic vs flat. */
 const nodeFor = (id, cameraType = 'cubemap') => ({
@@ -67,14 +44,12 @@ const SOMEWHERE = { lat: 47.413137835, lng: 8.4747970537 };
 
 describe('Infra3dViewer.setLocation rejections', () => {
     let Infra3dViewer;
-    let PanoData;
     let NoImageryError;
 
     beforeAll(async () => {
-        const loaded = await loadInfra3dViewer();
-        Infra3dViewer = loaded.Infra3dViewer;
-        PanoData = loaded.PanoData;
-        NoImageryError = loaded.NoImageryError;
+        window.proj4 = () => [0, 0];
+        ({ Infra3dViewer, NoImageryError } = await loadModules('frontend/js/common/pano-viewer/Infra3dViewer.js',
+            'frontend/js/common/pano-viewer/NoImageryError.js'));
     });
 
     /**

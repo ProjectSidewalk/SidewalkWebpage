@@ -7,16 +7,14 @@
  * describes the action it now offers, the paired Click_/KeyboardShortcut_ events carry the frame, the exit hint
  * shows once per session, and none of it is reachable during the tutorial.
  *
- * ImmersiveMode is a Grunt-concatenated `class` reaching for page globals (util, i18next, Toast), so the source is
- * eval'd into jsdom with those stubbed; the tool-specific collaborators arrive through its options.
+ * The tool-specific collaborators arrive through the module's options; Toast is the one import it reaches for.
  */
 
-
-import { assetPathStub, loadModules, fakeImport, stubUtil } from './loader.js';
+import { loadModules, mockModule } from './loader.js';
 import { fakeTracker } from './fakes.js';
 
-fakeImport('frontend/js/common/Toast.js', 'Toast');
-
+const toast = { show: vi.fn() };
+mockModule('frontend/js/common/Toast.js', () => ({ Toast: toast }));
 
 describe('ImmersiveMode', () => {
     let ImmersiveMode;
@@ -59,14 +57,12 @@ describe('ImmersiveMode', () => {
         onboarding = false;
         tracker = fakeTracker();
         relayout = vi.fn();
-        stubUtil({ assetPath: assetPathStub });
+        toast.show = vi.fn();
         window.i18next = { t: (key) => key };
-        window.Toast = { show: vi.fn() };
         contextMenu = { isOpen: vi.fn(() => false), hide: vi.fn() };
         canvas = { showLabelHoverInfo: vi.fn() };
         frame = { width: 720, height: 480 };
-        Object.assign(window, await loadModules('frontend/js/common/ImmersiveMode.js'));
-        ImmersiveMode = window.ImmersiveMode;
+        ({ ImmersiveMode } = await loadModules('frontend/js/common/ImmersiveMode.js'));
     });
 
     it('flips both layout classes, re-lays out, and updates the button on enter and exit', () => {
@@ -119,12 +115,12 @@ describe('ImmersiveMode', () => {
         mode.toggle('Click');
         mode.toggle('Click');
         mode.toggle('Click');
-        expect(window.Toast.show).toHaveBeenCalledTimes(1);
-        expect(window.Toast.show).toHaveBeenCalledWith(expect.objectContaining({ dark: true }));
+        expect(toast.show).toHaveBeenCalledTimes(1);
+        expect(toast.show).toHaveBeenCalledWith(expect.objectContaining({ dark: true }));
 
         // A second module in the same session (a page reload) stays quiet.
         build().toggle('Click');
-        expect(window.Toast.show).toHaveBeenCalledTimes(1);
+        expect(toast.show).toHaveBeenCalledTimes(1);
     });
 
     it('still enters when session storage is unavailable', () => {
@@ -133,7 +129,7 @@ describe('ImmersiveMode', () => {
         const mode = build();
         mode.toggle('Click');
         expect(mode.isActive()).toBe(true);
-        expect(window.Toast.show).toHaveBeenCalledTimes(1);
+        expect(toast.show).toHaveBeenCalledTimes(1);
         getItem.mockRestore();
     });
 

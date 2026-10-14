@@ -6,16 +6,23 @@
  * which unit it opens on, when the second column becomes the "help the next one across the line" ask, when the whole
  * section hides — plus the two things the rows are for: a deep link into the right city's AccessScore tool, and the
  * map feature a hovered row lights up.
- *
- * The module is a bare top-level `class` that reaches for page globals, so the source is eval'd into jsdom with its
- * collaborators stubbed out.
  */
 
+import { loadModules, mockModule, useUtil } from './loader.js';
 
-import { installDateHelpers, loadModules, stubUtil, fakeImport } from './loader.js';
+mockModule('frontend/js/common/scoreRamp.js', () => ({
+    ScoreRamp: {
+        colors: () => ['#a', '#b', '#c', '#d', '#e'],
+        at: (score) => `score:${score}`,
+    },
+}));
 
-fakeImport('frontend/js/common/scoreRamp.js', 'ScoreRamp');
-
+/** The `util` members the module calls, with the formatting fixed so a test can read what was passed. */
+const UTIL_STUBS = {
+    onFirstInteractionOrIdle: () => {},
+    distanceToString: (m) => `${m} m`,
+    longDistanceToString: (km, precision) => `${km.toFixed(precision)} km`,
+};
 
 /** Every feature-state call the module made, in order, as `source:id -> hover`. */
 let featureStates = [];
@@ -59,6 +66,8 @@ function feed(unit, { qualifying = 0, total = 0, top = [], bottom = [], nearest 
 const FIVE_REGIONS = [1, 2, 3, 4, 5].map((i) => regionRow(i, `Region ${i}`, 0.9 - i * 0.1));
 
 describe('the AccessScore Spotlight', () => {
+    let AccessScoreSpotlight;
+
     /**
      * Mounts the module with the given feeds already answered.
      *
@@ -92,10 +101,10 @@ describe('the AccessScore Spotlight', () => {
         }
 
         let start;
-        window.util.onFirstInteractionOrIdle = (fn) => { start = fn; };
+        useUtil({ ...UTIL_STUBS, onFirstInteractionOrIdle: (fn) => { start = fn; } });
         const section = document.getElementById('spotlight-section');
-        const module = new window.AccessScoreSpotlight(section, options);
-        expect(module).toBeInstanceOf(window.AccessScoreSpotlight);
+        const module = new AccessScoreSpotlight(section, options);
+        expect(module).toBeInstanceOf(AccessScoreSpotlight);
         await start();
         return section;
     }
@@ -138,16 +147,7 @@ describe('the AccessScore Spotlight', () => {
                 return vars ? `${key}|${JSON.stringify(vars)}` : key;
             },
         };
-        stubUtil({
-            onFirstInteractionOrIdle: () => {},
-            distanceToString: (m) => `${m} m`,
-            longDistanceToString: (km, precision) => `${km.toFixed(precision)} km`,
-        });
-        await installDateHelpers();
-        window.ScoreRamp = {
-            colors: () => ['#a', '#b', '#c', '#d', '#e'],
-            at: (score) => `score:${score}`,
-        };
+        useUtil(UTIL_STUBS);
         window.logWebpageActivity = (activity) => logged.push(activity);
         // Stands in for a loaded Mapbox map; the module only ever reads a source and sets a feature state on it.
         const fakeMap = (sources) => ({
@@ -156,7 +156,7 @@ describe('the AccessScore Spotlight', () => {
         });
         window.choropleth = fakeMap(['region-polygons']);
         window.citiesMap = fakeMap(['cities']);
-        Object.assign(window, await loadModules('frontend/js/AccessScoreSpotlight.js'));
+        ({ AccessScoreSpotlight } = await loadModules('frontend/js/AccessScoreSpotlight.js'));
     });
 
     describe('which unit it opens on', () => {
@@ -338,9 +338,9 @@ describe('the AccessScore Spotlight', () => {
 
         it('holds its space with skeleton rows before the feed arrives', () => {
             document.body.innerHTML = '<section id="s" hidden><div class="spotlight"></div></section>';
-            window.util.onFirstInteractionOrIdle = () => {}; // Never fires: this is the pre-fetch state.
+            useUtil(UTIL_STUBS); // Never fires: this is the pre-fetch state.
             const section = document.getElementById('s');
-            new window.AccessScoreSpotlight(section);
+            new AccessScoreSpotlight(section);
 
             expect(section.hidden).toBe(false);
             expect(document.querySelectorAll('.spotlight-row--skeleton').length).toBeGreaterThan(0);
@@ -429,15 +429,15 @@ describe('the AccessScore Spotlight', () => {
             link.addEventListener('click', (e) => seen.push(e.metaKey ? 'meta' : 'plain'));
 
             // The score cell is nowhere near the link; the click still lands on it, and the log sees one click.
-            row.querySelector('.spotlight-score').dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+            row.querySelector('.spotlight-score').dispatchEvent(new MouseEvent('click', { bubbles: true }));
             row.querySelector('.spotlight-track').dispatchEvent(
-                new window.MouseEvent('click', { bubbles: true, metaKey: true }),
+                new MouseEvent('click', { bubbles: true, metaKey: true }),
             );
             expect(seen).toEqual(['plain', 'meta']);
             expect(logged.filter((entry) => entry.startsWith('Click_module=AccessScoreSpotlight_unit'))).toHaveLength(2);
 
             // The city link is its own destination, so a click on it is not redirected to the tool.
-            row.querySelector('.spotlight-sub-link').dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+            row.querySelector('.spotlight-sub-link').dispatchEvent(new MouseEvent('click', { bubbles: true }));
             expect(seen).toHaveLength(2);
             expect(row.classList.contains('spotlight-row--linked')).toBe(true);
         });
@@ -452,7 +452,7 @@ describe('the AccessScore Spotlight', () => {
             });
 
             const pending = document.querySelector('.spotlight-row--pending');
-            pending.querySelector('.spotlight-name-link').dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+            pending.querySelector('.spotlight-name-link').dispatchEvent(new MouseEvent('click', { bubbles: true }));
 
             expect(logged).toContain('Click_module=AccessScoreSpotlightExplore_regionId=3');
         });
@@ -466,11 +466,11 @@ describe('the AccessScore Spotlight', () => {
             });
             const row = document.querySelector('.spotlight-row');
 
-            row.dispatchEvent(new window.Event('mouseenter'));
+            row.dispatchEvent(new Event('mouseenter'));
             expect(row.classList.contains('is-highlighted')).toBe(true);
             expect(featureStates).toContain('region-polygons:42 -> true');
 
-            row.dispatchEvent(new window.Event('mouseleave'));
+            row.dispatchEvent(new Event('mouseleave'));
             expect(row.classList.contains('is-highlighted')).toBe(false);
             expect(featureStates).toContain('region-polygons:42 -> false');
         });
@@ -481,7 +481,7 @@ describe('the AccessScore Spotlight', () => {
                 streets: feed('streets', { qualifying: 9, total: 90, top: [streetRow(77, 'Broadway E', 0.98)] }),
             });
 
-            document.querySelector('.spotlight-row').dispatchEvent(new window.Event('mouseenter'));
+            document.querySelector('.spotlight-row').dispatchEvent(new Event('mouseenter'));
 
             expect(featureStates).toContain('region-polygons:7 -> true');
         });
@@ -495,7 +495,7 @@ describe('the AccessScore Spotlight', () => {
                 streets: feed('streets', { qualifying: 0, total: 0 }),
             }, { crossCity: true });
 
-            document.querySelector('.spotlight-row').dispatchEvent(new window.Event('mouseenter'));
+            document.querySelector('.spotlight-row').dispatchEvent(new Event('mouseenter'));
 
             expect(featureStates).toContain('cities:seattle-wa -> true');
         });
@@ -507,7 +507,7 @@ describe('the AccessScore Spotlight', () => {
             });
             const row = document.querySelector('.spotlight-row');
 
-            row.dispatchEvent(new window.Event('focusin', { bubbles: true }));
+            row.dispatchEvent(new Event('focusin', { bubbles: true }));
 
             expect(row.classList.contains('is-highlighted')).toBe(true);
             expect(featureStates).toContain('region-polygons:42 -> true');
@@ -521,8 +521,8 @@ describe('the AccessScore Spotlight', () => {
             const row = document.querySelector('.spotlight-row');
 
             for (let i = 0; i < 4; i++) {
-                row.dispatchEvent(new window.Event('mouseenter'));
-                row.dispatchEvent(new window.Event('mouseleave'));
+                row.dispatchEvent(new Event('mouseenter'));
+                row.dispatchEvent(new Event('mouseleave'));
             }
 
             const hovers = logged.filter((entry) => entry.startsWith('Hover_module=AccessScoreSpotlight'));
@@ -539,7 +539,7 @@ describe('the AccessScore Spotlight', () => {
                 streets: feed('streets', { qualifying: 0, total: 0 }),
             }, { crossCity: true });
 
-            document.querySelectorAll('.spotlight-row').forEach((row) => row.dispatchEvent(new window.Event('mouseenter')));
+            document.querySelectorAll('.spotlight-row').forEach((row) => row.dispatchEvent(new Event('mouseenter')));
 
             expect(logged.filter((entry) => entry.startsWith('Hover_module=AccessScoreSpotlight'))).toEqual([
                 'Hover_module=AccessScoreSpotlight_unit=regions_id=1_city=a-city',
@@ -557,7 +557,7 @@ describe('the AccessScore Spotlight', () => {
                 });
                 const row = document.querySelector('.spotlight-row');
 
-                expect(() => row.dispatchEvent(new window.Event('mouseenter'))).not.toThrow();
+                expect(() => row.dispatchEvent(new Event('mouseenter'))).not.toThrow();
                 expect(row.classList.contains('is-highlighted')).toBe(true);
                 expect(featureStates).toEqual([]);
             } finally {
@@ -684,7 +684,7 @@ describe('the AccessScore Spotlight', () => {
 
         it('stays open after a tap: focus then click is one gesture, not a show and a hide', async () => {
             await mountWithTip();
-            info().dispatchEvent(new window.Event('focus'));
+            info().dispatchEvent(new Event('focus'));
             expect(tip().hidden).toBe(false);
             info().click();
             expect(tip().hidden).toBe(false);
@@ -697,21 +697,21 @@ describe('the AccessScore Spotlight', () => {
 
         it('survives the pointer leaving the button while pinned, and closes on Escape from anywhere', async () => {
             await mountWithTip();
-            info().dispatchEvent(new window.Event('mouseenter'));
+            info().dispatchEvent(new Event('mouseenter'));
             info().click();
-            document.querySelector('.spotlight-updated').dispatchEvent(new window.Event('mouseleave'));
+            document.querySelector('.spotlight-updated').dispatchEvent(new Event('mouseleave'));
             expect(tip().hidden).toBe(false);
 
             // Focus is nowhere near the tip; Escape still dismisses it (WCAG 1.4.13).
-            document.body.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+            document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
             expect(tip().hidden).toBe(true);
         });
 
         it('hides on leaving the wrapper when only hovered, so an unpinned tip never lingers', async () => {
             await mountWithTip();
-            info().dispatchEvent(new window.Event('mouseenter'));
+            info().dispatchEvent(new Event('mouseenter'));
             expect(tip().hidden).toBe(false);
-            document.querySelector('.spotlight-updated').dispatchEvent(new window.Event('mouseleave'));
+            document.querySelector('.spotlight-updated').dispatchEvent(new Event('mouseleave'));
             expect(tip().hidden).toBe(true);
         });
     });

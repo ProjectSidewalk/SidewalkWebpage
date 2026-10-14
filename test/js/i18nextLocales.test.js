@@ -14,7 +14,7 @@
 
 import fs from 'fs';
 import path from 'path';
-import { loadGlobalScript, loadVendored, REPO_ROOT, assetPathStub, stubUtil } from './loader.js';
+import { loadModules, loadVendored, REPO_ROOT, useUtil } from './loader.js';
 
 const LOCALES_DIR = path.join(REPO_ROOT, 'public/locales');
 const LANGUAGES = fs.readdirSync(LOCALES_DIR, { withFileTypes: true })
@@ -81,16 +81,9 @@ async function startPage(language, { countryId = 'usa', fetch, missing = [], loc
     });
     loadVendored('i18next');
     loadVendored('i18next-http-backend');
-    stubUtil({
-        assetPath: assetPathStub,
-        isMetric: () => true,
-        math: {
-            metersToFeet: (meters) => meters * 3.28084,
-            kmsToMiles: (km) => km * 0.621371,
-            roundToTwentyFive: (n) => Math.round(n / 25) * 25,
-        },
-    });
-    await loadGlobalScript('frontend/js/common/AppManager.js');
+    // The distance formatter is checked in metres, whatever locale jsdom reports.
+    useUtil({ isMetric: () => true });
+    await loadModules('frontend/js/common/AppManager.js');
     await window.appManager._setupI18next({
         language, supportedLanguages: LANGUAGES, localeFiles, defaultNS: 'common', namespaces: NAMESPACES, countryId,
         unitWords: UNIT_WORDS,
@@ -100,7 +93,7 @@ async function startPage(language, { countryId = 'usa', fetch, missing = [], loc
 
 /** Takes down what `startPage` put up, so the next page starts from nothing. */
 function stopPage() {
-    for (const name of ['appManager', 'i18next', 'i18nextHttpBackend', 'util', 'fetch']) delete window[name];
+    for (const name of ['appManager', 'i18next', 'i18nextHttpBackend', 'fetch']) delete window[name];
 }
 
 describe('the vendored i18next over our locale files', () => {

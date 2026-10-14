@@ -5,11 +5,9 @@
  * timeout, because timeout aborts were exempted from the retry logic. These tests pin the fixed contract: a timed-out
  * attempt is retried (the server keeps computing the aborted request and caches its result, so retries converge), and
  * the error shown after all retries fail is human-readable rather than "signal is aborted without reason".
- *
- * Runs under jsdom (set in vitest.config.mjs via testEnvironment) so `window`/`document` are available.
  */
 
-import { loadGlobalScript, installEscapeHTML, stubUtil } from './loader.js';
+import { loadModules } from './loader.js';
 
 // jsdom implements AbortSignal but not the static AbortSignal.timeout()
 // (Baseline 2022, present in all supported browsers). Shim it for these tests; fetch is stubbed anyway, so the
@@ -71,22 +69,18 @@ describe('aggregateStats fetch resilience', () => {
         readyCallback = undefined;
         window.appManager = { ready: (cb) => { readyCallback = cb; } };
 
-        // Globals the renderer reaches for (provided by other bundles in production).
         window.i18next = { t: (key, opts) => Number(opts.val).toLocaleString('en-US') };
-        stubUtil({ math: { kmsToMiles: (km) => km * 0.621371 } });
-        await installEscapeHTML();
 
         // Keep the retry/error logging out of the test output.
         vi.spyOn(console, 'warn').mockImplementation(() => {});
         vi.spyOn(console, 'error').mockImplementation(() => {});
 
-        await loadGlobalScript(MODULE_PATH);
+        await loadModules(MODULE_PATH);
     });
 
     afterEach(() => {
         delete window.fetch;
         delete window.i18next;
-        delete window.util;
         delete window.appManager;
     });
 

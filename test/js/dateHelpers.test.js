@@ -4,12 +4,10 @@
  * vitest.config.mjs pins the clock to Los Angeles, which is exactly where reading a bare month as UTC goes wrong.
  */
 
-import { installDateHelpers } from './loader.js';
+import { loadModules } from './loader.js';
 
-beforeAll(async () => {
-    window.i18next = { language: 'en' };
-    await installDateHelpers();
-});
+window.i18next = { language: 'en' };
+const { util } = await loadModules('frontend/js/common/utilities.js');
 
 describe('util.parseDate', () => {
     test('reads a bare month or day as local midnight, not UTC', () => {

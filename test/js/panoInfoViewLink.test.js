@@ -6,15 +6,9 @@
  * provider has dropped, and a static crop when neither exists. Only the first of those has anywhere to link to, so
  * the popover resolves the active viewer on every open and offers the link only when that viewer both publishes a
  * public site and is holding the pano on screen.
- *
- * PanoInfoPopover is a top-level `class` declaration written for the Grunt-concatenation world, so — as with
- * ShareWidget — the source is eval'd into the jsdom global scope with an explicit `window.X = X` epilogue rather
- * than require()-d.
  */
 
-
-import { assetPathStub, installDateHelpers, loadModules, stubUtil } from './loader.js';
-
+import { loadModules } from './loader.js';
 
 // The parts of app/views/common/panoInfoPopover.scala.html the class actually reads. Kept minimal on purpose: if a
 // selector is renamed there without being renamed here, these tests fail, which is the point.
@@ -118,8 +112,6 @@ describe('PanoInfoPopover view-in-pano link', () => {
 
         // Translations render as their raw keys so assertions stay locale-independent.
         window.i18next = { t: (key) => key };
-        stubUtil({ assetPath: assetPathStub }); // The info button's icon URL.
-        await installDateHelpers();
         window.cityName = 'Washington';
         clipboardText = null;
         Object.defineProperty(navigator, 'clipboard', {
@@ -127,8 +119,7 @@ describe('PanoInfoPopover view-in-pano link', () => {
             configurable: true,
         });
 
-        Object.assign(window, await loadModules('frontend/js/common/pano-viewer/PanoInfoPopover.js'));
-        PanoInfoPopover = window.PanoInfoPopover;
+        ({ PanoInfoPopover } = await loadModules('frontend/js/common/pano-viewer/PanoInfoPopover.js'));
 
         activeViewer = makeGsvViewer();
         labelPanoId = null;

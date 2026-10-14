@@ -9,16 +9,13 @@
  * comment box. That makes the comment box key move from 4 to 5 on the one type with a fourth reason, and leaves it on
  * 4 everywhere else.
  *
- * Loaded the same way as validateLabelCardKeyboard.test.js: the class is a plain top-level declaration, so the source
- * is eval'd with an explicit export and one instance serves the whole file (the constructor registers a window
- * listener that cannot be unregistered).
+ * One instance serves the whole file: the constructor registers a window listener that cannot be unregistered.
  */
 
-import { loadModules, fakeImport } from './loader.js';
-import { fakeTracker } from './fakes.js';
+import { loadModules } from './loader.js';
+import { fakeGate, fakeTracker } from './fakes.js';
 
-fakeImport('frontend/js/common/KeyboardShortcuts.js', 'KeyboardShortcuts');
-
+const { KeyboardManager } = await loadModules('frontend/js/validate/keyboard/KeyboardManager.js');
 
 /**
  * A menu control with its click spied; `chosen` marks the verdict. A real element, since the manager compares the
@@ -56,7 +53,7 @@ describe('KeyboardManager number-key shortcuts', () => {
     const live = (name) => new Proxy({}, { get: (_, key) => current[name][key] });
     const config = { adminVersion: false };
 
-    beforeAll(async () => {
+    beforeAll(() => {
         Object.assign(validationMenuUi, {
             optionalCommentTextBox: makeControl(),
             disagreeReasonTextBox: makeControl(),
@@ -70,10 +67,9 @@ describe('KeyboardManager number-key shortcuts', () => {
         // The manager looks the reason buttons and severity radios up by id and clicks them natively.
         document.addEventListener('click', (e) => clicks.push(/** @type {Element} */ (e.target).id));
 
-        Object.assign(window, await loadModules('frontend/js/common/KeyboardShortcuts.js', 'frontend/js/validate/keyboard/KeyboardManager.js'));
-        new window.KeyboardManager(
+        new KeyboardManager(
             { validationMenu: validationMenuUi, undoValidation: { undoButton: live('undoButton') } }, config,
-            { isHeld: () => false, hold: () => {}, release: () => {} },
+            fakeGate(),
             { onLoadingChange: () => {} }, live('labelVisibilityControl'), live('labelCard'), live('validationMenu'),
             live('zoomControl'), live('undoValidation'), live('immersiveMode'), live('imageAdjustmentsPopover'),
             live('tracker'),

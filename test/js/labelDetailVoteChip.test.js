@@ -10,36 +10,22 @@
  * hardcode `stroke="#242424"` at a width that thins to a sub-pixel hairline at chip size. Inlined, it inherits
  * `currentColor`, which is what keeps the glyph at the chip text's contrast.
  *
- * LabelDetail is a top-level `class` declaration written for the Grunt-concatenation world, so (like
- * labelDetailSubmissionContext.test.js) the source is eval'd into the jsdom global scope with an epilogue that
- * exposes the class. Only the static method is exercised here — constructing a LabelDetail needs a live pano viewer.
+ * Only the static method is exercised here: constructing a LabelDetail needs a live pano viewer.
  */
 
 import fs from 'fs';
 import path from 'path';
-import { loadModules, stubUtil } from './loader.js';
-
-
-/** The two globals voteChipFor reaches for, stubbed so the assertions read against known strings. */
-function stubGlobals() {
-    stubUtil({ camelToKebab: (s) => s.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase() });
-    window.i18next = {
-        t: (key, opts) => (key === 'labelmap:commenter-voted' ? `Commenter voted ${opts.vote}` : `t(${key})`)
-    };
-}
-
-/** Loads a fresh LabelDetail class into the jsdom global scope. */
-async function loadLabelDetail() {
-    stubGlobals();
-    Object.assign(window, await loadModules('frontend/js/common/label-detail/LabelDetail.js'));
-    return window.LabelDetail;
-}
+import { loadModules, REPO_ROOT } from './loader.js';
 
 describe('LabelDetail.voteChipFor', () => {
     let LabelDetail;
 
     beforeEach(async () => {
-        LabelDetail = await loadLabelDetail();
+        // Echoes the keys, so the assertions read against known strings rather than the English copy.
+        window.i18next = {
+            t: (key, opts) => (key === 'labelmap:commenter-voted' ? `Commenter voted ${opts.vote}` : `t(${key})`)
+        };
+        ({ LabelDetail } = await loadModules('frontend/js/common/label-detail/LabelDetail.js'));
     });
 
     test.each(['Agree', 'Disagree', 'Unsure'])('%s renders a chip carrying the vote word and its modifier', (vote) => {
@@ -75,9 +61,7 @@ describe('LabelDetail.voteChipFor', () => {
     // icons from Figma would silently leave the chips drawing the old shape. This is the tie.
     test.each(['Agree', 'Disagree', 'Unsure'])(
         '%s draws the same geometry as its icon file, so a re-export cannot drift from the inlined copy', (vote) => {
-            const file = path.resolve(
-                __dirname, '..', '..', `public/images/icons/validation/${vote.toLowerCase()}-outline.svg`
-            );
+            const file = path.join(REPO_ROOT, `public/images/icons/validation/${vote.toLowerCase()}-outline.svg`);
             const fromFile = [...fs.readFileSync(file, 'utf8').matchAll(/<path[^>]*\sd="([^"]*)"/g)].map((m) => m[1]);
             const inlined = [...LabelDetail.voteChipFor({ validation: vote }).querySelectorAll('path')]
                 .map((p) => p.getAttribute('d'));

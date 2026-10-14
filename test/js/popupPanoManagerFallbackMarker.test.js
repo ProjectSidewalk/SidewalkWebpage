@@ -7,17 +7,14 @@
  * (the centre, unless the window shifted off a pole). The label payload carries that as `cropMarker`; these pin that
  * the fallback marker follows it when present and the canvas fraction otherwise.
  *
- * Like the other PopupPanoManager tests, the source is eval'd into jsdom, since it is a top-level class
- * written for Grunt concatenation. The fallback is reached by declaring the imagery expired (no live attempt) with
- * no self-hosted copy (no Pannellum attempt), which is the popup's path for an old label whose pano Google has
- * dropped.
+ * The fallback is reached by declaring the imagery expired (no live attempt) with no self-hosted copy (no Pannellum
+ * attempt), which is the popup's path for an old label whose pano Google has dropped.
  */
 
-import { installUtilitiesMisc, loadModules, fakeImport, stubUtil } from './loader.js';
+import { loadModules, useUtil } from './loader.js';
+import { fakePanoOverlays } from './fakes.js';
 
-fakeImport('frontend/js/common/pano-viewer/PanoAttribution.js', 'createPanoAttribution');
-fakeImport('frontend/js/common/pano-viewer/PanoViewerLogo.js', 'createPanoViewerLogo');
-
+fakePanoOverlays();
 
 const POV = { heading: 10, pitch: 0, zoom: 1 };
 
@@ -34,7 +31,6 @@ describe('PopupPanoManager fallback marker', () => {
     let svHolder;
 
     beforeEach(async () => {
-        vi.resetModules();
         document.body.innerHTML = `
             <div class="label-detail__pano-wrap">
               <div id="sv-holder" class="label-detail__pano"></div>
@@ -48,24 +44,13 @@ describe('PopupPanoManager fallback marker', () => {
         window.panzoom = () => ({
             on: vi.fn(), zoomAbs: vi.fn(), moveTo: vi.fn(), getTransform: () => ({ x: 0, y: 0, scale: 1 }),
         });
-        stubUtil({
-            assetPath: (p) => `/assets/${p}`,
-            afterLoadIdle: () => {},
-            isMobile: () => false,
-            misc: { getIconImagePaths: () => ({ iconImagePath: 'icon.png' }), getLabelColors: () => '#000' },
-        });
-        // The real util.misc, so the labelMarkerFraction the fallback places by is the shipped one.
-        await installUtilitiesMisc();
+        // The library preload would otherwise fire on a timer after the test is over.
+        useUtil({ afterLoadIdle: () => {} });
         window.i18next = { t: (k) => k };
-        window.createPanoViewerLogo = () => ({ showPrimaryLogo: vi.fn(), showSourceLogo: vi.fn() });
-        window.createPanoAttribution = () => ({ show: vi.fn(), hide: vi.fn() });
-        window.LabelVisibilityToggle = { HIDDEN_CLASS: 'hidden' };
-        window.PannellumViewer = { create: vi.fn() };
         window.fetch = vi.fn(() => Promise.resolve({ ok: false }));
         vi.spyOn(console, 'error').mockImplementation(() => {});
 
-        Object.assign(window, await loadModules('frontend/js/common/label-detail/PopupPanoManager.js'));
-        PopupPanoManager = window.PopupPanoManager;
+        ({ PopupPanoManager } = await loadModules('frontend/js/common/label-detail/PopupPanoManager.js'));
     });
 
     /**

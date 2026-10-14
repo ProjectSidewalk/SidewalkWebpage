@@ -12,13 +12,8 @@
  * along real street geometry, and a stub that got it slightly wrong would pass for the wrong reason.
  */
 
-import { loadVendored, loadModules, realUtil, fakeImport, stubUtil } from './loader.js';
+import { loadVendored, loadModules } from './loader.js';
 import { fakeTracker } from './fakes.js';
-
-fakeImport('frontend/js/explore/task/Task.js', 'Task');
-fakeImport('frontend/js/explore/EventEmitter.js', 'EventEmitter');
-
-
 
 // Loaded once, up front: the fixtures below are built while the suite is collected, before any beforeEach runs.
 loadVendored('turf');
@@ -78,13 +73,13 @@ describe('Task resumed from an earlier session', () => {
         ? { lat: props.current_lat, lng: props.current_lng }
         : undefined);
 
-    const makeTask = (geojson) => new window.Task(geojson, {}, false, resumeAt(geojson.properties));
+    let Task;
+
+    const makeTask = (geojson) => new Task(geojson, {}, false, resumeAt(geojson.properties));
 
     beforeEach(async () => {
         window.turf = turf;
-        window.util ??= await realUtil();
-        await loadModules('frontend/js/common/utilitiesMath.js');
-        Object.assign(window, await loadModules('frontend/js/explore/task/Task.js'));
+        ({ Task } = await loadModules('frontend/js/explore/task/Task.js'));
     });
 
     it('starts where the labeler stopped, at the end the row says they started from', () => {
@@ -183,12 +178,10 @@ describe('TaskContainer handing out a part-walked street', () => {
     beforeEach(async () => {
         // Only the two turf calls nextTask itself makes; the geometry questions are covered above against real turf.
         window.turf = { point: (coords) => ({ type: 'Point', coordinates: coords }), pointToLineDistance: () => 0 };
-        stubUtil({ math: { kmsToMeters: (km) => km * 1000 } });
-        tracker = { push: vi.fn(), setAuditTaskID: vi.fn() };
-        window.Task = { CLOSE_TO_ROUTE_KM: 0.05 };
-        Object.assign(window, await loadModules('frontend/js/explore/task/TaskContainer.js'));
-        container = new window.TaskContainer(finishedTask(), {}, { isRoute: false }, { setStreetLines: vi.fn() },
-            {}, {}, tracker);
+        tracker = fakeTracker();
+        const { TaskContainer } = await loadModules('frontend/js/explore/task/TaskContainer.js');
+        container = new TaskContainer(finishedTask(), {}, { isRoute: false }, { setStreetLines: vi.fn() }, {}, {},
+            tracker);
     });
 
     describe('nextTask', () => {
@@ -218,11 +211,9 @@ describe('TaskContainer handing out a part-walked street', () => {
 
         /** The real MissionContainer adopting each street the container switches to, as it does in production. */
         beforeEach(async () => {
-            Object.assign(window, await loadModules('frontend/js/explore/EventEmitter.js',
-                'frontend/js/explore/mission/MissionContainer.js'));
+            const { MissionContainer } = await loadModules('frontend/js/explore/mission/MissionContainer.js');
             tasks = container;
-            missionContainer = new window.MissionContainer({}, { setMessage: () => {} }, { on: () => {} }, {}, tasks,
-                {});
+            missionContainer = new MissionContainer({}, { setMessage: () => {} }, { on: () => {} }, {}, tasks, {});
             missionContainer.setTasksMissionsOffset(500);
             // The mission the streets are adopted into; its start is marked only on a fresh street, which this isn't.
             const currentTask = { setProperty: () => {}, getProperty: () => true };
@@ -284,10 +275,8 @@ describe('TaskContainer.fetchTasks', () => {
 
     beforeEach(async () => {
         window.turf = turf;
-        window.util ??= await realUtil();
-        await loadModules('frontend/js/common/utilitiesMath.js');
-        // One eval so TaskContainer's `new Task(...)` resolves to the class evaluated beside it.
-        Object.assign(window, await loadModules('frontend/js/explore/task/Task.js', 'frontend/js/explore/task/TaskContainer.js'));
+        const { Task, TaskContainer } = await loadModules('frontend/js/explore/task/Task.js',
+            'frontend/js/explore/task/TaskContainer.js');
 
         window.fetch = vi.fn(() => Promise.resolve({
             json: () => Promise.resolve({
@@ -306,9 +295,8 @@ describe('TaskContainer.fetchTasks', () => {
 
         const regionModel = { isRoute: false, currentRegion: () => ({ getRegionId: () => 5 }) };
         // The page's own street, which fetchTasks skips by id.
-        const initialTask = new window.Task(feature(straightStreet([-77.1, 38.8], 50), { street_edge_id: 3 }), {}, false);
-        container = new window.TaskContainer(initialTask, { streetCoverage: {} }, regionModel, {}, {}, {},
-            fakeTracker());
+        const initialTask = new Task(feature(straightStreet([-77.1, 38.8], 50), { street_edge_id: 3 }), {}, false);
+        container = new TaskContainer(initialTask, { streetCoverage: {} }, regionModel, {}, {}, {}, fakeTracker());
     });
 
     it('seeds an open task at its saved position and a fresh one at its own start', async () => {

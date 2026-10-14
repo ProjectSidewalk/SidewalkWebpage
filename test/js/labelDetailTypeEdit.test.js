@@ -9,30 +9,20 @@
  * save also names the type the card showed, and a 409 means the label moved on under it, so the card redraws from
  * the reply instead of rolling back.
  *
- * Built the same way as labelDetailEditGating.test.js: the sources are eval'd into jsdom with the collaborators
- * LabelDetail reaches for stubbed on `window`. jsdom has no popover API, so the picker takes the inline fallback
- * path, which is what the assertions read.
+ * jsdom has no popover API, so the picker takes the inline fallback path, which is what the assertions read. The
+ * pano manager, the toast and the card's flourishes (badges, stories, the info popover, the hide toggle) are
+ * stand-ins: the real ones want a viewer and page markup, and none is what a type change exercises.
  */
 
+import { loadModules, mockModule, useUtil } from './loader.js';
+import { mockLabelDetailCollaborators } from './fakes.js';
 
-import { assetPathStub, installDateHelpers, loadModules, fakeImport, stubUtil } from './loader.js';
+/** The pano manager the card is handed; rebuilt per test so a test can settle its setPano() when it likes. */
+let panoManager;
+const toast = { show: vi.fn() };
 
-fakeImport('frontend/js/common/BadgeAchievements.js', 'BadgeAchievements');
-fakeImport('frontend/js/common/LabelVisibilityToggle.js', 'LabelVisibilityToggle');
-fakeImport('frontend/js/common/Toast.js', 'Toast');
-fakeImport('frontend/js/common/label-detail/PopupPanoManager.js', 'PopupPanoManager');
-fakeImport('frontend/js/common/label-detail/StorySection.js', 'StorySection');
-fakeImport('frontend/js/common/pano-viewer/PanoInfoPopover.js', 'PanoInfoPopover');
-fakeImport('frontend/js/common/utilitiesSidewalk.js', 'buildBackupImageData');
-fakeImport('frontend/js/common/LabelTypePicker.js', 'LabelTypeDropdown');
-fakeImport('frontend/js/common/label-detail/TagEditor.js', 'TagEditor');
-
-
-const TYPES = ['CurbRamp', 'Obstacle', 'SurfaceProblem', 'Signal'];
-const RATED = { CurbRamp: true, Obstacle: true, SurfaceProblem: true, Signal: false };
-// A curb ramp is rated on how well it does its job, an obstacle on how much it gets in the way, so a rating means
-// something different either side of that line; Signal carries none at all.
-const SCALES = { CurbRamp: 'quality', Obstacle: 'severity', SurfaceProblem: 'severity', Signal: 'unrated' };
+mockLabelDetailCollaborators(() => panoManager);
+mockModule('frontend/js/common/Toast.js', () => ({ Toast: toast }));
 
 /**
  * The card markup as views/common/labelDetail.scala.html renders it, reduced to what #cacheElements() looks up.
@@ -139,7 +129,6 @@ function meta(overrides = {}) {
 
 describe('changing a label\'s type from the card (#3671)', () => {
   let card;
-  let panoManager;
   let saveRequest;
   let onEdit;
   /** What /label/edit answers next: a status and a body, or the default echo of the request. */
@@ -179,34 +168,7 @@ describe('changing a label\'s type from the card (#3671)', () => {
 
     window.i18next = { t: (key, opts) => (opts?.labelType ? `${key}:${opts.labelType}` : key) };
     window.logWebpageActivity = vi.fn();
-    window.camelToKebab = (s) => s.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
-    window.buildBackupImageData = () => null;
-    stubUtil({
-      assetPath: assetPathStub,
-      camelToKebab: window.camelToKebab,
-      EXPLORE_CANVAS_WIDTH: 720,
-      EXPLORE_CANVAS_HEIGHT: 480,
-      isMobile: () => false,
-      lazyIdentityFetch: saveRequest,
-      misc: {
-        labelTypeName: (type) => window.i18next.t(`common:${window.util.camelToKebab(type)}`),
-        VALID_LABEL_TYPES: TYPES,
-        getRatingLevelKeys: () => ({ 1: 'low', 2: 'medium', 3: 'high' }),
-        getSmileyIconPath: (sev, type, selected) => `${type}-${sev}-${selected}.svg`,
-        isPositiveLabelType: (type) => type === 'CurbRamp',
-        labelTypeHasSeverity: (type) => RATED[type],
-        getRatingScale: (type) => SCALES[type] ?? 'unrated',
-        getIconImagePaths: (type) => ({ iconImagePath: `/assets/${type}_small.svg` }),
-        getLabelColors: (type) => `color-${type}`,
-      },
-      pano: { centeredPovToCanvasCoord: () => ({ x: 0, y: 0 }) },
-      url: { replaceQuery: () => {} },
-    });
-    await installDateHelpers();
-    window.BadgeAchievements = { seedCounts: () => {}, recordValidation: () => {} };
-    window.Toast = { show: vi.fn() };
-    window.LabelVisibilityToggle = class { constructor() {} };
-    window.PanoInfoPopover = class { constructor() {} };
+    useUtil({ lazyIdentityFetch: saveRequest });
 
     let resolvePano;
     panoManager = {
@@ -220,9 +182,6 @@ describe('changing a label\'s type from the card (#3671)', () => {
       panoViewer: { currPanoData: null },
       svHolder: document.createElement('div'),
     };
-    window.PopupPanoManager = { create: async () => panoManager };
-    // The stories disclosure is not what these tests exercise, and its real section wants the composer's markup.
-    window.StorySection = class { setLabel() {} };
     // The tag catalog for the tag editor, and the label itself for the vote-count refresh after a type change.
     window.fetch = vi.fn((url) => {
       if (String(url).includes('/label/id/')) {
@@ -231,8 +190,8 @@ describe('changing a label\'s type from the card (#3671)', () => {
       return Promise.resolve({ ok: true, json: async () => [] });
     });
 
-    Object.assign(window, await loadModules('frontend/js/common/LabelTypePicker.js', 'frontend/js/common/label-detail/TagEditor.js', 'frontend/js/common/label-detail/LabelDetail.js'));
-    card.detail = await window.LabelDetail.create(card, {
+    const { LabelDetail } = await loadModules('frontend/js/common/label-detail/LabelDetail.js');
+    card.detail = await LabelDetail.create(card, {
       admin: false, viewerType: 'Default', currUsername: 'tester', panoOverlaySource: 'test',
       voteColumnSource: 'test', onEdit,
     });
@@ -355,7 +314,7 @@ describe('changing a label\'s type from the card (#3671)', () => {
 
     expect(q('.label-type-trigger__button .label-type-trigger__name').textContent).toBe('common:curb-ramp');
     expect(q('.label-detail__severity-faces [data-severity="1"]').getAttribute('aria-pressed')).toBe('true');
-    expect(window.Toast.show).toHaveBeenCalledWith(expect.objectContaining({
+    expect(toast.show).toHaveBeenCalledWith(expect.objectContaining({
       title: 'labelmap:edit-conflict-short', message: 'labelmap:edit-conflict',
     }));
     expect(typeStatus().textContent).toBe('');

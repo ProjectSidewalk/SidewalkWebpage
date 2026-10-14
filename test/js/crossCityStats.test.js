@@ -6,17 +6,11 @@
  * differently than the column it sums, and an intro that asserts work an empty account hasn't done. The escaping
  * cases cover the other direction: i18next escapes interpolated values by default, which is wrong both for a string
  * going into textContent and for one this file escapes itself.
- *
- * Runs under jsdom (vitest.config.mjs).
  */
 
 import fs from 'fs';
 import path from 'path';
-import { loadModules, realUtil, stubUtil } from './loader.js';
-
-stubUtil(await realUtil());
-
-const REPO_ROOT = path.resolve(__dirname, '..', '..');
+import { loadModules, REPO_ROOT } from './loader.js';
 
 /** The subset of dashboard.json this section reads, verbatim, so the tests break if a placeholder is renamed. */
 const STRINGS = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'public/locales/en/dashboard.json'), 'utf8')).cities;
@@ -97,14 +91,8 @@ const payloadOf = (cities, extra = {}) => ({
   ...extra,
 });
 
-let CrossCityStats;
-
-beforeAll(async () => {
-  window.util ??= await realUtil();
-  await loadModules('frontend/js/common/utilitiesMath.js');
-  window.i18next = i18nextStub;
-  CrossCityStats = (await loadModules('frontend/js/user-dashboard/CrossCityStats.js')).CrossCityStats;
-});
+window.i18next = i18nextStub;
+const { CrossCityStats } = await loadModules('frontend/js/user-dashboard/CrossCityStats.js');
 
 const text = (section, id) => section.querySelector(`#${id}`).textContent;
 

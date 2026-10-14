@@ -12,23 +12,13 @@
 
 import fs from 'fs';
 import path from 'path';
-import { loadModules } from './loader.js';
+import { loadModules, REPO_ROOT } from './loader.js';
 
-const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const STATUS_PATH = path.join(REPO_ROOT, 'frontend/js/validate/panorama/PanoLoadingStatus.js');
 const DESKTOP_VIEW_PATH = path.join(REPO_ROOT, 'app/views/apps/validate.scala.html');
 const MOBILE_VIEW_PATH = path.join(REPO_ROOT, 'app/views/apps/mobileValidate.scala.html');
 const CSS_PATH = path.join(REPO_ROOT, 'frontend/css/pages/validate/svv-panorama.css');
 
-/**
- * Load a bare `class` declaration out of a production file (same trick as validateSkipUnrenderableLabel.test.js).
- * @param {string} filePath - Absolute path to the production file.
- * @param {string} className - Name of the class the file declares.
- * @returns {Function} The class.
- */
-async function loadClassFromFile(filePath, className) {
-  return (await loadModules(filePath))[className];
-}
+const { PanoLoadingStatus } = await loadModules('frontend/js/validate/panorama/PanoLoadingStatus.js');
 
 /**
  * The status markup out of a Twirl view, with its asset reference turned into a plain URL so jsdom can parse it.
@@ -55,18 +45,16 @@ describe.each([
   ['desktop', DESKTOP_VIEW_PATH],
   ['mobile', MOBILE_VIEW_PATH],
 ])('the pano loading status (%s view, issue #5581)', (_layout, viewPath) => {
-  let PanoLoadingStatus;
   let status;
   let region;
   let box;
   let text;
   let announce;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     vi.useFakeTimers();
     window.i18next = {t: vi.fn((key) => `t(${key})`)};
     document.body.innerHTML = `<div id="svv-panorama-holder">${statusMarkup(viewPath)}</div>`;
-    PanoLoadingStatus = await loadClassFromFile(STATUS_PATH, 'PanoLoadingStatus');
     region = document.getElementById('svv-pano-loading');
     box = region.querySelector('.svv-pano-loading__box');
     text = region.querySelector('.svv-pano-loading__text');
@@ -193,8 +181,7 @@ describe.each([
 });
 
 describe('the pano loading status degrades quietly without its markup', () => {
-  test('a page without the element gets no status and no errors', async () => {
-    const PanoLoadingStatus = await loadClassFromFile(STATUS_PATH, 'PanoLoadingStatus');
+  test('a page without the element gets no status and no errors', () => {
     const status = new PanoLoadingStatus(null);
     expect(() => {
       status.begin();
@@ -206,10 +193,9 @@ describe('the pano loading status degrades quietly without its markup', () => {
 });
 
 describe('the pano loading status degrades quietly with its markup half there', () => {
-  test('a box without its text element is treated as no status, rather than throwing mid-render', async () => {
+  test('a box without its text element is treated as no status, rather than throwing mid-render', () => {
     window.i18next = {t: vi.fn((key) => key)};
     document.body.innerHTML = '<div id="svv-pano-loading"><div class="svv-pano-loading__box ps-hidden"></div></div>';
-    const PanoLoadingStatus = await loadClassFromFile(STATUS_PATH, 'PanoLoadingStatus');
     const status = new PanoLoadingStatus(document.getElementById('svv-pano-loading'));
     expect(() => {
       status.begin();

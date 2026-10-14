@@ -7,38 +7,10 @@
  * shown over and over. The desktop tool runs the same code against a `display: none` copy of the markup, where a
  * measurement reads zero and a fetched tutorial photo is never seen. And the title is fitted to one line by
  * measuring it, which is only meaningful once the face it is set in has loaded.
- *
- * The classes are top-level declarations concatenated into page scope by Grunt, so the tests evaluate the sources.
  */
 
-import { assetPathStub, loadModules, fakeImport, stubUtil } from './loader.js';
+import { loadModules, mockModule, useUtil } from './loader.js';
 import { fakeGate, fakeTracker } from './fakes.js';
-
-fakeImport('frontend/js/common/Confetti.js', 'Confetti');
-fakeImport('frontend/js/common/MissionStartTutorial.js', 'MissionStartTutorial');
-fakeImport('frontend/js/common/BadgeAchievements.js', 'BadgeAchievements');
-fakeImport('frontend/js/common/ProgressBar.js', 'ProgressBar');
-
-
-/* global MissionStartTutorial -- put on global by the suite's setup. */
-
-/**
- * Load a bare `class` declaration out of a production file.
- * @param {string} relativePath - Path to the file relative to the repo root.
- * @param {string} className - Name of the class the file declares.
- * @returns {Function} The class.
- */
-async function loadClass(relativePath, className) {
-    return (await loadModules(relativePath))[className];
-}
-
-const ModalMission = await loadClass('frontend/js/validate/modal/ModalMission.js', 'ModalMission');
-const ModalMissionComplete = await loadClass(
-    'frontend/js/validate/modal/ModalMissionComplete.js', 'ModalMissionComplete'
-);
-const ModalNoNewMission = await loadClass('frontend/js/validate/modal/ModalNoNewMission.js', 'ModalNoNewMission');
-const BadgeAchievements = await loadClass('frontend/js/common/BadgeAchievements.js', 'BadgeAchievements');
-const ProgressBar = await loadClass('frontend/js/common/ProgressBar.js', 'ProgressBar');
 
 /** The two slides MissionStartTutorial hands the briefing for a label type: the right example, then a wrong one. */
 const SLIDES = [
@@ -52,6 +24,22 @@ const SLIDES = [
     },
 ];
 
+/** The briefing reads the tutorial's slides and photo frame; the desktop completion raises one, and needs no more. */
+class FakeMissionStartTutorial {
+    static EXAMPLE_PHOTO = {width: 658, height: 436};
+
+    static slidesFor = vi.fn(() => SLIDES);
+}
+mockModule('frontend/js/common/MissionStartTutorial.js', () => ({MissionStartTutorial: FakeMissionStartTutorial}));
+// jsdom has no canvas to burst confetti on.
+mockModule('frontend/js/common/Confetti.js', () => ({Confetti: {burst: vi.fn()}}));
+
+const {ModalMission, ModalMissionComplete, ModalNoNewMission, BadgeAchievements, Gate} = await loadModules(
+    'frontend/js/validate/modal/ModalMission.js', 'frontend/js/validate/modal/ModalMissionComplete.js',
+    'frontend/js/validate/modal/ModalNoNewMission.js', 'frontend/js/common/BadgeAchievements.js',
+    'frontend/js/common/Gate.js',
+);
+
 /** A minimal Mission, with just the properties the two screens read. @returns {Object} */
 function makeMission(props = {}) {
     const all = {
@@ -60,8 +48,6 @@ function makeMission(props = {}) {
     };
     return {getProperty: (key) => all[key]};
 }
-
-const Gate = await loadClass('frontend/js/common/Gate.js', 'Gate');
 
 describe('mobile Validate mission screens', () => {
     let isMobile;
@@ -112,31 +98,15 @@ describe('mobile Validate mission screens', () => {
             // Echo the key plus any interpolation, so assertions can name what a slot was filled with.
             t: (key, opts) => (opts ? `${key}|${JSON.stringify(opts)}` : key),
         };
-        stubUtil({
-            assetPath: assetPathStub,
-            isMobile: () => isMobile,
-            misc: {
-                getIconImagePaths: (type) => ({iconImagePath: `/assets/icons/${type}_small.svg`}),
-                labelTypeName: () => 'Curb Ramp',
-            },
-        });
-        window.MissionStartTutorial = {
-            EXAMPLE_PHOTO: {width: 658, height: 436},
-            slidesFor: vi.fn(() => SLIDES),
-        };
-        window.BadgeAchievements = BadgeAchievements;
-        window.BadgeAchievements.recordMissionComplete = vi.fn();
-        window.ProgressBar = ProgressBar;
-        window.Confetti = {burst: vi.fn()};
+        useUtil({isMobile: () => isMobile});
+        FakeMissionStartTutorial.slidesFor = vi.fn(() => SLIDES);
+        // The real one counts missions toward a badge toast; nothing here is about that.
+        vi.spyOn(BadgeAchievements, 'recordMissionComplete').mockImplementation(() => {});
         window.matchMedia = vi.fn(() => ({matches: false}));
     });
 
     afterEach(() => {
         document.body.innerHTML = '';
-        for (const key of ['i18next', 'util', 'MissionStartTutorial', 'BadgeAchievements', 'ProgressBar',
-            'Confetti']) {
-            delete global[key];
-        }
     });
 
     /** @returns {ModalMission} A briefing wired the way Main.js wires it. */
@@ -227,7 +197,7 @@ describe('mobile Validate mission screens', () => {
 
             briefing().setMissionMessage(makeMission());
 
-            expect(MissionStartTutorial.slidesFor).not.toHaveBeenCalled();
+            expect(FakeMissionStartTutorial.slidesFor).not.toHaveBeenCalled();
             expect(document.querySelector('.mv-examples')).toBeNull();
             expect(document.querySelectorAll('#modal-mission-instruction img')).toHaveLength(0);
         });
@@ -484,8 +454,6 @@ describe('mobile Validate mission screens', () => {
             isMobile = false;
             lock = new Gate();
             hooks = {tracker, keyboard: {enableKeyboard: () => lock.release('tutorial')}};
-            // The desktop screen raises the next mission's tutorial itself; building it is all this needs of it.
-            window.MissionStartTutorial = class {};
         });
 
         /** @returns {{ui: Object, screen: ModalMissionComplete}} A screen up, with the next mission behind it. */

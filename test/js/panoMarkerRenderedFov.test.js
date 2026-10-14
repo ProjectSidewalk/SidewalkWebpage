@@ -5,26 +5,24 @@
  * popup's both come through here.
  */
 
-import { loadModules, stubUtil } from './loader.js';
-
+import { loadModules, useUtil } from './loader.js';
 
 describe('PanoMarker projection', () => {
     let PanoMarker;
     let container;
+    let pano;
 
     beforeEach(async () => {
-        stubUtil({});
         // PanoMarker probes for WebGL on load; jsdom has no canvas contexts and would log a not-implemented error.
         HTMLCanvasElement.prototype.getContext = () => null;
-        Object.assign(window, await loadModules('frontend/js/common/PanoMarker.js'));
-        // Set after the load: importing PanoMarker rebuilds util.pano.
-        Object.assign(window.util.pano, {
+        ({ PanoMarker } = await loadModules('frontend/js/common/PanoMarker.js'));
+        pano = {
             // jsdom has no WebGL, so PanoMarker picks the 2d projection; both take the same trailing fov.
             centeredPovToCanvasCoord2d: vi.fn(() => ({ x: 10, y: 20 })),
             centeredPovToCanvasCoord: vi.fn(() => ({ x: 10, y: 20 })),
             renderedHFov: vi.fn(() => 42),
-        });
-        PanoMarker = window.PanoMarker;
+        };
+        useUtil({ pano });
         container = document.createElement('div');
         document.body.replaceChildren(container);
         // jsdom lays nothing out, so the container's box is declared.
@@ -42,8 +40,8 @@ describe('PanoMarker projection', () => {
         };
         const marker = new PanoMarker({ panoViewer, markerContainer: container, position: { heading: 95, pitch: 0 } });
         marker.draw();
-        expect(window.util.pano.renderedHFov).toHaveBeenCalledWith(3, 2, 'gsv');
-        expect(window.util.pano.centeredPovToCanvasCoord2d).toHaveBeenCalledWith(
+        expect(pano.renderedHFov).toHaveBeenCalledWith(3, 2, 'gsv');
+        expect(pano.centeredPovToCanvasCoord2d).toHaveBeenCalledWith(
             { heading: 95, pitch: 0 }, { heading: 90, pitch: 5, zoom: 3 }, 800, 400, expect.any(Number), 42,
         );
     });

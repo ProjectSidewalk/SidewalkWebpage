@@ -17,23 +17,15 @@ afterAll(() => { process.env.TZ = previousTimeZone; });
  * UTC-only worker would make every "does the axis line up with the server's nights" assertion vacuous.
  */
 
-import { loadModules, mockModule, realUtil, stubUtil } from './loader.js';
-
-stubUtil(await realUtil());
-
+import { loadModules, mockModule } from './loader.js';
 
 /** Chart calls, recorded instead of drawn — MiniLineChart has its own tests. */
 const charts = [];
 
-/** Loads AdminShell + the panel into global scope, with MiniLineChart stubbed. */
-async function loadPanel() {
-  mockModule('frontend/js/admin-dashboard/MiniLineChart.js', () => ({
-    MiniLineChart: { renderInto: (host, labels, series, options) => charts.push({ host, labels, series, options }) },
-  }));
-  return (await loadModules('frontend/js/admin-dashboard/ImageryPipelinePanel.js')).ImageryPipelinePanel;
-}
-
-const ImageryPipelinePanel = await loadPanel();
+mockModule('frontend/js/admin-dashboard/MiniLineChart.js', () => ({
+  MiniLineChart: { renderInto: (host, labels, series, options) => charts.push({ host, labels, series, options }) },
+}));
+const { ImageryPipelinePanel } = await loadModules('frontend/js/admin-dashboard/ImageryPipelinePanel.js');
 
 const MARKUP = `
   <select id="imagery-range">
@@ -306,7 +298,7 @@ describe('ImageryPipelinePanel window selector', () => {
     const panel = await renderPanel();
     const select = document.getElementById('imagery-range');
     select.value = '365';
-    select.dispatchEvent(new window.Event('change'));
+    select.dispatchEvent(new Event('change'));
     await new Promise(process.nextTick);
     expect(window.fetch).toHaveBeenLastCalledWith('/adminapi/imageryFreshness?days=365', expect.anything());
     expect(panel).toBeDefined();
@@ -327,9 +319,9 @@ describe('ImageryPipelinePanel window selector', () => {
     const started = panel.init();
     const select = document.getElementById('imagery-range');
     select.value = '90';
-    select.dispatchEvent(new window.Event('change'));
+    select.dispatchEvent(new Event('change'));
     select.value = '365';
-    select.dispatchEvent(new window.Event('change'));
+    select.dispatchEvent(new Event('change'));
 
     resolvers[0]();
     await new Promise(process.nextTick);
@@ -351,9 +343,9 @@ describe('ImageryPipelinePanel window selector', () => {
     const started = panel.init();
     const select = document.getElementById('imagery-range');
     select.value = '90';
-    select.dispatchEvent(new window.Event('change'));
+    select.dispatchEvent(new Event('change'));
     select.value = '30';
-    select.dispatchEvent(new window.Event('change'));
+    select.dispatchEvent(new Event('change'));
 
     resolvers[0]();
     await started;

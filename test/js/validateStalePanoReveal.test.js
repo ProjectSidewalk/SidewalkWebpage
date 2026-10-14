@@ -21,32 +21,15 @@
  * two canvases rather than trusting the call order. Fake viewers throughout; no imagery is involved.
  */
 
-import path from 'path';
-import { loadModules, fakeImport, stubUtil } from './loader.js';
+import { loadModules, mockModule } from './loader.js';
+import { fakeTracker, fakePanoOverlays } from './fakes.js';
 
-fakeImport('frontend/js/common/PanoMarker.js', 'PanoMarker');
-fakeImport('frontend/js/common/pano-viewer/GsvViewer.js', 'GsvViewer');
-fakeImport('frontend/js/common/pano-viewer/PannellumViewer.js', 'PannellumViewer');
-fakeImport('frontend/js/common/pano-viewer/PanoAttribution.js', 'createPanoAttribution');
-fakeImport('frontend/js/common/pano-viewer/PanoViewerLogo.js', 'createPanoViewerLogo');
-fakeImport('frontend/js/common/pano-viewer/PanoLoadTimeoutError.js', 'PanoLoadTimeoutError');
+let logo;
+let attribution;
+let PannellumViewerFake;
 
-
-const PANO_MANAGER_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/panorama/PanoManager.js');
-const THROTTLE_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/util/throttle.js');
-const TIMEOUT_ERROR_PATH = path.resolve(__dirname, '..', '..',
-  'frontend/js/common/pano-viewer/PanoLoadTimeoutError.js');
-
-/**
- * Load a bare `class` declaration out of a production file. The Grunt bundle concatenates these into page scope, so
- * wrap the source in an IIFE that returns the named class (same trick as validateViewerSwapListeners.test.js).
- * @param {string} filePath - Absolute path to the production file.
- * @param {string} className - Name of the class the file declares.
- * @returns {Function} The class.
- */
-async function loadClassFromFile(filePath, className) {
-  return (await loadModules(filePath))[className];
-}
+// PanoManager builds the fallback viewer itself, from the class it imports.
+mockModule('frontend/js/common/pano-viewer/PannellumViewer.js', () => ({ PannellumViewer: PannellumViewerFake }));
 
 /** @returns {object} The pano area's chrome, as Main.js collects it: the page's marker layer where there is one. */
 function viewerUi() {
@@ -61,8 +44,6 @@ describe('Validate only paints a viewer canvas once it holds this label\'s pano 
   let panoData;
   let primaryCanvas;
   let pannellumCanvas;
-  let logo;         // the stubbed source/primary logo control
-  let attribution;  // the stubbed imagery-attribution pill
 
   const backupImage = { pano_id: 'backup-pano', camera_heading: 90 };
 
@@ -109,7 +90,7 @@ describe('Validate only paints a viewer canvas once it holds this label\'s pano 
     controls.started = new Promise((markStarted) => {
       const enter = () => { markStarted(); return gate; };
       pannellumViewer.loadPano = vi.fn(enter);
-      window.PannellumViewer.create = vi.fn(() => enter().then(() => pannellumViewer));
+      PannellumViewerFake.create = vi.fn(() => enter().then(() => pannellumViewer));
     });
     return controls;
   }
@@ -133,18 +114,8 @@ describe('Validate only paints a viewer canvas once it holds this label\'s pano 
   beforeEach(async () => {
     document.body.innerHTML = '<div id="pano-holder"><div id="svv-panorama"></div></div>';
 
-    stubUtil({});
-    Object.assign(window, await loadModules(THROTTLE_PATH));
-    util.isMobile = () => false;
     window.i18next = { language: 'en' };
-
-    logo = { showPrimaryLogo: vi.fn(), showSourceLogo: vi.fn() };
-    attribution = { show: vi.fn(), hide: vi.fn() };
-    window.createPanoViewerLogo = vi.fn(() => logo);
-    window.createPanoAttribution = vi.fn(() => attribution);
-    window.GsvViewer = class GsvViewer {};
-    window.MapillaryViewer = class MapillaryViewer {};
-    window.PanoLoadTimeoutError = await loadClassFromFile(TIMEOUT_ERROR_PATH, 'PanoLoadTimeoutError');
+    ({ logo, attribution } = fakePanoOverlays());
 
     panoData = { getPanoId: () => 'pano1', getProperty: () => new Date(2026, 5) };
     primaryViewer = makeFakeViewer();
@@ -152,16 +123,16 @@ describe('Validate only paints a viewer canvas once it holds this label\'s pano 
     pannellumViewer.currPanoData = panoData;
     pannellumViewer.loadPano = vi.fn(() => Promise.resolve(panoData));
 
-    window.PannellumViewer = class PannellumViewer {
+    PannellumViewerFake = class PannellumViewer {
       static create() { return Promise.resolve(pannellumViewer); }
     };
     const FakeViewerType = class FakeViewerType {
       static create() { return Promise.resolve(primaryViewer); }
     };
 
-    const PanoManager = await loadClassFromFile(PANO_MANAGER_PATH, 'PanoManager');
+    const { PanoManager } = await loadModules('frontend/js/validate/panorama/PanoManager.js');
     panoManager = await PanoManager.create('token', viewerUi(), { viewerType: FakeViewerType, labelRadius: 10 },
-      { addPanoMetadata: vi.fn() }, {}, { push: vi.fn(), trackPano: vi.fn() });
+      { addPanoMetadata: vi.fn() }, {}, fakeTracker());
 
     primaryCanvas = document.getElementById('svv-panorama');
     pannellumCanvas = document.getElementById('svv-panorama-pannellum');
@@ -169,14 +140,6 @@ describe('Validate only paints a viewer canvas once it holds this label\'s pano 
 
   afterEach(() => {
     document.body.innerHTML = '';
-    delete window.util;
-    delete window.i18next;
-    delete window.createPanoViewerLogo;
-    delete window.createPanoAttribution;
-    delete window.GsvViewer;
-    delete window.MapillaryViewer;
-    delete window.PanoLoadTimeoutError;
-    delete window.PannellumViewer;
   });
 
   test('the outgoing label stays on screen while the fallback image downloads', async () => {
@@ -462,33 +425,25 @@ describe('a viewer that paints during a load stays unpainted until it faces the 
     // Fake timers so the reveal's background-tab cap only runs when a test advances the clock to it.
     vi.useFakeTimers();
     frames = [];
-    window.requestAnimationFrame = (cb) => { frames.push(cb); return frames.length; };
+    vi.stubGlobal('requestAnimationFrame', (cb) => { frames.push(cb); return frames.length; });
 
-    stubUtil({});
-    Object.assign(window, await loadModules(THROTTLE_PATH));
-    util.isMobile = () => false;
-    util.uiScale = () => 1;
-    util.cappedMarkerDiameter = (diameter) => diameter;
-    util.misc = { labelTypeName: () => 'Curb ramp' };
-    window.i18next = { language: 'en' };
-    window.createPanoViewerLogo = vi.fn(() => ({ showPrimaryLogo: vi.fn(), showSourceLogo: vi.fn() }));
-    window.createPanoAttribution = vi.fn(() => ({ show: vi.fn(), hide: vi.fn() }));
-    window.GsvViewer = class GsvViewer {};
-    window.MapillaryViewer = class MapillaryViewer {};
-    window.PanoLoadTimeoutError = await loadClassFromFile(TIMEOUT_ERROR_PATH, 'PanoLoadTimeoutError');
-    window.PannellumViewer = class PannellumViewer {};
+    window.i18next = { language: 'en', t: (key) => key };
+    ({ logo, attribution } = fakePanoOverlays());
+    PannellumViewerFake = class PannellumViewer {};
     // Only what renderPanoMarker needs of a marker: an element to hide and show, in the marker layer.
-    window.PanoMarker = class PanoMarker {
-      constructor(opts) {
-        this.marker_ = document.createElement('div');
-        this.marker_.className = 'fake-marker';
-        opts.markerContainer.append(this.marker_);
-      }
+    mockModule('frontend/js/common/PanoMarker.js', () => ({
+      PanoMarker: class PanoMarker {
+        constructor(opts) {
+          this.marker_ = document.createElement('div');
+          this.marker_.className = 'fake-marker';
+          opts.markerContainer.append(this.marker_);
+        }
 
-      setPosition() {}
+        setPosition() {}
 
-      removeMarker() { this.marker_.remove(); }
-    };
+        removeMarker() { this.marker_.remove(); }
+      },
+    }));
     panoData = { getPanoId: () => 'pano1', getProperty: () => new Date(2026, 5) };
     primaryViewer = {
       setPano: vi.fn(() => Promise.resolve(panoData)),
@@ -505,9 +460,9 @@ describe('a viewer that paints during a load stays unpainted until it faces the 
       static create() { return Promise.resolve(primaryViewer); }
     };
 
-    const PanoManager = await loadClassFromFile(PANO_MANAGER_PATH, 'PanoManager');
+    const { PanoManager } = await loadModules('frontend/js/validate/panorama/PanoManager.js');
     panoManager = await PanoManager.create('token', viewerUi(), { viewerType: PaintingViewerType, labelRadius: 10 },
-      { addPanoMetadata: vi.fn() }, {}, { push: vi.fn(), trackPano: vi.fn() });
+      { addPanoMetadata: vi.fn() }, {}, fakeTracker());
     primaryCanvas = document.getElementById('svv-panorama');
 
     // The first label is up and aimed, as it is by the time a validator moves on from it.
@@ -523,16 +478,6 @@ describe('a viewer that paints during a load stays unpainted until it faces the 
   afterEach(() => {
     vi.useRealTimers();
     document.body.innerHTML = '';
-    delete window.requestAnimationFrame;
-    delete window.util;
-    delete window.i18next;
-    delete window.createPanoViewerLogo;
-    delete window.createPanoAttribution;
-    delete window.GsvViewer;
-    delete window.MapillaryViewer;
-    delete window.PanoLoadTimeoutError;
-    delete window.PannellumViewer;
-    delete window.PanoMarker;
   });
 
   test('the canvas is unpainted from before the load starts until two frames after the label\'s POV', async () => {

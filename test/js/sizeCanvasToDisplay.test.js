@@ -11,8 +11,9 @@
  * that records what the routine set on it — which is all this routine touches.
  */
 
-import { realUtil, stubUtil } from './loader.js';
+import { loadModules } from './loader.js';
 
+const { util } = await loadModules('frontend/js/common/utilities.js');
 
 /** A canvas whose on-screen box is fixed, since jsdom's real getBoundingClientRect is all zeroes. */
 function makeCanvas(displayWidth, displayHeight = displayWidth / 1.5) {
@@ -38,14 +39,7 @@ function setDpr(value) {
 }
 
 describe('util.sizeCanvasToDisplay', () => {
-    let util;
-
-    beforeEach(async () => {
-        // utilities.js builds a Bowser parser at load time; the sizing under test never consults it.
-        window.bowser = { getParser: () => ({ getBrowserName: () => 'Chrome', getBrowserVersion: () => '1',
-            getOSName: () => 'Linux', getPlatformType: () => 'desktop' }) };
-        stubUtil(await realUtil());
-        util = window.util;
+    beforeEach(() => {
         setDpr(1);
     });
 

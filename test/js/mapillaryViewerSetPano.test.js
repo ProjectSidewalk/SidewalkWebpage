@@ -7,44 +7,23 @@
  * assertions here are about the type of each rejection, which is what callers decide from: NoImageryError only when
  * Graph says the image is missing; PanoLoadTimeoutError when the move ran out of time, or Graph couldn't be asked
  * whatever the SDK said; the SDK's own error when the image exists. And a linked-pano wait that never finishes must
- * cost the pano its arrows, never the pano.
- *
- * MapillaryViewer is a top-level `class` written for Grunt concatenation, so the sources are eval'd into jsdom with
- * stubs for the sibling classes PanoViewer's constructor compares `new.target` against. The SDK and fetch are fakes.
+ * cost the pano its arrows, never the pano. The SDK and fetch are fakes.
  */
-import { loadGlobalScript, realUtil, loadModules, stubUtil, fakeImport } from './loader.js';
-
-fakeImport('frontend/js/common/pano-viewer/NoImageryError.js', 'NoImageryError');
-fakeImport('frontend/js/common/pano-viewer/PanoData.js', 'PanoData');
-fakeImport('frontend/js/common/pano-viewer/PanoLoadTimeoutError.js', 'PanoLoadTimeoutError');
-fakeImport('frontend/js/common/pano-viewer/PanoViewer.js', 'PanoViewer');
-
-
-// The linked-pano headings convert through util.math; utilities.js builds a Bowser parser at load time.
-window.bowser = {
-  getParser: () => ({
-    getBrowserName: () => 'Test', getBrowserVersion: () => '1',
-    getOSName: () => 'TestOS', getPlatformType: () => 'desktop',
-  }),
-};
-stubUtil(await realUtil());
-await loadGlobalScript('frontend/js/common/utilitiesMath.js');
-await loadGlobalScript('frontend/js/common/pano-viewer/panoUtilities.js');
+import { loadModules } from './loader.js';
 
 /**
- * Loads fresh copies of the viewer classes and both error types into the jsdom global scope.
- * @returns {{PanoViewer: Function, MapillaryViewer: Function, NoImageryError: Function,
- *     PanoLoadTimeoutError: Function}}
+ * Loads fresh copies of the viewer classes and both error types, so an `instanceof` here is against the same class
+ * the viewer throws.
+ * @returns {Promise<{PanoViewer: Function, MapillaryViewer: Function, NoImageryError: Function,
+ *     PanoLoadTimeoutError: Function}>}
  */
 async function loadViewer() {
-    Object.assign(window, await loadModules('frontend/js/common/pano-viewer/PanoData.js', 'frontend/js/common/pano-viewer/NoImageryError.js', 'frontend/js/common/pano-viewer/PanoLoadTimeoutError.js', 'frontend/js/common/pano-viewer/PanoViewer.js', 'frontend/js/common/pano-viewer/MapillaryViewer.js'));
-  return {
-    PanoViewer: window.PanoViewer,
-    MapillaryViewer: window.MapillaryViewer,
-    NoImageryError: window.NoImageryError,
-    PanoLoadTimeoutError: window.PanoLoadTimeoutError,
-  };
+  return loadModules('frontend/js/common/pano-viewer/PanoViewer.js',
+    'frontend/js/common/pano-viewer/MapillaryViewer.js', 'frontend/js/common/pano-viewer/NoImageryError.js',
+    'frontend/js/common/pano-viewer/PanoLoadTimeoutError.js');
 }
+
+afterEach(() => { vi.useRealTimers(); });
 
 /**
  * A mapillary-js Image with the fields _getPanoramaCallback reads.
@@ -136,7 +115,6 @@ describe('MapillaryViewer.setPano tells a missing pano from a slow one (issue #5
   });
 
   afterEach(() => {
-    vi.useRealTimers();
     delete window.fetch;
   });
 
@@ -454,6 +432,5 @@ describe('MapillaryViewer\'s other load-path contracts (issues #5581, #5582)', (
     const outcome = classes.PanoViewer._withTimeout(new Promise(() => {}), 10, 'test').catch((err) => err);
     await vi.advanceTimersByTimeAsync(10);
     expect((await outcome).name).toBe('TimeoutError');
-    vi.useRealTimers();
   });
 });

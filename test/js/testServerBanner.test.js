@@ -1,10 +1,8 @@
 /**
  * Tests for the TestServerBanner class (frontend/js/common/TestServerBanner.js).
  *
- * TestServerBanner is a top-level `class` declaration written for the Grunt-concatenation world, so — like ShareWidget
- * and unlike the `window.X = ...` IIFE modules — require()-ing it would leave the class module-scoped. We instead eval
- * the source in the jsdom global scope with an explicit `window.TestServerBanner = TestServerBanner` epilogue, after
- * emptying the body so the module's own auto-init epilogue no-ops and each test constructs the banner itself.
+ * The module auto-inits against whatever banner is on the page, so it is loaded into an empty body and each test
+ * constructs the banner itself.
  *
  * Coverage: the pre-paint "don't show again" dismissal, the two dismiss controls (permanent vs this-visit) and their
  * localStorage contract, and the --test-banner-height reservation — including the guard that publishes 0 when the
@@ -13,15 +11,12 @@
 
 import { loadModules } from './loader.js';
 
-
 const STORAGE_KEY = 'hideTestServerWarningBanner';
 const HEIGHT_VAR = '--test-banner-height';
 
-/** Loads a fresh TestServerBanner class into the jsdom global scope (body is empty, so auto-init no-ops). */
 async function loadTestServerBanner() {
     document.body.innerHTML = '';
-    Object.assign(window, await loadModules('frontend/js/common/TestServerBanner.js'));
-    return window.TestServerBanner;
+    return (await loadModules('frontend/js/common/TestServerBanner.js')).TestServerBanner;
 }
 
 /** Inserts the banner markup and returns the `.test-server-banner` element. */

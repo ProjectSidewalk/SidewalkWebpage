@@ -4,10 +4,6 @@
  */
 
 import { loadInfra3dViewer, jwtExpiringAt, nodeFor } from './infra3dViewerHarness.js';
-import { fakeImport } from './loader.js';
-
-fakeImport('frontend/js/common/pano-viewer/PanoData.js', 'PanoData');
-
 
 const Infra3dViewer = await loadInfra3dViewer();
 

@@ -5,16 +5,17 @@
  * Pins the two contracts DashboardBadges.js relies on: (1) the THRESHOLDS / LEVEL_NAMES / ROMAN tables stay parallel
  * (4 tracks x 5 ascending levels — a missing name or out-of-order threshold silently mislabels every user's badges),
  * and (2) getLevelForValue's boundary behavior (a value exactly at a threshold earns that level).
- *
- * BadgeAchievements.js declares a top-level class: on a page that makes it a global binding, but under require() it
- * stays module-scoped, so the test evaluates the source directly instead of using loadGlobalScript.
  */
 
+import { loadModules, useUtil } from './loader.js';
 
-import { assetPathStub, loadModules, stubUtil } from './loader.js';
+// What the navbar reports about the session; seedCounts reads it through util, and its tests move it per test.
+let hasSession = null;
+useUtil({ hasSession: () => hasSession });
 
-const evalBadgeAchievements = async () => (await loadModules('frontend/js/common/BadgeAchievements.js')).BadgeAchievements;
-const BadgeAchievements = await evalBadgeAchievements();
+const loadBadgeAchievements = async () =>
+    (await loadModules('frontend/js/common/BadgeAchievements.js')).BadgeAchievements;
+const BadgeAchievements = await loadBadgeAchievements();
 
 const TRACKS = ['missions', 'distance', 'labels', 'validations'];
 
@@ -82,12 +83,10 @@ describe('BadgeAchievements.getProgress', () => {
 
     beforeEach(() => {
         window.i18next = {t: (key) => key}; // getBadge localizes the badge's display name.
-        stubUtil({assetPath: assetPathStub}); // getBadge resolves the badge artwork's URL.
     });
 
     afterEach(() => {
         delete window.i18next;
-        delete window.util;
     });
 
     test('someone with no badge yet is on the first tier, measured from zero', () => {
@@ -207,17 +206,15 @@ describe('BadgeAchievements.seedCounts', () => {
     };
 
     beforeEach(async () => {
-        Badges = await evalBadgeAchievements();
+        Badges = await loadBadgeAchievements();
         consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
         window.i18next = {t: (key) => key}; // getBadge localizes the badge's display name.
-        stubUtil({hasSession: () => true, assetPath: assetPathStub});
+        hasSession = true;
     });
 
     afterEach(() => {
-        consoleError.mockRestore();
         delete window.fetch;
         delete window.i18next;
-        delete window.util;
     });
 
     test('seeds the counts from a signed-in response', async () => {
@@ -231,7 +228,7 @@ describe('BadgeAchievements.seedCounts', () => {
     });
 
     test('a page rendered without an identity seeds zero and never requests', async () => {
-        stubUtil({...global.util, hasSession: () => false});
+        hasSession = false;
         respondWith(200, {validation_count: 4000, mission_count: 200});
         Badges.seedCounts();
         await settle();
@@ -243,7 +240,7 @@ describe('BadgeAchievements.seedCounts', () => {
     });
 
     test('a page with no navbar to report session state still requests', async () => {
-        stubUtil({...global.util, hasSession: () => null});
+        hasSession = null;
         respondWith(200, {validation_count: 99, mission_count: 4});
         Badges.seedCounts();
         await settle();

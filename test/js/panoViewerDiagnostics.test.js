@@ -5,37 +5,21 @@
  * pano leaves a trace. Two sinks: a page with an interaction tracker subscribes with addListener('diagnostic'); a page
  * without one falls back to window.logWebpageActivity. Values are flattened to the `k:v,k:v` alphabet both trackers
  * join notes with, since a stray comma or colon in an error message would corrupt the row.
- *
- * PanoViewer is a top-level `class` written for the Grunt-concatenation world, so we eval the source in the jsdom
- * global scope alongside stubs for the subclasses its constructor names.
  */
 
 import { loadModules } from './loader.js';
 
-
-async function loadPanoViewer() {
-    Object.assign(window, await loadModules('frontend/js/common/pano-viewer/NoImageryError.js', 'frontend/js/common/pano-viewer/PanoViewer.js'));
-    return window.PanoViewer;
-}
+const { PanoViewer } = await loadModules('frontend/js/common/pano-viewer/PanoViewer.js');
 
 describe('PanoViewer diagnostics', () => {
     /** A concrete viewer whose initialize() does nothing, so create() can run against a real mount. */
-    let TestViewer;
-
-    beforeAll(async () => {
-        const PanoViewer = await loadPanoViewer();
-        TestViewer = class extends PanoViewer {
-            async initialize() {}
-        };
-    });
+    class TestViewer extends PanoViewer {
+        async initialize() {}
+    }
 
     beforeEach(() => {
         vi.spyOn(console, 'warn').mockImplementation(() => {});
-        window.logWebpageActivity = vi.fn();
-    });
-
-    afterEach(() => {
-        delete window.logWebpageActivity;
+        vi.stubGlobal('logWebpageActivity', vi.fn());
     });
 
     it('hands the event to a subscribed tracker and leaves webpage_activity alone', () => {

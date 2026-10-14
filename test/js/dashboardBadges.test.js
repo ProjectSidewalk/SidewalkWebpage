@@ -8,24 +8,11 @@
  * icons, and the units the "N more" line is written in are this file's own and are pinned alongside.
  */
 
+import { loadModules } from './loader.js';
 
-import { assetPathStub, installEscapeHTML, loadModules, stubUtil, fakeImport } from './loader.js';
-
-fakeImport('frontend/js/common/BadgeAchievements.js', 'BadgeAchievements');
-
-
-/**
- * Load a bare `class` declaration out of a production file, as the Grunt bundle puts it in page scope.
- * @param {string} relativePath - Path to the file relative to the repo root.
- * @param {string} className - Name of the class the file declares.
- * @returns {Function} The class.
- */
-async function loadClass(relativePath, className) {
-    return (await loadModules(relativePath))[className];
-}
-
-const DashboardBadges = (await loadModules('frontend/js/user-dashboard/DashboardBadges.js')).DashboardBadges;
-const BadgeAchievements = await loadClass('frontend/js/common/BadgeAchievements.js', 'BadgeAchievements');
+// One load, so the BadgeAchievements the tests compare against is the one DashboardBadges renders from.
+const { DashboardBadges, BadgeAchievements } = await loadModules('frontend/js/user-dashboard/DashboardBadges.js',
+    'frontend/js/common/BadgeAchievements.js');
 
 const TRACKS = ['labels', 'distance', 'missions', 'validations'];
 
@@ -57,18 +44,13 @@ describe('DashboardBadges', () => {
     /** @returns {HTMLElement} The rendered track for a badge type. */
     const track = (type) => document.querySelector(`[data-badge-type="${type}"]`);
 
-    beforeEach(async () => {
-        window.BadgeAchievements = BadgeAchievements;
+    beforeEach(() => {
         window.i18next = {t: (key, opts) => (opts ? `${key}|${JSON.stringify(opts)}` : key)};
-        stubUtil({math: {milesToKms: (mi) => mi * 1.609344}, assetPath: assetPathStub});
-        await installEscapeHTML();
     });
 
     afterEach(() => {
         document.body.innerHTML = '';
-        delete window.BadgeAchievements;
         delete window.i18next;
-        delete window.util;
     });
 
     test('every track fills to the same fraction the shared badge math reports', () => {

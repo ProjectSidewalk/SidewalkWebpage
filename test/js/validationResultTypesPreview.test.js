@@ -6,13 +6,9 @@
  * tests pin the *contract* between the snake_case API response and the renderer so that a field-name drift (the kind
  * that broke overallStatsPreview.js when `total_validations` moved under `validations.combined`) fails loudly here
  * instead of silently in the browser.
- *
- * Runs under jsdom (set in vitest.config.mjs via testEnvironment) so `window`/`document` are available.
  */
 
-import { loadModules, mockModule, unmockModule, installEscapeHTML } from './loader.js';
-
-await installEscapeHTML();
+import { loadModules, mockModule, unmockModule } from './loader.js';
 
 const MODULE_PATH = 'frontend/js/api-docs/validationResultTypesPreview.js';
 const CONTAINER_ID = 'validation-result-types-preview';
@@ -36,44 +32,39 @@ const WRONG_SHAPE_FIXTURE = {
     ]
 };
 
-/**
- * Install a global `fetch` stub on the jsdom window that resolves to the given JSON body.
- * @param {object} body - The object the stubbed fetch should resolve with as JSON.
- */
+/** @param {object} body - What the page's `fetch` resolves with, as JSON. */
 function stubFetch(body) {
-    window.fetch = vi.fn(() =>
+    vi.stubGlobal('fetch', vi.fn(() =>
         Promise.resolve({
             ok: true,
             status: 200,
             json: () => Promise.resolve(body)
         })
-    );
+    ));
 }
 
 describe('ValidationResultTypesPreview', () => {
+    let ValidationResultTypesPreview;
+
     beforeEach(async () => {
         // Fresh container per test.
         document.body.innerHTML = `<div id="${CONTAINER_ID}"></div>`;
         // The preview is a singleton; load a clean copy each time so config mutations from setup() in one test don't
         // bleed into the next.
-        window.ValidationResultTypesPreview = (await loadModules(MODULE_PATH)).ValidationResultTypesPreview;
+        ({ ValidationResultTypesPreview } = await loadModules(MODULE_PATH));
     });
 
-    afterEach(() => {
-        delete window.fetch;
-    });
-
-    test('exposes the expected global surface', () => {
-        expect(window.ValidationResultTypesPreview).toBeDefined();
-        expect(typeof window.ValidationResultTypesPreview.setup).toBe('function');
-        expect(typeof window.ValidationResultTypesPreview.init).toBe('function');
+    test('exposes the expected surface', () => {
+        expect(ValidationResultTypesPreview).toBeDefined();
+        expect(typeof ValidationResultTypesPreview.setup).toBe('function');
+        expect(typeof ValidationResultTypesPreview.init).toBe('function');
     });
 
     test('renders the correct (snake_case) fixture without error', async () => {
         stubFetch(GOOD_FIXTURE);
 
         await expect(
-            window.ValidationResultTypesPreview.setup({}).init()
+            ValidationResultTypesPreview.setup({}).init()
         ).resolves.toBeDefined();
 
         const container = document.getElementById(CONTAINER_ID);
@@ -92,7 +83,7 @@ describe('ValidationResultTypesPreview', () => {
     test('puts the result-types table inside the shared scroll region', async () => {
         stubFetch(GOOD_FIXTURE);
 
-        await window.ValidationResultTypesPreview.setup({}).init();
+        await ValidationResultTypesPreview.setup({}).init();
 
         // The narrow-viewport scroller (#4883) is styled as `.ps-table-wrapper > table`, so the table has to be a
         // direct child; the region needs a focus stop with a role and a name so its off-screen columns are reachable
@@ -111,10 +102,10 @@ describe('ValidationResultTypesPreview', () => {
         mockModule('frontend/js/api-docs/apiTableWrapper.js', () => ({
             createApiTableWrapper: () => { throw new Error('render failed'); },
         }));
-        window.ValidationResultTypesPreview = (await loadModules(MODULE_PATH)).ValidationResultTypesPreview;
+        ({ ValidationResultTypesPreview } = await loadModules(MODULE_PATH));
         unmockModule('frontend/js/api-docs/apiTableWrapper.js');
 
-        await expect(window.ValidationResultTypesPreview.setup({}).init()).resolves.toBeUndefined();
+        await expect(ValidationResultTypesPreview.setup({}).init()).resolves.toBeUndefined();
 
         const container = document.getElementById(CONTAINER_ID);
         expect(container.innerHTML).toContain('Failed to load');
@@ -122,7 +113,7 @@ describe('ValidationResultTypesPreview', () => {
 
     test('fetch is called against the expected endpoint, tagged utm_source=apiDocs', async () => {
         stubFetch(GOOD_FIXTURE);
-        await window.ValidationResultTypesPreview.setup({}).init();
+        await ValidationResultTypesPreview.setup({}).init();
         // The preview tags its request with utm_source=apiDocs so the API analytics can attribute doc-page traffic.
         expect(window.fetch).toHaveBeenCalledWith('/v3/api/validationResultTypes?utm_source=apiDocs');
     });
@@ -134,7 +125,7 @@ describe('ValidationResultTypesPreview', () => {
     test('wrong-shape (camelCase) fixture renders an empty table, not the expected rows', async () => {
         stubFetch(WRONG_SHAPE_FIXTURE);
 
-        await window.ValidationResultTypesPreview.setup({}).init();
+        await ValidationResultTypesPreview.setup({}).init();
 
         const container = document.getElementById(CONTAINER_ID);
         // It does not crash (module guards with `|| []`), so no error banner either.

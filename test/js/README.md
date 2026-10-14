@@ -133,30 +133,35 @@ npm run test:js:coverage                       # the same, plus the coverage rep
 ```
 
 The runner is [Vitest](https://vitest.dev) (`vitest.config.mjs`, #5649): jsdom, `describe`/`it`/`expect`/`vi` as
-globals, each file in its own VM context whose global is the jsdom window, so `window.X = fake` is a page global to
-the modules under test. `npm test` runs the same suite.
+globals, each file in its own VM context whose global is the jsdom window, so a page global production reads bare
+(`fetch`, `i18next`, `mapboxgl`, `turf`, ...) is set with `window.X = …`. Spies and `vi.stubGlobal` stubs are undone
+before every test by the config, so no suite writes that cleanup. `npm test` runs the same suite.
 
 ## How a suite loads its subject
 
-A suite loads its subject with `await loadModules('frontend/js/…')` from `loadGlobalScript.js`, which returns the
-file's exports fresh (module registry reset) — `(await loadModules('frontend/js/common/Toast.js')).Toast`, say. Files
-named in one call share a registry, so one's import of another is the instance the suite gets back; what the suite
-itself loads is always the real module.
+A suite loads its subject with `await loadModules('frontend/js/…')` from `loader.js`, which returns the file's exports
+fresh (module registry reset) — `const { Toast } = await loadModules('frontend/js/common/Toast.js')`, say. Files named
+in one call share a registry, so one's import of another is the instance the suite gets back; what the suite itself
+loads is always the real module.
 
-Faking a collaborator is explicit, per module:
+A collaborator the subject should not really use is handed to it directly where its constructor (or `create`) takes
+one, which is most Explore and Validate classes. Otherwise:
 
-- `fakeImport('frontend/js/common/Toast.js', 'Toast')` at the top of the file makes every later load's import of
-  `Toast` read `window.Toast` while the suite has set one (`window.Toast = { show: vi.fn() }`), and the real export
-  otherwise. The fake stays on `window` because that is where the suite asserts on it.
-- `stubUtil({ assetPath: assetPathStub, … })` installs the suite's `util` as what modules import from `utilities.js`
-  (and keeps it on `window.util`); `await realUtil()` is the real one, and `installDateHelpers` / `installEscapeHTML` /
-  `installUtilitiesMisc` copy single real pieces onto the stub.
-- `mockModule(path, factory)` / `unmockModule(path)` replace a whole module; the factory gets `importOriginal`, so it
-  can spread the real exports and override one.
+- `mockModule('frontend/js/common/Toast.js', () => ({ Toast: fake }))` before the load replaces what the subject
+  imports from that file; the factory gets `importOriginal`, so it can spread the real exports and override one.
+  `unmockModule(path)` undoes it.
+- `useUtil({ isMobile: () => true, misc: { getStreetNameNear } })` puts those members on the real `util` as the
+  modules import it (sub-objects such as `misc` and `math` merge into the real ones). With no call, modules get the
+  real `util`, which already behaves in jsdom: `assetPath` gives `/assets/<path>`, `isMobile()` is false, and so on.
+  `util.misc` is built by `utilitiesSidewalk.js` from the label-type table `setup.js` stamps on `window.labelTypes`
+  for every suite, the way every page is served it.
+- `loadVendored('turf')` runs a vendored bundle into the page like its `<script>` tag.
 
 The collaborators a constructor is handed when they are not under test -- a gate, a tracker, a task container, a pano
 manager -- come from `fakes.js` (`fakeGate()`, `fakeTracker()`, …), each taking overrides, so a constructor change is
-a one-file edit rather than a pass over every suite.
+a one-file edit rather than a pass over every suite. The same file holds the mock sets several suites share:
+`fakePanoOverlays()` (the pano logo and attribution, whose real logo needs a `ResizeObserver` jsdom lacks) and
+`mockLabelDetailCollaborators()` (what a label card builds for itself). Larger harnesses live under `support/`.
 
 Each preview test:
 
@@ -185,13 +190,12 @@ The remaining `*Preview.js` modules pull in heavier globals. To bring them under
   `LngLatBounds`, and `Popup`, plus `window.MapboxLanguage`. The previews reach all of it through
   `js/api-docs/apiDocsMap.js` and `js/common/geoBounds.js`, which they import.
 - **i18next / `i18next.t`**: stub `window.i18next = { t: (k) => k }` so translation lookups return the key.
-- **`util.*`** (e.g. `util.math`, formatting helpers in `common/`): `stubUtil(await realUtil())` for the real thing,
-  or `stubUtil({…})` with the specific `util.foo` functions used; the `installDateHelpers` / `installEscapeHTML` /
-  `installUtilitiesMisc` helpers copy single real pieces onto the stub.
+- **`util.*`** (e.g. `util.math`, formatting helpers in `common/`): the real one is what modules get; `useUtil({…})`
+  for the specific `util.foo` members a test needs answered differently.
 
 The general recipe stays the same: container div → stub fetch with a captured snake_case fixture → stub libs on
 `window` → `loadModules` the module → `setup({}).init()` → assert no "Failed to load" + expected content. A shared
-`beforeEach` helper (e.g. `stubChartJs()`, `stubMapboxGl()`) can live alongside `loadGlobalScript.js` as coverage
+`beforeEach` helper (e.g. `stubChartJs()`, `stubMapboxGl()`) can live alongside `loader.js` as coverage
 grows.
 
 ## How this is wired into CI

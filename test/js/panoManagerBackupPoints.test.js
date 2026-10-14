@@ -7,20 +7,14 @@
  * tests pin that the fallback starts at the seed's projection onto the street and works outward from there, rather
  * than from the start of the street, and that a seed at the street's start keeps the start-to-end order.
  *
- * PanoManager is a top-level `class` written for the Grunt-concatenation world, so the source is eval'd into the jsdom
- * global scope with real turf; nothing it touches at class-definition time needs more.
+ * Real turf: the along-street math is what is being exercised.
  */
 
-import { loadVendored, loadModules, fakeImport } from './loader.js';
-
-fakeImport('frontend/js/explore/navigation/NavigationService.js', 'NavigationService');
-
-
+import { loadVendored, loadModules } from './loader.js';
 
 loadVendored('turf');
-window.NavigationService = { DIST_INCREMENT: 0.01 }; // 10 m, as in NavigationService.
-Object.assign(window, await loadModules('frontend/js/explore/panorama/PanoManager.js'));
-const { PanoManager, turf } = window;
+const { turf } = window;
+const { PanoManager } = await loadModules('frontend/js/explore/panorama/PanoManager.js');
 
 // A straight ~400 m street running east along one latitude, so "along" is plain metres east of the start.
 const LAT = 47.6;

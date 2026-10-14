@@ -6,14 +6,11 @@
  * band, which draws no rect), the --emphasis classes landing on exactly the requested index, and the default bar
  * output staying label-free so other MiniLineChart callers are unaffected.
  *
- * Runs under jsdom (vitest.config.mjs); MiniLineChart.svg is a pure string builder, so tests parse its output into a
- * detached container and assert on the resulting DOM.
+ * MiniLineChart.svg is a pure string builder, so tests parse its output into a detached container and assert on the
+ * resulting DOM.
  */
 
-import { loadModules, realUtil, stubUtil } from './loader.js';
-
-stubUtil(await realUtil());
-
+import { loadModules } from './loader.js';
 
 /** Loads a fresh MiniLineChart class. */
 async function loadMiniLineChart() {

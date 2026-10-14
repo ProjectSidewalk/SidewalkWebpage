@@ -4,6 +4,8 @@
  * takes overrides, so a suite that needs one method to answer differently keeps the rest.
  */
 
+import { mockModule } from './loader.js';
+
 /**
  * A `common/Gate` that holds nothing: every call is a spy, every question answers "not held".
  * @param {object} [overrides] - Members to replace, e.g. `{ isHeld: () => true }`.
@@ -30,6 +32,9 @@ export function fakeTracker(overrides = {}) {
         push: vi.fn(),
         setAuditTaskID: vi.fn(),
         trackPano: vi.fn(),
+        trackMissions: vi.fn(),
+        flushSoon: vi.fn(),
+        onFlush: vi.fn(),
         getActions: () => [],
         refresh: vi.fn(),
         ...overrides,
@@ -67,4 +72,37 @@ export function fakePanoManager(viewer = {}, overrides = {}) {
         onPanoChanged: vi.fn(),
         ...overrides,
     };
+}
+
+/**
+ * Replaces the pano area's overlays, `createPanoViewerLogo` and `createPanoAttribution`, for whatever loads next: the
+ * real logo watches its holder with a ResizeObserver, which jsdom lacks. Every method is a spy, so a suite can read
+ * what the subject told each overlay. Call it again (in a `beforeEach`, say) for a fresh pair.
+ * @returns {{logo: object, attribution: object, createPanoViewerLogo: Function, createPanoAttribution: Function}}
+ *   The overlays the subject is handed, and the factories it gets them from.
+ */
+export function fakePanoOverlays() {
+    const logo = { showPrimaryLogo: vi.fn(), showSourceLogo: vi.fn(), hide: vi.fn() };
+    const attribution = { show: vi.fn(), hide: vi.fn() };
+    const createPanoViewerLogo = vi.fn(() => logo);
+    const createPanoAttribution = vi.fn(() => attribution);
+    mockModule('frontend/js/common/pano-viewer/PanoViewerLogo.js', () => ({ createPanoViewerLogo }));
+    mockModule('frontend/js/common/pano-viewer/PanoAttribution.js', () => ({ createPanoAttribution }));
+    return { logo, attribution, createPanoViewerLogo, createPanoAttribution };
+}
+
+/**
+ * Replaces what a LabelDetail card builds for itself and a suite of the card never exercises: the badge tracker, the
+ * hide toggle, the story section, the pano info popover, and the popup pano manager, whose `create` answers with
+ * whatever the given function returns, read when the card asks so a suite can rebuild it per test.
+ * @param {() => object} getPanoManager - The pano manager the card is handed.
+ */
+export function mockLabelDetailCollaborators(getPanoManager) {
+    mockModule('frontend/js/common/BadgeAchievements.js',
+        () => ({ BadgeAchievements: { seedCounts() {}, recordValidation() {} } }));
+    mockModule('frontend/js/common/LabelVisibilityToggle.js', () => ({ LabelVisibilityToggle: class {} }));
+    mockModule('frontend/js/common/label-detail/PopupPanoManager.js',
+        () => ({ PopupPanoManager: { create: async () => getPanoManager() } }));
+    mockModule('frontend/js/common/label-detail/StorySection.js', () => ({ StorySection: class { setLabel() {} } }));
+    mockModule('frontend/js/common/pano-viewer/PanoInfoPopover.js', () => ({ PanoInfoPopover: class {} }));
 }

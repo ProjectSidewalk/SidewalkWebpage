@@ -13,29 +13,12 @@
  *   3. MapillaryViewer.getPov/setPov — the wiring: conversions read the cached render-camera aspect, and the
  *      cached vertical fov mirrors the [14.25°, 90°] band Mapillary can actually render a spherical image at,
  *      so getPov() never reports a zoom the viewer isn't showing.
- *
- * MapillaryViewer is a top-level `class` written for the Grunt-concatenation world, so the sources are eval'd
- * into the jsdom global scope, with stub declarations for the sibling viewer classes PanoViewer's constructor
- * compares `new.target` against.
  */
 
-import { loadGlobalScript, realUtil, loadModules, stubUtil, fakeImport } from './loader.js';
+import { loadModules } from './loader.js';
 
-fakeImport('frontend/js/common/pano-viewer/PanoViewer.js', 'PanoViewer');
-
-
-// utilities.js builds a Bowser parser at load time; nothing here consults it.
-window.bowser = {
-    getParser: () => ({
-        getBrowserName: () => 'Test', getBrowserVersion: () => '1',
-        getOSName: () => 'TestOS', getPlatformType: () => 'desktop',
-    }),
-};
-stubUtil(await realUtil());
-await loadGlobalScript('frontend/js/common/utilitiesMath.js');
-await loadGlobalScript('frontend/js/common/pano-viewer/panoUtilities.js');
-
-const util = window.util;
+const { util } = await loadModules('frontend/js/common/pano-viewer/panoUtilities.js',
+    'frontend/js/common/utilities.js');
 const pano = util.pano;
 
 /** The horizontal fov a 3:2 Explore canvas renders for a given vertical fov, longhand — the desktop invariant. */
@@ -73,18 +56,9 @@ describe('util.pano.vFovToHFov / hFovToVFov', () => {
     });
 });
 
-/**
- * Loads PanoViewer + MapillaryViewer fresh into the jsdom global scope.
- * @returns {{PanoViewer: Function, MapillaryViewer: Function}}
- */
-async function loadViewers() {
-            Object.assign(window, await loadModules('frontend/js/common/pano-viewer/PanoViewer.js', 'frontend/js/common/pano-viewer/MapillaryViewer.js'));
-    return { PanoViewer: window.PanoViewer, MapillaryViewer: window.MapillaryViewer };
-}
-
-/** A MapillaryViewer poked into a renderable state without a real SDK viewer behind it. */
+/** A fresh MapillaryViewer poked into a renderable state without a real SDK viewer behind it. */
 async function bareMapillaryViewer(overrides = {}) {
-    const { MapillaryViewer } = await loadViewers();
+    const { MapillaryViewer } = await loadModules('frontend/js/common/pano-viewer/MapillaryViewer.js');
     const viewer = new MapillaryViewer();
     viewer.viewer = { setCenter: vi.fn(), setFieldOfView: vi.fn() };
     viewer.currCameraHeading = 180;

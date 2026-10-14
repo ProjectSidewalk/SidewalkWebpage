@@ -16,6 +16,9 @@ const UTILITIES = 'frontend/js/common/utilities.js';
 /** @returns {string} The absolute path of a repo-relative (or already absolute) one. */
 const abs = (p) => (path.isAbsolute(p) ? p : path.join(REPO_ROOT, p));
 
+/** The factories registered with `mockModule`, by absolute path, re-registered on every load. */
+const mocks = new Map();
+
 /**
  * Loads source files fresh and merges their exports. Files in one call share a registry, so one's import of another
  * is the instance the suite gets back; the suite's own loads are never redirected by `mockModule`.
@@ -25,12 +28,18 @@ const abs = (p) => (path.isAbsolute(p) ? p : path.join(REPO_ROOT, p));
 export async function loadModules(...paths) {
     // A fresh registry each time, so state a module keeps between calls doesn't leak from one test into the next.
     vi.resetModules();
-    liveUtil = null;
+    // Vitest keeps a mocked module's instance across that reset, so a factory would otherwise run once per file and
+    // its `importOriginal` side effects (utilitiesSidewalk.js building `util.misc`, say) land on a `util` long gone.
+    for (const [file, factory] of mocks) {
+        vi.doUnmock(file);
+        vi.doMock(file, factory);
+    }
+    await takeLiveUtilities();
     const exports = {};
     // In order, since an earlier file may set up what a later one reads at import time.
     for (const p of paths) Object.assign(exports, await vi.importActual(abs(p)));
     // Again after the load, for members on a sub-object (`util.misc`, `util.math`) that a later file builds.
-    if (liveUtil) applyUtilOverrides();
+    applyUtilOverrides();
     return exports;
 }
 
@@ -41,24 +50,27 @@ export async function loadModules(...paths) {
  *   spread `await importOriginal()` to keep the ones it doesn't replace.
  */
 export function mockModule(relativePath, factory) {
+    mocks.set(abs(relativePath), factory);
     vi.doMock(abs(relativePath), factory);
 }
+
+
 
 /**
  * Undoes `mockModule`, so later loads get the real file again.
  * @param {string} relativePath - The path given to `mockModule`.
  */
 export function unmockModule(relativePath) {
-    fakedExports.delete(abs(relativePath));
+    mocks.delete(abs(relativePath));
     vi.doUnmock(abs(relativePath));
 }
 
 /** The members a suite put on `util` with `useUtil`, keyed as given. */
 let utilOverrides = {};
-/** The `util` of the most recent load, so `useUtil` can change it after the fact. */
-let liveUtil = null;
-/** What `liveUtil` held before the overrides went on, so a later `useUtil` can take them off again. */
-let overridden = new Map();
+/** utilities.js as the current registry has it; what the mock below hands every importer. */
+let liveUtilities = null;
+/** Per overridden `util` key, what went on and what it displaced, so a later `useUtil` can take it off again. */
+let applied = new Map();
 
 /**
  * Makes `util`, as the modules under test import it, answer with the given members on top of the real ones: the real
@@ -69,34 +81,67 @@ let overridden = new Map();
  */
 export function useUtil(members = {}) {
     utilOverrides = members;
-    if (liveUtil) applyUtilOverrides();
+    applyUtilOverrides();
 }
 
-/** Takes the previous overrides off `liveUtil` and puts the current ones on. */
+/** Loads the real utilities.js into the fresh registry and puts the current overrides on its `util`. */
+async function takeLiveUtilities() {
+    liveUtilities = await vi.importActual(abs(UTILITIES));
+    applied = new Map();
+    applyUtilOverrides();
+}
+
+/**
+ * Takes the previous overrides off the live `util` and puts the current ones on. Only what is still ours comes off:
+ * a module loaded in between may have rebuilt a sub-object (utilitiesMath.js does `util.math = {}`), and that is the
+ * real thing now.
+ */
 function applyUtilOverrides() {
-    for (const [key, previous] of overridden) {
-        if (previous === undefined) delete liveUtil[key];
-        else liveUtil[key] = previous;
+    if (!liveUtilities) return;
+    const util = liveUtilities.util;
+    for (const [key, entry] of applied) {
+        if (entry.members) {
+            const sub = util[key];
+            if (!isPlainObject(sub)) continue;
+            for (const [subKey, m] of entry.members) {
+                if (sub[subKey] !== m.value) continue;
+                if (m.previous === undefined) delete sub[subKey];
+                else sub[subKey] = m.previous;
+            }
+        } else if (util[key] === entry.value) {
+            if (entry.previous === undefined) delete util[key];
+            else util[key] = entry.previous;
+        }
     }
-    overridden = new Map();
+    applied = new Map();
     for (const [key, value] of Object.entries(utilOverrides)) {
-        overridden.set(key, liveUtil[key]);
-        const merge = isPlainObject(value) && isPlainObject(liveUtil[key]);
-        liveUtil[key] = merge ? { ...liveUtil[key], ...value } : value;
+        if (isPlainObject(value) && isPlainObject(util[key])) {
+            const members = new Map();
+            for (const [subKey, subValue] of Object.entries(value)) {
+                members.set(subKey, { previous: util[key][subKey], value: subValue });
+                util[key][subKey] = subValue;
+            }
+            applied.set(key, { members });
+        } else {
+            applied.set(key, { previous: util[key], value });
+            util[key] = value;
+        }
     }
 }
 
 /** @returns {boolean} Whether `value` is an object literal (not a class instance, array or function). */
 const isPlainObject = (value) => value !== null && typeof value === 'object' && Object.getPrototypeOf(value) === Object.prototype;
 
-// Registered once, up front: the real util with the suite's members on top, whichever order the suite loads and
-// overrides in. The getter is the transitional `stubUtil` seam, removed once every suite is on `useUtil`.
+// Registered once, up front. Vitest keeps a mocked module across `vi.resetModules()`, so the mock reads through to
+// whatever utilities.js the current registry holds instead of the one it was first built from.
 vi.doMock(abs(UTILITIES), async (importOriginal) => {
     const actual = await importOriginal();
-    liveUtil = actual.util;
-    overridden = new Map();
-    applyUtilOverrides();
-    return { ...actual, get util() { return Object.hasOwn(window, 'util') ? window.util : actual.util; } };
+    liveUtilities ??= actual;
+    const mod = {};
+    for (const key of Object.keys(actual)) {
+        Object.defineProperty(mod, key, { enumerable: true, get: () => liveUtilities[key] });
+    }
+    return mod;
 });
 
 /**
@@ -110,77 +155,4 @@ export function loadVendored(folder) {
     const bundle = fs.readdirSync(dir).find((name) => name.endsWith('.js'));
     if (!bundle) throw new Error(`no bundle in ${dir}`);
     window.eval(fs.readFileSync(path.join(dir, bundle), 'utf8'));
-}
-
-// ---- Transitional: the Jest-era seam, kept only until every suite is on the API above. ----
-
-/** Per mocked file, the exports that read from `window` (fakeImport). */
-const fakedExports = new Map();
-
-/**
- * Makes a module's named exports read from `window` in whatever loads next.
- * @param {string} relativePath - Repo-relative path of the module whose export is faked.
- * @param {...string} names - The exports to redirect.
- */
-export function fakeImport(relativePath, ...names) {
-    const file = abs(relativePath);
-    const faked = fakedExports.get(file) ?? new Set();
-    names.forEach((name) => faked.add(name));
-    fakedExports.set(file, faked);
-    vi.doMock(file, async (importOriginal) => {
-        const actual = await importOriginal();
-        const mod = { ...actual };
-        for (const name of faked) {
-            Object.defineProperty(mod, name, {
-                enumerable: true,
-                get: () => (Object.hasOwn(window, name) ? window[name] : actual[name]),
-            });
-        }
-        return mod;
-    });
-}
-
-/**
- * Loads a source file fresh for its side effects alone.
- * @param {string} relativePath - Repo-relative path.
- */
-export async function loadGlobalScript(relativePath) {
-    await loadModules(relativePath);
-}
-
-/**
- * Installs the suite's `util` as what modules import from utilities.js, and keeps it on `window.util`.
- * @param {object} fake - The util object the modules under test should see.
- * @returns {object} The same object.
- */
-export function stubUtil(fake) {
-    window.util = fake;
-    return fake;
-}
-
-/** @param {string} logicalPath - Path under public/. @returns {string} The unstamped asset URL. */
-export const assetPathStub = (logicalPath) => `/assets/${logicalPath}`;
-
-/** Installs the real `util.misc` onto the suite's `window.util`. */
-export async function installUtilitiesMisc() {
-    stubUtil(window.util || {});
-    vi.resetModules();
-    await import(abs('frontend/js/common/utilitiesSidewalk.js'));
-}
-
-/** Copies the real date helpers from utilities.js onto `window.util`. */
-export async function installDateHelpers() {
-    const { SHORT_DATE, SHORT_DATE_TIME, yearMonth, monthYear, parseDate, localIsoDate, timeAgo } = await realUtil();
-    stubUtil(Object.assign(window.util || {},
-        { SHORT_DATE, SHORT_DATE_TIME, yearMonth, monthYear, parseDate, localIsoDate, timeAgo }));
-}
-
-/** Adds the real `util.escapeHTML` to `window.util`. */
-export async function installEscapeHTML() {
-    stubUtil(Object.assign(window.util || {}, { escapeHTML: (await realUtil()).escapeHTML }));
-}
-
-/** @returns {Promise<object>} The real util. */
-export async function realUtil() {
-    return (await vi.importActual(abs(UTILITIES))).util;
 }

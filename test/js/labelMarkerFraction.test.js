@@ -10,7 +10,7 @@
  * A pure function over plain values; the consumers' own suites cover the wiring.
  */
 
-import { assetPathStub, installUtilitiesMisc, stubUtil } from './loader.js';
+import { loadModules } from './loader.js';
 
 const CROP_MARKER = { x: 0.5, y: 0.5 };
 
@@ -18,9 +18,9 @@ describe('labelMarkerFraction', () => {
     let labelMarkerFraction;
 
     beforeEach(async () => {
-        stubUtil({ assetPath: assetPathStub, EXPLORE_CANVAS_WIDTH: 720, EXPLORE_CANVAS_HEIGHT: 480 });
-        await installUtilitiesMisc();
-        labelMarkerFraction = window.util.misc.labelMarkerFraction;
+        const { util } = await loadModules('frontend/js/common/utilitiesSidewalk.js',
+            'frontend/js/common/utilities.js');
+        labelMarkerFraction = util.misc.labelMarkerFraction;
     });
 
     it('takes the recorded position when a crop is showing', () => {

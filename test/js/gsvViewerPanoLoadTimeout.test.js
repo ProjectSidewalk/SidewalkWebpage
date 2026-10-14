@@ -4,38 +4,27 @@
  * When GSV's internal metadata RPC 502s, its `position_changed` event can never fire, so the load promise would hang
  * forever; the in-flight move (NavigationService.moveToPano) would then never restore the UI it disabled, freezing the
  * pano and the minimap. The guard rejects after a timeout so the move can recover. These tests exercise that race
- * directly: resolve on position_changed, reject on timeout, and settle only once.
- *
- * GsvViewer is a top-level `class` written for Grunt concatenation, so we eval the source into the jsdom global scope.
- * It only needs its parent `PanoViewer` defined at class-definition time — the google.maps/PanoData references
- * live inside other methods that these tests never call.
+ * directly: resolve on position_changed, reject on timeout, and settle only once. The google.maps and PanoData
+ * references live in methods these tests never call, so only `google.maps.event` is stubbed.
  */
 
 import { loadModules } from './loader.js';
-
-
-/** Loads a fresh GsvViewer class into the jsdom global scope and returns it. */
-async function loadGsvViewer() {
-    Object.assign(window, await loadModules('frontend/js/common/pano-viewer/GsvViewer.js'));
-    return window.GsvViewer;
-}
 
 describe('GsvViewer._loadPanoWithTimeout', () => {
     let GsvViewer;
 
     beforeAll(async () => {
-        GsvViewer = await loadGsvViewer();
+        ({ GsvViewer } = await loadModules('frontend/js/common/pano-viewer/GsvViewer.js'));
     });
 
     beforeEach(() => {
         vi.useFakeTimers();
         // The race detaches its position_changed listener via google.maps.event.removeListener.
-        window.google = { maps: { event: { removeListener: vi.fn() } } };
+        vi.stubGlobal('google', { maps: { event: { removeListener: vi.fn() } } });
     });
 
     afterEach(() => {
         vi.useRealTimers();
-        delete window.google;
     });
 
     /**

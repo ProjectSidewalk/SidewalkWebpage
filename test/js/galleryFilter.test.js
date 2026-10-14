@@ -5,17 +5,18 @@
  * query — the URL the page can be reloaded from, the refetch, and the tracker events — and keeps the severity block
  * in step with the selected label type. These tests pin that translation, since a wrong query param shows the wrong
  * cards without anything looking broken.
- *
- * Both classes are Grunt-concatenated `class` declarations that reach for page globals, so the sources are eval'd
- * into jsdom with those stubbed.
  */
 
-import { loadModules, realUtil, fakeImport, stubUtil } from './loader.js';
+import { loadModules, mockModule } from './loader.js';
 import { fakeTracker } from './fakes.js';
 
-fakeImport('frontend/js/common/label-detail/LabelDetail.js', 'LabelDetail');
-fakeImport('frontend/js/common/filter-sidebar/FilterSidebar.js', 'FilterSidebar');
-
+// GalleryFilter is the page's only writer of the address bar, so it reads the open label off LabelDetail to carry
+// the ?labelId= deep link through its rewrite (#5446).
+mockModule('frontend/js/common/label-detail/LabelDetail.js', () => ({
+    LabelDetail: {
+        urlLabelId: () => parseInt(new URLSearchParams(window.location.search).get('labelId'), 10) || null,
+    },
+}));
 
 const LABEL_TYPES = ['CurbRamp', 'Crosswalk', 'Obstacle', 'NoSidewalk'];
 const VALIDATIONS = ['correct', 'incorrect', 'unsure', 'unvalidated'];
@@ -103,6 +104,7 @@ function buildFixture() {
 }
 
 describe('GalleryFilter', () => {
+    let GalleryFilter;
     let filter;
     /** @type {{push: import('vitest').Mock}} */
     let tracker;
@@ -131,7 +133,7 @@ describe('GalleryFilter', () => {
      */
     function build(initialFilters = {}, sortSelect = null) {
         buildFixture();
-        const built = new window.GalleryFilter(document.getElementById('card-filter'), clearBtn(), sortSelect, {
+        const built = new GalleryFilter(document.getElementById('card-filter'), clearBtn(), sortSelect, {
             regionIds: [], aiValidationOptions: [], ...initialFilters,
         }, tracker);
         built.onUpdate(onUpdate);
@@ -141,30 +143,7 @@ describe('GalleryFilter', () => {
 
     beforeAll(async () => {
         window.i18next = { t: (key) => key, language: 'en' };
-        // Mirrors util.misc's rating rules (frontend/js/common/utilitiesSidewalk.js), which the real page supplies.
-        stubUtil({
-            misc: {
-                labelTypeHasSeverity: (t) => !['NoSidewalk', 'Signal', 'Occlusion'].includes(t),
-                isPositiveLabelType: (t) => ['CurbRamp', 'Crosswalk'].includes(t),
-                getRatingLevelKeys: (t) => (['CurbRamp', 'Crosswalk'].includes(t)
-                    ? { 1: 'good', 2: 'okay', 3: 'bad' }
-                    : { 1: 'low', 2: 'medium', 3: 'high' }),
-                getSmileyIconPath: (severity, labelType, selected) => {
-                    const set = severity === 0 || !['CurbRamp', 'Crosswalk'].includes(labelType)
-                        ? 'negative' : 'positive';
-                    return `sev-${severity}-${set}${selected ? '-filled' : ''}.svg`;
-                },
-            },
-        });
-        // GalleryFilter is the page's only writer of the address bar, so it reads the open label off LabelDetail to
-        // carry the ?labelId= deep link through its rewrite (#5446).
-        window.LabelDetail = {
-            urlLabelId: () => parseInt(new URLSearchParams(window.location.search).get('labelId'), 10) || null,
-        };
-        window.util ??= await realUtil();
-        await loadModules('frontend/js/common/urlQuery.js');
-        Object.assign(window, await loadModules('frontend/js/common/filter-sidebar/FilterSidebar.js'));
-        Object.assign(window, await loadModules('frontend/js/gallery/filter/GalleryFilter.js'));
+        ({ GalleryFilter } = await loadModules('frontend/js/gallery/filter/GalleryFilter.js'));
     });
 
     beforeEach(() => {
@@ -207,7 +186,7 @@ describe('GalleryFilter', () => {
             // address bar, so it has to construct and keep working against nothing.
             window.history.replaceState({}, '', '/gallery?labelIds=5,6&labelId=6');
             buildFixture();
-            const filter = new window.GalleryFilter(null, null, null, {
+            const filter = new GalleryFilter(null, null, null, {
                 regionIds: [], aiValidationOptions: [], labelIds: [5, 6],
             }, tracker);
 
@@ -419,7 +398,7 @@ describe('GalleryFilter', () => {
                 <p id="gallery-sort-note" class="gallery-sort__note" aria-live="polite"></p>
               </div>`);
             document.body.insertAdjacentHTML('beforeend', '<div id="gallery-footer">gallery:cards</div>');
-            const built = new window.GalleryFilter(document.getElementById('card-filter'), clearBtn(), sortSelect(), {
+            const built = new GalleryFilter(document.getElementById('card-filter'), clearBtn(), sortSelect(), {
                 regionIds: [], aiValidationOptions: [],
             }, tracker);
             built.onUpdate(onUpdate);
@@ -541,7 +520,7 @@ describe('GalleryFilter', () => {
                 sortSelect().value = 'most_disputed';
                 document.querySelector('.filter-sidebar__only[data-section="label-validations"][data-value="unvalidated"]')
                     .click();
-                filter = new window.GalleryFilter(document.getElementById('card-filter'), clearBtn(), sortSelect(), {
+                filter = new GalleryFilter(document.getElementById('card-filter'), clearBtn(), sortSelect(), {
                     regionIds: [], aiValidationOptions: [],
                 }, tracker);
                 expect(note().textContent).toBe('gallery:sort-moot-no-validated');

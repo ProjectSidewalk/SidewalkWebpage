@@ -3,10 +3,9 @@
  * every tag shows however long a city's list is.
  */
 
-import { assetPathStub, installUtilitiesMisc, loadModules, stubUtil } from './loader.js';
+import { loadModules, useUtil } from './loader.js';
 import { makeContextMenuUi } from './contextMenuUiStub.js';
 import { fakeGate, fakeTracker } from './fakes.js';
-
 
 /**
  * @param {string} labelType
@@ -31,19 +30,13 @@ describe('ContextMenu tag buttons', () => {
 
     beforeEach(async () => {
         window.i18next = { t: (key) => key };
-        stubUtil({
-            assetPath: assetPathStub,
-            camelToKebab: (s) => s,
-            anchorPanelToLabel: vi.fn(),
-            // Never resolves, so the tag tooltips (which need real images) are never built.
-            getImage: () => new Promise(() => {}),
-        });
-        await installUtilitiesMisc();
+        // Never resolves, so the tag tooltips (which need real images) are never built.
+        useUtil({ getImage: () => new Promise(() => {}) });
 
-        Object.assign(window, await loadModules('frontend/js/explore/canvas/ContextMenu.js'));
+        const { ContextMenu } = await loadModules('frontend/js/explore/canvas/ContextMenu.js');
         ui = makeContextMenuUi();
         labelContainer = { canDelete: () => true, getAllLabels: () => [], addToLabelsToLog: vi.fn() };
-        menu = new window.ContextMenu(ui, { isOnboarding: false }, { iconRadius: 17 }, labelContainer,
+        menu = new ContextMenu(ui, { isOnboarding: false }, { iconRadius: 17 }, labelContainer,
             { switching: fakeGate() }, { onMoveStarted: vi.fn() },
             { ratingClicked: vi.fn() }, { ensureLabelSaved: vi.fn() }, fakeTracker());
         menu.labelTags = [

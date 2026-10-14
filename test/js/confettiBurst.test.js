@@ -6,13 +6,11 @@
  * `getContext` still succeeds while every draw is a silent no-op — so the failure is an invisible celebration,
  * with nothing thrown and nothing logged. And it draws in brand colors that live in the design tokens, which a
  * color frozen into the source would drift away from.
- *
- * Confetti.js declares a top-level class, so the tests evaluate the source rather than using loadGlobalScript.
  */
 
 import { loadModules } from './loader.js';
 
-const Confetti = (await loadModules('frontend/js/common/Confetti.js')).Confetti;
+const { Confetti } = await loadModules('frontend/js/common/Confetti.js');
 
 // iOS Safari's canvas-area ceiling, spelled out here rather than read off the class so a change to the constant
 // has to be a deliberate one rather than something these tests follow silently.

@@ -6,7 +6,7 @@
  * on it leaves the user stuck behind the overlay with the keyboard off.
  */
 
-import { assetPathStub, loadModules, stubUtil } from './loader.js';
+import { loadModules } from './loader.js';
 import { fakeTracker } from './fakes.js';
 
 
@@ -46,7 +46,6 @@ describe('the mission-start tutorial closing', () => {
 
     beforeAll(async () => {
         window.i18next = { t: (key) => key };
-        stubUtil({ assetPath: assetPathStub });
         ({ MissionStartTutorial } = await loadModules('frontend/js/common/MissionStartTutorial.js'));
     });
 

@@ -7,12 +7,10 @@
  * including wheel-set zooms between steps and the views (crop, no imagery, no label yet) with nothing to zoom.
  */
 
-import { loadModules, fakeImport, stubUtil } from './loader.js';
-import { fakeTracker } from './fakes.js';
+import { loadModules } from './loader.js';
+import { fakeTracker, fakePanoOverlays } from './fakes.js';
 
-fakeImport('frontend/js/common/pano-viewer/PanoAttribution.js', 'createPanoAttribution');
-fakeImport('frontend/js/common/pano-viewer/PanoViewerLogo.js', 'createPanoViewerLogo');
-
+fakePanoOverlays();
 
 /** A stand-in for a GSV/Mapillary/Pannellum viewer whose POV setPov() really changes. */
 function fakeViewer(zoom = 1) {
@@ -28,19 +26,9 @@ function fakeViewer(zoom = 1) {
     };
 }
 
-/** Stubs the globals PopupPanoManager reaches for and loads it fresh. */
 async function loadPopupPanoManager() {
     window.panzoom = () => ({ on: vi.fn(), zoomAbs: vi.fn(), moveTo: vi.fn(), getTransform: () => ({}) });
-    stubUtil({
-        assetPath: (p) => `/assets/${p}`,
-        afterLoadIdle: () => {},
-        isMobile: () => false,
-        misc: { getIconImagePaths: () => null, getLabelColors: () => 'currentColor' },
-    });
     window.i18next = { t: (k) => k };
-    window.createPanoViewerLogo = () => ({ showPrimaryLogo: vi.fn(), showSourceLogo: vi.fn() });
-    window.createPanoAttribution = () => ({ show: vi.fn(), hide: vi.fn() });
-    window.LabelVisibilityToggle = { HIDDEN_CLASS: 'hidden' };
     window.fetch = vi.fn(() => Promise.resolve({ ok: false }));
     return (await loadModules('frontend/js/common/label-detail/PopupPanoManager.js')).PopupPanoManager;
 }

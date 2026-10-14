@@ -11,19 +11,8 @@
 import fs from 'fs';
 import path from 'path';
 
-import { assetPathStub, installUtilitiesMisc, REPO_ROOT, installEscapeHTML, loadModules, stubUtil, fakeImport } from './loader.js';
+import { REPO_ROOT, loadModules, loadVendored, useUtil } from './loader.js';
 import { fakeTracker } from './fakes.js';
-
-fakeImport('frontend/js/common/LabelTypePicker.js', 'LabelTypePicker');
-
-/**
- * Loads bare top-level declarations out of a production file into window scope.
- * @param {string} relPath - Path under the repo root.
- * @param {...string} names - The classes or functions the file declares.
- */
-async function loadClass(relPath) {
-  Object.assign(window, await loadModules(relPath));
-}
 
 const TAGS_BY_TYPE = {
   Obstacle: [{ tag_name: 'pole' }, { tag_name: 'trash/recycling can' }],
@@ -31,20 +20,27 @@ const TAGS_BY_TYPE = {
   CurbRamp: [{ tag_name: 'narrow' }],
 };
 
+let Label;
+let LabelContainer;
+let LabelTypePicker;
+let LabelTypeDropdown;
+let buildReasonButtonInfo;
+let DesktopValidationMenu;
+let util;
+
 beforeAll(async () => {
   window.matchMedia = () => /** @type {MediaQueryList} */ ({ matches: true }); // jsdom has none; act as a mouse.
-  stubUtil({
-    assetPath: assetPathStub,
-    isMobile: () => false,
-    camelToKebab: (s) => s.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase(),
-  });
-  await installUtilitiesMisc();
-  await installEscapeHTML();
   // i18next echoes its key so assertions can name the key they expect rather than an English string.
   window.i18next = { t: (key, opts) => (opts?.labelType ? `${key}:${opts.labelType}` : key) };
-  await loadClass('frontend/js/common/LabelTypePicker.js');
-  await loadClass('frontend/js/validate/label/Label.js');
-  await loadClass('frontend/js/validate/label/LabelContainer.js');
+  ({ Label, LabelContainer, LabelTypePicker, LabelTypeDropdown, buildReasonButtonInfo, DesktopValidationMenu, util } =
+    await loadModules(
+      'frontend/js/common/LabelTypePicker.js',
+      'frontend/js/validate/label/Label.js',
+      'frontend/js/validate/label/LabelContainer.js',
+      'frontend/js/validate/util/ConstantsValidate.js',
+      'frontend/js/validate/menu/DesktopValidationMenu.js',
+      'frontend/js/common/utilities.js',
+    ));
 });
 
 /** The page facts the label, the container and the menu read; adminVersion is flipped per describe. */
@@ -61,7 +57,7 @@ beforeEach(() => {
 
 /** @returns {Label} An Obstacle label with a rating and two tags, as the backend would hand it over. */
 function makeLabel(overrides = {}) {
-  return new window.Label({
+  return new Label({
     label_id: 7, label_type: 'Obstacle', severity: 2, tags: ['pole', 'trash/recycling can'],
     heading: 0, pitch: 0, zoom: 1, canvas_x: 0, canvas_y: 0, pano_id: 'p', ...overrides,
   }, config);
@@ -103,7 +99,7 @@ describe('Label.setNewLabelType re-bases the editable state on the picked type',
     expect(label.getIconUrl()).toContain('Obstacle_small.svg');
     label.setNewLabelType('SurfaceProblem');
     expect(label.getIconUrl()).toContain('SurfaceProblem_small.svg');
-    expect(label.getIconColor()).toBe(window.util.misc.getLabelColors('SurfaceProblem'));
+    expect(label.getIconColor()).toBe(util.misc.getLabelColors('SurfaceProblem'));
   });
 });
 
@@ -112,7 +108,7 @@ describe('the submission names the type seen and the type picked', () => {
 
   beforeEach(() => {
     const el = () => document.createElement('div');
-    container = new window.LabelContainer([], 'Obstacle', { holder: el(), busyRegion: [], viewer: { controlLayer: el() } },
+    container = new LabelContainer([], 'Obstacle', { holder: el(), busyRegion: [], viewer: { controlLayer: el() } },
       config, { getActiveViewerName: () => 'gsv' }, {}, {}, {}, { getCurrentMission: () => ({ getProperty: () => 99 }) },
       tracker);
   });
@@ -146,12 +142,12 @@ describe('LabelTypePicker', () => {
   });
 
   it('draws one radio per stamped type, with the current type shown but not pickable', () => {
-    const picker = new window.LabelTypePicker(root, { onPick: (t) => picks.push(t) });
+    const picker = new LabelTypePicker(root, { onPick: (t) => picks.push(t) });
     picker.render({ current: 'Obstacle' });
 
     const chips = [...root.querySelectorAll('[role="radio"]')];
     expect(root.getAttribute('role')).toBe('radiogroup');
-    expect(chips.map((c) => c.dataset.labelType)).toEqual(window.util.misc.VALID_LABEL_TYPES);
+    expect(chips.map((c) => c.dataset.labelType)).toEqual(util.misc.VALID_LABEL_TYPES);
     const current = chips.find((c) => c.dataset.labelType === 'Obstacle');
     expect(current.getAttribute('aria-disabled')).toBe('true');
     expect(current.getAttribute('aria-label')).toBe('common:label-type-picker.current:common:obstacle');
@@ -163,7 +159,7 @@ describe('LabelTypePicker', () => {
   });
 
   it('a click picks a chip, checks it alone, and moves the Tab stop onto it', () => {
-    const picker = new window.LabelTypePicker(root, { onPick: (t) => picks.push(t) });
+    const picker = new LabelTypePicker(root, { onPick: (t) => picks.push(t) });
     picker.render({ current: 'Obstacle' });
 
     root.querySelector('[data-label-type="SurfaceProblem"]').click();
@@ -177,7 +173,7 @@ describe('LabelTypePicker', () => {
   });
 
   it('arrow keys move between pickable chips, skipping the current type, and pick as they go', () => {
-    const picker = new window.LabelTypePicker(root, { onPick: (t) => picks.push(t) });
+    const picker = new LabelTypePicker(root, { onPick: (t) => picks.push(t) });
     picker.render({ current: 'NoCurbRamp', selected: 'CurbRamp' });
     const chip = (t) => root.querySelector(`[data-label-type="${t}"]`);
     chip('CurbRamp').focus();
@@ -196,7 +192,7 @@ describe('LabelTypePicker', () => {
     const viewer = (e) => { if (e.key.startsWith('Arrow')) e.stopPropagation(); };
     window.addEventListener('keydown', viewer, { capture: true });
     try {
-      const picker = new window.LabelTypePicker(root, { onPick: (t) => picks.push(t) });
+      const picker = new LabelTypePicker(root, { onPick: (t) => picks.push(t) });
       picker.render({ current: 'NoCurbRamp', selected: 'CurbRamp' });
       const chip = (t) => root.querySelector(`[data-label-type="${t}"]`);
       chip('CurbRamp').focus();
@@ -210,7 +206,7 @@ describe('LabelTypePicker', () => {
   });
 
   it('leaves the keys alone while focus is outside the group, since it listens window-wide', () => {
-    const picker = new window.LabelTypePicker(root, { onPick: (t) => picks.push(t) });
+    const picker = new LabelTypePicker(root, { onPick: (t) => picks.push(t) });
     picker.render({ current: 'NoCurbRamp', selected: 'CurbRamp' });
     document.body.focus();
 
@@ -223,7 +219,7 @@ describe('LabelTypePicker', () => {
   it('keeps focus through a host that redraws on every pick, so arrowing carries on', () => {
     // What Expert Validate does: picking re-renders the whole group, which used to destroy the focused chip and drop
     // focus to the body, leaving the next arrow key with nothing to move from.
-    const picker = new window.LabelTypePicker(root, {
+    const picker = new LabelTypePicker(root, {
       onPick: (t) => {
         picks.push(t);
         picker.render({ current: 'NoCurbRamp', selected: t });
@@ -243,7 +239,7 @@ describe('LabelTypePicker', () => {
 
   it('an arrow key opens a folded group back up rather than moving between chips nobody can see', () => {
     const toggles = [];
-    const picker = new window.LabelTypePicker(root, { onPick: (t) => picks.push(t), onToggle: (x) => toggles.push(x) });
+    const picker = new LabelTypePicker(root, { onPick: (t) => picks.push(t), onToggle: (x) => toggles.push(x) });
     picker.render({ current: 'NoCurbRamp' });
     const chip = (t) => root.querySelector(`[data-label-type="${t}"]`);
     chip('Obstacle').click();
@@ -259,7 +255,7 @@ describe('LabelTypePicker', () => {
 
   it('collapse leaves only the picked chip, and clicking it opens the group again', () => {
     const toggles = [];
-    const picker = new window.LabelTypePicker(root, { onPick: (t) => picks.push(t), onToggle: (x) => toggles.push(x) });
+    const picker = new LabelTypePicker(root, { onPick: (t) => picks.push(t), onToggle: (x) => toggles.push(x) });
     picker.render({ current: 'Obstacle' });
     picker.collapse(); // Nothing picked yet, so nothing to fold down to.
     expect(root.querySelectorAll('[hidden]')).toHaveLength(0);
@@ -274,12 +270,12 @@ describe('LabelTypePicker', () => {
     expect(root.querySelectorAll('[hidden]')).toHaveLength(0);
     expect(picks).toEqual(['Signal']); // Re-opening is not a pick.
     root.querySelector('[data-label-type="Signal"]').click();
-    expect(root.querySelectorAll('[hidden]')).toHaveLength(window.util.misc.VALID_LABEL_TYPES.length - 1);
+    expect(root.querySelectorAll('[hidden]')).toHaveLength(util.misc.VALID_LABEL_TYPES.length - 1);
     expect(toggles).toEqual([true, false]);
   });
 
   it('render with a saved selection redraws it without firing onPick', () => {
-    const picker = new window.LabelTypePicker(root, { onPick: (t) => picks.push(t) });
+    const picker = new LabelTypePicker(root, { onPick: (t) => picks.push(t) });
     picker.render({ current: 'Obstacle', selected: 'Signal' });
 
     expect(picks).toEqual([]);
@@ -291,7 +287,7 @@ describe('LabelTypePicker', () => {
 
     /** @returns {LabelTypePicker} A picker in a host that saves on every pick, as both popovers do. */
     function build() {
-      const picker = new window.LabelTypePicker(root, { commitsOnPick: true, onPick: (t) => picks.push(t) });
+      const picker = new LabelTypePicker(root, { commitsOnPick: true, onPick: (t) => picks.push(t) });
       picker.render({ current: 'NoCurbRamp', selected: 'CurbRamp' });
       return picker;
     }
@@ -352,7 +348,7 @@ describe('LabelTypeDropdown', () => {
         <p class="label-type-popover__hint" hidden></p>
         <div class="label-type-popover__chips"></div>
       </div>`;
-    const dropdown = new window.LabelTypeDropdown(
+    const dropdown = new LabelTypeDropdown(
       document.getElementById('title'), document.querySelector('.label-type-popover'), {
         onOpen: () => {
           opens += 1;
@@ -467,12 +463,8 @@ describe('the disagree reasons (#5409)', () => {
 
   let reasonButtonInfo;
 
-  beforeAll(async () => {
-    await loadClass('frontend/js/validate/util/ConstantsValidate.js', 'buildReasonButtonInfo');
-  });
-
   beforeEach(() => {
-    reasonButtonInfo = window.buildReasonButtonInfo();
+    reasonButtonInfo = buildReasonButtonInfo();
   });
 
   it('every type leads with "wrong label type", and no reason names a type of its own any more', () => {
@@ -510,12 +502,11 @@ describe('DesktopValidationMenu on Expert Validate', () => {
   let labelCard;
   let panoManager;
 
-  beforeAll(async () => {
-    window.eval(fs.readFileSync(path.join(REPO_ROOT, 'public/vendor/tom-select/tom-select-2.6.2.base.min.js'), 'utf8'));
-    window.util.getImage = () => Promise.resolve('img');
+  beforeAll(() => {
+    loadVendored('tom-select');
+    // No image ever loads in jsdom, and the menu only needs the promise to settle.
+    useUtil({ getImage: () => Promise.resolve('img') });
     window.structuredClone ??= (v) => JSON.parse(JSON.stringify(v)); // Missing from this jsdom.
-    await loadClass('frontend/js/validate/util/ConstantsValidate.js', 'buildReasonButtonInfo');
-    await loadClass('frontend/js/validate/menu/DesktopValidationMenu.js', 'DesktopValidationMenu');
   });
 
   beforeEach(() => {
@@ -558,7 +549,7 @@ describe('DesktopValidationMenu on Expert Validate', () => {
     labelCard = { render: vi.fn(), onTypePicked: vi.fn() };
 
     const byId = (id) => document.getElementById(id);
-    menu = new window.DesktopValidationMenu({
+    menu = new DesktopValidationMenu({
       yesButton: byId('validate-yes-button'),
       noButton: byId('validate-no-button'),
       unsureButton: byId('validate-unsure-button'),
@@ -579,7 +570,7 @@ describe('DesktopValidationMenu on Expert Validate', () => {
       aiSuggestionSection: byId('sidewalk-ai-suggestions-block'),
       currentTagTemplate: document.getElementById('current-tag-template'),
       aiSuggestedTagTemplate: document.getElementById('sidewalk-ai-suggested-tag-template'),
-    }, config, window.buildReasonButtonInfo(), labelContainer, labelCard, panoManager, tracker);
+    }, config, buildReasonButtonInfo(), labelContainer, labelCard, panoManager, tracker);
     menu.resetMenu(label);
   });
 

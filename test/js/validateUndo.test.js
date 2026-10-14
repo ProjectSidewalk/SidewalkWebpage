@@ -7,7 +7,8 @@
  * different module, so these suites drive the real button, container and mission together.
  */
 
-import { assetPathStub, installUtilitiesMisc, loadModules, stubUtil } from './loader.js';
+import { loadModules } from './loader.js';
+import { fakeTracker } from './fakes.js';
 
 const TAGS_BY_TYPE = {
   Obstacle: [{ tag_name: 'pole' }],
@@ -25,26 +26,12 @@ let UndoValidation;
 let MissionContainer;
 
 beforeAll(async () => {
-  stubUtil({
-    assetPath: assetPathStub,
-    isMobile: () => false,
-    uiScale: () => 1,
-    camelToKebab: (s) => s.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase(),
-  });
-  await installUtilitiesMisc();
   window.i18next = { t: (key) => key };
   ({ LabelContainer, UndoValidation, MissionContainer } = await loadModules(
-    'frontend/js/validate/label/Label.js',
     'frontend/js/validate/label/LabelContainer.js',
     'frontend/js/validate/menu/UndoValidation.js',
     'frontend/js/validate/mission/MissionContainer.js',
   ));
-  // Where the validator was looking is not under test; the projection only has to answer.
-  window.util.pano = {
-    canvasCoordToCenteredPov: () => ({ heading: 0, pitch: 0, zoom: 1 }),
-    centeredPovToCanvasCoord: () => ({ x: 360, y: 240 }),
-    renderedHFov: () => 90,
-  };
 });
 
 /** @returns {Array} Three Obstacle labels, one per pano, as the backend would hand them over. */
@@ -113,7 +100,7 @@ describe('undoing a validation', () => {
   beforeEach(() => {
     document.body.innerHTML = '<button type="button" id="validate-undo-button"></button>';
     undoButton = document.getElementById('validate-undo-button');
-    tracker = { push: vi.fn(), flushSoon: vi.fn(), trackMissions: vi.fn() };
+    tracker = fakeTracker();
     statusField = {
       reset: vi.fn(), updateLabelText: vi.fn(), incrementLabelCounts: vi.fn(), decrementLabelCounts: vi.fn(),
       setProgressBar: vi.fn(), setProgressText: vi.fn(),

@@ -5,13 +5,9 @@
  * `data.validations.total_validations` after the field had moved under `data.validations.combined`, throwing
  * "Cannot read properties of undefined". Here we pin the contract between the snake_case /v3/api/aggregateStats
  * response and the headline cards + per-label-type table.
- *
- * Runs under jsdom (set in vitest.config.mjs via testEnvironment) so `window`/`document` are available.
  */
 
-import { loadModules, mockModule, unmockModule, installEscapeHTML } from './loader.js';
-
-await installEscapeHTML();
+import { loadModules, mockModule, unmockModule } from './loader.js';
 
 const MODULE_PATH = 'frontend/js/api-docs/aggregateStatsPreview.js';
 const CONTAINER_ID = 'aggregate-stats-preview';
@@ -71,26 +67,28 @@ function stubFetch(body) {
 }
 
 describe('AggregateStatsPreview', () => {
+    let AggregateStatsPreview;
+
     beforeEach(async () => {
         document.body.innerHTML = `<div id="${CONTAINER_ID}"></div>`;
-        window.AggregateStatsPreview = (await loadModules(MODULE_PATH)).AggregateStatsPreview;
+        ({ AggregateStatsPreview } = await loadModules(MODULE_PATH));
     });
 
     afterEach(() => {
         delete window.fetch;
     });
 
-    test('exposes the expected global surface', () => {
-        expect(window.AggregateStatsPreview).toBeDefined();
-        expect(typeof window.AggregateStatsPreview.setup).toBe('function');
-        expect(typeof window.AggregateStatsPreview.init).toBe('function');
+    test('exposes setup and init', () => {
+        expect(AggregateStatsPreview).toBeDefined();
+        expect(typeof AggregateStatsPreview.setup).toBe('function');
+        expect(typeof AggregateStatsPreview.init).toBe('function');
     });
 
     test('renders the correct (snake_case) fixture without error', async () => {
         stubFetch(GOOD_FIXTURE);
 
         await expect(
-            window.AggregateStatsPreview.setup({}).init()
+            AggregateStatsPreview.setup({}).init()
         ).resolves.toBeUndefined(); // render() returns nothing on success
 
         const container = document.getElementById(CONTAINER_ID);
@@ -113,7 +111,7 @@ describe('AggregateStatsPreview', () => {
     test('puts the label-type table inside the shared scroll region', async () => {
         stubFetch(GOOD_FIXTURE);
 
-        await window.AggregateStatsPreview.setup({}).init();
+        await AggregateStatsPreview.setup({}).init();
 
         // The narrow-viewport scroller (#4883) is styled as `.ps-table-wrapper > table`, so the table has to be a
         // direct child; the region needs a focus stop with a role and a name so its off-screen columns are reachable
@@ -132,10 +130,10 @@ describe('AggregateStatsPreview', () => {
         mockModule('frontend/js/api-docs/apiTableWrapper.js', () => ({
             createApiTableWrapper: () => { throw new Error('render failed'); },
         }));
-        window.AggregateStatsPreview = (await loadModules(MODULE_PATH)).AggregateStatsPreview;
+        ({ AggregateStatsPreview } = await loadModules(MODULE_PATH));
         unmockModule('frontend/js/api-docs/apiTableWrapper.js');
 
-        await expect(window.AggregateStatsPreview.setup({}).init()).resolves.toBeUndefined();
+        await expect(AggregateStatsPreview.setup({}).init()).resolves.toBeUndefined();
 
         const container = document.getElementById(CONTAINER_ID);
         expect(container.innerHTML).toContain('Failed to load');
@@ -143,7 +141,7 @@ describe('AggregateStatsPreview', () => {
 
     test('fetch is called against the expected endpoint, tagged utm_source=apiDocs', async () => {
         stubFetch(GOOD_FIXTURE);
-        await window.AggregateStatsPreview.setup({}).init();
+        await AggregateStatsPreview.setup({}).init();
         // The preview tags its request with utm_source=apiDocs so the API analytics can attribute doc-page traffic.
         expect(window.fetch).toHaveBeenCalledWith('/v3/api/aggregateStats?utm_source=apiDocs');
     });
@@ -156,7 +154,7 @@ describe('AggregateStatsPreview', () => {
     test('nested-shape fixture renders 0 for the moved field instead of the real value', async () => {
         stubFetch(WRONG_SHAPE_NESTED);
 
-        await expect(window.AggregateStatsPreview.setup({}).init()).resolves.toBeUndefined();
+        await expect(AggregateStatsPreview.setup({}).init()).resolves.toBeUndefined();
 
         const container = document.getElementById(CONTAINER_ID);
         expect(container.innerHTML).not.toContain('Failed to load');
@@ -169,7 +167,7 @@ describe('AggregateStatsPreview', () => {
     test('camelCase-shape fixture loses every headline value (all show 0)', async () => {
         stubFetch(WRONG_SHAPE_CAMEL);
 
-        await expect(window.AggregateStatsPreview.setup({}).init()).resolves.toBeUndefined();
+        await expect(AggregateStatsPreview.setup({}).init()).resolves.toBeUndefined();
 
         const container = document.getElementById(CONTAINER_ID);
         expect(container.innerHTML).not.toContain('Failed to load');
@@ -186,7 +184,7 @@ describe('AggregateStatsPreview', () => {
 
         // init() settles even on failure: the banner is how the error reaches the user, and every call site is
         // fire-and-forget, so a rejection here would surface as an unhandled rejection instead.
-        await expect(window.AggregateStatsPreview.setup({}).init()).resolves.toBeUndefined();
+        await expect(AggregateStatsPreview.setup({}).init()).resolves.toBeUndefined();
 
         const container = document.getElementById(CONTAINER_ID);
         expect(container.innerHTML).toContain('Failed to load');

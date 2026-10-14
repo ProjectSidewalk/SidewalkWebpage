@@ -12,24 +12,16 @@
  * comment carries Edit/Delete instead, which is what keeps a second submission from silently destroying the first.
  * Cancel and Escape are the two ways out that keep the box from being a one-way door.
  *
- * Fixture and stub strategy follow labelDetailEditGating.test.js: LabelDetail is a top-level `class` written for
- * Grunt concatenation, so its source is eval'd into the jsdom global with an epilogue exposing it, TagEditor rides
- * along because LabelDetail closes over that binding, and the collaborators it reaches for as bare globals are
- * stubbed on `window` first.
  */
 
+import { loadModules, mockModule, useUtil } from './loader.js';
+import { mockLabelDetailCollaborators } from './fakes.js';
 
-import { assetPathStub, installDateHelpers, loadModules, fakeImport, stubUtil } from './loader.js';
+let panoManager;
+const confirmDialog = { confirm: vi.fn() };
 
-fakeImport('frontend/js/common/BadgeAchievements.js', 'BadgeAchievements');
-fakeImport('frontend/js/common/ConfirmDialog.js', 'ConfirmDialog');
-fakeImport('frontend/js/common/LabelVisibilityToggle.js', 'LabelVisibilityToggle');
-fakeImport('frontend/js/common/label-detail/PopupPanoManager.js', 'PopupPanoManager');
-fakeImport('frontend/js/common/label-detail/StorySection.js', 'StorySection');
-fakeImport('frontend/js/common/pano-viewer/PanoInfoPopover.js', 'PanoInfoPopover');
-fakeImport('frontend/js/common/utilitiesSidewalk.js', 'buildBackupImageData');
-fakeImport('frontend/js/common/label-detail/TagEditor.js', 'TagEditor');
-
+mockLabelDetailCollaborators(() => panoManager);
+mockModule('frontend/js/common/ConfirmDialog.js', () => ({ ConfirmDialog: confirmDialog }));
 
 /**
  * Builds the card markup as views/common/labelDetail.scala.html renders it for a non-admin host, reduced to the
@@ -216,9 +208,9 @@ const comment = (text, mine, extra = {}) => (
 describe('the validator comment box (#5015)', () => {
     let LabelDetail;
     let card;
-    let panoManager;
     let setPano;
     let confirmResult;
+    let lazyIdentityFetch;
 
     /** Drains the microtask queue that the card's promise chains spread work across. */
     const flush = () => new Promise((resolve) => { setTimeout(resolve, 0); });
@@ -246,43 +238,21 @@ describe('the validator comment box (#5015)', () => {
     const status = () => q('.label-detail__comment-confirmation');
     /** Sends one half of an Escape press to the comment input, the way a browser routes it to the focused element. */
     const escape = (type) => document.activeElement.dispatchEvent(
-        new window.KeyboardEvent(type, { key: 'Escape', bubbles: true })
+        new KeyboardEvent(type, { key: 'Escape', bubbles: true })
     );
 
     beforeEach(async () => {
-        vi.resetModules();
         card = buildCard();
 
         window.i18next = { t: (key) => key };
         window.logWebpageActivity = vi.fn();
-        window.buildBackupImageData = () => null;
-        // The card reaches for this both bare and through `util`, so both spellings have to answer.
-        window.camelToKebab = (s) => s.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
-        stubUtil({
-            assetPath: assetPathStub,
-            EXPLORE_CANVAS_WIDTH: 720,
-            EXPLORE_CANVAS_HEIGHT: 480,
-            isMobile: () => false,
-            lazyIdentityFetch: vi.fn(async () => (
-                { ok: true, status: 200, json: async () => ({ username: 'tester', comment_id: 1 }) }
-            )),
-            camelToKebab: (s) => s.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase(),
-            misc: {
-                labelTypeName: (type) => window.i18next.t(`common:${window.util.camelToKebab(type)}`),
-                getRatingLevelKeys: () => ({ 1: 'low', 2: 'medium', 3: 'high' }),
-                getSmileyIconPath: (sev, type, selected) => `${type}-${sev}-${selected}.svg`,
-                isPositiveLabelType: () => false,
-                labelTypeHasSeverity: () => true,
-            },
-            pano: { centeredPovToCanvasCoord: () => ({ x: 0, y: 0 }), renderedHFov: () => 90 },
-            url: { replaceQuery: () => {} },
-        });
-        await installDateHelpers();
-        window.BadgeAchievements = { seedCounts: () => {}, recordValidation: () => {} };
-        window.LabelVisibilityToggle = class { constructor() {} };
-        window.PanoInfoPopover = class { constructor() {} };
+        // Comment saves go through util.lazyIdentityFetch (#4442), not window.fetch.
+        lazyIdentityFetch = vi.fn(async () => (
+            { ok: true, status: 200, json: async () => ({ username: 'tester', comment_id: 1 }) }
+        ));
+        useUtil({ lazyIdentityFetch });
         confirmResult = true;
-        window.ConfirmDialog = { confirm: vi.fn(async () => confirmResult) };
+        confirmDialog.confirm = vi.fn(async () => confirmResult);
 
         setPano = deferred();
         panoManager = {
@@ -305,17 +275,13 @@ describe('the validator comment box (#5015)', () => {
             }),
             label: { labelId: 42, label_type: 'Obstacle' },
         };
-        window.PopupPanoManager = { create: async () => panoManager };
-        // The stories disclosure is not what these tests exercise, and its real section wants the composer's markup.
-        window.StorySection = class { setLabel() {} };
 
         window.fetch = vi.fn(async (url) => {
             if (String(url).includes('/label/tags')) return { ok: true, json: async () => [] };
             return { ok: true, status: 200, json: async () => ({ username: 'tester', comment_id: 1, deleted: 1 }) };
         });
 
-        Object.assign(window, await loadModules('frontend/js/common/label-detail/TagEditor.js', 'frontend/js/common/label-detail/LabelDetail.js'));
-        LabelDetail = window.LabelDetail;
+        ({ LabelDetail } = await loadModules('frontend/js/common/label-detail/LabelDetail.js'));
 
         card.detail = await LabelDetail.create(card, {
             admin: false,
@@ -478,8 +444,7 @@ describe('the validator comment box (#5015)', () => {
             expect(boxOpen()).toBe(false);
             expect(input().value).toBe('');
             expect(q('.label-detail__validator-comments').textContent).toContain('unchanged');
-            // Comment saves go through util.lazyIdentityFetch (#4442), not window.fetch.
-            expect(window.util.lazyIdentityFetch).not.toHaveBeenCalled();
+            expect(lazyIdentityFetch).not.toHaveBeenCalled();
         });
 
         test('Escape abandons the edit', async () => {
@@ -612,7 +577,7 @@ describe('the validator comment box (#5015)', () => {
         });
 
         test('a save that fails says so, in the failure colour', async () => {
-            window.util.lazyIdentityFetch = vi.fn(async () => ({ ok: false, status: 500 }));
+            useUtil({ lazyIdentityFetch: vi.fn(async () => ({ ok: false, status: 500 })) });
             await showLabel({ user_validation: 'Agree' });
             await resolveImagery();
             input().value = 'never lands';
@@ -665,7 +630,7 @@ describe('the validator comment box (#5015)', () => {
 
             // The delete left the box open with nothing of theirs in it, so a fresh attempt is one keystroke away.
             window.setTimeout.mockClear();
-            window.util.lazyIdentityFetch = vi.fn(async () => ({ ok: false, status: 500 }));
+            useUtil({ lazyIdentityFetch: vi.fn(async () => ({ ok: false, status: 500 })) });
             input().value = 'never lands';
             submitBtn().click();
             await flush();

@@ -5,16 +5,12 @@
  * All three exist because the viewer is now built on the first open, which put a visible wait on the card and made
  * a load outlive the label that started it. Every one of them mutates the single shared `.label-detail__pano`
  * holder, so a stale load reaching them paints over whatever replaced it.
- *
- * Like popupPanoManagerLazyViewer.test.js, the source is eval'd into jsdom, since it is a top-level
- * class written for Grunt concatenation.
  */
 
-import { loadModules, fakeImport, stubUtil } from './loader.js';
+import { loadModules, useUtil } from './loader.js';
+import { fakePanoOverlays } from './fakes.js';
 
-fakeImport('frontend/js/common/pano-viewer/PanoAttribution.js', 'createPanoAttribution');
-fakeImport('frontend/js/common/pano-viewer/PanoViewerLogo.js', 'createPanoViewerLogo');
-
+fakePanoOverlays();
 
 const POV = { heading: 10, pitch: 0, zoom: 1 };
 
@@ -41,7 +37,6 @@ describe('PopupPanoManager load lifecycle', () => {
 
     beforeEach(async () => {
         vi.useFakeTimers();
-        vi.resetModules();
         // The overlay is a sibling of the holder inside the wrap, which is where #init looks for it.
         document.body.innerHTML = `
             <div class="label-detail__pano-wrap">
@@ -53,25 +48,16 @@ describe('PopupPanoManager load lifecycle', () => {
         loadingEl = document.querySelector('.label-detail__pano-loading');
 
         window.panzoom = () => ({ on: vi.fn(), zoomAbs: vi.fn(), moveTo: vi.fn(), getTransform: () => ({}) });
-        stubUtil({
-            assetPath: (p) => `/assets/${p}`,
-            afterLoadIdle: () => {},
-            isMobile: () => false,
-            misc: { getIconImagePaths: () => null, getLabelColors: () => '#000' },
-        });
+        // The library preload would otherwise sit on the fake clock and fire during a later advance.
+        useUtil({ afterLoadIdle: () => {} });
         window.i18next = { t: (k) => k };
-        window.createPanoViewerLogo = () => ({ showPrimaryLogo: vi.fn(), showSourceLogo: vi.fn() });
-        window.createPanoAttribution = () => ({ show: vi.fn(), hide: vi.fn() });
-        window.LabelVisibilityToggle = { HIDDEN_CLASS: 'hidden' };
-        window.PannellumViewer = { create: vi.fn() };
         window.fetch = vi.fn(() => Promise.resolve({ ok: false }));
         vi.spyOn(console, 'error').mockImplementation(() => {});
 
         viewer = deferredViewer();
         viewerType = { create: vi.fn(() => Promise.resolve(viewer)), preloadLibrary: vi.fn() };
 
-        Object.assign(window, await loadModules('frontend/js/common/label-detail/PopupPanoManager.js'));
-        PopupPanoManager = window.PopupPanoManager;
+        ({ PopupPanoManager } = await loadModules('frontend/js/common/label-detail/PopupPanoManager.js'));
     });
 
     afterEach(() => {

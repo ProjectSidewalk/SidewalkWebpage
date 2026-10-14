@@ -6,21 +6,12 @@
  * breakdown shown or withheld on the client's own reading of the city list, and an unreachable city that vanishes
  * instead of marking the total as a floor. The failure path matters for the same reason — a KPI left on its loading
  * placeholder reads as "zero hours" to an admin verifying a claim.
- *
- * Runs under jsdom (vitest.config.mjs).
  */
 
-import { installDateHelpers, loadModules, realUtil, stubUtil } from './loader.js';
+import { loadModules } from './loader.js';
 
-stubUtil(await realUtil());
-
-let AdminUser;
-
-beforeAll(async () => {
-  window.i18next = { language: 'en' };
-  await installDateHelpers();
-  AdminUser = (await loadModules('frontend/js/user-dashboard/AdminUser.js')).AdminUser;
-});
+window.i18next = { language: 'en' };
+const { AdminUser } = await loadModules('frontend/js/user-dashboard/AdminUser.js');
 
 /** The stats section of adminUser.scala.html, trimmed to what the hours code touches. */
 function buildDom() {

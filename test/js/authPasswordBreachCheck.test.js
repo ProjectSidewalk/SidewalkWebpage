@@ -8,10 +8,10 @@
 
 import crypto from 'node:crypto';
 import { TextEncoder } from 'node:util';
-import { loadGlobalScript, fakeImport } from './loader.js';
+import { loadModules, mockModule } from './loader.js';
 
-fakeImport('frontend/js/common/Modal.js', 'Modal');
-
+// The navbar dialog's open/close is not under test; AuthModal only needs something to construct.
+mockModule('frontend/js/common/Modal.js', () => ({ Modal: class { open() {} close() {} } }));
 
 // jsdom leaves TextEncoder out of the page globals; every browser that runs this code has it.
 if (typeof window.TextEncoder === 'undefined') window.TextEncoder = TextEncoder;
@@ -83,15 +83,10 @@ async function renderPasswordGroup({ withDialog = false, withChecklist = true } 
   vi.spyOn(window, 'addEventListener').mockImplementation((type, handler) => {
     if (type === 'DOMContentLoaded') domReady = handler;
   });
-  window.Modal = class {
-    open() {}
-
-    close() {}
-  };
   document.body.innerHTML = `
     ${withDialog ? AUTH_DIALOG : ''}
     <div class="au-page"><form id="sign-up-form" class="au-form">${passwordGroup(withChecklist)}</form></div>`;
-  await loadGlobalScript('frontend/js/common/AuthModal.js');
+  await loadModules('frontend/js/common/AuthModal.js');
   domReady();
 }
 
@@ -104,7 +99,7 @@ async function renderPasswordGroup({ withDialog = false, withChecklist = true } 
 async function typePassword(value) {
   const pw = document.getElementById('sign-up-password');
   pw.value = value;
-  pw.dispatchEvent(new window.Event('input'));
+  pw.dispatchEvent(new Event('input'));
   await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
 }
 
@@ -138,7 +133,6 @@ afterEach(() => {
   // every later load's DOMContentLoaded registration and misattribute the failures.
   vi.useRealTimers();
   delete window.fetch;
-  delete window.Modal;
 });
 
 describe('advisory breached-password check', () => {
@@ -244,7 +238,7 @@ describe('advisory breached-password check', () => {
     const pw = document.getElementById('sign-up-password');
     for (let i = 1; i <= PASSWORD.length; i++) {
       pw.value = PASSWORD.slice(0, i);
-      pw.dispatchEvent(new window.Event('input'));
+      pw.dispatchEvent(new Event('input'));
       await vi.advanceTimersByTimeAsync(50);
     }
     await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
@@ -271,11 +265,11 @@ describe('advisory breached-password check', () => {
 
     const pw = document.getElementById('sign-up-password');
     pw.value = PASSWORD.slice(0, -1);
-    pw.dispatchEvent(new window.Event('input'));
+    pw.dispatchEvent(new Event('input'));
     expect(warningShown()).toBe(false); // A shorter value is a different password with no verdict yet.
 
     pw.value = PASSWORD;
-    pw.dispatchEvent(new window.Event('input'));
+    pw.dispatchEvent(new Event('input'));
 
     // Same keystroke, before any debounce: the earlier verdict still stands, so no "Strong" flash.
     expect(warningShown()).toBe(true);
@@ -308,7 +302,7 @@ describe('advisory breached-password check', () => {
     expect(window.fetch).toHaveBeenCalledTimes(1);
     expect(warningShown()).toBe(true);
     // The eye toggle is wired from the same pass, so it stands in for the rest of enhanceAuthForms.
-    document.querySelector('.au-eye').dispatchEvent(new window.Event('click'));
+    document.querySelector('.au-eye').dispatchEvent(new Event('click'));
     expect(document.getElementById('sign-up-password').type).toBe('text');
   });
 });

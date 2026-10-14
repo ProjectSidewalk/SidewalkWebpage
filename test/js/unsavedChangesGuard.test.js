@@ -14,23 +14,14 @@
  * tests vary anyway.
  */
 
-import { loadModules, fakeImport } from './loader.js';
+import { loadModules, mockModule } from './loader.js';
 
-fakeImport('frontend/js/common/ConfirmDialog.js', 'ConfirmDialog');
-
+/** The ConfirmDialog the guard under test asks; each `setUp` builds one that answers with that test's choice. */
+let confirmDialog;
+mockModule('frontend/js/common/ConfirmDialog.js', () => ({ ConfirmDialog: confirmDialog }));
 
 const PAGE_URL = 'http://localhost/dashboard/settings';
 const OTHER_PAGE = 'http://localhost/dashboard';
-
-/**
- * A fresh guard class seeing the given `i18next` and `ConfirmDialog` stand-ins (through the window fakes the module
- * loader honors).
- * @returns {Function} The class.
- */
-async function guardFactory(i18next, ConfirmDialog) {
-  Object.assign(window, { i18next, ConfirmDialog });
-  return (await loadModules('frontend/js/common/UnsavedChangesGuard.js')).UnsavedChangesGuard;
-}
 
 /**
  * Stands up a page with one link and a guard watching a form.
@@ -57,14 +48,15 @@ async function setUp({ choice = 'stay', href = OTHER_PAGE, attrs = '', saveOk = 
       assign: (url) => record.navigations.push(url),
     },
   };
-  const confirmDialog = {
+  confirmDialog = {
     choose: (opts) => {
       record.prompts.push(opts);
       return Promise.resolve(choice);
     },
   };
+  window.i18next = { t: (key) => key };
   const doc = document.implementation.createHTMLDocument();
-  const UnsavedChangesGuard = await guardFactory({ t: (key) => key }, confirmDialog);
+  const { UnsavedChangesGuard } = await loadModules('frontend/js/common/UnsavedChangesGuard.js');
 
   doc.body.innerHTML = `<a id="link" href="${href}" ${attrs}>go</a>`;
   new UnsavedChangesGuard({
@@ -87,7 +79,7 @@ async function setUp({ choice = 'stay', href = OTHER_PAGE, attrs = '', saveOk = 
  * @returns {Promise<boolean>} Whether the click's default action survived, i.e. the browser would have navigated.
  */
 async function click(el, init = {}) {
-  const event = new window.MouseEvent('click', { bubbles: true, cancelable: true, button: 0, ...init });
+  const event = new MouseEvent('click', { bubbles: true, cancelable: true, button: 0, ...init });
   el.dispatchEvent(event);
   await new Promise((resolve) => setTimeout(resolve, 0));
   return !event.defaultPrevented;
