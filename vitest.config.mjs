@@ -37,9 +37,9 @@ export default defineConfig({
       include: ['frontend/js/**/*.js'],
       // The default per-file table is a long run of mostly zeroes that buries the totals; lcov keeps the detail.
       reporter: ['text-summary', 'lcov'],
-      // A ratchet (#5112): each floor sits 1-2 points under CI's figure, so a sizable drop fails the run. Read the new figure off CI, or `make test-js args=--coverage`, before raising one;
-      // another Node version reads differently. Applies to any `--coverage` run, so add `--coverage.thresholds=false` to
-      // measure a single file.
+      // A ratchet (#5112): each floor sits 1-2 points under CI's figure, so a sizable drop fails the run. Read the new
+      // figure off CI, or `make test-js args=--coverage`, before raising one; another Node version reads differently.
+      // Applies to any `--coverage` run, so add `--coverage.thresholds=false` to measure a single file.
       thresholds: {
         statements: 52,
         branches: 47,
