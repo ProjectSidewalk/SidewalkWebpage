@@ -52,6 +52,12 @@ export class Label {
   // Resolves when this label's crop reaches the server; null until a submission hands us an id. See cropUploaded().
   #cropUpload = null;
 
+  // The properties the labeler edits after placing a label, which a submission sends. Set only through edit().
+  static #EDITABLE = new Set(['severity', 'tagIds', 'description']);
+
+  /** @type {Array<() => void>} */
+  #editListeners = [];
+
   #properties = {
     labelId: 'DefaultValue',
     auditTaskId: undefined,
@@ -231,7 +237,26 @@ export class Label {
   }
 
   setProperty(key, value) {
+    if (Label.#EDITABLE.has(key)) throw new Error(`Label.setProperty: '${key}' is set through edit().`);
     this.#properties[key] = value;
+  }
+
+  /**
+   * Sets the labeler's edits (severity, tagIds, description) and tells onEdited's listeners, so the label is sent
+   * with the next submission whoever made the edit.
+   * @param {{severity?: ?number, tagIds?: number[], description?: ?string}} changes
+   */
+  edit(changes) {
+    // Checked before any write, so a bad key can't leave the label half-edited and unfiled.
+    const badKey = Object.keys(changes).find((key) => !Label.#EDITABLE.has(key));
+    if (badKey) throw new Error(`Label.edit: '${badKey}' is not an editable property.`);
+    Object.assign(this.#properties, changes);
+    this.#editListeners.forEach((listener) => listener());
+  }
+
+  /** @param {() => void} listener - Called after every edit(). */
+  onEdited(listener) {
+    this.#editListeners.push(listener);
   }
 
   getStatus(key) {

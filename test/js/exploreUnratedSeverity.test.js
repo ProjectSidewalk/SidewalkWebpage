@@ -24,7 +24,7 @@ function makeLabel(labelType, tutorialLabelNumber) {
     getProperty: (key) => props[key],
     getProperties: () => props,
     isDeleted: () => false,
-    setProperty: (key, value) => { props[key] = value; },
+    edit: (changes) => { Object.assign(props, changes); },
   };
 }
 
@@ -49,7 +49,7 @@ describe('Explore severity shortcuts', () => {
     const { ContextMenu, KeyboardManager } = await loadModules('frontend/js/explore/canvas/ContextMenu.js',
       'frontend/js/explore/keyboard/KeyboardManager.js');
     menu = new ContextMenu(makeContextMenuUi(), config, { iconRadius: 17 },
-      { canDelete: () => true, getAllLabels: () => [], addToLabelsToLog: vi.fn() },
+      { canDelete: () => true, getAllLabels: () => [] },
       { switching: fakeGate() }, { onMoveStarted: vi.fn() },
       { ratingClicked: vi.fn() }, { ensureLabelSaved: vi.fn() }, tracker);
     menu.labelTags = [];

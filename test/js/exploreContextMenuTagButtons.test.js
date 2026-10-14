@@ -19,14 +19,13 @@ function makeLabel(labelType) {
     getProperty: (key) => props[key],
     getProperties: () => props,
     isDeleted: () => false,
-    setProperty: (key, value) => { props[key] = value; },
+    edit: (changes) => { Object.assign(props, changes); },
   };
 }
 
 describe('ContextMenu tag buttons', () => {
   let menu;
   let ui;
-  let labelContainer;
 
   beforeEach(async () => {
     window.i18next = { t: (key) => key };
@@ -35,8 +34,8 @@ describe('ContextMenu tag buttons', () => {
 
     const { ContextMenu } = await loadModules('frontend/js/explore/canvas/ContextMenu.js');
     ui = makeContextMenuUi();
-    labelContainer = { canDelete: () => true, getAllLabels: () => [], addToLabelsToLog: vi.fn() };
-    menu = new ContextMenu(ui, { isOnboarding: false }, { iconRadius: 17 }, labelContainer,
+    menu = new ContextMenu(ui, { isOnboarding: false }, { iconRadius: 17 },
+      { canDelete: () => true, getAllLabels: () => [] },
       { switching: fakeGate() }, { onMoveStarted: vi.fn() },
       { ratingClicked: vi.fn() }, { ensureLabelSaved: vi.fn() }, fakeTracker());
     menu.labelTags = [
@@ -58,24 +57,21 @@ describe('ContextMenu tag buttons', () => {
     expect(buttons[2].classList.contains('tag-pill--active')).toBe(true);
   });
 
-  test('files the label for the next submission on each edit, not only when the menu opens', () => {
+  test('writes each edit through label.edit(), which is what files the label for the next submission', () => {
     const label = makeLabel('Obstacle');
+    const edit = vi.spyOn(label, 'edit');
     menu.show(label);
-    // A save while the menu is open (a share, the tracker's flush) empties the list the same way.
-    labelContainer.addToLabelsToLog.mockClear();
 
     ui.tagHolder.querySelector('button').click();
-    expect(labelContainer.addToLabelsToLog).toHaveBeenCalledWith(label);
+    expect(edit).toHaveBeenLastCalledWith({ tagIds: [1] });
 
-    labelContainer.addToLabelsToLog.mockClear();
     ui.radioButtons[1].checked = true;
     ui.radioButtons[1].dispatchEvent(new Event('change'));
-    expect(labelContainer.addToLabelsToLog).toHaveBeenCalledWith(label);
+    expect(edit).toHaveBeenLastCalledWith({ severity: Number(ui.radioButtons[1].value) });
 
-    labelContainer.addToLabelsToLog.mockClear();
     ui.textBox.value = 'a bin';
     ui.textBox.dispatchEvent(new Event('change'));
-    expect(labelContainer.addToLabelsToLog).toHaveBeenCalledWith(label);
+    expect(edit).toHaveBeenLastCalledWith({ description: 'a bin' });
   });
 
   test('opening a label of another type rebuilds the row for that type', () => {
