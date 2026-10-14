@@ -19,203 +19,203 @@ const { Tracker } = await loadModules('frontend/js/validate/Tracker.js');
 const reloads = navigationAttempts();
 
 describe('Tracker timed flush (issue #4429)', () => {
-    let tracker;
-    let form;
-    let compiledPayload;
+  let tracker;
+  let form;
+  let compiledPayload;
 
-    beforeEach(() => {
-        vi.useFakeTimers();
-        vi.setSystemTime(1_000_000);
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(1_000_000);
 
-        // A minimal Form. compileSubmissionData mimics the production Form.js contract: it synchronously drains the
-        // tracker (tracker.refresh()) before returning the payload snapshot.
-        compiledPayload = { interactions: [] };
-        form = {
-            compileSubmissionData: vi.fn(() => {
-                tracker.refresh();
-                return compiledPayload;
-            }),
-            submit: vi.fn()
-        };
-
-        vi.spyOn(console, 'error').mockImplementation(() => {});
-
-        tracker = new Tracker();
-        tracker.onFlush(() => form.submit(form.compileSubmissionData(false), true));
-    });
-
-    test('the first push arms a deadline that flushes the compiled payload as an intermediate submit', () => {
-        tracker.push('ValidationButtonClick_Agree');
-
-        expect(form.compileSubmissionData).not.toHaveBeenCalled();
-        vi.advanceTimersByTime(FLUSH_INTERVAL_MS);
-
-        expect(form.compileSubmissionData).toHaveBeenCalledTimes(1);
-        expect(form.compileSubmissionData).toHaveBeenCalledWith(false);
-        expect(form.submit).toHaveBeenCalledTimes(1);
-        expect(form.submit).toHaveBeenCalledWith(compiledPayload, true);
-    });
-
-    test('the deadline is fixed from the first unflushed push, not slid by later pushes', () => {
-        tracker.push('ValidationButtonClick_Agree');
-        vi.advanceTimersByTime(FLUSH_INTERVAL_MS - 1000);
-        tracker.push('ValidationButtonClick_Disagree'); // 59s in; must not postpone the deadline.
-
-        vi.advanceTimersByTime(999);
-        expect(form.submit).not.toHaveBeenCalled();
-
-        vi.advanceTimersByTime(1);
-        expect(form.submit).toHaveBeenCalledTimes(1);
-    });
-
-    test('an idle tab stays quiet after a flush (the RefreshTracker marker never re-arms the deadline)', () => {
-        tracker.push('ValidationButtonClick_Agree');
-        vi.advanceTimersByTime(FLUSH_INTERVAL_MS);
-        expect(form.submit).toHaveBeenCalledTimes(1);
-
-        // The drain left the buffer holding only the synthetic RefreshTracker marker; with no further user activity
-        // there must be no second flush, no matter how long the tab sits.
-        vi.advanceTimersByTime(10 * 60 * 1000);
-        expect(form.submit).toHaveBeenCalledTimes(1);
-        expect(tracker.getActions().map((a) => a.action)).toEqual(['RefreshTracker']);
-    });
-
-    test('refresh() on its own never arms the deadline', () => {
+    // A minimal Form. compileSubmissionData mimics the production Form.js contract: it synchronously drains the
+    // tracker (tracker.refresh()) before returning the payload snapshot.
+    compiledPayload = { interactions: [] };
+    form = {
+      compileSubmissionData: vi.fn(() => {
         tracker.refresh();
+        return compiledPayload;
+      }),
+      submit: vi.fn()
+    };
 
-        vi.advanceTimersByTime(10 * 60 * 1000);
-        expect(form.compileSubmissionData).not.toHaveBeenCalled();
-        expect(form.submit).not.toHaveBeenCalled();
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    tracker = new Tracker();
+    tracker.onFlush(() => form.submit(form.compileSubmissionData(false), true));
+  });
+
+  test('the first push arms a deadline that flushes the compiled payload as an intermediate submit', () => {
+    tracker.push('ValidationButtonClick_Agree');
+
+    expect(form.compileSubmissionData).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(FLUSH_INTERVAL_MS);
+
+    expect(form.compileSubmissionData).toHaveBeenCalledTimes(1);
+    expect(form.compileSubmissionData).toHaveBeenCalledWith(false);
+    expect(form.submit).toHaveBeenCalledTimes(1);
+    expect(form.submit).toHaveBeenCalledWith(compiledPayload, true);
+  });
+
+  test('the deadline is fixed from the first unflushed push, not slid by later pushes', () => {
+    tracker.push('ValidationButtonClick_Agree');
+    vi.advanceTimersByTime(FLUSH_INTERVAL_MS - 1000);
+    tracker.push('ValidationButtonClick_Disagree'); // 59s in; must not postpone the deadline.
+
+    vi.advanceTimersByTime(999);
+    expect(form.submit).not.toHaveBeenCalled();
+
+    vi.advanceTimersByTime(1);
+    expect(form.submit).toHaveBeenCalledTimes(1);
+  });
+
+  test('an idle tab stays quiet after a flush (the RefreshTracker marker never re-arms the deadline)', () => {
+    tracker.push('ValidationButtonClick_Agree');
+    vi.advanceTimersByTime(FLUSH_INTERVAL_MS);
+    expect(form.submit).toHaveBeenCalledTimes(1);
+
+    // The drain left the buffer holding only the synthetic RefreshTracker marker; with no further user activity
+    // there must be no second flush, no matter how long the tab sits.
+    vi.advanceTimersByTime(10 * 60 * 1000);
+    expect(form.submit).toHaveBeenCalledTimes(1);
+    expect(tracker.getActions().map((a) => a.action)).toEqual(['RefreshTracker']);
+  });
+
+  test('refresh() on its own never arms the deadline', () => {
+    tracker.refresh();
+
+    vi.advanceTimersByTime(10 * 60 * 1000);
+    expect(form.compileSubmissionData).not.toHaveBeenCalled();
+    expect(form.submit).not.toHaveBeenCalled();
+  });
+
+  // A verdict is worth more than the interactions around it, and on a phone the page can be killed with no exit
+  // event firing (#5561), so LabelContainer.validateCurrentLabel() asks for the flush now, not at the deadline.
+  describe('flushSoon() (issue #5561)', () => {
+    const VERDICT_FLUSH_DELAY_MS = 1000;
+
+    test('sends the buffer about a second later instead of at the 60 s deadline', () => {
+      tracker.push('ValidationButtonClick_Agree');
+      tracker.flushSoon();
+
+      vi.advanceTimersByTime(VERDICT_FLUSH_DELAY_MS - 1);
+      expect(form.submit).not.toHaveBeenCalled();
+
+      vi.advanceTimersByTime(1);
+      expect(form.submit).toHaveBeenCalledTimes(1);
+      expect(form.submit).toHaveBeenCalledWith(compiledPayload, true);
     });
 
-    // A verdict is worth more than the interactions around it, and on a phone the page can be killed with no exit
-    // event firing (#5561), so LabelContainer.validateCurrentLabel() asks for the flush now, not at the deadline.
-    describe('flushSoon() (issue #5561)', () => {
-        const VERDICT_FLUSH_DELAY_MS = 1000;
+    test('a quick run of verdicts becomes one flush, timed from the last of them', () => {
+      tracker.push('ValidationButtonClick_Agree');
+      tracker.flushSoon();
+      vi.advanceTimersByTime(VERDICT_FLUSH_DELAY_MS / 2);
+      tracker.push('ValidationButtonClick_Disagree');
+      tracker.flushSoon();
 
-        test('sends the buffer about a second later instead of at the 60 s deadline', () => {
-            tracker.push('ValidationButtonClick_Agree');
-            tracker.flushSoon();
+      vi.advanceTimersByTime(VERDICT_FLUSH_DELAY_MS - 1);
+      expect(form.submit).not.toHaveBeenCalled();
 
-            vi.advanceTimersByTime(VERDICT_FLUSH_DELAY_MS - 1);
-            expect(form.submit).not.toHaveBeenCalled();
-
-            vi.advanceTimersByTime(1);
-            expect(form.submit).toHaveBeenCalledTimes(1);
-            expect(form.submit).toHaveBeenCalledWith(compiledPayload, true);
-        });
-
-        test('a quick run of verdicts becomes one flush, timed from the last of them', () => {
-            tracker.push('ValidationButtonClick_Agree');
-            tracker.flushSoon();
-            vi.advanceTimersByTime(VERDICT_FLUSH_DELAY_MS / 2);
-            tracker.push('ValidationButtonClick_Disagree');
-            tracker.flushSoon();
-
-            vi.advanceTimersByTime(VERDICT_FLUSH_DELAY_MS - 1);
-            expect(form.submit).not.toHaveBeenCalled();
-
-            vi.advanceTimersByTime(1);
-            expect(form.submit).toHaveBeenCalledTimes(1);
-        });
-
-        test('replaces the pending deadline rather than adding a second flush after it', () => {
-            tracker.push('ValidationButtonClick_Agree');
-            tracker.flushSoon();
-            vi.advanceTimersByTime(VERDICT_FLUSH_DELAY_MS);
-            expect(form.submit).toHaveBeenCalledTimes(1);
-
-            // Only the post-flush marker is buffered now; the original 60 s deadline must not fire on it.
-            vi.advanceTimersByTime(10 * 60 * 1000);
-            expect(form.submit).toHaveBeenCalledTimes(1);
-        });
-
-        test('an external drain in the meantime cancels it', () => {
-            tracker.push('ValidationButtonClick_Agree');
-            tracker.flushSoon();
-            tracker.refresh(); // Mission complete or pagehide got there first.
-
-            vi.advanceTimersByTime(10 * 60 * 1000);
-            expect(form.submit).not.toHaveBeenCalled();
-        });
-
-        test('the next push after it arms an ordinary deadline again', () => {
-            tracker.push('ValidationButtonClick_Agree');
-            tracker.flushSoon();
-            vi.advanceTimersByTime(VERDICT_FLUSH_DELAY_MS);
-
-            tracker.push('LowLevelEvent_mousemove');
-            vi.advanceTimersByTime(FLUSH_INTERVAL_MS - 1);
-            expect(form.submit).toHaveBeenCalledTimes(1);
-            vi.advanceTimersByTime(1);
-            expect(form.submit).toHaveBeenCalledTimes(2);
-        });
+      vi.advanceTimersByTime(1);
+      expect(form.submit).toHaveBeenCalledTimes(1);
     });
 
-    test('an external drain (mission complete / pagehide) cancels the pending deadline', () => {
-        tracker.push('ValidationButtonClick_Agree');
-        vi.advanceTimersByTime(FLUSH_INTERVAL_MS / 2);
+    test('replaces the pending deadline rather than adding a second flush after it', () => {
+      tracker.push('ValidationButtonClick_Agree');
+      tracker.flushSoon();
+      vi.advanceTimersByTime(VERDICT_FLUSH_DELAY_MS);
+      expect(form.submit).toHaveBeenCalledTimes(1);
 
-        // Both the mission-complete submit and the pagehide handler drain via compileSubmissionData -> refresh().
-        tracker.refresh();
-
-        vi.advanceTimersByTime(10 * 60 * 1000);
-        expect(form.submit).not.toHaveBeenCalled();
+      // Only the post-flush marker is buffered now; the original 60 s deadline must not fire on it.
+      vi.advanceTimersByTime(10 * 60 * 1000);
+      expect(form.submit).toHaveBeenCalledTimes(1);
     });
 
-    test('the action-count backstop still flushes immediately and cancels the pending deadline', () => {
-        for (let i = 0; i < 201; i++) {
-            tracker.push('LowLevelEvent_mousemove');
-        }
+    test('an external drain in the meantime cancels it', () => {
+      tracker.push('ValidationButtonClick_Agree');
+      tracker.flushSoon();
+      tracker.refresh(); // Mission complete or pagehide got there first.
 
-        expect(form.compileSubmissionData).toHaveBeenCalledTimes(1);
-        expect(form.submit).toHaveBeenCalledTimes(1);
-        expect(form.submit).toHaveBeenCalledWith(compiledPayload, true);
-
-        // The deadline armed by the first push must not produce a second, near-empty flush.
-        vi.advanceTimersByTime(10 * 60 * 1000);
-        expect(form.submit).toHaveBeenCalledTimes(1);
+      vi.advanceTimersByTime(10 * 60 * 1000);
+      expect(form.submit).not.toHaveBeenCalled();
     });
 
-    test('record() leaves a buffer at the limit for its caller to drain, so an exit flush is not split in two', () => {
-        for (let i = 0; i < 200; i++) tracker.push('LowLevelEvent_mousemove');
-        tracker.record('Unload');
+    test('the next push after it arms an ordinary deadline again', () => {
+      tracker.push('ValidationButtonClick_Agree');
+      tracker.flushSoon();
+      vi.advanceTimersByTime(VERDICT_FLUSH_DELAY_MS);
 
-        expect(form.submit).not.toHaveBeenCalled();
-        expect(tracker.getActions()).toHaveLength(201);
-        expect(tracker.getActions().at(-1).action).toBe('Unload');
+      tracker.push('LowLevelEvent_mousemove');
+      vi.advanceTimersByTime(FLUSH_INTERVAL_MS - 1);
+      expect(form.submit).toHaveBeenCalledTimes(1);
+      vi.advanceTimersByTime(1);
+      expect(form.submit).toHaveBeenCalledTimes(2);
     });
+  });
 
-    test('the next push after a drain arms a fresh deadline', () => {
-        tracker.push('ValidationButtonClick_Agree');
-        vi.advanceTimersByTime(FLUSH_INTERVAL_MS);
-        expect(form.submit).toHaveBeenCalledTimes(1);
+  test('an external drain (mission complete / pagehide) cancels the pending deadline', () => {
+    tracker.push('ValidationButtonClick_Agree');
+    vi.advanceTimersByTime(FLUSH_INTERVAL_MS / 2);
 
-        tracker.push('ValidationButtonClick_Disagree');
-        vi.advanceTimersByTime(FLUSH_INTERVAL_MS);
-        expect(form.submit).toHaveBeenCalledTimes(2);
-    });
+    // Both the mission-complete submit and the pagehide handler drain via compileSubmissionData -> refresh().
+    tracker.refresh();
 
-    test('a >1h gap between pushes does not reload the page', () => {
-        tracker.push('ValidationButtonClick_Agree');
-        vi.setSystemTime(1_000_000 + 2 * 60 * 60 * 1000);
-        tracker.push('ValidationButtonClick_Disagree');
+    vi.advanceTimersByTime(10 * 60 * 1000);
+    expect(form.submit).not.toHaveBeenCalled();
+  });
 
-        expect(reloads).not.toHaveBeenCalled();
-    });
+  test('the action-count backstop still flushes immediately and cancels the pending deadline', () => {
+    for (let i = 0; i < 201; i++) {
+      tracker.push('LowLevelEvent_mousemove');
+    }
 
-    test('a deadline firing before init finishes is a no-op that self-heals on the next push', () => {
-        tracker = new Tracker(); // No Form has registered a flush yet.
+    expect(form.compileSubmissionData).toHaveBeenCalledTimes(1);
+    expect(form.submit).toHaveBeenCalledTimes(1);
+    expect(form.submit).toHaveBeenCalledWith(compiledPayload, true);
 
-        tracker.push('ValidationButtonClick_Agree');
-        expect(() => vi.advanceTimersByTime(FLUSH_INTERVAL_MS)).not.toThrow();
+    // The deadline armed by the first push must not produce a second, near-empty flush.
+    vi.advanceTimersByTime(10 * 60 * 1000);
+    expect(form.submit).toHaveBeenCalledTimes(1);
+  });
 
-        // Once init has finished, the next push re-arms and the flush goes through.
-        tracker.onFlush(() => form.submit(form.compileSubmissionData(false), true));
-        tracker.push('ValidationButtonClick_Disagree');
-        vi.advanceTimersByTime(FLUSH_INTERVAL_MS);
+  test('record() leaves a buffer at the limit for its caller to drain, so an exit flush is not split in two', () => {
+    for (let i = 0; i < 200; i++) tracker.push('LowLevelEvent_mousemove');
+    tracker.record('Unload');
 
-        expect(form.submit).toHaveBeenCalledTimes(1);
-        expect(form.submit).toHaveBeenCalledWith(compiledPayload, true);
-    });
+    expect(form.submit).not.toHaveBeenCalled();
+    expect(tracker.getActions()).toHaveLength(201);
+    expect(tracker.getActions().at(-1).action).toBe('Unload');
+  });
+
+  test('the next push after a drain arms a fresh deadline', () => {
+    tracker.push('ValidationButtonClick_Agree');
+    vi.advanceTimersByTime(FLUSH_INTERVAL_MS);
+    expect(form.submit).toHaveBeenCalledTimes(1);
+
+    tracker.push('ValidationButtonClick_Disagree');
+    vi.advanceTimersByTime(FLUSH_INTERVAL_MS);
+    expect(form.submit).toHaveBeenCalledTimes(2);
+  });
+
+  test('a >1h gap between pushes does not reload the page', () => {
+    tracker.push('ValidationButtonClick_Agree');
+    vi.setSystemTime(1_000_000 + 2 * 60 * 60 * 1000);
+    tracker.push('ValidationButtonClick_Disagree');
+
+    expect(reloads).not.toHaveBeenCalled();
+  });
+
+  test('a deadline firing before init finishes is a no-op that self-heals on the next push', () => {
+    tracker = new Tracker(); // No Form has registered a flush yet.
+
+    tracker.push('ValidationButtonClick_Agree');
+    expect(() => vi.advanceTimersByTime(FLUSH_INTERVAL_MS)).not.toThrow();
+
+    // Once init has finished, the next push re-arms and the flush goes through.
+    tracker.onFlush(() => form.submit(form.compileSubmissionData(false), true));
+    tracker.push('ValidationButtonClick_Disagree');
+    vi.advanceTimersByTime(FLUSH_INTERVAL_MS);
+
+    expect(form.submit).toHaveBeenCalledTimes(1);
+    expect(form.submit).toHaveBeenCalledWith(compiledPayload, true);
+  });
 });

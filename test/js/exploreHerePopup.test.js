@@ -19,83 +19,83 @@ const mapWithoutRegion = { getLayer: () => null };
 
 /** A map stub that reports one rendered region under the pin. */
 function mapWithRegion(regionName, completionRate) {
-    return {
-        getLayer: () => ({}),
-        project: () => ({ x: 0, y: 0 }),
-        queryRenderedFeatures: () => [{ properties: { name: regionName, completionRate } }],
-    };
+  return {
+    getLayer: () => ({}),
+    project: () => ({ x: 0, y: 0 }),
+    queryRenderedFeatures: () => [{ properties: { name: regionName, completionRate } }],
+  };
 }
 
 const HREF = '/explore?lat=40.9&lng=-74.02&placeName=Town%20Hall';
 
 describe('buildExploreHereContent', () => {
-    let mod;
+  let mod;
 
-    beforeEach(async () => {
-        // Identity-t mock, except the percent interpolation which the progress assertions need realized.
-        window.i18next = {
-            t: (key, opts) => (opts && opts.percent !== undefined ? `${opts.percent}% explored` : key),
-        };
-        mod = await loadModule();
-    });
+  beforeEach(async () => {
+    // Identity-t mock, except the percent interpolation which the progress assertions need realized.
+    window.i18next = {
+      t: (key, opts) => (opts && opts.percent !== undefined ? `${opts.percent}% explored` : key),
+    };
+    mod = await loadModule();
+  });
 
-    test('hostile place name and address render as text, not markup', () => {
-        const payload = '<img src=x onerror="window.__pwned = 1">';
-        const el = mod.buildExploreHereContent(mapWithoutRegion, 40.9, -74.02, payload, '<b>addr</b>', HREF);
+  test('hostile place name and address render as text, not markup', () => {
+    const payload = '<img src=x onerror="window.__pwned = 1">';
+    const el = mod.buildExploreHereContent(mapWithoutRegion, 40.9, -74.02, payload, '<b>addr</b>', HREF);
 
-        expect(el.querySelector('img')).toBeNull();
-        expect(el.querySelector('b')).toBeNull();
-        expect(window.__pwned).toBeUndefined();
-        expect(el.querySelector('.explore-here__place').textContent).toBe(payload);
-        expect(el.querySelector('.explore-here__address').textContent).toBe('<b>addr</b>');
-    });
+    expect(el.querySelector('img')).toBeNull();
+    expect(el.querySelector('b')).toBeNull();
+    expect(window.__pwned).toBeUndefined();
+    expect(el.querySelector('.explore-here__place').textContent).toBe(payload);
+    expect(el.querySelector('.explore-here__address').textContent).toBe('<b>addr</b>');
+  });
 
-    test('hostile region name renders as text, and the progress bar reflects the completion rate', () => {
-        const map = mapWithRegion('<script>bad()</script>', 41.6);
-        const el = mod.buildExploreHereContent(map, 40.9, -74.02, 'Town Hall', '', HREF);
+  test('hostile region name renders as text, and the progress bar reflects the completion rate', () => {
+    const map = mapWithRegion('<script>bad()</script>', 41.6);
+    const el = mod.buildExploreHereContent(map, 40.9, -74.02, 'Town Hall', '', HREF);
 
-        expect(el.querySelector('script')).toBeNull();
-        expect(el.querySelector('.explore-here__region').textContent).toBe('<script>bad()</script>');
-        expect(el.querySelector('.explore-here__percent').textContent).toContain('42% explored');
-        expect(el.querySelector('.explore-here__fill').style.width).toBe('42%');
-    });
+    expect(el.querySelector('script')).toBeNull();
+    expect(el.querySelector('.explore-here__region').textContent).toBe('<script>bad()</script>');
+    expect(el.querySelector('.explore-here__percent').textContent).toContain('42% explored');
+    expect(el.querySelector('.explore-here__fill').style.width).toBe('42%');
+  });
 
-    test('a fully-explored region gets no progress pitch', () => {
-        const el = mod.buildExploreHereContent(mapWithRegion('Somewhere', 100), 40.9, -74.02, 'X', '', HREF);
-        expect(el.querySelector('.explore-here__context')).toBeNull();
-        expect(el.querySelector('.explore-here__track')).toBeNull();
-    });
+  test('a fully-explored region gets no progress pitch', () => {
+    const el = mod.buildExploreHereContent(mapWithRegion('Somewhere', 100), 40.9, -74.02, 'X', '', HREF);
+    expect(el.querySelector('.explore-here__context')).toBeNull();
+    expect(el.querySelector('.explore-here__track')).toBeNull();
+  });
 
-    test('empty place name and address emit no empty paragraphs', () => {
-        const el = mod.buildExploreHereContent(mapWithoutRegion, 40.9, -74.02, '', '', HREF);
-        expect(el.querySelector('.explore-here__place')).toBeNull();
-        expect(el.querySelector('.explore-here__address')).toBeNull();
-    });
+  test('empty place name and address emit no empty paragraphs', () => {
+    const el = mod.buildExploreHereContent(mapWithoutRegion, 40.9, -74.02, '', '', HREF);
+    expect(el.querySelector('.explore-here__place')).toBeNull();
+    expect(el.querySelector('.explore-here__address')).toBeNull();
+  });
 
-    test('the explore button links to exactly the href it was given', () => {
-        const el = mod.buildExploreHereContent(mapWithoutRegion, 40.9, -74.02, 'Town Hall', '', HREF);
-        expect(el.querySelector('.explore-here-button').getAttribute('href')).toBe(HREF);
-    });
+  test('the explore button links to exactly the href it was given', () => {
+    const el = mod.buildExploreHereContent(mapWithoutRegion, 40.9, -74.02, 'Town Hall', '', HREF);
+    expect(el.querySelector('.explore-here-button').getAttribute('href')).toBe(HREF);
+  });
 });
 
 describe('streetAddress', () => {
-    let mod;
+  let mod;
 
-    beforeEach(async () => {
-        window.i18next = { t: (key) => key };
-        mod = await loadModule();
-    });
+  beforeEach(async () => {
+    window.i18next = { t: (key) => key };
+    mod = await loadModule();
+  });
 
-    test('prefers the structured context address', () => {
-        expect(mod.streetAddress({ context: { address: { name: '100 Elizabeth Ave' } } })).toBe('100 Elizabeth Ave');
-    });
+  test('prefers the structured context address', () => {
+    expect(mod.streetAddress({ context: { address: { name: '100 Elizabeth Ave' } } })).toBe('100 Elizabeth Ave');
+  });
 
-    test('falls back to the flat address property, then the first segment of the formatted address', () => {
-        expect(mod.streetAddress({ address: '1 Main St' })).toBe('1 Main St');
-        expect(mod.streetAddress({ full_address: '2 Oak Ln, Teaneck, NJ 07666' })).toBe('2 Oak Ln');
-    });
+  test('falls back to the flat address property, then the first segment of the formatted address', () => {
+    expect(mod.streetAddress({ address: '1 Main St' })).toBe('1 Main St');
+    expect(mod.streetAddress({ full_address: '2 Oak Ln, Teaneck, NJ 07666' })).toBe('2 Oak Ln');
+  });
 
-    test('returns an empty string when the result carries no address at all', () => {
-        expect(mod.streetAddress({})).toBe('');
-    });
+  test('returns an empty string when the result carries no address at all', () => {
+    expect(mod.streetAddress({})).toBe('');
+  });
 });

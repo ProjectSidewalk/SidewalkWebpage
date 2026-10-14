@@ -15,122 +15,122 @@ const CONTAINER_ID = 'validation-result-types-preview';
 
 // A realistic, captured-shape API response: snake_case keys, per the v3 API naming convention (issue #3871).
 const GOOD_FIXTURE = {
-    status: 'OK',
-    validation_result_types: [
-        { name: 'Agree', count: 100, count_human: 90, count_ai: 10 },
-        { name: 'Disagree', count: 40, count_human: 35, count_ai: 5 },
-        { name: 'Unsure', count: 12, count_human: 12, count_ai: 0 }
-    ]
+  status: 'OK',
+  validation_result_types: [
+    { name: 'Agree', count: 100, count_human: 90, count_ai: 10 },
+    { name: 'Disagree', count: 40, count_human: 35, count_ai: 5 },
+    { name: 'Unsure', count: 12, count_human: 12, count_ai: 0 }
+  ]
 };
 
 // The pre-migration / wrong shape: camelCase keys and a camelCase top-level array name. The renderer expects
 // snake_case, so this should produce no rows (drift the test is designed to surface).
 const WRONG_SHAPE_FIXTURE = {
-    status: 'OK',
-    validationResultTypes: [
-        { name: 'Agree', count: 100, countHuman: 90, countAi: 10 }
-    ]
+  status: 'OK',
+  validationResultTypes: [
+    { name: 'Agree', count: 100, countHuman: 90, countAi: 10 }
+  ]
 };
 
 /** @param {object} body - What the page's `fetch` resolves with, as JSON. */
 function stubFetch(body) {
-    vi.stubGlobal('fetch', vi.fn(() =>
-        Promise.resolve({
-            ok: true,
-            status: 200,
-            json: () => Promise.resolve(body)
-        })
-    ));
+  vi.stubGlobal('fetch', vi.fn(() =>
+    Promise.resolve({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve(body)
+    })
+  ));
 }
 
 describe('ValidationResultTypesPreview', () => {
-    let ValidationResultTypesPreview;
+  let ValidationResultTypesPreview;
 
-    beforeEach(async () => {
-        // Fresh container per test.
-        document.body.innerHTML = `<div id="${CONTAINER_ID}"></div>`;
-        // The preview is a singleton; load a clean copy each time so config mutations from setup() in one test don't
-        // bleed into the next.
-        ({ ValidationResultTypesPreview } = await loadModules(MODULE_PATH));
-    });
+  beforeEach(async () => {
+    // Fresh container per test.
+    document.body.innerHTML = `<div id="${CONTAINER_ID}"></div>`;
+    // The preview is a singleton; load a clean copy each time so config mutations from setup() in one test don't
+    // bleed into the next.
+    ({ ValidationResultTypesPreview } = await loadModules(MODULE_PATH));
+  });
 
-    test('exposes the expected surface', () => {
-        expect(ValidationResultTypesPreview).toBeDefined();
-        expect(typeof ValidationResultTypesPreview.setup).toBe('function');
-        expect(typeof ValidationResultTypesPreview.init).toBe('function');
-    });
+  test('exposes the expected surface', () => {
+    expect(ValidationResultTypesPreview).toBeDefined();
+    expect(typeof ValidationResultTypesPreview.setup).toBe('function');
+    expect(typeof ValidationResultTypesPreview.init).toBe('function');
+  });
 
-    test('renders the correct (snake_case) fixture without error', async () => {
-        stubFetch(GOOD_FIXTURE);
+  test('renders the correct (snake_case) fixture without error', async () => {
+    stubFetch(GOOD_FIXTURE);
 
-        await expect(
-            ValidationResultTypesPreview.setup({}).init()
-        ).resolves.toBeDefined();
+    await expect(
+      ValidationResultTypesPreview.setup({}).init()
+    ).resolves.toBeDefined();
 
-        const container = document.getElementById(CONTAINER_ID);
-        // No error banner.
-        expect(container.innerHTML).not.toContain('Failed to load');
-        // Expected content rendered: a row per result type, with the counts.
-        expect(container.textContent).toContain('Agree');
-        expect(container.textContent).toContain('Disagree');
-        expect(container.textContent).toContain('Unsure');
-        expect(container.querySelectorAll('tbody tr')).toHaveLength(3);
-        // The human/AI columns came through (snake_case count_human / count_ai), formatted with toLocaleString.
-        expect(container.textContent).toContain('90');
-        expect(container.textContent).toContain('10');
-    });
+    const container = document.getElementById(CONTAINER_ID);
+    // No error banner.
+    expect(container.innerHTML).not.toContain('Failed to load');
+    // Expected content rendered: a row per result type, with the counts.
+    expect(container.textContent).toContain('Agree');
+    expect(container.textContent).toContain('Disagree');
+    expect(container.textContent).toContain('Unsure');
+    expect(container.querySelectorAll('tbody tr')).toHaveLength(3);
+    // The human/AI columns came through (snake_case count_human / count_ai), formatted with toLocaleString.
+    expect(container.textContent).toContain('90');
+    expect(container.textContent).toContain('10');
+  });
 
-    test('puts the result-types table inside the shared scroll region', async () => {
-        stubFetch(GOOD_FIXTURE);
+  test('puts the result-types table inside the shared scroll region', async () => {
+    stubFetch(GOOD_FIXTURE);
 
-        await ValidationResultTypesPreview.setup({}).init();
+    await ValidationResultTypesPreview.setup({}).init();
 
-        // The narrow-viewport scroller (#4883) is styled as `.ps-table-wrapper > table`, so the table has to be a
-        // direct child; the region needs a focus stop with a role and a name so its off-screen columns are reachable
-        // and announced without a pointer (WCAG 2.1.1).
-        const container = document.getElementById(CONTAINER_ID);
-        expect(container.querySelector('.ps-table-wrapper[role="region"] > table')).not.toBeNull();
-        const wrapper = container.querySelector('.ps-table-wrapper');
-        expect(wrapper.getAttribute('tabindex')).toBe('0');
-        expect(wrapper.getAttribute('aria-label')).toBe('Validation result types');
-    });
+    // The narrow-viewport scroller (#4883) is styled as `.ps-table-wrapper > table`, so the table has to be a
+    // direct child; the region needs a focus stop with a role and a name so its off-screen columns are reachable
+    // and announced without a pointer (WCAG 2.1.1).
+    const container = document.getElementById(CONTAINER_ID);
+    expect(container.querySelector('.ps-table-wrapper[role="region"] > table')).not.toBeNull();
+    const wrapper = container.querySelector('.ps-table-wrapper');
+    expect(wrapper.getAttribute('tabindex')).toBe('0');
+    expect(wrapper.getAttribute('aria-label')).toBe('Validation result types');
+  });
 
-    // A render-time throw has to land in the banner: init() is fire-and-forget at every call site, so an escaping
-    // rejection would leave "Loading..." on screen with nothing to explain it.
-    test('a render-time throw reaches the error banner instead of escaping init()', async () => {
-        stubFetch(GOOD_FIXTURE);
-        mockModule('frontend/js/api-docs/apiTableWrapper.js', () => ({
-            createApiTableWrapper: () => { throw new Error('render failed'); },
-        }));
-        ({ ValidationResultTypesPreview } = await loadModules(MODULE_PATH));
-        unmockModule('frontend/js/api-docs/apiTableWrapper.js');
+  // A render-time throw has to land in the banner: init() is fire-and-forget at every call site, so an escaping
+  // rejection would leave "Loading..." on screen with nothing to explain it.
+  test('a render-time throw reaches the error banner instead of escaping init()', async () => {
+    stubFetch(GOOD_FIXTURE);
+    mockModule('frontend/js/api-docs/apiTableWrapper.js', () => ({
+      createApiTableWrapper: () => { throw new Error('render failed'); },
+    }));
+    ({ ValidationResultTypesPreview } = await loadModules(MODULE_PATH));
+    unmockModule('frontend/js/api-docs/apiTableWrapper.js');
 
-        await expect(ValidationResultTypesPreview.setup({}).init()).resolves.toBeUndefined();
+    await expect(ValidationResultTypesPreview.setup({}).init()).resolves.toBeUndefined();
 
-        const container = document.getElementById(CONTAINER_ID);
-        expect(container.innerHTML).toContain('Failed to load');
-    });
+    const container = document.getElementById(CONTAINER_ID);
+    expect(container.innerHTML).toContain('Failed to load');
+  });
 
-    test('fetch is called against the expected endpoint, tagged utm_source=apiDocs', async () => {
-        stubFetch(GOOD_FIXTURE);
-        await ValidationResultTypesPreview.setup({}).init();
-        // The preview tags its request with utm_source=apiDocs so the API analytics can attribute doc-page traffic.
-        expect(window.fetch).toHaveBeenCalledWith('/v3/api/validationResultTypes?utm_source=apiDocs');
-    });
+  test('fetch is called against the expected endpoint, tagged utm_source=apiDocs', async () => {
+    stubFetch(GOOD_FIXTURE);
+    await ValidationResultTypesPreview.setup({}).init();
+    // The preview tags its request with utm_source=apiDocs so the API analytics can attribute doc-page traffic.
+    expect(window.fetch).toHaveBeenCalledWith('/v3/api/validationResultTypes?utm_source=apiDocs');
+  });
 
-    // Documents the drift-detection value of this layer: the wrong (camelCase) shape does not throw — the module is
-    // null-safe — but it silently renders an EMPTY table. That empty-table assertion is the signal a future shape
-    // change would trip. If a maintainer renames the snake_case fields, the "good" test above goes red; if the API
-    // starts returning camelCase, this test documents the (degraded) behavior the user would actually see.
-    test('wrong-shape (camelCase) fixture renders an empty table, not the expected rows', async () => {
-        stubFetch(WRONG_SHAPE_FIXTURE);
+  // Documents the drift-detection value of this layer: the wrong (camelCase) shape does not throw — the module is
+  // null-safe — but it silently renders an EMPTY table. That empty-table assertion is the signal a future shape
+  // change would trip. If a maintainer renames the snake_case fields, the "good" test above goes red; if the API
+  // starts returning camelCase, this test documents the (degraded) behavior the user would actually see.
+  test('wrong-shape (camelCase) fixture renders an empty table, not the expected rows', async () => {
+    stubFetch(WRONG_SHAPE_FIXTURE);
 
-        await ValidationResultTypesPreview.setup({}).init();
+    await ValidationResultTypesPreview.setup({}).init();
 
-        const container = document.getElementById(CONTAINER_ID);
-        // It does not crash (module guards with `|| []`), so no error banner either.
-        expect(container.innerHTML).not.toContain('Failed to load');
-        // But because `validation_result_types` is absent, zero rows render — the drift signal.
-        expect(container.querySelectorAll('tbody tr')).toHaveLength(0);
-    });
+    const container = document.getElementById(CONTAINER_ID);
+    // It does not crash (module guards with `|| []`), so no error banner either.
+    expect(container.innerHTML).not.toContain('Failed to load');
+    // But because `validation_result_types` is absent, zero rows render — the drift signal.
+    expect(container.querySelectorAll('tbody tr')).toHaveLength(0);
+  });
 });

@@ -16,23 +16,23 @@ let toggle;
 let tracker;
 
 beforeEach(() => {
-    document.body.innerHTML = `
+  document.body.innerHTML = `
       <button type="button" id="explore-control-stuck"></button>
       <button type="button" id="explore-control-buttons-toggle" aria-expanded="false"
         aria-controls="explore-control-menu"></button>
       <div id="explore-control-menu"></div>`;
-    toggle = document.getElementById('explore-control-buttons-toggle');
-    tracker = fakeTracker();
-    new PanoOverlayControls(tracker, { walking: { onChanged: () => {} } }, {}, {});
+  toggle = document.getElementById('explore-control-buttons-toggle');
+  tracker = fakeTracker();
+  new PanoOverlayControls(tracker, { walking: { onChanged: () => {} } }, {}, {});
 });
 
 test('the chevron opens and closes the menu, logging the resulting state each time', () => {
-    toggle.click();
-    expect(toggle.getAttribute('aria-expanded')).toBe('true');
-    expect(tracker.push).toHaveBeenLastCalledWith('Click_PanoControlMenu_Toggle', { expanded: true });
+  toggle.click();
+  expect(toggle.getAttribute('aria-expanded')).toBe('true');
+  expect(tracker.push).toHaveBeenLastCalledWith('Click_PanoControlMenu_Toggle', { expanded: true });
 
-    toggle.click();
-    expect(toggle.getAttribute('aria-expanded')).toBe('false');
-    expect(tracker.push).toHaveBeenLastCalledWith('Click_PanoControlMenu_Toggle', { expanded: false });
-    expect(tracker.push).toHaveBeenCalledTimes(2);
+  toggle.click();
+  expect(toggle.getAttribute('aria-expanded')).toBe('false');
+  expect(tracker.push).toHaveBeenLastCalledWith('Click_PanoControlMenu_Toggle', { expanded: false });
+  expect(tracker.push).toHaveBeenCalledTimes(2);
 });

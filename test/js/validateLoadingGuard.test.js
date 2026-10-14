@@ -100,7 +100,7 @@ describe('input aimed at a label whose pano is still loading is dropped (issue #
    */
   async function buildContainerMidLoad() {
     const labelContainer = await buildLabelContainer(LabelContainer, deps,
-        [{labelId: 1, panoId: 'panoA'}, {labelId: 2, panoId: 'panoB'}, {labelId: 3, panoId: 'panoC'}], LABEL_TYPE);
+      [{labelId: 1, panoId: 'panoA'}, {labelId: 2, panoId: 'panoB'}, {labelId: 3, panoId: 'panoC'}], LABEL_TYPE);
     deps.tracker.push.mockClear();
     holdNextLoad = true;
     // Not awaited: moveToNextLabel runs as far as the pano load and stops there, which is the window under test.

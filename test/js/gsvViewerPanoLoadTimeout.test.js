@@ -11,70 +11,70 @@
 import { loadModules } from './loader.js';
 
 describe('GsvViewer._loadPanoWithTimeout', () => {
-    let GsvViewer;
+  let GsvViewer;
 
-    beforeAll(async () => {
-        ({ GsvViewer } = await loadModules('frontend/js/common/pano-viewer/GsvViewer.js'));
-    });
+  beforeAll(async () => {
+    ({ GsvViewer } = await loadModules('frontend/js/common/pano-viewer/GsvViewer.js'));
+  });
 
-    beforeEach(() => {
-        vi.useFakeTimers();
-        // The race detaches its position_changed listener via google.maps.event.removeListener.
-        vi.stubGlobal('google', { maps: { event: { removeListener: vi.fn() } } });
-    });
+  beforeEach(() => {
+    vi.useFakeTimers();
+    // The race detaches its position_changed listener via google.maps.event.removeListener.
+    vi.stubGlobal('google', { maps: { event: { removeListener: vi.fn() } } });
+  });
 
-    /**
+  /**
      * Builds a viewer whose gsvPano stub captures the position_changed callback (so a test can fire it — or not, to
      * simulate a hang) and records setPano calls.
      */
-    function viewerWithCapturedListener() {
-        const viewer = new GsvViewer();
-        const captured = {};
-        viewer.gsvPano = {
-            addListener: (event, cb) => { captured.event = event; captured.cb = cb; return { event }; },
-            setPano: vi.fn(),
-        };
-        return { viewer, captured };
-    }
+  function viewerWithCapturedListener() {
+    const viewer = new GsvViewer();
+    const captured = {};
+    viewer.gsvPano = {
+      addListener: (event, cb) => { captured.event = event; captured.cb = cb; return { event }; },
+      setPano: vi.fn(),
+    };
+    return { viewer, captured };
+  }
 
-    test('sets the pano and resolves with the given value once position_changed fires', async () => {
-        const { viewer, captured } = viewerWithCapturedListener();
-        const panoData = { id: 'CURR' };
+  test('sets the pano and resolves with the given value once position_changed fires', async () => {
+    const { viewer, captured } = viewerWithCapturedListener();
+    const panoData = { id: 'CURR' };
 
-        const promise = viewer._loadPanoWithTimeout('newpano', panoData);
-        expect(viewer.gsvPano.setPano).toHaveBeenCalledWith('newpano');
-        expect(captured.event).toBe('position_changed');
+    const promise = viewer._loadPanoWithTimeout('newpano', panoData);
+    expect(viewer.gsvPano.setPano).toHaveBeenCalledWith('newpano');
+    expect(captured.event).toBe('position_changed');
 
-        captured.cb(); // GSV finished loading.
+    captured.cb(); // GSV finished loading.
 
-        await expect(promise).resolves.toBe(panoData);
-        // Listener detached, and the timeout cleared (advancing time must not also reject).
-        expect(window.google.maps.event.removeListener).toHaveBeenCalledTimes(1);
-        vi.advanceTimersByTime(60000);
-        await expect(promise).resolves.toBe(panoData);
-    });
+    await expect(promise).resolves.toBe(panoData);
+    // Listener detached, and the timeout cleared (advancing time must not also reject).
+    expect(window.google.maps.event.removeListener).toHaveBeenCalledTimes(1);
+    vi.advanceTimersByTime(60000);
+    await expect(promise).resolves.toBe(panoData);
+  });
 
-    test('rejects after the timeout when position_changed never fires (the 502 hang)', async () => {
-        const { viewer } = viewerWithCapturedListener();
+  test('rejects after the timeout when position_changed never fires (the 502 hang)', async () => {
+    const { viewer } = viewerWithCapturedListener();
 
-        const promise = viewer._loadPanoWithTimeout('deadpano', { id: 'CURR' });
-        const assertion = expect(promise).rejects.toThrow(/Timed out loading pano deadpano/);
+    const promise = viewer._loadPanoWithTimeout('deadpano', { id: 'CURR' });
+    const assertion = expect(promise).rejects.toThrow(/Timed out loading pano deadpano/);
 
-        vi.advanceTimersByTime(60000); // well past the load timeout.
+    vi.advanceTimersByTime(60000); // well past the load timeout.
 
-        await assertion;
-        expect(window.google.maps.event.removeListener).toHaveBeenCalledTimes(1);
-    });
+    await assertion;
+    expect(window.google.maps.event.removeListener).toHaveBeenCalledTimes(1);
+  });
 
-    test('a late position_changed after the timeout does not flip the rejected promise', async () => {
-        const { viewer, captured } = viewerWithCapturedListener();
+  test('a late position_changed after the timeout does not flip the rejected promise', async () => {
+    const { viewer, captured } = viewerWithCapturedListener();
 
-        const promise = viewer._loadPanoWithTimeout('deadpano', { id: 'CURR' });
-        const assertion = expect(promise).rejects.toThrow(/Timed out/);
-        vi.advanceTimersByTime(60000);
-        await assertion;
+    const promise = viewer._loadPanoWithTimeout('deadpano', { id: 'CURR' });
+    const assertion = expect(promise).rejects.toThrow(/Timed out/);
+    vi.advanceTimersByTime(60000);
+    await assertion;
 
-        // A late load event must be a no-op (promises settle once), not throw or resolve.
-        expect(() => captured.cb()).not.toThrow();
-    });
+    // A late load event must be a no-op (promises settle once), not throw or resolve.
+    expect(() => captured.cb()).not.toThrow();
+  });
 });

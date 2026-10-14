@@ -139,7 +139,7 @@ const CITY = [
   street(5, face('left'), face('right')),
   street(6, face('left', { presence: 'unknown', presence_basis: 'unaudited' }),
     face('right', { presence: 'unknown', presence_basis: 'unaudited' }),
-  { region_id: 11, region_name: 'Downtown', audit_count: 0 }),
+    { region_id: 11, region_name: 'Downtown', audit_count: 0 }),
 ];
 
 /** GeoJSON for the given street ids, in the shape /v3/api/streets serves. */

@@ -9,705 +9,705 @@
 import { loadModules } from './loader.js';
 
 const TARGET = {
-    url: 'https://sidewalk-test.example.org/label/123',
-    title: 'Share',
-    text: 'Check out this Curb Ramp on Project Sidewalk'
+  url: 'https://sidewalk-test.example.org/label/123',
+  title: 'Share',
+  text: 'Check out this Curb Ramp on Project Sidewalk'
 };
 
 /** Flushes pending promise microtasks (clipboard flow resolves through a .then chain). */
 const flushPromises = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 describe('ShareWidget', () => {
-    let ShareWidget;
-    let trigger;
+  let ShareWidget;
+  let trigger;
 
-    /** Builds a widget wired to the standard test target. */
-    function buildWidget(opts = {}) {
-        const widget = new ShareWidget(trigger, opts);
-        widget.setTarget(TARGET);
-        return widget;
+  /** Builds a widget wired to the standard test target. */
+  function buildWidget(opts = {}) {
+    const widget = new ShareWidget(trigger, opts);
+    widget.setTarget(TARGET);
+    return widget;
+  }
+
+  /** The popover element, or null before first non-native open. */
+  const popover = () => document.querySelector('.label-detail__share-popover');
+
+  /** The popover item whose visible label matches (items are labeled by i18n key under the identity-t mock). */
+  const item = (labelKey) =>
+    [...document.querySelectorAll('.label-detail__share-item')]
+      .find((btn) => btn.querySelector('.label-detail__share-item-label').textContent === labelKey);
+
+  beforeEach(async () => {
+    document.body.innerHTML =
+      '<div class="label-detail__share"><button type="button" class="label-detail__share-trigger"></button></div>';
+    trigger = document.querySelector('.label-detail__share-trigger');
+
+    // i18next mock: labels render as their namespace-stripped keys (the widget prefixes "common:"), so
+    // assertions are locale-independent and readable.
+    window.i18next = { t: (key) => key.replace(/^common:/, '') };
+    // The widget reserves the native share sheet for touch-primary devices, which jsdom can't answer for —
+    // it has no matchMedia at all. Default to a desktop pointer; the touch tests override per-case.
+    window.matchMedia = vi.fn().mockReturnValue({ matches: false });
+    window.logWebpageActivity = vi.fn();
+    window.open = vi.fn();
+    // jsdom has no navigator.share by default (the popover path); native-share tests define one explicitly.
+    delete navigator.share;
+    delete navigator.canShare;
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText: vi.fn().mockResolvedValue(undefined) },
+      configurable: true
+    });
+
+    ({ ShareWidget } = await loadModules('frontend/js/common/share/ShareWidget.js'));
+  });
+
+  describe('constructor', () => {
+    test('marks the trigger as a closed popup control', () => {
+      buildWidget();
+      expect(trigger.getAttribute('aria-haspopup')).toBe('true');
+      expect(trigger.getAttribute('aria-expanded')).toBe('false');
+    });
+  });
+
+  describe('buildChip', () => {
+    test('builds the standard chip: anchored wrapper, labeled trigger, share glyph', () => {
+      const { wrap, trigger: chipTrigger } = ShareWidget.buildChip('host-extra');
+
+      expect(wrap.className).toBe('label-detail__share host-extra');
+      expect(wrap.contains(chipTrigger)).toBe(true);
+      expect(chipTrigger.className).toBe('label-detail__share-trigger');
+      expect(chipTrigger.type).toBe('button'); // Never submits a host form.
+      expect(chipTrigger.getAttribute('aria-label')).toBe('share.button');
+      expect(chipTrigger.querySelector('svg')).not.toBeNull();
+      expect(chipTrigger.querySelector('.label-detail__share-trigger-label').textContent).toBe('share.button');
+    });
+
+    test('the extra wrapper class is optional', () => {
+      expect(ShareWidget.buildChip().wrap.className).toBe('label-detail__share');
+    });
+
+    test('a chip trigger drives a widget like any other trigger', () => {
+      const { wrap, trigger: chipTrigger } = ShareWidget.buildChip();
+      document.body.appendChild(wrap);
+      const widget = new ShareWidget(chipTrigger, { host: wrap });
+      widget.setTarget(TARGET);
+      chipTrigger.click();
+      expect(wrap.querySelector('.label-detail__share-popover')).not.toBeNull();
+      expect(chipTrigger.getAttribute('aria-expanded')).toBe('true');
+    });
+  });
+
+  describe('trigger click without native share', () => {
+    test('builds and opens an accessible popover with the four share actions', () => {
+      buildWidget();
+      trigger.click();
+
+      const pop = popover();
+      expect(pop).not.toBeNull();
+      expect(pop.hidden).toBe(false);
+      expect(pop.getAttribute('role')).toBe('menu');
+      expect(pop.getAttribute('aria-labelledby')).toBe(pop.querySelector('p').id);
+      expect(trigger.getAttribute('aria-expanded')).toBe('true');
+
+      const items = pop.querySelectorAll('[role="menuitem"]');
+      expect([...items].map((i) => i.querySelector('.label-detail__share-item-label').textContent))
+        .toEqual([
+          'share.copy-link', 'share.on-bluesky', 'share.on-x',
+          'share.on-facebook', 'share.on-linkedin', 'share.via-email'
+        ]);
+      expect(document.activeElement).toBe(items[0]);
+      expect(window.logWebpageActivity).toHaveBeenCalledWith('Share_Click');
+    });
+
+    test('logs the click but stays closed when no target URL is set', () => {
+      new ShareWidget(trigger); // No setTarget.
+      trigger.click();
+      expect(popover()).toBeNull();
+      expect(window.logWebpageActivity).toHaveBeenCalledWith('Share_Click');
+    });
+
+    test('a second click toggles the popover closed', () => {
+      buildWidget();
+      trigger.click();
+      trigger.click();
+      expect(popover().hidden).toBe(true);
+      expect(trigger.getAttribute('aria-expanded')).toBe('false');
+    });
+  });
+
+  describe('closing behavior', () => {
+    test('ESC closes and returns focus to the trigger', async () => {
+      buildWidget();
+      trigger.click();
+      await flushPromises(); // Document listeners are registered on a 0ms timeout after open.
+
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+      expect(popover().hidden).toBe(true);
+      expect(trigger.getAttribute('aria-expanded')).toBe('false');
+      expect(document.activeElement).toBe(trigger);
+    });
+
+    test('a click outside closes without stealing focus back to the trigger', async () => {
+      buildWidget();
+      trigger.click();
+      await flushPromises();
+
+      document.body.click();
+      expect(popover().hidden).toBe(true);
+      expect(document.activeElement).not.toBe(trigger);
+    });
+
+    test('setTarget closes an open popover so items cannot point at a stale target', () => {
+      const widget = buildWidget();
+      trigger.click();
+      widget.setTarget({ ...TARGET, url: 'https://sidewalk-test.example.org/label/456' });
+      expect(popover().hidden).toBe(true);
+    });
+  });
+
+  describe('menu keyboard navigation', () => {
+    /** Opens the popover, waits for the deferred document listeners, and returns the four menu items. */
+    async function openMenu() {
+      buildWidget();
+      trigger.click();
+      await flushPromises();
+      return [...popover().querySelectorAll('[role="menuitem"]')];
     }
 
-    /** The popover element, or null before first non-native open. */
-    const popover = () => document.querySelector('.label-detail__share-popover');
+    const press = (key) => document.dispatchEvent(new KeyboardEvent('keydown', { key, cancelable: true }));
 
-    /** The popover item whose visible label matches (items are labeled by i18n key under the identity-t mock). */
-    const item = (labelKey) =>
-        [...document.querySelectorAll('.label-detail__share-item')]
-            .find((btn) => btn.querySelector('.label-detail__share-item-label').textContent === labelKey);
-
-    beforeEach(async () => {
-        document.body.innerHTML =
-            '<div class="label-detail__share"><button type="button" class="label-detail__share-trigger"></button></div>';
-        trigger = document.querySelector('.label-detail__share-trigger');
-
-        // i18next mock: labels render as their namespace-stripped keys (the widget prefixes "common:"), so
-        // assertions are locale-independent and readable.
-        window.i18next = { t: (key) => key.replace(/^common:/, '') };
-        // The widget reserves the native share sheet for touch-primary devices, which jsdom can't answer for —
-        // it has no matchMedia at all. Default to a desktop pointer; the touch tests override per-case.
-        window.matchMedia = vi.fn().mockReturnValue({ matches: false });
-        window.logWebpageActivity = vi.fn();
-        window.open = vi.fn();
-        // jsdom has no navigator.share by default (the popover path); native-share tests define one explicitly.
-        delete navigator.share;
-        delete navigator.canShare;
-        Object.defineProperty(navigator, 'clipboard', {
-            value: { writeText: vi.fn().mockResolvedValue(undefined) },
-            configurable: true
-        });
-
-        ({ ShareWidget } = await loadModules('frontend/js/common/share/ShareWidget.js'));
+    test('ArrowDown cycles focus forward through the items and wraps to the first', async () => {
+      const items = await openMenu();
+      expect(document.activeElement).toBe(items[0]);
+      // Walk the whole list rather than a fixed number of presses, so adding a share platform doesn't
+      // silently turn this into a test of the first four items (#4721 added two).
+      for (let i = 1; i < items.length; i++) {
+        press('ArrowDown');
+        expect(document.activeElement).toBe(items[i]);
+      }
+      press('ArrowDown');
+      expect(document.activeElement).toBe(items[0]);
     });
 
-    describe('constructor', () => {
-        test('marks the trigger as a closed popup control', () => {
-            buildWidget();
-            expect(trigger.getAttribute('aria-haspopup')).toBe('true');
-            expect(trigger.getAttribute('aria-expanded')).toBe('false');
-        });
+    test('ArrowUp cycles focus backward and wraps to the last', async () => {
+      const items = await openMenu();
+      press('ArrowUp');
+      expect(document.activeElement).toBe(items[items.length - 1]);
+      press('ArrowUp');
+      expect(document.activeElement).toBe(items[items.length - 2]);
     });
 
-    describe('buildChip', () => {
-        test('builds the standard chip: anchored wrapper, labeled trigger, share glyph', () => {
-            const { wrap, trigger: chipTrigger } = ShareWidget.buildChip('host-extra');
-
-            expect(wrap.className).toBe('label-detail__share host-extra');
-            expect(wrap.contains(chipTrigger)).toBe(true);
-            expect(chipTrigger.className).toBe('label-detail__share-trigger');
-            expect(chipTrigger.type).toBe('button'); // Never submits a host form.
-            expect(chipTrigger.getAttribute('aria-label')).toBe('share.button');
-            expect(chipTrigger.querySelector('svg')).not.toBeNull();
-            expect(chipTrigger.querySelector('.label-detail__share-trigger-label').textContent).toBe('share.button');
-        });
-
-        test('the extra wrapper class is optional', () => {
-            expect(ShareWidget.buildChip().wrap.className).toBe('label-detail__share');
-        });
-
-        test('a chip trigger drives a widget like any other trigger', () => {
-            const { wrap, trigger: chipTrigger } = ShareWidget.buildChip();
-            document.body.appendChild(wrap);
-            const widget = new ShareWidget(chipTrigger, { host: wrap });
-            widget.setTarget(TARGET);
-            chipTrigger.click();
-            expect(wrap.querySelector('.label-detail__share-popover')).not.toBeNull();
-            expect(chipTrigger.getAttribute('aria-expanded')).toBe('true');
-        });
+    test('Home and End jump to the first and last items', async () => {
+      const items = await openMenu();
+      press('End');
+      expect(document.activeElement).toBe(items[items.length - 1]);
+      press('Home');
+      expect(document.activeElement).toBe(items[0]);
     });
 
-    describe('trigger click without native share', () => {
-        test('builds and opens an accessible popover with the four share actions', () => {
-            buildWidget();
-            trigger.click();
+    test('arrow keys re-enter the menu when focus has wandered outside it', async () => {
+      const items = await openMenu();
+      trigger.focus();
+      press('ArrowDown');
+      expect(document.activeElement).toBe(items[0]);
+    });
+  });
 
-            const pop = popover();
-            expect(pop).not.toBeNull();
-            expect(pop.hidden).toBe(false);
-            expect(pop.getAttribute('role')).toBe('menu');
-            expect(pop.getAttribute('aria-labelledby')).toBe(pop.querySelector('p').id);
-            expect(trigger.getAttribute('aria-expanded')).toBe('true');
+  describe('share actions', () => {
+    test('Copy Link writes the URL to the clipboard and shows a transient Copied state', async () => {
+      vi.useFakeTimers();
+      buildWidget();
+      trigger.click();
+      item('share.copy-link').click();
+      // Flush the clipboard promise without advancing the 1500ms reset timer.
+      await Promise.resolve();
+      await Promise.resolve();
 
-            const items = pop.querySelectorAll('[role="menuitem"]');
-            expect([...items].map((i) => i.querySelector('.label-detail__share-item-label').textContent))
-                .toEqual([
-                    'share.copy-link', 'share.on-bluesky', 'share.on-x',
-                    'share.on-facebook', 'share.on-linkedin', 'share.via-email'
-                ]);
-            expect(document.activeElement).toBe(items[0]);
-            expect(window.logWebpageActivity).toHaveBeenCalledWith('Share_Click');
-        });
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(TARGET.url);
+      expect(window.logWebpageActivity).toHaveBeenCalledWith('Share_CopyLink');
+      const copyButton = item('share.copied');
+      expect(copyButton.classList.contains('is-copied')).toBe(true);
 
-        test('logs the click but stays closed when no target URL is set', () => {
-            new ShareWidget(trigger); // No setTarget.
-            trigger.click();
-            expect(popover()).toBeNull();
-            expect(window.logWebpageActivity).toHaveBeenCalledWith('Share_Click');
-        });
-
-        test('a second click toggles the popover closed', () => {
-            buildWidget();
-            trigger.click();
-            trigger.click();
-            expect(popover().hidden).toBe(true);
-            expect(trigger.getAttribute('aria-expanded')).toBe('false');
-        });
+      vi.advanceTimersByTime(1500);
+      expect(copyButton.querySelector('.label-detail__share-item-label').textContent)
+        .toBe('share.copy-link');
+      expect(copyButton.classList.contains('is-copied')).toBe(false);
     });
 
-    describe('closing behavior', () => {
-        test('ESC closes and returns focus to the trigger', async () => {
-            buildWidget();
-            trigger.click();
-            await flushPromises(); // Document listeners are registered on a 0ms timeout after open.
+    test('X opens a tweet intent with the encoded URL and text, then closes', () => {
+      buildWidget();
+      trigger.click();
+      item('share.on-x').click();
 
-            document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
-            expect(popover().hidden).toBe(true);
-            expect(trigger.getAttribute('aria-expanded')).toBe('false');
-            expect(document.activeElement).toBe(trigger);
-        });
-
-        test('a click outside closes without stealing focus back to the trigger', async () => {
-            buildWidget();
-            trigger.click();
-            await flushPromises();
-
-            document.body.click();
-            expect(popover().hidden).toBe(true);
-            expect(document.activeElement).not.toBe(trigger);
-        });
-
-        test('setTarget closes an open popover so items cannot point at a stale target', () => {
-            const widget = buildWidget();
-            trigger.click();
-            widget.setTarget({ ...TARGET, url: 'https://sidewalk-test.example.org/label/456' });
-            expect(popover().hidden).toBe(true);
-        });
+      expect(window.open).toHaveBeenCalledTimes(1);
+      const [intentUrl, target] = window.open.mock.calls[0];
+      expect(intentUrl).toContain('https://x.com/intent/post?url=');
+      expect(intentUrl).toContain(encodeURIComponent(TARGET.url));
+      expect(intentUrl).toContain(encodeURIComponent(TARGET.text));
+      expect(target).toBe('_blank');
+      expect(window.logWebpageActivity).toHaveBeenCalledWith('Share_Platform=Twitter');
+      expect(popover().hidden).toBe(true);
     });
 
-    describe('menu keyboard navigation', () => {
-        /** Opens the popover, waits for the deferred document listeners, and returns the four menu items. */
-        async function openMenu() {
-            buildWidget();
-            trigger.click();
-            await flushPromises();
-            return [...popover().querySelectorAll('[role="menuitem"]')];
-        }
+    test('Facebook opens the sharer with the encoded URL', () => {
+      buildWidget();
+      trigger.click();
+      item('share.on-facebook').click();
 
-        const press = (key) => document.dispatchEvent(new KeyboardEvent('keydown', { key, cancelable: true }));
-
-        test('ArrowDown cycles focus forward through the items and wraps to the first', async () => {
-            const items = await openMenu();
-            expect(document.activeElement).toBe(items[0]);
-            // Walk the whole list rather than a fixed number of presses, so adding a share platform doesn't
-            // silently turn this into a test of the first four items (#4721 added two).
-            for (let i = 1; i < items.length; i++) {
-                press('ArrowDown');
-                expect(document.activeElement).toBe(items[i]);
-            }
-            press('ArrowDown');
-            expect(document.activeElement).toBe(items[0]);
-        });
-
-        test('ArrowUp cycles focus backward and wraps to the last', async () => {
-            const items = await openMenu();
-            press('ArrowUp');
-            expect(document.activeElement).toBe(items[items.length - 1]);
-            press('ArrowUp');
-            expect(document.activeElement).toBe(items[items.length - 2]);
-        });
-
-        test('Home and End jump to the first and last items', async () => {
-            const items = await openMenu();
-            press('End');
-            expect(document.activeElement).toBe(items[items.length - 1]);
-            press('Home');
-            expect(document.activeElement).toBe(items[0]);
-        });
-
-        test('arrow keys re-enter the menu when focus has wandered outside it', async () => {
-            const items = await openMenu();
-            trigger.focus();
-            press('ArrowDown');
-            expect(document.activeElement).toBe(items[0]);
-        });
+      const [intentUrl] = window.open.mock.calls[0];
+      expect(intentUrl).toContain('https://www.facebook.com/sharer/sharer.php?u=');
+      expect(intentUrl).toContain(encodeURIComponent(TARGET.url));
+      expect(window.logWebpageActivity).toHaveBeenCalledWith('Share_Platform=Facebook');
     });
 
-    describe('share actions', () => {
-        test('Copy Link writes the URL to the clipboard and shows a transient Copied state', async () => {
-            vi.useFakeTimers();
-            buildWidget();
-            trigger.click();
-            item('share.copy-link').click();
-            // Flush the clipboard promise without advancing the 1500ms reset timer.
-            await Promise.resolve();
-            await Promise.resolve();
+    test('Email logs the platform and closes (mailto: navigation is a jsdom no-op)', () => {
+      buildWidget();
+      trigger.click();
+      item('share.via-email').click();
 
-            expect(navigator.clipboard.writeText).toHaveBeenCalledWith(TARGET.url);
-            expect(window.logWebpageActivity).toHaveBeenCalledWith('Share_CopyLink');
-            const copyButton = item('share.copied');
-            expect(copyButton.classList.contains('is-copied')).toBe(true);
+      expect(window.logWebpageActivity).toHaveBeenCalledWith('Share_Platform=Email');
+      expect(popover().hidden).toBe(true);
+    });
+  });
 
-            vi.advanceTimersByTime(1500);
-            expect(copyButton.querySelector('.label-detail__share-item-label').textContent)
-                .toBe('share.copy-link');
-            expect(copyButton.classList.contains('is-copied')).toBe(false);
-        });
+  describe('native share sheet', () => {
+    /** Makes the device look touch-primary, which is the only case the native sheet is used for. */
+    const asTouchDevice = () => window.matchMedia.mockReturnValue({ matches: true });
 
-        test('X opens a tweet intent with the encoded URL and text, then closes', () => {
-            buildWidget();
-            trigger.click();
-            item('share.on-x').click();
+    test('prefers navigator.share on a touch device when canShare approves, without a popover', () => {
+      asTouchDevice();
+      navigator.share = vi.fn().mockResolvedValue(undefined);
+      navigator.canShare = vi.fn().mockReturnValue(true);
+      buildWidget();
+      trigger.click();
 
-            expect(window.open).toHaveBeenCalledTimes(1);
-            const [intentUrl, target] = window.open.mock.calls[0];
-            expect(intentUrl).toContain('https://x.com/intent/post?url=');
-            expect(intentUrl).toContain(encodeURIComponent(TARGET.url));
-            expect(intentUrl).toContain(encodeURIComponent(TARGET.text));
-            expect(target).toBe('_blank');
-            expect(window.logWebpageActivity).toHaveBeenCalledWith('Share_Platform=Twitter');
-            expect(popover().hidden).toBe(true);
-        });
-
-        test('Facebook opens the sharer with the encoded URL', () => {
-            buildWidget();
-            trigger.click();
-            item('share.on-facebook').click();
-
-            const [intentUrl] = window.open.mock.calls[0];
-            expect(intentUrl).toContain('https://www.facebook.com/sharer/sharer.php?u=');
-            expect(intentUrl).toContain(encodeURIComponent(TARGET.url));
-            expect(window.logWebpageActivity).toHaveBeenCalledWith('Share_Platform=Facebook');
-        });
-
-        test('Email logs the platform and closes (mailto: navigation is a jsdom no-op)', () => {
-            buildWidget();
-            trigger.click();
-            item('share.via-email').click();
-
-            expect(window.logWebpageActivity).toHaveBeenCalledWith('Share_Platform=Email');
-            expect(popover().hidden).toBe(true);
-        });
+      expect(navigator.share).toHaveBeenCalledWith({
+        title: TARGET.title, text: TARGET.text, url: TARGET.url
+      });
+      expect(window.logWebpageActivity).toHaveBeenCalledWith('Share_Native');
+      expect(popover()).toBeNull();
     });
 
-    describe('native share sheet', () => {
-        /** Makes the device look touch-primary, which is the only case the native sheet is used for. */
-        const asTouchDevice = () => window.matchMedia.mockReturnValue({ matches: true });
+    test('falls back to the popover when canShare rejects the payload', () => {
+      asTouchDevice();
+      navigator.share = vi.fn();
+      navigator.canShare = vi.fn().mockReturnValue(false);
+      buildWidget();
+      trigger.click();
 
-        test('prefers navigator.share on a touch device when canShare approves, without a popover', () => {
-            asTouchDevice();
-            navigator.share = vi.fn().mockResolvedValue(undefined);
-            navigator.canShare = vi.fn().mockReturnValue(true);
-            buildWidget();
-            trigger.click();
-
-            expect(navigator.share).toHaveBeenCalledWith({
-                title: TARGET.title, text: TARGET.text, url: TARGET.url
-            });
-            expect(window.logWebpageActivity).toHaveBeenCalledWith('Share_Native');
-            expect(popover()).toBeNull();
-        });
-
-        test('falls back to the popover when canShare rejects the payload', () => {
-            asTouchDevice();
-            navigator.share = vi.fn();
-            navigator.canShare = vi.fn().mockReturnValue(false);
-            buildWidget();
-            trigger.click();
-
-            expect(navigator.share).not.toHaveBeenCalled();
-            expect(popover()).not.toBeNull();
-            expect(popover().hidden).toBe(false);
-        });
-
-        // Desktop Chrome and Safari both implement navigator.share, and their OS sheets are a poor fit for this —
-        // macOS's doesn't even offer copy-URL (#4660). A fine pointer means our own popover, always.
-        test('never uses the OS sheet on a fine-pointer device, even where the API exists', () => {
-            navigator.share = vi.fn().mockResolvedValue(undefined);
-            navigator.canShare = vi.fn().mockReturnValue(true);
-            buildWidget();
-            trigger.click();
-
-            expect(navigator.share).not.toHaveBeenCalled();
-            expect(window.logWebpageActivity).not.toHaveBeenCalledWith('Share_Native');
-            expect(popover()).not.toBeNull();
-            expect(popover().hidden).toBe(false);
-        });
+      expect(navigator.share).not.toHaveBeenCalled();
+      expect(popover()).not.toBeNull();
+      expect(popover().hidden).toBe(false);
     });
 
-    // Fitting is opt-in: it measures against the viewport, which is the wrong box for the settled hosts whose
-    // trigger sits inside a scrolling or clipping container (the label-detail footer, the landing grid's cards).
-    describe('fitToViewport, off by default', () => {
-        test('leaves the preferred side alone even where the popover cannot fit', () => {
-            const wrapper = document.querySelector('.label-detail__share');
-            buildWidget();
-            window.innerHeight = 800;
-            trigger.getBoundingClientRect = () => ({ top: 780, bottom: 800 });
-            Object.defineProperty(HTMLElement.prototype, 'offsetHeight', { configurable: true, value: 330 });
+    // Desktop Chrome and Safari both implement navigator.share, and their OS sheets are a poor fit for this —
+    // macOS's doesn't even offer copy-URL (#4660). A fine pointer means our own popover, always.
+    test('never uses the OS sheet on a fine-pointer device, even where the API exists', () => {
+      navigator.share = vi.fn().mockResolvedValue(undefined);
+      navigator.canShare = vi.fn().mockReturnValue(true);
+      buildWidget();
+      trigger.click();
 
-            trigger.click();
+      expect(navigator.share).not.toHaveBeenCalled();
+      expect(window.logWebpageActivity).not.toHaveBeenCalledWith('Share_Native');
+      expect(popover()).not.toBeNull();
+      expect(popover().hidden).toBe(false);
+    });
+  });
 
-            expect(wrapper.classList.contains('label-detail__share--below')).toBe(false);
-        });
+  // Fitting is opt-in: it measures against the viewport, which is the wrong box for the settled hosts whose
+  // trigger sits inside a scrolling or clipping container (the label-detail footer, the landing grid's cards).
+  describe('fitToViewport, off by default', () => {
+    test('leaves the preferred side alone even where the popover cannot fit', () => {
+      const wrapper = document.querySelector('.label-detail__share');
+      buildWidget();
+      window.innerHeight = 800;
+      trigger.getBoundingClientRect = () => ({ top: 780, bottom: 800 });
+      Object.defineProperty(HTMLElement.prototype, 'offsetHeight', { configurable: true, value: 330 });
 
-        test('keeps every platform, however little room there is', () => {
-            buildWidget();
-            window.innerHeight = 40;
-            trigger.getBoundingClientRect = () => ({ top: 20, bottom: 40 });
-            Object.defineProperty(HTMLElement.prototype, 'offsetHeight', { configurable: true, value: 330 });
+      trigger.click();
 
-            trigger.click();
-
-            const hidden = [...document.querySelectorAll('[role="menuitem"]')].filter((i) => i.hidden);
-            expect(hidden).toHaveLength(0);
-        });
+      expect(wrapper.classList.contains('label-detail__share--below')).toBe(false);
     });
 
-    // The label card's trigger sits in a panel header that can be anywhere in the pano, and the popover is tall
-    // enough (six platforms) to run off the bottom from a low card.
-    describe('opening side', () => {
-        /** Gives the trigger a fixed viewport rect and the popover a fixed height, since jsdom has no layout. */
-        const place = ({ top, bottom, viewport, popoverHeight }) => {
-            window.innerHeight = viewport;
-            trigger.getBoundingClientRect = () => ({ top, bottom, left: 0, right: 0, width: 0, height: bottom - top });
-            Object.defineProperty(HTMLElement.prototype, 'offsetHeight',
-                { configurable: true, value: popoverHeight });
-        };
-        const wrapper = () => document.querySelector('.label-detail__share');
+    test('keeps every platform, however little room there is', () => {
+      buildWidget();
+      window.innerHeight = 40;
+      trigger.getBoundingClientRect = () => ({ top: 20, bottom: 40 });
+      Object.defineProperty(HTMLElement.prototype, 'offsetHeight', { configurable: true, value: 330 });
 
-        test('keeps the preferred side when the popover fits there', () => {
-            wrapper().classList.add('label-detail__share--below');
-            buildWidget({ fitToViewport: true });
-            place({ top: 100, bottom: 120, viewport: 800, popoverHeight: 330 });
-            trigger.click();
-            expect(wrapper().classList.contains('label-detail__share--below')).toBe(true);
-        });
+      trigger.click();
 
-        test('flips up when there is no room below but there is above', () => {
-            wrapper().classList.add('label-detail__share--below');
-            buildWidget({ fitToViewport: true });
-            place({ top: 600, bottom: 620, viewport: 800, popoverHeight: 330 });
-            trigger.click();
-            expect(wrapper().classList.contains('label-detail__share--below')).toBe(false);
-        });
+      const hidden = [...document.querySelectorAll('[role="menuitem"]')].filter((i) => i.hidden);
+      expect(hidden).toHaveLength(0);
+    });
+  });
 
-        test('keeps the preference when neither side fits, so the choice stays predictable', () => {
-            wrapper().classList.add('label-detail__share--below');
-            buildWidget({ fitToViewport: true });
-            place({ top: 200, bottom: 220, viewport: 400, popoverHeight: 330 });
-            trigger.click();
-            expect(wrapper().classList.contains('label-detail__share--below')).toBe(true);
-        });
+  // The label card's trigger sits in a panel header that can be anywhere in the pano, and the popover is tall
+  // enough (six platforms) to run off the bottom from a low card.
+  describe('opening side', () => {
+    /** Gives the trigger a fixed viewport rect and the popover a fixed height, since jsdom has no layout. */
+    const place = ({ top, bottom, viewport, popoverHeight }) => {
+      window.innerHeight = viewport;
+      trigger.getBoundingClientRect = () => ({ top, bottom, left: 0, right: 0, width: 0, height: bottom - top });
+      Object.defineProperty(HTMLElement.prototype, 'offsetHeight',
+        { configurable: true, value: popoverHeight });
+    };
+    const wrapper = () => document.querySelector('.label-detail__share');
+
+    test('keeps the preferred side when the popover fits there', () => {
+      wrapper().classList.add('label-detail__share--below');
+      buildWidget({ fitToViewport: true });
+      place({ top: 100, bottom: 120, viewport: 800, popoverHeight: 330 });
+      trigger.click();
+      expect(wrapper().classList.contains('label-detail__share--below')).toBe(true);
     });
 
-    // When neither side has room, the menu sheds platforms rather than running off the screen.
-    describe('shedding platforms to fit', () => {
-        const shown = () =>
-            [...document.querySelectorAll('[role="menuitem"]')]
-                .filter((i) => !i.hidden)
-                .map((i) => i.querySelector('.label-detail__share-item-label').textContent);
+    test('flips up when there is no room below but there is above', () => {
+      wrapper().classList.add('label-detail__share--below');
+      buildWidget({ fitToViewport: true });
+      place({ top: 600, bottom: 620, viewport: 800, popoverHeight: 330 });
+      trigger.click();
+      expect(wrapper().classList.contains('label-detail__share--below')).toBe(false);
+    });
 
-        /**
+    test('keeps the preference when neither side fits, so the choice stays predictable', () => {
+      wrapper().classList.add('label-detail__share--below');
+      buildWidget({ fitToViewport: true });
+      place({ top: 200, bottom: 220, viewport: 400, popoverHeight: 330 });
+      trigger.click();
+      expect(wrapper().classList.contains('label-detail__share--below')).toBe(true);
+    });
+  });
+
+  // When neither side has room, the menu sheds platforms rather than running off the screen.
+  describe('shedding platforms to fit', () => {
+    const shown = () =>
+      [...document.querySelectorAll('[role="menuitem"]')]
+        .filter((i) => !i.hidden)
+        .map((i) => i.querySelector('.label-detail__share-item-label').textContent);
+
+    /**
          * jsdom has no layout, so stand in for it: the menu's height tracks how many items are actually showing,
          * which is the relationship the shedding loop depends on. 32px of heading and padding, 20px per item.
          */
-        const measuresLikeLayout = () => {
-            Object.defineProperty(HTMLElement.prototype, 'offsetHeight', {
-                configurable: true,
-                get() {
-                    return 32 + [...document.querySelectorAll('[role="menuitem"]')]
-                        .filter((i) => !i.hidden).length * 20;
-                }
-            });
-        };
+    const measuresLikeLayout = () => {
+      Object.defineProperty(HTMLElement.prototype, 'offsetHeight', {
+        configurable: true,
+        get() {
+          return 32 + [...document.querySelectorAll('[role="menuitem"]')]
+            .filter((i) => !i.hidden).length * 20;
+        }
+      });
+    };
 
-        /** Puts the trigger somewhere with `space` px above it and nothing below (viewport ends at its bottom). */
-        const withSpaceAbove = (space) => {
-            const top = space + 8; // The routine keeps an 8px gap.
-            window.innerHeight = top + 20;
-            trigger.getBoundingClientRect = () => ({ top, bottom: top + 20 });
-        };
+    /** Puts the trigger somewhere with `space` px above it and nothing below (viewport ends at its bottom). */
+    const withSpaceAbove = (space) => {
+      const top = space + 8; // The routine keeps an 8px gap.
+      window.innerHeight = top + 20;
+      trigger.getBoundingClientRect = () => ({ top, bottom: top + 20 });
+    };
 
-        beforeEach(measuresLikeLayout);
+    beforeEach(measuresLikeLayout);
 
-        test('keeps every platform when the menu fits', () => {
-            buildWidget({ fitToViewport: true });
-            withSpaceAbove(200); // 6 items = 152px.
-            trigger.click();
+    test('keeps every platform when the menu fits', () => {
+      buildWidget({ fitToViewport: true });
+      withSpaceAbove(200); // 6 items = 152px.
+      trigger.click();
 
-            expect(shown()).toHaveLength(6);
-        });
-
-        test('drops X first, and stops as soon as it fits', () => {
-            buildWidget({ fitToViewport: true });
-            withSpaceAbove(132); // 6 items = 152px (too tall), 5 = 132px (exactly fits).
-            trigger.click();
-
-            expect(shown()).toEqual([
-                'share.copy-link', 'share.on-bluesky', 'share.on-facebook',
-                'share.on-linkedin', 'share.via-email'
-            ]);
-        });
-
-        test('drops Bluesky too when one is not enough', () => {
-            buildWidget({ fitToViewport: true });
-            withSpaceAbove(112); // Only 4 items (112px) fit.
-            trigger.click();
-
-            expect(shown()).toEqual([
-                'share.copy-link', 'share.on-facebook', 'share.on-linkedin', 'share.via-email'
-            ]);
-        });
-
-        test('restores the dropped platforms on a later open that has room', () => {
-            buildWidget({ fitToViewport: true });
-            withSpaceAbove(112);
-            trigger.click();
-            expect(shown()).toHaveLength(4);
-
-            trigger.click(); // Close.
-            withSpaceAbove(200);
-            trigger.click();
-
-            expect(shown()).toHaveLength(6);
-        });
-
-        test('arrow keys skip the dropped platforms', async () => {
-            buildWidget({ fitToViewport: true });
-            withSpaceAbove(112);
-            trigger.click();
-            await flushPromises(); // The keydown listener is registered on a deferred tick.
-
-            const visible = [...document.querySelectorAll('[role="menuitem"]')].filter((i) => !i.hidden);
-            document.dispatchEvent(new KeyboardEvent('keydown', { key: 'End', cancelable: true }));
-            expect(document.activeElement).toBe(visible[visible.length - 1]);
-        });
+      expect(shown()).toHaveLength(6);
     });
 
-    describe('isOpen', () => {
-        test('reports whether the popover is showing, so a self-dismissing host can wait on it', () => {
-            const widget = buildWidget();
-            expect(widget.isOpen()).toBe(false);
+    test('drops X first, and stops as soon as it fits', () => {
+      buildWidget({ fitToViewport: true });
+      withSpaceAbove(132); // 6 items = 152px (too tall), 5 = 132px (exactly fits).
+      trigger.click();
 
-            trigger.click();
-            expect(widget.isOpen()).toBe(true);
-
-            trigger.click();
-            expect(widget.isOpen()).toBe(false);
-        });
+      expect(shown()).toEqual([
+        'share.copy-link', 'share.on-bluesky', 'share.on-facebook',
+        'share.on-linkedin', 'share.via-email'
+      ]);
     });
 
-    describe('close', () => {
-        test('closes an open popover and reports it, so a host can take its panel away cleanly', () => {
-            const widget = buildWidget();
-            trigger.click();
-            expect(widget.isOpen()).toBe(true);
+    test('drops Bluesky too when one is not enough', () => {
+      buildWidget({ fitToViewport: true });
+      withSpaceAbove(112); // Only 4 items (112px) fit.
+      trigger.click();
 
-            widget.close();
-
-            expect(widget.isOpen()).toBe(false);
-            expect(popover().hidden).toBe(true);
-            // Focus is deliberately left where it is: the panel holding the trigger is being hidden.
-            expect(document.activeElement).not.toBe(trigger);
-        });
-
-        test('is a no-op when nothing is open', () => {
-            const widget = buildWidget();
-            expect(() => widget.close()).not.toThrow();
-            expect(widget.isOpen()).toBe(false);
-        });
+      expect(shown()).toEqual([
+        'share.copy-link', 'share.on-facebook', 'share.on-linkedin', 'share.via-email'
+      ]);
     });
 
-    // Explore's and Validate's cards suspend their own hide timer while the popover is up. The pointer has usually
-    // left by the time it closes and no second mouseleave is coming, so they need telling when to resume (#4726).
-    describe('onDismiss', () => {
-        test('fires when the user dismisses with a second click on the trigger', () => {
-            const onDismiss = vi.fn();
-            const widget = new ShareWidget(trigger, { onDismiss });
-            widget.setTarget(TARGET);
+    test('restores the dropped platforms on a later open that has room', () => {
+      buildWidget({ fitToViewport: true });
+      withSpaceAbove(112);
+      trigger.click();
+      expect(shown()).toHaveLength(4);
 
-            trigger.click();
-            expect(onDismiss).not.toHaveBeenCalled();
+      trigger.click(); // Close.
+      withSpaceAbove(200);
+      trigger.click();
 
-            trigger.click();
-            expect(onDismiss).toHaveBeenCalledTimes(1);
-        });
-
-        test('fires on ESC and on an outside click', async () => {
-            const onDismiss = vi.fn();
-            const widget = new ShareWidget(trigger, { onDismiss });
-            widget.setTarget(TARGET);
-
-            trigger.click();
-            await flushPromises(); // The document listeners are registered on a deferred tick.
-            document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
-            expect(onDismiss).toHaveBeenCalledTimes(1);
-
-            trigger.click();
-            await flushPromises();
-            document.body.click();
-            expect(onDismiss).toHaveBeenCalledTimes(2);
-        });
-
-        test('fires when the user picks an action', () => {
-            const onDismiss = vi.fn();
-            const widget = new ShareWidget(trigger, { onDismiss });
-            widget.setTarget(TARGET);
-
-            trigger.click();
-            item('share.on-facebook').click();
-
-            expect(onDismiss).toHaveBeenCalledTimes(1);
-        });
-
-        // The host asked for these itself, so telling it would send it round in a circle — Validate's
-        // hideLabelCard() closes the popover, and a dismissal notice would schedule another hide behind it.
-        test('does not fire when the host closes the widget itself', () => {
-            const onDismiss = vi.fn();
-            const widget = new ShareWidget(trigger, { onDismiss });
-            widget.setTarget(TARGET);
-
-            trigger.click();
-            widget.close();
-            expect(onDismiss).not.toHaveBeenCalled();
-
-            trigger.click();
-            widget.setTarget({ url: 'https://example.org/label/2', title: 't', text: 't' });
-            expect(onDismiss).not.toHaveBeenCalled();
-        });
+      expect(shown()).toHaveLength(6);
     });
 
-    describe('the dismissing click', () => {
-        test('does not log a second Share_Click', () => {
-            buildWidget();
-            trigger.click();
-            trigger.click();
+    test('arrow keys skip the dropped platforms', async () => {
+      buildWidget({ fitToViewport: true });
+      withSpaceAbove(112);
+      trigger.click();
+      await flushPromises(); // The keydown listener is registered on a deferred tick.
 
-            const shareClicks = window.logWebpageActivity.mock.calls.filter((c) => c[0] === 'Share_Click');
-            expect(shareClicks).toHaveLength(1);
-        });
+      const visible = [...document.querySelectorAll('[role="menuitem"]')].filter((i) => !i.hidden);
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'End', cancelable: true }));
+      expect(document.activeElement).toBe(visible[visible.length - 1]);
+    });
+  });
 
-        test('does not re-run the host beforeOpen step', async () => {
-            const beforeOpen = vi.fn().mockResolvedValue(undefined);
-            const widget = new ShareWidget(trigger, { beforeOpen });
-            widget.setTarget(TARGET);
+  describe('isOpen', () => {
+    test('reports whether the popover is showing, so a self-dismissing host can wait on it', () => {
+      const widget = buildWidget();
+      expect(widget.isOpen()).toBe(false);
 
-            trigger.click();
-            await flushPromises();
-            expect(widget.isOpen()).toBe(true);
+      trigger.click();
+      expect(widget.isOpen()).toBe(true);
 
-            trigger.click(); // Dismiss.
-            await flushPromises();
+      trigger.click();
+      expect(widget.isOpen()).toBe(false);
+    });
+  });
 
-            expect(widget.isOpen()).toBe(false);
-            expect(beforeOpen).toHaveBeenCalledTimes(1);
-        });
+  describe('close', () => {
+    test('closes an open popover and reports it, so a host can take its panel away cleanly', () => {
+      const widget = buildWidget();
+      trigger.click();
+      expect(widget.isOpen()).toBe(true);
+
+      widget.close();
+
+      expect(widget.isOpen()).toBe(false);
+      expect(popover().hidden).toBe(true);
+      // Focus is deliberately left where it is: the panel holding the trigger is being hidden.
+      expect(document.activeElement).not.toBe(trigger);
     });
 
-    // Explore's just-placed labels have no server-side id until the next form submit, so the host is given a chance
-    // to produce the target before the popover reads it (#4726).
-    describe('beforeOpen', () => {
-        test('awaits the host step, then opens against the target it produced', async () => {
-            const widget = new ShareWidget(trigger, {
-                beforeOpen: async () => {
-                    await flushPromises();
-                    widget.setTarget(TARGET);
-                }
-            });
-            // No target yet: without beforeOpen this click would be a no-op.
-            trigger.click();
-            expect(popover()).toBeNull();
+    test('is a no-op when nothing is open', () => {
+      const widget = buildWidget();
+      expect(() => widget.close()).not.toThrow();
+      expect(widget.isOpen()).toBe(false);
+    });
+  });
 
-            await flushPromises();
-            await flushPromises();
-            expect(popover()).not.toBeNull();
-            expect(popover().hidden).toBe(false);
-        });
+  // Explore's and Validate's cards suspend their own hide timer while the popover is up. The pointer has usually
+  // left by the time it closes and no second mouseleave is coming, so they need telling when to resume (#4726).
+  describe('onDismiss', () => {
+    test('fires when the user dismisses with a second click on the trigger', () => {
+      const onDismiss = vi.fn();
+      const widget = new ShareWidget(trigger, { onDismiss });
+      widget.setTarget(TARGET);
 
-        test('marks the trigger pending while the host step runs, and clears it after', async () => {
-            let release;
-            const widget = new ShareWidget(trigger, {
-                beforeOpen: () => new Promise((resolve) => { release = () => { widget.setTarget(TARGET); resolve(); }; })
-            });
+      trigger.click();
+      expect(onDismiss).not.toHaveBeenCalled();
 
-            trigger.click();
-            expect(trigger.classList.contains('is-pending')).toBe(true);
-
-            release();
-            await flushPromises();
-            expect(trigger.classList.contains('is-pending')).toBe(false);
-        });
-
-        test('ignores a second click while the host step is still in flight', async () => {
-            const beforeOpen = vi.fn().mockResolvedValue(undefined);
-            const widget = new ShareWidget(trigger, { beforeOpen });
-            widget.setTarget(TARGET);
-
-            trigger.click();
-            trigger.click();
-            await flushPromises();
-
-            // The duplicate would have started a second form submission.
-            expect(beforeOpen).toHaveBeenCalledTimes(1);
-        });
-
-        test('stays closed when the host step throws, rather than opening a share with no URL', async () => {
-            const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-            const widget = new ShareWidget(trigger, { beforeOpen: () => Promise.reject(new Error('submit failed')) });
-            widget.setTarget(TARGET);
-
-            trigger.click();
-            await flushPromises();
-
-            expect(popover()).toBeNull();
-            expect(trigger.classList.contains('is-pending')).toBe(false);
-            errSpy.mockRestore();
-        });
+      trigger.click();
+      expect(onDismiss).toHaveBeenCalledTimes(1);
     });
 
-    // Explore's hover card is one big click target that opens the label's context menu, and ShareWidget builds its
-    // popover inside the trigger's wrapper — so every menu item is a descendant of that card. Canvas.js guards the
-    // whole wrapper for this reason; a guard on the trigger alone lets "Copy link" open the context menu (#4726).
-    describe('containment inside a clickable host panel', () => {
-        let panelClick;
+    test('fires on ESC and on an outside click', async () => {
+      const onDismiss = vi.fn();
+      const widget = new ShareWidget(trigger, { onDismiss });
+      widget.setTarget(TARGET);
 
-        beforeEach(() => {
-            document.body.innerHTML = `
+      trigger.click();
+      await flushPromises(); // The document listeners are registered on a deferred tick.
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+      expect(onDismiss).toHaveBeenCalledTimes(1);
+
+      trigger.click();
+      await flushPromises();
+      document.body.click();
+      expect(onDismiss).toHaveBeenCalledTimes(2);
+    });
+
+    test('fires when the user picks an action', () => {
+      const onDismiss = vi.fn();
+      const widget = new ShareWidget(trigger, { onDismiss });
+      widget.setTarget(TARGET);
+
+      trigger.click();
+      item('share.on-facebook').click();
+
+      expect(onDismiss).toHaveBeenCalledTimes(1);
+    });
+
+    // The host asked for these itself, so telling it would send it round in a circle — Validate's
+    // hideLabelCard() closes the popover, and a dismissal notice would schedule another hide behind it.
+    test('does not fire when the host closes the widget itself', () => {
+      const onDismiss = vi.fn();
+      const widget = new ShareWidget(trigger, { onDismiss });
+      widget.setTarget(TARGET);
+
+      trigger.click();
+      widget.close();
+      expect(onDismiss).not.toHaveBeenCalled();
+
+      trigger.click();
+      widget.setTarget({ url: 'https://example.org/label/2', title: 't', text: 't' });
+      expect(onDismiss).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('the dismissing click', () => {
+    test('does not log a second Share_Click', () => {
+      buildWidget();
+      trigger.click();
+      trigger.click();
+
+      const shareClicks = window.logWebpageActivity.mock.calls.filter((c) => c[0] === 'Share_Click');
+      expect(shareClicks).toHaveLength(1);
+    });
+
+    test('does not re-run the host beforeOpen step', async () => {
+      const beforeOpen = vi.fn().mockResolvedValue(undefined);
+      const widget = new ShareWidget(trigger, { beforeOpen });
+      widget.setTarget(TARGET);
+
+      trigger.click();
+      await flushPromises();
+      expect(widget.isOpen()).toBe(true);
+
+      trigger.click(); // Dismiss.
+      await flushPromises();
+
+      expect(widget.isOpen()).toBe(false);
+      expect(beforeOpen).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  // Explore's just-placed labels have no server-side id until the next form submit, so the host is given a chance
+  // to produce the target before the popover reads it (#4726).
+  describe('beforeOpen', () => {
+    test('awaits the host step, then opens against the target it produced', async () => {
+      const widget = new ShareWidget(trigger, {
+        beforeOpen: async () => {
+          await flushPromises();
+          widget.setTarget(TARGET);
+        }
+      });
+      // No target yet: without beforeOpen this click would be a no-op.
+      trigger.click();
+      expect(popover()).toBeNull();
+
+      await flushPromises();
+      await flushPromises();
+      expect(popover()).not.toBeNull();
+      expect(popover().hidden).toBe(false);
+    });
+
+    test('marks the trigger pending while the host step runs, and clears it after', async () => {
+      let release;
+      const widget = new ShareWidget(trigger, {
+        beforeOpen: () => new Promise((resolve) => { release = () => { widget.setTarget(TARGET); resolve(); }; })
+      });
+
+      trigger.click();
+      expect(trigger.classList.contains('is-pending')).toBe(true);
+
+      release();
+      await flushPromises();
+      expect(trigger.classList.contains('is-pending')).toBe(false);
+    });
+
+    test('ignores a second click while the host step is still in flight', async () => {
+      const beforeOpen = vi.fn().mockResolvedValue(undefined);
+      const widget = new ShareWidget(trigger, { beforeOpen });
+      widget.setTarget(TARGET);
+
+      trigger.click();
+      trigger.click();
+      await flushPromises();
+
+      // The duplicate would have started a second form submission.
+      expect(beforeOpen).toHaveBeenCalledTimes(1);
+    });
+
+    test('stays closed when the host step throws, rather than opening a share with no URL', async () => {
+      const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const widget = new ShareWidget(trigger, { beforeOpen: () => Promise.reject(new Error('submit failed')) });
+      widget.setTarget(TARGET);
+
+      trigger.click();
+      await flushPromises();
+
+      expect(popover()).toBeNull();
+      expect(trigger.classList.contains('is-pending')).toBe(false);
+      errSpy.mockRestore();
+    });
+  });
+
+  // Explore's hover card is one big click target that opens the label's context menu, and ShareWidget builds its
+  // popover inside the trigger's wrapper — so every menu item is a descendant of that card. Canvas.js guards the
+  // whole wrapper for this reason; a guard on the trigger alone lets "Copy link" open the context menu (#4726).
+  describe('containment inside a clickable host panel', () => {
+    let panelClick;
+
+    beforeEach(() => {
+      document.body.innerHTML = `
                 <div id="host-panel">
                   <div class="label-detail__share">
                     <button type="button" class="label-detail__share-trigger"></button>
                   </div>
                 </div>`;
-            trigger = document.querySelector('.label-detail__share-trigger');
-            panelClick = vi.fn();
-            document.getElementById('host-panel').addEventListener('click', panelClick);
-            // The guard Canvas.js installs: on the wrapper, so it covers the popover as well as the trigger.
-            trigger.parentElement.addEventListener('click', (e) => e.stopPropagation());
-        });
-
-        test('the popover is built inside the trigger wrapper, which is why the wrapper is what hosts guard', () => {
-            buildWidget();
-            trigger.click();
-            expect(popover().closest('.label-detail__share')).toBe(trigger.parentElement);
-        });
-
-        test('guarding only the trigger is not enough — the menu items still reach the panel', () => {
-            // The shape of the original bug. Rebuild with the narrower guard and show it leaks.
-            document.getElementById('host-panel').innerHTML =
-                '<div class="label-detail__share">'
-                + '<button type="button" class="label-detail__share-trigger"></button></div>';
-            trigger = document.querySelector('.label-detail__share-trigger');
-            trigger.addEventListener('click', (e) => e.stopPropagation());
-
-            buildWidget();
-            trigger.click();
-            expect(panelClick).not.toHaveBeenCalled(); // The trigger itself is covered...
-
-            item('share.on-facebook').click();
-            expect(panelClick).toHaveBeenCalledTimes(1); // ...but its menu is not.
-        });
-
-        test('a click on the trigger does not reach the panel', () => {
-            buildWidget();
-            trigger.click();
-            expect(panelClick).not.toHaveBeenCalled();
-        });
-
-        test('a click on a share menu item does not reach the panel', () => {
-            buildWidget();
-            trigger.click();
-            item('share.on-facebook').click();
-
-            expect(window.open).toHaveBeenCalledTimes(1); // The share itself still happened.
-            expect(panelClick).not.toHaveBeenCalled();
-        });
-
-        test('a click on Copy link does not reach the panel', () => {
-            buildWidget();
-            trigger.click();
-            item('share.copy-link').click();
-
-            expect(navigator.clipboard.writeText).toHaveBeenCalledWith(TARGET.url);
-            expect(panelClick).not.toHaveBeenCalled();
-        });
+      trigger = document.querySelector('.label-detail__share-trigger');
+      panelClick = vi.fn();
+      document.getElementById('host-panel').addEventListener('click', panelClick);
+      // The guard Canvas.js installs: on the wrapper, so it covers the popover as well as the trigger.
+      trigger.parentElement.addEventListener('click', (e) => e.stopPropagation());
     });
+
+    test('the popover is built inside the trigger wrapper, which is why the wrapper is what hosts guard', () => {
+      buildWidget();
+      trigger.click();
+      expect(popover().closest('.label-detail__share')).toBe(trigger.parentElement);
+    });
+
+    test('guarding only the trigger is not enough — the menu items still reach the panel', () => {
+      // The shape of the original bug. Rebuild with the narrower guard and show it leaks.
+      document.getElementById('host-panel').innerHTML =
+        '<div class="label-detail__share">'
+                + '<button type="button" class="label-detail__share-trigger"></button></div>';
+      trigger = document.querySelector('.label-detail__share-trigger');
+      trigger.addEventListener('click', (e) => e.stopPropagation());
+
+      buildWidget();
+      trigger.click();
+      expect(panelClick).not.toHaveBeenCalled(); // The trigger itself is covered...
+
+      item('share.on-facebook').click();
+      expect(panelClick).toHaveBeenCalledTimes(1); // ...but its menu is not.
+    });
+
+    test('a click on the trigger does not reach the panel', () => {
+      buildWidget();
+      trigger.click();
+      expect(panelClick).not.toHaveBeenCalled();
+    });
+
+    test('a click on a share menu item does not reach the panel', () => {
+      buildWidget();
+      trigger.click();
+      item('share.on-facebook').click();
+
+      expect(window.open).toHaveBeenCalledTimes(1); // The share itself still happened.
+      expect(panelClick).not.toHaveBeenCalled();
+    });
+
+    test('a click on Copy link does not reach the panel', () => {
+      buildWidget();
+      trigger.click();
+      item('share.copy-link').click();
+
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(TARGET.url);
+      expect(panelClick).not.toHaveBeenCalled();
+    });
+  });
 });

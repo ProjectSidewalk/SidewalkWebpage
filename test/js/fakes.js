@@ -12,13 +12,13 @@ import { mockModule } from './loader.js';
  * @returns {object} The gate.
  */
 export function fakeGate(overrides = {}) {
-    return {
-        hold: vi.fn(),
-        release: vi.fn(),
-        isHeld: () => false,
-        onChanged: vi.fn(),
-        ...overrides,
-    };
+  return {
+    hold: vi.fn(),
+    release: vi.fn(),
+    isHeld: () => false,
+    onChanged: vi.fn(),
+    ...overrides,
+  };
 }
 
 /**
@@ -27,14 +27,14 @@ export function fakeGate(overrides = {}) {
  * @returns {import('vitest').Mock} Called once per attempt with jsdom's error.
  */
 export function navigationAttempts() {
-    const attempts = vi.fn();
-    // jsdom keeps the console it was built with on the window's settings, with no public way at it from a page.
-    const virtualConsole = window._settings?.virtualConsole;
-    if (!virtualConsole) throw new Error('this jsdom keeps its virtual console elsewhere than window._settings');
-    virtualConsole.on('jsdomError', (error) => {
-        if (error.message.includes('Not implemented: navigation')) attempts(error);
-    });
-    return attempts;
+  const attempts = vi.fn();
+  // jsdom keeps the console it was built with on the window's settings, with no public way at it from a page.
+  const virtualConsole = window._settings?.virtualConsole;
+  if (!virtualConsole) throw new Error('this jsdom keeps its virtual console elsewhere than window._settings');
+  virtualConsole.on('jsdomError', (error) => {
+    if (error.message.includes('Not implemented: navigation')) attempts(error);
+  });
+  return attempts;
 }
 
 /**
@@ -43,17 +43,17 @@ export function navigationAttempts() {
  * @returns {object} The tracker.
  */
 export function fakeTracker(overrides = {}) {
-    return {
-        push: vi.fn(),
-        setAuditTaskID: vi.fn(),
-        trackPano: vi.fn(),
-        trackMissions: vi.fn(),
-        flushSoon: vi.fn(),
-        onFlush: vi.fn(),
-        getActions: () => [],
-        refresh: vi.fn(),
-        ...overrides,
-    };
+  return {
+    push: vi.fn(),
+    setAuditTaskID: vi.fn(),
+    trackPano: vi.fn(),
+    trackMissions: vi.fn(),
+    flushSoon: vi.fn(),
+    onFlush: vi.fn(),
+    getActions: () => [],
+    refresh: vi.fn(),
+    ...overrides,
+  };
 }
 
 /**
@@ -64,11 +64,11 @@ export function fakeTracker(overrides = {}) {
  * @returns {object} The task container.
  */
 export function fakeTaskContainer(getCurrentTask = () => null, overrides = {}) {
-    return {
-        getCurrentTask,
-        onCurrentTaskChanged: vi.fn(),
-        ...overrides,
-    };
+  return {
+    getCurrentTask,
+    onCurrentTaskChanged: vi.fn(),
+    ...overrides,
+  };
 }
 
 /**
@@ -78,15 +78,15 @@ export function fakeTaskContainer(getCurrentTask = () => null, overrides = {}) {
  * @returns {object} The pano manager.
  */
 export function fakePanoManager(viewer = {}, overrides = {}) {
-    return {
-        get panoViewer() { return viewer; },
-        getPanoId: () => viewer.getPanoId(),
-        getPosition: () => viewer.getPosition(),
-        getPov: () => viewer.getPov(),
-        onPovChanged: vi.fn(),
-        onPanoChanged: vi.fn(),
-        ...overrides,
-    };
+  return {
+    get panoViewer() { return viewer; },
+    getPanoId: () => viewer.getPanoId(),
+    getPosition: () => viewer.getPosition(),
+    getPov: () => viewer.getPov(),
+    onPovChanged: vi.fn(),
+    onPanoChanged: vi.fn(),
+    ...overrides,
+  };
 }
 
 /**
@@ -97,13 +97,13 @@ export function fakePanoManager(viewer = {}, overrides = {}) {
  *   The overlays the subject is handed, and the factories it gets them from.
  */
 export function fakePanoOverlays() {
-    const logo = { showPrimaryLogo: vi.fn(), showSourceLogo: vi.fn(), hide: vi.fn() };
-    const attribution = { show: vi.fn(), hide: vi.fn() };
-    const createPanoViewerLogo = vi.fn(() => logo);
-    const createPanoAttribution = vi.fn(() => attribution);
-    mockModule('frontend/js/common/pano-viewer/PanoViewerLogo.js', () => ({ createPanoViewerLogo }));
-    mockModule('frontend/js/common/pano-viewer/PanoAttribution.js', () => ({ createPanoAttribution }));
-    return { logo, attribution, createPanoViewerLogo, createPanoAttribution };
+  const logo = { showPrimaryLogo: vi.fn(), showSourceLogo: vi.fn(), hide: vi.fn() };
+  const attribution = { show: vi.fn(), hide: vi.fn() };
+  const createPanoViewerLogo = vi.fn(() => logo);
+  const createPanoAttribution = vi.fn(() => attribution);
+  mockModule('frontend/js/common/pano-viewer/PanoViewerLogo.js', () => ({ createPanoViewerLogo }));
+  mockModule('frontend/js/common/pano-viewer/PanoAttribution.js', () => ({ createPanoAttribution }));
+  return { logo, attribution, createPanoViewerLogo, createPanoAttribution };
 }
 
 /**
@@ -113,11 +113,11 @@ export function fakePanoOverlays() {
  * @param {() => object} getPanoManager - The pano manager the card is handed.
  */
 export function mockLabelDetailCollaborators(getPanoManager) {
-    mockModule('frontend/js/common/BadgeAchievements.js',
-        () => ({ BadgeAchievements: { seedCounts() {}, recordValidation() {} } }));
-    mockModule('frontend/js/common/LabelVisibilityToggle.js', () => ({ LabelVisibilityToggle: class {} }));
-    mockModule('frontend/js/common/label-detail/PopupPanoManager.js',
-        () => ({ PopupPanoManager: { create: async () => getPanoManager() } }));
-    mockModule('frontend/js/common/label-detail/StorySection.js', () => ({ StorySection: class { setLabel() {} } }));
-    mockModule('frontend/js/common/pano-viewer/PanoInfoPopover.js', () => ({ PanoInfoPopover: class {} }));
+  mockModule('frontend/js/common/BadgeAchievements.js',
+    () => ({ BadgeAchievements: { seedCounts() {}, recordValidation() {} } }));
+  mockModule('frontend/js/common/LabelVisibilityToggle.js', () => ({ LabelVisibilityToggle: class {} }));
+  mockModule('frontend/js/common/label-detail/PopupPanoManager.js',
+    () => ({ PopupPanoManager: { create: async () => getPanoManager() } }));
+  mockModule('frontend/js/common/label-detail/StorySection.js', () => ({ StorySection: class { setLabel() {} } }));
+  mockModule('frontend/js/common/pano-viewer/PanoInfoPopover.js', () => ({ PanoInfoPopover: class {} }));
 }

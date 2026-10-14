@@ -20,76 +20,76 @@
 import { loadModules } from './loader.js';
 
 describe('Label lat/lng estimation', () => {
-    let Label;
+  let Label;
 
-    const LAT_LNG_ESTIMATION = {
-        blendDeg: 11.25,
-        maxDistanceM: 50.0,
-        cameraHeightM: 2.341219672825709,
+  const LAT_LNG_ESTIMATION = {
+    blendDeg: 11.25,
+    maxDistanceM: 50.0,
+    cameraHeightM: 2.341219672825709,
+  };
+
+  /** A label mid-placement: no cached labelLat, so placing it on the minimap runs the estimator. */
+  function newLabel({ labelType = 'CurbRamp', pitch, heading = 90 } = {}) {
+    const label = new Label({
+      labelType,
+      temporaryLabelId: 1,
+      panoXY: { x: 10, y: 20 },   // Present, so the constructor skips the pano-store lookup.
+      povOfLabelIfCentered: { heading, pitch, zoom: 1 },
+      panoLat: 47.6553,
+      panoLng: -122.3035,
+    }, {}, LAT_LNG_ESTIMATION, {});
+    label.placeOnMinimap({ addMarker: () => ({ setVisible: () => {} }) }, null, () => {});
+    return label;
+  }
+
+  beforeEach(async () => {
+    ({ Label } = await loadModules('frontend/js/explore/label/Label.js'));
+    window.i18next = { t: () => '' };
+    Label.styleMinimapMarker = () => {};
+    window.turf = {
+      point: (coords) => ({ geometry: { coordinates: coords } }),
+      destination: vi.fn((_start, _distKm, _bearing) => ({ geometry: { coordinates: [-122.303, 47.656] } })),
     };
+  });
 
-    /** A label mid-placement: no cached labelLat, so placing it on the minimap runs the estimator. */
-    function newLabel({ labelType = 'CurbRamp', pitch, heading = 90 } = {}) {
-        const label = new Label({
-            labelType,
-            temporaryLabelId: 1,
-            panoXY: { x: 10, y: 20 },   // Present, so the constructor skips the pano-store lookup.
-            povOfLabelIfCentered: { heading, pitch, zoom: 1 },
-            panoLat: 47.6553,
-            panoLng: -122.3035,
-        }, {}, LAT_LNG_ESTIMATION, {});
-        label.placeOnMinimap({ addMarker: () => ({ setVisible: () => {} }) }, null, () => {});
-        return label;
-    }
+  /** The [distanceKm, bearing] the estimator handed to turf.destination for the label's single placement. */
+  function destinationArgs() {
+    expect(window.turf.destination).toHaveBeenCalledTimes(1);
+    const [, distKm, bearing] = window.turf.destination.mock.calls[0];
+    return [distKm, bearing];
+  }
 
-    beforeEach(async () => {
-        ({ Label } = await loadModules('frontend/js/explore/label/Label.js'));
-        window.i18next = { t: () => '' };
-        Label.styleMinimapMarker = () => {};
-        window.turf = {
-            point: (coords) => ({ geometry: { coordinates: coords } }),
-            destination: vi.fn((_start, _distKm, _bearing) => ({ geometry: { coordinates: [-122.303, 47.656] } })),
-        };
-    });
+  test('cotangent branch: distance is the camera height over tan(depression), bearing is the centered POV', () => {
+    newLabel({ pitch: -22.5, heading: 137.25 });
 
-    /** The [distanceKm, bearing] the estimator handed to turf.destination for the label's single placement. */
-    function destinationArgs() {
-        expect(window.turf.destination).toHaveBeenCalledTimes(1);
-        const [, distKm, bearing] = window.turf.destination.mock.calls[0];
-        return [distKm, bearing];
-    }
+    const [distKm, bearing] = destinationArgs();
+    expect(distKm * 1000).toBeCloseTo(5.6522042866305275, 9); // 22.5° below the horizon.
+    expect(bearing).toBe(137.25);
+  });
 
-    test('cotangent branch: distance is the camera height over tan(depression), bearing is the centered POV', () => {
-        newLabel({ pitch: -22.5, heading: 137.25 });
+  test('near-horizon tail: an above-horizon click is bounded at the published maximum answer', () => {
+    newLabel({ pitch: 10 }); // 10° above the horizon.
 
-        const [distKm, bearing] = destinationArgs();
-        expect(distKm * 1000).toBeCloseTo(5.6522042866305275, 9); // 22.5° below the horizon.
-        expect(bearing).toBe(137.25);
-    });
+    const [distKm] = destinationArgs();
+    expect(distKm * 1000).toBeCloseTo(23.848261259830384, 9); // max_answer_m in the fit's summary.
+  });
 
-    test('near-horizon tail: an above-horizon click is bounded at the published maximum answer', () => {
-        newLabel({ pitch: 10 }); // 10° above the horizon.
+  test('the distance is the same whatever the label type', () => {
+    newLabel({ labelType: 'Crosswalk', pitch: -20 });
 
-        const [distKm] = destinationArgs();
-        expect(distKm * 1000).toBeCloseTo(23.848261259830384, 9); // max_answer_m in the fit's summary.
-    });
+    const [distKm] = destinationArgs();
+    expect(distKm * 1000).toBeCloseTo(6.432448185071575, 9);
+  });
 
-    test('the distance is the same whatever the label type', () => {
-        newLabel({ labelType: 'Crosswalk', pitch: -20 });
+  test('the result is cached as approximation3', () => {
+    const label = newLabel({ pitch: -22.5 });
 
-        const [distKm] = destinationArgs();
-        expect(distKm * 1000).toBeCloseTo(6.432448185071575, 9);
-    });
+    expect(label.getProperty('latLngComputationMethod')).toBe('approximation3');
+    expect(label.getProperty('labelLat')).toBe(47.656);
+    expect(label.getProperty('labelLng')).toBe(-122.303);
 
-    test('the result is cached as approximation3', () => {
-        const label = newLabel({ pitch: -22.5 });
-
-        expect(label.getProperty('latLngComputationMethod')).toBe('approximation3');
-        expect(label.getProperty('labelLat')).toBe(47.656);
-        expect(label.getProperty('labelLng')).toBe(-122.303);
-
-        // A second call returns the cache without re-estimating.
-        expect(label.toLatLng().latLngComputationMethod).toBe('approximation3');
-        expect(window.turf.destination).toHaveBeenCalledTimes(1);
-    });
+    // A second call returns the cache without re-estimating.
+    expect(label.toLatLng().latLngComputationMethod).toBe('approximation3');
+    expect(window.turf.destination).toHaveBeenCalledTimes(1);
+  });
 });

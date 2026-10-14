@@ -25,42 +25,42 @@ const stamped = Object.fromEntries(Object.entries(config).filter(([key]) => !key
 document.documentElement.dataset.panoScoring = JSON.stringify(stamped);
 
 const { util } = await loadModules('frontend/js/common/pano-viewer/panoUtilities.js',
-    'frontend/js/common/utilities.js');
+  'frontend/js/common/utilities.js');
 const scoring = util.pano.scoring;
 
 describe('util.pano.scoring', () => {
-    it('reads the shared weights back off the layout stamp', () => {
-        const mapillary = scoring('mapillary');
-        expect(mapillary.distanceWeight).toBe(0.45);
-        expect(mapillary.resolutionWeight).toBe(0.25);
-        expect(mapillary.recencyWeight).toBe(0.25);
-        expect(mapillary.sequenceWeight).toBe(0.05);
-        expect(mapillary.distanceDecayMeters).toBe(10);
-        expect(mapillary.recencyDecayYears).toBe(5);
-    });
+  it('reads the shared weights back off the layout stamp', () => {
+    const mapillary = scoring('mapillary');
+    expect(mapillary.distanceWeight).toBe(0.45);
+    expect(mapillary.resolutionWeight).toBe(0.25);
+    expect(mapillary.recencyWeight).toBe(0.25);
+    expect(mapillary.sequenceWeight).toBe(0.05);
+    expect(mapillary.distanceDecayMeters).toBe(10);
+    expect(mapillary.recencyDecayYears).toBe(5);
+  });
 
-    it('weights the four terms so a score lands in [0, 1]', () => {
-        const { distanceWeight, resolutionWeight, recencyWeight, sequenceWeight } = scoring('mapillary');
-        expect(distanceWeight + resolutionWeight + recencyWeight + sequenceWeight).toBeCloseTo(1, 9);
-    });
+  it('weights the four terms so a score lands in [0, 1]', () => {
+    const { distanceWeight, resolutionWeight, recencyWeight, sequenceWeight } = scoring('mapillary');
+    expect(distanceWeight + resolutionWeight + recencyWeight + sequenceWeight).toBeCloseTo(1, 9);
+  });
 
-    it('merges each provider\'s own parameters over the shared ones', () => {
-        // The one term the two providers don't share: their camera fleets cap at different widths.
-        expect(scoring('mapillary').maxImageWidthPx).toBe(16384);
-        expect(scoring('panoramax').maxImageWidthPx).toBe(12288);
-        expect(scoring('panoramax').distanceWeight).toBe(scoring('mapillary').distanceWeight);
-    });
+  it('merges each provider\'s own parameters over the shared ones', () => {
+    // The one term the two providers don't share: their camera fleets cap at different widths.
+    expect(scoring('mapillary').maxImageWidthPx).toBe(16384);
+    expect(scoring('panoramax').maxImageWidthPx).toBe(12288);
+    expect(scoring('panoramax').distanceWeight).toBe(scoring('mapillary').distanceWeight);
+  });
 
-    it('gives every provider that ranks its own candidates a defined resolution cap', () => {
-        // An undefined cap makes every resolutionScore NaN, which #selectBestPano reads as "no viable pano".
-        for (const provider of ['mapillary', 'panoramax']) {
-            expect(Number.isFinite(scoring(provider).maxImageWidthPx)).toBe(true);
-        }
-    });
+  it('gives every provider that ranks its own candidates a defined resolution cap', () => {
+    // An undefined cap makes every resolutionScore NaN, which #selectBestPano reads as "no viable pano".
+    for (const provider of ['mapillary', 'panoramax']) {
+      expect(Number.isFinite(scoring(provider).maxImageWidthPx)).toBe(true);
+    }
+  });
 
-    it('gives Panoramax the undated-picture age its recency term falls back to', () => {
-        // Panoramax datetimes are ISO strings that can fail to parse; Mapillary's captured_at is epoch ms and the
-        // Python port drops an unparseable one instead, so only Panoramax needs this.
-        expect(scoring('panoramax').unknownDateAgeYears).toBe(3);
-    });
+  it('gives Panoramax the undated-picture age its recency term falls back to', () => {
+    // Panoramax datetimes are ISO strings that can fail to parse; Mapillary's captured_at is epoch ms and the
+    // Python port drops an unparseable one instead, so only Panoramax needs this.
+    expect(scoring('panoramax').unknownDateAgeYears).toBe(3);
+  });
 });

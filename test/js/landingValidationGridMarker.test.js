@@ -13,149 +13,149 @@ import { loadModules, mockModule, useUtil } from './loader.js';
 const credit = { logo: null, attribution: null };
 
 mockModule('frontend/js/common/pano-viewer/PanoViewerLogo.js', () => ({
-    createPanoViewerLogo: () => ({
-        showSourceLogo: () => { credit.logo = 'shown'; },
-        hide: () => { credit.logo = 'hidden'; },
-    }),
+  createPanoViewerLogo: () => ({
+    showSourceLogo: () => { credit.logo = 'shown'; },
+    hide: () => { credit.logo = 'hidden'; },
+  }),
 }));
 mockModule('frontend/js/common/pano-viewer/PanoAttribution.js', () => ({
-    createPanoAttribution: () => ({
-        show: () => { credit.attribution = 'shown'; },
-        hide: () => { credit.attribution = 'hidden'; },
-    }),
+  createPanoAttribution: () => ({
+    show: () => { credit.attribution = 'shown'; },
+    hide: () => { credit.attribution = 'hidden'; },
+  }),
 }));
 
 /** One /label/labels entry; the click sits at 1/4, 3/4 of the 720x480 Explore canvas. */
 function entry(overrides = {}) {
-    return {
-        label: {
-            label_id: 1, label_type: 'CurbRamp', canvas_x: 180, canvas_y: 360, severity: 2, tags: [],
-            heading: 10, pitch: 0, zoom: 1, from_current_user: false, user_validation: null, pano_source: 'GSV',
-        },
-        cropUrl: '/cropImage/CurbRamp/1',
-        cropMarker: { x: 0.5, y: 0.62 },
-        gsvImageUrl: 'https://maps.example/still.jpg',
-        ...overrides,
-    };
+  return {
+    label: {
+      label_id: 1, label_type: 'CurbRamp', canvas_x: 180, canvas_y: 360, severity: 2, tags: [],
+      heading: 10, pitch: 0, zoom: 1, from_current_user: false, user_validation: null, pano_source: 'GSV',
+    },
+    cropUrl: '/cropImage/CurbRamp/1',
+    cropMarker: { x: 0.5, y: 0.62 },
+    gsvImageUrl: 'https://maps.example/still.jpg',
+    ...overrides,
+  };
 }
 
 describe('the landing validation grid\'s label marker', () => {
-    let LandingValidationGrid;
-    let lazyIdentityFetch;
+  let LandingValidationGrid;
+  let lazyIdentityFetch;
 
-    const marker = () => document.querySelector('.lvg-card-marker');
+  const marker = () => document.querySelector('.lvg-card-marker');
 
-    /** The fractions the marker is placed at, as percentages. */
-    function markerPercents() {
-        return { left: parseFloat(marker().style.left), top: parseFloat(marker().style.top) };
-    }
+  /** The fractions the marker is placed at, as percentages. */
+  function markerPercents() {
+    return { left: parseFloat(marker().style.left), top: parseFloat(marker().style.top) };
+  }
 
-    /**
+  /**
      * Builds a grid whose one card is the given entry, with the first-interaction gate already tripped.
      * @param {Object} gridEntry - The /label/labels entry to render.
      */
-    async function renderGrid(gridEntry) {
-        credit.logo = null;
-        credit.attribution = null;
-        document.body.innerHTML = `
+  async function renderGrid(gridEntry) {
+    credit.logo = null;
+    credit.attribution = null;
+    document.body.innerHTML = `
             <section id="landing-validation-container" hidden>
               <div id="landing-validation-grid"></div>
             </section>`;
-        window.fetch = vi.fn(() => Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve({ labelsOfType: [gridEntry] }),
-        }));
-        // Votes go through the anonymous-session wrapper, not bare fetch; the grid's start is held for the test to run.
-        lazyIdentityFetch = vi.fn(() => Promise.resolve({ ok: true }));
-        let start;
-        useUtil({ lazyIdentityFetch, onFirstInteractionOrIdle: (fn) => { start = fn; } });
-        // The tests read the DOM the grid builds, not the instance.
-        const grid = new LandingValidationGrid(document.getElementById('landing-validation-container'));
-        expect(grid).toBeInstanceOf(LandingValidationGrid);
-        await start();
-    }
+    window.fetch = vi.fn(() => Promise.resolve({
+      ok: true,
+      json: () => Promise.resolve({ labelsOfType: [gridEntry] }),
+    }));
+    // Votes go through the anonymous-session wrapper, not bare fetch; the grid's start is held for the test to run.
+    lazyIdentityFetch = vi.fn(() => Promise.resolve({ ok: true }));
+    let start;
+    useUtil({ lazyIdentityFetch, onFirstInteractionOrIdle: (fn) => { start = fn; } });
+    // The tests read the DOM the grid builds, not the instance.
+    const grid = new LandingValidationGrid(document.getElementById('landing-validation-container'));
+    expect(grid).toBeInstanceOf(LandingValidationGrid);
+    await start();
+  }
 
-    beforeAll(async () => {
-        window.i18next = { t: (key) => key };
-        window.logWebpageActivity = vi.fn();
-        // jsdom has no layout, so it has no matchMedia; the grid asks it how many slots this width shows.
-        window.matchMedia = () => ({ matches: false });
-        ({ LandingValidationGrid } = await loadModules('frontend/js/LandingValidationGrid.js'));
-    });
+  beforeAll(async () => {
+    window.i18next = { t: (key) => key };
+    window.logWebpageActivity = vi.fn();
+    // jsdom has no layout, so it has no matchMedia; the grid asks it how many slots this width shows.
+    window.matchMedia = () => ({ matches: false });
+    ({ LandingValidationGrid } = await loadModules('frontend/js/LandingValidationGrid.js'));
+  });
 
-    it('draws the marker where the crop says its label is', async () => {
-        await renderGrid(entry());
+  it('draws the marker where the crop says its label is', async () => {
+    await renderGrid(entry());
 
-        expect(markerPercents()).toEqual({ left: 50, top: 62 });
-        expect(credit).toEqual({ logo: 'shown', attribution: 'shown' }); // Our own cut of the panorama owes a credit.
-    });
+    expect(markerPercents()).toEqual({ left: 50, top: 62 });
+    expect(credit).toEqual({ logo: 'shown', attribution: 'shown' }); // Our own cut of the panorama owes a credit.
+  });
 
-    it('falls back to the canvas fraction for a crop nothing has recorded yet', async () => {
-        await renderGrid(entry({ cropMarker: null }));
+  it('falls back to the canvas fraction for a crop nothing has recorded yet', async () => {
+    await renderGrid(entry({ cropMarker: null }));
 
-        expect(markerPercents()).toEqual({ left: 25, top: 75 });
-    });
+    expect(markerPercents()).toEqual({ left: 25, top: 75 });
+  });
 
-    it('uses the canvas fraction on the Street View still, which reproduces the Explore frame', async () => {
-        await renderGrid(entry({ cropUrl: null, cropMarker: null }));
+  it('uses the canvas fraction on the Street View still, which reproduces the Explore frame', async () => {
+    await renderGrid(entry({ cropUrl: null, cropMarker: null }));
 
-        expect(markerPercents()).toEqual({ left: 25, top: 75 });
-        // Google bakes its logo and copyright into the still; a second logo on top printed the name twice.
-        expect(credit).toEqual({ logo: 'hidden', attribution: 'hidden' });
-    });
+    expect(markerPercents()).toEqual({ left: 25, top: 75 });
+    // Google bakes its logo and copyright into the still; a second logo on top printed the name twice.
+    expect(credit).toEqual({ logo: 'hidden', attribution: 'hidden' });
+  });
 
-    it('moves the marker to the canvas fraction when the crop fails and the still takes its place', async () => {
-        await renderGrid(entry());
-        expect(markerPercents()).toEqual({ left: 50, top: 62 });
+  it('moves the marker to the canvas fraction when the crop fails and the still takes its place', async () => {
+    await renderGrid(entry());
+    expect(markerPercents()).toEqual({ left: 50, top: 62 });
 
-        const img = document.querySelector('.lvg-card-photo');
-        img.dispatchEvent(new Event('error')); // The crop 404s; the card retries with the still.
+    const img = document.querySelector('.lvg-card-photo');
+    img.dispatchEvent(new Event('error')); // The crop 404s; the card retries with the still.
 
-        expect(document.querySelector('.lvg-card').dataset.imageSource).toBe('api');
-        expect(markerPercents()).toEqual({ left: 25, top: 75 });
-        expect(credit).toEqual({ logo: 'hidden', attribution: 'hidden' }); // The still brands itself.
-    });
+    expect(document.querySelector('.lvg-card').dataset.imageSource).toBe('api');
+    expect(markerPercents()).toEqual({ left: 25, top: 75 });
+    expect(credit).toEqual({ logo: 'hidden', attribution: 'hidden' }); // The still brands itself.
+  });
 
-    // With `return_error_code` on the still (#5327) an expired pano 404s instead of answering with a grey "no
-    // imagery" card, so a card that has lost its crop as well is dead weight, and the grid swaps in the next label.
-    it('swaps the card for a fresh label when the still fails after the crop', async () => {
-        await renderGrid(entry());
-        const card = document.querySelector('.lvg-card');
-        const img = card.querySelector('.lvg-card-photo');
-        // The pool is empty after the first render, so the swap refills it; the refill returns the next label.
-        window.fetch = vi.fn(() => Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve({ labelsOfType: [entry({
-                label: { ...entry().label, label_id: 2 }, cropUrl: '/cropImage/CurbRamp/2',
-            })] }),
-        }));
+  // With `return_error_code` on the still (#5327) an expired pano 404s instead of answering with a grey "no
+  // imagery" card, so a card that has lost its crop as well is dead weight, and the grid swaps in the next label.
+  it('swaps the card for a fresh label when the still fails after the crop', async () => {
+    await renderGrid(entry());
+    const card = document.querySelector('.lvg-card');
+    const img = card.querySelector('.lvg-card-photo');
+    // The pool is empty after the first render, so the swap refills it; the refill returns the next label.
+    window.fetch = vi.fn(() => Promise.resolve({
+      ok: true,
+      json: () => Promise.resolve({ labelsOfType: [entry({
+        label: { ...entry().label, label_id: 2 }, cropUrl: '/cropImage/CurbRamp/2',
+      })] }),
+    }));
 
-        img.dispatchEvent(new Event('error')); // The crop 404s; the card retries with the still.
-        img.dispatchEvent(new Event('error')); // The still 404s too.
-        await new Promise((resolve) => setTimeout(resolve, 0)); // The refill's fetch and json both settle.
+    img.dispatchEvent(new Event('error')); // The crop 404s; the card retries with the still.
+    img.dispatchEvent(new Event('error')); // The still 404s too.
+    await new Promise((resolve) => setTimeout(resolve, 0)); // The refill's fetch and json both settle.
 
-        expect(document.contains(card)).toBe(false);
-        const cards = document.querySelectorAll('.lvg-card');
-        expect(cards).toHaveLength(1);
-        expect(cards[0].querySelector('.lvg-card-photo').src).toContain('/cropImage/CurbRamp/2');
-        expect(cards[0].dataset.imageSource).toBe('crop');
-        // The refill asks for labels the page has not shown, so the same expired one cannot come straight back.
-        expect(JSON.parse(window.fetch.mock.calls[0][1].body).loaded_labels).toEqual([1]);
-        expect(document.getElementById('landing-validation-container').hidden).toBe(false);
-    });
+    expect(document.contains(card)).toBe(false);
+    const cards = document.querySelectorAll('.lvg-card');
+    expect(cards).toHaveLength(1);
+    expect(cards[0].querySelector('.lvg-card-photo').src).toContain('/cropImage/CurbRamp/2');
+    expect(cards[0].dataset.imageSource).toBe('crop');
+    // The refill asks for labels the page has not shown, so the same expired one cannot come straight back.
+    expect(JSON.parse(window.fetch.mock.calls[0][1].body).loaded_labels).toEqual([1]);
+    expect(document.getElementById('landing-validation-container').hidden).toBe(false);
+  });
 
-    it('reports the position it drew, not the canvas fraction, with the validation', async () => {
-        await renderGrid(entry());
-        const img = document.querySelector('.lvg-card-photo');
-        Object.defineProperty(img, 'clientWidth', { value: 300 });
-        Object.defineProperty(img, 'clientHeight', { value: 200 });
+  it('reports the position it drew, not the canvas fraction, with the validation', async () => {
+    await renderGrid(entry());
+    const img = document.querySelector('.lvg-card-photo');
+    Object.defineProperty(img, 'clientWidth', { value: 300 });
+    Object.defineProperty(img, 'clientHeight', { value: 200 });
 
-        document.querySelector('.lvg-btn-agree').click();
-        await Promise.resolve();
+    document.querySelector('.lvg-btn-agree').click();
+    await Promise.resolve();
 
-        const validate = lazyIdentityFetch.mock.calls.find(([url]) => url === '/labelmap/validate');
-        expect(validate).toBeDefined();
-        const payload = JSON.parse(validate[1].body);
-        expect([payload.canvas_x, payload.canvas_y]).toEqual([150, 124]); // 0.5 x 300, 0.62 x 200.
-    });
+    const validate = lazyIdentityFetch.mock.calls.find(([url]) => url === '/labelmap/validate');
+    expect(validate).toBeDefined();
+    const payload = JSON.parse(validate[1].body);
+    expect([payload.canvas_x, payload.canvas_y]).toEqual([150, 124]); // 0.5 x 300, 0.62 x 200.
+  });
 });

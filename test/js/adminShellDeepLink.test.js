@@ -96,7 +96,7 @@ function contentResized() {
 }
 
 const scrollCalls = () => (
-    /** @type {import('vitest').Mock} */ (window.HTMLElement.prototype.scrollIntoView).mock.contexts
+  /** @type {import('vitest').Mock} */ (window.HTMLElement.prototype.scrollIntoView).mock.contexts
 );
 
 describe('deep-link target while sections above it load', () => {

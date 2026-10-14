@@ -16,49 +16,49 @@
  * @returns {Object} A recording 2D-context stand-in.
  */
 function makeRecordingCtx() {
-    const savedAlphas = [];
-    return {
-        // Recorded output.
-        alphas: [],    // globalAlpha in effect for each painting call, in order.
-        arcs: [],      // { cx, cy, r, lineWidth }
-        ellipses: [],  // { cx, cy, rx, ry }
-        images: [],    // { dx, dy, w, h }
-        texts: [],     // { t, x, y, font }
-        saveCount: 0,
+  const savedAlphas = [];
+  return {
+    // Recorded output.
+    alphas: [],    // globalAlpha in effect for each painting call, in order.
+    arcs: [],      // { cx, cy, r, lineWidth }
+    ellipses: [],  // { cx, cy, rx, ry }
+    images: [],    // { dx, dy, w, h }
+    texts: [],     // { t, x, y, font }
+    saveCount: 0,
 
-        // Context state the code under test sets.
-        globalAlpha: 1,
-        lineWidth: 1,
-        strokeStyle: '',
-        fillStyle: '',
-        font: '',
-        textAlign: '',
+    // Context state the code under test sets.
+    globalAlpha: 1,
+    lineWidth: 1,
+    strokeStyle: '',
+    fillStyle: '',
+    font: '',
+    textAlign: '',
 
-        save() { this.saveCount += 1; savedAlphas.push(this.globalAlpha); },
-        restore() { this.globalAlpha = savedAlphas.pop(); },
+    save() { this.saveCount += 1; savedAlphas.push(this.globalAlpha); },
+    restore() { this.globalAlpha = savedAlphas.pop(); },
 
-        beginPath() {},
-        closePath() {},
-        moveTo() {},
-        lineTo() {},
+    beginPath() {},
+    closePath() {},
+    moveTo() {},
+    lineTo() {},
 
-        // lineWidth is captured with the arc rather than at stroke() time; the code under test sets it before its
-        // arcs, and pairing it here is what lets a test compare stroke weight against the arc it painted.
-        arc(cx, cy, r) { this.arcs.push({ cx, cy, r, lineWidth: this.lineWidth }); },
-        ellipse(cx, cy, rx, ry) { this.ellipses.push({ cx, cy, rx, ry }); },
+    // lineWidth is captured with the arc rather than at stroke() time; the code under test sets it before its
+    // arcs, and pairing it here is what lets a test compare stroke weight against the arc it painted.
+    arc(cx, cy, r) { this.arcs.push({ cx, cy, r, lineWidth: this.lineWidth }); },
+    ellipse(cx, cy, rx, ry) { this.ellipses.push({ cx, cy, rx, ry }); },
 
-        drawImage(img, dx, dy, w, h) {
-            this.images.push({ dx, dy, w, h });
-            this.alphas.push(this.globalAlpha);
-        },
-        fillText(t, x, y) {
-            this.texts.push({ t, x, y, font: this.font });
-            this.alphas.push(this.globalAlpha);
-        },
-        fill() { this.alphas.push(this.globalAlpha); },
-        stroke() { this.alphas.push(this.globalAlpha); },
-        measureText: () => ({ width: 0 }),
-    };
+    drawImage(img, dx, dy, w, h) {
+      this.images.push({ dx, dy, w, h });
+      this.alphas.push(this.globalAlpha);
+    },
+    fillText(t, x, y) {
+      this.texts.push({ t, x, y, font: this.font });
+      this.alphas.push(this.globalAlpha);
+    },
+    fill() { this.alphas.push(this.globalAlpha); },
+    stroke() { this.alphas.push(this.globalAlpha); },
+    measureText: () => ({ width: 0 }),
+  };
 }
 
 export { makeRecordingCtx };

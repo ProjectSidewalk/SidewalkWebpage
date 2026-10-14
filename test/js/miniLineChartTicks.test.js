@@ -12,56 +12,56 @@
 import { loadModules } from './loader.js';
 
 describe('MiniLineChart y-axis ticks', () => {
-    let MiniLineChart;
+  let MiniLineChart;
 
-    /** Render a line series into a detached div and return the div for querying. */
-    function render(values, opts = {}) {
-        const div = document.createElement('div');
-        const categories = values.map((_, i) => `w${i}`);
-        div.innerHTML = MiniLineChart.svg(categories, [{ name: 'Total labels', key: 'aclabels', values }],
-            { width: 760, ...opts });
-        return div;
-    }
+  /** Render a line series into a detached div and return the div for querying. */
+  function render(values, opts = {}) {
+    const div = document.createElement('div');
+    const categories = values.map((_, i) => `w${i}`);
+    div.innerHTML = MiniLineChart.svg(categories, [{ name: 'Total labels', key: 'aclabels', values }],
+      { width: 760, ...opts });
+    return div;
+  }
 
-    /** The y-axis tick labels, bottom-to-top (the order svg() draws them). */
-    function tickText(div) {
-        return [...div.querySelectorAll('text.mini-axis')]
-            .filter((t) => t.getAttribute('text-anchor') === 'end')
-            .map((t) => t.textContent);
-    }
+  /** The y-axis tick labels, bottom-to-top (the order svg() draws them). */
+  function tickText(div) {
+    return [...div.querySelectorAll('text.mini-axis')]
+      .filter((t) => t.getAttribute('text-anchor') === 'end')
+      .map((t) => t.textContent);
+  }
 
-    beforeEach(async () => {
-        ({ MiniLineChart } = await loadModules('frontend/js/admin-dashboard/MiniLineChart.js'));
-    });
+  beforeEach(async () => {
+    ({ MiniLineChart } = await loadModules('frontend/js/admin-dashboard/MiniLineChart.js'));
+  });
 
-    test('rounds the axis top up so ticks are whole steps, abbreviated', () => {
-        expect(tickText(render([12000, 640000, 1400146]))).toEqual(['0', '400k', '800k', '1.2M', '1.6M']);
-    });
+  test('rounds the axis top up so ticks are whole steps, abbreviated', () => {
+    expect(tickText(render([12000, 640000, 1400146]))).toEqual(['0', '400k', '800k', '1.2M', '1.6M']);
+  });
 
-    test('keeps a tight axis rather than jumping to the next power of ten', () => {
-        // 2.28M sits just above a 2M axis; the 1-2-5 ladder's next rung (4M) would leave the line hugging the floor.
-        const ticks = tickText(render([4000, 980000, 2276971]));
-        expect(ticks).toEqual(['0', '600k', '1.2M', '1.8M', '2.4M']);
-    });
+  test('keeps a tight axis rather than jumping to the next power of ten', () => {
+    // 2.28M sits just above a 2M axis; the 1-2-5 ladder's next rung (4M) would leave the line hugging the floor.
+    const ticks = tickText(render([4000, 980000, 2276971]));
+    expect(ticks).toEqual(['0', '600k', '1.2M', '1.8M', '2.4M']);
+  });
 
-    test('whole-number data never gets fractional ticks', () => {
-        expect(tickText(render([1, 2, 3]))).toEqual(['0', '1', '2', '3', '4']);
-        expect(tickText(render([2, 5, 9]))).toEqual(['0', '3', '6', '9', '12']);
-    });
+  test('whole-number data never gets fractional ticks', () => {
+    expect(tickText(render([1, 2, 3]))).toEqual(['0', '1', '2', '3', '4']);
+    expect(tickText(render([2, 5, 9]))).toEqual(['0', '3', '6', '9', '12']);
+  });
 
-    test('values under a thousand stay exact', () => {
-        expect(tickText(render([10, 40, 100]))).toEqual(['0', '25', '50', '75', '100']);
-    });
+  test('values under a thousand stay exact', () => {
+    expect(tickText(render([10, 40, 100]))).toEqual(['0', '25', '50', '75', '100']);
+  });
 
-    test('an explicit yMax is used as given', () => {
-        const pct = (v) => `${Math.round(v * 100)}%`;
-        expect(tickText(render([0.5, 0.93], { yMax: 1, tickFormat: pct })))
-            .toEqual(['0%', '25%', '50%', '75%', '100%']);
-    });
+  test('an explicit yMax is used as given', () => {
+    const pct = (v) => `${Math.round(v * 100)}%`;
+    expect(tickText(render([0.5, 0.93], { yMax: 1, tickFormat: pct })))
+      .toEqual(['0%', '25%', '50%', '75%', '100%']);
+  });
 
-    test('tooltips carry the exact value the axis abbreviates', () => {
-        const div = render([12000, 1400146]);
-        const tips = [...div.querySelectorAll('circle title')].map((t) => t.textContent);
-        expect(tips[tips.length - 1]).toContain('1,400,146');
-    });
+  test('tooltips carry the exact value the axis abbreviates', () => {
+    const div = render([12000, 1400146]);
+    const tips = [...div.querySelectorAll('circle title')].map((t) => t.textContent);
+    expect(tips[tips.length - 1]).toContain('1,400,146');
+  });
 });
