@@ -26,89 +26,89 @@ HERE = Path(__file__).resolve().parent
 
 
 def connect():
-  return psycopg2.connect(host=os.environ.get("PGHOST", "db"), dbname=os.environ.get("PGDATABASE", "sidewalk"),
-                          user=os.environ.get("PGUSER", "sidewalk_seattle"),
-                          password=os.environ.get("PGPASSWORD", "sidewalk"))
+    return psycopg2.connect(host=os.environ.get("PGHOST", "db"), dbname=os.environ.get("PGDATABASE", "sidewalk"),
+                            user=os.environ.get("PGUSER", "sidewalk_seattle"),
+                            password=os.environ.get("PGPASSWORD", "sidewalk"))
 
 
 def wkt(geom):
-  """GeoJSON geometry -> WKT for the three geometry types the SDOT layers use; None for empty/degenerate ones."""
-  if not geom:
-    return None
-  t, c = geom["type"], geom["coordinates"]
-  ring = lambda pts: ", ".join(f"{x} {y}" for x, y, *_ in pts)
-  if t == "Point":
-    return f"POINT({c[0]} {c[1]})"
-  if t == "LineString":
-    return f"LINESTRING({ring(c)})" if len(c) >= 2 else None
-  if t == "MultiLineString":
-    parts = [p for p in c if len(p) >= 2]
-    return "MULTILINESTRING(" + ", ".join(f"({ring(p)})" for p in parts) + ")" if parts else None
-  raise ValueError(t)
+    """GeoJSON geometry -> WKT for the three geometry types the SDOT layers use; None for empty/degenerate ones."""
+    if not geom:
+        return None
+    t, c = geom["type"], geom["coordinates"]
+    ring = lambda pts: ", ".join(f"{x} {y}" for x, y, *_ in pts)
+    if t == "Point":
+        return f"POINT({c[0]} {c[1]})"
+    if t == "LineString":
+        return f"LINESTRING({ring(c)})" if len(c) >= 2 else None
+    if t == "MultiLineString":
+        parts = [p for p in c if len(p) >= 2]
+        return "MULTILINESTRING(" + ", ".join(f"({ring(p)})" for p in parts) + ")" if parts else None
+    raise ValueError(t)
 
 
 def load(args):
-  data = HERE / "data"
-  with connect() as conn, conn.cursor() as cur:
-    cur.execute(f"CREATE SCHEMA IF NOT EXISTS {args.exp}")
-    cur.execute(f"DROP TABLE IF EXISTS {args.exp}.sdot_sidewalk, {args.exp}.sdot_curb_ramp CASCADE")
-    cur.execute(f"""
+    data = HERE / "data"
+    with connect() as conn, conn.cursor() as cur:
+        cur.execute(f"CREATE SCHEMA IF NOT EXISTS {args.exp}")
+        cur.execute(f"DROP TABLE IF EXISTS {args.exp}.sdot_sidewalk, {args.exp}.sdot_curb_ramp CASCADE")
+        cur.execute(f"""
             CREATE TABLE {args.exp}.sdot_sidewalk (
                 objectid INT PRIMARY KEY, compkey INT, segkey INT, unitid TEXT, unitdesc TEXT, side TEXT,
                 surftype TEXT, sw_category TEXT, current_status TEXT, condition TEXT, sw_width INT,
                 improved BOOLEAN NOT NULL, geom geometry(Geometry, 4326))""")
-    cur.execute(f"""
+        cur.execute(f"""
             CREATE TABLE {args.exp}.sdot_curb_ramp (
                 objectid INT PRIMARY KEY, compkey INT, segkey INT, sw_compkey INT, unitdesc TEXT, sw_stside TEXT,
                 category TEXT, current_status TEXT, direction TEXT, condition TEXT, style TEXT,
                 geom geometry(Point, 4326))""")
-    feats = json.load(open(data / "sidewalks.geojson"))["features"]
-    rows = []
-    for f in feats:
-      p = f["properties"]
-      # In-service paved walkway. UIMPRV/GRAVEL are SDOT's unimproved walkways; everything else in SURFTYPE is
-      # a paved surface (PCC, AC, pavers, textured concrete...).
-      improved = p.get("CURRENT_STATUS") == "INSVC" and (p.get("SURFTYPE") or "") not in ("UIMPRV", "GRAVEL", "")
-      rows.append((p["OBJECTID"], p.get("COMPKEY"), p.get("SEGKEY"), p.get("UNITID"), p.get("UNITDESC"),
-                   (p.get("SIDE") or "").strip() or None, p.get("SURFTYPE"), p.get("SW_CATEGORY"),
-                   p.get("CURRENT_STATUS"), p.get("CONDITION"), p.get("SW_WIDTH"), improved, wkt(f["geometry"])))
-    execute_values(cur, f"INSERT INTO {args.exp}.sdot_sidewalk VALUES %s", rows,
-                   template="(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,ST_GeomFromText(%s, 4326))", page_size=2000)
-    print("sdot_sidewalk", len(rows))
-    feats = json.load(open(data / "curb_ramps.geojson"))["features"]
-    rows = []
-    for f in feats:
-      p = f["properties"]
-      rows.append((p["OBJECTID"], p.get("COMPKEY"), p.get("SEGKEY"), p.get("SW_COMPKEY"), p.get("UNITDESC"),
-                   (p.get("SW_STSIDE") or "").strip() or None, (p.get("CATEGORY") or "").strip() or None,
-                   (p.get("CURRENT_STATUS") or "").strip() or None, (p.get("DIRECTION") or "").strip() or None,
-                   p.get("CONDITION"), p.get("STYLE"), wkt(f["geometry"])))
-    execute_values(cur, f"INSERT INTO {args.exp}.sdot_curb_ramp VALUES %s", rows,
-                   template="(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,ST_GeomFromText(%s, 4326))", page_size=2000)
-    print("sdot_curb_ramp", len(rows))
-    cur.execute(f"CREATE INDEX ON {args.exp}.sdot_sidewalk USING gist (geom)")
-    cur.execute(f"CREATE INDEX ON {args.exp}.sdot_curb_ramp USING gist (geom)")
+        feats = json.load(open(data / "sidewalks.geojson"))["features"]
+        rows = []
+        for f in feats:
+            p = f["properties"]
+            # In-service paved walkway. UIMPRV/GRAVEL are SDOT's unimproved walkways; everything else in SURFTYPE is
+            # a paved surface (PCC, AC, pavers, textured concrete...).
+            improved = p.get("CURRENT_STATUS") == "INSVC" and (p.get("SURFTYPE") or "") not in ("UIMPRV", "GRAVEL", "")
+            rows.append((p["OBJECTID"], p.get("COMPKEY"), p.get("SEGKEY"), p.get("UNITID"), p.get("UNITDESC"),
+                         (p.get("SIDE") or "").strip() or None, p.get("SURFTYPE"), p.get("SW_CATEGORY"),
+                         p.get("CURRENT_STATUS"), p.get("CONDITION"), p.get("SW_WIDTH"), improved, wkt(f["geometry"])))
+        execute_values(cur, f"INSERT INTO {args.exp}.sdot_sidewalk VALUES %s", rows,
+                       template="(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,ST_GeomFromText(%s, 4326))", page_size=2000)
+        print("sdot_sidewalk", len(rows))
+        feats = json.load(open(data / "curb_ramps.geojson"))["features"]
+        rows = []
+        for f in feats:
+            p = f["properties"]
+            rows.append((p["OBJECTID"], p.get("COMPKEY"), p.get("SEGKEY"), p.get("SW_COMPKEY"), p.get("UNITDESC"),
+                         (p.get("SW_STSIDE") or "").strip() or None, (p.get("CATEGORY") or "").strip() or None,
+                         (p.get("CURRENT_STATUS") or "").strip() or None, (p.get("DIRECTION") or "").strip() or None,
+                         p.get("CONDITION"), p.get("STYLE"), wkt(f["geometry"])))
+        execute_values(cur, f"INSERT INTO {args.exp}.sdot_curb_ramp VALUES %s", rows,
+                       template="(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,ST_GeomFromText(%s, 4326))", page_size=2000)
+        print("sdot_curb_ramp", len(rows))
+        cur.execute(f"CREATE INDEX ON {args.exp}.sdot_sidewalk USING gist (geom)")
+        cur.execute(f"CREATE INDEX ON {args.exp}.sdot_curb_ramp USING gist (geom)")
 
 
 def compute(args):
-  sql = (HERE / "street_side.sql").read_text().format(exp=args.exp, city=args.city)
-  # One statement at a time so progress is visible; the file has no procedural bodies other than the two functions,
-  # whose $fn$ quoting keeps their internal semicolons out of the split.
-  statements, buf, in_body = [], [], False
-  for line in sql.splitlines():
-    buf.append(line)
-    if "$fn$" in line:
-      in_body = not in_body if line.count("$fn$") == 1 else in_body
-    if not in_body and line.rstrip().endswith(";"):
-      statements.append("\n".join(buf))
-      buf = []
-  with connect() as conn, conn.cursor() as cur:
-    for st in statements:
-      head = next((l for l in st.splitlines() if l.strip() and not l.strip().startswith("--")), "")[:90]
-      t0 = time.time()
-      cur.execute(st)
-      conn.commit()
-      print(f"{time.time() - t0:7.1f}s  {head}", flush=True)
+    sql = (HERE / "street_side.sql").read_text().format(exp=args.exp, city=args.city)
+    # One statement at a time so progress is visible; the file has no procedural bodies other than the two functions,
+    # whose $fn$ quoting keeps their internal semicolons out of the split.
+    statements, buf, in_body = [], [], False
+    for line in sql.splitlines():
+        buf.append(line)
+        if "$fn$" in line:
+            in_body = not in_body if line.count("$fn$") == 1 else in_body
+        if not in_body and line.rstrip().endswith(";"):
+            statements.append("\n".join(buf))
+            buf = []
+    with connect() as conn, conn.cursor() as cur:
+        for st in statements:
+            head = next((l for l in st.splitlines() if l.strip() and not l.strip().startswith("--")), "")[:90]
+            t0 = time.time()
+            cur.execute(st)
+            conn.commit()
+            print(f"{time.time() - t0:7.1f}s  {head}", flush=True)
 
 
 EXPORTS = {
@@ -134,19 +134,19 @@ EXPORTS = {
 
 
 def export(args):
-  out = HERE / "out"
-  out.mkdir(exist_ok=True)
-  with connect() as conn, conn.cursor() as cur:
-    for name, q in EXPORTS.items():
-      with open(out / f"{name}.csv", "w") as f:
-        cur.copy_expert(f"COPY ({q.format(exp=args.exp, city=args.city)}) TO STDOUT WITH CSV HEADER", f)
-      print("exported", name)
+    out = HERE / "out"
+    out.mkdir(exist_ok=True)
+    with connect() as conn, conn.cursor() as cur:
+        for name, q in EXPORTS.items():
+            with open(out / f"{name}.csv", "w") as f:
+                cur.copy_expert(f"COPY ({q.format(exp=args.exp, city=args.city)}) TO STDOUT WITH CSV HEADER", f)
+            print("exported", name)
 
 
 if __name__ == "__main__":
-  ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-  ap.add_argument("cmd", choices=["load", "compute", "export"])
-  ap.add_argument("--city", default="sidewalk_seattle")
-  ap.add_argument("--exp", default="experiment_2886")
-  a = ap.parse_args()
-  {"load": load, "compute": compute, "export": export}[a.cmd](a)
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("cmd", choices=["load", "compute", "export"])
+    ap.add_argument("--city", default="sidewalk_seattle")
+    ap.add_argument("--exp", default="experiment_2886")
+    a = ap.parse_args()
+    {"load": load, "compute": compute, "export": export}[a.cmd](a)

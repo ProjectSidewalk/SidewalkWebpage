@@ -31,8 +31,8 @@ const DEG_TO_RAD = Math.PI / 180;
  * @returns {number[]} Row-major 3x3 matrix.
  */
 function rotY(a) {
-    const c = Math.cos(a), s = Math.sin(a);
-    return [c, 0, s, 0, 1, 0, -s, 0, c];
+  const c = Math.cos(a), s = Math.sin(a);
+  return [c, 0, s, 0, 1, 0, -s, 0, c];
 }
 
 /**
@@ -41,8 +41,8 @@ function rotY(a) {
  * @returns {number[]} Row-major 3x3 matrix.
  */
 function rotX(a) {
-    const c = Math.cos(a), s = Math.sin(a);
-    return [1, 0, 0, 0, c, -s, 0, s, c];
+  const c = Math.cos(a), s = Math.sin(a);
+  return [1, 0, 0, 0, c, -s, 0, s, c];
 }
 
 /**
@@ -51,13 +51,13 @@ function rotX(a) {
  * @returns {number[]} m * n, row-major 3x3.
  */
 function matMul(m, n) {
-    const r = new Array(9);
-    for (let i = 0; i < 3; i++) {
-        for (let j = 0; j < 3; j++) {
-            r[3 * i + j] = m[3 * i] * n[j] + m[3 * i + 1] * n[3 + j] + m[3 * i + 2] * n[6 + j];
-        }
+  const r = new Array(9);
+  for (let i = 0; i < 3; i++) {
+    for (let j = 0; j < 3; j++) {
+      r[3 * i + j] = m[3 * i] * n[j] + m[3 * i + 1] * n[3 + j] + m[3 * i + 2] * n[6 + j];
     }
-    return r;
+  }
+  return r;
 }
 
 /**
@@ -69,7 +69,7 @@ function matMul(m, n) {
  * @returns {number[]} Row-major 3x3 matrix.
  */
 function rotationAToB(povA, povB) {
-    return matMul(rotX(-povB.pitch), matMul(rotY(povA.heading - povB.heading), rotX(povA.pitch)));
+  return matMul(rotX(-povB.pitch), matMul(rotY(povA.heading - povB.heading), rotX(povA.pitch)));
 }
 
 // --- Image basics ---------------------------------------------------------------------------------------------
@@ -82,11 +82,11 @@ function rotationAToB(povA, povB) {
  * @returns {Float64Array} Luminance, length width*height.
  */
 function rgbaToGray(rgba, width, height) {
-    const g = new Float64Array(width * height);
-    for (let i = 0; i < width * height; i++) {
-        g[i] = 0.299 * rgba[4 * i] + 0.587 * rgba[4 * i + 1] + 0.114 * rgba[4 * i + 2];
-    }
-    return g;
+  const g = new Float64Array(width * height);
+  for (let i = 0; i < width * height; i++) {
+    g[i] = 0.299 * rgba[4 * i] + 0.587 * rgba[4 * i + 1] + 0.114 * rgba[4 * i + 2];
+  }
+  return g;
 }
 
 /**
@@ -99,13 +99,13 @@ function rgbaToGray(rgba, width, height) {
  * @returns {number} Interpolated value, or NaN if (x, y) falls outside the image.
  */
 function bilinear(img, width, height, x, y) {
-    if (x < 0 || y < 0 || x > width - 1 || y > height - 1) return NaN;
-    const x0 = Math.floor(x), y0 = Math.floor(y);
-    const x1 = Math.min(x0 + 1, width - 1), y1 = Math.min(y0 + 1, height - 1);
-    const fx = x - x0, fy = y - y0;
-    const a = img[y0 * width + x0], b = img[y0 * width + x1];
-    const c = img[y1 * width + x0], d = img[y1 * width + x1];
-    return (a * (1 - fx) + b * fx) * (1 - fy) + (c * (1 - fx) + d * fx) * fy;
+  if (x < 0 || y < 0 || x > width - 1 || y > height - 1) return NaN;
+  const x0 = Math.floor(x), y0 = Math.floor(y);
+  const x1 = Math.min(x0 + 1, width - 1), y1 = Math.min(y0 + 1, height - 1);
+  const fx = x - x0, fy = y - y0;
+  const a = img[y0 * width + x0], b = img[y0 * width + x1];
+  const c = img[y1 * width + x0], d = img[y1 * width + x1];
+  return (a * (1 - fx) + b * fx) * (1 - fy) + (c * (1 - fx) + d * fx) * fy;
 }
 
 /**
@@ -121,20 +121,20 @@ function bilinear(img, width, height, x, y) {
  * @returns {number} Laplacian variance; 0 for degenerate regions.
  */
 function laplacianVariance(img, width, height, region) {
-    const r = region ?? { x0: 1, y0: 1, x1: width - 1, y1: height - 1 };
-    const x0 = Math.max(1, r.x0), y0 = Math.max(1, r.y0);
-    const x1 = Math.min(width - 1, r.x1), y1 = Math.min(height - 1, r.y1);
-    let sum = 0, sumSq = 0, n = 0;
-    for (let y = y0; y < y1; y++) {
-        for (let x = x0; x < x1; x++) {
-            const lap = 4 * img[y * width + x] - img[y * width + x - 1] - img[y * width + x + 1] -
+  const r = region ?? { x0: 1, y0: 1, x1: width - 1, y1: height - 1 };
+  const x0 = Math.max(1, r.x0), y0 = Math.max(1, r.y0);
+  const x1 = Math.min(width - 1, r.x1), y1 = Math.min(height - 1, r.y1);
+  let sum = 0, sumSq = 0, n = 0;
+  for (let y = y0; y < y1; y++) {
+    for (let x = x0; x < x1; x++) {
+      const lap = 4 * img[y * width + x] - img[y * width + x - 1] - img[y * width + x + 1] -
                 img[(y - 1) * width + x] - img[(y + 1) * width + x];
-            sum += lap;
-            sumSq += lap * lap;
-            n++;
-        }
+      sum += lap;
+      sumSq += lap * lap;
+      n++;
     }
-    return n > 0 ? sumSq / n - (sum / n) * (sum / n) : 0;
+  }
+  return n > 0 ? sumSq / n - (sum / n) * (sum / n) : 0;
 }
 
 // --- NCC and the warp fit -------------------------------------------------------------------------------------
@@ -146,25 +146,25 @@ function laplacianVariance(img, width, height, region) {
  * @returns {{ncc: number, n: number}} Correlation in [-1, 1] (NaN if degenerate) and the sample count used.
  */
 function nccOf(a, b) {
-    let n = 0, sa = 0, sb = 0;
-    for (let i = 0; i < a.length; i++) {
-        if (Number.isNaN(a[i]) || Number.isNaN(b[i])) continue;
-        sa += a[i];
-        sb += b[i];
-        n++;
-    }
-    if (n < 16) return { ncc: NaN, n };
-    const ma = sa / n, mb = sb / n;
-    let cov = 0, va = 0, vb = 0;
-    for (let i = 0; i < a.length; i++) {
-        if (Number.isNaN(a[i]) || Number.isNaN(b[i])) continue;
-        const da = a[i] - ma, db = b[i] - mb;
-        cov += da * db;
-        va += da * da;
-        vb += db * db;
-    }
-    if (va <= 0 || vb <= 0) return { ncc: NaN, n };
-    return { ncc: cov / Math.sqrt(va * vb), n };
+  let n = 0, sa = 0, sb = 0;
+  for (let i = 0; i < a.length; i++) {
+    if (Number.isNaN(a[i]) || Number.isNaN(b[i])) continue;
+    sa += a[i];
+    sb += b[i];
+    n++;
+  }
+  if (n < 16) return { ncc: NaN, n };
+  const ma = sa / n, mb = sb / n;
+  let cov = 0, va = 0, vb = 0;
+  for (let i = 0; i < a.length; i++) {
+    if (Number.isNaN(a[i]) || Number.isNaN(b[i])) continue;
+    const da = a[i] - ma, db = b[i] - mb;
+    cov += da * db;
+    va += da * da;
+    vb += db * db;
+  }
+  if (va <= 0 || vb <= 0) return { ncc: NaN, n };
+  return { ncc: cov / Math.sqrt(va * vb), n };
 }
 
 /**
@@ -185,28 +185,28 @@ function nccOf(a, b) {
  * @returns {{ncc: number, n: number}} Correlation and sample count.
  */
 function warpNcc(grayA, grayB, width, height, povA, povB, f, opts = {}) {
-    const regionFrac = opts.regionFrac ?? 0.5;
-    const step = opts.step ?? 1;
-    const cxFrac = opts.centerX ?? 0.5, cyFrac = opts.centerY ?? 0.5;
-    const cx = (width - 1) / 2, cy = (height - 1) / 2;
-    const rw = Math.floor(width * regionFrac / 2), rh = Math.floor(height * regionFrac / 2);
-    const rcx = Math.round(width * cxFrac), rcy = Math.round(height * cyFrac);
-    const m = rotationAToB(povA, povB);
-    const va = [], vb = [];
-    for (let y = Math.max(0, rcy - rh); y < Math.min(height, rcy + rh); y += step) {
-        for (let x = Math.max(0, rcx - rw); x < Math.min(width, rcx + rw); x += step) {
-            const dx = (x - cx) / f, dy = (y - cy) / f;
-            const bx = m[0] * dx + m[1] * dy + m[2];
-            const by = m[3] * dx + m[4] * dy + m[5];
-            const bz = m[6] * dx + m[7] * dy + m[8];
-            if (bz <= 1e-9) continue;
-            const sample = bilinear(grayB, width, height, cx + f * bx / bz, cy + f * by / bz);
-            if (Number.isNaN(sample)) continue;
-            va.push(grayA[y * width + x]);
-            vb.push(sample);
-        }
+  const regionFrac = opts.regionFrac ?? 0.5;
+  const step = opts.step ?? 1;
+  const cxFrac = opts.centerX ?? 0.5, cyFrac = opts.centerY ?? 0.5;
+  const cx = (width - 1) / 2, cy = (height - 1) / 2;
+  const rw = Math.floor(width * regionFrac / 2), rh = Math.floor(height * regionFrac / 2);
+  const rcx = Math.round(width * cxFrac), rcy = Math.round(height * cyFrac);
+  const m = rotationAToB(povA, povB);
+  const va = [], vb = [];
+  for (let y = Math.max(0, rcy - rh); y < Math.min(height, rcy + rh); y += step) {
+    for (let x = Math.max(0, rcx - rw); x < Math.min(width, rcx + rw); x += step) {
+      const dx = (x - cx) / f, dy = (y - cy) / f;
+      const bx = m[0] * dx + m[1] * dy + m[2];
+      const by = m[3] * dx + m[4] * dy + m[5];
+      const bz = m[6] * dx + m[7] * dy + m[8];
+      if (bz <= 1e-9) continue;
+      const sample = bilinear(grayB, width, height, cx + f * bx / bz, cy + f * by / bz);
+      if (Number.isNaN(sample)) continue;
+      va.push(grayA[y * width + x]);
+      vb.push(sample);
     }
-    return nccOf(va, vb);
+  }
+  return nccOf(va, vb);
 }
 
 /**
@@ -226,39 +226,39 @@ function warpNcc(grayA, grayB, width, height, povA, povB, f, opts = {}) {
  *     the NCC at the peak; f is NaN when no usable peak was found.
  */
 function crossShiftEstimate(grayA, grayB, width, height, deltaRad, opts = {}) {
-    const maxShift = Math.floor(width * (opts.maxShiftFrac ?? 0.45));
-    const pw = Math.floor(width * (opts.patchFrac ?? 0.35) / 2), ph = Math.floor(height * (opts.patchFrac ?? 0.35) / 2);
-    const cx = Math.floor(width / 2), cy = Math.floor(height / 2);
-    const scores = [];
-    // A heading increase moves content left, so B's copy of A's central patch sits at negative x offsets.
-    for (let s = -maxShift; s <= 0; s++) {
-        const va = [], vb = [];
-        for (let y = cy - ph; y < cy + ph; y++) {
-            for (let x = cx - pw; x < cx + pw; x++) {
-                const bx = x + s;
-                if (bx < 0 || bx >= width) continue;
-                va.push(grayA[y * width + x]);
-                vb.push(grayB[y * width + bx]);
-            }
-        }
-        scores.push(nccOf(va, vb).ncc);
+  const maxShift = Math.floor(width * (opts.maxShiftFrac ?? 0.45));
+  const pw = Math.floor(width * (opts.patchFrac ?? 0.35) / 2), ph = Math.floor(height * (opts.patchFrac ?? 0.35) / 2);
+  const cx = Math.floor(width / 2), cy = Math.floor(height / 2);
+  const scores = [];
+  // A heading increase moves content left, so B's copy of A's central patch sits at negative x offsets.
+  for (let s = -maxShift; s <= 0; s++) {
+    const va = [], vb = [];
+    for (let y = cy - ph; y < cy + ph; y++) {
+      for (let x = cx - pw; x < cx + pw; x++) {
+        const bx = x + s;
+        if (bx < 0 || bx >= width) continue;
+        va.push(grayA[y * width + x]);
+        vb.push(grayB[y * width + bx]);
+      }
     }
-    let best = -1, bestNcc = -Infinity;
-    for (let i = 0; i < scores.length; i++) {
-        if (!Number.isNaN(scores[i]) && scores[i] > bestNcc) {
-            bestNcc = scores[i];
-            best = i;
-        }
+    scores.push(nccOf(va, vb).ncc);
+  }
+  let best = -1, bestNcc = -Infinity;
+  for (let i = 0; i < scores.length; i++) {
+    if (!Number.isNaN(scores[i]) && scores[i] > bestNcc) {
+      bestNcc = scores[i];
+      best = i;
     }
-    if (best <= 0 || best >= scores.length - 1 || !Number.isFinite(bestNcc)) {
-        return { f: NaN, shift: NaN, peakNcc: bestNcc };
-    }
-    // Parabolic sub-integer refinement around the peak.
-    const y0 = scores[best - 1], y1 = scores[best], y2 = scores[best + 1];
-    const denom = y0 - 2 * y1 + y2;
-    const frac = Math.abs(denom) > 1e-12 ? 0.5 * (y0 - y2) / denom : 0;
-    const shift = Math.abs(-maxShift + best + frac);
-    return { f: shift / (2 * Math.tan(deltaRad / 2)), shift, peakNcc: bestNcc };
+  }
+  if (best <= 0 || best >= scores.length - 1 || !Number.isFinite(bestNcc)) {
+    return { f: NaN, shift: NaN, peakNcc: bestNcc };
+  }
+  // Parabolic sub-integer refinement around the peak.
+  const y0 = scores[best - 1], y1 = scores[best], y2 = scores[best + 1];
+  const denom = y0 - 2 * y1 + y2;
+  const frac = Math.abs(denom) > 1e-12 ? 0.5 * (y0 - y2) / denom : 0;
+  const shift = Math.abs(-maxShift + best + frac);
+  return { f: shift / (2 * Math.tan(deltaRad / 2)), shift, peakNcc: bestNcc };
 }
 
 /**
@@ -270,27 +270,27 @@ function crossShiftEstimate(grayA, grayB, width, height, deltaRad, opts = {}) {
  * @returns {{x: number, value: number}} Argmax and value.
  */
 function goldenMax(fn, lo, hi, tol) {
-    const invPhi = (Math.sqrt(5) - 1) / 2;
-    let a = lo, b = hi;
-    let c = b - invPhi * (b - a), d = a + invPhi * (b - a);
-    let fc = fn(c), fd = fn(d);
-    while (b - a > tol) {
-        if (fc > fd) {
-            b = d;
-            d = c;
-            fd = fc;
-            c = b - invPhi * (b - a);
-            fc = fn(c);
-        } else {
-            a = c;
-            c = d;
-            fc = fd;
-            d = a + invPhi * (b - a);
-            fd = fn(d);
-        }
+  const invPhi = (Math.sqrt(5) - 1) / 2;
+  let a = lo, b = hi;
+  let c = b - invPhi * (b - a), d = a + invPhi * (b - a);
+  let fc = fn(c), fd = fn(d);
+  while (b - a > tol) {
+    if (fc > fd) {
+      b = d;
+      d = c;
+      fd = fc;
+      c = b - invPhi * (b - a);
+      fc = fn(c);
+    } else {
+      a = c;
+      c = d;
+      fc = fd;
+      d = a + invPhi * (b - a);
+      fd = fn(d);
     }
-    const x = (a + b) / 2;
-    return { x, value: fn(x) };
+  }
+  const x = (a + b) / 2;
+  return { x, value: fn(x) };
 }
 
 /**
@@ -311,28 +311,28 @@ function goldenMax(fn, lo, hi, tol) {
  *     and sample count at the optimum, and the cross-shift seed for diagnostics (NaN when unavailable).
  */
 function fitFocal(grayA, grayB, width, height, povA, povB, opts = {}) {
-    const dh = povB.heading - povA.heading;
-    let seed = { f: NaN, peakNcc: NaN };
-    if (Math.abs(dh) > 1e-6 && Math.abs(povB.pitch - povA.pitch) < 1e-6) {
-        seed = crossShiftEstimate(grayA, grayB, width, height, Math.abs(dh));
+  const dh = povB.heading - povA.heading;
+  let seed = { f: NaN, peakNcc: NaN };
+  if (Math.abs(dh) > 1e-6 && Math.abs(povB.pitch - povA.pitch) < 1e-6) {
+    seed = crossShiftEstimate(grayA, grayB, width, height, Math.abs(dh));
+  }
+  let fMin = opts.fMin, fMax = opts.fMax;
+  if (!(fMin > 0) || !(fMax > fMin)) {
+    if (Number.isFinite(seed.f) && seed.f > 0) {
+      fMin = seed.f * 0.7;
+      fMax = seed.f * 1.45;
+    } else {
+      fMin = 0.15 * Math.max(width, height);
+      fMax = 6 * Math.max(width, height);
     }
-    let fMin = opts.fMin, fMax = opts.fMax;
-    if (!(fMin > 0) || !(fMax > fMin)) {
-        if (Number.isFinite(seed.f) && seed.f > 0) {
-            fMin = seed.f * 0.7;
-            fMax = seed.f * 1.45;
-        } else {
-            fMin = 0.15 * Math.max(width, height);
-            fMax = 6 * Math.max(width, height);
-        }
-    }
-    const nccAt = (f) => {
-        const r = warpNcc(grayA, grayB, width, height, povA, povB, f, opts);
-        return Number.isNaN(r.ncc) ? -1 : r.ncc;
-    };
-    const { x: f } = goldenMax(nccAt, fMin, fMax, opts.tol ?? 0.05);
-    const at = warpNcc(grayA, grayB, width, height, povA, povB, f, opts);
-    return { f, ncc: at.ncc, n: at.n, seedF: seed.f, seedNcc: seed.peakNcc };
+  }
+  const nccAt = (f) => {
+    const r = warpNcc(grayA, grayB, width, height, povA, povB, f, opts);
+    return Number.isNaN(r.ncc) ? -1 : r.ncc;
+  };
+  const { x: f } = goldenMax(nccAt, fMin, fMax, opts.tol ?? 0.05);
+  const at = warpNcc(grayA, grayB, width, height, povA, povB, f, opts);
+  return { f, ncc: at.ncc, n: at.n, seedF: seed.f, seedNcc: seed.peakNcc };
 }
 
 // --- FOV conversions ------------------------------------------------------------------------------------------
@@ -345,12 +345,12 @@ function fitFocal(grayA, grayB, width, height, povA, povB, opts = {}) {
  * @returns {{hFovDeg: number, vFovDeg: number, dFovDeg: number}} Horizontal, vertical, diagonal FOV.
  */
 function fovsFromFocal(f, width, height) {
-    const halfDiag = Math.sqrt((width / 2) ** 2 + (height / 2) ** 2);
-    return {
-        hFovDeg: 2 * Math.atan(width / (2 * f)) / DEG_TO_RAD,
-        vFovDeg: 2 * Math.atan(height / (2 * f)) / DEG_TO_RAD,
-        dFovDeg: 2 * Math.atan(halfDiag / f) / DEG_TO_RAD,
-    };
+  const halfDiag = Math.sqrt((width / 2) ** 2 + (height / 2) ** 2);
+  return {
+    hFovDeg: 2 * Math.atan(width / (2 * f)) / DEG_TO_RAD,
+    vFovDeg: 2 * Math.atan(height / (2 * f)) / DEG_TO_RAD,
+    dFovDeg: 2 * Math.atan(halfDiag / f) / DEG_TO_RAD,
+  };
 }
 
 // --- Robust statistics ----------------------------------------------------------------------------------------
@@ -360,10 +360,10 @@ function fovsFromFocal(f, width, height) {
  * @returns {number} Median; NaN for an empty sample.
  */
 function median(xs) {
-    if (xs.length === 0) return NaN;
-    const s = [...xs].sort((a, b) => a - b);
-    const mid = Math.floor(s.length / 2);
-    return s.length % 2 === 1 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
+  if (xs.length === 0) return NaN;
+  const s = [...xs].sort((a, b) => a - b);
+  const mid = Math.floor(s.length / 2);
+  return s.length % 2 === 1 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
 }
 
 /**
@@ -372,8 +372,8 @@ function median(xs) {
  * @returns {number} Scaled MAD; NaN for an empty sample.
  */
 function madSigma(xs) {
-    const m = median(xs);
-    return 1.4826 * median(xs.map((x) => Math.abs(x - m)));
+  const m = median(xs);
+  return 1.4826 * median(xs.map((x) => Math.abs(x - m)));
 }
 
 /**
@@ -387,29 +387,29 @@ function madSigma(xs) {
  * @returns {{lo: number, hi: number, median: number}} CI bounds and the point estimate.
  */
 function clusterBootstrapCI(samples, opts = {}) {
-    const nBoot = opts.nBoot ?? 10000;
-    const alpha = opts.alpha ?? 0.05;
-    const rand = mulberry32(opts.seed ?? 5083);
-    const byCluster = new Map();
-    for (const s of samples) {
-        if (!byCluster.has(s.cluster)) byCluster.set(s.cluster, []);
-        byCluster.get(s.cluster).push(s.value);
+  const nBoot = opts.nBoot ?? 10000;
+  const alpha = opts.alpha ?? 0.05;
+  const rand = mulberry32(opts.seed ?? 5083);
+  const byCluster = new Map();
+  for (const s of samples) {
+    if (!byCluster.has(s.cluster)) byCluster.set(s.cluster, []);
+    byCluster.get(s.cluster).push(s.value);
+  }
+  const clusters = [...byCluster.values()];
+  const point = median(samples.map((s) => s.value));
+  if (clusters.length < 2) return { lo: NaN, hi: NaN, median: point };
+  const stats = new Float64Array(nBoot);
+  for (let b = 0; b < nBoot; b++) {
+    const drawn = [];
+    for (let i = 0; i < clusters.length; i++) {
+      const c = clusters[Math.floor(rand() * clusters.length)];
+      for (const v of c) drawn.push(v);
     }
-    const clusters = [...byCluster.values()];
-    const point = median(samples.map((s) => s.value));
-    if (clusters.length < 2) return { lo: NaN, hi: NaN, median: point };
-    const stats = new Float64Array(nBoot);
-    for (let b = 0; b < nBoot; b++) {
-        const drawn = [];
-        for (let i = 0; i < clusters.length; i++) {
-            const c = clusters[Math.floor(rand() * clusters.length)];
-            for (const v of c) drawn.push(v);
-        }
-        stats[b] = median(drawn);
-    }
-    const sorted = [...stats].sort((a, b) => a - b);
-    const at = (q) => sorted[Math.min(sorted.length - 1, Math.max(0, Math.floor(q * sorted.length)))];
-    return { lo: at(alpha / 2), hi: at(1 - alpha / 2), median: point };
+    stats[b] = median(drawn);
+  }
+  const sorted = [...stats].sort((a, b) => a - b);
+  const at = (q) => sorted[Math.min(sorted.length - 1, Math.max(0, Math.floor(q * sorted.length)))];
+  return { lo: at(alpha / 2), hi: at(1 - alpha / 2), median: point };
 }
 
 /**
@@ -418,14 +418,14 @@ function clusterBootstrapCI(samples, opts = {}) {
  * @returns {function(): number} Generator of floats in [0, 1).
  */
 function mulberry32(seed) {
-    let a = seed >>> 0;
-    return () => {
-        a |= 0;
-        a = (a + 0x6D2B79F5) | 0;
-        let t = Math.imul(a ^ (a >>> 15), 1 | a);
-        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-    };
+  let a = seed >>> 0;
+  return () => {
+    a |= 0;
+    a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
 }
 
 // --- Synthetic ground truth (estimator validation, gate 1 of the protocol) ------------------------------------
@@ -442,26 +442,26 @@ function mulberry32(seed) {
  * @returns {function(number, number): number} sampler(azimuthRad, elevationRad) in roughly [0, 255].
  */
 function makeProceduralEquirectSampler(seed, opts = {}) {
-    const rand = mulberry32(seed);
-    const nComp = opts.components ?? 24;
-    const maxK = opts.maxCyclesPerRad ?? 90;
-    const comps = [];
-    for (let i = 0; i < nComp; i++) {
-        const k = 2 + (maxK - 2) * rand() ** 1.5; // Bias toward lower frequencies for broad structure.
-        const orient = rand() * Math.PI;
-        comps.push({
-            kAz: 2 * Math.PI * k * Math.cos(orient),
-            kEl: 2 * Math.PI * k * Math.sin(orient),
-            phase: rand() * 2 * Math.PI,
-            amp: 0.4 + 0.6 * rand(),
-        });
-    }
-    const norm = comps.reduce((s, c) => s + c.amp, 0);
-    return (az, el) => {
-        let v = 0;
-        for (const c of comps) v += c.amp * Math.sin(c.kAz * az + c.kEl * el + c.phase);
-        return 127.5 + 127.5 * (v / norm) * 1.8; // Stretch contrast; slight clipping is harmless texture.
-    };
+  const rand = mulberry32(seed);
+  const nComp = opts.components ?? 24;
+  const maxK = opts.maxCyclesPerRad ?? 90;
+  const comps = [];
+  for (let i = 0; i < nComp; i++) {
+    const k = 2 + (maxK - 2) * rand() ** 1.5; // Bias toward lower frequencies for broad structure.
+    const orient = rand() * Math.PI;
+    comps.push({
+      kAz: 2 * Math.PI * k * Math.cos(orient),
+      kEl: 2 * Math.PI * k * Math.sin(orient),
+      phase: rand() * 2 * Math.PI,
+      amp: 0.4 + 0.6 * rand(),
+    });
+  }
+  const norm = comps.reduce((s, c) => s + c.amp, 0);
+  return (az, el) => {
+    let v = 0;
+    for (const c of comps) v += c.amp * Math.sin(c.kAz * az + c.kEl * el + c.phase);
+    return 127.5 + 127.5 * (v / norm) * 1.8; // Stretch contrast; slight clipping is harmless texture.
+  };
 }
 
 /**
@@ -474,44 +474,44 @@ function makeProceduralEquirectSampler(seed, opts = {}) {
  * @returns {Float64Array} Grayscale image, length width*height.
  */
 function renderPinhole(sampler, cam) {
-    const { f, width, height } = cam;
-    const h = cam.headingDeg * DEG_TO_RAD, p = cam.pitchDeg * DEG_TO_RAD;
-    // Camera-to-world: w = Ry(h) * Rx(p) * d.
-    const m = matMul(rotY(h), rotX(p));
-    const cx = (width - 1) / 2, cy = (height - 1) / 2;
-    const img = new Float64Array(width * height);
-    for (let y = 0; y < height; y++) {
-        for (let x = 0; x < width; x++) {
-            const dx = (x - cx) / f, dy = (y - cy) / f;
-            const wx = m[0] * dx + m[1] * dy + m[2];
-            const wy = m[3] * dx + m[4] * dy + m[5];
-            const wz = m[6] * dx + m[7] * dy + m[8];
-            const len = Math.sqrt(wx * wx + wy * wy + wz * wz);
-            img[y * width + x] = sampler(Math.atan2(wx, wz), -Math.asin(wy / len));
-        }
+  const { f, width, height } = cam;
+  const h = cam.headingDeg * DEG_TO_RAD, p = cam.pitchDeg * DEG_TO_RAD;
+  // Camera-to-world: w = Ry(h) * Rx(p) * d.
+  const m = matMul(rotY(h), rotX(p));
+  const cx = (width - 1) / 2, cy = (height - 1) / 2;
+  const img = new Float64Array(width * height);
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const dx = (x - cx) / f, dy = (y - cy) / f;
+      const wx = m[0] * dx + m[1] * dy + m[2];
+      const wy = m[3] * dx + m[4] * dy + m[5];
+      const wz = m[6] * dx + m[7] * dy + m[8];
+      const len = Math.sqrt(wx * wx + wy * wy + wz * wz);
+      img[y * width + x] = sampler(Math.atan2(wx, wz), -Math.asin(wy / len));
     }
-    return img;
+  }
+  return img;
 }
 
 module.exports = {
-    DEG_TO_RAD,
-    rotY,
-    rotX,
-    matMul,
-    rotationAToB,
-    rgbaToGray,
-    bilinear,
-    laplacianVariance,
-    nccOf,
-    warpNcc,
-    crossShiftEstimate,
-    goldenMax,
-    fitFocal,
-    fovsFromFocal,
-    median,
-    madSigma,
-    clusterBootstrapCI,
-    mulberry32,
-    makeProceduralEquirectSampler,
-    renderPinhole,
+  DEG_TO_RAD,
+  rotY,
+  rotX,
+  matMul,
+  rotationAToB,
+  rgbaToGray,
+  bilinear,
+  laplacianVariance,
+  nccOf,
+  warpNcc,
+  crossShiftEstimate,
+  goldenMax,
+  fitFocal,
+  fovsFromFocal,
+  median,
+  madSigma,
+  clusterBootstrapCI,
+  mulberry32,
+  makeProceduralEquirectSampler,
+  renderPinhole,
 };

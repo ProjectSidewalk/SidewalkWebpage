@@ -19,9 +19,9 @@ SET search_path TO sidewalk_seattle;  -- <<< change to the target city schema
 -- 1. Candidate IDs. Edit this list.
 CREATE TEMP TABLE streets_to_remove (street_edge_id INT PRIMARY KEY) ON COMMIT DROP;
 INSERT INTO streets_to_remove (street_edge_id) VALUES
-  (2),
-  (3);
-  -- ... fill in
+    (2),
+    (3);
+    -- ... fill in
 
 -- 2. Split into soft-delete vs hard-delete.
 --    Any street with audit_task, label, or route_street rows is considered to have "work" on it and gets soft-deleted.
@@ -29,8 +29,8 @@ CREATE TEMP TABLE streets_to_soft_delete ON COMMIT DROP AS
 SELECT DISTINCT streets_to_remove.street_edge_id
 FROM streets_to_remove
 WHERE EXISTS (SELECT 1 FROM audit_task WHERE audit_task.street_edge_id = streets_to_remove.street_edge_id)
-  OR EXISTS (SELECT 1 FROM label WHERE label.street_edge_id = streets_to_remove.street_edge_id)
-  OR EXISTS (SELECT 1 FROM route_street WHERE route_street.street_edge_id = streets_to_remove.street_edge_id);
+    OR EXISTS (SELECT 1 FROM label WHERE label.street_edge_id = streets_to_remove.street_edge_id)
+    OR EXISTS (SELECT 1 FROM route_street WHERE route_street.street_edge_id = streets_to_remove.street_edge_id);
 
 CREATE TEMP TABLE streets_to_hard_delete ON COMMIT DROP AS
 SELECT streets_to_remove.street_edge_id
@@ -58,15 +58,15 @@ ORDER BY streets_to_soft_delete.street_edge_id;
 --    Each real transition is recorded in street_edge_status_change (#4928); the `status <> 'disabled'` guard keeps a
 --    re-run of this playbook from logging transitions that never happened.
 WITH to_change AS (
-  SELECT street_edge_id, status AS old_status
-  FROM street_edge
-  WHERE street_edge_id IN (SELECT street_edge_id FROM streets_to_soft_delete)
-    AND status <> 'disabled'
+    SELECT street_edge_id, status AS old_status
+    FROM street_edge
+    WHERE street_edge_id IN (SELECT street_edge_id FROM streets_to_soft_delete)
+        AND status <> 'disabled'
 ), changed AS (
-  UPDATE street_edge
-  SET status = 'disabled'
-  WHERE street_edge_id IN (SELECT street_edge_id FROM to_change)
-  RETURNING street_edge_id
+    UPDATE street_edge
+    SET status = 'disabled'
+    WHERE street_edge_id IN (SELECT street_edge_id FROM to_change)
+    RETURNING street_edge_id
 )
 INSERT INTO street_edge_status_change (street_edge_id, old_status, new_status, source)
 SELECT changed.street_edge_id,
@@ -101,25 +101,25 @@ TRUNCATE TABLE region_completion;
 
 -- 6. Final check. Make sure none of the hard-delete IDs remain anywhere.
 SELECT 'still_in_street_edge' AS where_found, COUNT(*) FROM street_edge
-  WHERE street_edge_id IN (SELECT street_edge_id FROM streets_to_hard_delete)
+    WHERE street_edge_id IN (SELECT street_edge_id FROM streets_to_hard_delete)
 UNION ALL
 SELECT 'still_in_priority', COUNT(*) FROM street_edge_priority
-  WHERE street_edge_id IN (SELECT street_edge_id FROM streets_to_hard_delete)
+    WHERE street_edge_id IN (SELECT street_edge_id FROM streets_to_hard_delete)
 UNION ALL
 SELECT 'still_in_region', COUNT(*) FROM street_edge_region
-  WHERE street_edge_id IN (SELECT street_edge_id FROM streets_to_hard_delete)
+    WHERE street_edge_id IN (SELECT street_edge_id FROM streets_to_hard_delete)
 UNION ALL
 SELECT 'still_in_osm_way', COUNT(*) FROM osm_way_street_edge
-  WHERE street_edge_id IN (SELECT street_edge_id FROM streets_to_hard_delete)
+    WHERE street_edge_id IN (SELECT street_edge_id FROM streets_to_hard_delete)
 UNION ALL
 SELECT 'still_in_issue', COUNT(*) FROM street_edge_issue
-  WHERE street_edge_id IN (SELECT street_edge_id FROM streets_to_hard_delete)
+    WHERE street_edge_id IN (SELECT street_edge_id FROM streets_to_hard_delete)
 UNION ALL
 SELECT 'still_in_cluster', COUNT(*) FROM cluster
-  WHERE street_edge_id IN (SELECT street_edge_id FROM streets_to_hard_delete)
+    WHERE street_edge_id IN (SELECT street_edge_id FROM streets_to_hard_delete)
 UNION ALL
 SELECT 'still_in_route_street', COUNT(*) FROM route_street
-  WHERE street_edge_id IN (SELECT street_edge_id FROM streets_to_hard_delete);
+    WHERE street_edge_id IN (SELECT street_edge_id FROM streets_to_hard_delete);
 
 -- If everything looks right:
 COMMIT;
