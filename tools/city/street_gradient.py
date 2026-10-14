@@ -28,8 +28,8 @@ What a bare-earth model cannot see. It removes bridges and knows nothing of tunn
 samples the ravine or the hill instead of the deck. A street tagged as a structure therefore gets no grade at all
 (``structure``), only its two endpoint elevations: even a straight line between those is wrong, because a bridge's
 ends sit at the lip of what it crosses and read partway into it (Teaneck's level Route 4 overpasses came out at 20 to
-37%). Tags miss some structures (a lid over a freeway, a street whose ``osm_way_street_edge`` row names a different
-way of the same road), so a profile holding a short pitch that is both very steep and wildly out of line with the
+37%). Tags miss some structures (a lid over a freeway, a street linked to a way OSM has since split away from the
+tagged part), so a profile holding a short pitch that is both very steep and wildly out of line with the
 street's end-to-end grade, or steeper than any real street, is marked ``suspect`` and carries a straight line between
 its ends instead of its samples. The grade *of* a bridge deck is out of reach either way.
 

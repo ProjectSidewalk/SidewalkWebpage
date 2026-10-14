@@ -117,7 +117,7 @@ deck: in the study windows the 1 to 4% of streets tagged as structures showed a 
 - **`suspect`**: the sampled profile holds a 10 m pitch over 20% that is also more than three times the street's
   end-to-end grade, on a street with no structure tag. Its statistics come from a straight line between its endpoint
   elevations instead of its samples. This catches what tags miss, such as a lid over
-  a freeway or a street whose `osm_way_street_edge` row names a different way of the same road, and it leaves a
+  a freeway or a street linked to a way OSM has since split away from the tagged part, and it leaves a
   uniformly steep hill alone, since there the pitch and the end-to-end grade agree. A pitch over 40% is suspect
   whatever the end-to-end grade, since no street anywhere is that steep (Canton Avenue and Baldwin Street are 35 to
   37%). And when the end-to-end grade is itself over 40%, the endpoints are what is wrong (a 10 m stub with one end on

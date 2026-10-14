@@ -425,8 +425,8 @@ class ExploreRouteRequestSpec
                 FROM street_edge_region
                 INNER JOIN street_edge_priority
                   ON street_edge_region.street_edge_id = street_edge_priority.street_edge_id
-                INNER JOIN osm_way_street_edge
-                  ON street_edge_region.street_edge_id = osm_way_street_edge.street_edge_id
+                INNER JOIN osm_way_street_edge_primary
+                  ON street_edge_region.street_edge_id = osm_way_street_edge_primary.street_edge_id
               )
             GROUP BY street_edge_region.region_id
             ORDER BY COUNT(*)
@@ -437,7 +437,8 @@ class ExploreRouteRequestSpec
             FROM street_edge_region
             INNER JOIN street_edge ON street_edge_region.street_edge_id = street_edge.street_edge_id
             INNER JOIN street_edge_priority ON street_edge_region.street_edge_id = street_edge_priority.street_edge_id
-            INNER JOIN osm_way_street_edge ON street_edge_region.street_edge_id = osm_way_street_edge.street_edge_id
+            INNER JOIN osm_way_street_edge_primary
+              ON street_edge_region.street_edge_id = osm_way_street_edge_primary.street_edge_id
             WHERE street_edge_region.region_id = $regionId
               AND street_edge.status = 'open'
               AND street_edge.street_edge_id NOT IN (SELECT tutorial_street_edge_id FROM config)

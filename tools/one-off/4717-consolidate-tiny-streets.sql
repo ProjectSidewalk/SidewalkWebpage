@@ -1,5 +1,5 @@
 -- =====================================================================================================================
--- Consolidate tiny streets (#4717). Written against evolution 416.
+-- Consolidate tiny streets (#4717). Written against evolution 417.
 --
 -- Cities built before tools/city/onboard_city.py (every one but Newport and Laurens, as of 2026-10) are full of
 -- streets a few metres long: pieces a region border cut off a road, roundabout arcs, stubs between a dual
@@ -38,8 +38,9 @@
 --
 -- What happens to a joined street's data (the moves of 3067-merge-duplicate-streets.sql, with a growing survivor):
 --   * The survivor keeps its id and its direction; the sliver is added at one end, so its start/end points change
---     and its street_gradient row goes stale. Run sidewalk-server-tools/street-gradient-backfill.sh afterwards: its
---     export picks up changed geometry. The survivor moves region only if most of it now lies in another live one.
+--     and its street_gradient row and OSM way positions go stale. Run sidewalk-server-tools/street-gradient-backfill.sh
+--     and osm-lineage-backfill.sh afterwards: both pick up changed geometry. The survivor moves region only if most
+--     of it now lies in another live one.
 --   * Labels move to the survivor, and their distance from the centre line (which left/right comes from) is
 --     re-measured for every label on the survivor, since its line changed.
 --   * Audits, route stops, issues, clusters, comments and places move to the survivor. A completed audit stays
@@ -50,8 +51,10 @@
 --     the sliver was drawn the other way, routes and paused audits are flipped; a drop-in audit's distance along the
 --     street and a free-exploration audit's covered stretches are re-measured on the new line. Every route walking
 --     a joined or grown street has its cached length and street count refreshed.
---   * Its OSM way link, priority and imagery rows go, then the street itself. street_edge_merge (evolution 416) keeps
---     its id, geometry, way id and survivor: the survivor keeps one way id, as a pipeline-built street does (#5741).
+--   * Its OSM way links move to the survivor, which then lists every way either street lay on. The positions along
+--     those ways (#5741) are cleared, since the survivor's line changed: the lineage backfill recomputes them, so it
+--     runs after this. Priority and imagery rows go, then the street itself. street_edge_merge (evolution 416) keeps
+--     its id, geometry, way id and survivor.
 -- A removed street is deleted outright only when it has no labels (its own, or placed from its audits), no comments,
 -- no route stops and no audit a route walk recorded: its bare audits and issues go with it, and places pointing at
 -- it are re-pointed. Otherwise it is set 'disabled' with a street_edge_status_change row (source
@@ -113,17 +116,18 @@
 SET default_transaction_read_only = off;
 BEGIN;
 
--- The street_edge_merge table and the consolidate_tiny_streets source value arrived together in evolution 416,
--- checked by their presence rather than by number: on a dev machine another branch's evolution can hold the same
--- number for a while.
+-- The street_edge_merge table and the consolidate_tiny_streets source value arrived together in evolution 416, and
+-- the way positions this clears in evolution 417, each checked by its presence rather than by number: on a dev
+-- machine another branch's evolution can hold the same number for a while.
 \if :plan
 \else
 DO $$
 BEGIN
   IF to_regclass('street_edge_merge') IS NULL
      OR NOT EXISTS (SELECT FROM pg_enum WHERE enumlabel = 'consolidate_tiny_streets'
-                    AND enumtypid = 'street_edge_status_change_source'::regtype) THEN
-    RAISE EXCEPTION 'evolution 416 is not applied in this schema; deploy a release that carries it first';
+                    AND enumtypid = 'street_edge_status_change_source'::regtype)
+     OR to_regclass('osm_way_street_edge_primary') IS NULL THEN
+    RAISE EXCEPTION 'evolutions 416 and 417 are not both applied in this schema; deploy a release that carries them';
   END IF;
 END $$;
 \endif
@@ -146,8 +150,8 @@ SELECT street.*, street.m < :merge_m AND NOT street.is_loop AND NOT street.activ
        CASE WHEN street.osm_way_id IS NULL THEN '{}'::bigint[] ELSE ARRAY[street.osm_way_id] END AS way_ids
 FROM (
   SELECT street_edge.street_edge_id AS id, street_edge.geom, street_edge.status,
-         (SELECT NULLIF(min(osm_way_street_edge.osm_way_id), -1) FROM osm_way_street_edge
-          WHERE osm_way_street_edge.street_edge_id = street_edge.street_edge_id) AS osm_way_id,
+         (SELECT NULLIF(osm_way_street_edge_primary.osm_way_id, -1) FROM osm_way_street_edge_primary
+          WHERE osm_way_street_edge_primary.street_edge_id = street_edge.street_edge_id) AS osm_way_id,
          EXISTS (SELECT FROM audit_task
                  WHERE audit_task.street_edge_id = street_edge.street_edge_id
                    AND audit_task.task_start >= now() - interval '1 day') AS active,
@@ -722,9 +726,25 @@ WHERE place.nearest_street_edge_id = final_merge.drop_id
 UPDATE street_edge_region SET region_id = region_move.to_region_id
 FROM region_move WHERE street_edge_region.street_edge_id = region_move.street_edge_id;
 
--- 9. The slivers go: the rows that are theirs alone, the trace, then the street (street_edge_region, status changes,
+-- 9. The survivor lists every way it or its slivers lay on, unpositioned: its line changed, so the positions along
+--    those ways no longer hold (#5741), and the lineage backfill recomputes them afterwards.
+CREATE TEMP TABLE survivor_way ON COMMIT DROP AS
+SELECT DISTINCT COALESCE(final_merge.survivor_id, osm_way_street_edge.street_edge_id) AS street_edge_id,
+       osm_way_street_edge.osm_way_id
+FROM osm_way_street_edge
+LEFT JOIN final_merge ON final_merge.drop_id = osm_way_street_edge.street_edge_id
+WHERE final_merge.drop_id IS NOT NULL OR osm_way_street_edge.street_edge_id IN (SELECT id FROM survivor);
+--    A dump-restored schema can have the id sequence behind the table. Set before the DELETE, since a sequence change
+--    survives a rollback and must never end up below a row the rollback brings back.
+SELECT setval(pg_get_serial_sequence('osm_way_street_edge', 'osm_way_street_edge_id'),
+              (SELECT COALESCE(MAX(osm_way_street_edge_id), 0) + 1 FROM osm_way_street_edge), false);
+DELETE FROM osm_way_street_edge
+WHERE street_edge_id IN (SELECT id FROM survivor) OR street_edge_id IN (SELECT drop_id FROM final_merge);
+INSERT INTO osm_way_street_edge (osm_way_id, street_edge_id)
+SELECT osm_way_id, street_edge_id FROM survivor_way;
+
+--    The slivers go: the rows that are theirs alone, the trace, then the street (street_edge_region, status changes,
 --    reopen candidates, sidewalk presence, intersections, access scores and gradients cascade).
-DELETE FROM osm_way_street_edge WHERE street_edge_id IN (SELECT drop_id FROM final_merge);
 DELETE FROM street_edge_priority WHERE street_edge_id IN (SELECT drop_id FROM final_merge);
 DELETE FROM street_imagery WHERE street_edge_id IN (SELECT drop_id FROM final_merge);
 INSERT INTO street_edge_merge (dropped_street_edge_id, survivor_street_edge_id, rule, dropped_length_m, dropped_geom,

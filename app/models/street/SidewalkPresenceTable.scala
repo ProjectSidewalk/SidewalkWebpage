@@ -1,7 +1,7 @@
 package models.street
 
 import com.google.inject.ImplementedBy
-import models.api.{SidewalkPresenceFiltersForApi, SidewalkPresenceForApi}
+import models.api.{OsmWayLinkForApi, SidewalkPresenceFiltersForApi, SidewalkPresenceForApi}
 import models.label.StreetSide
 import models.utils.MyPostgresProfile.api.{given, *}
 import models.utils.{Contributors, FilteredTables, MyPostgresProfile, SqlFragments}
@@ -299,12 +299,13 @@ class SidewalkPresenceTable @Inject() (protected val dbConfigProvider: DatabaseC
       filters.minAuditCount.map(n => sql"sidewalk_presence.audit_count >= $n")
     ).flatten
 
-    // Region and OSM way are joined at read time rather than stored: both are one-to-one with the street, and the
-    // Streets API resolves them the same way. Only the tutorial street is excluded, as there; every other street is
+    // Region and OSM ways are joined at read time rather than stored: they belong to the street, and the Streets API
+    // resolves them the same way. Only the tutorial street is excluded, as there; every other street is
     // returned tagged with its `status` (#3888), so a consumer who wants only the live ones — the table also covers
     // streets closed with their region, whose `region_id` /v3/api/regions never returns — asks for `status=open`.
     val query: SQLActionBuilder = sql"""
-      SELECT sidewalk_presence.street_edge_id, sidewalk_presence.street_side, osm_way_street_edge.osm_way_id,
+      SELECT sidewalk_presence.street_edge_id, sidewalk_presence.street_side, osm_way_street_edge_primary.osm_way_id,
+             #${OsmWayLinkForApi.jsonListSql("street_edge.street_edge_id")} AS osm_ways,
              region.region_id, region.name, street_edge.way_type, street_edge.status, sidewalk_presence.presence,
              sidewalk_presence.presence_basis, sidewalk_presence.no_sidewalk_label_count,
              sidewalk_presence.no_sidewalk_user_count, sidewalk_presence.validated_no_sidewalk_count,
@@ -313,7 +314,8 @@ class SidewalkPresenceTable @Inject() (protected val dbConfigProvider: DatabaseC
              sidewalk_presence.last_no_sidewalk_label_at, street_edge.geom
       FROM sidewalk_presence
       INNER JOIN street_edge ON sidewalk_presence.street_edge_id = street_edge.street_edge_id
-      INNER JOIN osm_way_street_edge ON street_edge.street_edge_id = osm_way_street_edge.street_edge_id
+      INNER JOIN osm_way_street_edge_primary
+        ON street_edge.street_edge_id = osm_way_street_edge_primary.street_edge_id
       INNER JOIN street_edge_region ON street_edge.street_edge_id = street_edge_region.street_edge_id
       INNER JOIN region ON street_edge_region.region_id = region.region_id
       WHERE #${FilteredTables.notTutorialStreet("street_edge.street_edge_id")}
@@ -324,10 +326,13 @@ class SidewalkPresenceTable @Inject() (protected val dbConfigProvider: DatabaseC
     """)
 
     given getSidewalkPresenceForApi: GetResult[SidewalkPresenceForApi] = { r =>
+      val streetEdgeId = r.nextInt()
+      val streetSide   = r.nextString()
       SidewalkPresenceForApi(
-        streetEdgeId = r.nextInt(),
-        streetSide = r.nextString(),
+        streetEdgeId = streetEdgeId,
+        streetSide = streetSide,
         osmWayId = r.nextLong(),
+        osmWays = OsmWayLinkForApi.parseJsonList(r.nextString()).map(_.withOsmSide(streetSide)),
         regionId = r.nextInt(),
         regionName = r.nextString(),
         wayType = r.nextString(),

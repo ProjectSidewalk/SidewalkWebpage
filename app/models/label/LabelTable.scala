@@ -2704,7 +2704,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
              label.time_created,
              user_stat.high_quality,
              label.street_edge_id,
-             osm_way_street_edge.osm_way_id,
+             osm_way_at_fraction(label.street_edge_id, ST_LineLocatePoint(street_edge.geom, label_point.geom)) AS osm_way_id,
              region.region_id,
              region.name,
              label_point.street_side::text,
@@ -2735,7 +2735,9 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
              label_point.lng
       FROM #${FilteredTables.labels(contributors = contributors)}
       INNER JOIN label_point ON label.label_id = label_point.label_id
-      INNER JOIN osm_way_street_edge ON label.street_edge_id = osm_way_street_edge.street_edge_id
+      INNER JOIN street_edge ON label.street_edge_id = street_edge.street_edge_id
+      -- A street without a linked way yields no label; the way named is the one under the label (#5741).
+      INNER JOIN osm_way_street_edge_primary ON label.street_edge_id = osm_way_street_edge_primary.street_edge_id
       INNER JOIN street_edge_region ON label.street_edge_id = street_edge_region.street_edge_id
       INNER JOIN region ON street_edge_region.region_id = region.region_id
       INNER JOIN pano_data ON label.pano_id = pano_data.pano_id

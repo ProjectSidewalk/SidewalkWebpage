@@ -40,7 +40,7 @@ class RawLabelsApiSpec extends SidewalkSpec with GuiceOneAppPerSuite with Rolled
   private val apiVisiblePositionedLabels =
     """FROM label
        INNER JOIN label_point ON label.label_id = label_point.label_id
-       INNER JOIN osm_way_street_edge ON label.street_edge_id = osm_way_street_edge.street_edge_id
+       INNER JOIN osm_way_street_edge_primary ON label.street_edge_id = osm_way_street_edge_primary.street_edge_id
        INNER JOIN street_edge_region ON label.street_edge_id = street_edge_region.street_edge_id
        INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
        INNER JOIN pano_data ON label.pano_id = pano_data.pano_id
