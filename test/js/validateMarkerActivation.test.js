@@ -85,7 +85,6 @@ describe('Validate pano marker activation', () => {
     });
 
     afterEach(() => {
-        vi.useRealTimers();
         document.body.innerHTML = '';
     });
 

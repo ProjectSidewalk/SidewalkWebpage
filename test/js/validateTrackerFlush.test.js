@@ -44,10 +44,6 @@ describe('Tracker timed flush (issue #4429)', () => {
         tracker.onFlush(() => form.submit(form.compileSubmissionData(false), true));
     });
 
-    afterEach(() => {
-        vi.useRealTimers();
-    });
-
     test('the first push arms a deadline that flushes the compiled payload as an intermediate submit', () => {
         tracker.push('ValidationButtonClick_Agree');
 

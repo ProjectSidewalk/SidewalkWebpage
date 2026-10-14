@@ -131,7 +131,6 @@ beforeEach(() => {
 afterEach(() => {
   // Restores the window.addEventListener spy however the test body exited; leaving it installed would swallow
   // every later load's DOMContentLoaded registration and misattribute the failures.
-  vi.useRealTimers();
   delete window.fetch;
 });
 

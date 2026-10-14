@@ -92,7 +92,6 @@ describe('PanoManager logs POV changes from whichever viewer is showing (issue #
   });
 
   afterEach(() => {
-    vi.useRealTimers();
     document.body.innerHTML = '';
   });
 

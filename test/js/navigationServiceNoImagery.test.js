@@ -253,7 +253,8 @@ describe('Explore, when the imagery search runs out along a street', () => {
         let StreetProgress;
         ({ NoImageryError, NoImageryFlagGuard, StreetSweep, NavigationService, StreetProgress, GsvViewer } =
             await loadModules(
-                'frontend/js/common/pano-viewer/NoImageryError.js', 'frontend/js/explore/panorama/NoImageryFlagGuard.js',
+                'frontend/js/common/pano-viewer/NoImageryError.js',
+                'frontend/js/explore/panorama/NoImageryFlagGuard.js',
                 'frontend/js/explore/navigation/StreetSweep.js', 'frontend/js/explore/navigation/NavigationService.js',
                 'frontend/js/explore/task/StreetProgress.js', 'frontend/js/common/pano-viewer/GsvViewer.js',
             ));
@@ -269,11 +270,6 @@ describe('Explore, when the imagery search runs out along a street', () => {
             svl.taskContainer, svl.panoManager, nav, sweep, svl.jumpAlert, svl.tracker);
         progress.onRouteEndReached(() => missionController.onRouteReadyToFinish());
         progress.onRegionExhausted(() => missionController.wrapUpRouteOrRegion());
-    });
-
-    afterEach(() => {
-        vi.clearAllTimers();
-        vi.useRealTimers();
     });
 
     /** Queues the streets the labeler will be handed, in order, as `nextTask` hands them out. */

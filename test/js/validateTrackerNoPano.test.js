@@ -17,10 +17,6 @@ describe('Tracker before the first pano loads', () => {
         vi.useFakeTimers();
     });
 
-    afterEach(() => {
-        vi.useRealTimers();
-    });
-
     /** A GSV-shaped viewer in its pre-load state: nothing to report yet. */
     function unloadedViewer() {
         return { getPosition: () => null, getPov: () => null, getPanoId: () => null };
@@ -83,10 +79,6 @@ describe('Tracker before the first pano loads', () => {
 describe('Tracker before the mission exists', () => {
     beforeEach(() => {
         vi.useFakeTimers();
-    });
-
-    afterEach(() => {
-        vi.useRealTimers();
     });
 
     /** A mission container reporting one mission, as MissionContainer does once Main has created it. */

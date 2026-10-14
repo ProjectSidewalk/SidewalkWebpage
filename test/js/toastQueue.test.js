@@ -33,10 +33,6 @@ describe('Toast queueing', () => {
         document.body.append(anchorA, anchorB);
     });
 
-    afterEach(() => {
-        vi.useRealTimers();
-    });
-
     /** Advances past a toast of `duration` and the fade that follows it. */
     const elapse = (duration) => vi.advanceTimersByTime(duration + Toast.FADE_MS);
 

@@ -46,10 +46,6 @@ describe('setRegionFocus', () => {
         useUtil({ getURLParameter: () => '7' });
     });
 
-    afterEach(() => {
-        vi.useRealTimers();
-    });
-
     it('fits the named region\'s own bounds', () => {
         setRegionFocus(map);
         vi.runAllTimers();

@@ -41,7 +41,6 @@ describe('MissionLiveMarker (issue #5561)', () => {
     });
 
     afterEach(() => {
-        vi.useRealTimers();
         delete performance.getEntriesByType;
     });
 

@@ -213,10 +213,6 @@ describe('deleting a label from the card (#3591)', () => {
     });
   });
 
-  afterEach(() => {
-    vi.useRealTimers();
-  });
-
   test('Delete shows for whoever may edit a live label, and Restore for whoever may undo a deleted one', async () => {
     await showLabel({ can_edit: false, from_current_user: false });
     expect(deleteButton().hidden).toBe(true);

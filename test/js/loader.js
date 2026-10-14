@@ -54,8 +54,6 @@ export function mockModule(relativePath, factory) {
     vi.doMock(abs(relativePath), factory);
 }
 
-
-
 /**
  * Undoes `mockModule`, so later loads get the real file again.
  * @param {string} relativePath - The path given to `mockModule`.
@@ -108,7 +106,8 @@ function applyUtilOverrides() {
                 if (m.previous === undefined) delete sub[subKey];
                 else sub[subKey] = m.previous;
             }
-            if (sub === entry.created) delete util[key];
+            // Still empty: no module adopted it (`util.url = util.url || {}` would have), so it never became real.
+            if (sub === entry.created && Object.getOwnPropertyNames(sub).length === 0) delete util[key];
         } else if (util[key] === entry.value) {
             if (entry.previous === undefined) delete util[key];
             else util[key] = entry.previous;

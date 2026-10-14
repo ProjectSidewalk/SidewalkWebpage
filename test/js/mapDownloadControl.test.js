@@ -48,8 +48,6 @@ const queryOf = (url) => new URLSearchParams(url.split('?')[1]);
 /** Flushes pending promise microtasks / zero-delay timeouts (several listeners defer registration). */
 const flushTimeouts = () => new Promise((resolve) => setTimeout(resolve, 0));
 
-afterEach(() => { vi.useRealTimers(); });
-
 describe('MapDownloadControl.buildDownloadUrl', () => {
     let MapDownloadControl;
 

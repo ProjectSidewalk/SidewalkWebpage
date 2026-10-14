@@ -47,10 +47,6 @@ describe('ExploreUrlSync', () => {
         replaceState = vi.spyOn(window.history, 'replaceState');
     });
 
-    afterEach(() => {
-        vi.useRealTimers();
-    });
-
     test('writes the pano, its position, the view and nothing of the mission, as the read side names them', () => {
         new ExploreUrlSync(viewer, () => immersive).start();
         expect(currentUrl()).toBe('/explore?lat=47.606209&lng=-122.332071&heading=91.3&pitch=-3&zoom=1.5&panoId=abc123');

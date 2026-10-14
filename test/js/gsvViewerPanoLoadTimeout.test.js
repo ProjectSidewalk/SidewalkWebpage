@@ -23,10 +23,6 @@ describe('GsvViewer._loadPanoWithTimeout', () => {
         vi.stubGlobal('google', { maps: { event: { removeListener: vi.fn() } } });
     });
 
-    afterEach(() => {
-        vi.useRealTimers();
-    });
-
     /**
      * Builds a viewer whose gsvPano stub captures the position_changed callback (so a test can fire it — or not, to
      * simulate a hang) and records setPano calls.

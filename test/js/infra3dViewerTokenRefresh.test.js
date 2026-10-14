@@ -59,7 +59,6 @@ describe('Infra3dViewer access-token renewal', () => {
 
     afterEach(() => {
         mount.remove();
-        vi.useRealTimers();
         delete window.fetch;
         delete window.logWebpageActivity;
         delete window.infra3dapi;
@@ -247,7 +246,6 @@ describe('Infra3dViewer initViewer timeout', () => {
 
     afterEach(() => {
         mount.remove();
-        vi.useRealTimers();
         delete window.logWebpageActivity;
         delete window.infra3dapi;
         window.sessionStorage.clear();

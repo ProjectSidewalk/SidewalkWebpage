@@ -60,10 +60,6 @@ describe('PopupPanoManager load lifecycle', () => {
         ({ PopupPanoManager } = await loadModules('frontend/js/common/label-detail/PopupPanoManager.js'));
     });
 
-    afterEach(() => {
-        vi.useRealTimers();
-    });
-
     const createManager = () => PopupPanoManager.create(svHolder, document.getElementById('button-holder'),
         false, viewerType, 'token');
 

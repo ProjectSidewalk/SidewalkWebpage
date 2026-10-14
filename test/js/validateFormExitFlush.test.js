@@ -25,8 +25,6 @@ function setVisibility(state) {
     document.dispatchEvent(new Event('visibilitychange'));
 }
 
-afterEach(() => { vi.useRealTimers(); });
-
 describe('Form exit flushes (issue #5561)', () => {
     let form;
     let payload;

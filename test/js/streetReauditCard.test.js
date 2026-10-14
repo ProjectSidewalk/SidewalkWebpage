@@ -71,10 +71,6 @@ describe('the street re-audit hover card', () => {
         window.fetch = vi.fn(async () => ({ ok: true, json: async () => SUMMARY }));
     });
 
-    afterEach(() => {
-        vi.useRealTimers();
-    });
-
     /**
      * Builds a card and hovers a street on it.
      * @param {object} [opts] - Card options passed through to the constructor.

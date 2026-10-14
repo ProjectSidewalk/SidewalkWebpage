@@ -42,10 +42,6 @@ describe('Label crop upload', () => {
         vi.spyOn(console, 'log').mockImplementation(() => {});
     });
 
-    afterEach(() => {
-        vi.useRealTimers();
-    });
-
     test('records the id and uploads the crop under crop_<labelId>', async () => {
         const label = newLabel({ crop: CROP_B64 });
 

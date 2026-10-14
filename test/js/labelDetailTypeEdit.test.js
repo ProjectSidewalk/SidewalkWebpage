@@ -197,10 +197,6 @@ describe('changing a label\'s type from the card (#3671)', () => {
     });
   });
 
-  afterEach(() => {
-    vi.useRealTimers();
-  });
-
   test('the title is a plain span for a viewer who may not edit, and a button for one who may', async () => {
     await showLabel({ can_edit: false });
     expect(typeButton().hidden).toBe(true);

@@ -85,8 +85,6 @@ async function loadPsTooltip() {
 
 let unloadPsTooltip;
 
-afterEach(() => { vi.useRealTimers(); });
-
 beforeEach(async () => {
     document.body.innerHTML = '';
     window.innerWidth = VIEWPORT_WIDTH;

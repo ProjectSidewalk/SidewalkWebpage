@@ -28,7 +28,9 @@ export default defineConfig({
 
     include: ['test/js/**/*.test.js'],
 
-    // Spies and `vi.stubGlobal` stubs are undone before every test, so no suite needs an afterEach for it.
+    // Spies and `vi.stubGlobal` stubs are undone, and every mock's call history emptied, before each test, so no
+    // suite needs an afterEach for it. Fake timers are put back by `setup.js`.
+    clearMocks: true,
     restoreMocks: true,
     unstubGlobals: true,
 

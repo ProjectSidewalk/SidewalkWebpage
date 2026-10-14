@@ -28,7 +28,10 @@ export function fakeGate(overrides = {}) {
  */
 export function navigationAttempts() {
     const attempts = vi.fn();
-    window._settings.virtualConsole.on('jsdomError', (error) => {
+    // jsdom keeps the console it was built with on the window's settings, with no public way at it from a page.
+    const virtualConsole = window._settings?.virtualConsole;
+    if (!virtualConsole) throw new Error('this jsdom keeps its virtual console elsewhere than window._settings');
+    virtualConsole.on('jsdomError', (error) => {
         if (error.message.includes('Not implemented: navigation')) attempts(error);
     });
     return attempts;
@@ -77,9 +80,9 @@ export function fakeTaskContainer(getCurrentTask = () => null, overrides = {}) {
 export function fakePanoManager(viewer = {}, overrides = {}) {
     return {
         get panoViewer() { return viewer; },
-        getPanoId: () => viewer.getPanoId?.(),
-        getPosition: () => viewer.getPosition?.(),
-        getPov: () => viewer.getPov?.(),
+        getPanoId: () => viewer.getPanoId(),
+        getPosition: () => viewer.getPosition(),
+        getPov: () => viewer.getPov(),
         onPovChanged: vi.fn(),
         onPanoChanged: vi.fn(),
         ...overrides,

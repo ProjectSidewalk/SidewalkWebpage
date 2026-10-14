@@ -34,8 +34,6 @@ function fetchStub(byUrl = {}) {
     });
 }
 
-afterEach(() => { vi.useRealTimers(); });
-
 describe('PanoImageCache (issue #5562)', () => {
     let PanoImageCache;
     let cache;

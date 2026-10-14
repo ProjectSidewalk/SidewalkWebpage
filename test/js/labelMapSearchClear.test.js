@@ -133,8 +133,6 @@ function pressEscape() {
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
 }
 
-afterEach(() => { vi.useRealTimers(); });
-
 describe('clearing a searched place', () => {
     let search;
 

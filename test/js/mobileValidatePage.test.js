@@ -88,7 +88,6 @@ describe('mobile Validate page behavior', () => {
     });
 
     afterEach(() => {
-        vi.useRealTimers();
         document.body.innerHTML = '';
     });
 

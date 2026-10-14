@@ -48,10 +48,6 @@ describe('LabelVisibilityControl opening the card on load', () => {
           <div id="label-card"><button type="button" id="label-visibility-button-on-label"></button></div>`;
     });
 
-    afterEach(() => {
-        vi.useRealTimers();
-    });
-
     it('opens the card and logs it on an Infra3d city', async () => {
         await build(FakeInfra3dViewer);
         control.openCardOnLoad();

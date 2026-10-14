@@ -23,8 +23,6 @@ async function loadViewer() {
     'frontend/js/common/pano-viewer/PanoLoadTimeoutError.js');
 }
 
-afterEach(() => { vi.useRealTimers(); });
-
 /**
  * A mapillary-js Image with the fields _getPanoramaCallback reads.
  * @param {string} id - The image id.

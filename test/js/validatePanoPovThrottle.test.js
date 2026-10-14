@@ -51,7 +51,6 @@ describe('PanoManager POV_Changed throttling (issue #2745)', () => {
     });
 
     afterEach(() => {
-        vi.useRealTimers();
         document.body.innerHTML = '';
     });
 

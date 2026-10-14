@@ -22,10 +22,6 @@ describe('MapStatusPill', () => {
         container = document.getElementById('map');
     });
 
-    afterEach(() => {
-        vi.useRealTimers();
-    });
-
     const pillEl = () => container.querySelector('.map-status-pill');
     const textEl = () => container.querySelector('.map-status-pill__text');
     const closeEl = () => container.querySelector('.map-status-pill__close');

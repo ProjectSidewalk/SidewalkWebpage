@@ -476,7 +476,6 @@ describe('a viewer that paints during a load stays unpainted until it faces the 
   });
 
   afterEach(() => {
-    vi.useRealTimers();
     document.body.innerHTML = '';
   });
 

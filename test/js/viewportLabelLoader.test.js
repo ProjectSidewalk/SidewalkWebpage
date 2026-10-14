@@ -67,7 +67,6 @@ describe('ViewportLabelLoader', () => {
     });
 
     afterEach(() => {
-        vi.useRealTimers();
         useUtil();
     });
 

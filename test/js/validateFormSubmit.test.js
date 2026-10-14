@@ -51,7 +51,6 @@ describe('Form.submit (issue #2745 resilience)', () => {
     });
 
     afterEach(() => {
-        vi.useRealTimers();
         delete window.fetch;
     });
 

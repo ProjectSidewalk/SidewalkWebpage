@@ -166,10 +166,6 @@ describe('MapSidebarUrlSync', () => {
         };
     });
 
-    afterEach(() => {
-        vi.useRealTimers();
-    });
-
     describe('viewport statics', () => {
         it('reports and applies a complete lat/lng(/zoom) viewport', () => {
             window.history.replaceState({}, '', '/labelMap?lat=47.6&lng=-122.3&zoom=14.5');

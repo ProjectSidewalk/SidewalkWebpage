@@ -51,8 +51,6 @@ const excludedPano = (panoId, capturedAt = 0) => ({
     getProperty: (key) => (key === 'captureDate' ? new Date(capturedAt) : null),
 });
 
-afterEach(() => { vi.useRealTimers(); });
-
 describe('PanoViewer.findPanoNear (base)', () => {
     test('a provider with no location search has nothing to offer', async () => {
         const { PanoViewer } = await loadViewer('PannellumViewer');

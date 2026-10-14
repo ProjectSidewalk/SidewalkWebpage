@@ -221,8 +221,6 @@ function meta(overrides = {}) {
     };
 }
 
-afterEach(() => { vi.useRealTimers(); });
-
 describe('LabelDetail edit gating (#5047)', () => {
     let card;
     let setPano;

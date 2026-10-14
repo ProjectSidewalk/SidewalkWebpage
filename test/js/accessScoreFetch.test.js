@@ -40,10 +40,6 @@ describe('AccessScoreFetch.fetchJsonWithRetry', () => {
         vi.useFakeTimers();
     });
 
-    afterEach(() => {
-        vi.useRealTimers();
-    });
-
     test('returns the JSON of a first-try success without waiting', async () => {
         vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response(200, { body: { type: 'FeatureCollection' } })));
         const onWait = vi.fn();

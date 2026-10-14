@@ -129,7 +129,7 @@ let SpeedLimit;
 let ZoomControl;
 let Gate;
 let UndoValidation;
-/** @type {{takeUnexpectedUnload: import('vitest').Mock, markLive: import('vitest').Mock}} The live marker Main builds. */
+/** @type {{takeUnexpectedUnload: import('vitest').Mock, markLive: import('vitest').Mock}} Main's live marker. */
 let marker;
 /** @type {boolean} Set as the fake PanoManager's create() runs, so the fake Form can say which came first. */
 let viewerCreated;
@@ -406,7 +406,7 @@ describe('Main hooks what describes a label to the label container', () => {
     const addEventListener = window.addEventListener;
     vi.spyOn(window, 'addEventListener').mockImplementation(function (type, ...rest) {
       if (type === 'keydown') overlayWhenWired = loadingOverlay.style.visibility;
-      return addEventListener(type, ...rest);
+      return addEventListener.call(window, type, ...rest);
     });
 
     await start();

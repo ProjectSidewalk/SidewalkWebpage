@@ -63,7 +63,6 @@ describe.each([
   });
 
   afterEach(() => {
-    vi.useRealTimers();
     document.body.innerHTML = '';
     delete window.i18next;
   });

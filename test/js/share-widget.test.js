@@ -17,8 +17,6 @@ const TARGET = {
 /** Flushes pending promise microtasks (clipboard flow resolves through a .then chain). */
 const flushPromises = () => new Promise((resolve) => setTimeout(resolve, 0));
 
-afterEach(() => { vi.useRealTimers(); });
-
 describe('ShareWidget', () => {
     let ShareWidget;
     let trigger;

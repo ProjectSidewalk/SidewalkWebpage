@@ -154,10 +154,6 @@ describe('PopupPanoManager zoomIn() / zoomOut()', () => {
         PopupPanoManager = await loadPopupPanoManager();
     });
 
-    afterEach(() => {
-        vi.useRealTimers();
-    });
-
     /** A manager showing a live pano on a viewer that starts at `zoom`. */
     async function liveManager(zoom) {
         const viewer = fakeViewer(zoom);

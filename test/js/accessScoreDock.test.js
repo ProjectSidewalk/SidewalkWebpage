@@ -105,10 +105,6 @@ describe('AccessScoreDock', () => {
         flush();
     });
 
-    afterEach(() => {
-        vi.useRealTimers();
-    });
-
     test('draws the four views and the KPIs for the whole city on its first frame', async () => {
         expect(document.querySelectorAll('.acs-histogram__bin')).toHaveLength(10);
         expect(document.querySelectorAll('.acs-whats-here__row')).toHaveLength(FIXTURE.config.scored_types.length);

@@ -23,10 +23,6 @@ describe('util.throttle', () => {
             'frontend/js/common/utilities.js'));
     });
 
-    afterEach(() => {
-        vi.useRealTimers();
-    });
-
     test('runs immediately on the leading edge', () => {
         const fn = vi.fn();
         const throttled = throttle(fn, 500);

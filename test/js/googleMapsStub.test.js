@@ -43,7 +43,6 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  vi.useRealTimers();
   delete window.google;
   delete window.googleMapsStubOptions;
   delete document.currentScript;

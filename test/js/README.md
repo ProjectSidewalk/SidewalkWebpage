@@ -129,13 +129,14 @@ From the repo root:
 ```bash
 make test-js                                   # the whole suite, in the web container (where node_modules live)
 make test-js args=test/js/toastPosition.test.js   # one suite
-npm run test:js:coverage                       # the same, plus the coverage report (what CI runs)
+make test-js args=--coverage                   # the same, plus the coverage report (what CI runs)
 ```
 
 The runner is [Vitest](https://vitest.dev) (`vitest.config.mjs`, #5649): jsdom, `describe`/`it`/`expect`/`vi` as
 globals, each file in its own VM context whose global is the jsdom window, so a page global production reads bare
-(`fetch`, `i18next`, `mapboxgl`, `turf`, ...) is set with `window.X = …`. Spies and `vi.stubGlobal` stubs are undone
-before every test by the config, so no suite writes that cleanup. `npm test` runs the same suite.
+(`fetch`, `i18next`, `mapboxgl`, `turf`, ...) is set with `window.X = …`. Spies and `vi.stubGlobal` stubs are undone,
+every mock's call history emptied, and fake timers put back before the next test, by the config and `setup.js`, so
+no suite writes that cleanup. `npm test` runs the same suite.
 
 ## How a suite loads its subject
 
@@ -154,7 +155,8 @@ one, which is most Explore and Validate classes. Otherwise:
   modules import it (sub-objects such as `misc` and `math` merge into the real ones). With no call, modules get the
   real `util`, which already behaves in jsdom: `assetPath` gives `/assets/<path>`, `isMobile()` is false, and so on.
   `util.misc` is built by `utilitiesSidewalk.js` from the label-type table `setup.js` stamps on `window.labelTypes`
-  for every suite, the way every page is served it.
+  for every suite, the way every page is served it. What `useUtil` and `mockModule` set stays for the rest of the
+  file (each file has its own context), so a test that changes one is followed by a `beforeEach` that sets it back.
 - `loadVendored('turf')` runs a vendored bundle into the page like its `<script>` tag.
 
 The collaborators a constructor is handed when they are not under test -- a gate, a tracker, a task container, a pano
@@ -172,7 +174,8 @@ Each preview test:
 
 ## Globals these modules need
 
-Only one thing is **stubbed**: `fetch` (Node's would go to the network). Otherwise they use just `window`,
+Only one thing is **stubbed**: `fetch` (`setup.js` replaces Node's, which would go to the network, with one that
+throws until a suite stubs it). Otherwise they use just `window`,
 `document`, `console`, `Promise`, `Object.assign`, and `Number.prototype.toLocaleString`, all of which jsdom/Node
 provide. The table wrapper both renderers use, `createApiTableWrapper` in `frontend/js/api-docs/apiTableWrapper.js`, is
 an import, so it arrives with the module; a suite that wants the render to fail replaces it with `mockModule`.
