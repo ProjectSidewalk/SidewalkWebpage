@@ -340,6 +340,10 @@ audit.center.ui.tags.info = Voeg tags toe aan uw labels om de gegevens te verrij
 audit.center.ui.description.header = Beschrijf (optioneel)
 audit.center.ui.description.placeholder = Beschrijving
 
+audit.all.regions.finished.title = Je hebt elke buurt in {0} verkend!
+audit.all.regions.finished.body = Bedankt! Je hebt elke straat die we in {0} hebben gecontroleerd. Je kunt blijven helpen door de labels van anderen te valideren, of door een andere stad te verkennen.
+audit.all.regions.finished.validate = Labels valideren
+audit.all.regions.finished.other.cities = Een andere stad verkennen
 audit.survey.title = Een vriendelijk verzoek om deze eenmalige enquete over Project Sidewalk in te vullen
 audit.survey.enjoyment.question = Hoe vond je het om Project Sidewalk te gebruiken?
 audit.survey.enjoyment.option.1 = Erg saai

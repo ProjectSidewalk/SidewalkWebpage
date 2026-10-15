@@ -196,22 +196,58 @@ input[type="radio"] {
   font: var(--text-caption-regular);
 }
 
-.survey-dialog {
-  width: calc(600px * var(--ui-scale, 1));
+.survey-dialog, .all-regions-finished {
   max-width: calc(100vw - 32px);
-  max-height: calc(100dvh - 32px);
-  padding: 0;
   border: none;
   border-radius: var(--border-radius-lg);
   background: var(--color-neutral-white);
   color: var(--color-neutral-900);
   box-shadow: var(--box-shadow-lg);
+}
+
+.survey-dialog {
+  width: calc(600px * var(--ui-scale, 1));
+  max-height: calc(100dvh - 32px);
+  padding: 0;
   font: var(--text-small-regular);
 }
 
 /* ::backdrop can't read :root custom properties in all Baseline browsers, so the asphalt-500 tint is spelled out. */
 .survey-dialog::backdrop {
   background: rgb(45 42 63 / 55%);
+}
+
+/* Opened non-modal so the navbar (city switcher, language, sign-in) stays usable, so it centers itself. */
+.all-regions-finished {
+  position: fixed;
+  inset: 0;
+  width: calc(520px * var(--ui-scale, 1));
+  height: fit-content;
+  margin: auto;
+  padding: calc(32px * var(--ui-scale, 1));
+  text-align: center;
+}
+
+.all-regions-finished__image {
+  width: calc(160px * var(--ui-scale, 1));
+}
+
+.all-regions-finished__title {
+  margin: calc(16px * var(--ui-scale, 1)) 0 calc(8px * var(--ui-scale, 1));
+  font: var(--text-title-bold);
+}
+
+.all-regions-finished__body {
+  margin: 0;
+  font: var(--text-body-regular);
+}
+
+.all-regions-finished__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: calc(12px * var(--ui-scale, 1));
+  margin-top: calc(24px * var(--ui-scale, 1));
 }
 
 .survey-dialog__header {

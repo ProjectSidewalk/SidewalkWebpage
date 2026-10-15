@@ -343,6 +343,10 @@ audit.center.ui.tags.info = Fügen Sie Ihren Etiketten Tags hinzu, um die Daten 
 audit.center.ui.description.header = Beschreiben (optional)
 audit.center.ui.description.placeholder = Beschreibung
 
+audit.all.regions.finished.title = Sie haben jedes Viertel in {0} erkundet!
+audit.all.regions.finished.body = Vielen Dank! Sie haben jede Straße überprüft, die wir in {0} haben. Sie können weiter helfen, indem Sie die Labels anderer Personen validieren oder eine andere Stadt erkunden.
+audit.all.regions.finished.validate = Labels validieren
+audit.all.regions.finished.other.cities = Eine andere Stadt erkunden
 audit.survey.title = Bitte nehmen Sie an dieser einmaligen Umfrage zum Project Sidewalk teil.
 audit.survey.enjoyment.question = Wie finden Sie die Anwendung von Project Sidewalk?
 audit.survey.enjoyment.option.1 = Sehr langweilig

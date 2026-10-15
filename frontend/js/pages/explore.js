@@ -80,6 +80,10 @@ const session = loadPageSession(`${mainParam.sessionUrl}${window.location.search
 
 window.appManager.ready(async () => {
   const exploreSession = await session;
+  if (exploreSession.all_regions_finished) {
+    showAllRegionsFinished();
+    return;
+  }
   if (!exploreSession.task) {
     // The user has finished their assigned region, so there is nothing to explore until they pick a new one.
     document.querySelectorAll('.tool-ui').forEach((el) => el.classList.remove('ps-invisible'));
@@ -89,3 +93,16 @@ window.appManager.ready(async () => {
   // Console and e2e handle; nothing in the app reads it.
   window.svl = await new Main(mainParam, exploreSession).start();
 });
+
+/** Shows the end state for a user with no street left anywhere in the city (#5693). */
+function showAllRegionsFinished() {
+  document.getElementById('page-loading').style.visibility = 'hidden';
+  const dialog = /** @type {HTMLDialogElement} */ (document.getElementById('all-regions-finished'));
+  document.getElementById('all-regions-finished-validate').addEventListener('click', () => {
+    window.logWebpageActivity('Click_AllRegionsFinished_Validate');
+  });
+  document.getElementById('all-regions-finished-cities').addEventListener('click', () => {
+    window.logWebpageActivity('Click_AllRegionsFinished_OtherCities');
+  });
+  dialog.show();
+}

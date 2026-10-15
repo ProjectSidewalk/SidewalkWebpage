@@ -24,6 +24,7 @@ import java.time.format.DateTimeFormatter
 import java.time.{LocalDate, OffsetDateTime, ZoneOffset}
 import javax.inject.*
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.control.NoStackTrace
 
 /**
  * An Explore session as the page starts it: the task to walk, the mission it counts toward, and where it sits.
@@ -75,6 +76,11 @@ case class UpdatedStreets(lastPriorityUpdateTime: OffsetDateTime, updatedStreetP
  */
 case class RouteWalkSetup(walk: Option[UserRoute], resumed: Boolean, routeUnavailable: Boolean = false)
 
+/** The user has explored every street in every region, so there is nowhere left to start a session (#5693). */
+class AllRegionsFinishedException(userId: String)
+    extends Exception(s"User $userId has no region left to explore.")
+    with NoStackTrace
+
 /**
  * Companion object with constants that are shared throughout codebase.
  */
@@ -86,6 +92,12 @@ object ExploreService {
 
 @ImplementedBy(classOf[ExploreServiceImpl])
 trait ExploreService {
+
+  /**
+   * Gets the task, mission, region and route an Explore visit starts in.
+   *
+   * @return None if the user has explored every street in every region (#5693).
+   */
   def getDataForExplorePage(
       userId: String,
       retakingTutorial: Boolean,
@@ -94,7 +106,7 @@ trait ExploreService {
       resumeRoute: Boolean,
       regionId: Option[Int],
       streetEdgeId: Option[Int]
-  ): Future[ExplorePageData]
+  ): Future[Option[ExplorePageData]]
 
   /**
    * Gets data for an address-drop-in Explore session at the given lat/lng under an exploreAddress mission (#4451).
@@ -208,7 +220,7 @@ class ExploreServiceImpl @Inject() (
       resumeRoute: Boolean,
       regionId: Option[Int],
       streetEdgeId: Option[Int]
-  ): Future[ExplorePageData] = {
+  ): Future[Option[ExplorePageData]] = {
     def getExploreDataAction = for {
       // Check if user has an active route or create a new one if routeId was supplied. If resumeRoute is false and no
       // routeId was supplied, then the function should return None and the user is not sent on a specific route. A
@@ -239,10 +251,9 @@ class ExploreServiceImpl @Inject() (
                   _ <- closeMissionIfRegionFinished(userId, region.regionId)
                 } yield (Some(region), false)
               case None =>
-                logger.error(
-                  s"Either there is no region associated with street edge $streetId, or it is not a valid id."
+                DBIO.failed(
+                  new NoSuchElementException(s"Either street edge $streetId has no region, or it is not a valid id.")
                 )
-                DBIO.successful((None, false))
             }
           // If user is exploring a specific region, assign it to them, unless they've already finished it (#5692).
           case (_, Some(r), _, _, _) =>
@@ -264,7 +275,10 @@ class ExploreServiceImpl @Inject() (
             userCurrentRegionTable
               .insertOrUpdate(userId, route.regionId)
               .flatMap(rId => regionTable.getRegion(rId))
-              .map((_, false))
+              .flatMap {
+                case Some(region) => DBIO.successful((Some(region), false))
+                case None => DBIO.failed(new NoSuchElementException(s"Route ${route.routeId}'s region is gone."))
+              }
           // If we aren't trying to do anything special and user already has a region assigned, use that region.
           case (_, _, _, false, Some(r)) =>
             isTaskAvailable(userId, r.regionId).flatMap {
@@ -275,9 +289,12 @@ class ExploreServiceImpl @Inject() (
           case _ => assignRegion(userId).map((_, false))
         }
       }
-      // TODO we should throw some error here so that the user knows if a region wasn't found.
-      _             = if (region.isEmpty) logger.error(s"Could not find region for $userId!!")
-      regionId: Int = region.get.regionId
+      // A tutorial retake needs no streets left, so it runs in the user's last region.
+      startRegion: Region <- (if (retakingTutorial) region.orElse(currRegion) else region) match {
+        case Some(r) => DBIO.successful(r)
+        case None    => DBIO.failed(AllRegionsFinishedException(userId))
+      }
+      regionId: Int = startRegion.regionId
 
       // A walk whose route measures zero length (a degenerate street geom, #4670) gets no route-scoped mission, and
       // there is no route left to walk anyway. It is dropped for this request exactly like an unresolvable
@@ -289,12 +306,12 @@ class ExploreServiceImpl @Inject() (
       // route's start region, or in a freshly picked one if the user has nothing left there.
       (mission: Mission, walkDropped: Boolean, sessionRegion: Region) <- {
         if (retakingTutorial) {
-          missionService.resumeOrCreateNewAuditOnboardingMission(userId).map(m => (m.get, false, region.get))
+          missionService.resumeOrCreateNewAuditOnboardingMission(userId).map(m => (m.get, false, startRegion))
         } else {
           missionService
             .resumeOrCreateNewAuditMission(userId, regionId, userRoute, revisitStreetId = streetEdgeId)
             .flatMap {
-              case Some(m)                     => DBIO.successful((m, false, region.get))
+              case Some(m)                     => DBIO.successful((m, false, startRegion))
               case None if userRoute.isDefined =>
                 logger.warn(
                   s"Route ${userRoute.get.routeId} (walk ${userRoute.get.userRouteId}) has no walkable distance for " +
@@ -302,7 +319,7 @@ class ExploreServiceImpl @Inject() (
                 )
                 for {
                   _        <- userRouteTable.pauseAllActiveRoutes(userId)
-                  fallback <- regionFallbackAfterDroppedWalk(userId, region.get)
+                  fallback <- regionFallbackAfterDroppedWalk(userId, startRegion)
                 } yield (fallback._1, true, fallback._2)
               // Work was left, but none a mission can be sized from: the only streets left are zero length (#4670).
               case None =>
@@ -383,7 +400,7 @@ class ExploreServiceImpl @Inject() (
         nextTempLabelId
       )
     }
-    db.run(getExploreDataAction.transactionally)
+    db.run(getExploreDataAction.transactionally).map(Some(_)).recover { case _: AllRegionsFinishedException => None }
   }
 
   def listSurveyQuestions: Future[Seq[SurveyQuestionWithOptions]] = db.run(surveyQuestionTable.listAllWithOptions)
@@ -559,15 +576,16 @@ class ExploreServiceImpl @Inject() (
 
   /**
    * Moves the user to a top-priority region they haven't finished, as a bare /explore does.
-   * @param reason Why the user is being moved, for the error log if there's nowhere left to move them.
-   * @return The new mission and its region.
+   * @param reason Why the user is being moved, for the log if there's nowhere left to move them.
+   * @return The new mission and its region; fails with AllRegionsFinishedException if every region is finished.
    */
   private def missionInFreshRegion(userId: String, reason: String): DBIO[(Mission, Region)] =
     assignRegion(userId).flatMap {
       case Some(newRegion) =>
         missionService.resumeOrCreateNewAuditMission(userId, newRegion.regionId, None).map(m => (m.get, newRegion))
       case None =>
-        DBIO.failed(new IllegalStateException(s"No region left for $userId to explore after $reason."))
+        logger.info(s"No region left for $userId to explore after $reason.")
+        DBIO.failed(AllRegionsFinishedException(userId))
     }
 
   /**
