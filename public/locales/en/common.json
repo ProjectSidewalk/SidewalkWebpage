@@ -360,7 +360,8 @@
     "via-email": "Share via email"
   },
   "mini-card": {
-    "no-image": "No image",
+    "image-unavailable": "Image unavailable",
+    "image-coming": "Image coming soon!",
     "open": "Open this label: {{label}}",
     "votes": "Validate this label",
     "no-image-to-judge": "No image to judge this label by",

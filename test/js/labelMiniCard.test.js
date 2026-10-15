@@ -110,7 +110,7 @@ describe('LabelMiniCard', () => {
     const el = card.element;
     expect(el.classList.contains('lmc--strip')).toBe(true);
     expect(el.classList.contains('host-item')).toBe(true);
-    expect(el.querySelector('.lmc__placeholder')).not.toBeNull();
+    expect(el.querySelector('.lmc__placeholder').textContent.trim()).toBe('mini-card.image-unavailable');
     expect(el.querySelector('.lmc__image')).toBeNull();
     expect(el.querySelector('.lmc__marker')).toBeNull(); // the placeholder already carries the icon
     expect(el.querySelector('.lmc__body')).toBeNull();

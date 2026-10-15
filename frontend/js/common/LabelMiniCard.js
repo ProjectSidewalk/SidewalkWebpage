@@ -75,13 +75,15 @@ export class LabelMiniCard {
    * The stand-in for a label with no picture: its type icon on a neutral panel, so every host says "no image"
    * the same way.
    * @param {string} type - The label type.
+   * @param {('unavailable'|'coming')} [reason='unavailable'] - 'coming' only when the crop just hasn't been cut yet.
    * @returns {HTMLElement} The placeholder element.
    */
-  static placeholder(type) {
+  static placeholder(type, reason = 'unavailable') {
+    const key = reason === 'coming' ? 'common:mini-card.image-coming' : 'common:mini-card.image-unavailable';
     const el = document.createElement('span');
     el.className = 'lmc__placeholder';
     el.innerHTML = `<img src="${util.misc.getIconImagePaths(type).iconImagePath}" alt="">
-      <span>${util.escapeHTML(i18next.t('common:mini-card.no-image'))}</span>`;
+      <span>${util.escapeHTML(i18next.t(key))}</span>`;
     return el;
   }
 

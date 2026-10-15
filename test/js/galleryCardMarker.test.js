@@ -47,6 +47,9 @@ describe('a Gallery card\'s label marker', () => {
   const tracker = { push: () => {} };
   const cardFilter = { getAppliedTagNames: () => [] };
 
+  /** @returns {?string} The placeholder's line, or null when the frame has none. */
+  const placeholderText = () => document.querySelector('.gallery-image-placeholder span')?.textContent ?? null;
+
   /** The fractions the wrapper hands the stylesheet, as percentages. */
   function markerPercents() {
     const pct = (name) => 100 * Number(markerWrapper().style.getPropertyValue(name));
@@ -58,11 +61,12 @@ describe('a Gallery card\'s label marker', () => {
      * @param {?string} cropUrl The crop image URL, or null for a card with no crop.
      * @param {?{x: number, y: number}} cropMarker Where the label is in the crop, or null.
      * @param {?string} gsvImageUrl The Street View still's URL, or null for non-GSV imagery.
+     * @param {object} [labelOverrides] Fields to change on the label payload.
      * @returns {Card} The card under test.
      */
-  function renderCard(cropUrl, cropMarker, gsvImageUrl = 'https://maps.example/still.jpg') {
+  function renderCard(cropUrl, cropMarker, gsvImageUrl = 'https://maps.example/still.jpg', labelOverrides = {}) {
     document.body.innerHTML = '<div id="cards"></div>';
-    const card = new Card({ label: label(), cropUrl, gsvImageUrl, cropMarker }, {}, tracker, cardFilter);
+    const card = new Card({ label: label(labelOverrides), cropUrl, gsvImageUrl, cropMarker }, {}, tracker, cardFilter);
     card.render(document.getElementById('cards'));
     return card;
   }
@@ -134,6 +138,7 @@ describe('a Gallery card\'s label marker', () => {
     expect(img.getAttribute('aria-hidden')).toBe('true'); // Its alt would describe a picture that isn't there.
     expect(markerWrapper().classList.contains('gallery-marker-wrapper--missing')).toBe(true);
     expect(credit).toEqual({ logo: 'hidden', attribution: 'hidden' }); // Nothing is owed on no image.
+    expect(placeholderText()).toBe('common:mini-card.image-unavailable');
   });
 
   // The container loads every card again on each page and filter render, so a transient failure (a crop 502 during
@@ -154,6 +159,7 @@ describe('a Gallery card\'s label marker', () => {
     expect(img.classList.contains('static-gallery-image--missing')).toBe(false);
     expect(img.hasAttribute('aria-hidden')).toBe(false);
     expect(markerWrapper().classList.contains('gallery-marker-wrapper--missing')).toBe(false);
+    expect(placeholderText()).toBeNull();
     // The retry starts over from the crop, so the marker and the credit are the crop's again.
     expect(card.getStatus().imageSource).toBe('crop');
     expect(markerPercents()).toEqual({ left: 50, top: 62 });
@@ -174,7 +180,7 @@ describe('a Gallery card\'s label marker', () => {
   });
 
   it('hides them without a request when there is no source at all (non-GSV imagery, no crop yet)', async () => {
-    const card = renderCard(null, null, null);
+    const card = renderCard(null, null, null, { backup_image_url: '/backupImage/pano1' });
 
     const loaded = card.loadImage();
     const img = document.querySelector('.static-gallery-image');
@@ -184,6 +190,28 @@ describe('a Gallery card\'s label marker', () => {
     expect(img.classList.contains('static-gallery-image--missing')).toBe(true);
     expect(markerWrapper().classList.contains('gallery-marker-wrapper--missing')).toBe(true);
     expect(credit).toEqual({ logo: 'hidden', attribution: 'hidden' });
+    // The nightly job will cut it, so this frame says the picture is on its way rather than gone (#5757).
+    expect(placeholderText()).toBe('common:mini-card.image-coming');
+  });
+
+  it('promises no crop when there is no saved pano to cut one from', async () => {
+    const card = renderCard(null, null, null, { backup_image_url: null });
+    await card.loadImage();
+    expect(placeholderText()).toBe('common:mini-card.image-unavailable');
+  });
+
+  it('keeps one placeholder across repeated failed loads, with the icon following a type change', async () => {
+    const card = renderCard(null, null);
+    const img = document.querySelector('.static-gallery-image');
+    for (let i = 0; i < 2; i++) {
+      const loaded = card.loadImage();
+      img.onerror(); // The still 404s.
+      await loaded;
+    }
+    expect(document.querySelectorAll('.gallery-image-placeholder')).toHaveLength(1);
+
+    card.updateLabelType('Obstacle');
+    expect(document.querySelector('.gallery-image-placeholder img').getAttribute('src')).toContain('Obstacle');
   });
 
   it('leaves the image and marker visible once a source loads', async () => {
@@ -197,6 +225,7 @@ describe('a Gallery card\'s label marker', () => {
     expect(img.classList.contains('static-gallery-image--missing')).toBe(false);
     expect(markerWrapper().classList.contains('gallery-marker-wrapper--missing')).toBe(false);
     expect(credit).toEqual({ logo: 'shown', attribution: 'shown' });
+    expect(placeholderText()).toBeNull();
   });
 
   it('hands the crop marker on to whoever opens the label', () => {

@@ -50,8 +50,11 @@
   justify-content: center;
   gap: var(--space-xxs);
   height: 100%;
+  padding: 0 var(--space-xxs);
   font: var(--text-tiny-regular);
   color: var(--color-neutral-700);
+  text-align: center; /* Longer translations wrap on the narrow strip thumbnail. */
+  background: var(--color-neutral-100); /* Its own panel, so a host that isn't a mini card needn't supply one. */
 }
 
 .lmc__placeholder img {
