@@ -16,7 +16,6 @@ case class UserRole(
     winterthurInfra3dAccess: Boolean
 )
 
-// The table still has a community_service column until #5306 drops it. Nothing reads it: user_settings holds it now.
 class UserRoleTableDef(tag: Tag) extends Table[UserRole](tag, "user_role") {
   def userRoleId: Rep[Int]                  = column[Int]("user_role_id", O.PrimaryKey, O.AutoInc)
   def userId: Rep[String]                   = column[String]("user_id")
