@@ -348,6 +348,10 @@ audit.center.ui.tags.info = Adicione etiquetas aos seus rótulos para enriquecer
 audit.center.ui.description.header = Descreva (opcional)
 audit.center.ui.description.placeholder = Descrição
 
+audit.all.regions.finished.title = Você explorou todos os bairros de {0}!
+audit.all.regions.finished.body = Obrigado! Você verificou todas as ruas que temos em {0}. Você pode continuar ajudando validando os rótulos de outras pessoas ou explorando outra cidade.
+audit.all.regions.finished.validate = Validar rótulos
+audit.all.regions.finished.other.cities = Explorar outra cidade
 audit.survey.title = Por favor, participe desta pesquisa única sobre o <i>Project Sidewalk</i>
 audit.survey.enjoyment.question = Quanto você está gostando de usar o <i>Project Sidewalk</i>?
 audit.survey.enjoyment.option.1 = Muito entediante

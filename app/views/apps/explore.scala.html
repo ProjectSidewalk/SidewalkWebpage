@@ -100,6 +100,16 @@
     </div>
   </dialog>
 
+  <dialog id="all-regions-finished" class="all-regions-finished" aria-labelledby="all-regions-finished-title">
+    <img src='@assets.path("images/icons/AccessibilityFeatures.png")' class="all-regions-finished__image" alt="" loading="lazy">
+    <h2 id="all-regions-finished-title" class="all-regions-finished__title">@Messages("audit.all.regions.finished.title", currentCity.cityNameShort)</h2>
+    <p class="all-regions-finished__body">@Messages("audit.all.regions.finished.body", currentCity.cityNameShort)</p>
+    <div class="all-regions-finished__actions">
+      <a class="button button--primary button--medium" id="all-regions-finished-validate" href="@routes.ValidateController.validate()">@Messages("audit.all.regions.finished.validate")</a>
+      <a class="button button--secondary button--medium" id="all-regions-finished-cities" href="@routes.ApplicationController.cities">@Messages("audit.all.regions.finished.other.cities")</a>
+    </div>
+  </dialog>
+
   <div class="tool-ui ps-invisible">
     <div id="area-completion-overlay-wrapper">
       <div class="overlay-text">

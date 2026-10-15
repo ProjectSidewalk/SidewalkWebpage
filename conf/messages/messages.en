@@ -347,6 +347,10 @@ audit.center.ui.tags.info = Please add tags to your labels, which enriches the d
 audit.center.ui.description.header = Describe (optional)
 audit.center.ui.description.placeholder = Description
 
+audit.all.regions.finished.title = You''ve explored every neighborhood in {0}!
+audit.all.regions.finished.body = Thank you! You''ve checked every street we have in {0}. You can keep helping by validating other people''s labels, or by exploring another city.
+audit.all.regions.finished.validate = Validate labels
+audit.all.regions.finished.other.cities = Explore another city
 audit.survey.title = Please take this one-time survey about Project Sidewalk
 audit.survey.enjoyment.question = How much have you been enjoying using Project Sidewalk?
 audit.survey.enjoyment.option.1 = Very boring
