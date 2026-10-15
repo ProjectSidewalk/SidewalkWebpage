@@ -60,8 +60,8 @@ with respect to the image holder. This allows the validation menu to be placed o
 }
 
 /* Neither the crop nor the Street View still loaded (#5327). The card keeps its shape and its data, without a
-   broken-image icon or a marker pointing into an empty frame. The image goes transparent rather than invisible: it is
-   the click target that opens the card, and `visibility: hidden` would take that with it. */
+   broken-image icon or a marker pointing into an empty frame; the placeholder below fills the frame and takes the
+   clicks, since a failed image collapses to its alt line. */
 .static-gallery-image--missing {
   opacity: 0;
 }
@@ -77,6 +77,7 @@ with respect to the image holder. This allows the validation menu to be placed o
   inset: 0;
   gap: 1.6cqw;
   font-size: max(12px, 3.6cqw);
+  line-height: 1.2; /* The token's fixed 12px would overlap a wrapped line at this size. */
   border-top-left-radius: 20px;
   border-top-right-radius: 20px;
 }

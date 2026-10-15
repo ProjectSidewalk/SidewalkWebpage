@@ -61,11 +61,12 @@ describe('a Gallery card\'s label marker', () => {
      * @param {?string} cropUrl The crop image URL, or null for a card with no crop.
      * @param {?{x: number, y: number}} cropMarker Where the label is in the crop, or null.
      * @param {?string} gsvImageUrl The Street View still's URL, or null for non-GSV imagery.
+     * @param {object} [labelOverrides] Fields to change on the label payload.
      * @returns {Card} The card under test.
      */
-  function renderCard(cropUrl, cropMarker, gsvImageUrl = 'https://maps.example/still.jpg') {
+  function renderCard(cropUrl, cropMarker, gsvImageUrl = 'https://maps.example/still.jpg', labelOverrides = {}) {
     document.body.innerHTML = '<div id="cards"></div>';
-    const card = new Card({ label: label(), cropUrl, gsvImageUrl, cropMarker }, {}, tracker, cardFilter);
+    const card = new Card({ label: label(labelOverrides), cropUrl, gsvImageUrl, cropMarker }, {}, tracker, cardFilter);
     card.render(document.getElementById('cards'));
     return card;
   }
@@ -179,7 +180,7 @@ describe('a Gallery card\'s label marker', () => {
   });
 
   it('hides them without a request when there is no source at all (non-GSV imagery, no crop yet)', async () => {
-    const card = renderCard(null, null, null);
+    const card = renderCard(null, null, null, { backup_image_url: '/backupImage/pano1' });
 
     const loaded = card.loadImage();
     const img = document.querySelector('.static-gallery-image');
@@ -193,10 +194,20 @@ describe('a Gallery card\'s label marker', () => {
     expect(placeholderText()).toBe('common:mini-card.image-coming');
   });
 
-  it('keeps one placeholder across repeated failures, with the icon following a type change', async () => {
-    const card = renderCard(null, null, null);
+  it('promises no crop when there is no saved pano to cut one from', async () => {
+    const card = renderCard(null, null, null, { backup_image_url: null });
     await card.loadImage();
-    await card.loadImage();
+    expect(placeholderText()).toBe('common:mini-card.image-unavailable');
+  });
+
+  it('keeps one placeholder across repeated failed loads, with the icon following a type change', async () => {
+    const card = renderCard(null, null);
+    const img = document.querySelector('.static-gallery-image');
+    for (let i = 0; i < 2; i++) {
+      const loaded = card.loadImage();
+      img.onerror(); // The still 404s.
+      await loaded;
+    }
     expect(document.querySelectorAll('.gallery-image-placeholder')).toHaveLength(1);
 
     card.updateLabelType('Obstacle');

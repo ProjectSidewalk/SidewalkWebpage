@@ -205,17 +205,18 @@ export class CardContainer {
     // and can finish first. A page rendered in that window has nobody to hand itself to, so this is where it goes.
     if (this.#expandedViewHooksDeferred) this.#notifyExpandedViewRendered();
     // Add the click event for opening the ExpandedView when a card is clicked.
-    const cardClickSelector = '.static-gallery-image, .additional-count, .ai-icon-marker-card';
+    const cardClickSelector
+      = '.static-gallery-image, .additional-count, .ai-icon-marker-card, .gallery-image-placeholder';
     uiCardContainer.holder.addEventListener('click', (event) => {
       const target = event.target.closest(cardClickSelector);
       if (!target) return;
       // If the user clicks on the image body in the card, just use the provided id.
-      // If they click the AI icon, use the image id from the same card.
+      // If they click the AI icon or the no-image placeholder, use the image id from the same card.
       // Otherwise, the user will have clicked on an existing "+n" icon on the card, meaning we need to acquire
       // the cardId from the card-tags DOM element (as well as perform an additional prepend to put the ID in
       // the correct form).
       let cardId;
-      if (target.classList.contains('ai-icon-marker-card')) {
+      if (target.classList.contains('ai-icon-marker-card') || target.classList.contains('gallery-image-placeholder')) {
         const imageHolder = target.closest('.image-holder');
         const parentImage = imageHolder ? imageHolder.querySelector('.static-gallery-image') : null;
         cardId = parentImage ? parentImage.id : null;

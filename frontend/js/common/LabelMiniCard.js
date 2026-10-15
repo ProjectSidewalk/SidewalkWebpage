@@ -79,10 +79,11 @@ export class LabelMiniCard {
    * @returns {HTMLElement} The placeholder element.
    */
   static placeholder(type, reason = 'unavailable') {
+    const key = reason === 'coming' ? 'common:mini-card.image-coming' : 'common:mini-card.image-unavailable';
     const el = document.createElement('span');
     el.className = 'lmc__placeholder';
     el.innerHTML = `<img src="${util.misc.getIconImagePaths(type).iconImagePath}" alt="">
-      <span>${util.escapeHTML(i18next.t(`common:mini-card.image-${reason}`))}</span>`;
+      <span>${util.escapeHTML(i18next.t(key))}</span>`;
     return el;
   }
 

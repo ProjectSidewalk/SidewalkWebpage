@@ -343,7 +343,8 @@ export class Card {
         const fallbackUrl = this.#cropUrl ? this.#gsvImageUrl : null;
         // Non-GSV imagery with no crop cut yet has no source at all; assigning the null would request "/null".
         if (!primaryUrl) {
-          this.#hideMissingImage('coming');
+          // The nightly job cuts crops from our saved copy of the pano, so without one no crop is coming.
+          this.#hideMissingImage(this.#params.backup_image_url ? 'coming' : 'unavailable');
           resolve(false);
           return;
         }
@@ -417,8 +418,7 @@ export class Card {
     // Right after the image, so the logo, credit and hover menu that follow it still draw on top.
     this.#panoImage.after(this.#placeholder);
     this.#panoImage.classList.add('static-gallery-image--missing');
-    // The image stays in the tree, transparent, as the click target that opens the card; its alt would describe a
-    // picture that isn't there.
+    // Its alt would describe a picture that isn't there.
     this.#panoImage.setAttribute('aria-hidden', 'true');
     this.#markerWrapper.classList.add('gallery-marker-wrapper--missing');
     this.#creditImage(null);
@@ -504,9 +504,10 @@ export class Card {
     this.#properties.label_type = labelType;
     const labelTypeName = util.misc.labelTypeName(labelType);
     const icon = /** @type {HTMLImageElement} */ (this.#card.querySelector('.label-icon'));
-    if (icon) icon.src = util.misc.getIconImagePaths(labelType).iconImagePath;
+    const iconPath = util.misc.getIconImagePaths(labelType).iconImagePath;
+    if (icon) icon.src = iconPath;
     const placeholderIcon = this.#placeholder?.querySelector('img');
-    if (placeholderIcon) placeholderIcon.src = util.misc.getIconImagePaths(labelType).iconImagePath;
+    if (placeholderIcon) placeholderIcon.src = iconPath;
     const header = this.#card.querySelector('.card-header__type');
     if (header) header.textContent = labelTypeName;
     const image = /** @type {HTMLImageElement} */ (this.#card.querySelector('.static-gallery-image'));
