@@ -597,7 +597,7 @@ only over the *name*: Postgres won't hold a table and an enum called `role` in o
 
 Schemas already past 372 are never touched, and need no down-migration.
 
-Two other evolutions can strand a schema the same way, because they read shared state a later evolution removed:
+Three other evolutions can strand a schema the same way, because they read shared state a later evolution removed:
 
 - **`column "infra3d_access" does not exist`** — 313 reads it and 316 drops it. A schema below 303 self-heals,
   since 303 re-adds the column with `IF NOT EXISTS`; one in the 303–312 window needs it restored (exactly as 316's
@@ -605,6 +605,8 @@ Two other evolutions can strand a schema the same way, because they read shared 
 - **`function replace(jsonb, unknown, unknown) does not exist`** — 276 converts `config.excluded_tags` from text to
   jsonb. A dump whose `play_evolutions` predates 276 but whose `config` was already converted can't replay it;
   restore the column to the pre-276 text value from that schema's own dump.
+- **`column "community_service" does not exist`**: 385 reads it from `user_role` and 418 drops it. Use a newer
+  dump.
 
 Both are symptoms of the same underlying problem: a committed dump whose contents disagree with the
 `play_evolutions` it ships with. If an evolution fails on a table or column that should exist at that level, check
