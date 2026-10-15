@@ -220,9 +220,13 @@ let tracker;
 let Minimap;
 let MinimapBasemapStyle;
 
-/** Builds a Minimap over the page's holder, centered on the pano. */
-const createMinimap = () => Minimap.create(
+const ARCHIVE_URL = '/basemap/basemap-20261015-1760572800.pmtiles';
+const GLYPHS_URL = '/basemap/glyphs/{fontstack}/{range}.pbf';
+
+/** Builds a Minimap over the page's holder, centered on the pano, reading the given archive. */
+const createMinimap = (tilesUrl = ARCHIVE_URL) => Minimap.create(
   { holder: document.getElementById('minimap-holder') }, PANO, fakePanoManager({ getPosition: () => PANO }), tracker,
+  { tilesUrl, glyphsUrl: GLYPHS_URL },
 );
 
 /** Loads the sources and the globals they read, against a fresh DOM and a fresh stand-in for MapLibre. */
@@ -233,6 +237,18 @@ async function setUpGlobals(frames) {
   window.i18next = { t: (key) => key, language: 'pt-BR' };
   window.maplibregl = {
     Map: FakeMap, Marker: FakeMarker, AttributionControl: FakeAttributionControl, LngLatBounds: FakeLngLatBounds,
+    addProtocol: vi.fn(),
+  };
+  window.pmtiles = {
+    Protocol: class {
+      static options = [];
+
+      constructor(options) {
+        window.pmtiles.Protocol.options.push(options);
+      }
+
+      tile() {}
+    },
   };
   tracker = fakeTracker();
   ({ Minimap, MinimapBasemapStyle } = await loadModules('frontend/js/explore/navigation/Minimap.js',
@@ -318,6 +334,25 @@ describe('Minimap seam', () => {
       minimap.setBasemapVisible(true);
       expect(map.dragPan.enabled).toBe(true);
     });
+  });
+
+  test('the basemap is read from the city\'s archive through the pmtiles protocol, registered once', async () => {
+    expect(map.options.style.sources[MinimapBasemapStyle.SOURCE_ID].url)
+      .toBe(`pmtiles://${new URL(ARCHIVE_URL, window.location.href).href}`);
+    expect(map.options.style.glyphs).toBe(GLYPHS_URL);
+    await createMinimap();
+    expect(window.maplibregl.addProtocol.mock.calls.map(([name]) => name)).toEqual(['pmtiles']);
+    // The archive's metadata carries the OpenStreetMap credit the attribution control shows.
+    expect(window.pmtiles.Protocol.options).toEqual([{ metadata: true }]);
+  });
+
+  test('a city with no archive yet gets a background-only basemap, and the streets still draw', async () => {
+    FakeMap.instances = [];
+    await createMinimap(null);
+    const [bare] = FakeMap.instances;
+    expect(bare.options.style.sources).toEqual({});
+    expect(bare.options.style.layers.map((layer) => layer.id)).toEqual(['background']);
+    expect(bare.layers.map((layer) => layer.id)).toContain('street-remaining');
   });
 
   test('the map names its canvas and credits button in the user\'s language', () => {

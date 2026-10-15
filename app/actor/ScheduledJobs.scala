@@ -49,7 +49,11 @@ object ScheduledJobs {
   /** Ticks nightly but fetches weekly (#5311); the tick is recorded either way so the panel can tell fresh from stuck. */
   val PlacesRefresh: ScheduledJob    = ScheduledJob(PlacesRefreshActor.Name, "Places refresh", 2, 15)
   val AuthTokenCleaner: ScheduledJob = ScheduledJob(AuthTokenCleanerActor.Name, "Auth token cleanup", 2, 30)
-  val FunnelStats: ScheduledJob      = ScheduledJob(FunnelStatActor.Name, "Engagement funnel stats", 3, 15)
+
+  /** Ticks nightly but builds quarterly (#5716); every tick is recorded, as for the places refresh. */
+  val BasemapRefresh: ScheduledJob = ScheduledJob(BasemapRefreshActor.Name, "Minimap basemap refresh", 2, 45)
+
+  val FunnelStats: ScheduledJob = ScheduledJob(FunnelStatActor.Name, "Engagement funnel stats", 3, 15)
 
   /** After the day's labeling; it reads labels rather than clusters, so it needn't wait for clustering (#5279). */
   val SidewalkPresenceRebuild: ScheduledJob =
@@ -77,8 +81,9 @@ object ScheduledJobs {
 
   /** Every job the Health panel expects to see a recent run of, in the order they run. */
   val All: Seq[ScheduledJob] = Seq(CheckImageExpiry, GetAiValidations, CheckImageryAge, UserStats, ImageryFreshnessSync,
-    RecalculateStreetPriority, OsmWayRefresh, PlacesRefresh, AuthTokenCleaner, FunnelStats, SidewalkPresenceRebuild,
-    StreetGradientStaleness, IntersectionRebuild, Clustering, AccessScoreSnapshot, CropGeneration)
+    RecalculateStreetPriority, OsmWayRefresh, PlacesRefresh, AuthTokenCleaner, BasemapRefresh, FunnelStats,
+    SidewalkPresenceRebuild, StreetGradientStaleness, IntersectionRebuild, Clustering, AccessScoreSnapshot,
+    CropGeneration)
 
   /**
    * How long after a job's last successful run it counts as overdue, in hours.

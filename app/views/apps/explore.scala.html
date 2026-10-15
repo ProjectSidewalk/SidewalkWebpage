@@ -6,7 +6,8 @@
 @import views.ViewHelpers.jsonForScript
 @(
   commonData: service.CommonPageData, title: String, user: models.user.SidewalkUserWithRole,
-  surveyData: Seq[SurveyQuestionWithOptions], tutorialStreetId: Int, makeCrops: Boolean
+  surveyData: Seq[SurveyQuestionWithOptions], tutorialStreetId: Int, makeCrops: Boolean,
+  basemap: play.api.libs.json.JsObject
 )(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: play.api.Configuration)
 
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
@@ -901,6 +902,8 @@
   <link id="maplibre-module" rel="modulepreload"
         href='@assets.path("vendor/maplibre-gl/maplibre-gl-6.10.0/maplibre-gl.mjs")'>
   <link href='@assets.path("vendor/maplibre-gl/maplibre-gl-6.10.0.css")' rel="stylesheet">
+  @* Reads the minimap's basemap archive in pieces (#5716); Minimap.js hands it to MapLibre. *@
+  <script src='@assets.path("vendor/pmtiles/pmtiles-4.5.0.min.js")'></script>
   <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.js")'></script>
   <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")'></script>
   <link href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.css")' rel="stylesheet">
@@ -925,6 +928,7 @@
     @* When free exploration has seen enough of a street to count it (#5733). The backend owns the numbers
        (StreetCoverage) so the client's coverage tracking and the server's completion check agree. *@
     "streetCoverage": @jsonForScript(models.audit.StreetCoverage.asJson),
+    "basemap": @jsonForScript(basemap),
     "imagerySource": "@commonData.imagerySource.name",
     "viewerAccessToken": "@commonData.imageryAccessToken"
   }</script>

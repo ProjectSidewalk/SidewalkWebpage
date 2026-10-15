@@ -190,6 +190,12 @@ blocking CI step) fails if the two disagree, or if a folder under `vendor/` isn'
 - **async-lock: 1.4.1** — **note:** a fresh download probably needs the trailing `module.export` line removed.
   [Download](https://cdn.jsdelivr.net/npm/async-lock@1.4.1/lib/index.min.js) ·
   [Versions](https://github.com/rogierschouten/async-lock/releases)
+- **basemap-glyphs (protomaps/basemaps-assets at `028c18f`)** — the Noto Sans Regular and Italic glyph files the
+  Explore minimap draws road and water names with (#5716), with their font license (`OFL.txt`). Not a script, so no
+  version is in a filename: to upgrade, download the repo at a newer commit, replace the two font folders, and update
+  the commit here. MapLibre requests them by URL pattern, so they are served from `/basemap/glyphs/` (`conf/routes`)
+  rather than through `assets.path`.
+  [Repo](https://github.com/protomaps/basemaps-assets)
 - **bowser: 2.14.1** — browser detection.
   [Versions](https://www.npmjs.com/package/bowser?activeTab=versions) ·
   [Changelog](https://github.com/bowser-js/bowser/releases)
@@ -255,6 +261,14 @@ blocking CI step) fails if the two disagree, or if a folder under `vendor/` isn'
   three.js than the standalone 0.160.1 below. Upgrade by running the script with the new version (three.js follows
   from PSV's own dependency pin); see the README beside it. [Releases](https://github.com/mistic100/Photo-Sphere-Viewer/releases) ·
   [Docs](https://photo-sphere-viewer.js.org/guide/)
+- **pmtiles: 4.5.0** — lets MapLibre read the minimap's basemap archive by range request (#5716)
+  (`pmtiles-4.5.0.min.js`, the IIFE build `dist/pmtiles.js`, minus its source-map comment). **Note:** the server
+  side uses the separate `pmtiles` command-line tool, pinned in `BasemapService` (`CliVersion` plus the SHA-256 of
+  each Linux release file, from the release page's asset digests). The app downloads that tool itself, so to upgrade
+  it change those values and nothing else; the next refresh fetches the new version.
+  [Download](https://cdn.jsdelivr.net/npm/pmtiles@4.5.0/dist/pmtiles.js) ·
+  [Changelog](https://github.com/protomaps/PMTiles/blob/main/js/CHANGELOG.md) ·
+  [CLI releases](https://github.com/protomaps/go-pmtiles/releases)
 - **prism: 1.30.0** — syntax highlighting for the API docs' code blocks. We ship the core plus only the language
   components the docs use (`json`, `csv`), so a new `language-*` class in a docs page means adding that component too.
   **No stock theme:** the `.token.*` colors are ours, in `css/pages/api-docs/api-docs.css`, so the blocks stay on the

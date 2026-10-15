@@ -400,6 +400,12 @@ store nothing in the app writes. The downscaled display copies of panos too wide
 demand into `SIDEWALK_IMAGES_DIR` instead, under `pano-display/` beside the crops (#5256), so the pano store holds
 nothing derived and anything copying it can take the directory whole.
 
+The minimap basemap job writes there too (#5716): each city's tile archives under `basemap/` beside its crops, and
+one shared copy of the `pmtiles` tool under `tools/` at the directory's top level, falling back to the city's own
+folder when the top level isn't writable to the app's user. Both are derived and rebuilt at the next startup if
+deleted. The job needs outbound HTTPS to `build-metadata.protomaps.dev` and `build.protomaps.com` (the world build it
+cuts from) and, once per tool version, `github.com` (the tool's release download).
+
 `pano-display/` is derived, disposable and deliberately unpruned. Deleting it, whole or in part, costs a ~2 s re-cut
 the next time a device asks for one. Nothing sweeps it because ordinary use cannot grow it: a copy is cut only for a
 pano too wide for the requesting device, only at one of three allowed widths, and only for the small minority of

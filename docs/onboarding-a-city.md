@@ -229,6 +229,8 @@ its default either way.
   `sidewalk_login`; and if the landing map needs a different zoom, edit `config.default_map_zoom` and clear the Play
   cache from the admin page (it caches the config row), the same after hiding streets on a live server, since the
   total street distance behind the completion percentage is cached too.
+- **The minimap basemap needs nothing.** A city with no tile archive cuts its own two minutes after the app first
+  starts (#5716); until then Explore's minimap draws its streets over a plain background.
 - **What the nightly jobs still owe.** Onboarding fills only what no scheduled job can produce, so a new city's
   `intersection` table (with each street's corner links, #5095), its `cluster` table, its `sidewalk_presence`
   table, its `place` table (the schools, clinics, and transit stops the AccessScore map shows, fetched from

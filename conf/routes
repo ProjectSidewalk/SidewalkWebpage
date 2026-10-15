@@ -120,6 +120,7 @@ GET     /adminapi/checkImagery                          controllers.AdminControl
 POST    /adminapi/generateCrops                         controllers.AdminController.generateCrops
 POST    /adminapi/rebuildSidewalkPresence               controllers.AdminController.rebuildSidewalkPresence
 POST    /adminapi/refreshPlaces                         controllers.AdminController.refreshPlaces
+POST    /adminapi/refreshBasemap                        controllers.AdminController.refreshBasemap
 POST    /adminapi/recountStreetGradientStaleness        controllers.AdminController.recountStreetGradientStaleness
 
 # Community-partner logos on the landing page (#4516). Global (all-cities) scope is Owner-only; the reorder routes
@@ -230,6 +231,10 @@ POST    /userapi/createTeam                             controllers.UserProfileC
 
 # Map resources from the /public folder to the /assets URL path. Prefix must match `play.assets.urlPrefix`
 GET     /assets/*file                                   controllers.Assets.versioned(file)
+
+# The Explore minimap's basemap (#5716): the city's tile archive, and the glyphs its labels are drawn with
+GET     /basemap/glyphs/*file                           controllers.Assets.at(path="/public/vendor/basemap-glyphs", file)
+GET     /basemap/:name                                  controllers.BasemapController.archive(name: String)
 
 # Clustering
 GET     /clustering                                     controllers.ClusterController.index

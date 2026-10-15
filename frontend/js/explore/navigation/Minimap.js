@@ -18,6 +18,10 @@
  *                                                        an image that no longer answers clicks or takes focus.
  * @property {(zIndex: number) => void} setZIndex - Restacks the marker among the others.
  *
+ * @typedef {object} MinimapBasemap
+ * @property {?string} tilesUrl - The city's tile archive, or null before its first build (BasemapController).
+ * @property {string} glyphsUrl - The URL pattern for the fonts the basemap's names are drawn in.
+ *
  * @typedef {object} MinimapStreetLine
  * @property {'audited'|'remaining'|'completed'|'other'} kind - How to draw it; see MinimapStyle.streetLayers.
  * @property {number[][]} coordinates - The line as [lng, lat] pairs, in walking order (chevrons point along it).
@@ -48,6 +52,9 @@ export class Minimap {
 
   // Id of the GeoJSON source holding every street line.
   static #STREETS_SOURCE = 'streets';
+
+  // MapLibre's protocol handlers are global and refuse a second registration under the same name.
+  static #archiveProtocolAdded = false;
 
   #ui;
   #panoManager;
@@ -110,15 +117,18 @@ export class Minimap {
 
   /**
    * Creates the map and its street layers. Resolves as soon as the style is ready to draw on — deliberately not when
-   * the basemap tiles have arrived: the tile host is a third party, and Explore must start (streets, peg, labels and
-   * fog over a blank background) even if it never answers.
+   * the basemap tiles have arrived: Explore must start (streets, peg, labels and fog over a blank background) even if
+   * they never do.
    * @param {{lat: number, lng: number}} initialLocation - Initial lat/lng location.
+   * @param {MinimapBasemap} basemap
    * @returns {Promise<void>}
    */
-  async #init(initialLocation) {
+  async #init(initialLocation, basemap) {
+    // MapLibre reads the archive through pmtiles' protocol handler, which wants an absolute URL after its prefix.
+    const tilesUrl = basemap.tilesUrl ? `pmtiles://${new URL(basemap.tilesUrl, window.location.href).href}` : null;
     this.#map = new maplibregl.Map({
       container: 'minimap',
-      style: MinimapBasemapStyle.build(initialLocation.lat, i18next.language),
+      style: MinimapBasemapStyle.build(initialLocation.lat, i18next.language, tilesUrl, basemap.glyphsUrl),
       center: Minimap.#lngLat(initialLocation),
       zoom: Minimap.#DEFAULT_ZOOM,
       minZoom: Minimap.#MIN_ZOOM,
@@ -597,16 +607,22 @@ export class Minimap {
   }
 
   /**
-   * Makes MapLibre available as the `maplibregl` global the rest of this class names. It is served as its own files,
-   * not bundled (docs/upgrading-libraries.md), so the URL comes from the view's preload link, the one place a vendor
-   * file gets its fingerprinted URL. A global already present (the jsdom tests' stand-in) is kept.
+   * Makes MapLibre available as the `maplibregl` global, able to read `pmtiles://` archives. MapLibre is served as
+   * its own files, not bundled (docs/upgrading-libraries.md), so the URL comes from the view's preload link, the one
+   * place a vendor file gets its fingerprinted URL. A global already present (the jsdom tests' stand-in) is kept.
    * @returns {Promise<void>}
    */
   static async #loadLibrary() {
-    if (typeof maplibregl !== 'undefined') return;
-    const link = /** @type {?HTMLLinkElement} */ (document.getElementById('maplibre-module'));
-    if (!link) throw new Error('Minimap: no #maplibre-module link on the page to load MapLibre from');
-    window.maplibregl = await import(link.href);
+    if (typeof maplibregl === 'undefined') {
+      const link = /** @type {?HTMLLinkElement} */ (document.getElementById('maplibre-module'));
+      if (!link) throw new Error('Minimap: no #maplibre-module link on the page to load MapLibre from');
+      window.maplibregl = await import(link.href);
+    }
+    if (!Minimap.#archiveProtocolAdded) {
+      // Without `metadata`, the archive's OpenStreetMap credit never reaches the attribution control.
+      maplibregl.addProtocol('pmtiles', new pmtiles.Protocol({ metadata: true }).tile);
+      Minimap.#archiveProtocolAdded = true;
+    }
   }
 
   /**
@@ -640,13 +656,14 @@ export class Minimap {
    * @param {{lat: number, lng: number}} initialLocation - Initial lat/lng location.
    * @param {PanoManager} panoManager
    * @param {Tracker} tracker
+   * @param {MinimapBasemap} basemap - Where the basemap's tiles and fonts are served from.
    * @returns {Promise<Minimap>} The minimap instance.
    */
-  static async create(ui, initialLocation, panoManager, tracker) {
+  static async create(ui, initialLocation, panoManager, tracker, basemap) {
     const newMinimap = new Minimap(ui, panoManager, tracker);
     try {
       await Minimap.#loadLibrary();
-      await newMinimap.#init(initialLocation);
+      await newMinimap.#init(initialLocation, basemap);
     } catch (error) {
       newMinimap.#showUnavailable(error);
     }

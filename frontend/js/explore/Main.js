@@ -95,6 +95,7 @@ import '../common/utilitiesSidewalk.js';
  * @property {import('./task/Task.js').StreetCoverage} streetCoverage - Free exploration's street-credit rule
  *   (#5733), owned by the backend (StreetCoverage).
  * @property {string} mapboxApiKey
+ * @property {import('./navigation/Minimap.js').MinimapBasemap} basemap - Where the minimap's basemap is served from.
  * @property {string} countryId - The city's country, for the speed limit sign.
  * @property {string} language - The page's language code.
  * @property {typeof import('../common/pano-viewer/PanoViewer.js').PanoViewer} viewerType - The viewer class for
@@ -266,6 +267,7 @@ export class Main {
       latLngEstimation: params.latLngEstimation,
       streetCoverage: params.streetCoverage,
       mapboxApiKey: params.mapboxApiKey,
+      basemap: params.basemap,
       countryId: params.countryId,
       language: params.language,
       viewerType: isOnboarding ? GsvViewer : params.viewerType,
@@ -318,7 +320,8 @@ export class Main {
     // The viewer and the minimap load side by side; what needs neither is built meanwhile.
     const panoManager = new PanoManager(ui.streetview, config, panoStore, tracker, alertController, seed,
       { task: newTask, missionId: session.mission.mission_id });
-    const minimapLoading = Minimap.create(ui.minimap, { lat: startLat, lng: startLng }, panoManager, tracker);
+    const minimapLoading = Minimap.create(ui.minimap, { lat: startLat, lng: startLng }, panoManager, tracker,
+      config.basemap);
     const stuckAlert = new StuckAlert(alertController, panoManager);
 
     const badgeProgress = new BadgeProgress();

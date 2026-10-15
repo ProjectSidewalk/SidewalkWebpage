@@ -48,6 +48,7 @@ class AdminController @Inject() (
     trafficService: TrafficService,
     sidewalkPresenceService: SidewalkPresenceService,
     placesService: PlacesService,
+    basemapService: BasemapService,
     actorSystem: ActorSystem
 )(using ec: ExecutionContext)
     extends CustomBaseController(cc) {
@@ -1242,6 +1243,25 @@ class AdminController @Inject() (
           case Failure(e)      => logger.error(s"Manually triggered places refresh failed: ${e.getMessage}")
         }
       Future.successful(Accepted("Places refresh started. It reports to the Health panel when it finishes."))
+    }
+  }
+
+  /**
+   * Cuts a new minimap basemap archive now, whatever the current one's age (#5716): after a city's regions change,
+   * or to retry a build that failed. Answers at once like the places refresh; the run row reports how it went.
+   */
+  def refreshBasemap = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    cc.loggingService.insert(request.identity.userId, request.ipAddress, request.toString)
+    if (basemapService.isRunning) {
+      Future.successful(Conflict("A basemap refresh is already in progress."))
+    } else {
+      jobRunService
+        .record(BasemapRefreshActor.Name, JobRunTrigger.Manual)(basemapService.refresh(force = true))(_.runDetails)
+        .onComplete {
+          case Success(result) => logger.info(s"Manually triggered basemap refresh finished: ${result.runDetails}")
+          case Failure(e)      => logger.error(s"Manually triggered basemap refresh failed: ${e.getMessage}")
+        }
+      Future.successful(Accepted("Basemap refresh started. It reports to the Health panel when it finishes."))
     }
   }
 

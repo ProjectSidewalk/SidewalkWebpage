@@ -96,6 +96,20 @@ class RegionTable @Inject() (
   }
 
   /**
+   * The bounding box of the city's live regions, for the places refresh and the minimap basemap. Not the configured
+   * map bounds: those can cover a whole metro area (Teaneck's would fetch 42k places to keep 175).
+   *
+   * @return The box, or None for a schema with no regions.
+   */
+  def regionsExtent: DBIO[Option[LatLngBBox]] =
+    sql"""SELECT ST_XMin(extent.box), ST_YMin(extent.box), ST_XMax(extent.box), ST_YMax(extent.box)
+          FROM (SELECT ST_Extent(region.geom) AS box FROM region WHERE NOT region.deleted) extent
+          WHERE extent.box IS NOT NULL"""
+      .as[(Double, Double, Double, Double)]
+      .headOption
+      .map(_.map { case (minLng, minLat, maxLng, maxLat) => LatLngBBox(minLat, minLng, maxLat, maxLng) })
+
+  /**
    * Gets regions w/ boolean noting if given user fully audited the region. If provided, filter for only given regions.
    */
   def getRegionsWithUserCompletion(userId: String, regionIds: Seq[Int]): DBIO[Seq[(Region, Boolean)]] = {

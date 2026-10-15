@@ -33,7 +33,7 @@ export class ManagementPage {
    * @param {{userStatsUrl: string, setRoleUrl: string, setTeamUrl: string, teamStatusUrl: string,
    *          teamVisibilityUrl: string, clearCacheUrl: string, recalcStatsUrl: string, recalcPriorityUrl: string,
    *          recalcValidationCountsUrl: string, generateCropsUrl: string, rebuildSidewalkPresenceUrl: string,
-   *          refreshPlacesUrl: string, recountGradientStalenessUrl: string}} urls
+   *          refreshPlacesUrl: string, refreshBasemapUrl: string, recountGradientStalenessUrl: string}} urls
    * @param {string[]} assignableRoles - Role names from the backend's `Role.ADMIN_ASSIGNABLE_ROLES`.
    */
   constructor(urls, assignableRoles) {
@@ -413,6 +413,8 @@ export class ManagementPage {
       'rebuild sidewalk presence');
     run('mgmt-refresh-places', this.#urls.refreshPlacesUrl, 'POST', 'refresh places',
       'Started: refresh places. It runs in the background; Health (Owners) reports the result.');
+    run('mgmt-refresh-basemap', this.#urls.refreshBasemapUrl, 'POST', 'rebuild minimap basemap',
+      'Started: rebuild minimap basemap. It runs in the background; Health (Owners) reports the result.');
     run('mgmt-recount-gradient-staleness', this.#urls.recountGradientStalenessUrl, 'POST',
       'recount street gradient staleness',
       (counts) => `Done: ${AdminShell.num(counts.streets_unsampled)} street(s) with no grade, `
