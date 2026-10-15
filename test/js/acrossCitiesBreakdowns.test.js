@@ -148,12 +148,12 @@ describe('Across Cities — attribution split and hover breakdowns', () => {
 
   /** The card trigger inside the nth cell of the first table row (0 = city name). */
   function cellTrigger(index) {
-    return document.querySelectorAll('#ac-top-tbody tr')[0].cells[index].querySelector('[data-ps-tooltip]');
+    return document.querySelectorAll('#ac-top-tbody tr')[0].cells[index].querySelector('[data-ps-tooltip-html]');
   }
 
   /** The hover-card markup on the nth cell of the first table row (0 = city name). */
   function cellCard(index) {
-    return cellTrigger(index).getAttribute('data-ps-tooltip');
+    return cellTrigger(index).getAttribute('data-ps-tooltip-html');
   }
 
   /** The hover/focus target for the bar at `index` of a per-day chart. */
@@ -163,7 +163,7 @@ describe('Across Cities — attribution split and hover breakdowns', () => {
 
   /** The hover-card markup on the bar at `index` of the labels-per-day chart. */
   function barCard(index, chart = 'labels') {
-    return barTarget(index, chart).getAttribute('data-ps-tooltip');
+    return barTarget(index, chart).getAttribute('data-ps-tooltip-html');
   }
 
   beforeEach(async () => {
@@ -684,7 +684,7 @@ describe('Across Cities — attribution split and hover breakdowns', () => {
       await render({ cities: CITIES });
       const cells = [...document.querySelectorAll('#ac-top-tbody tr')[0].cells];
 
-      expect(cells.filter((td) => td.querySelector('[tabindex="0"][data-ps-tooltip]')).length).toBe(4);
+      expect(cells.filter((td) => td.querySelector('[tabindex="0"][data-ps-tooltip-html]')).length).toBe(4);
     });
   });
 
@@ -716,7 +716,7 @@ describe('Across Cities — attribution split and hover breakdowns', () => {
       // Cards are keyed by day, so the week's bar i and the month's bar i + 3 explain the same day identically.
       bars('week', 'labels').forEach((bar, i) => {
         const monthBar = bars('month', 'labels')[i + 3];
-        expect(bar.getAttribute('data-ps-tooltip')).toBe(monthBar.getAttribute('data-ps-tooltip'));
+        expect(bar.getAttribute('data-ps-tooltip-html')).toBe(monthBar.getAttribute('data-ps-tooltip-html'));
       });
     });
 

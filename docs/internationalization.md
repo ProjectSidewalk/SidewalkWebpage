@@ -82,14 +82,14 @@ subtitle.innerHTML = i18next.t('common:subtitle', { href: DOCS_URL, interpolatio
 // Or escape at the sink, when the same string also feeds a text sink (here an accessible name).
 const label = i18next.t('accessscore:rank-row', { name: region.name });
 row.button.setAttribute('aria-label', label);
-row.button.setAttribute('data-ps-tooltip', util.escapeHTML(label)); // psTooltip renders this as HTML.
+row.button.innerHTML = `<span>${util.escapeHTML(label)}</span>`;
 ```
 
 Markup sinks in this codebase are `innerHTML` / `outerHTML`, `insertAdjacentHTML`, a MapLibre popup's `setHTML`, and
-the **`data-ps-tooltip` attribute**, which `psTooltip.js` renders as HTML (cleaned of script first, but a missed
+the **`data-ps-tooltip-html` attribute**, which `psTooltip.js` renders as HTML (cleaned of script first, but a missed
 escape still shows as markup). Helpers count too: `AlertController.showAlert`, `PopUpMessage.notify`, and the
 onboarding message boxes all render HTML. Text sinks are everything else — a text node, `append()`, `alert` /
-`confirm`, a share sheet, and any other attribute, `title` included.
+`confirm`, a share sheet, and any other attribute, `title` and the plain `data-ps-tooltip` included.
 
 The **`ps/i18n-escape-in-markup`** ESLint rule (`tools/lint/eslint-rules/i18n-escape-in-markup.js`) flags a `t()`
 call that interpolates values and reaches one of those sinks without stating `interpolation.escapeValue`, whether
@@ -107,6 +107,10 @@ never `true`: turning escaping on at a text sink is the bug #5389 fixed.
 
 Two things escaping never touches: the **translation string itself** (markup inside a locale value always renders),
 and a variable written **`{{- labelType}}`**, which i18next interpolates raw whatever the setting is.
+
+**Tooltip text is plain text,** so a translation shown in a plain tooltip carries no markup: `<b>` would print as-is.
+A tooltip that needs markup (an underlined shortcut letter, an image, a link) is set in code as a
+`data-ps-tooltip-html` card (see `psTooltip.js`).
 
 Write a soft hyphen as `\u00AD`, never `&shy;`, which prints literally in plain text. Read a label type's name in JS
 with `util.misc.labelTypeName(type)`.

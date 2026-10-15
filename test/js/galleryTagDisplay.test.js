@@ -150,7 +150,7 @@ describe('TagDisplay', () => {
 
     expect(container.querySelector('.not-added')).toBeNull();
     expect(overflowPill(container)).toBe(' + 1');
-    const tooltip = container.querySelector('.additional-count').getAttribute('data-ps-tooltip');
+    const tooltip = container.querySelector('.additional-count').getAttribute('data-ps-tooltip-html');
     expect(tooltip).toContain('not-added');
     expect(tooltip).toContain('uneven');
   });

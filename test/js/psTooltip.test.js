@@ -44,8 +44,18 @@ function stubLayout() {
 
 /** Adds a trigger at `rect` carrying `text`, plus any extra attributes. */
 function addTrigger(rect, text, attrs = {}) {
+  return addTriggerWith('data-ps-tooltip', rect, text, attrs);
+}
+
+/** Adds a trigger at `rect` whose card is the markup `html`, plus any extra attributes. */
+function addHtmlTrigger(rect, html, attrs = {}) {
+  return addTriggerWith('data-ps-tooltip-html', rect, html, attrs);
+}
+
+/** Adds a trigger at `rect` with `value` in the tooltip attribute `attr`, plus any extra attributes. */
+function addTriggerWith(attr, rect, value, attrs) {
   const el = document.createElement('button');
-  el.setAttribute('data-ps-tooltip', text);
+  el.setAttribute(attr, value);
   for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
   el._rect = rect;
   document.body.appendChild(el);
@@ -99,8 +109,21 @@ afterEach(() => {
 });
 
 describe('psTooltip markup', () => {
+  test('shows plain-text tooltips as text, markup and all (#5659)', () => {
+    const trigger = addTrigger({ left: 400, top: 400, width: 40, height: 20 }, '<b>Bold</b> & <img src="x">');
+    const card = open(trigger);
+    expect(card.textContent).toBe('<b>Bold</b> & <img src="x">');
+    expect(card.children).toHaveLength(0);
+  });
+
+  test('the markup attribute wins over the text one', () => {
+    const trigger = addHtmlTrigger({ left: 400, top: 400, width: 40, height: 20 }, '<b>Card</b>',
+      { 'data-ps-tooltip': 'text' });
+    expect(open(trigger).querySelector('b').textContent).toBe('Card');
+  });
+
   test('keeps formatting but never anything that could run script', () => {
-    const trigger = addTrigger({ left: 400, top: 400, width: 40, height: 20 },
+    const trigger = addHtmlTrigger({ left: 400, top: 400, width: 40, height: 20 },
       '<b>Bold</b><img src="x" onerror="alert(1)"><script>alert(2)</script>');
     const card = open(trigger);
     expect(card.querySelector('b').textContent).toBe('Bold');
@@ -109,7 +132,7 @@ describe('psTooltip markup', () => {
   });
 
   test('keeps what our cards rely on: new-tab links and the shortcut-key underline', () => {
-    const trigger = addTrigger({ left: 400, top: 400, width: 40, height: 20 },
+    const trigger = addHtmlTrigger({ left: 400, top: 400, width: 40, height: 20 },
       '<tag-underline>S</tag-underline>teep <a href="https://x.org" target="_blank">x</a>');
     const card = open(trigger);
     expect(card.querySelector('tag-underline').textContent).toBe('S');
@@ -118,7 +141,7 @@ describe('psTooltip markup', () => {
   });
 
   test('drops page-wide styles and form fields', () => {
-    const trigger = addTrigger({ left: 400, top: 400, width: 40, height: 20 },
+    const trigger = addHtmlTrigger({ left: 400, top: 400, width: 40, height: 20 },
       'x<style>body{display:none}</style><form><input type="password"><button>Go</button></form>');
     const card = open(trigger);
     expect(card.querySelector('style, form, input, button')).toBeNull();
@@ -372,7 +395,7 @@ describe('psTooltip images', () => {
     const complete = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, 'complete');
     Object.defineProperty(HTMLImageElement.prototype, 'complete', { configurable: true, get: () => false });
     try {
-      const trigger = addTrigger({ left: 400, top: 300, width: 100, height: 30 }, 'text<br><img src="x.png">');
+      const trigger = addHtmlTrigger({ left: 400, top: 300, width: 100, height: 30 }, 'text<br><img src="x.png">');
       const card = open(trigger);
       expect(card.style.top).toBe(`${300 - CARD_HEIGHT - TRIGGER_GAP}px`);
 
@@ -409,7 +432,7 @@ describe('psTooltip top layer', () => {
 describe('psTooltip pinning (#5495)', () => {
   /** A pinnable trigger, like the Across Cities day bars, whose card carries a link. */
   function addPinnable() {
-    return addTrigger(
+    return addHtmlTrigger(
       { left: 400, top: 300, width: 100, height: 30 },
       '<a id="card-link" href="https://example.org/admin/user/a">a</a>',
       {
@@ -619,7 +642,7 @@ describe('psTooltip pinning (#5495)', () => {
     key(trigger, 'Enter');
     const link = document.getElementById('card-link');
     link.focus();
-    trigger.setAttribute('data-ps-tooltip', 'replaced');
+    trigger.setAttribute('data-ps-tooltip-html', 'replaced');
     await Promise.resolve();
 
     expect(document.activeElement).toBe(link);

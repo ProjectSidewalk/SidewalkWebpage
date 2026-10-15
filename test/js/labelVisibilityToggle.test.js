@@ -43,7 +43,7 @@ describe('LabelVisibilityToggle', () => {
     expect(toggle.isVisible()).toBe(true);
     for (const button of buttons) {
       expect(button.textContent).toContain(TEXT.hide);
-      expect(button.getAttribute('data-ps-tooltip')).toBe(TEXT.hideTooltip);
+      expect(button.getAttribute('data-ps-tooltip-html')).toBe(TEXT.hideTooltip);
       expect(button.querySelector('svg.hide-label-button-icon')).not.toBeNull();
     }
     expect(changes).toEqual([{ visible: true, viaClick: false }]);
@@ -57,7 +57,7 @@ describe('LabelVisibilityToggle', () => {
     expect(toggle.isVisible()).toBe(false);
     for (const button of buttons) {
       expect(button.textContent).toContain(TEXT.show);
-      expect(button.getAttribute('data-ps-tooltip')).toBe(TEXT.showTooltip);
+      expect(button.getAttribute('data-ps-tooltip-html')).toBe(TEXT.showTooltip);
     }
     expect(changes.at(-1)).toEqual({ visible: false, viaClick: true });
   });

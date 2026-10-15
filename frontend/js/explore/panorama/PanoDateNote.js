@@ -162,10 +162,6 @@ export class PanoDateNote {
     this.#noteEl.setAttribute('data-ps-tooltip', i18next.t(tipKey, {
       assessedDate: util.monthYear(lastMappedAt),
       captureDate: util.monthYear(this.#captureDateIso),
-      // psTooltip renders this attribute as HTML. Two dates of ours need no escaping today; escaping
-      // costs nothing on a date and covers whoever interpolates something a user wrote here later. One level, not
-      // the two a markup-parsed attribute needs -- setAttribute does no parsing, so the tooltip is the only consumer.
-      interpolation: { escapeValue: true },
     }));
     this.#noteEl.hidden = false;
     this.#log(state, lastMappedAt, byThisUser);

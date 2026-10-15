@@ -152,7 +152,9 @@ export class DesktopValidationMenu {
             const tagDiv = document.createElement('div');
             tagDiv.className = 'tag-pill tag-pill--interactive';
             tagDiv.textContent = translatedTagName;
-            const tooltipText = `"${translatedTagName}" example`;
+            const tooltipText = i18next.t('validate:validate-menu.tag-example-tooltip', {
+              tag: translatedTagName, interpolation: { escapeValue: true },
+            });
             this.#addTooltip(tagDiv, tooltipText, util.assetPath(`images/examples/tags/${item.tag_id}.png`));
             return tagDiv;
           },
@@ -318,7 +320,7 @@ export class DesktopValidationMenu {
       if (buttonInfo) {
         reasonButton.innerHTML = buttonInfo.buttonText;
 
-        reasonButton.removeAttribute('data-ps-tooltip');
+        reasonButton.removeAttribute('data-ps-tooltip-html');
         if (buttonInfo.tooltipImage) {
           util.getImage(buttonInfo.tooltipImage).then((img) => {
             this.#addTooltip(reasonButton, buttonInfo.tooltipText, img);
@@ -515,9 +517,8 @@ export class DesktopValidationMenu {
   #addTooltip(elem, tooltipText, img) {
     if (!window.matchMedia('(hover: hover)').matches) return; // A tap would pin it open on a touch device.
     const imgHtml = img ? `<br/><img src="${util.escapeHTML(img)}" class="validate-tooltip-img"/>` : '';
-    // eslint-disable-next-line ps/escape-in-markup -- translations can contain <b>.
-    const tooltipHtml = `${tooltipText}${imgHtml}`;
-    elem.setAttribute('data-ps-tooltip', tooltipHtml);
+    // eslint-disable-next-line ps/escape-in-markup -- our translations, which can contain <b>.
+    elem.setAttribute('data-ps-tooltip-html', `${tooltipText}${imgHtml}`);
   }
 
   // TAG SECTION.
@@ -577,11 +578,13 @@ export class DesktopValidationMenu {
       const removeLabel = i18next.t('validate:validate-menu.remove-tag', { tag: translatedTagName });
       removeButton.setAttribute('aria-label', removeLabel);
       removeButton.addEventListener('click', () => {
-        tagDiv.removeAttribute('data-ps-tooltip'); // Or the tooltip outlives the pill it belonged to (#4071).
+        tagDiv.removeAttribute('data-ps-tooltip-html'); // Or the tooltip outlives the pill it belonged to (#4071).
         this.#removeTag(tag, label, false);
       });
 
-      const tooltipText = `"${translatedTagName}" example`;
+      const tooltipText = i18next.t('validate:validate-menu.tag-example-tooltip', {
+        tag: translatedTagName, interpolation: { escapeValue: true },
+      });
       this.#addTooltip(tagDiv, tooltipText, util.assetPath(`images/examples/tags/${tagOption.tag_id}.png`));
 
       // Add to current list of tags, and remove from options for new tags to add.
@@ -644,12 +647,14 @@ export class DesktopValidationMenu {
         menuUI.aiSuggestedTagTemplate.parentElement.append(suggestion);
 
         // Show tooltip with example image for the tag.
-        const tooltipText = `"${translatedTagName}" example`;
+        const tooltipText = i18next.t('validate:validate-menu.tag-example-tooltip', {
+          tag: translatedTagName, interpolation: { escapeValue: true },
+        });
         this.#addTooltip(suggestion, tooltipText, util.assetPath(`images/examples/tags/${tag.tag_id}.png`));
 
         // Add onclick to the tag to add or remove it if the user clicks to accept the AI suggestion.
         suggestion.addEventListener('click', () => {
-          suggestion.removeAttribute('data-ps-tooltip'); // Fix for the tooltip showing up on later labels, #4071.
+          suggestion.removeAttribute('data-ps-tooltip-html'); // Fix for the tooltip showing up on later labels, #4071.
           if (tag.action === 'add') {
             this.#addTag(tag.tag_name, true);
           } else {

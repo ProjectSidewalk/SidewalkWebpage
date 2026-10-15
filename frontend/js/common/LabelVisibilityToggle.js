@@ -68,7 +68,7 @@ export class LabelVisibilityToggle {
       // HTML, not text: Validate's translations underline the keyboard shortcut inline ("<u>H</u>ide Label").
       // eslint-disable-next-line ps/escape-in-markup -- see above.
       button.innerHTML = `${icon}<span>${text}</span>`;
-      button.setAttribute('data-ps-tooltip', tooltip);
+      button.setAttribute('data-ps-tooltip-html', tooltip);
     }
     this.#onChange?.(visible, { viaClick });
   }

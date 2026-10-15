@@ -97,12 +97,15 @@ describe('escape-in-markup', () => {
       { code: 'function f() { const a = (n) => (n ? b(n - 1) : "x"); const b = (n) => a(n); '
                 + 'el.innerHTML = `${a(2)}${b(2)}`; }' },
 
-      // A tooltip attribute: escaped twice, or escaped once around markup that escaped its own values.
-      { code: 'el.innerHTML = `<i data-ps-tooltip="${AdminShell.tooltipAttr(x)}"></i>`;' },
-      { code: 'el.innerHTML = `<i data-ps-tooltip="${util.escapeHTML(`<b>${util.escapeHTML(x)}</b>`)}"></i>`;' },
-      { code: 'el.innerHTML = `<i data-ps-tooltip="${n * 2} of ${i18next.t("k")}"></i>`;' },
+      // A markup tooltip attribute: escaped twice, or escaped once around markup that escaped its own values.
+      { code: 'el.innerHTML = `<i data-ps-tooltip-html="${util.escapeHTML(util.escapeHTML(x))}"></i>`;' },
+      { code: 'el.innerHTML = `<i data-ps-tooltip-html="${util.escapeHTML(`<b>${util.escapeHTML(x)}</b>`)}"></i>`;' },
+      { code: 'el.innerHTML = `<i data-ps-tooltip-html="${n * 2} of ${i18next.t("k")}"></i>`;' },
       // setAttribute is unescaped once, by psTooltip's innerHTML.
-      { code: 'el.setAttribute("data-ps-tooltip", util.escapeHTML(x));' },
+      { code: 'el.setAttribute("data-ps-tooltip-html", util.escapeHTML(x));' },
+      // The plain-text tooltip is shown as text: one escape for the attribute in markup, none through setAttribute.
+      { code: 'el.innerHTML = `<i data-ps-tooltip="${util.escapeHTML(x)}"></i>`;' },
+      { code: 'el.setAttribute("data-ps-tooltip", `${x}`);' },
 
       // Not HTML: a text sink, a plain attribute, a string that goes nowhere this rule can see.
       { code: 'el.textContent = `${x}`;' },
@@ -113,7 +116,7 @@ describe('escape-in-markup', () => {
     invalid: [
       reports('el.innerHTML = `<b>${x}</b>`;', 'x'),
       reports('el.insertAdjacentHTML("beforeend", `<b>${data.name}</b>`);', 'data.name'),
-      reports('el.setAttribute("data-ps-tooltip", `${x}`);', 'x'),
+      reports('el.setAttribute("data-ps-tooltip-html", `${x}`);', 'x'),
       // Through a variable, a joined map, and a project helper that renders HTML.
       reports('function f(x) { const html = `<b>${x}</b>`; el.innerHTML = html; }', 'x'),
       reports('el.innerHTML = xs.map((x) => `<li>${x.name}</li>`).join("");', 'x.name'),
@@ -154,9 +157,9 @@ describe('escape-in-markup', () => {
       reports('function f(o) { for (const k in o) el.insertAdjacentHTML("beforeend", `<i>${k}</i>`); }', 'k'),
 
       // A tooltip attribute in markup: text escaped once still renders as markup in the tooltip.
-      tooltipReports('el.innerHTML = `<i data-ps-tooltip="${util.escapeHTML(x)}"></i>`;', 'util.escapeHTML(x)'),
+      tooltipReports('el.innerHTML = `<i data-ps-tooltip-html="${util.escapeHTML(x)}"></i>`;', 'util.escapeHTML(x)'),
       tooltipReports('function f(x) { const tip = `${util.escapeHTML(x)}!`; '
-                + 'el.innerHTML = `<i data-ps-tooltip="${tip}"></i>`; }', 'util.escapeHTML(x)'),
+                + 'el.innerHTML = `<i data-ps-tooltip-html="${tip}"></i>`; }', 'util.escapeHTML(x)'),
       // A call into another file is unknown.
       reports('el.innerHTML = `<b>${Other.format(x)}</b>`;', 'Other.format(x)'),
     ],

@@ -10,11 +10,9 @@
 
 import { loadModules } from './loader.js';
 
-/** The text psTooltip's card shows for an element: its attribute is rendered as HTML, so it's decoded once more. */
+/** The text psTooltip's card shows for an element. */
 function tooltipText(el) {
-  const card = document.createElement('div');
-  card.innerHTML = el.getAttribute('data-ps-tooltip');
-  return card.textContent;
+  return el.getAttribute('data-ps-tooltip');
 }
 
 /** A minimal scorecard row; the traffic section only reads identity/lifecycle from it. */

@@ -129,7 +129,7 @@ export class TagDisplay {
       // If there was not enough space to display all the tags, show the rest in a tooltip on the '+n' text.
       if (hiddenTags.length > 0) {
         overflowPill.innerText = ` + ${hiddenTags.length}`;
-        overflowPill.setAttribute('data-ps-tooltip', hiddenTags.map((tag) => tag.outerHTML).join(''));
+        overflowPill.setAttribute('data-ps-tooltip-html', hiddenTags.map((tag) => tag.outerHTML).join(''));
         overflowPill.setAttribute('data-ps-tooltip-theme', 'light');
       } else {
         overflowPill.remove();

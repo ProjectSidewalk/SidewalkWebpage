@@ -237,7 +237,7 @@ export class MobileValidationMenu {
       if (buttonInfo) {
         reasonButton.innerHTML = buttonInfo.buttonText;
 
-        reasonButton.removeAttribute('data-ps-tooltip');
+        reasonButton.removeAttribute('data-ps-tooltip-html');
         if (buttonInfo.tooltipImage) {
           util.getImage(buttonInfo.tooltipImage).then((img) => {
             MobileValidationMenu.#addTooltip(reasonButton, buttonInfo.tooltipText, img);
@@ -297,8 +297,8 @@ export class MobileValidationMenu {
   static #addTooltip(elem, tooltipText, img) {
     if (!window.matchMedia('(hover: hover)').matches) return; // A tap would pin it open on a touch device.
     const imgHtml = img ? `<br/><img src="${util.escapeHTML(img)}" height="140"/>` : '';
-    // eslint-disable-next-line ps/escape-in-markup -- translations can contain <b>.
-    elem.setAttribute('data-ps-tooltip', `${tooltipText}${imgHtml}`);
+    // eslint-disable-next-line ps/escape-in-markup -- our translations, which can contain <b>.
+    elem.setAttribute('data-ps-tooltip-html', `${tooltipText}${imgHtml}`);
   }
 
   // VALIDATING 'NO' SECTION.
