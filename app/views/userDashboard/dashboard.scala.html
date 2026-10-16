@@ -153,7 +153,7 @@
     <p class="ud-map-caption">@if(adminView){@Messages("dashboard.profile.map.caption", user.username)}else{@Messages("dashboard.map.caption", cityName)}</p>
     <div id="user-dashboard-choropleth-holder" class="choropleth-holder">
       <div id="user-dashboard-choropleth" class="choropleth"></div>
-      @common.filterSidebar(tags = tags, streetsShownByDefault = true, showOutdatedStreetFilter = true)
+      @common.filterSidebar(tags = tags, streetsShownByDefault = true, showOutdatedStreetFilter = true, showCounts = true)
     </div>
   </div>
 

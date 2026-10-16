@@ -483,7 +483,9 @@ class AuditTaskTable @Inject() (
     completedTasks
       .join(streetEdgeTable.streets)
       .on(_.streetEdgeId === _.streetEdgeId)
-      .filter { case (task, _) => task.userId === userId }
+      .filter { case (task, street) =>
+        task.userId === userId && (street.streetEdgeId in nonDeletedStreetEdgeRegions.map(_.streetEdgeId))
+      }
       .map { case (_, street) => street }
       .distinct
       .map(street => (street, !hasUpToDateAudit(street.streetEdgeId, userId)))
