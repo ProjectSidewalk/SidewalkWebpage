@@ -18,6 +18,10 @@
  *                                                        an image that no longer answers clicks or takes focus.
  * @property {(zIndex: number) => void} setZIndex - Restacks the marker among the others.
  *
+ * @typedef {object} MinimapBasemap
+ * @property {?string} tilesUrl - The city's tile archive, or null before its first build.
+ * @property {string} glyphsUrl - The URL pattern for the map's label fonts.
+ *
  * @typedef {object} MinimapStreetLine
  * @property {'audited'|'remaining'|'completed'|'other'} kind - How to draw it; see MinimapStyle.streetLayers.
  * @property {number[][]} coordinates - The line as [lng, lat] pairs, in walking order (chevrons point along it).
@@ -48,6 +52,9 @@ export class Minimap {
 
   // Id of the GeoJSON source holding every street line.
   static #STREETS_SOURCE = 'streets';
+
+  // MapLibre refuses a second registration of the same protocol.
+  static #archiveProtocolAdded = false;
 
   #ui;
   #panoManager;
@@ -109,16 +116,19 @@ export class Minimap {
   }
 
   /**
-   * Creates the map and its street layers. Resolves as soon as the style is ready to draw on — deliberately not when
-   * the basemap tiles have arrived: the tile host is a third party, and Explore must start (streets, peg, labels and
-   * fog over a blank background) even if it never answers.
+   * Creates the map and its street layers. Resolves once the style is ready, not when tiles arrive, so Explore starts
+   * even if they never do.
    * @param {{lat: number, lng: number}} initialLocation - Initial lat/lng location.
+   * @param {MinimapBasemap} basemap
    * @returns {Promise<void>}
    */
-  async #init(initialLocation) {
+  async #init(initialLocation, basemap) {
+    // pmtiles' protocol handler wants an absolute URL after its prefix.
+    const canReadArchive = basemap.tilesUrl && Minimap.#addArchiveProtocol();
+    const tilesUrl = canReadArchive ? `pmtiles://${new URL(basemap.tilesUrl, window.location.href).href}` : null;
     this.#map = new maplibregl.Map({
       container: 'minimap',
-      style: MinimapBasemapStyle.build(initialLocation.lat, i18next.language),
+      style: MinimapBasemapStyle.build(initialLocation.lat, i18next.language, tilesUrl, basemap.glyphsUrl),
       center: Minimap.#lngLat(initialLocation),
       zoom: Minimap.#DEFAULT_ZOOM,
       minZoom: Minimap.#MIN_ZOOM,
@@ -610,6 +620,22 @@ export class Minimap {
   }
 
   /**
+   * Teaches MapLibre to read `pmtiles://` archives.
+   * @returns {boolean} False when the pmtiles script didn't load, so only the basemap is left out.
+   */
+  static #addArchiveProtocol() {
+    if (Minimap.#archiveProtocolAdded) return true;
+    if (typeof pmtiles === 'undefined') {
+      console.error('Minimap: the pmtiles script did not load, so the basemap is left out.');
+      return false;
+    }
+    // `metadata` carries the archive's OpenStreetMap credit to the attribution control.
+    maplibregl.addProtocol('pmtiles', new pmtiles.Protocol({ metadata: true }).tile);
+    Minimap.#archiveProtocolAdded = true;
+    return true;
+  }
+
+  /**
    * Takes down whatever #init built and says in the minimap's place that the map can't be shown.
    * @param {Error} error - Why the map couldn't be created.
    */
@@ -640,13 +666,14 @@ export class Minimap {
    * @param {{lat: number, lng: number}} initialLocation - Initial lat/lng location.
    * @param {PanoManager} panoManager
    * @param {Tracker} tracker
+   * @param {MinimapBasemap} basemap - The tile and glyph URLs.
    * @returns {Promise<Minimap>} The minimap instance.
    */
-  static async create(ui, initialLocation, panoManager, tracker) {
+  static async create(ui, initialLocation, panoManager, tracker, basemap) {
     const newMinimap = new Minimap(ui, panoManager, tracker);
     try {
       await Minimap.#loadLibrary();
-      await newMinimap.#init(initialLocation);
+      await newMinimap.#init(initialLocation, basemap);
     } catch (error) {
       newMinimap.#showUnavailable(error);
     }

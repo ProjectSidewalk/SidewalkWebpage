@@ -160,6 +160,9 @@ directory by `LabelEditService`). They are disposable — delete the store and t
 which is why they live beside the app's other derived media rather than in the panorama store, which the app only
 reads.
 
+The same directory holds the **minimap basemap** (#5716): each city's tile archives in `<city-id>/basemap/`, and in
+`tools/` one copy of the `pmtiles` tool for every city on the server, all rebuilt if deleted.
+
 A pano's `pano_data.width`/`height` never change: Google re-renders pixels, never the frame (measured in
 sidewalk-panorama-tools, `reports/2026-08-09-photometa-census.md`). A stored image of another size is a mis-stitched
 file, not a resized pano (#5667).
@@ -262,6 +265,15 @@ computation takes longer than the reverse proxy allows a request, so a cold cach
 opened in two days — would otherwise cost the first visitor a `502`. When the cache is cold anyway, the full-city
 endpoints wait at most 45 s and then answer `503` with `Retry-After: 30` while the computation finishes in the
 background; the AccessScore tool retries on that header and says so under its spinner.
+
+The **minimap basemap refresh** (#5716) keeps each city's own copy of the minimap's OpenStreetMap tiles.
+`BasemapService` runs the `pmtiles` tool to copy the regions' area, plus 2 km, out of Protomaps' daily world file: a few
+seconds and 3–64 MB per city. No package manager ships the tool, so the app downloads it itself, pinned to one version
+and checksum-checked. The nightly tick cuts when nothing has been cut since the latest January, April, July or October
+1st, so a failed refresh retries the next night, and a city with no archive cuts one within an hour of startup.
+`BasemapController` serves the archive by range request under a new name per cut, so browsers can cache it for good. The
+label fonts are Protomaps' Noto Sans glyphs in `public/vendor/basemap-glyphs/`. Admin > Management can rebuild on
+demand, say after a region change.
 
 The **places refresh** (#5311) keeps the per-city `place` table current from OpenStreetMap: one Overpass query per
 run over the city's bounds for every tag in the `PlaceCategory` catalog (schools, health care, libraries, grocery,
@@ -565,20 +577,20 @@ loaded by the corresponding Twirl view:
   floor below which a neighborhood is not ranked is the backend's `min_region_completion`, the same number the
   AccessScore tool hatches by.
 - **`ps-map/`** — shared map component used across pages, on Mapbox GL.
-- **The Explore minimap is the one map that isn't `ps-map/`** (#5429): MapLibre GL over OpenStreetMap vector tiles
-  (OpenFreeMap), so a city on Mapillary or Panoramax imagery loads no Google JavaScript on Explore at all. Three
-  rules keep it that way. *The library is named in exactly one file*, `explore/navigation/Minimap.js`; the peg,
-  label icons, crumbs, flags and `Task`'s street lines reach the map through its methods (`addMarker`,
-  `setStreetLines`, `project`, `getZoom`, `getBounds`, `setBasemapVisible`) in plain `{lat, lng}` and DOM elements,
-  and the map object is never handed out. *The basemap is code*, `MinimapBasemapStyle.js`: a sparse style (land,
-  water, rivers, parks, buildings, roads, and road and water names in the UI language where OSM has one) built from
-  the `main.css` tokens, reviewed like any other change; its tile host must also be in the CSP's `connect-src`. *A
-  dead tile host degrades, never breaks*: `Minimap.create` resolves when the style is ready, not when tiles arrive,
-  so streets, markers and fog draw over a blank background. *No map degrades too*: MapLibre needs WebGL2 and throws
-  without it, so `create` never rejects; a minimap that can't be built says so in its place and draws nothing,
-  `isAvailable()` turns false for the overlays drawn to its scale, and the rest of Explore starts
-  (`Minimap_Unavailable` is logged). What Project Sidewalk itself draws on the map (street-line encodings, fog, cone)
-  is `MinimapStyle.js`. The library is served as its own files rather than bundled (`docs/upgrading-libraries.md`
+- **The Explore minimap is the one map that isn't `ps-map/`** (#5429): MapLibre GL over OpenStreetMap vector tiles that
+  we serve ourselves (#5716), so a city on Mapillary or Panoramax imagery loads no Google JavaScript on Explore at all,
+  and the minimap talks to no third party. Three rules keep it that way. *The library is named in exactly one file*,
+  `explore/navigation/Minimap.js`; the peg, label icons, crumbs, flags and `Task`'s street lines reach the map through
+  its methods (`addMarker`, `setStreetLines`, `project`, `getZoom`, `getBounds`, `setBasemapVisible`) in plain `{lat,
+  lng}` and DOM elements, and the map object is never handed out. *The basemap is code*, `MinimapBasemapStyle.js`: a
+  sparse style (land, water, rivers, parks, buildings, roads, and road and water names in the UI language where OSM has
+  one) built from the `main.css` tokens, written for the Protomaps schema, and reviewed like any other change. *Missing
+  tiles degrade, never break*: `Minimap.create` resolves when the style is ready, not when tiles arrive, so streets,
+  markers and fog draw over a blank background, as they do for a city with no archive yet. *No map degrades too*:
+  MapLibre needs WebGL2 and throws without it, so `create` never rejects; a minimap that can't be built says so in its
+  place and draws nothing, `isAvailable()` turns false for the overlays drawn to its scale, and the rest of Explore
+  starts (`Minimap_Unavailable` is logged). What Project Sidewalk itself draws on the map (street-line encodings, fog,
+  cone) is `MinimapStyle.js`. The library is served as its own files rather than bundled (`docs/upgrading-libraries.md`
   says why), and the mission-complete map on the same page is still Mapbox, so Explore loads both libraries.
 - **`common/`** — modules shared across bundles: `pano-viewer/` (an abstraction over the GSV / Mapillary / Infra3d /
   Panoramax / Pannellum imagery providers), `label-detail/` (label popups), and various utilities. The popup's pano viewer is

@@ -16,5 +16,6 @@ new ManagementPage({
   generateCropsUrl: '/adminapi/generateCrops',
   rebuildSidewalkPresenceUrl: '/adminapi/rebuildSidewalkPresence',
   refreshPlacesUrl: '/adminapi/refreshPlaces',
+  refreshBasemapUrl: '/adminapi/refreshBasemap',
   recountGradientStalenessUrl: '/adminapi/recountStreetGradientStaleness',
 }, JSON.parse(data.assignableRoles)).init();

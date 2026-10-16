@@ -197,8 +197,8 @@ read, not a second city dump to maintain. Three things about it shape this suite
   `test/js/googleMapsStub.test.js` pins the stub's own contract. `/explore` asserts the audit tutorial loads: it's
   deterministic for every fresh anonymous user, its panos are custom (`registerPanoProvider`) with local tiles,
   and CI seeds the one region it requires (`fixtures/ci-seed.sql` — with zero regions `/explore` is a server
-  error). Explore's minimap is a real MapLibre map whose third-party tile host is stubbed empty
-  (`stubMinimapBasemap`, #5429), so the suite neither depends on that host nor sends it CI traffic. A reload counter
+  error). Explore's minimap is a real MapLibre map; CI's app has no tile archive (the job that cuts one is off in CI),
+  so it draws over a plain background. A reload counter
   turns Explore's viewer-failure reload loop into a fast, named failure.
   `/validate` accepts either legitimate terminal state error-free: a mission or the "no new mission" modal.
   CI takes the mission branch — the seed carries the ≥ 10 validatable labels of one type a mission needs, and

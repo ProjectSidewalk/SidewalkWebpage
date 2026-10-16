@@ -112,7 +112,8 @@ describe('Minimap mission flags across a mission boundary', () => {
   beforeEach(async () => {
     FakeMarker.created = [];
     window.i18next = { t: (key) => key };
-    window.maplibregl = { Map: FakeMap, Marker: FakeMarker };
+    window.maplibregl = { Map: FakeMap, Marker: FakeMarker, addProtocol: () => {} };
+    window.pmtiles = { Protocol: class { tile() {} } };
     const ui = {
       holder: uiStub(),
       missionProgress: uiStub(),
@@ -123,7 +124,8 @@ describe('Minimap mission flags across a mission boundary', () => {
 
     const { Minimap, MinimapMissionProgress } = await loadModules('frontend/js/explore/navigation/Minimap.js',
       'frontend/js/explore/navigation/MinimapMissionProgress.js');
-    const minimap = await Minimap.create(ui, { lat: LAT, lng: START_LNG }, fakePanoManager(), fakeTracker());
+    const minimap = await Minimap.create(ui, { lat: LAT, lng: START_LNG }, fakePanoManager(), fakeTracker(),
+      { tilesUrl: null, glyphsUrl: '' });
     const missionContainer = {
       getMissionCompletionRate: (mission) => mission.getProperty('distanceProgress') / mission.getDistance(),
     };

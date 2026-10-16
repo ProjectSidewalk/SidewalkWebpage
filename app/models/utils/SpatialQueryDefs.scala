@@ -7,6 +7,13 @@ enum SpatialQueryType {
 case class LatLngBBox(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double) {
   require(minLat <= maxLat, "minLat must be less than or equal to maxLat")
   require(minLng <= maxLng, "minLng must be less than or equal to maxLng")
+
+  /** Widens the box by `meters` on every side, converted to degrees at the box's own latitude. */
+  def padded(meters: Double): LatLngBBox = {
+    val latDeg = meters / 111320.0
+    val lngDeg = latDeg / math.max(0.1, math.cos(math.toRadians((minLat + maxLat) / 2)))
+    LatLngBBox(minLat - latDeg, minLng - lngDeg, maxLat + latDeg, maxLng + lngDeg)
+  }
 }
 
 object LatLngBBox {

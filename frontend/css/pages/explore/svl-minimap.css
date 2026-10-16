@@ -719,9 +719,10 @@
   outline-offset: calc(1px * var(--ui-scale));
 }
 
+/* As tall as the closed box, so the button stays put when the credits open and the text sits level with it. */
 #minimap-attribution .maplibregl-ctrl-attrib.maplibregl-compact-show {
-  padding: calc(3px * var(--ui-scale)) calc(22px * var(--ui-scale)) calc(3px * var(--ui-scale))
-    calc(8px * var(--ui-scale));
+  padding: 0 calc(22px * var(--ui-scale, 1)) 0 calc(8px * var(--ui-scale, 1));
+  line-height: calc(18px * var(--ui-scale, 1));
   border-radius: calc(8px * var(--ui-scale));
   background: color-mix(in srgb, var(--color-neutral-white) 95%, transparent);
   box-shadow: 0 calc(2px * var(--ui-scale)) calc(10px * var(--ui-scale))

@@ -65,6 +65,7 @@ module.exports = [
         pannellum: 'readonly',
         panzoom: 'readonly',
         PhotoSphereViewer: 'readonly',
+        pmtiles: 'readonly',
         proj4: 'readonly',
         THREE: 'readonly',
         TomSelect: 'readonly',

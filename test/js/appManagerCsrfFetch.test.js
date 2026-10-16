@@ -37,6 +37,12 @@ describe('AppManager CSRF fetch wrapper', () => {
     return originalFetch.mock.lastCall[1];
   }
 
+  /** The token the wrapper sent on its most recent call, or null; headers are forwarded as a `Headers`. */
+  function forwardedToken() {
+    const headers = forwardedOptions().headers;
+    return headers instanceof Headers ? headers.get('Csrf-Token') : null;
+  }
+
   /** The first argument (the URL/Request) the wrapper passed to the underlying fetch on its most recent call. */
   function forwardedTarget() {
     return originalFetch.mock.lastCall[0];
@@ -63,25 +69,25 @@ describe('AppManager CSRF fetch wrapper', () => {
     test('relative string (our own routes)', async () => {
       await window.fetch('/label/geo');
 
-      expect(forwardedOptions().headers['Csrf-Token']).toBe(CSRF_TOKEN);
+      expect(forwardedToken()).toBe(CSRF_TOKEN);
     });
 
     test('absolute same-origin string', async () => {
       await window.fetch(sameOriginUrl);
 
-      expect(forwardedOptions().headers['Csrf-Token']).toBe(CSRF_TOKEN);
+      expect(forwardedToken()).toBe(CSRF_TOKEN);
     });
 
     test('URL object', async () => {
       await window.fetch(new URL(sameOriginUrl));
 
-      expect(forwardedOptions().headers['Csrf-Token']).toBe(CSRF_TOKEN);
+      expect(forwardedToken()).toBe(CSRF_TOKEN);
     });
 
     test('Request object', async () => {
       await window.fetch(new Request('/label/geo'));
 
-      expect(forwardedOptions().headers['Csrf-Token']).toBe(CSRF_TOKEN);
+      expect(forwardedToken()).toBe(CSRF_TOKEN);
     });
 
     test('existing options and headers are preserved alongside the token', async () => {
@@ -91,12 +97,26 @@ describe('AppManager CSRF fetch wrapper', () => {
         body: '{}',
       });
 
-      expect(forwardedOptions()).toEqual({
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Csrf-Token': CSRF_TOKEN },
-        body: '{}',
-      });
+      const { headers, ...rest } = forwardedOptions();
+      expect(rest).toEqual({ method: 'POST', body: '{}' });
+      expect(Object.fromEntries(headers)).toEqual({ 'content-type': 'application/json', 'csrf-token': CSRF_TOKEN });
     });
+
+    // pmtiles sends its Range header as a `Headers`.
+    test('headers given as a Headers instance or as pairs are kept', async () => {
+      await window.fetch('/basemap/a.pmtiles', { headers: new Headers({ Range: 'bytes=0-16383' }) });
+      expect(forwardedOptions().headers.get('Range')).toBe('bytes=0-16383');
+      expect(forwardedToken()).toBe(CSRF_TOKEN);
+
+      await window.fetch('/basemap/a.pmtiles', { headers: [['Range', 'bytes=0-99']] });
+      expect(forwardedOptions().headers.get('Range')).toBe('bytes=0-99');
+    });
+  });
+
+  test('a malformed header rejects the returned promise instead of throwing', async () => {
+    let returned;
+    expect(() => { returned = window.fetch('/label/geo', { headers: { 'Bad Name': 'x' } }); }).not.toThrow();
+    await expect(returned).rejects.toThrow();
   });
 
   describe('cross-origin requests are left untouched', () => {

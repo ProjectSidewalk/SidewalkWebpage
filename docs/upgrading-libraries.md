@@ -190,6 +190,10 @@ blocking CI step) fails if the two disagree, or if a folder under `vendor/` isn'
 - **async-lock: 1.4.1** — **note:** a fresh download probably needs the trailing `module.export` line removed.
   [Download](https://cdn.jsdelivr.net/npm/async-lock@1.4.1/lib/index.min.js) ·
   [Versions](https://github.com/rogierschouten/async-lock/releases)
+- **basemap-glyphs (protomaps/basemaps-assets at `028c18f`)** — the Noto Sans Regular and Italic glyphs for the
+  minimap's labels (#5716), with their license. To upgrade, copy the two font folders from a newer commit and update the
+  commit here. MapLibre requests them by URL pattern, so they're served from `/basemap/glyphs/`, not `assets.path`.
+  [Repo](https://github.com/protomaps/basemaps-assets)
 - **bowser: 2.14.1** — browser detection.
   [Versions](https://www.npmjs.com/package/bowser?activeTab=versions) ·
   [Changelog](https://github.com/bowser-js/bowser/releases)
@@ -255,6 +259,12 @@ blocking CI step) fails if the two disagree, or if a folder under `vendor/` isn'
   three.js than the standalone 0.160.1 below. Upgrade by running the script with the new version (three.js follows
   from PSV's own dependency pin); see the README beside it. [Releases](https://github.com/mistic100/Photo-Sphere-Viewer/releases) ·
   [Docs](https://photo-sphere-viewer.js.org/guide/)
+- **pmtiles: 4.5.0** — lets MapLibre read the minimap's tile archive (#5716); the IIFE build `dist/pmtiles.js`, minus
+  its source-map comment. **Note:** the server's `pmtiles` command-line tool is separate. It's pinned in
+  `BasemapService` (`CliVersion` and each release file's SHA-256); change those to upgrade it.
+  [Download](https://cdn.jsdelivr.net/npm/pmtiles@4.5.0/dist/pmtiles.js) ·
+  [Changelog](https://github.com/protomaps/PMTiles/blob/main/js/CHANGELOG.md) ·
+  [CLI releases](https://github.com/protomaps/go-pmtiles/releases)
 - **prism: 1.30.0** — syntax highlighting for the API docs' code blocks. We ship the core plus only the language
   components the docs use (`json`, `csv`), so a new `language-*` class in a docs page means adding that component too.
   **No stock theme:** the `.token.*` colors are ours, in `css/pages/api-docs/api-docs.css`, so the blocks stay on the

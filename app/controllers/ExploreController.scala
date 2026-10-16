@@ -35,7 +35,8 @@ class ExploreController @Inject() (
     osmWayService: service.OsmWayService,
     rateLimiter: service.RateLimiter,
     missionService: service.MissionService,
-    aiService: service.AiService
+    aiService: service.AiService,
+    basemapService: service.BasemapService
 )(using ec: ExecutionContext, assets: AssetsFinder)
     extends CustomBaseController(cc) {
 
@@ -67,7 +68,10 @@ class ExploreController @Inject() (
         makeCrops        <- configService.getMakeCrops
       } yield {
         val pageTitle: String = Messages("seo.title.explore", commonData.currentCity.cityNameShort)
-        noStore(Ok(views.html.apps.explore(commonData, pageTitle, user, surveyData, tutorialStreetId, makeCrops)))
+        val basemap           = BasemapController.pageData(basemapService.currentArchive)
+        noStore(
+          Ok(views.html.apps.explore(commonData, pageTitle, user, surveyData, tutorialStreetId, makeCrops, basemap))
+        )
       }
     }
   }

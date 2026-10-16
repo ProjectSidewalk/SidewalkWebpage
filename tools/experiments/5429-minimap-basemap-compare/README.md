@@ -18,7 +18,8 @@ The screenshots stay out of the repo (`out/` is gitignored): they are captures o
 Renders the Explore minimap's basemap two ways for a set of cities, side by side at the same scale:
 
 - **Google** — the Google Maps JS minimap with develop's options and its Cloud-styled map id.
-- **MapLibre** — this checkout's `MinimapBasemapStyle.js` over OpenMapTiles-schema vector tiles.
+- **MapLibre** — this checkout's `MinimapBasemapStyle.js` over vector tiles: OpenMapTiles-schema ones from
+  OpenFreeMap when this ran, Protomaps' world build since the minimap moved to it (#5716).
 
 Overlays (route lines, fog of war, FOV cone, legend) are drawn by our own code on top of either basemap and are not
 rendered here. The output is for eyeballing what the basemap data and style show in each city: building coverage,

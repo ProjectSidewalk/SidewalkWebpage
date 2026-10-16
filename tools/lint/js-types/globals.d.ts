@@ -43,6 +43,7 @@ declare namespace pannellum {
 }
 declare const panzoom: any;
 declare const PhotoSphereViewer: any;
+declare const pmtiles: any;
 declare namespace PhotoSphereViewer {
   type Viewer = any;
 }
