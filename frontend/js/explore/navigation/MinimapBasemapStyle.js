@@ -235,8 +235,12 @@ export class MinimapBasemapStyle {
         }),
         layer('rail', 'line', 'roads', {
           // Not disused or miniature lines, which the layer files under 'rail' too.
-          filter: ['all', ['==', ['get', 'kind'], 'rail'], ['match', ['get', 'kind_detail'],
-            ['rail', 'light_rail', 'subway', 'tram', 'monorail', 'narrow_gauge', 'funicular', 'preserved'], true, false]],
+          filter: ['all',
+            ['==', ['get', 'kind'], 'rail'],
+            ['match', ['get', 'kind_detail'], [
+              'rail', 'light_rail', 'subway', 'tram', 'monorail', 'narrow_gauge', 'funicular', 'preserved',
+            ], true, false],
+          ],
           paint: { 'line-color': roadCasing, 'line-width': 1.5 },
         }),
         layer('path', 'line', 'roads', {
