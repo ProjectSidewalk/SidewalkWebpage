@@ -728,6 +728,17 @@
     color-mix(in srgb, var(--color-neutral-black) 30%, transparent);
 }
 
+/* A one-line credit is shorter than the button, and MapLibre pins the button to the top, so the line takes the
+   button's height and the button centers on the box: both sit level whatever the credit's length. */
+#minimap-attribution .maplibregl-compact-show .maplibregl-ctrl-attrib-inner {
+  line-height: calc(18px * var(--ui-scale));
+}
+
+#minimap-attribution .maplibregl-compact-show .maplibregl-ctrl-attrib-button {
+  top: 50%;
+  translate: 0 -50%;
+}
+
 /* The +/- buttons take their look from the shared .ps-icon-button styling, with some minor tweaks. */
 #minimap-zoom-controls {
   position: absolute;
