@@ -74,7 +74,9 @@ class UserProfileController @Inject() (
           "label_type"      -> label.labelType,
           "correct"         -> label.correct,
           "has_validations" -> label.hasValidations,
-          "expired"         -> label.expired
+          "expired"         -> label.expired,
+          "severity"        -> label.severity,
+          "tags"            -> label.tags
         )
       )
     }

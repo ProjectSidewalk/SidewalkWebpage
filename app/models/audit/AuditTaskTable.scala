@@ -477,13 +477,17 @@ class AuditTaskTable @Inject() (
    * it -- this user's or anyone else's -- was made against the current imagery. So a street another mapper has
    * already refreshed reads as up to date here, and nobody is sent back to work someone else has redone.
    *
+   * Streets only in deleted regions are left out, as in the re-audit list, so the map's counts match that list.
+   *
    * @return (street, needs re-audit) pairs, one per distinct street.
    */
   def getAuditedStreets(userId: String): DBIO[Seq[(StreetEdge, Boolean)]] = {
     completedTasks
       .join(streetEdgeTable.streets)
       .on(_.streetEdgeId === _.streetEdgeId)
-      .filter { case (task, _) => task.userId === userId }
+      .filter { case (task, street) =>
+        task.userId === userId && nonDeletedStreetEdgeRegions.filter(_.streetEdgeId === street.streetEdgeId).exists
+      }
       .map { case (_, street) => street }
       .distinct
       .map(street => (street, !hasUpToDateAudit(street.streetEdgeId, userId)))

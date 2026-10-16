@@ -117,7 +117,9 @@ case class LabelLocation(
     lng: Double,
     correct: Option[Boolean],
     hasValidations: Boolean,
-    expired: Boolean
+    expired: Boolean,
+    severity: Option[Int],
+    tags: List[String]
 )
 
 case class LabelForLabelMap(
@@ -2453,13 +2455,16 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       _lp.lng,
       _l.correct,
       _l.agreeCount > 0 || _l.disagreeCount > 0 || _l.unsureCount > 0,
-      _pd.expired
+      _pd.expired,
+      _l.severity,
+      _l.tags
     )
 
     // lat/lng are unwrapped here because doing it inside the query fails at runtime.
     _labels.result.map(_.map {
-      case (labelId, auditTaskId, panoId, labelType, lat, lng, correct, hasValidations, expired) =>
-        LabelLocation(labelId, auditTaskId, panoId, labelType, lat.get, lng.get, correct, hasValidations, expired)
+      case (labelId, auditTaskId, panoId, labelType, lat, lng, correct, hasValidations, expired, severity, tags) =>
+        LabelLocation(labelId, auditTaskId, panoId, labelType, lat.get, lng.get, correct, hasValidations, expired,
+          severity, tags)
     })
   }
 
