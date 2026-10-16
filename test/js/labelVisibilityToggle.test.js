@@ -43,10 +43,21 @@ describe('LabelVisibilityToggle', () => {
     expect(toggle.isVisible()).toBe(true);
     for (const button of buttons) {
       expect(button.textContent).toContain(TEXT.hide);
-      expect(button.getAttribute('data-ps-tooltip')).toBe(TEXT.hideTooltip);
+      expect(button.getAttribute('data-ps-tooltip-html')).toBe(TEXT.hideTooltip);
       expect(button.querySelector('svg.hide-label-button-icon')).not.toBeNull();
     }
     expect(changes).toEqual([{ visible: true, viaClick: false }]);
+  });
+
+  it('adds no tooltip on a touch device, where a tap would pin it open', () => {
+    const original = window.matchMedia;
+    window.matchMedia = () => ({ matches: false });
+    try {
+      build();
+      for (const button of buttons) expect(button.hasAttribute('data-ps-tooltip-html')).toBe(false);
+    } finally {
+      window.matchMedia = original;
+    }
   });
 
   it('relabels every button when one of them is clicked', () => {
@@ -57,7 +68,7 @@ describe('LabelVisibilityToggle', () => {
     expect(toggle.isVisible()).toBe(false);
     for (const button of buttons) {
       expect(button.textContent).toContain(TEXT.show);
-      expect(button.getAttribute('data-ps-tooltip')).toBe(TEXT.showTooltip);
+      expect(button.getAttribute('data-ps-tooltip-html')).toBe(TEXT.showTooltip);
     }
     expect(changes.at(-1)).toEqual({ visible: false, viaClick: true });
   });

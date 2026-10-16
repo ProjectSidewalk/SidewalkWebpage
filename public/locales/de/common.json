@@ -4,7 +4,7 @@
   "explore-street-link": "<a href='/explore?streetEdgeId={{streetId}}' class='street-selection-trigger' streetId='{{streetId}}'>Hier klicken</a>, um diese Strasse zu erkunden!",
   "distance-progress": "{{done, distance(style: small; unit: false)}}/{{total, distance(style: small)}}",
   "distance-large": "{{dist}} {{unitAbbr}}",
-  "speed-limit-tooltip": "Die Kenntnis des <b>Tempolimits</b> einer Straße hilft, die Sicherheit für Fußgänger besser einzuschätzen, etwa ob das Überqueren an einer ungeregelten Kreuzung <b>sicher</b> ist.",
+  "speed-limit-tooltip": "Die Kenntnis des Tempolimits einer Straße hilft, die Sicherheit für Fußgänger besser einzuschätzen, etwa ob das Überqueren an einer ungeregelten Kreuzung sicher ist.",
   "speed-limit-aria-label": "Tempolimit {{speed}} {{units}}",
   "format-number": "{{val, number}}",
   "cities-cta-join_one": "Schließen Sie sich {{count, number}} weiteren Gemeinschaft an",

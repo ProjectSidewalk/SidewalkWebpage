@@ -4,7 +4,7 @@
   "explore-street-link": "<a href='/explore?streetEdgeId={{streetId}}' class='street-selection-trigger' streetId='{{streetId}}'>Haga clic aquí</a> para explorar la calle!",
   "distance-progress": "{{done, distance(style: small; unit: false)}}/{{total, distance(style: small)}}",
   "distance-large": "{{dist}} {{unitAbbr}}",
-  "speed-limit-tooltip": "Conocer el <b>límite de velocidad</b> de una calle puede ayudarte a evaluar mejor la seguridad peatonal, por ejemplo, si es <b>seguro</b> cruzar en una intersección no controlada.",
+  "speed-limit-tooltip": "Conocer el límite de velocidad de una calle puede ayudarte a evaluar mejor la seguridad peatonal, por ejemplo, si es seguro cruzar en una intersección no controlada.",
   "speed-limit-aria-label": "Límite de velocidad {{speed}} {{units}}",
   "format-number": "{{val, number}}",
   "cities-cta-join_one": "Únete a {{count, number}} comunidad más",

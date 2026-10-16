@@ -110,8 +110,9 @@ generated `public/build/` output. Most rules below are enforced by
     clearly safe (a number, a translation, an asset path, or a value from the same file it can trace). Escape where
     the value goes into the HTML, not where it's computed. If a value really is our own markup, add
     `// eslint-disable-next-line ps/escape-in-markup -- <why>` (inside a template: `${x /* eslint-disable-line … */}`).
-  - Text inside a `data-ps-tooltip="…"` attribute in markup needs escaping twice: use `AdminShell.tooltipAttr(…)`.
-    With `setAttribute('data-ps-tooltip', …)`, escaping once is enough.
+  - `data-ps-tooltip` is plain text: escape once inside markup (as for any attribute), not at all through
+    `setAttribute`. A card with markup goes in `data-ps-tooltip-html`, where outside text is escaped into the card
+    and, in markup, the whole card escaped again for the attribute (see `psTooltip.js`).
   - Escaping doesn't make a link safe: check that an API-supplied `href` starts with http(s).
   - Markup you didn't write (an outside API's HTML) goes through `util.sanitizeHtml`, appended as nodes. To turn markup into plain text, use `util.htmlToText`, never a tag-stripping regex.
 - **Semicolons required** (`semi`); always parenthesize arrow-function params (`arrow-parens`).

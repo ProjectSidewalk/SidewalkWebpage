@@ -6,7 +6,6 @@
  */
 
 import { util } from '../common/utilities.js';
-import { AdminShell } from './AdminShell.js';
 import '../common/utilitiesSidewalk.js';
 
 export class ContributorsPage {
@@ -294,7 +293,7 @@ export class ContributorsPage {
     });
     const segs = typeCounts.map((t, i) => `<span class="contrib-typeseg"
       style="width:${(t.count / total) * 100}%;background:${ContributorsPage.#typeColor(t.label_type)}"
-      data-ps-tooltip="${AdminShell.tooltipAttr(tips[i])}"></span>`).join('');
+      data-ps-tooltip="${util.escapeHTML(tips[i])}"></span>`).join('');
     const summary = util.escapeHTML(tips.join(', '));
     return `<span class="contrib-typebar" role="img" aria-label="${summary}">${segs}</span>`;
   }

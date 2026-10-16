@@ -237,17 +237,6 @@ export class AdminShell {
   }
 
   /**
-   * Escapes plain text for a `data-ps-tooltip` attribute. psTooltip renders the attribute as HTML, so text escaped only
-   * once would come back out as live markup; see psTooltip.js for why it takes two levels.
-   *
-   * @param {*} value - Plain text, possibly from the data; null and undefined render as the empty string.
-   * @returns {string} The value escaped twice.
-   */
-  static tooltipAttr(value) {
-    return util.escapeHTML(util.escapeHTML(value));
-  }
-
-  /**
    * @param {number|string} n - A number, or anything Number() can read.
    * @returns {string} Thousands-separated integer.
    */
