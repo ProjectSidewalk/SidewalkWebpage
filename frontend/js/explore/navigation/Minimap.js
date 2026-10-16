@@ -125,7 +125,8 @@ export class Minimap {
    */
   async #init(initialLocation, basemap) {
     // MapLibre reads the archive through pmtiles' protocol handler, which wants an absolute URL after its prefix.
-    const tilesUrl = basemap.tilesUrl ? `pmtiles://${new URL(basemap.tilesUrl, window.location.href).href}` : null;
+    const canReadArchive = basemap.tilesUrl && Minimap.#addArchiveProtocol();
+    const tilesUrl = canReadArchive ? `pmtiles://${new URL(basemap.tilesUrl, window.location.href).href}` : null;
     this.#map = new maplibregl.Map({
       container: 'minimap',
       style: MinimapBasemapStyle.build(initialLocation.lat, i18next.language, tilesUrl, basemap.glyphsUrl),
@@ -607,22 +608,32 @@ export class Minimap {
   }
 
   /**
-   * Makes MapLibre available as the `maplibregl` global, able to read `pmtiles://` archives. MapLibre is served as
-   * its own files, not bundled (docs/upgrading-libraries.md), so the URL comes from the view's preload link, the one
-   * place a vendor file gets its fingerprinted URL. A global already present (the jsdom tests' stand-in) is kept.
+   * Makes MapLibre available as the `maplibregl` global the rest of this class names. It is served as its own files,
+   * not bundled (docs/upgrading-libraries.md), so the URL comes from the view's preload link, the one place a vendor
+   * file gets its fingerprinted URL. A global already present (the jsdom tests' stand-in) is kept.
    * @returns {Promise<void>}
    */
   static async #loadLibrary() {
-    if (typeof maplibregl === 'undefined') {
-      const link = /** @type {?HTMLLinkElement} */ (document.getElementById('maplibre-module'));
-      if (!link) throw new Error('Minimap: no #maplibre-module link on the page to load MapLibre from');
-      window.maplibregl = await import(link.href);
+    if (typeof maplibregl !== 'undefined') return;
+    const link = /** @type {?HTMLLinkElement} */ (document.getElementById('maplibre-module'));
+    if (!link) throw new Error('Minimap: no #maplibre-module link on the page to load MapLibre from');
+    window.maplibregl = await import(link.href);
+  }
+
+  /**
+   * Teaches MapLibre to read `pmtiles://` archives, once per page.
+   * @returns {boolean} False when the pmtiles script didn't load: the basemap is then left out, not the whole map.
+   */
+  static #addArchiveProtocol() {
+    if (Minimap.#archiveProtocolAdded) return true;
+    if (typeof pmtiles === 'undefined') {
+      console.error('Minimap: the pmtiles script did not load, so the basemap is left out.');
+      return false;
     }
-    if (!Minimap.#archiveProtocolAdded) {
-      // Without `metadata`, the archive's OpenStreetMap credit never reaches the attribution control.
-      maplibregl.addProtocol('pmtiles', new pmtiles.Protocol({ metadata: true }).tile);
-      Minimap.#archiveProtocolAdded = true;
-    }
+    // Without `metadata`, the archive's OpenStreetMap credit never reaches the attribution control.
+    maplibregl.addProtocol('pmtiles', new pmtiles.Protocol({ metadata: true }).tile);
+    Minimap.#archiveProtocolAdded = true;
+    return true;
   }
 
   /**

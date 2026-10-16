@@ -59,7 +59,11 @@ export class MinimapBasemapStyle {
   static #roadFilter(classes) {
     return ['all',
       ['match', ['geometry-type'], ['LineString', 'MultiLineString'], true, false],
-      ['match', ['get', 'kind'], ['highway', 'major_road', 'minor_road', 'path'], true, false],
+      // Living streets are filed under 'other' with platforms and busways, so they are let in by name.
+      ['any',
+        ['match', ['get', 'kind'], ['highway', 'major_road', 'minor_road', 'path'], true, false],
+        ['==', ['get', 'kind_detail'], 'living_street'],
+      ],
       ['!=', ['get', 'kind_detail'], 'pier'],
       ['match', MinimapBasemapStyle.#ROAD_CLASS, classes, true, false],
     ];
@@ -110,13 +114,17 @@ export class MinimapBasemapStyle {
 
   /**
    * The UI-language name where the tiles have one, else the local name: what the Mapbox maps' language plugin shows.
-   * The tiles key translations by bare language ('name:zh'), so a region tag is dropped.
+   * The tiles key translations by bare language ('name:pt'), so a region tag is dropped, except for Chinese.
    * @param {?string} language - A BCP 47 tag ('pt-BR'); none means the local name only.
    * @returns {Array} A MapLibre expression.
    */
   static #nameField(language) {
-    const base = (language || '').split('-')[0];
-    return base ? ['coalesce', ['get', `name:${base}`], ['get', 'name']] : ['get', 'name'];
+    const [base, ...rest] = (language || '').split('-');
+    if (!base) return ['get', 'name'];
+    // Chinese names come only as name:zh-Hant and name:zh-Hans; Taiwan, Hong Kong and Macau read traditional.
+    const traditional = rest.some((part) => ['TW', 'HK', 'MO', 'Hant'].includes(part));
+    const key = base === 'zh' ? `zh-${traditional ? 'Hant' : 'Hans'}` : base;
+    return ['coalesce', ['get', `name:${key}`], ['get', 'name']];
   }
 
   /**
@@ -170,6 +178,9 @@ export class MinimapBasemapStyle {
     const water = token('--color-blue-400', '#C6E0FA');
     const labelColor = token('--color-asphalt-300', '#615E78');
     const polygon = ['match', ['geometry-type'], ['Polygon', 'MultiPolygon'], true, false];
+    const lines = ['match', ['geometry-type'], ['LineString', 'MultiLineString'], true, false];
+    // Water underground (a culverted stream) would draw across the streets above it.
+    const notTunnel = ['!', ['has', 'tunnel']];
     const roundLine = { 'line-cap': 'round', 'line-join': 'round' };
     // Italic alone sets water names apart from road names: the blue tokens are too light to read as text.
     const waterName = (id, sourceLayer, spec) => layer(id, 'symbol', sourceLayer, {
@@ -200,15 +211,12 @@ export class MinimapBasemapStyle {
           paint: { 'fill-color': token('--color-pine-100', '#E4F4EE') },
         }),
         layer('water', 'fill', 'water', {
-          filter: polygon,
+          filter: ['all', polygon, notTunnel],
           paint: { 'fill-color': water },
         }),
         // Water too narrow for a polygon; streams only near street level so the overview isn't a tangle of them.
         layer('waterway', 'line', 'water', {
-          filter: ['all',
-            ['match', ['geometry-type'], ['LineString', 'MultiLineString'], true, false],
-            ['match', ['get', 'kind'], ['river', 'canal', 'stream'], true, false],
-          ],
+          filter: ['all', lines, notTunnel, ['match', ['get', 'kind'], ['river', 'canal', 'stream'], true, false]],
           layout: roundLine,
           paint: {
             'line-color': water,
@@ -226,7 +234,9 @@ export class MinimapBasemapStyle {
           },
         }),
         layer('rail', 'line', 'roads', {
-          filter: ['==', ['get', 'kind'], 'rail'],
+          // Not disused or miniature lines, which the layer files under 'rail' too.
+          filter: ['all', ['==', ['get', 'kind'], 'rail'], ['match', ['get', 'kind_detail'],
+            ['rail', 'light_rail', 'subway', 'tram', 'monorail', 'narrow_gauge', 'funicular', 'preserved'], true, false]],
           paint: { 'line-color': roadCasing, 'line-width': 1.5 },
         }),
         layer('path', 'line', 'roads', {
@@ -258,10 +268,7 @@ export class MinimapBasemapStyle {
         roadNameLayer('road-name-minor', MinimapBasemapStyle.#MINOR_ROADS, 10, nameField),
         roadNameLayer('road-name-major', MinimapBasemapStyle.#MAJOR_ROADS, 11, nameField),
         waterName('waterway-name', 'water', {
-          filter: ['all',
-            ['match', ['geometry-type'], ['LineString', 'MultiLineString'], true, false],
-            ['match', ['get', 'kind'], ['river', 'canal'], true, false],
-          ],
+          filter: ['all', lines, notTunnel, ['match', ['get', 'kind'], ['river', 'canal'], true, false]],
           layout: { 'symbol-placement': 'line', 'symbol-spacing': 300 },
         }),
         // The layer gives each named body of water a label point, swimming pools and fountains included.

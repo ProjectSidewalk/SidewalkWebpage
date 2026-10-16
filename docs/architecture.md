@@ -161,9 +161,10 @@ which is why they live beside the app's other derived media rather than in the p
 reads.
 
 The same directory holds the **minimap basemap** (#5716): `<city-id>/basemap/` keeps the city's current tile archive
-and the one before it, and `tools/pmtiles-<version>/` at the directory's top level keeps the one copy of the
-`pmtiles` tool every city on the server shares. Both are derived and disposable: delete them and the next startup
-downloads and cuts them again.
+and the one before it, plus any cut that day, so back-to-back rebuilds can't pull a file from under an open tab.
+`tools/pmtiles-<version>/` at the directory's top level keeps the one copy of the `pmtiles` tool every city on the
+server shares; a new version's download deletes the old folder. Both are derived and disposable: delete them and the
+next startup downloads and cuts them again.
 
 A pano's `pano_data.width`/`height` never change: Google re-renders pixels, never the frame (measured in
 sidewalk-panorama-tools, `reports/2026-08-09-photometa-census.md`). A stored image of another size is a mis-stitched
@@ -274,9 +275,12 @@ by HTTP range request, so `BasemapService` runs the `pmtiles` command-line tool 
 2 km (seconds, 3–64 MB), into the crop directory's `basemap/` folder. The app downloads the tool itself on first use,
 pinned to one version and refused unless it matches the release's published checksum, since no package manager
 carries it and the servers aren't ours to install on. It ticks nightly but cuts only on the first of January, April,
-July and October, when the archive's data is over 100 days old (a missed refresh date), or when the city has none —
-which a startup also checks, two minutes in, so a new city has its basemap within minutes of first boot with
-nothing done at onboarding. It cuts only from builds in the schema version `MinimapBasemapStyle.js` is written for.
+July and October, when the archive was cut over 100 days ago (a missed refresh date), or when the city has none —
+which a startup also checks, at a point within its first hour picked by city (a deploy restarts every city on the
+server at once), so a new city has its basemap soon after first boot with nothing done at onboarding. It cuts only
+from builds in the schema version `MinimapBasemapStyle.js` is written for, and logs a warning when the newest such
+build is over 100 days old, which means Protomaps has moved on and the style needs updating. If the pmtiles script
+fails to load, the minimap draws its streets over a plain background rather than not at all.
 Each cut gets a new file name, which `BasemapController` serves with a year-long immutable cache and range support;
 the Explore page is handed the current name. The fonts the map draws names in are Protomaps' Noto Sans glyph files,
 served from `public/vendor/basemap-glyphs/` on their own route because MapLibre requests them by a URL pattern no

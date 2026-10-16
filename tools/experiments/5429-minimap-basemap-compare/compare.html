@@ -15,6 +15,7 @@
   <!-- main.css first: MinimapStyle.token caches the design tokens on first read, and build() reads them. -->
   <link id="main-css" rel="stylesheet" href="css/main.css">
   <link rel="stylesheet" href="vendor/maplibre-gl/maplibre-gl-6.10.0.css">
+  <script src="vendor/pmtiles/pmtiles-4.5.0.min.js"></script>
   <style>
     body { margin: 0; padding: 10px; background: #fff; }
     .pane {
@@ -42,6 +43,8 @@
       let googleMap = null;
       let maplibreMap = null;
       let styledLatitude = 0;
+      let tilesUrl = null;
+      let glyphsUrl = null;
       const tileErrors = [];
 
       /**
@@ -72,9 +75,17 @@
 
         const moduleUrl = new URL('vendor/maplibre-gl/maplibre-gl-6.10.0/maplibre-gl.mjs', document.baseURI);
         window.maplibregl = await import(moduleUrl.href);
+        // The app serves each city its own cut of Protomaps' world build (#5716); a run spanning cities reads the
+        // world build itself, the newest in the schema version the style is written for.
+        maplibregl.addProtocol('pmtiles', new pmtiles.Protocol({ metadata: true }).tile);
+        const builds = await (await fetch('https://build-metadata.protomaps.dev/builds.json')).json();
+        const latest = builds.filter((b) => /^\d{8}\.pmtiles$/.test(b.key) && b.version?.startsWith('4.'))
+          .map((b) => b.key).sort().at(-1);
+        tilesUrl = `pmtiles://https://build.protomaps.com/${latest}`;
+        glyphsUrl = `${new URL('vendor/basemap-glyphs/', document.baseURI).href}{fontstack}/{range}.pbf`;
         maplibreMap = new maplibregl.Map({
           container: 'maplibre',
-          style: MinimapBasemapStyle.build(0),
+          style: MinimapBasemapStyle.build(0, null, tilesUrl, glyphsUrl),
           center: [0, 0],
           zoom: 2,
           interactive: false,
@@ -109,7 +120,7 @@
         googleMap.setZoom(shot.googleZoom);
         // Road widths are real-world, so the style depends on latitude, as Minimap builds it per city.
         if (shot.lat !== styledLatitude) {
-          maplibreMap.setStyle(MinimapBasemapStyle.build(shot.lat));
+          maplibreMap.setStyle(MinimapBasemapStyle.build(shot.lat, null, tilesUrl, glyphsUrl));
           styledLatitude = shot.lat;
         }
         const maplibreDone = new Promise((resolve) => maplibreMap.once('idle', resolve));

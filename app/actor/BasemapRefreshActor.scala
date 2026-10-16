@@ -16,16 +16,21 @@ object BasemapRefreshActor {
 
   case object Tick
 
-  /** How long after startup a city with no archive builds its first: long enough to stay out of boot's way. */
-  val FirstBuildDelay: FiniteDuration = 2.minutes
+  /**
+   * How long after startup a city with no archive builds its first: a couple of minutes to stay out of boot's way,
+   * plus a spot in a one-hour window picked by city, since one deploy restarts every city on the server at once.
+   *
+   * @param cityId The city's id, as `city-id` names it.
+   */
+  def firstBuildDelay(cityId: String): FiniteDuration = 2.minutes + Math.floorMod(cityId.hashCode, 60).minutes
 }
 
 /**
  * Keeps the Explore minimap's basemap archive current (#5716).
  *
  * Ticks nightly; the service decides whether to build (BasemapService.isDue). A city with no archive also ticks
- * shortly after startup, so a new city gets its basemap on first boot. Skipped ticks are recorded too, so the Health
- * panel can tell "fresh" from "the scheduler stopped firing".
+ * within an hour of startup, so a new city gets its basemap on first boot. Skipped ticks are recorded too, so the
+ * Health panel can tell "fresh" from "the scheduler stopped firing".
  */
 @Singleton
 class BasemapRefreshActor @Inject() (
@@ -52,7 +57,8 @@ class BasemapRefreshActor @Inject() (
         BasemapRefreshActor.Tick
       )(using context.dispatcher, ActorRef.noSender)
       val firstBuild = Option.when(basemapService.currentArchive.isEmpty) {
-        context.system.scheduler.scheduleOnce(BasemapRefreshActor.FirstBuildDelay, self, BasemapRefreshActor.Tick)(using
+        val delay = BasemapRefreshActor.firstBuildDelay(configService.getCityId)
+        context.system.scheduler.scheduleOnce(delay, self, BasemapRefreshActor.Tick)(using
           context.dispatcher,
           ActorRef.noSender
         )

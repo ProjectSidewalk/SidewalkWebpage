@@ -346,6 +346,19 @@ describe('Minimap seam', () => {
     expect(window.pmtiles.Protocol.options).toEqual([{ metadata: true }]);
   });
 
+  test('without the pmtiles script, the map still draws its streets over a plain background', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    delete window.pmtiles;
+    ({ Minimap, MinimapBasemapStyle } = await loadModules('frontend/js/explore/navigation/Minimap.js',
+      'frontend/js/explore/navigation/MinimapBasemapStyle.js'));
+    FakeMap.instances = [];
+    const bare = await createMinimap();
+    expect(bare.isAvailable()).toBe(true);
+    const [bareMap] = FakeMap.instances;
+    expect(bareMap.options.style.layers.map((layer) => layer.id)).toEqual(['background']);
+    expect(bareMap.layers.map((layer) => layer.id)).toContain('street-remaining');
+  });
+
   test('a city with no archive yet gets a background-only basemap, and the streets still draw', async () => {
     FakeMap.instances = [];
     await createMinimap(null);
@@ -370,6 +383,21 @@ describe('Minimap seam', () => {
     nameLayers.forEach((layer) => {
       expect(layer.layout['text-field']).toEqual(['coalesce', ['get', 'name:pt'], ['get', 'name']]);
     });
+  });
+
+  test('Chinese names are the script the UI reads, since the tiles carry no plain name:zh', () => {
+    const textField = (language) => MinimapBasemapStyle.build(47.6, language, ARCHIVE_URL, GLYPHS_URL).layers
+      .find((layer) => layer.id === 'road-name-minor').layout['text-field'];
+    expect(textField('zh-TW')).toEqual(['coalesce', ['get', 'name:zh-Hant'], ['get', 'name']]);
+    expect(textField('zh-CN')).toEqual(['coalesce', ['get', 'name:zh-Hans'], ['get', 'name']]);
+  });
+
+  test('living streets draw as minor roads, and disused rail doesn\'t draw', () => {
+    const layers = MinimapBasemapStyle.build(47.6, 'en', ARCHIVE_URL, GLYPHS_URL).layers;
+    const filterOf = (id) => JSON.stringify(layers.find((layer) => layer.id === id).filter);
+    expect(filterOf('road-minor')).toContain('living_street');
+    expect(filterOf('rail')).toContain('"light_rail"');
+    expect(filterOf('rail')).not.toContain('disused');
   });
 
   test('street lines go over the whole basemap, road names included, so a name never hides the route', () => {

@@ -25,12 +25,12 @@ class BasemapServiceSpec extends SidewalkSpec with OptionValues {
       BasemapService.isDue(Some(date("2026-10-02")), date("2026-11-01")) mustBe false
     }
 
-    "not rebuild on a refresh date from data that is already that fresh" in {
-      // A rebuild the admin ran the day before, or one the startup tick made that morning.
-      BasemapService.isDue(Some(date("2026-09-30")), date("2026-10-01")) mustBe false
+    "not rebuild on a refresh date when the archive was already cut that day" in {
+      // An admin's rebuild that morning, or the startup tick's.
+      BasemapService.isDue(Some(date("2026-10-01")), date("2026-10-01")) mustBe false
     }
 
-    "build any night once the data passes its maximum age, which catches a missed refresh date" in {
+    "build any night once the archive passes its maximum age, which catches a missed refresh date" in {
       val today = date("2026-10-15")
       BasemapService.isDue(Some(today.minusDays(BasemapService.MaxAgeDays)), today) mustBe false
       BasemapService.isDue(Some(today.minusDays(BasemapService.MaxAgeDays + 1)), today) mustBe true
@@ -62,10 +62,18 @@ class BasemapServiceSpec extends SidewalkSpec with OptionValues {
   }
 
   "archive names" should {
-    "carry the build date, read back for the age check" in {
-      val name = BasemapService.archiveName("20261015", Instant.ofEpochSecond(1760572800L))
+    "carry the build date and when it was cut, read back for the age check" in {
+      val cut  = Instant.ofEpochSecond(1760572800L)
+      val name = BasemapService.archiveName("20261015", cut)
       name mustBe "basemap-20261015-1760572800.pmtiles"
-      BasemapService.buildDate(name).value mustBe date("2026-10-15")
+      BasemapService.cutAt(name).value mustBe cut
+      BasemapService.buildDate("20261015").value mustBe date("2026-10-15")
+    }
+
+    "be the only names the archive route serves" in {
+      BasemapService.isArchiveName("basemap-20261015-1760572800.pmtiles") mustBe true
+      BasemapService.isArchiveName(".basemap-20261015-1760572800.pmtiles.part") mustBe false
+      BasemapService.isArchiveName("../tools/pmtiles-1.31.2/pmtiles") mustBe false
     }
 
     "sort newest first by build, then by when they were cut, ignoring other files" in {
@@ -78,6 +86,15 @@ class BasemapServiceSpec extends SidewalkSpec with OptionValues {
         "basemap-20261015-100.pmtiles",
         "basemap-20260701-900.pmtiles"
       )
+    }
+  }
+
+  "the first build after startup" should {
+    "spread cities over an hour, so a deploy doesn't start every city's download at once" in {
+      val delays = Seq("seattle-wa", "chicago-il", "taipei", "amsterdam", "teaneck-nj", "zurich")
+        .map(actor.BasemapRefreshActor.firstBuildDelay)
+      delays.foreach(delay => delay.toMinutes must (be >= 2L and be < 62L))
+      delays.distinct.size must be > 1
     }
   }
 

@@ -42,6 +42,7 @@ case class BasemapRefreshResult(skipped: Boolean, archive: Option[String], build
   def runDetails: JsObject = Json.obj("skipped" -> skipped, "archive" -> archive, "build" -> build, "bytes" -> bytes)
 }
 
+/** Builds and finds the city's minimap basemap archive (#5716); see [[BasemapServiceImpl]]. */
 @ImplementedBy(classOf[BasemapServiceImpl])
 trait BasemapService {
 
@@ -97,7 +98,7 @@ object BasemapService {
   /** The nightly tick rebuilds on the first of these months... */
   val RefreshMonths: Set[Int] = Set(1, 4, 7, 10)
 
-  /** ...or once the archive's data is this old, which catches a server that was down on a refresh date. */
+  /** ...or once the archive was cut this long ago, which catches a server that was down on a refresh date. */
   val MaxAgeDays: Long = 100
 
   /**
@@ -106,8 +107,13 @@ object BasemapService {
    */
   val MarginM: Double = 2000
 
-  /** Archives kept on disk: the current one, and the one a page loaded before the last refresh may still read. */
-  val KeptArchives: Int = 2
+  /**
+   * Archives kept on disk: the current one and the one before, which a page loaded before the last refresh may
+   * still be reading, plus any cut in the last [[KeepRecentFor]], so back-to-back rebuilds can't pull a file out
+   * from under an open Explore tab.
+   */
+  val KeptArchives: Int             = 2
+  val KeepRecentFor: FiniteDuration = 1.day
 
   /** A city's cut takes seconds; this only stops a hung download from holding the refresh forever. */
   val ExtractTimeout: FiniteDuration = 15.minutes
@@ -131,23 +137,31 @@ object BasemapService {
       .reverse
       .map(_._3)
 
-  /** The date of an archive's OpenStreetMap data, from its file name. */
-  def buildDate(name: String): Option[LocalDate] = name match {
-    case ArchiveName(build, _) => Try(LocalDate.parse(build, BuildDate)).toOption
-    case _                     => None
+  /** Whether a file name is one of ours, so a request can't name any other file. */
+  def isArchiveName(name: String): Boolean = ArchiveName.matches(name)
+
+  /** When an archive was cut, from its file name. */
+  def cutAt(name: String): Option[Instant] = name match {
+    case ArchiveName(_, seconds) => seconds.toLongOption.map(Instant.ofEpochSecond)
+    case _                       => None
   }
 
+  /** The date of a build's OpenStreetMap data, from its name as [[latestBuild]] returns it (`20261015`). */
+  def buildDate(build: String): Option[LocalDate] = Try(LocalDate.parse(build, BuildDate)).toOption
+
   /**
-   * Whether the nightly tick should cut a new archive.
+   * Whether the nightly tick should cut a new archive. Goes by when we cut it, not the data's date: if Protomaps
+   * stopped publishing builds the style can read, the data would age past [[MaxAgeDays]] and every night would cut
+   * the same old build again.
    *
-   * @param current The current archive's data date, or None when the city has none.
+   * @param current The day the current archive was cut, or None when the city has none.
    * @param today   Today, in [[ScheduleZone]].
    */
   def isDue(current: Option[LocalDate], today: LocalDate): Boolean = current match {
     case None        => true
     case Some(built) =>
       val refreshDay = today.getDayOfMonth == 1 && RefreshMonths.contains(today.getMonthValue)
-      (refreshDay && built.isBefore(today.minusDays(1))) || built.isBefore(today.minusDays(MaxAgeDays))
+      (refreshDay && built.isBefore(today)) || built.isBefore(today.minusDays(MaxAgeDays))
   }
 
   /**
@@ -209,7 +223,7 @@ class BasemapServiceImpl @Inject() (
   def currentArchive: Option[String] = archivesNewestFirst.headOption
 
   def archiveFile(name: String): Option[File] =
-    archivesNewestFirst.find(_ == name).map(File(basemapDir, _)).filter(_.isFile)
+    Option.when(isArchiveName(name))(File(basemapDir, name)).filter(_.isFile)
 
   def refresh(force: Boolean): Future[BasemapRefreshResult] = {
     if (!running.compareAndSet(false, true)) {
@@ -219,7 +233,8 @@ class BasemapServiceImpl @Inject() (
       Future
         .delegate {
           val today = LocalDate.now(ScheduleZone)
-          if (!force && !isDue(currentArchive.flatMap(buildDate), today)) Future.successful(skipped)
+          val cutOn = currentArchive.flatMap(cutAt).map(LocalDate.ofInstant(_, ScheduleZone))
+          if (!force && !isDue(cutOn, today)) Future.successful(skipped)
           else {
             db.run(regionTable.regionsExtent).flatMap {
               case None =>
@@ -238,6 +253,11 @@ class BasemapServiceImpl @Inject() (
   private def archivesNewestFirst: Seq[String] =
     newestFirst(Option(basemapDir.list()).map(_.toSeq).getOrElse(Seq.empty))
 
+  /**
+   * Cuts the box out of the newest Protomaps build the style can read and makes it the current archive.
+   *
+   * @param bbox The regions' extent, padded by [[MarginM]].
+   */
   private def build(bbox: LatLngBBox): Future[BasemapRefreshResult] = {
     for {
       build <- ws.url(BuildsUrl).withRequestTimeout(1.minute).get().map { response =>
@@ -245,6 +265,10 @@ class BasemapServiceImpl @Inject() (
         latestBuild(response.json).getOrElse {
           throw RuntimeException(s"Protomaps lists no build in schema version $SchemaMajorVersion.")
         }
+      }
+      _ = buildDate(build).filter(_.isBefore(LocalDate.now(ScheduleZone).minusDays(MaxAgeDays))).foreach { date =>
+        // Protomaps has likely moved to a schema version MinimapBasemapStyle.js doesn't read yet.
+        logger.warn(s"The newest schema-$SchemaMajorVersion Protomaps build is from $date; the style needs updating.")
       }
       cli    <- ensureCli()
       result <- Future(blocking(extract(cli, build, bbox)))(using cpuEc)
@@ -254,6 +278,7 @@ class BasemapServiceImpl @Inject() (
   /** Cuts into a temporary file and moves it into place, so a failed cut never replaces a good archive. Blocks. */
   private def extract(cli: File, build: String, bbox: LatLngBBox): BasemapRefreshResult = {
     Files.createDirectories(basemapDir.toPath)
+    deleteStale(basemapDir, ExtractTimeout)
     val name   = archiveName(build, Instant.now)
     val tmp    = File(basemapDir, s".$name.part")
     val box    = s"${bbox.minLng},${bbox.minLat},${bbox.maxLng},${bbox.maxLat}"
@@ -265,7 +290,8 @@ class BasemapServiceImpl @Inject() (
     } finally {
       val _ = tmp.delete()
     }
-    newestFirst(Option(basemapDir.list()).map(_.toSeq).getOrElse(Seq.empty)).drop(KeptArchives).foreach { old =>
+    val keepAfter = Instant.now.minusMillis(KeepRecentFor.toMillis)
+    archivesNewestFirst.drop(KeptArchives).filter(cutAt(_).forall(_.isBefore(keepAfter))).foreach { old =>
       if (!File(basemapDir, old).delete()) logger.warn(s"Could not delete the old basemap archive $old.")
     }
     val bytes = File(basemapDir, name).length
@@ -288,11 +314,13 @@ class BasemapServiceImpl @Inject() (
     val shared   = File(MediaDirs.baseDir(config, environment, "cropped.image.directory"), toolPath)
     // Trying to create the shared folder is the test of whether we may write there: on a fresh server it doesn't
     // exist yet, so asking whether it is writable would always say no.
-    val toolsDir = if (Try(Files.createDirectories(shared.toPath)).isSuccess) shared else File(cityDir, toolPath)
+    val writable = Try(Files.createDirectories(shared.toPath)).isSuccess && Files.isWritable(shared.toPath)
+    val toolsDir = if (writable) shared else File(cityDir, toolPath)
     val cli      = File(toolsDir, "pmtiles")
     if (cli.canExecute) Future.successful(cli)
     else {
       Files.createDirectories(toolsDir.toPath)
+      deleteStale(toolsDir, 1.hour)
       val stamp   = s"${ProcessHandle.current.pid}-${System.nanoTime}"
       val archive = File(toolsDir, s".download-$stamp.tar.gz")
       val unpack  = File(toolsDir, s".unpack-$stamp")
@@ -314,11 +342,20 @@ class BasemapServiceImpl @Inject() (
               val digest = HexFormat.of.formatHex(MessageDigest.getInstance("SHA-256").digest(bytes))
               if (digest != CliSha256(arch)) throw RuntimeException(s"pmtiles download failed its checksum ($digest).")
               Files.createDirectories(unpack.toPath)
-              run(Seq("tar", "-xzf", archive.getAbsolutePath, "-C", unpack.getAbsolutePath, "pmtiles"), 1.minute)
+              // --no-same-owner: as root (the dev container) tar would otherwise keep the release's own file owner.
+              val tar = Seq("tar", "--no-same-owner", "-xzf", archive.getAbsolutePath, "-C", unpack.getAbsolutePath)
+              run(tar :+ "pmtiles", 1.minute)
               val unpacked = File(unpack, "pmtiles")
               if (!unpacked.setExecutable(true)) throw RuntimeException("Could not make pmtiles executable.")
               Files.move(unpacked.toPath, cli.toPath, StandardCopyOption.ATOMIC_MOVE)
               logger.info(s"Downloaded pmtiles $CliVersion to $cli.")
+              // Every city runs the same version, so older versions' folders (57 MB each) are no longer needed.
+              Option(toolsDir.getParentFile.listFiles()).toSeq.flatten
+                .filter(dir => dir.getName.startsWith("pmtiles-") && dir != toolsDir)
+                .foreach { dir =>
+                  Option(dir.listFiles()).foreach(_.foreach(_.delete()))
+                  val _ = dir.delete()
+                }
               cli
             } finally {
               val _ = archive.delete()
@@ -327,6 +364,21 @@ class BasemapServiceImpl @Inject() (
             }
           }
         }(using cpuEc)
+    }
+  }
+
+  /**
+   * Deletes the temporary files (names starting with a dot) a killed run left in a folder.
+   *
+   * @param dir       The folder to sweep.
+   * @param olderThan Only files at least this old, so a run in progress in another city keeps its own.
+   */
+  private def deleteStale(dir: File, olderThan: FiniteDuration): Unit = {
+    val cutoff = System.currentTimeMillis - olderThan.toMillis
+    Option(dir.listFiles()).toSeq.flatten.filter(f => f.getName.startsWith(".") && f.lastModified < cutoff).foreach {
+      stale =>
+        Option(stale.listFiles()).foreach(_.foreach(_.delete()))
+        if (!stale.delete()) logger.warn(s"Could not delete the leftover file $stale.")
     }
   }
 

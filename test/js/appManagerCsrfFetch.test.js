@@ -102,8 +102,7 @@ describe('AppManager CSRF fetch wrapper', () => {
       expect(Object.fromEntries(headers)).toEqual({ 'content-type': 'application/json', 'csrf-token': CSRF_TOKEN });
     });
 
-    // pmtiles passes its Range header as a `Headers`; spreading one copies nothing, which dropped the range and
-    // turned every minimap tile read into a whole-file download that pmtiles rejects (#5716).
+    // pmtiles passes its Range header as a `Headers`, and a lost range is a whole-file download pmtiles rejects.
     test('headers given as a Headers instance or as pairs are kept', async () => {
       await window.fetch('/basemap/a.pmtiles', { headers: new Headers({ Range: 'bytes=0-16383' }) });
       expect(forwardedOptions().headers.get('Range')).toBe('bytes=0-16383');
