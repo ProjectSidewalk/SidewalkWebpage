@@ -29,6 +29,8 @@ describe('i18n-escape-in-markup', () => {
       // No interpolation: escaping has nothing to act on.
       { code: 'el.innerHTML = i18next.t("ns:key");' },
       { code: 'el.innerHTML = i18next.t("ns:key", { ns: "common" });' },
+      // The plain-text tooltip is shown as text, so its interpolations stay unescaped.
+      { code: 'el.setAttribute("data-ps-tooltip", i18next.t("ns:key", { name }));' },
 
       // Text sinks, which is what the flipped default is for.
       { code: 'el.textContent = i18next.t("ns:key", { name });' },
@@ -70,8 +72,8 @@ describe('i18n-escape-in-markup', () => {
       { code: 'el.insertAdjacentHTML("beforeend", i18next.t("ns:key", { name }));', errors },
       { code: 'popup.setHTML(i18next.t("ns:key", { name }));', errors },
 
-      // `data-ps-tooltip` is read back into the tooltip card's innerHTML, so it is a markup sink.
-      { code: 'el.setAttribute("data-ps-tooltip", i18next.t("ns:key", { count }));', errors },
+      // `data-ps-tooltip-html` is read back into the tooltip card's innerHTML, so it is a markup sink.
+      { code: 'el.setAttribute("data-ps-tooltip-html", i18next.t("ns:key", { count }));', errors },
 
       // Carried there by a template literal, a concatenation, a ternary, or an array that is joined.
       { code: 'el.innerHTML = `<b>${i18next.t("ns:key", { name })}</b>`;', errors },

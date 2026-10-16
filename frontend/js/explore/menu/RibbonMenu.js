@@ -44,9 +44,8 @@ export class RibbonMenu {
       const val = el.getAttribute('val');
       if (val !== 'Walk' && val !== 'Other') {
         if (placement) el.setAttribute('data-ps-tooltip-placement', placement);
-        // psTooltip renders the attribute as HTML, hence the escaping.
         el.setAttribute('data-ps-tooltip', i18next.t('top-ui.press-key', {
-          key: util.misc.getLabelDescriptions(val).keyChar, interpolation: { escapeValue: true },
+          key: util.misc.getLabelDescriptions(val).keyChar,
         }));
       }
     };

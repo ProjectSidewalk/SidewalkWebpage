@@ -250,7 +250,10 @@ export class Main {
 
     // A tap would pin the markup's tooltips open on a touch device; the ones added by script check the same query.
     if (!window.matchMedia('(hover: hover)').matches) {
-      document.querySelectorAll('[data-ps-tooltip]').forEach((el) => el.removeAttribute('data-ps-tooltip'));
+      for (const el of document.querySelectorAll('[data-ps-tooltip], [data-ps-tooltip-html]')) {
+        el.removeAttribute('data-ps-tooltip');
+        el.removeAttribute('data-ps-tooltip-html');
+      }
     }
 
     return {

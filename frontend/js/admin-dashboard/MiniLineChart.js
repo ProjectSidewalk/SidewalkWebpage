@@ -16,9 +16,9 @@ export class MiniLineChart {
    *          tooltipsHtml?: string[]}>} series
    *   each series' values align to `categories`; null = gap. Optional per-point tooltip strings, and optional
    *   per-point rich cards: where `tooltipsHtml` has an entry, the point trades its native `<title>` for a
-   *   `data-ps-tooltip` card and becomes focusable, so the breakdown is reachable by keyboard as well as hover (the
-   *   plain `tooltips` string stays on as its accessible name). Card markup is first-party only — escape any name or
-   *   other data that came from a user before putting it in one.
+   *   `data-ps-tooltip-html` card and becomes focusable, so the breakdown is reachable by keyboard as well as hover
+   *   (the plain `tooltips` string stays on as its accessible name). Card markup is first-party only — escape any
+   *   name or other data that came from a user before putting it in one.
    * @param {{yMax?: number, tickFormat?: (value: number) => string, valueFormat?: (value: number) => string,
    *          ariaLabel?: string, dotRadius?: number, kind?: string, maxXLabels?: number, barValues?: boolean,
    *          emphasisIndex?: number, minMarginL?: number, minMarginR?: number, width?: number,
@@ -357,6 +357,6 @@ export class MiniLineChart {
       ? 'role="button" aria-haspopup="dialog" aria-expanded="false" data-ps-tooltip-pinnable'
       : 'role="img"';
     return ` tabindex="0" ${role} aria-label="${util.escapeHTML(tip)}" `
-      + `data-ps-tooltip="${util.escapeHTML(html)}">`;
+      + `data-ps-tooltip-html="${util.escapeHTML(html)}">`;
   }
 }

@@ -555,7 +555,7 @@ export class ContextMenu {
 
               button.setAttribute(
                 // eslint-disable-next-line ps/escape-in-markup -- our tag text, with its underline markup.
-                'data-ps-tooltip', `${tooltipHeader}<br/>${tooltipImage}<br/> <i>${tooltipFooter}</i>`,
+                'data-ps-tooltip-html', `${tooltipHeader}<br/>${tooltipImage}<br/> <i>${tooltipFooter}</i>`,
               );
             });
           }
@@ -580,7 +580,7 @@ export class ContextMenu {
         // Image size (and aspect ratio) is set in CSS so it scales with the UI; see svl-context-menu.css.
         const tooltipImage = `<img class="context-menu-tooltip__img--severity" src="${util.escapeHTML(img)}"/>`;
         for (const button of document.querySelectorAll(`.severity-button[data-severity="${sev}"]`)) {
-          button.setAttribute('data-ps-tooltip', `${tooltipHeader}<br/>${tooltipImage}<br/>${tooltipFooter}`);
+          button.setAttribute('data-ps-tooltip-html', `${tooltipHeader}<br/>${tooltipImage}<br/>${tooltipFooter}`);
         }
       });
     }
@@ -592,7 +592,7 @@ export class ContextMenu {
   #removePrevSeverityTooltips() {
     for (let severity = 1; severity < 4; severity++) {
       for (const button of document.querySelectorAll(`.severity-button[data-severity="${severity}"]`)) {
-        button.removeAttribute('data-ps-tooltip');
+        button.removeAttribute('data-ps-tooltip-html');
       }
     }
   }

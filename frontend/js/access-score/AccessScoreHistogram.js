@@ -107,7 +107,7 @@ export class AccessScoreHistogram extends AccessScoreChart {
     data.bins.forEach((b, k) => {
       this.#els.fills[k].style.height = `${max > 0 ? Math.min(100, (b.value / max) * 100) : 0}%`;
       this.#els.bins[k].setAttribute('aria-label', this.#binLabel(b));
-      this.#els.bins[k].setAttribute('data-ps-tooltip', util.escapeHTML(this.#binLabel(b)));
+      this.#els.bins[k].setAttribute('data-ps-tooltip', this.#binLabel(b));
     });
     this.#els.gridTop.textContent = this.#valueLabel(max);
     this.#els.gridMid.textContent = this.#valueLabel(max / 2);
