@@ -53,6 +53,7 @@ trait BasemapService {
    *
    * @param force True to build whatever the current archive's age; false (the nightly tick) builds only when
    *              [[BasemapService.isDue]] says so.
+   * @return      What the run did.
    */
   def refresh(force: Boolean): Future[BasemapRefreshResult]
 
@@ -66,6 +67,7 @@ trait BasemapService {
    * The archive with this file name, if it is one this city serves.
    *
    * @param name A file name from [[currentArchive]], possibly an older one a page loaded before the last refresh.
+   * @return     The file, or None when the name isn't an archive on disk.
    */
   def archiveFile(name: String): Option[File]
 }
@@ -95,11 +97,11 @@ object BasemapService {
    */
   val SchemaMajorVersion: Int = 4
 
-  /** The nightly tick rebuilds on the first of these months... */
+  /** The nightly tick rebuilds once the first of one of these months has passed since the last cut. */
   val RefreshMonths: Set[Int] = Set(1, 4, 7, 10)
 
-  /** ...or once the archive was cut this long ago, which catches a server that was down on a refresh date. */
-  val MaxAgeDays: Long = 100
+  /** A newest readable build older than this means Protomaps has moved to a schema the style can't read yet. */
+  val StaleBuildDays: Long = 100
 
   /**
    * How far past the regions the archive reaches. The minimap stays centered on the user, so at a region's edge half
@@ -132,10 +134,10 @@ object BasemapService {
   /** Sorts archive file names newest first, dropping anything that isn't one. */
   def newestFirst(names: Seq[String]): Seq[String] =
     names
-      .collect { case name @ ArchiveName(build, cutAt) => (build, cutAt.toLong, name) }
-      .sortBy { case (build, cutAt, _) => (build, cutAt) }
+      .flatMap(name => cutAt(name).map(_ -> name))
+      .sortBy(_._1)
       .reverse
-      .map(_._3)
+      .map(_._2)
 
   /** Whether a file name is one of ours, so a request can't name any other file. */
   def isArchiveName(name: String): Boolean = ArchiveName.matches(name)
@@ -150,18 +152,18 @@ object BasemapService {
   def buildDate(build: String): Option[LocalDate] = Try(LocalDate.parse(build, BuildDate)).toOption
 
   /**
-   * Whether the nightly tick should cut a new archive. Goes by when we cut it, not the data's date: if Protomaps
-   * stopped publishing builds the style can read, the data would age past [[MaxAgeDays]] and every night would cut
-   * the same old build again.
+   * Whether the nightly tick should cut a new archive: when none has been cut since the latest refresh date. A
+   * refresh missed or failed on the date is then retried every night until one succeeds.
    *
    * @param current The day the current archive was cut, or None when the city has none.
    * @param today   Today, in [[ScheduleZone]].
+   * @return        True when a cut is due.
    */
-  def isDue(current: Option[LocalDate], today: LocalDate): Boolean = current match {
-    case None        => true
-    case Some(built) =>
-      val refreshDay = today.getDayOfMonth == 1 && RefreshMonths.contains(today.getMonthValue)
-      (refreshDay && built.isBefore(today)) || built.isBefore(today.minusDays(MaxAgeDays))
+  def isDue(current: Option[LocalDate], today: LocalDate): Boolean = {
+    val month       = RefreshMonths.filter(_ <= today.getMonthValue).maxOption
+    val lastRefresh =
+      month.fold(LocalDate.of(today.getYear - 1, RefreshMonths.max, 1))(LocalDate.of(today.getYear, _, 1))
+    current.forall(_.isBefore(lastRefresh))
   }
 
   /**
@@ -257,6 +259,7 @@ class BasemapServiceImpl @Inject() (
    * Cuts the box out of the newest Protomaps build the style can read and makes it the current archive.
    *
    * @param bbox The regions' extent, padded by [[MarginM]].
+   * @return     The run's result, with the new archive.
    */
   private def build(bbox: LatLngBBox): Future[BasemapRefreshResult] = {
     for {
@@ -266,7 +269,7 @@ class BasemapServiceImpl @Inject() (
           throw RuntimeException(s"Protomaps lists no build in schema version $SchemaMajorVersion.")
         }
       }
-      _ = buildDate(build).filter(_.isBefore(LocalDate.now(ScheduleZone).minusDays(MaxAgeDays))).foreach { date =>
+      _ = buildDate(build).filter(_.isBefore(LocalDate.now(ScheduleZone).minusDays(StaleBuildDays))).foreach { date =>
         // Protomaps has likely moved to a schema version MinimapBasemapStyle.js doesn't read yet.
         logger.warn(s"The newest schema-$SchemaMajorVersion Protomaps build is from $date; the style needs updating.")
       }
@@ -305,6 +308,8 @@ class BasemapServiceImpl @Inject() (
    * Every city on a server shares one copy (it is 57 MB) in the crop directory's parent; a city that can't write
    * there keeps its own. Two cities downloading at once each write a private temporary file and move it into place,
    * so neither ever runs a half-written tool.
+   *
+   * @return The tool's executable.
    */
   private def ensureCli(): Future[File] = {
     val arch = cliArch(System.getProperty("os.arch")).getOrElse {
@@ -349,13 +354,6 @@ class BasemapServiceImpl @Inject() (
               if (!unpacked.setExecutable(true)) throw RuntimeException("Could not make pmtiles executable.")
               Files.move(unpacked.toPath, cli.toPath, StandardCopyOption.ATOMIC_MOVE)
               logger.info(s"Downloaded pmtiles $CliVersion to $cli.")
-              // Every city runs the same version, so older versions' folders (57 MB each) are no longer needed.
-              Option(toolsDir.getParentFile.listFiles()).toSeq.flatten
-                .filter(dir => dir.getName.startsWith("pmtiles-") && dir != toolsDir)
-                .foreach { dir =>
-                  Option(dir.listFiles()).foreach(_.foreach(_.delete()))
-                  val _ = dir.delete()
-                }
               cli
             } finally {
               val _ = archive.delete()

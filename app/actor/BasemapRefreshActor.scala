@@ -21,6 +21,7 @@ object BasemapRefreshActor {
    * plus a spot in a one-hour window picked by city, since one deploy restarts every city on the server at once.
    *
    * @param cityId The city's id, as `city-id` names it.
+   * @return       The delay.
    */
   def firstBuildDelay(cityId: String): FiniteDuration = 2.minutes + Math.floorMod(cityId.hashCode, 60).minutes
 }

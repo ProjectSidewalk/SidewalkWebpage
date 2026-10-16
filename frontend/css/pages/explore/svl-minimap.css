@@ -722,8 +722,8 @@
 /* No vertical padding and a line the button's height: the open box is then as tall as the closed one, so the button
    stays put and the one-line credit sits level with it. */
 #minimap-attribution .maplibregl-ctrl-attrib.maplibregl-compact-show {
-  padding: 0 calc(22px * var(--ui-scale)) 0 calc(8px * var(--ui-scale));
-  line-height: calc(18px * var(--ui-scale));
+  padding: 0 calc(22px * var(--ui-scale, 1)) 0 calc(8px * var(--ui-scale, 1));
+  line-height: calc(18px * var(--ui-scale, 1));
   border-radius: calc(8px * var(--ui-scale));
   background: color-mix(in srgb, var(--color-neutral-white) 95%, transparent);
   box-shadow: 0 calc(2px * var(--ui-scale)) calc(10px * var(--ui-scale))

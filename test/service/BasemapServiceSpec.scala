@@ -30,10 +30,15 @@ class BasemapServiceSpec extends SidewalkSpec with OptionValues {
       BasemapService.isDue(Some(date("2026-10-01")), date("2026-10-01")) mustBe false
     }
 
-    "build any night once the archive passes its maximum age, which catches a missed refresh date" in {
-      val today = date("2026-10-15")
-      BasemapService.isDue(Some(today.minusDays(BasemapService.MaxAgeDays)), today) mustBe false
-      BasemapService.isDue(Some(today.minusDays(BasemapService.MaxAgeDays + 1)), today) mustBe true
+    "keep trying every night after a refresh date that a failed or missed run let pass" in {
+      BasemapService.isDue(Some(date("2026-07-01")), date("2026-10-02")) mustBe true
+      BasemapService.isDue(Some(date("2026-07-01")), date("2026-12-31")) mustBe true
+    }
+
+    "count back into the year before when no refresh date has come yet this year" in {
+      // January 1st is a refresh date, so only the archive cut last October needs this.
+      BasemapService.isDue(Some(date("2026-10-01")), date("2026-12-31")) mustBe false
+      BasemapService.isDue(Some(date("2025-12-31")), date("2026-01-01")) mustBe true
     }
   }
 
@@ -76,15 +81,16 @@ class BasemapServiceSpec extends SidewalkSpec with OptionValues {
       BasemapService.isArchiveName("../tools/pmtiles-1.31.2/pmtiles") mustBe false
     }
 
-    "sort newest first by build, then by when they were cut, ignoring other files" in {
+    "sort newest cut first, ignoring other files and names whose number won't read" in {
+      // A forced rebuild from an older build is still the newest cut, so it is the one served.
       val names = Seq(
         "basemap-20261015-100.pmtiles", ".basemap-20261016-300.pmtiles.part", "basemap-20260701-900.pmtiles",
-        "basemap-20261015-200.pmtiles", "notes.txt"
+        "basemap-20261015-200.pmtiles", "notes.txt", "basemap-20261015-99999999999999999999.pmtiles"
       )
       BasemapService.newestFirst(names) mustBe Seq(
+        "basemap-20260701-900.pmtiles",
         "basemap-20261015-200.pmtiles",
-        "basemap-20261015-100.pmtiles",
-        "basemap-20260701-900.pmtiles"
+        "basemap-20261015-100.pmtiles"
       )
     }
   }

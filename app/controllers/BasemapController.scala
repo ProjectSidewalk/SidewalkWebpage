@@ -23,6 +23,7 @@ class BasemapController @Inject() (cc: CustomControllerComponents, basemapServic
    * change and a browser may keep them for good.
    *
    * @param name The archive's file name, from [[BasemapController.pageData]].
+   * @return     The requested bytes, or 404 for a name that isn't a current archive.
    */
   def archive(name: String): Action[AnyContent] = Action { request =>
     basemapService.archiveFile(name) match {

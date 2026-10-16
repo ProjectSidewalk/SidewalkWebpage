@@ -113,6 +113,12 @@ describe('AppManager CSRF fetch wrapper', () => {
     });
   });
 
+  test('a malformed header rejects the returned promise instead of throwing', async () => {
+    let returned;
+    expect(() => { returned = window.fetch('/label/geo', { headers: { 'Bad Name': 'x' } }); }).not.toThrow();
+    await expect(returned).rejects.toThrow();
+  });
+
   describe('cross-origin requests are left untouched', () => {
     test('string', async () => {
       await window.fetch(CROSS_ORIGIN);
