@@ -232,7 +232,7 @@ POST    /userapi/createTeam                             controllers.UserProfileC
 # Map resources from the /public folder to the /assets URL path. Prefix must match `play.assets.urlPrefix`
 GET     /assets/*file                                   controllers.Assets.versioned(file)
 
-# The Explore minimap's basemap (#5716): the city's tile archive, and the glyphs its labels are drawn with
+# Explore minimap basemap (#5716): the tile archive and the label glyphs
 GET     /basemap/glyphs/*file                           controllers.Assets.at(path="/public/vendor/basemap-glyphs", file)
 GET     /basemap/:name                                  controllers.BasemapController.archive(name: String)
 

@@ -1246,10 +1246,7 @@ class AdminController @Inject() (
     }
   }
 
-  /**
-   * Cuts a new minimap basemap archive now, whatever the current one's age (#5716): after a city's regions change,
-   * or to retry a build that failed. Answers at once like the places refresh; the run row reports how it went.
-   */
+  /** Cuts a new minimap basemap now (#5716), e.g. after a region change; the run row reports the result. */
   def refreshBasemap = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     cc.loggingService.insert(request.identity.userId, request.ipAddress, request.toString)
     if (basemapService.isRunning) {

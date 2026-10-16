@@ -6,9 +6,7 @@ import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import util.{RolledBackDb, SidewalkSpec, StreetFixtures}
 
-/**
- * `RegionTable` queries against the connected Postgres+PostGIS database, every case inside a rolled-back transaction.
- */
+/** `RegionTable` queries, each in a rolled-back transaction. */
 class RegionTableSpec
     extends SidewalkSpec
     with GuiceOneAppPerSuite

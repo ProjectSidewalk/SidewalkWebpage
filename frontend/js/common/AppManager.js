@@ -136,14 +136,12 @@ export class AppManager {
         return originalFetch(url, options);
       }
 
-      // `headers` can be a plain object, an array of pairs, or a `Headers` instance (pmtiles' Range requests), and
-      // spreading a `Headers` copies nothing, so they go through `new Headers`. An init `headers` replaces a
-      // `Request`'s own wholesale (fetch spec), so a `Request` with no init headers starts from its own.
+      // `new Headers` accepts every form `headers` can take; spreading a `Headers` instance would copy nothing.
       let headers;
       try {
         headers = new Headers(options.headers ?? (isRequest ? url.headers : undefined));
       } catch (error) {
-        // A malformed header fails the returned promise, as the browser's own fetch does, rather than the call.
+        // Fail the promise, not the call, as the browser's fetch does.
         return Promise.reject(error);
       }
       headers.set('Csrf-Token', csrfToken);

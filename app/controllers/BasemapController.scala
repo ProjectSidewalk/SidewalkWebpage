@@ -7,23 +7,16 @@ import service.BasemapService
 
 import javax.inject.{Inject, Singleton}
 
-/**
- * Serves the Explore minimap's basemap: the city's archive of OpenStreetMap vector tiles (#5716).
- *
- * The archive is one file that MapLibre reads in pieces, asking for byte ranges as it needs tiles, so all this has
- * to do is answer range requests. The font files the map draws its text with are static assets on their own route
- * (`conf/routes`, `/basemap/glyphs/`), since MapLibre asks for them by a URL pattern no fingerprinted name can match.
- */
+/** Serves the minimap's tile archive (#5716), which MapLibre reads in pieces by byte-range requests. */
 @Singleton
 class BasemapController @Inject() (cc: CustomControllerComponents, basemapService: BasemapService)
     extends CustomBaseController(cc) {
 
   /**
-   * One archive, by the file name the page was given. Each cut gets a new name, so the bytes behind a name never
-   * change and a browser may keep them for good.
+   * Each cut gets a new name, so a browser may cache an archive for good.
    *
    * @param name The archive's file name, from [[BasemapController.pageData]].
-   * @return     The requested bytes, or 404 for a name that isn't a current archive.
+   * @return     The requested bytes, or 404.
    */
   def archive(name: String): Action[AnyContent] = Action { request =>
     basemapService.archiveFile(name) match {
@@ -38,15 +31,12 @@ class BasemapController @Inject() (cc: CustomControllerComponents, basemapServic
 
 object BasemapController {
 
-  /** Where MapLibre asks for glyphs: the folder `/basemap/glyphs/` serves, plus the parts MapLibre fills in. */
+  /** The glyph URL pattern; its own route, since no fingerprinted asset name can match a pattern. */
   val GlyphsUrl: String = s"${routes.Assets.at("").url}{fontstack}/{range}.pbf"
 
   /**
-   * What the minimap needs to draw its basemap, for the Explore page to hand it.
-   *
-   * @param archive The current archive's file name, or None before the city's first build (the minimap then draws
-   *                its streets over a plain background).
-   * @return        `{tilesUrl, glyphsUrl}`, with `tilesUrl` null when there is no archive.
+   * @param archive The current archive's file name, or None before the city's first build.
+   * @return        The minimap's `{tilesUrl, glyphsUrl}`, with `tilesUrl` null when there's no archive.
    */
   def pageData(archive: Option[String]): JsObject =
     Json.obj("tilesUrl" -> archive.map(routes.BasemapController.archive(_).url), "glyphsUrl" -> GlyphsUrl)

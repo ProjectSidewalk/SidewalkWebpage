@@ -7,10 +7,7 @@ import util.SidewalkSpec
 
 import java.time.{Instant, LocalDate}
 
-/**
- * Unit tests for the minimap basemap refresh's pure halves (#5716): when the nightly tick builds, which Protomaps
- * build it cuts from, and how archives are named and ordered. No application, DB, or network required.
- */
+/** The basemap refresh's pure logic (#5716): when to build, which build, archive names. No app, DB or network. */
 class BasemapServiceSpec extends SidewalkSpec with OptionValues {
 
   private def date(text: String) = LocalDate.parse(text)
@@ -35,8 +32,7 @@ class BasemapServiceSpec extends SidewalkSpec with OptionValues {
       BasemapService.isDue(Some(date("2026-07-01")), date("2026-12-31")) mustBe true
     }
 
-    "count back into the year before when no refresh date has come yet this year" in {
-      // January 1st is a refresh date, so only the archive cut last October needs this.
+    "carry the latest refresh date across the new year" in {
       BasemapService.isDue(Some(date("2026-10-01")), date("2026-12-31")) mustBe false
       BasemapService.isDue(Some(date("2025-12-31")), date("2026-01-01")) mustBe true
     }
@@ -82,7 +78,7 @@ class BasemapServiceSpec extends SidewalkSpec with OptionValues {
     }
 
     "sort newest cut first, ignoring other files and names whose number won't read" in {
-      // A forced rebuild from an older build is still the newest cut, so it is the one served.
+      // A forced rebuild from an older build is still the newest cut, so it's the one served.
       val names = Seq(
         "basemap-20261015-100.pmtiles", ".basemap-20261016-300.pmtiles.part", "basemap-20260701-900.pmtiles",
         "basemap-20261015-200.pmtiles", "notes.txt", "basemap-20261015-99999999999999999999.pmtiles"

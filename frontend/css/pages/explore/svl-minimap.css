@@ -719,8 +719,7 @@
   outline-offset: calc(1px * var(--ui-scale));
 }
 
-/* No vertical padding and a line the button's height: the open box is then as tall as the closed one, so the button
-   stays put and the one-line credit sits level with it. */
+/* As tall as the closed box, so the button stays put when the credits open and the text sits level with it. */
 #minimap-attribution .maplibregl-ctrl-attrib.maplibregl-compact-show {
   padding: 0 calc(22px * var(--ui-scale, 1)) 0 calc(8px * var(--ui-scale, 1));
   line-height: calc(18px * var(--ui-scale, 1));

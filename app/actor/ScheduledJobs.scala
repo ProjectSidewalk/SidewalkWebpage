@@ -50,7 +50,7 @@ object ScheduledJobs {
   val PlacesRefresh: ScheduledJob    = ScheduledJob(PlacesRefreshActor.Name, "Places refresh", 2, 15)
   val AuthTokenCleaner: ScheduledJob = ScheduledJob(AuthTokenCleanerActor.Name, "Auth token cleanup", 2, 30)
 
-  /** Ticks nightly but builds quarterly (#5716); every tick is recorded, as for the places refresh. */
+  /** Ticks nightly but builds quarterly (#5716). */
   val BasemapRefresh: ScheduledJob = ScheduledJob(BasemapRefreshActor.Name, "Minimap basemap refresh", 2, 45)
 
   val FunnelStats: ScheduledJob = ScheduledJob(FunnelStatActor.Name, "Engagement funnel stats", 3, 15)

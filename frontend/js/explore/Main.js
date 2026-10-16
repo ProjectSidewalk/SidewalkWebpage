@@ -95,7 +95,7 @@ import '../common/utilitiesSidewalk.js';
  * @property {import('./task/Task.js').StreetCoverage} streetCoverage - Free exploration's street-credit rule
  *   (#5733), owned by the backend (StreetCoverage).
  * @property {string} mapboxApiKey
- * @property {import('./navigation/Minimap.js').MinimapBasemap} basemap - Where the minimap's basemap is served from.
+ * @property {import('./navigation/Minimap.js').MinimapBasemap} basemap - The minimap's tile and glyph URLs.
  * @property {string} countryId - The city's country, for the speed limit sign.
  * @property {string} language - The page's language code.
  * @property {typeof import('../common/pano-viewer/PanoViewer.js').PanoViewer} viewerType - The viewer class for

@@ -102,7 +102,7 @@ describe('AppManager CSRF fetch wrapper', () => {
       expect(Object.fromEntries(headers)).toEqual({ 'content-type': 'application/json', 'csrf-token': CSRF_TOKEN });
     });
 
-    // pmtiles passes its Range header as a `Headers`, and a lost range is a whole-file download pmtiles rejects.
+    // pmtiles sends its Range header as a `Headers`.
     test('headers given as a Headers instance or as pairs are kept', async () => {
       await window.fetch('/basemap/a.pmtiles', { headers: new Headers({ Range: 'bytes=0-16383' }) });
       expect(forwardedOptions().headers.get('Range')).toBe('bytes=0-16383');

@@ -342,7 +342,6 @@ describe('Minimap seam', () => {
     expect(map.options.style.glyphs).toBe(GLYPHS_URL);
     await createMinimap();
     expect(window.maplibregl.addProtocol.mock.calls.map(([name]) => name)).toEqual(['pmtiles']);
-    // The archive's metadata carries the OpenStreetMap credit the attribution control shows.
     expect(window.pmtiles.Protocol.options).toEqual([{ metadata: true }]);
   });
 

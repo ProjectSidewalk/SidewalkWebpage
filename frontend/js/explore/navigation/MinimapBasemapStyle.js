@@ -1,6 +1,5 @@
 /**
- * The Explore minimap's basemap: a MapLibre style object over OpenStreetMap vector tiles (#5429), read from the
- * city's own copy of the Protomaps basemap (#5716).
+ * The Explore minimap's basemap: a MapLibre style over the city's own copy of the Protomaps tiles (#5429, #5716).
  *
  * Deliberately sparse: the minimap is ~200px and sits under the fog-of-war and FOV overlays, so it draws only what
  * helps a labeler orient (land, water, parks, buildings, roads, rail, and road and water names). No POI icons, transit
@@ -11,8 +10,7 @@
 import { MinimapStyle } from './MinimapStyle.js';
 
 export class MinimapBasemapStyle {
-  // Layer names and `kind` values are Protomaps basemap schema v4's (https://docs.protomaps.com/basemaps/layers);
-  // the server cuts only v4 builds (BasemapService.SchemaMajorVersion) until this file is updated.
+  // Written for Protomaps schema v4 (docs.protomaps.com/basemaps/layers); see BasemapService.SchemaMajorVersion.
 
   /** Id of the vector source; also how Minimap tells basemap layers from its own. */
   static SOURCE_ID = 'basemap';
@@ -20,8 +18,8 @@ export class MinimapBasemapStyle {
   static #MAJOR_ROADS = ['motorway', 'trunk', 'primary', 'secondary', 'tertiary'];
   static #MINOR_ROADS = ['minor', 'service', 'track'];
 
-  // The schema's road kinds are coarser than the widths below (one `major_road` kind covers primary through
-  // tertiary), so each road is sorted into one of these classes by its `kind_detail` (OSM's highway tag) first.
+  // The schema's road kinds are too coarse for the widths below (`major_road` spans primary to tertiary), so roads
+  // are classed by `kind_detail`, OSM's highway tag.
   static #ROAD_CLASS = ['match', ['get', 'kind_detail'],
     ['motorway', 'motorway_link'], 'motorway',
     ['trunk', 'trunk_link'], 'trunk',
@@ -33,8 +31,7 @@ export class MinimapBasemapStyle {
     ['match', ['get', 'kind'], 'path', 'path', 'minor'],
   ];
 
-  // Typical curb-to-curb widths in meters by road class: the tiles carry a kind but no width (OSM's `width` tag is
-  // sparse and not in the schema), so roads are drawn at their class's typical width.
+  // Typical curb-to-curb widths in meters; the tiles carry no road widths.
   static #ROAD_METERS = {
     motorway: 22, trunk: 18, primary: 15, secondary: 13, tertiary: 11, minor: 9, service: 5, track: 4, path: 2,
   };
@@ -51,15 +48,14 @@ export class MinimapBasemapStyle {
   static #CASING_PX = 1.2;
 
   /**
-   * A filter matching the roads layer's lines in the given classes. Only road kinds count: the layer also holds
-   * rail, ferries, piers and runways, which a `kind_detail` alone (a pier's is 'pier') could let into the 'path' class.
+   * The roads layer's lines in the given classes. The layer also holds rail, ferries, piers and runways.
    * @param {string[]} classes - Classes from #ROAD_CLASS.
    * @returns {Array} A MapLibre filter expression.
    */
   static #roadFilter(classes) {
     return ['all',
       ['match', ['geometry-type'], ['LineString', 'MultiLineString'], true, false],
-      // Living streets are filed under 'other' with platforms and busways, so they are let in by name.
+      // Living streets are filed under 'other', with platforms and busways.
       ['any',
         ['match', ['get', 'kind'], ['highway', 'major_road', 'minor_road', 'path'], true, false],
         ['==', ['get', 'kind_detail'], 'living_street'],
@@ -114,14 +110,14 @@ export class MinimapBasemapStyle {
 
   /**
    * The UI-language name where the tiles have one, else the local name: what the Mapbox maps' language plugin shows.
-   * The tiles key translations by bare language ('name:pt'), so a region tag is dropped, except for Chinese.
+   * Translations are keyed by bare language ('name:pt'), except Chinese.
    * @param {?string} language - A BCP 47 tag ('pt-BR'); none means the local name only.
    * @returns {Array} A MapLibre expression.
    */
   static #nameField(language) {
     const [base, ...rest] = (language || '').split('-');
     if (!base) return ['get', 'name'];
-    // Chinese names come only as name:zh-Hant and name:zh-Hans; Taiwan, Hong Kong and Macau read traditional.
+    // Chinese comes only as name:zh-Hant and name:zh-Hans; Taiwan, Hong Kong and Macau read traditional.
     const traditional = rest.some((part) => ['TW', 'HK', 'MO', 'Hant'].includes(part));
     const key = base === 'zh' ? `zh-${traditional ? 'Hant' : 'Hans'}` : base;
     return ['coalesce', ['get', `name:${key}`], ['get', 'name']];
@@ -159,7 +155,7 @@ export class MinimapBasemapStyle {
    * Builds the style. Called once, at minimap creation, after main.css has loaded (the tokens are read here).
    * @param {number} latitude - Latitude the map opens at, for drawing roads at real width (see #roadWidth).
    * @param {string} language - The UI language (see #nameField).
-   * @param {?string} tilesUrl - The tile source, or null before the city's first archive (background only).
+   * @param {?string} tilesUrl - The tile source, or null for a background-only style.
    * @param {string} glyphsUrl - The URL pattern MapLibre fetches label glyphs from.
    * @returns {object} A MapLibre style specification.
    */
@@ -179,7 +175,7 @@ export class MinimapBasemapStyle {
     const labelColor = token('--color-asphalt-300', '#615E78');
     const polygon = ['match', ['geometry-type'], ['Polygon', 'MultiPolygon'], true, false];
     const lines = ['match', ['geometry-type'], ['LineString', 'MultiLineString'], true, false];
-    // Water underground (a culverted stream) would draw across the streets above it.
+    // Underground water (a culverted stream) would draw over the streets above it.
     const notTunnel = ['!', ['has', 'tunnel']];
     const roundLine = { 'line-cap': 'round', 'line-join': 'round' };
     // Italic alone sets water names apart from road names: the blue tokens are too light to read as text.
@@ -204,7 +200,7 @@ export class MinimapBasemapStyle {
       },
       layers: [
         background,
-        // The schema's landuse layer holds every kind of land use; these are the ones that read as green space.
+        // The landuse kinds that read as green space.
         layer('park', 'fill', 'landuse', {
           filter: ['all', polygon, ['match', ['get', 'kind'],
             ['park', 'national_park', 'nature_reserve', 'protected_area', 'garden', 'dog_park'], true, false]],
@@ -234,7 +230,7 @@ export class MinimapBasemapStyle {
           },
         }),
         layer('rail', 'line', 'roads', {
-          // Not disused or miniature lines, which the layer files under 'rail' too.
+          // Leaves out disused and miniature lines, also filed under 'rail'.
           filter: ['all',
             ['==', ['get', 'kind'], 'rail'],
             ['match', ['get', 'kind_detail'], [
@@ -275,7 +271,7 @@ export class MinimapBasemapStyle {
           filter: ['all', lines, notTunnel, ['match', ['get', 'kind'], ['river', 'canal'], true, false]],
           layout: { 'symbol-placement': 'line', 'symbol-spacing': 300 },
         }),
-        // The layer gives each named body of water a label point, swimming pools and fountains included.
+        // Label points for named water, minus pools and fountains.
         waterName('water-name', 'water', {
           filter: ['all',
             ['match', ['geometry-type'], ['Point'], true, false],

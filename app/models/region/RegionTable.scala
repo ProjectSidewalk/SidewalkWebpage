@@ -96,10 +96,9 @@ class RegionTable @Inject() (
   }
 
   /**
-   * The bounding box of the city's live regions, for the places refresh and the minimap basemap. Not the configured
-   * map bounds: those can cover a whole metro area (Teaneck's would fetch 42k places to keep 175).
+   * The bounding box of the city's live regions (not the configured map bounds, which can span a metro area).
    *
-   * @return The box, or None for a schema with no regions.
+   * @return The box, or None when there are no regions.
    */
   def regionsExtent: DBIO[Option[LatLngBBox]] =
     sql"""SELECT ST_XMin(extent.box), ST_YMin(extent.box), ST_XMax(extent.box), ST_YMax(extent.box)
