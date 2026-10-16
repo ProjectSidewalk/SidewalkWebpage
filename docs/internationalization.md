@@ -80,9 +80,9 @@ values lands in markup, escape those values exactly once**, either way round:
 subtitle.innerHTML = i18next.t('common:subtitle', { href: DOCS_URL, interpolation: { escapeValue: true } });
 
 // Or escape at the sink, when the same string also feeds a text sink (here an accessible name).
-const label = i18next.t('accessscore:rank-row', { name: region.name });
-row.button.setAttribute('aria-label', label);
-row.button.innerHTML = `<span>${util.escapeHTML(label)}</span>`;
+const label = i18next.t('ns:region-row', { name: region.name });
+row.setAttribute('aria-label', label);
+row.querySelector('.region-name').innerHTML = `<b>${util.escapeHTML(label)}</b>`;
 ```
 
 Markup sinks in this codebase are `innerHTML` / `outerHTML`, `insertAdjacentHTML`, a MapLibre popup's `setHTML`, and

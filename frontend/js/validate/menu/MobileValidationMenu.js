@@ -289,16 +289,16 @@ export class MobileValidationMenu {
   }
 
   /**
-   * Adds a tooltip to the given element with the given text and image (if given).
+   * Adds a tooltip card to the given element with the given markup and image (if given).
    * @param {Element} elem - Element to add the tooltip to.
-   * @param {string} tooltipText - Text to display in the tooltip.
+   * @param {string} tooltipHtml - Markup for the card; the caller escapes any outside value in it.
    * @param {string} [img] - Optional image to display in the tooltip.
    */
-  static #addTooltip(elem, tooltipText, img) {
+  static #addTooltip(elem, tooltipHtml, img) {
     if (!window.matchMedia('(hover: hover)').matches) return; // A tap would pin it open on a touch device.
     const imgHtml = img ? `<br/><img src="${util.escapeHTML(img)}" height="140"/>` : '';
     // eslint-disable-next-line ps/escape-in-markup -- our translations, which can contain <b>.
-    elem.setAttribute('data-ps-tooltip-html', `${tooltipText}${imgHtml}`);
+    elem.setAttribute('data-ps-tooltip-html', `${tooltipHtml}${imgHtml}`);
   }
 
   // VALIDATING 'NO' SECTION.

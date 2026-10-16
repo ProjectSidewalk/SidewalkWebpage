@@ -2252,14 +2252,6 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
   opacity: 0.8;
 }
 
-/* Bars carrying a hover card take focus so the card is reachable by keyboard. `outline` on an SVG shape is unreliable
-   across engines, so the ring is drawn as a stroke on the bar itself. */
-.mini-bar[data-ps-tooltip]:focus-visible {
-  outline: none;
-  stroke: var(--color-neutral-900);
-  stroke-width: 2;
-}
-
 /* Row-count status and the link out to the full city list, on one line under a table. */
 .ac-table-foot {
   display: flex;

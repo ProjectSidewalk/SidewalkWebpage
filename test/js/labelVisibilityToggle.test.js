@@ -49,6 +49,17 @@ describe('LabelVisibilityToggle', () => {
     expect(changes).toEqual([{ visible: true, viaClick: false }]);
   });
 
+  it('adds no tooltip on a touch device, where a tap would pin it open', () => {
+    const original = window.matchMedia;
+    window.matchMedia = () => ({ matches: false });
+    try {
+      build();
+      for (const button of buttons) expect(button.hasAttribute('data-ps-tooltip-html')).toBe(false);
+    } finally {
+      window.matchMedia = original;
+    }
+  });
+
   it('relabels every button when one of them is clicked', () => {
     const toggle = build();
 

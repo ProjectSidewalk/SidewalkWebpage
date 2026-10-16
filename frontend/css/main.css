@@ -2417,7 +2417,7 @@ kbd {
 
 /* ---------- Shared tooltip (psTooltip.js) ---------- */
 
-/* The single fixed-position card that psTooltip.js shows for the active [data-ps-tooltip] trigger. Parked off-screen
+/* The single fixed-position card psTooltip.js shows for the active [data-ps-tooltip(-html)] trigger. Parked off-screen
    until positioned; pointer-events stays off so the card never steals the hover that opened it. Sits above the navbar
    and modals since a tooltip is always the most transient thing on screen.
 

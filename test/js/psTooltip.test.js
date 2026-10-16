@@ -327,6 +327,18 @@ describe('psTooltip theme', () => {
 });
 
 describe('psTooltip retirement', () => {
+  test('dropping the markup attribute falls back to the text one while the card is open', async () => {
+    const trigger = addHtmlTrigger({ left: 400, top: 300, width: 100, height: 30 }, '<b>Card</b>',
+      { 'data-ps-tooltip': 'Plain' });
+    const card = open(trigger);
+
+    trigger.removeAttribute('data-ps-tooltip-html');
+    await Promise.resolve();
+
+    expect(card.innerHTML).toBe('Plain');
+    expect(card.classList.contains('ps-tooltip--visible')).toBe(true);
+  });
+
   test('removing the attribute takes an open card down', async () => {
     const trigger = addTrigger({ left: 400, top: 300, width: 100, height: 30 }, 'going');
     const card = open(trigger);
