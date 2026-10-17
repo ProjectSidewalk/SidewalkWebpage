@@ -95,8 +95,8 @@ Make sure Docker is running (you'll see the whale icon in your tray; you can set
    edit it for the city you want to run:
    - **`SIDEWALK_CITY_ID`** — the city to run (e.g. `seattle-wa`); see the [City IDs table](#city-ids).
    - **`DATABASE_USER`** — that city's database user, replacing the default `sidewalk` (e.g. `sidewalk_seattle`).
-   - **`platform`** — leave it commented. Every host builds the web image for its own architecture as of
-     [#5069](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/5069), so Apple Silicon is native
+   - **`platform`** — leave it commented. Every host builds the web and db images for their own architecture as of
+     [#5069](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/5069) and [#5789](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/5789), so Apple Silicon is native
      without it. Uncomment it *only* if a native build fails, to force an emulated `linux/amd64` build.
 
 2. **Stage the database dumps.** Put the dump files from your maintainer in the **`db/`** directory and rename them
