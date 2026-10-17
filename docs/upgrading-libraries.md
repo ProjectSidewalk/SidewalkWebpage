@@ -30,7 +30,7 @@ listed separately and are *expected* to differ; the goal is skew that's written 
 | Python (app) | **3.8** | 3.14.7 | **Oct 2024 — past** | web base image ([why two](#interpreters)) |
 | Python (tooling) | **3.13.15** | 3.14.7 | Oct 2029 | `Dockerfile`, via uv |
 | web image | **`eclipse-temurin:17-jdk-focal`** | jammy / noble | **May 2025 — past** | `Dockerfile` |
-| db image | **`postgis/postgis:18-3.6`** | 18-3.6 | ~Aug 2028 (Debian 13) | `db/Dockerfile` |
+| db image | **`postgres:18-trixie`** + PGDG `postgresql-18-postgis-3` (the `postgis/postgis` images are amd64-only, #5789) | 18 / PostGIS 3.6 | ~Aug 2028 (Debian 13) | `db/Dockerfile` |
 | ShellCheck image | **`koalaman/shellcheck:v0.11.0`** | 0.11.0 | — | `docker/shellcheck/Dockerfile` (never built; the pin `make shellcheck` and CI run, kept where Dependabot looks) |
 
 - **Focal does more than it looks.** It's what makes `python3` mean 3.8 (retiring that is
@@ -38,8 +38,8 @@ listed separately and are *expected* to differ; the goal is skew that's written 
   2.32 and 2.34 that sbt's `sbtn` needs, so `sbt --client` can't run in the container at all and everything uses
   `sbt --jvm-client` instead (#5268). Jammy (glibc 2.35, `python3` 3.10) or noble (2.39, 3.12) fixes both, but a
   move has to say what happens to 3.8 first.
-- **The db image updates by rebuilding.** It's Debian 13 with Postgres, PostGIS, GEOS and PROJ from Postgres's own
-  package server, the same source as prod's.
+- **The db image updates by rebuilding.** It's Debian 13 with Postgres from the official image and PostGIS, GEOS and
+  PROJ from Postgres's own package server, the same source as prod's.
 - **Java 17** in dev and CI, **21** on prod; moving dev to 21 is
   [#4396](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4396). Dependabot deliberately ignores major
   `eclipse-temurin` bumps. **Node 24** is LTS until Apr 2028, with 26 taking over as LTS in Oct 2026.
