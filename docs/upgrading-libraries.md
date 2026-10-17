@@ -30,7 +30,7 @@ listed separately and are *expected* to differ; the goal is skew that's written 
 | Python (app) | **3.8** | 3.14.7 | **Oct 2024 — past** | web base image ([why two](#interpreters)) |
 | Python (tooling) | **3.13.15** | 3.14.7 | Oct 2029 | `Dockerfile`, via uv |
 | web image | **`eclipse-temurin:17-jdk-focal`** | jammy / noble | **May 2025 — past** | `Dockerfile` |
-| db image | **`postgis/postgis:18-3.6`** | 18-3.6 | ~Aug 2028 (Debian 13) | `db/Dockerfile` |
+| db image | **`imresamu/postgis:18-3.6-trixie`** (multi-arch build of `postgis/postgis`, which is amd64-only, #5789) | 18-3.6 | ~Aug 2028 (Debian 13) | `db/Dockerfile` |
 | ShellCheck image | **`koalaman/shellcheck:v0.11.0`** | 0.11.0 | — | `docker/shellcheck/Dockerfile` (never built; the pin `make shellcheck` and CI run, kept where Dependabot looks) |
 
 - **Focal does more than it looks.** It's what makes `python3` mean 3.8 (retiring that is
