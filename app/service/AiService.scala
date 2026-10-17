@@ -240,12 +240,17 @@ class AiServiceImpl @Inject() (
     // Create form data for the multipart request. The pano's rig pitch and roll (degrees, as stored) let the API
     // centre its crop on what the labeler clicked rather than on the stored pixel, which carries the rig-tilt
     // error of #4784; the API treats them as optional and ignores them if it predates that change (#5788).
+    // `coord_frame` says which frame x/y are in: human labels are placed in the gravity-levelled viewer frame
+    // ("level"), which is what the API corrects; a label whose pano_x/pano_y are already image-frame pixels (the AI
+    // labeler's submissions, or labels placed after a #4784 fix at the source) must be sent as "rig" so it is not
+    // corrected twice. Only human labels reach this call today (getLabelsToValidateWithAi excludes the AI role).
     val formData = Map(
       "label_type"  -> labelData.labelType.name.toLowerCase,
       "panorama_id" -> labelData.panoData.panoId,
       "x"           -> (labelData.labelPoint.panoX.toDouble / labelData.panoData.width.get).toString,
       "y"           -> (labelData.labelPoint.panoY.toDouble / labelData.panoData.height.get).toString,
-      "city"        -> cityId
+      "city"        -> cityId,
+      "coord_frame" -> "level"
     ) ++ labelData.panoData.cameraPitch.map(p => "camera_pitch" -> p.toString) ++
       labelData.panoData.cameraRoll.map(r => "camera_roll" -> r.toString)
 
