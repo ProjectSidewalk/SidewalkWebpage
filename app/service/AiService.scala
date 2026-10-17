@@ -237,14 +237,17 @@ class AiServiceImpl @Inject() (
     val url: String                      = s"https://${SIDEWALK_AI_API_HOSTNAME}/process"
     val labelId: Int                     = labelData.labelId
 
-    // Create form data for the multipart request.
+    // Create form data for the multipart request. The pano's rig pitch and roll (degrees, as stored) let the API
+    // centre its crop on what the labeler clicked rather than on the stored pixel, which carries the rig-tilt
+    // error of #4784; the API treats them as optional and ignores them if it predates that change (#5788).
     val formData = Map(
       "label_type"  -> labelData.labelType.name.toLowerCase,
       "panorama_id" -> labelData.panoData.panoId,
       "x"           -> (labelData.labelPoint.panoX.toDouble / labelData.panoData.width.get).toString,
       "y"           -> (labelData.labelPoint.panoY.toDouble / labelData.panoData.height.get).toString,
       "city"        -> cityId
-    )
+    ) ++ labelData.panoData.cameraPitch.map(p => "camera_pitch" -> p.toString) ++
+      labelData.panoData.cameraRoll.map(r => "camera_roll" -> r.toString)
 
     // No redirects, so the password can't be forwarded to some other host.
     ws.url(url)

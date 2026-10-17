@@ -35,7 +35,9 @@ for CurbRamp, NoCurbRamp, Obstacle, SurfaceProblem, Crosswalk.
    type was edited is assessed again right after the edit (`AiService.reassessAfterTypeChange`, same eligibility
    rules, #3671), with this sweep as the fallback.
 2. `AiService.callAiApi` (`app/service/AiService.scala`) POSTs
-   `{label_type, panorama_id, x, y, city}`, plus the API password as an `Authorization: Bearer` header, to
+   `{label_type, panorama_id, x, y, city}` plus the pano's `camera_pitch` and `camera_roll` when known (degrees; the
+   API uses them to centre its crop on the clicked point rather than the tilt-shifted stored pixel, #4784/#5788),
+   plus the API password as an `Authorization: Bearer` header, to
    `https://sidewalk-ai-api.cs.washington.edu/process` (code:
    [`sidewalk-ai-api`](https://github.com/ProjectSidewalk/sidewalk-ai-api) — Dockerized GPU
    service, ≥ 9–10 GB VRAM, serving both model families from HuggingFace).
