@@ -35,14 +35,15 @@ for CurbRamp, NoCurbRamp, Obstacle, SurfaceProblem, Crosswalk.
    type was edited is assessed again right after the edit (`AiService.reassessAfterTypeChange`, same eligibility
    rules, #3671), with this sweep as the fallback.
 2. `AiService.callAiApi` (`app/service/AiService.scala`) POSTs
-   `{label_type, panorama_id, x, y, city, coord_frame}` plus the pano's `camera_pitch` and `camera_roll` when known
-   (degrees). `coord_frame` is `level` for human labels, whose `pano_x/pano_y` are in the gravity-levelled viewer frame;
-   the API uses the pitch and roll to centre its crop on the clicked point rather than the tilt-shifted stored pixel
-   (#4784/#5788), and must skip that for `rig`-frame coordinates (AI-labeler submissions, #5790). Plus the API
-   password as an `Authorization: Bearer` header, to
+   `{label_type, panorama_id, x, y, city, coord_frame}`, plus the pano's `camera_pitch` and `camera_roll` (degrees)
+   when known, finite and within ±30°, with the API password as an `Authorization: Bearer` header, to
    `https://sidewalk-ai-api.cs.washington.edu/process` (code:
    [`sidewalk-ai-api`](https://github.com/ProjectSidewalk/sidewalk-ai-api) — Dockerized GPU
    service, ≥ 9–10 GB VRAM, serving both model families from HuggingFace).
+   `coord_frame` is `level` for human labels, whose `pano_x/pano_y` are in the gravity-levelled viewer frame; the API
+   uses the pitch and roll to centre its crop on the clicked point rather than the tilt-shifted stored pixel
+   (#4784/#5788), and must skip that for `rig`-frame coordinates (AI-labeler submissions, #5790). The API rejects
+   out-of-range poses with a 400, so those are not sent and the label is assessed uncorrected.
 3. The response (validation result + estimated accuracy + per-tag scores + model provenance)
    is stored in `label_ai_assessment`, along with the type it was about, which is what makes an assessment stale once
    the label is retyped (#3671) — the AI is asked about one type, so its answer only speaks to that type. If AI validations are enabled for the city and
