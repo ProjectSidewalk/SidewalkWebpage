@@ -239,9 +239,10 @@ class AiServiceImpl @Inject() (
 
     // Create form data for the request. The pano's rig pitch and roll (degrees, as stored) let the API centre its
     // crop on what the labeler clicked rather than on the stored pixel, which carries the rig-tilt error of #4784
-    // (#5788). The API treats them as optional, but rejects non-finite values and any beyond +/-30 degrees with a 400,
-    // which would leave the label unassessed on every nightly run; such poses are bad data, so they're dropped and the
-    // label is assessed uncorrected, as before.
+    // (#5788). The API treats them as optional (NaN counts as unknown), but rejects infinite values and any beyond
+    // +/-30 degrees with a 400 (MAX_POSE_DEG in sidewalk-ai-api's main.py; keep the two in step), which would leave
+    // the label unassessed on every nightly run. Such poses are bad data, so they're dropped and the label is assessed
+    // uncorrected, as before.
     // `coord_frame` says which frame x/y are in: human labels are placed in the gravity-levelled viewer frame
     // ("level"), which is what the API corrects; a label whose pano_x/pano_y are already image-frame pixels (the AI
     // labeler's submissions, or labels placed after a #4784 fix at the source) must be sent as "rig" so it is not
