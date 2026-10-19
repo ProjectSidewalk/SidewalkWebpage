@@ -130,14 +130,18 @@ export class CoveragePage {
       b.setAttribute('aria-pressed', String(active));
     });
 
-    if (mode === 'bars' && !this.#bars) {
-      this.#bars = new CoverageBars('coverage-bars', {
-        onBarClick: (id) => this.#pin([id]),
-        onBarHover: (id) => this.#hover([id]),
-        onBarHoverEnd: () => this.#hoverEnd(),
-      });
+    // Each chart is redrawn every time its view is shown, not just the first time. A chart only measures its width
+    // when drawn and on window resizes, so a resize while its view was hidden measures zero and leaves it blank.
+    if (mode === 'bars') {
+      if (!this.#bars) {
+        this.#bars = new CoverageBars('coverage-bars', {
+          onBarClick: (id) => this.#pin([id]),
+          onBarHover: (id) => this.#hover([id]),
+          onBarHoverEnd: () => this.#hoverEnd(),
+        });
+        this.#wireSortButtons();
+      }
       await this.#bars.render(this.#barData);
-      this.#wireSortButtons();
     } else if (mode === 'distribution') {
       if (!this.#histogram) {
         this.#histogram = new CoverageHistogram('coverage-histogram', {
@@ -145,8 +149,8 @@ export class CoveragePage {
           onBinHover: (idx) => this.#hover(this.#bucketRegionIds[idx]),
           onBinHoverEnd: () => this.#hoverEnd(),
         });
-        await this.#histogram.render(this.#buckets);
       }
+      await this.#histogram.render(this.#buckets);
       if (!this.#table) {
         this.#table = new CoverageTable('coverage-table', 'coverage-table-search', {
           onRowClick: (id) => this.#pin([id]),

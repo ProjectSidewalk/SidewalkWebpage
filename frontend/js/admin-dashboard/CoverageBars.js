@@ -92,6 +92,8 @@ export class CoverageBars {
       },
     };
 
+    // Release the previous chart's listeners (including its window-resize one) before drawing over it.
+    this.#view?.finalize();
     const result = await vegaEmbed(`#${this.#containerId}`, spec, { actions: false, renderer: 'svg' });
     this.#view = result.view;
     this.#hoverId = null;
