@@ -69,7 +69,7 @@ match the AI server's, and when rotating it, update every stage *before* the AI 
 
 **DB:** `label_ai_assessment`, `label_ai_failure`, AI user
 `51b0b927-3c8a-45b2-93de-bd878d1e5cf4` (role `AI`), mission type `aiValidation`
-(evolutions 281/282, 321/322). The AI user's per-schema rows — its `user_stat` row and
+(evolutions 281/282, 321/322; model revisions since 420). The AI user's per-schema rows — its `user_stat` row and
 one `aiValidation` mission per label type — are re-created at boot by
 `AiSeedRowsRepair` wherever a schema lacks them, since a city cloned from a donor or
 restored from an onboarding dump never ran 281 (#5349).
@@ -170,7 +170,7 @@ production, superseded by `sidewalk-ai-api`.
 
 ```
 sidewalk-validator-ai ─┐ (HF: project-sidewalk-validator-models)
-sidewalk-tagger-ai ────┤ (HF: sidewalk-tagger-ai-models)          RampNet
+sidewalk-tagger-ai ────┤ (HF: sidewalk-tagger-ai-<type>)          RampNet
                        ▼                                             │ (HF: rampnet-model)
                 sidewalk-ai-api  /process                            ▼
                        ▲                                   sidewalk-auto-labeler

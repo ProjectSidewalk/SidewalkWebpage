@@ -18,6 +18,14 @@ enum AiImageSource(val name: String) extends NamedEnum {
 
 object AiImageSource extends PgEnumCompanion[AiImageSource]("ai_image_source")
 
+/**
+ * One AI API answer about a label, with the provenance needed to tell which weights produced it.
+ *
+ * @param validatorRevision HuggingFace commit of the validator repo (`validatorModelId`). None on rows from API
+ *                          versions before 1.0.2, which loaded whatever was on HF main.
+ * @param taggerRevision    HuggingFace commit of the per-type tagger repo, `sidewalk-tagger-ai-<label type>`. None
+ *                          when the type isn't tagged, and on rows from API versions before 1.0.5.
+ */
 case class LabelAiAssessment(
     labelAiAssessmentId: Int,
     labelId: Int,
@@ -54,11 +62,11 @@ class LabelAiAssessmentTableDef(tag: Tag) extends Table[LabelAiAssessment](tag, 
   def apiVersion: Rep[String]                           = column[String]("api_version")
   def validatorModelId: Rep[String]                     = column[String]("validator_model_id")
   def validatorTrainingDate: Rep[OffsetDateTime]        = column[OffsetDateTime]("validator_training_date")
-  // Null on assessments made before the API reported revisions (#5794).
-  def validatorRevision: Rep[Option[String]]          = column[Option[String]]("validator_revision")
-  def taggerModelId: Rep[Option[String]]              = column[Option[String]]("tagger_model_id")
-  def taggerTrainingDate: Rep[Option[OffsetDateTime]] = column[Option[OffsetDateTime]]("tagger_training_date")
-  def taggerRevision: Rep[Option[String]]             = column[Option[String]]("tagger_revision")
+  def validatorRevision: Rep[Option[String]]            = column[Option[String]]("validator_revision")
+  def taggerModelId: Rep[Option[String]]                = column[Option[String]]("tagger_model_id")
+  def taggerTrainingDate: Rep[Option[OffsetDateTime]]   = column[Option[OffsetDateTime]]("tagger_training_date")
+  // CHECK in the DB: only set when tagger_model_id is.
+  def taggerRevision: Rep[Option[String]] = column[Option[String]]("tagger_revision")
   // DEFAULT now() in the DB (O.Default holds a value, not an expression).
   def timestamp: Rep[OffsetDateTime]      = column[OffsetDateTime]("timestamp")
   def labelValidationId: Rep[Option[Int]] = column[Option[Int]]("label_validation_id")
