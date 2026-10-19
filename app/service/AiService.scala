@@ -271,6 +271,9 @@ class AiServiceImpl @Inject() (
             val apiVersion     = (json \ "api_version").as[String]
             val valModelId     = (json \ "validator_model_id").as[String]
             val taggerModelId  = (json \ "tagger_model_id").asOpt[String]
+            // The HuggingFace commit each model was loaded at, so a re-uploaded model's assessments stay separable.
+            val valRevision    = (json \ "validator_revision").asOpt[String]
+            val taggerRevision = (json \ "tagger_revision").asOpt[String]
             val aiImageSource  = AiImageSource.withName((json \ "image_source").as[String])
 
             // Read training dates.
@@ -286,8 +289,8 @@ class AiServiceImpl @Inject() (
             Future.successful(
               Some(
                 LabelAiAssessment(0, labelData.labelId, labelData.labelType, valResult, valAccuracy, valConfidence,
-                  tags, tagsNotPresent, tagsConfidence, apiVersion, valModelId, valTrainingDate, taggerModelId,
-                  taggerTrainingDate, OffsetDateTime.now, None, aiImageSource)
+                  tags, tagsNotPresent, tagsConfidence, apiVersion, valModelId, valTrainingDate, valRevision,
+                  taggerModelId, taggerTrainingDate, taggerRevision, OffsetDateTime.now, None, aiImageSource)
               )
             )
           } else if (response.status == 502) {

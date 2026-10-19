@@ -31,8 +31,10 @@ case class LabelAiAssessment(
     apiVersion: String,
     validatorModelId: String,
     validatorTrainingDate: OffsetDateTime,
+    validatorRevision: Option[String],
     taggerModelId: Option[String],
     taggerTrainingDate: Option[OffsetDateTime],
+    taggerRevision: Option[String],
     timestamp: OffsetDateTime,
     labelValidationId: Option[Int],
     aiImageSource: AiImageSource
@@ -52,8 +54,11 @@ class LabelAiAssessmentTableDef(tag: Tag) extends Table[LabelAiAssessment](tag, 
   def apiVersion: Rep[String]                           = column[String]("api_version")
   def validatorModelId: Rep[String]                     = column[String]("validator_model_id")
   def validatorTrainingDate: Rep[OffsetDateTime]        = column[OffsetDateTime]("validator_training_date")
-  def taggerModelId: Rep[Option[String]]                = column[Option[String]]("tagger_model_id")
-  def taggerTrainingDate: Rep[Option[OffsetDateTime]]   = column[Option[OffsetDateTime]]("tagger_training_date")
+  // Null on assessments made before the API reported revisions (#5794).
+  def validatorRevision: Rep[Option[String]]          = column[Option[String]]("validator_revision")
+  def taggerModelId: Rep[Option[String]]              = column[Option[String]]("tagger_model_id")
+  def taggerTrainingDate: Rep[Option[OffsetDateTime]] = column[Option[OffsetDateTime]]("tagger_training_date")
+  def taggerRevision: Rep[Option[String]]             = column[Option[String]]("tagger_revision")
   // DEFAULT now() in the DB (O.Default holds a value, not an expression).
   def timestamp: Rep[OffsetDateTime]      = column[OffsetDateTime]("timestamp")
   def labelValidationId: Rep[Option[Int]] = column[Option[Int]]("label_validation_id")
@@ -61,8 +66,9 @@ class LabelAiAssessmentTableDef(tag: Tag) extends Table[LabelAiAssessment](tag, 
 
   def * =
     (labelAiAssessmentId, labelId, labelType, validationResult, validationAccuracy, validationConfidence, tags,
-      tagsNotPresent, tagsConfidence, apiVersion, validatorModelId, validatorTrainingDate, taggerModelId,
-      taggerTrainingDate, timestamp, labelValidationId, aiImageSource).mapTo[LabelAiAssessment]
+      tagsNotPresent, tagsConfidence, apiVersion, validatorModelId, validatorTrainingDate, validatorRevision,
+      taggerModelId, taggerTrainingDate, taggerRevision, timestamp, labelValidationId, aiImageSource)
+      .mapTo[LabelAiAssessment]
 
   def label           = foreignKey("label_ai_assessment_label_id_fkey", labelId, TableQuery[LabelTableDef])(_.labelId)
   def labelValidation =
