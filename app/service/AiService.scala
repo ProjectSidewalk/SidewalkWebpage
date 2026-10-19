@@ -271,7 +271,6 @@ class AiServiceImpl @Inject() (
             val apiVersion     = (json \ "api_version").as[String]
             val valModelId     = (json \ "validator_model_id").as[String]
             val taggerModelId  = (json \ "tagger_model_id").asOpt[String]
-            // The HuggingFace commit each model was loaded at, so a re-uploaded model's assessments stay separable.
             val valRevision    = (json \ "validator_revision").asOpt[String]
             val taggerRevision = (json \ "tagger_revision").asOpt[String]
             // Every current API release sends these, so a gap means the response format changed under us.
