@@ -1,7 +1,5 @@
 # Formatting-only commits (reindents, formatter runs, line rewraps) that `git blame` should look past. GitHub's blame
 # view reads this file on its own; locally, run `git config blame.ignoreRevsFile .git-blame-ignore-revs` once.
-# A commit that mixes real changes into a reformat does not belong here, since blame would credit those changes to
-# whoever wrote the line before it.
 
 # Small whitespace-only reindents (2016-2024)
 0233393a8eba617de88fbacda683aed9ba5a70bf
