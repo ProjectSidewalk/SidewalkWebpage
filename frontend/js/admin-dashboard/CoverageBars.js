@@ -1,5 +1,5 @@
 /**
- * Renders the per-region coverage bar chart with Vega-Lite v5 and links it to the map. Hovering or clicking a bar
+ * Renders the per-region coverage bar chart with Vega-Lite and links it to the map. Hovering or clicking a bar
  * fires the corresponding callbacks so a coordinator can brush/pin the matching region on the map; highlightBar()/
  * clearHighlight() dim the non-selected bars in response to map interaction. Bars use the exact per-datum color
  * computed from CoverageColors so they match the choropleth precisely. The sort order (coverage vs name) is
@@ -52,7 +52,7 @@ export class CoverageBars {
     // 'coverage' → bars descending by value; 'name' → alphabetical by region name.
     const sort = this.#sort === 'name' ? 'ascending' : '-x';
     const spec = {
-      $schema: 'https://vega.github.io/schema/vega-lite/v5.json',
+      $schema: 'https://vega.github.io/schema/vega-lite/v6.json',
       width: 'container',
       height: { step: 16 },
       // Include the left axis labels in the fitted width so the chart never overflows its container.
