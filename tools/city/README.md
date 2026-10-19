@@ -1,11 +1,10 @@
 # City tools
 
-Scripts that build, check or update one city's data. `onboard_city.py`, `check_streets_for_imagery.py` and
-`street_gradient.py` run in the web container as `python3.13` with
+Scripts that build, check or update one city's data. `onboard_city.py`, `check_streets_for_imagery.py`,
+`street_gradient.py`, `osm_lineage.py` and `backfill_osm_lineage.py` run in the web container as `python3.13` with
 [`requirements-offline-tools.txt`](../../requirements-offline-tools.txt) (host-side: >= 3.12), which is what their
-`make` targets do; the other three are stdlib-only and run on the host as `python3`. All resolve their paths relative
-to the repo root, so they can be launched from any working directory. Unit tests live in
-[`test/python/`](../../test/python).
+`make` targets do; the other three are stdlib-only and run on the host as `python3`. All resolve paths from the repo
+root, so they run from any directory; unit tests live in [`test/python/`](../../test/python).
 
 | Script | Run with | What it does |
 | --- | --- | --- |
@@ -15,6 +14,8 @@ to the repo root, so they can be launched from any working directory. Unit tests
 | `create_ga_properties.py` | `make onboard-city`, or by hand | Creates a city's Google Analytics properties |
 | `maps_key_referrers.py` | `make onboard-city`, or by hand | Adds a city's hostnames to the Maps key's referrer list |
 | `street_gradient.py` | `make street-gradient` | Samples an elevation model along every street |
+| `osm_lineage.py` | (imported) | Matches streets to the OSM ways they lie on, by geometry (#5741); the build and the backfill both use it |
+| `backfill_osm_lineage.py` | `make osm-lineage` | Positions a live city's streets on today's OSM ways, between `make export-osm-lineage-input` and `make import-osm-lineage` |
 
 The whole new-city sequence is [`docs/onboarding-a-city.md`](../../docs/onboarding-a-city.md); `setup_new_city.py`,
 `create_ga_properties.py` and `maps_key_referrers.py` are documented in their headers.
@@ -102,7 +103,7 @@ imagery" signal alongside the `street_edge_status` work (#3888) — is tracked a
 ### Search radius, and how far off the street a pano sits
 
 Every sampled point — street endpoints and the points between them alike — is queried at **25 m**, the radius Explore
-searches (`svl.STREETVIEW_MAX_DISTANCE`). Matching it is what makes the hide list mean "Explore has no imagery of this
+searches (`PanoViewer.SEARCH_RADIUS_M`). Matching it is what makes the hide list mean "Explore has no imagery of this
 street"; and the radius has to clear each provider's capture interval anyway, or the box can straddle a gap and report
 no imagery where there is some. Mapillary's smart spacing targets 20 m on highways, and 12.6% of Budapest's
 consecutive captures exceed 20 m.
@@ -267,23 +268,24 @@ Streets come from OSM (osmnx, the runbook's highway filter minus `area=yes` plaz
 closing a ring); region-boundary fragments under `--heal-segment-m` are reabsorbed; boundary-running splits are merged
 (`rider_merges` QA layer); truncated ends riding within `--boundary-merge-tol-m` of the covered area are restored.
 osmnx joins consecutive OSM ways between intersections into one edge, so a street lists every way it spans in
-`osm_ids` (the fill records the first in `osm_way_street_edge`, which is one row per street). Regions come from the
+`osm_ids`, and `qgis_road_osm_way` records where each lies on the street (#5741), matched by geometry against the
+whole ways, which the build fetches separately and keeps in the GeoPackage's `osm_way` layer. Regions come from the
 first source that works: `--regions-file` (any OGR format/CRS; `--region-name-col` names its name column, and
 `--regions-source` records the provenance in `region.data_source`), OSM neighbourhood polygons (auto-rejected under
 75% city coverage), US census tracts (TIGERweb), or the city boundary as a single region.
 
-Outputs land in `db/onboarding/<city-id>/` (git-ignored; visible to the db container at `/opt/onboarding/` when run
-from the main checkout): the QA GeoPackage, `qgis_tables.sql`, `street_edge_endpoints.csv` (the scan's input, so the
-preflight below runs before any database exists), `street_structures.csv` (which streets are on a bridge, in a
-tunnel or covered, from the OSM tags, with each street's geometry hash, so the street-gradient export can run before
-the nightly `osm_way` cache exists and can refuse a file from another build; it rides in the GeoPackage too, so a
-`--from-gpkg` re-export rewrites it), and `report.md` with the tiny-segment histogram (production
-averages 18% of streets under 20 m; Bayonne rebuilt at 4%), per-region km with `SPARSE`/`OVERSIZED`/`EMPTY` flags,
-and boundary coverage. The QA loop: rerun with tweaked flags — `--merge-regions
-"Census Tract 513:Census Tract 523.01"` folds regions by *name* and re-splits the streets against the merged
-boundaries, and `--rename-regions` applies `db/onboarding/<city-id>/region_renames.csv` — or hand-edit the
-GeoPackage in QGIS and regenerate the SQL with `make build-city-data id=<city-id> args="--from-gpkg"`, which
-validates the layers first (a hand-built layer with a single `osm_id` column is accepted).
+Outputs land in `db/onboarding/<city-id>/` (git-ignored; visible to the db container at `/opt/onboarding/` when run from
+the main checkout): the QA GeoPackage (with `osm_way` and `qgis_road_osm_way` layers beside the staging ones),
+`qgis_tables.sql`, `street_edge_endpoints.csv` (the scan's input, so the preflight below runs before any database
+exists), `street_structures.csv` (which streets are on a bridge, in a tunnel or covered, from the OSM tags, with each
+street's geometry hash, so the street-gradient export can run before the nightly `osm_way` cache exists and can refuse a
+file from another build; it rides in the GeoPackage too, so a `--from-gpkg` re-export rewrites it), and `report.md` with
+the tiny-segment histogram (production averages 18% of streets under 20 m; Bayonne rebuilt at 4%), per-region km with
+`SPARSE`/`OVERSIZED`/`EMPTY` flags, and boundary coverage. The QA loop: rerun with tweaked flags — `--merge-regions
+"Census Tract 513:Census Tract 523.01"` folds regions by *name* and re-splits the streets against the merged boundaries,
+and `--rename-regions` applies `db/onboarding/<city-id>/region_renames.csv` — or hand-edit the GeoPackage in QGIS and
+regenerate the SQL with `make build-city-data id=<city-id> args="--from-gpkg"`, which validates the layers first (a
+hand-built layer with a single `osm_id` column is accepted).
 
 ## `street_gradient.py`
 
@@ -295,7 +297,7 @@ table are in [`docs/street-gradient.md`](../../docs/street-gradient.md).
 ```bash
 make export-street-gradient-input      # streets with no row yet, or whose geometry changed
 make street-gradient id=seattle-wa     # US cities: USGS 3DEP 10 m, picked from the city's country-id
-make street-gradient id=cdmx args="--dem-dir db/onboarding/cdmx/dem --dem-name inegi-mdt-5m --dem-resolution-m 5"
+make street-gradient id=taipei args="--dem-dir db/onboarding/taipei/dem --dem-name moi-dtm-20m --dem-resolution-m 20"
 make import-street-gradient
 ```
 
@@ -303,9 +305,10 @@ make import-street-gradient
 `--structures onboarding/<city-id>/street_structures.csv` so it needs no `osm_way` cache; a live city is topped up
 by hand with the same three commands, and the nightly `StreetGradientStalenessActor` says when (Admin > Health).
 
-- **Sources.** A registered source is chosen from the city's `country-id` in `conf/cityparams.conf` (only the USA so
-  far). Anything else goes through `--dem-dir`: a directory of hand-downloaded GeoTIFFs in any mix of coordinate
-  systems, elevations in meters.
+- **Sources.** A registered source is chosen from the city's `country-id` in `conf/cityparams.conf` (ten countries;
+  the table in `docs/street-gradient.md`). Sources that cannot be read in place (INEGI's zipped grids, IGN's WMS
+  GeoTIFFs) are fetched once into `db/onboarding/_dem_cache/`. Anything else goes through `--dem-dir`: a directory
+  of hand-downloaded GeoTIFFs in any mix of coordinate systems, elevations in meters.
 - **Bridges and tunnels.** A bare-earth model has the ground under a bridge, so streets the export marks
   `is_structure` (from `osm_way.tags`) get their endpoint elevations and no grade (`quality = structure`), and an
   untagged street whose profile holds an implausible pitch is drawn as a straight line between its endpoints

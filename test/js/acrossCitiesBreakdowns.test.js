@@ -7,22 +7,12 @@
  * counted beside them rather than folded in. Third, the cards that explain those counts name the contributors behind
  * them, which means they carry user-supplied text into markup and must escape it twice (see psTooltip's header).
  *
- * Runs under jsdom (jest.config.js). AcrossCitiesPage is loaded fresh per test through loadModules, which brings its
- * MiniLineChart import with it, so the bars are drawn by the real renderer.
+ * AcrossCitiesPage is loaded fresh per test with its real MiniLineChart, so the bars are drawn by the real renderer.
  */
 
-const { loadModules, loadVendored, realUtil } = require('./loadGlobalScript');
+import { loadModules, loadVendored } from './loader.js';
 
 loadVendored('dompurify');
-
-// The page fetches through util.fetchJson.
-window.util = realUtil();
-
-
-/** Loads MiniLineChart into global scope and returns the AcrossCitiesPage class. */
-function loadPage() {
-  return loadModules('frontend/js/admin-dashboard/AcrossCitiesPage.js').AcrossCitiesPage;
-}
 
 const MARKUP = `
   <span id="now-labels-today">—</span><span id="now-labels-today-ai"></span>
@@ -125,6 +115,8 @@ function dayCity(id, labels, validations, url = `https://sidewalk-${id}.example.
 
 describe('Across Cities — attribution split and hover breakdowns', () => {
   let AcrossCitiesPage;
+  /** The page's own `util`, so a card is sanitized by the same code psTooltip uses. */
+  let util;
 
   /**
    * Renders the page against a fixture and returns the initialized instance.
@@ -137,7 +129,7 @@ describe('Across Cities — attribution split and hover breakdowns', () => {
     document.body.innerHTML = MARKUP;
     const windowByCity = {};
     cities.forEach((c) => { windowByCity[c.city.city_id] = c.window; });
-    global.fetch = jest.fn(() => Promise.resolve({
+    window.fetch = vi.fn(() => Promise.resolve({
       ok: true,
       json: () => Promise.resolve({
         cities: cities.map((c) => c.city),
@@ -156,12 +148,12 @@ describe('Across Cities — attribution split and hover breakdowns', () => {
 
   /** The card trigger inside the nth cell of the first table row (0 = city name). */
   function cellTrigger(index) {
-    return document.querySelectorAll('#ac-top-tbody tr')[0].cells[index].querySelector('[data-ps-tooltip]');
+    return document.querySelectorAll('#ac-top-tbody tr')[0].cells[index].querySelector('[data-ps-tooltip-html]');
   }
 
   /** The hover-card markup on the nth cell of the first table row (0 = city name). */
   function cellCard(index) {
-    return cellTrigger(index).getAttribute('data-ps-tooltip');
+    return cellTrigger(index).getAttribute('data-ps-tooltip-html');
   }
 
   /** The hover/focus target for the bar at `index` of a per-day chart. */
@@ -171,11 +163,12 @@ describe('Across Cities — attribution split and hover breakdowns', () => {
 
   /** The hover-card markup on the bar at `index` of the labels-per-day chart. */
   function barCard(index, chart = 'labels') {
-    return barTarget(index, chart).getAttribute('data-ps-tooltip');
+    return barTarget(index, chart).getAttribute('data-ps-tooltip-html');
   }
 
-  beforeEach(() => {
-    AcrossCitiesPage = loadPage();
+  beforeEach(async () => {
+    ({ AcrossCitiesPage, util } = await loadModules('frontend/js/admin-dashboard/AcrossCitiesPage.js',
+      'frontend/js/common/utilities.js'));
   });
 
   describe('tiles', () => {
@@ -691,7 +684,7 @@ describe('Across Cities — attribution split and hover breakdowns', () => {
       await render({ cities: CITIES });
       const cells = [...document.querySelectorAll('#ac-top-tbody tr')[0].cells];
 
-      expect(cells.filter((td) => td.querySelector('[tabindex="0"][data-ps-tooltip]')).length).toBe(4);
+      expect(cells.filter((td) => td.querySelector('[tabindex="0"][data-ps-tooltip-html]')).length).toBe(4);
     });
   });
 
@@ -723,7 +716,7 @@ describe('Across Cities — attribution split and hover breakdowns', () => {
       // Cards are keyed by day, so the week's bar i and the month's bar i + 3 explain the same day identically.
       bars('week', 'labels').forEach((bar, i) => {
         const monthBar = bars('month', 'labels')[i + 3];
-        expect(bar.getAttribute('data-ps-tooltip')).toBe(monthBar.getAttribute('data-ps-tooltip'));
+        expect(bar.getAttribute('data-ps-tooltip-html')).toBe(monthBar.getAttribute('data-ps-tooltip-html'));
       });
     });
 

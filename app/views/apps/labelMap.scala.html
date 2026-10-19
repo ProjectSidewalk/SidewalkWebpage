@@ -26,12 +26,7 @@
   @* withPaging renders prev/next arrows; LabelPopup keeps them hidden until the nearby-label navigator is set. *@
   @common.labelPopup(admin = false, withPaging = true)
 
-  <link href='@assets.path("css/components/label-detail.css")' rel="stylesheet">
-  <link href='@assets.path("css/components/label-type-picker.css")' rel="stylesheet">
-  <link href='@assets.path("css/components/pano-attribution.css")' rel="stylesheet">
-  <link href='@assets.path("css/components/filter-sidebar.css")' rel="stylesheet">
-  <link href='@assets.path("css/components/map-download-control.css")' rel="stylesheet">
-  <link href='@assets.path("css/components/tag-pills.css")' rel="stylesheet">
+  @ViteAssets.stylesheets("labelMap")
 
   <script src='@assets.path("vendor/panzoom/panzoom-9.4.4.min.js")'></script>
   @if(commonData.imagerySource == PanoSource.Infra3d) {
@@ -52,7 +47,6 @@
   <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")'></script>
   <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-search-1.6.0.js")'></script>
   <link href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.css")' rel="stylesheet">
-  <link href='@assets.path("css/components/choropleth.css")' rel="stylesheet">
 
   <script type="module" id="page-entry" src='@assets.path("build/js/labelMap.js")'
         data-mapbox-api-key="@commonData.mapboxApiKey"

@@ -1,5 +1,6 @@
 /**
- * Onboarding module.
+ * The hands-on tutorial: it takes over the whole tool and walks the user through a scripted street
+ * (OnboardingStates), so it is handed nearly every control.
  * Todo. So many dependencies! If possible, break the module down into pieces.
  */
 
@@ -8,22 +9,46 @@ import { Label } from '../label/Label.js';
 import '../../common/pano-viewer/panoUtilities.js';
 import '../../common/utilitiesMath.js';
 import '../../common/utilitiesSidewalk.js';
-/** @typedef {import('../canvas/Canvas.js').Canvas} Canvas */
+/** @typedef {import('../canvas/CanvasFrame.js').CanvasFrame} CanvasFrame */
 /** @typedef {import('../navigation/Compass.js').Compass} Compass */
+/** @typedef {import('../canvas/Canvas.js').Canvas} Canvas */
 /** @typedef {import('../canvas/ContextMenu.js').ContextMenu} ContextMenu */
+/** @typedef {import('../Main.js').ExploreUi} ExploreUi */
+/** @typedef {import('../data/Form.js').Form} Form */
+/** @typedef {import('../label/LabelContainer.js').LabelContainer} LabelContainer */
+/** @typedef {import('../navigation/Minimap.js').Minimap} Minimap */
 /** @typedef {import('../mission/MissionContainer.js').MissionContainer} MissionContainer */
+/** @typedef {import('../panorama/NavArrows.js').NavArrows} NavArrows */
 /** @typedef {import('../navigation/NavigationService.js').NavigationService} NavigationService */
+/** @typedef {import('../navigation/ObservedArea.js').ObservedArea} ObservedArea */
+/** @typedef {import('../panorama/PanoManager.js').PanoManager} PanoManager */
 /** @typedef {import('../controls/PanoOverlayControls.js').PanoOverlayControls} PanoOverlayControls */
+/** @typedef {import('../../common/ProgressBar.js').ProgressBar} ProgressBar */
+/** @typedef {import('../menu/LabelModes.js').LabelModes} LabelModes */
 /** @typedef {import('../menu/RibbonMenu.js').RibbonMenu} RibbonMenu */
 /** @typedef {import('../data/Tracker.js').Tracker} Tracker */
 /** @typedef {import('../zoom/ZoomControl.js').ZoomControl} ZoomControl */
 
 export class Onboarding {
-  #svl;
+  // The tutorial pano's size in px, and how its scripted image coordinates scale to it.
+  static TUTORIAL_PANO_WIDTH = 13312;
+  static TUTORIAL_PANO_HEIGHT = 6656;
+  static TUTORIAL_PANO_SCALE_FACTOR = 3.25;
+
+  #ui;
+  #frame;
+  #minimap;
+  #panoManager;
+  #navArrows;
   #compass;
   #navigationService;
   #missionContainer;
+  #labelContainer;
+  #observedArea;
+  #form;
+  #missionProgressBar;
   #panoOverlayControls;
+  #labelModes;
   #ribbon;
   #tracker;
   #canvas;
@@ -41,50 +66,63 @@ export class Onboarding {
   #savedAnnotations = [];
   #currentState = null;
   #mouseDownCanvasDrawingHandler;
-  #map;
-  #currentLabelId;
   #tutorialMinimapResizeObserver = null;
 
   // Floating UI autoUpdate cleanup for the currently anchored message, if any.
   #floatingCleanup = null;
 
   /**
-   * @param {Record<string, any>} svl
+   * @param {ExploreUi} ui - The tool's elements; the tutorial draws on its own canvas and over the minimap.
+   * @param {CanvasFrame} frame - The frame the example labels are projected through.
+   * @param {{get: () => Array<Record<string, any>>}} onboardingStates - Built by `new OnboardingStates()`.
+   * @param {Minimap} minimap
+   * @param {PanoManager} panoManager
+   * @param {NavArrows} navArrows
    * @param {Compass} compass
    * @param {NavigationService} navigationService
    * @param {MissionContainer} missionContainer
+   * @param {LabelContainer} labelContainer
+   * @param {ObservedArea} observedArea
+   * @param {Form} form
+   * @param {ProgressBar} missionProgressBar - Shows how far through the tutorial the user is.
    * @param {PanoOverlayControls} panoOverlayControls
-   * @param {{get: () => Array<Record<string, any>>}} onboardingStates - Built by `new OnboardingStates()`.
-   * @param {RibbonMenu} ribbon
-   * @param {Tracker} tracker
-   * @param {Canvas} canvas
-   * @param {Record<string, HTMLElement>} uiCanvas
+   * @param {LabelModes} labelModes - Held shut, letting one label type through per step.
+   * @param {RibbonMenu} ribbon - Whose button for that type is lit.
+   * @param {Canvas} canvas - Says where each label the labeler places landed.
    * @param {ContextMenu} contextMenu
-   * @param {Record<string, HTMLElement>} uiOnboarding
    * @param {ZoomControl} zoomControl
+   * @param {Tracker} tracker
    */
-  constructor(svl, compass, navigationService, missionContainer, panoOverlayControls, onboardingStates,
-    ribbon, tracker, canvas, uiCanvas, contextMenu, uiOnboarding, zoomControl) {
-    this.#svl = svl;
+  constructor(ui, frame, onboardingStates, minimap, panoManager, navArrows, compass, navigationService,
+    missionContainer, labelContainer, observedArea, form, missionProgressBar, panoOverlayControls, labelModes, ribbon,
+    canvas, contextMenu, zoomControl, tracker) {
+    this.#canvas = canvas;
+    this.#ui = ui;
+    this.#frame = frame;
+    this.#minimap = minimap;
+    this.#panoManager = panoManager;
+    this.#navArrows = navArrows;
     this.#compass = compass;
     this.#navigationService = navigationService;
     this.#missionContainer = missionContainer;
+    this.#labelContainer = labelContainer;
+    this.#observedArea = observedArea;
+    this.#form = form;
+    this.#missionProgressBar = missionProgressBar;
     this.#panoOverlayControls = panoOverlayControls;
+    this.#labelModes = labelModes;
     this.#ribbon = ribbon;
     this.#tracker = tracker;
-    this.#canvas = canvas;
-    this.#uiCanvas = uiCanvas;
+    this.#uiCanvas = ui.canvas;
     this.#contextMenu = contextMenu;
-    this.#uiOnboarding = uiOnboarding;
+    this.#uiOnboarding = ui.onboarding;
     this.#zoomControl = zoomControl;
 
     this.#states = onboardingStates.get();
     this.#statesWithProgress = this.#states.filter((state) => state.progression);
-    this.#map = svl.minimap.getMap();
   }
 
   start() {
-    const svl = this.#svl;
     this.#tracker.push('Onboarding_Start');
 
     this.#adjustMap();
@@ -101,33 +139,17 @@ export class Onboarding {
     }
     this.#uiOnboarding.holder.style.visibility = 'visible';
 
-    svl.panoManager.lockShowingNavArrows();
+    this.#navArrows.showing.hold('tutorial');
+    this.#labelContainer.deleting.hold('tutorial');
 
-    this.#canvas.unlockDisableLabelDelete();
-    this.#canvas.disableLabelDelete();
-    this.#canvas.lockDisableLabelDelete();
-
-    this.#navigationService.unlockDisableWalking().disableWalking().lockDisableWalking();
-
-    this.#zoomControl.unlockDisableZoomIn();
-    this.#zoomControl.disableZoomIn();
-    this.#zoomControl.lockDisableZoomIn();
-
-    this.#zoomControl.unlockDisableZoomOut();
-    this.#zoomControl.disableZoomOut();
-    this.#zoomControl.lockDisableZoomOut();
-
-    this.#ribbon.unlockDisableModeSwitch();
-    this.#ribbon.disableModeSwitch();
-    this.#ribbon.lockDisableModeSwitch();
-
-    this.#ribbon.unlockDisableMode();
-
+    this.#navigationService.walking.hold('tutorial');
+    this.#zoomControl.zoomInGate.hold('tutorial');
+    this.#zoomControl.zoomOutGate.hold('tutorial');
+    this.#labelModes.switching.hold('tutorial');
     this.#panoOverlayControls.disableButtons();
 
     this.#compass.hideMessage();
-    this.#compass.disableCompassClick();
-    this.#compass.lockDisableCompassClick();
+    this.#compass.click.hold('tutorial');
 
     this.#contextMenu.disableRatingSeverity();
     this.#contextMenu.disableTagging();
@@ -136,14 +158,14 @@ export class Onboarding {
   }
 
   /**
-   * Sets the mini map to be transparent for everything except for yellow pin.
+   * Swaps the live minimap for the tutorial's fixed screenshot, keeping the markers and fog drawn over it.
    */
   #adjustMap() {
-    const svl = this.#svl;
+    const holder = this.#ui.minimap.holder;
     // Render the minimap at its native square size and zoom the whole holder uniformly (see .minimap-tutorial) so
-    // the static screenshot, the Google label markers, and the fog all share one coordinate frame and stay aligned.
-    svl.ui.minimap.holder.classList.add('minimap-tutorial');
-    Object.assign(svl.ui.minimap.holder.style, {
+    // the static screenshot, the label markers, and the fog all share one coordinate frame and stay aligned.
+    holder.classList.add('minimap-tutorial');
+    Object.assign(holder.style, {
       backgroundImage: `url('${util.assetPath('images/explore/onboarding/TutorialMiniMap.jpg')}')`,
       backgroundSize: 'cover',
       backgroundRepeat: 'no-repeat',
@@ -154,28 +176,22 @@ export class Onboarding {
     this.#sizeTutorialMinimap();
     if (window.ResizeObserver && !this.#tutorialMinimapResizeObserver) {
       this.#tutorialMinimapResizeObserver = new ResizeObserver(() => this.#sizeTutorialMinimap());
-      this.#tutorialMinimapResizeObserver.observe(svl.ui.minimap.holder.parentElement);
+      this.#tutorialMinimapResizeObserver.observe(holder.parentElement);
     }
 
-    // TODO use cloud-based maps styling for this potentially as well..? Hiding something in dom as workaround.
-    // map.setOptions({styles: [{ featureType: 'all', stylers: [{ visibility: 'off' }] }]});
-    setTimeout(() => {
-      // TODO extra hacky to set a timeout because the div wasn't ready even though map theoretically loaded.
-      const mapDiv = /** @type {Element} */ (document.querySelector('#minimap')?.firstChild);
-      const mapToHide = /** @type {HTMLElement} */ (mapDiv?.children[2]?.firstChild?.firstChild);
-      mapToHide.style.display = 'none';
-    }, 1000);
+    // The screenshot is the tutorial's map; the live basemap would show through it, offset and at another scale.
+    this.#minimap.setBasemapVisible(false);
   }
 
   /**
    * Sizes the tutorial minimap to the largest square that fits the sidebar space below the region heading.
    *
-   * The minimap renders at a native square size and is zoomed up uniformly, which keeps the screenshot, Google
-   * markers, and fog aligned. We cap that zoom at the available height so the whole rounded square stays visible and
+   * The minimap renders at a native square size and is zoomed up uniformly, which keeps the screenshot, markers,
+   * and fog aligned. We cap that zoom at the available height so the whole rounded square stays visible and
    * the peg stays centered, rather than overflowing the sidebar and getting clipped.
    */
   #sizeTutorialMinimap() {
-    const holder = this.#svl.ui.minimap.holder;
+    const holder = this.#ui.minimap.holder;
     const sidebar = document.getElementById('explore-sidebar');
     if (!holder || !sidebar) return;
 
@@ -203,7 +219,7 @@ export class Onboarding {
    * @returns {Onboarding}
    */
   clear() {
-    if (this.#ctx) this.#ctx.clearRect(0, 0, this.#svl.CANVAS_FRAME.width, this.#svl.CANVAS_FRAME.height);
+    if (this.#ctx) this.#ctx.clearRect(0, 0, this.#frame.width, this.#frame.height);
     return this;
   }
 
@@ -244,7 +260,7 @@ export class Onboarding {
       this.#ctx.translate(x, y);
       this.#ctx.scale(0.6 + 0.4 * eased, 0.6 + 0.4 * eased);
       this.#ctx.translate(-x, -y);
-      Label.renderLabelIcon(this.#ctx, labelType, x, y);
+      Label.renderLabelIcon(this.#ctx, labelType, x, y, this.#frame.iconRadius);
       this.#ctx.restore();
     }
   }
@@ -350,14 +366,13 @@ export class Onboarding {
   }
 
   #stopAllBlinking() {
-    this.#svl.minimap.stopBlinkingMinimap();
+    this.#minimap.stopBlinkingMinimap();
     this.#compass.stopBlinking();
     this.#zoomControl.stopBlinking();
     this.#panoOverlayControls.stopBlinkingStuckButton();
   }
 
   #drawAnnotations(state) {
-    const svl = this.#svl;
     let imX;
     let imY;
     let lineLength;
@@ -371,7 +386,7 @@ export class Onboarding {
     let i;
     let len;
 
-    const currentPov = svl.panoViewer.getPov();
+    const currentPov = this.#panoManager.getPov();
 
     this.clear();
 
@@ -396,10 +411,12 @@ export class Onboarding {
       imY = annotation.y;
 
       // Decode the annotation's angular coordinate (see OnboardingStates.js) and map it to a canvas coordinate.
-      imX = util.misc.unwrapPanoX(imX, currentPov.heading, svl.TUTORIAL_PANO_WIDTH);
-      centeredPov = util.pano.horizonRelativeCoordToPov(imX, imY, svl.TUTORIAL_PANO_WIDTH, svl.TUTORIAL_PANO_HEIGHT);
+      imX = util.misc.unwrapPanoX(imX, currentPov.heading, Onboarding.TUTORIAL_PANO_WIDTH);
+      centeredPov = util.pano.horizonRelativeCoordToPov(
+        imX, imY, Onboarding.TUTORIAL_PANO_WIDTH, Onboarding.TUTORIAL_PANO_HEIGHT,
+      );
       const canvasCoord = util.pano.centeredPovToCanvasCoord(
-        centeredPov, currentPov, svl.CANVAS_FRAME.width, svl.CANVAS_FRAME.height, svl.LABEL_ICON_RADIUS,
+        centeredPov, currentPov, this.#frame.width, this.#frame.height, this.#frame.iconRadius,
       ) || { x: null, y: null };
       const onCanvas = canvasCoord.x !== null;
 
@@ -448,10 +465,7 @@ export class Onboarding {
         }
         // Create the minimap marker when the label's entrance slot arrives, so the map echoes the sequence.
         if (!annotation.firstDraw && progress > 0) {
-          const googleMarker = Label.createMinimapMarker(
-            annotation.labelType, { lat: annotation.lat, lng: annotation.lng },
-          );
-          googleMarker.map = svl.minimap.getMap();
+          Label.createMinimapMarker(this.#minimap, annotation.labelType, { lat: annotation.lat, lng: annotation.lng });
           annotation.firstDraw = true;
         }
       }
@@ -515,13 +529,12 @@ export class Onboarding {
     if (!pane || !centeredPov) return null;
 
     const coord = util.pano.centeredPovToCanvasCoord(
-      centeredPov, this.#svl.panoViewer.getPov(),
-      this.#svl.CANVAS_FRAME.width, this.#svl.CANVAS_FRAME.height, Infinity,
+      centeredPov, this.#panoManager.getPov(), this.#frame.width, this.#frame.height, Infinity,
     );
     if (!coord) return null;
 
     const scale = util.exploreDisplayScale();
-    const size = this.#svl.LABEL_ICON_RADIUS * scale * 2;
+    const size = this.#frame.iconRadius * scale * 2;
     const paneRect = pane.getBoundingClientRect();
     const clamp = (v, min, max) => Math.min(Math.max(v, min), Math.max(min, max));
     const iconRect = new DOMRect(
@@ -530,7 +543,7 @@ export class Onboarding {
       size, size,
     );
 
-    const card = this.#svl.ui.canvas.hoverCard;
+    const card = this.#uiCanvas.hoverCard;
     const cardShown = label.getHoverInfoVisibility() === 'visible' && getComputedStyle(card).visibility === 'visible';
     if (!cardShown) return iconRect;
 
@@ -570,7 +583,7 @@ export class Onboarding {
       const el = document.querySelector(selector);
       if (!el) return null;
 
-      if (!this.#contextMenu.isOpen() && this.#svl.ui.contextMenu.holder?.contains(el)) {
+      if (!this.#contextMenu.isOpen() && this.#ui.contextMenu.holder?.contains(el)) {
         const rect = this.#labelRect(this.#contextMenu.getTargetLabel());
         if (rect) return { rect, placement: 'top', boundedByPane: true };
       }
@@ -661,14 +674,13 @@ export class Onboarding {
    * @param {{x: number, y: number}} panoCoord - Angular annotation coordinates (see OnboardingStates.js).
    */
   #positionMessageAtPanoCoord(panoCoord) {
-    const svl = this.#svl;
-    const currentPov = svl.panoViewer.getPov();
-    const imX = util.misc.unwrapPanoX(panoCoord.x, currentPov.heading, svl.TUTORIAL_PANO_WIDTH);
+    const currentPov = this.#panoManager.getPov();
+    const imX = util.misc.unwrapPanoX(panoCoord.x, currentPov.heading, Onboarding.TUTORIAL_PANO_WIDTH);
     const centeredPov = util.pano.horizonRelativeCoordToPov(
-      imX, panoCoord.y, svl.TUTORIAL_PANO_WIDTH, svl.TUTORIAL_PANO_HEIGHT,
+      imX, panoCoord.y, Onboarding.TUTORIAL_PANO_WIDTH, Onboarding.TUTORIAL_PANO_HEIGHT,
     );
     const canvasCoord = util.pano.centeredPovToCanvasCoord(
-      centeredPov, currentPov, svl.CANVAS_FRAME.width, svl.CANVAS_FRAME.height, svl.LABEL_ICON_RADIUS,
+      centeredPov, currentPov, this.#frame.width, this.#frame.height, this.#frame.iconRadius,
     );
     if (!canvasCoord || canvasCoord.x === null) return; // Off-screen: keep the default top-left position.
 
@@ -735,7 +747,7 @@ export class Onboarding {
         messageHolder.classList.add('onboarding-message-pass-through');
       }
       this.#anchorMessageTo(parameters.labelAnchor
-        ? this.#labelAnchor(this.#svl.labelContainer.findLabelByTempId(this.#currentLabelId))
+        ? this.#labelAnchor(this.#labelContainer.getLatestLabel())
         : this.#elementAnchor(parameters.anchor, parameters.placement || 'right'));
     } else if (parameters.panoAnchor) {
       // Pin just above a pano-image coordinate (e.g. the step's annotation arrow).
@@ -747,29 +759,6 @@ export class Onboarding {
   }
 
   #endTheOnboarding(skip) {
-    const svl = this.#svl;
-    const mapStyleOptions = [
-      {
-        featureType: 'all',
-        stylers: [
-          { visibility: 'off' },
-        ],
-      },
-      {
-        featureType: 'road',
-        stylers: [
-          { visibility: 'on' },
-        ],
-      },
-      {
-        elementType: 'labels',
-        stylers: [
-          { visibility: 'off' },
-        ],
-      },
-    ];
-    if (this.#map) this.#map.setOptions({ styles: mapStyleOptions });
-    this.#map.setOptions({ styles: mapStyleOptions });
     if (skip) {
       this.#tracker.push('Onboarding_Skip');
       this.#missionContainer.getCurrentMission().setProperty('skipped', true);
@@ -778,7 +767,7 @@ export class Onboarding {
     this.#missionContainer.getCurrentMission().setProperty('isComplete', true);
 
     // Makes sure all data has been submitted to server, then refreshes the page.
-    svl.form.submitData().then(() => {
+    this.#form.submitData().then(() => {
       window.location.replace('/explore');
     });
   }
@@ -792,14 +781,13 @@ export class Onboarding {
   }
 
   #blinkInterface(state) {
-    const svl = this.#svl;
     // Blink parts of the interface.
     if ('blinks' in state.properties && state.properties.blinks) {
       const len = state.properties.blinks.length;
       for (let i = 0; i < len; i++) {
         switch (state.properties.blinks[i]) {
           case 'minimap':
-            svl.minimap.blinkMinimap();
+            this.#minimap.blinkMinimap();
             break;
           case 'compass':
             this.#compass.blink();
@@ -808,7 +796,7 @@ export class Onboarding {
             this.#panoOverlayControls.blinkStuckButton();
             break;
           case 'movement-arrow':
-            svl.panoManager.blinkNavigationArrows();
+            this.#navArrows.blink();
             break;
         }
       }
@@ -820,12 +808,11 @@ export class Onboarding {
    * @param {Record<string, any>} state
    */
   #visit(state) {
-    const svl = this.#svl;
     // Update the progress bar (if the state marks progress in the tutorial) & log the transition to the new state.
     const stepNum = this.#statesWithProgress.findIndex((s) => s.id === state.id);
     if (stepNum !== -1 && !state.visited) {
       const completionRate = stepNum / this.#statesWithProgress.length;
-      svl.missionProgressBar.update(completionRate);
+      this.#missionProgressBar.update(completionRate);
       this.#tracker.push('Onboarding_Transition', { onboardingTransition: state.id, step: stepNum });
     } else {
       this.#tracker.push('Onboarding_Transition', { onboardingTransition: state.id });
@@ -878,7 +865,7 @@ export class Onboarding {
     // Draw arrows to annotate target accessibility attributes
     if (this.#onboardingStateAnnotationExists(state) || this.#savedAnnotations.length > 0) {
       this.#drawAnnotations(state);
-      annotationListener = google.maps.event.addListener(svl.panoViewer.gsvPano, 'pov_changed', () => {
+      annotationListener = google.maps.event.addListener(this.#panoManager.panoViewer.gsvPano, 'pov_changed', () => {
         // Stop the animation for the blinking arrows.
         this.#removeFlashingFromArrow();
         this.#drawAnnotations(state);
@@ -894,7 +881,9 @@ export class Onboarding {
 
       if (state.properties.constructor === Array) {
         // Restrict panning.
-        svl.panoManager.setHeadingRange({ min: state.properties[0].minHeading, max: state.properties[0].maxHeading });
+        this.#panoManager.setHeadingRange({
+          min: state.properties[0].minHeading, max: state.properties[0].maxHeading,
+        });
 
         // Ideally we need a for loop that goes through every element of the property array and calls the
         // corresponding action's handler. Not just the label accessibility attribute's handler.
@@ -903,7 +892,7 @@ export class Onboarding {
         }
       } else {
         // Restrict panning.
-        svl.panoManager.setHeadingRange({ min: state.properties.minHeading, max: state.properties.maxHeading });
+        this.#panoManager.setHeadingRange({ min: state.properties.minHeading, max: state.properties.maxHeading });
         if (state.properties.action === 'Introduction') {
           this.#visitIntroduction(state, annotationListener);
         } else if (state.properties.action === 'SelectLabelType' || state.properties.action === 'RedoSelectLabelType') {
@@ -939,13 +928,13 @@ export class Onboarding {
    */
   #visitIntroduction(state, listener) {
     if (listener) google.maps.event.removeListener(listener);
-    this.#svl.panoManager.setPov({
+    this.#panoManager.setPov({
       heading: state.properties.heading,
       pitch: state.properties.pitch,
       zoom: state.properties.zoom,
     });
     // The jump to the opening POV isn't user panning; don't let it pre-reveal fog or credit the examined ring.
-    this.#svl.observedArea.resetCurrentPano();
+    this.#observedArea.resetCurrentPano();
     this.#transitionTo(state.transition);
   }
 
@@ -956,19 +945,18 @@ export class Onboarding {
    *     before moving to the next state
    */
   #visitWalkTowards(state, listener) {
-    const svl = this.#svl;
     const nextPanoId = 'afterWalkTutorial';
 
     // Add a link to the second pano so that the user can click on it.
-    svl.panoManager.unlockShowingNavArrows();
-    svl.panoManager.showNavArrows();
+    this.#navArrows.showing.release('tutorial');
+    this.#navArrows.show();
 
     // A callback to disable walking after user has moved to 2nd pano, then moves to next state.
     const callback = () => {
-      this.#navigationService.unlockDisableWalking().disableWalking().lockDisableWalking();
+      this.#navigationService.walking.hold('tutorial');
       this.#compass.detachMessageClickHandler(clickToNextPano);
-      svl.panoManager.lockShowingNavArrows();
-      svl.ui.streetview.navArrows.removeEventListener('click', clickToNextPano);
+      this.#navArrows.showing.hold('tutorial');
+      this.#ui.streetview.navArrows.removeEventListener('click', clickToNextPano);
       if (listener) google.maps.event.removeListener(listener);
       this.#transitionTo(state.transition);
     };
@@ -978,21 +966,20 @@ export class Onboarding {
       this.#navigationService.moveToPano(nextPanoId, true).then(callback);
     };
 
-    // PanoManager's arrow handler steps aside during the tutorial, so this one moves.
-    this.#navigationService.unlockDisableWalking().enableWalking().lockDisableWalking();
-    svl.ui.streetview.navArrows.addEventListener('click', clickToNextPano);
+    // NavArrows' own click handler steps aside during the tutorial, so this one moves.
+    this.#navigationService.walking.release('tutorial');
+    this.#ui.streetview.navArrows.addEventListener('click', clickToNextPano);
     this.#compass.attachMessageClickHandler(clickToNextPano);
 
     this.#blinkInterface(state);
   }
 
   #visitAdjustHeadingAngle(state, listener) {
-    const svl = this.#svl;
     let $target;
     this.#uiOnboarding.handGestureHolder.classList.remove('ps-hidden');
 
     const callback = () => {
-      const pov = svl.panoViewer.getPov();
+      const pov = this.#panoManager.getPov();
       // Note that the tolerance is only a tolerance to the left. Must hit at least the given heading to proceed.
       if ((360 + state.properties.heading - pov.heading) % 360 < state.properties.tolerance) {
         google.maps.event.removeListener($target);
@@ -1002,19 +989,19 @@ export class Onboarding {
       }
     };
 
-    $target = google.maps.event.addListener(svl.panoViewer.gsvPano, 'pov_changed', callback);
+    $target = google.maps.event.addListener(this.#panoManager.panoViewer.gsvPano, 'pov_changed', callback);
   }
 
   #visitRateSeverity(state, listener) {
     this.#contextMenu.enableRatingSeverityForTutorialLabel(state.properties.labelNumber);
     // Pulse the one section the tutorial has enabled; the message box is anchored to it as well.
-    this.#svl.ui.contextMenu.severityMenu.classList.add('onboarding-attention');
-    const radios = this.#svl.ui.contextMenu.radioButtons;
+    this.#ui.contextMenu.severityMenu.classList.add('onboarding-attention');
+    const radios = this.#ui.contextMenu.radioButtons;
     const callback = (e) => {
       if (listener) google.maps.event.removeListener(listener);
       for (const radio of radios) radio.removeEventListener('change', callback);
       this.#contextMenu.disableRatingSeverity();
-      this.#svl.ui.contextMenu.severityMenu.classList.remove('onboarding-attention');
+      this.#ui.contextMenu.severityMenu.classList.remove('onboarding-attention');
       this.#transitionTo(state.transition, undefined, e.currentTarget);
     };
     for (const radio of radios) radio.addEventListener('change', callback);
@@ -1023,13 +1010,13 @@ export class Onboarding {
   #visitAddTag(state, listener) {
     this.#contextMenu.enableTaggingForTutorialLabel(state.properties.labelNumber);
     // Pulse the one section the tutorial has enabled; the message box is anchored to it as well.
-    this.#svl.ui.contextMenu.tagSection.classList.add('onboarding-attention');
-    const tagHolder = this.#svl.ui.contextMenu.tagHolder;
+    this.#ui.contextMenu.tagSection.classList.add('onboarding-attention');
+    const tagHolder = this.#ui.contextMenu.tagHolder;
     const callback = () => {
       if (listener) google.maps.event.removeListener(listener);
       tagHolder.removeEventListener('tagIds-updated', callback);
       this.#contextMenu.disableTagging();
-      this.#svl.ui.contextMenu.tagSection.classList.remove('onboarding-attention');
+      this.#ui.contextMenu.tagSection.classList.remove('onboarding-attention');
       this.#transitionTo(state.transition, undefined, this.#contextMenu.getTargetLabel());
     };
     // We use a custom event here to ensure that this is triggered after the tags have been updated.
@@ -1114,27 +1101,26 @@ export class Onboarding {
   #visitSelectLabelTypeState(state, listener) {
     const labelType = state.properties.labelType;
 
-    this.#ribbon.enableMode(labelType);
+    this.#labelModes.enableMode(labelType);
     this.#ribbon.startBlinking(labelType);
 
     // To handle when user presses ESC - disable mode only when the user places the label.
     this.#mouseDownCanvasDrawingHandler = () => {
-      this.#ribbon.disableMode(labelType);
+      this.#labelModes.disableMode(labelType);
     };
 
-    const callback = () => {
-      this.#ribbon.enableMode('Walk');
+    const stopListening = this.#labelModes.onModeChanged((mode) => {
+      if (mode !== labelType) return;
+      stopListening();
+      this.#labelModes.enableMode('Walk');
 
       // Disable only when the user places the label
       this.#uiCanvas.drawingLayer.addEventListener('mousedown', this.#mouseDownCanvasDrawingHandler);
 
       this.#ribbon.stopBlinking();
-      document.removeEventListener(`ModeSwitch_${labelType}`, callback);
       if (listener) google.maps.event.removeListener(listener);
       this.#transitionTo(state.transition);
-    };
-
-    document.addEventListener(`ModeSwitch_${labelType}`, callback);
+    });
   }
 
   /**
@@ -1144,45 +1130,26 @@ export class Onboarding {
    */
   #visitZoomState(state, listener) {
     const zoomType = state.properties.type;
-    let event;
 
     if (zoomType === 'in') {
-      event = 'ZoomIn';
       this.#zoomControl.blinkZoomIn();
-      this.#zoomControl.unlockDisableZoomIn();
-      this.#zoomControl.enableZoomIn();
-      this.#zoomControl.lockDisableZoomIn();
+      this.#zoomControl.zoomInGate.release('tutorial');
     } else {
-      event = 'ZoomOut';
       this.#zoomControl.blinkZoomOut();
-
-      // Enable zoom-out
-      this.#zoomControl.unlockDisableZoomOut();
-      this.#zoomControl.enableZoomOut();
-      this.#zoomControl.lockDisableZoomOut();
+      this.#zoomControl.zoomOutGate.release('tutorial');
     }
 
-    const callback = () => {
+    const stopListening = this.#zoomControl.onZoomed((direction) => {
+      if (direction !== zoomType) return;
+      stopListening();
       this.#zoomControl.stopBlinking();
-      if (zoomType === 'in') {
-        // Disable zoom-in
-        this.#zoomControl.unlockDisableZoomIn();
-        this.#zoomControl.disableZoomIn();
-        this.#zoomControl.lockDisableZoomIn();
-      } else {
-        // Disable zoom-out
-        this.#zoomControl.unlockDisableZoomOut();
-        this.#zoomControl.disableZoomOut();
-        this.#zoomControl.lockDisableZoomOut();
-      }
-      this.#ribbon.enableMode('Walk');
-      document.removeEventListener(event, callback);
+      if (zoomType === 'in') this.#zoomControl.zoomInGate.hold('tutorial');
+      else this.#zoomControl.zoomOutGate.hold('tutorial');
+      this.#labelModes.enableMode('Walk');
 
       if (listener) google.maps.event.removeListener(listener);
       this.#transitionTo(state.transition);
-    };
-
-    document.addEventListener(event, callback);
+    });
   }
 
   /**
@@ -1191,17 +1158,16 @@ export class Onboarding {
    * @param {google.maps.MapsEventListener} [listener]
    */
   #visitLabelAccessibilityAttributeState(state, listener) {
-    const svl = this.#svl;
     const properties = state.properties[0];
     const transition = state.transition;
 
-    // Add an event that fires when a label is added and checks if the label was placed in the right spot.
-    const _tutorialLabelListener = (event) => {
+    // Checks whether the label was placed in the right spot.
+    const stopListening = this.#canvas.onLabeled((label) => {
+      stopListening();
       if (listener) google.maps.event.removeListener(listener);
 
-      const label = event.detail.label;
-      const panoX = label.getProperty('panoXY').x * svl.TUTORIAL_PANO_SCALE_FACTOR;
-      const panoY = label.getProperty('panoXY').y * svl.TUTORIAL_PANO_SCALE_FACTOR;
+      const panoX = label.getProperty('panoXY').x * Onboarding.TUTORIAL_PANO_SCALE_FACTOR;
+      const panoY = label.getProperty('panoXY').y * Onboarding.TUTORIAL_PANO_SCALE_FACTOR;
       const imageX = properties.imageX;
       const imageY = properties.imageY;
       const tolerance = properties.tolerance;
@@ -1212,22 +1178,18 @@ export class Onboarding {
       if (distance < tolerance * tolerance) {
         label.setProperty('tutorialLabelNumber', properties.labelNumber);
 
-        // Disable deleting of label.
-        this.#canvas.unlockDisableLabelDelete();
-        this.#canvas.disableLabelDelete();
-        this.#canvas.lockDisableLabelDelete();
+        this.#labelContainer.deleting.hold('tutorial');
 
         // Disable labeling mode.
-        this.#ribbon.disableMode(label.getLabelType());
-        this.#ribbon.enableMode('Walk');
+        this.#labelModes.disableMode(label.getLabelType());
+        this.#labelModes.enableMode('Walk');
         this.#uiCanvas.drawingLayer.removeEventListener('mousedown', this.#mouseDownCanvasDrawingHandler);
 
         this.#transitionTo(transition[0], { accurate: true });
       } else {
         this.#transitionTo(transition[0], { accurate: false });
       }
-    };
-    document.addEventListener('addTutorialLabel', _tutorialLabelListener, { once: true });
+    });
   }
 
   /**
@@ -1237,36 +1199,16 @@ export class Onboarding {
    * @param {google.maps.MapsEventListener} [listener]
    */
   #visitDeleteAccessibilityAttributeState(state, listener) {
-    this.#ribbon.disableMode(state.properties.labelType);
-    this.#ribbon.enableMode('Walk');
-    this.#canvas.unlockDisableLabelDelete();
-    this.#canvas.enableLabelDelete();
-    this.#canvas.lockDisableLabelDelete();
+    this.#labelModes.disableMode(state.properties.labelType);
+    this.#labelModes.enableMode('Walk');
+    this.#labelContainer.deleting.release('tutorial');
 
-    // Callback for deleted label.
-    const deleteLabelCallback = () => {
+    const stopListening = this.#labelContainer.onLabelRemoved(() => {
+      stopListening();
       if (listener) google.maps.event.removeListener(listener);
-      document.removeEventListener('RemoveLabel', deleteLabelCallback);
       this.clear();
       this.#removeFlashingFromArrow(); // TODO remove this if it turns out that we don't need it.
       this.#transitionTo(state.transition);
-    };
-    document.addEventListener('RemoveLabel', deleteLabelCallback);
-  }
-
-  /**
-   * Reset the id of the label that the user most recently added.
-   *
-   * @param {number} labelId
-   */
-  setCurrentLabelId(labelId) {
-    this.#currentLabelId = labelId;
-  }
-
-  /**
-   * Return the id of the label that the user most recently added.
-   */
-  getCurrentLabelId() {
-    return this.#currentLabelId;
+    });
   }
 }

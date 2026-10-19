@@ -32,12 +32,7 @@
   }
   <script src='@assets.path("vendor/pannellum/pannellum-2.5.7.js")'></script>
   <link rel="stylesheet" href='@assets.path("vendor/pannellum/pannellum-2.5.7.css")'>
-  <link rel="stylesheet" href='@assets.path("build/css/validate.css")'>
-  <link rel="stylesheet" href='@assets.path("css/components/progress-bar.css")'>
-  <link rel="stylesheet" href='@assets.path("css/components/pano-overlay-buttons.css")'>
-  <link rel="stylesheet" href='@assets.path("css/components/pano-image-adjustments.css")'>
-  <link rel="stylesheet" href='@assets.path("css/components/tag-pills.css")'>
-  <link rel="stylesheet" href='@assets.path("css/components/label-type-picker.css")'>
+  @ViteAssets.stylesheets("validate")
 
   @common.missionStartTutorial()
   @common.panoInfoPopover()
@@ -222,15 +217,15 @@
           <div id="main-validate-header" class="validation-menu-section-header">Is this a curb ramp?</div>
           @* The same thumbs mobile Validate and the mission-complete counts carry; the boxed column hides them. *@
           <div id="validation-button-holder">
-            <button type="button" id="validate-yes-button"class="validate-page-button validate-button button button--small">
+            <button type="button" id="validate-yes-button" class="validate-page-button validate-button button button--small">
               <img src='@assets.path("images/icons/validation/agree-filled.svg")' class="validate-page-button__icon" alt="">
               <span>@Html(Messages("yes.caps.shortcut"))</span>
             </button>
-            <button type="button" id="validate-no-button"class="validate-page-button validate-button button button--small">
+            <button type="button" id="validate-no-button" class="validate-page-button validate-button button button--small">
               <img src='@assets.path("images/icons/validation/disagree-filled.svg")' class="validate-page-button__icon" alt="">
               <span>@Html(Messages("no.caps.shortcut"))</span>
             </button>
-            <button type="button" id="validate-unsure-button"class="validate-page-button validate-button button button--small">
+            <button type="button" id="validate-unsure-button" class="validate-page-button validate-button button button--small">
               <img src='@assets.path("images/icons/validation/unsure-filled.svg")' class="validate-page-button__icon" alt="">
               <span>@Html(Messages("unsure.caps.shortcut"))</span>
             </button>
@@ -289,9 +284,9 @@
         <div id="validate-why-no-section" class="validation-menu-section">
           <div id="validate-why-not-header" class="validation-menu-section-header">@Messages("validate.why.not")</div>
           <div id="no-reason-options">
-            <button type="button" id="no-button-1"class="validation-reason-button button button--small"></button>
-            <button type="button" id="no-button-2"class="validation-reason-button button button--small"></button>
-            <button type="button" id="no-button-3"class="validation-reason-button button button--small"></button>
+            <button type="button" id="no-button-1" class="validation-reason-button button button--small"></button>
+            <button type="button" id="no-button-2" class="validation-reason-button button button--small"></button>
+            <button type="button" id="no-button-3" class="validation-reason-button button button--small"></button>
             <button type="button" id="no-button-4" class="validation-reason-button button button--small"></button>
             <div class="validate-text-input">
               <input type="text" placeholder="@Messages("validate.add.own.reason")" id="add-disagree-comment" size="36" aria-label="Add no reason input">
@@ -301,20 +296,20 @@
         <div id="validate-why-unsure-section" class="validation-menu-section">
           <div id="validate-why-unsure-header" class="validation-menu-section-header">@Messages("validate.why.unsure")</div>
           <div id="unsure-reason-options">
-            <button type="button" id="unsure-button-1"class="validation-reason-button button button--small"></button>
-            <button type="button" id="unsure-button-2"class="validation-reason-button button button--small"></button>
-            <button type="button" id="unsure-button-3"class="validation-reason-button button button--small"></button>
+            <button type="button" id="unsure-button-1" class="validation-reason-button button button--small"></button>
+            <button type="button" id="unsure-button-2" class="validation-reason-button button button--small"></button>
+            <button type="button" id="unsure-button-3" class="validation-reason-button button button--small"></button>
             <div class="validate-text-input">
               <input type="text" placeholder="@Messages("validate.add.own.reason")" id="add-unsure-comment" size="36" aria-label="Add unsure reason input">
             </div>
           </div>
         </div>
         <div id="validate-submit-section" class="validation-menu-section button-section">
-          <button type="button" id="validate-undo-button"class="button button--secondary button--small">
+          <button type="button" id="validate-undo-button" class="button button--secondary button--small">
             <span class="ps-mask-icon validate-undo-button__icon" aria-hidden="true"></span>
             <span>@Html(Messages("back.shortcut"))</span>
           </button>
-          <button type="button" id="validate-submit-button"class="button button--primary button--small">@Html(Messages("submit.shortcut"))</button>
+          <button type="button" id="validate-submit-button" class="button button--primary button--small">@Html(Messages("submit.shortcut"))</button>
         </div>
       </div>
     </div>

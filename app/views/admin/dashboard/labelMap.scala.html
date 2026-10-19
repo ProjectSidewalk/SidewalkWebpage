@@ -6,7 +6,8 @@
 @(commonData: CommonPageData, user: SidewalkUserWithRole, tags: Seq[Tag] = Seq.empty
 )(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
-@* Admin Label Map page (#4272): the redesign's home for the legacy "Map" tab — an interactive per-label point map for spatially exploring and inspecting labels. Reuses the shared PSMap component, the common map sidebar (filters), and the label-detail popup, exactly as the legacy admin map did, but wrapped in the dashboard shell. Loads all labels from /adminapi/labels/all. A label-ID search box jumps straight to any label's popup (replaces the legacy "Label Search" tab and gives /admin/label/:labelId discoverability). *@
+@* Admin Label Map page (#4272): every label in the city on the shared map, sidebar filters, and label popup, from
+   /adminapi/labels/all. Its label-ID search box is the way in to /admin/label/:labelId. *@
 
 @content = {
   <div class="page-section" id="label-map-intro-section">
@@ -27,12 +28,7 @@
 
   @* Label-detail popup + PSMap dependencies. The label-detail modules are pulled in individually (not via the legacy Admin.js bundle) to keep with the dashboard's standalone-script convention; i18next, AppManager, util and the Google Maps loader are already loaded by common.main / adminLayout. *@
 @common.labelPopup(admin = true)
-  <link href='@assets.path("css/components/label-detail.css")' rel="stylesheet">
-  <link href='@assets.path("css/components/label-type-picker.css")' rel="stylesheet">
-  <link href='@assets.path("css/components/pano-attribution.css")' rel="stylesheet">
-  <link href='@assets.path("css/components/tag-pills.css")' rel="stylesheet">
-  <link href='@assets.path("css/components/choropleth.css")' rel="stylesheet">
-  <link href='@assets.path("css/components/filter-sidebar.css")' rel="stylesheet">
+  @ViteAssets.stylesheets("admin/labelMap", alreadyLinked = "admin/shell")
   <link href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.css")' rel="stylesheet">
   <link rel="stylesheet" href='@assets.path("vendor/pannellum/pannellum-2.5.7.css")'>
 

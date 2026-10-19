@@ -13,23 +13,24 @@
  * nudge a slider instead of panning the pano — are injected as callbacks, which keeps the class mountable on any
  * page with a pano. A page whose shortcut handler can scope the panel itself needs no keyboard hooks at all.
  *
- * Usage (Explore suspends its shortcuts while the panel is open):
- *   new PanoImageAdjustmentsPopover(svl.imageAdjustments, button, popoverEl, {
- *     placement: () => (svl.immersiveMode.isActive() ? 'right' : 'below'),
- *     onOpen: () => svl.keyboard.disableKeyboard(),
- *     onClose: (via) => svl.keyboard.enableKeyboard(),
- *     onChange: (values) => svl.tracker.push('ImageAdjustments_Change', values),
+ * Usage (Explore holds its keyboard lock while the panel is open):
+ *   new PanoImageAdjustmentsPopover(imageAdjustments, button, popoverEl, {
+ *     placement: () => (immersiveMode.isActive() ? 'right' : 'below'),
+ *     onOpen: () => keyboardLock.hold('image-adjustments'),
+ *     onClose: (via) => keyboardLock.release('image-adjustments'),
+ *     onChange: (values) => tracker.push('ImageAdjustments_Change', values),
  *   });
  *
  * Usage (Validate's KeyboardManager treats the panel as its own scope, so only logging is injected):
- *   new PanoImageAdjustmentsPopover(svv.imageAdjustments, button, popoverEl, {
+ *   new PanoImageAdjustmentsPopover(imageAdjustments, button, popoverEl, {
  *     placement: 'below',
- *     onOpen: () => svv.tracker.push('Click_ImageAdjustments_Open'),
+ *     onOpen: () => tracker.push('Click_ImageAdjustments_Open'),
  *   });
  */
 
 import { PanoImageAdjustments } from './PanoImageAdjustments.js';
 import { util } from './utilities.js';
+import '../../css/components/pano-image-adjustments.css';
 
 export class PanoImageAdjustmentsPopover {
   /** Class on the trigger while any control is off its default, so a persisted setting isn't a mystery later. */

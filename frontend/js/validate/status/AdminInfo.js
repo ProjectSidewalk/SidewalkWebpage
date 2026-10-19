@@ -18,11 +18,7 @@ export class AdminInfo {
   /**
    * Open/close, light dismiss and stacking are the browser's, via the `popover` attribute; this fills and parks it.
    *
-   * @param {object} adminUi - The Admin Info UI elements
-   * @param {HTMLElement} adminUi.holder - The section holding the button
-   * @param {HTMLButtonElement} adminUi.button - The Admin Info button
-   * @param {HTMLElement} adminUi.popover - The popover the button opens
-   * @param {HTMLTemplateElement} adminUi.template - The template HTML the popover is filled from
+   * @param {import('../Main.js').AdminInfoUi} adminUi - The Admin Info UI elements.
    */
   constructor(adminUi) {
     this.#template = adminUi.template;

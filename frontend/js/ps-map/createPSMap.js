@@ -7,6 +7,7 @@ import { addLabelsToMap, setLabelData } from './addLabelsToMap.js';
 import { addRegionsToMap } from './addRegionsToMap.js';
 import { addStreetsToMap } from './addStreetsToMap.js';
 import { fetchLabelFeed } from './psMapUtilities.js';
+import '../../css/components/choropleth.css';
 
 /**
  * Central function that handles the creation of choropleths and maps.

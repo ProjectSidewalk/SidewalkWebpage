@@ -11,20 +11,21 @@
  * ResizeObserver, so a recording stub stands in for it.
  */
 
-const path = require('path');
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules, mockModule } from './loader.js';
+import { fakeTracker } from './fakes.js';
 
-const PANO_MANAGER_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/explore/panorama/PanoManager.js');
+let fakeViewer;
 
-/**
- * Load a bare `class` declaration out of a production file, the way the Grunt bundle puts it in page scope.
- * @param {string} filePath - Absolute path to the production file.
- * @param {string} className - Name of the class the file declares.
- * @returns {Function} The class.
- */
-function loadClassFromFile(filePath, className) {
-  return loadModules(filePath)[className];
+// The viewer type the config names must be the very class PanoManager imports, so every Mapillary-only path runs.
+class MapillaryViewer {
+  static create() { return Promise.resolve(fakeViewer); }
 }
+mockModule('frontend/js/common/pano-viewer/MapillaryViewer.js', () => ({ MapillaryViewer }));
+mockModule('frontend/js/common/pano-viewer/GsvViewer.js', () => ({ GsvViewer: class GsvViewer {} }));
+mockModule('frontend/js/common/pano-viewer/PanoViewerLogo.js', () => ({
+  createPanoViewerLogo: () => ({ showPrimaryLogo: () => {} }),
+}));
+mockModule('frontend/js/explore/panorama/NoImageryFlagGuard.js', () => ({ NoImageryFlagGuard: { reset() {} } }));
 
 /** Let MutationObserver callbacks, which run as microtasks, fire. */
 const flushObservers = () => new Promise((resolve) => setTimeout(resolve, 0));
@@ -51,65 +52,48 @@ describe('Explore publishes the links clearance from Mapillary\'s in-place pill 
     return {renderer, container};
   }
 
-  /** Sets up Explore's PanoManager on the Mapillary viewer type. */
+  /** Sets up Explore's PanoManager on the Mapillary viewer type and loads its viewer. */
   async function createPanoManager() {
-    await PanoManager.create(global.MapillaryViewer, 'token', {});
+    const ui = {
+      pano: document.getElementById('pano'),
+      viewControlLayer: document.getElementById('view-control-layer'),
+    };
+    const config = { viewerType: MapillaryViewer, viewerAccessToken: 'token' };
+    const panoManager = new PanoManager(ui, config, { addPanoMetadata: vi.fn() },
+      fakeTracker(), {}, {}, {});
+    await panoManager.ready;
     await flushObservers();
   }
 
-  beforeEach(() => {
+  beforeEach(async () => {
     document.body.innerHTML = `
       <div class="tool-ui">
         <div id="pano" class="window-streetview mapillary-viewer"></div>
         <div id="user-control-layer"><div id="view-control-layer"></div></div>
-        <svg><g id="arrow-group"></g></svg>
       </div>`;
 
     observedNodes = [];
-    global.ResizeObserver = class {
+    vi.stubGlobal('ResizeObserver', class {
       observe(node) { observedNodes.push(node); }
       disconnect() {}
-    };
+    });
 
-    global.util = {localIsoDate: () => '2024-11'};
-    global.i18next = {t: (key) => key};
-    global.NoImageryFlagGuard = {reset: jest.fn()};
-    global.NoImageryError = class NoImageryError extends Error {};
-    global.createPanoViewerLogo = jest.fn(() => ({showPrimaryLogo: jest.fn()}));
-    global.GsvViewer = class GsvViewer {};
+    window.i18next = {t: (key) => key};
 
     const panoData = {getPanoId: () => 'pano1', getProperty: () => 0};
-    const fakeViewer = {
-      addListener: jest.fn(),
+    fakeViewer = {
+      addListener: vi.fn(),
       getPov: () => ({heading: 0, pitch: 0, zoom: 1}),
-      setPov: jest.fn(),
+      setPov: vi.fn(),
       getLinkedPanos: () => [],
       currPanoData: panoData,
       initialSeed: 'pano',
     };
-    // The viewer type IS the MapillaryViewer global, so every Mapillary-only path in PanoManager runs.
-    global.MapillaryViewer = class MapillaryViewer {
-      static create() { return Promise.resolve(fakeViewer); }
-    };
-    global.svl = {
-      tracker: {push: jest.fn()},
-      panoStore: {addPanoMetadata: jest.fn()},
-      stuckAlert: {panoVisited: jest.fn()},
-      ui: {streetview: {
-        navArrows: document.getElementById('arrow-group'),
-        viewControlLayer: document.getElementById('view-control-layer'),
-      }},
-    };
-
-    PanoManager = loadClassFromFile(PANO_MANAGER_PATH, 'PanoManager');
+    ({ PanoManager } = await loadModules('frontend/js/explore/panorama/PanoManager.js'));
   });
 
   afterEach(() => {
     document.body.innerHTML = '';
-    for (const name of ['ResizeObserver', 'util', 'i18next', 'NoImageryFlagGuard', 'NoImageryError',
-      'createPanoViewerLogo', 'GsvViewer', 'MapillaryViewer', 'svl']) {
-      delete global[name];
-    }
   });
 
   test('a pill the SDK rendered before setup is measured where it is and left there', async () => {

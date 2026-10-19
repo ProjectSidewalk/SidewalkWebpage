@@ -5,6 +5,7 @@ import controllers.helper.ControllerUtils.{isAdmin, parseIntegerSeq, regionsPara
 import formats.json.GalleryFormats.*
 import formats.json.LabelFormats
 import models.auth.DefaultEnv
+import models.gallery.{GalleryOrder, GallerySort}
 import models.label.{LabelType, Tag}
 import models.region.Region
 import play.api.Configuration
@@ -55,6 +56,8 @@ class GalleryController @Inject() (
    * @param neighborhoods Old name for `regions`, still read so existing links keep working.
    * @param labelIds      A comma-separated review list (#5444). When it names at least one label, the page shows
    *                      exactly those labels in that order and every other filter above is ignored.
+   * @param sort          A [[GallerySort]] name (#2705). Only an admin gets the control, so for anyone else, and for
+   *                      a name the enum doesn't have, the page is in its random order.
    */
   def gallery(
       labelType: String,
@@ -64,9 +67,13 @@ class GalleryController @Inject() (
       validationOptions: String,
       aiValidationOptions: String,
       neighborhoods: String,
-      labelIds: String
+      labelIds: String,
+      sort: String
   ): Action[AnyContent] =
     cc.securityService.UserAwareAction { implicit request =>
+      val admin: Boolean           = isAdmin(request.identity)
+      val gallerySort: GallerySort =
+        if (admin) GallerySort.withNameOption(sort).getOrElse(GallerySort.Random) else GallerySort.Random
       // The label type filter is a list, and an empty one means every type — which is what the legacy "Assorted"
       // value, and anything else unrecognized, falls back to.
       val labTypes: Seq[String] =
@@ -125,13 +132,15 @@ class GalleryController @Inject() (
         // Log visit to Gallery async. A review list logs its length, not its ids: it can be 500 of them, and the
         // question the log answers is how often list mode is used, not on what.
         val listSuffix: String  = if (labelIdList.isEmpty) "" else s"_LabelIdList=${labelIdList.size}"
+        val sortSuffix: String  = if (gallerySort == GallerySort.Random) "" else s"_Sort=${gallerySort.name}"
         val activityStr: String =
-          s"Visit_Gallery_LabelType=${labTypes.mkString("+")}_RegionIDs=${regionIdsList}_Severity=${severityList}_Tags=${tagList}_Validations=$valOptions$listSuffix"
+          s"Visit_Gallery_LabelType=${labTypes.mkString("+")}_RegionIDs=${regionIdsList}_Severity=${severityList}_Tags=${tagList}_Validations=$valOptions$listSuffix$sortSuffix"
         cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, activityStr)
 
         Ok(
           views.html.apps.gallery(commonData, Messages("seo.title.gallery"), request.identity, labTypes, allTags,
-            regionIdsList, regionNames, severityList, tagList, valOptions, aiValOptions, labelIdList, idsOverCap)
+            regionIdsList, regionNames, severityList, tagList, valOptions, aiValOptions, labelIdList, idsOverCap, admin,
+            gallerySort)
         )
       }
     }
@@ -159,9 +168,15 @@ class GalleryController @Inject() (
         val tagsByLabelType: Map[LabelType, Set[String]] = submission.tagsByLabelType
           .getOrElse(Map())
           .flatMap { case (name, tags) => LabelType.withNameOption(name).map(_ -> tags.toSet) }
-        val aiValOptions: Set[String]  = submission.aiValidationOptions.getOrElse(Seq()).toSet
-        val userId: String             = request.identity.map(_.userId).getOrElse(NoUserId)
-        val recentFirst: Boolean       = submission.sort.contains("recent")
+        val aiValOptions: Set[String] = submission.aiValidationOptions.getOrElse(Seq()).toSet
+        val userId: String            = request.identity.map(_.userId).getOrElse(NoUserId)
+        // A strict order is admin tooling, and in that order the query waives the disagree-ratio gate the public
+        // Gallery keeps, so anyone else asking for one gets the random Gallery. The landing grid's recent pool is
+        // not an order in that sense and stays open to everyone.
+        val order: GalleryOrder = GalleryOrder.fromRequest(submission.sort) match {
+          case GalleryOrder.Sorted(_) if !isAdmin(request.identity) => GalleryOrder.Random
+          case requested                                            => requested
+        }
         val staticImageryOnly: Boolean = submission.staticImageryOnly.getOrElse(false)
         // The client's list is never trusted for length or uniqueness; the same cap applies as on the page request.
         val labelIdList: Seq[Int] = submission.labelIds.getOrElse(Seq()).distinct.take(GalleryController.MaxLabelIds)
@@ -169,7 +184,7 @@ class GalleryController @Inject() (
         // Get labels from LabelTable.
         labelService
           .getGalleryLabels(n, labelTypes, loadedLabels, valOptions, regionIds, severities, tagsByLabelType,
-            aiValOptions, userId, recentFirst, staticImageryOnly, labelIdList)
+            aiValOptions, userId, order, staticImageryOnly, labelIdList)
           .flatMap { labels =>
             cropService.cropMarkers(labels.map(_.labelId)).map { markers =>
               val jsonList = labels.map { l =>

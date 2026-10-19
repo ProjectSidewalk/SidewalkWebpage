@@ -17,6 +17,8 @@
  *     provider name, since the source logo opposite it is already carrying that.
  * @returns {{ show: Function, hide: Function }}
  */
+import '../../../css/components/pano-attribution.css';
+
 export function createPanoAttribution(container, options = {}) {
   const compact = options.compact === true;
   const holder = document.createElement('small');

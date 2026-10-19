@@ -31,7 +31,7 @@ If you use or reference Project Sidewalk in your research, please cite:
 ## Tech stack
 
 - **Backend:** Scala 3.9 + Play Framework 3.0 (Java 17), Postgres + PostGIS via Slick.
-- **Frontend:** vanilla JavaScript ES modules, bundled per page with Rolldown.
+- **Frontend:** vanilla JavaScript ES modules, bundled per page with Vite.
 - **Dev environment:** Docker.
 
 For a full architecture overview, see [`docs/architecture.md`](docs/architecture.md).

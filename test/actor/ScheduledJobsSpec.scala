@@ -112,7 +112,7 @@ class ScheduledJobsSpec extends SidewalkSpec {
         OsmWayRefreshActor.Name, PlacesRefreshActor.Name, AuthTokenCleanerActor.Name, FunnelStatActor.Name,
         service.ClusterServiceImpl.IntersectionRebuildJobName, ClusteringActor.Name,
         service.AccessScoreSpotlightService.JobName, CropGenerationActor.Name, SidewalkPresenceActor.Name,
-        StreetGradientStalenessActor.Name
+        StreetGradientStalenessActor.Name, BasemapRefreshActor.Name
       )
       ScheduledJobs.All.map(_.name) must contain theSameElementsAs scheduled
     }

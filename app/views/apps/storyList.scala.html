@@ -107,11 +107,7 @@
      inline, the same way the dashboard's story rows do. Entirely optional: if it fails to initialize, the links
      keep their /labelMap?labelId= href. *@
   @common.labelPopup(admin = false)
-  <link href='@assets.path("css/components/label-detail.css")' rel="stylesheet">
-  <link href='@assets.path("css/components/label-type-picker.css")' rel="stylesheet">
-  <link href='@assets.path("css/components/pano-attribution.css")' rel="stylesheet">
-  <link href='@assets.path("css/components/tag-pills.css")' rel="stylesheet">
-  <link href='@assets.path("css/pages/community-list.css")' rel="stylesheet">
+  @ViteAssets.stylesheets("stories")
   @if(commonData.imagerySource == PanoSource.Infra3d) {
     <script src='@assets.path("vendor/proj4/proj4-2.22.0.js")'></script>
     <script src='@assets.path("vendor/infra3d/infra3dapi-1.12.1.js")'></script>

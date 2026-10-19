@@ -1,5 +1,6 @@
-import { svv } from '../svv.js';
 import { mousePosition, util } from '../../common/utilities.js';
+/** @typedef {import('../label/LabelVisibilityControl.js').LabelVisibilityControl} LabelVisibilityControl */
+/** @typedef {import('./PanoManager.js').PanoManager} PanoManager */
 
 /*
  * An additional layer on top of the panorama object on validation interface. This layer handles panning.
@@ -7,6 +8,10 @@ import { mousePosition, util } from '../../common/utilities.js';
 export class PanoOverlay {
   #viewControlLayer;
   #panningDisabled = false;
+  /** @type {LabelVisibilityControl} */
+  #labelVisibilityControl;
+  /** @type {PanoManager} */
+  #panoManager;
 
   // Mouse status and mouse event callback functions.
   #mouseStatus = {
@@ -17,8 +22,15 @@ export class PanoOverlay {
     isLeftDown: false,
   };
 
-  constructor() {
-    this.#viewControlLayer = svv.ui.viewer.controlLayer;
+  /**
+   * @param {HTMLElement} viewControlLayer - The layer over the imagery that takes the pointer.
+   * @param {LabelVisibilityControl} labelVisibilityControl - Owns the label card a pan takes down.
+   * @param {PanoManager} panoManager - Whose live viewer the drag turns.
+   */
+  constructor(viewControlLayer, labelVisibilityControl, panoManager) {
+    this.#viewControlLayer = viewControlLayer;
+    this.#labelVisibilityControl = labelVisibilityControl;
+    this.#panoManager = panoManager;
 
     this.#viewControlLayer.addEventListener('mousemove', this.#handlerViewControlLayerMouseMove);
     this.#viewControlLayer.addEventListener('mousedown', this.#handlerViewControlLayerMouseDown);
@@ -54,7 +66,7 @@ export class PanoOverlay {
     this.#viewControlLayer.style.cursor = `url(${util.assetPath('images/icons/closedhand.cur')}) 4 4, move`;
 
     // Hide the label's hover info as soon as panning starts so it doesn't linger over the moving pano.
-    if (svv.labelVisibilityControl) svv.labelVisibilityControl.hideLabelCard();
+    this.#labelVisibilityControl.hideLabelCard();
 
     // This is necessary for supporting touch devices, because there is no mouse hover.
     this.#mouseStatus.prevX = mousePosition(e, e.currentTarget).x;
@@ -85,11 +97,12 @@ export class PanoOverlay {
     this.#mouseStatus.currX = mousePosition(e, e.currentTarget).x;
     this.#mouseStatus.currY = mousePosition(e, e.currentTarget).y;
 
-    if (svv.panoManager.getProperty('panoLoaded') && this.#mouseStatus.isLeftDown && this.#panningDisabled === false) {
+    const panning = this.#mouseStatus.isLeftDown && this.#panningDisabled === false;
+    if (panning && this.#panoManager.getProperty('panoLoaded')) {
       // If a mouse is being dragged on the control layer, move the pano.
       let dx = this.#mouseStatus.currX - this.#mouseStatus.prevX;
       let dy = this.#mouseStatus.currY - this.#mouseStatus.prevY;
-      const pov = svv.panoViewer.getPov();
+      const pov = this.#panoManager.getPov();
       const zoomLevel = pov.zoom;
       dx = dx / (2 * zoomLevel);
       dy = dy / (2 * zoomLevel);
@@ -107,10 +120,10 @@ export class PanoOverlay {
    * @param {number} dy
    */
   #updatePov(dx, dy) {
-    const pov = svv.panoViewer.getPov();
+    const pov = this.#panoManager.getPov();
     const viewerScaling = 0.5;
     pov.heading -= dx * viewerScaling;
     pov.pitch += dy * viewerScaling;
-    svv.panoViewer.setPov(pov);
+    this.#panoManager.panoViewer.setPov(pov);
   }
 }

@@ -85,13 +85,10 @@ Up to the v2 release, records for **anonymous users weren't marked as `complete`
 
 ## Gallery screenshot tips
 
-Console snippets for staging clean label screenshots in the Gallery's expanded card view:
+The expanded card's own "hide label" toggle (#2477) takes the marker off the imagery, and stays off as you page.
+To nudge the marker instead, it is a positioned element over the pano canvas, so devtools can move it:
 
 ```js
-// Hide the label icon/marker in the expanded view.
-sg.cardContainer.getModal().pano.labelMarker.marker.setVisible(false);
-
-// Inspect the marker's current heading/pitch, then reposition it.
-sg.cardContainer.getModal().pano.labelMarker.marker.getPosition();           // current { heading, pitch }
-sg.cardContainer.getModal().pano.labelMarker.marker.setPosition({ heading: newH, pitch: newP });
+const marker = document.querySelector('.gallery-expanded-view .label-detail__marker');
+marker.style.left = `${parseFloat(marker.style.left) + 10}px`; // The viewer re-places it on the next pan or zoom.
 ```

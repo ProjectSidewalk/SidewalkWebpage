@@ -15,6 +15,7 @@
  */
 
 import { util } from './utilities.js';
+import '../../css/components/toast.css';
 
 export class Toast {
   // Fade-out transition duration (ms). Kept in sync with the CSS opacity transition on `.ps-toast`. Public so a

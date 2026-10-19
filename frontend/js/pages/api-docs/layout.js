@@ -1,5 +1,6 @@
 /** Entry point for every API docs page's shared chrome. */
 import '../../api-docs/apiDocs.js';
 import { setupBibtexDownload } from '../../api-docs/bibtexDownload.js';
+import '../../../css/pages/api-docs/api-docs.css';
 
 setupBibtexDownload();

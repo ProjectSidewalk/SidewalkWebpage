@@ -36,6 +36,7 @@
 
 import { AccessScoreGradeRamp } from './AccessScoreGradeRamp.js';
 import { util } from './utilities.js';
+import '../../css/components/elevation-profile.css';
 
 export class AccessScoreElevationProfile {
   static #WIDTH = 340;

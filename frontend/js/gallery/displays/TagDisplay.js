@@ -2,19 +2,20 @@
  * An object that can display the tags of a label.
  */
 
-import { sg } from '../sg.js';
-
 export class TagDisplay {
   #container;
   #tags;
+  #appliedTags;
 
   /**
    * @param {HTMLElement} container - The DOM element to contain the label information.
    * @param {string[]} tags - The tags to display.
+   * @param {string[]} appliedTags - The tags the filters are narrowing to, shown first.
    */
-  constructor(container, tags) {
+  constructor(container, tags, appliedTags) {
     this.#container = container;
     this.#tags = tags;
+    this.#appliedTags = appliedTags;
 
     this.#init();
   }
@@ -128,7 +129,7 @@ export class TagDisplay {
       // If there was not enough space to display all the tags, show the rest in a tooltip on the '+n' text.
       if (hiddenTags.length > 0) {
         overflowPill.innerText = ` + ${hiddenTags.length}`;
-        overflowPill.setAttribute('data-ps-tooltip', hiddenTags.map((tag) => tag.outerHTML).join(''));
+        overflowPill.setAttribute('data-ps-tooltip-html', hiddenTags.map((tag) => tag.outerHTML).join(''));
         overflowPill.setAttribute('data-ps-tooltip-theme', 'light');
       } else {
         overflowPill.remove();
@@ -143,7 +144,7 @@ export class TagDisplay {
    */
   #orderTags(tags) {
     let orderedTags = [];
-    const appliedTags = sg.cardFilter.getAppliedTagNames();
+    const appliedTags = this.#appliedTags;
     for (const tag of tags) {
       if (orderedTags.length === 0) {
         orderedTags.push(tag);

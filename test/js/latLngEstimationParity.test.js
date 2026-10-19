@@ -19,55 +19,44 @@
  * destination.
  */
 
-const fs = require('fs');
-const path = require('path');
-const { loadModules } = require('./loadGlobalScript');
+import fs from 'fs';
+import path from 'path';
+import { loadVendored, loadModules, REPO_ROOT } from './loader.js';
 
-const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const FIXTURE = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'test/fixtures/latLngEstimationParity.json'), 'utf8'));
 const CLIENT_TOL_DEG = 1e-8;
 
-/** Loads a fresh Label class into the jsdom global scope (a class declaration is not a globalThis property). */
-function loadLabel() {
-    Object.assign(window, loadModules('frontend/js/explore/label/Label.js'));
-    return window.Label;
-}
-
 describe('Label lat/lng estimation parity with the server and the SQL backfill (#5084)', () => {
-    let Label;
+  let Label;
+  const LAT_LNG_ESTIMATION = {
+    blendDeg: FIXTURE.constants.blend_deg,
+    maxDistanceM: FIXTURE.constants.max_distance_m,
+    cameraHeightM: FIXTURE.constants.camera_height_m,
+  };
 
-    beforeEach(() => {
-        Label = loadLabel();
-        window.svl = {
-            minimap: { getMap: () => null },
-            latLngEstimation: {
-                blendDeg: FIXTURE.constants.blend_deg,
-                maxDistanceM: FIXTURE.constants.max_distance_m,
-                cameraHeightM: FIXTURE.constants.camera_height_m,
-            },
-        };
-        Label.createMinimapMarker = () => ({ addListener: () => {} });
-        // The real vendored turf (UMD), not a stub: the destination step is part of what is being pinned.
-        window.turf = require(path.join(REPO_ROOT, 'public/vendor/turf/turf-7.4.0.min.js'));
-    });
+  beforeEach(async () => {
+    ({ Label } = await loadModules('frontend/js/explore/label/Label.js'));
+    // The real vendored turf (UMD), not a stub: the destination step is part of what is being pinned.
+    loadVendored('turf');
+  });
 
-    test('the fixture was generated for the constants this test injects', () => {
-        expect(FIXTURE.constants.earth_radius_m).toBe(6371000);
-        expect(FIXTURE.cases.length).toBeGreaterThanOrEqual(50);
-    });
+  test('the fixture was generated for the constants this test injects', () => {
+    expect(FIXTURE.constants.earth_radius_m).toBe(6371000);
+    expect(FIXTURE.cases.length).toBeGreaterThanOrEqual(50);
+  });
 
-    test.each(FIXTURE.cases.map((c) => [c.name, c]))('%s', (name, c) => {
-        const label = new Label({
-            labelType: 'CurbRamp',
-            temporaryLabelId: 1,
-            panoXY: { x: c.pano_x, y: c.pano_y },
-            povOfLabelIfCentered: { heading: c.expected.heading_deg, pitch: c.expected.pitch_deg, zoom: 1 },
-            panoLat: c.pano_lat,
-            panoLng: c.pano_lng,
-        });
-        const { lat, lng, latLngComputationMethod } = label.toLatLng();
-        expect(latLngComputationMethod).toBe('approximation3');
-        expect(Math.abs(lat - c.expected.lat)).toBeLessThan(CLIENT_TOL_DEG);
-        expect(Math.abs(lng - c.expected.lng)).toBeLessThan(CLIENT_TOL_DEG);
-    });
+  test.each(FIXTURE.cases.map((c) => [c.name, c]))('%s', (name, c) => {
+    const label = new Label({
+      labelType: 'CurbRamp',
+      temporaryLabelId: 1,
+      panoXY: { x: c.pano_x, y: c.pano_y },
+      povOfLabelIfCentered: { heading: c.expected.heading_deg, pitch: c.expected.pitch_deg, zoom: 1 },
+      panoLat: c.pano_lat,
+      panoLng: c.pano_lng,
+    }, {}, LAT_LNG_ESTIMATION, {});
+    const { lat, lng, latLngComputationMethod } = label.toLatLng();
+    expect(latLngComputationMethod).toBe('approximation3');
+    expect(Math.abs(lat - c.expected.lat)).toBeLessThan(CLIENT_TOL_DEG);
+    expect(Math.abs(lng - c.expected.lng)).toBeLessThan(CLIENT_TOL_DEG);
+  });
 });

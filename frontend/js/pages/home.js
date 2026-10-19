@@ -3,6 +3,9 @@ import '../homepage.js';
 import { LandingValidationGrid } from '../LandingValidationGrid.js';
 import { AccessScoreSpotlight } from '../AccessScoreSpotlight.js';
 import { util } from '../common/utilities.js';
+import '../../css/components/deployment-map.css';
+// The map containers are in the page's HTML, so their sizing can't wait for the lazily loaded map code.
+import '../../css/components/map-frame.css';
 
 const data = document.getElementById('page-entry').dataset;
 

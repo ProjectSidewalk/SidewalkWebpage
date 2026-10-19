@@ -3,46 +3,37 @@
   "private": true,
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
-    "@babel/plugin-transform-dynamic-import": "^7.27.1",
-    "@babel/plugin-transform-modules-commonjs": "^7.29.7",
     "@eslint/js": "^10.0.1",
-    "@eslint/json": "^2.1.0",
-    "@playwright/test": "^1.63.0",
+    "@eslint/json": "^2.1.1",
+    "@playwright/test": "^1.64.0",
     "@stylistic/eslint-plugin": "^5.10.0",
     "@stylistic/stylelint-plugin": "^5.3.1",
-    "@types/google.maps": "^3.66.5",
+    "@types/google.maps": "^3.66.6",
+    "@vitest/coverage-v8": "^5.0.4",
     "eslint": "^10.12.0",
     "eslint-plugin-jsdoc": "^64.5.4",
     "globals": "^17.13.0",
-    "grunt": "^1.6.3",
-    "grunt-concat-css": "*",
-    "grunt-contrib-watch": "*",
     "htmlhint": "^1.9.2",
-    "jest": "^30.5.2",
-    "jest-environment-jsdom": "^30.5.2",
+    "jsdom": "^30.1.2",
     "pngjs": "^7.0.0",
-    "rolldown": "^1.2.12",
     "stylelint": "^17.16.0",
     "stylelint-config-standard": "^40.0.0",
-    "stylelint-plugin-use-baseline": "^1.4.6",
-    "typescript": "^7.0.2"
+    "stylelint-plugin-use-baseline": "^1.4.7",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.4",
+    "vitest": "^5.0.4"
   },
   "engines": {
     "node": ">=24 <25",
     "npm": ">=11"
   },
   "scripts": {
-    "build": "grunt",
-    "watch": "grunt watch",
+    "build": "vite build",
+    "watch": "node tools/dev/watch-assets.mjs",
     "start": "bash tools/dev/start.sh",
     "test": "npm run test:js",
-    "test:js": "jest --config jest.config.js",
-    "test:js:coverage": "jest --config jest.config.js --coverage",
+    "test:js": "vitest run",
+    "test:js:coverage": "vitest run --coverage",
     "test:e2e": "playwright test"
-  },
-  "overrides": {
-    "globule": {
-      "minimatch": "^3.1.5"
-    }
   }
 }

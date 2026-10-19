@@ -1,8 +1,5 @@
-/**
- * Compiles and submits Gallery interaction log data to the back end.
- */
+/** Packages and submits Gallery interaction logs; the Tracker owns the buffer and decides when to send. */
 
-import { sg } from '../sg.js';
 import { util } from '../../common/utilities.js';
 
 export class Form {
@@ -13,27 +10,14 @@ export class Form {
    */
   constructor(url) {
     this.#dataStoreUrl = url;
-
-    // Flush any remaining logs when the page is being dismissed. `pagehide` is the reliable, bfcache-compatible
-    // unload signal; `keepalive` lets the POST outlive the page while still routing through AppManager's fetch
-    // wrapper, which attaches the `Csrf-Token` header Play's CSRF filter requires (#3935).
-    window.addEventListener('pagehide', () => {
-      sg.tracker.push('Unload');
-      const data = [this.compileSubmissionData()];
-      fetch(this.#dataStoreUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json; charset=utf-8' },
-        body: JSON.stringify(data),
-        keepalive: true,
-      });
-    });
   }
 
   /**
-   * Compiles the buffered interaction data into a format that can be parsed by our back end.
+   * Wraps a batch of interactions with the environment they were logged in, in the shape our back end parses.
+   * @param {object[]} interactions - The actions to submit.
    * @returns {object} The log data to submit.
    */
-  compileSubmissionData() {
+  compileSubmissionData(interactions) {
     const data = {};
 
     data.environment = {
@@ -49,8 +33,7 @@ export class Form {
       language: i18next.language,
     };
 
-    data.interactions = sg.tracker.getActions();
-    sg.tracker.refresh();
+    data.interactions = interactions;
     return data;
   }
 
@@ -58,9 +41,11 @@ export class Form {
    * Submits front-end log data to the back end.
    *
    * @param {object|object[]} data - A single submission object, or an array of them.
+   * @param {{keepalive?: boolean}} [options] - `keepalive` lets the POST outlive the page while still routing
+   *     through AppManager's fetch wrapper, which attaches the `Csrf-Token` header Play's CSRF filter requires (#3935).
    * @returns {Promise<void>}
    */
-  submit(data) {
+  submit(data, { keepalive = false } = {}) {
     if (data.constructor !== Array) {
       data = [data];
     }
@@ -69,6 +54,7 @@ export class Form {
       method: 'POST',
       headers: { 'Content-Type': 'application/json; charset=utf-8' },
       body: JSON.stringify(data),
+      keepalive,
     })
       .then((response) => {
         if (response.ok) {

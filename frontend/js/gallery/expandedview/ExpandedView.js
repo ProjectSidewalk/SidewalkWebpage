@@ -7,43 +7,51 @@
  * Construct instances via the `static async create()` factory, which initializes LabelDetail before resolving.
  */
 
-import { sg } from '../sg.js';
 import { LabelDetail } from '../../common/label-detail/LabelDetail.js';
 import { PopupPanoManager } from '../../common/label-detail/PopupPanoManager.js';
-import { PanoViewer } from '../../common/pano-viewer/PanoViewer.js';
 /** @typedef {import('../cards/Card.js').Card} Card */
+/** @typedef {import('../cards/CardContainer.js').CardContainer} CardContainer */
+/** @typedef {import('../data/Tracker.js').Tracker} Tracker */
+
+/**
+ * What the imagery viewer is built with, as the page carries it.
+ * @typedef {object} ViewerParams
+ * @property {typeof import('../../common/pano-viewer/PanoViewer.js').PanoViewer} panoViewerType - The viewer class.
+ * @property {string} viewerAccessToken - An access token that authorizes image requests for the pano viewer.
+ * @property {?string} currUsername - The viewer's username when signed in to a real account, else null.
+ */
 
 export class ExpandedView {
   static #unselectedCardClassName = 'expanded-view-background-card';
 
   #root;
-  #panoViewerType;
-  #viewerAccessToken;
-  #currUsername;
+  #viewerParams;
+  #cardContainer;
+  #tracker;
 
   /**
    * @param {HTMLElement} root - The `.gallery-expanded-view` container element.
-   * @param {typeof PanoViewer} panoViewerType - The type of pano viewer to initialize.
-   * @param {string} viewerAccessToken - An access token that authorizes image requests for the pano viewer.
-   * @param {?string} currUsername - The viewer's username when signed in to a real account, else null.
+   * @param {ViewerParams} viewerParams - What the imagery viewer is built with.
+   * @param {CardContainer} cardContainer - The cards this view pages through; it builds this view and hands itself in.
+   * @param {Tracker} tracker - Logs the paging.
    */
-  constructor(root, panoViewerType, viewerAccessToken, currUsername) {
+  constructor(root, viewerParams, cardContainer, tracker) {
     this.#root = root;
-    this.#panoViewerType = panoViewerType;
-    this.#viewerAccessToken = viewerAccessToken;
-    this.#currUsername = currUsername;
+    this.#viewerParams = viewerParams;
+    this.#cardContainer = cardContainer;
+    this.#tracker = tracker;
   }
 
   /**
    * Creates an ExpandedView and initializes its LabelDetail controller.
    * @param {HTMLElement} root - The `.gallery-expanded-view` container element.
-   * @param {typeof PanoViewer} panoViewerType - The type of pano viewer to initialize.
-   * @param {string} viewerAccessToken - An access token that authorizes image requests for the pano viewer.
-   * @param {?string} currUsername - The viewer's username when signed in to a real account, else null.
+   * @param {ViewerParams} viewerParams - What the imagery viewer is built with.
+   * @param {CardContainer} cardContainer - The cards this view pages through.
+   * @param {Tracker} tracker - Logs the paging.
    * @returns {Promise<ExpandedView>}
    */
-  static async create(root, panoViewerType, viewerAccessToken, currUsername) {
-    const expandedView = new ExpandedView(root, panoViewerType, viewerAccessToken, currUsername);
+  static async create(root, viewerParams, cardContainer, tracker) {
+    const expandedView = new ExpandedView(root, viewerParams, cardContainer, tracker);
     await expandedView.#init();
     return expandedView;
   }
@@ -61,9 +69,9 @@ export class ExpandedView {
     // Initialize the shared LabelDetail controller inside our inline host.
     this.labelDetail = await LabelDetail.create(root, {
       admin: false,
-      viewerType: this.#panoViewerType,
-      viewerAccessToken: this.#viewerAccessToken,
-      currUsername: this.#currUsername,
+      viewerType: this.#viewerParams.panoViewerType,
+      viewerAccessToken: this.#viewerParams.viewerAccessToken,
+      currUsername: this.#viewerParams.currUsername,
       onVote: this.#handleVote,
       onEdit: this.#handleEdit,
       onComments: this.#handleComments,
@@ -116,7 +124,7 @@ export class ExpandedView {
     // A review list (#5444) knows where the label sits, so open it by index: prev/next then walk the list from
     // there and the position indicator has something to count. A ?labelId= naming a label outside the list still
     // falls through to the by-id path below.
-    if (sg.cardContainer.isListMode() && sg.cardContainer.jumpToLabel(labelId)) return;
+    if (this.#cardContainer.isListMode() && this.#cardContainer.jumpToLabel(labelId)) return;
 
     this.#root.style.visibility = 'visible';
     this.open = true;
@@ -202,7 +210,7 @@ export class ExpandedView {
    * @param {{label_id: number, comments: Array<Record<string, any>|string>}} meta - The label's metadata.
    */
   #handleComments = (meta) => {
-    sg.cardContainer.findCardByLabelId(meta.label_id)?.updateComments(meta.comments);
+    this.#cardContainer.findCardByLabelId(meta.label_id)?.updateComments(meta.comments);
   };
 
   /**
@@ -212,7 +220,7 @@ export class ExpandedView {
    *     label's metadata as it now stands.
    */
   #handleDelete = (meta) => {
-    const card = sg.cardContainer.findCardByLabelId(meta.label_id);
+    const card = this.#cardContainer.findCardByLabelId(meta.label_id);
     if (!card) return;
     card.setDeleted(!!meta.deleted, !!meta.can_restore);
     card.updateUserValidation(meta.user_validation ?? null);
@@ -231,6 +239,7 @@ export class ExpandedView {
 
     // Highlight selected card thumbnail.
     this.#highlightThumbnail(document.getElementById(`gallery_card_${this.refCard.getLabelId()}`));
+    this.#root.style.visibility = 'visible';
     this.open = true;
     LabelDetail.syncUrlLabelId(this.refCard.getLabelId());
   }
@@ -256,7 +265,7 @@ export class ExpandedView {
    * Removes transparency from the current page of cards.
    */
   #removeCardTransparency() {
-    const currentPageCards = sg.cardContainer.getCurrentPageCards();
+    const currentPageCards = this.#cardContainer.getCurrentPageCards();
     for (const card of currentPageCards) {
       const cardDomEl = document.getElementById(`gallery_card_${card.getLabelId()}`);
       if (cardDomEl && cardDomEl.classList.contains(ExpandedView.#unselectedCardClassName)) {
@@ -296,7 +305,7 @@ export class ExpandedView {
     if (this.leftArrow) this.leftArrow.disabled = false;
     if (this.rightArrow) this.rightArrow.disabled = false;
     this.cardIndex = index;
-    this.refCard = sg.cardContainer.getCardByIndex(this.cardIndex);
+    this.refCard = this.#cardContainer.getCardByIndex(this.cardIndex);
 
     // An index with no card behind it (e.g. paging from a deep link on an empty page, or a filter change that
     // shrank the card set) has nothing to show — close gracefully rather than crash on the missing card.
@@ -310,10 +319,10 @@ export class ExpandedView {
 
     if (this.cardIndex === 0 && this.leftArrow) this.leftArrow.disabled = true;
 
-    if (sg.cardContainer.isLastPage()) {
-      const page = sg.cardContainer.getCurrentPage();
+    if (this.#cardContainer.isLastPage()) {
+      const page = this.#cardContainer.getCurrentPage();
       const lastCardIndex
-        = (page - 1) * sg.cardContainer.getCardsPerPage() + sg.cardContainer.getCurrentPageCards().length - 1;
+        = (page - 1) * this.#cardContainer.getCardsPerPage() + this.#cardContainer.getCurrentPageCards().length - 1;
       if (this.cardIndex === lastCardIndex && this.rightArrow) this.rightArrow.disabled = true;
     }
   }
@@ -330,13 +339,13 @@ export class ExpandedView {
     const positionEl = this.#root.querySelector('.label-detail__position');
     if (!positionEl) return;
 
-    const total = sg.cardContainer.isListMode() ? sg.cardContainer.getListSize() : 0;
+    const total = this.#cardContainer.isListMode() ? this.#cardContainer.getListSize() : 0;
     positionEl.hidden = total === 0;
     positionEl.textContent = total === 0 ? '' : i18next.t('gallery:list-position', { k: index + 1, n: total });
   }
 
   /**
-   * Updates the index of the current label being displayed in the expanded view.
+   * Opens the view on the card at this index, or closes it when no card is there.
    * @param {number} newIndex - The new index of the card being displayed.
    */
   updateCardIndex(newIndex) {
@@ -348,16 +357,16 @@ export class ExpandedView {
    * @param {boolean} keyboardShortcut - Whether the action came from a keyboard shortcut.
    */
   nextLabel(keyboardShortcut) {
-    sg.tracker.push(`NextLabel${keyboardShortcut ? 'KeyboardShortcut' : 'Click'}`);
+    this.#tracker.push(`NextLabel${keyboardShortcut ? 'KeyboardShortcut' : 'Click'}`);
     // Page size is asked of the container on every use rather than copied into this class: it differs between the
     // filtered grid and a review list (#5444), and a stale copy would page past or repeat a label at the boundary.
-    const page = sg.cardContainer.getCurrentPage();
-    if (this.cardIndex < page * sg.cardContainer.getCardsPerPage() - 1) {
+    const page = this.#cardContainer.getCurrentPage();
+    if (this.cardIndex < page * this.#cardContainer.getCardsPerPage() - 1) {
       this.#updateExpandedViewCardByIndex(this.cardIndex + 1);
     } else {
       this.cardIndex += 1;
       this.pendingCardIndex = this.cardIndex;
-      sg.cardContainer.nextPage();
+      this.#cardContainer.nextPage();
     }
   }
 
@@ -366,14 +375,14 @@ export class ExpandedView {
    * @param {boolean} keyboardShortcut - Whether the action came from a keyboard shortcut.
    */
   previousLabel(keyboardShortcut) {
-    sg.tracker.push(`PrevLabel${keyboardShortcut ? 'KeyboardShortcut' : 'Click'}`);
-    const page = sg.cardContainer.getCurrentPage();
-    if (this.cardIndex > (page - 1) * sg.cardContainer.getCardsPerPage()) {
+    this.#tracker.push(`PrevLabel${keyboardShortcut ? 'KeyboardShortcut' : 'Click'}`);
+    const page = this.#cardContainer.getCurrentPage();
+    if (this.cardIndex > (page - 1) * this.#cardContainer.getCardsPerPage()) {
       this.#updateExpandedViewCardByIndex(this.cardIndex - 1);
     } else {
       this.cardIndex -= 1;
       this.pendingCardIndex = this.cardIndex;
-      sg.cardContainer.prevPage();
+      this.#cardContainer.prevPage();
     }
   }
 
@@ -384,10 +393,10 @@ export class ExpandedView {
   #highlightThumbnail(galleryCard) {
     // Scroll the selected card into view.
     const index = this.cardIndex;
-    const page = sg.cardContainer.getCurrentPage();
-    const totalCards = sg.cardContainer.getCurrentCards().getSize();
+    const page = this.#cardContainer.getCurrentPage();
+    const totalCards = this.#cardContainer.getCurrentCards().getSize();
     galleryCard.scrollIntoView({
-      block: (index < page * sg.cardContainer.getCardsPerPage() - 1 && index < totalCards - 1) ? 'center' : 'end',
+      block: (index < page * this.#cardContainer.getCardsPerPage() - 1 && index < totalCards - 1) ? 'center' : 'end',
       behavior: 'smooth',
     });
 
@@ -395,7 +404,7 @@ export class ExpandedView {
     galleryCard.classList.remove(ExpandedView.#unselectedCardClassName);
 
     // The rest of the cards should be semitransparent.
-    const currentPageCards = sg.cardContainer.getCurrentPageCards();
+    const currentPageCards = this.#cardContainer.getCurrentPageCards();
     for (const card of currentPageCards) {
       const cardLabelId = card.getLabelId();
       if (cardLabelId !== this.refCard.getLabelId()) {
@@ -424,7 +433,6 @@ export class ExpandedView {
     if (this.pendingCardIndex === undefined) return;
     const idx = this.pendingCardIndex;
     this.pendingCardIndex = undefined;
-    this.#root.style.visibility = 'visible';
     this.#updateExpandedViewCardByIndex(idx);
   }
 }

@@ -1,12 +1,32 @@
 /**
  * Compiles and submits Validate interaction and validation data to the back end.
+ *
+ * Built right after the Tracker, before the viewer loads, so that the exit flush already covers a page closed during
+ * that load. The mission it submits for arrives later (attachSession), since its collaborators need the viewer.
  */
 
-import { svv } from '../svv.js';
 import { util } from '../../common/utilities.js';
+/** @typedef {import('../Main.js').ValidateConfig} ValidateConfig */
+/** @typedef {import('../Tracker.js').Tracker} Tracker */
+
+/**
+ * What a page with a mission submits for, and what it moves on through once the mission is done.
+ * @typedef {object} FormSession
+ * @property {import('../mission/MissionContainer.js').MissionContainer} missionContainer
+ * @property {import('../label/LabelContainer.js').LabelContainer} labelContainer
+ * @property {import('../../common/pano-viewer/PanoStore.js').PanoStore} panoStore
+ * @property {import('../modal/ModalMissionComplete.js').ModalMissionComplete} modalMissionComplete
+ * @property {import('../modal/ModalNoNewMission.js').ModalNoNewMission} modalNoNewMission
+ */
 
 export class Form {
   #dataStoreUrl;
+  /** @type {ValidateConfig} */
+  #config;
+  /** @type {Tracker} */
+  #tracker;
+  /** @type {?FormSession} Null until attachSession, and for good on the dead-end page: a visit logged, no mission. */
+  #session = null;
 
   // Resubmit a failed POST a bounded number of times before giving up, so a transient mobile-network blip doesn't
   // lose data — and, crucially, never reload the page (a reload mid-mission resets the user to the first label and,
@@ -32,12 +52,18 @@ export class Form {
 
   /**
    * @param {string} url - URL to send validation/interaction data to.
+   * @param {ValidateConfig} config - Names the Validate UI the data comes from and carries the validate params.
+   * @param {Tracker} tracker - The interaction buffer every submit drains; its timed flushes send through here.
    */
-  constructor(url) {
+  constructor(url, config, tracker) {
     this.#dataStoreUrl = url;
+    this.#config = config;
+    this.#tracker = tracker;
 
-    // Flush any remaining logs when the page is being dismissed. `pagehide` is the reliable, bfcache-compatible
-    // unload signal (#3935).
+    // The tracker decides when a mid-mission flush is due; this is what sends it.
+    tracker.onFlush(() => this.submit(this.compileSubmissionData(false), true));
+
+    // Flush what is left when the page is dismissed; `pagehide` is the reliable, bfcache-compatible signal (#3935).
     window.addEventListener('pagehide', () => this.#flushOnExit('Unload'));
     // And when it is merely hidden (#5561): the phone locked, another app in front, the tab switcher. On iOS that is
     // the state a tab is killed from when memory runs short, and a killed page fires no pagehide, so whatever is
@@ -62,7 +88,7 @@ export class Form {
    * @param {string} reason - The interaction recorded alongside, naming what prompted the flush.
    */
   #flushOnExit(reason) {
-    svv.tracker.push(reason);
+    this.#tracker.record(reason);
     const data = Form.#snapshot(this.compileSubmissionData(false));
     this.#noteProgress(data);
     const body = JSON.stringify(data);
@@ -124,17 +150,13 @@ export class Form {
   }
 
   /**
-   * Returns the source label identifying which Validate UI produced the data.
-   * @returns {string} One of 'ValidateMobile', 'ExpertValidate', or 'Validate'.
+   * Hands over the mission this page validates, once its collaborators exist: every submit from here on carries its
+   * progress and verdicts, and a finished mission is submitted at once so the response can carry the next one.
+   * @param {FormSession} session
    */
-  getSource() {
-    if (util.isMobile()) {
-      return 'ValidateMobile';
-    } else if (svv.adminVersion) {
-      return 'ExpertValidate';
-    } else {
-      return 'Validate';
-    }
+  attachSession(session) {
+    this.#session = session;
+    session.missionContainer.onMissionComplete(() => this.submit(this.compileSubmissionData(true)));
   }
 
   /**
@@ -144,12 +166,11 @@ export class Form {
    * @returns {object} The log data to submit.
    */
   compileSubmissionData(missionComplete) {
-    const data = { timestamp: new Date(), source: this.getSource() };
-    const missionContainer = svv.missionContainer;
-    const mission = missionContainer ? missionContainer.getCurrentMission() : null;
+    const data = { timestamp: new Date(), source: this.#config.source };
+    const session = this.#session;
+    const mission = session ? session.missionContainer.getCurrentMission() : null;
 
-    const labelContainer = svv.labelContainer;
-    const labelList = labelContainer ? labelContainer.getLabelsToSubmit() : null;
+    const labelList = session ? session.labelContainer.getLabelsToSubmit() : null;
     // Only submit mission progress if there is a mission when we're compiling submission data.
     if (mission) {
       // Add the current mission
@@ -166,7 +187,7 @@ export class Form {
     // Only include labels if there is a label list when we're compiling submission data.
     if (labelList) {
       data.validations = labelList;
-      svv.labelContainer.refresh();
+      session.labelContainer.refresh();
     } else {
       data.validations = [];
     }
@@ -186,14 +207,14 @@ export class Form {
       css_zoom: 100, // Sent for back-end compatibility; UI scaling is done via real layout sizes (--ui-scale).
     };
 
-    data.validate_params = svv.validateParams;
+    data.validate_params = this.#config.validateParams;
 
-    data.interactions = svv.tracker.getActions();
+    data.interactions = this.#tracker.getActions();
 
     data.pano_histories = [];
-    if (svv.panoManager) {
-      const panoramas = svv.panoStore.getStagedPanoData();
-      for (let i = 0; i < svv.panoStore.getStagedPanoData().length; i++) {
+    if (session) {
+      const panoramas = session.panoStore.getStagedPanoData();
+      for (let i = 0; i < panoramas.length; i++) {
         const panoData = panoramas[i].getProperties();
         const panoHist = {
           curr_pano_id: panoData.panoId,
@@ -211,7 +232,7 @@ export class Form {
       }
     }
 
-    svv.tracker.refresh();
+    this.#tracker.refresh();
     return data;
   }
 
@@ -282,13 +303,13 @@ export class Form {
         // the server asking us to come back later (#4377).
         const status = submitError.status;
         const retryable = !(status >= 400 && status < 500) || status === 408 || status === 429;
-        if (svv.tracker) svv.tracker.push('SubmitFailed', { attempt, status, error: submitError.message });
+        this.#tracker.push('SubmitFailed', { attempt, status, error: submitError.message });
         if (retryable && attempt < Form.#MAX_SUBMIT_RETRIES) {
           await new Promise((resolve) => setTimeout(resolve, Form.#RETRY_BACKOFF_MS * (attempt + 1)));
           continue;
         }
         if (!retryable) console.error('Validation submit rejected by the server:', submitError.message);
-        if (svv.tracker) svv.tracker.push('SubmitFailedGaveUp', { attempts: attempt, retryable });
+        this.#tracker.push('SubmitFailedGaveUp', { attempts: attempt, retryable });
         return;
       }
     }
@@ -300,19 +321,22 @@ export class Form {
     }
 
     // The data is already saved server-side, so a failure here must not trigger a retry or reload — just log it.
+    // Only a mission-complete submit reaches here, and only a page with a mission makes one.
+    const { missionContainer, labelContainer, modalMissionComplete, modalNoNewMission }
+      = /** @type {FormSession} */ (this.#session);
     try {
       // If a mission was returned after posting data, create a new mission.
       if (result.has_mission_available) {
         if (result.mission) {
-          svv.missionContainer.createAMission(result.mission, result.progress);
-          svv.labelContainer.resetLabelList(result.labels, result.mission.label_type);
-          await svv.labelContainer.renderCurrentLabel();
-          svv.modalMissionComplete.nextMissionLoaded();
+          missionContainer.createAMission(result.mission, result.progress);
+          labelContainer.resetLabelList(result.labels, result.mission.label_type);
+          await labelContainer.renderCurrentLabel();
+          modalMissionComplete.nextMissionLoaded(missionContainer.getCurrentMission());
         }
       } else {
         // Otherwise, display popup that says there are no more labels left.
-        svv.modalMissionComplete.hide();
-        svv.modalNoNewMission.show();
+        modalMissionComplete.hide();
+        modalNoNewMission.show();
       }
     } catch (handlerError) {
       console.error('Error applying validation submit response:', handlerError);

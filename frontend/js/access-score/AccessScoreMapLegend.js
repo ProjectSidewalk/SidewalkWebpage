@@ -6,6 +6,8 @@
  *
  * While the streets are colored by slope (#5223) the ramp gives way to the slope classes, each a swatch beside the
  * grades it spans; the score ramp returns with the score coloring, and under the regions unit, which has no slope.
+ * In a city whose grades come from a coarse elevation model the classes carry a line saying so, since the colors
+ * look as sure there as anywhere while each one is only a straight line between a street's two ends.
  *
  * The two blocks are exposed differently on purpose. The score ramp is one picture with one name (`role="img"`): a
  * gradient has no parts to read. The slope classes are a list, because `role="img"` would prune its children from
@@ -27,6 +29,7 @@ export class AccessScoreMapLegend {
   #scoreBlock = null;
   #gradeBlock = null;
   #gradeBreaks;
+  #gradeCoarse;
   #grade = false;
   #gradeStatistic = 'max_grade';
   #unit = 'streets';
@@ -45,10 +48,13 @@ export class AccessScoreMapLegend {
    * @param {object} [options] - What the legend can show besides the score.
    * @param {?number[]} [options.gradeBreaks=null] - The ascending grades the slope classes break at, or null where
    *                                                 the map has no slope coloring.
+   * @param {boolean} [options.gradeCoarse=false] - True where the city's grades come from a coarse elevation model
+   *                                                (`AccessScoreModel.gradesApproximate`), so the classes say so.
    * @param {Function} [options.onGradeClasses] - Called with the selected class indices (empty to clear).
    */
-  constructor({ gradeBreaks = null, onGradeClasses = () => {} } = {}) {
+  constructor({ gradeBreaks = null, gradeCoarse = false, onGradeClasses = () => {} } = {}) {
     this.#gradeBreaks = gradeBreaks;
+    this.#gradeCoarse = gradeCoarse;
     this.#onGradeClasses = onGradeClasses;
   }
 
@@ -171,6 +177,7 @@ export class AccessScoreMapLegend {
         ${row(AccessScoreGradeRamp.NO_GRADE, 'acs-map-legend__swatch acs-map-legend__swatch--no-grade',
           i18next.t('accessscore:grade-legend-none'))}
       </ul>
+      ${this.#gradeCoarse ? `<p class="acs-map-legend__hint">${i18next.t('accessscore:grade-legend-coarse')}</p>` : ''}
       <p class="acs-map-legend__hint">${i18next.t('accessscore:grade-legend-hint')}</p>`;
     // The dark basemap's steepest classes are near-white, which the legend's white card would swallow.
     this.#gradeBlock.classList.toggle('acs-map-legend__grade--dark', this.#mode === 'dark');

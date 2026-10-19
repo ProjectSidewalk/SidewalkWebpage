@@ -2,16 +2,28 @@
  * A Card module.
  */
 
-import { sg } from '../sg.js';
 import { aiLabelIndicator } from '../../common/aiLabelIndicator.js';
 import { createPanoAttribution } from '../../common/pano-viewer/PanoAttribution.js';
 import { createPanoViewerLogo } from '../../common/pano-viewer/PanoViewerLogo.js';
 import { util } from '../../common/utilities.js';
 import { buildBackupImageData } from '../../common/utilitiesSidewalk.js';
+import { LabelMiniCard } from '../../common/LabelMiniCard.js';
 import { SeverityDisplay } from '../displays/SeverityDisplay.js';
 import { TagDisplay } from '../displays/TagDisplay.js';
 import { ValidationInfoDisplay } from '../displays/ValidationInfoDisplay.js';
 import { ValidationMenu } from '../validation/ValidationMenu.js';
+/** @typedef {import('../data/Tracker.js').Tracker} Tracker */
+/** @typedef {import('../filter/GalleryFilter.js').GalleryFilter} GalleryFilter */
+
+/**
+ * One entry of POST /label/labels: a label and the imagery the card has to show it with.
+ * @typedef {object} CardRecord
+ * @property {*} label - Properties of the label.
+ * @property {?string} cropUrl - Locally-saved crop image url, or null if no crop exists.
+ * @property {?string} gsvImageUrl - Google Street View static image url, or null if non-GSV imagery.
+ * @property {?{x: number, y: number}} [cropMarker] - Where the label is in the crop, as fractions of its width and
+ *     height; null when no crop exists or nothing has recorded it yet.
+ */
 
 export class Card {
   // Width:height of the card's photo box (.static-gallery-image fills a 3:2 container); crops are cover-fitted into it.
@@ -21,6 +33,9 @@ export class Card {
   #cropUrl;
   #cropMarker;
   #gsvImageUrl;
+  #tracker;
+  #cardFilter;
+  #regionNames;
 
   #markerWrapper;
   #sourceLogo;
@@ -75,18 +90,23 @@ export class Card {
   // The static pano image.
   #panoImage;
 
+  // What the frame shows when no image loads, or null while the image is up.
+  #placeholder = null;
+
   /**
-   * @param {*} params - Properties of the associated label.
-   * @param {string} cropUrl - Locally-saved crop image url, or null if no crop exists.
-   * @param {string} gsvImageUrl - Google Street View static image url, or null if non-GSV imagery.
-   * @param {?{x: number, y: number}} [cropMarker=null] - Where the label is in the crop, as fractions of its width and
-   *     height; null when no crop exists or nothing has recorded it yet.
+   * @param {CardRecord} record - The label and its imagery, as the server sent them.
+   * @param {Record<string, string>} regionNames - Region names for the location line, keyed by region id.
+   * @param {Tracker} tracker - Logs the card's interactions.
+   * @param {GalleryFilter} cardFilter - The sidebar, asked which tags are applied so those are shown first.
    */
-  constructor(params, cropUrl, gsvImageUrl, cropMarker = null) {
-    this.#params = params;
+  constructor({ label, cropUrl, gsvImageUrl, cropMarker = null }, regionNames, tracker, cardFilter) {
+    this.#params = label;
     this.#cropUrl = cropUrl;
     this.#cropMarker = cropMarker;
     this.#gsvImageUrl = gsvImageUrl;
+    this.#regionNames = regionNames;
+    this.#tracker = tracker;
+    this.#cardFilter = cardFilter;
 
     this.#status = {
       imageFetched: false,
@@ -97,7 +117,7 @@ export class Card {
     this.labelIcon = new Image();
     this.#panoImage = new Image();
 
-    this.#init(params);
+    this.#init(label);
   }
 
   /**
@@ -157,7 +177,7 @@ export class Card {
     const cardHeader = document.createElement('div');
     cardHeader.className = 'card-header';
     cardHeader.innerHTML = `<div class="card-header__type">${labelTypeName}</div>`;
-    const regionName = sg.regionNames?.[properties.region_id];
+    const regionName = this.#regionNames[properties.region_id];
     if (regionName) {
       // The name is a way out to this label on the LabelMap — the same ?labelId= deep link the expanded view's
       // "View on Label Map" uses. Same tab: the Gallery keeps its filters in the URL, so Back returns to this
@@ -170,7 +190,7 @@ export class Card {
       // the sighted user gets on hover follows.
       location.setAttribute('aria-label', `${regionName}: ${i18next.t('labelmap:open-label-on-labelmap')}`);
       location.addEventListener('click', () => {
-        sg.tracker?.push('CardLocationClick', null, {
+        this.#tracker.push('CardLocationClick', null, {
           Label_Id: properties.label_id,
           Region_Id: properties.region_id,
         });
@@ -233,7 +253,7 @@ export class Card {
     this.#creditImage(this.#status.imageSource);
 
     this.#card.appendChild(cardInfo);
-    this.validationMenu = new ValidationMenu(this, imageHolder);
+    this.validationMenu = new ValidationMenu(this, imageHolder, this.#tracker);
   }
 
   /**
@@ -321,6 +341,13 @@ export class Card {
         const img = this.#panoImage;
         const primaryUrl = this.#cropUrl || this.#gsvImageUrl;
         const fallbackUrl = this.#cropUrl ? this.#gsvImageUrl : null;
+        // Non-GSV imagery with no crop cut yet has no source at all; assigning the null would request "/null".
+        if (!primaryUrl) {
+          // The nightly job cuts crops from our saved copy of the pano, so without one no crop is coming.
+          this.#hideMissingImage(this.#params.backup_image_url ? 'coming' : 'unavailable');
+          resolve(false);
+          return;
+        }
         // The container asks again on every page and filter render, so a card whose last attempt fell back to the
         // still, or failed outright, starts over from the crop rather than keeping that attempt's marker and credit.
         this.#useSource(this.#cropUrl ? 'crop' : 'api');
@@ -380,12 +407,18 @@ export class Card {
   /**
    * Hides the image and its marker once no source has loaded (#5327): with `return_error_code` on the still, an
    * expired pano answers 404 rather than a grey "no imagery" card. Type, severity, tags and votes are still worth
-   * showing; a broken-image icon and a marker pointing into an empty frame are not.
+   * showing; a broken-image icon and a marker pointing into an empty frame are not. The mini cards' placeholder fills
+   * the frame so it reads as "no picture here", not as a broken card (#5757).
+   * @param {('unavailable'|'coming')} [reason='unavailable'] - 'coming' when the crop just hasn't been cut yet.
    */
-  #hideMissingImage() {
+  #hideMissingImage(reason = 'unavailable') {
+    this.#placeholder?.remove();
+    this.#placeholder = LabelMiniCard.placeholder(this.#properties.label_type, reason);
+    this.#placeholder.classList.add('gallery-image-placeholder');
+    // Right after the image, so the logo, credit and hover menu that follow it still draw on top.
+    this.#panoImage.after(this.#placeholder);
     this.#panoImage.classList.add('static-gallery-image--missing');
-    // The image stays in the tree, transparent, as the click target that opens the card; its alt would describe a
-    // picture that isn't there.
+    // Its alt would describe a picture that isn't there.
     this.#panoImage.setAttribute('aria-hidden', 'true');
     this.#markerWrapper.classList.add('gallery-marker-wrapper--missing');
     this.#creditImage(null);
@@ -393,6 +426,8 @@ export class Card {
 
   /** Undoes #hideMissingImage once a source has loaded, so a retry after a transient failure shows the image. */
   #showImage() {
+    this.#placeholder?.remove();
+    this.#placeholder = null;
     this.#panoImage.classList.remove('static-gallery-image--missing');
     this.#panoImage.removeAttribute('aria-hidden');
     this.#markerWrapper.classList.remove('gallery-marker-wrapper--missing');
@@ -417,7 +452,9 @@ export class Card {
    * Renders the tags on the card when the card is loaded onto on the DOM.
    */
   #renderTags() {
-    new TagDisplay(this.#card.querySelector('.card-tags'), this.#properties.tags);
+    new TagDisplay(
+      this.#card.querySelector('.card-tags'), this.#properties.tags, this.#cardFilter.getAppliedTagNames(),
+    );
   }
 
   /** Re-runs the pixel-measured tag fit against the card's current width (see CardContainer's ResizeObserver). */
@@ -467,7 +504,10 @@ export class Card {
     this.#properties.label_type = labelType;
     const labelTypeName = util.misc.labelTypeName(labelType);
     const icon = /** @type {HTMLImageElement} */ (this.#card.querySelector('.label-icon'));
-    if (icon) icon.src = util.misc.getIconImagePaths(labelType).iconImagePath;
+    const iconPath = util.misc.getIconImagePaths(labelType).iconImagePath;
+    if (icon) icon.src = iconPath;
+    const placeholderIcon = this.#placeholder?.querySelector('img');
+    if (placeholderIcon) placeholderIcon.src = iconPath;
     const header = this.#card.querySelector('.card-header__type');
     if (header) header.textContent = labelTypeName;
     const image = /** @type {HTMLImageElement} */ (this.#card.querySelector('.static-gallery-image'));

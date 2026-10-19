@@ -9,6 +9,7 @@
  *     hosts can clear stale tag filters.
  * @property {string[]} allLabelTypes - Every rendered label type.
  */
+import '../../../css/components/filter-sidebar.css';
 
 /**
  * What an onChange callback is told about the interaction that just happened.

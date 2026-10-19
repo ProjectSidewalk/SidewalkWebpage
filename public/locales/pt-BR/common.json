@@ -4,7 +4,7 @@
   "explore-street-link": "<a href='/explore?streetEdgeId={{streetId}}' class='street-selection-trigger' streetId='{{streetId}}'>Clique aqui</a> para explorar esta rua!",
   "distance-progress": "{{done, distance(style: small; unit: false)}}/{{total, distance(style: small)}}",
   "distance-large": "{{dist}} {{unitAbbr}}",
-  "speed-limit-tooltip": "Conhecer o <b>limite de velocidade</b> de uma rua pode ajudar a avaliar melhor a segurança dos pedestres, por exemplo, se é <b>seguro</b> atravessar em um cruzamento sem sinalização.",
+  "speed-limit-tooltip": "Conhecer o limite de velocidade de uma rua pode ajudar a avaliar melhor a segurança dos pedestres, por exemplo, se é seguro atravessar em um cruzamento sem sinalização.",
   "speed-limit-aria-label": "Limite de velocidade {{speed}} {{units}}",
   "format-number": "{{val, number}}",
   "cities-cta-join_one": "Junte-se a mais {{count, number}} comunidade",
@@ -360,7 +360,8 @@
     "via-email": "Compartilhar por e-mail"
   },
   "mini-card": {
-    "no-image": "Sem imagem",
+    "image-unavailable": "Imagem indisponível",
+    "image-coming": "Imagem disponível em breve!",
     "open": "Abrir este rótulo: {{label}}",
     "votes": "Validar este rótulo",
     "no-image-to-judge": "Sem imagem para avaliar este rótulo",

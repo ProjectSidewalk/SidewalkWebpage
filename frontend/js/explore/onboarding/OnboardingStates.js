@@ -1,9 +1,19 @@
-import { svl } from '../svl.js';
 import { util } from '../../common/utilities.js';
 import '../../common/pano-viewer/panoUtilities.js';
 import '../../common/utilitiesSidewalk.js';
+/** @typedef {import('../navigation/Compass.js').Compass} Compass */
+/** @typedef {import('../canvas/ContextMenu.js').ContextMenu} ContextMenu */
+/** @typedef {import('../Main.js').MinimapUi} MinimapUi */
+/** @typedef {import('../panorama/PanoManager.js').PanoManager} PanoManager */
 
-export function OnboardingStates(contextMenu, compass, panoManager) {
+/**
+ * The tutorial's script: every state, what it says and does, and where it goes next.
+ * @param {ContextMenu} contextMenu - Closed by the steps that move on from a label.
+ * @param {Compass} compass - Whose message markup the walk step copies.
+ * @param {PanoManager} panoManager - Turned by the steps that re-aim the view.
+ * @param {MinimapUi} uiMinimap - Whose holder shows the tutorial's screenshot map.
+ */
+export function OnboardingStates(contextMenu, compass, panoManager, uiMinimap) {
   const panoId = 'tutorial';
   const afterWalkPanoId = 'afterWalkTutorial';
   const headingRanges = {
@@ -1951,7 +1961,7 @@ export function OnboardingStates(contextMenu, compass, panoManager) {
       panoId,
       transition() {
         panoManager.setPov({ heading: 329, pitch: 0, zoom: 1 });
-        svl.ui.minimap.holder.style.backgroundImage
+        uiMinimap.holder.style.backgroundImage
           = `url('${util.assetPath('images/explore/onboarding/afterWalkTutorialMiniMap.jpg')}')`;
         return 'walk-4';
       },

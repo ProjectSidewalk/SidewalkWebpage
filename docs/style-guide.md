@@ -8,7 +8,7 @@ architecture. This page explains the conventions a linter can't, and the *why* b
 [`eslint.config.js`](../eslint.config.js), [`stylelint.config.mjs`](../stylelint.config.mjs), and
 [`.htmlhintrc`](../.htmlhintrc); Scala formatting lives in [`.scalafmt.conf`](../.scalafmt.conf). When this guide and a
 config disagree, the config wins — fix the config and this doc together. **The linters are all blocking CI gates** —
-ESLint (JS + translation JSON), Stylelint (CSS), HTMLHint (HTML), cross-locale key parity, the `public/css/` layout
+ESLint (JS + translation JSON), Stylelint (CSS), HTMLHint (HTML), cross-locale key parity, the `frontend/css/` layout
 check, the `frontend/js/` asset-path check, the JSDoc type check (`make lint-js-types`), and `make scalafmt` for
 Scala (source and build files). The trees are kept fully lint-clean ([#2487](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2487)),
 so run the relevant linter — or `make lint` for all of them — and get to zero before you push: `make lint-fix`
@@ -20,7 +20,8 @@ These apply across every language in the repo.
 
 - **Line length: 120 characters max**, with sensible exceptions where a break would hurt readability (e.g. long
   URLs, string literals). For multi-line comments, treat 120 as a target, not a hard cap.
-- **Indent with spaces, never tabs.** Scala, JS, and CSS all use 2-space indent.
+- **Indent with spaces, never tabs.** Scala, JS, CSS, HTML, shell and SQL use 2-space indent; Python uses 4, per
+  PEP 8. Old evolutions are 4-space and stay that way, since Play hashes each applied one.
 - **End every file with a single newline.** A missing final newline shows up as a red marker on the GitHub diff.
 - **Comments explain _why_, not _what_** — well-named identifiers cover the *what*. Start a comment with a capital
   letter and end it with a period (full rules and the doc-header templates in [Comments](#comments) below):
@@ -65,7 +66,7 @@ These apply across every language in the repo.
 
 ## JavaScript
 
-The frontend is vanilla ES modules, bundled per page by Rolldown (no transpiler, no framework). Never edit the
+The frontend is vanilla ES modules, bundled per page by Vite (no transpiler, no framework). Never edit the
 generated `public/build/` output. Most rules below are enforced by
 [`eslint.config.js`](../eslint.config.js).
 
@@ -109,8 +110,9 @@ generated `public/build/` output. Most rules below are enforced by
     clearly safe (a number, a translation, an asset path, or a value from the same file it can trace). Escape where
     the value goes into the HTML, not where it's computed. If a value really is our own markup, add
     `// eslint-disable-next-line ps/escape-in-markup -- <why>` (inside a template: `${x /* eslint-disable-line … */}`).
-  - Text inside a `data-ps-tooltip="…"` attribute in markup needs escaping twice: use `AdminShell.tooltipAttr(…)`.
-    With `setAttribute('data-ps-tooltip', …)`, escaping once is enough.
+  - `data-ps-tooltip` is plain text: escape once inside markup (as for any attribute), not at all through
+    `setAttribute`. A card with markup goes in `data-ps-tooltip-html`, where outside text is escaped into the card
+    and, in markup, the whole card escaped again for the attribute (see `psTooltip.js`).
   - Escaping doesn't make a link safe: check that an API-supplied `href` starts with http(s).
   - Markup you didn't write (an outside API's HTML) goes through `util.sanitizeHtml`, appended as nodes. To turn markup into plain text, use `util.htmlToText`, never a tag-stripping regex.
 - **Semicolons required** (`semi`); always parenthesize arrow-function params (`arrow-parens`).
@@ -153,22 +155,34 @@ The `public/` static-asset tree follows an industry-standard layout, settled in 
 consistent with it.
 
 - **First-party assets split by type.** `frontend/js/` is **JavaScript only** — no `css/`, `img/`, or `audio/` dirs
-  nested inside an app dir. Styles live in `public/css/`; media lives in `public/images/`, `public/audio/`, and
+  nested inside an app dir. Styles live in `frontend/css/`; media lives in `public/images/`, `public/audio/`, and
   `public/videos/`. App-private styles go to `css/pages/`, app-private images to `images/<app>/`.
-- **`public/css/` is organized by what each file is** (#5030), and its root has exactly four entries. `main.css` and
+- **A stylesheet is imported by the JS that needs it, never linked by hand** (#5651). A component's module imports
+  the component's sheet (`Toast.js` → `components/toast.css`), a page's entry in `frontend/js/pages/` imports the
+  page's own sheet (last, so it overrides the components'), and a sheet that only Twirl markup uses (`kpi.css`,
+  `tables.css`, `pano-overlay-buttons.css`) is imported by the entry of each page showing that markup. Vite writes
+  `public/build/css/`, one file per chunk, and the view emits the `<link>`s with `@ViteAssets.stylesheets("<entry>")`
+  beside the entry's `<script>`. The helper reads Vite's manifest and links the chunks a page imports before the
+  page's own sheet, and a sheet shared with other chunks before a chunk's own, so page rules win; a page inside the
+  admin or user dashboard or the API docs names the shell as `alreadyLinked = "admin/shell"` (or `dashboard/shell`,
+  `api-docs/layout`) so nothing is linked twice. The containers a page renders around a lazily loaded component get
+  their sheet from the page's entry (`map-frame.css` for a map), since the component's sheet only arrives with its
+  code. A rule that overrides a vendor stylesheet's (`.mapboxgl-popup-content`) out-ranks it in specificity, since
+  which `<link>` comes last varies by page. Never `@import`; a `url()` is the file's root-absolute path under
+  `public/` (`url("/images/…")`).
+- **`frontend/css/` is organized by what each file is** (#5030), and its root has exactly four entries. `main.css` and
   `fonts.css` (tokens and `.ps-*` primitives, no layout knowledge). `css/components/` holds anything more than one page
-  links, one component per file with a `ps-` or component-named class prefix (`page-shell.css` — the sidebar + content +
-  TOC template the API docs, both dashboards, and the labeling guide build on, `kpi.css`, `tables.css`,
+  uses, one component per file with a `ps-` or component-named class prefix (`page-shell.css` — the sidebar + content +
+  TOC template the API docs, both dashboards, and the labeling guide build on, `kpi.css`, `tables.css`, `pager.css`,
   `label-detail.css`, `toast.css`, …). `css/pages/` holds everything page-specific: a single file for a single page
   (`about.css`, `auth.css`, `admin-dashboard.css`, `user-dashboard.css`, …) and a subdir for a page family with several
-  files (`pages/explore/`, `pages/validate/`, `pages/gallery/`, `pages/api-docs/`). Two rules keep the split honest,
-  both enforced by `make lint-css-layout` (`tools/lint/check-css-layout.mjs`, a blocking CI step): every entry under
-  `pages/` is registered in the lint's `PAGES` map with the views that may link it — its own page, or for the
-  three bundled tools its own CSS bundle (the two legacy exceptions, `homepage.css` and `auth.css`, are registered to the
-  site-wide layout) — and an unregistered file fails the lint, so when a second page needs a rule, it moves to
-  `css/components/`; and a page's class prefix (`ud-`, `ac-`/`ov-`/`dq-`/…, `svl-`, `svv-`, `gallery-`) is defined only
-  in that page's stylesheet(s). Layouts link the shell plus only the component files their pages use; never `@import`
-  (Play fingerprints per file, and an import adds a serial round trip).
+  files (`pages/explore/`, `pages/validate/`, `pages/gallery/`, `pages/api-docs/`). Four rules keep the split honest,
+  all enforced by `make lint-css-layout` (`tools/lint/check-css-layout.mjs`, a blocking CI step): every entry under
+  `pages/` is registered in the lint's `PAGES` map with the modules that may import it — its entry and its own JS
+  folder (the two legacy exceptions, `homepage.css` and `auth.css`, are registered to the shell entry) — and an
+  unregistered file fails the lint, so when a second page needs a rule, it moves to `css/components/`; every
+  stylesheet is imported by something; a page's class prefix (`ud-`, `ac-`/`ov-`/`dq-`/…, `svl-`, `svv-`, `gallery-`)
+  is defined only in that page's stylesheet(s); and a view that loads an entry's JS asks for that entry's styles.
 - **Third-party code groups by library** under `public/vendor/<lib>/`, each folder self-contained (its JS + CSS +
   fonts + images together, upstream internal layout preserved so relative `url()` refs keep working). **Nothing under
   `vendor/` is ever edited or linted.** Vendored filenames carry their version (`pannellum-2.5.7.js`), which names
@@ -228,11 +242,6 @@ How to show one depends on where its color comes from:
   in `.au-icon` on the auth pages and `.mst-arrow-icon` in the mission-start carousel. Only the file's shape is used,
   so a stroke-drawn icon needs a stroke color in the file or nothing shows. Put the mask on a child `<span>`, never on
   a button or link itself, since it would hide their focus ring too.
-
-**Deferred namespace mismatch:** the reorg renamed the app *directories* (`SVLabel → explore`, `SVValidate →
-validate`, `Progress → user-dashboard`), but the apps' internal JS namespace **globals** `svl` (Explore) and `sg`
-(Gallery) are identifiers, not filenames, and were intentionally left as-is — renaming them is a large independent
-refactor touching nearly every source line of those apps. Don't "fix" the mismatch as a drive-by.
 
 ## Scala
 

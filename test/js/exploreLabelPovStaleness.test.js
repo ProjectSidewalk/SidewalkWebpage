@@ -12,13 +12,16 @@
  *
  * The projection math used here is the real production code (panoUtilities.js), so the self-consistency assertion
  * is the same replay the server guard runs: the record's POV + canvas_x/y must reproduce its pano_x/y.
- *
- * Form is a top-level `class` declaration, so the test evals the source into the jsdom global scope (the
- * exploreFormPanoSubmitted pattern) rather than using loadGlobalScript.
  */
 
-const { loadGlobalScript, installDateHelpers, loadModules } = require('./loadGlobalScript');
+import { loadModules, useUtil } from './loader.js';
+import { fakePanoManager, fakeTaskContainer, fakeTracker } from './fakes.js';
 
+// The real ones ask the vendored bowser script, which no page here loads.
+useUtil({ getBrowser: () => 'chrome', getBrowserVersion: () => '1', getOperatingSystem: () => 'linux' });
+
+/** The `util` Form sees, for its real projection math (util.pano) in building the labels and the replay. */
+let util;
 
 // Explore's boxed labeling frame (util.EXPLORE_CANVAS_WIDTH/HEIGHT in frontend/js/common/utilities.js). The frame is
 // always 720 wide; its height follows the displayed aspect (util.exploreCanvasFrame, #5085), so a 16:9 window is
@@ -30,39 +33,33 @@ const WIDE_FRAME = { width: 720, height: 405 };
 
 // The pano the label is placed on. cameraHeading feeds povToPanoCoord exactly as Label's constructor does.
 const PANO = {
-    panoId: 'pano-A',
-    source: 'gsv',
-    captureDate: new Date(2024, 5),
-    width: 8192,
-    height: 4096,
-    tileWidth: 512,
-    tileHeight: 512,
-    lat: 41.87,
-    lng: -87.62,
-    cameraHeading: 163.2,
-    cameraPitch: 0,
-    cameraRoll: 0,
-    linkedPanos: [],
-    history: [],
-    copyright: null,
-    address: null,
-    submitted: false,
+  panoId: 'pano-A',
+  source: 'gsv',
+  captureDate: new Date(2024, 5),
+  width: 8192,
+  height: 4096,
+  tileWidth: 512,
+  tileHeight: 512,
+  lat: 41.87,
+  lng: -87.62,
+  cameraHeading: 163.2,
+  cameraPitch: 0,
+  cameraRoll: 0,
+  linkedPanos: [],
+  history: [],
+  copyright: null,
+  address: null,
+  submitted: false,
 };
-
-/** Loads a fresh Form class into the jsdom global scope. */
-function loadForm() {
-    Object.assign(window, loadModules('frontend/js/explore/data/Form.js'));
-    return window.Form;
-}
 
 /** A stand-in for the PanoStore pano the label sits on. */
 function panoStub() {
-    const props = { ...PANO };
-    return {
-        getProperties: () => props,
-        getProperty: (k) => props[k],
-        setProperty: jest.fn((k, v) => { props[k] = v; }),
-    };
+  const props = { ...PANO };
+  return {
+    getProperties: () => props,
+    getProperty: (k) => props[k],
+    setProperty: vi.fn((k, v) => { props[k] = v; }),
+  };
 }
 
 /**
@@ -76,88 +73,94 @@ function panoStub() {
  * @returns {Object} A label stub carrying the click-time record.
  */
 function labelPlacedAt(clickPov, clickCanvasXY, frame = BOXED_FRAME) {
-    const povOfLabelIfCentered = util.pano.canvasCoordToCenteredPov(
-        clickPov, clickCanvasXY.x, clickCanvasXY.y, frame.width, frame.height,
-    );
-    const panoXY = util.pano.povToPanoCoord(povOfLabelIfCentered, PANO.cameraHeading, PANO.width, PANO.height);
-    const props = {
-        panoId: PANO.panoId,
-        tutorial: false,
-        panoXY,
-        originalCanvasXY: { ...clickCanvasXY },
-        originalCanvasFrame: { ...frame },
-        originalPov: { ...clickPov },
-        povOfLabelIfCentered,
-        temporaryLabelId: 1,
-        severity: null,
-        tagIds: [],
-        description: null,
-    };
-    return {
-        getProperties: () => props,
-        getProperty: (k) => props[k],
-        toLatLng: () => null,
-        isDeleted: () => false,
-        getLabelType: () => 'CurbRamp',
-    };
+  const povOfLabelIfCentered = util.pano.canvasCoordToCenteredPov(
+    clickPov, clickCanvasXY.x, clickCanvasXY.y, frame.width, frame.height,
+  );
+  const panoXY = util.pano.povToPanoCoord(povOfLabelIfCentered, PANO.cameraHeading, PANO.width, PANO.height);
+  const props = {
+    panoId: PANO.panoId,
+    tutorial: false,
+    panoXY,
+    originalCanvasXY: { ...clickCanvasXY },
+    originalCanvasFrame: { ...frame },
+    originalPov: { ...clickPov },
+    povOfLabelIfCentered,
+    temporaryLabelId: 1,
+    severity: null,
+    tagIds: [],
+    description: null,
+  };
+  return {
+    getProperties: () => props,
+    getProperty: (k) => props[k],
+    toLatLng: () => null,
+    isDeleted: () => false,
+    getLabelType: () => 'CurbRamp',
+  };
 }
 
 /** A stand-in for the current audit task. */
 function taskStub() {
-    return {
-        getAuditTaskId: () => 12,
-        getStreetEdgeId: () => 34,
-        getProperty: () => null,
-        isComplete: () => false,
-        getMissionStart: () => null,
-        getAuditedDistance: () => 0,
-        lineDistance: () => 1,
-        setProperty: jest.fn(),
-    };
+  return {
+    getAuditTaskId: () => 12,
+    getStreetEdgeId: () => 34,
+    getProperty: () => null,
+    isComplete: () => false,
+    getMissionStart: () => null,
+    getAuditedDistance: () => 0,
+    lineDistance: () => 1,
+    setProperty: vi.fn(),
+  };
 }
 
 describe('Explore label POV staleness (#4842 regression)', () => {
-    let labels;
-    let form;
-    let viewerPov;
+  let labels;
+  let form;
+  let viewerPov;
+  let panoManager;
 
-    /** Builds a Form wired to stub collaborators around the staged `labels`. */
-    function buildForm() {
-        const Form = loadForm();
-        const missionProps = { missionId: 5, distanceProgress: 0, distance: 100, isComplete: false, skipped: false };
-        const mission = { getProperty: (k) => missionProps[k], updateDistanceProgress: jest.fn() };
-        const labelContainer = { getLabelsToLog: () => labels, clearLabelsToLog: jest.fn(), getAllLabels: () => [] };
-        const pano = panoStub();
-        const panoStore = {
-            getStagedPanoData: () => [pano].filter((p) => !p.getProperty('submitted')),
-            getPanoData: () => pano,
-        };
-        const taskContainer = { getCurrentTask: taskStub, updateTaskPriorities: jest.fn() };
-        return new Form(
-            labelContainer,
-            { on: jest.fn() }, // missionModel
-            { getCurrentMission: () => mission }, // missionContainer
-            panoStore,
-            taskContainer,
-            { getActions: () => [], refresh: jest.fn(), push: jest.fn() }, // tracker
-            '/task'
-        );
-    }
+  /** Builds a Form wired to stub collaborators around the staged `labels`. */
+  async function buildForm() {
+    let Form;
+    ({ Form, util } = await loadModules('frontend/js/explore/data/Form.js', 'frontend/js/common/utilities.js'));
+    const missionProps = { missionId: 5, distanceProgress: 0, distance: 100, isComplete: false, skipped: false };
+    const mission = { getProperty: (k) => missionProps[k] };
+    const labelContainer = { getLabelsToLog: () => labels, clearLabelsToLog: vi.fn(), getAllLabels: () => [] };
+    const pano = panoStub();
+    const panoStore = {
+      getStagedPanoData: () => [pano].filter((p) => !p.getProperty('submitted')),
+      getPanoData: () => pano,
+    };
+    const taskContainer = fakeTaskContainer(taskStub, {
+      updateTaskPriorities: vi.fn(), renderTask: vi.fn(), onTaskEnded: vi.fn(), onTaskLeft: vi.fn(),
+    });
+    return new Form(
+      '/task',
+      { userRouteId: null, regionId: 1, isOnboarding: false, isExploreAddressMode: false },
+      labelContainer,
+      { on: vi.fn() }, // missionModel
+      { getCurrentMission: () => mission, updateDistanceProgress: vi.fn() }, // missionContainer
+      panoStore,
+      taskContainer,
+      panoManager,
+      fakeTracker(),
+    );
+  }
 
-    /** Stubs fetch to accept the POST, capturing each request body as parsed JSON. */
-    function acceptingFetch() {
-        const bodies = [];
-        window.fetch = jest.fn((url, opts) => {
-            bodies.push(JSON.parse(opts.body));
-            return Promise.resolve({
-                ok: true,
-                json: async () => ({ audit_task_id: 12, label_ids: [], refresh_page: false }),
-            });
-        });
-        return bodies;
-    }
+  /** Stubs fetch to accept the POST, capturing each request body as parsed JSON. */
+  function acceptingFetch() {
+    const bodies = [];
+    window.fetch = vi.fn((url, opts) => {
+      bodies.push(JSON.parse(opts.body));
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({ audit_task_id: 12, label_ids: [], refresh_page: false }),
+      });
+    });
+    return bodies;
+  }
 
-    /**
+  /**
      * The server guard's replay (ExploreService.warnIfRecordStale), run client-side with the production projection:
      * re-derive pano_x/y from the submitted POV + canvas point and compare to the submitted pano_x/y.
      *
@@ -165,110 +168,90 @@ describe('Explore label POV staleness (#4842 regression)', () => {
      * @param {{width: number, height: number}} [frame] - The frame to replay through; the submitted one by default.
      * @returns {{dx: number, dy: number}} Absolute pano-pixel error of the replay.
      */
-    function replayError(sent, frame = { width: sent.canvas_width, height: sent.canvas_height }) {
-        const centered = util.pano.canvasCoordToCenteredPov(
-            { heading: sent.heading, pitch: sent.pitch, zoom: sent.zoom },
-            sent.canvas_x, sent.canvas_y, frame.width, frame.height,
-        );
-        const panoXY = util.pano.povToPanoCoord(centered, PANO.cameraHeading, PANO.width, PANO.height);
-        return { dx: Math.abs(panoXY.x - sent.pano_x), dy: Math.abs(panoXY.y - sent.pano_y) };
-    }
+  function replayError(sent, frame = { width: sent.canvas_width, height: sent.canvas_height }) {
+    const centered = util.pano.canvasCoordToCenteredPov(
+      { heading: sent.heading, pitch: sent.pitch, zoom: sent.zoom },
+      sent.canvas_x, sent.canvas_y, frame.width, frame.height,
+    );
+    const panoXY = util.pano.povToPanoCoord(centered, PANO.cameraHeading, PANO.width, PANO.height);
+    return { dx: Math.abs(panoXY.x - sent.pano_x), dy: Math.abs(panoXY.y - sent.pano_y) };
+  }
 
-    beforeEach(() => {
-        // The real projection math the client places labels with; assigns window.util.pano.
-        window.util = window.util || {};
-        loadGlobalScript('frontend/js/common/pano-viewer/panoUtilities.js');
-        // Form's other collaborators that live on globals rather than constructor args.
-        Object.assign(window.util, {
-            getBrowser: () => 'chrome',
-            getBrowserVersion: () => '1',
-            getOperatingSystem: () => 'linux',
-            math: { kmsToMeters: (km) => km * 1000 },
-        });
-        installDateHelpers();
-        window.AsyncLock = class { async acquire(key, fn) { return fn(); } };
-        viewerPov = { heading: 128.7, pitch: -12.3, zoom: 2 };
-        window.svl = {
-            userRouteId: null,
-            regionId: 1,
-            isOnboarding: () => false,
-            panoViewer: {
-                getPov: jest.fn(() => ({ ...viewerPov })),
-                getPosition: () => ({ lat: 41.85, lng: -87.65 }),
-            },
-            tracker: { setAuditTaskID: jest.fn() },
-        };
-        window.i18next = { language: 'en' };
-
-        labels = [];
-        form = buildForm();
+  beforeEach(async () => {
+    // Form's one collaborator that lives on a global rather than a constructor arg.
+    window.AsyncLock = class { async acquire(key, fn) { return fn(); } };
+    viewerPov = { heading: 128.7, pitch: -12.3, zoom: 2 };
+    panoManager = fakePanoManager({}, {
+      getPov: vi.fn(() => ({ ...viewerPov })),
+      getPosition: () => ({ lat: 41.85, lng: -87.65 }),
     });
+    window.i18next = { language: 'en' };
 
-    afterEach(() => {
-        jest.restoreAllMocks();
-    });
+    labels = [];
+    form = await buildForm();
+  });
 
-    test('submits a self-consistent record when the viewport is unchanged', async () => {
-        labels = [labelPlacedAt(viewerPov, { x: 431, y: 302 })];
-        const bodies = acceptingFetch();
+  test('submits a self-consistent record when the viewport is unchanged', async () => {
+    labels = [labelPlacedAt(viewerPov, { x: 431, y: 302 })];
+    const bodies = acceptingFetch();
 
-        await form.submitData(taskStub());
+    await form.submitData(taskStub());
 
-        const sent = bodies[0].labels[0].label_point;
-        expect(sent.canvas_width).toBe(CANVAS_WIDTH);
-        expect(sent.canvas_height).toBe(CANVAS_HEIGHT);
-        const { dx, dy } = replayError(sent);
-        // pano_x/y are Math.round()ed in the payload, so allow a pixel.
-        expect(dx).toBeLessThanOrEqual(1);
-        expect(dy).toBeLessThanOrEqual(1);
-    });
+    const sent = bodies[0].labels[0].label_point;
+    expect(sent.canvas_width).toBe(CANVAS_WIDTH);
+    expect(sent.canvas_height).toBe(CANVAS_HEIGHT);
+    const { dx, dy } = replayError(sent);
+    // pano_x/y are Math.round()ed in the payload, so allow a pixel.
+    expect(dx).toBeLessThanOrEqual(1);
+    expect(dy).toBeLessThanOrEqual(1);
+  });
 
-    // The frame contract (#5085, docs/label-latlng-estimation.md): a click is only reproducible through the frame it
-    // was made in, so the record carries that frame and the server replays through it.
-    test('a label placed in a 16:9 frame submits that frame and replays only through it', async () => {
-        labels = [labelPlacedAt(viewerPov, { x: 431, y: 302 }, WIDE_FRAME)];
-        const bodies = acceptingFetch();
+  // The frame contract (#5085, docs/label-latlng-estimation.md): a click is only reproducible through the frame it
+  // was made in, so the record carries that frame and the server replays through it.
+  test('a label placed in a 16:9 frame submits that frame and replays only through it', async () => {
+    labels = [labelPlacedAt(viewerPov, { x: 431, y: 302 }, WIDE_FRAME)];
+    const bodies = acceptingFetch();
 
-        await form.submitData(taskStub());
+    await form.submitData(taskStub());
 
-        const sent = bodies[0].labels[0].label_point;
-        expect(sent.canvas_width).toBe(720);
-        expect(sent.canvas_height).toBe(405);
-        const own = replayError(sent);
-        expect(own.dx).toBeLessThanOrEqual(1);
-        expect(own.dy).toBeLessThanOrEqual(1);
-        // Read against the boxed 720x480 instead, the vertical origin is 37.5 px off: about 3 degrees of pitch at
-        // zoom 2, which is dozens of pano pixels on a 4096-px-high pano.
-        const boxed = replayError(sent, BOXED_FRAME);
-        expect(boxed.dy).toBeGreaterThan(20);
-    });
+    const sent = bodies[0].labels[0].label_point;
+    expect(sent.canvas_width).toBe(720);
+    expect(sent.canvas_height).toBe(405);
+    const own = replayError(sent);
+    expect(own.dx).toBeLessThanOrEqual(1);
+    expect(own.dy).toBeLessThanOrEqual(1);
+    // Read against the boxed 720x480 instead, the vertical origin is 37.5 px off: about 3 degrees of pitch at
+    // zoom 2, which is dozens of pano pixels on a 4096-px-high pano.
+    const boxed = replayError(sent, BOXED_FRAME);
+    expect(boxed.dy).toBeGreaterThan(20);
+  });
 
-    test('submitted record still describes the click after panning and zooming before the flush', async () => {
-        const clickPov = { ...viewerPov };
-        labels = [labelPlacedAt(clickPov, { x: 431, y: 302 })];
+  test('submitted record still describes the click after panning and zooming before the flush', async () => {
+    const clickPov = { ...viewerPov };
+    labels = [labelPlacedAt(clickPov, { x: 431, y: 302 })];
 
-        // Pan, tilt, and zoom the viewer between the click and the flush — the submitted record must be immune to
-        // viewport changes in that window.
-        viewerPov = { heading: 291.4, pitch: 8.9, zoom: 1 };
-        window.svl.panoViewer.getPov.mockClear();
+    // Pan, tilt, and zoom the viewer between the click and the flush — the submitted record must be immune to
+    // viewport changes in that window.
+    viewerPov = { heading: 291.4, pitch: 8.9, zoom: 1 };
+    panoManager.getPov.mockClear();
 
-        const bodies = acceptingFetch();
-        await form.submitData(taskStub());
+    const bodies = acceptingFetch();
+    await form.submitData(taskStub());
 
-        // The record must carry the click-time POV verbatim...
-        const sent = bodies[0].labels[0].label_point;
-        expect(sent.heading).toBe(clickPov.heading);
-        expect(sent.pitch).toBe(clickPov.pitch);
-        expect(sent.zoom).toBe(clickPov.zoom);
-        expect(sent.canvas_x).toBe(431);
-        expect(sent.canvas_y).toBe(302);
+    // The record must carry the click-time POV verbatim...
+    const sent = bodies[0].labels[0].label_point;
+    expect(sent.heading).toBe(clickPov.heading);
+    expect(sent.pitch).toBe(clickPov.pitch);
+    expect(sent.zoom).toBe(clickPov.zoom);
+    expect(sent.canvas_x).toBe(431);
+    expect(sent.canvas_y).toBe(302);
 
-        // ...stay replay-consistent (the server guard's check)...
-        const { dx, dy } = replayError(sent);
-        expect(dx).toBeLessThanOrEqual(1);
-        expect(dy).toBeLessThanOrEqual(1);
+    // ...stay replay-consistent (the server guard's check)...
+    const { dx, dy } = replayError(sent);
+    expect(dx).toBeLessThanOrEqual(1);
+    expect(dy).toBeLessThanOrEqual(1);
 
-        // ...and the serialization path must never have consulted the live viewport's POV.
-        expect(window.svl.panoViewer.getPov).not.toHaveBeenCalled();
-    });
+    // ...and the serialization path must never have consulted the live viewport's POV.
+    expect(panoManager.getPov).not.toHaveBeenCalled();
+  });
 });

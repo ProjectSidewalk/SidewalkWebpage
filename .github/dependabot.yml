@@ -39,9 +39,11 @@ updates:
         update-types: ["version-update:semver-major"]
       - dependency-name: "htmlhint"
         update-types: ["version-update:semver-major"]
-      - dependency-name: "jest"
+      - dependency-name: "vitest"
         update-types: ["version-update:semver-major"]
-      - dependency-name: "jest-environment-jsdom"
+      - dependency-name: "@vitest/coverage-v8"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "jsdom"
         update-types: ["version-update:semver-major"]
       - dependency-name: "stylelint"
         update-types: ["version-update:semver-major"]

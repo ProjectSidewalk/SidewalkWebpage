@@ -425,8 +425,8 @@ class ExploreRouteRequestSpec
                 FROM street_edge_region
                 INNER JOIN street_edge_priority
                   ON street_edge_region.street_edge_id = street_edge_priority.street_edge_id
-                INNER JOIN osm_way_street_edge
-                  ON street_edge_region.street_edge_id = osm_way_street_edge.street_edge_id
+                INNER JOIN osm_way_street_edge_primary
+                  ON street_edge_region.street_edge_id = osm_way_street_edge_primary.street_edge_id
               )
             GROUP BY street_edge_region.region_id
             ORDER BY COUNT(*)
@@ -437,7 +437,8 @@ class ExploreRouteRequestSpec
             FROM street_edge_region
             INNER JOIN street_edge ON street_edge_region.street_edge_id = street_edge.street_edge_id
             INNER JOIN street_edge_priority ON street_edge_region.street_edge_id = street_edge_priority.street_edge_id
-            INNER JOIN osm_way_street_edge ON street_edge_region.street_edge_id = osm_way_street_edge.street_edge_id
+            INNER JOIN osm_way_street_edge_primary
+              ON street_edge_region.street_edge_id = osm_way_street_edge_primary.street_edge_id
             WHERE street_edge_region.region_id = $regionId
               AND street_edge.status = 'open'
               AND street_edge.street_edge_id NOT IN (SELECT tutorial_street_edge_id FROM config)
@@ -473,8 +474,28 @@ class ExploreRouteRequestSpec
     (session, regionId, streetEdgeId)
   }
 
+  "GET /explore/session for a user who has finished every region" should {
+    "give the end state instead of an error, wherever the visit asked to go (#5693)" in {
+      val session = freshAnonSession()
+      completeOnboarding(session)
+      val opened = exploreSession(session, "")
+      val userId = run(
+        sql"SELECT user_id FROM mission WHERE mission_id = ${(opened \ "mission" \ "mission_id").as[Int]}"
+          .as[String]
+          .head
+      )
+      val _ = run(sqlu"""INSERT INTO audit_task (user_id, street_edge_id, completed, current_lat, current_lng)
+                         SELECT DISTINCT $userId, street_edge_id, TRUE, 0, 0 FROM street_edge_region""")
+
+      pageParam(exploreSession(session, ""), "all_regions_finished") mustBe Some(JsBoolean(true))
+      pageParam(exploreSession(session, "?newRegion=true"), "all_regions_finished") mustBe Some(JsBoolean(true))
+      val regionId = (opened \ "region_id").as[Int]
+      pageParam(exploreSession(session, s"?regionId=$regionId"), "all_regions_finished") mustBe Some(JsBoolean(true))
+    }
+  }
+
   "GET /explore/session?regionId=<finished>" should {
-    "move the user to a region with streets left, and say why, even with a mission still open there (#5692)" in {
+    "move the user to a region with streets left and say why, even with a mission still open there (#5692)" in {
       val (session, finishedRegion, _) = userWithOpenMissionInFinishedRegion()
       val otherRegions                 = run(
         sql"""SELECT COUNT(DISTINCT street_edge_region.region_id)
@@ -483,14 +504,17 @@ class ExploreRouteRequestSpec
               INNER JOIN street_edge_priority ON street_edge_region.street_edge_id = street_edge_priority.street_edge_id
               WHERE NOT region.deleted AND street_edge_region.region_id <> $finishedRegion""".as[Int].head
       )
-      if (otherRegions == 0)
-        cancel("No other region has streets to move the user to; the all-finished end state is #5693.")
-
       val visit = exploreSession(session, s"?regionId=$finishedRegion")
 
-      pageParam(visit, "region_finished") mustBe Some(JsBoolean(true))
-      pageParam(visit, "region_id").map(_.as[Int]) must not be Some(finishedRegion)
-      (visit \ "task").toOption must not be None
+      if (otherRegions == 0) {
+        // A one-region city (CI's seed): finishing it leaves nothing anywhere, so the visit gets the end state (#5693).
+        pageParam(visit, "all_regions_finished") mustBe Some(JsBoolean(true))
+        pageParam(exploreSession(session, ""), "all_regions_finished") mustBe Some(JsBoolean(true))
+      } else {
+        pageParam(visit, "region_finished") mustBe Some(JsBoolean(true))
+        pageParam(visit, "region_id").map(_.as[Int]) must not be Some(finishedRegion)
+        (visit \ "task").toOption must not be None
+      }
     }
 
     "say nothing when the region asked for still has streets left" in {

@@ -6,28 +6,9 @@
  * week-over-week chips read the traffic windows and color by direction, anomaly flags mark the row and feed the
  * "needs attention" panel with a baseline-relative reason, and every unavailability path — `available: false` or a
  * failed request — collapses the section to a note without disturbing the already-rendered page.
- *
- * Runs under jsdom (jest.config.js). AcrossCitiesPage is a bare top-level class in a concatenated bundle, so it is
- * eval'd into global scope rather than required.
  */
 
-const { loadModules, realUtil } = require('./loadGlobalScript');
-
-// The page fetches through util.fetchJson.
-window.util = realUtil();
-
-
-/** The text psTooltip's card shows for an element: its attribute is rendered as HTML, so it's decoded once more. */
-function tooltipText(el) {
-  const card = document.createElement('div');
-  card.innerHTML = el.getAttribute('data-ps-tooltip');
-  return card.textContent;
-}
-
-/** Load AcrossCitiesPage.js, plus the AdminShell helpers every dashboard page reads, and return the class binding. */
-function loadPage() {
-  return loadModules('frontend/js/admin-dashboard/AcrossCitiesPage.js').AcrossCitiesPage;
-}
+import { loadModules } from './loader.js';
 
 /** A minimal scorecard row; the traffic section only reads identity/lifecycle from it. */
 function makeCity(id) {
@@ -94,7 +75,7 @@ describe('Across Cities — traffic section', () => {
    */
   async function render(cities, traffic) {
     document.body.innerHTML = MARKUP;
-    global.fetch = jest.fn((url) => {
+    window.fetch = vi.fn((url) => {
       if (url === '/adminapi/cityScorecards') {
         return Promise.resolve({
           ok: true,
@@ -119,8 +100,8 @@ describe('Across Cities — traffic section', () => {
     return [...document.querySelectorAll('#ac-traffic-tbody tr')].map((tr) => tr.cells[0].textContent.trim());
   }
 
-  beforeEach(() => {
-    AcrossCitiesPage = loadPage();
+  beforeEach(async () => {
+    ({ AcrossCitiesPage } = await loadModules('frontend/js/admin-dashboard/AcrossCitiesPage.js'));
   });
 
   it('rows only cities with traffic data, busiest sessions first', async () => {
@@ -187,7 +168,7 @@ describe('Across Cities — traffic section', () => {
   it('keeps the loading note when a header is clicked before the traffic fetch lands', async () => {
     document.body.innerHTML = MARKUP;
     let releaseTraffic;
-    global.fetch = jest.fn((url) => {
+    window.fetch = vi.fn((url) => {
       if (url === '/adminapi/cityScorecards') {
         return Promise.resolve({
           ok: true,
@@ -227,8 +208,8 @@ describe('Across Cities — traffic section', () => {
     expect(cells[6].textContent.trim()).toBe('17,690');
     expect(cells[7].textContent.trim()).toBe('12%');
     // The window isn't the city's lifetime, so the cell has to date itself.
-    expect(tooltipText(cells[5])).toContain('2021');
-    expect(tooltipText(cells[5])).toContain("earlier traffic isn't counted");
+    expect(cells[5].getAttribute('data-ps-tooltip')).toContain('2021');
+    expect(cells[5].getAttribute('data-ps-tooltip')).toContain("earlier traffic isn't counted");
   });
 
   it('sorts by an all-time column independently of the recent ones', async () => {
@@ -250,7 +231,7 @@ describe('Across Cities — traffic section', () => {
       available: true,
       traffic_by_city: { alpha: makeTraffic({ ga_since: null }) },
     });
-    expect(tooltipText(document.querySelector('#ac-traffic-tbody tr').cells[5]))
+    expect(document.querySelector('#ac-traffic-tbody tr').cells[5].getAttribute('data-ps-tooltip'))
       .toBe("Covers this property's whole GA4 history.");
   });
 
@@ -272,7 +253,7 @@ describe('Across Cities — traffic section', () => {
   });
 
   it('collapses the same way when the traffic request fails, leaving the page intact', async () => {
-    jest.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
     await render([makeCity('alpha')], new Error('boom'));
     expect(document.getElementById('ac-traffic-wrap').style.display).toBe('none');
     expect(document.getElementById('ac-traffic-status').textContent).toBe('Traffic data unavailable.');

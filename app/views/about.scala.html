@@ -4,14 +4,9 @@
 @import views.ViewHelpers.jsonForScript
 @import service.{CommonPageData, PageMeta}
 @*
- * About page (#4237, redesigned in #4631): server-rendered, localized overview of Project Sidewalk — mission, how it
- * works, impact stories, deployments, team, history, publications, open data, partners, funders, and contact. This is
- * the canonical "what is Project Sidewalk" page for search engines, linked from the footer on every page.
- *
- * All narrative copy is server-rendered (SEO + i18n) and doubles as the no-JS fallback. Rot-prone content hydrates
- * from APIs on load: deployment stats via aggregateStats.js (/v3/api/aggregateStats + data-live-stat spans), and the
- * team roster, publication list, and grants via aboutPage.js (Makeability Lab API), so rosters and numbers never have
- * to be hand-maintained here. aboutPage.js also builds the in-page section nav and the deployment map.
+ * About page (#4237, #4631): the canonical "what is Project Sidewalk" page for search engines, server-rendered for SEO
+ * and no-JS readers. Stats load from /v3/api/aggregateStats, and team, publications, and grants from the Makeability
+ * Lab API, so nobody has to hand-maintain them.
  *
  * @param commonData Per-page config; allCityInfo drives the server-rendered deployment city/country counts.
  * @param title      Localized page title.
@@ -63,10 +58,7 @@
 @* about.css ships in <head> rather than alongside the markup: this page is one long column of styled bands, so
    loading it at the end of the body paints the whole thing unstyled before it snaps into place. *@
 @extraHeadContent = {
-  <link rel="stylesheet" href='@assets.path("css/pages/about.css")'>
-  @* Styles the deployment map's city popups. Small enough to ship up front, unlike the mapping libraries the map
-     itself needs, which aboutPage.js only fetches once the section nears the viewport. *@
-  <link rel="stylesheet" href='@assets.path("css/components/deployment-map.css")'>
+  @ViteAssets.stylesheets("about")
   <script type="application/ld+json">@jsonLd</script>
 }
 

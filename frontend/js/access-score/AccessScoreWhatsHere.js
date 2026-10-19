@@ -120,7 +120,7 @@ export class AccessScoreWhatsHere extends AccessScoreChart {
       else if (parts.length === 0) label = i18next.t('accessscore:whats-here-row-unrated', { type: name, count });
       else label = i18next.t('accessscore:whats-here-row', { type: name, count, parts: parts.join(', ') });
       row.track.setAttribute('aria-label', label);
-      row.track.setAttribute('data-ps-tooltip', util.escapeHTML(label));
+      row.track.setAttribute('data-ps-tooltip', label);
     }
     this.#els.empty.hidden = !data.empty;
     this.#els.list.hidden = data.empty;

@@ -9,7 +9,6 @@
  */
 
 import { util } from '../common/utilities.js';
-import { AdminShell } from './AdminShell.js';
 import { MiniLineChart } from './MiniLineChart.js';
 import '../common/utilitiesSidewalk.js';
 
@@ -286,7 +285,7 @@ export class DataQualityPage {
             const tip = `${tag} · severity ${s}: ${n.toLocaleString()} (${share}% of this tag)`;
             // No tab stop per cell: a tag grid runs to hundreds of them, and the label covers screen readers.
             return `<div class="dq-heat-cell" role="img" aria-label="${util.escapeHTML(tip)}"
-                            data-ps-tooltip="${AdminShell.tooltipAttr(tip)}"
+                            data-ps-tooltip="${util.escapeHTML(tip)}"
                             style="background:${util.escapeHTML(color)};opacity:${opacity}"></div>`;
           }).join('');
           return [

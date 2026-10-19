@@ -3,17 +3,14 @@
  * me where this is" action (#4929).
  *
  * The queue lists retired streets, which Explore cannot serve, so the street id points at the page's own status map
- * instead — and the map can only zoom to a segment if something works out that segment's bounds. Getting the
- * lng/lat order backwards here would fly the map to the wrong hemisphere silently, which is exactly the sort of
- * mistake a mocked map test would sail past.
- *
- * Runs under jsdom (jest.config.js). StreetStatusMap.js is a bare top-level class in a concatenated bundle, so it is
- * eval'd into scope rather than required; the static helper touches no Mapbox API, so no `mapboxgl` global is needed.
+ * instead, and the map can only zoom to a segment if something works out that segment's bounds. Getting the lng/lat
+ * order backwards here would fly the map to the wrong hemisphere silently, which is exactly the sort of mistake a
+ * mocked map test would sail past. The static helper touches no Mapbox API, so the test needs no `mapboxgl` global.
  */
 
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules } from './loader.js';
 
-const StreetStatusMap = loadModules('frontend/js/admin-dashboard/StreetStatusMap.js').StreetStatusMap;
+const { StreetStatusMap } = await loadModules('frontend/js/admin-dashboard/StreetStatusMap.js');
 
 /** One street as the v3 streets GeoJSON carries it: [lng, lat] pairs, in that order. */
 const feature = (coordinates) => ({ type: 'Feature', geometry: { type: 'LineString', coordinates } });

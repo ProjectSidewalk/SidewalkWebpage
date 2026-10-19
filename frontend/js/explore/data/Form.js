@@ -1,54 +1,72 @@
 /**
- * Handles compiling and submitting Explore/Audit interaction data to the back end.
+ * Handles compiling and submitting Explore/Audit interaction data to the back end. Submits on its own when a street
+ * ends or is left (TaskContainer's events) and when a mission completes; everything else asks through submitData().
  */
 
-import { svl } from '../svl.js';
 import { util } from '../../common/utilities.js';
 import '../../common/pano-viewer/panoUtilities.js';
 import '../../common/utilitiesMath.js';
+/** @typedef {import('../Main.js').ExploreConfig} ExploreConfig */
+/** @typedef {import('../label/Label.js').Label} Label */
 /** @typedef {import('../label/LabelContainer.js').LabelContainer} LabelContainer */
 /** @typedef {import('../mission/MissionContainer.js').MissionContainer} MissionContainer */
 /** @typedef {import('../mission/MissionModel.js').MissionModel} MissionModel */
 /** @typedef {import('../../common/pano-viewer/PanoData.js').PanoData} PanoData */
 /** @typedef {import('../../common/pano-viewer/PanoStore.js').PanoStore} PanoStore */
+/** @typedef {import('../panorama/PanoManager.js').PanoManager} PanoManager */
 /** @typedef {import('../task/Task.js').Task} Task */
 /** @typedef {import('../task/TaskContainer.js').TaskContainer} TaskContainer */
 /** @typedef {import('./Tracker.js').Tracker} Tracker */
 
 export class Form {
+  // How long a share click will wait on a just-placed label's crop before opening the popover regardless. Short
+  // enough that the button still feels like it responded to the click.
+  static #CROP_WAIT_CAP_MS = 800;
+
+  #dataStoreUrl;
+  #config;
   #labelContainer;
   #missionModel;
   #missionContainer;
   #panoStore;
   #taskContainer;
+  #panoManager;
   #tracker;
-  #dataStoreUrl;
   #lastPriorityUpdateTime;
   #compileDataLock;
 
   /**
+   * @param {string} dataStoreUrl - URL to POST submission data to.
+   * @param {ExploreConfig} config
    * @param {LabelContainer} labelContainer - Holds the labels placed during the current session.
    * @param {MissionModel} missionModel - Emits mission lifecycle events (e.g. progress completion).
    * @param {MissionContainer} missionContainer - Tracks the current mission and its progress.
    * @param {PanoStore} panoStore - Holds metadata for the panoramas seen this session.
    * @param {TaskContainer} taskContainer - Tracks the current audit task.
+   * @param {PanoManager} panoManager - Whose position each submission carries.
    * @param {Tracker} tracker - Buffers the interaction log to be flushed to the back end.
-   * @param {string} dataStoreUrl - URL to POST submission data to.
    */
-  constructor(labelContainer, missionModel, missionContainer, panoStore, taskContainer, tracker, dataStoreUrl) {
+  constructor(dataStoreUrl, config, labelContainer, missionModel, missionContainer, panoStore, taskContainer,
+    panoManager, tracker) {
+    this.#dataStoreUrl = dataStoreUrl;
+    this.#config = config;
     this.#labelContainer = labelContainer;
     this.#missionModel = missionModel;
     this.#missionContainer = missionContainer;
     this.#panoStore = panoStore;
     this.#taskContainer = taskContainer;
+    this.#panoManager = panoManager;
     this.#tracker = tracker;
-    this.#dataStoreUrl = dataStoreUrl;
     this.#lastPriorityUpdateTime = new Date(); // Assumes that priorities are up-to-date when the page loads.
     this.#compileDataLock = new AsyncLock();
 
     this.#missionModel.on('MissionProgress:complete', () => {
       this.submitData(this.#taskContainer.getCurrentTask());
     });
+    // A finished street is submitted so it is marked complete in the db; a street free exploration wanders off is
+    // submitted as it stands (#5733). Neither waits on the submission.
+    taskContainer.onTaskEnded((task) => this.submitData(task));
+    taskContainer.onTaskLeft((task) => this.submitData(task));
 
     // Flush any remaining logs when the page is being dismissed. `pagehide` is the reliable, bfcache-compatible
     // unload signal; `keepalive` lets the POST outlive the page while still routing through AppManager's fetch
@@ -111,15 +129,16 @@ export class Form {
   #compileSubmissionData(task) {
     const mission = this.#missionContainer.getCurrentMission();
     const missionId = mission.getProperty('missionId');
-    mission.updateDistanceProgress();
+    this.#missionContainer.updateDistanceProgress(mission);
+    const position = this.#panoManager.getPosition();
 
     const data = {
       timestamp: new Date(),
-      user_route_id: svl.userRouteId,
+      user_route_id: this.#config.userRouteId,
       mission: {
         mission_id: missionId,
         distance_progress: Math.min(mission.getProperty('distanceProgress'), mission.getProperty('distance')),
-        region_id: svl.regionId,
+        region_id: this.#config.regionId,
         completed: mission.getProperty('isComplete'),
         audit_task_id: task.getAuditTaskId(),
         skipped: mission.getProperty('skipped'),
@@ -129,19 +148,22 @@ export class Form {
         task_start: task.getProperty('taskStart'),
         audit_task_id: task.getAuditTaskId(),
         completed: task.isComplete(),
-        current_lat: svl.panoViewer.getPosition().lat,
-        current_lng: svl.panoViewer.getPosition().lng,
+        current_lat: position.lat,
+        current_lng: position.lng,
         start_point_reversed: task.getProperty('startPointReversed'),
         current_mission_start: task.getMissionStart(missionId),
         last_priority_update_time: this.#lastPriorityUpdateTime,
         // Request updated street priorities if we are at least 60% of the way through the current street. Not on a
         // route walk: priorities choose the next street, and a route's next street is fixed by its walking order.
-        request_updated_street_priority: !svl.isOnboarding() && !svl.userRouteId
+        request_updated_street_priority: !this.#config.isOnboarding && !this.#config.userRouteId
           && (task.getAuditedDistance() / task.lineDistance()) > 0.6,
-        // How far along the street the user has gotten, measured from the street's start. The server reads it to
-        // derive street completion for free-exploration sessions (#4451); it also accumulates real partial-audit data
-        // so a future fractional-coverage model has history to build on.
-        audited_distance_m: util.math.kmsToMeters(task.getAuditedDistance()),
+        // How far along the street the user has gotten, as partial-audit data for a future fractional-coverage model.
+        // Free exploration has no start to measure from, so it sends its covered meters instead.
+        audited_distance_m: this.#config.isExploreAddressMode
+          ? task.getCoveredDistanceM()
+          : util.math.kmsToMeters(task.getAuditedDistance()),
+        // Free exploration only (#5733): the server credits the street from these, never from the completed flag.
+        covered_ranges: this.#config.isExploreAddressMode ? task.getCoveredRanges() : null,
         // Which route_street row this task was served for. An out-and-back route walks one street twice, so the
         // server can't re-derive the traversal from street_edge_id alone. Null outside a route session.
         route_street_id: task.getProperty('routeStreetId'),
@@ -258,14 +280,20 @@ export class Form {
         // interaction under the street the labeler just left (#5370).
         const currentTask = this.#taskContainer.getCurrentTask();
         if (!currentTask || currentTask.getStreetEdgeId() === task.getStreetEdgeId()) {
-          svl.tracker.setAuditTaskID(result.audit_task_id);
+          this.#tracker.setAuditTaskID(result.audit_task_id);
+        }
+
+        // Unioned, not replaced: the server's list can hold an earlier visit, the local one panos seen mid-save.
+        if (result.covered_ranges) {
+          task.setCoveredRanges([...task.getCoveredRanges(), ...result.covered_ranges]);
+          this.#taskContainer.renderTask(task);
         }
 
         // If the back-end says that something is messed up and that we should refresh page, do that now.
         if (result.refresh_page) window.location.reload();
 
         // If a new mission was sent and we aren't in onboarding, create an object for it on the front-end.
-        if (result.mission && !svl.isOnboarding()) this.#missionModel.createAMission(result.mission);
+        if (result.mission && !this.#config.isOnboarding) this.#missionModel.createAMission(result.mission);
 
         // Update the priority of streets audited by other users that are auditing at the same time.
         if (result.updated_streets) {
@@ -274,7 +302,7 @@ export class Form {
         }
 
         // Update labels with their official label_id from the server.
-        if (!svl.isOnboarding()) {
+        if (!this.#config.isOnboarding) {
           for (const lab of result.label_ids) {
             this.#labelContainer.getAllLabels()
               .find((l) => l.getProperty('temporaryLabelId') === lab.temporary_label_id)
@@ -301,5 +329,26 @@ export class Form {
       const data = this.#compileSubmissionData(task);
       await this.#submit(data, task);
     });
+  }
+
+  /**
+   * Makes sure a label exists server-side before it is shared, submitting the pending labels if it doesn't yet.
+   * Resolves quietly when the submission produces no id: the caller then finds nothing to share.
+   *
+   * The crop upload is awaited too, since /label/:id/image caches a Street View still for good when no crop is on
+   * disk yet. The wait is capped so the share button never reads as broken; past the cap the link still works, and
+   * ImageController drops the cached preview once the crop lands.
+   *
+   * @param {?Label} label - The label about to be shared.
+   * @returns {Promise<void>}
+   */
+  async ensureLabelSaved(label) {
+    if (!label || Number.isInteger(label.getProperty('labelId'))) return;
+    await this.submitData();
+    if (!Number.isInteger(label.getProperty('labelId'))) return;
+    await Promise.race([
+      label.cropUploaded(),
+      new Promise((resolve) => setTimeout(resolve, Form.#CROP_WAIT_CAP_MS)),
+    ]);
   }
 }

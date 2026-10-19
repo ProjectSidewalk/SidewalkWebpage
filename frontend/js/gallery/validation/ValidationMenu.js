@@ -2,11 +2,11 @@
  * A Validation Menu appended to a small Gallery Card for validation purposes.
  */
 
-import { sg } from '../sg.js';
 import { BadgeAchievements } from '../../common/BadgeAchievements.js';
 import { util } from '../../common/utilities.js';
 /** @typedef {import('../cards/Card.js').Card} Card */
 /** @typedef {import('../displays/ValidationInfoDisplay.js').ValidationInfoDisplay} ValidationInfoDisplay */
+/** @typedef {import('../data/Tracker.js').Tracker} Tracker */
 
 export class ValidationMenu {
   static #classToValidationOption = {
@@ -23,6 +23,7 @@ export class ValidationMenu {
 
   #refCard;
   #gsvImage;
+  #tracker;
   #currSelected = null;
   #overlay;
   #validationButtons = undefined;
@@ -31,10 +32,12 @@ export class ValidationMenu {
   /**
    * @param {Card} referenceCard - The Card this menu belongs to.
    * @param {HTMLElement} gsvImage - The image holder to append the validation menu to.
+   * @param {Tracker} tracker - Logs the vote.
    */
-  constructor(referenceCard, gsvImage) {
+  constructor(referenceCard, gsvImage, tracker) {
     this.#refCard = referenceCard;
     this.#gsvImage = gsvImage;
+    this.#tracker = tracker;
 
     const cardOverlayHTML = `
       <div class="gallery-validation-button-holder">
@@ -198,7 +201,7 @@ export class ValidationMenu {
     if (keyboardShortcut) {
       actionStr = actionStr.replace('Click', 'KeyboardShortcut');
     }
-    sg.tracker.push(
+    this.#tracker.push(
       actionStr, { panoId: refCard.getProperty('pano_id') }, { labelId: refCard.getProperty('label_id') },
     );
 

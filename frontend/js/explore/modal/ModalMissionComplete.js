@@ -4,22 +4,39 @@
  *  region's progress, and distance/label totals for the region.
  */
 
-import { svl } from '../svl.js';
 import { BadgeAchievements } from '../../common/BadgeAchievements.js';
 import { util } from '../../common/utilities.js';
 import { RegionProgressBar } from '../sidebar/RegionProgressBar.js';
 import '../../common/utilitiesMath.js';
 import '../../common/utilitiesSidewalk.js';
+/** @typedef {import('../game/AudioEffect.js').AudioEffect} AudioEffect */
+/** @typedef {import('../label/LabelContainer.js').LabelContainer} LabelContainer */
+/** @typedef {import('../navigation/MinimapMissionProgress.js').MinimapMissionProgress} MinimapMissionProgress */
 /** @typedef {import('../mission/Mission.js').Mission} Mission */
 /** @typedef {import('../mission/MissionContainer.js').MissionContainer} MissionContainer */
 /** @typedef {import('../mission/MissionModel.js').MissionModel} MissionModel */
+/** @typedef {import('../sidebar/MissionPanel.js').MissionPanel} MissionPanel */
 /** @typedef {import('./ModalMissionCompleteMap.js').ModalMissionCompleteMap} ModalMissionCompleteMap */
+/** @typedef {import('../sidebar/OverallStats.js').OverallStats} OverallStats */
+/** @typedef {import('../../common/Gate.js').Gate} Gate */
+/** @typedef {import('../panorama/PanoManager.js').PanoManager} PanoManager */
+/** @typedef {import('../../common/ProgressBar.js').ProgressBar} ProgressBar */
 /** @typedef {import('../region/Region.js').Region} Region */
+/** @typedef {import('../region/RegionModel.js').RegionModel} RegionModel */
 /** @typedef {import('../task/TaskContainer.js').TaskContainer} TaskContainer */
 
 export class ModalMissionComplete {
   #missionContainer;
   #taskContainer;
+  #regionModel;
+  #labelContainer;
+  #overallStats;
+  #missionPanel;
+  #missionProgressBar;
+  #minimapMissionProgress;
+  #audioEffect;
+  #panoManager;
+  #interactionLock;
   #map;
   #progressBar;
   #els;
@@ -34,11 +51,31 @@ export class ModalMissionComplete {
    * @param {MissionContainer} missionContainer - The mission container.
    * @param {MissionModel} missionModel - The mission model (emits mission lifecycle events).
    * @param {TaskContainer} taskContainer - The task container.
+   * @param {RegionModel} regionModel - Says whether a route or region is finished, which changes the title.
+   * @param {LabelContainer} labelContainer - Whose labels the map and the stats show.
+   * @param {OverallStats} overallStats - The user's mission count, for the badge.
+   * @param {MissionPanel} missionPanel - Re-headed for the next mission.
+   * @param {ProgressBar} missionProgressBar - Reset for the next mission.
+   * @param {MinimapMissionProgress} minimapMissionProgress - Reset for the next mission.
+   * @param {AudioEffect} audioEffect - The success chime.
+   * @param {PanoManager} panoManager - Where a finished route hands free exploration off.
+   * @param {Gate} interactionLock - Held while the screen is up, so nothing behind it responds.
    * @param {ModalMissionCompleteMap} modalMissionCompleteMap - The map component for the modal.
    */
-  constructor(missionContainer, missionModel, taskContainer, modalMissionCompleteMap) {
+  constructor(missionContainer, missionModel, taskContainer, regionModel, labelContainer, overallStats, missionPanel,
+    missionProgressBar, minimapMissionProgress, audioEffect, panoManager, interactionLock,
+    modalMissionCompleteMap) {
     this.#missionContainer = missionContainer;
     this.#taskContainer = taskContainer;
+    this.#regionModel = regionModel;
+    this.#labelContainer = labelContainer;
+    this.#overallStats = overallStats;
+    this.#missionPanel = missionPanel;
+    this.#missionProgressBar = missionProgressBar;
+    this.#minimapMissionProgress = minimapMissionProgress;
+    this.#audioEffect = audioEffect;
+    this.#panoManager = panoManager;
+    this.#interactionLock = interactionLock;
     this.#map = modalMissionCompleteMap;
 
     this.#els = {
@@ -63,7 +100,7 @@ export class ModalMissionComplete {
       you: 'modal-region-progress-you',
       community: 'modal-region-progress-community',
       rate: 'modal-region-progress-rate',
-    });
+    }, regionModel, taskContainer);
 
     // The primary button starts the next explore mission (or loads a new area); secondary opens validation.
     this.#els.primaryButton.addEventListener('click', () => this.#closeModal('primary'));
@@ -92,7 +129,7 @@ export class ModalMissionComplete {
    */
   update(mission, region) {
     const unit = { units: util.turfDistanceUnits() };
-    const isRoute = svl.regionModel.isRoute;
+    const isRoute = this.#regionModel.isRoute;
 
     this.#buildLabelLegend();
     this.#updateTitle(mission, region);
@@ -116,13 +153,13 @@ export class ModalMissionComplete {
     // Distance and the user's own label count come from data already on the client (the user's labels for this
     // region are loaded at page load; see /label/resumeMission), so they're filled in synchronously.
     this.#els.distanceAll.textContent = i18next.t('mission-complete.stat-distance-all', {
-      distance: this.#formatDistance(region.allUsersCompletedLineDistance()),
+      distance: this.#formatDistance(this.#taskContainer.getAllUsersCompletedTaskDistance()),
     });
     this.#els.distanceYou.textContent = i18next.t('mission-complete.stat-distance-you', {
-      distance: this.#formatDistance(region.completedLineDistance(unit)),
+      distance: this.#formatDistance(this.#taskContainer.getCompletedTaskDistance(unit)),
     });
     this.#els.labelsYou.textContent = i18next.t('mission-complete.stat-labels-you', {
-      count: this.#formatNumber(svl.labelContainer.countLabels()),
+      count: this.#formatNumber(this.#labelContainer.countLabels()),
     });
 
     // The region-wide label total is the only stat that needs the server, so fetch it (skipped on routes).
@@ -132,9 +169,9 @@ export class ModalMissionComplete {
   /** Sets the title and subtitle, accounting for finishing a route or a whole region. */
   #updateTitle(mission, region) {
     const regionName = region.getProperty('name');
-    if (svl.regionModel.isRouteComplete) {
+    if (this.#regionModel.isRouteComplete) {
       this.#els.title.textContent = i18next.t('mission-complete.title-route-complete');
-    } else if (svl.regionModel.isRegionComplete) {
+    } else if (this.#regionModel.isRegionComplete) {
       this.#els.title.textContent = i18next.t('mission-complete.title-region-complete', { regionName });
     } else {
       this.#els.title.textContent = i18next.t('mission-complete.title-generic');
@@ -147,8 +184,9 @@ export class ModalMissionComplete {
 
   /** Shows the mission badge for the user's total completed-mission count, matching the dashboard. */
   #updateBadge() {
-    const liveCount = svl.overallStats.getLiveMissionCount();
-    const missionCount = liveCount === null ? svl.missionsCompleted : liveCount;
+    const missionsThisSession = this.#missionContainer.getMissionsCompletedThisSession();
+    const liveCount = this.#overallStats.getLiveMissionCount(missionsThisSession);
+    const missionCount = liveCount === null ? missionsThisSession : liveCount;
     const earnedLevel = BadgeAchievements.getLevelForValue('missions', missionCount);
 
     // Show the highest earned badge; before the first is earned (or the first badge if none earned yet).
@@ -259,7 +297,7 @@ export class ModalMissionComplete {
     // Community tier: on a route, the streets still left to do; otherwise, all streets completed by any user. A street
     // given up on for missing imagery is drawn as walked above, so leaving it in here would draw it twice — done and
     // outstanding — on the map celebrating a route the labeler just finished.
-    const communityTasks = svl.regionModel.isRoute
+    const communityTasks = this.#regionModel.isRoute
       ? this.#taskContainer.getUnwalkedTasks()
       : this.#taskContainer.getCompletedTasksAllUsersUsingPriority();
 
@@ -294,7 +332,7 @@ export class ModalMissionComplete {
    * @returns {object} GeoJSON FeatureCollection of label points.
    */
   #buildLabelData(missionId) {
-    const features = svl.labelContainer.getAllLabels()
+    const features = this.#labelContainer.getAllLabels()
       .filter((label) => !label.isDeleted() && label.getProperty('missionId') === missionId)
       .map((label) => {
         const latLng = label.toLatLng();
@@ -313,17 +351,14 @@ export class ModalMissionComplete {
     return { type: 'FeatureCollection', features };
   }
 
-  /** Shows the modal, locks walking, and decides which actions the buttons take. */
+  /** Shows the modal and decides which actions the buttons take; the tool is stopped under it. */
   show() {
     this.#isOpen = true;
 
-    svl.audioEffect.load('success');
-    svl.audioEffect.play('success');
+    this.#audioEffect.load('success');
+    this.#audioEffect.play('success');
 
-    svl.navigationService.disableWalking();
-    svl.navigationService.lockDisableWalking();
-    // Walking is locked while the modal is up, so nothing on the minimap should look steppable.
-    if (svl.forwardCrumbs) svl.forwardCrumbs.clear();
+    this.#interactionLock.hold('mission-complete');
 
     this.#els.holder.style.visibility = 'visible';
     this.#els.foreground.style.visibility = 'visible';
@@ -335,13 +370,13 @@ export class ModalMissionComplete {
     // The secondary button always opens validation. The primary button starts the next explore mission, or loads a
     // fresh area once the user has finished the whole route/region.
     this.#els.secondaryButton.textContent = i18next.t('mission-complete.button-try-validation');
-    if (svl.regionModel.isRouteComplete) {
+    if (this.#regionModel.isRouteComplete) {
       // After finishing a route, drop the user into free exploration right where they ended (#4451/#4579) rather
       // than jumping to a fresh region mission elsewhere.
       this.#els.primaryButton.textContent = i18next.t('mission-complete.button-keep-exploring-here');
       this.#primaryAction = 'exploreHere';
       this.#canContinue = true;
-    } else if (svl.regionModel.isRouteOrRegionComplete()) {
+    } else if (this.#regionModel.isRouteOrRegionComplete()) {
       this.#els.primaryButton.textContent = i18next.t('mission-complete.button-next-mission');
       this.#primaryAction = 'reloadExplore';
       this.#canContinue = true;
@@ -360,7 +395,7 @@ export class ModalMissionComplete {
    * Shows a badge-unlock toast over the modal if completing this mission crossed into a new mission-badge level.
    */
   #checkMissionBadgeUnlock() {
-    const liveCount = svl.overallStats.getLiveMissionCount();
+    const liveCount = this.#overallStats.getLiveMissionCount(this.#missionContainer.getMissionsCompletedThisSession());
     if (liveCount === null) return;
     const badge = BadgeAchievements.detectUnlock('missions', liveCount - 1, liveCount);
     if (badge) BadgeAchievements.showUnlockToast(badge, this.#els.foreground);
@@ -374,8 +409,8 @@ export class ModalMissionComplete {
     this.#els.foreground.style.visibility = 'hidden';
     this.#els.background.style.visibility = 'hidden';
 
-    svl.missionProgressBar.update(0);
-    if (svl.minimap) svl.minimap.resetMissionProgress(this.#missionContainer.getCurrentMission());
+    this.#missionProgressBar.update(0);
+    this.#minimapMissionProgress.reset(this.#missionContainer.getCurrentMission());
   }
 
   /**
@@ -390,19 +425,17 @@ export class ModalMissionComplete {
       window.location.replace('/explore');
     } else if (action === 'exploreHere') {
       // Seed a free-exploration session (#4451) at the exact pano/heading where the route ended.
-      const pos = svl.panoViewer.getPosition();
+      const pos = this.#panoManager.getPosition();
       const params = new URLSearchParams({
         lat: pos.lat,
         lng: pos.lng,
-        panoId: svl.panoViewer.getPanoId(),
-        heading: svl.panoViewer.getPov().heading,
+        panoId: this.#panoManager.getPanoId(),
+        heading: this.#panoManager.getPov().heading,
       });
       window.location.replace(`/explore?${params.toString()}`);
     } else {
-      svl.missionPanel.setMessage(this.#missionContainer.getCurrentMission());
-      svl.navigationService.unlockDisableWalking();
-      svl.navigationService.enableWalking();
-      if (svl.forwardCrumbs) svl.forwardCrumbs.refresh();
+      this.#missionPanel.setMessage(this.#missionContainer.getCurrentMission());
+      this.#interactionLock.release('mission-complete');
       this.hide();
     }
   }

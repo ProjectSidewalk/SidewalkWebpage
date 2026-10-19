@@ -1,17 +1,39 @@
 /**
- * Context Menu module. Responsible for displaying the context menu when clicking on a label on the canvas.
- *
- * @memberof svl
+ * The menu a clicked label opens, for rating, tagging and describing it. Whatever changes the label's look on the
+ * canvas (opening, closing, a severity pick) is announced through onChange, since the canvas is built after this.
  */
 
-import { svl } from '../svl.js';
 import { ShareWidget } from '../../common/share/ShareWidget.js';
 import { getImage, util } from '../../common/utilities.js';
 import '../../common/utilitiesSidewalk.js';
+import '../../../css/components/tag-pills.css';
+/** @typedef {import('../Main.js').ExploreConfig} ExploreConfig */
+/** @typedef {import('../Main.js').ContextMenuUi} ContextMenuUi */
+/** @typedef {import('./CanvasFrame.js').CanvasFrame} CanvasFrame */
+/** @typedef {import('../data/Form.js').Form} Form */
 /** @typedef {import('../label/Label.js').Label} Label */
+/** @typedef {import('../label/LabelContainer.js').LabelContainer} LabelContainer */
+/** @typedef {import('../alert/RatingReminderAlert.js').RatingReminderAlert} RatingReminderAlert */
+/** @typedef {import('../menu/LabelModes.js').LabelModes} LabelModes */
+/** @typedef {import('../navigation/NavigationService.js').NavigationService} NavigationService */
+/** @typedef {import('../data/Tracker.js').Tracker} Tracker */
 
 export class ContextMenu {
   labelTags; // Public: read by Keyboard.js. Populated by fetchLabelTags().
+
+  #config;
+  #frame;
+  #labelContainer;
+  #labelModes;
+  #ratingReminderAlert;
+  #form;
+  #tracker;
+
+  /** @type {Array<() => void>} */
+  #changeListeners = [];
+
+  /** @type {Array<(focused: boolean) => void>} */
+  #textFieldFocusListeners = [];
 
   #status = {
     targetLabel: null,
@@ -32,11 +54,25 @@ export class ContextMenu {
   #shareWidget = null;
 
   /**
-   * @param {{holder: HTMLElement, severityMenu: HTMLElement, severityRadioHolder: HTMLElement,
-   *   radioButtons: HTMLInputElement[], textBox: HTMLInputElement, tagHolder: HTMLElement,
-   *   closeButton: HTMLElement}} uiContextMenu - The context menu's DOM elements.
+   * @param {ContextMenuUi} uiContextMenu - The context menu's DOM elements.
+   * @param {ExploreConfig} config
+   * @param {CanvasFrame} frame - Says how big the label icon the menu is anchored to is.
+   * @param {LabelContainer} labelContainer - Owns the labels this menu edits and whether they may be deleted.
+   * @param {LabelModes} labelModes - Kept from switching modes while the description is being typed.
+   * @param {NavigationService} navigationService - Whose moves close the menu.
+   * @param {RatingReminderAlert} ratingReminderAlert - Told whether the label was rated when the menu closes.
+   * @param {Form} form - Saves the label before it is shared.
+   * @param {Tracker} tracker
    */
-  constructor(uiContextMenu) {
+  constructor(uiContextMenu, config, frame, labelContainer, labelModes, navigationService, ratingReminderAlert, form,
+    tracker) {
+    this.#config = config;
+    this.#frame = frame;
+    this.#labelContainer = labelContainer;
+    this.#labelModes = labelModes;
+    this.#ratingReminderAlert = ratingReminderAlert;
+    this.#form = form;
+    this.#tracker = tracker;
     this.#menuWindow = uiContextMenu.holder;
     this.#severityMenu = uiContextMenu.severityMenu;
     this.#severityRadioHolder = uiContextMenu.severityRadioHolder;
@@ -47,6 +83,9 @@ export class ContextMenu {
     this.#tagHolder = uiContextMenu.tagHolder;
     this.#initShareWidget();
 
+    navigationService.onMoveStarted(() => {
+      if (this.isOpen()) this.hide();
+    });
     document.addEventListener('mousedown', (e) => this.#handleMouseDown(e));
     this.#menuWindow.addEventListener('mousedown', (e) => this.#handleMenuWindowMouseDown(e));
     for (const radio of this.#severityRadios) radio.addEventListener('change', (e) => this.#handleSeverityChange(e));
@@ -58,6 +97,22 @@ export class ContextMenu {
       ?.addEventListener('click', () => this.#handleDoneButtonClick());
     this.#menuWindow.querySelector('#context-menu-delete')
       ?.addEventListener('click', () => this.#handleDeleteButtonClick());
+  }
+
+  /**
+   * Told when the menu opened or closed or a severity was picked, each of which changes how the label is drawn.
+   * @param {() => void} listener
+   */
+  onChange(listener) {
+    this.#changeListeners.push(listener);
+  }
+
+  /**
+   * Told when the description box takes or loses focus, so keyboard shortcuts stay off while typing.
+   * @param {(focused: boolean) => void} listener
+   */
+  onTextFieldFocusChanged(listener) {
+    this.#textFieldFocusListeners.push(listener);
   }
 
   /**
@@ -100,42 +155,41 @@ export class ContextMenu {
     const clickedOut = !this.#menuWindow.contains(/** @type {Node} */ (e.target));
     if (this.isOpen()) {
       if (clickedOut) {
-        svl.tracker.push('ContextMenu_CloseClickOut');
+        this.#tracker.push('ContextMenu_CloseClickOut', null, this.#status.targetLabel);
         this.handleSeverityPopup();
       }
       this.hide();
-      svl.navigationService.setStatus('contextMenuWasOpen', true);
     }
   }
 
   #handleDescriptionTextBoxChange(e) {
     const description = /** @type {HTMLInputElement} */ (e.currentTarget).value;
-    svl.tracker.push('ContextMenu_TextBoxChange', { Description: description });
+    this.#tracker.push('ContextMenu_TextBoxChange', { Description: description }, this.#status.targetLabel);
     if (this.#status.targetLabel) {
-      this.#status.targetLabel.setProperty('description', description);
+      this.#status.targetLabel.edit({ description });
     }
   }
 
   #handleDescriptionTextBoxBlur() {
-    svl.tracker.push('ContextMenu_TextBoxBlur');
-    svl.ribbon.enableModeSwitch();
-    svl.keyboard.setStatus('focusOnTextField', false);
+    this.#tracker.push('ContextMenu_TextBoxBlur', null, this.#status.targetLabel);
+    this.#labelModes.switching.release('description');
+    this.#textFieldFocusListeners.forEach((listener) => listener(false));
   }
 
   #handleDescriptionTextBoxFocus() {
-    svl.tracker.push('ContextMenu_TextBoxFocus');
-    svl.ribbon.disableModeSwitch();
-    svl.keyboard.setStatus('focusOnTextField', true);
+    this.#tracker.push('ContextMenu_TextBoxFocus', null, this.#status.targetLabel);
+    this.#labelModes.switching.hold('description');
+    this.#textFieldFocusListeners.forEach((listener) => listener(true));
   }
 
   #handleCloseButtonClick() {
-    svl.tracker.push('ContextMenu_CloseButtonClick');
+    this.#tracker.push('ContextMenu_CloseButtonClick', null, this.#status.targetLabel);
     this.handleSeverityPopup();
     this.hide();
   }
 
   #handleDoneButtonClick() {
-    svl.tracker.push('ContextMenu_DoneButtonClick');
+    this.#tracker.push('ContextMenu_DoneButtonClick', null, this.#status.targetLabel);
     this.handleSeverityPopup();
     this.hide();
   }
@@ -147,23 +201,20 @@ export class ContextMenu {
    */
   #handleDeleteButtonClick() {
     const label = this.#status.targetLabel;
-    if (!label || svl.canvas.getStatus('disableLabelDelete')) return;
-    if (svl.onboarding && svl.onboarding.getCurrentLabelId() !== label.getProperty('temporaryLabelId')) return;
+    if (!this.#labelContainer.canDelete(label)) return;
 
-    svl.tracker.push('ContextMenu_LabelDelete', { labelType: label.getLabelType() });
+    this.#tracker.push('ContextMenu_LabelDelete', { labelType: label.getLabelType() }, label);
     this.hide();
-    svl.labelContainer.removeLabel(label);
-    svl.canvas.hideHoverCard();
-    svl.canvas.setCurrentLabel(undefined);
+    this.#labelContainer.removeLabel(label);
   }
 
   handleSeverityPopup() {
-    const labels = svl.labelContainer.getAllLabels();
+    const labels = this.#labelContainer.getAllLabels();
     if (labels.length > 0) {
       const lastLabelProps = labels[labels.length - 1].getProperties();
       // Only call ratingReminderAlert() for label types that have a severity rating.
       if (util.misc.labelTypeHasSeverity(lastLabelProps.labelType)) {
-        svl.ratingReminderAlert.ratingClicked(lastLabelProps.severity);
+        this.#ratingReminderAlert.ratingClicked(lastLabelProps.severity);
       }
     }
   }
@@ -171,12 +222,12 @@ export class ContextMenu {
   #handleSeverityChange(e) {
     const severity = parseInt(/** @type {HTMLInputElement} */ (e.currentTarget).value, 10);
     const label = this.#status.targetLabel;
-    svl.tracker.push('ContextMenu_RadioChange', { LabelType: label.getLabelType(), RadioValue: severity });
+    this.#tracker.push('ContextMenu_RadioChange', { LabelType: label.getLabelType(), RadioValue: severity }, label);
 
     this.updateRadioButtonImages();
     if (label) {
-      label.setProperty('severity', severity);
-      svl.canvas.clear().render();
+      label.edit({ severity });
+      this.#changeListeners.forEach((listener) => listener());
     }
   }
 
@@ -264,7 +315,8 @@ export class ContextMenu {
    */
   #handleTagClick(e) {
     const button = /** @type {HTMLButtonElement} */ (e.currentTarget);
-    let labelTags = this.#status.targetLabel.getProperty('tagIds');
+    const label = this.#status.targetLabel;
+    let labelTags = [...label.getProperty('tagIds')]; // A copy: the label's own list changes only through edit().
 
     // A shortcut key's click and Enter on a focused button have no cursor position, so both count as keyboard.
     const wasClickedByMouse = e.isTrusted && e.clientX !== 0 && e.clientY !== 0;
@@ -284,20 +336,20 @@ export class ContextMenu {
       // Log the tag click.
       labelTags.push(tag.tag_id);
       if (wasClickedByMouse) {
-        svl.tracker.push('ContextMenu_TagAdded', { tagId: tag.tag_id, tagName: tag.tag });
+        this.#tracker.push('ContextMenu_TagAdded', { tagId: tag.tag_id, tagName: tag.tag }, label);
       } else {
-        svl.tracker.push('KeyboardShortcut_TagAdded', { tagId: tag.tag_id, tagName: tag.tag });
+        this.#tracker.push('KeyboardShortcut_TagAdded', { tagId: tag.tag_id, tagName: tag.tag }, label);
       }
     } else {
       labelTags.splice(labelTags.indexOf(tag.tag_id), 1);
       if (wasClickedByMouse) {
-        svl.tracker.push('ContextMenu_TagRemoved', { tagId: tag.tag_id, tagName: tag.tag });
+        this.#tracker.push('ContextMenu_TagRemoved', { tagId: tag.tag_id, tagName: tag.tag }, label);
       } else {
-        svl.tracker.push('KeyboardShortcut_TagRemoved', { tagId: tag.tag_id, tagName: tag.tag });
+        this.#tracker.push('KeyboardShortcut_TagRemoved', { tagId: tag.tag_id, tagName: tag.tag }, label);
       }
     }
     button.classList.toggle('tag-pill--active');
-    this.#status.targetLabel.setProperty('tagIds', labelTags);
+    label.edit({ tagIds: labelTags });
     button.blur();
     // For events that depend on up-to-date tagIds.
     this.#tagHolder.dispatchEvent(new CustomEvent('tagIds-updated'));
@@ -318,7 +370,8 @@ export class ContextMenu {
     this.labelTags.forEach((tag) => {
       if (tag.tag_id === tagId && labelTags.includes(tagId)) {
         labelTags.splice(labelTags.indexOf(tag.tag_id), 1);
-        svl.tracker.push('ContextMenu_TagAutoRemoved', { tagId: tag.tag_id, tagName: tag.tag });
+        this.#tracker.push('ContextMenu_TagAutoRemoved', { tagId: tag.tag_id, tagName: tag.tag },
+          this.#status.targetLabel);
       }
     });
     return labelTags;
@@ -334,7 +387,7 @@ export class ContextMenu {
       // Every close logs a blur row before the close row, focused or not.
       if (document.activeElement === this.#descriptionTextBox) this.#descriptionTextBox.blur();
       else this.#handleDescriptionTextBoxBlur();
-      svl.tracker.push('ContextMenu_Close');
+      this.#tracker.push('ContextMenu_Close', null, this.#status.targetLabel);
     }
 
     // The share popover lives in this panel's header, so it goes too. Hiding the panel around it would leave the
@@ -344,9 +397,9 @@ export class ContextMenu {
     this.#menuWindow.style.visibility = 'hidden';
     this.#setStatus('visibility', 'hidden');
 
-    // Restore the target label's icon to full opacity (see Label.render). Only when the panel was actually open —
+    // The target label's icon returns to full opacity (see Label.render). Only when the panel was actually open —
     // hide() is also called speculatively (navigation, keyboard shortcuts) and shouldn't redraw the canvas then.
-    if (wasOpen) svl.canvas.clear().render();
+    if (wasOpen) this.#changeListeners.forEach((listener) => listener());
 
     return this;
   }
@@ -374,13 +427,13 @@ export class ContextMenu {
   // Enable rating severity for a given tutorial label.
   enableRatingSeverityForTutorialLabel(tutorialLabelNumber) {
     this.#setStatus('ratingSeverityEnabledForTutorialLabel', tutorialLabelNumber);
-    if (svl.isOnboarding() && !this.isRatingSeverityDisabled()) this.#showRatingSeverityEnabled();
+    if (this.#config.isOnboarding && !this.isRatingSeverityDisabled()) this.#showRatingSeverityEnabled();
   }
 
   // Enable tagging for a given tutorial label.
   enableTaggingForTutorialLabel(tutorialLabelNumber) {
     this.#setStatus('taggingEnabledForTutorialLabel', tutorialLabelNumber);
-    if (svl.isOnboarding() && !this.isTaggingDisabled()) this.#showTaggingEnabled();
+    if (this.#config.isOnboarding && !this.isTaggingDisabled()) this.#showTaggingEnabled();
   }
 
   // Switches the severity buttons on the current context menu back on.
@@ -502,7 +555,7 @@ export class ContextMenu {
 
               button.setAttribute(
                 // eslint-disable-next-line ps/escape-in-markup -- our tag text, with its underline markup.
-                'data-ps-tooltip', `${tooltipHeader}<br/>${tooltipImage}<br/> <i>${tooltipFooter}</i>`,
+                'data-ps-tooltip-html', `${tooltipHeader}<br/>${tooltipImage}<br/> <i>${tooltipFooter}</i>`,
               );
             });
           }
@@ -527,7 +580,7 @@ export class ContextMenu {
         // Image size (and aspect ratio) is set in CSS so it scales with the UI; see svl-context-menu.css.
         const tooltipImage = `<img class="context-menu-tooltip__img--severity" src="${util.escapeHTML(img)}"/>`;
         for (const button of document.querySelectorAll(`.severity-button[data-severity="${sev}"]`)) {
-          button.setAttribute('data-ps-tooltip', `${tooltipHeader}<br/>${tooltipImage}<br/>${tooltipFooter}`);
+          button.setAttribute('data-ps-tooltip-html', `${tooltipHeader}<br/>${tooltipImage}<br/>${tooltipFooter}`);
         }
       });
     }
@@ -539,7 +592,7 @@ export class ContextMenu {
   #removePrevSeverityTooltips() {
     for (let severity = 1; severity < 4; severity++) {
       for (const button of document.querySelectorAll(`.severity-button[data-severity="${severity}"]`)) {
-        button.removeAttribute('data-ps-tooltip');
+        button.removeAttribute('data-ps-tooltip-html');
       }
     }
   }
@@ -566,7 +619,7 @@ export class ContextMenu {
         this.#headerType.textContent = util.misc.labelTypeName(labelType);
       }
       // The tutorial can forbid deleting the label it just had you place.
-      this.#menuWindow.classList.toggle('context-menu--no-delete', Boolean(svl.canvas.getStatus('disableLabelDelete')));
+      this.#menuWindow.classList.toggle('context-menu--no-delete', !this.#labelContainer.canDelete(targetLabel));
 
       this.#setTags(targetLabel);
       this.#setTagColor(targetLabel);
@@ -584,7 +637,7 @@ export class ContextMenu {
       }
 
       // Enable rating severity and tagging on tutorial labels if appropriate.
-      if (svl.isOnboarding()) {
+      if (this.#config.isOnboarding) {
         if (!this.isRatingSeverityDisabled()) this.#showRatingSeverityEnabled();
         else this.#showRatingSeverityDisabled();
         if (!this.isTaggingDisabled()) this.#showTaggingEnabled();
@@ -594,12 +647,9 @@ export class ContextMenu {
       this.#setStatus('visibility', 'visible');
 
       if (description) this.#descriptionTextBox.value = description;
-      const labelProps = this.#status.targetLabel.getProperties();
 
       // Don't push event on Occlusion labels; they don't open ContextMenus.
-      svl.tracker.push(
-        'ContextMenu_Open', { auditTaskId: labelProps.auditTaskId }, { temporaryLabelId: labelProps.temporaryLabelId },
-      );
+      this.#tracker.push('ContextMenu_Open', null, targetLabel);
     }
     if (util.misc.labelTypeHasSeverity(labelType)) {
       this.updateRadioButtonImages();
@@ -616,12 +666,12 @@ export class ContextMenu {
     // targetLabel is only set for label types that get a menu at all (Occlusion doesn't).
     if (this.#getStatus('targetLabel')) {
       this.#pointShareAtLabel(this.#getStatus('targetLabel'));
-      util.anchorPanelToLabel(this.#menuWindow, labelCoord, svl.LABEL_ICON_RADIUS);
+      util.anchorPanelToLabel(this.#menuWindow, labelCoord, this.#frame.iconRadius);
       this.#menuWindow.style.visibility = 'visible';
 
-      // Fade the target label's icon (see Label.render). Not every caller renders after opening the panel, and the
-      // ones that do — the hover card's click handler, for one — render before it, so do it here.
-      svl.canvas.clear().render();
+      // The target label's icon fades (see Label.render). Not every caller renders after opening the panel, and the
+      // ones that do — the hover card's click handler, for one — render before it, so it is announced from here.
+      this.#changeListeners.forEach((listener) => listener());
     }
   }
 
@@ -635,7 +685,7 @@ export class ContextMenu {
     trigger.addEventListener('click', () => {
       // Only the opening click. The same handler runs on the click that dismisses the popover, which is not a share.
       if (this.#shareWidget?.isOpen()) return;
-      svl.tracker.push('Click_LabelCardShare', { labelType: this.#getStatus('targetLabel')?.getLabelType() });
+      this.#tracker.push('Click_LabelCardShare', { labelType: this.#getStatus('targetLabel')?.getLabelType() });
     });
     // Same submit-then-share path as the collapsed card: this menu opens the moment a label is placed, which is the
     // most likely moment for it to have no server-side id yet.
@@ -644,7 +694,7 @@ export class ContextMenu {
       fitToViewport: true,
       beforeOpen: async () => {
         const label = this.#getStatus('targetLabel');
-        await svl.canvas.ensureLabelSaved(label);
+        await this.#form.ensureLabelSaved(label);
         if (label) this.#pointShareAtLabel(label);
       },
     });
@@ -656,7 +706,7 @@ export class ContextMenu {
    * @param {Label} label
    */
   #pointShareAtLabel(label) {
-    const shareable = !svl.isOnboarding() && !label.isDeleted();
+    const shareable = !this.#config.isOnboarding && !label.isDeleted();
     this.#menuWindow.classList.toggle('context-menu--no-share', !shareable);
     if (!this.#shareWidget || !shareable) return;
 

@@ -137,11 +137,7 @@
     </section>
   </main>
 
-  <link href='@assets.path("css/components/label-detail.css")' rel="stylesheet">
-  <link href='@assets.path("css/components/label-type-picker.css")' rel="stylesheet">
-  <link href='@assets.path("css/components/pano-attribution.css")' rel="stylesheet">
-  <link href='@assets.path("css/components/tag-pills.css")' rel="stylesheet">
-  <link href='@assets.path("css/pages/shared-label.css")' rel="stylesheet">
+  @ViteAssets.stylesheets("sharedLabel")
 
   <script src='@assets.path("vendor/panzoom/panzoom-9.4.4.min.js")'></script>
   @if(commonData.imagerySource == PanoSource.Infra3d) {

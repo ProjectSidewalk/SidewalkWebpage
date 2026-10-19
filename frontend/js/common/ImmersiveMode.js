@@ -18,9 +18,9 @@
  * link shared from the mode opens into it.
  *
  * @example
- * svl.immersiveMode = new ImmersiveMode({
- *   tracker: svl.tracker, bodyClass: 'svl-immersive', relayout: () => svl.relayout?.(),
- *   isDisabled: () => svl.isOnboarding(), frame: () => svl.CANVAS_FRAME,
+ * new ImmersiveMode({
+ *   tracker, bodyClass: 'svl-immersive', relayout: () => this.#relayout?.(),
+ *   isDisabled: () => config.isOnboarding, frame: () => ({ width: frame.width, height: frame.height }),
  * });
  */
 

@@ -3,12 +3,15 @@
  * the user dashboard and are seeded from /userapi/basicStats, then kept live as the user labels and explores.
  */
 
-import { svl } from '../svl.js';
 import { BadgeAchievements } from '../../common/BadgeAchievements.js';
 import { util } from '../../common/utilities.js';
 import '../../common/utilitiesMath.js';
+/** @typedef {import('./BadgeProgress.js').BadgeProgress} BadgeProgress */
+/** @typedef {import('../Main.js').ExploreConfig} ExploreConfig */
 
 export class OverallStats {
+  #config;
+  #badgeProgress;
   #labelsEl;
   #accuracyEl;
   #accuracyHolderEl;
@@ -24,7 +27,13 @@ export class OverallStats {
   // Becomes true once basicStats has seeded the totals, so the seed itself never triggers a badge-unlock toast.
   #seeded = false;
 
-  constructor() {
+  /**
+   * @param {ExploreConfig} config - The tutorial's labels and distance don't count.
+   * @param {BadgeProgress} badgeProgress - Shown the totals as they change.
+   */
+  constructor(config, badgeProgress) {
+    this.#config = config;
+    this.#badgeProgress = badgeProgress;
     this.#labelsEl = document.getElementById('explore-sidebar__stat-labels');
     this.#accuracyEl = document.getElementById('explore-sidebar__stat-accuracy');
     this.#accuracyHolderEl = document.getElementById('explore-sidebar__stat-accuracy-holder');
@@ -55,16 +64,14 @@ export class OverallStats {
     this.#refreshBadges();
   }
 
-  /** Pushes the current totals to the badge progress display, if it exists yet. */
+  /** Pushes the current totals to the badge progress display. */
   #refreshBadges() {
-    if (svl.badgeProgress) {
-      svl.badgeProgress.render(this.#stats.labelCount, this.#stats.distance, this.#isMetric);
-    }
+    this.#badgeProgress.render(this.#stats.labelCount, this.#stats.distance, this.#isMetric);
   }
 
   /** Increments the global label count when a label is added. Tutorial labels aren't saved, so they don't count. */
   incrementLabelCount() {
-    if (svl.isOnboarding()) return;
+    if (this.#config.isOnboarding) return;
     const prev = this.#stats.labelCount;
     this.#stats.labelCount += 1;
     this.#renderLabelCount();
@@ -73,7 +80,7 @@ export class OverallStats {
 
   /** Decrements the global label count when a label is removed. Tutorial labels aren't saved, so they don't count. */
   decrementLabelCount() {
-    if (svl.isOnboarding()) return;
+    if (this.#config.isOnboarding) return;
     this.#stats.labelCount -= 1;
     this.#renderLabelCount();
   }
@@ -85,7 +92,7 @@ export class OverallStats {
    */
   setRegionAuditedDistance(regionDistance) {
     // Tutorial exploration isn't saved, so it doesn't count toward the global distance or the exploring badge.
-    if (svl.isOnboarding()) return;
+    if (this.#config.isOnboarding) return;
     if (this.#sessionStartRegionDist === null) this.#sessionStartRegionDist = regionDistance;
     if (this.#sessionStartTotalDist === null) return; // basicStats not loaded yet.
     const prev = this.#stats.distance;
@@ -110,10 +117,12 @@ export class OverallStats {
 
   /**
    * The user's total completed-mission count at the moment they finished the just-completed mission.
+   * @param {number} missionsCompletedThisSession - How many missions have been finished since the page loaded.
+   * @returns {?number} Null until the stats have loaded.
    */
-  getLiveMissionCount() {
+  getLiveMissionCount(missionsCompletedThisSession) {
     if (this.#sessionStartMissionCount === null) return null;
-    return this.#sessionStartMissionCount + svl.missionsCompleted;
+    return this.#sessionStartMissionCount + missionsCompletedThisSession;
   }
 
   /** Fetches the user's basic stats and seeds the sidebar values. */
@@ -148,6 +157,6 @@ export class OverallStats {
     }
     // The tooltip can't be clicked, so the dashboard link in the text is flattened to plain words.
     const tip = i18next.t(hasAccuracy ? 'right-ui.accuracy-tooltip' : 'right-ui.no-accuracy-tooltip');
-    this.#accuracyHolderEl.setAttribute('data-ps-tooltip', util.escapeHTML(util.htmlToText(tip)));
+    this.#accuracyHolderEl.setAttribute('data-ps-tooltip', util.htmlToText(tip));
   }
 }

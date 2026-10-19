@@ -16,6 +16,20 @@ const i18nEscapeInMarkup = require('./tools/lint/eslint-rules/i18n-escape-in-mar
 const escapeInMarkup = require('./tools/lint/eslint-rules/escape-in-markup');
 const psPlugin = {rules: {'i18n-escape-in-markup': i18nEscapeInMarkup, 'escape-in-markup': escapeInMarkup}};
 
+// The house style: stylistic.configs.customize({...}) supplies ~50 whitespace/formatting rules as one maintained set,
+// and these options encode ours. Named so test/js can share its indent rule rather than restate it.
+// See https://eslint.style/guide/config-presets#configuration-factory
+const houseStyle = stylistic.configs.customize({
+  indent: 2,
+  quotes: 'single',
+  semi: true,
+  jsx: false,
+  arrowParens: true,
+  braceStyle: '1tbs',
+  blockSpacing: true,
+  commaDangle: 'always-multiline',
+}).rules;
+
 module.exports = [
   // ESLint core "recommended" -- ~45 correctness rules. Listed first so the explicit block below overrides it.
   // Scoped to JS rather than left global: these are JavaScript-correctness rules, and on the translation JSON they
@@ -29,7 +43,7 @@ module.exports = [
     },
     languageOptions: {
       ecmaVersion: 2022, // ES2022 -- needed for class fields, including `#private` members.
-      sourceType: 'module', // Every file is an ES module, bundled per page by Rolldown (#4467).
+      sourceType: 'module', // Every file is an ES module, bundled per page by Vite (#4467).
       globals: {
         ...globals.browser, // was `env: { browser: true }`.
         ...globals.es2021,  // was `env: { es6: true }`; supplies Promise/Map/Set/Symbol/globalThis etc.
@@ -44,12 +58,14 @@ module.exports = [
         i18nextHttpBackend: 'readonly',
         infra3dapi: 'readonly',
         mapboxgl: 'readonly',
+        maplibregl: 'readonly',
         MapboxLanguage: 'readonly',
         MapboxSearchBox: 'readonly',
         mapillary: 'readonly',
         pannellum: 'readonly',
         panzoom: 'readonly',
         PhotoSphereViewer: 'readonly',
+        pmtiles: 'readonly',
         proj4: 'readonly',
         THREE: 'readonly',
         TomSelect: 'readonly',
@@ -122,20 +138,9 @@ module.exports = [
       'no-useless-concat': 'error',
       'require-await': 'error', // An async function with no await is usually a mistake.
 
-      // --- Formatting: @stylistic preset baseline ---
-      // stylistic.configs.customize({...}) supplies ~50 whitespace/formatting rules as one maintained set; the
-      // options below encode our house style. The block after it holds the rules the preset doesn't cover and
-      // our deliberate divergences. See https://eslint.style/guide/config-presets#configuration-factory
-      ...stylistic.configs.customize({
-        indent: 2,
-        quotes: 'single',
-        semi: true,
-        jsx: false,
-        arrowParens: true,
-        braceStyle: '1tbs',
-        blockSpacing: true,
-        commaDangle: 'always-multiline',
-      }).rules,
+      // --- Formatting: @stylistic preset baseline (houseStyle, above) ---
+      // The block after it holds the rules the preset doesn't cover and our deliberate divergences.
+      ...houseStyle,
 
       // Rules the preset doesn't set -- keep our own:
       '@stylistic/eol-last': ['error', 'always'], // Every file ends with a single trailing newline (docs/style-guide.md).
@@ -267,31 +272,34 @@ module.exports = [
   },
 
   // --- jsdom unit suite (test/js/) ---
-  // `no-undef` stays on: a typo'd helper in a rarely-run branch is otherwise invisible. Only the registries a suite
-  // fakes on `window` (test/js/moduleTransform.js) are project-wide names; anything else hoisted onto `global` is
-  // declared per-file with `/* global */`. The @stylistic house style is not applied: these files are 4-space, and
-  // reformatting 26k lines would bury every real finding (#2487).
+  // `no-undef` stays on: a typo'd helper in a rarely-run branch is otherwise invisible; the page globals the suites
+  // stub are listed below. Of the house style only the indent is applied (#5778): the rest would flag ~1,400 lines,
+  // mostly `{a}` vs `{ a }` spacing, a churn no reader gains from.
   {files: ['test/js/**/*.js'], ...js.configs.recommended},
   {
     files: ['test/js/**/*.js'],
     languageOptions: {
       ecmaVersion: 2022,
-      sourceType: 'commonjs',
+      sourceType: 'module',
       globals: {
         ...globals.node,
-        ...globals.jest,
+        ...globals.vitest,
         ...globals.browser,
-        svl: 'writable',
-        svv: 'writable',
-        sg: 'writable',
-        util: 'writable',
       },
     },
+    plugins: {'@stylistic': stylistic},
     rules: {
+      '@stylistic/indent': houseStyle['@stylistic/indent'],
       'no-unused-vars': ['error', {argsIgnorePattern: '^_'}],
       'no-var': 'error',
       'prefer-const': 'error',
       'eqeqeq': ['error', 'always'],
     },
+  },
+  // The suite's Node-side scripts (the gsv-fov-probe recorder and analyzer) get the same indent and nothing else.
+  {
+    files: ['test/js/**/*.mjs', 'test/js/**/*.cjs'],
+    plugins: {'@stylistic': stylistic},
+    rules: {'@stylistic/indent': houseStyle['@stylistic/indent']},
   },
 ];

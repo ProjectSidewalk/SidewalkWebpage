@@ -1,18 +1,32 @@
 /**
- * A Label module.
- *
- * @memberof svl
+ * A label placed on a pano: where it is, what it says, how it is drawn on the canvas, and its marker on the minimap.
+ * Its hover card belongs to Canvas, which draws it from the label's properties.
  */
 
-import { svl } from '../svl.js';
 import { util } from '../../common/utilities.js';
 import '../../common/pano-viewer/panoUtilities.js';
 import '../../common/utilitiesSidewalk.js';
+/** @typedef {import('../canvas/CanvasFrame.js').CanvasFrame} CanvasFrame */
+/** @typedef {import('../navigation/Minimap.js').Minimap} Minimap */
+/** @typedef {import('../navigation/Minimap.js').MinimapMarker} MinimapMarker */
+/** @typedef {import('../../common/pano-viewer/PanoStore.js').PanoStore} PanoStore */
+
+/**
+ * The lat/lng estimator's constants, owned by the backend (PanoDataService.LatLngEstimation).
+ * @typedef {object} LatLngEstimation
+ * @property {number} cameraHeightM
+ * @property {number} blendDeg
+ * @property {number} maxDistanceM
+ */
 
 export class Label {
   className = 'Label'; // Read by Canvas.js for type dispatch (`item.className === 'Label'`).
 
-  #googleMarker;
+  #frame;
+  #latLngEstimation;
+
+  /** @type {?MinimapMarker} This label's icon on the minimap, once LabelContainer has placed it. */
+  #minimapMarker = null;
 
   // Which era of the user's work this label belongs to on the minimap: 'current' (this mission), 'prior' (an earlier
   // mission in this region), or 'outdated' (placed on imagery that has since been replaced, #4945). See minimapEra.
@@ -20,7 +34,7 @@ export class Label {
   #minimapEra = 'current';
 
   // True while the "My earlier labels" legend toggle hides this label's minimap marker. Kept apart from the deleted /
-  // visibility status so render() can't put the marker back on the map the next time the pano is drawn.
+  // visibility status so render() can't show the marker again the next time the pano is drawn.
   #minimapSuppressed = false;
 
   // Size the label-type icons are rasterized to before being drawn (see preloadIcons). The label canvas renders at
@@ -37,6 +51,12 @@ export class Label {
 
   // Resolves when this label's crop reaches the server; null until a submission hands us an id. See cropUploaded().
   #cropUpload = null;
+
+  // The properties the labeler edits after placing a label, which a submission sends. Set only through edit().
+  static #EDITABLE = new Set(['severity', 'tagIds', 'description']);
+
+  /** @type {Array<() => void>} */
+  #editListeners = [];
 
   #properties = {
     labelId: 'DefaultValue',
@@ -76,8 +96,13 @@ export class Label {
 
   /**
    * @param {object} params - Initial label property values (only keys present in #properties are copied).
+   * @param {CanvasFrame} frame - The frame the label is drawn in and hit-tested against.
+   * @param {LatLngEstimation} latLngEstimation - The estimator's constants, for toLatLng.
+   * @param {PanoStore} panoStore - Where a new label's pano metadata comes from.
    */
-  constructor(params) {
+  constructor(params, frame, latLngEstimation, panoStore) {
+    this.#frame = frame;
+    this.#latLngEstimation = latLngEstimation;
     for (const attrName in params) {
       if (Object.hasOwn(params, attrName) && Object.hasOwn(this.#properties, attrName)) {
         this.#properties[attrName] = params[attrName];
@@ -86,7 +111,7 @@ export class Label {
 
     // Save pano data and calculate pano_x/y if the label is new.
     if (this.#properties.panoXY === undefined) {
-      const panoData = svl.panoStore.getPanoData(this.#properties.panoId).getProperties();
+      const panoData = panoStore.getPanoData(this.#properties.panoId).getProperties();
 
       this.#properties.panoWidth = panoData.width;
       this.#properties.panoHeight = panoData.height;
@@ -98,37 +123,6 @@ export class Label {
         this.#properties.panoWidth, this.#properties.panoHeight,
       );
     }
-
-    // Create the marker on the minimap, styled for the era it belongs to (#4945).
-    const latlng = this.toLatLng();
-    this.#minimapEra = Label.minimapEra(this.#properties, Label.#currentMissionId());
-    this.#googleMarker = Label.createMinimapMarker(this.#properties.labelType, latlng, this.#minimapEra);
-    this.#googleMarker.map = svl.minimap.getMap();
-    // Click the marker to return to this label's pano (#2561). gmpClickable (set per era in styleMinimapMarker) is what
-    // makes the AdvancedMarkerElement emit gmp-click, so only a current-era marker ever does.
-    this.#googleMarker.addListener('gmp-click', () => this.#returnToLabelFromMinimap());
-  }
-
-  /**
-   * Returns to this label's pano and faces it so the user can review or re-mark it (#2561). Ignored during onboarding
-   * or if the label isn't from the current mission (returning across missions would desync the map's active task).
-   */
-  #returnToLabelFromMinimap() {
-    if (svl.isOnboarding()) return;
-    const currMissionId = svl.missionContainer.getCurrentMission().getProperty('missionId');
-    if (this.#properties.missionId !== currMissionId) return;
-
-    svl.tracker.push('Click_MinimapLabelMarker', {
-      labelId: this.#properties.labelId,
-      panoId: this.#properties.panoId,
-    });
-    svl.navigationService.returnToPano(this.#properties.panoId, this.#properties.povOfLabelIfCentered);
-  }
-
-  /** The current mission's id, or null before a mission is loaded (and in unit tests without a mission container). */
-  static #currentMissionId() {
-    const mission = svl.missionContainer?.getCurrentMission?.();
-    return mission ? mission.getProperty('missionId') : null;
   }
 
   /**
@@ -162,16 +156,31 @@ export class Label {
   }
 
   /**
+   * Puts the label on the minimap, styled for its era (#4945). The tutorial's example labels use createMinimapMarker.
+   * @param {Minimap} minimap
+   * @param {?number} currentMissionId - The mission the user is on, which decides the era.
+   * @param {() => void} onClick - What clicking the marker does. Only a current-era marker is clickable, since the
+   *   click returns to the label and that only works within the current mission (#2561).
+   */
+  placeOnMinimap(minimap, currentMissionId, onClick) {
+    this.#minimapEra = Label.minimapEra(this.#properties, currentMissionId);
+    this.#minimapMarker = Label.createMinimapMarker(
+      minimap, this.#properties.labelType, this.toLatLng(), this.#minimapEra, onClick,
+    );
+  }
+
+  /**
    * Re-derives the era against the mission now current and restyles the marker. Called when the mission changes: the
    * labels just placed become the previous pass, and a resumed mission's labels come back as current work. Whether the
    * marker is on the map is the legend toggle's call (LabelContainer.refreshMinimapEras re-applies it after this).
+   * @param {?number} currentMissionId - The mission the user is on now.
    */
-  refreshMinimapEra() {
-    const era = Label.minimapEra(this.#properties, Label.#currentMissionId());
+  refreshMinimapEra(currentMissionId) {
+    const era = Label.minimapEra(this.#properties, currentMissionId);
     if (era === this.#minimapEra) return;
     this.#minimapEra = era;
-    if (this.#googleMarker) {
-      Label.styleMinimapMarker(this.#googleMarker, this.#properties.labelType, era);
+    if (this.#minimapMarker) {
+      Label.styleMinimapMarker(this.#minimapMarker, this.#properties.labelType, era);
     }
   }
 
@@ -182,23 +191,16 @@ export class Label {
    */
   setMinimapMarkerSuppressed(suppressed) {
     this.#minimapSuppressed = suppressed;
-    if (!this.#googleMarker) return;
-    if (suppressed) {
-      this.#googleMarker.map = null;
-    } else if (!this.isDeleted() && !this.#googleMarker.map) {
-      // Only when off the map: the toggle re-applies to every label at each mission change, and re-assigning the map
-      // to a marker already on it would re-attach it for nothing.
-      this.#googleMarker.map = svl.minimap.getMap();
-    }
+    if (this.#minimapMarker) this.#minimapMarker.setVisible(!suppressed && !this.isDeleted());
   }
 
   isMinimapMarkerSuppressed() {
     return this.#minimapSuppressed;
   }
 
-  /** @returns {google.maps.marker.AdvancedMarkerElement} This label's minimap marker. */
+  /** @returns {?MinimapMarker} This label's minimap marker. */
   getMinimapMarker() {
-    return this.#googleMarker;
+    return this.#minimapMarker;
   }
 
   // Some functions for easy access to commonly accessed properties.
@@ -235,7 +237,26 @@ export class Label {
   }
 
   setProperty(key, value) {
+    if (Label.#EDITABLE.has(key)) throw new Error(`Label.setProperty: '${key}' is set through edit().`);
     this.#properties[key] = value;
+  }
+
+  /**
+   * Sets the labeler's edits (severity, tagIds, description) and tells onEdited's listeners, so the label is sent
+   * with the next submission whoever made the edit.
+   * @param {{severity?: ?number, tagIds?: number[], description?: ?string}} changes
+   */
+  edit(changes) {
+    // Checked before any write, so a bad key can't leave the label half-edited and unfiled.
+    const badKey = Object.keys(changes).find((key) => !Label.#EDITABLE.has(key));
+    if (badKey) throw new Error(`Label.edit: '${badKey}' is not an editable property.`);
+    Object.assign(this.#properties, changes);
+    this.#editListeners.forEach((listener) => listener());
+  }
+
+  /** @param {() => void} listener - Called after every edit(). */
+  onEdited(listener) {
+    this.#editListeners.push(listener);
   }
 
   getStatus(key) {
@@ -296,9 +317,8 @@ export class Label {
    * @returns {boolean}
    */
   isOn(x, y) {
-    // Sized to the drawn icon rather than derived from its radius, which used to leave the target smaller than the
-    // icon under it. See util.labelHitMargin.
-    const margin = svl.LABEL_HIT_MARGIN;
+    // Sized to the drawn icon (util.labelHitMargin), so the click target is never smaller than the icon under it.
+    const margin = this.#frame.hitMargin;
     return !this.#status.deleted
       && this.#status.visibility === 'visible'
       && this.#properties.currCanvasXY
@@ -320,108 +340,39 @@ export class Label {
    * Renders this label on a canvas.
    * @param {CanvasRenderingContext2D} ctx
    * @param {{heading: number, pitch: number, zoom: number}} pov
+   * @param {boolean} [faded=false] - Whether its dialog is open: the marker sits exactly on the feature being rated,
+   *   so fading it lets the user see that feature while they rate it; the dialog's tail still marks the spot.
    * @returns {Label} this.
    */
-  render(ctx, pov) {
+  render(ctx, pov, faded = false) {
     if (!this.#status.deleted && this.#status.visibility === 'visible') {
-      if (this.#status.hoverInfoVisibility === 'visible') {
-        this.#updateHoverCard();
-      }
-
       // Update the coordinates of the label on the canvas.
       this.#properties.currCanvasXY = util.pano.centeredPovToCanvasCoord(
         this.#properties.povOfLabelIfCentered, pov,
-        svl.CANVAS_FRAME.width, svl.CANVAS_FRAME.height, svl.LABEL_ICON_RADIUS, svl.renderedHFov(pov.zoom),
+        this.#frame.width, this.#frame.height, this.#frame.iconRadius, this.#frame.renderedHFov(pov.zoom),
       );
 
       // Draw the label icon if it's in the visible part of the pano.
       if (this.#properties.currCanvasXY) {
-        // Fade the icon while its dialog is open. The marker sits exactly on the feature being rated, so fading it
-        // lets the user see that feature while they rate it; the dialog's tail still marks the spot. ContextMenu's
-        // show()/hide() re-render the canvas so this toggles the moment the dialog opens or closes.
-        const dialogTarget = svl.contextMenu?.isOpen() && svl.contextMenu.getTargetLabel() === this;
-        if (dialogTarget) {
+        if (faded) {
           ctx.save();
           ctx.globalAlpha = 0.3;
         }
         Label.renderLabelIcon(
           ctx, this.#properties.labelType, this.#properties.currCanvasXY.x, this.#properties.currCanvasXY.y,
+          this.#frame.iconRadius,
         );
 
         // Only render severity warning if there's a severity option.
         if (util.misc.labelTypeHasSeverity(this.#properties.labelType) && this.#properties.severity === null) {
           this.#showSeverityAlert(ctx);
         }
-        if (dialogTarget) ctx.restore();
+        if (faded) ctx.restore();
       }
     }
 
-    // Show the label on the Google Maps pane, unless the legend toggle has hidden earlier labels' markers.
-    if (!this.isDeleted() && !this.#minimapSuppressed) {
-      if (this.#googleMarker && !this.#googleMarker.map) {
-        this.#googleMarker.map = svl.minimap.getMap();
-      }
-    } else if (this.#googleMarker && this.#googleMarker.map) {
-      this.#googleMarker.map = null;
-    }
+    if (this.#minimapMarker) this.#minimapMarker.setVisible(!this.isDeleted() && !this.#minimapSuppressed);
     return this;
-  }
-
-  /**
-   * Populates and positions the hover card next to this label, showing its type, severity, tags, and description,
-   * plus its Delete/Edit action buttons. The populate itself lives in the shared LabelCardView (#4730); what stays
-   * here is everything Explore-specific — the context-menu guard, the card's mode classes, and the anchoring.
-   *
-   * The card is a single shared DOM element positioned in on-screen pixels, so the label's logical canvas
-   * coordinate is scaled to the displayed pano size (see util.exploreDisplayScale).
-   */
-  #updateHoverCard() {
-    // Don't show the hover card while the context menu is open or before the label has a canvas position.
-    if (('contextMenu' in svl && svl.contextMenu.isOpen()) || !this.#properties.currCanvasXY) {
-      this.#hideHoverCard();
-      return;
-    }
-
-    const ui = svl.ui.canvas;
-    svl.labelCardView.render({
-      labelType: this.#properties.labelType,
-      severity: this.#properties.severity,
-      tagNames: this.#getTagNames(),
-      description: this.#properties.description,
-    });
-
-    // Occlusion labels have no context menu, so the card isn't a click target and the Edit button is hidden.
-    ui.hoverCard.classList.toggle('label-hover-card--static', this.#properties.labelType === 'Occlusion');
-    // The tutorial's delete lock hides the Delete button.
-    ui.hoverCard.classList.toggle('label-hover-card--no-delete', Boolean(svl.canvas.getStatus('disableLabelDelete')));
-    // Aims the share control at this label (and hides it for labels that can never have a public URL).
-    svl.canvas.pointShareAtLabel(this);
-
-    // The card and the context menu it opens into share one anchor so the panel expands roughly in place.
-    util.anchorPanelToLabel(ui.hoverCard, this.getCanvasXY(), svl.LABEL_ICON_RADIUS);
-    ui.hoverCard.style.visibility = 'visible';
-  }
-
-  /**
-   * Hides the shared hover card.
-   */
-  #hideHoverCard() {
-    svl.ui.canvas.hoverCard.style.visibility = 'hidden';
-  }
-
-  /**
-   * Returns the localized, plain-text names of this label's tags.
-   * @returns {Array<string>}
-   */
-  #getTagNames() {
-    const allTags = 'contextMenu' in svl ? svl.contextMenu.labelTags : null;
-    if (!allTags) return [];
-    const tagInfo = util.misc.getLabelDescriptions(this.#properties.labelType)?.tagInfo ?? {};
-    return this.#properties.tagIds
-      .map((tagId) => allTags.find((tag) => tag.tag_id === tagId))
-      .filter(Boolean)
-      // The localized tag texts embed <tag-underline> keyboard-shortcut markup; the pills show plain text.
-      .map((tag) => util.htmlToText(tagInfo[tag.tag]?.text ?? tag.tag));
   }
 
   /**
@@ -436,7 +387,7 @@ export class Label {
     const rootStyle = getComputedStyle(document.documentElement);
     // The badge's placement and size are authored against the base icon radius, so they scale with the icon and it
     // stays pinned to the icon's upper-left however the icon is sized (#4838).
-    const k = util.labelIconScale(svl.LABEL_ICON_RADIUS);
+    const k = util.labelIconScale(this.#frame.iconRadius);
 
     // Draws circle. The same --color-error-200 the hover card's unrated chip uses, so the "?" on the canvas and the
     // "?" on the card that describes it are one mark in two places rather than two different reds (#4731).
@@ -461,8 +412,8 @@ export class Label {
    *
    * The bearing to the label is exact projection geometry (its centered POV), and the distance below the horizon comes
    * from flat-ground cotangent geometry with a linear tail near the horizon — the same computation as the server's
-   * PanoDataService.toLatLng, with the constants injected from the backend (svl.latLngEstimation) so the two can't
-   * drift. Both depend only on the label's angular position, so the estimate is independent of both the pano's
+   * PanoDataService.toLatLng, with the constants injected from the backend (the page's latLngEstimation) so the two
+   * can't drift. Both depend only on the label's angular position, so the estimate is independent of both the pano's
    * resolution and the label's type.
    *
    * The camera height and blend angle are fitted values, not tuning knobs — PanoDataService.LatLngEstimation is where
@@ -476,7 +427,7 @@ export class Label {
     if (!this.#properties.labelLat) {
       // Estimate the latlng point from the pano position and the label's bearing and depression angle when point
       // cloud data isn't available.
-      const params = svl.latLngEstimation;
+      const params = this.#latLngEstimation;
       const pov = this.getProperty('povOfLabelIfCentered');
       const depressionDeg = -pov.pitch;
       const heightM = params.cameraHeightM;
@@ -505,7 +456,6 @@ export class Label {
       this.setProperty('latLngComputationMethod', latlng.latLngComputationMethod);
       return latlng;
     } else {
-      // Return the cached value.
       return {
         lat: this.getProperty('labelLat'),
         lng: this.getProperty('labelLng'),
@@ -649,18 +599,16 @@ export class Label {
    * @param {string} labelType
    * @param {number} x
    * @param {number} y
+   * @param {number} radius - The icon's radius in logical px (CanvasFrame.iconRadius).
    */
-  static renderLabelIcon(ctx, labelType, x, y) {
-    const radius = svl.LABEL_ICON_RADIUS;
+  static renderLabelIcon(ctx, labelType, x, y, radius) {
     const halfIcon = util.labelIconHalfExtent(radius);
     const size = 2 * halfIcon;
     const icon = window.labelIconCache[util.misc.getIconImagePaths(labelType).iconImagePath];
     if (icon) ctx.drawImage(icon, x - radius + 2, y - radius + 2, size, size);
 
-    // The rings are a hairline straddling the icon's edge, so they're offsets from the drawn icon rather than the
-    // fixed 15.3/16.2 they used to be — the icon's size moves with the UI scale now, and stops moving once the cap
-    // engages (#4838). The offsets and the stroke scale with it too: left absolute, the outline would read about
-    // 47% heavier against a capped icon than against a full-size one.
+    // The rings are offsets from the drawn icon rather than fixed radii, and the stroke scales with it too: the icon
+    // stops growing once its cap engages (#4838), and an absolute outline would read far heavier against a capped one.
     const k = util.labelIconScale(radius);
     ctx.lineWidth = 0.7 * k;
     ctx.beginPath();
@@ -695,13 +643,13 @@ export class Label {
    * (.minimap-label-icon--prior / --outdated), the matching accessible name and hover title, whether it is clickable,
    * and its z-order.
    *
-   * Only a current-era marker is clickable, because the click only returns to current-mission labels (#2561). Google
-   * makes a clickable AdvancedMarkerElement a keyboard-focusable control, so leaving earlier markers clickable would
+   * Only a current-era marker is clickable, because the click only returns to current-mission labels (#2561). A
+   * clickable marker is a keyboard-focusable button (Minimap.addMarker), so leaving earlier markers clickable would
    * add a focus stop per earlier label (hundreds on a re-audit) whose activation does nothing.
    *
    * The z-index puts this pass's markers above earlier ones. It is deliberately low: the forward crumbs (20-30) and
    * the peg (1000) set higher ones, so a label marker never hides the navigation it sits on.
-   * @param {google.maps.marker.AdvancedMarkerElement} marker
+   * @param {MinimapMarker} marker
    * @param {string} labelType
    * @param {'current'|'prior'|'outdated'} era
    */
@@ -711,29 +659,26 @@ export class Label {
     content.dataset.era = era;
     const title = Label.minimapMarkerTitle(labelType, era);
     content.alt = title;
-    marker.title = title;
-    marker.gmpClickable = era === 'current';
-    marker.zIndex = era === 'current' ? 2 : 1;
+    marker.setTitle(title);
+    marker.setClickable(era === 'current');
+    marker.setZIndex(era === 'current' ? 2 : 1);
   }
 
   /**
-   * Creates the marker shown for this label on the minimap using Google Maps AdvancedMarkerElement.
+   * Creates the marker shown for a label on the minimap.
+   * @param {Minimap} minimap - The minimap to put it on.
    * @param {string} labelType
    * @param {{lat: number, lng: number}} latLng
    * @param {'current'|'prior'|'outdated'} [era='current'] - See minimapEra.
-   * @returns {google.maps.marker.AdvancedMarkerElement}
+   * @param {?(() => void)} [onClick] - What clicking the marker does while its era is current. The tutorial's example
+   *                                    labels pass nothing, since there is nowhere to return to.
+   * @returns {MinimapMarker}
    */
-  static createMinimapMarker(labelType, latLng, era = 'current') {
+  static createMinimapMarker(minimap, labelType, latLng, era = 'current', onClick = null) {
     const content = document.createElement('img');
     // Sizing is set in .minimap-label-icon.
     content.src = util.misc.getIconImagePaths(labelType).iconImagePath;
-    // AdvancedMarkerElement anchors content by its bottom-center; shift it down half its height to center it.
-    content.style.transform = 'translateY(50%)';
-    const marker = new google.maps.marker.AdvancedMarkerElement({
-      position: new google.maps.LatLng(latLng.lat, latLng.lng),
-      map: svl.minimap.getMap(),
-      content,
-    });
+    const marker = minimap.addMarker(latLng, content, { onClick });
     // Class (and so sizing), accessible name, clickability and z-order all depend on the era, so they are set in one
     // place that refreshMinimapEra can re-run.
     Label.styleMinimapMarker(marker, labelType, era);
