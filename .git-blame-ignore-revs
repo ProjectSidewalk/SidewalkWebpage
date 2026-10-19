@@ -1,5 +1,46 @@
-# Whitespace-only commits that `git blame` should look past. GitHub's blame view reads this file on its own; locally,
-# run `git config blame.ignoreRevsFile .git-blame-ignore-revs` once.
+# Formatting-only commits (reindents, formatter runs, line rewraps) that `git blame` should look past. GitHub's blame
+# view reads this file on its own; locally, run `git config blame.ignoreRevsFile .git-blame-ignore-revs` once.
+
+# Reindent a view (2020)
+1dcf649ad3d44632613b42edacb563e7c5530ea9
+
+# Undo stray whitespace changes in the translation files (2023)
+d3288157e56e7fd3fbec0828d06e27e447eea14b
+
+# Standardize JSON indentation (2023)
+f7e577018d5b30b33fc559a765fcf36af2aa98e5
+
+# Clean up the API docs' HTML, CSS and JS formatting (2025)
+269a6fa64bc7275bc2fca62e2c1545f8814b1fce
+2b8266684201186bfb24b820e3f63666ca67c912
+7bbdd0a8eec7d087c2d97dd32b640d6be4af5fda
+46891e07a2e954576b15aad5d9cc3dbab1cb571f
+5d1140c12329d4627e2dac0e8146d3e154683486
+
+# First scalafmt run across the Scala code (2025)
+9cdef329538e99cbdc24a27b1e148cad36a073c5
+7a5e7f0e640186c666b4b7b20f7c98af8e1fd238
+
+# Second scalafmt run across the Scala code (2026)
+e39d69f50984177f5c2a93717068cada8e696986
+
+# ESLint auto-fix, 4 -> 2 space JS reindent, and the rewraps that followed (#2487)
+252d98471e54d40e58ed36839f9a70d47ef34125
+43a5288296b9ac335e4951d75f91c1160b12128d
+50815e036a9581852af579b416eb7a5dc782be24
+b37e3593ce2ff828ccad7b41d88d6a98795b956e
+e45f8f862110ef004bf19ef3d556c06ad21fadb6
+
+# Stylelint auto-fix and 4 -> 2 space CSS reindent (#2487)
+9f4f156d14b7ed9a8679defa00064c59a36bfaae
+74ce71c665c4aa49756f93dded5b9464c7aeec73
+
+# 4 -> 2 space reindent of the HTML views and remaining files (#2487)
+9aba2fc83e27411cf718e4e15f321ea1836f9173
+4d6424fe70aed26f85a5f9fd32f26669f4a399d6
+
+# Restyle the Scala code to Scala 3 syntax (#5567)
+9dca46a11eb069b43e36cd534b54a24e3ea73143
 
 # Reindent to 2 spaces (#5778)
 1f6b1ce05a97915afdb9d15661b3b6b147e214e2
