@@ -100,7 +100,8 @@ class AiController @Inject() (
       imageObjects   <- fetchAndEncodeImages(gsvImageUrls)                     // Fetch and encode images
       geminiResponse <- sendToGeminiApi(prompt, imageObjects)                  // Send to Gemini API
     } yield {
-      val activity = s"Analyzing street $streetEdgeId with URLs: ${gsvImageUrls.mkString(", ")}"
+      // Not the URLs: they carry the server key, and this table ships in the dumps developers get.
+      val activity = s"Analyzing street $streetEdgeId with ${imageObjects.size} of ${gsvImageUrls.size} images"
       cc.loggingService.insert(request.identity.userId, request.ipAddress, activity)
       geminiResponse
     }
@@ -132,12 +133,13 @@ class AiController @Inject() (
                 )
               )
             } else {
+              logger.warn(s"GSV image for street analysis refused: HTTP ${gsvResponse.status}")
               None
             }
           }
           .recover { case ex: Exception =>
-            // Log error but don't fail the entire request.
-            logger.warn(s"Failed to fetch pano image from $url: ${ex.getMessage}")
+            // Log error but don't fail the entire request. Not the URL, which carries the server key.
+            logger.warn(s"Failed to fetch pano image: ${ex.getMessage}")
             None
           }
       }

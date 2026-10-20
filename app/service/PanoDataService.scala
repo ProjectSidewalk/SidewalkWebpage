@@ -49,6 +49,17 @@ import scala.util.control.NonFatal
 object PanoDataService {
 
   /**
+   * The key for requests the server sends Google itself. Blank counts as unset, since a deploy that exports the
+   * variable before its value is filled in hands the app an empty string.
+   * @return The server key, else the browser key, else `None`.
+   */
+  def googleServerKey(config: Configuration): Option[String] =
+    config
+      .getOptional[String]("google-maps-server-key")
+      .filter(_.nonEmpty)
+      .orElse(config.getOptional[String]("google-maps-api-key"))
+
+  /**
    * How long a "the imagery is still there" answer stays good before we ask the provider again (#3004).
    *
    * The window bounds how long a pano that has since disappeared can keep being handed to users, so it trades page
@@ -122,7 +133,7 @@ object PanoDataService {
    * the horizontal fov the label's frame was rendered at (`renderedHFov`: the zoom curve, widened where GSV's
    * vertical clamp bound in a wide immersive frame, #5085). The still keeps the boxed 3:2 whatever the frame was, so
    * every consumer's marker math (`CropService.stillMarker`, `util.misc.labelMarkerFraction`) rests on the two sharing
-   * the fov, which this is what guarantees. Pure so the request can be pinned without an app; `getImageUrl` signs it.
+   * the fov, which this is what guarantees. Pure so the request can be pinned without an app; the URL getters sign it.
    *
    * `return_error_code` is what makes missing imagery legible downstream: without it Google answers 200 with a flat
    * "no imagery" placeholder that nothing can tell from a photo, while a 404 lands in the `error` handler every
@@ -593,7 +604,21 @@ trait PanoDataService {
   def panoExists(panoId: String, panoSource: PanoSource): Future[Option[Boolean]]
   def signUrl(urlString: String): String
   def getReusableImageryStatus(panoIds: Set[String]): Future[Map[String, Boolean]]
-  def getImageUrl(
+  def getBrowserImageUrl(
+      panoId: String,
+      panoSrc: PanoSource,
+      heading: Double,
+      pitch: Double,
+      zoom: Double,
+      canvasWidth: Int,
+      canvasHeight: Int
+  ): Option[String]
+
+  /**
+   * Same as [[getBrowserImageUrl]], for a still the server downloads itself rather than hands to a browser.
+   * @return Image URL signed with the server key.
+   */
+  def getServerImageUrl(
       panoId: String,
       panoSrc: PanoSource,
       heading: Double,
@@ -638,8 +663,9 @@ class PanoDataServiceImpl @Inject() (
 
   private val mapillaryGraphUrl: String = config.get[String]("mapillary-graph-url")
 
-  // Grab API key and secret from ENV variable.
+  // Grab API keys and secret from ENV variable. The browser key only works where a browser sends its Referer.
   val googleApiKey: String    = config.get[String]("google-maps-api-key")
+  val googleServerKey: String = PanoDataService.googleServerKey(config).getOrElse(googleApiKey)
   val secretKeyString: String = config.get[String]("google-maps-secret")
 
   // Decode secret key as Byte[].
@@ -739,7 +765,7 @@ class PanoDataServiceImpl @Inject() (
    * @return       `Some(true)` if the imagery exists, `Some(false)` if not, `None` if inconclusive.
    */
   private def gsvPanoExists(panoId: String): Future[Option[Boolean]] = {
-    val url = signUrl(s"https://maps.googleapis.com/maps/api/streetview/metadata?pano=$panoId&key=$googleApiKey")
+    val url = signUrl(s"https://maps.googleapis.com/maps/api/streetview/metadata?pano=$panoId&key=$googleServerKey")
     ws.url(url)
       .withRequestTimeout(5.seconds)
       .get()
@@ -918,7 +944,7 @@ class PanoDataServiceImpl @Inject() (
    * @param canvasHeight Height of that frame.
    * @return Image URL that represents the background of the label.
    */
-  def getImageUrl(
+  def getBrowserImageUrl(
       panoId: String,
       panoSrc: PanoSource,
       heading: Double,
@@ -926,9 +952,35 @@ class PanoDataServiceImpl @Inject() (
       zoom: Double,
       canvasWidth: Int,
       canvasHeight: Int
+  ): Option[String] = gsvStillUrl(panoId, panoSrc, heading, pitch, zoom, canvasWidth, canvasHeight, googleApiKey)
+
+  def getServerImageUrl(
+      panoId: String,
+      panoSrc: PanoSource,
+      heading: Double,
+      pitch: Double,
+      zoom: Double,
+      canvasWidth: Int,
+      canvasHeight: Int
+  ): Option[String] = gsvStillUrl(panoId, panoSrc, heading, pitch, zoom, canvasWidth, canvasHeight, googleServerKey)
+
+  /**
+   * Builds the signed Street View still behind [[getBrowserImageUrl]] and [[getServerImageUrl]].
+   * @param apiKey The browser key or the server key, depending on who will load the URL.
+   * @return       Signed image URL, or `None` for imagery that isn't from GSV.
+   */
+  private def gsvStillUrl(
+      panoId: String,
+      panoSrc: PanoSource,
+      heading: Double,
+      pitch: Double,
+      zoom: Double,
+      canvasWidth: Int,
+      canvasHeight: Int,
+      apiKey: String
   ): Option[String] =
     if (panoSrc != PanoSource.Gsv) None
-    else Some(signUrl(staticStillUrl(panoId, heading, pitch, zoom, canvasWidth, canvasHeight, googleApiKey)))
+    else Some(signUrl(staticStillUrl(panoId, heading, pitch, zoom, canvasWidth, canvasHeight, apiKey)))
 
   /**
    * Creates a signed URL that retrieves a static image at the given lat/lng and heading from the GSV Static API.
@@ -940,7 +992,7 @@ class PanoDataServiceImpl @Inject() (
    * @return GSV Static API URL for the given location and heading
    */
   def getGsvImageUrlFromLatLng(lat: Double, lng: Double, heading: Double): String =
-    signUrl(staticLocationUrl(lat, lng, heading, googleApiKey))
+    signUrl(staticLocationUrl(lat, lng, heading, googleServerKey))
 
   /**
    * Gets the image URLs for a street edge, which includes the start and end points of the street.

@@ -14,7 +14,8 @@ This is a standalone, manually-run utility (it is not invoked by the app). Workf
          python3.13 tools/city/check_streets_for_imagery.py --city-id newport-ky --panoramax
 
      ``--panoramax`` needs no credential (the API is public);
-     ``--gsv`` needs ``GOOGLE_MAPS_API_KEY``; ``--mapillary`` needs ``MAPILLARY_ACCESS_TOKEN``; ``--infra3d`` needs
+     ``--gsv`` needs ``GOOGLE_MAPS_SERVER_KEY`` (else ``GOOGLE_MAPS_API_KEY``);
+     ``--mapillary`` needs ``MAPILLARY_ACCESS_TOKEN``; ``--infra3d`` needs
      ``INFRA3D_CLIENT_ID`` and ``INFRA3D_CLIENT_SECRET`` (one city's pair — the same OAuth client-credentials the app
      holds per city as ``INFRA3D_CLIENT_ID_<CITY>``), plus ``--campaign <uid>`` if the city's tenant holds more than
      one campaign. It is ``python3.13`` rather than the container's default ``python3`` because this tool's libraries
@@ -1523,7 +1524,8 @@ def main(argv: list[str] | None = None) -> int:
                         help='The cityparams city id being scanned, e.g. "newport-ky"; every data file lives in '
                              'db/onboarding/<city-id>/.')
     provider = parser.add_mutually_exclusive_group(required=True)
-    provider.add_argument('--gsv', action='store_true', help='Check for GSV imagery (needs GOOGLE_MAPS_API_KEY)')
+    provider.add_argument('--gsv', action='store_true',
+                          help='Check for GSV imagery (needs GOOGLE_MAPS_SERVER_KEY, else GOOGLE_MAPS_API_KEY)')
     provider.add_argument('--mapillary', action='store_true',
                           help='Check for Mapillary imagery (needs MAPILLARY_ACCESS_TOKEN)')
     provider.add_argument('--infra3d', action='store_true',
@@ -1605,8 +1607,12 @@ def main(argv: list[str] | None = None) -> int:
     elif api == 'Panoramax':
         print('Checking Panoramax 360° coverage via %s (public API, no credential needed)' % PANORAMAX_SEARCH_URL)
     else:
-        api_key = os.getenv('GOOGLE_MAPS_API_KEY') if api == 'GSV' else os.getenv('MAPILLARY_ACCESS_TOKEN')
-        if api_key is None:
+        if api == 'GSV':
+            # These requests carry no Referer, which is all the browser key checks (#5647).
+            api_key = os.getenv('GOOGLE_MAPS_SERVER_KEY') or os.getenv('GOOGLE_MAPS_API_KEY')
+        else:
+            api_key = os.getenv('MAPILLARY_ACCESS_TOKEN')
+        if not api_key:
             print("Couldn't read API key environment variable.")
             return 1
 
