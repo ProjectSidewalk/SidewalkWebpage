@@ -118,6 +118,7 @@ from shapely.geometry import LineString, MultiPolygon, Point, Polygon
 from shapely.ops import linemerge, substring
 
 from osm_lineage import compute_lineage, lineage_rows, lineage_summary, ways_from_features
+from overpass import RetryPolicy, configure, fetch_each, remark_watch
 from setup_new_city import staging_fingerprint
 
 logger = logging.getLogger(__name__)
@@ -125,20 +126,28 @@ logger = logging.getLogger(__name__)
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 
 
-def _osmnx(fresh=False):
+def _osmnx(request_timeout_s=180, memory_mb=None):
     """
-    Imports osmnx with its HTTP cache pointed into the git-ignored onboarding dir instead of CWD-relative cache/.
+    Imports osmnx pointed at Overpass the way ``overpass.py`` prescribes, with its cache in the git-ignored onboarding
+    dir (a folder per day) instead of CWD-relative cache/.
 
     Args:
-        fresh: Skip the cache, which never expires, so the fetch is what OSM holds today.
+        request_timeout_s: The server time each query declares; osmnx's default suits a whole-city street graph,
+                           the backfill's small tiles declare a minute.
+        memory_mb:         The server memory each query declares; None leaves the server's default.
     """
     import osmnx as ox
-    ox.settings.cache_folder = str(REPO_ROOT / 'db' / 'onboarding' / 'osmnx-cache')
-    ox.settings.use_cache = not fresh
+    configure(ox, REPO_ROOT / 'db' / 'onboarding' / 'osmnx-cache', request_timeout_s, memory_mb)
     # osmnx keeps bridge and tunnel on every edge by default but drops covered; is_structure needs all three.
     tags = list(getattr(ox.settings, 'useful_tags_way', []))
     ox.settings.useful_tags_way = tags + [tag for tag in STRUCTURE_TAGS if tag not in tags]
     return ox
+
+
+def fetch_area(boundary_poly, fetch_buffer_m):
+    """The city boundary widened by ``fetch_buffer_m`` metres, in lon/lat: what both OSM fetches ask for."""
+    buffer_deg = fetch_buffer_m / (111_320 * cos(radians(boundary_poly.centroid.y)))
+    return boundary_poly.buffer(buffer_deg)
 
 
 # The OSM way tags that put a street on a structure, read by is_structure_tag. The same three tags, with the same
@@ -1222,9 +1231,9 @@ def fetch_streets(boundary_poly, include_alleys, fetch_buffer_m):
         string), ``is_structure`` (:func:`is_structure_tag`), geometry.
     """
     ox = _osmnx()
-    buffer_deg = fetch_buffer_m / (111_320 * cos(radians(boundary_poly.centroid.y)))
-    graph = ox.graph_from_polygon(boundary_poly.buffer(buffer_deg), custom_filter=build_osm_filters(include_alleys),
-                                  simplify=True, retain_all=True, truncate_by_edge=True)
+    graph = ox.graph_from_polygon(fetch_area(boundary_poly, fetch_buffer_m),
+                                  custom_filter=build_osm_filters(include_alleys), simplify=True, retain_all=True,
+                                  truncate_by_edge=True)
     graph = ox.convert.to_undirected(graph)
     edges = ox.convert.graph_to_gdfs(graph, nodes=False, edges=True).reset_index()
     edges['osm_ids'] = edges['osmid'].map(as_id_list)
@@ -1235,30 +1244,65 @@ def fetch_streets(boundary_poly, include_alleys, fetch_buffer_m):
     return edges[['u', 'v', 'osm_ids', 'highway', 'is_structure', 'geometry']]
 
 
-def fetch_ways(boundary_poly, include_alleys, fetch_buffer_m, fresh=False):
+def fetch_ways(polygons, include_alleys, request_timeout_s=180, memory_mb=None, pause_s=7.0, policy=RetryPolicy(),
+               **retry_kwargs):
     """
     Fetches the OSM ways the streets are cut from, whole and in their drawn direction, for :func:`street_lineage`.
 
-    A second request over the same area as :func:`fetch_streets`, with the same filter and buffer, since the graph fetch
-    drops the ways' order and direction (#5741).
+    On a build this is a second request over the same area as :func:`fetch_streets`, with the same filter, since the
+    graph fetch drops the ways' order and direction (#5741). The backfill passes many small areas instead, one request
+    each, well spaced and retried the way ``overpass.py`` prescribes.
 
     Args:
-        boundary_poly:  Shapely (Multi)Polygon of the city, in lon/lat.
-        include_alleys: Also fetch ``service=alley`` ways.
-        fetch_buffer_m: How far outside the boundary to fetch, in meters.
-        fresh:          Skip osmnx's cache, so a backfill matches against the ways OSM holds today.
+        polygons:          Shapely (Multi)Polygons in lon/lat, one request each; a way in two of them comes back once.
+        include_alleys:    Also fetch ``service=alley`` ways.
+        request_timeout_s: The server time each request declares (see :func:`_osmnx`).
+        memory_mb:         The server memory each request declares.
+        pause_s:           The rest between two requests the server served.
+        policy:            The retry schedule for a refused request.
+        retry_kwargs:      The clock fakes ``overpass.fetch_each`` takes, for tests.
 
     Returns:
         A GeoDataFrame of ways: ``osm_way_id``, ``highway``, LineString geometry in lon/lat.
+
+    Raises:
+        overpass.OverpassUnavailable: when a request is refused for the whole retry window.
     """
-    ox = _osmnx(fresh)
-    buffer_deg = fetch_buffer_m / (111_320 * cos(radians(boundary_poly.centroid.y)))
+    ox = _osmnx(request_timeout_s, memory_mb)
+    watch = remark_watch(ox)
     highways = list(DEFAULT_WAY_TYPES) + (['service'] if include_alleys else [])
-    features = ox.features_from_polygon(boundary_poly.buffer(buffer_deg), tags={'highway': highways})
-    if include_alleys and 'service' in features.columns:
-        features = features[(features['highway'] != 'service') | (features['service'] == 'alley')]
-    ways = ways_from_features(features)
-    highway = features['highway'].to_dict() if 'highway' in features.columns else {}
+
+    def fetch_one(polygon):
+        # A query cut short (out of its declared time or memory) is a 200 with a remark and partial data, so it is asked
+        # again with twice the limits, twice. The raised limits stay: the city's next tile is as dense.
+        for _ in range(3):
+            watch.clear()
+            try:
+                features = ox.features_from_polygon(polygon, tags={'highway': highways})
+            except Exception as exc:
+                if watch.cut_short:
+                    features = None
+                elif type(exc).__name__ == 'InsufficientResponseError':
+                    # osmnx's answer to an area with nothing in it (a tile of parkland, a whole-city hull of water).
+                    return gpd.GeoDataFrame(geometry=[], crs='EPSG:4326')
+                else:
+                    raise
+            if not watch.cut_short:
+                return features
+            logger.warning('Overpass cut the request short (%s); asking again with twice the time and memory',
+                           watch.remark)
+            ox.settings.requests_timeout *= 2
+            if ox.settings.overpass_memory:
+                ox.settings.overpass_memory *= 2
+        raise RuntimeError(f'Overpass cut the request short three times running ({watch.remark}): run again with a '
+                           f'larger --request-timeout-s and --request-memory-mb, or a smaller --tile-km2.')
+
+    ways, highway = {}, {}
+    for features in fetch_each(polygons, fetch_one, pause_s, policy, **retry_kwargs):
+        if include_alleys and 'service' in features.columns:
+            features = features[(features['highway'] != 'service') | (features['service'] == 'alley')]
+        ways.update(ways_from_features(features))
+        highway.update(features['highway'].to_dict() if 'highway' in features.columns else {})
     return gpd.GeoDataFrame({'osm_way_id': list(ways),
                              'highway': [normalize_way_type(highway.get(('way', way_id))) for way_id in ways]},
                             geometry=list(ways.values()), crs='EPSG:4326')
@@ -2273,7 +2317,7 @@ def main(argv=None):
 
     streets = fetch_streets(boundary_poly, args.include_alleys, args.fetch_buffer_m)
     logger.info('OSM street edges fetched: %d', len(streets))
-    ways = fetch_ways(boundary_poly, args.include_alleys, args.fetch_buffer_m)
+    ways = fetch_ways([fetch_area(boundary_poly, args.fetch_buffer_m)], args.include_alleys)
     logger.info('OSM ways fetched: %d', len(ways))
     streets, n_tier1_merged = merge_tiny_same_way(streets, args.merge_tiny_m)
     logger.info('Merged %d pieces < %g m into a touching piece of the same OSM way (#4717 tier 1); %d edges remain',
