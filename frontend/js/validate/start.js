@@ -15,6 +15,8 @@ import '../../css/pages/validate/svv-validation-menu.css';
 
 const param = JSON.parse(document.getElementById('page-data').textContent);
 param.viewerType = viewerClassFor(param.imagerySource);
+// The viewer's code is a chunk of its own; asked for now, it downloads alongside the mission instead of after it.
+param.viewerType.preloadLibrary().catch((err) => console.warn('Pano viewer library preload failed:', err));
 
 window.appManager.ready(async () => {
   // The mission the user left unfinished, or a fresh one, in the shape the mission-complete response uses (#5650).

@@ -1,3 +1,5 @@
+import i18next from 'i18next';
+
 /**
  * The street-slope color ramp (#5223), read from the `--color-grade-ramp-*` tokens in main.css so the map's lines,
  * the legend's swatches and the elevation profile's threshold lines agree on what a color means.
@@ -6,8 +8,6 @@
  * look up (1:20, 1:12), so a street is on one side of a limit or the other and the color says which. The breaks come
  * from `/v3/api/accessScoreConfig` (`gradient.map_class_breaks`); nothing here knows a grade.
  */
-
-import i18next from 'i18next';
 export class AccessScoreGradeRamp {
   /** How many color tokens main.css defines per surface, gentlest first. */
   static #STEPS = 5;

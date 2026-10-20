@@ -25,6 +25,8 @@ export function geometryBounds(geometry) {
  */
 export function featureCollectionBounds(featureCollection) {
   const bounds = new mapboxgl.LngLatBounds();
-  for (const feature of featureCollection.features ?? []) bounds.extend(geometryBounds(feature.geometry));
+  for (const feature of featureCollection.features ?? []) {
+    if (feature.geometry) bounds.extend(geometryBounds(feature.geometry));
+  }
   return bounds;
 }

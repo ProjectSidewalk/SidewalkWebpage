@@ -637,7 +637,7 @@ export class StoryComposer {
   static #relativeTime(seconds) {
     const usable = typeof seconds === 'number' && Number.isFinite(seconds) && seconds > 0;
     if (!usable || typeof Intl === 'undefined' || typeof Intl.RelativeTimeFormat !== 'function') return null;
-    const lang = (typeof i18next !== 'undefined' && i18next.language) || document.documentElement.lang || 'en';
+    const lang = i18next.language || document.documentElement.lang || 'en';
     let fmt;
     try {
       fmt = new Intl.RelativeTimeFormat(lang, { numeric: 'always' });

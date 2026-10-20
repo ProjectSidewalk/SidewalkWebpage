@@ -33,7 +33,7 @@ export class Task {
   #streetCoverage;
   #geojson;
 
-  /* @type {GeoJSON.Point} */
+  /** @type {GeoJSON.Feature<GeoJSON.Point>} */
   #furthestPoint;
 
   /** @type {Array<[number, number]>} Merged [start_m, end_m] pairs seen, in the server's frame (#5733). */

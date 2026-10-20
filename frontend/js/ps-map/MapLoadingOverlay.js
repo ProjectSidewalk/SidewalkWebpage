@@ -1,3 +1,5 @@
+import i18next from 'i18next';
+
 /**
  * Load-state overlay for the label maps: an indeterminate spinner with a live elapsed-time counter while the
  * label feed streams in, and a retryable error card when it fails.
@@ -18,8 +20,6 @@
  * Markup comes from the shared `common.mapLoadingOverlay` Twirl partial, so /labelMap, /admin/label-map and
  * /accessScore present the same thing.
  */
-
-import i18next from 'i18next';
 export class MapLoadingOverlay {
   #root;
   #loadingCard;

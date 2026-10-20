@@ -228,7 +228,7 @@ export class CrossCityStats {
    */
   async #renderMap(cities) {
     const host = this.#section.querySelector('#ud-cities-map');
-    if (!host || typeof mapboxgl === 'undefined' || !this.#mapboxToken) return;
+    if (!host || !this.#mapboxToken) return;
 
     let geo;
     try {

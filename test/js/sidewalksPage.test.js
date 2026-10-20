@@ -7,6 +7,7 @@
  */
 
 import { loadModules, mockModule } from './loader.js';
+import { FakeLngLatBounds } from './lngLatBoundsStub.js';
 
 // jsdom has no layout, so it leaves scrollIntoView out; the region table calls it.
 window.HTMLElement.prototype.scrollIntoView = () => {};
@@ -24,9 +25,10 @@ function stubMapbox({ holdLoad = false } = {}) {
   const state = { filters: [], halos: [], fits: [], featureStates: [], fireLoad: null };
   Object.assign(mapboxgl, {
     accessToken: null,
+    LngLatBounds: FakeLngLatBounds,
     Map: class {
       constructor(options) {
-        if (!options.bounds.flat().every(Number.isFinite)) throw new Error('Invalid LngLat object');
+        if (options.bounds.isEmpty()) throw new Error('Invalid LngLat object');
       }
 
       addControl() {}

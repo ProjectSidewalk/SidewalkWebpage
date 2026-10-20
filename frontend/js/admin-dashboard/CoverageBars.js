@@ -1,3 +1,5 @@
+import vegaEmbed from 'vega-embed';
+
 /**
  * Renders the per-region coverage bar chart with Vega-Lite and links it to the map. Hovering or clicking a bar
  * fires the corresponding callbacks so a coordinator can brush/pin the matching region on the map; highlightBar()/
@@ -5,8 +7,6 @@
  * computed from CoverageColors so they match the choropleth precisely. The sort order (coverage vs name) is
  * switchable at runtime via setSort().
  */
-
-import vegaEmbed from 'vega-embed';
 export class CoverageBars {
   #containerId;
   #onBarClick;

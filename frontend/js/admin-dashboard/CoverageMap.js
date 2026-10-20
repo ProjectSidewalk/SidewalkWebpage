@@ -1,9 +1,10 @@
+import mapboxgl from '../common/mapboxgl.js';
+import { featureCollectionBounds } from '../common/geoBounds.js';
+
 /**
  * Sequential color scale for coverage (ColorBrewer "Blues", colorblind-safe). Shared by the map fill, the Vega bar
  * chart, and the legend so all three agree. Keep STOPS in sync with the --coverage-c* tokens in admin-dashboard.css.
  */
-
-import mapboxgl from '../common/mapboxgl.js';
 export class CoverageColors {
   /** @type {Array<[number, string]>} [rate 0..1, hex] control points, ascending by rate. */
   static STOPS = [[0, '#eff3ff'], [0.33, '#bdd7e7'], [0.66, '#6baed6'], [1, '#2171b5']];
@@ -113,7 +114,7 @@ export class CoverageMap {
     this.#map = new mapboxgl.Map({
       container: this.containerId,
       style: 'mapbox://styles/mapbox/light-v11',
-      bounds: CoverageMap.#bounds(geojson),
+      bounds: featureCollectionBounds(geojson),
       fitBoundsOptions: { padding: 24 },
     });
     this.#map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'top-right');
@@ -225,30 +226,5 @@ export class CoverageMap {
       row('Contributors', (p.user_count || 0).toLocaleString()),
       '</dl>',
     ].join('');
-  }
-
-  /**
-   * @param {GeoJSON.FeatureCollection} geojson - The features to frame.
-   * @returns {[[number, number], [number, number]]} A [[minLng, minLat], [maxLng, maxLat]] box covering them.
-   */
-  static #bounds(geojson) {
-    let minLng = Infinity;
-    let minLat = Infinity;
-    let maxLng = -Infinity;
-    let maxLat = -Infinity;
-    const visit = (coords) => {
-      if (typeof coords[0] === 'number') {
-        minLng = Math.min(minLng, coords[0]);
-        maxLng = Math.max(maxLng, coords[0]);
-        minLat = Math.min(minLat, coords[1]);
-        maxLat = Math.max(maxLat, coords[1]);
-      } else {
-        coords.forEach(visit);
-      }
-    };
-    for (const f of geojson.features) {
-      if (f.geometry && f.geometry.type !== 'GeometryCollection') visit(f.geometry.coordinates);
-    }
-    return [[minLng, minLat], [maxLng, maxLat]];
   }
 }

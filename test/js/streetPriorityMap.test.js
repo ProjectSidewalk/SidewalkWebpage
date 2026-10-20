@@ -9,6 +9,7 @@
  */
 
 import { loadModules, mockModule } from './loader.js';
+import { FakeLngLatBounds } from './lngLatBoundsStub.js';
 
 // What the page gets as mapbox-gl: a double each test refills through stubMapbox().
 const mapboxgl = {};
@@ -77,6 +78,7 @@ function stubMapbox() {
       constructor(options) { super(options); state.popup = this; }
     },
     NavigationControl: FakeNavigationControl,
+    LngLatBounds: FakeLngLatBounds,
   });
   return state;
 }
@@ -122,7 +124,7 @@ describe('StreetPriorityMap.init', () => {
     document.body.innerHTML = '<div id="priority-map"></div>';
     new StreetPriorityMap('priority-map', { mapboxToken: 'pk.test' }).init(geojson());
     // Both corners come from different features, so a bounds box built from only the first would fail here.
-    expect(state.options.bounds).toEqual([[-122.4, 47.55], [-122.34, 47.66]]);
+    expect(state.options.bounds.toArray()).toEqual([[-122.4, 47.55], [-122.34, 47.66]]);
     expect(state.options.container).toBe('priority-map');
     expect(mapboxgl.accessToken).toBe('pk.test');
   });

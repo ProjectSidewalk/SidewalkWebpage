@@ -123,7 +123,7 @@ export class SpeedLimit {
     // The sign is marked role="img", so its number/units spans don't carry their own meaning to a screen reader.
     // Name the graphic with the value folded in. Only worth doing while visible: display:none keeps the sign out of
     // the accessibility tree, and the first call runs before i18next has initialized.
-    if (this.speedLimitVisible && typeof i18next !== 'undefined' && i18next.isInitialized) {
+    if (this.speedLimitVisible && i18next.isInitialized) {
       this.container.setAttribute('aria-label', i18next.t('common:speed-limit-aria-label', {
         speed: this.speedLimit.number,
         units: this.speedLimit.sub,

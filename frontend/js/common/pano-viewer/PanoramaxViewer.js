@@ -120,7 +120,7 @@ export class PanoramaxViewer extends PanoViewer {
    * @returns {Promise<void>}
    */
   static async preloadLibrary() {
-    sdk ??= await import('./sdk/photoSphereViewer.js');
+    sdk ??= await util.importOrReload(() => import('./sdk/photoSphereViewer.js'));
   }
 
   /**

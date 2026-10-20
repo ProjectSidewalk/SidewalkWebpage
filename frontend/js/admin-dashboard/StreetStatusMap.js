@@ -1,3 +1,6 @@
+import mapboxgl from '../common/mapboxgl.js';
+import { featureCollectionBounds } from '../common/geoBounds.js';
+
 /**
  * Categorical palette + labels for the four street_edge_status values (#3888, #4331). This is the presentational
  * source of truth for the Street Status page: the map line colors, the legend, the per-region table columns, and the
@@ -6,8 +9,6 @@
  * and colors live here, since there is no canonical backend color for street status. Colors are design-system tokens
  * from main.css, chosen for lightness separation so the four stay distinguishable under deuteranopia/protanopia.
  */
-
-import mapboxgl from '../common/mapboxgl.js';
 export class StreetStatusColors {
   /** @type {Array<{key: string, label: string, color: string}>} ordered open → no_imagery → closed → disabled. */
   static STATUSES = [
@@ -93,7 +94,7 @@ export class StreetStatusMap {
     this.#map = new mapboxgl.Map({
       container: this.containerId,
       style: 'mapbox://styles/mapbox/light-v11',
-      bounds: StreetStatusMap.#bounds(geojson),
+      bounds: featureCollectionBounds(geojson),
       fitBoundsOptions: { padding: 24 },
     });
     this.#map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'top-right');
@@ -192,21 +193,12 @@ export class StreetStatusMap {
    * can only serve an open street, so "show me where this is" has to be answered on this page.
    *
    * @param {number} streetEdgeId - The segment to zoom to.
-   * @param {number[][]} bounds - [[minLng, minLat], [maxLng, maxLat]] covering that segment.
+   * @param {mapboxgl.LngLatBoundsLike} bounds - Covering that segment.
    */
   focusSegment(streetEdgeId, bounds) {
     this.highlightSegments([streetEdgeId]);
     // maxZoom keeps a short segment from slamming to street level, where there is no context to place it in.
     this.#map.fitBounds(bounds, { padding: 140, maxZoom: 16, duration: 700 });
-  }
-
-  /**
-   * @param {GeoJSON.Feature} feature - One GeoJSON feature.
-   * @returns {[[number, number], [number, number]]} Its [[minLng, minLat], [maxLng, maxLat]] bounds box, for
-   *   focusSegment.
-   */
-  static boundsOfFeature(feature) {
-    return StreetStatusMap.#bounds({ type: 'FeatureCollection', features: [feature] });
   }
 
   /** Builds the hover-popup HTML showing a segment's status and activity. */
@@ -225,30 +217,5 @@ export class StreetStatusMap {
       row('Contributors', (p.user_count || 0).toLocaleString()),
       '</dl>',
     ].join('');
-  }
-
-  /**
-   * @param {GeoJSON.FeatureCollection} geojson - The features to frame.
-   * @returns {[[number, number], [number, number]]} A [[minLng, minLat], [maxLng, maxLat]] box covering them.
-   */
-  static #bounds(geojson) {
-    let minLng = Infinity;
-    let minLat = Infinity;
-    let maxLng = -Infinity;
-    let maxLat = -Infinity;
-    const visit = (coords) => {
-      if (typeof coords[0] === 'number') {
-        minLng = Math.min(minLng, coords[0]);
-        maxLng = Math.max(maxLng, coords[0]);
-        minLat = Math.min(minLat, coords[1]);
-        maxLat = Math.max(maxLat, coords[1]);
-      } else {
-        coords.forEach(visit);
-      }
-    };
-    for (const f of geojson.features) {
-      if (f.geometry && f.geometry.type !== 'GeometryCollection') visit(f.geometry.coordinates);
-    }
-    return [[minLng, minLat], [maxLng, maxLat]];
   }
 }

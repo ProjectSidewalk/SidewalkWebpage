@@ -1,3 +1,5 @@
+import vegaEmbed from 'vega-embed';
+
 /**
  * Renders the coverage *distribution* — regions binned into 10% coverage buckets — with Vega-Lite. This scales to
  * any number of regions (constant height) where per-region bars don't, and answers "how is coverage distributed
@@ -5,8 +7,6 @@
  * coverage range on the map and table at once (range brushing). Buckets are pre-binned by the coordinator so colors
  * match the choropleth exactly and the index maps cleanly back to a set of regions.
  */
-
-import vegaEmbed from 'vega-embed';
 export class CoverageHistogram {
   #containerId;
   #onBinClick;

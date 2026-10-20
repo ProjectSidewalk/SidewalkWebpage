@@ -1,3 +1,5 @@
+import i18next from 'i18next';
+
 /**
  * Small non-blocking status pill for viewport label loading (#5002): "zoom in to see labels" when the zoom floor
  * is holding fetches back, and a brief "loading" note during refetches. The full-map MapLoadingOverlay owns the
@@ -17,8 +19,6 @@
  * stateful element that lives inside the map and centers itself on the map's visible part (`--map-inset-left`). The
  * brief loading note gets no close button: it is a status that clears itself, not a hint.
  */
-
-import i18next from 'i18next';
 export class MapStatusPill {
   /** How long the zoom hint stays before fading. */
   static HINT_DURATION_MS = 6000;

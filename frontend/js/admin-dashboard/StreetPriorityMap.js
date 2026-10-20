@@ -14,6 +14,7 @@
  */
 
 import mapboxgl from '../common/mapboxgl.js';
+import { featureCollectionBounds } from '../common/geoBounds.js';
 import { util } from '../common/utilities.js';
 import { AdminShell } from './AdminShell.js';
 
@@ -149,7 +150,7 @@ export class StreetPriorityMap {
     this.#map = new mapboxgl.Map({
       container: this.containerId,
       style: 'mapbox://styles/mapbox/light-v11',
-      bounds: StreetPriorityMap.#bounds(geojson),
+      bounds: featureCollectionBounds(geojson),
       fitBoundsOptions: { padding: 24 },
     });
     this.#map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'top-right');
@@ -262,28 +263,5 @@ export class StreetPriorityMap {
       row('Imagery (median)', util.escapeHTML(p.median_newest_capture || 'not polled')),
       '</dl>',
     ].join('');
-  }
-
-  /**
-   * @param {GeoJSON.FeatureCollection} geojson - The features to frame.
-   * @returns {[[number, number], [number, number]]} A [[minLng, minLat], [maxLng, maxLat]] box covering them.
-   */
-  static #bounds(geojson) {
-    /** @type {[[number, number], [number, number]]} */
-    const box = [[Infinity, Infinity], [-Infinity, -Infinity]];
-    const visit = (coords) => {
-      if (typeof coords[0] === 'number') {
-        box[0][0] = Math.min(box[0][0], coords[0]);
-        box[1][0] = Math.max(box[1][0], coords[0]);
-        box[0][1] = Math.min(box[0][1], coords[1]);
-        box[1][1] = Math.max(box[1][1], coords[1]);
-      } else {
-        coords.forEach(visit);
-      }
-    };
-    for (const feature of geojson.features) {
-      if (feature.geometry && feature.geometry.type !== 'GeometryCollection') visit(feature.geometry.coordinates);
-    }
-    return box;
   }
 }

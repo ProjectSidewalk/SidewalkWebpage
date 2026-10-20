@@ -74,7 +74,7 @@ export class Minimap {
   /** @type {() => Task[]} What the overview fits; nothing until setOverviewStreets names it. */
   #overviewStreets = () => [];
 
-  /** The map, or null when it couldn't be created (no WebGL2, or MapLibre failed to load); see create(). */
+  /** The map, or null when it couldn't be created (no WebGL2); see create(). */
   /** @type {?import('maplibre-gl').Map} */
   #map = null;
 

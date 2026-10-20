@@ -68,7 +68,7 @@ export class Infra3dViewer extends PanoViewer {
    * @returns {Promise<void>}
    */
   static async preloadLibrary() {
-    sdk ??= await import('./sdk/infra3d.js');
+    sdk ??= await util.importOrReload(() => import('./sdk/infra3d.js'));
   }
 
   /**

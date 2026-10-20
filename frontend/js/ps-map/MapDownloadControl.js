@@ -334,11 +334,10 @@ export class MapDownloadControl {
    * @param {number} count - The current visible-label count.
    */
   #renderCount(count) {
-    const hasI18n = typeof i18next !== 'undefined';
     const pill = document.createElement('span');
     pill.className = 'map-download-control__count-pill';
-    pill.textContent = hasI18n ? i18next.t('labelmap:download.count', { count }) : `${count} labels`;
-    const suffix = hasI18n ? i18next.t('labelmap:download.count-match', { count }) : 'match your filters';
+    pill.textContent = i18next.t('labelmap:download.count', { count });
+    const suffix = i18next.t('labelmap:download.count-match', { count });
     this.#panel.querySelector('.map-download-control__count').replaceChildren(pill, suffix);
   }
 

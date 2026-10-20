@@ -1,9 +1,8 @@
+import i18next from 'i18next';
+
 /**
  * An object that can display the tags of a label.
  */
-
-import i18next from 'i18next';
-
 export class TagDisplay {
   #container;
   #tags;

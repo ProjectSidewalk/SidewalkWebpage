@@ -179,7 +179,7 @@ export class PannellumViewer extends PanoViewer {
    * @returns {Promise<void>}
    */
   static async preloadLibrary() {
-    sdk ??= await import('./sdk/pannellum.js');
+    sdk ??= await util.importOrReload(() => import('./sdk/pannellum.js'));
   }
 
   /**

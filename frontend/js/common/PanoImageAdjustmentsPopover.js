@@ -255,7 +255,7 @@ export class PanoImageAdjustmentsPopover {
     if (this.#activeText) {
       // Read at render time rather than once at construction, so the text follows i18next however late it is ready.
       // The leading space keeps the pill's accessible name from running "Image" and this text together.
-      if (!atDefault && typeof i18next !== 'undefined') {
+      if (!atDefault) {
         this.#activeText.textContent = ` ${i18next.t('common:image-adjustments.active-sr')}`;
       }
       this.#activeText.hidden = atDefault;

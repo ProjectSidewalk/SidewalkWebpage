@@ -1,3 +1,5 @@
+import i18next from 'i18next';
+
 /**
  * The status over the pano that says a label's imagery is still loading (#5581).
  *
@@ -17,8 +19,6 @@
  * while it speaks, since assistive tech may hold a busy subtree's changes until it clears, by which time the load is
  * over (LabelContainer.#setUiBusy leaves the attribute off the region that contains it).
  */
-
-import i18next from 'i18next';
 export class PanoLoadingStatus {
   /**
    * How long a load runs before it counts as slow: the announcement, the onShown report and (when the outgoing pano

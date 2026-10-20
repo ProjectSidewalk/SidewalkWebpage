@@ -9,6 +9,7 @@
  */
 
 import mapboxgl from '../common/mapboxgl.js';
+import { featureCollectionBounds, geometryBounds } from '../common/geoBounds.js';
 import { util } from '../common/utilities.js';
 import { AdminShell } from './AdminShell.js';
 
@@ -74,7 +75,8 @@ export class SidewalkPresenceMap {
   #map;
   #mapboxToken;
   #popup;
-  #boundsByStreet = new Map(); // street_edge_id -> [[minLng, minLat], [maxLng, maxLat]]
+  /** @type {Map<number, mapboxgl.LngLatBounds>} Each street's bounds, by street_edge_id. */
+  #boundsByStreet = new Map();
   #hoverId = null;
   #loaded = false;
   #pendingFocus = null;        // Streets chosen before the map loaded; applied on load.
@@ -101,13 +103,13 @@ export class SidewalkPresenceMap {
 
     for (const feature of faces.features) {
       const id = Number(feature.properties.street_edge_id);
-      if (!this.#boundsByStreet.has(id)) this.#boundsByStreet.set(id, SidewalkPresenceMap.#bounds([feature]));
+      if (!this.#boundsByStreet.has(id)) this.#boundsByStreet.set(id, geometryBounds(feature.geometry));
     }
 
     this.#map = new mapboxgl.Map({
       container: this.containerId,
       style: 'mapbox://styles/mapbox/light-v11',
-      bounds: SidewalkPresenceMap.#bounds(faces.features),
+      bounds: featureCollectionBounds(faces),
       fitBoundsOptions: { padding: 24 },
     });
     this.#map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'top-right');
@@ -233,10 +235,7 @@ export class SidewalkPresenceMap {
   fitStreets(streetEdgeIds, maxZoom) {
     const boxes = streetEdgeIds.map((id) => this.#boundsByStreet.get(Number(id))).filter(Boolean);
     if (!this.#map || boxes.length === 0) return;
-    const box = [
-      [Math.min(...boxes.map((b) => b[0][0])), Math.min(...boxes.map((b) => b[0][1]))],
-      [Math.max(...boxes.map((b) => b[1][0])), Math.max(...boxes.map((b) => b[1][1]))],
-    ];
+    const box = boxes.reduce((all, b) => all.extend(b), new mapboxgl.LngLatBounds());
     this.#map.fitBounds(box, { padding: 48, maxZoom });
   }
 
@@ -283,26 +282,5 @@ export class SidewalkPresenceMap {
       + `${util.escapeHTML(p.street_side)} side</div>`,
       `<dl class="coverage-popup-dl">${rows.join('')}</dl>`,
     ].join('');
-  }
-
-  /**
-   * @param {GeoJSON.Feature<GeoJSON.LineString>[]} features - Line features.
-   * @returns {[[number, number], [number, number]]} A [[minLng, minLat], [maxLng, maxLat]] box covering them.
-   */
-  static #bounds(features) {
-    /** @type {[[number, number], [number, number]]} */
-    const box = [[Infinity, Infinity], [-Infinity, -Infinity]];
-    const visit = (coords) => {
-      if (typeof coords[0] === 'number') {
-        box[0][0] = Math.min(box[0][0], coords[0]);
-        box[1][0] = Math.max(box[1][0], coords[0]);
-        box[0][1] = Math.min(box[0][1], coords[1]);
-        box[1][1] = Math.max(box[1][1], coords[1]);
-      } else {
-        coords.forEach(visit);
-      }
-    };
-    for (const feature of features) if (feature.geometry) visit(feature.geometry.coordinates);
-    return box;
   }
 }

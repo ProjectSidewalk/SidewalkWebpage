@@ -45,7 +45,7 @@ export default defineConfig(({ mode }) => ({
        * @param {(warning: object) => void} warn
        */
       onwarn(warning, warn) {
-        if (warning.code === 'EVAL' && warning.id?.includes('/node_modules/')) return;
+        if (warning.code === 'EVAL' && warning.id?.includes('/node_modules/@inovitas/')) return;
         warn(warning);
       },
       input: Object.fromEntries(

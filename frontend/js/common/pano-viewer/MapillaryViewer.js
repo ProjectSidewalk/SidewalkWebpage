@@ -95,7 +95,7 @@ export class MapillaryViewer extends PanoViewer {
    * @returns {Promise<void>}
    */
   static async preloadLibrary() {
-    sdk ??= await import('./sdk/mapillary.js');
+    sdk ??= await util.importOrReload(() => import('./sdk/mapillary.js'));
   }
 
   /**

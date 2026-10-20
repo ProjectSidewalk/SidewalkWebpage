@@ -9,7 +9,8 @@ interface Window {
 }
 
 // mapbox-gl's and GeoJSON's types under the bare names JSDoc uses (`mapboxgl.Map`, `GeoJSON.Feature<GeoJSON.Point>`),
-// so a comment need not spell out an import().
+// so a comment need not spell out an import(). `geojson` is @types/geojson, a devDependency of our own so a library
+// bump can't take it away.
 declare module 'mapbox-gl/dist/mapbox-gl-csp.js' {
   import mapboxgl from 'mapbox-gl';
   export default mapboxgl;
