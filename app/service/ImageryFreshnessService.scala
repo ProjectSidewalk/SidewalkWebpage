@@ -270,7 +270,7 @@ class ImageryFreshnessServiceImpl @Inject() (
       // The key is resolved once here, like the Mapillary token below: resolving it lazily inside the per-point
       // fetch would throw synchronously in the batch fold and abandon every remaining street.
       case PanoSource.Gsv =>
-        config.getOptional[String]("google-maps-server-key") match {
+        PanoDataService.googleServerKey(config) match {
           case Some(key) => pollStreets("GSV")(fetchGsvPointObservations(key))
           case None      =>
             Future.failed(MissingImageryCredentialException("No google-maps-server-key configured for a GSV city."))

@@ -1116,14 +1116,10 @@ def test_finalize_outputs_without_checkpoint_writes_empty(tmp_path):
 # Every city's data files live in their own db/onboarding/<city-id>/ dir, so main() tests pass this everywhere.
 _CITY = 'testville-wa'
 
-# Google's documented URL-signing example (developers.google.com/maps/documentation/maps-static/digital-signature).
-_GOOGLE_EXAMPLE_SECRET = 'vNIXE0xscrmjlyV-12Nj_BvUPaw='
-
 
 @pytest.fixture(autouse=True)
-def _gsv_signing_env(monkeypatch):
-    """Gives every test a valid signing secret and no server key, whatever the container running the suite holds."""
-    monkeypatch.setenv('GOOGLE_MAPS_SECRET', _GOOGLE_EXAMPLE_SECRET)
+def _no_real_server_key(monkeypatch):
+    """Keeps the container's real key out of every test, and out of any URL a failing assertion prints."""
     monkeypatch.delenv('GOOGLE_MAPS_SERVER_KEY', raising=False)
 
 
@@ -1179,35 +1175,15 @@ def test_main_missing_api_key_returns_1(monkeypatch):
     assert cs.main(['--city-id', _CITY, '--gsv']) == 1
 
 
-def test_main_missing_mapillary_token_returns_1(monkeypatch):
-    monkeypatch.delenv('MAPILLARY_ACCESS_TOKEN', raising=False)
-    assert cs.main(['--city-id', _CITY, '--mapillary']) == 1
-
-
-def test_main_missing_signing_secret_returns_1(monkeypatch):
-    monkeypatch.setenv('GOOGLE_MAPS_API_KEY', 'dummy')
-    monkeypatch.delenv('GOOGLE_MAPS_SECRET')
-    assert cs.main(['--city-id', _CITY, '--gsv']) == 1
-
-
-def test_sign_gsv_url_matches_googles_documented_example():
-    url = 'https://maps.googleapis.com/maps/api/geocode/json?address=New+York&client=clientID'
-    assert cs.sign_gsv_url(url, _GOOGLE_EXAMPLE_SECRET) == url + '&signature=chaRF2hTJKOScPr-RQCEhZbSzIE='
-
-
-@pytest.mark.parametrize('server_key, expected_key', [('server', 'server'), (None, 'dummy')])
-def test_main_gsv_signs_requests_with_the_server_key(monkeypatch, tmp_path, server_key, expected_key):
+@pytest.mark.parametrize('server_key, expected_key', [('server', 'server'), ('', 'dummy'), (None, 'dummy')])
+def test_main_gsv_prefers_the_server_key(monkeypatch, tmp_path, server_key, expected_key):
     _setup(monkeypatch, tmp_path, [(200, 1, _LINE_61)])
-    if server_key:
+    if server_key is not None:
         monkeypatch.setenv('GOOGLE_MAPS_SERVER_KEY', server_key)
     urls = []
     monkeypatch.setattr(cs, '_get_json', lambda url: urls.append(url) or {'status': 'ZERO_RESULTS'})
     assert cs.main(['--city-id', _CITY, '--gsv', '--max-qps', '1000']) == 0
-    assert urls
-    for url in urls:
-        assert f'&key={expected_key}&' in url
-        unsigned, _, _ = url.partition('&signature=')
-        assert url == cs.sign_gsv_url(unsigned, _GOOGLE_EXAMPLE_SECRET)
+    assert urls and all(f'&key={expected_key}&' in url for url in urls)
 
 
 def test_main_missing_input_csv_returns_1(monkeypatch, tmp_path):

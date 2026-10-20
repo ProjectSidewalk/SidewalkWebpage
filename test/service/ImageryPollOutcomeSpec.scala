@@ -36,18 +36,18 @@ class ImageryPollOutcomeSpec extends SidewalkSpec with GuiceOneAppPerSuite {
   private val configService = app.injector.instanceOf[ConfigService]
   private val baseConfig    = app.injector.instanceOf[Configuration]
 
-  /** The config key this city's provider needs before it can poll at all. */
-  private val credentialKey: Option[String] = configService.getPanoSource match {
-    case PanoSource.Gsv       => Some("google-maps-server-key")
-    case PanoSource.Mapillary => Some("mapillary-access-token")
-    case _                    => None
+  /** The config keys this city's provider needs before it can poll at all; GSV takes either key. */
+  private val credentialKeys: Seq[String] = configService.getPanoSource match {
+    case PanoSource.Gsv       => Seq("google-maps-server-key", "google-maps-api-key")
+    case PanoSource.Mapillary => Seq("mapillary-access-token")
+    case _                    => Seq.empty
   }
 
-  /** The real service, rebuilt against a configuration with one key removed. */
-  private def serviceWithout(key: String): ImageryFreshnessService = {
+  /** The real service, rebuilt against a configuration with those keys removed. */
+  private def serviceWithout(keys: Seq[String]): ImageryFreshnessService = {
     ImageryFreshnessServiceImpl(
       app.injector.instanceOf[DatabaseConfigProvider],
-      Configuration(baseConfig.underlying.withoutPath(key)),
+      Configuration(keys.foldLeft(baseConfig.underlying)(_.withoutPath(_))),
       app.injector.instanceOf[WSClient],
       configService,
       app.injector.instanceOf[PanoDataService],
@@ -59,14 +59,14 @@ class ImageryPollOutcomeSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   "pollImageryAges" should {
     "fail rather than report success when its provider's credential is missing" in {
-      assume(credentialKey.isDefined, s"${configService.getPanoSource} has no imagery-age credential to remove")
+      assume(credentialKeys.nonEmpty, s"${configService.getPanoSource} has no imagery-age credential to remove")
 
       // A success here is what makes the run row say `succeeded` with `streets_polled: 0`, which then satisfies the
       // overdue check forever. The failure is the whole point: it is the only thing that surfaces a rotated key.
       val thrown = the[MissingImageryCredentialException] thrownBy {
-        await(serviceWithout(credentialKey.get).pollImageryAges())
+        await(serviceWithout(credentialKeys).pollImageryAges())
       }
-      thrown.getMessage must include(credentialKey.get)
+      thrown.getMessage must include(credentialKeys.head)
     }
   }
 
