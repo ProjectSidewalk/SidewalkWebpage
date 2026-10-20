@@ -38,7 +38,7 @@ class ImageryPollOutcomeSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   /** The config key this city's provider needs before it can poll at all. */
   private val credentialKey: Option[String] = configService.getPanoSource match {
-    case PanoSource.Gsv       => Some("google-maps-api-key")
+    case PanoSource.Gsv       => Some("google-maps-server-key")
     case PanoSource.Mapillary => Some("mapillary-access-token")
     case _                    => None
   }

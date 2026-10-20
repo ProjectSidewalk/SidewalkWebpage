@@ -345,7 +345,7 @@ class ShareController @Inject() (
     if (crop.exists()) {
       Future.successful(Option(ImageIO.read(crop)))
     } else {
-      panoDataService.getImageUrl(meta.panoId, imagerySource, meta.pov.heading, meta.pov.pitch, meta.pov.zoom,
+      panoDataService.getServerImageUrl(meta.panoId, imagerySource, meta.pov.heading, meta.pov.pitch, meta.pov.zoom,
         meta.canvasWidth, meta.canvasHeight) match {
         case Some(url) =>
           ws.url(url)

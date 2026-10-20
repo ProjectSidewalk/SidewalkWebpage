@@ -14,7 +14,8 @@ This is a standalone, manually-run utility (it is not invoked by the app). Workf
          python3.13 tools/city/check_streets_for_imagery.py --city-id newport-ky --panoramax
 
      ``--panoramax`` needs no credential (the API is public);
-     ``--gsv`` needs ``GOOGLE_MAPS_API_KEY``; ``--mapillary`` needs ``MAPILLARY_ACCESS_TOKEN``; ``--infra3d`` needs
+     ``--gsv`` needs ``GOOGLE_MAPS_SERVER_KEY`` (else ``GOOGLE_MAPS_API_KEY``) and ``GOOGLE_MAPS_SECRET``;
+     ``--mapillary`` needs ``MAPILLARY_ACCESS_TOKEN``; ``--infra3d`` needs
      ``INFRA3D_CLIENT_ID`` and ``INFRA3D_CLIENT_SECRET`` (one city's pair — the same OAuth client-credentials the app
      holds per city as ``INFRA3D_CLIENT_ID_<CITY>``), plus ``--campaign <uid>`` if the city's tenant holds more than
      one campaign. It is ``python3.13`` rather than the container's default ``python3`` because this tool's libraries
@@ -123,6 +124,8 @@ import argparse
 import base64
 import contextlib
 import csv
+import hashlib
+import hmac
 import json
 import logging
 import math
@@ -135,7 +138,7 @@ from collections import namedtuple
 from collections.abc import Callable, Collection, Iterable, Iterator
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
-from urllib.parse import quote
+from urllib.parse import quote, urlsplit
 
 import pandas as pd
 import requests
@@ -950,6 +953,23 @@ def _get_json(url: str, **kwargs) -> dict:
     return requests.request(url=url, timeout=REQUEST_TIMEOUT, **kwargs).json()
 
 
+def sign_gsv_url(url: str, secret: str) -> str:
+    """
+    Appends Google's URL signature, the same scheme as ``PanoDataService.signUrl``; the server key refuses unsigned
+    requests.
+
+    Args:
+        url:    Full Google Maps request URL, query string included.
+        secret: The project's URL signing secret, in Google's web-safe base64.
+
+    Returns:
+        ``url`` with ``&signature=...`` appended.
+    """
+    parts = urlsplit(url)
+    digest = hmac.new(base64.urlsafe_b64decode(secret), f'{parts.path}?{parts.query}'.encode(), hashlib.sha1).digest()
+    return f'{url}&signature={base64.urlsafe_b64encode(digest).decode()}'
+
+
 def make_fetch(max_attempts: int = MAX_ATTEMPTS, sleep: Callable[[float], None] | None = None,
                rate_limiter: RateLimiter | None = None) -> Callable[..., dict]:
     """
@@ -1604,8 +1624,20 @@ def main(argv: list[str] | None = None) -> int:
             auth.tenant, ', '.join('%s (%s)' % (uid, names[uid]) for uid in campaign_uids)))
     elif api == 'Panoramax':
         print('Checking Panoramax 360° coverage via %s (public API, no credential needed)' % PANORAMAX_SEARCH_URL)
+    elif api == 'GSV':
+        # These requests carry no Referer, which is all the browser key checks (#5647).
+        api_key = os.getenv('GOOGLE_MAPS_SERVER_KEY') or os.getenv('GOOGLE_MAPS_API_KEY')
+        secret = os.getenv('GOOGLE_MAPS_SECRET')
+        if api_key is None or secret is None:
+            print("Couldn't read GOOGLE_MAPS_SERVER_KEY (or GOOGLE_MAPS_API_KEY) and GOOGLE_MAPS_SECRET.")
+            return 1
+        unsigned_fetch = fetch
+
+        def fetch(url: str, **kwargs) -> dict:
+            """Signs each GSV request just before sending it, since the signature covers the whole query."""
+            return unsigned_fetch(sign_gsv_url(url, secret), **kwargs)
     else:
-        api_key = os.getenv('GOOGLE_MAPS_API_KEY') if api == 'GSV' else os.getenv('MAPILLARY_ACCESS_TOKEN')
+        api_key = os.getenv('MAPILLARY_ACCESS_TOKEN')
         if api_key is None:
             print("Couldn't read API key environment variable.")
             return 1

@@ -147,7 +147,7 @@ US_STATES = {
 # cityparams pano-viewer-type -> (check_streets_for_imagery.py flag, env vars the web container must hold to scan).
 # Panoramax's API is public, so its scan needs no credential.
 PROVIDERS = {
-    'gsv': ('--gsv', ('GOOGLE_MAPS_API_KEY',)),
+    'gsv': ('--gsv', ('GOOGLE_MAPS_API_KEY', 'GOOGLE_MAPS_SECRET')),
     'mapillary': ('--mapillary', ('MAPILLARY_ACCESS_TOKEN',)),
     'panoramax': ('--panoramax', ()),
     'infra3d': ('--infra3d', ('INFRA3D_CLIENT_ID', 'INFRA3D_CLIENT_SECRET')),

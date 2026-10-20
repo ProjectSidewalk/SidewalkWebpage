@@ -31,7 +31,7 @@ Standalone and manual — nothing in the app calls it.
    for different cities can't collide or resume each other's checkpoints.
 2. Run **one** of (from any directory — paths resolve relative to the repo root):
    ```bash
-   python3.13 tools/city/check_streets_for_imagery.py --city-id newport-ky --gsv         # needs GOOGLE_MAPS_API_KEY
+   python3.13 tools/city/check_streets_for_imagery.py --city-id newport-ky --gsv         # needs GOOGLE_MAPS_SERVER_KEY + GOOGLE_MAPS_SECRET
    python3.13 tools/city/check_streets_for_imagery.py --city-id newport-ky --mapillary   # needs MAPILLARY_ACCESS_TOKEN
    python3.13 tools/city/check_streets_for_imagery.py --city-id newport-ky --infra3d     # needs INFRA3D_CLIENT_ID +
                                                                  # INFRA3D_CLIENT_SECRET; add --campaign <uid> if
