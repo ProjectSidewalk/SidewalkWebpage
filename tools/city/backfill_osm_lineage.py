@@ -230,7 +230,7 @@ def main(argv=None, fetch=fetch_ways, probe=wait_until_answering):
     try:
         probe(policy)
         ways = fetch(tiling.polygons, True, request_timeout_s=args.request_timeout_s,
-                     memory_mb=args.request_memory_mb, pause_s=args.pause_s, policy=policy)
+                     memory_mb=args.request_memory_mb, pause_s=args.pause_s, policy=policy, one_request_each=True)
     except OverpassUnavailable as exc:
         logger.error('%s. Nothing was written for %s.', exc, args.city_id)
         return EXIT_UNAVAILABLE

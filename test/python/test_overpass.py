@@ -68,12 +68,14 @@ def test_policy_refuses_a_wait_under_the_usage_policy_floor_or_an_inconsistent_s
         op.RetryPolicy(max_wait_s=20)
     with pytest.raises(ValueError):
         op.RetryPolicy(window_s=0)
+    assert op.RetryPolicy(initial_wait_s=30, max_wait_s=30, jitter=0).wait_after(9, 0.5) == 30
 
 
 @pytest.mark.parametrize('exc, retryable', [
     (requests.ConnectionError('refused'), True),
     (requests.ConnectTimeout('slow'), True),
     (requests.ReadTimeout('slow'), True),
+    (requests.exceptions.ChunkedEncodingError('broke off'), True),
     (op.Refused('probe'), True),
     (ResponseStatusCodeError("'overpass-api.de' responded: 502 Bad Gateway <html>at capacity</html>"), True),
     (ResponseStatusCodeError("'overpass-api.de' responded: 429 Too Many Requests"), True),
@@ -134,7 +136,7 @@ def test_retry_raises_anything_that_is_not_a_refusal_at_once():
     assert clock.sleeps == []
 
 
-def test_retry_cuts_off_an_attempt_that_outlives_its_deadline_and_retries_it():
+def test_a_deadline_cuts_off_an_attempt_that_outlives_it_and_the_retry_waits_before_asking_again():
     clock = FakeClock()
     calls = []
 
@@ -143,16 +145,17 @@ def test_retry_cuts_off_an_attempt_that_outlives_its_deadline_and_retries_it():
         if len(calls) == 1:
             time.sleep(5)  # osmnx's unbounded 429 recursion, in miniature.
         return 'ok'
-    policy = op.RetryPolicy(attempt_deadline_s=0.05)
-    assert op.call_with_retry(hangs_once, 'request', policy, sleep=clock.sleep, clock=clock, rng=no_jitter) == 'ok'
+    attempt = lambda: op.with_deadline(hangs_once, 0.05)  # noqa: E731
+    assert op.call_with_retry(attempt, 'request', sleep=clock.sleep, clock=clock, rng=no_jitter) == 'ok'
     assert len(calls) == 2 and clock.sleeps == [30]
 
 
-def test_with_deadline_restores_the_previous_alarm_handler_and_runs_unbounded_off_the_main_thread():
+def test_with_deadline_restores_the_previous_alarm_handler_and_runs_unbounded_off_the_main_thread_or_without_one():
     import signal
     before = signal.getsignal(signal.SIGALRM)
     assert op.with_deadline(lambda: 'done', 1) == 'done'
     assert signal.getsignal(signal.SIGALRM) is before
+    assert op.with_deadline(lambda: 'unbounded', None) == 'unbounded'
     result = []
     worker = threading.Thread(target=lambda: result.append(op.with_deadline(lambda: 'thread', 0.01)))
     worker.start()
@@ -223,11 +226,24 @@ def test_configure_identifies_us_declares_the_limits_and_caches_by_day(tmp_path)
     ox = SimpleNamespace(settings=SimpleNamespace())
     op.configure(ox, tmp_path, 60, 256, today=lambda: date(2026, 10, 20))
     assert ox.settings.http_user_agent == op.USER_AGENT and ox.settings.http_referer == op.USER_AGENT
-    assert ox.settings.requests_timeout == 60 and ox.settings.overpass_memory == 256 * 1024 * 1024
+    # The server gets 60 s and says so in the query; the client waits longer, so a "timed out" remark can arrive.
+    assert ox.settings.overpass_settings == '[out:json][timeout:60]{maxsize}'
+    assert ox.settings.requests_timeout == 60 + op.CLIENT_SLACK_S and ox.settings.overpass_memory == 256 * 1024 * 1024
     assert ox.settings.use_cache is True and ox.settings.cache_folder == str(tmp_path / '2026-10-20')
     assert ox.settings.log_file is True
     op.configure(ox, tmp_path, today=lambda: date(2026, 10, 20))
-    assert ox.settings.requests_timeout == 180 and ox.settings.overpass_memory is None
+    assert ox.settings.overpass_settings == '[out:json][timeout:180]{maxsize}'
+    assert ox.settings.requests_timeout == 180 + op.CLIENT_SLACK_S and ox.settings.overpass_memory is None
+
+
+def test_osmnx_still_formats_the_query_and_logs_remarks_the_way_this_module_expects():
+    osmnx = pytest.importorskip('osmnx', reason='the 3.13 half has osmnx')
+    import inspect
+    from osmnx import _http, _overpass
+    assert 'settings.overpass_settings.format(timeout=settings.requests_timeout, maxsize=maxsize)' in \
+        inspect.getsource(_overpass)
+    assert "remarked: {response_json['remark']!r}" in inspect.getsource(_http)
+    assert osmnx.settings.overpass_settings == '[out:json][timeout:{timeout}]{maxsize}'
 
 
 def test_configure_prunes_day_folders_older_than_a_week_and_nothing_else(tmp_path):
@@ -261,15 +277,16 @@ def test_remark_watch_reads_the_servers_remark_and_passes_osmnx_warnings_on(capl
 
 # ------------------------------------------------------------------------------------------------- fetch_each
 
-def test_fetch_each_pauses_only_after_a_request_the_server_served():
+def test_fetch_each_streams_the_results_and_pauses_only_after_a_request_the_server_served():
     clock = FakeClock()
+    fetched = []
 
     def fetch_one(polygon):
-        if polygon != 'cached':
-            clock.now += 3
-        return polygon.upper()
+        fetched.append(polygon)
+        return polygon.upper(), polygon != 'cached'
     results = op.fetch_each(['a', 'cached', 'b', 'c'], fetch_one, pause_s=7, sleep=clock.sleep, clock=clock)
-    assert results == ['A', 'CACHED', 'B', 'C']
+    assert next(results) == 'A' and fetched == ['a']  # The next tile is not fetched until this one is taken.
+    assert list(results) == ['CACHED', 'B', 'C']
     assert clock.sleeps == [7, 7]  # After a and b; not after the cache hit, not after the last.
 
 
@@ -281,12 +298,12 @@ def test_fetch_each_retries_each_request_and_names_it(caplog):
         if polygon == 'b' and attempts['b'] == 0:
             attempts['b'] += 1
             raise requests.ConnectionError('refused')
-        return polygon
+        return polygon, True
     with caplog.at_level(logging.WARNING):
-        results = op.fetch_each(['a', 'b'], fetch_one, pause_s=5, sleep=clock.sleep, clock=clock, rng=no_jitter)
+        results = list(op.fetch_each(['a', 'b'], fetch_one, pause_s=5, sleep=clock.sleep, clock=clock, rng=no_jitter))
     assert results == ['a', 'b']
-    assert clock.sleeps == [30]
+    assert clock.sleeps == [5, 30]  # The rest after a, then the wait after b's refusal.
     assert 'request 2/2: ConnectionError: refused' in caplog.text
     down = failing([requests.ConnectionError('down')] * 9)
     with pytest.raises(op.OverpassUnavailable, match='request 1/1'):
-        op.fetch_each(['x'], lambda polygon: down(), sleep=clock.sleep, clock=clock, rng=no_jitter)
+        list(op.fetch_each(['x'], lambda polygon: down(), sleep=clock.sleep, clock=clock, rng=no_jitter))

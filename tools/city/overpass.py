@@ -3,10 +3,8 @@ How the city tools talk to the public Overpass server (overpass-api.de) without 
 
 Overpass is a shared, volunteer-run service. It admits a query only while it has the server time and memory the query
 declares, it budgets each client by the server time it uses, and it blocks the IP (the whole network behind a NAT) of a
-client that keeps sending after being refused. The first fleet-wide lineage backfill found that out: one whole-city
-query per city, city after city with no pause, until the server answered "502 at capacity" and then refused the
-connection outright for the rest of the run. What this module does instead is what streetscape-tracker, which queries
-Overpass every night and has been blocked once, settled on:
+client that keeps sending after being refused; it has blocked ours once (#5741). What this module does is what
+streetscape-tracker, which queries Overpass every night and has also been blocked once, settled on:
 
 - say who we are (the app's own User-Agent), since a bare Python client is answered with a 406;
 - ask for small areas and declare small limits, so a query gets in while the server is busy;
@@ -47,6 +45,9 @@ MIN_RETRY_WAIT_S = 30.0
 # EX_TEMPFAIL: the driver stops the whole run on it; more queries to a refusing server turn a throttle into a block.
 EXIT_UNAVAILABLE = 75
 CACHE_KEEP_DAYS = 7
+# How much longer than the declared server time the client waits for the answer. osmnx uses one number for both,
+# so the client would hang up just as the server stopped, and the server's "timed out" remark would never arrive.
+CLIENT_SLACK_S = 30
 # Only transport faults and these answers mean "ask again later"; anything else is a bug to see, not to wait on.
 RETRYABLE_STATUS = re.compile(r'responded: (406|429|502|503|504)\b')
 
@@ -64,22 +65,19 @@ class RetryPolicy:
     """
     How long to keep asking after a refusal: failure ``k`` waits ``min(max_wait_s, initial_wait_s * 2 ** (k - 1))``,
     times ``1 + jitter * u`` for a random ``u`` in [0, 1), so the floor holds at every step. The attempt after a wait
-    that would end more than ``window_s`` after the first attempt started is not made. One attempt is also cut off
-    after ``attempt_deadline_s``, which bounds osmnx's own retry of a 429 or 504 (a fixed 55 s sleep and a recursive
-    resend with no limit) so a server that throttles for an hour costs this window, not the night.
+    that would end more than ``window_s`` after the first attempt started is not made. The attempts themselves are
+    unbounded here; a fetcher that knows one call is one request wraps it in :func:`with_deadline`.
     """
     initial_wait_s: float = 30.0
     max_wait_s: float = 240.0
     jitter: float = 0.25
     window_s: float = 600.0
-    attempt_deadline_s: float = 600.0
 
     def __post_init__(self):
         if self.initial_wait_s < MIN_RETRY_WAIT_S:
             raise ValueError(f'initial_wait_s must be at least {MIN_RETRY_WAIT_S:.0f} s (Overpass usage policy)')
-        if (self.max_wait_s < self.initial_wait_s or self.jitter < 0 or self.window_s <= 0
-                or self.attempt_deadline_s <= 0):
-            raise ValueError('max_wait_s >= initial_wait_s, jitter >= 0, window_s > 0, attempt_deadline_s > 0')
+        if self.max_wait_s < self.initial_wait_s or self.jitter < 0 or self.window_s <= 0:
+            raise ValueError('max_wait_s >= initial_wait_s, jitter >= 0, window_s > 0')
 
     def wait_after(self, failures, u):
         """The wait after the ``failures``-th failure in a row, with ``u`` in [0, 1) as the jitter draw."""
@@ -88,7 +86,7 @@ class RetryPolicy:
 
 def is_retryable(exc):
     """Whether ``exc`` is Overpass saying "not now": a transport fault, a refusal status, or one of ours."""
-    if isinstance(exc, (requests.ConnectionError, requests.Timeout, Refused)):
+    if isinstance(exc, (requests.ConnectionError, requests.Timeout, requests.exceptions.ChunkedEncodingError, Refused)):
         return True
     return type(exc).__name__ == 'ResponseStatusCodeError' and bool(RETRYABLE_STATUS.search(str(exc)))
 
@@ -97,9 +95,12 @@ def with_deadline(attempt, seconds):
     """
     Runs ``attempt()``, raising :class:`Refused` if it has not returned after ``seconds``.
 
-    Uses SIGALRM, so it only cuts an attempt off on the main thread; elsewhere the attempt runs unbounded.
+    What it bounds is osmnx's own retry of a 429 or 504, a fixed 55 s sleep and a recursive resend with no limit, so
+    a server that throttles for an hour costs the retry window, not the night. Only for a call that is one Overpass
+    request (osmnx cuts a polygon over 2,500 km² into several, and a street graph fetch is many); ``seconds`` None
+    runs it unbounded, as does any thread but the main one, since it uses SIGALRM.
     """
-    if threading.current_thread() is not threading.main_thread():
+    if seconds is None or threading.current_thread() is not threading.main_thread():
         return attempt()
 
     def cut_off(signum, frame):
@@ -134,7 +135,7 @@ def call_with_retry(attempt, what, policy=RetryPolicy(), sleep=time.sleep, clock
     failures = 0
     while True:
         try:
-            return with_deadline(attempt, policy.attempt_deadline_s)
+            return attempt()
         except Exception as exc:
             if not is_retryable(exc):
                 raise
@@ -199,8 +200,7 @@ def configure(ox, cache_root, request_timeout_s=180, memory_mb=None, today=date.
     """
     ox.settings.http_user_agent = USER_AGENT
     ox.settings.http_referer = USER_AGENT
-    ox.settings.requests_timeout = request_timeout_s
-    ox.settings.overpass_memory = None if memory_mb is None else memory_mb * 1024 * 1024
+    declare_limits(ox, request_timeout_s, memory_mb)
     ox.settings.use_cache = True
     ox.settings.cache_folder = str(cache_root / today().isoformat())
     prune_cache(cache_root, today())
@@ -254,6 +254,16 @@ def remark_watch(ox):
     return watch
 
 
+def declare_limits(ox, server_timeout_s, memory_mb):
+    """
+    Sets the ``[timeout:]`` and ``[maxsize:]`` every query declares, with the client waiting :data:`CLIENT_SLACK_S`
+    longer than the server is allowed, so a query the server stops is answered (with its remark) rather than hung up on.
+    """
+    ox.settings.overpass_settings = f'[out:json][timeout:{server_timeout_s}]{{maxsize}}'
+    ox.settings.requests_timeout = server_timeout_s + CLIENT_SLACK_S
+    ox.settings.overpass_memory = None if memory_mb is None else memory_mb * 1024 * 1024
+
+
 def prune_cache(cache_root, today):
     """Removes the day folders under ``cache_root`` older than :data:`CACHE_KEEP_DAYS`; anything else there stays."""
     if not cache_root.is_dir():
@@ -265,33 +275,30 @@ def prune_cache(cache_root, today):
             shutil.rmtree(entry)
 
 
-def fetch_each(polygons, fetch_one, pause_s=7.0, policy=RetryPolicy(), sleep=time.sleep, clock=time.monotonic,
-               **retry_kwargs):
+def fetch_each(polygons, fetch_one, pause_s=7.0, policy=RetryPolicy(), sleep=time.sleep, **retry_kwargs):
     """
     Fetches every polygon in turn, each under the retry policy, pausing between requests the server actually served.
 
     Args:
         polygons:  The areas, in lon/lat.
-        fetch_one: ``fetch_one(polygon)`` -> the result for one area.
-        pause_s:   The rest between two requests. A result that came back in under a second was osmnx's cache, so
-                   nothing is owed for it.
+        fetch_one: ``fetch_one(polygon)`` -> ``(result, served)``: the result for one area and whether the server
+                   was asked for it (nothing is owed for an answer from osmnx's cache).
+        pause_s:   The rest between two served requests.
         policy:    The retry schedule for each request.
-        sleep, clock, retry_kwargs: ``time.sleep``, ``time.monotonic`` and :func:`call_with_retry`'s fakes.
+        sleep, retry_kwargs: ``time.sleep`` and :func:`call_with_retry`'s fakes.
 
-    Returns:
-        The results, in order.
+    Yields:
+        Each result in turn, so a caller can fold one in before the next is fetched.
 
     Raises:
         OverpassUnavailable: from the first polygon whose window closes.
     """
-    results = []
     for i, polygon in enumerate(polygons, 1):
-        started = clock()
-        results.append(call_with_retry(lambda: fetch_one(polygon), f'request {i}/{len(polygons)}', policy,
-                                       sleep=sleep, clock=clock, **retry_kwargs))
-        if i < len(polygons) and clock() - started >= 1:
+        result, served = call_with_retry(lambda: fetch_one(polygon), f'request {i}/{len(polygons)}', policy,
+                                         sleep=sleep, **retry_kwargs)
+        yield result
+        if served and i < len(polygons):
             sleep(pause_s)
-    return results
 
 
 def main(argv=None):

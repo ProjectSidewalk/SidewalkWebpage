@@ -101,7 +101,8 @@ def test_main_matches_the_export_and_writes_both_files(tmp_path, monkeypatch, ca
         assert bl.main(['--city-id', 'testville', '--request-timeout-s', '90', '--pause-s', '3'], fetch=fetch,
                        probe=probe) == 0
     assert seen['alleys'] and len(seen['polygons']) == 1 and seen['polygons'][0].contains(way)
-    assert seen['kwargs'] == {'request_timeout_s': 90, 'memory_mb': 256, 'pause_s': 3.0, 'policy': seen['probed']}
+    assert seen['kwargs'] == {'request_timeout_s': 90, 'memory_mb': 256, 'pause_s': 3.0, 'policy': seen['probed'],
+                              'one_request_each': True}
     assert any('1 Overpass request(s) over' in r.message for r in caplog.records)
     with open(city_dir / bl.OUTPUT_NAME, newline='') as f:
         rows = list(csv.DictReader(f))
