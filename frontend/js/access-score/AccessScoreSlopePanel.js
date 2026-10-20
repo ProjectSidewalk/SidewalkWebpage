@@ -19,6 +19,7 @@
  * Thresholds are edited as percentages, the way a grade is spoken, and held as fractions, the way the API states it.
  */
 
+import i18next from 'i18next';
 import { AccessScoreModel } from './AccessScoreModel.js';
 import { AccessScoreGradeRamp } from '../common/AccessScoreGradeRamp.js';
 import { util } from '../common/utilities.js';

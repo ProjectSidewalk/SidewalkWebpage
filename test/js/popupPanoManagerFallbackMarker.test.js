@@ -11,8 +11,10 @@
  * whose pano Google has dropped.
  */
 
-import { loadModules, useUtil } from './loader.js';
+import { loadModules, mockModule, useUtil } from './loader.js';
 import { fakePanoOverlays } from './fakes.js';
+
+mockModule('i18next', () => ({ default: { t: (k) => k } }));
 
 fakePanoOverlays();
 
@@ -41,12 +43,11 @@ describe('PopupPanoManager fallback marker', () => {
     svHolder = document.getElementById('sv-holder');
 
     // Identity transform: the marker lands at the fraction of the container's size, nothing else.
-    window.panzoom = () => ({
+    mockModule('panzoom', () => ({ default: () => ({
       on: vi.fn(), zoomAbs: vi.fn(), moveTo: vi.fn(), getTransform: () => ({ x: 0, y: 0, scale: 1 }),
-    });
+    }) }));
     // The library preload would otherwise fire on a timer after the test is over.
     useUtil({ afterLoadIdle: () => {} });
-    window.i18next = { t: (k) => k };
     window.fetch = vi.fn(() => Promise.resolve({ ok: false }));
     vi.spyOn(console, 'error').mockImplementation(() => {});
 

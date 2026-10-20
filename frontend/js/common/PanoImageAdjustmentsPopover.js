@@ -28,6 +28,7 @@
  *   });
  */
 
+import i18next from 'i18next';
 import { PanoImageAdjustments } from './PanoImageAdjustments.js';
 import { util } from './utilities.js';
 import '../../css/components/pano-image-adjustments.css';

@@ -20,12 +20,15 @@ const charts = [];
 mockModule('frontend/js/admin-dashboard/MiniLineChart.js', () => ({
   MiniLineChart: { renderInto: (host, labels, series, options) => charts.push({ host, labels, series, options }) },
 }));
+// What the page gets as mapbox-gl: a double each test refills through stubMapbox().
+const mapboxgl = {};
+mockModule('frontend/js/common/mapboxgl.js', () => ({ default: mapboxgl }));
 const { ImageryPage } = await loadModules('frontend/js/admin-dashboard/ImageryPage.js');
 
 /** Mapbox GL cannot run under jsdom; this records what the map was told and fires 'load' immediately. */
 function stubMapbox() {
   const state = { featureStates: [], handlers: [] };
-  window.mapboxgl = {
+  Object.assign(mapboxgl, {
     accessToken: null,
     Map: class {
       constructor(options) {
@@ -59,7 +62,7 @@ function stubMapbox() {
       remove() { return this; }
     },
     NavigationControl: class {},
-  };
+  });
   return state;
 }
 
@@ -188,9 +191,6 @@ const streetRows = () => [...document.querySelectorAll('#imagery-street-table tb
 
 beforeEach(() => { vi.spyOn(Date, 'now').mockReturnValue(NOW); });
 
-afterEach(() => {
-  delete window.mapboxgl;
-});
 
 describe('ImageryPage KPIs', () => {
   test('counts re-audits with the site-wide flag, so the number matches Overview and Coverage', async () => {

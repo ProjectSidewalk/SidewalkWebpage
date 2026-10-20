@@ -15,6 +15,10 @@
  * recompute.
  */
 
+import MapboxLanguage from '@mapbox/mapbox-gl-language';
+import mapboxgl from '../common/mapboxgl.js';
+import * as turf from '@turf/turf';
+import i18next from 'i18next';
 import { ConfirmDialog } from '../common/ConfirmDialog.js';
 import { Toast } from '../common/Toast.js';
 import { UnsavedChangesGuard } from '../common/UnsavedChangesGuard.js';
@@ -486,7 +490,7 @@ export class RouteBuilder {
    * Shows a transient next-step hint anchored beside a route point, so guidance sits where the user is already
    * looking instead of in the far-away top-center pill.
    *
-   * @param {Array<number>} coord - [lng, lat] to anchor at (the newest flag).
+   * @param {[number, number]} coord - [lng, lat] to anchor at (the newest flag).
    * @param {string} text
    */
   #showHint(coord, text) {

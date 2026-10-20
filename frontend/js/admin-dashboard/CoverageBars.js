@@ -5,6 +5,8 @@
  * computed from CoverageColors so they match the choropleth precisely. The sort order (coverage vs name) is
  * switchable at runtime via setSort().
  */
+
+import vegaEmbed from 'vega-embed';
 export class CoverageBars {
   #containerId;
   #onBarClick;
@@ -52,7 +54,7 @@ export class CoverageBars {
   async #embed() {
     // 'coverage' → bars descending by value; 'name' → alphabetical by region name.
     const sort = this.#sort === 'name' ? 'ascending' : '-x';
-    const spec = {
+    const spec = /** @type {import('vega-embed').VisualizationSpec} */ ({
       $schema: 'https://vega.github.io/schema/vega-lite/v6.json',
       width: 'container',
       height: { step: 16 },
@@ -91,7 +93,7 @@ export class CoverageBars {
         view: { stroke: null },
         axis: { labelFont: getComputedStyle(document.documentElement).getPropertyValue('--font-primary') },
       },
-    };
+    });
 
     const result = await vegaEmbed(`#${this.#containerId}`, spec, { actions: false, renderer: 'svg' });
     // Release the previous chart's listeners (including its resize ones) only once the new chart has drawn, so that

@@ -2,6 +2,8 @@
  * Sequential color scale for coverage (ColorBrewer "Blues", colorblind-safe). Shared by the map fill, the Vega bar
  * chart, and the legend so all three agree. Keep STOPS in sync with the --coverage-c* tokens in admin-dashboard.css.
  */
+
+import mapboxgl from '../common/mapboxgl.js';
 export class CoverageColors {
   /** @type {Array<[number, string]>} [rate 0..1, hex] control points, ascending by rate. */
   static STOPS = [[0, '#eff3ff'], [0.33, '#bdd7e7'], [0.66, '#6baed6'], [1, '#2171b5']];
@@ -225,7 +227,10 @@ export class CoverageMap {
     ].join('');
   }
 
-  /** Computes a [[minLng,minLat],[maxLng,maxLat]] bounds box covering all features. */
+  /**
+   * @param {GeoJSON.FeatureCollection} geojson - The features to frame.
+   * @returns {[[number, number], [number, number]]} A [[minLng, minLat], [maxLng, maxLat]] box covering them.
+   */
   static #bounds(geojson) {
     let minLng = Infinity;
     let minLat = Infinity;
@@ -241,7 +246,9 @@ export class CoverageMap {
         coords.forEach(visit);
       }
     };
-    for (const f of geojson.features) if (f.geometry) visit(f.geometry.coordinates);
+    for (const f of geojson.features) {
+      if (f.geometry && f.geometry.type !== 'GeometryCollection') visit(f.geometry.coordinates);
+    }
     return [[minLng, minLat], [maxLng, maxLat]];
   }
 }

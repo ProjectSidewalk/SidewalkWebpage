@@ -7,8 +7,10 @@
  * including wheel-set zooms between steps and the views (crop, no imagery, no label yet) with nothing to zoom.
  */
 
-import { loadModules } from './loader.js';
+import { loadModules, mockModule } from './loader.js';
 import { fakeTracker, fakePanoOverlays } from './fakes.js';
+
+mockModule('i18next', () => ({ default: { t: (k) => k } }));
 
 fakePanoOverlays();
 
@@ -27,8 +29,9 @@ function fakeViewer(zoom = 1) {
 }
 
 async function loadPopupPanoManager() {
-  window.panzoom = () => ({ on: vi.fn(), zoomAbs: vi.fn(), moveTo: vi.fn(), getTransform: () => ({}) });
-  window.i18next = { t: (k) => k };
+  mockModule('panzoom', () => ({
+    default: () => ({ on: vi.fn(), zoomAbs: vi.fn(), moveTo: vi.fn(), getTransform: () => ({}) }),
+  }));
   window.fetch = vi.fn(() => Promise.resolve({ ok: false }));
   return (await loadModules('frontend/js/common/label-detail/PopupPanoManager.js')).PopupPanoManager;
 }

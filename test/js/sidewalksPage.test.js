@@ -6,11 +6,14 @@
  * The review lists are the page's reason to exist, so each list's membership rule has a case of its own.
  */
 
-import { loadModules } from './loader.js';
+import { loadModules, mockModule } from './loader.js';
 
 // jsdom has no layout, so it leaves scrollIntoView out; the region table calls it.
 window.HTMLElement.prototype.scrollIntoView = () => {};
 
+// What the page gets as mapbox-gl: a double each test refills through stubMapbox().
+const mapboxgl = {};
+mockModule('frontend/js/common/mapboxgl.js', () => ({ default: mapboxgl }));
 const { SidewalksPage } = await loadModules('frontend/js/admin-dashboard/SidewalksPage.js');
 
 /**
@@ -19,7 +22,7 @@ const { SidewalksPage } = await loadModules('frontend/js/admin-dashboard/Sidewal
  */
 function stubMapbox({ holdLoad = false } = {}) {
   const state = { filters: [], halos: [], fits: [], featureStates: [], fireLoad: null };
-  window.mapboxgl = {
+  Object.assign(mapboxgl, {
     accessToken: null,
     Map: class {
       constructor(options) {
@@ -58,7 +61,7 @@ function stubMapbox({ holdLoad = false } = {}) {
       remove() { return this; }
     },
     NavigationControl: class {},
-  };
+  });
   return state;
 }
 

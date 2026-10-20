@@ -7,7 +7,7 @@
  * pins the schedule, the SDK call's shape, the retry ladder, and what gets logged when it all fails.
  */
 
-import { loadInfra3dViewer, jwtExpiringAt, nodeFor } from './infra3dViewerHarness.js';
+import { infra3dSdk, loadInfra3dViewer, jwtExpiringAt, nodeFor } from './infra3dViewerHarness.js';
 
 const MINUTE_MS = 60 * 1000;
 const T0 = Date.parse('2026-09-16T12:00:00Z');
@@ -26,7 +26,7 @@ function fakeSdk({ initViewerResolves = true } = {}) {
     initViewer: vi.fn(() => (initViewerResolves ? Promise.resolve(viewer) : new Promise(() => {}))),
     setTokens: vi.fn(),
   };
-  window.infra3dapi = { init: vi.fn(async () => manager) };
+  infra3dSdk.infra3dapi = { init: vi.fn(async () => manager) };
   return manager;
 }
 
@@ -61,7 +61,7 @@ describe('Infra3dViewer access-token renewal', () => {
     mount.remove();
     delete window.fetch;
     delete window.logWebpageActivity;
-    delete window.infra3dapi;
+    infra3dSdk.infra3dapi = {};
     window.sessionStorage.clear();
   });
 
@@ -247,7 +247,7 @@ describe('Infra3dViewer initViewer timeout', () => {
   afterEach(() => {
     mount.remove();
     delete window.logWebpageActivity;
-    delete window.infra3dapi;
+    infra3dSdk.infra3dapi = {};
     window.sessionStorage.clear();
   });
 

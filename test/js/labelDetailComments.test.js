@@ -16,6 +16,8 @@
 import { loadModules, mockModule, useUtil } from './loader.js';
 import { mockLabelDetailCollaborators } from './fakes.js';
 
+mockModule('i18next', () => ({ default: { t: (key) => key } }));
+
 let panoManager;
 const confirmDialog = { confirm: vi.fn() };
 
@@ -243,7 +245,6 @@ describe('the validator comment box (#5015)', () => {
   beforeEach(async () => {
     card = buildCard();
 
-    window.i18next = { t: (key) => key };
     window.logWebpageActivity = vi.fn();
     // Comment saves go through util.lazyIdentityFetch (#4442), not window.fetch.
     lazyIdentityFetch = vi.fn(async () => (

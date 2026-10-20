@@ -11,17 +11,10 @@ const data = document.getElementById('page-entry').dataset;
 
 // The map stack (mapbox-gl + mapbox-gl-language + turf + ps-map) is ~600KB gz — roughly 75% of this page's JS — for
 // two maps that both sit well below the fold, so it's kept out of the page's load path entirely but pulled in on the
-// visitor's first interaction (#4486) so it's loaded by the time a user scrolls to the map. The vendor libraries
-// come as plain scripts (their URLs ride on the entry's tag); ps-map is a chunk of its own through the dynamic import.
+// visitor's first interaction (#4486) so it's loaded by the time a user scrolls to the map. The dynamic import makes
+// ps-map and the libraries it imports a chunk of their own.
 util.onFirstInteractionOrIdle(() => {
-  const mapboxCss = document.createElement('link');
-  mapboxCss.rel = 'stylesheet';
-  mapboxCss.href = data.mapboxCssUrl;
-  document.head.appendChild(mapboxCss);
-  Promise.all([
-    util.loadScriptsInOrder(JSON.parse(data.mapScriptUrls)),
-    util.importOrReload(() => import('../ps-map/createPSMap.js')),
-  ]).then(([, { createPSMap }]) => {
+  util.importOrReload(() => import('../ps-map/createPSMap.js')).then(({ createPSMap }) => {
     // createPSMap reads translated strings, so it still waits on the app's i18next setup.
     window.appManager.ready(() => {
       createPSMap({

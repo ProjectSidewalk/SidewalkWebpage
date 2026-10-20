@@ -11,6 +11,9 @@
  * rather than added as a floating control.
  */
 
+import { MapboxSearchBox } from '@mapbox/search-js-web';
+import mapboxgl from './common/mapboxgl.js';
+import i18next from 'i18next';
 import { util } from './common/utilities.js';
 
 // Fraction of the region's own span to pad the search bbox by on each edge, so places just outside the audited
@@ -22,8 +25,8 @@ const CITY_BBOX_BUFFER_FRACTION = 0.1;
  * Compute a slightly-buffered bounding box of a GeoJSON FeatureCollection (or single Feature).
  *
  * @param {Record<string, any>} geojson - GeoJSON FeatureCollection or Feature with Polygon/MultiPolygon geometry.
- * @returns {number[][]|null} bbox as [[minLng, minLat], [maxLng, maxLat]] (Mapbox LngLatBounds order),
- *                            padded by CITY_BBOX_BUFFER_FRACTION per edge, or null if no coordinates found.
+ * @returns {[[number, number], [number, number]]|null} bbox as [[minLng, minLat], [maxLng, maxLat]] (Mapbox
+ *   LngLatBounds order), padded by CITY_BBOX_BUFFER_FRACTION per edge, or null if no coordinates found.
  */
 function cityBoundingBox(geojson) {
   let minLng = Infinity;
@@ -151,11 +154,11 @@ export function buildExploreHereContent(map, lat, lng, placeName, address, explo
  * @param {mapboxgl.Map} map - The Mapbox GL map created by createPSMap.
  * @param {string} mapboxApiKey - Mapbox access token (the same token that initialized the map).
  * @returns {{clear: () => boolean}|null} Handle whose `clear()` takes the searched place back off the
- *          map (true if there was one), or null if the sidebar container or the Search SDK is unavailable.
+ *          map (true if there was one), or null if the page has no sidebar container for it.
  */
 export function initLabelMapLocationSearch(map, mapboxApiKey) {
   const container = document.getElementById('labelmap-search-box');
-  if (!container || typeof MapboxSearchBox === 'undefined') return null;
+  if (!container) return null;
 
   const searchBox = new MapboxSearchBox();
   searchBox.accessToken = mapboxApiKey;
@@ -264,7 +267,7 @@ export function initLabelMapLocationSearch(map, mapboxApiKey) {
     const feature = e.detail?.features?.[0];
     if (!feature) return;
     const [lng, lat] = feature.geometry.coordinates;
-    const props = feature.properties || {};
+    const props = /** @type {Record<string, any>} */ (feature.properties || {});
     // No fallback for a missing name: `place_formatted` is a locality line ("Teaneck, NJ 07666, United States"), and
     // presenting that as the place's *name* — here and in the Explore greeting the name feeds — reads as broken.
     const placeName = props.name || '';

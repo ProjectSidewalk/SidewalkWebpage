@@ -25,8 +25,10 @@
 import fs from 'fs';
 import path from 'path';
 
-import { loadModules, REPO_ROOT, useUtil } from './loader.js';
+import { loadModules, mockModule, useUtil, REPO_ROOT } from './loader.js';
 import { mockLabelDetailCollaborators } from './fakes.js';
+
+mockModule('i18next', () => ({ default: { t: (key) => key } }));
 
 /** The pano manager the card is handed; rebuilt per test so a test can settle its setPano() when it likes. */
 let panoManager;
@@ -263,9 +265,6 @@ describe('LabelDetail edit gating (#5047)', () => {
       return { ok: true, status: 200, json: async () => ({ severity: body.severity, tags: body.tags }) };
     });
 
-    // i18next echoes its key so assertions can name the key they expect rather than an English string that
-    // translation churn would break.
-    window.i18next = { t: (key) => key };
     window.logWebpageActivity = vi.fn();
     useUtil({ lazyIdentityFetch: saveRequest });
 

@@ -2,7 +2,6 @@
 @import models.user.{Role, SidewalkUserWithRole}
 @import play.api.Configuration
 @import service.CommonPageData
-@import models.pano.PanoSource
 @import views.ViewHelpers.jsonForScript
 @(
   commonData: service.CommonPageData, title: String, user: models.user.SidewalkUserWithRole,
@@ -32,7 +31,6 @@
       console.log(e);
     }
   </script>
-
 
   @common.missionStartTutorial()
   @common.panoInfoPopover()
@@ -881,33 +879,6 @@
       </div>
     </div>
   </template>
-  @if(commonData.imagerySource == PanoSource.Infra3d) {
-    <script src='@assets.path("vendor/proj4/proj4-2.22.0.js")'></script>
-    <script src='@assets.path("vendor/infra3d/infra3dapi-1.12.1.js")'></script>
-  } else if (commonData.imagerySource == PanoSource.Mapillary) {
-  <script src='@assets.path("vendor/three/three-0.160.1-min.js")'></script>
-  <script src='@assets.path("vendor/mapillary/mapillary-4.1.2.min.js")'></script>
-  <link href='@assets.path("vendor/mapillary/mapillary-4.1.2.css")' rel="stylesheet">
-  } else if (commonData.imagerySource == PanoSource.Panoramax) {
-  <script src='@assets.path("vendor/photo-sphere-viewer/psv-5.15.1-bundle.min.js")'></script>
-  <link href='@assets.path("vendor/photo-sphere-viewer/psv-5.15.1.css")' rel="stylesheet">
-  }
-  <script src='@assets.path("vendor/floating-ui/floating-ui.core-1.8.0.umd.min.js")'></script>
-  <script src='@assets.path("vendor/floating-ui/floating-ui.dom-1.8.0.umd.min.js")'></script>
-
-  <script src='@assets.path("vendor/turf/turf-7.4.0.min.js")'></script>
-  <script src='@assets.path("vendor/async-lock/async-lock-1.4.1.min.js")'></script>
-  @* Draws the minimap (#5429); Mapbox below is still the mission-complete map. Minimap.create imports it from this
-     link's href, the only way JS can get a vendor file's fingerprinted URL. docs/upgrading-libraries.md says why. *@
-  <link id="maplibre-module" rel="modulepreload"
-        href='@assets.path("vendor/maplibre-gl/maplibre-gl-6.10.0/maplibre-gl.mjs")'>
-  <link href='@assets.path("vendor/maplibre-gl/maplibre-gl-6.10.0.css")' rel="stylesheet">
-  @* Lets MapLibre read the minimap's tile archive (#5716). *@
-  <script src='@assets.path("vendor/pmtiles/pmtiles-4.5.0.min.js")'></script>
-  <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.js")'></script>
-  <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")'></script>
-  <link href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.css")' rel="stylesheet">
-
   @* What the Explore entry (frontend/js/pages/explore.js) needs from the server, as JSON. Session scalars only: the
      task, mission, region and route come from /explore/session, so a cached copy of this page can never carry a
      stale task (#5650). Strings go through jsonForScript, which also escapes `<` so a value can never close this

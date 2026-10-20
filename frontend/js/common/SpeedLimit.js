@@ -1,5 +1,8 @@
 /** @typedef {import('./pano-viewer/PanoViewer.js').PanoViewer} PanoViewer */
 
+import * as turf from '@turf/turf';
+import i18next from 'i18next';
+
 /**
  * An indicator that displays the speed limit of the current position's nearest road.
  *

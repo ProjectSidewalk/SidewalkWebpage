@@ -19,15 +19,10 @@
  * - Follows web standards and best practices
  */
 
+import i18next from 'i18next';
 import { initSidebarDisclosure } from '../common/sidebarDisclosure.js';
 import '../../css/components/page-shell.css';
 import '../../css/components/progress-bar.css';
-
-// Chart.js paints its labels onto a canvas, so they can't inherit the page font. The pages that chart load Chart.js
-// ahead of this script, and build their charts once their data arrives.
-if (typeof Chart !== 'undefined') {
-  Chart.defaults.font.family = getComputedStyle(document.documentElement).getPropertyValue('--font-primary');
-}
 
 document.addEventListener('DOMContentLoaded', () => {
   const enableLeftSidebarAccordions = false; // Flag to disable left sidebar accordions.

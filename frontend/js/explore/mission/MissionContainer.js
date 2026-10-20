@@ -4,6 +4,7 @@
  * every successful submission, not only at a mission boundary.
  */
 
+import * as turf from '@turf/turf';
 import { EventEmitter } from '../EventEmitter.js';
 import { util } from '../../common/utilities.js';
 import '../../common/utilitiesMath.js';

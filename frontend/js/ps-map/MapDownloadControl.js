@@ -13,6 +13,7 @@
  * still wired up as a convenience for the run of buttons inside.
  */
 
+import i18next from 'i18next';
 import { localizeSubtree } from '../common/i18nDom.js';
 import '../../css/components/map-download-control.css';
 

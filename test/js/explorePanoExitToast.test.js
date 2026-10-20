@@ -8,8 +8,10 @@
  * buttons take the pointer, so the realistic toast-side path is through the close X.
  */
 
-import { loadModules } from './loader.js';
+import { loadModules, mockModule } from './loader.js';
 import { fakeTracker } from './fakes.js';
+
+mockModule('i18next', () => ({ default: { t: (key) => key } }));
 
 describe('Canvas.watchPanoExit', () => {
   let Canvas;
@@ -131,7 +133,6 @@ describe('Toast data-anchor', () => {
 
   beforeEach(async () => {
     document.body.innerHTML = '<div id="pano"></div><div class="modal"></div>';
-    window.i18next = { t: (key) => key };
     ({ Toast } = await loadModules('frontend/js/common/Toast.js'));
   });
 

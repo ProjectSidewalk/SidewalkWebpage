@@ -8,8 +8,11 @@
  * arrangement is ours to get right, the rendering is Mapbox's.
  */
 
-import { loadModules } from './loader.js';
+import { loadModules, mockModule } from './loader.js';
 
+// What the page gets as mapbox-gl: a double each test refills through stubMapbox().
+const mapboxgl = {};
+mockModule('frontend/js/common/mapboxgl.js', () => ({ default: mapboxgl }));
 const { StreetPriorityMap, StreetPriorityTiers } =
   await loadModules('frontend/js/admin-dashboard/StreetPriorityMap.js');
 
@@ -67,14 +70,14 @@ function stubMapbox() {
 
   class FakeNavigationControl {}
 
-  window.mapboxgl = {
+  Object.assign(mapboxgl, {
     accessToken: null,
     Map: FakeMap,
     Popup: class extends FakePopup {
       constructor(options) { super(options); state.popup = this; }
     },
     NavigationControl: FakeNavigationControl,
-  };
+  });
   return state;
 }
 
@@ -106,7 +109,6 @@ function geojson() {
 }
 
 describe('StreetPriorityMap.init', () => {
-  afterEach(() => { delete window.mapboxgl; });
 
   test('refuses to start without a Mapbox token rather than rendering a blank box', () => {
     stubMapbox();
@@ -122,7 +124,7 @@ describe('StreetPriorityMap.init', () => {
     // Both corners come from different features, so a bounds box built from only the first would fail here.
     expect(state.options.bounds).toEqual([[-122.4, 47.55], [-122.34, 47.66]]);
     expect(state.options.container).toBe('priority-map');
-    expect(window.mapboxgl.accessToken).toBe('pk.test');
+    expect(mapboxgl.accessToken).toBe('pk.test');
   });
 
   test('resolves only once the style has loaded, so callers cannot draw into a map that has no layers', async () => {
@@ -161,7 +163,6 @@ describe('StreetPriorityMap layers', () => {
     await ready;
   });
 
-  afterEach(() => { delete window.mapboxgl; });
 
   test('promotes street_edge_id so feature state can be addressed by the id the rest of the page uses', () => {
     const source = state.sources['imagery-priority-streets'];
@@ -222,7 +223,6 @@ describe('StreetPriorityMap interactions', () => {
     state.featureStates.length = 0;
   });
 
-  afterEach(() => { delete window.mapboxgl; });
 
   test('brushes the hovered segment\'s region and thickens the segment itself', () => {
     fire('mousemove', hoverEvent({ id: 2, properties: geojson().features[1].properties }));
@@ -289,7 +289,6 @@ describe('StreetPriorityMap popup', () => {
     await ready;
   });
 
-  afterEach(() => { delete window.mapboxgl; });
 
   test('explains a street\'s tier with the counts that produced it', () => {
     const html = showPopupFor(geojson().features[1].properties);
@@ -335,7 +334,6 @@ describe('StreetPriorityMap.highlightSegments', () => {
     state.featureStates.length = 0;
   });
 
-  afterEach(() => { delete window.mapboxgl; });
 
   test('selects exactly the given segments', () => {
     map.highlightSegments([1, 2]);

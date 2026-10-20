@@ -17,6 +17,7 @@
  * page, which owns the model and the place card.
  */
 
+import mapboxgl from '../common/mapboxgl.js';
 import { ScoreRamp } from '../common/scoreRamp.js';
 import { PlaceCategoryIcons } from '../common/PlaceCategoryIcons.js';
 import { util } from '../common/utilities.js';

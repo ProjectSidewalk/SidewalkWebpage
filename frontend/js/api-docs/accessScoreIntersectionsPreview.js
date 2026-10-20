@@ -152,7 +152,7 @@ export const AccessScoreIntersectionsPreview = {
   /**
    * Builds the popup's call to action into Explore, or an empty string where it would be a dead end.
    *
-   * @param {GeoJSON.Feature} feature - The clicked intersection feature.
+   * @param {GeoJSON.Feature<GeoJSON.Point>} feature - The clicked intersection feature.
    * @returns {string} The link's HTML, or '' on mobile.
    */
   exploreHereLink(feature) {

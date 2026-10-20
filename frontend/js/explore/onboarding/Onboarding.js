@@ -4,6 +4,7 @@
  * Todo. So many dependencies! If possible, break the module down into pieces.
  */
 
+import { autoUpdate, computePosition, flip, offset, shift, size } from '@floating-ui/dom';
 import { util } from '../../common/utilities.js';
 import { Label } from '../label/Label.js';
 import '../../common/pano-viewer/panoUtilities.js';
@@ -534,13 +535,13 @@ export class Onboarding {
     if (!coord) return null;
 
     const scale = util.exploreDisplayScale();
-    const size = this.#frame.iconRadius * scale * 2;
+    const iconSize = this.#frame.iconRadius * scale * 2;
     const paneRect = pane.getBoundingClientRect();
     const clamp = (v, min, max) => Math.min(Math.max(v, min), Math.max(min, max));
     const iconRect = new DOMRect(
-      clamp(paneRect.left + coord.x * scale - size / 2, paneRect.left, paneRect.right - size),
-      clamp(paneRect.top + coord.y * scale - size / 2, paneRect.top, paneRect.bottom - size),
-      size, size,
+      clamp(paneRect.left + coord.x * scale - iconSize / 2, paneRect.left, paneRect.right - iconSize),
+      clamp(paneRect.top + coord.y * scale - iconSize / 2, paneRect.top, paneRect.bottom - iconSize),
+      iconSize, iconSize,
     );
 
     const card = this.#uiCanvas.hoverCard;
@@ -599,7 +600,7 @@ export class Onboarding {
   #anchorMessageTo(resolveAnchor) {
     const floating = this.#uiOnboarding.messageHolder;
     let anchor = resolveAnchor();
-    if (!anchor || !floating || typeof FloatingUIDOM === 'undefined') return;
+    if (!anchor || !floating) return;
 
     // (Re)create the arrow element Floating UI positions; showMessage's html() call wipes the box's contents.
     let arrowEl = floating.querySelector('.fui-arrow');
@@ -625,17 +626,17 @@ export class Onboarding {
       // Confine the callout to the streetscape pane so the pane's border can't slice it — but only when its
       // anchor lives in the pane; minimap/sidebar anchors need the callout to follow them across the gutter.
       const boundary = anchor.boundedByPane ? pane : undefined;
-      FloatingUIDOM.computePosition(reference, floating, {
+      computePosition(reference, floating, {
         placement: anchor.placement,
         middleware: [
-          FloatingUIDOM.offset(arrowProtrusion),
+          offset(arrowProtrusion),
           // bestFit: when no side fully fits the callout, take the roomiest one rather than the preferred one.
-          FloatingUIDOM.flip({ boundary, fallbackStrategy: 'bestFit' }),
-          FloatingUIDOM.shift({ boundary, padding: 8 }),
+          flip({ boundary, fallbackStrategy: 'bestFit' }),
+          shift({ boundary, padding: 8 }),
           // The callout must never cover the control it points at: instead of sliding over the anchor to stay in
           // the pane, shrink to the width the chosen side actually has and let the text wrap taller. Runs after
           // flip/shift per the size() contract; autoUpdate re-runs positioning after the resize settles.
-          FloatingUIDOM.size({
+          size({
             boundary,
             padding: 8,
             apply({ availableWidth, elements }) {
@@ -664,7 +665,7 @@ export class Onboarding {
 
     // animationFrame: an anchor can be a canvas-painted label, or a menu section that goes visibility:hidden —
     // neither moves in a way the observers autoUpdate uses by default can see.
-    this.#floatingCleanup = FloatingUIDOM.autoUpdate(reference, floating, update, { animationFrame: true });
+    this.#floatingCleanup = autoUpdate(reference, floating, update, { animationFrame: true });
   }
 
   /**

@@ -10,8 +10,10 @@
  * MissionController is loaded as a module and built against the smallest collaborators the wrap-up touches.
  */
 
-import { loadModules } from './loader.js';
+import { loadModules, mockModule } from './loader.js';
 import { fakeTracker, fakePanoManager } from './fakes.js';
+
+mockModule('i18next', () => ({ default: { t: (key) => key } }));
 
 
 /** A task in one of the two states the wrap-up distinguishes: walked to its end, or given up on for lack of imagery. */
@@ -44,7 +46,6 @@ describe('MissionController.wrapUpRouteOrRegion', () => {
       endTask: vi.fn(),
       updateAuditedDistance: vi.fn(),
     };
-    window.i18next = { t: (key) => key };
 
     const { MissionController } = await loadModules('frontend/js/explore/mission/MissionController.js');
     controller = new MissionController(

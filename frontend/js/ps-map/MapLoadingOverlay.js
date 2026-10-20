@@ -18,6 +18,8 @@
  * Markup comes from the shared `common.mapLoadingOverlay` Twirl partial, so /labelMap, /admin/label-map and
  * /accessScore present the same thing.
  */
+
+import i18next from 'i18next';
 export class MapLoadingOverlay {
   #root;
   #loadingCard;

@@ -8,6 +8,7 @@
  * @property {string} iconSrc - URL of the badge icon.
  */
 
+import i18next from 'i18next';
 import { Toast } from './Toast.js';
 import { util } from './utilities.js';
 import './utilitiesMath.js';

@@ -13,6 +13,7 @@
  * separable for red-green color blindness, which a warm-on-warm pairing does not.
  */
 
+import mapboxgl from '../common/mapboxgl.js';
 import { util } from '../common/utilities.js';
 import { AdminShell } from './AdminShell.js';
 
@@ -263,8 +264,12 @@ export class StreetPriorityMap {
     ].join('');
   }
 
-  /** Computes a [[minLng,minLat],[maxLng,maxLat]] bounds box covering all features. */
+  /**
+   * @param {GeoJSON.FeatureCollection} geojson - The features to frame.
+   * @returns {[[number, number], [number, number]]} A [[minLng, minLat], [maxLng, maxLat]] box covering them.
+   */
   static #bounds(geojson) {
+    /** @type {[[number, number], [number, number]]} */
     const box = [[Infinity, Infinity], [-Infinity, -Infinity]];
     const visit = (coords) => {
       if (typeof coords[0] === 'number') {
@@ -276,7 +281,9 @@ export class StreetPriorityMap {
         coords.forEach(visit);
       }
     };
-    for (const feature of geojson.features) if (feature.geometry) visit(feature.geometry.coordinates);
+    for (const feature of geojson.features) {
+      if (feature.geometry && feature.geometry.type !== 'GeometryCollection') visit(feature.geometry.coordinates);
+    }
     return box;
   }
 }

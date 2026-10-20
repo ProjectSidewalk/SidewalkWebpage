@@ -6,6 +6,7 @@
  * order, and a failed save puts the box back rather than leaving a setting on screen that wasn't written.
  */
 
+import i18next from 'i18next';
 import { saveUserSettings } from './saveUserSettings.js';
 
 export class WelcomePrivacy {

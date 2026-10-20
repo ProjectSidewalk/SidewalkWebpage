@@ -10,6 +10,8 @@
 import { loadModules, mockModule, useUtil } from './loader.js';
 import { fakePanoOverlays } from './fakes.js';
 
+mockModule('i18next', () => ({ default: { t: (k) => k } }));
+
 const POV = { heading: 10, pitch: 0, zoom: 1 };
 
 /** A stand-in for a GSV/Mapillary viewer: records the panos it was asked for and otherwise does nothing. */
@@ -45,10 +47,11 @@ describe('PopupPanoManager builds its viewer lazily', () => {
     buttonHolder = document.getElementById('button-holder');
     idleCallbacks = [];
 
-    window.panzoom = () => ({ on: vi.fn(), zoomAbs: vi.fn(), moveTo: vi.fn(), getTransform: () => ({}) });
+    mockModule('panzoom', () => ({
+      default: () => ({ on: vi.fn(), zoomAbs: vi.fn(), moveTo: vi.fn(), getTransform: () => ({}) }),
+    }));
     // The preload is scheduled for idle time; the test runs it by hand to show it is the only thing scheduled.
     useUtil({ afterLoadIdle: (fn) => idleCallbacks.push(fn) });
-    window.i18next = { t: (k) => k };
     attributionOverlay = fakePanoOverlays().attribution;
     // No self-hosted backup for any pano, so a failed live attempt lands on the crop.
     window.fetch = vi.fn(() => Promise.resolve({ ok: false }));

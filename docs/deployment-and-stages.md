@@ -497,7 +497,8 @@ stays relative (the digested copy sits in the original's directory), and a query
 file that exists. In a source stylesheet (`frontend/css/`) that is the file's root-absolute path under `public/`
 (`url("/images/icons/x.svg")`): Vite rewrites it to `/assets/…` (`renderBuiltUrl` in `vite.config.mjs`) in
 `public/build/css/`, which is what the stage then sees, so `make lint-asset-paths` (rule 6) rejects a relative path
-or an `/assets/` prefix there. A vendored stylesheet is served from where it sits, so its `url()`s stay relative.
+or an `/assets/` prefix there. A library's stylesheet goes through the same build, imported by the module that
+uses it.
 
 Two things about that stage are load-bearing:
 
@@ -507,7 +508,7 @@ Two things about that stage are load-bearing:
   unchanged, year-cached URL pointing at a path the new build lacks.
 - **An unresolvable `url()` fails the build**, like the asset-manifest generator: passing it through means a broken
   reference or an asset silently left on the one-hour cache, neither of which shows up at runtime.
-  `make lint-asset-paths` applies the same rule to `frontend/css/` and `public/vendor/` (rule 5 in
+  `make lint-asset-paths` applies the same rule to `frontend/css/` (rule 5 in
   [`tools/lint/check-asset-paths.mjs`](../tools/lint/check-asset-paths.mjs)), so in practice this fails a fast CI step instead.
   Bundles under `public/build/` are left to the stage, which sees them on disk.
 

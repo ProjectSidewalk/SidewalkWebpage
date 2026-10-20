@@ -14,8 +14,7 @@ make test-js args=--coverage                      # with the coverage report, as
 ```
 
 `describe`/`it`/`expect`/`vi` are globals. Each file runs in its own VM context whose global is the jsdom window, so a
-page global that production reads bare (`i18next`, `mapboxgl`, `turf`, ...) is set with `window.X = …`. Before every
-test the config and `setup.js` undo spies and `vi.stubGlobal` stubs, empty every mock's call history and put real
+page global production reads bare (`google`) is set with `window.X = …`. Before every test the config and `setup.js` undo spies and `vi.stubGlobal` stubs, empty every mock's call history and put real
 timers back, so no suite writes that cleanup. `setup.js` also stamps `window.labelTypes` the way every page is served
 it, and replaces Node's `fetch` with one that throws until a suite stubs it, so nothing here can reach the network.
 
@@ -34,7 +33,9 @@ is most Explore and Validate classes. Otherwise:
 - `useUtil({ isMobile: () => true, misc: { getStreetNameNear } })` puts those members on the real `util` as the
   modules import it; sub-objects such as `misc` and `math` merge into the real ones. Without it, modules get the real
   `util`, which already behaves in jsdom (`assetPath` gives `/assets/<path>`, `isMobile()` is false).
-- `loadVendored('turf')` runs a vendored bundle into the page like its `<script>` tag.
+- `mockModule('i18next', () => ({ default: { t: (key) => key } }))` does the same for an npm package, whose fake is
+  the module namespace; nearly every suite starts with that line, before its first load. A library the modules
+  import is otherwise the real one (turf, bowser, DOMPurify).
 
 What `useUtil` and `mockModule` set lasts for the rest of the file, so a test that changes one is followed by a
 `beforeEach` that sets it back.
@@ -58,4 +59,4 @@ when a PR adds the headroom.
 
 These tests check behavior in isolation. The Playwright smoke suite in [`test/e2e/`](../e2e) loads core pages against
 a running app and fails on any uncaught console or page error, catching what a mocked unit test cannot: a real
-endpoint's shape, or a missing vendor global.
+endpoint's shape, or a library that doesn't load.

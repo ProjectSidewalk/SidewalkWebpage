@@ -17,6 +17,8 @@
  * stateful element that lives inside the map and centers itself on the map's visible part (`--map-inset-left`). The
  * brief loading note gets no close button: it is a status that clears itself, not a hint.
  */
+
+import i18next from 'i18next';
 export class MapStatusPill {
   /** How long the zoom hint stays before fading. */
   static HINT_DURATION_MS = 6000;

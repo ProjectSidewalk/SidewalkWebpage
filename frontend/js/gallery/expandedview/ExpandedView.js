@@ -7,6 +7,7 @@
  * Construct instances via the `static async create()` factory, which initializes LabelDetail before resolving.
  */
 
+import i18next from 'i18next';
 import { LabelDetail } from '../../common/label-detail/LabelDetail.js';
 import { PopupPanoManager } from '../../common/label-detail/PopupPanoManager.js';
 /** @typedef {import('../cards/Card.js').Card} Card */

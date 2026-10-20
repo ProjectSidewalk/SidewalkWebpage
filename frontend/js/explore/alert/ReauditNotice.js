@@ -14,6 +14,7 @@
  * Nothing here blocks the walk: the toast is informational, sits over the pano, and fades on its own.
  */
 
+import i18next from 'i18next';
 import { Toast } from '../../common/Toast.js';
 import { util } from '../../common/utilities.js';
 /** @typedef {import('../task/Task.js').Task} Task */

@@ -74,7 +74,7 @@ point's pano and distances to ``street_points_<provider>.csv``, which is how the
 provider or city would get its own.
 
 Infra3d has no metadata endpoint of its own; the check uses the same nearest-frame query (``framegate``'s
-``knn/query``) that the vendored Infra3d viewer SDK issues on every ``setLocation``, authenticated with the same
+``knn/query``) that the Infra3d viewer SDK issues on every ``setLocation``, authenticated with the same
 per-city OAuth token the app fetches in ``PanoDataService.getInfra3dToken``. The query returns the single nearest
 frame with no distance cap, so "imagery here" is decided client-side: the nearest 360° frame within the same 25 m
 radius GSV bakes into its URL. Flat mono/stereo frames are filtered out server-side, matching the viewer's
@@ -260,11 +260,11 @@ PANORAMAX_SEARCH_URL = 'https://api.panoramax.xyz/api/search?filter=field_of_vie
 # The API is keyless and community-run, so nothing but this says whose scan traffic it is or where to complain.
 PANORAMAX_HEADERS = {'User-Agent': 'ProjectSidewalk-check-streets/1.0 (sidewalk@cs.uw.edu)'}
 
-# Infra3d: the token grant mirrors PanoDataService.getInfra3dToken; the framegate route is what the vendored viewer SDK
+# Infra3d: the token grant mirrors PanoDataService.getInfra3dToken; the framegate route is what the viewer SDK
 # calls for setLocation. The route's tenant segment comes from the token's scope, so there is no per-city config.
 INFRA3D_TOKEN_URL = 'https://uzh.auth.eu-west-1.amazoncognito.com/oauth2/token'
 INFRA3D_API_URL = 'https://api.infra3d.com/framegate'
-# The SDK's own API-gateway key, baked into the vendored bundle and sent by every browser session alongside the bearer;
+# The SDK's own API-gateway key, baked into its bundle and sent by every browser session alongside the bearer;
 # it identifies the SDK, not us -- the per-city bearer token is what grants access to a tenant's imagery.
 INFRA3D_API_KEY = '6zGSQ8u14j3AqL8myGcP54rbXS9aLCpr6lY99B9F'
 # 360° frames only, matching Infra3dViewer's setFilter: Explore can't label on Infra3d's flat mono/stereo photos.

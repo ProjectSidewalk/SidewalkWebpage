@@ -17,6 +17,8 @@
  * injects elements that use these attributes.
  */
 
+import i18next from 'i18next';
+
 /**
  * Localize every element under `root` (inclusive) that has a `data-i18n*` attribute.
  * @param {ParentNode} root - The element (or document) to walk.

@@ -6,6 +6,7 @@
  * comes back 404 and is surfaced via the shared error message.
  */
 
+import i18next from 'i18next';
 import { ConfirmDialog } from '../common/ConfirmDialog.js';
 import { Toast } from '../common/Toast.js';
 import { util } from '../common/utilities.js';

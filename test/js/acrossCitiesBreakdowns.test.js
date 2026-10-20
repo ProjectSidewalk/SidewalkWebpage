@@ -10,9 +10,7 @@
  * AcrossCitiesPage is loaded fresh per test with its real MiniLineChart, so the bars are drawn by the real renderer.
  */
 
-import { loadModules, loadVendored } from './loader.js';
-
-loadVendored('dompurify');
+import { loadModules } from './loader.js';
 
 const MARKUP = `
   <span id="now-labels-today">—</span><span id="now-labels-today-ai"></span>

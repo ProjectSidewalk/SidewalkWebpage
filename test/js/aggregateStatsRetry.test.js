@@ -7,7 +7,10 @@
  * the error shown after all retries fail is human-readable rather than "signal is aborted without reason".
  */
 
-import { loadModules } from './loader.js';
+import { loadModules, mockModule } from './loader.js';
+
+const i18next = { t: (key) => key };
+mockModule('i18next', () => ({ default: i18next }));
 
 // jsdom implements AbortSignal but not the static AbortSignal.timeout()
 // (Baseline 2022, present in all supported browsers). Shim it for these tests; fetch is stubbed anyway, so the
@@ -69,7 +72,7 @@ describe('aggregateStats fetch resilience', () => {
     readyCallback = undefined;
     window.appManager = { ready: (cb) => { readyCallback = cb; } };
 
-    window.i18next = { t: (key, opts) => Number(opts.val).toLocaleString('en-US') };
+    Object.assign(i18next, { t: (key, opts) => Number(opts.val).toLocaleString('en-US') });
 
     // Keep the retry/error logging out of the test output.
     vi.spyOn(console, 'warn').mockImplementation(() => {});
@@ -80,7 +83,6 @@ describe('aggregateStats fetch resilience', () => {
 
   afterEach(() => {
     delete window.fetch;
-    delete window.i18next;
     delete window.appManager;
   });
 

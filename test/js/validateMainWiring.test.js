@@ -7,8 +7,10 @@
  * subscriber; each listener's body is stubbed, since what it does with the label is its own suite's business.
  */
 
-import { loadModules, loadVendored, mockModule, useUtil } from './loader.js';
+import { loadModules, mockModule, useUtil } from './loader.js';
 import { fakeTracker } from './fakes.js';
+
+mockModule('i18next', () => ({ default: { t: (key) => key, isInitialized: false, language: 'en' } }));
 
 /** @type {Record<string, any>} The heavy collaborators' stand-ins, by export name; the mocks hand them to Main. */
 let fakes = {};
@@ -149,14 +151,12 @@ let panoManager;
 beforeAll(async () => {
   window.matchMedia = () => /** @type {MediaQueryList} */ ({ matches: true }); // jsdom has none; act as a mouse.
   window.structuredClone ??= (v) => JSON.parse(JSON.stringify(v)); // Missing from this jsdom.
-  loadVendored('tom-select'); // The tag box, which the Expert Validate menu builds in its constructor.
   useUtil({
     // jsdom lays nothing out, so the real one would size the tool from empty computed styles.
     applyToolScale: () => 1,
     // The real one fetches the severity icons over the network.
     getImage: () => Promise.resolve(''),
   });
-  window.i18next = { t: (key) => key, isInitialized: false, language: 'en' };
 
   fakes = {
     // Only the surface the container and the subscribers' constructors read off a label.

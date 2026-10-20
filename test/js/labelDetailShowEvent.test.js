@@ -15,6 +15,8 @@
 import { loadModules, mockModule, useUtil } from './loader.js';
 import { mockLabelDetailCollaborators } from './fakes.js';
 
+mockModule('i18next', () => ({ default: { t: (key) => key } }));
+
 /** The pano manager the card is handed; rebuilt per test so a test can settle its setPano() when it likes. */
 let panoManager;
 const toast = { show: vi.fn() };
@@ -247,7 +249,6 @@ describe('the label card\'s open event (#5139)', () => {
   beforeEach(async () => {
     post = vi.fn(async () => ({ ok: true, status: 200, json: async () => ({}) }));
 
-    window.i18next = { t: (key) => key };
     window.logWebpageActivity = vi.fn();
     window.alert = vi.fn();
     useUtil({ lazyIdentityFetch: post });

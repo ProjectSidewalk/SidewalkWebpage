@@ -10,11 +10,11 @@
  * Minimap.addMarker. Real turf: the along-street math that places the finish flag is part of what is being exercised.
  */
 
-import { loadVendored, loadModules, mockModule } from './loader.js';
+import * as turf from '@turf/turf';
+import { loadModules, mockModule } from './loader.js';
 import { fakeTracker, fakePanoManager, fakeTaskContainer } from './fakes.js';
 
-loadVendored('turf');
-const { turf } = window;
+mockModule('i18next', () => ({ default: { t: (key) => key } }));
 
 // jsdom has no 2D canvas; the chevron's pixels aren't under test.
 mockModule('frontend/js/explore/navigation/MinimapStyle.js', async (importOriginal) => {
@@ -111,9 +111,10 @@ describe('Minimap mission flags across a mission boundary', () => {
 
   beforeEach(async () => {
     FakeMarker.created = [];
-    window.i18next = { t: (key) => key };
-    window.maplibregl = { Map: FakeMap, Marker: FakeMarker, addProtocol: () => {} };
-    window.pmtiles = { Protocol: class { tile() {} } };
+    mockModule('maplibre-gl',
+      () => ({ Map: FakeMap, Marker: FakeMarker, addProtocol: () => {}, setWorkerUrl: () => {} }));
+    mockModule('pmtiles', () => ({ Protocol: class { tile() {} } }));
+    mockModule('maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url', () => ({ default: 'maplibre-gl-worker.js' }));
     const ui = {
       holder: uiStub(),
       missionProgress: uiStub(),

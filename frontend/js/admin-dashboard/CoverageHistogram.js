@@ -5,6 +5,8 @@
  * coverage range on the map and table at once (range brushing). Buckets are pre-binned by the coordinator so colors
  * match the choropleth exactly and the index maps cleanly back to a set of regions.
  */
+
+import vegaEmbed from 'vega-embed';
 export class CoverageHistogram {
   #containerId;
   #onBinClick;
@@ -32,7 +34,7 @@ export class CoverageHistogram {
    * @returns {Promise<void>}
    */
   async render(buckets) {
-    const spec = {
+    const spec = /** @type {import('vega-embed').VisualizationSpec} */ ({
       $schema: 'https://vega.github.io/schema/vega-lite/v6.json',
       width: 'container',
       height: 180,
@@ -55,7 +57,7 @@ export class CoverageHistogram {
         view: { stroke: null },
         axis: { labelFont: getComputedStyle(document.documentElement).getPropertyValue('--font-primary') },
       },
-    };
+    });
 
     const result = await vegaEmbed(`#${this.#containerId}`, spec, { actions: false, renderer: 'svg' });
     // Release the previous chart's listeners (including its resize ones) only once the new chart has drawn, so that

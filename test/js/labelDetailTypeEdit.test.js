@@ -17,6 +17,8 @@
 import { loadModules, mockModule, useUtil } from './loader.js';
 import { mockLabelDetailCollaborators } from './fakes.js';
 
+mockModule('i18next', () => ({ default: { t: (key, opts) => (opts?.labelType ? `${key}:${opts.labelType}` : key) } }));
+
 /** The pano manager the card is handed; rebuilt per test so a test can settle its setPano() when it likes. */
 let panoManager;
 const toast = { show: vi.fn() };
@@ -166,7 +168,6 @@ describe('changing a label\'s type from the card (#3671)', () => {
       return { ok: reply.status < 400, status: reply.status, json: async () => reply.body };
     });
 
-    window.i18next = { t: (key, opts) => (opts?.labelType ? `${key}:${opts.labelType}` : key) };
     window.logWebpageActivity = vi.fn();
     useUtil({ lazyIdentityFetch: saveRequest });
 

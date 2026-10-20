@@ -6,6 +6,8 @@
  * look up (1:20, 1:12), so a street is on one side of a limit or the other and the color says which. The breaks come
  * from `/v3/api/accessScoreConfig` (`gradient.map_class_breaks`); nothing here knows a grade.
  */
+
+import i18next from 'i18next';
 export class AccessScoreGradeRamp {
   /** How many color tokens main.css defines per surface, gentlest first. */
   static #STEPS = 5;

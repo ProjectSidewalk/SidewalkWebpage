@@ -1,3 +1,5 @@
+import mapboxgl from './mapboxgl.js';
+
 // Map bounds for GeoJSON, shared by the map pages (via the ps-map bundle) and the API docs maps (by script tag).
 
 /**
@@ -11,7 +13,8 @@ export function geometryBounds(geometry) {
     if (typeof coords[0] === 'number') bounds.extend(coords);
     else coords.forEach(extend);
   };
-  extend(geometry.coordinates);
+  if (geometry.type === 'GeometryCollection') geometry.geometries.forEach((g) => bounds.extend(geometryBounds(g)));
+  else extend(geometry.coordinates);
   return bounds;
 }
 

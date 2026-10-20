@@ -11,9 +11,7 @@
  * and triggers report the rect they were assigned.
  */
 
-import { loadModules, loadVendored } from './loader.js';
-
-loadVendored('dompurify');
+import { loadModules } from './loader.js';
 
 // Matches the constants in psTooltip.js.
 const TRIGGER_GAP = 8;

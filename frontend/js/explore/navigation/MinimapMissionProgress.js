@@ -3,6 +3,8 @@
  * neighborhood mission, planted so a mission reads the way a RouteBuilder route does.
  */
 
+import * as turf from '@turf/turf';
+import i18next from 'i18next';
 import { util } from '../../common/utilities.js';
 /** @typedef {import('../Main.js').ExploreConfig} ExploreConfig */
 /** @typedef {import('../Main.js').MinimapUi} MinimapUi */

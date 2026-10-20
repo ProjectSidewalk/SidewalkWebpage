@@ -5,6 +5,7 @@
  * that load. The mission it submits for arrives later (attachSession), since its collaborators need the viewer.
  */
 
+import i18next from 'i18next';
 import { util } from '../../common/utilities.js';
 /** @typedef {import('../Main.js').ValidateConfig} ValidateConfig */
 /** @typedef {import('../Tracker.js').Tracker} Tracker */

@@ -7,6 +7,8 @@
 
 import { loadModules, mockModule, useUtil } from './loader.js';
 
+mockModule('i18next', () => ({ default: { t: (key) => key } }));
+
 /** @type {Record<string, any>} The stand-ins for this test, by export name; the mocks below hand them to Main. */
 let fakes = {};
 
@@ -165,7 +167,6 @@ beforeAll(async () => {
   ({ Gate } = await loadModules('frontend/js/common/Gate.js'));
   // jsdom lays nothing out, so the real one would size the tool from empty computed styles.
   useUtil({ applyToolScale: () => 1 });
-  window.i18next = { t: (key) => key };
 });
 
 beforeEach(async () => {

@@ -11,11 +11,8 @@
  * util.math.haversine do the distance math.
  */
 
-import { loadVendored, loadModules } from './loader.js';
-
-loadVendored('turf');
-
-const { turf } = window;
+import * as turf from '@turf/turf';
+import { loadModules } from './loader.js';
 
 /**
  * Loads GsvViewer fresh, with the NoImageryError its searches reject with.

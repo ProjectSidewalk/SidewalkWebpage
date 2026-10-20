@@ -7,6 +7,7 @@
  * display:none under the start tutorial, so it never pauses the shortcuts: the phone has none, desktop never sees it.
  */
 
+import i18next from 'i18next';
 import { MissionStartTutorial } from '../../common/MissionStartTutorial.js';
 import { util } from '../../common/utilities.js';
 import '../../common/utilitiesSidewalk.js';

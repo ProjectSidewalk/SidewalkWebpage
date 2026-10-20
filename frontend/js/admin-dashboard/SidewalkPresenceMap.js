@@ -8,6 +8,7 @@
  * review lists and the region table drive the map.
  */
 
+import mapboxgl from '../common/mapboxgl.js';
 import { util } from '../common/utilities.js';
 import { AdminShell } from './AdminShell.js';
 
@@ -90,8 +91,8 @@ export class SidewalkPresenceMap {
   /**
    * Initializes the map and draws the faces.
    *
-   * @param {GeoJSON.FeatureCollection} faces - Two features per street, each carrying `face_id` and its face's
-   *   verdict and evidence in its properties.
+   * @param {GeoJSON.FeatureCollection<GeoJSON.LineString>} faces - Two features per street, each carrying `face_id`
+   *   and its face's verdict and evidence in its properties.
    * @returns {Promise<void>} Resolves once the map's first render is ready.
    */
   init(faces) {
@@ -285,10 +286,11 @@ export class SidewalkPresenceMap {
   }
 
   /**
-   * @param {GeoJSON.Feature[]} features - Line features.
-   * @returns {number[][]} A [[minLng, minLat], [maxLng, maxLat]] box covering them.
+   * @param {GeoJSON.Feature<GeoJSON.LineString>[]} features - Line features.
+   * @returns {[[number, number], [number, number]]} A [[minLng, minLat], [maxLng, maxLat]] box covering them.
    */
   static #bounds(features) {
+    /** @type {[[number, number], [number, number]]} */
     const box = [[Infinity, Infinity], [-Infinity, -Infinity]];
     const visit = (coords) => {
       if (typeof coords[0] === 'number') {

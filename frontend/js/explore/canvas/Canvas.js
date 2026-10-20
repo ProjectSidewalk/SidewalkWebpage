@@ -3,6 +3,7 @@
  * hover card a hovered label gets.
  */
 
+import i18next from 'i18next';
 import { ShareWidget } from '../../common/share/ShareWidget.js';
 import { Gate } from '../../common/Gate.js';
 import { util } from '../../common/utilities.js';

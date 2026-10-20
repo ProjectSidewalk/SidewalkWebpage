@@ -2,6 +2,7 @@
  * Renders the "Current Mission" header and description at the top of the right sidebar.
  */
 
+import i18next from 'i18next';
 import { util } from '../../common/utilities.js';
 import '../../common/utilitiesMath.js';
 /** @typedef {import('../Main.js').ExploreConfig} ExploreConfig */

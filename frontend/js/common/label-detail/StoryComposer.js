@@ -8,6 +8,7 @@
  * multiple times per page, so radio-group names and the labelling id are made instance-unique here.
  */
 
+import i18next from 'i18next';
 import { ConfirmDialog } from '../ConfirmDialog.js';
 import { util } from '../utilities.js';
 

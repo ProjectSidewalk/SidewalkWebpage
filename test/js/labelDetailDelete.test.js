@@ -11,6 +11,8 @@
 import { loadModules, mockModule, useUtil } from './loader.js';
 import { mockLabelDetailCollaborators } from './fakes.js';
 
+mockModule('i18next', () => ({ default: { t: (key) => key } }));
+
 /** The pano manager the card is handed; rebuilt per test so a test can settle its setPano() when it likes. */
 let panoManager;
 let confirmAnswer;
@@ -180,7 +182,6 @@ describe('deleting a label from the card (#3591)', () => {
       return { ok: status < 400, status, json: async () => body };
     });
 
-    window.i18next = { t: (key) => key };
     window.logWebpageActivity = vi.fn();
     useUtil({ lazyIdentityFetch: request });
 

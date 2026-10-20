@@ -6,6 +6,8 @@
  * and colors live here, since there is no canonical backend color for street status. Colors are design-system tokens
  * from main.css, chosen for lightness separation so the four stay distinguishable under deuteranopia/protanopia.
  */
+
+import mapboxgl from '../common/mapboxgl.js';
 export class StreetStatusColors {
   /** @type {Array<{key: string, label: string, color: string}>} ordered open → no_imagery → closed → disabled. */
   static STATUSES = [
@@ -200,10 +202,11 @@ export class StreetStatusMap {
 
   /**
    * @param {GeoJSON.Feature} feature - One GeoJSON feature.
-   * @returns {number[][]} Its [[minLng, minLat], [maxLng, maxLat]] bounds box, for focusSegment.
+   * @returns {[[number, number], [number, number]]} Its [[minLng, minLat], [maxLng, maxLat]] bounds box, for
+   *   focusSegment.
    */
   static boundsOfFeature(feature) {
-    return StreetStatusMap.#bounds({ features: [feature] });
+    return StreetStatusMap.#bounds({ type: 'FeatureCollection', features: [feature] });
   }
 
   /** Builds the hover-popup HTML showing a segment's status and activity. */
@@ -224,7 +227,10 @@ export class StreetStatusMap {
     ].join('');
   }
 
-  /** Computes a [[minLng,minLat],[maxLng,maxLat]] bounds box covering all features. */
+  /**
+   * @param {GeoJSON.FeatureCollection} geojson - The features to frame.
+   * @returns {[[number, number], [number, number]]} A [[minLng, minLat], [maxLng, maxLat]] box covering them.
+   */
   static #bounds(geojson) {
     let minLng = Infinity;
     let minLat = Infinity;
@@ -240,7 +246,9 @@ export class StreetStatusMap {
         coords.forEach(visit);
       }
     };
-    for (const f of geojson.features) if (f.geometry) visit(f.geometry.coordinates);
+    for (const f of geojson.features) {
+      if (f.geometry && f.geometry.type !== 'GeometryCollection') visit(f.geometry.coordinates);
+    }
     return [[minLng, minLat], [maxLng, maxLat]];
   }
 }

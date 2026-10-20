@@ -2,6 +2,7 @@
  * An object that creates a display for the agree/disagree counts on a gallery card.
  */
 
+import i18next from 'i18next';
 import { util } from '../../common/utilities.js';
 
 export class ValidationInfoDisplay {

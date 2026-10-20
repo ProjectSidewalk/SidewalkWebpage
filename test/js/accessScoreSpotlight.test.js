@@ -10,6 +10,38 @@
 
 import { loadModules, mockModule, useUtil } from './loader.js';
 
+/**
+ * The few strings rendered for real, so a test can see what a reader would: the subtitle's link, and values that
+ * escaping would mangle in a text node.
+ */
+const STRINGS = {
+  'common:access-score-spotlight.subtitle-regions': 'Scored by our <a href="{{href}}">AccessScore</a> algorithm.',
+  'common:access-score-spotlight.street-sub': '{{region}} · {{length}}',
+  'common:access-score-spotlight.updated-last': 'Last updated {{date}}.',
+  'common:access-score-spotlight.explore-region': 'Explore {{name}}',
+};
+
+/** i18next's escaping, character for character, for the calls that ask for it. */
+const escapeLikeI18next = (value) => String(value).replace(/[&<>"'/]/g, (c) => ({
+  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', '\'': '&#39;', '/': '&#x2F;',
+})[c]);
+
+// Keys pass through, with interpolation values appended so a test can tell two renderings of one key apart, except
+// the STRINGS above, which interpolate the way the app configures i18next: values verbatim, escaped only where the
+// call asks for it.
+mockModule('i18next', () => ({ default: {
+  language: 'en',
+  t: (key, vars) => {
+    if (STRINGS[key]) {
+      const escape = vars?.interpolation?.escapeValue === true;
+      return STRINGS[key].replace(/\{\{(\w+)\}\}/g, (_, name) => (
+        escape ? escapeLikeI18next(vars[name]) : String(vars[name])
+      ));
+    }
+    return vars ? `${key}|${JSON.stringify(vars)}` : key;
+  },
+} }));
+
 mockModule('frontend/js/common/scoreRamp.js', () => ({
   ScoreRamp: {
     colors: () => ['#a', '#b', '#c', '#d', '#e'],
@@ -115,38 +147,7 @@ describe('the AccessScore Spotlight', () => {
   /** The name link text of each rendered row, in document order. */
   const rowNames = () => [...document.querySelectorAll('.spotlight-name-link')].map((n) => n.textContent);
 
-  /**
-     * The few strings rendered for real, so a test can see what a reader would: the subtitle's link, and values
-     * that escaping would mangle in a text node.
-     */
-  const STRINGS = {
-    'common:access-score-spotlight.subtitle-regions': 'Scored by our <a href="{{href}}">AccessScore</a> algorithm.',
-    'common:access-score-spotlight.street-sub': '{{region}} · {{length}}',
-    'common:access-score-spotlight.updated-last': 'Last updated {{date}}.',
-    'common:access-score-spotlight.explore-region': 'Explore {{name}}',
-  };
-
-  /** i18next's escaping, character for character, for the calls that ask for it. */
-  const escapeLikeI18next = (value) => String(value).replace(/[&<>"'/]/g, (c) => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', '\'': '&#39;', '/': '&#x2F;',
-  })[c]);
-
   beforeAll(async () => {
-    // Keys pass through, with interpolation values appended so a test can tell two renderings of one key apart,
-    // except the STRINGS above, which interpolate the way the app configures i18next: values verbatim, escaped
-    // only where the call asks for it.
-    window.i18next = {
-      language: 'en',
-      t: (key, vars) => {
-        if (STRINGS[key]) {
-          const escape = vars?.interpolation?.escapeValue === true;
-          return STRINGS[key].replace(/\{\{(\w+)\}\}/g, (_, name) => (
-            escape ? escapeLikeI18next(vars[name]) : String(vars[name])
-          ));
-        }
-        return vars ? `${key}|${JSON.stringify(vars)}` : key;
-      },
-    };
     useUtil(UTIL_STUBS);
     window.logWebpageActivity = (activity) => logged.push(activity);
     // Stands in for a loaded Mapbox map; the module only ever reads a source and sets a feature state on it.

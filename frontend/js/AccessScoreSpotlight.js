@@ -16,6 +16,7 @@
  * @property {string} [city_url]
  */
 
+import i18next from 'i18next';
 import { util } from './common/utilities.js';
 import { ScoreRamp } from './common/scoreRamp.js';
 import '../css/components/access-score-spotlight.css';

@@ -8,7 +8,10 @@
  * build would.
  */
 
-import { loadModules } from './loader.js';
+import { loadModules, mockModule } from './loader.js';
+
+const i18next = { t: (key) => key };
+mockModule('i18next', () => ({ default: i18next }));
 
 let ValidationInfoDisplay;
 
@@ -53,13 +56,12 @@ const srcOf = (display, action) => {
 
 beforeEach(async () => {
   window.assetDigests = { ...DIGESTS };
-  window.i18next = { t: (key) => key };
+  Object.assign(i18next, { t: (key) => key });
   ({ ValidationInfoDisplay } = await loadModules('frontend/js/gallery/displays/ValidationInfoDisplay.js'));
 });
 
 afterEach(() => {
   delete window.assetDigests;
-  delete window.i18next;
 });
 
 describe('Gallery vote icons', () => {

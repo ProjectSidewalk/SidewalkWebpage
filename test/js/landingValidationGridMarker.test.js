@@ -9,6 +9,8 @@
 
 import { loadModules, mockModule, useUtil } from './loader.js';
 
+mockModule('i18next', () => ({ default: { t: (key) => key } }));
+
 /** What the source-logo and licence-line stand-ins were last told: a card owes a credit on a crop and nothing else. */
 const credit = { logo: null, attribution: null };
 
@@ -76,7 +78,6 @@ describe('the landing validation grid\'s label marker', () => {
   }
 
   beforeAll(async () => {
-    window.i18next = { t: (key) => key };
     window.logWebpageActivity = vi.fn();
     // jsdom has no layout, so it has no matchMedia; the grid asks it how many slots this width shows.
     window.matchMedia = () => ({ matches: false });

@@ -50,7 +50,7 @@ second across all workers, default 10 — deliberately conservative; Google allo
 ### Infra3d
 
 Infra3d has no metadata endpoint, so `--infra3d` uses the nearest-frame query (`framegate`'s `knn/query`) that the
-vendored viewer SDK issues on every `setLocation` — the same request a labeler's browser makes as they move — with the
+viewer SDK issues on every `setLocation` — the same request a labeler's browser makes as they move — with the
 same per-city OAuth client credentials the app uses (`PanoDataService.getInfra3dToken`). Export **one** city's pair as
 `INFRA3D_CLIENT_ID` / `INFRA3D_CLIENT_SECRET` (in the web container they're `INFRA3D_CLIENT_ID_ZURICH`,
 `..._WINTERTHUR`, etc.); the tenant to query comes from the token's own scope, so nothing else is per-city. Two things

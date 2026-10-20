@@ -3,8 +3,10 @@
  * label-before-jump prompt stays clickable through a move, which pauses the ordinary compass click.
  */
 
-import { loadModules } from './loader.js';
+import { loadModules, mockModule } from './loader.js';
 import { fakeTracker, fakePanoManager, fakeTaskContainer } from './fakes.js';
+
+mockModule('i18next', () => ({ default: { t: (key) => key } }));
 
 describe('Compass cursor under the label-before-jump prompt', () => {
   let compass;
@@ -14,7 +16,6 @@ describe('Compass cursor under the label-before-jump prompt', () => {
   beforeEach(async () => {
     document.body.innerHTML = '<div id="compass-message-holder"><div id="compass-message"></div></div>';
     holder = document.getElementById('compass-message-holder');
-    window.i18next = { t: (key) => key };
     const { Compass } = await loadModules('frontend/js/explore/navigation/Compass.js');
     nav = {};
     const navigationService = {

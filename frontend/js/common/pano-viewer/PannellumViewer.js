@@ -20,6 +20,9 @@ import { util } from '../utilities.js';
 import './panoUtilities.js';
 /** @typedef {import('./PanoImageCache.js').PanoImageCache} PanoImageCache */
 
+/** Pannellum, from sdk/pannellum.js, once preloadLibrary() has fetched it. */
+let sdk;
+
 /**
  * The widest equirectangular panorama this device can actually render, or null if that can't be determined.
  *
@@ -135,7 +138,7 @@ export class PannellumViewer extends PanoViewer {
    */
   static PREFETCH_WAIT_MS = 10000;
 
-  /** @type {pannellum.Viewer} The underlying pannellum viewer instance. */
+  /** @type {any} The underlying pannellum viewer instance. */
   #viewer = undefined;
 
   /** @type {number} Cached cameraHeading for the current pano (degrees, wrt true north). */
@@ -172,6 +175,14 @@ export class PannellumViewer extends PanoViewer {
   }
 
   /**
+   * See PanoViewer.preloadLibrary(); the chunk is sdk/pannellum.js.
+   * @returns {Promise<void>}
+   */
+  static async preloadLibrary() {
+    sdk ??= await import('./sdk/pannellum.js');
+  }
+
+  /**
    * @param {HTMLElement} canvasElem - Container element to mount the viewer into.
    * @param {object} [panoOptions]
    * @param {string} [panoOptions.startPanoId] - The pano ID to load. Falls back to panoMetadata.pano_id.
@@ -185,6 +196,7 @@ export class PannellumViewer extends PanoViewer {
    * @returns {Promise<void>}
    */
   async initialize(canvasElem, panoOptions = {}) {
+    await PannellumViewer.preloadLibrary();
     const metadata = panoOptions.panoMetadata;
     if (!metadata) throw new Error('PannellumViewer requires panoOptions.panoMetadata');
     this.#imageCache = panoOptions.imageCache ?? null;
@@ -238,7 +250,7 @@ export class PannellumViewer extends PanoViewer {
         pannellumConfig.scenes[panoId].panorama = candidates[attempt];
         try {
           await new Promise((resolve, reject) => {
-            this.#viewer = pannellum.viewer(canvasElem, pannellumConfig);
+            this.#viewer = sdk.pannellum.viewer(canvasElem, pannellumConfig);
             const onLoad = () => {
               this.#viewer.off('load', onLoad);
               this.#viewer.off('error', onError);

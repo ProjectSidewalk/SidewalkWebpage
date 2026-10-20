@@ -17,6 +17,7 @@
  *     provider name, since the source logo opposite it is already carrying that.
  * @returns {{ show: Function, hide: Function }}
  */
+import i18next from 'i18next';
 import '../../../css/components/pano-attribution.css';
 
 export function createPanoAttribution(container, options = {}) {

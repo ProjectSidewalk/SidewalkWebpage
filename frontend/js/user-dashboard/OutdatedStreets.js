@@ -7,6 +7,7 @@
  * identity: hovering or focusing a row highlights that street there.
  */
 
+import i18next from 'i18next';
 import { util } from '../common/utilities.js';
 
 export class OutdatedStreets {

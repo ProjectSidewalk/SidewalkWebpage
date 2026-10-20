@@ -174,123 +174,115 @@ These are the JVM libraries we talk to the database *through*; the database serv
 
 ## JavaScript
 
-In almost all cases we **self-host** JS libraries (download the file into `public/vendor/<lib>/`) rather than use a
-CDN — it's generally faster for users and gives us clearer control over exactly what we ship. Prefer minified
-(`.min.js`) builds. Each library gets its own self-contained folder under `public/vendor/` (its JS + CSS + fonts +
-images together, upstream layout preserved so relative `url()` refs keep working). **Nothing under `vendor/` is ever
-edited or linted.**
+**`package.json` is the version list.** Every library the pages use is an npm `dependency` pinned to an exact version
+(`"mapbox-gl": "3.24.1"`, no `^`), installed by `npm ci` (the Dockerfile, CI and the deploy all run it against
+`package-lock.json`) and `import`ed by the module that uses it, so Vite bundles each page with the libraries it reaches
+and, for a tree-shakeable one like turf, only the functions it calls (#5734; [`architecture.md`](architecture.md) →
+"Modules and the build"). A library's stylesheet is imported by the same module
+(`import 'mapbox-gl/dist/mapbox-gl.css'`). **Nothing under `node_modules/` is ever edited.** The imagery viewers load
+on demand: MapillaryViewer, PanoramaxViewer,
+PannellumViewer and Infra3dViewer each `import()` their SDK, through the small modules in
+`frontend/js/common/pano-viewer/sdk/`, in `preloadLibrary()`, so a Mapillary city's visitors never download Infra3d's
+9 MB and vice versa.
 
-**To upgrade a self-hosted library:** download the new version, drop it in `public/vendor/<lib>/`, **rename it to
-include the version number** (e.g. `turf-7.4.0.min.js`) for clarity, update every reference to the old filename across
-the code, and delete the old file. The version baked into each filename under `vendor/` is the real source of truth for
-the frontend — it names in the URL what a reader would otherwise have to diff for, and lets two versions sit side by
-side mid-upgrade — keep this list matching it. `make lint-vendor-versions` (part of `make lint`, and a
-blocking CI step) fails if the two disagree, or if a folder under `vendor/` isn't listed here at all.
+**To upgrade a library:** `docker exec projectsidewalk-web bash -c 'cd /home && npm install --save-exact <pkg>@<ver>'`,
+then `bash tools/dev/npm-sync.sh --write-stamp` so the next `make dev` doesn't redo `npm ci`, and bump the version below
+in the same change. Dependabot opens the monthly bumps itself ([`.github/dependabot.yml`](../.github/dependabot.yml)):
+patch and minor ones auto-merge once CI is green (#4395), majors wait for a person, and so does anything in its
+`npm-imagery` group (the viewer SDKs, three.js, MapLibre, pmtiles), since CI never drives a pano viewer or the minimap:
+try those in a city that uses each one. **A version hold needs an `ignore` entry there**, or Dependabot bumps straight
+past it; mapbox-gl's is the one in place.
 
-- **async-lock: 1.4.1** — **note:** a fresh download probably needs the trailing `module.export` line removed.
-  [Download](https://cdn.jsdelivr.net/npm/async-lock@1.4.1/lib/index.min.js) ·
+The one third-party asset still served as files is the minimap's basemap glyphs under `public/vendor/basemap-glyphs/`,
+which MapLibre fetches by URL pattern rather than through the bundle.
+
+- **async-lock: 1.4.1** — serializes Explore's label submissions.
   [Versions](https://github.com/rogierschouten/async-lock/releases)
 - **basemap-glyphs (protomaps/basemaps-assets at `028c18f`)** — the Noto Sans Regular and Italic glyphs for the
   minimap's labels (#5716), with their license. To upgrade, copy the two font folders from a newer commit and update the
   commit here. MapLibre requests them by URL pattern, so they're served from `/basemap/glyphs/`, not `assets.path`.
   [Repo](https://github.com/protomaps/basemaps-assets)
 - **bowser: 2.14.1** — browser detection.
-  [Versions](https://www.npmjs.com/package/bowser?activeTab=versions) ·
   [Changelog](https://github.com/bowser-js/bowser/releases)
-- **chart.js: 4.5.1** — check the running version with `Chart.version`.
-  [Download](https://unpkg.com/chart.js) · [Changelog](https://github.com/chartjs/Chart.js/releases)
-- **dompurify: 3.4.16** — cleans HTML from outside sources before it's shown (`purify-3.4.16.min.js`).
-  [Download](https://cdn.jsdelivr.net/npm/dompurify@3.4.16/dist/purify.min.js) ·
+- **chart.js: 4.5.1** — the API docs' preview charts; check the running version with `Chart.version`. **Note:** Chart.js
+  is modular, and `frontend/js/api-docs/apiDocsChart.js` registers only the chart types, scales and plugins the
+  previews use, so a new kind of chart means adding its pieces there, or it fails at draw time.
+  [Changelog](https://github.com/chartjs/Chart.js/releases)
+- **dompurify: 3.4.16** — cleans HTML from outside sources before it's shown.
   [Changelog](https://github.com/cure53/DOMPurify/releases)
-- **floating-ui: 1.8.0 (`@floating-ui/dom`), 1.8.0 (`@floating-ui/core`)** — **note:** start from the newest `dom`
-  version, then pick a `core` version that satisfies its dependency.
-  [Changelog](https://github.com/floating-ui/floating-ui/releases) ·
-  [Download dom](https://cdn.jsdelivr.net/npm/@floating-ui/dom@1.8.0) ·
-  [Download core](https://cdn.jsdelivr.net/npm/@floating-ui/core@1.8.0)
-- **i18next: 26.4.2** — frontend translations. **Note:** `test/js/i18nextLocales.test.js` runs this file and
+- **@floating-ui/dom: 1.8.0** — positions the tutorial's callouts; `@floating-ui/core` comes with it.
+  [Changelog](https://github.com/floating-ui/floating-ui/releases)
+- **i18next: 26.4.2** — frontend translations. **Note:** `test/js/i18nextLocales.test.js` runs it and
   i18next-http-backend over our real locale files in every language, so `make test-js args=i18nextLocales` is the
   check after a bump of either.
-  [Download](https://unpkg.com/i18next/dist/umd/i18next.min.js) ·
   [Changelog](https://github.com/i18next/i18next/blob/master/CHANGELOG.md)
-- **i18next-http-backend: 4.0.2** — loads translation files (`i18nextHttpBackend-4.0.2.min.js`).
-  [Project + downloads](https://github.com/i18next/i18next-http-backend) ·
+- **i18next-http-backend: 4.0.2** — loads translation files.
   [Changelog](https://github.com/i18next/i18next-http-backend/blob/master/CHANGELOG.md)
-- **infra3dapi: 1.12.1** — Infra3d imagery provider. **Note:** `Infra3dViewer.js` reaches past the documented API into
-  `_sdk_viewer` (`moveToKey`, `movePosition`, `setFilter`, `resize`, the component toggles, the `nodechanged` event, the
-  navigator's `imagesByKNN$`) and each node's `spatialEdges$` stream, none of which the changelog covers, so after a
-  bump grep the new file for each name.
-  [Download](https://cdn.jsdelivr.net/npm/@inovitas/infra3dapi@1.12.1/infra3dapi.js) ·
+- **@inovitas/infra3dapi: 1.12.1** — Infra3d imagery provider, loaded on demand through `sdk/infra3d.js` with proj4.
+  **Note:** `Infra3dViewer.js` reaches past the documented API into `_sdk_viewer` (`moveToKey`, `movePosition`,
+  `setFilter`, `resize`, the component toggles, the `nodechanged` event, the navigator's `imagesByKNN$`) and each node's
+  `spatialEdges$` stream, none of which the changelog covers, so after a bump grep the package's `infra3dapi.js` for
+  each name. The riskiest bump here, which is why the `npm-imagery` group waits for a person.
   [Changelog](https://developers.infra3d.com/javascript-api/reference/index.html#md:changelog)
-- **maplibre-gl (js & css): 6.10.0** — draws the Explore minimap (#5429); check with `maplibregl.getVersion()`.
-  **Note:** ships only as ES modules: a main module, a worker and a shared chunk that import each other by fixed
-  relative names. So the three sit unrenamed in a version-named folder (`maplibre-gl-6.10.0/`) and stay out of the
-  Vite bundle; `Minimap.create` imports the main module from the `#maplibre-module` link in `explore.scala.html`.
-  To upgrade, copy the three `.mjs` files (not the `-dev` builds) from `dist/` into a new version folder, and point
-  that link and the stylesheet link at the new paths. #5734 moves it to an npm dependency Vite bundles instead.
-  [Download](https://cdn.jsdelivr.net/npm/maplibre-gl@6.10.0/dist/) ·
+- **maplibre-gl: 6.10.0** — draws the Explore minimap (#5429); check with `maplibregl.getVersion()`. **Note:** it looks
+  for its Web Worker beside its own file, which in the bundle is the Explore chunk, so `Minimap.js` imports the worker
+  through Vite's `?worker&url` and hands the URL to `setWorkerUrl`. A bump that renames `dist/maplibre-gl-worker.mjs`
+  shows up as a minimap that never draws.
   [Changelog](https://github.com/maplibre/maplibre-gl-js/blob/main/CHANGELOG.md)
-- **mapbox-gl (js & css): 3.24.1** — check with `mapboxgl.version`. **Note:** held below 3.25 on purpose. From 3.25.0 a
-  symbol layer that shares a source with feature-state paint (Route Builder's region labels, AccessScore's) crashes
-  the map with `Cannot read properties of undefined (reading 'paint')` once that state changes
-  ([mapbox-gl-js#13714](https://github.com/mapbox/mapbox-gl-js/issues/13714)); take 3.25+ once the fix
-  ([#13721](https://github.com/mapbox/mapbox-gl-js/pull/13721)) ships, or give every such symbol layer a
-  feature-state paint expression first.
-  [Install/download](https://docs.mapbox.com/mapbox-gl-js/guides/install/) ·
+- **mapbox-gl: 3.24.1** — check with `mapboxgl.version`. Imported through `frontend/js/common/mapboxgl.js`, which takes
+  the CSP build and hands it the worker Vite builds from `dist/mapbox-gl-csp-worker.js` (the comment there says why the
+  regular build can't be bundled). **Note:** held below 3.25 on purpose, by the `ignore` entry in
+  `.github/dependabot.yml`. From 3.25.0 a symbol layer that shares a source with feature-state paint (Route Builder's
+  region labels, AccessScore's) crashes the map with `Cannot read properties of undefined (reading 'paint')` once that
+  state changes ([mapbox-gl-js#13714](https://github.com/mapbox/mapbox-gl-js/issues/13714)); take 3.25+ (and drop the
+  entry) once the fix ([#13721](https://github.com/mapbox/mapbox-gl-js/pull/13721)) ships, or give every such symbol
+  layer a feature-state paint expression first.
   [Changelog](https://github.com/mapbox/mapbox-gl-js/blob/main/CHANGELOG.md)
-- **mapbox-gl-language: 1.0.1** — [Download](https://unpkg.com/@mapbox/mapbox-gl-language) ·
-  [Changelog](https://github.com/mapbox/mapbox-gl-language/releases)
-- **mapbox-search-js: 1.6.0** — ships in `public/vendor/mapbox-gl/` with the rest of the Mapbox stack.
-  [Install/download](https://docs.mapbox.com/mapbox-search-js/guides/install/) ·
+- **@mapbox/mapbox-gl-language: 1.0.1** — [Changelog](https://github.com/mapbox/mapbox-gl-language/releases)
+- **@mapbox/search-js-web: 1.6.0** — the place search on the Label Map and Route Builder.
   [Changelog](https://docs.mapbox.com/mapbox-search-js/guides/changelog/)
-- **mapillary: 4.1.2** — Mapillary imagery provider. **Note:** Explore and Validate leave the SDK's
-  `.mapillary-attribution-container` where it renders it and override its position from `svl.css` and
-  `svv-panorama.css` (#5600), keyed on that class, and Explore's `PanoManager.#liftAboveMapillaryAttribution` finds
-  the node by it once and relies on the SDK creating the container once and patching it in place (not replacing it
-  on the compact flip); on upgrade, re-check both.
-  [Downloads](https://mapillary.github.io/mapillary-js/docs/intro/try/#using-a-cdn) ·
+- **mapillary-js: 4.1.2** — Mapillary imagery provider, loaded on demand through `sdk/mapillary.js` with its stylesheet
+  and the three.js classes below. **Note:** Explore and Validate leave the SDK's `.mapillary-attribution-container`
+  where it renders it and override its position from `svl.css` and `svv-panorama.css` (#5600), keyed on that class, and
+  Explore's `PanoManager.#liftAboveMapillaryAttribution` finds the node by it once and relies on the SDK creating the
+  container once and patching it in place (not replacing it on the compact flip); on upgrade, re-check both.
   [Changelog](https://github.com/mapillary/mapillary-js/releases)
-- **pannellum: 2.5.7** — Pannellum panorama viewer. [Download](https://pannellum.org/download/) ·
+- **pannellum: 2.5.7** — the viewer for self-hosted panos, loaded on demand through `sdk/pannellum.js`. **Note:** a
+  classic script with no exports that puts itself on `window`; that module reads it back.
   [Changelog](https://github.com/mpetroff/pannellum/blob/2.5.7/changelog.md)
 - **panzoom: 9.4.4** — zoom/pan for static images in LabelMap/Gallery.
-  [Download](https://unpkg.com/panzoom@9.4.4/dist/panzoom.min.js) · [Versions](https://github.com/anvaka/panzoom/tags)
-- **photo-sphere-viewer: 5.15.1** (bundling **three.js 0.185.1**) — the renderer behind the Panoramax imagery
-  provider (#5185). **Not an upstream file:** a self-contained bundle built by
-  `public/vendor/photo-sphere-viewer/build/build.sh`, because upstream ships ES modules only and needs a newer
-  three.js than the standalone 0.160.1 below. Upgrade by running the script with the new version (three.js follows
-  from PSV's own dependency pin); see the README beside it. [Releases](https://github.com/mistic100/Photo-Sphere-Viewer/releases) ·
+  [Versions](https://github.com/anvaka/panzoom/tags)
+- **@photo-sphere-viewer/core + equirectangular-tiles-adapter: 5.15.1** — the renderer behind the Panoramax imagery
+  provider (#5185), loaded on demand through `sdk/photoSphereViewer.js`. The two move together, and three.js follows
+  the core's own pin (below). [Releases](https://github.com/mistic100/Photo-Sphere-Viewer/releases) ·
   [Docs](https://photo-sphere-viewer.js.org/guide/)
-- **pmtiles: 4.5.0** — lets MapLibre read the minimap's tile archive (#5716); the IIFE build `dist/pmtiles.js`, minus
-  its source-map comment. **Note:** the server's `pmtiles` command-line tool is separate. It's pinned in
-  `BasemapService` (`CliVersion` and each release file's SHA-256); change those to upgrade it.
-  [Download](https://cdn.jsdelivr.net/npm/pmtiles@4.5.0/dist/pmtiles.js) ·
+- **pmtiles: 4.5.0** — lets MapLibre read the minimap's tile archive (#5716). **Note:** the server's `pmtiles`
+  command-line tool is separate. It's pinned in `BasemapService` (`CliVersion` and each release file's SHA-256); change
+  those to upgrade it.
   [Changelog](https://github.com/protomaps/PMTiles/blob/main/js/CHANGELOG.md) ·
   [CLI releases](https://github.com/protomaps/go-pmtiles/releases)
-- **prism: 1.30.0** — syntax highlighting for the API docs' code blocks. We ship the core plus only the language
-  components the docs use (`json`, `csv`), so a new `language-*` class in a docs page means adding that component too.
-  **No stock theme:** the `.token.*` colors are ours, in `css/pages/api-docs/api-docs.css`, so the blocks stay on the
-  design-system tokens — an upgrade is the JS files only. **Note:** 1.30.0 is old (March 2025) because v1 is in
-  maintenance while the repo's default branch develops **v2**, an unreleased breaking rewrite (ESM, `src/languages/`,
-  a different dist layout). So 1.x is the stable line to track, and `1.30.0 → 2.x` will be a migration rather than a
-  file swap. [Download (pick components)](https://prismjs.com/download.html) ·
+- **prismjs: 1.30.0** — syntax highlighting for the API docs' code blocks. `pages/api-docs/layout.js` imports the core
+  plus only the language components the docs use (`json`, `csv`), so a new `language-*` class in a docs page means
+  importing that component too. **No stock theme:** the `.token.*` colors are ours, in
+  `css/pages/api-docs/api-docs.css`, so the blocks stay on the design-system tokens. **Note:** 1.30.0 is old (March
+  2025) because v1 is in maintenance
+  while the repo's default branch develops **v2**, an unreleased breaking rewrite (ESM, `src/languages/`, a different
+  dist layout). So 1.x is the stable line to track, and `1.30.0 → 2.x` will be a migration rather than a bump.
   [Changelog](https://github.com/PrismJS/prism/releases)
-- **proj4js: 2.22.0** — [Download](https://cdnjs.com/libraries/proj4js) ·
+- **proj4: 2.22.0** — turns a lat/lng into the Web Mercator metres Infra3d's spatial queries take; loaded with that SDK.
   [Changelog](https://github.com/proj4js/proj4js/releases)
-- **three.js: 0.160.1** — **note:** only used to compute camera pitch/roll for Mapillary imagery. Mapillary bundles
-  three.js but doesn't expose it on `window`. After 0.160.1 upstream stopped shipping a standalone `three.min.js`
-  (bundler-only), so upgrading isn't worth it soon.
-  [Download](https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.min.js) ·
+- **three: 0.185.1** — the three.js Photo Sphere Viewer pins (`^0.185`); pinned here at the same version so Mapillary's
+  `extractPitchRoll`, which uses its `Vector3` and `Matrix4`, shares the one copy. **Note:** move it with
+  Photo Sphere Viewer, never ahead of it, or the bundle carries two copies.
   [Changelog](https://github.com/mrdoob/three.js/releases)
-- **tom-select: 2.6.2** — the tag picker on Validate. We ship the `base` build, which has no plugins, plus the
-  unthemed `tom-select.min.css`; the picker's look comes from `svv-validation-menu.css`.
-  [Download (set version in URL)](https://cdn.jsdelivr.net/npm/tom-select@2.6.2/dist/) ·
+- **tom-select: 2.6.2** — the tag picker on Validate. We import the `tom-select/base` build, which has no plugins, plus
+  the unthemed `tom-select.css`; the picker's look comes from `svv-validation-menu.css`.
   [Changelog](https://github.com/orchidjs/tom-select/releases)
-- **turf.js: 7.4.0** — [Download (set version in URL)](https://unpkg.com/@turf/turf@7.4.0/turf.min.js) ·
-  [Changelog](https://github.com/Turfjs/turf/releases)
-- **vega: 6.4.0, vega-lite: 6.5.0, vega-embed: 7.3.0** — the coverage charts on the admin dashboard. We
-  write Vega-Lite specs and hand them to `vegaEmbed`, which pulls in Vega itself as the renderer, so all three move
-  together. Each package's `build/*.min.js` is the browser bundle we ship, loaded in that order. When bumping
-  vega-lite's major, also bump the `$schema` URL in the specs under `frontend/js/admin-dashboard/`.
-  [Download](https://github.com/vega/vega-embed?tab=readme-ov-file#directly-in-the-browser) ·
+- **@turf/turf: 7.4.0** — imported as a namespace (`import * as turf from '@turf/turf'`) that Vite tree-shakes to the
+  functions each page calls. [Changelog](https://github.com/Turfjs/turf/releases)
+- **vega: 6.4.0, vega-lite: 6.5.0, vega-embed: 7.3.0** — the coverage charts on the admin dashboard. We write Vega-Lite
+  specs and hand them to `vegaEmbed`, which pulls in Vega itself as the renderer, so all three move together. When
+  bumping vega-lite's major, also bump the `$schema` URL in the specs under `frontend/js/admin-dashboard/`.
   [Changelog](https://github.com/vega/vega-lite/releases)
 
 ## Python

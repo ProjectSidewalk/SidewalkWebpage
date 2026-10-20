@@ -3,12 +3,16 @@
  * Docs: https://developers.infra3d.com/javascript-api/reference/classes/Viewer.Viewer.html
  */
 
+import * as turf from '@turf/turf';
 import { NoImageryError } from './NoImageryError.js';
 import { PanoData } from './PanoData.js';
 import { PanoViewer } from './PanoViewer.js';
 import { util } from '../utilities.js';
 import './panoUtilities.js';
 import '../utilitiesMath.js';
+
+/** The Infra3d SDK and proj4 from sdk/infra3d.js, once preloadLibrary() has fetched them. */
+let sdk;
 
 export class Infra3dViewer extends PanoViewer {
   /** The `pano_data.source` value, so code outside the viewer can name this source without holding the class. */
@@ -60,13 +64,22 @@ export class Infra3dViewer extends PanoViewer {
   }
 
   /**
+   * See PanoViewer.preloadLibrary(); the chunk is sdk/infra3d.js.
+   * @returns {Promise<void>}
+   */
+  static async preloadLibrary() {
+    sdk ??= await import('./sdk/infra3d.js');
+  }
+
+  /**
    * See PanoViewer.initialize().
    * @param {HTMLElement} canvasElem
    * @param {Record<string, any>} [panoOptions]
    * @returns {Promise<void>}
    */
   async initialize(canvasElem, panoOptions = {}) {
-    this.manager = await infra3dapi.init(canvasElem.id, panoOptions.accessToken);
+    await Infra3dViewer.preloadLibrary();
+    this.manager = await sdk.infra3dapi.init(canvasElem.id, panoOptions.accessToken);
 
     // Each city has their own project_UID. Faster to hard code it rather than fetching projects in real time. A
     // project is one commissioned drive (a single campaign), so a city getting new imagery means a new project whose
@@ -342,7 +355,7 @@ export class Infra3dViewer extends PanoViewer {
     // Convert from WGS84 to Web Mercator (EPSG:3857), which is what Infra3D uses.
     const wgs84 = 'EPSG:4326';
     const webMercator = 'EPSG:3857';
-    const [easting, northing] = proj4(wgs84, webMercator, [latLng.lng, latLng.lat]);
+    const [easting, northing] = sdk.proj4(wgs84, webMercator, [latLng.lng, latLng.lat]);
     const newPosition = { easting, northing };
 
     // Using the internal function that returns a node, since the usual one in the API does not.

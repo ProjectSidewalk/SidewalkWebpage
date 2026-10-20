@@ -20,6 +20,9 @@ import { loadModules, mockModule } from './loader.js';
 import { fakeTracker, fakePanoOverlays } from './fakes.js';
 import { FakeLabel, fakeLabelContainerDeps, buildLabelContainer } from './support/labelContainerHarness.js';
 
+const i18next = { t: (key) => key };
+mockModule('i18next', () => ({ default: i18next }));
+
 fakePanoOverlays();
 
 mockModule('frontend/js/validate/label/Label.js', () => ({Label: FakeLabel}));
@@ -53,7 +56,7 @@ describe('PanoManager clears the pano when no viewer can render it (issue #4810)
 
     // jsdom has no WebGL, so PanoMarker falls back to the 2d projection; where the marker lands is irrelevant here.
     vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
-    window.i18next = {t: () => 'Curb ramp'};
+    Object.assign(i18next, {t: () => 'Curb ramp'});
 
     panoData = {getPanoId: () => 'pano1', getProperty: () => new Date(2026, 5)};
     fakeViewer = {
@@ -166,7 +169,7 @@ describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
       topUpBodies.push(JSON.parse(options.body));
       return Promise.resolve({ok: true, json: () => Promise.resolve({labels: topUpQueue.shift() ?? []})});
     }));
-    window.i18next = {t: vi.fn((key) => key)};
+    Object.assign(i18next, {t: vi.fn((key) => key)});
 
     deps = fakeLabelContainerDeps({
       adminVersion: false,
@@ -459,7 +462,7 @@ describe('LabelContainer defers a label whose pano is slow rather than dropping 
       topUpBodies.push(JSON.parse(options.body));
       return Promise.resolve({ok: true, json: () => Promise.resolve({labels: []})});
     }));
-    window.i18next = {t: vi.fn((key) => key)};
+    Object.assign(i18next, {t: vi.fn((key) => key)});
     deps = fakeLabelContainerDeps({
       adminVersion: false,
       tracker: fakeTracker(),

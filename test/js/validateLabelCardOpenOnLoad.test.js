@@ -10,6 +10,8 @@
 import { loadModules, mockModule, useUtil } from './loader.js';
 import { fakeTracker } from './fakes.js';
 
+mockModule('i18next', () => ({ default: { t: (key) => key } }));
+
 /** Stands in for the Infra3d viewer class; only its identity matters. */
 class FakeInfra3dViewer {}
 mockModule('frontend/js/common/pano-viewer/Infra3dViewer.js', () => ({ Infra3dViewer: FakeInfra3dViewer }));
@@ -41,7 +43,6 @@ describe('LabelVisibilityControl opening the card on load', () => {
 
   beforeEach(() => {
     vi.useFakeTimers();
-    window.i18next = { t: (key) => key };
     document.body.innerHTML = `
           <div id="view-control-layer"><div id="validate-pano-marker" tabindex="0"></div></div>
           <button id="label-visibility-control-button"></button>

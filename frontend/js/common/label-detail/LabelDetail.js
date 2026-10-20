@@ -11,6 +11,7 @@
  * container at init.
  */
 
+import i18next from 'i18next';
 import { BadgeAchievements } from '../BadgeAchievements.js';
 import { ConfirmDialog } from '../ConfirmDialog.js';
 import { LabelTypeDropdown } from '../LabelTypePicker.js';

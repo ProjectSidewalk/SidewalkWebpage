@@ -13,6 +13,7 @@
  * per-city activity trend. Owner-only; driven entirely from /adminapi/cityScorecards.
  */
 
+import mapboxgl from '../common/mapboxgl.js';
 import { util } from '../common/utilities.js';
 import { AdminShell } from './AdminShell.js';
 import { MiniLineChart } from './MiniLineChart.js';

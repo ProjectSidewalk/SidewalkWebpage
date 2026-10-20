@@ -7,9 +7,7 @@
  * obvious from the payload — multi-stint dedup, the role line's lead-label dedup, and which publications start visible.
  */
 
-import { loadModules, loadVendored, mockModule, unmockModule } from './loader.js';
-
-loadVendored('dompurify');
+import { loadModules, mockModule, unmockModule } from './loader.js';
 
 const ML_API = 'https://makeabilitylab.cs.washington.edu/api/v1';
 
@@ -61,28 +59,6 @@ window.IntersectionObserver = FakeIntersectionObserver;
 
 /** Lets pending promise jobs and timers run. */
 const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
-
-/**
- * Fires `load` on every script the page has appended, repeatedly, so a sequential loader can advance.
- *
- * jsdom doesn't fetch external scripts, so neither `load` nor `error` would ever arrive on its own.
- *
- * @returns {Promise<string[]>} The `src` of each script, in the order it was appended.
- */
-async function runInjectedScripts() {
-  const loaded = [];
-  for (let i = 0; i < 6; i++) {
-    await settle();
-    const pending = [...document.head.querySelectorAll('script[src]')].filter((s) => !loaded.includes(s));
-    if (pending.length === 0) break;
-    pending.forEach((script) => {
-      loaded.push(script);
-      script.dispatchEvent(new Event('load'));
-    });
-  }
-  await settle();
-  return loaded.map((script) => script.getAttribute('src'));
-}
 
 /**
  * Builds a project-people row in the ML API's shape.
@@ -966,18 +942,11 @@ describe('AboutPage', () => {
   });
 
   describe('deployment map', () => {
-    const ASSETS = {
-      'data-mapbox-css': '/assets/vendor/mapbox-gl/mapbox-gl.css',
-      'data-mapbox-js': '/assets/vendor/mapbox-gl/mapbox-gl.js',
-      'data-mapbox-language-js': '/assets/vendor/mapbox-gl/mapbox-gl-language.js',
-      'data-mapbox-api-key': 'pk.test',
-    };
-
     let createPSMap;
 
     beforeEach(() => {
-      const attrs = Object.entries(ASSETS).map(([name, value]) => `${name}="${value}"`).join(' ');
-      document.body.innerHTML = `<main id="about-page"><div id="about-deployment-map" ${attrs}></div></main>`;
+      document.body.innerHTML = '<main id="about-page">'
+        + '<div id="about-deployment-map" data-mapbox-api-key="pk.test"></div></main>';
       stubFetch({});
       // The page pulls ps-map in through a dynamic import, so the fake stands in for the module.
       createPSMap = vi.fn(() => Promise.resolve([{}]));
@@ -991,25 +960,21 @@ describe('AboutPage', () => {
     const mapObserver = () => FakeIntersectionObserver.instances
       .find((o) => o.targets.some((t) => t.id === 'about-deployment-map'));
 
-    test('fetches nothing until the map nears the viewport', async () => {
+    test('builds nothing until the map nears the viewport', async () => {
       await loadModules('frontend/js/pages/about.js');
       await hydrate();
 
-      expect(document.head.querySelectorAll('script[src]')).toHaveLength(0);
       expect(createPSMap).not.toHaveBeenCalled();
     });
 
-    test('loads mapbox and its language plugin in order, then builds the map', async () => {
+    test('builds the map once its section nears the viewport', async () => {
       await loadModules('frontend/js/pages/about.js');
       await hydrate();
 
       const observer = mapObserver();
       observer.trigger(observer.targets);
-      const srcs = await runInjectedScripts();
+      await settle();
 
-      expect(srcs).toEqual([ASSETS['data-mapbox-js'], ASSETS['data-mapbox-language-js']]);
-      expect([...document.head.querySelectorAll('link[rel="stylesheet"]')].map((el) => el.getAttribute('href')))
-        .toContain(ASSETS['data-mapbox-css']);
       expect(createPSMap).toHaveBeenCalledTimes(1);
       expect(createPSMap.mock.calls[0][0]).toMatchObject({
         mapName: 'about-deployment-map',
@@ -1021,32 +986,29 @@ describe('AboutPage', () => {
       });
     });
 
-    test('loads the libraries once, however often the section crosses the viewport', async () => {
+    test('builds the map once, however often the section crosses the viewport', async () => {
       await loadModules('frontend/js/pages/about.js');
       await hydrate();
 
       const observer = mapObserver();
       observer.trigger(observer.targets);
       observer.trigger(observer.targets);
-      const srcs = await runInjectedScripts();
+      await settle();
 
       expect(observer.disconnected).toBe(true);
-      expect(srcs).toHaveLength(2);
       expect(createPSMap).toHaveBeenCalledTimes(1);
     });
 
-    test('hides the empty frame rather than leaving it looking broken when a library fails', async () => {
+    test('hides the empty frame rather than leaving it looking broken when the map fails', async () => {
+      createPSMap.mockImplementation(() => Promise.reject(new Error('no WebGL')));
       await loadModules('frontend/js/pages/about.js');
       await hydrate();
 
       const observer = mapObserver();
       observer.trigger(observer.targets);
       await settle();
-      document.head.querySelector('script[src]').dispatchEvent(new Event('error'));
-      await settle();
 
       expect(document.getElementById('about-deployment-map').hidden).toBe(true);
-      expect(createPSMap).not.toHaveBeenCalled();
     });
   });
 

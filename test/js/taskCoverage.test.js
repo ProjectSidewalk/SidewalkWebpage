@@ -7,14 +7,13 @@
  * street, and the same merge the server does. The task container's part is walking: credit each pano to the street
  * it is on, and switch streets when the labeler has wandered onto another one.
  *
- * Real vendored turf for the geometry: the questions are about distances along real street lines.
+ * Real turf for the geometry: the questions are about distances along real street lines.
  */
 
-import { loadVendored, loadModules } from './loader.js';
+import * as turf from '@turf/turf';
+import { loadModules } from './loader.js';
 import { fakeTracker } from './fakes.js';
 
-loadVendored('turf');
-const turf = window.turf;
 
 const STREET_START = [-77.02, 38.9];
 const STREET_LENGTH_M = 200;
@@ -64,7 +63,6 @@ describe('Task coverage in free exploration', () => {
   const makeTask = (geojson) => new Task(geojson, CONFIG.streetCoverage, false);
 
   beforeEach(async () => {
-    window.turf = turf;
     ({ Task } = await loadModules('frontend/js/explore/task/Task.js'));
   });
 
@@ -207,7 +205,6 @@ describe('TaskContainer walking streets in free exploration', () => {
   let cross;
 
   beforeEach(async () => {
-    window.turf = turf;
     const { Task, TaskContainer } = await loadModules('frontend/js/explore/task/Task.js',
       'frontend/js/explore/task/TaskContainer.js');
     tracker = fakeTracker();

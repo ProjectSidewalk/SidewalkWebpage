@@ -11,6 +11,8 @@
  * plus a nudge toward the other deployments — the section is discovery for them, not a scoreboard.
  */
 
+import mapboxgl from '../common/mapboxgl.js';
+import i18next from 'i18next';
 import { util } from '../common/utilities.js';
 import '../common/utilitiesMath.js';
 
@@ -397,7 +399,7 @@ export class CrossCityStats {
    * unescaped: escaping them here as well would print a city called "Coeur d'Alene" as `&amp;#39;`.
    *
    * @param {string} key - Namespaced i18next key.
-   * @param {object} [vars] - Interpolation values.
+   * @param {Record<string, any>} [vars] - Interpolation values.
    * @returns {string} The translated string with HTML metacharacters replaced by entities.
    */
   static #tEsc(key, vars) {
