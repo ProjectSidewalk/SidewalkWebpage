@@ -308,10 +308,12 @@ describe('nothing in the render path comes from a third party we have not chosen
       .join('\n');
 
     // Google's Maps bootstrap assembles its own host at runtime (`https://maps.${c}apis.com/…`, with c="google"),
-    // so the literal origin appears nowhere to be found. Pin the loader that builds it rather than exempting the
-    // origin outright, so the exemption dies the day the loader does.
+    // so the literal origin appears nowhere to be found, and the API it loads adds a Google Fonts stylesheet of its
+    // own. Pin the loader that builds it rather than exempting the origins outright, so the exemption dies the day
+    // the loader does.
     const ASSEMBLED_AT_RUNTIME = {
       'maps.googleapis.com': { file: 'app/views/common/main.scala.html', fragment: 'maps.${c}apis.com' },
+      'fonts.googleapis.com': { file: 'app/views/common/main.scala.html', fragment: 'maps.${c}apis.com' },
     };
     for (const [origin, { file, fragment }] of Object.entries(ASSEMBLED_AT_RUNTIME)) {
       expect(fs.readFileSync(path.join(REPO_ROOT, file), 'utf8')).toContain(fragment);
