@@ -286,9 +286,10 @@ blocking CI step) fails if the two disagree, or if a folder under `vendor/` isn'
   [Changelog](https://github.com/orchidjs/tom-select/releases)
 - **turf.js: 7.4.0** — [Download (set version in URL)](https://unpkg.com/@turf/turf@7.4.0/turf.min.js) ·
   [Changelog](https://github.com/Turfjs/turf/releases)
-- **vega: 5.33.1, vega-lite: 5.23.0, vega-embed: 6.29.0** — the coverage charts on the admin dashboard. We
+- **vega: 6.4.0, vega-lite: 6.5.0, vega-embed: 7.3.0** — the coverage charts on the admin dashboard. We
   write Vega-Lite specs and hand them to `vegaEmbed`, which pulls in Vega itself as the renderer, so all three move
-  together. **Note:** each has a major out (6 / 6 / 7) that we haven't looked at.
+  together. Each package's `build/*.min.js` is the browser bundle we ship, loaded in that order. When bumping
+  vega-lite's major, also bump the `$schema` URL in the specs under `frontend/js/admin-dashboard/`.
   [Download](https://github.com/vega/vega-embed?tab=readme-ov-file#directly-in-the-browser) ·
   [Changelog](https://github.com/vega/vega-lite/releases)
 

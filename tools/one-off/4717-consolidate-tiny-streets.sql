@@ -138,6 +138,9 @@ SET LOCAL consolidate.border_m = :border_m;
 SET LOCAL consolidate.touch_m = :touch_m;
 SET LOCAL consolidate.straight_deg = :straight_deg;
 
+-- DC alone has a second label-position backup (5667-dc-label-positions.sql), which also names a street.
+SELECT to_regclass('old_label_point_coords_2') IS NOT NULL AS has_coords_2 \gset
+
 -- 1. The streets in play. A way id of -1 is the Infra3d placeholder, not a way. A loop (start = end) is never a
 --    sliver and never a survivor: the pipeline keeps them as OSM maps them, and joining one confuses the app's
 --    end-of-street check. A street shorter than twice the touching tolerance has its ends that close together
@@ -715,6 +718,10 @@ UPDATE old_label_point_coords SET street_edge_id = final_merge.survivor_id
 FROM final_merge WHERE old_label_point_coords.street_edge_id = final_merge.drop_id;
 UPDATE old_label_point_position SET street_edge_id = final_merge.survivor_id
 FROM final_merge WHERE old_label_point_position.street_edge_id = final_merge.drop_id;
+\if :has_coords_2
+UPDATE old_label_point_coords_2 SET street_edge_id = final_merge.survivor_id
+FROM final_merge WHERE old_label_point_coords_2.street_edge_id = final_merge.drop_id;
+\endif
 UPDATE place
 SET nearest_street_edge_id = final_merge.survivor_id,
     nearest_street_distance_m = ST_Distance(place.geom::geography, street_edge.geom::geography)
@@ -737,7 +744,8 @@ WHERE final_merge.drop_id IS NOT NULL OR osm_way_street_edge.street_edge_id IN (
 --    A dump-restored schema can have the id sequence behind the table. Set before the DELETE, since a sequence change
 --    survives a rollback and must never end up below a row the rollback brings back.
 SELECT setval(pg_get_serial_sequence('osm_way_street_edge', 'osm_way_street_edge_id'),
-              (SELECT COALESCE(MAX(osm_way_street_edge_id), 0) + 1 FROM osm_way_street_edge), false);
+              (SELECT COALESCE(MAX(osm_way_street_edge_id), 0) + 1 FROM osm_way_street_edge), false)
+  AS osm_way_sequence \gset
 DELETE FROM osm_way_street_edge
 WHERE street_edge_id IN (SELECT id FROM survivor) OR street_edge_id IN (SELECT drop_id FROM final_merge);
 INSERT INTO osm_way_street_edge (osm_way_id, street_edge_id)
@@ -775,6 +783,10 @@ UPDATE old_label_point_coords SET street_edge_id = label_refile.to_id
 FROM label_refile WHERE old_label_point_coords.label_id = label_refile.label_id;
 UPDATE old_label_point_position SET street_edge_id = label_refile.to_id
 FROM label_refile WHERE old_label_point_position.label_id = label_refile.label_id;
+\if :has_coords_2
+UPDATE old_label_point_coords_2 SET street_edge_id = label_refile.to_id
+FROM label_refile WHERE old_label_point_coords_2.label_id = label_refile.label_id;
+\endif
 
 -- A place's nearest street should be one people can use, whether the old one stays as a row or not.
 CREATE TEMP TABLE place_repoint ON COMMIT DROP AS
@@ -808,6 +820,12 @@ UPDATE old_label_point_position SET street_edge_id = label.street_edge_id
 FROM label
 WHERE old_label_point_position.label_id = label.label_id
   AND old_label_point_position.street_edge_id IN (SELECT id FROM residue WHERE trivial);
+\if :has_coords_2
+UPDATE old_label_point_coords_2 SET street_edge_id = label.street_edge_id
+FROM label
+WHERE old_label_point_coords_2.label_id = label.label_id
+  AND old_label_point_coords_2.street_edge_id IN (SELECT id FROM residue WHERE trivial);
+\endif
 DELETE FROM osm_way_street_edge WHERE street_edge_id IN (SELECT id FROM residue WHERE trivial);
 DELETE FROM street_imagery WHERE street_edge_id IN (SELECT id FROM residue WHERE trivial);
 INSERT INTO street_edge_merge (dropped_street_edge_id, survivor_street_edge_id, rule, dropped_length_m, dropped_geom,
@@ -864,10 +882,14 @@ END $$;
             AND NOT EXISTS (SELECT FROM audit_task WHERE audit_task.street_edge_id = street_edge.street_edge_id
                             AND audit_task.task_start >= now() - interval '1 day')) END
            AS check_short_streets_left,
+         -- Only a repeat with a moved stop counts: RouteBuilder lets a user walk a street the same way twice.
          CASE WHEN :plan::int = 1 THEN NULL ELSE (SELECT count(*) FROM (
-            SELECT route_id, street_edge_id, reverse FROM route_street
-            WHERE route_id IN (SELECT route_id FROM route_touched)
-            GROUP BY route_id, street_edge_id, reverse HAVING count(*) > 1) AS repeated) END
+            SELECT route_street.route_id, route_street.street_edge_id, route_street.reverse
+            FROM route_street
+            LEFT JOIN route_stop_after ON route_stop_after.route_street_id = route_street.route_street_id
+            WHERE route_street.route_id IN (SELECT route_id FROM route_touched)
+            GROUP BY route_street.route_id, route_street.street_edge_id, route_street.reverse
+            HAVING count(*) > 1 AND bool_or(route_stop_after.moved)) AS repeated) END
            AS check_routes_visiting_twice,
          (SELECT count(*) FROM work_moved_out_of_sight) AS check_work_moved_out_of_sight
   FROM count_before, merge_count;
