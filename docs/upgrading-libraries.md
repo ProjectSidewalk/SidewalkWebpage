@@ -176,14 +176,12 @@ These are the JVM libraries we talk to the database *through*; the database serv
 
 **`package.json` is the version list.** Every library the pages use is an npm `dependency` pinned to an exact version
 (`"mapbox-gl": "3.24.1"`, no `^`), installed by `npm ci` (the Dockerfile, CI and the deploy all run it against
-`package-lock.json`) and `import`ed by the module that uses it, so Vite bundles each page with the libraries it reaches
-and, for a tree-shakeable one like turf, only the functions it calls (#5734; [`architecture.md`](architecture.md) →
-"Modules and the build"). A library's stylesheet is imported by the same module
-(`import 'mapbox-gl/dist/mapbox-gl.css'`). **Nothing under `node_modules/` is ever edited.** The imagery viewers load
-on demand: MapillaryViewer, PanoramaxViewer,
-PannellumViewer and Infra3dViewer each `import()` their SDK, through the small modules in
-`frontend/js/common/pano-viewer/sdk/`, in `preloadLibrary()`, so a Mapillary city's visitors never download Infra3d's
-9 MB and vice versa.
+`package-lock.json`) and `import`ed by the module that uses it, stylesheet included
+(`import 'mapbox-gl/dist/mapbox-gl.css'`). Vite then bundles each page with the libraries it reaches and, for a
+tree-shakeable one like turf, only the functions it calls (#5734; [`architecture.md`](architecture.md) → "Modules and
+the build"). The four imagery viewers `import()` their SDK on demand, through the small modules in
+`frontend/js/common/pano-viewer/sdk/`, so a Mapillary city's visitors never download Infra3d's 9 MB and vice versa.
+**Nothing under `node_modules/` is ever edited.**
 
 **To upgrade a library:** `docker exec projectsidewalk-web bash -c 'cd /home && npm install --save-exact <pkg>@<ver>'`,
 then `bash tools/dev/npm-sync.sh --write-stamp` so the next `make dev` doesn't redo `npm ci`, and bump the version below
@@ -265,9 +263,9 @@ which MapLibre fetches by URL pattern rather than through the bundle.
   plus only the language components the docs use (`json`, `csv`), so a new `language-*` class in a docs page means
   importing that component too. **No stock theme:** the `.token.*` colors are ours, in
   `css/pages/api-docs/api-docs.css`, so the blocks stay on the design-system tokens. **Note:** 1.30.0 is old (March
-  2025) because v1 is in maintenance
-  while the repo's default branch develops **v2**, an unreleased breaking rewrite (ESM, `src/languages/`, a different
-  dist layout). So 1.x is the stable line to track, and `1.30.0 → 2.x` will be a migration rather than a bump.
+  2025) because v1 is in maintenance while the repo's default branch develops **v2**, an unreleased breaking rewrite
+  (ESM, `src/languages/`, a different dist layout). So 1.x is the stable line to track, and `1.30.0 → 2.x` will be a
+  migration rather than a bump.
   [Changelog](https://github.com/PrismJS/prism/releases)
 - **proj4: 2.22.0** — turns a lat/lng into the Web Mercator metres Infra3d's spatial queries take; loaded with that SDK.
   [Changelog](https://github.com/proj4js/proj4js/releases)

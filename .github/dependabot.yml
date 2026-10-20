@@ -16,9 +16,9 @@ updates:
       interval: monthly
     open-pull-requests-limit: 5
     groups:
-      # The imagery viewers and the minimap's map library (#5734): CI never drives a pano or the minimap, so a broken
-      # minor would merge green. dependency-auto-merge.yml leaves these two groups to a person. First matching group
-      # wins. proj4 is only used by the Infra3d viewer.
+      # The imagery viewers (proj4 is only Infra3d's) and the minimap's map library (#5734): CI never drives a pano or
+      # the minimap, so a broken minor would merge green, and dependency-auto-merge.yml leaves both groups to a person.
+      # Dependabot takes the first group that matches.
       npm-imagery:
         patterns:
           - "mapillary-js"
@@ -29,8 +29,8 @@ updates:
           - "maplibre-gl"
           - "pmtiles"
           - "proj4"
-      # A group covers version updates only unless it says otherwise, so the same packages' security updates
-      # (GHSA/CVE-driven) would otherwise arrive ungrouped and auto-merge.
+      # A group covers version updates only unless it says so; without this one, the same packages' security updates
+      # would arrive ungrouped and auto-merge.
       npm-imagery-security:
         applies-to: security-updates
         patterns:

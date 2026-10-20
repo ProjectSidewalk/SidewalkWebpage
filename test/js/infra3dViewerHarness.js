@@ -11,8 +11,7 @@ import { loadModules, mockModule } from './loader.js';
 const infra3dSdk = { infra3dapi: {}, proj4: () => [0, 0] };
 
 /**
- * Loads Infra3dViewer fresh, with its SDK chunk already "fetched", so suites that bypass create() can call methods
- * that reach for it.
+ * Loads Infra3dViewer fresh with its SDK chunk already "fetched", so a suite can bypass create() and still use the SDK.
  * @returns {Promise<Function>} The class.
  */
 async function loadInfra3dViewer() {

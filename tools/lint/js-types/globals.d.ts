@@ -37,7 +37,8 @@ declare namespace GeoJSON {
   type Polygon = import('geojson').Polygon;
   type MultiPolygon = import('geojson').MultiPolygon;
   type Position = import('geojson').Position;
-  type Feature<G extends Geometry = Geometry, P = import('geojson').GeoJsonProperties> = import('geojson').Feature<G, P>;
+  type Feature<G extends Geometry = Geometry, P = import('geojson').GeoJsonProperties> =
+    import('geojson').Feature<G, P>;
   type FeatureCollection<G extends Geometry = Geometry, P = import('geojson').GeoJsonProperties> =
     import('geojson').FeatureCollection<G, P>;
 }

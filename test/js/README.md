@@ -14,9 +14,10 @@ make test-js args=--coverage                      # with the coverage report, as
 ```
 
 `describe`/`it`/`expect`/`vi` are globals. Each file runs in its own VM context whose global is the jsdom window, so a
-page global production reads bare (`google`) is set with `window.X = …`. Before every test the config and `setup.js` undo spies and `vi.stubGlobal` stubs, empty every mock's call history and put real
-timers back, so no suite writes that cleanup. `setup.js` also stamps `window.labelTypes` the way every page is served
-it, and replaces Node's `fetch` with one that throws until a suite stubs it, so nothing here can reach the network.
+page global production reads bare (`google`) is set with `window.X = …`. Before every test the config and `setup.js`
+undo spies and `vi.stubGlobal` stubs, empty every mock's call history and put real timers back, so no suite writes that
+cleanup. `setup.js` also stamps `window.labelTypes` the way every page is served it, and replaces Node's `fetch` with
+one that throws until a suite stubs it, so nothing here can reach the network.
 
 ## How a suite loads its subject
 

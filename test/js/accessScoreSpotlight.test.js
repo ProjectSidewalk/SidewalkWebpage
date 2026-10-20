@@ -26,9 +26,8 @@ const escapeLikeI18next = (value) => String(value).replace(/[&<>"'/]/g, (c) => (
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', '\'': '&#39;', '/': '&#x2F;',
 })[c]);
 
-// Keys pass through, with interpolation values appended so a test can tell two renderings of one key apart, except
-// the STRINGS above, which interpolate the way the app configures i18next: values verbatim, escaped only where the
-// call asks for it.
+// Keys pass through with their interpolation values appended, so two renderings of one key can be told apart. The
+// STRINGS above instead interpolate the way the app configures i18next: values verbatim, escaped only on request.
 mockModule('i18next', () => ({ default: {
   language: 'en',
   t: (key, vars) => {

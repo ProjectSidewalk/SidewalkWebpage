@@ -10,8 +10,7 @@
 
 import { loadModules, mockModule, useUtil } from './loader.js';
 
-// The real label-type table plays the scales: CurbRamp is rated for quality, Obstacle for severity, Occlusion not at
-// all.
+// The real label-type table sets the scales: CurbRamp rated for quality, Obstacle for severity, Occlusion not at all.
 mockModule('i18next', () => ({ default: { t: (key) => key } }));
 
 /**

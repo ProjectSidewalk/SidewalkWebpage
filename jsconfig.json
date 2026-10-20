@@ -7,8 +7,7 @@
     "noEmit": true,
     "target": "es2022",
     "lib": ["es2022", "dom", "dom.iterable"],
-    // Only the Google Maps API, which comes from its own bootstrap rather than npm; other libraries' types come with
-    // their packages.
+    // Only the Google Maps API, loaded by its own bootstrap rather than from npm; every other library ships its types.
     "types": ["google.maps"],
     // Strict mode (TypeScript 7's default) is a later ratchet: it roughly triples the error count.
     "strict": false,

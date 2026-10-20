@@ -123,9 +123,9 @@ Their versions are in [`docs/upgrading-libraries.md`](upgrading-libraries.md).
   `await loadModules(...)` and hands fakes to its constructor, or declares them with `mockModule` / `useUtil`; see
   `test/js/README.md`.
 - **Lint gate** (`make lint`: ESLint + Stylelint + HTMLHint + the locale checks + the `frontend/css/` layout check + the
-  `frontend/js/` asset-path check, the JSDoc type check, the spec base-class check,
-  plus the evolutions lint and ShellCheck below, each its own job) was rolled out under **#2487**, sequenced with the
-  in-progress JS ES5→ES2022 migration (dropping linters into CI mid-migration = large, conflict-prone churn). All are
+  `frontend/js/` asset-path check, the JSDoc type check, the spec base-class check, plus the evolutions lint and
+  ShellCheck below, each its own job) was rolled out under **#2487**, sequenced with the in-progress JS ES5→ES2022
+  migration (dropping linters into CI mid-migration = large, conflict-prone churn). All are
   **now blocking** steps in the `frontend` job — ESLint (`frontend/js/` + `public/locales/` + `test/js/` + `test/e2e/`),
   Stylelint (`frontend/css/**/*.css`), HTMLHint (`app/views`), `tools/lint/check-locale-parity.mjs`,
   `tools/lint/check-css-layout.mjs` (#5030, #5651: a page's stylesheet is imported only by its page's modules, page
@@ -229,9 +229,8 @@ Parallel jobs:
   one run: `npx eslint frontend/js/ public/locales/ test/js/ test/e2e/ playwright.config.js`, `npx stylelint
   'frontend/css/**/*.css'`, `npx htmlhint app/views`, `node tools/lint/check-locale-parity.mjs`, `node
   tools/lint/check-css-layout.mjs`, `node tools/lint/check-asset-paths.mjs`, `node tools/lint/check-js-types.mjs`,
-  `node tools/lint/check-spec-base.mjs`,
-  then `npm run test:js:coverage`, which also enforces the JS coverage ratchet (see "Coverage" below). No
-  `--max-warnings 0`: the one `warn` rule, `max-len`, is advisory.
+  `node tools/lint/check-spec-base.mjs`, then `npm run test:js:coverage`, which also enforces the JS coverage ratchet
+  (see "Coverage" below). No `--max-warnings 0`: the one `warn` rule, `max-len`, is advisory.
 - **e2e-smoke** — the Playwright browser smoke suite ([`test/e2e/`](../test/e2e), #4504). Reuses `backend-tests`' DB
   recipe (repo `db` image, TCP readiness probe, `sidewalk_init` → `sidewalk_teaneck` schema rename), builds the frontend
   assets (`npm run build`), then `sbt stage` and boots the **prod-mode binary** on `:9000` (evolutions auto-apply at

@@ -15,8 +15,7 @@
  * degrees the radius gap costs.
  *
  * The client takes a POV rather than a pano pixel: the fixture's expected heading/pitch are what
- * `calculatePovFromPanoXY` produces for the pixel, so the test feeds those in and checks the distance and the
- * destination.
+ * `calculatePovFromPanoXY` produces for the pixel, so the test feeds those in and checks distance and destination.
  */
 
 import fs from 'fs';

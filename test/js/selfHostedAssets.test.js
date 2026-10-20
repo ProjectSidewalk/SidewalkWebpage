@@ -10,8 +10,7 @@
  * anywhere silently resolves to whatever the platform supplies, and it does so page by page — the kind of gap that
  * shows up as one page's monospace looking nothing like another's, with nothing in the CSS to explain it.
  *
- * Third-party libraries come from npm and are bundled (#5734); they are out of scope here, as we neither edit nor lint
- * them.
+ * Third-party libraries come from npm and are bundled (#5734); we neither edit nor lint them, so they are out of scope.
  */
 
 import fs from 'fs';
@@ -307,10 +306,9 @@ describe('nothing in the render path comes from a third party we have not chosen
       })
       .join('\n');
 
-    // Google's Maps bootstrap assembles its own host at runtime (`https://maps.${c}apis.com/…`, with c="google"),
-    // so the literal origin appears nowhere to be found, and the API it loads adds a Google Fonts stylesheet of its
-    // own. Pin the loader that builds it rather than exempting the origins outright, so the exemption dies the day
-    // the loader does.
+    // Google's Maps bootstrap builds its own host at runtime (`https://maps.${c}apis.com/…`, with c="google"), so the
+    // literal origin appears nowhere, and the API it loads adds a Google Fonts stylesheet of its own. Pin the loader
+    // rather than exempting the origins outright, so the exemption dies with the loader.
     const ASSEMBLED_AT_RUNTIME = {
       'maps.googleapis.com': { file: 'app/views/common/main.scala.html', fragment: 'maps.${c}apis.com' },
       'fonts.googleapis.com': { file: 'app/views/common/main.scala.html', fragment: 'maps.${c}apis.com' },

@@ -497,8 +497,7 @@ stays relative (the digested copy sits in the original's directory), and a query
 file that exists. In a source stylesheet (`frontend/css/`) that is the file's root-absolute path under `public/`
 (`url("/images/icons/x.svg")`): Vite rewrites it to `/assets/…` (`renderBuiltUrl` in `vite.config.mjs`) in
 `public/build/css/`, which is what the stage then sees, so `make lint-asset-paths` (rule 6) rejects a relative path
-or an `/assets/` prefix there. A library's stylesheet goes through the same build, imported by the module that
-uses it.
+or an `/assets/` prefix there, and a library's stylesheet goes through the same build because a module imports it.
 
 Two things about that stage are load-bearing:
 

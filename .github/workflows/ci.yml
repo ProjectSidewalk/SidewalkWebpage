@@ -4,9 +4,8 @@ name: CI
 #
 #   - backend:         `sbt compile` + `scalafmtCheckAll` + `scalafmtSbtCheck`.
 #   - frontend:        asset build (`npm run build`) + the lint steps (ESLint, Stylelint, HTMLHint, locale checks,
-#                      CSS layout, asset paths, JS types, spec base class) + the jsdom Vitest suite in
-#                      test/js/.
-#                      Vitest also enforces the JS coverage ratchet (#5112).
+#                      CSS layout, asset paths, JS types, spec base class) + the jsdom Vitest suite in test/js/, which
+#                      also enforces the JS coverage ratchet (#5112).
 #   - evolutions-lint: static checks on conf/evolutions/default/*.sql.
 #   - shell-lint:      ShellCheck over the repo's .sh files.
 #   - route-lint:      conf/routes reachability — fails if any route is shadowed by an earlier one.

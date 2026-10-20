@@ -130,7 +130,6 @@ export class ViewportLabelLoader {
    * `{isInitial}` (true only for the first emission, floor-cleared empty collections included). If data has
    * already been emitted, the callback is invoked immediately with the latest emission.
    * @param {(featureCollection: GeoJSON.FeatureCollection<GeoJSON.Point>, meta: {isInitial: boolean}) => void} callback
-   *   - The subscriber.
    */
   onData(callback) {
     this.#listeners.data.push(callback);

@@ -152,8 +152,7 @@ export class PanoManager {
    * Otherwise a seed rejected for having no imagery within the radius, or a pano beyond it (#5114), would send the
    * user to whichever end of the street the samples started from, however far that is from where they asked to go.
    * Points are spaced at moveForward()'s increment and include the street's endpoint, so the whole street is checked
-   * before we give up and report it as having no imagery. With a seed at the street's start, the order is start to
-   * end.
+   * before we give up and report it as having no imagery; with a seed at the street's start, that is start to end.
    *
    * @param {GeoJSON.Feature<GeoJSON.LineString>} street - The street geometry, oriented start to end.
    * @param {{lat: number, lng: number}} end - The street's end coordinate, sampled last among equals.

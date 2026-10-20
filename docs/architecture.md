@@ -638,11 +638,10 @@ runs before `onMoved`) and makes the jump to the next one.
 `util` is the object `common/utilities.js` exports; a file
 that reads `util.misc`, `util.math`, `util.url` or `util.pano` imports the file that adds it (`utilitiesSidewalk.js`,
 `utilitiesMath.js`, `urlQuery.js`, `pano-viewer/panoUtilities.js`). Third-party libraries are npm dependencies a module
-`import`s like any other (`import * as turf from '@turf/turf'`; mapbox-gl through `common/mapboxgl.js`, which sets up
-its worker), so Vite bundles
-each page with the ones it reaches and tree-shakes what it can (#5734); the imagery viewers `import()` theirs on demand
+`import`s like any other (mapbox-gl through `common/mapboxgl.js`, which sets up its worker), so Vite bundles each page
+with the libraries it reaches and tree-shakes what it can (#5734). The imagery viewers `import()` theirs on demand
 through `common/pano-viewer/sdk/`, so a city's visitors download only its own provider's SDK.
-[`upgrading-libraries.md`](upgrading-libraries.md) is the inventory and says how to bump one.
+[`upgrading-libraries.md`](upgrading-libraries.md) lists every library and says how to bump one.
 
 **One entry per page** lives in `frontend/js/pages/` (`pages/explore.js`, `pages/admin/overview.js`, …): it imports
 the page's code and runs its start-up. **Vite** (`vite.config.mjs`, Rolldown underneath) builds every file in that

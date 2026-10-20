@@ -16,7 +16,9 @@ import * as turf from '@turf/turf';
 import { loadModules, mockModule } from './loader.js';
 import { fakeTracker, fakePanoManager, fakeTaskContainer } from './fakes.js';
 
-mockModule('i18next', () => ({ default: { t: (key, options) => (options && 'rank' in options ? `${key}#${options.rank}` : key) } }));
+mockModule('i18next', () => ({
+  default: { t: (key, options) => (options && 'rank' in options ? `${key}#${options.rank}` : key) },
+}));
 
 /** Stands in for a marker made by Minimap.addMarker: records where it is, its options, and whether it was removed. */
 class FakeMarker {

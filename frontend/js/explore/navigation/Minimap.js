@@ -74,8 +74,7 @@ export class Minimap {
   /** @type {() => Task[]} What the overview fits; nothing until setOverviewStreets names it. */
   #overviewStreets = () => [];
 
-  /** The map, or null when it couldn't be created (no WebGL2); see create(). */
-  /** @type {?import('maplibre-gl').Map} */
+  /** @type {?import('maplibre-gl').Map} The map, or null when it couldn't be created (no WebGL2); see create(). */
   #map = null;
 
   /** The street-level zoom the map is at or animating to, so a recenter mid-animation can't strand a fraction. */
