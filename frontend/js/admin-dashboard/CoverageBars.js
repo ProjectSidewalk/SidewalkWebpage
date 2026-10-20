@@ -12,6 +12,7 @@ export class CoverageBars {
   #onBarHoverEnd;
   #data = [];
   #sort = 'coverage';
+  #embedResult = null;
   #view = null;
   #hoverId = null;
 
@@ -92,9 +93,11 @@ export class CoverageBars {
       },
     };
 
-    // Release the previous chart's listeners (including its window-resize one) before drawing over it.
-    this.#view?.finalize();
     const result = await vegaEmbed(`#${this.#containerId}`, spec, { actions: false, renderer: 'svg' });
+    // Release the previous chart's listeners (including its resize ones) only once the new chart has drawn, so that
+    // overlapping draws, like two quick sort clicks, each release the chart before them and none is left behind.
+    this.#embedResult?.finalize();
+    this.#embedResult = result;
     this.#view = result.view;
     this.#hoverId = null;
     this.#wireEvents();

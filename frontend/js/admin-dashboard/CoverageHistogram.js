@@ -10,6 +10,7 @@ export class CoverageHistogram {
   #onBinClick;
   #onBinHover;
   #onBinHoverEnd;
+  #embedResult = null;
   #view = null;
   #hoverIndex = null;
 
@@ -56,9 +57,11 @@ export class CoverageHistogram {
       },
     };
 
-    // Release the previous chart's listeners (including its window-resize one) before drawing over it.
-    this.#view?.finalize();
     const result = await vegaEmbed(`#${this.#containerId}`, spec, { actions: false, renderer: 'svg' });
+    // Release the previous chart's listeners (including its resize ones) only once the new chart has drawn, so that
+    // overlapping draws, like two quick sort clicks, each release the chart before them and none is left behind.
+    this.#embedResult?.finalize();
+    this.#embedResult = result;
     this.#view = result.view;
     this.#hoverIndex = null;
     this.#wireEvents();

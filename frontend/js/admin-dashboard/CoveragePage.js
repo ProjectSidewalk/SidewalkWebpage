@@ -130,8 +130,9 @@ export class CoveragePage {
       b.setAttribute('aria-pressed', String(active));
     });
 
-    // Each chart is redrawn every time its view is shown, not just the first time. A chart only measures its width
-    // when drawn and on window resizes, so a resize while its view was hidden measures zero and leaves it blank.
+    // Each chart is redrawn whenever its view is shown. A window resize while the view is hidden sets the chart's
+    // width to zero, and Vega's own watch on the chart's box ignores hidden boxes and sizes it has already seen, so
+    // without a redraw the chart would stay blank.
     if (mode === 'bars') {
       if (!this.#bars) {
         this.#bars = new CoverageBars('coverage-bars', {
@@ -203,7 +204,11 @@ export class CoveragePage {
   #wireViewToggle() {
     document.querySelectorAll('.coverage-toggle-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
-        if (btn.dataset.view !== this.#mode) this.#activateMode(btn.dataset.view);
+        if (btn.dataset.view === this.#mode) return;
+        this.#activateMode(btn.dataset.view).then(() => this.#setStatus('', false, true), (err) => {
+          console.error('Coverage chart failed to draw:', err);
+          this.#setStatus('Could not draw the chart. Please try again.', true);
+        });
       });
     });
   }
