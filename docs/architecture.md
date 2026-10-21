@@ -255,8 +255,9 @@ shifted per city by `ConfigService.getOffsetHours` so 50+ deployments don't cont
 provider quotas.
 
 The imagery-age poll's rotation (`StreetImageryTable.streetsToPoll` and `noImageryStreetsToPoll`) keys on
-`street_imagery.polled_at`, which only the poll's `upsertFromPoll` writes (#5403): the labeling harvest bumps `updated_at`
-too, and the expiry sweep feeds its `pano_data.last_viewed` window, so keying on it starved never-polled streets.
+`street_imagery.polled_at`, which only the poll's `upsertFromPoll` writes (#5403): the labeling harvest bumps
+`updated_at` too, and the expiry sweep feeds its `pano_data.last_viewed` window, so keying on it starved never-polled
+streets.
 
 Label clustering closes with the **AccessScore Spotlight snapshot** (#5215), which writes `region_access_score`
 and `street_access_score` from the clusters that run just built: one row per region per night (kept, so the table is
