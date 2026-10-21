@@ -39,7 +39,7 @@
   },
   "dependencies": {
     "@floating-ui/dom": "1.8.0",
-    "@inovitas/infra3dapi": "1.12.1",
+    "@inovitas/infra3dapi": "1.12.2",
     "@mapbox/mapbox-gl-language": "1.0.1",
     "@mapbox/search-js-web": "1.6.0",
     "@photo-sphere-viewer/core": "5.15.1",
@@ -53,7 +53,7 @@
     "i18next-http-backend": "4.0.4",
     "mapbox-gl": "3.24.1",
     "mapillary-js": "4.1.2",
-    "maplibre-gl": "6.10.0",
+    "maplibre-gl": "6.15.0",
     "pannellum": "2.5.7",
     "panzoom": "9.4.4",
     "pmtiles": "4.5.0",
