@@ -248,9 +248,9 @@ class AiServiceImpl @Inject() (
     // labeler's submissions, or labels placed after a #4784 fix at the source) must be sent as "rig" so it is not
     // corrected twice. AI-labeler submissions never reach this call today (submitAiLabelData doesn't call the AI API,
     // and getLabelsToValidateWithAi excludes the AI role); choosing the frame per label belongs with #5790.
-    val maxPoseDeg: Double = 30.0
+    val maxPoseDeg: Double              = 30.0
     def validPose(deg: Double): Boolean = !deg.isNaN && !deg.isInfinite && math.abs(deg) <= maxPoseDeg
-    val formData = Map(
+    val formData                        = Map(
       "label_type"  -> labelData.labelType.name.toLowerCase,
       "panorama_id" -> labelData.panoData.panoId,
       "x"           -> (labelData.labelPoint.panoX.toDouble / labelData.panoData.width.get).toString,
