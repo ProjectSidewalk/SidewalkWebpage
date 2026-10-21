@@ -94,10 +94,20 @@ describe('the database backups panel', () => {
     expect(rows[1][6]).toBe('0');
     expect(document.querySelectorAll('#health-backups tbody tr')[1].className).toContain('ac-row--flagged');
     expect(text('health-backups-note')).toContain('Newest: SQL dump (pg_dumpall), 14h ago, 343 GB.');
-    expect(text('health-backups-note')).toContain('1 other file');
+    expect(text('health-backups-note')).toContain('1 other file in the directory ignored; if those are the dumps');
     expect(document.getElementById('kpi-backups').textContent).toBe('14h ago');
     expect(document.getElementById('kpi-backups').className).toContain('health-kpi--bad');
     expect(text('health-pulse')).toContain('stale or missing backups');
+  });
+
+  test('tells a truncated-looking dump apart from a missing one in the pulse', async () => {
+    const report = scanned();
+    report.status = 'warn';
+    report.kinds[1] = { ...report.kinds[0], kind: 'base', label: 'File-level copy (pg_basebackup)', count: 3,
+      newest_bytes: 20e9, median_bytes: 430e9, status: 'warn', note: 'small' };
+    await render(report);
+    expect(text('health-pulse')).toContain('a backup looks truncated');
+    expect(text('health-backups-note')).not.toContain('if those are the dumps');
   });
 
   test('reads a status it has not been taught as a reason to look, not as healthy', async () => {

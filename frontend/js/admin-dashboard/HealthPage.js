@@ -112,7 +112,7 @@ export class HealthPage {
     const backupTone = HealthPage.#backupPulseTone(data.backups);
     if (backupTone !== 'good') {
       tone = backupTone === 'bad' || tone === 'bad' ? 'bad' : 'warn';
-      problems.push(data.backups.state === 'unavailable' ? 'backup directory unreadable' : 'stale or missing backups');
+      problems.push(HealthPage.#backupProblem(data.backups));
     }
     const label = tone === 'good' ? 'All clear' : 'Needs attention';
     const detail = problems.length
@@ -466,8 +466,11 @@ export class HealthPage {
       + `${days(t.backup_kind_warn_ms)} and red past ${days(t.backup_kind_bad_ms)}. A newest file under `
       + `${Math.round(t.backup_small_ratio * 100)}% of its kind's typical size is flagged.`);
     if (report.other_count > 0) {
+      const hint = (report.kinds || []).some((k) => k.note === 'none_found')
+        ? '; if those are the dumps, the job now writes a suffix this panel does not recognize'
+        : '';
       parts.push(`${AdminShell.num(report.other_count)} other file${report.other_count === 1 ? '' : 's'} `
-        + 'in the directory ignored.');
+        + `in the directory ignored${hint}.`);
     }
     AdminShell.setHtml('health-backups-note', parts.join(' '));
     return undefined;
@@ -483,6 +486,21 @@ export class HealthPage {
     if (!report || report.state === 'not_configured') return 'good';
     if (report.state === 'unavailable') return 'bad';
     return HealthPage.#knownTone(report.status);
+  }
+
+  /**
+   * The pulse's words for a backups panel that is not green. A short file is a different problem from a missing one
+   * (the job ran and may have died), so the pulse says which it saw.
+   *
+   * @param {Record<string, any>} report - The payload's `backups` object, known not to be neutral or good.
+   * @returns {string} The problem, as the pulse lists it.
+   */
+  static #backupProblem(report) {
+    if (report.state === 'unavailable') return 'backup directory unreadable';
+    const notes = (report.kinds || []).map((k) => k.note);
+    if (notes.includes('stale') || notes.includes('none_found')) return 'stale or missing backups';
+    if (notes.includes('small')) return 'a backup looks truncated';
+    return 'backups need a look';
   }
 
   /**
