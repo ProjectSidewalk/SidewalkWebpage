@@ -36,7 +36,8 @@ Run the three from the **main checkout**: `db/` is the bind mount the db contain
   *filed* (for missions and completion), and routes run across borders freely, so the cutting is to be replaced by
   assigning each whole street to the region holding most of it (`docs/architecture.md` → "Streets, regions, and
   routes"). Until that lands, expect the border pieces in the report's tiny-segment share, and don't hand-split a
-  street to make it fit a region. A
+  street to make it fit a region. A city built before this tool is brought in line with it by
+  `tools/one-off/4717-consolidate-tiny-streets.sql`, which applies the same merge and 15 m rules to its streets. A
   hairline where two borders were traced a metre apart is repaired for you, by giving that ground to the smaller
   region (`--max-region-sliver-m`, 5 m). An overlap thicker than that is a real disagreement about where a region
   is, so the build stops and names the pairs for you to settle in QGIS.
@@ -73,8 +74,8 @@ It never touches the database. It writes, under `db/onboarding/<city-id>/`:
 | File | What for |
 |---|---|
 | `report.md` | Read this first: street count, km, the **tiny-segment share** (production averages 18% under 20 m; Bayonne rebuilt at 4%), loop roads (start = end — kept as OSM maps them), regions flagged `OVERSIZED` (> 60 km of streets — split it), `SPARSE`/`EMPTY` (fold it), boundary coverage. |
-| `<city-id>_qa.gpkg` | The QA GeoPackage for QGIS: `qgis_road`, `qgis_region`, `city_boundary`, plus `dropped_segments` and `rider_merges` so you can see what the rules did. |
-| `qgis_tables.sql` | The staging tables `fill-new-schema.sh` consumes (`qgis_road`: `road_id`, `osm_ids bigint[]`, `highway`, `region_id`, `geom`; `qgis_region`: `region_id`, `name`, `data_source`, `geom`). |
+| `<city-id>_qa.gpkg` | The QA GeoPackage for QGIS: `qgis_road`, `qgis_region`, `city_boundary`, plus `dropped_segments` and `rider_merges` so you can see what the rules did, `osm_way` (the whole OSM ways the streets were cut from) and `qgis_road_osm_way` (the stretch of each street every way covers, #5741; the report counts the streets it could not match whole, which are worth a look). |
+| `qgis_tables.sql` | The staging tables `fill-new-schema.sh` consumes (`qgis_road`: `road_id`, `osm_ids bigint[]`, `highway`, `region_id`, `geom`; `qgis_region`: `region_id`, `name`, `data_source`, `geom`; `qgis_road_osm_way`: one row per street and OSM way with the shared stretch of each and `same_direction`). |
 | `street_edge_endpoints.csv` | The imagery scan's input, so step 2 can run before any database exists. |
 | `street_structures.csv` | Which streets lie on a bridge, in a tunnel, or under cover, from the OSM tags the build already fetched. The street-gradient export (step 8 of the setup) reads it in place of the `osm_way` cache, which is empty until the city's first nightly refresh (#5223); each row carries the street's geometry hash, so the export refuses a file from another build. It also rides in the GeoPackage's `qgis_road` layer, so a `--from-gpkg` re-export rewrites it; a hand-built layer without the column gets no file, and the grade is sampled after launch instead. |
 
@@ -84,15 +85,16 @@ flagged region. Two ways back:
 - *Parameters:* rerun with different flags. `--merge-regions "Census Tract 513:Census Tract 523.01"` folds a sparse
   region into its neighbour by **name** and reruns the whole assignment, so streets re-split against the merged
   boundary and ids stay dense. Thresholds: `--merge-tiny-m`, `--heal-segment-m`, `--boundary-merge-tol-m`,
-  `--min-segment-m`, `--max-region-street-km`, `--max-region-sliver-m`. `--rename-regions` renames regions from
+  `--max-region-street-km`, `--max-region-sliver-m`. `--rename-regions` renames regions from
   `db/onboarding/<city-id>/region_renames.csv` (`current_name,new_name`); pass it on every build, since rows already
   applied are skipped. A repeated source name is kept as separate regions, `"X (2)"` (logged, not in the report).
 - *Hand edits:* delete a street, reassign its `region_id`, move a boundary — in the GeoPackage — then
   `make build-city-data id=<city-id> args="--from-gpkg"`, which validates the layers (unique ids, region references,
-  geometry types, non-empty names, at least one OSM way id per street, no two streets drawn on top of each other)
-  and rewrites the SQL, report, and endpoints CSV so the load matches what you QA'd. Region edits big enough that
-  streets should re-split go back in as the region source instead:
-  `--regions-file <the QA gpkg> --regions-source "..."`.
+  geometry types, non-empty names, at least one OSM way id per street, no two streets drawn on top of each other,
+  no street under 15 m), re-matches the streets to the GeoPackage's `osm_way` layer (a hand-built GeoPackage without
+  that layer links its streets to their way ids without positions) and rewrites the SQL, report, and endpoints CSV so
+  the load matches what you QA'd. Region edits big enough that streets should re-split go back in as the region
+  source instead: `--regions-file <the QA gpkg> --regions-source "..."`.
 
 Never load a stale SQL over hand edits.
 
@@ -227,6 +229,7 @@ its default either way.
   `sidewalk_login`; and if the landing map needs a different zoom, edit `config.default_map_zoom` and clear the Play
   cache from the admin page (it caches the config row), the same after hiding streets on a live server, since the
   total street distance behind the completion percentage is cached too.
+- **The minimap basemap needs nothing.** A new city cuts its own tiles within an hour of first starting (#5716).
 - **What the nightly jobs still owe.** Onboarding fills only what no scheduled job can produce, so a new city's
   `intersection` table (with each street's corner links, #5095), its `cluster` table, its `sidewalk_presence`
   table, its `place` table (the schools, clinics, and transit stops the AccessScore map shows, fetched from

@@ -316,5 +316,22 @@ class OutdatedStreetsForUserSpec extends SidewalkSpec with GuiceOneAppPerSuite w
 
       streetIds.size mustBe 1
     }
+
+    "leave out streets in deleted regions, matching the list's count" in {
+      val (streetIds, listCount) = runRolledBack(for {
+        userId          <- insertUser()
+        regionId        <- insertRegion()
+        deletedRegionId <- insertRegion(deleted = true)
+        liveStreet      <- insertStreet(Some(regionId))
+        hiddenStreet    <- insertStreet(Some(deletedRegionId))
+        _               <- audit(liveStreet, userId, outdated = true)
+        _               <- audit(hiddenStreet, userId, outdated = true)
+        pairs           <- auditTaskTable.getAuditedStreets(userId)
+        count           <- auditTaskTable.countOutdatedStreetsForUser(userId)
+      } yield (pairs.map(_._1.streetEdgeId), count))
+
+      streetIds.size mustBe 1
+      listCount mustBe 1
+    }
   }
 }

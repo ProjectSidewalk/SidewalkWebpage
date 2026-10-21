@@ -16,7 +16,8 @@
   else unratedTypeNames.mkString
 }
 
-@* Across Cities page for the redesigned admin dashboard (#4329). A cross-deployment overview comparing every Project Sidewalk city across four lenses — coverage (how much is left), activity (what's happening and when), data patterns (the label-type mix, city vs city), and data quality (how trustworthy the data is) — plus a "Today & this week" band of current-activity tiles, a top-cities table, and rolling 7- and 30-day daily bar charts with a trailing-year average line (#4758, #5653), a GA-backed web-traffic table (Planning#8), a "needs attention" panel of server-computed anomalies, and overview line charts of labels / validations / active users over time. Owner-only. Driven entirely client-side from /adminapi/cityScorecards (traffic from /adminapi/cityTraffic). *@
+@* Owner-only Across Cities page (#4329): every city compared on coverage, activity, label mix, and data quality.
+   Built in the browser from /adminapi/cityScorecards, with web traffic from /adminapi/cityTraffic. *@
 
 @content = {
   <div class="page-section" id="ac-intro-section">
@@ -373,8 +374,7 @@
     </div>
   </div>
 
-  <link rel="stylesheet" href="@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.css")">
-  <script src="@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.js")"></script>
+  @ViteAssets.stylesheets("admin/acrossCities", alreadyLinked = "admin/shell")
   <script type="module" id="page-entry" src='@assets.path("build/js/admin/acrossCities.js")'
           data-mapbox-token="@commonData.mapboxApiKey"
           data-stories-path="@routes.AdminDashboardController.stories.url"></script>

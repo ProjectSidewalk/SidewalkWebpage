@@ -7,11 +7,13 @@
  * @property {?string} gsvImageUrl
  */
 
+import i18next from 'i18next';
 import { createPanoAttribution } from './common/pano-viewer/PanoAttribution.js';
 import { createPanoViewerLogo } from './common/pano-viewer/PanoViewerLogo.js';
 import { ShareWidget } from './common/share/ShareWidget.js';
 import { util } from './common/utilities.js';
 import './common/utilitiesSidewalk.js';
+import '../css/components/landing-validation-grid.css';
 
 /**
  * Landing-page grid of recently-found labels with inline Agree/Disagree/Unsure buttons (#1638), so visitors can

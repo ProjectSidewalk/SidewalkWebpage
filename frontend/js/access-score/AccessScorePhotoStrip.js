@@ -13,6 +13,7 @@
  * picture can be agreed or disagreed with where it is seen.
  */
 
+import i18next from 'i18next';
 import { LabelMiniCard } from '../common/LabelMiniCard.js';
 
 export class AccessScorePhotoStrip {

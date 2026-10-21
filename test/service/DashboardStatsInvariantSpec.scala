@@ -19,7 +19,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.DurationInt
 
 /**
- * DB-backed invariant tests for every stat surface the redesigned dashboard/leaderboard/profile presents.
+ * DB-backed invariant tests for every stat the dashboard, leaderboard, and public profile show.
  *
  * The suite's philosophy is contract/shape over data values, so these assertions are written to hold against
  * *whatever* the connected DB contains (dev seed, CI seed, or a live dev DB): ordering, caps, ranges, and
@@ -155,6 +155,32 @@ class DashboardStatsInvariantSpec extends SidewalkSpec with GuiceOneAppPerSuite 
 
     "return a team board with the same invariants" in {
       assertBoardInvariants(await(userService.getLeaderboardStats(10, "overall", byTeam = true)))
+    }
+
+    "give each team's board exactly its members' rows from the city board, with the same stats (#5762)" in {
+      def board(teamId: Option[Int]) =
+        await(
+          dbConfig.db.run(
+            userStatTable.getLeaderboardStats(Int.MaxValue, "overall", byTeam = false, teamId,
+              streetDistance = 1000000d)
+          )
+        )
+      val cityBoard = board(None)
+      val compared  = await(userService.getAllTeams).map { team =>
+        val members  = await(userService.getTeamOverview(team.teamId)).toSeq.flatMap(_.members.map(_.username)).toSet
+        val expected = cityBoard.filter(s => members.contains(s.username))
+        // Distances are summed in a different order, so they can differ in the last digit.
+        val got = board(Some(team.teamId)).map(s => s.username -> s).toMap
+        got.keySet mustBe expected.map(_.username).toSet
+        expected.foreach { e =>
+          val g = got(e.username)
+          (g.labelCount, g.missionCount, g.accuracy) mustBe ((e.labelCount, e.missionCount, e.accuracy))
+          g.distanceMeters mustBe e.distanceMeters +- 1e-6
+          g.score mustBe e.score +- 1e-6
+        }
+        expected.size
+      }
+      assume(compared.sum > 0, "no team member has a label in this schema")
     }
   }
 

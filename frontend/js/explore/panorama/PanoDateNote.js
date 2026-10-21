@@ -15,8 +15,12 @@
  * metadata, so it costs no request.
  */
 
+import i18next from 'i18next';
 import { util } from '../../common/utilities.js';
 /** @typedef {import('../task/Task.js').Task} Task */
+/** @typedef {import('./PanoManager.js').PanoManager} PanoManager */
+/** @typedef {import('../../common/pano-viewer/PanoStore.js').PanoStore} PanoStore */
+/** @typedef {import('../task/TaskContainer.js').TaskContainer} TaskContainer */
 /** @typedef {import('../data/Tracker.js').Tracker} Tracker */
 
 export class PanoDateNote {
@@ -42,12 +46,15 @@ export class PanoDateNote {
   #task = null;
 
   /**
-   * @param {Tracker} tracker
    * @param {HTMLElement} holderEl - The bottom-left corner (#svl-panorama-date-holder).
    * @param {HTMLElement} datePillEl - The capture-date pill, which also holds PanoInfoPopover's button.
    * @param {HTMLElement} dateEl - The capture-date span inside that pill, which this class now owns.
+   * @param {PanoManager} panoManager - Each pano it lands on is noted, starting with the one already on screen.
+   * @param {PanoStore} panoStore - Where that first pano's capture date is.
+   * @param {TaskContainer} taskContainer - Whose current street the pano is compared against.
+   * @param {Tracker} tracker
    */
-  constructor(tracker, holderEl, datePillEl, dateEl) {
+  constructor(holderEl, datePillEl, dateEl, panoManager, panoStore, taskContainer, tracker) {
     this.#tracker = tracker;
     this.#datePillEl = datePillEl;
     this.#dateEl = dateEl;
@@ -61,6 +68,15 @@ export class PanoDateNote {
     // Focusable so the psTooltip explaining the note is reachable by keyboard; it is the only way to that text.
     this.#noteEl.tabIndex = 0;
     holderEl.appendChild(this.#noteEl);
+
+    // Month-granular on the wire because that is all a capture date carries (#5413).
+    const noteCaptureDate = (captureDate) => {
+      this.update(captureDate ? util.localIsoDate(captureDate) : null, taskContainer.getCurrentTask());
+    };
+    // The first pano landed before the note existed, so it is noted here; the corner would otherwise stay empty until
+    // the labeler's first step (#4671 closed the same gap for the nav arrows).
+    noteCaptureDate(panoStore.getPanoData(panoManager.getPanoId())?.getProperty('captureDate'));
+    panoManager.onPanoChanged((panoData) => noteCaptureDate(panoData.getProperty('captureDate')));
   }
 
   /**
@@ -147,10 +163,6 @@ export class PanoDateNote {
     this.#noteEl.setAttribute('data-ps-tooltip', i18next.t(tipKey, {
       assessedDate: util.monthYear(lastMappedAt),
       captureDate: util.monthYear(this.#captureDateIso),
-      // psTooltip renders this attribute as HTML. Two dates of ours need no escaping today; escaping
-      // costs nothing on a date and covers whoever interpolates something a user wrote here later. One level, not
-      // the two a markup-parsed attribute needs -- setAttribute does no parsing, so the tooltip is the only consumer.
-      interpolation: { escapeValue: true },
     }));
     this.#noteEl.hidden = false;
     this.#log(state, lastMappedAt, byThisUser);

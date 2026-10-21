@@ -14,21 +14,16 @@
  * tests vary anyway.
  */
 
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules, mockModule } from './loader.js';
 
+mockModule('i18next', () => ({ default: { t: (key) => key } }));
+
+/** The ConfirmDialog the guard under test asks; each `setUp` builds one that answers with that test's choice. */
+let confirmDialog;
+mockModule('frontend/js/common/ConfirmDialog.js', () => ({ ConfirmDialog: confirmDialog }));
 
 const PAGE_URL = 'http://localhost/dashboard/settings';
 const OTHER_PAGE = 'http://localhost/dashboard';
-
-/**
- * A fresh guard class seeing the given `i18next` and `ConfirmDialog` stand-ins (through the window fakes the module
- * loader honors).
- * @returns {Function} The class.
- */
-function guardFactory(i18next, ConfirmDialog) {
-  Object.assign(window, { i18next, ConfirmDialog });
-  return loadModules('frontend/js/common/UnsavedChangesGuard.js').UnsavedChangesGuard;
-}
 
 /**
  * Stands up a page with one link and a guard watching a form.
@@ -40,7 +35,7 @@ function guardFactory(i18next, ConfirmDialog) {
  * @param {boolean} [opts.dirty=true] - Whether the watched form has unsaved edits.
  * @returns {Object} The link, the recorded prompts/navigations/logs, and the beforeunload handler the guard added.
  */
-function setUp({ choice = 'stay', href = OTHER_PAGE, attrs = '', saveOk = true, dirty = true } = {}) {
+async function setUp({ choice = 'stay', href = OTHER_PAGE, attrs = '', saveOk = true, dirty = true } = {}) {
   const record = { prompts: [], navigations: [], logs: [], saves: 0 };
   let beforeUnload = null;
   const fakeWindow = {
@@ -55,14 +50,14 @@ function setUp({ choice = 'stay', href = OTHER_PAGE, attrs = '', saveOk = true, 
       assign: (url) => record.navigations.push(url),
     },
   };
-  const confirmDialog = {
+  confirmDialog = {
     choose: (opts) => {
       record.prompts.push(opts);
       return Promise.resolve(choice);
     },
   };
   const doc = document.implementation.createHTMLDocument();
-  const UnsavedChangesGuard = guardFactory({ t: (key) => key }, confirmDialog);
+  const { UnsavedChangesGuard } = await loadModules('frontend/js/common/UnsavedChangesGuard.js');
 
   doc.body.innerHTML = `<a id="link" href="${href}" ${attrs}>go</a>`;
   new UnsavedChangesGuard({
@@ -85,7 +80,7 @@ function setUp({ choice = 'stay', href = OTHER_PAGE, attrs = '', saveOk = true, 
  * @returns {Promise<boolean>} Whether the click's default action survived, i.e. the browser would have navigated.
  */
 async function click(el, init = {}) {
-  const event = new window.MouseEvent('click', { bubbles: true, cancelable: true, button: 0, ...init });
+  const event = new MouseEvent('click', { bubbles: true, cancelable: true, button: 0, ...init });
   el.dispatchEvent(event);
   await new Promise((resolve) => setTimeout(resolve, 0));
   return !event.defaultPrevented;
@@ -93,7 +88,7 @@ async function click(el, init = {}) {
 
 describe('UnsavedChangesGuard', () => {
   it('saves and then follows the link the user clicked', async () => {
-    const { link, record } = setUp({ choice: 'save' });
+    const { link, record } = await setUp({ choice: 'save' });
 
     expect(await click(link)).toBe(false); // The click itself is cancelled...
     expect(record.saves).toBe(1);
@@ -101,7 +96,7 @@ describe('UnsavedChangesGuard', () => {
   });
 
   it('follows the link without saving when the user discards', async () => {
-    const { link, record } = setUp({ choice: 'discard' });
+    const { link, record } = await setUp({ choice: 'discard' });
 
     await click(link);
     expect(record.saves).toBe(0);
@@ -109,14 +104,14 @@ describe('UnsavedChangesGuard', () => {
   });
 
   it('stays put when the user cancels', async () => {
-    const { link, record } = setUp({ choice: 'stay' });
+    const { link, record } = await setUp({ choice: 'stay' });
 
     await click(link);
     expect(record.navigations).toEqual([]);
   });
 
   it('stays put when a save the user asked for fails, so the error is in front of them', async () => {
-    const { link, record } = setUp({ choice: 'save', saveOk: false });
+    const { link, record } = await setUp({ choice: 'save', saveOk: false });
 
     await click(link);
     expect(record.saves).toBe(1);
@@ -124,7 +119,7 @@ describe('UnsavedChangesGuard', () => {
   });
 
   it('logs which way the user answered', async () => {
-    const { link, record } = setUp({ choice: 'discard' });
+    const { link, record } = await setUp({ choice: 'discard' });
 
     await click(link);
     expect(record.logs).toEqual(['Click_module=UnsavedSettings_choice=discard']);
@@ -138,34 +133,34 @@ describe('UnsavedChangesGuard', () => {
     ['a jump to an anchor on this page', { href: '/dashboard/settings#privacy' }, {}],
     ['a mailto: link', { href: 'mailto:someone@example.test' }, {}],
   ])('leaves %s alone', async (_label, linkOpts, clickOpts) => {
-    const { link, record } = setUp(linkOpts);
+    const { link, record } = await setUp(linkOpts);
 
     expect(await click(link, clickOpts)).toBe(true);
     expect(record.prompts).toHaveLength(0);
   });
 
   it('does not prompt when there is nothing unsaved', async () => {
-    const { link, record } = setUp({ dirty: false });
+    const { link, record } = await setUp({ dirty: false });
 
     expect(await click(link)).toBe(true);
     expect(record.prompts).toHaveLength(0);
   });
 
   it('warns on a refresh or a tab close only while there are unsaved edits', async () => {
-    const dirtyEvent = { preventDefault: jest.fn() };
-    setUp().beforeUnload(dirtyEvent);
+    const dirtyEvent = { preventDefault: vi.fn() };
+    (await setUp()).beforeUnload(dirtyEvent);
     expect(dirtyEvent.preventDefault).toHaveBeenCalled();
 
-    const cleanEvent = { preventDefault: jest.fn() };
-    setUp({ dirty: false }).beforeUnload(cleanEvent);
+    const cleanEvent = { preventDefault: vi.fn() };
+    (await setUp({ dirty: false })).beforeUnload(cleanEvent);
     expect(cleanEvent.preventDefault).not.toHaveBeenCalled();
   });
 
   it('does not warn again while it is doing the navigating itself', async () => {
-    const { link, beforeUnload } = setUp({ choice: 'discard' });
+    const { link, beforeUnload } = await setUp({ choice: 'discard' });
     await click(link);
 
-    const event = { preventDefault: jest.fn() };
+    const event = { preventDefault: vi.fn() };
     beforeUnload(event);
     expect(event.preventDefault).not.toHaveBeenCalled();
   });

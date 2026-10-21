@@ -20,12 +20,7 @@
 
     <div id="label-clusters-preview" class="map-container">Loading label clusters data...</div>
 
-    <link rel="stylesheet" href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.css")'>
-    <link rel="stylesheet" href='@assets.path("css/pages/api-docs/label-clusters.css")'>
-    @* Deferred to keep the ~800KB mapping stack off this article's rendering path. Order still matters within the
-       set: the language plugin and the preview both read the mapboxgl global as they parse. *@
-    <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.js")' defer></script>
-    <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")' defer></script>
+    @ViteAssets.stylesheets("api-docs/labelClusters", alreadyLinked = "api-docs/layout")
     <script type="module"
             id="page-entry"
             data-mapbox-api-key="@commonData.mapboxApiKey"
@@ -316,7 +311,7 @@
           <tr>
             <td><code>properties.osm_way_id</code></td>
             <td><code>integer</code></td>
-            <td><a href="https://wiki.openstreetmap.org/wiki/Way">OpenStreetMap Way ID</a> for the street segment, if available.</td>
+            <td><a href="https://wiki.openstreetmap.org/wiki/Way">OpenStreetMap Way ID</a> under the cluster: a street can span several ways (the Streets API lists them), and this is the one at the cluster's position along it.</td>
           </tr>
           <tr>
             <td><code>properties.region_id</code></td>

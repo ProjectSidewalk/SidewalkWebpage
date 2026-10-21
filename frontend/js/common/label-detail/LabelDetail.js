@@ -11,6 +11,7 @@
  * container at init.
  */
 
+import i18next from 'i18next';
 import { BadgeAchievements } from '../BadgeAchievements.js';
 import { ConfirmDialog } from '../ConfirmDialog.js';
 import { LabelTypeDropdown } from '../LabelTypePicker.js';
@@ -26,6 +27,7 @@ import { buildBackupImageData } from '../utilitiesSidewalk.js';
 import { PanoViewer } from '../pano-viewer/PanoViewer.js';
 import '../urlQuery.js';
 import '../pano-viewer/panoUtilities.js';
+import '../../../css/components/label-detail.css';
 
 export class LabelDetail {
   /**
@@ -1810,14 +1812,10 @@ export class LabelDetail {
           // `_zero` key covers "nobody else" without a second key and a branch here — it resolves whenever count is
           // 0, even in languages (zh-TW) whose CLDR rules have no zero category, so those carry only _zero/_other.
           const others = Math.max(0, (this.#validationCounts[action] ?? 1) - 1);
-          tip = i18next.t(`labelmap:vote-tooltip-voted-${action.toLowerCase()}`, {
-            count: others, interpolation: { escapeValue: true },
-          });
+          tip = i18next.t(`labelmap:vote-tooltip-voted-${action.toLowerCase()}`, { count: others });
         } else {
           const count = this.#validationCounts[action] ?? 0;
-          tip = i18next.t(`labelmap:vote-tooltip-${action.toLowerCase()}`, {
-            count, interpolation: { escapeValue: true },
-          });
+          tip = i18next.t(`labelmap:vote-tooltip-${action.toLowerCase()}`, { count });
         }
         // The AI's vote is folded into this option's count, so flag it where it applies. Sentences are appended in
         // order of usefulness, so what clicking *does* lands last rather than trailing off into a footnote.

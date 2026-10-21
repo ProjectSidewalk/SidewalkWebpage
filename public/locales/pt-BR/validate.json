@@ -19,6 +19,7 @@
     "clear-verdict": "Limpar sua resposta",
     "tag-search-placeholder": "Adicione mais etiquetas aqui",
     "tag-search-no-results": "Nenhuma etiqueta correspondente",
+    "tag-example-tooltip": "Exemplo de \"{{tag}}\"",
     "disagree-reason": {
       "common": {
         "wrong-type": "Este é o tipo de rótulo errado",

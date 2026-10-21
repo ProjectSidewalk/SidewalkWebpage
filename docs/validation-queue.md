@@ -588,8 +588,9 @@ locally against your dev schema — `make dev` then `npm start`, or `make qa-wor
 
 `NoSidewalk` (#5285), against a schema with `street_side` (Teaneck locally):
 
-8. `/expertValidate?labelType=NoSidewalk` → labels arrive; in devtools each `svv.labelList` entry carries
-   `street_side` (`left`/`right`/`null`); the first labels come from distinct streets; the admin panel shows 0 votes
+8. `/expertValidate?labelType=NoSidewalk` → labels arrive; in devtools' network tab, each label in the
+   `/validationTask/mission` response carries `street_side` (`left`/`right`/`null`); the first labels come from
+   distinct streets; the admin panel shows 0 votes
    on them, and `SELECT street_edge_id, street_side, count(*) FROM label JOIN label_point USING (label_id) WHERE
    label_id IN (…) GROUP BY 1, 2` shows one label per face.
 9. Agree on one, then reload `/expertValidate?labelType=NoSidewalk` several times: the other labels on that face

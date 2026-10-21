@@ -270,10 +270,10 @@ class ImageryFreshnessServiceImpl @Inject() (
       // The key is resolved once here, like the Mapillary token below: resolving it lazily inside the per-point
       // fetch would throw synchronously in the batch fold and abandon every remaining street.
       case PanoSource.Gsv =>
-        config.getOptional[String]("google-maps-api-key") match {
+        PanoDataService.googleServerKey(config) match {
           case Some(key) => pollStreets("GSV")(fetchGsvPointObservations(key))
           case None      =>
-            Future.failed(MissingImageryCredentialException("No google-maps-api-key configured for a GSV city."))
+            Future.failed(MissingImageryCredentialException("No google-maps-server-key configured for a GSV city."))
         }
       case PanoSource.Mapillary =>
         config.getOptional[String]("mapillary-access-token") match {
@@ -498,7 +498,8 @@ class ImageryFreshnessServiceImpl @Inject() (
   )(lat: Double, lng: Double): Future[Option[Seq[PanoObservation]]] = {
     val (dLat, dLng) = bboxHalfWidths(lat, SampleRadiusMeters)
     val bbox         = s"${lng - dLng},${lat - dLat},${lng + dLng},${lat + dLat}"
-    ws.url(s"https://graph.mapillary.com/images?bbox=$bbox&fields=id,captured_at,is_pano,geometry&limit=100")
+    val graphUrl     = config.get[String]("mapillary-graph-url")
+    ws.url(s"$graphUrl/images?bbox=$bbox&fields=id,captured_at,is_pano,geometry&limit=100")
       .addHttpHeaders("Authorization" -> s"OAuth $accessToken")
       .withRequestTimeout(5.seconds)
       .get()

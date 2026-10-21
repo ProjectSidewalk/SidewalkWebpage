@@ -49,10 +49,6 @@
     @common.seoHead(commonData, title, pageMeta)
     @* Per-page <head> injection point, e.g. Open Graph / Twitter Card meta for social sharing (#456). *@
     @extraHead
-    @* Deferred: i18next is only touched from AppManager's DOM-ready callback, which runs after deferred scripts
-       execute, so these don't need to block HTML parsing. *@
-    <script src='@assets.path("vendor/i18next/i18next-26.4.2.min.js")' defer></script>
-    <script src='@assets.path("vendor/i18next-http-backend/i18nextHttpBackend-4.0.2.min.js")' defer></script>
     <link rel="icon" type="image/png" href='@assets.path("images/favicon.png")'>
 
     <script>
@@ -62,18 +58,8 @@
       });
     </script>
 
-    <link href='@assets.path("css/fonts.css")' rel="stylesheet">
-    <link rel="stylesheet" href='@assets.path("css/main.css")'>
-    <link rel="stylesheet" href='@assets.path("css/components/toast.css")'>
-    <link rel="stylesheet" href='@assets.path("css/components/confirm-dialog.css")'>
-    <link rel="stylesheet" href='@assets.path("css/components/share-widget.css")'>
-    <link rel="stylesheet" href='@assets.path("css/pages/homepage.css")'>
-    <link rel="stylesheet" href='@assets.path("css/pages/auth.css")'>
+    @ViteAssets.stylesheets("main")
 
-    @* Deferred: utilities.js only touches the bowser global lazily, from DOMContentLoaded-or-later callers. *@
-    <script src='@assets.path("vendor/bowser/bowser-2.14.1.min.js")' defer></script>
-    @* Cleans HTML from outside sources before it's shown (psTooltip's cards, the About page's citation). *@
-    <script src='@assets.path("vendor/dompurify/purify-3.4.16.min.js")' defer></script>
     @* Content-fingerprint digests for assets whose URLs JS builds at runtime (#4893): logicalPath -> md5, read by
        util.assetPath. Empty under dev `sbt run` (no digests exist); a missing entry falls back to the plain
        /assets/ path. Must precede the tool bundles: their module-level constants resolve URLs at script-eval time.

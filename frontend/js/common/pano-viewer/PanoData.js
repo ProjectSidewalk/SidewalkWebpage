@@ -10,7 +10,8 @@ export class PanoData {
    * @param {number} params.lat - Latitude of the camera
    * @param {number} params.lng - Longitude of the camera
    * @param {number} params.cameraHeading - Heading of the camera in degrees, with respect to true north
-   * @param {number} params.cameraPitch - Pitch of the camera in degrees, with respect to the horizon
+   * @param {number} [params.cameraPitch] - Pitch of the camera in degrees, with respect to the horizon; absent when
+   *     the provider has no pose for the image, which never stops it rendering (#5725)
    * @param {number} [params.cameraRoll] - Roll of the camera in degrees
    * @param {number} params.width - Width of the image in pixels
    * @param {number} params.height - Height of the image in pixels
@@ -28,13 +29,13 @@ export class PanoData {
    * @param {boolean} [params.submitted=false] - Whether we've sent this data to the server; false unless in tutorial
    */
   constructor(params) {
-    // Validate required parameters. Three guards keep unrenderable backup panos away from PannellumViewer by
-    // requiring the subset of this list that a pano_data row can be missing, so adding a field here means updating
-    // them too (#4804): LabelTable.imageryViewable, PanoDataServiceImpl.getLocalBackupImage, and
-    // backupImageDataIsComplete in utilitiesSidewalk.js.
+    // The guards that keep unrenderable backup panos away from PannellumViewer require the subset of this list that a
+    // pano_data row can be missing, so adding a field here means updating them too (#4804): PanoDataTable
+    // .hasBackupViewerFields (and its PanoData twin) on the backend, backupImageDataIsComplete in utilitiesSidewalk.js,
+    // and tools/validation_queue/pool.sql. Camera pitch and roll are deliberately not required: the viewer takes the
+    // horizon from the image (#5174), so a pano recorded without a pose is still viewable (#5725).
     const requiredParams = [
-      'panoId', 'source', 'lat', 'lng', 'cameraHeading', 'cameraPitch', 'width', 'height', 'captureDate', 'linkedPanos',
-      'history',
+      'panoId', 'source', 'lat', 'lng', 'cameraHeading', 'width', 'height', 'captureDate', 'linkedPanos', 'history',
     ];
     requiredParams.forEach((param) => {
       if (params[param] === undefined || params[param] === null) {

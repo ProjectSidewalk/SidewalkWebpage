@@ -3,7 +3,6 @@
  * Docs: https://developers.google.com/maps/documentation/javascript/reference/street-view
  */
 
-import { svl } from '../../explore/svl.js';
 import { NoImageryError } from './NoImageryError.js';
 import { PanoData } from './PanoData.js';
 import { PanoViewer } from './PanoViewer.js';
@@ -294,13 +293,11 @@ export class GsvViewer extends PanoViewer {
   }
 
   /**
-   * The radius, in meters, every location search asks Google for and every reply is held to. Explore's
-   * svl.STREETVIEW_MAX_DISTANCE is the one definition (the imagery scan mirrors it); it is read at call time because
-   * svl is assembled after this file loads, and only Explore searches GSV by location.
+   * The radius, in meters, every location search asks Google for and every reply is held to.
    * @returns {number}
    */
   static #searchRadiusM() {
-    return svl.STREETVIEW_MAX_DISTANCE;
+    return PanoViewer.SEARCH_RADIUS_M;
   }
 
   /**
@@ -313,7 +310,7 @@ export class GsvViewer extends PanoViewer {
    *
    * A point test, not the imagery scan's street-aware one (tools/city/check_streets_for_imagery.py), because a location
    * search here has no street attached. Explore gets the street-aware behaviour anyway from how it samples: the walk
-   * (moveForward) and the start-of-street backups step along the street every NavigationService.DIST_INCREMENT
+   * (moveForward) and the start-of-street backups step along the street every StreetSweep.DIST_INCREMENT
    * (10 m), and a seed off the street falls back to its projection onto it first (PanoManager.backupPointsAlongStreet),
    * so an on-street pano too far along from one sample point is within the radius of the next one. The forward crumbs
    * step coarser on long streets, but never wider than ForwardCrumbs.maxSampleStepKm, which is chosen so the same
@@ -361,7 +358,7 @@ export class GsvViewer extends PanoViewer {
   /**
    * Memo key for a location search. Rounded to 5 decimals (~1.1 m) rather than matched by distance because turf is
    * not loaded on every page that builds a GsvViewer; the callers that sample a street do so on a fixed grid
-   * (NavigationService.DIST_INCREMENT along the street geometry), so identical points produce identical keys.
+   * (StreetSweep.DIST_INCREMENT along the street geometry), so identical points produce identical keys.
    * @param {{lat: number, lng: number}} latLng
    * @returns {string}
    */

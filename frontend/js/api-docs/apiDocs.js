@@ -19,13 +19,10 @@
  * - Follows web standards and best practices
  */
 
+import i18next from 'i18next';
 import { initSidebarDisclosure } from '../common/sidebarDisclosure.js';
-
-// Chart.js paints its labels onto a canvas, so they can't inherit the page font. The pages that chart load Chart.js
-// ahead of this script, and build their charts once their data arrives.
-if (typeof Chart !== 'undefined') {
-  Chart.defaults.font.family = getComputedStyle(document.documentElement).getPropertyValue('--font-primary');
-}
+import '../../css/components/page-shell.css';
+import '../../css/components/progress-bar.css';
 
 document.addEventListener('DOMContentLoaded', () => {
   const enableLeftSidebarAccordions = false; // Flag to disable left sidebar accordions.
@@ -587,10 +584,7 @@ function setupDownloadButtons() {
 
     if (response.status === 429) {
       // Shared with the Label Map so the two can't drift apart.
-      const refused = typeof i18next !== 'undefined'
-        ? i18next.t('common:download-already-preparing')
-        : 'This file is already being prepared for another request. Please try again shortly.';
-      showStatus('warning', refused);
+      showStatus('warning', i18next.t('common:download-already-preparing'));
       return;
     }
     if (!response.ok) {

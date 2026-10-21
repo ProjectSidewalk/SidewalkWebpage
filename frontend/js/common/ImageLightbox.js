@@ -4,6 +4,7 @@
  */
 
 import { localizeSubtree } from './i18nDom.js';
+import '../../css/components/image-lightbox.css';
 
 export class ImageLightbox {
   /** @type {HTMLDialogElement|null} */

@@ -2,10 +2,10 @@
  * The card shown over the label being validated: its type, rating, tags, and description.
  *
  * This is the same component as Explore's hover card — one Twirl template (views/components/labelCard.scala.html),
- * one stylesheet pair in public/css/components/, and one populator (js/common/LabelCardView.js), which this feeds from
- * Validate's own Label object (#4726/#4730). It replaced a parallel implementation that painted white text straight
- * onto the raw label color, which failed WCAG AA for every label type (1.68:1 to 2.75:1); the label color now lives
- * in the type icon and the surface is white.
+ * one stylesheet pair in frontend/css/components/, and one populator (js/common/LabelCardView.js), which this feeds
+ * from Validate's own Label object (#4726/#4730). It replaced a parallel implementation that painted white text
+ * straight onto the raw label color, which failed WCAG AA for every label type (1.68:1 to 2.75:1); the label color
+ * now lives in the type icon and the surface is white.
  *
  * A validator judges a label rather than changing it, so there is no Delete or Edit here and the card is not itself
  * a click target the way Explore's is. The exception is Expert Validate's type dropdown in the header, whose pick
@@ -17,13 +17,16 @@
  * would open on top of it.
  */
 
-import { svv } from '../svv.js';
+import i18next from 'i18next';
 import { LabelCardView } from '../../common/LabelCardView.js';
 import { LabelTypeDropdown } from '../../common/LabelTypePicker.js';
 import { ShareWidget } from '../../common/share/ShareWidget.js';
 import { util } from '../../common/utilities.js';
 import '../../common/utilitiesSidewalk.js';
 /** @typedef {import('./Label.js').Label} Label */
+/** @typedef {import('./LabelContainer.js').LabelContainer} LabelContainer */
+/** @typedef {import('./LabelVisibilityControl.js').LabelVisibilityControl} LabelVisibilityControl */
+/** @typedef {import('../Tracker.js').Tracker} Tracker */
 
 export class LabelCard {
   #card;
@@ -33,9 +36,27 @@ export class LabelCard {
   #labelType = null;
   /** @type {?LabelTypeDropdown} Expert Validate only (#5409). */
   #typeDropdown = null;
+  /** @type {LabelContainer} */
+  #labelContainer;
+  /** @type {LabelVisibilityControl} */
+  #labelVisibilityControl;
+  /** @type {Tracker} */
+  #tracker;
+  /** @type {?((labelType: string) => void)} Registered by the verdict menu (onTypePicked), which is built after. */
+  #onTypePicked = null;
 
-  constructor() {
-    this.#card = document.getElementById('label-card');
+  /**
+   * @param {HTMLElement} card - The card element, holding the shared template's markup.
+   * @param {LabelContainer} labelContainer - Whose current label the card describes, re-rendered as each is shown.
+   * @param {LabelVisibilityControl} labelVisibilityControl - Owns showing and anchoring the card; told when an edit
+   *     resizes it and when one of its popovers closes.
+   * @param {Tracker} tracker - Logs the share and type-menu clicks.
+   */
+  constructor(card, labelContainer, labelVisibilityControl, tracker) {
+    this.#card = card;
+    this.#labelContainer = labelContainer;
+    this.#labelVisibilityControl = labelVisibilityControl;
+    this.#tracker = tracker;
     // No descriptionMaxLength: the description shows in full rather than truncated the way Explore's card does it.
     // Explore can afford to cut the text because clicking the label reopens the same description in an editable
     // field; here the card is the only place it appears, and it is often what tells a validator what the labeler
@@ -49,12 +70,12 @@ export class LabelCard {
       this.#shareWidget = new ShareWidget(trigger, {
         // The card is anchored to the label's marker, which can sit anywhere in the pano.
         fitToViewport: true,
-        onDismiss: () => svv.labelVisibilityControl?.handlePopoverDismissed(),
+        onDismiss: () => labelVisibilityControl.handlePopoverDismissed(),
       });
       trigger.addEventListener('click', () => {
         // Only the opening click, and carrying the label type so the note matches Explore's.
         if (this.#shareWidget.isOpen()) return;
-        svv.tracker.push('Click_LabelCardShare', { labelType: this.#labelType });
+        tracker.push('Click_LabelCardShare', { labelType: this.#labelType });
       });
     }
 
@@ -63,20 +84,30 @@ export class LabelCard {
       this.#typeDropdown = new LabelTypeDropdown(this.#card.querySelector('.label-hover-card__type-dropdown'),
         /** @type {HTMLElement} */ (typePopover), {
           onOpen: () => this.#prepareTypePicker(),
-          onPick: (labelType) => svv.validationMenu.pickNewLabelType(labelType),
-          onClose: () => svv.labelVisibilityControl?.handlePopoverDismissed(),
+          onPick: (labelType) => this.#onTypePicked?.(labelType),
+          onClose: () => labelVisibilityControl.handlePopoverDismissed(),
         });
       this.#typeDropdown.setEditable(true);
     }
+
+    labelContainer.onLabelReady((label) => this.render(label));
+  }
+
+  /**
+   * Registers what acts on a type picked from the card's dropdown (#5409).
+   * @param {(labelType: string) => void} listener
+   */
+  onTypePicked(listener) {
+    this.#onTypePicked = listener;
   }
 
   /** @returns {boolean} Whether the picker may open; if so it has been logged and drawn for the current label. */
   #prepareTypePicker() {
-    if (svv.labelContainer.dropInputWhileLoading('LabelType')) return false;
-    const label = svv.labelContainer.getCurrentLabel();
+    if (this.#labelContainer.dropInputWhileLoading('LabelType')) return false;
+    const label = this.#labelContainer.getCurrentLabel();
     const ownType = label.getProperty('oldLabelType');
     const picked = label.getProperty('newLabelType');
-    svv.tracker.push('Click_LabelCardTypeMenu', { labelType: ownType });
+    this.#tracker.push('Click_LabelCardTypeMenu', { labelType: ownType });
     this.#typeDropdown.picker.render({ current: ownType, selected: picked === ownType ? null : picked });
     return true;
   }
@@ -135,7 +166,7 @@ export class LabelCard {
     this.#typeDropdown?.setType(labelType);
 
     // An edit changes the card's size, and it is anchored to the marker by that size.
-    svv.labelVisibilityControl?.reanchorLabelCard();
+    this.#labelVisibilityControl.reanchorLabelCard();
 
     // Point the share control at this label's public permalink (#456). /label/:id renders the spotlight page and
     // serves the og:image that crawlers embed in the share card. Named by the type the label still has, since

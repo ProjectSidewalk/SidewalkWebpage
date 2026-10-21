@@ -1,7 +1,7 @@
 # CLAUDE.md
 
 Project Sidewalk is a web-based crowdsourcing tool for mapping and assessing sidewalk accessibility. Scala 3.9 +
-Play 3.0 (Java 17) backend, Postgres + PostGIS via Slick, and a vanilla-JS frontend of ES modules that Rolldown bundles
+Play 3.0 (Java 17) backend, Postgres + PostGIS via Slick, and a vanilla-JS frontend of ES modules that Vite bundles
 per page (no framework, no transpile), all run in Docker. Request flow is routes → Controller → Service → Table
 (DAO). Architecture tour: `docs/architecture.md`. Setup, daily commands, troubleshooting: `docs/dev-environment.md`.
 
@@ -37,6 +37,7 @@ file, and this table says which doc to read first:
 | Google Maps keys, quotas, or a Google Cloud bill | `docs/google-cloud.md` |
 | The label lat/lng estimator or the labeling viewport frame | `docs/label-latlng-estimation.md` |
 | Street gradient / slope (`street_gradient`, `tools/city/street_gradient.py`) | `docs/street-gradient.md` |
+| Which OSM ways a street lies on (`osm_way_street_edge`, `tools/city/osm_lineage.py`) | `docs/architecture.md` → "Streets, regions, and routes" |
 
 ## Workflow
 
@@ -51,8 +52,9 @@ file, and this table says which doc to read first:
 - Prod deploys are tag-triggered (`vX.Y.Z` on `master`); pushing `develop` redeploys the test stage.
 - Never edit `public/build/` output or run the build by hand: the developer's `npm start` runs `npm run watch`, which
   rebuilds on save. A page's JS starts at its entry in `frontend/js/pages/`, which imports what it needs.
-- Keep docs in sync in the same change. `docs/architecture.md` is the human-facing architecture reference; exact
-  dependency versions live only in `docs/upgrading-libraries.md`.
+- Keep docs in sync in the same change. `docs/architecture.md` is the human-facing architecture reference. Exact
+  dependency versions live only in the manifests (`build.sbt`, `package.json`, `requirements*.txt`); docs name major
+  versions at most, and `docs/upgrading-libraries.md` holds the upgrade notes.
 - Never browser-test anything that needs a street-view panorama (placing labels, validating). Hand the developer a
   checklist or console snippet instead. The `test/e2e/` suite only *loads* Explore's tutorial and Validate's landing
   state; don't extend it into pano interaction.
@@ -61,8 +63,8 @@ file, and this table says which doc to read first:
 
 - **Scala:** `make scalafmt-fix` (a blocking CI gate). Compile check: `make compile`. `-Werror` is on, so
   a success is warning-clean. It can't run in a checkout whose app is up (`~ run` holds sbt); it says so and stops.
-- **Frontend:** `make lint` (ESLint, Stylelint, HTMLHint, locale parity, CSS layout, asset paths, vendor versions,
-  JS types, spec base class, evolutions lint, ShellCheck; all blocking CI gates), or scope it with
+- **Frontend:** `make lint` (ESLint, Stylelint, HTMLHint, locale parity, CSS layout, asset paths, JS types, spec
+  base class, evolutions lint, ShellCheck; all blocking CI gates), or scope it with
   `make eslint dir=…` / `make stylelint dir=…`. `make lint-fix` handles the mechanical fixes. The tree is
   lint-clean, so any finding is from your change.
 - **Shell scripts:** `make shellcheck` (or `files=<script>` for one). Silence a finding only with a
@@ -80,7 +82,8 @@ file, and this table says which doc to read first:
 - **Comments say *why*, never what.** ScalaDoc (`@return`) / JSDoc (`@returns`, typed `@param`) on every class and
   non-trivial method, including private ones. Never describe what code *used to* do; git history has that, and a
   hook flags it. Templates: `docs/style-guide.md` → "Comments".
-- 120-char lines (exceptions where a break would hurt readability), 2-space indent. SQL: no table aliases.
+- 120-char lines (exceptions where a break would hurt readability), 2-space indent (Python: 4, per PEP 8). SQL: no
+  table aliases.
   Distances are geodesic (`ST_Length(geom::geography)`, Slick `lengthGeodesic`, turf.js), never via a fixed SRID.
 - A server-to-server POST authenticated by the internal key (`ControllerUtils.internalKeyValid`) needs a `+ nocsrf`
   line above its `conf/routes` entry, or the CSRF filter 403s every real request while curl tests look fine.

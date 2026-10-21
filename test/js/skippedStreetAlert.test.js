@@ -8,104 +8,101 @@
  * this was found on had it silenced, which is exactly why the teleports looked unexplained.
  */
 
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules, mockModule, useUtil } from './loader.js';
 
-
+mockModule('i18next', () => ({ default: { t: (key, interpolation) => JSON.stringify({ key, ...interpolation }) } }));
 
 describe('the "we moved you off that street" message', () => {
-    let stored;
-    let getStreetNameNear;
-    let alertController;
-    let stuckAlert;
+  let stored;
+  let getStreetNameNear;
+  let alertController;
+  let stuckAlert;
+  let AlertController;
+  let StuckAlert;
 
-    /** Builds the banner markup AlertController binds to, and the collaborators it reads at construction. */
-    const setUp = ({ silenced = [] } = {}) => {
-        document.body.innerHTML = `
+  /** Builds the banner markup AlertController binds to, and the collaborators it reads at construction. */
+  const setUp = ({ silenced = [] } = {}) => {
+    document.body.innerHTML = `
             <div id="alert-holder" class="ps-hidden">
               <span id="alert-message"></span>
               <button id="alert-close"></button>
               <button id="alert-dont-show"></button>
             </div>`;
-        stored = { alertDontShowList: silenced };
-        window.svl = {
-            storage: {
-                get: (key) => stored[key],
-                set: (key, value) => { stored[key] = value; },
-            },
-        };
-        alertController = new window.AlertController();
-        stuckAlert = new window.StuckAlert(alertController);
-    };
-
-    beforeEach(() => {
-        // jsdom has no Web Animations API, and the banner fades in and out through it.
-        Element.prototype.animate = jest.fn(() => ({
-            addEventListener: (_event, handler) => handler(),
-        }));
-
-        getStreetNameNear = jest.fn(() => Promise.resolve(null));
-        window.util = { misc: { getStreetNameNear } };
-        window.i18next = { t: (key, interpolation) => JSON.stringify({ key, ...interpolation }) };
-
-        Object.assign(window, loadModules('frontend/js/explore/alert/Alert.js'));
-        Object.assign(window, loadModules('frontend/js/explore/alert/AlertController.js'));
-        Object.assign(window, loadModules('frontend/js/explore/alert/StuckAlert.js'));
+    stored = { alertDontShowList: silenced };
+    alertController = new AlertController({
+      get: (key) => stored[key],
+      set: (key, value) => { stored[key] = value; },
     });
+    stuckAlert = new StuckAlert(alertController, { onPanoChanged: () => {} });
+  };
 
-    /** The i18next key the banner currently displays, per the stub's serialization. */
-    const shownKey = () => JSON.parse(document.getElementById('alert-message').innerHTML).key;
-    const bannerVisible = () => !document.getElementById('alert-holder').classList.contains('ps-hidden');
-    const optOutOffered = () => document.getElementById('alert-dont-show').style.display !== 'none';
+  beforeEach(async () => {
+    // jsdom has no Web Animations API, and the banner fades in and out through it.
+    Element.prototype.animate = vi.fn(() => ({
+      addEventListener: (_event, handler) => handler(),
+    }));
 
-    it('is shown without the option to silence it', () => {
-        setUp();
+    getStreetNameNear = vi.fn(() => Promise.resolve(null));
+    useUtil({ misc: { getStreetNameNear } });
 
-        stuckAlert.stuckSkippedStreet();
+    ({ AlertController, StuckAlert } = await loadModules('frontend/js/explore/alert/AlertController.js',
+      'frontend/js/explore/alert/StuckAlert.js'));
+  });
 
-        expect(bannerVisible()).toBe(true);
-        expect(shownKey()).toBe('popup.stuck-skipped-street');
-        expect(optOutOffered()).toBe(false);
-    });
+  /** The i18next key the banner currently displays, per the stub's serialization. */
+  const shownKey = () => JSON.parse(document.getElementById('alert-message').innerHTML).key;
+  const bannerVisible = () => !document.getElementById('alert-holder').classList.contains('ps-hidden');
+  const optOutOffered = () => document.getElementById('alert-dont-show').style.display !== 'none';
 
-    it('reaches a labeler who silenced it, and clears the silence', () => {
-        setUp({ silenced: ['zoomMessage', 'stuckStreetSkipped'] });
+  it('is shown without the option to silence it', () => {
+    setUp();
 
-        stuckAlert.stuckSkippedStreet();
+    stuckAlert.stuckSkippedStreet();
 
-        expect(bannerVisible()).toBe(true);
-        expect(stored.alertDontShowList).toEqual(['zoomMessage']);
-    });
+    expect(bannerVisible()).toBe(true);
+    expect(shownKey()).toBe('popup.stuck-skipped-street');
+    expect(optOutOffered()).toBe(false);
+  });
 
-    it('leaves other messages silenced, since those still offer the choice', () => {
-        setUp({ silenced: ['stuckSuggestion'] });
+  it('reaches a labeler who silenced it, and clears the silence', () => {
+    setUp({ silenced: ['zoomMessage', 'stuckStreetSkipped'] });
 
-        stuckAlert.panoVisited('pano-a');
-        stuckAlert.panoVisited('pano-a');
-        stuckAlert.panoVisited('pano-a');
+    stuckAlert.stuckSkippedStreet();
 
-        expect(bannerVisible()).toBe(false);
-        expect(stored.alertDontShowList).toEqual(['stuckSuggestion']);
-    });
+    expect(bannerVisible()).toBe(true);
+    expect(stored.alertDontShowList).toEqual(['zoomMessage']);
+  });
 
-    it('names the street the labeler landed on when the lookup finds one', async () => {
-        setUp();
-        getStreetNameNear.mockResolvedValue('Palisade Ave');
+  it('leaves other messages silenced, since those still offer the choice', () => {
+    setUp({ silenced: ['stuckSuggestion'] });
 
-        await stuckAlert.announceSkippedStreetNear({ lat: 40.9, lng: -74.0 }, 'mapbox-token');
+    stuckAlert.panoVisited('pano-a');
+    stuckAlert.panoVisited('pano-a');
+    stuckAlert.panoVisited('pano-a');
 
-        const shown = JSON.parse(document.getElementById('alert-message').innerHTML);
-        expect(shown.key).toBe('popup.stuck-skipped-street-named');
-        expect(shown.streetName).toBe('Palisade Ave');
-    });
+    expect(bannerVisible()).toBe(false);
+    expect(stored.alertDontShowList).toEqual(['stuckSuggestion']);
+  });
 
-    it('still says something when the street cannot be named', async () => {
-        setUp();
-        getStreetNameNear.mockResolvedValue(null);
+  it('names the street the labeler landed on when the lookup finds one', async () => {
+    setUp();
+    getStreetNameNear.mockResolvedValue('Palisade Ave');
 
-        await stuckAlert.announceSkippedStreetNear({ lat: 40.9, lng: -74.0 }, 'mapbox-token');
+    await stuckAlert.announceSkippedStreetNear({ lat: 40.9, lng: -74.0 }, 'mapbox-token');
 
-        // Geocoding is decoration; losing it must not cost the labeler the explanation itself.
-        expect(shownKey()).toBe('popup.stuck-skipped-street');
-        expect(bannerVisible()).toBe(true);
-    });
+    const shown = JSON.parse(document.getElementById('alert-message').innerHTML);
+    expect(shown.key).toBe('popup.stuck-skipped-street-named');
+    expect(shown.streetName).toBe('Palisade Ave');
+  });
+
+  it('still says something when the street cannot be named', async () => {
+    setUp();
+    getStreetNameNear.mockResolvedValue(null);
+
+    await stuckAlert.announceSkippedStreetNear({ lat: 40.9, lng: -74.0 }, 'mapbox-token');
+
+    // Geocoding is decoration; losing it must not cost the labeler the explanation itself.
+    expect(shownKey()).toBe('popup.stuck-skipped-street');
+    expect(bannerVisible()).toBe(true);
+  });
 });

@@ -17,6 +17,7 @@
  * kept inputs; the pointer handlers survive because Mapbox keys them by layer id, not by layer object.
  */
 
+import mapboxgl from '../common/mapboxgl.js';
 import { ScoreRamp } from '../common/scoreRamp.js';
 import { AccessScoreMapLegend } from './AccessScoreMapLegend.js';
 import { AccessScoreGradeRamp } from '../common/AccessScoreGradeRamp.js';
@@ -88,6 +89,8 @@ export class AccessScoreMapView {
    * @param {boolean} [options.dark=false] - True on a dark basemap.
    * @param {?number[]} [options.gradeBreaks=null] - The ascending grades the slope classes break at
    *                                       (`gradient.map_class_breaks`); null leaves the slope coloring unavailable.
+   * @param {boolean} [options.gradeCoarse=false] - True where the city's grades come from a coarse elevation model,
+   *                                       which the legend then says beside its classes.
    * @param {string} [options.gradeAttribution=''] - The elevation models' credit, as markup. It rides on the street
    *                                       source, so Mapbox's own attribution control shows it and a basemap swap
    *                                       cannot lose it.
@@ -95,7 +98,7 @@ export class AccessScoreMapView {
    *                                       classes are clicked (empty to clear), so the owner can brush on them.
    */
   constructor(map, { model, streets, regions, onSelect, onHover = () => {}, tooltipHtml, clickClaimed = () => false,
-    hoverClaimed = () => false, dark = false, gradeBreaks = null, gradeAttribution = '',
+    hoverClaimed = () => false, dark = false, gradeBreaks = null, gradeCoarse = false, gradeAttribution = '',
     onGradeClasses = () => {} }) {
     this.#map = map;
     this.#model = model;
@@ -120,7 +123,7 @@ export class AccessScoreMapView {
     this.#addStreetLayers(streets);
     this.#addInteractions();
     // After the navigation control: the corner's reversed flex row keeps the first control at the edge.
-    this.#legend = new AccessScoreMapLegend({ gradeBreaks: this.#gradeBreaks, onGradeClasses });
+    this.#legend = new AccessScoreMapLegend({ gradeBreaks: this.#gradeBreaks, gradeCoarse, onGradeClasses });
     this.#map.addControl(this.#legend, 'top-right');
     this.#legend.setDark(dark);
     this.#legend.setGrade(this.#showGrade, model.displayGradeStatistic);

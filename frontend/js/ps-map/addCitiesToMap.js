@@ -1,3 +1,5 @@
+import mapboxgl from '../common/mapboxgl.js';
+import i18next from 'i18next';
 import { util } from '../common/utilities.js';
 import { logPopupLinkClicks } from './psMapUtilities.js';
 import '../common/utilitiesMath.js';
@@ -6,7 +8,7 @@ import '../common/utilitiesMath.js';
  * Adds cities to the map as circles and returns a promise.
  *
  * @param {mapboxgl.Map} map - The Mapbox map object.
- * @param {GeoJSON.FeatureCollection} citiesData - GeoJSON object containing cities to draw on the map.
+ * @param {GeoJSON.FeatureCollection<GeoJSON.Point>} citiesData - GeoJSON object containing cities to draw on the map.
  * @param {object} params - Properties that can change the process of choropleth creation.
  * @param {string} params.mapName - Name of the HTML ID of the map.
  * @param {boolean} [params.logClicks] - Whether to log click activity.
@@ -245,7 +247,8 @@ export function addCitiesToMap(map, citiesData, params) {
     if (citiesData.features.length === 0) return;
     const bounds = new mapboxgl.LngLatBounds();
     citiesData.features.forEach((city) => {
-      bounds.extend(city.geometry.coordinates);
+      const [lng, lat] = city.geometry.coordinates;
+      bounds.extend([lng, lat]);
     });
     // A map that isn't the reason the page was opened shouldn't perform on arrival: pages that build this one
     // mid-scroll ask for the world view outright rather than flying out to it from the city's own center.

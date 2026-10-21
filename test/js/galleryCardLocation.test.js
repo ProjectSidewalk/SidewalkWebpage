@@ -4,117 +4,115 @@
  * A card says which region its label sits in, looked up from the id -> name map the page carries. The name is
  * city data rather than ours, so it goes in as text; these tests pin that along with the absent-name case, since a
  * card with no known region must simply not show the line rather than show an empty one.
- *
- * Card is a Grunt-concatenated `class` that reaches for page globals, so the source is eval'd into jsdom with the
- * collaborators it touches during construction stubbed out.
  */
 
+import { loadModules, mockModule } from './loader.js';
+import { fakeTracker, fakePanoOverlays } from './fakes.js';
 
-const { assetPathStub, installUtilitiesMisc, loadModules } = require('./loadGlobalScript');
+mockModule('i18next', () => ({ default: { t: (key) => key, language: 'en' } }));
 
+// Collaborators the constructor builds but this test doesn't exercise.
+mockModule('frontend/js/gallery/displays/SeverityDisplay.js', () => ({ SeverityDisplay: class {} }));
+mockModule('frontend/js/gallery/displays/ValidationInfoDisplay.js', () => ({ ValidationInfoDisplay: class {} }));
+mockModule('frontend/js/gallery/validation/ValidationMenu.js', () => ({ ValidationMenu: class {} }));
+mockModule('frontend/js/gallery/displays/TagDisplay.js', () => ({ TagDisplay: class {} }));
+fakePanoOverlays();
 
 /** One label payload, shaped like an entry from POST /label/labels. */
 function label(overrides = {}) {
-    return {
-        label_id: 1, label_type: 'CurbRamp', region_id: 7, severity: 2, canvas_x: 10, canvas_y: 20,
-        canvas_width: 720, canvas_height: 480,
-        agree_count: 1, disagree_count: 0, unsure_count: 0, tags: [], ai_generated: false, ...overrides,
-    };
+  return {
+    label_id: 1, label_type: 'CurbRamp', region_id: 7, severity: 2, canvas_x: 10, canvas_y: 20,
+    canvas_width: 720, canvas_height: 480,
+    agree_count: 1, disagree_count: 0, unsure_count: 0, tags: [], ai_generated: false, ...overrides,
+  };
 }
 
 describe('a Gallery card\'s location line', () => {
-    /** @returns {?HTMLElement} The card's rendered location line. */
-    const locationLine = () => document.querySelector('.card-location');
+  /** @returns {?HTMLElement} The card's rendered location line. */
+  const locationLine = () => document.querySelector('.card-location');
+  /** The page's region names, which the card reads once on construction. */
+  let regionNames;
+  let Card;
+  const tracker = fakeTracker();
+  const cardFilter = { getAppliedTagNames: () => [] };
 
-    /**
+  /**
      * Renders a card into the document.
      * @param {object} [labelOverrides] Overrides for the label payload.
      * @returns {Card} The card under test.
      */
-    function renderCard(labelOverrides) {
-        document.body.innerHTML = '<div id="cards"></div>';
-        const card = new window.Card(label(labelOverrides), null, null);
-        card.render(document.getElementById('cards'));
-        return card;
-    }
+  function renderCard(labelOverrides) {
+    document.body.innerHTML = '<div id="cards"></div>';
+    const card = new Card(
+      { label: label(labelOverrides), cropUrl: null, gsvImageUrl: null }, regionNames, tracker, cardFilter,
+    );
+    card.render(document.getElementById('cards'));
+    return card;
+  }
 
-    beforeAll(() => {
-        window.structuredClone ??= (v) => JSON.parse(JSON.stringify(v)); // Missing from this jsdom.
-        window.i18next = { t: (key) => key, language: 'en' };
-        window.util = {
-            assetPath: assetPathStub,
-            camelToKebab: (s) => s.toLowerCase(),
-            EXPLORE_CANVAS_WIDTH: 720,
-            EXPLORE_CANVAS_HEIGHT: 480,
-        };
-        installUtilitiesMisc(); // Card positions its marker through util.misc.labelMarkerFraction.
-        // Collaborators the constructor builds but this test doesn't exercise.
-        window.SeverityDisplay = class {};
-        window.ValidationInfoDisplay = class {};
-        window.ValidationMenu = class {};
-        window.TagDisplay = class {};
-        window.createPanoViewerLogo = () => ({ showSourceLogo: () => {}, hide: () => {} });
-        window.createPanoAttribution = () => ({ show: () => {}, hide: () => {} });
-        Object.assign(window, loadModules('frontend/js/gallery/cards/Card.js'));
+  beforeAll(async () => {
+    window.structuredClone ??= (v) => JSON.parse(JSON.stringify(v)); // Missing from this jsdom.
+    ({ Card } = await loadModules('frontend/js/gallery/cards/Card.js'));
+  });
+
+  beforeEach(() => {
+    regionNames = { 7: 'Herrick Park' };
+    tracker.push.mockClear();
+  });
+
+  it('names the region the label sits in', () => {
+    renderCard();
+
+    expect(locationLine().querySelector('.card-location__name').textContent).toBe('Herrick Park');
+  });
+
+  it('promises on hover where the click leads', () => {
+    renderCard();
+
+    expect(locationLine().getAttribute('data-ps-tooltip')).toBe('labelmap:open-label-on-labelmap');
+  });
+
+  it('links out to this label on the LabelMap, and says so to a screen reader', () => {
+    const card = renderCard();
+
+    expect(locationLine().getAttribute('href')).toBe('/labelMap?labelId=1');
+    // The accessible name leads with the visible text, per WCAG 2.5.3.
+    expect(locationLine().getAttribute('aria-label')).toBe('Herrick Park: labelmap:open-label-on-labelmap');
+
+    locationLine().click();
+
+    expect(tracker.push).toHaveBeenCalledWith('CardLocationClick', null, { Label_Id: 1, Region_Id: 7 });
+    expect(card.getProperty('region_id')).toBe(7);
+  });
+
+  it('shows no line at all when the region is unknown', () => {
+    renderCard({ region_id: 999 });
+
+    expect(locationLine()).toBeNull();
+  });
+
+  it('shows no line when the page carries no names', () => {
+    regionNames = {};
+    renderCard();
+
+    expect(locationLine()).toBeNull();
+  });
+
+  it('puts the name in as text, so a name is never read as markup', () => {
+    regionNames = { 7: '<img src=x onerror="alert(1)">Park' };
+    renderCard();
+
+    const name = locationLine().querySelector('.card-location__name');
+    expect(name.querySelector('img')).toBeNull();
+    expect(name.textContent).toBe('<img src=x onerror="alert(1)">Park');
+  });
+
+  describe('its properties', () => {
+    it('hands its dates on exactly as the server sent them, even ones that are not dates (#5549)', () => {
+      const card = renderCard({ image_capture_date: 'Invalid date', label_timestamp: '2024-10-01T03:00:00Z' });
+
+      expect(card.getProperties()).toMatchObject(
+        { image_capture_date: 'Invalid date', label_timestamp: '2024-10-01T03:00:00Z' });
     });
-
-    beforeEach(() => {
-        window.sg = { regionNames: { 7: 'Herrick Park' }, tracker: { push: jest.fn() } };
-    });
-
-    it('names the region the label sits in', () => {
-        renderCard();
-
-        expect(locationLine().querySelector('.card-location__name').textContent).toBe('Herrick Park');
-    });
-
-    it('promises on hover where the click leads', () => {
-        renderCard();
-
-        expect(locationLine().getAttribute('data-ps-tooltip')).toBe('labelmap:open-label-on-labelmap');
-    });
-
-    it('links out to this label on the LabelMap, and says so to a screen reader', () => {
-        const card = renderCard();
-
-        expect(locationLine().getAttribute('href')).toBe('/labelMap?labelId=1');
-        // The accessible name leads with the visible text, per WCAG 2.5.3.
-        expect(locationLine().getAttribute('aria-label')).toBe('Herrick Park: labelmap:open-label-on-labelmap');
-
-        locationLine().click();
-
-        expect(sg.tracker.push).toHaveBeenCalledWith('CardLocationClick', null, { Label_Id: 1, Region_Id: 7 });
-        expect(card.getProperty('region_id')).toBe(7);
-    });
-
-    it('shows no line at all when the region is unknown', () => {
-        renderCard({ region_id: 999 });
-
-        expect(locationLine()).toBeNull();
-    });
-
-    it('shows no line when the page carries no names', () => {
-        sg.regionNames = {};
-        renderCard();
-
-        expect(locationLine()).toBeNull();
-    });
-
-    it('puts the name in as text, so a name is never read as markup', () => {
-        sg.regionNames = { 7: '<img src=x onerror="alert(1)">Park' };
-        renderCard();
-
-        const name = locationLine().querySelector('.card-location__name');
-        expect(name.querySelector('img')).toBeNull();
-        expect(name.textContent).toBe('<img src=x onerror="alert(1)">Park');
-    });
-
-    describe('its properties', () => {
-        it('hands its dates on exactly as the server sent them, even ones that are not dates (#5549)', () => {
-            const card = renderCard({ image_capture_date: 'Invalid date', label_timestamp: '2024-10-01T03:00:00Z' });
-
-            expect(card.getProperties()).toMatchObject(
-                { image_capture_date: 'Invalid date', label_timestamp: '2024-10-01T03:00:00Z' });
-        });
-    });
+  });
 });

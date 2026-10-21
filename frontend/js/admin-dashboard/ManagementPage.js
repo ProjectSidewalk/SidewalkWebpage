@@ -1,17 +1,9 @@
 /**
- * Renders the admin Management page (#4272): the operational console for deployment-wide, state-changing actions.
+ * Renders the admin Management page (#4272): the Users table, team settings, and maintenance jobs.
  *
- * Three sections, all driven from /adminapi/getUserStats (users + teams) plus the existing admin mutation endpoints:
- *   - Users: a searchable, sortable, paginated directory with inline role and team assignment.
- *   - Teams: open/closed and visible/hidden toggles.
- *   - Maintenance: recalc user stats, recalc street priority, generate crops, clear cache (each confirmed first).
- *
- * The full user list (~13k on a large deployment like Seattle, after anonymous-with-no-activity are filtered out) is
- * downloaded once and then filtered/sorted/paginated entirely client-side — small enough to keep every column sortable
- * without a per-page server round-trip, but paginated in the DOM so we never render thousands of rows at once.
- *
- * Built as an accessible HTML/CSS table, consistent with the rest of the redesign. Mutations update local state
- * optimistically-then-confirm: the request fires, and the row reverts with a message if it fails.
+ * The user list (over 10k in a big city) is downloaded once, then searched, sorted, and paged in the browser: small
+ * enough that every column can sort without a server trip, too big to put on the page all at once. A change shows
+ * right away and reverts with a message if the server refuses it.
  */
 
 import { ConfirmDialog } from '../common/ConfirmDialog.js';
@@ -41,7 +33,7 @@ export class ManagementPage {
    * @param {{userStatsUrl: string, setRoleUrl: string, setTeamUrl: string, teamStatusUrl: string,
    *          teamVisibilityUrl: string, clearCacheUrl: string, recalcStatsUrl: string, recalcPriorityUrl: string,
    *          recalcValidationCountsUrl: string, generateCropsUrl: string, rebuildSidewalkPresenceUrl: string,
-   *          refreshPlacesUrl: string, recountGradientStalenessUrl: string}} urls
+   *          refreshPlacesUrl: string, refreshBasemapUrl: string, recountGradientStalenessUrl: string}} urls
    * @param {string[]} assignableRoles - Role names from the backend's `Role.ADMIN_ASSIGNABLE_ROLES`.
    */
   constructor(urls, assignableRoles) {
@@ -178,7 +170,7 @@ export class ManagementPage {
     const from = (this.#page - 1) * this.#pageSize + 1;
     const to = Math.min(total, this.#page * this.#pageSize);
     const btn = (page, label, disabled) =>
-      `<button type="button" class="mgmt-page-btn" data-page="${page}"${disabled ? ' disabled' : ''}>${label}</button>`;
+      `<button type="button" class="ps-pager-btn" data-page="${page}"${disabled ? ' disabled' : ''}>${label}</button>`;
     const atStart = this.#page <= 1;
     const atEnd = this.#page >= pageCount;
     const sizeOpts = ManagementPage.#PAGE_SIZES.map((s) =>
@@ -186,16 +178,16 @@ export class ManagementPage {
     const html = total === 0
       ? ''
       : [
-          '<div class="mgmt-page-controls">',
+          '<div class="ps-pager-controls">',
           btn('first', '« First', atStart),
           btn('prev', '‹ Prev', atStart),
-          `<span class="mgmt-page-info">${from.toLocaleString()}–${to.toLocaleString()} of ${total.toLocaleString()} `
+          `<span class="ps-pager-status">${from.toLocaleString()}–${to.toLocaleString()} of ${total.toLocaleString()} `
           + `· Page ${this.#page} of ${pageCount}</span>`,
           btn('next', 'Next ›', atEnd),
           btn('last', 'Last »', atEnd),
           '</div>',
-          `<label class="mgmt-page-size-label">Rows per page `
-          + `<select class="ps-select mgmt-page-size">${sizeOpts}</select></label>`,
+          `<label class="ps-pager-size">Rows per page `
+          + `<select class="ps-select">${sizeOpts}</select></label>`,
         ].join('');
     for (const id of ManagementPage.#PAGINATION_IDS) {
       const el = document.getElementById(id);
@@ -260,16 +252,23 @@ export class ManagementPage {
       const bar = document.getElementById(id);
       if (!bar) continue;
       bar.addEventListener('click', (e) => {
-        const btn = /** @type {HTMLButtonElement} */ (/** @type {Element} */ (e.target).closest('.mgmt-page-btn'));
+        const btn = /** @type {HTMLButtonElement} */ (/** @type {Element} */ (e.target).closest('.ps-pager-btn'));
         if (!btn || btn.disabled) return;
-        this.#gotoPage(btn.getAttribute('data-page'));
+        const token = btn.getAttribute('data-page');
+        this.#gotoPage(token);
+        // Each render rebuilds the bars, so put focus back on the same button, or the nearest usable one.
+        const same = /** @type {HTMLButtonElement|null} */ (bar.querySelector(`.ps-pager-btn[data-page="${token}"]`));
+        const target = same && !same.disabled ? same : bar.querySelector('.ps-pager-btn:not(:disabled)');
+        /** @type {HTMLElement|null} */ (target)?.focus();
       });
       bar.addEventListener('change', (e) => {
-        const sel = /** @type {HTMLSelectElement} */ (/** @type {Element} */ (e.target).closest('.mgmt-page-size'));
+        const target = /** @type {Element} */ (e.target);
+        const sel = /** @type {HTMLSelectElement} */ (target.closest('.ps-pager-size select'));
         if (!sel) return;
         this.#pageSize = parseInt(sel.value, 10) || ManagementPage.#PAGE_SIZES[0];
         this.#page = 1;
         this.#renderUsers();
+        /** @type {HTMLSelectElement|null} */ (bar.querySelector('.ps-pager-size select'))?.focus();
       });
     }
   }
@@ -414,6 +413,8 @@ export class ManagementPage {
       'rebuild sidewalk presence');
     run('mgmt-refresh-places', this.#urls.refreshPlacesUrl, 'POST', 'refresh places',
       'Started: refresh places. It runs in the background; Health (Owners) reports the result.');
+    run('mgmt-refresh-basemap', this.#urls.refreshBasemapUrl, 'POST', 'rebuild minimap basemap',
+      'Started: rebuild minimap basemap. It runs in the background; Health (Owners) reports the result.');
     run('mgmt-recount-gradient-staleness', this.#urls.recountGradientStalenessUrl, 'POST',
       'recount street gradient staleness',
       (counts) => `Done: ${AdminShell.num(counts.streets_unsampled)} street(s) with no grade, `
