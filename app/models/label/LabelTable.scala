@@ -3118,7 +3118,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       l.panoId === panoId && l.userId === userId && l.labelType === labelType && l.deleted === false
     )
 
-  /** Counts a user's live labels of one type on one pano, so an AI resubmission can refuse to duplicate them (#5382). */
+  /** Counts a user's live labels of one type on one pano, which an AI resubmission must not duplicate (#5382). */
   def countLiveLabelsOnPano(panoId: String, userId: String, labelType: LabelType): DBIO[Int] =
     liveLabelsOnPano(panoId, userId, labelType).length.result
 

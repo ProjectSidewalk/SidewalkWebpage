@@ -23,8 +23,9 @@ import util.SidewalkSpec
  * near the bottom of the pano, looking almost straight down, which projects to well under a meter from the camera, so
  * each one lands on that street. Cancels on a schema with no region holding a street.
  *
- * The cases walk one pano through first submission, refusal, a second type and replacement, so they run in order. Everything the spec wrote is deleted in `afterAll`, by this pano's id and by row ids above the AI user's
- * maxima recorded before the run.
+ * The cases walk one pano through first submission, refusal, a second type and replacement, so they run in order.
+ * Everything the spec wrote is deleted in `afterAll`, by this pano's id and by row ids above the AI user's maxima
+ * recorded before the run.
  */
 // GuiceOneAppPerSuite must be rightmost so its run() wraps BeforeAndAfterAll's, keeping the app up for afterAll.
 class AiSubmissionOverwriteSpec
