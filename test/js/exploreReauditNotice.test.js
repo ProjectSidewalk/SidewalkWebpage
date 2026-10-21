@@ -143,6 +143,18 @@ describe('ReauditNotice.showForTask', () => {
     expect(notice.showForTask(makeTask(8, { needsReaudit: false }))).toBe(false);
     expect(handle.dismiss).toHaveBeenCalledTimes(1);
   });
+
+  test('hears every hand-over through the task container, so a plain street retires a re-audit notice', () => {
+    // The retirement rides on the container's listener firing for every setCurrentTask, re-audit street or not; if
+    // the subscription ever filtered, a toast would outlive the street it describes.
+    let onChanged;
+    const notice = new ReauditNotice({ onCurrentTaskChanged: (listener) => { onChanged = listener; } }, tracker);
+    notice.showForTask(makeTask(7, REAUDIT_BY_ME));
+    const handle = toast.show.mock.results[0].value;
+
+    onChanged(makeTask(8, { needsReaudit: false }));
+    expect(handle.dismiss).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('ReauditNotice with Toast\'s queue (#5472)', () => {
