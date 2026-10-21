@@ -1,3 +1,6 @@
+import i18next from 'i18next';
+import '../../../css/components/pano-attribution.css';
+
 /**
  * Creates the imagery-attribution overlay for a pano container: the rights holder, provider and licence owed when
  * Project Sidewalk shows its own copy of a panorama — the self-hosted Pannellum copy or a crop — rather than the
@@ -17,8 +20,6 @@
  *     provider name, since the source logo opposite it is already carrying that.
  * @returns {{ show: Function, hide: Function }}
  */
-import '../../../css/components/pano-attribution.css';
-
 export function createPanoAttribution(container, options = {}) {
   const compact = options.compact === true;
   const holder = document.createElement('small');

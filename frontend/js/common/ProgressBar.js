@@ -1,3 +1,5 @@
+import '../../css/components/progress-bar.css';
+
 /**
  * A single-fill progress bar: sizes a track fill from a fraction and, optionally, writes a label beside it.
  * Centralizes the fill sizing and completion-percentage formatting shared by the mission, badge, and validation
@@ -5,8 +7,6 @@
  * progressBar Twirl partial). The two-segment region bar is driven by RegionProgressBar instead, which
  * reuses formatPercent here for its label.
  */
-import '../../css/components/progress-bar.css';
-
 export class ProgressBar {
   #fillEl;
   #labelEl;

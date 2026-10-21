@@ -3,7 +3,6 @@
 @import service.{CommonPageData, PublicProfile, UserProfileData}
 @import models.user.{Role, SidewalkUserWithRole}
 @import models.label.Tag
-@import models.pano.PanoSource
 @import play.api.Configuration
 @(commonData: CommonPageData, user: SidewalkUserWithRole, profileName: String, isMetric: Boolean,
     profile: Option[PublicProfile], tags: Seq[Tag]
@@ -106,29 +105,9 @@
     </div>
   }
 
-
   @common.labelPopup(admin = false)
   @ViteAssets.stylesheets("dashboard/publicProfile", alreadyLinked = "dashboard/shell")
-  @if(commonData.imagerySource == PanoSource.Infra3d) {
-    <script src='@assets.path("vendor/proj4/proj4-2.22.0.js")'></script>
-    <script src='@assets.path("vendor/infra3d/infra3dapi-1.12.1.js")'></script>
-  } else if (commonData.imagerySource == PanoSource.Mapillary) {
-    <script src='@assets.path("vendor/three/three-0.160.1-min.js")'></script>
-    <script src='@assets.path("vendor/mapillary/mapillary-4.1.2.min.js")'></script>
-    <link href='@assets.path("vendor/mapillary/mapillary-4.1.2.css")' rel="stylesheet">
-  } else if (commonData.imagerySource == PanoSource.Panoramax) {
-    <script src='@assets.path("vendor/photo-sphere-viewer/psv-5.15.1-bundle.min.js")'></script>
-    <link href='@assets.path("vendor/photo-sphere-viewer/psv-5.15.1.css")' rel="stylesheet">
-  }
-  <script src='@assets.path("vendor/pannellum/pannellum-2.5.7.js")'></script>
-  <link rel="stylesheet" href='@assets.path("vendor/pannellum/pannellum-2.5.7.css")'>
-  <script src='@assets.path("vendor/panzoom/panzoom-9.4.4.min.js")'></script>
 
-  @* The contribution map's libraries and styles (the map itself is built by the page entry). *@
-  <link href="@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.css")" rel="stylesheet">
-  <script src="@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.js")"></script>
-  <script src="@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")"></script>
-  <script src="@assets.path("vendor/turf/turf-7.4.0.min.js")"></script>
   <script type="module" id="page-entry" src='@assets.path("build/js/dashboard/publicProfile.js")'
           data-imagery-source="@commonData.imagerySource.name"
           data-imagery-access-token="@commonData.imageryAccessToken"

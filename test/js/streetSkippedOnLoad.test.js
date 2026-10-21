@@ -10,8 +10,10 @@
  * could walk 44 streets in 33 seconds without anyone in the seat realizing anything had happened.
  */
 
-import { loadModules, useUtil } from './loader.js';
+import { loadModules, mockModule, useUtil } from './loader.js';
 import { fakeTracker, navigationAttempts } from './fakes.js';
+
+mockModule('i18next', () => ({ default: { t: (key) => key } }));
 
 describe('a street given up on at page load', () => {
   let PanoManager;
@@ -61,7 +63,6 @@ describe('a street given up on at page load', () => {
     showAlert = vi.fn();
 
     useUtil({ misc: { reportNoImagery } });
-    window.i18next = { t: (key) => key };
 
     ({ PanoManager, NoImageryFlagGuard, NoImageryError } = await loadModules(
       'frontend/js/explore/panorama/PanoManager.js', 'frontend/js/explore/panorama/NoImageryFlagGuard.js',

@@ -10,7 +10,10 @@
 
 import fs from 'fs';
 import path from 'path';
-import { loadModules, REPO_ROOT } from './loader.js';
+import { loadModules, mockModule, REPO_ROOT } from './loader.js';
+
+const i18next = { t: (key) => key };
+mockModule('i18next', () => ({ default: i18next }));
 
 const DASHBOARD_CSS = fs.readFileSync(path.join(REPO_ROOT, 'frontend/css/pages/user-dashboard.css'), 'utf8');
 
@@ -93,7 +96,7 @@ describe('the dashboard\'s needs-re-audit list', () => {
   }
 
   beforeAll(async () => {
-    window.i18next = { language: 'en' };
+    Object.assign(i18next, { language: 'en' });
     ({ OutdatedStreets } = await loadModules('frontend/js/user-dashboard/OutdatedStreets.js'));
   });
 
@@ -273,9 +276,9 @@ describe('the dashboard\'s needs-re-audit list', () => {
     });
 
     it('words the imagery month in the page language', async () => {
-      window.i18next.language = 'zh-TW';
+      i18next.language = 'zh-TW';
       await init(3);
-      window.i18next.language = 'en';
+      i18next.language = 'en';
 
       expect(document.querySelector('.ud-reaudit-imagery-date').textContent).toBe('2025年10月');
     });

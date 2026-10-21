@@ -31,7 +31,7 @@ Standalone and manual — nothing in the app calls it.
    for different cities can't collide or resume each other's checkpoints.
 2. Run **one** of (from any directory — paths resolve relative to the repo root):
    ```bash
-   python3.13 tools/city/check_streets_for_imagery.py --city-id newport-ky --gsv         # needs GOOGLE_MAPS_API_KEY
+   python3.13 tools/city/check_streets_for_imagery.py --city-id newport-ky --gsv         # needs GOOGLE_MAPS_SERVER_KEY (else GOOGLE_MAPS_API_KEY)
    python3.13 tools/city/check_streets_for_imagery.py --city-id newport-ky --mapillary   # needs MAPILLARY_ACCESS_TOKEN
    python3.13 tools/city/check_streets_for_imagery.py --city-id newport-ky --infra3d     # needs INFRA3D_CLIENT_ID +
                                                                  # INFRA3D_CLIENT_SECRET; add --campaign <uid> if
@@ -50,7 +50,7 @@ second across all workers, default 10 — deliberately conservative; Google allo
 ### Infra3d
 
 Infra3d has no metadata endpoint, so `--infra3d` uses the nearest-frame query (`framegate`'s `knn/query`) that the
-vendored viewer SDK issues on every `setLocation` — the same request a labeler's browser makes as they move — with the
+viewer SDK issues on every `setLocation` — the same request a labeler's browser makes as they move — with the
 same per-city OAuth client credentials the app uses (`PanoDataService.getInfra3dToken`). Export **one** city's pair as
 `INFRA3D_CLIENT_ID` / `INFRA3D_CLIENT_SECRET` (in the web container they're `INFRA3D_CLIENT_ID_ZURICH`,
 `..._WINTERTHUR`, etc.); the tenant to query comes from the token's own scope, so nothing else is per-city. Two things

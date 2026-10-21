@@ -13,6 +13,7 @@
  * per-city activity trend. Owner-only; driven entirely from /adminapi/cityScorecards.
  */
 
+import mapboxgl from '../common/mapboxgl.js';
 import { util } from '../common/utilities.js';
 import { AdminShell } from './AdminShell.js';
 import { MiniLineChart } from './MiniLineChart.js';
@@ -487,7 +488,7 @@ export class AcrossCitiesPage {
   #renderMap(citiesGeo) {
     const host = document.getElementById('ac-cities-map');
     if (!host) return;
-    if (typeof mapboxgl === 'undefined' || !this.#mapboxToken || !citiesGeo || !Array.isArray(citiesGeo.cities)) {
+    if (!this.#mapboxToken || !citiesGeo || !Array.isArray(citiesGeo.cities)) {
       this.#setText('ac-map-status', 'Map unavailable.');
       host.style.display = 'none';
       return;

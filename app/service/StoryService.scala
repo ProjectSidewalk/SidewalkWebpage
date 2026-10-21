@@ -367,7 +367,7 @@ class StoryServiceImpl @Inject() (
             .cropUrl(labelId, labelType)
             .orElse(metaById.get(labelId).flatMap { m =>
               panoDataService
-                .getImageUrl(m.panoId, m.panoSource, m.heading, m.pitch, m.zoom, m.canvasWidth, m.canvasHeight)
+                .getBrowserImageUrl(m.panoId, m.panoSource, m.heading, m.pitch, m.zoom, m.canvasWidth, m.canvasHeight)
             })
             .map(labelId -> _)
         }

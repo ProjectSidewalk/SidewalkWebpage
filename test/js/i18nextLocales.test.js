@@ -1,5 +1,5 @@
 /**
- * Runs the vendored i18next and i18next-http-backend over our real locale files, set up by the real AppManager.
+ * Runs i18next and i18next-http-backend over our real locale files, set up by the real AppManager.
  *
  * This is the check to lean on when bumping either library: it loads every supported language the way a page does
  * and confirms that each language's own strings, plurals, interpolation, the distance formatter, the fallback to
@@ -14,7 +14,7 @@
 
 import fs from 'fs';
 import path from 'path';
-import { loadModules, loadVendored, REPO_ROOT, useUtil } from './loader.js';
+import { loadModules, REPO_ROOT, useUtil } from './loader.js';
 
 const LOCALES_DIR = path.join(REPO_ROOT, 'public/locales');
 const LANGUAGES = fs.readdirSync(LOCALES_DIR, { withFileTypes: true })
@@ -60,8 +60,8 @@ const WITHHELD = plainKeys(flatten(readLocale('en', 'common'))).find((key) => !k
  * @param {(url: string) => Promise<object>} [options.fetch] - Replaces the stand-in `fetch`.
  * @param {string[]} [options.missing] - Files, as `<language>/<namespace>.json`, the stand-in `fetch` 404s anyway.
  * @param {string[]} [options.localeFiles] - The locale files the page is told exist, if not the real ones.
- * @returns {Promise<{requested: string[], errors: unknown[][]}>} The locale files the page asked for, as
- *   `<language>/<namespace>.json`, and the arguments of each `console.error` it made.
+ * @returns {Promise<{requested: string[], errors: unknown[][], i18next: object}>} The locale files the page asked
+ *   for, as `<language>/<namespace>.json`, the arguments of each `console.error` it made, and the page's i18next.
  */
 async function startPage(language, { countryId = 'usa', fetch, missing = [], localeFiles = LOCALE_FILES } = {}) {
   const requested = [];
@@ -81,8 +81,6 @@ async function startPage(language, { countryId = 'usa', fetch, missing = [], loc
     }
     return { ok: found, status: found ? 200 : 404, statusText: '', headers: new Map(), text: async () => body };
   });
-  loadVendored('i18next');
-  loadVendored('i18next-http-backend');
   // The distance formatter is checked in metres, whatever locale jsdom reports.
   useUtil({ isMetric: () => true });
   await loadModules('frontend/js/common/AppManager.js');
@@ -90,18 +88,20 @@ async function startPage(language, { countryId = 'usa', fetch, missing = [], loc
     language, supportedLanguages: LANGUAGES, localeFiles, defaultNS: 'common', namespaces: NAMESPACES, countryId,
     unitWords: UNIT_WORDS,
   });
-  return { requested, errors };
+  // The instance AppManager set up: the one the registry loadModules just built hands every importer.
+  const { default: i18next } = await vi.importActual('i18next');
+  return { requested, errors, i18next };
 }
 
 const realConsoleError = console.error;
 
 /** Takes down what `startPage` put up, so the next page starts from nothing. */
 function stopPage() {
-  for (const name of ['appManager', 'i18next', 'i18nextHttpBackend', 'fetch']) delete window[name];
+  for (const name of ['appManager', 'fetch']) delete window[name];
   console.error = realConsoleError;
 }
 
-describe('the vendored i18next over our locale files', () => {
+describe('i18next over our locale files', () => {
   describe.each(LANGUAGES)('in %s', (language) => {
     let page;
 
@@ -113,7 +113,7 @@ describe('the vendored i18next over our locale files', () => {
 
     test('loads without an error, asking only for languages we have', () => {
       expect(page.errors).toEqual([]);
-      expect(window.i18next.language).toBe(language);
+      expect(page.i18next.language).toBe(language);
       expect([...new Set(page.requested.map((file) => file.split('/')[0]))].sort())
         .toEqual([...new Set([language, 'en'])].sort());
     });
@@ -124,14 +124,14 @@ describe('the vendored i18next over our locale files', () => {
         const own = flatten(readLocale(language, namespace));
         for (const key of plainKeys(own)) {
           if (language !== 'en' && namespace === 'common' && key === WITHHELD) continue;
-          if (window.i18next.t(`${namespace}:${key}`) !== own[key]) wrong.push(`${namespace}:${key}`);
+          if (page.i18next.t(`${namespace}:${key}`) !== own[key]) wrong.push(`${namespace}:${key}`);
         }
       }
       expect(wrong).toEqual([]);
     });
 
     test('falls back to English for a string it does not have', () => {
-      expect(window.i18next.t(`common:${WITHHELD}`)).toBe(readLocale('en', 'common')[WITHHELD]);
+      expect(page.i18next.t(`common:${WITHHELD}`)).toBe(readLocale('en', 'common')[WITHHELD]);
     });
 
     test('picks the plural form the count calls for', () => {
@@ -143,12 +143,12 @@ describe('the vendored i18next over our locale files', () => {
         .replace(/\{\{count(, number)?\}\}/, new Intl.NumberFormat(language).format(count));
       // Chinese has a single plural form, so a count of one reads the `_other` string there.
       const singular = new Intl.PluralRules(language).select(1);
-      expect(window.i18next.t(`common:${key}`, { count: 1 })).toBe(expected(singular, 1));
-      expect(window.i18next.t(`common:${key}`, { count: 5 })).toBe(expected('other', 5));
+      expect(page.i18next.t(`common:${key}`, { count: 1 })).toBe(expected(singular, 1));
+      expect(page.i18next.t(`common:${key}`, { count: 5 })).toBe(expected('other', 5));
     });
 
     test('renders a distance through our formatter, with the unit the page was given', () => {
-      const rendered = window.i18next.t('accessscore:length', { meters: 412 });
+      const rendered = page.i18next.t('accessscore:length', { meters: 412 });
       expect(rendered).toContain(new Intl.NumberFormat(language).format(400));
       expect(rendered).toContain(UNIT_WORDS.unitAbbrSmall);
       expect(rendered).not.toContain('{{');
@@ -159,12 +159,12 @@ describe('the vendored i18next over our locale files', () => {
     afterEach(stopPage);
 
     test('uses plain English for everything it leaves alone', async () => {
-      await startPage(language);
+      const { i18next } = await startPage(language);
       const namespace = NAMESPACES.find((ns) => readLocale(language, ns));
       const overlay = flatten(readLocale(language, namespace));
       const english = flatten(readLocale('en', namespace));
       const inherited = plainKeys(english).find((key) => !(key in overlay));
-      expect(window.i18next.t(`${namespace}:${inherited}`)).toBe(english[inherited]);
+      expect(i18next.t(`${namespace}:${inherited}`)).toBe(english[inherited]);
     });
   });
 
@@ -172,11 +172,11 @@ describe('the vendored i18next over our locale files', () => {
     afterEach(stopPage);
 
     test('reads its override strings in place of the standard ones', async () => {
-      const { errors } = await startPage('en', { countryId });
+      const { errors, i18next } = await startPage('en', { countryId });
       const namespace = NAMESPACES.find((ns) => readLocale('en', `${ns}-${suffix}`));
       const overrides = flatten(readLocale('en', `${namespace}-${suffix}`));
       const key = plainKeys(overrides)[0];
-      expect(window.i18next.t(`${namespace}:${key}`)).toBe(overrides[key]);
+      expect(i18next.t(`${namespace}:${key}`)).toBe(overrides[key]);
       expect(errors).toEqual([]);
     });
 
@@ -194,12 +194,12 @@ describe('the vendored i18next over our locale files', () => {
     afterEach(stopPage);
 
     test('is reported, and the rest of the page is still translated', async () => {
-      const { errors } = await startPage('en', { countryId: 'india', missing: ['en/validate.json'] });
+      const { errors, i18next } = await startPage('en', { countryId: 'india', missing: ['en/validate.json'] });
       expect(errors).toHaveLength(1);
       expect(String(errors[0][0])).toContain('status code: 404');
       const overrides = flatten(readLocale('en', 'common-india'));
       const key = plainKeys(overrides)[0];
-      expect(window.i18next.t(`common:${key}`)).toBe(overrides[key]);
+      expect(i18next.t(`common:${key}`)).toBe(overrides[key]);
     });
   });
 

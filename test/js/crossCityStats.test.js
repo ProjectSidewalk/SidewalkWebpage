@@ -10,7 +10,7 @@
 
 import fs from 'fs';
 import path from 'path';
-import { loadModules, REPO_ROOT } from './loader.js';
+import { loadModules, mockModule, REPO_ROOT } from './loader.js';
 
 /** The subset of dashboard.json this section reads, verbatim, so the tests break if a placeholder is renamed. */
 const STRINGS = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'public/locales/en/dashboard.json'), 'utf8')).cities;
@@ -91,7 +91,7 @@ const payloadOf = (cities, extra = {}) => ({
   ...extra,
 });
 
-window.i18next = i18nextStub;
+mockModule('i18next', () => ({ default: i18nextStub }));
 const { CrossCityStats } = await loadModules('frontend/js/user-dashboard/CrossCityStats.js');
 
 const text = (section, id) => section.querySelector(`#${id}`).textContent;

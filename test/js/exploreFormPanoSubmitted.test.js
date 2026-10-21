@@ -8,8 +8,10 @@
  * response, and stay staged (to ride along with the next submission) on an HTTP error or a network failure.
  */
 
-import { loadModules, useUtil } from './loader.js';
+import { loadModules, mockModule, useUtil } from './loader.js';
 import { fakePanoManager, fakeTaskContainer, fakeTracker } from './fakes.js';
+
+mockModule('i18next', () => ({ default: { language: 'en' } }));
 
 /** A stand-in for a PanoStore pano whose metadata hasn't been submitted yet. */
 function panoStub(panoId) {
@@ -125,11 +127,10 @@ describe('Form pano submission staging', () => {
 
   beforeEach(async () => {
     // Form's collaborators that live on globals rather than constructor args.
-    window.AsyncLock = class { async acquire(key, fn) { return fn(); } };
+    mockModule('async-lock', () => ({ default: class { async acquire(key, fn) { return fn(); } } }));
     tracker = fakeTracker();
-    // The real ones ask the vendored bowser script, which no page here loads.
+    // Fixed values, so the batch's environment block doesn't depend on what jsdom's user agent parses to.
     useUtil({ getBrowser: () => 'chrome', getBrowserVersion: () => '1', getOperatingSystem: () => 'linux' });
-    window.i18next = { language: 'en' };
 
     panos = [panoStub('pano-A'), panoStub('pano-B')];
     labels = [];

@@ -4,6 +4,7 @@
  * and RouteBuilder restores the stash (via consumePendingRoute) so the user lands back in the save flow.
  */
 
+import i18next from 'i18next';
 import { util } from '../common/utilities.js';
 
 export class SaveModal {

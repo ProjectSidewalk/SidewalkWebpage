@@ -11,6 +11,7 @@
  * @property {string} tooltipDesc
  */
 
+import i18next from 'i18next';
 import { BadgeAchievements } from '../../common/BadgeAchievements.js';
 import { ProgressBar } from '../../common/ProgressBar.js';
 import { util } from '../../common/utilities.js';

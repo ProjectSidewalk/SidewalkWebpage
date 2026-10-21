@@ -1,3 +1,4 @@
+import i18next from 'i18next';
 import { util } from '../../common/utilities.js';
 import '../../common/pano-viewer/panoUtilities.js';
 import '../../common/utilitiesSidewalk.js';

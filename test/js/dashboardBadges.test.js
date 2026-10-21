@@ -8,7 +8,10 @@
  * icons, and the units the "N more" line is written in are this file's own and are pinned alongside.
  */
 
-import { loadModules } from './loader.js';
+import { loadModules, mockModule } from './loader.js';
+
+const i18next = { t: (key) => key };
+mockModule('i18next', () => ({ default: i18next }));
 
 // One load, so the BadgeAchievements the tests compare against is the one DashboardBadges renders from.
 const { DashboardBadges, BadgeAchievements } = await loadModules('frontend/js/user-dashboard/DashboardBadges.js',
@@ -45,12 +48,11 @@ describe('DashboardBadges', () => {
   const track = (type) => document.querySelector(`[data-badge-type="${type}"]`);
 
   beforeEach(() => {
-    window.i18next = {t: (key, opts) => (opts ? `${key}|${JSON.stringify(opts)}` : key)};
+    Object.assign(i18next, {t: (key, opts) => (opts ? `${key}|${JSON.stringify(opts)}` : key)});
   });
 
   afterEach(() => {
     document.body.innerHTML = '';
-    delete window.i18next;
   });
 
   test('every track fills to the same fraction the shared badge math reports', () => {

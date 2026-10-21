@@ -11,7 +11,9 @@
  * the reference reports the rect it was given, which is what a geometry test wants anyway.
  */
 
-import { loadModules } from './loader.js';
+import { loadModules, mockModule } from './loader.js';
+
+mockModule('i18next', () => ({ default: { t: (key) => key } }));
 
 const { Toast } = await loadModules('frontend/js/common/Toast.js');
 
@@ -56,7 +58,6 @@ describe('Toast placement', () => {
   beforeEach(() => {
     document.body.innerHTML = '';
     window.innerWidth = VIEWPORT_WIDTH;
-    window.i18next = { t: (key) => key };
   });
 
   afterEach(() => {

@@ -7,7 +7,10 @@
  * 429 body the controller produces, and the rendered error text is asserted.
  */
 
-import { loadModules } from './loader.js';
+import { loadModules, mockModule } from './loader.js';
+
+const i18next = { t: (key) => key };
+mockModule('i18next', () => ({ default: i18next }));
 
 /** The elements StoryComposer's constructor looks up, in a <dialog> host. */
 function setupDom() {
@@ -76,11 +79,11 @@ beforeEach(async () => {
   ({ StoryComposer } = await loadModules('frontend/js/common/label-detail/StoryComposer.js'));
   // #postForm posts through util.lazyIdentityFetch (#4442), which passes a non-auth failure like this suite's 429
   // through unchanged; the mint/retry path has its own suite (lazyIdentityFetch.test.js).
-  window.i18next = {
+  Object.assign(i18next, {
     language: 'en',
     exists: (key) => key in STRINGS,
     t: (key, opts) => (STRINGS[key] || key).replace('{{when}}', (opts && opts.when) || ''),
-  };
+  });
   window.logWebpageActivity = vi.fn();
   window.HTMLDialogElement.prototype.showModal = vi.fn();
   window.HTMLDialogElement.prototype.close = vi.fn();
@@ -131,7 +134,7 @@ describe('the daily-cap message', () => {
   });
 
   test('the phrase is formatted in the reader\'s language', async () => {
-    window.i18next.language = 'es';
+    i18next.language = 'es';
     await submitAndFail({ ...RATE_LIMITED, retry_after_seconds: 3 * 3600 });
     expect(errorText()).toContain('dentro de 3 horas');
   });

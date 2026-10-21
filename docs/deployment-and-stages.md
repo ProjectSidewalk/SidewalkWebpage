@@ -497,7 +497,7 @@ stays relative (the digested copy sits in the original's directory), and a query
 file that exists. In a source stylesheet (`frontend/css/`) that is the file's root-absolute path under `public/`
 (`url("/images/icons/x.svg")`): Vite rewrites it to `/assets/…` (`renderBuiltUrl` in `vite.config.mjs`) in
 `public/build/css/`, which is what the stage then sees, so `make lint-asset-paths` (rule 6) rejects a relative path
-or an `/assets/` prefix there. A vendored stylesheet is served from where it sits, so its `url()`s stay relative.
+or an `/assets/` prefix there, and a library's stylesheet goes through the same build because a module imports it.
 
 Two things about that stage are load-bearing:
 
@@ -507,7 +507,7 @@ Two things about that stage are load-bearing:
   unchanged, year-cached URL pointing at a path the new build lacks.
 - **An unresolvable `url()` fails the build**, like the asset-manifest generator: passing it through means a broken
   reference or an asset silently left on the one-hour cache, neither of which shows up at runtime.
-  `make lint-asset-paths` applies the same rule to `frontend/css/` and `public/vendor/` (rule 5 in
+  `make lint-asset-paths` applies the same rule to `frontend/css/` (rule 5 in
   [`tools/lint/check-asset-paths.mjs`](../tools/lint/check-asset-paths.mjs)), so in practice this fails a fast CI step instead.
   Bundles under `public/build/` are left to the stage, which sees them on disk.
 
@@ -595,7 +595,7 @@ plumbed through both this app's config *and* the deployment tooling, or it will 
 | **Environment / city** | `ENV_TYPE`, `SIDEWALK_CITY_ID`, the media storage directories ([above](#directories-that-must-survive-a-deploy)) |
 | **App secrets** | `SIDEWALK_APPLICATION_SECRET`, `SILHOUETTE_SIGNER_KEY`, `SILHOUETTE_CRYPTER_KEY` |
 | **Email** | `SIDEWALK_EMAIL_ADDRESS`, `SIDEWALK_EMAIL_PASSWORD` |
-| **Imagery / maps** | `GOOGLE_MAPS_API_KEY`, `GOOGLE_MAPS_SECRET`, `MAPBOX_API_KEY`, `MAPILLARY_ACCESS_TOKEN`, Infra3d client id/secret (including per-city credentials) |
+| **Imagery / maps** | `GOOGLE_MAPS_API_KEY`, `GOOGLE_MAPS_SERVER_KEY` (unset or blank falls back to the browser key), `GOOGLE_MAPS_SECRET`, `MAPBOX_API_KEY`, `MAPILLARY_ACCESS_TOKEN`, Infra3d client id/secret (including per-city credentials) |
 | **Other integrations** | `GEMINI_API_KEY`, `SCISTARTER_API_KEY`, `INTERNAL_API_KEY`, `SIDEWALK_AI_API_KEY` (the AI server's password; unset means every AI validation and tag suggestion fails), `GA_SERVICE_ACCOUNT_KEY` (Google Analytics reader — unset just disables the admin traffic reporting) |
 
 > If this table drifts from reality, the authoritative sources are `conf/application.conf` (+ the stage overlays) in

@@ -8,6 +8,8 @@
 
 import { loadModules, mockModule } from './loader.js';
 
+mockModule('i18next', () => ({ default: { t: (key) => key, language: 'en' } }));
+
 // The layer helpers drive a Mapbox map; the counts are what is under test, so they do nothing here.
 mockModule('frontend/js/ps-map/psMapUtilities.js', async (importOriginal) => ({
   ...await importOriginal(),
@@ -125,7 +127,6 @@ describe('MapSidebarFilter counts', () => {
   }
 
   beforeAll(async () => {
-    window.i18next = { t: (key) => key, language: 'en' };
     ({ MapSidebarFilter } = await loadModules('frontend/js/ps-map/MapSidebarFilter.js'));
   });
 

@@ -11,10 +11,12 @@
  * LabelContainer, Form and TaskContainer are loaded as modules and built against the fewest collaborators each needs.
  */
 
-import { loadModules, useUtil } from './loader.js';
+import { loadModules, mockModule, useUtil } from './loader.js';
 import { fakePanoManager, fakeTaskContainer, fakeTracker } from './fakes.js';
 
-// The real ones ask the vendored bowser script, which no page here loads.
+mockModule('i18next', () => ({ default: { language: 'en' } }));
+
+// Fixed values, so the batch's environment block doesn't depend on what jsdom's user agent parses to.
 useUtil({ getBrowser: () => 'chrome', getBrowserVersion: () => '1', getOperatingSystem: () => 'linux' });
 
 /** Stubs fetch to answer every request with `body`, and returns the mock so the URL it was called with can be read. */
@@ -110,8 +112,7 @@ describe('Form.submitData street-priority refresh on a route walk', () => {
   }
 
   beforeEach(() => {
-    window.AsyncLock = class { async acquire(key, fn) { return fn(); } };
-    window.i18next = { language: 'en' };
+    mockModule('async-lock', () => ({ default: class { async acquire(key, fn) { return fn(); } } }));
   });
 
   it('asks for fresh priorities on a region audit once most of the street is walked', async () => {

@@ -2,15 +2,23 @@
  * Test helper: the real Infra3dViewer (over the real PanoViewer base and PanoData), plus the fixtures its suites share.
  */
 
-import { loadModules } from './loader.js';
+import { loadModules, mockModule } from './loader.js';
 
 /**
- * Loads Infra3dViewer fresh, with the vendored proj4 it reaches for as a page global stubbed.
+ * What the viewer gets as its SDK chunk (sdk/infra3d.js): proj4 as a no-op, and whatever `infra3dapi` a suite
+ * installs before it builds a viewer.
+ */
+const infra3dSdk = { infra3dapi: {}, proj4: () => [0, 0] };
+
+/**
+ * Loads Infra3dViewer fresh with its SDK chunk already "fetched", so a suite can bypass create() and still use the SDK.
  * @returns {Promise<Function>} The class.
  */
 async function loadInfra3dViewer() {
-  window.proj4 = () => [0, 0];
-  return (await loadModules('frontend/js/common/pano-viewer/Infra3dViewer.js')).Infra3dViewer;
+  mockModule('frontend/js/common/pano-viewer/sdk/infra3d.js', () => infra3dSdk);
+  const { Infra3dViewer } = await loadModules('frontend/js/common/pano-viewer/Infra3dViewer.js');
+  await Infra3dViewer.preloadLibrary();
+  return Infra3dViewer;
 }
 
 /** A JWT-shaped token whose payload carries only the expiry (base64url, unpadded, like Cognito's). */
@@ -35,4 +43,4 @@ const nodeFor = (id) => ({
   spatialEdges: { cached: true, edges: [] },
 });
 
-export { loadInfra3dViewer, jwtExpiringAt, nodeFor };
+export { infra3dSdk, loadInfra3dViewer, jwtExpiringAt, nodeFor };

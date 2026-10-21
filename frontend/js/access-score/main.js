@@ -5,6 +5,8 @@
  * flowing sidebar → model → map/dock/URL, or dock → map.
  */
 
+import mapboxgl from '../common/mapboxgl.js';
+import i18next from 'i18next';
 import { AccessScoreClusterLayer } from './AccessScoreClusterLayer.js';
 import { AccessScoreClusterSheet } from './AccessScoreClusterSheet.js';
 import { AccessScoreDock } from './AccessScoreDock.js';

@@ -9,6 +9,7 @@
  * @property {boolean} empty - True when the scope holds no audited street.
  */
 
+import i18next from 'i18next';
 import { AccessScoreChart } from './AccessScoreChart.js';
 import { util } from '../common/utilities.js';
 import '../common/utilitiesSidewalk.js';

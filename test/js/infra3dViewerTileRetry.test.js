@@ -3,7 +3,7 @@
  * per download, and the batched TileRetries diagnostic.
  */
 
-import { loadInfra3dViewer, jwtExpiringAt, nodeFor } from './infra3dViewerHarness.js';
+import { infra3dSdk, loadInfra3dViewer, jwtExpiringAt, nodeFor } from './infra3dViewerHarness.js';
 
 const Infra3dViewer = await loadInfra3dViewer();
 
@@ -25,7 +25,7 @@ function fakeSdk({ outcomes = [], withEngine = true } = {}) {
     ...(withEngine ? { _container: { scene: { engine: { requestTexture } } } } : {}),
   };
   const viewer = { _sdk_viewer: sdkViewer, on: () => {}, getCameraView: () => ({ type: 'pano' }) };
-  window.infra3dapi = { init: vi.fn(async () => ({ initViewer: async () => viewer, setTokens: () => {} })) };
+  infra3dSdk.infra3dapi = { init: vi.fn(async () => ({ initViewer: async () => viewer, setTokens: () => {} })) };
   return withEngine ? { requestTexture, engine: sdkViewer._container.scene.engine } : null;
 }
 
@@ -47,7 +47,7 @@ describe('Infra3dViewer image download retries', () => {
   afterEach(() => {
     mount.remove();
     delete window.logWebpageActivity;
-    delete window.infra3dapi;
+    infra3dSdk.infra3dapi = {};
   });
 
   async function createViewer() {

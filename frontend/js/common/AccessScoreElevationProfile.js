@@ -34,6 +34,7 @@
  * @property {number} classIndex - Its slope class, an index into `AccessScoreGradeRamp.classes`.
  */
 
+import i18next from 'i18next';
 import { AccessScoreGradeRamp } from './AccessScoreGradeRamp.js';
 import { util } from './utilities.js';
 import '../../css/components/elevation-profile.css';

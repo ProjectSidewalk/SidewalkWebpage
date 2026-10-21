@@ -11,6 +11,7 @@
  * @property {?number} hover - The hovered feature's score in [0, 1], or null.
  */
 
+import i18next from 'i18next';
 import { ScoreRamp } from '../common/scoreRamp.js';
 import { AccessScoreChart } from './AccessScoreChart.js';
 import { util } from '../common/utilities.js';

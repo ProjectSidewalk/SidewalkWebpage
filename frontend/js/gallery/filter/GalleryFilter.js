@@ -9,6 +9,7 @@
  * The map's adapter (MapSidebarFilter) is the sibling of this class: same controls, a different way to apply them.
  */
 
+import i18next from 'i18next';
 import { FilterSidebar } from '../../common/filter-sidebar/FilterSidebar.js';
 import { LabelDetail } from '../../common/label-detail/LabelDetail.js';
 import { util } from '../../common/utilities.js';

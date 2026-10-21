@@ -3,6 +3,8 @@
  * Handles multiple initialization tasks (i18next, CSRF setup, etc.) and provides callbacks for when the setup is done.
  */
 
+import HttpBackend from 'i18next-http-backend';
+import i18next from 'i18next';
 import { localizeSubtree } from './i18nDom.js';
 import { util } from './utilities.js';
 import './utilitiesMath.js';
@@ -176,7 +178,7 @@ export class AppManager {
     const localeFiles = new Set(params.localeFiles);
     // With no list, every file is skipped and the page silently shows raw keys, so make that loud.
     if (localeFiles.size === 0) console.error('AppManager: no locale files listed, so nothing will be translated');
-    return i18next.use(i18nextHttpBackend).init({
+    return i18next.use(HttpBackend).init({
       backend: {
         // i18next asks for every namespace in every language, but most country overrides exist only in English, so
         // skip the files that aren't there (an empty path loads nothing) rather than request a 404 (#5570). The ones

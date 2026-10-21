@@ -11,12 +11,13 @@ never hides inside another's numbers:
 
 | Project (console name) | Serves | Key restrictions |
 |---|---|---|
-| **Project Sidewalk** | Every production and `-test` stage on `cs.washington.edu` | One browser key, referrer-restricted to the stage hostnames — a new city's hostname must be added or its map and panos fail to load (`make onboard-city` does it; `python3 tools/city/maps_key_referrers.py --check` lists any city missing). Maps JS API + Street View Static API only. |
-| **Project Sidewalk Dev Env** | `localhost:9000` development (`GOOGLE_MAPS_API_KEY` in `docker-compose.override.yml`) | Referrer-restricted to localhost. |
+| **Project Sidewalk** | Every production and `-test` stage on `cs.washington.edu` | One browser key, referrer-restricted to the stage hostnames — a new city's hostname must be added or its map and panos fail to load (`make onboard-city` does it; `python3 tools/city/maps_key_referrers.py --check` lists any city missing). Maps JS API + Street View Static API only. Plus a server key, IP-restricted to makelab1 (which runs every prod and test stage), Street View Static API only. |
+| **Project Sidewalk Dev Env** | `localhost:9000` development (`GOOGLE_MAPS_API_KEY` and `GOOGLE_MAPS_SERVER_KEY` in `docker-compose.override.yml`) | Browser key referrer-restricted to localhost. Server key unrestricted (home IPs change), Street View Static API only; the project's unsigned-request quota for that API is zero, so Static calls must be signed. |
 | **Project Sidewalk CI Env** | Nothing automated, by design: the browser suite stubs Google Maps (#5129), so no CI job carries a real key — the only two jobs that set `GOOGLE_MAPS_API_KEY` (`backend-tests`, `e2e-smoke`) set it to a dummy string, and no other job carries a Google credential at all. Kept as its own project so that any future Google usage from CI has its own numbers rather than production's. | One browser key, referrer-restricted to localhost and scoped to the Maps JS API alone. Separately, **every billable daily quota in the project is set to zero** — that is a project-level control, binding any key here rather than this one in particular. The key is kept as a break-glass way to re-validate the stub against Google's real behavior — which therefore takes two deliberate acts, raise the cap and put it back, and cannot be done by accident. Created 2026-08-03 with phase 2 of #4504, when the suite carried a real key. |
 
-`GOOGLE_MAPS_SECRET` (URL signing for the Street View Static and metadata calls the *server* makes) is a separate
-credential from the same project as the key it signs for.
+Requests the server sends Google itself carry no `Referer`, so they use the server key (`GOOGLE_MAPS_SERVER_KEY`,
+#5647); unset, it falls back to the browser key. URLs a browser loads stay on the browser key. `GOOGLE_MAPS_SECRET`
+signs the server-built URLs; it belongs to the project, so it covers both keys.
 
 ### Which calls cost money
 
@@ -27,7 +28,7 @@ Google bills per SKU with a monthly free cap per SKU, then a per-1,000 rate (pri
 |---|---|---|---|
 | **Dynamic Street View** | Instantiating a `google.maps.StreetViewPanorama` — `GsvViewer.initialize()`, i.e. every Explore, Validate, mobile-Validate, Gallery card, LabelMap popup and admin pano. **The tutorial's custom, locally tiled panos count too**; the SKU is per panorama object, not per tile. | 5,000 | $14 |
 | **Dynamic Maps** | Instantiating a `google.maps.Map`. **Nothing in the app does**: the Explore minimap was the only one, and it is MapLibre GL over OpenStreetMap tiles since #5429; every other map is Mapbox. A non-zero line here means something new is building a Google map. | 10,000 | $7 |
-| **Street View Static** | The server-side `PanoDataService.getImageUrl` crops behind share images, story cards, and the admin/user-profile label previews. | 10,000 | $7 |
+| **Street View Static** | Server-signed stills: Gallery, story cards and admin/user-profile label previews (browser key); share images and AI analysis (server key). | 10,000 | $7 |
 | **Street View Metadata** | `PanoDataService` / `ImageryFreshnessService` polling; the frontend's `StreetViewService.getPanorama` | unlimited | free |
 
 Loading the Maps JS API script itself is not a SKU. Dynamic Street View is the one that matters: it is the most

@@ -5,7 +5,6 @@
 @import models.route.RouteWithStats
 @import models.userdashboard.Trophy
 @import controllers.helper.ControllerUtils.distanceUnitWords
-@import models.pano.PanoSource
 @import play.api.Configuration
 @(commonData: CommonPageData, viewer: SidewalkUserWithRole, user: SidewalkUserWithRole, adminView: Boolean,
     profileData: UserProfileData, isMetric: Boolean, tags: Seq[Tag], standing: Option[UserStanding],
@@ -460,35 +459,15 @@
     </div>
   }
 
-
   @* The label popup, so a mistake card opens into the full label. *@
   @common.labelPopup(admin = adminView)
   @* Second composer instance (#4656), for editing a story straight from the list above; the popup's own instance
      belongs to the card it's inside, and its save would refresh that card rather than this list. *@
   @common.storyComposer("ud-story-composer")
   @ViteAssets.stylesheets("dashboard/dashboard", alreadyLinked = "dashboard/shell")
-  @if(commonData.imagerySource == PanoSource.Infra3d) {
-    <script src='@assets.path("vendor/proj4/proj4-2.22.0.js")'></script>
-    <script src='@assets.path("vendor/infra3d/infra3dapi-1.12.1.js")'></script>
-  } else if (commonData.imagerySource == PanoSource.Mapillary) {
-    <script src='@assets.path("vendor/three/three-0.160.1-min.js")'></script>
-    <script src='@assets.path("vendor/mapillary/mapillary-4.1.2.min.js")'></script>
-    <link href='@assets.path("vendor/mapillary/mapillary-4.1.2.css")' rel="stylesheet">
-  } else if (commonData.imagerySource == PanoSource.Panoramax) {
-    <script src='@assets.path("vendor/photo-sphere-viewer/psv-5.15.1-bundle.min.js")'></script>
-    <link href='@assets.path("vendor/photo-sphere-viewer/psv-5.15.1.css")' rel="stylesheet">
-  }
-  <script src='@assets.path("vendor/pannellum/pannellum-2.5.7.js")'></script>
-  <link rel="stylesheet" href='@assets.path("vendor/pannellum/pannellum-2.5.7.css")'>
-  <script src='@assets.path("vendor/panzoom/panzoom-9.4.4.min.js")'></script>
 
   @* Badge rendering from real counts (BadgeAchievements is the source of truth for thresholds + level names). *@
   @userDashboard._createTeamDialog()
-  @* The contribution map's libraries and styles (the map itself is built by the page entry). *@
-  <link href="@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.css")" rel="stylesheet">
-  <script src="@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.js")"></script>
-  <script src="@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")"></script>
-  <script src="@assets.path("vendor/turf/turf-7.4.0.min.js")"></script>
   <script type="module" id="page-entry" src='@assets.path("build/js/dashboard/dashboard.js")'
           data-imagery-source="@commonData.imagerySource.name"
           data-imagery-access-token="@commonData.imageryAccessToken"

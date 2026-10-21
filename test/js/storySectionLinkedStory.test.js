@@ -7,6 +7,8 @@
 
 import { loadModules, mockModule } from './loader.js';
 
+mockModule('i18next', () => ({ default: { t: (key) => key } }));
+
 let composerCalls;
 
 mockModule('frontend/js/common/label-detail/StoryComposer.js', () => ({
@@ -61,7 +63,6 @@ describe("StorySection's linked-story reveal (#4722)", () => {
   beforeEach(async () => {
     ({ StorySection } = await loadModules('frontend/js/common/label-detail/StorySection.js'));
     composerCalls = { setLabelType: [] };
-    window.i18next = { t: (key) => key };
     window.matchMedia = vi.fn().mockReturnValue({ matches: false }); // No reduced-motion preference.
     window.HTMLElement.prototype.scrollIntoView = vi.fn(); // jsdom doesn't implement it.
     window.logWebpageActivity = vi.fn();

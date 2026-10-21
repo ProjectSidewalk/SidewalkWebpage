@@ -15,6 +15,7 @@
  * metadata, so it costs no request.
  */
 
+import i18next from 'i18next';
 import { util } from '../../common/utilities.js';
 /** @typedef {import('../task/Task.js').Task} Task */
 /** @typedef {import('./PanoManager.js').PanoManager} PanoManager */

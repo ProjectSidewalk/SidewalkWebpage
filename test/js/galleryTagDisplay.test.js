@@ -9,7 +9,10 @@
  * this card's own pills rather than whatever else the document holds.
  */
 
-import { loadModules } from './loader.js';
+import { loadModules, mockModule } from './loader.js';
+
+// A pill's text is also how the stub looks up its width, so the keys come back as plain tag names.
+mockModule('i18next', () => ({ default: {t: (key) => key.replace(/^tag\./, '')} }));
 
 /** Widths the stub reports, in the units the production code compares: CSS px. */
 const HOLDER_WIDTH = 400;
@@ -81,9 +84,6 @@ afterAll(() => {
 });
 
 beforeAll(() => {
-  // The production file translates tag names and the "Tags" header through i18next; identity keeps the test
-  // readable, since a pill's text is also how the stub looks up its width.
-  window.i18next = {t: (key) => key.replace(/^tag\./, '')};
 
   // jsdom implements no layout, and therefore no innerText; the pills set their text through it.
   Object.defineProperty(window.HTMLElement.prototype, 'innerText', {

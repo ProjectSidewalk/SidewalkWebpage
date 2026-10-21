@@ -2,6 +2,7 @@
  * A Card module.
  */
 
+import i18next from 'i18next';
 import { aiLabelIndicator } from '../../common/aiLabelIndicator.js';
 import { createPanoAttribution } from '../../common/pano-viewer/PanoAttribution.js';
 import { createPanoViewerLogo } from '../../common/pano-viewer/PanoViewerLogo.js';

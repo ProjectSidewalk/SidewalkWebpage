@@ -12,11 +12,13 @@
  * Built against fakes of its collaborators, on real turf: the sampler's along-street math is part of what is tested.
  */
 
-import { loadVendored, loadModules } from './loader.js';
+import * as turf from '@turf/turf';
+import { loadModules, mockModule } from './loader.js';
 import { fakeTracker, fakePanoManager, fakeTaskContainer } from './fakes.js';
 
-loadVendored('turf');
-const { turf } = window;
+mockModule('i18next', () => ({
+  default: { t: (key, options) => (options && 'rank' in options ? `${key}#${options.rank}` : key) },
+}));
 
 /** Stands in for a marker made by Minimap.addMarker: records where it is, its options, and whether it was removed. */
 class FakeMarker {
@@ -99,7 +101,6 @@ describe('ForwardCrumbs marker lifecycle', () => {
       getPov: () => ({ heading: 0 }),
     };
     const panoManager = fakePanoManager(viewer);
-    window.i18next = { t: (key, options) => (options && 'rank' in options ? `${key}#${options.rank}` : key) };
     crumbs = new ForwardCrumbs(
       { isOnboarding: false, isExploreAddressMode: false },
       panoManager,

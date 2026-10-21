@@ -10,10 +10,9 @@
  * Runs on real turf.
  */
 
-import { loadVendored, loadModules } from './loader.js';
+import * as turf from '@turf/turf';
+import { loadModules } from './loader.js';
 
-loadVendored('turf');
-const { turf } = window;
 const { PanoManager } = await loadModules('frontend/js/explore/panorama/PanoManager.js');
 
 // A straight ~400 m street running east along one latitude, so "along" is plain metres east of the start.

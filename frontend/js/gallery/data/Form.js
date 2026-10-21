@@ -1,5 +1,6 @@
 /** Packages and submits Gallery interaction logs; the Tracker owns the buffer and decides when to send. */
 
+import i18next from 'i18next';
 import { util } from '../../common/utilities.js';
 
 export class Form {

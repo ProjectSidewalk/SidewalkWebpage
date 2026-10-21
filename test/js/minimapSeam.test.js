@@ -19,6 +19,8 @@
 import { loadModules, mockModule } from './loader.js';
 import { fakeTracker, fakePanoManager } from './fakes.js';
 
+mockModule('i18next', () => ({ default: { t: (key) => key, language: 'pt-BR' } }));
+
 // jsdom has no 2D canvas; the chevron's pixels aren't under test.
 mockModule('frontend/js/explore/navigation/MinimapStyle.js', async (importOriginal) => {
   const actual = await importOriginal();
@@ -229,27 +231,33 @@ const createMinimap = (tilesUrl = ARCHIVE_URL) => Minimap.create(
   { tilesUrl, glyphsUrl: GLYPHS_URL },
 );
 
+/** The stand-ins for MapLibre and pmtiles, as the sources import them; refilled by setUpGlobals. */
+let maplibregl;
+let pmtiles;
+
 /** Loads the sources and the globals they read, against a fresh DOM and a fresh stand-in for MapLibre. */
 async function setUpGlobals(frames) {
   FakeMap.instances = [];
   buildDom();
   window.requestAnimationFrame = (callback) => frames.push(callback);
-  window.i18next = { t: (key) => key, language: 'pt-BR' };
-  window.maplibregl = {
+  maplibregl = {
     Map: FakeMap, Marker: FakeMarker, AttributionControl: FakeAttributionControl, LngLatBounds: FakeLngLatBounds,
-    addProtocol: vi.fn(),
+    addProtocol: vi.fn(), setWorkerUrl: vi.fn(),
   };
-  window.pmtiles = {
+  pmtiles = {
     Protocol: class {
       static options = [];
 
       constructor(options) {
-        window.pmtiles.Protocol.options.push(options);
+        pmtiles.Protocol.options.push(options);
       }
 
       tile() {}
     },
   };
+  mockModule('maplibre-gl', () => maplibregl);
+  mockModule('pmtiles', () => pmtiles);
+  mockModule('maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url', () => ({ default: 'maplibre-gl-worker.js' }));
   tracker = fakeTracker();
   ({ Minimap, MinimapBasemapStyle } = await loadModules('frontend/js/explore/navigation/Minimap.js',
     'frontend/js/explore/navigation/MinimapBasemapStyle.js'));
@@ -341,21 +349,8 @@ describe('Minimap seam', () => {
       .toBe(`pmtiles://${new URL(ARCHIVE_URL, window.location.href).href}`);
     expect(map.options.style.glyphs).toBe(GLYPHS_URL);
     await createMinimap();
-    expect(window.maplibregl.addProtocol.mock.calls.map(([name]) => name)).toEqual(['pmtiles']);
-    expect(window.pmtiles.Protocol.options).toEqual([{ metadata: true }]);
-  });
-
-  test('without the pmtiles script, the map still draws its streets over a plain background', async () => {
-    vi.spyOn(console, 'error').mockImplementation(() => {});
-    delete window.pmtiles;
-    ({ Minimap, MinimapBasemapStyle } = await loadModules('frontend/js/explore/navigation/Minimap.js',
-      'frontend/js/explore/navigation/MinimapBasemapStyle.js'));
-    FakeMap.instances = [];
-    const bare = await createMinimap();
-    expect(bare.isAvailable()).toBe(true);
-    const [bareMap] = FakeMap.instances;
-    expect(bareMap.options.style.layers.map((layer) => layer.id)).toEqual(['background']);
-    expect(bareMap.layers.map((layer) => layer.id)).toContain('street-remaining');
+    expect(maplibregl.addProtocol.mock.calls.map(([name]) => name)).toEqual(['pmtiles']);
+    expect(pmtiles.Protocol.options).toEqual([{ metadata: true }]);
   });
 
   test('a city with no archive yet gets a background-only basemap, and the streets still draw', async () => {
@@ -764,7 +759,7 @@ describe('Minimap without a map', () => {
   const unavailableEvents = () => tracker.push.mock.calls.filter(([name]) => name === 'Minimap_Unavailable');
 
   test('with no WebGL2, creation still resolves, and the minimap says it can\'t draw', async () => {
-    window.maplibregl.Map = class {
+    maplibregl.Map = class {
       constructor() {
         throw new Error('Failed to initialize WebGL');
       }
@@ -779,7 +774,7 @@ describe('Minimap without a map', () => {
   });
 
   test('callers keep working against it without special cases, and nothing is queued for a map', async () => {
-    window.maplibregl.Map = class {
+    maplibregl.Map = class {
       constructor() {
         throw new Error('Failed to initialize WebGL');
       }
@@ -804,7 +799,7 @@ describe('Minimap without a map', () => {
   });
 
   test('a failure after the map exists takes the map and its credits down with it', async () => {
-    window.maplibregl.Map = class extends FakeMap {
+    maplibregl.Map = class extends FakeMap {
       addImage() {
         throw new Error('WebGL context lost');
       }
@@ -819,13 +814,4 @@ describe('Minimap without a map', () => {
     expect(unavailableEvents()).toEqual([['Minimap_Unavailable', { error: 'WebGL context lost' }]]);
   });
 
-  test('with no MapLibre loaded and no preload link to import it from, the reason names the link', async () => {
-    delete window.maplibregl;
-
-    const minimap = await createMinimap();
-
-    expect(minimap.isAvailable()).toBe(false);
-    const [[, { error }]] = unavailableEvents();
-    expect(error).toContain('#maplibre-module');
-  });
 });

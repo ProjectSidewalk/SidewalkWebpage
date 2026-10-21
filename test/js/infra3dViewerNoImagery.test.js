@@ -47,9 +47,10 @@ describe('Infra3dViewer.setLocation rejections', () => {
   let NoImageryError;
 
   beforeAll(async () => {
-    window.proj4 = () => [0, 0];
+    mockModule('frontend/js/common/pano-viewer/sdk/infra3d.js', () => ({ infra3dapi: {}, proj4: () => [0, 0] }));
     ({ Infra3dViewer, NoImageryError } = await loadModules('frontend/js/common/pano-viewer/Infra3dViewer.js',
       'frontend/js/common/pano-viewer/NoImageryError.js'));
+    await Infra3dViewer.preloadLibrary();
   });
 
   /**

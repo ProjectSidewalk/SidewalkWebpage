@@ -6,7 +6,11 @@
  * and that the cities map wires the selector its popup template actually uses.
  */
 
-import { loadModules } from './loader.js';
+import { loadModules, mockModule } from './loader.js';
+
+mockModule('i18next', () => ({ default: {
+  t: (key, opts) => (key === 'common:format-number' ? String(opts.val) : key),
+} }));
 
 /** Mirrors the link in app/views/common/cityPopupTemplate.scala.html. */
 const POPUP_TEMPLATE = `
@@ -22,6 +26,10 @@ const POPUP_TEMPLATE = `
     </div>
   </template>
   <div id="cities-map"></div>`;
+
+// What the helpers get as mapbox-gl: a double the cities-map suite fills in.
+const mapboxgl = {};
+mockModule('frontend/js/common/mapboxgl.js', () => ({ default: mapboxgl }));
 
 const loadMapHelpers = () =>
   loadModules('frontend/js/ps-map/psMapUtilities.js', 'frontend/js/ps-map/addCitiesToMap.js');
@@ -93,10 +101,7 @@ describe('logPopupLinkClicks', () => {
 
   describe('on the cities map', () => {
     beforeEach(() => {
-      vi.stubGlobal('i18next', {
-        t: (key, opts) => (key === 'common:format-number' ? String(opts.val) : key),
-      });
-      vi.stubGlobal('mapboxgl', { Popup: FakePopup, LngLatBounds: FakeLngLatBounds });
+      Object.assign(mapboxgl, { Popup: FakePopup, LngLatBounds: FakeLngLatBounds });
       const stats = { km_explored: 1, labels: { count: 2 }, validations: { combined: { total_validations: 3 } } };
       vi.stubGlobal('fetch', vi.fn(() => Promise.resolve({ ok: true, status: 200, json: async () => stats })));
     });

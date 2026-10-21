@@ -2,7 +2,6 @@
 @import models.user.{Role, SidewalkUserWithRole}
 @import play.api.Configuration
 @import service.CommonPageData
-@import models.pano.PanoSource
 @import models.label.Tag
 @import models.gallery.GallerySort
 @import controllers.GalleryController
@@ -23,20 +22,6 @@
 
 @common.main(commonData, title, i18Namespaces = Seq("common", "gallery", "labelmap"),
   pageMeta = service.PageMeta(description = Some(Messages("seo.description.gallery", currentCity.cityNameShort)))) {
-  @if(commonData.imagerySource == PanoSource.Infra3d) {
-    <script src='@assets.path("vendor/proj4/proj4-2.22.0.js")'></script>
-    <script src='@assets.path("vendor/infra3d/infra3dapi-1.12.1.js")'></script>
-  } else if (commonData.imagerySource == PanoSource.Mapillary) {
-  <script src='@assets.path("vendor/three/three-0.160.1-min.js")'></script>
-  <script src='@assets.path("vendor/mapillary/mapillary-4.1.2.min.js")'></script>
-  <link href='@assets.path("vendor/mapillary/mapillary-4.1.2.css")' rel="stylesheet">
-  } else if (commonData.imagerySource == PanoSource.Panoramax) {
-  <script src='@assets.path("vendor/photo-sphere-viewer/psv-5.15.1-bundle.min.js")'></script>
-  <link href='@assets.path("vendor/photo-sphere-viewer/psv-5.15.1.css")' rel="stylesheet">
-  }
-  <script src='@assets.path("vendor/pannellum/pannellum-2.5.7.js")'></script>
-  <link rel="stylesheet" href='@assets.path("vendor/pannellum/pannellum-2.5.7.css")'>
-  <script src='@assets.path("vendor/panzoom/panzoom-9.4.4.min.js")'></script>
   <div id="page-loading">
     <img id="loading-animation" src='@assets.path("videos/ProjectSidewalk_LoadingAnimation_WithArmMovement_Medium.webp")' alt='@Messages("loading")'>
   </div>

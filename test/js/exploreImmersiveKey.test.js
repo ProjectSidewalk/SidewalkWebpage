@@ -6,8 +6,10 @@
  * cover Space and the mode letters.
  */
 
-import { loadModules } from './loader.js';
+import { loadModules, mockModule } from './loader.js';
 import { fakeGate, fakeTracker } from './fakes.js';
+
+mockModule('i18next', () => ({ default: { t: (key) => key } }));
 
 describe('Explore F shortcut for immersive mode', () => {
   let contextMenuOpen;
@@ -15,7 +17,6 @@ describe('Explore F shortcut for immersive mode', () => {
   const immersiveMode = { toggle: vi.fn() };
 
   beforeAll(async () => {
-    window.i18next = { t: (key) => key };
     const { KeyboardManager } = await loadModules('frontend/js/explore/keyboard/KeyboardManager.js');
     contextMenuOpen = false;
     // One instance for the file: the constructor adds window listeners that are never removed.

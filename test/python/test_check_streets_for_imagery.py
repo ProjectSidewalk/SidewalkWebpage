@@ -1117,6 +1117,12 @@ def test_finalize_outputs_without_checkpoint_writes_empty(tmp_path):
 _CITY = 'testville-wa'
 
 
+@pytest.fixture(autouse=True)
+def _no_real_server_key(monkeypatch):
+    """Keeps the container's real key out of every test, and out of any URL a failing assertion prints."""
+    monkeypatch.delenv('GOOGLE_MAPS_SERVER_KEY', raising=False)
+
+
 def _write_street_csv(directory, streets):
     rows = []
     for street_edge_id, region_id, line in streets:
@@ -1167,6 +1173,17 @@ def test_main_rejects_both_flags():
 def test_main_missing_api_key_returns_1(monkeypatch):
     monkeypatch.delenv('GOOGLE_MAPS_API_KEY', raising=False)
     assert cs.main(['--city-id', _CITY, '--gsv']) == 1
+
+
+@pytest.mark.parametrize('server_key, expected_key', [('server', 'server'), ('', 'dummy'), (None, 'dummy')])
+def test_main_gsv_prefers_the_server_key(monkeypatch, tmp_path, server_key, expected_key):
+    _setup(monkeypatch, tmp_path, [(200, 1, _LINE_61)])
+    if server_key is not None:
+        monkeypatch.setenv('GOOGLE_MAPS_SERVER_KEY', server_key)
+    urls = []
+    monkeypatch.setattr(cs, '_get_json', lambda url: urls.append(url) or {'status': 'ZERO_RESULTS'})
+    assert cs.main(['--city-id', _CITY, '--gsv', '--max-qps', '1000']) == 0
+    assert urls and all(f'&key={expected_key}&' in url for url in urls)
 
 
 def test_main_missing_input_csv_returns_1(monkeypatch, tmp_path):

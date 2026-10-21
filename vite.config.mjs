@@ -35,7 +35,19 @@ export default defineConfig(({ mode }) => ({
     manifest: 'manifest.json',
     // The map carries the sources: they live outside public/, so the server has nothing else to point at.
     sourcemap: true,
+    // mapbox-gl and the imagery SDKs are each well over the default 500 kB on their own, Infra3d's at 9 MB (#5734); the
+    // sizes are known and printed with every build, so the warning would only repeat itself.
+    chunkSizeWarningLimit: 10000,
     rolldownOptions: {
+      /**
+       * Infra3d's SDK uses direct `eval`, which is theirs to fix and would otherwise be reported six times per rebuild.
+       * @param {{code?: string, id?: string}} warning
+       * @param {(warning: object) => void} warn
+       */
+      onwarn(warning, warn) {
+        if (warning.code === 'EVAL' && warning.id?.includes('/node_modules/@inovitas/')) return;
+        warn(warning);
+      },
       input: Object.fromEntries(
         pages.map(file => [path.relative('frontend/js/pages', file).replace(/\.js$/, ''), file])
       ),

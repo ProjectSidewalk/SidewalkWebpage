@@ -16,6 +16,32 @@ updates:
       interval: monthly
     open-pull-requests-limit: 5
     groups:
+      # The imagery viewers (proj4 is only Infra3d's) and the minimap's map library (#5734): CI never drives a pano or
+      # the minimap, so a broken minor would merge green, and dependency-auto-merge.yml leaves both groups to a person.
+      # Dependabot takes the first group that matches.
+      npm-imagery:
+        patterns:
+          - "mapillary-js"
+          - "pannellum"
+          - "@inovitas/infra3dapi"
+          - "@photo-sphere-viewer/*"
+          - "three"
+          - "maplibre-gl"
+          - "pmtiles"
+          - "proj4"
+      # A group covers version updates only unless it says so; without this one, the same packages' security updates
+      # would arrive ungrouped and auto-merge.
+      npm-imagery-security:
+        applies-to: security-updates
+        patterns:
+          - "mapillary-js"
+          - "pannellum"
+          - "@inovitas/infra3dapi"
+          - "@photo-sphere-viewer/*"
+          - "three"
+          - "maplibre-gl"
+          - "pmtiles"
+          - "proj4"
       npm-patch-minor:
         patterns: ["*"]
         update-types: ["patch", "minor"]
@@ -60,6 +86,9 @@ updates:
       # A TypeScript major changes what `make lint-js-types` reports.
       - dependency-name: "typescript"
         update-types: ["version-update:semver-major"]
+      # Held below 3.25 on purpose; docs/upgrading-libraries.md says why. Patches within 3.24 still come through.
+      - dependency-name: "mapbox-gl"
+        update-types: ["version-update:semver-minor", "version-update:semver-major"]
 
   - package-ecosystem: github-actions
     directory: "/"

@@ -4,6 +4,7 @@
  * modules react to it; the street's bookkeeping is StreetProgress's, and the search for imagery StreetSweep's.
  */
 
+import i18next from 'i18next';
 import { Gate } from '../../common/Gate.js';
 import { NoImageryFlagGuard } from '../panorama/NoImageryFlagGuard.js';
 import { util } from '../../common/utilities.js';

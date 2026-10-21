@@ -8,16 +8,14 @@
  * `isResumed()` guard, and each guard is a place where over-reaching would break a fresh street instead — so the
  * fresh-street behavior is pinned beside every one of them.
  *
- * Real vendored turf and the real `util.math.haversine` for the geometry cases: the questions are about distance
+ * Real turf and the real `util.math.haversine` for the geometry cases: the questions are about distance
  * along real street geometry, and a stub that got it slightly wrong would pass for the wrong reason.
  */
 
-import { loadVendored, loadModules } from './loader.js';
+import * as turf from '@turf/turf';
+import { loadModules, mockModule, unmockModule } from './loader.js';
 import { fakeTracker } from './fakes.js';
 
-// Loaded once, up front: the fixtures below are built while the suite is collected, before any beforeEach runs.
-loadVendored('turf');
-const turf = window.turf;
 
 const STREET_START = [-77.02, 38.9];
 const STREET_LENGTH_M = 200;
@@ -78,7 +76,6 @@ describe('Task resumed from an earlier session', () => {
   const makeTask = (geojson) => new Task(geojson, {}, false, resumeAt(geojson.properties));
 
   beforeEach(async () => {
-    window.turf = turf;
     ({ Task } = await loadModules('frontend/js/explore/task/Task.js'));
   });
 
@@ -177,7 +174,8 @@ describe('TaskContainer handing out a part-walked street', () => {
 
   beforeEach(async () => {
     // Only the two turf calls nextTask itself makes; the geometry questions are covered above against real turf.
-    window.turf = { point: (coords) => ({ type: 'Point', coordinates: coords }), pointToLineDistance: () => 0 };
+    mockModule('@turf/turf',
+      () => ({ point: (coords) => ({ type: 'Point', coordinates: coords }), pointToLineDistance: () => 0 }));
     tracker = fakeTracker();
     const { TaskContainer } = await loadModules('frontend/js/explore/task/TaskContainer.js');
     container = new TaskContainer(finishedTask(), {}, { isRoute: false }, { setStreetLines: vi.fn() }, {}, {},
@@ -267,6 +265,8 @@ describe('TaskContainer handing out a part-walked street', () => {
 });
 
 describe('TaskContainer.fetchTasks', () => {
+  beforeAll(() => unmockModule('@turf/turf'));
+
   const openStreet = straightStreet(STREET_START, STREET_LENGTH_M);
   const freshStreet = straightStreet([-77.05, 38.95], STREET_LENGTH_M);
   const stopped = pointAlong(openStreet[0], openStreet[1], WALKED_M);
@@ -274,7 +274,6 @@ describe('TaskContainer.fetchTasks', () => {
   let container;
 
   beforeEach(async () => {
-    window.turf = turf;
     const { Task, TaskContainer } = await loadModules('frontend/js/explore/task/Task.js',
       'frontend/js/explore/task/TaskContainer.js');
 

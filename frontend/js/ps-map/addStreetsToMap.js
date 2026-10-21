@@ -1,3 +1,5 @@
+import mapboxgl from '../common/mapboxgl.js';
+import i18next from 'i18next';
 import { StreetReauditCard } from './StreetReauditCard.js';
 import { logPopupLinkClicks, streetLineWidth } from './psMapUtilities.js';
 

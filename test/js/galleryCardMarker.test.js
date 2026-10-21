@@ -10,6 +10,8 @@
 
 import { loadModules, mockModule } from './loader.js';
 
+mockModule('i18next', () => ({ default: { t: (key) => key, language: 'en' } }));
+
 /** What the source-logo and licence-line stubs were last told: the card owes a credit on a crop and nothing else. */
 const credit = { logo: null, attribution: null };
 
@@ -72,7 +74,6 @@ describe('a Gallery card\'s label marker', () => {
   }
 
   beforeAll(async () => {
-    window.i18next = { t: (key) => key, language: 'en' };
     ({ Card } = await loadModules('frontend/js/gallery/cards/Card.js'));
   });
 

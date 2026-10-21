@@ -11,6 +11,11 @@
 import { loadModules, mockModule } from './loader.js';
 import { fakeTracker } from './fakes.js';
 
+mockModule('i18next', () => ({ default: {
+  language: 'en',
+  t: (key, opts) => (opts ? `${key}|${opts.lastMapped}|${opts.newImagery}` : key),
+} }));
+
 const toast = { show: vi.fn() };
 mockModule('frontend/js/common/Toast.js', () => ({ Toast: toast }));
 
@@ -36,10 +41,6 @@ describe('ReauditNotice.showForTask', () => {
   beforeEach(() => {
     tracker = fakeTracker();
     toast.show = vi.fn();
-    window.i18next = {
-      language: 'en',
-      t: (key, opts) => (opts ? `${key}|${opts.lastMapped}|${opts.newImagery}` : key),
-    };
     document.body.innerHTML = '<div id="pano"></div>';
   });
 

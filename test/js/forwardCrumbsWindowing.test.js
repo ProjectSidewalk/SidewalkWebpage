@@ -7,10 +7,9 @@
  * not a stub: the along-line and offset measurements are the thing being pinned.
  */
 
-import { loadVendored, loadModules } from './loader.js';
+import * as turf from '@turf/turf';
+import { loadModules } from './loader.js';
 
-loadVendored('turf');
-const { turf } = window;
 const { ForwardCrumbs } = await loadModules('frontend/js/explore/navigation/ForwardCrumbs.js');
 
 // A straight ~500 m street running east along one latitude, so "along" is unambiguous and offsets are northward.

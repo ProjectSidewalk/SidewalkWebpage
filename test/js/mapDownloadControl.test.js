@@ -7,7 +7,10 @@
  * download anchor URLs, the post-click busy state, and activity logging.
  */
 
-import { loadModules } from './loader.js';
+import { loadModules, mockModule } from './loader.js';
+
+const i18next = { t: (key) => key };
+mockModule('i18next', () => ({ default: i18next }));
 
 async function loadControl() {
   return (await loadModules('frontend/js/ps-map/MapDownloadControl.js')).MapDownloadControl;
@@ -176,7 +179,7 @@ describe('MapDownloadControl panel', () => {
     MapDownloadControl = await loadControl();
     window.logWebpageActivity = vi.fn();
     // Locale-independent count line: render the key with the interpolated count.
-    window.i18next = { t: (key, opts) => `${key}[${opts?.count}]` };
+    Object.assign(i18next, { t: (key, opts) => `${key}[${opts?.count}]` });
     anchorClicks = [];
     vi.spyOn(window.HTMLAnchorElement.prototype, 'click').mockImplementation(function () {
       anchorClicks.push(this.getAttribute('href'));
@@ -187,7 +190,6 @@ describe('MapDownloadControl panel', () => {
 
   afterEach(() => {
     delete window.logWebpageActivity;
-    delete window.i18next;
     delete window.fetch;
   });
 

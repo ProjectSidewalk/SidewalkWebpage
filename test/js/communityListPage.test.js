@@ -6,6 +6,9 @@
 
 import { loadModules, mockModule } from './loader.js';
 
+const i18next = { t: (key) => key };
+mockModule('i18next', () => ({ default: i18next }));
+
 // RouteListPage confirms a copy with a toast; the suite only checks that it asked for one.
 const toast = { show: vi.fn(), CONFIRMATION_MS: 0 };
 mockModule('frontend/js/common/Toast.js', () => ({ Toast: toast }));
@@ -376,19 +379,16 @@ describe('StoryListPage', () => {
       // the app configures i18next — values verbatim unless the call asks for escaping — so a share string
       // that wrongly opted into it would ship visible entities here too, not just in production.
       const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/'/g, '&#39;');
-      window.i18next = {
+      Object.assign(i18next, {
         t: (key, opts) => {
           if (!opts || opts.excerpt === undefined) return key;
           const escapes = opts.interpolation && opts.interpolation.escapeValue === true;
           return `shared:${escapes ? esc(opts.excerpt) : opts.excerpt}`;
         },
-      };
+      });
       window.matchMedia = vi.fn().mockReturnValue({ matches: false }); // jsdom has none; act as desktop.
     }
 
-    afterEach(() => {
-      delete window.i18next;
-    });
 
     test('each story card grows a footer share chip pointed at its story-anchored permalink', () => {
       setupDom(storyCard({ id: '7', storyId: '42', text: 'Snow piles up here all winter.' }));
@@ -470,7 +470,7 @@ describe('RouteListPage', () => {
       value: { writeText: vi.fn() },
     });
     toast.show = vi.fn();
-    window.i18next = { t: (key) => key };
+    Object.assign(i18next, { t: (key) => key });
   });
 
   function routeCardWithActions({ id, slug = '' }) {

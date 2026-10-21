@@ -4,6 +4,8 @@
  *  region's progress, and distance/label totals for the region.
  */
 
+import * as turf from '@turf/turf';
+import i18next from 'i18next';
 import { BadgeAchievements } from '../../common/BadgeAchievements.js';
 import { util } from '../../common/utilities.js';
 import { RegionProgressBar } from '../sidebar/RegionProgressBar.js';
@@ -264,7 +266,9 @@ export class ModalMissionComplete {
       } else {
         coordinates = task.getFeature().geometry.coordinates;
       }
-      return { type: 'Feature', geometry: { type: 'LineString', coordinates } };
+      return /** @type {GeoJSON.Feature<GeoJSON.LineString>} */ ({
+        type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates },
+      });
     });
 
     // Previous-missions tier: streets the user finished outside this mission, plus the earlier-completed portion of
@@ -273,6 +277,7 @@ export class ModalMissionComplete {
     const partialCurrentTask = missionTasks.find((task) => !task.isComplete() && task.getMissionStart(missionId));
     if (partialCurrentTask) userCompletedTasks.push(partialCurrentTask);
 
+    /** @type {GeoJSON.Feature<GeoJSON.LineString>[]} */
     const previousFeatures = [];
     for (const task of userCompletedTasks) {
       const missionIndex = missionStreetIds.indexOf(task.getStreetEdgeId());
@@ -289,7 +294,7 @@ export class ModalMissionComplete {
         // Only draw the earlier portion if it's more than a few meters (otherwise it's just the mission start).
         if (distFromStart > 0.003) {
           const coordinates = missionStreet.getSubsetOfCoordinates(streetStart, missionStart);
-          previousFeatures.push({ type: 'Feature', geometry: { type: 'LineString', coordinates } });
+          previousFeatures.push({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates } });
         }
       }
     }
@@ -317,7 +322,7 @@ export class ModalMissionComplete {
    * turf.lineSlice/cleanCoords collapses the segment to a single point or nothing. Mapbox then throws deep in its
    * tiler ("Cannot read properties of null (reading 'x')") and the failure bubbles up into a page reload; filtering
    * those degenerate features out here keeps them out of the source entirely. (#4204)
-   * @param {?GeoJSON.Feature} feature - A GeoJSON Feature, or null/undefined.
+   * @param {?GeoJSON.Feature<GeoJSON.LineString>} feature - A GeoJSON Feature, or null/undefined.
    * @returns {boolean} True if the feature is a LineString with at least two finite [lng, lat] coordinates.
    */
   #isDrawableLine(feature) {

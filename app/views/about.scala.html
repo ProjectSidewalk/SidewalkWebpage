@@ -177,15 +177,10 @@
       <div class="about-container">
         <h2>@Messages("about.where.title")</h2>
         <p class="about-section-intro">@Html(Messages("about.where.body", cityCount, countryCount))</p>
-        @* The deployment map the landing page and /cities already share. aboutPage.js pulls mapbox-gl and the ps-map
-           bundle in only once this section nears the viewport, so a reader who stops at the impact stories never
-           downloads a megabyte of mapping libraries; the asset URLs ride on data attributes because Play fingerprints
-           them and only the template can resolve one. *@
-        <div class="about-map" id="about-deployment-map"
-             data-mapbox-api-key="@commonData.mapboxApiKey"
-             data-mapbox-js='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.js")'
-             data-mapbox-language-js='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")'
-             data-mapbox-css='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.css")'></div>
+        @* The deployment map the landing page and /cities already share. aboutPage.js pulls the mapping code in only
+           once this section nears the viewport, so a reader who stops at the impact stories never downloads a
+           megabyte of mapping libraries. *@
+        <div class="about-map" id="about-deployment-map" data-mapbox-api-key="@commonData.mapboxApiKey"></div>
         <p class="about-where-links">@Html(Messages("about.where.links"))</p>
       </div>
       @common.cityPopupTemplate()

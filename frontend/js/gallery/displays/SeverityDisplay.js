@@ -2,6 +2,7 @@
  * An object that creates a display for the severity.
  */
 
+import i18next from 'i18next';
 import { util } from '../../common/utilities.js';
 import '../../common/utilitiesSidewalk.js';
 

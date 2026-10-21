@@ -13,6 +13,7 @@
  */
 
 import { loadModules, mockModule } from './loader.js';
+import { FakeLngLatBounds } from './lngLatBoundsStub.js';
 
 /** Chart calls, recorded instead of drawn. */
 const charts = [];
@@ -20,17 +21,21 @@ const charts = [];
 mockModule('frontend/js/admin-dashboard/MiniLineChart.js', () => ({
   MiniLineChart: { renderInto: (host, labels, series, options) => charts.push({ host, labels, series, options }) },
 }));
+// What the page gets as mapbox-gl: a double each test refills through stubMapbox().
+const mapboxgl = {};
+mockModule('frontend/js/common/mapboxgl.js', () => ({ default: mapboxgl }));
 const { ImageryPage } = await loadModules('frontend/js/admin-dashboard/ImageryPage.js');
 
 /** Mapbox GL cannot run under jsdom; this records what the map was told and fires 'load' immediately. */
 function stubMapbox() {
   const state = { featureStates: [], handlers: [] };
-  window.mapboxgl = {
+  Object.assign(mapboxgl, {
     accessToken: null,
+    LngLatBounds: FakeLngLatBounds,
     Map: class {
       constructor(options) {
-        // Mapbox rejects a non-finite bounds box, which is what a FeatureCollection with no features produces.
-        if (!options.bounds.flat().every(Number.isFinite)) throw new Error('Invalid LngLat object');
+        // Mapbox rejects empty bounds, which is what a FeatureCollection with no features produces.
+        if (options.bounds.isEmpty()) throw new Error('Invalid LngLat object');
         state.options = options;
       }
 
@@ -59,7 +64,7 @@ function stubMapbox() {
       remove() { return this; }
     },
     NavigationControl: class {},
-  };
+  });
   return state;
 }
 
@@ -188,9 +193,6 @@ const streetRows = () => [...document.querySelectorAll('#imagery-street-table tb
 
 beforeEach(() => { vi.spyOn(Date, 'now').mockReturnValue(NOW); });
 
-afterEach(() => {
-  delete window.mapboxgl;
-});
 
 describe('ImageryPage KPIs', () => {
   test('counts re-audits with the site-wide flag, so the number matches Overview and Coverage', async () => {
@@ -591,7 +593,7 @@ describe('ImageryPage loading states', () => {
   });
 
   test('keeps the tables when no geometry matched, rather than handing Mapbox an empty bounds box', async () => {
-    // A bounds box built from no features is a box of infinities, which takes the whole page down on construction.
+    // Bounds built from no features are empty, which takes the whole page down on construction.
     await renderPage({ features: geojson([9999]) });
     expect(text('imagery-status')).toContain('the map is empty');
     expect(regionRows()).toHaveLength(2);
@@ -621,7 +623,7 @@ describe('ImageryPage join', () => {
     const { mapState } = await renderPage({ streets: [CITY[0]], features: geojson([1, 2, 3]) });
     // The GeoJSON carries every street including retired ones; only the priority rows say what is routable, so a
     // retired street joined in would render as "never audited, highest priority".
-    expect(mapState.options.bounds).toEqual([[-122.31, 47.6], [-122.3, 47.61]]);
+    expect(mapState.options.bounds.toArray()).toEqual([[-122.31, 47.6], [-122.3, 47.61]]);
   });
 
   test('stamps the tier onto the rows the tables and roll-ups read, not only onto the map features', async () => {

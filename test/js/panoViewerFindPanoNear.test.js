@@ -13,7 +13,8 @@
 
 import fs from 'fs';
 import path from 'path';
-import { loadVendored, loadModules, REPO_ROOT } from './loader.js';
+import * as turf from '@turf/turf';
+import { loadModules, REPO_ROOT } from './loader.js';
 
 const SRC_DIR = 'frontend/js/common/pano-viewer';
 
@@ -23,10 +24,6 @@ const scoringConfig = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'conf/pano
 document.documentElement.dataset.panoScoring = JSON.stringify(
   Object.fromEntries(Object.entries(scoringConfig).filter(([key]) => !key.startsWith('_'))),
 );
-loadVendored('turf');
-
-const { turf } = window;
-
 /**
  * Loads one provider fresh, with the PanoViewer base it extends.
  * @param {string} name - The provider class to load, e.g. 'GsvViewer'.

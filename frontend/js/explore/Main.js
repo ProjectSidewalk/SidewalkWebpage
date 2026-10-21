@@ -2,6 +2,7 @@
  * Builds Explore's modules in one place, so every dependency is visible, then starts the first mission or tutorial.
  */
 
+import i18next from 'i18next';
 import { ImmersiveMode } from '../common/ImmersiveMode.js';
 import { Gate } from '../common/Gate.js';
 import { LabelCardView } from '../common/LabelCardView.js';

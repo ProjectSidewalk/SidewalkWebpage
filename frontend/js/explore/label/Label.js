@@ -3,6 +3,8 @@
  * Its hover card belongs to Canvas, which draws it from the label's properties.
  */
 
+import * as turf from '@turf/turf';
+import i18next from 'i18next';
 import { util } from '../../common/utilities.js';
 import '../../common/pano-viewer/panoUtilities.js';
 import '../../common/utilitiesSidewalk.js';

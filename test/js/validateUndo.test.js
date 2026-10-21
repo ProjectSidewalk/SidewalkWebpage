@@ -7,8 +7,10 @@
  * different module, so these suites drive the real button, container and mission together.
  */
 
-import { loadModules } from './loader.js';
+import { loadModules, mockModule } from './loader.js';
 import { fakeTracker } from './fakes.js';
+
+mockModule('i18next', () => ({ default: { t: (key) => key } }));
 
 const TAGS_BY_TYPE = {
   Obstacle: [{ tag_name: 'pole' }],
@@ -26,7 +28,6 @@ let UndoValidation;
 let MissionContainer;
 
 beforeAll(async () => {
-  window.i18next = { t: (key) => key };
   ({ LabelContainer, UndoValidation, MissionContainer } = await loadModules(
     'frontend/js/validate/label/LabelContainer.js',
     'frontend/js/validate/menu/UndoValidation.js',

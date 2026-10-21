@@ -13,6 +13,8 @@
 import { loadModules, mockModule } from './loader.js';
 import { fakeTracker } from './fakes.js';
 
+mockModule('i18next', () => ({ default: { t: (key) => key } }));
+
 const toast = { show: vi.fn() };
 mockModule('frontend/js/common/Toast.js', () => ({ Toast: toast }));
 
@@ -58,7 +60,6 @@ describe('ImmersiveMode', () => {
     tracker = fakeTracker();
     relayout = vi.fn();
     toast.show = vi.fn();
-    window.i18next = { t: (key) => key };
     contextMenu = { isOpen: vi.fn(() => false), hide: vi.fn() };
     canvas = { showLabelHoverInfo: vi.fn() };
     frame = { width: 720, height: 480 };

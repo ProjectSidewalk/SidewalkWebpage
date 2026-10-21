@@ -9,6 +9,7 @@
  * @property {{position: {left: string, top: string}}} labelOnImage - Where the callout sits, in EXAMPLE_PHOTO's frame.
  */
 
+import i18next from 'i18next';
 import { util } from './utilities.js';
 import '../../css/components/mission-start-tutorial.css';
 

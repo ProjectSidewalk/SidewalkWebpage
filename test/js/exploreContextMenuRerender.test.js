@@ -16,9 +16,11 @@
  * about the panel through onChange, as Canvas subscribes in production.
  */
 
-import { loadModules, useUtil } from './loader.js';
+import { loadModules, mockModule, useUtil } from './loader.js';
 import { makeContextMenuUi } from './contextMenuUiStub.js';
 import { fakeGate, fakeTracker } from './fakes.js';
+
+mockModule('i18next', () => ({ default: { t: (key) => key } }));
 
 /** The label a menu opens for. Only the getters show()/hide() actually call are present. */
 function makeLabel({ labelType = 'CurbRamp' } = {}) {
@@ -43,7 +45,6 @@ describe('ContextMenu repaints the canvas when the panel opens and closes', () =
 
   beforeEach(async () => {
     renders = [];
-    window.i18next = { t: (key) => key };
 
     canvas = {
       clear: vi.fn(() => canvas),

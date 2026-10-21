@@ -1,6 +1,6 @@
 /**
  * Loads frontend/js source files into jsdom for the unit suites. The module registry is reset per load so state can't
- * leak between tests; a suite names the module (`mockModule`) or the `util` member (`useUtil`) it wants replaced.
+ * leak between tests; a suite names the module or package (`mockModule`) or `util` member (`useUtil`) to replace.
  */
 
 import fs from 'fs';
@@ -15,7 +15,13 @@ const UTILITIES = 'frontend/js/common/utilities.js';
 /** @returns {string} The absolute path of a repo-relative (or already absolute) one. */
 const abs = (p) => (path.isAbsolute(p) ? p : path.join(REPO_ROOT, p));
 
-/** The factories registered with `mockModule`, by absolute path, re-registered on every load. */
+/**
+ * @param {string} p - A repo-relative path, or an npm package's name (`'mapbox-gl'`, `'@turf/turf'`).
+ * @returns {string} What to hand Vitest's mock registry: the file's absolute path, or the package name as is.
+ */
+const specifier = (p) => (path.isAbsolute(p) || fs.existsSync(path.join(REPO_ROOT, p)) ? abs(p) : p);
+
+/** The factories registered with `mockModule`, by specifier, re-registered on every load. */
 const mocks = new Map();
 
 /**
@@ -43,23 +49,24 @@ export async function loadModules(...paths) {
 }
 
 /**
- * Replaces a source module with a fake for whatever `loadModules` loads next.
- * @param {string} relativePath - Repo-relative path, e.g. "frontend/js/common/Toast.js".
+ * Replaces a source module, or an npm package, with a fake for whatever `loadModules` loads next.
+ * @param {string} module - Repo-relative path, e.g. "frontend/js/common/Toast.js", or a package name, e.g.
+ *   "i18next" (whose fake is then the module namespace: `{ default: { t: (key) => key } }`).
  * @param {(importOriginal: () => Promise<object>) => object | Promise<object>} factory - Builds the fake's exports;
  *   spread `await importOriginal()` to keep the ones it doesn't replace.
  */
-export function mockModule(relativePath, factory) {
-  mocks.set(abs(relativePath), factory);
-  vi.doMock(abs(relativePath), factory);
+export function mockModule(module, factory) {
+  mocks.set(specifier(module), factory);
+  vi.doMock(specifier(module), factory);
 }
 
 /**
- * Undoes `mockModule`, so later loads get the real file again.
- * @param {string} relativePath - The path given to `mockModule`.
+ * Undoes `mockModule`, so later loads get the real module again.
+ * @param {string} module - The path or package name given to `mockModule`.
  */
-export function unmockModule(relativePath) {
-  mocks.delete(abs(relativePath));
-  vi.doUnmock(abs(relativePath));
+export function unmockModule(module) {
+  mocks.delete(specifier(module));
+  vi.doUnmock(specifier(module));
 }
 
 /** The members a suite put on `util` with `useUtil`, keyed as given. */
@@ -154,15 +161,3 @@ vi.doMock(abs(UTILITIES), async (importOriginal) => {
   }
   return mod;
 });
-
-/**
- * Runs a vendored library into the page the way its <script> tag does, since not every bundle is UMD
- * (i18next-http-backend is a plain `var x = …` script). Found by folder, since the filename carries the version.
- * @param {string} folder - The library's folder under public/vendor/, e.g. "i18next".
- */
-export function loadVendored(folder) {
-  const dir = path.join(REPO_ROOT, 'public/vendor', folder);
-  const bundle = fs.readdirSync(dir).find((name) => name.endsWith('.js'));
-  if (!bundle) throw new Error(`no bundle in ${dir}`);
-  window.eval(fs.readFileSync(path.join(dir, bundle), 'utf8'));
-}

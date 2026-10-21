@@ -1,3 +1,7 @@
+import Bowser from 'bowser';
+import DOMPurify from 'dompurify';
+import i18next from 'i18next';
+
 export const util = {};
 
 // Some constants that are used across the site.
@@ -341,10 +345,9 @@ util.placePopover = function (popover, anchor, gapPx = 6) {
   popover.style.top = `${below + height + 8 > window.innerHeight && above >= 8 ? above : below}px`;
 };
 
-// Browser detection helpers backed by Bowser 2.x. The vendor script loads deferred (this file does not), so the
-// parser must be built lazily: every caller runs at DOMContentLoaded or later, by which point bowser exists.
+// Browser detection helpers backed by Bowser 2.x.
 let _bowserParser;
-const bowserParser = () => (_bowserParser ??= bowser.getParser(window.navigator.userAgent));
+const bowserParser = () => (_bowserParser ??= Bowser.getParser(window.navigator.userAgent));
 util.getBrowserName = () => bowserParser().getBrowserName();
 util.getBrowser = () => util.getBrowserName();
 util.getBrowserVersion = () => bowserParser().getBrowserVersion();
@@ -369,8 +372,11 @@ util.isMobile = () => document.documentElement.dataset.mobileDevice === 'true';
 // {{unitAbbr}} / {{unitName}} / {{unitNameSingular}} interpolation defaults' (both set up in AppManager).
 util.isMetric = () => document.documentElement.dataset.measurementSystem === 'metric';
 
-// The unit name turf.js expects for distance/length options. A turf argument, not display text — turf only accepts its
-// own English identifiers, so this must never be routed through a translation.
+/**
+ * The unit name turf.js expects for distance/length options. A turf argument, not display text: turf only accepts its
+ * own English identifiers, so this must never be routed through a translation.
+ * @returns {'kilometers'|'miles'}
+ */
 util.turfDistanceUnits = () => (util.isMetric() ? 'kilometers' : 'miles');
 
 /**
@@ -762,29 +768,6 @@ export function onFirstInteractionOrIdle(fn, fallbackMs = 5000) {
 util.onFirstInteractionOrIdle = onFirstInteractionOrIdle;
 
 /**
- * Injects scripts that fetch in parallel but execute in insertion order.
- *
- * Dynamically created scripts default to async, so a dependent bundle can run before its dependencies exist. Setting
- * `async = false` restores ordered execution without serializing the downloads — what `defer` does for scripts that
- * were in the markup at parse time. Pair with util.afterLoadIdle to pull a heavy, below-the-fold bundle in after load.
- *
- * @param {string[]} srcs - Script URLs, in the order they must execute.
- * @returns {Promise} Resolves once all of them have run; rejects on the first that fails to load.
- */
-function loadScriptsInOrder(srcs) {
-  return Promise.all(srcs.map((src) => new Promise((resolve, reject) => {
-    const script = document.createElement('script');
-    script.src = src;
-    script.async = false;
-    script.onload = resolve;
-    script.onerror = () => reject(new Error(`failed to load ${src}`));
-    document.head.appendChild(script);
-  })));
-}
-
-util.loadScriptsInOrder = loadScriptsInOrder;
-
-/**
  * Runs a lazy `import()`, reloading the page once if it fails: a tab opened before a deploy asks for chunk names the
  * new build no longer has.
  *
@@ -856,7 +839,6 @@ const PURIFY_OPTIONS = {
   ADD_TAGS: ['tag-underline'],
   ADD_ATTR: ['target'],
   FORBID_TAGS: ['style', 'form', 'input', 'textarea', 'select', 'button'],
-  RETURN_DOM_FRAGMENT: true,
 };
 
 /**
@@ -866,8 +848,9 @@ const PURIFY_OPTIONS = {
  * @returns {DocumentFragment} Nodes to append; never re-serialize them, since parsing twice can change their meaning.
  */
 util.sanitizeHtml = function (html, options = {}) {
-  const fragment = DOMPurify.sanitize(String(html ?? ''), { ...PURIFY_OPTIONS, ...options });
+  const fragment = DOMPurify.sanitize(String(html ?? ''), { ...PURIFY_OPTIONS, ...options, RETURN_DOM_FRAGMENT: true });
   // A page opened in a new tab must not get a handle back to this one.
-  for (const link of fragment.querySelectorAll('a[target]')) link.relList.add('noopener');
+  const links = /** @type {NodeListOf<HTMLAnchorElement>} */ (fragment.querySelectorAll('a[target]'));
+  for (const link of links) link.relList.add('noopener');
   return fragment;
 };

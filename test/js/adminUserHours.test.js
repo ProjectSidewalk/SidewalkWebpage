@@ -8,9 +8,10 @@
  * placeholder reads as "zero hours" to an admin verifying a claim.
  */
 
-import { loadModules } from './loader.js';
+import { loadModules, mockModule } from './loader.js';
 
-window.i18next = { language: 'en' };
+mockModule('i18next', () => ({ default: { language: 'en' } }));
+
 const { AdminUser } = await loadModules('frontend/js/user-dashboard/AdminUser.js');
 
 /** The stats section of adminUser.scala.html, trimmed to what the hours code touches. */

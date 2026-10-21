@@ -7,7 +7,7 @@
         import-street-imagery export-street-gradient-input street-gradient import-street-gradient \
         export-osm-lineage-input osm-lineage import-osm-lineage \
         reveal-or-hide-regions \
-        lint lint-fix lint-evolutions lint-locales lint-css-layout lint-asset-paths lint-vendor-versions lint-js-types \
+        lint lint-fix lint-evolutions lint-locales lint-css-layout lint-asset-paths lint-js-types \
         lint-spec-base lint-shellcheck shellcheck \
         scalafmt scalafmt-fix compile test-scala clean-dist \
         eslint htmlhint stylelint eslint-fix stylelint-fix \
@@ -155,7 +155,7 @@ lint:
 	@printf "$(BOLD)Linting %s$(RESET)\n" "$(container-dir)"
 	@fail=0; \
 	for t in lint-eslint lint-htmlhint lint-stylelint lint-locales lint-css-layout lint-asset-paths \
-			lint-vendor-versions lint-js-types lint-spec-base lint-evolutions lint-shellcheck; do \
+			lint-js-types lint-spec-base lint-evolutions lint-shellcheck; do \
 		if $(MAKE) --no-print-directory $$t; then \
 			printf "$(GREEN)✓ %s passed$(RESET)\n" "$$t"; \
 		else \
@@ -427,15 +427,6 @@ lint-asset-paths:
 	@echo "Checking asset paths...";
 	@docker exec $(web-container) bash -lc "cd $(container-dir) && node tools/lint/check-asset-paths.mjs"
 	@echo "Finished checking asset paths";
-
-# Self-hosted libraries in public/vendor/ (#4399): every folder is listed in docs/upgrading-libraries.md, and the
-# versions there match the ones in the filenames. No Dependabot ecosystem watches that folder, so that doc is the
-# only inventory these libraries have, and it's hand-copied. Pure node, run in the web container so node is
-# present. Also a blocking CI step.
-lint-vendor-versions:
-	@echo "Checking vendor versions...";
-	@docker exec $(web-container) bash -lc "cd $(container-dir) && node tools/lint/check-vendor-versions.mjs"
-	@echo "Finished checking vendor versions";
 
 # Type-checks frontend/js/ from its JSDoc with TypeScript (#5278). Also a blocking CI step.
 lint-js-types:

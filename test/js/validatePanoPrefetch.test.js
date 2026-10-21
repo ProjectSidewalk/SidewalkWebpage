@@ -15,6 +15,8 @@ import { loadModules, mockModule } from './loader.js';
 import { fakeTracker } from './fakes.js';
 import { FakeLabel, fakeLabelContainerDeps, buildLabelContainer } from './support/labelContainerHarness.js';
 
+mockModule('i18next', () => ({ default: { t: vi.fn((key) => key) } }));
+
 mockModule('frontend/js/validate/label/Label.js', () => ({Label: FakeLabel}));
 
 /** @type {Function} The LabelContainer class under test. */
@@ -35,7 +37,6 @@ describe('LabelContainer prefetches upcoming backup panos (issue #5562)', () => 
   ];
 
   beforeEach(async () => {
-    window.i18next = { t: vi.fn((key) => key) };
     const el = () => document.createElement('div');
     deps = fakeLabelContainerDeps({
       tracker: fakeTracker(),
