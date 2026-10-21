@@ -1,12 +1,12 @@
 package controllers.api
 
 import org.apache.pekko.stream.Materializer
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
+import util.SidewalkSpec
 
 /**
  * Contract tests for the Region API endpoints.
@@ -20,14 +20,14 @@ import play.api.test.Helpers._
  *
  * Requires a Postgres+PostGIS database (via DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD env).
  */
-class RegionApiSpec extends PlaySpec with GuiceOneAppPerSuite {
+class RegionApiSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule]
       .build()
 
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   private val tinyBbox = "bbox=0,0,0.001,0.001"
 
@@ -88,6 +88,8 @@ class RegionApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       bytes.take(15).utf8String mustBe "SQLite format 3"
       bytes.containsSlice(org.apache.pekko.util.ByteString("outdated_distance_m")) mustBe true
       bytes.containsSlice(org.apache.pekko.util.ByteString("audited_distance_m")) mustBe true
+      bytes.containsSlice(org.apache.pekko.util.ByteString("first_label_date")) mustBe true // #5273
+      bytes.containsSlice(org.apache.pekko.util.ByteString("first_label_time")) mustBe false
     }
   }
 
@@ -111,8 +113,12 @@ class RegionApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       httpStatus match {
         case 200 =>
           contentType(resp) mustBe Some("application/json")
-          // The region object should have at minimum a region_id field.
-          (contentAsJson(resp) \ "region_id").asOpt[Int] mustBe defined
+          // A GeoJSON Feature, matching how /v3/api/regions represents a region.
+          val json = contentAsJson(resp)
+          (json \ "type").as[String] mustBe "Feature"
+          (json \ "geometry" \ "type").asOpt[String] mustBe defined
+          (json \ "properties" \ "region_id").asOpt[Int] mustBe defined
+          (json \ "properties" \ "label_count").as[Int] must be > 0
 
         case 404 =>
           // Must use the standard RFC 7807 problem+json envelope, NOT an ad-hoc Json.obj (#3931).

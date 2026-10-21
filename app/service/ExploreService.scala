@@ -1,59 +1,85 @@
 package service
 
 import com.google.inject.ImplementedBy
-import formats.json.ExploreFormats._
-import models.audit._
-import models.label.{Tag, _}
+import formats.json.ExploreFormats.*
+import models.audit.*
+import models.label.{Tag, *}
+import models.utils.CommonUtils.UiSource
 import models.mission.{Mission, MissionTable, MissionType}
-import models.pano.PanoSource.PanoSource
-import models.pano._
+import models.pano.*
 import models.region.{Region, RegionCompletionTable, RegionTable}
-import models.route._
-import models.street._
+import models.route.*
+import models.street.*
 import models.survey.{SurveyQuestionTable, SurveyQuestionWithOptions}
 import models.user.SidewalkUserTable.aiUserId
-import models.user._
-import models.utils.MyPostgresProfile.api._
-import models.utils.{ConfigTable, MyPostgresProfile, WebpageActivityTable}
+import models.user.*
+import models.utils.MyPostgresProfile.api.*
+import models.utils.{IpAddress, MyPostgresProfile, WebpageActivityTable}
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory, Point, PrecisionModel}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+import play.api.libs.json.JsValue
 import play.api.{Configuration, Logger}
 
 import java.time.format.DateTimeFormatter
 import java.time.{LocalDate, OffsetDateTime, ZoneOffset}
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.control.NoStackTrace
 
+/**
+ * An Explore session as the page starts it: the task to walk, the mission it counts toward, and where it sits.
+ *
+ * @param routeUnavailable Whether a route the visit would have been in was dropped, so the page tells the user rather
+ *                         than passing the visit off as an ordinary session. Either a ?routeId= named no live route
+ *                         (#5156), or the walk's route has no walkable distance and so yields no mission (#5167).
+ * @param regionFinished   Whether the ?regionId= asked for was already finished, so the user was moved (#5692).
+ */
 case class ExplorePageData(
     task: Option[NewTask],
     mission: Mission,
     region: Region,
     userRoute: Option[UserRoute],
     route: Option[Route],
+    routeResumed: Boolean,
+    routeUnavailable: Boolean,
+    regionFinished: Boolean,
     hasCompletedAMission: Boolean,
-    nextTempLabelId: Int,
-    surveyData: Seq[SurveyQuestionWithOptions],
-    tutorialStreetId: Int,
-    makeCrops: Boolean
+    nextTempLabelId: Int
 )
 
 /** Core facts about a label inserted during an Explore submission, for post-submission side effects (AI, SciStarter). */
 case class NewLabelData(
     labelId: Int,
     temporaryLabelId: Int,
-    labelType: LabelTypeEnum.Base,
+    labelType: LabelType,
     panoSource: PanoSource,
     tutorial: Boolean,
     timeCreated: OffsetDateTime
 )
+
+/** @param coveredRanges The task's coverage with this submission merged in (#5733); None for a regular audit. */
 case class ExploreTaskPostReturnValue(
     auditTaskId: Int,
     mission: Option[Mission],
     newLabels: Seq[NewLabelData],
     updatedStreets: Option[UpdatedStreets],
-    refreshPage: Boolean
+    refreshPage: Boolean,
+    coveredRanges: Option[Seq[CoveredRange]] = None
 )
 case class UpdatedStreets(lastPriorityUpdateTime: OffsetDateTime, updatedStreetPriorities: Seq[StreetEdgePriority])
+
+/**
+ * Outcome of route-walk setup for an Explore session: the walk to use (if any) and whether it pre-existed.
+ *
+ * @param routeUnavailable Whether a ?routeId= was supplied that names no live route, so the request was dropped
+ *                         (#5156). The page tells the user rather than passing them off as an ordinary session.
+ */
+case class RouteWalkSetup(walk: Option[UserRoute], resumed: Boolean, routeUnavailable: Boolean = false)
+
+/** The user has explored every street in every region, so there is nowhere left to start a session (#5693). */
+class AllRegionsFinishedException(userId: String)
+    extends Exception(s"User $userId has no region left to explore.")
+    with NoStackTrace
 
 /**
  * Companion object with constants that are shared throughout codebase.
@@ -62,18 +88,16 @@ object ExploreService {
   // Max distance from a searched point to the nearest open street for an exploreAddress session (#4451). Beyond this,
   // the caller falls back to the normal explore flow rather than dropping the user somewhere unrelated.
   val exploreAddressMaxDistM: Double = 500d
-
-  // Fraction of a street a free-exploration session must cover — beyond where it dropped in — before the street counts
-  // as audited (#4451). A normal audit completes when the client gets within 25m of the endpoint, which is a proximity
-  // test rather than a fraction, so no single fraction reproduces it — 25m is ~88% of a 200m street but only ~75% of a
-  // 100m one (streets much longer than 250m imply a slightly higher fraction, where the few-meter difference is
-  // immaterial). 0.9 sits at the strict end of that band: completing a street credits the user its full length, so
-  // under-crediting a session costs a user nothing while over-crediting corrupts city-wide coverage.
-  val streetWalkedThreshold: Double = 0.9d
 }
 
 @ImplementedBy(classOf[ExploreServiceImpl])
 trait ExploreService {
+
+  /**
+   * Gets the task, mission, region and route an Explore visit starts in.
+   *
+   * @return None if the user has explored every street in every region (#5693).
+   */
   def getDataForExplorePage(
       userId: String,
       retakingTutorial: Boolean,
@@ -82,7 +106,7 @@ trait ExploreService {
       resumeRoute: Boolean,
       regionId: Option[Int],
       streetEdgeId: Option[Int]
-  ): Future[ExplorePageData]
+  ): Future[Option[ExplorePageData]]
 
   /**
    * Gets data for an address-drop-in Explore session at the given lat/lng under an exploreAddress mission (#4451).
@@ -90,6 +114,7 @@ trait ExploreService {
    * @return None if no street is within range of the point (caller should fall back to the normal explore flow).
    */
   def getDataForExploreAddressPage(userId: String, lat: Double, lng: Double): Future[Option[ExplorePageData]]
+  def listSurveyQuestions: Future[Seq[SurveyQuestionWithOptions]]
   def selectTasksInARegion(regionId: Int, userId: String): Future[Seq[NewTask]]
   def insertEnvironment(env: AuditTaskEnvironment): Future[Int]
   def insertMultipleInteractions(interactions: Seq[AuditTaskInteraction]): Future[Unit]
@@ -108,14 +133,12 @@ trait ExploreService {
   def insertComment(comment: AuditTaskComment): Future[Int]
 
   /**
-   * Logs to the street_edge_issue table and, for regular audit missions, marks the task as complete as if it were
-   * completed normally. For exploreAddress missions only the issue is logged — the task never completes (#4451).
-   * @param taskSubmission The audit task associated with the imagery issue
+   * Logs a labeler's report of missing imagery to the street_edge_issue table. Evidence only: the task stays
+   * incomplete and the street keeps its priority, whatever the mission type (#4918, #4922).
    * @param streetIssue The StreetIssue object to submit
-   * @param missionId The mission_id for the task
    * @return The number of rows added to the street_edge_issue table (should always be 1)
    */
-  def insertNoImagery(taskSubmission: TaskSubmission, streetIssue: StreetEdgeIssue, missionId: Int): Future[Int]
+  def insertNoImagery(streetIssue: StreetEdgeIssue): Future[Int]
 
   /**
    * Inserts a set of AI-generated labels into the database, filling in appropriate tables with dummy data.
@@ -146,14 +169,13 @@ trait ExploreService {
    * @param ipAddress IP address of the user submitting the survey.
    * @param data Data submitted from the survey.
    */
-  def submitSurvey(userId: String, ipAddress: String, data: Seq[SurveySingleSubmission]): Future[Seq[Int]]
+  def submitSurvey(userId: String, ipAddress: IpAddress, data: Seq[SurveySingleSubmission]): Future[Seq[Int]]
 }
 
 @Singleton
 class ExploreServiceImpl @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
     val config: Configuration,
-    configTable: ConfigTable,
     missionService: MissionService,
     regionTable: RegionTable,
     labelTable: LabelTable,
@@ -163,6 +185,7 @@ class ExploreServiceImpl @Inject() (
     routeTable: RouteTable,
     userRouteTable: UserRouteTable,
     labelService: LabelService,
+    labelEditService: LabelEditService,
     auditTaskTable: AuditTaskTable,
     auditTaskEnvironmentTable: AuditTaskEnvironmentTable,
     auditTaskInteractionTable: AuditTaskInteractionTable,
@@ -180,14 +203,14 @@ class ExploreServiceImpl @Inject() (
     webpageActivityTable: WebpageActivityTable,
     surveyQuestionTable: SurveyQuestionTable,
     userSurveyOptionSubmissionTable: UserSurveyOptionSubmissionTable,
-    userSurveyTextSubmissionTable: UserSurveyTextSubmissionTable,
-    implicit val ec: ExecutionContext
-) extends ExploreService
+    userSurveyTextSubmissionTable: UserSurveyTextSubmissionTable
+)(using ec: ExecutionContext)
+    extends ExploreService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   private val logger = Logger(this.getClass)
   // SRID 4326 is baked into the factory so points it creates match label_point.geom's lat/lng coordinate system.
-  val gf: GeometryFactory = new GeometryFactory(new PrecisionModel(), 4326)
+  val gf: GeometryFactory = GeometryFactory(PrecisionModel(), 4326)
 
   def getDataForExplorePage(
       userId: String,
@@ -197,88 +220,144 @@ class ExploreServiceImpl @Inject() (
       resumeRoute: Boolean,
       regionId: Option[Int],
       streetEdgeId: Option[Int]
-  ): Future[ExplorePageData] = {
+  ): Future[Option[ExplorePageData]] = {
     def getExploreDataAction = for {
       // Check if user has an active route or create a new one if routeId was supplied. If resumeRoute is false and no
-      // routeId was supplied, then the function should return None and the user is not sent on a specific route.
-      // However, region or street id params take precedence.
-      userRoute: Option[UserRoute] <-
+      // routeId was supplied, then the function should return None and the user is not sent on a specific route. A
+      // routeId naming no live route is dropped and flagged for the page (#5156). Region or street id params take
+      // precedence over all of it, and pause any active route: the page strips those params from the URL, so a
+      // still-active route would otherwise pull the user into its region on their next reload (#5437).
+      routeSetup: RouteWalkSetup <-
         if (regionId.isEmpty && streetEdgeId.isEmpty) {
           setUpPossibleUserRoute(routeId, userId, resumeRoute)
         } else {
-          DBIO.successful(None)
+          setUpPossibleUserRoute(routeId = None, userId, resumeRoute = false)
         }
+      userRoute = routeSetup.walk
       routeOption: Option[Route] <- userRoute
         .map(ur => routeTable.getRoute(ur.routeId))
         .getOrElse(DBIO.successful(None))
 
       // Get the appropriate region the user is going to explore, and update their user_current_region entry.
-      currRegion: Option[Region] <- userCurrentRegionTable.getCurrentRegion(userId)
-      region: Option[Region]     <- {
+      currRegion: Option[Region]                        <- userCurrentRegionTable.getCurrentRegion(userId)
+      (region: Option[Region], regionFinished: Boolean) <- {
         (streetEdgeId, regionId, routeOption, newRegion, currRegion) match {
           // If user is exploring a specific street, get the region associated with that street and assign it to them.
           case (Some(streetId), _, _, _, _) =>
             streetEdgeRegionTable.getNonDeletedRegionFromStreetId(streetId).flatMap {
-              case Some(region) => userCurrentRegionTable.insertOrUpdate(userId, region.regionId).map(_ => Some(region))
-              case None         =>
-                logger.error(
-                  s"Either there is no region associated with street edge $streetId, or it is not a valid id."
+              case Some(region) =>
+                for {
+                  _ <- userCurrentRegionTable.insertOrUpdate(userId, region.regionId)
+                  _ <- closeMissionIfRegionFinished(userId, region.regionId)
+                } yield (Some(region), false)
+              case None =>
+                DBIO.failed(
+                  new NoSuchElementException(s"Either street edge $streetId has no region, or it is not a valid id.")
                 )
-                DBIO.successful(None)
             }
-          // If user is exploring a specific region, assign it to them.
+          // If user is exploring a specific region, assign it to them, unless they've already finished it (#5692).
           case (_, Some(r), _, _, _) =>
             regionTable.getRegion(r).flatMap {
-              case Some(region) => userCurrentRegionTable.insertOrUpdate(userId, region.regionId).map(_ => Some(region))
-              case None         =>
-                logger.error(s"Tried to explore region $r, but there is no neighborhood with that id.")
-                DBIO.successful(None)
+              case Some(region) =>
+                isTaskAvailable(userId, r).flatMap {
+                  case true  => userCurrentRegionTable.insertOrUpdate(userId, r).map(_ => (Some(region), false))
+                  case false => assignRegion(userId).map((_, true))
+                }
+              case None =>
+                logger.warn(s"Tried to explore region $r, but there is no region with that id; picking another.")
+                assignRegion(userId).map((_, false))
             }
-          // If user is on a route, assign them to the region associated with the route.
+          // If user is on a route, assign them to the region the route starts in. The route may run on into other
+          // regions (#3488); nothing on a walk is scoped by this one — the tasks come from the route's streets and
+          // region_completion is credited per street — so it serves as the page's region, the region the walk's
+          // mission is filed under, and where the user carries on exploring once the walk ends.
           case (_, _, Some(route), _, _) =>
-            userCurrentRegionTable.insertOrUpdate(userId, route.regionId).flatMap(rId => regionTable.getRegion(rId))
+            userCurrentRegionTable
+              .insertOrUpdate(userId, route.regionId)
+              .flatMap(rId => regionTable.getRegion(rId))
+              .flatMap {
+                case Some(region) => DBIO.successful((Some(region), false))
+                case None => DBIO.failed(new NoSuchElementException(s"Route ${route.routeId}'s region is gone."))
+              }
           // If we aren't trying to do anything special and user already has a region assigned, use that region.
           case (_, _, _, false, Some(r)) =>
             isTaskAvailable(userId, r.regionId).flatMap {
-              case true  => DBIO.successful(currRegion)
-              case false => assignRegion(userId)
+              case true  => DBIO.successful((currRegion, false))
+              case false => assignRegion(userId).map((_, false))
             }
           // If we aren't trying to do anything special and the user has no region assigned, assign one to them.
-          case _ => assignRegion(userId)
+          case _ => assignRegion(userId).map((_, false))
         }
       }
-      // TODO we should throw some error here so that the user knows if a region wasn't found.
-      _             = if (region.isEmpty) logger.error(s"Could not find region for $userId!!")
-      regionId: Int = region.get.regionId
+      // A tutorial retake needs no streets left, so it runs in the user's last region.
+      startRegion: Region <- (if (retakingTutorial) region.orElse(currRegion) else region) match {
+        case Some(r) => DBIO.successful(r)
+        case None    => DBIO.failed(AllRegionsFinishedException(userId))
+      }
+      regionId: Int = startRegion.regionId
 
-      mission: Mission <- {
-        if (retakingTutorial) missionService.resumeOrCreateNewAuditOnboardingMission(userId).map(_.get)
-        else {
-          missionService.resumeOrCreateNewAuditMission(userId, regionId, userRoute).flatMap {
-            case Some(m) => DBIO.successful(m)
-            // A route with no distance left yields no route-scoped mission. Rather than 500 the page, drop the
-            // user into a normal region session in the route's region.
-            case None => missionService.resumeOrCreateNewAuditMission(userId, regionId, None).map(_.get)
-          }
+      // A walk whose route measures zero length (a degenerate street geom, #4670) gets no route-scoped mission, and
+      // there is no route left to walk anyway. It is dropped for this request exactly like an unresolvable
+      // ?routeId= (#5156): the page is told, and it stops claiming to be in a route whose mission it doesn't have
+      // (#5167). The walk is paused too, since setUpPossibleUserRoute left it active, and an active walk would be
+      // re-picked — and the toast re-shown — by every bare /explore after this one. Pausing rather than discarding
+      // keeps the one-way door reserved for ?resumeRoute=false (#4833). Only this walk can still be active here:
+      // setUpPossibleUserRoute paused every other one before resuming or creating it. The session then runs in the
+      // route's start region, or in a freshly picked one if the user has nothing left there.
+      (mission: Mission, walkDropped: Boolean, sessionRegion: Region) <- {
+        if (retakingTutorial) {
+          missionService.resumeOrCreateNewAuditOnboardingMission(userId).map(m => (m.get, false, startRegion))
+        } else {
+          missionService
+            .resumeOrCreateNewAuditMission(userId, regionId, userRoute, revisitStreetId = streetEdgeId)
+            .flatMap {
+              case Some(m)                     => DBIO.successful((m, false, startRegion))
+              case None if userRoute.isDefined =>
+                logger.warn(
+                  s"Route ${userRoute.get.routeId} (walk ${userRoute.get.userRouteId}) has no walkable distance for " +
+                    s"user $userId; dropping the walk and pausing it."
+                )
+                for {
+                  _        <- userRouteTable.pauseAllActiveRoutes(userId)
+                  fallback <- regionFallbackAfterDroppedWalk(userId, startRegion)
+                } yield (fallback._1, true, fallback._2)
+              // Work was left, but none a mission can be sized from: the only streets left are zero length (#4670).
+              case None =>
+                missionInFreshRegion(userId, s"region $regionId had only zero-length streets left")
+                  .map((m, newRegion) => (m, false, newRegion))
+            }
         }
       }
+      sessionRegionId: Int             = sessionRegion.regionId
+      liveUserRoute: Option[UserRoute] = if (walkDropped) None else userRoute
+      liveRoute: Option[Route]         = if (walkDropped) None else routeOption
 
       // If there is a partially completed task in this route or mission, get that, o/w make a new one.
       task: Option[NewTask] <- {
         if (mission.missionType == MissionType.AuditOnboarding) {
           auditTaskTable.getATutorialTask(mission.missionId).map(Some(_))
         } else if (streetEdgeId.isDefined) {
-          auditTaskTable.selectANewTask(streetEdgeId.get, mission.missionId).map(Some(_))
-        } else if (routeOption.isDefined) {
-          userRouteTable.getRouteTask(userRoute.get, mission.missionId)
+          auditTaskTable.selectANewTask(streetEdgeId.get, userId, mission.missionId).map(Some(_))
+        } else if (liveRoute.isDefined) {
+          userRouteTable.getRouteTask(liveUserRoute.get, mission.missionId)
         } else if (mission.currentAuditTaskId.isDefined) {
-          // If we find no task with the given ID, try to get any new task in the neighborhood.
-          auditTaskTable.selectTaskFromTaskId(mission.currentAuditTaskId.get).flatMap { currTask =>
-            if (currTask.isDefined) DBIO.successful(currTask)
-            else auditTaskTable.selectANewTaskInARegion(regionId, userId, mission.missionId)
+          // If we find no task with the given ID, try to get any new task in the region. A task the labeler has
+          // just reported for missing imagery is passed over the same way: the report leaves it incomplete (#4922),
+          // so resuming it would hand back the street whose imagery would not load, on this load and every reload
+          // after it. The street keeps its place in the pool for the offline checker to settle (#4918); this only
+          // declines to serve it to the labeler who just bounced off it.
+          // AuditTaskTable.resumableTasksForUser holds a second copy of this same no-imagery test, for the next-street
+          // pick (#5370). Nothing links them, so a change to what counts as a give-up has to be made in both places.
+          auditTaskTable.selectTaskFromTaskId(mission.currentAuditTaskId.get, userId).flatMap {
+            case Some(currTask) =>
+              streetEdgeIssueTable.reportedNoImagerySince(currTask.edgeId, userId, currTask.taskStart).flatMap {
+                case true  => auditTaskTable.selectANewTaskInARegion(sessionRegionId, userId, mission.missionId)
+                case false => DBIO.successful(Some(currTask))
+              }
+            case None => auditTaskTable.selectANewTaskInARegion(sessionRegionId, userId, mission.missionId)
           }
         } else {
-          auditTaskTable.selectANewTaskInARegion(regionId, userId, mission.missionId)
+          auditTaskTable.selectANewTaskInARegion(sessionRegionId, userId, mission.missionId)
         }
       }
       nextTempLabelId: Int <- labelTable.nextTempLabelId(userId)
@@ -301,22 +380,30 @@ class ExploreServiceImpl @Inject() (
 
       // Check if they've already completed an explore mission. Used to suggest Validate/Explore missions on front-end.
       hasCompletedAMission: Boolean <- missionTable.countCompletedMissions(userId, MissionType.Audit).map(_ > 0)
-
-      surveyData: Seq[SurveyQuestionWithOptions] <- surveyQuestionTable.listAllWithOptions
-      tutorialStreetId: Int                      <- configTable.getTutorialStreetId
-      makeCrops: Boolean                         <- configTable.getMakeCrops
     } yield {
       // The tutorial takes over the whole session, so a resumable route must not surface mid-tutorial: shipping its
       // id flips the client into route mode and draws the route over the tutorial map (#4816). Only the page payload
       // is suppressed — the walk stays active, so it resumes on the post-tutorial reload of /explore. (An explicit
       // ?routeId= still sets a walk up above, since that is the user asking for one; it just waits for them.)
       val (pageUserRoute, pageRoute) =
-        if (updatedMission.missionType == MissionType.AuditOnboarding) (None, None) else (userRoute, routeOption)
-      ExplorePageData(task, updatedMission, region.get, pageUserRoute, pageRoute, hasCompletedAMission, nextTempLabelId,
-        surveyData, tutorialStreetId, makeCrops)
+        if (updatedMission.missionType == MissionType.AuditOnboarding) (None, None) else (liveUserRoute, liveRoute)
+      ExplorePageData(
+        task,
+        updatedMission,
+        sessionRegion,
+        pageUserRoute,
+        pageRoute,
+        routeResumed = pageUserRoute.isDefined && routeSetup.resumed,
+        routeUnavailable = routeSetup.routeUnavailable || walkDropped,
+        regionFinished,
+        hasCompletedAMission,
+        nextTempLabelId
+      )
     }
-    db.run(getExploreDataAction.transactionally)
+    db.run(getExploreDataAction.transactionally).map(Some(_)).recover { case _: AllRegionsFinishedException => None }
   }
+
+  def listSurveyQuestions: Future[Seq[SurveyQuestionWithOptions]] = db.run(surveyQuestionTable.listAllWithOptions)
 
   def getDataForExploreAddressPage(userId: String, lat: Double, lng: Double): Future[Option[ExplorePageData]] = {
     val exploreAddressAction = lockUserForExploreAddress(userId)
@@ -336,17 +423,18 @@ class ExploreServiceImpl @Inject() (
                 _                <- missionTable.updateCurrentAuditTaskId(mission.missionId, Some(auditTaskId))
                 updatedMission: Mission <- missionTable.getMission(mission.missionId).map(_.get)
                 // includeCompleted: a drop-in street the session already finished must still load on resume (#4451).
-                task: Option[NewTask] <- auditTaskTable.selectTaskFromTaskId(auditTaskId, includeCompleted = true)
-                nextTempLabelId: Int  <- labelTable.nextTempLabelId(userId)
+                task: Option[NewTask] <- auditTaskTable.selectTaskFromTaskId(
+                  auditTaskId,
+                  userId,
+                  includeCompleted = true
+                )
+                nextTempLabelId: Int          <- labelTable.nextTempLabelId(userId)
                 hasCompletedAMission: Boolean <-
                   missionTable.countCompletedMissions(userId, missionType = MissionType.Audit).map(_ > 0)
-                surveyData: Seq[SurveyQuestionWithOptions] <- surveyQuestionTable.listAllWithOptions
-                tutorialStreetId: Int                      <- configTable.getTutorialStreetId
-                makeCrops: Boolean                         <- configTable.getMakeCrops
               } yield {
                 Some(
-                  ExplorePageData(task, updatedMission, region, userRoute = None, route = None, hasCompletedAMission,
-                    nextTempLabelId, surveyData, tutorialStreetId, makeCrops)
+                  ExplorePageData(task, updatedMission, region, userRoute = None, route = None, routeResumed = false,
+                    routeUnavailable = false, regionFinished = false, hasCompletedAMission, nextTempLabelId)
                 )
               }
           }
@@ -373,8 +461,7 @@ class ExploreServiceImpl @Inject() (
    * (#4451).
    *
    * The searched lat/lng is used as the task's current position so the pano opens at the address itself. Its offset
-   * along the street is stored on the task so completion can credit only the distance covered beyond the drop-in
-   * point (see `streetWalkedFarEnough`).
+   * along the street is stored as start_offset_m, which keeps the row out of the regular-mission resume paths.
    */
   private def resumeOrCreateExploreAddressTask(
       userId: String,
@@ -399,7 +486,7 @@ class ExploreServiceImpl @Inject() (
               WHERE street_edge.street_edge_id = $streetEdgeId"""
           .as[Double]
           .headOption
-          .flatMap { startOffsetM: Option[Double] =>
+          .flatMap { (startOffsetM: Option[Double]) =>
             auditTaskTable.insert(
               AuditTask(0, None, userId, streetEdgeId, OffsetDateTime.now, OffsetDateTime.now, completed = false, lat,
                 lng, startPointReversed = false, Some(missionId), None, lowQuality = false, incomplete = false,
@@ -409,37 +496,111 @@ class ExploreServiceImpl @Inject() (
     }
   }
 
+  /**
+   * Resolves which route walk (if any) this Explore session should be in, creating/resuming/pausing as needed.
+   *
+   * Walks are paused rather than discarded wherever the user hasn't explicitly asked for a restart, so their
+   * progress survives and an explicit ?routeId= visit resumes exactly where they left off (#4833). Discarding —
+   * which permanently ends a walk, restarting the route from its first street next time — is reserved for
+   * ?routeId=X&resumeRoute=false.
+   *
+   * A ?routeId= naming no live route is dropped instead of obeyed, so the session runs exactly as if none had been
+   * supplied, and the caller reports the drop (#5156). What that buys is the pause: reaching the exit-route arm now
+   * takes an explicit resumeRoute=false, where before a mistyped or since-deleted id was enough on its own to end a
+   * walk the user was legitimately in. ?routeId=<unresolvable>&resumeRoute=false still pauses — the user spelled out
+   * the exit — and is hand-typed only, since nothing in the UI emits the pair.
+   *
+   * @param routeId     Route explicitly requested via ?routeId=, if any.
+   * @param resumeRoute Whether an existing walk may be resumed (the ?resumeRoute= param; defaults to true).
+   * @return            The walk this session should use (None for normal exploration), with whether the user is
+   *                    resuming a walk they have already been in, and whether a requested route was dropped as
+   *                    unresolvable. Existence of the row isn't enough for "resuming" — one can be created and never
+   *                    entered, and that user is not resuming anything.
+   */
   private def setUpPossibleUserRoute(
       routeId: Option[Int],
       userId: String,
       resumeRoute: Boolean
-  ): DBIO[Option[UserRoute]] = {
+  ): DBIO[RouteWalkSetup] = {
     (routeId match {
       case Some(rId) => routeTable.getRoute(rId).map(_.isDefined)
       case None      => DBIO.successful(false)
     }).flatMap { routeExists =>
-      (routeExists, routeId, resumeRoute) match {
-        // Discard routes that don't match routeId, resume route with given routeId if it exists, o/w make a new one.
-        case (true, Some(rId), true) =>
+      val resolvedRouteId: Option[Int] = if (routeExists) routeId else None
+      val setup: DBIO[RouteWalkSetup]  = (resolvedRouteId, resumeRoute) match {
+        // Pause routes that don't match routeId, resume route with given routeId if it exists, o/w make a new one.
+        case (Some(rId), true) =>
           for {
-            _      <- userRouteTable.discardOtherActiveRoutes(rId, userId)
-            result <- userRouteTable.getActiveRouteOrCreateNew(rId, userId)
-          } yield Some(result)
-        // Discard old routes, save a new one with given routeId.
-        case (true, Some(rId), false) =>
+            _                           <- userRouteTable.pauseOtherActiveRoutes(rId, userId)
+            (userRoute, alreadyExisted) <- userRouteTable.getActiveRouteOrCreateNew(rId, userId)
+            walked                      <-
+              if (alreadyExisted) userRouteTable.hasBeenWalked(userRoute.userRouteId) else DBIO.successful(false)
+          } yield RouteWalkSetup(Some(userRoute), resumed = walked)
+        // Explicit restart: discard old walks (including any of this route), save a new one with given routeId.
+        case (Some(rId), false) =>
           for {
-            _      <- userRouteTable.discardAllActiveRoutes(userId)
-            result <- userRouteTable.getActiveRouteOrCreateNew(rId, userId)
-          } yield Some(result)
+            _              <- userRouteTable.discardAllActiveRoutes(userId)
+            (userRoute, _) <- userRouteTable.getActiveRouteOrCreateNew(rId, userId)
+          } yield RouteWalkSetup(Some(userRoute), resumed = false)
         // Get an in progress route (with any routeId) if it exists, otherwise return None.
-        case (_, None, true) =>
-          userRouteTable.getInProgressRoute(userId)
-        // Discard old routes, return None.
-        case (_, _, _) =>
-          userRouteTable.discardAllActiveRoutes(userId).map(_ => None)
+        case (None, true) =>
+          userRouteTable.getInProgressRoute(userId).flatMap {
+            case Some(walk) =>
+              userRouteTable.hasBeenWalked(walk.userRouteId).map(w => RouteWalkSetup(Some(walk), resumed = w))
+            case None => DBIO.successful(RouteWalkSetup(None, resumed = false))
+          }
+        // The "exit route" path (/explore?resumeRoute=false): pause old walks, return None. A dropped routeId can
+        // reach this arm, but only alongside the explicit resumeRoute=false — never on the strength of the id alone.
+        case (None, false) =>
+          userRouteTable.pauseAllActiveRoutes(userId).map(_ => RouteWalkSetup(None, resumed = false))
       }
+      setup.map(_.copy(routeUnavailable = routeId.isDefined && !routeExists))
     }
   }
+
+  /**
+   * The region session a visit falls back to once its zero-length walk is dropped (#5167): the route's start region
+   * while it still has distance left for the user, else a region picked the way a bare /explore picks one. The second
+   * step is what keeps a user who finished the start region out of an error on every load: a failed request rolls
+   * back the pause with everything else, so the walk would stay active and be re-picked by the next /explore.
+   *
+   * @param userId      The user whose walk was dropped.
+   * @param routeRegion The region the route starts in, where the session was headed.
+   * @return The region mission to start on, paired with the region it sits in.
+   */
+  private def regionFallbackAfterDroppedWalk(userId: String, routeRegion: Region): DBIO[(Mission, Region)] =
+    missionService.resumeOrCreateNewAuditMission(userId, routeRegion.regionId, None).flatMap {
+      case Some(m) => DBIO.successful((m, routeRegion))
+      case None    => missionInFreshRegion(userId, "dropping their walk")
+    }
+
+  /**
+   * Moves the user to a top-priority region they haven't finished, as a bare /explore does.
+   * @param reason Why the user is being moved, for the log if there's nowhere left to move them.
+   * @return The new mission and its region; fails with AllRegionsFinishedException if every region is finished.
+   */
+  private def missionInFreshRegion(userId: String, reason: String): DBIO[(Mission, Region)] =
+    assignRegion(userId).flatMap {
+      case Some(newRegion) =>
+        missionService.resumeOrCreateNewAuditMission(userId, newRegion.regionId, None).map(m => (m.get, newRegion))
+      case None =>
+        logger.info(s"No region left for $userId to explore after $reason.")
+        DBIO.failed(AllRegionsFinishedException(userId))
+    }
+
+  /**
+   * Closes the user's open mission in a region they've finished: it could never end, and resuming it would cut a
+   * street visit's mission short (#5692).
+   */
+  private def closeMissionIfRegionFinished(userId: String, regionId: Int): DBIO[Unit] =
+    isTaskAvailable(userId, regionId).flatMap {
+      case true  => DBIO.successful(())
+      case false =>
+        missionTable.getCurrentMissionInRegion(userId, regionId).flatMap {
+          case Some(m) => missionTable.updateComplete(m.missionId).map(_ => ())
+          case None    => DBIO.successful(())
+        }
+    }
 
   /**
    * Picks one of the regions with the highest average priority out of those that the user has not completed.
@@ -481,80 +642,101 @@ class ExploreServiceImpl @Inject() (
 
   /**
    * Insert or update the submitted audit task in the database.
-   * @return {Int} auditTaskId
+   *
+   * Free exploration (#5733) resolves its own row, since the posted id can be one of the user's regular audits. A
+   * street the user already has an up-to-date audit of takes no write (a second completed task would count it
+   * twice); an outdated one is not reopened, so new imagery earns a fresh task, as a regular re-audit does.
+   *
+   * @return The audit_task_id, and for a free-exploration task that is still open its merged coverage.
    */
-  private def updateAuditTaskTable(userId: String, task: TaskSubmission, missionId: Int): DBIO[Int] = {
+  private def updateAuditTaskTable(
+      userId: String,
+      task: TaskSubmission,
+      missionId: Int
+  ): DBIO[(Int, Option[Seq[CoveredRange]])] = {
     val timestamp: OffsetDateTime = OffsetDateTime.now
-    if (task.auditTaskId.isDefined) {
-      // Update the existing audit task row (don't update if they are in the tutorial).
-      val id: Int = task.auditTaskId.get
-      for {
-        missionType <- missionTable.getMissionType(missionId)
-        _           <-
-          if (missionType.exists(Set(MissionType.Audit, MissionType.ExploreAddress).contains)) {
-            auditTaskTable.updateTaskProgress(id, timestamp, task.currentLat, task.currentLng, missionId,
-              task.currentMissionStart, task.auditedDistanceM)
-          } else DBIO.successful(())
-      } yield {
-        id
+    missionTable.getMissionType(missionId).flatMap { (missionType: Option[MissionType]) =>
+      val isFreeExploration: Boolean = missionType.contains(MissionType.ExploreAddress)
+      // The row to write, and whether it is an audit the user already finished (free exploration only).
+      val target: DBIO[(Option[Int], Boolean)] =
+        if (isFreeExploration) {
+          for {
+            _ <- lockUserForExploreAddress(userId) // Two saves close together must not both insert the street's task.
+            audited: Option[Int]    <- auditTaskTable.userUpToDateAuditOf(task.streetEdgeId, userId)
+            open: Option[AuditTask] <- auditTaskTable.findTaskForMission(userId, task.streetEdgeId, missionId)
+          } yield audited match {
+            case Some(id) => (Some(id), true)
+            case None     => (open.filterNot(_.completed).map(_.auditTaskId), false)
+          }
+        } else DBIO.successful((task.auditTaskId, false))
+
+      target.flatMap {
+        case (Some(id), true)                   => DBIO.successful((id, None))
+        case (Some(id), _) if isFreeExploration =>
+          for {
+            stored: Option[JsValue]   <- auditTaskTable.getCoveredRanges(id)
+            merged: Seq[CoveredRange] <- mergedCoverage(task, stored)
+            _ <- auditTaskTable.updateTaskProgress(id, timestamp, task.currentLat, task.currentLng, missionId,
+              task.currentMissionStart, Some(StreetCoverage.coveredM(merged)))
+            _ <- auditTaskTable.updateTaskCoverage(id, StreetCoverage.toJson(merged), StreetCoverage.coveredM(merged))
+          } yield (id, Some(merged))
+        case (Some(id), _) =>
+          // Update the existing audit task row (don't update if they are in the tutorial).
+          val update: DBIO[Unit] =
+            if (missionType.contains(MissionType.Audit)) {
+              auditTaskTable
+                .updateTaskProgress(id, timestamp, task.currentLat, task.currentLng, missionId,
+                  task.currentMissionStart, task.auditedDistanceM)
+                .map(_ => ())
+            } else DBIO.successful(())
+          update.map(_ => (id, None))
+        case (None, _) if isFreeExploration =>
+          mergedCoverage(task, stored = None).flatMap { (merged: Seq[CoveredRange]) =>
+            // start_offset_m keeps the task out of the regular-mission resume paths, which measure from the start.
+            val startOffsetM: Double = merged.headOption.map(_.startM).getOrElse(0d)
+            auditTaskTable
+              .insert(
+                AuditTask(0, None, userId, task.streetEdgeId, task.taskStart, timestamp, completed = false,
+                  task.currentLat, task.currentLng, startPointReversed = false, Some(missionId), None,
+                  lowQuality = false, incomplete = false, stale = false, Some(StreetCoverage.coveredM(merged)),
+                  startOffsetM = Some(startOffsetM), coveredRanges = Some(StreetCoverage.toJson(merged)))
+              )
+              .map(id => (id, Some(merged)))
+          }
+        case (None, _) =>
+          auditTaskTable
+            .insert(
+              AuditTask(0, None, userId, task.streetEdgeId, task.taskStart, timestamp, completed = false,
+                task.currentLat, task.currentLng, task.startPointReversed, Some(missionId), task.currentMissionStart,
+                lowQuality = false, incomplete = false, stale = false, task.auditedDistanceM)
+            )
+            .map(id => (id, None))
       }
-    } else {
-      // Insert the new audit task.
-      auditTaskTable.insert(
-        AuditTask(0, None, userId, task.streetEdgeId, task.taskStart, timestamp, completed = false, task.currentLat,
-          task.currentLng, task.startPointReversed, Some(missionId), task.currentMissionStart, lowQuality = false,
-          incomplete = false, stale = false, task.auditedDistanceM)
-      )
     }
   }
 
-  /**
-   * Whether a free-exploration session has covered enough of a street to count as having audited it (#4451).
-   *
-   * A normal audit is completed by the client, which marks the task done once the user gets within 25m of the street's
-   * endpoint. A drop-in has no equivalent client signal, so the server decides from the distance the user actually
-   * walked. Deriving it here rather than trusting a submitted flag also means a forged `completed=true` still can't
-   * shift coverage, so the invariant holds without a separate anti-forgery guard.
-   *
-   * `audited_distance_m` measures from the street's start coordinate to the furthest point reached, so for a drop-in
-   * it begins at the drop-in point's own offset rather than 0. The task's `start_offset_m` is subtracted so only
-   * ground actually covered counts — otherwise a session dropped near the far end of a street would complete it
-   * without walking at all. A consequence is that only sessions dropped near a street's start can ever complete it;
-   * mid-street drop-ins never do, which errs on the cheap side (under-crediting costs nothing, over-crediting
-   * corrupts coverage).
-   *
-   * Length is measured with `::geography` (geodesic, the codebase-wide convention — #4641) which matters doubly here:
-   * the value it is compared against — the client's `audited_distance_m` — is itself computed geodesically (turf), so
-   * any other measure would skew the threshold (a fixed-UTM-zone projection inflates lengths ~25% in Amsterdam,
-   * pushing it past the street's real length so it could never be reached).
-   *
-   * @param auditTaskId      The session's task, holding where along the street it dropped in.
-   * @param streetEdgeId     The street being explored.
-   * @param auditedDistanceM How far along the street the client reports the user has gotten, in meters.
-   * @return `true` once the distance covered beyond the drop-in point reaches `ExploreService.streetWalkedThreshold`
-   *         of the street's length; `false` when the client sent no distance or the street has no geometry.
-   */
-  private def streetWalkedFarEnough(
-      auditTaskId: Int,
-      streetEdgeId: Int,
-      auditedDistanceM: Option[Double]
-  ): DBIO[Boolean] = {
-    auditedDistanceM match {
-      case None          => DBIO.successful(false)
-      case Some(walkedM) =>
-        sql"""SELECT ST_Length(street_edge.geom::geography),
-                     (SELECT audit_task.start_offset_m FROM audit_task WHERE audit_task.audit_task_id = $auditTaskId)
-              FROM street_edge
-              WHERE street_edge.street_edge_id = $streetEdgeId"""
-          .as[(Double, Option[Double])]
-          .headOption
-          .map { row: Option[(Double, Option[Double])] =>
-            row.exists { case (len, startOffsetM) =>
-              len > 0d && walkedM - startOffsetM.getOrElse(0d) >= len * ExploreService.streetWalkedThreshold
-            }
-          }
+  /** @return The posted coverage unioned with what the task stored, clipped to the street's geodesic length. */
+  private def mergedCoverage(task: TaskSubmission, stored: Option[JsValue]): DBIO[Seq[CoveredRange]] =
+    streetEdgeTable.getStreetLengths(Seq(task.streetEdgeId)).map { (lengths: Map[Int, Double]) =>
+      val lengthM: Double = lengths.getOrElse(task.streetEdgeId, 0d)
+      StreetCoverage.merge(StreetCoverage.fromJson(stored) ++ task.coveredRanges.getOrElse(Seq.empty), lengthM)
     }
-  }
+
+  /**
+   * Whether a free-exploration task has seen enough of its street ([[StreetCoverage]], #5733). Decided here, not
+   * from the client's completed flag, so a forged one can't credit a street.
+   *
+   * @param merged The task's coverage with this submission merged in; None for a regular audit.
+   * @return `false` with no coverage or no geometry.
+   */
+  private def streetCoveredEnough(merged: Option[Seq[CoveredRange]], streetEdgeId: Int): DBIO[Boolean] =
+    merged match {
+      case None         => DBIO.successful(false)
+      case Some(ranges) =>
+        streetEdgeTable.getStreetLengths(Seq(streetEdgeId)).map { (lengths: Map[Int, Double]) =>
+          lengths.get(streetEdgeId).exists(len => len > 0d && StreetCoverage.coveredEnough(ranges, len))
+        }
+    }
 
   /**
    * Update the street priority for the given street edge ID assuming that the given user just audited the street.
@@ -612,7 +794,7 @@ class ExploreServiceImpl @Inject() (
     val pointGeom: Option[Point]    = for {
       _lat <- point.lat
       _lng <- point.lng
-    } yield gf.createPoint(new Coordinate(_lng, _lat))
+    } yield gf.createPoint(Coordinate(_lng, _lat))
 
     warnIfRecordStale(label, userId)
 
@@ -625,14 +807,15 @@ class ExploreServiceImpl @Inject() (
 
       // Add the new entry to the label table.
       allTags: Seq[Tag] <- labelService.selectAllTags
-      newLabelId: Int   <- labelService.insertLabel(
+      (deletedBy, deletedAt, deletedSource) = LabelDeletion.fields(userId, Option.when(label.deleted)(UiSource.Explore))
+      newLabelId: Int <- labelService.insertLabel(
         Label(
           labelId = 0,
           auditTaskId = auditTaskId,
           missionId = missionId,
           userId = userId,
           panoId = label.panoId,
-          labelTypeId = LabelTypeEnum.labelTypeToId(label.labelType),
+          labelType = label.labelType,
           deleted = label.deleted,
           temporaryLabelId = label.temporaryLabelId,
           timeCreated = timeCreated,
@@ -644,18 +827,23 @@ class ExploreServiceImpl @Inject() (
           correct = None,
           severity = label.severity,
           description = label.description,
-          tags = label.tagIds.distinct.flatMap(t => allTags.filter(_.tagId == t).map(_.tag).headOption).toList
+          tags = label.tagIds.distinct.flatMap(t => allTags.filter(_.tagId == t).map(_.tag).headOption).toList,
+          // A label removed before its first save arrives already deleted.
+          deletedBy = deletedBy,
+          deletedAt = deletedAt,
+          deletedSource = deletedSource
         )
       )
 
-      // Add an entry to the label_point table.
-      _ <- labelPointTable.insert(
-        LabelPoint(0, newLabelId, point.panoX, point.panoY, point.canvasX, point.canvasY, point.heading, point.pitch,
-          point.zoom, point.lat, point.lng, pointGeom, point.computationMethod)
+      // The side of the street is relative to calculatedStreetEdgeId, so it is filled in after the insert (#2886).
+      newLabelPointId: Int <- labelPointTable.insert(
+        LabelPoint(0, newLabelId, point.panoX, point.panoY, point.canvasX, point.canvasY, point.canvasWidth,
+          point.canvasHeight, point.heading, point.pitch, point.zoom, point.lat, point.lng, pointGeom,
+          point.computationMethod, centerlineOffsetM = None, streetSide = None)
       )
+      _ <- labelPointTable.computeCenterlineOffset(newLabelPointId, calculatedStreetEdgeId)
     } yield {
-      NewLabelData(newLabelId, label.temporaryLabelId, LabelTypeEnum.byName(label.labelType), label.panoSource,
-        label.tutorial, timeCreated)
+      NewLabelData(newLabelId, label.temporaryLabelId, label.labelType, label.panoSource, label.tutorial, timeCreated)
     }
   }
 
@@ -692,7 +880,10 @@ class ExploreServiceImpl @Inject() (
           PanoDataService.calculatePovIfCentered(
             POV(point.heading, point.pitch, point.zoom),
             point.canvasX.toDouble,
-            point.canvasY.toDouble
+            point.canvasY.toDouble,
+            point.canvasWidth,
+            point.canvasHeight,
+            label.panoSource
           )
         val (expectedX, expectedY) = PanoDataService.calculatePanoXYFromPov(labelPov, camHeading, width, height)
         val dxPx                   = { val d = math.abs(point.panoX - expectedX); math.min(d, width - d) }
@@ -703,7 +894,7 @@ class ExploreServiceImpl @Inject() (
               s"pano=${label.panoId} stored pano_x/y=(${point.panoX}, ${point.panoY}) " +
               s"record replays to=($expectedX, $expectedY) mismatch=${f"$mismatchDeg%.3f"}deg " +
               s"record=(h=${point.heading}, p=${point.pitch}, z=${point.zoom}, " +
-              s"canvas=${point.canvasX},${point.canvasY})"
+              s"canvas=${point.canvasX},${point.canvasY} frame=${point.canvasWidth}x${point.canvasHeight})"
           )
         }
       }
@@ -717,10 +908,13 @@ class ExploreServiceImpl @Inject() (
    * PanoDataTable.upsert. Every statement is idempotent, so the action is safe to repeat.
    */
   private def savePanoAction(pano: PanoSubmission, timestamp: OffsetDateTime): DBIO[Unit] = {
+    // Stored as ImageryAttribution expects it, a licensed contributor's bare name, whatever the client sent: the AI
+    // labeler sends the whole attribution (#5360).
+    val copyright = ImageryAttribution.normalizeCopyright(pano.source, pano.copyright)
     for {
       _ <- panoDataTable.upsert(
-        PanoData(pano.panoId, pano.width, pano.height, pano.tileWidth, pano.tileHeight, pano.captureDate,
-          pano.copyright, pano.lat, pano.lng, pano.cameraHeading, pano.cameraPitch, pano.cameraRoll, expired = false,
+        PanoData(pano.panoId, pano.width, pano.height, pano.tileWidth, pano.tileHeight, pano.captureDate, copyright,
+          pano.license, pano.lat, pano.lng, pano.cameraHeading, pano.cameraPitch, pano.cameraRoll, expired = false,
           timestamp, Some(timestamp), timestamp, pano.source, hasBackup = None, address = pano.address,
           sourceMetadata = pano.sourceMetadata)
       )
@@ -739,7 +933,7 @@ class ExploreServiceImpl @Inject() (
   def savePanoInfo(panos: Seq[PanoSubmission]): Future[Boolean] = {
     val currTime: OffsetDateTime = OffsetDateTime.now
     // asTry so one pano's failure can't abort the rest of the batch; failures are logged below.
-    val panoSubmissionActions = panos.map { pano: PanoSubmission => savePanoAction(pano, currTime).asTry }
+    val panoSubmissionActions = panos.map { (pano: PanoSubmission) => savePanoAction(pano, currTime).asTry }
 
     db.run(DBIO.sequence(panoSubmissionActions))
       .map { results =>
@@ -759,27 +953,25 @@ class ExploreServiceImpl @Inject() (
     db.run(auditTaskCommentTable.insert(comment))
   }
 
-  def insertNoImagery(taskSubmission: TaskSubmission, streetIssue: StreetEdgeIssue, missionId: Int): Future[Int] = {
-    // Record the imagery issue for any mission type, but only mark the street complete (with the priority update that
-    // entails) for regular audits: an exploreAddress task must never complete, so that a drop-in session at a spot
-    // with no imagery can't mark the whole street as audited (#4451).
-    def completeTaskAction(auditTaskId: Int, missionType: Option[MissionType.Value]): DBIO[Int] = {
-      if (missionType.contains(MissionType.ExploreAddress)) DBIO.successful(0)
-      else {
-        for {
-          _                  <- updateStreetPriority(streetIssue.streetEdgeId, streetIssue.userId)
-          atRowsUpdated: Int <- auditTaskTable.updateCompleted(auditTaskId, completed = true)
-        } yield atRowsUpdated
-      }
-    }
-
-    db.run(missionTable.getMissionType(missionId).flatMap { missionType: Option[MissionType.Value] =>
-      updateAuditTaskTable(streetIssue.userId, taskSubmission, missionId).flatMap { auditTaskId: Int =>
-        completeTaskAction(auditTaskId, missionType)
-          .zip(streetEdgeIssueTable.insert(streetIssue))
-          .map(_._2)
-      }
-    })
+  /**
+   * Records a labeler's report that a street's imagery failed to load, without crediting anyone with an audit.
+   *
+   * The report is evidence, not a verdict: one session's failure to load imagery is unreliable (transient GSV
+   * failures forge it wholesale, #4918), so it must not complete the task, drop the street's priority, or count
+   * toward region completion or the user's audited distance. The street stays open and un-audited for everyone.
+   * Streets that genuinely lack imagery leave the pool when the offline checker (check_streets_for_imagery.py ->
+   * street_edge.status = 'no_imagery') confirms the accumulated street_edge_issue reports (#4922).
+   *
+   * The issue row is the whole write. The audit task is deliberately left alone: it stays live and resumable now that
+   * a report doesn't complete it, and the report carries no record of where the labeler had walked to — so writing
+   * the task's progress from it would rewind their position to the street's start and null out the distance they had
+   * covered. street_edge_issue references the street and the user directly, so it stands on its own.
+   *
+   * @param streetIssue The report itself, one street_edge_issue row.
+   * @return The number of street_edge_issue rows inserted (1).
+   */
+  def insertNoImagery(streetIssue: StreetEdgeIssue): Future[Int] = {
+    db.run(streetEdgeIssueTable.insert(streetIssue))
   }
 
   /**
@@ -797,7 +989,7 @@ class ExploreServiceImpl @Inject() (
         case _ =>
           streetEdgeTable.getStreet(streetEdgeId).flatMap {
             case None =>
-              DBIO.failed(new Exception(s"Street edge with ID $streetEdgeId not found."))
+              DBIO.failed(Exception(s"Street edge with ID $streetEdgeId not found."))
             case Some(street) =>
               // No existing task found, create a new one.
               auditTaskTable.insert(
@@ -825,13 +1017,13 @@ class ExploreServiceImpl @Inject() (
           pano.cameraHeading.get)
         // label_point.canvas_x/y are NOT NULL, but an AI label was never drawn on a canvas. The center is the one
         // value consistent with the heading/pitch stored beside it, which is the POV that centers the label.
-        val canvasX = LabelPointTable.canvasWidth / 2
-        val canvasY = LabelPointTable.canvasHeight / 2
-        val latLng  = PanoDataService.toLatLng(pano.lat.get, pano.lng.get, label.panoX, label.panoY, pano.width.get,
-          pano.height.get, pano.cameraHeading.get)
+        val canvasX              = LabelPointTable.canvasWidth / 2
+        val canvasY              = LabelPointTable.canvasHeight / 2
+        val (labelLat, labelLng) = PanoDataService.toLatLng(pano.lat.get, pano.lng.get, label.panoX, label.panoY,
+          pano.width.get, pano.height.get, pano.cameraHeading.get)
         for {
           // Create necessary associated data for the label to fit in PS (mission, audit_task, etc.).
-          streetEdgeId <- labelTable.getStreetEdgeIdClosestToLatLng(latLng._1, latLng._2)
+          streetEdgeId <- labelTable.getStreetEdgeIdClosestToLatLng(labelLat, labelLng)
           regionId     <- streetEdgeRegionTable.getNonDeletedRegionFromStreetId(streetEdgeId).map(_.get.regionId)
           missionId    <- missionService.resumeOrCreateNewAiExploreMission(regionId).map(_.missionId)
           auditTaskId  <- resumeOrCreateNewAiAuditTask(missionId, streetEdgeId)
@@ -839,7 +1031,8 @@ class ExploreServiceImpl @Inject() (
 
           // Create and insert the label and label_point entries.
           labelPoint: LabelPointSubmission = LabelPointSubmission(label.panoX, label.panoY, canvasX, canvasY,
-            heading = pov.heading, pitch = pov.pitch, pov.zoom, lat = Some(latLng._1), lng = Some(latLng._2),
+            LabelPointTable.canvasWidth, LabelPointTable.canvasHeight, heading = pov.heading, pitch = pov.pitch,
+            pov.zoom, lat = Some(labelLat), lng = Some(labelLng),
             computationMethod = Some(ComputationMethod.Approximation3))
           labelSubmission: LabelSubmission = LabelSubmission(
             panoId = pano.panoId,
@@ -876,18 +1069,15 @@ class ExploreServiceImpl @Inject() (
     // means a label can never be committed without its pano_data row, and a failed pano write takes the whole
     // submission with it rather than quietly producing an orphan.
     val labeledPanos: Seq[PanoSubmission]  = data.labels.flatMap(_.pano).distinctBy(_.panoId).sortBy(_.panoId)
-    val saveLabeledPanosAction: DBIO[Unit] = DBIO.seq(labeledPanos.map(savePanoAction(_, OffsetDateTime.now)): _*)
+    val saveLabeledPanosAction: DBIO[Unit] = DBIO.seq(labeledPanos.map(savePanoAction(_, OffsetDateTime.now))*)
 
     // Update the audit_task table and get the audit_task_id. This is needed to submit all other data.
     val submitAction: DBIO[ExploreTaskPostReturnValue] = updateAuditTaskTable(userId, data.auditTask, missionId)
-      .flatMap { auditTaskId: Int =>
-        missionTable.getMissionType(missionId).flatMap { missionType: Option[MissionType.Value] =>
-          // If task is complete, mark it in the db and update the street priority. A normal audit is completed by the
-          // client; a free-exploration drop-in has no such client signal, so the server derives it from how far the
-          // user walked (#4451). Deriving it also means a forged completed=true can't mark a drop-in street audited.
-          // Ordering is load-bearing: updateStreetPriority skips streets the user already completed, so it must read
-          // the completed flag before updateCompleted flips it — flipping first would skip the one legitimate update,
-          // and it is also what keeps re-running this action from shifting priority again.
+      .flatMap { case (auditTaskId: Int, coveredRanges: Option[Seq[CoveredRange]]) =>
+        missionTable.getMissionType(missionId).flatMap { (missionType: Option[MissionType]) =>
+          // A regular audit is completed by the client; free exploration has no such signal, so the server derives it
+          // from the task's coverage (#5733), which also stops a forged completed=true. Order matters: the priority
+          // update skips streets the user already completed, so it must run before the completed flag flips.
           val completeTaskAction: DBIO[Int] = for {
             newPriority: Option[Double] <- updateStreetPriority(streetEdgeId, userId)
             atRowsUpdated: Int          <- auditTaskTable.updateCompleted(auditTaskId, completed = true)
@@ -896,8 +1086,8 @@ class ExploreServiceImpl @Inject() (
           val taskCompletedAction: DBIO[Int] = missionType match {
             case Some(MissionType.Audit) if data.auditTask.completed.getOrElse(false) => completeTaskAction
             case Some(MissionType.ExploreAddress)                                     =>
-              streetWalkedFarEnough(auditTaskId, streetEdgeId, data.auditTask.auditedDistanceM).flatMap {
-                farEnough: Boolean => if (farEnough) completeTaskAction else DBIO.successful(0)
+              streetCoveredEnough(coveredRanges, streetEdgeId).flatMap { (coveredEnough: Boolean) =>
+                if (coveredEnough) completeTaskAction else DBIO.successful(0)
               }
             case _ => DBIO.successful(0)
           }
@@ -915,19 +1105,23 @@ class ExploreServiceImpl @Inject() (
               } yield routeComplete
             } else DBIO.successful(false)
 
-          // Update the MissionTable.
+          // Free exploration's current task is the row just written, not the id the client posted; a regular
+          // mission keeps the client's, which is what its cleanup paths expect.
+          val missionProgress: AuditMissionProgress =
+            if (missionType.contains(MissionType.ExploreAddress))
+              data.missionProgress.copy(auditTaskId = Some(auditTaskId))
+            else data.missionProgress
           val updateMissionAction: DBIO[Option[Mission]] =
-            missionService.updateMissionTableExplore(userId, data.missionProgress)
+            missionService.updateMissionTableExplore(userId, missionProgress)
 
           // Insert any labels.
           val labelSubmitActions: Seq[DBIO[Option[NewLabelData]]] =
-            data.labels.map { label: LabelSubmission =>
-              val labelTypeId: Int = LabelTypeEnum.labelTypeToId(label.labelType)
+            data.labels.map { (label: LabelSubmission) =>
               labelTable.find(label.temporaryLabelId, userId).flatMap {
                 case Some(existingLabel) =>
                   // If there is already a label with this temp id but a mismatched label type, the user probably has the
                   // Explore page open in multiple browsers. Don't add the label; tell the front-end to refresh the page.
-                  if (existingLabel.labelTypeId != labelTypeId) {
+                  if (existingLabel.labelType != label.labelType) {
                     refreshPage = true
                     DBIO.successful(None)
                   } else {
@@ -938,7 +1132,7 @@ class ExploreServiceImpl @Inject() (
                       tagStrings: List[String] = label.tagIds.distinct
                         .flatMap(t => allTags.filter(_.tagId == t).map(_.tag).headOption)
                         .toList
-                      _ <- labelService.updateLabelFromExplore(existingLabel.labelId, label.deleted, label.severity,
+                      _ <- labelEditService.updateLabelFromExplore(existingLabel.labelId, label.deleted, label.severity,
                         label.description, tagStrings)
                     } yield None
                   }
@@ -947,7 +1141,7 @@ class ExploreServiceImpl @Inject() (
               }
             }
 
-          // Check for streets in the user's neighborhood that have been audited by other users while they were auditing.
+          // Check for streets in the user's region that have been audited by other users while they were auditing.
           val updatedStreetsAction: DBIO[Option[UpdatedStreets]] =
             if (data.auditTask.requestUpdatedStreetPriority) {
               // Get streetEdgeIds and priority values for streets that have been updated since lastPriorityUpdateTime.
@@ -967,7 +1161,7 @@ class ExploreServiceImpl @Inject() (
             .zip(updatedStreetsAction)
             .map { case ((((_, _), possibleNewMission), newLabels), updatedStreets) =>
               ExploreTaskPostReturnValue(auditTaskId, possibleNewMission, newLabels.flatten, updatedStreets,
-                refreshPage)
+                refreshPage, coveredRanges)
             }
         }
       }
@@ -992,7 +1186,7 @@ class ExploreServiceImpl @Inject() (
     })
   }
 
-  def submitSurvey(userId: String, ipAddress: String, data: Seq[SurveySingleSubmission]): Future[Seq[Int]] = {
+  def submitSurvey(userId: String, ipAddress: IpAddress, data: Seq[SurveySingleSubmission]): Future[Seq[Int]] = {
     db.run((for {
       numMissionsCompleted: Int <- missionTable
         .countCompletedMissions(userId, includeOnboarding = false, includeSkipped = true)

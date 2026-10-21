@@ -1,19 +1,19 @@
 package models.pano
 
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.given
 import org.scalatest.BeforeAndAfterAll
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
 import slick.dbio.DBIO
+import util.SidewalkSpec
 
 import java.time.temporal.ChronoUnit
 import java.time.{Instant, OffsetDateTime}
 import scala.concurrent.Await
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 /**
  * DB-backed contract test for `pano_data.expired_at` (#4928, evolution 358).
@@ -27,10 +27,10 @@ import scala.concurrent.duration._
  * Postgres+PostGIS database (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in dev/CI); the scheduling actors
  * are disabled so no background sweep touches the row mid-test.
  */
-class PanoExpiredAtSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppPerSuite {
+class PanoExpiredAtSpec extends SidewalkSpec with BeforeAndAfterAll with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private val panoDataTable = app.injector.instanceOf[PanoDataTable]
   private val dbConfig      = app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
@@ -42,9 +42,10 @@ class PanoExpiredAtSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneApp
   /** The pano as a user's viewer would first record it: present, unexpired, never expired. */
   private def freshPano(viewedAt: OffsetDateTime): PanoData = PanoData(
     panoId = panoId, width = Some(16384), height = Some(8192), tileWidth = Some(512), tileHeight = Some(512),
-    captureDate = "2020-06", copyright = Some("test"), lat = Some(47.0), lng = Some(-122.0), cameraHeading = Some(0d),
-    cameraPitch = Some(0d), cameraRoll = Some(0d), expired = false, lastViewed = viewedAt, panoHistorySaved = None,
-    lastChecked = viewedAt, source = PanoSource.Gsv, hasBackup = Some(false), address = None, sourceMetadata = None
+    captureDate = "2020-06", copyright = Some("test"), license = None, lat = Some(47.0), lng = Some(-122.0),
+    cameraHeading = Some(0d), cameraPitch = Some(0d), cameraRoll = Some(0d), expired = false, lastViewed = viewedAt,
+    panoHistorySaved = None, lastChecked = viewedAt, source = PanoSource.Gsv, hasBackup = Some(false), address = None,
+    sourceMetadata = None
   )
 
   /** Truncated to microseconds, the precision Postgres stores — a raw Instant carries nanoseconds it drops. */
@@ -112,23 +113,15 @@ class PanoExpiredAtSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneApp
     }
   }
 
-  "newlyExpiredByWeek" should {
-    "count a pano in the week its imagery went away" in {
-      val goneAt = OffsetDateTime.now
-      run(panoDataTable.updateExpiredStatus(panoId, expired = true, Some(false), goneAt))
-      val weeks = run(panoDataTable.newlyExpiredByWeek(goneAt.minusDays(1)))
-      weeks.map(_.panoCount).sum must be >= 1
-    }
-
-    "leave out panos that expired before expiry dates were recorded" in {
-      // The whole point of the undated count: those panos are absent from every week rather than piled onto one.
-      val countedBefore = run(panoDataTable.newlyExpiredByWeek(OffsetDateTime.now.minusWeeks(1))).map(_.panoCount).sum
+  "countExpiredWithoutExpiryDate" should {
+    "count an expired pano that carries no expiry date" in {
+      // What the trend page reports as the history it cannot show: these panos expired before 358 added the column,
+      // so 364's backfill had no date to seed a log event from and they belong to no week.
+      run(panoDataTable.updateExpiredStatus(panoId, expired = true, Some(false), OffsetDateTime.now))
       val undatedBefore = run(panoDataTable.countExpiredWithoutExpiryDate)
 
       run(sqlu"UPDATE pano_data SET expired_at = NULL WHERE pano_id = $panoId")
 
-      run(panoDataTable.newlyExpiredByWeek(OffsetDateTime.now.minusWeeks(1))).map(_.panoCount).sum mustBe
-        countedBefore - 1
       run(panoDataTable.countExpiredWithoutExpiryDate) mustBe undatedBefore + 1
     }
   }

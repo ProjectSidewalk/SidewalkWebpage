@@ -3,13 +3,13 @@ package controllers
 import controllers.base.{CustomBaseController, CustomControllerComponents}
 import controllers.helper.ControllerUtils.internalKeyValid
 import formats.json.ExploreFormats.AiLabelsSubmission
-import play.api.libs.json._
-import play.api.libs.ws._
-import play.api.mvc._
+import play.api.libs.json.*
+import play.api.libs.ws.*
+import play.api.mvc.*
 import play.api.{Configuration, Logger}
 
 import java.util.Base64
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.{ExecutionContext, Future}
 
 /**
@@ -23,7 +23,7 @@ class AiController @Inject() (
     configService: service.ConfigService,
     exploreService: service.ExploreService,
     panoDataService: service.PanoDataService
-)(implicit ec: ExecutionContext)
+)(using ec: ExecutionContext)
     extends CustomBaseController(cc) {
   private val logger = Logger(this.getClass)
 
@@ -100,7 +100,8 @@ class AiController @Inject() (
       imageObjects   <- fetchAndEncodeImages(gsvImageUrls)                     // Fetch and encode images
       geminiResponse <- sendToGeminiApi(prompt, imageObjects)                  // Send to Gemini API
     } yield {
-      val activity = s"Analyzing street $streetEdgeId with URLs: ${gsvImageUrls.mkString(", ")}"
+      // Not the URLs: they carry the server key, and this table ships in the dumps developers get.
+      val activity = s"Analyzing street $streetEdgeId with ${imageObjects.size} of ${gsvImageUrls.size} images"
       cc.loggingService.insert(request.identity.userId, request.ipAddress, activity)
       geminiResponse
     }
@@ -132,12 +133,13 @@ class AiController @Inject() (
                 )
               )
             } else {
+              logger.warn(s"GSV image for street analysis refused: HTTP ${gsvResponse.status}")
               None
             }
           }
           .recover { case ex: Exception =>
-            // Log error but don't fail the entire request.
-            logger.warn(s"Failed to fetch pano image from $url: ${ex.getMessage}")
+            // Log error but don't fail the entire request. Not the URL, which carries the server key.
+            logger.warn(s"Failed to fetch pano image: ${ex.getMessage}")
             None
           }
       }

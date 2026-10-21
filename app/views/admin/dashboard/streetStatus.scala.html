@@ -2,48 +2,48 @@
 @import models.user.SidewalkUserWithRole
 @import play.api.Configuration
 @(commonData: CommonPageData, user: SidewalkUserWithRole
-)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+)(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @content = {
-  <div class="api-section" id="street-status-intro-section">
-    <h1 class="api-heading" id="street-status">Street status <a href="#street-status" class="permalink">#</a></h1>
-    <p>Which streets are actually available for auditing, and where are they unavailable? Every street carries a status: <strong>open</strong> (usable), <strong>no imagery</strong> (no street-view available), <strong>closed</strong> (in a region not yet opened to the public), or <strong>disabled</strong> (manually hidden, e.g. an OSM miscategorization). Use this to spot neighborhoods with lots of missing imagery or disabled streets.</p>
-    <div class="coverage-kpis" id="street-status-kpis">
-      <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-total-streets">—</span><span class="coverage-kpi-label">Total streets</span></div>
-      <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-no-imagery">—</span><span class="coverage-kpi-label">No imagery</span></div>
-      <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-closed">—</span><span class="coverage-kpi-label">Closed</span></div>
-      <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-disabled">—</span><span class="coverage-kpi-label">Disabled</span></div>
+  <div class="page-section" id="street-status-intro-section">
+    <h1 class="page-heading" id="street-status">Street status <a href="#street-status" class="permalink">#</a></h1>
+    <p>Each street is <strong>open</strong>, <strong>no imagery</strong>, <strong>closed</strong> (region not public yet), or <strong>disabled</strong> (hidden by hand).</p>
+    <div class="ps-kpis" id="street-status-kpis">
+      <div class="ps-kpi"><span class="ps-kpi-value" id="kpi-total-streets">—</span><span class="ps-kpi-label">Total streets</span></div>
+      <div class="ps-kpi"><span class="ps-kpi-value" id="kpi-no-imagery">—</span><span class="ps-kpi-label">No imagery</span></div>
+      <div class="ps-kpi"><span class="ps-kpi-value" id="kpi-closed">—</span><span class="ps-kpi-label">Closed</span></div>
+      <div class="ps-kpi"><span class="ps-kpi-value" id="kpi-disabled">—</span><span class="ps-kpi-label">Disabled</span></div>
     </div>
     <div class="coverage-status" id="street-status-status" role="status" aria-live="polite">Loading street data…</div>
   </div>
 
-  <div class="api-section" id="street-status-map-section">
-    <h2 class="api-heading" id="street-status-map">Status map <a href="#street-status-map" class="permalink">#</a></h2>
-    <p>Each street segment is colored by its status. Hover for details; click a segment to highlight its region's streets here and in the table below.</p>
+  <div class="page-section" id="street-status-map-section">
+    <h2 class="page-heading" id="street-status-map">Status map <a href="#street-status-map" class="permalink">#</a></h2>
+    <p>Click a segment to highlight its region.</p>
     <div id="street-status-choropleth" class="coverage-map"
     role="img" aria-label="Map of street segments colored by availability status"></div>
     <div class="street-status-legend" id="street-status-legend"></div>
   </div>
 
-  <div class="api-section" id="street-status-by-region-section">
-    <h2 class="api-heading" id="street-status-by-region">Status by region <a href="#street-status-by-region" class="permalink">#</a></h2>
-    <p>Streets per status for each region, sorted to surface the regions with the most missing imagery first. Hover or click a row to highlight that region's streets on the map above (and vice-versa).</p>
+  <div class="page-section" id="street-status-by-region-section">
+    <h2 class="page-heading" id="street-status-by-region">Status by region <a href="#street-status-by-region" class="permalink">#</a></h2>
+    <p>Regions with the most missing imagery first.</p>
     <div class="coverage-table-controls">
       <label class="sr-only" for="street-status-table-search">Search regions</label>
-      <input type="search" id="street-status-table-search" class="coverage-table-search" placeholder="Search regions…">
+      <input type="search" id="street-status-table-search" class="ps-input coverage-table-search" placeholder="Search regions…">
     </div>
-    <div class="coverage-table-wrap">
-      <table id="street-status-table" class="coverage-table street-status-table"></table>
+    <div class="ps-table-scroll-box">
+      <table id="street-status-table" class="ps-table ps-table--compact ps-table--sticky street-status-table"></table>
     </div>
   </div>
 
-  <div class="api-section" id="street-status-trend-section">
-    <h2 class="api-heading" id="recently-changed">Recently changed <a href="#recently-changed" class="permalink">#</a></h2>
-    <p>Everything above is a snapshot of right now. These are the changes behind it: which streets moved between statuses, where labelers are reporting missing imagery, and how many panoramas the nightly sweep found gone. Street status is written by the maintenance scripts in <code>db/scripts</code>, so a spike here is a script run; reports and expiries accumulate on their own.</p>
+  <div class="page-section" id="street-status-trend-section">
+    <h2 class="page-heading" id="recently-changed">Recently changed <a href="#recently-changed" class="permalink">#</a></h2>
+    <p>Only <code>db/scripts</code> and the Reopen button below change a street's status, so a spike in the first chart is a script run.</p>
     <div class="trend-controls">
       <label for="trend-range">Window</label>
       @* Windows come from StreetLifecycleService so the offered set and the server's default can't drift apart. *@
-      <select id="trend-range" class="trend-range">
+      <select id="trend-range" class="ps-select">
         @for(weeks <- service.StreetLifecycleService.TrendWeekOptions) {
           <option value="@weeks">Last @weeks weeks</option>
         }
@@ -56,44 +56,33 @@
     <div class="mini-host" id="trend-status-chart"></div>
 
     <h3 class="trend-chart-heading">Streets reported as having no imagery</h3>
-    <p class="trend-note">Counted as distinct streets per week; hover a bar for the raw report count, which also moves when several labelers report the same street.</p>
+    <p class="trend-note">Distinct streets per week.</p>
     <div class="mini-host" id="trend-reports-chart"></div>
 
-    <h3 class="trend-chart-heading">Panoramas whose imagery went away</h3>
-    <p class="trend-note">Unlike the two charts above, this one is not an event log: it reads the current expiry date on each panorama, which is cleared if the imagery comes back or a user views the panorama again. A panorama that expired and later returned therefore leaves its old week, so past weeks can shrink between visits. Read it as "panoramas still missing, by when they went" rather than as a record of every expiry.</p>
+    <h3 class="trend-chart-heading">Panoramas losing and regaining imagery</h3>
+    <p class="trend-note">Losses that later weeks hand back were a provider hiccup; the rest is really gone.</p>
     <p class="trend-note" id="trend-expiry-note"></p>
     <div class="mini-host" id="trend-expiry-chart"></div>
   </div>
 
-  <div class="api-section" id="street-status-queue-section">
-    <h2 class="api-heading" id="awaiting-confirmation">Awaiting confirmation <a href="#awaiting-confirmation" class="permalink">#</a></h2>
+  <div class="page-section" id="street-status-queue-section">
+    <h2 class="page-heading" id="regained-imagery">Regained imagery <a href="#regained-imagery" class="permalink">#</a></h2>
+    <p>Retired streets where the nightly poll has since found panoramas; <strong>Reopen</strong> returns one to the pool at full priority (lowering its region's completion), <strong>Dismiss</strong> hides it until a poll finds stronger evidence.</p>
+    <div id="trend-reopen-candidates"></div>
+
+    <h2 class="page-heading" id="awaiting-confirmation">Awaiting confirmation <a href="#awaiting-confirmation" class="permalink">#</a></h2>
     <p id="trend-corroborated-intro"></p>
     <div id="trend-corroborated"></div>
 
     <h3 class="trend-chart-heading">Reports by region</h3>
-    <p class="trend-note">All missing-imagery reports in the window, not only corroborated ones — the regions most likely to lose streets next.</p>
+    <p class="trend-note">All reports, corroborated or not: the regions likeliest to lose streets next.</p>
     <div id="trend-regions"></div>
   </div>
 
-    <!-- Page-specific library: Mapbox for the segment map (Vega isn't needed here). Loaded only on this page. -->
-  <link rel="stylesheet" href="@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.css")">
-  <script src="@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.js")"></script>
-
-  <script src="@assets.path("js/admin-dashboard/MiniLineChart.js")"></script>
-  <script src="@assets.path("js/admin-dashboard/StreetStatusMap.js")"></script>
-  <script src="@assets.path("js/admin-dashboard/StreetStatusTable.js")"></script>
-  <script src="@assets.path("js/admin-dashboard/StreetStatusTrend.js")"></script>
-  <script src="@assets.path("js/admin-dashboard/StreetStatusPage.js")"></script>
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      new StreetStatusPage({
-        mapboxToken: '@commonData.mapboxApiKey',
-        streetsUrl: '/v3/api/streets?filetype=geojson',
-        trendUrl: '/adminapi/streetStatusTrend',
-        trendWeeks: @service.StreetLifecycleService.DefaultTrendWeeks
-      }).init();
-    });
-  </script>
+  @ViteAssets.stylesheets("admin/streetStatus", alreadyLinked = "admin/shell")
+  <script type="module" id="page-entry" src='@assets.path("build/js/admin/streetStatus.js")'
+          data-mapbox-token="@commonData.mapboxApiKey"
+          data-trend-weeks="@service.StreetLifecycleService.DefaultTrendWeeks"></script>
 }
 
 @common.main(commonData, "Sidewalk - Admin Street Status") {

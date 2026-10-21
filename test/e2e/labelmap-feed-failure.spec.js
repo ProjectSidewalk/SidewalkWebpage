@@ -10,14 +10,14 @@
  * failure and assert what the user is shown. Kept to DOM state (which card is visible, is retry focused) —
  * canvas and imagery testing stays manual, per the suite's charter.
  *
- * Every case intercepts the feed, so none of them read the database: they behave identically against a
- * seeded dev schema and CI's empty one.
+ * Every case intercepts the feed and the base map layers, so none of them read the database: they behave
+ * identically against a seeded dev schema and CI's empty one, in content and in how long they take (#5081).
  *
  * /admin/label-map renders the same overlay through the same MapLoadingOverlay class, so these cover its
  * behavior too — it isn't driven directly here because reaching it needs an admin session, which the suite's
  * setup (a throwaway *registered* user) doesn't mint.
  */
-const {test, expect, stubMapbox, waitForAppReady} = require('./fixtures');
+const {test, expect, stubMapbox, stubMapBaseLayers, waitForAppReady} = require('./fixtures');
 
 // A valid GeoJSON prefix that simply stops — what a client sees when the database stream dies after the 200
 // has gone out. Status and Content-Type both still say success.
@@ -43,8 +43,12 @@ const serveEmptyFeed = (route) =>
   route.fulfill({status: 200, contentType: 'application/json', body: EMPTY_FEED});
 
 test.describe('/labelMap label feed failure', () => {
-  test('shows a retryable error when the feed cannot be reached', async ({page, context}) => {
+  test.beforeEach(async ({context}) => {
     await stubMapbox(context);
+    await stubMapBaseLayers(context);
+  });
+
+  test('shows a retryable error when the feed cannot be reached', async ({page, context}) => {
     await routeLabelFeed(context, (route) => route.abort('failed'));
 
     await openLabelMap(page);
@@ -63,7 +67,6 @@ test.describe('/labelMap label feed failure', () => {
 
   // The regression this file exists for: a 200 whose body stops early still has to reach the user as an error.
   test('shows the error when the streamed body is truncated under a 200', async ({page, context}) => {
-    await stubMapbox(context);
     await routeLabelFeed(context, (route) =>
       route.fulfill({status: 200, contentType: 'application/json', body: TRUNCATED_FEED}));
 
@@ -76,7 +79,6 @@ test.describe('/labelMap label feed failure', () => {
   // Truncation rather than abort: an aborted request also emits Chromium's own resource-load error, which
   // would drown out the signal here. A 200 with a short body produces only the failure the page itself reports.
   test('a failed feed leaves no uncaught errors behind', async ({page, context, consoleErrors}) => {
-    await stubMapbox(context);
     await routeLabelFeed(context, (route) =>
       route.fulfill({status: 200, contentType: 'application/json', body: TRUNCATED_FEED}));
 
@@ -86,11 +88,10 @@ test.describe('/labelMap label feed failure', () => {
 
     // The page reports the failure itself, so exactly one handled console.error is expected. Anything else —
     // above all a `pageerror` or an "Uncaught (in promise)" from a dangling promise branch — is a defect.
-    expect(consoleErrors.filter((e) => !e.includes('LabelMap failed to load'))).toEqual([]);
+    expect(consoleErrors.filter((e) => !e.includes('LabelMap label feed failed'))).toEqual([]);
   });
 
-  test('retry reloads the page and recovers once the feed answers', async ({page, context}) => {
-    await stubMapbox(context);
+  test('retry re-requests the feed in place and recovers once it answers', async ({page, context}) => {
     let attempts = 0;
     await routeLabelFeed(context, (route) => {
       attempts += 1;
@@ -100,27 +101,22 @@ test.describe('/labelMap label feed failure', () => {
     await openLabelMap(page);
     await expect(page.locator('#labelmap-error-card')).toBeVisible();
 
-    // Marker on the current document: a reload replaces it, so its disappearance is proof of a real
-    // navigation. Waiting on the URL wouldn't work — it never changes, so the wait resolves instantly.
+    // Marker on the current document: retry re-issues the viewport fetch without navigating (#5002), so the
+    // marker must survive the click — its disappearance would mean the page reloaded.
     await page.evaluate(() => { window.__beforeRetry = true; });
     await page.locator('#labelmap-retry').click();
-    await page.waitForFunction(() => !window.__beforeRetry);
 
-    // Poll for the second request rather than asserting once: the reloaded document is ready well before its
-    // feed request goes out. Waiting on the overlay instead would prove nothing — it starts hidden in the
-    // markup, so "hidden" is also the state of a page that hasn't begun loading.
     await expect
       .poll(() => attempts, {message: 'retry should have re-requested the feed'})
       .toBeGreaterThan(1);
 
-    await waitForAppReady(page);
-    await page.locator('#page-loading').waitFor({state: 'hidden'});
-    await page.waitForTimeout(1000); // Settle window: a late failure would raise the error card here.
     await expect(page.locator('#labelmap-error-card')).toBeHidden();
+    await page.waitForTimeout(1000); // Settle window: a late failure would re-raise the error card here.
+    await expect(page.locator('#labelmap-error-card')).toBeHidden();
+    expect(await page.evaluate(() => window.__beforeRetry)).toBe(true);
   });
 
   test('an empty feed is a normal result, not an error', async ({page, context, consoleErrors}) => {
-    await stubMapbox(context);
     await routeLabelFeed(context, serveEmptyFeed);
 
     await openLabelMap(page);

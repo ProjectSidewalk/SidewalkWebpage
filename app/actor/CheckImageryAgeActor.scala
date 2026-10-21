@@ -2,15 +2,14 @@ package actor
 
 import actor.ActorUtils.{dateFormatter, getTimeToNextUpdate}
 import models.utils.JobRunTrigger
-import org.apache.pekko.actor.{Actor, Cancellable}
+import org.apache.pekko.actor.{Actor, ActorRef, Cancellable}
 import play.api.Logger
-import play.api.libs.json.Json
 import service.{ConfigService, ImageryFreshnessService, JobRunService}
 
 import java.time.Instant
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.ExecutionContext
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import scala.util.{Failure, Success}
 
 object CheckImageryAgeActor {
@@ -30,10 +29,8 @@ object CheckImageryAgeActor {
 class CheckImageryAgeActor @Inject() (
     imageryFreshnessService: ImageryFreshnessService,
     jobRunService: JobRunService
-)(implicit
-    ec: ExecutionContext,
-    configService: ConfigService
-) extends Actor {
+)(using ec: ExecutionContext, configService: ConfigService)
+    extends Actor {
 
   private var cancellable: Option[Cancellable] = None
   private val logger                           = Logger(this.getClass)
@@ -53,7 +50,7 @@ class CheckImageryAgeActor @Inject() (
           24.hours,
           self,
           CheckImageryAgeActor.Tick
-        )(context.dispatcher)
+        )(using context.dispatcher, ActorRef.noSender)
       )
       logger.info("CheckImageryAgeActor created")
     }
@@ -69,15 +66,9 @@ class CheckImageryAgeActor @Inject() (
     val currentTimeStart: String = dateFormatter.format(Instant.now())
     logger.info(s"Auto-scheduled imagery-age poll starting at: $currentTimeStart")
     jobRunService
-      .record(CheckImageryAgeActor.Name, JobRunTrigger.Scheduled)(imageryFreshnessService.pollImageryAges()) { result =>
-        Json.obj(
-          "provider"          -> result.provider,
-          "streets_selected"  -> result.streetsSelected,
-          "streets_polled"    -> result.streetsPolled,
-          "streets_skipped"   -> result.streetsSkipped,
-          "not_polled_reason" -> result.notPolledReason
-        )
-      }
+      .record(CheckImageryAgeActor.Name, JobRunTrigger.Scheduled)(imageryFreshnessService.pollImageryAges())(
+        _.runDetails
+      )
       .onComplete {
         case Success(result) => logger.info(result.summary)
         case Failure(e)      => logger.error("Error polling imagery ages", e)

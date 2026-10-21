@@ -1,8 +1,8 @@
 package forms
 
 import play.api.data.Form
-import play.api.data.Forms._
-import play.api.data.validation.Constraints._
+import play.api.data.Forms.*
+import play.api.data.validation.Constraints.*
 
 /**
  * The sign-up form, shared by the auth dialog and the full-page/mobile sign-up views.
@@ -18,13 +18,11 @@ object SignUpForm {
         .verifying(minLength(UsernamePolicy.minLength))
         .verifying(maxLength(UsernamePolicy.maxLength))
         .verifying(pattern(UsernamePolicy.pattern, error = "authenticate.error.username.charset")),
-      "email"    -> email.verifying(nonEmpty),
-      "password" -> nonEmptyText
-        .verifying(minLength(PasswordPolicy.minLength))
-        .verifying(pattern(PasswordPolicy.pattern, error = "authenticate.error.password.requirements")),
+      "email"           -> email.verifying(nonEmpty),
+      "password"        -> PasswordPolicy.newPassword,
       "passwordConfirm" -> nonEmptyText,
       "terms"           -> boolean.verifying("authenticate.error.terms.required", value => value)
-    )(SignUpData.apply)(SignUpData.unapply).verifying(
+    )(SignUpData.apply)((d: SignUpData) => Some(Tuple.fromProductTyped(d))).verifying(
       "authenticate.error.password.mismatch",
       fields => fields.password == fields.passwordConfirm
     )

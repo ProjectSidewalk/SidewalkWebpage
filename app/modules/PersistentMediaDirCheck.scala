@@ -39,7 +39,7 @@ class PersistentMediaDirCheck @Inject() (config: Configuration, environment: Env
 
     val fatal = unsafe.map(_.dir).filter(_.irreplaceable)
     if (fatal.nonEmpty) {
-      throw new IllegalStateException(
+      throw IllegalStateException(
         s"Refusing to start: ${fatal.map(_.key).mkString(", ")} cannot safely hold irreplaceable content (see " +
           s"errors above). Set ${fatal.map(_.envVar).mkString(", ")} to a path outside the build output tree."
       )
@@ -79,12 +79,14 @@ object PersistentMediaDirCheck {
   def arms(environment: Environment): Boolean = environment.mode == Mode.Prod
 
   val persistentDirs: Seq[PersistentDir] = Seq(
-    // A crop is a screenshot of the pano canvas taken in the labeler's browser as the label was placed
-    // (Canvas.saveCanvasScreenshot); nothing here rebuilds one, and the Static API still we fall back to is a
-    // different image that only exists while the provider still serves that pano — about half the labels on prod sit
-    // on panos already marked expired.
+    // Most crops are screenshots of the pano canvas taken in the labeler's browser as the label was placed
+    // (Canvas.saveCanvasScreenshot). The nightly crop job re-cuts a missing one only when its pano is in the
+    // self-hosted store, and the Static API still we fall back to is a different image that only exists while the
+    // provider still serves that pano — about half the labels on prod sit on panos already marked expired. So the
+    // directory as a whole cannot be rebuilt.
     PersistentDir("cropped.image.directory", "SIDEWALK_IMAGES_DIR", irreplaceable = true),
-    // Locally stored pano imagery (pano_data.has_backup) the providers no longer serve, so it cannot be re-fetched.
+    // The self-hosted pano store backs up GSV imagery Google has already expired (pano_data.has_backup) — for those
+    // panos it is the only copy left anywhere, as unrecoverable as a user upload.
     PersistentDir("pano.images.directory", "SIDEWALK_PANO_DIR", irreplaceable = true),
     PersistentDir("story.media.directory", "SIDEWALK_STORY_MEDIA_DIR", irreplaceable = true),
     // Share previews are the one cache here: each rebuilds on demand from the label's crop, or from a Street View

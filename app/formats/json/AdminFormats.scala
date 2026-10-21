@@ -1,101 +1,71 @@
 package formats.json
 
-import models.audit.{AuditedStreetWithTimestamp, ContributionTimeStat, GenericComment, InteractionWithLabel}
+import models.audit.{AuditedStreetWithTimestamp, ContributionTimeStat, GenericComment}
 import models.label.LabelCount
 import models.user.UserCount
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.given
 import models.validation.{ValidationCount, ValidationOption}
-import play.api.libs.functional.syntax._
-import play.api.libs.json._
-import service.TimeInterval.TimeInterval
+import play.api.libs.functional.syntax.*
+import play.api.libs.json.*
+import service.TimeInterval
 
 import java.time.OffsetDateTime
 
 object AdminFormats {
+  private given jsonConfig: JsonConfiguration =
+    JsonConfiguration(JsonNaming.SnakeCase, optionHandlers = OptionHandlers.WritesNull)
+
   case class UserRoleSubmission(userId: String, roleId: String)
-  case class UserQualitySubmission(userId: String, userQualityManual: Option[Boolean])
-  case class UserInfra3dAccess(userId: String, access: Boolean)
   case class TaskFlagsByDateSubmission(userId: String, date: OffsetDateTime, flag: String, state: Boolean)
   case class TaskFlagSubmission(auditTaskId: Int, flag: String, state: Boolean) {
     require(flag == "low_quality" || flag == "incomplete" || flag == "stale")
   }
 
-  implicit val userRoleSubmissionReads: Reads[UserRoleSubmission] = (
-    (JsPath \ "user_id").read[String] and
-      (JsPath \ "role_id").read[String]
-  )(UserRoleSubmission.apply _)
+  /**
+   * The Manage user page's save (`/adminapi/saveUserSettings`, #4964). Every setting is required so a partial body
+   * can't silently reset the ones it left out; the three nullable fields each mean something when null/absent —
+   * `teamId`: no team, `highQualityManual`: automatic, `infra3dAccess`: leave as is.
+   */
+  case class AdminUserSettingsSubmission(
+      userId: String,
+      username: String,
+      // Left as the raw string so an unrecognized role reaches AdminController's ordered checks, which name it
+      // ("Can't assign role X"), rather than failing JSON validation with a generic "Invalid settings: role".
+      role: String,
+      teamId: Option[Int],
+      highQualityManual: Option[Boolean],
+      excluded: Boolean,
+      communityService: Boolean,
+      onLeaderboard: Boolean,
+      publicProfile: Boolean,
+      infra3dAccess: Option[Boolean]
+  )
 
-  implicit val userQualitySubmissionReads: Reads[UserQualitySubmission] = (
-    (JsPath \ "user_id").read[String] and
-      (JsPath \ "quality").readNullable[Boolean]
-  )(UserQualitySubmission.apply _)
+  given userRoleSubmissionReads: Reads[UserRoleSubmission] = Json.reads[UserRoleSubmission]
 
-  implicit val userInfra3dAccessReads: Reads[UserInfra3dAccess] = (
-    (JsPath \ "user_id").read[String] and
-      (JsPath \ "access").read[Boolean]
-  )(UserInfra3dAccess.apply _)
+  given taskFlagsByDateSubmissionReads: Reads[TaskFlagsByDateSubmission] = Json.reads[TaskFlagsByDateSubmission]
 
-  implicit val taskFlagsByDateSubmissionReads: Reads[TaskFlagsByDateSubmission] = (
-    (JsPath \ "userId").read[String] and
-      (JsPath \ "date").read[OffsetDateTime] and
-      (JsPath \ "flag").read[String] and
-      (JsPath \ "state").read[Boolean]
-  )(TaskFlagsByDateSubmission.apply _)
+  given adminUserSettingsSubmissionReads: Reads[AdminUserSettingsSubmission] =
+    Json.reads[AdminUserSettingsSubmission].map(s => s.copy(username = s.username.trim))
 
-  implicit val taskFlagSubmissionReads: Reads[TaskFlagSubmission] = (
-    (JsPath \ "auditTaskId").read[Int] and
-      (JsPath \ "flag").read[String] and
-      (JsPath \ "state").read[Boolean]
-  )(TaskFlagSubmission.apply _)
+  given taskFlagSubmissionReads: Reads[TaskFlagSubmission] = Json.reads[TaskFlagSubmission]
 
-  // Fixes the default writes now working when the keys are an Enumeration.
-  implicit def timeIntervalMapWrites[A](implicit writesA: Writes[A]): Writes[Map[TimeInterval, A]] =
-    (map: Map[TimeInterval, A]) => {
-      val stringMap = map.map { case (interval, value) => (interval.toString, value) }
-      Json.toJson(stringMap)(Writes.map[A](writesA))
-    }
+  given userCountWrites: Writes[UserCount] = Json.writes[UserCount]
 
-  implicit val userCountWrites: Writes[UserCount] = (
-    (__ \ "count").write[Int] and
-      (__ \ "tool_used").write[String] and
-      (__ \ "role").write[String] and
-      (__ \ "time_interval").write[TimeInterval] and
-      (__ \ "task_completed_only").write[Boolean] and
-      (__ \ "high_quality_only").write[Boolean]
-  )(unlift(UserCount.unapply))
+  given contributionTimeStatWrites: Writes[ContributionTimeStat] = Json.writes[ContributionTimeStat]
 
-  implicit val contributionTimeStatWrites: Writes[ContributionTimeStat] = (
-    (__ \ "time").write[Option[Double]] and
-      (__ \ "stat").write[String] and
-      (__ \ "time_interval").write[TimeInterval]
-  )(unlift(ContributionTimeStat.unapply))
+  given labelCountWrites: Writes[LabelCount] = Json.writes[LabelCount]
 
-  implicit val labelCountWrites: Writes[LabelCount] = (
-    (__ \ "count").write[Int] and
-      (__ \ "time_interval").write[TimeInterval] and
-      (__ \ "label_type").write[String]
-  )(unlift(LabelCount.unapply))
-
-  implicit val validationCountWrites: Writes[ValidationCount] = (
+  given validationCountWrites: Writes[ValidationCount] = (
     (__ \ "count").write[Int] and
       (__ \ "time_interval").write[TimeInterval] and
       (__ \ "label_type").write[String] and
       // None represents the "All" results subtotal.
-      (__ \ "result").write[String].contramap[Option[ValidationOption.Value]](_.map(_.toString).getOrElse("All")) and
+      (__ \ "result").write[String].contramap[Option[ValidationOption]](_.map(_.name).getOrElse("All")) and
       (__ \ "validator").write[String]
-  )(unlift(ValidationCount.unapply))
+  )((o: ValidationCount) => Tuple.fromProductTyped(o))
 
-  implicit val genericCommentWrites: Writes[GenericComment] = (
-    (__ \ "comment_type").write[String] and
-      (__ \ "username").write[String] and
-      (__ \ "pano_id").write[String] and
-      (__ \ "timestamp").write[OffsetDateTime] and
-      (__ \ "comment").write[String] and
-      (__ \ "heading").write[Double] and
-      (__ \ "pitch").write[Double] and
-      (__ \ "zoom").write[Double] and
-      (__ \ "label_id").write[Option[Int]]
-  )(unlift(GenericComment.unapply))
+  given genericCommentWrites: Writes[GenericComment] = Json.writes[GenericComment]
 
   def auditedStreetWithTimestampToGeoJSON(street: AuditedStreetWithTimestamp): JsObject = {
     Json.obj(
@@ -111,43 +81,5 @@ object AdminFormats {
         "task_end"          -> street.taskEnd
       )
     )
-  }
-  def auditTaskInteractionsToGeoJSON(interactions: Seq[InteractionWithLabel]): JsObject = {
-    val features: Seq[JsObject] = interactions.filter(_.lat.isDefined).sortBy(_.timestamp).map { interaction =>
-      val geom = Json.obj(
-        "type"        -> "Point",
-        "coordinates" -> Json.arr(interaction.lng.get, interaction.lat.get)
-      )
-      val properties = if (interaction.labelType.isEmpty) {
-        Json.obj(
-          "panoId"    -> interaction.panoId,
-          "heading"   -> interaction.heading.get,
-          "pitch"     -> interaction.pitch,
-          "zoom"      -> interaction.zoom,
-          "timestamp" -> interaction.timestamp,
-          "action"    -> interaction.action,
-          "note"      -> interaction.note
-        )
-      } else {
-        Json.obj(
-          "panoId"    -> interaction.panoId,
-          "heading"   -> interaction.heading.get,
-          "pitch"     -> interaction.pitch,
-          "zoom"      -> interaction.zoom,
-          "timestamp" -> interaction.timestamp,
-          "action"    -> interaction.action,
-          "note"      -> interaction.note,
-          "label"     -> Json.obj(
-            "label_id"    -> interaction.labelId,
-            "label_type"  -> interaction.labelType,
-            "coordinates" -> Seq(interaction.labelLng, interaction.labelLat),
-            "canvasX"     -> interaction.canvasX,
-            "canvasY"     -> interaction.canvasY
-          )
-        )
-      }
-      Json.obj("type" -> "Feature", "geometry" -> geom, "properties" -> properties)
-    }
-    Json.obj("type" -> "FeatureCollection", "features" -> features)
   }
 }

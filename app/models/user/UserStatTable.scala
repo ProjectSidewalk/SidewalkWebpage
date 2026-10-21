@@ -2,23 +2,20 @@ package models.user
 
 import com.google.inject.ImplementedBy
 import models.api.UserStatForApi
-import models.audit.AuditTaskTableDef
-import models.label.{LabelTable, LabelTypeEnum}
+import models.audit.AuditTaskTable
+import models.label.{LabelTable, LabelType}
 import models.mission.{MissionTableDef, MissionType}
-import models.street.StreetEdgeTable
-import models.user.RoleTable.ROLES_RESEARCHER_COLLAPSED
-import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.user.Role.ROLES_RESEARCHER_COLLAPSED
+import models.utils.{Contributors, FilteredTables, MyPostgresProfile, SqlFragments}
+import models.utils.MyPostgresProfile.api.{given, *}
 import models.validation.LabelValidationTableDef
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import play.api.libs.functional.syntax._
-import play.api.libs.json.{__, Writes}
+import play.api.libs.json.{Json, JsonConfiguration, JsonNaming, Writes}
 import service.TimeInterval
-import service.TimeInterval.TimeInterval
-import slick.jdbc.GetResult
+import slick.jdbc.{GetResult, SQLActionBuilder}
 
 import java.time.OffsetDateTime
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.ExecutionContext
 
 case class UserStat(
@@ -39,18 +36,14 @@ case class LabelTypeStat(labels: Int, validatedCorrect: Int, validatedIncorrect:
 object LabelTypeStat {
   // snake_case JSON output per the v3 API convention (#3871). Lives in the companion so it is in implicit
   // scope wherever a LabelTypeStat is serialized (e.g. UserStatForApi).
-  implicit val writes: Writes[LabelTypeStat] = (
-    (__ \ "labels").write[Int] and
-      (__ \ "validated_correct").write[Int] and
-      (__ \ "validated_incorrect").write[Int] and
-      (__ \ "not_validated").write[Int]
-  )(unlift(LabelTypeStat.unapply))
+  private given jsonConfig: JsonConfiguration = JsonConfiguration(JsonNaming.SnakeCase)
+  given writes: Writes[LabelTypeStat]         = Json.writes[LabelTypeStat]
 }
 case class UserStatsForAdminPage(
     userId: String,
     username: String,
     email: String,
-    role: String,
+    role: Role,
     team: Option[String],
     signUpTime: Option[OffsetDateTime],
     lastSignInTime: Option[OffsetDateTime],
@@ -72,7 +65,7 @@ case class UserCount(
     highQualityOnly: Boolean
 ) {
   require(Seq("explore", "validate", "combined").contains(toolUsed.toLowerCase()))
-  require((ROLES_RESEARCHER_COLLAPSED.map(_.toLowerCase()) ++ Seq("all")).contains(role))
+  require((ROLES_RESEARCHER_COLLAPSED.map(_.name.toLowerCase()) ++ Seq("all")).contains(role))
 }
 
 case class LeaderboardStat(
@@ -91,7 +84,7 @@ case class LeaderboardStat(
  * by the *current city's* total street distance — a denominator with no cross-city meaning.
  *
  * @param userId         The mapper's global user id, so the caller can resolve their profile visibility here.
- * @param username       Display name (email domain stripped, as on the per-city boards).
+ * @param username       The mapper's username.
  * @param labelCount     Labels placed across all included cities.
  * @param missionCount   Missions completed across all included cities.
  * @param distanceMeters Street distance audited across all included cities.
@@ -109,10 +102,33 @@ case class GlobalLeaderboardStat(
 )
 
 /**
+ * One user's contribution totals in one city, for the dashboard's cross-city breakdown (#4496).
+ *
+ * Every count matches the definition the single-city dashboard already uses for the same tile, so the row for the
+ * city being viewed reconciles exactly with the hero KPIs above it.
+ *
+ * @param citySchema    DB schema the totals came from; the caller maps it back to a city id.
+ * @param labels        Labels placed here, on [[LabelTable.labelsWithExcludedUsers]]'s definition.
+ * @param validations   Validations given here.
+ * @param missions      Completed, non-skipped missions here (onboarding included).
+ * @param metersAudited Street distance audited here from the nightly `user_stat.meters_audited`, or None if this city
+ *                      has no `user_stat` row for the user.
+ * @param lastActivity  When the user last placed a label here, or None if they have never labeled here.
+ */
+case class CrossCityUserStat(
+    citySchema: String,
+    labels: Int,
+    validations: Int,
+    missions: Int,
+    metersAudited: Option[Double],
+    lastActivity: Option[OffsetDateTime]
+)
+
+/**
  * One row in a user's "standing" slice — their neighbors on the board, ranked by label count for the period.
  *
  * @param rank       1-based rank among eligible users for the period.
- * @param username   Display name (email domain stripped).
+ * @param username   The mapper's username.
  * @param labelCount Labels placed in the period.
  * @param isYou      True for the viewing user's own row.
  */
@@ -127,7 +143,24 @@ case class StandingRow(rank: Int, username: String, labelCount: Int, isYou: Bool
  * @param slice      The user's row ± a couple of neighbors, ordered by rank.
  * @param delta      Spots moved since the previous week (positive = climbed), or None if not comparable.
  */
+/** How many of a user's labels of one type were judged correct and incorrect. */
+case class LabelTypeTally(labelType: String, correct: Int, incorrect: Int)
+
+/** Whether a user is rated high quality, and whether their work is left out of the city's stats. */
+case class UserQualityFlags(userId: String, highQuality: Boolean, excluded: Boolean)
+
 case class UserStanding(rank: Int, cohortSize: Int, labelCount: Int, slice: Seq[StandingRow], delta: Option[Int] = None)
+
+/** One row of the standing query: a [[StandingRow]] plus the requesting user's own totals. */
+private case class StandingQueryRow(
+    rank: Int,
+    username: String,
+    labelCount: Int,
+    isYou: Boolean,
+    cohortSize: Int,
+    yourRank: Int,
+    yourLabelCount: Int
+)
 
 /**
  * One cell of the activity heatmap. The view assembles the localized tooltip from these parts.
@@ -173,36 +206,65 @@ class UserStatTableDef(tag: Tag) extends Table[UserStat](tag, "user_stat") {
 
   override def * =
     (userStatId, userId, metersAudited, labelsPerMeter, highQuality, highQualityManual, ownLabelsValidated, accuracy,
-      excluded, onLeaderboard, publicProfile) <> ((UserStat.apply _).tupled, UserStat.unapply)
+      excluded, onLeaderboard, publicProfile).mapTo[UserStat]
 
   def user       = foreignKey("user_stat_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
   def userUnique = index("user_stat_user_id_key", userId, unique = true)
+  // The DB also has user_stat_excluded_user_id_idx, an index of just the excluded users. Slick can't declare it.
 }
 
 @ImplementedBy(classOf[UserStatTable])
 trait UserStatTableRepository {}
 
 @Singleton
+object UserStatTable {
+
+  /**
+   * Own labels validated before a labeler's accuracy is trusted. Under it they are high quality by default, whatever
+   * their accuracy, and the Validate queue treats them as a new labeler. Evolution 347 mirrors the value in SQL, so
+   * changing it here means a new evolution that recomputes `high_quality`.
+   */
+  val OwnLabelsValidatedToJudge: Int = 50
+}
+
 class UserStatTable @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
     sidewalkUserTable: SidewalkUserTable,
-    streetEdgeTable: StreetEdgeTable,
-    labelTable: LabelTable
-)(implicit ec: ExecutionContext)
+    labelTable: LabelTable,
+    auditTaskTable: AuditTaskTable
+)(using ec: ExecutionContext)
     extends UserStatTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   private val userStats            = TableQuery[UserStatTableDef]
   private val userRoleTable        = TableQuery[UserRoleTableDef]
-  private val auditTaskTable       = TableQuery[AuditTaskTableDef]
   private val missionTable         = TableQuery[MissionTableDef]
   private val labelValidationTable = TableQuery[LabelValidationTableDef]
 
-  private val auditMissions = missionTable.filter(_.missionType === MissionType.Audit)
+  // Free exploration earns meters_audited too (#5733); without its labels here, its users read as labeling nothing.
+  private val auditMissions =
+    missionTable.filter(_.missionType inSet Set(MissionType.Audit, MissionType.ExploreAddress))
 
   private val LABEL_PER_METER_THRESHOLD: Double = 0.0375
 
-  implicit val userStatApiConverter: GetResult[UserStatForApi] = GetResult[UserStatForApi](r =>
+  private given labelTypeTallyConverter: GetResult[LabelTypeTally] =
+    r => LabelTypeTally(r.nextString(), r.nextInt(), r.nextInt())
+
+  private given leaderboardStatConverter: GetResult[LeaderboardStat] = r =>
+    LeaderboardStat(r.nextString(), r.nextInt(), r.nextInt(), r.nextDouble(), r.nextDoubleOption(), r.nextDouble())
+
+  private given globalLeaderboardStatConverter: GetResult[GlobalLeaderboardStat] = r =>
+    GlobalLeaderboardStat(r.nextString(), r.nextString(), r.nextInt(), r.nextInt(), r.nextDouble(),
+      r.nextDoubleOption(), r.nextString())
+
+  private given crossCityUserStatConverter: GetResult[CrossCityUserStat] = r =>
+    CrossCityUserStat(r.nextString(), r.nextInt(), r.nextInt(), r.nextInt(), r.nextDoubleOption(),
+      r.nextOffsetDateTimeOption())
+
+  private given standingQueryRowConverter: GetResult[StandingQueryRow] = r =>
+    StandingQueryRow(r.nextInt(), r.nextString(), r.nextInt(), r.nextBoolean(), r.nextInt(), r.nextInt(), r.nextInt())
+
+  given userStatApiConverter: GetResult[UserStatForApi] = r =>
     UserStatForApi(
       r.nextString(),
       r.nextInt(),
@@ -221,19 +283,9 @@ class UserStatTable @Inject() (
       r.nextInt(),
       r.nextInt(),
       r.nextInt(),
-      Map(
-        LabelTypeEnum.CurbRamp.name       -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
-        LabelTypeEnum.NoCurbRamp.name     -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
-        LabelTypeEnum.Obstacle.name       -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
-        LabelTypeEnum.SurfaceProblem.name -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
-        LabelTypeEnum.NoSidewalk.name     -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
-        LabelTypeEnum.Crosswalk.name      -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
-        LabelTypeEnum.Signal.name         -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
-        LabelTypeEnum.Occlusion.name      -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
-        LabelTypeEnum.Other.name          -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt())
-      )
+      // Read by position, so this must follow the column order getStatsForApiWithFilters writes.
+      LabelType.ordered.map { lt => lt.name -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()) }.toMap
     )
-  )
 
   def isExcludedUser(userId: String): DBIO[Boolean] = {
     userStats.filter(_.userId === userId).map(_.excluded).result.head
@@ -260,6 +312,16 @@ class UserStatTable @Inject() (
   }
 
   /**
+   * Sets the excluded column; excluding also marks the user manually low quality in the same write.
+   * @return Number of rows updated; 0 if no user is found.
+   */
+  def updateExcluded(userId: String, newExcluded: Boolean): DBIO[Int] = {
+    val user = userStats.filter(_.userId === userId)
+    if (newExcluded) user.map(u => (u.excluded, u.highQualityManual, u.highQuality)).update((true, Some(false), false))
+    else user.map(_.excluded).update(false)
+  }
+
+  /**
    * Update the meters_audited column in the user_stat table for the given user.
    * @param userId The user whose audited distance is being calculated
    */
@@ -282,21 +344,13 @@ class UserStatTable @Inject() (
    * @param usersToUpdate A query for the users whose audited distance is being calculated
    */
   def updateAuditedDistanceHelper(usersToUpdate: Query[Rep[String], String, Seq]): DBIO[Unit] = {
-    // Computes the audited distance in meters for each user using the audit_task and street_edge tables.
     auditTaskTable
-      .filter(_.completed === true)
-      .join(usersToUpdate)
-      .on(_.userId === _)
-      .join(streetEdgeTable.streets)
-      .on(_._1.streetEdgeId === _.streetEdgeId)
-      .groupBy(_._1._1.userId)
-      .map(x => (x._1, x._2.map(_._2.geom.lengthGeodesic).sum))
+      .metersAuditedByUser(_.in(usersToUpdate))
       .result
-      .flatMap { auditedDists: Seq[(String, Option[Double])] =>
-        // Update the meters_audited column in the user_stat table.
+      .flatMap { (auditedDists: Seq[(String, Double)]) =>
         val updateActions = auditedDists.map { case (userId, auditedDist) =>
           val updateQuery = for { _userStat <- userStats if _userStat.userId === userId } yield _userStat.metersAudited
-          updateQuery.update(auditedDist.getOrElse(0d))
+          updateQuery.update(auditedDist)
         }
         DBIO.sequence(updateActions).map(_ => ())
       }
@@ -328,25 +382,30 @@ class UserStatTable @Inject() (
       _mission       <- auditMissions
       _label         <- labelTable.labelsWithExcludedUsers if _mission.missionId === _label.missionId
       _usersToUpdate <- usersToUpdate if _mission.userId === _usersToUpdate
-    } yield (_mission.userId, _label.labelId)).groupBy(_._1).map(x => (x._1, x._2.length))
+    } yield (_mission.userId, _label.labelId))
+      .groupBy { case (userId, _) => userId }
+      .map { case (userId, group) => (userId, group.length) }
 
     // Compute labeling frequency using the label counts above and the meters_audited column in the user_stat table.
     userStats
       .join(usersToUpdate)
       .on(_.userId === _)
       .joinLeft(labelCounts)
-      .on(_._1.userId === _._1)
+      .on { case ((_stat, _), (_countUserId, _)) => _stat.userId === _countUserId }
       .map { case ((_stat, _userId), _count) =>
         // Calculate labels_per_meter. If no meters audited, just set to NULL.
         val newLabelsPerMeter = Case
           .If(_stat.metersAudited > 0d)
-          .Then(_count.map(_._2).ifNull(0.asColumnOf[Int]).asColumnOf[Option[Double]] / _stat.metersAudited)
+          .Then(
+            _count.map { case (_, _labelCount) => _labelCount }.ifNull(0.asColumnOf[Int]).asColumnOf[Option[Double]] /
+              _stat.metersAudited
+          )
           .Else(Option.empty[Double].bind)
 
         (_userId, newLabelsPerMeter)
       }
       .result
-      .flatMap { labelFreqs: Seq[(String, Option[Double])] =>
+      .flatMap { (labelFreqs: Seq[(String, Option[Double])]) =>
         // Update the labels_per_meter column in the user_stat table.
         val updateActions = labelFreqs.map { case (userId, labelingFreq) =>
           val updateQuery = for { _userStat <- userStats if _userStat.userId === userId } yield _userStat.labelsPerMeter
@@ -360,32 +419,55 @@ class UserStatTable @Inject() (
    * Update the accuracy column in the user_stat table for the given users, or every user if the list is empty.
    * @param users A list of user_ids to update, update all users if the list is empty.
    */
-  def updateAccuracy(users: Seq[String]): DBIO[Unit] = {
-    val filterStatement: String =
-      if (users.isEmpty) ""
-      else s"""AND label.user_id IN ('${users.mkString("','")}')"""
+  def updateAccuracy(users: Seq[String]): DBIO[Unit] =
+    updateAccuracyWhere(if (users.isEmpty) None else Some(sql"= ANY($users)"))
 
+  /**
+   * Update the accuracy column for everyone whose labels the given user validated, e.g. after excluding that user.
+   * @param validatorId The user whose validations decide which labelers are updated.
+   */
+  def updateAccuracyForLabelersValidatedBy(validatorId: String): DBIO[Unit] =
+    updateAccuracyWhere(
+      Some(sql"""IN (
+          SELECT label.user_id
+          FROM label_validation
+          INNER JOIN label ON label_validation.label_id = label.label_id
+          WHERE label_validation.user_id = $validatorId
+      )""")
+    )
+
+  /**
+   * Recomputes own_labels_validated and accuracy for the given labelers.
+   * @param userSet A set test (`IN (...)` or `= ANY(...)`) scoping both the labels aggregated and the rows written; None for every user.
+   */
+  private def updateAccuracyWhere(userSet: Option[SQLActionBuilder]): DBIO[Unit] = {
+    def scoped(column: String): SQLActionBuilder = userSet.map(set => sql" AND #$column ".concat(set)).getOrElse(sql"")
     sql"""
-      SELECT user_stat.user_id, new_validated_count, new_accuracy
+      SELECT user_stat.user_id, COALESCE(new_validated_count, 0), new_accuracy
       FROM user_stat
-      INNER JOIN (
+      -- LEFT so a labeler whose counted labels all went away (deleted, or their voters excluded) is reset to no
+      -- validated labels rather than left with a stale accuracy.
+      LEFT JOIN (
           SELECT user_id,
                  CAST(SUM(CASE WHEN correct THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(SUM(CASE WHEN correct THEN 1 ELSE 0 END) + SUM(CASE WHEN NOT correct THEN 1 ELSE 0 END), 0) AS new_accuracy,
                  COUNT(CASE WHEN correct IS NOT NULL THEN 1 END) AS new_validated_count
-          FROM label
-          WHERE label.deleted = FALSE
-              AND label.tutorial = FALSE
-              #$filterStatement
+          FROM #${FilteredTables.accuracyLabels}
+          WHERE TRUE"""
+      .concat(scoped("label.user_id"))
+      .concat(
+        sql"""
           GROUP BY user_id
       ) "accuracy_subquery" ON user_stat.user_id = accuracy_subquery.user_id
       -- Filter out users if their validated count and accuracy are unchanged from what's already in the database.
-      WHERE own_labels_validated <> new_validated_count
+      WHERE (own_labels_validated <> COALESCE(new_validated_count, 0)
           OR (accuracy IS NULL AND new_accuracy IS NOT NULL)
           OR (accuracy IS NOT NULL AND new_accuracy IS NULL)
-          OR (accuracy IS NOT NULL AND new_accuracy IS NOT NULL AND ROUND(accuracy::NUMERIC, 3) <> ROUND(new_accuracy::NUMERIC, 3));
-    """
+          OR (accuracy IS NOT NULL AND new_accuracy IS NOT NULL
+              AND ROUND(accuracy::NUMERIC, 3) <> ROUND(new_accuracy::NUMERIC, 3)))"""
+      )
+      .concat(scoped("user_stat.user_id"))
       .as[(String, Int, Option[Double])]
-      .flatMap { usersToUpdate: Seq[(String, Int, Option[Double])] =>
+      .flatMap { (usersToUpdate: Seq[(String, Int, Option[Double])]) =>
         // Update the own_labels_validated and accuracy columns in the user_stat table.
         val updateActions = usersToUpdate.map { case (userId, validatedCount, accuracy) =>
           val updateQuery =
@@ -402,38 +484,54 @@ class UserStatTable @Inject() (
    * Users are considered low quality if they either:
    * 1. have been manually marked as high_quality_manual = FALSE in the user_stat table,
    * 2. have a labeling frequency below `LABEL_PER_METER_THRESHOLD`, or
-   * 3. have an accuracy rating below 60% (with at least 50 of their labels validated).
+   * 3. have an accuracy rating below 60% (with at least `OwnLabelsValidatedToJudge` of their labels validated).
    *
    * @param userId The user whose high_quality column should be updated
    * @return The number of rows updated; should be 1, or 0 if no user is found
    */
   def updateUserQuality(userId: String): DBIO[Int] = {
-    // Decide if each user is high quality. Conditions in the method comment. Users manually marked for exclusion or
-    // low quality are filtered out later (using results from the previous query).
-    val userQualQuery: DBIO[Seq[Boolean]] = {
-      userStats
-        .filter(_.userId === userId)
-        .map { x =>
-          !x.excluded &&                              // false if excluded=true
-          x.highQualityManual.getOrElse(true) && (    // false if high_quality_manual=false
-            x.highQualityManual.getOrElse(false) || ( // true if high_quality_manual set to true
-              // 0.6d, not 0.6f: widening the float would compare against 0.60000002, so this path and the bulk
-              // `updateHighQuality` below would disagree for an accuracy in that sliver. Evolution 347 and
-              // GeodesicDistanceSpec both assume the two agree exactly.
-              (x.metersAudited === 0d || x.labelsPerMeter.getOrElse(5d) > LABEL_PER_METER_THRESHOLD)
-                && (x.accuracy.getOrElse(1.0d) > 0.6d.asColumnOf[Double] || x.ownLabelsValidated < 50.asColumnOf[Int])
-            )
-          )
-        }
-        .result
-    }
     for {
-      newUserQuality <- userQualQuery
+      newUserQuality <- userStats.filter(_.userId === userId).map(computedHighQuality).result
       rowsUpdated    <-
         if (newUserQuality.nonEmpty) updateHighQuality(userId, newUserQuality.head)
         else DBIO.successful(0)
     } yield rowsUpdated
   }.transactionally
+
+  /**
+   * Update the high_quality column for everyone whose labels the given user validated.
+   *
+   * Run after [[updateAccuracyForLabelersValidatedBy]], since accuracy feeds quality. Set-based, so the labeler list
+   * never passes through Scala, however long it is.
+   * @param validatorId The user whose validations decide which labelers are updated.
+   * @return The number of rows updated.
+   */
+  def updateUserQualityForLabelersValidatedBy(validatorId: String): DBIO[Int] = {
+    val labelers = labelValidationTable
+      .filter(_.userId === validatorId)
+      .join(labelTable.labelsUnfiltered)
+      .on(_.labelId === _.labelId)
+      .map { case (_, label) => label.userId }
+    val toUpdate = userStats.filter(u => u.userId.in(labelers) && !u.excluded)
+    for {
+      numHigh <- toUpdate.filter(u => computedHighQuality(u) && !u.highQuality).map(_.highQuality).update(true)
+      numLow  <- toUpdate.filter(u => !computedHighQuality(u) && u.highQuality).map(_.highQuality).update(false)
+    } yield numHigh + numLow
+  }.transactionally
+
+  /** Whether a user_stat row counts as high quality; conditions in the [[updateUserQuality]] comment. */
+  private def computedHighQuality(x: UserStatTableDef): Rep[Boolean] = {
+    !x.excluded &&                              // false if excluded=true
+    x.highQualityManual.getOrElse(true) && (    // false if high_quality_manual=false
+      x.highQualityManual.getOrElse(false) || ( // true if high_quality_manual set to true
+        // 0.6d, not 0.6f: widening the float would compare against 0.60000002. Evolution 347 and
+        // GeodesicDistanceSpec assume this matches its SQL copy exactly.
+        (x.metersAudited === 0d || x.labelsPerMeter.getOrElse(5d) > LABEL_PER_METER_THRESHOLD)
+          && (x.accuracy.getOrElse(1.0d) > 0.6d.asColumnOf[Double] ||
+            x.ownLabelsValidated < UserStatTable.OwnLabelsValidatedToJudge.asColumnOf[Int])
+      )
+    )
+  }
 
   /**
    * Update high_quality col in user_stat table, run after updateAuditedDistance, updateLabelsPerMeter, updateAccuracy.
@@ -448,26 +546,15 @@ class UserStatTable @Inject() (
   def updateHighQuality(cutoffTime: OffsetDateTime): DBIO[Int] = {
 
     // First, get users manually marked as low quality or marked to be excluded for other reasons.
-    val lowQualUsersQuery: DBIO[Seq[(String, Boolean)]] =
-      userStats
-        .filter(u => u.excluded || !u.highQualityManual.getOrElse(true))
-        .map(x => (x.userId, false))
-        .result
+    val lowQualUsersQuery: DBIO[Seq[String]] =
+      userStats.filter(u => u.excluded || !u.highQualityManual.getOrElse(true)).map(_.userId).result
 
     // Decide if each user is high quality. Conditions in the method comment. Users manually marked for exclusion or
     // low quality are filtered out later (using results from the previous query).
     val userQualQuery: DBIO[Seq[(String, Boolean)]] = {
       userStats
         .filter(x => x.highQualityManual.isEmpty || x.highQualityManual)
-        .map { x =>
-          (
-            x.userId,
-            x.highQualityManual.getOrElse(false) || (
-              (x.metersAudited === 0d || x.labelsPerMeter.getOrElse(5d) > LABEL_PER_METER_THRESHOLD)
-                && (x.accuracy.getOrElse(1.0d) > 0.6d.asColumnOf[Double] || x.ownLabelsValidated < 50.asColumnOf[Int])
-            )
-          )
-        }
+        .map(x => (x.userId, computedHighQuality(x))) // Excluded users are forced low below, via lowQualUsers.
         .result
     }.transactionally
 
@@ -477,15 +564,19 @@ class UserStatTable @Inject() (
       (usersThatAuditedSinceCutoffTime(cutoffTime) ++ usersValidatedSinceCutoffTime(cutoffTime)).distinct.result
 
     for {
-      lowQualUsers  <- lowQualUsersQuery
+      lowQualUsers  <- lowQualUsersQuery.map(_.toSet)
       userQual      <- userQualQuery
-      usersToUpdate <- usersToUpdateQuery
+      usersToUpdate <- usersToUpdateQuery.map(_.toSet)
 
       // Make separate lists for low vs. high quality users, then bulk update each.
-      updateToHighQual: Seq[String] =
-        userQual.filter(x => x._2 && !lowQualUsers.map(_._1).contains(x._1) && usersToUpdate.contains(x._1)).map(_._1)
+      updateToHighQual: Seq[String] = userQual.collect {
+        case (userId, highQuality) if highQuality && !lowQualUsers.contains(userId) && usersToUpdate.contains(userId) =>
+          userId
+      }
       updateToLowQual: Seq[String] =
-        (lowQualUsers ++ userQual.filterNot(_._2)).map(_._1).filter(x => usersToUpdate.contains(x))
+        (lowQualUsers ++ userQual.collect { case (userId, highQuality) if !highQuality => userId })
+          .filter(usersToUpdate.contains)
+          .toSeq
 
       lowQualityUpdateQuery  = for { _u <- userStats if _u.userId inSetBind updateToLowQual } yield _u.highQuality
       highQualityUpdateQuery = for { _u <- userStats if _u.userId inSetBind updateToHighQual } yield _u.highQuality
@@ -513,7 +604,7 @@ class UserStatTable @Inject() (
   def usersThatAuditedSinceCutoffTime(cutoffTime: OffsetDateTime): Query[Rep[String], String, Seq] = {
     val fromMissions: Query[Rep[String], String, Seq] = auditMissions.filter(_.missionEnd > cutoffTime).map(_.userId)
     val fromTasks: Query[Rep[String], String, Seq]    =
-      auditTaskTable.filter(task => task.completed && task.taskEnd > cutoffTime).map(_.userId)
+      auditTaskTable.completedTasks.filter(_.taskEnd > cutoffTime).map(_.userId)
 
     (fromMissions ++ fromTasks).distinct
   }
@@ -526,25 +617,8 @@ class UserStatTable @Inject() (
       _labelVal <- labelValidationTable
       _label    <- labelTable.labels if _labelVal.labelId === _label.labelId
       if _labelVal.endTimestamp > cutoffTime
-    } yield _label.userId).groupBy(x => x).map(_._1)
+    } yield _label.userId).groupBy(userId => userId).map { case (userId, _) => userId }
   }
-
-  /**
-   * Runs `action` in a transaction with JIT disabled for the duration of that transaction.
-   *
-   * Interim workaround for #4376 (mirrors `ConfigTable.withJitOff`): the projectsidewalk/db image ships a broken
-   * Postgres JIT (PostGIS bitcode built with LLVM 16, runtime llvmjit linked against LLVM 11). A query expensive enough
-   * to cross the JIT inline-cost threshold and inline PostGIS bitcode (e.g. ST_LENGTH) segfaults the backend,
-   * dropping the connection (SQLSTATE 08006) and forcing Postgres crash-recovery — which surfaces as a site-wide 502.
-   * `getLeaderboardStats` computes audited distance with PostGIS ST_Length and is expensive enough to trip
-   * this (#4545), so it must run with JIT off. `SET LOCAL` scopes the setting to this one transaction. Remove once #4376
-   * disables JIT at the DB config level.
-   *
-   * @param action The DBIO to run with JIT off.
-   * @return       The same action, wrapped so JIT is disabled for its transaction.
-   */
-  private def withJitOff[T](action: DBIO[T]): DBIO[T] =
-    (sqlu"SET LOCAL jit = off" >> action).transactionally
 
   /**
    * Gets leaderboard stats for the top `n` users in the given time period.
@@ -573,7 +647,8 @@ class UserStatTable @Inject() (
     val statStartTime = timePeriod.toLowerCase() match {
       case "overall" => """TIMESTAMP 'epoch'"""
       case "weekly"  =>
-        """(now() AT TIME ZONE 'US/Pacific')::date - (cast(extract(dow from (now() AT TIME ZONE 'US/Pacific')::date) as int) % 7) + TIME '00:00:00'"""
+        """(now() AT TIME ZONE 'America/Los_Angeles')::date
+          - (cast(extract(dow from (now() AT TIME ZONE 'America/Los_Angeles')::date) as int) % 7) + TIME '00:00:00'"""
     }
     val joinUserTeamTable: String = if (byTeam || teamId.isDefined) {
       "INNER JOIN user_team ON sidewalk_user.user_id = user_team.user_id INNER JOIN team ON user_team.team_id = team.team_id"
@@ -592,7 +667,12 @@ class UserStatTable @Inject() (
     // There are quite a few changes to make to the query when grouping by team instead of user. All of those below.
     val groupingCol: String        = if (byTeam) "user_team.team_id" else "sidewalk_user.user_id"
     val groupingColName: String    = if (byTeam) "team_id" else "user_id"
-    val joinUserTeamForAcc: String = if (byTeam) "INNER JOIN user_team ON label.user_id = user_team.user_id" else ""
+    val joinUserTeamForAcc: String =
+      if (byTeam || teamId.isDefined) "INNER JOIN user_team ON label.user_id = user_team.user_id" else ""
+    // Qualified, since a one-team board joins user_team, which has its own user_id.
+    val accGroupingCol: String = if (byTeam) "user_team.team_id" else "label.user_id"
+    // Repeated in the stat subqueries so a one-team board only reads that team's rows, not the whole city's.
+    val subqueryTeamFilter: String = teamId.map(id => s"AND user_team.team_id = $id").getOrElse("")
     val usernamesJoin: String      = {
       if (byTeam) {
         "INNER JOIN (SELECT team_id, name AS username FROM team) \"usernames\" ON label_counts.team_id = usernames.team_id"
@@ -600,8 +680,7 @@ class UserStatTable @Inject() (
         "INNER JOIN (SELECT user_id, username FROM sidewalk_user) \"usernames\" ON label_counts.user_id = usernames.user_id"
       }
     }
-    withJitOff(
-      sql"""
+    sql"""
       SELECT usernames.username,
              label_counts.label_count,
              COALESCE(mission_count, 0) AS mission_count,
@@ -615,16 +694,12 @@ class UserStatTable @Inject() (
           SELECT #$groupingCol, COUNT(label_id) AS label_count
           FROM sidewalk_user
           INNER JOIN user_role ON sidewalk_user.user_id = user_role.user_id
-          INNER JOIN role ON user_role.role_id = role.role_id
           INNER JOIN user_stat ON sidewalk_user.user_id = user_stat.user_id
-          INNER JOIN label ON sidewalk_user.user_id = label.user_id
+          INNER JOIN #${FilteredTables.labels()} ON sidewalk_user.user_id = label.user_id
           #$joinUserTeamTable
-          WHERE label.deleted = FALSE
-              AND label.tutorial = FALSE
-              AND role.role IN (#${RoleTable.LEADERBOARD_ROLES_SQL})
-              AND user_stat.excluded = FALSE
+          WHERE user_role.role IN (#${Role.LEADERBOARD_ROLES_SQL})
               #$leaderboardVisibilityFilter
-              AND (label.time_created AT TIME ZONE 'US/Pacific') > #$statStartTime
+              AND (label.time_created AT TIME ZONE 'America/Los_Angeles') > #$statStartTime
               #$teamFilter
           GROUP BY #$groupingCol
           ORDER BY label_count DESC
@@ -637,38 +712,34 @@ class UserStatTable @Inject() (
           FROM mission
           INNER JOIN sidewalk_user ON mission.user_id = sidewalk_user.user_id
           #$joinUserTeamTable
-          WHERE (mission_end AT TIME ZONE 'US/Pacific') > #$statStartTime
+          WHERE (mission_end AT TIME ZONE 'America/Los_Angeles') > #$statStartTime
+              #$subqueryTeamFilter
           GROUP BY #$groupingCol
       ) "missions_counts" ON label_counts.#$groupingColName = missions_counts.#$groupingColName
       LEFT JOIN (
           SELECT #$groupingCol, COALESCE(SUM(ST_Length(geom::geography)), 0) AS distance_meters
-          FROM street_edge
-          INNER JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
+          -- Same streets as the dashboard's distance, so the two numbers agree.
+          FROM #${FilteredTables.streets()}
+          INNER JOIN #${FilteredTables.completedAudits()} ON street_edge.street_edge_id = audit_task.street_edge_id
           INNER JOIN sidewalk_user ON audit_task.user_id = sidewalk_user.user_id
           #$joinUserTeamTable
-          WHERE audit_task.completed
-              AND (task_end AT TIME ZONE 'US/Pacific') > #$statStartTime
+          WHERE (task_end AT TIME ZONE 'America/Los_Angeles') > #$statStartTime
+              #$subqueryTeamFilter
           GROUP BY #$groupingCol
       ) "distance" ON label_counts.#$groupingColName = distance.#$groupingColName
       LEFT JOIN (
-          SELECT #$groupingColName,
+          SELECT #$accGroupingCol AS #$groupingColName,
                  CAST(SUM(CASE WHEN correct THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(SUM(CASE WHEN correct THEN 1 ELSE 0 END) + SUM(CASE WHEN NOT correct THEN 1 ELSE 0 END), 0) AS accuracy_temp,
                  COUNT(CASE WHEN correct IS NOT NULL THEN 1 END) AS validated_count
-          FROM label
+          FROM #${FilteredTables.accuracyLabels}
           #$joinUserTeamForAcc
-          WHERE (label.time_created AT TIME ZONE 'US/Pacific') > #$statStartTime
-          GROUP BY #$groupingColName
+          WHERE (label.time_created AT TIME ZONE 'America/Los_Angeles') > #$statStartTime
+              #$subqueryTeamFilter
+          GROUP BY #$accGroupingCol
       ) "accuracy" ON label_counts.#$groupingColName = accuracy.#$groupingColName
       ORDER BY score DESC, label_counts.label_count DESC;
     """
-        .as[(String, Int, Int, Double, Option[Double], Double)]
-        .map(_.map { stat =>
-          // Run the query and, if it's not a team name, remove the "@X.Y" from usernames that are just email addresses.
-          if (!byTeam && isValidEmail(stat._1))
-            LeaderboardStat(stat._1.slice(0, stat._1.lastIndexOf('@')), stat._2, stat._3, stat._4, stat._5, stat._6)
-          else LeaderboardStat.tupled(stat)
-        })
-    )
+      .as[LeaderboardStat]
   }
 
   /**
@@ -681,13 +752,12 @@ class UserStatTable @Inject() (
    * Two deliberate departures from the per-city board, both to keep this cheap enough to run on a page load:
    *  - Distance sums the nightly-precomputed `user_stat.meters_audited` instead of recomputing geodesic street
    *    lengths per city. It is the same quantity by the same definition (see
-   *    `updateAuditedDistanceHelper`), just up to a day stale, and it keeps PostGIS out of a 50-way union — which also
-   *    sidesteps the JIT segfault that forces `withJitOff` on the per-city board (#4376/#4545).
+   *    `updateAuditedDistanceHelper`), just up to a day stale, and it keeps PostGIS out of a 50-way union.
    *  - Ranking is by raw label count, so the rows are in true rank order (the per-city board's composite score has a
    *    city-relative distance term that cannot be compared across cities).
    *
-   * Eligibility mirrors the per-city board — role in [[RoleTable.LEADERBOARD_ROLES]], non-excluded,
-   * non-deleted/non-tutorial labels — with two cross-city refinements:
+   * Eligibility mirrors the per-city board — role in [[Role.LEADERBOARD_ROLES]], non-excluded, only labels that count
+   * ([[FilteredTables.labels]]) — with two cross-city refinements:
    *  - `excluded` is per city, so a user flagged low-quality in one city loses *that city's* contribution and keeps the
    *    rest; the flag describes that city's data, not the person. It is applied as an aggregate FILTER rather than a
    *    WHERE so the row survives to carry that city's `on_leaderboard` flag into the opt-out roll-up below.
@@ -712,9 +782,7 @@ class UserStatTable @Inject() (
     if (citySchemas.isEmpty) {
       DBIO.successful(Seq.empty[GlobalLeaderboardStat])
     } else {
-      // Schema names are spliced, not bound, so reject anything that isn't a bare identifier before building the SQL.
-      val unsafe: Seq[String] = (citySchemas ++ optOutSchemas).filterNot(_.matches("^[a-z_][a-z0-9_]*$"))
-      require(unsafe.isEmpty, s"Refusing to build cross-schema SQL for non-identifier schema names: $unsafe")
+      SqlFragments.requireSafeIdentifiers(citySchemas ++ optOutSchemas)
 
       // Per-city totals keyed by the global user_id. MAX(meters_audited) picks the single per-city value (user_stat
       // holds one row per user per city); the FILTERs zero out a city where the user is excluded while still letting
@@ -727,9 +795,8 @@ class UserStatTable @Inject() (
          COUNT(*) FILTER (WHERE NOT label.correct AND NOT user_stat.excluded)::int AS disagreed,
          MAX(user_stat.meters_audited) FILTER (WHERE NOT user_stat.excluded) AS meters,
          BOOL_OR(NOT user_stat.on_leaderboard) AS opted_out
-  FROM "$schema".label
+  FROM ${FilteredTables.labels(Some(schema), Contributors.Everyone)}
   INNER JOIN "$schema".user_stat ON user_stat.user_id = label.user_id
-  WHERE label.deleted = FALSE AND label.tutorial = FALSE
   GROUP BY label.user_id"""
         }
         .mkString("\n  UNION ALL\n")
@@ -778,8 +845,7 @@ class UserStatTable @Inject() (
             SELECT rolled.*
             FROM rolled
             INNER JOIN sidewalk_login.user_role ON user_role.user_id = rolled.user_id
-            INNER JOIN sidewalk_login.role ON user_role.role_id = role.role_id
-            WHERE role.role IN (#${RoleTable.LEADERBOARD_ROLES_SQL})
+            WHERE user_role.role IN (#${Role.LEADERBOARD_ROLES_SQL})
             ORDER BY rolled.label_count DESC, rolled.user_id
             LIMIT $n
         )
@@ -805,11 +871,88 @@ class UserStatTable @Inject() (
         ) AS mission_totals
         ORDER BY top_n.label_count DESC, top_n.user_id;
       """
-        .as[(String, String, Int, Int, Double, Option[Double], String)]
-        .map(_.map { stat =>
-          val username: String = if (isValidEmail(stat._2)) stat._2.slice(0, stat._2.lastIndexOf('@')) else stat._2
-          GlobalLeaderboardStat(stat._1, username, stat._3, stat._4, stat._5, stat._6, stat._7)
-        })
+        .as[GlobalLeaderboardStat]
+    }
+  }
+
+  /**
+   * The schema this connection reads, i.e. the city every other dashboard query returns data for.
+   *
+   * Taken from the connection rather than `city-id` config because a box whose `DATABASE_USER` and `SIDEWALK_CITY_ID`
+   * name different cities would otherwise credit one city's live distance to another city's row.
+   */
+  def currentSchema: DBIO[String] = sql"SELECT current_schema()".as[String].head
+
+  /**
+   * One user's contribution totals in each of `citySchemas`, for the dashboard's cross-city section (#4496).
+   *
+   * Accounts are global while contributions are per-city, so a mapper's real Project Sidewalk totals only exist as a
+   * roll-up across schemas. All city schemas live in one database, so this is a single statement rather than a fan-out.
+   *
+   * Shaped as scalar subqueries per city rather than grouped scans because the whole query is keyed on one `user_id`:
+   * every subquery is an index seek, so a city the user never touched costs an index miss instead of a table scan.
+   * Measured on production (51 schemas, heaviest multi-city account): ~9 s cold, ~200 ms warm.
+   *
+   * Three deliberate choices:
+   *  - Counts mirror the single-city dashboard's own definitions rather than the global leaderboard's looser ones. The
+   *    row for the city being viewed sits inches below the hero KPIs, so any divergence reads as a bug (#4699).
+   *  - Distance reads the nightly `user_stat.meters_audited` — `MAX`, not `SUM`, because `user_stat.user_id` carries no
+   *    unique constraint and duplicate rows exist in the wild. It also keeps PostGIS out of a 51-way union.
+   *  - Nothing here reads `excluded`, `on_leaderboard` or `public_profile`. This is a mapper looking at their own data,
+   *    so no visibility flag applies — and a schema behind on evolutions may not have those columns at all, which
+   *    would fail the entire union rather than one city.
+   *
+   * @param citySchemas DB schema names to report on, already vetted by the caller for existence and required
+   *                    columns. Spliced into SQL, so each must be a bare identifier.
+   * @param userId      The mapper whose totals to gather; bound once and referenced by every block.
+   * @return            One row per schema, including cities where the user did nothing (the caller drops those),
+   *                    most labels first.
+   */
+  def getCrossCityUserStats(citySchemas: Seq[String], userId: String): DBIO[Seq[CrossCityUserStat]] = {
+    if (citySchemas.isEmpty) {
+      DBIO.successful(Seq.empty[CrossCityUserStat])
+    } else {
+      SqlFragments.requireSafeIdentifiers(citySchemas)
+
+      // The user id is bound once in a CTE and read back as `(SELECT user_id FROM me)`; the per-schema blocks are
+      // built as plain strings, so an interpolated `$userId` inside them would be spliced rather than bound.
+      val blocks: String = citySchemas
+        .map { schema =>
+          // Excluded users' labels count here, since it's their own dashboard. Voided votes count too (#4842): the
+          // work still happened.
+          s"""  SELECT '$schema'::text AS city_schema,
+         (SELECT COUNT(*)::int
+            FROM ${FilteredTables.labels(Some(schema), Contributors.Everyone)}
+           WHERE label.user_id = (SELECT user_id FROM me)
+         ) AS labels,
+         (SELECT COUNT(*)::int FROM "$schema".label_validation
+           WHERE label_validation.user_id = (SELECT user_id FROM me))
+           + (SELECT COUNT(*)::int FROM "$schema".voided_label_validation
+           WHERE voided_label_validation.user_id = (SELECT user_id FROM me)) AS validations,
+         (SELECT COUNT(*)::int FROM "$schema".mission
+           WHERE mission.user_id = (SELECT user_id FROM me)
+             AND mission.completed = TRUE AND mission.skipped = FALSE) AS missions,
+         (SELECT MAX(user_stat.meters_audited) FROM "$schema".user_stat
+           WHERE user_stat.user_id = (SELECT user_id FROM me)) AS meters_audited,
+         (SELECT MAX(label.time_created) FROM "$schema".label
+           WHERE label.user_id = (SELECT user_id FROM me) AND label.deleted = FALSE) AS last_activity"""
+        }
+        .mkString("\n  UNION ALL\n")
+
+      val union =
+        sql"""
+        WITH me AS (SELECT CAST($userId AS text) AS user_id)
+        #$blocks
+        ORDER BY labels DESC, city_schema;
+      """
+          .as[CrossCityUserStat]
+
+      // Bounded because this fires on every dashboard load, holds one of the app's 25 pooled connections for its whole
+      // run, and is the one query here whose plan can't be predicted from dev: the arm count is however many cities are
+      // deployed. 30s leaves generous room over the ~9s cold measurement while still capping a pathological plan, and
+      // the caller degrades to hiding the section rather than failing the page. `SET LOCAL` + `.transactionally` scopes
+      // the setting to this statement and auto-commits, so it never lingers as an idle-in-transaction of its own.
+      (sqlu"SET LOCAL statement_timeout = 30000" >> union).transactionally
     }
   }
 
@@ -818,7 +961,7 @@ class UserStatTable @Inject() (
    * neighbors around them.
    *
    * Reuses the leaderboard's eligibility filters — role IN (Registered, Administrator, Researcher), non-excluded,
-   * on_leaderboard = TRUE, non-deleted/non-tutorial labels — so Owners and users who opted out are excluded and the
+   * on_leaderboard = TRUE, only labels that count — so Owners and users who opted out are excluded and the
    * "of N" denominator reconciles with the board.
    * Ranks by label count (the intuitive "your standing" metric), not the leaderboard's composite score.
    *
@@ -829,12 +972,13 @@ class UserStatTable @Inject() (
    */
   def getUserStanding(userId: String, mode: String, n: Int): DBIO[Option[UserStanding]] = {
     val weekStart =
-      "((now() AT TIME ZONE 'US/Pacific')::date - (cast(extract(dow from (now() AT TIME ZONE 'US/Pacific')::date) as int) % 7))"
+      """((now() AT TIME ZONE 'America/Los_Angeles')::date
+        - (cast(extract(dow from (now() AT TIME ZONE 'America/Los_Angeles')::date) as int) % 7))"""
     val timeFilter = mode.toLowerCase match {
-      case "weekly"   => s"AND (label.time_created AT TIME ZONE 'US/Pacific') >= $weekStart"
+      case "weekly"   => s"AND (label.time_created AT TIME ZONE 'America/Los_Angeles') >= $weekStart"
       case "lastweek" =>
-        s"AND (label.time_created AT TIME ZONE 'US/Pacific') >= ($weekStart - INTERVAL '7 days') " +
-          s"AND (label.time_created AT TIME ZONE 'US/Pacific') < $weekStart"
+        s"AND (label.time_created AT TIME ZONE 'America/Los_Angeles') >= ($weekStart - INTERVAL '7 days') " +
+          s"AND (label.time_created AT TIME ZONE 'America/Los_Angeles') < $weekStart"
       case _ => ""
     }
     sql"""
@@ -846,13 +990,9 @@ class UserStatTable @Inject() (
                  COUNT(*) OVER ()::int AS cohort
           FROM sidewalk_user
           INNER JOIN user_role ON sidewalk_user.user_id = user_role.user_id
-          INNER JOIN role ON user_role.role_id = role.role_id
           INNER JOIN user_stat ON sidewalk_user.user_id = user_stat.user_id
-          INNER JOIN label ON sidewalk_user.user_id = label.user_id
-          WHERE label.deleted = FALSE
-              AND label.tutorial = FALSE
-              AND role.role IN (#${RoleTable.LEADERBOARD_ROLES_SQL})
-              AND user_stat.excluded = FALSE
+          INNER JOIN #${FilteredTables.labels()} ON sidewalk_user.user_id = label.user_id
+          WHERE user_role.role IN (#${Role.LEADERBOARD_ROLES_SQL})
               AND user_stat.on_leaderboard = TRUE
               #$timeFilter
           GROUP BY sidewalk_user.user_id, sidewalk_user.username
@@ -862,13 +1002,15 @@ class UserStatTable @Inject() (
       FROM ranked CROSS JOIN me
       WHERE ranked.rnk BETWEEN me.rnk - $n AND me.rnk + $n
       ORDER BY ranked.rnk, ranked.uname;
-    """.as[(Int, String, Int, Boolean, Int, Int, Int)].map { rows =>
+    """.as[StandingQueryRow].map { rows =>
       rows.headOption.map { head =>
-        val slice = rows.map { r =>
-          val name = if (isValidEmail(r._2)) r._2.slice(0, r._2.lastIndexOf('@')) else r._2
-          StandingRow(r._1, name, r._3, r._4)
-        }
-        UserStanding(rank = head._6, cohortSize = head._5, labelCount = head._7, slice = slice)
+        val slice = rows.map(r => StandingRow(r.rank, r.username, r.labelCount, r.isYou))
+        UserStanding(
+          rank = head.yourRank,
+          cohortSize = head.cohortSize,
+          labelCount = head.yourLabelCount,
+          slice = slice
+        )
       }
     }
   }
@@ -876,8 +1018,8 @@ class UserStatTable @Inject() (
   /**
    * Per-day activity counts for a user (US/Pacific calendar days), across labeling, exploring, and validating.
    *
-   * A day counts if the user placed a (non-deleted, non-tutorial) label, completed an audit task, or made a
-   * validation on it -- including validations voided by the #4842 repair (evolution 355): the verdicts are dead, but
+   * A day counts if the user placed a label that counts, completed an audit task, or made a validation on it --
+   * including validations voided by the #4842 repair (evolution 355): the verdicts are dead, but
    * the work happened, so the archive counts as activity. Returned as (ISO date string, count) so the streak/heatmap
    * math is done in Scala.
    *
@@ -887,19 +1029,20 @@ class UserStatTable @Inject() (
   def getActivityDayCounts(userId: String): DBIO[Seq[(String, Int)]] = {
     sql"""
       WITH activity AS (
-          SELECT (label.time_created AT TIME ZONE 'US/Pacific')::date AS d
-          FROM label
-          WHERE label.user_id = $userId AND label.deleted = FALSE AND label.tutorial = FALSE
+          -- Excluded users still see their own streak.
+          SELECT (label.time_created AT TIME ZONE 'America/Los_Angeles')::date AS d
+          FROM #${FilteredTables.labels(contributors = Contributors.Everyone)}
+          WHERE label.user_id = $userId
           UNION ALL
-          SELECT (audit_task.task_end AT TIME ZONE 'US/Pacific')::date
-          FROM audit_task
-          WHERE audit_task.user_id = $userId AND audit_task.completed AND audit_task.task_end IS NOT NULL
+          SELECT (audit_task.task_end AT TIME ZONE 'America/Los_Angeles')::date
+          FROM #${FilteredTables.completedAudits(contributors = Contributors.Everyone)}
+          WHERE audit_task.user_id = $userId AND audit_task.task_end IS NOT NULL
           UNION ALL
-          SELECT (label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date
+          SELECT (label_validation.end_timestamp AT TIME ZONE 'America/Los_Angeles')::date
           FROM label_validation
           WHERE label_validation.user_id = $userId AND label_validation.end_timestamp IS NOT NULL
           UNION ALL
-          SELECT (voided_label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date
+          SELECT (voided_label_validation.end_timestamp AT TIME ZONE 'America/Los_Angeles')::date
           FROM voided_label_validation
           WHERE voided_label_validation.user_id = $userId
       )
@@ -912,50 +1055,32 @@ class UserStatTable @Inject() (
 
   /**
    * Per-label-type validation tallies for a user: how many of their labels of each type were judged correct vs
-   * incorrect (by majority vote). Only non-deleted, non-tutorial labels. Drives the dashboard's per-type accuracy
-   * bars.
+   * incorrect (by majority vote), over the labels that count toward accuracy (#3591). Drives the dashboard's per-type
+   * accuracy bars.
    *
    * @param userId The user whose labels to tally.
-   * @return       One row per label type present: (label type name, correct count, incorrect count).
+   * @return       One row per label type present.
    */
-  def getLabelTypeAccuracy(userId: String): DBIO[Seq[(String, Int, Int)]] = {
+  def getLabelTypeAccuracy(userId: String): DBIO[Seq[LabelTypeTally]] = {
     sql"""
-      SELECT label_type.label_type,
+      SELECT label.label_type::text,
              COUNT(*) FILTER (WHERE label.correct IS TRUE)::int AS correct,
              COUNT(*) FILTER (WHERE label.correct IS FALSE)::int AS incorrect
-      FROM label
-      INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
-      WHERE label.user_id = $userId AND label.deleted = FALSE AND label.tutorial = FALSE
-      GROUP BY label_type.label_type;
-    """.as[(String, Int, Int)]
+      FROM #${FilteredTables.accuracyLabels}
+      WHERE label.user_id = $userId
+      GROUP BY label.label_type::text;
+    """.as[LabelTypeTally]
   }
 
   /**
    * Get all users, excluding anon users who haven't placed any labels or done any validations (to limit table size).
    */
   def usersMinusAnonUsersWithNoLabelsAndNoValidations: DBIO[Seq[SidewalkUserWithRole]] = {
-    //    val anonUsersWithLabels = (for {
-    //      _user <- userTable
-    //      _userRole <- userRoleTable if _user.userId === _userRole.userId
-    //      _role <- roleTable if _userRole.roleId === _role.roleId
-    //      _label <- LabelTable.labelsWithTutorialAndExcludedUsers if _user.userId === _label.userId
-    //      if _role.role === "Anonymous"
-    //    } yield (_user, _role)).groupBy(x => x).map(_._1)
-    //
-    //    val anonUsersWithValidations = (for {
-    //      _user <- userTable
-    //      _userRole <- userRoleTable if _user.userId === _userRole.userId
-    //      _role <- roleTable if _userRole.roleId === _role.roleId
-    //      _labelValidation <- LabelValidationTable.validationLabels if _user.userId === _labelValidation.userId
-    //      if _role.role === "Anonymous"
-    //    } yield (_user, _role)).groupBy(x => x).map(_._1)
-
-    val otherUsers = sidewalkUserTable.sidewalkUserWithRole.filter(_._4 =!= "Anonymous")
+    val otherUsers = sidewalkUserTable.sidewalkUserWithRole.filter(_.role =!= Role.Anonymous)
 
     // TODO Only returning non-anonymous users temporarily:
     // https://github.com/ProjectSidewalk/SidewalkWebpage/issues/3802
-    //    anonUsersWithLabels.union(anonUsersWithValidations) ++ otherUsers
-    otherUsers.result.map(_.map(SidewalkUserWithRole.tupled))
+    otherUsers.result
   }
 
   /**
@@ -968,9 +1093,20 @@ class UserStatTable @Inject() (
     userStats
       .join(userRoleTable)
       .on(_.userId === _.userId)
-      .filter(_._2.roleId =!= 6) // Exclude anonymous users.
-      .filter(!_._1.highQuality)
+      .filter { case (_, userRole) => userRole.role =!= Role.Anonymous }
+      .filter { case (userStat, _) => !userStat.highQuality }
       .length
+      .result
+  }
+
+  /**
+   * @param userIds The users to look up.
+   * @return One entry per user with a `user_stat` row.
+   */
+  def getQualityAndExclusionForUsers(userIds: Seq[String]): DBIO[Seq[UserQualityFlags]] = {
+    userStats
+      .filter(_.userId inSet userIds)
+      .map(x => (x.userId, x.highQuality, x.excluded).mapTo[UserQualityFlags])
       .result
   }
 
@@ -982,73 +1118,30 @@ class UserStatTable @Inject() (
     userStats
       .join(userRoleTable)
       .on(_.userId === _.userId)
-      .filter(_._2.roleId =!= 6) // Exclude anonymous users.
-      .map(x => (x._1.userId, x._1.highQuality, x._1.highQualityManual))
+      .filter { case (_, userRole) => userRole.role =!= Role.Anonymous }
+      .map { case (userStat, _) => (userStat.userId, userStat.highQuality, userStat.highQualityManual) }
       .result
   }
 
   /**
-   * Returns a count of all users under the specified conditions.
-   * @param timeInterval can be "today" or "week". If anything else, defaults to "all_time".
-   * @param taskCompletedOnly if true, only counts users who have completed one audit task or at least one validation.
-   * @param highQualityOnly if true, only counts users who are marked as high quality.
+   * Counts everyone who has explored or validated, leaving out AI and excluded users.
    */
-  def countAllUsersContributed(
-      timeInterval: TimeInterval = TimeInterval.AllTime,
-      taskCompletedOnly: Boolean = false,
-      highQualityOnly: Boolean = false
-  ): DBIO[UserCount] = {
-    // Build up SQL string related to validation and audit task time intervals.
-    // Defaults to *not* specifying a time (which is the same thing as "all_time").
-    val (lblValidationTimeIntervalSql, auditTaskTimeIntervalSql) = timeInterval match {
-      case TimeInterval.Today =>
-        (
-          "(mission.mission_end AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date",
-          "(audit_task.task_end AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date"
-        )
-      case TimeInterval.Week =>
-        (
-          "(mission.mission_end AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'",
-          "(audit_task.task_end AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'"
-        )
-      case _ => ("TRUE", "TRUE")
-    }
-
-    // Add in the optional SQL WHERE statement for filtering on high quality users.
-    val highQualityOnlySql =
-      if (highQualityOnly) "user_stat.high_quality"
-      else "NOT user_stat.excluded"
-
-    // Add in the task completion logic.
-    val auditTaskCompletedSql  = if (taskCompletedOnly) "audit_task.completed = TRUE" else "TRUE"
-    val validationCompletedSql = if (taskCompletedOnly) "all_validations.end_timestamp IS NOT NULL" else "TRUE"
-
+  def countAllUsersContributed(): DBIO[UserCount] = {
     sql"""
       SELECT COUNT(DISTINCT(users.user_id))
       FROM (
           SELECT DISTINCT(mission.user_id)
           FROM mission
-          LEFT JOIN (
-              -- Votes voided by the #4842 repair still count as participation.
-              SELECT mission_id, end_timestamp FROM label_validation
-              UNION ALL
-              SELECT mission_id, end_timestamp FROM voided_label_validation
-          ) AS all_validations ON mission.mission_id = all_validations.mission_id
           WHERE mission.mission_type IN ('validation', 'labelmapValidation')
-              AND #$lblValidationTimeIntervalSql
-              AND #$validationCompletedSql
           UNION
           SELECT DISTINCT(user_id)
           FROM audit_task
-          WHERE #$auditTaskCompletedSql
-              AND #$auditTaskTimeIntervalSql
       ) users
       INNER JOIN user_stat ON users.user_id = user_stat.user_id
       INNER JOIN user_role ON user_stat.user_id = user_role.user_id
-      INNER JOIN role ON user_role.role_id = role.role_id
-      WHERE role.role <> 'AI'
-          AND #$highQualityOnlySql;
-    """.as[Int].head.map(n => UserCount(n, "combined", "all", timeInterval, taskCompletedOnly, highQualityOnly))
+      WHERE user_role.role <> 'AI'
+          AND #${FilteredTables.contributorFilter(Contributors.NotExcluded)};
+    """.as[Int].head.map(n => UserCount(n, "combined", "all", TimeInterval.AllTime, false, false))
   }
 
   /**
@@ -1067,11 +1160,30 @@ class UserStatTable @Inject() (
       minAccuracy: Option[Double] = None
   ): DBIO[Seq[UserStatForApi]] = {
     // Construct the SQL query with dynamic WHERE clauses based on filter parameters.
-    val minLabelsClause   = minLabels.map(min => s"AND COALESCE(label_counts.labels, 0) >= $min").getOrElse("")
-    val minMetersClause   = minMetersExplored.map(min => s"AND user_stat.meters_audited >= $min").getOrElse("")
-    val highQualityClause = if (highQualityOnly) "AND user_stat.high_quality = TRUE" else ""
+    val minLabelsClause = minLabels.map(min => s"AND COALESCE(label_counts.labels, 0) >= $min").getOrElse("")
+    val minMetersClause = minMetersExplored.map(min => s"AND user_stat.meters_audited >= $min").getOrElse("")
+    val contributorSql  =
+      FilteredTables.contributorFilter(Contributors(highQualityOnly))
     val minAccuracyClause =
       minAccuracy.map(min => s"AND user_stat.accuracy IS NOT NULL AND user_stat.accuracy >= $min").getOrElse("")
+
+    // Four counts per label type, in the order userStatApiConverter reads them.
+    val labelTypeStatCols: Seq[(String, String)] = LabelType.ordered.flatMap { lt =>
+      val col    = lt.name.toLowerCase
+      val isType = s"label_type = '${lt.name}'"
+      Seq(
+        s"${col}_labels"              -> s"COUNT(CASE WHEN $isType AND NOT label.deleted THEN 1 END)",
+        s"${col}_validated_correct"   -> s"COUNT(CASE WHEN $isType AND correct THEN 1 END)",
+        s"${col}_validated_incorrect" -> s"COUNT(CASE WHEN $isType AND NOT correct THEN 1 END)",
+        s"${col}_not_validated"       -> s"COUNT(CASE WHEN $isType AND correct IS NULL THEN 1 END)"
+      )
+    }
+    val labelTypeSelectCols: String = labelTypeStatCols
+      .map { case (alias, _) => s"COALESCE(label_counts.$alias, 0) AS $alias" }
+      .mkString(",\n             ")
+    val labelTypeCountCols: String = labelTypeStatCols
+      .map { case (alias, expr) => s"$expr AS $alias" }
+      .mkString(",\n                 ")
 
     sql"""
       SELECT user_stat.user_id,
@@ -1091,45 +1203,9 @@ class UserStatTable @Inject() (
              COALESCE(validations.agree_validations_given, 0) AS agree_validations_given,
              COALESCE(validations.disagree_validations_given, 0) AS disagree_validations_given,
              COALESCE(validations.unsure_validations_given, 0) AS unsure_validations_given,
-             COALESCE(label_counts.curb_ramp_labels, 0) AS curb_ramp_labels,
-             COALESCE(label_counts.curb_ramp_validated_correct, 0) AS curb_ramp_validated_correct,
-             COALESCE(label_counts.curb_ramp_validated_incorrect, 0) AS curb_ramp_validated_incorrect,
-             COALESCE(label_counts.curb_ramp_not_validated, 0) AS curb_ramp_not_validated,
-             COALESCE(label_counts.no_curb_ramp_labels, 0) AS no_curb_ramp_labels,
-             COALESCE(label_counts.no_curb_ramp_validated_correct, 0) AS no_curb_ramp_validated_correct,
-             COALESCE(label_counts.no_curb_ramp_validated_incorrect, 0) AS no_curb_ramp_validated_incorrect,
-             COALESCE(label_counts.no_curb_ramp_not_validated, 0) AS no_curb_ramp_not_validated,
-             COALESCE(label_counts.obstacle_labels, 0) AS obstacle_labels,
-             COALESCE(label_counts.obstacle_validated_correct, 0) AS obstacle_validated_correct,
-             COALESCE(label_counts.obstacle_validated_incorrect, 0) AS obstacle_validated_incorrect,
-             COALESCE(label_counts.obstacle_not_validated, 0) AS obstacle_not_validated,
-             COALESCE(label_counts.surface_problem_labels, 0) AS surface_problem_labels,
-             COALESCE(label_counts.surface_problem_validated_correct, 0) AS surface_problem_validated_correct,
-             COALESCE(label_counts.surface_problem_validated_incorrect, 0) AS surface_problem_validated_incorrect,
-             COALESCE(label_counts.surface_problem_not_validated, 0) AS surface_problem_not_validated,
-             COALESCE(label_counts.no_sidewalk_labels, 0) AS no_sidewalk_labels,
-             COALESCE(label_counts.no_sidewalk_validated_correct, 0) AS no_sidewalk_validated_correct,
-             COALESCE(label_counts.no_sidewalk_validated_incorrect, 0) AS no_sidewalk_validated_incorrect,
-             COALESCE(label_counts.no_sidewalk_not_validated, 0) AS no_sidewalk_not_validated,
-             COALESCE(label_counts.marked_crosswalk_labels, 0) AS marked_crosswalk_labels,
-             COALESCE(label_counts.marked_crosswalk_validated_correct, 0) AS marked_crosswalk_validated_correct,
-             COALESCE(label_counts.marked_crosswalk_validated_incorrect, 0) AS marked_crosswalk_validated_incorrect,
-             COALESCE(label_counts.marked_crosswalk_not_validated, 0) AS marked_crosswalk_not_validated,
-             COALESCE(label_counts.pedestrian_signal_labels, 0) AS pedestrian_signal_labels,
-             COALESCE(label_counts.pedestrian_signal_validated_correct, 0) AS pedestrian_signal_validated_correct,
-             COALESCE(label_counts.pedestrian_signal_validated_incorrect, 0) AS pedestrian_signal_validated_incorrect,
-             COALESCE(label_counts.pedestrian_signal_not_validated, 0) AS pedestrian_signal_not_validated,
-             COALESCE(label_counts.cant_see_sidewalk_labels, 0) AS cant_see_sidewalk_labels,
-             COALESCE(label_counts.cant_see_sidewalk_validated_correct, 0) AS cant_see_sidewalk_validated_correct,
-             COALESCE(label_counts.cant_see_sidewalk_validated_incorrect, 0) AS cant_see_sidewalk_validated_incorrect,
-             COALESCE(label_counts.cant_see_sidewalk_not_validated, 0) AS cant_see_sidewalk_not_validated,
-             COALESCE(label_counts.other_labels, 0) AS other_labels,
-             COALESCE(label_counts.other_validated_correct, 0) AS other_validated_correct,
-             COALESCE(label_counts.other_validated_incorrect, 0) AS other_validated_incorrect,
-             COALESCE(label_counts.other_not_validated, 0) AS other_not_validated
+             #$labelTypeSelectCols
       FROM user_stat
       INNER JOIN user_role ON user_stat.user_id = user_role.user_id
-      INNER JOIN role ON user_role.role_id = role.role_id
       -- Validations given.
       LEFT JOIN (
           SELECT label_validation.user_id,
@@ -1150,81 +1226,25 @@ class UserStatTable @Inject() (
           FROM voided_label_validation
           GROUP BY voided_label_validation.user_id
       ) AS voided_validations ON user_stat.user_id = voided_validations.user_id
-      -- Label and validation counts
+      -- Label and validation counts. The verdict counts follow the accuracy rule (a label deleted from the popup
+      -- after being judged incorrect still counts, #3591); the plain label counts are live labels only.
       LEFT JOIN (
-          SELECT audit_task.user_id,
-                 COUNT(*) AS labels,
+          SELECT label.user_id,
+                 COUNT(*) FILTER (WHERE NOT label.deleted) AS labels,
                  COUNT(CASE WHEN correct IS NOT NULL THEN 1 END) AS validated_labels,
                  SUM(agree_count) + SUM(disagree_count) + SUM(unsure_count) AS validations_received,
                  COUNT(CASE WHEN correct THEN 1 END) AS labels_validated_correct,
                  COUNT(CASE WHEN NOT correct THEN 1 END) AS labels_validated_incorrect,
                  COUNT(CASE WHEN correct IS NULL THEN 1 END) AS labels_not_validated,
-                 COUNT(CASE WHEN label_type = 'CurbRamp' THEN 1 END) AS curb_ramp_labels,
-                 COUNT(CASE WHEN label_type = 'CurbRamp' AND correct THEN 1 END) AS curb_ramp_validated_correct,
-                 COUNT(CASE WHEN label_type = 'CurbRamp' AND NOT correct THEN 1 END) AS curb_ramp_validated_incorrect,
-                 COUNT(CASE WHEN label_type = 'CurbRamp' AND correct IS NULL THEN 1 END) AS curb_ramp_not_validated,
-                 COUNT(CASE WHEN label_type = 'NoCurbRamp' THEN 1 END) AS no_curb_ramp_labels,
-                 COUNT(CASE WHEN label_type = 'NoCurbRamp' AND correct THEN 1 END) AS no_curb_ramp_validated_correct,
-                 COUNT(CASE WHEN label_type = 'NoCurbRamp' AND NOT correct THEN 1 END) AS no_curb_ramp_validated_incorrect,
-                 COUNT(CASE WHEN label_type = 'NoCurbRamp' AND correct IS NULL THEN 1 END) AS no_curb_ramp_not_validated,
-                 COUNT(CASE WHEN label_type = 'Obstacle' THEN 1 END) AS obstacle_labels,
-                 COUNT(CASE WHEN label_type = 'Obstacle' AND correct THEN 1 END) AS obstacle_validated_correct,
-                 COUNT(CASE WHEN label_type = 'Obstacle' AND NOT correct THEN 1 END) AS obstacle_validated_incorrect,
-                 COUNT(CASE WHEN label_type = 'Obstacle' AND correct IS NULL THEN 1 END) AS obstacle_not_validated,
-                 COUNT(CASE WHEN label_type = 'SurfaceProblem' THEN 1 END) AS surface_problem_labels,
-                 COUNT(CASE WHEN label_type = 'SurfaceProblem' AND correct THEN 1 END) AS surface_problem_validated_correct,
-                 COUNT(CASE WHEN label_type = 'SurfaceProblem' AND NOT correct THEN 1 END) AS surface_problem_validated_incorrect,
-                 COUNT(CASE WHEN label_type = 'SurfaceProblem' AND correct IS NULL THEN 1 END) AS surface_problem_not_validated,
-                 COUNT(CASE WHEN label_type = 'NoSidewalk' THEN 1 END) AS no_sidewalk_labels,
-                 COUNT(CASE WHEN label_type = 'NoSidewalk' AND correct THEN 1 END) AS no_sidewalk_validated_correct,
-                 COUNT(CASE WHEN label_type = 'NoSidewalk' AND NOT correct THEN 1 END) AS no_sidewalk_validated_incorrect,
-                 COUNT(CASE WHEN label_type = 'NoSidewalk' AND correct IS NULL THEN 1 END) AS no_sidewalk_not_validated,
-                 COUNT(CASE WHEN label_type = 'Crosswalk' THEN 1 END) AS marked_crosswalk_labels,
-                 COUNT(CASE WHEN label_type = 'Crosswalk' AND correct THEN 1 END) AS marked_crosswalk_validated_correct,
-                 COUNT(CASE WHEN label_type = 'Crosswalk' AND NOT correct THEN 1 END) AS marked_crosswalk_validated_incorrect,
-                 COUNT(CASE WHEN label_type = 'Crosswalk' AND correct IS NULL THEN 1 END) AS marked_crosswalk_not_validated,
-                 COUNT(CASE WHEN label_type = 'Signal' THEN 1 END) AS pedestrian_signal_labels,
-                 COUNT(CASE WHEN label_type = 'Signal' AND correct THEN 1 END) AS pedestrian_signal_validated_correct,
-                 COUNT(CASE WHEN label_type = 'Signal' AND NOT correct THEN 1 END) AS pedestrian_signal_validated_incorrect,
-                 COUNT(CASE WHEN label_type = 'Signal' AND correct IS NULL THEN 1 END) AS pedestrian_signal_not_validated,
-                 COUNT(CASE WHEN label_type = 'Occlusion' THEN 1 END) AS cant_see_sidewalk_labels,
-                 COUNT(CASE WHEN label_type = 'Occlusion' AND correct THEN 1 END) AS cant_see_sidewalk_validated_correct,
-                 COUNT(CASE WHEN label_type = 'Occlusion' AND NOT correct THEN 1 END) AS cant_see_sidewalk_validated_incorrect,
-                 COUNT(CASE WHEN label_type = 'Occlusion' AND correct IS NULL THEN 1 END) AS cant_see_sidewalk_not_validated,
-                 COUNT(CASE WHEN label_type = 'Other' THEN 1 END) AS other_labels,
-                 COUNT(CASE WHEN label_type = 'Other' AND correct THEN 1 END) AS other_validated_correct,
-                 COUNT(CASE WHEN label_type = 'Other' AND NOT correct THEN 1 END) AS other_validated_incorrect,
-                 COUNT(CASE WHEN label_type = 'Other' AND correct IS NULL THEN 1 END) AS other_not_validated
-          FROM audit_task
-          INNER JOIN label ON audit_task.audit_task_id = label.audit_task_id
-          INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
-          WHERE deleted = FALSE
-              AND tutorial = FALSE
-              AND label.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
-              AND audit_task.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
-          GROUP BY audit_task.user_id
+                 #$labelTypeCountCols
+          FROM #${FilteredTables.accuracyLabels}
+          GROUP BY label.user_id
       ) label_counts ON user_stat.user_id = label_counts.user_id
-      WHERE role.role <> 'Anonymous'
-          AND user_stat.excluded = FALSE
+      WHERE user_role.role <> 'Anonymous'
+          AND #$contributorSql
           #$minLabelsClause
           #$minMetersClause
-          #$highQualityClause
           #$minAccuracyClause;""".as[UserStatForApi]
-  }
-
-  /**
-   * Check if the input string is a valid email address.
-   *
-   * We use a regex found in the Play Framework's code: https://github.com/playframework/playframework/blob/ddf3a7ee4285212ec665826ec268ef32b5a76000/core/play/src/main/scala/play/api/data/validation/Validation.scala#L79
-   */
-  def isValidEmail(maybeEmail: String): Boolean = {
-    val emailRegex =
-      """^[a-zA-Z0-9\.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$""".r
-    maybeEmail match {
-      case e if e.trim.isEmpty                           => false
-      case e if emailRegex.findFirstMatchIn(e).isDefined => true
-      case _                                             => false
-    }
   }
 
   /**
@@ -1258,6 +1278,25 @@ class UserStatTable @Inject() (
     sqlu"""
       INSERT INTO user_stat (user_id, on_leaderboard, public_profile)
       VALUES ($userId, $onLeaderboard, $publicProfile)
+      ON CONFLICT (user_id) DO NOTHING
+    """
+  }
+
+  /**
+   * Seeds the SidewalkAI account's user_stat row if the schema lacks it (#5349).
+   *
+   * 281.sql created this row once per schema and 286.sql set `high_quality_manual`, but a schema created by cloning
+   * a donor (or restored from an onboarding dump) carries 281 as applied without the row, and nothing else inserts
+   * one for a user who never signs in. The AI's labels then fail the user_stat join most label queries carry.
+   * `high_quality_manual = TRUE` is 286's value: the AI must never be filtered out as low quality, which is also why
+   * this isn't a call to `insertIfNew` above — that only takes the two privacy flags.
+   *
+   * @return The number of rows inserted: 1 when the row was missing, 0 when it already existed.
+   */
+  def insertAiUserStatIfMissing(): DBIO[Int] = {
+    sqlu"""
+      INSERT INTO user_stat (user_id, high_quality, high_quality_manual, excluded)
+      VALUES (${SidewalkUserTable.aiUserId}, TRUE, TRUE, FALSE)
       ON CONFLICT (user_id) DO NOTHING
     """
   }

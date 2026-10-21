@@ -1,7 +1,7 @@
-@import models.user.SidewalkUserWithRole
+@import models.user.{Role, SidewalkUserWithRole}
 @import views.html.helper.{form, CSRF => htmlCSRF}
 @(user: Option[SidewalkUserWithRole]
-)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder)
+)(using request: RequestHeader, messages: Messages, assets: AssetsFinder)
 
 @* The shared sign-in / sign-up <dialog> (#4375), opened by any element carrying data-au-open="signIn"|"signUp"
    (AuthModal.js wires the openers). Rendered by the navbar and by navbar-less pages with their own sign-in
@@ -10,7 +10,7 @@
    that is the caller's call, not a path check here: the same views render from multiple paths (/signIn, /signUp,
    and /authenticate/credentials' no-JS error branch), so those views suppress it via navbar's renderAuthDialog
    parameter (#4889). *@
-@if(!user || user.get.role == "Anonymous") {
+@if(!user || user.get.role == Role.Anonymous) {
   <dialog id="sign-in-modal-container" class="au-dialog" aria-labelledby="sign-in-label">
     <div class="au-body">
         <!-- Sign-in panel -->
@@ -23,7 +23,7 @@
           </div>
           <button type="button" class="au-close" aria-label="@Messages("authenticate.close")">&#10005;</button>
         </div>
-        @form(action = routes.UserController.authenticate(), args = 'id -> "sign-in-form", 'class -> "au-form", Symbol("data-error-generic") -> Messages("authenticate.error.generic")) {
+        @form(action = routes.UserController.authenticate(), args = Symbol("id") -> "sign-in-form", Symbol("class") -> "au-form", Symbol("data-error-generic") -> Messages("authenticate.error.generic")) {
           @htmlCSRF.formField
           <input type="hidden" name="returnUrl" value="@request.uri">
           <div class="au-field">
@@ -33,7 +33,7 @@
           <div class="au-field">
             <div class="au-label-row">
               <label class="au-label" for="sign-in-password">@Messages("authenticate.password")</label>
-              <a class="au-link" href="@routes.UserController.forgotPassword()">@Messages("reset.pw.forgot.title")</a>
+              <a class="au-link" href="@routes.UserController.forgotPassword">@Messages("reset.pw.forgot.title")</a>
             </div>
             <div class="au-input-wrap">
               <input class="au-input au-input--with-eye" id="sign-in-password" name="password" type="password" autocomplete="current-password" required>
@@ -41,7 +41,7 @@
             </div>
           </div>
           <label class="au-check" for="sign-in-remember"><input type="checkbox" id="sign-in-remember" name="rememberMe" value="true" checked> @Messages("authenticate.remember.me")</label>
-          <button type="submit" class="button-ps button--primary button--large au-submit">@Messages("navbar.signin")</button>
+          <button type="submit" class="button button--primary button--large au-submit">@Messages("navbar.signin")</button>
         }
         <div class="au-footer">@Html(Messages("authenticate.new.detail"))</div>
       </div>
@@ -56,52 +56,25 @@
           </div>
           <button type="button" class="au-close" aria-label="@Messages("authenticate.close")">&#10005;</button>
         </div>
-        @form(action = routes.UserController.signUpPost(), args = 'id -> "sign-up-form", 'class -> "au-form", Symbol("data-error-generic") -> Messages("authenticate.error.generic")) {
+        @form(action = routes.UserController.signUpPost(), args = Symbol("id") -> "sign-up-form", Symbol("class") -> "au-form", Symbol("data-error-generic") -> Messages("authenticate.error.generic")) {
           @htmlCSRF.formField
           <input type="hidden" name="returnUrl" value="@request.uri">
           <div class="au-field">
             <label class="au-label" for="sign-up-username">@Messages("username")</label>
-            <input class="au-input" id="sign-up-username" name="username" type="text" autocomplete="username" spellcheck="false" maxlength="@forms.UsernamePolicy.maxLength" data-rule-regex="@forms.UsernamePolicy.jsPattern" aria-describedby="sign-up-username-rule" required>
+            <input class="au-input" id="sign-up-username" name="username" type="text" autocomplete="username" spellcheck="false" maxlength="@forms.UsernamePolicy.maxLength" data-rule-regex="@forms.UsernamePolicy.jsPattern" aria-describedby="sign-up-username-rule sign-up-username-hint" required>
             <div class="au-match" id="sign-up-username-rule">
               @common.authDot(withCross = true)
               <span>@Messages("authenticate.username.rule")</span>
             </div>
+            <p class="au-hint" id="sign-up-username-hint">@Messages("authenticate.username.hint")</p>
           </div>
           <div class="au-field">
             <label class="au-label" for="sign-up-email">@Messages("authenticate.email")</label>
             <input class="au-input" id="sign-up-email" name="email" type="email" autocomplete="email" required>
           </div>
-          <div class="au-field">
-            <label class="au-label" for="sign-up-password">@Messages("authenticate.password")</label>
-            <div class="au-input-wrap">
-              <input class="au-input au-input--with-eye" id="sign-up-password" name="password" type="password" autocomplete="new-password" aria-describedby="sign-up-pw-rules" required>
-              @common.authEyeButton("sign-up-password")
-            </div>
-            <ul class="au-checklist" id="sign-up-pw-rules" aria-live="polite">
-              @for((msgKey, ruleRegex) <- forms.PasswordPolicy.checklist) {
-                <li data-rule-regex="@ruleRegex">
-                  @common.authDot()@Messages(msgKey, forms.PasswordPolicy.minLength)
-                </li>
-              }
-            </ul>
-            <div class="au-strength" aria-hidden="true">
-              <div class="au-slabs" id="sign-up-pw-strength"><span></span><span></span><span></span><span></span></div>
-              <span class="au-strength-word" id="sign-up-pw-strength-word" data-word1="@Messages("authenticate.pw.strength.1")" data-word2="@Messages("authenticate.pw.strength.2")" data-word3="@Messages("authenticate.pw.strength.3")" data-word4="@Messages("authenticate.pw.strength.4")"></span>
-            </div>
-          </div>
-          <div class="au-field">
-            <label class="au-label" for="sign-up-password-confirm">@Messages("authenticate.confirm.password")</label>
-            <div class="au-input-wrap">
-              <input class="au-input au-input--with-eye" id="sign-up-password-confirm" name="passwordConfirm" type="password" autocomplete="new-password" aria-describedby="sign-up-pw-match" required>
-              @common.authEyeButton("sign-up-password-confirm")
-            </div>
-            <div class="au-match" id="sign-up-pw-match" data-label-match="@Messages("authenticate.pw.match")" data-label-no-match="@Messages("authenticate.pw.match.not")">
-              @common.authDot(withCross = true)
-              <span id="sign-up-pw-match-text">@Messages("authenticate.pw.match")</span>
-            </div>
-          </div>
+          @common.authPasswordFields("sign-up", "password", "passwordConfirm")
           <label class="au-check" for="sign-up-terms"><input type="checkbox" id="sign-up-terms" name="terms" value="true" required> <span>@Html(Messages("authenticate.terms"))</span></label>
-          <button type="submit" class="button-ps button--primary button--large au-submit">@Messages("authenticate.create.account")</button>
+          <button type="submit" class="button button--primary button--large au-submit">@Messages("authenticate.create.account")</button>
         }
         <div class="au-footer">@Html(Messages("authenticate.has.account"))</div>
       </div>

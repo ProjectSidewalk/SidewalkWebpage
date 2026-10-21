@@ -1,9 +1,10 @@
 package formats.json
 
-import play.api.libs.functional.syntax._
-import play.api.libs.json.{JsPath, Reads}
+import play.api.libs.json.{Json, JsonConfiguration, JsonNaming, Reads}
 
 object CommentSubmissionFormats {
+  private given jsonConfig: JsonConfiguration = JsonConfiguration(JsonNaming.SnakeCase)
+
   case class CommentSubmission(
       auditTaskId: Int,
       missionId: Int,
@@ -41,40 +42,10 @@ object CommentSubmissionFormats {
       lng: Double
   )
 
-  implicit val commentSubmissionReads: Reads[CommentSubmission] = (
-    (JsPath \ "audit_task_id").read[Int] and
-      (JsPath \ "mission_id").read[Int] and
-      (JsPath \ "street_edge_id").read[Int] and
-      (JsPath \ "comment").read[String] and
-      (JsPath \ "pano_id").read[String] and
-      (JsPath \ "heading").read[Double] and
-      (JsPath \ "pitch").read[Double] and
-      (JsPath \ "zoom").read[Double] and
-      (JsPath \ "lat").read[Double] and
-      (JsPath \ "lng").read[Double]
-  )(CommentSubmission.apply _)
+  given commentSubmissionReads: Reads[CommentSubmission] = Json.reads[CommentSubmission]
 
-  implicit val validationCommentSubmissionReads: Reads[ValidationCommentSubmission] = (
-    (JsPath \ "mission_id").read[Int] and
-      (JsPath \ "label_id").read[Int] and
-      (JsPath \ "comment").read[String] and
-      (JsPath \ "pano_id").read[String] and
-      (JsPath \ "heading").read[Double] and
-      (JsPath \ "pitch").read[Double] and
-      (JsPath \ "zoom").read[Double] and
-      (JsPath \ "lat").read[Double] and
-      (JsPath \ "lng").read[Double]
-  )(ValidationCommentSubmission.apply _)
+  given validationCommentSubmissionReads: Reads[ValidationCommentSubmission] = Json.reads[ValidationCommentSubmission]
 
-  implicit val labelMapValidationCommentSubmissionReads: Reads[LabelMapValidationCommentSubmission] = (
-    (JsPath \ "label_id").read[Int] and
-      (JsPath \ "label_type").read[String] and
-      (JsPath \ "comment").read[String] and
-      (JsPath \ "pano_id").read[String] and
-      (JsPath \ "heading").read[Double] and
-      (JsPath \ "pitch").read[Double] and
-      (JsPath \ "zoom").read[Double] and
-      (JsPath \ "lat").read[Double] and
-      (JsPath \ "lng").read[Double]
-  )(LabelMapValidationCommentSubmission.apply _)
+  given labelMapValidationCommentSubmissionReads: Reads[LabelMapValidationCommentSubmission] =
+    Json.reads[LabelMapValidationCommentSubmission]
 }

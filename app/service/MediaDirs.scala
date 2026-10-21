@@ -30,13 +30,13 @@ object MediaDirs {
     // `${?VAR}` substitution swallows the default for. Resolving "" would target the filesystem root once a city id
     // is appended, so fail loudly instead.
     if (configured.isEmpty) {
-      throw new IllegalArgumentException(s"$key is set but empty — set its env var to a real path, or unset it.")
+      throw IllegalArgumentException(s"$key is set but empty — set its env var to a real path, or unset it.")
     }
-    val file = new File(configured)
-    if (file.isAbsolute) file else new File(environment.rootPath, configured)
+    val file = File(configured)
+    if (file.isAbsolute) file else File(environment.rootPath, configured)
   }
 
   /** The per-city directory under a media config key: `<baseDir>/<city-id>`. */
   def cityDir(config: Configuration, environment: Environment, key: String): File =
-    new File(baseDir(config, environment, key), config.get[String]("city-id"))
+    File(baseDir(config, environment, key), config.get[String]("city-id"))
 }

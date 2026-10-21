@@ -1,11 +1,10 @@
 ---
-applyTo: "public/js/**/*.js"
+applyTo: "frontend/js/**/*.js"
 ---
 # Frontend JS review (ES2022 target)
 
-- Flag `var` (use const/let), string `+` concatenation for HTML (use template
-  literals), and jQuery AJAX where native `fetch` + Promises fit. Prefer arrow
-  functions in callbacks to keep `this` bound.
+- Flag `var` (use const/let) and string `+` concatenation for HTML (use template
+  literals). Prefer arrow functions in callbacks to keep `this` bound.
 - The constructor-function pattern (`function Foo(){ const self=this; ...; return
   self }`) should be a `class` with `#private` fields. Flag new code using it.
 - **No hardcoded domain values** (see repo-wide rule): use
@@ -13,6 +12,12 @@ applyTo: "public/js/**/*.js"
   members, ranges, and mappings from `/v3/api/...` or a view binding. Flag any
   `{1:'good',2:'ok',3:'bad'}`-style severity map, and any `label_type_icons/*.png`
   path — the frontend uses the scalable `_small.svg` marker only.
+- **No hardcoded `/assets/...` URLs.** Name the asset by its logical path under
+  `public/` and resolve it with `util.assetPath('images/icons/openhand.cur')`, so
+  staged builds serve the content-fingerprinted, year-cached copy. Build the whole
+  path before resolving a dynamic one; never concatenate onto a resolved URL or
+  keep a base directory, which can't be fingerprinted. `make lint-asset-paths`
+  enforces this.
 - **Tool UI scaling:** in Explore, Validate, and overlays layered over them, every
   fixed px dimension set from JS must be `calc(<n>px * var(--ui-scale, 1))`. Flag
   bare px. (Fixed page chrome like the navbar is exempt.)

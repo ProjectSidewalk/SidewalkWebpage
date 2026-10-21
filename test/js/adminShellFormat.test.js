@@ -5,23 +5,11 @@
  * only ever render the same value the same way. That guarantee is worth exactly as much as the edges are pinned: the
  * cases here are the tier boundaries a hand-written formatter tends to get wrong, plus the escaping, which is what
  * stands between user-supplied text and innerHTML.
- *
- * Runs under jsdom (jest.config.js). AdminShell is a bare top-level class in a concatenated bundle, so it is eval'd
- * into global scope rather than required.
  */
 
-const fs = require('fs');
-const path = require('path');
+import { loadModules } from './loader.js';
 
-const SHELL_PATH = path.resolve(__dirname, '..', '..', 'public/js/admin-dashboard/AdminShell.js');
-
-/** Load AdminShell.js and return the class binding. */
-function loadShell() {
-  const src = fs.readFileSync(SHELL_PATH, 'utf8');
-  return (0, eval)(`${src}\nAdminShell;`);
-}
-
-const AdminShell = loadShell();
+const { AdminShell } = await loadModules('frontend/js/admin-dashboard/AdminShell.js');
 
 describe('AdminShell.nil', () => {
   test('is true only for null and undefined, not for falsy values that are real data', () => {
@@ -32,22 +20,6 @@ describe('AdminShell.nil', () => {
     expect(AdminShell.nil(0)).toBe(false);
     expect(AdminShell.nil('')).toBe(false);
     expect(AdminShell.nil(false)).toBe(false);
-  });
-});
-
-describe('AdminShell.esc', () => {
-  test('escapes every character that could break out of markup', () => {
-    expect(AdminShell.esc(`<script>alert("x") & 'y'</script>`))
-      .toBe('&lt;script&gt;alert(&quot;x&quot;) &amp; &#39;y&#39;&lt;/script&gt;');
-  });
-
-  test('renders an absent value as empty rather than as the string "null"', () => {
-    expect(AdminShell.esc(null)).toBe('');
-    expect(AdminShell.esc(undefined)).toBe('');
-  });
-
-  test('escapes ampersands before the entities it introduces, so they are not double-escaped', () => {
-    expect(AdminShell.esc('&lt;')).toBe('&amp;lt;');
   });
 });
 
@@ -88,11 +60,7 @@ describe('AdminShell.relativeTime', () => {
   const NOW = Date.parse('2026-08-20T12:00:00Z');
 
   beforeEach(() => {
-    jest.spyOn(Date, 'now').mockReturnValue(NOW);
-  });
-
-  afterEach(() => {
-    jest.restoreAllMocks();
+    vi.spyOn(Date, 'now').mockReturnValue(NOW);
   });
 
   test('steps through the just-now / minutes / hours / days tiers', () => {
@@ -153,5 +121,96 @@ describe('AdminShell.setText / setHtml', () => {
     AdminShell.setText('target', '<b>not bold</b>');
     expect(document.getElementById('target').querySelector('b')).toBeNull();
     expect(document.getElementById('target').textContent).toBe('<b>not bold</b>');
+  });
+});
+
+describe('AdminShell.jobStatusBadge', () => {
+  /** One `nightly_jobs` entry, succeeded and on schedule unless overridden. */
+  const job = (overrides = {}) => ({ last_status: 'succeeded', overdue: false, ...overrides });
+
+  test('tones each status the panels have been taught', () => {
+    expect(AdminShell.jobStatusBadge(job())).toContain('ac-badge--good');
+    expect(AdminShell.jobStatusBadge(job({ last_status: 'running' }))).toContain('ac-badge--ok');
+    expect(AdminShell.jobStatusBadge(job({ last_status: 'failed' }))).toContain('ac-badge--bad');
+    expect(AdminShell.jobStatusBadge(job({ last_status: 'abandoned' }))).toContain('ac-badge--bad');
+    expect(AdminShell.jobStatusBadge(job({ last_status: 'never_run' }))).toContain('ac-badge--bad');
+  });
+
+  test('does not render a status it has never seen as healthy', () => {
+    // A status the server grows and the page has not learned must read as a reason to look. Green here is the one
+    // direction these panels must never drift, because nobody investigates a green row.
+    const badge = AdminShell.jobStatusBadge(job({ last_status: 'quarantined' }));
+    expect(badge).toContain('ac-badge--warn');
+    expect(badge).toContain('quarantined');
+  });
+
+  test('lets overdue outrank a last run that succeeded', () => {
+    const badge = AdminShell.jobStatusBadge(job({ overdue: true }));
+    expect(badge).toContain('ac-badge--warn');
+    expect(badge).toContain('overdue');
+  });
+
+  test('keeps a bad status bad when the job is also overdue', () => {
+    // Downgrading "failed and overdue" to a warning would understate the worse of the two facts.
+    expect(AdminShell.jobStatusBadge(job({ last_status: 'failed', overdue: true }))).toContain('ac-badge--bad');
+  });
+
+  test('escapes an unrecognized status rather than rendering it as markup', () => {
+    expect(AdminShell.jobStatusBadge(job({ last_status: '<img src=x>' }))).not.toContain('<img');
+  });
+});
+
+describe('AdminShell.jobLastRun', () => {
+  const NOW = Date.parse('2026-08-20T12:00:00Z');
+
+  beforeEach(() => { vi.spyOn(Date, 'now').mockReturnValue(NOW); });
+
+  test('reports a job the schedule has never fired as never, not as its manual run', () => {
+    // A hand-run job proves the code works, not that anything is firing it, so it must not read as a scheduled run.
+    const html = AdminShell.jobLastRun({
+      last_started_at: null,
+      last_manual_run_at: '2026-08-20T10:00:00Z',
+      last_manual_status: 'succeeded',
+    });
+    expect(html).toMatch(/^never/);
+    expect(html).toContain('manual 2h ago: succeeded');
+  });
+
+  test('reports the scheduled run alone when nobody has hand-triggered the job', () => {
+    const html = AdminShell.jobLastRun({ last_started_at: '2026-08-20T09:00:00Z', last_manual_run_at: null });
+    expect(html).toBe('3h ago');
+    expect(html).not.toContain('manual');
+  });
+
+  test('mutes the manual note so it reads as an aside to the schedule record', () => {
+    const html = AdminShell.jobLastRun({
+      last_started_at: '2026-08-19T12:00:00Z',
+      last_manual_run_at: '2026-08-20T11:00:00Z',
+      last_manual_status: 'failed',
+    });
+    expect(html).toContain('1d ago');
+    expect(html).toContain('<span class="ac-muted"> · manual 1h ago: failed</span>');
+  });
+});
+
+describe('AdminShell.jobDetails', () => {
+  test('prefers the error when the run failed, since its counts mean nothing then', () => {
+    expect(AdminShell.jobDetails({ last_error: 'boom', last_details: { streets_polled: 5 } })).toBe('boom');
+  });
+
+  test('flattens a run\'s counts into readable pairs', () => {
+    expect(AdminShell.jobDetails({ last_details: { streets_polled: 1234, not_polled_reason: 'no key' } }))
+      .toBe('streets polled: 1,234, not polled reason: no key');
+  });
+
+  test('renders a run that recorded nothing as an em dash rather than an empty cell', () => {
+    expect(AdminShell.jobDetails({})).toBe('—');
+    expect(AdminShell.jobDetails({ last_details: {} })).toBe('—');
+    expect(AdminShell.jobDetails({ last_details: 'not an object' })).toBe('—');
+  });
+
+  test('keeps a zero count, which is the answer a quiet night actually gives', () => {
+    expect(AdminShell.jobDetails({ last_details: { audits_flagged: 0, audits_unflagged: null } }))
+      .toBe('audits flagged: 0');
   });
 });

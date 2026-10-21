@@ -3,12 +3,12 @@ package models.mission
 import com.google.inject.ImplementedBy
 import models.mission.MissionTable.{labelmapValidationMissionLength, normalValidationMissionLength}
 import models.audit.AuditTaskTableDef
-import models.label.LabelTypeTableDef
+import models.label.LabelType
 import models.region.RegionTableDef
 import models.route.UserRouteTableDef
-import models.user.{RoleTableDef, SidewalkUserTableDef, UserRoleTableDef}
+import models.user.{SidewalkUserTable, SidewalkUserTableDef}
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.{given, *}
 import play.api.Logger
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
@@ -16,19 +16,9 @@ import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
 
-case class RegionalMission(
-    missionId: Int,
-    missionType: String,
-    regionId: Option[Int],
-    regionName: Option[String],
-    distanceMeters: Option[Double],
-    labelsValidated: Option[Int],
-    missionEnd: OffsetDateTime
-)
-
 case class Mission(
     missionId: Int,
-    missionType: MissionType.Value,
+    missionType: MissionType,
     userId: String,
     missionStart: OffsetDateTime,
     missionEnd: OffsetDateTime,
@@ -40,43 +30,38 @@ case class Mission(
     regionId: Option[Int],
     labelsValidated: Option[Int],
     labelsProgress: Option[Int],
-    labelTypeId: Option[Int],
+    labelType: Option[LabelType],
     skipped: Boolean,
     currentAuditTaskId: Option[Int],
     userRouteId: Option[Int]
 )
 
 class MissionTableDef(tag: Tag) extends Table[Mission](tag, "mission") {
-  def missionId: Rep[Int]                 = column[Int]("mission_id", O.PrimaryKey, O.AutoInc)
-  def missionType: Rep[MissionType.Value] = column[MissionType.Value]("mission_type")
-  def userId: Rep[String]                 = column[String]("user_id")
+  def missionId: Rep[Int]           = column[Int]("mission_id", O.PrimaryKey, O.AutoInc)
+  def missionType: Rep[MissionType] = column[MissionType]("mission_type")
+  def userId: Rep[String]           = column[String]("user_id")
   // DEFAULT now() in the DB (O.Default holds a value, not an expression).
   def missionStart: Rep[OffsetDateTime]     = column[OffsetDateTime]("mission_start")
   def missionEnd: Rep[OffsetDateTime]       = column[OffsetDateTime]("mission_end")
-  def completed: Rep[Boolean]               = column[Boolean]("completed")
+  def completed: Rep[Boolean]               = column[Boolean]("completed", O.Default(false))
   def pay: Rep[Double]                      = column[Double]("pay", O.Default(0.0))
-  def paid: Rep[Boolean]                    = column[Boolean]("paid")
+  def paid: Rep[Boolean]                    = column[Boolean]("paid", O.Default(false))
   def distanceMeters: Rep[Option[Double]]   = column[Option[Double]]("distance_meters")
   def distanceProgress: Rep[Option[Double]] = column[Option[Double]]("distance_progress")
   def regionId: Rep[Option[Int]]            = column[Option[Int]]("region_id")
   def labelsValidated: Rep[Option[Int]]     = column[Option[Int]]("labels_validated")
   def labelsProgress: Rep[Option[Int]]      = column[Option[Int]]("labels_progress")
-  def labelTypeId: Rep[Option[Int]]         = column[Option[Int]]("label_type_id")
-  def skipped: Rep[Boolean]                 = column[Boolean]("skipped")
+  def labelType: Rep[Option[LabelType]]     = column[Option[LabelType]]("label_type")
+  def skipped: Rep[Boolean]                 = column[Boolean]("skipped", O.Default(false))
   def currentAuditTaskId: Rep[Option[Int]]  = column[Option[Int]]("current_audit_task_id")
   def userRouteId: Rep[Option[Int]]         = column[Option[Int]]("user_route_id")
 
   def * =
     (missionId, missionType, userId, missionStart, missionEnd, completed, pay, paid, distanceMeters, distanceProgress,
-      regionId, labelsValidated, labelsProgress, labelTypeId, skipped, currentAuditTaskId, userRouteId) <> (
-      (Mission.apply _).tupled,
-      Mission.unapply
-    )
+      regionId, labelsValidated, labelsProgress, labelType, skipped, currentAuditTaskId, userRouteId).mapTo[Mission]
 
-  def user      = foreignKey("mission_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
-  def region    = foreignKey("mission_region_id_fkey", regionId, TableQuery[RegionTableDef])(_.regionId.?)
-  def labelType =
-    foreignKey("mission_label_type_id_fkey", labelTypeId, TableQuery[LabelTypeTableDef])(_.labelTypeId.?)
+  def user             = foreignKey("mission_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
+  def region           = foreignKey("mission_region_id_fkey", regionId, TableQuery[RegionTableDef])(_.regionId.?)
   def currentAuditTask =
     foreignKey("mission_current_audit_task_id_fkey", currentAuditTaskId, TableQuery[AuditTaskTableDef])(_.auditTaskId.?)
   def userRoute =
@@ -102,16 +87,12 @@ object MissionTable {
 trait MissionTableRepository {}
 
 @Singleton
-class MissionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext)
+class MissionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(using ec: ExecutionContext)
     extends MissionTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
   private val logger = Logger(this.getClass)
 
-  val missions  = TableQuery[MissionTableDef]
-  val users     = TableQuery[SidewalkUserTableDef]
-  val userRoles = TableQuery[UserRoleTableDef]
-  val roles     = TableQuery[RoleTableDef]
-  val regions   = TableQuery[RegionTableDef]
+  val missions = TableQuery[MissionTableDef]
 
   val auditMissions = missions.filter(_.missionType === MissionType.Audit)
 
@@ -126,18 +107,8 @@ class MissionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
   /**
    * Count number of missions of the given type completed by the given user.
    */
-  def countCompletedMissions(userId: String, missionType: MissionType.Value): DBIO[Int] = {
+  def countCompletedMissions(userId: String, missionType: MissionType): DBIO[Int] = {
     missions.filter(m => m.missionType === missionType && m.userId === userId && m.completed).length.result
-  }
-
-  /**
-   * Check if the user has completed onboarding.
-   */
-  def hasCompletedAuditOnboarding(userId: String): DBIO[Boolean] = {
-    completedMissionsQuery(userId, includeOnboarding = true, includeSkipped = true)
-      .filter(_.missionType === MissionType.AuditOnboarding)
-      .exists
-      .result
   }
 
   /**
@@ -200,27 +171,58 @@ class MissionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
 
   /**
    * Get the AI validation mission ID for the given label type.
-   * @param labelTypeId the label type ID for which to get the AI validation mission ID
+   * @param labelType the label type for which to get the AI validation mission ID
    * @return DBIO[Int] - the mission ID for the AI validation mission of the given label type
    */
-  def getAiValidateMissionId(labelTypeId: Int): DBIO[Int] = {
+  def getAiValidateMissionId(labelType: LabelType): DBIO[Int] = {
     missions
-      .filter(m => m.labelTypeId === labelTypeId && m.missionType === MissionType.AiValidation)
+      .filter(m => m.labelType === labelType && m.missionType === MissionType.AiValidation)
       .map(_.missionId)
       .result
       .head
   }
 
+  /**
+   * Seeds the SidewalkAI account's `aiValidation` missions, one per label type, where the schema lacks them (#5349).
+   *
+   * 281.sql created these once per schema; a schema created by cloning a donor (or restored from an onboarding dump)
+   * carries 281 as applied without them, and getAiValidateMissionId is `.head`, so the first AI validation would
+   * throw. The rows are 281's: one label to validate, no progress, never completed.
+   *
+   * @return The label types whose mission was inserted, in [[LabelType.ordered]] order; empty when none was.
+   */
+  def insertMissingAiValidationMissions(): DBIO[Seq[LabelType]] = {
+    val now: OffsetDateTime = OffsetDateTime.now
+    DBIO
+      .sequence(LabelType.ordered.map { labelType =>
+        missions
+          .filter(m =>
+            m.userId === SidewalkUserTable.aiUserId && m.missionType === MissionType.AiValidation
+              && m.labelType === labelType
+          )
+          .exists
+          .result
+          .flatMap {
+            case true  => DBIO.successful(None)
+            case false =>
+              val seed = Mission(0, MissionType.AiValidation, SidewalkUserTable.aiUserId, now, now, completed = false,
+                0d, paid = false, None, None, None, Some(1), Some(0), Some(labelType), skipped = false, None, None)
+              (missions += seed).map(_ => Some(labelType))
+          }
+      })
+      .map(_.flatten)
+  }
+
   def getCurrentValidationMission(
       userId: String,
-      labelTypeId: Int,
-      missionType: MissionType.Value
+      labelType: LabelType,
+      missionType: MissionType
   ): DBIO[Option[Mission]] = {
     missions
       .filter(m =>
         m.userId === userId
           && m.missionType === missionType
-          && m.labelTypeId === labelTypeId
+          && m.labelType === labelType
           && !m.completed
       )
       .result
@@ -262,25 +264,6 @@ class MissionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
   }
 
   /**
-   * Select missions with neighborhood names.
-   */
-  def selectCompletedRegionalMission(userId: String): DBIO[Seq[RegionalMission]] = {
-    // Exclude exploreAddress missions: they never complete and have no region/distance, so they'd render as noise
-    // rows (type 'exploreAddress', Region N/A, Distance 0.0) on the admin user-profile mission table (#4451).
-    val userMissions =
-      missions.filter(m => m.userId === userId && m.missionType =!= MissionType.ExploreAddress)
-
-    val missionsWithRegionName = for {
-      (m, r) <- userMissions.joinLeft(regions).on(_.regionId === _.regionId)
-    } yield (m.missionId, m.missionType, m.regionId, r.map(_.name), m.distanceMeters, m.labelsValidated, m.missionEnd)
-
-    missionsWithRegionName
-      .sortBy(m => (m._3, m._1))
-      .result
-      .map(_.map(m => RegionalMission(m._1, m._2.toString, m._3, m._4, m._5, m._6, m._7)))
-  }
-
-  /**
    * Daily count of completed real missions, bucketed by `mission_end`.
    *
    * Counts only completed, non-skipped missions and excludes both onboarding tutorial types (they aren't real
@@ -294,7 +277,11 @@ class MissionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
       if !(_mission.missionType inSet MissionType.onboardingTypes)
     } yield _mission.missionEnd.trunc("day")
 
-    completedMissions.groupBy(x => x).map { case (day, group) => (day, group.length) }.sortBy(_._1).result
+    completedMissions
+      .groupBy(day => day)
+      .map { case (day, group) => (day, group.length) }
+      .sortBy { case (day, _) => day }
+      .result
   }
 
   /**
@@ -302,11 +289,11 @@ class MissionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
    * @param missionType    Name of the validation mission type
    * @return               {validation: 10, labelmapValidation: 1}
    */
-  def getNextValidationMissionLength(missionType: MissionType.Value): Int = {
+  def getNextValidationMissionLength(missionType: MissionType): Int = {
     missionType match {
       case MissionType.Validation         => normalValidationMissionLength
       case MissionType.LabelmapValidation => labelmapValidationMissionLength
-      case other => throw new IllegalArgumentException(s"Not a validation mission type: $other")
+      case other                          => throw IllegalArgumentException(s"Not a validation mission type: $other")
     }
   }
 
@@ -336,18 +323,18 @@ class MissionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
    *
    * @param userId             User ID
    * @param labelsToValidate   Number of labels in this mission
-   * @param labelTypeId        Type of labels featured in this mission {1: cr, 2: mcr, 3: obs, 4: sfcp, 7: no sdwlk}
+   * @param labelType          Type of labels featured in this mission
    * @param missionType        Type of validation mission {validation, labelmapValidation}
    */
   def createNextValidationMission(
       userId: String,
       labelsToValidate: Int,
-      labelTypeId: Int,
-      missionType: MissionType.Value
+      labelType: LabelType,
+      missionType: MissionType
   ): DBIO[Mission] = {
     val now: OffsetDateTime = OffsetDateTime.now
     val newMission = Mission(0, missionType, userId, now, now, completed = false, 0d, paid = false, None, None, None,
-      Some(labelsToValidate), Some(0.0.toInt), Some(labelTypeId), skipped = false, None, None)
+      Some(labelsToValidate), Some(0.0.toInt), Some(labelType), skipped = false, None, None)
     (missions returning missions) += newMission
   }
 
@@ -357,29 +344,32 @@ class MissionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
    * No distance target and no region: the mission is a free-exploration container that is never completed, so a
    * region_id would let getCurrentMissionInRegion-style queries mistake it for a resumable audit mission.
    */
-  def createExploreAddressMission(userId: String): DBIO[Mission] = {
-    val now: OffsetDateTime = OffsetDateTime.now
-    val newMission = Mission(0, MissionType.ExploreAddress, userId, now, now, completed = false, 0d, paid = false, None,
-      None, None, None, None, None, skipped = false, None, None)
-    (missions returning missions) += newMission
-  }
+  def createExploreAddressMission(userId: String): DBIO[Mission] = createBareMission(userId, MissionType.ExploreAddress)
 
   /**
    * Creates a new auditOnboarding mission entry in the mission table for the specified user.
    *
    * NOTE only call from queryMissionTable or queryMissionTableValidationMissions funcs to prevent race conditions.
    */
-  def createAuditOnboardingMission(userId: String): DBIO[Mission] = {
+  def createAuditOnboardingMission(userId: String): DBIO[Mission] =
+    createBareMission(userId, MissionType.AuditOnboarding)
+
+  /**
+   * Inserts a mission with no distance or label target and no region, for the mission types that need neither.
+   *
+   * @return The inserted mission.
+   */
+  private def createBareMission(userId: String, missionType: MissionType): DBIO[Mission] = {
     val now: OffsetDateTime = OffsetDateTime.now
-    val newMiss = Mission(0, MissionType.AuditOnboarding, userId, now, now, completed = false, 0d, paid = false, None,
-      None, None, None, None, None, skipped = false, None, None)
-    (missions returning missions) += newMiss
+    val newMission = Mission(0, missionType, userId, now, now, completed = false, 0d, paid = false, None, None, None,
+      None, None, None, skipped = false, None, None)
+    (missions returning missions) += newMission
   }
 
   /**
    * Get mission_type for a given mission_id.
    */
-  def getMissionType(missionId: Int): DBIO[Option[MissionType.Value]] = {
+  def getMissionType(missionId: Int): DBIO[Option[MissionType]] = {
     missions.filter(_.missionId === missionId).map(_.missionType).result.headOption
   }
 
@@ -425,7 +415,7 @@ class MissionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
       .filter(_.missionId === missionId)
       .map(_.distanceMeters)
       .result
-      .flatMap { missionList: Seq[Option[Double]] =>
+      .flatMap { (missionList: Seq[Option[Double]]) =>
         missionList.head match {
           case Some(missionDistance) =>
             val missionToUpdate = for {

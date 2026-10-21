@@ -2,11 +2,11 @@ package models.user
 
 import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.silhouette.api.util.PasswordInfo
 
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.Future
 
 case class UserPasswordInfo(
@@ -24,10 +24,12 @@ class UserPasswordInfoTableDef(tag: Tag) extends Table[UserPasswordInfo](tag, "u
   def salt: Rep[Option[String]]    = column[Option[String]]("salt")
   def loginInfoId: Rep[Long]       = column[Long]("login_info_id")
   def *                            =
-    (userPasswordInfoId, hasher, password, salt, loginInfoId) <> (UserPasswordInfo.tupled, UserPasswordInfo.unapply)
+    (userPasswordInfoId, hasher, password, salt, loginInfoId).mapTo[UserPasswordInfo]
 
   def loginInfo =
     foreignKey("user_password_info_login_info_id_fkey", loginInfoId, TableQuery[LoginInfoTableDef])(_.loginInfoId)
+
+  def loginInfoIdUnique = index("user_password_info_login_info_id_key", loginInfoId, unique = true)
 }
 
 @ImplementedBy(classOf[UserPasswordInfoTable])
@@ -39,19 +41,36 @@ class UserPasswordInfoTable @Inject() (protected val dbConfigProvider: DatabaseC
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   private val userPasswordInfo = TableQuery[UserPasswordInfoTableDef]
+  private val userLoginInfo    = TableQuery[UserLoginInfoTableDef]
+  private val sidewalkUser     = TableQuery[SidewalkUserTableDef]
 
-  def find(loginInfoId: Long): Future[Option[UserPasswordInfo]] = {
-    db.run(userPasswordInfo.filter(_.loginInfoId === loginInfoId).result.headOption)
+  /** The password behind an email, reached through the account so it's the row reset and change-password write. */
+  def findByEmail(email: String): Future[Option[UserPasswordInfo]] = {
+    val query = for {
+      user     <- sidewalkUser if user.email === email.toLowerCase
+      link     <- userLoginInfo if link.userId === user.userId
+      password <- userPasswordInfo if password.loginInfoId === link.loginInfoId
+    } yield password
+    db.run(query.result.headOption)
+  }
+
+  def findByUserId(userId: String): Future[Option[UserPasswordInfo]] = {
+    val query = for {
+      link     <- userLoginInfo if link.userId === userId
+      password <- userPasswordInfo if password.loginInfoId === link.loginInfoId
+    } yield password
+    db.run(query.result.headOption)
   }
 
   def insert(newUserPasswordInfo: UserPasswordInfo): DBIO[Int] = {
     (userPasswordInfo returning userPasswordInfo.map(_.userPasswordInfoId)) += newUserPasswordInfo
   }
 
-  def update(loginInfoId: Long, newUserPasswordInfo: PasswordInfo): DBIO[Int] = {
+  def updateByUserId(userId: String, pwInfo: PasswordInfo): DBIO[Int] = {
+    val loginInfoIds = userLoginInfo.filter(_.userId === userId).map(_.loginInfoId)
     userPasswordInfo
-      .filter(_.loginInfoId === loginInfoId)
+      .filter(_.loginInfoId in loginInfoIds)
       .map(p => (p.hasher, p.password, p.salt))
-      .update((newUserPasswordInfo.hasher, newUserPasswordInfo.password, newUserPasswordInfo.salt))
+      .update((pwInfo.hasher, pwInfo.password, pwInfo.salt))
   }
 }

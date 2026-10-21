@@ -1,31 +1,30 @@
-@import models.user.SidewalkUserWithRole
+@import models.user.{Role, SidewalkUserWithRole}
 @import service.CommonPageData
-@(activePage: String, commonData: CommonPageData, user: SidewalkUserWithRole)(content: Html)(implicit request: RequestHeader, assets: AssetsFinder)
+@(activePage: String, commonData: CommonPageData, user: SidewalkUserWithRole)(content: Html)(using request: RequestHeader, assets: AssetsFinder)
 
-@* Shared shell for the redesigned admin dashboard (#4272): left nav + main content + right "On this page" TOC. Deliberately reuses the API-docs stylesheet and its .api-* class names so the two surfaces look identical; admin-dashboard.css adds only the components the docs don't have (maps, charts, KPI cards). The right TOC is populated client-side from the page's h2/h3 headings by admin-shell.js. Every page opens with the deployment-info strip so there's never a question of which instance/version you're looking at.
+@*
+* Shell for every admin dashboard page (#4272), on the same page shell as the API docs and user dashboard. Every page
+* opens with the deployment strip, so it's always clear which city and version you're looking at.
 *
-* The layout derives the sidebar's Owner-only visibility from the signed-in user rather than taking a boolean, so every page gets the same nav by construction: a page can't quietly render a shorter sidebar by passing the wrong flag or leaning on a default, and the required `user` param makes omitting it a compile error.
+* Owner-only links come from the signed-in `user`, not a flag, so no page can pass the wrong one.
 *@
 
-<link rel="stylesheet" href="@assets.path("css/api-docs/api-docs.css")">
-<link rel="stylesheet" href="@assets.path("css/admin-dashboard/admin-dashboard.css")">
+@ViteAssets.stylesheets("admin/shell")
 
-<div class="api-container">
-  @admin.dashboard._sidebar(activePage, user.role == "Owner")
+<div class="page-container">
+  @admin.dashboard._sidebar(activePage, user.role == Role.Owner, commonData.currentCity.cityNameFormatted)
 
-  <main class="api-content">
+  <main class="page-content">
     @admin.dashboard._deploymentInfo(commonData)
     @content
   </main>
 
-  <aside class="api-toc" aria-label="On this page">
-    <div class="api-toc-header">On This Page</div>
+  <aside class="page-toc" aria-label="On this page">
+    <div class="page-toc-header">On This Page</div>
     <ul>
-      @* Populated by admin-shell.js from headings in .api-content. *@
+      @* Populated by admin-shell.js from headings in .page-content. *@
     </ul>
   </aside>
 </div>
 
-<script src="@assets.path("js/common/utilitiesSidewalk.js")"></script>
-<script src="@assets.path("js/common/sidebarDisclosure.js")"></script>
-<script src="@assets.path("js/admin-dashboard/AdminShell.js")"></script>
+<script type="module" src="@assets.path("build/js/admin/shell.js")"></script>

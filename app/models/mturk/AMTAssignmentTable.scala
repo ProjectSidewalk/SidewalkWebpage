@@ -2,7 +2,7 @@ package models.mturk
 
 import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import java.time.OffsetDateTime
@@ -31,8 +31,8 @@ class AMTAssignmentTableDef(tag: Tag) extends Table[AMTAssignment](tag, "amt_ass
   def completed: Rep[Boolean]              = column[Boolean]("completed", O.Default(false))
 
   def * =
-    (amtAssignmentId, hitId, assignmentId, assignmentStart, assignmentEnd, workerId, confirmationCode, completed) <>
-      ((AMTAssignment.apply _).tupled, AMTAssignment.unapply)
+    (amtAssignmentId, hitId, assignmentId, assignmentStart, assignmentEnd, workerId, confirmationCode, completed)
+      .mapTo[AMTAssignment]
 }
 
 @ImplementedBy(classOf[AMTAssignmentTable])

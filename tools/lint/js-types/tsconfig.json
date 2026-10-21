@@ -1,0 +1,7 @@
+// Every file in frontend/js/, as one program: each is an ES module, so a name means what its own imports say. See
+// tools/lint/check-js-types.mjs.
+{
+  "extends": "../../../jsconfig.json",
+  "compilerOptions": {"checkJs": true},
+  "include": ["../../../frontend/js/**/*.js", "*.d.ts"]
+}

@@ -29,7 +29,7 @@ object SignedMediaUtils {
       else host == patternHost
     }
     def extractHost(header: String): Option[String] =
-      Try(new java.net.URL(header).getHost).toOption
+      Try(java.net.URL(header).getHost).toOption
 
     val originOk  = request.headers.get("Origin").flatMap(extractHost).forall(hostAllowed)
     val refererOk = request.headers.get("Referer").flatMap(extractHost).forall(hostAllowed)

@@ -1,0 +1,289 @@
+#gallery {
+  display: flex;
+
+  /* `clip`, not `hidden`: `hidden` would make this a scroll container, which disables the sidebar's sticky. */
+  overflow-x: clip;
+}
+
+.paging {
+  display: inline-block;
+  font-size: 30px;
+  background-color: var(--color-neutral-white);
+  border-radius: 5px;
+  border-width: 1px;
+  margin: 0 2px;
+}
+
+#page-number {
+  align-self: center;
+  padding: 0 var(--space-xs);
+  font: var(--text-h3-bold);
+  font-size: 30px; /* Matches the arrow buttons beside it. */
+}
+
+.paging:disabled {
+  border-width: 0.2px;
+  opacity: 0.5;
+}
+
+/* Same predicate as the cards' vote row: a comfortable target is about the pointer, not the layout width. */
+@media (pointer: coarse) {
+  .paging {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
+#horizontal-line {
+  border-bottom: 1px solid gray;
+}
+
+/* Sticky, not fixed, so the column keeps its place in the flow: the page is then always at least as tall as the
+   sidebar and the footer starts below it, even when the results fill less than one row of cards (#4778). Sticking
+   ends at #gallery's bottom edge, so the sidebar never rides down over the paging controls or footer. */
+.sidebar {
+  position: sticky;
+  top: calc(var(--navbar-height) + var(--test-banner-height, 0px));
+
+  /* A stretched flex item is as tall as the row and so has nowhere to stick to; this keeps it its own height. */
+  align-self: flex-start;
+  flex: none;
+
+  /* border-box so the padding comes out of the 275px the cards are laid out against, rather than widening the
+     column past it. */
+  box-sizing: border-box;
+  width: 275px;
+  padding-left: 10px;
+}
+
+/* Hidden as a whole rather than by an inner span, so the padded box takes no room in the stacked phone layout. */
+#labels-not-found-text {
+  display: none;
+  position: absolute;
+  width: 100%;
+  text-align: center;
+  padding-top: 20px;
+}
+
+.page-control {
+  padding-bottom: 15px;
+  display: flex;
+  margin: auto;
+  width: fit-content;
+}
+
+.gallery-footer {
+  padding-top: 5px;
+  padding-bottom: 10px;
+  position: relative;
+  width: 100%;
+  min-height: 40px;
+  text-align: center;
+  color: var(--color-neutral-700);
+  font-size: 12px;
+  font-style: italic;
+  line-height: 1.6em;
+  font-family: var(--font-accent);
+}
+
+/* Takes the rest of the flex row beside the sidebar; min-width: 0 lets it shrink instead of forcing #gallery wider. */
+#gallery-content {
+  flex: 1;
+  min-width: 0;
+  padding: 10px;
+}
+
+/* Gallery's inline expanded view — a fixed overlay floating over the card grid (the grid never reflows around it;
+   cards to its left stay visible and clickable for browsing). The max caps keep the panel content-scaled on large
+   monitors — uncapped, the viewport-derived sizing balloons the card (and its flex-grown pano) on ≥27" screens
+   while laptops sit under the caps either way. */
+.gallery-expanded-view {
+  position: fixed;
+  top: calc(var(--navbar-height) + 1vh);
+  right: 3vw;
+  z-index: 1000; /* Above the cards and sticky sidebar, below the navbar (--navbar-z-index: 1030). */
+
+  /* Content-hugging height (the pano's fixed aspect ratio drives it), like the modal: no orphaned white space
+     when sections collapse. Short viewports scroll inside the card instead of shrinking the pano. */
+  height: auto;
+  max-height: calc(100vh - var(--navbar-height) - 2vh);
+  width: 52vw;
+  max-width: 720px;
+  border-radius: 12px;
+  background: var(--color-neutral-white);
+  box-shadow: 0 12px 40px rgb(0 0 0 / 35%);
+  visibility: hidden;
+}
+
+/* Review-list mode (#5444). With no sidebar the grid runs full width — four columns on a desktop, which is why a
+   page holds twelve — and everything the list has to say about itself sits in this one strip above it. One
+   left-aligned line while there is nothing unusual to report; it wraps as the notices below appear. No left
+   padding of its own, so the strip starts on the same edge as the first card beneath it. */
+.gallery-list-bar {
+  display: flex;
+
+  /* flex-start, not center: an opened disclosure grows its own box instead of stretching the whole strip. */
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  padding: 4px 0 12px;
+}
+
+/* Link-styled, underlined only on hover/focus: it must read as somewhere to go, not as an action on the list. */
+.gallery-list-bar__browse-all {
+  font: var(--text-small-regular);
+  line-height: 24px;
+  color: var(--color-link-200);
+  text-decoration: none;
+}
+
+.gallery-list-bar__browse-all:hover {
+  text-decoration: underline;
+}
+
+/* An underline alone is too quiet to serve as the focus indicator, so focus also draws a ring. */
+.gallery-list-bar__browse-all:focus-visible {
+  outline: 2px solid var(--color-link-100);
+  outline-offset: 2px;
+  text-decoration: underline;
+}
+
+/* Decoration only (the link's words say where it goes), so the gap is set here rather than with markup whitespace. */
+.gallery-list-bar__arrow {
+  margin-right: 6px;
+}
+
+/* A pill, so the count reads as a status of the list rather than as a sentence continuing the link beside it. Same
+   radius as the cards' tag pills; the neutral fill keeps it quieter than those. */
+.gallery-list-bar__count {
+  margin: 0;
+  padding: 0 10px; /* Plain px like its neighbours: --ui-scale is unset on this strip, so a calc() would be inert. */
+  font: var(--text-small-medium);
+  line-height: 24px; /* Matches the link and the disclosure summary beside it, so the strip reads as one line. */
+  color: var(--color-asphalt-500);
+  background: var(--color-neutral-100);
+  border-radius: 200px;
+  white-space: nowrap;
+}
+
+/* The live region is always in the DOM so a screen reader is already watching it when the disclosure appears, but
+   an empty box still takes a flex gap of its own — 16px of nothing on the line, and a dead row when the strip
+   stacks. `display: contents` drops the box and keeps the element, so the disclosure inside it becomes the flex
+   item and the region still exists to announce into. */
+.gallery-list-bar__unavailable-wrap {
+  display: contents;
+}
+
+.gallery-list-bar__summary {
+  font: var(--text-body-regular);
+  line-height: 24px;
+  color: var(--color-asphalt-500);
+  cursor: pointer;
+}
+
+.gallery-list-bar__summary:focus-visible {
+  outline: 2px solid var(--color-asphalt-400);
+  outline-offset: 2px;
+}
+
+.gallery-list-bar__ids {
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+  font: var(--text-small-regular);
+  color: var(--color-asphalt-500);
+
+  /* An opened list of a few hundred ids must not push the card grid off the screen. */
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+/* The list is a focusable scroll region (see gallery.scala.html), so it needs a focus ring of its own — it is not a
+   control, so it inherits none. */
+.gallery-list-bar__ids:focus-visible {
+  outline: 2px solid var(--color-asphalt-400);
+  outline-offset: 2px;
+}
+
+/* The two lines that say the list isn't what was asked for: one cut off at the cap, and one that failed to load at
+   all. Both read as warnings rather than as part of the ordinary strip copy. */
+.gallery-list-bar__truncated,
+.gallery-list-bar__error {
+  margin: 0;
+  font: var(--text-small-medium);
+  line-height: 24px;
+  color: var(--color-error-300); /* The contrast-safe error token; -200 fails AA on white. */
+}
+
+.cards {
+  display: grid;
+
+  /* The 23vw floor keeps desktop at ~3 cards across; narrower windows fall to 2 then 1 columns. The inner min()
+     caps the track at the content box, so a viewport under ~300px — the point where a 280px track stops fitting —
+     shrinks the card rather than overflowing. auto-fill (not auto-fit) keeps a short last page's cards at normal
+     width. */
+  grid-template-columns: repeat(auto-fill, minmax(min(max(280px, 23vw), 100%), 1fr));
+  gap: clamp(10px, 1.2vw, 24px);
+}
+
+/* There is no specific intended function for hover/click on labels on the gallery page.
+We should allow the pointer events to pass through and behave the same way as they do on the background. */
+.label-icon-gallery, .icon-outline {
+  pointer-events: none;
+}
+
+/* Scoped to the card badge, not every .ai-icon-marker on the page: cqw against .gallery-card keeps it proportional
+   to the card, and the expanded view's marker has no size container to resolve against — it keeps main.css's size. */
+.ai-icon-marker-card {
+  width: clamp(12px, 3cqw, 16px);
+  height: clamp(12px, 3cqw, 16px);
+  top: -6px;
+  left: -5px;
+}
+
+/*
+ * Phone / narrow layout: the filter column stacks above the cards (its sections behind a disclosure — see
+ * filter.css) and the expanded view becomes a full-screen sheet. 768px is the shell breakpoint the dashboard
+ * and API docs use.
+ */
+@media (width <= 768px) {
+  #gallery {
+    flex-direction: column;
+  }
+
+  /* Sticky is for the side-by-side layout; stacked, the column scrolls with the page at full width. */
+  .sidebar {
+    position: static;
+    width: 100%;
+    padding-left: 0;
+  }
+
+  /* Resolves against the initial containing block, which the stacked sidebar now overlaps. */
+  #labels-not-found-text {
+    position: static;
+  }
+
+  /* Stacked, so each notice gets its own line rather than wrapping mid-strip. */
+  .gallery-list-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  /* Stacked, a full-width pill would read as a bar; keep it to its own text. */
+  .gallery-list-bar__count {
+    align-self: flex-start;
+  }
+
+  /* Full-screen sheet below the navbar (and test banner). dvh tracks the visible viewport under mobile
+     toolbars. Kept visibility-toggled like the desktop overlay; left/right: 0 also keeps the closed sheet
+     inside the viewport for the e2e overflow walk, which measures hidden-but-laid-out boxes. */
+  .gallery-expanded-view {
+    top: calc(var(--navbar-height) + var(--test-banner-height, 0px));
+    right: 0;
+    left: 0;
+    width: auto;
+    max-width: none;
+    max-height: calc(100dvh - var(--navbar-height) - var(--test-banner-height, 0px));
+    border-radius: 0;
+  }
+}

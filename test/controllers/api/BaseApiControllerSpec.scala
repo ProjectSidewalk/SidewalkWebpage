@@ -1,7 +1,7 @@
 package controllers.api
 
 import models.utils.{LatLngBBox, MapParams}
-import org.scalatestplus.play.PlaySpec
+import util.SidewalkSpec
 
 /**
  * Unit tests for the pure geo-filter helpers on the BaseApiController companion object.
@@ -10,7 +10,7 @@ import org.scalatestplus.play.PlaySpec
  * LabelClustersApiController, and StreetsApiController. Testing them directly (without any DI or DB)
  * keeps the tests fast and makes regressions easy to pinpoint.
  */
-class BaseApiControllerSpec extends PlaySpec {
+class BaseApiControllerSpec extends SidewalkSpec {
 
   private val cityParams = MapParams(centerLat = 47.6, centerLng = -122.35, zoom = 12, lat1 = 47.5, lng1 = -122.45,
     lat2 = 47.7, lng2 = -122.25)

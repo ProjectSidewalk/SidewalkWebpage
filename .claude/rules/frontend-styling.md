@@ -1,0 +1,43 @@
+---
+paths:
+  - "frontend/css/**"
+  - "app/views/**"
+---
+
+# Styling and Twirl views
+
+Full rules: `docs/style-guide.md` (tokens, primitives, file layout, naming) and `docs/accessibility.md`.
+
+- **Style from the `main.css` `:root` tokens and primitives.** `font: var(--text-*)` (a complete shorthand; override
+  one property after it rather than dropping to raw `font-*`), `--color-*`, `--space-*`, `--border-radius*`,
+  `--box-shadow*`, `--z-index-*`; `.button`, `.ps-input`, `.ps-select`, `.ps-table`, `.ps-container`,
+  `.ps-hidden`, `.sr-only`. A hardcoded hex or a hand-assembled font stack is a bug. `--font-size-*` /
+  `--color-text-*` names are dead aliases, not tokens.
+- **px, never rem.** **Raleway is display-only and never renders digits.** Breakpoints: write the px and name the
+  `--breakpoint-*` token in a comment.
+- **Tool UI scales:** every fixed dimension in Explore/Validate and their overlays is
+  `calc(<n>px * var(--ui-scale, 1))`; fixed page chrome like the navbar stays unscaled.
+- **A stylesheet is `import`ed by the JS that needs it, never linked by hand** (#5651): a component's sheet from the
+  component's module (`Toast.js` imports `toast.css`), a page's sheet from its entry in `frontend/js/pages/`. Vite
+  builds them and the view emits the `<link>`s with `@ViteAssets.stylesheets("<entry>")` beside the entry's
+  `<script>`; a page inside the admin or user dashboard or the API docs adds `alreadyLinked = "<shell entry>"`.
+  Sources live in `frontend/css/`; nothing there is served. Never `@import`.
+- **Look for an existing control before building one** (pager, tabs, toggle, dialog, tooltip): search `frontend/` and
+  `app/views/` for the site's versions. If one fits, reuse it. If the match is page-scoped (an admin `mgmt-*`, a
+  `ud-*`), don't borrow it in place: move it to `components/` under a generic `ps-` name and point the old page at
+  that. If you still make a one-off, say so and why in your reply.
+- **`frontend/css/` layout is linted** (`make lint-css-layout`): root holds only `main.css` + `fonts.css`;
+  `components/` for anything two pages use (prefix `ps-` or component-named); `pages/` for page-specific files,
+  registered in the lint's `PAGES` map and imported only by their page's modules; a page's class prefix lives only in
+  its own stylesheet. `components/page-shell.css` is shared by the API docs, both dashboards, and the labeling guide.
+- **CSS `url()` is the file's path under `public/`, root-absolute** (`url("/images/icons/x.svg")`), nothing to
+  register. The build rewrites it to the served URL and the stage to the fingerprinted name
+  (`docs/deployment-and-stages.md` → "Asset caching"). A relative path or an `/assets/` prefix fails the build, as does
+  naming a file that isn't there (`make lint-asset-paths` catches both first), so add the asset first.
+- **Twirl:** every asset through `assets.path("…")` (JS uses `util.assetPath('…')`), never a hardcoded `/assets/`
+  string; only those resolve to the fingerprinted, immutable URL, and `make lint-asset-paths` gates the JS side —
+  including against editing the filename inside a `src` already on an element, which carries that file's digest. No
+  inline styles or scripts; `alt` on every image; prefer `data-i18n="ns:key"`. Icons are their own files in
+  `public/images/icons/`, never inlined SVG; one colored from CSS is a `.ps-mask-icon` (see the style guide).
+- **Accessibility gate:** every page in `test/e2e/pages.js` is held to WCAG 2.1 AA by axe; new controls are real
+  semantic elements with names and keyboard handlers. Allowlisting a violation is a last resort and needs an issue.

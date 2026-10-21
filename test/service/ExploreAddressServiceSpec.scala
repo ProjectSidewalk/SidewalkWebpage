@@ -1,11 +1,11 @@
 package service
 
-import formats.json.ExploreFormats._
-import formats.json.MissionFormats._
-import models.audit.{AuditTask, AuditTaskTable, AuditTaskTableDef}
-import models.label.{LabelHistoryTableDef, LabelPointTableDef, LabelTableDef}
+import formats.json.ExploreFormats.*
+import formats.json.MissionFormats.given
+import models.audit.{AuditTask, AuditTaskTable, AuditTaskTableDef, CoveredRange, StreetCoverage}
+import models.label.{LabelHistoryTableDef, LabelPointTableDef, LabelTableDef, LabelType}
 import models.mission.{Mission, MissionTableDef, MissionType}
-import models.pano.PanoSource
+import models.pano.{PanoDataTableDef, PanoSource}
 import models.region.RegionCompletionTableDef
 import models.userdashboard.TrophyTable
 import models.street.{
@@ -16,8 +16,8 @@ import models.street.{
   StreetEdgeTable
 }
 import models.user.SidewalkUserWithRole
-import models.utils.MyPostgresProfile.api._
-import org.scalatestplus.play.PlaySpec
+import models.utils.IpAddress
+import models.utils.MyPostgresProfile.api.*
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.i18n.{Lang, MessagesApi, MessagesImpl}
@@ -25,21 +25,21 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
 import play.silhouette.api.util.PasswordInfo
 import slick.dbio.DBIO
-import util.RolledBackDb
+import util.{RolledBackDb, SidewalkSpec}
 
 import java.time.OffsetDateTime
 import scala.concurrent.Await
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 /**
  * DB-backed tests for the exploreAddress (address-drop-in) flow (#4451).
  *
  * The core invariant under test: the SERVER decides when a free-exploration street counts as audited — from the
- * distance covered beyond the drop-in point, never from the client's completed flag. So a hostile client can't mark a
- * street audited (a forged completed=true is ignored), and an honest one can't be credited for street it never saw
- * (the drop-in point's own offset from the street start is excluded from the walked distance). Below the threshold
- * nothing moves; at the threshold the task completes and street priority shifts exactly once, staying put on every
- * later submission. Also pins the session lifecycle (resume returns the same mission/task, including after the street
+ * coverage the client posts, unioned across submissions (#5733), never from the client's completed flag. So a hostile
+ * client can't mark a street audited (a forged completed=true is ignored), and an honest one can't be credited for
+ * street it never saw (a sliver at the far end leaves too much uncovered). Short of the rule nothing moves; once
+ * enough is seen the task completes and street priority shifts exactly once, staying put on every later submission.
+ * Also pins the session lifecycle (resume returns the same mission/task, including after the street
  * completes), the nearest-street distance cap, the mission-type JSON serialization of the new mission type, the
  * free-exploration dashboard trophy flags, and the getCurrentMissionInRegion type filter that keeps a stray
  * incomplete mission out of the normal audit-resume path.
@@ -57,13 +57,13 @@ import scala.concurrent.duration._
 // BeforeAndAfterAll must be mixed in BEFORE GuiceOneAppPerSuite: linearization then runs afterAll inside the running
 // app, rather than after the app (and its DB pool) has already been stopped.
 class ExploreAddressServiceSpec
-    extends PlaySpec
+    extends SidewalkSpec
     with org.scalatest.BeforeAndAfterAll
     with RolledBackDb
     with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private val exploreService                             = app.injector.instanceOf[ExploreService]
   private val authService                                = app.injector.instanceOf[AuthenticationService]
@@ -108,19 +108,55 @@ class ExploreAddressServiceSpec
   private lazy val addressLatLng: Option[(Double, Double)] =
     run(streetEdgeTable.streets.map(s => (s.y1, s.x1)).result.headOption)
 
+  /**
+   * The midpoint of the longest open street, for the completion tests: on a short street (the dev copy's first is
+   * 20 m) one pano window is enough for the rule, so there would be no "not yet" state to test. The midpoint rather
+   * than an endpoint so the nearest-street pick can't land on a neighbour sharing the intersection.
+   */
+  private lazy val completionLatLng: Option[(Double, Double)] =
+    run(sql"""SELECT ST_Y(mid), ST_X(mid)
+              FROM (
+                  SELECT ST_LineInterpolatePoint(geom, 0.5) AS mid
+                  FROM street_edge
+                  WHERE status = 'open' AND street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
+                  ORDER BY ST_Length(geom::geography) DESC
+                  LIMIT 1
+              ) AS longest""".as[(Double, Double)].headOption)
+
   private def priorityOf(streetEdgeId: Int): Option[Double] =
     run(priorities.filter(_.streetEdgeId === streetEdgeId).map(_.priority).result.headOption)
 
   private def auditedDistanceOf(regionId: Int): Option[Double] =
     run(regionCompletion.filter(_.regionId === regionId).map(_.auditedDistance).result.headOption)
 
-  /** Geodesic street length in meters — the same measure `streetWalkedFarEnough` compares the walked distance to. */
+  /** Geodesic street length in meters — the same measure the server clips coverage to and judges it against. */
   private def streetLengthM(streetEdgeId: Int): Double =
     run(sql"""SELECT ST_Length(geom::geography) FROM street_edge
               WHERE street_edge_id = $streetEdgeId""".as[Double].head)
 
   private def taskRow(auditTaskId: Int): AuditTask =
     run(auditTasks.filter(_.auditTaskId === auditTaskId).result.head)
+
+  /**
+   * Drops this suite's pano and everything hanging off it. Scoped by pano id rather than by user, so it also reaches
+   * what a dead earlier run left behind — label.pano_id is an FK to pano_data (evolution 360), so one orphaned label
+   * would otherwise pin the pano row in place and fail every later run's cleanup.
+   */
+  private def deleteSpecPanoRows(): Unit = {
+    val labelIdsOnPano = labels.filter(_.panoId === specPanoId).map(_.labelId)
+    val _              = run(
+      DBIO
+        .seq(
+          labelPoints.filter(_.labelId in labelIdsOnPano).delete,
+          labelHistories.filter(_.labelId in labelIdsOnPano).delete,
+          labels.filter(_.panoId === specPanoId).delete,
+          TableQuery[PanoDataTableDef].filter(_.panoId === specPanoId).delete
+        )
+        .transactionally
+    )
+  }
+
+  override def beforeAll(): Unit = { super.beforeAll(); deleteSpecPanoRows() }
 
   /**
    * Deletes every row the suite created under its throwaway users and restores the street priority / region
@@ -130,32 +166,40 @@ class ExploreAddressServiceSpec
    * matching UserAuthControllerSpec's happy-path precedent.
    */
   override def afterAll(): Unit = {
-    val userIds  = createdUserIds.toSeq
-    val labelIds = labels.filter(_.userId inSet userIds).map(_.labelId)
-    val _        = run(
-      DBIO
-        .seq(
-          labelPoints.filter(_.labelId in labelIds).delete,
-          labelHistories.filter(_.labelId in labelIds).delete,
-          labels.filter(_.userId inSet userIds).delete,
-          missions.filter(_.userId inSet userIds).map(_.currentAuditTaskId).update(None),
-          auditTasks.filter(_.userId inSet userIds).delete,
-          missions.filter(_.userId inSet userIds).delete,
-          streetIssues.filter(_.userId inSet userIds).delete,
-          TableQuery[models.user.UserCurrentRegionTableDef].filter(_.userId inSet userIds).delete
-        )
-        .transactionally
-    )
-    priorityRestore.foreach { case (streetEdgeId, p) =>
-      val _ = run(priorities.filter(_.streetEdgeId === streetEdgeId).map(_.priority).update(p))
-    }
-    auditedDistanceRestore.foreach { case (regionId, d) =>
-      val _ = run(regionCompletion.filter(_.regionId === regionId).map(_.auditedDistance).update(d))
-    }
-    super.afterAll()
+    try {
+      // Restores run first because they are the ones that must not be skipped: they put shared city state back,
+      // where everything below only drops rows this suite created.
+      priorityRestore.foreach { case (streetEdgeId, p) =>
+        val _ = run(priorities.filter(_.streetEdgeId === streetEdgeId).map(_.priority).update(p))
+      }
+      auditedDistanceRestore.foreach { case (regionId, d) =>
+        val _ = run(regionCompletion.filter(_.regionId === regionId).map(_.auditedDistance).update(d))
+      }
+
+      val userIds  = createdUserIds.toSeq
+      val labelIds = labels.filter(_.userId inSet userIds).map(_.labelId)
+      val _        = run(
+        DBIO
+          .seq(
+            labelPoints.filter(_.labelId in labelIds).delete,
+            labelHistories.filter(_.labelId in labelIds).delete,
+            labels.filter(_.userId inSet userIds).delete,
+            missions.filter(_.userId inSet userIds).map(_.currentAuditTaskId).update(None),
+            auditTasks.filter(_.userId inSet userIds).delete,
+            missions.filter(_.userId inSet userIds).delete,
+            streetIssues.filter(_.userId inSet userIds).delete,
+            TableQuery[models.user.UserCurrentRegionTableDef].filter(_.userId inSet userIds).delete
+          )
+          .transactionally
+      )
+      deleteSpecPanoRows()
+    } finally super.afterAll()
   }
 
-  /** A minimal explore submission for the given session state, label-free unless labels are passed. */
+  /**
+   * A minimal explore submission for the given session state, label-free unless labels are passed.
+   * @param omitTaskId Post the street with no task id, as the client does for a street it has not heard back about.
+   */
   private def submission(
       missionId: Int,
       auditTaskId: Int,
@@ -163,14 +207,17 @@ class ExploreAddressServiceSpec
       regionId: Int,
       completed: Boolean,
       auditedDistanceM: Option[Double],
-      labels: Seq[LabelSubmission] = Seq.empty
+      labels: Seq[LabelSubmission] = Seq.empty,
+      coveredRanges: Option[Seq[CoveredRange]] = None,
+      omitTaskId: Boolean = false
   ): AuditTaskSubmission = {
-    val now = OffsetDateTime.now
+    val now                       = OffsetDateTime.now
+    val postedTaskId: Option[Int] = if (omitTaskId) None else Some(auditTaskId)
     AuditTaskSubmission(
-      missionProgress = AuditMissionProgress(missionId, Some(0d), regionId, completed, Some(auditTaskId), false),
-      auditTask = TaskSubmission(streetEdgeId, now, Some(auditTaskId), Some(completed), 0d, 0d,
-        startPointReversed = false, None, now, requestUpdatedStreetPriority = false, auditedDistanceM,
-        routeStreetId = None),
+      missionProgress = AuditMissionProgress(missionId, Some(0d), regionId, completed, postedTaskId, false),
+      auditTask = TaskSubmission(streetEdgeId, now, postedTaskId, Some(completed), 0d, 0d, startPointReversed = false,
+        None, now, requestUpdatedStreetPriority = false, auditedDistanceM, routeStreetId = None,
+        coveredRanges = coveredRanges),
       labels = labels,
       interactions = Seq.empty,
       environment = EnvironmentSubmission(None, None, None, None, None, None, None, None, None, "en", 100),
@@ -180,21 +227,31 @@ class ExploreAddressServiceSpec
     )
   }
 
+  /** The one pano this suite's labels sit on; the first submission carrying it creates its pano_data row. */
+  private val specPanoId = "explore-address-spec-pano"
+
   /** A minimal non-tutorial label placement, as the Explore client would submit during a drop-in session. */
   private def labelSubmission(temporaryLabelId: Int): LabelSubmission =
     LabelSubmission(
-      panoId = "explore-address-spec-pano",
+      panoId = specPanoId,
       panoSource = PanoSource.Gsv,
-      labelType = "Obstacle",
+      labelType = LabelType.Obstacle,
       deleted = false,
       severity = Some(1),
       description = None,
       tagIds = Seq.empty,
-      point = LabelPointSubmission(0, 0, 0, 0, 0d, 0d, 1d, None, None, None),
+      point = LabelPointSubmission(0, 0, 0, 0, 720, 480, 0d, 0d, 1d, None, None, None),
       temporaryLabelId = temporaryLabelId,
       timeCreated = Some(OffsetDateTime.now),
       tutorial = false,
-      pano = None
+      // Every non-tutorial label carries its pano's metadata (#4587), which is what satisfies label.pano_id's FK to
+      // pano_data (evolution 360) — the service writes the pano row in the same transaction as the label.
+      pano = Some(
+        PanoSubmission(panoId = specPanoId, source = PanoSource.Gsv, captureDate = "2024-06", width = Some(8192),
+          height = Some(4096), tileWidth = Some(512), tileHeight = Some(512), lat = Some(41.87), lng = Some(-87.62),
+          cameraHeading = Some(180d), cameraPitch = Some(0d), cameraRoll = None, links = Seq.empty, copyright = None,
+          license = None, address = None, history = Seq.empty, sourceMetadata = None)
+      )
     )
 
   "getDataForExploreAddressPage" should {
@@ -276,7 +333,7 @@ class ExploreAddressServiceSpec
   }
 
   "submitExploreData for an exploreAddress mission" should {
-    "persist a below-threshold audited_distance_m and leave the task, street priority, and region completion alone" in {
+    "derive audited_distance_m from the posted coverage, and leave everything alone while nothing was seen" in {
       addressLatLng match {
         case None             => cancel("No streets in the connected DB; nothing to exercise.")
         case Some((lat, lng)) =>
@@ -288,17 +345,21 @@ class ExploreAddressServiceSpec
           val priorityBefore   = priorityOf(streetEdgeId)
           val completionBefore = auditedDistanceOf(regionId)
 
+          // The client's own distance is ignored for a free-exploration task: with no coverage posted, none is stored.
           val result = await(
             exploreService.submitExploreData(
-              submission(data.mission.missionId, auditTaskId, streetEdgeId, regionId, completed = false, Some(12.3)),
+              submission(data.mission.missionId, auditTaskId, streetEdgeId, regionId, completed = false, Some(12.3),
+                coveredRanges = Some(Seq.empty)),
               testUser.userId
             )
           )
           result.auditTaskId mustBe auditTaskId
+          result.coveredRanges.value mustBe Seq.empty
 
           val taskRow = run(auditTasks.filter(_.auditTaskId === auditTaskId).result.head)
           taskRow.completed mustBe false
-          taskRow.auditedDistanceM mustBe Some(12.3)
+          taskRow.auditedDistanceM mustBe Some(0d)
+          StreetCoverage.fromJson(taskRow.coveredRanges) mustBe Seq.empty
           priorityOf(streetEdgeId) mustBe priorityBefore
           auditedDistanceOf(regionId) mustBe completionBefore
       }
@@ -335,48 +396,155 @@ class ExploreAddressServiceSpec
     }
   }
 
-  // These share one drop-in session (completionUser) and run in declaration order: the over-credit guard must run
+  // These share one drop-in session (completionUser) and run in declaration order: the over-credit guards must run
   // while the street is still incomplete, before the test that legitimately completes it.
   "server-derived street completion for an exploreAddress mission" should {
-    "not credit the unwalked prefix before the drop-in point" in {
-      addressLatLng match {
+    "reuse the user's open task on the street when the client posts no task id, and store what it covered" in {
+      completionLatLng match {
+        case None             => cancel("No streets in the connected DB; nothing to exercise.")
+        case Some((lat, lng)) =>
+          val data         = await(exploreService.getDataForExploreAddressPage(completionUser.userId, lat, lng)).value
+          val streetEdgeId = data.task.value.edgeId
+          val auditTaskId  = data.task.value.auditTaskId.get
+          val tasksBefore  = run(auditTasks.filter(_.userId === completionUser.userId).length.result)
+
+          val res = await(
+            exploreService.submitExploreData(
+              submission(
+                data.mission.missionId,
+                auditTaskId,
+                streetEdgeId,
+                data.region.regionId,
+                completed = false,
+                None,
+                coveredRanges = Some(Seq(CoveredRange(0d, 5d))),
+                omitTaskId = true
+              ),
+              completionUser.userId
+            )
+          )
+
+          res.auditTaskId mustBe auditTaskId
+          res.coveredRanges.value mustBe Seq(CoveredRange(0d, 5d))
+          run(auditTasks.filter(_.userId === completionUser.userId).length.result) mustBe tasksBefore
+          StreetCoverage.fromJson(taskRow(auditTaskId).coveredRanges) mustBe Seq(CoveredRange(0d, 5d))
+          taskRow(auditTaskId).auditedDistanceM.value mustBe 5d
+      }
+    }
+
+    "file the save under the user's own regular audit of the street, and write nothing" in {
+      completionLatLng match {
+        case None             => cancel("No streets in the connected DB; nothing to exercise.")
+        case Some((lat, lng)) =>
+          val data          = await(exploreService.getDataForExploreAddressPage(completionUser.userId, lat, lng)).value
+          val streetEdgeId  = data.task.value.edgeId
+          val exploreTaskId = data.task.value.auditTaskId.get
+          val len           = streetLengthM(streetEdgeId)
+          // A finished regular audit of the same street, whose id the region task list hands to the client.
+          val now           = OffsetDateTime.now
+          val regularTaskId = run(
+            auditTaskTable.insert(
+              AuditTask(0, None, completionUser.userId, streetEdgeId, now, now, completed = true, lat, lng,
+                startPointReversed = false, None, None, lowQuality = false, incomplete = false, stale = false,
+                auditedDistanceM = Some(200d))
+            )
+          )
+          val exploreBefore = taskRow(exploreTaskId)
+          val tasksBefore   = run(auditTasks.filter(_.userId === completionUser.userId).length.result)
+          try {
+            val res = await(
+              exploreService.submitExploreData(
+                submission(
+                  data.mission.missionId,
+                  regularTaskId,
+                  streetEdgeId,
+                  data.region.regionId,
+                  completed = false,
+                  None,
+                  coveredRanges = Some(Seq(CoveredRange(0d, len))),
+                  omitTaskId = true
+                ),
+                completionUser.userId
+              )
+            )
+
+            // Labels go under the finished audit; a second completed task would count the street twice.
+            res.auditTaskId mustBe regularTaskId
+            res.coveredRanges mustBe None
+            val regular = taskRow(regularTaskId)
+            regular.auditedDistanceM.value mustBe 200d
+            regular.currentMissionId mustBe None
+            regular.coveredRanges mustBe None
+            taskRow(exploreTaskId).coveredRanges mustBe exploreBefore.coveredRanges
+            taskRow(exploreTaskId).completed mustBe exploreBefore.completed
+            run(auditTasks.filter(_.userId === completionUser.userId).length.result) mustBe tasksBefore
+          } finally {
+            val _ = run(
+              missions.filter(_.currentAuditTaskId === regularTaskId).map(_.currentAuditTaskId).update(None)
+                >> auditTasks.filter(_.auditTaskId === regularTaskId).delete
+            )
+          }
+      }
+    }
+
+    "hand the stored coverage back in the region task list, without the free-exploration task's id" in {
+      completionLatLng match {
+        case None             => cancel("No streets in the connected DB; nothing to exercise.")
+        case Some((lat, lng)) =>
+          val data         = await(exploreService.getDataForExploreAddressPage(completionUser.userId, lat, lng)).value
+          val streetEdgeId = data.task.value.edgeId
+          val listed       = await(exploreService.selectTasksInARegion(data.region.regionId, completionUser.userId))
+            .find(_.edgeId == streetEdgeId)
+            .value
+
+          // The page reload draws the pieces from this; the id stays off so a regular mission never posts onto the row.
+          StreetCoverage.fromJson(listed.coveredRanges) mustBe StreetCoverage.fromJson(
+            taskRow(data.task.value.auditTaskId.get).coveredRanges
+          )
+          listed.coveredRanges mustBe defined
+          listed.completed mustBe false
+          listed.auditTaskId mustBe None
+      }
+    }
+
+    "not credit a street from a sliver at its far end" in {
+      completionLatLng match {
         case None             => cancel("No streets in the connected DB; nothing to exercise.")
         case Some((lat, lng)) =>
           val data         = await(exploreService.getDataForExploreAddressPage(completionUser.userId, lat, lng)).value
           val streetEdgeId = data.task.value.edgeId
           val auditTaskId  = data.task.value.auditTaskId.get
           val len          = streetLengthM(streetEdgeId)
-          val origOffset   = taskRow(auditTaskId).startOffsetM
-
-          // Pretend the session dropped in halfway along the street. A reported distance of 0.95 * length then passes
-          // a naive walked >= 0.9 * length check while the user has actually covered less than half the street.
-          val _ = run(auditTasks.filter(_.auditTaskId === auditTaskId).map(_.startOffsetM).update(Some(len * 0.5)))
-          try {
-            val priorityBefore = priorityOf(streetEdgeId)
-            val res            = await(
-              exploreService.submitExploreData(
-                submission(
-                  data.mission.missionId,
-                  auditTaskId,
-                  streetEdgeId,
-                  data.region.regionId,
-                  completed = false,
-                  Some(len * 0.95)
-                ),
-                completionUser.userId
-              )
-            )
-            res.auditTaskId mustBe auditTaskId
-            taskRow(auditTaskId).completed mustBe false
-            priorityOf(streetEdgeId) mustBe priorityBefore
-          } finally {
-            val _ = run(auditTasks.filter(_.auditTaskId === auditTaskId).map(_.startOffsetM).update(origOffset))
+          // Arriving at the far end of a street never walked covers one pano window there (the scenario #5733 set out
+          // to reject). Only meaningful on a street long enough for that window to fall short of the rule.
+          if (StreetCoverage.coveredEnough(Seq(CoveredRange(len - StreetCoverage.PanoWindowM, len)), len)) {
+            cancel(s"Nearest street is only ${len.round} m; one pano window legitimately passes it.")
           }
+
+          val priorityBefore = priorityOf(streetEdgeId)
+          val res            = await(
+            exploreService.submitExploreData(
+              submission(
+                data.mission.missionId,
+                auditTaskId,
+                streetEdgeId,
+                data.region.regionId,
+                completed = false,
+                None,
+                coveredRanges = Some(Seq(CoveredRange(len - StreetCoverage.PanoWindowM, len)))
+              ),
+              completionUser.userId
+            )
+          )
+
+          res.auditTaskId mustBe auditTaskId
+          taskRow(auditTaskId).completed mustBe false
+          priorityOf(streetEdgeId) mustBe priorityBefore
       }
     }
 
-    "complete the task and move street priority once the covered distance reaches the threshold" in {
-      addressLatLng match {
+    "union each submission's coverage into the task's, and complete it once little enough is left" in {
+      completionLatLng match {
         case None             => cancel("No streets in the connected DB; nothing to exercise.")
         case Some((lat, lng)) =>
           val data         = await(exploreService.getDataForExploreAddressPage(completionUser.userId, lat, lng)).value
@@ -384,7 +552,6 @@ class ExploreAddressServiceSpec
           val auditTaskId  = data.task.value.auditTaskId.get
           val regionId     = data.region.regionId
           val len          = streetLengthM(streetEdgeId)
-          val offset       = taskRow(auditTaskId).startOffsetM.getOrElse(0d)
 
           val priorityBefore   = priorityOf(streetEdgeId)
           val completionBefore = auditedDistanceOf(regionId)
@@ -392,15 +559,40 @@ class ExploreAddressServiceSpec
           priorityRestore = priorityBefore.map(streetEdgeId -> _)
           auditedDistanceRestore = completionBefore.map(regionId -> _)
 
-          val walked = offset + len * ExploreService.streetWalkedThreshold + 0.5
-          val _      = await(
+          // First visit: the street's first half, on top of whatever the earlier tests left on the task. Completes it
+          // only if what is still unseen is within the rule.
+          val alreadyCovered = StreetCoverage.fromJson(taskRow(auditTaskId).coveredRanges)
+          val firstHalf      = CoveredRange(0d, len / 2)
+          val firstRes       = await(
             exploreService.submitExploreData(
-              submission(data.mission.missionId, auditTaskId, streetEdgeId, regionId, completed = false, Some(walked)),
+              submission(data.mission.missionId, auditTaskId, streetEdgeId, regionId, completed = false, None,
+                coveredRanges = Some(Seq(firstHalf))),
+              completionUser.userId
+            )
+          )
+          val firstMerged = StreetCoverage.merge(alreadyCovered :+ firstHalf, len)
+          firstRes.coveredRanges.value mustBe firstMerged
+          taskRow(auditTaskId).completed mustBe StreetCoverage.coveredEnough(firstMerged, len)
+
+          // Second visit, from the other end: the two halves add up to the whole street.
+          val secondRes = await(
+            exploreService.submitExploreData(
+              submission(
+                data.mission.missionId,
+                auditTaskId,
+                streetEdgeId,
+                regionId,
+                completed = false,
+                None,
+                coveredRanges = Some(Seq(CoveredRange(len / 2 - 1d, len)))
+              ),
               completionUser.userId
             )
           )
 
+          secondRes.coveredRanges.value mustBe StreetCoverage.merge(Seq(CoveredRange(0d, len)), len)
           taskRow(auditTaskId).completed mustBe true
+          taskRow(auditTaskId).auditedDistanceM.value mustBe (StreetCoverage.coveredM(secondRes.coveredRanges.value))
           // The mission itself never completes: only the street gets credited.
           run(missions.filter(_.missionId === data.mission.missionId).map(_.completed).result.head) mustBe false
           // partiallyUpdatePriority strictly decreases any positive priority; 0 stays 0.
@@ -413,34 +605,42 @@ class ExploreAddressServiceSpec
     }
 
     "leave street priority where it is on every submission after completion" in {
-      addressLatLng match {
+      completionLatLng match {
         case None             => cancel("No streets in the connected DB; nothing to exercise.")
         case Some((lat, lng)) =>
           val data           = await(exploreService.getDataForExploreAddressPage(completionUser.userId, lat, lng)).value
           val streetEdgeId   = data.task.value.edgeId
           val auditTaskId    = data.task.value.auditTaskId.get
           val len            = streetLengthM(streetEdgeId)
-          val offset         = taskRow(auditTaskId).startOffsetM.getOrElse(0d)
           val priorityBefore = priorityOf(streetEdgeId)
 
-          // The user keeps wandering and the client keeps flushing: the threshold stays satisfied on every POST, and
-          // the completed-flag guard is what stops the priority from being decremented again each time.
-          val walked = offset + len * ExploreService.streetWalkedThreshold + 1.0
-          val _      = await(
+          // The client keeps flushing after completion; a finished street takes no more writes, so no more priority.
+          val before = taskRow(auditTaskId)
+          val res    = await(
             exploreService.submitExploreData(
-              submission(data.mission.missionId, auditTaskId, streetEdgeId, data.region.regionId, completed = false,
-                Some(walked)),
+              submission(
+                data.mission.missionId,
+                auditTaskId,
+                streetEdgeId,
+                data.region.regionId,
+                completed = false,
+                None,
+                coveredRanges = Some(Seq(CoveredRange(0d, len)))
+              ),
               completionUser.userId
             )
           )
 
+          res.auditTaskId mustBe auditTaskId
+          res.coveredRanges mustBe None
           taskRow(auditTaskId).completed mustBe true
+          taskRow(auditTaskId).taskEnd mustBe before.taskEnd
           priorityOf(streetEdgeId) mustBe priorityBefore
       }
     }
 
     "resume the completed task on a fresh page load instead of losing it" in {
-      addressLatLng match {
+      completionLatLng match {
         case None             => cancel("No streets in the connected DB; nothing to exercise.")
         case Some((lat, lng)) =>
           val data = await(exploreService.getDataForExploreAddressPage(completionUser.userId, lat, lng)).value
@@ -454,8 +654,10 @@ class ExploreAddressServiceSpec
           // The DAO split underneath: the default lookup serves flows that only ever see active tasks, while the
           // resume path opts into completed ones.
           val auditTaskId = task.auditTaskId.get
-          run(auditTaskTable.selectTaskFromTaskId(auditTaskId)) mustBe None
-          run(auditTaskTable.selectTaskFromTaskId(auditTaskId, includeCompleted = true)) mustBe defined
+          run(auditTaskTable.selectTaskFromTaskId(auditTaskId, completionUser.userId)) mustBe None
+          run(
+            auditTaskTable.selectTaskFromTaskId(auditTaskId, completionUser.userId, includeCompleted = true)
+          ) mustBe defined
       }
     }
   }
@@ -468,16 +670,14 @@ class ExploreAddressServiceSpec
           val data         = await(exploreService.getDataForExploreAddressPage(testUser.userId, lat, lng)).value
           val streetEdgeId = data.task.value.edgeId
           val auditTaskId  = data.task.value.auditTaskId.get
-          val regionId     = data.region.regionId
 
           val priorityBefore = priorityOf(streetEdgeId)
           val issuesBefore   = run(streetIssues.filter(_.userId === testUser.userId).length.result)
 
-          val sub   = submission(data.mission.missionId, auditTaskId, streetEdgeId, regionId, false, None)
           val issue =
-            StreetEdgeIssue(0, streetEdgeId, StreetEdgeIssueType.PanoNotAvailable, testUser.userId, "127.0.0.1",
-              OffsetDateTime.now)
-          await(exploreService.insertNoImagery(sub.auditTask, issue, data.mission.missionId))
+            StreetEdgeIssue(0, streetEdgeId, StreetEdgeIssueType.PanoNotAvailable, testUser.userId,
+              IpAddress("127.0.0.1"), OffsetDateTime.now)
+          await(exploreService.insertNoImagery(issue))
 
           run(streetIssues.filter(_.userId === testUser.userId).length.result) mustBe issuesBefore + 1
           run(auditTasks.filter(_.auditTaskId === auditTaskId).map(_.completed).result.head) mustBe false

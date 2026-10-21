@@ -1,13 +1,13 @@
 package controllers.api
 
 import org.apache.pekko.stream.Materializer
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.JsObject
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import play.api.test.FakeRequest
+import util.SidewalkSpec
 
 /**
  * Locks the response contract of the Streets API: GET /v3/api/streets returns a GeoJSON FeatureCollection by default
@@ -20,16 +20,16 @@ import play.api.test.FakeRequest
  *
  * Requires a Postgres+PostGIS database (via DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD env, as in dev/CI).
  */
-class StreetsApiSpec extends PlaySpec with GuiceOneAppPerSuite {
+class StreetsApiSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule] // No eager background actors during tests (nothing else injects their ActorRefs).
       .build()
 
   // File-streamed responses (chunked GeoJSON/CSV) need a real Materializer to consume; the test default is
   // NoMaterializer, which only works for strict bodies like JSON.
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   // A tiny near-empty bbox keeps the streamed body cheap regardless of how much data the connected DB holds.
   private val tinyBbox = "bbox=0,0,0.001,0.001"
@@ -51,6 +51,29 @@ class StreetsApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       features.get.headOption.foreach { feature => (feature \ "properties" \ "max_speed").toOption mustBe defined }
     }
 
+    "list every OSM way a street lies on, the primary way among them, in street order (#5741)" in {
+      val resp = route(app, FakeRequest(GET, "/v3/api/streets")).get
+      status(resp) mustBe OK
+      val features = (contentAsJson(resp) \ "features").as[Seq[JsObject]]
+      features must not be empty
+      features.foreach { feature =>
+        val props = feature \ "properties"
+        val ways  = (props \ "osm_ways").as[Seq[JsObject]]
+        // The Infra3d placeholder -1 names no way and is left out of the list; any real primary way is in it.
+        if ((props \ "osm_way_id").as[Long] != -1L)
+          ways.map(w => (w \ "osm_way_id").as[Long]) must contain((props \ "osm_way_id").as[Long])
+        ways.foreach { way =>
+          way.keys mustBe Set("osm_way_id", "street_from_frac", "street_to_frac", "way_from_frac", "way_to_frac",
+            "same_direction")
+          // A positioned link carries every position column; an unpositioned one none of them.
+          val positions = Seq("street_from_frac", "street_to_frac", "way_from_frac", "way_to_frac", "same_direction")
+          positions.map(k => (way \ k).toOption.exists(_ != play.api.libs.json.JsNull)).distinct.size mustBe 1
+        }
+        val starts = ways.flatMap(w => (w \ "street_from_frac").asOpt[Double])
+        starts mustBe starts.sorted
+      }
+    }
+
     "return CSV with the documented snake_case header when filetype=csv" in {
       val resp = route(app, FakeRequest(GET, s"/v3/api/streets?$tinyBbox&filetype=csv")).get
       status(resp) mustBe OK
@@ -60,7 +83,7 @@ class StreetsApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       // Header from StreetDataForApi.csvHeader; assert snake_case field names are present and camelCase absent.
       body must include(
         "street_edge_id,osm_way_id,region_id,region_name,way_type,max_speed,status,user_ids,label_count," +
-          "audit_count,outdated,user_count,first_label_date,last_label_date,start_point,end_point"
+          "audit_count,outdated,user_count,first_label_date,last_label_date,osm_ways,start_point,end_point"
       )
       body must not include "streetEdgeId"
       body must not include "labelCount"
@@ -98,7 +121,7 @@ class StreetsApiSpec extends PlaySpec with GuiceOneAppPerSuite {
   }
 
   "GET /v3/api/streets?filetype=geopackage" should {
-    "return a SQLite GeoPackage whose schema carries outdated and max_speed (#4384, #4654)" in {
+    "return a SQLite GeoPackage whose schema carries the JSON's field names, outdated and max_speed included" in {
       val resp = route(app, FakeRequest(GET, "/v3/api/streets?filetype=geopackage")).get
       status(resp) mustBe OK
 
@@ -108,6 +131,10 @@ class StreetsApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       bytes.take(15).utf8String mustBe "SQLite format 3"
       bytes.containsSlice(org.apache.pekko.util.ByteString("outdated")) mustBe true
       bytes.containsSlice(org.apache.pekko.util.ByteString("max_speed")) mustBe true
+      bytes.containsSlice(org.apache.pekko.util.ByteString("street_edge_id")) mustBe true   // #5273
+      bytes.containsSlice(org.apache.pekko.util.ByteString("first_label_date")) mustBe true // #5273
+      bytes.containsSlice(org.apache.pekko.util.ByteString("osm_ways")) mustBe true         // #5741
+      bytes.containsSlice(org.apache.pekko.util.ByteString("first_label_time")) mustBe false
     }
   }
 

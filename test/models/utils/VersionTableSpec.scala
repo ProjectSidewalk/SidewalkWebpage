@@ -1,6 +1,6 @@
 package models.utils
 
-import org.scalatestplus.play.PlaySpec
+import util.SidewalkSpec
 
 import java.time.OffsetDateTime
 
@@ -10,7 +10,7 @@ import java.time.OffsetDateTime
  * Versions released together share one `version_start_time` (their rows are inserted by a single release evolution),
  * so picking the current version needs a numeric version-id tiebreak on top of the timestamp ordering.
  */
-class VersionTableSpec extends PlaySpec {
+class VersionTableSpec extends SidewalkSpec {
   private val t1 = OffsetDateTime.parse("2026-06-25T23:34:51Z")
   private val t2 = OffsetDateTime.parse("2026-07-18T16:22:52Z")
 

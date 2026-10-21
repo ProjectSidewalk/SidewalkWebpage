@@ -1,35 +1,45 @@
 package controllers
 
 import controllers.base.{CustomBaseController, CustomControllerComponents}
+import formats.json.UserFormats.given
 import models.auth.{WithAdmin, WithOwner}
 import play.api.Configuration
+import models.street.StreetPriorityForAdmin
 import play.api.libs.json.Json
 import service.HealthService.dbHealthDataWrites
-import service.{ConfigService, HealthService, LabelService, StreetLifecycleService}
+import service.{
+  ConfigService,
+  HealthService,
+  ImageryFreshnessReportService,
+  LabelService,
+  SidewalkPresenceService,
+  StreetLifecycleService,
+  StreetService,
+  UserService
+}
 
-import javax.inject._
-import scala.concurrent.ExecutionContext
+import javax.inject.*
+import scala.concurrent.{ExecutionContext, Future}
 
 /**
- * Controller for the redesigned Admin dashboard (issue #4272).
- *
- * These pages are a clean-slate rebuild of the legacy `/admin` monolith, structured one page per route and styled
- * after the API docs shell (left nav + content + right "On this page" TOC). They are built incrementally and coexist
- * with the legacy `/admin` page until they reach parity; only then does `/admin` flip to this dashboard. Each action
- * is admin-gated and renders a self-contained Twirl page that loads just the libraries that page needs.
+ * Controller for the Admin dashboard (#4272): one admin-gated page per route on the shared page shell, each loading
+ * only the libraries it needs.
  */
 @Singleton
 class AdminDashboardController @Inject() (
     cc: CustomControllerComponents,
     val config: Configuration,
-    implicit val assets: AssetsFinder,
     configService: ConfigService,
     labelService: LabelService,
     healthService: HealthService,
-    streetLifecycleService: StreetLifecycleService
-)(implicit ec: ExecutionContext)
+    streetLifecycleService: StreetLifecycleService,
+    imageryFreshnessReportService: ImageryFreshnessReportService,
+    streetService: StreetService,
+    sidewalkPresenceService: SidewalkPresenceService,
+    userService: UserService
+)(using assets: AssetsFinder, ec: ExecutionContext)
     extends CustomBaseController(cc) {
-  implicit val implicitConfig: Configuration = config
+  given Configuration = config
 
   /**
    * Renders the Overview landing page: an at-a-glance snapshot that routes into the detailed pages.
@@ -163,8 +173,7 @@ class AdminDashboardController @Inject() (
    *
    * Answers "where are the labels, and what's there?" — every label as a point colored by type, with the shared map
    * sidebar (filter by label type, severity, tags, validation status, and the admin-only "not validated by an admin"
-   * filter), and click-to-open the label-detail popup. A label-ID search box jumps straight to any label's popup. This
-   * is the redesign's home for the legacy admin "Map" tab; it reuses the shared PSMap component and `/adminapi/labels/all`.
+   * filter), and click-to-open the label-detail popup. A label-ID search box jumps straight to any label's popup.
    */
   def labelMap = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     for {
@@ -190,6 +199,52 @@ class AdminDashboardController @Inject() (
       cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Admin_Management")
       Ok(views.html.admin.dashboard.management(commonData, request.identity))
     }
+  }
+
+  /**
+   * Renders one team's admin page (#5381): who is on it, what they've done, and the controls to change the roster.
+   *
+   * Answers "who is in this class, and is their work any good?", which previously meant scrolling the whole user
+   * directory. Teams are per city (#5303), so this is one city's view. Only the team's existence is resolved here --
+   * the rest fills from `/adminapi/team/:teamId` -- so a bad id is a 404 rather than a page that reports nothing.
+   *
+   * @param teamId The team to show; 404 if no team has that id.
+   */
+  def team(teamId: Int) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    userService.findTeam(teamId).flatMap {
+      case None           => Future.successful(notFoundPage(request.path))
+      case Some(teamData) =>
+        configService.getCommonPageData(request2Messages.lang).map { commonData =>
+          cc.loggingService.insert(request.identity.userId, request.ipAddress, s"Visit_Admin_Team_Team=$teamId")
+          Ok(views.html.admin.dashboard.team(commonData, request.identity, teamData))
+        }
+    }
+  }
+
+  /**
+   * The team page's data endpoint (#5381), separate from the page render so the roster can be re-fetched after an add
+   * or a remove without a reload, and so a slow stats query never delays the page's header and controls.
+   *
+   * @param teamId The team to describe; 404 if no team has that id.
+   */
+  def getTeamOverview(teamId: Int) = cc.securityService.SecuredAction(WithAdmin()) { _ =>
+    userService.getTeamOverview(teamId).map {
+      case Some(overview) => Ok(Json.toJson(overview))
+      case None           => NotFound(Json.obj("status" -> "Error", "message" -> s"No team with id $teamId."))
+    }
+  }
+
+  /**
+   * Finds accounts by a username or email fragment, for the team page's add-member control (#5381). Server-side
+   * because pulling every account on the deployment to find one name would dwarf the page's own payload.
+   *
+   * @param query What the admin typed; blank returns nothing rather than the whole directory.
+   * @param limit The most matches to return, capped so a wide query can't return the directory either.
+   */
+  def searchUsers(query: String, limit: Int) = cc.securityService.SecuredAction(WithAdmin()) { _ =>
+    userService
+      .searchUsers(query, math.max(1, math.min(limit, AdminDashboardController.MaxUserSearchResults)))
+      .map(matches => Ok(Json.toJson(matches)))
   }
 
   /**
@@ -244,4 +299,123 @@ class AdminDashboardController @Inject() (
   def getStreetStatusTrend(weeks: Int) = cc.securityService.SecuredAction(WithAdmin()) { _ =>
     streetLifecycleService.getStreetStatusTrend(weeks).map(trend => Ok(Json.toJson(trend)))
   }
+
+  /**
+   * Reopens a no_imagery street from the Street Status page's "Regained imagery" review queue (#4929).
+   *
+   * Guarded on the street's current status, so a stale queue row can't reopen a street twice (409) or invent
+   * one (404).
+   */
+  def reopenStreet(streetEdgeId: Int) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    streetLifecycleService.reopenStreet(streetEdgeId).map {
+      case StreetLifecycleService.ReopenOutcome.Reopened =>
+        cc.loggingService.insert(request.identity.userId, request.ipAddress, s"ReopenStreet_Street=$streetEdgeId")
+        Ok(Json.obj("status" -> "success", "street_edge_id" -> streetEdgeId))
+      case StreetLifecycleService.ReopenOutcome.NotNoImagery(current) =>
+        Conflict(Json.obj("status" -> "Error", "message" -> s"Street $streetEdgeId is '$current', not 'no_imagery'."))
+      case StreetLifecycleService.ReopenOutcome.StreetNotFound =>
+        NotFound(Json.obj("status" -> "Error", "message" -> s"No street with id $streetEdgeId."))
+    }
+  }
+
+  /**
+   * Dismisses a "Regained imagery" reopen candidate without changing the street (#4929). Idempotent: dismissing a
+   * street with no queued candidate succeeds with `dismissed = 0`, since the admin's goal — no queue entry — holds.
+   * Only a dismissal that changed something is logged, so the activity trail counts judgements rather than clicks.
+   */
+  def dismissReopenCandidate(streetEdgeId: Int) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    streetLifecycleService.dismissReopenCandidate(streetEdgeId).map { dismissed =>
+      if (dismissed > 0) {
+        val _ = cc.loggingService.insert(
+          request.identity.userId,
+          request.ipAddress,
+          s"DismissReopenCandidate_Street=$streetEdgeId"
+        )
+      }
+      Ok(Json.obj("status" -> "success", "street_edge_id" -> streetEdgeId, "dismissed" -> dismissed))
+    }
+  }
+
+  /**
+   * Renders the Imagery page: where the re-audit work sits, and whether the pipeline that finds it is alive (#4908).
+   *
+   * The #4384 pipeline surfaces which streets need a re-audit but not the ranking Explore actually routes on, and its
+   * nightly poll — the only thing that can raise a re-audit flag — reports solely to the application log, where a
+   * poller that stopped firing leaves no evidence at all. This page renders both: a priority-colored street map with
+   * the audit counts behind each value, and the poll's own recorded rotation and flag counts.
+   */
+  def imagery = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Admin_Imagery")
+      Ok(views.html.admin.dashboard.imagery(commonData, request.identity))
+    }
+  }
+
+  /**
+   * Renders the Sidewalks page: where the labels say sidewalks are, side by side of each street, and where that call
+   * is most likely wrong (#5724).
+   *
+   * Answers "how well is per-side sidewalk inference doing here?" without a public tool. Most cities have no sidewalk
+   * inventory to score against (Seattle's was the #5222 study), so beside the map the page lists the faces whose
+   * evidence is thinnest or most mixed, for a person to check. Driven client-side from the street GeoJSON on
+   * `/v3/api/streets` joined to `/adminapi/sidewalkPresence`.
+   */
+  def sidewalks = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Admin_Sidewalks")
+      Ok(views.html.admin.dashboard.sidewalks(commonData, request.identity))
+    }
+  }
+
+  /**
+   * The Sidewalks page's data endpoint: every open street's two faces with their verdict and evidence (#5724).
+   *
+   * Admin-only rather than a field on `/v3/api/sidewalkPresence`: the curb ramp and problem-label counts exist to
+   * flag faces for review, which is not something the public contract should promise to keep. Geometry is absent
+   * for the same reason as on [[getStreetPriority]].
+   */
+  def getSidewalkPresence = cc.securityService.SecuredAction(WithAdmin()) { _ =>
+    sidewalkPresenceService.getForAdmin.map(payload => Ok(payload))
+  }
+
+  /**
+   * Renders the Partners page: the community-partner logos shown on the landing page (#4516).
+   *
+   * Any admin manages the current city's partners here; the global list (every deployment's landing page) is
+   * rendered for context but editable only by Owners, enforced on the /adminapi/globalPartners routes.
+   */
+  def partners = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Admin_Partners")
+      Ok(views.html.admin.dashboard.partners(commonData, request.identity))
+    }
+  }
+
+  /**
+   * The Imagery page's pipeline endpoint: nightly poll/flag counts and job state as snake_case JSON (#4908).
+   *
+   * @param days Window size; clamped by [[ImageryFreshnessReportService.clampDays]], so a junk value narrows the
+   *             chart rather than erroring.
+   */
+  def getImageryFreshness(days: Int) = cc.securityService.SecuredAction(WithAdmin()) { _ =>
+    imageryFreshnessReportService.getReport(days).map(report => Ok(Json.toJson(report)))
+  }
+
+  /**
+   * The Imagery page's per-street endpoint: every routable street's priority plus the audit counts it derives from.
+   *
+   * Geometry is deliberately absent — the page joins these rows to the street GeoJSON it already fetches from
+   * `/v3/api/streets`, which keeps this payload small enough to also drive the tables and the rotation roll-ups.
+   * Admin-only rather than published on the v3 API: priority is an internal routing weight, and exposing it there
+   * would freeze it into a public contract that the multi-factor prioritization work (#4894) is expected to change.
+   */
+  def getStreetPriority = cc.securityService.SecuredAction(WithAdmin()) { _ =>
+    streetService.getPriorityWithInputs.map(streets => Ok(StreetPriorityForAdmin.payload(streets)))
+  }
+}
+
+object AdminDashboardController {
+
+  /** The most add-member search matches an admin gets back at once; a wider query is narrowed, not paged. */
+  val MaxUserSearchResults: Int = 25
 }

@@ -1,15 +1,5 @@
-FROM postgis/postgis:16-3.5
+FROM postgis/postgis:18-3.6
 
-ENV DEBIAN_FRONTEND=noninteractive
-
-# Pin to prevent major version upgrades for postgresql and postgis.
-RUN echo "Package: postgresql*\nPin: version 16.*\nPin-Priority: 1001" > /etc/apt/preferences.d/postgresql && \
-    echo "Package: postgis*\nPin: version 3.4.*\nPin-Priority: 1001" >> /etc/apt/preferences.d/postgr
-
-RUN apt-get update && apt-get upgrade -y && \
-    apt-get install -y postgresql-16-pgrouting gdal-bin && \
-    # Remove cached .deb files and package lists to reduce image size.
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
-
+# Debian 13 with Postgres, PostGIS, GEOS and PROJ from Postgres's own package server; rebuild to update.
+# Nothing else is installed: gdal-bin (#5196) and pgrouting (#5197) aren't used.
 WORKDIR /opt

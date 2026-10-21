@@ -1,8 +1,6 @@
 FROM eclipse-temurin:17-jdk-focal
 
-RUN apt-get update && apt-get upgrade -y
-
-RUN curl -sL https://deb.nodesource.com/setup_23.x | bash -
+RUN curl -sL https://deb.nodesource.com/setup_24.x | bash -
 
 # Add repository for sbt.
 RUN echo "deb https://repo.scala-sbt.org/scalasbt/debian all main" | tee /etc/apt/sources.list.d/sbt.list
@@ -12,18 +10,23 @@ RUN chmod 644 /etc/apt/trusted.gpg.d/scalasbt-release.gpg
 
 RUN apt-get update && apt-get upgrade -y
 
+# The `sbt` package is only the launcher, so pin it to the version the build itself declares — unpinned, each
+# rebuild silently grabs whatever sbt shipped most recently (#5268).
+COPY project/build.properties /tmp/build.properties
+
 RUN apt-get install -y \
     unzip \
     python3-dev \
     python3-pip \
     nodejs \
-    sbt && \
+    "sbt=$(sed -n 's/^sbt\.version=//p' /tmp/build.properties)" && \
+  rm /tmp/build.properties && \
   apt-get autoremove && \
   apt-get clean
 
 WORKDIR /home
 
-COPY package.json ./
+COPY package.json package-lock.json ./
 COPY requirements.txt ./
 COPY requirements-dev.txt ./
 COPY requirements-offline-tools.txt ./
@@ -35,7 +38,7 @@ RUN python3 -m pip install --no-cache-dir --upgrade pip
 RUN python3 -m pip install --no-cache-dir -r requirements.txt -r requirements-dev.txt
 RUN python3 -m pip install --no-cache-dir --upgrade setuptools
 
-# `python3.13` is where offline tooling lives: its dependencies (requirements-offline-tools.txt) need >= 3.11. The
+# `python3.13` is where offline tooling lives: its dependencies (requirements-offline-tools.txt) need >= 3.12. The
 # interpreter is a prebuilt python-build-standalone CPython fetched by uv, since no PPA carries 3.13 for focal. Both
 # versions are pinned so every build produces the same pair; docs/upgrading-libraries.md records them.
 #
@@ -43,7 +46,7 @@ RUN python3 -m pip install --no-cache-dir --upgrade setuptools
 # (`docker exec -u ...`, or a future USER line). Dropping EXTERNALLY-MANAGED makes plain `pip install` work as it
 # would on a system interpreter; `-f` because that marker is a python-build-standalone detail, not a contract.
 ENV UV_PYTHON_INSTALL_DIR=/opt/uv-python
-RUN curl -LsSf https://astral.sh/uv/0.12.5/install.sh | env UV_INSTALL_DIR=/usr/local/bin sh && \
+RUN curl -LsSf https://astral.sh/uv/0.12.15/install.sh | env UV_INSTALL_DIR=/usr/local/bin sh && \
   uv python install 3.13.15 && \
   ln -s "$(uv python find 3.13.15)" /usr/local/bin/python3.13 && \
   rm -f "$(python3.13 -c 'import sysconfig; print(sysconfig.get_path("stdlib"))')/EXTERNALLY-MANAGED" && \
@@ -52,4 +55,8 @@ RUN curl -LsSf https://astral.sh/uv/0.12.5/install.sh | env UV_INSTALL_DIR=/usr/
   uv cache clean
 RUN python3.13 -m pip install --no-cache-dir -r requirements-offline-tools.txt -r requirements-dev.txt
 
-RUN npm install
+# Not `npm install`: the image must not drift from the tree CI resolved (#5152). Copied last so editing the script
+# doesn't invalidate the layers above. The stamp is what stops the first `make dev` after a build reinstalling the
+# identical tree.
+COPY tools/dev/npm-sync.sh ./tools/dev/
+RUN npm ci && bash tools/dev/npm-sync.sh --write-stamp

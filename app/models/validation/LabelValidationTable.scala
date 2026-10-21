@@ -1,32 +1,40 @@
 package models.validation
 
 import com.google.inject.ImplementedBy
-import models.api.{ValidationDataForApi, ValidationFiltersForApi, ValidationResultTypeForApi}
-import models.label.LabelTypeEnum.{labelTypeIdToLabelType, labelTypeIds, labelTypeNames}
-import models.label._
+import models.api.{
+  DailyValidationStat,
+  ValidationDataForApi,
+  ValidationFiltersForApi,
+  ValidationResultTypeForApi,
+  ValidatorType
+}
+import models.label.LabelType.labelTypeNames
+import models.label.*
 import models.mission.MissionTableDef
-import models.user._
-import models.utils.CommonUtils.UiSource.UiSource
-import models.utils.CommonUtils.ViewerType.ViewerType
-import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.user.*
+import models.utils.CommonUtils.{UiSource, ViewerType}
+import models.utils.{Contributors, FilteredTables, MyPostgresProfile, SqlFragments}
+import models.utils.MyPostgresProfile.api.{given, *}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import service.TimeInterval
-import service.TimeInterval.TimeInterval
 import slick.jdbc.GetResult
 
 import java.time.{LocalDate, OffsetDateTime}
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
 
+/**
+ * One vote on a label.
+ *
+ * @param labelType The label's type when the vote was cast (#3671). The vote counts toward the label's agree/disagree/
+ *                  unsure counts only while this still equals `label.label_type`; after the type changes it stays as
+ *                  history and the label is validated afresh.
+ */
 case class LabelValidation(
     labelValidationId: Int,
     labelId: Int,
-    validationResult: ValidationOption.Value,
-    oldSeverity: Option[Int],
-    newSeverity: Option[Int],
-    oldTags: List[String],
-    newTags: List[String],
+    labelType: LabelType,
+    validationResult: ValidationOption,
     userId: String,
     missionId: Int,
     // NOTE: canvas_x and canvas_y are null when the label is not visible when validation occurs.
@@ -35,8 +43,8 @@ case class LabelValidation(
     heading: Double,
     pitch: Double,
     zoom: Double,
-    canvasHeight: Int,
     canvasWidth: Int,
+    canvasHeight: Int,
     startTimestamp: OffsetDateTime,
     endTimestamp: OffsetDateTime,
     source: UiSource,
@@ -47,12 +55,33 @@ case class ValidationCount(
     count: Int,
     timeInterval: TimeInterval,
     labelType: String,
-    validationResult: Option[ValidationOption.Value], // None represents the "All" results subtotal.
+    validationResult: Option[ValidationOption], // None represents the "All" results subtotal.
     validatorType: String
 ) {
   require((labelTypeNames ++ Seq("All")).contains(labelType))
   require(Seq("AI", "Human", "Both").contains(validatorType))
 }
+
+/** How many agree, disagree, and unsure votes a validation mission has so far. */
+case class ValidationResultCounts(agreeCount: Int, disagreeCount: Int, unsureCount: Int)
+
+/** How many validations a user has given, and when they gave their most recent one. */
+case class UserValidationCount(userId: String, count: Int, latest: Option[OffsetDateTime])
+
+/** How many votes with one result a user has cast. */
+case class UserValidationResultCount(userId: String, validationResult: ValidationOption, count: Int)
+
+/** How many votes with one result were cast by AI (or by humans). */
+case class ValidatorRoleResultCount(isAi: Boolean, validationResult: ValidationOption, count: Int)
+
+/** One vote as the admin Activity stream shows it. */
+case class RecentValidation(
+    labelId: Int,
+    labelType: String,
+    username: String,
+    validationResult: ValidationOption,
+    endTimestamp: OffsetDateTime
+)
 
 /**
  * Stores data from each validation interaction.
@@ -60,35 +89,40 @@ case class ValidationCount(
  * @param tag
  */
 class LabelValidationTableDef(tag: slick.lifted.Tag) extends Table[LabelValidation](tag, "label_validation") {
-  def labelValidationId: Rep[Int]                   = column[Int]("label_validation_id", O.AutoInc)
-  def labelId: Rep[Int]                             = column[Int]("label_id")
-  def validationResult: Rep[ValidationOption.Value] = column[ValidationOption.Value]("validation_result")
-  def oldSeverity: Rep[Option[Int]]                 = column[Option[Int]]("old_severity")
-  def newSeverity: Rep[Option[Int]]                 = column[Option[Int]]("new_severity")
-  def oldTags: Rep[List[String]]                    = column[List[String]]("old_tags", O.Default(List()))
-  def newTags: Rep[List[String]]                    = column[List[String]]("new_tags", O.Default(List()))
-  def userId: Rep[String]                           = column[String]("user_id")
-  def missionId: Rep[Int]                           = column[Int]("mission_id")
-  def canvasX: Rep[Option[Int]]                     = column[Option[Int]]("canvas_x")
-  def canvasY: Rep[Option[Int]]                     = column[Option[Int]]("canvas_y")
-  def heading: Rep[Double]                          = column[Double]("heading")
-  def pitch: Rep[Double]                            = column[Double]("pitch")
-  def zoom: Rep[Double]                             = column[Double]("zoom")
-  def canvasHeight: Rep[Int]                        = column[Int]("canvas_height")
-  def canvasWidth: Rep[Int]                         = column[Int]("canvas_width")
-  def startTimestamp: Rep[OffsetDateTime]           = column[OffsetDateTime]("start_timestamp")
-  def endTimestamp: Rep[OffsetDateTime]             = column[OffsetDateTime]("end_timestamp")
-  def source: Rep[UiSource]                         = column[UiSource]("source")
-  def viewerType: Rep[ViewerType]                   = column[ViewerType]("viewer_type")
+  def labelValidationId: Rep[Int]             = column[Int]("label_validation_id", O.AutoInc)
+  def labelId: Rep[Int]                       = column[Int]("label_id")
+  def labelType: Rep[LabelType]               = column[LabelType]("label_type")
+  def validationResult: Rep[ValidationOption] = column[ValidationOption]("validation_result")
+  def userId: Rep[String]                     = column[String]("user_id")
+  def missionId: Rep[Int]                     = column[Int]("mission_id")
+  def canvasX: Rep[Option[Int]]               = column[Option[Int]]("canvas_x")
+  def canvasY: Rep[Option[Int]]               = column[Option[Int]]("canvas_y")
+  def heading: Rep[Double]                    = column[Double]("heading")
+  def pitch: Rep[Double]                      = column[Double]("pitch")
+  def zoom: Rep[Double]                       = column[Double]("zoom")
+  def canvasHeight: Rep[Int]                  = column[Int]("canvas_height")
+  def canvasWidth: Rep[Int]                   = column[Int]("canvas_width")
+  def startTimestamp: Rep[OffsetDateTime]     = column[OffsetDateTime]("start_timestamp")
+  def endTimestamp: Rep[OffsetDateTime]       = column[OffsetDateTime]("end_timestamp")
+  def source: Rep[UiSource]                   = column[UiSource]("source")
+  def viewerType: Rep[ViewerType]             = column[ViewerType]("viewer_type")
 
-  def * = (labelValidationId, labelId, validationResult, oldSeverity, newSeverity, oldTags, newTags, userId, missionId,
-    canvasX, canvasY, heading, pitch, zoom, canvasHeight, canvasWidth, startTimestamp, endTimestamp, source,
-    viewerType) <> ((LabelValidation.apply _).tupled, LabelValidation.unapply)
+  def * = (labelValidationId, labelId, labelType, validationResult, userId, missionId, canvasX, canvasY, heading, pitch,
+    zoom, canvasWidth, canvasHeight, startTimestamp, endTimestamp, source, viewerType).mapTo[LabelValidation]
 
   def label   = foreignKey("label_validation_label_id_fkey", labelId, TableQuery[LabelTableDef])(_.labelId)
   def user    = foreignKey("label_validation_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
   def mission = foreignKey("label_validation_mission_id_fkey", missionId, TableQuery[MissionTableDef])(_.missionId)
-  def userLabelUnique = index("label_validation_user_id_label_id_unique", (userId, labelId), unique = true)
+  // One vote per user per label per type the label has had, so a re-vote after a type change adds rather than replaces.
+  def userLabelTypeUnique =
+    index("label_validation_user_id_label_id_label_type_key", (userId, labelId, labelType), unique = true)
+
+  /** Whether this vote still counts: it judged the type the label has now. */
+  def isCurrent(label: LabelTableDef): Rep[Boolean] = labelType === label.labelType
+
+  // Serves the (label_id, user_id) vote lookup that label_comments_agg joins per comment (#5015). The DB index also
+  // carries INCLUDE (validation_result) so that probe stays index-only -- Slick has no DSL for a covering column.
+  def labelUserIdx = index("label_validation_label_id_user_id_idx", (labelId, userId))
 }
 
 @ImplementedBy(classOf[LabelValidationTable])
@@ -98,20 +132,18 @@ trait LabelValidationTableRepository {}
 class LabelValidationTable @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
     labelTable: LabelTable,
-    sidewalkUserTable: SidewalkUserTable,
-    implicit val ec: ExecutionContext
-) extends LabelValidationTableRepository
+    sidewalkUserTable: SidewalkUserTable
+)(using ec: ExecutionContext)
+    extends LabelValidationTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
-  val validations          = TableQuery[LabelValidationTableDef]
-  val voidedValidations    = TableQuery[VoidedLabelValidationTableDef]
-  val users                = TableQuery[SidewalkUserTableDef]
-  val userRoles            = TableQuery[UserRoleTableDef]
-  val roleTable            = TableQuery[RoleTableDef]
-  val labelsUnfiltered     = TableQuery[LabelTableDef]
-  val labelTypeTable       = TableQuery[LabelTypeTableDef]
-  val humanValidations     = validations.join(sidewalkUserTable.humanUsers).on(_.userId === _.userId).map(_._1)
-  val labelsWithoutDeleted = labelsUnfiltered.filter(_.deleted === false)
+  val validations       = TableQuery[LabelValidationTableDef]
+  val voidedValidations = TableQuery[VoidedLabelValidationTableDef]
+  val users             = TableQuery[SidewalkUserTableDef]
+  val userRoles         = TableQuery[UserRoleTableDef]
+  val labelsUnfiltered  = TableQuery[LabelTableDef]
+  val humanValidations  =
+    validations.join(sidewalkUserTable.humanUsers).on(_.userId === _.userId).map { case (validation, _) => validation }
 
   /**
    * A function to count all validations by the given user for the given label. There should always be a maximum of one.
@@ -127,19 +159,21 @@ class LabelValidationTable @Inject() (
   /**
    * Gets additional information about the number of label validations for the current mission.
    * @param missionId  Mission ID of the current mission
-   * @return           DBIO[(agree_count, disagree_count, unsure_count)]
+   * @return           The mission's vote counts by result.
    */
-  def getValidationProgress(missionId: Int): DBIO[(Int, Int, Int)] = {
+  def getValidationProgress(missionId: Int): DBIO[ValidationResultCounts] = {
     validations
       .filter(_.missionId === missionId)
       .groupBy(_.validationResult)
       .map { case (result, group) => (result, group.length) }
       .result
       .map { results =>
-        val agreeCount    = results.find(_._1 == ValidationOption.Agree).map(_._2).getOrElse(0)
-        val disagreeCount = results.find(_._1 == ValidationOption.Disagree).map(_._2).getOrElse(0)
-        val unsureCount   = results.find(_._1 == ValidationOption.Unsure).map(_._2).getOrElse(0)
-        (agreeCount, disagreeCount, unsureCount)
+        val countByResult: Map[ValidationOption, Int] = results.toMap
+        ValidationResultCounts(
+          agreeCount = countByResult.getOrElse(ValidationOption.Agree, 0),
+          disagreeCount = countByResult.getOrElse(ValidationOption.Disagree, 0),
+          unsureCount = countByResult.getOrElse(ValidationOption.Unsure, 0)
+        )
       }
   }
 
@@ -148,11 +182,29 @@ class LabelValidationTable @Inject() (
    * @param labelIds
    */
   def usersValidated(labelIds: Seq[Int]): DBIO[Seq[String]] = {
-    labelsUnfiltered.filter(_.labelId inSetBind labelIds).map(_.userId).groupBy(x => x).map(_._1).result
+    labelsUnfiltered
+      .filter(_.labelId inSetBind labelIds)
+      .map(_.userId)
+      .groupBy(userId => userId)
+      .map { case (userId, _) => userId }
+      .result
   }
 
-  def getValidation(labelId: Int, userId: String): DBIO[Option[LabelValidation]] = {
-    validations.filter(x => x.labelId === labelId && x.userId === userId).result.headOption
+  /** The user's vote on the label as the given type, the one a new vote on that type replaces. */
+  def getValidation(labelId: Int, userId: String, labelType: LabelType): DBIO[Option[LabelValidation]] = {
+    validations
+      .filter(x => x.labelId === labelId && x.userId === userId && x.labelType === labelType)
+      .result
+      .headOption
+  }
+
+  /** The user's most recent vote on the label, of any type: the one a redo replaces. */
+  def getNewestValidation(labelId: Int, userId: String): DBIO[Option[LabelValidation]] = {
+    validations
+      .filter(x => x.labelId === labelId && x.userId === userId)
+      .sortBy(_.labelValidationId.desc)
+      .result
+      .headOption
   }
 
   /**
@@ -166,40 +218,52 @@ class LabelValidationTable @Inject() (
       FROM (
           SELECT CAST(SUM(CASE WHEN correct THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(SUM(CASE WHEN correct THEN 1 ELSE 0 END) + SUM(CASE WHEN NOT correct THEN 1 ELSE 0 END), 0) AS accuracy,
                  COUNT(CASE WHEN correct IS NOT NULL THEN 1 END) AS validated_count
-          FROM label
-          WHERE label.deleted = FALSE
-              AND label.tutorial = FALSE
-              AND label.user_id = $userId
+          FROM #${FilteredTables.accuracyLabels}
+          WHERE label.user_id = $userId
       ) "accuracy_subquery";""".as[Option[Double]].map(_.headOption.flatten)
   }
 
   /**
-   * Select validation counts per user.
-   * @return list of tuples (labeler_id, (labeler_role, labels_validated, agreed_count))
+   * [[getValidationCountsByUser]] scoped to a few labelers, so the admin team page doesn't group over every label in
+   * the city to show one team (#5381).
+   *
+   * @param userIds The labelers to count for.
+   * @return One entry per user with at least one judged label: (labeler id, (labels validated, agreed count)).
    */
-  def getValidationCountsByUser: DBIO[Seq[(String, (String, Int, Int))]] = {
+  def getValidationCountsForUsers(userIds: Seq[String]): DBIO[Seq[(String, (Int, Int))]] = {
+    validationCountsByUserQuery(Some(userIds)).result
+  }
+
+  /**
+   * Select validation counts per user.
+   *
+   * @return list of tuples (labeler_id, (labels_validated, agreed_count))
+   */
+  def getValidationCountsByUser: DBIO[Seq[(String, (Int, Int))]] = {
+    validationCountsByUserQuery(None).result
+  }
+
+  /** @param userIds The labelers to include, or None for everyone. */
+  private def validationCountsByUserQuery(userIds: Option[Seq[String]]) = {
+    val _labelers = userIds match {
+      case Some(ids) => users.filter(_.userId inSet ids)
+      case None      => users
+    }
     val _labels = for {
-      _label    <- labelTable.labelsWithExcludedUsers
-      _user     <- users if _user.userId === _label.userId // User who placed the label.
-      _userRole <- userRoles if _user.userId === _userRole.userId
-      _role     <- roleTable if _userRole.roleId === _role.roleId
+      _label <- labelTable.labelsForAccuracy
+      _user  <- _labelers if _user.userId === _label.userId // User who placed the label.
       if _label.correct.isDefined // Filter for labels marked as either correct or incorrect.
-    } yield (_user.userId, _role.role, _label.correct)
+    } yield (_user.userId, _label.correct)
 
     // Count the number of correct labels and total number marked as either correct or incorrect for each user.
     _labels
-      .groupBy(l => (l._1, l._2))
-      .map { case ((userId, role), group) =>
-        (
-          userId,
-          (
-            role,
-            group.length, // # Correct or incorrect.
-            group.map(l => Case.If(l._3.getOrElse(false) === true).Then(1).Else(0)).sum.getOrElse(0) // # Correct labels
-          )
-        )
+      .groupBy { case (userId, _) => userId }
+      .map { case (userId, group) =>
+        // # Correct labels.
+        val correctCount =
+          group.map { case (_, correct) => Case.If(correct.getOrElse(false) === true).Then(1).Else(0) }.sum.getOrElse(0)
+        (userId, (group.length, correctCount)) // group.length is # correct or incorrect.
       }
-      .result
   }
 
   /**
@@ -226,12 +290,7 @@ class LabelValidationTable @Inject() (
    *
    * @return The total number of validations performed, including archived voided ones.
    */
-  def countValidations: DBIO[Int] = {
-    for {
-      liveCount     <- validations.length.result
-      archivedCount <- voidedValidations.length.result
-    } yield liveCount + archivedCount
-  }
+  def countValidations: DBIO[Int] = countWithVoided(validations, voidedValidations)
 
   /**
    * The total number of human validations performed (i.e., excluding AI validations), as work credit. The voided-vote
@@ -241,12 +300,7 @@ class LabelValidationTable @Inject() (
    *
    * @return The total number of human validations performed, including archived voided ones.
    */
-  def countHumanValidations: DBIO[Int] = {
-    for {
-      liveCount     <- humanValidations.length.result
-      archivedCount <- voidedValidations.length.result
-    } yield liveCount + archivedCount
-  }
+  def countHumanValidations: DBIO[Int] = countWithVoided(humanValidations, voidedValidations)
 
   /**
    * The number of validations performed by this user, as work credit: votes voided by the #4842 repair (evolution
@@ -254,11 +308,55 @@ class LabelValidationTable @Inject() (
    *
    * @return The number of validations performed by this user, including archived voided ones.
    */
-  def countValidations(userId: String): DBIO[Int] = {
+  def countValidations(userId: String): DBIO[Int] =
+    countWithVoided(validations.filter(_.userId === userId), voidedValidations.filter(_.userId === userId))
+
+  /**
+   * Adds the voided-vote archive to a count of live votes, the rule every work-credit count above shares.
+   *
+   * @return The number of live votes plus the number of archived voided ones.
+   */
+  private def countWithVoided(
+      live: Query[LabelValidationTableDef, LabelValidation, Seq],
+      voided: Query[VoidedLabelValidationTableDef, ?, Seq]
+  ): DBIO[Int] =
     for {
-      liveCount     <- validations.filter(_.userId === userId).length.result
-      archivedCount <- voidedValidations.filter(_.userId === userId).length.result
+      liveCount     <- live.length.result
+      archivedCount <- voided.length.result
     } yield liveCount + archivedCount
+
+  /**
+   * Counts work credit the way [[countValidations]] does, so the voided-vote archive counts too: the vote no longer
+   * stands, but the person did the work. The latest timestamp comes from the live table only -- an archived vote's
+   * says when a repair ran, not when they were last at the tool (#5381).
+   *
+   * @param userIds The validators to count for.
+   * @return One entry per user who has validated.
+   */
+  def countValidationsAndLatestByUsers(userIds: Seq[String]): DBIO[Seq[UserValidationCount]] = {
+    val liveCounts = validations
+      .filter(_.userId inSet userIds)
+      .groupBy(_.userId)
+      .map { case (_userId, rows) => (_userId, rows.length, rows.map(_.endTimestamp).max) }
+      .result
+    val archivedCounts = voidedValidations
+      .filter(_.userId inSet userIds)
+      .groupBy(_.userId)
+      .map { case (_userId, rows) => (_userId, rows.length) }
+      .result
+
+    for {
+      live     <- liveCounts
+      archived <- archivedCounts
+    } yield {
+      val archivedByUser = archived.toMap
+      val liveByUser     = live.map { case (userId, count, latest) => userId -> (count, latest) }.toMap
+      // A user with only archived votes has no live row to join onto, so the union of both key sets drives the result.
+      (liveByUser.keySet ++ archivedByUser.keySet).toSeq.map { userId =>
+        val (liveCount, latest) = liveByUser.getOrElse(userId, (0, None))
+        UserValidationCount(userId, liveCount + archivedByUser.getOrElse(userId, 0), latest)
+      }
+    }
   }
 
   /**
@@ -268,45 +366,43 @@ class LabelValidationTable @Inject() (
   def countValidationsByResultAndLabelType(
       timeInterval: TimeInterval = TimeInterval.AllTime
   ): DBIO[Seq[ValidationCount]] = {
-    // Filter by the given time interval.
-    val validationsInTimeInterval = timeInterval match {
-      case TimeInterval.Today => validations.filter(l => l.endTimestamp > OffsetDateTime.now().minusDays(1))
-      case TimeInterval.Week  => validations.filter(l => l.endTimestamp >= OffsetDateTime.now().minusDays(7))
-      case _                  => validations
-    }
+    val validationsInTimeInterval =
+      TimeInterval.start(timeInterval).map(s => validations.filter(_.endTimestamp >= s)).getOrElse(validations)
 
     // Join with labels to get label type. Group by validation result and label type and get counts.
     validationsInTimeInterval
-      .join(labelsWithoutDeleted)
+      .join(labelTable.labelsWithTutorialAndExcludedUsers)
       .on(_.labelId === _.labelId)
       .join(sidewalkUserTable.sidewalkUserToRoleJoin)
-      .on(_._1.userId === _._1.userId)
-      .groupBy { case ((v, l), (u, ur, r)) => (l.labelTypeId, v.validationResult, r.role === "AI") }
-      .map { case ((labelTypeId, valResult, isAi), group) => (labelTypeId, valResult, isAi, group.length) }
+      .on { case ((v, _), (user, _)) => v.userId === user.userId }
+      .groupBy { case ((v, _), (_, ur)) => (v.labelType, v.validationResult, ur.role === Role.Ai) }
+      .map { case ((labelType, valResult, isAi), group) =>
+        (labelType.asColumnOf[String], valResult, isAi, group.length)
+      }
       .result
       .map { valCounts =>
         // We want to also calculate a sum for every possible subgroup b/w label_type, validation_result and validator.
         // Let's start by enumerating every subgroup combination. We include None for each of the three fields to
         // allow for "All" entries.
-        val subgroupCombinations: Set[(Option[Int], Option[ValidationOption.Value], Option[Boolean])] = for {
-          labelType <- labelTypeIds.map(Some(_)) ++ Seq(None)
+        val subgroupCombinations: Set[(Option[String], Option[ValidationOption], Option[Boolean])] = for {
+          labelType <- labelTypeNames.map(Some(_)) ++ Seq(None)
           valResult <- ValidationOption.values.toSeq.map(Some(_)) ++ Seq(None)
           validator <- Seq(Some(true), Some(false), None)
         } yield (labelType, valResult, validator)
 
         // For each combination, filter matching records and sum their counts.
         subgroupCombinations.map { case (labTypeFilter, valResultFilter, validatorFilter) =>
-          val filteredData = valCounts.filter { case (labelTypeId, valResult, isAi, _) =>
+          val filteredData = valCounts.filter { case (labelType, valResult, isAi, _) =>
             // .forall returns true of the element matches or if the filter is None (which works perfectly for "All").
-            labTypeFilter.forall(_ == labelTypeId) &&
+            labTypeFilter.forall(_ == labelType) &&
             valResultFilter.forall(_ == valResult) &&
             validatorFilter.forall(_ == isAi)
           }
-          val subgroupCount = filteredData.map(_._4).sum
+          val subgroupCount = filteredData.map { case (_, _, _, count) => count }.sum
 
           // Create the ValidationCount object for this subgroup.
-          val labelType = labTypeFilter.map(labelTypeIdToLabelType).getOrElse("All")
-          val validator = validatorFilter.map(isAi => if (isAi) "AI" else "Human").getOrElse("Both")
+          val labelType = labTypeFilter.getOrElse("All")
+          val validator = validatorFilter.map(ValidatorType.fromIsAi).getOrElse("Both")
           ValidationCount(subgroupCount, timeInterval, labelType, valResultFilter, validator)
         }.toSeq
       }
@@ -320,7 +416,12 @@ class LabelValidationTable @Inject() (
    *         - The count of validations that ended on that day
    */
   def getValidationsByDate: DBIO[Seq[(OffsetDateTime, Int)]] = {
-    humanValidations.map(_.endTimestamp.trunc("day")).groupBy(x => x).map(x => (x._1, x._2.length)).sortBy(_._1).result
+    humanValidations
+      .map(_.endTimestamp.trunc("day"))
+      .groupBy(day => day)
+      .map { case (day, group) => (day, group.length) }
+      .sortBy { case (day, _) => day }
+      .result
   }
 
   /**
@@ -328,15 +429,13 @@ class LabelValidationTable @Inject() (
    * leaderboard's top validators). Scoped to a small set of user ids so it stays cheap.
    *
    * @param userIds The users to break down.
-   * @return DBIO[Seq[(userId, validationResult, count)]].
+   * @return One row per (user, validation result) pair that has any votes.
    */
-  def getValidationResultCountsForUsers(
-      userIds: Seq[String]
-  ): DBIO[Seq[(String, ValidationOption.Value, Int)]] = {
+  def getValidationResultCountsForUsers(userIds: Seq[String]): DBIO[Seq[UserValidationResultCount]] = {
     validations
       .filter(_.userId inSet userIds)
       .groupBy(v => (v.userId, v.validationResult))
-      .map { case ((userId, result), group) => (userId, result, group.length) }
+      .map { case ((userId, result), group) => (userId, result, group.length).mapTo[UserValidationResultCount] }
       .result
   }
 
@@ -345,16 +444,15 @@ class LabelValidationTable @Inject() (
    * Humans-vs-AI dashboard's validator lens. Lets the page compare how much validation work AI does versus humans and
    * how their verdict mixes differ.
    *
-   * @return DBIO[Seq[(isAi, validationResult, count)]].
+   * @return One row per (AI or human, validation result) pair that has any votes.
    */
-  def getValidationCountsByValidatorRole: DBIO[Seq[(Boolean, ValidationOption.Value, Int)]] = {
+  def getValidationCountsByValidatorRole: DBIO[Seq[ValidatorRoleResultCount]] = {
     (for {
       _validation <- validations
       _userRole   <- userRoles if _validation.userId === _userRole.userId
-      _role       <- roleTable if _userRole.roleId === _role.roleId
-    } yield (_role.role === "AI", _validation.validationResult))
-      .groupBy(r => (r._1, r._2))
-      .map { case ((isAi, result), group) => (isAi, result, group.length) }
+    } yield (_userRole.role === Role.Ai, _validation.validationResult))
+      .groupBy { case (isAi, result) => (isAi, result) }
+      .map { case ((isAi, result), group) => (isAi, result, group.length).mapTo[ValidatorRoleResultCount] }
       .result
   }
 
@@ -365,18 +463,20 @@ class LabelValidationTable @Inject() (
    * the feed renders, joined to the validated label's type.
    *
    * @param n Number of validations to retrieve.
-   * @return DBIO[Seq[(labelId, labelType, username, validationResult, endTimestamp)]], most recent first.
+   * @return The validations, most recent first.
    */
-  def getRecentValidations(n: Int): DBIO[Seq[(Int, String, String, ValidationOption.Value, OffsetDateTime)]] = {
+  def getRecentValidations(n: Int): DBIO[Seq[RecentValidation]] = {
     (for {
       _validation <- validations
       _user       <- sidewalkUserTable.humanUsers if _validation.userId === _user.userId
-      _label      <- labelsWithoutDeleted if _validation.labelId === _label.labelId
-      _labelType  <- labelTypeTable if _label.labelTypeId === _labelType.labelTypeId
-    } yield (_validation.labelId, _labelType.labelType, _user.username, _validation.validationResult,
-      _validation.endTimestamp))
-      .sortBy(_._5.desc)
+      _label      <- labelTable.labelsWithTutorialAndExcludedUsers if _validation.labelId === _label.labelId
+    } yield (_validation, _user, _label))
+      .sortBy { case (_validation, _, _) => _validation.endTimestamp.desc }
       .take(n)
+      .map { case (_validation, _user, _label) =>
+        (_validation.labelId, _label.labelTypeName, _user.username, _validation.validationResult,
+          _validation.endTimestamp).mapTo[RecentValidation]
+      }
       .result
   }
 
@@ -386,62 +486,35 @@ class LabelValidationTable @Inject() (
    * @param filters The filters to apply to the validation data.
    * @return A query for retrieving filtered validation data as tuples.
    */
-  def getValidationsForApi(
-      filters: ValidationFiltersForApi
-  ): Query[_, (LabelValidation, Label, LabelType, Role), Seq] = {
+  def getValidationsForApi(filters: ValidationFiltersForApi): Query[?, (LabelValidation, Label, Role), Seq] = {
     for {
-      validation             <- validations
-      label                  <- labelsUnfiltered if validation.labelId === label.labelId
-      labelType              <- labelTypeTable if label.labelTypeId === labelType.labelTypeId
-      (user, userRole, role) <- sidewalkUserTable.sidewalkUserToRoleJoin if validation.userId === user.userId
+      validation       <- validations
+      label            <- labelsUnfiltered if validation.labelId === label.labelId
+      (user, userRole) <- sidewalkUserTable.sidewalkUserToRoleJoin if validation.userId === user.userId
 
       // Apply filters.
       if filters.labelId.map(validation.labelId === _).getOrElse(true: Rep[Boolean]) &&
         filters.userId.map(user.userId === _).getOrElse(true: Rep[Boolean]) &&
         filters.validationResult.map(validation.validationResult === _).getOrElse(true: Rep[Boolean]) &&
-        filters.labelTypeId.map(label.labelTypeId === _).getOrElse(true: Rep[Boolean]) &&
+        filters.labelType.map(label.labelType === _).getOrElse(true: Rep[Boolean]) &&
         filters.validationTimestamp.map(validation.startTimestamp >= _).getOrElse(true: Rep[Boolean]) &&
         filters.source.map(validation.source === _).getOrElse(true: Rep[Boolean])
-
-      // Apply changed tags filter (oldTags != newTags or oldTags == newTags).
-      // Filter on whether tags were changed during the validations (oldTags != newTags).
-      if filters.changedTags
-        .map { changed => (validation.oldTags =!= validation.newTags) === changed }
-        .getOrElse(true: Rep[Boolean])
-
-      // Apply changed severity levels filter (oldSeverity != newSeverity or oldSeverity == newSeverity).
-      // Note: Works slightly different from tags because oldSeverity and newSeverity are Options.
-      if filters.changedSeverityLevels
-        .map { changed =>
-          val severityChanged = (validation.oldSeverity =!= validation.newSeverity).getOrElse(false: Rep[Boolean])
-          severityChanged === changed
-        }
-        .getOrElse(true: Rep[Boolean])
-
-    } yield (validation, label, labelType, role)
+    } yield (validation, label, userRole.role)
   }
 
   /**
-   * Converts a tuple from the database query to ValidationDataForApi. A helper method to be used in the service layer.
-   *
-   * TODO try doing something like TupleConverter in LabelTable.scala. Need a more general solution.
+   * Converts a row of [[getValidationsForApi]] to ValidationDataForApi. A helper method to be used in the service layer.
    */
-  def tupleToValidationDataForApi(
-      tuple: (LabelValidation, Label, LabelType, Role)
-  ): ValidationDataForApi = {
-    val (validation, label, labelType, role) = tuple
+  def tupleToValidationDataForApi(tuple: (LabelValidation, Label, Role)): ValidationDataForApi = {
+    val (validation, label, role) = tuple
     ValidationDataForApi(
       labelValidationId = validation.labelValidationId,
       labelId = validation.labelId,
-      labelTypeId = label.labelTypeId,
-      labelType = labelType.labelType,
+      labelType = label.labelType.name,
+      validatedLabelType = validation.labelType.name,
       validationResult = validation.validationResult,
-      oldSeverity = validation.oldSeverity,
-      newSeverity = validation.newSeverity,
-      oldTags = validation.oldTags,
-      newTags = validation.newTags,
       userId = validation.userId,
-      validatorType = if (role.role == "AI") "AI" else "Human",
+      validatorType = ValidatorType.fromIsAi(role == Role.Ai),
       missionId = validation.missionId,
       canvasXY = validation.canvasX.flatMap(x => validation.canvasY.map(y => LocationXY(x, y))),
       heading = validation.heading,
@@ -461,27 +534,21 @@ class LabelValidationTable @Inject() (
    * @return A database action that, when executed, will return a sequence of ValidationResultTypeForApi objects.
    */
   def getValidationResultTypes: DBIO[Seq[ValidationResultTypeForApi]] = {
-    validations
-      .join(sidewalkUserTable.sidewalkUserToRoleJoin)
-      .on(_.userId === _._1.userId)
-      .groupBy { case (v, (u, ur, r)) => (v.validationResult, r.role === "AI") }
-      .map { case ((valResult, isAi), group) => (valResult, isAi, group.length) }
-      .result
-      .map { results: Seq[(ValidationOption.Value, Boolean, Int)] =>
-        // Create a ValidationResultTypeForApi object for each validation result type.
-        ValidationOption.values.toSeq
-          .map { valResult =>
-            val currValCounts   = results.filter(_._1 == valResult)
-            val humanCount: Int = currValCounts.find(_._2 == false).map(_._3).getOrElse(0)
-            val aiCount: Int    = currValCounts.find(_._2 == true).map(_._3).getOrElse(0)
-            ValidationResultTypeForApi(
-              name = valResult.toString,
-              count = humanCount + aiCount,
-              countHuman = humanCount,
-              countAi = aiCount
-            )
-          }
-      }
+    getValidationCountsByValidatorRole.map { (results: Seq[ValidatorRoleResultCount]) =>
+      // Create a ValidationResultTypeForApi object for each validation result type.
+      ValidationOption.values.toSeq
+        .map { valResult =>
+          val currValCounts   = results.filter(_.validationResult == valResult)
+          val humanCount: Int = currValCounts.find(!_.isAi).map(_.count).getOrElse(0)
+          val aiCount: Int    = currValCounts.find(_.isAi).map(_.count).getOrElse(0)
+          ValidationResultTypeForApi(
+            name = valResult.name,
+            count = humanCount + aiCount,
+            countHuman = humanCount,
+            countAi = aiCount
+          )
+        }
+    }
   }
 
   /**
@@ -493,59 +560,52 @@ class LabelValidationTable @Inject() (
    * administratively excluded users are removed; when true, only high_quality users are included.
    *
    * validation_result is compared via ::text cast to support both integer and validation_option enum
-   * schemas across different city deployments ('Agree', 'Disagree', 'Unsure').
+   * schemas across different city deployments ('Agree', 'Disagree', 'Unsure'). Votes are grouped by the type they
+   * judged.
    *
    * @param startDate        Inclusive lower bound on end_timestamp (Pacific date); no bound if None.
    * @param endDate          Inclusive upper bound on end_timestamp; no bound if None.
    * @param filterLowQuality If true, restrict to user_stat.high_quality users; otherwise exclude
    *                         only user_stat.excluded users.
-   * @return                 Sequence of (date, labelType, humanAgree, humanDisagree, humanUnsure,
-   *                         aiAgree, aiDisagree, aiUnsure), sorted by date then label type.
+   * @return                 One row per (date, label type), sorted by date then label type.
    */
   def getDailyValidationStats(
       startDate: Option[LocalDate],
       endDate: Option[LocalDate],
       filterLowQuality: Boolean
-  ): DBIO[Seq[(LocalDate, String, Int, Int, Int, Int, Int, Int)]] = {
-    val userFilter   = if (filterLowQuality) "user_stat.high_quality" else "NOT user_stat.excluded"
-    val whereClauses = scala.collection.mutable.ListBuffer(
-      "label.deleted = FALSE",
-      userFilter
-    )
-    startDate.foreach(d => whereClauses += s"label_validation.end_timestamp >= '$d'::date")
-    endDate.foreach(d => whereClauses += s"label_validation.end_timestamp < ('$d'::date + INTERVAL '1 day')")
-    val where = whereClauses.mkString(" AND ")
-
-    implicit val getResult: GetResult[(LocalDate, String, Int, Int, Int, Int, Int, Int)] =
-      GetResult(r =>
-        (LocalDate.parse(r.nextString()), r.nextString(), r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt(),
-          r.nextInt(), r.nextInt())
-      )
+  ): DBIO[Seq[DailyValidationStat]] = {
+    val contributors = Contributors(filterLowQuality)
+    val conditions   = Seq(
+      Some(sql"label.deleted = FALSE"),
+      startDate.map(d => sql"label_validation.end_timestamp >= $d::date"),
+      endDate.map(d => sql"label_validation.end_timestamp < ($d::date + INTERVAL '1 day')")
+    ).flatten
 
     sql"""
-      SELECT CAST((label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date AS TEXT) AS date,
-             label_type.label_type,
-             COUNT(CASE WHEN role.role IS DISTINCT FROM 'AI' AND label_validation.validation_result::text = 'Agree'
+      SELECT CAST((label_validation.end_timestamp AT TIME ZONE 'America/Los_Angeles')::date AS TEXT) AS date,
+             label_validation.label_type::text,
+             COUNT(CASE WHEN user_role.role IS DISTINCT FROM 'AI' AND label_validation.validation_result::text = 'Agree'
                         THEN 1 END) AS human_agree,
-             COUNT(CASE WHEN role.role IS DISTINCT FROM 'AI' AND label_validation.validation_result::text = 'Disagree'
+             COUNT(CASE WHEN user_role.role IS DISTINCT FROM 'AI' AND label_validation.validation_result::text = 'Disagree'
                         THEN 1 END) AS human_disagree,
-             COUNT(CASE WHEN role.role IS DISTINCT FROM 'AI' AND label_validation.validation_result::text = 'Unsure'
+             COUNT(CASE WHEN user_role.role IS DISTINCT FROM 'AI' AND label_validation.validation_result::text = 'Unsure'
                         THEN 1 END) AS human_unsure,
-             COUNT(CASE WHEN role.role = 'AI' AND label_validation.validation_result::text = 'Agree'
+             COUNT(CASE WHEN user_role.role = 'AI' AND label_validation.validation_result::text = 'Agree'
                         THEN 1 END) AS ai_agree,
-             COUNT(CASE WHEN role.role = 'AI' AND label_validation.validation_result::text = 'Disagree'
+             COUNT(CASE WHEN user_role.role = 'AI' AND label_validation.validation_result::text = 'Disagree'
                         THEN 1 END) AS ai_disagree,
-             COUNT(CASE WHEN role.role = 'AI' AND label_validation.validation_result::text = 'Unsure'
+             COUNT(CASE WHEN user_role.role = 'AI' AND label_validation.validation_result::text = 'Unsure'
                         THEN 1 END) AS ai_unsure
-      FROM label_validation
-      INNER JOIN label      ON label_validation.label_id    = label.label_id
-      INNER JOIN label_type ON label.label_type_id          = label_type.label_type_id
-      INNER JOIN user_stat  ON label_validation.user_id     = user_stat.user_id
+      FROM #${FilteredTables.votesCast(contributors = contributors)}
+      INNER JOIN label ON label_validation.label_id = label.label_id
       LEFT  JOIN sidewalk_login.user_role ON label_validation.user_id = user_role.user_id
-      LEFT  JOIN sidewalk_login.role      ON user_role.role_id        = role.role_id
-      WHERE #$where
-      GROUP BY (label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date, label_type.label_type
-      ORDER BY date ASC, label_type.label_type
-    """.as[(LocalDate, String, Int, Int, Int, Int, Int, Int)]
+      WHERE """
+      .concat(SqlFragments.allOf(conditions))
+      .concat(sql"""
+      GROUP BY (label_validation.end_timestamp AT TIME ZONE 'America/Los_Angeles')::date,
+               label_validation.label_type::text
+      ORDER BY date ASC, label_validation.label_type::text
+    """)
+      .as[DailyValidationStat]
   }
 }

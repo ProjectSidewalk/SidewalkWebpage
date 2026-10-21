@@ -5,9 +5,10 @@ version: 2
 #
 # Cadence is monthly so version-currency PRs arrive as one predictable batch for a two-person team, rather
 # than a weekly trickle. This throttles *version* noise only — Dependabot *security* updates (GHSA/CVE-driven)
-# are a separate channel and still fire immediately (enable them in Settings → Code security). Green patch &
-# minor bumps auto-merge via `.github/workflows/dependency-auto-merge.yml`; majors and deliberate freezes need
-# a human. See issue #4385 for the standing dependency/platform maintenance strategy.
+# are a separate channel and still fire immediately. Green patch & minor bumps auto-merge via
+# `.github/workflows/dependency-auto-merge.yml`; majors and deliberate freezes need a human. Each ecosystem gets
+# two groups so a red major can't hold the safe patch & minor bumps hostage in the same PR (#4395).
+# See issue #4385 for the standing dependency/platform maintenance strategy.
 updates:
   - package-ecosystem: npm
     directory: "/"
@@ -15,36 +16,104 @@ updates:
       interval: monthly
     open-pull-requests-limit: 5
     groups:
-      npm-dependencies:
+      # The imagery viewers (proj4 is only Infra3d's) and the minimap's map library (#5734): CI never drives a pano or
+      # the minimap, so a broken minor would merge green, and dependency-auto-merge.yml leaves both groups to a person.
+      # Dependabot takes the first group that matches.
+      npm-imagery:
+        patterns:
+          - "mapillary-js"
+          - "pannellum"
+          - "@inovitas/infra3dapi"
+          - "@photo-sphere-viewer/*"
+          - "three"
+          - "maplibre-gl"
+          - "pmtiles"
+          - "proj4"
+      # A group covers version updates only unless it says so; without this one, the same packages' security updates
+      # would arrive ungrouped and auto-merge.
+      npm-imagery-security:
+        applies-to: security-updates
+        patterns:
+          - "mapillary-js"
+          - "pannellum"
+          - "@inovitas/infra3dapi"
+          - "@photo-sphere-viewer/*"
+          - "three"
+          - "maplibre-gl"
+          - "pmtiles"
+          - "proj4"
+      npm-patch-minor:
         patterns: ["*"]
+        update-types: ["patch", "minor"]
+      npm-major:
+        patterns: ["*"]
+        update-types: ["major"]
     ignore:
-      # Frontend lint/test toolchain is owned by #2487 (sequenced with the ES5→ES6 migration) and not yet wired
-      # into CI, so major bumps here (eslint 7→10 flat-config, stylelint 13→17, jest 29→30, htmlhint 0.14→1.9)
-      # would break `make lint` the moment #2487 revives it. Un-ignore these as part of that work.
-      # (@playwright/test is deliberately NOT ignored: it's CI-wired from day one — the e2e-smoke job — and CI
-      # reinstalls matching browsers every run, so grouped monthly bumps + green auto-merge cover it.)
+      # Everything that supplies `error`-severity rules to a blocking `frontend` step, plus the jsdom suite: a
+      # *major* here turns the build red rather than merely nagging, so majors stay a human decision while minors
+      # and patches auto-merge. That includes the rule *providers*, not just the runners — @stylistic/eslint-plugin
+      # alone contributes ~50 of the ESLint gate's rules via configs.customize(). `@eslint/js` is version-locked to
+      # eslint's major and has to move in the same PR it does: bumped alone it yields an unresolvable tree (#5106
+      # took it to 10 against eslint ^9; npm install died with ERESOLVE and nothing installed at all, surfacing
+      # downstream as `jest: not found`). `@eslint/json` is *not* so locked — its 2.x supports eslint 9 and 10 —
+      # and is here only because it gates 63 locale files.
       - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@eslint/js"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@eslint/json"
+        update-types: ["version-update:semver-major"]
       - dependency-name: "htmlhint"
-      - dependency-name: "jest"
-      - dependency-name: "jest-environment-jsdom"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "vitest"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@vitest/coverage-v8"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "jsdom"
+        update-types: ["version-update:semver-major"]
       - dependency-name: "stylelint"
+        update-types: ["version-update:semver-major"]
       - dependency-name: "stylelint-config-standard"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@stylistic/eslint-plugin"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "eslint-plugin-jsdoc"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@stylistic/stylelint-plugin"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "stylelint-plugin-use-baseline"
+        update-types: ["version-update:semver-major"]
+      # A TypeScript major changes what `make lint-js-types` reports.
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+      # Held below 3.25 on purpose; docs/upgrading-libraries.md says why. Patches within 3.24 still come through.
+      - dependency-name: "mapbox-gl"
+        update-types: ["version-update:semver-minor", "version-update:semver-major"]
 
   - package-ecosystem: github-actions
     directory: "/"
     schedule:
       interval: monthly
     groups:
-      github-actions:
+      github-actions-patch-minor:
         patterns: ["*"]
+        update-types: ["patch", "minor"]
+      github-actions-major:
+        patterns: ["*"]
+        update-types: ["major"]
 
   - package-ecosystem: docker
-    directory: "/"
+    # docker/shellcheck/ holds only the ShellCheck image pin that `make shellcheck` and CI run (#5589).
+    directories: ["/", "/docker/shellcheck"]
     schedule:
       interval: monthly
     groups:
-      docker:
+      docker-patch-minor:
         patterns: ["*"]
+        update-types: ["patch", "minor"]
+      docker-major:
+        patterns: ["*"]
+        update-types: ["major"]
     ignore:
       # Stay on JDK 17 (an LTS). Dependabot keeps re-proposing odd, non-LTS temurin majors (19, 21-preview…);
       # 19 was already rejected as EOL (#4247). The Java 17→21 LTS move is a deliberate, tracked migration
@@ -59,5 +128,13 @@ updates:
     schedule:
       interval: monthly
     groups:
-      pip-dependencies:
+      pip-patch-minor:
         patterns: ["*"]
+        update-types: ["patch", "minor"]
+      pip-major:
+        patterns: ["*"]
+        update-types: ["major"]
+    # requirements.txt is frozen for the app's Python 3.8 (docs/upgrading-libraries.md): every bump fails CI and no
+    # security fix can install there either. Retiring 3.8 (#4396) brings it back.
+    exclude-paths:
+      - "requirements.txt"

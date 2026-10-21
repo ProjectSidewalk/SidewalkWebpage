@@ -1,5 +1,5 @@
 /**
- * Tests for public/js/user-dashboard/DashboardBadges.js — the dashboard's four badge tracks, rendered from the
+ * Tests for frontend/js/user-dashboard/DashboardBadges.js — the dashboard's four badge tracks, rendered from the
  * server-stamped counts on `_badgeTracks.scala.html`'s skeleton.
  *
  * The track's numbers come from BadgeAchievements.getProgress, which Validate's mission-complete standing row reads
@@ -8,34 +8,25 @@
  * icons, and the units the "N more" line is written in are this file's own and are pinned alongside.
  */
 
-const fs = require('fs');
-const path = require('path');
+import { loadModules, mockModule } from './loader.js';
 
-const SRC = (relativePath) => fs.readFileSync(path.resolve(__dirname, '..', '..', relativePath), 'utf8');
+const i18next = { t: (key) => key };
+mockModule('i18next', () => ({ default: i18next }));
 
-/**
- * Load a bare `class` declaration out of a production file, as the Grunt bundle puts it in page scope.
- * @param {string} relativePath - Path to the file relative to the repo root.
- * @param {string} className - Name of the class the file declares.
- * @returns {Function} The class.
- */
-function loadClass(relativePath, className) {
-    return (0, eval)('(() => {\n' + SRC(relativePath) + '\nreturn ' + className + ';\n})()');
-}
-
-const DashboardBadges = loadClass('public/js/user-dashboard/DashboardBadges.js', 'DashboardBadges');
-const BadgeAchievements = loadClass('public/js/common/BadgeAchievements.js', 'BadgeAchievements');
+// One load, so the BadgeAchievements the tests compare against is the one DashboardBadges renders from.
+const { DashboardBadges, BadgeAchievements } = await loadModules('frontend/js/user-dashboard/DashboardBadges.js',
+  'frontend/js/common/BadgeAchievements.js');
 
 const TRACKS = ['labels', 'distance', 'missions', 'validations'];
 
 describe('DashboardBadges', () => {
-    /**
+  /**
      * Renders the four tracks for the given values, on the markup the Twirl partial emits.
      * @param {Object} values - Value per badge type, e.g. {labels: 300}. Missing tracks render at 0.
      * @param {boolean} [isMetric] - Whether the viewer's units are metric.
      */
-    function render(values, isMetric = false) {
-        document.body.innerHTML = `
+  function render(values, isMetric = false) {
+    document.body.innerHTML = `
             <div class="ud-badge-tracks" id="ud-badges" data-metric="${isMetric}">
               ${TRACKS.map((type) => `
                 <div class="ud-badge-track" data-badge-type="${type}" data-value="${values[type] ?? 0}">
@@ -50,96 +41,91 @@ describe('DashboardBadges', () => {
                   <span class="ud-badge-track-next" data-next></span>
                 </div>`).join('')}
             </div>`;
-        new DashboardBadges(document.getElementById('ud-badges')).render();
+    new DashboardBadges(document.getElementById('ud-badges')).render();
+  }
+
+  /** @returns {HTMLElement} The rendered track for a badge type. */
+  const track = (type) => document.querySelector(`[data-badge-type="${type}"]`);
+
+  beforeEach(() => {
+    Object.assign(i18next, {t: (key, opts) => (opts ? `${key}|${JSON.stringify(opts)}` : key)});
+  });
+
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  test('every track fills to the same fraction the shared badge math reports', () => {
+    const values = {labels: 300, distance: 3, missions: 40, validations: 175};
+
+    render(values);
+
+    for (const type of TRACKS) {
+      const {fraction} = BadgeAchievements.getProgress(type, values[type]);
+      expect(track(type).querySelector('[data-fill]').style.width)
+        .toBe(`${(fraction * 100).toFixed(0)}%`);
     }
+  });
 
-    /** @returns {HTMLElement} The rendered track for a badge type. */
-    const track = (type) => document.querySelector(`[data-badge-type="${type}"]`);
+  test('the fraction spans the current tier, so a bar fills once per badge', () => {
+    render({validations: 175}); // Halfway from Validator I (100) to Validator II (250).
 
-    beforeEach(() => {
-        global.BadgeAchievements = BadgeAchievements;
-        global.i18next = {t: (key, opts) => (opts ? `${key}|${JSON.stringify(opts)}` : key)};
-        global.util = {math: {milesToKms: (mi) => mi * 1.609344}};
-    });
+    expect(track('validations').querySelector('[data-fill]').style.width).toBe('50%');
+  });
 
-    afterEach(() => {
-        document.body.innerHTML = '';
-        delete global.BadgeAchievements;
-        delete global.i18next;
-        delete global.util;
-    });
+  test('the nudge counts down to the next tier, and names it', () => {
+    render({labels: 300}); // Sidewalk Scout (200) earned; Access Ace at 500.
 
-    test('every track fills to the same fraction the shared badge math reports', () => {
-        const values = {labels: 300, distance: 3, missions: 40, validations: 175};
+    const next = track('labels').querySelector('[data-next]');
+    expect(next.textContent).toContain('"count":200');
+    expect(next.querySelector('strong').textContent).toBe('labels III: Access Ace');
+  });
 
-        render(values);
+  test('someone with nothing yet is not started, and counts toward their first badge', () => {
+    render({missions: 0});
 
-        for (const type of TRACKS) {
-            const {fraction} = BadgeAchievements.getProgress(type, values[type]);
-            expect(track(type).querySelector('[data-fill]').style.width)
-                .toBe(`${(fraction * 100).toFixed(0)}%`);
-        }
-    });
+    expect(track('missions').querySelector('[data-tier]').textContent).toBe('dashboard:badges.not-started');
+    expect(track('missions').querySelector('[data-fill]').style.width).toBe('0%');
+    expect(track('missions').querySelector('[data-next]').textContent).toContain('"count":5');
+  });
 
-    test('the fraction spans the current tier, so a bar fills once per badge', () => {
-        render({validations: 175}); // Halfway from Validator I (100) to Validator II (250).
+  test('the top tier fills the bar and stops counting down', () => {
+    render({validations: 9999});
 
-        expect(track('validations').querySelector('[data-fill]').style.width).toBe('50%');
-    });
+    expect(track('validations').querySelector('[data-tier]').textContent)
+      .toBe('V: Validation Virtuoso');
+    expect(track('validations').querySelector('[data-fill]').style.width).toBe('100%');
+    expect(track('validations').querySelector('[data-next]').textContent).toBe('dashboard:badges.maxed-out');
+  });
 
-    test('the nudge counts down to the next tier, and names it', () => {
-        render({labels: 300}); // Sidewalk Scout (200) earned; Access Ace at 500.
+  test('the tier pill names the level earned and takes its ramp color', () => {
+    render({labels: 300});
 
-        const next = track('labels').querySelector('[data-next]');
-        expect(next.textContent).toContain('"count":200');
-        expect(next.querySelector('strong').textContent).toBe('labels III: Access Ace');
-    });
+    const pill = track('labels').querySelector('[data-tier]');
+    expect(pill.textContent).toBe('II: Sidewalk Scout');
+    expect(pill.className).toBe('ud-badge-track-current ud-tier-2');
+  });
 
-    test('someone with nothing yet is not started, and counts toward their first badge', () => {
-        render({missions: 0});
+  test('badge icons above the earned level are dimmed, and the earned ones are not', () => {
+    render({labels: 300});
 
-        expect(track('missions').querySelector('[data-tier]').textContent).toBe('dashboard:badges.not-started');
-        expect(track('missions').querySelector('[data-fill]').style.width).toBe('0%');
-        expect(track('missions').querySelector('[data-next]').textContent).toContain('"count":5');
-    });
+    const locked = Array.from(track('labels').querySelectorAll('.ud-badge'))
+      .map((img) => img.classList.contains('ud-badge-locked'));
+    expect(locked).toEqual([false, false, true, true, true]);
+  });
 
-    test('the top tier fills the bar and stops counting down', () => {
-        render({validations: 9999});
+  test('distance is measured in canonical miles but written in the viewer’s units', () => {
+    render({distance: 3}, true); // District Rambler at 5 miles: 2 miles short, i.e. ~3.2 km.
 
-        expect(track('validations').querySelector('[data-tier]').textContent)
-            .toBe('V: Validation Virtuoso');
-        expect(track('validations').querySelector('[data-fill]').style.width).toBe('100%');
-        expect(track('validations').querySelector('[data-next]').textContent).toBe('dashboard:badges.maxed-out');
-    });
+    const next = track('distance').querySelector('[data-next]');
+    expect(next.textContent).toContain('remaining-distance');
+    expect(next.textContent).toContain('"dist":"3.2"');
+    // The tier itself is still judged against the mile thresholds, not the converted number.
+    expect(track('distance').querySelector('[data-tier]').textContent).toBe('II: Neighborhood Nomad');
+  });
 
-    test('the tier pill names the level earned and takes its ramp color', () => {
-        render({labels: 300});
-
-        const pill = track('labels').querySelector('[data-tier]');
-        expect(pill.textContent).toBe('II: Sidewalk Scout');
-        expect(pill.className).toBe('ud-badge-track-current ud-tier-2');
-    });
-
-    test('badge icons above the earned level are dimmed, and the earned ones are not', () => {
-        render({labels: 300});
-
-        const locked = Array.from(track('labels').querySelectorAll('.ud-badge'))
-            .map((img) => img.classList.contains('ud-badge-locked'));
-        expect(locked).toEqual([false, false, true, true, true]);
-    });
-
-    test('distance is measured in canonical miles but written in the viewer’s units', () => {
-        render({distance: 3}, true); // District Rambler at 5 miles: 2 miles short, i.e. ~3.2 km.
-
-        const next = track('distance').querySelector('[data-next]');
-        expect(next.textContent).toContain('remaining-distance');
-        expect(next.textContent).toContain('"dist":"3.2"');
-        // The tier itself is still judged against the mile thresholds, not the converted number.
-        expect(track('distance').querySelector('[data-tier]').textContent).toBe('II: Neighborhood Nomad');
-    });
-
-    test('a track for a type with no thresholds is left alone rather than throwing', () => {
-        document.body.innerHTML = `
+  test('a track for a type with no thresholds is left alone rather than throwing', () => {
+    document.body.innerHTML = `
             <div class="ud-badge-tracks" id="ud-badges" data-metric="false">
               <div class="ud-badge-track" data-badge-type="nonsense" data-value="10">
                 <div class="ud-progress"><div class="ud-progress-fill" data-fill></div></div>
@@ -147,7 +133,7 @@ describe('DashboardBadges', () => {
               </div>
             </div>`;
 
-        expect(() => new DashboardBadges(document.getElementById('ud-badges')).render()).not.toThrow();
-        expect(document.querySelector('[data-fill]').style.width).toBe('');
-    });
+    expect(() => new DashboardBadges(document.getElementById('ud-badges')).render()).not.toThrow();
+    expect(document.querySelector('[data-fill]').style.width).toBe('');
+  });
 });

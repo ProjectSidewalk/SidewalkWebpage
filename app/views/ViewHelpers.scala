@@ -3,6 +3,13 @@ package views
 import play.api.libs.json.{Json, Writes}
 import play.twirl.api.Html
 
+/**
+ * A call-to-action button on the shared error page: where an error leaves the user is often more useful than an
+ * apology, and only the raising controller knows where that is (a dead /r/ link belongs at the route list, #5164).
+ * `label` arrives already localized.
+ */
+case class ErrorPageAction(label: String, href: String)
+
 /** Helpers shared across Twirl templates. */
 object ViewHelpers {
 
@@ -20,6 +27,6 @@ object ViewHelpers {
    * @param value Value to serialize; any type with a `Writes` (a `JsValue` passes through unchanged).
    * @return      The JSON, safe to drop into a `<script>` block.
    */
-  def jsonForScript[A](value: A)(implicit writes: Writes[A]): Html =
+  def jsonForScript[A](value: A)(using writes: Writes[A]): Html =
     Html(Json.stringify(Json.toJson(value)).replace("<", "\\u003c"))
 }

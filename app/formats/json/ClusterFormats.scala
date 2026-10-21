@@ -2,10 +2,13 @@ package formats.json
 
 import models.cluster.LabelToCluster
 import models.utils.ClusteringThreshold
-import play.api.libs.functional.syntax._
-import play.api.libs.json.{JsPath, Reads, Writes}
+import play.api.libs.functional.syntax.*
+import play.api.libs.json.*
 
 object ClusterFormats {
+  private given jsonConfig: JsonConfiguration =
+    JsonConfiguration(JsonNaming.SnakeCase, optionHandlers = OptionHandlers.WritesNull)
+
   case class ClusteredLabelSubmission(labelId: Int, labelType: String, clusterNum: Int)
   case class ClusterSubmission(labelType: String, clusterNum: Int, lat: Double, lng: Double, severity: Option[Int])
   case class ClusteringSubmission(
@@ -14,34 +17,21 @@ object ClusterFormats {
       clusters: Seq[ClusterSubmission]
   )
 
-  implicit val clusteredLabelSubmissionReads: Reads[ClusteredLabelSubmission] = (
+  given clusteredLabelSubmissionReads: Reads[ClusteredLabelSubmission] = (
     (JsPath \ "label_id").read[Int] and
       (JsPath \ "label_type").read[String] and
       (JsPath \ "cluster").read[Int]
-  )(ClusteredLabelSubmission.apply _)
+  )(ClusteredLabelSubmission.apply)
 
-  implicit val clusterSubmissionReads: Reads[ClusterSubmission] = (
+  given clusterSubmissionReads: Reads[ClusterSubmission] = (
     (JsPath \ "label_type").read[String] and
       (JsPath \ "cluster").read[Int] and
       (JsPath \ "lat").read[Double] and
       (JsPath \ "lng").read[Double] and
       (JsPath \ "severity").readNullable[Int]
-  )(ClusterSubmission.apply _)
+  )(ClusterSubmission.apply)
 
-  implicit val clusteringSubmissionReads: Reads[ClusteringSubmission] = (
-    (JsPath \ "thresholds").read[Seq[ClusteringThreshold]] and
-      (JsPath \ "labels").read[Seq[ClusteredLabelSubmission]] and
-      (JsPath \ "clusters").read[Seq[ClusterSubmission]]
-  )(ClusteringSubmission.apply _)
+  given clusteringSubmissionReads: Reads[ClusteringSubmission] = Json.reads[ClusteringSubmission]
 
-  implicit val labelToClusterWrites: Writes[LabelToCluster] = (
-    (JsPath \ "region_id").write[Int] and
-      (JsPath \ "user_id").write[String] and
-      (JsPath \ "pano_id").write[String] and
-      (JsPath \ "label_id").write[Int] and
-      (JsPath \ "label_type").write[String] and
-      (JsPath \ "lat").write[Double] and
-      (JsPath \ "lng").write[Double] and
-      (JsPath \ "severity").write[Option[Int]]
-  )(unlift(LabelToCluster.unapply))
+  given labelToClusterWrites: Writes[LabelToCluster] = Json.writes[LabelToCluster]
 }

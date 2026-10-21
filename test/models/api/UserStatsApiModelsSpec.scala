@@ -1,10 +1,10 @@
 package models.api
 
-import models.label.LabelTypeEnum
+import models.label.LabelType
 import models.user.LabelTypeStat
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
-import play.api.libs.json.JsObject
+import play.api.libs.json.{JsNull, JsObject}
 
 /**
  * Pure (no DB, no app boot) serialization contract tests for the API DTOs moved out of `*Table.scala` files in #3885.
@@ -16,15 +16,15 @@ class UserStatsApiModelsSpec extends AnyFunSuite with Matchers {
 
   /** Every label type mapped to a distinct stat block so column ordering regressions are visible. */
   private def sampleStatsByLabelType: Map[String, LabelTypeStat] = Map(
-    LabelTypeEnum.CurbRamp.name       -> LabelTypeStat(10, 1, 2, 7),
-    LabelTypeEnum.NoCurbRamp.name     -> LabelTypeStat(11, 1, 2, 8),
-    LabelTypeEnum.Obstacle.name       -> LabelTypeStat(12, 1, 2, 9),
-    LabelTypeEnum.SurfaceProblem.name -> LabelTypeStat(13, 1, 2, 10),
-    LabelTypeEnum.NoSidewalk.name     -> LabelTypeStat(14, 1, 2, 11),
-    LabelTypeEnum.Crosswalk.name      -> LabelTypeStat(15, 1, 2, 12),
-    LabelTypeEnum.Signal.name         -> LabelTypeStat(16, 1, 2, 13),
-    LabelTypeEnum.Occlusion.name      -> LabelTypeStat(17, 1, 2, 14),
-    LabelTypeEnum.Other.name          -> LabelTypeStat(18, 1, 2, 15)
+    LabelType.CurbRamp.name       -> LabelTypeStat(10, 1, 2, 7),
+    LabelType.NoCurbRamp.name     -> LabelTypeStat(11, 1, 2, 8),
+    LabelType.Obstacle.name       -> LabelTypeStat(12, 1, 2, 9),
+    LabelType.SurfaceProblem.name -> LabelTypeStat(13, 1, 2, 10),
+    LabelType.NoSidewalk.name     -> LabelTypeStat(14, 1, 2, 11),
+    LabelType.Crosswalk.name      -> LabelTypeStat(15, 1, 2, 12),
+    LabelType.Signal.name         -> LabelTypeStat(16, 1, 2, 13),
+    LabelType.Occlusion.name      -> LabelTypeStat(17, 1, 2, 14),
+    LabelType.Other.name          -> LabelTypeStat(18, 1, 2, 15)
   )
 
   private def sampleUserStat: UserStatForApi = UserStatForApi(
@@ -44,47 +44,47 @@ class UserStatsApiModelsSpec extends AnyFunSuite with Matchers {
     json.keys.filter(k => k != k.toLowerCase) shouldBe empty
 
     val byType = (json \ "stats_by_label_type").as[JsObject]
-    byType.keys should contain allOf ("curb_ramp", "no_curb_ramp", "marked_crosswalk", "pedestrian_signal",
-      "cant_see_sidewalk")
-    (byType \ "curb_ramp" \ "validated_correct").as[Int] shouldBe 1
-    (byType \ "curb_ramp" \ "not_validated").as[Int] shouldBe 7
+    byType.keys should contain allOf ("CurbRamp", "NoCurbRamp", "Crosswalk", "Signal", "Occlusion")
+    (byType \ "CurbRamp" \ "validated_correct").as[Int] shouldBe 1
+    (byType \ "CurbRamp" \ "not_validated").as[Int] shouldBe 7
   }
 
-  test("UserStatForApi CSV row column count matches the header, with NA for None") {
-    val headerCols = UserStatForApi.csvHeader.trim.split(",", -1).length
-    val rowCols    = sampleUserStat.toCsvRow.split(",", -1).length
-    rowCols shouldBe headerCols
+  test("UserStatForApi CSV columns are the JSON field paths, and every row fills all of them") {
+    val header     = UserStatForApi.csvHeader.split(",", -1)
+    val headerCols = header.length
+    val cols       = sampleUserStat.toCsvRow.split(",", -1)
+    cols.length shouldBe headerCols
 
-    val cols = sampleUserStat.toCsvRow.split(",", -1)
+    header.head shouldBe "user_id"
+    header should contain("stats_by_label_type.CurbRamp.validated_correct")
     cols(0) shouldBe "user-1"
-    cols(5) shouldBe "NA" // highQualityManual = None
+    cols(5) shouldBe "" // highQualityManual = None
   }
 
   private def sampleCVMetadata: LabelCVMetadata = LabelCVMetadata(
-    labelId = 1, panoId = "pano-1", labelTypeId = 2, agreeCount = 3, disagreeCount = 1, unsureCount = 0,
+    labelId = 1, panoId = "pano-1", labelType = "NoCurbRamp", agreeCount = 3, disagreeCount = 1, unsureCount = 0,
     panoWidth = None, panoHeight = Some(8192), panoX = 100, panoY = 200, canvasWidth = 720, canvasHeight = 480,
     canvasX = 50, canvasY = 60, zoom = 1.0, heading = 90.0, pitch = -10.0, cameraHeading = 95.0, cameraPitch = 0.0,
     cameraRoll = None
   )
 
-  test("LabelCVMetadata JSON uses snake_case keys and omits None-valued optional fields") {
+  test("LabelCVMetadata JSON uses snake_case keys, with a null for each unset optional field") {
     val json = sampleCVMetadata.toJson
 
     (json \ "label_id").as[Int] shouldBe 1
     (json \ "pano_height").as[Int] shouldBe 8192
-    // writeNullable semantics: absent (not null) when None — matches the previous explicit Writes.
-    (json \ "pano_width").toOption shouldBe None
-    (json \ "camera_roll").toOption shouldBe None
+    (json \ "pano_width").get shouldBe JsNull
+    (json \ "camera_roll").get shouldBe JsNull
     json.as[JsObject].keys.filter(k => k != k.toLowerCase) shouldBe empty
   }
 
-  test("LabelCVMetadata CSV row column count matches the header, with NA for None") {
-    val headerCols = LabelCVMetadata.csvHeader.trim.split(",", -1).length
-    val rowCols    = sampleCVMetadata.toCsvRow.split(",", -1).length
-    rowCols shouldBe headerCols
+  test("LabelCVMetadata CSV columns match the header, empty for an unset optional field") {
+    val header = LabelCVMetadata.csvHeader.split(",", -1)
+    val cols   = sampleCVMetadata.toCsvRow.split(",", -1)
+    cols.length shouldBe header.length
 
-    val cols = sampleCVMetadata.toCsvRow.split(",", -1)
-    cols(6) shouldBe "NA"   // panoWidth = None
-    cols.last shouldBe "NA" // cameraRoll = None
+    header.head shouldBe "label_id"
+    cols(6) shouldBe ""   // panoWidth = None
+    cols.last shouldBe "" // cameraRoll = None
   }
 }

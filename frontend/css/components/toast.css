@@ -1,0 +1,129 @@
+/* Generic toast notification, positioned over a host element (typically the panorama). See common/Toast.js. */
+
+.ps-toast {
+  /* Fixed on <body> and floated over a reference element (the pano); left/top are set in JS from the reference rect. */
+  position: fixed;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  gap: calc(20px * var(--ui-scale, 1));
+  max-width: calc(460px * var(--ui-scale, 1));
+  padding: calc(12px * var(--ui-scale, 1)) calc(20px * var(--ui-scale, 1));
+  background: var(--color-neutral-white);
+  border-radius: calc(20px * var(--ui-scale, 1));
+  border: calc(1px * var(--ui-scale, 1)) solid var(--color-asphalt-200);
+
+  /* Resting (pre-entry/exit) state: hidden and nudged up. The visible state below fades it in.
+
+     A transition is read from the state being moved *to*, so this one times the exit and the one on the visible
+     state times the entry. They differ on purpose: the toast should arrive promptly, since it answers something the
+     user just did, but leave gently enough that the eye reads it as fading rather than being cut. */
+  opacity: 0;
+  transform: translateX(-50%) translateY(calc(-8px * var(--ui-scale, 1)));
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+/* Shown state: slightly transparent at rest so the panorama stays partly visible behind it. */
+.ps-toast--visible {
+  opacity: 0.85;
+  transform: translateX(-50%) translateY(0);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+/* Hover or focus brings it fully opaque; whether either also pauses the auto-dismiss timer is Toast.js's call. */
+.ps-toast--visible.ps-toast--hover {
+  opacity: 1;
+}
+
+/* Dark variant, for toasts that float over street imagery (Validate). A white card there reads as a piece of the
+   tool's chrome that has appeared over the photo; a dark one reads as a note laid on top of it, and stays legible
+   against a bright sky or a snow-covered sidewalk without needing a heavier border. */
+.ps-toast--dark {
+  background: var(--color-asphalt-500);
+  border-color: var(--color-asphalt-500);
+  color: var(--color-neutral-white);
+}
+
+.ps-toast--dark .ps-toast__title {
+  color: var(--color-neutral-white);
+}
+
+/* Higher resting opacity than the light toast: the same 0.85 over dark imagery muddies the text rather than
+   politely getting out of the way. */
+.ps-toast--dark.ps-toast--visible {
+  opacity: 0.94;
+}
+
+/* Compact variant, for a one-line aside rather than an announcement. The default toast is sized to carry a bold
+   title, a message, and an action button; at that size a single sentence laid over a 720x480 pano covers a good
+   part of the thing it is telling you to look at.
+
+   One line wherever it fits: max-content sizes the box to the unwrapped sentence no matter how little room the
+   shrink-to-fit would otherwise give it, so it stays a slim bar over the imagery instead of growing into a block.
+   The viewport cap is what keeps that from running off the edge — a translation long enough to hit it wraps to a
+   second line, which is worth more than a first line whose end is cut off. Callers still owe it a short sentence. */
+.ps-toast--compact {
+  gap: calc(12px * var(--ui-scale, 1));
+  width: max-content;
+  max-width: calc(100vw - 24px * var(--ui-scale, 1));
+  padding: calc(6px * var(--ui-scale, 1)) calc(14px * var(--ui-scale, 1));
+  border-radius: calc(14px * var(--ui-scale, 1));
+}
+
+.ps-toast--compact .ps-toast__message {
+  font: var(--text-caption-regular);
+}
+
+.ps-toast__icon {
+  flex: 0 0 auto;
+  width: calc(50px * var(--ui-scale, 1));
+  height: auto;
+}
+
+.ps-toast__text {
+  display: flex;
+  flex-direction: column;
+  gap: calc(4px * var(--ui-scale, 1));
+}
+
+.ps-toast__title {
+  font: var(--text-subtitle-bold);
+  color: var(--color-neutral-black);
+}
+
+.ps-toast__message {
+  font: var(--text-caption-regular);
+}
+
+.ps-toast__button {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+/*
+ * Close (X): a white circle over the top-right corner. Always visible — it is the toast's only dismissal
+ * affordance, so hiding it until hover leaves an action button as the sole thing to click, and strands touch users.
+ */
+.ps-toast__close {
+  position: absolute;
+  top: calc(-9px * var(--ui-scale, 1));
+  right: calc(-9px * var(--ui-scale, 1));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(24px * var(--ui-scale, 1));
+  height: calc(24px * var(--ui-scale, 1));
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--color-neutral-white);
+  box-shadow: 0 calc(1px * var(--ui-scale, 1)) calc(3px * var(--ui-scale, 1)) rgb(0 0 0 / 25%);
+  cursor: pointer;
+}
+
+.ps-toast__close-icon {
+  display: block;
+  width: calc(14px * var(--ui-scale, 1));
+  height: calc(14px * var(--ui-scale, 1));
+}
+

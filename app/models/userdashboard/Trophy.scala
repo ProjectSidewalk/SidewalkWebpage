@@ -4,7 +4,7 @@ package models.userdashboard
  * A trophy shown in the dashboard's trophy case. Computed on read (no stored table) from label/region history.
  *
  * `variant` selects the flavor and styling: "podium" (a weekly top-3 leaderboard placement, colored by `rank` 1-3),
- * "region" (top labeler in a neighborhood, Strava-KOM style), "pioneer" (first-ever labeler in a region or city), or
+ * "region" (top labeler in a region, Strava-KOM style), "pioneer" (first-ever labeler in a region or city), or
  * "freeExplore" (tried, or labeled during, a free-exploration session). `cssClass`/`tagLabel` derive the visual
  * treatment the trophy-case template applies.
  *
@@ -13,7 +13,7 @@ package models.userdashboard
  * @param sub     One-line context (e.g. "First-ever labeler in Seattle", "Week of Jun 16, 2026").
  * @param variant "podium" | "region" | "pioneer" | "freeExplore".
  * @param rank    1-3 for podium trophies (drives the medal color); 0 otherwise.
- * @param link    Optional href the trophy links to (e.g. Explore that neighborhood for region/pioneer trophies).
+ * @param link    Optional href the trophy links to (e.g. Explore that region for region/pioneer trophies).
  */
 case class Trophy(
     medal: String,

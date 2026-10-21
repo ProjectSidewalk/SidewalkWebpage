@@ -6,7 +6,7 @@ how to add a whole new language.
 
 ## Supported languages
 
-`en` (default), `es`, `nl`, `de`, `pt-BR`, `zh-TW`, plus the regional English variants `en-US` and `en-NZ`. The
+`en` (default), `es`, `nl`, `de`, `pt-BR`, `zh-TW`, `fr`, plus the regional English variants `en-US` and `en-NZ`. The
 authoritative list is **`play.i18n.langs`** in [`conf/application.conf`](../conf/application.conf) — that's what
 determines the languages the app offers.
 
@@ -38,6 +38,14 @@ Project Sidewalk has two separate translation systems; which one you use depends
 > automated parity check for the backend message files the way there is for the frontend JSON (see below), so this is on
 > you to keep complete.
 
+> **Place names (`city.name.*`, `state.name.*`, `country.name.*`) get a line in every `messages.<lang>` file, even
+> where the name reads as it does in English.** The English proper noun lives in the base `messages`; `zh-TW` carries
+> a transliteration and the Latin-script files the exonym where one exists (`Nueva York`, `États-Unis`). Where a
+> language spells the name as English does, the line still goes in with that spelling: nothing else records that
+> someone looked, so a missing line would be indistinguishable from "same as English" and `make onboard-city` could
+> never say what is still owed. Cities onboarded before this rule are not backfilled; a name added from here on
+> follows it.
+
 > **Escape a literal apostrophe as `''` (two single quotes).** Play renders every message through
 > `java.text.MessageFormat`, which treats a single `'` as a quoting character and silently drops it — **even in messages
 > with no `{0}` placeholders.** So `We're` renders as `Were`, and quotation marks like `'Unsure'` render as `Unsure`
@@ -56,15 +64,76 @@ Project Sidewalk has two separate translation systems; which one you use depends
 > Most user-facing text in the apps is in the **frontend** system. Reach for the backend message files only for
 > server-rendered Twirl pages.
 
+### Interpolated values and HTML
+
+`AppManager._setupI18next` sets **`interpolation.escapeValue: false`**, so `i18next.t('key', { name })` interpolates
+`name` exactly as given. In every sink that is not HTML — a text node, an `aria-label`, a `title`, a `confirm()`, a
+share sheet, a `document.title` — escaping is something the reader sees: it is what turned a neighborhood called
+*Al 'Ummah* into `Al &#39;Ummah` and a formatted date into `9&#x2F;16&#x2F;2026` (#5389).
+
+The price is that a value bound for `innerHTML` is not escaped for free. **When a translated string with interpolated
+values lands in markup, escape those values exactly once**, either way round:
+
+```js
+// The string builds markup, so i18next escapes what is put into it. The <a> in the translation still renders:
+// escapeValue only ever touches values.
+subtitle.innerHTML = i18next.t('common:subtitle', { href: DOCS_URL, interpolation: { escapeValue: true } });
+
+// Or escape at the sink, when the same string also feeds a text sink (here an accessible name).
+const label = i18next.t('ns:region-row', { name: region.name });
+row.setAttribute('aria-label', label);
+row.querySelector('.region-name').innerHTML = `<b>${util.escapeHTML(label)}</b>`;
+```
+
+Markup sinks in this codebase are `innerHTML` / `outerHTML`, `insertAdjacentHTML`, a MapLibre popup's `setHTML`, and
+the **`data-ps-tooltip-html` attribute**, which `psTooltip.js` renders as HTML (cleaned of script first, but a missed
+escape still shows as markup). Helpers count too: `AlertController.showAlert`, `PopUpMessage.notify`, and the
+onboarding message boxes all render HTML. Text sinks are everything else — a text node, `append()`, `alert` /
+`confirm`, a share sheet, and any other attribute, `title` and the plain `data-ps-tooltip` included.
+
+The **`ps/i18n-escape-in-markup`** ESLint rule (`tools/lint/eslint-rules/i18n-escape-in-markup.js`) flags a `t()`
+call that interpolates values and reaches one of those sinks without stating `interpolation.escapeValue`, whether
+directly or through a template literal, a concatenation, a string method, a `map(…).join('')`, or a local variable.
+
+**It is a tripwire, not a proof.** It follows syntax only: a value returned from a function, stored on an object
+property, or handed to an HTML-rendering helper it doesn't know about is invisible to it, and so is a `t()` call
+behind an alias or a wrapper (don't wrap `i18next.t`, and write `el.innerHTML`, never `el['innerHTML']`). Those
+flows are on the author and the reviewer.
+
+So when a string you build ends up as HTML somewhere the rule can't follow, escape it there or say
+`escapeValue: true` here. Other values put into HTML are checked by `ps/escape-in-markup` (`docs/style-guide.md`).
+And if the rule fires on something that is really a text sink, the answer is `escapeValue: false` with a comment,
+never `true`: turning escaping on at a text sink is the bug #5389 fixed.
+
+Two things escaping never touches: the **translation string itself** (markup inside a locale value always renders),
+and a variable written **`{{- labelType}}`**, which i18next interpolates raw whatever the setting is.
+
+**Tooltip text is plain text,** so a translation shown in a plain tooltip carries no markup: `<b>` would print as-is.
+A tooltip that needs markup (an underlined shortcut letter, an image, a link) is set in code as a
+`data-ps-tooltip-html` card (see `psTooltip.js`).
+
+Write a soft hyphen as `\u00AD`, never `&shy;`, which prints literally in plain text. Read a label type's name in JS
+with `util.misc.labelTypeName(type)`.
+
+### Dates
+
+Dates are formatted by the browser's built-in `Intl`, e.g. `date.toLocaleDateString(i18next.language, util.SHORT_DATE)`,
+so every language gets its own date style with nothing to add per language. `utilities.js` has the few helpers
+`Intl` lacks: `util.monthYear` for capture dates, `util.timeAgo` for "3 days ago", and `util.parseDate` for reading a
+bare `2024-10` as local time (`new Date` reads it as UTC, which is still September west of London).
+
+Dates in server-rendered text, like the footer's release date, are formatted in Scala with
+`DateTimeFormatter.ofLocalizedDate(...).withLocale(messages.lang.toLocale)` so they show up already readable.
+
 ## Measurement units
 
 Units are **not** a property of the language: readers choose metric or imperial on the Settings page (#4404), so every
 language has to be able to render either.
 
-**One verdict, server-side.** `ControllerUtils.measurementSystem` returns `"metric"` or `"imperial"` — the reader's
-override cookie if set, else the language's default from the `measurement.system` message. That message is a sentinel
-the code compares against, so it holds the literal string `metric`, never a translation of the word. Never re-derive
-units from the language.
+**One verdict, server-side.** `ControllerUtils.measurementSystem` returns `MeasurementSystem.Metric` or `.Imperial` —
+the units the reader saved on the Settings page (shared by every city, #3720) if any, else the language's default from
+the `measurement.system` message. That message is a sentinel the code compares against, so it holds the literal string
+`metric`, never a translation of the word. Never re-derive units from the language.
 
 **The unit words live in `conf/messages` only**, as
 `unit.distance.{abbr,abbr.small,name,name.singular}.{metric,imperial}`. `ControllerUtils.distanceUnitWords` resolves
@@ -82,7 +151,7 @@ nested `$t(...)` references, and i18next's plural suffixes compose with them.
 
 **Rendering a distance is the `distance` formatter's job** (`AppManager._addDistanceFormatter`):
 `{{meters, distance(style: small)}}` converts, rounds, localizes the number, and appends the unit. Params are `style`
-(`small` → m/ft to the nearest 25; `large` → km/mi), `precision`, and `unit: false` for a bare number; separate several
+(`small` → m/ft to the nearest 25; `fine` → m/ft to the whole unit, for elevations; `large` → km/mi), `precision`, and `unit: false` for a bare number; separate several
 with `;`. `util.distanceToString(meters)` and `util.longDistanceToString(km, precision)` call it from outside a string.
 
 **Its input must be canonical** — meters for `small`, km for `large`. Values that arrive already converted
@@ -98,9 +167,9 @@ whose *language* is US English.
 
 1. **Add the key** to the appropriate backend message file or frontend namespace JSON, for the languages you can. For
    backend keys, the English goes in **`messages.en`** (never the base `messages` — see the callout above).
-2. **Add temporary machine translations** for Spanish, Dutch, German, and Mandarin (`zh-TW`, traditional) — Google
-   Translate is fine. A maintainer periodically sends the accumulated machine translations to our partners for proper
-   ones, so don't block on official translations.
+2. **Add temporary machine translations** for Spanish, Dutch, German, Portuguese, French, and Mandarin (`zh-TW`,
+   traditional) — Google Translate is fine. A maintainer periodically sends the accumulated machine translations to our
+   partners for proper ones, so don't block on official translations.
 3. **Default to the generic `en`** files, and add **regional English overrides only where the wording actually
    differs**:
    - **`en-US`** — American spellings and phrasing. **Not** the place for imperial units: those are a measurement-system
@@ -123,20 +192,11 @@ orphans remain.
 2. **Register the locale** by adding it to `play.i18n.langs` in [`conf/application.conf`](../conf/application.conf).
 3. **Add the translated files:** backend as `conf/messages/messages.<lang>`, frontend as
    `public/locales/<lang>/<namespace>.json` (mirror the namespaces in `public/locales/en/`).
-4. **Add the moment.js locale** (for localized dates). Skipping this fails silently — dates just render in English —
-   which is how `de` and `pt-BR` went years without one. Download the [locale file](https://github.com/moment/moment/tree/develop/locale)
-   matching our moment version into `public/vendor/moment/`, then add the lowercased language code to
-   `momentLocaleFile` in [`app/views/common/main.scala.html`](../app/views/common/main.scala.html); the filename and
-   the name the file registers with moment are both that same lowercased code. Only the active language's locale is
-   sent to the browser, so adding one costs nobody but its own speakers. Only `en` and `en-US` need no file, because
-   moment has US English built in — a new English variant still needs one, the way `en-NZ` does. (There's an open
-   ticket, [#1258](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/1258), about moving off moment.js — don't
-   take that on as part of adding a language.)
-5. **Translate both measurement systems.** The unit words live in `conf/messages/messages.<lang>` as
+4. **Translate both measurement systems.** The unit words live in `conf/messages/messages.<lang>` as
    `unit.distance.*.{metric,imperial}` (see "Measurement units" above), so a new language needs both sets — even one
    whose speakers would never pick imperial, since the choice is the reader's. Nothing unit-related goes in the
    locale JSON.
-6. **Test thoroughly.** Compare each main page against the English version (open them in adjacent tabs and flip
+5. **Test thoroughly.** Compare each main page against the English version (open them in adjacent tabs and flip
    between them) to catch layout breakage from differing text lengths. On Explore, place a label of each type and
    open the various sub-menus. Then open a PR and deploy to the test servers so the requesting partner can review the
    live result.
@@ -146,14 +206,17 @@ orphans remain.
 The frontend i18next JSON under `public/locales/` is linted in CI (blocking steps in the `frontend` job — see
 [`docs/testing-and-ci.md`](testing-and-ci.md)), in two layers:
 
-- **Per-file** — `eslint-plugin-i18n-json` (configured in [`eslint.config.js`](../eslint.config.js)) checks each file
-  for JSON validity, **duplicate keys** (a plain `JSON.parse` silently keeps the last of a duplicated key, so a dup
-  translation is otherwise invisible), and empty values. Run with `make eslint`.
-- **Cross-locale key parity** — `tools/check-locale-parity.mjs` (`make lint-locales`) checks that every locale carries
-  the same keys as the `en` reference. It's i18next-aware where the ESLint plugin isn't: it **normalizes plural
-  suffixes** (`_one`/`_other`/… legitimately differ per language's CLDR plural rules) and treats the regional
-  (`en-US`/`en-NZ`) and per-city (`*-zurich`/`*-india`) overlays as **override-only** — they may hold a subset of keys,
-  so it flags only keys that are *absent from the reference* (typos / stale keys), never missing ones.
+- **Per-file** — `@eslint/json` (configured in [`eslint.config.js`](../eslint.config.js)) parses each file as JSON
+  and checks it for **duplicate keys** (a plain `JSON.parse` silently keeps the last of a duplicated key, so a dup
+  translation that overwrites a real one is otherwise invisible — nothing caught this before #5132), empty key names,
+  and unsafe numbers. Run with `make eslint`.
+- **Cross-locale key parity and empty values** — `tools/lint/check-locale-parity.mjs` (`make lint-locales`) checks that
+  every locale carries the same keys as the `en` reference, and that no value is anything but a non-empty string
+  (i18next only falls back on an *absent* key, so an empty string renders as blank rather than falling back to `en`).
+  It's i18next-aware where a per-file JSON rule can't be: it **normalizes plural suffixes** (`_one`/`_other`/…
+  legitimately differ per language's CLDR plural rules) and treats the regional (`en-US`/`en-NZ`) and per-city
+  (`*-zurich`/`*-india`) overlays as **override-only** — they may hold a subset of keys, so it flags only keys that
+  are *absent from the reference* (typos / stale keys), never missing ones.
 
 So when you add or remove a translation key, add or remove it across **all** full locales (the parity check enforces
 this); the overlays need only the keys they actually change.

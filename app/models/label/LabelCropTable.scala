@@ -1,0 +1,153 @@
+package models.label
+
+import com.google.inject.ImplementedBy
+import models.utils.MyPostgresProfile
+import models.utils.MyPostgresProfile.api.{given, *}
+import models.utils.{NamedEnum, PgEnumCompanion}
+import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+import play.api.libs.json.{Json, Writes}
+
+import java.time.OffsetDateTime
+import javax.inject.{Inject, Singleton}
+import scala.concurrent.ExecutionContext
+
+/**
+ * A label the crop job may cut a crop for.
+ *
+ * @param panoWidth  The pano's width as `pano_data` records it — the frame `panoX` is expressed in — or None.
+ * @param panoHeight The pano's height as `pano_data` records it, or None.
+ */
+case class CropCandidate(
+    labelId: Int,
+    labelType: LabelType,
+    panoId: String,
+    panoX: Int,
+    panoY: Int,
+    panoWidth: Option[Int],
+    panoHeight: Option[Int]
+)
+
+/**
+ * A label whose crop is on disk with no `label_crop` row saying where the label is in it (#2660).
+ *
+ * @param timeCreated  When the label was placed; an Explore-frame crop is uploaded within the same session.
+ * @param canvasWidth  With `canvasHeight`, the frame `canvasX`/`canvasY` are expressed in (#5085); a snapshot of
+ *                     the canvas has the same aspect ratio.
+ * @param aiGenerated  Whether an AI placed it, in which case no browser ever snapshotted a canvas for it.
+ */
+case class ProvenanceCandidate(
+    labelId: Int,
+    labelType: LabelType,
+    timeCreated: OffsetDateTime,
+    panoId: String,
+    panoX: Int,
+    panoY: Int,
+    canvasX: Int,
+    canvasY: Int,
+    canvasWidth: Int,
+    canvasHeight: Int,
+    panoWidth: Option[Int],
+    panoHeight: Option[Int],
+    aiGenerated: Boolean
+)
+
+// NOTE need to update crop_source enum in postgres as well if changing this enum.
+enum CropSource(val name: String) extends NamedEnum {
+
+  /** The browser's snapshot of the Explore canvas at labeling time, where the label is at the canvas fraction. */
+  case ExploreFrame extends CropSource("explore_frame")
+
+  /** The window the crop job cuts around the label from the self-hosted pano (#4865). */
+  case PanoWindow extends CropSource("pano_window")
+}
+
+object CropSource extends PgEnumCompanion[CropSource]("crop_source")
+
+/**
+ * Where the label is in its crop, as fractions of the image (`0` to `1`), so it places the marker at any scale.
+ *
+ * @param width  The crop's stored width, when a `label_crop` row recorded it. A card cover-fits the crop into a box of
+ *               its own aspect ratio, and a snapshot of an immersive-mode frame (#5085) has the window's, so the card
+ *               needs the crop's shape to keep the marker on the labeled spot.
+ * @param height The crop's stored height, likewise.
+ */
+case class CropMarker(x: Double, y: Double, width: Option[Int] = None, height: Option[Int] = None)
+
+object CropMarker {
+  given writes: Writes[CropMarker] = Json.writes[CropMarker]
+}
+
+/**
+ * The provenance of one label's crop (#2660): which writer produced it and where the label is in it.
+ *
+ * @param source          Which kind of image the crop is.
+ * @param markerX         The label's x as a fraction of the stored width.
+ * @param markerY         The label's y as a fraction of the stored height.
+ * @param width           The stored file's width when the row was written.
+ * @param height          The stored file's height when the row was written.
+ * @param cropRuleVersion `CropSizingRule.Version` for a `PanoWindow` crop; `None` for an `ExploreFrame` one.
+ */
+case class LabelCrop(
+    labelId: Int,
+    source: CropSource,
+    markerX: Double,
+    markerY: Double,
+    width: Int,
+    height: Int,
+    cropRuleVersion: Option[String],
+    timeCreated: OffsetDateTime
+) {
+  def marker: CropMarker = CropMarker(markerX, markerY, Some(width), Some(height))
+}
+
+class LabelCropTableDef(tag: slick.lifted.Tag) extends Table[LabelCrop](tag, "label_crop") {
+  def labelId: Rep[Int]       = column[Int]("label_id", O.PrimaryKey)
+  def source: Rep[CropSource] = column[CropSource]("source")
+  def markerX: Rep[Double]    = column[Double]("marker_x") // CHECK (marker_x >= 0 AND marker_x <= 1) in the DB.
+  def markerY: Rep[Double]    = column[Double]("marker_y") // CHECK (marker_y >= 0 AND marker_y <= 1) in the DB.
+  def width: Rep[Int]         = column[Int]("width")       // CHECK (width > 0) in the DB.
+  def height: Rep[Int]        = column[Int]("height")      // CHECK (height > 0) in the DB.
+  // CHECK ((crop_rule_version IS NOT NULL) = (source = 'pano_window')) in the DB.
+  def cropRuleVersion: Rep[Option[String]] = column[Option[String]]("crop_rule_version")
+  // DEFAULT now() in the DB (O.Default holds a value, not an expression).
+  def timeCreated: Rep[OffsetDateTime] = column[OffsetDateTime]("time_created")
+
+  def * = (labelId, source, markerX, markerY, width, height, cropRuleVersion, timeCreated).mapTo[LabelCrop]
+
+  def label = foreignKey("label_crop_label_id_fkey", labelId, TableQuery[LabelTableDef])(_.labelId)
+}
+
+@ImplementedBy(classOf[LabelCropTable])
+trait LabelCropTableRepository {}
+
+@Singleton
+class LabelCropTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(using ec: ExecutionContext)
+    extends LabelCropTableRepository
+    with HasDatabaseConfigProvider[MyPostgresProfile] {
+
+  val labelCrops = TableQuery[LabelCropTableDef]
+
+  /** Rows per statement when a run writes many at once; each row is one upsert, so this bounds the transaction. */
+  val UpsertBatchSize: Int = 1000
+
+  def get(labelId: Int): DBIO[Option[LabelCrop]] = labelCrops.filter(_.labelId === labelId).result.headOption
+
+  /** The rows for the given labels, keyed by label id; a label with no row is absent. */
+  def getMany(labelIds: Seq[Int]): DBIO[Map[Int, LabelCrop]] =
+    if (labelIds.isEmpty) DBIO.successful(Map.empty)
+    else labelCrops.filter(_.labelId inSet labelIds).result.map(_.map(c => c.labelId -> c).toMap)
+
+  def upsert(crop: LabelCrop): DBIO[Int] = labelCrops.insertOrUpdate(crop)
+
+  /**
+   * Writes or replaces many rows, [[UpsertBatchSize]] to a transaction. An upsert per row rather than one bulk insert
+   * because a concurrent `POST /saveImage` can land a label's row between a run reading the table and writing to it,
+   * and a bulk insert would then fail the whole batch on that one key.
+   */
+  def upsertAll(crops: Seq[LabelCrop]): DBIO[Int] =
+    DBIO
+      .sequence(crops.grouped(UpsertBatchSize).toSeq.map { batch =>
+        DBIO.sequence(batch.map(upsert)).transactionally.map(_.sum)
+      })
+      .map(_.sum)
+}

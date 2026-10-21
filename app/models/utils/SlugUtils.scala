@@ -20,18 +20,44 @@ object SlugUtils {
    * Invariant: the output never contains consecutive dashes (separator runs collapse to one), which evolution
    * 344's backfill relies on — its dedupe suffix uses '--' so backfilled slugs can't collide with runtime ones.
    *
-   * @param name The raw name (any script, any punctuation).
-   * @return The slug, capped at MaxSlugLength; "route" if nothing usable remains (e.g. all punctuation).
+   * @param name     The raw name (any script, any punctuation).
+   * @param fallback What to return when nothing usable remains (e.g. all punctuation).
+   * @return The slug, capped at MaxSlugLength; `fallback` if nothing usable remains.
    */
-  def slugify(name: String): String = {
-    val slug: String = Normalizer
-      .normalize(name, Normalizer.Form.NFD)
-      .replaceAll("\\p{M}", "") // Drop the combining marks NFD split off, turning é into e.
-      .toLowerCase(Locale.ROOT)
-      .replaceAll("[^\\p{L}\\p{N}]+", "-")
+  def slugify(name: String, fallback: String = "route"): String = {
+    val slug: String = foldToSlugChars(name)
+      .replaceAll("-+", "-") // Collapse separator runs, the invariant above.
       .replaceAll("^-+|-+$", "")
       .take(MaxSlugLength)
       .replaceAll("-+$", "") // The length cap can leave a trailing dash behind.
-    if (slug.isEmpty) "route" else slug
+    if (slug.isEmpty) fallback else slug
+  }
+
+  /**
+   * Folds a slug taken from a /r/<slug> URL for case and separators, so a retyped share link still resolves.
+   *
+   * People retype share links from the route's name, which reintroduces the capitals and spaces slugify removed
+   * ("/r/Demo-for-Yochai", "/r/Demo for Yochai"), so lookups fold the URL rather than matching it byte for byte.
+   *
+   * Deliberately does NOT collapse separator runs or apply the length cap, both of which would corrupt a real slug:
+   * evolution 344's backfill deduped with a '--<route_id>' suffix, and the uniquifier's "-2" suffix can push a slug
+   * past MaxSlugLength. Callers pair it with `slugify` to close that gap — see RouteServiceImpl.slugCandidates.
+   *
+   * The result is still an equality lookup, so it serves from the unique index on route.slug rather than scanning.
+   *
+   * @param slug The slug as it arrived in the URL (Play has already percent-decoded it).
+   * @return The folded form to match stored slugs against; empty if nothing usable remains.
+   */
+  def canonicalizeForLookup(slug: String): String = {
+    foldToSlugChars(slug).replaceAll("^-+|-+$", "")
+  }
+
+  /** Lowercases, strips Latin diacritics, and turns every other non-alphanumeric character into a dash. */
+  private def foldToSlugChars(text: String): String = {
+    Normalizer
+      .normalize(text, Normalizer.Form.NFD)
+      .replaceAll("\\p{M}", "") // Drop the combining marks NFD split off, turning é into e.
+      .toLowerCase(Locale.ROOT)
+      .replaceAll("[^\\p{L}\\p{N}]", "-")
   }
 }

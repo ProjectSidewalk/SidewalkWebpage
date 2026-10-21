@@ -1,0 +1,5 @@
+# Settings for ShellCheck (`make shellcheck`, tools/lint/shellcheck.sh). Editors with a ShellCheck plugin read this too.
+
+# Check the files a script pulls in with `source`, looking for them next to the script.
+external-sources=true
+source-path=SCRIPTDIR

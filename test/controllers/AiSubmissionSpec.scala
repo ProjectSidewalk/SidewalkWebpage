@@ -1,19 +1,19 @@
 package controllers
 
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import org.scalatest.BeforeAndAfterAll
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsObject, JsValue, Json}
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
+import util.SidewalkSpec
 
 import scala.concurrent.Await
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 /**
  * Locks the pano-provenance contract of POST /ai/submitLabelsOnPano (#4806): a submission whose pano block carries
@@ -34,7 +34,7 @@ import scala.concurrent.duration._
  */
 // Mixin order matters: GuiceOneAppPerSuite must be rightmost so its run() wraps BeforeAndAfterAll's — otherwise
 // afterAll's cleanup executes after the app (and its DB pool) has shut down and aborts the suite.
-class AiSubmissionSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppPerSuite {
+class AiSubmissionSpec extends SidewalkSpec with BeforeAndAfterAll with GuiceOneAppPerSuite {
 
   private val internalApiKey = "test-internal-api-key"
 
@@ -49,11 +49,11 @@ class AiSubmissionSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppP
   // app whose city flag this spec can't address, so fail loudly here instead of failing obscurely four cases later.
   private val cityId = sys.env.getOrElse(
     "SIDEWALK_CITY_ID",
-    throw new IllegalStateException("SIDEWALK_CITY_ID must be set to run AiSubmissionSpec")
+    throw IllegalStateException("SIDEWALK_CITY_ID must be set to run AiSubmissionSpec")
   )
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule] // No eager background actors during tests (nothing else injects their ActorRefs).
       .configure(
         "internal-api-key"                                 -> internalApiKey,

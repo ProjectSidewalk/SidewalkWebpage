@@ -3,7 +3,7 @@ package models.route
 import com.google.inject.ImplementedBy
 import models.street.StreetEdgeTableDef
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import javax.inject.{Inject, Singleton}
@@ -17,10 +17,7 @@ class RouteStreetTableDef(tag: slick.lifted.Tag) extends Table[RouteStreet](tag,
   def reverse: Rep[Boolean]   = column[Boolean]("reverse")
   def position: Rep[Int]      = column[Int]("position")
 
-  def * = (routeStreetId, routeId, streetEdgeId, reverse, position) <> (
-    (RouteStreet.apply _).tupled,
-    RouteStreet.unapply
-  )
+  def * = (routeStreetId, routeId, streetEdgeId, reverse, position).mapTo[RouteStreet]
 
   def route      = foreignKey("route_street_route_id_fkey", routeId, TableQuery[RouteTableDef])(_.routeId)
   def streetEdge =

@@ -1,11 +1,11 @@
 package models.utils
 
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import service._
+import service.*
 import slick.jdbc.GetResult
 
-import javax.inject._
+import javax.inject.*
 
 /**
  * Read-only DAO of Postgres catalog queries backing the Owner-only Health dashboard (#4561).
@@ -20,39 +20,38 @@ import javax.inject._
 class HealthTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)
     extends HasDatabaseConfigProvider[MyPostgresProfile] {
 
-  implicit private val getBlockingSession: GetResult[BlockingSession] = GetResult { r =>
+  private given getBlockingSession: GetResult[BlockingSession] = { r =>
     BlockingSession(r.nextInt(), r.nextStringOption(), r.nextStringOption(), r.nextStringOption(), r.nextLongOption(),
       r.nextLongOption(), r.nextStringOption(), r.nextInt(), r.nextLongOption(), r.nextStringOption())
   }
 
-  implicit private val getIdleTxnSession: GetResult[IdleTxnSession] = GetResult { r =>
+  private given getIdleTxnSession: GetResult[IdleTxnSession] = { r =>
     IdleTxnSession(r.nextInt(), r.nextStringOption(), r.nextStringOption(), r.nextStringOption(), r.nextLongOption(),
       r.nextLongOption(), r.nextStringOption())
   }
 
-  implicit private val getActiveQuery: GetResult[ActiveQuery] = GetResult { r =>
+  private given getActiveQuery: GetResult[ActiveQuery] = { r =>
     ActiveQuery(r.nextInt(), r.nextStringOption(), r.nextStringOption(), r.nextLongOption(), r.nextStringOption(),
       r.nextStringOption())
   }
 
-  implicit private val getStuckEvolution: GetResult[StuckEvolution] = GetResult { r =>
+  private given getStuckEvolution: GetResult[StuckEvolution] = { r =>
     StuckEvolution(r.nextString(), r.nextInt(), r.nextStringOption(), r.nextStringOption(), r.nextStringOption())
   }
 
-  implicit private val grTableBloat: GetResult[TableBloat] = GetResult { r =>
+  private given grTableBloat: GetResult[TableBloat] = { r =>
     TableBloat(r.nextString(), r.nextString(), r.nextLong(), r.nextLong(), r.nextDoubleOption(), r.nextLongOption(),
       r.nextLongOption(), r.nextStringOption())
   }
 
-  implicit private val getConnCount: GetResult[ConnCount] =
-    GetResult(r => ConnCount(r.nextStringOption(), r.nextStringOption(), r.nextInt()))
+  private given getConnCount: GetResult[ConnCount] =
+    r => ConnCount(r.nextStringOption(), r.nextStringOption(), r.nextInt())
 
-  implicit private val grPanoBackupStats: GetResult[PanoBackupStats] = GetResult { r =>
+  private given grPanoBackupStats: GetResult[PanoBackupStats] = { r =>
     PanoBackupStats(r.nextLong(), r.nextLong(), r.nextLong(), r.nextLong(), r.nextLong())
   }
 
-  implicit private val grDbEnvInfo: GetResult[DbEnvInfo] =
-    GetResult(r => DbEnvInfo(r.nextString(), r.nextString(), r.nextBoolean()))
+  private given grDbEnvInfo: GetResult[DbEnvInfo] = r => DbEnvInfo(r.nextString(), r.nextString(), r.nextBoolean())
 
   implicit private val grSchemaRowCount: GetResult[SchemaRowCount] =
     GetResult(r => SchemaRowCount(r.nextString(), r.nextInt()))
@@ -266,11 +265,14 @@ class HealthTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    * locally-hosted backup image vs. are unchecked, missing, or at-risk (source expired AND no backup, so the label
    * has no viewable imagery). `has_backup` is refreshed lazily by the imagery check, so a large `unchecked` (NULL)
    * count is normal and these counts approximate on-disk truth. Schema-local (resolves via the connection search_path).
+   *
+   * Tutorial panos are excluded, since backup coverage is meaningless for app assets. `IS DISTINCT FROM` rather than
+   * `<>` so a label whose pano has no row at all still counts as unchecked.
    */
   def getPanoBackupStats: DBIO[PanoBackupStats] = bounded {
     sql"""
       WITH labeled AS (
-        SELECT DISTINCT pano_id FROM label WHERE pano_id IS NOT NULL AND pano_id <> 'tutorial'
+        SELECT DISTINCT pano_id FROM label WHERE pano_id IS NOT NULL
       )
       SELECT count(*)::bigint                                                                  AS labeled_panos,
              count(*) FILTER (WHERE pd.has_backup IS TRUE)::bigint                             AS backed_up,
@@ -279,6 +281,7 @@ class HealthTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
              count(*) FILTER (WHERE pd.expired IS TRUE AND pd.has_backup IS NOT TRUE)::bigint  AS at_risk
       FROM labeled
       LEFT JOIN pano_data pd ON pd.pano_id = labeled.pano_id
+      WHERE pd.source IS DISTINCT FROM 'tutorial'
     """.as[PanoBackupStats].head
   }
 

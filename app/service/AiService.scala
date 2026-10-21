@@ -1,25 +1,55 @@
 package service
 
 import com.google.inject.ImplementedBy
-import models.label._
+import models.label.*
 import models.user.SidewalkUserTable
 import models.utils.CommonUtils.{UiSource, ViewerType}
-import models.utils.MyPostgresProfile.api._
-import models.utils._
+import models.utils.MyPostgresProfile.api.given
+import models.utils.*
 import models.validation.{LabelValidation, ValidationOption}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.{JsObject, JsValue}
 import play.api.libs.ws.WSClient
+import play.api.libs.ws.WSBodyWritables.*
 import play.api.{Configuration, Logger}
 import slick.dbio.DBIO
 
 import java.time.format.DateTimeFormatter
 import java.time.{LocalDate, OffsetDateTime, ZoneOffset}
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.{ExecutionContext, Future}
+
+/** The AI server rejected our password, so no request in this run can succeed. */
+class AiApiAuthException(message: String) extends Exception(message)
+
+/**
+ * What [[AiService.ensureSeedRows]] had to insert: whether the AI's user_stat row was missing, and the label types
+ * whose `aiValidation` mission was. Both empty means the schema already carried every row.
+ */
+case class AiSeedRows(statRowInserted: Boolean, missionsInserted: Seq[LabelType]) {
+
+  /** @return True when the schema already carried every row, so the run was a no-op. */
+  def nothingInserted: Boolean = !statRowInserted && missionsInserted.isEmpty
+}
 
 @ImplementedBy(classOf[AiServiceImpl])
 trait AiService {
+
+  /**
+   * Inserts whichever of the SidewalkAI account's per-schema rows this schema lacks (#5349).
+   *
+   * 281.sql seeded the AI's user_stat row and its nine `aiValidation` missions once per schema. A schema created by
+   * cloning a donor city, or restored from an onboarding dump, has 281 marked applied and none of those rows, and
+   * nothing at runtime creates them: user_stat rows come from sign-in, missions from a person's own progress. Without
+   * the stat row the AI's labels land but fail the user_stat join most label queries carry; without the missions
+   * the first AI validation throws. Idempotent, so it is safe to run at every boot.
+   *
+   * @return What was inserted.
+   */
+  def ensureSeedRows(): Future[AiSeedRows]
+
+  /** The DBIO behind [[ensureSeedRows]], so a spec can run it inside a rolled-back transaction. */
+  def ensureSeedRowsDbio: DBIO[AiSeedRows]
 
   /**
    * Validates labels using AI by fetching label metadata, calling the AI API, and saving results.
@@ -34,6 +64,12 @@ trait AiService {
    * @return A Future containing a sequence of LabelAiAssessment objects with validation results and tags
    */
   def validateLabelsWithAiDaily(n: Int): Future[Seq[Option[LabelAiAssessment]]]
+
+  /**
+   * Has the AI look at a label again right after its type changed (#3671), since its old assessment was about the
+   * old type. Does nothing for a label the nightly sweep would also skip. Never fails; problems are only logged.
+   */
+  def reassessAfterTypeChange(labelId: Int): Future[Unit]
 }
 
 @Singleton
@@ -47,8 +83,9 @@ class AiServiceImpl @Inject() (
     labelAiAssessmentTable: models.label.LabelAiAssessmentTable,
     labelAiFailureTable: models.label.LabelAiFailureTable,
     missionTable: models.mission.MissionTable,
+    userStatTable: models.user.UserStatTable,
     panoDataService: PanoDataService
-)(implicit val ec: ExecutionContext)
+)(using val ec: ExecutionContext)
     extends AiService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
   private val logger                         = Logger(this.getClass)
@@ -57,6 +94,10 @@ class AiServiceImpl @Inject() (
   private val AI_VALIDATIONS_ON: Boolean     = config.get[Boolean](s"city-params.ai-validation-enabled.$cityId")
   private val AI_TAG_SUGGESTIONS_ON: Boolean = config.get[Boolean](s"city-params.ai-tag-suggestions-enabled.$cityId")
   private val AI_VALIDATION_MIN_ACCURACY: Double = config.get[Double](s"city-params.ai-validation-min-accuracy.$cityId")
+  // The password the AI server checks on every request (#4003). Warn at startup if it's missing rather than at 3am.
+  private val AI_API_KEY: String = config.getOptional[String]("sidewalk-ai-api-key").map(_.trim).getOrElse("")
+  if (AI_ENABLED && (AI_VALIDATIONS_ON || AI_TAG_SUGGESTIONS_ON) && AI_API_KEY.isEmpty)
+    logger.error("SIDEWALK_AI_API_KEY is not set: every request to the AI server will be rejected with 401.")
 
   def validateLabelsWithAi(labelIds: Seq[Int]): Future[Seq[Option[LabelAiAssessment]]] = {
     if (AI_ENABLED && (AI_VALIDATIONS_ON || AI_TAG_SUGGESTIONS_ON)) {
@@ -82,6 +123,17 @@ class AiServiceImpl @Inject() (
     }
   }
 
+  def ensureSeedRows(): Future[AiSeedRows] = db.run(ensureSeedRowsDbio)
+
+  def ensureSeedRowsDbio: DBIO[AiSeedRows] = (for {
+    // The mission inserts are exists-then-insert, which a transaction alone doesn't serialize: two boots of the same
+    // schema at once (a deploy overlapping a restart) would each see "missing" and both insert. The lock is
+    // database-wide, so every city's boot takes it in turn, for the milliseconds this transaction lasts.
+    _                        <- sql"SELECT 1 FROM pg_advisory_xact_lock(5349)".as[Int]
+    statRows: Int            <- userStatTable.insertAiUserStatIfMissing()
+    missions: Seq[LabelType] <- missionTable.insertMissingAiValidationMissions()
+  } yield AiSeedRows(statRows == 1, missions)).transactionally
+
   def validateLabelsWithAiDaily(n: Int): Future[Seq[Option[LabelAiAssessment]]] = {
     if (AI_ENABLED && (AI_VALIDATIONS_ON || AI_TAG_SUGGESTIONS_ON)) {
       // Run Sidewalk AI API calls sequentially.
@@ -97,6 +149,15 @@ class AiServiceImpl @Inject() (
       logger.info("AI validations or tag suggestions are disabled for this city.")
       Future.successful(Seq.empty)
     }
+  }
+
+  def reassessAfterTypeChange(labelId: Int): Future[Unit] = {
+    if (AI_ENABLED && (AI_VALIDATIONS_ON || AI_TAG_SUGGESTIONS_ON)) {
+      db.run(labelTable.getLabelsToValidateWithAi(1, Some(labelId)))
+        .flatMap(labelData => Future.traverse(labelData)(callAiApiAndSubmitData))
+        .map(_ => ())
+        .recover { case e => logger.error(s"AI re-assessment after a type change failed for label $labelId:", e) }
+    } else Future.successful(())
   }
 
   /**
@@ -121,23 +182,27 @@ class AiServiceImpl @Inject() (
             val labelPoint = labelData.labelPoint
 
             // If confidence is below the threshold, submit an Unsure validation instead.
-            val aiValResult: ValidationOption.Value =
+            val aiValResult: ValidationOption =
               if (aiResults.validationAccuracy >= AI_VALIDATION_MIN_ACCURACY) aiResults.validationResult
               else ValidationOption.Unsure
 
             // Get the AI's mission_id and the label's current info, then create and submit the validation.
             for {
-              aiMissionId: Int <- getAiValidateMissionId(labelData.labelTypeId)
+              aiMissionId: Int <- getAiValidateMissionId(labelData.labelType)
               label: Label     <- labelTable.find(labelId).map(_.get) // If we got this far, we know label exists.
               validation: LabelValidation = LabelValidation(
-                0, labelId, aiValResult, label.severity, label.severity, label.tags, label.tags,
-                SidewalkUserTable.aiUserId, aiMissionId, Some(labelPoint.canvasX), Some(labelPoint.canvasY),
-                labelPoint.heading, labelPoint.pitch, labelPoint.zoom, LabelPointTable.canvasWidth,
-                LabelPointTable.canvasHeight, startTime, aiResults.timestamp, UiSource.SidewalkAI, ViewerType.Default
+                0, labelId, labelData.labelType, aiValResult, SidewalkUserTable.aiUserId, aiMissionId,
+                Some(labelPoint.canvasX), Some(labelPoint.canvasY), labelPoint.heading, labelPoint.pitch,
+                labelPoint.zoom, labelPoint.canvasWidth, labelPoint.canvasHeight, startTime, aiResults.timestamp,
+                UiSource.SidewalkAI, ViewerType.Default
               )
+              // The AI only votes, so it never edits the label.
               valId: Option[Int] <- validationService
                 .submitValidationsDbio(
-                  Seq(ValidationSubmission(validation, comment = None, undone = false, redone = false))
+                  Seq(
+                    ValidationSubmission(validation, newLabelType = None, label.severity, label.tags, comment = None,
+                      undone = false, redone = false, canEdit = false)
+                  )
                 )
                 .map(_.headOption)
             } yield valId
@@ -174,14 +239,17 @@ class AiServiceImpl @Inject() (
 
     // Create form data for the multipart request.
     val formData = Map(
-      "label_type"  -> LabelTypeEnum.labelTypeIdToLabelType(labelData.labelTypeId).toLowerCase,
+      "label_type"  -> labelData.labelType.name.toLowerCase,
       "panorama_id" -> labelData.panoData.panoId,
       "x"           -> (labelData.labelPoint.panoX.toDouble / labelData.panoData.width.get).toString,
       "y"           -> (labelData.labelPoint.panoY.toDouble / labelData.panoData.height.get).toString,
       "city"        -> cityId
     )
 
+    // No redirects, so the password can't be forwarded to some other host.
     ws.url(url)
+      .withHttpHeaders("Authorization" -> s"Bearer $AI_API_KEY")
+      .withFollowRedirects(false)
       .post(formData)
       .flatMap { response =>
         try {
@@ -203,7 +271,13 @@ class AiServiceImpl @Inject() (
             val apiVersion     = (json \ "api_version").as[String]
             val valModelId     = (json \ "validator_model_id").as[String]
             val taggerModelId  = (json \ "tagger_model_id").asOpt[String]
-            val aiImageSource  = AiImageSource.withName((json \ "image_source").as[String])
+            val valRevision    = (json \ "validator_revision").asOpt[String]
+            val taggerRevision = (json \ "tagger_revision").asOpt[String]
+            // Every current API release sends these, so a gap means the response format changed under us.
+            if (valRevision.isEmpty || (taggerModelId.isDefined && taggerRevision.isEmpty)) {
+              logger.warn(s"AI API $apiVersion sent no model revision for label $labelId, so it is saved without one.")
+            }
+            val aiImageSource = AiImageSource.withName((json \ "image_source").as[String])
 
             // Read training dates.
             val dateFormatter   = DateTimeFormatter.ofPattern("MM-dd-yyyy")
@@ -217,9 +291,15 @@ class AiServiceImpl @Inject() (
 
             Future.successful(
               Some(
-                LabelAiAssessment(0, labelData.labelId, valResult, valAccuracy, valConfidence, tags, tagsNotPresent,
-                  tagsConfidence, apiVersion, valModelId, valTrainingDate, taggerModelId, taggerTrainingDate,
-                  OffsetDateTime.now, None, aiImageSource)
+                LabelAiAssessment(
+                  labelAiAssessmentId = 0, labelId = labelData.labelId, labelType = labelData.labelType,
+                  validationResult = valResult, validationAccuracy = valAccuracy, validationConfidence = valConfidence,
+                  tags = tags, tagsNotPresent = tagsNotPresent, tagsConfidence = tagsConfidence,
+                  apiVersion = apiVersion, validatorModelId = valModelId, validatorTrainingDate = valTrainingDate,
+                  validatorRevision = valRevision, taggerModelId = taggerModelId,
+                  taggerTrainingDate = taggerTrainingDate, taggerRevision = taggerRevision,
+                  timestamp = OffsetDateTime.now, labelValidationId = None, aiImageSource = aiImageSource
+                )
               )
             )
           } else if (response.status == 502) {
@@ -231,6 +311,10 @@ class AiServiceImpl @Inject() (
               logger.warn(s"AI API for label $labelId returned 502: $reason. Recording permanent failure.")
               db.run(labelAiFailureTable.save(labelId, reason)).map(_ => None)
             }
+          } else if (response.status == 401 || response.status == 403) {
+            // Wrong password means every label would fail the same way, so stop the whole run here.
+            val msg = s"AI API returned ${response.status} for label $labelId: SIDEWALK_AI_API_KEY is missing or wrong."
+            Future.failed(AiApiAuthException(msg))
           } else {
             logger.warn(s"AI API for label $labelId returned error status: ${response.status} - ${response.statusText}")
             panoDataService.panoExists(labelData.panoData.panoId, labelData.panoData.source).map(_ => None)
@@ -241,19 +325,20 @@ class AiServiceImpl @Inject() (
             Future.successful(None)
         }
       }
-      .recover { case e: Exception =>
-        logger.warn(s"AI API request failed for label $labelId: ${e.getMessage}")
-        None
+      .recover {
+        case e: Exception if !e.isInstanceOf[AiApiAuthException] =>
+          logger.warn(s"AI API request failed for label $labelId: ${e.getMessage}")
+          None
       }
   }
 
   /**
-   * Retrieves the AI validation mission_id from the db for a given label_type_id, cached since it doesn't change.
-   * @param labelTypeId The ID of the label type for which to get the AI validation mission_id
+   * Retrieves the AI validation mission_id from the db for a given label type, cached since it doesn't change.
+   * @param labelType The label type for which to get the AI validation mission_id
    * @return A DBIO containing the AI validation mission_id
    */
-  private def getAiValidateMissionId(labelTypeId: Int): DBIO[Int] =
-    configService.cachedDBIO[Int](s"getAiValidateMissionId($labelTypeId)")(
-      missionTable.getAiValidateMissionId(labelTypeId)
+  private def getAiValidateMissionId(labelType: LabelType): DBIO[Int] =
+    configService.cachedDBIO[Int](s"getAiValidateMissionId(${labelType.name})")(
+      missionTable.getAiValidateMissionId(labelType)
     )
 }

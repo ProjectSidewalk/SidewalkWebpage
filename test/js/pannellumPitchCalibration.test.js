@@ -1,0 +1,118 @@
+/**
+ * Tests that PannellumViewer's POV maps to the panorama with no camera-pitch term (#5174).
+ *
+ * A pano's column 0 sits at an arbitrary bearing, so yaw must be calibrated against cameraHeading. Row
+ * panoHeight/2 is the horizon by construction, so pitch must NOT be calibrated against cameraPitch — and every
+ * other component that maps a row to a pitch agrees (util.pano.povToPanoCoord, PanoDataService
+ * .calculatePovFromPanoXY, CropGeometry.computeCropBox). Applying one displaced Validate's label marker by
+ * camera_pitch, which is nonzero on ~98% of panos.
+ *
+ * These cases only bite on a pano with a nonzero cameraPitch: with the zero-tilt fixtures the other suites use,
+ * both conventions produce identical numbers, which is exactly why this went unnoticed.
+ */
+
+import { loadModules, mockModule } from './loader.js';
+
+const CAMERA_PITCH = 8.5;    // degrees; near the top of the real distribution
+const CAMERA_HEADING = 104.9;
+
+/** A stand-in for the pannellum library that records the pitch/yaw it is actually driven with. */
+function makeFakePannellum() {
+  const state = { pitch: 0, yaw: 0, hfov: 90, handlers: {} };
+  const viewer = {
+    getPitch: () => state.pitch,
+    setPitch: (p) => { state.pitch = p; },
+    getYaw: () => state.yaw,
+    setYaw: (y) => { state.yaw = y; },
+    getHfov: () => state.hfov,
+    setHfov: (h) => { state.hfov = h; },
+    addScene: () => {},
+    removeScene: () => {},
+    loadScene: (id, pitch, yaw, hfov) => { state.pitch = pitch; state.yaw = yaw; state.hfov = hfov; },
+    on: (evt, cb) => { state.handlers[evt] = cb; if (evt === 'load') setTimeout(cb, 0); },
+    off: () => {},
+    destroy: () => {},
+  };
+  return {
+    state,
+    lib: {
+      viewer: (el, config) => {
+        // Pannellum applies the default scene's pitch/yaw/hfov on construction; mirror that so the
+        // startup path is actually exercised rather than silently leaving state at its defaults.
+        const scene = config && config.scenes && config.scenes[config.default.firstScene];
+        if (scene) {
+          state.pitch = scene.pitch;
+          state.yaw = scene.yaw;
+          state.hfov = scene.hfov;
+        }
+        return viewer;
+      },
+    },
+  };
+}
+
+/** @param {object} [panoMetadataOverrides] Fields to override on the backup metadata, e.g. a null camera_pitch. */
+async function makeViewer(panoMetadataOverrides = {}) {
+  const { state, lib } = makeFakePannellum();
+  mockModule('frontend/js/common/pano-viewer/sdk/pannellum.js', () => ({ pannellum: lib }));
+  const { PannellumViewer } = await loadModules('frontend/js/common/pano-viewer/PannellumViewer.js');
+  const el = document.createElement('div');
+  document.body.appendChild(el);
+  const v = new PannellumViewer();
+  await v.initialize(el, {
+    panoMetadata: {
+      pano_id: 'p1', image_url: '/backupImage/p1', width: 13312, height: 6656,
+      camera_heading: CAMERA_HEADING, camera_pitch: CAMERA_PITCH,
+      lat: 40.9, lng: -74.0, capture_date: '2023-05', linkedPanos: [], history: [], source: 'pannellum',
+      ...panoMetadataOverrides,
+    },
+    startPitch: 0,
+    startZoom: 1,
+  });
+  return { viewer: v, state };
+}
+
+describe('PannellumViewer pitch is not calibrated against cameraPitch', () => {
+  test('setPov drives the library with the pitch it was given, unshifted', async () => {
+    const { viewer, state } = await makeViewer();
+
+    viewer.setPov({ heading: CAMERA_HEADING, pitch: -20.28, zoom: 1 });
+
+    expect(state.pitch).toBeCloseTo(-20.28, 6);
+  });
+
+  test('getPov reports the library pitch unshifted', async () => {
+    const { viewer, state } = await makeViewer();
+
+    // Driven directly rather than via setPov: a matched subtract-on-write/add-on-read pair round-trips
+    // perfectly, so only reading a pitch the viewer did not write catches a calibration term here.
+    state.pitch = -20.28;
+
+    expect(viewer.getPov().pitch).toBeCloseTo(-20.28, 6);
+  });
+
+  test('the initial scene opens at the requested pitch', async () => {
+    const { state } = await makeViewer();
+
+    // startPitch was 0: the horizon, which is row panoHeight/2 of the stored image.
+    expect(state.pitch).toBeCloseTo(0, 6);
+  });
+
+  test('a backup whose row has no camera pitch loads and reads the same way (#5725)', async () => {
+    const { viewer, state } = await makeViewer({ camera_pitch: null, camera_roll: null });
+
+    expect(state.pitch).toBeCloseTo(0, 6);
+    state.pitch = -20.28;
+    expect(viewer.getPov().pitch).toBeCloseTo(-20.28, 6);
+  });
+
+  test('heading IS still calibrated against cameraHeading — the asymmetry is deliberate', async () => {
+    const { viewer, state } = await makeViewer();
+
+    viewer.setPov({ heading: CAMERA_HEADING, pitch: 0, zoom: 1 });
+
+    // Looking down the pano's centre column is yaw 0, whatever bearing that column happens to be.
+    expect(state.yaw).toBeCloseTo(0, 6);
+    expect(viewer.getPov().heading).toBeCloseTo(CAMERA_HEADING, 6);
+  });
+});

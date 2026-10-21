@@ -1,0 +1,1212 @@
+"""
+Unit tests for tools/city/street_gradient.py.
+
+Covers the profile math (sampling points along a street, bilinear lookup, gap filling, smoothing, the windowed grade
+statistics, the structure / suspect / no-data verdicts), the elevation sources (USGS tile naming, the hand-downloaded
+directory locator, the raster sampler), the cityparams lookup, the CSV layer, and `main` end to end. Nothing touches
+the network: rasters are small synthetic GeoTIFFs written to `tmp_path` whose elevation is a known plane, so an
+expected grade is arithmetic rather than a recorded number. See test/python/README.md.
+"""
+
+import argparse
+import csv
+import io
+import json
+import re
+import urllib.error
+import urllib.parse
+import zipfile
+from pathlib import Path
+
+import numpy as np
+import pytest
+import rasterio
+import shapely
+from pyproj import Geod
+from rasterio.crs import CRS
+from rasterio.errors import RasterioIOError
+from rasterio.transform import from_origin
+from shapely.geometry import LineString
+
+import street_gradient as sg
+
+_GEOD = Geod(ellps='WGS84')
+# The south-west corner of the synthetic rasters, in Seattle so the USGS naming tests share it.
+_LNG, _LAT = -122.30, 47.60
+_CELL_DEG = 0.0001
+_MD5 = '0123456789abcdef0123456789abcdef'
+
+
+def _east(meters, lng=_LNG, lat=_LAT):
+    """The (lng, lat) `meters` due east of a point."""
+    lng2, lat2, _ = _GEOD.fwd(lng, lat, 90, meters)
+    return lng2, lat2
+
+
+def _write_plane(path, rise_per_degree_lng=0.0, base=100.0, size=200, nodata_cols=(), lng=_LNG, lat=_LAT,
+                 cell=_CELL_DEG, decimeters=False, crs='EPSG:4326'):
+    """
+    A `size` x `size` EPSG:4326 GeoTIFF whose elevation at a cell center is `base + rise_per_degree_lng * (center lng -
+    west edge)`. Bilinear interpolation of a plane is exact, so a sampled elevation is this formula at the point.
+    Columns in `nodata_cols` are no-data. `decimeters` stores the same surface the way GEDTM30 does: int32 tenths of a
+    meter with a 0.1 scale. `crs=None` leaves the file with no coordinate system, as an ESRI GRID without prj.adf is.
+    """
+    centers = (np.arange(size) + 0.5) * cell
+    grid = np.tile(base + rise_per_degree_lng * centers, (size, 1))
+    grid = np.round(grid * 10) if decimeters else grid
+    grid[:, list(nodata_cols)] = -9999
+    dtype = 'int32' if decimeters else 'float32'
+    with rasterio.open(path, 'w', driver='GTiff', height=size, width=size, count=1, dtype=dtype, nodata=-9999,
+                       crs=crs, transform=from_origin(lng, lat + size * cell, cell, cell)) as ds:
+        ds.write(grid.astype(dtype), 1)
+        if decimeters:
+            ds.scales = (0.1,)
+    return path
+
+
+def _street(street_id, coords, is_structure=False):
+    return {'street_edge_id': street_id, 'geom_md5': _MD5, 'is_structure': is_structure, 'coords': coords}
+
+
+# --------------------------------------------------------------------------------------------------------------------
+# sample_points
+# --------------------------------------------------------------------------------------------------------------------
+
+
+def test_sample_points_keeps_both_endpoints_exact_and_spaces_evenly():
+    start, end = (_LNG, _LAT), _east(52)
+    lngs, lats, length = sg.sample_points([start, end], 5.0)
+    assert length == pytest.approx(52, abs=0.01)
+    assert len(lngs) == 11  # round(52 / 5) = 10 intervals of 5.2 m rather than ten of 5 m and a 2 m stub.
+    assert (lngs[0], lats[0]) == start
+    assert (lngs[-1], lats[-1]) == pytest.approx(end)
+    gaps = _GEOD.line_lengths(lngs, lats)
+    assert max(gaps) - min(gaps) < 0.01
+
+
+def test_sample_points_follows_the_vertices_not_the_chord():
+    corner = _east(30)
+    north = _GEOD.fwd(*corner, 0, 30)[:2]
+    lngs, lats, length = sg.sample_points([(_LNG, _LAT), corner, north], 10.0)
+    assert length == pytest.approx(60, abs=0.01)
+    assert (lngs[3], lats[3]) == pytest.approx(corner)
+
+
+def test_sample_points_crosses_the_antimeridian_the_short_way():
+    lngs, lats, length = sg.sample_points([(179.999, -36.0), (-179.999, -36.0)], 5.0)
+    assert length == pytest.approx(180.3, abs=0.1)
+    assert (lngs[0], lngs[-1]) == (179.999, -179.999)
+    assert (np.abs(lngs) >= 179.999).all()  # Interpolated raw, the midpoint would sit at longitude 0.
+    assert max(_GEOD.line_lengths(lngs, lats)) < 5.1
+
+
+def test_sample_points_of_a_zero_length_line_is_its_point_twice():
+    lngs, lats, length = sg.sample_points([(_LNG, _LAT), (_LNG, _LAT)], 5.0)
+    assert length == 0
+    assert list(lngs) == [_LNG, _LNG] and list(lats) == [_LAT, _LAT]
+
+
+# --------------------------------------------------------------------------------------------------------------------
+# bilinear / fill_gaps / smooth
+# --------------------------------------------------------------------------------------------------------------------
+
+
+def test_bilinear_is_exact_on_a_plane_including_the_last_row_and_column():
+    rows_idx, cols_idx = np.mgrid[0:4, 0:5]
+    grid = 2.0 * rows_idx + 3.0 * cols_idx
+    rows, cols = np.array([0.0, 1.25, 3.0]), np.array([0.0, 2.5, 4.0])
+    assert sg.bilinear(grid, rows, cols) == pytest.approx(2.0 * rows + 3.0 * cols)
+
+
+def test_bilinear_is_nan_off_the_grid_beside_a_nan_cell_and_on_a_grid_too_small_to_interpolate():
+    grid = np.arange(9, dtype=float).reshape(3, 3)
+    grid[0, 0] = np.nan
+    got = sg.bilinear(grid, np.array([0.5, 1.5, -0.1, 1.0]), np.array([0.5, 1.5, 1.0, 2.1]))
+    assert np.isnan(got[0]) and got[1] == pytest.approx(6.0) and np.isnan(got[2]) and np.isnan(got[3])
+    assert np.isnan(sg.bilinear(np.ones((1, 5)), np.array([0.0]), np.array([1.0]))).all()
+    assert np.isnan(sg.bilinear(np.ones((5, 1)), np.array([1.0]), np.array([0.0]))).all()
+
+
+def test_fill_gaps_bridges_a_run_linearly():
+    z = np.array([10.0, np.nan, np.nan, 16.0, 17.0])
+    assert list(sg.fill_gaps(z)) == [10.0, 12.0, 14.0, 16.0, 17.0]
+
+
+def test_smooth_widens_an_even_window_so_the_endpoints_still_hold():
+    bumpy = np.array([2.0, 0.0, 3.0, 5.0, 1.0, 0.0, 4.0, 7.0])
+    assert list(sg.smooth(bumpy, 4)) == list(sg.smooth(bumpy, 5))
+    assert (sg.smooth(bumpy, 4)[0], sg.smooth(bumpy, 4)[-1]) == pytest.approx((2.0, 7.0))
+
+
+def test_smooth_leaves_a_constant_grade_and_both_endpoints_alone_and_is_a_no_op_when_it_cannot_apply():
+    line = 3.0 + 0.5 * np.arange(10)
+    assert sg.smooth(line, 5) == pytest.approx(line)  # End to end, not just inside: the padding continues the slope.
+    bumpy = np.array([2.0, 0.0, 0.0, 5.0, 0.0, 0.0, 0.0, 7.0])
+    smoothed = sg.smooth(bumpy, 5)
+    assert len(smoothed) == len(bumpy)
+    assert smoothed[3] == pytest.approx(1.0) and (smoothed[0], smoothed[-1]) == pytest.approx((2.0, 7.0))
+    assert sg.smooth(line, 1) is line
+    assert list(sg.smooth(line[:3], 5)) == list(line[:3])
+
+
+# --------------------------------------------------------------------------------------------------------------------
+# window_grades / grade_metrics
+# --------------------------------------------------------------------------------------------------------------------
+
+
+def test_window_grades_slides_a_baseline_and_falls_back_to_end_to_end_on_a_short_street():
+    z = np.array([0.0, 0.5, 1.0, 1.0, 1.0])  # 5 m steps: 10% for 10 m, then level.
+    assert list(sg.window_grades(z, 20.0, 10.0)) == pytest.approx([0.10, 0.05, 0.0])
+    assert list(sg.window_grades(z, 20.0, 30.0)) == pytest.approx([0.05])
+
+
+def test_grade_metrics_of_a_constant_six_percent_climb():
+    length = 100.0
+    z = 50.0 + 0.06 * np.linspace(0, length, 21)
+    m = sg.grade_metrics(z, length)
+    assert m['net_grade'] == pytest.approx(0.06)
+    assert m['mean_grade'] == pytest.approx(0.06) and m['max_grade'] == pytest.approx(0.06)
+    assert m['meters_over_5pct_grade'] == pytest.approx(length) and m['meters_over_8pct_grade'] == 0
+    assert m['climb_m'] == pytest.approx(6.0) and m['descent_m'] == 0
+    assert m['profile_cm'][0] == 5000 and m['profile_cm'][-1] == 5600 and len(m['profile_cm']) == 11
+
+
+def test_grade_metrics_of_a_hill_counts_both_sides_and_signs_net_by_direction():
+    length = 105.0  # 21 intervals of 5 m: not a whole number of 10 m steps, so the last knot is the endpoint itself.
+    x = np.linspace(0, length, 22)
+    z = np.where(x <= 50, 0.10 * x, 5.0 - 0.10 * (x - 50))
+    m = sg.grade_metrics(z, length)
+    assert m['net_grade'] == pytest.approx(-0.5 / length)
+    assert m['climb_m'] == pytest.approx(5.0) and m['descent_m'] == pytest.approx(5.5)
+    assert m['max_grade'] == pytest.approx(0.10)
+    # Every 30 m baseline on either side of the crest is 10%; of equally steep baselines the first is reported.
+    assert (m['max_grade_from_m'], m['max_grade_to_m']) == pytest.approx((0.0, 30.0))
+    assert 0 < m['meters_over_8pct_grade'] < length  # The baselines straddling the crest read under 8%.
+    assert m['meters_over_8pct_grade'] <= m['meters_over_5pct_grade']
+
+
+def test_grade_metrics_never_reports_a_maximum_under_the_mean():
+    z = np.tile([0.0, 0.3, 0.0, -0.3], 5)[:17]  # A washboard: 3% over every 10 m baseline, ~0 over any 30 m one.
+    m = sg.grade_metrics(z, 160.0)
+    assert m['mean_grade'] > 0.02
+    assert m['max_grade'] == m['mean_grade']
+    # No stretch reaches a floored maximum, so there is nowhere along the street to point at.
+    assert 'max_grade_from_m' not in m and 'max_grade_to_m' not in m
+
+
+def test_steepest_window_finds_the_steep_baseline_and_covers_a_street_shorter_than_it():
+    z = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.5, 3.0, 4.5, 4.5, 4.5])  # 5 m steps: 30% from 25 m to 40 m.
+    assert sg.steepest_window(z, 50.0, 10.0) == pytest.approx((25.0, 35.0))
+    assert sg.steepest_window(z, 50.0, 30.0) == pytest.approx((10.0, 40.0))
+    assert sg.steepest_window(np.array([0.0, 1.0]), 8.0, 30.0) == (0.0, 8.0)
+
+
+@pytest.mark.parametrize('length', [12.0, 29.9, 30.0, 100.0, 237.0])
+@pytest.mark.parametrize('grade', [0.0, 0.01, 0.05, 0.06, 0.1])
+@pytest.mark.parametrize('step', [1.0, 5.0])
+def test_grade_metrics_of_a_uniform_slope_reports_its_first_stretch_whatever_the_rounding(length, grade, step):
+    # Every baseline of a uniform slope is equally steep, so float rounding alone separates them. It must neither
+    # "floor" the maximum (dropping the stretch) nor move the stretch off the street's start.
+    n = max(1, round(length / step))
+    m = sg.grade_metrics(grade * np.linspace(0, length, n + 1), length)
+    window = sg.MAX_WINDOW_M if length >= sg.MAX_WINDOW_M else sg.MEAN_WINDOW_M
+    expected_to = min(length, round(window / (length / n)) * (length / n))
+    assert (m['max_grade_from_m'], m['max_grade_to_m']) == pytest.approx((0.0, expected_to))
+
+
+def test_grade_metrics_of_a_street_under_30_m_takes_its_steepest_10_m_pitch_as_the_maximum():
+    z = np.array([0.0, 0.0, 0.0, 1.0, 2.0])  # 5 m steps: level for 10 m, then 20% for 10 m. 10% end to end.
+    m = sg.grade_metrics(z, 20.0)
+    assert m['net_grade'] == pytest.approx(0.10)
+    assert m['max_grade'] == pytest.approx(0.20)
+    assert (m['max_grade_from_m'], m['max_grade_to_m']) == pytest.approx((10.0, 20.0))
+    # At 30 m the 30 m baseline takes over, and it is the whole street.
+    assert sg.grade_metrics(np.array([0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 2.0]), 30.0)['max_grade'] == pytest.approx(2 / 30)
+
+
+def test_grade_metrics_of_a_street_shorter_than_every_baseline():
+    m = sg.grade_metrics(np.array([10.0, 10.4]), 8.0)
+    assert m['mean_grade'] == m['max_grade'] == pytest.approx(0.05)
+    assert (m['max_grade_from_m'], m['max_grade_to_m']) == pytest.approx((0.0, 8.0))
+    assert m['climb_m'] == pytest.approx(0.4)
+    assert m['profile_cm'] == [1000, 1040]
+
+
+# --------------------------------------------------------------------------------------------------------------------
+# edge_gradient / confidence_for
+# --------------------------------------------------------------------------------------------------------------------
+
+
+def test_edge_gradient_measures_a_clean_profile_and_bridges_a_short_gap():
+    z = 20.0 + 0.04 * np.linspace(0, 100, 21)
+    z[5:8] = np.nan
+    got = sg.edge_gradient(z, 100.0, False)
+    assert got['quality'] == sg.QUALITY_MEASURED
+    assert got['mean_grade'] == pytest.approx(0.04)
+    assert (got['elev_start_m'], got['elev_end_m']) == pytest.approx((20.0, 24.0))
+
+
+def test_edge_gradient_has_no_data_for_an_empty_a_zero_length_or_an_unanchored_profile():
+    mostly_missing = np.array([1.0, np.nan, np.nan, np.nan, np.nan, 2.0])
+    assert sg.edge_gradient(mostly_missing, 25.0, False) == {'quality': sg.QUALITY_NO_DATA}
+    assert sg.edge_gradient(np.array([1.0, 1.0]), 0.0, False) == {'quality': sg.QUALITY_NO_DATA}
+    # A 1% street missing a fifth of its length at each end: held flat out to the ends it would read 0.6%, measured.
+    ramp = 100.0 + 0.01 * np.linspace(0, 100, 11)
+    for lost in (slice(0, 2), slice(-2, None), slice(0, 1), slice(-1, None)):
+        z = ramp.copy()
+        z[lost] = np.nan
+        assert sg.edge_gradient(z, 100.0, False) == {'quality': sg.QUALITY_NO_DATA}
+    assert sg.edge_gradient(np.array([np.nan, 1.0, 2.0, 3.0]), 15.0, True) == {'quality': sg.QUALITY_NO_DATA}
+    assert sg.edge_gradient(np.array([1.0, 2.0, 3.0, np.nan]), 15.0, True) == {'quality': sg.QUALITY_NO_DATA}
+
+
+def test_edge_gradient_gives_a_structure_its_endpoint_elevations_and_no_grade():
+    # A bare-earth model under a bridge: the deck is level at 30 m, the ravine below drops 20 m.
+    z = np.array([30.0, 22.0, 10.0, 10.0, 10.0, 12.0, 24.0, 31.0])
+    assert sg.edge_gradient(z, 70.0, True) == {'quality': sg.QUALITY_STRUCTURE, 'elev_start_m': 30.0,
+                                               'elev_end_m': 31.0}
+    # Mostly missing in between is fine for a structure: only its ends are read.
+    assert sg.edge_gradient(np.array([30.0] + [np.nan] * 6 + [31.0]), 70.0, True)['quality'] == sg.QUALITY_STRUCTURE
+    # One end read at the lip of the cut it crosses: 12 m over 11 m is no grade to report, and no verdict on the ends.
+    lip = sg.edge_gradient(np.array([30.0, 24.0, 18.0]), 11.0, True)
+    assert lip['quality'] == sg.QUALITY_STRUCTURE and 'net_grade' not in lip
+    row = sg.format_row(_street(5, [], True), lip, 'usgs-3dep-10m', 10.0)
+    assert (row['elev_start_m'], row['elev_end_m'], row['net_grade'], row['profile_cm']) == ('30.00', '18.00', '', '')
+
+
+def test_edge_gradient_flags_an_untagged_artifact_but_not_a_uniformly_steep_hill():
+    ravine = np.array([30.0, 30.0, 30.0, 22.0, 22.0, 30.0, 30.0, 30.0, 30.0])  # An 8 m hole in a level 40 m street.
+    got = sg.edge_gradient(ravine, 40.0, False)
+    assert got['quality'] == sg.QUALITY_SUSPECT
+    assert got['max_grade'] == 0 and got['profile_cm'] == [3000] * 5
+    # A straight line is equally steep everywhere, so it has no steepest stretch to report.
+    assert 'max_grade_from_m' not in got
+    row = sg.format_row(_street(5, [], False), got, 'usgs-3dep-10m', 10.0)
+    assert (row['max_grade'], row['max_grade_from_m'], row['max_grade_to_m']) == ('0.00000', '', '')
+    hill = 0.25 * np.linspace(0, 100, 21)  # 25% end to end: steep, and the pitch agrees with the net grade.
+    measured = sg.edge_gradient(hill, 100.0, False)
+    assert measured['quality'] == sg.QUALITY_MEASURED
+    # A measured street carries its steepest stretch through to the CSV, in the same two-decimal meters as the rest.
+    row = sg.format_row(_street(6, [], False), measured, 'usgs-3dep-10m', 10.0)
+    assert (row['max_grade_from_m'], row['max_grade_to_m']) == ('0.00', '30.00')
+    # Over the ratio but under SUSPECT_GRADE: a 12% pitch on a level street is a driveway dip, not an artifact.
+    dip = np.array([10.0, 10.0, 8.8, 10.0, 10.0, 10.0, 10.0])
+    assert sg.edge_gradient(dip, 60.0, False)['quality'] == sg.QUALITY_MEASURED
+
+
+def test_edge_gradient_caps_what_any_street_can_be():
+    # A 45% pitch on a 30% hill passes the ratio test, but no street has a 45% pitch.
+    cliffy = np.concatenate([0.30 * np.arange(0, 45, 5), [13.5 + 2.25, 13.5 + 4.5], 18.0 + 0.30 * np.arange(5, 40, 5)])
+    got = sg.edge_gradient(cliffy, 85.0, False)
+    assert got['quality'] == sg.QUALITY_SUSPECT and got['max_grade'] < sg.MAX_PLAUSIBLE_GRADE
+    # A 10 m stub whose ends are 6 m apart in height: the endpoints themselves are wrong, so nothing is reported.
+    assert sg.edge_gradient(np.array([10.0, 13.0, 16.0]), 10.0, False) == {'quality': sg.QUALITY_SUSPECT}
+
+
+def test_edge_gradient_of_a_coarse_model_keeps_the_end_to_end_grade_alone():
+    # A hump a 30 m model cannot place: only the line between the ends is kept, which is the shape 399.sql allows.
+    z = np.array([10.0, 11.0, 14.0, 11.0, 9.0])
+    got = sg.edge_gradient(z, 20.0, False, net_only=True)
+    assert got == {'quality': sg.QUALITY_MEASURED, 'elev_start_m': 10.0, 'elev_end_m': 9.0,
+                   'net_grade': pytest.approx(-0.05)}
+    # The verdicts that need no profile still apply.
+    assert sg.edge_gradient(np.array([10.0, 20.0]), 10.0, False, net_only=True) == {'quality': sg.QUALITY_SUSPECT}
+    assert sg.edge_gradient(z, 20.0, True, net_only=True)['quality'] == sg.QUALITY_STRUCTURE
+    assert sg.edge_gradient(np.array([np.nan, 1.0]), 20.0, False, net_only=True) == {'quality': sg.QUALITY_NO_DATA}
+
+
+def test_edge_gradient_smooths_a_fine_model_without_moving_its_endpoints():
+    z = 0.03 * np.arange(61.0)
+    z[30] += 0.4  # A curb-height blip mid-block on a 3% street sampled every meter.
+    raw, smoothed = sg.edge_gradient(z, 60.0, False), sg.edge_gradient(z, 60.0, False, smooth_samples=5)
+    assert smoothed['mean_grade'] < raw['mean_grade']
+    assert smoothed['mean_grade'] == pytest.approx(0.03, abs=0.004)
+    assert smoothed['net_grade'] == raw['net_grade'] == pytest.approx(0.03)
+    assert (smoothed['elev_start_m'], smoothed['elev_end_m']) == pytest.approx((0.0, 1.8))
+
+
+def test_confidence_for_maps_grid_size_to_the_three_tiers():
+    assert [sg.confidence_for(r) for r in (1, 10, 10.5, 20, 30)] == ['high', 'high', 'medium', 'medium', 'low']
+
+
+# --------------------------------------------------------------------------------------------------------------------
+# Sources
+# --------------------------------------------------------------------------------------------------------------------
+
+
+def test_usgs_tile_is_named_for_its_north_west_corner():
+    assert sg.usgs_13_tile_url(-122.33, 47.62).endswith('/13/TIFF/current/n48w123/USGS_13_n48w123.tif')
+    assert sg.usgs_13_tile_url(-74.01, 40.89).endswith('/n41w075/USGS_13_n41w075.tif')
+    assert sg.usgs_13_tile_url(-122.33, 47.62).startswith('/vsicurl/https://')
+    assert sg.usgs_13_tile_url(4.9, 52.37) is None and sg.usgs_13_tile_url(-70.65, -33.44) is None
+    assert sg.usgs_13_locate(np.array([-122.33, 4.9]), np.array([47.62, 52.37])) == [
+        sg.usgs_13_tile_url(-122.33, 47.62), None]
+
+
+def test_nz_sheet_is_named_by_topo50_row_letters_and_column_number():
+    # Queen St, Auckland: NZTM 1757316, 5920481 lies on sheet BA32 (the probe matched it against the bucket's tiles).
+    assert sg.nz_sheet_name(1757316, 5920481) == 'BA32'
+    # The grid's north-west corner is sheet AS04; the letters skip I and O like the published series.
+    assert sg.nz_sheet_name(sg.NZ_SHEET_LEFT_E + 1, sg.NZ_SHEET_TOP_N - 1) == 'AS04'
+    assert sg.NZ_SHEET_ROWS[:9] == ['AS', 'AT', 'AU', 'AV', 'AW', 'AX', 'AY', 'AZ', 'BA']
+    assert 'BI' not in sg.NZ_SHEET_ROWS and 'BO' not in sg.NZ_SHEET_ROWS and sg.NZ_SHEET_ROWS[-1] == 'CK'
+    # Off the grid: north of the first row, west of the first column, south of the last row.
+    assert sg.nz_sheet_name(1757316, sg.NZ_SHEET_TOP_N + 1) is None
+    assert sg.nz_sheet_name(sg.NZ_SHEET_LEFT_E - 1, 5920481) is None
+    assert sg.nz_sheet_name(1757316, sg.NZ_SHEET_TOP_N - len(sg.NZ_SHEET_ROWS) * sg.NZ_SHEET_HEIGHT_M - 1) is None
+    paths = sg.nz_1m_locate(np.array([174.7645, -122.33]), np.array([-36.8485, 47.62]))
+    assert paths[0] == f'/vsicurl/{sg.NZ_1M_DEM}BA32.tiff' and paths[1] is None
+
+
+def _json(document):
+    """What `fetch_bytes` hands back for a JSON document."""
+    return json.dumps(document).encode()
+
+
+def test_fetch_bytes_retries_a_failed_request_and_a_wrong_body_then_gives_up(monkeypatch, caplog):
+    class Response:
+        def __init__(self, body):
+            self.body = body
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+        def read(self):
+            return self.body
+
+    answers, seen, pauses = [], [], []
+
+    def urlopen(request, timeout):
+        seen.append((request.full_url, request.data, timeout))
+        answer = answers.pop(0)
+        if isinstance(answer, Exception):
+            raise answer
+        return Response(answer)
+
+    monkeypatch.setattr(sg.urllib.request, 'urlopen', urlopen)
+    # A dropped connection, then a service exception with status 200, then the file: two pauses, 2 s and 4 s.
+    answers[:] = [urllib.error.URLError('connection reset'), b'<ServiceExceptionReport/>', b'II*\x00tiff']
+    assert sg.fetch_bytes('https://example.test/a.tif', magic=b'II*\x00', sleep=pauses.append) == b'II*\x00tiff'
+    assert pauses == [2.0, 4.0] and [s[1:] for s in seen] == [(None, 600.0)] * 3
+    assert 'connection reset' in caplog.text and 'ServiceExceptionReport' in caplog.text
+    # A form POST carries its fields. The fifth failure is the caller's, after four pauses (2, 4, 8, 16 s).
+    answers[:] = [urllib.error.HTTPError('https://example.test/form', 503, 'busy', {}, None)] * 5
+    with pytest.raises(urllib.error.HTTPError):
+        sg.fetch_bytes('https://example.test/form', {'res': 5, 'cve': 'E14A39B4'}, 9.0, sleep=pauses.append)
+    assert seen[-1] == ('https://example.test/form', b'res=5&cve=E14A39B4', 9.0) and pauses[2:] == [2.0, 4.0, 8.0, 16.0]
+    # A 404 says the request is what is wrong, so it reaches the caller at once; a 429 says "later" and is retried.
+    answers[:] = [urllib.error.HTTPError('https://example.test/gone', 404, 'gone', {}, None)]
+    with pytest.raises(urllib.error.HTTPError, match='404'):
+        sg.fetch_bytes('https://example.test/gone', sleep=pauses.append)
+    assert len(pauses) == 6 and not answers
+    answers[:] = [urllib.error.HTTPError('https://example.test/busy', 429, 'slow down', {}, None), b'ok']
+    assert sg.fetch_bytes('https://example.test/busy', sleep=pauses.append) == b'ok' and pauses[6:] == [2.0]
+
+
+def test_transient_and_is_absent_tell_a_missing_file_from_an_outage():
+    def status(code):
+        return urllib.error.HTTPError('https://example.test/x', code, 'x', {}, None)
+
+    assert [sg.transient(status(code)) for code in (400, 403, 404, 408, 429, 500, 503)] == [
+        False, False, False, True, True, True, True]
+    assert sg.transient(urllib.error.URLError('reset')) and sg.transient(TimeoutError())
+    assert not sg.transient(ValueError('not a fetch error'))
+    assert [sg.is_absent(status(code)) for code in (403, 404, 410, 503)] == [False, True, True, False]
+    assert not sg.is_absent(urllib.error.URLError('reset'))
+
+
+def test_stac_items_follows_next_links_and_tolerates_a_page_without_them():
+    pages = {
+        'q?page=1': {'features': [{'id': 'a'}], 'links': [{'rel': 'self', 'href': 'q?page=1'},
+                                                            {'rel': 'next', 'href': 'q?page=2'}]},
+        'q?page=2': {'features': [{'id': 'b'}, {'id': 'c'}]},
+    }
+    fetch = lambda url: _json(pages[url])
+    assert [item['id'] for item in sg.stac_items('q?page=1', fetch)] == ['a', 'b', 'c']
+    assert list(sg.stac_items('q?page=2', fetch)) == [{'id': 'b'}, {'id': 'c'}]
+
+
+def test_stac_items_resolves_a_relative_next_link_and_ends_at_a_page_that_links_to_itself():
+    pages = {
+        'https://stac.test/search?page=1': {'features': [{'id': 'a'}], 'links': [{'rel': 'next', 'href': '?page=2'}]},
+        'https://stac.test/search?page=2': {'features': [{'id': 'b'}], 'links': [{'rel': 'next', 'href': '?page=2'}]},
+    }
+    fetched = []
+    fetch = lambda url: fetched.append(url) or _json(pages[url])
+    assert [item['id'] for item in sg.stac_items('https://stac.test/search?page=1', fetch)] == ['a', 'b']
+    assert fetched == list(pages)
+
+
+def test_catalog_locator_searches_an_area_once_pads_it_and_keeps_each_raster_once():
+    searched = []
+
+    def fill(west, south, east, north):
+        searched.append((round(west, 3), round(south, 3), round(east, 3), round(north, 3)))
+        # The same tile comes back from every search that touches it; a second one lies east of the first.
+        return [('tile-a.tif', 'EPSG:4326', (_LNG, _LAT, _LNG + 0.01, _LAT + 0.01)),
+                ('tile-b.tif', 'EPSG:4326', (_LNG + 0.01, _LAT, _LNG + 0.02, _LAT + 0.01))]
+
+    locate = sg.CatalogLocator(fill, pad_deg=0.005)
+    lngs, lats = np.array([_LNG + 0.002, _LNG + 0.012, _LNG + 0.5]), np.full(3, _LAT + 0.004)
+    assert locate(lngs, lats) == ['tile-a.tif', 'tile-b.tif', None]
+    assert searched == [(round(_LNG - 0.003, 3), round(_LAT - 0.001, 3), round(_LNG + 0.505, 3),
+                         round(_LAT + 0.009, 3))]
+    # A batch inside the area already searched asks nothing more, even where no raster covers it (open water).
+    assert locate(np.array([_LNG + 0.3]), np.array([_LAT + 0.004])) == [None]
+    assert len(searched) == 1
+    # One beyond it searches again, and the tiles seen before are not listed twice.
+    assert locate(np.array([_LNG + 0.015]), np.array([_LAT + 0.02])) == [None]
+    assert len(searched) == 2 and len(locate._rasters) == 2
+
+
+def _swiss_item(year, square, resolution='2'):
+    item_id = f'swissalti3d_{year}_{square}'
+    base = f'https://data.geo.admin.ch/ch.swisstopo.swissalti3d/{item_id}/{item_id}'
+    tif = f'{item_id}_{resolution}_2056_5728.tif'
+    return {'id': item_id, 'assets': {tif: {'href': f'{base}_{resolution}_2056_5728.tif'},
+                                      f'{tif}.xyz.zip': {'href': f'{base}.xyz.zip'}}}
+
+
+_SWISS_QUERY = sg.SWISSALTI3D_ITEMS + '?bbox=8.5%2C47.3%2C8.6%2C47.4&limit=100'
+
+
+def test_swissalti3d_tiles_keeps_the_newest_issue_of_each_square_and_places_it_in_lv95():
+    def fetch(url):
+        if url == 'https://stac.test/page2':
+            return _json({'features': [_swiss_item(2021, '2684-1247')]})
+        assert url == _SWISS_QUERY
+        return _json({'features': [_swiss_item(2019, '2683-1247'), _swiss_item(2026, '2683-1247'),
+                                   _swiss_item(2020, '2683-1247'), _swiss_item(2019, '2684-1247')],
+                      'links': [{'rel': 'next', 'href': 'https://stac.test/page2'}]})
+
+    tiles = sg.swissalti3d_tiles(8.5, 47.3, 8.6, 47.4, fetch)
+    assert [(path.split('/')[-1], crs, bounds) for path, crs, bounds in tiles] == [
+        ('swissalti3d_2026_2683-1247_2_2056_5728.tif', 'EPSG:2056', (2683000.0, 1247000.0, 2684000.0, 1248000.0)),
+        ('swissalti3d_2021_2684-1247_2_2056_5728.tif', 'EPSG:2056', (2684000.0, 1247000.0, 2685000.0, 1248000.0))]
+    assert all(path.startswith('/vsicurl/https://') for path, _, _ in tiles)
+    # The 1 km square under Zürich HB (LV95 2683303, 1247925) resolves through the locator to its tile.
+    one_page = lambda url: _json({'features': json.loads(fetch(_SWISS_QUERY))['features']})
+    locate = sg.CatalogLocator(lambda w, s, e, n: sg.swissalti3d_tiles(8.5, 47.3, 8.6, 47.4, one_page))
+    assert locate(np.array([8.5417]), np.array([47.3769]))[0].endswith('swissalti3d_2026_2683-1247_2_2056_5728.tif')
+
+
+def test_gedtm30_is_one_raster_for_every_point_between_its_latitude_limits():
+    paths = sg.gedtm30_locate(np.array([-70.65, 76.78, 0.0, 0.0]), np.array([-33.44, 30.73, -70.0, 86.0]))
+    assert paths == [sg.GEDTM30_URL, sg.GEDTM30_URL, None, None]
+    assert sg.GEDTM30_URL.startswith('/vsicurl/https://') and sg.GEDTM30.resolution_m == 30.0
+    assert sg.confidence_for(sg.GEDTM30.resolution_m) == 'low'
+
+
+def test_dem_cache_dir_is_under_the_repos_onboarding_directory(tmp_path, monkeypatch):
+    monkeypatch.setattr(sg, 'REPO_ROOT', tmp_path)
+    assert sg.dem_cache_dir('x') == tmp_path / 'db' / 'onboarding' / '_dem_cache' / 'x'
+    assert sg.dem_cache_dir('x').is_dir()
+
+
+def test_index_search_loads_its_list_once_and_returns_only_the_rasters_a_box_meets():
+    loads = []
+    here = ('here.tif', 'EPSG:4326', (_LNG, _LAT, _LNG + 0.01, _LAT + 0.01))
+    far = ('far.tif', 'EPSG:4326', (_LNG + 1, _LAT, _LNG + 1.01, _LAT + 0.01))
+
+    def load():
+        loads.append(True)
+        return [here, far]
+
+    search = sg.index_search(load)
+    assert search(_LNG + 0.002, _LAT + 0.002, _LNG + 0.003, _LAT + 0.003) == [here]
+    assert search(_LNG - 1, _LAT - 1, _LNG + 2, _LAT + 1) == [here, far]
+    assert search(_LNG + 0.5, _LAT, _LNG + 0.6, _LAT + 0.01) == []
+    assert loads == [True]
+
+
+def test_inegi_chart_walks_the_map_series_from_the_north_west_corner():
+    # Keys INEGI itself lists for these points (the derivation was checked against all 26,334 listed charts).
+    assert sg.inegi_chart(-99.1332, 19.4326) == 'E14A39B4'   # Zócalo, Mexico City
+    assert sg.inegi_chart(-100.40, 25.66) == 'G14C25C3'      # San Pedro Garza García
+    assert sg.inegi_chart(-102.03, 20.34) == 'F13D79F2'      # La Piedad, in UTM zone 13
+    # The first chart of a 1:1 000 000 sheet is its north-west corner, lettered and numbered from there.
+    assert sg.inegi_chart(-101.99, 19.99) == 'E14A11A1'
+    assert sg.inegi_chart(-96.01, 16.01) == 'E14D89F4'
+    # A point exactly on a 4° band edge (an OSM node at 20.000000) is on that band's southern row, not past it.
+    assert sg.inegi_chart(-99.1332, 19.999999) == 'E14A19B2'
+    assert sg.inegi_chart(-99.1332, 20.0) == 'F14C89E4' and sg.inegi_chart(-99.1332, 24.0) == 'G14C89E4'
+    # A zone's eastern edge belongs to the next zone, as its western edge belongs to it.
+    assert sg.inegi_chart(-96.0, 19.4326) == 'E15A31A3'
+
+
+def _grid_zip(chart, projected=True, grid=True, nested=True):
+    """
+    A zip laid out the way INEGI's are: Windows separators, a GRID directory with an hdr.adf, and metadata. The
+    2011/2012 lidar editions ship no prj.adf (`projected=False`); `grid=False` is an archive with no GRID at all, and
+    `nested=False` one with the GRID's files at its root.
+    """
+    buffer = io.BytesIO()
+    folder = f'conjunto_de_datos\\{chart.lower()}_mt\\' if nested else ''
+    with zipfile.ZipFile(buffer, 'w') as archive:
+        if grid:
+            archive.writestr(f'{folder}hdr.adf', b'grid header')
+            archive.writestr(f'{folder}w001001.adf', b'cells')
+        if grid and projected:
+            archive.writestr(f'{folder}prj.adf', b'Projection    UTM\n')
+        archive.writestr('metadatos\\', b'')
+        archive.writestr(f'metadatos\\{chart.lower()}_mt.txt', b'notes')
+    return buffer.getvalue()
+
+
+def test_extract_zip_refuses_an_entry_that_would_land_outside_the_target(tmp_path):
+    for name in ('..\\..\\escape.adf', '/etc/escape.adf'):
+        buffer = io.BytesIO()
+        with zipfile.ZipFile(buffer, 'w') as archive:
+            archive.writestr(name, b'x')
+        with pytest.raises(ValueError, match='outside'):
+            sg.extract_zip(buffer.getvalue(), tmp_path / 'into')
+    assert not (tmp_path / 'escape.adf').exists() and not (tmp_path / 'into').exists()
+
+
+def test_inegi_fetch_grid_takes_the_newest_edition_once_and_gives_a_lidar_edition_its_projection(tmp_path):
+    def edition(year, url, formats):
+        return {'edicion': year, 'url_descarga': url, 'archivo': formats}
+
+    editions = {
+        'E14A39B4': [edition(2011, 'https://www.inegi.org.mx/old', '|_as.zip,7 MB|_gr.zip,2 MB'),
+                     edition(2018, 'https://www.inegi.org.mx/new', '|_b.zip,4 MB|_gr.zip,1 MB')],
+        'F13D79F2': [edition(2011, 'https://www.inegi.org.mx/lidar', '|_gr.zip,2 MB')],
+        'E14A39B2': [edition(2011, 'https://www.inegi.org.mx/ascii', '|_as.zip,7 MB')],
+        'G14C25C3': [edition(2018, 'https://elsewhere.test/grid', '|_gr.zip,1 MB')],
+        'E14D89F4': [edition(2018, 'https://www.inegi.org.mx/empty', '|_gr.zip,1 MB')],
+        'E14D89F3': [edition(2018, 'https://www.inegi.org.mx/gone', '|_gr.zip,1 MB')],
+        'E14D89F2': [edition(2018, 'https://www.inegi.org.mx/flat', '|_gr.zip,1 MB')],
+        'E14D89F1': [edition(2018, 'https://www.inegi.org.mx/down', '|_gr.zip,1 MB')],
+    }
+    zips = {'https://www.inegi.org.mx/new_gr.zip': _grid_zip('E14A39B4'),
+            'https://www.inegi.org.mx/lidar_gr.zip': _grid_zip('F13D79F2', projected=False),
+            'https://www.inegi.org.mx/empty_gr.zip': _grid_zip('E14D89F4', grid=False),
+            'https://www.inegi.org.mx/flat_gr.zip': _grid_zip('E14D89F2', nested=False)}
+    fetched = []
+
+    def fetch(url, data=None, magic=b'', **_):
+        fetched.append(url)
+        if url == sg.INEGI_DESCRIPTOR:
+            return _json(editions[data['cve']])
+        assert magic == b'PK\x03\x04'  # So fetch_bytes retries a maintenance page rather than unzipping it.
+        if url.endswith('down_gr.zip'):
+            raise urllib.error.HTTPError(url, 503, 'Service Unavailable', {}, None)
+        if url not in zips:
+            raise urllib.error.HTTPError(url, 404, 'Not Found', {}, None)
+        return zips[url]
+
+    cache = tmp_path / 'cache'
+    cache.mkdir()
+    grid = sg.inegi_fetch_grid('E14A39B4', cache, fetch)
+    assert grid == cache / 'E14A39B4_2018' and (grid / 'hdr.adf').read_bytes() == b'grid header'
+    assert (grid / 'prj.adf').read_bytes() == b'Projection    UTM\n' and sorted(cache.iterdir()) == [grid]
+    assert fetched == [sg.INEGI_DESCRIPTOR, 'https://www.inegi.org.mx/new_gr.zip']
+    # The edition in the cache is the one INEGI still lists, so only the descriptor is asked for again.
+    assert sg.inegi_fetch_grid('E14A39B4', cache, fetch) == grid and fetched[2:] == [sg.INEGI_DESCRIPTOR]
+    # A lidar edition gets the projection of its chart's UTM zone (13 from the key); a killed run's leftovers go.
+    (cache / 'F13D79F2_2011.part').mkdir()
+    lidar = sg.inegi_fetch_grid('F13D79F2', cache, fetch)
+    assert lidar == cache / 'F13D79F2_2011' and CRS.from_wkt((lidar / 'prj.adf').read_text()).to_epsg() == 32613
+    assert sorted(cache.iterdir()) == [grid, lidar]
+    assert sg.inegi_fetch_grid('E14A39B2', cache, fetch) is None
+    with pytest.raises(ValueError, match='off its own host'):
+        sg.inegi_fetch_grid('G14C25C3', cache, fetch)
+    # An archive with no GRID, or a listed download that is gone, is a chart with nothing, not an outage: aborting
+    # would stop the city on the same chart at every --resume.
+    assert sg.inegi_fetch_grid('E14D89F4', cache, fetch) is None
+    assert sg.inegi_fetch_grid('E14D89F3', cache, fetch) is None
+    # A download INEGI could not serve is an outage, which ends the run (see main).
+    with pytest.raises(urllib.error.HTTPError, match='503'):
+        sg.inegi_fetch_grid('E14D89F1', cache, fetch)
+    assert sorted(cache.iterdir()) == [grid, lidar]
+    # A GRID at the archive's root is moved into place whole.
+    flat = sg.inegi_fetch_grid('E14D89F2', cache, fetch)
+    assert flat == cache / 'E14D89F2_2018' and (flat / 'hdr.adf').read_bytes() == b'grid header'
+    assert sorted(cache.iterdir()) == [grid, flat, lidar]
+
+
+def test_cached_locator_asks_once_per_key_and_lets_a_failed_download_through(tmp_path, monkeypatch, caplog):
+    monkeypatch.setattr(sg, 'REPO_ROOT', tmp_path)
+    cache = tmp_path / 'db/onboarding/_dem_cache/demo'
+    asked = []
+
+    def fetch_file(key, cache_dir):
+        asked.append(key)
+        assert cache_dir == cache
+        if key == 'gone':
+            return None
+        if key == 'down':
+            raise sg.WrongBody('<ServiceExceptionReport/>')
+        return cache_dir / f'{key}.tif'
+
+    locate = sg.CachedLocator('demo', lambda lng, lat: 'gone' if lng < 0 else 'down' if lat < 0 else 'here',
+                              fetch_file)
+    lngs, lats = np.array([1.0, -1.0, 2.0, -2.0]), np.array([1.0, 1.0, 2.0, 1.0])
+    # A chart the publisher has nothing for is remembered as None; every key is fetched once.
+    assert locate(lngs, lats) == [str(cache / 'here.tif'), None, str(cache / 'here.tif'), None]
+    assert asked == ['here', 'gone'] and 'demo has nothing for gone' in caplog.text
+    # A download that fails after every retry is not remembered as missing: the error reaches the caller, and asking
+    # again asks the publisher again.
+    for _ in range(2):
+        with pytest.raises(sg.WrongBody, match='ServiceExceptionReport'):
+            locate(np.array([1.0]), np.array([-1.0]))
+    assert asked == ['here', 'gone', 'down', 'down']
+
+
+def test_lidarhd_cell_url_asks_for_the_cell_at_half_meter_nodes():
+    url = sg.lidarhd_cell_url(-148, 4349)  # Bayonne: lng -1.48..-1.47, lat 43.49..43.50
+    query = dict(urllib.parse.parse_qsl(url.split('?', 1)[1], keep_blank_values=True))
+    assert url.startswith(sg.LIDARHD_WMS) and query['LAYERS'] == sg.LIDARHD_LAYER and query['CRS'] == 'EPSG:2154'
+    assert query['FORMAT'] == 'image/geotiff' and query['STYLES'] == ''
+    x0, y0, x1, y1 = (float(v) for v in query['BBOX'].split(','))
+    assert all(v % 1 == 0.25 or v % 1 == 0.75 for v in (x0, y0, x1, y1))
+    # ~0.8 km wide and ~1.1 km tall at this latitude, plus 2 m of padding each side, at 0.5 m per pixel.
+    assert int(query['WIDTH']) == round((x1 - x0) * 2) and int(query['HEIGHT']) == round((y1 - y0) * 2)
+    assert 1500 < int(query['WIDTH']) < 1800 and 2100 < int(query['HEIGHT']) < 2400
+    xs, ys = sg.warp_transform('EPSG:4326', 'EPSG:2154', [-1.48, -1.47], [43.49, 43.50])
+    assert x0 < min(xs) and x1 > max(xs) and y0 < min(ys) and y1 > max(ys)
+
+
+def test_lidarhd_fetch_cell_fetches_a_cell_once_as_one_whole_file_and_never_caches_a_blank_one(tmp_path, monkeypatch):
+    bodies = tmp_path / 'bodies'
+    bodies.mkdir()
+    covered = _write_plane(bodies / 'covered.tif').read_bytes()
+    blank = _write_plane(bodies / 'blank.tif', nodata_cols=range(200)).read_bytes()
+    cache = tmp_path / 'cache'
+    cache.mkdir()
+    fetched = []
+
+    def fetch(url, magic=b'', **_):
+        fetched.append((url, magic))
+        return blank if url.endswith('4350') else covered
+
+    monkeypatch.setattr(sg, 'lidarhd_cell_url', lambda column, row: f'wms?BBOX={column}:{row}')
+    assert sg.lidarhd_cell(-1.475, 43.493) == '-148_4349'  # Bayonne: lng -1.48..-1.47, lat 43.49..43.50
+    tif = sg.lidarhd_fetch_cell('-148_4349', cache, fetch)
+    assert tif == cache / '-148_4349.tif' and tif.read_bytes() == covered
+    # The TIFF magic is what fetch_bytes retries on; nothing but the finished file is left in the cache.
+    assert fetched == [('wms?BBOX=-148:4349', b'II*\x00')] and list(cache.iterdir()) == [tif]
+    assert sg.lidarhd_fetch_cell('-148_4349', cache, fetch) == tif and len(fetched) == 1
+    # A cell the flights have not reached is all no-data: nothing for it this run, and asked for again the next.
+    assert sg.lidarhd_fetch_cell('-148_4350', cache, fetch) is None
+    assert sg.lidarhd_fetch_cell('-148_4350', cache, fetch) is None
+    assert len(fetched) == 3 and list(cache.iterdir()) == [tif]
+
+
+def test_ahn_sheets_read_each_sheets_url_and_rd_extent():
+    index = {'features': [{'properties': {'kaartbladNr': 'M_25EZ1', 'url': 'https://pdok.test/M_25EZ1.tif'},
+                           'geometry': {'coordinates': [[[120000, 487500], [125000, 487500], [125000, 493750],
+                                                         [120000, 493750], [120000, 487500]]]}}]}
+    sheet = '/vsicurl/https://pdok.test/M_25EZ1.tif'
+    assert sg.ahn_sheets(lambda url: _json(index) if url == sg.AHN_INDEX else None) == [
+        (sheet, 'EPSG:28992', (120000, 487500, 125000, 493750))]
+    # Amsterdam Centraal (RD 121847, 488026) lies on that sheet.
+    locate = sg.CatalogLocator(sg.index_search(lambda: sg.ahn_sheets(lambda url: _json(index))))
+    assert locate(np.array([4.9003, -122.33]), np.array([52.3791, 47.62])) == [sheet, None]
+
+
+def test_hrdem_tiles_take_each_mosaic_tiles_dtm_and_its_own_lambert_square():
+    def item(name, x0):
+        square = [[x0, 0.0], [x0, 500000.0], [x0 + 500000.0, 500000.0], [x0 + 500000.0, 0.0], [x0, 0.0]]
+        return {'id': f'{name}-mosaic-2m', 'bbox': [-123.54, 45.33, -114.83, 51.14],
+                'properties': {'proj:epsg': 3979, 'proj:geometry': {'type': 'Polygon', 'coordinates': [square]}},
+                'assets': {'dtm': {'href': f'https://example.test/{name}-mosaic-2m-dtm.tif'},
+                           'dsm': {'href': f'https://example.test/{name}-mosaic-2m-dsm.tif'}}}
+
+    def fetch(url):
+        assert url == (sg.HRDEM_SEARCH + '?collections=hrdem-mosaic-2m&bbox=-123.1%2C49.1%2C-122.8%2C49.3&limit=100')
+        return _json({'features': [item('2_3', -2000000.0), item('3_3', -1500000.0)]})
+
+    tiles = sg.hrdem_tiles(-123.1, 49.1, -122.8, 49.3, fetch)
+    assert tiles == [('/vsicurl/https://example.test/2_3-mosaic-2m-dtm.tif', 'EPSG:3979',
+                      (-2000000.0, 0.0, -1500000.0, 500000.0)),
+                     ('/vsicurl/https://example.test/3_3-mosaic-2m-dtm.tif', 'EPSG:3979',
+                      (-1500000.0, 0.0, -1000000.0, 500000.0))]
+    # Two points 2 km apart across the seam at x = -1 500 000 (near Cranbrook, BC). Both lie inside tile 2_3's WGS84
+    # bbox (its real one, above), so a bbox match would put the eastern one on 2_3, where it has no cells.
+    lngs, lats = sg.warp_transform('EPSG:3979', 'EPSG:4326', [-1501000.0, -1499000.0], [250000.0, 250000.0])
+    assert sg.locate_by_extent(tiles, np.array(lngs), np.array(lats)) == [tiles[0][0], tiles[1][0]]
+
+
+def test_directory_locator_finds_the_covering_raster_first_in_name_order(tmp_path):
+    a = _write_plane(tmp_path / 'a.tif')
+    _write_plane(tmp_path / 'b.TIF', lng=_LNG + 0.01)  # 100 cells east of a's west edge: overlaps a's eastern half.
+    (tmp_path / 'notes.txt').write_text('not a raster')
+    locate = sg.directory_locator(tmp_path)
+    lngs = np.array([_LNG + 0.005, _LNG + 0.015, _LNG + 0.025, _LNG + 0.5])
+    got = locate(lngs, np.full(4, _LAT + 0.01))
+    assert got == [str(a), str(a), str(tmp_path / 'b.TIF'), None]
+
+
+def test_directory_locator_projects_once_per_coordinate_system_and_stops_when_every_point_is_placed(tmp_path):
+    a = _write_plane(tmp_path / 'a.tif')
+    _write_plane(tmp_path / 'b.tif', lng=_LNG + 0.02)
+    opened = []
+
+    def opener(path):
+        opened.append(path)
+        return rasterio.open(path)
+    locate = sg.directory_locator(tmp_path, opener)
+    calls = []
+    real = sg.warp_transform
+    try:
+        sg.warp_transform = lambda *args: calls.append(args[1]) or real(*args)
+        assert locate(np.array([_LNG + 0.001]), np.array([_LAT + 0.01])) == [str(a)]  # Placed by a: b is never tested.
+        both = locate(np.array([_LNG + 0.001, _LNG + 0.021]), np.full(2, _LAT + 0.01))
+        assert both == [str(a), str(tmp_path / 'b.tif')]
+    finally:
+        sg.warp_transform = real
+    assert len(opened) == 2 and len(calls) == 2  # Two tiles in one system: one projection per batch, not per tile.
+
+
+def test_directory_locator_refuses_a_directory_with_no_rasters(tmp_path):
+    with pytest.raises(SystemExit, match='no .tif files'):
+        sg.directory_locator(tmp_path)
+
+
+def test_raster_sampler_reads_a_plane_exactly_and_marks_nodata_and_uncovered_points(tmp_path):
+    rise = 50000.0  # Meters per degree of longitude: ~0.66 m per 10 m cell at this latitude.
+    path = _write_plane(tmp_path / 'dem.tif', rise_per_degree_lng=rise, nodata_cols=(150,))
+    sampler = sg.RasterSampler(sg.directory_locator(tmp_path))
+    lngs = np.array([_LNG + 0.00503, _LNG + 0.01234, _LNG + 0.01505, _LNG + 0.5])
+    got = sampler.sample(lngs, np.full(4, _LAT + 0.01))
+    assert got[0] == pytest.approx(100.0 + rise * 0.00503, abs=1e-3)
+    assert got[1] == pytest.approx(100.0 + rise * 0.01234, abs=1e-3)
+    assert np.isnan(got[2]) and np.isnan(got[3])
+    assert list(sampler._datasets) == [str(path)]
+    sampler.close()
+    assert sampler._datasets == {}
+
+
+def test_raster_sampler_leaves_no_dead_band_where_two_tiles_abut(tmp_path):
+    rise = 50000.0
+    _write_plane(tmp_path / 'a.tif', rise_per_degree_lng=rise, size=100)
+    _write_plane(tmp_path / 'b.tif', rise_per_degree_lng=rise, size=100, lng=_LNG + 0.01, base=100.0 + rise * 0.01)
+    sampler = sg.RasterSampler(sg.directory_locator(tmp_path))
+    # Every tenth of a cell across the seam at _LNG + 0.01, the seam itself included, then both outer edges and the
+    # north-east corner cell, whose window would otherwise be a single row and column.
+    lngs = np.concatenate([_LNG + 0.01 + _CELL_DEG * np.arange(-10, 11) / 10,
+                           [_LNG + 0.00002, _LNG + 0.01998, _LNG + 0.00999]])
+    lats = np.concatenate([np.full(23, _LAT + 0.005), [_LAT + 0.00999]])
+    got = sampler.sample(lngs, lats)
+    assert not np.isnan(got).any()
+    # Inside the half-cell band the edge cell's value stands in, so the plane is matched to within half a cell's rise.
+    assert np.abs(got - (100.0 + rise * (lngs - _LNG))).max() <= rise * _CELL_DEG / 2 + 1e-3
+    sampler.close()
+
+
+def test_raster_sampler_applies_a_rasters_scale(tmp_path):
+    _write_plane(tmp_path / 'dm.tif', rise_per_degree_lng=50000.0, decimeters=True)
+    sampler = sg.RasterSampler(sg.directory_locator(tmp_path))
+    got = sampler.sample(np.array([_LNG + 0.01005]), np.array([_LAT + 0.01]))
+    assert got[0] == pytest.approx(100.0 + 50000.0 * 0.01005, abs=0.06)  # Meters, not the stored decimeters.
+    sampler.close()
+
+
+def test_raster_sampler_survives_a_missing_raster_and_asks_for_it_once(tmp_path):
+    path = str(_write_plane(tmp_path / 'dem.tif'))
+    opened = []
+
+    def opener(p):
+        opened.append(p)
+        if p == 'missing.tif':
+            raise RasterioIOError('HTTP 404')
+        return rasterio.open(p)
+
+    # The second point is located to a real raster it is not actually on, as a tile-naming locator can do at an edge.
+    sampler = sg.RasterSampler(lambda lngs, lats: ['missing.tif', path, 'missing.tif'], opener)
+    lngs, lats = np.array([_LNG + 0.001, _LNG - 1.0, _LNG + 0.002]), np.full(3, _LAT + 0.01)
+    assert np.isnan(sampler.sample(lngs, lats)).all()
+    assert np.isnan(sampler.sample(lngs, lats)).all()
+    assert sorted(opened) == sorted(['missing.tif', path])
+    sampler.close()
+
+
+def test_raster_sampler_ends_the_run_on_a_remote_raster_the_publisher_has_but_could_not_serve(tmp_path):
+    url = 'https://tiles.test/a.tif'
+    answers = {}
+
+    def head(asked):
+        assert asked == url
+        if isinstance(answers['head'], Exception):
+            raise answers['head']
+        return b''
+
+    def opener(path):
+        raise RasterioIOError('HTTP response code: ' + answers['gdal'])
+
+    def sampler():
+        return sg.RasterSampler(lambda lngs, lats: [f'/vsicurl/{url}'] * len(lngs), opener, head)
+
+    lngs, lats = np.array([_LNG]), np.array([_LAT])
+    # Gone: the points get no elevation and the run goes on.
+    answers.update(gdal='404', head=urllib.error.HTTPError(url, 404, 'Not Found', {}, None))
+    assert np.isnan(sampler().sample(lngs, lats)).all()
+    # Down: the publisher's own answer ends the run, rather than becoming no_data rows nothing would resample.
+    answers.update(gdal='503', head=urllib.error.HTTPError(url, 503, 'Busy', {}, None))
+    with pytest.raises(urllib.error.HTTPError, match='503'):
+        sampler().sample(lngs, lats)
+    # There, but unreadable: the same.
+    answers.update(gdal='0', head=None)
+    with pytest.raises(sg.RasterUnreadable, match='exists but would not open'):
+        sampler().sample(lngs, lats)
+    assert issubclass(sg.RasterUnreadable, sg.DOWNLOAD_ERRORS)
+
+
+def test_raster_sampler_gives_up_on_a_raster_that_has_no_coordinate_system(tmp_path, caplog):
+    path = str(_write_plane(tmp_path / 'bare.tif', crs=None))
+    opened = []
+    sampler = sg.RasterSampler(lambda lngs, lats: [path] * len(lngs), lambda p: opened.append(p) or rasterio.open(p))
+    lngs, lats = np.array([_LNG + 0.001]), np.array([_LAT + 0.001])
+    assert np.isnan(sampler.sample(lngs, lats)).all() and np.isnan(sampler.sample(lngs, lats)).all()
+    assert opened == [path] and 'bare.tif has no coordinate system' in caplog.text
+    sampler.close()
+
+
+# --------------------------------------------------------------------------------------------------------------------
+# Config and CSV layer
+# --------------------------------------------------------------------------------------------------------------------
+
+_CONF = '''
+city-params {
+  state-id {
+    seattle-wa = "washington"
+    bayonne-fr = null
+  }
+  country-id {
+    seattle-wa = "usa"
+    cdmx = "mexico"
+    taipei = "taiwan"
+    validation-study = ${city-params.country-id.seattle-wa}
+    nowhere = null
+  }
+  status {
+    seattle-wa = "live"
+  }
+}
+'''
+
+
+def test_country_id_reads_direct_aliased_null_and_missing_entries():
+    assert sg.country_id('seattle-wa', _CONF) == 'usa'
+    assert sg.country_id('cdmx', _CONF) == 'mexico'
+    assert sg.country_id('validation-study', _CONF) == 'usa'
+    assert sg.country_id('nowhere', _CONF) is None
+    assert sg.country_id('bayonne-fr', _CONF) is None  # Only in state-id: another block's entries do not leak in.
+    assert sg.country_id('seattle-wa', 'city-params { }') is None
+
+
+def test_country_id_resolves_every_city_in_the_real_cityparams():
+    conf = sg.CITYPARAMS.read_text()
+    assert sg.country_id('seattle-wa', conf) == 'usa'
+    assert sg.country_id('zurich-infra3d', conf) == 'switzerland'
+    assert sg.country_id('crowdstudy', conf) == 'usa'
+
+
+def test_positive_float_refuses_zero_negatives_and_nan():
+    assert sg.positive_float('0.5') == 0.5
+    for bad in ('0', '-5', 'nan'):
+        with pytest.raises(argparse.ArgumentTypeError, match='greater than 0'):
+            sg.positive_float(bad)
+
+
+def test_valid_city_id_accepts_kebab_case_only():
+    assert sg.valid_city_id('newport-ky') == 'newport-ky'
+    for bad in ('Seattle', '../etc', 'a--b', ''):
+        with pytest.raises(argparse.ArgumentTypeError):
+            sg.valid_city_id(bad)
+
+
+def _write_input(path, streets, md5=_MD5):
+    """The export's shape: psql booleans as t/f, the geometry as hex EWKB (SRID 4326, as ST_AsHEXEWKB writes it)."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open('w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(['street_edge_id', 'geom_md5', 'is_structure', 'geom'])
+        for street_id, coords, is_structure in streets:
+            geom = shapely.to_wkb(shapely.set_srid(LineString(coords), 4326), hex=True, include_srid=True)
+            writer.writerow([street_id, md5, 't' if is_structure else 'f', geom])
+
+
+def test_read_streets_parses_the_export(tmp_path):
+    path = tmp_path / 'in.csv'
+    _write_input(path, [(7, [(_LNG, _LAT), _east(40)], False), (8, [(_LNG, _LAT), _east(10)], True)])
+    streets = sg.read_streets(path)
+    assert [s['street_edge_id'] for s in streets] == [7, 8]
+    assert [s['is_structure'] for s in streets] == [False, True]
+    assert streets[0]['coords'][0] == (_LNG, _LAT) and streets[0]['geom_md5'] == _MD5
+
+
+def test_read_streets_parses_what_postgis_itself_exports(tmp_path):
+    # Seattle street 1, verbatim from the export's query: ST_AsHEXEWKB carries the SRID flag plain WKB does not.
+    path = tmp_path / 'in.csv'
+    path.write_text('street_edge_id,geom_md5,is_structure,geom\n1,9b25a2a1f1577c1e05facdbb4f06b7cb,f,0102000020E6100000'
+                    '02000000D1F4C8D57E935EC046802E75EBD24740423AE1CA7E935EC0903E9C76E7D24740\n')
+    assert sg.read_streets(path)[0]['coords'] == [(-122.3046164, 47.6478106), (-122.3046138, 47.6476887)]
+
+
+def _output_line(street_id, md5=_MD5):
+    return f'{street_id},measured,high,0,0,0,0,10,0,0,0,0,0,0,"{{0,0}}",earlier,10.0,{md5}\n'
+
+
+_HEADER = ','.join(sg.OUTPUT_FIELDS) + '\n'
+_WANTED = [_street(3, []), _street(9, [])]
+
+
+def test_done_ids_is_empty_without_a_file_and_reads_one_back_untouched(tmp_path):
+    path = tmp_path / 'out.csv'
+    assert sg.done_ids(path, _WANTED) == set()
+    path.write_text(_HEADER + _output_line(3) + _output_line(9))
+    before = path.stat().st_mtime_ns
+    assert sg.done_ids(path, _WANTED) == {3, 9}
+    assert path.stat().st_mtime_ns == before
+
+
+def test_done_ids_cuts_off_the_partial_line_a_killed_run_left(tmp_path):
+    path = tmp_path / 'out.csv'
+    path.write_text(_HEADER + _output_line(3) + '123')  # Killed while writing street 12345.
+    assert sg.done_ids(path, _WANTED) == {3}
+    assert path.read_text() == _HEADER + _output_line(3)
+
+
+def test_done_ids_drops_a_row_whose_street_changed_or_left_the_export(tmp_path):
+    path = tmp_path / 'out.csv'
+    stale = 'f' * 32  # Street 9 was re-imported with a new geometry since this row was written.
+    path.write_text(_HEADER + _output_line(3) + _output_line(9, stale) + _output_line(40))
+    assert sg.done_ids(path, _WANTED) == {3}
+    assert path.read_text() == _HEADER + _output_line(3)
+
+
+def test_done_ids_starts_over_from_a_file_with_other_columns(tmp_path):
+    path = tmp_path / 'out.csv'
+    path.write_text('street_edge_id,quality,geom_md5\n3,measured,' + _MD5 + '\n')
+    assert sg.done_ids(path, _WANTED) == set()
+    assert path.read_text() == _HEADER
+
+
+def test_format_row_leaves_a_no_data_street_blank_and_formats_a_measured_one():
+    street = _street(4, [(_LNG, _LAT), _east(40)])
+    blank = sg.format_row(street, {'quality': sg.QUALITY_NO_DATA}, 'moi-dtm-20m', 20.0)
+    assert blank['confidence'] == 'medium' and blank['net_grade'] == '' and blank['profile_cm'] == ''
+    assert set(blank) == set(sg.OUTPUT_FIELDS)
+    result = sg.edge_gradient(10.0 + 0.0612345 * np.linspace(0, 40, 9), 40.0, False)
+    row = sg.format_row(street, result, 'usgs-3dep-10m', 10.0)
+    assert row['net_grade'] == '0.06123' and row['climb_m'] == '2.45' and row['elev_start_m'] == '10.00'
+    assert row['profile_cm'] == '{1000,1061,1122,1184,1245}'
+    assert row['geom_md5'] == _MD5 and row['dem_source'] == 'usgs-3dep-10m'
+
+
+def test_cells_groups_by_first_vertex_in_row_major_order():
+    south_west = _street(1, [(-122.34, 47.51), (-122.30, 47.59)])  # Ends in another cell: grouped by its start.
+    south_east = _street(2, [(-122.26, 47.52), (-122.26, 47.53)])
+    north_west = _street(3, [(-122.33, 47.57), (-122.33, 47.58)])
+    also_south_west = _street(4, [(-122.31, 47.54), (-122.31, 47.545)])
+    got = sg.cells([north_west, south_east, south_west, also_south_west], 0.05)
+    assert [[s['street_edge_id'] for s in cell] for cell in got] == [[1, 4], [2], [3]]
+
+
+def test_process_cell_samples_a_fine_model_every_meter_and_a_coarse_one_every_five(tmp_path):
+    _write_plane(tmp_path / 'dem.tif', rise_per_degree_lng=4000.0)
+    calls = []
+
+    class Recording(sg.RasterSampler):
+        def sample(self, lngs, lats):
+            calls.append(len(lngs))
+            return super().sample(lngs, lats)
+
+    streets = [_street(1, [(_LNG + 0.002, _LAT + 0.01), _east(50, _LNG + 0.002, _LAT + 0.01)]),
+               _street(2, [(_LNG + 0.004, _LAT + 0.012), _east(20, _LNG + 0.004, _LAT + 0.012)], True)]
+    locate = sg.directory_locator(tmp_path)
+    coarse = sg.process_cell(streets, Recording(locate), sg.Source('coarse', 10.0, locate))
+    fine = sg.process_cell(streets, Recording(locate), sg.Source('fine', 1.0, locate))
+    assert calls == [11 + 5, 51 + 21]
+    assert [row['street_edge_id'] for row in coarse] == [1, 2]
+    assert [row['quality'] for row in coarse] == [sg.QUALITY_MEASURED, sg.QUALITY_STRUCTURE]
+    # Both see the same plane, so the grade is the plane's whatever the sampling: 4000 m per degree of longitude.
+    meters_per_degree = _GEOD.line_length([_LNG, _LNG + 1], [_LAT + 0.01, _LAT + 0.01])
+    for rows in (coarse, fine):
+        assert float(rows[0]['net_grade']) == pytest.approx(4000.0 / meters_per_degree, abs=2e-4)
+    assert fine[0]['confidence'] == 'high' and fine[0]['dem_source'] == 'fine'
+
+
+def test_process_cell_writes_a_low_confidence_source_as_net_grade_and_end_elevations_only(tmp_path):
+    _write_plane(tmp_path / 'dem.tif', rise_per_degree_lng=4000.0)
+    locate = sg.directory_locator(tmp_path)
+    street = _street(1, [(_LNG + 0.002, _LAT + 0.01), _east(50, _LNG + 0.002, _LAT + 0.01)])
+    [row] = sg.process_cell([street], sg.RasterSampler(locate), sg.Source('gedtm30', 30.0, locate))
+    assert row['quality'] == sg.QUALITY_MEASURED and row['confidence'] == 'low'
+    assert row['net_grade'] and row['elev_start_m'] and row['elev_end_m']
+    windowed = ('mean_grade', 'max_grade', 'max_grade_from_m', 'max_grade_to_m', 'meters_over_5pct_grade',
+                'meters_over_8pct_grade', 'climb_m', 'descent_m', 'profile_cm')
+    assert all(row[field] == '' for field in windowed)
+
+
+# --------------------------------------------------------------------------------------------------------------------
+# resolve_source / main
+# --------------------------------------------------------------------------------------------------------------------
+
+
+def _args(**overrides):
+    base = {'city_id': 'seattle-wa', 'source': None, 'dem_dir': None, 'dem_name': None, 'dem_resolution_m': None}
+    return argparse.Namespace(**{**base, **overrides})
+
+
+def test_resolve_source_uses_the_countrys_registered_source_or_an_explicit_one():
+    assert sg.resolve_source(_args(), _CONF) is sg.USGS_3DEP_10M
+    assert sg.resolve_source(_args(city_id='cdmx', source='usgs-3dep-10m'), _CONF) is sg.USGS_3DEP_10M
+
+
+def test_resolve_source_explains_what_to_do_for_an_unregistered_country():
+    with pytest.raises(SystemExit, match='country-id "taiwan".*--dem-dir'):
+        sg.resolve_source(_args(city_id='taipei'), _CONF)
+
+
+def test_resolve_source_builds_a_directory_source_from_absolute_and_repo_relative_paths(tmp_path, monkeypatch):
+    (tmp_path / 'dem').mkdir()
+    _write_plane(tmp_path / 'dem' / 'a.tif')
+    absolute = sg.resolve_source(_args(dem_dir=tmp_path / 'dem', dem_name='moi-dtm-20m', dem_resolution_m=5.0), _CONF)
+    assert (absolute.name, absolute.resolution_m) == ('moi-dtm-20m', 5.0)
+    monkeypatch.setattr(sg, 'REPO_ROOT', tmp_path)
+    relative = sg.resolve_source(_args(dem_dir=Path('dem'), dem_name='moi-dtm-20m', dem_resolution_m=5.0), _CONF)
+    assert relative.locate(np.array([_LNG + 0.001]), np.array([_LAT + 0.001])) == [str(tmp_path / 'dem' / 'a.tif')]
+    with pytest.raises(SystemExit, match='also needs --dem-name'):
+        sg.resolve_source(_args(dem_dir=tmp_path / 'dem', dem_name='moi-dtm-20m'), _CONF)
+    # The app credits by name, so a registered one would publish hand-supplied rasters under another source's credit.
+    with pytest.raises(SystemExit, match='"inegi-mdt-5m" is a registered source'):
+        sg.resolve_source(_args(dem_dir=tmp_path / 'dem', dem_name='inegi-mdt-5m', dem_resolution_m=5.0), _CONF)
+
+
+@pytest.fixture
+def city(tmp_path, monkeypatch):
+    """A throwaway repo root holding a cityparams file, a sloped raster, and a two-street export for `testville`."""
+    monkeypatch.setattr(sg, 'REPO_ROOT', tmp_path)
+    conf = tmp_path / 'cityparams.conf'
+    conf.write_text(_CONF)
+    monkeypatch.setattr(sg, 'CITYPARAMS', conf)
+    (tmp_path / 'dem').mkdir()
+    _write_plane(tmp_path / 'dem' / 'plane.tif', rise_per_degree_lng=4000.0)
+    city_dir = tmp_path / 'db' / 'onboarding' / 'testville'
+    on_raster = (_LNG + 0.002, _LAT + 0.01)
+    _write_input(city_dir / sg.INPUT_NAME, [(1, [on_raster, _east(60, *on_raster)], False),
+                                            (2, [(_LNG + 0.5, _LAT), _east(60, _LNG + 0.5, _LAT)], False)])
+    return city_dir
+
+
+_DEM_ARGS = ['--city-id', 'testville', '--dem-dir', 'dem', '--dem-name', 'test-plane', '--dem-resolution-m', '10']
+
+
+def _read_output(city_dir):
+    with (city_dir / sg.OUTPUT_NAME).open(newline='') as f:
+        return list(csv.DictReader(f))
+
+
+def test_main_samples_every_street_and_writes_the_csv(city, caplog):
+    caplog.set_level('INFO')
+    assert sg.main(_DEM_ARGS) == 0
+    rows = {int(row['street_edge_id']): row for row in _read_output(city)}
+    assert rows[1]['quality'] == sg.QUALITY_MEASURED and float(rows[1]['net_grade']) > 0.04
+    assert rows[2]['quality'] == sg.QUALITY_NO_DATA and rows[2]['net_grade'] == ''
+    assert rows[1]['dem_source'] == 'test-plane' and rows[1]['confidence'] == 'high'
+    assert '1 measured, 1 no_data' in caplog.text
+
+
+def test_main_resume_keeps_finished_rows_and_a_plain_rerun_starts_over(city, caplog):
+    caplog.set_level('INFO')
+    header = ','.join(sg.OUTPUT_FIELDS)
+    (city / sg.OUTPUT_NAME).write_text(f'{header}\n'
+        f'1,measured,high,9,9,9,0,10,0,0,0,0,0,0,"{{0,0}}",earlier,10.0,{_MD5}\n')
+    assert sg.main([*_DEM_ARGS, '--resume']) == 0
+    rows = _read_output(city)
+    assert [(row['street_edge_id'], row['dem_source']) for row in rows] == [('1', 'earlier'), ('2', 'test-plane')]
+
+    caplog.clear()
+    assert sg.main([*_DEM_ARGS, '--resume']) == 0  # Everything is done: nothing sampled, nothing rewritten.
+    assert 'nothing new' in caplog.text and len(_read_output(city)) == 2
+
+    assert sg.main(_DEM_ARGS) == 0
+    assert [row['dem_source'] for row in _read_output(city)] == ['test-plane', 'test-plane']
+
+
+def test_main_resume_with_no_earlier_output_writes_a_header(city):
+    assert sg.main([*_DEM_ARGS, '--resume']) == 0
+    assert len(_read_output(city)) == 2
+
+
+def test_main_refuses_both_a_registered_source_and_a_directory(city, capsys):
+    with pytest.raises(SystemExit):
+        sg.main([*_DEM_ARGS, '--source', 'usgs-3dep-10m'])
+    assert 'not allowed with argument' in capsys.readouterr().err
+
+
+def test_main_closes_its_rasters_when_sampling_fails(city, monkeypatch):
+    closed = []
+    monkeypatch.setattr(sg.RasterSampler, 'close', lambda self: closed.append(True))
+    monkeypatch.setattr(sg, 'process_cell', lambda *args: 1 / 0)
+    with pytest.raises(ZeroDivisionError):
+        sg.main(_DEM_ARGS)
+    assert closed == [True]
+
+
+def test_main_points_at_the_export_when_there_is_no_input(city):
+    (city / sg.INPUT_NAME).unlink()
+    with pytest.raises(SystemExit, match='make export-street-gradient-input'):
+        sg.main(_DEM_ARGS)
+
+
+def test_main_stops_at_a_failed_download_and_keeps_the_rows_before_it(city, monkeypatch):
+    plane = city.parents[2] / 'dem' / 'plane.tif'
+    publisher_is_back = False
+
+    def fetch_file(key, cache_dir):
+        if key == 'west':
+            return plane
+        if publisher_is_back:
+            return None  # Nothing published for the eastern cell: a fact about the data, written as no_data.
+        raise urllib.error.URLError('still down after every retry')
+
+    def flaky():
+        return sg.Source('flaky', 10.0, sg.CachedLocator('flaky', lambda lng, lat: 'west' if lng < _LNG + 0.1 else
+                                                         'east', fetch_file))
+
+    # The western cell (street 1) is sampled and flushed; the eastern cell's download fails and ends the run.
+    monkeypatch.setitem(sg.REMOTE_SOURCES, 'flaky', flaky())
+    with pytest.raises(SystemExit, match=r'flaky download failed \(URLError.*rerun with --resume') as exit_info:
+        sg.main(['--city-id', 'testville', '--source', 'flaky'])
+    assert 'still down' in str(exit_info.value)
+    rows = _read_output(city)
+    assert [(int(row['street_edge_id']), row['quality']) for row in rows] == [(1, sg.QUALITY_MEASURED)]
+    # Once the publisher answers, --resume samples only what is missing and keeps the earlier row.
+    publisher_is_back = True
+    monkeypatch.setitem(sg.REMOTE_SOURCES, 'flaky', flaky())
+    assert sg.main(['--city-id', 'testville', '--source', 'flaky', '--resume']) == 0
+    rows = _read_output(city)
+    assert [(int(row['street_edge_id']), row['quality']) for row in rows] == [(1, sg.QUALITY_MEASURED),
+                                                                            (2, sg.QUALITY_NO_DATA)]
+
+
+def test_the_import_script_expects_exactly_the_columns_the_sampler_writes():
+    # COPY maps by position, so the import's header check and its staging table must list OUTPUT_FIELDS in order. A
+    # field added to the sampler alone would otherwise have every fresh CSV rejected as "another version".
+    script = (sg.REPO_ROOT / 'db' / 'scripts' / 'import-street-gradient.sh').read_text()
+    header = re.search(r'EXPECTED_HEADER="((?:[^"\\]|\\\n)*)"', script).group(1).replace('\\\n', '')
+    assert header.split(',') == list(sg.OUTPUT_FIELDS)
+    staging = re.search(r'CREATE TEMP TABLE street_gradient_import \((.*?)\) ON COMMIT DROP;', script, re.S).group(1)
+    assert [line.split()[0] for line in staging.strip().splitlines()] == list(sg.OUTPUT_FIELDS)
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+# The app's credit registry
+# ----------------------------------------------------------------------------------------------------------------------
+
+def test_every_remote_source_has_a_credit_registered_in_the_app():
+    """The app credits an elevation model by its stored name, and an unregistered one only by that bare name.
+
+    Most of these models are attribution-only, so a source the sampler can write without a credit in
+    ``app/models/street/DemSource.scala`` would put under-credited grades on a public map.
+    """
+    registry = (Path(__file__).resolve().parents[2] / 'app/models/street/DemSource.scala').read_text()
+    uncredited = [name for name in sg.REMOTE_SOURCES if f'name = "{name}"' not in registry]
+    assert uncredited == []

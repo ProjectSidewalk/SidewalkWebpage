@@ -2,7 +2,8 @@ package models.street
 
 import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.{given, *}
+import models.utils.{NamedEnum, PgEnumCompanion}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.jdbc.GetResult
 
@@ -12,54 +13,54 @@ import javax.inject.{Inject, Singleton}
 /**
  * What changed a street's status, backing the `street_edge_status_change_source` Postgres enum type.
  *
- * Each value names one of the hand-run scripts in `db/scripts` that write `street_edge.status`. Since those runs are
+ * Most values name one of the hand-run scripts in `db/scripts` or `tools/one-off` that write `street_edge.status`;
+ * `admin_reopen` is the one in-app writer, the Reopen button on /admin/street-status (#4929). Since script runs are
  * otherwise untraced, this is what tells a later reader whether a batch of streets went dark because the imagery
- * checker found nothing there or because someone closed the whole neighborhood.
+ * checker found nothing there or because someone closed the whole region.
  *
  * NOTE: if changing these values, update the `street_edge_status_change_source` Postgres enum type as well (see
- * 358.sql) and the script that emits it.
+ * 358.sql, 368.sql, 386.sql, and 416.sql) and the script or service that emits it.
  */
-object StreetEdgeStatusChangeSource extends Enumeration {
-  type StreetEdgeStatusChangeSource = Value
-  val HideStreetsWithoutImagery: Value = Value("hide_streets_without_imagery")
-  val RevealNeighborhoods: Value       = Value("reveal_neighborhoods")
-  val HideNeighborhoods: Value         = Value("hide_neighborhoods")
-  val RemoveStreets: Value             = Value("remove_streets")
-
-  /** Parses a string into a status change source, returning None if it doesn't match a known value. */
-  def fromString(name: String): Option[Value] = values.find(_.toString == name)
+enum StreetEdgeStatusChangeSource(val name: String) extends NamedEnum {
+  case HideStreetsWithoutImagery extends StreetEdgeStatusChangeSource("hide_streets_without_imagery")
+  case RevealRegions             extends StreetEdgeStatusChangeSource("reveal_regions")
+  case HideRegions               extends StreetEdgeStatusChangeSource("hide_regions")
+  case RemoveStreets             extends StreetEdgeStatusChangeSource("remove_streets")
+  case AdminReopen               extends StreetEdgeStatusChangeSource("admin_reopen")
+  case ConsolidateTinyStreets    extends StreetEdgeStatusChangeSource("consolidate_tiny_streets")
 }
+
+object StreetEdgeStatusChangeSource
+    extends PgEnumCompanion[StreetEdgeStatusChangeSource]("street_edge_status_change_source")
 
 /** One recorded transition of a street between two `street_edge_status` values. */
 case class StreetEdgeStatusChange(
     streetEdgeStatusChangeId: Int,
     streetEdgeId: Int,
-    oldStatus: StreetEdgeStatus.Value,
-    newStatus: StreetEdgeStatus.Value,
+    oldStatus: StreetEdgeStatus,
+    newStatus: StreetEdgeStatus,
     changedAt: OffsetDateTime,
-    source: StreetEdgeStatusChangeSource.Value
+    source: StreetEdgeStatusChangeSource
 )
 
 /** Streets that entered one status during one week. */
-case class StatusChangeWeek(weekStart: LocalDate, newStatus: StreetEdgeStatus.Value, streetCount: Int)
+case class StatusChangeWeek(weekStart: LocalDate, newStatus: StreetEdgeStatus, streetCount: Int)
 
 class StreetEdgeStatusChangeTableDef(tag: Tag) extends Table[StreetEdgeStatusChange](tag, "street_edge_status_change") {
   def streetEdgeStatusChangeId: Rep[Int] =
     column[Int]("street_edge_status_change_id", O.PrimaryKey, O.AutoInc)
-  def streetEdgeId: Rep[Int]                          = column[Int]("street_edge_id")
-  def oldStatus: Rep[StreetEdgeStatus.Value]          = column[StreetEdgeStatus.Value]("old_status")
-  def newStatus: Rep[StreetEdgeStatus.Value]          = column[StreetEdgeStatus.Value]("new_status")
-  def changedAt: Rep[OffsetDateTime]                  = column[OffsetDateTime]("changed_at") // DEFAULT now() in the DB.
-  def source: Rep[StreetEdgeStatusChangeSource.Value] = column[StreetEdgeStatusChangeSource.Value]("source")
+  def streetEdgeId: Rep[Int]                    = column[Int]("street_edge_id")
+  def oldStatus: Rep[StreetEdgeStatus]          = column[StreetEdgeStatus]("old_status")
+  def newStatus: Rep[StreetEdgeStatus]          = column[StreetEdgeStatus]("new_status")
+  def changedAt: Rep[OffsetDateTime]            = column[OffsetDateTime]("changed_at") // DEFAULT now() in the DB.
+  def source: Rep[StreetEdgeStatusChangeSource] = column[StreetEdgeStatusChangeSource]("source")
 
   // CHECK constraint, which Slick can't express: old_status <> new_status, so only real transitions are recorded.
-  def * = (streetEdgeStatusChangeId, streetEdgeId, oldStatus, newStatus, changedAt, source) <> (
-    (StreetEdgeStatusChange.apply _).tupled,
-    StreetEdgeStatusChange.unapply
-  )
+  def * =
+    (streetEdgeStatusChangeId, streetEdgeId, oldStatus, newStatus, changedAt, source).mapTo[StreetEdgeStatusChange]
 
-  // ON DELETE CASCADE, which remove_streets.sql relies on: once the street row is gone, its status history describes
-  // nothing, so that script deletes no rows here of its own.
+  // ON DELETE CASCADE, which tools/one-off/4181-remove-streets.sql relies on: once the street row is gone, its status
+  // history describes nothing, so that script deletes no rows here of its own.
   def streetEdge =
     foreignKey("street_edge_status_change_street_edge_id_fkey", streetEdgeId, TableQuery[StreetEdgeTableDef])(
       _.streetEdgeId,
@@ -73,8 +74,9 @@ trait StreetEdgeStatusChangeTableRepository {}
 /**
  * Read-only DAO over the street status-change log (#4928).
  *
- * `street_edge.status` has no application write path: the rows here are written by the `db/scripts` shell scripts in
- * the same transaction as the status update itself, so the app only ever reads them back for the admin trend charts.
+ * Writers insert their own rows in the same transaction as the status update itself: the `db/scripts` shell scripts
+ * for every transition except `no_imagery -> open`, which the admin Reopen action performs in-app
+ * (StreetLifecycleService.reopenStreet, #4929). This DAO only reads the log back for the admin trend charts.
  */
 @Singleton
 class StreetEdgeStatusChangeTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)
@@ -82,7 +84,7 @@ class StreetEdgeStatusChangeTable @Inject() (protected val dbConfigProvider: Dat
     with HasDatabaseConfigProvider[MyPostgresProfile] {
   val statusChanges = TableQuery[StreetEdgeStatusChangeTableDef]
 
-  implicit private val getStatusChangeWeek: GetResult[StatusChangeWeek] = GetResult { r =>
+  private given getStatusChangeWeek: GetResult[StatusChangeWeek] = { r =>
     StatusChangeWeek(r.nextDate().toLocalDate, StreetEdgeStatus.withName(r.nextString()), r.nextInt())
   }
 

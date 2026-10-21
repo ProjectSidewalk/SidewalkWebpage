@@ -1,27 +1,28 @@
 package controllers
 
-import com.google.inject.{Injector => GuiceInjector, Key, TypeLiteral}
+import com.google.inject.{Injector as GuiceInjector, Key, TypeLiteral}
 import models.auth.DefaultEnv
+import models.user.Role
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.given
 import org.apache.pekko.stream.Materializer
 import org.scalatest.Assertion
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.http.HttpEntity
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json._
+import play.api.libs.json.*
 import play.api.mvc.{Cookie, RequestHeader}
 import play.api.routing.Router
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import play.silhouette.api.{LoginInfo, Silhouette}
 import play.silhouette.impl.providers.CredentialsProvider
+import _root_.util.SidewalkSpec
 
 import scala.concurrent.{Await, ExecutionContext}
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import scala.util.matching.Regex
 
 /**
@@ -39,14 +40,14 @@ import scala.util.matching.Regex
  *
  * Requires a Postgres+PostGIS database (via DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD env).
  */
-class RouteAuthPostureSpec extends PlaySpec with GuiceOneAppPerSuite {
+class RouteAuthPostureSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule]
       .build()
 
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   private val router = app.injector.instanceOf[Router]
 
@@ -54,7 +55,7 @@ class RouteAuthPostureSpec extends PlaySpec with GuiceOneAppPerSuite {
   private val LabelMapProperties: Set[String] = Set("label_id", "label_type", "severity", "correct", "has_validations",
     "ai_validation", "expired", "has_backup", "high_quality_user", "ai_generated", "tags")
 
-  /** Every key `/neighborhoods/completionRate` publishes per region. */
+  /** Every key `/regions/completionRates` publishes per region. */
   private val CompletionRateKeys: Set[String] =
     Set("region_id", "total_distance_m", "completed_distance_m", "outdated_distance_m", "rate", "name")
 
@@ -114,7 +115,7 @@ class RouteAuthPostureSpec extends PlaySpec with GuiceOneAppPerSuite {
    * Reads rather than creates: minting a user would leave a fixture account behind in whatever database the suite is
    * pointed at, and `sidewalk_login` is shared across every city schema on the host.
    */
-  private def emailOfUserWithRole(role: String): Option[String] = {
+  private def emailOfUserWithRole(role: Role): Option[String] = {
     // Held as a local so its path-dependent Database type stays stable; a field would need an existential.
     val dbConfig = app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
     Await.result(
@@ -122,8 +123,7 @@ class RouteAuthPostureSpec extends PlaySpec with GuiceOneAppPerSuite {
         sql"""SELECT sidewalk_user.email
               FROM sidewalk_login.sidewalk_user
               INNER JOIN sidewalk_login.user_role ON sidewalk_user.user_id = user_role.user_id
-              INNER JOIN sidewalk_login.role ON user_role.role_id = role.role_id
-              WHERE role.role = $role
+              WHERE user_role.role = $role
               LIMIT 1""".as[String].headOption
       ),
       30.seconds
@@ -138,8 +138,8 @@ class RouteAuthPostureSpec extends PlaySpec with GuiceOneAppPerSuite {
    * email, which is why the login info's provider key is the address itself.
    */
   private def sessionCookieFor(email: String): Cookie = {
-    implicit val ec: ExecutionContext         = app.actorSystem.dispatcher
-    implicit val requestHeader: RequestHeader = FakeRequest() // Required by init; no state is read from it.
+    given ec: ExecutionContext         = app.actorSystem.dispatcher
+    given requestHeader: RequestHeader = FakeRequest() // Required by init; no state is read from it.
 
     // Resolved through Guice's TypeLiteral rather than injector.instanceOf: the latter takes a ClassTag, so the
     // DefaultEnv parameter erases and Guice looks for a raw Silhouette binding that does not exist.
@@ -211,18 +211,51 @@ class RouteAuthPostureSpec extends PlaySpec with GuiceOneAppPerSuite {
       val resp = route(app, FakeRequest(GET, "/labels/all?regions=abc&routes=def")).get
       status(resp) mustBe OK
     }
+
+    "filter the feed to the given bbox" in {
+      // A tiny box far from any city keeps the streamed body cheap regardless of how much data the DB holds.
+      val resp = route(app, FakeRequest(GET, "/labels/all?bbox=0,0,0.001,0.001")).get
+      status(resp) mustBe OK
+      (contentAsJson(resp) \ "features").as[Seq[JsValue]] mustBe empty
+    }
+
+    "normalize an inverted bbox rather than erroring" in {
+      val resp = route(app, FakeRequest(GET, "/labels/all?bbox=0.001,0.001,0,0")).get
+      status(resp) mustBe OK
+      (contentAsJson(resp) \ "features").as[Seq[JsValue]] mustBe empty
+    }
+
+    "stream a bbox-filtered feed as a chunked response too" in {
+      val result = Await.result(route(app, FakeRequest(GET, "/labels/all?bbox=0,0,0.001,0.001")).get, 30.seconds)
+      result.body mustBe a[HttpEntity.Chunked]
+    }
+
+    // Unlike the silently-ignored regions/routes above, a malformed bbox is a 400: dropping it would stream the
+    // whole city — the exact payload the viewport-scoped LabelMap exists to avoid (#5002).
+    "reject a malformed bbox with a 400" in {
+      status(route(app, FakeRequest(GET, "/labels/all?bbox=abc")).get) mustBe BAD_REQUEST
+      status(route(app, FakeRequest(GET, "/labels/all?bbox=1,2,3")).get) mustBe BAD_REQUEST
+      status(route(app, FakeRequest(GET, "/labels/all?bbox=1,2,3,NaN")).get) mustBe BAD_REQUEST
+    }
+
+    // Reload/back-navigation refetch protection (#5002); short enough that a mapathon participant's new label
+    // shows on reload within a minute.
+    "declare a short public cache lifetime" in {
+      val resp = route(app, FakeRequest(GET, "/labels/all")).get
+      header("Cache-Control", resp) mustBe Some("public, max-age=60")
+    }
   }
 
-  "GET /neighborhoods/completionRate" should {
-    "serve neighborhood completion rates anonymously" in {
-      val resp = route(app, FakeRequest(GET, "/neighborhoods/completionRate")).get
+  "GET /regions/completionRates" should {
+    "serve region completion rates anonymously" in {
+      val resp = route(app, FakeRequest(GET, "/regions/completionRates")).get
       status(resp) mustBe OK
       contentAsJson(resp).as[Seq[JsObject]] // Must be an array of objects, empty or not.
       succeed
     }
 
     "publish exactly the documented key set on every region" in {
-      val rates = contentAsJson(route(app, FakeRequest(GET, "/neighborhoods/completionRate")).get).as[Seq[JsObject]]
+      val rates = contentAsJson(route(app, FakeRequest(GET, "/regions/completionRates")).get).as[Seq[JsObject]]
       assume(rates.nonEmpty, "no regions in this schema; per-region shape needs a seeded DB")
       rates.foreach { rate =>
         rate.keys mustBe CompletionRateKeys
@@ -232,7 +265,7 @@ class RouteAuthPostureSpec extends PlaySpec with GuiceOneAppPerSuite {
     }
 
     "filter by the regions param" in {
-      val resp = route(app, FakeRequest(GET, "/neighborhoods/completionRate?regions=999999999")).get
+      val resp = route(app, FakeRequest(GET, "/regions/completionRates?regions=999999999")).get
       status(resp) mustBe OK
       contentAsJson(resp).as[Seq[JsObject]] mustBe empty
     }
@@ -304,7 +337,7 @@ class RouteAuthPostureSpec extends PlaySpec with GuiceOneAppPerSuite {
   // These sign in for real, so a tightened or loosened guard on the endpoint #4441 gated shows up as a failure.
   "GET /adminapi/labelTags, authenticated" should {
     "serve the tag counts to an administrator" in {
-      val email = emailOfUserWithRole("Administrator")
+      val email = emailOfUserWithRole(Role.Administrator)
       assume(email.isDefined, "no Administrator in this schema; authenticated checks need a seeded DB")
       val resp = route(app, FakeRequest(GET, "/adminapi/labelTags").withCookies(sessionCookieFor(email.get))).get
       status(resp) mustBe OK
@@ -316,7 +349,7 @@ class RouteAuthPostureSpec extends PlaySpec with GuiceOneAppPerSuite {
     // The 403 body names the role the action demands, so this pins the guard to Administrator specifically: a swap to
     // WithOwner() would still 403 here, but the message would read "Owner" and this fails.
     "tell a signed-in non-admin exactly which role is required" in {
-      val email = emailOfUserWithRole("Registered")
+      val email = emailOfUserWithRole(Role.Registered)
       assume(email.isDefined, "no Registered user in this schema; authenticated checks need a seeded DB")
       val resp = route(app, FakeRequest(GET, "/adminapi/labelTags").withCookies(sessionCookieFor(email.get))).get
       status(resp) mustBe FORBIDDEN

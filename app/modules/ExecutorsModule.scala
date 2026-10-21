@@ -1,7 +1,7 @@
 package modules
 
 import com.google.inject.AbstractModule
-import executors._
+import executors.*
 
 /**
  * Module for binding custom execution contexts.

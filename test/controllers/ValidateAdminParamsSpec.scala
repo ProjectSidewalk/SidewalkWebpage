@@ -1,22 +1,22 @@
 package controllers
 
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.given
 import org.apache.pekko.stream.Materializer
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json.{JsNull, JsObject, JsValue, Json}
+import play.api.libs.json.{JsObject, JsValue, Json}
 import play.api.mvc.Cookie
-import play.api.test.CSRFTokenHelper._
+import play.api.test.CSRFTokenHelper.*
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
+import util.SidewalkSpec
 
 import java.util.UUID
 import scala.concurrent.Await
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 /**
  * Functional tests for the admin gate on the Validate endpoints that hand back labels.
@@ -26,28 +26,21 @@ import scala.concurrent.duration._
  * claim rather than a fact. Only /expertValidate sets it, behind `WithAdmin`, so a plain registered user asking for
  * it must be answered as the ordinary validator they are.
  *
- * Both label-bearing endpoints are covered: they route the claim through one guard, and a test on either alone
- * would leave the other free to drift.
+ * Every label-bearing endpoint is covered: they route the claim through one guard, and a test on any one alone
+ * would leave the others free to drift.
  *
  * Requires a Postgres+PostGIS database (via DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD env, as in dev/CI).
  */
-class ValidateAdminParamsSpec extends PlaySpec with GuiceOneAppPerSuite {
+class ValidateAdminParamsSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   private val XHR = "X-Requested-With" -> "XMLHttpRequest"
 
-  /** `validate_params` claiming Expert Validate's admin view. */
-  private val AdminClaim: JsObject = Json.obj(
-    "admin_version"    -> true,
-    "label_type"       -> JsNull,
-    "user_ids"         -> JsNull,
-    "neighborhood_ids" -> JsNull,
-    "unvalidated_only" -> false
-  )
+  private val AdminClaim: JsObject = ValidateSpecSupport.AdminClaim
 
   /**
    * Creates a throwaway UUID-tagged registered user — never an admin, whatever accounts the schema happens to hold.
@@ -74,18 +67,19 @@ class ValidateAdminParamsSpec extends PlaySpec with GuiceOneAppPerSuite {
     (email, cookies(resp).toSeq)
   }
 
-  /** The validation mission a visit to /validate just created, as (missionId, labelTypeId, labelsValidated). */
-  private def newestValidationMission(email: String): Option[(Int, Int, Int)] = {
+  /** The validation mission a first-mission request just created, as (missionId, labelType, labelsValidated). */
+  private def newestValidationMission(email: String): Option[(Int, String, Int)] = {
     // Held as a local so its path-dependent Database type stays stable; a field would need an existential.
     val dbConfig = app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
     Await.result(
       dbConfig.db.run(
-        sql"""SELECT mission.mission_id, COALESCE(mission.label_type_id, 1), COALESCE(mission.labels_validated, 10)
+        sql"""SELECT mission.mission_id, COALESCE(mission.label_type::text, 'CurbRamp'),
+                     COALESCE(mission.labels_validated, 10)
               FROM mission
               INNER JOIN sidewalk_login.sidewalk_user ON mission.user_id = sidewalk_user.user_id
               WHERE sidewalk_user.email = $email AND mission.mission_type = 'validation'
               ORDER BY mission.mission_id DESC
-              LIMIT 1""".as[(Int, Int, Int)].headOption
+              LIMIT 1""".as[(Int, String, Int)].headOption
       ),
       30.seconds
     )
@@ -99,20 +93,7 @@ class ValidateAdminParamsSpec extends PlaySpec with GuiceOneAppPerSuite {
   "POST /validationTask/moreLabels" should {
     "answer a registered user's adminVersion claim without admin data" in {
       val (_, userCookies) = signUpFreshUser()
-      val body             = Json.obj(
-        "label_type_id"      -> 1,
-        "labels_needed"      -> 3,
-        "excluded_label_ids" -> Json.arr(),
-        "validate_params"    -> AdminClaim
-      )
-      val resp = route(
-        app,
-        FakeRequest(POST, "/validationTask/moreLabels")
-          .withHeaders(XHR)
-          .withCookies(userCookies: _*)
-          .withJsonBody(body)
-          .withCSRFToken
-      ).get
+      val resp             = ValidateSpecSupport.postMoreLabels(app, AdminClaim, userCookies)
 
       status(resp) mustBe OK
       val labels = (contentAsJson(resp) \ "labels").as[Seq[JsValue]]
@@ -121,15 +102,32 @@ class ValidateAdminParamsSpec extends PlaySpec with GuiceOneAppPerSuite {
     }
   }
 
+  "POST /validationTask/mission" should {
+    "answer a registered user's adminVersion claim without admin data" in {
+      val (_, userCookies) = signUpFreshUser()
+      val resp             = ValidateSpecSupport.postMission(app, AdminClaim, userCookies)
+
+      status(resp) mustBe OK
+      val body = contentAsJson(resp)
+      assume((body \ "has_mission_available").as[Boolean], "no validation mission available in this schema")
+      val labels = (body \ "labels").as[Seq[JsValue]]
+      labels must not be empty
+      mustCarryNoAdminData(labels)
+      // The page builds the mission from these, so they come with it.
+      (body \ "mission" \ "mission_id").asOpt[Int] mustBe defined
+      (body \ "completed_validations").asOpt[Int] mustBe Some(0)
+    }
+  }
+
   "POST /validationTask" should {
     "answer a registered user's adminVersion claim without admin data" in {
       val (email, userCookies) = signUpFreshUser()
 
-      // Visiting Validate is what creates the mission the submission below reports progress on.
-      status(route(app, FakeRequest(GET, "/validate").withCookies(userCookies: _*)).get) mustBe OK
+      // Asking for a first mission, as the page does on load, is what creates the one the submission reports on.
+      status(ValidateSpecSupport.postMission(app, ValidateSpecSupport.CrowdParams, userCookies)) mustBe OK
       val mission = newestValidationMission(email)
       assume(mission.isDefined, "no validation mission available in this schema")
-      val (missionId, labelTypeId, labelsValidated) = mission.get
+      val (missionId, labelType, labelsValidated) = mission.get
 
       // The next mission's labels only come back once a mission is reported complete.
       val body = Json.obj(
@@ -141,7 +139,7 @@ class ValidateAdminParamsSpec extends PlaySpec with GuiceOneAppPerSuite {
           "mission_type"    -> "validation",
           "labels_progress" -> labelsValidated,
           "labels_total"    -> labelsValidated,
-          "label_type_id"   -> labelTypeId,
+          "label_type"      -> labelType,
           "completed"       -> true
         ),
         "validate_params" -> AdminClaim,
@@ -153,7 +151,7 @@ class ValidateAdminParamsSpec extends PlaySpec with GuiceOneAppPerSuite {
         app,
         FakeRequest(POST, "/validationTask")
           .withHeaders(XHR)
-          .withCookies(userCookies: _*)
+          .withCookies(userCookies*)
           .withJsonBody(body)
           .withCSRFToken
       ).get

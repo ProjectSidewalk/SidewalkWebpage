@@ -8,13 +8,13 @@ resolvers += "Typesafe repository" at "https://repo.typesafe.com/typesafe/releas
 //resolvers += "Sonatype snapshots" at "https://oss.sonatype.org/content/repositories/snapshots/"
 
 // Use the Play sbt plugin for Play projects
-addSbtPlugin("org.playframework" % "sbt-plugin" % "3.0.11")
+addSbtPlugin("org.playframework" % "sbt-plugin" % "3.0.12")
 
-// Code formatting check (scalafmtCheckAll). The scalafmt version itself is pinned in .scalafmt.conf (3.9.10); this
-// plugin fetches it dynamically. Wired into CI as advisory-only for now (no repo-wide reformat pass yet).
-addSbtPlugin("org.scalameta" % "sbt-scalafmt" % "2.5.6")
+// Code formatting (scalafmtCheckAll for the sources, scalafmtSbtCheck for the build files; both blocking CI gates). The
+// scalafmt version itself is pinned in .scalafmt.conf (3.11.5); this plugin fetches it dynamically.
+addSbtPlugin("org.scalameta" % "sbt-scalafmt" % "2.6.2")
 
-// Test coverage (scoverage). Used in a later CI phase with a low, ratcheting threshold.
+// Test coverage (scoverage). Threshold and exclusions are in build.sbt; enforced by the `backend-tests` CI job.
 addSbtPlugin("org.scoverage" % "sbt-scoverage" % "2.4.4")
 
 // Content-fingerprints assets so `Assets.versioned` can serve them immutably; wired into the pipeline in build.sbt.

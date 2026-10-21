@@ -1,6 +1,6 @@
 package formats.json
 
-import formats.json.ValidateFormats._
+import formats.json.ValidateFormats.*
 import models.utils.CommonUtils.UiSource
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
@@ -24,10 +24,8 @@ class ValidateFormatsSpec extends AnyFunSuite with Matchers {
        |  "label_id": 200762,
        |  "label_type": "CurbRamp",
        |  "validation_result": "Agree",
-       |  "old_severity": 1,
-       |  "new_severity": 1,
-       |  "old_tags": [],
-       |  "new_tags": [],
+       |  "severity": 1,
+       |  "tags": [],
        |  "canvas_x": 100,
        |  "canvas_y": 100,
        |  "heading": 256.5,

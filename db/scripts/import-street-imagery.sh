@@ -2,7 +2,8 @@
 set -euo pipefail
 
 # Feeder 2 for the street_imagery table (#4348): ingest the per-street imagery summary produced by
-# check_streets_for_imagery.py (db/street_imagery_summary.csv) into street_imagery with data_source = 'imagery_scan'.
+# check_streets_for_imagery.py (db/onboarding/<city-id>/street_imagery_summary.csv) into street_imagery with
+# data_source = 'imagery_scan'.
 # This covers streets a scan reached but that have no labels yet, so Feeder 1 (the evolution-326 pano_data backfill)
 # could not see them. A deliberate scan is treated as authoritative for the streets it covers, so on a key collision the
 # scan row supersedes an existing pano_data row. The app also refreshes street_imagery on its own each night (#4384):
@@ -10,21 +11,40 @@ set -euo pipefail
 # provider for a batch of streets (data_source = 'imagery_poll'); a bulk scan import remains useful for new cities and
 # for full-coverage passes.
 
+# shellcheck source=helpers.sh
 source /opt/scripts/helpers.sh
 
-SCHEMA_NAME=$(prompt_with_default "Schema name")
-
-# Prompt user for path to CSV file and prepend working dir.
-CSV_FILENAME=$(prompt_with_default "Path to CSV file (relative to db dir)" "street_imagery_summary.csv")
+# Optional positional args ($1 schema, $2 CSV path relative to the db dir) so tools/city/setup_new_city.py can drive the
+# script without faking its prompts; anything omitted is prompted for. No prompt default: the scan writes into each
+# city's own onboarding dir.
+SCHEMA_NAME=${1:-$(prompt_with_default "Schema name")}
+CSV_FILENAME=${2:-$(prompt_with_default \
+    "Path to CSV file (relative to db dir, e.g. onboarding/newport-ky/street_imagery_summary.csv)")}
 CSV_FILENAME=/opt/$CSV_FILENAME
 if [[ ! -f "$CSV_FILENAME" ]]; then
-    echo "Error: CSV not found at $CSV_FILENAME. Generate it with check_streets_for_imagery.py first." >&2
-    exit 1
+  echo "Error: CSV not found at $CSV_FILENAME. Generate it with check_streets_for_imagery.py first." >&2
+  exit 1
 fi
+
+# The summary has grown diagnostic columns over time (6 before #5460, 7 after it, 8 with the cross-track limit), and
+# summaries of every vintage are still on disk. Naming the columns from the file's own header lets \copy take any of
+# them; the header is checked against a plain column-name pattern first, since it is spliced into the SQL.
+HEADER_COLUMNS=$(head -1 "$CSV_FILENAME" | tr -d '\r')
+if [[ ! "$HEADER_COLUMNS" =~ ^[a-z_]+(,[a-z_]+)*$ ]]; then
+  echo "Error: unexpected header in $CSV_FILENAME: $HEADER_COLUMNS" >&2
+  exit 1
+fi
+for required in street_edge_id has_imagery oldest_capture newest_capture n_panos; do
+  if [[ ",$HEADER_COLUMNS," != *",$required,"* ]]; then
+    echo "Error: $CSV_FILENAME has no $required column. Is it a street_imagery_summary.csv?" >&2
+    exit 1
+  fi
+done
 
 # Stage the CSV in a temp table (all text so empty date fields survive as ''), then upsert only the streets that have
 # imagery. Empty oldest/newest fields become NULL; a street with imagery but no parseable capture date still gets a row
-# (NULL dates) so it is distinguishable from a street that was never scanned.
+# (NULL dates) so it is distinguishable from a street that was never scanned. The staging table carries every column any
+# summary version has written (SUMMARY_COLUMNS in the script); the diagnostic ones are unused here.
 psql -v ON_ERROR_STOP=1 -d sidewalk -U "$SCHEMA_NAME" <<EOSQL
     BEGIN;
 
@@ -34,10 +54,12 @@ psql -v ON_ERROR_STOP=1 -d sidewalk -U "$SCHEMA_NAME" <<EOSQL
         has_imagery    TEXT,
         oldest_capture TEXT,
         newest_capture TEXT,
-        n_panos        INTEGER
+        n_panos        INTEGER,
+        max_cross_track_m   TEXT,
+        cross_track_limit_m TEXT
     ) ON COMMIT DROP;
 
-    \copy street_imagery_import FROM '$CSV_FILENAME' WITH (FORMAT csv, HEADER true)
+    \copy street_imagery_import ($HEADER_COLUMNS) FROM '$CSV_FILENAME' WITH (FORMAT csv, HEADER true)
 
     INSERT INTO street_imagery (street_edge_id, oldest_capture, newest_capture, n_panos, data_source, updated_at)
     SELECT street_edge_id,

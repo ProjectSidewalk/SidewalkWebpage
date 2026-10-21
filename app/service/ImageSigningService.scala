@@ -25,7 +25,7 @@ class ImageSigningService @Inject() (config: Configuration) {
 
   private def hmac(data: String): String = {
     val mac = Mac.getInstance("HmacSHA256")
-    mac.init(new SecretKeySpec(secret.getBytes("UTF-8"), "HmacSHA256"))
+    mac.init(SecretKeySpec(secret.getBytes("UTF-8"), "HmacSHA256"))
     Base64.getUrlEncoder.withoutPadding.encodeToString(mac.doFinal(data.getBytes("UTF-8")))
   }
 

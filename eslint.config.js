@@ -1,4 +1,4 @@
-// ESLint flat config (ESLint 9+). Replaces the legacy .eslintrc.json.
+// ESLint flat config (ESLint 10+).
 // Run locally with `make eslint`; also a blocking CI gate (a step in the `frontend` job). CI runs it with no
 // `--max-warnings` flag, so `error` rules block the build and the lone `warn` rule (max-len) is advisory. (#2487)
 //
@@ -8,46 +8,61 @@
 const js = require('@eslint/js');
 const globals = require('globals');
 const stylistic = require('@stylistic/eslint-plugin');
-const i18nJson = require('eslint-plugin-i18n-json');
+const json = require('@eslint/json').default;
+const jsdoc = require('eslint-plugin-jsdoc');
+// Our own rules, as an inline plugin: flat config takes a plugin object directly, so a one-rule plugin needs no
+// package, no build step and no npm publish. See tools/lint/eslint-rules/ for what each rule guards.
+const i18nEscapeInMarkup = require('./tools/lint/eslint-rules/i18n-escape-in-markup');
+const escapeInMarkup = require('./tools/lint/eslint-rules/escape-in-markup');
+const psPlugin = {rules: {'i18n-escape-in-markup': i18nEscapeInMarkup, 'escape-in-markup': escapeInMarkup}};
+
+// The house style: stylistic.configs.customize({...}) supplies ~50 whitespace/formatting rules as one maintained set,
+// and these options encode ours. Named so test/js can share its indent rule rather than restate it.
+// See https://eslint.style/guide/config-presets#configuration-factory
+const houseStyle = stylistic.configs.customize({
+  indent: 2,
+  quotes: 'single',
+  semi: true,
+  jsx: false,
+  arrowParens: true,
+  braceStyle: '1tbs',
+  blockSpacing: true,
+  commaDangle: 'always-multiline',
+}).rules;
 
 module.exports = [
   // ESLint core "recommended" -- ~45 correctness rules. Listed first so the explicit block below overrides it.
-  // Scoped to JS: these are JavaScript-correctness rules, and leaving them global would leak onto the translation
-  // JSON (the i18n-json processor wraps each file so core rules see it), where e.g. no-irregular-whitespace would
-  // false-positive on locales that legitimately use non-breaking spaces. Translation JSON is governed by the
-  // i18n-json rules below instead.
-  {files: ['public/js/**/*.js'], ...js.configs.recommended},
-  // Global ignores. Flat config lints nothing unless a `files` glob below opts it in, so this only has to carve out
-  // generated bundles and vendored libraries *within* the linted tree -- no more whole-repo `*` + `!negation`
-  // gymnastics that the old ignorePatterns needed to claw scope back down to public/js.
+  // Scoped to JS rather than left global: these are JavaScript-correctness rules, and on the translation JSON they
+  // false-positive -- no-irregular-whitespace on locales that legitimately use non-breaking spaces, for one.
+  {files: ['frontend/js/**/*.js'], ...js.configs.recommended},
   {
-    ignores: [
-      'public/js/**/build/**',
-    ],
-  },
-  {
-    files: ['public/js/**/*.js'],
+    files: ['frontend/js/**/*.js'],
     plugins: {
       '@stylistic': stylistic,
+      'ps': psPlugin,
     },
     languageOptions: {
       ecmaVersion: 2022, // ES2022 -- needed for class fields, including `#private` members.
-      sourceType: 'script', // Files are concatenated into a global bundle by Grunt, not ES modules.
+      sourceType: 'module', // Every file is an ES module, bundled per page by Vite (#4467).
       globals: {
         ...globals.browser, // was `env: { browser: true }`.
         ...globals.es2021,  // was `env: { es6: true }`; supplies Promise/Map/Set/Symbol/globalThis etc.
+        // The Google Maps API comes from its own bootstrap in main.scala.html; modules import every other library.
+        google: 'readonly',
       },
     },
     rules: {
+      // --- Project Sidewalk's own rules ---
+      // An `error`, so CI blocks on it: what it guards is an XSS, not a style preference (#5389).
+      'ps/i18n-escape-in-markup': 'error',
+      'ps/escape-in-markup': 'error',
+
       // --- Code-quality / ES6 rules (ESLint core) ---
       'curly': ['error', 'multi-line', 'consistent'],
       'eqeqeq': ['error', 'always'],
-      // vars:'local' skips global-scope (top-level) declarations -- in this concat-globals bundle those are
-      // entry points consumed by another file or a Twirl view's inline <script>, not dead code (#2487). Dead
-      // locals inside functions and unused params are still flagged. A `_` prefix marks a param as intentionally
-      // unused (e.g. interface-documenting stubs in an abstract class like PanoViewer).
-      'no-unused-vars': ['error', {vars: 'local', argsIgnorePattern: '^_'}],
-      'no-undef': 'off',
+      // A `_` prefix marks a param as intentionally unused (e.g. the interface-documenting stubs in PanoViewer).
+      'no-unused-vars': ['error', {argsIgnorePattern: '^_'}],
+      'no-undef': 'error',
       'one-var': ['error', 'never'],
       'no-var': 'error',
       // Got most of the below rules from Airbnb style guide:
@@ -80,12 +95,17 @@ module.exports = [
 
       // --- Bug-catchers beyond eslint:recommended ---
       'no-unused-expressions': ['error', {allowShortCircuit: true, allowTernary: true}],
-      'no-shadow': 'error', // Easy to shadow shared globals (svl/svv/util) in an inner scope.
+      'no-shadow': 'error', // Easy to shadow a shared registry (svl/svv/util) in an inner scope.
       'no-throw-literal': 'error',
       'radix': 'error',
       'no-eval': 'error',
       'no-implied-eval': 'error',
       'no-new-func': 'error',
+      // Deprecated, and they disagree with `key`/`code` on non-US layouts (#5618).
+      'no-restricted-properties': ['error', ...['keyCode', 'which', 'charCode'].map((property) => ({
+        property,
+        message: 'Use KeyboardEvent.code for a shortcut key, or KeyboardEvent.key for the character typed.',
+      }))],
 
       // --- Modern-idiom cleanup (all auto-fixable) ---
       'prefer-object-spread': 'error',
@@ -96,20 +116,9 @@ module.exports = [
       'no-useless-concat': 'error',
       'require-await': 'error', // An async function with no await is usually a mistake.
 
-      // --- Formatting: @stylistic preset baseline ---
-      // stylistic.configs.customize({...}) supplies ~50 whitespace/formatting rules as one maintained set; the
-      // options below encode our house style. The block after it holds the rules the preset doesn't cover and
-      // our deliberate divergences. See https://eslint.style/guide/config-presets#configuration-factory
-      ...stylistic.configs.customize({
-        indent: 2,
-        quotes: 'single',
-        semi: true,
-        jsx: false,
-        arrowParens: true,
-        braceStyle: '1tbs',
-        blockSpacing: true,
-        commaDangle: 'always-multiline',
-      }).rules,
+      // --- Formatting: @stylistic preset baseline (houseStyle, above) ---
+      // The block after it holds the rules the preset doesn't cover and our deliberate divergences.
+      ...houseStyle,
 
       // Rules the preset doesn't set -- keep our own:
       '@stylistic/eol-last': ['error', 'always'], // Every file ends with a single trailing newline (docs/style-guide.md).
@@ -142,33 +151,83 @@ module.exports = [
     },
   },
 
-  // --- i18n translation JSON (public/locales/) ---
-  // eslint-plugin-i18n-json lints the translation files via a processor that wraps each JSON file so its rules can
-  // read it. This covers per-file checks -- JSON validity (including duplicate-key detection, which a plain
-  // JSON.parse silently swallows) and empty-value detection. Cross-locale key parity is handled separately by
-  // tools/check-locale-parity.mjs, because the plugin's `identical-keys` rule is blind to two i18n realities: i18next
-  // plural suffixes (`_one`/`_other`/... legitimately differ per language's CLDR plural rules) and override-only
-  // locales (en-US/en-NZ and the per-city `*-zurich`/`*-india` files intentionally hold only a subset of keys). We
-  // also skip `identical-placeholders` (its ICU parser silently no-ops on our i18next `{{var}}` interpolation) and
-  // `sorted-keys` (our files are ordered logically, not alphabetically -- enabling it would be pure churn).
-  // `valid-message-syntax` runs in `non-empty-string` mode, not the default `icu` mode, because ICU would reject
-  // every `{{var}}` string; non-empty-string still flags empty values, arrays, and empty objects.
+
+  // --- JSDoc (#5278) ---
+  // A short list rather than `recommended`, grown as the tree is cleaned up. `require-jsdoc` stays off: which methods
+  // are "non-trivial" enough to need a header is a judgment call.
   {
-    files: ['public/locales/**/*.json'],
-    plugins: {'i18n-json': i18nJson},
-    processor: {
-      meta: {name: '.json'},
-      ...i18nJson.processors['.json'],
+    files: ['frontend/js/**/*.js'],
+    plugins: {jsdoc},
+    settings: {
+      jsdoc: {
+        // Our types are TypeScript-style (`() => void`, `typeof PanoViewer`), which `make lint-js-types` reads.
+        mode: 'typescript',
+        // We use @requires as a free-text list of what a file needs loaded first, not a single module name.
+        structuredTags: {requires: {name: 'text'}},
+      },
     },
     rules: {
-      'i18n-json/valid-json': 'error',
-      'i18n-json/valid-message-syntax': ['error', {syntax: 'non-empty-string'}],
+      // Skips destructured keys: we often document a destructured param as the one object it is.
+      // Also what lets `no-unused-vars` see an import a JSDoc type uses (`{typeof PanoViewer}`); the undefined-type
+      // report itself stays off, since `make lint-js-types` already catches those with real resolution.
+      'jsdoc/no-undefined-types': ['error', {disableReporting: true}],
+      'jsdoc/check-param-names': ['error', {checkDestructured: false}],
+      'jsdoc/check-tag-names': 'error',
+      // Also catches two tags on one line (`/** @private @type {X} */`), which hides the second from every other rule.
+      'jsdoc/empty-tags': 'error',
+      'jsdoc/check-types': 'error',
+      'jsdoc/valid-types': 'error',
+      'jsdoc/require-returns-check': 'error',
+      'jsdoc/check-alignment': 'error',
+      'jsdoc/require-param-type': 'error',
+      'jsdoc/require-returns-type': 'error',
+      'jsdoc/require-hyphen-before-param-description': 'error',
+      // Two things this plugin accepts but TypeScript 7 can't read, so they'd break `make lint-js-types` in any folder
+      // it checks. Caught here too because most folders aren't checked by it yet.
+      'jsdoc/no-restricted-syntax': ['error', {
+        contexts: [
+          {
+            comment: 'JsdocBlock:has(JsdocTypeFunction[arrow=false])',
+            context: 'any',
+            message: 'Write a callback type as an arrow signature like `(id: number) => void`, not `function(number)`.',
+          },
+          {
+            comment: 'JsdocBlock:has(JsdocTag[tag=/^(private|protected|public)$/])',
+            context: ':matches(MethodDefinition, PropertyDefinition):has(> PrivateIdentifier.key)',
+            message: 'Drop `@private`/`@protected`/`@public` on a `#private` member; the `#` already sets its access.',
+          },
+        ],
+      }],
+      // A second tag written on the same line (`/** @param {X} x - @returns {Y} */`) is read as description text.
+      'jsdoc/match-description': ['error', {
+        mainDescription: false,
+        tags: Object.fromEntries(['param', 'returns', 'type'].map((tag) => [tag, {
+          match: '^(?![\\s\\S]*(?:^|\\s)@[a-z]+\\b)',
+          message: 'Put each JSDoc tag on its own line.',
+        }])),
+      }],
+    },
+  },
+
+  // --- i18n translation JSON (public/locales/) ---
+  // These catch what a JSON.parse silently swallows: a duplicate key keeps the last value, so a second `"foo"`
+  // overwrites an existing translation with no error anywhere. Key parity and empty values need to know about
+  // i18next plurals and override-only locales, so they live in tools/lint/check-locale-parity.mjs instead.
+  // `sort-keys` is off: our files are ordered logically, not alphabetically, so enabling it would be pure churn.
+  {
+    files: ['public/locales/**/*.json'],
+    plugins: {json},
+    language: 'json/json',
+    rules: {
+      'json/no-duplicate-keys': 'error',
+      'json/no-empty-keys': 'error',
+      'json/no-unsafe-values': 'error',
     },
   },
 
   // --- Browser smoke suite (test/e2e/) + its config ---
   // Node-side CommonJS (Playwright test runner), unlike the browser-global concat bundles above — so it gets its
-  // own block with node globals rather than joining the public/js one. Kept to the core recommended rules; the
+  // own block with node globals rather than joining the frontend/js one. Kept to the core recommended rules; the
   // suite is a handful of files and the full @stylistic house-style preset isn't worth a second tuning pass here.
   {files: ['test/e2e/**/*.js', 'playwright.config.js'], ...js.configs.recommended},
   {
@@ -188,5 +247,37 @@ module.exports = [
       'prefer-const': 'error',
       'eqeqeq': ['error', 'always'],
     },
+  },
+
+  // --- jsdom unit suite (test/js/) ---
+  // `no-undef` stays on: a typo'd helper in a rarely-run branch is otherwise invisible; the page globals the suites
+  // stub are listed below. Of the house style only the indent is applied (#5778): the rest would flag ~1,400 lines,
+  // mostly `{a}` vs `{ a }` spacing, a churn no reader gains from.
+  {files: ['test/js/**/*.js'], ...js.configs.recommended},
+  {
+    files: ['test/js/**/*.js'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'module',
+      globals: {
+        ...globals.node,
+        ...globals.vitest,
+        ...globals.browser,
+      },
+    },
+    plugins: {'@stylistic': stylistic},
+    rules: {
+      '@stylistic/indent': houseStyle['@stylistic/indent'],
+      'no-unused-vars': ['error', {argsIgnorePattern: '^_'}],
+      'no-var': 'error',
+      'prefer-const': 'error',
+      'eqeqeq': ['error', 'always'],
+    },
+  },
+  // The suite's Node-side scripts (the gsv-fov-probe recorder and analyzer) get the same indent and nothing else.
+  {
+    files: ['test/js/**/*.mjs', 'test/js/**/*.cjs'],
+    plugins: {'@stylistic': stylistic},
+    rules: {'@stylistic/indent': houseStyle['@stylistic/indent']},
   },
 ];

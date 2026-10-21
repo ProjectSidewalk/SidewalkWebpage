@@ -1,5 +1,5 @@
 /**
- * Tests for the label-card keyboard scope in Validate's KeyboardManager (public/js/validate/src/keyboard/
+ * Tests for the label-card keyboard scope in Validate's KeyboardManager (frontend/js/validate/keyboard/
  * KeyboardManager.js), added for #4729.
  *
  * The manager listens on window with capture and treats most keys as global shortcuts — Enter submits the current
@@ -9,139 +9,177 @@
  * a regression on the inside submits validations from a control that means "open", and one on the outside breaks
  * every existing shortcut.
  *
- * The class is a plain top-level declaration, so the source is eval'd with an explicit export, the same way
- * share-widget.test.js loads ShareWidget. One instance is created for the whole file — the constructor registers a
- * window listener that cannot be unregistered — and each test swaps the svv/menu stubs it reads at event time.
+ * One instance is created for the whole file — the constructor registers a window listener that cannot be
+ * unregistered — and each test swaps the collaborator/menu stubs it reads at event time.
  */
 
-const fs = require('fs');
-const path = require('path');
+import { loadModules } from './loader.js';
+import { fakeGate, fakeTracker } from './fakes.js';
 
-const MANAGER_SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/validate/src/keyboard/KeyboardManager.js'), 'utf8'
-);
-
-/** A stand-in for one of the menu's jQuery-wrapped controls. */
+/** A stand-in for one of the menu's controls, with its click spied. */
 function makeControl() {
-    return { on: () => {}, 0: document.createElement('textarea'), click: jest.fn(), hasClass: () => false };
+  const control = document.createElement('textarea');
+  control.click = vi.fn();
+  return control;
 }
 
 /** Dispatches a keydown with the given code on a target, returning the event for defaultPrevented checks. */
 function key(code, target) {
-    const ev = new KeyboardEvent('keydown', { code, bubbles: true, cancelable: true });
-    target.dispatchEvent(ev);
-    return ev;
+  const ev = new KeyboardEvent('keydown', { code, bubbles: true, cancelable: true });
+  target.dispatchEvent(ev);
+  return ev;
 }
 
 describe('KeyboardManager label-card scope', () => {
-    // Shared across tests: the constructor's window listener reads these objects' properties at event time.
-    const validationMenuUi = {};
+  // Shared across tests: the constructor's window listener reads these objects' properties at event time.
+  const validationMenuUi = {};
+  // The manager keeps the collaborators it was built with, so each test swaps the objects behind these proxies.
+  let current = {};
+  const live = (name) => new Proxy({}, { get: (_, key) => current[name][key] });
+  const config = { adminVersion: false };
 
-    beforeAll(() => {
-        Object.assign(validationMenuUi, {
-            optionalCommentTextBox: makeControl(),
-            disagreeReasonTextBox: makeControl(),
-            unsureReasonTextBox: makeControl(),
-            submitButton: makeControl(),
-            yesButton: makeControl(),
-            noButton: makeControl(),
-            unsureButton: makeControl(),
-        });
-        window.eval(`${MANAGER_SRC}\nwindow.KeyboardManager = KeyboardManager;`);
-        new window.KeyboardManager(validationMenuUi);
+  beforeAll(async () => {
+    Object.assign(validationMenuUi, {
+      optionalCommentTextBox: makeControl(),
+      disagreeReasonTextBox: makeControl(),
+      unsureReasonTextBox: makeControl(),
+      submitButton: makeControl(),
+      yesButton: makeControl(),
+      noButton: makeControl(),
+      unsureButton: makeControl(),
     });
+    const { KeyboardManager } = await loadModules('frontend/js/validate/keyboard/KeyboardManager.js');
+    new KeyboardManager(
+      { validationMenu: validationMenuUi, undoValidation: { undoButton: live('undoButton') } }, config,
+      fakeGate(),
+      { onLoadingChange: () => {} }, live('labelVisibilityControl'), live('labelCard'), live('validationMenu'),
+      live('zoomControl'), live('undoValidation'), live('immersiveMode'), live('imageAdjustmentsPopover'),
+      live('tracker'),
+    );
+  });
 
-    beforeEach(() => {
-        document.body.innerHTML = `
+  beforeEach(() => {
+    document.body.innerHTML = `
           <div id="view-control-layer"><div id="validate-pano-marker" tabindex="0"></div></div>
           <div id="label-card"><button type="button" id="label-visibility-button-on-label"></button></div>`;
-        validationMenuUi.submitButton.click = jest.fn();
-        validationMenuUi.yesButton = makeControl();
-        window.svv = {
-            labelVisibilityControl: {
-                hideLabelCard: jest.fn(),
-                toggleLabelCard: jest.fn(),
-                // The card starts open in most tests; the Escape-against-nothing case flips this.
-                isCardVisible: () => true,
-                isVisible: () => true,
-                hideLabel: jest.fn(),
-                unhideLabel: jest.fn(),
-            },
-            tracker: { push: jest.fn() },
-            undoValidation: { canUndo: () => false },
-        };
+    validationMenuUi.submitButton.click = vi.fn();
+    validationMenuUi.yesButton = makeControl();
+    current = {
+      labelVisibilityControl: {
+        hideLabelCard: vi.fn(),
+        isCardHeldOpen: () => false,
+        toggleLabelCard: vi.fn(),
+        // The card starts open in most tests; the Escape-against-nothing case flips this.
+        isCardVisible: () => true,
+        isVisible: () => true,
+        hideLabel: vi.fn(),
+        unhideLabel: vi.fn(),
+      },
+      labelCard: { isPopoverOpen: () => false, closeTypeDropdown: () => false },
+      validationMenu: { inWrongTypeView: () => false },
+      imageAdjustmentsPopover: { isOpen: () => false },
+      undoValidation: { canUndo: () => false },
+      tracker: fakeTracker(),
+    };
+  });
+
+  const marker = () => document.getElementById('validate-pano-marker');
+  const cardButton = () => document.getElementById('label-visibility-button-on-label');
+
+  describe('inside the scope', () => {
+    it('Enter on the marker toggles the card instead of submitting the validation', () => {
+      const ev = key('Enter', marker());
+
+      expect(current.labelVisibilityControl.toggleLabelCard).toHaveBeenCalledTimes(1);
+      expect(validationMenuUi.submitButton.click).not.toHaveBeenCalled();
+      expect(ev.defaultPrevented).toBe(true);
     });
 
-    const marker = () => document.getElementById('validate-pano-marker');
-    const cardButton = () => document.getElementById('label-visibility-button-on-label');
+    it('marks the toggle as a keyboard open, so it is not logged as a pointer hover', () => {
+      key('Enter', marker());
 
-    describe('inside the scope', () => {
-        it('Enter on the marker toggles the card instead of submitting the validation', () => {
-            const ev = key('Enter', marker());
-
-            expect(window.svv.labelVisibilityControl.toggleLabelCard).toHaveBeenCalledTimes(1);
-            expect(validationMenuUi.submitButton.click).not.toHaveBeenCalled();
-            expect(ev.defaultPrevented).toBe(true);
-        });
-
-        it('marks the toggle as a keyboard open, so it is not logged as a pointer hover', () => {
-            key('Enter', marker());
-
-            expect(window.svv.labelVisibilityControl.toggleLabelCard)
-                .toHaveBeenCalledWith({ viaKeyboard: true });
-        });
-
-        it('Space on the marker toggles the card', () => {
-            const ev = key('Space', marker());
-
-            expect(window.svv.labelVisibilityControl.toggleLabelCard).toHaveBeenCalledTimes(1);
-            expect(ev.defaultPrevented).toBe(true); // Space would otherwise also scroll the page.
-        });
-
-        it('Escape inside the card closes it and puts focus back on the marker', () => {
-            cardButton().focus();
-            key('Escape', cardButton());
-
-            expect(window.svv.labelVisibilityControl.hideLabelCard).toHaveBeenCalledTimes(1);
-            expect(window.svv.tracker.push).toHaveBeenCalledWith('KeyboardShortcut_HideLabelCard', expect.anything());
-            expect(document.activeElement).toBe(marker());
-        });
-
-        it('Escape with the card already closed logs nothing, but still keeps focus on the marker', () => {
-            window.svv.labelVisibilityControl.isCardVisible = () => false;
-            marker().focus();
-            key('Escape', marker());
-
-            expect(window.svv.labelVisibilityControl.hideLabelCard).not.toHaveBeenCalled();
-            expect(window.svv.tracker.push).not.toHaveBeenCalled();
-            expect(document.activeElement).toBe(marker());
-        });
-
-        it('Tab on the marker does not blanket-hide the card, so it can be tabbed into', () => {
-            key('Tab', marker());
-
-            expect(window.svv.labelVisibilityControl.hideLabelCard).not.toHaveBeenCalled();
-        });
-
-        it('validation shortcuts do not fire from inside the card', () => {
-            key('KeyY', cardButton());
-
-            expect(validationMenuUi.yesButton.click).not.toHaveBeenCalled();
-        });
+      expect(current.labelVisibilityControl.toggleLabelCard)
+        .toHaveBeenCalledWith({ viaKeyboard: true });
     });
 
-    describe('outside the scope', () => {
-        it('Enter still submits the validation', () => {
-            key('Enter', document.body);
+    it('Space on the marker toggles the card', () => {
+      const ev = key('Space', marker());
 
-            expect(validationMenuUi.submitButton.click).toHaveBeenCalledTimes(1);
-        });
-
-        it('shortcut keys still act and still take the card down', () => {
-            key('KeyY', document.body);
-
-            expect(validationMenuUi.yesButton.click).toHaveBeenCalledTimes(1);
-            expect(window.svv.labelVisibilityControl.hideLabelCard).toHaveBeenCalledTimes(1);
-        });
+      expect(current.labelVisibilityControl.toggleLabelCard).toHaveBeenCalledTimes(1);
+      expect(ev.defaultPrevented).toBe(true); // Space would otherwise also scroll the page.
     });
+
+    it('Escape inside the card closes it and puts focus back on the marker', () => {
+      cardButton().focus();
+      key('Escape', cardButton());
+
+      expect(current.labelVisibilityControl.hideLabelCard).toHaveBeenCalledTimes(1);
+      expect(current.tracker.push).toHaveBeenCalledWith('KeyboardShortcut_HideLabelCard', expect.anything());
+      expect(document.activeElement).toBe(marker());
+    });
+
+    it('Escape with the card already closed logs nothing, but still keeps focus on the marker', () => {
+      current.labelVisibilityControl.isCardVisible = () => false;
+      marker().focus();
+      key('Escape', marker());
+
+      expect(current.labelVisibilityControl.hideLabelCard).not.toHaveBeenCalled();
+      expect(current.tracker.push).not.toHaveBeenCalled();
+      expect(document.activeElement).toBe(marker());
+    });
+
+    it('Tab on the marker does not blanket-hide the card, so it can be tabbed into', () => {
+      key('Tab', marker());
+
+      expect(current.labelVisibilityControl.hideLabelCard).not.toHaveBeenCalled();
+    });
+
+    it('validation shortcuts do not fire from inside the card', () => {
+      key('KeyY', cardButton());
+
+      expect(validationMenuUi.yesButton.click).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('outside the scope', () => {
+    it('Enter still submits the validation', () => {
+      key('Enter', document.body);
+
+      expect(validationMenuUi.submitButton.click).toHaveBeenCalledTimes(1);
+    });
+
+    it('shortcut keys still act and still take the card down', () => {
+      key('KeyY', document.body);
+
+      expect(validationMenuUi.yesButton.click).toHaveBeenCalledTimes(1);
+      expect(current.labelVisibilityControl.hideLabelCard).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  // Infra3d cities open the card on load and keep it up until something deliberate (#5675).
+  describe('a card opened on load', () => {
+    beforeEach(() => {
+      current.labelVisibilityControl.isCardHeldOpen = () => true;
+    });
+
+    it('stays up through keys that aren\'t meant to close it', () => {
+      key('KeyQ', document.body); // Unbound, which today would take a hovered card down.
+
+      expect(current.labelVisibilityControl.hideLabelCard).not.toHaveBeenCalled();
+    });
+
+    it('closes on Escape from anywhere, logged as a keyboard hide, without moving focus to the marker', () => {
+      key('Escape', document.body);
+
+      expect(current.labelVisibilityControl.hideLabelCard).toHaveBeenCalledTimes(1);
+      expect(current.tracker.push).toHaveBeenCalledWith('KeyboardShortcut_HideLabelCard', expect.anything());
+      expect(document.activeElement).not.toBe(marker());
+    });
+  });
+
+  it('Escape outside the scope does nothing to a card that was only hovered open', () => {
+    key('Escape', document.body);
+
+    expect(current.tracker.push).not.toHaveBeenCalled();
+  });
 });

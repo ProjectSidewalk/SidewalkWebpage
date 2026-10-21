@@ -3,11 +3,13 @@ package models.street
 import com.google.inject.ImplementedBy
 import models.audit.AuditTaskTableDef
 import models.user.UserStatTableDef
-import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.{FilteredTables, MyPostgresProfile}
+import models.utils.MyPostgresProfile.api.*
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+import play.api.libs.json.{JsValue, Json, Writes}
+import slick.jdbc.GetResult
 
-import java.time.OffsetDateTime
+import java.time.{LocalDate, OffsetDateTime}
 import javax.inject.{Inject, Singleton}
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext
@@ -15,13 +17,75 @@ import scala.concurrent.ExecutionContext
 case class StreetEdgePriorityParameter(streetEdgeId: Int, priorityParameter: Double)
 case class StreetEdgePriority(streetEdgePriorityId: Int, streetEdgeId: Int, priority: Double)
 
+/**
+ * One open street's routing priority alongside the audit counts the priority formula derives it from (#4908).
+ *
+ * The stored priority alone says which street Explore serves next but not why; carrying the same three counts the
+ * formula consumes makes the value explainable on the admin map, and lets a spec assert the two still agree.
+ *
+ * @param priority            The stored `street_edge_priority.priority`, not a recomputation.
+ * @param freshGoodCount      Good-user audits on current imagery.
+ * @param outdatedGoodCount   Good-user audits flagged `outdated_imagery`; contributes a flat capped 0.5.
+ * @param badCount            Audits by low-quality or flagged users; contributes 0.25 each.
+ * @param outdated            Audited, with no up-to-date audit left -- the same definition `/v3/api/streets` reports,
+ *                            so the page's re-audit counts match the Coverage KPI rather than the priority counts.
+ * @param lastAuditDate       UTC date of the most recent completed audit, if any.
+ * @param medianNewestCapture The street's polled median newest capture, NULL when never polled conclusively.
+ * @param imageryUpdatedAt    When any feeder last wrote this street's `street_imagery` row.
+ * @param lengthMeters        Geodesic length, for distance roll-ups.
+ */
+case class StreetPriorityForAdmin(
+    streetEdgeId: Int,
+    regionId: Int,
+    regionName: String,
+    priority: Double,
+    freshGoodCount: Int,
+    outdatedGoodCount: Int,
+    badCount: Int,
+    outdated: Boolean,
+    lastAuditDate: Option[LocalDate],
+    medianNewestCapture: Option[LocalDate],
+    imageryUpdatedAt: Option[OffsetDateTime],
+    lengthMeters: Double
+)
+
+object StreetPriorityForAdmin {
+
+  /**
+   * snake_case per the admin dashboard convention, with dates as plain ISO strings.
+   *
+   * Hand-built rather than derived so the column set is stated once, next to the case class it serializes: the page
+   * joins these rows onto street geometry by `street_edge_id` and reads every other field by name, so a field renamed
+   * on one side and not the other is a blank column rather than an error.
+   */
+  given writes: Writes[StreetPriorityForAdmin] = Writes { street =>
+    Json.obj(
+      "street_edge_id"        -> street.streetEdgeId,
+      "region_id"             -> street.regionId,
+      "region_name"           -> street.regionName,
+      "priority"              -> street.priority,
+      "fresh_good_count"      -> street.freshGoodCount,
+      "outdated_good_count"   -> street.outdatedGoodCount,
+      "bad_count"             -> street.badCount,
+      "outdated"              -> street.outdated,
+      "last_audit_date"       -> street.lastAuditDate.map(_.toString),
+      "median_newest_capture" -> street.medianNewestCapture.map(_.toString),
+      "imagery_updated_at"    -> street.imageryUpdatedAt.map(_.toString),
+      "length_m"              -> street.lengthMeters
+    )
+  }
+
+  /** The whole endpoint payload: the rows under one key, so the response stays an object rather than a bare array. */
+  def payload(streets: Seq[StreetPriorityForAdmin]): JsValue = Json.obj("streets" -> Json.toJson(streets))
+}
+
 class StreetEdgePriorityTableDef(tag: slick.lifted.Tag) extends Table[StreetEdgePriority](tag, "street_edge_priority") {
   def streetEdgePriorityId: Rep[Int] = column[Int]("street_edge_priority_id", O.PrimaryKey, O.AutoInc)
   def streetEdgeId: Rep[Int]         = column[Int]("street_edge_id")
   def priority: Rep[Double]          = column[Double]("priority", O.Default(0.0))
 
   def * =
-    (streetEdgePriorityId, streetEdgeId, priority) <> ((StreetEdgePriority.apply _).tupled, StreetEdgePriority.unapply)
+    (streetEdgePriorityId, streetEdgeId, priority).mapTo[StreetEdgePriority]
 
   def streetEdge =
     foreignKey("street_edge_priority_street_edge_id_fkey", streetEdgeId, TableQuery[StreetEdgeTableDef])(_.streetEdgeId)
@@ -34,9 +98,9 @@ trait StreetEdgePriorityTableRepository {}
 @Singleton
 class StreetEdgePriorityTable @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
-    streetEdgeTable: StreetEdgeTable,
-    implicit val ec: ExecutionContext
-) extends StreetEdgePriorityTableRepository
+    streetEdgeTable: StreetEdgeTable
+)(using ec: ExecutionContext)
+    extends StreetEdgePriorityTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   val userStats             = TableQuery[UserStatTableDef]
@@ -59,6 +123,88 @@ class StreetEdgePriorityTable @Inject() (
 
     // Sum the lengths and convert from meters to miles.
     edgeLengths.sum.result.map(x => x.getOrElse(0.0d))
+  }
+
+  /**
+   * Every routable street's priority with the audit counts behind it, for the admin imagery panel (#4908).
+   *
+   * Scoped to open, non-tutorial streets because the question it answers is "where will Explore send people next",
+   * and those are the only streets it can send them to.
+   *
+   * The three counts reproduce `selectGoodBadUserCompletionCountPriority` in SQL, including its dedupe: that query
+   * groups completed audits by (street, user, low_quality, incomplete, stale, outdated_imagery) before counting, so
+   * one user's repeat audits of a street collapse unless their flags differ. Keep the DISTINCT column list in step
+   * with that groupBy -- `StreetPriorityAdminSpec` recomputes the formula from these counts and requires the result to
+   * match what `selectGoodBadUserCompletionCountPriority` produces, so a divergence fails there rather than silently
+   * mislabeling the map.
+   */
+  def getPriorityWithInputs: DBIO[Seq[StreetPriorityForAdmin]] = {
+    given getStreetPriorityForAdmin: GetResult[StreetPriorityForAdmin] = { r =>
+      StreetPriorityForAdmin(
+        r.nextInt(),
+        r.nextInt(),
+        r.nextString(),
+        r.nextDouble(),
+        r.nextInt(),
+        r.nextInt(),
+        r.nextInt(),
+        r.nextBoolean(),
+        r.nextDateOption().map(_.toLocalDate),
+        r.nextDateOption().map(_.toLocalDate),
+        r.nextOffsetDateTimeOption(),
+        r.nextDouble()
+      )
+    }
+    sql"""
+      WITH completions AS (
+          SELECT DISTINCT audit_task.street_edge_id, audit_task.user_id, audit_task.low_quality,
+                 audit_task.incomplete, audit_task.stale, audit_task.outdated_imagery, user_stat.high_quality
+          FROM #${FilteredTables.completedAudits()}
+          INNER JOIN user_stat ON user_stat.user_id = audit_task.user_id
+      ), priority_inputs AS (
+          SELECT street_edge_id,
+                 COUNT(*) FILTER (
+                     WHERE high_quality AND NOT (low_quality OR incomplete OR stale) AND NOT outdated_imagery
+                 ) AS fresh_good_count,
+                 COUNT(*) FILTER (
+                     WHERE high_quality AND NOT (low_quality OR incomplete OR stale) AND outdated_imagery
+                 ) AS outdated_good_count,
+                 COUNT(*) FILTER (
+                     WHERE NOT (high_quality AND NOT (low_quality OR incomplete OR stale))
+                 ) AS bad_count
+          FROM completions
+          GROUP BY street_edge_id
+      ), audit_activity AS (
+          -- All counted audits, not just high-quality ones, to match the audited/outdated status shown elsewhere.
+          SELECT street_edge_id,
+                 COUNT(*) AS audit_count,
+                 COUNT(*) FILTER (WHERE NOT outdated_imagery) AS up_to_date_audit_count,
+                 MAX((task_end AT TIME ZONE 'UTC')::date) AS last_audit_date
+          FROM #${FilteredTables.completedAudits()}
+          GROUP BY street_edge_id
+      )
+      SELECT street_edge.street_edge_id,
+             street_edge_region.region_id,
+             region.name,
+             COALESCE(street_edge_priority.priority, 1.0),
+             COALESCE(priority_inputs.fresh_good_count, 0),
+             COALESCE(priority_inputs.outdated_good_count, 0),
+             COALESCE(priority_inputs.bad_count, 0),
+             COALESCE(audit_activity.audit_count, 0) > 0
+                 AND COALESCE(audit_activity.up_to_date_audit_count, 0) = 0 AS outdated,
+             audit_activity.last_audit_date,
+             street_imagery.median_newest_capture,
+             street_imagery.updated_at,
+             ST_Length(street_edge.geom::geography)
+      FROM #${FilteredTables.streets()}
+      INNER JOIN street_edge_region ON street_edge_region.street_edge_id = street_edge.street_edge_id
+      INNER JOIN region ON region.region_id = street_edge_region.region_id
+      LEFT JOIN street_edge_priority ON street_edge_priority.street_edge_id = street_edge.street_edge_id
+      LEFT JOIN priority_inputs ON priority_inputs.street_edge_id = street_edge.street_edge_id
+      LEFT JOIN audit_activity ON audit_activity.street_edge_id = street_edge.street_edge_id
+      LEFT JOIN street_imagery ON street_imagery.street_edge_id = street_edge.street_edge_id
+      ORDER BY street_edge.street_edge_id;
+    """.as[StreetPriorityForAdmin]
   }
 
   /**
@@ -140,13 +286,14 @@ class StreetEdgePriorityTable @Inject() (
 
       // Create a map from each street edge to a default priority value of 0.
       streetIds <- streetEdgePriorities.map(_.streetEdgeId).result
-      edgePriorityMap = mutable.Map[Int, Double](streetIds.map(id => id -> 0.0): _*)
+      edgePriorityMap = mutable.Map[Int, Double](streetIds.map(id => id -> 0.0)*)
 
       // Compute weighted sum of priority based on the rankParameter generators.
-      _ = for ((f_i, w_i) <- paramGeneratorList.zip(weightVector)) {
-        val priorityParamTable: Seq[StreetEdgePriorityParameter] = f_i()
-        priorityParamTable.foreach { edge => edgePriorityMap(edge.streetEdgeId) += (edge.priorityParameter * w_i) }
-      }
+      _ =
+        for ((f_i, w_i) <- paramGeneratorList.zip(weightVector)) {
+          val priorityParamTable: Seq[StreetEdgePriorityParameter] = f_i()
+          priorityParamTable.foreach { edge => edgePriorityMap(edge.streetEdgeId) += (edge.priorityParameter * w_i) }
+        }
 
       // Set priority values in the table.
       batchUpdate <- DBIO.sequence(edgePriorityMap.map { case (edgeId, newPriority) =>
@@ -194,15 +341,15 @@ class StreetEdgePriorityTable @Inject() (
       .groupBy(task =>
         (task.streetEdgeId, task.userId, task.lowQuality, task.incomplete, task.stale, task.outdatedImagery)
       )
-      .map(_._1)
+      .map { case (taskKey, _) => taskKey }
       .join(userStats)
-      .on(_._2 === _.userId)    // join on user_id
-      .filterNot(_._2.excluded) // filter out users marked with excluded = TRUE
+      .on { case ((_, userId, _, _, _, _), userStat) => userId === userStat.userId }
+      .filterNot { case (_, userStat) => userStat.excluded }
       // SELECT street_edge_id, (is_good_user AND NOT (low_quality or incomplete or stale)), outdated_imagery.
       // outdated_imagery is kept separate from the quality flags: it is a machine-managed freshness signal, not a
       // judgment of the audit, so it discounts a good audit's weight rather than reclassifying it as bad (#4384).
-      .map { case (_task, _qual) =>
-        (_task._1, _qual.highQuality && !(_task._3 || _task._4 || _task._5), _task._6)
+      .map { case ((streetEdgeId, _, lowQuality, incomplete, stale, outdatedImagery), _qual) =>
+        (streetEdgeId, _qual.highQuality && !(lowQuality || incomplete || stale), outdatedImagery)
       }
 
     /**
@@ -211,12 +358,18 @@ class StreetEdgePriorityTable @Inject() (
 
     // Group by street_edge_id and count good-user audits on current imagery, good-user audits on since-replaced
     // imagery, and bad-user audits (freshness doesn't matter for those -- they never gate priority) separately.
-    val freshGoodAuditCounts =
-      completions.filter(c => c._2 && !c._3).groupBy(_._1).map { case (edge, group) => (edge, group.length) }
-    val outdatedGoodAuditCounts =
-      completions.filter(c => c._2 && c._3).groupBy(_._1).map { case (edge, group) => (edge, group.length) }
-    val badUserAuditCounts =
-      completions.filterNot(_._2).groupBy(_._1).map { case (edge, group) => (edge, group.length) }
+    val freshGoodAuditCounts = completions
+      .filter { case (_, goodAudit, outdated) => goodAudit && !outdated }
+      .groupBy { case (edge, _, _) => edge }
+      .map { case (edge, group) => (edge, group.length) }
+    val outdatedGoodAuditCounts = completions
+      .filter { case (_, goodAudit, outdated) => goodAudit && outdated }
+      .groupBy { case (edge, _, _) => edge }
+      .map { case (edge, group) => (edge, group.length) }
+    val badUserAuditCounts = completions
+      .filterNot { case (_, goodAudit, _) => goodAudit }
+      .groupBy { case (edge, _, _) => edge }
+      .map { case (edge, group) => (edge, group.length) }
 
     // Join the audit counts with the street_edge table, filling in any counts not present as 0. We now have a table
     // with four columns: street_edge_id, fresh_good_count, outdated_good_count, bad_user_audit_count. We keep tutorial
@@ -224,14 +377,20 @@ class StreetEdgePriorityTable @Inject() (
     val allAuditCounts =
       streetEdgeTable.streetsWithTutorial
         .joinLeft(freshGoodAuditCounts)
-        .on(_.streetEdgeId === _._1)
-        .map { case (_edge, _freshCount) => (_edge.streetEdgeId, _freshCount.map(_._2).getOrElse(0)) }
+        .on { case (_edge, (countedEdge, _)) => _edge.streetEdgeId === countedEdge }
+        .map { case (_edge, _freshCount) =>
+          (_edge.streetEdgeId, _freshCount.map { case (_, count) => count }.getOrElse(0))
+        }
         .joinLeft(outdatedGoodAuditCounts)
-        .on(_._1 === _._1)
-        .map { case (_fresh, _outdatedCount) => (_fresh._1, _fresh._2, _outdatedCount.map(_._2).getOrElse(0)) }
+        .on { case ((edge, _), (countedEdge, _)) => edge === countedEdge }
+        .map { case ((edge, fresh), _outdatedCount) =>
+          (edge, fresh, _outdatedCount.map { case (_, count) => count }.getOrElse(0))
+        }
         .joinLeft(badUserAuditCounts)
-        .on(_._1 === _._1)
-        .map { case (_counts, _badCount) => (_counts._1, _counts._2, _counts._3, _badCount.map(_._2).getOrElse(0)) }
+        .on { case ((edge, _, _), (countedEdge, _)) => edge === countedEdge }
+        .map { case ((edge, fresh, outdated), _badCount) =>
+          (edge, fresh, outdated, _badCount.map { case (_, count) => count }.getOrElse(0))
+        }
 
     /**
      * ******** Compute Priority *********
@@ -243,9 +402,9 @@ class StreetEdgePriorityTable @Inject() (
       allAuditCounts.result.map(_.map { case (streetEdgeId, freshGood, outdatedGood, bad) =>
         if (freshGood > 0 || outdatedGood > 0) {
           val outdatedHalf = if (outdatedGood > 0) 0.5 else 0.0
-          StreetEdgePriorityParameter.tupled((streetEdgeId, freshGood + outdatedHalf + 0.25 * bad))
+          StreetEdgePriorityParameter(streetEdgeId, freshGood + outdatedHalf + 0.25 * bad)
         } else {
-          StreetEdgePriorityParameter.tupled((streetEdgeId, 0.0))
+          StreetEdgePriorityParameter(streetEdgeId, 0.0)
         }
       })
 

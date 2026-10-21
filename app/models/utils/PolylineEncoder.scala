@@ -13,7 +13,7 @@ object PolylineEncoder {
    * @return       The encoded polyline (empty for no coordinates).
    */
   def encode(coords: Seq[(Double, Double)]): String = {
-    val sb      = new StringBuilder
+    val sb      = StringBuilder()
     var prevLat = 0L
     var prevLng = 0L
     coords.foreach { case (lng, lat) =>

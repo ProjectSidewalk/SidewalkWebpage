@@ -1,12 +1,12 @@
+@import controllers.helper.ControllerUtils
 @import controllers.helper.ControllerUtils.distanceUnitWords
 @import service.{CommonPageData, PublicProfile, UserProfileData}
-@import models.user.SidewalkUserWithRole
+@import models.user.{Role, SidewalkUserWithRole}
 @import models.label.Tag
-@import models.pano.PanoSource
 @import play.api.Configuration
 @(commonData: CommonPageData, user: SidewalkUserWithRole, profileName: String, isMetric: Boolean,
     profile: Option[PublicProfile], tags: Seq[Tag]
-)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+)(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @*
 * Public version of a mapper's dashboard, reached by clicking a name on the leaderboard. Viewable by anyone, including
@@ -20,7 +20,7 @@
 
 @* All three states share the one page-title heading (same id, only ever rendered once per request). *@
 @pageHeading(title: String) = {
-  <h1 class="api-heading" id="overview">@title <a href="#overview" class="permalink">#</a></h1>
+  <h1 class="page-heading" id="overview">@title <a href="#overview" class="permalink">#</a></h1>
 }
 
 @* Floored rather than rounded, matching the dashboard and util.math.floorTo, so one total renders one way everywhere. *@
@@ -32,7 +32,7 @@
 @escapedName = @{ play.twirl.api.HtmlFormat.escape(profileName).toString }
 
 @notFoundState = {
-  <div class="api-section" id="pp-notfound-section">
+  <div class="page-section" id="pp-notfound-section">
     @pageHeading(Messages("dashboard.profile.notfound.title"))
     <div class="ud-empty-state">
       <span class="ud-empty-emoji" aria-hidden="true">🔍</span>
@@ -43,7 +43,7 @@
 }
 
 @privateState = {
-  <div class="api-section" id="pp-private-section">
+  <div class="page-section" id="pp-private-section">
     @pageHeading(profileName)
     <div class="ud-empty-state">
       <span class="ud-empty-emoji" aria-hidden="true">🔒</span>
@@ -54,7 +54,7 @@
 }
 
 @profileContent(pd: UserProfileData, trophies: Seq[models.userdashboard.Trophy]) = {
-  <div class="api-section" id="pp-hero-section">
+  <div class="page-section" id="pp-hero-section">
     @pageHeading(profileName)
 
     <div class="ud-hero">
@@ -63,16 +63,16 @@
         <p class="ud-hero-greeting"><span class="ud-public-tag">@Messages("dashboard.profile.tag")</span></p>
         @* profileName comes from the URL, so escape it before it goes through @Html. *@
         <p class="ud-hero-headline">@Html(Messages("dashboard.profile.headline",
-          s"<strong>$escapedName</strong>", "%,d".format(pd.labelCount)))</p>
+          s"<strong>$escapedName</strong>", "%,d".format(pd.labelCount), commonData.currentCity.cityNameShort))</p>
       </div>
     </div>
 
-    <div class="coverage-kpis ud-kpis">
-      <div class="coverage-kpi"><span class="coverage-kpi-value">@{"%,d".format(pd.missionCount)}</span><span class="coverage-kpi-label">@Messages("dashboard.kpi.missions")</span></div>
-      <div class="coverage-kpi"><span class="coverage-kpi-value">@distanceLabel(pd.auditedDistance)</span><span class="coverage-kpi-label">@Messages("dashboard.kpi.distance")</span></div>
-      <div class="coverage-kpi"><span class="coverage-kpi-value">@{"%,d".format(pd.labelCount)}</span><span class="coverage-kpi-label">@Messages("dashboard.kpi.labels")</span></div>
-      <div class="coverage-kpi"><span class="coverage-kpi-value">@{"%,d".format(pd.validationCount)}</span><span class="coverage-kpi-label">@Messages("dashboard.kpi.validations")</span></div>
-      <div class="coverage-kpi"><span class="coverage-kpi-value">@accuracyLabel(pd.accuracy)</span><span class="coverage-kpi-label">@Messages("dashboard.kpi.accuracy")</span></div>
+    <div class="ps-kpis ud-kpis">
+      <div class="ps-kpi"><span class="ps-kpi-value">@{"%,d".format(pd.missionCount)}</span><span class="ps-kpi-label">@Messages("dashboard.kpi.missions")</span></div>
+      <div class="ps-kpi"><span class="ps-kpi-value">@distanceLabel(pd.auditedDistance)</span><span class="ps-kpi-label">@Messages("dashboard.kpi.distance")</span></div>
+      <div class="ps-kpi"><span class="ps-kpi-value">@{"%,d".format(pd.labelCount)}</span><span class="ps-kpi-label">@Messages("dashboard.kpi.labels")</span></div>
+      <div class="ps-kpi"><span class="ps-kpi-value">@{"%,d".format(pd.validationCount)}</span><span class="ps-kpi-label">@Messages("dashboard.kpi.validations")</span></div>
+      <div class="ps-kpi"><span class="ps-kpi-value">@accuracyLabel(pd.accuracy)</span><span class="ps-kpi-label">@Messages("dashboard.kpi.accuracy")</span></div>
     </div>
 
     @* Contribution map is part of the hero (no h2, so it doesn't get its own on-this-page entry) — same
@@ -80,15 +80,15 @@
     <p class="ud-map-caption">@Messages("dashboard.profile.map.caption", profileName)</p>
     <div id="public-profile-choropleth-holder" class="choropleth-holder">
       <div id="public-profile-choropleth" class="choropleth"></div>
-      @common.filterSidebar(tags = tags, streetsShownByDefault = true)
+      @common.filterSidebar(tags = tags, streetsShownByDefault = true, showOutdatedStreetFilter = true, showCounts = true)
     </div>
   </div>
 
-  <div class="api-section" id="pp-achievements-section">
-    <h2 class="api-heading" id="achievements">@Messages("dashboard.achievements.title") <a href="#achievements" class="permalink">#</a></h2>
+  <div class="page-section" id="pp-achievements-section">
+    <h2 class="page-heading" id="achievements">@Messages("dashboard.achievements.title") <a href="#achievements" class="permalink">#</a></h2>
     @userDashboard._badgeTracks(pd.labelCount, pd.auditedDistance, pd.missionCount, pd.validationCount, isMetric)
 
-    <h3 class="api-heading" id="trophy-case">@Messages("dashboard.trophy.title") <a href="#trophy-case" class="permalink">#</a></h3>
+    <h3 class="page-heading" id="trophy-case">@Messages("dashboard.trophy.title") <a href="#trophy-case" class="permalink">#</a></h3>
     @if(trophies.nonEmpty) {
       @userDashboard._trophyCase(trophies)
     } else {
@@ -97,72 +97,25 @@
   </div>
 
   @pd.userTeam.map { team =>
-    <div class="api-section" id="pp-team-section">
-      <h2 class="api-heading" id="team">@Messages("dashboard.settings.team") <a href="#team" class="permalink">#</a></h2>
+    <div class="page-section" id="pp-team-section">
+      <h2 class="page-heading" id="team">@Messages("dashboard.settings.team") <a href="#team" class="permalink">#</a></h2>
       <div class="ud-team-card">
         <span class="ud-team-name">@team.name</span>
       </div>
     </div>
   }
 
-  @* Contribution map wired to the public, username-keyed, public_profile-gated endpoints. Map labels open the
-   shared label-detail popup (view-only here), same as the owner's dashboard and LabelMap. *@
-  @userDashboard._contributionMapScript("public-profile-choropleth", commonData.mapboxApiKey,
-    s"/userapi/public/${profileName}/streets", s"/userapi/public/${profileName}/labels",
-    wireLabelPopup = true)
-
-  @* Label popup stack (shared common/label-detail + pano-viewer), loaded directly like the redesign's other src. *@
   @common.labelPopup(admin = false)
-  <link href='@assets.path("css/label-detail.css")' rel="stylesheet">
-  @if(commonData.imagerySource == PanoSource.Infra3d) {
-    <script src='@assets.path("vendor/proj4/proj4-2.19.10.js")'></script>
-    <script src='@assets.path("vendor/infra3d/infra3dapi-1.8.0.js")'></script>
-  } else if (commonData.imagerySource == PanoSource.Mapillary) {
-    <script src='@assets.path("vendor/three/three-0.160.1-min.js")'></script>
-    <script src='@assets.path("vendor/mapillary/mapillary-4.1.2.min.js")'></script>
-    <link href='@assets.path("vendor/mapillary/mapillary-4.1.2.css")' rel="stylesheet">
-  }
-  <script src='@assets.path("vendor/pannellum/pannellum-2.5.7.js")'></script>
-  <link rel="stylesheet" href='@assets.path("vendor/pannellum/pannellum-2.5.7.css")'>
-  <script src='@assets.path("vendor/panzoom/panzoom-9.4.4.min.js")'></script>
-  <script src='@assets.path("js/common/pano-viewer/build/pano-viewer.js")'></script>
-  <script src='@assets.path("js/common/aiLabelIndicator.js")'></script>
-  <script src='@assets.path("js/common/PanoMarker.js")'></script>
-  <script src='@assets.path("js/common/Toast.js")'></script>
-  <script src='@assets.path("js/common/label-detail/PopupPanoManager.js")'></script>
-  <script src='@assets.path("js/common/ConfirmDialog.js")'></script>
-  <script src='@assets.path("js/common/label-detail/StoryComposer.js")'></script>
-  <script src='@assets.path("js/common/label-detail/StorySection.js")'></script>
-  <script src='@assets.path("js/common/share/ShareWidget.js")'></script>
-  <script src='@assets.path("js/common/label-detail/LabelDetail.js")'></script>
-  <script src='@assets.path("js/common/label-detail/LabelPopup.js")'></script>
+  @ViteAssets.stylesheets("dashboard/publicProfile", alreadyLinked = "dashboard/shell")
 
-  <script src="@assets.path("js/common/BadgeAchievements.js")"></script>
-  <script src="@assets.path("js/user-dashboard/DashboardBadges.js")"></script>
-  <script>
-    // Deferred handle the contribution map's click adapter awaits; resolved (popup or null) once init finishes.
-    let labelPopupReadyResolve;
-    window.udLabelPopupReady = new Promise((resolve) => { labelPopupReadyResolve = resolve; });
-
-    window.appManager.ready(async function () {
-      var badges = document.getElementById('ud-badges');
-      if (badges && typeof DashboardBadges !== 'undefined') {
-        try { new DashboardBadges(badges).render(); } catch (e) { console.error('Badge render failed', e); }
-      }
-
-      let labelPopup = null;
-      try {
-        const src = "@commonData.imagerySource.toString";
-        const viewerType = src === 'mapillary' ? MapillaryViewer : src === 'infra3d' ? Infra3dViewer : GsvViewer;
-        @* Anonymous sessions have autogenerated usernames, so only a real account's name reaches the story composer. *@
-        labelPopup = await LabelPopup(false, viewerType, "@commonData.imageryAccessToken",
-                                      @if(user.role != "Anonymous") {"@user.username"} else {null});
-      } catch (e) {
-        console.error('Label popup init failed; map labels will not be clickable', e);
-      }
-      labelPopupReadyResolve(labelPopup);
-    });
-  </script>
+  <script type="module" id="page-entry" src='@assets.path("build/js/dashboard/publicProfile.js")'
+          data-imagery-source="@commonData.imagerySource.name"
+          data-imagery-access-token="@commonData.imageryAccessToken"
+          data-mapbox-api-key="@commonData.mapboxApiKey"
+          data-streets-url="/userapi/public/@profileName/streets"
+          data-labels-url="/userapi/public/@profileName/labels"
+          @* Anonymous sessions have autogenerated usernames, so only a real account's name reaches the story composer. *@
+          data-username="@if(user.role != Role.Anonymous) {@user.username}"></script>
 }
 
 @body = {
@@ -176,5 +129,6 @@
 @* labelmap: the reused label-detail popup's strings; dashboard: DashboardBadges.js's client-side strings. *@
 @common.main(commonData, s"$profileName — Project Sidewalk", i18Namespaces = Seq("common", "labelmap", "dashboard")) {
   @common.navbar(commonData, Some(user))
-  @userDashboard.layout("", isSignedIn = user.role != "Anonymous")(body)
+  @userDashboard.layout("", isSignedIn = user.role != Role.Anonymous,
+    adminLinkFor = profile.map(_.username).filter(_ => ControllerUtils.isAdmin(user)))(body)
 }

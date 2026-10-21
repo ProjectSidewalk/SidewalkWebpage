@@ -1,0 +1,36 @@
+/*
+ * KPI tiles (#5030): a wrapping row of stat cards, each a large value over a caption, optionally with a note beneath.
+ * Shared by the admin and user dashboards.
+ *
+ * Link it after main.css and before the app's own stylesheet: an app modifier on a tile (e.g. the user dashboard's
+ * .ud-streak-kpi) has the same specificity as .ps-kpi, so it only wins by coming later.
+ */
+.ps-kpis {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  margin: var(--space-lg) 0;
+}
+
+.ps-kpi {
+  flex: 1 1 140px;
+  border: 1px solid var(--color-neutral-200);
+  border-radius: 8px;
+  padding: var(--space-md);
+  background: var(--color-neutral-white);
+}
+
+.ps-kpi-value {
+  display: block;
+  font: var(--text-title-bold);
+  line-height: 1.1;
+  color: var(--color-neutral-900);
+}
+
+.ps-kpi-label,
+.ps-kpi-note {
+  display: block;
+  margin-top: 4px;
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+}

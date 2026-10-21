@@ -3,24 +3,23 @@ package service
 import com.google.inject.ImplementedBy
 import controllers.helper.ValidateHelper.ValidateParams
 import formats.json.ValidateFormats.ValidationMissionProgress
-import models.label.LabelTable._
-import models.label.LabelTypeEnum.labelTypeToId
-import models.label.{Tag, _}
+import models.gallery.GalleryOrder
+import models.label.{Tag, *}
 import models.mission.{Mission, MissionTable, MissionType}
 import models.pano.PanoSource
-import models.pano.PanoSource.PanoSource
+import models.route.UserRouteTable
 import models.user.SidewalkUserWithRole
 import models.utils.CommonUtils.UiSource
-import models.utils.MyPostgresProfile.api._
-import models.utils.{ExcludedTag, MyPostgresProfile}
-import models.validation.LabelValidationTable
+import models.utils.MyPostgresProfile.api.*
+import models.utils.{ExcludedTag, LatLngBBox, MyPostgresProfile}
+import models.validation.{LabelValidationTable, ValidationLabelFilter, ValidationResultCounts}
+import models.validation.ValidationQueuePolicy.ValidationQueue
 import org.apache.pekko.stream.scaladsl.Source
 import play.api.Logger
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.dbio.DBIO
 
-import java.time.OffsetDateTime
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Random
 
@@ -29,7 +28,7 @@ case class ValidationTaskPostReturnValue(
     mission: Option[Mission],
     labels: Seq[LabelValidationMetadata],
     adminData: Seq[AdminValidationData],
-    progress: Option[(Int, Int, Int)]
+    progress: Option[ValidationResultCounts]
 )
 
 @ImplementedBy(classOf[LabelServiceImpl])
@@ -38,9 +37,11 @@ trait LabelService {
   def countLabelsInRegion(regionId: Int): Future[Int]
   def selectAllTags: DBIO[Seq[models.label.Tag]]
   def selectAllTagsFuture: Future[Seq[models.label.Tag]]
-  def selectTagsByLabelType(labelType: String): Future[Seq[models.label.Tag]]
+  def selectTagsByLabelType(labelType: LabelType): Future[Seq[models.label.Tag]]
   def getTagsForCurrentCity: Future[Seq[models.label.Tag]]
-  def cleanTagList(tags: Seq[String], labelTypeId: Int): DBIO[Seq[String]]
+  def cleanTagList(tags: Seq[String], labelType: LabelType): DBIO[Seq[String]]
+  def severityFor(labelType: LabelType, severity: Option[Int]): Option[Int]
+  def findLabel(labelId: Int): Future[Option[Label]]
   def getSingleLabelMetadata(labelId: Int, userId: String): Future[Option[LabelMetadata]]
   def getLabelLatLng(labelId: Int): Future[Option[LatLng]]
   def getRecentLabelMetadata(takeN: Int): Future[Seq[LabelMetadata]]
@@ -49,28 +50,30 @@ trait LabelService {
       regionIds: Seq[Int],
       routeIds: Seq[Int],
       aiValOptions: Seq[String],
+      bbox: Option[LatLngBBox],
       batchSize: Int
-  ): Source[LabelForLabelMap, _]
+  ): Source[LabelForLabelMap, ?]
   def getGalleryLabels(
       n: Int,
-      labelTypes: Set[LabelTypeEnum.Base],
+      labelTypes: Set[LabelType],
       loadedLabelIds: Set[Int],
       valOptions: Set[String],
       regionIds: Set[Int],
       severity: Set[Option[Int]],
-      tagsByLabelType: Map[LabelTypeEnum.Base, Set[String]],
+      tagsByLabelType: Map[LabelType, Set[String]],
       aiValOptions: Set[String],
       userId: String,
-      recentFirst: Boolean = false,
-      staticImageryOnly: Boolean = false
+      order: GalleryOrder = GalleryOrder.Random,
+      staticImageryOnly: Boolean = false,
+      labelIds: Seq[Int] = Seq.empty
   ): Future[Seq[LabelValidationMetadata]]
   def retrieveLabelListForValidation(
       userId: String,
       n: Int,
       viewer: PanoSource,
-      labelTypeId: Int,
-      userIds: Option[Set[String]] = None,
-      regionIds: Option[Set[Int]] = None,
+      labelType: LabelType,
+      queues: Seq[ValidationQueue],
+      filter: ValidationLabelFilter,
       unvalidatedOnly: Boolean = false,
       excludedLabelIds: Set[Int] = Set.empty
   ): Future[Seq[LabelValidationMetadata]]
@@ -78,7 +81,7 @@ trait LabelService {
       user: SidewalkUserWithRole,
       labelCount: Int,
       validateParams: ValidateParams
-  ): Future[(Option[Mission], Option[(Int, Int, Int)], Seq[LabelValidationMetadata], Seq[AdminValidationData])]
+  ): Future[ValidationTaskPostReturnValue]
   def getDataForValidatePostRequest(
       user: SidewalkUserWithRole,
       missionProgress: Option[ValidationMissionProgress],
@@ -86,27 +89,150 @@ trait LabelService {
   ): Future[ValidationTaskPostReturnValue]
   def getMoreLabelsToValidate(
       user: SidewalkUserWithRole,
-      labelTypeId: Int,
+      labelType: LabelType,
       labelsNeeded: Int,
       excludedLabelIds: Set[Int],
       validateParams: ValidateParams
   ): Future[(Seq[LabelValidationMetadata], Seq[AdminValidationData])]
   def getRecentValidatedLabelsForUser(
       userId: String,
-      labelTypes: Set[LabelTypeEnum.Base],
+      labelTypes: Set[LabelType],
       nPerType: Int
-  ): Future[Map[LabelTypeEnum.Base, Seq[LabelMetadataUserDash]]]
+  ): Future[Map[LabelType, Seq[LabelMetadataUserDash]]]
   def recordMistakeVote(labelId: Int, userId: String, agrees: Boolean): Future[Boolean]
   def recordMistakeNote(labelId: Int, userId: String, comment: Option[String]): Future[Boolean]
-  def getLabelsFromUserInRegion(regionId: Int, userId: String): Future[Seq[ResumeLabelMetadata]]
+  def getLabelsToResume(regionId: Int, userRouteId: Option[Int], userId: String): Future[Seq[ResumeLabelMetadata]]
   def insertLabel(label: Label): DBIO[Int]
-  def updateLabelFromExplore(
-      labelId: Int,
-      deleted: Boolean,
-      severity: Option[Int],
-      description: Option[String],
-      tags: List[String]
-  ): DBIO[Int]
+}
+
+/** The parts of Validate's label-type selection that are pure arithmetic, so they can be tested without a database. */
+object LabelServiceImpl {
+
+  /**
+   * How many labels the Gallery's review list checks imagery for at a time (#5444).
+   *
+   * Sized to stay in the same order as the filtered path's per-type batches, so a 500-id list costs the provider no
+   * more concurrency than an ordinary Gallery page does.
+   */
+  val ImageryCheckChunkSize: Int = 50
+
+  /** Most mistakes per label type the user dashboard can ask for; a huge count would check imagery for thousands. */
+  val MaxMistakesPerType: Int = 50
+
+  /**
+   * How many batches with nothing viewable in them a fixed-order walk reads past before giving up (#2705).
+   *
+   * Bounds the cost of a dead prefix: with a page of 30 the sorted Gallery reads at most this many batches of 150
+   * rows, and checks their imagery, before answering with what it has. Past that the admin sees a short page where
+   * thousands of labels may remain, which is the trade against a request that walks a whole city. Genuinely expired
+   * panos are remembered by `pano_data` after their first check, so a dead prefix costs the provider nothing on
+   * later requests; what this cap also bounds is the walk's behaviour while a provider is answering inconclusively
+   * (a timeout, a throttle), which the check cannot tell from "gone" and so counts the same way.
+   */
+  val MaxEmptyBatches: Int = 10
+
+  /**
+   * The labels of `batch` that `viewable` kept, in `batch`'s order.
+   *
+   * `checkImageryBatch` hands back crop-backed labels first, which is harmless to a shuffled batch and wrong for one
+   * in a caller's order: keeping the first n of the crop-first list would swap a cropped label in for a top-ranked
+   * one. Pure, so the order restore can be pinned without a database.
+   *
+   * @param batch    A batch as the query returned it.
+   * @param viewable Those of its labels whose imagery can be shown, in whatever order the check returned them.
+   */
+  def restoreBatchOrder[A <: BasicLabelMetadata](batch: Seq[A], viewable: Seq[A]): Seq[A] = {
+    val kept: Set[Int] = viewable.map(_.labelId).toSet
+    batch.filter(l => kept.contains(l.labelId))
+  }
+
+  /** Keeps a requested mistakes-per-type count between 1 and [[MaxMistakesPerType]]. */
+  def clampMistakesPerType(n: Int): Int = math.max(1, math.min(MaxMistakesPerType, n))
+
+  /**
+   * Picks the queue a mission is chosen from, and the label types that queue can fill a mission with.
+   *
+   * The cascade is walked in order and the first queue with at least one such type wins, so Expert Validate falls
+   * back from triage to the crowd's queue and finally to everything rather than stalling when a queue empties out.
+   *
+   * @param candidates        Per-type counts, already narrowed to the types this mission may use.
+   * @param queues            The cascade, in order.
+   * @param missionLength     How many labels a mission needs.
+   * @param allowShortMission If no queue can fill a whole mission, take one with any labels (a filtered page's pool).
+   * @return                  The winning queue and its types; `(Any, empty)` when no queue qualifies, which leaves
+   *                          the caller with no label type to serve.
+   */
+  private[service] def chooseQueueAndTypes(
+      candidates: Seq[LabelTypeValidationsLeft],
+      queues: Seq[ValidationQueue],
+      missionLength: Int,
+      allowShortMission: Boolean
+  ): (ValidationQueue, Seq[LabelTypeValidationsLeft]) = {
+    def firstQueueHolding(minLabels: Int): Option[(ValidationQueue, Seq[LabelTypeValidationsLeft])] =
+      queues
+        .map(queue => (queue, candidates.filter(_.canFill(queue, minLabels))))
+        .find { case (_, types) => types.nonEmpty }
+
+    firstQueueHolding(missionLength)
+      .orElse(if (allowShortMission) firstQueueHolding(1) else None)
+      .getOrElse((ValidationQueue.Any, Seq.empty[LabelTypeValidationsLeft]))
+  }
+
+  /**
+   * The block face a NoSidewalk label sits on, as the key a mission dedupes by (#5285).
+   *
+   * An unsided label (within 1 m of the centerline) is a face of its own, so two unsided labels on one street stay two
+   * candidates rather than collapsing into one.
+   *
+   * @param streetEdgeId   The label's street.
+   * @param side           Which side of it, None when unsided.
+   * @param unsidedLabelId The label itself, set only when it is unsided.
+   */
+  private[service] case class FaceKey(streetEdgeId: Int, side: Option[StreetSide], unsidedLabelId: Option[Int])
+
+  private[service] object FaceKey {
+    def of(streetEdgeId: Int, side: Option[StreetSide], labelId: Int): FaceKey =
+      FaceKey(streetEdgeId, side, if (side.isEmpty) Some(labelId) else None)
+
+    def of(label: LabelValidationMetadata): FaceKey = of(label.streetEdgeId, label.streetSide, label.labelId)
+  }
+
+  /**
+   * Picks one label per block face from `candidates`, faces on streets no pick has touched yet first (#5285).
+   *
+   * Two passes: first every candidate whose face and street are both new, then any whose face is new, each in the
+   * candidates' order. Walking in order means "one per face" keeps the face's highest-ranked label, which is why the
+   * NoSidewalk fetch does not shuffle. Every face is picked from rather than only a mission's worth: the caller checks
+   * imagery next and keeps what it needs, and a pick that fails that check should not cost a face further down. Filling
+   * with a second label from a face the mission already holds is the caller's decision, not this method's.
+   *
+   * @param candidates Labels in priority order.
+   * @param heldFaces  Faces the mission already holds, whose streets count as touched.
+   * @return           One label per face not already held, distinct-street picks first.
+   */
+  private[service] def spreadAcrossFaces(
+      candidates: Seq[LabelValidationMetadata],
+      heldFaces: Set[FaceKey]
+  ): Seq[LabelValidationMetadata] = {
+    val picked      = scala.collection.mutable.ArrayBuffer.empty[LabelValidationMetadata]
+    val pickedIds   = scala.collection.mutable.Set.empty[Int]
+    val usedFaces   = scala.collection.mutable.Set.empty[FaceKey] ++ heldFaces
+    val usedStreets = scala.collection.mutable.Set.empty[Int] ++ heldFaces.map(_.streetEdgeId)
+
+    def take(label: LabelValidationMetadata): Unit = {
+      picked += label
+      pickedIds += label.labelId
+      usedFaces += FaceKey.of(label)
+      usedStreets += label.streetEdgeId
+    }
+
+    candidates.foreach { label =>
+      if (!usedFaces.contains(FaceKey.of(label)) && !usedStreets.contains(label.streetEdgeId)) take(label)
+    }
+    candidates.foreach { label => if (!usedFaces.contains(FaceKey.of(label))) take(label) }
+    // Back to the candidates' order: the second pass appended its picks after the first's.
+    candidates.filter(label => pickedIds.contains(label.labelId))
+  }
 }
 
 @Singleton
@@ -118,9 +244,10 @@ class LabelServiceImpl @Inject() (
     tagTable: TagTable,
     labelValidationTable: LabelValidationTable,
     labelHistoryTable: LabelHistoryTable,
-    missionService: MissionService,
-    implicit val ec: ExecutionContext
-) extends LabelService
+    userRouteTable: UserRouteTable,
+    missionService: MissionService
+)(using ec: ExecutionContext)
+    extends LabelService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   private val logger = Logger(this.getClass)
@@ -139,24 +266,24 @@ class LabelServiceImpl @Inject() (
   def selectAllTagsFuture: Future[Seq[models.label.Tag]] =
     db.run(selectAllTags)
 
-  def selectTagsByLabelTypeId(labelTypeId: Int): DBIO[Seq[models.label.Tag]] = {
-    selectAllTags.map(_.filter(_.labelTypeId == labelTypeId))
+  def selectTagsByLabelTypeDbio(labelType: LabelType): DBIO[Seq[models.label.Tag]] = {
+    selectAllTags.map(_.filter(_.labelType == labelType))
   }
 
-  def selectTagsByLabelType(labelType: String): Future[Seq[models.label.Tag]] =
-    db.run(selectTagsByLabelTypeId(LabelTypeEnum.labelTypeToId(labelType)))
+  def selectTagsByLabelType(labelType: LabelType): Future[Seq[models.label.Tag]] =
+    db.run(selectTagsByLabelTypeDbio(labelType))
 
   def getTagsForCurrentCity: Future[Seq[models.label.Tag]] = {
     db.run(for {
       excludedTags: Seq[ExcludedTag] <- configService.getExcludedTags
       allTags: Seq[Tag]              <- selectAllTags
     } yield {
-      allTags.filterNot(t => excludedTags.exists(et => et.tag == t.tag && labelTypeToId(et.labelType) == t.labelTypeId))
+      allTags.filterNot(t => excludedTags.exists(et => et.tag == t.tag && et.labelType == t.labelType.name))
     })
   }
 
-  def findConflictingTags(tags: Set[String], labelTypeId: Int): DBIO[Seq[String]] = {
-    selectTagsByLabelTypeId(labelTypeId).map { allTags: Seq[models.label.Tag] =>
+  def findConflictingTags(tags: Set[String], labelType: LabelType): DBIO[Seq[String]] = {
+    selectTagsByLabelTypeDbio(labelType).map { (allTags: Seq[models.label.Tag]) =>
       allTags.filter(tag => tags.contains(tag.tag) && tag.mutuallyExclusiveWith.exists(tags.contains)).map(_.tag)
     }
   }
@@ -164,14 +291,20 @@ class LabelServiceImpl @Inject() (
   /**
    * Removes any tags that are invalid or conflicting.
    * @param tags List of tags to clean
-   * @param labelTypeId Label type ID to filter tags by
+   * @param labelType Label type to filter tags by
    * @return Cleaned list of tags
    */
-  def cleanTagList(tags: Seq[String], labelTypeId: Int): DBIO[Seq[String]] = {
+  def findLabel(labelId: Int): Future[Option[Label]] = db.run(labelTable.find(labelId))
+
+  /** A severity a label of this type can carry: the one given, or none for an unrated type. */
+  def severityFor(labelType: LabelType, severity: Option[Int]): Option[Int] =
+    if (labelType.ratingScale == RatingScale.Unrated) None else severity
+
+  def cleanTagList(tags: Seq[String], labelType: LabelType): DBIO[Seq[String]] = {
     for {
-      validTags: Seq[String] <- selectTagsByLabelTypeId(labelTypeId).map(_.map(_.tag))
+      validTags: Seq[String] <- selectTagsByLabelTypeDbio(labelType).map(_.map(_.tag))
       cleanedTags: Seq[String] = tags.distinct.filter(t => validTags.contains(t))
-      conflictingTags: Seq[String] <- findConflictingTags(cleanedTags.toSet, labelTypeId)
+      conflictingTags: Seq[String] <- findConflictingTags(cleanedTags.toSet, labelType)
     } yield {
       if (conflictingTags.nonEmpty) {
         logger.warn(s"Tag list has conflicting tags, removing all that conflict: ${conflictingTags.mkString(", ")}")
@@ -183,7 +316,7 @@ class LabelServiceImpl @Inject() (
   }
 
   def getSingleLabelMetadata(labelId: Int, userId: String): Future[Option[LabelMetadata]] =
-    db.run(labelTable.getRecentLabelsMetadata(1, None, Some(userId), Some(labelId)).map(_.headOption))
+    db.run(labelTable.getRecentLabelsMetadata(1, Some(userId), Some(labelId)).map(_.headOption))
 
   def getLabelLatLng(labelId: Int): Future[Option[LatLng]] = db.run(labelTable.getLabelLatLng(labelId))
 
@@ -196,8 +329,9 @@ class LabelServiceImpl @Inject() (
       regionIds: Seq[Int],
       routeIds: Seq[Int],
       aiValOptions: Seq[String],
+      bbox: Option[LatLngBBox],
       batchSize: Int
-  ): Source[LabelForLabelMap, _] =
+  ): Source[LabelForLabelMap, ?] =
     // `.transactionally` is required for Postgres to honor fetchSize and stream instead of materializing (#3932). It
     // also means a pooled connection stays checked out, transaction open, for the whole response rather than just the
     // query: `Ok.chunked` backpressures from the client socket, so a slow reader pins one of the 25 connections until
@@ -206,11 +340,11 @@ class LabelServiceImpl @Inject() (
     Source.fromPublisher(
       db.stream(
         labelTable
-          .getLabelsForLabelMap(regionIds, routeIds, aiValOptions)
+          .getLabelsForLabelMap(regionIds, routeIds, aiValOptions, bbox)
           .result
           .transactionally
           .withStatementParameters(fetchSize = batchSize)
-      ).mapResult(labelTable.tupleToLabelForLabelMap)
+      )
     )
 
   /**
@@ -219,26 +353,31 @@ class LabelServiceImpl @Inject() (
    * @param labelTypes        Label types to grab, split evenly between them. Empty gives a mix of every type.
    * @param loadedLabelIds    Set of labelIds already grabbed as to not grab them again.
    * @param valOptions        Set of correctness values to filter for: correct, incorrect, unsure, and/or unvalidated.
-   * @param regionIds         Set of neighborhoods to get labels from. All neighborhoods if empty.
+   * @param regionIds         Set of regions to get labels from. All regions if empty.
    * @param severity          Set of severities the labels grabbed can have.
    * @param tagsByLabelType   Tags each label type is narrowed to; a type absent from the map is not narrowed.
    * @param aiValOptions      Set of AI validations to filter for: correct, incorrect, unsure, and/or unvalidated.
    * @param userId            User ID of the user requesting the labels.
-   * @param recentFirst       If true, draw from the most recent labels (shuffled) instead of sampling all labels.
+   * @param order             Random (the default), the landing grid's shuffled pool of the newest labels, or a strict
+   *                          [[GallerySort]] for the admin's "Sort by" (#2705); see the branches below.
+   * @param staticImageryOnly If true, only label types a static (non-pannable) image can carry are returned.
+   * @param labelIds          A review list (#5444). Non-empty switches to list mode: exactly these labels, in this
+   *                          order, with every other argument above ignored. See the branch below for why.
    * @return Seq[LabelValidationMetadata]
    */
   def getGalleryLabels(
       n: Int,
-      labelTypes: Set[LabelTypeEnum.Base],
+      labelTypes: Set[LabelType],
       loadedLabelIds: Set[Int],
       valOptions: Set[String],
       regionIds: Set[Int],
       severity: Set[Option[Int]],
-      tagsByLabelType: Map[LabelTypeEnum.Base, Set[String]],
+      tagsByLabelType: Map[LabelType, Set[String]],
       aiValOptions: Set[String],
       userId: String,
-      recentFirst: Boolean = false,
-      staticImageryOnly: Boolean = false
+      order: GalleryOrder = GalleryOrder.Random,
+      staticImageryOnly: Boolean = false,
+      labelIds: Seq[Int] = Seq.empty
   ): Future[Seq[LabelValidationMetadata]] = {
     val viewer: PanoSource = configService.getPanoSource
 
@@ -246,45 +385,79 @@ class LabelServiceImpl @Inject() (
     // empty request means every type; staticImageryOnly narrows it to the types a static image can support (the
     // landing grid can't pan, so e.g. Signal is out — see staticValidatableLabelTypes). Include useCrops so that
     // labels with expired or non-Google imagery are still included if a local crop exists.
-    // With recentFirst the query is ordered newest-first, so findValidLabelsForType's batching draws from the most
+    // With RecentPool the query is ordered newest-first, so findValidLabelsForType's batching draws from the most
     // recent labels and randomize=true shuffles within that recent pool.
-    val typesToSpread: Set[LabelTypeEnum.Base] =
+    // lazy: a review list spreads across no types at all, so this is the filtered path's to compute.
+    lazy val typesToSpread: Set[LabelType] =
       if (labelTypes.isEmpty) {
-        if (staticImageryOnly) LabelTypeEnum.staticValidatableLabelTypes else LabelTypeEnum.primaryLabelTypes
+        if (staticImageryOnly) LabelType.staticValidatableLabelTypes else LabelType.primaryLabelTypes
       } else if (staticImageryOnly) {
-        labelTypes.intersect(LabelTypeEnum.staticValidatableLabelTypes)
+        labelTypes.intersect(LabelType.staticValidatableLabelTypes)
       } else {
         // An explicit request is honored as given: the Gallery offers Occlusion and Other, which the default mix
         // (primaryLabelTypes) leaves out.
         labelTypes
       }
 
-    if (typesToSpread.isEmpty) {
+    if (labelIds.nonEmpty) {
+      // Review-list mode (#5444): the caller named the labels, so there is nothing to sample, spread across types or
+      // shuffle, and none of the filters above apply — a list that mixes types, or includes already-validated labels,
+      // still shows every item. One query, then the same imagery/crop check the filtered path runs, then back into
+      // the requested order (the query does not order). Labels this city doesn't have, and labels whose imagery is
+      // gone with no crop to fall back on, are simply absent; the controller reports those ids as unavailable so the
+      // reviewer can tell a short list from a complete one.
+      val requestedOrder: Map[Int, Int] = labelIds.zipWithIndex.toMap
+      db.run(labelTable.getGalleryLabelsByIdQuery(viewer, labelIds, userId).result)
+        .flatMap(labels => checkImageryInChunks(labels))
+        // getOrElse rather than apply: the sort must not be what throws if a caller ever hands this a label the id
+        // list doesn't name. Anything unnamed sorts to the end instead of 500ing the page.
+        .map(_.sortBy(label => requestedOrder.getOrElse(label.labelId, Int.MaxValue)))
+    } else if (typesToSpread.isEmpty) {
       Future.successful(Seq())
     } else {
-      // Split the request across the types so no one type crowds out the rest of a mixed selection.
-      val nPerType: Int = math.max(1, n / typesToSpread.size)
-      Future
-        .sequence(typesToSpread.map { labelType =>
+      order match {
+        case GalleryOrder.Sorted(sort) =>
+          // Sorted mode (#2705): one query across every selected type, because the order has to be global — the top
+          // n of each type merged is not the top n of the union — and so no type spread and no shuffle anywhere.
+          // The walk keeps the query's order (randomize = false) and reads past a prefix of dead imagery
+          // (walkPastEmpty); the final sort is belt and braces, with the in-memory ordering being the SQL one, so
+          // paging (the client excludes what it has loaded and asks for the next ranked labels) neither skips nor
+          // repeats at a page boundary.
           findValidLabelsForType(
-            labelTable.getGalleryLabelsQuery(
-              viewer,
-              labelType,
-              loadedLabelIds,
-              valOptions,
-              regionIds,
-              severity,
-              tagsByLabelType.getOrElse(labelType, Set()),
-              aiValOptions,
-              userId,
-              recentFirst
-            ),
-            randomize = true,
+            (_: Seq[LabelValidationMetadata]) =>
+              labelTable.getGalleryLabelsQuery(viewer, typesToSpread, loadedLabelIds, valOptions, regionIds, severity,
+                tagsByLabelType, aiValOptions, userId, order),
+            randomize = false,
             useCrops = true,
-            nPerType
-          )
-        })
-        .map(labelsByType => scala.util.Random.shuffle(labelsByType.flatten).toSeq)
+            n,
+            walkPastEmpty = true
+          ).map(_.sorted(using sort.ordering))
+        case GalleryOrder.Random | GalleryOrder.RecentPool =>
+          // Split the request across the types so no one type crowds out the rest of a mixed selection.
+          val nPerType: Int = math.max(1, n / typesToSpread.size)
+          Future
+            .sequence(typesToSpread.map { labelType =>
+              findValidLabelsForType(
+                (_: Seq[LabelValidationMetadata]) =>
+                  labelTable.getGalleryLabelsQuery(
+                    viewer,
+                    Set(labelType),
+                    loadedLabelIds,
+                    valOptions,
+                    regionIds,
+                    severity,
+                    tagsByLabelType.view.filterKeys(_ == labelType).toMap,
+                    aiValOptions,
+                    userId,
+                    order
+                  ),
+                randomize = true,
+                useCrops = true,
+                nPerType
+              )
+            })
+            .map(labelsByType => scala.util.Random.shuffle(labelsByType.flatten).toSeq)
+      }
     }
   }
 
@@ -296,9 +469,11 @@ class LabelServiceImpl @Inject() (
    * @param userId           User ID for the current user.
    * @param n                Number of labels we need to query.
    * @param viewer           The type of pano viewer the labels must have been added on (GSV, Mapillary, etc).
-   * @param labelTypeId      Label Type ID of labels requested.
-   * @param userIds          Optional list of user IDs to filter by.
-   * @param regionIds        Optional list of region IDs to filter by.
+   * @param labelType        Label type of labels requested.
+   * @param queues           Queues to draw from, in order; each later queue only tops up what the earlier ones could
+   *                         not fill, so a mission is still handed a full set of labels once the queue that should
+   *                         serve it runs dry (#2929).
+   * @param filter           Expert Validate's user, region, and team filters.
    * @param excludedLabelIds Labels the caller already holds and must not be handed again (#4810).
    * @return                 Seq[LabelValidationMetadata]
    */
@@ -306,78 +481,211 @@ class LabelServiceImpl @Inject() (
       userId: String,
       n: Int,
       viewer: PanoSource,
-      labelTypeId: Int,
-      userIds: Option[Set[String]] = None,
-      regionIds: Option[Set[Int]] = None,
+      labelType: LabelType,
+      queues: Seq[ValidationQueue],
+      filter: ValidationLabelFilter,
       unvalidatedOnly: Boolean = false,
       excludedLabelIds: Set[Int] = Set.empty
   ): Future[Seq[LabelValidationMetadata]] = {
     // TODO can we make this and the Gallery queries transactions to prevent label dupes?
+    def query(queue: ValidationQueue, excluded: Set[Int], excludedFaces: Set[LabelServiceImpl.FaceKey]) =
+      labelTable.retrieveLabelListForValidationQuery(
+        userId,
+        viewer,
+        labelType,
+        queue,
+        configService.getAiTagSuggestionsEnabled,
+        filter,
+        unvalidatedOnly,
+        excluded,
+        // An unsided label is a face of its own, and it is already excluded by id.
+        excludedFaces.collect { case LabelServiceImpl.FaceKey(edge, Some(side), _) => (edge, side) }
+      )
+
+    // Drain the cascade: each queue tops up what the earlier ones left short. The labels held so far — by the client
+    // and by every queue before this one — ride along as the walk's accumulator, so each batch's query excludes them
+    // (and, for a one-per-face mission, their faces) and the per-batch selector sees the whole mission.
+    def drainCascade(
+        alreadyFound: Seq[LabelValidationMetadata],
+        randomize: Boolean,
+        oneLabelPerFace: Boolean,
+        heldFaces: Set[LabelServiceImpl.FaceKey]
+    ): Future[Seq[LabelValidationMetadata]] = {
+      def facesTaken(held: Seq[LabelValidationMetadata]): Set[LabelServiceImpl.FaceKey] =
+        if (oneLabelPerFace) heldFaces ++ held.map(LabelServiceImpl.FaceKey.of) else Set.empty
+      val selectFromBatch
+          : (Seq[LabelValidationMetadata], Seq[LabelValidationMetadata]) => Seq[LabelValidationMetadata] =
+        if (oneLabelPerFace) (batch, held) => LabelServiceImpl.spreadAcrossFaces(batch, facesTaken(held))
+        else (batch, _) => batch
+
+      queues.foldLeft(Future.successful(alreadyFound)) { (foundSoFar, queue) =>
+        foundSoFar.flatMap { found =>
+          if (found.size >= n) Future.successful(found)
+          else
+            findValidLabelsForType(
+              (held: Seq[LabelValidationMetadata]) =>
+                query(queue, excludedLabelIds ++ held.map(_.labelId), facesTaken(held)),
+              randomize,
+              useCrops = false,
+              n - found.size,
+              offset = 0,
+              accumulator = found,
+              selectFromBatch = selectFromBatch,
+              walkPastEmpty = false,
+              emptyBatches = 0
+            )
+        }
+      }
+    }
+
+    if (labelType != LabelType.NoSidewalk) {
+      drainCascade(Seq.empty, randomize = true, oneLabelPerFace = false, Set.empty)
+    } else {
+      // A NoSidewalk mission holds one label per block face, distinct streets preferred, so a validator sees the city's
+      // faces rather than ten labels along one stretch (#5285). The fetch keeps the sampler's order, so "one per face"
+      // keeps each face's highest-ranked label. Faces the client already holds (a top-up) count as taken. Only once
+      // the whole cascade cannot fill the mission that way does a second pass fall back to more labels from the same
+      // faces; that pass re-runs the queue queries, but only in a city whose faces have run out, where they are small.
+      for {
+        heldFaces <- db
+          .run(labelTable.getFacesOfLabels(excludedLabelIds))
+          .map(_.map(face => LabelServiceImpl.FaceKey.of(face.streetEdgeId, face.streetSide, face.labelId)).toSet)
+        spread <- drainCascade(Seq.empty, randomize = false, oneLabelPerFace = true, heldFaces)
+        filled <-
+          if (spread.size >= n) Future.successful(spread)
+          else drainCascade(spread, randomize = true, oneLabelPerFace = false, Set.empty)
+      } yield filled
+    }
+  }
+
+  /** Starts a fresh walk that keeps every label of each batch; see the full version below. */
+  private def findValidLabelsForType[A <: BasicLabelMetadata](
+      queryFor: Seq[A] => Query[?, A, Seq],
+      randomize: Boolean,
+      useCrops: Boolean,
+      remaining: Int,
+      walkPastEmpty: Boolean = false
+  ): Future[Seq[A]] = {
     findValidLabelsForType(
-      labelTable.retrieveLabelListForValidationQuery(userId, viewer, labelTypeId,
-        configService.getAiTagSuggestionsEnabled, userIds, regionIds, unvalidatedOnly, excludedLabelIds),
-      randomize = true,
-      useCrops = false,
-      n
+      queryFor,
+      randomize,
+      useCrops,
+      remaining,
+      offset = 0,
+      accumulator = Seq.empty[A],
+      selectFromBatch = (batch: Seq[A], _: Seq[A]) => batch,
+      walkPastEmpty = walkPastEmpty,
+      emptyBatches = 0
     )
   }
 
   /**
    * Query labels from the db in batches until we have enough labels that have imagery available. Works recursively.
-   * @param labelQuery Query to get labels from the db.
-   * @param randomize Whether to randomize the label order or not.
+   * @param queryFor Builds the query for a batch from the labels the walk holds so far, so a query that can exclude
+   *                 those rows (and, for NoSidewalk, their block faces) does, and every batch is fresh candidates.
+   * @param randomize Whether to randomize the label order or not. When false, what is kept from a batch is its first
+   *                  viewable labels *in the query's order*, so a caller's ordering survives the walk.
    * @param useCrops If true, local static crop of pano around the label also works as well as an API call.
    * @param remaining Number of labels remaining to get.
    * @param offset Number of rows to skip; each batch advances it by the number of rows it read.
-   * @param accumulator Accumulator of labels we've found so far.
-   * @param tupleConverter Implicit converter to convert the tuple from the db to the appropriate case class.
+   * @param accumulator Labels held so far, the caller's included; the result contains them, and each batch's query
+   *                    and selector are given them.
+   * @param selectFromBatch Narrows a fetched batch (after any shuffle, before the imagery check) given the labels held
+   *                        so far; the NoSidewalk one-per-face rule. Runs before the imagery check so that the labels
+   *                        it drops cost no provider lookups.
+   * @param walkPastEmpty Whether a batch with nothing viewable in it should be walked past rather than end the walk,
+   *                      as long as the batch was full and fewer than `MaxEmptyBatches` have been. For a query in a
+   *                      fixed order (the sorted Gallery, #2705), whose dead rows sit at the same offsets on every
+   *                      request; a `random()` order has no such prefix and gains nothing from walking on.
+   * @param emptyBatches How many empty batches this walk has already walked past.
    */
-  private def findValidLabelsForType[A <: BasicLabelMetadata, TupleRep, Tuple](
-      labelQuery: Query[TupleRep, Tuple, Seq],
+  private def findValidLabelsForType[A <: BasicLabelMetadata](
+      queryFor: Seq[A] => Query[?, A, Seq],
       randomize: Boolean,
       useCrops: Boolean,
       remaining: Int,
-      offset: Int = 0,
-      accumulator: Seq[A] = Seq.empty
-  )(implicit tupleConverter: TupleConverter[Tuple, A]): Future[Seq[A]] = {
+      offset: Int,
+      accumulator: Seq[A],
+      selectFromBatch: (Seq[A], Seq[A]) => Seq[A],
+      walkPastEmpty: Boolean,
+      emptyBatches: Int
+  ): Future[Seq[A]] = {
     if (remaining <= 0) {
       Future.successful(accumulator)
     } else {
       val batchSize = remaining * 5 // Get 5x the needed amount, shouldn't need to query again.
 
-      // Query for a batch of labels.
-      db.run(labelQuery.drop(offset).take(batchSize).result)
-        .map(l => l.map(tupleConverter.fromTuple))
+      // The query is built against what the walk holds so far, so a caller whose query can exclude those rows never
+      // sees them again; the offset still walks past rows an earlier batch read.
+      db.run(queryFor(accumulator).drop(offset).take(batchSize).result)
         .flatMap { labels =>
           // Randomize the labels to prevent similar labels in a mission.
           val shuffledLabels: Seq[A] = if (randomize) scala.util.Random.shuffle(labels) else labels
+          val selectedLabels: Seq[A] = selectFromBatch(shuffledLabels, accumulator)
 
           // Check for valid imagery in parallel.
-          checkImageryBatch(shuffledLabels, useCrops).flatMap { validLabels =>
+          checkImageryBatch(selectedLabels, useCrops).flatMap { validLabels =>
+            // With crops in play the check hands back the crop-backed labels first, and `take` below keeps the first
+            // `remaining`. A shuffled batch doesn't care which of its labels those are; a caller that asked for the
+            // query's order would otherwise be handed the batch's cropped labels in place of its top-ranked ones,
+            // and only notice as the same labels came round again on a later page. So the batch's own order is
+            // put back before anything is kept.
+            val inBatchOrder: Seq[A] =
+              if (randomize) validLabels else LabelServiceImpl.restoreBatchOrder(selectedLabels, validLabels)
+
             // Skip labels an earlier batch took. The validation query orders by a score containing `random()`, which
             // Postgres re-evaluates per execution, so every batch sees a fresh shuffle and can resurface rows an
             // earlier one covered, whatever the offset. A mission holding the same label twice is what that looks
             // like to the user.
             val alreadyFound: Set[Int] = accumulator.map(_.labelId).toSet
-            val newValidLabels: Seq[A] = validLabels.filterNot(l => alreadyFound.contains(l.labelId)).take(remaining)
+            val newValidLabels: Seq[A] =
+              inBatchOrder.filterNot(l => alreadyFound.contains(l.labelId)).take(remaining)
 
-            if (validLabels.isEmpty) {
-              Future.successful(accumulator) // No more valid labels found.
+            // A batch that adds nothing new ends the walk: with `random()` in the sort, the next offset is no more
+            // likely to, and walking a 48k-label queue fifty rows at a time is the failure mode this guards against.
+            // A fixed order is the exception: its dead rows (imagery gone, no crop) sit at the same offsets on every
+            // request, since nothing loads them and so nothing excludes them, and ending here would make a prefix of
+            // dead rows read as the end of the Gallery. That walk goes on while batches are full, under a cap.
+            val batchFull: Boolean = labels.size >= batchSize
+            val walkOn: Boolean    = walkPastEmpty && batchFull && emptyBatches < LabelServiceImpl.MaxEmptyBatches
+            if (newValidLabels.isEmpty && !walkOn) {
+              Future.successful(accumulator)
             } else {
-              // Add the valid labels to the accumulator and recurse.
               findValidLabelsForType(
-                labelQuery,
+                queryFor,
                 randomize,
                 useCrops,
                 remaining - newValidLabels.size,
                 // Advance by the rows this batch read. `batchSize` shrinks as `remaining` does, so it can't be
                 // multiplied out into an offset.
                 offset + labels.size,
-                accumulator ++ newValidLabels
+                accumulator ++ newValidLabels,
+                selectFromBatch,
+                walkPastEmpty,
+                if (newValidLabels.isEmpty) emptyBatches + 1 else emptyBatches
               )
             }
           }
         }
+    }
+  }
+
+  /**
+   * Runs the review list's imagery check a chunk at a time rather than all at once.
+   *
+   * `checkImageryBatch` fans a batch out to the provider concurrently (`Future.traverse`), which suits the filtered
+   * path's ~15-label batches and not a 500-label review list: that would open up to 500 provider lookups at once,
+   * against a quota and a latency budget shared with every other page (`docs/google-cloud.md`). Chunks run one
+   * after another, so the peak concurrency is the chunk size whatever the list length. Order is not this method's
+   * job — `checkImageryBatch` returns crop-backed labels first — and the caller sorts the result back into the
+   * order the list was given.
+   *
+   * @param labels The labels to check, already narrowed to the requested ids.
+   * @return       Those of them whose imagery (or local crop) can actually be shown.
+   */
+  private def checkImageryInChunks[A <: BasicLabelMetadata](labels: Seq[A]): Future[Seq[A]] = {
+    labels.grouped(LabelServiceImpl.ImageryCheckChunkSize).foldLeft(Future.successful(Seq.empty[A])) { (soFar, chunk) =>
+      soFar.flatMap(kept => checkImageryBatch(chunk, useCrops = true).map(kept ++ _))
     }
   }
 
@@ -431,47 +739,50 @@ class LabelServiceImpl @Inject() (
   }
 
   /**
-   * Get the label_type_id to validate. Label types with fewer labels with validations have higher priority.
+   * Get the label type to validate. Label types with more work still needing validation have higher priority.
    *
-   * We get the number of labels available to validate for each label type and the number of those that have no
-   * validations (or have agree=disagree). We then filter out label types with fewer than missionLength labels available
-   * to validate (the size of a Validate mission), and prioritize label types more labels w/ no validations.
+   * The cascade decides both halves of the choice: the first queue in it that can fill a whole mission for some label
+   * type is the queue that sets which types are in play and what they are weighted by. So a plain Validate mission is
+   * chosen from the types the crowd can still settle, and only falls back to weighing every type equally once no type
+   * has a mission's worth of those left (#2929). The mission-length gate is label-based for every type, NoSidewalk
+   * included, so a small city with eight faces and forty labels still gets NoSidewalk missions.
    *
    * @param userId            User ID of the current user.
    * @param missionLength     Number of labels for this mission.
    * @param requiredLabelType labelType of the current mission.
+   * @param queues            Queues to consider, in order; see `ValidateParams.queueCascade`.
+   * @param unvalidatedOnly   Whether the mission is restricted to labels with no decision recorded.
+   * @param filter            Expert Validate's filters; only types with labels matching them can be picked.
    */
-  def getLabelTypeIdToValidate(
+  def getLabelTypeToValidate(
       userId: String,
       missionLength: Int,
       viewerType: PanoSource,
-      requiredLabelType: Option[LabelTypeEnum.Base]
-  ): Future[Option[Int]] = {
-    db.run(labelTable.getAvailableValidationsLabelsByType(userId, viewerType).map { availValidations =>
-      val availTypes: Seq[LabelTypeValidationsLeft] = availValidations
-        .filter(_.validationsAvailable >= missionLength)
+      requiredLabelType: Option[LabelType],
+      queues: Seq[ValidationQueue],
+      unvalidatedOnly: Boolean,
+      filter: ValidationLabelFilter
+  ): Future[Option[LabelType]] = {
+    val counts = labelTable.getAvailableValidationsLabelsByType(userId, viewerType, unvalidatedOnly, queues,
+      requiredLabelType, filter)
+    db.run(counts.map { availValidations =>
+      // NoSidewalk competes like any other type; its weight in the lottery is its count of block faces still needing
+      // votes rather than its label count (LabelTypeValidationsLeft.weightFor, #5285).
+      val candidates: Seq[LabelTypeValidationsLeft] = availValidations
         .filter(x => requiredLabelType.isEmpty || requiredLabelType.contains(x.labelType))
-        .filter(x => LabelTypeEnum.primaryLabelTypes.contains(x.labelType))
+        .filter(x => LabelType.primaryValidateLabelTypes.contains(x.labelType))
 
-      // Unless NoSidewalk (7) is the only available label type, remove it from the list of available types.
-      val typesFiltered: Seq[LabelTypeValidationsLeft] = availTypes
-        .filter(x => LabelTypeEnum.primaryValidateLabelTypes.contains(x.labelType) || availTypes.length == 1)
+      val (queue, typesFiltered) =
+        LabelServiceImpl.chooseQueueAndTypes(candidates, queues, missionLength, allowShortMission = !filter.isEmpty)
 
       if (typesFiltered.length < 2) {
-        typesFiltered.map(_.labelType.id).headOption
+        typesFiltered.map(_.labelType).headOption
       } else {
         // Each label type has at least a 2% chance of being selected. Remaining probability is divvied up
-        // proportionally based on the number of remaining labels requiring a validation for each label type.
-        val typeProbabilities: Seq[(Int, Double)] = if (typesFiltered.map(_.validationsNeeded).sum > 0) {
-          typesFiltered.map { t =>
-            (
-              t.labelType.id,
-              0.02 + (1 - typesFiltered.length * 0.02)
-                * (t.validationsNeeded.toDouble / typesFiltered.map(_.validationsNeeded).sum)
-            )
-          }
-        } else {
-          typesFiltered.map(x => (x.labelType.id, 1d / typesFiltered.length))
+        // proportionally based on how many labels of that type the chosen queue holds.
+        val totalWeight: Int                            = typesFiltered.map(_.weightFor(queue)).sum
+        val typeProbabilities: Seq[(LabelType, Double)] = typesFiltered.map { t =>
+          (t.labelType, 0.02 + (1 - typesFiltered.length * 0.02) * (t.weightFor(queue).toDouble / totalWeight))
         }
 
         // Get cumulative probabilities.
@@ -479,51 +790,52 @@ class LabelServiceImpl @Inject() (
           typeProbabilities.scanLeft(0.0) { case (acc, (_, prob)) => acc + prob }.tail
 
         // Choose a label type proportionally based on the calculated probabilities.
-        val random           = new Random()
-        val labelTypeId: Int = typeProbabilities(cumulativeProbabilities.indexWhere(_ > random.nextDouble()))._1
-        Some(labelTypeId)
+        val random          = Random()
+        val (chosenType, _) = typeProbabilities(cumulativeProbabilities.indexWhere(_ > random.nextDouble()))
+        Some(chosenType)
       }
     })
   }
 
   /**
-   * Get the data needed by the various Validate endpoints.
-   * @return Future[(mission, missionProgress, labelList, adminData)]
+   * The mission a Validate page starts on, resumed or newly created, in the shape the mission-complete response uses.
+   * @param labelCount How many labels of a type there must be for that type to be worth a mission.
    */
   def getDataForValidationPages(
       user: SidewalkUserWithRole,
       labelCount: Int,
       validateParams: ValidateParams
-  ): Future[(Option[Mission], Option[(Int, Int, Int)], Seq[LabelValidationMetadata], Seq[AdminValidationData])] = {
+  ): Future[ValidationTaskPostReturnValue] = {
     // TODO can this be merged with `getDataForValidatePostRequest`?
     val viewerType: PanoSource = configService.getPanoSource
-    getLabelTypeIdToValidate(user.userId, labelCount, viewerType, validateParams.labelType).flatMap {
-      case Some(labelTypeId) =>
-        for {
-          mission: Mission <- missionService
-            .resumeOrCreateNewValidateMission(user.userId, MissionType.Validation, labelTypeId)
-            .map(_.get)
-          missionProgress: (Int, Int, Int) <- db.run(labelValidationTable.getValidationProgress(mission.missionId))
+    getLabelTypeToValidate(user.userId, labelCount, viewerType, validateParams.labelType, validateParams.queueCascade,
+      validateParams.unvalidatedOnly, validateParams.labelFilter)
+      .flatMap {
+        case Some(labelType) =>
+          for {
+            mission: Mission <- missionService
+              .resumeOrCreateNewValidateMission(user.userId, MissionType.Validation, labelType)
+              .map(_.get)
+            missionProgress: ValidationResultCounts <- db.run(
+              labelValidationTable.getValidationProgress(mission.missionId)
+            )
 
-          // Get list of labels and their metadata for Validate page. Get extra metadata if it's for Expert Validate.
-          labelsProgress: Int   = mission.labelsProgress.get
-          labelsToValidate: Int = MissionTable.validationMissionLabelsToRetrieve
-          labelsToRetrieve: Int = labelsToValidate - labelsProgress
-          labelMetadata <- retrieveLabelListForValidation(user.userId, labelsToRetrieve, viewerType, labelTypeId,
-            validateParams.userIds.map(_.toSet), validateParams.neighborhoodIds.map(_.toSet),
-            validateParams.unvalidatedOnly)
-          adminData <- {
-            if (validateParams.adminVersion) getExtraAdminValidateData(labelMetadata.map(_.labelId))
-            else Future.successful(Seq.empty[AdminValidationData])
+            // Get list of labels and their metadata for Validate page. Get extra metadata if it's for Expert Validate.
+            labelsProgress: Int   = mission.labelsProgress.get
+            labelsToValidate: Int = MissionTable.validationMissionLabelsToRetrieve
+            labelsToRetrieve: Int = labelsToValidate - labelsProgress
+            labelMetadata <- retrieveLabelListForValidation(user.userId, labelsToRetrieve, viewerType, labelType,
+              validateParams.queueCascade, validateParams.labelFilter, validateParams.unvalidatedOnly)
+            adminData <- {
+              if (validateParams.adminVersion) getExtraAdminValidateData(labelMetadata.map(_.labelId))
+              else Future.successful(Seq.empty[AdminValidationData])
+            }
+          } yield {
+            ValidationTaskPostReturnValue(Some(labelMetadata.nonEmpty), Some(mission), labelMetadata, adminData,
+              Some(missionProgress))
           }
-        } yield {
-          (Some(mission), Some(missionProgress), labelMetadata, adminData)
-        }
-      case None =>
-        Future.successful(
-          (Option.empty[Mission], None, Seq.empty[LabelValidationMetadata], Seq.empty[AdminValidationData])
-        )
-    }
+        case None => Future.successful(ValidationTaskPostReturnValue(Some(false), None, Seq.empty, Seq.empty, None))
+      }
   }
 
   /**
@@ -533,7 +845,7 @@ class LabelServiceImpl @Inject() (
    * render (#4810) would otherwise leave the mission unfinishable. This tops the queue back up.
    *
    * @param user             The user validating.
-   * @param labelTypeId      Label type of the mission being topped up.
+   * @param labelType        Label type of the mission being topped up.
    * @param labelsNeeded     How many labels the client is short, capped at a full mission's worth.
    * @param excludedLabelIds Every label the client already holds, so it can't be handed one back.
    * @param validateParams   The page's filters, so a topped-up label matches what the rest of the mission is.
@@ -541,7 +853,7 @@ class LabelServiceImpl @Inject() (
    */
   def getMoreLabelsToValidate(
       user: SidewalkUserWithRole,
-      labelTypeId: Int,
+      labelType: LabelType,
       labelsNeeded: Int,
       excludedLabelIds: Set[Int],
       validateParams: ValidateParams
@@ -552,9 +864,8 @@ class LabelServiceImpl @Inject() (
       Future.successful((Seq.empty[LabelValidationMetadata], Seq.empty[AdminValidationData]))
     } else {
       for {
-        labelList <- retrieveLabelListForValidation(user.userId, nToRetrieve, viewerType, labelTypeId,
-          validateParams.userIds.map(_.toSet), validateParams.neighborhoodIds.map(_.toSet),
-          validateParams.unvalidatedOnly, excludedLabelIds)
+        labelList <- retrieveLabelListForValidation(user.userId, nToRetrieve, viewerType, labelType,
+          validateParams.queueCascade, validateParams.labelFilter, validateParams.unvalidatedOnly, excludedLabelIds)
         adminData <- {
           if (validateParams.adminVersion) getExtraAdminValidateData(labelList.map(_.labelId))
           else Future.successful(Seq.empty[AdminValidationData])
@@ -576,33 +887,34 @@ class LabelServiceImpl @Inject() (
     val viewerType: PanoSource = configService.getPanoSource
     val labelsToRetrieve: Int  = MissionTable.validationMissionLabelsToRetrieve
     (for {
-      nextMissionLabelTypeId <- {
+      nextMissionLabelType <- {
         if (missionProgress.exists(_.completed))
-          getLabelTypeIdToValidate(user.userId, labelsToRetrieve, viewerType, validateParams.labelType)
-        else Future.successful(Option.empty[Int])
+          getLabelTypeToValidate(user.userId, labelsToRetrieve, viewerType, validateParams.labelType,
+            validateParams.queueCascade, validateParams.unvalidatedOnly, validateParams.labelFilter)
+        else Future.successful(Option.empty[LabelType])
       }
     } yield {
-      (missionProgress, nextMissionLabelTypeId) match {
-        case (Some(missionProgress), Some(nextMissionLabelTypeId)) =>
+      (missionProgress, nextMissionLabelType) match {
+        case (Some(missionProgress), Some(nextMissionLabelType)) =>
           for {
             newMission: Option[Mission] <- missionService.updateMissionTableValidate(
               user,
               missionProgress,
-              Some(nextMissionLabelTypeId)
+              Some(nextMissionLabelType)
             )
             labelList: Seq[LabelValidationMetadata] <- retrieveLabelListForValidation(user.userId, labelsToRetrieve,
-              viewerType, nextMissionLabelTypeId, validateParams.userIds.map(_.toSet),
-              validateParams.neighborhoodIds.map(_.toSet), validateParams.unvalidatedOnly)
+              viewerType, nextMissionLabelType, validateParams.queueCascade, validateParams.labelFilter,
+              validateParams.unvalidatedOnly)
             adminData <- {
               if (validateParams.adminVersion) getExtraAdminValidateData(labelList.map(_.labelId))
               else Future.successful(Seq.empty[AdminValidationData])
             }
             // This could be written more simply using traverse from cats or scalaz.
-            progress: Option[(Int, Int, Int)] <- Future
+            progress: Option[ValidationResultCounts] <- Future
               .successful(newMission)
               .flatMap(
                 _.fold(
-                  Future.successful(None: Option[(Int, Int, Int)])
+                  Future.successful(None: Option[ValidationResultCounts])
                 )(m => db.run(labelValidationTable.getValidationProgress(m.missionId)).map(Some(_)))
               )
           } yield {
@@ -631,21 +943,21 @@ class LabelServiceImpl @Inject() (
    * Get the most recent validated labels for a user (with valid GSV imagery), grouped by label type.
    * @param userId User ID of the user to get labels for.
    * @param labelTypes Set of label types to get labels for.
-   * @param nPerType Number of labels to get for each label type.
+   * @param nPerType Labels to get per label type; kept within 1 to [[LabelServiceImpl.MaxMistakesPerType]].
    */
   def getRecentValidatedLabelsForUser(
       userId: String,
-      labelTypes: Set[LabelTypeEnum.Base],
+      labelTypes: Set[LabelType],
       nPerType: Int
-  ): Future[Map[LabelTypeEnum.Base, Seq[LabelMetadataUserDash]]] = {
+  ): Future[Map[LabelType, Seq[LabelMetadataUserDash]]] = {
     // Get labels for each type in parallel.
     Future
       .sequence(labelTypes.map { labelType =>
         findValidLabelsForType(
-          labelTable.getValidatedLabelsForUserQuery(userId, labelType),
+          (_: Seq[LabelMetadataUserDash]) => labelTable.getValidatedLabelsForUserQuery(userId, labelType),
           randomize = false,
-          useCrops = false,
-          nPerType
+          useCrops = true,
+          LabelServiceImpl.clampMistakesPerType(nPerType)
         )
           .map(labels => (labelType, labels))
       })
@@ -658,8 +970,18 @@ class LabelServiceImpl @Inject() (
   def recordMistakeNote(labelId: Int, userId: String, comment: Option[String]): Future[Boolean] =
     db.run(labelTable.recordMistakeNote(labelId, userId, comment))
 
-  def getLabelsFromUserInRegion(regionId: Int, userId: String): Future[Seq[ResumeLabelMetadata]] =
-    db.run(labelTable.getLabelsFromUserInRegion(regionId, userId))
+  /**
+   * Gets the labels a user already placed where they are about to explore, for Explore to redraw.
+   *
+   * @param regionId    The region the Explore page is in.
+   * @param userRouteId The route walk the user is on, if any. Its route may leave that region (#3488), so its
+   *                    labels are gathered from every region it runs through.
+   */
+  def getLabelsToResume(regionId: Int, userRouteId: Option[Int], userId: String): Future[Seq[ResumeLabelMetadata]] =
+    db.run(for {
+      walkRegionIds: Seq[Int] <- userRouteId.map(userRouteTable.getRegionIds).getOrElse(DBIO.successful(Seq.empty[Int]))
+      labels                  <- labelTable.getLabelsFromUserInRegions((regionId +: walkRegionIds).distinct, userId)
+    } yield labels)
 
   /**
    * Insert a new label into the database. Also inserts an initial entry into the label_history table.
@@ -668,66 +990,19 @@ class LabelServiceImpl @Inject() (
    */
   def insertLabel(label: Label): DBIO[Int] = {
     for {
-      cleanTags: Seq[String] <- cleanTagList(label.tags, label.labelTypeId)
-      clean: Label = label.copy(tags = cleanTags.toList)
+      cleanTags: Seq[String] <- cleanTagList(label.tags, label.labelType)
+      // An unrated type never carries a severity, whatever the client sent (the DB rejects one).
+      clean: Label = label.copy(tags = cleanTags.toList, severity = severityFor(label.labelType, label.severity))
       labelId: Int <- (labelTable.labelsUnfiltered returning labelTable.labelsUnfiltered.map(_.labelId)) += clean
 
       // Add a corresponding entry to the label_history table.
       _ <- labelHistoryTable.insert(
-        LabelHistory(0, labelId, clean.severity, clean.tags, clean.userId, clean.timeCreated, UiSource.Explore, None)
+        LabelHistory(0, labelId, clean.labelType, clean.severity, clean.tags, clean.userId, clean.timeCreated,
+          UiSource.Explore, None)
       )
     } yield {
       labelId
     }
   }
 
-  /**
-   * Update the metadata that users might change on the Explore page after initially placing a label.
-   * @param labelId ID of the label to update
-   * @param deleted Whether the label is deleted or not
-   * @param severity Optional severity of the label, None if not set
-   * @param description Optional description of the label, None if not set
-   * @param tags List of tags associated with the label
-   * @return
-   */
-  def updateLabelFromExplore(
-      labelId: Int,
-      deleted: Boolean,
-      severity: Option[Int],
-      description: Option[String],
-      tags: List[String]
-  ): DBIO[Int] = {
-    val labelToUpdateQuery = labelTable.labelsUnfiltered.filter(_.labelId === labelId)
-
-    for {
-      labelToUpdate: Label      <- labelToUpdateQuery.result.head
-      cleanedTags: List[String] <- cleanTagList(tags, labelToUpdate.labelTypeId).map(_.toList)
-
-      // If the severity or tags have been changed, we need to update the label_history table as well.
-      _ <-
-        if (labelToUpdate.severity != severity || labelToUpdate.tags.toSet != cleanedTags.toSet) {
-          // If there are multiple entries in the label_history table, then the label has been edited before, and we need
-          // to add an entirely new entry to the table, otherwise we can just update the existing entry.
-          labelHistoryTable.labelHistory.filter(_.labelId === labelId).length.result.flatMap {
-            case labelHistoryCount if labelHistoryCount > 1 =>
-              labelHistoryTable.insert(
-                LabelHistory(0, labelId, severity, cleanedTags, labelToUpdate.userId, OffsetDateTime.now,
-                  UiSource.Explore, None)
-              )
-            case _ =>
-              labelHistoryTable.labelHistory
-                .filter(_.labelId === labelId)
-                .map(l => (l.severity, l.tags))
-                .update((severity, cleanedTags))
-          }
-        } else DBIO.successful(())
-
-      // Finally, update the label table.
-      rowsUpdated: Int <- labelToUpdateQuery
-        .map(l => (l.deleted, l.severity, l.description, l.tags))
-        .update((deleted, severity, description, cleanedTags))
-    } yield {
-      rowsUpdated
-    }
-  }
 }

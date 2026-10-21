@@ -1,7 +1,7 @@
 package models.label
 
 import models.user.SidewalkUserTableDef
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import slick.lifted.{ProvenShape, Tag}
 
 import java.time.OffsetDateTime
@@ -36,10 +36,7 @@ class MistakeResponseTableDef(tag: Tag) extends Table[MistakeResponse](tag, "use
   def createdAt: Rep[OffsetDateTime] = column[OffsetDateTime]("created_at")
 
   def * : ProvenShape[MistakeResponse] =
-    (userMistakeResponseId, labelId, userId, agrees, comment, createdAt) <> (
-      (MistakeResponse.apply _).tupled,
-      MistakeResponse.unapply
-    )
+    (userMistakeResponseId, labelId, userId, agrees, comment, createdAt).mapTo[MistakeResponse]
 
   def label = foreignKey("user_mistake_response_label_id_fkey", labelId, TableQuery[LabelTableDef])(_.labelId)
   def user  = foreignKey("user_mistake_response_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)

@@ -4,11 +4,12 @@ import com.drew.imaging.ImageMetadataReader
 import com.drew.metadata.exif.{ExifSubIFDDirectory, GpsDirectory}
 import com.google.inject.ImplementedBy
 import executors.CpuIntensiveExecutionContext
-import models.label.{LabelTypeEnum, LatLng}
-import models.story._
-import models.utils.MyPostgresProfile.api._
+import models.label.AccessImpact
+import models.label.{LabelType, LatLng}
+import models.story.*
+import models.utils.MyPostgresProfile.api.*
 import models.utils.{CommonUtils, ImageUtils, MyPostgresProfile, ProfanityGuard}
-import org.postgresql.util.PSQLException
+import org.postgresql.util.{PSQLException, PSQLState}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.{Configuration, Environment, Logger}
 
@@ -18,16 +19,14 @@ import java.nio.file.{Files, StandardCopyOption}
 import java.time.temporal.ChronoUnit
 import java.time.{OffsetDateTime, ZoneOffset}
 import javax.imageio.ImageIO
-import javax.imageio.stream.FileImageInputStream
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
-import scala.jdk.CollectionConverters._
 import scala.util.Try
 
 @ImplementedBy(classOf[StoryServiceImpl])
 trait StoryService {
   def getStoriesForLabel(labelId: Int, viewerUserId: Option[String], isAdmin: Boolean): Future[Seq[StoryForView]]
-  def isLabelAccessProblem(labelId: Int): Future[Option[Boolean]]
+  def labelAccessImpact(labelId: Int): Future[Option[AccessImpact]]
   def submitStory(
       labelId: Int,
       userId: String,
@@ -38,6 +37,14 @@ trait StoryService {
   def updateOwnStory(
       storyId: Int,
       userId: String,
+      storyText: String,
+      displayNameMode: String,
+      newPhoto: Option[StoryPhotoUpload],
+      removePhoto: Boolean,
+      altText: Option[String]
+  ): Future[Either[StoryRejection, Unit]]
+  def adminUpdateStory(
+      storyId: Int,
       storyText: String,
       displayNameMode: String,
       newPhoto: Option[StoryPhotoUpload],
@@ -69,9 +76,9 @@ class StoryServiceImpl @Inject() (
     labelService: LabelService,
     panoDataService: PanoDataService,
     signingService: ImageSigningService,
-    cpuEc: CpuIntensiveExecutionContext,
-    implicit val ec: ExecutionContext
-) extends StoryService
+    cpuEc: CpuIntensiveExecutionContext
+)(using ec: ExecutionContext)
+    extends StoryService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
   private val logger = Logger(this.getClass)
 
@@ -125,7 +132,7 @@ class StoryServiceImpl @Inject() (
       meta: PhotoMetadata
   )
 
-  def storyMediaFile(storyMediaId: Int): File = new File(mediaBaseDir, s"story_$storyMediaId.jpg")
+  def storyMediaFile(storyMediaId: Int): File = File(mediaBaseDir, s"story_$storyMediaId.jpg")
 
   def getStoriesForLabel(labelId: Int, viewerUserId: Option[String], isAdmin: Boolean): Future[Seq[StoryForView]] = {
     db.run(storyTable.getForLabel(labelId, viewerUserId, isAdmin))
@@ -134,13 +141,9 @@ class StoryServiceImpl @Inject() (
       })
   }
 
-  /**
-   * Whether the label marks an accessibility problem (vs a positive feature like a curb ramp), from
-   * LabelTypeEnum.isAccessProblem — the card's story prompts flip phrasing on this. None when the label doesn't exist.
-   */
-  def isLabelAccessProblem(labelId: Int): Future[Option[Boolean]] = {
-    db.run(storyTable.labelTypeIdForLabel(labelId))
-      .map(_.flatMap(typeId => LabelTypeEnum.byId.get(typeId).map(_.isAccessProblem)))
+  /** The label type's accessImpact; the card's story prompts flip on it. None when the label doesn't exist. */
+  def labelAccessImpact(labelId: Int): Future[Option[AccessImpact]] = {
+    db.run(storyTable.labelTypeForLabel(labelId)).map(_.map(_.accessImpact))
   }
 
   def submitStory(
@@ -184,7 +187,7 @@ class StoryServiceImpl @Inject() (
               case None         => insertStory(labelId, userId, text, displayNameMode, None)
               case Some(upload) =>
                 labelService.getLabelLatLng(labelId).flatMap { labelLatLng =>
-                  Future(processPhoto(upload, labelLatLng))(cpuEc).flatMap {
+                  Future(processPhoto(upload, labelLatLng))(using cpuEc).flatMap {
                     case Left(rejection) => Future.successful(Left(rejection))
                     case Right(p)        =>
                       // Whatever happens downstream (duplicate-race Left, DB error, failed move), the staged file was
@@ -214,6 +217,31 @@ class StoryServiceImpl @Inject() (
       newPhoto: Option[StoryPhotoUpload],
       removePhoto: Boolean,
       altText: Option[String]
+  ): Future[Either[StoryRejection, Unit]] =
+    updateStory(storyTable.getOwned(storyId, userId), storyText, displayNameMode, newPhoto, removePhoto, altText)
+
+  /** An admin editing any user's story (content moderation from the user's admin dashboard); no ownership gate. */
+  def adminUpdateStory(
+      storyId: Int,
+      storyText: String,
+      displayNameMode: String,
+      newPhoto: Option[StoryPhotoUpload],
+      removePhoto: Boolean,
+      altText: Option[String]
+  ): Future[Either[StoryRejection, Unit]] =
+    updateStory(storyTable.getById(storyId), storyText, displayNameMode, newPhoto, removePhoto, altText)
+
+  /**
+   * The shared edit path: `lookup` decides who may reach the story (owner-only or any admin); the content rules and
+   * photo semantics are the same either way.
+   */
+  private def updateStory(
+      lookup: DBIO[Option[Story]],
+      storyText: String,
+      displayNameMode: String,
+      newPhoto: Option[StoryPhotoUpload],
+      removePhoto: Boolean,
+      altText: Option[String]
   ): Future[Either[StoryRejection, Unit]] = {
     val text = storyText.trim
     // The alt text is validated whether it rides a replacement photo (newPhoto) or re-applies to the kept one; the
@@ -221,13 +249,15 @@ class StoryServiceImpl @Inject() (
     contentRejection(text, displayNameMode, if (removePhoto) None else altText) match {
       case Some(rejection) => Future.successful(Left(rejection))
       case None            =>
-        db.run(storyTable.getOwned(storyId, userId)).flatMap {
+        db.run(lookup).flatMap {
           case None        => Future.successful(Left(StoryRejection.StoryNotFound))
           case Some(story) =>
+            val storyId = story.storyId
+            val userId  = story.userId
             newPhoto match {
               case Some(upload) =>
                 labelService.getLabelLatLng(story.labelId).flatMap { labelLatLng =>
-                  Future(processPhoto(upload, labelLatLng))(cpuEc).flatMap {
+                  Future(processPhoto(upload, labelLatLng))(using cpuEc).flatMap {
                     case Left(rejection) => Future.successful(Left(rejection))
                     case Right(p)        =>
                       replaceStoryPhoto(story, text, displayNameMode, upload, p).andThen { case _ =>
@@ -282,7 +312,7 @@ class StoryServiceImpl @Inject() (
             target.getParentFile.mkdirs()
             Files.move(p.staged.toPath, target.toPath, StandardCopyOption.ATOMIC_MOVE)
             ()
-          }(cpuEc)
+          }(using cpuEc)
           _ <- db.run(
             (for {
               _ <- storyTable.updateOwnedContent(story.storyId, story.userId, text, displayNameMode)
@@ -327,18 +357,17 @@ class StoryServiceImpl @Inject() (
    * @param labelTypesById The label type of each label needing a preview, keyed by label id.
    * @return               Preview URL per label id; labels with no saved crop and no usable pano are absent.
    */
-  private def labelPreviewUrls(labelTypesById: Map[Int, LabelTypeEnum.Base]): Future[Map[Int, String]] = {
+  private def labelPreviewUrls(labelTypesById: Map[Int, LabelType]): Future[Map[Int, String]] = {
     if (labelTypesById.isEmpty) Future.successful(Map.empty)
     else
       db.run(labelTable.getPanoMetadataForLabels(labelTypesById.keys.toSeq)).map { metas =>
-        val metaById = metas.map { case (labelId, panoId, source, heading, pitch, zoom) =>
-          labelId -> ((panoId, source, heading, pitch, zoom))
-        }.toMap
+        val metaById = metas.map(meta => meta.labelId -> meta).toMap
         labelTypesById.flatMap { case (labelId, labelType) =>
           panoDataService
             .cropUrl(labelId, labelType)
-            .orElse(metaById.get(labelId).flatMap { case (panoId, source, heading, pitch, zoom) =>
-              panoDataService.getImageUrl(panoId, source, heading, pitch, zoom)
+            .orElse(metaById.get(labelId).flatMap { m =>
+              panoDataService
+                .getBrowserImageUrl(m.panoId, m.panoSource, m.heading, m.pitch, m.zoom, m.canvasWidth, m.canvasHeight)
             })
             .map(labelId -> _)
         }
@@ -348,16 +377,13 @@ class StoryServiceImpl @Inject() (
   def getStoriesForUser(userId: String): Future[Seq[StoryForOwner]] = {
     db.run(storyTable.getForUser(userId)).flatMap { rows =>
       // Photoless stories fall back to a label preview so every dashboard row can carry a thumbnail (#4656).
-      val photolessTypes = rows.collect { case (story, None, labelTypeId) =>
-        story.labelId -> LabelTypeEnum.byId(labelTypeId)
-      }.toMap
+      val photolessTypes = rows.collect { case (story, None, labelType) => story.labelId -> labelType }.toMap
       labelPreviewUrls(photolessTypes).map { previewById =>
-        rows.map { case (story, media, labelTypeId) =>
-          val labelType = LabelTypeEnum.byId(labelTypeId)
+        rows.map { case (story, media, labelType) =>
           StoryForOwner(
             story,
             labelType.name,
-            labelType.isAccessProblem,
+            labelType.accessImpact,
             media.map(toMediaForView),
             labelImageUrl = if (media.isDefined) None else previewById.get(story.labelId)
           )
@@ -368,15 +394,15 @@ class StoryServiceImpl @Inject() (
 
   def getStoriesForCity(n: Int): Future[Seq[StoryForListing]] = {
     db.run(storyTable.getVisibleForCity(n)).flatMap { rows =>
-      val photolessTypes = rows.collect { case (story, None, _, labelTypeId, _, _, _) =>
-        story.labelId -> LabelTypeEnum.byId(labelTypeId)
+      val photolessTypes = rows.collect { case (story, None, _, labelType, _, _, _) =>
+        story.labelId -> labelType
       }.toMap
       labelPreviewUrls(photolessTypes).map { previewById =>
-        rows.map { case (story, media, username, labelTypeId, regionId, regionName, address) =>
+        rows.map { case (story, media, username, labelType, regionId, regionName, address) =>
           StoryForListing(
             storyId = story.storyId,
             labelId = story.labelId,
-            labelType = LabelTypeEnum.byId(labelTypeId),
+            labelType = labelType,
             regionId = regionId,
             regionName = regionName,
             address = address,
@@ -393,8 +419,8 @@ class StoryServiceImpl @Inject() (
 
   def getRecentStories(n: Int): Future[Seq[StoryForAdmin]] = {
     db.run(storyTable.getRecent(n))
-      .map(_.map { case (story, media, username, labelTypeId) =>
-        StoryForAdmin(story, username, LabelTypeEnum.labelTypeIdToLabelType(labelTypeId), media.map(toMediaForView))
+      .map(_.map { case (story, media, username, labelType) =>
+        StoryForAdmin(story, username, labelType.name, media.map(toMediaForView))
       })
   }
 
@@ -519,7 +545,7 @@ class StoryServiceImpl @Inject() (
               // concurrent reader sees the complete file or nothing.
               Files.move(p.staged.toPath, target.toPath, StandardCopyOption.ATOMIC_MOVE)
               ()
-            }(cpuEc).recoverWith { case e =>
+            }(using cpuEc).recoverWith { case e =>
               logger.error(s"Failed to place story media file for story $storyId: ${e.getMessage}")
               db.run(storyTable.delete(storyId)).flatMap(_ => Future.failed(e))
             }
@@ -533,7 +559,8 @@ class StoryServiceImpl @Inject() (
       }
       .recover {
         // The UNIQUE(label_id, user_id) constraint backs the pre-check against a concurrent double-submit.
-        case e: PSQLException if e.getSQLState == "23505" => Left(StoryRejection.AlreadyExists)
+        case e: PSQLException if e.getSQLState == PSQLState.UNIQUE_VIOLATION.getState =>
+          Left(StoryRejection.AlreadyExists)
       }
   }
 
@@ -552,7 +579,9 @@ class StoryServiceImpl @Inject() (
       Left(StoryRejection.PhotoInvalid)
     } else {
       val meta = extractPhotoMetadata(upload.tempFile, labelLatLng)
-      Option(ImageIO.read(upload.tempFile)) match {
+      // The decode sits inside a Try: ImageIO.read can throw (not just return null) on a file whose header sniffs
+      // fine but whose pixel data it can't decode — e.g. a CMYK JPEG or a truncated PNG.
+      Try(Option(ImageIO.read(upload.tempFile))).toOption.flatten match {
         case None      => Left(StoryRejection.PhotoInvalid)
         case Some(src) =>
           try {
@@ -574,7 +603,7 @@ class StoryServiceImpl @Inject() (
    * atomic rename; a crash can only leave junk under staging/, never a half-written serving file.
    */
   private def stageJpeg(img: BufferedImage): File = {
-    val stagingDir = new File(mediaBaseDir, "staging")
+    val stagingDir = File(mediaBaseDir, "staging")
     stagingDir.mkdirs()
     val staged = File.createTempFile("story_staged_", ".jpg", stagingDir)
     try {
@@ -587,28 +616,9 @@ class StoryServiceImpl @Inject() (
     }
   }
 
-  /**
-   * Probes the image header without decoding pixel data: the SNIFFED format must be an accepted one (the declared
-   * MIME type is untrusted and ignored) and the declared dimensions sane (decompression-bomb guard).
-   */
-  private def sourceImageOk(file: File): Boolean = {
-    Try {
-      val stream = new FileImageInputStream(file)
-      try {
-        val readers = ImageIO.getImageReaders(stream).asScala
-        readers.nextOption().exists { reader =>
-          try {
-            reader.setInput(stream)
-            val width  = reader.getWidth(0)
-            val height = reader.getHeight(0)
-            ACCEPTED_FORMATS.contains(reader.getFormatName.toLowerCase) &&
-            width <= MAX_SOURCE_DIMENSION && height <= MAX_SOURCE_DIMENSION &&
-            width.toLong * height.toLong <= MAX_SOURCE_PIXELS
-          } finally reader.dispose()
-        }
-      } finally stream.close()
-    }.getOrElse(false)
-  }
+  /** See [[ImageUtils.sniffAcceptedFormat]] — accepted formats and decompression-bomb caps applied to a photo. */
+  private def sourceImageOk(file: File): Boolean =
+    ImageUtils.sniffAcceptedFormat(file, ACCEPTED_FORMATS, MAX_SOURCE_DIMENSION, MAX_SOURCE_PIXELS).isDefined
 
   /**
    * Reads the EXIF metadata we keep from an upload: the coarse recency bucket + near-label flag that drive the card,

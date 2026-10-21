@@ -1,25 +1,25 @@
 package controllers
 
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.Eventually
 import org.scalatest.time.{Millis, Seconds, Span}
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsArray, JsNull, JsObject, Json}
 import play.api.mvc.Cookie
-import play.api.test.CSRFTokenHelper._
+import play.api.test.CSRFTokenHelper.*
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
+import util.SidewalkSpec
 
 import java.time.OffsetDateTime
 import java.util.UUID
 import scala.concurrent.Await
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 /**
  * Locks the pano/label contract of POST /task (#4587). A pano's metadata is integral to its labels: each label
@@ -32,6 +32,8 @@ import scala.concurrent.duration._
  *   - a label whose pano block fails to write (here: a lat outside pano_data's CHECK constraint) fails the whole
  *     submission, saving neither the label nor the pano;
  *   - a label whose pano block describes a *different* pano is refused outright at validation;
+ *   - a label carrying no block at all (the tutorial shape) attaches to the pano_data row already there and leaves
+ *     it untouched, and is refused whole when there is no such row;
  *   - a failing *viewed* pano costs nothing else in the submission (the viewed batch is written off the request's
  *     critical path, so those assertions poll);
  *   - resubmitting a pano refreshes its metadata without clearing anything: position fields take the newest value,
@@ -46,13 +48,13 @@ import scala.concurrent.duration._
  */
 // Mixin order matters: GuiceOneAppPerSuite must be rightmost so its run() wraps BeforeAndAfterAll's — otherwise
 // afterAll's cleanup executes after the app (and its DB pool) has shut down and aborts the suite.
-class ExploreTaskSubmissionSpec extends PlaySpec with BeforeAndAfterAll with Eventually with GuiceOneAppPerSuite {
+class ExploreTaskSubmissionSpec extends SidewalkSpec with BeforeAndAfterAll with Eventually with GuiceOneAppPerSuite {
 
   // Every pano this suite creates carries this prefix, so cleanup can't touch real panos.
   private val panoPrefix = "ExploreTaskSubmissionSpec-4587"
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule] // No eager background actors during tests.
       .configure("ai-enabled" -> false) // Label submission fires AI validation calls; keep the suite offline.
       .build()
@@ -99,6 +101,13 @@ class ExploreTaskSubmissionSpec extends PlaySpec with BeforeAndAfterAll with Eve
     val prefixPattern = s"$panoPrefix%"
     val _             = runDb(
       DBIO.seq(
+        // Labels first: label.pano_id is an FK to pano_data (evolution 360), so a label a dead run left behind would
+        // block the pano delete. Scoped to this suite's pano prefix, so it can't reach a real label.
+        sqlu"""DELETE FROM label_history
+               WHERE label_id IN (SELECT label_id FROM label WHERE pano_id LIKE $prefixPattern)""",
+        sqlu"""DELETE FROM label_point
+               WHERE label_id IN (SELECT label_id FROM label WHERE pano_id LIKE $prefixPattern)""",
+        sqlu"DELETE FROM label WHERE pano_id LIKE $prefixPattern",
         sqlu"DELETE FROM pano_link WHERE pano_id LIKE $prefixPattern",
         sqlu"DELETE FROM pano_history WHERE location_curr_pano_id LIKE $prefixPattern",
         sqlu"DELETE FROM pano_data WHERE pano_id LIKE $prefixPattern"
@@ -229,10 +238,18 @@ class ExploreTaskSubmissionSpec extends PlaySpec with BeforeAndAfterAll with Eve
   }
 
   private def post(body: JsObject) =
-    route(app, FakeRequest(POST, "/task").withCookies(sessionCookies: _*).withJsonBody(body).withCSRFToken).get
+    route(app, FakeRequest(POST, "/task").withCookies(sessionCookies*).withJsonBody(body).withCSRFToken).get
 
   private def labelCount(panoId: String): Int =
     runDb(sql"SELECT count(*) FROM label WHERE pano_id = $panoId AND user_id = $userId".as[Int].head)
+
+  /** Puts a bare pano_data row in place, standing in for one a scrape or evolution 360's tutorial seed wrote. */
+  private def seedPanoRow(panoId: String, address: String): Unit = {
+    val _ = runDb(
+      sqlu"""INSERT INTO pano_data (pano_id, capture_date, source, width, address)
+             VALUES ($panoId, '2014-05', 'gsv', 4096, $address)"""
+    )
+  }
 
   private def panoRow(panoId: String): Option[(Option[Double], Option[Int], Option[String])] =
     runDb(
@@ -379,17 +396,31 @@ class ExploreTaskSubmissionSpec extends PlaySpec with BeforeAndAfterAll with Eve
       runDb(sql"SELECT count(*) FROM pano_history WHERE location_curr_pano_id = $panoId".as[Int].head) mustBe 1
     }
 
-    "save a label that carries no pano block, the shape tutorial labels use" in {
+    "save a label that carries no pano block onto the pano row already there, the shape tutorial labels use" in {
       // Labels on the locally-served tutorial panos omit the block so their fabricated metadata can't touch the
-      // seeded pano_data rows; the server extends the same leniency to any blockless label. The eventual FK on
-      // label.pano_id (#4587's endgame, once legacy orphans are backfilled) is what will make this shape impossible
-      // for non-tutorial panos.
-      val panoId = s"$panoPrefix-absent"
+      // pano_data rows evolution 360 seeded for them; the server extends the same leniency to any blockless label.
+      // The stored row must come through untouched — that leniency is the whole point of the shape.
+      val panoId = s"$panoPrefix-blockless"
+      seedPanoRow(panoId, "456 Seeded Ave")
 
       val resp = post(submission(labels = Seq(label(panoId, tempLabelId = 4)), panos = Seq.empty))
 
       status(resp) mustBe OK
       labelCount(panoId) mustBe 1
+      panoRow(panoId) mustBe Some((None, Some(4096), Some("456 Seeded Ave")))
+    }
+
+    "refuse the whole submission when a blockless label names a pano with no row" in {
+      // label_pano_id_fkey (evolution 360) is the only thing standing between a blockless label and an orphan, and
+      // nothing checks ahead of it, so this surfaces as a failed transaction rather than a validation error: the
+      // submission is rejected whole, exactly as a failed pano block is. Every seeded deployment has the tutorial
+      // panos, so the shape should be unreachable in practice; #5101 tracks giving it a cleaner answer than a 500.
+      val panoId = s"$panoPrefix-orphan"
+
+      val resp = post(submission(labels = Seq(label(panoId, tempLabelId = 5)), panos = Seq.empty))
+
+      status(resp) mustBe INTERNAL_SERVER_ERROR
+      labelCount(panoId) mustBe 0
       panoRow(panoId) mustBe None
     }
   }

@@ -13,8 +13,7 @@ import models.route.{
 }
 import models.street.{StreetEdgeRegionTableDef, StreetEdgeTable}
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
-import org.scalatestplus.play.PlaySpec
+import models.utils.MyPostgresProfile.api.*
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.db.slick.DatabaseConfigProvider
@@ -22,10 +21,12 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.silhouette.api.util.PasswordInfo
 import service.AuthenticationService
 import slick.dbio.DBIO
+import util.SidewalkSpec
 
 import java.time.OffsetDateTime
+import scala.compiletime.uninitialized
 import scala.concurrent.Await
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 /**
  * DB-backed tests for AuditTaskTable.selectTasksInRoute, the query that hands Explore the full task list for a route
@@ -42,10 +43,10 @@ import scala.concurrent.duration._
  *
  * Every row created here is removed in afterAll — the dev DB is shared, so residue would pollute other work.
  */
-class RouteTaskQuerySpec extends PlaySpec with org.scalatest.BeforeAndAfterAll with GuiceOneAppPerSuite {
+class RouteTaskQuerySpec extends SidewalkSpec with org.scalatest.BeforeAndAfterAll with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private lazy val dbConfig        = app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
   private lazy val auditTaskTable  = app.injector.instanceOf[AuditTaskTable]
@@ -63,14 +64,14 @@ class RouteTaskQuerySpec extends PlaySpec with org.scalatest.BeforeAndAfterAll w
   private val streetEdgeRegion = TableQuery[StreetEdgeRegionTableDef]
   private val regions          = TableQuery[RegionTableDef]
 
-  private var userId: String           = _
-  private var routeId: Int             = _
-  private var userRouteId: Int         = _
+  private var userId: String           = uninitialized
+  private var routeId: Int             = uninitialized
+  private var userRouteId: Int         = uninitialized
   private var routeStreetIds: Seq[Int] = Seq.empty
   private var auditTaskIds: Seq[Int]   = Seq.empty
 
   /**
-   * Two street ids sharing a region, so the seeded route is a legal one-neighborhood route.
+   * Two street ids sharing a region, which the seeded route is filed under.
    *
    * Drawn from the same filtered street query selectTasksInRoute joins against — a street that's hidden or is the
    * tutorial street would silently drop out of the result and look like a query bug.
@@ -105,7 +106,7 @@ class RouteTaskQuerySpec extends PlaySpec with org.scalatest.BeforeAndAfterAll w
           "Spec Route",
           s"spec-route-${java.util.UUID.randomUUID}",
           None,
-          public = false,
+          public = true,
           deleted = false,
           OffsetDateTime.now,
           0d,
@@ -133,7 +134,7 @@ class RouteTaskQuerySpec extends PlaySpec with org.scalatest.BeforeAndAfterAll w
       run(auditTasks.filter(_.auditTaskId inSet auditTaskIds).delete)
       run(userRoutes.filter(_.userRouteId === userRouteId).delete)
       run(routeStreets.filter(_.routeId === routeId).delete)
-      run(routes.filter(_.routeId === routeId).delete)
+      val _ = run(routes.filter(_.routeId === routeId).delete)
     }
     super.afterAll()
   }

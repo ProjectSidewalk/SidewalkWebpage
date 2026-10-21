@@ -2,10 +2,8 @@ package controllers.api
 
 import controllers.base.CustomControllerComponents
 import controllers.helper.ShapefilesCreatorHelper
-import formats.json.ApiFormats._
 import models.api.{ApiError, RegionDataForApi, RegionFiltersForApi}
 import org.apache.pekko.stream.scaladsl.Source
-import play.api.libs.json.Json
 import play.silhouette.api.Silhouette
 import service.{ApiService, ConfigService}
 
@@ -15,7 +13,7 @@ import scala.concurrent.{ExecutionContext, Future}
 /**
  * Controller for the Regions API endpoints.
  *
- * Provides access to neighborhood/region data for Project Sidewalk deployments, including
+ * Provides access to region data for Project Sidewalk deployments, including
  * label counts, audit coverage, and geographic boundaries. Supports GeoJSON, CSV, shapefile,
  * and GeoPackage output formats.
  *
@@ -33,11 +31,11 @@ class RegionApiController @Inject() (
     apiService: ApiService,
     configService: ConfigService,
     shapefileCreator: ShapefilesCreatorHelper
-)(implicit ec: ExecutionContext)
+)(using ec: ExecutionContext)
     extends BaseApiController(cc) {
 
   /**
-   * Gets regions (neighborhoods) with filters applied.
+   * Gets regions with filters applied.
    *
    * @param bbox Bounding box in format "minLng,minLat,maxLng,maxLat"
    * @param regionId Optional region ID to filter for a single region
@@ -76,7 +74,7 @@ class RegionApiController @Inject() (
             minLabelCount = minLabelCount
           )
 
-          val dbDataStream: Source[RegionDataForApi, _] = apiService.getRegions(filters, DEFAULT_BATCH_SIZE)
+          val dbDataStream: Source[RegionDataForApi, ?] = apiService.getRegions(filters, DEFAULT_BATCH_SIZE)
           val baseFileName: String                      = timestampedFilename("regions")
           cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
 
@@ -95,7 +93,7 @@ class RegionApiController @Inject() (
   }
 
   /**
-   * Returns the region with the highest number of labels.
+   * Returns the region with the highest number of labels, as a GeoJSON Feature.
    *
    * @return A JSON response with the region data or a 404 if no region is found
    */
@@ -103,7 +101,7 @@ class RegionApiController @Inject() (
     apiService.getRegionWithMostLabels.map {
       case Some(region) =>
         cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
-        Ok(Json.toJson(region))
+        Ok(region.toJson)
       case None =>
         ApiError.toResult(ApiError.notFound("No region found with labels"))
     }

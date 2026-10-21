@@ -4,7 +4,7 @@ import controllers.base.{CustomBaseController, CustomControllerComponents}
 import play.api.Configuration
 import service.ConfigService
 
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.ExecutionContext
 
 /**
@@ -14,11 +14,10 @@ import scala.concurrent.ExecutionContext
 class ApiDocsController @Inject() (
     cc: CustomControllerComponents,
     val config: Configuration,
-    implicit val assets: AssetsFinder,
     configService: ConfigService
-)(implicit ec: ExecutionContext)
+)(using assets: AssetsFinder, ec: ExecutionContext)
     extends CustomBaseController(cc) {
-  implicit val implicitConfig: Configuration = config
+  given Configuration = config
 
   /**
    * Displays API documentation index/introduction page.
@@ -91,12 +90,33 @@ class ApiDocsController @Inject() (
   }
 
   /**
+   * Displays API documentation for one street's slope and elevation profile (#5223).
+   */
+  def streetGrade = cc.securityService.UserAwareAction { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, "Visit_APIDocs_StreetGrade")
+      Ok(views.html.apiDocs.streetGrade(commonData, request.identity))
+    }
+  }
+
+  /**
    * Displays API documentation for the street-level AccessScore.
    */
   def accessScoreStreets = cc.securityService.UserAwareAction { implicit request =>
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
       cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, "Visit_APIDocs_AccessScoreStreets")
       Ok(views.html.apiDocs.accessScoreStreets(commonData, request.identity))
+    }
+  }
+
+  /**
+   * Displays API documentation for the intersection-level AccessScore (#5095).
+   */
+  def accessScoreIntersections = cc.securityService.UserAwareAction { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService
+        .insert(request.identity.map(_.userId), request.ipAddress, "Visit_APIDocs_AccessScoreIntersections")
+      Ok(views.html.apiDocs.accessScoreIntersections(commonData, request.identity))
     }
   }
 
@@ -111,12 +131,42 @@ class ApiDocsController @Inject() (
   }
 
   /**
+   * Displays API documentation for the AccessScore Spotlight feed (#5215).
+   */
+  def accessScoreSpotlight = cc.securityService.UserAwareAction { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, "Visit_APIDocs_AccessScoreSpotlight")
+      Ok(views.html.apiDocs.accessScoreSpotlight(commonData, request.identity))
+    }
+  }
+
+  /**
    * Displays API documentation for the street types.
    */
   def streetTypes = cc.securityService.UserAwareAction { implicit request =>
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
       cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, "Visit_APIDocs_StreetTypes")
       Ok(views.html.apiDocs.streetTypes(commonData, request.identity))
+    }
+  }
+
+  /**
+   * Displays API documentation for sidewalk presence per block face (#5279).
+   */
+  def sidewalkPresence = cc.securityService.UserAwareAction { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, "Visit_APIDocs_SidewalkPresence")
+      Ok(views.html.apiDocs.sidewalkPresence(commonData, request.identity))
+    }
+  }
+
+  /**
+   * Displays API documentation for places (#5311).
+   */
+  def places = cc.securityService.UserAwareAction { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, "Visit_APIDocs_Places")
+      Ok(views.html.apiDocs.places(commonData, request.identity))
     }
   }
 
@@ -157,6 +207,16 @@ class ApiDocsController @Inject() (
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
       cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, "Visit_APIDocs_Validations")
       Ok(views.html.apiDocs.validations(commonData, request.identity))
+    }
+  }
+
+  /**
+   * Displays API documentation for label edits.
+   */
+  def labelEdits = cc.securityService.UserAwareAction { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, "Visit_APIDocs_LabelEdits")
+      Ok(views.html.apiDocs.labelEdits(commonData, request.identity))
     }
   }
 

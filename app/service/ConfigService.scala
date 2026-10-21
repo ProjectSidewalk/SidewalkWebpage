@@ -2,26 +2,28 @@ package service
 
 import com.google.inject.ImplementedBy
 import com.typesafe.config.ConfigException
-import models.api.DailyStatRecord
-import models.label.LabelTypeEnum
+import models.api.{AggregateStats, DailyLabelStat, DailyStatRecord, DailyValidationStat, LabelTypeStats}
 import models.pano.PanoSource
-import models.pano.PanoSource.PanoSource
-import models.utils.MyPostgresProfile.api._
-import models.utils._
+import models.utils.MyPostgresProfile.api.given
+import models.utils.*
 import play.api.cache.AsyncCacheApi
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.i18n.{Lang, MessagesApi}
 import play.api.libs.ws.WSClient
+import play.api.libs.ws.WSBodyWritables.*
 import play.api.{Configuration, Logger}
+import play.twirl.api.Html
 import slick.dbio.DBIO
 
 import java.lang.management.ManagementFactory
+import java.time.format.{DateTimeFormatter, FormatStyle}
 import java.time.{Instant, LocalDate, OffsetDateTime, ZoneId, ZoneOffset}
 import java.time.temporal.ChronoUnit
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.reflect.ClassTag
+import scala.util.Try
 
 /**
  * Which cities the by-name global leaderboard may read, split by what it may read them for (#3719).
@@ -42,6 +44,15 @@ import scala.reflect.ClassTag
  */
 case class GlobalLeaderboardScope(cities: Seq[(String, String)], optOutSchemas: Seq[String])
 
+/**
+ * Which cities a self-view fan-out may read, and which it had to leave out (#4526).
+ *
+ * @param cities         (cityId, schema) pairs in configured order.
+ * @param skippedSchemas Schemas held back because they lack a column the query reads. A volunteer's hours page reports
+ *                       this count to the reader, since a dropped city can only ever make their total look smaller.
+ */
+case class SelfViewScope(cities: Seq[(String, String)], skippedSchemas: Seq[String])
+
 case class CityInfo(
     cityId: String,
     stateId: Option[String],
@@ -50,7 +61,26 @@ case class CityInfo(
     cityNameFormatted: String,
     URL: String,
     visibility: String
-)
+) {
+
+  /**
+   * Whether this deployment is publicly launched, i.e. its `city-params.status` entry is `public`.
+   *
+   * The one place the rule lives for callers holding a [[CityInfo]], so a surface that decides whether to publish a
+   * deployment's address can't drift from the others. Any unrecognized status reads as not public: the failure that
+   * matters here is disclosing an unlaunched deployment, not withholding a launched one (#5259).
+   */
+  def isPublic: Boolean = visibility == "public"
+}
+
+/**
+ * The credential a page hands its pano viewer.
+ * @param source    The city's imagery provider.
+ * @param token     Bearer token or API key; empty for a keyless provider.
+ * @param expiresAt Set only for per-session tokens (Infra3d), which the viewer must renew; None for static keys.
+ */
+case class ImageryAccessToken(source: PanoSource, token: String, expiresAt: Option[OffsetDateTime])
+
 case class CommonPageData(
     cityId: String,
     environmentType: String,
@@ -67,60 +97,57 @@ case class CommonPageData(
     buildCommit: Option[String],
     buildDescribe: Option[String],
     buildDirty: Boolean,
-    allCityInfo: Seq[CityInfo]
+    allCityInfo: Seq[CityInfo],
+    // Who volunteers contact about service hours, and the name they list as their supervisor (#4375).
+    volunteerEmail: String,
+    volunteerSupervisor: String,
+    // Content-fingerprint digests for the assets JS builds URLs for, serialized once at startup by
+    // AssetManifestService; stamped on every page for util.assetPath (#4893).
+    assetDigestsJson: Html,
+    // Every translation file under public/locales/, so i18next only asks for ones that exist (#5570).
+    localeFilesJson: Html,
+    // Every language the site offers (play.i18n.langs), so i18next only asks for translation files that exist.
+    supportedLanguages: Seq[String]
 ) {
+
+  def versionDate: LocalDate = CommonPageData.releaseDate(versionTimestamp)
+
+  def versionDateLabel(lang: Lang): String = CommonPageData.releaseDateLabel(versionTimestamp, lang)
 
   /** The deployment city's info; cityId always comes from the same config that builds allCityInfo. */
   def currentCity: CityInfo = allCityInfo.find(_.cityId == cityId).get
+
+  /** Whether search engines may index this deployment (#5120); see [[models.utils.SeoUtils.isIndexable]]. */
+  def isIndexable: Boolean = SeoUtils.isIndexable(environmentType, currentCity.visibility, imagerySource.name)
+}
+
+object CommonPageData {
+
+  /** A release's day in UTC, so it doesn't follow the server's time zone and matches the admin deploy strip. */
+  def releaseDate(released: OffsetDateTime): LocalDate = released.atZoneSameInstant(ZoneOffset.UTC).toLocalDate
+
+  /** A release's date in the reader's language's date style (e.g. "October 7, 2026"). */
+  def releaseDateLabel(released: OffsetDateTime, lang: Lang): String =
+    releaseDate(released).format(DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG).withLocale(lang.toLocale))
 }
 
 /**
- * Represents label statistics for a specific label type.
+ * One deployment's headline totals, for the Leaderboard's city-scoped hero band (#4687).
  *
- * @param labels Total number of labels for this type
- * @param labelsValidated Total number of labels validated for this type
- * @param labelsValidatedAgree Number of validated labels that were agreed upon
- * @param labelsValidatedDisagree Number of validated labels that were disagreed upon
- */
-case class LabelTypeStats(
-    labels: Int,
-    labelsValidated: Int,
-    labelsValidatedAgree: Int,
-    labelsValidatedDisagree: Int
-)
-
-/**
- * Represents aggregate statistics across all Project Sidewalk deployments.
+ * A slice of the per-city data [[AggregateStats]] already fans out for, so the two bands on the Leaderboard use
+ * identical definitions and every hero number is a strict subset of its cross-city counterpart.
  *
- * @param kmExplored Total kilometers explored across all cities
- * @param kmExploredNoOverlap Total kilometers explored without overlap across all cities
- * @param totalLabels Total number of (non-tutorial) labels across all cities. Equals the sum of `byLabelType` label
- *                    counts by construction (#3981), so the per-type breakdown always reconciles with this total.
- * @param tutorialLabels Total number of practice/tutorial labels across all cities. Tracked separately because tutorial
- *                       labels are excluded from `totalLabels` and `byLabelType` (they would skew the per-type ratios).
- * @param totalValidations Total number of validations across all cities
- * @param totalUsers Number of distinct contributors across all cities — users who added at least one (non-tutorial)
- *                   label or validated at least one label. Counted as distinct people: because `user_id` is a global
- *                   identifier shared across city schemas, a user active in multiple cities is counted once (the union
- *                   of contributor ids, not the sum of per-city counts). The legacy DC deployment contributes a fixed
- *                   historical estimate (`legacyDCUserCount`) since it has no per-user records.
- * @param numCities Number of cities where Project Sidewalk is deployed
- * @param numCountries Number of countries where Project Sidewalk is deployed
- * @param numLanguages Number of distinct languages supported
- * @param byLabelType Map of label type to its statistics
+ * `kmExploredNoOverlap` is the distance metric here rather than `kmExplored`: the latter sums every completed
+ * `audit_task`, so a street audited by three people counts three times, which on a band that names the city can print
+ * more miles than the city has streets. Only cities where both the stats and the contributor query succeeded get a
+ * `CityImpact`, so a partial failure can't render a tile reading zero next to tiles reading six figures.
+ *
+ * @param contributors        Distinct non-excluded users who added a non-tutorial label or validated one in this city.
+ * @param totalLabels         Non-tutorial, non-deleted labels from non-excluded users.
+ * @param totalValidations    Validations from non-excluded users.
+ * @param kmExploredNoOverlap Kilometers of distinct streets with a completed audit task.
  */
-case class AggregateStats(
-    kmExplored: Double,
-    kmExploredNoOverlap: Double,
-    totalLabels: Int,
-    tutorialLabels: Int,
-    totalValidations: Int,
-    totalUsers: Int,
-    numCities: Int,
-    numCountries: Int,
-    numLanguages: Int,
-    byLabelType: Map[String, LabelTypeStats]
-)
+case class CityImpact(contributors: Int, totalLabels: Int, totalValidations: Int, kmExploredNoOverlap: Double)
 
 /**
  * One week's contribution volume for a city, for the Across Cities activity trends (#4329).
@@ -146,14 +173,16 @@ case class WeeklyPoint(weekStart: LocalDate, labels: Int, validations: Int, acti
  * String values match the labels [[models.utils.ConfigTable]]'s `account_kinds` CTE emits, which is how a row is
  * parsed back into this type.
  */
-object ContributorKind extends Enumeration {
-  val Registered: ContributorKind.Value = Value("registered")
-  val Anonymous: ContributorKind.Value  = Value("anonymous")
-  val Ai: ContributorKind.Value         = Value("ai")
+enum ContributorKind(val name: String) extends NamedEnum {
+  case Registered extends ContributorKind("registered")
+  case Anonymous  extends ContributorKind("anonymous")
+  case Ai         extends ContributorKind("ai")
 }
 
+object ContributorKind extends NamedEnumCompanion[ContributorKind]
+
 /**
- * One person's contribution to one city on one day, the grain the "this week" bar charts are built from (#4931).
+ * One person's contribution to one city on one day, the grain the per-day bar charts are built from (#4931).
  *
  * @param day         Calendar day (Pacific).
  * @param userId      The contributor's user id, which identifies them across cities when their days are merged.
@@ -166,9 +195,47 @@ case class DailyContributorActivity(
     day: LocalDate,
     userId: String,
     username: String,
-    kind: ContributorKind.Value,
+    kind: ContributorKind,
     labels: Int,
     validations: Int
+)
+
+/**
+ * One day's activity in one city at the grain the trailing-year baseline needs (#5653).
+ *
+ * Registered people keep their user id so the service can count each person once per day across cities, the way the
+ * daily bars do. Anonymous and AI rows are collapsed to one row per (day, kind): neither feeds a cross-city headcount,
+ * and per-cookie anonymous accounts would otherwise dominate a 365-day result set from every schema.
+ *
+ * @param day         Calendar day (Pacific).
+ * @param userId      The registered contributor's user id; empty for a collapsed anonymous or AI row.
+ * @param kind        How this activity is attributed — a person, a cookie identity, or the pipeline.
+ * @param labels      Non-tutorial, non-excluded labels created that day.
+ * @param validations Validations submitted that day.
+ */
+case class DailyBaselineRow(day: LocalDate, userId: String, kind: ContributorKind, labels: Int, validations: Int)
+
+/**
+ * Trailing-year per-day averages that the Across Cities per-day charts are read against (#5653).
+ *
+ * Counted on the bars' own basis (see [[DailyPoint]]), so a bar and the reference line under it measure the same
+ * thing: volumes are people's work with AI excluded, and contributors are distinct registered people per day across
+ * cities. Today is outside the window because its bar is still filling in and would drag the average down.
+ *
+ * @param days               How many days the averages are taken over; quiet days count as zero.
+ * @param windowStart        First day of the window (Pacific).
+ * @param windowEnd          Last day of the window (Pacific), which is yesterday.
+ * @param labelsPerDay       Mean labels people created per day.
+ * @param validationsPerDay  Mean validations people submitted per day.
+ * @param contributorsPerDay Mean distinct registered contributors per day.
+ */
+case class DailyBaseline(
+    days: Int,
+    windowStart: LocalDate,
+    windowEnd: LocalDate,
+    labelsPerDay: Double,
+    validationsPerDay: Double,
+    contributorsPerDay: Double
 )
 
 /**
@@ -185,7 +252,7 @@ case class DailyContributorActivity(
 case class ContributorWindowActivity(
     userId: String,
     username: String,
-    kind: ContributorKind.Value,
+    kind: ContributorKind,
     labels7d: Int,
     labelsPrior7d: Int,
     validations7d: Int,
@@ -193,7 +260,7 @@ case class ContributorWindowActivity(
 )
 
 /**
- * One day's contribution volume across cities, for the Across Cities "this week" bar charts (#4686, #4931).
+ * One day's contribution volume across cities, for the Across Cities per-day bar charts (#4686, #4931, #5653).
  *
  * Counted on the same two bases as [[ActivityWindowSummary]] — volumes are human work with pipeline work beside it,
  * headcounts are distinct and split registered / anonymous / AI. One AI account can out-produce every person in the
@@ -255,8 +322,26 @@ case class CityDayTotals(cityId: String, labels: Int, validations: Int, contribu
  * @param kind        How this account's activity is attributed.
  * @param labels      Labels they created that day.
  * @param validations Validations they submitted that day.
+ * @param cities      Where that work happened, busiest first (#5495). Kept through the merge because the card names
+ *                    who was active in order to send an admin to their work, and that work lives on one deployment
+ *                    per city — a name without its city can't be looked up.
  */
-case class DailyContributor(username: String, kind: ContributorKind.Value, labels: Int, validations: Int)
+case class DailyContributor(
+    username: String,
+    kind: ContributorKind,
+    labels: Int,
+    validations: Int,
+    cities: Seq[ContributorCityDay] = Seq.empty
+)
+
+/**
+ * One contributor's share of a single city on a single day, the per-city split under their line in a day's card (#5495).
+ *
+ * @param cityId      The city id (e.g. "seattle-wa").
+ * @param labels      Labels they created there that day.
+ * @param validations Validations they submitted there that day.
+ */
+case class ContributorCityDay(cityId: String, labels: Int, validations: Int)
 
 /**
  * Cross-city rolling week-over-week activity — the trailing 7 days vs the 7 before — for the "Today & this week"
@@ -393,24 +478,24 @@ case class CrossCityActivityWindows(byCity: Map[String, CityActivityWindow], tot
  * Counts use the same exclusions as the rest of the stats code (`NOT user_stat.excluded`, non-deleted, non-tutorial).
  *
  * @param cityId                  The city id (e.g. "seattle-wa").
- * @param totalStreets            Non-deleted streets in the city.
- * @param auditedStreets          Distinct streets with a completed audit by a non-excluded user.
+ * @param totalStreets            Open streets in the city, minus the tutorial street.
+ * @param auditedStreets          Distinct counted streets with a current-imagery audit by a non-excluded user.
  * @param coverage                auditedStreets / totalStreets in [0, 1]; 0.0 when the city has no streets.
- * @param totalKm                 Total length of the non-deleted street network, in km.
+ * @param totalKm                 Total length of the counted streets, in km.
  * @param auditedKm               Distinct audited length (no double-counting overlapping audits), in km.
  * @param totalLabels             Non-tutorial, non-excluded labels (reconciles with the city's single-city total).
  * @param aiLabels                Subset of totalLabels authored by the AI role.
  * @param labelsWithSeverity      Subset of totalLabels that have a severity rating (a data-completeness signal).
- * @param labelsSeverityEligible  Labels whose type CAN take a severity (excludes NoSidewalk/Signal/Occlusion) — the
- *                                correct denominator for "% with severity".
+ * @param labelsSeverityEligible  Labels whose type CAN take a rating (LabelType.ratedTypeNames) — the correct
+ *                                denominator for "% with severity".
  * @param labelsWithTags          Subset of totalLabels that have at least one tag applied.
  * @param labelsTagEligible       Labels whose type CAN take tags (types present in this deployment's tag table) — the
  *                                correct denominator for "% with tags".
  * @param labelsValidated         Labels that have at least one validation.
- * @param totalValidations        All validations by non-excluded users (the volume, including AI).
- * @param validationsAgree        HUMAN (non-AI) validations with an "Agree" result.
- * @param validationsDisagree     HUMAN (non-AI) validations with a "Disagree" result. (Agreement/disagreement is a
- *                                human-consensus signal; AI verdicts are reported separately via `aiValidations`.)
+ * @param totalValidations        All validations by non-excluded users, including AI and voided votes.
+ * @param validationsAgree        HUMAN (non-AI) votes that count toward a verdict, with an "Agree" result.
+ * @param validationsDisagree     HUMAN (non-AI) votes that count toward a verdict, with a "Disagree" result.
+ *                                (Agreement is a human-consensus signal; AI verdicts are in `aiValidations`.)
  * @param aiValidations           Subset of totalValidations cast by the AI role (distinct from AI-authored labels).
  * @param byLabelType             Per-label-type counts (labels, validated, agree, disagree) — the data-pattern lens.
  * @param activeContributors      Distinct non-excluded, non-AI users who placed a label or a validation.
@@ -419,8 +504,8 @@ case class CrossCityActivityWindows(byCity: Map[String, CityActivityWindow], tot
  * @param labels30d               Labels created in the last 30 days.
  * @param validations7d           Validations in the last 7 days.
  * @param validations30d          Validations in the last 30 days.
- * @param audits7d                Streets completed in the last 7 days.
- * @param audits30d               Streets completed in the last 30 days.
+ * @param audits7d                Streets completed by non-excluded users in the last 7 days.
+ * @param audits30d               Streets completed by non-excluded users in the last 30 days.
  * @param lastActivity            Most recent label/validation/audit timestamp; None if the city has no activity.
  * @param weeklyTrend             Trailing weekly label/validation volume (oldest first) for the activity sparkline.
  * @param labelsPerUserMedian     Median labels per labeler (robust to the power-law skew; mean would mislead).
@@ -480,6 +565,30 @@ case class CityScorecard(
 case class CityScorecardWithFlags(scorecard: CityScorecard, anomalies: Seq[String])
 
 /**
+ * One city's lived-experience story counts, for the Across Cities Stories section (#5543).
+ *
+ * Counts every story, whoever wrote it: this feeds moderation, which has to see what excluded users post too. Story
+ * text is deliberately absent; it is moderated only on the city's own server, so the page links there instead.
+ *
+ * @param total      Every story row, visible or hidden.
+ * @param hidden     Stories an admin has quarantined (`visible = FALSE`).
+ * @param withPhoto  Stories with at least one attached photo.
+ * @param last7d     Stories submitted in the trailing 7 days.
+ * @param visible7d  Those still visible: the ones a moderator has not already hidden, and so still worth a look.
+ * @param last30d    Stories submitted in the trailing 30 days.
+ * @param newest     When the most recent story was submitted; None when the city has none.
+ */
+case class CityStoryStats(
+    total: Int,
+    hidden: Int,
+    withPhoto: Int,
+    last7d: Int,
+    visible7d: Int,
+    last30d: Int,
+    newest: Option[OffsetDateTime]
+)
+
+/**
  * One demographic slice of a city's engagement funnel: the eight monotonic step counts for that slice (#288).
  *
  * @param steps Distinct users reaching each step, index 0 = step 1 (see [[ConfigService.FunnelDefs]]), non-increasing.
@@ -531,6 +640,48 @@ case class CurrentCityFunnels(computedAt: Option[OffsetDateTime], byType: Map[St
  */
 object ConfigService {
 
+  /** Longest official-contact name the admin page accepts; it renders mid-sentence on the landing page (#5462). */
+  val OfficialContactMaxNameLength: Int = 100
+
+  /** Longest official-contact URL the admin page accepts. */
+  val OfficialContactMaxUrlLength: Int = 500
+
+  /**
+   * Checks and trims what an admin entered for the landing page's official-contact notice (#5462). A blank URL turns
+   * the notice off, whatever the name says. Otherwise the URL has to be an absolute https link with no user info,
+   * because it lands in an href on the public landing page (`https://city.gov@elsewhere.example` would read as the
+   * city's site), and the name has to be non-blank. The scheme is lowercased so the stored value meets the DB's
+   * case-sensitive `LIKE 'https://%'` CHECK.
+   *
+   * @param name The agency's name as the sentence should read it, e.g. "the City of Burnaby".
+   * @param url  The agency's contact page.
+   * @return     Right(None) to clear the notice, Right(Some(contact)) to set it, or Left with an English message for
+   *             the admin page (admin UI is English-only).
+   */
+  def validateOfficialContact(name: String, url: String): Either[String, Option[OfficialContact]] = {
+    val cleanName  = name.trim
+    val cleanUrl   = url.trim
+    val urlIsHttps = Try {
+      val uri = java.net.URI(cleanUrl)
+      Option(uri.getScheme).exists(_.equalsIgnoreCase("https")) && uri.getHost != null && uri.getRawUserInfo == null
+    }.getOrElse(false)
+    if (cleanUrl.isEmpty) Right(None)
+    else if (cleanName.isEmpty) Left("Enter the name to show, e.g. \"the City of Burnaby\".")
+    else if (cleanName.length > OfficialContactMaxNameLength)
+      Left(s"The name can be at most $OfficialContactMaxNameLength characters.")
+    else if (cleanUrl.length > OfficialContactMaxUrlLength)
+      Left(s"The URL can be at most $OfficialContactMaxUrlLength characters.")
+    else if (!urlIsHttps)
+      // java.net.URI finds no host in a non-ASCII domain, so name the fix where an admin who hit it will look.
+      Left(
+        "The URL must be a full https:// link with no user name, e.g. https://www.burnaby.ca/our-city/contact-us." +
+          (if (Try(java.net.URI(cleanUrl).getRawAuthority).toOption.flatMap(Option(_)).exists(_.exists(_ > 127)))
+             " For a domain with accented or non-Latin letters, paste its punycode (xn--) form."
+           else "")
+      )
+    else Right(Some(OfficialContact(cleanName, "https" + cleanUrl.drop("https".length))))
+  }
+
   /** Cached aggregate stats older than this trigger a background recompute when served (#4600). */
   val AggregateStatsFreshFor: FiniteDuration = Duration(5, "minutes")
 
@@ -543,7 +694,8 @@ object ConfigService {
   /**
    * Age beyond which a cross-city read is refreshed in the background when served (#4931).
    *
-   * One `/admin/across-cities` request triggers five of these reads, and each fans a query out to every city schema —
+   * One `/admin/across-cities` request triggers five of these reads (plus two more on their own longer clocks:
+   * labeling speed and the trailing-year baseline), and each fans a query out to every city schema —
    * ~280 queries against a 25-connection pool at ~56 deployments. What `staleWhileRevalidate` buys over a plain
    * expiring cache is that **no request ever waits on that fan-out**: past this age the cached copy is still served
    * immediately and the refresh runs behind it, whereas an expiring entry makes whichever request arrives first pay
@@ -572,6 +724,32 @@ object ConfigService {
 
   /** How long a labeling-speed read may be served at all; see [[LabelingSpeedFreshFor]]. */
   val LabelingSpeedMaxAge: FiniteDuration = Duration(7, "days")
+
+  /**
+   * How many days the per-day charts' reference averages cover (#5653).
+   *
+   * A trailing year rather than all time, so early sparse years and the pre-AI-labeling era don't skew what "a normal
+   * day" means now, while still spanning every season.
+   */
+  val DailyBaselineDays: Int = 365
+
+  /**
+   * Age beyond which the trailing-year baseline is refreshed in the background when served (#5653).
+   *
+   * Its own pair, far longer than [[CrossCityFreshFor]], because it scans a year of activity per city yet one more day
+   * moves a 365-day mean by well under 1%; refreshing it every ten minutes would buy nothing visible.
+   */
+  val DailyBaselineFreshFor: FiniteDuration = Duration(12, "hours")
+
+  /** How long the trailing-year baseline may be served at all; see [[DailyBaselineFreshFor]]. */
+  val DailyBaselineMaxAge: FiniteDuration = Duration(3, "days")
+
+  /**
+   * How long a page load waits for the trailing-year baseline when nothing is cached. The year-long fan-out is the
+   * page's heaviest read, and the line is a nicety on top of the bars, so a cold (or repeatedly failing) baseline
+   * costs the page its average line for one load rather than holding the whole response.
+   */
+  val DailyBaselineColdWait: FiniteDuration = Duration(5, "seconds")
 
   /**
    * How many contributors each city ships for its "Most active cities" hover cards (#4931).
@@ -627,57 +805,109 @@ object ConfigService {
    * @return     The day's totals, its busiest cities, and its busiest contributors.
    */
   def summarizeDay(day: LocalDate, rows: Seq[(String, DailyContributorActivity)]): DailyActivity = {
-    val byKind     = rows.groupBy(_._2.kind).withDefaultValue(Seq.empty)
-    val aiRows     = byKind(ContributorKind.Ai)
+    def activityOf(cityRows: Seq[(String, DailyContributorActivity)]): Seq[DailyContributorActivity] =
+      cityRows.map { case (_, activity) => activity }
+    val byKind     = rows.groupBy { case (_, activity) => activity.kind }.withDefaultValue(Seq.empty)
+    val aiRows     = activityOf(byKind(ContributorKind.Ai))
     val peopleRows = byKind(ContributorKind.Registered) ++ byKind(ContributorKind.Anonymous)
+    val people     = activityOf(peopleRows)
     // Ranked and truncated below, so ties break on a stable key rather than on HashMap iteration order.
     val merged = rows
-      .groupBy(_._2.userId)
+      .groupBy { case (_, activity) => activity.userId }
       .toSeq
       .map { case (userId, userRows) =>
-        val first = userRows.head._2
+        val userActivity = activityOf(userRows)
+        val first        = userActivity.head
+        // A person can have several rows in one city, so the split sums by city before ranking; ties break on city
+        // id for the same reproducibility reason as the list itself.
+        val cities = userRows
+          .groupBy { case (cityId, _) => cityId }
+          .toSeq
+          .map { case (cityId, cityRows) =>
+            val cityActivity = activityOf(cityRows)
+            ContributorCityDay(cityId, cityActivity.map(_.labels).sum, cityActivity.map(_.validations).sum)
+          }
+          .sortBy(c => (-(c.labels + c.validations), c.cityId))
         (
           userId,
           DailyContributor(
             first.username,
             first.kind,
-            userRows.map(_._2.labels).sum,
-            userRows.map(_._2.validations).sum
+            userActivity.map(_.labels).sum,
+            userActivity.map(_.validations).sum,
+            cities
           )
         )
       }
       .sortBy { case (userId, c) => (-(c.labels + c.validations), userId) }
-      .map(_._2)
-    def activeOfKind(kind: ContributorKind.Value): Int =
-      merged.count(c => c.kind == kind && c.labels + c.validations > 0)
+      .map { case (_, contributor) => contributor }
+    def activeOfKind(kind: ContributorKind): Int = merged.count(c => c.kind == kind && c.labels + c.validations > 0)
     // Anonymous contributors are counted (as sessions, on the point) but not listed: their usernames are generated
     // cookie ids, so naming them fills the card with hex and implies a person behind each one.
     val named = merged.filter(_.kind != ContributorKind.Anonymous)
     val point = DailyPoint(
       day = day,
-      labels = peopleRows.map(_._2.labels).sum,
-      validations = peopleRows.map(_._2.validations).sum,
+      labels = people.map(_.labels).sum,
+      validations = people.map(_.validations).sum,
       contributors = activeOfKind(ContributorKind.Registered),
       anonSessions = activeOfKind(ContributorKind.Anonymous),
-      aiLabels = aiRows.map(_._2.labels).sum,
-      aiValidations = aiRows.map(_._2.validations).sum,
+      aiLabels = aiRows.map(_.labels).sum,
+      aiValidations = aiRows.map(_.validations).sum,
       aiAgents = activeOfKind(ContributorKind.Ai)
     )
     // Cities are ranked and listed by what people did there; AI output belongs to the pipeline, not to a community.
     val topCities = peopleRows
-      .groupBy(_._1)
+      .groupBy { case (cityId, _) => cityId }
       .toSeq
       .map { case (cityId, cityRows) =>
+        val cityActivity = activityOf(cityRows)
         CityDayTotals(
           cityId,
-          cityRows.map(_._2.labels).sum,
-          cityRows.map(_._2.validations).sum,
-          cityRows.map(_._2.userId).distinct.size
+          cityActivity.map(_.labels).sum,
+          cityActivity.map(_.validations).sum,
+          cityActivity.map(_.userId).distinct.size
         )
       }
       .sortBy(city => (-(city.labels + city.validations), city.cityId))
       .take(DayTopCityLimit)
     DailyActivity(point, topCities, named.take(DayContributorLimit), named.size)
+  }
+
+  /**
+   * Averages a trailing window of per-city daily rows into the per-day reference values the charts draw (#5653).
+   *
+   * Mirrors [[summarizeDay]]'s definitions so the line and the bars agree: volumes sum registered and anonymous rows
+   * (AI excluded), and contributors are distinct (day, registered user) pairs, so a person active in three cities on
+   * one day counts once for that day. Every total is divided by `days` rather than by the number of days with data,
+   * because a day nobody mapped is a real zero, not a missing sample.
+   *
+   * @param today The current Pacific day, which is excluded because its bar is still partial.
+   * @param days  Window length; the window is `[today - days, today - 1]`.
+   * @param rows  (cityId, row) pairs from every city; rows outside the window are ignored, since the DAO's coarse
+   *              lower bound reaches past the window's first day and it has no upper bound, so today arrives too.
+   * @return      The window and its per-day means.
+   */
+  def summarizeBaseline(today: LocalDate, days: Int, rows: Seq[(String, DailyBaselineRow)]): DailyBaseline = {
+    val windowStart = today.minusDays(days.toLong)
+    val windowEnd   = today.minusDays(1)
+    val inWindow    = rows.collect {
+      case (_, row) if !row.day.isBefore(windowStart) && !row.day.isAfter(windowEnd) => row
+    }
+    val people          = inWindow.filter(_.kind != ContributorKind.Ai)
+    val contributorDays = inWindow
+      .filter(row => row.kind == ContributorKind.Registered && row.labels + row.validations > 0)
+      .map(row => (row.day, row.userId))
+      .distinct
+      .size
+    def perDay(total: Long): Double = if (days > 0) total.toDouble / days else 0.0
+    DailyBaseline(
+      days = days,
+      windowStart = windowStart,
+      windowEnd = windowEnd,
+      labelsPerDay = perDay(people.map(_.labels.toLong).sum),
+      validationsPerDay = perDay(people.map(_.validations.toLong).sum),
+      contributorsPerDay = perDay(contributorDays.toLong)
+    )
   }
 
   /**
@@ -696,6 +926,64 @@ object ConfigService {
     "user_stat" -> "on_leaderboard",
     "user_stat" -> "meters_audited",
     "mission"   -> "user_id"
+  )
+
+  /**
+   * The (table, column) pairs the cross-city volunteer-hours query reads (#4526).
+   *
+   * A schema missing any of them can't be totalled, and quietly counting it as zero hours would understate a
+   * volunteer's service time — so it is excluded and logged instead.
+   */
+  val CrossCityHoursRequiredColumns: Set[(String, String)] = Set(
+    "label_validation"             -> "user_id",
+    "label_validation"             -> "end_timestamp",
+    "audit_task"                   -> "user_id",
+    "audit_task"                   -> "audit_task_id",
+    "audit_task_interaction_small" -> "audit_task_id",
+    "audit_task_interaction_small" -> "timestamp",
+    "webpage_activity"             -> "user_id",
+    "webpage_activity"             -> "activity",
+    "webpage_activity"             -> "timestamp"
+  )
+
+  /**
+   * The (table, column) pairs the AccessScore Spotlight's cross-city fan-out reads (#5215).
+   *
+   * Both tables arrive with evolution 394, and every deployment applies its own evolutions when it restarts, so
+   * mid-rollout an updated instance can query a schema that has not created them yet. Gating the fan-out on this
+   * set makes such a city contribute nothing for a night instead of failing its whole query.
+   */
+  val SpotlightRequiredColumns: Set[(String, String)] = Set(
+    "region_access_score" -> "score",
+    "region_access_score" -> "completion_rate",
+    "region_access_score" -> "computed_at",
+    "street_access_score" -> "score",
+    "street_access_score" -> "tie_break",
+    "street_access_score" -> "computed_at"
+  )
+
+  /**
+   * The (table, column) pairs a user's cross-city stats query reads (#4496).
+   *
+   * Deliberately smaller than [[LeaderboardRequiredColumns]]: a mapper's own totals need no visibility flags, so a
+   * schema that is behind on the evolutions adding `on_leaderboard`/`public_profile` still reports its numbers.
+   */
+  val CrossCityUserRequiredColumns: Set[(String, String)] = Set(
+    "label"            -> "user_id",
+    "label"            -> "deleted",
+    "label"            -> "tutorial",
+    "label"            -> "street_edge_id",
+    "label"            -> "audit_task_id",
+    "label"            -> "time_created",
+    "audit_task"       -> "audit_task_id",
+    "audit_task"       -> "street_edge_id",
+    "config"           -> "tutorial_street_edge_id",
+    "label_validation" -> "user_id",
+    "mission"          -> "user_id",
+    "mission"          -> "completed",
+    "mission"          -> "skipped",
+    "user_stat"        -> "user_id",
+    "user_stat"        -> "meters_audited"
   )
 
   /**
@@ -778,7 +1066,7 @@ object ConfigService {
   def funnelStepKeys(funnelType: String): Seq[String] = FunnelDefs.toMap.getOrElse(funnelType, Seq.empty)
 
   /** The longest funnel's step count (the mapping funnel), derived from [[FunnelDefs]] rather than hardcoded. */
-  val MaxFunnelSteps: Int = FunnelDefs.map(_._2.length).max
+  val MaxFunnelSteps: Int = FunnelDefs.map { case (_, steps) => steps.length }.max
 
   /** An all-zero funnel of the maximum length — the empty/identity input for the conversion helpers. */
   val ZeroFunnelSteps: Seq[Int] = Seq.fill(MaxFunnelSteps)(0)
@@ -844,7 +1132,7 @@ trait ConfigService {
    * separate rather than summing them. Anomaly flags ("stalled", "low_coverage", "high_disagreement") are computed
    * across the whole set (the disagreement flag is relative to the cross-city median), so they are returned together.
    *
-   * @return A Future of one [[CityScorecardWithFlags]] per available city (legacy DC and "staging" excluded).
+   * @return A Future of one [[CityScorecardWithFlags]] per available city ("staging" excluded).
    */
   def getCityScorecards(): Future[Seq[CityScorecardWithFlags]]
 
@@ -859,16 +1147,35 @@ trait ConfigService {
   def getCrossCityWeeklyTrend(weeks: Option[Int]): Future[Seq[WeeklyPoint]]
 
   /**
-   * Returns the daily label/validation/active-user volume summed across all available cities for the trailing window
-   * (#4686), plus the busiest cities and named contributors behind each day (#4931), for the "this week" bar charts
-   * and their hover cards. Same definitions and exclusions as [[getCrossCityWeeklyTrend]]; active users are summed per
-   * city, so a person active in multiple cities is counted in each (documented on the page), while the contributor
-   * list merges their cities so each person appears once.
+   * Returns the daily label/validation/contributor volume across all available cities for the trailing window
+   * (#4686), plus the busiest cities and named contributors behind each day (#4931), for the rolling 7- and 30-day
+   * bar charts and their hover cards (#5653). Same activity definitions and exclusions as [[getCrossCityWeeklyTrend]];
+   * each day is rolled up by [[ConfigService.summarizeDay]], which merges a person's cities so they count once per day.
    *
    * @param days Trailing calendar days (Pacific) to include; the last day is today, so its counts are partial.
    * @return     Exactly `days` days, zero-filled and ascending by day.
    */
   def getCrossCityDailyTrend(days: Int): Future[Seq[DailyActivity]]
+
+  /**
+   * Returns the trailing-year per-day averages the per-day bar charts draw as reference lines (#5653).
+   *
+   * Counted on the bars' own basis ([[ConfigService.summarizeBaseline]]) over the [[ConfigService.DailyBaselineDays]]
+   * days ending yesterday. Cached on its own long stale-while-revalidate pair because it scans a year per city and
+   * barely moves day to day, so page loads never wait on it once warm.
+   *
+   * Fails as a whole if any city's query fails, rather than counting that city as idle: a partial mean would be cached
+   * for hours. A failed background refresh keeps serving the last good value; a failed cold compute is the caller's to
+   * degrade.
+   *
+   * @param coldWait How long to wait for the compute when nothing is cached; it keeps running past this and fills
+   *                 the cache for the next load.
+   * @return         The window and its labels, validations and contributors per day, or None when nothing was
+   *                 cached and the compute didn't finish within `coldWait`.
+   */
+  def getCrossCityDailyBaseline(
+      coldWait: FiniteDuration = ConfigService.DailyBaselineColdWait
+  ): Future[Option[DailyBaseline]]
 
   /**
    * Returns rolling week-over-week activity across all available cities (#4758): the trailing 7 days vs the 7 before,
@@ -891,6 +1198,17 @@ trait ConfigService {
    * @return A Future of cityId → seconds per 100 m (lower is faster).
    */
   def getCrossCityLabelingSpeed(): Future[Map[String, Double]]
+
+  /**
+   * Returns each city's story counts (#5543), so an Owner can see which deployments have stories to moderate.
+   *
+   * Cached like the scorecards, and fetched independently of them, so a city whose heavy scorecard query fails still
+   * reports its stories. Every available city gets an entry: None when its count failed (e.g. a schema not yet at the
+   * evolution that added `story`), which the page shows as unavailable rather than as zero.
+   *
+   * @return A Future of cityId → that city's story counts, or None where the count failed.
+   */
+  def getCrossCityStoryStats(): Future[Map[String, Option[CityStoryStats]]]
 
   /**
    * Returns the current city's labeling pace as minutes of active auditing per 100 m covered.
@@ -954,6 +1272,41 @@ trait ConfigService {
   def getGlobalLeaderboardScope: Future[GlobalLeaderboardScope]
 
   /**
+   * Which cities a mapper's own cross-city stats may be gathered from (#4496).
+   *
+   * Every deployment that exists here and is far enough along on evolutions, with none of the leaderboard's privacy
+   * exclusions: those hold a city back from *naming people to strangers*, whereas this is a mapper reading their own
+   * totals, so work they did in a private or unlaunched city is still theirs to see. Privacy re-enters at the link —
+   * only publicly launched cities get a click-through.
+   *
+   * @return (cityId, schema) pairs in configured order, or a failed future if readiness can't be determined.
+   */
+  def getCrossCityUserScope: Future[Seq[(String, String)]]
+
+  /**
+   * Which cities a volunteer's hours may be totalled from (#4526).
+   *
+   * Same self-view reasoning as [[getCrossCityUserScope]], but gated on the interaction tables that query reads
+   * rather than the contribution tables. Carries the excluded schemas too, which its caller shows the volunteer:
+   * a hours total that silently dropped a city is the very bug #4526 exists to fix.
+   *
+   * @return The scope, or a failed future if readiness can't be determined.
+   */
+  def getCrossCityHoursScope: Future[SelfViewScope]
+
+  /**
+   * The deployments the AccessScore Spotlight's `/cities` scope may read, with the schema to read them from (#5215).
+   *
+   * Publicly launched cities only — a cross-city ranking is a public listing, so it follows the same rule as the
+   * city switcher and names no deployment that has not launched — intersected with the schemas that exist here and
+   * have applied the evolution the Spotlight tables come from.
+   *
+   * @param lang The language the city names are wanted in.
+   * @return     (city, schema) pairs in configured order; empty is a valid answer on a single-city database.
+   */
+  def getAccessScoreSpotlightScope(lang: Lang): Future[Seq[(CityInfo, String)]]
+
+  /**
    * Retrieves map parameters for a specific city by directly querying that city's database schema.
    *
    * This method attempts to retrieve map parameters (center coordinates, zoom level, and boundary coordinates) for the
@@ -978,12 +1331,23 @@ trait ConfigService {
   def getAggregateStats(): Future[AggregateStats]
 
   /**
+   * The cross-city totals plus this deployment's own slice of them, for the Leaderboard's two bands (#4687).
+   *
+   * Both come out of one cache read of the same fan-out, so the city numbers are a slice of exactly the computation
+   * the totals summarize — not of a neighbouring one a background refresh landed in between. Costs no queries beyond
+   * what [[getAggregateStats]] already runs, and carries the same staleness.
+   *
+   * @return The cross-city aggregate, and this city's totals — None if its schema is unavailable or either of its
+   *         queries failed, in which case the caller should hide the band rather than render zeros.
+   */
+  def getAggregateStatsWithCurrentCity(): Future[(AggregateStats, Option[CityImpact])]
+
+  /**
    * Returns daily label and validation counts aggregated across all configured cities.
    *
    * Queries each city schema in parallel and sums counts by (date, labelType) across cities.
    * Cities whose schemas do not exist in the current environment are silently skipped (same
-   * guard as getAggregateStats). The legacy DC dataset is omitted because its schema predates
-   * the label_validation table format used here. The full-range result is cached like
+   * guard as getAggregateStats). The full-range result is cached like
    * getAggregateStats (stale data served immediately, background refresh — #4600), and the
    * requested date window is sliced from the cached per-day rows.
    *
@@ -1002,6 +1366,8 @@ trait ConfigService {
   def getTutorialStreetId: Future[Int]
   def getMakeCrops: Future[Boolean]
   def getMapathonEventLink: Future[Option[String]]
+  def getOfficialContact: Future[Option[OfficialContact]]
+  def setOfficialContact(contact: Option[OfficialContact]): Future[Unit]
   def getOpenStatus: Future[String]
   def getOffsetHours: Future[Int]
   def getExcludedTags: DBIO[Seq[ExcludedTag]]
@@ -1016,6 +1382,7 @@ trait ConfigService {
   def getPanoSource: PanoSource
   def sendSciStarterContributions(email: String, contributions: Int, timeSpent: Double): Future[Int]
   def cachedDBIO[T: ClassTag](key: String, duration: Duration = Duration.Inf)(dbOperation: => DBIO[T]): DBIO[T]
+  def getImageryAccessToken: Future[ImageryAccessToken]
   def getCommonPageData(lang: Lang): Future[CommonPageData]
 }
 
@@ -1029,119 +1396,13 @@ class ConfigServiceImpl @Inject() (
     configTable: ConfigTable,
     funnelStatTable: FunnelStatTable,
     versionTable: VersionTable,
-    panoDataService: PanoDataService
-)(implicit val ec: ExecutionContext)
+    panoDataService: PanoDataService,
+    swrCache: SwrCache,
+    assetManifestService: AssetManifestService
+)(using val ec: ExecutionContext)
     extends ConfigService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
   private val logger = Logger(this.getClass)
-
-  /**
-   * Per-label-type counts for the original DC deployment (2015–2017), preserved from the historical spreadsheet:
-   * https://docs.google.com/spreadsheets/d/1eTwVuEIz2lV-LD-Vz_5knNoyGgzmH5kERsQ0y_jGHDE/
-   *
-   * That deployment used an outdated schema too costly to migrate, so these hard-coded counts are folded into the
-   * aggregate stats to represent Project Sidewalk's full historical scope. DC only ever had these seven label types
-   * (Crosswalk and Pedestrian Signal did not exist yet).
-   *
-   * These per-type rows sum to 249,905. The spreadsheet also lists 263,403, which is the UNFILTERED count: the
-   * ~13,498 difference is DC's tutorial labels plus "junk"-user labels (low-quality users Mikey identified by manual
-   * assessment) — exactly the labels our stats exclude elsewhere via `tutorial = FALSE` and `NOT user_stat.excluded`.
-   * So 249,905 is the correct filtered `total_labels` (consistent with how live cities are counted), and 263,403 must
-   * NOT be used as the total. `legacyDCData.totalLabels` is therefore derived from this breakdown (#3981).
-   */
-  private val legacyDCByLabelType: Map[String, LabelTypeStats] = Map(
-    LabelTypeEnum.CurbRamp.name -> LabelTypeStats(
-      labels = 150680,
-      labelsValidated = 0,
-      labelsValidatedAgree = 0,
-      labelsValidatedDisagree = 0
-    ),
-    LabelTypeEnum.NoCurbRamp.name -> LabelTypeStats(
-      labels = 19792,
-      labelsValidated = 0,
-      labelsValidatedAgree = 0,
-      labelsValidatedDisagree = 0
-    ),
-    LabelTypeEnum.Obstacle.name -> LabelTypeStats(
-      labels = 22264,
-      labelsValidated = 0,
-      labelsValidatedAgree = 0,
-      labelsValidatedDisagree = 0
-    ),
-    LabelTypeEnum.SurfaceProblem.name -> LabelTypeStats(
-      labels = 8964,
-      labelsValidated = 0,
-      labelsValidatedAgree = 0,
-      labelsValidatedDisagree = 0
-    ),
-    LabelTypeEnum.NoSidewalk.name -> LabelTypeStats(
-      labels = 45395,
-      labelsValidated = 0,
-      labelsValidatedAgree = 0,
-      labelsValidatedDisagree = 0
-    ),
-    LabelTypeEnum.Other.name -> LabelTypeStats(
-      labels = 1471,
-      labelsValidated = 0,
-      labelsValidatedAgree = 0,
-      labelsValidatedDisagree = 0
-    ),
-    LabelTypeEnum.Occlusion.name -> LabelTypeStats(
-      labels = 1339,
-      labelsValidated = 0,
-      labelsValidatedAgree = 0,
-      labelsValidatedDisagree = 0
-    )
-    // Note: Crosswalk and Signal data not available (NA) for DC legacy deployment.
-  )
-
-  /**
-   * DC's UNFILTERED historical label count from the source spreadsheet (gid=963888605 tab):
-   * https://docs.google.com/spreadsheets/d/1eTwVuEIz2lV-LD-Vz_5knNoyGgzmH5kERsQ0y_jGHDE/edit?gid=963888605#gid=963888605
-   *
-   * This counts everything, including tutorial and low-quality "junk"-user labels. It is NOT the reportable total — see
-   * `legacyDCData` for how the filtered total and `tutorialLabels` are derived from it.
-   */
-  private val legacyDCUnfilteredLabelCount = 263403
-
-  /**
-   * Distinct contributors from the legacy DC deployment, a fixed historical estimate (#3976).
-   *
-   * The archived DC dataset has no per-user records we can query, so unlike live cities its user count can't be derived
-   * from the union of contributor ids. This value (from the gid=963888605 tab of the DC spreadsheet linked above) is
-   * added on top of the live-city distinct-user union in getAggregateStats. DC user_ids don't exist in current schemas,
-   * so there is nothing to dedup against — the addition is exact.
-   */
-  private val legacyDCUserCount = 1395
-
-  /**
-   * Legacy DC deployment rolled into an AggregateStats so getAggregateStats can sum it alongside live cities.
-   *
-   * `totalLabels` is derived from `legacyDCByLabelType` (249,905, the filtered count), NOT the unfiltered 263,403
-   * headline, so the per-type breakdown always reconciles with the total (see `legacyDCByLabelType` above).
-   *
-   * `tutorialLabels` is the gap between the unfiltered count and the filtered total (263,403 − 249,905 = 13,498) so
-   * DC's numbers close cleanly back to the historical headline. CAVEAT: for live cities `tutorialLabels` is strictly
-   * `tutorial = TRUE` labels, but DC's export can't separate tutorial from junk-user labels, so this single legacy
-   * value bundles both and is really an UPPER BOUND on DC's tutorial labels. Documented as such in the API docs.
-   *
-   * Validations were never implemented during the DC deployment, so `totalValidations` is 0.
-   *
-   * `totalUsers` is 0 here: DC's contributors are added separately via `legacyDCUserCount` (they can't be deduped by
-   * union like live-city users), so this field must NOT also contribute to the aggregate user count.
-   */
-  private val legacyDCData = AggregateStats(
-    kmExplored = 5482.0,
-    kmExploredNoOverlap = 1747, // Mikey calculated this for us on July 18, 2025
-    totalLabels = legacyDCByLabelType.values.map(_.labels).sum,
-    tutorialLabels = legacyDCUnfilteredLabelCount - legacyDCByLabelType.values.map(_.labels).sum,
-    totalValidations = 0,
-    totalUsers = 0,
-    numCities = 0,
-    numCountries = 0,
-    numLanguages = 0,
-    byLabelType = legacyDCByLabelType
-  )
 
   /**
    * Maps a city ID to its corresponding database user/schema. The mapping is loaded from configuration.
@@ -1217,11 +1478,11 @@ class ConfigServiceImpl @Inject() (
 
       // One metadata query rather than a per-city existence probe: schemas can sit at different evolution levels, and a
       // single missing column would otherwise fail the whole union at query time.
-      leaderboardReadySchemas().map { ready =>
+      schemasWithColumns(ConfigService.LeaderboardRequiredColumns).map { ready =>
         val (readyDeployments, skipped) = deployments.partition { case (_, schema) => ready.getOrElse(schema, false) }
         // A schema with *some* of the columns exists but is behind on evolutions — real, actionable drift, unlike a
         // schema that is simply absent (every dev box and single-city deployment has ~50 of those).
-        val behind = skipped.map(_._2).filter(ready.contains)
+        val behind = skipped.map { case (_, schema) => schema }.filter(ready.contains)
         if (behind.nonEmpty) {
           logger.warn(
             s"Global leaderboard excluding ${behind.size} city schema(s) missing columns it reads " +
@@ -1230,7 +1491,7 @@ class ConfigServiceImpl @Inject() (
         }
 
         val cities       = readyDeployments.filterNot { case (cityId, _) => isExcludedFromGlobalLeaderboard(cityId) }
-        val contributing = cities.map(_._2).toSet
+        val contributing = cities.map { case (_, schema) => schema }.toSet
         // Everything ready but not contributing, minus the private-by-default cities where a FALSE flag is just the
         // signup default rather than a choice. Rereading those as opt-outs would silently unlist most of their mappers.
         val optOutSchemas = readyDeployments.collect {
@@ -1238,6 +1499,78 @@ class ConfigServiceImpl @Inject() (
             schema
         }
         GlobalLeaderboardScope(cities, optOutSchemas)
+      }
+    }
+  }
+
+  def getCrossCityUserScope: Future[Seq[(String, String)]] =
+    crossCitySelfViewScope("getCrossCityUserScope", ConfigService.CrossCityUserRequiredColumns, "user stats")
+      .map(_.cities)
+
+  def getCrossCityHoursScope: Future[SelfViewScope] =
+    crossCitySelfViewScope("getCrossCityHoursScope", ConfigService.CrossCityHoursRequiredColumns, "volunteer hours")
+
+  def getAccessScoreSpotlightScope(lang: Lang): Future[Seq[(CityInfo, String)]] = {
+    for {
+      cityIds <- availableCityIds()
+      ready   <- schemasWithColumns(ConfigService.SpotlightRequiredColumns)
+    } yield {
+      val available: Set[String] = cityIds.toSet
+      getAllCityInfo(lang)
+        .filter(city => city.isPublic && available.contains(city.cityId))
+        .flatMap { city =>
+          // A city id with no db-schema entry simply can't be queried.
+          try Some(city -> getCitySchema(city.cityId))
+          catch { case _: Exception => None }
+        }
+        .filter { case (_, schema) => ready.getOrElse(schema, false) }
+    }
+  }
+
+  /**
+   * Which cities one mapper's data may be gathered from, for a query needing `required`.
+   *
+   * Shared by these fan-outs: they differ only in the columns they read, never in which deployments they are entitled
+   * to see — that is what separates them from [[getGlobalLeaderboardScope]], which withholds unlaunched and
+   * private-by-default cities so a public by-name board can't advertise them.
+   *
+   * Those exclusions stay off here even on the admin surfaces that read *another* user's breakdown
+   * (`adminGetCrossCityStats`, `adminGetCrossCityHours`): both are gated on `WithAdmin`, and an admin who can already
+   * read the account is not who the leaderboard rules withhold it from. Any surface past that gate needs a fresh look.
+   *
+   * @param cacheKey Cache key for this scope; distinct per column set, since the answers differ.
+   * @param required The (table, column) pairs the caller's query reads.
+   * @param label    Human-readable name of the caller, for the drift warning.
+   * @return         The readable cities in configured order, and the schemas held back.
+   */
+  private def crossCitySelfViewScope(
+      cacheKey: String,
+      required: Set[(String, String)],
+      label: String
+  ): Future[SelfViewScope] = {
+    // Cached for the same reason as the leaderboard scope: it only changes when config or the schema list does, and it
+    // gates a per-request query. The recover stays outside so a transient failure isn't memoized as "no cities".
+    cacheApi.getOrElseUpdate[SelfViewScope](cacheKey, Duration(1, "hours")) {
+      availableCityIds().flatMap { cityIds =>
+        val deployments: Seq[(String, String)] = cityIds.flatMap { cityId =>
+          try { Some(cityId -> getCitySchema(cityId)) }
+          catch { case _: Exception => None } // A city id with no db-schema entry simply can't be queried.
+        }
+        schemasWithColumns(required).map { ready =>
+          val (readyDeployments, skipped) = deployments.partition { case (_, schema) =>
+            ready.getOrElse(schema, false)
+          }
+          val skippedSchemas = skipped.map { case (_, schema) => schema }
+          // A schema with *some* of the columns is behind on evolutions — real drift, unlike a schema that is simply
+          // absent. availableCityIds already dropped those, so anything here is worth a warning.
+          if (skipped.nonEmpty) {
+            logger.warn(
+              s"Cross-city $label excluding ${skipped.size} city schema(s) missing columns they read " +
+                s"(evolutions likely not yet applied there): ${skippedSchemas.mkString(", ")}"
+            )
+          }
+          SelfViewScope(readyDeployments, skippedSchemas)
+        }
       }
     }
   }
@@ -1272,21 +1605,22 @@ class ConfigServiceImpl @Inject() (
   }
 
   /**
-   * Which schemas have every column the global leaderboard query reads, keyed by schema.
+   * Which schemas have every column in `required`, keyed by schema.
    *
    * Covers every schema rather than filtering to a candidate list in SQL, so the query needs no list binding; the
    * caller intersects. Note `information_schema` only exposes objects the connected role can see, so a schema the app
    * cannot read reports as absent — which is the behavior we want.
    *
-   * The required set is matched in Scala against [[ConfigService.LeaderboardRequiredColumns]] rather than counted in
-   * SQL, so the query and the readiness bar cannot drift apart.
+   * The required set is matched in Scala, and the probe derives its own `table_name` filter from that same set, so a
+   * cross-schema query and the readiness bar guarding it cannot drift apart.
    *
-   * @return Schema name to whether it has all the required columns; a schema with only some appears as false, which is
-   *         what distinguishes "behind on evolutions" from "absent".
+   * @param required The (table, column) pairs a caller's cross-schema query reads.
+   * @return         Schema name to whether it has all the required columns; a schema with only some appears as false,
+   *                 which is what distinguishes "behind on evolutions" from "absent".
    */
-  private def leaderboardReadySchemas(): Future[Map[String, Boolean]] = {
-    // Table names come from the hardcoded required-column set, never from a request, so splicing them is safe.
-    val tables: Set[String] = ConfigService.LeaderboardRequiredColumns.map(_._1)
+  private def schemasWithColumns(required: Set[(String, String)]): Future[Map[String, Boolean]] = {
+    // Table names come from a hardcoded required-column set, never from a request, so splicing them is safe.
+    val tables: Set[String] = required.map { case (table, _) => table }
     db.run(
       sql"""
         SELECT table_schema, table_name, column_name
@@ -1295,11 +1629,11 @@ class ConfigServiceImpl @Inject() (
       """.as[(String, String, String)]
     ).map { rows =>
       rows
-        .groupBy(_._1)
+        .groupBy { case (schema, _, _) => schema }
         .view
         .mapValues { schemaRows =>
           val present = schemaRows.map { case (_, table, column) => (table, column) }.toSet
-          ConfigService.LeaderboardRequiredColumns.subsetOf(present)
+          required.subsetOf(present)
         }
         .toMap
     }
@@ -1310,7 +1644,7 @@ class ConfigServiceImpl @Inject() (
    *
    * A city whose schema-existence check fails or throws is treated as unavailable rather than failing the whole
    * fan-out — this is what lets a localhost DB holding a handful of schemas serve pages that fan out over the full
-   * configured city list, and what drops legacy DC (its schema predates the modern layout).
+   * configured city list.
    *
    * @param excludeStaging Whether to drop the "staging" pseudo-city (not a real deployment, as in
    *                       CitiesApiController); every caller except the public aggregate stats does.
@@ -1327,11 +1661,11 @@ class ConfigServiceImpl @Inject() (
         case _: Exception => Future.successful(cityId -> false)
       }
     }
-    Future.sequence(schemaExistenceChecks).map(_.filter(_._2).map(_._1))
+    Future.sequence(schemaExistenceChecks).map(_.collect { case (cityId, true) => cityId })
   }
 
   def getCityScorecards(): Future[Seq[CityScorecardWithFlags]] = {
-    staleWhileRevalidate[Seq[CityScorecardWithFlags]](
+    swrCache.staleWhileRevalidate[Seq[CityScorecardWithFlags]](
       "getCityScorecards",
       ConfigService.CrossCityFreshFor,
       ConfigService.CrossCityMaxAge
@@ -1355,7 +1689,11 @@ class ConfigServiceImpl @Inject() (
 
   def getCrossCityWeeklyTrend(weeks: Option[Int]): Future[Seq[WeeklyPoint]] = {
     val cacheKey = s"getCrossCityWeeklyTrend_${weeks.map(_.toString).getOrElse("all")}"
-    staleWhileRevalidate[Seq[WeeklyPoint]](cacheKey, ConfigService.CrossCityFreshFor, ConfigService.CrossCityMaxAge) {
+    swrCache.staleWhileRevalidate[Seq[WeeklyPoint]](
+      cacheKey,
+      ConfigService.CrossCityFreshFor,
+      ConfigService.CrossCityMaxAge
+    ) {
       availableCityIds().flatMap { availableCities =>
         val perCityFutures = availableCities.map { cityId =>
           db.run(configTable.getCityWeeklyTrendBySchema(getCitySchema(cityId), weeks))
@@ -1369,7 +1707,7 @@ class ConfigServiceImpl @Inject() (
           perCity.flatten
             .groupBy(_.weekStart)
             .toSeq
-            .sortBy(_._1)
+            .sortBy { case (week, _) => week }
             .map { case (week, pts) =>
               WeeklyPoint(
                 week,
@@ -1385,7 +1723,7 @@ class ConfigServiceImpl @Inject() (
   }
 
   def getCrossCityDailyTrend(days: Int): Future[Seq[DailyActivity]] = {
-    staleWhileRevalidate[Seq[DailyActivity]](
+    swrCache.staleWhileRevalidate[Seq[DailyActivity]](
       s"getCrossCityDailyTrend_$days",
       ConfigService.CrossCityFreshFor,
       ConfigService.CrossCityMaxAge
@@ -1402,10 +1740,10 @@ class ConfigServiceImpl @Inject() (
         Future.sequence(perCityFutures).map { perCity =>
           val rowsByDay: Map[LocalDate, Seq[(String, DailyContributorActivity)]] = perCity
             .flatMap { case (cityId, rows) => rows.map(cityId -> _) }
-            .groupBy(_._2.day)
+            .groupBy { case (_, activity) => activity.day }
           // Zero-fill the exact trailing window so the page always gets `days` bars. Iterating the window (rather
           // than the query results) also drops any extra day the DAO's index-friendly coarse bound let through.
-          val today = LocalDate.now(ZoneId.of("US/Pacific"))
+          val today = LocalDate.now(ZoneId.of("America/Los_Angeles"))
           (0 until days).map { i =>
             val day = today.minusDays((days - 1 - i).toLong)
             ConfigService.summarizeDay(day, rowsByDay.getOrElse(day, Seq.empty))
@@ -1415,8 +1753,31 @@ class ConfigServiceImpl @Inject() (
     }
   }
 
+  def getCrossCityDailyBaseline(coldWait: FiniteDuration): Future[Option[DailyBaseline]] = {
+    val days = ConfigService.DailyBaselineDays
+    swrCache.staleWhileRevalidateWithin[DailyBaseline](
+      "getCrossCityDailyBaseline",
+      ConfigService.DailyBaselineFreshFor,
+      ConfigService.DailyBaselineMaxAge,
+      coldWait
+    ) {
+      availableCityIds().flatMap { availableCities =>
+        val perCityFutures = availableCities.map { cityId =>
+          db.run(configTable.getCityDailyBaselineBySchema(getCitySchema(cityId), days))
+            .recoverWith { case e: Exception =>
+              Future.failed(new RuntimeException(s"Daily baseline query failed for city $cityId", e))
+            }
+            .map(rows => rows.map(cityId -> _))
+        }
+        Future.sequence(perCityFutures).map { perCity =>
+          ConfigService.summarizeBaseline(LocalDate.now(ZoneId.of("America/Los_Angeles")), days, perCity.flatten)
+        }
+      }
+    }
+  }
+
   def getCrossCityActivitySummary(): Future[CrossCityActivityWindows] = {
-    staleWhileRevalidate[CrossCityActivityWindows](
+    swrCache.staleWhileRevalidate[CrossCityActivityWindows](
       "getCrossCityActivitySummary",
       ConfigService.CrossCityFreshFor,
       ConfigService.CrossCityMaxAge
@@ -1472,7 +1833,7 @@ class ConfigServiceImpl @Inject() (
   }
 
   def getCrossCityLabelingSpeed(): Future[Map[String, Double]] = {
-    staleWhileRevalidate[Map[String, Double]](
+    swrCache.staleWhileRevalidate[Map[String, Double]](
       "getCrossCityLabelingSpeed",
       ConfigService.LabelingSpeedFreshFor,
       ConfigService.LabelingSpeedMaxAge
@@ -1482,6 +1843,27 @@ class ConfigServiceImpl @Inject() (
           labelingSpeedForSchema(getCitySchema(cityId)).map(_.map(cityId -> _))
         }
         Future.sequence(perCityFutures).map(_.flatten.toMap)
+      }
+    }
+  }
+
+  def getCrossCityStoryStats(): Future[Map[String, Option[CityStoryStats]]] = {
+    swrCache.staleWhileRevalidate[Map[String, Option[CityStoryStats]]](
+      "getCrossCityStoryStats",
+      ConfigService.CrossCityFreshFor,
+      ConfigService.CrossCityMaxAge
+    ) {
+      availableCityIds().flatMap { availableCities =>
+        val perCityFutures: Seq[Future[(String, Option[CityStoryStats])]] = availableCities.map { cityId =>
+          val schema = getCitySchema(cityId)
+          db.run(configTable.getCityStoryStatsBySchema(schema))
+            .map(stats => cityId -> Option(stats))
+            .recover { case e: Exception =>
+              logger.warn(s"Failed to count stories for city $cityId (schema $schema): ${e.getMessage}")
+              cityId -> None
+            }
+        }
+        Future.sequence(perCityFutures).map(_.toMap)
       }
     }
   }
@@ -1580,66 +1962,21 @@ class ConfigServiceImpl @Inject() (
     }
   }
 
-  /** A cached value plus when it was computed, so stale data can be served while a refresh runs (#4600). */
-  private case class Timestamped[T](value: T, computedAt: OffsetDateTime)
-
-  /** In-flight cache recomputes by cache key, so concurrent refreshes of a key share one computation (#4600). */
-  private val refreshesInFlight = scala.collection.mutable.Map.empty[String, Future[_]]
-
   /**
-   * Serves the cached value for `key` immediately — even when stale — while keeping it fresh in the background.
+   * One cross-schema fan-out's output: the summed cross-city totals plus each city's own slice, keyed by city id.
    *
-   * When the cached copy is older than `freshFor`, a single background recompute is kicked off and the stale copy is
-   * returned right away; requests arriving while a recompute runs share it rather than piling more load on the
-   * database. Only a request that finds nothing cached at all (first call since JVM start, or the value aged past
-   * `maxAge`) blocks on `compute`.
-   *
-   * @param key      Cache key; must uniquely identify the computation, including any parameters.
-   * @param freshFor Age beyond which serving the cached value also triggers a background recompute.
-   * @param maxAge   Hard cache-eviction bound; past this, a request blocks on recomputing.
-   * @param compute  The expensive computation producing a fresh value.
-   * @return         The cached (possibly stale) value, or the result of `compute` when nothing is cached.
+   * Cached as a unit so the Leaderboard's city hero and its community band come from the same computation, which is
+   * what guarantees every hero number is a strict subset of its cross-city counterpart (#4687).
    */
-  private def staleWhileRevalidate[T: ClassTag](key: String, freshFor: FiniteDuration, maxAge: FiniteDuration)(
-      compute: => Future[T]
-  ): Future[T] = {
-    cacheApi.get[Timestamped[T]](key).flatMap {
-      case Some(cached) =>
-        val ageSeconds = ChronoUnit.SECONDS.between(cached.computedAt, OffsetDateTime.now())
-        if (ageSeconds >= freshFor.toSeconds) { val _ = refreshCachedValue(key, maxAge)(compute) }
-        Future.successful(cached.value)
-      case None => refreshCachedValue(key, maxAge)(compute) // Nothing cached yet: wait for the compute.
-    }
-  }
+  private case class AggregateStatsBundle(overall: AggregateStats, byCity: Map[String, CityImpact])
+
+  def getAggregateStats(): Future[AggregateStats] = aggregateStatsBundle().map(_.overall)
+
+  def getAggregateStatsWithCurrentCity(): Future[(AggregateStats, Option[CityImpact])] =
+    aggregateStatsBundle().map(bundle => (bundle.overall, bundle.byCity.get(getCityId)))
 
   /**
-   * Recomputes the value behind `key` and caches it, coalescing concurrent calls into one shared computation.
-   *
-   * @return The freshly computed value, or the computation's failure (already-cached data is left untouched).
-   */
-  private def refreshCachedValue[T](key: String, maxAge: FiniteDuration)(compute: => Future[T]): Future[T] =
-    synchronized {
-      refreshesInFlight.get(key) match {
-        // The cast is safe because a given key is only ever refreshed with one result type.
-        case Some(inFlight) => inFlight.asInstanceOf[Future[T]]
-        case None           =>
-          // Future.delegate guards against `compute` throwing synchronously (before producing a Future): the throw
-          // becomes a failed Future handled by the onComplete logging below, instead of escaping to a caller that
-          // could have been served stale data.
-          val computation = Future.delegate(compute).flatMap { value =>
-            cacheApi.set(key, Timestamped(value, OffsetDateTime.now()), maxAge).map(_ => value)
-          }
-          computation.onComplete { result =>
-            synchronized { val _ = refreshesInFlight.remove(key) }
-            result.failed.foreach(e => logger.warn(s"Recompute of cached '$key' failed: ${e.getMessage}", e))
-          }
-          refreshesInFlight(key) = computation
-          computation
-      }
-    }
-
-  /**
-   * Calculates aggregate statistics across all Project Sidewalk deployments, serving cached results when available.
+   * The cached cross-schema fan-out that backs [[getAggregateStats]] and [[getAggregateStatsWithCurrentCity]].
    *
    * The computation fans out several aggregate queries to every configured city schema, which can take well over 10s
    * on a loaded database — long enough that a request hitting an expired cache would time out client-side (#4600). So
@@ -1647,12 +1984,18 @@ class ConfigServiceImpl @Inject() (
    * recompute triggered once they are older than [[ConfigService.AggregateStatsFreshFor]]. Only the first request
    * after a JVM start (nothing cached yet) waits for the full computation.
    *
-   * @return A Future containing aggregated statistics across all cities
+   * The cache key names the value's shape because [[SwrCache.staleWhileRevalidate]] reads the cached value as
+   * `Timestamped[T]` and `T` erases, so nothing would catch a differently-shaped value stored under the same key by
+   * other code.
+   *
+   * @return A Future containing the cross-city totals plus each city's own slice of them
    */
-  def getAggregateStats(): Future[AggregateStats] =
-    staleWhileRevalidate("getAggregateStats", ConfigService.AggregateStatsFreshFor, ConfigService.AggregateStatsMaxAge)(
-      computeAggregateStats()
-    )
+  private def aggregateStatsBundle(): Future[AggregateStatsBundle] =
+    swrCache.staleWhileRevalidate(
+      "getAggregateStats:v2-bundle",
+      ConfigService.AggregateStatsFreshFor,
+      ConfigService.AggregateStatsMaxAge
+    )(computeAggregateStats())
 
   /**
    * Runs the full cross-schema fan-out that computes aggregate statistics.
@@ -1661,65 +2004,83 @@ class ConfigServiceImpl @Inject() (
    * cities. Filters out cities whose schemas don't exist in the current environment (so plays nice with localhost dev
    * setups). Additionally, calculates deployment counts for cities, countries, and supported languages.
    *
-   * @return A Future containing freshly computed aggregate statistics across all cities
+   * @return A Future containing freshly computed aggregate statistics across all cities, plus the per-city slices
    */
-  private def computeAggregateStats(): Future[AggregateStats] = {
+  private def computeAggregateStats(): Future[AggregateStatsBundle] = {
     // The public aggregate counts every schema that exists, staging included.
     availableCityIds(excludeStaging = false).flatMap { availableCities =>
       if (availableCities.isEmpty) {
         logger.warn("No cities with valid schemas found")
-        Future.successful(
-          AggregateStats(
-            kmExplored = 0.0, kmExploredNoOverlap = 0.0, totalLabels = 0, tutorialLabels = 0, totalValidations = 0,
-            totalUsers = 0, numCities = 0, numCountries = 0, numLanguages = 0, byLabelType = Map.empty
-          )
-        )
+        Future.successful(AggregateStatsBundle(emptyAggregateStats(0, 0, 0), Map.empty))
       } else {
         // Calculate deployment statistics.
-        val numCities    = availableCities.length + 1 // +1 for legacy DC city
+        val numCities    = availableCities.length
         val numCountries = calculateNumCountries(availableCities)
         val numLanguages = calculateNumLanguages()
 
-        // Fetch essential statistics from available cities in parallel.
-        val cityStatsFutures: Seq[Future[Option[AggregateStats]]] = availableCities.map { cityId =>
-          getCityAggregateData(cityId)
+        // Fetch essential statistics from available cities in parallel, tagged by city so the per-city slices the
+        // hero band needs survive the roll-up instead of being summed away (#4687).
+        val cityStatsFutures: Seq[Future[(String, Option[AggregateStats])]] = availableCities.map { cityId =>
+          getCityAggregateData(cityId).map(cityId -> _)
         }
 
-        // Distinct contributors across all live cities, deduped by the global `user_id` then DC added on top (#3976).
-        // Computed by unioning per-city contributor-id sets rather than summing per-city counts, so a user active in
-        // multiple cities is counted once. Each city recovers to an empty set so one bad schema can't sink the count.
-        val distinctUsersFut: Future[Int] = Future
-          .sequence(availableCities.map { cityId =>
+        // Contributor ids per live city. `None` marks a failed query, distinct from a city that genuinely has no
+        // contributors: a failure must drop that city from `byCity` entirely rather than publish a zero next to a
+        // six-figure label count, while both cases contribute nothing to the cross-city union.
+        val contributorIdsFut: Future[Seq[(String, Option[Set[String]])]] = Future.sequence(
+          availableCities.map { cityId =>
             db.run(configTable.getContributorUserIdsBySchema(getCitySchema(cityId)))
-              .map(_.toSet)
+              .map(ids => cityId -> Option(ids.toSet))
               .recover { case e: Exception =>
                 logger.warn(s"Failed to retrieve contributor ids for city $cityId: ${e.getMessage}")
-                Set.empty[String]
+                cityId -> None
               }
-          })
-          .map(perCity => perCity.foldLeft(Set.empty[String])(_ ++ _).size + legacyDCUserCount)
+          }
+        )
 
         // Wait for all futures to complete and aggregate results.
-        Future.sequence(cityStatsFutures).zip(distinctUsersFut).map { case (cityStatsOptions, totalUsers) =>
+        Future.sequence(cityStatsFutures).zip(contributorIdsFut).map { case (cityStats, contributorIds) =>
+          // Distinct contributors across all cities, deduped by the global `user_id` (#3976): a union of per-city
+          // contributor-id sets rather than a sum of per-city counts, so a user active in multiple cities counts once.
+          val totalUsers: Int = contributorIds.flatMap { case (_, ids) => ids }.foldLeft(Set.empty[String])(_ ++ _).size
+
+          // A city gets a hero slice only when both of its queries succeeded, so every tile in the band is real.
+          val contributorCounts: Map[String, Int] = contributorIds.collect { case (cityId, Some(ids)) =>
+            cityId -> ids.size
+          }.toMap
+          val byCity: Map[String, CityImpact] = cityStats.collect {
+            case (cityId, Some(stats)) if contributorCounts.contains(cityId) =>
+              cityId -> CityImpact(
+                contributorCounts(cityId),
+                stats.totalLabels,
+                stats.totalValidations,
+                stats.kmExploredNoOverlap
+              )
+          }.toMap
+
           // Filter out failed requests and aggregate the successful ones.
-          val validCityStats = cityStatsOptions.flatten
+          val validCityStats = cityStats.flatMap { case (_, stats) => stats }
 
           if (validCityStats.isEmpty) {
             logger.warn("No valid city statistics found for aggregate calculation")
             // Return empty aggregate stats if no cities provided data.
-            AggregateStats(
-              kmExplored = 0.0, kmExploredNoOverlap = 0.0, totalLabels = 0, tutorialLabels = 0, totalValidations = 0,
-              totalUsers = 0, numCities = numCities, numCountries = numCountries, numLanguages = numLanguages,
-              byLabelType = Map.empty
-            )
+            AggregateStatsBundle(emptyAggregateStats(numCities, numCountries, numLanguages), byCity)
           } else {
-            // Add legacy DC data to the valid city stats before aggregating.
-            aggregateCityData(validCityStats :+ legacyDCData, numCities, numCountries, numLanguages, totalUsers)
+            val overall = aggregateCityData(validCityStats, numCities, numCountries, numLanguages, totalUsers)
+            AggregateStatsBundle(overall, byCity)
           }
         }
       }
     }
   }
+
+  /** Zeroed totals for the two paths where no city produced data, carrying whatever deployment counts are known. */
+  private def emptyAggregateStats(numCities: Int, numCountries: Int, numLanguages: Int): AggregateStats =
+    AggregateStats(
+      kmExplored = 0.0, kmExploredNoOverlap = 0.0, totalLabels = 0, tutorialLabels = 0, totalValidations = 0,
+      totalUsers = 0, numCities = numCities, numCountries = numCountries, numLanguages = numLanguages,
+      byLabelType = Map.empty
+    )
 
   def getAggregateStatsByDay(
       startDate: Option[LocalDate],
@@ -1731,13 +2092,15 @@ class ConfigServiceImpl @Inject() (
     // of it. A per-day row depends only on its own day's data, so slicing cached rows is equivalent to querying with
     // bounds; and because rows are keyed by Pacific date, the slice honors the documented inclusive-Pacific-date
     // window exactly, where the raw-timestamp WHERE it replaced could emit partial edge days outside it.
-    staleWhileRevalidate(
-      s"getAggregateStatsByDay:filterLowQuality=$filterLowQuality",
-      ConfigService.AggregateStatsFreshFor,
-      ConfigService.AggregateStatsMaxAge
-    )(computeAggregateStatsByDay(filterLowQuality)).map { allDays =>
-      allDays.filter(r => startDate.forall(!r.date.isBefore(_)) && endDate.forall(!r.date.isAfter(_)))
-    }
+    swrCache
+      .staleWhileRevalidate(
+        s"getAggregateStatsByDay:filterLowQuality=$filterLowQuality",
+        ConfigService.AggregateStatsFreshFor,
+        ConfigService.AggregateStatsMaxAge
+      )(computeAggregateStatsByDay(filterLowQuality))
+      .map { allDays =>
+        allDays.filter(r => startDate.forall(!r.date.isBefore(_)) && endDate.forall(!r.date.isAfter(_)))
+      }
   }
 
   /**
@@ -1762,7 +2125,7 @@ class ConfigServiceImpl @Inject() (
     }
 
     Future.sequence(schemaChecks).flatMap { results =>
-      val availableCities = results.filter(_._2).map(_._1)
+      val availableCities = results.collect { case (cityId, true) => cityId }
 
       if (availableCities.isEmpty) {
         Future.successful(Seq.empty)
@@ -1773,13 +2136,13 @@ class ConfigServiceImpl @Inject() (
             .run(configTable.getCityDailyLabelStatsBySchema(schema, filterLowQuality))
             .recover { case e: Exception =>
               logger.warn(s"Failed daily label stats for city $cityId: ${e.getMessage}")
-              Seq.empty[(LocalDate, String, Int, Int)]
+              Seq.empty[DailyLabelStat]
             }
           val valsFuture = db
             .run(configTable.getCityDailyValidationStatsBySchema(schema, filterLowQuality))
             .recover { case e: Exception =>
               logger.warn(s"Failed daily validation stats for city $cityId: ${e.getMessage}")
-              Seq.empty[(LocalDate, String, Int, Int, Int, Int, Int, Int)]
+              Seq.empty[DailyValidationStat]
             }
           for {
             labels      <- labelsFuture
@@ -1979,6 +2342,20 @@ class ConfigServiceImpl @Inject() (
   def getMapathonEventLink: Future[Option[String]] =
     cacheApi.getOrElseUpdate[Option[String]]("getMapathonEventLink")(db.run(configTable.getMapathonEventLink))
 
+  def getOfficialContact: Future[Option[OfficialContact]] =
+    cacheApi.getOrElseUpdate[Option[OfficialContact]](OfficialContactCacheKey)(db.run(configTable.getOfficialContact))
+
+  /**
+   * Writes the city's official contact, then drops the cached copy so the landing page shows the change on its next
+   * load. Each city runs a single app instance, so this one invalidation is complete.
+   *
+   * @param contact An already-validated contact (see [[ConfigService.validateOfficialContact]]), or None to clear it.
+   */
+  def setOfficialContact(contact: Option[OfficialContact]): Future[Unit] =
+    db.run(configTable.setOfficialContact(contact)).flatMap(_ => cacheApi.remove(OfficialContactCacheKey)).map(_ => ())
+
+  private val OfficialContactCacheKey = "getOfficialContact"
+
   def getOpenStatus: Future[String] =
     cacheApi.getOrElseUpdate[String]("getOpenStatus")(db.run(configTable.getOpenStatus))
 
@@ -1998,13 +2375,13 @@ class ConfigServiceImpl @Inject() (
       val cityURL    = config.get[String](s"city-params.landing-page-url.$envType.$cityId")
       val visibility = config.get[String](s"city-params.status.$cityId")
 
-      val cityName          = messagesApi(s"city.name.$cityId")(lang)
+      val cityName          = messagesApi(s"city.name.$cityId")(using lang)
       val cityNameShort     = config.get[Option[String]](s"city-params.city-short-name.$cityId").getOrElse(cityName)
       val cityNameFormatted =
         if (currentCountryId == "usa" && stateId.isDefined && countryId == "usa")
-          messagesApi("city.state", cityName, messagesApi(s"state.name.${stateId.get}")(lang))(lang)
+          messagesApi("city.state", cityName, messagesApi(s"state.name.${stateId.get}")(using lang))(using lang)
         else
-          messagesApi("city.state", cityName, messagesApi(s"country.name.$countryId")(lang))(lang)
+          messagesApi("city.state", cityName, messagesApi(s"country.name.$countryId")(using lang))(using lang)
 
       CityInfo(cityId, stateId, countryId, cityNameShort, cityNameFormatted, cityURL, visibility)
     }
@@ -2013,7 +2390,7 @@ class ConfigServiceImpl @Inject() (
   def sha256Hash(text: String): String =
     String.format(
       "%064x",
-      new java.math.BigInteger(1, java.security.MessageDigest.getInstance("SHA-256").digest(text.getBytes("UTF-8")))
+      java.math.BigInteger(1, java.security.MessageDigest.getInstance("SHA-256").digest(text.getBytes("UTF-8")))
     )
 
   /**
@@ -2047,7 +2424,7 @@ class ConfigServiceImpl @Inject() (
 
   def getCurrentCountryId: String = config.get[String](s"city-params.country-id.$getCityId")
 
-  def getCityName(lang: Lang): String = messagesApi(s"city.name.$getCityId")(lang)
+  def getCityName(lang: Lang): String = messagesApi(s"city.name.$getCityId")(using lang)
 
   def getAiTagSuggestionsEnabled: Boolean = config.get[Boolean](s"city-params.ai-tag-suggestions-enabled.$getCityId")
 
@@ -2091,6 +2468,22 @@ class ConfigServiceImpl @Inject() (
   private val appStartTime: OffsetDateTime =
     OffsetDateTime.ofInstant(Instant.ofEpochMilli(ManagementFactory.getRuntimeMXBean.getStartTime), ZoneOffset.UTC)
 
+  def getImageryAccessToken: Future[ImageryAccessToken] = Future.fromTry(Try(getPanoSource)).flatMap { source =>
+    source match {
+      case PanoSource.Gsv =>
+        Future.successful(ImageryAccessToken(source, config.get[String]("google-maps-api-key"), None))
+      case PanoSource.Infra3d =>
+        panoDataService.getInfra3dTokenWithExpiry(getCityId).map { token =>
+          ImageryAccessToken(source, token.accessToken, Some(token.expiresAt))
+        }
+      case PanoSource.Mapillary =>
+        Future.successful(ImageryAccessToken(source, config.get[String]("mapillary-access-token"), None))
+      // Panoramax's API is public and keyless (#5185); the viewer ignores the token.
+      case PanoSource.Panoramax => Future.successful(ImageryAccessToken(source, "", None))
+      case other                => Future.failed(Exception(s"No valid imagery source specified: $other"))
+    }
+  }
+
   def getCommonPageData(lang: Lang): Future[CommonPageData] = {
     for {
       version: Version <- cacheApi.getOrElseUpdate[Version]("currentVersion")(versionTable.currentVersion())
@@ -2098,20 +2491,18 @@ class ConfigServiceImpl @Inject() (
       envType: String           = config.get[String]("environment-type")
       googleAnalyticsId: String = config.get[String](s"city-params.google-analytics-4-id.$envType.$cityId")
       prodUrl: String           = config.get[String](s"city-params.landing-page-url.prod.$cityId")
-      gMapsApiKey: String       = config.get[String]("google-maps-api-key")
-      imagerySource: PanoSource = PanoSource.withName(config.get[String](s"city-params.pano-viewer-type.$cityId"))
-      imageryAccessToken: String <-
-        if (imagerySource == PanoSource.Gsv) Future.successful(gMapsApiKey)
-        else if (imagerySource == PanoSource.Infra3d) panoDataService.getInfra3dToken(cityId)
-        else if (imagerySource == PanoSource.Mapillary) Future.successful(config.get[String]("mapillary-access-token"))
-        else Future.failed(new Exception("No valid imagery source specified"))
-      gMapsApiKey: String        = config.get[String]("google-maps-api-key")
-      mapboxApiKey: String       = config.get[String]("mapbox-api-key")
-      allCityInfo: Seq[CityInfo] = getAllCityInfo(lang)
+      imageryAccess: ImageryAccessToken <- getImageryAccessToken
+      gMapsApiKey: String             = config.get[String]("google-maps-api-key")
+      mapboxApiKey: String            = config.get[String]("mapbox-api-key")
+      allCityInfo: Seq[CityInfo]      = getAllCityInfo(lang)
+      volunteerEmail: String          = config.get[String]("volunteer-email-address")
+      volunteerSupervisor: String     = config.get[String]("volunteer-supervisor-name")
+      supportedLanguages: Seq[String] = config.get[Seq[String]]("play.i18n.langs")
     } yield {
-      CommonPageData(cityId, envType, googleAnalyticsId, prodUrl, imagerySource, imageryAccessToken, gMapsApiKey,
-        mapboxApiKey, version.versionId, version.versionStartTime, version.description, appStartTime, BuildInfo.gitSha,
-        BuildInfo.gitDescribe, BuildInfo.gitDirty, allCityInfo)
+      CommonPageData(cityId, envType, googleAnalyticsId, prodUrl, imageryAccess.source, imageryAccess.token,
+        gMapsApiKey, mapboxApiKey, version.versionId, version.versionStartTime, version.description, appStartTime,
+        BuildInfo.gitSha, BuildInfo.gitDescribe, BuildInfo.gitDirty, allCityInfo, volunteerEmail, volunteerSupervisor,
+        assetManifestService.assetDigestsJson, assetManifestService.localeFilesJson, supportedLanguages)
     }
   }
 }

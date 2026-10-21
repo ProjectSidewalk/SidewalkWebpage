@@ -2,9 +2,8 @@ package controllers.api
 
 import controllers.base.CustomControllerComponents
 import controllers.helper.ShapefilesCreatorHelper
-import formats.json.ApiFormats._
-import models.api._
-import models.label.LabelTypeEnum
+import models.api.*
+import models.label.LabelType
 import org.apache.pekko.stream.scaladsl.Source
 import play.api.libs.json.Json
 import play.silhouette.api.Silhouette
@@ -40,7 +39,7 @@ class LabelApiController @Inject() (
     panoDataService: service.PanoDataService,
     labelService: LabelService,
     shapefileCreator: ShapefilesCreatorHelper
-)(implicit ec: ExecutionContext)
+)(using ec: ExecutionContext)
     extends BaseApiController(cc) {
 
   /**
@@ -54,7 +53,7 @@ class LabelApiController @Inject() (
       inline: Option[Boolean]
   ) = silhouette.UserAwareAction.async { implicit request =>
     // Set up streaming data from the database.
-    val dbDataStream: Source[LabelCVMetadata, _] = apiService.getLabelCVMetadata(DEFAULT_BATCH_SIZE)
+    val dbDataStream: Source[LabelCVMetadata, ?] = apiService.getLabelCVMetadata(DEFAULT_BATCH_SIZE)
     val baseFileName: String                     = timestampedFilename("labelsWithCVMetadata")
     cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
 
@@ -74,8 +73,7 @@ class LabelApiController @Inject() (
    */
   def getLabelTypes = silhouette.UserAwareAction.async { request =>
     cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
-    val labelTypeDetailsList: Seq[LabelTypeForApi] = apiService.getLabelTypes(request.lang).toList.sortBy(_.id)
-    Future.successful(Ok(Json.obj("status" -> "OK", "label_types" -> labelTypeDetailsList)))
+    Future.successful(Ok(Json.obj("status" -> "OK", "label_types" -> apiService.getLabelTypes(request.lang))))
   }
 
   /**
@@ -98,9 +96,9 @@ class LabelApiController @Inject() (
 
           LabelTagForApi(
             id = tag.tagId,
-            labelType = LabelTypeEnum.labelTypeIdToLabelType(tag.labelTypeId),
+            labelType = tag.labelType.name,
             tag = tag.tag,
-            description = messagesApi(s"tag.description.${tag.tagId}")(request.lang),
+            description = messagesApi(s"tag.description.${tag.tagId}")(using request.lang),
             mutuallyExclusiveWith = mutuallyExclusiveList
           )
         }
@@ -162,17 +160,15 @@ class LabelApiController @Inject() (
     val parsedStartDate          = parseDateTimeParam(startDate, "startDate")
     val parsedEndDate            = parseDateTimeParam(endDate, "endDate")
     val parsedValidationStatuses = parseValidationStatuses(validationStatus)
-    val parsedLabelTypes         = parseAllowlistedList(labelType, LabelTypeEnum.labelTypeNames, "labelType")
+    val parsedLabelTypes         = parseAllowlistedList(labelType, LabelType.labelTypeNames, "labelType")
     val parsedSeverity           = parseSeverityParam(severity, minSeverity, maxSeverity)
 
     // Tag values are validated against the city's full tag list (cached), not the UI-facing one: a tag a city hides
     // from its menus (config's excluded tags) may still be carried by existing labels, so filtering on it is valid.
     labelService.selectAllTagsFuture.flatMap { cityTags =>
       val tagsByLabelType: Map[String, Set[String]] =
-        cityTags.groupMap(t => LabelTypeEnum.labelTypeIdToLabelType(t.labelTypeId))(_.tag).map { case (lt, tagNames) =>
-          lt -> tagNames.toSet
-        }
-      val parsedTags = TagFilterForApi.parse(tags, LabelTypeEnum.labelTypeNames, tagsByLabelType)
+        cityTags.groupMap(_.labelType.name)(_.tag).map { case (lt, tagNames) => lt -> tagNames.toSet }
+      val parsedTags = TagFilterForApi.parse(tags, LabelType.labelTypeNames, tagsByLabelType)
 
       // Collect the first invalid-parameter error, if any.
       val firstError: Option[ApiError] = Seq(
@@ -203,7 +199,7 @@ class LabelApiController @Inject() (
             )
 
             // Get the data stream.
-            val dbDataStream: Source[LabelDataForApi, _] = apiService.getRawLabels(filters, DEFAULT_BATCH_SIZE)
+            val dbDataStream: Source[LabelDataForApi, ?] = apiService.getRawLabels(filters, DEFAULT_BATCH_SIZE)
             val baseFileName: String                     = timestampedFilename("labels")
 
             // Output data in the appropriate file format.
@@ -228,10 +224,8 @@ class LabelApiController @Inject() (
    * @param raw The optional validationStatus query parameter (comma-separated public tokens).
    * @return `Right(None)` if absent, `Right(Some(statuses))` if every token is valid, or `Left(ApiError)` otherwise.
    */
-  private def parseValidationStatuses(
-      raw: Option[String]
-  ): Either[ApiError, Option[Set[RawLabelValidationStatus.Value]]] =
-    parseAllowlistedList(raw, RawLabelValidationStatus.values.map(_.toString), "validationStatus")
+  private def parseValidationStatuses(raw: Option[String]): Either[ApiError, Option[Set[RawLabelValidationStatus]]] =
+    parseAllowlistedList(raw, RawLabelValidationStatus.names.toSet, "validationStatus")
       .map(_.map(_.map(RawLabelValidationStatus.withName).toSet))
 
   /**

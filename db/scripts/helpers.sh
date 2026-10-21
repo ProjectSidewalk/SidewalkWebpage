@@ -11,90 +11,90 @@
 
 # Function to prompt for input. If no default given, require user input. Optional param to list valid responses.
 prompt_with_default() {
-    local prompt=$1
-    local default=${2:-}          # Optional default response (guarded so callers under `set -u` can omit it).
-    local valid_responses=${3:-}  # Optional pipe-separated list of valid responses (guarded for `set -u`).
-    local input
-    local prompt_text
+  local prompt=$1
+  local default=${2:-}          # Optional default response (guarded so callers under `set -u` can omit it).
+  local valid_responses=${3:-}  # Optional pipe-separated list of valid responses (guarded for `set -u`).
+  local input
+  local prompt_text
 
-    # Validate function parameters.
-    [[ -z "$prompt" ]] && { echo "Error: Prompt is required" >&2; return 1; }
+  # Validate function parameters.
+  [[ -z "$prompt" ]] && { echo "Error: Prompt is required" >&2; return 1; }
 
-    while true; do
-        # Construct prompt text based on whether default and valid responses exist.
-        prompt_text="${prompt}"
-        if [[ -n "$valid_responses" ]]; then
-            # Convert pipe-separated string to array for display.
-            local IFS="|"
-            read -ra options <<< "$valid_responses"
-            prompt_text+=" (${options[*]})"
-        fi
-        if [[ -n "$default" ]]; then
-            prompt_text+=" [${default}]"
-        fi
-        prompt_text+=": "
+  while true; do
+    # Construct prompt text based on whether default and valid responses exist.
+    prompt_text="${prompt}"
+    if [[ -n "$valid_responses" ]]; then
+      # Convert pipe-separated string to array for display.
+      local IFS="|"
+      read -ra options <<< "$valid_responses"
+      prompt_text+=" (${options[*]})"
+    fi
+    if [[ -n "$default" ]]; then
+      prompt_text+=" [${default}]"
+    fi
+    prompt_text+=": "
 
-        # Get user input.
-        read -p "$prompt_text" input
+    # Get user input.
+    read -r -p "$prompt_text" input
 
-        # Use default if input is empty and default exists.
-        input="${input:-$default}"
+    # Use default if input is empty and default exists.
+    input="${input:-$default}"
 
-        # If input is still empty and no default was provided, continue prompting.
-        if [[ -z "$input" && -z "$default" ]]; then
-            continue
-        fi
+    # If input is still empty and no default was provided, continue prompting.
+    if [[ -z "$input" && -z "$default" ]]; then
+      continue
+    fi
 
-        # If valid responses are specified, validate the input.
-        if [[ -n "$valid_responses" ]]; then
-            if [[ "$input" =~ ^($valid_responses)$ ]]; then
-                break
-            else
-                echo "Invalid response. Must be one of: ${options[*]}" >&2
-                continue
-            fi
-        else
-            # If no valid responses specified, accept any non-empty input.
-            break
-        fi
-    done
+    # If valid responses are specified, validate the input.
+    if [[ -n "$valid_responses" ]]; then
+      if [[ "$input" =~ ^($valid_responses)$ ]]; then
+        break
+      else
+        echo "Invalid response. Must be one of: ${options[*]}" >&2
+        continue
+      fi
+    else
+      # If no valid responses specified, accept any non-empty input.
+      break
+    fi
+  done
 
-    echo "$input"
+  echo "$input"
 }
 
 # Reads the first column (street_edge_id) from a headered CSV and returns it as a comma-separated list suitable for a
 # SQL `IN (...)` clause. Skips the header row.
 # $1: path to the CSV file.
 read_street_ids_from_csv() {
-    local csv_file=$1
-    tail -n +2 "$csv_file" | cut -d',' -f1 | tr '\n' ',' | sed 's/,$//'
+  local csv_file=$1
+  tail -n +2 "$csv_file" | cut -d',' -f1 | tr '\n' ',' | sed 's/,$//'
 }
 
 # Marks a set of streets as having no imagery: sets status='no_imagery', drops their street_edge_priority rows so they
 # aren't assignable for auditing, records each real transition in street_edge_status_change, and truncates
 # region_completion to force distance recalculation. Idempotent, so it's safe to run on a region that's already been
-# processed. Shared by hide-streets-without-imagery.sh and the reveal branch of reveal-or-hide-neighborhoods.sh so the
+# processed. Shared by hide-streets-without-imagery.sh and the reveal branch of reveal-or-hide-regions.sh so the
 # two can't drift (#4335).
 # $1:   comma-separated street_edge_id list (e.g. "1,2,3"); a no-op when empty.
 # $2:   street_edge_status_change_source value naming the caller, so the trail says which script did this (#4928).
 # $3..: psql connection arguments, passed through verbatim (each script supplies its own db/user/port/search_path).
 mark_streets_no_imagery() {
-    local street_ids=$1
-    local source=$2
-    shift 2
-    if [[ -z "$street_ids" ]]; then
-        echo "No street IDs provided; skipping no-imagery marking."
-        return 0
-    fi
-    if [[ -z "$source" ]]; then
-        echo "No change source provided; refusing to mark streets without recording who did it." >&2
-        return 1
-    fi
-    # The `status <> 'no_imagery'` guard is what keeps the trail honest: without it, re-running the same CSV would
-    # rewrite every row and log thousands of transitions that never happened. Every CTE here sees the same snapshot,
-    # so `to_change` holds the pre-update status, and a data-modifying CTE runs to completion whether or not the
-    # primary query reads it.
-    psql "$@" -v ON_ERROR_STOP=1 <<EOSQL
+  local street_ids=$1
+  local source=$2
+  shift 2
+  if [[ -z "$street_ids" ]]; then
+    echo "No street IDs provided; skipping no-imagery marking."
+    return 0
+  fi
+  if [[ -z "$source" ]]; then
+    echo "No change source provided; refusing to mark streets without recording who did it." >&2
+    return 1
+  fi
+  # The `status <> 'no_imagery'` guard is what keeps the trail honest: without it, re-running the same CSV would
+  # rewrite every row and log thousands of transitions that never happened. Every CTE here sees the same snapshot,
+  # so `to_change` holds the pre-update status, and a data-modifying CTE runs to completion whether or not the
+  # primary query reads it.
+  psql "$@" -v ON_ERROR_STOP=1 <<EOSQL
         BEGIN;
         WITH to_change AS (
             SELECT street_edge_id, status AS old_status
@@ -119,6 +119,11 @@ mark_streets_no_imagery() {
         DELETE FROM street_edge_priority
         WHERE street_edge_id IN ($street_ids);
 
+        -- The checker's full-street verdict outranks the nightly poll's three-point evidence, so retract any pending
+        -- reopen candidacy (#4929). Street *deletion* needs no line here: that table cascades on street_edge.
+        DELETE FROM street_reopen_candidate
+        WHERE street_edge_id IN ($street_ids);
+
         -- Truncate the region_completion table to force recalculation of distances.
         TRUNCATE TABLE region_completion;
         COMMIT;
@@ -137,48 +142,49 @@ EOSQL
 # $2..: the command and its arguments to run.
 # Returns the wrapped command's exit code.
 run_with_progress() {
-    local label=$1
-    shift
+  local label=$1
+  shift
 
-    echo "⏳ ${label} — this can take a few minutes for large dumps; please wait..." >&2
+  echo "⏳ ${label} — this can take a few minutes for large dumps; please wait..." >&2
 
-    local logfile
-    logfile=$(mktemp)
-    local start=$SECONDS
+  local logfile
+  logfile=$(mktemp)
+  local start=$SECONDS
 
-    # Run in the background so we can animate while it works; capture output to replay only on failure.
-    "$@" >"$logfile" 2>&1 &
-    local cmd_pid=$!
+  # Run in the background so we can animate while it works; capture output to replay only on failure.
+  "$@" >"$logfile" 2>&1 &
+  local cmd_pid=$!
 
-    # Poll once a second in both modes so the job is reaped promptly when it finishes; only the *display* differs.
-    local tty=0; [[ -t 2 ]] && tty=1
-    local frames='|/-\' frame=0 elapsed last_beat=0
-    while kill -0 "$cmd_pid" 2>/dev/null; do
-        elapsed=$((SECONDS - start))
-        if [[ $tty -eq 1 ]]; then
-            printf '\r  %s  %02d:%02d elapsed  %s' \
-                "${frames:frame%4:1}" $((elapsed / 60)) $((elapsed % 60)) "$label" >&2
-            frame=$((frame + 1))
-        elif ((elapsed >= last_beat + 10)); then  # non-TTY: a heartbeat line at most every 10s
-            last_beat=$elapsed
-            printf '  ...still working (%dm%02ds elapsed): %s\n' $((elapsed / 60)) $((elapsed % 60)) "$label" >&2
-        fi
-        sleep 1
-    done
-    [[ $tty -eq 1 ]] && printf '\r\033[K' >&2  # erase the spinner line before the final status
-
-    # `wait` reaps the job and yields its exit status; guard with `|| status=$?` so `set -e` doesn't fire on a nonzero.
-    local status=0
-    wait "$cmd_pid" || status=$?
-    local total=$((SECONDS - start))
-
-    if [[ $status -eq 0 ]]; then
-        printf '✓ %s done in %dm%02ds\n' "$label" $((total / 60)) $((total % 60)) >&2
-    else
-        printf '✗ %s failed (exit %d) after %dm%02ds — output follows:\n' \
-            "$label" "$status" $((total / 60)) $((total % 60)) >&2
-        cat "$logfile" >&2
+  # Poll once a second in both modes so the job is reaped promptly when it finishes; only the *display* differs.
+  local tty=0; [[ -t 2 ]] && tty=1
+  # shellcheck disable=SC1003 # The backslash is one of the spinner's four frames, not an escape.
+  local frames='|/-\' frame=0 elapsed last_beat=0
+  while kill -0 "$cmd_pid" 2>/dev/null; do
+    elapsed=$((SECONDS - start))
+    if [[ $tty -eq 1 ]]; then
+      printf '\r  %s  %02d:%02d elapsed  %s' \
+          "${frames:frame%4:1}" $((elapsed / 60)) $((elapsed % 60)) "$label" >&2
+      frame=$((frame + 1))
+    elif ((elapsed >= last_beat + 10)); then  # non-TTY: a heartbeat line at most every 10s
+      last_beat=$elapsed
+      printf '  ...still working (%dm%02ds elapsed): %s\n' $((elapsed / 60)) $((elapsed % 60)) "$label" >&2
     fi
-    rm -f "$logfile"
-    return "$status"
+    sleep 1
+  done
+  [[ $tty -eq 1 ]] && printf '\r\033[K' >&2  # erase the spinner line before the final status
+
+  # `wait` reaps the job and yields its exit status; guard with `|| status=$?` so `set -e` doesn't fire on a nonzero.
+  local status=0
+  wait "$cmd_pid" || status=$?
+  local total=$((SECONDS - start))
+
+  if [[ $status -eq 0 ]]; then
+    printf '✓ %s done in %dm%02ds\n' "$label" $((total / 60)) $((total % 60)) >&2
+  else
+    printf '✗ %s failed (exit %d) after %dm%02ds — output follows:\n' \
+        "$label" "$status" $((total / 60)) $((total % 60)) >&2
+    cat "$logfile" >&2
+  fi
+  rm -f "$logfile"
+  return "$status"
 }

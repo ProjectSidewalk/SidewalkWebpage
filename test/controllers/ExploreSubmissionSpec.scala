@@ -1,27 +1,27 @@
 package controllers
 
 import controllers.helper.{ExploreBootstrap, SubmissionSpecHelpers}
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.Eventually
 import org.scalatest.time.{Millis, Seconds, Span}
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json._
+import play.api.libs.json.*
 import play.api.mvc.Cookie
-import play.api.test.CSRFTokenHelper._
+import play.api.test.CSRFTokenHelper.*
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
+import _root_.util.SidewalkSpec
 
 import java.time.OffsetDateTime
 
 /**
  * Functional tests for the Explore submission endpoint (`POST /task`) — the write path that turns a labeling session
  * into `audit_task` / `label` / `label_point` rows (#4777). Boots the real app against Postgres and follows the real
- * client bootstrap: GET /explore embeds the assigned mission and task as inline page JS (`mainParam.*`), and the spec
- * submits payloads shaped like the frontend's compiled submission data.
+ * client bootstrap: GET /explore/session hands the page its assigned mission and task (#5650), and the spec submits
+ * payloads shaped like the frontend's compiled submission data.
  *
  * A fresh anonymous user deterministically starts on the audit tutorial, so the tutorial-mission submission needs no
  * particular seed data beyond a servable /explore page; the post-tutorial test completes the tutorial mission over
@@ -35,14 +35,14 @@ import java.time.OffsetDateTime
 // Mixin order matters: GuiceOneAppPerSuite must be rightmost so its run() wraps BeforeAndAfterAll's — otherwise
 // afterAll's cleanup executes after the app (and its DB pool) has shut down and aborts the suite.
 class ExploreSubmissionSpec
-    extends PlaySpec
+    extends SidewalkSpec
     with BeforeAndAfterAll
     with Eventually
     with SubmissionSpecHelpers
     with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule]
       // Submitting eligible labels fires an async AI-validation HTTP call; keep the spec off the network.
       .configure("ai-enabled" -> false)
@@ -79,13 +79,39 @@ class ExploreSubmissionSpec
     bootstrap
   }
 
-  /** A label submission as the Explore frontend compiles one, placed at the task's current position. */
+  /** The fake pano's metadata, placed at the task's current position. */
+  private def panoJson(b: ExploreBootstrap): JsObject =
+    Json.obj(
+      "pano_id"        -> specPanoId,
+      "source"         -> "gsv",
+      "capture_date"   -> "2024-01",
+      "width"          -> 16384,
+      "height"         -> 8192,
+      "tile_width"     -> 512,
+      "tile_height"    -> 512,
+      "lat"            -> b.currentLat,
+      "lng"            -> b.currentLng,
+      "camera_heading" -> 180.0,
+      "camera_pitch"   -> 0.5,
+      "links"          -> Json.arr(),
+      "history"        -> Json.arr()
+    )
+
+  /**
+   * A label submission as the Explore frontend compiles one, placed at the task's current position.
+   *
+   * It carries its own pano block like the real client's labels do. Without it the label insert races the separate
+   * save of the top-level `panos` list, and loses to the pano foreign key whenever it runs first.
+   *
+   * @param canvasFrame The frame the click is expressed in (#5085); None mimics a pre-#5085 client that sends no frame.
+   */
   private def labelJson(
       tempId: Int,
       b: ExploreBootstrap,
       tutorial: Boolean,
       deleted: Boolean = false,
-      severity: Int = 1
+      severity: Int = 1,
+      canvasFrame: Option[(Int, Int)] = Some((720, 405))
   ): JsObject =
     Json.obj(
       "pano_id"     -> specPanoId,
@@ -95,7 +121,7 @@ class ExploreSubmissionSpec
       "severity"    -> severity,
       "description" -> JsNull,
       "tag_ids"     -> Json.arr(),
-      "label_point" -> Json.obj(
+      "label_point" -> (Json.obj(
         "pano_x"             -> 8000,
         "pano_y"             -> 4000,
         "canvas_x"           -> 360,
@@ -106,10 +132,11 @@ class ExploreSubmissionSpec
         "lat"                -> b.currentLat,
         "lng"                -> b.currentLng,
         "computation_method" -> "depth"
-      ),
+      ) ++ canvasFrame.fold(Json.obj())(f => Json.obj("canvas_width" -> f._1, "canvas_height" -> f._2))),
       "temporary_label_id" -> tempId,
       "time_created"       -> OffsetDateTime.now,
-      "tutorial"           -> tutorial
+      "tutorial"           -> tutorial,
+      "pano"               -> panoJson(b)
     )
 
   /**
@@ -163,24 +190,8 @@ class ExploreSubmissionSpec
         Json.obj("action" -> "TaskStart", "pano_id"                     -> specPanoId, "timestamp" -> now),
         Json.obj("action" -> "LabelingCanvas_FinishLabeling", "pano_id" -> specPanoId, "timestamp" -> now)
       ),
-      "environment" -> Json.obj("browser" -> "spec", "language" -> "en", "css_zoom" -> 100),
-      "panos"       -> Json.arr(
-        Json.obj(
-          "pano_id"        -> specPanoId,
-          "source"         -> "gsv",
-          "capture_date"   -> "2024-01",
-          "width"          -> 16384,
-          "height"         -> 8192,
-          "tile_width"     -> 512,
-          "tile_height"    -> 512,
-          "lat"            -> b.currentLat,
-          "lng"            -> b.currentLng,
-          "camera_heading" -> 180.0,
-          "camera_pitch"   -> 0.5,
-          "links"          -> Json.arr(),
-          "history"        -> Json.arr()
-        )
-      ),
+      "environment"   -> Json.obj("browser" -> "spec", "language" -> "en", "css_zoom" -> 100),
+      "panos"         -> Json.arr(panoJson(b)),
       "user_route_id" -> JsNull,
       "timestamp"     -> now
     )
@@ -188,7 +199,41 @@ class ExploreSubmissionSpec
 
   /** Posts a submission over HTTP as the session's user, the way the frontend does. */
   private def postTask(session: Seq[Cookie], payload: JsValue) =
-    route(app, FakeRequest(POST, "/task").withCookies(session: _*).withJsonBody(payload).withCSRFToken).get
+    route(app, FakeRequest(POST, "/task").withCookies(session*).withJsonBody(payload).withCSRFToken).get
+
+  /** Reports the bootstrap's street as having no usable imagery, the way `util.misc.reportNoImagery` does. */
+  private def postNoImagery(session: Seq[Cookie], b: ExploreBootstrap) = {
+    val payload = Json.obj(
+      "audit_task" -> Json.obj(
+        "street_edge_id"            -> b.streetEdgeId,
+        "task_start"                -> b.taskStart,
+        "audit_task_id"             -> b.auditTaskId.map(id => JsNumber(BigDecimal(id))).getOrElse[JsValue](JsNull),
+        "completed"                 -> false,
+        "current_lat"               -> b.currentLat,
+        "current_lng"               -> b.currentLng,
+        "start_point_reversed"      -> b.startPointReversed,
+        "current_mission_start"     -> JsNull,
+        "last_priority_update_time" -> OffsetDateTime.now,
+        "request_updated_street_priority" -> false
+      ),
+      "mission_id" -> b.missionId
+    )
+    route(
+      app,
+      FakeRequest(POST, "/explore/nostreetview").withCookies(session*).withJsonBody(payload).withCSRFToken
+    ).get
+  }
+
+  /** How many streets in a region the assignment query can still choose between for a user with no completed tasks. */
+  private def assignableStreetsInRegion(regionId: Int): Int =
+    run(sql"""SELECT count(*)
+              FROM street_edge_region
+              INNER JOIN street_edge ON street_edge_region.street_edge_id = street_edge.street_edge_id
+              INNER JOIN street_edge_priority
+                      ON street_edge.street_edge_id = street_edge_priority.street_edge_id
+              WHERE street_edge_region.region_id = $regionId
+                AND street_edge.status = 'open'
+                AND street_edge.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)""".as[Int]).head
 
   /** The `label` columns the assertions read. Field order must track the SELECT in [[labelRows]]. */
   private case class LabelRow(
@@ -215,7 +260,7 @@ class ExploreSubmissionSpec
       sql"""SELECT label_id, audit_task_id, mission_id, deleted, tutorial, severity
             FROM label WHERE user_id = $userId AND temporary_label_id = $tempLabelId"""
         .as[(Int, Int, Int, Boolean, Boolean, Option[Int])]
-    ).map((LabelRow.apply _).tupled)
+    ).map(LabelRow.apply.tupled)
 
   /** The street's current priority, or None when it has no `street_edge_priority` row. */
   private def streetPriority(streetEdgeId: Int): Option[Double] =
@@ -246,6 +291,7 @@ class ExploreSubmissionSpec
     val _ = run(
       DBIO.seq(
         sqlu"UPDATE mission SET current_audit_task_id = NULL WHERE user_id = $uId",
+        sqlu"DELETE FROM street_edge_issue WHERE user_id = $uId",
         sqlu"DELETE FROM label_history WHERE label_id IN (SELECT label_id FROM label WHERE user_id = $uId)",
         sqlu"DELETE FROM label_point WHERE label_id IN (SELECT label_id FROM label WHERE user_id = $uId)",
         sqlu"DELETE FROM label WHERE user_id = $uId",
@@ -260,7 +306,8 @@ class ExploreSubmissionSpec
         sqlu"""DELETE FROM audit_task_user_route
                WHERE audit_task_id IN (SELECT audit_task_id FROM audit_task WHERE user_id = $uId)""",
         sqlu"DELETE FROM audit_task WHERE user_id = $uId",
-        sqlu"DELETE FROM mission WHERE user_id = $uId"
+        sqlu"DELETE FROM mission WHERE user_id = $uId",
+        sqlu"DELETE FROM sidewalk_login.user_account_state WHERE user_id = $uId"
       )
     )
   }
@@ -318,6 +365,16 @@ class ExploreSubmissionSpec
       (contentAsJson(resp) \ "status").as[String] mustBe "Error"
     }
 
+    "400 a label whose type isn't one we know, and write nothing" in {
+      val session  = freshAnonSession()
+      val b        = fetchExploreBootstrap(session)
+      val tempId   = 777009
+      val badLabel = labelJson(tempId, b, b.missionType == "auditOnboarding") + ("label_type" -> JsString("NotAType"))
+
+      status(postTask(session, submission(b, labels = Seq(badLabel)))) mustBe BAD_REQUEST
+      labelRows(b.userId, tempId) mustBe empty
+    }
+
     "write audit_task, label, and label_point rows and echo the temp-to-permanent label id mapping" in {
       val session  = freshAnonSession()
       val b        = fetchExploreBootstrap(session)
@@ -352,13 +409,14 @@ class ExploreSubmissionSpec
       labels.head.severity mustBe Some(1)
 
       val point = run(
-        sql"SELECT pano_x, canvas_x, lat, lng FROM label_point WHERE label_id = $labelId"
-          .as[(Int, Int, Option[Double], Option[Double])]
+        sql"SELECT pano_x, canvas_x, canvas_width, canvas_height, lat, lng FROM label_point WHERE label_id = $labelId"
+          .as[(Int, Int, Int, Int, Option[Double], Option[Double])]
       ).headOption
       point mustBe defined
       (point.get._1, point.get._2) mustBe ((8000, 360))
-      point.get._3 mustBe defined
-      point.get._4 mustBe defined
+      (point.get._3, point.get._4) mustBe ((720, 405)) // The frame travels with the label (#5085).
+      point.get._5 mustBe defined
+      point.get._6 mustBe defined
 
       // The async writes that ride the same submission: environment and pano metadata.
       eventually(timeout(Span(15, Seconds)), interval(Span(250, Millis))) {
@@ -405,7 +463,7 @@ class ExploreSubmissionSpec
       val priorityBefore = streetPriority(b2.streetEdgeId)
       val tempId         = 777002
 
-      val posted = postTask(session, submission(b2, Seq(labelJson(tempId, b2, tutorial = false))))
+      val posted = postTask(session, submission(b2, Seq(labelJson(tempId, b2, tutorial = false, canvasFrame = None))))
       status(posted) mustBe OK
       val auditTaskId = (contentAsJson(posted) \ "audit_task_id").as[Int]
 
@@ -413,6 +471,10 @@ class ExploreSubmissionSpec
       rows must have size 1
       rows.head.tutorial mustBe false
       rows.head.deleted mustBe false
+      // No canvas_width/height in the payload (a pre-#5085 client): the frame defaults to the boxed 720x480.
+      run(
+        sql"SELECT canvas_width, canvas_height FROM label_point WHERE label_id = ${rows.head.labelId}".as[(Int, Int)]
+      ).headOption mustBe Some((720, 480))
 
       // An incomplete task leaves the street's priority untouched.
       streetPriority(b2.streetEdgeId) mustBe priorityBefore
@@ -431,6 +493,38 @@ class ExploreSubmissionSpec
       run(
         sql"SELECT completed FROM audit_task WHERE audit_task_id = $auditTaskId".as[Boolean]
       ).head mustBe true
+    }
+  }
+
+  "GET /explore, after the labeler reports the assigned street's imagery missing" should {
+    "hand out a different street instead of resuming the one that wouldn't load" in {
+      val session = freshAnonSession()
+      val b       = fetchExploreBootstrap(session)
+      if (b.missionType != "auditOnboarding") cancel(s"Fresh user unexpectedly on mission type '${b.missionType}'.")
+      status(postTask(session, submission(b, missionCompleted = true, missionSkipped = true))) mustBe OK
+
+      val b2 = fetchExploreBootstrap(session)
+      b2.missionType mustBe "audit"
+      if (assignableStreetsInRegion(b2.regionId) < 2) cancel("Region holds one assignable street; nothing to move to.")
+
+      // The first submission mints the audit_task row; echoing its id back on the next one is what points the mission
+      // at the task, and that pointer is what makes a later load a resume rather than a fresh assignment. Without
+      // both, this test would pass while exercising nothing.
+      val posted = postTask(session, submission(b2))
+      status(posted) mustBe OK
+      val auditTaskId = (contentAsJson(posted) \ "audit_task_id").as[Int]
+      status(postTask(session, submission(b2, auditTaskId = Some(auditTaskId)))) mustBe OK
+      fetchExploreBootstrap(session).auditTaskId mustBe Some(auditTaskId)
+
+      status(postNoImagery(session, b2)) mustBe OK
+
+      // A report leaves the task incomplete (#4922), so the resume above would otherwise serve this street again on
+      // this load and every reload after it, with nothing the labeler could do to get past it (#4918). Asserting on
+      // the task rather than the street is deliberate: assignment picks at random among the highest-priority streets,
+      // so the reported street can legitimately come back around — as a *new* task, which is not the resume this
+      // declines. The street itself stays in the pool for everyone.
+      fetchExploreBootstrap(session).auditTaskId must not be Some(auditTaskId)
+      run(sql"SELECT completed FROM audit_task WHERE audit_task_id = $auditTaskId".as[Boolean]) must not contain true
     }
   }
 }

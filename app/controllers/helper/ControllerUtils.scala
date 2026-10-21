@@ -1,13 +1,18 @@
 package controllers.helper
 
-import models.label.LabelTypeEnum
-import models.user.{RoleTable, SidewalkUserWithRole}
+import models.user.{MeasurementSystem, Role, SidewalkUserWithRole, UserUtm}
+import play.api.Configuration
+import play.api.data.Form
 import play.api.i18n.Messages
+import play.api.libs.json.{JsObject, JsString, Json}
 import play.api.mvc.Results.{Redirect, Unauthorized}
 import play.api.mvc.{Cookie, DiscardingCookie, RequestHeader, Result}
+import play.silhouette.api.actions.{SecuredRequestHeader, UserAwareRequestHeader}
 
+import java.net.{URLDecoder, URLEncoder}
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
+import java.time.OffsetDateTime
 import scala.util.Try
 import scala.util.matching.Regex
 
@@ -39,7 +44,7 @@ object ControllerUtils {
    * @param request The request whose User-Agent header is inspected.
    * @return        True if that header is present and matches a mobile token; false if it is absent or matches none.
    */
-  def isMobile(implicit request: RequestHeader): Boolean = {
+  def isMobile(using request: RequestHeader): Boolean = {
     request.headers
       .get("User-Agent")
       .exists(agent => {
@@ -51,49 +56,32 @@ object ControllerUtils {
   }
 
   /**
-   * The two measurement systems the site renders distances in, and the cookie that pins a request to one of them.
+   * The user behind a request, whichever kind of action served it.
    *
-   * Units can be specified on the User Dashboard, or defaults to the site language (the `measurement.system` message).
+   * Templates only get a `RequestHeader`, but the one they're handed is the action's own request, which still carries
+   * the user Silhouette loaded for it.
+   *
+   * @param request The request to inspect.
+   * @return        The user, or None for a request with no session.
    */
-  object MeasurementSystem {
-    val Metric: String   = "metric"
-    val Imperial: String = "imperial"
-
-    /** What the settings form submits, and the select's value, for "follow the site language". */
-    val FollowLanguage: String = "auto"
-
-    val CookieName: String = "PS_UNITS"
-
-    /** A display preference rather than a credential, so it outlives the browser session; a year is effectively forever. */
-    private val cookieMaxAge: Int = 365 * 24 * 60 * 60
-
-    /** The values `CookieName` may hold. Anything else is treated as absent. */
-    val validOverrides: Set[String] = Set(Metric, Imperial)
-
-    /** The cookie that pins requests to `system`. HttpOnly: client code reads the `<html>` stamp, never the cookie. */
-    def overrideCookie(system: String): Cookie =
-      Cookie(CookieName, system, maxAge = Some(cookieMaxAge), httpOnly = true)
-
-    /** Clears any override, returning the user to language-derived units. */
-    def clearOverrideCookie: DiscardingCookie = DiscardingCookie(CookieName)
+  private def requestUser(request: RequestHeader): Option[SidewalkUserWithRole] = request match {
+    case secured: SecuredRequestHeader[?] => Some(secured.identity).collect { case user: SidewalkUserWithRole => user }
+    case aware: UserAwareRequestHeader[?] => aware.identity.collect { case user: SidewalkUserWithRole => user }
+    case _                                => None
   }
 
   /**
-   * The measurement system this request should render distances in: users can override on their dashboard settings.
+   * The measurement system this request should render distances in: the units saved to the user's account (shared by
+   * every city, #3720), else the site language's.
    *
-   * @param request  The request whose override cookie is inspected.
-   * @param messages The request's messages, supplying the language default when there is no override.
+   * @param request  The request whose user is inspected.
+   * @param messages The request's messages, supplying the language default when there is no saved choice.
    * @return         Either `MeasurementSystem.Metric` or `MeasurementSystem.Imperial` — never a language's own wording.
    */
-  def measurementSystem(implicit request: RequestHeader, messages: Messages): String = {
-    request.cookies
-      .get(MeasurementSystem.CookieName)
-      .map(_.value)
-      .filter(MeasurementSystem.validOverrides.contains)
-      .getOrElse {
-        if (messages("measurement.system") == MeasurementSystem.Metric) MeasurementSystem.Metric
-        else MeasurementSystem.Imperial
-      }
+  def measurementSystem(using request: RequestHeader, messages: Messages): MeasurementSystem = {
+    requestUser(request).flatMap(_.measurementSystem).getOrElse {
+      MeasurementSystem.withNameOption(messages("measurement.system")).getOrElse(MeasurementSystem.Imperial)
+    }
   }
 
   /**
@@ -102,7 +90,7 @@ object ControllerUtils {
    * The one way anything — controller, template, or (via the `<html>` stamp `main.scala.html` writes) client code —
    * should ask, so a user's unit override can't be honored on some pages and ignored on others.
    */
-  def isMetric(implicit request: RequestHeader, messages: Messages): Boolean = {
+  def isMetric(using request: RequestHeader, messages: Messages): Boolean = {
     measurementSystem == MeasurementSystem.Metric
   }
 
@@ -121,8 +109,8 @@ object ControllerUtils {
   case class DistanceUnitWords(abbr: String, abbrSmall: String, name: String, nameSingular: String)
 
   /** The distance-unit words for this request, in its measurement system and language. */
-  def distanceUnitWords(implicit request: RequestHeader, messages: Messages): DistanceUnitWords = {
-    val system = measurementSystem
+  def distanceUnitWords(using request: RequestHeader, messages: Messages): DistanceUnitWords = {
+    val system = measurementSystem.name
     DistanceUnitWords(
       abbr = messages(s"unit.distance.abbr.$system"),
       abbrSmall = messages(s"unit.distance.abbr.small.$system"),
@@ -135,7 +123,7 @@ object ControllerUtils {
    * Checks if the given user is an Administrator.
    */
   def isAdmin(user: SidewalkUserWithRole): Boolean = {
-    RoleTable.ADMIN_ROLES.contains(user.role)
+    Role.ADMIN_ROLES.contains(user.role)
   }
   def isAdmin(user: Option[SidewalkUserWithRole]): Boolean = {
     user.map(isAdmin).getOrElse(false)
@@ -172,18 +160,25 @@ object ControllerUtils {
     }
   }
 
+  /** The `regions` URL param, else its old name `neighborhoods` so existing links keep working; empty means absent. */
+  def regionsParam(regions: Option[String], neighborhoods: Option[String]): Option[String] =
+    regions.filter(_.nonEmpty).orElse(neighborhoods.filter(_.nonEmpty))
+
+  /**
+   * Parses a comma-separated list of integers, dropping anything that isn't one and preserving order.
+   *
+   * Tokens are trimmed, because "8, 9, 10" is how a person writes a list and " 9" is not an integer. An
+   * unparseable token has no way to report itself, so an untrimmed list would keep only its first id in silence.
+   *
+   * @param listOfInts The raw parameter value.
+   * @return           The integers it named, deduplicated, in the order given.
+   */
   def parseIntegerSeq(listOfInts: String): Seq[Int] = {
-    listOfInts.split(",").flatMap(s => Try(s.toInt).toOption).toSeq.distinct
+    listOfInts.split(",").flatMap(s => Try(s.trim.toInt).toOption).toSeq.distinct
   }
 
   def parseIntegerSeq(listOfInts: Option[String]): Seq[Int] = {
     listOfInts.map(parseIntegerSeq).getOrElse(Seq())
-  }
-
-  // Provides a sorting function to sort by label_type_id if given the label_type string, with "Overall" going first.
-  // This is used by our APIs to show output in a consistent order.
-  val labelTypeOrdering: Ordering[(String, Any)] = Ordering.by { case (labelType, _) =>
-    (labelType != "Overall", LabelTypeEnum.labelTypeToId.getOrElse(labelType, Int.MaxValue))
   }
 
   /**
@@ -221,7 +216,7 @@ object ControllerUtils {
               case key :: Nil =>
                 key -> Seq.empty[String]
               case _ =>
-                throw new IllegalArgumentException(s"Invalid query parameter format: $param")
+                throw IllegalArgumentException(s"Invalid query parameter format: $param")
             }
           }
           .toMap
@@ -229,24 +224,25 @@ object ControllerUtils {
       case path :: Nil =>
         (path, Map.empty[String, Seq[String]])
       case _ =>
-        throw new IllegalArgumentException(s"Invalid URL format: $url")
+        throw IllegalArgumentException(s"Invalid URL format: $url")
     }
   }
 
   /**
-   * Restricts a post-auth redirect target to a same-origin path, guarding against open redirects.
+   * Restricts a caller-supplied redirect target to a same-origin path, guarding against open redirects.
    *
-   * Only a single-slash-prefixed relative path is accepted (e.g. `/explore?foo=bar`). Absolute URLs, protocol-relative
-   * `//host` URLs, and backslash variants that browsers normalize to `//` fall back to `default`, so a caller-supplied
-   * `returnUrl` cannot bounce a freshly-authenticated user to an attacker-controlled site.
+   * Only a single-slash-prefixed relative path is accepted (e.g. `/explore?foo=bar`). A `/\` prefix and control
+   * characters are refused because browsers turn `/\host` and `/<tab>/host` into the off-site `//host`; any other
+   * character outside printable ASCII is refused because Play rejects it in a `Location` header.
    *
-   * @param url     The candidate redirect target (typically a `returnUrl` form field).
+   * @param url     The candidate redirect target.
    * @param default Where to send the user when `url` is not a safe same-origin path.
    * @return        `url` (trimmed) if it is a same-origin relative path, otherwise `default`.
    */
   def safeLocalPath(url: String, default: String = "/"): String = {
     val trimmed = url.trim
-    if (trimmed.startsWith("/") && !trimmed.startsWith("//") && !trimmed.startsWith("/\\")) trimmed else default
+    val isLocal = trimmed.startsWith("/") && !trimmed.startsWith("//") && !trimmed.startsWith("/\\")
+    if (isLocal && trimmed.forall(c => c > ' ' && c <= '~')) trimmed else default
   }
 
   /**
@@ -279,17 +275,74 @@ object ControllerUtils {
     else Unauthorized("Not authenticated")
   }
 
-  /**
-   * Checks if a query string map contains any UTM parameters.
-   */
-  def hasUtmParams(qString: Map[String, Seq[String]]): Boolean = {
-    qString.keys.exists(_.startsWith("utm_"))
+  private val UtmKeys: Set[String] = Set("utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term")
+
+  /** Holds a visitor's campaign visits until they have an account to save them to; landing makes none (#5611). */
+  val UtmCookieName: String = "sidewalk_utm"
+
+  private val UtmCookieMaxAgeSeconds: Int = 7 * 24 * 60 * 60
+
+  /** Keeps the cookie well under browsers' 4 KB limit. */
+  private val MaxUtmVisits: Int = 10
+
+  /** @return The UTM params `user_utm` has columns for, first value each, minus the NUL bytes Postgres rejects. */
+  def utmParams(qString: Map[String, Seq[String]]): Map[String, String] =
+    qString.collect { case (k, v +: _) if UtmKeys.contains(k) => k -> v.replace("\u0000", "") }
+
+  /** @return The campaign visits held in the cookie, oldest first, with no user yet; anything unreadable is skipped. */
+  def utmVisitsFromCookie(request: RequestHeader): Seq[UserUtm] = {
+    val visits: Seq[Map[String, String]] = request.cookies
+      .get(UtmCookieName)
+      .flatMap(c => Try(Json.parse(URLDecoder.decode(c.value, StandardCharsets.UTF_8))).toOption)
+      .flatMap(_.asOpt[Seq[Map[String, String]]])
+      .getOrElse(Seq.empty)
+    for {
+      visit     <- visits
+      cityId    <- visit.get("city_id")
+      timestamp <- visit.get("timestamp").flatMap(t => Try(OffsetDateTime.parse(t)).toOption)
+    } yield UserUtm.fromParams(NoUserId, utmParams(visit.map((k, v) => k -> Seq(v))), cityId, timestamp)
   }
 
-  /**
-   * Checks if a flattened query string map contains any UTM parameters.
-   */
-  def hasUtmParamsFlat(qString: Map[String, String]): Boolean = {
-    qString.keys.exists(_.startsWith("utm_"))
+  /** @return A cookie of the newest visits, on the session cookie's domain so it follows a visitor across cities. */
+  def utmCookie(visits: Seq[UserUtm], config: Configuration): Cookie = {
+    val json = Json.toJson(visits.takeRight(MaxUtmVisits).map { v =>
+      v.params ++ Map("city_id" -> v.cityId, "timestamp" -> v.timestamp.toString)
+    })
+    Cookie(
+      UtmCookieName,
+      URLEncoder.encode(Json.stringify(json), StandardCharsets.UTF_8),
+      maxAge = Some(UtmCookieMaxAgeSeconds),
+      domain = config.getOptional[String]("play.http.session.domain"),
+      secure = config.get[Boolean]("play.http.session.secure"),
+      httpOnly = true,
+      sameSite = Some(Cookie.SameSite.Lax)
+    )
   }
+
+  /** Deletes the campaign cookie once saved, so a later account in the same browser isn't credited too. */
+  def clearUtmCookie(result: Result, config: Configuration)(using request: RequestHeader): Result =
+    if (request.cookies.get(UtmCookieName).isEmpty) result
+    else
+      result.discardingCookies(
+        DiscardingCookie(
+          UtmCookieName,
+          domain = config.getOptional[String]("play.http.session.domain"),
+          secure = config.get[Boolean]("play.http.session.secure")
+        )
+      )
+
+  /**
+   * Form binding errors as the JSON `AuthModal.js`'s `renderAuthErrors` draws: `{"errors": {field -> message}}`, with
+   * form-level errors (like a password mismatch) under `_summary`.
+   */
+  def formErrorsJson(formWithErrors: Form[?])(using messages: Messages): JsObject = {
+    val fields = formWithErrors.errors.groupBy(_.key).toSeq.map { case (key, errs) =>
+      (if (key.isEmpty) "_summary" else key) -> JsString(Messages(errs.head.message, errs.head.args*))
+    }
+    Json.obj("errors" -> JsObject(fields))
+  }
+
+  /** The same JSON as [[formErrorsJson]], for one field (or `_summary`). */
+  def fieldErrorJson(field: String, message: String): JsObject =
+    Json.obj("errors" -> Json.obj(field -> message))
 }

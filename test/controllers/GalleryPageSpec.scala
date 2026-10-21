@@ -1,13 +1,19 @@
 package controllers
 
-import org.scalatestplus.play.PlaySpec
+import models.gallery.GallerySort
+import models.user.Role
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.i18n.{Lang, MessagesApi}
+import play.api.libs.json.{JsObject, JsValue, Json}
+import play.api.mvc.Cookie
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
+import util.{AnonSession, RoleSession, SidewalkSpec, UserAgents}
 
 import java.net.URLEncoder
+import java.time.OffsetDateTime
 
 /**
  * Locks the `tags` deep-link contract of GET /gallery: the selection a shared link carries has to come back on the
@@ -17,17 +23,31 @@ import java.net.URLEncoder
  * a perfectly normal grid of unfiltered cards. That is how a comma-joined `tags` param hid the fact that it was
  * shredding "yellow box, accessibility features not visible" into two names that matched nothing.
  *
+ * Also locks the review-list contract of `?labelIds=` (#5444): the page carries the list through in the order it was
+ * given, and the card query behind it returns exactly those labels and names the ones it could not serve.
+ *
  * Reads the tag vocabulary off the page itself rather than hardcoding one, since which tags exist depends on the
  * city the connected database holds.
  *
  * Requires a Postgres+PostGIS database (via DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD env, as in dev/CI).
  */
-class GalleryPageSpec extends PlaySpec with GuiceOneAppPerSuite {
+class GalleryPageSpec extends SidewalkSpec with RoleSession with GuiceOneAppPerSuite with AnonSession {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule] // No eager background actors during tests.
+      // RoleSession mints its admin through the real anonymous signup, which the limiter would refuse mid-suite.
+      .configure("rate-limit.anon-signup.enabled" -> false)
       .build()
+
+  private lazy val adminCookies: Seq[Cookie] = sessionAs(Role.Administrator)
+
+  /** Fetches /gallery as the admin and returns its HTML. */
+  private def galleryPageAsAdmin(query: String = ""): String = {
+    val resp = route(app, FakeRequest(GET, s"/gallery$query").withCookies(adminCookies*)).get
+    status(resp) mustBe OK
+    contentAsString(resp)
+  }
 
   // Matches a whole tag-pill element so the active-class check doesn't depend on attribute order within the tag.
   // Twirl HTML-escapes ">" in attribute values, so [^>]* can't end the element early.
@@ -46,6 +66,25 @@ class GalleryPageSpec extends PlaySpec with GuiceOneAppPerSuite {
     tagPillElement.findAllMatchIn(body).filter(_.matched.contains("tag-pill--active")).map(_.group(1)).toSet
 
   private def encode(tag: String): String = URLEncoder.encode(tag, "UTF-8")
+
+  private lazy val messagesApi: MessagesApi = app.injector.instanceOf[MessagesApi]
+
+  /** An id no city's `label` serial has reached, so a review list naming it is always short one label. */
+  private val missingLabelId: Int = Int.MaxValue
+
+  /** The `"labelIds": [...]` array the page carries into its card query, as rendered in its page-data block. */
+  private val renderedLabelIds                     = """"labelIds": \[([^\]]*)\]""".r
+  private def pageLabelIds(body: String): Seq[Int] =
+    renderedLabelIds.findFirstMatchIn(body).map(_.group(1)).filter(_.nonEmpty).toSeq.flatMap(_.split(",").map(_.toInt))
+
+  /** POSTs a card query and returns its JSON body. */
+  private def labelsFor(request: JsObject, cookies: Seq[Cookie] = Seq.empty): JsValue = {
+    val resp = route(app, FakeRequest(POST, "/label/labels").withJsonBody(request).withCookies(cookies*)).get
+    status(resp) mustBe OK
+    contentAsJson(resp)
+  }
+
+  private def labelIdsIn(json: JsValue): Seq[Int] = (json \ "labelsOfType" \\ "label_id").map(_.as[Int]).toSeq
 
   "GET /gallery" should {
     "render with no tags selected by default" in {
@@ -76,6 +115,261 @@ class GalleryPageSpec extends PlaySpec with GuiceOneAppPerSuite {
 
     "drop a tag the city does not have, rather than failing the page" in {
       activeTags(galleryPage("?tags=definitely-not-a-real-tag")) mustBe empty
+    }
+
+    "filter by a regions parameter, and still by the older neighborhoods name" in {
+      val regionIds = contentAsJson(route(app, FakeRequest(GET, "/regions")).get) \ "features" \\ "region_id"
+      assume(regionIds.nonEmpty, "connected database has no regions")
+
+      val regionId = regionIds.head.as[Int]
+      galleryPage(s"?regions=$regionId") must include(s""""regionIds": [$regionId]""")
+      galleryPage(s"?neighborhoods=$regionId") must include(s""""regionIds": [$regionId]""")
+    }
+
+    "carry a label list to the page in the order it was given, deduped" in {
+      pageLabelIds(galleryPage("?labelIds=8,3,3,5")) mustBe Seq(8, 3, 5)
+    }
+
+    "drop a token of a label list that isn't an integer" in {
+      pageLabelIds(galleryPage("?labelIds=7,x,7,8")) mustBe Seq(7, 8)
+    }
+
+    // A hand-written or copy-pasted list has spaces in it, and an unparseable token can't report itself, so an
+    // untrimmed parse keeps only the first id and says nothing about the rest.
+    "read a label list written with spaces after the commas" in {
+      pageLabelIds(galleryPage("?labelIds=8,%209,%2010")) mustBe Seq(8, 9, 10)
+    }
+
+    "leave the label list empty when the parameter is absent" in {
+      pageLabelIds(galleryPage()) mustBe empty
+    }
+
+    // The list named the cards, so there is nothing left to filter and the grid takes the whole width. Rendering
+    // the sidebar hidden instead would leave the grid three columns wide for no reason a reader could see.
+    "render no sidebar at all in list mode, and the strip instead" in {
+      val listPage = galleryPage("?labelIds=8,3")
+      listPage must not include """class="sidebar""""
+      listPage must not include """id="card-filter""""
+      listPage must not include "gallery-filter-sections"
+      listPage must include("gallery-list-bar")
+      listPage must include("""id="gallery-list-count"""")
+    }
+
+    // A link, since it navigates; as a button it read as acting on the list. The arrow is decoration, not name.
+    "offer the way out as a link rather than as a button" in {
+      val listPage = galleryPage("?labelIds=8,3")
+      listPage must include("""<a class="gallery-list-bar__browse-all" href="/gallery">""")
+      listPage must include("""<span class="gallery-list-bar__arrow" aria-hidden="true">""")
+      listPage must include("Browse all labels")
+      listPage must not include "gallery-list-bar__show-all"
+    }
+
+    // /gallery?labelIds= is a sharing URL as much as a review queue, so the strip carries no heading and no
+    // instructions about how to run a review pass.
+    "leave the review hint and the mode heading off the list page" in {
+      val listPage = galleryPage("?labelIds=8,3")
+      listPage must not include "gallery:list-hint"
+      listPage must not include "gallery:list-heading"
+    }
+
+    "still render the filter sidebar, and no strip, without a list" in {
+      val filteredPage = galleryPage()
+      filteredPage must include("""id="card-filter"""")
+      filteredPage must include("gallery-filter-sections")
+      filteredPage must not include "gallery-list-bar"
+    }
+
+    "cap a label list at MaxLabelIds rather than trusting its length" in {
+      val ids = (1 to GalleryController.MaxLabelIds + 100).mkString(",")
+      pageLabelIds(galleryPage(s"?labelIds=$ids")) must have size GalleryController.MaxLabelIds.toLong
+    }
+
+    "say how many ids the cap dropped, rather than silently serving a short list" in {
+      val ids  = (1 to GalleryController.MaxLabelIds + 100).mkString(",")
+      val page = galleryPage(s"?labelIds=$ids")
+      page must include("""data-dropped="100"""")
+      page must include(s"""data-max="${GalleryController.MaxLabelIds}"""")
+      page must include(s"100 ids were past the ${GalleryController.MaxLabelIds}-id limit")
+    }
+
+    "say nothing about the cap for a list that fits under it" in {
+      galleryPage("?labelIds=8,3") must not include "gallery-list-truncated"
+    }
+
+    // The server-rendered count is what a reviewer reads before the cards land, so its plural has to be right then
+    // — i18next only takes over once the card query returns.
+    "render the count with the plural the number calls for" in {
+      galleryPage("?labelIds=8") must include(">1 label in this list<")
+      galleryPage("?labelIds=8,3") must include(">2 labels in this list<")
+    }
+
+    // The client turns this into "N of M" once it knows how many came back, so M has to reach it without the
+    // client re-parsing the URL the server already parsed.
+    "carry the requested count to the client for the partial-count wording" in {
+      galleryPage("?labelIds=8,3,5") must include("""data-requested="3"""")
+    }
+
+    "serve the page to a mobile visitor instead of redirecting to /mobileLanding" in {
+      val resp = route(app, FakeRequest(GET, "/gallery").withHeaders(UserAgents.mobile)).get
+      status(resp) mustBe OK
+    }
+
+    // The "Sort by" control (#2705) is admin tooling: everyone else keeps the random grid, whatever the URL says.
+    "render the sort control for an admin only" in {
+      galleryPageAsAdmin() must include("""id="gallery-sort"""")
+      galleryPage() must not include "gallery-sort"
+      galleryPage("?sort=newest") must not include "gallery-sort"
+    }
+
+    "offer every GallerySort as an option, from the enum rather than a list of its own" in {
+      val page = galleryPageAsAdmin()
+      GallerySort.values.foreach(s => page must include(s"""<option value="${s.name}""""))
+    }
+
+    "open in the order the URL asks for, and say so in the footer" in {
+      val page = galleryPageAsAdmin("?sort=most_severe")
+      page must include("""<option value="most_severe" selected""")
+      page must include("""Labels are sorted by &quot;Most severe first&quot; based on selected filters""")
+    }
+
+    "fall back to random for a sort the enum doesn't have" in {
+      val page = galleryPageAsAdmin("?sort=bogus")
+      page must include("""<option value="random" selected""")
+      page must include("Labels are sorted randomly based on selected filters")
+    }
+
+    "render no sort control in list mode" in {
+      galleryPageAsAdmin("?labelIds=8,3") must not include "gallery-sort"
+    }
+  }
+
+  "POST /label/labels with a sort" should {
+    // Every validation option, or the request means "none of them" and every test here passes on an empty grid.
+    val allValidations = Json.arr("correct", "incorrect", "unsure", "unvalidated")
+    def sortedRequest(sort: String, n: Int, loaded: Seq[Int] = Seq.empty): JsObject =
+      Json.obj("n" -> n, "loaded_labels" -> loaded, "sort" -> sort, "validation_options" -> allValidations)
+    // As the admin: a strict order is admin tooling, and anyone else asking for one gets the random Gallery.
+    def sortedLabels(sort: String, n: Int = 30, cookies: Seq[Cookie] = adminCookies): Seq[JsValue] =
+      (labelsFor(sortedRequest(sort, n), cookies) \ "labelsOfType" \\ "label").toSeq
+
+    /** Whether the public Gallery's disagree-ratio gate would drop this label. */
+    def pastTheGate(l: JsValue): Boolean = {
+      val agree    = (l \ "agree_count").as[Int]
+      val disagree = (l \ "disagree_count").as[Int]
+      disagree >= 3 && disagree >= agree * 2
+    }
+
+    "return the most severe labels first, unrated last" in {
+      val severities = sortedLabels("most_severe").map(l => (l \ "severity").asOpt[Int])
+      assume(severities.nonEmpty, "connected database serves no sorted labels")
+      val rated = severities.takeWhile(_.isDefined).flatten
+      rated.zip(rated.drop(1)).foreach { case (higher, lower) => higher must be >= lower }
+      severities.dropWhile(_.isDefined).forall(_.isEmpty) mustBe true
+    }
+
+    // Parsed, not compared as strings: the ISO writer drops trailing zeros, so "…:18Z" would sort after "…:18.735Z".
+    "return the newest labels first" in {
+      val timestamps = sortedLabels("newest").map(l => OffsetDateTime.parse((l \ "label_timestamp").as[String]))
+      assume(timestamps.nonEmpty, "connected database serves no sorted labels")
+      timestamps.zip(timestamps.drop(1)).foreach { case (newer, older) => newer.isBefore(older) mustBe false }
+    }
+
+    // Paging is the client excluding what it holds and asking for the next ranked labels, so a second request has to
+    // pick up where the first left off: nothing repeated, and nothing that outranks what the first page showed. This
+    // is where keeping the batch's own order through the imagery check matters — a crop-backed label taken ahead of
+    // a higher-ranked one without a crop would surface on the second page, out of order.
+    "continue the order across a second request that excludes the first's labels" in {
+      val first = sortedLabels("most_severe", n = 12)
+      assume(first.size == 12, "connected database serves fewer than 12 sorted labels")
+      val firstIds = first.map(l => (l \ "label_id").as[Int])
+      val second   =
+        (labelsFor(sortedRequest("most_severe", 12, firstIds), adminCookies) \ "labelsOfType" \\ "label").toSeq
+
+      second.map(l => (l \ "label_id").as[Int]) must contain noElementsOf firstIds
+      // The lowest severity on page one bounds page two; None (unrated) sorts last, so a None on page one means page
+      // two is all None.
+      val severity    = (l: JsValue) => (l \ "severity").asOpt[Int]
+      val pageOneLast = severity(first.last)
+      second.map(severity).foreach { s =>
+        if (pageOneLast.isEmpty) s mustBe empty
+        else if (s.isDefined) s.get must be <= pageOneLast.get
+      }
+    }
+
+    // The gate keeps crowd-rejected labels out of the public Gallery; "most disputed" exists to find them, so a
+    // sorted order waives it (pinned in LabelServiceSpec) and is for admins only. What is pinned here is the second
+    // half: whatever `sort` anyone else sends, nothing past the gate comes back. The admin's own result is the
+    // precondition, since it is what shows the connected database has gated labels to leak.
+    "keep everyone but an admin from the disagree-ratio gate, whatever sort they send" in {
+      val asAdmin = sortedLabels("most_disputed", n = 60)
+      assume(asAdmin.exists(pastTheGate), "connected database serves no label the disagree-ratio gate drops")
+
+      sortedLabels("most_disputed", n = 60, cookies = Seq.empty).exists(pastTheGate) mustBe false
+      sortedLabels("most_disputed", n = 60, cookies = sessionAs(Role.Registered)).exists(pastTheGate) mustBe false
+    }
+
+    "still serve the landing grid's recent pool" in {
+      val resp =
+        labelsFor(Json.obj("n" -> 6, "loaded_labels" -> Json.arr(), "sort" -> "recent", "static_imagery_only" -> true))
+      (resp \ "labelsOfType").as[Seq[JsValue]].size must be <= 6
+    }
+  }
+
+  /**
+   * The review-list half of the card query (#5444). A list is explicit, so the contract is that every id asked for
+   * either comes back as a card or is named as unavailable — a silently shorter grid would read as "these are all
+   * the labels there were", which is exactly the wrong thing to tell someone building ground truth.
+   */
+  "POST /label/labels with a label list" should {
+    // Ids the ordinary card query already served, so they are known to be renderable in the connected city. Every
+    // correctness option is named because an empty set means "none of them", which serves nothing at all.
+    val allValOptions          = Json.arr("correct", "incorrect", "unsure", "unvalidated")
+    lazy val seedIds: Seq[Int] =
+      labelIdsIn(labelsFor(Json.obj("n" -> 10, "loaded_labels" -> Json.arr(), "validation_options" -> allValOptions)))
+
+    "return exactly the requested labels, in the requested order, ignoring the other filters" in {
+      assume(seedIds.size >= 2, "connected database served fewer than two gallery labels")
+      // Sorted then reversed, so the request is always descending. The filtered query these come from is
+      // shuffled, so picking two of its ids in place would be ascending about half the time — and ascending is
+      // the order a query with no ORDER BY tends to return anyway, which is the thing this has to rule out.
+      val descendingPair = seedIds.take(2).sorted.reverse
+      val requested      = descendingPair :+ missingLabelId
+
+      val json = labelsFor(
+        Json.obj(
+          "n"             -> requested.size,
+          "loaded_labels" -> Json.arr(),
+          "label_ids"     -> requested,
+          // Filters that between them match nothing: list mode has to ignore them rather than intersect with them.
+          "label_types"        -> Json.arr("Signal"),
+          "region_ids"         -> Json.arr(-1),
+          "validation_options" -> Json.arr("incorrect")
+        )
+      )
+
+      labelIdsIn(json) mustBe descendingPair
+      (json \ "unavailableLabelIds").as[Seq[Int]] mustBe Seq(missingLabelId)
+    }
+
+    // MessageFormat unquotes a choice sub-message that contains a placeholder twice, so the apostrophe in the
+    // French string needs four of them to survive. Two renders "na pas pu", which reads as a typo in the
+    // translation rather than as the quoting rule it is — hence a test, so the doubling can't be tidied away.
+    "keep the apostrophe in the French over-cap notice" in {
+      messagesApi("gallery.list.truncated", 1, 500)(using Lang("fr")) must include("n'a pas pu")
+      messagesApi("gallery.list.truncated", 2, 500)(using Lang("fr")) must include("n'ont pas pu")
+    }
+
+    "say nothing about unavailable ids when no list was asked for" in {
+      val json = labelsFor(Json.obj("n" -> 1, "loaded_labels" -> Json.arr(), "validation_options" -> allValOptions))
+      (json \ "unavailableLabelIds").toOption mustBe None
+    }
+
+    "report every id of a list that served nothing" in {
+      val json = labelsFor(
+        Json.obj("n" -> 1, "loaded_labels" -> Json.arr(), "label_ids" -> Json.arr(missingLabelId))
+      )
+      labelIdsIn(json) mustBe empty
+      (json \ "unavailableLabelIds").as[Seq[Int]] mustBe Seq(missingLabelId)
     }
   }
 }

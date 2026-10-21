@@ -1,21 +1,38 @@
 package actor
 
 import actor.ActorUtils.{dateFormatter, getTimeToNextUpdate}
-import org.apache.pekko.actor.{Actor, Cancellable}
+import org.apache.pekko.actor.{Actor, ActorRef, Cancellable}
 import play.api.Logger
 import models.utils.JobRunTrigger
-import play.api.libs.json.Json
-import service.{ConfigService, JobRunService, OsmWayService}
+import play.api.libs.json.{JsObject, Json}
+import service.{ConfigService, JobRunService, OsmWayRefreshResult, OsmWayService}
 
 import java.time.Instant
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.ExecutionContext
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import scala.util.{Failure, Success}
 
 object OsmWayRefreshActor {
   val Name = "osm-way-refresh-actor"
   case object Tick
+
+  /**
+   * The counts as they are stored against a `background_job_run` row.
+   *
+   * Defined here rather than at each call site so the nightly refresh and the admin hand-trigger can't record the
+   * same job under two different shapes.
+   *
+   * @param result Ways re-fetched from the OSM API and written to `osm_way`, how many of them are gone from OSM, and
+   *               how many gone ways had their lost tags recovered from the OSM history or turned out unrecoverable.
+   * @return The run's `details` object.
+   */
+  def runDetails(result: OsmWayRefreshResult): JsObject = Json.obj(
+    "ways_refreshed"     -> result.waysRefreshed,
+    "ways_missing"       -> result.waysMissing,
+    "tags_recovered"     -> result.tagsRecovered,
+    "tags_unrecoverable" -> result.tagsUnrecoverable
+  )
 }
 
 /**
@@ -25,7 +42,7 @@ object OsmWayRefreshActor {
  * most nights are a fast no-op; a new city's ways are backfilled on the first tick after its streets are imported.
  */
 @Singleton
-class OsmWayRefreshActor @Inject() (osmWayService: OsmWayService, jobRunService: JobRunService)(implicit
+class OsmWayRefreshActor @Inject() (osmWayService: OsmWayService, jobRunService: JobRunService)(using
     ec: ExecutionContext,
     configService: ConfigService
 ) extends Actor {
@@ -35,7 +52,7 @@ class OsmWayRefreshActor @Inject() (osmWayService: OsmWayService, jobRunService:
 
   override def preStart(): Unit = {
     super.preStart()
-    // Per-city hour offset staggers computation/resource use across deployments (and their Overpass requests).
+    // Per-city hour offset staggers computation/resource use across deployments (and their OSM API requests).
     configService.getOffsetHours.foreach { hoursOffset =>
       // Scheduled time comes from ScheduledJobs, shifted by this city's offset.
       cancellable = Some(
@@ -48,7 +65,7 @@ class OsmWayRefreshActor @Inject() (osmWayService: OsmWayService, jobRunService:
           24.hours,
           self,
           OsmWayRefreshActor.Tick
-        )(context.dispatcher)
+        )(using context.dispatcher, ActorRef.noSender)
       )
       logger.info("OsmWayRefreshActor created")
     }
@@ -64,13 +81,16 @@ class OsmWayRefreshActor @Inject() (osmWayService: OsmWayService, jobRunService:
     val currentTimeStart: String = dateFormatter.format(Instant.now())
     logger.info(s"Auto-scheduled OSM way data refresh starting at: $currentTimeStart")
     jobRunService
-      .record(OsmWayRefreshActor.Name, JobRunTrigger.Scheduled)(osmWayService.refreshOsmWayData()) { waysRefreshed =>
-        Json.obj("ways_refreshed" -> waysRefreshed)
-      }
+      .record(OsmWayRefreshActor.Name, JobRunTrigger.Scheduled)(osmWayService.refreshOsmWayData())(
+        OsmWayRefreshActor.runDetails
+      )
       .onComplete {
-        case Success(waysRefreshed) =>
+        case Success(result) =>
           logger.info(s"OSM way data refresh completed at: ${dateFormatter.format(Instant.now())}")
-          logger.info(s"Ways refreshed: $waysRefreshed")
+          logger.info(
+            s"Ways refreshed: ${result.waysRefreshed}; of those, gone from OSM: ${result.waysMissing}. " +
+              s"Tags recovered from OSM history: ${result.tagsRecovered}; unrecoverable: ${result.tagsUnrecoverable}."
+          )
         case Failure(e) => logger.error(s"Error refreshing OSM way data: ${e.getMessage}")
       }
   }

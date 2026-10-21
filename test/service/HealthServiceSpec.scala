@@ -2,17 +2,17 @@ package service
 
 import models.utils.{HealthTable, MyPostgresProfile}
 import org.scalatest.BeforeAndAfterAll
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
 import slick.dbio.DBIO
+import util.SidewalkSpec
 
 import java.io.File
 import java.nio.file.Files
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import scala.concurrent.{Await, Future}
 
 /**
@@ -32,7 +32,7 @@ import scala.concurrent.{Await, Future}
  * Read-only. Requires a Postgres+PostGIS database (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in dev/CI).
  * Scheduling actors are disabled so background actors can't contend for the pool during the run.
  */
-class HealthServiceSpec extends PlaySpec with GuiceOneAppPerSuite with BeforeAndAfterAll {
+class HealthServiceSpec extends SidewalkSpec with GuiceOneAppPerSuite with BeforeAndAfterAll {
 
   // The scan compares database rows against files on disk, so a checkout that has never had an upload has no
   // directory to read and the whole panel degrades to "unavailable" — under which every assertion below would pass
@@ -40,10 +40,10 @@ class HealthServiceSpec extends PlaySpec with GuiceOneAppPerSuite with BeforeAnd
   private val mediaDir: File = Files.createTempDirectory("health-service-spec-media").toFile
 
   /** The subdirectory `StoryService` would write this instance's uploads into: named for `city-id`, not the schema. */
-  private lazy val cityDir: File = new File(mediaDir, config.get[String]("city-id"))
+  private lazy val cityDir: File = File(mediaDir, config.get[String]("city-id"))
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule] // No eager background actors during tests.
       .configure("story.media.directory" -> mediaDir.getAbsolutePath)
       .build()
@@ -61,7 +61,7 @@ class HealthServiceSpec extends PlaySpec with GuiceOneAppPerSuite with BeforeAnd
   // A file with no `story_media` row behind it. Whether the scan attributes it to this instance's own schema is the
   // whole question: it can only do that by naming the directory the way the write path does.
   private val orphanId: Int         = Int.MaxValue - 4926
-  private lazy val orphanFile: File = new File(cityDir, s"story_$orphanId.jpg")
+  private lazy val orphanFile: File = File(cityDir, s"story_$orphanId.jpg")
 
   // Seeded before any test, because the scan is cached: a first call made against an empty directory would answer
   // every later assertion from that cached all-clear.

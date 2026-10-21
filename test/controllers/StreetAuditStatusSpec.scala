@@ -1,13 +1,13 @@
 package controllers
 
 import org.apache.pekko.stream.Materializer
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.JsValue
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
+import util.SidewalkSpec
 
 /**
  * Contract test for the street layer feed behind LabelMap and the admin maps (#4384).
@@ -16,12 +16,12 @@ import play.api.test.Helpers._
  * current imagery) and `outdated` (audited before, but every audit predates newer imagery). The states are mutually
  * exclusive; a street with neither is unaudited. Requires a Postgres+PostGIS database, like the API specs.
  */
-class StreetAuditStatusSpec extends PlaySpec with GuiceOneAppPerSuite {
+class StreetAuditStatusSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   "GET /contribution/streets/all" should {
     "expose boolean audited and outdated properties on every feature, never both true" in {

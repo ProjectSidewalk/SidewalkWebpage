@@ -1,70 +1,24 @@
 package formats.json
 
-import models.label._
-import models.pano.{PanoData, PanoViewerMetadata}
-import play.api.libs.functional.syntax._
-import play.api.libs.json._
+import models.label.*
+import models.pano.{ImageryAttribution, PanoData, PanoSource, PanoViewerMetadata}
+import models.utils.CommonUtils.UiSource
+import play.api.libs.functional.syntax.*
+import play.api.libs.json.*
 
 import java.time.OffsetDateTime
 
 object LabelFormats {
-  implicit val labelTypeEnumWrites: Writes[LabelTypeEnum.Base] = Writes(lt => JsString(lt.name))
+  // snake_case keys for the Json.writes macros below.
+  private given jsonConfig: JsonConfiguration = JsonConfiguration(JsonNaming.SnakeCase)
 
-  implicit val labelWrites: Writes[Label] = (
-    (__ \ "label_id").write[Int] and
-      (__ \ "audit_task_id").write[Int] and
-      (__ \ "mission_id").write[Int] and
-      (__ \ "user_id").write[String] and
-      (__ \ "pano_id").write[String] and
-      (__ \ "label_type_id").write[Int] and
-      (__ \ "deleted").write[Boolean] and
-      (__ \ "temporary_label_id").write[Int] and
-      (__ \ "time_created").write[OffsetDateTime] and
-      (__ \ "tutorial").write[Boolean] and
-      (__ \ "street_edge_id").write[Int] and
-      (__ \ "agree_count").write[Int] and
-      (__ \ "disagree_count").write[Int] and
-      (__ \ "unsure_count").write[Int] and
-      (__ \ "correct").writeNullable[Boolean] and
-      (__ \ "severity").writeNullable[Int] and
-      (__ \ "description").writeNullable[String] and
-      (__ \ "tags").write[List[String]]
-  )(unlift(Label.unapply))
+  given labelWrites: Writes[Label] = Json.writes[Label]
 
-  implicit val POVWrites: Writes[POV] = (
-    (__ \ "heading").write[Double] and
-      (__ \ "pitch").write[Double] and
-      (__ \ "zoom").write[Double]
-  )(unlift(POV.unapply))
+  given POVWrites: Writes[POV] = Json.writes[POV]
 
-  implicit val locationXYWrites: Writes[LocationXY] = (
-    (__ \ "x").write[Int] and
-      (__ \ "y").write[Int]
-  )(unlift(LocationXY.unapply))
+  given locationXYWrites: Writes[LocationXY] = Json.writes[LocationXY]
 
-  implicit val labelTypeReads: Reads[LabelTypeEnum.Base] = Reads { json =>
-    val errorSubstring =
-      s"Valid types are: ${LabelTypeEnum.primaryLabelTypes.mkString(", ")}. Or you can use their IDs: ${LabelTypeEnum.primaryLabelTypeIds.mkString(", ")}."
-
-    // Try parsing as either the ID number as an int, or the name as a String.
-    json match {
-      case JsString(value) =>
-        LabelTypeEnum.byName.get(value) match {
-          case Some(labelType) => JsSuccess(labelType)
-          case None            => JsError(s"Invalid LabelType name: $value. $errorSubstring")
-        }
-      case JsNumber(value) =>
-        val intValue = value.toInt
-        LabelTypeEnum.byId.get(intValue) match {
-          case Some(labelType) => JsSuccess(labelType)
-          case None            => JsError(s"Invalid LabelType ID: $intValue. $errorSubstring")
-        }
-      case _ =>
-        JsError(s"Expected a string or integer. $errorSubstring")
-    }
-  }
-
-  implicit val labelMetadataWrites: Writes[LabelMetadata] = Writes { m =>
+  given labelMetadataWrites: Writes[LabelMetadata] = Writes { m =>
     Json.obj(
       "label_id"                           -> m.labelId,
       "pano_id"                            -> m.panoId,
@@ -72,6 +26,8 @@ object LabelFormats {
       "image_capture_date"                 -> m.imageCaptureDate,
       "pov"                                -> m.pov,
       "canvas_location"                    -> m.canvasXY,
+      "canvas_width"                       -> m.canvasWidth,
+      "canvas_height"                      -> m.canvasHeight,
       "audit_task_id"                      -> m.auditTaskId,
       "street_edge_id"                     -> m.streetEdgeId,
       "region_id"                          -> m.regionId,
@@ -81,16 +37,17 @@ object LabelFormats {
       "label_type"                         -> m.labelType,
       "severity"                           -> m.severity,
       "description"                        -> m.description,
-      "user_validation"                    -> m.userValidation.map(_.toString),
-      "ai_validation"                      -> m.aiValidation.map(_.toString),
+      "user_validation"                    -> m.userValidation.map(_.name),
+      "ai_validation"                      -> m.aiValidation.map(_.name),
       "validations"                        -> m.validations,
       "tags"                               -> m.tags,
-      "low_quality_incomplete_stale_flags" -> m.lowQualityIncompleteStaleFlags,
-      "comments"                           -> m.comments.map(_.comment),
-      "camera_lat"                         -> m.cameraLocation.map(_.lat),
-      "camera_lng"                         -> m.cameraLocation.map(_.lng),
-      "ai_generated"                       -> m.aiGenerated,
-      "expired"                            -> m.expired
+      "low_quality_incomplete_stale_flags" -> Json
+        .arr(m.taskFlags.lowQuality, m.taskFlags.incomplete, m.taskFlags.stale),
+      "comments"     -> m.comments.map(_.comment),
+      "camera_lat"   -> m.cameraLocation.map(_.lat),
+      "camera_lng"   -> m.cameraLocation.map(_.lng),
+      "ai_generated" -> m.aiGenerated,
+      "expired"      -> m.expired
     )
   }
 
@@ -117,17 +74,20 @@ object LabelFormats {
       "zoom"                -> labelMetadata.pov.zoom,
       "canvas_x"            -> labelMetadata.canvasXY.x,
       "canvas_y"            -> labelMetadata.canvasXY.y,
+      "canvas_width"        -> labelMetadata.canvasWidth,
+      "canvas_height"       -> labelMetadata.canvasHeight,
       "severity"            -> labelMetadata.severity,
       "description"         -> labelMetadata.description,
       "street_edge_id"      -> labelMetadata.streetEdgeId,
+      "street_side"         -> labelMetadata.streetSide.map(_.name),
       "max_speed"           -> maxSpeed,
       "region_id"           -> labelMetadata.regionId,
       "correct"             -> labelMetadata.validationInfo.correct,
       "agree_count"         -> labelMetadata.validationInfo.agreeCount,
       "disagree_count"      -> labelMetadata.validationInfo.disagreeCount,
       "unsure_count"        -> labelMetadata.validationInfo.unsureCount,
-      "user_validation"     -> labelMetadata.validationInfo.userValidation.map(_.toString),
-      "ai_validation"       -> labelMetadata.validationInfo.aiValidation.map(_.toString),
+      "user_validation"     -> labelMetadata.validationInfo.userValidation.map(_.name),
+      "ai_validation"       -> labelMetadata.validationInfo.aiValidation.map(_.name),
       "tags"                -> labelMetadata.tags,
       "ai_tags"             -> labelMetadata.aiTags,
       "ai_tags_not_present" -> labelMetadata.aiTagsNotPresent,
@@ -136,14 +96,16 @@ object LabelFormats {
       "comments"            -> labelMetadata.comments.map(commentToJson(_, currUsername, commenterIdx)),
       "from_current_user"   -> labelMetadata.fromCurrentUser,
       "backup_image_url"    -> backupImageUrl,
-      "pano_data"           -> labelMetadata.panoMetadata.map(panoViewerMetadataToJson),
-      "admin_data"          -> adminData.map(ad =>
+      // Per label, not per city: a city that has changed providers holds labels from both (#5202).
+      "pano_source" -> labelMetadata.panoSource.name,
+      "pano_data"   -> labelMetadata.panoMetadata.map(panoViewerMetadataToJson(_, labelMetadata.panoSource)),
+      "admin_data"  -> adminData.map(ad =>
         Json.obj(
           "username"             -> ad.username,
           "previous_validations" -> ad.previousValidations.map(prevVal =>
             Json.obj(
-              "username"   -> prevVal._1,
-              "validation" -> prevVal._2.toString
+              "username"   -> prevVal.username,
+              "validation" -> prevVal.validation.name
             )
           )
         )
@@ -152,10 +114,11 @@ object LabelFormats {
   }
 
   /**
-   * The comment shape the shared label-detail card consumes: the text, whether the requesting user wrote it, and a
-   * per-label commenter index (distinct commenters numbered by first comment). The index lets the card draw a
-   * consistent anonymous avatar per validator within one label without exposing usernames on public surfaces or
-   * creating an identifier that links a validator across labels.
+   * The comment shape the shared label-detail card consumes: the text, whether the requesting user wrote it, the
+   * commenter's current vote on the label (null if they have none), and a per-label commenter index (distinct
+   * commenters numbered by first comment). The index lets the card draw a consistent anonymous avatar per validator
+   * within one label without exposing usernames on public surfaces or creating an identifier that links a validator
+   * across labels.
    */
   private def commentToJson(c: LabelComment, currUsername: Option[String], commenterIdx: Map[String, Int]): JsObject = {
     val idx: Int = commenterIdx.getOrElse(c.username, 0)
@@ -163,6 +126,7 @@ object LabelFormats {
       "comment"      -> c.comment,
       "mine"         -> currUsername.contains(c.username),
       "time_created" -> c.timeCreated,
+      "validation"   -> c.validation,
       "commenter"    -> idx
     )
   }
@@ -192,6 +156,9 @@ object LabelFormats {
       "zoom"               -> labelMetadata.pov.zoom,
       "canvas_x"           -> labelMetadata.canvasXY.x,
       "canvas_y"           -> labelMetadata.canvasXY.y,
+      "canvas_width"       -> labelMetadata.canvasWidth,
+      "canvas_height"      -> labelMetadata.canvasHeight,
+      "pano_source"        -> labelMetadata.panoSource.name, // Decides the fov the click was projected with.
       "lat"                -> labelMetadata.location.map(_.lat),
       "lng"                -> labelMetadata.location.map(_.lng),
       "camera_lat"         -> labelMetadata.cameraLocation.map(_.lat),
@@ -202,8 +169,8 @@ object LabelFormats {
       "label_type"         -> labelMetadata.labelType.name,
       "severity"           -> labelMetadata.severity,
       "description"        -> labelMetadata.description,
-      "user_validation"    -> labelMetadata.userValidation.map(_.toString),
-      "ai_validation"      -> labelMetadata.aiValidation.map(_.toString),
+      "user_validation"    -> labelMetadata.userValidation.map(_.name),
+      "ai_validation"      -> labelMetadata.aiValidation.map(_.name),
       "num_agree"          -> labelMetadata.validations("agree"),
       "num_disagree"       -> labelMetadata.validations("disagree"),
       "num_unsure"         -> labelMetadata.validations("unsure"),
@@ -212,7 +179,7 @@ object LabelFormats {
       "ai_generated"       -> labelMetadata.aiGenerated,
       "expired"            -> labelMetadata.expired,
       "from_current_user"  -> labelMetadata.fromCurrentUser,
-      "pano_data"          -> labelMetadata.panoMetadata.map(panoViewerMetadataToJson)
+      "pano_data"          -> labelMetadata.panoMetadata.map(panoViewerMetadataToJson(_, labelMetadata.panoSource))
     )
   }
 
@@ -230,23 +197,38 @@ object LabelFormats {
       "audit_task_id" -> labelMetadata.auditTaskId,
       "user_id"       -> labelMetadata.userId,
       "username"      -> labelMetadata.username,
-      "low_quality"   -> labelMetadata.lowQualityIncompleteStaleFlags._1,
-      "incomplete"    -> labelMetadata.lowQualityIncompleteStaleFlags._2,
-      "stale"         -> labelMetadata.lowQualityIncompleteStaleFlags._3,
+      "low_quality"   -> labelMetadata.taskFlags.lowQuality,
+      "incomplete"    -> labelMetadata.taskFlags.incomplete,
+      "stale"         -> labelMetadata.taskFlags.stale,
       // The part below is just lifted straight from Expert Validate without much care.
       "admin_data" -> Json.obj(
         "username"             -> adminData.username,
         "previous_validations" -> adminData.previousValidations.map(prevVal =>
           Json.obj(
-            "username"   -> prevVal._1,
-            "validation" -> prevVal._2.toString
+            "username"   -> prevVal.username,
+            "validation" -> prevVal.validation.name
           )
         )
       )
     )
   }
 
-  def labelMetadataUserDashToJson(label: LabelMetadataUserDash, imageUrl: Option[String]): JsObject = {
+  /**
+   * Serializes a label for the user dashboard's mistake cards. Both image URLs go out because the card prefers the
+   * crop (#4478) but a crop's signed URL expires, leaving `image_url` as the fallback.
+   *
+   * @param label      The validated label.
+   * @param cropUrl    The label's saved crop, if one is on disk.
+   * @param cropMarker Where the label sits in that crop (#2660); absent for a crop no `label_crop` row describes.
+   * @param imageUrl   The Street View Static API image at the label's POV; None for a non-GSV pano source.
+   * @return           The card's JSON, with every image field nullable.
+   */
+  def labelMetadataUserDashToJson(
+      label: LabelMetadataUserDash,
+      cropUrl: Option[String],
+      cropMarker: Option[CropMarker],
+      imageUrl: Option[String]
+  ): JsObject = {
     Json.obj(
       "label_id"          -> label.labelId,
       "pano_id"           -> label.panoId,
@@ -255,22 +237,33 @@ object LabelFormats {
       "zoom"              -> label.pov.zoom,
       "canvas_x"          -> label.canvasX,
       "canvas_y"          -> label.canvasY,
+      "canvas_width"      -> label.canvasWidth,
+      "canvas_height"     -> label.canvasHeight,
       "label_type"        -> label.labelType.name,
       "time_validated"    -> label.timeValidated,
       "validator_comment" -> label.validatorComment,
-      "image_url"         -> imageUrl
+      "crop_url"          -> cropUrl,
+      "crop_marker"       -> cropMarker,
+      "image_url"         -> imageUrl,
+      "pano_source"       -> label.panoSource.name,
+      "attribution"       -> ImageryAttribution.line(label.panoSource, label.copyright, label.license).map(_.toJson)
     )
   }
 
-  implicit val tagWrites: Writes[Tag] = (
+  given tagWrites: Writes[Tag] = (
     (__ \ "tag_id").write[Int] and
-      (__ \ "label_type_id").write[Int] and
+      (__ \ "label_type").write[LabelType] and
       (__ \ "tag_name").write[String] and
       (__ \ "mutually_exclusive_with").writeNullable[String]
-  )(unlift(Tag.unapply))
+  )((o: Tag) => Tuple.fromProductTyped(o))
 
-  /** Serializes a PanoViewerMetadata to the JSON shape the frontend expects under the "pano_data" key. */
-  private def panoViewerMetadataToJson(pm: PanoViewerMetadata): JsObject = Json.obj(
+  /**
+   * Serializes a PanoViewerMetadata to the JSON shape the frontend expects under the "pano_data" key.
+   *
+   * @param source Where the pano's imagery came from, which decides the attribution line owed when Project Sidewalk
+   *               displays its own copy of it (a self-hosted pano or a crop).
+   */
+  private def panoViewerMetadataToJson(pm: PanoViewerMetadata, source: PanoSource): JsObject = Json.obj(
     "width"          -> pm.width,
     "height"         -> pm.height,
     "tile_width"     -> pm.tileWidth,
@@ -279,6 +272,7 @@ object LabelFormats {
     "camera_pitch"   -> pm.cameraPitch,
     "camera_roll"    -> pm.cameraRoll,
     "copyright"      -> pm.copyright,
+    "attribution"    -> ImageryAttribution.line(source, pm.copyright, pm.license).map(_.toJson),
     "address"        -> pm.address
   )
 
@@ -289,20 +283,21 @@ object LabelFormats {
    */
   def localBackupImagePayload(p: PanoData, url: String): JsObject = {
     Json.obj(
-      "panoId"        -> p.panoId,
-      "imageUrl"      -> url,
-      "width"         -> p.width,
-      "height"        -> p.height,
-      "tileWidth"     -> p.tileWidth,
-      "tileHeight"    -> p.tileHeight,
-      "lat"           -> p.lat,
-      "lng"           -> p.lng,
-      "cameraHeading" -> p.cameraHeading,
-      "cameraPitch"   -> p.cameraPitch,
-      "cameraRoll"    -> p.cameraRoll,
-      "captureDate"   -> p.captureDate,
-      "copyright"     -> p.copyright,
-      "address"       -> p.address
+      "pano_id"        -> p.panoId,
+      "image_url"      -> url,
+      "width"          -> p.width,
+      "height"         -> p.height,
+      "tile_width"     -> p.tileWidth,
+      "tile_height"    -> p.tileHeight,
+      "lat"            -> p.lat,
+      "lng"            -> p.lng,
+      "camera_heading" -> p.cameraHeading,
+      "camera_pitch"   -> p.cameraPitch,
+      "camera_roll"    -> p.cameraRoll,
+      "capture_date"   -> p.captureDate,
+      "copyright"      -> p.copyright,
+      "attribution"    -> ImageryAttribution.line(p.source, p.copyright, p.license).map(_.toJson),
+      "address"        -> p.address
     )
   }
 
@@ -312,11 +307,12 @@ object LabelFormats {
    * @param labelType The label type name.
    * @param url The signed serving URL (e.g. /cropImage/<labelType>/<labelId>?exp=...&sig=...).
    */
-  def cropImagePayload(labelId: Int, labelType: String, url: String): JsObject = {
+  def cropImagePayload(labelId: Int, labelType: String, url: String, marker: Option[CropMarker]): JsObject = {
     Json.obj(
-      "labelId"   -> labelId,
-      "labelType" -> labelType,
-      "imageUrl"  -> url
+      "label_id"    -> labelId,
+      "label_type"  -> labelType,
+      "image_url"   -> url,
+      "crop_marker" -> marker
     )
   }
 
@@ -338,7 +334,7 @@ object LabelFormats {
       "panoHeight"    -> label.panoHeight,
       "tagIds"        -> label.labelData.tags.flatMap { t =>
         allTags
-          .filter(at => at.tag == t && at.labelTypeId == LabelTypeEnum.labelTypeToId(label.labelType))
+          .filter(at => at.tag == t && at.labelType.name == label.labelType)
           .map(_.tagId)
           .headOption
       },
@@ -348,12 +344,16 @@ object LabelFormats {
       "description"      -> label.labelData.description,
       "canvasX"          -> label.pointData.canvasX,
       "canvasY"          -> label.pointData.canvasY,
+      "canvasWidth"      -> label.pointData.canvasWidth,
+      "canvasHeight"     -> label.pointData.canvasHeight,
       "panoX"            -> label.pointData.panoX,
       "panoY"            -> label.pointData.panoY,
       "auditTaskId"      -> label.labelData.auditTaskId,
       "missionId"        -> label.labelData.missionId,
       "labelLat"         -> label.pointData.lat,
-      "labelLng"         -> label.pointData.lng
+      "labelLng"         -> label.pointData.lng,
+      // With missionId, what lets the minimap tell this pass's labels from an earlier era's (#4945).
+      "fromOutdatedImagery" -> label.fromOutdatedImagery
     )
   }
 
@@ -373,7 +373,7 @@ object LabelFormats {
       "severity"          -> label.severity,
       "correct"           -> label.correct,
       "has_validations"   -> label.hasValidations,
-      "ai_validation"     -> label.aiValidation.map(_.toString),
+      "ai_validation"     -> label.aiValidation.map(_.name),
       "expired"           -> label.expired,
       "has_backup"        -> label.hasBackup,
       "high_quality_user" -> label.highQualityUser,

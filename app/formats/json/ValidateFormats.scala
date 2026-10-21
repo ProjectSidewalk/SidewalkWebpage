@@ -2,20 +2,19 @@ package formats.json
 
 import controllers.helper.ValidateHelper.ValidateParams
 import formats.json.CommentSubmissionFormats.ValidationCommentSubmission
-import formats.json.LabelFormats.labelTypeReads
-import formats.json.PanoFormats._
-import models.label.LabelTypeEnum
-import models.utils.CommonUtils.UiSource.UiSource
-import models.utils.CommonUtils.ViewerType.ViewerType
+import formats.json.PanoFormats.*
+import models.label.LabelType
+import models.mission.MissionType
 import models.utils.CommonUtils.{UiSource, ViewerType}
 import models.validation.ValidationOption
-import play.api.libs.functional.syntax._
-import play.api.libs.json.{JsError, JsPath, JsSuccess, Reads}
+import play.api.libs.functional.syntax.*
+import play.api.libs.json.*
 
 import java.time.OffsetDateTime
-import scala.util.{Failure, Success, Try}
 
 object ValidateFormats {
+  private given jsonConfig: JsonConfiguration = JsonConfiguration(JsonNaming.SnakeCase)
+
   case class EnvironmentSubmission(
       missionId: Option[Int],
       browser: Option[String],
@@ -42,22 +41,28 @@ object ValidateFormats {
       note: Option[String],
       timestamp: OffsetDateTime
   )
+
+  /**
+   * A vote from the Validate tool. `newLabelType`, `severity` and `tags` are what the validator wants the label to
+   * have, applied only for an Agree (#2575, #3671). `labelType` is the type the tool showed; an older client omits it
+   * and the mission's type stands in.
+   */
   case class LabelValidationSubmission(
       labelId: Int,
       missionId: Int,
-      validationResult: ValidationOption.Value,
-      oldSeverity: Option[Int],
-      newSeverity: Option[Int],
-      oldTags: List[String],
-      newTags: List[String],
+      labelType: Option[LabelType],
+      newLabelType: Option[LabelType],
+      validationResult: ValidationOption,
+      severity: Option[Int],
+      tags: List[String],
       comment: Option[ValidationCommentSubmission],
       canvasX: Option[Int],
       canvasY: Option[Int],
       heading: Double,
       pitch: Double,
       zoom: Double,
-      canvasHeight: Int,
       canvasWidth: Int,
+      canvasHeight: Int,
       startTimestamp: OffsetDateTime,
       endTimestamp: OffsetDateTime,
       source: UiSource,
@@ -69,24 +74,28 @@ object ValidateFormats {
   /**
    * A request for replacement labels from a Validate mission that ran out of them mid-mission (#4810).
    *
-   * @param labelTypeId      Label type of the mission being topped up.
+   * @param labelType        Label type of the mission being topped up.
    * @param labelsNeeded     How many labels the client is short.
    * @param excludedLabelIds Every label the client already holds, so it isn't handed one of them back.
    * @param validateParams   The page's filters, so replacements match the rest of the mission.
    */
   case class MoreLabelsRequest(
-      labelTypeId: Int,
+      labelType: LabelType,
       labelsNeeded: Int,
       excludedLabelIds: Seq[Int],
       validateParams: ValidateParams
   )
+
+  /** What a Validate page sends to be handed the mission it starts on (#5650): just its filters. */
+  case class MissionRequest(validateParams: ValidateParams)
+
   // No `skipped`, unlike AuditMissionProgress: only Explore's onboarding can skip a mission.
   case class ValidationMissionProgress(
       missionId: Int,
-      missionType: String,
+      missionType: MissionType,
       labelsProgress: Int,
       labelsTotal: Int,
-      labelTypeId: Int,
+      labelType: LabelType,
       completed: Boolean
   )
   case class ValidationTaskSubmission(
@@ -99,21 +108,25 @@ object ValidateFormats {
       source: UiSource,
       timestamp: OffsetDateTime
   )
+
+  /**
+   * A vote from the label popup (LabelMap, Gallery, share page); `labelType` is the type the popup showed, and
+   * newLabelType/severity/tags are as in LabelValidationSubmission.
+   */
   case class LabelMapValidationSubmission(
       labelId: Int,
-      labelType: LabelTypeEnum.Base,
-      validationResult: ValidationOption.Value,
-      oldSeverity: Option[Int],
-      newSeverity: Option[Int],
-      oldTags: List[String],
-      newTags: List[String],
+      labelType: LabelType,
+      newLabelType: Option[LabelType],
+      validationResult: ValidationOption,
+      severity: Option[Int],
+      tags: List[String],
       canvasX: Option[Int],
       canvasY: Option[Int],
       heading: Double,
       pitch: Double,
       zoom: Double,
-      canvasHeight: Int,
       canvasWidth: Int,
+      canvasHeight: Int,
       startTimestamp: OffsetDateTime,
       endTimestamp: OffsetDateTime,
       source: UiSource,
@@ -122,146 +135,55 @@ object ValidateFormats {
       viewerType: ViewerType
   )
 
-  implicit val uiSourceReads: Reads[UiSource.Value] = Reads { json =>
-    json.validate[String].flatMap { uiSource =>
-      Try(UiSource.withName(uiSource)) match {
-        case Success(source) => JsSuccess(source)
-        case Failure(_)      =>
-          JsError(s"Invalid ui_source: $uiSource. Valid types are: ${UiSource.values.mkString(", ")}.")
-      }
-    }
-  }
+  /**
+   * An edit to a label from the label popup: the type, severity and tags the label should now have (#2575, #3671).
+   * @param labelType    The type the popup showed; an edit built on a type the label no longer has is refused.
+   * @param newLabelType The type the label should become, when the edit changes it.
+   */
+  case class LabelEditSubmission(
+      labelId: Int,
+      labelType: Option[LabelType],
+      newLabelType: Option[LabelType],
+      severity: Option[Int],
+      tags: List[String],
+      source: UiSource
+  )
 
-  implicit val viewerTypeReads: Reads[ViewerType.Value] = Reads { json =>
-    json.validate[String].flatMap { viewerType =>
-      Try(ViewerType.withName(viewerType)) match {
-        case Success(vt) => JsSuccess(vt)
-        case Failure(_)  =>
-          JsError(s"Invalid viewer_type: $viewerType. Valid types are: ${ViewerType.values.mkString(", ")}.")
-      }
-    }
-  }
+  given environmentSubmissionReads: Reads[EnvironmentSubmission] = Json.reads[EnvironmentSubmission]
 
-  implicit val validationOptionReads: Reads[ValidationOption.Value] = Reads { json =>
-    json.validate[String].flatMap { validationResult =>
-      ValidationOption.fromString(validationResult) match {
-        case Some(result) => JsSuccess(result)
-        case None         =>
-          JsError(
-            s"Invalid validation_result: $validationResult. Valid values are: " +
-              s"${ValidationOption.values.mkString(", ")}."
-          )
-      }
-    }
-  }
+  given interactionSubmissionReads: Reads[InteractionSubmission] = Json.reads[InteractionSubmission]
 
-  implicit val environmentSubmissionReads: Reads[EnvironmentSubmission] = (
-    (JsPath \ "mission_id").readNullable[Int] and
-      (JsPath \ "browser").readNullable[String] and
-      (JsPath \ "browser_version").readNullable[String] and
-      (JsPath \ "browser_width").readNullable[Int] and
-      (JsPath \ "browser_height").readNullable[Int] and
-      (JsPath \ "avail_width").readNullable[Int] and
-      (JsPath \ "avail_height").readNullable[Int] and
-      (JsPath \ "screen_width").readNullable[Int] and
-      (JsPath \ "screen_height").readNullable[Int] and
-      (JsPath \ "operating_system").readNullable[String] and
-      (JsPath \ "language").read[String] and
-      (JsPath \ "css_zoom").read[Int]
-  )(EnvironmentSubmission.apply _)
+  given labelValidationSubmissionReads: Reads[LabelValidationSubmission] = Json.reads[LabelValidationSubmission]
 
-  implicit val interactionSubmissionReads: Reads[InteractionSubmission] = (
-    (JsPath \ "action").read[String] and
-      (JsPath \ "mission_id").readNullable[Int] and
-      (JsPath \ "pano_id").readNullable[String] and
-      (JsPath \ "lat").readNullable[Double] and
-      (JsPath \ "lng").readNullable[Double] and
-      (JsPath \ "heading").readNullable[Double] and
-      (JsPath \ "pitch").readNullable[Double] and
-      (JsPath \ "zoom").readNullable[Double] and
-      (JsPath \ "note").readNullable[String] and
-      (JsPath \ "timestamp").read[OffsetDateTime]
-  )(InteractionSubmission.apply _)
+  given validationMissionReads: Reads[ValidationMissionProgress] = Json.reads[ValidationMissionProgress]
 
-  implicit val labelValidationSubmissionReads: Reads[LabelValidationSubmission] = (
-    (JsPath \ "label_id").read[Int] and
-      (JsPath \ "mission_id").read[Int] and
-      (JsPath \ "validation_result").read[ValidationOption.Value] and
-      (JsPath \ "old_severity").readNullable[Int] and
-      (JsPath \ "new_severity").readNullable[Int] and
-      (JsPath \ "old_tags").read[List[String]] and
-      (JsPath \ "new_tags").read[List[String]] and
-      (JsPath \ "comment").readNullable[ValidationCommentSubmission] and
-      (JsPath \ "canvas_x").readNullable[Int] and
-      (JsPath \ "canvas_y").readNullable[Int] and
-      (JsPath \ "heading").read[Double] and
-      (JsPath \ "pitch").read[Double] and
-      (JsPath \ "zoom").read[Double] and
-      (JsPath \ "canvas_height").read[Int] and
-      (JsPath \ "canvas_width").read[Int] and
-      (JsPath \ "start_timestamp").read[OffsetDateTime] and
-      (JsPath \ "end_timestamp").read[OffsetDateTime] and
-      (JsPath \ "source").read[UiSource.Value] and
-      (JsPath \ "undone").read[Boolean] and
-      (JsPath \ "redone").read[Boolean] and
-      (JsPath \ "viewer_type").read[ViewerType.Value]
-  )(LabelValidationSubmission.apply _)
-
-  implicit val validationMissionReads: Reads[ValidationMissionProgress] = (
-    (JsPath \ "mission_id").read[Int] and
-      (JsPath \ "mission_type").read[String] and
-      (JsPath \ "labels_progress").read[Int] and
-      (JsPath \ "labels_total").read[Int] and
-      (JsPath \ "label_type_id").read[Int] and
-      (JsPath \ "completed").read[Boolean]
-  )(ValidationMissionProgress.apply _)
-
-  implicit val adminValidateParamsReads: Reads[ValidateParams] = (
+  // The admin-only fields are checked before `ValidateParams` is built: its constructor rejects them without
+  // `admin_version` too, but as an exception, which would answer a malformed body with a 500 instead of this 400.
+  given adminValidateParamsReads: Reads[ValidateParams] = (
     (JsPath \ "admin_version").read[Boolean] and
-      (JsPath \ "label_type").readNullable[LabelTypeEnum.Base] and
+      (JsPath \ "label_type").readNullable[LabelType] and
       (JsPath \ "user_ids").readNullable[Seq[String]] and
-      (JsPath \ "neighborhood_ids").readNullable[Seq[Int]] and
-      (JsPath \ "unvalidated_only").read[Boolean]
-  )(ValidateParams.apply _)
+      (JsPath \ "region_ids").readNullable[Seq[Int]] and
+      (JsPath \ "unvalidated_only").read[Boolean] and
+      // An older tab can post without this field; defaulting it to false keeps that request on the crowd queue.
+      (JsPath \ "triage").readWithDefault[Boolean](false) and
+      (JsPath \ "team_ids").readNullable[Seq[Int]]
+  ).tupled.collect(
+    JsonValidationError("label_type, user_ids, triage and team_ids can only be set if admin_version is true")
+  ) {
+    case (adminVersion, labelType, userIds, regionIds, unvalidatedOnly, triage, teamIds)
+        if adminVersion || (labelType.isEmpty && userIds.isEmpty && !triage && teamIds.isEmpty) =>
+      ValidateParams(adminVersion, labelType, userIds, regionIds, unvalidatedOnly, triage, teamIds)
+  }
 
-  implicit val validationTaskSubmissionReads: Reads[ValidationTaskSubmission] = (
-    (JsPath \ "interactions").read[Seq[InteractionSubmission]] and
-      (JsPath \ "environment").read[EnvironmentSubmission] and
-      (JsPath \ "validations").read[Seq[LabelValidationSubmission]] and
-      (JsPath \ "mission_progress").readNullable[ValidationMissionProgress] and
-      (JsPath \ "validate_params").read[ValidateParams] and
-      (JsPath \ "pano_histories").read[Seq[PanoHistorySubmission]] and
-      (JsPath \ "source").read[UiSource.Value] and
-      (JsPath \ "timestamp").read[OffsetDateTime]
-  )(ValidationTaskSubmission.apply _)
+  given validationTaskSubmissionReads: Reads[ValidationTaskSubmission] = Json.reads[ValidationTaskSubmission]
 
-  implicit val labelMapValidationSubmissionReads: Reads[LabelMapValidationSubmission] = (
-    (JsPath \ "label_id").read[Int] and
-      (JsPath \ "label_type").read[LabelTypeEnum.Base] and
-      (JsPath \ "validation_result").read[ValidationOption.Value] and
-      (JsPath \ "old_severity").readNullable[Int] and
-      (JsPath \ "new_severity").readNullable[Int] and
-      (JsPath \ "old_tags").read[List[String]] and
-      (JsPath \ "new_tags").read[List[String]] and
-      (JsPath \ "canvas_x").readNullable[Int] and
-      (JsPath \ "canvas_y").readNullable[Int] and
-      (JsPath \ "heading").read[Double] and
-      (JsPath \ "pitch").read[Double] and
-      (JsPath \ "zoom").read[Double] and
-      (JsPath \ "canvas_height").read[Int] and
-      (JsPath \ "canvas_width").read[Int] and
-      (JsPath \ "start_timestamp").read[OffsetDateTime] and
-      (JsPath \ "end_timestamp").read[OffsetDateTime] and
-      (JsPath \ "source").read[UiSource.Value] and
-      (JsPath \ "undone").read[Boolean] and
-      (JsPath \ "redone").read[Boolean] and
-      (JsPath \ "viewer_type").read[ViewerType.Value]
-  )(LabelMapValidationSubmission.apply _)
+  given labelMapValidationSubmissionReads: Reads[LabelMapValidationSubmission] =
+    Json.reads[LabelMapValidationSubmission]
 
-  implicit val moreLabelsRequestReads: Reads[MoreLabelsRequest] = (
-    (JsPath \ "label_type_id").read[Int] and
-      (JsPath \ "labels_needed").read[Int] and
-      (JsPath \ "excluded_label_ids").read[Seq[Int]] and
-      (JsPath \ "validate_params").read[ValidateParams]
-  )(MoreLabelsRequest.apply _)
+  given labelEditSubmissionReads: Reads[LabelEditSubmission] = Json.reads[LabelEditSubmission]
+
+  given moreLabelsRequestReads: Reads[MoreLabelsRequest] = Json.reads[MoreLabelsRequest]
+
+  given missionRequestReads: Reads[MissionRequest] = Json.reads[MissionRequest]
 }

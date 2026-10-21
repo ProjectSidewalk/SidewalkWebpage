@@ -19,28 +19,29 @@
 # =====================================================================================================================
 set -euo pipefail
 
+# shellcheck source=helpers.sh
 source /opt/scripts/helpers.sh
 
 SCHEMA=${1:-}
 if [[ -z "$SCHEMA" ]]; then
-    echo "Usage: import-dump.sh <schema_name>   (e.g. sidewalk_seattle)" >&2
-    echo "       Typically run via: make import-dump db=<schema_name>" >&2
-    exit 1
+  echo "Usage: import-dump.sh <schema_name>   (e.g. sidewalk_seattle)" >&2
+  echo "       Typically run via: make import-dump db=<schema_name>" >&2
+  exit 1
 fi
 
 # The name is interpolated into DDL (DROP/CREATE/ALTER below), so reject anything that isn't a plain SQL identifier
 # rather than risk a broken statement or injection.
 if [[ ! "$SCHEMA" =~ ^[a-z][a-z0-9_]*$ ]]; then
-    echo "Error: '$SCHEMA' is not a valid schema name." >&2
-    echo "       Use lowercase letters, digits, and underscores, starting with a letter (e.g. sidewalk_seattle)." >&2
-    exit 1
+  echo "Error: '$SCHEMA' is not a valid schema name." >&2
+  echo "       Use lowercase letters, digits, and underscores, starting with a letter (e.g. sidewalk_seattle)." >&2
+  exit 1
 fi
 
 DUMP=/opt/$SCHEMA-dump
 if [[ ! -f "$DUMP" ]]; then
-    echo "Error: dump not found at $DUMP." >&2
-    echo "       Place '${SCHEMA}-dump' in the db/ directory, or check the db= value (see docs/dev-environment.md)." >&2
-    exit 1
+  echo "Error: dump not found at $DUMP." >&2
+  echo "       Place '${SCHEMA}-dump' in the db/ directory, or check the db= value (see docs/dev-environment.md)." >&2
+  exit 1
 fi
 
 # Terminate other backends first so the DROP doesn't block, then drop and recreate the schema's owning role from clean.

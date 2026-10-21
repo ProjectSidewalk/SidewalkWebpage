@@ -1,20 +1,14 @@
 package models.utils
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.github.tminglei.slickpg._
+import com.github.tminglei.slickpg.*
 import com.github.tminglei.slickpg.geom.PgPostGISExtensions
-import models.label.{AiImageSource, ComputationMethod}
-import models.mission.MissionType
-import models.pano.PanoSource
-import models.street.{StreetEdgeIssueType, StreetEdgeStatus, StreetEdgeStatusChangeSource, StreetImagerySource, WayType}
-import models.utils.CommonUtils.{UiSource, ViewerType}
-import models.validation.ValidationOption
-import org.locationtech.jts.geom.{Geometry, LineString, MultiPolygon, Point}
-import org.n52.jackson.datatype.jts.JtsModule
-import play.api.libs.functional.syntax.{toFunctionalBuilderOps, unlift}
-import play.api.libs.json._
-import slick.ast.TypedType
-import slick.lifted.ExtensionMethods
+import org.locationtech.jts.geom.{Coordinate, Geometry, LineString, MultiPolygon, Point, Polygon}
+import play.api.libs.json.*
+import slick.jdbc.{JdbcType, PositionedResult}
+import slick.lifted.OptionMapperDSL
+
+import java.math.RoundingMode
+import scala.annotation.targetName
 
 trait MyPostgresProfile
     extends ExPostgresProfile
@@ -23,11 +17,6 @@ trait MyPostgresProfile
     with PgPostGISExtensions
     with PgPlayJsonSupport
     with PgEnumSupport
-    with PgNetSupport
-    with PgLTreeSupport
-    with PgRangeSupport
-    with PgHStoreSupport
-    with PgSearchSupport
     with PgPostGISSupport {
 
   override val pgjson = "jsonb"
@@ -37,7 +26,7 @@ trait MyPostgresProfile
   override protected def computeCapabilities: Set[slick.basic.Capability] =
     super.computeCapabilities + slick.jdbc.JdbcCapabilities.insertOrUpdate
 
-  override val api = MyAPI
+  override val api: MyAPI.type = MyAPI
 
   object MyAPI
       extends ExtPostgresAPI
@@ -45,35 +34,60 @@ trait MyPostgresProfile
       with PostGISPlainImplicits
       with PostGISAssistants
       with ArrayImplicits
+      with SimpleArrayPlainImplicits      // Plain for raw queries
       with Date2DateTimePlainImplicits    // Plain for raw queries
       with Date2DateTimeImplicitsDuration // For compiled queries
-      with JsonImplicits
-      with NetImplicits
-      with LTreeImplicits
-      with RangeImplicits
-      with HStoreImplicits
-      with SearchImplicits
-      with SearchAssistants {
+      with JsonImplicits {
 
-    // Adds implicit conversion from JTS Geometry types to Play JSON JsValue. Need to explicitly add each geom type.
-    private val mapper = new ObjectMapper()
-    mapper.registerModule(new JtsModule())
-    implicit val geometryWrites: Writes[Geometry] = Writes[Geometry] { geom =>
-      Json.parse(mapper.writeValueAsString(geom))
+    /** Postgres's `random()`, a fresh draw in [0, 1) per row, so `sortBy(_ => random)` shuffles a query's rows. */
+    val random: Rep[Double] = SimpleFunction.nullary[Double]("random")
+
+    // Postgres won't save plain text into an inet column, so the value is sent untyped and Postgres reads it as an IP.
+    given ipAddressMapper: JdbcType[IpAddress] = GenericJdbcType[IpAddress]("inet", IpAddress(_), _.value)
+
+    // Built once and shared, because slick-pg looks an array's element type up by `tag.repr`: a bare
+    // `nextArray[T]()` rebuilds the tag and re-renders that string per row, ~0.3 µs inside the `GetResult`.
+    private val stringElementTag: izumi.reflect.Tag[String] = izumi.reflect.Tag[String]
+    private val intElementTag: izumi.reflect.Tag[Int]       = izumi.reflect.Tag[Int]
+
+    /** Array readers for a raw query's row. Use these rather than `nextArray[T]()`, which is slower per row. */
+    extension (r: PositionedResult) {
+      def nextStringArray(): Seq[String] = r.nextArray[String]()(using stringElementTag)
+      def nextIntArray(): Seq[Int]       = r.nextArray[Int]()(using intElementTag)
     }
-    implicit val multiPolygonWrites: Writes[MultiPolygon] = geometryWrites.contramap(identity)
-    implicit val lineStringWrites: Writes[LineString]     = geometryWrites.contramap(identity)
-    implicit val pointWrites: Writes[Point]               = geometryWrites.contramap(identity)
+
+    /** One coordinate value, rounded to 8 decimal places (about a millimeter) so responses stay small. */
+    private def geoJsonNumber(value: Double): JsNumber =
+      JsNumber(BigDecimal(java.math.BigDecimal(value).setScale(8, RoundingMode.HALF_UP).stripTrailingZeros))
+
+    /** One GeoJSON position: `[lng, lat]`. */
+    private def geoJsonPosition(coord: Coordinate): JsArray =
+      JsArray(Seq(geoJsonNumber(coord.getX), geoJsonNumber(coord.getY)))
+
+    private def geoJsonLine(line: LineString): JsArray = JsArray(line.getCoordinates.toSeq.map(geoJsonPosition))
+
+    /** A polygon's rings: the outline first, then any holes. */
+    private def geoJsonRings(polygon: Polygon): JsArray = {
+      val holes: Seq[LineString] = (0 until polygon.getNumInteriorRing).map(polygon.getInteriorRingN)
+      JsArray((polygon.getExteriorRing +: holes).map(geoJsonLine))
+    }
+
+    private def geoJson(geometryType: String, coordinates: JsArray): JsObject =
+      Json.obj("type" -> geometryType, "coordinates" -> coordinates)
+
+    // A geometry type can only go into JSON once it has a line here.
+    given pointWrites: Writes[Point]           = Writes(point => geoJson("Point", geoJsonPosition(point.getCoordinate)))
+    given lineStringWrites: Writes[LineString] = Writes(line => geoJson("LineString", geoJsonLine(line)))
+    given multiPolygonWrites: Writes[MultiPolygon] = Writes { multiPolygon =>
+      val polygons = (0 until multiPolygon.getNumGeometries).map(multiPolygon.getGeometryN(_).asInstanceOf[Polygon])
+      geoJson("MultiPolygon", JsArray(polygons.map(geoJsonRings)))
+    }
 
     /**
-     * Extension methods that correct slick-pg's spatial measurement return types from Float to Double, matching
-     * PostGIS's actual `double precision` returns. For any new function we want to add, just copy from
-     * PgPostGISExtensions.scala and change from Float to Double.
+     * Spatial measurements that return Double, matching PostGIS's `double precision`, where slick-pg's return Float.
+     * To add one, copy it from PgPostGISExtensions.scala and change Float to Double.
      */
-    implicit class GeometryDoubleMeasurements[G1 <: Geometry, P1](val c: Rep[P1]) extends ExtensionMethods[G1, P1] {
-      implicit protected def b1Type: TypedType[G1] = implicitly[TypedType[Geometry]].asInstanceOf[TypedType[G1]]
-
-      def lengthD[R](implicit om: o#to[Double, R]): Rep[R] = om.column(GeomLibrary.Length, n)
+    extension [G1 <: Geometry](c: Rep[G1]) {
 
       /**
        * Geodesic length in meters of a 4326 geometry, measured on the WGS84 spheroid via a `::geography` cast.
@@ -83,11 +97,10 @@ trait MyPostgresProfile
        * transverse Mercator distortion away from the zone's central meridian reaches +51% (Auckland through the
        * UTM zone 18N that all cities were once measured in).
        *
-       * Unlike `lengthD`, this does not Option-lift: it is only for non-nullable geometry columns (NULL would fail
-       * result conversion outside an aggregate).
+       * Only for non-nullable geometry columns: NULL would fail result conversion outside an aggregate.
        */
       def lengthGeodesic: Rep[Double] = SimpleExpression
-        .unary[P1, Double] { (geomNode, queryBuilder) =>
+        .unary[G1, Double] { (geomNode, queryBuilder) =>
           queryBuilder.sqlBuilder += "ST_Length(("
           queryBuilder.expr(geomNode)
           queryBuilder.sqlBuilder += ")::geography)"
@@ -95,180 +108,77 @@ trait MyPostgresProfile
         }
         .apply(c)
 
-      def distanceSphereD[P2, R](geom: Rep[P2])(implicit om: o#to[Double, R]): Rep[R] =
-        om.column(GeomLibrary.DistanceSphere, n, geom.toNode)
+      def distanceSphereD[P2, R](geom: Rep[P2])(using om: OptionMapperDSL.arg[G1, G1]#to[Double, R]): Rep[R] =
+        om.column(GeomLibrary.DistanceSphere, c.toNode, geom.toNode)
 
-      def azimuthD[P2, R](geom: Rep[P2])(implicit om: o#to[Double, R]): Rep[R] =
-        om.column(GeomLibrary.Azimuth, n, geom.toNode)
+      def azimuthD[P2, R](geom: Rep[P2])(using om: OptionMapperDSL.arg[G1, G1]#to[Double, R]): Rep[R] =
+        om.column(GeomLibrary.Azimuth, c.toNode, geom.toNode)
+    }
+
+    /** The same for a nullable geometry column, where the result is nullable too. */
+    extension [G1 <: Geometry](c: Rep[Option[G1]]) {
+      // Named apart because the JVM can't tell a nullable column from a plain one.
+      @targetName("distanceSphereDNullable")
+      def distanceSphereD[P2, R](geom: Rep[P2])(using om: OptionMapperDSL.arg[G1, Option[G1]]#to[Double, R]): Rep[R] =
+        om.column(GeomLibrary.DistanceSphere, c.toNode, geom.toNode)
     }
 
     // New mapper for Seq[ExcludedTag] stored as JSONB.
-    implicit val excludedTagListMapper: DriverJdbcType[Seq[ExcludedTag]] =
-      new GenericJdbcType[Seq[ExcludedTag]](
+    given excludedTagListMapper: DriverJdbcType[Seq[ExcludedTag]] =
+      GenericJdbcType[Seq[ExcludedTag]](
         pgjson,
         s => if (s == null) List.empty[ExcludedTag] else Json.parse(s).as[Seq[ExcludedTag]],
         v => Json.stringify(Json.toJson(v))
       )
 
     // New mapper for Seq[AiTagConfidence] stored as JSONB.
-    implicit val aiTagConfidenceSeqMapper: DriverJdbcType[Seq[AiTagConfidence]] =
-      new GenericJdbcType[Seq[AiTagConfidence]](
+    given aiTagConfidenceSeqMapper: DriverJdbcType[Seq[AiTagConfidence]] =
+      GenericJdbcType[Seq[AiTagConfidence]](
         pgjson,
         s => if (s == null) List.empty[AiTagConfidence] else Json.parse(s).as[Seq[AiTagConfidence]],
         v => Json.stringify(Json.toJson(v))
       )
 
     // New mapper for Seq[ClusteringThreshold] stored as JSONB.
-    implicit val clusteringThresholdSeqMapper: DriverJdbcType[Seq[ClusteringThreshold]] =
-      new GenericJdbcType[Seq[ClusteringThreshold]](
+    given clusteringThresholdSeqMapper: DriverJdbcType[Seq[ClusteringThreshold]] =
+      GenericJdbcType[Seq[ClusteringThreshold]](
         pgjson,
         s => if (s == null) List.empty[ClusteringThreshold] else Json.parse(s).as[Seq[ClusteringThreshold]],
         v => Json.stringify(Json.toJson(v))
       )
-
-    // Mapper for pano_source enum type.
-    implicit val panoSourceMapper: BaseColumnType[PanoSource.Value] =
-      createEnumJdbcType[PanoSource.Value]("pano_source", _.toString, PanoSource.withName, quoteName = false)
-
-    // Mapper for ui_source enum type.
-    implicit val uiSourceMapper: BaseColumnType[UiSource.Value] =
-      createEnumJdbcType[UiSource.Value]("ui_source", _.toString, UiSource.withName, quoteName = false)
-
-    // Mapper for ai_image_source enum type.
-    implicit val aiImageSourceMapper: BaseColumnType[AiImageSource.Value] =
-      createEnumJdbcType[AiImageSource.Value]("ai_image_source", _.toString, AiImageSource.withName, quoteName = false)
-
-    // Mapper for viewer_type enum type.
-    implicit val viewerTypeMapper: BaseColumnType[ViewerType.Value] =
-      createEnumJdbcType[ViewerType.Value]("viewer_type", _.toString, ViewerType.withName, quoteName = false)
-
-    // Mapper for validation_option enum type.
-    implicit val validationOptionMapper: BaseColumnType[ValidationOption.Value] =
-      createEnumJdbcType[ValidationOption.Value](
-        "validation_option",
-        _.toString,
-        ValidationOption.withName,
-        quoteName = false
-      )
-
-    // Mapper for street_edge_status enum type.
-    implicit val streetEdgeStatusMapper: BaseColumnType[StreetEdgeStatus.Value] =
-      createEnumJdbcType[StreetEdgeStatus.Value](
-        "street_edge_status",
-        _.toString,
-        StreetEdgeStatus.withName,
-        quoteName = false
-      )
-
-    // Mapper for street_edge_status_change_source enum type.
-    implicit val streetEdgeStatusChangeSourceMapper: BaseColumnType[StreetEdgeStatusChangeSource.Value] =
-      createEnumJdbcType[StreetEdgeStatusChangeSource.Value](
-        "street_edge_status_change_source",
-        _.toString,
-        StreetEdgeStatusChangeSource.withName,
-        quoteName = false
-      )
-
-    // Mapper for job_run_status enum type.
-    implicit val jobRunStatusMapper: BaseColumnType[JobRunStatus.Value] =
-      createEnumJdbcType[JobRunStatus.Value]("job_run_status", _.toString, JobRunStatus.withName, quoteName = false)
-
-    // Mapper for job_run_trigger enum type.
-    implicit val jobRunTriggerMapper: BaseColumnType[JobRunTrigger.Value] =
-      createEnumJdbcType[JobRunTrigger.Value]("job_run_trigger", _.toString, JobRunTrigger.withName, quoteName = false)
-
-    // Mapper for mission_type enum type.
-    implicit val missionTypeMapper: BaseColumnType[MissionType.Value] =
-      createEnumJdbcType[MissionType.Value]("mission_type", _.toString, MissionType.withName, quoteName = false)
-
-    // Mapper for way_type enum type.
-    implicit val wayTypeMapper: BaseColumnType[WayType.Value] =
-      createEnumJdbcType[WayType.Value]("way_type", _.toString, WayType.withName, quoteName = false)
-
-    // Mapper for computation_method enum type.
-    implicit val computationMethodMapper: BaseColumnType[ComputationMethod.Value] =
-      createEnumJdbcType[ComputationMethod.Value](
-        "computation_method",
-        _.toString,
-        ComputationMethod.withName,
-        quoteName = false
-      )
-
-    // Mapper for street_edge_issue_type enum type.
-    implicit val streetEdgeIssueTypeMapper: BaseColumnType[StreetEdgeIssueType.Value] =
-      createEnumJdbcType[StreetEdgeIssueType.Value](
-        "street_edge_issue_type",
-        _.toString,
-        StreetEdgeIssueType.withName,
-        quoteName = false
-      )
-
-    // Mapper for street_imagery_source enum type.
-    implicit val streetImagerySourceMapper: BaseColumnType[StreetImagerySource.Value] =
-      createEnumJdbcType[StreetImagerySource.Value](
-        "street_imagery_source",
-        _.toString,
-        StreetImagerySource.withName,
-        quoteName = false
-      )
   }
+}
+
+/** A visitor's IP address, stored as `inet`. Prints as just the address, so it works in rate-limit keys. */
+case class IpAddress(value: String) {
+  override def toString: String = value
 }
 
 // Define ExcludedTag and it's formatter. Stored in the database as JSONB.
 // Would like to use a composite type in the future once there is more support in Slick for them.
 case class ExcludedTag(labelType: String, tag: String)
 object ExcludedTag {
-  implicit val excludedTagFormat: Format[ExcludedTag] = {
-    val reads: Reads[ExcludedTag] = (
-      (__ \ "label_type").read[String] and
-        (__ \ "tag").read[String]
-    )(ExcludedTag.apply _)
+  private given jsonConfig: JsonConfiguration = JsonConfiguration(JsonNaming.SnakeCase)
 
-    val writes: Writes[ExcludedTag] = (
-      (__ \ "label_type").write[String] and
-        (__ \ "tag").write[String]
-    )(unlift(ExcludedTag.unapply))
-
-    Format(reads, writes)
-  }
+  given excludedTagFormat: Format[ExcludedTag] = Json.format[ExcludedTag]
 }
 
 // Define AiTag and it's formatter. Stored in the database as JSONB.
 // Would like to use a composite type in the future once there is more support in Slick for them.
 case class AiTagConfidence(tag: String, confidence: Double)
 object AiTagConfidence {
-  implicit val aiTagConfidenceFormat: Format[AiTagConfidence] = {
-    val reads: Reads[AiTagConfidence] = (
-      (__ \ "tag").read[String] and
-        (__ \ "confidence").read[Double]
-    )(AiTagConfidence.apply _)
+  private given jsonConfig: JsonConfiguration = JsonConfiguration(JsonNaming.SnakeCase)
 
-    val writes: Writes[AiTagConfidence] = (
-      (__ \ "tag").write[String] and
-        (__ \ "confidence").write[Double]
-    )(unlift(AiTagConfidence.unapply))
-
-    Format(reads, writes)
-  }
+  given aiTagConfidenceFormat: Format[AiTagConfidence] = Json.format[AiTagConfidence]
 }
 
 // Define ClusteringThreshold and it's formatter. Stored in the database as JSONB.
 // Would like to use a composite type in the future once there is more support in Slick for them.
 case class ClusteringThreshold(labelType: String, threshold: Double)
 object ClusteringThreshold {
-  implicit val clusteringThresholdFormat: Format[ClusteringThreshold] = {
-    val reads: Reads[ClusteringThreshold] = (
-      (__ \ "label_type").read[String] and
-        (__ \ "threshold").read[Double]
-    )(ClusteringThreshold.apply _)
+  private given jsonConfig: JsonConfiguration = JsonConfiguration(JsonNaming.SnakeCase)
 
-    val writes: Writes[ClusteringThreshold] = (
-      (__ \ "label_type").write[String] and
-        (__ \ "threshold").write[Double]
-    )(unlift(ClusteringThreshold.unapply))
-
-    Format(reads, writes)
-  }
+  given clusteringThresholdFormat: Format[ClusteringThreshold] = Json.format[ClusteringThreshold]
 }
 
 object MyPostgresProfile extends MyPostgresProfile

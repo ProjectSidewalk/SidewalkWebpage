@@ -68,8 +68,7 @@
     "add-note": "💬 Agregar una nota",
     "note-placeholder": "Agrega una nota sobre esta etiqueta (opcional)…",
     "save-note": "Guardar nota",
-    "popup-heading": "Tu etiqueta fue validada como incorrecta. ¿Estás de acuerdo en que fue un error?",
-    "your-label": "Tu etiqueta: {{type}}"
+    "popup-heading": "Tu etiqueta fue validada como incorrecta. ¿Estás de acuerdo en que fue un error?"
   },
   "settings-form": {
     "saving": "Guardando…",
@@ -81,6 +80,9 @@
     "create-failed": "No se pudo crear el equipo. Inténtalo de nuevo.",
     "network-error": "Error de red; inténtalo de nuevo."
   },
+  "team-leave-confirm-open": "¿Salir de \"{{name}}\"? Podrás volver a unirte más adelante desde esta misma lista.",
+  "team-leave-confirm-closed": "¿Salir de \"{{name}}\"? No está aceptando nuevos miembros, así que no podrás volver a unirte por tu cuenta.",
+  "team-leave": "Salir del equipo",
   "stories": {
     "none": "Aún no has escrito ninguna historia. Abre una etiqueta en el mapa y elige “Escribe tu historia”."
   },
@@ -91,4 +93,25 @@
   "routes-renamed": "Ruta renombrada.",
   "routes-deleted": "Se eliminó \"{{name}}\".",
   "routes-delete-confirm": "¿Eliminar \"{{name}}\"? Las personas con las que compartiste el enlace ya no podrán usarlo.",
-  "routes-error": "Algo salió mal. Inténtalo de nuevo."}
+  "routes-error": "Algo salió mal. Inténtalo de nuevo.",
+  "cities": {
+    "intro": "Has contribuido en {{cities}} ciudades de Project Sidewalk: {{labels}} etiquetas en total.",
+    "intro-single": "Tu trabajo en {{city}} hasta ahora. Una sola cuenta funciona en todas las ciudades de Project Sidewalk.",
+    "intro-empty": "Una sola cuenta funciona en todas las ciudades de Project Sidewalk. Tu trabajo aparecerá aquí en cuanto empieces a mapear.",
+    "you-are-here": "estás aquí",
+    "col-city": "Ciudad",
+    "col-labels": "Etiquetas",
+    "col-validations": "Validaciones",
+    "col-missions": "Misiones",
+    "col-distance": "Distancia",
+    "col-last-active": "Última etiqueta",
+    "table-caption": "Tus contribuciones en cada ciudad de Project Sidewalk",
+    "distance-note": "La distancia fuera de {{city}} se recalcula cada noche, así que puede tener hasta un día de retraso.",
+    "nudge": "Project Sidewalk mapea banquetas en {{cities}} ciudades, y tu cuenta ya funciona en todas ellas.",
+    "nudge-empty": "Project Sidewalk mapea banquetas en {{cities}} ciudades. Elige una y empieza a explorar.",
+    "nudge-link": "Ver todas las ciudades",
+    "trophy-sub": "Activo en {{cities}} ciudades",
+    "map-popup": "{{labels}} etiquetas · {{validations}} validaciones",
+    "section-added": "Nueva sección disponible: {{section}}."
+  }
+}

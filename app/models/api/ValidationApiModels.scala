@@ -5,9 +5,9 @@
  */
 package models.api
 
-import models.api.ApiModelUtils.escapeCsvField
+import models.label.LabelType
 import models.label.LocationXY
-import models.utils.CommonUtils.UiSource.UiSource
+import models.utils.CommonUtils.UiSource
 import models.validation.ValidationOption
 import play.api.libs.json.{JsObject, Json, JsonConfiguration, JsonNaming, OFormat}
 
@@ -19,38 +19,35 @@ import java.time.OffsetDateTime
  * @param labelId Optional label ID to filter validations by the validated label
  * @param userId Optional user ID to filter validations by the user who performed the validation
  * @param validationResult Optional validation result to filter by (Agree, Disagree, or Unsure)
- * @param labelTypeId Optional label type ID to filter by the type of the validated label
+ * @param labelType Optional label type to filter by the type of the validated label
  * @param validationTimestamp Optional timestamp to filter validations by when they occurred (using startTimestamp)
- * @param changedTags Optional boolean to filter validations where tags were changed (oldTags != newTags)
- * @param changedSeverityLevels Optional boolean to filter validations where severity was changed
- *                              (oldSeverity != newSeverity)
  * @param source Optional validation interface (UiSource) to filter by, e.g. Validate, ValidateMobile, ExpertValidate
  */
 case class ValidationFiltersForApi(
     labelId: Option[Int] = None,
     userId: Option[String] = None,
-    validationResult: Option[ValidationOption.Value] = None,
-    labelTypeId: Option[Int] = None,
+    validationResult: Option[ValidationOption] = None,
+    labelType: Option[LabelType] = None,
     validationTimestamp: Option[OffsetDateTime] = None,
-    changedTags: Option[Boolean] = None,
-    changedSeverityLevels: Option[Boolean] = None,
     source: Option[UiSource] = None
 )
+
+/** Shared by the Validations and Raw Labels APIs so both print the same `validator_type` values. */
+object ValidatorType {
+  def fromIsAi(isAi: Boolean): String = if (isAi) "AI" else "Human"
+}
 
 /**
  * Represents a label validation for the API.
  * Implements StreamingApiType to support streaming output formats like JSON and CSV.
  * Note: Validations do not include geographic coordinates - those are properties of the labels being validated.
+ * A change to the label's severity or tags submitted with the vote is a separate record in the Label Edits API,
+ * linked by `label_validation_id`.
  *
  * @param labelValidationId Unique identifier for the validation
  * @param labelId ID of the validated label
- * @param labelTypeId Type ID of the validated label
- * @param labelType String representation of the label type
+ * @param labelType Type of the validated label (e.g. "CurbRamp")
  * @param validationResult Result of the validation (Agree, Disagree, or Unsure)
- * @param oldSeverity Previous severity assigned to the label
- * @param newSeverity New severity assigned during validation
- * @param oldTags Previous tags assigned to the label
- * @param newTags New tags assigned during validation
  * @param userId ID of the user who performed the validation
  * @param validatorType Whether the validation was performed by a human or AI
  * @param missionId ID of the mission during which the validation was performed
@@ -63,17 +60,15 @@ case class ValidationFiltersForApi(
  * @param startTimestamp When the validation was started
  * @param endTimestamp When the validation was completed
  * @param source Source of the validation
+ * @param validatedLabelType The label's type when the vote was cast. Differs from labelType once the label's type has
+ *                           been changed since (#3671), and such a vote no longer counts toward the label's totals
  */
 case class ValidationDataForApi(
     labelValidationId: Int,
     labelId: Int,
-    labelTypeId: Int,
     labelType: String,
-    validationResult: ValidationOption.Value,
-    oldSeverity: Option[Int],
-    newSeverity: Option[Int],
-    oldTags: List[String],
-    newTags: List[String],
+    validatedLabelType: String,
+    validationResult: ValidationOption,
     userId: String,
     validatorType: String,
     missionId: Int,
@@ -94,82 +89,34 @@ case class ValidationDataForApi(
    *
    * @return A JsObject containing the validation data
    */
-  override def toJson: JsObject = {
-    Json.obj(
-      "label_validation_id" -> labelValidationId,
-      "label_id"            -> labelId,
-      "label_type_id"       -> labelTypeId,
-      "label_type"          -> labelType,
-      "validation_result"   -> validationResult,
-      "old_severity"        -> oldSeverity,
-      "new_severity"        -> newSeverity,
-      "old_tags"            -> oldTags,
-      "new_tags"            -> newTags,
-      "user_id"             -> userId,
-      "validator_type"      -> validatorType,
-      "mission_id"          -> missionId,
-      "canvas_x"            -> canvasXY.map(_.x),
-      "canvas_y"            -> canvasXY.map(_.y),
-      "heading"             -> heading,
-      "pitch"               -> pitch,
-      "zoom"                -> zoom,
-      "canvas_height"       -> canvasHeight,
-      "canvas_width"        -> canvasWidth,
-      "start_timestamp"     -> startTimestamp.toString,
-      "end_timestamp"       -> endTimestamp.toString,
-      "source"              -> source
-    )
-  }
+  override def toJson: JsObject = ValidationDataForApi.toJson(this)
 
-  /**
-   * Converts this ValidationDataForApi object to a CSV row string.
-   *
-   * The fields are ordered to match the header defined in the companion object. Complex fields like arrays are
-   * serialized as JSON strings.
-   *
-   * @return A comma-separated string representing this validation's data
-   */
-  override def toCsvRow: String = {
-    val fields = Seq(
-      labelValidationId.toString,
-      labelId.toString,
-      labelTypeId.toString,
-      escapeCsvField(labelType),
-      validationResult.toString,
-      oldSeverity.map(_.toString).getOrElse(""),
-      newSeverity.map(_.toString).getOrElse(""),
-      escapeCsvField(oldTags.mkString("[", ",", "]")),
-      escapeCsvField(newTags.mkString("[", ",", "]")),
-      escapeCsvField(userId),
-      validatorType,
-      missionId.toString,
-      canvasXY.map(_.x.toString).getOrElse(""),
-      canvasXY.map(_.y.toString).getOrElse(""),
-      heading.toString,
-      pitch.toString,
-      zoom.toString,
-      canvasHeight.toString,
-      canvasWidth.toString,
-      startTimestamp.toString,
-      endTimestamp.toString,
-      escapeCsvField(source.toString)
-    )
-    fields.mkString(",")
-  }
+  override def toCsvRow: String = ValidationDataForApi.toCsvRow(this)
 }
 
-/**
- * Companion object for ValidationDataForApi containing CSV header definition
- */
-object ValidationDataForApi {
+object ValidationDataForApi extends ApiFields[ValidationDataForApi] {
+  import ApiFields.field
 
-  /**
-   * CSV header string with field names in the same order as the toCsvRow output.
-   * This should be included as the first line when generating CSV output.
-   */
-  val csvHeader: String = "label_validation_id,label_id,label_type_id,label_type,validation_result," +
-    "old_severity,new_severity,old_tags,new_tags,user_id,validator_type,mission_id,canvas_x,canvas_y," +
-    "heading,pitch,zoom,canvas_height,canvas_width,start_timestamp,end_timestamp,source\n"
+  override val fields: Seq[ApiField[ValidationDataForApi]] = Seq(
+    field("label_validation_id")(_.labelValidationId),
+    field("label_id")(_.labelId),
+    field("label_type")(_.labelType),
+    field("validated_label_type")(_.validatedLabelType),
+    field("validation_result")(_.validationResult),
+    field("user_id")(_.userId),
+    field("validator_type")(_.validatorType),
+    field("mission_id")(_.missionId),
+    field("canvas_x")(_.canvasXY.map(_.x)),
+    field("canvas_y")(_.canvasXY.map(_.y)),
+    field("heading")(_.heading),
+    field("pitch")(_.pitch),
+    field("zoom")(_.zoom),
+    field("canvas_height")(_.canvasHeight),
+    field("canvas_width")(_.canvasWidth),
+    field("start_timestamp")(_.startTimestamp.toString),
+    field("end_timestamp")(_.endTimestamp.toString),
+    field("source")(_.source)
+  )
 }
 
 /**
@@ -192,6 +139,6 @@ case class ValidationResultTypeForApi(
  */
 object ValidationResultTypeForApi {
   // snake_case JSON output per the v3 API convention (#3871).
-  implicit private val config: JsonConfiguration           = JsonConfiguration(JsonNaming.SnakeCase)
-  implicit val format: OFormat[ValidationResultTypeForApi] = Json.format[ValidationResultTypeForApi]
+  private given config: JsonConfiguration           = JsonConfiguration(JsonNaming.SnakeCase)
+  given format: OFormat[ValidationResultTypeForApi] = Json.format[ValidationResultTypeForApi]
 }

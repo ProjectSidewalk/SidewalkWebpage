@@ -1,14 +1,18 @@
 package controllers
 
+import models.utils.MyPostgresProfile.api.given
+import models.utils.WebpageActivityTable
 import org.apache.pekko.stream.Materializer
-import org.scalatestplus.play.PlaySpec
+import org.scalatest.concurrent.Eventually
+import org.scalatest.time.{Millis, Seconds, Span}
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
-import play.api.test.CSRFTokenHelper._
+import play.api.test.CSRFTokenHelper.*
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
+import util.{RolledBackDb, SidewalkSpec, UserAgents}
 
 /**
  * Public pages must render for cookie-less requests WITHOUT minting an anonymous account (issue #4643).
@@ -21,21 +25,24 @@ import play.api.test.Helpers._
  *
  * Requires a Postgres+PostGIS database (via DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD env, as in dev/CI).
  */
-class SessionlessPagesSpec extends PlaySpec with GuiceOneAppPerSuite {
+class SessionlessPagesSpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledBackDb with Eventually {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule] // No eager background actors during tests.
       .build()
 
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
+
+  override given patienceConfig: PatienceConfig =
+    PatienceConfig(timeout = Span(10, Seconds), interval = Span(100, Millis))
 
   /** The Silhouette authenticator cookie name ("test-authenticator" here); setting it means a session was minted. */
   private lazy val authCookieName: String = app.configuration.get[String]("silhouette.authenticator.cookieName")
 
   /** A representative set of the converted pages: landing, static/docs pages, and the JS-app pages. */
   private val publicPages: Seq[String] = Seq(
-    "/", "/help", "/about", "/api", "/terms", "/cities", "/leaderboard", "/gallery", "/labelMap", "/routeBuilder",
+    "/", "/about", "/api", "/terms", "/cities", "/leaderboard", "/gallery", "/labelMap", "/routeBuilder",
     "/mobileLanding", "/labelingGuide", "/labelingGuide/curbRamps", "/v3/api-docs/rawLabels"
   )
 
@@ -50,18 +57,36 @@ class SessionlessPagesSpec extends PlaySpec with GuiceOneAppPerSuite {
       }
     }
 
+    "return 404 for /help, which is not a route" in {
+      val resp = route(app, FakeRequest(GET, "/help")).get
+      status(resp) mustBe NOT_FOUND
+      cookies(resp).get(authCookieName) mustBe None
+    }
+
     "redirect a cookie-less mobile visitor from / to /mobileLanding without setting the authenticator cookie" in {
-      val mobileUa = "User-Agent" -> "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)"
-      val resp     = route(app, FakeRequest(GET, "/").withHeaders(mobileUa)).get
+      val resp = route(app, FakeRequest(GET, "/").withHeaders(UserAgents.mobile)).get
       status(resp) mustBe SEE_OTHER
       redirectLocation(resp).value mustBe "/mobileLanding"
       cookies(resp).get(authCookieName) mustBe None
     }
+
+    "serve /labelMap to a mobile visitor instead of redirecting to /mobileLanding" in {
+      val resp = route(app, FakeRequest(GET, "/labelMap").withHeaders(UserAgents.mobile)).get
+      status(resp) mustBe OK
+      cookies(resp).get(authCookieName) mustBe None
+    }
+
+    "redirect a mobile visitor from /accessScore to /mobileLanding, as the desktop-only Route Builder does" in {
+      val resp = route(app, FakeRequest(GET, "/accessScore").withHeaders(UserAgents.mobile)).get
+      status(resp) mustBe SEE_OTHER
+      redirectLocation(resp).value mustBe "/mobileLanding"
+      status(route(app, FakeRequest(GET, "/accessScore")).get) mustBe OK
+    }
   }
 
   "Data endpoints the public pages call on load" should {
-    "serve /neighborhoods to a cookie-less request without setting the authenticator cookie" in {
-      val resp = route(app, FakeRequest(GET, "/neighborhoods")).get
+    "serve /regions to a cookie-less request without setting the authenticator cookie" in {
+      val resp = route(app, FakeRequest(GET, "/regions")).get
       status(resp) mustBe OK
       contentType(resp) mustBe Some("application/json")
       (contentAsJson(resp) \ "type").as[String] mustBe "FeatureCollection"
@@ -80,15 +105,23 @@ class SessionlessPagesSpec extends PlaySpec with GuiceOneAppPerSuite {
       cookies(resp).get(authCookieName) mustBe None
     }
 
-    "accept a cookie-less activity beacon (POST /userapi/logWebpageActivity) without setting the authenticator" in {
-      val resp = route(
-        app,
-        FakeRequest(POST, "/userapi/logWebpageActivity")
-          .withJsonBody(Json.toJson("Test_SessionlessBeacon"))
-          .withCSRFToken
-      ).get
-      status(resp) mustBe OK
-      cookies(resp).get(authCookieName) mustBe None
+    "accept a cookie-less activity beacon (POST /userapi/logWebpageActivity) and log it with no user" in {
+      val activities = app.injector.instanceOf[WebpageActivityTable].activities
+      val activity   = s"Test_SessionlessBeacon_${System.nanoTime}"
+      // Only rows added after this, so the lookup stays fast.
+      val lastId = run(activities.map(_.webpageActivityId).max.result).getOrElse(0)
+      val mine   = activities.filter(a => a.webpageActivityId > lastId && a.activity === activity)
+      try {
+        val resp = route(
+          app,
+          FakeRequest(POST, "/userapi/logWebpageActivity").withJsonBody(Json.toJson(activity)).withCSRFToken
+        ).get
+        status(resp) mustBe OK
+        cookies(resp).get(authCookieName) mustBe None
+
+        // The beacon answers before its row is written.
+        eventually { run(mine.map(_.userId).result) mustBe Seq(None) }
+      } finally { run(mine.delete): Unit }
     }
   }
 

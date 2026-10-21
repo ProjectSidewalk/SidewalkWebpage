@@ -5,24 +5,11 @@
  * decide whether a row reads as healthy: an unrecognized status must not render green, a hand-triggered run must sit
  * beside the schedule's record rather than replace it, an empty panel is a failed read rather than a quiet night, and
  * the rows sort worst-first because on a healthy night every row says the same thing.
- *
- * Runs under jsdom (jest.config.js). HealthPage and AdminShell are bare top-level classes in a concatenated bundle,
- * so they are eval'd into global scope rather than required.
  */
 
-const fs = require('fs');
-const path = require('path');
+import { loadModules } from './loader.js';
 
-const JS_DIR = path.resolve(__dirname, '..', '..', 'public/js/admin-dashboard');
-
-/** Loads AdminShell into global scope and returns the HealthPage class. */
-function loadPage() {
-  const shell = fs.readFileSync(path.join(JS_DIR, 'AdminShell.js'), 'utf8');
-  const page = fs.readFileSync(path.join(JS_DIR, 'HealthPage.js'), 'utf8');
-  return (0, eval)(`${shell}\nglobalThis.AdminShell = AdminShell;\n${page}\nHealthPage;`);
-}
-
-const HealthPage = loadPage();
+const { HealthPage } = await loadModules('frontend/js/admin-dashboard/HealthPage.js');
 
 const MARKUP = `
   <span id="kpi-locks"></span><span id="kpi-idle"></span><span id="kpi-slow"></span>
@@ -77,7 +64,7 @@ function job(overrides = {}) {
 /** Renders the panel for a set of job rows and returns the page's DOM. */
 async function render(jobs) {
   document.body.innerHTML = MARKUP;
-  global.fetch = jest.fn().mockResolvedValue({
+  window.fetch = vi.fn().mockResolvedValue({
     ok: true,
     status: 200,
     json: async () => ({
@@ -97,7 +84,7 @@ async function render(jobs) {
     }),
   });
   // init() also starts poll and age tickers; stub them so jsdom isn't left with live intervals.
-  jest.spyOn(global, 'setInterval').mockImplementation(() => 0);
+  vi.spyOn(window, 'setInterval').mockImplementation(() => 0);
   await new HealthPage({ healthUrl: '/adminapi/dbHealth' }).init();
 }
 
@@ -106,10 +93,6 @@ function rows() {
   return [...document.querySelectorAll('#health-jobs tbody tr')]
     .map((tr) => [...tr.cells].map((td) => td.textContent.replace(/\s+/g, ' ').trim()));
 }
-
-afterEach(() => {
-  jest.restoreAllMocks();
-});
 
 describe('the nightly jobs panel', () => {
   test('renders a row per job with its schedule, duration and recorded counts', async () => {
@@ -150,6 +133,18 @@ describe('the nightly jobs panel', () => {
       job({ label: 'Overdue but ok', last_status: 'succeeded', overdue: true }),
     ]);
     expect(rows().map((r) => r[0])).toEqual(['Never run', 'Overdue but ok', 'Failed', 'Fine']);
+  });
+
+  test('shows a run its process died in as interrupted, in the bad tone, between abandoned and failed', async () => {
+    await render([
+      job({ label: 'Failed', last_status: 'failed' }),
+      job({ label: 'Interrupted', last_status: 'interrupted' }),
+      job({ label: 'Abandoned', last_status: 'abandoned' }),
+    ]);
+    expect(rows().map((r) => r[0])).toEqual(['Abandoned', 'Interrupted', 'Failed']);
+    const badge = [...document.querySelectorAll('#health-jobs tbody tr')][1].querySelector('td:nth-child(3) span');
+    expect(badge.textContent).toBe('interrupted');
+    expect(badge.className).toContain('ac-badge--bad');
   });
 
   test('labels a job whose last scheduled run succeeded but is too old as overdue', async () => {

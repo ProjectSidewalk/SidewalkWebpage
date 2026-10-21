@@ -2,14 +2,14 @@ package actor
 
 import actor.ActorUtils.{dateFormatter, getTimeToNextUpdate}
 import models.utils.JobRunTrigger
-import org.apache.pekko.actor.{Actor, Cancellable}
+import org.apache.pekko.actor.{Actor, ActorRef, Cancellable}
 import play.api.Logger
 import service.{ConfigService, JobRunService, PanoDataService}
 
 import java.time.Instant
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.ExecutionContext
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import scala.util.{Failure, Success}
 
 object CheckImageExpiryActor {
@@ -18,7 +18,7 @@ object CheckImageExpiryActor {
 }
 
 @Singleton
-class CheckImageExpiryActor @Inject() (panoDataService: PanoDataService, jobRunService: JobRunService)(implicit
+class CheckImageExpiryActor @Inject() (panoDataService: PanoDataService, jobRunService: JobRunService)(using
     ec: ExecutionContext,
     configService: ConfigService
 ) extends Actor {
@@ -41,7 +41,7 @@ class CheckImageExpiryActor @Inject() (panoDataService: PanoDataService, jobRunS
           24.hours,
           self,
           CheckImageExpiryActor.Tick
-        )(context.dispatcher)
+        )(using context.dispatcher, ActorRef.noSender)
       )
       logger.info("CheckImageExpiryActor created")
     }

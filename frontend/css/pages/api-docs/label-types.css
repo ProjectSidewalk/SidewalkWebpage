@@ -1,0 +1,42 @@
+/**
+ * Project Sidewalk API Documentation - Label Types Component Styles
+ *
+ * Cell styles for the label-types table, a .ps-table instance built by labelTypesPreview.js.
+ */
+
+#label-types-preview {
+  margin: var(--space-lg) 0;
+  max-width: 1000px;
+  width: 100%;
+}
+
+.label-name {
+  font: var(--text-small-bold);
+}
+
+.label-description {
+  color: var(--color-neutral-700);
+  max-width: 250px;
+}
+
+/* Color Swatch */
+.color-swatch {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  margin-right: var(--space-xs);
+  border: 1px solid var(--color-neutral-200);
+}
+
+/* The cell is filled with the label type's own color, so the name is drawn in white with a halo. */
+.color-cell {
+  color: var(--color-neutral-white);
+  text-shadow: 0 0 2px rgb(from var(--color-neutral-black) r g b / 70%);
+}
+
+/* Light-colored cells use dark text for contrast */
+.light-color {
+  color: var(--color-neutral-900);
+  text-shadow: 0 0 2px rgb(from var(--color-neutral-white) r g b / 70%);
+}

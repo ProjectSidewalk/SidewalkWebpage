@@ -1,11 +1,10 @@
 @import models.label.Tag
-@import models.user.SidewalkUserWithRole
+@import models.user.{Role, SidewalkUserWithRole}
 @import play.api.Configuration
 @import service.CommonPageData
-@import models.pano.PanoSource
 @(commonData: CommonPageData, title: String, user: Option[SidewalkUserWithRole], tags: Seq[Tag] = Seq.empty, regionIds: Seq[Int],
   routeIds: Seq[Int], aiValidationOptions: Seq[String]
-)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+)(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
 
@@ -15,7 +14,7 @@
   <div id="page-loading">
     <img id="loading-animation" src='@assets.path("videos/ProjectSidewalk_LoadingAnimation_WithArmMovement_Medium.webp")' alt='@Messages("loading")'>
   </div>
-  <div id="labelmap-choropleth-container" class="container choropleth-container">
+  <div id="labelmap-choropleth-container" class="choropleth-container">
     <div id="labelmap-choropleth-holder" class="choropleth-holder">
       <div id="labelmap-choropleth" class="choropleth"></div>
       @common.filterSidebar(tags = tags, sections = Seq("search", "severity", "label-type", "validations", "streets"), showOutdatedStreetFilter = true, showCounts = true)
@@ -26,200 +25,16 @@
   @* withPaging renders prev/next arrows; LabelPopup keeps them hidden until the nearby-label navigator is set. *@
   @common.labelPopup(admin = false, withPaging = true)
 
-  <link href='@assets.path("css/label-detail.css")' rel="stylesheet">
-  <link href='@assets.path("css/filter-sidebar.css")' rel="stylesheet">
-  <link href='@assets.path("css/map-download-control.css")' rel="stylesheet">
-  <link href='@assets.path("css/tag-pills.css")' rel="stylesheet">
+  @ViteAssets.stylesheets("labelMap")
 
-  <script src='@assets.path("vendor/i18next/i18next-23.16.8.min.js")'></script>
-  <script src='@assets.path("vendor/i18next-http-backend/i18nextHttpBackend-3.0.4.min.js")'></script>
-  <script src='@assets.path("vendor/panzoom/panzoom-9.4.4.min.js")'></script>
-  <script src='@assets.path("js/admin/build/admin.js")'></script>
-  <script src='@assets.path("vendor/datatables/jquery.dataTables.min.js")'></script>
-  <script src='@assets.path("vendor/datatables/dataTables.bootstrap.min.js")'></script>
-  <script src='@assets.path("js/common/utilitiesSidewalk.js")'></script>
-  @if(commonData.imagerySource == PanoSource.Infra3d) {
-    <script src='@assets.path("vendor/proj4/proj4-2.19.10.js")'></script>
-    <script src='@assets.path("vendor/infra3d/infra3dapi-1.8.0.js")'></script>
-  } else if (commonData.imagerySource == PanoSource.Mapillary) {
-  <script src='@assets.path("vendor/three/three-0.160.1-min.js")'></script>
-  <script src='@assets.path("vendor/mapillary/mapillary-4.1.2.min.js")'></script>
-  <link href='@assets.path("vendor/mapillary/mapillary-4.1.2.css")' rel="stylesheet">
-  }
-  <script src='@assets.path("vendor/pannellum/pannellum-2.5.7.js")'></script>
-  <link rel="stylesheet" href='@assets.path("vendor/pannellum/pannellum-2.5.7.css")'>
-  <script src='@assets.path("js/common/pano-viewer/build/pano-viewer.js")'></script>
-  <script src='@assets.path("js/common/timestampLocalization.js")'></script>
-  <script>updateTimestamps("@messages.lang.code");</script>
-
-  <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.js")'></script>
-  <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")'></script>
-  <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-search-1.5.0.js")'></script>
-  <link href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.css")' rel="stylesheet">
-  <script src='@assets.path("js/ps-map/build/ps-map.js")'></script>
-  <script src='@assets.path("js/labelMapLocationSearch.js")'></script>
-  <link href='@assets.path("css/choropleth.css")' rel="stylesheet">
-  <link href='@assets.path("css/admin.css")' rel="stylesheet">
-
-  <script>
-    const imagerySrc = "@commonData.imagerySource.toString";
-    const viewerType = imagerySrc === 'mapillary' ? MapillaryViewer : imagerySrc === 'infra3d' ? Infra3dViewer : GsvViewer;
-    const accessToken = "@commonData.imageryAccessToken";
-
-    // Shared with /admin/label-map so both label maps report loading and failure identically.
-    const labelMapOverlay = new MapLoadingOverlay();
-
-    // Gets all translations before loading the choropleth.
-    window.appManager.ready(async function () {
-      // Declared before params because the popup's callbacks below reference the helpers built from it, and a
-      // ?labelId= deep link fires onShow while LabelPopup() is still being awaited — i.e. before this line
-      // would otherwise run, which threw a temporal-dead-zone ReferenceError and aborted the deep-linked load.
-      const self = {};
-
-      // On this page the map is the open label's context (the spotlight beacon sits beside the dialog), so
-      // swap the dialog's default dark backdrop for a light veil that keeps the spotlighted dot readable.
-      const labelModal = document.getElementById('label-modal');
-      labelModal.classList.add('label-detail--map-host');
-
-      const deepLinkLabelId = LabelDetail.urlLabelId();
-
-      // label_id -> [lng, lat] of the label's pano and label_id -> label type, from the popup's metadata fetch.
-      // Fallback data (the pano sits within ~15m of the label — under a beacon-width at zoom 16) for when the
-      // map's own label data can't describe the label: before the large label layer has streamed in, or for
-      // labels /labels/all doesn't carry.
-      const cameraCoordsByLabelId = new Map();
-      const labelTypeByLabelId = new Map();
-
-      // Best known [lng, lat] / label type for a label: from the map data once loaded, else the popup metadata.
-      const labelCoords = (labelId) =>
-        (self.nearbyNav && self.nearbyNav.getCoords(labelId)) || cameraCoordsByLabelId.get(labelId) || null;
-      const labelType = (labelId) =>
-        (self.nearbyNav && self.nearbyNav.getLabelType(labelId)) || labelTypeByLabelId.get(labelId) || null;
-
-      // Beacon + gutter camera + chat-bubble tail + sidebar-filter bypass for the popup's label — see
-      // ps-map/labelSpotlight.js.
-      const spotlight = createLabelSpotlight({
-        dialog: labelModal,
-        getMap: () => self.map,
-        getMapData: () => self.mapData,
-        getCoords: labelCoords,
-        getLabelType: labelType,
-      });
-
-      let params = {
-        mapName: 'labelmap-choropleth',
-        mapStyle: 'mapbox://styles/mapbox/light-v11?optimize=true',
-        mapboxApiKey: '@commonData.mapboxApiKey',
-        mapboxLogoLocation: 'bottom-right',
-        neighborhoodFillMode: 'singleColor',
-        neighborhoodFillColor: '#808080',
-        neighborhoodFillOpacity: 0.1,
-        neighborhoodTooltip: 'none',
-        differentiateUnauditedStreets: true,
-        interactiveStreets: true,
-        uiSource: 'LabelMap',
+  <script type="module" id="page-entry" src='@assets.path("build/js/labelMap.js")'
+        data-mapbox-api-key="@commonData.mapboxApiKey"
+        data-imagery-source="@commonData.imagerySource.name"
+        data-imagery-access-token="@commonData.imageryAccessToken"
         @* Anonymous sessions have autogenerated usernames (and cookie-less visitors none at all), so only a real
            account's name reaches the story composer. *@
-        popupLabelViewer: await LabelPopup(false, viewerType, accessToken,
-                                           @if(user.exists(_.role != "Anonymous")) {"@user.map(_.username)"} else {null}, {
-          syncUrlSource: 'LabelMap',
-          showExploreHereLink: true,
-          // Keep the shown label spotlighted beside the dialog while paging, and pulse it on close so the user
-          // is re-anchored.
-          onShow: labelId => spotlight.spotlight(labelId),
-          onClose: labelId => spotlight.pulse(labelId),
-          // A deep-linked label opens before (or without) the map's label data; once the popup's metadata
-          // arrives, spotlight from its camera position rather than leaving the city-wide view up.
-          onMetadata: (labelId, meta) => {
-            if (meta.label_type) labelTypeByLabelId.set(labelId, meta.label_type);
-            if (typeof meta.camera_lng !== 'number' || typeof meta.camera_lat !== 'number') return;
-            cameraCoordsByLabelId.set(labelId, [meta.camera_lng, meta.camera_lat]);
-            if (spotlight.spotlightedLabelId() !== labelId) spotlight.spotlight(labelId, true);
-          }
-        }),
-        navigationControlPosition: 'top-right',
-        highQualityFilter: true
-      };
-      params.neighborhoodsURL = new URL('/neighborhoods', window.location.origin);
-      params.completionRatesURL = new URL('/neighborhoods/completionRate', window.location.origin);
-      params.streetsURL = new URL('/contribution/streets/all?filterLowQuality=true', window.location.origin);
-      params.labelsURL = new URL('/labels/all', window.location.origin);
-
-      let regionsParam = '@{regionIds.mkString(",")}';
-      if (regionsParam) {
-        params.neighborhoodsURL.searchParams.append('regions', regionsParam);
-        params.completionRatesURL.searchParams.append('regions', regionsParam);
-        params.streetsURL.searchParams.append('regions', regionsParam);
-        params.labelsURL.searchParams.append('regions', regionsParam);
-      }
-
-      let routesParam = '@{routeIds.mkString(",")}';
-      if (routesParam) {
-        params.streetsURL.searchParams.append('routes', routesParam);
-        params.labelsURL.searchParams.append('routes', routesParam);
-      }
-
-      let aiValidationOptionsParam = '@{aiValidationOptions.mkString(",")}';
-      if (aiValidationOptionsParam) {
-        params.labelsURL.searchParams.append('aiValidationOptions', aiValidationOptionsParam);
-      }
-
-      // Mount the address search and reveal the loading indicator as soon as the map is ready, not after the (large)
-      // label layer finishes loading, so they appear with the sidebar rather than popping in late (#4370/#4447).
-      params.onMapReady = (map) => {
-        self.map = map;
-        // A shared link's viewport applies before the label layers stream in, so a deep-linked user isn't
-        // parked on the city-wide view while they load (#4696).
-        self.hasUrlViewport = MapSidebarUrlSync.applyUrlViewport(map);
-        map.on('move', spotlight.updateTail); // Keep the tail pinned to the dot through pans/zooms/eases.
-        initLabelMapLocationSearch(map, params.mapboxApiKey);
-        labelMapOverlay.show();
-        // A deep-linked popup's metadata fetch races map init; if it already arrived, place the camera now
-        // instead of leaving the city-wide view up while the label layer streams in.
-        if (deepLinkLabelId && !spotlight.spotlightedLabelId()) spotlight.spotlight(deepLinkLabelId, true);
-      };
-
-      createPSMap($, params).then(m => {
-        self.map = m[0];
-        self.mapData = m[4];
-        // A ?regionId= link lands framed on that neighborhood, as it already does on the user dashboard's map —
-        // unless the URL carries an explicit viewport, which wins (#4696).
-        if (!self.hasUrlViewport) setRegionFocus(self.map);
-        const sidebarFilter = new MapSidebarFilter(self.map, self.mapData, { highQualityFilter: true });
-        // Restore shared-link filters from the URL and keep the URL updated as filters and viewport change.
-        new MapSidebarUrlSync(sidebarFilter, self.map);
-        // "Download" control (#4095), added after the labels stream in so its count is always real. A single
-        // deep-linked region is passed through to the download; the other page-level params (multi-region, routes,
-        // AI validation) have no rawLabels counterpart, so the panel shows a caveat instead.
-        // Only one well-formed region id can be passed through. A malformed one is dropped rather than forwarded:
-        // it would reach rawLabels as a bad value and 400, which a plain anchor download shows as nothing happening.
-        const rawRegionIds = regionsParam ? regionsParam.split(',') : [];
-        const regionIds = rawRegionIds.map(Number).filter(Number.isInteger);
-        const downloadRegionId = rawRegionIds.length === 1 && regionIds.length === 1 ? regionIds[0] : null;
-        self.map.addControl(new MapDownloadControl({
-          getFilterState: () => sidebarFilter.getState(),
-          getVisibleLabelCount: () => sidebarFilter.getVisibleLabelCount(),
-          regionId: downloadRegionId,
-          // Any region param the download can't carry verbatim leaves the file wider than the map, caveat included.
-          showsPartialFilterCaveat: (rawRegionIds.length > 0 && downloadRegionId === null)
-            || Boolean(routesParam) || Boolean(aiValidationOptionsParam),
-        }), 'top-right');
-        // Popup arrows step through spatially nearby labels using the already-loaded map data.
-        self.nearbyNav = createNearbyLabelNavigator(self.mapData);
-        params.popupLabelViewer.setNearbyNavigator(self.nearbyNav);
-
-        // Re-spotlight the open (deep-linked) label now that exact coords and the label layers exist — refines
-        // an approximate camera-coords placement and applies the filter bypass so the dot is actually drawn.
-        const openLabelId = spotlight.spotlightedLabelId() || deepLinkLabelId;
-        if (openLabelId && labelModal.open) {
-          spotlight.spotlight(openLabelId, true);
-        }
-        labelMapOverlay.hide();
-      }).catch(e => {
-        console.error('LabelMap failed to load', e);
-        labelMapOverlay.showError();
-      });
-      window.map = self;
-    });
-  </script>
+        data-username="@if(user.exists(_.role != Role.Anonymous)) {@user.map(_.username)}"
+        data-region-ids="@regionIds.mkString(",")"
+        data-route-ids="@routeIds.mkString(",")"
+        data-ai-validation-options="@aiValidationOptions.mkString(",")"></script>
 }

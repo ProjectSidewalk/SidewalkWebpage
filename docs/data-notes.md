@@ -9,6 +9,56 @@ impact, add a dated, version-tagged entry here (newest first) so future analysts
 
 ## Data caveats by release
 
+### Visit-only anonymous accounts were deleted (#5612)
+
+Until v11.8.0, opening any page made an anonymous account. The roughly 5.3 million that never did anything and never
+opened a tool (Explore, Validate, …) were deleted. Their `AnonAutoSignUp` rows are gone from `webpage_activity` and
+their other rows there have no `user_id`, so counts of anonymous accounts and sign-ups for earlier periods are far
+lower than older reports show.
+
+### `webpage_activity.user_id` can be empty (#4643)
+
+A page opened with no session (a crawler, or a first visit before opening Explore) is logged with no `user_id`. Every
+older row on the shared `anonymous` account was moved to no user too, DC's visit-only page views included. For a rough
+visitor count, count distinct `ip_address`.
+
+### `ip_address` columns became `inet` (#5398)
+
+Every `ip_address` column is now Postgres `inet` instead of `text`. What changes for analysis:
+
+- The same address written two ways (`01.02.03.04` vs `1.2.3.4`) now counts once, so `COUNT(DISTINCT ip_address)`
+  can be a little lower than before.
+- `ip_address::text` gives `1.2.3.4/32`. Use `host(ip_address)` for just the address.
+- Rows whose IP wasn't a real IP were deleted: about 380 `webpage_activity` rows from bots faking the header (all
+  before v11.8.0), and 43 DC `audit_task_environment` rows from 2016–17 holding `''` or `'unknown'`.
+
+### Washington, DC re-launch (#4700) — the 2015–2021 pilot data migrated into a normal city schema
+
+DC's original deployment (2015-10-17 → 2021-04-08) ran on a mid-2018 fork of the schema and was frozen. It has been
+migrated by replaying the evolutions it missed with a curated patch overlay (`db/dc-migration/`), so it now lives in
+`sidewalk_dc` like any city and the hardcoded legacy-DC constants that the aggregate stats used to add on top are
+gone. Analysts should know:
+
+- **Missions are reconstructed.** DC's app had per-region cumulative-distance milestones, not modern missions. Its
+  `mission` rows were rebuilt from the `MissionComplete` interaction events, the legacy `mission_user` rows (timed by
+  replaying distance where no event exists) and, for work before Sept 2016 when nothing logged completions, a
+  replay of the milestone ladders. Work after a user's last milestone in a region is one completed mission. Turker
+  pay per mission is what the legacy app paid for that milestone.
+- **The shared `anonymous` account was split** into one anonymous user per IP address that audited; visit-only
+  page views stay on the shared account.
+- **Streets keep the 2015 network** and belong to one neighborhood each (largest-overlap pick; DC never split
+  streets at boundaries). The original 192-neighborhood set was dropped in favor of the 179 shown since 2016.
+- **Label positions were converted after the migration, not by it.** The 179.sql coordinate fix never applied on DC
+  (all pano dimensions were NULL). The dimensions were recovered from the scraped store and Google, and the
+  conversion and position recompute ran as `tools/one-off/5667-dc-label-positions.sql` (#5667); its backup table
+  `old_label_point_coords_2` holds the pre-conversion values. Labels on panos nobody can size any more keep the
+  legacy coordinates (negative `pano_y`), a few hundred whose pano has no recorded position still have no
+  lat/lng, and the ~14,800 tutorial labels were left alone on purpose. 37 labels with an empty pano id were deleted,
+  as 298.sql did elsewhere.
+- **Naive timestamps** (`label.time_created`, survey submissions) were US/Eastern before 2018-08-25 and UTC after.
+- The public aggregate stats now count DC live: users 823 registered + the split anonymous accounts rather than the
+  old fixed 1,395; distance 2,089 km of network rather than the 5,482 km "explored" (which counted repeat audits).
+
 ### v7.8.5 — `audit_task.task_start` corrected
 
 Before v7.8.5, the `task_start` column in `audit_task` was incorrectly set to the **session** start time rather than
@@ -35,13 +85,10 @@ Up to the v2 release, records for **anonymous users weren't marked as `complete`
 
 ## Gallery screenshot tips
 
-Console snippets for staging clean label screenshots in the Gallery's expanded card view:
+The expanded card's own "hide label" toggle (#2477) takes the marker off the imagery, and stays off as you page.
+To nudge the marker instead, it is a positioned element over the pano canvas, so devtools can move it:
 
 ```js
-// Hide the label icon/marker in the expanded view.
-sg.cardContainer.getModal().pano.labelMarker.marker.setVisible(false);
-
-// Inspect the marker's current heading/pitch, then reposition it.
-sg.cardContainer.getModal().pano.labelMarker.marker.getPosition();           // current { heading, pitch }
-sg.cardContainer.getModal().pano.labelMarker.marker.setPosition({ heading: newH, pitch: newP });
+const marker = document.querySelector('.gallery-expanded-view .label-detail__marker');
+marker.style.left = `${parseFloat(marker.style.left) + 10}px`; // The viewer re-places it on the next pan or zoom.
 ```

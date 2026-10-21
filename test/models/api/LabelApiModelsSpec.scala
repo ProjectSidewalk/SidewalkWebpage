@@ -1,7 +1,7 @@
 package models.api
 
+import models.label.StreetSide
 import models.pano.PanoSource
-import models.pano.PanoSource.PanoSource
 import org.scalatest.OptionValues
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
@@ -10,12 +10,12 @@ import play.api.libs.json.JsObject
 import java.time.{OffsetDateTime, ZoneOffset}
 
 /**
- * Pure (no DB, no app boot) contract test for the `/v3/api/rawLabels` `pano_url` field (#3853).
+ * Pure (no DB, no app boot) contract tests for `/v3/api/rawLabels` output fields the compiler can't check.
  *
- * Locks the provider-aware behavior the compiler can't see: GSV labels get Google's documented Maps URLs link,
- * Mapillary labels get a Mapillary web-app link, and providers with no shareable viewer (infra3d) get `null` in JSON
- * and an empty CSV column. Also guards that the GSV URL carries no API key and matches the in-app `PanoInfoPopover.js`
- * shape (`map_action=pano`, label heading/pitch passed through unchanged).
+ * `pano_url` (#3853) is provider-aware: GSV gets Google's documented Maps URLs link (no API key, matching the in-app
+ * `PanoInfoPopover.js` shape), Mapillary gets a web-app link, infra3d has no viewer so it is `null` / an empty CSV
+ * column. `high_quality_user` (#5067) must reach both JSON and CSV, under the column its header names. `street_side` and
+ * `centerline_offset_m` (#2886) are nullable and must round-trip as the enum's string / a JSON null.
  */
 class LabelApiModelsSpec extends AnyFunSuite with Matchers with OptionValues {
 
@@ -23,7 +23,9 @@ class LabelApiModelsSpec extends AnyFunSuite with Matchers with OptionValues {
   private def sampleLabel(
       source: PanoSource,
       heading: Option[Double] = Some(94.3114318847656),
-      pitch: Option[Double] = Some(-24.6774997711182)
+      pitch: Option[Double] = Some(-24.6774997711182),
+      streetSide: Option[StreetSide] = Some(StreetSide.Left),
+      centerlineOffsetM: Option[Double] = Some(4.25)
   ): LabelDataForApi = LabelDataForApi(
     labelId = 8,
     userId = "user-uuid",
@@ -34,10 +36,13 @@ class LabelApiModelsSpec extends AnyFunSuite with Matchers with OptionValues {
     tags = List.empty,
     description = None,
     timeCreated = OffsetDateTime.of(2023, 8, 16, 0, 0, 0, 0, ZoneOffset.UTC),
+    highQualityUser = true,
     streetEdgeId = 951,
     osmWayId = 11584845L,
     regionId = 1,
     regionName = "Teaneck",
+    streetSide = streetSide,
+    centerlineOffsetM = centerlineOffsetM,
     latitude = 40.8839912414551,
     longitude = -74.0243606567383,
     correct = Some(true),
@@ -83,6 +88,11 @@ class LabelApiModelsSpec extends AnyFunSuite with Matchers with OptionValues {
       "https://www.mapillary.com/app/?pKey=DsCvWstZYz9JL81V9NloOQ&focus=photo"
   }
 
+  test("Panoramax pano_url links to the federated viewer's picture permalink at the label's heading/pitch") {
+    sampleLabel(PanoSource.Panoramax).panoUrl.value shouldBe
+      "https://api.panoramax.xyz/#focus=pic&pic=DsCvWstZYz9JL81V9NloOQ&xyz=94.31/-24.68/30"
+  }
+
   test("infra3d has no shareable viewer URL (None)") {
     sampleLabel(PanoSource.Infra3d).panoUrl shouldBe None
   }
@@ -101,5 +111,38 @@ class LabelApiModelsSpec extends AnyFunSuite with Matchers with OptionValues {
 
     // pano_url is the antepenultimate column (followed by latitude,longitude); for infra3d it is empty.
     sampleLabel(PanoSource.Infra3d).toCsvRow should endWith(",,40.8839912414551,-74.0243606567383")
+  }
+
+  test("high_quality_user reaches GeoJSON properties and the CSV column its header names") {
+    val label = sampleLabel(PanoSource.Gsv)
+    (label.toJson \ "properties" \ "high_quality_user").as[Boolean] shouldBe true
+
+    val columnIndex = LabelDataForApi.csvHeader.trim.split(",").indexOf("high_quality_user")
+    columnIndex should be >= 0
+    label.toCsvRow.split(",", -1)(columnIndex) shouldBe "true"
+  }
+
+  test("street_side and centerline_offset_m reach GeoJSON properties and their CSV columns, null when unset") {
+    val header      = LabelDataForApi.csvHeader.trim.split(",")
+    val sideIndex   = header.indexOf("street_side")
+    val offsetIndex = header.indexOf("centerline_offset_m")
+    sideIndex should be >= 0
+    offsetIndex should be >= 0
+
+    val sided = sampleLabel(PanoSource.Gsv)
+    (sided.toJson \ "properties" \ "street_side").as[String] shouldBe "left"
+    (sided.toJson \ "properties" \ "centerline_offset_m").as[Double] shouldBe 4.25
+    sided.toCsvRow.split(",", -1)(sideIndex) shouldBe "left"
+    sided.toCsvRow.split(",", -1)(offsetIndex) shouldBe "4.25"
+
+    // Within the floor: the offset is still reported, the side is not.
+    val nearLine = sampleLabel(PanoSource.Gsv, streetSide = None, centerlineOffsetM = Some(-0.4))
+    (nearLine.toJson \ "properties" \ "street_side").toOption.map(_.toString) shouldBe Some("null")
+    (nearLine.toJson \ "properties" \ "centerline_offset_m").as[Double] shouldBe -0.4
+    nearLine.toCsvRow.split(",", -1)(sideIndex) shouldBe ""
+
+    val unpositioned = sampleLabel(PanoSource.Gsv, streetSide = None, centerlineOffsetM = None)
+    (unpositioned.toJson \ "properties" \ "centerline_offset_m").toOption.map(_.toString) shouldBe Some("null")
+    unpositioned.toCsvRow.split(",", -1)(offsetIndex) shouldBe ""
   }
 }

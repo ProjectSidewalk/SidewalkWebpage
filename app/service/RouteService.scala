@@ -2,17 +2,17 @@ package service
 
 import com.google.inject.ImplementedBy
 import formats.json.RouteBuilderFormats.{NewRoute, NewRouteStreet, RouteUpdate}
-import models.route._
+import models.route.*
 import models.utils.{MyPostgresProfile, PolylineEncoder, ProfanityGuard, RouteThumbnail, SlugUtils}
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import org.locationtech.jts.geom.LineString
-import org.postgresql.util.PSQLException
+import org.postgresql.util.{PSQLException, PSQLState}
 import play.api.Configuration
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import java.time.OffsetDateTime
 import java.util.UUID
-import javax.inject._
+import javax.inject.*
 import scala.collection.mutable
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -49,13 +49,13 @@ class RouteServiceImpl @Inject() (
     routeStreetTable: RouteStreetTable,
     routeSlugAliasTable: RouteSlugAliasTable,
     auditTaskUserRouteTable: AuditTaskUserRouteTable,
-    config: Configuration,
-    implicit val ec: ExecutionContext
-) extends RouteService
+    config: Configuration
+)(using ec: ExecutionContext)
+    extends RouteService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   /** SQLState for a Postgres unique-constraint violation, the backstop for concurrent slug generation. */
-  private val UniqueViolation: String = "23505"
+  private val UniqueViolation: String = PSQLState.UNIQUE_VIOLATION.getState
 
   /**
    * Runs a slug-generating action, retrying once if a concurrent save grabbed the same slug between our
@@ -129,18 +129,34 @@ class RouteServiceImpl @Inject() (
    * If no name was submitted, the route is named "Route <id>" (which needs the id, so the row is inserted with a
    * placeholder slug that is replaced in the same transaction).
    *
-   * @return The new route's id, saved name, and slug, or Left if the name or description was rejected.
+   * The route is filed under the region of its first street. Its other streets may be in any region (#3488).
+   *
+   * @return The new route's id, saved name, and slug, or Left if the name or description was rejected or a
+   *         street doesn't exist.
    */
   def saveRoute(route: NewRoute, userId: String): Future[Either[RouteRejection, SavedRoute]] =
     contentRejection(route.name, route.description) match {
       case Some(rejection) => Future.successful(Left(rejection))
       case None            =>
-        saveRouteAction(route, userId).flatMap { case (routeId, name, slug) =>
-          describeSavedRoute(routeId, name, slug).map(Right(_))
+        // The reads guarantee at least one street.
+        val startRegion: Future[Option[Int]] = allStreetsKnown(route.streets).flatMap {
+          case false => Future.successful(None)
+          case true  => db.run(routeTable.getRegionIdOfStreet(route.streets.head.streetId))
+        }
+        startRegion.flatMap {
+          case None                => Future.successful(Left(UnknownStreetRejection))
+          case Some(startRegionId) =>
+            saveRouteAction(route, startRegionId, userId).flatMap { case (routeId, name, slug) =>
+              describeSavedRoute(routeId, name, slug).map(Right(_))
+            }
         }
     }
 
-  private def saveRouteAction(route: NewRoute, userId: String): Future[(Int, String, String)] = withSlugRetry {
+  private def saveRouteAction(
+      route: NewRoute,
+      startRegionId: Int,
+      userId: String
+  ): Future[(Int, String, String)] = withSlugRetry {
     val submittedName: Option[String] = route.name.map(_.trim).filter(_.nonEmpty)
     val description: Option[String]   = cleanDescription(route.description)
     db.run((for {
@@ -148,7 +164,7 @@ class RouteServiceImpl @Inject() (
         .map(uniqueSlugAction(_, None))
         .getOrElse(DBIO.successful(s"route-tmp-${UUID.randomUUID}"))
       routeId: Int <- routeTable.insert(
-        Route(0, userId, route.regionId, submittedName.getOrElse(""), initialSlug, description, public = false,
+        Route(0, userId, startRegionId, submittedName.getOrElse(""), initialSlug, description, public = true,
           deleted = false, OffsetDateTime.now, distanceMeters = 0d, streetCount = 0)
       )
       savedName: String = submittedName.getOrElse(s"Route $routeId")
@@ -196,17 +212,18 @@ class RouteServiceImpl @Inject() (
         usage      <- usageFuture
         geometries <- geometriesFuture
       } yield {
-        val polylines: Map[Int, String] = geometries.groupBy(_._1).map { case (routeId, streets) =>
-          routeId -> encodeRouteGeometry(streets.map { case (_, reverse, geom) => (reverse, geom) })
-        }
+        val geometryByRoute: Map[Int, RouteGeometry] =
+          geometries.groupBy { case (routeId, _, _) => routeId }.map { case (routeId, streets) =>
+            routeId -> routeGeometry(streets.map { case (_, reverse, geom) => (reverse, geom) })
+          }
         routes.map { route =>
-          val (started, completed) = usage.getOrElse(route.routeId, (0, 0))
-          val polyline: String     = polylines.getOrElse(route.routeId, "")
+          val (started, completed)    = usage.getOrElse(route.routeId, (0, 0))
+          val geometry: RouteGeometry = geometryByRoute.getOrElse(route.routeId, RouteGeometry("", None))
           route.copy(
             startedCount = started,
             completedCount = completed,
-            encodedPolyline = polyline,
-            thumbnailUrl = RouteThumbnail.url(polyline, mapboxApiKey)
+            encodedPolyline = geometry.polyline,
+            thumbnailUrl = RouteThumbnail.url(geometry.polyline, geometry.endpoints, mapboxApiKey)
           )
         }
       }
@@ -224,38 +241,47 @@ class RouteServiceImpl @Inject() (
    * without the client owning a second polyline implementation.
    */
   private def describeSavedRoute(routeId: Int, name: String, slug: String): Future[SavedRoute] = {
-    val routeFuture      = db.run(routeTable.getRoute(routeId))
+    val routeFuture      = db.run(routeTable.getRouteWithStats(routeId))
     val geometriesFuture = db.run(routeTable.getStreetGeometries(Seq(routeId)))
     for {
       route      <- routeFuture
       geometries <- geometriesFuture
     } yield {
-      val polyline: String = encodeRouteGeometry(geometries.map { case (_, reverse, geom) => (reverse, geom) })
+      val geometry: RouteGeometry = routeGeometry(geometries.map { case (_, reverse, geom) => (reverse, geom) })
       SavedRoute(
         routeId,
         name,
         slug,
+        route.map(_.regionName).getOrElse(""),
+        route.map(_.regionCount).getOrElse(1),
         route.map(_.distanceMeters).getOrElse(0d),
-        polyline,
-        RouteThumbnail.url(polyline, mapboxApiKey)
+        geometry.polyline,
+        RouteThumbnail.url(geometry.polyline, geometry.endpoints, mapboxApiKey)
       )
     }
   }
 
+  /** A route's geometry as its thumbnail needs it: the encoded path, and where the walk starts and ends. */
+  private case class RouteGeometry(polyline: String, endpoints: Option[RouteThumbnail.Endpoints])
+
   /**
-   * Encodes a route's streets as one polyline for a static-map thumbnail.
+   * Encodes a route's streets as one polyline for a static-map thumbnail, with its endpoints.
    *
    * Concatenates the streets' coordinates in walking order (flipping reversed streets), then thins the path —
-   * thumbnails are tiny, and the polyline rides in a URL.
+   * thumbnails are tiny, and the polyline rides in a URL. The endpoints are taken before thinning, though
+   * decimation keeps both ends anyway.
    *
    * @param streets The route's streets in walking order, as (reverse, geometry) pairs.
    */
-  private def encodeRouteGeometry(streets: Seq[(Boolean, LineString)]): String = {
+  private def routeGeometry(streets: Seq[(Boolean, LineString)]): RouteGeometry = {
     val coords: Seq[(Double, Double)] = streets.flatMap { case (reverse, geom) =>
       val pts = geom.getCoordinates.map(c => (c.x, c.y)).toSeq
       if (reverse) pts.reverse else pts
     }
-    PolylineEncoder.encode(PolylineEncoder.decimate(coords, RouteService.ThumbnailMaxPoints))
+    RouteGeometry(
+      PolylineEncoder.encode(PolylineEncoder.decimate(coords, RouteService.ThumbnailMaxPoints)),
+      coords.headOption.map(start => RouteThumbnail.Endpoints(start, coords.last))
+    )
   }
 
   /**
@@ -276,7 +302,7 @@ class RouteServiceImpl @Inject() (
    * keeps its id, stats, and share links).
    *
    * @return The route's resulting (name, slug); Right(None) if the route doesn't exist, is deleted, or isn't
-   *         owned by userId; Left if the name or description was rejected.
+   *         owned by userId; Left if the name or description was rejected or a street doesn't exist.
    */
   def updateRoute(
       routeId: Int,
@@ -286,11 +312,23 @@ class RouteServiceImpl @Inject() (
     contentRejection(update.name, update.description) match {
       case Some(rejection) => Future.successful(Left(rejection))
       case None            =>
-        updateRouteAction(routeId, userId, update).flatMap {
-          case Some((name, slug)) => describeSavedRoute(routeId, name, slug).map(r => Right(Some(r)))
-          case None               => Future.successful(Right(None))
+        update.streets.map(allStreetsKnown).getOrElse(Future.successful(true)).flatMap {
+          case false => Future.successful(Left(UnknownStreetRejection))
+          case true  =>
+            updateRouteAction(routeId, userId, update).flatMap {
+              case Some((name, slug)) => describeSavedRoute(routeId, name, slug).map(r => Right(Some(r)))
+              case None               => Future.successful(Right(None))
+            }
         }
     }
+
+  private val UnknownStreetRejection: RouteRejection = RouteRejection("routebuilder.streets.error.unknown")
+
+  /** Whether every submitted street exists, so a stale or forged id is a localized 400 rather than an FK 500. */
+  private def allStreetsKnown(streets: Seq[NewRouteStreet]): Future[Boolean] = {
+    val ids: Set[Int] = streets.map(_.streetId).toSet
+    db.run(routeTable.countKnownStreets(ids)).map(_ == ids.size)
+  }
 
   private def updateRouteAction(routeId: Int, userId: String, update: RouteUpdate): Future[Option[(String, String)]] =
     withSlugRetry {
@@ -393,17 +431,71 @@ class RouteServiceImpl @Inject() (
   /**
    * Resolves a share slug to a route id: the current slug of a live route, or a retired slug still redirecting.
    *
-   * @return None if the slug is unknown or its route has been soft-deleted.
+   * The slug is tried under several spellings (see `slugCandidates`) so a link retyped from the route's name rather
+   * than copied still lands on it (#5150). Live routes outrank retired slugs whichever spelling matched: a link that
+   * still works beats one kept alive only for old shares.
+   *
+   * /r/ resolves slugs and nothing else. A bare route id was accepted here briefly (#5157) and taken back out: ids
+   * are dense, so a mistyped one lands on a real route instead of 404ing, and a slug's sparseness — the fact that a
+   * typo misses — is the only error detection a share link has. /explore?routeId=<id> is where an id belongs.
+   *
+   * Retyping stays lossy in two ways no fold can close, both preferable to a 404: "/r/STRASSE-TOUR" misses a route
+   * slugged "straße-tour" (ß has no canonical decomposition), and where the uniquifier appended "-2" a retyped name
+   * reaches whichever route holds the unsuffixed slug. A copied link is always unambiguous.
+   *
+   * @return None if no spelling is known or the matched route has been soft-deleted.
    */
-  def resolveSlug(slug: String): Future[Option[Int]] =
-    db.run(routeTable.getRouteIdBySlug(slug)).flatMap {
-      case Some(routeId) => Future.successful(Some(routeId))
-      case None          =>
-        db.run(routeSlugAliasTable.getRouteIdBySlug(slug)).flatMap {
-          case Some(routeId) => db.run(routeTable.getRoute(routeId)).map(_.map(_.routeId))
-          case None          => Future.successful(None)
-        }
+  def resolveSlug(slug: String): Future[Option[Int]] = {
+    val candidates: Seq[String] = slugCandidates(slug)
+    db.run(routeTable.getRouteIdsBySlugs(candidates)).flatMap { live =>
+      bestMatch(candidates, live) match {
+        case found @ Some(_) => Future.successful(found)
+        case None            => resolveRetiredSlug(candidates)
+      }
     }
+  }
+
+  /**
+   * The spellings a /r/<slug> URL is looked up under, most literal first so the least-transformed hit wins.
+   *
+   * The literal slug goes first so a copied link keeps exactly the path it took before folding existed — no
+   * regression on the case every share link actually uses. `canonicalizeForLookup` must then stay ahead of
+   * `slugify`, whose collapsing and capping would miss one of evolution 344's '--<route_id>' dedupe suffixes or a
+   * "-2"-uniquified slug past MaxSlugLength; slugify goes last to catch a name retyped with its punctuation intact.
+   *
+   * @param slug The slug as it arrived in the URL.
+   * @return The distinct non-empty spellings to try, in priority order.
+   */
+  private def slugCandidates(slug: String): Seq[String] = {
+    Seq(
+      slug,
+      SlugUtils.canonicalizeForLookup(slug),
+      // Empty fallback on purpose: slugify's "route" default would make an all-punctuation URL like /r/!!! hit a
+      // route legitimately slugged "route". An empty candidate is dropped instead.
+      SlugUtils.slugify(slug, fallback = "")
+    ).filter(_.nonEmpty).distinct
+  }
+
+  /** Resolves the candidates against retired slugs, dropping a hit whose route has since been soft-deleted. */
+  private def resolveRetiredSlug(candidates: Seq[String]): Future[Option[Int]] = {
+    db.run(routeSlugAliasTable.getRouteIdsBySlugs(candidates)).flatMap { retired =>
+      bestMatch(candidates, retired) match {
+        case Some(routeId) => db.run(routeTable.getRoute(routeId)).map(_.map(_.routeId))
+        case None          => Future.successful(None)
+      }
+    }
+  }
+
+  /**
+   * Picks the route id of the earliest candidate spelling present in a lookup's results.
+   *
+   * @param candidates The spellings that were looked up, most literal first.
+   * @param matched    The (slug, route id) rows the lookup returned, in whatever order the database produced them.
+   */
+  private def bestMatch(candidates: Seq[String], matched: Seq[(String, Int)]): Option[Int] = {
+    val routeIdBySlug: Map[String, Int] = matched.toMap
+    candidates.iterator.flatMap(routeIdBySlug.get).nextOption()
+  }
 
   /**
    * Soft-deletes a route owned by the given user. Share links to the route stop working.

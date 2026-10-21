@@ -3,18 +3,17 @@ package models.region
 import com.google.inject.ImplementedBy
 import models.api.{RegionDataForApi, RegionFiltersForApi}
 import models.audit.AuditTaskTableDef
-import models.label.LabelTable
 import models.street.{StreetEdgePriorityTableDef, StreetEdgeRegionTable}
-import models.utils.MyPostgresProfile.api._
-import models.utils.{LatLngBBox, MyPostgresProfile}
+import models.utils.MyPostgresProfile.api.*
+import models.utils.{FilteredTables, LatLngBBox, MyPostgresProfile, SqlFragments}
 import org.locationtech.jts.geom.MultiPolygon
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.dbio.Effect
-import slick.jdbc.GetResult
+import slick.jdbc.{GetResult, SQLActionBuilder}
 import slick.sql.SqlStreamingAction
 
 import java.time.{OffsetDateTime, ZoneOffset}
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.ExecutionContext
 
 case class Region(regionId: Int, dataSource: String, name: String, geom: MultiPolygon, deleted: Boolean)
@@ -26,7 +25,7 @@ class RegionTableDef(tag: Tag) extends Table[Region](tag, "region") {
   def geom: Rep[MultiPolygon] = column[MultiPolygon]("geom")
   def deleted: Rep[Boolean]   = column[Boolean]("deleted", O.Default(false))
 
-  def * = (regionId, dataSource, name, geom, deleted) <> ((Region.apply _).tupled, Region.unapply)
+  def * = (regionId, dataSource, name, geom, deleted).mapTo[Region]
 }
 
 @ImplementedBy(classOf[RegionTable])
@@ -35,9 +34,8 @@ trait RegionTableRepository {}
 @Singleton
 class RegionTable @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
-    streetEdgeRegionTable: StreetEdgeRegionTable,
-    labelTable: LabelTable
-)(implicit val ec: ExecutionContext)
+    streetEdgeRegionTable: StreetEdgeRegionTable
+)(using val ec: ExecutionContext)
     extends RegionTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
@@ -56,14 +54,14 @@ class RegionTable @Inject() (
       .filterNot(_.regionId inSetBind excludedRegionIds)
       .join(streetEdgePriorities)
       .on(_.streetEdgeId === _.streetEdgeId)
-      .groupBy(_._1.regionId)
-      .map { case (rId, group) => (rId, group.map(_._2.priority).avg) } // Get avg priority by region
+      .groupBy { case (streetRegion, _) => streetRegion.regionId }
+      .map { case (rId, group) => (rId, group.map { case (_, priority) => priority.priority }.avg) }
       .join(regionsWithoutDeleted)
-      .on(_._1 === _.regionId) // Get the full region instead of just the region_id
-      .sortBy(_._1._2.desc)
+      .on { case ((rId, _), region) => rId === region.regionId }
+      .sortBy { case ((_, avgPriority), _) => avgPriority.desc }
       .take(5)
-      .map(_._2) // Take the 5 with highest average priority
-      .sortBy(_ => SimpleFunction.nullary[Double]("random"))
+      .map { case (_, region) => region }
+      .sortBy(_ => random)
       .result
       .headOption // Randomly select one of the 5
   }
@@ -89,143 +87,131 @@ class RegionTable @Inject() (
   }
 
   /**
-   * Returns a list of neighborhoods within the given bounding box.
+   * Returns the regions that sit entirely inside the given bounding box; a region crossing its edge is left out.
    */
-  def getNeighborhoodsWithin(bbox: LatLngBBox): DBIO[Seq[Region]] = {
+  def getRegionsFullyInsideBbox(bbox: LatLngBBox): DBIO[Seq[Region]] = {
     regionsWithoutDeleted
       .filter(_.geom.within(makeEnvelope(bbox.minLng, bbox.minLat, bbox.maxLng, bbox.maxLat, Some(4326))))
       .result
   }
 
   /**
+   * The bounding box of the city's live regions (not the configured map bounds, which can span a metro area).
+   *
+   * @return The box, or None when there are no regions.
+   */
+  def regionsExtent: DBIO[Option[LatLngBBox]] =
+    sql"""SELECT ST_XMin(extent.box), ST_YMin(extent.box), ST_XMax(extent.box), ST_YMax(extent.box)
+          FROM (SELECT ST_Extent(region.geom) AS box FROM region WHERE NOT region.deleted) extent
+          WHERE extent.box IS NOT NULL"""
+      .as[(Double, Double, Double, Double)]
+      .headOption
+      .map(_.map { case (minLng, minLat, maxLng, maxLat) => LatLngBBox(minLat, minLng, maxLat, maxLng) })
+
+  /**
    * Gets regions w/ boolean noting if given user fully audited the region. If provided, filter for only given regions.
    */
-  def getNeighborhoodsWithUserCompletionStatus(userId: String, regionIds: Seq[Int]): DBIO[Seq[(Region, Boolean)]] = {
-    // Ever-audited on purpose (#4384): this feeds the "you completed this neighborhood" display, and a user's credit
+  def getRegionsWithUserCompletion(userId: String, regionIds: Seq[Int]): DBIO[Seq[(Region, Boolean)]] = {
+    // Ever-audited on purpose (#4384): this feeds the "you completed this region" display, and a user's credit
     // is not revoked when imagery refreshes -- the needs-re-audit prompt carries that signal instead.
     val userTasks = auditTasks.filter(a => a.completed && a.userId === userId)
     // Get regions that the user has not fully audited.
     val incompleteRegionsForUser = streetEdgeRegionTable.nonDeletedStreetEdgeRegions // FROM street_edge_region
       .joinLeft(userTasks)
       .on(_.streetEdgeId === _.streetEdgeId) // LEFT JOIN audit_task
-      .filter(_._2.isEmpty)                  // WHERE audit_task.audit_task_id IS NULL
-      .groupBy(_._1.regionId)                // GROUP BY region_id
-      .map(_._1)                             // SELECT region_id
+      .filter { case (_, task) => task.isEmpty } // WHERE audit_task.audit_task_id IS NULL
+      .groupBy { case (streetRegion, _) => streetRegion.regionId } // GROUP BY region_id
+      .map { case (regionId, _) => regionId } // SELECT region_id
 
-    // Left join regions and incomplete neighborhoods to record completion status.
+    // Left join all regions against the ones the user hasn't finished to record completion status.
     regionsWithoutDeleted
       .filter(_r => (_r.regionId inSetBind regionIds) || regionIds.isEmpty) // WHERE region_id IN regionIds
       .joinLeft(incompleteRegionsForUser)
       .on(_.regionId === _)
-      .map(x => (x._1, x._2.isEmpty))
+      .map { case (region, incomplete) => (region, incomplete.isEmpty) }
       .result
   }
 
   /**
-   * Returns the non-deleted region with the highest number of labels, if any have labels.
-   *
-   * @return DBIO action containing the region with the most labels
-   */
-  def getRegionWithMostLabels: DBIO[Option[Region]] = {
-    labelTable.labelsWithAuditTasksAndUserStats
-      .join(streetEdgeRegionTable.streetEdgeRegionTable)
-      .on(_._1.streetEdgeId === _.streetEdgeId)
-      .groupBy(_._2.regionId) // Group by region_id
-      .map { case (regionId, group) => (regionId, group.length) } // Count labels per region.
-      .join(regionsWithoutDeleted)
-      .on(_._1 === _.regionId) // Join with regions to get full region info.
-      .sortBy(_._1._2.desc)    // Sort by label count descending.
-      .map(_._2)
-      .result
-      .headOption // Output first region.
-  }
-
-  /**
-   * Gets all region (neighborhood) data for the API with filters applied, designed for streaming.
+   * Gets all region data for the API with filters applied, designed for streaming.
    *
    * @param filters The filters to apply when retrieving regions.
    * @return        A streaming database action that yields RegionDataForApi objects.
    */
   def getRegionsForApi(
       filters: RegionFiltersForApi
+  ): SqlStreamingAction[Vector[RegionDataForApi], RegionDataForApi, Effect.Read] =
+    regionsForApiQuery(filters, "filtered_regions.region_id", None)
+
+  /**
+   * Gets the region with the most labels, in the same shape as the rest of the regions API.
+   *
+   * @return DBIO action containing the region with the most labels, or None if no region has any labels.
+   */
+  def getRegionWithMostLabelsForApi: DBIO[Option[RegionDataForApi]] =
+    // minLabelCount is what makes an unlabeled city return None rather than an arbitrary empty region.
+    regionsForApiQuery(RegionFiltersForApi(minLabelCount = Some(1)), "label_count DESC", Some(1)).headOption
+
+  /**
+   * Builds the regions query shared by the regions API endpoints.
+   *
+   * @param filters The filters to apply when retrieving regions.
+   * @param orderBy SQL ordering expression over the final SELECT's output columns.
+   * @param limit   Optional row cap.
+   * @return        A streaming database action that yields RegionDataForApi objects.
+   */
+  private def regionsForApiQuery(
+      filters: RegionFiltersForApi,
+      orderBy: String,
+      limit: Option[Int]
   ): SqlStreamingAction[Vector[RegionDataForApi], RegionDataForApi, Effect.Read] = {
-    // Set up query filters. User-supplied string values (regionName) are single-quote-escaped and numeric filters are
-    // safe; see #2756 for migrating these raw builders to bound parameters.
-    val bboxFilter = filters.bbox
-      .map { bbox =>
-        s"AND ST_Intersects(region.geom, " +
-          s"ST_MakeEnvelope(${bbox.minLng}, ${bbox.minLat}, ${bbox.maxLng}, ${bbox.maxLat}, 4326))"
-      }
-      .getOrElse("")
+    val regionFilters: Seq[SQLActionBuilder] = Seq(
+      filters.bbox.map { bbox => SqlFragments.intersectsBBox("region.geom", bbox) },
+      filters.regionId.map { regionId => sql"region.region_id = $regionId" },
+      filters.regionName.map { regionName => sql"LOWER(region.name) = LOWER($regionName)" }
+    ).flatten
 
-    val regionIdFilter = filters.regionId.map { regionId => s"AND region.region_id = $regionId" }.getOrElse("")
+    val countFilters: Seq[SQLActionBuilder] =
+      filters.minLabelCount.map { count => sql"COALESCE(region_labels.label_count, 0) >= $count" }.toSeq
 
-    val regionNameFilter =
-      filters.regionName
-        .map { regionName => s"AND LOWER(region.name) = LOWER('${regionName.replace("'", "''")}')" }
-        .getOrElse("")
-
-    val minLabelCountFilter =
-      filters.minLabelCount.map { count => s"AND COALESCE(region_labels.label_count, 0) >= $count" }.getOrElse("")
-
-    val queryStr = s"""
+    val query: SQLActionBuilder = sql"""
       WITH filtered_regions AS (
         SELECT region.region_id, region.name, region.geom
         FROM region
         WHERE region.deleted = FALSE
-            $bboxFilter
-            $regionIdFilter
-            $regionNameFilter
+            AND """
+      .concat(SqlFragments.allOf(regionFilters))
+      .concat(sql"""
       ),
-      -- Get the number of (non-deleted, non-tutorial) streets in each region.
+      -- Get the number of streets that count in each region.
       region_streets AS (
         SELECT street_edge_region.region_id, COUNT(DISTINCT street_edge.street_edge_id) AS street_count
         FROM street_edge_region
-        JOIN street_edge ON street_edge_region.street_edge_id = street_edge.street_edge_id
-        WHERE street_edge.status = 'open'
-            AND street_edge.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
-            AND street_edge_region.region_id IN (SELECT region_id FROM filtered_regions)
+        JOIN #${FilteredTables.streets()} ON street_edge_region.street_edge_id = street_edge.street_edge_id
+        WHERE street_edge_region.region_id IN (SELECT region_id FROM filtered_regions)
         GROUP BY street_edge_region.region_id
       ),
       -- Get the number of completed audits of streets in each region.
       region_audits AS (
         SELECT street_edge_region.region_id, COUNT(audit_task.audit_task_id) AS audit_count
         FROM street_edge_region
-        JOIN street_edge ON street_edge_region.street_edge_id = street_edge.street_edge_id
-            AND street_edge.status = 'open'
-            AND street_edge.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
-        JOIN audit_task ON street_edge_region.street_edge_id = audit_task.street_edge_id
-            AND audit_task.completed = TRUE
+        JOIN #${FilteredTables.streets()} ON street_edge_region.street_edge_id = street_edge.street_edge_id
+        JOIN #${FilteredTables.completedAudits()} ON street_edge_region.street_edge_id = audit_task.street_edge_id
         WHERE street_edge_region.region_id IN (SELECT region_id FROM filtered_regions)
         GROUP BY street_edge_region.region_id
       ),
       -- Get the distance of streets needing re-audit in each region: streets audited before, but whose completed
       -- audits all predate newer imagery (audit_task.outdated_imagery, #4384).
       --
-      -- This counts any completed audit, whereas audited_distance below comes from region_completion, which is
-      -- derived from street_edge_priority and so only counts completion-worthy audits. The two are therefore NOT
-      -- exact complements -- a street audited solely by a low-quality or excluded user is in neither -- and the API
-      -- docs say so. Reproducing the priority formula here to force an exact partition would duplicate it in SQL and
-      -- guarantee drift; overallStats already exposes a strictly complementary pair over one population.
+      -- Counts any audit by a non-excluded user, while audited_distance only counts high-quality ones, so a street
+      -- audited only by a low-quality user shows here but not there. The API docs say so.
       region_outdated AS (
         SELECT street_edge_region.region_id,
                SUM(ST_Length(street_edge.geom::geography)) AS outdated_distance
         FROM street_edge_region
-        JOIN street_edge ON street_edge_region.street_edge_id = street_edge.street_edge_id
-            AND street_edge.status = 'open'
-            AND street_edge.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
+        JOIN #${FilteredTables.streets()} ON street_edge_region.street_edge_id = street_edge.street_edge_id
         WHERE street_edge_region.region_id IN (SELECT region_id FROM filtered_regions)
-            AND EXISTS (
-                SELECT FROM audit_task
-                WHERE audit_task.street_edge_id = street_edge_region.street_edge_id
-                    AND audit_task.completed = TRUE
-            )
-            AND NOT EXISTS (
-                SELECT FROM audit_task
-                WHERE audit_task.street_edge_id = street_edge_region.street_edge_id
-                    AND audit_task.completed = TRUE
-                    AND audit_task.outdated_imagery = FALSE
-            )
+            AND #$needsReauditSql
         GROUP BY street_edge_region.region_id
       ),
       -- Get label counts, distinct user counts, and label timestamps for each region.
@@ -236,14 +222,8 @@ class RegionTable @Inject() (
                MIN(label.time_created) AS first_label_date,
                MAX(label.time_created) AS last_label_date
         FROM street_edge_region
-        JOIN street_edge ON street_edge_region.street_edge_id = street_edge.street_edge_id
-            AND street_edge.status = 'open'
-            AND street_edge.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
-        JOIN label ON street_edge_region.street_edge_id = label.street_edge_id
-            AND label.deleted = FALSE
-            AND label.tutorial = FALSE
-        JOIN user_stat ON label.user_id = user_stat.user_id
-            AND user_stat.excluded = FALSE
+        JOIN #${FilteredTables.streets()} ON street_edge_region.street_edge_id = street_edge.street_edge_id
+        JOIN #${FilteredTables.labels()} ON street_edge_region.street_edge_id = label.street_edge_id
         WHERE street_edge_region.region_id IN (SELECT region_id FROM filtered_regions)
         GROUP BY street_edge_region.region_id
       )
@@ -270,12 +250,14 @@ class RegionTable @Inject() (
       LEFT JOIN region_outdated ON filtered_regions.region_id = region_outdated.region_id
       LEFT JOIN region_labels ON filtered_regions.region_id = region_labels.region_id
       LEFT JOIN region_completion ON filtered_regions.region_id = region_completion.region_id
-      WHERE 1=1
-        $minLabelCountFilter
-      ORDER BY filtered_regions.region_id
-    """
+      WHERE """)
+      .concat(SqlFragments.allOf(countFilters))
+      .concat(sql"""
+      ORDER BY #$orderBy
+      #${limit.map(n => s"LIMIT $n").getOrElse("")}
+    """)
 
-    implicit val getRegionDataForApi: GetResult[RegionDataForApi] = GetResult { r =>
+    given getRegionDataForApi: GetResult[RegionDataForApi] = { r =>
       RegionDataForApi(
         regionId = r.nextInt(),
         name = r.nextString(),
@@ -293,15 +275,14 @@ class RegionTable @Inject() (
       )
     }
 
-    sql"""#$queryStr""".as[RegionDataForApi]
+    query.as[RegionDataForApi]
   }
 
   /**
    * Distance (meters) of streets needing re-audit in each region: streets audited before, but whose completed audits
    * all predate newer imagery (audit_task.outdated_imagery, #4384).
    *
-   * Mirrors the region_outdated CTE in getRegionsForApi above -- keep the two predicates in sync. Regions with no
-   * such streets are simply absent from the result.
+   * Same test as region_outdated in getRegionsForApi. Regions with no such streets are absent from the result.
    *
    * @return (region_id, outdated distance in meters) pairs.
    */
@@ -309,56 +290,24 @@ class RegionTable @Inject() (
     sql"""
       SELECT street_edge_region.region_id, SUM(ST_Length(street_edge.geom::geography)) AS outdated_distance_m
       FROM street_edge_region
-      JOIN street_edge ON street_edge_region.street_edge_id = street_edge.street_edge_id
-          AND street_edge.status = 'open'
-          AND street_edge.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
-      WHERE EXISTS (
-              SELECT FROM audit_task
-              WHERE audit_task.street_edge_id = street_edge_region.street_edge_id
-                  AND audit_task.completed = TRUE
-          )
-          AND NOT EXISTS (
-              SELECT FROM audit_task
-              WHERE audit_task.street_edge_id = street_edge_region.street_edge_id
-                  AND audit_task.completed = TRUE
-                  AND audit_task.outdated_imagery = FALSE
-          )
+      JOIN #${FilteredTables.streets()} ON street_edge_region.street_edge_id = street_edge.street_edge_id
+      WHERE #$needsReauditSql
       GROUP BY street_edge_region.region_id
     """.as[(Int, Double)]
   }
 
   /**
-   * Select region_id of the region containing (or closest to) the lat/lng position for every lat/lng.
-   *
-   * Note that an attempt to take copy the Slick code from the function above and take a union between all the lat/lngs
-   * to turn it into one query was unsuccessful, resulting in a stack overflow error. Maybe there is some other way to
-   * use Slick syntax that more closely mirrors what we're doing in raw SQL below. Ultimately resorted to batching.
-   * @param latLngs Seq of lat/lng pairs to find the closest region for.
-   * @return Seq of region_ids that are the closest region to the corresponding lat/lng in the input Seq.
+   * Whether a street needs a re-audit: it was audited, but every audit predates newer imagery (#4384).
    */
-  def getRegionIdClosestToLatLngs(latLngs: Seq[(Double, Double)]): DBIO[Seq[Int]] = {
-    if (latLngs.isEmpty) {
-      DBIO.successful(Seq.empty)
-    } else {
-      // Build a VALUES clause with all points.
-      val pointDataSql = latLngs.zipWithIndex
-        .map { case ((lat, lng), idx) =>
-          s"($idx, ST_SetSRID(ST_MakePoint($lng, $lat), 4326))"
-        }
-        .mkString(", ")
+  private val needsReauditSql: String =
+    s"""EXISTS (
+              SELECT FROM ${FilteredTables.completedAudits()}
+              WHERE audit_task.street_edge_id = street_edge_region.street_edge_id
+          )
+          AND NOT EXISTS (
+              SELECT FROM ${FilteredTables.completedAudits()}
+              WHERE audit_task.street_edge_id = street_edge_region.street_edge_id
+                  AND audit_task.outdated_imagery = FALSE
+          )"""
 
-      sql"""
-        SELECT closest_region.region_id
-        FROM (VALUES #$pointDataSql) AS point_data(idx, geom)
-        CROSS JOIN LATERAL (
-          SELECT region_id
-          FROM region
-          WHERE deleted = FALSE
-          ORDER BY geom <-> point_data.geom
-          LIMIT 1
-        ) closest_region
-        ORDER BY point_data.idx;
-      """.as[Int]
-    }
-  }
 }

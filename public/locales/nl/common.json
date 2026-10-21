@@ -4,7 +4,7 @@
   "explore-street-link": "<a href='/explore?streetEdgeId={{streetId}}' class='street-selection-trigger' streetId='{{streetId}}'>Klik hier</a> om de straat te verkennen!",
   "distance-progress": "{{done, distance(style: small; unit: false)}}/{{total, distance(style: small)}}",
   "distance-large": "{{dist}} {{unitAbbr}}",
-  "speed-limit-tooltip": "Als je de <b>maximumsnelheid</b> van een straat kent, kun je de veiligheid voor voetgangers beter inschatten, bijvoorbeeld of het <b>veilig</b> is om over te steken op een ongeregeld kruispunt.",
+  "speed-limit-tooltip": "Als je de maximumsnelheid van een straat kent, kun je de veiligheid voor voetgangers beter inschatten, bijvoorbeeld of het veilig is om over te steken op een ongeregeld kruispunt.",
   "speed-limit-aria-label": "Maximumsnelheid {{speed}} {{units}}",
   "format-number": "{{val, number}}",
   "cities-cta-join_one": "Sluit u aan bij nog {{count, number}} gemeenschap",
@@ -31,6 +31,11 @@
   "continue": "Doorgaan",
   "delete": "Verwijderen",
   "done": "Klaar",
+  "unsaved-changes": {
+    "message": "Je hebt niet-opgeslagen wijzigingen. Wil je ze opslaan voordat je deze pagina verlaat?",
+    "save": "Opslaan en verlaten",
+    "leave": "Verlaten"
+  },
   "badges": {
     "congratulations": "Gefeliciteerd!",
     "you-earned": "Je hebt de “{{badge}}”-badge verdiend!",
@@ -89,6 +94,11 @@
   "only": "Alleen",
   "image-capture-date": "Opnamedatum afbeelding",
   "drag-to-look-around": "Sleep om rond te kijken",
+  "loading-imagery": "Beelden laden...",
+  "hide-label": "Verberg Label",
+  "show-label": "Toon Label",
+  "hide-label-tooltip": "Verbergt het label tijdelijk om te zien wat eronder ligt.",
+  "show-label-tooltip": "Toont het label weer.",
   "labeled": "Gelabeled",
   "low": "Laag",
   "medium": "Medium",
@@ -98,7 +108,7 @@
   "bad": "Slecht",
   "yes": "Ja",
   "no": "Nee",
-  "ai-generated-label-tooltip": "Dit label is door AI gemaakt. AI kan fouten maken, dus maak uw eigen beoordeling.",
+  "ai-generated-label-tooltip": "Dit label is door AI gemaakt. AI kan fouten maken, dus beoordeel zelf of het klopt.",
   "tag": {
     "narrow": "smal",
     "points into traffic": "punten in het kruisende verkeer",
@@ -196,15 +206,31 @@
     "pano-address": "Adres",
     "view-in-gsv": "Bekijken in Google Streetview",
     "view-in-mapillary": "Bekijken in Mapillary",
+    "view-in-panoramax": "Bekijken in Panoramax",
     "city": "Stad",
     "copy-to-clipboard": "Kopiëren naar klembord",
     "copied-to-clipboard": "Gegevens gekopieerd naar uw klembord!"
+  },
+  "pano-attribution": {
+    "opens-new-tab": "(opent in een nieuw tabblad)"
+  },
+  "image-adjustments": {
+    "button": "Beeld",
+    "active-sr": "(aangepast)",
+    "tooltip": "Pas schaduwen, helderheid en contrast van de beelden aan",
+    "title": "Beeldinstellingen",
+    "shadows": "Schaduwen",
+    "brightness": "Helderheid",
+    "contrast": "Contrast",
+    "reset": "Standaardwaarden herstellen",
+    "persist-note": "Deze instellingen blijven behouden in Ontdekken en Bevestigen totdat u ze herstelt."
   },
   "mission-start-tutorial": {
     "example-type-label-correct": "JUISTE VOORBEELD",
     "label-type-subtitle": "Waarom is dit verkeerd?",
     "label-on-image-title-correct": "Correct etiket",
     "start-mission": "Missie starten",
+    "resume-mission": "Missie hervatten",
     "curb-ramp": {
       "slide-1": {
         "title": "{{- labelType}}",
@@ -332,5 +358,58 @@
     "on-facebook": "Delen op Facebook",
     "on-linkedin": "Delen op LinkedIn",
     "via-email": "Delen via e-mail"
-  }
+  },
+  "mini-card": {
+    "image-unavailable": "Afbeelding niet beschikbaar",
+    "image-coming": "Afbeelding volgt binnenkort!",
+    "open": "Dit label openen: {{label}}",
+    "votes": "Dit label valideren",
+    "no-image-to-judge": "Geen afbeelding om dit label op te beoordelen",
+    "vote-failed": "Je stem is niet opgeslagen. Probeer het opnieuw."
+  },
+  "download-already-preparing": "Dit bestand wordt al voorbereid voor een andere aanvraag. Probeer het zo opnieuw.",
+  "session-load-failed": {
+    "title": "Laden mislukt",
+    "body": "We konden je missie niet laden. Herlaad de pagina om het opnieuw te proberen.",
+    "bad-link": "Deze link is niet geldig. Controleer het adres en probeer het opnieuw."
+  },
+  "label-type-picker": {
+    "current": "{{labelType}} (huidig type)",
+    "change": "wijzigen",
+    "change-type": "Labeltype wijzigen",
+    "change-type-hint": "Tags die niet bij het nieuwe type passen worden verwijderd. Een beoordeling blijft alleen behouden tussen types die op dezelfde manier beoordeeld worden."
+  },
+  "access-score-spotlight": {
+    "subtitle-regions": "De stoepen van elke wijk krijgen van ons <a href=\"{{href}}\">AccessScore</a>-algoritme een score van 0 tot 100 (100 is het best).",
+    "subtitle-streets": "De stoepen van elke straat krijgen van ons <a href=\"{{href}}\">AccessScore</a>-algoritme een score van 0 tot 100 (100 is het best).",
+    "subtitle-one-region": "Deze stad is gekarteerd als één wijk, dus er is één score te tonen.",
+    "units-label": "Wijken of straten rangschikken",
+    "unit-regions": "Wijken",
+    "unit-streets": "Straten",
+    "highest": "Hoogste scores ({{score}}+)",
+    "lowest": "Laagste scores (onder {{score}})",
+    "ranked-so-far": "Tot nu toe gerangschikt",
+    "closest": "Bijna gerangschikt",
+    "empty-highest-regions": "Nog geen wijk scoort {{score}} of hoger.",
+    "empty-highest-streets": "Nog geen straat scoort {{score}} of hoger.",
+    "empty-lowest-regions": "Geen wijk scoort onder {{score}}.",
+    "empty-lowest-streets": "Geen straat scoort onder {{score}}.",
+    "count-regions": "Alleen wijken die voor minstens {{percent}}% zijn onderzocht worden gerangschikt — tot nu toe {{qualifying}} van {{total}}.",
+    "count-streets": "Alleen straten van minstens {{minLength}} met meerdere gekarteerde kenmerken worden gerangschikt — tot nu toe {{qualifying}} van {{total}}.",
+    "updated-nightly": "Elke nacht bijgewerkt",
+    "updated-info": "Scores worden elke nacht opnieuw berekend op basis van alle tot dan toe geplaatste labels. Een label dat je vandaag toevoegt telt morgen mee.",
+    "updated-last": "Laatst bijgewerkt op {{date}}.",
+    "cta-regions": "Bekijk alle wijken in de AccessScore-tool",
+    "cta-streets": "Bekijk alle straten in de AccessScore-tool",
+    "explore": "Verkennen",
+    "explore-region": "{{name}} verkennen",
+    "street-sub": "{{region}} · {{length}}",
+    "region-sub": "{{length}} aan straten · {{clusters}} clusters",
+    "region-sub-pending": "{{length}} aan straten · {{percent}}% onderzocht",
+    "street-in-city": "{{region}}, {{city}}",
+    "unnamed": "Naamloze straat"
+  },
+  "immersive-enter": "Immersieve modus openen",
+  "immersive-exit": "Immersieve modus verlaten",
+  "immersive-exit-hint": "Immersieve modus. Druk op F om te verlaten."
 }

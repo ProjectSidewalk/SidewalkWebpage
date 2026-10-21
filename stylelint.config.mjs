@@ -1,6 +1,7 @@
 // Stylelint config (Stylelint 17).
-// Run with `make stylelint` (defaults to all non-vendored CSS under public/); not a CI gate yet — that waits on the
-// tree being lint-clean, like the ESLint rollout (#2487).
+// Run with `make stylelint` (defaults to every stylesheet under frontend/css/), and a blocking CI gate. Nothing under
+// public/ is ours to lint: the built bundles (public/build/) sit outside the glob, so there is no ignore list to fall
+// out of sync with the tree (#5218).
 //
 // Formatting/whitespace rules live in @stylistic/stylelint-plugin, not Stylelint core: core removed all of its
 // stylistic rules in v16 (the same move ESLint made) and the plugin is their non-deprecated home — mirroring our
@@ -10,17 +11,6 @@ export default {
   // Listed first so the explicit rules below override it.
   extends: ['stylelint-config-standard'],
   plugins: ['@stylistic/stylelint-plugin', 'stylelint-plugin-use-baseline'],
-  // Generated bundles and vendored libraries. Unlike JS (where vendored code all lives under lib/), some vendored
-  // CSS sits directly in public/stylesheets/ next to our own files, so it's carved out file-by-file.
-  ignoreFiles: [
-    'public/javascripts/**/build/**',
-    'public/javascripts/lib/**',
-    'public/stylesheets/bootstrap/**',
-    'public/stylesheets/animate.css',
-    'public/stylesheets/dataTables.bootstrap.min.css',
-    'public/stylesheets/magnific-popup.css',
-    'public/stylesheets/pannellum-2.5.7.css',
-  ],
   rules: {
     // Only allow CSS features that are Baseline "newly available" (shipped in every core browser, but not yet for
     // the 30+ months "widely" requires) — the CSS analogue of the JS side's ES2022 target. Wrap genuinely
@@ -53,8 +43,8 @@ export default {
     'color-hex-length': 'long',
     'no-descending-specificity': null,
 
-    // No Autoprefixer in the build (Grunt concatenates only), so vendor prefixes are written by hand and are
-    // legitimate. config-standard bans them assuming a build-time autoprefixer we don't run.
+    // No Autoprefixer in the build (Vite's Lightning CSS only minifies here), so vendor prefixes are written by hand
+    // and are legitimate. config-standard bans them assuming a build-time autoprefixer we don't run.
     'property-no-vendor-prefix': null,
     'value-no-vendor-prefix': null,
     'selector-no-vendor-prefix': null,

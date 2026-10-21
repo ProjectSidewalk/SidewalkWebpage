@@ -1,131 +1,63 @@
-# Frontend JS tests (prototype)
+# Frontend JS tests
 
-This directory is the **first** frontend/JavaScript test layer for Project Sidewalk. It is a small, **opt-in
-prototype** — a proof of concept, not a CI gate (yet). See `docs/testing-and-ci.md` (Phase 1, "Frontend testing") for
-where this fits in the larger plan.
-
-## What this proves
-
-A "smoke test" for the API-docs **live-preview** modules under `public/js/api-docs/*Preview.js`. These
-modules `fetch()` a `/v3/api/...` endpoint and render the JSON into a `<div>`. They are tightly coupled to the exact
-**field names** the API returns.
-
-The motivating bug: `overallStatsPreview.js` read `data.validations.total_validations` after that field had moved
-under `data.validations.combined`, throwing `Cannot read properties of undefined`. Nothing caught it before it
-shipped. These tests pin the contract between a captured **snake_case** API response (per the v3 naming convention,
-issue #3871) and the renderer, so a field-name drift fails loudly here instead of silently in the browser.
-
-Two modules are covered (the newest, dependency-light, vanilla-DOM ones):
-
-- `aggregateStatsPreview.js` → `aggregateStatsPreview.test.js`
-- `validationResultTypesPreview.js` → `validationResultTypesPreview.test.js`
-
-Also covered, beyond the api-docs previews:
-
-- `common/share/ShareWidget.js` → `share-widget.test.js` — the label share control (#456): native-share vs popover
-  fork, the popover's ARIA contract and focus management, clipboard/intents, and activity logging. `ShareWidget` is a
-  top-level `class` declaration (not a `window.X = ...` assignment), so the test evals the source into the jsdom
-  global scope instead of using `loadGlobalScript`.
-- `common/AppManager.js` → `appManagerCsrfFetch.test.js` — the `window.fetch` CSRF wrapper (#4232): the token must
-  reach same-origin requests and *only* same-origin requests, across all three argument types `fetch` accepts
-  (string, `URL`, `Request`). jsdom implements neither `fetch` nor `Request`, so the test supplies both.
-- `community/*.js` → `communityListPage.test.js` — the /stories + /routes listing pages' client layer (#4688):
-  search filtering (hidden attr, live count, no-results), sort orders and tie-breaks, localized dates, type-chip
-  tinting, the read-more clamp toggle, view-label popup-vs-navigation routing, and the copy-share-link fallbacks.
-- `common/pano-viewer/src/PanoInfoPopover.js` → `panoInfoViewLink.test.js` — the pano info popover's
-  "view in \<provider\>" link (#4813). Validate and the label card swap the active viewer from label to label, so the
-  popover resolves it on every open and offers the link only when that viewer both publishes a public site and is
-  holding the pano on screen. These pin the link hidden — rather than left pointing at the previous label's pano — on
-  both fallbacks: Pannellum, and the static crop, where the provider's viewer is still loaded but with someone else's
-  pano. Like `ShareWidget` this is a top-level `class`, so the test evals the source instead of using
-  `loadGlobalScript`. jsdom implements neither the Popover API nor `:popover-open`, so the test stands both up.
-
-Each test file has:
-
-1. A **good-fixture** test: feed a realistic snake_case response, assert the promise resolves, the container has **no
-   "Failed to load" banner**, and the expected content (names + formatted numbers + the right number of table rows)
-   is present.
-2. **Wrong-shape** test(s): feed a camelCase fixture and/or a "field moved under a sub-object" fixture (a direct analog
-   of the original bug) and **document the behavior** — these modules are null-safe, so they don't throw; instead they
-   silently render `0`/empty. The assertions lock that degraded behavior so the drift is visible. (If a future refactor
-   ever removes the null-guards, the good-fixture test catches the resulting throw.)
+The jsdom unit suite for `frontend/js/`, run by [Vitest](https://vitest.dev) (`vitest.config.mjs`). Each `*.test.js`
+covers one behavior, and its header says which. The suite is a blocking step in CI's `frontend` job.
 
 ## How to run
 
 From the repo root:
 
 ```bash
-npm install        # first time only — installs jest + jest-environment-jsdom (devDependencies)
-npm run test:js    # runs Jest against test/js/ only
+make test-js                                      # the whole suite, in the web container (where node_modules live)
+make test-js args=test/js/toastPosition.test.js   # one suite
+make test-js args=--coverage                      # with the coverage report, as CI runs it
 ```
 
-`npm run test:js` is a **new** script; the existing placeholder `npm test` is left untouched.
+`describe`/`it`/`expect`/`vi` are globals. Each file runs in its own VM context whose global is the jsdom window, so a
+page global production reads bare (`google`) is set with `window.X = …`. Before every test the config and `setup.js`
+undo spies and `vi.stubGlobal` stubs, empty every mock's call history and put real timers back, so no suite writes that
+cleanup. `setup.js` also stamps `window.labelTypes` the way every page is served it, and replaces Node's `fetch` with
+one that throws until a suite stubs it, so nothing here can reach the network.
 
-> Node note: the dev DB / Scala app run in Docker, but Jest runs on the host with plain Node (the plan targets Node 23).
-> No Docker is needed for these tests.
+## How a suite loads its subject
 
-## How it works (no module system)
+`const { Toast } = await loadModules('frontend/js/common/Toast.js')`, from `loader.js`, returns the file's exports
+from a fresh module registry. Files named in one call share a registry, so one's import of another is the instance
+the suite gets back; what the suite itself loads is always the real module.
 
-Project Sidewalk's frontend has **no module system** — files are plain scripts concatenated by Grunt that assign their
-surface onto `window` (e.g. `window.AggregateStatsPreview = { setup, init }`). So we don't `require()` the production
-file directly. Instead `loadGlobalScript.js` reads the file and executes it in the jsdom `window`'s global scope via
-Node's `vm` module — exactly as a browser `<script>` tag would. After loading, `window.AggregateStatsPreview` is
-available to the test. **No production-code changes are required.**
+A collaborator the subject should not really use is handed to it where its constructor (or `create`) takes one, which
+is most Explore and Validate classes. Otherwise:
 
-Each test:
+- `mockModule('frontend/js/common/Toast.js', () => ({ Toast: fake }))` before the load replaces what the subject
+  imports from that file. The factory gets `importOriginal`, so it can spread the real exports and override one;
+  `unmockModule(path)` undoes it.
+- `useUtil({ isMobile: () => true, misc: { getStreetNameNear } })` puts those members on the real `util` as the
+  modules import it; sub-objects such as `misc` and `math` merge into the real ones. Without it, modules get the real
+  `util`, which already behaves in jsdom (`assetPath` gives `/assets/<path>`, `isMobile()` is false).
+- `mockModule('i18next', () => ({ default: { t: (key) => key } }))` does the same for an npm package, whose fake is
+  the module namespace; nearly every suite starts with that line, before its first load. A library the modules
+  import is otherwise the real one (turf, bowser, DOMPurify).
 
-1. Sets `document.body.innerHTML` to the container `<div id="...-preview">` the module renders into.
-2. Stubs global `fetch` to resolve a hardcoded fixture object (no network).
-3. Loads the module with `loadGlobalScript(...)`.
-4. Calls `.setup({}).init()` and asserts on the resolved promise + rendered DOM.
+What `useUtil` and `mockModule` set lasts for the rest of the file, so a test that changes one is followed by a
+`beforeEach` that sets it back.
 
-## Globals that had to be stubbed
+The stand-ins a constructor takes when they are not under test (a gate, a tracker, a task container, a pano manager)
+come from `fakes.js`: `fakeGate()`, `fakeTracker()` and so on, each taking overrides, so a constructor change is a
+one-file edit. The same file holds the mock sets several suites share; larger harnesses live under `support/`.
 
-For these two modules, almost nothing — they are deliberately dependency-light. The only thing stubbed is **`fetch`**
-(jsdom does not provide a usable one). They otherwise use only `window`, `document`, `console`, `Promise`,
-`Object.assign`, and `Number.prototype.toLocaleString`, all of which jsdom/Node provide.
+## Lint and coverage
 
-## Extending to the other previews
+`test/js/` is linted with the same ESLint rules as `test/e2e/`, plus the Vitest globals and the house style's
+2-space indent. The browser, Node and Vitest globals are declared in `eslint.config.js`, so no suite needs a
+`/* global */` directive.
 
-The remaining `*Preview.js` modules pull in heavier globals. To bring them under test, stub these in `beforeEach`
-**before** calling `loadGlobalScript`:
-
-- **Chart.js** (`label-types`, `validations`, `street-types`, …): set `window.Chart = jest.fn()` — a constructor
-  spy is enough to assert "a chart was constructed with the right data" without rendering a canvas (jsdom has no 2D
-  context).
-- **Mapbox GL** (every map preview): stub `window.mapboxgl` with no-op `Map` (whose instances need `on`, `addSource`,
-  `addLayer`, `addControl`, `setPaintProperty`, `getCanvas`), `NavigationControl`, `AttributionControl`,
-  `LngLatBounds`, and `Popup`, plus `window.MapboxLanguage`. The previews reach all of it through
-  `js/api-docs/apiDocsMap.js`, which `loadGlobalScript` has to load first.
-- **i18next / `i18next.t`**: stub `window.i18next = { t: (k) => k }` so translation lookups return the key.
-- **`util.*` globals** (e.g. `util.math`, formatting helpers in `common/`): either `loadGlobalScript` the real
-  `common/` file first, or stub the specific `util.foo` functions used.
-
-The general recipe stays the same: container div → stub fetch with a captured snake_case fixture → stub libs →
-`loadGlobalScript` → `setup({}).init()` → assert no "Failed to load" + expected content. A shared
-`beforeEach` helper (e.g. `stubChartJs()`, `stubMapboxGl()`) can live alongside `loadGlobalScript.js` as coverage grows.
-
-`common/aggregateStats.js` (named as a first target in the plan) is a good next addition — it has retry/timeout logic
-worth unit-testing with fake timers.
-
-## Why this is opt-in and NOT in CI
-
-Frontend linting and the JS **ES5→ES2022 migration** are owned by a separate in-flight effort, **issue #2487**. Dropping
-test/lint tooling into CI mid-migration would create large, conflict-prone churn and risks colliding with that work.
-So:
-
-- **No ESLint, no broad config** is introduced here (`jest.config.js` is scoped to `test/js/` only and never touches
-  production JS).
-- **CI runs this suite as an advisory step** in the `frontend` job (`npm run test:js`, `continue-on-error` on the step
-  so a failure never turns the required `Frontend (build)` check red). Promotion to blocking rides #2487's track,
-  once coverage is broad enough that a red suite always means a real regression.
-- The existing `npm test` placeholder is **unchanged** to avoid surprising any tooling that already calls it.
+Coverage is reported over all of `frontend/js/**/*.js`, so a file no test loads still counts against the ratio. The
+console shows totals; `coverage/lcov-report/index.html` has per-file detail. `coverage.thresholds` in
+`vitest.config.mjs` is a ratchet: a run that drops below any floor fails even when every test passes. Raise the floors
+when a PR adds the headroom.
 
 ## Complementary E2E
 
-These jsdom tests verify the render contract in isolation. Their E2E complement now exists: the **Playwright browser
-smoke suite in [`test/e2e/`](../e2e)** (#4504) loads core pages — including api-docs pages — against a running app and
-**fails on any uncaught console/page error**, catching integration-level breakage (real endpoint shape, script load
-order from Grunt, missing globals) that a mocked-`fetch` unit test cannot. It runs as the advisory `e2e-smoke` CI job
-on every PR; asserting on the api-docs preview *content* (non-empty container, no "Failed to load" banner) is a
-planned phase-2 extension there.
+These tests check behavior in isolation. The Playwright smoke suite in [`test/e2e/`](../e2e) loads core pages against
+a running app and fails on any uncaught console or page error, catching what a mocked unit test cannot: a real
+endpoint's shape, or a library that doesn't load.

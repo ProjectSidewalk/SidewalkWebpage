@@ -1,0 +1,378 @@
+/**
+ * Tests for Validate's refusal to act on the current label while that label's pano is still loading (issue #5211),
+ * across frontend/js/validate/label/LabelContainer.js and the busy region frontend/js/validate/Main.js names.
+ *
+ * `moveToNextLabel()` advances `#currLabel` synchronously and only then awaits the load, so for the length of that
+ * load — 1.7 s on average on the Pannellum fallback path, and up to 4.5 s — "the current label" and "the pano on
+ * screen" disagree. A verdict cast in that window is stored against the previous label's imagery: its POV and canvas
+ * coordinates come from a pano the validator was never asked about, and nothing in the stored row says so.
+ *
+ * The suites below pin the two halves of the fix. The first drives the REAL LabelContainer against a PanoManager
+ * whose load can be held open, and checks that everything reaching for the current label in that window is dropped
+ * and logged. The second checks that the elements the busy state dims actually exist in the view it is dimming them
+ * in — the invariant that broke silently on mobile, where both of the ids `#setUiBusy` used to name were desktop-only
+ * and so matched nothing at all.
+ */
+
+import fs from 'fs';
+import path from 'path';
+
+import { REPO_ROOT, loadModules, mockModule } from './loader.js';
+import { fakeGate, fakeTracker } from './fakes.js';
+import {
+  FakeLabel, fakeLabelContainerDeps, newLabelContainer, buildLabelContainer,
+} from './support/labelContainerHarness.js';
+
+const DESKTOP_VIEW_PATH = path.join(REPO_ROOT, 'app/views/apps/validate.scala.html');
+const MOBILE_VIEW_PATH = path.join(REPO_ROOT, 'app/views/apps/mobileValidate.scala.html');
+
+const LABEL_TYPE = 'CurbRamp';
+
+mockModule('frontend/js/validate/label/Label.js', () => ({ Label: FakeLabel }));
+
+/** @returns {HTMLElement} A stand-in for an element Validate dims or re-cursors. */
+function fakeElement() {
+  return document.createElement('div');
+}
+
+/** @type {Function} The LabelContainer class under test. */
+let LabelContainer;
+
+/** @type {Record<string, any>} The collaborators the container under test is built over. */
+let deps;
+
+/** @returns {boolean} Whether every busy-region element carries the busy class and aria-busy. */
+function busyRegionIsBusy() {
+  return deps.ui.busyRegion.every(
+    (el) => el.classList.contains('validate-disabled') && el.getAttribute('aria-busy') === 'true',
+  );
+}
+
+/** @returns {boolean} Whether every busy-region element has had both the busy class and aria-busy taken off. */
+function busyRegionIsReleased() {
+  return deps.ui.busyRegion.every(
+    (el) => !el.classList.contains('validate-disabled') && !el.hasAttribute('aria-busy'),
+  );
+}
+
+describe('input aimed at a label whose pano is still loading is dropped (issue #5211)', () => {
+  let releaseLoad; // Resolves the held-open setPanorama, if one is being held.
+  let holdNextLoad;
+
+  beforeEach(async () => {
+    holdNextLoad = false;
+    releaseLoad = null;
+
+    deps = fakeLabelContainerDeps({
+      tracker: fakeTracker(),
+      labelCard: {render: vi.fn()},
+      validationMenu: {resetMenu: vi.fn()},
+      undoValidation: {enableUndo: vi.fn()},
+      labelVisibilityControl: {
+        hideLabelCard: vi.fn(),
+        unhideLabel: vi.fn(),
+        openCardOnLoad: vi.fn(),
+        isVisible: () => true,
+      },
+      modalNoNewMission: {show: vi.fn()},
+      ui: {
+        holder: fakeElement(),
+        busyRegion: [fakeElement(), fakeElement()],
+        viewer: {controlLayer: fakeElement()},
+      },
+      panoManager: {
+        renderPanoMarker: vi.fn(),
+        prefetchPano: vi.fn(),
+        setPanorama: vi.fn((panoId) => {
+          if (!holdNextLoad) return Promise.resolve({panoData: {panoId}});
+          holdNextLoad = false;
+          return new Promise((resolve) => { releaseLoad = () => resolve({panoData: {panoId}}); });
+        }),
+      },
+    });
+
+    ({ LabelContainer } = await loadModules('frontend/js/validate/label/LabelContainer.js'));
+  });
+
+  /**
+   * Builds a container sitting on its first label, then starts a move to the second and leaves its pano in flight.
+   * @returns {Promise<{labelContainer: object, inFlight: Promise}>} The container, mid-load, and the pending move.
+   */
+  async function buildContainerMidLoad() {
+    const labelContainer = await buildLabelContainer(LabelContainer, deps,
+      [{labelId: 1, panoId: 'panoA'}, {labelId: 2, panoId: 'panoB'}, {labelId: 3, panoId: 'panoC'}], LABEL_TYPE);
+    deps.tracker.push.mockClear();
+    holdNextLoad = true;
+    // Not awaited: moveToNextLabel runs as far as the pano load and stops there, which is the window under test.
+    const inFlight = labelContainer.moveToNextLabel();
+    return {labelContainer, inFlight};
+  }
+
+  /**
+   * Lets the held-open pano load finish and waits for the move that was waiting on it.
+   * @param {Promise} inFlight - The pending moveToNextLabel.
+   */
+  async function finishLoad(inFlight) {
+    releaseLoad();
+    await inFlight;
+  }
+
+  test('a second advance during the load is dropped, so the label queue moves one label at a time', async () => {
+    const {labelContainer, inFlight} = await buildContainerMidLoad();
+
+    await labelContainer.moveToNextLabel();
+
+    expect(deps.tracker.push).toHaveBeenCalledWith('ValidateInputDropped_Loading', {source: 'NextLabel'});
+    await finishLoad(inFlight);
+    // Label 3 was never reached for, so the validator is asked about label 2 — the one whose pano just arrived.
+    expect(labelContainer.getCurrentLabel().getAuditProperty('labelId')).toBe(2);
+    expect(deps.panoManager.setPanorama).toHaveBeenCalledTimes(2);
+  });
+
+  // Mission progress is rolled back only for an undo that actually happened, so a dropped one has to report itself
+  // as not taken — the same contract as an undo whose imagery has died (#4810).
+  test('an undo during the load is dropped and reports failure', async () => {
+    const {labelContainer, inFlight} = await buildContainerMidLoad();
+
+    expect(await labelContainer.undoLabel()).toBe(false);
+
+    expect(deps.tracker.push).toHaveBeenCalledWith('ValidateInputDropped_Loading', {source: 'Undo'});
+    await finishLoad(inFlight);
+    expect(labelContainer.getCurrentLabel().getAuditProperty('labelId')).toBe(2);
+  });
+
+  // The heart of #5211: this is the call that would write a validation row against the wrong pano.
+  test('a verdict cast during the load never reaches the label', async () => {
+    const {labelContainer, inFlight} = await buildContainerMidLoad();
+
+    labelContainer.validateCurrentLabel('Agree', new Date(), '');
+
+    expect(deps.tracker.push).toHaveBeenCalledWith('ValidateInputDropped_Loading', {source: 'Validate=Agree'});
+    await finishLoad(inFlight);
+    expect(labelContainer.getCurrentLabel().validate).not.toHaveBeenCalled();
+  });
+
+  test('the same verdict is recorded normally once the pano is on screen', async () => {
+    const {labelContainer, inFlight} = await buildContainerMidLoad();
+    await finishLoad(inFlight);
+    deps.tracker.push.mockClear();
+
+    const timestamp = new Date();
+    labelContainer.validateCurrentLabel('Agree', timestamp, 'looks right');
+
+    expect(labelContainer.getCurrentLabel().validate)
+      .toHaveBeenCalledWith('Agree', 'looks right', deps.panoManager.panoViewer);
+    expect(labelContainer.getProperty('validationTimestamp')).toBe(timestamp);
+    expect(deps.tracker.push).not.toHaveBeenCalledWith('ValidateInputDropped_Loading', expect.anything());
+  });
+
+  // What the menus call. It answers for the current moment, so it has to go quiet the instant the label lands.
+  test('dropInputWhileLoading answers for the load and only for the load', async () => {
+    const {labelContainer, inFlight} = await buildContainerMidLoad();
+
+    expect(labelContainer.dropInputWhileLoading('Agree')).toBe(true);
+    expect(deps.tracker.push).toHaveBeenCalledWith('ValidateInputDropped_Loading', {source: 'Agree'});
+
+    await finishLoad(inFlight);
+    deps.tracker.push.mockClear();
+    expect(labelContainer.dropInputWhileLoading('Agree')).toBe(false);
+    expect(deps.tracker.push).not.toHaveBeenCalled();
+  });
+
+  // `validate-disabled` is opacity and pointer-events only, so without this a screen reader is told nothing at all.
+  test('the busy region is marked aria-busy for the load and unmarked after it', async () => {
+    const {labelContainer, inFlight} = await buildContainerMidLoad();
+
+    expect(busyRegionIsBusy()).toBe(true);
+
+    await finishLoad(inFlight);
+
+    expect(busyRegionIsReleased()).toBe(true);
+    expect(labelContainer.dropInputWhileLoading('Agree')).toBe(false);
+  });
+
+  // WAI-ARIA lets assistive tech hold a busy subtree's changes until aria-busy clears, and it clears in the same tick
+  // the loading status hides, so a status inside a busy region would never be spoken (#5581).
+  test('the loading status\'s live region is never inside an aria-busy region while a label loads', async () => {
+    const holder = fakeElement();
+    holder.innerHTML = '<div id="svv-pano-loading" role="status" aria-live="polite"></div>';
+    const menu = fakeElement();
+    document.body.append(holder, menu);
+    deps.ui.busyRegion = [holder, menu];
+
+    const {inFlight} = await buildContainerMidLoad();
+
+    expect(document.getElementById('svv-pano-loading').closest('[aria-busy="true"]')).toBeNull();
+    expect(holder.classList.contains('validate-disabled')).toBe(true); // Still dimmed and pointer-blocked.
+    expect(menu.getAttribute('aria-busy')).toBe('true'); // Regions without the status keep it.
+
+    await finishLoad(inFlight);
+    document.body.innerHTML = '';
+  });
+
+  // The lock is released on the two normal exits only, so before this a throw anywhere in the render left it set for
+  // good: every later verdict, undo and advance dropped, the tool reading as dead rather than busy, and the only
+  // trace a flood of this event. Mobile is where it would bite, since desktop is already unusable once the
+  // validate-disabled class stays on.
+  test('a render that throws still hands the tool back', async () => {
+    const {labelContainer, inFlight} = await buildContainerMidLoad();
+    await finishLoad(inFlight);
+
+    const boom = new Error('label card blew up');
+    deps.labelCard.render.mockImplementationOnce(() => { throw boom; });
+
+    await expect(labelContainer.moveToNextLabel()).rejects.toThrow(boom);
+
+    expect(labelContainer.dropInputWhileLoading('Agree')).toBe(false);
+    expect(busyRegionIsReleased()).toBe(true);
+  });
+
+  // Releasing the lock on a throw takes away the symptom that used to announce one — an endless run of
+  // ValidateInputDropped_Loading from a tool that never came back. Both callers lose the rejection (Form swallows it,
+  // moveToNextLabel drops it), so if the render doesn't report itself here, a render failure reaches nobody at all.
+  test('a render that throws says so, rather than just recovering quietly', async () => {
+    const {labelContainer, inFlight} = await buildContainerMidLoad();
+    await finishLoad(inFlight);
+    deps.tracker.push.mockClear();
+
+    deps.labelCard.render.mockImplementationOnce(() => { throw new Error('label card blew up'); });
+
+    await expect(labelContainer.moveToNextLabel()).rejects.toThrow('label card blew up');
+
+    expect(deps.tracker.push).toHaveBeenCalledWith('ValidateRenderFailed', {error: 'label card blew up'});
+  });
+
+  // The menu resets as the label becomes current, not once its marker is drawn: otherwise a draw that fails would
+  // hand the tool back with the previous label's verdict still selected, which would submit nothing and skip this
+  // label on the next click. What needs the drawn marker (the card opened on load, say) is told only on success.
+  test('a draw that fails has already reset the menu for the new label, and tells nobody the label is shown', async () => {
+    const {labelContainer, inFlight} = await buildContainerMidLoad();
+    await finishLoad(inFlight);
+    const shown = vi.fn();
+    labelContainer.onLabelShown(shown);
+    deps.validationMenu.resetMenu.mockClear();
+    deps.panoManager.renderPanoMarker.mockRejectedValueOnce(new Error('marker did not draw'));
+
+    await expect(labelContainer.moveToNextLabel()).rejects.toThrow('marker did not draw');
+
+    expect(deps.validationMenu.resetMenu).toHaveBeenCalledWith(labelContainer.getCurrentLabel());
+    expect(shown).not.toHaveBeenCalled();
+  });
+
+  // The no-more-labels path hands the tool back before showing its modal. The finally has to leave that alone rather
+  // than hand it back a second time behind the modal.
+  test('the out-of-labels modal is not handed a re-enabled keyboard', async () => {
+    const keyboard = fakeGate();
+    const labelContainer = newLabelContainer(LabelContainer, deps, [{labelId: 1, panoId: 'panoA'}], LABEL_TYPE);
+    // As KeyboardManager subscribes.
+    labelContainer.onLoadingChange((loading) => (loading ? keyboard.hold('loading') : keyboard.release('loading')));
+    await labelContainer.renderCurrentLabel();
+    keyboard.release.mockClear();
+
+    await labelContainer.moveToNextLabel();
+
+    expect(deps.modalNoNewMission.show).toHaveBeenCalled();
+    expect(keyboard.release).toHaveBeenCalledTimes(1); // The deliberate early release, and no second one.
+  });
+});
+
+// Every menu path that writes onto the current label outside the guarded verdict path needs a guard of its own,
+// because none of them are reached through #validateLabel. The shared mechanism is native activation: a control that
+// keeps focus after a click is still activated by the browser once KeyboardManager stops intercepting keys — which is
+// exactly what #setUiBusy does for the length of a load. Enter re-fires a focused reason button; an arrow key roves
+// the severity radios, which are only visually hidden and so still take focus, and whose keydown the pano viewers
+// stopPropagation but never preventDefault. The write then lands on a label the validator has not seen and survives
+// resetMenu, which clears the chosen styling but not the label's properties.
+//
+// Checked in the source rather than by driving the menus, which need i18next and tom-select to construct, and
+// whose #private methods a test can't reach anyway. The invariant is narrow enough to read directly: the guard has to
+// be the handler's first statement, since everything after it writes.
+describe('every menu path that writes onto the current label refuses one that is still loading', () => {
+  const MENU_PATHS = {
+    desktop: path.join(REPO_ROOT, 'frontend/js/validate/menu/DesktopValidationMenu.js'),
+    mobile: path.join(REPO_ROOT, 'frontend/js/validate/menu/MobileValidationMenu.js'),
+  };
+
+  // [layout, what it is, the line that opens the handler, the source it drops under].
+  test.each([
+    ['desktop', 'the disagree reason setter', '#setDisagreeReason(id) {', 'DisagreeReason'],
+    ['desktop', 'the unsure reason setter', '#setUnsureReason(id) {', 'UnsureReason'],
+    ['desktop', 'the disagree "other" box', "menuUI.disagreeReasonTextBox.addEventListener('input', () => {",
+      'DisagreeReason'],
+    ['desktop', 'the unsure "other" box', "menuUI.unsureReasonTextBox.addEventListener('input', () => {",
+      'UnsureReason'],
+    ['desktop', 'the tag adder', '#addTag(tagName, fromAiSuggestion = false) {', 'TagAdd'],
+    ['desktop', 'the tag picker', 'onItemAdd: (tagName) => {', 'TagAdd'],
+    ['desktop', 'the tag remover', '#removeTag(tagName, label, fromAiSuggestion = false) {', 'TagRemove'],
+    ['mobile', 'the disagree reason setter', '#setDisagreeReason(id) {', 'DisagreeReason'],
+    ['mobile', 'the unsure reason setter', '#setUnsureReason(id) {', 'UnsureReason'],
+    ['mobile', 'the disagree "other" box', "menuUI.disagreeReasonTextBox.addEventListener('input', () => {",
+      'DisagreeReason'],
+    ['mobile', 'the unsure "other" box', "menuUI.unsureReasonTextBox.addEventListener('input', () => {",
+      'UnsureReason'],
+    ['mobile', 'the disagree skip button',
+      "document.getElementById('no-menu-skip-reason-button').addEventListener('click', (e) => {",
+      'DisagreeReason_Skip'],
+    ['mobile', 'the unsure skip button',
+      "document.getElementById('unsure-menu-skip-reason-button').addEventListener('click', (e) => {",
+      'UnsureReason_Skip'],
+    // Expert Validate only, and the widest blast radius of the lot: unlike a reason this writes newSeverity, which
+    // is submitted as validation data rather than as a comment string.
+    ['desktop', 'the severity buttons', "severityButton.addEventListener('click', () => {", 'Severity'],
+  ])('%s: %s opens with the load guard', (layout, what, opener, source) => {
+    const lines = fs.readFileSync(MENU_PATHS[layout], 'utf8').split('\n');
+    const openerLine = lines.findIndex((line) => line.trim() === opener);
+
+    // A rename or a reflow of the opener would leave the case below matching nothing and passing vacuously. Keyed by
+    // the handler's name so the failure says which one moved rather than just "expected true".
+    expect({ [what]: openerLine > -1 }).toEqual({ [what]: true });
+    // First statement, not first line: several of these explain themselves in a comment before the guard.
+    const firstStatement = lines.slice(openerLine + 1)
+      .map((line) => line.trim())
+      .find((line) => line !== '' && !line.startsWith('//'));
+
+    expect(firstStatement).toBe(`if (this.#labelContainer.dropInputWhileLoading('${source}')) return;`);
+  });
+
+  // The setters these call are guarded, but each handler pushes its own tracker event first, so a guard that lived
+  // only in the setter would log the reason as chosen and then log the drop — the double-Enter case docs/logged-events
+  // asks analysts to read is the one that would appear in the log twice, once as having worked. Both handlers open
+  // with the same line, so every occurrence is checked rather than whichever one comes first.
+  test.each([['desktop'], ['mobile']])('%s: a reason button refuses before it logs', (layout) => {
+    const lines = fs.readFileSync(MENU_PATHS[layout], 'utf8').split('\n');
+    const openers = lines.reduce(
+      (acc, line, i) => (line.trim() === "reasonButton.addEventListener('click', (e) => {" ? [...acc, i] : acc), [],
+    );
+
+    expect(openers).toHaveLength(2); // One for disagree, one for unsure.
+    for (const opener of openers) {
+      const firstStatement = lines.slice(opener + 1)
+        .map((line) => line.trim())
+        .find((line) => line !== '' && !line.startsWith('//'));
+
+      expect(firstStatement)
+        .toMatch(/^if \(this\.#labelContainer\.dropInputWhileLoading\('(Disagree|Unsure)Reason'\)\) return;$/);
+    }
+  });
+});
+
+// An id missing from the view matches nothing, silently, which is how mobile came to have no busy state (#5211).
+// These check the selector lists against the markup they cover.
+const { VALIDATE_BUSY_SELECTORS: busySelectors } = await loadModules('frontend/js/validate/Main.js');
+
+describe('every element the busy state covers exists in the view it covers it in', () => {
+  test.each([
+    ['desktop', DESKTOP_VIEW_PATH],
+    ['mobile', MOBILE_VIEW_PATH],
+  ])('%s', (layout, viewPath) => {
+    const view = fs.readFileSync(viewPath, 'utf8');
+    const selectors = busySelectors[layout];
+
+    // An empty list would pass every assertion below without covering anything.
+    expect(selectors.length).toBeGreaterThan(0);
+    for (const selector of selectors) {
+      expect(selector).toMatch(/^#[\w-]+$/); // Only id selectors can be checked this way.
+      expect(view).toContain(`id="${selector.slice(1)}"`);
+    }
+  });
+});

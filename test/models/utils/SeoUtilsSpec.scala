@@ -2,6 +2,7 @@ package models.utils
 
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
+import play.api.Configuration
 
 /**
  * Pure (no DB, no app boot) tests for the SEO URL helpers behind seoHead, robots.txt, and the sitemap (#4237).
@@ -9,6 +10,37 @@ import org.scalatest.matchers.should.Matchers
 class SeoUtilsSpec extends AnyFunSuite with Matchers {
 
   private val prodUrl = "https://sidewalk-sea.cs.washington.edu"
+
+  test("isIndexable requires prod, a publicly launched city, and no sign-in wall") {
+    SeoUtils.isIndexable("prod", "public", "gsv") shouldBe true
+    SeoUtils.isIndexable("prod", "public", "mapillary") shouldBe true
+    // A private prod city: a research partnership or pilot that is not ours to publish (#5120).
+    SeoUtils.isIndexable("prod", "private", "gsv") shouldBe false
+    // Non-prod stages, which would otherwise outrank prod for the same content (#2806).
+    SeoUtils.isIndexable("test", "public", "gsv") shouldBe false
+    SeoUtils.isIndexable("local", "public", "gsv") shouldBe false
+    SeoUtils.isIndexable("staging", "public", "gsv") shouldBe false
+    // Infra3D's imagery licence puts every page behind a sign-in, so a crawler can reach nothing (#4643).
+    SeoUtils.isIndexable("prod", "public", "infra3d") shouldBe false
+  }
+
+  test("isIndexable(config) fails closed on a missing key instead of throwing") {
+    // The overload SeoRobotsFilter calls from its constructor, where a throw is a failed boot. Every combination
+    // below must answer false, and none may throw.
+    val base  = Map[String, Any]("city-id" -> "a", "environment-type" -> "prod")
+    val cases = Map(
+      "no status, no pano type" -> base,
+      "no status"               -> (base + ("city-params.pano-viewer-type.a" -> "gsv")),
+      "no pano type"            -> (base + ("city-params.status.a"           -> "public"))
+    )
+    cases.foreach { case (label, entries) =>
+      withClue(s"$label: ") { SeoUtils.isIndexable(Configuration.from(entries)) shouldBe false }
+    }
+    // The fully-specified public case still answers true, so the above isn't passing for the wrong reason.
+    SeoUtils.isIndexable(
+      Configuration.from(base ++ Map("city-params.status.a" -> "public", "city-params.pano-viewer-type.a" -> "gsv"))
+    ) shouldBe true
+  }
 
   test("canonicalPathFor collapses every duplicate route alias to its canonical path") {
     SeoUtils.canonicalPathFor("/home") shouldBe "/"

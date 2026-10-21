@@ -1,22 +1,32 @@
 @import controllers.helper.ControllerUtils.distanceUnitWords
-@import service.{AggregateStats, CommonPageData, GlobalLeaderboardEntry}
+@import play.twirl.api.HtmlFormat
+@import service.{CityImpact, CommonPageData, GlobalLeaderboardEntry, TeamBoard}
+@import models.api.AggregateStats
 @import models.user.{LeaderboardStat, SidewalkUserWithRole, UserStanding}
 @import play.api.Configuration
 @(commonData: CommonPageData, user: Option[SidewalkUserWithRole], isSignedIn: Boolean, isMetric: Boolean, cityName: String,
-    aggregate: AggregateStats, overall: Seq[LeaderboardStat], weekly: Seq[LeaderboardStat],
-    teams: Seq[LeaderboardStat], standing: Option[UserStanding], global: Option[Seq[GlobalLeaderboardEntry]]
-)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+    aggregate: AggregateStats, impact: Option[CityImpact], overall: Seq[LeaderboardStat],
+    weekly: Seq[LeaderboardStat], teams: Seq[LeaderboardStat], myTeam: Option[TeamBoard],
+    standing: Option[UserStanding],
+    global: Option[Seq[GlobalLeaderboardEntry]]
+)(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @*
-* Redesigned Leaderboard, all real data. Sections run this-city first, then all-cities: the podium + this-week + teams
-* tables and "your place" (getLeaderboardStats / getUserStanding), then the all-time board spanning every deployment
-* (getGlobalLeaderboardStats, a cross-schema union) and the community-impact band (getAggregateStats).
-* PUBLIC page: anyone incl. anonymous can view; personal "you" pieces render only when signed in, with a sign-up CTA
-* otherwise. `global` is None when the cross-city board is unavailable, which drops the section entirely.
+* Leaderboard: this city's sections first, then the ones spanning every city. The top band and the closing community
+* band read the same cached numbers, so the city's figures never exceed the all-cities ones (#4687).
+* Public: the "you" pieces render only when signed in. `impact` and `global` are None when their data is unavailable,
+* which drops those sections; `myTeam` is None when signed out or not on a team (#5762).
 *@
 
 @* Named once because every distance on the board uses it. Twirl compiles this to a def, so it is not memoized. *@
 @unitWords = @{distanceUnitWords}
+
+@*
+* Every figure below groups and rounds through `formatLocal` rather than plain `format`/`f""`, which would use the
+* server JVM's default locale — so a German page would read "1,600,000" and "2.4M" instead of "1.600.000" and "2,4M".
+* MessageFormat already formats the args it interpolates this way; this is the same rule for the ones we pre-format.
+*@
+@locale = @{messages.lang.toLocale}
 
 @*
 * Unit-aware distance, matching the live leaderboard's formatting (km/m for metric, miles/feet otherwise). The
@@ -25,23 +35,76 @@
 *@
 @fmtDist(m: Double) = @{
   if (isMetric) {
-    if (m > 2000) f"${m / 1000}%.1f ${unitWords.abbr}" else f"$m%.0f ${unitWords.abbrSmall}"
+    if (m > 2000) "%.1f %s".formatLocal(locale, m / 1000, unitWords.abbr)
+    else "%.0f %s".formatLocal(locale, m, unitWords.abbrSmall)
   } else {
     val ft = m * 3.28084
-    if (ft > 2500) f"${ft / 5280}%.1f ${unitWords.abbr}" else f"$ft%.0f ${unitWords.abbrSmall}"
+    if (ft > 2500) "%.1f %s".formatLocal(locale, ft / 5280, unitWords.abbr)
+    else "%.0f %s".formatLocal(locale, ft, unitWords.abbrSmall)
   }
 }
 
 @* Accuracy as a whole percent, or "N/A" when there aren't enough validated labels to be meaningful. *@
-@fmtAcc(a: Option[Double]) = @{ a.map(x => f"${x * 100}%.0f%%").getOrElse(Messages("not.applicable.abbr")) }
+@fmtAcc(a: Option[Double]) = @{
+  a.map(x => "%.0f%%".formatLocal(locale, x * 100)).getOrElse(Messages("not.applicable.abbr"))
+}
+
+@* A plain grouped count (19,343), for the table cells that print one directly. *@
+@fmtCount(n: Int) = @{ "%,d".formatLocal(locale, n) }
 
 @* Big community numbers: abbreviate at a million (1.6M), otherwise comma-group (19,343) — matches the comps. *@
-@fmtBig(n: Int) = @{ if (n >= 1000000) f"${n / 1000000.0}%.1fM" else "%,d".format(n) }
+@fmtBig(n: Int) = @{ if (n >= 1000000) "%.1fM".formatLocal(locale, n / 1000000.0) else fmtCount(n) }
 
-@* Total distance explored across all cities, unit-aware and comma-grouped (kmExplored is stored in km). *@
+@*
+* Once the abbreviation kicks in, "1.6M" is all a screen reader gets, so the exact figure rides along visually hidden.
+* A String rather than Html so the bridge can pass it as a Messages arg; it holds only digits and our own tags, so the
+* @@Html that renders it has nothing to escape.
+*@
+@bigCountMarkup(n: Int) = @{
+  if (n >= 1000000) s"""<span aria-hidden="true">${fmtBig(n)}</span><span class="sr-only">${fmtCount(n)}</span>"""
+  else fmtCount(n)
+}
+
+@bigCount(n: Int) = @{Html(bigCountMarkup(n))}
+
+@* Whole-unit distance for the impact bands, unit-aware (both bands' values are stored in km). *@
 @fmtBigDist(km: Double) = @{
   val dist = if (isMetric) km else km * 0.621371
-  s"${"%,.0f".format(dist)} ${unitWords.abbr}"
+  s"${"%,.0f".formatLocal(locale, dist)} ${unitWords.abbr}"
+}
+
+@*
+* The community band keeps every tile on one line, which leaves a value only its own share of the band to sit in.
+* Each of its figures therefore renders twice — the exact one and a short one — and CSS shows whichever fits, so the
+* band abbreviates under pressure rather than shrinking its type. The full figure carries the accessible reading at
+* every width; the short form is decorative. Values with no shorter form render as themselves, unwrapped. The digits
+* here and in CrossCityStats.#shortNum have to agree: the two fill the same band, whose type is sized to them.
+*@
+@shortCount(n: Int) = @{
+  // Rounding decides the tier, not the raw value: 999,999 rounds to 1000 thousands, and printing that as "1000k"
+  // would read as a million while claiming not to be one.
+  val thousands = math.round(n / 1000.0)
+  if (thousands >= 1000) "%.1fM".formatLocal(locale, n / 1000000.0)
+  else if (n >= 10000) "%dk".formatLocal(locale, thousands)
+  else fmtCount(n)
+}
+
+@twoForm(full: String, short: String) = @{
+  // Escaped rather than interpolated raw: a distance carries a translated unit, so these strings are not all ours.
+  val f = HtmlFormat.escape(full)
+  if (full == short) f
+  else {
+    val s = HtmlFormat.escape(short)
+    Html(s"""<span class="ud-value-full">$f</span><span class="ud-value-short" aria-hidden="true">$s</span>""")
+  }
+}
+
+@communityCount(n: Int) = @{ twoForm(fmtCount(n), shortCount(n)) }
+
+@communityDist(km: Double) = @{
+  val dist = if (isMetric) km else km * 0.621371
+  val short = if (dist >= 10000) s"""${shortCount(dist.toInt)} ${unitWords.abbr}""" else fmtBigDist(km)
+  twoForm(fmtBigDist(km), short)
 }
 
 @*
@@ -58,20 +121,20 @@
 @* Top-3 rows show a medal; a visually-hidden rank number keeps the cell meaningful to screen readers. *@
 @rankCell(rank: Int) = {
   @if(rank <= 3) {
-    <span class="ud-lb-medal" aria-hidden="true">@{Seq("🥇", "🥈", "🥉")(rank - 1)}</span><span class="ud-sr-only">@rank</span>
+    <span class="ud-lb-medal" aria-hidden="true">@{Seq("🥇", "🥈", "🥉")(rank - 1)}</span><span class="sr-only">@rank</span>
   } else {
     @rank
   }
 }
 
-@statRow(rank: Int, stat: LeaderboardStat, linkUser: Boolean) = {
+@statRow(rank: Int, stat: LeaderboardStat, linkUser: Boolean, hidden: Boolean = false) = {
   @defining(linkUser && isSignedIn && user.exists(_.username == stat.username)) { you =>
-    <tr @if(you){class="highlighted"}>
+    <tr @if(you){class="is-highlighted"} @if(hidden){hidden}>
       <td class="ud-lb-rank">@rankCell(rank)</td>
       <td>@if(you){<strong>@Messages("dashboard.you")</strong>}else{
         @if(linkUser){<a href="@routes.UserDashboardController.publicProfile(stat.username)" class="ud-lb-user">@stat.username</a>}else{@stat.username}
       }</td>
-      <td>@{"%,d".format(stat.labelCount)}</td>
+      <td>@{fmtCount(stat.labelCount)}</td>
       <td>@stat.missionCount</td>
       <td>@fmtDist(stat.distanceMeters)</td>
       <td>@fmtAcc(stat.accuracy)</td>
@@ -84,7 +147,7 @@
   @cityId.flatMap(id => commonData.allCityInfo.find(_.cityId == id)).map { city =>
     <a href="@city.URL" class="ud-lb-city">@city.cityNameShort</a>
   }.getOrElse {
-    <span aria-hidden="true">&mdash;</span><span class="ud-sr-only">@Messages("not.applicable.abbr")</span>
+    <span aria-hidden="true">&mdash;</span><span class="sr-only">@Messages("not.applicable.abbr")</span>
   }
 }
 
@@ -94,7 +157,7 @@
 *@
 @globalRow(rank: Int, entry: GlobalLeaderboardEntry) = {
   @defining(isSignedIn && user.exists(_.username == entry.username)) { you =>
-    <tr @if(you){class="highlighted"}>
+    <tr @if(you){class="is-highlighted"}>
       <td class="ud-lb-rank">@rankCell(rank)</td>
       <td>@if(you){<strong>@Messages("dashboard.you")</strong>}else{
         @if(entry.profileLinked){
@@ -104,7 +167,7 @@
         }
       }</td>
       <td>@topCityCell(entry.topCityId)</td>
-      <td>@{"%,d".format(entry.labelCount)}</td>
+      <td>@{fmtCount(entry.labelCount)}</td>
       <td>@entry.missionCount</td>
       <td>@fmtDist(entry.distanceMeters)</td>
       <td>@fmtAcc(entry.accuracy)</td>
@@ -112,18 +175,66 @@
   }
 }
 
+@teamPageSize = @{10}
+
 @podiumSpot(stat: LeaderboardStat, place: Int, medal: String) = {
   <div class="ud-podium-spot ud-podium-@place">
     <div class="ud-podium-name"><a href="@routes.UserDashboardController.publicProfile(stat.username)" class="ud-lb-user">@stat.username</a></div>
-    <div class="ud-podium-score">@Messages("leaderboard.podium.labels", "%,d".format(stat.labelCount))</div>
-    <div class="ud-podium-block"><span aria-hidden="true">@medal</span><span class="ud-sr-only">@Messages(s"dashboard.rank.place.${Seq("one", "two", "three")(place - 1)}")</span></div>
+    <div class="ud-podium-score">@Messages("leaderboard.podium.labels", fmtCount(stat.labelCount))</div>
+    <div class="ud-podium-block"><span aria-hidden="true">@medal</span><span class="sr-only">@Messages(s"dashboard.rank.place.${Seq("one", "two", "three")(place - 1)}")</span></div>
   </div>
 }
 
 @content = {
-  <div class="api-section" id="lb-intro-section">
-    <h1 class="api-heading" id="leaderboard">@Messages("navbar.leaderboard") <a href="#leaderboard" class="permalink">#</a></h1>
+  <div class="page-section" id="lb-intro-section">
+    <h1 class="page-heading" id="leaderboard">@Messages("navbar.leaderboard") <a href="#leaderboard" class="permalink">#</a></h1>
     <p>@if(isSignedIn){@Messages("leaderboard.intro.you")}else{@Messages("leaderboard.intro")}</p>
+
+    @*
+    * ---- Hero: this city's totals (#4687) ------------------------------------------------------------------
+    * The h2 carries neither `page-heading` nor an id, which is exactly what AdminShell.js selects on, so the band
+    * gets a real place in the document outline without claiming a row in the right-hand contents list. Naming the
+    * city in it also satisfies the rule that a city-scoped section says which city it is (#3719).
+    *
+    * Marked up as a description list so a screen reader announces the label with its number rather than two loose
+    * spans; the value is painted above its label by the CSS, which is why the dt comes first in the markup.
+    *
+    * The streets tile carries a tooltip because the closing band prints the same words over a different measure:
+    * this one counts a re-audited street once, that one counts every completed audit of it.
+    *@
+    @impact.map { cityImpact =>
+      <h2 class="ud-impact-caption">@Messages("leaderboard.hero.caption", cityName)</h2>
+      <dl class="ud-impact-band">
+        <div class="ud-impact-stat">
+          <dt class="ud-impact-label">@Messages("leaderboard.community.contributors")</dt>
+          <dd class="ud-impact-value">@bigCount(cityImpact.contributors)</dd>
+        </div>
+        <div class="ud-impact-stat">
+          <dt class="ud-impact-label">@Messages("leaderboard.community.labels")</dt>
+          <dd class="ud-impact-value">@bigCount(cityImpact.totalLabels)</dd>
+        </div>
+        <div class="ud-impact-stat">
+          <dt class="ud-impact-label">@Messages("validations")</dt>
+          <dd class="ud-impact-value">@bigCount(cityImpact.totalValidations)</dd>
+        </div>
+        <div class="ud-impact-stat">
+          <dt class="ud-impact-label">
+            <span class="ud-th-tip" tabindex="0" role="note"
+                aria-label="@Messages("leaderboard.community.streets") @Messages("leaderboard.hero.streets.detail")"
+                data-tooltip="@Messages("leaderboard.hero.streets.detail")">@Messages("leaderboard.community.streets")<span class="ud-th-info" aria-hidden="true">&#9432;</span></span>
+          </dt>
+          <dd class="ud-impact-value">@fmtBigDist(cityImpact.kmExploredNoOverlap)</dd>
+        </div>
+      </dl>
+    }
+
+    @*
+    * One line of the cross-city story up top; the full band at #global carries contributors and distance too. Outside
+    * the block above because it reads `aggregate`, which is still good when this city's own slice is missing.
+    *@
+    <p class="ud-impact-bridge">@Html(Messages("leaderboard.hero.bridge", aggregate.numCities,
+      bigCountMarkup(aggregate.totalLabels), bigCountMarkup(aggregate.totalValidations)))
+      <a href="#global">@Messages("leaderboard.hero.bridge.link")</a></p>
 
     @if(!isSignedIn) {
       <div class="ud-cta">
@@ -140,8 +251,8 @@
   </div>
 
   @* ---- Podium (real: top 3 all-time) -------------------------------------------------------------------- *@
-  <div class="api-section" id="lb-podium-section">
-    <h2 class="api-heading" id="podium">@Messages("leaderboard.podium.title") <a href="#podium" class="permalink">#</a></h2>
+  <div class="page-section" id="lb-podium-section">
+    <h2 class="page-heading" id="podium">@Messages("leaderboard.podium.title") <a href="#podium" class="permalink">#</a></h2>
     <p>@Messages("leaderboard.podium.intro", cityName)</p>
     @if(overall.length >= 3) {
       <div class="ud-podium">
@@ -155,16 +266,16 @@
   </div>
 
   @* ---- All-time (real) ---------------------------------------------------------------------------------- *@
-  <div class="api-section" id="lb-alltime-section">
-    <h2 class="api-heading" id="all-time">@Messages("leaderboard.alltime.title", cityName) <a href="#all-time" class="permalink">#</a></h2>
+  <div class="page-section" id="lb-alltime-section">
+    <h2 class="page-heading" id="all-time">@Messages("leaderboard.alltime.title", cityName) <a href="#all-time" class="permalink">#</a></h2>
     <p>@Messages("leaderboard.alltime.intro", cityName)</p>
     <details class="ud-explainer">
       <summary>@Messages("leaderboard.explainer.summary")</summary>
       <div>@Html(Messages("leaderboard.explainer.body"))</div>
     </details>
     @if(overall.nonEmpty) {
-      <div class="coverage-table-wrap">
-        <table class="coverage-table">
+      <div class="ps-table-scroll-box">
+        <table class="ps-table ps-table--sticky ud-lb-table">
           <thead>
             @lbHead(Messages("leaderboard.header.mapper"))
           </thead>
@@ -179,12 +290,12 @@
   </div>
 
   @* ---- This week (real) --------------------------------------------------------------------------------- *@
-  <div class="api-section" id="lb-weekly-section">
-    <h2 class="api-heading" id="weekly">@Messages("leaderboard.thisweek.title", cityName) <a href="#weekly" class="permalink">#</a></h2>
+  <div class="page-section" id="lb-weekly-section">
+    <h2 class="page-heading" id="weekly">@Messages("leaderboard.thisweek.title", cityName) <a href="#weekly" class="permalink">#</a></h2>
     <p>@Messages("leaderboard.thisweek.intro")</p>
     @if(weekly.nonEmpty) {
-      <div class="coverage-table-wrap">
-        <table class="coverage-table">
+      <div class="ps-table-scroll-box">
+        <table class="ps-table ps-table--sticky ud-lb-table">
           <thead>
             @lbHead(Messages("leaderboard.header.mapper"))
           </thead>
@@ -200,20 +311,64 @@
 
   @* ---- Your place, this city this week (signed-in only) -------------------------------------------------- *@
   @if(isSignedIn) {
-    <div class="api-section" id="lb-you-section">
-      <h2 class="api-heading" id="you">@Messages("leaderboard.you.title", cityName) <a href="#you" class="permalink">#</a></h2>
+    <div class="page-section" id="lb-you-section">
+      <h2 class="page-heading" id="you">@Messages("leaderboard.you.title", cityName) <a href="#you" class="permalink">#</a></h2>
       <p>@Messages("leaderboard.you.intro")</p>
       @userDashboard._standing(standing, seeAllLink = false)
     </div>
   }
 
+  @* ---- Your team (signed-in members only, #5762): opens on the page holding the viewer's row ------------- *@
+  @for(board <- myTeam; viewerIndex = board.members.indexWhere(m => user.exists(_.username == m.username))) {
+    <div class="page-section" id="lb-myteam-section">
+      <h2 class="page-heading" id="team">@Messages("leaderboard.myteam.title", board.team.name) <a href="#team" class="permalink">#</a></h2>
+      <p>@Messages("leaderboard.myteam.intro", cityName)</p>
+      @if(board.members.nonEmpty) {
+        @defining(math.max(0, viewerIndex) / teamPageSize) { startPage =>
+          @defining((board.members.length + teamPageSize - 1) / teamPageSize) { pageCount =>
+            <div class="ps-table-scroll-box">
+              <table class="ps-table ps-table--sticky ud-lb-table">
+                <thead>
+                  @lbHead(Messages("leaderboard.header.mapper"))
+                </thead>
+                <tbody id="ud-team-board" data-page-size="@teamPageSize" data-page="@startPage">
+                  @for((stat, i) <- board.members.zipWithIndex) {
+                    @statRow(i + 1, stat, linkUser = true, hidden = i / teamPageSize != startPage)
+                  }
+                </tbody>
+              </table>
+            </div>
+            @if(pageCount > 1) {
+              @* The page number is its own element so TablePager can update it without re-translating. *@
+              <nav class="ps-pager" id="ud-team-pager" aria-label="@Messages("leaderboard.myteam.pager")">
+                <button type="button" class="ps-pager-btn" data-step="-1" @if(startPage==0){disabled}>@Messages("leaderboard.myteam.prev")</button>
+                <span class="ps-pager-status" aria-live="polite" aria-atomic="true">@Html(Messages("leaderboard.myteam.page",
+                  s"""<span class="ps-pager-page">${startPage + 1}</span>""", pageCount))</span>
+                <button type="button" class="ps-pager-btn" data-step="1" @if(startPage==pageCount-1){disabled}>@Messages("leaderboard.myteam.next")</button>
+              </nav>
+            }
+          }
+        }
+      } else {
+        <div class="ud-nudge">@Messages("leaderboard.myteam.none")</div>
+      }
+      @if(viewerIndex < 0) {
+        @if(board.viewerOptedOut) {
+          <p>@Messages("leaderboard.myteam.you.hidden", Messages("dashboard.settings.leaderboard.toggle")) <a href="@routes.UserDashboardController.settings">@Messages("leaderboard.myteam.you.settings")</a></p>
+        } else {
+          <p>@Messages("leaderboard.myteam.you.nolabels")</p>
+        }
+      }
+    </div>
+  }
+
   @* ---- Teams (real) ------------------------------------------------------------------------------------- *@
-  <div class="api-section" id="lb-teams-section">
-    <h2 class="api-heading" id="teams">@Messages("leaderboard.teams.title", cityName) <a href="#teams" class="permalink">#</a></h2>
+  <div class="page-section" id="lb-teams-section">
+    <h2 class="page-heading" id="teams">@Messages("leaderboard.teams.title", cityName) <a href="#teams" class="permalink">#</a></h2>
     <p>@Messages("leaderboard.teams.intro")</p>
     @if(teams.nonEmpty) {
-      <div class="coverage-table-wrap">
-        <table class="coverage-table">
+      <div class="ps-table-scroll-box">
+        <table class="ps-table ps-table--sticky ud-lb-table">
           <thead>
             @lbHead(Messages("leaderboard.header.team"))
           </thead>
@@ -241,12 +396,12 @@
   * nudge there would tell every visitor the whole community has no labels.
   *@
   @global.map { entries =>
-    <div class="api-section" id="lb-allcities-section">
-      <h2 class="api-heading" id="all-cities">@Messages("leaderboard.allcities.title") <a href="#all-cities" class="permalink">#</a></h2>
+    <div class="page-section" id="lb-allcities-section">
+      <h2 class="page-heading" id="all-cities">@Messages("leaderboard.allcities.title") <a href="#all-cities" class="permalink">#</a></h2>
       <p>@Messages("leaderboard.allcities.intro")</p>
       @if(entries.nonEmpty) {
-        <div class="coverage-table-wrap">
-          <table class="coverage-table ud-lb-global">
+        <div class="ps-table-scroll-box">
+          <table class="ps-table ps-table--sticky ud-lb-table ud-lb-global">
             <thead>
               @lbHead(Messages("leaderboard.header.mapper"), Some(Messages("leaderboard.header.topcity")))
             </thead>
@@ -263,25 +418,25 @@
   }
 
   @* ---- Community impact band (cross-city, real: getAggregateStats — #3719) -------------------------------- *@
-  <div class="api-section" id="lb-global-section">
-    <h2 class="api-heading" id="global">@Messages("leaderboard.community.title") <a href="#global" class="permalink">#</a></h2>
+  <div class="page-section" id="lb-global-section">
+    <h2 class="page-heading" id="global">@Messages("leaderboard.community.title") <a href="#global" class="permalink">#</a></h2>
     <p>@Messages("leaderboard.community.intro")</p>
     <div class="ud-community-band">
       <div class="ud-community-stat">
         <img class="ud-community-icon" src="@assets.path("images/icons/project_sidewalk_flag.png")" alt="">
-        <span class="ud-community-value">@fmtBig(aggregate.totalUsers)</span><span class="ud-community-label">@Messages("leaderboard.community.contributors")</span>
+        <span class="ud-community-value">@communityCount(aggregate.totalUsers)</span><span class="ud-community-label">@Messages("leaderboard.community.contributors")</span>
       </div>
       <div class="ud-community-stat">
         <img class="ud-community-icon" src="@assets.path("images/icons/noun_pin_location_2342268_cropped.png")" alt="">
-        <span class="ud-community-value">@fmtBig(aggregate.totalLabels)</span><span class="ud-community-label">@Messages("leaderboard.community.labels")</span>
+        <span class="ud-community-value">@communityCount(aggregate.totalLabels)</span><span class="ud-community-label">@Messages("leaderboard.community.labels")</span>
       </div>
       <div class="ud-community-stat">
         <img class="ud-community-icon" src="@assets.path("images/icons/noun_validation_1876484_cropped.png")" alt="">
-        <span class="ud-community-value">@fmtBig(aggregate.totalValidations)</span><span class="ud-community-label">@Messages("validations")</span>
+        <span class="ud-community-value">@communityCount(aggregate.totalValidations)</span><span class="ud-community-label">@Messages("validations")</span>
       </div>
       <div class="ud-community-stat">
         <img class="ud-community-icon" src="@assets.path("images/icons/noun_distance_2587675_cropped.png")" alt="">
-        <span class="ud-community-value">@fmtBigDist(aggregate.kmExplored)</span><span class="ud-community-label">@Messages("leaderboard.community.streets")</span>
+        <span class="ud-community-value">@communityDist(aggregate.kmExplored)</span><span class="ud-community-label">@Messages("leaderboard.community.streets")</span>
       </div>
       <div class="ud-community-stat">
         @* Placeholder globe until a matching line-art cities icon is added (Jon to source). *@
@@ -293,11 +448,12 @@
 
   @if(isSignedIn) {
     @userDashboard._createTeamDialog()
-    <script src="@assets.path("js/user-dashboard/TeamCreate.js")"></script>
+    @ViteAssets.stylesheets("dashboard/leaderboard", alreadyLinked = "dashboard/shell")
+    <script type="module" src='@assets.path("build/js/dashboard/leaderboard.js")'></script>
   }
 }
 
-@* dashboard namespace: TeamCreate.js's client-side error strings. *@
+@* dashboard namespace: TeamActions.js's client-side error strings. *@
 @common.main(commonData, Messages("seo.title.leaderboard"), i18Namespaces = Seq("common", "dashboard")) {
   @common.navbar(commonData, user)
   @userDashboard.layout("leaderboard", isSignedIn)(content)

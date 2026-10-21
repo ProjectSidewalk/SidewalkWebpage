@@ -1,11 +1,11 @@
 package util
 
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.db.slick.DatabaseConfigProvider
 
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import scala.concurrent.{Await, ExecutionContext}
 import scala.util.{Failure, Success, Try}
 
@@ -17,7 +17,7 @@ import scala.util.{Failure, Success, Try}
  * That matters because several of these queries (e.g. the imagery-freshness set-pass) operate on whole tables rather
  * than just a spec's synthetic rows.
  *
- * Mix into a `PlaySpec with GuiceOneAppPerSuite`. Specs are expected to disable `modules.ActorModule` in their
+ * Mix into a `SidewalkSpec with GuiceOneAppPerSuite`. Specs are expected to disable `modules.ActorModule` in their
  * `fakeApplication()` so the real nightly jobs can't race the assertions.
  */
 trait RolledBackDb { this: GuiceOneAppPerSuite =>
@@ -25,7 +25,7 @@ trait RolledBackDb { this: GuiceOneAppPerSuite =>
   /** How long to wait on a single action. Generous, since these boot the app and hit PostGIS. */
   protected def dbTimeout: FiniteDuration = 120.seconds
 
-  implicit protected lazy val ec: ExecutionContext = app.injector.instanceOf[ExecutionContext]
+  protected given ec: ExecutionContext = app.injector.instanceOf[ExecutionContext]
 
   // Kept as a stable val with `.db.run` called inline; binding `.db` to its own val would infer a path-dependent
   // existential type that needs -language:existentials.
@@ -33,6 +33,9 @@ trait RolledBackDb { this: GuiceOneAppPerSuite =>
 
   /** Runs an action against the connected DB and blocks for the result. */
   protected def run[T](action: DBIO[T]): T = Await.result(dbConfig.db.run(action), dbTimeout)
+
+  /** The active city schema (first search_path entry) — what the service layer passes for the own-city arm. */
+  protected def currentSchema: DBIO[String] = sql"SELECT current_schema()".as[String].head
 
   /** Sentinel used to abort (and thus roll back) the wrapping transaction after the test body has run. */
   private object RollbackSentinel extends RuntimeException("intentional rollback -- leave the DB untouched")
@@ -49,7 +52,7 @@ trait RolledBackDb { this: GuiceOneAppPerSuite =>
     Try(run(tx)) match {
       case Failure(RollbackSentinel) => result.get
       case Failure(other)            => throw other
-      case Success(_)                => throw new IllegalStateException("rollback sentinel did not propagate")
+      case Success(_)                => throw IllegalStateException("rollback sentinel did not propagate")
     }
   }
 }

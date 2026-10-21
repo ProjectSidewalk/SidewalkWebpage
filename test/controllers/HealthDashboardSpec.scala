@@ -1,12 +1,12 @@
 package controllers
 
 import org.apache.pekko.stream.Materializer
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
+import util.SidewalkSpec
 
 /**
  * Smoke tests for the Owner-only Health dashboard (#4561): GET /admin/health (the page) and GET /adminapi/dbHealth
@@ -17,12 +17,12 @@ import play.api.test.Helpers._
  *
  * Requires a Postgres+PostGIS database (via DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD env).
  */
-class HealthDashboardSpec extends PlaySpec with GuiceOneAppPerSuite {
+class HealthDashboardSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   "GET /admin/health" should {
     "redirect unauthenticated users to the sign-in page (not 404)" in {

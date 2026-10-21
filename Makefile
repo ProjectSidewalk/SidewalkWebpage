@@ -1,8 +1,15 @@
-.PHONY: dev docker-up docker-up-db docker-run docker-stop ssh qa-worktree qa-worktree-stop worktree-remove test-e2e \
+.PHONY: dev docker-up docker-up-db docker-run docker-stop npm-sync ssh qa-worktree qa-worktree-stop worktree-remove \
+        upgrade-dev-db lease-status lease-take lease-release \
+        test-js test-e2e test-e2e-host \
         test-python test-python-app test-python-tools \
-        import-users import-dump create-new-schema fill-new-schema hide-streets-without-imagery \
-        import-street-imagery reveal-or-hide-neighborhoods \
-        lint lint-fix lint-evolutions lint-locales scalafmt scalafmt-fix \
+        import-users import-dump create-new-schema fill-new-schema onboard-city build-city-data check-imagery \
+        hide-streets-without-imagery \
+        import-street-imagery export-street-gradient-input street-gradient import-street-gradient \
+        export-osm-lineage-input osm-lineage import-osm-lineage \
+        reveal-or-hide-regions \
+        lint lint-fix lint-evolutions lint-locales lint-css-layout lint-asset-paths lint-js-types \
+        lint-spec-base lint-shellcheck shellcheck \
+        scalafmt scalafmt-fix compile test-scala clean-dist \
         eslint htmlhint stylelint eslint-fix stylelint-fix \
         lint-eslint lint-htmlhint lint-stylelint lint-fix-eslint lint-fix-stylelint
 
@@ -14,35 +21,119 @@ db ?= sidewalk
 dir ?= ./
 args ?=
 wt ?=
+only ?=
 clean ?=
 force ?=
+replace ?=
+wait ?=
+purpose ?=
+res ?=
 
 # `clean=1` (or true/yes) expands to the qa-worktree-stop --clean flag; anything else (incl. empty) expands to nothing.
 qa-stop-clean-flag = $(if $(filter 1 true yes,$(clean)),--clean,)
 # Same idiom for worktree-remove's `force=1`.
 worktree-force-flag = $(if $(filter 1 true yes,$(force)),--force,)
+# Same idiom for a lease's `wait=1` and `force=1` (tools/dev/lease.sh).
+lease-flags = $(if $(filter 1 true yes,$(wait)),--wait,) $(if $(filter 1 true yes,$(force)),--force,)
+# Who's asking, for the lease: the Claude session (unset in a terminal) and `purpose="…"`.
+lease-env = -e CLAUDE_CODE_SESSION_ID -e LEASE_PURPOSE="$(purpose)"
+# Same idiom for import-users' `replace=1`, which wipes the login schema instead of merging into it.
+import-users-replace-flag = $(if $(filter 1 true yes,$(replace)),--replace,)
+# Same idiom for upgrade-dev-db's `all=1`, which copies every database rather than just sidewalk.
+upgrade-dev-db-all-flag = $(if $(filter 1 true yes,$(all)),--all,)
 
 # Resolve which copy of qa-worktree.sh to run, then exec it with the args in $(1). The main repo is mounted at the
-# container's /home, so /home/tools/qa-worktree.sh is the script as it exists on whatever branch the MAIN checkout
+# container's /home, so /home/tools/dev/qa-worktree.sh is the script as it exists on whatever branch the MAIN checkout
 # happens to be on — which may predate the script entirely (#4628). Prefer the worktree's own copy so the branch being
-# QA'd supplies its own tooling, and fall back to the main repo's for worktrees branched before the script existed.
+# QA'd supplies its own tooling, and fall back to the main repo's for a copy that predates it or the :9000 lease.
 # Held in a variable rather than written inline in a recipe: make condenses a variable's backslash-continuations into
 # single spaces at parse time, so the container's shell receives one flat line — no reliance on how a given make version
 # passes continuations and leading tabs through to the shell (macOS still ships make 3.81, WSL/Linux run 4.x).
-qa-worktree-exec = script="/home/.claude/worktrees/$(wt)/tools/qa-worktree.sh"; \
-  [ -f "$$script" ] || script=/home/tools/qa-worktree.sh; \
-  [ -f "$$script" ] || { echo "error: no tools/qa-worktree.sh in worktree $(wt) or in the main checkout"; exit 1; }; \
+qa-worktree-exec = script="/home/.claude/worktrees/$(wt)/tools/dev/qa-worktree.sh"; \
+  grep -qs "lease take" "$$script" || script=/home/tools/dev/qa-worktree.sh; \
+  [ -f "$$script" ] || { echo "error: no tools/dev/qa-worktree.sh in worktree $(wt) or in the main checkout"; exit 1; }; \
   exec bash "$$script" $(1)
 # Every wt= target fails fast on a missing name rather than passing an empty one along.
 worktree-require-wt = @[ -n "$(wt)" ] || { echo "usage: make $@ wt=<name>   (a dir under .claude/worktrees/)"; exit 2; }
+
+# The main checkout's folder (git knows it even from inside a worktree).
+main-root := $(or $(shell d=$$(git rev-parse --git-common-dir 2>/dev/null) && cd "$$d/.." && pwd -P),$(CURDIR))
+# The checkout to check: the one you ran make from, or wt=<name>'s.
+host-dir = $(if $(wt),$(main-root)/.claude/worktrees/$(wt),$(CURDIR))
+# The same checkout, as the container sees it. The container only sees the main checkout (at /home) and what's inside
+# it, so anything else stops with an error.
+container-dir = $(check-host-dir)/home$(patsubst $(main-root)%,%,$(host-dir))
+check-host-dir = $(if $(findstring /,$(wt)),$(error wt= takes a worktree's name, not a path))$(if $(wildcard \
+  $(host-dir)),,$(error no checkout at $(host-dir)))$(if $(filter $(main-root) $(main-root)/%,$(host-dir)),,$(error \
+  the container can't see $(host-dir), only checkouts inside $(main-root)))
+# A worktree may have no node_modules of its own, so always use the main checkout's.
+node-modules = /home/node_modules
+# The checkout `make` ran from, whatever wt= points the work at, so a repo script matches the Makefile calling it.
+self-container-dir = /home$(patsubst $(main-root)%,%,$(CURDIR))
+# Same sbt settings as tools/dev/qa-worktree.sh (reuse the main checkout's downloads, cap memory). Set through SBT_OPTS,
+# since sbt drops command-line flags when it starts a background server.
+sbt-opts = -Dsbt.coursier.home=/home/.coursier -Dsbt.global.base=/home/.sbt -Dsbt.boot.directory=/home/.sbt/boot \
+           -Dsbt.repository.config=/home/.sbt/repositories -Xmx1536m
+# Attach your terminal when there is one, so Ctrl-C reaches the container (-it fails without one).
+tty-flags = $$([ -t 0 ] && echo -it)
 
 # ANSI colors for the `lint` summary.
 GREEN := \033[0;32m
 RED   := \033[0;31m
 BOLD  := \033[1m
 RESET := \033[0m
-# stylelint only accepts file paths/globs, so a dir= that isn't already a .css file/glob gets /**/*.css appended.
-css-glob = $(if $(filter %.css,$(dir)),$(dir),$(dir)/**/*.css)
+# What each linter checks: everything by default, or just dir=. stylelint needs file patterns, so a folder gets
+# /**/*.css added.
+eslint-paths   = $(if $(filter ./,$(dir)),frontend/js/ public/locales/ test/js/ test/e2e/ playwright.config.js,$(dir))
+htmlhint-paths = $(if $(filter ./,$(dir)),./app/views,$(dir))
+css-glob       = $(if $(filter ./,$(dir)),frontend/css/**/*.css,$(if $(filter %.css,$(dir)),$(dir),$(dir)/**/*.css))
+
+# The browser smoke suite's runner image (docker/e2e/Dockerfile), tagged from the tool versions read out of
+# package-lock.json — the base image bundles the matching Chromium, so deriving both from one pin is what keeps the
+# runner and the browser from drifting apart when Dependabot bumps it. Read from the lockfile rather than
+# package.json's `^` range, whose floor is only coincidentally what npm resolved: CI's e2e-smoke runs the suite out
+# of the lockfile's node_modules, so anything else here puts a different Playwright in front of the same specs. The
+# sed expression is plain BRE for macOS. Simply-expanded so the subprocess runs once per make invocation rather
+# than once per expansion.
+pw-version := $(shell sed -n '/"node_modules\/@playwright\/test": {/,/}/ s/.*"version": "\([0-9][0-9.]*\)".*/\1/p' package-lock.json | head -1)
+# @axe-core/playwright drives the accessibility gate (a11y.spec.js, #5060) and is installed into the image for the
+# same reason the runner is — the repo's node_modules is masked at run time. Read from the same one pin, and folded
+# into the image tag below so a bump rebuilds the image instead of silently reusing the old axe.
+axe-version := $(shell sed -n '/"node_modules\/@axe-core\/playwright": {/,/}/ s/.*"version": "\([0-9][0-9.]*\)".*/\1/p' package-lock.json | head -1)
+e2e-image   = projectsidewalk/e2e
+e2e-tag      = $(pw-version)-axe$(axe-version)
+# Playwright writes test-results/ into the bind-mounted repo, and the base image has no USER — so without this the
+# reports, traces, and the setup project's saved storageState all land root-owned, and neither a plain `rm -rf` nor
+# host-side `make worktree-remove` can clear them. HOME goes to /tmp because the invoking uid has no passwd entry.
+#
+# WHICH uid that is depends on the daemon. Rootless Docker runs the engine inside a user namespace where container
+# uid 0 IS the invoking host user, so the runner has to be container-root to write files the host user owns —
+# passing our host uid there lands us at an unmapped subuid that can't even delete Playwright's own output dir
+# (`EACCES: permission denied, rmdir '/home/test-results'`). A rootful daemon maps uids straight through, so there
+# the host uid is exactly right and container-root would be real root. `docker info` naming the answer beats
+# guessing; when docker is unreachable it falls through to the rootful form, which is what the failure message from
+# the running-container check below is about anyway. Unhandled third case: a rootful daemon with `userns-remap`
+# configured, where the right uid is neither — nobody on the team runs one, and it needs the offset from
+# /etc/subuid to compute.
+#
+# Recursively expanded, so the `docker info` round trip is paid inside the test-e2e recipe rather than every time
+# make parses this file — targets that never touch docker (lint-evolutions, worktree-remove) would otherwise wait
+# out the client's connect timeout whenever the daemon is down, with 2>/dev/null hiding why.
+docker-rootless = $(shell docker info --format '{{.SecurityOptions}}' 2>/dev/null | grep -c rootless)
+e2e-uid    = $(if $(filter 0,$(docker-rootless)),$(shell id -u),0)
+e2e-user   = $(e2e-uid):$(if $(filter 0,$(docker-rootless)),$(shell id -g),0)
+# Playwright wipes its output directory at the start of every run, so one left root-owned — by a run that predates
+# --user, or by any root container — stops the non-root runner with EACCES before a single test starts. Repair it
+# in place instead of sending the developer to sudo. Held in a variable, not written inline in the recipe, because
+# make condenses a variable's backslash-continuations to spaces at parse time and the container's shell would
+# otherwise receive them literally inside the single-quoted script (same reason as qa-worktree-exec).
+e2e-fix-artifact-owner = cd $(container-dir) 2>/dev/null || exit 0; \
+  for d in test-results playwright-report; do \
+    [ -d "$$d" ] || continue; \
+    [ "$$(stat -c %u "$$d")" = "$(e2e-uid)" ] && continue; \
+    echo "==> repairing ownership of $$d, left root-owned by an earlier run"; \
+    chown -R $(e2e-user) "$$d"; \
+  done
 
 dev: | docker-up-db docker-run
 
@@ -56,11 +147,15 @@ eslint-fix: | lint-fix-eslint
 
 stylelint-fix: | lint-fix-stylelint
 
-# Runs every linter (four frontend + evolutions) even if an earlier one fails, so all problems surface in one pass,
-# then prints a ✓/✗ per linter and a colored summary. Exits non-zero if any failed.
+shellcheck: | lint-shellcheck
+
+# Runs every linter (the frontend set + evolutions + shell scripts) even if an earlier one fails, so all problems
+# surface in one pass, then prints a ✓/✗ per linter and a colored summary. Exits non-zero if any failed.
 lint:
+	@printf "$(BOLD)Linting %s$(RESET)\n" "$(container-dir)"
 	@fail=0; \
-	for t in lint-eslint lint-htmlhint lint-stylelint lint-locales lint-evolutions; do \
+	for t in lint-eslint lint-htmlhint lint-stylelint lint-locales lint-css-layout lint-asset-paths \
+			lint-js-types lint-spec-base lint-evolutions lint-shellcheck; do \
 		if $(MAKE) --no-print-directory $$t; then \
 			printf "$(GREEN)✓ %s passed$(RESET)\n" "$$t"; \
 		else \
@@ -85,47 +180,107 @@ docker-up:
 docker-up-db:
 	@docker compose up -d db
 
+# Copies a Postgres 16 dev database into the Postgres 18 one, from the host. See docs/dev-environment.md.
+upgrade-dev-db:
+	@bash tools/dev/upgrade-dev-db.sh --container $(db-container) $(upgrade-dev-db-all-flag)
+
+# `rm -v` drops the removed containers' anonymous volumes only.
 docker-stop:
 	@docker compose stop
-	@docker compose rm -f
+	@docker compose rm -fv
 
+# The sync runs inline because this line is what creates the container -- there is nothing to `docker exec` into
+# until it does.
 docker-run:
-	@docker compose run --rm --service-ports --name $(web-container) web /bin/bash
+	@docker compose run --rm --service-ports --name $(web-container) web \
+		/bin/bash -c "bash /home/tools/dev/npm-sync.sh || echo '!! npm-sync failed -- node_modules may be incomplete'; exec /bin/bash"
+
+# For a container that is already up; `make dev` does this for you. `npm ci` empties node_modules before refilling
+# it, so stop a running `npm start` first. See tools/dev/npm-sync.sh.
+npm-sync:
+	@docker inspect -f '{{.State.Running}}' $(web-container) 2>/dev/null | grep -q true \
+	  || { echo "error: $(web-container) is not running — start it with 'make dev'"; exit 2; }
+	@docker exec $(web-container) bash /home/tools/dev/npm-sync.sh
 
 # Usage: make ssh target=web|db.
 ssh:
 	@docker exec -it $($(target)-container) /bin/bash
 
-# Run an uncommitted git worktree's app on :9000 for QA (not the main repo). See tools/qa-worktree.sh and CLAUDE.md
+# Run an uncommitted git worktree's app on :9000 for QA (not the main repo). See tools/dev/qa-worktree.sh and CLAUDE.md
 # "Running a worktree's app for QA". e.g. `make qa-worktree wt=remove-admin-classic`.
 qa-worktree:
 	$(worktree-require-wt)
-	@docker exec -it $(web-container) bash -c '$(call qa-worktree-exec,$(wt))'
+	@docker exec -it $(lease-env) $(web-container) bash -c '$(call qa-worktree-exec,$(wt) $(lease-flags))'
 
-# Tear down a qa-worktree session: stop its `~ run` and grunt watch. Add `clean=1` to also drop the node_modules
-# symlink. e.g. `make qa-worktree-stop wt=remove-admin-classic` or `make qa-worktree-stop wt=... clean=1`.
+# End a qa-worktree session: stop its app, its asset watcher, and any sbt left running there. Add `clean=1` to also
+# drop the node_modules symlink. e.g. `make qa-worktree-stop wt=remove-admin-classic` or
+# `make qa-worktree-stop wt=... clean=1`.
 qa-worktree-stop:
 	$(worktree-require-wt)
 	@docker exec $(web-container) bash -c '$(call qa-worktree-exec,$(wt) --stop $(qa-stop-clean-flag))'
 
 # Tear a worktree down for good: its QA session, its directory, its git registration, and its branch once that branch is
-# in develop. Host-side (git can't reach a worktree from inside the container — see tools/worktree-remove.sh). Add
+# in develop. Host-side (git can't reach a worktree from inside the container — see tools/dev/worktree-remove.sh). Add
 # `force=1` to discard uncommitted work in it. e.g. `make worktree-remove wt=remove-admin-classic`.
 worktree-remove:
 	$(worktree-require-wt)
-	@bash tools/worktree-remove.sh $(wt) --container $(web-container) $(worktree-force-flag)
+	@bash tools/dev/worktree-remove.sh $(wt) --container $(web-container) $(worktree-force-flag)
+
+# Leases (tools/dev/lease.sh): `app` is :9000 and `db-tests` the Scala test DB, or claim anything else by name.
+lease-status:
+	@docker exec $(web-container) bash $(self-container-dir)/tools/dev/lease.sh status $(res)
+
+lease-take:
+	@[ -n "$(res)" ] || { echo "usage: make lease-take res=<name> [wait=1] [force=1] [purpose=\"…\"]"; exit 2; }
+	@docker exec $(tty-flags) $(lease-env) $(web-container) bash $(self-container-dir)/tools/dev/lease.sh take $(res) --checkout $(container-dir) $(lease-flags)
+
+lease-release:
+	@[ -n "$(res)" ] || { echo "usage: make lease-release res=<name>"; exit 2; }
+	@docker exec $(web-container) bash $(self-container-dir)/tools/dev/lease.sh release $(res) --checkout $(container-dir)
 
 import-users:
-	@docker exec -it $(db-container) sh -c "/opt/scripts/import-users.sh"
+	@docker exec -it $(db-container) sh -c "/opt/scripts/import-users.sh $(import-users-replace-flag)"
 
 import-dump:
 	@docker exec -it $(db-container) sh -c "/opt/scripts/import-dump.sh $(db)"
 
+# The repo's highest evolution number, so create-new-schema.sh can refuse a donor schema that another branch's QA
+# pushed ahead of this checkout (cloning it would carry that branch's evolution into the new city).
+max-evolution = $(shell ls conf/evolutions/default | sed 's/\.sql$$//' | grep -E '^[0-9]+$$' | sort -n | tail -1)
+# Play's hash of that evolution's file: a donor whose top evolution carries the same hash is certainly on this
+# checkout's evolution, not another branch's under the same number (see create-new-schema.sh).
+max-evolution-hash = $(shell python3 -c 'import sys; sys.path.insert(0, "tools/city"); import setup_new_city; print(setup_new_city.highest_evolution_hash())')
+
+# Clone a live city's structure (+ seed rows) into a new empty schema. e.g.
+# `make create-new-schema name=sidewalk_laurens_ia donor=sidewalk_richmond`; donor defaults to the active dev city.
 create-new-schema:
-	@docker exec -it $(db-container) sh -c "/opt/scripts/create-new-schema.sh $(name)"
+	@docker exec -it $(db-container) sh -c "/opt/scripts/create-new-schema.sh $(name) $(or $(donor),$$(docker exec $(web-container) printenv DATABASE_USER 2>/dev/null)) $(max-evolution) $(max-evolution-hash)"
 
 fill-new-schema:
 	@docker exec -it $(db-container) sh -c "/opt/scripts/fill-new-schema.sh"
+
+# Host-side (edits conf/ and drives both containers), so no docker exec wrapper. Flags go through args=, e.g.
+# `make onboard-city id=laurens-ia args="--skip-scan"`, `args="--dump-only"`, `args="--allow-running-apps"`, and for
+# a country with no registered elevation model, the sampler's own flags once its rasters are downloaded:
+# `args="--dem-dir db/onboarding/taipei/dem --dem-name moi-dtm-20m --dem-resolution-m 20"`.
+onboard-city:
+	@python3 tools/city/setup_new_city.py $(id) $(args)
+
+# Build a city's street/region staging data + QA GeoPackage (tools/city/onboard_city.py, in the web container), passing
+# the script's flags via args=. The same target re-exports the SQL after hand edits: a bare --from-gpkg targets the
+# city's own QA GeoPackage.
+# Runs in the main checkout even from a worktree, since the db container only sees that checkout's db/.
+# e.g. `make build-city-data id=newport-ky args="--place 'Newport, Kentucky, USA'"`
+#      `make build-city-data id=newport-ky args="--from-gpkg"`
+build-city-data:
+	@docker exec -it $(web-container) sh -c "cd /home && python3.13 tools/city/onboard_city.py --city-id $(id) $(args)"
+
+# Imagery preflight or full scan for a city's streets (tools/city/check_streets_for_imagery.py, in the web container,
+# which holds the provider keys). A preflight samples the build artifacts before the city has a database:
+# e.g. `make check-imagery id=laurens-ia args="--sample 150 --mapillary"`; the full scan (`args="--mapillary"`) is
+# what `make onboard-city` runs for you. Main checkout only, like build-city-data.
+check-imagery:
+	@docker exec -it $(web-container) sh -c "cd /home && python3.13 tools/city/check_streets_for_imagery.py --city-id $(id) $(args)"
 
 hide-streets-without-imagery:
 	@docker exec -it $(db-container) sh -c "/opt/scripts/hide-streets-without-imagery.sh"
@@ -133,13 +288,46 @@ hide-streets-without-imagery:
 import-street-imagery:
 	@docker exec -it $(db-container) sh -c "/opt/scripts/import-street-imagery.sh"
 
+# Street gradient (#5223, docs/street-gradient.md) in three steps: export the streets that need sampling, sample them
+# against a bare-earth elevation model (tools/city/street_gradient.py, in the web container), load the result. The export
+# takes `args=--all` to resample every street, `args=--allow-empty-osm-way` for a city with no OSM ways, and
+# `args="--structures onboarding/<city-id>/street_structures.csv"` to take the bridge/tunnel flags from the street
+# build instead of the nightly osm_way cache (what onboard-city does). The export and import prompt for the schema
+# unless the positional args ride in args=; the sampler takes its flags via args=, e.g. `make street-gradient
+# id=taipei args="--dem-dir db/onboarding/taipei/dem --dem-name moi-dtm-20m --dem-resolution-m 20"`.
+# Main checkout only, like build-city-data: the db container sees only that checkout's db/.
+export-street-gradient-input:
+	@docker exec -it $(db-container) sh -c "/opt/scripts/export-street-gradient-input.sh $(args)"
+
+street-gradient:
+	@docker exec -it $(web-container) sh -c "cd /home && python3.13 tools/city/street_gradient.py --city-id $(id) $(args)"
+
+import-street-gradient:
+	@docker exec -it $(db-container) sh -c "/opt/scripts/import-street-gradient.sh $(args)"
+
+# A live city's OSM way positions (#5741), in the gradient's three steps: export the streets, match them against today's
+# OSM (tools/city/backfill_osm_lineage.py, in the web container), import. Main checkout only, like the gradient.
+export-osm-lineage-input:
+	@docker exec -it $(db-container) sh -c "/opt/scripts/export-osm-lineage-input.sh $(args)"
+
+osm-lineage:
+	@docker exec -it $(web-container) sh -c "cd /home && python3.13 tools/city/backfill_osm_lineage.py --city-id $(id) $(args)"
+
+import-osm-lineage:
+	@docker exec -it $(db-container) sh -c "/opt/scripts/import-osm-lineage.sh $(args)"
+
 # Python utility tests (test/python/) in the web container; extra pytest flags via args=, e.g. args="-k bbox -v".
 # Split by interpreter because the scripts are: label_clustering.py runs in-band on prod's `python3` (3.8), while the
-# offline tooling needs >= 3.11. Each half runs the whole directory minus the one file the other owns, so a new test
-# file runs in both by default instead of silently in neither. COVERAGE_OMIT is explained in pyproject.toml.
-pytest-args-app   = test/python --ignore=test/python/test_check_streets_for_imagery.py
+# offline tooling needs >= 3.12. Each half runs the whole directory minus the files only the other's interpreter can
+# import, so a new test file runs in both by default instead of silently in neither. The COVERAGE_OMIT* slots are
+# explained in pyproject.toml.
+pytest-args-app   = test/python --ignore=test/python/test_check_streets_for_imagery.py \
+                    --ignore=test/python/test_onboard_city.py --ignore=test/python/test_street_gradient.py \
+                    --ignore=test/python/test_osm_lineage.py --ignore=test/python/test_backfill_osm_lineage.py
 pytest-args-tools = test/python --ignore=test/python/test_label_clustering.py
-cov-omit-app      = -e COVERAGE_OMIT=scripts/check_streets_for_imagery.py
+cov-omit-app      = -e COVERAGE_OMIT=tools/city/check_streets_for_imagery.py -e COVERAGE_OMIT2=tools/city/onboard_city.py \
+                    -e COVERAGE_OMIT3=tools/city/street_gradient.py -e COVERAGE_OMIT4=tools/city/osm_lineage.py \
+                    -e COVERAGE_OMIT5=tools/city/backfill_osm_lineage.py
 cov-omit-tools    = -e COVERAGE_OMIT=scripts/label_clustering.py
 
 # Both halves run even when the first fails, matching CI's `fail-fast: false`; prerequisites would stop at the first.
@@ -149,85 +337,170 @@ test-python:
 	exit $${fail:-0}
 
 test-python-app:
-	@docker exec -it $(cov-omit-app) $(web-container) sh -c "cd /home && python3 -m pytest $(pytest-args-app) $(args)"
+	@docker exec $(tty-flags) $(cov-omit-app) $(web-container) sh -c "cd $(container-dir) && python3 -m pytest $(pytest-args-app) $(args)"
 
 test-python-tools:
-	@docker exec -it $(cov-omit-tools) $(web-container) sh -c "cd /home && python3.13 -m pytest $(pytest-args-tools) $(args)"
+	@docker exec $(tty-flags) $(cov-omit-tools) $(web-container) sh -c "cd $(container-dir) && python3.13 -m pytest $(pytest-args-tools) $(args)"
 
-# Browser smoke tests (test/e2e/) HOST-side against an already-running app at localhost:9000 (override with
-# BASE_URL=). Unlike the other targets this doesn't docker exec — Playwright drives a host browser. One-time
-# setup: `npm install && npx playwright install chromium`. Extra flags via args=, e.g. args="-g labelMap --headed".
+# Browser smoke tests (test/e2e/) against an already-running app at localhost:9000. Like every other tooling target
+# this runs in a container, so it behaves the same on Linux, WSL2, and macOS (Intel and Apple Silicon) with no host
+# Node, browser, or `playwright install` — the official Playwright base image ships Chromium plus its OS deps and is
+# multi-arch. Two flags place the runner: `--network container:` puts it in the web container's network
+# namespace, so the app answers at localhost:9000 — the only host conf/application.local.conf's
+# play.filters.hosts.allowed permits, and the same URL CI uses; `--volumes-from` gives it the web container's
+# mounts, so /home is the repo and worktree paths resolve unchanged. Two more make it behave: see the notes on
+# `--tmpfs` below and on e2e-user above. Scope with args=, e.g.
+# args="-g labelMap --no-deps". It tests the checkout you run make from (or wt=<name>'s) against whatever app is on
+# :9000, and warns if that app is from a different checkout. For --headed/--ui, see test-e2e-host. The image build is
+# a cached no-op after the first run, and re-runs itself on a version bump — it's only verbose when the tag is missing,
+# since that first build downloads the base image.
+#
+# The jsdom unit suite (test/js/), a blocking step in CI's `frontend` job. Run in the web container, where the
+# node_modules live. `args` passes through, so `make test-js args=test/js/toastPosition.test.js` runs one suite.
+test-js:
+	@docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd $(container-dir) && $(node-modules)/.bin/vitest run $(args)"
+
+# `--tmpfs /home/node_modules` is load-bearing, not tidiness: NODE_PATH is consulted only after the node_modules
+# walk fails, so the repo's own node_modules — which carries @playwright/test, a devDependency installed into the
+# web image — would resolve the specs to a second copy of the module while the CLI keeps the image's. Playwright
+# then aborts with "did not expect test() to be called here ... two different versions of @playwright/test". An
+# empty dir at that path is what makes resolution fall through to the runner we installed. It covers worktrees
+# too, whose node_modules is a symlink to this one.
 test-e2e:
+	@docker inspect -f '{{.State.Running}}' $(web-container) 2>/dev/null | grep -q true \
+	  || { echo "error: $(web-container) is not running — start it with 'make docker-up', and make sure the app is up on :9000"; exit 2; }
+	@[ -n "$(pw-version)" ] \
+	  || { echo "error: no @playwright/test version found in package-lock.json — is it still listed as a devDependency?"; exit 2; }
+	@[ -n "$(axe-version)" ] \
+	  || { echo "error: no @axe-core/playwright version found in package-lock.json — is it still listed as a devDependency?"; exit 2; }
+	@docker exec $(web-container) bash $(self-container-dir)/tools/dev/lease.sh check app --checkout $(container-dir) \
+	  || [ -n "$(filter 1 true yes,$(force))" ] \
+	  || { echo "Wait for :9000 (a worktree: make qa-worktree wt=<name> wait=1), or add force=1 to test that app anyway."; exit 1; }
+	@docker exec $(web-container) sh -c '$(e2e-fix-artifact-owner)'
+	@if docker image inspect $(e2e-image):$(e2e-tag) > /dev/null 2>&1; then \
+	  docker build --quiet --build-arg PW_VERSION=$(pw-version) --build-arg AXE_VERSION=$(axe-version) -t $(e2e-image):$(e2e-tag) docker/e2e > /dev/null; \
+	else \
+	  echo "==> building the Playwright runner image (first run for $(e2e-tag): downloads ~2GB)"; \
+	  docker build --build-arg PW_VERSION=$(pw-version) --build-arg AXE_VERSION=$(axe-version) -t $(e2e-image):$(e2e-tag) docker/e2e; \
+	fi
+	@docker run --rm --init --ipc=host \
+	  --network container:$(web-container) --volumes-from $(web-container) --tmpfs /home/node_modules \
+	  --user $(e2e-user) -e HOME=/tmp -e FORCE_COLOR=1 -e BASE_URL \
+	  -w $(container-dir) $(e2e-image):$(e2e-tag) playwright test $(args)
+
+# Host-side run of the same suite, for `--headed`, `--ui`, and `show-trace` — those need a display the container
+# doesn't have. Needs a host toolchain the containerized path does not: Node 24, `npm ci` at the repo root
+# (the container's node_modules is a Docker volume, invisible from the host), and `npx playwright install chromium`,
+# plus `sudo npx playwright install-deps` on Linux/WSL. See test/e2e/README.md.
+test-e2e-host:
+	@command -v npx > /dev/null \
+	  || { echo "error: no host Node — this target needs one (see test/e2e/README.md); 'make test-e2e' needs none"; exit 2; }
+	@[ -d node_modules/@playwright/test ] \
+	  || { echo "error: @playwright/test isn't installed on the host — run 'npm ci && npx playwright install chromium'"; exit 2; }
 	@npx playwright test $(args)
 
-reveal-or-hide-neighborhoods:
-	@docker exec -it $(db-container) sh -c "/opt/scripts/reveal-or-hide-neighborhoods.sh"
+reveal-or-hide-regions:
+	@docker exec -it $(db-container) sh -c "/opt/scripts/reveal-or-hide-regions.sh"
 
 # Static checks on conf/evolutions/default/*.sql. Host-side bash, no container needed. Also a blocking CI job.
 lint-evolutions:
-	@bash db/scripts/lint-evolutions.sh
+	@bash "$(check-host-dir)$(host-dir)/db/scripts/lint-evolutions.sh"
 
-# Cross-locale key parity for public/locales/ (i18next plural/override handling that the eslint-plugin-i18n-json rules
-# can't do). Pure node, run in the web container so node is present. Also a blocking CI step.
+# Cross-locale key parity and empty values for public/locales/ (the i18next plural/override handling a per-file JSON
+# rule can't do). Pure node, run in the web container so node is present. Also a blocking CI step.
 lint-locales:
-	@echo "Checking locale parity...";
-	@docker exec $(web-container) bash -lc "cd /home && node tools/check-locale-parity.mjs"
-	@echo "Finished checking locale parity";
+	@echo "Running locale checks...";
+	@docker exec $(web-container) bash -lc "cd $(container-dir) && node tools/lint/check-locale-parity.mjs"
+	@echo "Finished locale checks";
 
-# Scala formatting (.scalafmt.conf). The sbt thin client (`--client`) shares the running `sbt ~ run`'s server instead
-# of colliding with it over build locks. `scalafmt` checks (the blocking CI gate); `scalafmt-fix` reformats in place.
+# The frontend/css/ layout rules (tools/lint/check-css-layout.mjs). Pure node, run in the web container so node is
+# present. Also a blocking CI step.
+lint-css-layout:
+	@echo "Checking CSS layout...";
+	@docker exec $(web-container) bash -lc "cd $(container-dir) && node tools/lint/check-css-layout.mjs"
+	@echo "Finished checking CSS layout";
+
+# Asset URLs in frontend/js/ (#4893): no hardcoded '/assets/' outside the allowlist, and every util.assetPath()
+# argument checkable — a literal one naming a real file in a fingerprinted family, an interpolated one opening with a
+# literal family directory. Pure node, run in the web container so node is present. Also a blocking CI step.
+lint-asset-paths:
+	@echo "Checking asset paths...";
+	@docker exec $(web-container) bash -lc "cd $(container-dir) && node tools/lint/check-asset-paths.mjs"
+	@echo "Finished checking asset paths";
+
+# Type-checks frontend/js/ from its JSDoc with TypeScript (#5278). Also a blocking CI step.
+lint-js-types:
+	@echo "Checking JS types...";
+	@docker exec $(web-container) bash -lc "cd $(container-dir) && node tools/lint/check-js-types.mjs"
+	@echo "Finished checking JS types";
+
+# Every backend spec extends util.SidewalkSpec rather than PlaySpec (#3936). Also a blocking CI step.
+lint-spec-base:
+	@echo "Checking spec base classes...";
+	@docker exec $(web-container) bash -lc "cd $(container-dir) && node tools/lint/check-spec-base.mjs"
+	@echo "Finished checking spec base classes";
+
+# ShellCheck over the repo's .sh files (#5589). Host-side, in ShellCheck's own Docker image (pinned in
+# docker/shellcheck/Dockerfile), so the web container doesn't need to be up. Scope it with files=, e.g.
+# `make shellcheck files=tools/dev/lease.sh`. Also a blocking CI step.
+lint-shellcheck:
+	@echo "Running ShellCheck...";
+	@bash "$(check-host-dir)$(host-dir)/tools/lint/shellcheck.sh" $(files)
+	@echo "Finished running ShellCheck";
+
+# The sbt targets below go through tools/dev/sbt-run.sh; its header says what that guards against.
+#
+# Scala formatting (.scalafmt.conf), covering the build files too. `scalafmt` checks (the blocking CI gate);
+# `scalafmt-fix` reformats in place. The two checks run separately because sbt stops at its first failing command,
+# and one failure shouldn't hide the other.
 scalafmt:
-	@echo "Checking Scala formatting..."; docker exec -it $(web-container) bash -lc "cd /home && sbt --client scalafmtCheckAll"
+	@echo "Checking Scala formatting..."; docker exec $(tty-flags) -e SBT_OPTS="$(sbt-opts)" $(web-container) bash -lc "cd $(self-container-dir) && { bash tools/dev/sbt-run.sh --dir $(container-dir) scalafmtCheckAll; s=\$$?; bash tools/dev/sbt-run.sh --dir $(container-dir) scalafmtSbtCheck && exit \$$s; }"
 
 scalafmt-fix:
-	@echo "Formatting Scala..."; docker exec -it $(web-container) bash -lc "cd /home && sbt --client scalafmtAll"
+	@echo "Formatting Scala..."; docker exec $(tty-flags) -e SBT_OPTS="$(sbt-opts)" $(web-container) bash -lc "cd $(self-container-dir) && bash tools/dev/sbt-run.sh --dir $(container-dir) 'scalafmtAll; scalafmtSbt'"
+
+# Compile, and run the Scala tests (which need the db container). Narrow the tests with only=, e.g.
+# `make test-scala only=controllers.api.PublicApiSpec`. A test run waits for any other checkout's to finish first.
+compile:
+	@docker exec $(tty-flags) -e SBT_OPTS="$(sbt-opts)" $(web-container) bash -lc "cd $(self-container-dir) && bash tools/dev/sbt-run.sh --dir $(container-dir) compile"
+
+test-scala:
+	@[ -f "$(host-dir)/public/build/manifest.json" ] || { echo "error: $(host-dir)/public/build/manifest.json is missing. The specs render views whose stylesheet tags come from the build, so run \`npm run build\` in that tree first."; exit 1; }
+	@docker exec $(tty-flags) $(lease-env) -e SBT_OPTS="$(sbt-opts)" $(web-container) bash -lc "cd $(self-container-dir) && bash tools/dev/sbt-run.sh --dir $(container-dir) --db-lock $(if $(only),'testOnly $(only)',test)"
+
+# Each release build leaves ~1GB of jars named after its version and removes none of the older ones. Drops those,
+# keeping compiled classes so the next `make compile` is still incremental.
+clean-dist:
+	@echo "Removing packaged build output from $(host-dir)..."
+	@docker exec $(web-container) bash -lc "cd $(container-dir) && rm -rf target/scala-*/*.jar target/universal/stage target/universal/*.zip"
+	@echo "Done. target/ is now $$(du -sh $(host-dir)/target 2>/dev/null | cut -f1)."
 
 # The JS/CSS/HTML linters run in the web container, where their node_modules live (no host-side npm install).
 # `-e FORCE_COLOR=1` (not `docker exec -t`) restores colorized output while keeping the targets pipeable.
 lint-htmlhint:
 	@echo "Running HTMLHint...";
-	@if [ "$(dir)" = "./" ]; then \
-		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd /home && ./node_modules/htmlhint/bin/htmlhint $(args) ./app/views"; \
-	else \
-		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd /home && ./node_modules/htmlhint/bin/htmlhint $(args) $(dir)"; \
-	fi
+	@docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd $(container-dir) && $(node-modules)/htmlhint/bin/htmlhint $(args) $(htmlhint-paths)"
 	@echo "Finished Running HTMLHint";
 
 lint-eslint:
 	@echo "Running eslint...";
-	@if [ "$(dir)" = "./" ]; then \
-		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd /home && ./node_modules/eslint/bin/eslint.js $(args) public/js/ public/locales/ test/e2e/ playwright.config.js"; \
-	else \
-		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd /home && ./node_modules/eslint/bin/eslint.js $(args) $(dir)"; \
-	fi
+	@docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd $(container-dir) && $(node-modules)/eslint/bin/eslint.js $(args) $(eslint-paths)"
 	@echo "Finished Running eslint";
 
 # Globs are single-quoted so stylelint's globber expands the `**`, not the container shell (where bare `**` means `*`).
 lint-stylelint:
 	@echo "Running stylelint...";
-	@if [ "$(dir)" = "./" ]; then \
-		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd /home && ./node_modules/.bin/stylelint $(args) 'public/**/*.css'"; \
-	else \
-		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd /home && ./node_modules/.bin/stylelint $(args) '$(css-glob)'"; \
-	fi
+	@docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd $(container-dir) && $(node-modules)/.bin/stylelint $(args) '$(css-glob)'"
 	@echo "Finished Running stylelint";
 
 lint-fix-eslint:
 	@echo "Running eslint...";
-	@if [ "$(dir)" = "./" ]; then \
-		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd /home && ./node_modules/eslint/bin/eslint.js --fix $(args) public/js/ public/locales/ test/e2e/ playwright.config.js"; \
-	else \
-		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd /home && ./node_modules/eslint/bin/eslint.js --fix $(args) $(dir)"; \
-	fi
+	@docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd $(container-dir) && $(node-modules)/eslint/bin/eslint.js --fix $(args) $(eslint-paths)"
 	@echo "Finished Running eslint";
 
 # --fix runs twice: the brace-newline fixers insert lines after indentation is computed, leaving mis-indents that the
 # second pass corrects. The first pass is silenced, so it reads as a single run.
 lint-fix-stylelint:
 	@echo "Running stylelint...";
-	@if [ "$(dir)" = "./" ]; then \
-		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd /home && ./node_modules/.bin/stylelint --fix $(args) 'public/**/*.css' > /dev/null 2>&1; ./node_modules/.bin/stylelint --fix $(args) 'public/**/*.css'"; \
-	else \
-		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd /home && ./node_modules/.bin/stylelint --fix $(args) '$(css-glob)' > /dev/null 2>&1; ./node_modules/.bin/stylelint --fix $(args) '$(css-glob)'"; \
-	fi
+	@docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd $(container-dir) && $(node-modules)/.bin/stylelint --fix $(args) '$(css-glob)' > /dev/null 2>&1; $(node-modules)/.bin/stylelint --fix $(args) '$(css-glob)'"
 	@echo "Finished Running stylelint";

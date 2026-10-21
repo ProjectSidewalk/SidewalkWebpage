@@ -1,11 +1,11 @@
 package controllers
 
-import controllers.base._
+import controllers.base.*
 import formats.json.RouteBuilderFormats.{routeWithStatsWrites, NewRoute, RouteUpdate}
 import models.route.{RouteRejection, SavedRoute}
 import play.api.Configuration
 import play.api.i18n.Messages
-import play.api.libs.json._
+import play.api.libs.json.*
 import play.api.mvc.{Action, AnyContent, Result}
 import service.{ConfigService, RouteService}
 
@@ -15,11 +15,9 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton
 class RouteBuilderController @Inject() (
     cc: CustomControllerComponents,
-    implicit val config: Configuration,
-    implicit val assets: AssetsFinder,
     configService: ConfigService,
     routeService: RouteService
-)(implicit ec: ExecutionContext)
+)(using config: Configuration, assets: AssetsFinder, ec: ExecutionContext)
     extends CustomBaseController(cc) {
 
   /**
@@ -31,10 +29,15 @@ class RouteBuilderController @Inject() (
   def routesPage = cc.securityService.SecuredAction { implicit request =>
     for {
       commonData <- configService.getCommonPageData(request2Messages.lang)
-      cityRoutes <- routeService.getRoutesForCity(RouteBuilderController.ListingMax)
+      // One past the cap, so a city with exactly ListingMax routes isn't told some are hidden.
+      cityRoutes <- routeService.getRoutesForCity(RouteBuilderController.ListingMax + 1)
     } yield {
       cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Routes")
-      Ok(views.html.apps.routeList(commonData, request.identity, cityRoutes))
+      val truncated = cityRoutes.size > RouteBuilderController.ListingMax
+      Ok(
+        views.html.apps
+          .routeList(commonData, request.identity, cityRoutes.take(RouteBuilderController.ListingMax), truncated)
+      )
     }
   }
 
@@ -46,13 +49,15 @@ class RouteBuilderController @Inject() (
     "route_id"         -> saved.routeId,
     "name"             -> saved.name,
     "slug"             -> saved.slug,
+    "region_name"      -> saved.regionName,
+    "region_count"     -> saved.regionCount,
     "distance_meters"  -> saved.distanceMeters,
     "encoded_polyline" -> saved.encodedPolyline,
     "thumbnail_url"    -> saved.thumbnailUrl
   )
 
   /** Turns a service-layer rejection into a 400 carrying the message localized for this request. */
-  private def rejected(rejection: RouteRejection)(implicit messages: Messages): Result =
+  private def rejected(rejection: RouteRejection)(using messages: Messages): Result =
     BadRequest(Json.obj("status" -> "Error", "message" -> Messages(rejection.messageKey, rejection.maxLength)))
 
   def saveRoute = cc.securityService.SecuredAction(parse.json) { implicit request =>
@@ -131,7 +136,15 @@ class RouteBuilderController @Inject() (
    * (/explore handles anonymous sign-up itself); retired slugs of renamed routes keep redirecting via the alias
    * table.
    *
-   * @param slug The route's slug; 404 if unknown or the route has been deleted.
+   * A link that resolves to nothing gets its own 404 rather than the generic one (#5164). Whoever is holding a
+   * share link was after a route, so the page says that is what failed and offers the city's route list — which
+   * may well hold the route itself, since the usual cause is a slug retyped rather than copied (#5150). It stays
+   * a 404: there is no page to load anyway, and a broken link answering 200 misleads crawlers and anyone
+   * debugging one. Deleted and never-existed are deliberately not told apart — that costs another query, and the
+   * copy is honest about both.
+   *
+   * @param slug The route's slug, matched case-insensitively so a retyped link resolves; 404 if unknown or the
+   *             route has been deleted.
    */
   def routeBySlug(slug: String): Action[AnyContent] = Action.async { implicit request =>
     routeService.resolveSlug(slug).map {
@@ -140,9 +153,15 @@ class RouteBuilderController @Inject() (
         NotFound(
           views.html.errors.errorPage(
             NOT_FOUND,
-            Messages("error.404.heading"),
-            Messages("error.404.message"),
-            requestedPath = Some(request.path)
+            Messages("error.404.route.heading"),
+            Messages("error.404.route.message"),
+            requestedPath = Some(request.path),
+            action = Some(
+              views.ErrorPageAction(
+                Messages("error.404.route.browse"),
+                controllers.routes.RouteBuilderController.routesPage.url
+              )
+            )
           )
         )
     }

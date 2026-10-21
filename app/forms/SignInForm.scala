@@ -1,7 +1,7 @@
 package forms
 
 import play.api.data.Form
-import play.api.data.Forms._
+import play.api.data.Forms.*
 
 /**
  * The form which handles the submission of the credentials.
@@ -18,7 +18,7 @@ object SignInForm {
       "email"      -> nonEmptyText,
       "password"   -> nonEmptyText,
       "rememberMe" -> boolean
-    )(SignInData.apply)(SignInData.unapply)
+    )(SignInData.apply)((d: SignInData) => Some(Tuple.fromProductTyped(d)))
   )
 
   /**
