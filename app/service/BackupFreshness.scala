@@ -88,7 +88,7 @@ object BackupFreshness {
 
   /**
    * Each kind lands every other night, so a kind older than three days has missed its turn once, and one older than
-   * six has missed it three times. Retention is 8 to 9 days, so past that the kind is gone and reads `none_found`.
+   * six has missed it twice. Retention is 8 to 9 days, so past that the kind is gone and reads `none_found`.
    */
   val KindWarnMs: Long = 3 * Day
   val KindBadMs: Long  = 6 * Day
@@ -100,9 +100,11 @@ object BackupFreshness {
   val SmallRatio: Double = 0.25
 
   /**
-   * A small newest file modified this recently is probably still being written: the SQL dump takes about an hour and
-   * the base backup up to three. Reported as `writing`, without changing the status, so the panel does not go yellow
-   * every evening while the job runs.
+   * A small newest file modified this recently is probably still being written. The age is measured from the last
+   * write, and a running dump touches its file continuously, so the window only has to outlast the longest pause a
+   * healthy run makes, not the run itself (about an hour for the SQL dump, up to three for the base backup). Reported
+   * as `writing`, without changing the status, so the panel does not go yellow every evening while the job runs; the
+   * cost is that a dump that died early reads `writing` for this long before it reads `small`.
    */
   val WritingWindowMs: Long = 4L * 60 * 60 * 1000
 
@@ -110,17 +112,22 @@ object BackupFreshness {
   val Kinds: Seq[(String, String)] =
     Seq("sql" -> "SQL dump (pg_dumpall)", "base" -> "File-level copy (pg_basebackup)")
 
-  private val SqlSuffixes  = Seq(".sql", ".sql.gz", ".dump")
-  private val BaseSuffixes = Seq(".tar", ".tar.gz", ".tgz")
+  private val SqlSuffixes  = Seq(".sql", ".dump")
+  private val BaseSuffixes = Seq(".tar", ".tgz")
+
+  /** Compressor suffixes the job might add; which one it uses is its business, not a reason to lose the kind. */
+  private val CompressionSuffixes = Seq(".gz", ".zst", ".xz", ".bz2")
 
   /**
-   * Which kind a file name is, by suffix.
+   * Which kind a file name is, by suffix, with any compressor suffix stripped first (`.sql.gz` and `.sql.zst` are both
+   * SQL dumps).
    *
    * @param name A file name.
    * @return     `sql`, `base`, or `other`.
    */
   def kindOf(name: String): String = {
-    val lower = name.toLowerCase
+    val lowerName = name.toLowerCase
+    val lower     = CompressionSuffixes.find(lowerName.endsWith).fold(lowerName)(lowerName.stripSuffix)
     if (SqlSuffixes.exists(lower.endsWith)) "sql"
     else if (BaseSuffixes.exists(lower.endsWith)) "base"
     else "other"

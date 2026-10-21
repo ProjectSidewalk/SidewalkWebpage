@@ -90,10 +90,14 @@ class BackupFreshnessSpec extends SidewalkSpec {
   }
 
   "BackupFreshness.kindOf" should {
-    "classify by suffix, ignoring case" in {
-      Seq("x.sql", "x.SQL", "x.sql.gz", "x.dump").map(BackupFreshness.kindOf).distinct mustBe Seq("sql")
-      Seq("x.base.tar", "x.tar", "x.tar.gz", "x.tgz").map(BackupFreshness.kindOf).distinct mustBe Seq("base")
-      Seq("backup_pg.sh", "x.log", "README").map(BackupFreshness.kindOf).distinct mustBe Seq("other")
+    "classify by suffix, ignoring case and any compressor suffix" in {
+      Seq("x.sql", "x.SQL", "x.sql.gz", "x.sql.zst", "x.dump").map(BackupFreshness.kindOf).distinct mustBe Seq("sql")
+      Seq("x.base.tar", "x.tar", "x.tar.gz", "x.tar.xz", "x.tgz").map(BackupFreshness.kindOf).distinct mustBe Seq(
+        "base"
+      )
+      // A compressor suffix on its own, or a temp name, is not a dump.
+      Seq("backup_pg.sh", "x.log", "README", "x.gz", "x.sql.tmp").map(BackupFreshness.kindOf).distinct mustBe
+        Seq("other")
     }
   }
 
