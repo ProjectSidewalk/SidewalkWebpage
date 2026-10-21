@@ -1,3 +1,6 @@
+import i18next from 'i18next';
+import '../../../css/components/share-widget.css';
+
 /**
  * ShareWidget — reusable "share this thing" control.
  *
@@ -87,7 +90,7 @@ export class ShareWidget {
    * @returns {{wrap: HTMLElement, trigger: HTMLButtonElement}}
    */
   static buildChip(extraWrapClass = '') {
-    const label = typeof i18next !== 'undefined' ? i18next.t('common:share.button') : 'Share';
+    const label = i18next.t('common:share.button');
 
     const wrap = document.createElement('span');
     wrap.className = `label-detail__share${extraWrapClass ? ` ${extraWrapClass}` : ''}`;
@@ -288,7 +291,7 @@ export class ShareWidget {
    * the first time a non-native share is opened.
    */
   #buildPopover() {
-    const t = (key) => (typeof i18next !== 'undefined' ? i18next.t(`common:${key}`) : key);
+    const t = (key) => i18next.t(`common:${key}`);
 
     const popover = document.createElement('div');
     popover.className = 'label-detail__share-popover';

@@ -52,7 +52,7 @@ class GalleryServiceImpl @Inject() (
             env.availWidth, env.availHeight, env.screenWidth, env.screenHeight, env.operatingSystem, ipAddress,
             env.language, Some(userId))
         )
-      } yield nInteractionSubmitted.length
+      } yield nInteractionSubmitted.getOrElse(data.interactions.size)
     }
     db.run(DBIO.sequence(submissionActions).transactionally)
   }

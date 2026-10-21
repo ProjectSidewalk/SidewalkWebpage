@@ -1,12 +1,13 @@
 /**
  * Owns the shared alert banner (`#alert-holder`) and its show/hide lifecycle, plus the user's "don't show again"
- * opt-out list. There is a single instance (`svl.alertController`); the individual alert types (subclasses of Alert)
- * delegate to it (through DI) rather than touching the alert DOM themselves.
+ * opt-out list. There is a single instance; the individual alert types (subclasses of Alert) delegate to it rather
+ * than touching the alert DOM themselves.
  */
 
-import { svl } from '../svl.js';
+/** @typedef {import('../data/Storage.js').TemporaryStorage} TemporaryStorage */
 
 export class AlertController {
+  #storage;
   #ui;
   #dontShowList;
   #lastMessageType;
@@ -17,7 +18,11 @@ export class AlertController {
   // The banner auto-dismisses after this long (ms).
   static #AUTO_HIDE_DELAY = 15000;
 
-  constructor() {
+  /**
+   * @param {TemporaryStorage} storage - Remembers the opt-outs across sessions.
+   */
+  constructor(storage) {
+    this.#storage = storage;
     this.#ui = {
       holder: document.getElementById('alert-holder'),
       message: document.getElementById('alert-message'),
@@ -28,7 +33,7 @@ export class AlertController {
     this.#ui.close.addEventListener('click', () => this.hideAlert());
     this.#ui.dontShow.addEventListener('click', () => this.dontShowClicked());
 
-    this.#dontShowList = svl.storage.get('alertDontShowList') || [];
+    this.#dontShowList = storage.get('alertDontShowList') || [];
   }
 
   /**
@@ -101,7 +106,7 @@ export class AlertController {
   #reofferMessageType(type) {
     if (type === null || type === undefined || !this.#dontShowList.includes(type)) return;
     this.#dontShowList = this.#dontShowList.filter((silenced) => silenced !== type);
-    svl.storage.set('alertDontShowList', this.#dontShowList);
+    this.#storage.set('alertDontShowList', this.#dontShowList);
   }
 
   /**
@@ -110,7 +115,7 @@ export class AlertController {
   dontShowClicked() {
     if (this.#lastMessageType !== null && this.#lastMessageType !== undefined) {
       this.#dontShowList.push(this.#lastMessageType);
-      svl.storage.set('alertDontShowList', this.#dontShowList);
+      this.#storage.set('alertDontShowList', this.#dontShowList);
       this.hideAlert();
     }
   }

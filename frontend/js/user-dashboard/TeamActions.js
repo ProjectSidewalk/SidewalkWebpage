@@ -10,6 +10,7 @@
  * discard unsaved edits to the rest of the form, so the controls are patched in place instead (#5147).
  */
 
+import i18next from 'i18next';
 import { ConfirmDialog } from '../common/ConfirmDialog.js';
 
 export class TeamActions {

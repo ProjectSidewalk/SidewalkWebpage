@@ -177,6 +177,7 @@
       "needs-reassessment-tip-others": "Een gebruiker heeft deze locatie voor het laatst in {{assessedDate}} beoordeeld, maar de beelden hier zijn nieuwer ({{captureDate}}). Beoordeel de locatie opnieuw, zodat we kunnen analyseren wat er veranderd is."
     },
     "minimap": {
+      "attribution-toggle": "Bronvermelding kaartgegevens",
       "coach-dismiss": "Begrepen",
       "distance-left": "Nog {{distance}}",
       "explore-current-location": "Draai 360 graden om er zeker van te zijn dat u niets mist.",
@@ -189,15 +190,11 @@
       "legend-explored": "Verkend",
       "legend-ahead": "Resterende route",
       "legend-you": "U + kijkrichting",
-      "legend-visited": "Bezochte locatie",
+      "legend-crumbs": "Cirkels: plekken waar u met een klik heen kunt",
       "legend-unseen": "Nog niet bekeken",
-      "legend-next-stops": "Stops op uw route",
       "forward-crumb-title": "Ga vooruit naar stop {{rank}}",
-      "legend-other-links": "Andere richtingen",
-      "legend-faced": "Gevuld: waar vooruit u heen brengt",
       "legend-earlier-labels": "Mijn eerdere labels",
       "link-crumb-title": "Ga naar dit panorama",
-      "legend-next-step": "Lichtblauw: volgende stap (spatiebalk)",
       "route-stop-title": "Stop {{rank}} op uw route",
       "breadcrumb-title": "Bezocht: klik om hierheen terug te gaan",
       "label-marker-title": "{{labelType}}-label: klik om te bekijken",
@@ -206,7 +203,10 @@
       "route-start-flag": "Start van de route",
       "route-finish-flag": "Einde van de route",
       "mission-start-flag": "Waar deze missie begon",
-      "mission-finish-flag": "Waar deze missie eindigt"
+      "mission-finish-flag": "Waar deze missie eindigt",
+      "map-title": "Kaart van de omgeving om je heen",
+      "unavailable": "Deze browser kan de kaart niet weergeven. Je kunt zonder kaart verder verkennen.",
+      "recenter": "Terug naar uw locatie"
     },
     "stats": {
       "leaderboard-cta": "Bekijk het scorebord van de gemeenschap"

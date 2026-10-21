@@ -6,8 +6,8 @@
  * the user placed in earlier missions here; the labels themselves are untouched.
  */
 
-import { svl } from '../svl.js';
-import { LabelContainer } from '../label/LabelContainer.js';
+/** @typedef {import('../Main.js').MinimapUi} MinimapUi */
+/** @typedef {import('../label/LabelContainer.js').LabelContainer} LabelContainer */
 /** @typedef {import('../data/Tracker.js').Tracker} Tracker */
 
 export class MinimapLegend {
@@ -16,10 +16,11 @@ export class MinimapLegend {
   #expanded = false;
 
   /**
-   * @param {Record<string, HTMLElement>} uiMinimap - The svl.ui.minimap object holding the minimap's DOM elements.
+   * @param {MinimapUi} uiMinimap - The minimap's DOM elements.
+   * @param {LabelContainer} labelContainer - Whose earlier-labels setting the checkbox shows and sets.
    * @param {Tracker} tracker - Interaction logger.
    */
-  constructor(uiMinimap, tracker) {
+  constructor(uiMinimap, labelContainer, tracker) {
     this.#uiMinimap = uiMinimap;
     this.#tracker = tracker;
 
@@ -32,9 +33,13 @@ export class MinimapLegend {
     // The checkbox reflects the remembered preference from the first paint; the markers it governs are created later
     // (LabelContainer.fetchLabelsToResumeMission applies the same preference to them).
     const earlierLabels = /** @type {HTMLInputElement} */ (uiMinimap.legendEarlierLabels);
-    earlierLabels.checked = LabelContainer.earlierLabelsShownPreference();
+    earlierLabels.checked = labelContainer.earlierLabelsShownPreference();
     earlierLabels.addEventListener('change', (e) => {
-      svl.labelContainer.setEarlierLabelsShown(/** @type {HTMLInputElement} */ (e.target).checked);
+      labelContainer.setEarlierLabelsShown(/** @type {HTMLInputElement} */ (e.target).checked);
+    });
+    // The setting is also applied from storage and on a mission change, not only from this checkbox.
+    labelContainer.onEarlierLabelsShownChanged((shown) => {
+      earlierLabels.checked = shown;
     });
   }
 

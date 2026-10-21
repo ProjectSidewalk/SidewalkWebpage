@@ -3,6 +3,7 @@ package service
 import com.google.inject.ImplementedBy
 import controllers.helper.ValidateHelper.ValidateParams
 import formats.json.ValidateFormats.ValidationMissionProgress
+import models.gallery.GalleryOrder
 import models.label.{Tag, *}
 import models.mission.{Mission, MissionTable, MissionType}
 import models.pano.PanoSource
@@ -62,7 +63,7 @@ trait LabelService {
       tagsByLabelType: Map[LabelType, Set[String]],
       aiValOptions: Set[String],
       userId: String,
-      recentFirst: Boolean = false,
+      order: GalleryOrder = GalleryOrder.Random,
       staticImageryOnly: Boolean = false,
       labelIds: Seq[Int] = Seq.empty
   ): Future[Seq[LabelValidationMetadata]]
@@ -117,6 +118,33 @@ object LabelServiceImpl {
 
   /** Most mistakes per label type the user dashboard can ask for; a huge count would check imagery for thousands. */
   val MaxMistakesPerType: Int = 50
+
+  /**
+   * How many batches with nothing viewable in them a fixed-order walk reads past before giving up (#2705).
+   *
+   * Bounds the cost of a dead prefix: with a page of 30 the sorted Gallery reads at most this many batches of 150
+   * rows, and checks their imagery, before answering with what it has. Past that the admin sees a short page where
+   * thousands of labels may remain, which is the trade against a request that walks a whole city. Genuinely expired
+   * panos are remembered by `pano_data` after their first check, so a dead prefix costs the provider nothing on
+   * later requests; what this cap also bounds is the walk's behaviour while a provider is answering inconclusively
+   * (a timeout, a throttle), which the check cannot tell from "gone" and so counts the same way.
+   */
+  val MaxEmptyBatches: Int = 10
+
+  /**
+   * The labels of `batch` that `viewable` kept, in `batch`'s order.
+   *
+   * `checkImageryBatch` hands back crop-backed labels first, which is harmless to a shuffled batch and wrong for one
+   * in a caller's order: keeping the first n of the crop-first list would swap a cropped label in for a top-ranked
+   * one. Pure, so the order restore can be pinned without a database.
+   *
+   * @param batch    A batch as the query returned it.
+   * @param viewable Those of its labels whose imagery can be shown, in whatever order the check returned them.
+   */
+  def restoreBatchOrder[A <: BasicLabelMetadata](batch: Seq[A], viewable: Seq[A]): Seq[A] = {
+    val kept: Set[Int] = viewable.map(_.labelId).toSet
+    batch.filter(l => kept.contains(l.labelId))
+  }
 
   /** Keeps a requested mistakes-per-type count between 1 and [[MaxMistakesPerType]]. */
   def clampMistakesPerType(n: Int): Int = math.max(1, math.min(MaxMistakesPerType, n))
@@ -330,7 +358,8 @@ class LabelServiceImpl @Inject() (
    * @param tagsByLabelType   Tags each label type is narrowed to; a type absent from the map is not narrowed.
    * @param aiValOptions      Set of AI validations to filter for: correct, incorrect, unsure, and/or unvalidated.
    * @param userId            User ID of the user requesting the labels.
-   * @param recentFirst       If true, draw from the most recent labels (shuffled) instead of sampling all labels.
+   * @param order             Random (the default), the landing grid's shuffled pool of the newest labels, or a strict
+   *                          [[GallerySort]] for the admin's "Sort by" (#2705); see the branches below.
    * @param staticImageryOnly If true, only label types a static (non-pannable) image can carry are returned.
    * @param labelIds          A review list (#5444). Non-empty switches to list mode: exactly these labels, in this
    *                          order, with every other argument above ignored. See the branch below for why.
@@ -346,7 +375,7 @@ class LabelServiceImpl @Inject() (
       tagsByLabelType: Map[LabelType, Set[String]],
       aiValOptions: Set[String],
       userId: String,
-      recentFirst: Boolean = false,
+      order: GalleryOrder = GalleryOrder.Random,
       staticImageryOnly: Boolean = false,
       labelIds: Seq[Int] = Seq.empty
   ): Future[Seq[LabelValidationMetadata]] = {
@@ -356,7 +385,7 @@ class LabelServiceImpl @Inject() (
     // empty request means every type; staticImageryOnly narrows it to the types a static image can support (the
     // landing grid can't pan, so e.g. Signal is out — see staticValidatableLabelTypes). Include useCrops so that
     // labels with expired or non-Google imagery are still included if a local crop exists.
-    // With recentFirst the query is ordered newest-first, so findValidLabelsForType's batching draws from the most
+    // With RecentPool the query is ordered newest-first, so findValidLabelsForType's batching draws from the most
     // recent labels and randomize=true shuffles within that recent pool.
     // lazy: a review list spreads across no types at all, so this is the filtered path's to compute.
     lazy val typesToSpread: Set[LabelType] =
@@ -386,30 +415,49 @@ class LabelServiceImpl @Inject() (
     } else if (typesToSpread.isEmpty) {
       Future.successful(Seq())
     } else {
-      // Split the request across the types so no one type crowds out the rest of a mixed selection.
-      val nPerType: Int = math.max(1, n / typesToSpread.size)
-      Future
-        .sequence(typesToSpread.map { labelType =>
+      order match {
+        case GalleryOrder.Sorted(sort) =>
+          // Sorted mode (#2705): one query across every selected type, because the order has to be global — the top
+          // n of each type merged is not the top n of the union — and so no type spread and no shuffle anywhere.
+          // The walk keeps the query's order (randomize = false) and reads past a prefix of dead imagery
+          // (walkPastEmpty); the final sort is belt and braces, with the in-memory ordering being the SQL one, so
+          // paging (the client excludes what it has loaded and asks for the next ranked labels) neither skips nor
+          // repeats at a page boundary.
           findValidLabelsForType(
             (_: Seq[LabelValidationMetadata]) =>
-              labelTable.getGalleryLabelsQuery(
-                viewer,
-                labelType,
-                loadedLabelIds,
-                valOptions,
-                regionIds,
-                severity,
-                tagsByLabelType.getOrElse(labelType, Set()),
-                aiValOptions,
-                userId,
-                recentFirst
-              ),
-            randomize = true,
+              labelTable.getGalleryLabelsQuery(viewer, typesToSpread, loadedLabelIds, valOptions, regionIds, severity,
+                tagsByLabelType, aiValOptions, userId, order),
+            randomize = false,
             useCrops = true,
-            nPerType
-          )
-        })
-        .map(labelsByType => scala.util.Random.shuffle(labelsByType.flatten).toSeq)
+            n,
+            walkPastEmpty = true
+          ).map(_.sorted(using sort.ordering))
+        case GalleryOrder.Random | GalleryOrder.RecentPool =>
+          // Split the request across the types so no one type crowds out the rest of a mixed selection.
+          val nPerType: Int = math.max(1, n / typesToSpread.size)
+          Future
+            .sequence(typesToSpread.map { labelType =>
+              findValidLabelsForType(
+                (_: Seq[LabelValidationMetadata]) =>
+                  labelTable.getGalleryLabelsQuery(
+                    viewer,
+                    Set(labelType),
+                    loadedLabelIds,
+                    valOptions,
+                    regionIds,
+                    severity,
+                    tagsByLabelType.view.filterKeys(_ == labelType).toMap,
+                    aiValOptions,
+                    userId,
+                    order
+                  ),
+                randomize = true,
+                useCrops = true,
+                nPerType
+              )
+            })
+            .map(labelsByType => scala.util.Random.shuffle(labelsByType.flatten).toSeq)
+      }
     }
   }
 
@@ -482,7 +530,9 @@ class LabelServiceImpl @Inject() (
               n - found.size,
               offset = 0,
               accumulator = found,
-              selectFromBatch = selectFromBatch
+              selectFromBatch = selectFromBatch,
+              walkPastEmpty = false,
+              emptyBatches = 0
             )
         }
       }
@@ -513,7 +563,8 @@ class LabelServiceImpl @Inject() (
       queryFor: Seq[A] => Query[?, A, Seq],
       randomize: Boolean,
       useCrops: Boolean,
-      remaining: Int
+      remaining: Int,
+      walkPastEmpty: Boolean = false
   ): Future[Seq[A]] = {
     findValidLabelsForType(
       queryFor,
@@ -522,7 +573,9 @@ class LabelServiceImpl @Inject() (
       remaining,
       offset = 0,
       accumulator = Seq.empty[A],
-      selectFromBatch = (batch: Seq[A], _: Seq[A]) => batch
+      selectFromBatch = (batch: Seq[A], _: Seq[A]) => batch,
+      walkPastEmpty = walkPastEmpty,
+      emptyBatches = 0
     )
   }
 
@@ -530,7 +583,8 @@ class LabelServiceImpl @Inject() (
    * Query labels from the db in batches until we have enough labels that have imagery available. Works recursively.
    * @param queryFor Builds the query for a batch from the labels the walk holds so far, so a query that can exclude
    *                 those rows (and, for NoSidewalk, their block faces) does, and every batch is fresh candidates.
-   * @param randomize Whether to randomize the label order or not.
+   * @param randomize Whether to randomize the label order or not. When false, what is kept from a batch is its first
+   *                  viewable labels *in the query's order*, so a caller's ordering survives the walk.
    * @param useCrops If true, local static crop of pano around the label also works as well as an API call.
    * @param remaining Number of labels remaining to get.
    * @param offset Number of rows to skip; each batch advances it by the number of rows it read.
@@ -539,6 +593,11 @@ class LabelServiceImpl @Inject() (
    * @param selectFromBatch Narrows a fetched batch (after any shuffle, before the imagery check) given the labels held
    *                        so far; the NoSidewalk one-per-face rule. Runs before the imagery check so that the labels
    *                        it drops cost no provider lookups.
+   * @param walkPastEmpty Whether a batch with nothing viewable in it should be walked past rather than end the walk,
+   *                      as long as the batch was full and fewer than `MaxEmptyBatches` have been. For a query in a
+   *                      fixed order (the sorted Gallery, #2705), whose dead rows sit at the same offsets on every
+   *                      request; a `random()` order has no such prefix and gains nothing from walking on.
+   * @param emptyBatches How many empty batches this walk has already walked past.
    */
   private def findValidLabelsForType[A <: BasicLabelMetadata](
       queryFor: Seq[A] => Query[?, A, Seq],
@@ -547,7 +606,9 @@ class LabelServiceImpl @Inject() (
       remaining: Int,
       offset: Int,
       accumulator: Seq[A],
-      selectFromBatch: (Seq[A], Seq[A]) => Seq[A]
+      selectFromBatch: (Seq[A], Seq[A]) => Seq[A],
+      walkPastEmpty: Boolean,
+      emptyBatches: Int
   ): Future[Seq[A]] = {
     if (remaining <= 0) {
       Future.successful(accumulator)
@@ -564,19 +625,32 @@ class LabelServiceImpl @Inject() (
 
           // Check for valid imagery in parallel.
           checkImageryBatch(selectedLabels, useCrops).flatMap { validLabels =>
+            // With crops in play the check hands back the crop-backed labels first, and `take` below keeps the first
+            // `remaining`. A shuffled batch doesn't care which of its labels those are; a caller that asked for the
+            // query's order would otherwise be handed the batch's cropped labels in place of its top-ranked ones,
+            // and only notice as the same labels came round again on a later page. So the batch's own order is
+            // put back before anything is kept.
+            val inBatchOrder: Seq[A] =
+              if (randomize) validLabels else LabelServiceImpl.restoreBatchOrder(selectedLabels, validLabels)
+
             // Skip labels an earlier batch took. The validation query orders by a score containing `random()`, which
             // Postgres re-evaluates per execution, so every batch sees a fresh shuffle and can resurface rows an
             // earlier one covered, whatever the offset. A mission holding the same label twice is what that looks
             // like to the user.
             val alreadyFound: Set[Int] = accumulator.map(_.labelId).toSet
-            val newValidLabels: Seq[A] = validLabels.filterNot(l => alreadyFound.contains(l.labelId)).take(remaining)
+            val newValidLabels: Seq[A] =
+              inBatchOrder.filterNot(l => alreadyFound.contains(l.labelId)).take(remaining)
 
             // A batch that adds nothing new ends the walk: with `random()` in the sort, the next offset is no more
             // likely to, and walking a 48k-label queue fifty rows at a time is the failure mode this guards against.
-            if (newValidLabels.isEmpty) {
+            // A fixed order is the exception: its dead rows (imagery gone, no crop) sit at the same offsets on every
+            // request, since nothing loads them and so nothing excludes them, and ending here would make a prefix of
+            // dead rows read as the end of the Gallery. That walk goes on while batches are full, under a cap.
+            val batchFull: Boolean = labels.size >= batchSize
+            val walkOn: Boolean    = walkPastEmpty && batchFull && emptyBatches < LabelServiceImpl.MaxEmptyBatches
+            if (newValidLabels.isEmpty && !walkOn) {
               Future.successful(accumulator)
             } else {
-              // Add the valid labels to the accumulator and recurse.
               findValidLabelsForType(
                 queryFor,
                 randomize,
@@ -586,7 +660,9 @@ class LabelServiceImpl @Inject() (
                 // multiplied out into an offset.
                 offset + labels.size,
                 accumulator ++ newValidLabels,
-                selectFromBatch
+                selectFromBatch,
+                walkPastEmpty,
+                if (newValidLabels.isEmpty) emptyBatches + 1 else emptyBatches
               )
             }
           }

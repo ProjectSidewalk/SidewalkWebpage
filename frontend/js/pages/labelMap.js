@@ -13,6 +13,7 @@ import { createPSMap } from '../ps-map/createPSMap.js';
 import { createLabelSpotlight } from '../ps-map/labelSpotlight.js';
 import { createNearbyLabelNavigator } from '../ps-map/nearbyLabelNavigator.js';
 import { setRegionFocus } from '../ps-map/psMapUtilities.js';
+import '../../css/components/map-frame.css';
 
 const data = document.getElementById('page-entry').dataset;
 const imagerySrc = data.imagerySource;

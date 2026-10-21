@@ -6,9 +6,20 @@
 import { util } from '../../common/utilities.js';
 import { Alert } from './Alert.js';
 import '../../common/utilitiesSidewalk.js';
+/** @typedef {import('./AlertController.js').AlertController} AlertController */
+/** @typedef {import('../panorama/PanoManager.js').PanoManager} PanoManager */
 
 export class StuckAlert extends Alert {
   #recentPanos = [];
+
+  /**
+   * @param {AlertController} alertController - Shows the messages.
+   * @param {PanoManager} panoManager - Each pano it lands on counts toward the circling nudge.
+   */
+  constructor(alertController, panoManager) {
+    super(alertController);
+    panoManager.onPanoChanged((panoData) => this.panoVisited(panoData.getPanoId()));
+  }
 
   /**
    * Shows the "still stuck?" alert when the user clicks the Stuck button.

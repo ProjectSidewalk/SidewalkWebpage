@@ -241,7 +241,9 @@ class UserStatTable @Inject() (
   private val missionTable         = TableQuery[MissionTableDef]
   private val labelValidationTable = TableQuery[LabelValidationTableDef]
 
-  private val auditMissions = missionTable.filter(_.missionType === MissionType.Audit)
+  // Free exploration earns meters_audited too (#5733); without its labels here, its users read as labeling nothing.
+  private val auditMissions =
+    missionTable.filter(_.missionType inSet Set(MissionType.Audit, MissionType.ExploreAddress))
 
   private val LABEL_PER_METER_THRESHOLD: Double = 0.0375
 
@@ -665,7 +667,12 @@ class UserStatTable @Inject() (
     // There are quite a few changes to make to the query when grouping by team instead of user. All of those below.
     val groupingCol: String        = if (byTeam) "user_team.team_id" else "sidewalk_user.user_id"
     val groupingColName: String    = if (byTeam) "team_id" else "user_id"
-    val joinUserTeamForAcc: String = if (byTeam) "INNER JOIN user_team ON label.user_id = user_team.user_id" else ""
+    val joinUserTeamForAcc: String =
+      if (byTeam || teamId.isDefined) "INNER JOIN user_team ON label.user_id = user_team.user_id" else ""
+    // Qualified, since a one-team board joins user_team, which has its own user_id.
+    val accGroupingCol: String = if (byTeam) "user_team.team_id" else "label.user_id"
+    // Repeated in the stat subqueries so a one-team board only reads that team's rows, not the whole city's.
+    val subqueryTeamFilter: String = teamId.map(id => s"AND user_team.team_id = $id").getOrElse("")
     val usernamesJoin: String      = {
       if (byTeam) {
         "INNER JOIN (SELECT team_id, name AS username FROM team) \"usernames\" ON label_counts.team_id = usernames.team_id"
@@ -706,6 +713,7 @@ class UserStatTable @Inject() (
           INNER JOIN sidewalk_user ON mission.user_id = sidewalk_user.user_id
           #$joinUserTeamTable
           WHERE (mission_end AT TIME ZONE 'America/Los_Angeles') > #$statStartTime
+              #$subqueryTeamFilter
           GROUP BY #$groupingCol
       ) "missions_counts" ON label_counts.#$groupingColName = missions_counts.#$groupingColName
       LEFT JOIN (
@@ -716,16 +724,18 @@ class UserStatTable @Inject() (
           INNER JOIN sidewalk_user ON audit_task.user_id = sidewalk_user.user_id
           #$joinUserTeamTable
           WHERE (task_end AT TIME ZONE 'America/Los_Angeles') > #$statStartTime
+              #$subqueryTeamFilter
           GROUP BY #$groupingCol
       ) "distance" ON label_counts.#$groupingColName = distance.#$groupingColName
       LEFT JOIN (
-          SELECT #$groupingColName,
+          SELECT #$accGroupingCol AS #$groupingColName,
                  CAST(SUM(CASE WHEN correct THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(SUM(CASE WHEN correct THEN 1 ELSE 0 END) + SUM(CASE WHEN NOT correct THEN 1 ELSE 0 END), 0) AS accuracy_temp,
                  COUNT(CASE WHEN correct IS NOT NULL THEN 1 END) AS validated_count
           FROM #${FilteredTables.accuracyLabels}
           #$joinUserTeamForAcc
           WHERE (label.time_created AT TIME ZONE 'America/Los_Angeles') > #$statStartTime
-          GROUP BY #$groupingColName
+              #$subqueryTeamFilter
+          GROUP BY #$accGroupingCol
       ) "accuracy" ON label_counts.#$groupingColName = accuracy.#$groupingColName
       ORDER BY score DESC, label_counts.label_count DESC;
     """

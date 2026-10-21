@@ -442,10 +442,13 @@ class ValidateController @Inject() (
 
     // Now we do all the stuff that can be done async, we can return the response before these are done.
     // Insert interactions async.
-    validationService.insertMultipleInteractions(data.interactions.map { action =>
-      ValidationTaskInteraction(0, action.missionId, action.action, action.panoId, action.lat, action.lng,
-        action.heading, action.pitch, action.zoom, action.note, action.timestamp, data.source)
-    })
+    validationService
+      .insertMultipleInteractions(data.interactions.map { action =>
+        ValidationTaskInteraction(0, action.missionId, action.action, action.panoId, action.lat, action.lng,
+          action.heading, action.pitch, action.zoom, action.note, action.timestamp, data.source)
+      })
+      .failed
+      .foreach(e => logger.error("Error saving validation interactions.", e))
 
     // Insert Environment async.
     val env: EnvironmentSubmission = data.environment

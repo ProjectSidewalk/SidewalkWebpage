@@ -3,8 +3,6 @@
  *
  * References:
  * https://developer.mozilla.org/en-US/docs/Web/API/Web_Storage_API
- *
- * @memberof svl
  */
 export class TemporaryStorage {
   #json;

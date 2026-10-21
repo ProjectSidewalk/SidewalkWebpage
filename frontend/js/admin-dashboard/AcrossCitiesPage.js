@@ -14,6 +14,7 @@
  */
 
 import { FetchWithRetry } from '../common/FetchWithRetry.js';
+import mapboxgl from '../common/mapboxgl.js';
 import { util } from '../common/utilities.js';
 import { AdminShell } from './AdminShell.js';
 import { MiniLineChart } from './MiniLineChart.js';
@@ -337,8 +338,9 @@ export class AcrossCitiesPage {
     const people = humanCount || 0;
     el.textContent = ai ? `+ ${this.#num(ai)} by AI` : '';
     if (ai) {
-      el.setAttribute('data-ps-tooltip', util.escapeHTML(`People made ${this.#num(people)} of the `
-        + `${this.#num(people + ai)} ${noun} ${period}; ${this.#num(ai)} came from AI accounts.`));
+      const tip = `People made ${this.#num(people)} of the `
+        + `${this.#num(people + ai)} ${noun} ${period}; ${this.#num(ai)} came from AI accounts.`;
+      el.setAttribute('data-ps-tooltip', tip);
     } else {
       el.removeAttribute('data-ps-tooltip');
     }
@@ -362,9 +364,10 @@ export class AcrossCitiesPage {
     const anon = anonCount || 0;
     el.textContent = anon ? `+ ${this.#num(anon)} anonymous ${anon === 1 ? 'session' : 'sessions'}` : '';
     if (anon) {
-      el.setAttribute('data-ps-tooltip', util.escapeHTML('Contributors are registered accounts. '
+      const tip = 'Contributors are registered accounts. '
         + `${this.#num(anon)} anonymous ${anon === 1 ? 'session' : 'sessions'} also contributed ${period}; each is a `
-        + 'browser cookie, not a known person.'));
+        + 'browser cookie, not a known person.';
+      el.setAttribute('data-ps-tooltip', tip);
     } else {
       el.removeAttribute('data-ps-tooltip');
     }
@@ -383,8 +386,9 @@ export class AcrossCitiesPage {
     const agents = agentCount || 0;
     el.textContent = agents ? `+ ${this.#num(agents)} AI ${agents === 1 ? 'account' : 'accounts'}` : '';
     if (agents) {
-      el.setAttribute('data-ps-tooltip', util.escapeHTML(`Contributors are people. `
-        + `${this.#num(agents)} AI ${agents === 1 ? 'account was' : 'accounts were'} also active ${period}.`));
+      const tip = `Contributors are people. `
+        + `${this.#num(agents)} AI ${agents === 1 ? 'account was' : 'accounts were'} also active ${period}.`;
+      el.setAttribute('data-ps-tooltip', tip);
     } else {
       el.removeAttribute('data-ps-tooltip');
     }
@@ -487,7 +491,7 @@ export class AcrossCitiesPage {
     const label = `${city.city_name || city.city_id} · ${heading}, last 7 days: ${this.#num(current)}`;
     return `<td class="ac-num"><span class="ac-cell-trigger" role="button" tabindex="0" aria-haspopup="dialog" `
       + `aria-expanded="false" aria-label="${util.escapeHTML(label)}" data-ps-tooltip-pinnable `
-      + `data-ps-tooltip="${util.escapeHTML(this.#cityTipHtml(city, metric))}">`
+      + `data-ps-tooltip-html="${util.escapeHTML(this.#cityTipHtml(city, metric))}">`
       + `${this.#num(current)}${delta}${aiChip}</span></td>`;
   }
 
@@ -503,7 +507,7 @@ export class AcrossCitiesPage {
   #renderMap(citiesGeo) {
     const host = document.getElementById('ac-cities-map');
     if (!host) return;
-    if (typeof mapboxgl === 'undefined' || !this.#mapboxToken || !citiesGeo || !Array.isArray(citiesGeo.cities)) {
+    if (!this.#mapboxToken || !citiesGeo || !Array.isArray(citiesGeo.cities)) {
       this.#setText('ac-map-status', 'Map unavailable.');
       host.style.display = 'none';
       return;
@@ -1144,7 +1148,7 @@ export class AcrossCitiesPage {
           + `${util.escapeHTML(meta.label)}</span></span>`;
       }
       const engagementTitle = `${this.#num(t.engaged_sessions_7d)} of ${this.#num(t.sessions_7d)} sessions engaged`;
-      const sinceTip = AdminShell.tooltipAttr(AcrossCitiesPage.#gaSinceTip(t.ga_since));
+      const sinceTip = util.escapeHTML(AcrossCitiesPage.#gaSinceTip(t.ga_since));
       const weeks = t.weekly_sessions || [];
       // The sparkline is aria-hidden and carries no numbers, so the cell has to state them.
       const trendTip = weeks.length
@@ -1277,7 +1281,7 @@ export class AcrossCitiesPage {
           const share = n / total;
           const tip = `${name}: ${this.#num(n)} (${this.#pct(share)})`;
           tips.push(tip);
-          return `<span class="ac-stack-seg" data-ps-tooltip="${AdminShell.tooltipAttr(tip)}"
+          return `<span class="ac-stack-seg" data-ps-tooltip="${util.escapeHTML(tip)}"
             style="width:${(share * 100).toFixed(2)}%;background:${this.#color(key)}"></span>`;
         }).join('');
       }
@@ -1486,7 +1490,7 @@ export class AcrossCitiesPage {
         const short = util.escapeHTML(l.short);
         // A card that only repeats the header would be a tab stop with nothing to say.
         if (l.full === l.short) return `<th>${short}</th>`;
-        return `<th tabindex="0" data-ps-tooltip="${AdminShell.tooltipAttr(l.full)}">${short}</th>`;
+        return `<th tabindex="0" data-ps-tooltip="${util.escapeHTML(l.full)}">${short}</th>`;
       }),
       '<th tabindex="0" data-ps-tooltip="Final step as a share of step 1">Overall</th></tr>',
     ].join('');
@@ -1557,7 +1561,7 @@ export class AcrossCitiesPage {
         const tip = i === 0
           ? `${full}: ${this.#num(v)} accounts`
           : `${full}: ${this.#num(v)} — ${this.#pct(conv)} of previous step`;
-        return `<div class="ac-funnel-bar" data-ps-tooltip="${AdminShell.tooltipAttr(tip)}">`
+        return `<div class="ac-funnel-bar" data-ps-tooltip="${util.escapeHTML(tip)}">`
           + `<span class="ac-funnel-bar-fill" `
           + `style="width:${width.toFixed(1)}%;background:${palette[si] || palette[0]}"></span>`
           + `<span class="ac-funnel-bar-val">${valText}</span></div>`;

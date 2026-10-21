@@ -153,6 +153,7 @@
   "grade-legend-title-by": "街道坡度 · {{statistic}}",
   "grade-legend-none": "無坡度資料",
   "grade-legend-hint": "點選一個級距可標示那些街道；按住 Ctrl 點選可加選。",
+  "grade-legend-coarse": "來自解析度較低的高程模型：每條街道的坡度只是其兩端之間的直線。",
   "grade-class-under": "低於 {{to}}",
   "grade-class-over": "高於 {{from}}",
   "grade-class-between": "{{from}} – {{to}}",
@@ -196,6 +197,7 @@
   "slope-barrier-threshold": "坡度超過此值即為障礙",
   "slope-approximate-include": "納入概略坡度",
   "slope-approximate-include-help": "有些坡度只是街道兩端之間的直線：可能是城市只有解析度較低的高程模型，或是模型在該處看起來不可靠。開啟此選項可讓這些坡度也納入計算。",
+  "slope-coarse-note": "本城市的坡度來自解析度較低的高程模型，因此僅為概略值。只有在下方納入概略坡度時，才會計入分數。",
   "slope-barrier-effect": "此路段分數為 0：坡度超過 {{limit}} 的障礙門檻。",
   "popup-slope-barrier": "障礙：0"
 }

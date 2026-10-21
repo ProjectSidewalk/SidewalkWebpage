@@ -66,12 +66,7 @@
 
     <div id="sidewalk-presence-preview" class="map-container"></div>
 
-    <link rel="stylesheet" href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.css")'>
-    <link rel="stylesheet" href='@assets.path("css/pages/api-docs/streets.css")'>
-    @* Deferred to keep the ~800KB mapping stack off this article's rendering path. Order still matters within the
-       set: the language plugin and the preview both read the mapboxgl global as they parse. *@
-    <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.js")' defer></script>
-    <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")' defer></script>
+    @ViteAssets.stylesheets("api-docs/sidewalkPresence", alreadyLinked = "api-docs/layout")
     <script type="module"
             id="page-entry"
             data-mapbox-api-key="@commonData.mapboxApiKey"
@@ -234,7 +229,17 @@
         "first_no_sidewalk_label_date": "2019-11-04T22:31:07Z",
         "last_no_sidewalk_label_date": "2023-02-18T17:05:44Z",
         "validated_no_sidewalk_count": 1,
-        "rejected_no_sidewalk_count": 0
+        "rejected_no_sidewalk_count": 0,
+        "osm_ways": [
+          {
+            "osm_way_id": 6479562,
+            "street_from_frac": 0,
+            "street_to_frac": 1,
+            "way_from_frac": 0.3,
+            "way_to_frac": 0.55,
+            "osm_side": "right"
+          }
+        ]
       }
     },
     {
@@ -263,7 +268,17 @@
         "first_no_sidewalk_label_date": null,
         "last_no_sidewalk_label_date": null,
         "validated_no_sidewalk_count": 0,
-        "rejected_no_sidewalk_count": 1
+        "rejected_no_sidewalk_count": 1,
+        "osm_ways": [
+          {
+            "osm_way_id": 6479562,
+            "street_from_frac": 0,
+            "street_to_frac": 1,
+            "way_from_frac": 0.55,
+            "way_to_frac": 0.8,
+            "osm_side": "left"
+          }
+        ]
       }
     },
     ...
@@ -301,7 +316,12 @@
           <tr>
             <td><code>properties.osm_way_id</code></td>
             <td><code>integer</code></td>
-            <td><a href="https://wiki.openstreetmap.org/wiki/Way">OpenStreetMap Way ID</a> for the street segment.</td>
+            <td><a href="https://wiki.openstreetmap.org/wiki/Way">OpenStreetMap Way ID</a> for the street segment: the way covering most of it, when it spans several (see <code>osm_ways</code>).</td>
+          </tr>
+          <tr>
+            <td><code>properties.osm_ways</code></td>
+            <td><code>array</code></td>
+            <td>Every OpenStreetMap way the street lies on, in street order, each seen from this face: <code>osm_way_id</code>; <code>street_from_frac</code> / <code>street_to_frac</code>, the stretch of the street (0 at its first coordinate, 1 at its last) the way covers; <code>way_from_frac</code> / <code>way_to_frac</code>, the stretch of the way in the way's own drawn direction; and <code>osm_side</code>, which side of the way this face is, <code>left</code> or <code>right</code> of the way's drawn direction, which is what an OSM <code>sidewalk:left</code> / <code>sidewalk:right</code> tag means. The face's <code>street_side</code> is relative to <em>our</em> geometry, so the two differ wherever the way was drawn the other way. Positions and <code>osm_side</code> are <code>null</code> on a link recorded without them.</td>
           </tr>
           <tr>
             <td><code>properties.region_id</code></td>
@@ -379,15 +399,15 @@
 
     <h4 id="response-csv">CSV Format <a href="#response-csv" class="permalink">#</a></h4>
     <p>If <code>filetype=csv</code> is specified, the response body will be CSV data. The first row contains the headers, corresponding to the fields in the GeoJSON properties object, plus geometry representation. CRS is WGS84 (EPSG:4326).</p>
-    <pre tabindex="0"><code class="language-csv">street_edge_id,street_side,osm_way_id,region_id,region_name,way_type,status,presence,presence_basis,no_sidewalk_label_count,no_sidewalk_user_count,label_count,audit_count,first_no_sidewalk_label_date,last_no_sidewalk_label_date,validated_no_sidewalk_count,rejected_no_sidewalk_count,start_point,end_point
-10425,left,6479562,44,Highland Park,residential,open,absent,no_sidewalk_labels,3,2,5,2,2019-11-04T22:31:07Z,2023-02-18T17:05:44Z,1,0,"-122.3546715,47.5309889","-122.3546693,47.5319025"
-10425,right,6479562,44,Highland Park,residential,open,present,audited_no_labels,0,0,2,2,,,0,1,"-122.3546715,47.5309889","-122.3546693,47.5319025"
+    <pre tabindex="0"><code class="language-csv">street_edge_id,street_side,osm_way_id,region_id,region_name,way_type,status,presence,presence_basis,no_sidewalk_label_count,no_sidewalk_user_count,label_count,audit_count,first_no_sidewalk_label_date,last_no_sidewalk_label_date,validated_no_sidewalk_count,rejected_no_sidewalk_count,osm_ways,start_point,end_point
+10425,left,6479562,44,Highland Park,residential,open,absent,no_sidewalk_labels,3,2,5,2,2019-11-04T22:31:07Z,2023-02-18T17:05:44Z,1,0,"[{""osm_way_id"":6479562,""street_from_frac"":0,""street_to_frac"":1,""way_from_frac"":0.3,""way_to_frac"":0.55,""osm_side"":""right""}]","-122.3546715,47.5309889","-122.3546693,47.5319025"
+10425,right,6479562,44,Highland Park,residential,open,present,audited_no_labels,0,0,2,2,,,0,1,"[{""osm_way_id"":6479562,""street_from_frac"":0,""street_to_frac"":1,""way_from_frac"":0.55,""way_to_frac"":0.8,""osm_side"":""left""}]","-122.3546715,47.5309889","-122.3546693,47.5319025"
 ...</code></pre>
 
     <p>Note: The complete LineString geometry is simplified to start and end points in the CSV format due to the tabular nature of CSV. For full geometry data, use the GeoJSON format.</p>
 
     <h4 id="response-shapefile">Shapefile Format <a href="#response-shapefile" class="permalink">#</a></h4>
-    <p>If <code>filetype=shapefile</code> is specified, the response body will be a ZIP archive containing the Shapefile components (.shp, .shx, .dbf, .prj, .cpg). Text longer than 254 bytes is truncated. The attribute table (.dbf) contains fields corresponding to the GeoJSON properties object, with names abbreviated to the format's ten-character limit (<code>streetId</code>, <code>side</code>, <code>status</code>, <code>presence</code>, <code>basis</code>, <code>nsLabels</code>, <code>nsUsers</code>, <code>labelCount</code>, <code>auditCount</code>, <code>firstNsLbl</code>, <code>lastNsLbl</code>, <code>nsValid</code>, <code>nsReject</code>). The included <code>.prj</code> file defines the Coordinate Reference System (CRS), WGS84 (EPSG:4326).</p>
+    <p>If <code>filetype=shapefile</code> is specified, the response body will be a ZIP archive containing the Shapefile components (.shp, .shx, .dbf, .prj, .cpg). Text longer than 254 bytes is truncated. That limit is why <code>osmWays</code> is not the JSON list but one <code>way:from-to:mark</code> entry per way, comma-separated: the way id, the stretch of the street it covers to three places, and <code>:left</code> or <code>:right</code>, the face's side of the way; a way with no position is its id alone. The attribute table (.dbf) contains fields corresponding to the GeoJSON properties object, with names abbreviated to the format's ten-character limit (<code>streetId</code>, <code>side</code>, <code>status</code>, <code>presence</code>, <code>basis</code>, <code>nsLabels</code>, <code>nsUsers</code>, <code>labelCount</code>, <code>auditCount</code>, <code>firstNsLbl</code>, <code>lastNsLbl</code>, <code>nsValid</code>, <code>nsReject</code>). The included <code>.prj</code> file defines the Coordinate Reference System (CRS), WGS84 (EPSG:4326).</p>
 
     <h4 id="response-geopackage">GeoPackage Format <a href="#response-geopackage" class="permalink">#</a></h4>
     <p>If <code>filetype=geopackage</code> is specified, the response body will be a GeoPackage (.gpkg) file containing every street side with full geometry and the same field names as the GeoJSON properties. GeoPackage is a modern, open standard geospatial format that supports complex geometries and is widely supported by GIS software.</p>

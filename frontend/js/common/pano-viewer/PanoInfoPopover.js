@@ -5,6 +5,7 @@
  * that element, wires up the trigger button, fills values on open, and positions the popover above the button using JS.
  */
 
+import i18next from 'i18next';
 import { util } from '../utilities.js';
 /** @typedef {import('./MapillaryViewer.js').MapillaryViewer} MapillaryViewer */
 /** @typedef {import('./PanoViewer.js').PanoViewer} PanoViewer */

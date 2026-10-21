@@ -7,323 +7,308 @@
  * for that era, that the legend's "hide earlier labels" suppression survives a canvas render (render() is also what
  * puts a non-deleted label's marker on the map), that a marker suppressed while earlier comes back once its mission is
  * current again, and that eras are re-derived only when the mission actually changes.
- *
- * Label, LabelContainer and MissionContainer are top-level `class`es written for the Grunt-concatenation world, so the
- * sources are eval'd into the jsdom global scope with the map, marker, storage, and i18n collaborators stubbed.
  */
 
-const { loadModules } = require('./loadGlobalScript');
-const { makeRecordingCtx } = require('./canvasCtxStub');
+import { loadModules, mockModule } from './loader.js';
+import { makeRecordingCtx } from './canvasCtxStub.js';
+import { fakeTracker, fakeTaskContainer } from './fakes.js';
 
+mockModule('i18next', () => ({ default: { t: (key, opts) => `${key}|${opts?.labelType ?? ''}` } }));
 
-/** Stands in for google.maps.marker.AdvancedMarkerElement: keeps its options as plain fields. */
+/** Stands in for a marker made by Minimap.addMarker: keeps what the seam would apply to the element as plain fields. */
 class FakeMarker {
-    constructor(options) {
-        Object.assign(this, options);
-    }
+  constructor(latLng, content, { onClick = null, title = null, zIndex = 0 } = {}) {
+    Object.assign(this, { latLng, content, onClick, title, zIndex, clickable: Boolean(onClick), visible: true });
+    this.element = document.createElement('div');
+  }
 
-    addListener() {}
+  setLatLng(latLng) {
+    this.latLng = latLng;
+  }
+
+  setVisible(visible) {
+    this.visible = visible;
+  }
+
+  remove() {}
+
+  setTitle(title) {
+    this.title = title;
+  }
+
+  setClickable(clickable) {
+    this.clickable = clickable && Boolean(this.onClick);
+  }
+
+  setZIndex(zIndex) {
+    this.zIndex = zIndex;
+  }
 }
 
-/** Loads a fresh Label class into the jsdom global scope (a class declaration is not a globalThis property). */
-function loadLabel() {
-    Object.assign(window, loadModules('frontend/js/explore/label/Label.js'));
-    return window.Label;
-}
-
-/** Loads LabelContainer beside the already-loaded Label, which it resolves through the global scope. */
-function loadLabelContainer() {
-    Object.assign(window, loadModules('frontend/js/explore/label/LabelContainer.js'));
-    return window.LabelContainer;
-}
-
-/** Loads MissionContainer with the EventEmitter it extends, in one eval so `extends` resolves. */
-function loadMissionContainer() {
-    Object.assign(window, loadModules('frontend/js/explore/EventEmitter.js', 'frontend/js/explore/mission/MissionContainer.js'));
-    return window.MissionContainer;
-}
-
-/** In-memory stand-in for svl.storage (TemporaryStorage), with the same JSON round trip. */
+/** In-memory stand-in for TemporaryStorage, with the same JSON round trip. */
 function fakeStorage() {
-    const store = new Map();
-    return {
-        get: (k) => (store.has(k) ? JSON.parse(store.get(k)) : null),
-        set: (k, v) => store.set(k, JSON.stringify(v)),
-    };
+  const store = new Map();
+  return {
+    get: (k) => (store.has(k) ? JSON.parse(store.get(k)) : null),
+    set: (k, v) => store.set(k, JSON.stringify(v)),
+  };
 }
 
 describe('Label minimap eras (#4945)', () => {
-    let Label;
-    const map = { id: 'the-minimap' };
-    let currentMissionId;
+  let Label;
+  let LabelContainer;
+  let MissionContainer;
+  let currentMissionId;
+  let minimap;
+  let missionContainer;
+  let tracker;
+  let storage;
+  const frame = { width: 720, height: 480, iconRadius: 10, renderedHFov: () => 90 };
 
-    /** A resumed label's params as /label/resumeMission hands them over: panoXY present, so no pano store lookup. */
-    function newLabelParams() {
-        return {
-            labelType: 'CurbRamp',
-            temporaryLabelId: 1,
-            missionId: 10,
-            panoXY: { x: 10, y: 20 },
-            povOfLabelIfCentered: { heading: 90, pitch: -10, zoom: 1 },
-            panoLat: 47.6553,
-            panoLng: -122.3035,
-            labelLat: 47.6554,
-            labelLng: -122.3036,
-        };
-    }
+  /** A resumed label's params as /label/resumeMission hands them over: panoXY present, so no pano store lookup. */
+  function newLabelParams() {
+    return {
+      labelType: 'CurbRamp',
+      temporaryLabelId: 1,
+      missionId: 10,
+      panoXY: { x: 10, y: 20 },
+      povOfLabelIfCentered: { heading: 90, pitch: -10, zoom: 1 },
+      panoLat: 47.6553,
+      panoLng: -122.3035,
+      labelLat: 47.6554,
+      labelLng: -122.3036,
+    };
+  }
 
-    function newLabel(overrides = {}) {
-        return new Label({ ...newLabelParams(), ...overrides });
+  /** A label placed on the minimap for the mission current at the time, as LabelContainer.createLabel does. */
+  function newLabel(overrides = {}) {
+    const label = new Label({ ...newLabelParams(), ...overrides }, frame, {}, {});
+    label.placeOnMinimap(minimap, currentMissionId, () => {});
+    return label;
+  }
+
+  beforeEach(async () => {
+    // One load for all three, so the LabelContainer under test builds the same Label class patched below.
+    ({ Label, LabelContainer, MissionContainer } = await loadModules('frontend/js/explore/label/Label.js',
+      'frontend/js/explore/label/LabelContainer.js', 'frontend/js/explore/mission/MissionContainer.js'));
+    currentMissionId = 10;
+    minimap = { addMarker: (latLng, content, options) => new FakeMarker(latLng, content, options) };
+    missionContainer = { getCurrentMission: () => ({ getProperty: () => currentMissionId }), on: vi.fn() };
+    tracker = fakeTracker();
+    storage = fakeStorage();
+    // The icon raster and hover card are DOM/canvas work outside what these tests exercise.
+    Label.renderLabelIcon = () => {};
+  });
+
+  describe('minimapEra', () => {
+    it('treats the current mission\'s labels as current', () => {
+      expect(Label.minimapEra({ missionId: 10 }, 10)).toBe('current');
+    });
+
+    it('treats labels from another mission as an earlier pass', () => {
+      expect(Label.minimapEra({ missionId: 9 }, 10)).toBe('prior');
+    });
+
+    it('treats an earlier mission\'s labels placed on since-replaced imagery as outdated', () => {
+      expect(Label.minimapEra({ missionId: 9, fromOutdatedImagery: true }, 10)).toBe('outdated');
+    });
+
+    it('keeps the current mission\'s labels current even if their audit task has since been flagged outdated', () => {
+      // A mission spans several audit tasks, so the nightly freshness sync can flag one mid-mission.
+      expect(Label.minimapEra({ missionId: 10, fromOutdatedImagery: true }, 10)).toBe('current');
+    });
+
+    it('never calls a label prior when there is no mission to compare against or the label has none', () => {
+      expect(Label.minimapEra({ missionId: 9 }, null)).toBe('current');
+      expect(Label.minimapEra({ missionId: undefined }, 10)).toBe('current');
+      // The imagery flag needs no mission comparison, so it still applies.
+      expect(Label.minimapEra({ missionId: 9, fromOutdatedImagery: true }, null)).toBe('outdated');
+    });
+  });
+
+  describe('marker styling', () => {
+    it('gives a current label a plain marker that stays on top and can be reviewed', () => {
+      const label = newLabel();
+      const marker = label.getMinimapMarker();
+      expect(marker.content.className).toBe('minimap-label-icon');
+      expect(marker.clickable).toBe(true);
+      expect(marker.zIndex).toBe(2);
+      expect(marker.title).toBe('audit:right-ui.minimap.label-marker-title|common:curb-ramp|');
+      expect(marker.content.alt).toBe(marker.title);
+    });
+
+    it('dims an earlier-mission label, names it as such, and sends it behind current markers', () => {
+      const marker = newLabel({ missionId: 9 }).getMinimapMarker();
+      expect(marker.content.className).toBe('minimap-label-icon minimap-label-icon--prior');
+      expect(marker.content.dataset.era).toBe('prior');
+      // Not a focusable control: its click would do nothing, since only current-mission labels can be returned to.
+      expect(marker.clickable).toBe(false);
+      expect(marker.zIndex).toBe(1);
+      expect(marker.title).toBe('audit:right-ui.minimap.label-marker-title-prior|common:curb-ramp|');
+    });
+
+    it('marks an earlier label from replaced imagery as outdated', () => {
+      const marker = newLabel({ missionId: 9, fromOutdatedImagery: true }).getMinimapMarker();
+      expect(marker.content.className).toBe('minimap-label-icon minimap-label-icon--outdated');
+      expect(marker.clickable).toBe(false);
+      expect(marker.title).toBe('audit:right-ui.minimap.label-marker-title-outdated|common:curb-ramp|');
+    });
+
+    it('leaves a flagged label from the current mission a plain, clickable marker', () => {
+      const marker = newLabel({ fromOutdatedImagery: true }).getMinimapMarker();
+      expect(marker.content.className).toBe('minimap-label-icon');
+      expect(marker.clickable).toBe(true);
+    });
+
+    it('always draws the icon the shared icon path resolves to', () => {
+      const marker = newLabel({ labelType: 'Obstacle', missionId: 9 }).getMinimapMarker();
+      expect(marker.content.src).toContain('/assets/images/icons/label_type_icons/Obstacle_small.svg');
+    });
+  });
+
+  describe('refreshMinimapEra', () => {
+    it('turns this pass into the previous one when the mission changes, and back on a resume', () => {
+      const label = newLabel();
+      expect(label.getMinimapEra()).toBe('current');
+
+      currentMissionId = 11;
+      label.refreshMinimapEra(currentMissionId);
+      expect(label.getMinimapEra()).toBe('prior');
+      expect(label.getMinimapMarker().content.className).toBe('minimap-label-icon minimap-label-icon--prior');
+      expect(label.getMinimapMarker().clickable).toBe(false);
+
+      currentMissionId = 10;
+      label.refreshMinimapEra(currentMissionId);
+      expect(label.getMinimapEra()).toBe('current');
+      expect(label.getMinimapMarker().content.className).toBe('minimap-label-icon');
+      expect(label.getMinimapMarker().clickable).toBe(true);
+    });
+  });
+
+  describe('LabelContainer legend toggle', () => {
+    let container;
+
+    /** A resumed label added through the container, as fetchLabelsToResumeMission does. */
+    function addLabel(tempId, overrides = {}) {
+      return container.createLabel(
+        { ...newLabelParams(), temporaryLabelId: tempId, panoId: `pano-${tempId}`, ...overrides }, false
+      );
     }
 
     beforeEach(() => {
-        Label = loadLabel();
-        currentMissionId = 10;
-        window.svl = {
-            minimap: { getMap: () => map },
-            missionContainer: { getCurrentMission: () => ({ getProperty: () => currentMissionId }) },
-            contextMenu: { isOpen: () => false },
-            LABEL_ICON_RADIUS: 10,
-            CANVAS_FRAME: { width: 720, height: 480 },
-            renderedHFov: () => 90,
-            panoViewer: { getPov: () => ({ heading: 90, pitch: -10, zoom: 1 }) },
-            tracker: { push: jest.fn() },
-            storage: fakeStorage(),
-        };
-        window.google = {
-            maps: {
-                LatLng: class { constructor(lat, lng) { this.lat = lat; this.lng = lng; } },
-                marker: { AdvancedMarkerElement: FakeMarker },
-            },
-        };
-        window.util = {
-            EXPLORE_CANVAS_WIDTH: 720,
-            EXPLORE_CANVAS_HEIGHT: 480,
-            camelToKebab: (s) => s.replace(/([A-Z])/g, (m, c, i) => (i ? '-' : '') + c.toLowerCase()),
-            misc: {
-                labelTypeName: (type) => window.i18next.t(`common:${window.util.camelToKebab(type)}`),
-                getIconImagePaths: (t) => ({ iconImagePath: `/icons/${t}_small.svg` }),
-                labelTypeHasSeverity: () => false,
-            },
-            pano: { centeredPovToCanvasCoord: () => ({ x: 100, y: 100 }), renderedHFov: () => 90 },
-        };
-        window.i18next = { t: (key, opts) => `${key}|${opts?.labelType ?? ''}` };
-        // The icon raster and hover card are DOM/canvas work outside what these tests exercise.
-        Label.renderLabelIcon = () => {};
+      container = new LabelContainer(1, { isOnboarding: false }, frame, {}, minimap, missionContainer, {},
+        storage, {}, tracker);
     });
 
-    describe('minimapEra', () => {
-        it('treats the current mission\'s labels as current', () => {
-            expect(Label.minimapEra({ missionId: 10 }, 10)).toBe('current');
-        });
+    it('brings a hidden earlier marker back when its mission becomes current again', () => {
+      const label = addLabel(1, { missionId: 9 });
+      const marker = label.getMinimapMarker();
+      container.setEarlierLabelsShown(false);
+      expect(marker.visible).toBe(false);
 
-        it('treats labels from another mission as an earlier pass', () => {
-            expect(Label.minimapEra({ missionId: 9 }, 10)).toBe('prior');
-        });
-
-        it('treats an earlier mission\'s labels placed on since-replaced imagery as outdated', () => {
-            expect(Label.minimapEra({ missionId: 9, fromOutdatedImagery: true }, 10)).toBe('outdated');
-        });
-
-        it('keeps the current mission\'s labels current even if their audit task has since been flagged outdated', () => {
-            // A mission spans several audit tasks, so the nightly freshness sync can flag one mid-mission.
-            expect(Label.minimapEra({ missionId: 10, fromOutdatedImagery: true }, 10)).toBe('current');
-        });
-
-        it('never calls a label prior when there is no mission to compare against or the label has none', () => {
-            expect(Label.minimapEra({ missionId: 9 }, null)).toBe('current');
-            expect(Label.minimapEra({ missionId: undefined }, 10)).toBe('current');
-            // The imagery flag needs no mission comparison, so it still applies.
-            expect(Label.minimapEra({ missionId: 9, fromOutdatedImagery: true }, null)).toBe('outdated');
-        });
+      // The user returns to mission 9 (a resume): its labels are this pass's work again, and must be visible
+      // whatever the earlier-labels toggle says.
+      currentMissionId = 9;
+      container.refreshMinimapEras();
+      expect(label.getMinimapEra()).toBe('current');
+      expect(label.isMinimapMarkerSuppressed()).toBe(false);
+      expect(marker.visible).toBe(true);
     });
 
-    describe('marker styling', () => {
-        it('gives a current label a plain marker that stays on top and can be reviewed', () => {
-            const label = newLabel();
-            const marker = label.getMinimapMarker();
-            expect(marker.content.className).toBe('minimap-label-icon');
-            expect(marker.gmpClickable).toBe(true);
-            expect(marker.zIndex).toBe(2);
-            expect(marker.title).toBe('audit:right-ui.minimap.label-marker-title|common:curb-ramp|');
-            expect(marker.content.alt).toBe(marker.title);
-        });
+    it('hides a current marker that becomes earlier while the toggle is off', () => {
+      const label = addLabel(1, { missionId: 10 });
+      container.setEarlierLabelsShown(false);
+      expect(label.getMinimapMarker().visible).toBe(true);
 
-        it('dims an earlier-mission label, names it as such, and sends it behind current markers', () => {
-            const marker = newLabel({ missionId: 9 }).getMinimapMarker();
-            expect(marker.content.className).toBe('minimap-label-icon minimap-label-icon--prior');
-            expect(marker.content.dataset.era).toBe('prior');
-            // Not a focusable control: its click would do nothing, since only current-mission labels can be returned to.
-            expect(marker.gmpClickable).toBe(false);
-            expect(marker.zIndex).toBe(1);
-            expect(marker.title).toBe('audit:right-ui.minimap.label-marker-title-prior|common:curb-ramp|');
-        });
-
-        it('marks an earlier label from replaced imagery as outdated', () => {
-            const marker = newLabel({ missionId: 9, fromOutdatedImagery: true }).getMinimapMarker();
-            expect(marker.content.className).toBe('minimap-label-icon minimap-label-icon--outdated');
-            expect(marker.gmpClickable).toBe(false);
-            expect(marker.title).toBe('audit:right-ui.minimap.label-marker-title-outdated|common:curb-ramp|');
-        });
-
-        it('leaves a flagged label from the current mission a plain, clickable marker', () => {
-            const marker = newLabel({ fromOutdatedImagery: true }).getMinimapMarker();
-            expect(marker.content.className).toBe('minimap-label-icon');
-            expect(marker.gmpClickable).toBe(true);
-        });
-
-        it('always draws the icon the shared icon path resolves to', () => {
-            const marker = newLabel({ labelType: 'Obstacle', missionId: 9 }).getMinimapMarker();
-            expect(marker.content.src).toContain('/icons/Obstacle_small.svg');
-        });
+      currentMissionId = 11;
+      container.refreshMinimapEras();
+      expect(label.getMinimapMarker().visible).toBe(false);
     });
 
-    describe('refreshMinimapEra', () => {
-        it('turns this pass into the previous one when the mission changes, and back on a resume', () => {
-            const label = newLabel();
-            expect(label.getMinimapEra()).toBe('current');
-
-            currentMissionId = 11;
-            label.refreshMinimapEra();
-            expect(label.getMinimapEra()).toBe('prior');
-            expect(label.getMinimapMarker().content.className).toBe('minimap-label-icon minimap-label-icon--prior');
-            expect(label.getMinimapMarker().gmpClickable).toBe(false);
-
-            currentMissionId = 10;
-            label.refreshMinimapEra();
-            expect(label.getMinimapEra()).toBe('current');
-            expect(label.getMinimapMarker().content.className).toBe('minimap-label-icon');
-            expect(label.getMinimapMarker().gmpClickable).toBe(true);
-        });
+    it('moves the markers even when saving the preference throws, and logs the click', () => {
+      const label = addLabel(1, { missionId: 9 });
+      storage.set = () => { throw new DOMException('full', 'QuotaExceededError'); };
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      expect(() => container.setEarlierLabelsShown(false)).not.toThrow();
+      expect(label.getMinimapMarker().visible).toBe(false);
+      expect(tracker.push).toHaveBeenCalledWith(
+        'Click_MinimapEarlierLabels_Hide', { prior: 1, outdated: 0 }
+      );
+      warn.mockRestore();
     });
 
-    describe('LabelContainer legend toggle', () => {
-        let LabelContainer;
-        let container;
-
-        /** A resumed label added through the container, as fetchLabelsToResumeMission does. */
-        function addLabel(tempId, overrides = {}) {
-            return container.createLabel(
-                { ...newLabelParams(), temporaryLabelId: tempId, panoId: `pano-${tempId}`, ...overrides }, false
-            );
-        }
-
-        beforeEach(() => {
-            LabelContainer = loadLabelContainer();
-            container = new LabelContainer(1);
-        });
-
-        it('brings a hidden earlier marker back when its mission becomes current again', () => {
-            const label = addLabel(1, { missionId: 9 });
-            const marker = label.getMinimapMarker();
-            container.setEarlierLabelsShown(false);
-            expect(marker.map).toBeNull();
-
-            // The user returns to mission 9 (a resume): its labels are this pass's work again, and must be visible
-            // whatever the earlier-labels toggle says.
-            currentMissionId = 9;
-            container.refreshMinimapEras();
-            expect(label.getMinimapEra()).toBe('current');
-            expect(label.isMinimapMarkerSuppressed()).toBe(false);
-            expect(marker.map).toBe(map);
-        });
-
-        it('hides a current marker that becomes earlier while the toggle is off', () => {
-            const label = addLabel(1, { missionId: 10 });
-            container.setEarlierLabelsShown(false);
-            expect(label.getMinimapMarker().map).toBe(map);
-
-            currentMissionId = 11;
-            container.refreshMinimapEras();
-            expect(label.getMinimapMarker().map).toBeNull();
-        });
-
-        it('moves the markers even when saving the preference throws, and logs the click', () => {
-            const label = addLabel(1, { missionId: 9 });
-            window.svl.storage.set = () => { throw new DOMException('full', 'QuotaExceededError'); };
-            const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
-            expect(() => container.setEarlierLabelsShown(false)).not.toThrow();
-            expect(label.getMinimapMarker().map).toBeNull();
-            expect(window.svl.tracker.push).toHaveBeenCalledWith(
-                'Click_MinimapEarlierLabels_Hide', { prior: 1, outdated: 0 }
-            );
-            warn.mockRestore();
-        });
-
-        it('reads an unreadable preference as shown rather than throwing', () => {
-            window.svl.storage.get = () => { throw new SyntaxError('bad JSON'); };
-            const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
-            expect(LabelContainer.earlierLabelsShownPreference()).toBe(true);
-            warn.mockRestore();
-        });
-
-        it('re-derives eras without writing the preference or logging a click', () => {
-            addLabel(1, { missionId: 9 });
-            const set = jest.spyOn(window.svl.storage, 'set');
-            container.refreshMinimapEras();
-            expect(set).not.toHaveBeenCalled();
-            expect(window.svl.tracker.push).not.toHaveBeenCalled();
-        });
-
-        it('keeps the legend checkbox in step with the applied preference', () => {
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            checkbox.checked = true;
-            window.svl.ui = { minimap: { legendEarlierLabels: checkbox } };
-            window.svl.storage.set(LabelContainer.EARLIER_LABELS_STORAGE_KEY, false);
-            container.refreshMinimapEras();
-            expect(checkbox.checked).toBe(false);
-        });
+    it('reads an unreadable preference as shown rather than throwing', () => {
+      storage.get = () => { throw new SyntaxError('bad JSON'); };
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      expect(container.earlierLabelsShownPreference()).toBe(true);
+      warn.mockRestore();
     });
 
-    describe('MissionContainer.setCurrentMission', () => {
-        it('re-derives minimap eras only when the mission id changes, not on every submission', () => {
-            const MissionContainer = loadMissionContainer();
-            window.svl.labelContainer = { refreshMinimapEras: jest.fn() };
-            window.svl.taskContainer = {
-                getCurrentTask: () => ({ setProperty: () => {}, getProperty: () => false }),
-            };
-            const missionContainer = new MissionContainer({ setMessage: () => {} }, { on: () => {} });
-            // distanceProgress 1 skips the mission-start bookkeeping, which needs a real street.
-            const mission = (id) => ({ getProperty: (k) => ({ missionId: id, distanceProgress: 1 })[k] });
-
-            missionContainer.setCurrentMission(mission(10));
-            missionContainer.setCurrentMission(mission(10)); // Form.js re-sends the mission after every submit.
-            missionContainer.setCurrentMission(mission(10));
-            expect(window.svl.labelContainer.refreshMinimapEras).toHaveBeenCalledTimes(1);
-
-            missionContainer.setCurrentMission(mission(11));
-            expect(window.svl.labelContainer.refreshMinimapEras).toHaveBeenCalledTimes(2);
-        });
+    it('re-derives eras without writing the preference or logging a click', () => {
+      addLabel(1, { missionId: 9 });
+      const set = vi.spyOn(storage, 'set');
+      container.refreshMinimapEras();
+      expect(set).not.toHaveBeenCalled();
+      expect(tracker.push).not.toHaveBeenCalled();
     });
 
-    describe('setMinimapMarkerSuppressed', () => {
-        it('takes the marker off the map and keeps it off across a render', () => {
-            const label = newLabel({ missionId: 9 });
-            const marker = label.getMinimapMarker();
-            expect(marker.map).toBe(map);
-
-            label.setMinimapMarkerSuppressed(true);
-            expect(marker.map).toBeNull();
-
-            label.setHoverInfoVisibility('hidden');
-            // render() also puts a non-deleted label's marker on the map; the suppression must win over that.
-            label.render(makeRecordingCtx(), { heading: 90, pitch: -10, zoom: 1 });
-            expect(marker.map).toBeNull();
-            expect(label.isDeleted()).toBe(false);
-        });
-
-        it('puts the marker back when shown again, unless the label was deleted meanwhile', () => {
-            const label = newLabel({ missionId: 9 });
-            const marker = label.getMinimapMarker();
-            label.setMinimapMarkerSuppressed(true);
-            label.setMinimapMarkerSuppressed(false);
-            expect(marker.map).toBe(map);
-
-            label.setMinimapMarkerSuppressed(true);
-            label.remove();
-            label.setMinimapMarkerSuppressed(false);
-            expect(marker.map).toBeNull();
-        });
+    it('tells the legend the applied preference, so its checkbox keeps in step', () => {
+      const applied = [];
+      container.onEarlierLabelsShownChanged((shown) => applied.push(shown));
+      storage.set(LabelContainer.EARLIER_LABELS_STORAGE_KEY, false);
+      container.refreshMinimapEras();
+      expect(applied).toEqual([false]);
     });
+  });
+
+  describe('MissionContainer.setCurrentMission', () => {
+    it('re-derives minimap eras only when the mission id changes, not on every submission', () => {
+      const taskContainer = fakeTaskContainer(() => ({ setProperty: () => {}, getProperty: () => false }));
+      const realMissionContainer = new MissionContainer({}, { setMessage: () => {} }, { on: () => {} }, storage,
+        taskContainer, {});
+      const container = new LabelContainer(1, {}, frame, {}, minimap, realMissionContainer, {}, storage, {},
+        tracker);
+      const refresh = vi.spyOn(container, 'refreshMinimapEras').mockImplementation(() => {});
+      // distanceProgress 1 skips the mission-start bookkeeping, which needs a real street.
+      const mission = (id) => ({ getProperty: (k) => ({ missionId: id, distanceProgress: 1 })[k] });
+
+      realMissionContainer.setCurrentMission(mission(10));
+      realMissionContainer.setCurrentMission(mission(10)); // Form.js re-sends the mission after every submit.
+      realMissionContainer.setCurrentMission(mission(10));
+      expect(refresh).toHaveBeenCalledTimes(1);
+
+      realMissionContainer.setCurrentMission(mission(11));
+      expect(refresh).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('setMinimapMarkerSuppressed', () => {
+    it('takes the marker off the map and keeps it off across a render', () => {
+      const label = newLabel({ missionId: 9 });
+      const marker = label.getMinimapMarker();
+      expect(marker.visible).toBe(true);
+
+      label.setMinimapMarkerSuppressed(true);
+      expect(marker.visible).toBe(false);
+
+      label.setHoverInfoVisibility('hidden');
+      // render() also shows a non-deleted label's marker; the suppression must win over that.
+      label.render(makeRecordingCtx(), { heading: 90, pitch: -10, zoom: 1 });
+      expect(marker.visible).toBe(false);
+      expect(label.isDeleted()).toBe(false);
+    });
+
+    it('puts the marker back when shown again, unless the label was deleted meanwhile', () => {
+      const label = newLabel({ missionId: 9 });
+      const marker = label.getMinimapMarker();
+      label.setMinimapMarkerSuppressed(true);
+      label.setMinimapMarkerSuppressed(false);
+      expect(marker.visible).toBe(true);
+
+      label.setMinimapMarkerSuppressed(true);
+      label.remove();
+      label.setMinimapMarkerSuppressed(false);
+      expect(marker.visible).toBe(false);
+    });
+  });
 });

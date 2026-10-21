@@ -390,7 +390,7 @@ def test_rename_regions_rejects_unknown_names_and_clashes():
 def test_validate_staging_passes_good_data():
     regions = _region_set()
     roads = gpd.GeoDataFrame({'road_id': [1, 2], 'osm_ids': [[11], [22, 23]], 'highway': ['residential', 'primary'],
-                              'region_id': [1, 2],
+                              'region_id': [1, 2], 'length_m': [111.0, 111.0],
                               'geometry': [LineString([(0, 0), (0.001, 0)])] * 2}, crs='EPSG:4326')
     assert oc.validate_staging(roads, regions) == []
 
@@ -409,6 +409,7 @@ def _overlap_roads(geometries, osm_ids):
     """Builds a minimal roads layer, one street per geometry, all in region 1."""
     return gpd.GeoDataFrame({'road_id': list(range(1, len(geometries) + 1)), 'osm_ids': osm_ids,
                              'highway': ['residential'] * len(geometries), 'region_id': [1] * len(geometries),
+                             'length_m': [oc.geodesic_length_m(geom) for geom in geometries],
                              'geometry': geometries}, crs='EPSG:4326')
 
 
@@ -921,7 +922,10 @@ def test_write_sql_emits_loadable_copy_blocks(tmp_path):
     path = tmp_path / 'qgis_tables.sql'
     oc.write_sql(path, _staged_roads(), _city_regions())
     sql = path.read_text()
-    assert sql.count('FROM stdin;') == 2
+    assert 'fingerprint' not in sql
+    oc.write_sql(path, _staged_roads(), _city_regions(), 'abc123')
+    assert '-- Staging fingerprint: abc123\nBEGIN;' in path.read_text()
+    assert sql.count('FROM stdin;') == 3
     assert 'BEGIN;' in sql
     assert sql.rstrip().endswith('COMMIT;')
     assert '0102000020E610' in sql.upper()
@@ -930,6 +934,75 @@ def test_write_sql_emits_loadable_copy_blocks(tmp_path):
     assert 'osm_ids bigint[] NOT NULL' in sql
     assert '\t{100}\tresidential\t' in sql
     assert '\t{101,102}\tprimary\t' in sql
+
+
+def test_write_sql_stages_the_lineage_with_copy_nulls_for_unpositioned_rows(tmp_path):
+    path = tmp_path / 'qgis_tables.sql'
+    roads = _staged_roads()
+    ways = _ways_gdf([[(0.002, 0.005), (0.008, 0.005)], [(0.012, 0.005), (0.015, 0.005)]], first_id=100)
+    ways.loc[1, 'osm_way_id'] = 101   # Way 102 is not among the fetched ways, so road 2 lists it unpositioned.
+    lineage, stats = oc.street_lineage(roads, ways)
+    assert stats.matched == 1 and stats.partial == 1 and stats.unmatched == 0
+    assert stats.flagged == [(2, pytest.approx(0.5, abs=0.01))]
+    oc.write_sql(path, roads, _city_regions(), lineage=lineage)
+    sql = path.read_text()
+    assert sql.count('FROM stdin;') == 3
+    assert 'DROP TABLE IF EXISTS qgis_road_osm_way;' in sql
+    assert 'road_id integer NOT NULL REFERENCES qgis_road (road_id)' in sql
+    assert '\n1\t100\t0.0\t1.0\t0.0\t1.0\tt\n' in sql
+    assert '\n2\t102\t\\N\t\\N\t\\N\t\\N\t\\N\n' in sql
+    # Without a lineage, every way id is staged unpositioned.
+    oc.write_sql(path, roads, _city_regions())
+    sql = path.read_text()
+    assert '\n2\t101\t\\N\t\\N\t\\N\t\\N\t\\N\n2\t102\t\\N' in sql
+
+
+def test_copy_null_writes_none_as_null_and_keeps_every_float_digit():
+    assert oc.copy_null(None) == '\\N'
+    assert oc.copy_null(float('nan')) == '\\N'
+    assert oc.copy_null(0.1 + 0.2) == '0.30000000000000004'
+    assert oc.copy_null(7) == '7'
+
+
+def test_street_lineage_draws_each_way_s_stretch_of_the_street():
+    roads = _staged_roads()
+    # Road 1 is the middle of a longer way drawn the other way; road 2's ways are not fetched.
+    ways = _ways_gdf([[(0.010, 0.005), (0.000, 0.005)]], first_id=100)
+    lineage, stats = oc.street_lineage(roads, ways)
+    positioned = lineage[lineage['street_from_frac'].notna()]
+    assert list(positioned['road_id']) == [1]
+    assert not positioned['same_direction'].iloc[0]
+    assert positioned.geometry.iloc[0].equals_exact(roads.geometry.iloc[0], 1e-9)
+    assert positioned['way_from_frac'].iloc[0] == pytest.approx(0.2, abs=1e-6)
+    assert lineage.geometry.isna().sum() == 2
+    assert stats.unmatched == 1
+    # No ways at all: one unpositioned row per way id, no stats.
+    lineage, stats = oc.street_lineage(roads, None)
+    assert stats is None
+    assert list(zip(lineage['road_id'], lineage['osm_way_id'])) == [(1, 100), (2, 101), (2, 102)]
+    assert lineage['street_from_frac'].isna().all()
+
+
+def test_fetch_ways_keeps_whole_linestring_ways_and_only_alleys_among_service_roads(monkeypatch):
+    seen = {}
+
+    def features_from_polygon(poly, tags):
+        seen['poly'], seen['tags'] = poly, tags
+        return gpd.GeoDataFrame(
+            {'highway': ['residential', 'service', 'service', 'pedestrian'], 'service': [None, 'alley', 'parking', None]},
+            geometry=[LineString([(0, 0), (0.001, 0)]), LineString([(0, 0.001), (0.001, 0.001)]),
+                      LineString([(0, 0.002), (0.001, 0.002)]), Polygon([(0, 0), (0.001, 0), (0.001, 0.001)])],
+            index=pd.MultiIndex.from_tuples([('way', 1), ('way', 2), ('way', 3), ('way', 4)]), crs='EPSG:4326')
+
+    _fake_osmnx(monkeypatch, features_from_polygon=features_from_polygon)
+    ways = oc.fetch_ways(_CITY, include_alleys=True, fetch_buffer_m=50)
+    assert list(ways['osm_way_id']) == [1, 2]
+    assert list(ways['highway']) == ['residential', 'service']
+    assert seen['tags'] == {'highway': list(oc.DEFAULT_WAY_TYPES) + ['service']}
+    assert seen['poly'].contains(_CITY)
+    ways = oc.fetch_ways(_CITY, include_alleys=False, fetch_buffer_m=50)
+    assert seen['tags'] == {'highway': list(oc.DEFAULT_WAY_TYPES)}
+    assert list(ways['osm_way_id']) == [1, 2, 3]
 
 
 def test_parse_args_requires_exactly_one_input_mode():
@@ -966,6 +1039,12 @@ def test_write_report_summarizes_a_fetch_run(tmp_path):
     assert 'make check-imagery id=testville-wa args="--sample 150 --gsv"' in report
     assert 'Loop roads (start = end): **0**' in report
     assert 'covered (OSM tags): **1**' in report
+    assert 'OSM way positions' not in report
+    oc.write_report(tmp_path / 'report.md', args, 'US Census tracts (TIGERweb)', roads, regions, roads.iloc[0:1],
+                    stats, 0.98, heal, lineage_stats=oc.LineageStats(5, 2, 1, [(i, i / 100) for i in range(11)]))
+    report = (tmp_path / 'report.md').read_text()
+    assert 'matched **5** streets along their whole length, **2** in part, **1** not at all' in report
+    assert 'check in QGIS: 0 (0%), 1 (1%)' in report and '9 (9%) ...' in report
 
 
 def test_write_report_re_export_variant_omits_healing_and_coverage(tmp_path):
@@ -997,6 +1076,7 @@ def test_run_from_gpkg_regenerates_sql_from_edited_layers(tmp_path):
     oc.run_from_gpkg(oc.parse_args(['--city-id', 'testville', '--from-gpkg', str(path)]))
     sql = (tmp_path / 'qgis_tables.sql').read_text()
     assert 'COPY qgis_road' in sql
+    assert f'-- Staging fingerprint: {oc.staging_fingerprint(path)}\n' in sql
     assert '\t{101,102}\t' in sql
     assert 'edited GeoPackage (city_qa.gpkg)' in sql
     report = (tmp_path / 'report.md').read_text()
@@ -1004,6 +1084,27 @@ def test_run_from_gpkg_regenerates_sql_from_edited_layers(tmp_path):
     assert 'covering' in report
     assert (tmp_path / 'street_edge_endpoints.csv').exists()
     assert _flags(tmp_path / 'street_structures.csv') == ['1,f', '2,t']
+
+
+def test_run_from_gpkg_rematches_edited_streets_against_the_stored_ways(tmp_path, caplog):
+    path = _staging_gpkg(tmp_path)
+    _ways_gdf([[(0.000, 0.005), (0.010, 0.005)]], first_id=100).to_file(path, layer='osm_way', driver='GPKG')
+    with caplog.at_level(logging.INFO):
+        oc.run_from_gpkg(oc.parse_args(['--city-id', 'testville', '--from-gpkg', str(path)]))
+    sql = (tmp_path / 'qgis_tables.sql').read_text()
+    assert '\n1\t100\t0.0\t1.0\t0.2\t0.8\tt\n' in sql
+    assert any('1 streets matched whole, 0 in part, 1 not at all' in record.message for record in caplog.records)
+    assert 'matched **1** streets' in (tmp_path / 'report.md').read_text()
+
+
+def test_run_from_gpkg_without_stored_ways_links_streets_unpositioned_and_says_so(tmp_path, caplog):
+    path = _staging_gpkg(tmp_path)
+    with caplog.at_level(logging.WARNING):
+        oc.run_from_gpkg(oc.parse_args(['--city-id', 'testville', '--from-gpkg', str(path)]))
+    assert any('no osm_way layer' in record.message for record in caplog.records)
+    sql = (tmp_path / 'qgis_tables.sql').read_text()
+    assert '\n1\t100\t\\N\t\\N\t\\N\t\\N\t\\N\n' in sql
+    assert 'OSM way positions' not in (tmp_path / 'report.md').read_text()
 
 
 def test_run_from_gpkg_reads_a_hand_added_street_as_not_a_structure(tmp_path, caplog):
@@ -1067,6 +1168,120 @@ def test_run_from_gpkg_warns_on_overlaps_and_gaps(tmp_path, caplog):
     assert any('cover only' in record.message for record in caplog.records)
 
 
+def test_validate_staging_rejects_streets_under_the_minimum_length():
+    roads = _staged_roads()
+    roads.loc[0, 'geometry'] = LineString([(0.002, 0.005), (0.002005, 0.005)])
+    roads.loc[0, 'length_m'] = oc.geodesic_length_m(roads.geometry.iloc[0])
+    errors = oc.validate_staging(roads, _city_regions())
+    assert len(errors) == 1
+    assert errors[0].startswith('1 street(s) are shorter than 15 m: 1 (0.56 m)')
+
+
+def test_validate_staging_lists_the_ten_shortest_offenders_in_a_fixed_order():
+    roads = pd.concat([_staged_roads()] * 6, ignore_index=True)
+    roads['road_id'] = range(1, len(roads) + 1)
+    roads['length_m'] = [1.0] * 2 + [float(n) for n in range(len(roads) - 2, 0, -1)]
+    errors = oc.validate_staging(roads, _city_regions())
+    assert '12 street(s) are shorter than 15 m: 1 (1.00 m), 2 (1.00 m), 12 (1.00 m), 11 (2.00 m)' in errors[0]
+    assert '5 (8.00 m) ... —' in errors[0]
+    assert '4 (9.00 m)' not in errors[0]
+
+
+def test_validate_staging_reports_short_streets_and_overlaps_together():
+    roads = _overlap_roads([OVERLAP_STREET, OVERLAP_STREET, LineString([(0, 0), (0.00001, 0)])], [[11], [11], [12]])
+    errors = oc.validate_staging(roads, _region_set())
+    assert any('shorter than 15 m: 3' in error for error in errors)
+    assert any('lie on top of each other' in error for error in errors)
+
+
+def test_validate_staging_reports_a_point_or_missing_geometry_once():
+    roads = pd.concat([_staged_roads()] * 2, ignore_index=True)
+    roads['road_id'] = [1, 2, 3, 4]
+    roads.loc[0, 'geometry'] = Point(0.002, 0.005)
+    roads.loc[1, 'geometry'] = None
+    roads.loc[2, 'geometry'] = Point()
+    roads['length_m'] = 0.0
+    errors = oc.validate_staging(roads, _city_regions())
+    assert len(errors) == 2
+    assert any('must be LineString' in error for error in errors)
+    assert any('streets [2, 3] have no geometry' in error for error in errors)
+
+
+def test_validate_staging_catches_a_missing_road_id():
+    roads = _staged_roads()
+    roads['road_id'] = [1, None]
+    assert any('needs a road_id' in error for error in oc.validate_staging(roads, _city_regions()))
+
+
+def test_run_from_gpkg_refuses_a_street_cut_too_short_in_qgis(tmp_path):
+    roads = _staged_roads()
+    roads.loc[1, 'geometry'] = LineString([(0.012, 0.005), (0.012005, 0.005)])
+    path = tmp_path / 'snapped_qa.gpkg'
+    oc.gpkg_frame(roads).to_file(path, layer='qgis_road', driver='GPKG')
+    _city_regions().to_file(path, layer='qgis_region', driver='GPKG')
+    with pytest.raises(SystemExit, match='shorter than 15 m: 2 \\(0.56 m\\)'):
+        oc.run_from_gpkg(oc.parse_args(['--city-id', 'testville', '--from-gpkg', str(path)]))
+    assert not (tmp_path / 'qgis_tables.sql').exists()
+
+
+def test_run_from_gpkg_reports_a_street_without_geometry(tmp_path):
+    roads = _staged_roads()
+    roads.loc[1, 'geometry'] = None
+    path = tmp_path / 'holey_qa.gpkg'
+    oc.gpkg_frame(roads).to_file(path, layer='qgis_road', driver='GPKG')
+    _city_regions().to_file(path, layer='qgis_region', driver='GPKG')
+    with pytest.raises(SystemExit, match=r'streets \[2\] have no geometry'):
+        oc.run_from_gpkg(oc.parse_args(['--city-id', 'testville', '--from-gpkg', str(path)]))
+
+
+def test_run_from_gpkg_reprojects_a_layer_saved_in_another_crs(tmp_path):
+    path = tmp_path / 'projected_qa.gpkg'
+    oc.gpkg_frame(_staged_roads()).to_crs(epsg=3857).to_file(path, layer='qgis_road', driver='GPKG')
+    _city_regions().to_crs(epsg=3857).to_file(path, layer='qgis_region', driver='GPKG')
+    oc.run_from_gpkg(oc.parse_args(['--city-id', 'testville', '--from-gpkg', str(path)]))
+    assert '0102000020E610' in (tmp_path / 'qgis_tables.sql').read_text().upper()
+    assert 'median **668 m**' in (tmp_path / 'report.md').read_text()
+
+
+def test_run_from_gpkg_needs_a_crs(tmp_path):
+    path = tmp_path / 'nocrs_qa.gpkg'
+    oc.gpkg_frame(_staged_roads()).set_crs(None, allow_override=True).to_file(path, layer='qgis_road', driver='GPKG')
+    _city_regions().to_file(path, layer='qgis_region', driver='GPKG')
+    with pytest.raises(SystemExit, match='need a CRS'):
+        oc.run_from_gpkg(oc.parse_args(['--city-id', 'testville', '--from-gpkg', str(path)]))
+
+
+def test_run_from_gpkg_casts_whole_number_decimal_ids(tmp_path):
+    roads, regions = _staged_roads(), _city_regions()
+    roads['road_id'], roads['region_id'] = roads['road_id'].astype(float), roads['region_id'].astype(float)
+    regions['region_id'] = regions['region_id'].astype(float)
+    path = tmp_path / 'decimal_qa.gpkg'
+    oc.gpkg_frame(roads).to_file(path, layer='qgis_road', driver='GPKG')
+    regions.to_file(path, layer='qgis_region', driver='GPKG')
+    oc.run_from_gpkg(oc.parse_args(['--city-id', 'testville', '--from-gpkg', str(path)]))
+    sql = (tmp_path / 'qgis_tables.sql').read_text()
+    assert '1.0' not in sql and '\n2\t{101,102}\tprimary\t2\t' in sql
+
+
+def test_validate_staging_rejects_fractional_ids_and_missing_columns():
+    roads = _staged_roads()
+    roads['road_id'] = [1.0, 2.5]
+    errors = oc.validate_staging(roads, _city_regions())
+    assert len(errors) == 1 and errors[0].startswith('road_id must be whole numbers')
+    regions = _city_regions()
+    regions['region_id'] = regions['region_id'].astype(float)
+    assert any(error.startswith('region_id must be whole numbers')
+               for error in oc.validate_staging(_staged_roads(), regions))
+    assert oc.validate_staging(_staged_roads().drop(columns=['road_id']), _city_regions().drop(columns=['name'])) \
+        == ["missing column(s): ['qgis_road.road_id', 'qgis_region.name']"]
+
+
+def test_validate_staging_reports_two_streets_without_ids_once():
+    roads = _staged_roads()
+    roads['road_id'] = [None, None]
+    assert oc.validate_staging(roads, _city_regions()) == ['every street needs a road_id']
+
+
 def test_run_from_gpkg_rejects_broken_edits(tmp_path):
     roads = _staged_roads()
     roads['region_id'] = 9
@@ -1085,6 +1300,14 @@ def _patch_pipeline(monkeypatch, hoods, tracts=None):
                         lambda poly: tracts if tracts is not None else _empty_regions())
     monkeypatch.setattr(oc, 'fetch_streets', lambda poly, alleys, buffer_m: _streets_gdf([
         [(0.002, 0.005), (0.008, 0.005)], [(0.005, 0.002), (0.015, 0.002)]]))
+    monkeypatch.setattr(oc, 'fetch_ways', lambda poly, alleys, buffer_m: _ways_gdf([
+        [(0.002, 0.005), (0.008, 0.005)], [(0.005, 0.002), (0.015, 0.002)]]))
+
+
+def _ways_gdf(lines, first_id=100):
+    return gpd.GeoDataFrame({'osm_way_id': list(range(first_id, first_id + len(lines))),
+                             'highway': ['residential'] * len(lines)},
+                            geometry=[LineString(line) for line in lines], crs='EPSG:4326')
 
 
 def _two_hoods():
@@ -1103,6 +1326,15 @@ def test_main_uses_osm_neighborhoods_and_writes_artifacts(tmp_path, monkeypatch)
     assert endpoints[0] == 'street_edge_id,region_id,x1,y1,x2,y2,geom'
     assert len(endpoints) == 4
     assert _flags(tmp_path / 'street_structures.csv') == ['1,f', '2,f', '3,f']
+    # The street the regions cut in two lies on the first half and the second half of way 101 (#5741).
+    assert 'OSM way positions (#5741, `qgis_road_osm_way` layer): matched **3** streets' in report
+    layers = set(gpd.list_layers(tmp_path / 'testville_qa.gpkg')['name'])
+    assert {'osm_way', 'qgis_road_osm_way'} <= layers
+    lineage = gpd.read_file(tmp_path / 'testville_qa.gpkg', layer='qgis_road_osm_way')
+    halves = lineage[lineage['osm_way_id'] == 101].sort_values('way_from_frac')
+    assert list(halves['road_id']) != [] and len(halves) == 2
+    assert list(halves['way_to_frac'])[0] == pytest.approx(list(halves['way_from_frac'])[1], abs=1e-6)
+    assert halves['same_direction'].all()
 
 
 def test_main_falls_back_to_census_when_osm_is_sparse(tmp_path, monkeypatch):

@@ -6,19 +6,25 @@
  * drive it and they overlap, so the two are tracked separately — a pointer leaving the panel must not cancel an
  * emphasis the keyboard still holds, and a mouse click, which also focuses the row's checkbox, must not strand the
  * emphasis on after the pointer moves away.
- *
- * MapSidebarFilter is a Grunt-concatenated `class` that reaches for page globals, so both it and the shared street
- * helpers are eval'd into jsdom.
  */
 
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules, mockModule } from './loader.js';
 
+mockModule('i18next', () => ({ default: { t: (key) => key, language: 'en' } }));
+
+// The label-layer helpers drive a Mapbox map and have no part in the street emphasis; the street helpers stay real,
+// so the width expression under test is the one the layer is actually built with.
+mockModule('frontend/js/ps-map/psMapUtilities.js', async (importOriginal) => ({
+  ...await importOriginal(),
+  filterLabelLayers: () => {},
+  toggleLabelLayer: () => {},
+}));
 
 const STREET_ROWS = ['audited-street', 'outdated-street', 'unaudited-street'];
 
 /** Builds just enough sidebar for MapSidebarFilter's constructor, with a real streets section. */
 function buildFixture() {
-    const streetRows = STREET_ROWS.map((id) => `
+  const streetRows = STREET_ROWS.map((id) => `
         <li class="filter-sidebar__item">
           <input type="checkbox" id="${id}" class="filter-sidebar__checkbox" checked data-filter-type="streets">
           <label class="filter-sidebar__item-label" for="${id}">
@@ -26,7 +32,7 @@ function buildFixture() {
           </label>
         </li>`).join('');
 
-    document.body.innerHTML = `
+  document.body.innerHTML = `
       <div id="filter-sidebar">
         <button type="button" id="filter-sidebar-close">close</button>
         <section class="filter-sidebar__section" data-filter-section="streets">
@@ -38,135 +44,132 @@ function buildFixture() {
 }
 
 describe('street row emphasis', () => {
-    let paint;
+  let MapSidebarFilter;
+  let streetLineWidth;
+  let paint;
 
-    /**
+  /**
      * The audit state currently thickened, read by matching the painted expression against the ones the shared
      * builder produces — so the test can't drift from the widths the layer is actually built with.
      * @returns {?string} The emphasized state, null when none is, or 'unrecognized' for an expression from neither.
      */
-    const emphasizedState = () => {
-        const painted = JSON.stringify(paint['line-width']);
-        const match = STREET_ROWS.map((id) => id.replace('-street', ''))
-            .find((state) => painted === JSON.stringify(window.streetLineWidth(state)));
-        if (match) return match;
-        return painted === JSON.stringify(window.streetLineWidth()) ? null : 'unrecognized';
-    };
+  const emphasizedState = () => {
+    const painted = JSON.stringify(paint['line-width']);
+    const match = STREET_ROWS.map((id) => id.replace('-street', ''))
+      .find((state) => painted === JSON.stringify(streetLineWidth(state)));
+    if (match) return match;
+    return painted === JSON.stringify(streetLineWidth()) ? null : 'unrecognized';
+  };
 
-    const row = (id) => document.getElementById(id).closest('.filter-sidebar__item');
-    const fire = (id, type, target = null) =>
-        (target ?? row(id)).dispatchEvent(new window.Event(type, { bubbles: type.startsWith('focus') }));
+  const row = (id) => document.getElementById(id).closest('.filter-sidebar__item');
+  const fire = (id, type, target = null) =>
+    (target ?? row(id)).dispatchEvent(new Event(type, { bubbles: type.startsWith('focus') }));
 
-    /**
+  /**
      * Focuses a row's checkbox the way a keyboard user would, so it reports `:focus-visible`.
      * @param {string} id The row's checkbox id.
      */
-    const focusByKeyboard = (id) => {
-        const checkbox = document.getElementById(id);
-        checkbox.matches = (selector) => selector === ':focus-visible';
-        checkbox.dispatchEvent(new window.FocusEvent('focusin', { bubbles: true }));
-    };
+  const focusByKeyboard = (id) => {
+    const checkbox = document.getElementById(id);
+    checkbox.matches = (selector) => selector === ':focus-visible';
+    checkbox.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+  };
 
-    /**
+  /**
      * Focuses a row's checkbox the way a click does — focused, but with no focus ring.
      * @param {string} id The row's checkbox id.
      */
-    const focusByPointer = (id) => {
-        const checkbox = document.getElementById(id);
-        checkbox.matches = () => false;
-        checkbox.dispatchEvent(new window.FocusEvent('focusin', { bubbles: true }));
+  const focusByPointer = (id) => {
+    const checkbox = document.getElementById(id);
+    checkbox.matches = () => false;
+    checkbox.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+  };
+
+  beforeAll(async () => {
+    ({ MapSidebarFilter, streetLineWidth } = await loadModules('frontend/js/ps-map/psMapUtilities.js',
+      'frontend/js/ps-map/MapSidebarFilter.js'));
+  });
+
+  beforeEach(() => {
+    buildFixture();
+    paint = { 'line-width': streetLineWidth() };
+    const map = {
+      getLayer: () => true,
+      easeTo: () => {},
+      setPadding: () => {},
+      setFilter: () => {},
+      setLayoutProperty: () => {},
+      setPaintProperty: (layer, prop, value) => { paint[prop] = value; },
     };
+    const mapData = {
+      correct: true, incorrect: false, unsure: true, unvalidated: true, lowQualityUsers: false,
+      notAdminValidated: false, spotlightLabelId: null, severities: {}, selectedTags: {}, sortedLabels: {},
+      layerNames: {}, streetCounts: null,
+    };
+    return new MapSidebarFilter(map, mapData);
+  });
 
-    beforeAll(() => {
-        window.i18next = { t: (key) => key, language: 'en' };
-        window.filterLabelLayers = () => {};
-        window.toggleLabelLayer = () => {};
-        Object.assign(window, loadModules('frontend/js/common/filter-sidebar/FilterSidebar.js'));
-        // The real helpers, so the width expression under test is the one the layer is actually built with.
-        Object.assign(window, loadModules('frontend/js/ps-map/psMapUtilities.js'));
-        Object.assign(window, loadModules('frontend/js/ps-map/MapSidebarFilter.js'));
-    });
+  it('starts with no state emphasized', () => {
+    expect(emphasizedState()).toBeNull();
+  });
 
-    beforeEach(() => {
-        buildFixture();
-        paint = { 'line-width': window.streetLineWidth() };
-        const map = {
-            getLayer: () => true,
-            easeTo: () => {},
-            setPadding: () => {},
-            setFilter: () => {},
-            setLayoutProperty: () => {},
-            setPaintProperty: (layer, prop, value) => { paint[prop] = value; },
-        };
-        const mapData = {
-            correct: true, incorrect: false, unsure: true, unvalidated: true, lowQualityUsers: false,
-            notAdminValidated: false, spotlightLabelId: null, severities: {}, selectedTags: {}, sortedLabels: {},
-            layerNames: {}, streetCounts: null,
-        };
-        return new window.MapSidebarFilter(map, mapData);
-    });
+  it.each(STREET_ROWS)('thickens the state its row stands for: %s', (id) => {
+    fire(id, 'mouseenter');
+    expect(emphasizedState()).toBe(id.replace('-street', ''));
+  });
 
-    it('starts with no state emphasized', () => {
-        expect(emphasizedState()).toBeNull();
-    });
+  it('returns every street to its normal width when the pointer leaves', () => {
+    fire('audited-street', 'mouseenter');
+    fire('audited-street', 'mouseleave');
 
-    it.each(STREET_ROWS)('thickens the state its row stands for: %s', (id) => {
-        fire(id, 'mouseenter');
-        expect(emphasizedState()).toBe(id.replace('-street', ''));
-    });
+    expect(emphasizedState()).toBeNull();
+  });
 
-    it('returns every street to its normal width when the pointer leaves', () => {
-        fire('audited-street', 'mouseenter');
-        fire('audited-street', 'mouseleave');
+  it('follows the pointer straight from one row to the next', () => {
+    fire('audited-street', 'mouseenter');
+    // Browsers fire the new row's enter before the old row's leave; the emphasis must not end up cleared.
+    fire('unaudited-street', 'mouseenter');
+    fire('audited-street', 'mouseleave');
 
-        expect(emphasizedState()).toBeNull();
-    });
+    expect(emphasizedState()).toBe('unaudited');
+  });
 
-    it('follows the pointer straight from one row to the next', () => {
-        fire('audited-street', 'mouseenter');
-        // Browsers fire the new row's enter before the old row's leave; the emphasis must not end up cleared.
-        fire('unaudited-street', 'mouseenter');
-        fire('audited-street', 'mouseleave');
+  it('emphasizes a row reached by keyboard', () => {
+    focusByKeyboard('outdated-street');
 
-        expect(emphasizedState()).toBe('unaudited');
-    });
+    expect(emphasizedState()).toBe('outdated');
+  });
 
-    it('emphasizes a row reached by keyboard', () => {
-        focusByKeyboard('outdated-street');
+  it('keeps the keyboard\'s emphasis when a pointer sweeps over the row and off again', () => {
+    focusByKeyboard('outdated-street');
+    fire('outdated-street', 'mouseenter');
+    fire('outdated-street', 'mouseleave');
 
-        expect(emphasizedState()).toBe('outdated');
-    });
+    // The row still has focus, so the answer it was giving must survive the pointer wandering past.
+    expect(emphasizedState()).toBe('outdated');
+  });
 
-    it('keeps the keyboard\'s emphasis when a pointer sweeps over the row and off again', () => {
-        focusByKeyboard('outdated-street');
-        fire('outdated-street', 'mouseenter');
-        fire('outdated-street', 'mouseleave');
+  it('lets the pointer override the focused row while it is on another', () => {
+    focusByKeyboard('outdated-street');
+    fire('audited-street', 'mouseenter');
+    expect(emphasizedState()).toBe('audited');
 
-        // The row still has focus, so the answer it was giving must survive the pointer wandering past.
-        expect(emphasizedState()).toBe('outdated');
-    });
+    fire('audited-street', 'mouseleave');
+    expect(emphasizedState()).toBe('outdated');
+  });
 
-    it('lets the pointer override the focused row while it is on another', () => {
-        focusByKeyboard('outdated-street');
-        fire('audited-street', 'mouseenter');
-        expect(emphasizedState()).toBe('audited');
+  it('does not strand the emphasis after a click, which focuses the row without a focus ring', () => {
+    focusByPointer('audited-street');
+    fire('audited-street', 'mouseenter');
+    fire('audited-street', 'mouseleave');
 
-        fire('audited-street', 'mouseleave');
-        expect(emphasizedState()).toBe('outdated');
-    });
+    expect(emphasizedState()).toBeNull();
+  });
 
-    it('does not strand the emphasis after a click, which focuses the row without a focus ring', () => {
-        focusByPointer('audited-street');
-        fire('audited-street', 'mouseenter');
-        fire('audited-street', 'mouseleave');
+  it('clears the emphasis when focus leaves the row', () => {
+    focusByKeyboard('audited-street');
+    fire('audited-street', 'focusout');
 
-        expect(emphasizedState()).toBeNull();
-    });
-
-    it('clears the emphasis when focus leaves the row', () => {
-        focusByKeyboard('audited-street');
-        fire('audited-street', 'focusout');
-
-        expect(emphasizedState()).toBeNull();
-    });
+    expect(emphasizedState()).toBeNull();
+  });
 });

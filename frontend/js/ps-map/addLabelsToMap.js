@@ -7,7 +7,7 @@ import '../common/utilitiesSidewalk.js';
  * Adds labels to the map, creating one Mapbox layer per label type. Resolves once all layers have loaded.
  *
  * @param {mapboxgl.Map} map - The Mapbox map object.
- * @param {GeoJSON.FeatureCollection} labelData - GeoJSON FeatureCollection of labels to draw on the map.
+ * @param {GeoJSON.FeatureCollection<GeoJSON.Point>} labelData - GeoJSON FeatureCollection of labels to draw on the map.
  * @param {object} params - Properties that can change the process of choropleth creation.
  * @param {boolean} [params.highQualityFilter] - If true, only show labels from users marked as high quality.
  * @param {boolean} [params.logClicks=true] - Whether clicks should be logged.
@@ -183,7 +183,7 @@ function setLabelDeleted(map, mapData, labelId, deleted) {
  *
  * @param {mapboxgl.Map} map - The Mapbox map object.
  * @param {MapLayerTracker} mapData - The layer tracker from CreateMapLayerTracker.
- * @param {GeoJSON.FeatureCollection} labelData - GeoJSON FeatureCollection of labels to draw.
+ * @param {GeoJSON.FeatureCollection<GeoJSON.Point>} labelData - GeoJSON FeatureCollection of labels to draw.
  */
 export function setLabelData(map, mapData, labelData) {
   for (const features of Object.values(mapData.sortedLabels)) features.length = 0;

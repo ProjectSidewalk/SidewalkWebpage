@@ -15,7 +15,7 @@ import java.time.OffsetDateTime
 import java.util.UUID
 
 /**
- * In-JVM functional tests for the redesigned auth controller (#4375). Boots the real app against Postgres so the
+ * In-JVM functional tests for the auth controller (#4375). Boots the real app against Postgres so the
  * whole stack runs: routing, the CSRF filter, form binding, the profanity guard, Silhouette, and the DAO layer.
  *
  * Two kinds of assertions: (1) side-effect-free rejections (bad CSRF, bad credentials, invalid/blocked sign-ups) that

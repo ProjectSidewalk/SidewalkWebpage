@@ -5,6 +5,8 @@
  * flowing sidebar → model → map/dock/URL, or dock → map.
  */
 
+import mapboxgl from '../common/mapboxgl.js';
+import i18next from 'i18next';
 import { AccessScoreClusterLayer } from './AccessScoreClusterLayer.js';
 import { AccessScoreClusterSheet } from './AccessScoreClusterSheet.js';
 import { AccessScoreDock } from './AccessScoreDock.js';
@@ -241,6 +243,7 @@ export const AccessScoreApp = (function () {
       hoverClaimed: (e) => evidence?.layer.claims(e) === true || places?.layer.claims(e) === true,
       dark,
       gradeBreaks,
+      gradeCoarse: AccessScoreModel.gradesApproximate(config),
       gradeAttribution: gradeAttributionHtml(),
       // The legend's classes are a brush like the histogram's range, so the dock owns them; an empty list clears.
       onGradeClasses: (classes) => dock?.setBrush(classes.length > 0 ? { kind: 'grade', classes } : null),

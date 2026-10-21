@@ -1,5 +1,6 @@
 package controllers.api
 
+import models.street.StreetGradientConfidence
 import org.apache.pekko.stream.Materializer
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
@@ -157,11 +158,13 @@ class AccessScoreApiSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       (json \ "grade" \ "ramp_limit").as[Double] mustBe (1.0 / 12.0)
       // Empty on a schema with no gradient rows (CI's), so the array itself is what every run asserts; the shape
       // of its entries is pinned without a database by StreetGradientApiModelsSpec.
+      (json \ "grade" \ "approximate").as[Boolean] mustBe false
       val sources = (json \ "grade" \ "sources").as[Seq[JsObject]]
       sources.foreach { source =>
         (source \ "dem_source").as[String] must not be empty
         (source \ "credit").as[String] must not be empty
         (source \ "street_count").as[Int] must be > 0
+        StreetGradientConfidence.values.map(_.name) must contain((source \ "confidence").as[String])
       }
     }
 

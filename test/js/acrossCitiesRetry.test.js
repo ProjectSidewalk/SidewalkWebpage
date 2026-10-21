@@ -9,9 +9,7 @@
  * Timers are faked so a 30 s wait runs in milliseconds. Runs under jsdom.
  */
 
-const { loadModules, realUtil } = require('./loadGlobalScript');
-
-window.util = realUtil();
+import { loadModules } from './loader.js';
 
 const MARKUP = `
   <div id="ac-pulse" role="status" aria-live="polite">Loading cities…</div>
@@ -47,31 +45,25 @@ describe('Across Cities — cold-server retry', () => {
   const pulse = () => document.getElementById('ac-pulse').textContent;
 
   beforeEach(() => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
     document.body.innerHTML = MARKUP;
-    jest.spyOn(console, 'error').mockImplementation(() => {});
-  });
-
-  afterEach(() => {
-    jest.useRealTimers();
-    jest.restoreAllMocks();
-    delete global.fetch;
+    vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   it('waits out a 503 for exactly its Retry-After, says so, then renders', async () => {
-    const { AcrossCitiesPage } = loadModules('frontend/js/admin-dashboard/AcrossCitiesPage.js');
-    global.fetch = jest.fn()
+    const { AcrossCitiesPage } = await loadModules('frontend/js/admin-dashboard/AcrossCitiesPage.js');
+    vi.stubGlobal('fetch', vi.fn()
       .mockResolvedValueOnce(response(503, { headers: { 'Retry-After': '30' } }))
-      .mockResolvedValueOnce(response(200, { body: PAYLOAD }));
+      .mockResolvedValueOnce(response(200, { body: PAYLOAD })));
 
     const done = new AcrossCitiesPage({ scorecardsUrl: '/adminapi/cityScorecards' }).init();
-    await jest.advanceTimersByTimeAsync(0);
+    await vi.advanceTimersByTimeAsync(0);
     expect(fetch).toHaveBeenCalledTimes(1);
     expect(pulse()).toBe('Still gathering figures from every city; trying again in 30 s…');
 
-    await jest.advanceTimersByTimeAsync(29_000);
+    await vi.advanceTimersByTimeAsync(29_000);
     expect(fetch).toHaveBeenCalledTimes(1);
-    await jest.advanceTimersByTimeAsync(1_000);
+    await vi.advanceTimersByTimeAsync(1_000);
     await done;
 
     expect(fetch).toHaveBeenCalledTimes(2);
