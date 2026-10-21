@@ -511,7 +511,7 @@ class HealthServiceImpl @Inject() (
 
   // One scan at a time: `withTimeout` protects the poll from a stuck filesystem call, but only this keeps a stuck one
   // from being joined by a fresh copy every poll until the whole blocking-io pool is parked. See [[SingleFlightGate]].
-  private val mediaScanGate = new SingleFlightGate
+  private val mediaScanGate = SingleFlightGate()
 
   // Schema -> city id, read from configuration alone. The database knows the schema, the directory is named for the
   // city, and nothing but this mapping joins them. ConfigService.availableCityIds would do it with one existence
@@ -538,7 +538,7 @@ class HealthServiceImpl @Inject() (
         withTimeout(
           mediaScanGate.runOrElse(busy) {
             for {
-              dirs      <- Future(MediaIntegrity.directoryStatuses(config, environment))(blockingIoEc)
+              dirs      <- Future(MediaIntegrity.directoryStatuses(config, environment))(using blockingIoEc)
               integrity <- storyMediaIntegrity
             } yield Some(MediaStorageHealth(dirs, enforced, integrity._1, integrity._2))
           },
@@ -573,7 +573,7 @@ class HealthServiceImpl @Inject() (
     Future {
       val baseDir = MediaDirs.baseDir(config, environment, "story.media.directory")
       (baseDir, MediaIntegrity.scanRefusal(baseDir.getAbsolutePath, baseDir.isDirectory, baseDir.canRead))
-    }(blockingIoEc).flatMap {
+    }(using blockingIoEc).flatMap {
       case (_, Some(refusal)) => Future.successful((None, Some(refusal)))
       case (baseDir, None)    =>
         db.run(healthTable.getStoryMediaSchemas).map(_.filter(_.matches("^[A-Za-z0-9_]+$"))).flatMap { schemas =>
@@ -631,12 +631,12 @@ class HealthServiceImpl @Inject() (
         val mediaIds = idsBySchema.getOrElse(schema, Seq.empty)
         targets.get(schema) match {
           case Some(ScanTarget.Dir(cityId)) =>
-            MediaIntegrity.compareCity(cityId, schema, mediaIds, MediaIntegrity.listing(new File(baseDir, cityId)))
+            MediaIntegrity.compareCity(cityId, schema, mediaIds, MediaIntegrity.listing(File(baseDir, cityId)))
           case Some(ScanTarget.Unlocatable(reason)) => MediaIntegrity.unscannedCity(None, schema, mediaIds, reason)
           case None => MediaIntegrity.unscannedCity(None, schema, mediaIds, s"no scan target for schema $schema")
         }
       }
-    }(blockingIoEc).map { cities =>
+    }(using blockingIoEc).map { cities =>
       StoryMediaIntegrity(baseDir.getAbsolutePath, cities, cities.map(_.missing).sum, cities.map(_.orphans).sum)
     }
   }
@@ -644,7 +644,7 @@ class HealthServiceImpl @Inject() (
   /** Fails a future that outlives the media-scan budget, so one unreachable mount can't hold the poll open. */
   private def withTimeout[T](f: Future[T], label: String): Future[T] = {
     val timeout = after(mediaScanTimeout, actorSystem.scheduler)(
-      Future.failed(new java.util.concurrent.TimeoutException(s"$label did not finish within $mediaScanTimeout"))
+      Future.failed(java.util.concurrent.TimeoutException(s"$label did not finish within $mediaScanTimeout"))
     )
     Future.firstCompletedOf(Seq(f, timeout))
   }

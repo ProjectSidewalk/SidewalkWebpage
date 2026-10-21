@@ -21,7 +21,7 @@ import scala.util.control.NonFatal
  */
 class SingleFlightGate {
 
-  private val inFlight = new AtomicBoolean(false)
+  private val inFlight = AtomicBoolean(false)
 
   /**
    * Runs `work` if nothing is already running, and otherwise answers `busy` without starting anything.
@@ -40,7 +40,7 @@ class SingleFlightGate {
         catch { case NonFatal(e) => Future.failed(e) }
       // parasitic: reopening the gate is a flag write, so it runs on whichever thread completed the work rather than
       // waiting for a scheduler that a saturated pool may not get to.
-      started.onComplete(_ => inFlight.set(false))(ExecutionContext.parasitic)
+      started.onComplete(_ => inFlight.set(false))(using ExecutionContext.parasitic)
       started
     }
   }

@@ -1,7 +1,7 @@
 package service
 
-import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.{JsObject, Json}
+import util.SidewalkSpec
 
 /**
  * The wire contract between the media-storage panel's payload and the page that renders it (#4926).
@@ -13,9 +13,9 @@ import play.api.libs.json.{JsObject, Json}
  *
  * Pure serialization — no app boot, no database.
  */
-class HealthMediaPayloadSpec extends PlaySpec {
+class HealthMediaPayloadSpec extends SidewalkSpec {
 
-  import HealthService._
+  import HealthService.given
 
   private val dir = MediaDirStatus(
     key = "story.media.directory", envVar = "SIDEWALK_STORY_MEDIA_DIR", irreplaceable = true,

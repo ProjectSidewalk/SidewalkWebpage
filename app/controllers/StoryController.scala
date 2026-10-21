@@ -9,7 +9,7 @@ import models.story.{Story, StoryMedia, StoryPhotoUpload, StoryRejection}
 import play.api.libs.Files.TemporaryFile
 import play.api.libs.json.{JsBoolean, Json}
 import play.api.mvc.{MultipartFormData, Result}
-import play.api.{Configuration, Logger}
+import play.api.Configuration
 import play.silhouette.api.Silhouette
 import play.silhouette.api.actions.SecuredRequest
 import service.{ConfigService, ImageSigningService, LostMediaLog, RateLimiter, StoryService}
@@ -36,8 +36,6 @@ class StoryController @Inject() (
     lostMediaLog: LostMediaLog
 )(using config: Configuration, assets: AssetsFinder, ec: ExecutionContext)
     extends CustomBaseController(cc) {
-  private val logger = Logger(this.getClass)
-
   private val photoMaxBytes: Long = config.get[Long]("stories.photo-max-bytes")
 
   /**

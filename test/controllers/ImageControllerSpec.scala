@@ -14,7 +14,7 @@ import service.{ImageSigningService, PanoDataService, ShareImageCache}
 import util.{AnonSession, SidewalkSpec}
 
 import ch.qos.logback.classic.spi.ILoggingEvent
-import ch.qos.logback.classic.{Level, Logger => LogbackLogger}
+import ch.qos.logback.classic.{Level, Logger as LogbackLogger}
 import ch.qos.logback.core.read.ListAppender
 import org.slf4j.LoggerFactory
 
@@ -22,7 +22,7 @@ import java.awt.image.BufferedImage
 import java.io.{ByteArrayOutputStream, File}
 import java.util.Base64
 import javax.imageio.ImageIO
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 /**
  * Functional tests for `POST /saveImage` (#4415, #4726). Boots the real app and drives the endpoint over HTTP through
@@ -238,7 +238,7 @@ class ImageControllerSpec extends SidewalkSpec with AnonSession with GuiceOneApp
 
       try {
         val events = capturedLoss {
-          val resp = route(app, FakeRequest(GET, url).withCookies(session: _*)).get
+          val resp = route(app, FakeRequest(GET, url).withCookies(session*)).get
           status(resp) mustBe NOT_FOUND
         }
 
@@ -284,7 +284,7 @@ class ImageControllerSpec extends SidewalkSpec with AnonSession with GuiceOneApp
         val url = panoDataService.cropUrl(otherSyntheticLabelId, LabelType.CurbRamp).value
 
         val events = capturedLoss {
-          status(route(app, FakeRequest(GET, url).withCookies(session: _*)).get) mustBe OK
+          status(route(app, FakeRequest(GET, url).withCookies(session*)).get) mustBe OK
         }
         events mustBe empty
       } finally cleanUp(otherSyntheticLabelId)

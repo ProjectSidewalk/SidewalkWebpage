@@ -1,12 +1,12 @@
 package service
 
 import ch.qos.logback.classic.spi.ILoggingEvent
-import ch.qos.logback.classic.{Level, Logger => LogbackLogger}
+import ch.qos.logback.classic.{Level, Logger as LogbackLogger}
 import ch.qos.logback.core.read.ListAppender
-import org.scalatestplus.play.PlaySpec
 import org.slf4j.LoggerFactory
+import util.SidewalkSpec
 
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 /**
  * The one thing standing between a destroyed file and nobody finding out for six days (#4925).
@@ -15,7 +15,7 @@ import scala.jdk.CollectionConverters._
  * buries the loss in its own noise; announcing nothing is indistinguishable from health, which is the state #4926
  * exists to end. So the log lines themselves are the assertions here.
  */
-class LostMediaLogSpec extends PlaySpec {
+class LostMediaLogSpec extends SidewalkSpec {
 
   /**
    * Runs `f` against a fresh log with an appender attached, and returns everything it logged.
@@ -25,7 +25,7 @@ class LostMediaLogSpec extends PlaySpec {
    */
   private def captured(f: LostMediaLog => Unit): Seq[ILoggingEvent] = {
     val logger   = LoggerFactory.getLogger(classOf[LostMediaLog]).asInstanceOf[LogbackLogger]
-    val appender = new ListAppender[ILoggingEvent]
+    val appender = ListAppender[ILoggingEvent]()
     val original = logger.getLevel
     appender.start()
     logger.addAppender(appender)
@@ -33,7 +33,7 @@ class LostMediaLogSpec extends PlaySpec {
     // Detach from the console for the duration: these cases deliberately report thousands of losses, and a suite that
     // buries its own output in fake alarms is the noise problem this class exists to avoid, one level up.
     logger.setAdditive(false)
-    try f(new LostMediaLog)
+    try f(LostMediaLog())
     finally {
       logger.setAdditive(true)
       logger.setLevel(original)

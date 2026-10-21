@@ -148,7 +148,7 @@ export class HealthPage {
    * bad news before anything has been lost from it, so it colors the tile red without supplying its number, and the
    * table below names which directory. Orphans are a lesser fault and only warn.
    *
-   * @param {?Object} media - The media_storage payload, or null when it couldn't be read.
+   * @param {?Record<string, any>} media - The media_storage payload, or null when it couldn't be read.
    * @returns {[(string|number), string]} Value and tone, spread into #setKpi.
    */
   static #mediaKpi(media) {
@@ -369,7 +369,7 @@ export class HealthPage {
    * Every label, severity and threshold here is server-computed: the page must not hold its own copy of the rules
    * that decide when a directory is unsafe, or it would drift from the boot check that enforces them.
    *
-   * @param {?Object} media - The media_storage payload, or null when it couldn't be read.
+   * @param {?Record<string, any>} media - The media_storage payload, or null when it couldn't be read.
    */
   #renderMediaStorage(media) {
     if (!media) {
@@ -381,7 +381,7 @@ export class HealthPage {
 
     // A scan that couldn't even stat the directories sends none, and an empty table would read as "none configured".
     if (!media.directories?.length) {
-      const why = AdminShell.esc(media.unavailable || 'Media storage status is unavailable.');
+      const why = util.escapeHTML(media.unavailable || 'Media storage status is unavailable.');
       AdminShell.setHtml('health-media-dirs', `<p class="coverage-status">${why}</p>`);
       AdminShell.setHtml('health-media-story', '');
       AdminShell.setHtml('health-media-note', '');
@@ -395,14 +395,14 @@ export class HealthPage {
       // The wipe-zone reason names the key and the path, which are already columns, and then repeats the same
       // sentence about deploys on every row — four copies of it in the narrowest column is what made these rows six
       // times taller than every other table on the page. The badge says the state; the note below says the fix once.
-      const detail = d.detail && d.status !== 'unsafe' ? `<br><small>${AdminShell.esc(d.detail)}</small>` : '';
+      const detail = d.detail && d.status !== 'unsafe' ? `<br><small>${util.escapeHTML(d.detail)}</small>` : '';
       return `
         <tr>
-          <td><code>${AdminShell.esc(d.key)}</code></td>
-          <td><code>${AdminShell.esc(d.env_var)}</code></td>
-          <td class="ac-path"><code>${AdminShell.esc(d.path)}</code></td>
+          <td><code>${util.escapeHTML(d.key)}</code></td>
+          <td><code>${util.escapeHTML(d.env_var)}</code></td>
+          <td class="ac-path"><code>${util.escapeHTML(d.path)}</code></td>
           <td class="ac-muted">${recoverable}</td>
-          <td><span class="ac-badge ac-badge--${d.severity}">${AdminShell.esc(d.label)}</span>${detail}</td>
+          <td><span class="ac-badge ac-badge--${d.severity}">${util.escapeHTML(d.label)}</span>${detail}</td>
         </tr>`;
     }).join('');
     this.#table('health-media-dirs', ['Config key', 'Env var', 'Resolves to', 'Recoverable?', 'Status'], dirRows);
@@ -410,13 +410,13 @@ export class HealthPage {
     const scan = media.story_media;
     if (!scan) {
       AdminShell.setHtml('health-media-story',
-        `<p class="coverage-status">${AdminShell.esc(media.unavailable || 'Story media was not scanned.')}</p>`);
+        `<p class="coverage-status">${util.escapeHTML(media.unavailable || 'Story media was not scanned.')}</p>`);
     } else if (!scan.cities.length) {
       this.#renderEmpty('health-media-story', 'No city has any story media yet.');
     } else {
       const rows = scan.cities.map((c) => `
         <tr>
-          <td>${AdminShell.esc(c.city_id || c.schema)}</td>
+          <td>${util.escapeHTML(c.city_id || c.schema)}</td>
           <td class="ac-num">${AdminShell.num(c.rows)}</td>
           <td class="ac-num">${HealthPage.#mediaCount(c, 'missing', 'bad')}</td>
           <td class="ac-num">${HealthPage.#mediaCount(c, 'orphans', 'warn')}</td>
@@ -426,7 +426,7 @@ export class HealthPage {
         ['City', ['Media rows', true], ['Missing', true], ['Orphaned', true], 'Notes'], rows);
     }
 
-    const notes = [`Story media lives under <code>${AdminShell.esc(scan ? scan.base_dir : '—')}</code>, one
+    const notes = [`Story media lives under <code>${util.escapeHTML(scan ? scan.base_dir : '—')}</code>, one
       subdirectory per city; a city hosted elsewhere reads as unscanned.`];
     // Said once here rather than repeated in every unsafe row, which is where it used to live.
     if (media.directories.some((d) => d.status === 'unsafe')) {
@@ -443,7 +443,7 @@ export class HealthPage {
   /**
    * A missing/orphan count cell, badged only when non-zero so a clean fleet reads as quiet.
    *
-   * @param {Object} city - One city row from the scan.
+   * @param {Record<string, any>} city - One city row from the scan.
    * @param {string} field - Which count to render.
    * @param {string} tone - Badge tone to use when the count is non-zero.
    * @returns {string} Cell HTML.
@@ -457,17 +457,17 @@ export class HealthPage {
   /**
    * The ids worth looking at for one city, or why it wasn't scanned.
    *
-   * @param {Object} city - One city row from the scan.
+   * @param {Record<string, any>} city - One city row from the scan.
    * @returns {string} Cell HTML.
    */
   static #mediaDetail(city) {
     // The reason is server-side: "no city configured", "this instance writes that directory under another schema"
     // and "not readable" send an operator to very different places, and only the backend knows which applies.
-    if (!city.scanned) return `<em>${AdminShell.esc(city.unscanned_reason || 'not scanned')}</em>`;
+    if (!city.scanned) return `<em>${util.escapeHTML(city.unscanned_reason || 'not scanned')}</em>`;
     const parts = [];
     if (city.missing_ids?.length) parts.push(`missing ${city.missing_ids.join(', ')}`);
     if (city.orphan_ids?.length) parts.push(`orphaned ${city.orphan_ids.join(', ')}`);
-    return parts.length ? `<code>${AdminShell.esc(parts.join(' · '))}</code>` : '—';
+    return parts.length ? `<code>${util.escapeHTML(parts.join(' · '))}</code>` : '—';
   }
 
   // ---- Panel: nightly jobs ---------------------------------------------------------------------------------------

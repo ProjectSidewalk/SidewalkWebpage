@@ -1,6 +1,6 @@
 package controllers
 
-import org.scalatestplus.play.PlaySpec
+import util.SidewalkSpec
 
 import java.time.OffsetDateTime
 import java.time.temporal.ChronoUnit
@@ -15,7 +15,7 @@ import java.time.temporal.ChronoUnit
  *
  * No app or database boot: the interesting cases are the two boundaries, which a live clock can't pin down.
  */
-class StoryUploadWindowSpec extends PlaySpec {
+class StoryUploadWindowSpec extends SidewalkSpec {
 
   private val committed = OffsetDateTime.parse("2026-08-20T10:00:00Z")
 

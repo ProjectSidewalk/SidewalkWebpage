@@ -1,8 +1,8 @@
 package service
 
 import modules.PersistentMediaDirCheck.persistentDirs
-import org.scalatestplus.play.PlaySpec
 import play.api.{Configuration, Environment, Mode}
+import util.SidewalkSpec
 
 import java.io.File
 import java.nio.file.Files
@@ -17,9 +17,9 @@ import java.nio.file.Files
  *
  * Pure logic — no app boot and no database; the only filesystem it touches is a temp directory it creates itself.
  */
-class MediaIntegritySpec extends PlaySpec {
+class MediaIntegritySpec extends SidewalkSpec {
 
-  private val appRoot = new File("/srv/sidewalk/target/universal/stage")
+  private val appRoot = File("/srv/sidewalk/target/universal/stage")
 
   private def env(mode: Mode): Environment = Environment(appRoot, getClass.getClassLoader, mode)
 
@@ -34,7 +34,7 @@ class MediaIntegritySpec extends PlaySpec {
     val dir = Files.createTempDirectory("media-integrity-spec").toFile
     dir.deleteOnExit()
     names.foreach { name =>
-      val f = new File(dir, name)
+      val f = File(dir, name)
       f.createNewFile()
       f.deleteOnExit()
     }
@@ -285,13 +285,13 @@ class MediaIntegritySpec extends PlaySpec {
     }
 
     "call a path with nothing at it absent, which for a city directory means no upload has landed" in {
-      MediaIntegrity.listing(new File("/srv/sidewalk-media/no-such-directory")) mustBe DirListing.Absent
+      MediaIntegrity.listing(File("/srv/sidewalk-media/no-such-directory")) mustBe DirListing.Absent
     }
 
     "call something that is there but won't list unreadable rather than absent" in {
       // `File.list` answers null for both, and the two are opposite verdicts: nothing was ever written here, versus
       // this process cannot see what is here. A regular file is the case a root-running suite can actually provoke.
-      val notADirectory = new File(dirContaining("story_3.jpg"), "story_3.jpg")
+      val notADirectory = File(dirContaining("story_3.jpg"), "story_3.jpg")
       MediaIntegrity.listing(notADirectory) mustBe DirListing.Unreadable
     }
   }

@@ -53,11 +53,9 @@ class HealthTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
 
   private given grDbEnvInfo: GetResult[DbEnvInfo] = r => DbEnvInfo(r.nextString(), r.nextString(), r.nextBoolean())
 
-  implicit private val grSchemaRowCount: GetResult[SchemaRowCount] =
-    GetResult(r => SchemaRowCount(r.nextString(), r.nextInt()))
+  private given grSchemaRowCount: GetResult[SchemaRowCount] = r => SchemaRowCount(r.nextString(), r.nextInt())
 
-  implicit private val grSchemaMediaId: GetResult[SchemaMediaId] =
-    GetResult(r => SchemaMediaId(r.nextString(), r.nextInt()))
+  private given grSchemaMediaId: GetResult[SchemaMediaId] = r => SchemaMediaId(r.nextString(), r.nextInt())
 
   /**
    * Caps a health read so it can never hold a pool connection for long. A monitoring query must not add load — least
