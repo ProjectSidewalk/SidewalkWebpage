@@ -602,10 +602,13 @@ plumbed through both this app's config *and* the deployment tooling, or it will 
 Postgres whose connection slots are far fewer than the sum of the pools (see
 [#5238](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/5238)). `DB_POOL_SIZE` (the pool's maximum, and
 Slick's thread count, which must match it) and `DB_MIN_CONNECTIONS` (connections held open while idle) override the
-`conf/application.conf` defaults for one city. Set them lower for dormant or finished-study cities, whose few requests
-come mostly from the public API, but keep `DB_POOL_SIZE` at 3 or more there: a single API download holds a connection
-for its whole stream, so a pool of 1 or 2 makes a second concurrent request wait. The **Connections** panel on
-`/admin/health` shows cluster-wide slot headroom and each city's connections against its own pool ceiling.
+`conf/application.conf` defaults for one city. Leave them unset to keep the defaults: a blank value is not "unset" to
+HOCON's `${?VAR}` (it substitutes the empty string, which is not a number), so the app fails at startup instead of
+falling back. Set them lower for dormant or finished-study cities, whose few requests come mostly from the public
+API, but keep `DB_POOL_SIZE` at 3 or more there: a single API download holds a connection for its whole stream, so a
+pool of 1 serializes every other request behind it and a pool of 2 leaves one connection for everything else. The
+**Connections** panel on `/admin/health` shows cluster-wide slot headroom and each city's connections against its own
+pool ceiling.
 
 > If this table drifts from reality, the authoritative sources are `conf/application.conf` (+ the stage overlays) in
 > this repo and the deployment tooling in the IT ops repo.
