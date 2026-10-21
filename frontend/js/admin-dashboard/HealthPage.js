@@ -392,9 +392,9 @@ export class HealthPage {
       // Muted text rather than a badge: this is what losing the contents would cost, not something that has
       // happened, and an amber badge next to the live Status badge reads as a second alarm on a healthy row.
       const recoverable = d.irreplaceable ? 'No — nothing to rebuild it from' : 'Yes — rebuilt on demand';
-      // The wipe-zone reason names the key and the path, which are already columns, and then repeats the same
-      // sentence about deploys on every row — four copies of it in the narrowest column is what made these rows six
-      // times taller than every other table on the page. The badge says the state; the note below says the fix once.
+      // The wipe-zone reason names the key and the path, which are already columns, and the same sentence about
+      // deploys on every row would make the narrowest column several lines tall. The badge says the state; the note
+      // below says the fix once.
       const detail = d.detail && d.status !== 'unsafe' ? `<br><small>${util.escapeHTML(d.detail)}</small>` : '';
       return `
         <tr>
@@ -426,9 +426,11 @@ export class HealthPage {
         ['City', ['Media rows', true], ['Missing', true], ['Orphaned', true], 'Notes'], rows);
     }
 
+    // "Unscanned" is the mapping failing, not the disk: a schema no city in this instance's config claims has no
+    // directory to look in, whereas a configured city whose directory is absent reads as missing files.
     const notes = [`Story media lives under <code>${util.escapeHTML(scan ? scan.base_dir : '—')}</code>, one
-      subdirectory per city; a city hosted elsewhere reads as unscanned.`];
-    // Said once here rather than repeated in every unsafe row, which is where it used to live.
+      subdirectory per city; a schema that no city in this instance's config claims reads as unscanned.`];
+    // Said once here rather than repeated in every unsafe row.
     if (media.directories.some((d) => d.status === 'unsafe')) {
       notes.push(`A directory inside the build tree is deleted by the next release: point its environment variable at
         storage outside the application (<code>docs/deployment-and-stages.md</code>).`);
