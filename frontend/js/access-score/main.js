@@ -10,7 +10,7 @@ import i18next from 'i18next';
 import { AccessScoreClusterLayer } from './AccessScoreClusterLayer.js';
 import { AccessScoreClusterSheet } from './AccessScoreClusterSheet.js';
 import { AccessScoreDock } from './AccessScoreDock.js';
-import { AccessScoreFetch } from './AccessScoreFetch.js';
+import { FetchWithRetry } from '../common/FetchWithRetry.js';
 import { AccessScoreMapView } from './AccessScoreMapView.js';
 import { AccessScoreModel } from './AccessScoreModel.js';
 import { AccessScorePlacesLayer } from './AccessScorePlacesLayer.js';
@@ -66,7 +66,7 @@ export const AccessScoreApp = (function () {
    * @returns {Promise<GeoJSON.FeatureCollection>} The feed.
    */
   function fetchScores(url, overlay) {
-    return AccessScoreFetch.fetchJsonWithRetry(url, {
+    return FetchWithRetry.fetchJsonWithRetry(url, {
       // The first attempt is the ordinary page load, which the overlay's own spinner and clock already cover. A retry
       // can sit for up to the server's 45 s cold wait with no countdown running, so it needs its own line.
       onAttempt: (attempt) => {

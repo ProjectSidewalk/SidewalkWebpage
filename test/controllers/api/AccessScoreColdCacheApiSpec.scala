@@ -2,42 +2,21 @@ package controllers.api
 
 import models.api.ApiError
 import models.utils.IpAddress
-import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.stream.Materializer
 import org.scalatest.Assertion
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
-import play.api.cache.AsyncCacheApi
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
 import service.{LoggingService, SwrCache}
-import util.SidewalkSpec
+import util.{ColdSwrCache, SidewalkSpec}
 
 import java.time.OffsetDateTime
 import java.util.concurrent.ConcurrentLinkedQueue
-import javax.inject.{Inject, Singleton}
-import scala.concurrent.duration.FiniteDuration
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 import scala.jdk.CollectionConverters.*
-
-/**
- * A [[SwrCache]] whose cold path never resolves in time, so every full-city AccessScore read is a miss the compute
- * did not beat. The compute itself is never started, and the hit path is left alone so the rest of the app's caches
- * behave normally.
- */
-@Singleton
-class ColdSwrCache @Inject() (cacheApi: AsyncCacheApi, actorSystem: ActorSystem)(using context: ExecutionContext)
-    extends SwrCache(cacheApi, actorSystem) {
-
-  override def staleWhileRevalidateWithin[T](
-      key: String,
-      freshFor: FiniteDuration,
-      maxAge: FiniteDuration,
-      coldWait: FiniteDuration
-  )(compute: => Future[T]): Future[Option[T]] = Future.successful(None)
-}
 
 /**
  * The HTTP contract of a full-city AccessScore request whose cache is cold and whose computation has outlasted the

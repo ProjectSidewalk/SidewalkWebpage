@@ -1,7 +1,7 @@
 /**
- * Tests for AccessScoreFetch (frontend/js/access-score/AccessScoreFetch.js, #5418): the retry a cold AccessScore
- * server asks for. A `503` with `Retry-After` is waited out on the server's schedule, a proxy `502` on the built-in
- * backoff, a `4xx` is never retried, and the page hears about each wait through `onWait`.
+ * Tests for FetchWithRetry (frontend/js/common/FetchWithRetry.js, #5418, #5432): the retry a cold AccessScore or
+ * Across Cities server asks for. A `503` with `Retry-After` is waited out on the server's schedule, a proxy `502` on
+ * the built-in backoff, a `4xx` is never retried, and the page hears about each wait through `onWait`.
  *
  * Timers are faked so a test that "waits 30 seconds" runs in milliseconds; each wait is advanced explicitly, which
  * also pins that the helper waits exactly as long as it says it will. Vitest's fake timers also fake the clocks
@@ -28,12 +28,12 @@ function response(status, { body = {}, headers = {} } = {}) {
   };
 }
 
-describe('AccessScoreFetch.fetchJsonWithRetry', () => {
-  let AccessScoreFetch;
+describe('FetchWithRetry.fetchJsonWithRetry', () => {
+  let FetchWithRetry;
   const URL = '/v3/api/accessScoreStreets';
 
   beforeAll(async () => {
-    ({ AccessScoreFetch } = await loadModules('frontend/js/access-score/AccessScoreFetch.js'));
+    ({ FetchWithRetry } = await loadModules('frontend/js/common/FetchWithRetry.js'));
   });
 
   beforeEach(() => {
@@ -44,7 +44,7 @@ describe('AccessScoreFetch.fetchJsonWithRetry', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response(200, { body: { type: 'FeatureCollection' } })));
     const onWait = vi.fn();
 
-    const result = AccessScoreFetch.fetchJsonWithRetry(URL, { onWait });
+    const result = FetchWithRetry.fetchJsonWithRetry(URL, { onWait });
     await expect(result).resolves.toEqual({ type: 'FeatureCollection' });
     expect(fetch).toHaveBeenCalledTimes(1);
     expect(onWait).not.toHaveBeenCalled();
@@ -56,7 +56,7 @@ describe('AccessScoreFetch.fetchJsonWithRetry', () => {
       .mockResolvedValueOnce(response(200, { body: { features: [1] } })));
     const onWait = vi.fn();
 
-    const result = AccessScoreFetch.fetchJsonWithRetry(URL, { onWait });
+    const result = FetchWithRetry.fetchJsonWithRetry(URL, { onWait });
     // Let the first attempt resolve and the wait start.
     await vi.advanceTimersByTimeAsync(0);
     expect(fetch).toHaveBeenCalledTimes(1);
@@ -79,7 +79,7 @@ describe('AccessScoreFetch.fetchJsonWithRetry', () => {
       .mockResolvedValueOnce(response(200, { body: { ok: true } })));
     const onWait = vi.fn();
 
-    const result = AccessScoreFetch.fetchJsonWithRetry(URL, { onWait });
+    const result = FetchWithRetry.fetchJsonWithRetry(URL, { onWait });
     await vi.advanceTimersByTimeAsync(0);
     expect(onWait).toHaveBeenLastCalledWith(1, 5);
     await vi.advanceTimersByTimeAsync(5_000);
@@ -99,7 +99,7 @@ describe('AccessScoreFetch.fetchJsonWithRetry', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response(404)));
     const onWait = vi.fn();
 
-    await expect(AccessScoreFetch.fetchJsonWithRetry(URL, { onWait })).rejects.toThrow('HTTP 404');
+    await expect(FetchWithRetry.fetchJsonWithRetry(URL, { onWait })).rejects.toThrow('HTTP 404');
     expect(fetch).toHaveBeenCalledTimes(1);
     expect(onWait).not.toHaveBeenCalled();
   });
@@ -107,7 +107,7 @@ describe('AccessScoreFetch.fetchJsonWithRetry', () => {
   test('never retries a 500 either, only the "not yet" statuses', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response(500)));
 
-    await expect(AccessScoreFetch.fetchJsonWithRetry(URL)).rejects.toThrow('HTTP 500');
+    await expect(FetchWithRetry.fetchJsonWithRetry(URL)).rejects.toThrow('HTTP 500');
     expect(fetch).toHaveBeenCalledTimes(1);
   });
 
@@ -116,7 +116,7 @@ describe('AccessScoreFetch.fetchJsonWithRetry', () => {
     const onWait = vi.fn();
 
     // A 100 s cap admits two 40 s waits (80 s) and refuses the third (120 s): three attempts, two waits.
-    const result = AccessScoreFetch.fetchJsonWithRetry(URL, { onWait, maxTotalWaitSeconds: 100 });
+    const result = FetchWithRetry.fetchJsonWithRetry(URL, { onWait, maxTotalWaitSeconds: 100 });
     // Attach the rejection handler before the timers run so the failure is never an unhandled rejection.
     const outcome = expect(result).rejects.toThrow('HTTP 503');
     await vi.advanceTimersByTimeAsync(0);
@@ -133,7 +133,7 @@ describe('AccessScoreFetch.fetchJsonWithRetry', () => {
       .mockResolvedValueOnce(response(200, { body: {} })));
     const onWait = vi.fn();
 
-    const result = AccessScoreFetch.fetchJsonWithRetry(URL, { onWait });
+    const result = FetchWithRetry.fetchJsonWithRetry(URL, { onWait });
     await vi.advanceTimersByTimeAsync(0);
     expect(onWait).toHaveBeenCalledWith(1, 1);
     await vi.advanceTimersByTimeAsync(1_000);
@@ -146,7 +146,7 @@ describe('AccessScoreFetch.fetchJsonWithRetry', () => {
       .mockResolvedValueOnce(response(200, { body: {} })));
     const onWait = vi.fn();
 
-    const result = AccessScoreFetch.fetchJsonWithRetry(URL, { onWait });
+    const result = FetchWithRetry.fetchJsonWithRetry(URL, { onWait });
     await vi.advanceTimersByTimeAsync(0);
     expect(onWait).toHaveBeenCalledWith(1, 5);
     await vi.advanceTimersByTimeAsync(5_000);
@@ -163,7 +163,7 @@ describe('AccessScoreFetch.fetchJsonWithRetry', () => {
     }));
     const onWait = vi.fn();
 
-    const result = AccessScoreFetch.fetchJsonWithRetry(URL, { onWait, maxTotalWaitSeconds: 100 });
+    const result = FetchWithRetry.fetchJsonWithRetry(URL, { onWait, maxTotalWaitSeconds: 100 });
     const outcome = expect(result).rejects.toThrow('HTTP 503');
     await vi.advanceTimersByTimeAsync(0); // First attempt: 45 s in flight, then a 30 s wait is admitted (75 s).
     expect(onWait).toHaveBeenCalledWith(1, 30);
@@ -183,7 +183,7 @@ describe('AccessScoreFetch.fetchJsonWithRetry', () => {
       expect(fetch).toHaveBeenCalledTimes(onAttempt.mock.calls.length - 1);
     });
 
-    const result = AccessScoreFetch.fetchJsonWithRetry(URL, { onAttempt });
+    const result = FetchWithRetry.fetchJsonWithRetry(URL, { onAttempt });
     await vi.advanceTimersByTimeAsync(0);
     expect(onAttempt).toHaveBeenCalledWith(1);
     await vi.advanceTimersByTimeAsync(10_000);
