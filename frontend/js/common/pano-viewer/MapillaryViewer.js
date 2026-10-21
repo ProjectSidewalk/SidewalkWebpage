@@ -4,6 +4,7 @@
  */
 
 import * as turf from '@turf/turf';
+import { mat4, vec3 } from 'gl-matrix';
 import { createMapillaryChunkedDataProvider } from './MapillaryChunkedDataProvider.js';
 import { NoImageryError } from './NoImageryError.js';
 import { PanoData } from './PanoData.js';
@@ -13,7 +14,7 @@ import { util } from '../utilities.js';
 import './panoUtilities.js';
 import '../utilitiesMath.js';
 
-/** The SDK and the three.js classes from sdk/mapillary.js, once preloadLibrary() has fetched them. */
+/** The SDK from sdk/mapillary.js, once preloadLibrary() has fetched it. */
 let sdk;
 
 export class MapillaryViewer extends PanoViewer {
@@ -372,25 +373,24 @@ export class MapillaryViewer extends PanoViewer {
    *   Roll: positive=camera tilted clockwise (from photographer's perspective).
    */
   extractPitchRoll = (rotation) => {
-    // Invert the rotation to get camera-to-world.
-    const invR = [-rotation[0], -rotation[1], -rotation[2]];
-    const axis = new sdk.Vector3(...invR);
-    const angle = axis.length();
-    if (angle > 0) axis.normalize();
-    const matrix = new sdk.Matrix4().makeRotationAxis(axis, angle);
+    // Invert the rotation to get camera-to-world. A zero rotation leaves the matrix as the identity, since
+    // fromRotation won't build one around a zero-length axis.
+    const axis = vec3.fromValues(-rotation[0], -rotation[1], -rotation[2]);
+    const matrix = mat4.create();
+    mat4.fromRotation(matrix, vec3.length(axis), axis);
 
     // Camera forward is [0,0,1]; camera up is [0,-1,0].
-    const viewDir = new sdk.Vector3(0, 0, 1).applyMatrix4(matrix);
-    const upDir = new sdk.Vector3(0, -1, 0).applyMatrix4(matrix);
+    const viewDir = vec3.transformMat4(vec3.create(), vec3.fromValues(0, 0, 1), matrix);
+    const upDir = vec3.transformMat4(vec3.create(), vec3.fromValues(0, -1, 0), matrix);
 
     // Pitch: elevation of viewing direction (Z=up in world frame).
-    const pitch = Math.asin(Math.max(-1, Math.min(1, viewDir.z))) * (180 / Math.PI);
+    const pitch = Math.asin(Math.max(-1, Math.min(1, viewDir[2]))) * (180 / Math.PI);
 
     // Roll: rotation of camera up-vector around the viewing axis, relative to the expected "level" up direction.
-    const worldUp = new sdk.Vector3(0, 0, 1);
-    const right = new sdk.Vector3().crossVectors(viewDir, worldUp).normalize();
-    const expectedUp = new sdk.Vector3().crossVectors(right, viewDir).normalize();
-    const roll = Math.atan2(upDir.dot(right), upDir.dot(expectedUp)) * (180 / Math.PI);
+    const worldUp = vec3.fromValues(0, 0, 1);
+    const right = vec3.normalize(vec3.create(), vec3.cross(vec3.create(), viewDir, worldUp));
+    const expectedUp = vec3.normalize(vec3.create(), vec3.cross(vec3.create(), right, viewDir));
+    const roll = Math.atan2(vec3.dot(upDir, right), vec3.dot(upDir, expectedUp)) * (180 / Math.PI);
 
     return { pitch, roll };
   };

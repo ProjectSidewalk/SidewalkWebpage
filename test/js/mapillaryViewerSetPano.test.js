@@ -97,8 +97,6 @@ describe('MapillaryViewer.setPano tells a missing pano from a slow one (issue #5
     sdk = makeSdk(moveTo);
     viewer = new classes.MapillaryViewer();
     viewer.viewer = sdk;
-    // The SDK chunk isn't loaded, and the angles don't matter here.
-    viewer.extractPitchRoll = () => ({ pitch: 0, roll: 0 });
   }
 
   /** A move that never settles, like one stuck on a slow CDN. */
