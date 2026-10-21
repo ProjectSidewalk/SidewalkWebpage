@@ -295,32 +295,22 @@ class PanoDataServiceSpec extends AnyFunSuite with Matchers {
     address = None, sourceMetadata = None
   )
 
-  test("missingBackupColumns: nothing missing from a complete row, optional columns aside") {
+  test("missingBackupViewerColumns: nothing missing from a complete row, optional columns aside") {
     // tile size and camera_roll are NULL here and must not count: the viewer does without them.
-    PanoDataService.missingBackupColumns(completeBackupRow) shouldBe Nil
+    completeBackupRow.missingBackupViewerColumns shouldBe Nil
   }
 
-  test("missingBackupColumns: no pose is not missing (#5725), a NaN heading is") {
-    PanoDataService.missingBackupColumns(completeBackupRow.copy(cameraPitch = None)) shouldBe Nil
-    PanoDataService.missingBackupColumns(completeBackupRow.copy(cameraHeading = Some(Double.NaN))) shouldBe
-      Seq("camera_heading")
+  test("missingBackupViewerColumns: no pose is not missing (#5725), a NaN heading is") {
+    completeBackupRow.copy(cameraPitch = None).missingBackupViewerColumns shouldBe Nil
+    completeBackupRow.copy(cameraHeading = Some(Double.NaN)).missingBackupViewerColumns shouldBe Seq("camera_heading")
   }
 
-  test("missingBackupColumns is empty exactly when hasBackupViewerFields holds") {
-    val rows = Seq(
-      completeBackupRow, completeBackupRow.copy(cameraPitch = None), completeBackupRow.copy(cameraHeading = None),
-      completeBackupRow.copy(cameraHeading = Some(Double.NaN)), completeBackupRow.copy(width = None),
-      completeBackupRow.copy(lng = None)
-    )
-    rows.foreach(row => PanoDataService.missingBackupColumns(row).isEmpty shouldBe row.hasBackupViewerFields)
-  }
-
-  test("missingBackupColumns lists every missing column, in a fixed order") {
+  test("missingBackupViewerColumns lists every missing column, in a fixed order") {
     val row = completeBackupRow.copy(cameraHeading = None, lat = None, width = None)
-    PanoDataService.missingBackupColumns(row) shouldBe Seq("width", "lat", "camera_heading")
+    row.missingBackupViewerColumns shouldBe Seq("width", "lat", "camera_heading")
   }
 
-  test("missingBackupColumns checks the frontend's BACKUP_IMAGE_REQUIRED_FIELDS, in the same order") {
+  test("missingBackupViewerColumns checks the frontend's BACKUP_IMAGE_REQUIRED_FIELDS, in the same order") {
     // The jsdom suite holds that JS list to PanoData's requiredParams (backupImageDataIsComplete.test.js), so this
     // closes the loop: a column added on any of the three sides fails one of the two suites.
     val src     = Files.readString(Path.of("frontend/js/common/utilitiesSidewalk.js"))
@@ -330,7 +320,7 @@ class PanoDataServiceSpec extends AnyFunSuite with Matchers {
     val allNull  = completeBackupRow.copy(
       width = None, height = None, lat = None, lng = None, cameraHeading = None
     )
-    jsFields shouldBe PanoDataService.missingBackupColumns(allNull)
+    jsFields shouldBe allNull.missingBackupViewerColumns
   }
 
   // Mapillary `computed_rotation` → (pitch, roll), #5725. Expected values are pinned from the auto-labeler's

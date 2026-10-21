@@ -54,9 +54,20 @@ case class PanoData(
     sourceMetadata: Option[JsValue]
 ) {
 
+  /**
+   * The pano_data columns PannellumViewer needs that this row leaves unusable, by DB column name, in a fixed order, so
+   * a refusal can say which (#5183). Empty exactly when [[hasBackupViewerFields]] holds: that twin is derived from it.
+   */
+  def missingBackupViewerColumns: Seq[String] = Seq(
+    "width"          -> width.isDefined,
+    "height"         -> height.isDefined,
+    "lat"            -> lat.isDefined,
+    "lng"            -> lng.isDefined,
+    "camera_heading" -> cameraHeading.exists(!_.isNaN)
+  ).collect { case (name, false) => name }
+
   /** The in-memory twin of `PanoDataTable.hasBackupViewerFields`; see the note there before changing either. */
-  def hasBackupViewerFields: Boolean =
-    width.isDefined && height.isDefined && lat.isDefined && lng.isDefined && cameraHeading.exists(!_.isNaN)
+  def hasBackupViewerFields: Boolean = missingBackupViewerColumns.isEmpty
 }
 
 // NOTE need to update pano_source enum in postgres as well if changing this enum.

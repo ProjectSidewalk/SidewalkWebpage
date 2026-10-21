@@ -521,19 +521,6 @@ object PanoDataService {
   }
 
   /**
-   * The pano_data columns PannellumViewer needs that a row leaves unusable, by DB column name, in a fixed order: the
-   * per-column form of `PanoData.hasBackupViewerFields` (empty exactly when it holds), so a refusal can say which.
-   * Like that rule, a NaN heading counts as missing and pitch and roll are not required (#5725).
-   */
-  def missingBackupColumns(p: PanoData): Seq[String] = Seq(
-    "width"          -> p.width.isDefined,
-    "height"         -> p.height.isDefined,
-    "lat"            -> p.lat.isDefined,
-    "lng"            -> p.lng.isDefined,
-    "camera_heading" -> p.cameraHeading.exists(!_.isNaN)
-  ).collect { case (name, false) => name }
-
-  /**
    * Largest camera-up vs world-up angle at which a Mapillary `computed_rotation` is taken as the rig's real pose.
    *
    * Past this it is a failed reconstruction, not a tilted rig: the auto-labeler's study of 191,286 Mapillary panos
@@ -1202,7 +1189,7 @@ class PanoDataServiceImpl @Inject() (
         case Some(p) if p.hasBackupViewerFields =>
           Right(p.copy(cameraPitch = p.cameraPitch.filterNot(_.isNaN), cameraRoll = p.cameraRoll.filterNot(_.isNaN)))
         case Some(p) =>
-          val missing = PanoDataService.missingBackupColumns(p).mkString(", ")
+          val missing = p.missingBackupViewerColumns.mkString(", ")
           Left(s"Stored image for pano $panoId cannot be served: pano_data is missing $missing.")
       }
     }
