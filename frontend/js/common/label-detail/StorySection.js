@@ -9,6 +9,7 @@
  * instead. Scoped to the host root; owns the StoryComposer and the enlarge lightbox from the same partial.
  */
 
+import i18next from 'i18next';
 import { ConfirmDialog } from '../ConfirmDialog.js';
 import { StoryComposer } from './StoryComposer.js';
 import { util } from '../utilities.js';

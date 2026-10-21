@@ -19,6 +19,7 @@
     "clear-verdict": "Borrar tu respuesta",
     "tag-search-placeholder": "Añade más etiquetas aquí",
     "tag-search-no-results": "No hay etiquetas coincidentes",
+    "tag-example-tooltip": "Ejemplo de «{{tag}}»",
     "disagree-reason": {
       "common": {
         "wrong-type": "Este tipo de etiqueta es incorrecto",

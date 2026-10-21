@@ -81,6 +81,7 @@ city.name.knox-oh = Condado de Knox
 city.name.niagara-falls-ny = Cataratas del Niágara
 city.name.fort-wayne-in = Fuerte Wayne
 city.name.bayonne-fr = Bayona
+city.name.juneau-ak = Juneau
 
 state.name.oregon = Oregón
 state.name.pennsylvania = Pensilvania
@@ -88,6 +89,7 @@ state.name.new-jersey = Nueva Jersey
 state.name.missouri = Misuri
 state.name.south-carolina = Carolina del Sur
 state.name.new-york = Nueva York
+state.name.alaska = Alaska
 
 country.name.usa = EE.UU.
 country.name.mexico = México
@@ -352,6 +354,10 @@ audit.center.ui.tags.info = Añade etiquetas a tus etiquetas para enriquecer los
 audit.center.ui.description.header = Describe (opcional)
 audit.center.ui.description.placeholder = Descripción
 
+audit.all.regions.finished.title = ¡Has explorado todos los barrios de {0}!
+audit.all.regions.finished.body = ¡Gracias! Has revisado todas las calles que tenemos en {0}. Puedes seguir ayudando validando las etiquetas de otras personas o explorando otra ciudad.
+audit.all.regions.finished.validate = Validar etiquetas
+audit.all.regions.finished.other.cities = Explorar otra ciudad
 audit.survey.title = Por favor, realiza esta encuesta sobre <i>Project Sidewalk</i>
 audit.survey.enjoyment.question = ¿Cuánto has disfrutado usando <i>Project Sidewalk</i>?
 audit.survey.enjoyment.option.1 = Muy aburrido
@@ -395,7 +401,7 @@ authenticate.terms = Usted acepta nuestros <a target="_blank" href="/terms">Tér
 authenticate.signup = Regístrate
 authenticate.has.account = ¿Tienes una cuenta? <a href="#" id="form-open-sign-in">Iniciar sesión</a>
 
-# Sign-in/sign-up redesign (#4375) — draft translations, pending native-speaker polish (#4494).
+# Sign-in/sign-up (#4375): draft translations, pending native-speaker polish (#4494).
 authenticate.welcome.back = Bienvenido/a de nuevo
 authenticate.join = Únete a Project Sidewalk
 authenticate.tagline = Mapea las aceras. Ayuda a que tu ciudad sea accesible para todos.
@@ -562,6 +568,14 @@ gallery.tags = Etiquetas
 gallery.all = Todos los tipos de etiquetas
 gallery.labels.not.found = No hay resultados. ¡<a href="/explore">Comienza a explorar</a> para aportar más datos!
 gallery.cards = Las etiquetas se ordenan aleatoriamente según los filtros seleccionados
+gallery.cards.sorted = Las etiquetas se ordenan por "{0}" según los filtros seleccionados
+gallery.sort.by = Ordenar por
+gallery.sort.random = Aleatorio
+gallery.sort.newest = Más recientes primero
+gallery.sort.oldest = Más antiguas primero
+gallery.sort.most.severe = Más graves primero
+gallery.sort.least.severe = Menos graves primero
+gallery.sort.most.disputed = Más disputadas primero
 gallery.clear.filters = Borrar Filtros
 gallery.list.count = {0,choice,1#1 etiqueta|1<{0} etiquetas} en esta lista
 gallery.list.truncated = {0,choice,1#1 ID superaba el límite de {1} y no se pudo cargar.|1<{0} ID superaban el límite de {1} y no se pudieron cargar.}
@@ -666,7 +680,7 @@ sharedlabel.stat.labels = etiquetas
 sharedlabel.stat.validations = validaciones
 sharedlabel.stat.miles = millas exploradas
 sharedlabel.legend.title = Qué significan estas etiquetas
-# Redesigned user dashboard, leaderboard, settings, and public profile (#4323, #4475).
+# User dashboard, leaderboard, settings, and public profile (#4323, #4475).
 dashboard.title = Tu panel
 dashboard.you = Tú
 dashboard.hero.greeting = ¡Hola de nuevo, {0}! 👋
@@ -860,6 +874,16 @@ leaderboard.thisweek.none = ✨ Aún no hay etiquetas esta semana. ¡Sé la prim
 leaderboard.teams.title = Equipos en {0}
 leaderboard.teams.intro = ¡Crea o únete a un equipo para marcar la diferencia en conjunto!
 leaderboard.teams.none = 👥 Aún no hay equipos. ¡Sé el primero! Crea uno e invita a amistades o compañeros/as.
+leaderboard.myteam.title = Tu equipo: {0}
+leaderboard.myteam.intro = Cómo te comparas con tus compañeros/as de equipo en {0}.
+leaderboard.myteam.none = 👥 Todavía nadie de tu equipo aparece en la clasificación.
+leaderboard.myteam.you.hidden = No apareces porque desactivaste «{0}».
+leaderboard.myteam.you.settings = Cámbialo en Configuración
+leaderboard.myteam.you.nolabels = Aparecerás aquí cuando coloques tu primera etiqueta.
+leaderboard.myteam.pager = Páginas de la clasificación del equipo
+leaderboard.myteam.prev = ‹ Anterior
+leaderboard.myteam.next = Siguiente ›
+leaderboard.myteam.page = Página {0} de {1}
 leaderboard.allcities.title = Todas las ciudades, histórico
 leaderboard.allcities.intro = Las mejores personas mapeadoras de todas las ciudades de Project Sidewalk, clasificadas por el total de etiquetas.
 leaderboard.allcities.note = La distancia se actualiza una vez al día.

@@ -115,6 +115,9 @@ class IntersectionTableSpec extends SidewalkSpec with GuiceOneAppPerSuite with R
       dataStatements must have size 2
 
       val counts = runRolledBack(for {
+        // 381 knew one way per street; since 417 a street can list several (#5741), which its join would fan out
+        // over, so the comparison is made on the primary way alone, the one the rebuild falls back to at an end.
+        _          <- sqlu"DELETE FROM osm_way_street_edge WHERE NOT is_primary"
         _          <- sqlu"UPDATE cluster SET intersection_id = NULL"
         _          <- sqlu"DELETE FROM intersection_street_edge"
         _          <- sqlu"DELETE FROM intersection"

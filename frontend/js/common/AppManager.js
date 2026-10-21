@@ -3,6 +3,8 @@
  * Handles multiple initialization tasks (i18next, CSRF setup, etc.) and provides callbacks for when the setup is done.
  */
 
+import HttpBackend from 'i18next-http-backend';
+import i18next from 'i18next';
 import { localizeSubtree } from './i18nDom.js';
 import { util } from './utilities.js';
 import './utilitiesMath.js';
@@ -120,7 +122,8 @@ export class AppManager {
       // has to be stringified. Reading `.url` off a `URL` gives undefined, which resolves to <origin>/undefined and
       // so reads as same-origin -- meaning a cross-origin `URL` would be handed a token, the very case above. The
       // `typeof` guard is for non-browser hosts (jsdom); any browser with `fetch` also has `Request`.
-      const requestUrl = (typeof Request !== 'undefined' && url instanceof Request) ? url.url : String(url);
+      const isRequest = typeof Request !== 'undefined' && url instanceof Request;
+      const requestUrl = isRequest ? url.url : String(url);
 
       // Resolve against the page origin so relative URLs (our routes) are correctly treated as same-origin.
       let isSameOrigin;
@@ -135,17 +138,16 @@ export class AppManager {
         return originalFetch(url, options);
       }
 
-      // Known limitation: per the fetch spec, an init `headers` replaces a `Request` argument's own headers
-      // wholesale, so a same-origin `Request` constructed with its own headers loses them here. No call site passes
-      // a `Request`; if one ever needs to, merge `url.headers` into this object.
-      const newOptions = {
-        ...options,
-        headers: {
-          ...options.headers,
-          'Csrf-Token': csrfToken,
-        },
-      };
-      return originalFetch(url, newOptions);
+      // `new Headers` accepts every form `headers` can take; spreading a `Headers` instance would copy nothing.
+      let headers;
+      try {
+        headers = new Headers(options.headers ?? (isRequest ? url.headers : undefined));
+      } catch (error) {
+        // Fail the promise, not the call, as the browser's fetch does.
+        return Promise.reject(error);
+      }
+      headers.set('Csrf-Token', csrfToken);
+      return originalFetch(url, { ...options, headers });
     };
   }
 
@@ -176,7 +178,7 @@ export class AppManager {
     const localeFiles = new Set(params.localeFiles);
     // With no list, every file is skipped and the page silently shows raw keys, so make that loud.
     if (localeFiles.size === 0) console.error('AppManager: no locale files listed, so nothing will be translated');
-    return i18next.use(i18nextHttpBackend).init({
+    return i18next.use(HttpBackend).init({
       backend: {
         // i18next asks for every namespace in every language, but most country overrides exist only in English, so
         // skip the files that aren't there (an empty path loads nothing) rather than request a 404 (#5570). The ones

@@ -65,9 +65,8 @@ class ValidationTaskInteractionTable @Inject() (protected val dbConfigProvider: 
     (validationTaskInteractions returning validationTaskInteractions.map(_.validationTaskInteractionId)) += interaction
   }
 
-  def insertMultiple(interactions: Seq[ValidationTaskInteraction]): DBIO[Seq[Int]] = {
-    (validationTaskInteractions returning validationTaskInteractions.map(
-      _.validationTaskInteractionId
-    )) ++= interactions
+  /** Without `returning` so Slick batches the rows, and in one transaction so the batch costs one commit (#5718). */
+  def insertMultiple(interactions: Seq[ValidationTaskInteraction]): DBIO[Option[Int]] = {
+    (validationTaskInteractions ++= interactions).transactionally
   }
 }

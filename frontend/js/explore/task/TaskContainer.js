@@ -1,20 +1,32 @@
 /**
- * TaskContainer module.
+ * The streets of the region or route being explored, which one is being walked, and how they are drawn on the
+ * minimap. A street changing or ending is announced (onCurrentTaskChanged, onTaskEnded, onTaskLeft) rather than acted
+ * on here, since the compass, the crumbs, the mission and the Form are built after this.
  *
- * TODO This module needs to be cleaned up.
- * TODO Split the responsibilities. Storing tasks should remain here, but other things like fetching data from the
- * server (should go to TaskModel) and rendering segments on a map.
+ * TODO Split the responsibilities: storing tasks stays here, fetching from the server could go to a TaskModel.
  */
 
+import * as turf from '@turf/turf';
 import { util } from '../../common/utilities.js';
 import { Task } from './Task.js';
 import '../../common/utilitiesMath.js';
+/** @typedef {import('../Main.js').ExploreConfig} ExploreConfig */
+/** @typedef {import('../navigation/Minimap.js').Minimap} Minimap */
+/** @typedef {import('../mission/Mission.js').Mission} Mission */
+/** @typedef {import('../panorama/PanoManager.js').PanoManager} PanoManager */
 /** @typedef {import('../region/RegionModel.js').RegionModel} RegionModel */
+/** @typedef {import('../sidebar/OverallStats.js').OverallStats} OverallStats */
 /** @typedef {import('../data/Tracker.js').Tracker} Tracker */
 
 export class TaskContainer {
+  // How close (km) a street's end must be to another street's end for the two to count as connected.
+  static CONNECTED_TASK_KM = 0.025;
+
+  #config;
   #regionModel;
-  #svl;
+  #minimap;
+  #panoManager;
+  #overallStats;
   #tracker;
 
   #currentTask = null;
@@ -22,17 +34,62 @@ export class TaskContainer {
   #nextTaskAfterJump = null;
   #tasksFinishedLoading = false;
 
+  /** @type {Array<(task: Task) => void>} */
+  #currentTaskListeners = [];
+
+  /** @type {Array<(task: Task) => void>} */
+  #taskEndedListeners = [];
+
+  /** @type {Array<(task: Task) => void>} */
+  #taskLeftListeners = [];
+
   _tasks = [];
 
   /**
+   * @param {Task} initialTask - The street the page opened on, current from the start. Nothing hears about it
+   *   through onCurrentTaskChanged; Main sets up the first street itself once the tool is up.
+   * @param {ExploreConfig} config
    * @param {RegionModel} regionModel
-   * @param {Record<string, any>} svl
+   * @param {Minimap} minimap - Where the streets are drawn.
+   * @param {PanoManager} panoManager - Whose position says how far along a street the labeler is.
+   * @param {OverallStats} overallStats - Shown the audited distance as streets finish.
    * @param {Tracker} tracker
    */
-  constructor(regionModel, svl, tracker) {
+  constructor(initialTask, config, regionModel, minimap, panoManager, overallStats, tracker) {
+    this.#config = config;
     this.#regionModel = regionModel;
-    this.#svl = svl;
+    this.#minimap = minimap;
+    this.#panoManager = panoManager;
+    this.#overallStats = overallStats;
     this.#tracker = tracker;
+
+    this._tasks.push(initialTask);
+    this.#currentTask = initialTask;
+    this.#recordTaskStart(initialTask);
+  }
+
+  /**
+   * Told when another street becomes the one being walked. Not for the street the page opened on.
+   * @param {(task: Task) => void} listener
+   */
+  onCurrentTaskChanged(listener) {
+    this.#currentTaskListeners.push(listener);
+  }
+
+  /**
+   * Told when a street is finished (endTask), once it is marked complete and ready to submit.
+   * @param {(task: Task) => void} listener
+   */
+  onTaskEnded(listener) {
+    this.#taskEndedListeners.push(listener);
+  }
+
+  /**
+   * Told when free exploration wanders off a street onto another (#5733), so what was seen of it can be submitted.
+   * @param {(task: Task) => void} listener
+   */
+  onTaskLeft(listener) {
+    this.#taskLeftListeners.push(listener);
   }
 
   tasksLoaded() {
@@ -43,30 +100,22 @@ export class TaskContainer {
    * End the current task.
    */
   endTask(task) {
-    const svl = this.#svl;
-    // Free-exploration tasks never complete — completing one would mark the street audited and move coverage (#4451).
-    // Callers are individually gated on the mode too; this is the final backstop.
-    if (svl.isExploreAddressMode()) return task;
-    if (this.#tracker) this.#tracker.push('TaskEnd');
+    // Free exploration never completes a task from the client: the server credits a street from the coverage the task
+    // posts (#4451, #5733). Callers are individually gated on the mode too; this is the final backstop.
+    if (this.#config.isExploreAddressMode) return task;
+    this.#tracker.push('TaskEnd');
     task.complete();
 
-    // Submit the data so that the task is marked as complete in the db. Note that this happens async.
-    svl.form.submitData(task);
+    // The Form submits it so the task is marked as complete in the db. Note that this happens async.
+    this.#taskEndedListeners.forEach((listener) => listener(task));
 
     // Update the audited distance in the right sidebar.
     this.updateAuditedDistance();
 
-    if (svl.user.getProperty('role') === 'Anonymous'
-      && this.getCompletedTaskDistance({ units: 'kilometers' }) > 0.15
-      && !svl.popUpMessage.haveAskedToSignIn()) {
-      svl.popUpMessage.promptSignIn();
-    }
-
     // Updates the segments that the user has already explored.
     this.updateCurrentTask();
 
-    // Check if finishing this task completes the region across all users. Must run after task.complete() so
-    // the just-finished task is filtered out of getIncompleteTasksAcrossAllUsersUsingPriority() naturally.
+    // After task.complete(), so getIncompleteTasksAcrossAllUsersUsingPriority() leaves the just-finished task out.
     this.#updateRegionCompleteAcrossAllUsersStatus();
 
     return task;
@@ -75,15 +124,14 @@ export class TaskContainer {
   /**
    * Request the server to populate tasks
    * TODO Move this to somewhere else. TaskModel?
+   * @param {Mission} currentMission - The mission underway, whose streets the list is matched against.
    * @returns {Promise<void>} Resolves once the tasks have been fetched and added to the container.
    */
-  fetchTasks() {
-    const svl = this.#svl;
-    const currMission = svl.missionContainer.getCurrentMission();
-    const currMissionId = currMission.getProperty('missionId');
+  fetchTasks(currentMission) {
+    const currMissionId = currentMission.getProperty('missionId');
     let url;
-    if (svl.regionModel.isRoute) url = `/routeTasks?userRouteId=${svl.userRouteId}`;
-    else url = `/tasks?regionId=${svl.regionModel.currentRegion().getRegionId()}`;
+    if (this.#regionModel.isRoute) url = `/routeTasks?userRouteId=${this.#config.userRouteId}`;
+    else url = `/tasks?regionId=${this.#regionModel.currentRegion().getRegionId()}`;
 
     return fetch(url, {
       method: 'GET',
@@ -103,14 +151,14 @@ export class TaskContainer {
             const resumeAt = props.audit_task_id && !props.completed
               ? { lat: props.current_lat, lng: props.current_lng }
               : undefined;
-            task = new Task(result.features[i], false, resumeAt);
+            task = new Task(result.features[i], this.#config.streetCoverage, false, resumeAt);
             task.markFromTaskList();
             if ((result.features[i].properties.completed)) task.complete();
             this._tasks.push(task);
 
             // If the street was part of the curr mission, add it to the list!
             if (task.getProperty('currentMissionId') === currMissionId) {
-              currMission.pushATaskToTheRoute(task);
+              currentMission.pushATaskToTheRoute(task);
             }
           }
         }
@@ -139,7 +187,7 @@ export class TaskContainer {
    *
    * @param {Task} taskIn - Task to check whether any available tasks are connected
    * @param {number} threshold - Distance threshold in km, unless specified in unit parameter
-   * @param {{units: string}} [unit] - Holds the distance unit; defaults to the user's units
+   * @param {{units: import('@turf/turf').Units}} [unit] - The distance unit; defaults to the user's
    * @returns {Task[]} Array of tasks that are connected to the given task
    */
   #findConnectedTasks(taskIn, threshold, unit) {
@@ -163,7 +211,7 @@ export class TaskContainer {
   /**
    * Get the total distance of the segments the labeler is done with — walked, or given up on for lack of imagery —
    * plus their progress along the street they are on now.
-   * @param {{units: string}} [units] - Object with field 'units' holding distance unit; defaults to the user's units
+   * @param {{units: import('@turf/turf').Units}} [units] - The distance unit; defaults to the user's
    * @returns {number} Distance in unit.
    */
   getCompletedTaskDistance(units) {
@@ -214,7 +262,7 @@ export class TaskContainer {
     if (!unit) unit = { units: 'kilometers' };
 
     if (this.#currentTask) {
-      const currentLatLng = this.#svl.panoViewer.getPosition();
+      const currentLatLng = this.#panoManager.getPosition();
       this.#currentTask.updateTheFurthestPointReached(currentLatLng);
       return this.#currentTask.getAuditedDistance(unit);
     }
@@ -341,8 +389,7 @@ export class TaskContainer {
       if (this.getIncompleteTasksAcrossAllUsersUsingPriority().length === 0) {
         regionModel.setRegionCompleteAcrossAllUsers();
         document.getElementById('area-completion-overlay-wrapper').style.display = 'block';
-        const currentRegion = this.#svl.regionModel.currentRegion();
-        const currentRegionId = currentRegion.getRegionId();
+        const currentRegionId = regionModel.currentRegion().getRegionId();
         this.#tracker.push('NeighborhoodComplete_AcrossAllUsers', { RegionId: currentRegionId });
       }
     }
@@ -362,16 +409,14 @@ export class TaskContainer {
    * @returns {Task} Next task
    */
   nextTask(finishedTask) {
-    const svl = this.#svl;
     let newTask;
 
-    // Check if user has audited entire region or route. On a route, a street can legitimately appear twice
-    // (out-and-back), so the just-finished task is excluded by its route_street row rather than by its street —
-    // excluding by street would silently drop the return leg.
+    // On a route, a street can legitimately appear twice (out-and-back), so the just-finished task is excluded by
+    // its route_street row rather than by its street: excluding by street would silently drop the return leg.
     const sameAsFinished = (t) => {
       if (!finishedTask) return false;
       const finishedWalkOrder = finishedTask.getWalkOrder();
-      return svl.regionModel.isRoute && finishedWalkOrder !== null && finishedWalkOrder !== undefined
+      return this.#regionModel.isRoute && finishedWalkOrder !== null && finishedWalkOrder !== undefined
         ? t.getWalkOrder() === finishedWalkOrder
         : t.getStreetEdgeId() === finishedTask.getStreetEdgeId();
     };
@@ -383,7 +428,7 @@ export class TaskContainer {
       return null;
     }
 
-    if (svl.regionModel.isRoute) {
+    if (this.#regionModel.isRoute) {
       // For a route, the user walks the streets in the route's saved order.
       newTask = tasksNotCompletedByUser.reduce((min, current) => {
         return current.getWalkOrder() < min.getWalkOrder() ? current : min;
@@ -404,7 +449,7 @@ export class TaskContainer {
         connectedTasks = this.#findConnectedTasks(finishedTask, 0.010);
       }
       if (connectedTasks.length === 0) {
-        connectedTasks = this.#findConnectedTasks(finishedTask, svl.CONNECTED_TASK_THRESHOLD);
+        connectedTasks = this.#findConnectedTasks(finishedTask, TaskContainer.CONNECTED_TASK_KM);
       }
 
       // If any of the connected tasks has max discretized priority, pick the highest priority connected street,
@@ -423,10 +468,9 @@ export class TaskContainer {
         connectedTask = false;
       }
 
-      // Set the start point of the new task. If it's connected to the current task or is nearby, use the current
-      // task's endpoint to avoid accidentally marking the user as being at the end of the street. Otherwise
-      // (street not connected, user will need to jump), if the default endpoint of the new task is not connected
-      // to any streets, try reversing its direction to encourage contiguous routes.
+      // A street connected to or near the finished one starts from its endpoint, so the user isn't accidentally
+      // marked as being at the end of the street. One the user will need to jump to is reversed when its default
+      // endpoint connects to nothing, to encourage contiguous routes.
       // TODO take into account street priority when checking for connected tasks here.
       // A part-walked street is exempt: its direction is fixed by its audit_task row (the server never rewrites
       // start_point_reversed) and its walked metres are measured from that end, so flipping it here would put the
@@ -435,11 +479,11 @@ export class TaskContainer {
         let startPoint;
         const line = newTask.getGeoJSON();
         const endPoint = turf.point([finishedTask.getEndCoordinate().lng, finishedTask.getEndCoordinate().lat]);
-        const taskNearby = turf.pointToLineDistance(endPoint, line) < svl.CLOSE_TO_ROUTE_THRESHOLD * 1.5;
+        const taskNearby = turf.pointToLineDistance(endPoint, line) < Task.CLOSE_TO_ROUTE_KM * 1.5;
         if (connectedTask || taskNearby) {
           startPoint = finishedTask.getEndCoordinate();
           newTask.setStreetEdgeDirection(startPoint);
-        } else if (this.#findConnectedTasks(newTask, svl.CONNECTED_TASK_THRESHOLD).length === 0) {
+        } else if (this.#findConnectedTasks(newTask, TaskContainer.CONNECTED_TASK_KM).length === 0) {
           newTask.reverseStreetDirection();
         }
       }
@@ -448,7 +492,7 @@ export class TaskContainer {
     // depends on it — the column is written on insert only, and a resumed task always takes the update path — so this
     // is about not holding a value that contradicts the database, not about protecting a submission.
     if (!newTask.isResumed()) newTask.setProperty('taskStart', new Date());
-    newTask.render();
+    this.renderTask(newTask);
     return newTask;
   }
 
@@ -457,20 +501,16 @@ export class TaskContainer {
    * @param {Task} task
    */
   setCurrentTask(task) {
-    const svl = this.#svl;
     this.#currentTask = task;
-    if ('missionContainer' in svl) {
-      const currMissionId = svl.missionContainer.getCurrentMission().getProperty('missionId');
-      this.#currentTask.setProperty('currentMissionId', currMissionId);
+    this.#recordTaskStart(task);
+    this.#currentTaskListeners.forEach((listener) => listener(task));
+  }
 
-      // Metres walked on this street in an earlier session are already in the server's mission progress, which the
-      // page load folded into the offset. The mission bar counts the current street's audited distance, so switching
-      // onto a part-walked street mid-session would add them a second time and jump the bar (#5370).
-      if (task.isResumed() && svl.missionContainer.getTasksMissionsOffset() !== null) {
-        const prewalkedM = util.math.kmsToMeters(task.claimSavedProgress());
-        svl.missionContainer.setTasksMissionsOffset(svl.missionContainer.getTasksMissionsOffset() - prewalkedM);
-      }
-    }
+  /**
+   * Logs that a street became the one being walked, and files what is logged next under its audit task.
+   * @param {Task} task
+   */
+  #recordTaskStart(task) {
     // Interactions are stamped with the tracker's audit task id, which otherwise only moves on a submission result —
     // so without this, what is logged between the switch and the first submission is filed under the old street. A
     // fresh street has no id yet, so it still has to wait for its first submission.
@@ -484,19 +524,55 @@ export class TaskContainer {
       : {};
     if (task.getProperty('needsReaudit')) startNote.reaudit = true;
     this.#tracker.push('TaskStart', Object.keys(startNote).length ? startNote : undefined);
-    // Page load reaches here before the notice exists; Main.js announces that first street itself, once the
-    // mission-start screen is out of the way.
-    if (svl.reauditNotice) svl.reauditNotice.showForTask(task);
+  }
 
-    if ('compass' in svl) {
-      svl.compass.showMessage();
-      svl.compass.update();
+  /**
+   * Free exploration's walking (#5733): credits the pano to the street the labeler is on, switching tasks when they
+   * wander onto another. The street left is posted as it stands; a street walked earlier keeps its coverage.
+   *
+   * @param {{lat: number, lng: number}} latLng - Where the labeler now stands.
+   */
+  recordExploreMove(latLng) {
+    const current = this.#currentTask;
+    const nearest = this.tasksLoaded() ? this.#nearestTask(latLng) : null;
+    if (nearest && current && nearest !== current) {
+      this.#tracker.push('ExploreAddress_StreetSwitch', {
+        from: current.getStreetEdgeId(),
+        to: nearest.getStreetEdgeId(),
+        resumed: nearest.getCoveredRanges().length > 0,
+      });
+      this.#taskLeftListeners.forEach((listener) => listener(current));
+      current.resetVisitChain();
+      // The task starts when the labeler steps onto the street, not when the task list or an old audit of it did.
+      if (nearest.getCoveredRanges().length === 0) nearest.setProperty('taskStart', new Date());
+      this.setCurrentTask(nearest);
     }
-    // Every street switch and direction reversal passes through here, so this is where the crumbs ahead re-aim.
-    if (svl.forwardCrumbs) svl.forwardCrumbs.refresh();
+    if (this.#currentTask) {
+      this.#currentTask.recordVisit(latLng);
+      this.renderTask(this.#currentTask);
+    }
+  }
 
-    // Show AI guidance message if applicable.
-    if (svl.aiGuidance) svl.aiGuidance.showAiGuidanceMessage();
+  /**
+   * The loaded street a position is on: the nearest within Task.ON_STREET_MAX_DISTANCE_M. The current street only
+   * loses to a strictly nearer one, so a corner pano equally close to two streets stays on the one being walked.
+   *
+   * @param {{lat: number, lng: number}} latLng
+   * @returns {?Task}
+   */
+  #nearestTask(latLng) {
+    const point = turf.point([latLng.lng, latLng.lat]);
+    let nearest = null;
+    let nearestM = Task.ON_STREET_MAX_DISTANCE_M;
+    const candidates = this.#currentTask ? [this.#currentTask, ...this._tasks] : this._tasks;
+    for (const task of candidates) {
+      const distM = turf.pointToLineDistance(point, task.getGeoJSON(), { units: 'meters' });
+      if (distM < nearestM) {
+        nearest = task;
+        nearestM = distM;
+      }
+    }
+    return nearest;
   }
 
   /**
@@ -523,14 +599,13 @@ export class TaskContainer {
   }
 
   /**
-   * This method is called from Map.handlerPositionUpdate() to update the color of audited and unaudited street
-   * segments of the current task on Google Maps.
+   * Called on each position update to redraw the current task's explored and remaining parts on the minimap.
    * TODO This should be done somewhere else.
    */
   updateCurrentTask() {
-    const currentLatLng = this.#svl.panoViewer.getPosition();
+    const currentLatLng = this.#panoManager.getPosition();
     this.#currentTask.updateTheFurthestPointReached(currentLatLng);
-    this.#currentTask.render();
+    this.renderTask(this.#currentTask);
   }
 
   /**
@@ -539,12 +614,12 @@ export class TaskContainer {
    */
   updateAuditedDistance() {
     let distance = 0;
-    const region = this.#svl.regionModel.currentRegion();
+    const region = this.#regionModel.currentRegion();
 
     if (region) {
       distance = this.getCompletedTaskDistance({ units: util.turfDistanceUnits() });
     }
-    this.#svl.overallStats.setRegionAuditedDistance(distance);
+    this.#overallStats.setRegionAuditedDistance(distance);
     return this;
   }
 
@@ -557,14 +632,24 @@ export class TaskContainer {
   }
 
   /**
+   * Draws a street on the minimap in the encoding that fits its state, replacing what it drew before.
+   * @param {Task} task
+   */
+  renderTask(task) {
+    this.#minimap.setStreetLines(task.minimapKey(), task.minimapLines({
+      exploreAddressMode: this.#config.isExploreAddressMode,
+      current: task === this.#currentTask,
+      route: this.#regionModel.isRoute,
+    }));
+  }
+
+  /**
    * Renders all tasks to draw both unexplored and already-completed tasks. Should be called at page load
    * so it does not render redundantly.
    */
   renderAllTasks() {
     for (const task of this._tasks) {
-      task.render();
+      this.renderTask(task);
     }
-    // Keep the route overview inset's explored/ahead colors in sync as streets complete (routes only; no-op otherwise).
-    this.#svl.routeOverview?.render();
   }
 }

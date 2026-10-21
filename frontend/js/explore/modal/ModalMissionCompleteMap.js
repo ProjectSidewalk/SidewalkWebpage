@@ -5,11 +5,18 @@
  * the streets from the mission that just finished.
  */
 
-import { svl } from '../svl.js';
+import MapboxLanguage from '@mapbox/mapbox-gl-language';
+import mapboxgl from '../../common/mapboxgl.js';
+import * as turf from '@turf/turf';
+import i18next from 'i18next';
 import { util } from '../../common/utilities.js';
 import { addLabelsToMap } from '../../ps-map/addLabelsToMap.js';
+/** @typedef {import('../region/RegionModel.js').RegionModel} RegionModel */
+/** @typedef {import('../task/TaskContainer.js').TaskContainer} TaskContainer */
 
 export class ModalMissionCompleteMap {
+  #regionModel;
+  #taskContainer;
   #mapPromise;
   #labelLayerNames = [];
   #flagMarkers = [];
@@ -41,8 +48,12 @@ export class ModalMissionCompleteMap {
   /**
    * @param {string} mapContainerId - HTML id of the element that holds the map.
    * @param {string} mapboxApiKey - Mapbox API key.
+   * @param {RegionModel} regionModel - Says whether this is a route, which gets flags and direction chevrons.
+   * @param {TaskContainer} taskContainer - Whose streets make the route path.
    */
-  constructor(mapContainerId, mapboxApiKey) {
+  constructor(mapContainerId, mapboxApiKey, regionModel, taskContainer) {
+    this.#regionModel = regionModel;
+    this.#taskContainer = taskContainer;
     this.#mapPromise = this.#createMap(mapContainerId, mapboxApiKey);
   }
 
@@ -81,7 +92,7 @@ export class ModalMissionCompleteMap {
   /**
    * Draws the street tiers and mission labels, then frames the just-finished mission's streets.
    * @param {{thisMission: object, previous: object, community: object}} streetTiers - GeoJSON FeatureCollections.
-   * @param {object} labelData - GeoJSON FeatureCollection of labels placed during the mission.
+   * @param {GeoJSON.FeatureCollection<GeoJSON.Point>} labelData - The labels placed during the mission.
    */
   async update(streetTiers, labelData) {
     const map = await this.#mapPromise;
@@ -123,8 +134,8 @@ export class ModalMissionCompleteMap {
    * @param {mapboxgl.Map} map - The modal's Mapbox map.
    */
   #drawRouteFlags(map) {
-    if (!svl.regionModel.isRoute) return;
-    const endpoints = svl.taskContainer.getRouteEndpoints();
+    if (!this.#regionModel.isRoute) return;
+    const endpoints = this.#taskContainer.getRouteEndpoints();
     if (!endpoints) return;
     const size = Math.round(ModalMissionCompleteMap.#ROUTE_FLAG_SIZE_PX * util.uiScale());
     const plantFlag = (latLng, src) => {
@@ -147,8 +158,8 @@ export class ModalMissionCompleteMap {
    * @param {mapboxgl.Map} map - The modal's Mapbox map.
    */
   async #drawRouteDirection(map) {
-    if (!svl.regionModel.isRoute) return;
-    const coords = svl.taskContainer.getRoutePathCoordinates();
+    if (!this.#regionModel.isRoute) return;
+    const coords = this.#taskContainer.getRoutePathCoordinates();
     if (coords.length < 2) return;
     await this.#ensureRouteIcons(map);
 

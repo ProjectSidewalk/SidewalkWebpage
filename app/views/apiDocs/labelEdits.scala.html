@@ -5,6 +5,7 @@
 @(commonData: CommonPageData, user: Option[SidewalkUserWithRole])(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @content = {
+  @ViteAssets.stylesheets("api-docs/labelEdits", alreadyLinked = "api-docs/layout")
   <script type="module" src='@assets.path("build/js/api-docs/labelEdits.js")'></script>
 
   <div class="page-section" id="label-edits-intro-section">

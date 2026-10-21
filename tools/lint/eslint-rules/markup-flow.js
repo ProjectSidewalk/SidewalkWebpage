@@ -21,7 +21,7 @@ const MARKUP_HELPERS = new Map([
 const MARKUP_PROPERTIES = new Set(['innerHTML', 'outerHTML']);
 
 /** Attributes this codebase renders as HTML rather than text. */
-const MARKUP_ATTRIBUTES = new Set(['data-ps-tooltip']);
+const MARKUP_ATTRIBUTES = new Set(['data-ps-tooltip-html']);
 
 /** String methods whose result still contains the original text. */
 const PASS_THROUGH_METHODS = new Set([
@@ -39,7 +39,7 @@ const MAX_DEPTH = 6;
  * Whether a string literal names an attribute this codebase renders as HTML.
  *
  * @param {object} node - The argument holding the attribute name.
- * @returns {boolean} True for `data-ps-tooltip` and friends.
+ * @returns {boolean} True for `data-ps-tooltip-html` and friends.
  */
 function isMarkupAttributeName(node) {
   return node && node.type === 'Literal' && MARKUP_ATTRIBUTES.has(node.value);

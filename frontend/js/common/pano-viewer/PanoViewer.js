@@ -26,6 +26,13 @@ export class PanoViewer {
   static PAINTS_DURING_LOAD = false;
 
   /**
+   * How far from a requested location a pano may be and still count as "here", in meters. Every location search asks
+   * the provider for this radius and holds its reply to it, since providers treat it as a hint (#5114). Explore's
+   * street sweeps and tools/city/check_streets_for_imagery.py mirror it; Task reads it.
+   */
+  static SEARCH_RADIUS_M = 25;
+
+  /**
    * The pano on screen, or the previous one while the next is loading. Undefined until the first pano loads.
    * @type {PanoData|undefined}
    */

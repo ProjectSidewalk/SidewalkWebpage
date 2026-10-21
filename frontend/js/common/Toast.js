@@ -14,7 +14,9 @@
  * Specialized toasts (e.g. badge-unlock celebrations) should extend or compose this class rather than re-implement it.
  */
 
+import i18next from 'i18next';
 import { util } from './utilities.js';
+import '../../css/components/toast.css';
 
 export class Toast {
   // Fade-out transition duration (ms). Kept in sync with the CSS opacity transition on `.ps-toast`. Public so a

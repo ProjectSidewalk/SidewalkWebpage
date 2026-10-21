@@ -1,3 +1,5 @@
+import i18next from 'i18next';
+
 /**
  * The status over the pano that says a label's imagery is still loading (#5581).
  *

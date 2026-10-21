@@ -75,8 +75,10 @@ city.state = {0}, {1}
 city.name.cdmx = Mexico Stad
 city.name.new-taipei-tw = Nieuw Taipei
 city.name.niagara-falls-ny = Niagarawatervallen
+city.name.juneau-ak = Juneau
 
 state.name.california = Californië
+state.name.alaska = Alaska
 
 country.name.usa = USA
 country.name.netherlands = Nederland
@@ -339,6 +341,10 @@ audit.center.ui.tags.info = Voeg tags toe aan uw labels om de gegevens te verrij
 audit.center.ui.description.header = Beschrijf (optioneel)
 audit.center.ui.description.placeholder = Beschrijving
 
+audit.all.regions.finished.title = Je hebt elke buurt in {0} verkend!
+audit.all.regions.finished.body = Bedankt! Je hebt elke straat die we in {0} hebben gecontroleerd. Je kunt blijven helpen door de labels van anderen te valideren, of door een andere stad te verkennen.
+audit.all.regions.finished.validate = Labels valideren
+audit.all.regions.finished.other.cities = Een andere stad verkennen
 audit.survey.title = Een vriendelijk verzoek om deze eenmalige enquete over Project Sidewalk in te vullen
 audit.survey.enjoyment.question = Hoe vond je het om Project Sidewalk te gebruiken?
 audit.survey.enjoyment.option.1 = Erg saai
@@ -382,7 +388,7 @@ authenticate.terms = Je gaat akkoord met onze <a target="_blank" href="/terms">G
 authenticate.signup = Een account maken
 authenticate.has.account = Heb je een account? <a href="#" id="form-open-sign-in">Log in</a>
 
-# Sign-in/sign-up redesign (#4375) — draft translations, pending native-speaker polish (#4494).
+# Sign-in/sign-up (#4375): draft translations, pending native-speaker polish (#4494).
 authenticate.welcome.back = Welkom terug
 authenticate.join = Doe mee met Project Sidewalk
 authenticate.tagline = Breng trottoirs in kaart. Help je stad toegankelijk te maken voor iedereen.
@@ -548,6 +554,14 @@ gallery.tags = Tags
 gallery.all = Alle labeltypen
 gallery.labels.not.found = Geen overeenkomsten. <a href="/explore">Begin met verkennen</a> om meer data bij te dragen!
 gallery.cards = Labels worden willekeurig gesorteerd op basis van geselecteerde filters
+gallery.cards.sorted = Labels worden gesorteerd op "{0}" op basis van geselecteerde filters
+gallery.sort.by = Sorteren op
+gallery.sort.random = Willekeurig
+gallery.sort.newest = Nieuwste eerst
+gallery.sort.oldest = Oudste eerst
+gallery.sort.most.severe = Ernstigste eerst
+gallery.sort.least.severe = Minst ernstige eerst
+gallery.sort.most.disputed = Meest betwiste eerst
 gallery.clear.filters = Filters Wissen
 gallery.list.count = {0,choice,1#1 label|1<{0} labels} in deze lijst
 gallery.list.truncated = {0,choice,1#1 id lag boven de limiet van {1} en kon niet worden geladen.|1<{0} ids lagen boven de limiet van {1} en konden niet worden geladen.}
@@ -652,7 +666,7 @@ sharedlabel.stat.labels = labels
 sharedlabel.stat.validations = validaties
 sharedlabel.stat.miles = mijl verkend
 sharedlabel.legend.title = Wat deze labels betekenen
-# Redesigned user dashboard, leaderboard, settings, and public profile (#4323, #4475).
+# User dashboard, leaderboard, settings, and public profile (#4323, #4475).
 dashboard.title = Je dashboard
 dashboard.you = Jij
 dashboard.hero.greeting = Welkom terug, {0} 👋
@@ -846,6 +860,16 @@ leaderboard.thisweek.none = ✨ Nog geen labels deze week — wees de eerste op 
 leaderboard.teams.title = Teams in {0}
 leaderboard.teams.intro = Maak een team aan of sluit je aan om samen het verschil te maken!
 leaderboard.teams.none = 👥 Nog geen teams — wees de eerste! Maak er een aan en nodig vrienden of klasgenoten uit.
+leaderboard.myteam.title = Jouw team: {0}
+leaderboard.myteam.intro = Zo sta je ervoor ten opzichte van je teamgenoten in {0}.
+leaderboard.myteam.none = 👥 Nog niemand van je team staat in het klassement.
+leaderboard.myteam.you.hidden = Je staat er niet bij omdat je „{0}” hebt uitgezet.
+leaderboard.myteam.you.settings = Wijzig dit in Instellingen
+leaderboard.myteam.you.nolabels = Je verschijnt hier zodra je je eerste label plaatst.
+leaderboard.myteam.pager = Pagina''s van het teamklassement
+leaderboard.myteam.prev = ‹ Vorige
+leaderboard.myteam.next = Volgende ›
+leaderboard.myteam.page = Pagina {0} van {1}
 leaderboard.allcities.title = Alle steden, aller tijden
 leaderboard.allcities.intro = De beste deelnemers uit alle Project Sidewalk-steden, gerangschikt op het totale aantal labels.
 leaderboard.allcities.note = De afstand wordt één keer per dag bijgewerkt.

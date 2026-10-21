@@ -151,7 +151,7 @@ class ExploreRoutePauseSpec
   ): ExplorePageData = await(
     exploreService.getDataForExplorePage(userId, retakingTutorial = false, newRegion = false, routeId = routeId,
       resumeRoute = resumeRoute, regionId = regionId, streetEdgeId = streetEdgeId)
-  )
+  ).getOrElse(fail("Every region is finished, so there was no session to serve."))
 
   private def walksFor(userId: String): Seq[UserRoute] =
     run(userRoutes.filter(_.userId === userId).sortBy(_.userRouteId).result)

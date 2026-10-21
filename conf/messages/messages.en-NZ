@@ -36,7 +36,7 @@ share.meta.image.alt = Street-level photo with the {0} location marked
 
 # Public single-label spotlight / share page (#456).
 
-# Redesigned user dashboard + leaderboard (#4475): NZ dialect overrides only.
+# User dashboard and leaderboard (#4475): NZ dialect overrides only.
 dashboard.hero.headline = You''ve placed <strong>{0} labels</strong> in {1}, making footpaths more accessible.
 dashboard.hero.sub = Every label helps make footpaths better.
 dashboard.trophy.intro = Trophies you''ve earned for pioneering neighbourhoods, topping them, and placing on the weekly board.
@@ -52,3 +52,4 @@ leaderboard.intro.you = Every label makes footpaths more accessible and safe for
 # Community listing pages: /stories and /routes (#4688).
 community.page.sort.region = Neighbourhood
 stories.page.intro = Personal stories that community members have attached to footpath labels — real accounts of how accessibility barriers and features affect people''s lives.
+audit.all.regions.finished.title = You''ve explored every neighbourhood in {0}!

@@ -26,8 +26,8 @@ CSV_FILENAME=${2:-$(prompt_with_default \
     "Path to CSV file (relative to db dir, e.g. onboarding/newport-ky/streets_with_no_imagery.csv)")}
 CSV_FILENAME=/opt/$CSV_FILENAME
 if [[ ! -f "$CSV_FILENAME" ]]; then
-    echo "Error: CSV not found at $CSV_FILENAME. Generate it with check_streets_for_imagery.py first." >&2
-    exit 1
+  echo "Error: CSV not found at $CSV_FILENAME. Generate it with check_streets_for_imagery.py first." >&2
+  exit 1
 fi
 
 # Read list of streets to hide from CSV file.

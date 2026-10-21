@@ -4,7 +4,7 @@
   "explore-street-link": "<a href='/explore?streetEdgeId={{streetId}}' class='street-selection-trigger' streetId='{{streetId}}'>Klik hier</a> om de straat te verkennen!",
   "distance-progress": "{{done, distance(style: small; unit: false)}}/{{total, distance(style: small)}}",
   "distance-large": "{{dist}} {{unitAbbr}}",
-  "speed-limit-tooltip": "Als je de <b>maximumsnelheid</b> van een straat kent, kun je de veiligheid voor voetgangers beter inschatten, bijvoorbeeld of het <b>veilig</b> is om over te steken op een ongeregeld kruispunt.",
+  "speed-limit-tooltip": "Als je de maximumsnelheid van een straat kent, kun je de veiligheid voor voetgangers beter inschatten, bijvoorbeeld of het veilig is om over te steken op een ongeregeld kruispunt.",
   "speed-limit-aria-label": "Maximumsnelheid {{speed}} {{units}}",
   "format-number": "{{val, number}}",
   "cities-cta-join_one": "Sluit u aan bij nog {{count, number}} gemeenschap",
@@ -360,7 +360,8 @@
     "via-email": "Delen via e-mail"
   },
   "mini-card": {
-    "no-image": "Geen afbeelding",
+    "image-unavailable": "Afbeelding niet beschikbaar",
+    "image-coming": "Afbeelding volgt binnenkort!",
     "open": "Dit label openen: {{label}}",
     "votes": "Dit label valideren",
     "no-image-to-judge": "Geen afbeelding om dit label op te beoordelen",

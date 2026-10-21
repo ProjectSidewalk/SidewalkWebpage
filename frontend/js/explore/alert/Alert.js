@@ -1,3 +1,5 @@
+import i18next from 'i18next';
+
 /** @typedef {import('./AlertController.js').AlertController} AlertController */
 
 /**

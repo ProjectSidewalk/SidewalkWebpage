@@ -5,23 +5,11 @@
  * decide whether a row reads as healthy: an unrecognized status must not render green, a hand-triggered run must sit
  * beside the schedule's record rather than replace it, an empty panel is a failed read rather than a quiet night, and
  * the rows sort worst-first because on a healthy night every row says the same thing.
- *
- * Runs under jsdom (jest.config.js). HealthPage and AdminShell are bare top-level classes in a concatenated bundle,
- * so they are eval'd into global scope rather than required.
  */
 
-const { loadModules, realUtil } = require('./loadGlobalScript');
+import { loadModules } from './loader.js';
 
-// The page fetches through util.fetchJson.
-window.util = realUtil();
-
-
-/** Loads AdminShell into global scope and returns the HealthPage class. */
-function loadPage() {
-  return loadModules('frontend/js/admin-dashboard/HealthPage.js').HealthPage;
-}
-
-const HealthPage = loadPage();
+const { HealthPage } = await loadModules('frontend/js/admin-dashboard/HealthPage.js');
 
 const MARKUP = `
   <span id="kpi-locks"></span><span id="kpi-idle"></span><span id="kpi-slow"></span>
@@ -76,7 +64,7 @@ function job(overrides = {}) {
 /** Renders the panel for a set of job rows and returns the page's DOM. */
 async function render(jobs) {
   document.body.innerHTML = MARKUP;
-  global.fetch = jest.fn().mockResolvedValue({
+  window.fetch = vi.fn().mockResolvedValue({
     ok: true,
     status: 200,
     json: async () => ({
@@ -96,7 +84,7 @@ async function render(jobs) {
     }),
   });
   // init() also starts poll and age tickers; stub them so jsdom isn't left with live intervals.
-  jest.spyOn(global, 'setInterval').mockImplementation(() => 0);
+  vi.spyOn(window, 'setInterval').mockImplementation(() => 0);
   await new HealthPage({ healthUrl: '/adminapi/dbHealth' }).init();
 }
 
@@ -105,10 +93,6 @@ function rows() {
   return [...document.querySelectorAll('#health-jobs tbody tr')]
     .map((tr) => [...tr.cells].map((td) => td.textContent.replace(/\s+/g, ' ').trim()));
 }
-
-afterEach(() => {
-  jest.restoreAllMocks();
-});
 
 describe('the nightly jobs panel', () => {
   test('renders a row per job with its schedule, duration and recorded counts', async () => {

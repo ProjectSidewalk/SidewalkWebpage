@@ -10,6 +10,7 @@ import { MistakeGallery } from '../../user-dashboard/MistakeGallery.js';
 import { StoriesSection } from '../../user-dashboard/StoriesSection.js';
 import '../../user-dashboard/TeamActions.js';
 import { loadContributionMap } from '../../user-dashboard/contributionMap.js';
+import '../../../css/components/map-frame.css';
 
 const data = document.getElementById('page-entry').dataset;
 const adminView = data.adminView === 'true';
