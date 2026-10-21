@@ -591,12 +591,21 @@ plumbed through both this app's config *and* the deployment tooling, or it will 
 
 | Group | Variables (names only) |
 |-------|------------------------|
-| **Database** | `DATABASE_USER`, `DATABASE_PASSWORD`, `DATABASE_DB`, `DATABASE_URL` |
+| **Database** | `DATABASE_USER`, `DATABASE_PASSWORD`, `DATABASE_DB`, `DATABASE_URL`, `DB_POOL_SIZE`, `DB_MIN_CONNECTIONS` (both optional, see below) |
 | **Environment / city** | `ENV_TYPE`, `SIDEWALK_CITY_ID`, the media storage directories ([above](#directories-that-must-survive-a-deploy)) |
 | **App secrets** | `SIDEWALK_APPLICATION_SECRET`, `SILHOUETTE_SIGNER_KEY`, `SILHOUETTE_CRYPTER_KEY` |
 | **Email** | `SIDEWALK_EMAIL_ADDRESS`, `SIDEWALK_EMAIL_PASSWORD` |
 | **Imagery / maps** | `GOOGLE_MAPS_API_KEY`, `GOOGLE_MAPS_SERVER_KEY` (unset or blank falls back to the browser key), `GOOGLE_MAPS_SECRET`, `MAPBOX_API_KEY`, `MAPILLARY_ACCESS_TOKEN`, Infra3d client id/secret (including per-city credentials) |
 | **Other integrations** | `GEMINI_API_KEY`, `SCISTARTER_API_KEY`, `INTERNAL_API_KEY`, `SIDEWALK_AI_API_KEY` (the AI server's password; unset means every AI validation and tag suggestion fails), `GA_SERVICE_ACCOUNT_KEY` (Google Analytics reader — unset just disables the admin traffic reporting) |
+
+**Per-city connection pool.** Every city is a separate JVM with its own connection pool, and all of them share one
+Postgres whose connection slots are far fewer than the sum of the pools (see
+[#5238](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/5238)). `DB_POOL_SIZE` (the pool's maximum, and
+Slick's thread count, which must match it) and `DB_MIN_CONNECTIONS` (connections held open while idle) override the
+`conf/application.conf` defaults for one city. Set them lower for dormant or finished-study cities, whose few requests
+come mostly from the public API, but keep `DB_POOL_SIZE` at 3 or more there: a single API download holds a connection
+for its whole stream, so a pool of 1 or 2 makes a second concurrent request wait. The **Connections** panel on
+`/admin/health` shows cluster-wide slot headroom and each city's connections against its own pool ceiling.
 
 > If this table drifts from reality, the authoritative sources are `conf/application.conf` (+ the stage overlays) in
 > this repo and the deployment tooling in the IT ops repo.
