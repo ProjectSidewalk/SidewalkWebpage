@@ -47,6 +47,9 @@ class HealthTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
   private given getConnCount: GetResult[ConnCount] =
     r => ConnCount(r.nextStringOption(), r.nextStringOption(), r.nextInt())
 
+  private given grConnSlotSettings: GetResult[ConnSlotSettings] =
+    r => ConnSlotSettings(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt())
+
   private given grPanoBackupStats: GetResult[PanoBackupStats] = { r =>
     PanoBackupStats(r.nextLong(), r.nextLong(), r.nextLong(), r.nextLong(), r.nextLong())
   }
@@ -252,6 +255,25 @@ class HealthTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
       GROUP BY usename, state
       ORDER BY cnt DESC
     """.as[ConnCount]
+  }
+
+  /**
+   * The server's connection-slot ceiling and how many client backends hold a slot right now, across the whole cluster
+   * (#5238). Every city's pool and both databases on the cluster (`sidewalk_prod`, `sidewalk_dc`) draw from the one
+   * `max_connections`, so unlike [[getConnectionCounts]] this deliberately has no `datname` filter: running out of
+   * slots refuses connections to every city at once, whichever database caused it.
+   *
+   * Readable by any role: `current_setting` needs no privilege, and `pg_stat_activity` shows every row to every role,
+   * redacting only the text columns, so the count is exact. `reserved_connections` arrived in PG 16, so it is read with
+   * `missing_ok` and counts as 0 on an older server.
+   */
+  def getConnectionSlotSettings: DBIO[ConnSlotSettings] = bounded {
+    sql"""
+      SELECT current_setting('max_connections')::int,
+             current_setting('superuser_reserved_connections')::int,
+             COALESCE(NULLIF(current_setting('reserved_connections', true), ''), '0')::int,
+             (SELECT count(*)::int FROM pg_stat_activity WHERE backend_type = 'client backend')
+    """.as[ConnSlotSettings].head
   }
 
   /**

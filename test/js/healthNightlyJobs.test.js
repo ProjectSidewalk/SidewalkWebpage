@@ -35,6 +35,8 @@ const THRESHOLDS = {
   conn_pool_max: 25,
   conn_warn_active: 17,
   conn_bad_active: 22,
+  conn_slots_warn_ratio: 0.7,
+  conn_slots_bad_ratio: 0.9,
   job_overdue_hours: 36,
   job_window_days: 7,
 };
