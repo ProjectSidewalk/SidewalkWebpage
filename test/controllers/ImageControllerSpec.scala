@@ -55,6 +55,7 @@ class ImageControllerSpec extends SidewalkSpec with AnonSession with GuiceOneApp
   // Far outside the range of any real label id, so writing a crop here can't clobber one.
   private val syntheticLabelId      = Int.MaxValue - 4726
   private val otherSyntheticLabelId = Int.MaxValue - 4727
+  private val movedSyntheticLabelId = Int.MaxValue - 4728
   private val labelType             = "CurbRamp"
 
   /** A real PNG of the given size as the `data:` URL the canvas sends; the controller decodes and re-encodes it. */
@@ -272,6 +273,25 @@ class ImageControllerSpec extends SidewalkSpec with AnonSession with GuiceOneApp
       message must include(panoId)
       // The store sharded by the pano id's first two characters, which is where someone restoring a backup must look.
       message must include(panoDataService.backupImageDir(panoId).getAbsolutePath)
+    }
+
+    "stay silent when a type change has moved the crop, since the bytes still exist under the new type" in {
+      // LabelEditService moves a crop when its label changes type (#3671), so a URL signed for the old type misses
+      // while the file is intact. Its own id, for the same dedup reason as the case below.
+      val session = freshAnonSession()
+      try {
+        status(postCrop(session, movedSyntheticLabelId)) mustBe OK
+        val url = panoDataService.cropUrl(movedSyntheticLabelId, LabelType.CurbRamp).value
+        panoDataService.moveCrop(movedSyntheticLabelId, LabelType.CurbRamp, LabelType.NoCurbRamp) mustBe true
+
+        val events = capturedLoss {
+          status(route(app, FakeRequest(GET, url).withCookies(session*)).get) mustBe NOT_FOUND
+        }
+        events mustBe empty
+      } finally {
+        cleanUp(movedSyntheticLabelId)
+        val _ = panoDataService.cropFile(movedSyntheticLabelId, LabelType.NoCurbRamp.name).delete()
+      }
     }
 
     "stay silent when the crop is where it should be, so the log holds losses and nothing else" in {
