@@ -2,13 +2,16 @@
  * The Explore re-audit notice (#4895): which tasks earn the "this street has newer imagery" toast, which of the four
  * wordings it picks, that it shows once per street, and what it logs.
  *
- * The notice needs only the task payload, so no request is stubbed.
+ * The notice needs only the task payload, so no request is stubbed. The second block loads the real `Toast` with fake
+ * timers, because the fix for #5472 lives in how the notice drives Toast's per-anchor queue: a notice raised for a
+ * street the labeler is moved off before its turn is retired unseen, and only a toast that reached the screen counts
+ * as the street's one announcement.
  *
  * `util.monthYear` is loaded for real rather than stubbed: the month wording is half of what these assertions check,
  * and a stub would let the shared formatter drift from what the toast actually prints (#5413).
  */
 
-import { loadModules, mockModule } from './loader.js';
+import { loadModules, mockModule, unmockModule } from './loader.js';
 import { fakeTracker } from './fakes.js';
 
 mockModule('i18next', () => ({ default: {
@@ -40,7 +43,12 @@ describe('ReauditNotice.showForTask', () => {
 
   beforeEach(() => {
     tracker = fakeTracker();
-    toast.show = vi.fn();
+    // Stands in for a toast that mounts at once: `onShow` fires inside show(), as the real Toast does when its anchor
+    // is free, and the handle the notice keeps is a spy.
+    toast.show = vi.fn((opts) => {
+      opts.onShow?.();
+      return { dismiss: vi.fn() };
+    });
     document.body.innerHTML = '<div id="pano"></div>';
   });
 
@@ -120,5 +128,113 @@ describe('ReauditNotice.showForTask', () => {
     expect(notice.showForTask(makeTask(7, REAUDIT_BY_ME))).toBe(false);
     expect(notice.showForTask(makeTask(8, REAUDIT_BY_ME))).toBe(true);
     expect(toast.show).toHaveBeenCalledTimes(2);
+  });
+
+  test('a street switch retires the previous notice, and a repeat hand-over of the same street does not', () => {
+    const notice = new ReauditNotice({ onCurrentTaskChanged: () => {} }, tracker);
+    notice.showForTask(makeTask(7, REAUDIT_BY_ME));
+    const handle = toast.show.mock.results[0].value;
+
+    // Same street again (a re-render, a jump resolving to the current street): the toast stands.
+    expect(notice.showForTask(makeTask(7, REAUDIT_BY_ME))).toBe(false);
+    expect(handle.dismiss).not.toHaveBeenCalled();
+
+    // Any other street, re-audit or not, retires it.
+    expect(notice.showForTask(makeTask(8, { needsReaudit: false }))).toBe(false);
+    expect(handle.dismiss).toHaveBeenCalledTimes(1);
+  });
+
+  test('hears every hand-over through the task container, so a plain street retires a re-audit notice', () => {
+    // The retirement rides on the container's listener firing for every setCurrentTask, re-audit street or not; if
+    // the subscription ever filtered, a toast would outlive the street it describes.
+    let onChanged;
+    const notice = new ReauditNotice({ onCurrentTaskChanged: (listener) => { onChanged = listener; } }, tracker);
+    notice.showForTask(makeTask(7, REAUDIT_BY_ME));
+    const handle = toast.show.mock.results[0].value;
+
+    onChanged(makeTask(8, { needsReaudit: false }));
+    expect(handle.dismiss).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('ReauditNotice with Toast\'s queue (#5472)', () => {
+  let Toast;
+  let notice;
+  let tracker;
+  let pano;
+
+  /** A re-audit street whose toast is recognisable on screen: its "last mapped" year is 2000 + the street id. */
+  const reauditTask = (streetEdgeId) =>
+    makeTask(streetEdgeId, { ...REAUDIT_BY_ME, lastMappedAt: `${2000 + streetEdgeId}-06-14T18:20:00Z` });
+
+  /** The message text of each toast on screen, in DOM order. */
+  const onScreen = () => [...document.querySelectorAll('.ps-toast')]
+    .map((el) => el.querySelector('.ps-toast__message').textContent);
+
+  /** Street ids logged as shown, in order. */
+  const shownIds = () => tracker.push.mock.calls
+    .filter(([event]) => event === 'ReauditToast_Shown').map(([, notes]) => notes.streetEdgeId);
+
+  /** What Main.js raises after the mission-start screen before the first re-audit notice: 10 s on the pano. */
+  const showResumeToast = () => Toast.show({ message: 'resume', reference: pano, dark: true, duration: 10000 });
+
+  beforeEach(async () => {
+    vi.useFakeTimers();
+    tracker = fakeTracker();
+    document.body.innerHTML = '<div id="pano"></div>';
+    pano = document.getElementById('pano');
+    // The block above fakes Toast for the whole file; the real one must load alongside the notice (one registry, so
+    // both see the same queue), and the fake comes back for any later load.
+    unmockModule('frontend/js/common/Toast.js');
+    const mods = await loadModules('frontend/js/common/Toast.js', 'frontend/js/explore/alert/ReauditNotice.js');
+    mockModule('frontend/js/common/Toast.js', () => ({ Toast: toast }));
+    Toast = mods.Toast;
+    notice = new mods.ReauditNotice({ onCurrentTaskChanged: () => {} }, tracker);
+  });
+
+  test('a notice queued for a street the labeler is moved off before its turn is dropped, not marked shown', () => {
+    showResumeToast();
+    expect(notice.showForTask(reauditTask(7))).toBe(true);
+    expect(onScreen()).toEqual(['resume']);
+
+    // Moved on before the resume toast is done (a street with no imagery, say).
+    notice.showForTask(makeTask(8, { needsReaudit: false }));
+    vi.advanceTimersByTime(10000 + Toast.FADE_MS);
+
+    expect(onScreen()).toEqual([]);
+    expect(shownIds()).toEqual([]);
+    // Back on 7 later: still un-announced, so it gets its notice.
+    expect(notice.showForTask(reauditTask(7))).toBe(true);
+    expect(onScreen()).toEqual(['right-ui.reaudit.message-you|June 2007|March 2025']);
+    expect(shownIds()).toEqual([7]);
+  });
+
+  test('a run of skipped re-audit streets behind a live toast yields one toast, for the street reached', () => {
+    showResumeToast();
+    for (const id of [1, 2, 3, 4]) notice.showForTask(reauditTask(id));
+    notice.showForTask(reauditTask(5));
+    vi.advanceTimersByTime(10000 + Toast.FADE_MS);
+
+    expect(onScreen()).toEqual(['right-ui.reaudit.message-you|June 2005|March 2025']);
+    expect(document.querySelectorAll('[role="status"]')).toHaveLength(1);
+    expect(shownIds()).toEqual([5]);
+    // Nothing else is waiting: the run's toasts are gone, not queued.
+    vi.advanceTimersByTime(ReauditNotice.DURATION_MS + Toast.FADE_MS);
+    expect(onScreen()).toEqual([]);
+  });
+
+  test('a run of skipped re-audit streets with no toast live ends with only the reached street\'s toast', () => {
+    // Mid-session with the anchor free, the first skipped street's toast mounts at once and is then retired.
+    notice.showForTask(reauditTask(1));
+    expect(onScreen()).toEqual(['right-ui.reaudit.message-you|June 2001|March 2025']);
+    for (const id of [2, 3, 4]) notice.showForTask(reauditTask(id));
+    notice.showForTask(reauditTask(5));
+    // Street 1's toast is fading; 5's is waiting for the anchor; 2-4 are gone.
+    vi.advanceTimersByTime(Toast.FADE_MS);
+
+    expect(onScreen()).toEqual(['right-ui.reaudit.message-you|June 2005|March 2025']);
+    expect(shownIds()).toEqual([1, 5]);
+    vi.advanceTimersByTime(ReauditNotice.DURATION_MS + Toast.FADE_MS);
+    expect(onScreen()).toEqual([]);
   });
 });

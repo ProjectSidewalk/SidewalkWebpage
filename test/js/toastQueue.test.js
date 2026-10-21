@@ -104,4 +104,30 @@ describe('Toast queueing', () => {
     elapse(1000);
     expect(mountedMessages()).toEqual(['second']);
   });
+
+  it('calls onShow at once for a toast that mounts, and only when a queued one gets its turn', () => {
+    const first = vi.fn();
+    const second = vi.fn();
+    Toast.show({ message: 'first', reference: anchorA, duration: 1000, onShow: first });
+    Toast.show({ message: 'second', reference: anchorA, duration: 1000, onShow: second });
+
+    expect(first).toHaveBeenCalledTimes(1);
+    expect(second).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(1000);
+    expect(second).not.toHaveBeenCalled(); // Still fading: the spot is not free yet.
+    vi.advanceTimersByTime(Toast.FADE_MS);
+    expect(second).toHaveBeenCalledTimes(1);
+  });
+
+  it('never calls onShow for a toast dismissed while queued', () => {
+    const onShow = vi.fn();
+    Toast.show({ message: 'first', reference: anchorA, duration: 1000 });
+    const cancelled = Toast.show({ message: 'cancelled', reference: anchorA, duration: 1000, onShow });
+
+    cancelled.dismiss();
+    elapse(1000);
+
+    expect(onShow).not.toHaveBeenCalled();
+    expect(mounted()).toHaveLength(0);
+  });
 });
