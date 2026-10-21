@@ -119,7 +119,8 @@ trait StreetAccessScoreTableRepository {
    * The lists are cut the way `service.AccessScoreSpotlight.split` cuts a region list: with `n` or more ranked,
    * `top` is the best of those scoring at least `highestMinScore` and `bottom` the worst of those under
    * `lowestMaxScore`, each as short as that leaves it; with fewer than `n` ranked (and `sparseRule` on), `top` is
-   * every ranked stretch and `bottom` is empty.
+   * every ranked stretch and `bottom` is empty. `total` and `qualifying` count only stretches in live (non-deleted)
+   * regions, the same rows the lists are drawn from.
    *
    * @param n               How many rows each list holds.
    * @param minLengthM      The length floor a stretch must clear to be ranked.
@@ -183,7 +184,9 @@ class StreetAccessScoreTable @Inject() (protected val dbConfigProvider: Database
 
     // A stretch is ranked once it has been explored, is long enough for a score to describe anything, and either
     // carries enough labeled evidence or carries none at all -- the "somebody walked it and found nothing" case.
-    // This WHERE is the rule; the constants it binds are `service.AccessScoreSpotlight`'s.
+    // This WHERE is the rule; the constants it binds are `service.AccessScoreSpotlight`'s. The count and the ranked
+    // lists must be cut from the same rows, or a stretch in a soft-deleted region is counted and never listed and a
+    // feed reports a `qualifying` it cannot show (#5454). Same join as `ranked`.
     val counts = sql"""
       SELECT COUNT(*),
              COUNT(*) FILTER (
@@ -194,7 +197,9 @@ class StreetAccessScoreTable @Inject() (protected val dbConfigProvider: Database
              ),
              MAX(street_access_score.computed_at)
       FROM #$scores AS street_access_score
+      INNER JOIN #$regions AS region ON street_access_score.region_id = region.region_id
       WHERE street_access_score.computed_at = (SELECT MAX(computed_at) FROM #$scores)
+        AND region.deleted = FALSE
     """.as[(Int, Int, Option[java.sql.Timestamp])].head
 
     // `direction` is a literal this file supplies, never a request value. The score band is [minScore, maxScore),

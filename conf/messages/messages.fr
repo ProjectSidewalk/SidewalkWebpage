@@ -266,6 +266,7 @@ landing.how.you.help.assess = ÉVALUER LA GRAVITÉ
 landing.validate.title = Validez ce que d''autres ont trouvé
 landing.validate.content = Commencez à aider en quelques secondes : vérifiez les étiquettes récentes que des bénévoles ont placées à {0} et dites-nous s''ils ont vu juste.
 landing.spotlight.title = Où les trottoirs de {0} obtiennent les meilleures et les pires notes
+landing.spotlight.title-ask = Aidez les premiers quartiers de {0} à obtenir une note de trottoirs
 landing.choropleth.title = Choisissez un quartier
 landing.choropleth.content = Choisissez un quartier à explorer ci-dessous, ou cliquez sur le bouton <a href="/explore">« Explorer »</a> et un quartier vous sera attribué automatiquement !
 landing.choropleth.legend = Pourcentage du quartier terminé
