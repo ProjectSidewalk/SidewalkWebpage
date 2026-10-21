@@ -163,7 +163,7 @@ object PanoDataService {
       apiKey
     )
 
-  // Explore's svl.STREETVIEW_MAX_DISTANCE: how far from a point a pano may sit and still count as imagery of it.
+  // The frontend's PanoViewer.SEARCH_RADIUS_M: how far from a point a pano may sit and still count as imagery of it.
   val GsvSearchRadiusMeters: Int = 25
 
   /**
