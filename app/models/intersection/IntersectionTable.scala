@@ -359,7 +359,7 @@ object IntersectionTable {
       |),
       |way_layer AS (
       |    SELECT member.node_group,
-      |           COALESCE(osm_way_street_edge.osm_way_id, -member.street_edge_id) AS way_key,
+      |           COALESCE(way_at_end.osm_way_id, -member.street_edge_id) AS way_key,
       |           COUNT(*) AS edges_at_node,
       |           CASE WHEN osm_way.missing_since IS NOT NULL AND osm_way.tags = '{}'::jsonb THEN NULL
       |                WHEN osm_way.tags ->> 'layer' ~ '^-?[0-9]+$' THEN (osm_way.tags ->> 'layer')::INTEGER
@@ -367,8 +367,12 @@ object IntersectionTable {
       |                WHEN COALESCE(osm_way.tags ->> 'tunnel', 'no') <> 'no' THEN -1
       |                ELSE 0 END AS layer
       |    FROM member
-      |    LEFT JOIN osm_way_street_edge ON member.street_edge_id = osm_way_street_edge.street_edge_id
-      |    LEFT JOIN osm_way ON osm_way_street_edge.osm_way_id = osm_way.osm_way_id
+      |    -- The way at the end that meets the node, since a street can change way along its length (#5741).
+      |    LEFT JOIN LATERAL (
+      |        SELECT osm_way_at_fraction(member.street_edge_id, CASE member.street_end WHEN 'start' THEN 0 ELSE 1 END)
+      |               AS osm_way_id
+      |    ) way_at_end ON TRUE
+      |    LEFT JOIN osm_way ON way_at_end.osm_way_id = osm_way.osm_way_id
       |    GROUP BY member.node_group, way_key, layer
       |),
       |node_grade AS (

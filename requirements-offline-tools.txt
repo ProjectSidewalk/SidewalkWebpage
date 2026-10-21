@@ -10,9 +10,9 @@
 # Self-contained rather than layered on requirements.txt: the two target different interpreters, so no shared pin.
 pandas==3.0.6
 requests==2.34.2
-shapely==2.1.2
+shapely==2.2.0
 geopy==2.5.0
-tenacity==9.1.4
+tenacity==9.2.1
 tqdm==4.70.1
 
 # onboard_city.py's geo stack.

@@ -1,5 +1,8 @@
 /** @typedef {import('./pano-viewer/PanoViewer.js').PanoViewer} PanoViewer */
 
+import * as turf from '@turf/turf';
+import i18next from 'i18next';
+
 /**
  * An indicator that displays the speed limit of the current position's nearest road.
  *
@@ -85,7 +88,7 @@ export class SpeedLimit {
   /**
    * Points the sign at whichever viewer is active now and updates the value it shows.
    *
-   * Validate swaps `svv.panoViewer` between the primary viewer and Pannellum as labels come and go, and the viewer
+   * Validate swaps its active viewer between the primary viewer and Pannellum as labels come and go, and the viewer
    * that isn't showing fires nothing — so a subscription made once at construction goes quiet for the rest of the
    * mission as soon as the tool switches away from that viewer (#4828). Callers that change which pano is on screen
    * call this; repeated calls are cheap, since each viewer is subscribed at most once.
@@ -120,7 +123,7 @@ export class SpeedLimit {
     // The sign is marked role="img", so its number/units spans don't carry their own meaning to a screen reader.
     // Name the graphic with the value folded in. Only worth doing while visible: display:none keeps the sign out of
     // the accessibility tree, and the first call runs before i18next has initialized.
-    if (this.speedLimitVisible && typeof i18next !== 'undefined' && i18next.isInitialized) {
+    if (this.speedLimitVisible && i18next.isInitialized) {
       this.container.setAttribute('aria-label', i18next.t('common:speed-limit-aria-label', {
         speed: this.speedLimit.number,
         units: this.speedLimit.sub,

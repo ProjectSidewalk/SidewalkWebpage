@@ -1,10 +1,6 @@
 /**
  * Represents a single region the user is auditing.
- *
- * @memberof svl
  */
-
-import { svl } from '../svl.js';
 
 export class Region {
   #properties = {
@@ -21,30 +17,6 @@ export class Region {
       this.regionId = parameters.regionId; // Exposed publicly for debugging in the console.
     }
     if ('name' in parameters) this.setProperty('name', parameters.name);
-  }
-
-  /**
-   * @param {object} [unit] - Turf-style units object; defaults to kilometers.
-   * @returns {?number} Distance the user has completed in this region, or null if unavailable.
-   */
-  completedLineDistance(unit) {
-    if (!unit) unit = { units: 'kilometers' };
-    if ('taskContainer' in svl && svl.taskContainer) {
-      return svl.taskContainer.getCompletedTaskDistance(unit);
-    } else {
-      return null;
-    }
-  }
-
-  /**
-   * @returns {?number} Completed distance across all users (using priority), or null if unavailable.
-   */
-  allUsersCompletedLineDistance() {
-    if ('taskContainer' in svl && svl.taskContainer) {
-      return svl.taskContainer.getAllUsersCompletedTaskDistance();
-    } else {
-      return null;
-    }
   }
 
   /**

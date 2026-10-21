@@ -107,6 +107,14 @@ case class TeamTotals(
 case class TeamOverview(team: Team, members: Seq[TeamMemberStats], totals: TeamTotals)
 
 /**
+ * The leaderboard's "Your team" table (#5762).
+ *
+ * @param members Teammates who qualify for the leaderboard, ranked.
+ * @param viewerOptedOut True when the viewer turned off "show me on the leaderboard", which is why they aren't listed.
+ */
+case class TeamBoard(team: Team, members: Seq[LeaderboardStat], viewerOptedOut: Boolean)
+
+/**
  * A user's accuracy for one label type, for the dashboard's learning section.
  *
  * @param labelType   LabelType name (e.g. "NoCurbRamp").
@@ -522,13 +530,18 @@ trait UserService {
    */
   def searchUsers(query: String, limit: Int): Future[Seq[UserSearchResult]]
   def createTeam(name: String, description: String): Future[Int]
-  def getLeaderboardStats(
-      n: Int,
-      timePeriod: String = "overall",
-      byTeam: Boolean = false,
-      userIdForTeam: Option[String] = None
-  ): Future[Seq[LeaderboardStat]]
+
+  /**
+   * @param n The most rows to return.
+   * @param timePeriod Either "overall" or "weekly".
+   * @param byTeam True to rank teams against each other instead of users.
+   * @return The ranked rows, best first.
+   */
+  def getLeaderboardStats(n: Int, timePeriod: String = "overall", byTeam: Boolean = false): Future[Seq[LeaderboardStat]]
   def getUserStanding(userId: String): Future[Option[UserStanding]]
+
+  /** @return The viewer's team table, or None when they aren't on a team. */
+  def getTeamBoard(userId: String): Future[Option[TeamBoard]]
 
   /**
    * Gets the all-time global leaderboard: top contributors by labels summed across every included city (#3719).
@@ -886,17 +899,11 @@ class UserServiceImpl @Inject() (
   def getLeaderboardStats(
       n: Int,
       timePeriod: String = "overall",
-      byTeam: Boolean = false,
-      userIdForTeam: Option[String] = None
+      byTeam: Boolean = false
   ): Future[Seq[LeaderboardStat]] = {
     db.run(for {
-      // If we are only showing the leaderboard for the user's team, get the teamId.
-      teamId: Option[Int] <- userIdForTeam match {
-        case Some(userId) => userTeamTable.getTeam(userId).map(_.map(_.teamId))
-        case None         => DBIO.successful(None)
-      }
       streetDist: Double          <- streetService.getTotalStreetDistanceDBIO
-      stats: Seq[LeaderboardStat] <- userStatTable.getLeaderboardStats(n, timePeriod, byTeam, teamId, streetDist)
+      stats: Seq[LeaderboardStat] <- userStatTable.getLeaderboardStats(n, timePeriod, byTeam, None, streetDist)
     } yield stats)
   }
 
@@ -1019,6 +1026,20 @@ class UserServiceImpl @Inject() (
    * Computes this week's standing (with a neighbor slice) and last week's rank in one round trip, then sets `delta`
    * to `lastWeekRank - thisWeekRank` (positive = climbed). `delta` is `None` if the user wasn't ranked last week.
    */
+  def getTeamBoard(userId: String): Future[Option[TeamBoard]] = {
+    db.run(userTeamTable.getTeam(userId).flatMap {
+      case None       => DBIO.successful(None)
+      case Some(team) =>
+        for {
+          streetDist <- streetService.getTotalStreetDistanceDBIO
+          // The whole team rather than a top 10, so everyone in a class can find themselves; the page pages it.
+          members <- userStatTable
+            .getLeaderboardStats(Int.MaxValue, teamId = Some(team.teamId), streetDistance = streetDist)
+          privacy <- userStatTable.getPrivacySettings(userId)
+        } yield Some(TeamBoard(team, members, viewerOptedOut = privacy.exists(!_._1)))
+    })
+  }
+
   def getUserStanding(userId: String): Future[Option[UserStanding]] = {
     db.run(for {
       thisWeek <- userStatTable.getUserStanding(userId, "weekly", n = 2)
@@ -1029,7 +1050,7 @@ class UserServiceImpl @Inject() (
   def getActivityStreak(userId: String, locale: Locale = Locale.ENGLISH): Future[StreakStats] = {
     db.run(userStatTable.getActivityDayCounts(userId)).map { rows =>
       val counts = rows.map { case (day, count) => LocalDate.parse(day) -> count }.toMap
-      UserService.computeStreakStats(counts, LocalDate.now(ZoneId.of("US/Pacific")), locale)
+      UserService.computeStreakStats(counts, LocalDate.now(ZoneId.of("America/Los_Angeles")), locale)
     }
   }
 

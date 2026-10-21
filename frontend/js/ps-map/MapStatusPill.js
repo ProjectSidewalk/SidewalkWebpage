@@ -1,3 +1,5 @@
+import i18next from 'i18next';
+
 /**
  * Small non-blocking status pill for viewport label loading (#5002): "zoom in to see labels" when the zoom floor
  * is holding fetches back, and a brief "loading" note during refetches. The full-map MapLoadingOverlay owns the

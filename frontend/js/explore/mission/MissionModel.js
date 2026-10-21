@@ -2,17 +2,26 @@
  * Holds and triggers mission-related pub/sub events.
  */
 
-import { svl } from '../svl.js';
 import { EventEmitter } from '../EventEmitter.js';
 import { Mission } from './Mission.js';
 
 export class MissionModel extends EventEmitter {
+  #regionId;
+
+  /**
+   * @param {number} regionId - The region whose completed missions are fetched.
+   */
+  constructor(regionId) {
+    super();
+    this.#regionId = regionId;
+  }
+
   /**
    * Loads the missions already completed in this region and registers each one.
    * @param {Function} [callback] - Runs after the missions are registered.
    */
   fetchCompletedMissionsInRegion(callback) {
-    fetch(`/completedMissionsInRegion?regionId=${svl.regionId}`)
+    fetch(`/completedMissionsInRegion?regionId=${this.#regionId}`)
       .then((res) => res.json())
       .then((missions) => {
         for (const mission of missions) this.createAMission(mission);

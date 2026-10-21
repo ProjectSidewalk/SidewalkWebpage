@@ -1,8 +1,10 @@
 package service
 
+import models.street.OsmWayFetched
 import play.api.libs.json.{JsObject, JsValue, Json}
 import util.SidewalkSpec
 
+import java.time.OffsetDateTime
 import scala.concurrent.duration.*
 import scala.concurrent.{Await, ExecutionContext, Future}
 
@@ -43,10 +45,24 @@ class OsmWayServiceSpec extends SidewalkSpec {
       )
       val parsed = OsmWayService.parseWaysResponse(json)
       parsed.keySet mustBe Set(1L, 2L)
-      (parsed(1L) \ "maxspeed").as[String] mustBe "25 mph"
-      (parsed(1L) \ "name").as[String] mustBe "Main St"
-      (parsed(1L) \ "sidewalk").as[String] mustBe "both"
-      (parsed(2L) \ "maxspeed").asOpt[String] mustBe None
+      (parsed(1L).tags \ "maxspeed").as[String] mustBe "25 mph"
+      (parsed(1L).tags \ "name").as[String] mustBe "Main St"
+      (parsed(1L).tags \ "sidewalk").as[String] mustBe "both"
+      (parsed(2L).tags \ "maxspeed").asOpt[String] mustBe None
+    }
+
+    "carry the way's edit version and timestamp, or neither when the response has none" in {
+      val json: JsValue = Json.obj(
+        "elements" -> Json.arr(
+          wayWithTags(1L, Json.obj("highway" -> "primary")) ++ Json.obj("timestamp" -> "2024-05-06T07:08:09Z"),
+          Json.obj("type" -> "way", "id" -> 2L, "tags" -> Json.obj())
+        )
+      )
+      val parsed = OsmWayService.parseWaysResponse(json)
+      parsed(1L).version mustBe Some(3)
+      parsed(1L).timestamp mustBe Some(OffsetDateTime.parse("2024-05-06T07:08:09Z"))
+      parsed(2L).version mustBe None
+      parsed(2L).timestamp mustBe None
     }
 
     "leave out a deleted way, which the API returns with visible false and no tags" in {
@@ -61,7 +77,7 @@ class OsmWayServiceSpec extends SidewalkSpec {
 
     "return an empty tag map for a live way with no tags field" in {
       val json: JsValue = Json.obj("elements" -> Json.arr(Json.obj("type" -> "way", "id" -> 5L, "version" -> 1)))
-      OsmWayService.parseWaysResponse(json) mustBe Map(5L -> Json.obj())
+      OsmWayService.parseWaysResponse(json) mustBe Map(5L -> OsmWayFetched(Json.obj(), Some(1), None))
     }
 
     "ignore non-way elements and tolerate an empty elements array" in {
@@ -77,16 +93,16 @@ class OsmWayServiceSpec extends SidewalkSpec {
   }
 
   "fetchSplittingOnNotFound" should {
-    val tags = Json.obj("highway" -> "residential")
+    val tags = OsmWayFetched(Json.obj("highway" -> "residential"), None, None)
 
     /**
      * A fake multi-fetch that 404s (None) any request naming a never-existing id, answering the rest with `tags`, and
      * records every request it gets and every pause it is asked for. A request `failing` accepts fails outright.
      */
     class FakeApi(neverExisted: Set[Long], failing: Seq[Long] => Boolean = _ => false) {
-      var requests: List[Seq[Long]]                                  = Nil
-      var pauses: Int                                                = 0
-      def fetch(ids: Seq[Long]): Future[Option[Map[Long, JsObject]]] = {
+      var requests: List[Seq[Long]]                                       = Nil
+      var pauses: Int                                                     = 0
+      def fetch(ids: Seq[Long]): Future[Option[Map[Long, OsmWayFetched]]] = {
         requests = requests :+ ids
         if (failing(ids)) Future.failed(RuntimeException("503"))
         else Future.successful(if (ids.exists(neverExisted)) None else Some(ids.map(_ -> tags).toMap))
@@ -94,7 +110,7 @@ class OsmWayServiceSpec extends SidewalkSpec {
       def pause(): Future[Unit] = { pauses += 1; Future.unit }
     }
 
-    def fetchAll(ids: Seq[Long], api: FakeApi): OsmWayService.ChunkFetch =
+    def fetchAll(ids: Seq[Long], api: FakeApi): OsmWayService.ChunkFetch[OsmWayFetched] =
       Await.result(OsmWayService.fetchSplittingOnNotFound(ids)(api.fetch, () => api.pause()), 5.seconds)
 
     "fetch a chunk with no bad id in one request and no pause" in {
@@ -126,8 +142,8 @@ class OsmWayServiceSpec extends SidewalkSpec {
     }
 
     "propagate a failed request rather than treating it as a 404" in {
-      val boom                                                      = RuntimeException("503")
-      val failing: Seq[Long] => Future[Option[Map[Long, JsObject]]] = _ => Future.failed(boom)
+      val boom                                                           = RuntimeException("503")
+      val failing: Seq[Long] => Future[Option[Map[Long, OsmWayFetched]]] = _ => Future.failed(boom)
       the[RuntimeException] thrownBy
         Await.result(OsmWayService.fetchSplittingOnNotFound(Seq(1L, 2L))(failing), 5.seconds) mustBe boom
     }

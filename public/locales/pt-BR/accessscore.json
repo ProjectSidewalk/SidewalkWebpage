@@ -165,6 +165,7 @@
   "grade-legend-title-by": "Inclinação da rua · {{statistic}}",
   "grade-legend-none": "Sem dados de inclinação",
   "grade-legend-hint": "Clique em uma classe para destacar essas ruas; Ctrl+clique para adicionar mais.",
+  "grade-legend-coarse": "De um modelo de elevação pouco detalhado: cada inclinação é uma linha reta entre as duas extremidades da rua.",
   "grade-class-under": "Menos de {{to}}",
   "grade-class-over": "Mais de {{from}}",
   "grade-class-between": "{{from}} – {{to}}",
@@ -209,6 +210,7 @@
   "slope-barrier-threshold": "É uma barreira se ultrapassar",
   "slope-approximate-include": "Incluir inclinações aproximadas",
   "slope-approximate-include-help": "Algumas inclinações são apenas uma linha reta entre as duas extremidades da rua: onde a cidade só tem um modelo de elevação pouco detalhado, ou onde o modelo pareceu pouco confiável. Ative esta opção para que essas inclinações também contem.",
+  "slope-coarse-note": "As inclinações desta cidade vêm de um modelo de elevação pouco detalhado, por isso são aproximadas. Elas só contam para a pontuação se as inclinações aproximadas forem incluídas abaixo.",
   "slope-barrier-effect": "O trecho recebe 0: ultrapassa a barreira de {{limit}}.",
   "popup-slope-barrier": "barreira: 0"
 }

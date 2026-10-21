@@ -3,17 +3,19 @@
  * attach to — "Write your story about this Missing Curb Ramp" — and falls back to the generic wording for a label
  * whose type name doesn't read as a thing you can have a story "about" (Other, Can't See the Sidewalk).
  *
- * StoryComposer is a page-global `class` (Grunt-concatenation world), so the source is eval'd into jsdom. Its title
- * lives behind private instance fields, so the class is constructed for real against the dialog skeleton its
- * constructor queries rather than called off the prototype.
+ * The title lives in private fields, so the class is built for real against the dialog skeleton it queries.
  */
 
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules, mockModule } from './loader.js';
 
+// Echo the key, with any interpolation appended so both halves are assertable.
+mockModule('i18next', () => ({ default: {
+  t: (key, opts) => (opts && opts.labelType !== undefined ? `${key}[${opts.labelType}]` : key),
+} }));
 
 /** The elements StoryComposer's constructor looks up, in a <dialog> host. */
 function setupDom() {
-    document.body.innerHTML = `
+  document.body.innerHTML = `
         <dialog class="story-composer">
             <h3 class="story-composer__title"></h3>
             <p class="story-composer__intro"></p>
@@ -38,57 +40,55 @@ function setupDom() {
             <button type="button" class="story-composer__close"></button>
             <button type="button" class="story-composer__submit"></button>
         </dialog>`;
-    return document.querySelector('.story-composer');
+  return document.querySelector('.story-composer');
 }
 
+let StoryComposer;
+
 function newComposer() {
-    return new window.StoryComposer(setupDom(), {});
+  return new StoryComposer(setupDom(), {});
 }
 
 const title = () => document.querySelector('.story-composer__title').textContent;
 
-beforeEach(() => {
-    Object.assign(window, loadModules('frontend/js/common/label-detail/StoryComposer.js'));
-    // Echo the key, with any interpolation appended so both halves are assertable.
-    window.i18next = {
-        t: (key, opts) => (opts && opts.labelType !== undefined ? `${key}[${opts.labelType}]` : key),
-    };
-    window.logWebpageActivity = jest.fn();
-    window.HTMLDialogElement.prototype.showModal = jest.fn(); // jsdom's is a no-op stub in some versions.
+beforeEach(async () => {
+  ({ StoryComposer } = await loadModules('frontend/js/common/label-detail/StoryComposer.js'));
+  window.logWebpageActivity = vi.fn();
+  window.HTMLDialogElement.prototype.showModal = vi.fn(); // jsdom's is a no-op stub in some versions.
 });
 
 describe("the story composer's dialog title", () => {
-    test('names the label once the host says which type it is', () => {
-        const composer = newComposer();
-        composer.setLabelType('Missing Curb Ramp');
-        expect(title()).toBe('labelmap:story.composer-title-about[Missing Curb Ramp]');
-    });
+  test('names the label once the host says which type it is', () => {
+    const composer = newComposer();
+    composer.setLabelType('Missing Curb Ramp');
+    expect(title()).toBe('labelmap:story.composer-title-about[Missing Curb Ramp]');
+  });
 
-    test('falls back to the generic wording when the host withholds a type', () => {
-        const composer = newComposer();
-        composer.setLabelType(null);
-        expect(title()).toBe('labelmap:story.composer-title');
-    });
+  test('falls back to the generic wording when the host withholds a type', () => {
+    const composer = newComposer();
+    composer.setLabelType(null);
+    expect(title()).toBe('labelmap:story.composer-title');
+  });
 
-    test('a later label replaces the name — the composer outlives the label it was opened for', () => {
-        const composer = newComposer();
-        composer.setLabelType('Obstacle in Path');
-        composer.setLabelType('Surface Problem');
-        expect(title()).toBe('labelmap:story.composer-title-about[Surface Problem]');
-        composer.setLabelType(''); // An empty name is as good as none.
-        expect(title()).toBe('labelmap:story.composer-title');
-    });
+  test('a later label replaces the name — the composer outlives the label it was opened for', () => {
+    const composer = newComposer();
+    composer.setLabelType('Obstacle in Path');
+    composer.setLabelType('Surface Problem');
+    expect(title()).toBe('labelmap:story.composer-title-about[Surface Problem]');
+    composer.setLabelType(''); // An empty name is as good as none.
+    expect(title()).toBe('labelmap:story.composer-title');
+  });
 
-    test('edit mode keeps the label name, using the edit wording', () => {
-        const composer = newComposer();
-        composer.setLabelType('Missing Curb Ramp');
-        composer.openForEdit({ story_id: 3, text: 'Hi', media: null }, 500);
-        expect(title()).toBe('labelmap:story.composer-title-edit-about[Missing Curb Ramp]');
-    });
+  test('edit mode keeps the label name, using the edit wording', () => {
+    const composer = newComposer();
+    composer.setLabelType('Missing Curb Ramp');
+    composer.openForEdit({ story_id: 3, text: 'Hi', media: null }, 500);
+    expect(title()).toBe('labelmap:story.composer-title-edit-about[Missing Curb Ramp]');
+  });
 
-    test('edit mode without a label name uses the plain edit wording', () => {
-        const composer = newComposer();
-        composer.openForEdit({ story_id: 3, text: 'Hi', media: null }, 500);
-        expect(title()).toBe('labelmap:story.composer-title-edit');
-    });
+  test('edit mode without a label name uses the plain edit wording', () => {
+    const composer = newComposer();
+    composer.openForEdit({ story_id: 3, text: 'Hi', media: null }, 500);
+    expect(title()).toBe('labelmap:story.composer-title-edit');
+  });
 });

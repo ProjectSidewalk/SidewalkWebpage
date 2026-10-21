@@ -2,12 +2,15 @@
  * Creates pop up messages during your first mission or two with instructions to improve labeling.
  */
 
-import { svl } from '../svl.js';
+import i18next from 'i18next';
 import { util } from '../../common/utilities.js';
 /** @typedef {import('../alert/AiGuidance.js').AiGuidance} AiGuidance */
 /** @typedef {import('../navigation/Compass.js').Compass} Compass */
 /** @typedef {import('../label/LabelContainer.js').LabelContainer} LabelContainer */
+/** @typedef {import('../navigation/Minimap.js').Minimap} Minimap */
 /** @typedef {import('../navigation/NavigationService.js').NavigationService} NavigationService */
+/** @typedef {import('../navigation/ObservedArea.js').ObservedArea} ObservedArea */
+/** @typedef {import('../panorama/PanoManager.js').PanoManager} PanoManager */
 /** @typedef {import('../alert/PopUpMessage.js').PopUpMessage} PopUpMessage */
 /** @typedef {import('../region/Region.js').Region} Region */
 /** @typedef {import('../task/TaskContainer.js').TaskContainer} TaskContainer */
@@ -20,6 +23,9 @@ export class InitialMissionInstruction {
   #taskContainer;
   #labelContainer;
   #aiGuidance;
+  #minimap;
+  #panoManager;
+  #observedArea;
   #tracker;
   #lookingAroundInterval;
   #initialPanoId;
@@ -31,20 +37,27 @@ export class InitialMissionInstruction {
    * @param {TaskContainer} taskContainer
    * @param {LabelContainer} labelContainer
    * @param {AiGuidance} aiGuidance
+   * @param {Minimap} minimap - Blinked when the user is pointed at it.
+   * @param {PanoManager} panoManager - Says whether the user has moved yet.
+   * @param {ObservedArea} observedArea - Says whether the user has looked all the way around.
    * @param {Tracker} tracker
    */
-  constructor(compass, navigationService, popUpMessage, taskContainer, labelContainer, aiGuidance, tracker) {
+  constructor(compass, navigationService, popUpMessage, taskContainer, labelContainer, aiGuidance, minimap,
+    panoManager, observedArea, tracker) {
     this.#compass = compass;
     this.#navigationService = navigationService;
     this.#popUpMessage = popUpMessage;
     this.#taskContainer = taskContainer;
     this.#labelContainer = labelContainer;
     this.#aiGuidance = aiGuidance;
+    this.#minimap = minimap;
+    this.#panoManager = panoManager;
+    this.#observedArea = observedArea;
     this.#tracker = tracker;
   }
 
   // The two position-update handlers below are arrow-function fields (not methods) so each keeps a single stable
-  // identity: they are registered AND removed via bind/unbindPositionUpdate, which matches by function reference.
+  // identity: they are registered AND removed via onMoved/offMoved, which matches by function reference.
 
   /**
    * Instruct a user to audit both sides of the streets once they have walked for 100 meters.
@@ -62,8 +75,8 @@ export class InitialMissionInstruction {
 
       // Send the notification. After they click OK, get ready to notify them about disappearing labels.
       this.#popUpMessage.notifyWithImage(title, message, image, width, height, x, () => {
-        this.#navigationService.unbindPositionUpdate(this.#instructToCheckSidewalks);
-        this.#navigationService.bindPositionUpdate(this.#instructForLabelDisappearing);
+        this.#navigationService.offMoved(this.#instructToCheckSidewalks);
+        this.#navigationService.onMoved(this.#instructForLabelDisappearing);
       });
     }
   };
@@ -77,10 +90,10 @@ export class InitialMissionInstruction {
       const title = i18next.t('popup.labels-disappear-title');
       const message = i18next.t('popup.labels-disappear-body');
       this.#popUpMessage.notify(title, message, () => {
-        svl.minimap.stopBlinkingMinimap();
-        this.#navigationService.unbindPositionUpdate(this.#instructForLabelDisappearing);
+        this.#minimap.stopBlinkingMinimap();
+        this.#navigationService.offMoved(this.#instructForLabelDisappearing);
       });
-      svl.minimap.blinkMinimap();
+      this.#minimap.blinkMinimap();
     }
   };
 
@@ -94,10 +107,10 @@ export class InitialMissionInstruction {
     const message = i18next.t('popup.step-body');
     this.#popUpMessage.notify(title, message, () => {
       this.#compass.stopBlinking();
-      svl.minimap.stopBlinkingMinimap();
+      this.#minimap.stopBlinkingMinimap();
     });
     this.#compass.blink();
-    svl.minimap.blinkMinimap();
+    this.#minimap.blinkMinimap();
   }
 
   /**
@@ -105,9 +118,9 @@ export class InitialMissionInstruction {
    */
   #pollLookingAroundHasFinished() {
     // Check the panoId to make sure the user hasn't walked.
-    if (svl.panoViewer.getPanoId() === this.#initialPanoId) {
+    if (this.#panoManager.getPanoId() === this.#initialPanoId) {
       // If the user has seen the entire panorama, show a notif explaining how to move.
-      if (svl.observedArea.getFractionObserved() === 1) {
+      if (this.#observedArea.getFractionObserved() === 1) {
         clearInterval(this.#lookingAroundInterval);
         this.#instructToFollowTheGuidance();
       }
@@ -130,12 +143,12 @@ export class InitialMissionInstruction {
       region: region.getProperty('name'), city: window.cityNameShort, interpolation: { escapeValue: true },
     });
     this.#popUpMessage.notify(title, message, () => {
-      this.#navigationService.bindPositionUpdate(this.#instructToCheckSidewalks);
+      this.#navigationService.onMoved(this.#instructToCheckSidewalks);
       this.#aiGuidance.showAiGuidanceMessage(); // Show AI guidance message for the current street.
     });
 
     // If the user looks nearly 360 degrees, show a notification explaining how to move.
-    this.#initialPanoId = svl.panoViewer.getPanoId();
+    this.#initialPanoId = this.#panoManager.getPanoId();
     this.#lookingAroundInterval = setInterval(() => this.#pollLookingAroundHasFinished(), 50);
   }
 }

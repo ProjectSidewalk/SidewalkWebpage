@@ -6,11 +6,13 @@ import org.scalatest.time.{Millis, Seconds, Span}
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.mvc.Result
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
 import util.{SidewalkSpec, SignedUpAccounts}
 
 import java.util.UUID
+import scala.concurrent.Future
 
 /** Every route that redirects to a caller-supplied target must keep the browser on this site. */
 class RedirectTargetSpec extends SidewalkSpec with SignedUpAccounts with GuiceOneAppPerSuite {
@@ -21,6 +23,11 @@ class RedirectTargetSpec extends SidewalkSpec with SignedUpAccounts with GuiceOn
   private val OffSite = "https%3A%2F%2Fevil.example"
 
   private lazy val (_, _, session) = signUpFreshUser()
+
+  private lazy val authCookie = app.configuration.get[String]("silhouette.authenticator.cookieName")
+
+  /** @return Whether `result` tells the browser to drop its sign-in cookie. */
+  private def clearsSession(result: Future[Result]): Boolean = cookies(result).get(authCookie).exists(_.value.isEmpty)
 
   "The landing page's referrer redirect" should {
     "send an off-site `to` home" in {
@@ -52,6 +59,27 @@ class RedirectTargetSpec extends SidewalkSpec with SignedUpAccounts with GuiceOn
     "send an off-site url home" in {
       val result = route(app, FakeRequest(GET, s"/signOut?url=$OffSite").withCookies(session*)).get
       redirectLocation(result) mustBe Some("/")
+    }
+
+    "sign a user out and follow a local url" in {
+      val (_, _, ownSession) = signUpFreshUser()
+      val result             = route(app, FakeRequest(GET, "/signOut?url=%2Fexplore").withCookies(ownSession*)).get
+      redirectLocation(result) mustBe Some("/explore")
+      clearsSession(result) mustBe true
+    }
+
+    "send a visitor with no session home, without making an account" in {
+      val result = route(app, FakeRequest(GET, "/signOut?url=%2Fexplore")).get
+      redirectLocation(result) mustBe Some("/")
+      cookies(result).get(authCookie) mustBe None
+    }
+
+    "not sign a user out from another site's link" in {
+      val request =
+        FakeRequest(GET, "/signOut?url=%2Fexplore").withCookies(session*).withHeaders("Sec-Fetch-Site" -> "cross-site")
+      val result = route(app, request).get
+      redirectLocation(result) mustBe Some("/")
+      cookies(result).get(authCookie) mustBe None
     }
   }
 

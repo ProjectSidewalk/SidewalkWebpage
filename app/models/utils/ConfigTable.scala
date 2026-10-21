@@ -705,7 +705,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
     val newUsersCtes =
       if (weeks.isEmpty) """,
       first_weeks AS (
-          SELECT DATE_TRUNC('week', MIN(activity_ts AT TIME ZONE 'US/Pacific'))::date AS week_start
+          SELECT DATE_TRUNC('week', MIN(activity_ts AT TIME ZONE 'America/Los_Angeles'))::date AS week_start
           FROM activity
           GROUP BY activity_user_id
       ),
@@ -730,7 +730,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
           #$valBound
       ),
       weekly AS (
-          SELECT DATE_TRUNC('week', activity_ts AT TIME ZONE 'US/Pacific')::date AS week_start,
+          SELECT DATE_TRUNC('week', activity_ts AT TIME ZONE 'America/Los_Angeles')::date AS week_start,
                  COUNT(*) FILTER (WHERE kind = 'label')      AS labels,
                  COUNT(*) FILTER (WHERE kind = 'validation') AS validations,
                  COUNT(DISTINCT activity_user_id)            AS active_users
@@ -826,7 +826,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
           WHERE label_validation.end_timestamp >= NOW() - ((${days} + 2) * INTERVAL '1 day')
       ),
       per_day_user AS (
-          SELECT DATE_TRUNC('day', activity_ts AT TIME ZONE 'US/Pacific')::date AS day, activity_user_id,
+          SELECT DATE_TRUNC('day', activity_ts AT TIME ZONE 'America/Los_Angeles')::date AS day, activity_user_id,
                  COUNT(*) FILTER (WHERE kind = 'label')      AS labels,
                  COUNT(*) FILTER (WHERE kind = 'validation') AS validations
           FROM activity
@@ -877,7 +877,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
           WHERE label_validation.end_timestamp >= NOW() - ((${days} + 2) * INTERVAL '1 day')
       ),
       per_day_user AS (
-          SELECT DATE_TRUNC('day', activity_ts AT TIME ZONE 'US/Pacific')::date AS day, activity_user_id,
+          SELECT DATE_TRUNC('day', activity_ts AT TIME ZONE 'America/Los_Angeles')::date AS day, activity_user_id,
                  COUNT(*) FILTER (WHERE kind = 'label')      AS labels,
                  COUNT(*) FILTER (WHERE kind = 'validation') AS validations
           FROM activity
@@ -1151,14 +1151,14 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
     schemaHasLabelTypeEnum(schema).flatMap { hasLabelTypeEnum =>
       val labelTypeSql = LabelTypeSql(schema, hasLabelTypeEnum)
       sql"""
-      SELECT CAST((label.time_created AT TIME ZONE 'US/Pacific')::date AS TEXT) AS date,
+      SELECT CAST((label.time_created AT TIME ZONE 'America/Los_Angeles')::date AS TEXT) AS date,
              #${labelTypeSql.name},
              COUNT(CASE WHEN user_role.role IS DISTINCT FROM 'AI' THEN label.label_id END) AS human_labels,
              COUNT(CASE WHEN user_role.role = 'AI'               THEN label.label_id END) AS ai_labels
       FROM #${FilteredTables.labels(Some(schema), contributors)}
       #${labelTypeSql.join}
       LEFT  JOIN sidewalk_login.user_role ON label.user_id     = user_role.user_id
-      GROUP BY (label.time_created AT TIME ZONE 'US/Pacific')::date, #${labelTypeSql.name}
+      GROUP BY (label.time_created AT TIME ZONE 'America/Los_Angeles')::date, #${labelTypeSql.name}
       ORDER BY date ASC, #${labelTypeSql.name}
       """.as[DailyLabelStat]
     }
@@ -1189,7 +1189,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
         // Group by the type the vote judged; older schemas only have the label's current type.
         val typeName = if (hasValidationLabelType) "label_validation.label_type::text" else labelTypeSql.name
         sql"""
-      SELECT CAST((label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date AS TEXT) AS date,
+      SELECT CAST((label_validation.end_timestamp AT TIME ZONE 'America/Los_Angeles')::date AS TEXT) AS date,
              #$typeName,
              COUNT(CASE WHEN user_role.role IS DISTINCT FROM 'AI' AND label_validation.validation_result::text = 'Agree'
                         THEN 1 END) AS human_agree,
@@ -1208,7 +1208,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
       #${labelTypeSql.join}
       LEFT  JOIN sidewalk_login.user_role ON label_validation.user_id = user_role.user_id
       WHERE label.deleted = FALSE
-      GROUP BY (label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date, #$typeName
+      GROUP BY (label_validation.end_timestamp AT TIME ZONE 'America/Los_Angeles')::date, #$typeName
       ORDER BY date ASC, #$typeName
       """.as[DailyValidationStat]
     }

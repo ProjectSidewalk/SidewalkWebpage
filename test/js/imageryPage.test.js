@@ -10,39 +10,32 @@
  * The two counts the page shows *are* deliberately different — the KPI uses the site-wide re-audit flag, the map
  * tier counts only audits that carry weight in the priority formula — and that difference has its own case, because
  * a reader who noticed it and found no explanation would reasonably conclude one of them is a bug.
- *
- * Runs under jsdom (jest.config.js). The page's classes are bare top-level declarations in a concatenated bundle, so
- * they are eval'd into global scope rather than required.
  */
 
-const { loadModules, mockModule, realUtil } = require('./loadGlobalScript');
-
-// The page fetches through util.fetchJson.
-window.util = realUtil();
-
+import { loadModules, mockModule } from './loader.js';
+import { FakeLngLatBounds } from './lngLatBoundsStub.js';
 
 /** Chart calls, recorded instead of drawn. */
 const charts = [];
 
-/** Loads the page and every class it collaborates with into global scope. */
-function loadPage() {
-  mockModule('frontend/js/admin-dashboard/MiniLineChart.js', () => ({
-    MiniLineChart: { renderInto: (host, labels, series, options) => charts.push({ host, labels, series, options }) },
-  }));
-  return loadModules('frontend/js/admin-dashboard/ImageryPage.js').ImageryPage;
-}
-
-const ImageryPage = loadPage();
+mockModule('frontend/js/admin-dashboard/MiniLineChart.js', () => ({
+  MiniLineChart: { renderInto: (host, labels, series, options) => charts.push({ host, labels, series, options }) },
+}));
+// What the page gets as mapbox-gl: a double each test refills through stubMapbox().
+const mapboxgl = {};
+mockModule('frontend/js/common/mapboxgl.js', () => ({ default: mapboxgl }));
+const { ImageryPage } = await loadModules('frontend/js/admin-dashboard/ImageryPage.js');
 
 /** Mapbox GL cannot run under jsdom; this records what the map was told and fires 'load' immediately. */
 function stubMapbox() {
   const state = { featureStates: [], handlers: [] };
-  global.mapboxgl = {
+  Object.assign(mapboxgl, {
     accessToken: null,
+    LngLatBounds: FakeLngLatBounds,
     Map: class {
       constructor(options) {
-        // Mapbox rejects a non-finite bounds box, which is what a FeatureCollection with no features produces.
-        if (!options.bounds.flat().every(Number.isFinite)) throw new Error('Invalid LngLat object');
+        // Mapbox rejects empty bounds, which is what a FeatureCollection with no features produces.
+        if (options.bounds.isEmpty()) throw new Error('Invalid LngLat object');
         state.options = options;
       }
 
@@ -71,7 +64,7 @@ function stubMapbox() {
       remove() { return this; }
     },
     NavigationControl: class {},
-  };
+  });
   return state;
 }
 
@@ -171,7 +164,7 @@ async function renderPage({ streets = CITY, features, pipeline = report(), failS
   document.body.innerHTML = MARKUP;
   charts.length = 0;
   const mapState = stubMapbox();
-  global.fetch = jest.fn((url) => {
+  window.fetch = vi.fn((url) => {
     if (url.startsWith('/adminapi/imageryFreshness')) {
       return Promise.resolve({ ok: true, json: async () => pipeline });
     }
@@ -198,12 +191,8 @@ const text = (id) => document.getElementById(id).textContent;
 const regionRows = () => [...document.querySelectorAll('#imagery-region-table tbody tr')];
 const streetRows = () => [...document.querySelectorAll('#imagery-street-table tbody tr')];
 
-beforeEach(() => { jest.spyOn(Date, 'now').mockReturnValue(NOW); });
+beforeEach(() => { vi.spyOn(Date, 'now').mockReturnValue(NOW); });
 
-afterEach(() => {
-  jest.restoreAllMocks();
-  delete global.mapboxgl;
-});
 
 describe('ImageryPage KPIs', () => {
   test('counts re-audits with the site-wide flag, so the number matches Overview and Coverage', async () => {
@@ -421,7 +410,7 @@ describe('ImageryPage tables', () => {
 
   test('narrows the street queue to a pinned region, and says whose queue it is', async () => {
     await renderPage();
-    regionRows()[1].dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+    regionRows()[1].dispatchEvent(new MouseEvent('click', { bubbles: true }));
     expect(streetRows().map((tr) => tr.dataset.rowId)).toEqual(['4']);
     expect(text('imagery-street-intro')).toContain('Downtown');
     expect(text('imagery-street-note')).toContain('The top 1 of 1 routable streets by priority');
@@ -429,9 +418,9 @@ describe('ImageryPage tables', () => {
 
   test('goes back to the city-wide ranking when the pinned region is clicked again', async () => {
     await renderPage();
-    regionRows()[1].dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+    regionRows()[1].dispatchEvent(new MouseEvent('click', { bubbles: true }));
     const pinned = regionRows().find((tr) => tr.cells[0].textContent === 'Downtown');
-    pinned.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+    pinned.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     expect(streetRows()).toHaveLength(4);
     expect(text('imagery-street-intro')).toContain('city-wide');
   });
@@ -464,7 +453,7 @@ describe('ImageryPage tables', () => {
 describe('ImageryPage brushing', () => {
   test('brushes a hovered region across the map and the region table', async () => {
     const { mapState } = await renderPage();
-    regionRows()[0].dispatchEvent(new window.Event('pointerover', { bubbles: true }));
+    regionRows()[0].dispatchEvent(new Event('pointerover', { bubbles: true }));
     const selected = mapState.featureStates.filter((s) => s.value.selected === true).map((s) => s.target.id);
     expect(selected.sort()).toEqual([1, 2, 3]);
     expect(regionRows()[0].classList.contains('is-highlighted')).toBe(true);
@@ -473,11 +462,11 @@ describe('ImageryPage brushing', () => {
   test('reverts a transient hover to the pinned region rather than to nothing', async () => {
     const { mapState } = await renderPage();
     regionRows().find((tr) => tr.cells[0].textContent === 'Downtown')
-      .dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+      .dispatchEvent(new MouseEvent('click', { bubbles: true }));
     mapState.featureStates.length = 0;
 
-    regionRows()[0].dispatchEvent(new window.Event('pointerover', { bubbles: true }));
-    document.querySelector('#imagery-region-table tbody').dispatchEvent(new window.Event('pointerleave'));
+    regionRows()[0].dispatchEvent(new Event('pointerover', { bubbles: true }));
+    document.querySelector('#imagery-region-table tbody').dispatchEvent(new Event('pointerleave'));
 
     const stillSelected = mapState.featureStates.filter((s) => s.value.selected === true).map((s) => s.target.id);
     expect(stillSelected).toContain(4);
@@ -488,7 +477,7 @@ describe('ImageryPage brushing', () => {
   test('does not narrow the street queue on hover, only on a pin', async () => {
     await renderPage();
     regionRows().find((tr) => tr.cells[0].textContent === 'Downtown')
-      .dispatchEvent(new window.Event('pointerover', { bubbles: true }));
+      .dispatchEvent(new Event('pointerover', { bubbles: true }));
     expect(streetRows()).toHaveLength(4);
   });
 });
@@ -604,7 +593,7 @@ describe('ImageryPage loading states', () => {
   });
 
   test('keeps the tables when no geometry matched, rather than handing Mapbox an empty bounds box', async () => {
-    // A bounds box built from no features is a box of infinities, which takes the whole page down on construction.
+    // Bounds built from no features are empty, which takes the whole page down on construction.
     await renderPage({ features: geojson([9999]) });
     expect(text('imagery-status')).toContain('the map is empty');
     expect(regionRows()).toHaveLength(2);
@@ -616,14 +605,14 @@ describe('ImageryPage loading states', () => {
   });
 
   test('reports a failed street fetch instead of leaving the page on "Loading"', async () => {
-    jest.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
     await renderPage({ failStreets: true });
     expect(text('imagery-status')).toContain('Could not load street priority data');
     expect(document.getElementById('imagery-status').classList.contains('error')).toBe(true);
   });
 
   test('renders the pipeline section even when the street fetch fails, since it needs nothing from it', async () => {
-    jest.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
     await renderPage({ failStreets: true });
     expect(document.querySelectorAll('#imagery-jobs tbody tr')).toHaveLength(1);
   });
@@ -634,7 +623,7 @@ describe('ImageryPage join', () => {
     const { mapState } = await renderPage({ streets: [CITY[0]], features: geojson([1, 2, 3]) });
     // The GeoJSON carries every street including retired ones; only the priority rows say what is routable, so a
     // retired street joined in would render as "never audited, highest priority".
-    expect(mapState.options.bounds).toEqual([[-122.31, 47.6], [-122.3, 47.61]]);
+    expect(mapState.options.bounds.toArray()).toEqual([[-122.31, 47.6], [-122.3, 47.61]]);
   });
 
   test('stamps the tier onto the rows the tables and roll-ups read, not only onto the map features', async () => {

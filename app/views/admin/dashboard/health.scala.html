@@ -4,10 +4,8 @@
 @(commonData: CommonPageData, user: SidewalkUserWithRole
 )(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
-@* Owner-only Health page for the redesigned admin dashboard (#4561). At-a-glance database & application
-   operational-health signals — blocking locks, idle-in-transaction sessions, stuck evolutions, table bloat, and
-   connection pressure — that are otherwise invisible in the app log. Driven client-side by a poller hitting
-   /adminapi/dbHealth. Admin-only surface, English only. *@
+@* Owner-only Health page (#4561): database health signals the app log doesn't show (blocking locks, idle
+   transactions, stuck evolutions, table bloat, connection pressure), polled from /adminapi/dbHealth. English only. *@
 
 @content = {
   <div class="page-section" id="health-intro-section">
@@ -76,6 +74,8 @@
     <div id="health-panos"></div>
     <p class="ac-note" id="health-panos-note"></p>
   </div>
+
+  @ViteAssets.stylesheets("admin/health", alreadyLinked = "admin/shell")
 
   <script type="module" id="page-entry" src='@assets.path("build/js/admin/health.js")'></script>
 }

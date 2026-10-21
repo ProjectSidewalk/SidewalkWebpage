@@ -7,15 +7,11 @@
  * Hide/Show toggle — it relabels itself on click with the pointer still resting on it, so a card that only read the
  * text on open would sit there describing the state the user just left.
  *
- * psTooltip.js is an IIFE that wires document listeners on load, so the test evaluates the source directly.
  * jsdom has no layout engine, so getBoundingClientRect is stubbed: the tooltip reports the size each test states,
  * and triggers report the rect they were assigned.
  */
 
-const { loadModules, loadVendored } = require('./loadGlobalScript');
-
-loadVendored('dompurify');
-
+import { loadModules } from './loader.js';
 
 // Matches the constants in psTooltip.js.
 const TRIGGER_GAP = 8;
@@ -33,611 +29,642 @@ let cardHeight = CARD_HEIGHT;
 
 /** Installs a layout stub: the tooltip card reports `cardHeight`, every other element the rect it was given. */
 function stubLayout() {
-    Element.prototype.getBoundingClientRect = function () {
-        if (this.classList.contains('ps-tooltip')) {
-            return {
-                left: 0, top: 0, right: CARD_WIDTH, bottom: cardHeight, width: CARD_WIDTH, height: cardHeight,
-            };
-        }
-        const r = this._rect || { left: 0, top: 0, width: 0, height: 0 };
-        return { ...r, right: r.left + r.width, bottom: r.top + r.height };
-    };
+  Element.prototype.getBoundingClientRect = function () {
+    if (this.classList.contains('ps-tooltip')) {
+      return {
+        left: 0, top: 0, right: CARD_WIDTH, bottom: cardHeight, width: CARD_WIDTH, height: cardHeight,
+      };
+    }
+    const r = this._rect || { left: 0, top: 0, width: 0, height: 0 };
+    return { ...r, right: r.left + r.width, bottom: r.top + r.height };
+  };
 }
 
 /** Adds a trigger at `rect` carrying `text`, plus any extra attributes. */
 function addTrigger(rect, text, attrs = {}) {
-    const el = document.createElement('button');
-    el.setAttribute('data-ps-tooltip', text);
-    for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
-    el._rect = rect;
-    document.body.appendChild(el);
-    return el;
+  return addTriggerWith('data-ps-tooltip', rect, text, attrs);
+}
+
+/** Adds a trigger at `rect` whose card is the markup `html`, plus any extra attributes. */
+function addHtmlTrigger(rect, html, attrs = {}) {
+  return addTriggerWith('data-ps-tooltip-html', rect, html, attrs);
+}
+
+/** Adds a trigger at `rect` with `value` in the tooltip attribute `attr`, plus any extra attributes. */
+function addTriggerWith(attr, rect, value, attrs) {
+  const el = document.createElement('button');
+  el.setAttribute(attr, value);
+  for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+  el._rect = rect;
+  document.body.appendChild(el);
+  return el;
 }
 
 /** Opens a trigger's tooltip via the keyboard path, which skips the hover delay. */
 function open(trigger) {
-    trigger.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
-    return document.getElementById('ps-tooltip');
+  trigger.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+  return document.getElementById('ps-tooltip');
 }
 
 /**
- * Evaluates psTooltip.js, returning a teardown that detaches the listeners that evaluation registered.
+ * Loads psTooltip.js, returning a teardown that detaches the listeners that load registered.
  *
- * Each test needs its own evaluation, because the module keeps `activeTrigger` and its card in a closure with no
- * way to reset them from outside. But it wires six document/window listeners on load, so without the teardown
- * every test would leave its set attached and the file would finish with nine of them stacked up — harmless here,
- * since a stale set only ever touches its own detached card, but not something to hand to the next test that
- * counts calls. addEventListener is patched on EventTarget.prototype so it catches document and window alike.
- * @returns {function(): void} Detaches every listener the evaluation added.
+ * Each test needs its own load, because the module keeps `activeTrigger` and its card in a closure with no way to
+ * reset them from outside. But it wires six document/window listeners on load, so without the teardown every test
+ * would leave its set attached and the file would finish with nine of them stacked up — harmless here, since a
+ * stale set only ever touches its own detached card, but not something to hand to the next test that counts calls.
+ * addEventListener is patched on EventTarget.prototype so it catches document and window alike.
+ * @returns {function(): void} Detaches every listener the load added.
  */
-function loadPsTooltip() {
-    const added = [];
-    const original = EventTarget.prototype.addEventListener;
-    EventTarget.prototype.addEventListener = function (...args) {
-        added.push([this, args]);
-        return original.apply(this, args);
-    };
-    try {
-        Object.assign(window, loadModules('frontend/js/common/psTooltip.js'));
-    } finally {
-        EventTarget.prototype.addEventListener = original;
-    }
-    return () => added.forEach(([target, args]) => target.removeEventListener(...args));
+async function loadPsTooltip() {
+  const added = [];
+  const original = EventTarget.prototype.addEventListener;
+  EventTarget.prototype.addEventListener = function (...args) {
+    added.push([this, args]);
+    return original.apply(this, args);
+  };
+  try {
+    await loadModules('frontend/js/common/psTooltip.js');
+  } finally {
+    EventTarget.prototype.addEventListener = original;
+  }
+  return () => added.forEach(([target, args]) => target.removeEventListener(...args));
 }
 
 let unloadPsTooltip;
 
-beforeEach(() => {
-    document.body.innerHTML = '';
-    window.innerWidth = VIEWPORT_WIDTH;
-    window.innerHeight = VIEWPORT_HEIGHT;
-    cardHeight = CARD_HEIGHT;
-    stubLayout();
-    unloadPsTooltip = loadPsTooltip();
+beforeEach(async () => {
+  document.body.innerHTML = '';
+  window.innerWidth = VIEWPORT_WIDTH;
+  window.innerHeight = VIEWPORT_HEIGHT;
+  cardHeight = CARD_HEIGHT;
+  stubLayout();
+  unloadPsTooltip = await loadPsTooltip();
 });
 
 afterEach(() => {
-    unloadPsTooltip();
+  unloadPsTooltip();
 });
 
 describe('psTooltip markup', () => {
-    test('keeps formatting but never anything that could run script', () => {
-        const trigger = addTrigger({ left: 400, top: 400, width: 40, height: 20 },
-            '<b>Bold</b><img src="x" onerror="alert(1)"><script>alert(2)</script>');
-        const card = open(trigger);
-        expect(card.querySelector('b').textContent).toBe('Bold');
-        expect(card.querySelector('img').hasAttribute('onerror')).toBe(false);
-        expect(card.querySelector('script')).toBeNull();
-    });
+  test('shows plain-text tooltips as text, markup and all (#5659)', () => {
+    const trigger = addTrigger({ left: 400, top: 400, width: 40, height: 20 }, '<b>Bold</b> & <img src="x">');
+    const card = open(trigger);
+    expect(card.textContent).toBe('<b>Bold</b> & <img src="x">');
+    expect(card.children).toHaveLength(0);
+  });
 
-    test('keeps what our cards rely on: new-tab links and the shortcut-key underline', () => {
-        const trigger = addTrigger({ left: 400, top: 400, width: 40, height: 20 },
-            '<tag-underline>S</tag-underline>teep <a href="https://x.org" target="_blank">x</a>');
-        const card = open(trigger);
-        expect(card.querySelector('tag-underline').textContent).toBe('S');
-        expect(card.querySelector('a').getAttribute('target')).toBe('_blank');
-        expect(card.querySelector('a').getAttribute('rel')).toBe('noopener');
-    });
+  test('the markup attribute wins over the text one', () => {
+    const trigger = addHtmlTrigger({ left: 400, top: 400, width: 40, height: 20 }, '<b>Card</b>',
+      { 'data-ps-tooltip': 'text' });
+    expect(open(trigger).querySelector('b').textContent).toBe('Card');
+  });
 
-    test('drops page-wide styles and form fields', () => {
-        const trigger = addTrigger({ left: 400, top: 400, width: 40, height: 20 },
-            'x<style>body{display:none}</style><form><input type="password"><button>Go</button></form>');
-        const card = open(trigger);
-        expect(card.querySelector('style, form, input, button')).toBeNull();
-    });
+  test('keeps formatting but never anything that could run script', () => {
+    const trigger = addHtmlTrigger({ left: 400, top: 400, width: 40, height: 20 },
+      '<b>Bold</b><img src="x" onerror="alert(1)"><script>alert(2)</script>');
+    const card = open(trigger);
+    expect(card.querySelector('b').textContent).toBe('Bold');
+    expect(card.querySelector('img').hasAttribute('onerror')).toBe(false);
+    expect(card.querySelector('script')).toBeNull();
+  });
+
+  test('keeps what our cards rely on: new-tab links and the shortcut-key underline', () => {
+    const trigger = addHtmlTrigger({ left: 400, top: 400, width: 40, height: 20 },
+      '<tag-underline>S</tag-underline>teep <a href="https://x.org" target="_blank">x</a>');
+    const card = open(trigger);
+    expect(card.querySelector('tag-underline').textContent).toBe('S');
+    expect(card.querySelector('a').getAttribute('target')).toBe('_blank');
+    expect(card.querySelector('a').getAttribute('rel')).toBe('noopener');
+  });
+
+  test('drops page-wide styles and form fields', () => {
+    const trigger = addHtmlTrigger({ left: 400, top: 400, width: 40, height: 20 },
+      'x<style>body{display:none}</style><form><input type="password"><button>Go</button></form>');
+    const card = open(trigger);
+    expect(card.querySelector('style, form, input, button')).toBeNull();
+  });
 });
 
 describe('psTooltip placement', () => {
-    test('opens above the trigger by default', () => {
-        const trigger = addTrigger({ left: 400, top: 300, width: 100, height: 30 }, 'above');
-        const card = open(trigger);
+  test('opens above the trigger by default', () => {
+    const trigger = addTrigger({ left: 400, top: 300, width: 100, height: 30 }, 'above');
+    const card = open(trigger);
 
-        expect(card.style.top).toBe(`${300 - CARD_HEIGHT - TRIGGER_GAP}px`);
-        expect(card.classList.contains('ps-tooltip--flipped')).toBe(false);
-    });
+    expect(card.style.top).toBe(`${300 - CARD_HEIGHT - TRIGGER_GAP}px`);
+    expect(card.classList.contains('ps-tooltip--flipped')).toBe(false);
+  });
 
-    test('flips below when there is no room above', () => {
-        const trigger = addTrigger({ left: 400, top: 4, width: 100, height: 30 }, 'no room');
-        const card = open(trigger);
+  test('flips below when there is no room above', () => {
+    const trigger = addTrigger({ left: 400, top: 4, width: 100, height: 30 }, 'no room');
+    const card = open(trigger);
 
-        expect(card.style.top).toBe(`${34 + TRIGGER_GAP}px`);
-        expect(card.classList.contains('ps-tooltip--flipped')).toBe(true);
-    });
+    expect(card.style.top).toBe(`${34 + TRIGGER_GAP}px`);
+    expect(card.classList.contains('ps-tooltip--flipped')).toBe(true);
+  });
 
-    test('opens below when the trigger asks for it', () => {
-        const trigger = addTrigger(
-            { left: 400, top: 300, width: 100, height: 30 }, 'below', { 'data-ps-tooltip-placement': 'bottom' }
-        );
-        const card = open(trigger);
+  test('opens below when the trigger asks for it', () => {
+    const trigger = addTrigger(
+      { left: 400, top: 300, width: 100, height: 30 }, 'below', { 'data-ps-tooltip-placement': 'bottom' }
+    );
+    const card = open(trigger);
 
-        expect(card.style.top).toBe(`${330 + TRIGGER_GAP}px`);
-        expect(card.classList.contains('ps-tooltip--flipped')).toBe(true);
-    });
+    expect(card.style.top).toBe(`${330 + TRIGGER_GAP}px`);
+    expect(card.classList.contains('ps-tooltip--flipped')).toBe(true);
+  });
 
-    test('a bottom-placed tooltip still yields to the viewport floor', () => {
-        // Asking for below orders the two sides; it does not pin the card off the bottom of the screen.
-        const trigger = addTrigger(
-            { left: 400, top: 770, width: 100, height: 25 }, 'below', { 'data-ps-tooltip-placement': 'bottom' }
-        );
-        const card = open(trigger);
+  test('a bottom-placed tooltip still yields to the viewport floor', () => {
+    // Asking for below orders the two sides; it does not pin the card off the bottom of the screen.
+    const trigger = addTrigger(
+      { left: 400, top: 770, width: 100, height: 25 }, 'below', { 'data-ps-tooltip-placement': 'bottom' }
+    );
+    const card = open(trigger);
 
-        expect(card.style.top).toBe(`${770 - CARD_HEIGHT - TRIGGER_GAP}px`);
-        expect(card.classList.contains('ps-tooltip--flipped')).toBe(false);
-    });
+    expect(card.style.top).toBe(`${770 - CARD_HEIGHT - TRIGGER_GAP}px`);
+    expect(card.classList.contains('ps-tooltip--flipped')).toBe(false);
+  });
 
-    test('clamps into the viewport but keeps the tail on the trigger', () => {
-        const trigger = addTrigger({ left: 0, top: 300, width: 40, height: 30 }, 'at the edge');
-        const card = open(trigger);
+  test('clamps into the viewport but keeps the tail on the trigger', () => {
+    const trigger = addTrigger({ left: 0, top: 300, width: 40, height: 30 }, 'at the edge');
+    const card = open(trigger);
 
-        // Centering would put the card at -80; it clamps to the margin instead.
-        expect(card.style.left).toBe(`${VIEWPORT_MARGIN}px`);
-        // The tail stays aimed at the trigger's center (20px), not the card's, and clears the rounded corner.
-        expect(card.style.getPropertyValue('--ps-tooltip-tail-left')).toBe(`${TAIL_INSET}px`);
-    });
+    // Centering would put the card at -80; it clamps to the margin instead.
+    expect(card.style.left).toBe(`${VIEWPORT_MARGIN}px`);
+    // The tail stays aimed at the trigger's center (20px), not the card's, and clears the rounded corner.
+    expect(card.style.getPropertyValue('--ps-tooltip-tail-left')).toBe(`${TAIL_INSET}px`);
+  });
 
-    test('holds the tail off the far corner too', () => {
-        const trigger = addTrigger({ left: 970, top: 300, width: 30, height: 30 }, 'far edge');
-        const card = open(trigger);
+  test('holds the tail off the far corner too', () => {
+    const trigger = addTrigger({ left: 970, top: 300, width: 30, height: 30 }, 'far edge');
+    const card = open(trigger);
 
-        expect(card.style.getPropertyValue('--ps-tooltip-tail-left')).toBe(`${CARD_WIDTH - TAIL_INSET}px`);
-    });
+    expect(card.style.getPropertyValue('--ps-tooltip-tail-left')).toBe(`${CARD_WIDTH - TAIL_INSET}px`);
+  });
 
-    test('keeps a tall card that fits on neither side inside the viewport', () => {
-        // The Across Cities day breakdown is a ~250px card on triggers that sit mid-page. In a short window there is
-        // room for it neither above nor below, and without a vertical clamp its lower rows run off screen unread.
-        cardHeight = 250;
-        window.innerHeight = 400;
-        const trigger = addTrigger({ left: 400, top: 180, width: 100, height: 30 }, 'tall');
-        const card = open(trigger);
+  test('keeps a tall card that fits on neither side inside the viewport', () => {
+    // The Across Cities day breakdown is a ~250px card on triggers that sit mid-page. In a short window there is
+    // room for it neither above nor below, and without a vertical clamp its lower rows run off screen unread.
+    cardHeight = 250;
+    window.innerHeight = 400;
+    const trigger = addTrigger({ left: 400, top: 180, width: 100, height: 30 }, 'tall');
+    const card = open(trigger);
 
-        const top = parseFloat(card.style.top);
-        expect(top).toBeGreaterThanOrEqual(VIEWPORT_MARGIN);
-        expect(top + cardHeight).toBeLessThanOrEqual(400 - VIEWPORT_MARGIN);
-    });
+    const top = parseFloat(card.style.top);
+    expect(top).toBeGreaterThanOrEqual(VIEWPORT_MARGIN);
+    expect(top + cardHeight).toBeLessThanOrEqual(400 - VIEWPORT_MARGIN);
+  });
 
-    test('drops the tail when the clamp moves the card off its trigger', () => {
-        // A tail is only meaningful while an edge of the card still touches the trigger.
-        cardHeight = 250;
-        window.innerHeight = 400;
-        const trigger = addTrigger({ left: 400, top: 180, width: 100, height: 30 }, 'tall');
-        const card = open(trigger);
+  test('drops the tail when the clamp moves the card off its trigger', () => {
+    // A tail is only meaningful while an edge of the card still touches the trigger.
+    cardHeight = 250;
+    window.innerHeight = 400;
+    const trigger = addTrigger({ left: 400, top: 180, width: 100, height: 30 }, 'tall');
+    const card = open(trigger);
 
-        expect(card.classList.contains('ps-tooltip--untailed')).toBe(true);
-    });
+    expect(card.classList.contains('ps-tooltip--untailed')).toBe(true);
+  });
 
-    test('pins a card taller than the viewport to the top, so it is read from the beginning', () => {
-        cardHeight = VIEWPORT_HEIGHT + 200;
-        const trigger = addTrigger({ left: 400, top: 400, width: 100, height: 30 }, 'enormous');
-        const card = open(trigger);
+  test('pins a card taller than the viewport to the top, so it is read from the beginning', () => {
+    cardHeight = VIEWPORT_HEIGHT + 200;
+    const trigger = addTrigger({ left: 400, top: 400, width: 100, height: 30 }, 'enormous');
+    const card = open(trigger);
 
-        expect(card.style.top).toBe(`${VIEWPORT_MARGIN}px`);
-    });
+    expect(card.style.top).toBe(`${VIEWPORT_MARGIN}px`);
+  });
 
-    test('leaves an ordinary card tailed, since it still sits against its trigger', () => {
-        const trigger = addTrigger({ left: 400, top: 300, width: 100, height: 30 }, 'ordinary');
-        const card = open(trigger);
+  test('leaves an ordinary card tailed, since it still sits against its trigger', () => {
+    const trigger = addTrigger({ left: 400, top: 300, width: 100, height: 30 }, 'ordinary');
+    const card = open(trigger);
 
-        expect(card.classList.contains('ps-tooltip--untailed')).toBe(false);
-    });
+    expect(card.classList.contains('ps-tooltip--untailed')).toBe(false);
+  });
 });
 
 describe('psTooltip live refresh', () => {
-    test('re-renders when the open trigger relabels itself', async () => {
-        const trigger = addTrigger({ left: 400, top: 300, width: 100, height: 30 }, 'Hide the label.');
-        const card = open(trigger);
-        expect(card.innerHTML).toBe('Hide the label.');
+  test('re-renders when the open trigger relabels itself', async () => {
+    const trigger = addTrigger({ left: 400, top: 300, width: 100, height: 30 }, 'Hide the label.');
+    const card = open(trigger);
+    expect(card.innerHTML).toBe('Hide the label.');
 
-        trigger.setAttribute('data-ps-tooltip', 'Show the label again.');
-        await Promise.resolve(); // MutationObserver callbacks are microtasks.
+    trigger.setAttribute('data-ps-tooltip', 'Show the label again.');
+    await Promise.resolve(); // MutationObserver callbacks are microtasks.
 
-        expect(card.innerHTML).toBe('Show the label again.');
-    });
+    expect(card.innerHTML).toBe('Show the label again.');
+  });
 
-    test('re-places, not just re-fills — the new string is a different width', async () => {
-        const trigger = addTrigger({ left: 0, top: 300, width: 40, height: 30 }, 'Hide the label.');
-        const card = open(trigger);
+  test('re-places, not just re-fills — the new string is a different width', async () => {
+    const trigger = addTrigger({ left: 0, top: 300, width: 40, height: 30 }, 'Hide the label.');
+    const card = open(trigger);
 
-        card.style.setProperty('--ps-tooltip-tail-left', '999px'); // Sentinel: a re-fill alone would leave this.
-        trigger.setAttribute('data-ps-tooltip', 'Show the label again.');
-        await Promise.resolve();
+    card.style.setProperty('--ps-tooltip-tail-left', '999px'); // Sentinel: a re-fill alone would leave this.
+    trigger.setAttribute('data-ps-tooltip', 'Show the label again.');
+    await Promise.resolve();
 
-        expect(card.style.getPropertyValue('--ps-tooltip-tail-left')).toBe(`${TAIL_INSET}px`);
-    });
+    expect(card.style.getPropertyValue('--ps-tooltip-tail-left')).toBe(`${TAIL_INSET}px`);
+  });
 
-    test('stops watching a trigger once its tooltip is dismissed', async () => {
-        const trigger = addTrigger({ left: 400, top: 300, width: 100, height: 30 }, 'Hide the label.');
-        const card = open(trigger);
+  test('stops watching a trigger once its tooltip is dismissed', async () => {
+    const trigger = addTrigger({ left: 400, top: 300, width: 100, height: 30 }, 'Hide the label.');
+    const card = open(trigger);
 
-        document.dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
-        trigger.setAttribute('data-ps-tooltip', 'Show the label again.');
-        await Promise.resolve();
+    document.dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
+    trigger.setAttribute('data-ps-tooltip', 'Show the label again.');
+    await Promise.resolve();
 
-        expect(card.classList.contains('ps-tooltip--visible')).toBe(false);
-        expect(card.innerHTML).toBe('Hide the label.');
-    });
+    expect(card.classList.contains('ps-tooltip--visible')).toBe(false);
+    expect(card.innerHTML).toBe('Hide the label.');
+  });
 });
 
 describe('psTooltip beside the trigger', () => {
-    test('opens to the left, centered on the trigger, tail aimed at it', () => {
-        const trigger = addTrigger(
-            { left: 600, top: 300, width: 100, height: 60 }, 'left', { 'data-ps-tooltip-placement': 'left' }
-        );
-        const card = open(trigger);
+  test('opens to the left, centered on the trigger, tail aimed at it', () => {
+    const trigger = addTrigger(
+      { left: 600, top: 300, width: 100, height: 60 }, 'left', { 'data-ps-tooltip-placement': 'left' }
+    );
+    const card = open(trigger);
 
-        expect(card.classList.contains('ps-tooltip--beside-left')).toBe(true);
-        expect(card.style.left).toBe(`${600 - TRIGGER_GAP - CARD_WIDTH}px`);
-        expect(card.style.top).toBe(`${300 + (60 - CARD_HEIGHT) / 2}px`);
-        expect(card.style.getPropertyValue('--ps-tooltip-tail-top')).toBe(`${CARD_HEIGHT / 2}px`);
-    });
+    expect(card.classList.contains('ps-tooltip--beside-left')).toBe(true);
+    expect(card.style.left).toBe(`${600 - TRIGGER_GAP - CARD_WIDTH}px`);
+    expect(card.style.top).toBe(`${300 + (60 - CARD_HEIGHT) / 2}px`);
+    expect(card.style.getPropertyValue('--ps-tooltip-tail-top')).toBe(`${CARD_HEIGHT / 2}px`);
+  });
 
-    test('takes the other side when the asked-for one has no room', () => {
-        const trigger = addTrigger(
-            { left: 20, top: 300, width: 100, height: 60 }, 'left', { 'data-ps-tooltip-placement': 'left' }
-        );
-        const card = open(trigger);
+  test('takes the other side when the asked-for one has no room', () => {
+    const trigger = addTrigger(
+      { left: 20, top: 300, width: 100, height: 60 }, 'left', { 'data-ps-tooltip-placement': 'left' }
+    );
+    const card = open(trigger);
 
-        expect(card.classList.contains('ps-tooltip--beside-right')).toBe(true);
-        expect(card.style.left).toBe(`${120 + TRIGGER_GAP}px`);
-    });
+    expect(card.classList.contains('ps-tooltip--beside-right')).toBe(true);
+    expect(card.style.left).toBe(`${120 + TRIGGER_GAP}px`);
+  });
 
-    test('falls back to above when neither side fits', () => {
-        window.innerWidth = 300;
-        const trigger = addTrigger(
-            { left: 50, top: 300, width: 200, height: 60 }, 'left', { 'data-ps-tooltip-placement': 'left' }
-        );
-        const card = open(trigger);
+  test('falls back to above when neither side fits', () => {
+    window.innerWidth = 300;
+    const trigger = addTrigger(
+      { left: 50, top: 300, width: 200, height: 60 }, 'left', { 'data-ps-tooltip-placement': 'left' }
+    );
+    const card = open(trigger);
 
-        expect(card.className).not.toMatch(/beside/);
-        expect(card.style.top).toBe(`${300 - CARD_HEIGHT - TRIGGER_GAP}px`);
-    });
+    expect(card.className).not.toMatch(/beside/);
+    expect(card.style.top).toBe(`${300 - CARD_HEIGHT - TRIGGER_GAP}px`);
+  });
 });
 
 describe('psTooltip theme', () => {
-    test('a light trigger gets the light card, and the next dark one takes it back', () => {
-        const light = addTrigger(
-            { left: 400, top: 300, width: 100, height: 30 }, 'light', { 'data-ps-tooltip-theme': 'light' }
-        );
-        const dark = addTrigger({ left: 400, top: 500, width: 100, height: 30 }, 'dark');
+  test('a light trigger gets the light card, and the next dark one takes it back', () => {
+    const light = addTrigger(
+      { left: 400, top: 300, width: 100, height: 30 }, 'light', { 'data-ps-tooltip-theme': 'light' }
+    );
+    const dark = addTrigger({ left: 400, top: 500, width: 100, height: 30 }, 'dark');
 
-        expect(open(light).classList.contains('ps-tooltip--light')).toBe(true);
-        document.dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
-        expect(open(dark).classList.contains('ps-tooltip--light')).toBe(false);
-    });
+    expect(open(light).classList.contains('ps-tooltip--light')).toBe(true);
+    document.dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
+    expect(open(dark).classList.contains('ps-tooltip--light')).toBe(false);
+  });
 });
 
 describe('psTooltip retirement', () => {
-    test('removing the attribute takes an open card down', async () => {
-        const trigger = addTrigger({ left: 400, top: 300, width: 100, height: 30 }, 'going');
-        const card = open(trigger);
+  test('dropping the markup attribute falls back to the text one while the card is open', async () => {
+    const trigger = addHtmlTrigger({ left: 400, top: 300, width: 100, height: 30 }, '<b>Card</b>',
+      { 'data-ps-tooltip': 'Plain' });
+    const card = open(trigger);
 
-        trigger.removeAttribute('data-ps-tooltip');
-        await Promise.resolve();
+    trigger.removeAttribute('data-ps-tooltip-html');
+    await Promise.resolve();
 
-        expect(card.classList.contains('ps-tooltip--visible')).toBe(false);
-    });
+    expect(card.innerHTML).toBe('Plain');
+    expect(card.classList.contains('ps-tooltip--visible')).toBe(true);
+  });
 
-    test('a show still waiting out the hover delay is dropped once the attribute is gone', () => {
-        // The AI tag suggestion clicked within the delay: its click removes the attribute, and the card that then
-        // opened was empty.
-        jest.useFakeTimers();
-        try {
-            const trigger = addTrigger({ left: 400, top: 300, width: 100, height: 30 }, 'quick');
-            trigger.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
-            trigger.removeAttribute('data-ps-tooltip');
-            jest.runAllTimers();
+  test('removing the attribute takes an open card down', async () => {
+    const trigger = addTrigger({ left: 400, top: 300, width: 100, height: 30 }, 'going');
+    const card = open(trigger);
 
-            expect(document.getElementById('ps-tooltip')?.classList.contains('ps-tooltip--visible') ?? false)
-                .toBe(false);
-        } finally {
-            jest.useRealTimers();
-        }
-    });
+    trigger.removeAttribute('data-ps-tooltip');
+    await Promise.resolve();
 
-    test('a trigger removed from the page takes its card with it', async () => {
-        const trigger = addTrigger({ left: 400, top: 300, width: 100, height: 30 }, 'replaced');
-        const card = open(trigger);
+    expect(card.classList.contains('ps-tooltip--visible')).toBe(false);
+  });
 
-        trigger.remove();
-        await Promise.resolve();
+  test('a show still waiting out the hover delay is dropped once the attribute is gone', () => {
+    // The AI tag suggestion clicked within the delay: its click removes the attribute, and the card that then
+    // opened was empty.
+    vi.useFakeTimers();
+    const trigger = addTrigger({ left: 400, top: 300, width: 100, height: 30 }, 'quick');
+    trigger.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+    trigger.removeAttribute('data-ps-tooltip');
+    vi.runAllTimers();
 
-        expect(card.classList.contains('ps-tooltip--visible')).toBe(false);
-    });
+    expect(document.getElementById('ps-tooltip')?.classList.contains('ps-tooltip--visible') ?? false)
+      .toBe(false);
+  });
 
-    test('a trigger hiding itself takes its card with it', async () => {
-        const trigger = addTrigger({ left: 400, top: 300, width: 100, height: 30 }, 'Map key');
-        const card = open(trigger);
+  test('a trigger removed from the page takes its card with it', async () => {
+    const trigger = addTrigger({ left: 400, top: 300, width: 100, height: 30 }, 'replaced');
+    const card = open(trigger);
 
-        trigger.checkVisibility = () => false; // jsdom has no layout, so stand in for the class hiding it.
-        trigger.classList.add('hidden-by-page-css');
-        await Promise.resolve();
+    trigger.remove();
+    await Promise.resolve();
 
-        expect(card.classList.contains('ps-tooltip--visible')).toBe(false);
-    });
+    expect(card.classList.contains('ps-tooltip--visible')).toBe(false);
+  });
+
+  test('a trigger hiding itself takes its card with it', async () => {
+    const trigger = addTrigger({ left: 400, top: 300, width: 100, height: 30 }, 'Map key');
+    const card = open(trigger);
+
+    trigger.checkVisibility = () => false; // jsdom has no layout, so stand in for the class hiding it.
+    trigger.classList.add('hidden-by-page-css');
+    await Promise.resolve();
+
+    expect(card.classList.contains('ps-tooltip--visible')).toBe(false);
+  });
 });
 
 describe('psTooltip accessible description', () => {
-    test('describes the trigger when the card adds something to its name', () => {
-        const trigger = addTrigger({ left: 400, top: 300, width: 100, height: 30 }, 'Press Z', { 'aria-label': 'Zoom in' });
-        open(trigger);
+  test('describes the trigger when the card adds something to its name', () => {
+    const trigger = addTrigger({ left: 400, top: 300, width: 100, height: 30 }, 'Press Z', { 'aria-label': 'Zoom in' });
+    open(trigger);
 
-        expect(trigger.getAttribute('aria-describedby')).toBe('ps-tooltip');
-    });
+    expect(trigger.getAttribute('aria-describedby')).toBe('ps-tooltip');
+  });
 
-    test('leaves it alone when the card only repeats the name', () => {
-        const trigger = addTrigger({ left: 400, top: 300, width: 100, height: 30 }, 'Zoom in', { 'aria-label': 'Zoom in' });
-        open(trigger);
+  test('leaves it alone when the card only repeats the name', () => {
+    const trigger = addTrigger({ left: 400, top: 300, width: 100, height: 30 }, 'Zoom in', { 'aria-label': 'Zoom in' });
+    open(trigger);
 
-        expect(trigger.hasAttribute('aria-describedby')).toBe(false);
-    });
+    expect(trigger.hasAttribute('aria-describedby')).toBe(false);
+  });
 });
 
 describe('psTooltip images', () => {
-    test('places the card again once an image inside it loads', () => {
-        // Before the image lands the card measures short and sits close above the trigger; the reload after `load`
-        // measures the taller card and moves it up.
-        const complete = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, 'complete');
-        Object.defineProperty(HTMLImageElement.prototype, 'complete', { configurable: true, get: () => false });
-        try {
-            const trigger = addTrigger({ left: 400, top: 300, width: 100, height: 30 }, 'text<br><img src="x.png">');
-            const card = open(trigger);
-            expect(card.style.top).toBe(`${300 - CARD_HEIGHT - TRIGGER_GAP}px`);
+  test('places the card again once an image inside it loads', () => {
+    // Before the image lands the card measures short and sits close above the trigger; the reload after `load`
+    // measures the taller card and moves it up.
+    const complete = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, 'complete');
+    Object.defineProperty(HTMLImageElement.prototype, 'complete', { configurable: true, get: () => false });
+    try {
+      const trigger = addHtmlTrigger({ left: 400, top: 300, width: 100, height: 30 }, 'text<br><img src="x.png">');
+      const card = open(trigger);
+      expect(card.style.top).toBe(`${300 - CARD_HEIGHT - TRIGGER_GAP}px`);
 
-            cardHeight = 200;
-            card.querySelector('img').dispatchEvent(new Event('load'));
+      cardHeight = 200;
+      card.querySelector('img').dispatchEvent(new Event('load'));
 
-            expect(card.style.top).toBe(`${300 - 200 - TRIGGER_GAP}px`);
-        } finally {
-            Object.defineProperty(HTMLImageElement.prototype, 'complete', complete);
-        }
-    });
+      expect(card.style.top).toBe(`${300 - 200 - TRIGGER_GAP}px`);
+    } finally {
+      Object.defineProperty(HTMLImageElement.prototype, 'complete', complete);
+    }
+  });
 });
 
 describe('psTooltip top layer', () => {
-    test.each([
-        ['an open dialog', () => Object.assign(document.createElement('dialog'), { open: true })],
-        ['a popover', () => {
-            const el = document.createElement('div');
-            el.setAttribute('popover', 'manual');
-            return el;
-        }],
-    ])('moves into %s holding the trigger, and back out for one that is not', (_, makeHost) => {
-        const host = makeHost();
-        document.body.appendChild(host);
-        const inside = addTrigger({ left: 400, top: 300, width: 100, height: 30 }, 'inside');
-        host.appendChild(inside);
-        const outside = addTrigger({ left: 400, top: 500, width: 100, height: 30 }, 'outside');
+  test.each([
+    ['an open dialog', () => Object.assign(document.createElement('dialog'), { open: true })],
+    ['a popover', () => {
+      const el = document.createElement('div');
+      el.setAttribute('popover', 'manual');
+      return el;
+    }],
+  ])('moves into %s holding the trigger, and back out for one that is not', (_, makeHost) => {
+    const host = makeHost();
+    document.body.appendChild(host);
+    const inside = addTrigger({ left: 400, top: 300, width: 100, height: 30 }, 'inside');
+    host.appendChild(inside);
+    const outside = addTrigger({ left: 400, top: 500, width: 100, height: 30 }, 'outside');
 
-        expect(open(inside).parentElement).toBe(host);
-        expect(open(outside).parentElement).toBe(document.body);
-    });
+    expect(open(inside).parentElement).toBe(host);
+    expect(open(outside).parentElement).toBe(document.body);
+  });
 });
 
 describe('psTooltip pinning (#5495)', () => {
-    /** A pinnable trigger, like the Across Cities day bars, whose card carries a link. */
-    function addPinnable() {
-        return addTrigger(
-            { left: 400, top: 300, width: 100, height: 30 },
-            '<a id="card-link" href="https://example.org/admin/user/a">a</a>',
-            {
-                'data-ps-tooltip-pinnable': '', 'aria-haspopup': 'dialog', 'aria-expanded': 'false',
-                'aria-label': 'Mon',
-            },
-        );
-    }
+  /** A pinnable trigger, like the Across Cities day bars, whose card carries a link. */
+  function addPinnable() {
+    return addHtmlTrigger(
+      { left: 400, top: 300, width: 100, height: 30 },
+      '<a id="card-link" href="https://example.org/admin/user/a">a</a>',
+      {
+        'data-ps-tooltip-pinnable': '', 'aria-haspopup': 'dialog', 'aria-expanded': 'false',
+        'aria-label': 'Mon',
+      },
+    );
+  }
 
-    const card = () => document.getElementById('ps-tooltip');
-    const isVisible = () => card()?.classList.contains('ps-tooltip--visible') ?? false;
-    const isPinned = () => card()?.classList.contains('ps-tooltip--pinned') ?? false;
-    const key = (target, k) => target.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true }));
+  const card = () => document.getElementById('ps-tooltip');
+  const isVisible = () => card()?.classList.contains('ps-tooltip--visible') ?? false;
+  const isPinned = () => card()?.classList.contains('ps-tooltip--pinned') ?? false;
+  const key = (target, k) => target.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true }));
 
-    test('a click pins the card open as a labeled dialog', () => {
-        const trigger = addPinnable();
-        trigger.click();
+  test('a click pins the card open as a labeled dialog', () => {
+    const trigger = addPinnable();
+    trigger.click();
 
-        expect(isVisible()).toBe(true);
-        expect(isPinned()).toBe(true);
-        expect(card().getAttribute('role')).toBe('dialog');
-        expect(card().getAttribute('aria-label')).toBe('Mon');
-        expect(trigger.getAttribute('aria-expanded')).toBe('true');
-    });
+    expect(isVisible()).toBe(true);
+    expect(isPinned()).toBe(true);
+    expect(card().getAttribute('role')).toBe('dialog');
+    expect(card().getAttribute('aria-label')).toBe('Mon');
+    expect(trigger.getAttribute('aria-expanded')).toBe('true');
+  });
 
-    test('a pinned card ignores the pointer passing over another trigger on the way to its links', () => {
-        const trigger = addPinnable();
-        const other = addTrigger({ left: 0, top: 0, width: 10, height: 10 }, 'other');
-        trigger.click();
-        other.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
-        document.dispatchEvent(new MouseEvent('mouseleave'));
+  test('a pinned card ignores the pointer passing over another trigger on the way to its links', () => {
+    const trigger = addPinnable();
+    const other = addTrigger({ left: 0, top: 0, width: 10, height: 10 }, 'other');
+    trigger.click();
+    other.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+    document.dispatchEvent(new MouseEvent('mouseleave'));
 
-        expect(isPinned()).toBe(true);
-        expect(card().innerHTML).toContain('card-link');
-    });
+    expect(isPinned()).toBe(true);
+    expect(card().innerHTML).toContain('card-link');
+  });
 
-    test('focus moving from the trigger into the card keeps it pinned', () => {
-        const trigger = addPinnable();
-        trigger.click();
-        trigger.dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
-        document.getElementById('card-link').dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+  test('focus moving from the trigger into the card keeps it pinned', () => {
+    const trigger = addPinnable();
+    trigger.click();
+    trigger.dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
+    document.getElementById('card-link').dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
 
-        expect(isPinned()).toBe(true);
-    });
+    expect(isPinned()).toBe(true);
+  });
 
-    test('focus landing elsewhere closes it', () => {
-        const trigger = addPinnable();
-        const elsewhere = addTrigger({ left: 0, top: 0, width: 10, height: 10 }, 'elsewhere');
-        trigger.click();
-        elsewhere.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+  test('focus landing elsewhere closes it', () => {
+    const trigger = addPinnable();
+    const elsewhere = addTrigger({ left: 0, top: 0, width: 10, height: 10 }, 'elsewhere');
+    trigger.click();
+    elsewhere.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
 
-        expect(isPinned()).toBe(false);
-        expect(card().innerHTML).toBe('elsewhere');
-    });
+    expect(isPinned()).toBe(false);
+    expect(card().innerHTML).toBe('elsewhere');
+  });
 
-    test('a pointerdown outside closes it; one inside does not', () => {
-        const trigger = addPinnable();
-        trigger.click();
-        document.getElementById('card-link').dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }));
-        expect(isPinned()).toBe(true);
+  test('a pointerdown outside closes it; one inside does not', () => {
+    const trigger = addPinnable();
+    trigger.click();
+    document.getElementById('card-link').dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }));
+    expect(isPinned()).toBe(true);
 
-        document.body.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }));
-        expect(isVisible()).toBe(false);
-        expect(isPinned()).toBe(false);
-        expect(trigger.getAttribute('aria-expanded')).toBe('false');
-    });
+    document.body.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }));
+    expect(isVisible()).toBe(false);
+    expect(isPinned()).toBe(false);
+    expect(trigger.getAttribute('aria-expanded')).toBe('false');
+  });
 
-    test('clicking the same trigger again unpins and closes it', () => {
-        const trigger = addPinnable();
-        trigger.click();
-        trigger.click();
+  test('clicking the same trigger again unpins and closes it', () => {
+    const trigger = addPinnable();
+    trigger.click();
+    trigger.click();
 
-        expect(isVisible()).toBe(false);
-    });
+    expect(isVisible()).toBe(false);
+  });
 
-    test('Enter pins from the keyboard and moves focus into the card, and Escape hands it back', () => {
-        const trigger = addPinnable();
-        trigger.setAttribute('tabindex', '0');
-        trigger.focus();
-        key(trigger, 'Enter');
+  test('Enter pins from the keyboard and moves focus into the card, and Escape hands it back', () => {
+    const trigger = addPinnable();
+    trigger.setAttribute('tabindex', '0');
+    trigger.focus();
+    key(trigger, 'Enter');
 
-        expect(isPinned()).toBe(true);
-        expect(document.activeElement).toBe(card());
+    expect(isPinned()).toBe(true);
+    expect(document.activeElement).toBe(card());
 
-        key(card(), 'Escape');
-        expect(isVisible()).toBe(false);
-        expect(document.activeElement).toBe(trigger);
-    });
+    key(card(), 'Escape');
+    expect(isVisible()).toBe(false);
+    expect(document.activeElement).toBe(trigger);
+  });
 
-    test('Space pins too, without scrolling the page', () => {
-        const trigger = addPinnable();
-        const event = new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true });
-        trigger.dispatchEvent(event);
+  test('Space pins too, without scrolling the page', () => {
+    const trigger = addPinnable();
+    const event = new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true });
+    trigger.dispatchEvent(event);
 
-        expect(isPinned()).toBe(true);
-        expect(event.defaultPrevented).toBe(true);
-    });
+    expect(isPinned()).toBe(true);
+    expect(event.defaultPrevented).toBe(true);
+  });
 
-    test('a trigger that does not opt in is not pinned by a click', () => {
-        const trigger = addTrigger({ left: 400, top: 300, width: 100, height: 30 }, 'plain');
-        open(trigger);
-        trigger.click();
+  test('a trigger that does not opt in is not pinned by a click', () => {
+    const trigger = addTrigger({ left: 400, top: 300, width: 100, height: 30 }, 'plain');
+    open(trigger);
+    trigger.click();
 
-        expect(isPinned()).toBe(false);
-    });
+    expect(isPinned()).toBe(false);
+  });
 
-    test('a pinned card follows its trigger through a scroll instead of closing', () => {
-        const trigger = addPinnable();
-        trigger.click();
-        trigger._rect = { left: 400, top: 200, width: 100, height: 30 };
-        window.dispatchEvent(new Event('scroll'));
+  test('a pinned card follows its trigger through a scroll instead of closing', () => {
+    const trigger = addPinnable();
+    trigger.click();
+    trigger._rect = { left: 400, top: 200, width: 100, height: 30 };
+    window.dispatchEvent(new Event('scroll'));
 
-        expect(isPinned()).toBe(true);
-        expect(card().style.top).toBe(`${200 - CARD_HEIGHT - TRIGGER_GAP}px`);
-    });
+    expect(isPinned()).toBe(true);
+    expect(card().style.top).toBe(`${200 - CARD_HEIGHT - TRIGGER_GAP}px`);
+  });
 
-    test('a card opened by keyboard focus follows its trigger through the scroll that brings it into view', () => {
-        const trigger = addTrigger({ left: 100, top: 900, width: 100, height: 30 }, 'Focused');
-        trigger.focus();
-        trigger._rect = { left: 100, top: 300, width: 100, height: 30 };
-        window.dispatchEvent(new Event('scroll'));
+  test('a card opened by keyboard focus follows its trigger through the scroll that brings it into view', () => {
+    const trigger = addTrigger({ left: 100, top: 900, width: 100, height: 30 }, 'Focused');
+    trigger.focus();
+    trigger._rect = { left: 100, top: 300, width: 100, height: 30 };
+    window.dispatchEvent(new Event('scroll'));
 
-        expect(isVisible()).toBe(true);
-        expect(card().style.top).toBe(`${300 - CARD_HEIGHT - TRIGGER_GAP}px`);
-    });
+    expect(isVisible()).toBe(true);
+    expect(card().style.top).toBe(`${300 - CARD_HEIGHT - TRIGGER_GAP}px`);
+  });
 
-    test('a card whose trigger doesn\'t hold focus still closes on scroll', () => {
-        open(addTrigger({ left: 100, top: 300, width: 100, height: 30 }, 'Hovered'));
-        window.dispatchEvent(new Event('scroll'));
+  test('a card whose trigger doesn\'t hold focus still closes on scroll', () => {
+    open(addTrigger({ left: 100, top: 300, width: 100, height: 30 }, 'Hovered'));
+    window.dispatchEvent(new Event('scroll'));
 
-        expect(isVisible()).toBe(false);
-    });
+    expect(isVisible()).toBe(false);
+  });
 
-    test('a click no pointer made (a screen reader\'s Enter) moves focus into the card like a keyboard pin', () => {
-        const trigger = addPinnable();
-        trigger.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 0 }));
+  test('a click no pointer made (a screen reader\'s Enter) moves focus into the card like a keyboard pin', () => {
+    const trigger = addPinnable();
+    trigger.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 0 }));
 
-        expect(isPinned()).toBe(true);
-        expect(document.activeElement).toBe(card());
-    });
+    expect(isPinned()).toBe(true);
+    expect(document.activeElement).toBe(card());
+  });
 
-    test('a pointer click leaves focus where it was', () => {
-        const trigger = addPinnable();
-        trigger.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }));
+  test('a pointer click leaves focus where it was', () => {
+    const trigger = addPinnable();
+    trigger.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }));
 
-        expect(isPinned()).toBe(true);
-        expect(document.activeElement).not.toBe(card());
-    });
+    expect(isPinned()).toBe(true);
+    expect(document.activeElement).not.toBe(card());
+  });
 
-    test('a pinned card closes on scroll once a redraw has detached its trigger', () => {
-        const trigger = addPinnable();
-        trigger.click();
-        trigger.remove(); // What MiniLineChart's resize redraw does to a bar.
-        window.dispatchEvent(new Event('scroll'));
+  test('a pinned card closes on scroll once a redraw has detached its trigger', () => {
+    const trigger = addPinnable();
+    trigger.click();
+    trigger.remove(); // What MiniLineChart's resize redraw does to a bar.
+    window.dispatchEvent(new Event('scroll'));
 
-        expect(isVisible()).toBe(false);
-    });
+    expect(isVisible()).toBe(false);
+  });
 
-    test('a held Enter pins once rather than toggling on every repeat', () => {
-        const trigger = addPinnable();
-        key(trigger, 'Enter');
-        trigger.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, repeat: true }));
+  test('a held Enter pins once rather than toggling on every repeat', () => {
+    const trigger = addPinnable();
+    key(trigger, 'Enter');
+    trigger.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, repeat: true }));
 
-        expect(isPinned()).toBe(true);
-    });
+    expect(isPinned()).toBe(true);
+  });
 
-    test('a modified Enter is left to whoever it belongs to', () => {
-        const trigger = addPinnable();
-        trigger.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, ctrlKey: true }));
+  test('a modified Enter is left to whoever it belongs to', () => {
+    const trigger = addPinnable();
+    trigger.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, ctrlKey: true }));
 
-        expect(isVisible()).toBe(false);
-    });
+    expect(isVisible()).toBe(false);
+  });
 
-    test('stops describing the trigger with the card once it is a dialog', () => {
-        const trigger = addPinnable();
-        open(trigger);
-        expect(trigger.getAttribute('aria-describedby')).toBe('ps-tooltip');
+  test('stops describing the trigger with the card once it is a dialog', () => {
+    const trigger = addPinnable();
+    open(trigger);
+    expect(trigger.getAttribute('aria-describedby')).toBe('ps-tooltip');
 
-        trigger.click();
-        expect(trigger.hasAttribute('aria-describedby')).toBe(false);
-    });
+    trigger.click();
+    expect(trigger.hasAttribute('aria-describedby')).toBe(false);
+  });
 
-    test('Tab off either end of a pinned card goes back to its trigger and keeps it open', () => {
-        const trigger = addPinnable();
-        trigger.setAttribute('tabindex', '0');
-        trigger.focus();
-        key(trigger, 'Enter');
-        const link = document.getElementById('card-link');
-        link.focus();
+  test('Tab off either end of a pinned card goes back to its trigger and keeps it open', () => {
+    const trigger = addPinnable();
+    trigger.setAttribute('tabindex', '0');
+    trigger.focus();
+    key(trigger, 'Enter');
+    const link = document.getElementById('card-link');
+    link.focus();
 
-        const tab = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true });
-        link.dispatchEvent(tab);
-        expect(tab.defaultPrevented).toBe(true);
-        expect(document.activeElement).toBe(trigger);
-        expect(isPinned()).toBe(true);
+    const tab = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true });
+    link.dispatchEvent(tab);
+    expect(tab.defaultPrevented).toBe(true);
+    expect(document.activeElement).toBe(trigger);
+    expect(isPinned()).toBe(true);
 
-        link.focus();
-        const back = new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, bubbles: true, cancelable: true });
-        link.dispatchEvent(back);
-        expect(document.activeElement).toBe(trigger);
-    });
+    link.focus();
+    const back = new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, bubbles: true, cancelable: true });
+    link.dispatchEvent(back);
+    expect(document.activeElement).toBe(trigger);
+  });
 
-    test('a pinned card keeps its content while focus is in it, not re-rendering the link away', async () => {
-        const trigger = addPinnable();
-        trigger.setAttribute('tabindex', '0');
-        trigger.focus();
-        key(trigger, 'Enter');
-        const link = document.getElementById('card-link');
-        link.focus();
-        trigger.setAttribute('data-ps-tooltip', 'replaced');
-        await Promise.resolve();
+  test('a pinned card keeps its content while focus is in it, not re-rendering the link away', async () => {
+    const trigger = addPinnable();
+    trigger.setAttribute('tabindex', '0');
+    trigger.focus();
+    key(trigger, 'Enter');
+    const link = document.getElementById('card-link');
+    link.focus();
+    trigger.setAttribute('data-ps-tooltip-html', 'replaced');
+    await Promise.resolve();
 
-        expect(document.activeElement).toBe(link);
-        expect(link.isConnected).toBe(true);
-    });
+    expect(document.activeElement).toBe(link);
+    expect(link.isConnected).toBe(true);
+  });
 
-    test('a pinned card closes once its trigger scrolls out of view', () => {
-        const trigger = addPinnable();
-        trigger.click();
-        trigger._rect = { left: 400, top: -100, width: 100, height: 30 };
-        window.dispatchEvent(new Event('scroll'));
+  test('a pinned card closes once its trigger scrolls out of view', () => {
+    const trigger = addPinnable();
+    trigger.click();
+    trigger._rect = { left: 400, top: -100, width: 100, height: 30 };
+    window.dispatchEvent(new Event('scroll'));
 
-        expect(isVisible()).toBe(false);
-    });
+    expect(isVisible()).toBe(false);
+  });
 });

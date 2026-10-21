@@ -92,6 +92,7 @@ state.name.massachusetts = MA
 state.name.texas = TX
 state.name.kentucky = KY
 state.name.iowa = IA
+state.name.alaska = AK
 
 navbar.explore = Explore
 navbar.validate = Validate
@@ -166,9 +167,7 @@ seo.description.api = Free and open sidewalk accessibility data for {0}: raw lab
 seo.description.about = Learn about Project Sidewalk: our mission to map the world''s sidewalks, the research team behind it, and the open data it produces.
 seo.og.image.alt = Screenshot of Project Sidewalk''s virtual street-view exploration with accessibility labels placed along a sidewalk.
 
-# About page (#4237, redesigned in #4631). Static copy is server-rendered and doubles as the no-JS/crawler fallback;
-# numbers in data-live-stat spans are hydrated from /v3/api/aggregateStats (aggregateStats.js), and the team,
-# publications, and funders sections are hydrated from the Makeability Lab API (aboutPage.js).
+# About page (#4237, #4631). Numbers, team, publications, and funders load from APIs, not from here.
 about.title = About Project Sidewalk
 about.hero.title = We''re mapping and assessing <span class="about-hero-accent">every sidewalk</span> in the world.
 about.hero.subtitle = Project Sidewalk is an open-source academic research project at the University of Washington and the University of Illinois Chicago that combines crowdsourcing and AI to map and assess city sidewalks — and opens every data point to researchers, governments, and communities.
@@ -348,6 +347,10 @@ audit.center.ui.tags.info = Please add tags to your labels, which enriches the d
 audit.center.ui.description.header = Describe (optional)
 audit.center.ui.description.placeholder = Description
 
+audit.all.regions.finished.title = You''ve explored every neighborhood in {0}!
+audit.all.regions.finished.body = Thank you! You''ve checked every street we have in {0}. You can keep helping by validating other people''s labels, or by exploring another city.
+audit.all.regions.finished.validate = Validate labels
+audit.all.regions.finished.other.cities = Explore another city
 audit.survey.title = Please take this one-time survey about Project Sidewalk
 audit.survey.enjoyment.question = How much have you been enjoying using Project Sidewalk?
 audit.survey.enjoyment.option.1 = Very boring
@@ -559,6 +562,14 @@ gallery.tags = Tags
 gallery.all = All Label Types
 gallery.labels.not.found = No matches. <a href="/explore">Start exploring</a> to contribute more data!
 gallery.cards = Labels are sorted randomly based on selected filters
+gallery.cards.sorted = Labels are sorted by "{0}" based on selected filters
+gallery.sort.by = Sort By
+gallery.sort.random = Random
+gallery.sort.newest = Newest first
+gallery.sort.oldest = Oldest first
+gallery.sort.most.severe = Most severe first
+gallery.sort.least.severe = Least severe first
+gallery.sort.most.disputed = Most disputed first
 gallery.clear.filters = Clear Filters
 gallery.list.count = {0,choice,1#1 label|1<{0} labels} in this list
 gallery.list.truncated = {0,choice,1#1 id was|1<{0} ids were} past the {1}-id limit and could not be loaded.
@@ -640,7 +651,7 @@ sharedlabel.stat.labels = labels
 sharedlabel.stat.validations = validations
 sharedlabel.stat.miles = miles explored
 sharedlabel.legend.title = What these labels mean
-# Redesigned user dashboard, leaderboard, settings, and public profile (#4323, #4475).
+# User dashboard, leaderboard, settings, and public profile (#4323, #4475).
 dashboard.title = Your dashboard
 dashboard.you = You
 dashboard.hero.greeting = Welcome back, {0} 👋
@@ -857,6 +868,16 @@ leaderboard.thisweek.none = ✨ No labels yet this week — be the first on the 
 leaderboard.teams.title = Teams in {0}
 leaderboard.teams.intro = Create or join a team to make a difference together!
 leaderboard.teams.none = 👥 No teams yet — be the first! Create one and invite friends or classmates.
+leaderboard.myteam.title = Your team: {0}
+leaderboard.myteam.intro = How you stack up against your teammates in {0}.
+leaderboard.myteam.none = 👥 No one on your team is on the leaderboard yet.
+leaderboard.myteam.you.hidden = You''re not listed because you turned off “{0}.”
+leaderboard.myteam.you.settings = Change it in Settings
+leaderboard.myteam.you.nolabels = You''ll show up here once you place your first label.
+leaderboard.myteam.pager = Team leaderboard pages
+leaderboard.myteam.prev = ‹ Previous
+leaderboard.myteam.next = Next ›
+leaderboard.myteam.page = Page {0} of {1}
 leaderboard.allcities.title = All cities, all-time
 leaderboard.allcities.intro = The top mappers across every Project Sidewalk city, ranked by total labels.
 leaderboard.allcities.note = Distance is refreshed once a day.

@@ -1,3 +1,4 @@
+import i18next from 'i18next';
 import { Toast } from '../common/Toast.js';
 import { CommunityListPage } from './CommunityListPage.js';
 

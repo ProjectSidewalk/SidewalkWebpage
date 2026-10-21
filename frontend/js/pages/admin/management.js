@@ -1,4 +1,5 @@
 /** Entry point for the admin dashboard's management page. */
+import '../../../css/components/pager.css';
 import { ManagementPage } from '../../admin-dashboard/ManagementPage.js';
 
 const data = document.getElementById('page-entry').dataset;
@@ -15,5 +16,6 @@ new ManagementPage({
   generateCropsUrl: '/adminapi/generateCrops',
   rebuildSidewalkPresenceUrl: '/adminapi/rebuildSidewalkPresence',
   refreshPlacesUrl: '/adminapi/refreshPlaces',
+  refreshBasemapUrl: '/adminapi/refreshBasemap',
   recountGradientStalenessUrl: '/adminapi/recountStreetGradientStaleness',
 }, JSON.parse(data.assignableRoles)).init();

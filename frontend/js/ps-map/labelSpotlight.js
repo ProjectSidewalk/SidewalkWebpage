@@ -1,3 +1,4 @@
+import mapboxgl from '../common/mapboxgl.js';
 import { util } from '../common/utilities.js';
 import { filterLabelLayers } from './psMapUtilities.js';
 import '../common/utilitiesSidewalk.js';
@@ -169,7 +170,8 @@ export function createLabelSpotlight({ dialog, getMap, getMapData, getCoords, ge
       centerDot.style.background = fill.fillStyle;
       el.appendChild(centerDot);
     }
-    beacon = new mapboxgl.Marker({ element: el }).setLngLat(coords).addTo(getMap());
+    const [lng, lat] = coords;
+    beacon = new mapboxgl.Marker({ element: el }).setLngLat([lng, lat]).addTo(getMap());
     if (mode === 'flash') {
       beaconTimer = setTimeout(() => {
         if (beacon && beacon.getElement() === el) {

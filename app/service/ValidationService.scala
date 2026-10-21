@@ -40,7 +40,7 @@ trait ValidationService {
   def countHumanValidations: Future[Int]
   def countValidations(userId: String): Future[Int]
   def insertEnvironment(env: ValidationTaskEnvironment): Future[Int]
-  def insertMultipleInteractions(interactions: Seq[ValidationTaskInteraction]): Future[Seq[Int]]
+  def insertMultipleInteractions(interactions: Seq[ValidationTaskInteraction]): Future[Unit]
   def replaceComment(comment: ValidationTaskComment): Future[Int]
   def deleteComment(labelId: Int, userId: String, labelType: LabelType): Future[Int]
   def submitValidations(validationSubmissions: Seq[ValidationSubmission]): Future[Seq[Int]]
@@ -144,8 +144,8 @@ class ValidationServiceImpl @Inject() (
   def insertEnvironment(env: ValidationTaskEnvironment): Future[Int] =
     db.run(validationTaskEnvironmentTable.insert(env))
 
-  def insertMultipleInteractions(interactions: Seq[ValidationTaskInteraction]): Future[Seq[Int]] =
-    db.run(validationTaskInteractionTable.insertMultiple(interactions))
+  def insertMultipleInteractions(interactions: Seq[ValidationTaskInteraction]): Future[Unit] =
+    db.run(validationTaskInteractionTable.insertMultiple(interactions)).map(_ => ())
 
   /**
    * Records the user's comment on a label, replacing whatever they had said about it before.

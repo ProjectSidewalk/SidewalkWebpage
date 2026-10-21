@@ -36,7 +36,9 @@ import { AccessScoreGradeRamp } from '../common/AccessScoreGradeRamp.js';
  * @property {number} ramp_limit - 1:12, the running-slope limit for a ramp.
  * @property {number[]} map_class_breaks - Ascending grades dividing the map's slope classes.
  * @property {Array<{dem_source: string, title: string, credit: string, licence: string, url: ?string,
- *     street_count: number}>} sources - The city's elevation models, most streets first; empty where none is sampled.
+ *     street_count: number, confidence: string}>} sources - The city's elevation models, most streets first, each
+ *     with the `grade_confidence` of its streets; empty where none is sampled.
+ * @property {boolean} approximate - Whether the city's grades are approximate as a whole (the backend's rule).
  */
 
 /**
@@ -597,6 +599,17 @@ export class AccessScoreModel {
       const [a, b] = [defaults[k], settings[k]];
       return typeof a === 'number' ? Math.abs(a - b) < 1e-9 : a === b;
     });
+  }
+
+  /**
+   * Whether the city's grades are approximate as a whole, under which each grade is a straight line between the
+   * street's ends and sits out of the score until `includeApproximate` admits it. The rule (a share of the city's
+   * sampled streets) is the backend's, published as `grade.approximate`; a config without it is not approximate.
+   * @param {AccessScoreConfig} config - The `/v3/api/accessScoreConfig` response.
+   * @returns {boolean}
+   */
+  static gradesApproximate(config) {
+    return config.grade?.approximate === true;
   }
 
   /** Whether every slope setting equals the engine's default, so the panel can say "default" or "custom". */

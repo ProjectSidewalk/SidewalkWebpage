@@ -151,12 +151,22 @@ class UserController @Inject() (
   }
 
   /**
-   * Handles the sign-out action.
+   * Signs the user out and redirects to `url`.
+   *
+   * Anyone else goes home instead: `url` is often a tool page, which makes a new account for a visitor without one.
+   * A link from another site never signs anyone out, so other sites can't sign users out (#5706).
    */
-  def signOut(url: String) = cc.securityService.SecuredAction { implicit request =>
-    cc.loggingService.insert(request.identity.userId, request.ipAddress, "SignOut")
-    silhouette.env.eventBus.publish(LogoutEvent(request.identity, request))
-    silhouette.env.authenticatorService.discard(request.authenticator, Redirect(safeLocalPath(url)))
+  def signOut(url: String) = silhouette.UserAwareAction.async { implicit request =>
+    val fromOtherSite = request.headers.get("Sec-Fetch-Site").contains("cross-site")
+    (request.identity, request.authenticator) match {
+      case _ if fromOtherSite                => Future.successful(Redirect("/"))
+      case (Some(user), Some(authenticator)) =>
+        cc.loggingService.insert(user.userId, request.ipAddress, "SignOut")
+        silhouette.env.eventBus.publish(LogoutEvent(user, request))
+        silhouette.env.authenticatorService.discard(authenticator, Redirect(safeLocalPath(url)))
+      case (None, Some(authenticator)) => silhouette.env.authenticatorService.discard(authenticator, Redirect("/"))
+      case _                           => Future.successful(Redirect("/"))
+    }
   }
 
   /** Renders the forgot-password page, for signed-in users too since Settings links here (#2285). */

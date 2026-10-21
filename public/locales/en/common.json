@@ -4,7 +4,7 @@
   "explore-street-link": "<a href='/explore?streetEdgeId={{streetId}}' class='street-selection-trigger' streetId='{{streetId}}'>Click here</a> to explore this street!",
   "distance-progress": "{{done, distance(style: small; unit: false)}}/{{total, distance(style: small)}}",
   "distance-large": "{{dist}} {{unitAbbr}}",
-  "speed-limit-tooltip": "Knowing the <b>speed limit</b> on a street can help you better diagnose pedestrian safety, such as whether it is <b>safe</b> to cross at an uncontrolled intersection.",
+  "speed-limit-tooltip": "Knowing the speed limit on a street can help you better diagnose pedestrian safety, such as whether it is safe to cross at an uncontrolled intersection.",
   "speed-limit-aria-label": "Speed limit {{speed}} {{units}}",
   "format-number": "{{val, number}}",
   "cities-cta-join_one": "Join {{count, number}} other community",
@@ -360,7 +360,8 @@
     "via-email": "Share via email"
   },
   "mini-card": {
-    "no-image": "No image",
+    "image-unavailable": "Image unavailable",
+    "image-coming": "Image coming soon!",
     "open": "Open this label: {{label}}",
     "votes": "Validate this label",
     "no-image-to-judge": "No image to judge this label by",

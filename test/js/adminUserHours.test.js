@@ -6,21 +6,13 @@
  * breakdown shown or withheld on the client's own reading of the city list, and an unreachable city that vanishes
  * instead of marking the total as a floor. The failure path matters for the same reason — a KPI left on its loading
  * placeholder reads as "zero hours" to an admin verifying a claim.
- *
- * Runs under jsdom (jest.config.js).
  */
 
-const { installDateHelpers, loadModules, realUtil } = require('./loadGlobalScript');
+import { loadModules, mockModule } from './loader.js';
 
-window.util = realUtil();
+mockModule('i18next', () => ({ default: { language: 'en' } }));
 
-let AdminUser;
-
-beforeAll(() => {
-  window.i18next = { language: 'en' };
-  installDateHelpers();
-  AdminUser = loadModules('frontend/js/user-dashboard/AdminUser.js').AdminUser;
-});
+const { AdminUser } = await loadModules('frontend/js/user-dashboard/AdminUser.js');
 
 /** The stats section of adminUser.scala.html, trimmed to what the hours code touches. */
 function buildDom() {
@@ -47,7 +39,7 @@ function buildDom() {
  */
 async function load(response) {
   buildDom();
-  global.fetch = jest.fn(() => (response instanceof Error
+  window.fetch = vi.fn(() => (response instanceof Error
     ? Promise.reject(response)
     : Promise.resolve({ ok: true, json: () => Promise.resolve(response) })));
   new AdminUser({
@@ -74,12 +66,11 @@ const rowHours = () => Array.from(document.querySelectorAll('#au-hours-cities-ta
   .map((td) => Number(td.textContent));
 
 beforeEach(() => {
-  jest.spyOn(console, 'error').mockImplementation(() => {});
+  vi.spyOn(console, 'error').mockImplementation(() => {});
 });
 
 afterEach(() => {
-  jest.restoreAllMocks();
-  delete global.fetch;
+  delete window.fetch;
 });
 
 describe('AdminUser cross-city hours', () => {

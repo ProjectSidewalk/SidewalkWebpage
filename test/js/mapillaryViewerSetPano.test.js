@@ -7,38 +7,19 @@
  * assertions here are about the type of each rejection, which is what callers decide from: NoImageryError only when
  * Graph says the image is missing; PanoLoadTimeoutError when the move ran out of time, or Graph couldn't be asked
  * whatever the SDK said; the SDK's own error when the image exists. And a linked-pano wait that never finishes must
- * cost the pano its arrows, never the pano.
- *
- * MapillaryViewer is a top-level `class` written for Grunt concatenation, so the sources are eval'd into jsdom with
- * stubs for the sibling classes PanoViewer's constructor compares `new.target` against. The SDK and fetch are fakes.
+ * cost the pano its arrows, never the pano. The SDK and fetch are fakes.
  */
-const { loadGlobalScript, realUtil, loadModules } = require('./loadGlobalScript');
-
-
-// The linked-pano headings convert through util.math; utilities.js builds a Bowser parser at load time.
-window.bowser = {
-  getParser: () => ({
-    getBrowserName: () => 'Test', getBrowserVersion: () => '1',
-    getOSName: () => 'TestOS', getPlatformType: () => 'desktop',
-  }),
-};
-window.util = realUtil();
-loadGlobalScript('frontend/js/common/utilitiesMath.js');
-loadGlobalScript('frontend/js/common/pano-viewer/panoUtilities.js');
+import { loadModules } from './loader.js';
 
 /**
- * Loads fresh copies of the viewer classes and both error types into the jsdom global scope.
- * @returns {{PanoViewer: Function, MapillaryViewer: Function, NoImageryError: Function,
- *     PanoLoadTimeoutError: Function}}
+ * Loads fresh copies of the viewer classes and both error types, so an `instanceof` here is against the same class
+ * the viewer throws.
+ * @returns {Promise<Record<string, Function>>} The two viewer classes and both error types.
  */
-function loadViewer() {
-    Object.assign(window, loadModules('frontend/js/common/pano-viewer/PanoData.js', 'frontend/js/common/pano-viewer/NoImageryError.js', 'frontend/js/common/pano-viewer/PanoLoadTimeoutError.js', 'frontend/js/common/pano-viewer/PanoViewer.js', 'frontend/js/common/pano-viewer/MapillaryViewer.js'));
-  return {
-    PanoViewer: window.PanoViewer,
-    MapillaryViewer: window.MapillaryViewer,
-    NoImageryError: window.NoImageryError,
-    PanoLoadTimeoutError: window.PanoLoadTimeoutError,
-  };
+async function loadViewer() {
+  return loadModules('frontend/js/common/pano-viewer/PanoViewer.js',
+    'frontend/js/common/pano-viewer/MapillaryViewer.js', 'frontend/js/common/pano-viewer/NoImageryError.js',
+    'frontend/js/common/pano-viewer/PanoLoadTimeoutError.js');
 }
 
 /**
@@ -73,17 +54,17 @@ function makeSdk(moveTo) {
   const listeners = {};
   return {
     listeners,
-    moveTo: jest.fn(moveTo),
-    on: jest.fn((event, fn) => { (listeners[event] ??= []).push(fn); }),
-    off: jest.fn((event, fn) => { listeners[event] = (listeners[event] ?? []).filter((f) => f !== fn); }),
-    getCenter: jest.fn(() => Promise.resolve([0.5, 0.5])),
-    getFieldOfView: jest.fn(() => Promise.resolve(70)),
-    // MapillaryJS 4.1.2 returns undefined from both, whatever its API docs say (measured in the vendored bundle).
-    setCenter: jest.fn(() => undefined),
-    setFieldOfView: jest.fn(() => undefined),
+    moveTo: vi.fn(moveTo),
+    on: vi.fn((event, fn) => { (listeners[event] ??= []).push(fn); }),
+    off: vi.fn((event, fn) => { listeners[event] = (listeners[event] ?? []).filter((f) => f !== fn); }),
+    getCenter: vi.fn(() => Promise.resolve([0.5, 0.5])),
+    getFieldOfView: vi.fn(() => Promise.resolve(70)),
+    // MapillaryJS 4.1.2 returns undefined from both, whatever its API docs say (measured in the package's bundle).
+    setCenter: vi.fn(() => undefined),
+    setFieldOfView: vi.fn(() => undefined),
     _navigator: {
       _api: { _data: { _accessToken: 'MLY|test' } },
-      graphService: { cacheImage$: jest.fn(() => ({ subscribe: jest.fn() })) },
+      graphService: { cacheImage$: vi.fn(() => ({ subscribe: vi.fn() })) },
     },
     emit(event, e) { (listeners[event] ?? []).forEach((fn) => fn(e)); },
   };
@@ -116,24 +97,23 @@ describe('MapillaryViewer.setPano tells a missing pano from a slow one (issue #5
     sdk = makeSdk(moveTo);
     viewer = new classes.MapillaryViewer();
     viewer.viewer = sdk;
-    viewer.extractPitchRoll = () => ({ pitch: 0, roll: 0 }); // THREE isn't loaded; the angles don't matter here.
+    // The SDK chunk isn't loaded, and the angles don't matter here.
+    viewer.extractPitchRoll = () => ({ pitch: 0, roll: 0 });
   }
 
   /** A move that never settles, like one stuck on a slow CDN. */
   const hangs = () => new Promise(() => {});
 
-  beforeEach(() => {
-    jest.useFakeTimers();
-    classes = loadViewer();
-    global.fetch = jest.fn();
-    jest.spyOn(console, 'error').mockImplementation(() => {});
-    jest.spyOn(console, 'warn').mockImplementation(() => {});
+  beforeEach(async () => {
+    vi.useFakeTimers();
+    classes = await loadViewer();
+    window.fetch = vi.fn();
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
   });
 
   afterEach(() => {
-    jest.useRealTimers();
-    jest.restoreAllMocks();
-    delete global.fetch;
+    delete window.fetch;
   });
 
   /**
@@ -143,7 +123,7 @@ describe('MapillaryViewer.setPano tells a missing pano from a slow one (issue #5
    */
   async function settle(panoId) {
     const outcome = viewer.setPano(panoId).then((value) => value, (error) => ({ error }));
-    await jest.advanceTimersByTimeAsync(
+    await vi.advanceTimersByTimeAsync(
       classes.MapillaryViewer.PANO_LOAD_TIMEOUT_MS + classes.MapillaryViewer.EXISTS_CHECK_TIMEOUT_MS + 1,
     );
     return outcome;
@@ -157,24 +137,24 @@ describe('MapillaryViewer.setPano tells a missing pano from a slow one (issue #5
     expect(panoData.getPanoId()).toBe('pano1');
     expect(panoData.getProperty('linkedPanos').map((link) => link.panoId)).toEqual(['neighbor']);
     // A timer left behind per move would pile up on a page that moves often.
-    expect(jest.getTimerCount()).toBe(0);
-    expect(global.fetch).not.toHaveBeenCalled(); // No existence check on the happy path.
+    expect(vi.getTimerCount()).toBe(0);
+    expect(window.fetch).not.toHaveBeenCalled(); // No existence check on the happy path.
     expect(viewer.changingPanoOurselves).toBe(false);
   });
 
   test('a move that times out on an image Graph says is missing is a NoImageryError', async () => {
     buildViewer(hangs);
-    global.fetch.mockReturnValue(graphAnswers(404, MISSING_BODY));
+    window.fetch.mockReturnValue(graphAnswers(404, MISSING_BODY));
 
     const { error } = await settle('gone');
 
     expect(error).toBeInstanceOf(classes.NoImageryError);
-    expect(global.fetch.mock.calls[0][0]).toContain('https://graph.mapillary.com/gone?fields=id');
+    expect(window.fetch.mock.calls[0][0]).toContain('https://graph.mapillary.com/gone?fields=id');
   });
 
   test('Graph\'s "does not exist" error code counts as missing even without a 404', async () => {
     buildViewer(hangs);
-    global.fetch.mockReturnValue(graphAnswers(400, MISSING_BODY));
+    window.fetch.mockReturnValue(graphAnswers(400, MISSING_BODY));
 
     const { error } = await settle('gone');
 
@@ -183,7 +163,7 @@ describe('MapillaryViewer.setPano tells a missing pano from a slow one (issue #5
 
   test('a move that times out on an image Graph still serves is a PanoLoadTimeoutError, not "no imagery"', async () => {
     buildViewer(hangs);
-    global.fetch.mockReturnValue(graphAnswers(200, { id: 'slow' }));
+    window.fetch.mockReturnValue(graphAnswers(200, { id: 'slow' }));
 
     const { error } = await settle('slow');
 
@@ -196,7 +176,7 @@ describe('MapillaryViewer.setPano tells a missing pano from a slow one (issue #5
   test('a timeout whose existence check can\'t reach Graph is slow, never missing', async () => {
     // "Missing" drops the label, so a guess must never produce it: an unreachable Graph is "unknown".
     buildViewer(hangs);
-    global.fetch.mockReturnValue(Promise.reject(new TypeError('Failed to fetch')));
+    window.fetch.mockImplementation(() => Promise.reject(new TypeError('Failed to fetch')));
 
     const { error } = await settle('slow');
 
@@ -205,18 +185,18 @@ describe('MapillaryViewer.setPano tells a missing pano from a slow one (issue #5
 
   test('a timeout whose existence check never answers is slow once the check gives up', async () => {
     buildViewer(hangs);
-    global.fetch.mockReturnValue(new Promise(() => {}));
+    window.fetch.mockReturnValue(new Promise(() => {}));
 
     const { error } = await settle('slow');
 
     expect(error).toBeInstanceOf(classes.PanoLoadTimeoutError);
-    expect(jest.getTimerCount()).toBe(0);
+    expect(vi.getTimerCount()).toBe(0);
   });
 
   test('a rate-limited or unauthorized existence check is inconclusive, so the timeout stays slow', async () => {
     buildViewer(hangs);
     const rateLimited = { error: { message: 'Application request limit reached', code: 4 } };
-    global.fetch.mockReturnValue(graphAnswers(400, rateLimited));
+    window.fetch.mockReturnValue(graphAnswers(400, rateLimited));
 
     const { error } = await settle('slow');
 
@@ -225,7 +205,7 @@ describe('MapillaryViewer.setPano tells a missing pano from a slow one (issue #5
 
   test('a move the SDK rejects on an image Graph says is missing is a NoImageryError', async () => {
     buildViewer(() => Promise.reject(new Error('MLY image not found')));
-    global.fetch.mockReturnValue(graphAnswers(404, MISSING_BODY));
+    window.fetch.mockReturnValue(graphAnswers(404, MISSING_BODY));
 
     const { error } = await settle('gone');
 
@@ -236,7 +216,7 @@ describe('MapillaryViewer.setPano tells a missing pano from a slow one (issue #5
   test('a move the SDK rejects on an image that exists passes the SDK\'s own error through', async () => {
     const sdkError = new Error('WebGL texture upload failed');
     buildViewer(() => Promise.reject(sdkError));
-    global.fetch.mockReturnValue(graphAnswers(200, { id: 'there' }));
+    window.fetch.mockReturnValue(graphAnswers(200, { id: 'there' }));
 
     const { error } = await settle('there');
 
@@ -248,7 +228,7 @@ describe('MapillaryViewer.setPano tells a missing pano from a slow one (issue #5
     // Offline, a 429 or a 5xx makes the SDK's own request reject in milliseconds, never as a TimeoutError, and the
     // existence check then fails on the same network. "Unknown" must still never read as "gone".
     buildViewer(() => Promise.reject(new Error('Request error: 0')));
-    global.fetch.mockReturnValue(Promise.reject(new TypeError('Failed to fetch')));
+    window.fetch.mockImplementation(() => Promise.reject(new TypeError('Failed to fetch')));
 
     const { error } = await settle('offline');
 
@@ -259,7 +239,7 @@ describe('MapillaryViewer.setPano tells a missing pano from a slow one (issue #5
 
   test('an SDK that fails fast on an image Graph answers 404 for is a NoImageryError', async () => {
     buildViewer(() => Promise.reject(new Error('Response status error')));
-    global.fetch.mockReturnValue(graphAnswers(404, {}));
+    window.fetch.mockReturnValue(graphAnswers(404, {}));
 
     const { error } = await settle('gone');
 
@@ -268,7 +248,7 @@ describe('MapillaryViewer.setPano tells a missing pano from a slow one (issue #5
 
   test('Graph\'s code 100 without subcode 33 is a malformed request, not a missing image, so it stays slow', async () => {
     buildViewer(hangs);
-    global.fetch.mockReturnValue(graphAnswers(400, { error: { message: 'Invalid parameter', code: 100 } }));
+    window.fetch.mockReturnValue(graphAnswers(400, { error: { message: 'Invalid parameter', code: 100 } }));
 
     const { error } = await settle('slow');
 
@@ -277,8 +257,8 @@ describe('MapillaryViewer.setPano tells a missing pano from a slow one (issue #5
 
   test('a failure reading the loaded image\'s metadata is classified like a failed move', async () => {
     buildViewer(() => Promise.resolve(makeImage('pano1')));
-    sdk.getCenter = jest.fn(() => Promise.reject(new Error('Request error: 0')));
-    global.fetch.mockReturnValue(Promise.reject(new TypeError('Failed to fetch')));
+    sdk.getCenter = vi.fn(() => Promise.reject(new Error('Request error: 0')));
+    window.fetch.mockImplementation(() => Promise.reject(new TypeError('Failed to fetch')));
 
     const { error } = await settle('pano1');
 
@@ -287,11 +267,11 @@ describe('MapillaryViewer.setPano tells a missing pano from a slow one (issue #5
 
   test('the existence check hands fetch a signal, so an abandoned check doesn\'t hold a connection open', async () => {
     buildViewer(hangs);
-    global.fetch.mockReturnValue(graphAnswers(200, { id: 'slow' }));
+    window.fetch.mockReturnValue(graphAnswers(200, { id: 'slow' }));
 
     await settle('slow');
 
-    expect(global.fetch.mock.calls[0][1].signal).toBeDefined();
+    expect(window.fetch.mock.calls[0][1].signal).toBeDefined();
   });
 
   test('a move a newer one superseded is rethrown as is: no existence check, no error logged', async () => {
@@ -302,7 +282,7 @@ describe('MapillaryViewer.setPano tells a missing pano from a slow one (issue #5
     const { error } = await settle('older');
 
     expect(error).toBe(cancelled);
-    expect(global.fetch).not.toHaveBeenCalled();
+    expect(window.fetch).not.toHaveBeenCalled();
     expect(console.error).not.toHaveBeenCalled();
   });
 
@@ -331,7 +311,7 @@ describe('MapillaryViewer.setPano tells a missing pano from a slow one (issue #5
 
   test('a failed load clears the flag that makes nav-arrow moves skip their metadata update', async () => {
     buildViewer(hangs);
-    global.fetch.mockReturnValue(graphAnswers(200, { id: 'slow' }));
+    window.fetch.mockReturnValue(graphAnswers(200, { id: 'slow' }));
 
     await settle('slow');
 
@@ -342,13 +322,13 @@ describe('MapillaryViewer.setPano tells a missing pano from a slow one (issue #5
     buildViewer(() => Promise.resolve(makeImage('pano1', false)));
 
     const outcome = viewer.setPano('pano1');
-    await jest.advanceTimersByTimeAsync(classes.MapillaryViewer.SPATIAL_EDGES_TIMEOUT_MS);
+    await vi.advanceTimersByTimeAsync(classes.MapillaryViewer.SPATIAL_EDGES_TIMEOUT_MS);
     const panoData = await outcome;
 
     expect(panoData.getPanoId()).toBe('pano1');
     expect(panoData.getProperty('linkedPanos')).toEqual([]);
     expect(sdk.listeners.spatialedges).toEqual([]); // The listener goes with the wait.
-    expect(jest.getTimerCount()).toBe(0);
+    expect(vi.getTimerCount()).toBe(0);
   });
 
   test('a viewer that opted out of linked panos resolves as soon as the image is set, listening for nothing', async () => {
@@ -360,27 +340,27 @@ describe('MapillaryViewer.setPano tells a missing pano from a slow one (issue #5
     expect(panoData.getPanoId()).toBe('pano1');
     expect(panoData.getProperty('linkedPanos')).toEqual([]);
     expect(sdk.listeners.spatialedges ?? []).toEqual([]);
-    expect(jest.getTimerCount()).toBe(0);
+    expect(vi.getTimerCount()).toBe(0);
   });
 
   test('linked panos that arrive late are used, and the wait cleans up after itself', async () => {
     buildViewer(() => Promise.resolve(makeImage('pano1', false)));
 
     const outcome = viewer.setPano('pano1');
-    await jest.advanceTimersByTimeAsync(500);
+    await vi.advanceTimersByTimeAsync(500);
     sdk.emit('spatialedges', { status: { cached: true, edges: [LINK] } });
     const panoData = await outcome;
 
     expect(panoData.getProperty('linkedPanos').map((link) => link.panoId)).toEqual(['neighbor']);
     expect(sdk.listeners.spatialedges).toEqual([]);
-    expect(jest.getTimerCount()).toBe(0);
+    expect(vi.getTimerCount()).toBe(0);
   });
 
   test('linked panos reported for a different image are ignored', async () => {
     buildViewer(() => Promise.resolve(makeImage('pano1', false)));
 
     const outcome = viewer.setPano('pano1');
-    await jest.advanceTimersByTimeAsync(100);
+    await vi.advanceTimersByTimeAsync(100);
     // The previous image's links, which the SDK can still be reporting as the move lands.
     sdk.emit('spatialedges', { status: { cached: true, edges: [{ ...LINK, source: 'previous', target: 'elsewhere' }] } });
     sdk.emit('spatialedges', { status: { cached: true, edges: [{ ...LINK, source: 'pano1' }] } });
@@ -397,20 +377,20 @@ describe('MapillaryViewer.setPano tells a missing pano from a slow one (issue #5
     }));
 
     const outcome = viewer.setPano('pano1');
-    await jest.advanceTimersByTimeAsync(
+    await vi.advanceTimersByTimeAsync(
       classes.MapillaryViewer.PANO_LOAD_TIMEOUT_MS + classes.MapillaryViewer.SPATIAL_EDGES_TIMEOUT_MS,
     );
 
     await expect(outcome).resolves.toBeTruthy();
-    expect(global.fetch).not.toHaveBeenCalled();
+    expect(window.fetch).not.toHaveBeenCalled();
   });
 });
 
 describe('MapillaryViewer\'s other load-path contracts (issues #5581, #5582)', () => {
   let classes;
 
-  beforeEach(() => {
-    classes = loadViewer();
+  beforeEach(async () => {
+    classes = await loadViewer();
   });
 
   test('Mapillary paints during a load; the base viewer does not', () => {
@@ -424,7 +404,7 @@ describe('MapillaryViewer\'s other load-path contracts (issues #5581, #5582)', (
     viewer.prefetchPano('next');
     expect(viewer.viewer._navigator.graphService.cacheImage$).toHaveBeenCalledWith('next');
 
-    jest.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
     viewer.viewer._navigator.graphService.cacheImage$ = () => { throw new Error('internals moved'); };
     expect(() => viewer.prefetchPano('next')).not.toThrow();
     console.warn.mockRestore();
@@ -446,10 +426,9 @@ describe('MapillaryViewer\'s other load-path contracts (issues #5581, #5582)', (
   });
 
   test('_withTimeout names its own rejection, so a caller can tell giving up from the provider failing', async () => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
     const outcome = classes.PanoViewer._withTimeout(new Promise(() => {}), 10, 'test').catch((err) => err);
-    await jest.advanceTimersByTimeAsync(10);
+    await vi.advanceTimersByTimeAsync(10);
     expect((await outcome).name).toBe('TimeoutError');
-    jest.useRealTimers();
   });
 });
