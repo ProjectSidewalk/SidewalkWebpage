@@ -266,6 +266,9 @@ class HealthTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    * Readable by any role: `current_setting` needs no privilege, and `pg_stat_activity` shows every row to every role,
    * redacting only the text columns, so the count is exact. `reserved_connections` arrived in PG 16, so it is read with
    * `missing_ok` and counts as 0 on an older server.
+   *
+   * This counts server backends, so behind a transaction-mode pooler (#4565) it would show the pooler's own pool
+   * against the server, not the clients the pooler is turning away; the headroom signal would then be the pooler's.
    */
   def getConnectionSlotSettings: DBIO[ConnSlotSettings] = bounded {
     sql"""
