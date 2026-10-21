@@ -770,7 +770,7 @@ class AdminController @Inject() (
     }
   }
 
-  /** A bounded cross-city read whose fan-out outlasted its cold wait (#5432); `getCityScorecards` answers 503 for it. */
+  /** A bounded cross-city read whose fan-out outlasted its cold wait (#5432); `getCityScorecards` answers 503. */
   private case object StillComputing extends Exception with NoStackTrace
 
   /**
