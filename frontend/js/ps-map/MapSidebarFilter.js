@@ -161,7 +161,7 @@ export class MapSidebarFilter {
     for (const [labelType, features] of Object.entries(this.#mapData.sortedLabels)) {
       if (!this.#typeChecked(labelType)) continue;
       for (const feature of features) {
-        if (bounds && !bounds.contains(feature.geometry.coordinates)) continue;
+        if (bounds && !bounds.contains(/** @type {[number, number]} */ (feature.geometry.coordinates))) continue;
         if (this.#passesLabelFilters(labelType, feature.properties)) total += 1;
       }
     }
@@ -319,7 +319,7 @@ export class MapSidebarFilter {
       let count = 0;
       for (const feature of features) {
         const props = feature.properties;
-        if (bounds && !bounds.contains(feature.geometry.coordinates)) continue;
+        if (bounds && !bounds.contains(/** @type {[number, number]} */ (feature.geometry.coordinates))) continue;
         if (!this.#passesQualityFilters(props)) continue;
         const severityOk = this.#passesSeverity(props);
         const tagsOk = this.#passesTags(labelType, props);

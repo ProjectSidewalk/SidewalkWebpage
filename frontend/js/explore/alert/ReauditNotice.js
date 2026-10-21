@@ -16,9 +16,11 @@
  * (#5472).
  */
 
+import i18next from 'i18next';
 import { Toast } from '../../common/Toast.js';
 import { util } from '../../common/utilities.js';
 /** @typedef {import('../task/Task.js').Task} Task */
+/** @typedef {import('../task/TaskContainer.js').TaskContainer} TaskContainer */
 /** @typedef {import('../data/Tracker.js').Tracker} Tracker */
 
 export class ReauditNotice {
@@ -37,10 +39,13 @@ export class ReauditNotice {
   #pending = null;
 
   /**
+   * @param {TaskContainer} taskContainer - Each street it switches to is announced here. Not the first street, which
+   *   Main announces once the mission-start screen is out of the way.
    * @param {Tracker} tracker
    */
-  constructor(tracker) {
+  constructor(taskContainer, tracker) {
     this.#tracker = tracker;
+    taskContainer.onCurrentTaskChanged((task) => this.showForTask(task));
   }
 
   /**

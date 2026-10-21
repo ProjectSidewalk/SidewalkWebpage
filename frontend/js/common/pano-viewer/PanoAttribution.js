@@ -1,3 +1,6 @@
+import i18next from 'i18next';
+import '../../../css/components/pano-attribution.css';
+
 /**
  * Creates the imagery-attribution overlay for a pano container: the rights holder, provider and licence owed when
  * Project Sidewalk shows its own copy of a panorama — the self-hosted Pannellum copy or a crop — rather than the

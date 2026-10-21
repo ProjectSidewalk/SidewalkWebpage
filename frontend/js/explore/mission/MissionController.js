@@ -4,31 +4,110 @@
  * is the mission controller; visuals handled in sidebar/MissionPanel.js and the shared common/ProgressBar.js.
  */
 
-import { svl } from '../svl.js';
+import i18next from 'i18next';
 import { util } from '../../common/utilities.js';
+/** @typedef {import('../alert/AlertController.js').AlertController} AlertController */
+/** @typedef {import('../navigation/Compass.js').Compass} Compass */
+/** @typedef {import('../Main.js').ExploreConfig} ExploreConfig */
+/** @typedef {import('../data/Form.js').Form} Form */
+/** @typedef {import('../navigation/MinimapMissionProgress.js').MinimapMissionProgress} MinimapMissionProgress */
 /** @typedef {import('./Mission.js').Mission} Mission */
+/** @typedef {import('./MissionContainer.js').MissionContainer} MissionContainer */
+/** @typedef {import('./MissionModel.js').MissionModel} MissionModel */
+/** @typedef {import('../modal/ModalMissionComplete.js').ModalMissionComplete} ModalMissionComplete */
+/** @typedef {import('../modal/ModalSurvey.js').ModalSurvey} ModalSurvey */
+/** @typedef {import('../navigation/NavigationService.js').NavigationService} NavigationService */
+/** @typedef {import('../navigation/ObservedArea.js').ObservedArea} ObservedArea */
+/** @typedef {import('../panorama/PanoManager.js').PanoManager} PanoManager */
+/** @typedef {import('../sidebar/OverallStats.js').OverallStats} OverallStats */
+/** @typedef {import('../../common/ProgressBar.js').ProgressBar} ProgressBar */
 /** @typedef {import('../region/Region.js').Region} Region */
+/** @typedef {import('../region/RegionModel.js').RegionModel} RegionModel */
+/** @typedef {import('../sidebar/RegionProgressBar.js').RegionProgressBar} RegionProgressBar */
+/** @typedef {import('../task/StreetProgress.js').StreetProgress} StreetProgress */
+/** @typedef {import('../task/TaskContainer.js').TaskContainer} TaskContainer */
+/** @typedef {import('../data/Tracker.js').Tracker} Tracker */
 
 export class MissionController {
   // 0.9 not 1.0: some panos can't rotate a full 360 (the sparse-imagery inverse trap in #4640), so requiring an
   // exact full sweep could make a route impossible to auto-finish. The manual compass-click fallback covers the rest.
   static #ROUTE_FINISH_OBSERVED_THRESHOLD = 0.9;
 
+  #config;
   #missionModel;
   #regionModel;
   #missionContainer;
+  #taskContainer;
+  #form;
+  #modalMissionComplete;
+  #modalSurvey;
+  #alertController;
+  #compass;
+  #observedArea;
+  #overallStats;
+  #regionProgressBar;
+  #missionProgressBar;
+  #minimapMissionProgress;
   #tracker;
+  #navigationService;
   #routeAutoCompleteFired = false;
 
-  constructor(missionModel, regionModel, missionContainer, tracker) {
+  /**
+   * @param {ExploreConfig} config
+   * @param {MissionModel} missionModel - Announces progress and completion.
+   * @param {RegionModel} regionModel
+   * @param {MissionContainer} missionContainer - Holds and measures the missions.
+   * @param {TaskContainer} taskContainer - Whose streets are finished with a mission.
+   * @param {Form} form - Submits a given-up street a route or region wraps up on.
+   * @param {ModalMissionComplete} modalMissionComplete - Shown when a mission completes.
+   * @param {ModalSurvey} modalSurvey - Shown partway through a mission, when the server says so.
+   * @param {AlertController} alertController - Shows the route's finish toast.
+   * @param {Compass} compass - Wraps the route or region up on its finish click, and drops the finish prompt once a
+   *   route auto-completes on its own.
+   * @param {NavigationService} navigationService - The auto-finish waits for the heading to settle after a move.
+   * @param {StreetProgress} streetProgress - Announces the route's end and a region's last street.
+   * @param {PanoManager} panoManager - Each turn of whose view may complete a finished route.
+   * @param {ObservedArea} observedArea - Says how much of the final pano the user has looked around.
+   * @param {OverallStats} overallStats - Shown the audited distance.
+   * @param {RegionProgressBar} regionProgressBar - Refreshed with each progress update.
+   * @param {ProgressBar} missionProgressBar - The sidebar's mission bar.
+   * @param {MinimapMissionProgress} minimapMissionProgress - The minimap's mission bar and flags.
+   * @param {Tracker} tracker
+   */
+  constructor(config, missionModel, regionModel, missionContainer, taskContainer, form, modalMissionComplete,
+    modalSurvey, alertController, compass, navigationService, streetProgress, panoManager, observedArea, overallStats,
+    regionProgressBar, missionProgressBar, minimapMissionProgress, tracker) {
+    this.#config = config;
     this.#missionModel = missionModel;
     this.#regionModel = regionModel;
     this.#missionContainer = missionContainer;
+    this.#taskContainer = taskContainer;
+    this.#form = form;
+    this.#modalMissionComplete = modalMissionComplete;
+    this.#modalSurvey = modalSurvey;
+    this.#alertController = alertController;
+    this.#compass = compass;
+    this.#observedArea = observedArea;
+    this.#overallStats = overallStats;
+    this.#regionProgressBar = regionProgressBar;
+    this.#missionProgressBar = missionProgressBar;
+    this.#minimapMissionProgress = minimapMissionProgress;
     this.#tracker = tracker;
+    this.#navigationService = navigationService;
 
     missionModel.on('MissionProgress:update', (parameters) => {
       this.update(parameters.mission, parameters.region);
     });
+    streetProgress.onRouteEndReached(() => this.onRouteReadyToFinish());
+    streetProgress.onRegionExhausted(() => this.wrapUpRouteOrRegion());
+    compass.onFinishClick(() => this.wrapUpRouteOrRegion());
+    // Once at the route's last pano, auto-finish as soon as the user has looked all the way around it. Not while
+    // the heading settles after a move, when the observed area is still the pre-move one (#4174).
+    panoManager.onPovChanged(() => {
+      if (!navigationService.isHeadingSettling()) this.maybeAutoCompleteRoute();
+    });
+    // The observed area only switches to the new pano once the heading settles.
+    navigationService.onHeadingSettled(() => this.maybeAutoCompleteRoute());
   }
 
   /**
@@ -37,25 +116,25 @@ export class MissionController {
    */
   wrapUpRouteOrRegion() {
     // Free-exploration sessions (#4451) have no route/region goal to wrap up.
-    if (svl.isExploreAddressMode()) return;
+    if (this.#config.isExploreAddressMode) return;
 
     const mission = this.#missionContainer.getCurrentMission();
     const region = this.#regionModel.currentRegion();
 
     // A route's mission completes before endTask, so endTask's submission carries the completed flag to the server.
-    if (svl.regionModel.isRoute && !mission.isComplete()) {
+    if (this.#regionModel.isRoute && !mission.isComplete()) {
       this.#completeTheCurrentMission(mission, region);
     }
 
     // Reached standing on a given-up street whenever that path found nothing left to walk. Such a street is submitted
     // but never finished: endTask sends completed=true, crediting a full audit of a street nobody could look at
     // (#4922). The submission still has to happen — it carries the mission's completed flag to the server.
-    const currentTask = svl.taskContainer.getCurrentTask();
+    const currentTask = this.#taskContainer.getCurrentTask();
     if (currentTask.wasGivenUpOnImagery()) {
-      svl.form.submitData(currentTask);
-      svl.taskContainer.updateAuditedDistance();
+      this.#form.submitData(currentTask);
+      this.#taskContainer.updateAuditedDistance();
     } else {
-      svl.taskContainer.endTask(currentTask);
+      this.#taskContainer.endTask(currentTask);
     }
 
     // Finish a region's mission here, as it can read just under 99.9% (server and page measure distance a bit
@@ -64,8 +143,8 @@ export class MissionController {
       this.#completeTheCurrentMission(mission, region);
     }
 
-    svl.modalMissionComplete.update(mission, region);
-    svl.modalMissionComplete.show();
+    this.#modalMissionComplete.update(mission, region);
+    this.#modalMissionComplete.show();
   }
 
   /**
@@ -73,10 +152,10 @@ export class MissionController {
    * celebration fires once the user has looked around the final location — no manual click required.
    */
   onRouteReadyToFinish() {
-    svl.alertController.showAlert(i18next.t('center-ui.compass.route-finish-look-around'), 'routeFinish', false);
-    this.#tracker.push('RouteFinishToast_Shown', { userRouteId: svl.userRouteId });
-    // Fire immediately if they already looked all the way around at this pano before reaching the end.
-    this.maybeAutoCompleteRoute();
+    this.#alertController.showAlert(i18next.t('center-ui.compass.route-finish-look-around'), 'routeFinish', false);
+    this.#tracker.push('RouteFinishToast_Shown', { userRouteId: this.#config.userRouteId });
+    // Finish now if they already looked around here; mid-move the check waits for the heading to settle.
+    if (!this.#navigationService.isHeadingSettling()) this.maybeAutoCompleteRoute();
   }
 
   /**
@@ -84,16 +163,16 @@ export class MissionController {
    * flagged complete (its last reachable pano reached) and until the 360° observed fraction clears the threshold.
    */
   maybeAutoCompleteRoute() {
-    if (this.#routeAutoCompleteFired || !svl.regionModel.isRouteComplete) return;
+    if (this.#routeAutoCompleteFired || !this.#regionModel.isRouteComplete) return;
     // If the manual compass-click fallback already finished the route, don't fire wrapUp a second time.
     const mission = this.#missionContainer.getCurrentMission();
     if (mission && mission.isComplete()) return;
-    if (svl.observedArea.getFractionObserved() >= MissionController.#ROUTE_FINISH_OBSERVED_THRESHOLD) {
+    const fractionObserved = this.#observedArea.getFractionObserved();
+    if (fractionObserved >= MissionController.#ROUTE_FINISH_OBSERVED_THRESHOLD) {
       this.#routeAutoCompleteFired = true;
-      this.#tracker.push('RouteAutoComplete_Fired',
-        { userRouteId: svl.userRouteId, fractionObserved: svl.observedArea.getFractionObserved() });
+      this.#tracker.push('RouteAutoComplete_Fired', { userRouteId: this.#config.userRouteId, fractionObserved });
       // Drop the manual-click fallback so the compass message can't also fire wrapUp.
-      svl.compass.removeLabelBeforeJumpMessage();
+      this.#compass.removeLabelBeforeJumpMessage();
       this.wrapUpRouteOrRegion();
     }
   }
@@ -113,9 +192,8 @@ export class MissionController {
         regionId: region.getRegionId(),
       },
     );
-    mission.complete();
+    this.#missionContainer.finishMission(mission);
     this.#missionModel.completeMission(mission);
-    svl.missionsCompleted += 1;
   }
 
   /**
@@ -129,19 +207,19 @@ export class MissionController {
     // check would also misfire here: the server sizes the route geodesically on the WGS84 spheroid while the
     // client's progress is turf (spherical haversine), so the two cross the 99.9% threshold at slightly
     // different points.
-    if (svl.regionModel.isRoute) return;
+    if (this.#regionModel.isRoute) return;
 
-    if (mission.getMissionCompletionRate() > 0.999) {
+    if (this.#missionContainer.getMissionCompletionRate(mission) > 0.999) {
       this.#completeTheCurrentMission(mission, region);
 
       // While the mission complete modal is open, after the **region** is 100% audited, the user is jumped
       // to the next region, which updates the modal's region information while it is still open.
-      if (svl.modalMissionComplete.isOpen()) return;
+      if (this.#modalMissionComplete.isOpen()) return;
 
       // Show the mission complete screen unless we're at the end of a route/region.
-      if (!svl.regionModel.isRouteOrRegionComplete()) {
-        svl.modalMissionComplete.update(mission, region);
-        svl.modalMissionComplete.show();
+      if (!this.#regionModel.isRouteOrRegionComplete()) {
+        this.#modalMissionComplete.update(mission, region);
+        this.#modalMissionComplete.show();
       }
     }
   }
@@ -153,18 +231,18 @@ export class MissionController {
    * @param {Region} currentRegion - The current region.
    */
   update(currentMission, currentRegion) {
-    if (svl.isOnboarding()) return;
+    if (this.#config.isOnboarding) return;
 
     // Update the global audited distance in the right sidebar.
-    const distance = svl.taskContainer.getCompletedTaskDistance();
-    svl.overallStats.setRegionAuditedDistance(distance);
+    const distance = this.#taskContainer.getCompletedTaskDistance();
+    this.#overallStats.setRegionAuditedDistance(distance);
 
     // Update the region progress bar (this user's vs. the community's share of the region).
-    svl.regionProgressBar.update();
+    this.#regionProgressBar.update();
 
     // Free-exploration missions (#4451) have no distance target: the completion rate would compute as
     // distanceProgress / null → 1, immediately triggering the mission-complete modal. No progress bar, no survey.
-    if (svl.isExploreAddressMode()) return;
+    if (this.#config.isExploreAddressMode) return;
 
     // Update mission completion rate in the right sidebar and the minimap's mission-progress bar. On a route, the
     // Current Mission section describes the whole route (the server-side mission slices are invisible there), so its
@@ -172,13 +250,13 @@ export class MissionController {
     let completionRate;
     if (this.#regionModel.isRoute) {
       const unit = { units: util.turfDistanceUnits() };
-      const routeDistance = svl.taskContainer.getTotalTaskDistance(unit);
+      const routeDistance = this.#taskContainer.getTotalTaskDistance(unit);
       completionRate = routeDistance ? Math.min(1, distance / routeDistance) : 0;
     } else {
-      completionRate = currentMission.getMissionCompletionRate();
+      completionRate = this.#missionContainer.getMissionCompletionRate(currentMission);
     }
-    svl.missionProgressBar.update(completionRate);
-    if (svl.minimap) svl.minimap.updateMissionProgress(currentMission);
+    this.#missionProgressBar.update(completionRate);
+    this.#minimapMissionProgress.update(currentMission);
     if (!this.#regionModel.isRouteComplete && !this.#regionModel.isRegionComplete) {
       this.#checkMissionComplete(currentMission, currentRegion);
     }
@@ -188,7 +266,7 @@ export class MissionController {
     if (completionRate > 0.6 && completionRate < 0.9) {
       fetch('/survey/display').then((response) => response.json()).then((data) => {
         if (data.displayModal) {
-          svl.modalSurvey.open();
+          this.#modalSurvey.open();
           window.logWebpageActivity('SurveyShown');
         }
       }).catch((error) => console.log(error));

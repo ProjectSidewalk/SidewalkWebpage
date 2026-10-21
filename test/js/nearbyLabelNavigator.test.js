@@ -7,234 +7,228 @@
  * trail-based prev with hasPrev gating, cross-type flattening, and the deep-link coordinate lookup.
  */
 
-const path = require('path');
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules } from './loader.js';
 
-const NAV_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/ps-map/nearbyLabelNavigator.js');
-
-/** Loads the global script fresh and returns the factory. */
-function loadFactory() {
-    Object.assign(window, loadModules(NAV_PATH));
-    return global.createNearbyLabelNavigator;
-}
+const loadFactory = async () =>
+  (await loadModules('frontend/js/ps-map/nearbyLabelNavigator.js')).createNearbyLabelNavigator;
 
 /**
  * Builds a map-data stub in the shape addLabelsToMap produces: features bucketed by label type. A label is
  * `[id, lng, lat]`, optionally followed by extra feature properties.
  */
 function mapDataWith(featuresByType) {
-    const sortedLabels = {};
-    for (const [type, labels] of Object.entries(featuresByType)) {
-        sortedLabels[type] = labels.map(([id, lng, lat, props = {}]) => ({
-            properties: { label_id: id, ...props },
-            geometry: { coordinates: [lng, lat] },
-        }));
-    }
-    return { sortedLabels };
+  const sortedLabels = {};
+  for (const [type, labels] of Object.entries(featuresByType)) {
+    sortedLabels[type] = labels.map(([id, lng, lat, props = {}]) => ({
+      properties: { label_id: id, ...props },
+      geometry: { coordinates: [lng, lat] },
+    }));
+  }
+  return { sortedLabels };
 }
 
 describe('createNearbyLabelNavigator', () => {
-    // Five labels along a street: 1..4 clustered 111m apart, 5 further down the block.
-    const LINE = { CurbRamp: [[1, 0, 0], [2, 0.001, 0], [3, 0.002, 0], [4, 0.003, 0], [5, 0.01, 0]] };
+  // Five labels along a street: 1..4 clustered 111m apart, 5 further down the block.
+  const LINE = { CurbRamp: [[1, 0, 0], [2, 0.001, 0], [3, 0.002, 0], [4, 0.003, 0], [5, 0.01, 0]] };
 
-    test('next() tours nearest-first without revisiting, and returns null when exhausted', () => {
-        const nav = loadFactory()(mapDataWith(LINE));
-        expect(nav.next(1)).toBe(2);
-        expect(nav.next(2)).toBe(3);
-        // 2 is nearer to 3 than 4 is, but it's visited — the walk continues outward instead of bouncing back.
-        expect(nav.next(3)).toBe(4);
-        expect(nav.next(4)).toBe(5);
-        expect(nav.next(5)).toBeNull();
+  test('next() tours nearest-first without revisiting, and returns null when exhausted', async () => {
+    const nav = (await loadFactory())(mapDataWith(LINE));
+    expect(nav.next(1)).toBe(2);
+    expect(nav.next(2)).toBe(3);
+    // 2 is nearer to 3 than 4 is, but it's visited — the walk continues outward instead of bouncing back.
+    expect(nav.next(3)).toBe(4);
+    expect(nav.next(4)).toBe(5);
+    expect(nav.next(5)).toBeNull();
+  });
+
+  test('prev() retraces the trail and hasPrev() gates the button', async () => {
+    const nav = (await loadFactory())(mapDataWith(LINE));
+    expect(nav.hasPrev(1)).toBe(false);
+    nav.next(1); // -> 2
+    nav.next(2); // -> 3
+    expect(nav.hasPrev(3)).toBe(true);
+    expect(nav.prev(3)).toBe(2);
+    expect(nav.prev(2)).toBe(1);
+    expect(nav.prev(1)).toBeNull();
+  });
+
+  test('next() after prev() returns to the abandoned label (back/forward semantics)', async () => {
+    const nav = (await loadFactory())(mapDataWith(LINE));
+    nav.next(1); // -> 2
+    nav.next(2); // -> 3
+    nav.prev(3); // back to 2
+    // A label only counts as visited once the user navigates *from* it, so forward re-reaches 3, then 4.
+    expect(nav.next(2)).toBe(3);
+    expect(nav.next(3)).toBe(4);
+  });
+
+  test('flattens labels across types and looks up coordinates and types for deep links', async () => {
+    const nav = (await loadFactory())(mapDataWith({
+      CurbRamp: [[1, 0, 0]],
+      Obstacle: [[2, 0.0005, 0]],
+    }));
+    expect(nav.next(1)).toBe(2);
+    expect(nav.getCoords(2)).toEqual([0.0005, 0]);
+    expect(nav.getCoords(999)).toBeNull();
+    expect(nav.getLabelType(1)).toBe('CurbRamp');
+    expect(nav.getLabelType(2)).toBe('Obstacle');
+    expect(nav.getLabelType(999)).toBeNull();
+  });
+
+  test('next() from an unknown label is a harmless no-op', async () => {
+    const nav = (await loadFactory())(mapDataWith(LINE));
+    expect(nav.next(999)).toBeNull();
+  });
+
+  test('hasNext() gates the Next button: true mid-tour, false when exhausted or the label is unknown', async () => {
+    const nav = (await loadFactory())(mapDataWith(LINE));
+    expect(nav.hasNext(999)).toBe(false); // Unknown label, e.g. a deep link outside the loaded set.
+    expect(nav.hasNext(1)).toBe(true);
+    nav.next(1); // -> 2
+    expect(nav.hasNext(2)).toBe(true);
+    nav.next(2); // -> 3
+    nav.next(3); // -> 4
+    nav.next(4); // -> 5; every other label is now visited.
+    expect(nav.hasNext(5)).toBe(false);
+  });
+
+  // A viewport refetch (#5002) swaps mapData.sortedLabels' contents in place; refresh() re-reads them.
+  test('refresh() picks up added labels and drops removed ones', async () => {
+    const mapData = mapDataWith({ CurbRamp: [[1, 0, 0], [2, 0.001, 0]] });
+    const nav = (await loadFactory())(mapData);
+    expect(nav.getCoords(3)).toBeNull();
+
+    // Simulate setLabelData: mutate the arrays in place, as production does, rather than reassigning.
+    mapData.sortedLabels.CurbRamp.length = 0;
+    mapData.sortedLabels.CurbRamp.push(
+      { properties: { label_id: 2 }, geometry: { coordinates: [0.001, 0] } },
+      { properties: { label_id: 3 }, geometry: { coordinates: [0.002, 0] } },
+    );
+    nav.refresh();
+
+    expect(nav.getCoords(3)).toEqual([0.002, 0]);
+    expect(nav.getCoords(1)).toBeNull();
+    expect(nav.next(2)).toBe(3);
+  });
+
+  test('refresh() preserves the prev() trail through labels the refetch dropped', async () => {
+    const mapData = mapDataWith({ CurbRamp: [[1, 0, 0], [2, 0.001, 0], [3, 0.002, 0]] });
+    const nav = (await loadFactory())(mapData);
+    nav.next(1); // -> 2
+    nav.next(2); // -> 3
+
+    mapData.sortedLabels.CurbRamp.length = 0;
+    mapData.sortedLabels.CurbRamp.push({ properties: { label_id: 3 }, geometry: { coordinates: [0.002, 0] } });
+    nav.refresh();
+
+    // The trail retraces even though 1 and 2 are gone from the loaded set (the page falls back to
+    // popup-metadata coords for those), and next() from a dropped label reports nowhere to go.
+    expect(nav.prev(3)).toBe(2);
+    expect(nav.prev(2)).toBe(1);
+    expect(nav.next(1)).toBeNull();
+  });
+
+  test('refresh() notifies onRefresh subscribers, after the new label set is readable', async () => {
+    const mapData = mapDataWith({ CurbRamp: [[1, 0, 0]] });
+    const nav = (await loadFactory())(mapData);
+    const seen = [];
+    // Subscribers exist to re-derive state from the label set (the popup's arrow states), so what they can
+    // read when they run is the contract, not just that they ran.
+    nav.onRefresh(() => seen.push(nav.hasNext(1)));
+    nav.onRefresh(() => seen.push('second subscriber'));
+
+    expect(seen).toEqual([]); // Subscribing is not itself a refresh.
+
+    mapData.sortedLabels.CurbRamp.push({ properties: { label_id: 2 }, geometry: { coordinates: [0.001, 0] } });
+    nav.refresh();
+
+    expect(seen).toEqual([true, 'second subscriber']);
+  });
+
+  // The host's filter predicate (#5124): LabelMap passes its sidebar filters so paging never lands on a label
+  // the user has filtered off the map.
+  describe('isCandidate', () => {
+    // Two types interleaved along a street; the Obstacle at 2 is nearest to 1 but may be filtered out.
+    const MIXED = {
+      CurbRamp: [[1, 0, 0], [3, 0.002, 0]],
+      Obstacle: [[2, 0.001, 0], [4, 0.003, 0]],
+    };
+
+    test('next() skips labels the predicate rejects and hasNext() agrees', async () => {
+      const onlyCurbRamps = (labelType) => labelType === 'CurbRamp';
+      const nav = (await loadFactory())(mapDataWith(MIXED), { isCandidate: onlyCurbRamps });
+      expect(nav.hasNext(1)).toBe(true);
+      expect(nav.next(1)).toBe(3); // Not the nearer Obstacle at 2.
+      expect(nav.hasNext(3)).toBe(false); // The only other labels are Obstacles.
+      expect(nav.next(3)).toBeNull();
     });
 
-    test('prev() retraces the trail and hasPrev() gates the button', () => {
-        const nav = loadFactory()(mapDataWith(LINE));
-        expect(nav.hasPrev(1)).toBe(false);
-        nav.next(1); // -> 2
-        nav.next(2); // -> 3
-        expect(nav.hasPrev(3)).toBe(true);
-        expect(nav.prev(3)).toBe(2);
-        expect(nav.prev(2)).toBe(1);
-        expect(nav.prev(1)).toBeNull();
+    test('the predicate sees the label type and its full feature', async () => {
+      const seen = [];
+      const nav = (await loadFactory())(mapDataWith({ CurbRamp: [[1, 0, 0], [2, 0.001, 0, { severity: 3 }]] }), {
+        isCandidate: (labelType, feature) => {
+          seen.push([labelType, feature.properties.severity]);
+          return true;
+        },
+      });
+      nav.next(1);
+      expect(seen).toEqual([['CurbRamp', 3]]);
     });
 
-    test('next() after prev() returns to the abandoned label (back/forward semantics)', () => {
-        const nav = loadFactory()(mapDataWith(LINE));
-        nav.next(1); // -> 2
-        nav.next(2); // -> 3
-        nav.prev(3); // back to 2
-        // A label only counts as visited once the user navigates *from* it, so forward re-reaches 3, then 4.
-        expect(nav.next(2)).toBe(3);
-        expect(nav.next(3)).toBe(4);
+    test('is evaluated live, so a filter change takes effect on the next click', async () => {
+      let hidden = new Set();
+      const nav = (await loadFactory())(mapDataWith(MIXED), {
+        isCandidate: (labelType, feature) => !hidden.has(feature.properties.label_id),
+      });
+      expect(nav.hasNext(1)).toBe(true);
+
+      hidden = new Set([2, 3, 4]);
+      expect(nav.hasNext(1)).toBe(false);
+      expect(nav.next(1)).toBeNull();
+
+      hidden = new Set([2]);
+      expect(nav.next(1)).toBe(3);
     });
 
-    test('flattens labels across types and looks up coordinates and types for deep links', () => {
-        const nav = loadFactory()(mapDataWith({
-            CurbRamp: [[1, 0, 0]],
-            Obstacle: [[2, 0.0005, 0]],
-        }));
-        expect(nav.next(1)).toBe(2);
-        expect(nav.getCoords(2)).toEqual([0.0005, 0]);
-        expect(nav.getCoords(999)).toBeNull();
-        expect(nav.getLabelType(1)).toBe('CurbRamp');
-        expect(nav.getLabelType(2)).toBe('Obstacle');
-        expect(nav.getLabelType(999)).toBeNull();
+    test('filtersChanged() restarts the tour, keeps the trail, and notifies subscribers', async () => {
+      let hidden = new Set();
+      const nav = (await loadFactory())(mapDataWith(MIXED), {
+        isCandidate: (labelType, feature) => !hidden.has(feature.properties.label_id),
+      });
+      const notified = [];
+      nav.onRefresh(() => notified.push(nav.hasNext(4)));
+      nav.next(1); // -> 2
+      nav.next(2); // -> 3
+      nav.next(3); // -> 4
+      expect(nav.hasNext(4)).toBe(false); // Every other label is toured.
+
+      // The user narrows the filters; labels the earlier tour passed are fair game for the new one.
+      hidden = new Set([2]);
+      nav.filtersChanged();
+
+      expect(notified).toEqual([true]);
+      expect(nav.next(4)).toBe(3);
+      // The trail is intact: back from 3 is 4, and back from there retraces the first tour.
+      expect(nav.prev(3)).toBe(4);
+      expect(nav.prev(4)).toBe(3);
     });
 
-    test('next() from an unknown label is a harmless no-op', () => {
-        const nav = loadFactory()(mapDataWith(LINE));
-        expect(nav.next(999)).toBeNull();
+    test('prev() still retraces a label the predicate now rejects', async () => {
+      let hidden = new Set();
+      const nav = (await loadFactory())(mapDataWith(MIXED), {
+        isCandidate: (labelType, feature) => !hidden.has(feature.properties.label_id),
+      });
+      nav.next(1); // -> 2
+      nav.next(2); // -> 3
+      hidden = new Set([2]); // The user filters out the label they came through.
+      // Back means back: the spotlight keeps that label visible whatever the filters say.
+      expect(nav.hasPrev(3)).toBe(true);
+      expect(nav.prev(3)).toBe(2);
     });
 
-    test('hasNext() gates the Next button: true mid-tour, false when exhausted or the label is unknown', () => {
-        const nav = loadFactory()(mapDataWith(LINE));
-        expect(nav.hasNext(999)).toBe(false); // Unknown label, e.g. a deep link outside the loaded set.
-        expect(nav.hasNext(1)).toBe(true);
-        nav.next(1); // -> 2
-        expect(nav.hasNext(2)).toBe(true);
-        nav.next(2); // -> 3
-        nav.next(3); // -> 4
-        nav.next(4); // -> 5; every other label is now visited.
-        expect(nav.hasNext(5)).toBe(false);
+    test('defaults to every loaded label when the host passes no predicate', async () => {
+      const nav = (await loadFactory())(mapDataWith(MIXED));
+      expect(nav.next(1)).toBe(2);
     });
-
-    // A viewport refetch (#5002) swaps mapData.sortedLabels' contents in place; refresh() re-reads them.
-    test('refresh() picks up added labels and drops removed ones', () => {
-        const mapData = mapDataWith({ CurbRamp: [[1, 0, 0], [2, 0.001, 0]] });
-        const nav = loadFactory()(mapData);
-        expect(nav.getCoords(3)).toBeNull();
-
-        // Simulate setLabelData: mutate the arrays in place, as production does, rather than reassigning.
-        mapData.sortedLabels.CurbRamp.length = 0;
-        mapData.sortedLabels.CurbRamp.push(
-            { properties: { label_id: 2 }, geometry: { coordinates: [0.001, 0] } },
-            { properties: { label_id: 3 }, geometry: { coordinates: [0.002, 0] } },
-        );
-        nav.refresh();
-
-        expect(nav.getCoords(3)).toEqual([0.002, 0]);
-        expect(nav.getCoords(1)).toBeNull();
-        expect(nav.next(2)).toBe(3);
-    });
-
-    test('refresh() preserves the prev() trail through labels the refetch dropped', () => {
-        const mapData = mapDataWith({ CurbRamp: [[1, 0, 0], [2, 0.001, 0], [3, 0.002, 0]] });
-        const nav = loadFactory()(mapData);
-        nav.next(1); // -> 2
-        nav.next(2); // -> 3
-
-        mapData.sortedLabels.CurbRamp.length = 0;
-        mapData.sortedLabels.CurbRamp.push({ properties: { label_id: 3 }, geometry: { coordinates: [0.002, 0] } });
-        nav.refresh();
-
-        // The trail retraces even though 1 and 2 are gone from the loaded set (the page falls back to
-        // popup-metadata coords for those), and next() from a dropped label reports nowhere to go.
-        expect(nav.prev(3)).toBe(2);
-        expect(nav.prev(2)).toBe(1);
-        expect(nav.next(1)).toBeNull();
-    });
-
-    test('refresh() notifies onRefresh subscribers, after the new label set is readable', () => {
-        const mapData = mapDataWith({ CurbRamp: [[1, 0, 0]] });
-        const nav = loadFactory()(mapData);
-        const seen = [];
-        // Subscribers exist to re-derive state from the label set (the popup's arrow states), so what they can
-        // read when they run is the contract, not just that they ran.
-        nav.onRefresh(() => seen.push(nav.hasNext(1)));
-        nav.onRefresh(() => seen.push('second subscriber'));
-
-        expect(seen).toEqual([]); // Subscribing is not itself a refresh.
-
-        mapData.sortedLabels.CurbRamp.push({ properties: { label_id: 2 }, geometry: { coordinates: [0.001, 0] } });
-        nav.refresh();
-
-        expect(seen).toEqual([true, 'second subscriber']);
-    });
-
-    // The host's filter predicate (#5124): LabelMap passes its sidebar filters so paging never lands on a label
-    // the user has filtered off the map.
-    describe('isCandidate', () => {
-        // Two types interleaved along a street; the Obstacle at 2 is nearest to 1 but may be filtered out.
-        const MIXED = {
-            CurbRamp: [[1, 0, 0], [3, 0.002, 0]],
-            Obstacle: [[2, 0.001, 0], [4, 0.003, 0]],
-        };
-
-        test('next() skips labels the predicate rejects and hasNext() agrees', () => {
-            const onlyCurbRamps = (labelType) => labelType === 'CurbRamp';
-            const nav = loadFactory()(mapDataWith(MIXED), { isCandidate: onlyCurbRamps });
-            expect(nav.hasNext(1)).toBe(true);
-            expect(nav.next(1)).toBe(3); // Not the nearer Obstacle at 2.
-            expect(nav.hasNext(3)).toBe(false); // The only other labels are Obstacles.
-            expect(nav.next(3)).toBeNull();
-        });
-
-        test('the predicate sees the label type and its full feature', () => {
-            const seen = [];
-            const nav = loadFactory()(mapDataWith({ CurbRamp: [[1, 0, 0], [2, 0.001, 0, { severity: 3 }]] }), {
-                isCandidate: (labelType, feature) => {
-                    seen.push([labelType, feature.properties.severity]);
-                    return true;
-                },
-            });
-            nav.next(1);
-            expect(seen).toEqual([['CurbRamp', 3]]);
-        });
-
-        test('is evaluated live, so a filter change takes effect on the next click', () => {
-            let hidden = new Set();
-            const nav = loadFactory()(mapDataWith(MIXED), {
-                isCandidate: (labelType, feature) => !hidden.has(feature.properties.label_id),
-            });
-            expect(nav.hasNext(1)).toBe(true);
-
-            hidden = new Set([2, 3, 4]);
-            expect(nav.hasNext(1)).toBe(false);
-            expect(nav.next(1)).toBeNull();
-
-            hidden = new Set([2]);
-            expect(nav.next(1)).toBe(3);
-        });
-
-        test('filtersChanged() restarts the tour, keeps the trail, and notifies subscribers', () => {
-            let hidden = new Set();
-            const nav = loadFactory()(mapDataWith(MIXED), {
-                isCandidate: (labelType, feature) => !hidden.has(feature.properties.label_id),
-            });
-            const notified = [];
-            nav.onRefresh(() => notified.push(nav.hasNext(4)));
-            nav.next(1); // -> 2
-            nav.next(2); // -> 3
-            nav.next(3); // -> 4
-            expect(nav.hasNext(4)).toBe(false); // Every other label is toured.
-
-            // The user narrows the filters; labels the earlier tour passed are fair game for the new one.
-            hidden = new Set([2]);
-            nav.filtersChanged();
-
-            expect(notified).toEqual([true]);
-            expect(nav.next(4)).toBe(3);
-            // The trail is intact: back from 3 is 4, and back from there retraces the first tour.
-            expect(nav.prev(3)).toBe(4);
-            expect(nav.prev(4)).toBe(3);
-        });
-
-        test('prev() still retraces a label the predicate now rejects', () => {
-            let hidden = new Set();
-            const nav = loadFactory()(mapDataWith(MIXED), {
-                isCandidate: (labelType, feature) => !hidden.has(feature.properties.label_id),
-            });
-            nav.next(1); // -> 2
-            nav.next(2); // -> 3
-            hidden = new Set([2]); // The user filters out the label they came through.
-            // Back means back: the spotlight keeps that label visible whatever the filters say.
-            expect(nav.hasPrev(3)).toBe(true);
-            expect(nav.prev(3)).toBe(2);
-        });
-
-        test('defaults to every loaded label when the host passes no predicate', () => {
-            const nav = loadFactory()(mapDataWith(MIXED));
-            expect(nav.next(1)).toBe(2);
-        });
-    });
+  });
 });

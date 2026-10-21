@@ -136,7 +136,7 @@ Make sure Docker is running (you'll see the whale icon in your tray; you can set
    npm start
    ```
 
-   `npm start` runs the asset build (`npm run build`: Rolldown for the JS, Grunt for the CSS bundles), keeps a
+   `npm start` runs the asset build (`npm run build`: Vite, for every page's JS and CSS bundle), keeps a
    watcher (`npm run watch`) rebuilding it on save, then runs `sbt ~ run` for continuous recompile. The first compile
    takes 5+ minutes; later ones are seconds. It's ready when you see `Listening for HTTP on .../9000`.
 
@@ -225,6 +225,7 @@ truth**; the snapshot below is a convenience copy (it may lag as new cities are 
 | knox-oh | sidewalk_knox | | houston-tx | sidewalk_houston |
 | kaohsiung-tw | sidewalk_kaohsiung | | newport-ky | sidewalk_newport_ky |
 | bayonne-fr | sidewalk_bayonne_fr | | laurens-ia | sidewalk_laurens_ia |
+| juneau-ak | sidewalk_juneau_ak | | | |
 
 ---
 
@@ -260,16 +261,19 @@ Password: sidewalk
 The dev server hot-reloads, so you rarely restart it.
 
 - **Scala / Twirl views** — `sbt ~ run` recompiles on save; reload the browser once compilation finishes.
-- **JavaScript / CSS** — the `npm run watch` behind `npm start` rebuilds `public/build/` on every save: Rolldown
-  bundles each page's entry in `frontend/js/pages/` and what it imports, Grunt concatenates the tools' stylesheets.
-  **Never edit `public/build/` output**, and don't run the build by hand. A new JS file is picked up as soon as
-  something imports it; a new page needs an entry file in `frontend/js/pages/`.
+- **JavaScript / CSS** — the `npm run watch` behind `npm start` rebuilds `public/build/` on every save: Vite
+  bundles each page's entry in `frontend/js/pages/` and what it imports, stylesheets included (`frontend/css/`).
+  **Never edit `public/build/` output**, and don't run the build by hand. A new JS file or stylesheet is picked up as
+  soon as something imports it; a new page needs an entry file in `frontend/js/pages/`, which the watcher notices and
+  restarts for. The watcher builds in Vite's development mode: the CSS stays unminified for DevTools (Vite writes no
+  CSS source map), and the previous build stays in place while the next is written, so a reload mid-rebuild still
+  renders; the production build `npm start` runs first is what clears old files out.
 - **`build.sbt` or config changes** — these aren't hot-reloaded. In the Docker shell press `Ctrl+D`, then run
   `sbt clean`, then `npm start` again.
 - **Python** (the standalone scripts in `scripts/` and `tools/`) — the container has **two** interpreters. `python3`
   is the base image's 3.8, kept because the app shells out to it for in-band clustering; `python3.13` is where the
   offline tooling and its libraries live. Run offline scripts as `python3.13 tools/...`. Details in
-  [`tools/README.md`](../tools/README.md); pins in [`docs/upgrading-libraries.md`](upgrading-libraries.md).
+  [`tools/README.md`](../tools/README.md); upgrade notes in [`docs/upgrading-libraries.md`](upgrading-libraries.md).
 
 ### npm dependencies
 
@@ -330,6 +334,9 @@ make test-scala
 make test-scala only=controllers.api.PublicApiSpec
 ```
 
+The specs render views, whose stylesheet tags come from the asset build's manifest, so the tree needs a build
+(`npm run build`; `npm start` and `make qa-worktree` both do one). Without one the target stops and says so.
+
 Only one checkout tests at a time. They share one `db` container and one city schema, and most specs commit rather
 than roll back, so simultaneous runs overwrite each other's rows and stack two multi-GB JVMs — which is how
 `earlyoom` comes to kill one mid-run. A second `make test-scala` says who it's waiting on, then starts when they finish.
@@ -342,8 +349,8 @@ cancel in both directions: most want rows your schema may not have, while `Night
 CI's seeded schema (#5115) is expected to cancel nothing, so a CANCELED line there means the seed stopped covering
 something.
 
-There are also Python unit tests for the `scripts/` utilities (`make test-python`) and a jsdom Jest suite for
-frontend modules (`make test-js` — Jest's `node_modules` are in the container, not on your host).
+There are also Python unit tests for the `scripts/` utilities (`make test-python`) and a jsdom Vitest suite for
+frontend modules (`make test-js` — Vitest's `node_modules` are in the container, not on your host).
 [`docs/testing-and-ci.md`](testing-and-ci.md) covers what each layer is for.
 
 ### Checking that pages still load in a browser
@@ -590,7 +597,7 @@ only over the *name*: Postgres won't hold a table and an enum called `role` in o
 
 Schemas already past 372 are never touched, and need no down-migration.
 
-Two other evolutions can strand a schema the same way, because they read shared state a later evolution removed:
+Three other evolutions can strand a schema the same way, because they read shared state a later evolution removed:
 
 - **`column "infra3d_access" does not exist`** — 313 reads it and 316 drops it. A schema below 303 self-heals,
   since 303 re-adds the column with `IF NOT EXISTS`; one in the 303–312 window needs it restored (exactly as 316's
@@ -598,6 +605,8 @@ Two other evolutions can strand a schema the same way, because they read shared 
 - **`function replace(jsonb, unknown, unknown) does not exist`** — 276 converts `config.excluded_tags` from text to
   jsonb. A dump whose `play_evolutions` predates 276 but whose `config` was already converted can't replay it;
   restore the column to the pre-276 text value from that schema's own dump.
+- **`column "community_service" does not exist`**: 385 reads it from `user_role` and 418 drops it. Use a newer
+  dump.
 
 Both are symptoms of the same underlying problem: a committed dump whose contents disagree with the
 `play_evolutions` it ships with. If an evolution fails on a table or column that should exist at that level, check

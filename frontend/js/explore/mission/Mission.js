@@ -1,8 +1,8 @@
 /**
- * Mission objects, stores data from mission table, as well as associated tasks.
+ * A mission from the mission table and its tasks. MissionContainer measures how far along it is from the streets
+ * walked (updateDistanceProgress, getMissionCompletionRate).
  */
 
-import { svl } from '../svl.js';
 import { util } from '../../common/utilities.js';
 import '../../common/utilitiesMath.js';
 /** @typedef {import('../task/Task.js').Task} Task */
@@ -42,70 +42,12 @@ export class Mission {
   }
 
   /**
-   * Set the isComplete property to true.
+   * Set the isComplete property to true. Finish a mission through MissionContainer.finishMission, which also takes
+   * the mission's overshoot off the offset it keeps.
    * @returns {void}
    */
   complete = () => {
     this.setProperty('isComplete', true);
-
-    // Set distanceProgress to be at most the distance for the mission, subtract the difference from the offset.
-    if (this.getProperty('missionType') === 'audit') {
-      const distanceOver = this.getProperty('distanceProgress') - this.getProperty('distance');
-      const oldOffset = svl.missionContainer.getTasksMissionsOffset();
-      const newOffset = oldOffset - distanceOver;
-      svl.missionContainer.setTasksMissionsOffset(newOffset);
-    }
-
-    if (!svl.isOnboarding()) {
-      svl.storage.set('completedFirstMission', true);
-    }
-  };
-
-  /**
-   * Compute and return the mission completion rate
-   * @returns {number} The completion rate of the mission between 0 and 1
-   */
-  getMissionCompletionRate = () => {
-    this.updateDistanceProgress();
-    if ('taskContainer' in svl && this.getProperty('missionType') !== 'auditOnboarding') {
-      const distanceProgress = this.getProperty('distanceProgress');
-      const targetDistance = this.getDistance('meters');
-      // No distance target (e.g. an exploreAddress mission) → not "complete"; dividing by 0/null would clamp to 1
-      // and fire the mission-complete modal.
-      if (!targetDistance) return 0;
-      return Math.min(Math.max(distanceProgress / targetDistance, 0), 1);
-    } else {
-      return 0;
-    }
-  };
-
-  /**
-   * Updates the distanceProgress for this audit mission.
-   * @returns {void}
-   */
-  updateDistanceProgress = () => {
-    if ('taskContainer' in svl
-      && this.getProperty('missionType') !== 'auditOnboarding'
-      && svl.missionContainer.getTasksMissionsOffset() !== null) {
-      let currentMissionCompletedDistance;
-      if (this.isComplete()) {
-        currentMissionCompletedDistance = this.getDistance('meters');
-      } else {
-        const taskDistance = util.math.kmsToMeters(svl.taskContainer.getCompletedTaskDistance({ units: 'kilometers' }));
-        const offset = svl.missionContainer.getTasksMissionsOffset() || 0;
-
-        const missionDistance = svl.missionContainer.getCompletedMissionDistance();
-        currentMissionCompletedDistance = taskDistance - missionDistance + offset;
-        // Hotfix for an issue where the mission completion distance was negative. Need to find root cause.
-        // https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2120
-        if (currentMissionCompletedDistance < 0) {
-          svl.missionContainer.setTasksMissionsOffset(offset - currentMissionCompletedDistance);
-          console.error(`Mission progress was set to ${currentMissionCompletedDistance}, resetting to 0.`);
-          currentMissionCompletedDistance = 0;
-        }
-      }
-      this.setProperty('distanceProgress', currentMissionCompletedDistance);
-    }
   };
 
   /**

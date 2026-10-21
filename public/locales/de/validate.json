@@ -19,6 +19,7 @@
     "clear-verdict": "Antwort zurücknehmen",
     "tag-search-placeholder": "Weitere Tags hier hinzufügen",
     "tag-search-no-results": "Keine passenden Tags",
+    "tag-example-tooltip": "Beispiel für „{{tag}}“",
     "disagree-reason": {
       "common": {
         "wrong-type": "Das ist der falsche Etikettentyp",

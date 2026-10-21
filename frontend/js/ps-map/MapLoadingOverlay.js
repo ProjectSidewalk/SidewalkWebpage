@@ -1,3 +1,5 @@
+import i18next from 'i18next';
+
 /**
  * Load-state overlay for the label maps: an indeterminate spinner with a live elapsed-time counter while the
  * label feed streams in, and a retryable error card when it fails.

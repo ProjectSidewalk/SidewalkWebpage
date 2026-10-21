@@ -77,11 +77,13 @@ city.name.validation-study = Estudo de Validação
 city.name.taipei = Taipé
 city.name.new-taipei-tw = Nova Taipé
 city.name.niagara-falls-ny = Cataratas do Niágara
+city.name.juneau-ak = Juneau
 
 state.name.new-jersey = Nova Jersey
 state.name.south-carolina = Carolina do Sul
 state.name.new-york = Nova York
 state.name.florida = Flórida
+state.name.alaska = Alasca
 
 country.name.usa = EUA
 country.name.mexico = México
@@ -346,6 +348,10 @@ audit.center.ui.tags.info = Adicione etiquetas aos seus rótulos para enriquecer
 audit.center.ui.description.header = Descreva (opcional)
 audit.center.ui.description.placeholder = Descrição
 
+audit.all.regions.finished.title = Você explorou todos os bairros de {0}!
+audit.all.regions.finished.body = Obrigado! Você verificou todas as ruas que temos em {0}. Você pode continuar ajudando validando os rótulos de outras pessoas ou explorando outra cidade.
+audit.all.regions.finished.validate = Validar rótulos
+audit.all.regions.finished.other.cities = Explorar outra cidade
 audit.survey.title = Por favor, participe desta pesquisa única sobre o <i>Project Sidewalk</i>
 audit.survey.enjoyment.question = Quanto você está gostando de usar o <i>Project Sidewalk</i>?
 audit.survey.enjoyment.option.1 = Muito entediante
@@ -389,7 +395,7 @@ authenticate.terms = Você concorda com nossos <a target="_blank" href="/terms">
 authenticate.signup = Cadastre-se
 authenticate.has.account = Já tem uma conta? <a href="#" id="form-open-sign-in">Entrar</a>
 
-# Sign-in/sign-up redesign (#4375) — draft translations, pending native-speaker polish (#4494).
+# Sign-in/sign-up (#4375): draft translations, pending native-speaker polish (#4494).
 authenticate.welcome.back = Bem-vindo(a) de volta
 authenticate.join = Participe do Project Sidewalk
 authenticate.tagline = Mapeie calçadas. Ajude a tornar sua cidade acessível para todos.
@@ -555,7 +561,15 @@ gallery.filter.by = Filtrar por
 gallery.tags = Etiquetas
 gallery.all = Todos os tipos de rótulos
 gallery.labels.not.found = Nenhum resultado encontrado. <a href="/explore">Comece a explorar</a> para contribuir com mais dados!
-gallery.cards = Os rótulos são ordenadas aleatoriamente com base nos filtros selecionados
+gallery.cards = Os rótulos são ordenados aleatoriamente com base nos filtros selecionados
+gallery.cards.sorted = Os rótulos são ordenados por "{0}" com base nos filtros selecionados
+gallery.sort.by = Ordenar por
+gallery.sort.random = Aleatório
+gallery.sort.newest = Mais recentes primeiro
+gallery.sort.oldest = Mais antigos primeiro
+gallery.sort.most.severe = Mais graves primeiro
+gallery.sort.least.severe = Menos graves primeiro
+gallery.sort.most.disputed = Mais disputados primeiro
 gallery.clear.filters = Limpar filtros
 gallery.list.count = {0,choice,1#1 rótulo|1<{0} rótulos} nesta lista
 gallery.list.truncated = {0,choice,1#1 ID passou do limite de {1} e não pôde ser carregado.|1<{0} IDs passaram do limite de {1} e não puderam ser carregados.}
@@ -660,7 +674,7 @@ sharedlabel.stat.labels = rótulos
 sharedlabel.stat.validations = validações
 sharedlabel.stat.miles = milhas exploradas
 sharedlabel.legend.title = O que esses rótulos significam
-# Redesigned user dashboard, leaderboard, settings, and public profile (#4323, #4475).
+# User dashboard, leaderboard, settings, and public profile (#4323, #4475).
 dashboard.title = Seu painel
 dashboard.you = Você
 dashboard.hero.greeting = Bem-vindo(a) de volta, {0} 👋
@@ -854,6 +868,16 @@ leaderboard.thisweek.none = ✨ Ainda sem rótulos esta semana — seja a primei
 leaderboard.teams.title = Equipes em {0}
 leaderboard.teams.intro = Crie ou entre em uma equipe para fazer a diferença em conjunto!
 leaderboard.teams.none = 👥 Ainda sem equipes — seja a primeira! Crie uma e convide amigos ou colegas.
+leaderboard.myteam.title = Sua equipe: {0}
+leaderboard.myteam.intro = Como você se compara com seus colegas de equipe em {0}.
+leaderboard.myteam.none = 👥 Ninguém da sua equipe está na classificação ainda.
+leaderboard.myteam.you.hidden = Você não aparece porque desativou “{0}”.
+leaderboard.myteam.you.settings = Altere nas Configurações
+leaderboard.myteam.you.nolabels = Você aparecerá aqui assim que colocar seu primeiro rótulo.
+leaderboard.myteam.pager = Páginas da classificação da equipe
+leaderboard.myteam.prev = ‹ Anterior
+leaderboard.myteam.next = Próxima ›
+leaderboard.myteam.page = Página {0} de {1}
 leaderboard.allcities.title = Todas as cidades, desde sempre
 leaderboard.allcities.intro = Os melhores mapeadores de todas as cidades do Project Sidewalk, classificados pelo total de rótulos.
 leaderboard.allcities.note = A distância é atualizada uma vez por dia.

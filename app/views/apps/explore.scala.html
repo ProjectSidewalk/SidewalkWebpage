@@ -2,11 +2,11 @@
 @import models.user.{Role, SidewalkUserWithRole}
 @import play.api.Configuration
 @import service.CommonPageData
-@import models.pano.PanoSource
 @import views.ViewHelpers.jsonForScript
 @(
   commonData: service.CommonPageData, title: String, user: models.user.SidewalkUserWithRole,
-  surveyData: Seq[SurveyQuestionWithOptions], tutorialStreetId: Int, makeCrops: Boolean
+  surveyData: Seq[SurveyQuestionWithOptions], tutorialStreetId: Int, makeCrops: Boolean,
+  basemap: play.api.libs.json.JsObject
 )(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: play.api.Configuration)
 
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
@@ -15,10 +15,7 @@
   pageMeta = service.PageMeta(description = Some(Messages("seo.description.explore", currentCity.cityNameShort)))) {
   @common.navbar(commonData, Some(user))
 
-  <link rel="stylesheet" href='@assets.path("build/css/explore.css")'>
-  <link rel="stylesheet" href='@assets.path("css/components/progress-bar.css")'>
-  <link rel="stylesheet" href='@assets.path("css/components/pano-overlay-buttons.css")'>
-  <link rel="stylesheet" href='@assets.path("css/components/pano-image-adjustments.css")'>
+  @ViteAssets.stylesheets("explore")
 
   @* Inline, in the head: label crops read the pano canvas back, so every WebGL context must keep its drawing buffer,
      and a module script would only patch getContext after the vendor libraries below have loaded. *@
@@ -34,7 +31,6 @@
       console.log(e);
     }
   </script>
-
 
   @common.missionStartTutorial()
   @common.panoInfoPopover()
@@ -100,6 +96,16 @@
         </ol>
         <button type="submit" class="button button--primary button--small survey-dialog__submit">@Messages("submit")</button>
       </form>
+    </div>
+  </dialog>
+
+  <dialog id="all-regions-finished" class="all-regions-finished" aria-labelledby="all-regions-finished-title">
+    <img src='@assets.path("images/icons/AccessibilityFeatures.png")' class="all-regions-finished__image" alt="" loading="lazy">
+    <h2 id="all-regions-finished-title" class="all-regions-finished__title">@Messages("audit.all.regions.finished.title", currentCity.cityNameShort)</h2>
+    <p class="all-regions-finished__body">@Messages("audit.all.regions.finished.body", currentCity.cityNameShort)</p>
+    <div class="all-regions-finished__actions">
+      <a class="button button--primary button--medium" id="all-regions-finished-validate" href="@routes.ValidateController.validate()">@Messages("audit.all.regions.finished.validate")</a>
+      <a class="button button--secondary button--medium" id="all-regions-finished-cities" href="@routes.ApplicationController.cities">@Messages("audit.all.regions.finished.other.cities")</a>
     </div>
   </dialog>
 
@@ -332,6 +338,10 @@
 
           <div id="minimap-holder">
             <div id="minimap" class="minimap-pane"></div>
+            @* Shown by Minimap.create in the map's place when the browser can't draw it (no WebGL2). *@
+            <p id="minimap-unavailable-message" role="status" hidden data-i18n="audit:right-ui.minimap.unavailable">
+              This browser can't show the map. You can keep exploring without it.
+            </p>
             <div id="minimap-overlay" class="minimap-pane"></div>
             <canvas id="minimap-fog-of-war-canvas" class="minimap-pane" height="200" width="200"></canvas>
             <canvas id="minimap-fov-canvas" class="minimap-pane" height="200" width="200"></canvas>
@@ -368,7 +378,7 @@
               <span class="minimap-legend-mini-item">
                 <svg class="minimap-legend-mini-icon" viewBox="0 0 22 8" aria-hidden="true">
                   <path class="minimap-legend-sample-remaining minimap-legend-sample-dashed" d="M2 4H20"></path>
-                  <path class="minimap-legend-sample-chevron" d="M7 0.75L14 4L7 7.25Z"></path>
+                  <path class="minimap-legend-sample-chevron" d="M8.5 1L13.5 4L8.5 7Z"></path>
                 </svg>
                 <span data-i18n="audit:right-ui.minimap.legend-ahead">Route ahead</span>
               </span>
@@ -395,7 +405,7 @@
               <div class="minimap-legend-row">
                 <svg viewBox="0 0 30 12" aria-hidden="true">
                   <path class="minimap-legend-sample-remaining minimap-legend-sample-dashed" d="M2 6H28"></path>
-                  <path class="minimap-legend-sample-chevron" d="M12 2L18 6L12 10Z"></path>
+                  <path class="minimap-legend-sample-chevron" d="M12 3L17 6L12 9Z"></path>
                 </svg>
                 <span data-i18n="audit:right-ui.minimap.legend-ahead">Route ahead</span>
               </div>
@@ -408,34 +418,9 @@
               </div>
               <div class="minimap-legend-row">
                 <svg viewBox="0 0 30 12" aria-hidden="true">
-                  <circle class="minimap-legend-sample-visited" cx="15" cy="6" r="3.5"></circle>
+                  <circle class="minimap-legend-sample-crumb" cx="15" cy="6" r="3.5"></circle>
                 </svg>
-                <span data-i18n="audit:right-ui.minimap.legend-visited">Visited</span>
-              </div>
-              <div class="minimap-legend-row">
-                <svg viewBox="0 0 30 12" aria-hidden="true">
-                  <circle class="minimap-legend-sample-next-stop" cx="15" cy="6" r="3.5"></circle>
-                </svg>
-                <span data-i18n="audit:right-ui.minimap.legend-next-stops">Stops on your route</span>
-              </div>
-              <div class="minimap-legend-row">
-                <svg viewBox="0 0 30 12" aria-hidden="true">
-                  <circle class="minimap-legend-sample-other-link" cx="15" cy="6" r="3.5"></circle>
-                </svg>
-                <span data-i18n="audit:right-ui.minimap.legend-other-links">Other directions</span>
-              </div>
-              <div class="minimap-legend-row">
-                <svg viewBox="0 0 30 12" aria-hidden="true">
-                  <circle class="minimap-legend-sample-next-step" cx="15" cy="6" r="3.5"></circle>
-                </svg>
-                <span data-i18n="audit:right-ui.minimap.legend-next-step">Light blue: next step (spacebar)</span>
-              </div>
-              <div class="minimap-legend-row">
-                <svg viewBox="0 0 30 12" aria-hidden="true">
-                  <circle class="minimap-legend-sample-faced-halo" cx="15" cy="6" r="6"></circle>
-                  <circle class="minimap-legend-sample-faced" cx="15" cy="6" r="3.5"></circle>
-                </svg>
-                <span data-i18n="audit:right-ui.minimap.legend-faced">Filled: where forward takes you</span>
+                <span data-i18n="audit:right-ui.minimap.legend-crumbs">Circles: places you can click to go</span>
               </div>
               @* Labels from earlier missions here are drawn dimmed; this checkbox hides/shows their markers (#4945).
                  The sample is a real marker icon at the dimmed treatment, so the key shows what the map shows. *@
@@ -449,6 +434,10 @@
             @* Whole-route overview inset — shown only on designated routes (RouteOverview toggles the holder class). *@
             <button id="minimap-route-overview" type="button" aria-label="Route overview: tap to see the whole route" data-i18n-aria-label="audit:right-ui.minimap.route-overview" data-ps-tooltip="Route overview: tap to see the whole route" data-i18n-tooltip="audit:right-ui.minimap.route-overview">
               <canvas id="minimap-route-overview-canvas"></canvas>
+            </button>
+            @* Appears once the map is panned off the user (Minimap.#updateRecenterButton). *@
+            <button id="minimap-recenter" class="ps-icon-button" type="button" hidden aria-label="Back to your location" data-i18n-aria-label="audit:right-ui.minimap.recenter" data-ps-tooltip="Back to your location" data-i18n-tooltip="audit:right-ui.minimap.recenter">
+              <img class="ps-icon-button-icon" src='@assets.path("images/icons/recenter-white.svg")' alt="">
             </button>
             <div id="minimap-zoom-controls" class="ps-icon-button-stack">
               <button id="minimap-zoom-fit" class="ps-icon-button" type="button" aria-label="Show whole mission" data-i18n-aria-label="audit:right-ui.minimap.fit-mission" data-ps-tooltip="Show whole mission" data-i18n-tooltip="audit:right-ui.minimap.fit-mission" data-ps-tooltip-placement="left">
@@ -890,27 +879,6 @@
       </div>
     </div>
   </template>
-  @if(commonData.imagerySource == PanoSource.Infra3d) {
-    <script src='@assets.path("vendor/proj4/proj4-2.22.0.js")'></script>
-    <script src='@assets.path("vendor/infra3d/infra3dapi-1.12.1.js")'></script>
-  } else if (commonData.imagerySource == PanoSource.Mapillary) {
-  <script src='@assets.path("vendor/three/three-0.160.1-min.js")'></script>
-  <script src='@assets.path("vendor/mapillary/mapillary-4.1.2.min.js")'></script>
-  <link href='@assets.path("vendor/mapillary/mapillary-4.1.2.css")' rel="stylesheet">
-  } else if (commonData.imagerySource == PanoSource.Panoramax) {
-  <script src='@assets.path("vendor/photo-sphere-viewer/psv-5.15.1-bundle.min.js")'></script>
-  <link href='@assets.path("vendor/photo-sphere-viewer/psv-5.15.1.css")' rel="stylesheet">
-  }
-  <script src='@assets.path("vendor/floating-ui/floating-ui.core-1.8.0.umd.min.js")'></script>
-  <script src='@assets.path("vendor/floating-ui/floating-ui.dom-1.8.0.umd.min.js")'></script>
-
-  <script src='@assets.path("vendor/turf/turf-7.4.0.min.js")'></script>
-  <script src='@assets.path("vendor/async-lock/async-lock-1.4.1.min.js")'></script>
-  <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.js")'></script>
-  <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")'></script>
-  <link href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.css")' rel="stylesheet">
-  <link href='@assets.path("css/components/tag-pills.css")' rel="stylesheet">
-
   @* What the Explore entry (frontend/js/pages/explore.js) needs from the server, as JSON. Session scalars only: the
      task, mission, region and route come from /explore/session, so a cached copy of this page can never carry a
      stale task (#5650). Strings go through jsonForScript, which also escapes `<` so a value can never close this
@@ -928,6 +896,10 @@
        where each fitted value comes from) so the client-side copy of the estimator (Label.js) can never drift from
        the server-side one. *@
     "latLngEstimation": @jsonForScript(service.PanoDataService.LatLngEstimation.asJson),
+    @* When free exploration has seen enough of a street to count it (#5733). The backend owns the numbers
+       (StreetCoverage) so the client's coverage tracking and the server's completion check agree. *@
+    "streetCoverage": @jsonForScript(models.audit.StreetCoverage.asJson),
+    "basemap": @jsonForScript(basemap),
     "imagerySource": "@commonData.imagerySource.name",
     "viewerAccessToken": "@commonData.imageryAccessToken"
   }</script>

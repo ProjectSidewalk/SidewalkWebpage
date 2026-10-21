@@ -130,14 +130,19 @@ export class CoveragePage {
       b.setAttribute('aria-pressed', String(active));
     });
 
-    if (mode === 'bars' && !this.#bars) {
-      this.#bars = new CoverageBars('coverage-bars', {
-        onBarClick: (id) => this.#pin([id]),
-        onBarHover: (id) => this.#hover([id]),
-        onBarHoverEnd: () => this.#hoverEnd(),
-      });
+    // Each chart is redrawn whenever its view is shown. A window resize while the view is hidden sets the chart's
+    // width to zero, and Vega's own watch on the chart's box ignores hidden boxes and sizes it has already seen, so
+    // without a redraw the chart would stay blank.
+    if (mode === 'bars') {
+      if (!this.#bars) {
+        this.#bars = new CoverageBars('coverage-bars', {
+          onBarClick: (id) => this.#pin([id]),
+          onBarHover: (id) => this.#hover([id]),
+          onBarHoverEnd: () => this.#hoverEnd(),
+        });
+        this.#wireSortButtons();
+      }
       await this.#bars.render(this.#barData);
-      this.#wireSortButtons();
     } else if (mode === 'distribution') {
       if (!this.#histogram) {
         this.#histogram = new CoverageHistogram('coverage-histogram', {
@@ -145,8 +150,8 @@ export class CoveragePage {
           onBinHover: (idx) => this.#hover(this.#bucketRegionIds[idx]),
           onBinHoverEnd: () => this.#hoverEnd(),
         });
-        await this.#histogram.render(this.#buckets);
       }
+      await this.#histogram.render(this.#buckets);
       if (!this.#table) {
         this.#table = new CoverageTable('coverage-table', 'coverage-table-search', {
           onRowClick: (id) => this.#pin([id]),
@@ -199,7 +204,11 @@ export class CoveragePage {
   #wireViewToggle() {
     document.querySelectorAll('.coverage-toggle-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
-        if (btn.dataset.view !== this.#mode) this.#activateMode(btn.dataset.view);
+        if (btn.dataset.view === this.#mode) return;
+        this.#activateMode(btn.dataset.view).then(() => this.#setStatus('', false, true), (err) => {
+          console.error('Coverage chart failed to draw:', err);
+          this.#setStatus('Could not draw the chart. Please try again.', true);
+        });
       });
     });
   }

@@ -11,6 +11,7 @@
  *   3. A city-stats band (from /v3/api/overallStats) + Explore/Validate calls to action.
  */
 
+import mapboxgl from '../common/mapboxgl.js';
 import { LabelDetail } from '../common/label-detail/LabelDetail.js';
 import { viewerClassFor } from '../common/pano-viewer/viewerClassFor.js';
 import { util } from '../common/utilities.js';
@@ -193,7 +194,7 @@ export class SharedLabelPage {
    * high-quality contributors. Returns an empty FeatureCollection on any error so the map still renders.
    * @param {number} lat
    * @param {number} lng
-   * @returns {Promise<object>} A GeoJSON FeatureCollection.
+   * @returns {Promise<GeoJSON.FeatureCollection<GeoJSON.Point>>}
    */
   async #fetchNearbyLabels(lat, lng) {
     const r = this.#BBOX_RADIUS_DEG;
@@ -213,9 +214,9 @@ export class SharedLabelPage {
    * Adapts a rawLabels FeatureCollection to what addLabelsToMap + its default filter expect: excludes the focal label
    * (drawn separately), keeps the nearest #MAX_NEARBY, and derives `has_validations` — the one property the filter
    * reads that rawLabels doesn't emit (it sends per-vote counts instead).
-   * @param {GeoJSON.FeatureCollection} geojson
+   * @param {GeoJSON.FeatureCollection<GeoJSON.Point>} geojson
    * @param {Record<string, any>} d - Config (for the focal label id + center).
-   * @returns {object} An adapted FeatureCollection.
+   * @returns {GeoJSON.FeatureCollection<GeoJSON.Point>} An adapted FeatureCollection.
    */
   #adaptRawLabels(geojson, d) {
     const features = (geojson.features || []).filter(
@@ -234,7 +235,7 @@ export class SharedLabelPage {
   /**
    * Squared planar distance from a feature's point to the center. Only used for relative ordering, so no need for a
    * true geodesic distance.
-   * @param {GeoJSON.Feature} feature
+   * @param {GeoJSON.Feature<GeoJSON.Point>} feature
    * @param {Record<string, any>} d - Config with center lat/lng.
    * @returns {number}
    */

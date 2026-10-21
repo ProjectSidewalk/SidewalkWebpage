@@ -3,7 +3,7 @@
  *
  * Panoramax is the French open street-level imagery commons (IGN + OpenStreetMap France). Its pictures come through
  * a keyless STAC API, so unlike Mapillary and Infra3d there is no provider SDK to wrap: this class calls the API
- * itself and renders with Photo Sphere Viewer (the vendored bundle in public/vendor/photo-sphere-viewer/), whose
+ * itself and renders with Photo Sphere Viewer (fetched on demand through sdk/photoSphereViewer.js), whose
  * equirectangular-tiles adapter reads the tile pyramid every Panoramax picture publishes.
  *
  * API docs: https://docs.panoramax.fr/backend/api/api/
@@ -19,6 +19,7 @@
  *   MapillaryViewer already does for Mapillary.
  */
 
+import * as turf from '@turf/turf';
 import { NoImageryError } from './NoImageryError.js';
 import { createPanoAttribution } from './PanoAttribution.js';
 import { PanoData } from './PanoData.js';
@@ -26,6 +27,9 @@ import { PanoViewer } from './PanoViewer.js';
 import { util } from '../utilities.js';
 import './panoUtilities.js';
 import '../utilitiesMath.js';
+
+/** Photo Sphere Viewer and its tiles adapter from sdk/photoSphereViewer.js, once preloadLibrary() has fetched them. */
+let sdk;
 
 export class PanoramaxViewer extends PanoViewer {
   /** The `pano_data.source` value, so code outside the viewer can name this source without holding the class. */
@@ -42,12 +46,6 @@ export class PanoramaxViewer extends PanoViewer {
 
   /** The federated meta-catalog, which searches every Panoramax instance at once. */
   static API_BASE = 'https://api.panoramax.xyz/api';
-
-  /**
-   * How far from a requested location a picture may be and still count as "here", in meters. Mirrors Explore's
-   * svl.STREETVIEW_MAX_DISTANCE, which isn't defined on the other pages this viewer serves (Validate, Gallery).
-   */
-  static #SEARCH_RADIUS_M = 25;
 
   /** How far a picture may be from the current one and still be offered as a navigation link, in meters. */
   static #LINK_RADIUS_M = 30;
@@ -80,7 +78,7 @@ export class PanoramaxViewer extends PanoViewer {
     return window.panoramaxLicenses ?? {};
   }
 
-  /** @type {PhotoSphereViewer.Viewer} The underlying Photo Sphere Viewer instance. */
+  /** @type {import('@photo-sphere-viewer/core').Viewer} The underlying Photo Sphere Viewer instance. */
   #viewer = undefined;
 
   /** @type {Record<string, any>|undefined} The STAC item (GeoJSON feature) of the picture being shown. */
@@ -107,14 +105,22 @@ export class PanoramaxViewer extends PanoViewer {
 
   /**
    * Prefetched search results, keyed by location: { centerPoint, promise: Promise<Array<object>> }. Same contract
-   * as MapillaryViewer's, so NavigationService can warm them as it walks a street.
-   * @type {Array<{centerPoint: turf.Feature<turf.Point>, promise: Promise<Array<Record<string, any>>>}>}
+   * as MapillaryViewer's, so StreetSweep can warm them as it walks a street.
+   * @type {Array<{centerPoint: GeoJSON.Feature<GeoJSON.Point>, promise: Promise<Array<Record<string, any>>>}>}
    */
   #prefetchedSearches = [];
 
   constructor() {
     super();
     this.currPanoData = undefined;
+  }
+
+  /**
+   * See PanoViewer.preloadLibrary(); the chunk is sdk/photoSphereViewer.js.
+   * @returns {Promise<void>}
+   */
+  static async preloadLibrary() {
+    sdk ??= await util.importOrReload(() => import('./sdk/photoSphereViewer.js'));
   }
 
   /**
@@ -128,7 +134,8 @@ export class PanoramaxViewer extends PanoViewer {
    * @returns {Promise<void>}
    */
   async initialize(canvasElem, panoOptions = {}) {
-    const { Viewer, EquirectangularTilesAdapter } = PhotoSphereViewer;
+    await PanoramaxViewer.preloadLibrary();
+    const { Viewer, EquirectangularTilesAdapter } = sdk;
     // Validate and the label popup pass GSV's `scrollwheel` name for the same switch.
     let wheelZoom = true;
     if ('zoomControl' in panoOptions) wheelZoom = panoOptions.zoomControl;
@@ -189,7 +196,7 @@ export class PanoramaxViewer extends PanoViewer {
       // its only pictures are ones already excluded. Both are answers, so both are NoImageryError; a failure to
       // reach the API at all propagates untyped from the calls above instead (#4918).
       throw new NoImageryError(
-        `No usable Panoramax picture within ${PanoramaxViewer.#SEARCH_RADIUS_M}m of ${latLng.lat},${latLng.lng}.`,
+        `No usable Panoramax picture within ${PanoViewer.SEARCH_RADIUS_M}m of ${latLng.lat},${latLng.lng}.`,
       );
     }
     return this.setPano(best.id);
@@ -348,7 +355,7 @@ export class PanoramaxViewer extends PanoViewer {
    * exists near the location, otherwise fetches and caches it. If a prefetched search yields no viable candidate
    * (e.g. all excluded), falls back to a fresh search centered exactly on the target.
    *
-   * @param {turf.Feature<turf.Point>} center - The target location as a turf point.
+   * @param {GeoJSON.Feature<GeoJSON.Point>} center - The target location as a turf point.
    * @param {Set<PanoData>} excludedPanos - Panos that are not viable candidates.
    * @returns {Promise<?Record<string, any>>} The best candidate's STAC item, or null if none are viable.
    */
@@ -369,7 +376,7 @@ export class PanoramaxViewer extends PanoViewer {
    * MapillaryViewer.#scorePano so the two providers pick comparably.
    *
    * @param {Record<string, any>} item - The picture's STAC item.
-   * @param {turf.Feature<turf.Point>} centerPoint - The target location as a turf point.
+   * @param {GeoJSON.Feature<GeoJSON.Point>} centerPoint - The target location as a turf point.
    * @returns {number} A score between 0 and 1 where higher is better.
    */
   #scorePano = (item, centerPoint) => {
@@ -401,7 +408,7 @@ export class PanoramaxViewer extends PanoViewer {
    * Filters and scores candidate pictures, returning the best one (or null if none are viable).
    * @param {Array<Record<string, any>>} items - STAC items from a search.
    * @param {Set<string>} excludedIds - Picture ids to exclude.
-   * @param {turf.Feature<turf.Point>} centerPoint - The target location as a turf point.
+   * @param {GeoJSON.Feature<GeoJSON.Point>} centerPoint - The target location as a turf point.
    * @returns {?Record<string, any>}
    */
   #selectBestPano = (items, excludedIds, centerPoint) => {
@@ -420,7 +427,7 @@ export class PanoramaxViewer extends PanoViewer {
 
   /**
    * Fetches the 360° pictures inside a box around a point.
-   * @param {turf.Feature<turf.Point>} centerPoint - The center of the search area as a turf point.
+   * @param {GeoJSON.Feature<GeoJSON.Point>} centerPoint - The center of the search area as a turf point.
    * @param {number} radiusM - Half the box's side, in meters.
    * @returns {Promise<Array<Record<string, any>>>} STAC items, each also stored in the id cache.
    */
@@ -444,15 +451,15 @@ export class PanoramaxViewer extends PanoViewer {
   };
 
   #storePrefetch = (centerPoint) => {
-    const entry = { centerPoint, promise: this.#searchNear(centerPoint, PanoramaxViewer.#SEARCH_RADIUS_M) };
+    const entry = { centerPoint, promise: this.#searchNear(centerPoint, PanoViewer.SEARCH_RADIUS_M) };
     this.#prefetchedSearches.push(entry);
     return entry;
   };
 
   /**
    * Finds the nearest prefetched search to the given point, if one is close enough (within 5 m) to be useful.
-   * @param {turf.Feature<turf.Point>} centerPoint - The target location as a turf point.
-   * @returns {{centerPoint: turf.Feature<turf.Point>, promise: Promise<Array<Record<string, any>>>}|null}
+   * @param {GeoJSON.Feature<GeoJSON.Point>} centerPoint - The target location as a turf point.
+   * @returns {{centerPoint: GeoJSON.Feature<GeoJSON.Point>, promise: Promise<Array<Record<string, any>>>}|null}
    */
   #findNearestPrefetch = (centerPoint) => {
     let nearest = null;

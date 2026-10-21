@@ -1,0 +1,379 @@
+/* What the map code (ps-map/createPSMap.js) draws: the loading card, status pills, popups, legends it builds and the
+   search pin. The containers a page renders around the map are in map-frame.css, which the page's entry imports. */
+
+/*
+ * Loading indicator shown over the map while the label layer streams in (#4370/#4447). A centered
+ * floating card (not a full-map scrim) so it reads over the light basemap without blacking it out, and
+ * pointer-events: none so it stays purely informational and never blocks panning while labels load.
+ */
+#labelmap-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 20; /* Above the map and sidebar chrome. */
+  pointer-events: none;
+}
+
+#labelmap-loading[hidden] {
+  display: none;
+}
+
+.labelmap-loading__card {
+  text-align: center;
+  color: #ffffff;
+  background: rgb(0 0 0 / 72%);
+  padding: 24px 32px;
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 25%);
+  font-family: Raleway, sans-serif;
+}
+
+.labelmap-loading__spinner {
+  width: 40px;
+  height: 40px;
+  margin: 0 auto 14px;
+  border: 3px solid rgb(255 255 255 / 25%);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: labelmap-spin 0.8s linear infinite;
+}
+
+@keyframes labelmap-spin {
+  to { transform: rotate(360deg); }
+}
+
+.labelmap-loading__message {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.labelmap-loading__elapsed {
+  font-size: 13px;
+  color: #bbbbbb;
+  margin: 6px 0 0;
+}
+
+/* What a page knows about the wait beyond the clock (MapLoadingOverlay.setStatus); kept narrow so a sentence wraps
+   under the spinner instead of widening the card. Nothing sets its display, so the UA's [hidden] rule hides it. */
+.labelmap-loading__status {
+  font: var(--text-body-regular);
+  margin: 10px 0 0;
+  max-width: 300px;
+}
+
+/* The overlay ignores pointer events so the map stays draggable while loading; the retry button must not. */
+.labelmap-loading__card--error {
+  pointer-events: auto;
+}
+
+.labelmap-loading__retry {
+  margin: 14px 0 0;
+  padding: 8px 18px;
+  border: 1px solid rgb(255 255 255 / 60%);
+  border-radius: 6px;
+  background: transparent;
+  color: #ffffff;
+  font: var(--text-body-regular);
+  cursor: pointer;
+}
+
+.labelmap-loading__retry:hover {
+  background: rgb(255 255 255 / 15%);
+}
+
+.labelmap-loading__retry:focus-visible {
+  background: rgb(255 255 255 / 15%);
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+}
+
+/* Respect reduced-motion: keep the spinner as a feedback cue but slow it well down. */
+@media (prefers-reduced-motion: reduce) {
+  .labelmap-loading__spinner {
+    animation-duration: 2.4s;
+  }
+}
+
+/*
+ * Viewport-loading status pill (#5002): "zoom in to see labels" while the zoom floor holds fetches back, and a
+ * brief note during refetches. Top-centered, where a transient help message is looked for and where nothing
+ * else sits (the drawer is left, Mapbox's controls right, its attribution along the bottom), styled like the
+ * loading card above. It is pointer-events: none so it never blocks map gestures: Mapbox listens on its canvas
+ * container, a sibling of the pill, so a wheel, drag, or pinch that lands on a hit-testable pill never reaches the
+ * map (on touch the browser pinch-zooms the page instead). Only the hint's close (X) button takes the pointer.
+ */
+
+/* Centered on the part of the map the reader can see: the drawer covers the canvas's left edge, and
+   MapSidebarDrawer publishes how much as --map-inset-left on the map's holder. */
+.map-status-pill {
+  position: absolute;
+  top: 12px;
+  left: calc(var(--map-inset-left, 0px) + (100% - var(--map-inset-left, 0px)) / 2);
+  transform: translateX(-50%);
+  z-index: 15; /* Above the map, below the loading overlay. */
+  transition: opacity var(--transition-medium);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 90%;
+  padding: 8px 16px;
+  border-radius: 999px;
+  color: var(--color-neutral-white);
+  background: rgb(0 0 0 / 72%);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 25%);
+  font: var(--text-body-regular);
+  text-align: center;
+  pointer-events: none;
+}
+
+/*
+ * Close (X) for the zoom hint (#5415). 24px meets WCAG 2.5.8's minimum target; the negative margin keeps the pill's
+ * right edge as tight as its left one. Plain px like the rest of this file: these map pages don't set --ui-scale.
+ */
+.map-status-pill__close {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  margin-right: -8px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+  pointer-events: auto; /* The pill itself passes the pointer through to the map; see above. */
+}
+
+.map-status-pill__close:hover {
+  background: rgb(255 255 255 / 15%);
+}
+
+.map-status-pill__close:focus-visible {
+  outline: 2px solid var(--color-neutral-white);
+  outline-offset: 2px;
+}
+
+.map-status-pill__close[hidden] {
+  display: none;
+}
+
+/* cross.svg is drawn dark, so it is painted as a mask in the pill's white. */
+.map-status-pill__close-icon {
+  width: 14px;
+  height: 14px;
+  -webkit-mask-image: url("/images/icons/cross.svg");
+  mask-image: url("/images/icons/cross.svg");
+}
+
+.map-status-pill--leaving {
+  opacity: 0;
+}
+
+.map-status-pill[hidden] {
+  display: none;
+}
+
+/* Out-ranks Mapbox's same-specificity rule, so the override holds whichever stylesheet is linked last. */
+.mapboxgl-popup .mapboxgl-popup-content {
+  padding: 12px; /* Default 10px 10px 15px */
+  box-shadow: 0 2px 4px 0 rgb(0 0 0 / 25%); /* Default 0 1px 2px rgb(0 0 0/10%) */
+  border-radius: 10px; /* Default 3px */
+}
+
+/* Project Sidewalk pin dropped on an address-search result on the public LabelMap (#4451). A circular badge carrying
+   the wheelchair mark, on a tail that points at the exact coordinate. */
+.ps-search-pin {
+  display: block;
+  width: 38px;
+  height: 48px;
+  padding: 0;
+  border: none;
+  background: none;
+  line-height: 0;
+  cursor: pointer;
+}
+
+.ps-search-pin__svg {
+  display: block;
+  filter: drop-shadow(0 2px 3px rgb(0 0 0 / 35%));
+}
+
+/* Teardrop body; the point is part of this path, so it can't drift out of alignment with the head.
+   Deliberately a neutral dark rather than any hue: the map is already dense with colored label dots, and the
+   secondary ramps (blue, mint, lime, purple, pink, pumpkin, yellow) top out at -500 precisely because those -500
+   values ARE the label-type colors — so a tinted pin competes with the data instead of marking a place. Asphalt
+   separates by value rather than hue, and lets the logo's own colors carry the branding. */
+.ps-search-pin__body {
+  fill: var(--color-asphalt-500);
+}
+
+.ps-search-pin:hover .ps-search-pin__body {
+  fill: var(--color-asphalt-400);
+}
+
+.ps-search-pin__face {
+  fill: var(--color-neutral-white);
+}
+
+/* The pin is keyboard-operable, so it needs a visible focus ring (WCAG 2.4.7). */
+.ps-search-pin:focus-visible {
+  outline: 3px solid var(--color-link-100);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Scoped to this popup so the global .mapboxgl-popup-content rule (shared with every other map popup) stays put. */
+.ps-explore-here-popup .mapboxgl-popup-content {
+  padding: 12px 14px;
+  border-radius: 12px;
+  box-shadow: 0 4px 14px rgb(0 0 0 / 22%);
+}
+
+/* "Explore the sidewalks here" popup shown after an address search on the public LabelMap (#4451). */
+.explore-here {
+  min-width: 208px;
+  max-width: 260px;
+}
+
+.explore-here__place {
+  margin: 0;
+  color: var(--color-neutral-900);
+  font: var(--text-body-bold);
+  line-height: 1.25;
+}
+
+.explore-here__address {
+  margin: 2px 0 10px;
+  color: var(--color-neutral-700);
+  font: var(--text-caption-regular);
+  line-height: 1.35;
+}
+
+.explore-here__region {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.explore-here__context {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 0 4px;
+  color: var(--color-neutral-700);
+  font: var(--text-caption-medium);
+}
+
+.explore-here__percent {
+  color: var(--color-pine-800);
+  font: var(--text-caption-semibold);
+  white-space: nowrap;
+}
+
+/* Region completion, shown as a bar so progress reads at a glance rather than as another number to parse. */
+.explore-here__track {
+  height: 6px;
+  margin-bottom: 10px;
+  border-radius: 3px;
+  background-color: var(--color-neutral-200);
+  overflow: hidden;
+}
+
+.explore-here__fill {
+  height: 100%;
+  border-radius: 3px;
+  background-color: var(--color-pine-500);
+}
+
+.explore-here-button {
+  justify-content: center;
+  width: 100%;
+}
+
+/* ---- Street re-audit hover card (#5258) ---- */
+
+/* Scoped so the global .mapboxgl-popup-content rule (shared with every other map popup) stays put. */
+.street-reaudit-popup .mapboxgl-popup-content {
+  padding: 12px 14px;
+  border-radius: 12px;
+  box-shadow: 0 4px 14px rgb(0 0 0 / 22%);
+}
+
+.street-reaudit {
+  min-width: 210px;
+}
+
+.street-reaudit__title {
+  margin: 0 0 8px;
+  color: var(--color-neutral-900);
+  font: var(--text-body-bold);
+  line-height: 1.25;
+}
+
+/* Two columns so the label and its date read as a pair, with the dates aligned down the right edge. Primary-font
+   tokens throughout: the accent font's digits sit below the baseline, and every value here is a date or a count. */
+.street-reaudit__facts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px 12px;
+  margin: 0 0 10px;
+}
+
+.street-reaudit__facts dt {
+  color: var(--color-neutral-700);
+  font: var(--text-caption-regular);
+}
+
+.street-reaudit__facts dd {
+  margin: 0;
+  color: var(--color-neutral-900);
+  font: var(--text-caption-semibold);
+  text-align: right;
+}
+
+.street-reaudit__found,
+.street-reaudit__empty {
+  margin: 0 0 4px;
+  color: var(--color-neutral-700);
+  font: var(--text-caption-regular);
+}
+
+.street-reaudit__empty {
+  margin-bottom: 10px;
+}
+
+.street-reaudit__labels {
+  width: 100%;
+  margin: 0 0 10px;
+  border-collapse: collapse;
+}
+
+.street-reaudit__type {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 1px 0;
+  color: var(--color-neutral-900);
+  font: var(--text-caption-medium);
+}
+
+.street-reaudit__count {
+  padding: 1px 0;
+  color: var(--color-neutral-800);
+  font: var(--text-caption-semibold);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  vertical-align: middle;
+}
+
+.street-reaudit__explore {
+  justify-content: center;
+  width: 100%;
+}
+

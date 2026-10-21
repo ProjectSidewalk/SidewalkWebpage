@@ -5,7 +5,12 @@
  * `aria-pressed`. Overwriting the class list instead would wipe the color class and turn the button white.
  */
 
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules, mockModule } from './loader.js';
+import { fakeTracker } from './fakes.js';
+
+mockModule('i18next', () => ({ default: { t: (key) => key } }));
+
+let ValidationMenu;
 
 /**
  * @param {?string} userValidation - The vote the viewer already had on this label when the page loaded.
@@ -22,7 +27,7 @@ function makeMenu(userValidation = null) {
     validationInfoDisplay: { agreeContainer: document.createElement('div'),
       disagreeContainer: document.createElement('div'), setVoteIconFilled: () => {} },
   };
-  return { menu: new window.ValidationMenu(refCard, image), card };
+  return { menu: new ValidationMenu(refCard, image, fakeTracker()), card };
 }
 
 /**
@@ -32,9 +37,8 @@ function makeMenu(userValidation = null) {
 const button = (option) => document.querySelector(`.gallery-card-${option}-button`);
 
 describe('Gallery card vote buttons', () => {
-  beforeAll(() => {
-    window.i18next = { t: (key) => key };
-    Object.assign(window, loadModules('frontend/js/gallery/validation/ValidationMenu.js'));
+  beforeAll(async () => {
+    ({ ValidationMenu } = await loadModules('frontend/js/gallery/validation/ValidationMenu.js'));
   });
 
   it('starts with nothing pressed', () => {

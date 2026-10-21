@@ -17,12 +17,14 @@
  * injects elements that use these attributes.
  */
 
+import i18next from 'i18next';
+
 /**
  * Localize every element under `root` (inclusive) that has a `data-i18n*` attribute.
  * @param {ParentNode} root - The element (or document) to walk.
  */
 export function localizeSubtree(root) {
-  if (!root || typeof i18next === 'undefined' || !i18next.isInitialized) return;
+  if (!root || !i18next.isInitialized) return;
 
   const selector = '[data-i18n], [data-i18n-placeholder], [data-i18n-aria-label], [data-i18n-tooltip], [data-i18n-alt]';
 

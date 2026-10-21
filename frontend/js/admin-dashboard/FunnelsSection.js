@@ -13,7 +13,6 @@
  */
 
 import { util } from '../common/utilities.js';
-import { AdminShell } from './AdminShell.js';
 
 export class FunnelsSection {
   /**
@@ -165,7 +164,7 @@ export class FunnelsSection {
           ? `${full}: ${this.#num(v)} accounts`
           : `${full}: ${this.#num(v)} — ${this.#pct(conv)} of previous step`;
         return `
-          <div class="ac-funnel-bar" data-ps-tooltip="${AdminShell.tooltipAttr(tip)}">
+          <div class="ac-funnel-bar" data-ps-tooltip="${util.escapeHTML(tip)}">
             <span class="ac-funnel-bar-fill"
               style="width:${width.toFixed(1)}%;background:${palette[si] || palette[0]}"></span>
             <span class="ac-funnel-bar-val">${valText}</span>

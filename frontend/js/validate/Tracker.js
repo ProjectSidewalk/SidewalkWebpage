@@ -2,7 +2,8 @@
  * Logs information from the Validation interface.
  */
 
-import { svv } from './svv.js';
+/** @typedef {import('./panorama/PanoManager.js').PanoManager} PanoManager */
+/** @typedef {import('./mission/MissionContainer.js').MissionContainer} MissionContainer */
 
 export class Tracker {
   #actions = [];
@@ -20,8 +21,46 @@ export class Tracker {
   // into one POST, short enough that a page killed between labels has already sent the verdict before it.
   static #VERDICT_FLUSH_DELAY_MS = 1000;
 
+  /** @type {?PanoManager} Stamps each action with the pano on screen; registered by PanoManager (trackPano). */
+  #panoManager = null;
+
+  /** @type {?MissionContainer} Files each action under its mission; registered by MissionContainer (trackMissions). */
+  #missionContainer = null;
+
+  /** @type {?(() => void)} Sends the buffer when a flush is due; registered by the Form (onFlush). */
+  #onFlush = null;
+
+  /**
+   * Built first, before anything that logs, so nothing has to cope with its absence. What it reports on arrives
+   * later through trackPano(), trackMissions() and onFlush().
+   */
   constructor() {
     this.#trackWindowEvents();
+  }
+
+  /**
+   * Names the pano manager whose live viewer stamps each action with the pano on screen.
+   * @param {PanoManager} panoManager
+   */
+  trackPano(panoManager) {
+    this.#panoManager = panoManager;
+  }
+
+  /**
+   * Names the mission container whose current mission each action is filed under.
+   * @param {MissionContainer} missionContainer
+   */
+  trackMissions(missionContainer) {
+    this.#missionContainer = missionContainer;
+  }
+
+  /**
+   * Registers what sends the buffer when a flush is due: the Form, once it exists. A flush falling due before then
+   * is dropped, and the next push arms the timer again.
+   * @param {() => void} listener
+   */
+  onFlush(listener) {
+    this.#onFlush = listener;
   }
 
   #trackWindowEvents() {
@@ -51,17 +90,15 @@ export class Tracker {
    * @param {object} notes
    */
   #createAction(action, notes) {
-    // The viewer alone, not the manager: PanoManager.create assigns svv.panoViewer while it is still running, and
-    // svv.panoManager only once it returns, so a push from inside init (the first label's pano going to Pannellum)
-    // has a viewer to ask about the pano before the manager exists.
-    const panoViewer = svv.panoViewer ? svv.panoViewer : null;
+    // The manager has a viewer from partway through its own create(), and a push from inside that (the first label's
+    // pano going to Pannellum) has to be able to ask it about the pano; before then there is nothing to report.
+    const panoViewer = this.#panoManager?.panoViewer ?? null;
     // Both are null until the viewer's first pano has loaded, and the first push can land before then: when the
     // first label's pano is expired, the primary viewer never loads one and Pannellum takes over mid-init.
     const position = (panoViewer && panoViewer.getPosition()) || { lat: null, lng: null };
     const pov = panoViewer ? panoViewer.getPov() : { heading: null, pitch: null, zoom: null };
 
-    const missionContainer = svv.missionContainer ? svv.missionContainer : null;
-    const currentMission = missionContainer ? missionContainer.getCurrentMission() : null;
+    const currentMission = this.#missionContainer ? this.#missionContainer.getCurrentMission() : null;
 
     return {
       action,
@@ -87,7 +124,7 @@ export class Tracker {
    * @returns {Array<object>} The actions, oldest first.
    */
   getActions() {
-    const currentMission = svv.missionContainer ? svv.missionContainer.getCurrentMission() : null;
+    const currentMission = this.#missionContainer ? this.#missionContainer.getCurrentMission() : null;
     if (currentMission) {
       const missionId = currentMission.getProperty('missionId');
       for (const action of this.#actions) if (action.mission_id === null) action.mission_id = missionId;
@@ -112,16 +149,25 @@ export class Tracker {
   }
 
   /**
+   * Buffers an action without the count backstop, for the exit flush, which drains the buffer itself right after: if
+   * the exit marker itself tipped the buffer over the limit, everything before it would go out in a request the
+   * browser cancels with the page, leaving the keepalive request almost empty.
+   * @param {string} action
+   * @param {object} [notes] - Notes to be logged into the notes field database.
+   */
+  record(action, notes) {
+    this.#actions.push(this.#createAction(action, notes));
+  }
+
+  /**
    * Pushes information to action list (to be submitted to the database).
    * @param {string} action
    * @param {object} [notes] - Notes to be logged into the notes field database.
    */
   push(action, notes) {
-    const item = this.#createAction(action, notes);
-    this.#actions.push(item);
+    this.record(action, notes);
     if (this.#actions.length > Tracker.#MAX_BUFFERED_ACTIONS) {
-      const data = svv.form.compileSubmissionData(false);
-      svv.form.submit(data, true); // Note that this happens async
+      this.#flush();
     } else if (this.#flushTimeout === null) {
       // First push since the last flush: schedule the next timed flush. refresh() cancels this timer on every drain,
       // so an idle tab (whose buffer holds only the post-flush RefreshTracker marker) never schedules one.
@@ -135,10 +181,10 @@ export class Tracker {
    *
    * The 60 s deadline bounds what an unexpected end to the page loses, but on a phone the end iOS hands out is a
    * memory kill that fires no `pagehide`, and a minute of validating is most of a mission. A verdict is worth more
-   * than the interactions around it, so `Label.validate()` calls this after recording one: the mission then loses
-   * at most the label on screen. The delay coalesces a burst of taps into one POST rather than one each; a later
-   * call resets it, so the flush lands `delayMs` after the last verdict of the burst. refresh() cancels it on any
-   * other drain, the same as the deadline it replaces.
+   * than the interactions around it, so LabelContainer calls this after recording one: the mission then loses at
+   * most the label on screen. The delay coalesces a burst of taps into one POST rather than one each; a later call
+   * resets it, so the flush lands `delayMs` after the last verdict of the burst. refresh() cancels it on any other
+   * drain, the same as the deadline it replaces.
    *
    * @param {number} [delayMs] - How long to wait for more before flushing.
    */
@@ -148,16 +194,15 @@ export class Tracker {
   }
 
   /**
-   * Flushes buffered interactions mid-mission, off the timer armed by push() or flushSoon().
+   * Flushes buffered interactions mid-mission, off the timer armed by push() or flushSoon(), or the count backstop.
    *
    * Every drain path funnels through refresh(), which cancels the pending timer, so this only fires when the buffer
-   * holds unflushed interactions.
+   * holds unflushed interactions. The send itself is the Form's (onFlush), and happens async.
    */
   #flush() {
+    window.clearTimeout(this.#flushTimeout);
     this.#flushTimeout = null;
-    if (!svv.form) return; // Init hasn't finished; the next push re-arms the timer.
-    const data = svv.form.compileSubmissionData(false);
-    svv.form.submit(data, true); // Note that this happens async
+    this.#onFlush?.();
   }
 
   /**

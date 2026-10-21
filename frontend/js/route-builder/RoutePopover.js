@@ -4,6 +4,8 @@
  * act on the whole route (auto-routed routes are edited by adding/undoing points, not street-by-street).
  */
 
+import mapboxgl from '../common/mapboxgl.js';
+import i18next from 'i18next';
 import { util } from '../common/utilities.js';
 
 export class RoutePopover {

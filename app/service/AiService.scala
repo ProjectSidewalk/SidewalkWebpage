@@ -271,7 +271,13 @@ class AiServiceImpl @Inject() (
             val apiVersion     = (json \ "api_version").as[String]
             val valModelId     = (json \ "validator_model_id").as[String]
             val taggerModelId  = (json \ "tagger_model_id").asOpt[String]
-            val aiImageSource  = AiImageSource.withName((json \ "image_source").as[String])
+            val valRevision    = (json \ "validator_revision").asOpt[String]
+            val taggerRevision = (json \ "tagger_revision").asOpt[String]
+            // Every current API release sends these, so a gap means the response format changed under us.
+            if (valRevision.isEmpty || (taggerModelId.isDefined && taggerRevision.isEmpty)) {
+              logger.warn(s"AI API $apiVersion sent no model revision for label $labelId, so it is saved without one.")
+            }
+            val aiImageSource = AiImageSource.withName((json \ "image_source").as[String])
 
             // Read training dates.
             val dateFormatter   = DateTimeFormatter.ofPattern("MM-dd-yyyy")
@@ -285,9 +291,15 @@ class AiServiceImpl @Inject() (
 
             Future.successful(
               Some(
-                LabelAiAssessment(0, labelData.labelId, labelData.labelType, valResult, valAccuracy, valConfidence,
-                  tags, tagsNotPresent, tagsConfidence, apiVersion, valModelId, valTrainingDate, taggerModelId,
-                  taggerTrainingDate, OffsetDateTime.now, None, aiImageSource)
+                LabelAiAssessment(
+                  labelAiAssessmentId = 0, labelId = labelData.labelId, labelType = labelData.labelType,
+                  validationResult = valResult, validationAccuracy = valAccuracy, validationConfidence = valConfidence,
+                  tags = tags, tagsNotPresent = tagsNotPresent, tagsConfidence = tagsConfidence,
+                  apiVersion = apiVersion, validatorModelId = valModelId, validatorTrainingDate = valTrainingDate,
+                  validatorRevision = valRevision, taggerModelId = taggerModelId,
+                  taggerTrainingDate = taggerTrainingDate, taggerRevision = taggerRevision,
+                  timestamp = OffsetDateTime.now, labelValidationId = None, aiImageSource = aiImageSource
+                )
               )
             )
           } else if (response.status == 502) {
