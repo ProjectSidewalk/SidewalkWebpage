@@ -52,8 +52,9 @@ file, and this table says which doc to read first:
 - Prod deploys are tag-triggered (`vX.Y.Z` on `master`); pushing `develop` redeploys the test stage.
 - Never edit `public/build/` output or run the build by hand: the developer's `npm start` runs `npm run watch`, which
   rebuilds on save. A page's JS starts at its entry in `frontend/js/pages/`, which imports what it needs.
-- Keep docs in sync in the same change. `docs/architecture.md` is the human-facing architecture reference; exact
-  dependency versions live only in `docs/upgrading-libraries.md`.
+- Keep docs in sync in the same change. `docs/architecture.md` is the human-facing architecture reference. Exact
+  dependency versions live only in the manifests (`build.sbt`, `package.json`, `requirements*.txt`); docs name major
+  versions at most, and `docs/upgrading-libraries.md` holds the upgrade notes.
 - Never browser-test anything that needs a street-view panorama (placing labels, validating). Hand the developer a
   checklist or console snippet instead. The `test/e2e/` suite only *loads* Explore's tutorial and Validate's landing
   state; don't extend it into pano interaction.

@@ -273,7 +273,7 @@ The dev server hot-reloads, so you rarely restart it.
 - **Python** (the standalone scripts in `scripts/` and `tools/`) — the container has **two** interpreters. `python3`
   is the base image's 3.8, kept because the app shells out to it for in-band clustering; `python3.13` is where the
   offline tooling and its libraries live. Run offline scripts as `python3.13 tools/...`. Details in
-  [`tools/README.md`](../tools/README.md); pins in [`docs/upgrading-libraries.md`](upgrading-libraries.md).
+  [`tools/README.md`](../tools/README.md); upgrade notes in [`docs/upgrading-libraries.md`](upgrading-libraries.md).
 
 ### npm dependencies
 

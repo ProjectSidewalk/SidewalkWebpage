@@ -51,7 +51,6 @@ phases**, the first of which requires *zero tests to exist* so it can land immed
 
 The specs need only **scalatestplus-play** (Test scope in `build.sbt`), which brings in ScalaTest and Play's test
 helpers. Formatting and coverage come from the **sbt-scalafmt** and **sbt-scoverage** plugins in `project/plugins.sbt`.
-Their versions are in [`docs/upgrading-libraries.md`](upgrading-libraries.md).
 
 ## Test support harness — `test/` mirrors `app/`, plus `test/util/`
 
@@ -167,8 +166,8 @@ Their versions are in [`docs/upgrading-libraries.md`](upgrading-libraries.md).
   in both by default; one that only works on one gets an `--ignore` in the other.
 - Deps, all installed into the web container by the `Dockerfile`: `requirements.txt` (the in-band script's) into 3.8,
   `requirements-offline-tools.txt` (the offline `check_streets` utility's) into 3.13, and `requirements-dev.txt`
-  (`pytest`, `pytest-cov`, environment-marked per interpreter) into both.
-  [`docs/upgrading-libraries.md`](upgrading-libraries.md) has the exact pins.
+  (`pytest`, `pytest-cov`, environment-marked per interpreter) into both;
+  [`docs/upgrading-libraries.md`](upgrading-libraries.md) says why the pins fall where they do.
 
 ## CI — GitHub Actions (`.github/workflows/ci.yml`)
 

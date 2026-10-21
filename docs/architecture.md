@@ -590,8 +590,8 @@ loaded by the corresponding Twirl view:
   MapLibre needs WebGL2 and throws without it, so `create` never rejects; a minimap that can't be built says so in its
   place and draws nothing, `isAvailable()` turns false for the overlays drawn to its scale, and the rest of Explore
   starts (`Minimap_Unavailable` is logged). What Project Sidewalk itself draws on the map (street-line encodings, fog,
-  cone) is `MinimapStyle.js`. The library is served as its own files rather than bundled (`docs/upgrading-libraries.md`
-  says why), and the mission-complete map on the same page is still Mapbox, so Explore loads both libraries.
+  cone) is `MinimapStyle.js`. The mission-complete map on the same page is still Mapbox, so Explore loads both
+  libraries.
 - **`common/`** — modules shared across bundles: `pano-viewer/` (an abstraction over the GSV / Mapillary / Infra3d /
   Panoramax / Pannellum imagery providers), `label-detail/` (label popups), and various utilities. The popup's pano viewer is
   built for the first label shown, never for a visit that opens none: Google bills every `StreetViewPanorama`
@@ -641,7 +641,7 @@ that reads `util.misc`, `util.math`, `util.url` or `util.pano` imports the file 
 `import`s like any other (mapbox-gl through `common/mapboxgl.js`, which sets up its worker), so Vite bundles each page
 with the libraries it reaches and tree-shakes what it can (#5734). The imagery viewers `import()` theirs on demand
 through `common/pano-viewer/sdk/`, so a city's visitors download only its own provider's SDK.
-[`upgrading-libraries.md`](upgrading-libraries.md) lists every library and says how to bump one.
+[`upgrading-libraries.md`](upgrading-libraries.md) says how to bump one and what to watch.
 
 **One entry per page** lives in `frontend/js/pages/` (`pages/explore.js`, `pages/admin/overview.js`, …): it imports
 the page's code and runs its start-up. **Vite** (`vite.config.mjs`, Rolldown underneath) builds every file in that

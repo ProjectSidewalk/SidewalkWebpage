@@ -185,7 +185,7 @@ consistent with it.
   is defined only in that page's stylesheet(s); and a view that loads an entry's JS asks for that entry's styles.
 - **Third-party code comes from npm** and is `import`ed by the module that uses it, stylesheet included
   (`import 'mapbox-gl/dist/mapbox-gl.css'`); `package.json` pins each version exactly, and
-  [`docs/upgrading-libraries.md`](upgrading-libraries.md) has every library's notes and how to bump one. **Nothing
+  [`docs/upgrading-libraries.md`](upgrading-libraries.md) says how to bump one and what to watch. **Nothing
   under `node_modules/` is ever edited or linted.**
 - **Never hardcode an `/assets/...` URL in JavaScript** (#4893). Name the asset by its logical path under `public/`
   and resolve it with **`util.assetPath('images/icons/openhand.cur')`** (defined in `frontend/js/common/utilities.js`,
