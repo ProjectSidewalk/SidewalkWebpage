@@ -5,6 +5,8 @@
  * TODO so much of this code is a copy of code that's elsewhere (SVLabel/SVValidate/Gallery PanoManagers).
  */
 
+import panzoom from 'panzoom';
+import i18next from 'i18next';
 import { LabelVisibilityToggle } from '../LabelVisibilityToggle.js';
 import { PanoMarker } from '../PanoMarker.js';
 import { aiLabelIndicator } from '../aiLabelIndicator.js';
@@ -243,10 +245,8 @@ export class PopupPanoManager {
         linkedPanos: false,
       };
       // Paging through labels jumps between unrelated panos, where Mapillary's animated transition only shows the
-      // wrong place turning toward the next label (#5582). The SDK global only exists on pages that load Mapillary.
-      if (typeof mapillary !== 'undefined' && this.#viewerType === MapillaryViewer) {
-        panoOptions.transitionMode = mapillary.TransitionMode.Instantaneous;
-      }
+      // wrong place turning toward the next label (#5582).
+      if (this.#viewerType === MapillaryViewer) panoOptions.instantTransitions = true;
       // Starts from a resolved promise so a synchronous throw in create() rejects like any other failure.
       this.#primaryViewerCreation = Promise.resolve()
         .then(() => this.#viewerType.create(this.#panoCanvas, panoOptions))

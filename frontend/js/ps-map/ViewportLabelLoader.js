@@ -57,7 +57,7 @@ export class ViewportLabelLoader {
   #belowFloor = false;
   /** @type {string} */
   #state = 'idle';
-  /** @type {?{featureCollection: GeoJSON.FeatureCollection, meta: {isInitial: boolean}}} Latest emission, replayed. */
+  /** @type {?{featureCollection: GeoJSON.FeatureCollection<GeoJSON.Point>, meta: {isInitial: boolean}}} Replayed. */
   #lastEmission = null;
   /** @type {{data: Function[], error: Function[], state: Function[]}} */
   #listeners = { data: [], error: [], state: [] };
@@ -129,8 +129,7 @@ export class ViewportLabelLoader {
    * Registers a callback for label data. Called with the fetched GeoJSON FeatureCollection and
    * `{isInitial}` (true only for the first emission, floor-cleared empty collections included). If data has
    * already been emitted, the callback is invoked immediately with the latest emission.
-   * @param {(featureCollection: GeoJSON.FeatureCollection, meta: {isInitial: boolean}) => void} callback - The
-   *     subscriber.
+   * @param {(featureCollection: GeoJSON.FeatureCollection<GeoJSON.Point>, meta: {isInitial: boolean}) => void} callback
    */
   onData(callback) {
     this.#listeners.data.push(callback);
@@ -286,7 +285,7 @@ export class ViewportLabelLoader {
 
   /**
    * Emits a data event and records it for replay to late subscribers.
-   * @param {GeoJSON.FeatureCollection} featureCollection - The GeoJSON FeatureCollection to fan out.
+   * @param {GeoJSON.FeatureCollection<GeoJSON.Point>} featureCollection - The GeoJSON FeatureCollection to fan out.
    */
   #emitData(featureCollection) {
     const meta = { isInitial: this.#lastEmission === null };

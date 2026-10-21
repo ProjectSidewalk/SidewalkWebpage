@@ -19,6 +19,7 @@
     "clear-verdict": "Antwoord wissen",
     "tag-search-placeholder": "Voeg hier meer tags toe",
     "tag-search-no-results": "Geen overeenkomende tags",
+    "tag-example-tooltip": "Voorbeeld van \"{{tag}}\"",
     "disagree-reason": {
       "common": {
         "wrong-type": "Dit is het verkeerde labeltype",

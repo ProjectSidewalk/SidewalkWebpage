@@ -8,39 +8,38 @@
  * second finger lands inside the same window, and cancelling it would cancel the page's pinch zoom.
  */
 
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules, useUtil } from './loader.js';
 
 
 describe('mobile Validate page behavior', () => {
-    let modalForeground;
-    let panoCanvas;
+  let modalForeground;
+  let panoCanvas;
 
-    /** Loads mobileValidate.js into jsdom with the globals it reaches for at load time. */
-    function loadPage() {
-        // The DOM-ready handler is a no-op here; the subject is the touchstart listener beside it.
-        const ready = [];
-        window.util = { onDomReady: (fn) => ready.push(fn) };
-        Object.assign(window, loadModules('frontend/js/mobileValidate.js'));
-        ready.forEach((fn) => fn());
-    }
+  async function loadPage() {
+    // Captured rather than left to fire on its own: the subject is the touchstart listener beside the handler.
+    const ready = [];
+    useUtil({ onDomReady: (fn) => ready.push(fn) });
+    await loadModules('frontend/js/mobileValidate.js');
+    ready.forEach((fn) => fn());
+  }
 
-    /**
+  /**
      * Fires a touchstart at `target` and reports whether the page cancelled it. jsdom has no TouchEvent, so this is a
      * plain bubbling, cancelable Event carrying the two properties the handler reads: `target` and `touches`.
      * @param {HTMLElement} target - Where the finger landed.
      * @param {number} [fingers=1] - Fingers on the glass, counting this one, as TouchEvent.touches would report.
      * @returns {boolean} True if the page called preventDefault on it.
      */
-    function touchStartOn(target, fingers = 1) {
-        const event = new Event('touchstart', {bubbles: true, cancelable: true});
-        event.touches = {length: fingers};
-        target.dispatchEvent(event);
-        return event.defaultPrevented;
-    }
+  function touchStartOn(target, fingers = 1) {
+    const event = new Event('touchstart', {bubbles: true, cancelable: true});
+    event.touches = {length: fingers};
+    target.dispatchEvent(event);
+    return event.defaultPrevented;
+  }
 
-    beforeEach(() => {
-        jest.useFakeTimers().setSystemTime(new Date('2026-08-15T12:00:00Z'));
-        document.body.innerHTML = `
+  beforeEach(() => {
+    vi.useFakeTimers().setSystemTime(new Date('2026-08-15T12:00:00Z'));
+    document.body.innerHTML = `
             <div id="svv-panorama-holder">
               <div id="svv-panorama"></div>
               <div id="svv-panorama-pannellum"></div>
@@ -73,127 +72,126 @@ describe('mobile Validate page behavior', () => {
                 </div>
               </div>
             </div>`;
-        // Every control the page's ready handler decorates with .animate-button; absent, it throws before it can
-        // install the listener under test.
-        ['validate-no-button', 'validate-unsure-button', 'validate-yes-button', 'no-menu-submit-button',
-            'unsure-menu-submit-button', 'modal-mission-complete-close-button-primary',
-            'modal-mission-complete-close-button-secondary', 'label-visibility-control-button'].forEach((id) => {
-            if (!document.getElementById(id)) {
-                const el = document.createElement('button');
-                el.id = id;
-                document.body.appendChild(el);
-            }
-        });
-        modalForeground = document.getElementById('modal-mission-foreground');
-        panoCanvas = document.getElementById('svv-panorama');
+    // Every control the page's ready handler decorates with .animate-button; absent, it throws before it can
+    // install the listener under test.
+    ['validate-no-button', 'validate-unsure-button', 'validate-yes-button', 'no-menu-submit-button',
+      'unsure-menu-submit-button', 'modal-mission-complete-close-button-primary',
+      'modal-mission-complete-close-button-secondary', 'label-visibility-control-button'].forEach((id) => {
+      if (!document.getElementById(id)) {
+        const el = document.createElement('button');
+        el.id = id;
+        document.body.appendChild(el);
+      }
+    });
+    modalForeground = document.getElementById('modal-mission-foreground');
+    panoCanvas = document.getElementById('svv-panorama');
+  });
+
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  describe('the double-tap suppressor', () => {
+    test('still cancels a quick second tap on the pano, which is what it is for', async () => {
+      await loadPage();
+
+      expect(touchStartOn(panoCanvas)).toBe(false); // First tap always goes through.
+      expect(touchStartOn(panoCanvas)).toBe(true);
     });
 
-    afterEach(() => {
-        jest.useRealTimers();
-        document.body.innerHTML = '';
+    test('leaves a tap alone once the double-tap window has passed', async () => {
+      await loadPage();
+
+      touchStartOn(panoCanvas);
+      vi.advanceTimersByTime(501);
+      expect(touchStartOn(panoCanvas)).toBe(false);
     });
 
-    describe('the double-tap suppressor', () => {
-        test('still cancels a quick second tap on the pano, which is what it is for', () => {
-            loadPage();
+    test('never cancels a swipe of the briefing’s examples carousel', async () => {
+      await loadPage();
+      const carousel = document.querySelector('.mv-examples');
 
-            expect(touchStartOn(panoCanvas)).toBe(false); // First tap always goes through.
-            expect(touchStartOn(panoCanvas)).toBe(true);
-        });
-
-        test('leaves a tap alone once the double-tap window has passed', () => {
-            loadPage();
-
-            touchStartOn(panoCanvas);
-            jest.advanceTimersByTime(501);
-            expect(touchStartOn(panoCanvas)).toBe(false);
-        });
-
-        test('never cancels a swipe of the briefing’s examples carousel', () => {
-            loadPage();
-            const carousel = document.querySelector('.mv-examples');
-
-            expect(touchStartOn(carousel)).toBe(false);
-            expect(touchStartOn(carousel)).toBe(false); // The second flick to the next example must still scroll.
-            expect(touchStartOn(carousel)).toBe(false);
-        });
-
-        test('never cancels a tap on the way forward, whichever mission screen it is on', () => {
-            loadPage();
-
-            for (const id of ['modal-mission-close-button', 'modal-mission-complete-close-button-primary']) {
-                touchStartOn(panoCanvas); // Arm the window with a tap elsewhere.
-                expect(touchStartOn(document.getElementById(id))).toBe(false);
-            }
-        });
-
-        test('never cancels a second scroll of a long briefing', () => {
-            loadPage();
-
-            touchStartOn(modalForeground);
-            expect(touchStartOn(modalForeground)).toBe(false);
-        });
-
-        test('never cancels the tap-a-reason-then-tap-Submit flow', () => {
-            loadPage();
-
-            expect(touchStartOn(document.getElementById('validate-no-button'))).toBe(false);
-            expect(touchStartOn(document.getElementById('no-button-1'))).toBe(false);
-            expect(touchStartOn(document.getElementById('no-menu-submit-button'))).toBe(false);
-        });
-
-        test('never cancels a scroll of a reason panel, which a landscape phone caps into one', () => {
-            loadPage();
-            const panel = document.getElementById('validate-why-no-section');
-
-            touchStartOn(panel);
-            expect(touchStartOn(panel)).toBe(false);
-        });
-
-        test('never cancels verdicts cast in quick succession', () => {
-            // Each verdict submits and loads the next label, so a validator agreeing several times running taps well
-            // inside the double-tap window — and a cancelled touchstart is a cancelled click, i.e. a lost verdict.
-            loadPage();
-            const agree = document.getElementById('validate-yes-button');
-
-            expect(touchStartOn(agree)).toBe(false);
-            expect(touchStartOn(agree)).toBe(false);
-            expect(touchStartOn(agree)).toBe(false);
-        });
-
-        test('never cancels a tap on a control drawn over the pano', () => {
-            // Each of these is a tap whose click matters and which routinely follows another within the window: the
-            // marker toggles the label card, its button hides the label, Undo takes back the verdict just cast.
-            loadPage();
-
-            for (const id of ['validate-pano-marker', 'label-visibility-button-on-label', 'validate-undo-button']) {
-                touchStartOn(panoCanvas); // Arm the window with a tap on the imagery.
-                expect(touchStartOn(document.getElementById(id))).toBe(false);
-            }
-        });
-
-        test('still cancels a quick second tap on the Pannellum fallback, which is imagery too', () => {
-            loadPage();
-            const pannellum = document.getElementById('svv-panorama-pannellum');
-
-            touchStartOn(pannellum);
-            expect(touchStartOn(pannellum)).toBe(true);
-        });
-
-        test('leaves the second finger of a pinch alone, so the page can still be zoomed', () => {
-            loadPage();
-
-            touchStartOn(panoCanvas);
-            expect(touchStartOn(panoCanvas, 2)).toBe(false);
-        });
-
-        test('a tap inside a mission screen does not leave the next pano tap uncancelled', () => {
-            // The scoping is about which touch is cancelled, not about disarming the detector: a genuine double-tap
-            // on the pano must still be caught right after the validator leaves a mission screen.
-            loadPage();
-
-            touchStartOn(modalForeground);
-            expect(touchStartOn(panoCanvas)).toBe(true);
-        });
+      expect(touchStartOn(carousel)).toBe(false);
+      expect(touchStartOn(carousel)).toBe(false); // The second flick to the next example must still scroll.
+      expect(touchStartOn(carousel)).toBe(false);
     });
+
+    test('never cancels a tap on the way forward, whichever mission screen it is on', async () => {
+      await loadPage();
+
+      for (const id of ['modal-mission-close-button', 'modal-mission-complete-close-button-primary']) {
+        touchStartOn(panoCanvas); // Arm the window with a tap elsewhere.
+        expect(touchStartOn(document.getElementById(id))).toBe(false);
+      }
+    });
+
+    test('never cancels a second scroll of a long briefing', async () => {
+      await loadPage();
+
+      touchStartOn(modalForeground);
+      expect(touchStartOn(modalForeground)).toBe(false);
+    });
+
+    test('never cancels the tap-a-reason-then-tap-Submit flow', async () => {
+      await loadPage();
+
+      expect(touchStartOn(document.getElementById('validate-no-button'))).toBe(false);
+      expect(touchStartOn(document.getElementById('no-button-1'))).toBe(false);
+      expect(touchStartOn(document.getElementById('no-menu-submit-button'))).toBe(false);
+    });
+
+    test('never cancels a scroll of a reason panel, which a landscape phone caps into one', async () => {
+      await loadPage();
+      const panel = document.getElementById('validate-why-no-section');
+
+      touchStartOn(panel);
+      expect(touchStartOn(panel)).toBe(false);
+    });
+
+    test('never cancels verdicts cast in quick succession', async () => {
+      // Each verdict submits and loads the next label, so a validator agreeing several times running taps well
+      // inside the double-tap window — and a cancelled touchstart is a cancelled click, i.e. a lost verdict.
+      await loadPage();
+      const agree = document.getElementById('validate-yes-button');
+
+      expect(touchStartOn(agree)).toBe(false);
+      expect(touchStartOn(agree)).toBe(false);
+      expect(touchStartOn(agree)).toBe(false);
+    });
+
+    test('never cancels a tap on a control drawn over the pano', async () => {
+      // Each of these is a tap whose click matters and which routinely follows another within the window: the
+      // marker toggles the label card, its button hides the label, Undo takes back the verdict just cast.
+      await loadPage();
+
+      for (const id of ['validate-pano-marker', 'label-visibility-button-on-label', 'validate-undo-button']) {
+        touchStartOn(panoCanvas); // Arm the window with a tap on the imagery.
+        expect(touchStartOn(document.getElementById(id))).toBe(false);
+      }
+    });
+
+    test('still cancels a quick second tap on the Pannellum fallback, which is imagery too', async () => {
+      await loadPage();
+      const pannellum = document.getElementById('svv-panorama-pannellum');
+
+      touchStartOn(pannellum);
+      expect(touchStartOn(pannellum)).toBe(true);
+    });
+
+    test('leaves the second finger of a pinch alone, so the page can still be zoomed', async () => {
+      await loadPage();
+
+      touchStartOn(panoCanvas);
+      expect(touchStartOn(panoCanvas, 2)).toBe(false);
+    });
+
+    test('a tap inside a mission screen does not leave the next pano tap uncancelled', async () => {
+      // The scoping is about which touch is cancelled, not about disarming the detector: a genuine double-tap
+      // on the pano must still be caught right after the validator leaves a mission screen.
+      await loadPage();
+
+      touchStartOn(modalForeground);
+      expect(touchStartOn(panoCanvas)).toBe(true);
+    });
+  });
 });

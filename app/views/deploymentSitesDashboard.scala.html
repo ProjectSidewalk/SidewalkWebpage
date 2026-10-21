@@ -8,8 +8,7 @@
   @common.navbar(commonData, user)
 
   <!-- Deployment Sites Dashboard CSS -->
-  <link href='@assets.path("css/components/deployment-map.css")' rel="stylesheet">
-  <link href='@assets.path("css/components/access-score-spotlight.css")' rel="stylesheet">
+  @ViteAssets.stylesheets("deploymentSites")
 
   <div class="deployment-sites-container">
     <!-- Hero fills the first viewport (map + stats) so both are visible without scrolling; see .hero-section. -->
@@ -88,10 +87,6 @@
 
   @common.cityPopupTemplate()
 
-    <!-- Include necessary JavaScript libraries -->
-  <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.js")'></script>
-  <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")'></script>
-  <link href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.css")' rel="stylesheet">
   <script type="module" id="page-entry" src='@assets.path("build/js/deploymentSites.js")'
           data-mapbox-api-key="@commonData.mapboxApiKey"></script>
 }

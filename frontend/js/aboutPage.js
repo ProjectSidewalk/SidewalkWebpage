@@ -516,30 +516,18 @@ export class AboutPage {
   }
 
   /**
-   * Pulls in the mapping libraries and builds the map of every deployment.
+   * Builds the map of every deployment, pulling the mapping code in as a chunk of its own.
    *
-   * The asset URLs arrive on the container's data attributes because Play fingerprints asset paths and only the
-   * template can resolve one.
-   *
-   * @param {HTMLElement} holder - The map container, carrying the Mapbox key and asset URLs as data attributes.
+   * @param {HTMLElement} holder - The map container, carrying the Mapbox key as a data attribute.
    * @returns {Promise<void>} Resolves once the map and its city layer have loaded.
    */
   async #loadDeploymentMap(holder) {
-    const { mapboxCss, mapboxJs, mapboxLanguageJs, mapboxApiKey } = holder.dataset;
-    document.head.insertAdjacentHTML('beforeend', `<link rel="stylesheet" href="${util.escapeHTML(mapboxCss)}">`);
-    // Strictly sequential, not parallel: the language plugin reads the mapboxgl global as it parses, so arriving
-    // first would throw. ps-map only reads it when the map is created, so it loads alongside as a chunk of its own.
-    const [{ createPSMap }] = await Promise.all([
-      util.importOrReload(() => import('./ps-map/createPSMap.js')),
-      (async () => {
-        for (const src of [mapboxJs, mapboxLanguageJs]) await this.#loadScript(src);
-      })(),
-    ]);
+    const { createPSMap } = await util.importOrReload(() => import('./ps-map/createPSMap.js'));
 
     await createPSMap({
       mapName: holder.id,
       mapStyle: 'mapbox://styles/mapbox/light-v11?optimize=true',
-      mapboxApiKey,
+      mapboxApiKey: holder.dataset.mapboxApiKey,
       mapboxLogoLocation: 'bottom-left',
       // This map sits mid-page, so wheel-zoom would swallow the scroll of anyone passing through; the map's own
       // zoom controls, and pinch on touch, still work.
@@ -549,22 +537,6 @@ export class AboutPage {
       // performing a zoom-out from the current city.
       animateCityFit: false,
       logClicks: true,
-    });
-  }
-
-  /**
-   * Appends a script element and resolves once it has run.
-   *
-   * @param {string} src - Script URL.
-   * @returns {Promise<void>} Resolves on load; rejects if the script can't be fetched or parsed.
-   */
-  #loadScript(src) {
-    return new Promise((resolve, reject) => {
-      const script = document.createElement('script');
-      script.src = src;
-      script.addEventListener('load', () => resolve());
-      script.addEventListener('error', () => reject(new Error(`Failed to load ${src}`)));
-      document.head.appendChild(script);
     });
   }
 

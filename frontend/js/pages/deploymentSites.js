@@ -1,7 +1,9 @@
 /** Entry point for the /cities deployment dashboard. */
+import i18next from 'i18next';
 import { AccessScoreSpotlight } from '../AccessScoreSpotlight.js';
 import { createPSMap } from '../ps-map/createPSMap.js';
 import { util } from '../common/utilities.js';
+import '../../css/components/deployment-map.css';
 
 const data = document.getElementById('page-entry').dataset;
 

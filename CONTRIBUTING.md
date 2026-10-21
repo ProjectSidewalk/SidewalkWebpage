@@ -82,7 +82,7 @@ PR:
 - **Keep the frontend linters passing on what you change** before pushing. Run `make lint-fix` for the mechanical
   ESLint/Stylelint fixes, hand-fix the rest, then confirm the relevant linter is clean — `make eslint` (JS + translation
   JSON), `make stylelint` (CSS), `make htmlhint` (HTML), `make lint-locales` (cross-locale key parity),
-  `make lint-css-layout` (the `public/css/` layout), `make lint-asset-paths` (asset URLs in `frontend/js/`),
+  `make lint-css-layout` (the `frontend/css/` layout), `make lint-asset-paths` (asset URLs in `frontend/js/`),
   `make shellcheck` (the `.sh` files), or `make lint` for all of them (it also runs the evolutions lint). The trees
   are kept fully lint-clean ([#2487](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2487)), so any
   finding is from your change. **All of them are blocking CI checks** now (in the `Frontend (build)` job; ShellCheck
@@ -174,11 +174,11 @@ asset-path check, so any frontend lint failure blocks the merge), **`Route reach
   It also means nobody pushes straight to `develop`: a direct push has no PR for the checks to run against.
 - **Does not require review approvals.** Tooling won't force a second person to sign off, so you can still open and
   merge your own PR. Review is by convention (and expected for external contributions), not enforced by a gate.
-- **Coverage can block too.** `Backend tests (API, PostGIS)` ends on a statement-coverage ratchet, so removing tests
-  can fail the build even when everything still passes. The JS suite reports coverage but has no floor yet (#5112).
+- **Coverage can block too.** `Backend tests (API, PostGIS)` and the Vitest step of `Frontend (build)` each end on a
+  coverage ratchet, so removing tests can fail the build even when everything still passes.
 - **Advisory work never blocks.** `Python tests (offline tooling)` is the one check that reports status without
   being required — it covers an operator utility that never runs on the server. Everything else in the checks list
-  gates the merge, the Jest suite included (#5132).
+  gates the merge, the Vitest suite included (#5132).
 
 Full gating policy and rationale: [`docs/testing-and-ci.md`](docs/testing-and-ci.md).
 

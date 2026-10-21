@@ -6,15 +6,11 @@
  * provider has dropped, and a static crop when neither exists. Only the first of those has anywhere to link to, so
  * the popover resolves the active viewer on every open and offers the link only when that viewer both publishes a
  * public site and is holding the pano on screen.
- *
- * PanoInfoPopover is a top-level `class` declaration written for the Grunt-concatenation world, so — as with
- * ShareWidget — the source is eval'd into the jsdom global scope with an explicit `window.X = X` epilogue rather
- * than require()-d.
  */
 
+import { loadModules, mockModule } from './loader.js';
 
-const { assetPathStub, installDateHelpers, loadModules } = require('./loadGlobalScript');
-
+mockModule('i18next', () => ({ default: { t: (key) => key } }));
 
 // The parts of app/views/common/panoInfoPopover.scala.html the class actually reads. Kept minimal on purpose: if a
 // selector is renamed there without being renamed here, these tests fail, which is the point.
@@ -44,234 +40,229 @@ const CROPPED_PANO = 'croppedPano3';
  * `currPanoData` is what the popover reads to tell whether this viewer is the one showing the pano on screen.
  */
 function makeViewer(panoId, link) {
-    return {
-        panoId,
-        currPanoData: { getPanoId: () => panoId },
-        publicViewerLink: jest.fn(() => (link ? { ...link } : null)),
-        getPosition: () => ({ lat: 38.9, lng: -77.0 }),
-        getPov: () => ({ heading: 12, pitch: -3 }),
-        addListener: jest.fn(),
-    };
+  return {
+    panoId,
+    currPanoData: { getPanoId: () => panoId },
+    publicViewerLink: vi.fn(() => (link ? { ...link } : null)),
+    getPosition: () => ({ lat: 38.9, lng: -77.0 }),
+    getPov: () => ({ heading: 12, pitch: -3 }),
+    addListener: vi.fn(),
+  };
 }
 
 /** A provider-hosted viewer: has a real destination. */
 const makeGsvViewer = () => makeViewer(GSV_PANO, {
-    url: `https://www.google.com/maps/@?api=1&map_action=pano&pano=${GSV_PANO}&heading=12&pitch=-3`,
-    i18nKey: 'common:pano-info.view-in-gsv',
+  url: `https://www.google.com/maps/@?api=1&map_action=pano&pano=${GSV_PANO}&heading=12&pitch=-3`,
+  i18nKey: 'common:pano-info.view-in-gsv',
 });
 
 /** The Pannellum fallback: self-hosted imagery, so no public link. */
 const makePannellumViewer = () => makeViewer(BACKUP_PANO, null);
 
 describe('PanoInfoPopover view-in-pano link', () => {
-    let PanoInfoPopover;
-    let activeViewer;
-    let popoverEl;
-    let viewLink;
-    let clipboardText;
-    // Explore and Validate report the active viewer's own pano id; the Gallery/LabelMap label card reports the pano
-    // id off the label's metadata instead, which is how the two can disagree on the static-crop fallback. Leave this
-    // null for the viewer-sourced shape, set it for the label-sourced one.
-    let labelPanoId;
+  let PanoInfoPopover;
+  let activeViewer;
+  let popoverEl;
+  let viewLink;
+  let clipboardText;
+  // Explore and Validate report the active viewer's own pano id; the Gallery/LabelMap label card reports the pano
+  // id off the label's metadata instead, which is how the two can disagree on the static-crop fallback. Leave this
+  // null for the viewer-sourced shape, set it for the label-sourced one.
+  let labelPanoId;
 
-    /** Constructs a popover whose accessors all read through `activeViewer`, as the real call sites now do. */
-    function buildPopover() {
-        return new PanoInfoPopover(
-            document.getElementById('host'),
-            () => activeViewer,
-            () => activeViewer.getPosition(),
-            () => labelPanoId ?? activeViewer.panoId,
-            () => 100,  // streetEdgeId
-            () => 200,  // regionId
-            () => new Date(2020, 0),  // panoDate
-            () => '123 Main St',                   // panoAddress
-            () => activeViewer.getPov(),
-            true,           // whiteIcon
-            jest.fn(),      // infoLogging
-            jest.fn(),      // clipboardLogging
-            jest.fn(),      // viewPanoLogging
-        );
-    }
+  /** Constructs a popover whose accessors all read through `activeViewer`, as the real call sites now do. */
+  function buildPopover() {
+    return new PanoInfoPopover(
+      document.getElementById('host'),
+      () => activeViewer,
+      () => activeViewer.getPosition(),
+      () => labelPanoId ?? activeViewer.panoId,
+      () => 100,  // streetEdgeId
+      () => 200,  // regionId
+      () => new Date(2020, 0),  // panoDate
+      () => '123 Main St',                   // panoAddress
+      () => activeViewer.getPov(),
+      true,           // whiteIcon
+      vi.fn(),      // infoLogging
+      vi.fn(),      // clipboardLogging
+      vi.fn(),      // viewPanoLogging
+    );
+  }
 
-    /** Clicks the info button, which is what triggers the popover's value/link refresh. */
-    function openPopover() {
-        document.getElementById('pano-info-button').click();
-    }
+  /** Clicks the info button, which is what triggers the popover's value/link refresh. */
+  function openPopover() {
+    document.getElementById('pano-info-button').click();
+  }
 
-    /** Closes the popover so the next openPopover() takes the "open" branch of the toggle. */
-    function closePopover() {
-        document.getElementById('pano-info-button').click();
-    }
+  /** Closes the popover so the next openPopover() takes the "open" branch of the toggle. */
+  function closePopover() {
+    document.getElementById('pano-info-button').click();
+  }
 
-    beforeEach(() => {
-        document.body.innerHTML = `<span id="host"></span>${POPOVER_MARKUP}`;
-        popoverEl = document.getElementById('pano-info-popover');
-        viewLink = popoverEl.querySelector('.pano-info-popover__view-link');
+  beforeEach(async () => {
+    document.body.innerHTML = `<span id="host"></span>${POPOVER_MARKUP}`;
+    popoverEl = document.getElementById('pano-info-popover');
+    viewLink = popoverEl.querySelector('.pano-info-popover__view-link');
 
-        // jsdom (via jest-environment-jsdom 29) implements neither the Popover API nor the :popover-open
-        // pseudo-class, so stand both up over a simple open flag.
-        let open = false;
-        popoverEl.showPopover = () => { open = true; };
-        popoverEl.hidePopover = () => { open = false; };
-        const domMatches = popoverEl.matches.bind(popoverEl);
-        popoverEl.matches = (sel) => (sel === ':popover-open' ? open : domMatches(sel));
+    // jsdom implements neither the Popover API nor the :popover-open
+    // pseudo-class, so stand both up over a simple open flag.
+    let open = false;
+    popoverEl.showPopover = () => { open = true; };
+    popoverEl.hidePopover = () => { open = false; };
+    const domMatches = popoverEl.matches.bind(popoverEl);
+    popoverEl.matches = (sel) => (sel === ':popover-open' ? open : domMatches(sel));
 
-        // Translations render as their raw keys so assertions stay locale-independent.
-        window.i18next = { t: (key) => key };
-        window.util = { assetPath: assetPathStub }; // The info button's icon URL.
-        installDateHelpers();
-        window.cityName = 'Washington';
-        clipboardText = null;
-        Object.defineProperty(navigator, 'clipboard', {
-            value: { writeText: jest.fn((text) => { clipboardText = text; return Promise.resolve(); }) },
-            configurable: true,
-        });
-
-        Object.assign(window, loadModules('frontend/js/common/pano-viewer/PanoInfoPopover.js'));
-        PanoInfoPopover = window.PanoInfoPopover;
-
-        activeViewer = makeGsvViewer();
-        labelPanoId = null;
+    window.cityName = 'Washington';
+    clipboardText = null;
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText: vi.fn((text) => { clipboardText = text; return Promise.resolve(); }) },
+      configurable: true,
     });
 
-    it('shows the provider link when the active viewer has a public viewer', () => {
-        buildPopover();
-        openPopover();
+    ({ PanoInfoPopover } = await loadModules('frontend/js/common/pano-viewer/PanoInfoPopover.js'));
 
-        expect(viewLink.style.display).not.toBe('none');
-        expect(viewLink.getAttribute('href')).toContain(`pano=${GSV_PANO}`);
-        expect(viewLink.textContent).toBe('common:pano-info.view-in-gsv');
-    });
+    activeViewer = makeGsvViewer();
+    labelPanoId = null;
+  });
 
-    it('hides the link, rather than leaving href="#", when the first pano opened is a Pannellum one', () => {
-        // The markup ships with href="#", which resolves to the current page — so leaving the link visible and
-        // untouched would open Validate again in a new tab.
-        activeViewer = makePannellumViewer();
-        buildPopover();
-        openPopover();
+  it('shows the provider link when the active viewer has a public viewer', () => {
+    buildPopover();
+    openPopover();
 
-        expect(viewLink.style.display).toBe('none');
-        expect(viewLink.hasAttribute('href')).toBe(false);
-    });
+    expect(viewLink.style.display).not.toBe('none');
+    expect(viewLink.getAttribute('href')).toContain(`pano=${GSV_PANO}`);
+    expect(viewLink.textContent).toBe('common:pano-info.view-in-gsv');
+  });
 
-    it('drops a stale provider link when the viewer swaps to Pannellum', () => {
-        // A link left in place across the swap points at the previous label's pano, which is worse than none.
-        buildPopover();
-        openPopover();
-        expect(viewLink.getAttribute('href')).toContain(`pano=${GSV_PANO}`);
-        closePopover();
+  it('hides the link, rather than leaving href="#", when the first pano opened is a Pannellum one', () => {
+    // The markup ships with href="#", which resolves to the current page — so leaving the link visible and
+    // untouched would open Validate again in a new tab.
+    activeViewer = makePannellumViewer();
+    buildPopover();
+    openPopover();
 
-        activeViewer = makePannellumViewer();
-        openPopover();
+    expect(viewLink.style.display).toBe('none');
+    expect(viewLink.hasAttribute('href')).toBe(false);
+  });
 
-        expect(viewLink.style.display).toBe('none');
-        expect(viewLink.hasAttribute('href')).toBe(false);
-    });
+  it('drops a stale provider link when the viewer swaps to Pannellum', () => {
+    // A link left in place across the swap points at the previous label's pano, which is worse than none.
+    buildPopover();
+    openPopover();
+    expect(viewLink.getAttribute('href')).toContain(`pano=${GSV_PANO}`);
+    closePopover();
 
-    it('restores the link when the viewer swaps back to a provider-hosted pano', () => {
-        activeViewer = makePannellumViewer();
-        buildPopover();
-        openPopover();
-        expect(viewLink.style.display).toBe('none');
-        closePopover();
+    activeViewer = makePannellumViewer();
+    openPopover();
 
-        activeViewer = makeGsvViewer();
-        openPopover();
+    expect(viewLink.style.display).toBe('none');
+    expect(viewLink.hasAttribute('href')).toBe(false);
+  });
 
-        expect(viewLink.style.display).not.toBe('none');
-        expect(viewLink.getAttribute('href')).toContain(`pano=${GSV_PANO}`);
-    });
+  it('restores the link when the viewer swaps back to a provider-hosted pano', () => {
+    activeViewer = makePannellumViewer();
+    buildPopover();
+    openPopover();
+    expect(viewLink.style.display).toBe('none');
+    closePopover();
 
-    it('hides the link on the static-crop fallback, where the provider viewer holds a different pano', () => {
-        // Gallery/LabelMap fall back to a stored crop when neither live nor backup imagery exists. panoViewer is
-        // pointed back at the provider's viewer, still sitting on whatever pano it loaded for an earlier label, so
-        // the provider does publish a viewer — it just isn't showing this label. Building the link anyway lands the
-        // user on a provider page for imagery the provider has already dropped.
-        labelPanoId = CROPPED_PANO;
-        buildPopover();
-        openPopover();
+    activeViewer = makeGsvViewer();
+    openPopover();
 
-        expect(viewLink.style.display).toBe('none');
-        expect(viewLink.hasAttribute('href')).toBe(false);
-        expect(activeViewer.publicViewerLink).not.toHaveBeenCalled();
-    });
+    expect(viewLink.style.display).not.toBe('none');
+    expect(viewLink.getAttribute('href')).toContain(`pano=${GSV_PANO}`);
+  });
 
-    it('shows the link when the provider viewer is holding the label-sourced pano', () => {
-        labelPanoId = GSV_PANO;
-        buildPopover();
-        openPopover();
+  it('hides the link on the static-crop fallback, where the provider viewer holds a different pano', () => {
+    // Gallery/LabelMap fall back to a stored crop when neither live nor backup imagery exists. panoViewer is
+    // pointed back at the provider's viewer, still sitting on whatever pano it loaded for an earlier label, so
+    // the provider does publish a viewer — it just isn't showing this label. Building the link anyway lands the
+    // user on a provider page for imagery the provider has already dropped.
+    labelPanoId = CROPPED_PANO;
+    buildPopover();
+    openPopover();
 
-        expect(viewLink.style.display).not.toBe('none');
-        expect(viewLink.getAttribute('href')).toContain(`pano=${GSV_PANO}`);
-    });
+    expect(viewLink.style.display).toBe('none');
+    expect(viewLink.hasAttribute('href')).toBe(false);
+    expect(activeViewer.publicViewerLink).not.toHaveBeenCalled();
+  });
 
-    it('reads the displayed values from the active viewer, not the one present at construction', () => {
-        buildPopover();
-        openPopover();
-        expect(popoverEl.querySelector('[data-field="image-id"]').textContent).toBe(GSV_PANO);
-        closePopover();
+  it('shows the link when the provider viewer is holding the label-sourced pano', () => {
+    labelPanoId = GSV_PANO;
+    buildPopover();
+    openPopover();
 
-        activeViewer = makePannellumViewer();
-        openPopover();
+    expect(viewLink.style.display).not.toBe('none');
+    expect(viewLink.getAttribute('href')).toContain(`pano=${GSV_PANO}`);
+  });
 
-        expect(popoverEl.querySelector('[data-field="image-id"]').textContent).toBe(BACKUP_PANO);
-    });
+  it('reads the displayed values from the active viewer, not the one present at construction', () => {
+    buildPopover();
+    openPopover();
+    expect(popoverEl.querySelector('[data-field="image-id"]').textContent).toBe(GSV_PANO);
+    closePopover();
 
-    it('builds the link against the active viewer and the live camera angle', () => {
-        activeViewer = makePannellumViewer();
-        const pannellumViewer = activeViewer;
-        buildPopover();
-        openPopover();
+    activeViewer = makePannellumViewer();
+    openPopover();
 
-        expect(pannellumViewer.publicViewerLink).toHaveBeenCalledWith(
-            BACKUP_PANO, expect.objectContaining({ heading: 12, pitch: -3 })
-        );
-    });
+    expect(popoverEl.querySelector('[data-field="image-id"]').textContent).toBe(BACKUP_PANO);
+  });
 
-    it('omits the pano URL from the copied text when there is no link', () => {
-        buildPopover();
-        openPopover();
-        popoverEl.querySelector('.pano-info-popover__clipboard').click();
-        expect(clipboardText)
-            .toContain(`Pano URL: https://www.google.com/maps/@?api=1&map_action=pano&pano=${GSV_PANO}`);
-        closePopover();
+  it('builds the link against the active viewer and the live camera angle', () => {
+    activeViewer = makePannellumViewer();
+    const pannellumViewer = activeViewer;
+    buildPopover();
+    openPopover();
 
-        activeViewer = makePannellumViewer();
-        openPopover();
-        popoverEl.querySelector('.pano-info-popover__clipboard').click();
+    expect(pannellumViewer.publicViewerLink).toHaveBeenCalledWith(
+      BACKUP_PANO, expect.objectContaining({ heading: 12, pitch: -3 })
+    );
+  });
 
-        expect(clipboardText).toContain(BACKUP_PANO);
-        expect(clipboardText).not.toContain('Pano URL:');
-    });
+  it('omits the pano URL from the copied text when there is no link', () => {
+    buildPopover();
+    openPopover();
+    popoverEl.querySelector('.pano-info-popover__clipboard').click();
+    expect(clipboardText)
+      .toContain(`Pano URL: https://www.google.com/maps/@?api=1&map_action=pano&pano=${GSV_PANO}`);
+    closePopover();
 
-    it('closes on pano_changed from a viewer that only appeared after construction', () => {
-        // Pannellum is built lazily, so the popover can't subscribe to it up front — it has to attach on open.
-        buildPopover();
-        const pannellumViewer = makePannellumViewer();
-        activeViewer = pannellumViewer;
-        openPopover();
+    activeViewer = makePannellumViewer();
+    openPopover();
+    popoverEl.querySelector('.pano-info-popover__clipboard').click();
 
-        expect(pannellumViewer.addListener).toHaveBeenCalledWith('pano_changed', expect.any(Function));
-        expect(popoverEl.matches(':popover-open')).toBe(true);
+    expect(clipboardText).toContain(BACKUP_PANO);
+    expect(clipboardText).not.toContain('Pano URL:');
+  });
 
-        // Fire the handler the popover registered; it should close itself rather than sit there showing stale values.
-        const handler = pannellumViewer.addListener.mock.calls
-            .find(([event]) => event === 'pano_changed')[1];
-        handler();
+  it('closes on pano_changed from a viewer that only appeared after construction', () => {
+    // Pannellum is built lazily, so the popover can't subscribe to it up front — it has to attach on open.
+    buildPopover();
+    const pannellumViewer = makePannellumViewer();
+    activeViewer = pannellumViewer;
+    openPopover();
 
-        expect(popoverEl.matches(':popover-open')).toBe(false);
-    });
+    expect(pannellumViewer.addListener).toHaveBeenCalledWith('pano_changed', expect.any(Function));
+    expect(popoverEl.matches(':popover-open')).toBe(true);
 
-    it('subscribes to each viewer only once, however many times the popover is opened', () => {
-        const gsvViewer = activeViewer;
-        buildPopover();
-        openPopover();
-        closePopover();
-        openPopover();
-        closePopover();
+    // Fire the handler the popover registered; it should close itself rather than sit there showing stale values.
+    const handler = pannellumViewer.addListener.mock.calls
+      .find(([event]) => event === 'pano_changed')[1];
+    handler();
 
-        const panoChangedSubscriptions = gsvViewer.addListener.mock.calls
-            .filter(([event]) => event === 'pano_changed');
-        expect(panoChangedSubscriptions).toHaveLength(1);
-    });
+    expect(popoverEl.matches(':popover-open')).toBe(false);
+  });
+
+  it('subscribes to each viewer only once, however many times the popover is opened', () => {
+    const gsvViewer = activeViewer;
+    buildPopover();
+    openPopover();
+    closePopover();
+    openPopover();
+    closePopover();
+
+    const panoChangedSubscriptions = gsvViewer.addListener.mock.calls
+      .filter(([event]) => event === 'pano_changed');
+    expect(panoChangedSubscriptions).toHaveLength(1);
+  });
 });

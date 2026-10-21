@@ -104,6 +104,7 @@
       <p class="wl-hint">@Html(Messages("welcome.hint.username", routes.UserDashboardController.settings.url))</p>
     </div>
   </div>
+  @ViteAssets.stylesheets("welcome")
   <script type="module" id="page-entry" src='@assets.path("build/js/welcome.js")'
           data-save-url="@routes.UserDashboardController.saveSettings"></script>
 }

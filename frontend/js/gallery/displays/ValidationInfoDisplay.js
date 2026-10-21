@@ -2,6 +2,7 @@
  * An object that creates a display for the agree/disagree counts on a gallery card.
  */
 
+import i18next from 'i18next';
 import { util } from '../../common/utilities.js';
 
 export class ValidationInfoDisplay {
@@ -128,13 +129,9 @@ export class ValidationInfoDisplay {
         if (isVoted) {
           // {{count}} is the *other* validators, so the viewer isn't double-counted in their own tooltip; the
           // i18next `_zero` key covers "nobody else" (see LabelDetail's #renderVoteTooltips for the full note).
-          tip = i18next.t(`labelmap:vote-tooltip-voted-${action.toLowerCase()}`, {
-            count: Math.max(0, count - 1), interpolation: { escapeValue: true },
-          });
+          tip = i18next.t(`labelmap:vote-tooltip-voted-${action.toLowerCase()}`, { count: Math.max(0, count - 1) });
         } else {
-          tip = i18next.t(`labelmap:vote-tooltip-${action.toLowerCase()}`, {
-            count, interpolation: { escapeValue: true },
-          });
+          tip = i18next.t(`labelmap:vote-tooltip-${action.toLowerCase()}`, { count });
         }
         // Sentences are appended in order of usefulness, so what clicking *does* lands last.
         if (this.#aiValidation === action) tip += ` ${i18next.t('labelmap:vote-tooltip-ai-included')}`;

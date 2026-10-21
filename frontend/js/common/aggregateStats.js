@@ -5,6 +5,7 @@
  * documentation landing page with real-time data.
  */
 
+import i18next from 'i18next';
 import { util } from './utilities.js';
 import './utilitiesMath.js';
 

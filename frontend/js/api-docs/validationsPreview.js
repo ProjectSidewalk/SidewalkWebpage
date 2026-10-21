@@ -17,6 +17,7 @@
  * }).init();
  */
 
+import { Chart } from './apiDocsChart.js';
 import { util } from '../common/utilities.js';
 import { ApiDocsTheme } from './apiDocsTheme.js';
 

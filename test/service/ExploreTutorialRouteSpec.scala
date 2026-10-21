@@ -149,7 +149,7 @@ class ExploreTutorialRouteSpec extends SidewalkSpec with org.scalatest.BeforeAnd
   ): ExplorePageData = await(
     exploreService.getDataForExplorePage(userId, retakingTutorial, newRegion = false, routeId = routeId,
       resumeRoute = true, regionId = None, streetEdgeId = None)
-  )
+  ).getOrElse(fail("Every region is finished, so there was no session to serve."))
 
   /**
    * Deletes every row the suite created under its throwaway users. Mission and audit_task reference each other

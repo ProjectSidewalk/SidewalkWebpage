@@ -1,31 +1,46 @@
 /**
- * Task module.
- *
- * @memberof svl
+ * One street to audit: its geometry (oriented the way it is walked), how far along it the labeler has been, and its
+ * state. TaskContainer decides how it is drawn on the minimap; this only says what its lines are.
  */
 
-import { svl } from '../svl.js';
+import * as turf from '@turf/turf';
+import { PanoViewer } from '../../common/pano-viewer/PanoViewer.js';
 import { util } from '../../common/utilities.js';
-import { MinimapStyle } from '../navigation/MinimapStyle.js';
 import '../../common/utilitiesMath.js';
+/** @typedef {import('../navigation/Minimap.js').MinimapStreetLine} MinimapStreetLine */
+
+/**
+ * Free exploration's street-credit rule (#5733), as the backend (StreetCoverage) states it.
+ * @typedef {object} StreetCoverage
+ * @property {number} pano_window_m - Meters either side of a pano that count as seen.
+ * @property {number} max_hop_m - The longest hop between on-street panos that still counts as walked.
+ * @property {number} max_uncovered_m - How much of a street may stay unseen for it to count as covered.
+ * @property {number} min_covered_frac - How much of a street must be seen for it to count as covered.
+ */
 
 export class Task {
   // Ceiling on any "am I at the end of this street?" threshold, as a fraction of the street's length. Keeps a
   // fixed metre distance from swallowing most of a short street.
   static END_PROXIMITY_MAX_FRACTION = 0.4;
   // How far from the street's line a position may sit and still count as on the street: past it a pano can neither
-  // advance the furthest point reached nor finish the street. Matches the pano search radius
-  // (svl.STREETVIEW_MAX_DISTANCE), so on GSV anything a street sweep lands on is within it by construction: GsvViewer
-  // holds Google's replies to that radius, which Google itself doesn't (#5114). Mapillary and Panoramax search a square
-  // box of that half-width instead, whose corners reach about 35 m, so for them it bounds a landing only roughly.
-  static ON_STREET_MAX_DISTANCE_M = 25;
+  // advance the furthest point reached nor finish the street. GsvViewer holds Google's replies to the search radius
+  // (#5114); Mapillary and Panoramax search a square box of that half-width, so it bounds their landings only roughly.
+  static ON_STREET_MAX_DISTANCE_M = PanoViewer.SEARCH_RADIUS_M;
+  // How far (km) from a street's line the labeler may stand and still count as on it: advancing along it, the
+  // compass's on-route check, and picking up the next street all use it.
+  static CLOSE_TO_ROUTE_KM = 0.05;
 
+  #streetCoverage;
   #geojson;
 
-  /* @type {turf.Point} */
+  /** @type {GeoJSON.Feature<GeoJSON.Point>} */
   #furthestPoint;
 
-  #paths;
+  /** @type {Array<[number, number]>} Merged [start_m, end_m] pairs seen, in the server's frame (#5733). */
+  #coveredRanges = [];
+  // The previous on-street pano's position along the street, so the stretch to the next one can count as walked.
+  #lastOnStreetM = null;
+
   #missionStarts = {};
   #status = {
     isComplete: false,
@@ -66,10 +81,12 @@ export class Task {
 
   /**
    * @param {GeoJSON.Feature<GeoJSON.LineString>} geojson
+   * @param {StreetCoverage} streetCoverage - Free exploration's credit rule, for recordVisit and isCoveredEnough.
    * @param {boolean} tutorialTask
    * @param {{lat: number, lng: number}} [currentLatLng] - The user's current lat/lng to use if resuming.
    */
-  constructor(geojson, tutorialTask, currentLatLng) {
+  constructor(geojson, streetCoverage, tutorialTask, currentLatLng) {
+    this.#streetCoverage = streetCoverage;
     this.#properties.tutorialTask = tutorialTask;
     this.initialize(geojson, currentLatLng);
   }
@@ -118,6 +135,10 @@ export class Task {
     if (currMissionId && currMissionStart) {
       this.setMissionStart(currMissionId, { lat: currMissionStart.lat, lng: currMissionStart.lng });
     }
+    // Clipped to turf's length: the server's can run a few decimeters longer, which the minimap slicing can't take.
+    this.#coveredRanges = Array.isArray(this.#geojson.properties.covered_ranges)
+      ? Task.mergeRanges(this.#geojson.properties.covered_ranges, this.lineDistance({ units: 'meters' }))
+      : [];
     // After the direction, never before it: reversing re-seeds the furthest point from the new first coordinate, so a
     // saved position applied first would be thrown away and the walked stretch measured from the wrong end.
     if (currentLatLng) {
@@ -125,8 +146,6 @@ export class Task {
     } else {
       this.#furthestPoint = turf.point(this.#geojson.geometry.coordinates[0]);
     }
-
-    this.#paths = null;
   }
 
   reverseStreetDirection() {
@@ -154,34 +173,14 @@ export class Task {
   }
 
   /**
-   * This method creates Google Maps Polyline objects to render on the Google Maps minimap.
-   * @returns {Array|*[]}
+   * The current street as the minimap draws it: the audited half and the walk-this-way half (#4639).
+   * @returns {MinimapStreetLine[]}
    */
-  getGooglePolylines() {
-    const auditedCoordinates = this.#getPointsOnAuditedSegments();
-    const unauditedCoordinates = this.#getPointsOnUnauditedSegments();
-    const completedPath = [];
-    const incompletePath = [];
-
-    for (let i = 0, len = auditedCoordinates.length; i < len; i++) {
-      completedPath.push(new google.maps.LatLng(auditedCoordinates[i][1], auditedCoordinates[i][0]));
-    }
-
-    for (let i = 0, len = unauditedCoordinates.length; i < len; i++) {
-      incompletePath.push(new google.maps.LatLng(unauditedCoordinates[i][1], unauditedCoordinates[i][0]));
-    }
-
-    // Each half is a casing + line pair; see MinimapStyle for the encoding rationale (#4639).
-    const polylines = [];
-    if (completedPath.length > 1) {
-      polylines.push(new google.maps.Polyline(MinimapStyle.routeCasing(completedPath)));
-      polylines.push(new google.maps.Polyline(MinimapStyle.auditedRoute(completedPath)));
-    }
-    if (incompletePath.length > 1) {
-      polylines.push(new google.maps.Polyline(MinimapStyle.routeCasing(incompletePath)));
-      polylines.push(new google.maps.Polyline(MinimapStyle.remainingRoute(incompletePath)));
-    }
-    return polylines;
+  #currentStreetLines() {
+    return [
+      { kind: 'audited', coordinates: this.#getPointsOnAuditedSegments() },
+      { kind: 'remaining', coordinates: this.#getPointsOnUnauditedSegments() },
+    ];
   }
 
   #coordinatesToSegments(coordinates) {
@@ -332,7 +331,7 @@ export class Task {
   }
 
   /**
-   * @param {{units: string}} [units={units: 'kilometers'}] - Can be degrees, radians, miles, or kilometers
+   * @param {{units: import('@turf/turf').Units}} [units={units: 'kilometers'}] - The distance unit
    * @returns {number}
    */
   getAuditedDistance(units = { units: 'kilometers' }) {
@@ -343,10 +342,115 @@ export class Task {
   }
 
   /**
+   * Credits what a pano shows of this street (#5733): a window either side of it, plus the stretch back to the previous
+   * on-street pano when the hop is short enough to have been walked. A pano off the street breaks that chain.
+   *
+   * @param {{lat: number, lng: number}} latLng - The pano the labeler is standing at.
+   * @returns {boolean} Whether the pano counted as on this street.
+   */
+  recordVisit(latLng) {
+    const point = turf.point([latLng.lng, latLng.lat]);
+    const snapped = turf.nearestPointOnLine(this.#geojson, point, { units: 'meters' });
+    if (snapped.properties.dist > Task.ON_STREET_MAX_DISTANCE_M) {
+      this.#lastOnStreetM = null;
+      return false;
+    }
+    const lengthM = this.lineDistance({ units: 'meters' });
+    // Measured from the server's first coordinate, so a revisit from the other end lands in the same frame.
+    const alongM = this.#properties.startPointReversed
+      ? lengthM - snapped.properties.location
+      : snapped.properties.location;
+    const windowM = this.#streetCoverage.pano_window_m;
+    /** @type {Array<[number, number]>} */
+    const ranges = [...this.#coveredRanges, [alongM - windowM, alongM + windowM]];
+    if (this.#lastOnStreetM !== null && Math.abs(alongM - this.#lastOnStreetM) <= this.#streetCoverage.max_hop_m) {
+      ranges.push([Math.min(alongM, this.#lastOnStreetM), Math.max(alongM, this.#lastOnStreetM)]);
+    }
+    this.#coveredRanges = Task.mergeRanges(ranges, lengthM);
+    this.#lastOnStreetM = alongM;
+    return true;
+  }
+
+  /**
+   * Ends the chain of consecutive on-street panos when the labeler leaves for another street: coming back within a
+   * hop of where they left would otherwise credit the stretch between as walked.
+   */
+  resetVisitChain() {
+    this.#lastOnStreetM = null;
+  }
+
+  /**
+   * The same merge as the server's StreetCoverage.merge, so both sides agree on what a list means.
+   *
+   * @param {Array<[number, number]>} ranges - Any mix of ranges, in any order.
+   * @param {number} lengthM - The street's length in meters.
+   * @returns {Array<[number, number]>} Clipped to the street, sorted, disjoint, to a decimeter.
+   */
+  static mergeRanges(ranges, lengthM) {
+    // Rounded first, then clipped: rounding after could push an end past the street, which turf can't slice.
+    const roundDm = (m) => Math.round(m * 10) / 10;
+    const clip = (m) => Math.min(Math.max(roundDm(m), 0), lengthM);
+    const clipped = ranges
+      .filter((range) => Array.isArray(range) && range.length === 2 && range.every(Number.isFinite))
+      .map(([startM, endM]) => [clip(startM), clip(endM)])
+      .filter(([startM, endM]) => endM > startM)
+      .sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+    const merged = [];
+    for (const [startM, endM] of clipped) {
+      const last = merged[merged.length - 1];
+      if (last && startM <= last[1]) last[1] = Math.max(last[1], endM);
+      else merged.push([startM, endM]);
+    }
+    return merged;
+  }
+
+  /** @returns {Array<[number, number]>} A copy of the covered ranges, in the server's frame. */
+  getCoveredRanges() {
+    return this.#coveredRanges.map(([startM, endM]) => [startM, endM]);
+  }
+
+  /** @param {Array<[number, number]>} ranges - The server's merged list, which can hold an earlier session's. */
+  setCoveredRanges(ranges) {
+    this.#coveredRanges = Task.mergeRanges(ranges, this.lineDistance({ units: 'meters' }));
+  }
+
+  /** @returns {number} Meters of this street the covered ranges add up to. */
+  getCoveredDistanceM() {
+    return this.#coveredRanges.reduce((sum, [startM, endM]) => sum + (endM - startM), 0);
+  }
+
+  /**
+   * Mirrors the server's StreetCoverage.coveredEnough, so the minimap can show the street as done the moment it is.
+   * @returns {boolean}
+   */
+  isCoveredEnough() {
+    if (this.#coveredRanges.length === 0) return false;
+    const lengthM = this.lineDistance({ units: 'meters' });
+    const coveredM = this.getCoveredDistanceM();
+    return Math.max(0, lengthM - coveredM) <= this.#streetCoverage.max_uncovered_m
+      && coveredM >= this.#streetCoverage.min_covered_frac * lengthM;
+  }
+
+  /**
+   * The covered ranges as pieces of the street's geometry, for the minimap.
+   * @param {MinimapStreetLine['kind']} kind - The MinimapStyle line kind to draw them as.
+   * @returns {MinimapStreetLine[]}
+   */
+  #coveredLines(kind) {
+    const lengthM = this.lineDistance({ units: 'meters' });
+    return this.#coveredRanges.map(([startM, endM]) => {
+      // The ranges sit in the server's frame; the geometry may have been reversed to walk the other way.
+      const [fromM, toM] = this.#properties.startPointReversed ? [lengthM - endM, lengthM - startM] : [startM, endM];
+      const piece = turf.lineSliceAlong(this.#geojson, fromM, toM, { units: 'meters' });
+      return { kind, coordinates: piece.geometry.coordinates };
+    });
+  }
+
+  /**
    * Get the cumulative distance.
    *
    * @param {{lat: number, lng: number}} latLng - The point to measure the distance from the start
-   * @param {{units: string}} [units] - String can be degrees, radians, miles, or kilometers
+   * @param {{units: import('@turf/turf').Units}} [units] - The distance unit, default 'kilometers'
    * @returns {number} Distance in meters
    */
   getDistanceFromStart(latLng, units) {
@@ -479,7 +583,7 @@ export class Task {
    *
    * @param {Task} task - The task to check if this task is close to
    * @param {number} threshold - Distance threshold in km, unless specified in unit parameter
-   * @param {{units: string}} [units] - Object with field 'units' holding distance unit, default to 'kilometers'
+   * @param {{units: import('@turf/turf').Units}} [units] - The distance unit, default 'kilometers'
    * @returns {boolean} true this task's endpoint is within threshold distance of either endpoint of given task
    */
   isConnectedTo(task, threshold, units) {
@@ -498,7 +602,7 @@ export class Task {
 
   /**
    * Get the line distance of the task street edge
-   * @param {{units: string}} [units] - Object with field 'units' holding distance unit, default to 'kilometers'
+   * @param {{units: import('@turf/turf').Units}} [units] - The distance unit, default 'kilometers'
    * @returns {number} The length of the street in the given units
    */
   lineDistance(units) {
@@ -520,74 +624,85 @@ export class Task {
   }
 
   /**
-   * TODO This should go to the Minimap.
+   * What identifies this task's lines on the minimap. A route can walk a street twice (out and back), as two tasks
+   * with one street id, so on a route it's the route_street row; a region has each street once.
+   * @returns {string}
    */
-  eraseFromMinimap() {
-    if (this.#paths) {
-      for (let i = 0; i < this.#paths.length; i++) {
-        this.#paths[i].setMap(null);
-      }
-    }
+  minimapKey() {
+    const routeStreetId = this.getProperty('routeStreetId') ?? null;
+    return routeStreetId !== null ? `route-street-${routeStreetId}` : `street-${this.getStreetEdgeId()}`;
   }
 
   /**
-   * Render the task path on the Google Maps pane.
-   * TODO This should go to the Minimap.
-   * Reference:
-   * https://developers.google.com/maps/documentation/javascript/shapes#polyline_add
-   * https://developers.google.com/maps/documentation/javascript/examples/polyline-remove
+   * This street's lines on the minimap, in the encoding that fits its state (see MinimapStyle.streetLayers). A half
+   * that turf slices down to a single point, when the furthest point sits on an endpoint, is dropped by the minimap.
+   *
+   * @param {object} context - What the task can't know on its own.
+   * @param {boolean} context.exploreAddressMode - Free exploration draws only what the labeler has earned (#5733,
+   *   #4451): with no route, unwalked streets and the walk-this-way half stay off the map.
+   * @param {boolean} context.current - Whether this is the street being walked.
+   * @param {boolean} context.route - Whether the streets form a designated route.
+   * @returns {MinimapStreetLine[]} Nothing to draw is an empty list.
    */
-  render() {
-    this.eraseFromMinimap();
+  minimapLines({ exploreAddressMode, current, route }) {
+    const wholeStreet = (kind) => [{ kind, coordinates: this.#geojson.geometry.coordinates }];
 
-    // Free exploration draws no street lines at all (#4451). The red/green split reads as progress being scored, and
-    // the surrounding green/gray coverage is noise for someone who dropped in at a single address — the minimap is
-    // there to show where they are.
-    if (svl.isExploreAddressMode()) return;
+    if (exploreAddressMode) {
+      if (this.isComplete() || this.isCoveredEnough()) return wholeStreet('completed');
+      if (this.#coveredRanges.length > 0) return this.#coveredLines('completed');
+      return [];
+    }
 
-    // If the task has been completed already, or if it has not been completed and is not the current task,
-    // render it as a whole street rather than the audited/remaining split used for the current street.
     // A street this session gave up on for lack of imagery draws as walked: the labeler did everything the tool let
     // them, and a grey gap in an otherwise finished route reads as their omission.
-    const drawAsWalked = this.isComplete() || this.wasGivenUpOnImagery();
-    if (drawAsWalked || this.getStreetEdgeId() !== svl.taskContainer.getCurrentTaskStreetEdgeId()) {
-      const gCoordinates = this.#geojson.geometry.coordinates
-        .map((coord) => new google.maps.LatLng(coord[1], coord[0]));
-      if (drawAsWalked) {
-        this.#paths = [new google.maps.Polyline(MinimapStyle.completedTask(gCoordinates))];
-      } else if (this.isResumed() && this.getAuditedDistance() > 0) {
-        // Part-walked and not the street being walked right now: show the split, so the labeler can see at a glance
-        // which of the streets they left behind still have something on them (#5370). Once it becomes the current
-        // street the getGooglePolylines() branch below draws the same split with the route styling.
-        // Each half is drawn only if it is really a line: turf can slice a half down to a single point when the
-        // furthest point sits on an endpoint, and a one-point Polyline renders as nothing (same guard as
-        // getGooglePolylines).
-        const toLatLngs = (coords) => coords.map((coord) => new google.maps.LatLng(coord[1], coord[0]));
-        const walked = toLatLngs(this.#getPointsOnAuditedSegments());
-        const remaining = toLatLngs(this.#getPointsOnUnauditedSegments());
-        this.#paths = [];
-        if (walked.length > 1) this.#paths.push(new google.maps.Polyline(MinimapStyle.completedTask(walked)));
-        if (remaining.length > 1) this.#paths.push(new google.maps.Polyline(MinimapStyle.otherTask(remaining)));
-      } else if (svl.regionModel.isRoute) {
-        // On a designated route every street ahead is part of the planned path, so paint it as the route-to-walk: a
-        // dashed line with direction chevrons over a white casing — the same encoding as the current street's
-        // remaining half (and RouteBuilder's own rendering) — so the whole route reads as a dotted, arrowed path when
-        // zoomed out. A free region audit has no planned path, so its non-current streets stay quiet context.
-        this.#paths = [
-          new google.maps.Polyline(MinimapStyle.routeCasing(gCoordinates)),
-          new google.maps.Polyline(MinimapStyle.remainingRoute(gCoordinates)),
-        ];
-      } else {
-        this.#paths = [new google.maps.Polyline(MinimapStyle.otherTask(gCoordinates))];
-      }
-      // If the task is incomplete and is the current task, render its audited and remaining halves separately.
-    } else {
-      this.#paths = this.getGooglePolylines();
+    if (this.isComplete() || this.wasGivenUpOnImagery()) return wholeStreet('completed');
+    if (current) return this.#currentStreetLines();
+    if (this.isResumed() && this.getAuditedDistance() > 0) {
+      // Part-walked and not the street being walked right now: show the split, so the labeler can see at a glance
+      // which of the streets they left behind still have something on them (#5370). Once it becomes the current
+      // street the branch above draws the same split with the route styling.
+      return [
+        { kind: 'completed', coordinates: this.#getPointsOnAuditedSegments() },
+        { kind: 'other', coordinates: this.#getPointsOnUnauditedSegments() },
+      ];
     }
+    // On a route every street ahead is part of the planned path, so it is painted as route-to-walk (dashed, with
+    // chevrons, over a white casing), the same as the current street's remaining half and RouteBuilder, so the whole
+    // route reads as one arrowed path. A region audit has no planned path, so its other streets stay quiet context.
+    return wholeStreet(route ? 'remaining' : 'other');
+  }
 
-    for (let i = 0, len = this.#paths.length; i < len; i++) {
-      this.#paths[i].setMap(svl.minimap.getMap());
-    }
+  /**
+   * The unwalked part of the street: from the furthest point the user has reached to the street's end. Shared by
+   * the forward walk, the compass, and the minimap's forward crumbs so they agree on what "ahead" means.
+   * @returns {GeoJSON.Feature<GeoJSON.LineString>}
+   */
+  unwalkedRemainder() {
+    const from = turf.point(this.getFurthestPointReached().geometry.coordinates);
+    const end = turf.point([this.getEndCoordinate().lng, this.getEndCoordinate().lat]);
+    return turf.cleanCoords(turf.lineSlice(from, end, this.#geojson));
+  }
+
+  /**
+   * The heading from a position toward the next goal along the street: 15 m further along the unwalked remainder,
+   * or its end if less remains. On route this is the way forward; off route it points back toward the route.
+   * @param {{lat: number, lng: number}} latLng - Where the labeler stands.
+   * @returns {number} Degrees clockwise from true north, in [0, 360).
+   */
+  headingAlongRoute(latLng) {
+    const remainder = this.unwalkedRemainder();
+    const distIncrement = Math.min(0.015, turf.length(remainder));
+    const goalLoc = turf.along(remainder, distIncrement).geometry.coordinates;
+    return ((util.math.toDegrees(Math.atan2(goalLoc[0] - latLng.lng, goalLoc[1] - latLng.lat)) + 360) % 360);
+  }
+
+  /**
+   * Whether a position is close enough to this street to count as on its route.
+   * @param {{lat: number, lng: number}} latLng
+   * @returns {boolean}
+   */
+  isNearRoute(latLng) {
+    return turf.pointToLineDistance(turf.point([latLng.lng, latLng.lat]), this.#geojson) < Task.CLOSE_TO_ROUTE_KM;
   }
 
   /**
@@ -614,10 +729,8 @@ export class Task {
   }
 
   updateTheFurthestPointReached(currentLatLng) {
-    const currentPoint = turf.point([currentLatLng.lng, currentLatLng.lat]);
-    if (turf.pointToLineDistance(currentPoint, this.#geojson) < svl.CLOSE_TO_ROUTE_THRESHOLD
-      && this.#hasAdvanced(currentLatLng)) {
-      this.#furthestPoint = currentPoint;
+    if (this.isNearRoute(currentLatLng) && this.#hasAdvanced(currentLatLng)) {
+      this.#furthestPoint = turf.point([currentLatLng.lng, currentLatLng.lat]);
     }
   }
 }

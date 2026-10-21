@@ -4,6 +4,7 @@
  * live panos: a cluster of ten would otherwise be ten street-view loads.
  */
 
+import i18next from 'i18next';
 import { LabelMiniCard } from '../common/LabelMiniCard.js';
 import { util } from '../common/utilities.js';
 import '../common/utilitiesSidewalk.js';

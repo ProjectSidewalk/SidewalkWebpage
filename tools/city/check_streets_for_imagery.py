@@ -14,7 +14,8 @@ This is a standalone, manually-run utility (it is not invoked by the app). Workf
          python3.13 tools/city/check_streets_for_imagery.py --city-id newport-ky --panoramax
 
      ``--panoramax`` needs no credential (the API is public);
-     ``--gsv`` needs ``GOOGLE_MAPS_API_KEY``; ``--mapillary`` needs ``MAPILLARY_ACCESS_TOKEN``; ``--infra3d`` needs
+     ``--gsv`` needs ``GOOGLE_MAPS_SERVER_KEY`` (else ``GOOGLE_MAPS_API_KEY``);
+     ``--mapillary`` needs ``MAPILLARY_ACCESS_TOKEN``; ``--infra3d`` needs
      ``INFRA3D_CLIENT_ID`` and ``INFRA3D_CLIENT_SECRET`` (one city's pair — the same OAuth client-credentials the app
      holds per city as ``INFRA3D_CLIENT_ID_<CITY>``), plus ``--campaign <uid>`` if the city's tenant holds more than
      one campaign. It is ``python3.13`` rather than the container's default ``python3`` because this tool's libraries
@@ -74,7 +75,7 @@ point's pano and distances to ``street_points_<provider>.csv``, which is how the
 provider or city would get its own.
 
 Infra3d has no metadata endpoint of its own; the check uses the same nearest-frame query (``framegate``'s
-``knn/query``) that the vendored Infra3d viewer SDK issues on every ``setLocation``, authenticated with the same
+``knn/query``) that the Infra3d viewer SDK issues on every ``setLocation``, authenticated with the same
 per-city OAuth token the app fetches in ``PanoDataService.getInfra3dToken``. The query returns the single nearest
 frame with no distance cap, so "imagery here" is decided client-side: the nearest 360° frame within the same 25 m
 radius GSV bakes into its URL. Flat mono/stereo frames are filtered out server-side, matching the viewer's
@@ -229,7 +230,7 @@ PANO_SCORING = _load_pano_scoring()
 MS_PER_YEAR = 365.25 * 24 * 3600 * 1000
 
 # Search radius, in km, around every point we sample — street endpoints and along-street points alike. 25 m is what
-# Explore searches (`svl.STREETVIEW_MAX_DISTANCE`), so the scan and the tool agree on what counts as imagery at a
+# Explore searches (`PanoViewer.SEARCH_RADIUS_M`), so the scan and the tool agree on what counts as imagery at a
 # location and a street we hide is one Explore genuinely cannot serve. It also has to clear the providers' capture
 # interval, or the box can straddle a gap and report no imagery where there is some: Mapillary's smart spacing targets
 # 20 m on highways, and 12.6% of Budapest's consecutive captures exceed 20 m (#5091 collects the measurements).
@@ -260,11 +261,11 @@ PANORAMAX_SEARCH_URL = 'https://api.panoramax.xyz/api/search?filter=field_of_vie
 # The API is keyless and community-run, so nothing but this says whose scan traffic it is or where to complain.
 PANORAMAX_HEADERS = {'User-Agent': 'ProjectSidewalk-check-streets/1.0 (sidewalk@cs.uw.edu)'}
 
-# Infra3d: the token grant mirrors PanoDataService.getInfra3dToken; the framegate route is what the vendored viewer SDK
+# Infra3d: the token grant mirrors PanoDataService.getInfra3dToken; the framegate route is what the viewer SDK
 # calls for setLocation. The route's tenant segment comes from the token's scope, so there is no per-city config.
 INFRA3D_TOKEN_URL = 'https://uzh.auth.eu-west-1.amazoncognito.com/oauth2/token'
 INFRA3D_API_URL = 'https://api.infra3d.com/framegate'
-# The SDK's own API-gateway key, baked into the vendored bundle and sent by every browser session alongside the bearer;
+# The SDK's own API-gateway key, baked into its bundle and sent by every browser session alongside the bearer;
 # it identifies the SDK, not us -- the per-city bearer token is what grants access to a tenant's imagery.
 INFRA3D_API_KEY = '6zGSQ8u14j3AqL8myGcP54rbXS9aLCpr6lY99B9F'
 # 360° frames only, matching Infra3dViewer's setFilter: Explore can't label on Infra3d's flat mono/stereo photos.
@@ -1523,7 +1524,8 @@ def main(argv: list[str] | None = None) -> int:
                         help='The cityparams city id being scanned, e.g. "newport-ky"; every data file lives in '
                              'db/onboarding/<city-id>/.')
     provider = parser.add_mutually_exclusive_group(required=True)
-    provider.add_argument('--gsv', action='store_true', help='Check for GSV imagery (needs GOOGLE_MAPS_API_KEY)')
+    provider.add_argument('--gsv', action='store_true',
+                          help='Check for GSV imagery (needs GOOGLE_MAPS_SERVER_KEY, else GOOGLE_MAPS_API_KEY)')
     provider.add_argument('--mapillary', action='store_true',
                           help='Check for Mapillary imagery (needs MAPILLARY_ACCESS_TOKEN)')
     provider.add_argument('--infra3d', action='store_true',
@@ -1605,8 +1607,12 @@ def main(argv: list[str] | None = None) -> int:
     elif api == 'Panoramax':
         print('Checking Panoramax 360° coverage via %s (public API, no credential needed)' % PANORAMAX_SEARCH_URL)
     else:
-        api_key = os.getenv('GOOGLE_MAPS_API_KEY') if api == 'GSV' else os.getenv('MAPILLARY_ACCESS_TOKEN')
-        if api_key is None:
+        if api == 'GSV':
+            # These requests carry no Referer, which is all the browser key checks (#5647).
+            api_key = os.getenv('GOOGLE_MAPS_SERVER_KEY') or os.getenv('GOOGLE_MAPS_API_KEY')
+        else:
+            api_key = os.getenv('MAPILLARY_ACCESS_TOKEN')
+        if not api_key:
             print("Couldn't read API key environment variable.")
             return 1
 

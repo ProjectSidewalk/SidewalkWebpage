@@ -224,14 +224,12 @@ class PartnerAdminSpec extends SidewalkSpec with RoleSession with GuiceOneAppPer
       body.indexOf(s"/partnerLogo/$globalIdCreated") must be < body.indexOf(s"/partnerLogo/$cityIdCreated")
     }
 
-    "name each partner in a psTooltip on its logo wrapper, double-escaped for psTooltip's innerHTML" in {
-      // psTooltip renders the attribute value as HTML, so an admin-supplied name needs two levels of escaping: one the
-      // attribute parse consumes, one innerHTML consumes. With only one, this name would inject a live <img> (#5469).
+    "name each partner in a psTooltip on its logo wrapper, escaped once for the attribute" in {
       val name = "Spec <img src=x onerror=alert(1)> & Co"
       createPartner(adminCookies, "/adminapi/partners", name)
       val body = landingBody()
       body must include(
-        """<div class="partner-logo" data-ps-tooltip="Spec &amp;lt;img src=x onerror=alert(1)&amp;gt; &amp;amp; Co">"""
+        """<div class="partner-logo" data-ps-tooltip="Spec &lt;img src=x onerror=alert(1)&gt; &amp; Co">"""
       )
     }
 

@@ -20,6 +20,7 @@ export class StreetPriorityTable {
   #onRowClick;
   #onRowHover;
   #onRowHoverEnd;
+  #onRender;
   #rows = [];
   #sortKey;
   #sortDir;
@@ -33,8 +34,10 @@ export class StreetPriorityTable {
    *          format?: (row: Record<string, any>) => string,
    *          sortValue?: (row: Record<string, any>) => (number|string)}>, rowKey: string, searchId?: string,
    *          searchFields?: string[], sortKey?: string, sortDir?: number, onRowClick?: (id: number) => void,
-   *          onRowHover?: (id: number) => void, onRowHoverEnd?: () => void}} opts - Column definitions, the
-   *   row property used as the brushing id, and the optional search input + interaction hooks.
+   *          onRowHover?: (id: number) => void, onRowHoverEnd?: () => void, onRender?: () => void}} opts - Column
+   *   definitions, the row property used as the brushing id, and the optional search input + interaction hooks.
+   *   `onRender` runs after every body render, including the ones sorting and searching trigger, so a caller can
+   *   restore row state (a pinned highlight) that the re-render discarded.
    */
   constructor(tableId, opts) {
     this.#tableId = tableId;
@@ -47,6 +50,7 @@ export class StreetPriorityTable {
     this.#onRowClick = opts.onRowClick || (() => {});
     this.#onRowHover = opts.onRowHover || (() => {});
     this.#onRowHoverEnd = opts.onRowHoverEnd || (() => {});
+    this.#onRender = opts.onRender || (() => {});
   }
 
   /**
@@ -58,14 +62,18 @@ export class StreetPriorityTable {
     this.#rows = rows;
     const table = document.getElementById(this.#tableId);
     if (!table) return;
+    // The row listeners are bound to the tbody, so a later render keeps it and refreshes only the header and rows.
+    if (this.#wired) {
+      table.querySelector('thead').outerHTML = this.#headerHtml();
+      this.#renderBody();
+      return;
+    }
     table.innerHTML = this.#headerHtml();
     const tbody = document.createElement('tbody');
     table.appendChild(tbody);
     this.#renderBody();
-    if (!this.#wired) {
-      this.#wireEvents(table, tbody);
-      this.#wired = true;
-    }
+    this.#wireEvents(table, tbody);
+    this.#wired = true;
   }
 
   #headerHtml() {
@@ -107,6 +115,7 @@ export class StreetPriorityTable {
     if (visible.length === 0) {
       tbody.innerHTML = `<tr><td colspan="${this.#columns.length}" class="ac-muted">Nothing to show.</td></tr>`;
     }
+    this.#onRender();
   }
 
   #wireEvents(table, tbody) {

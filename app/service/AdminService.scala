@@ -72,7 +72,8 @@ object TimeInterval extends NamedEnumCompanion[TimeInterval] {
    * @return The start, or None for all time.
    */
   def start(interval: TimeInterval): Option[OffsetDateTime] = interval match {
-    case Today   => Some(ZonedDateTime.now(ZoneId.of("US/Pacific")).truncatedTo(ChronoUnit.DAYS).toOffsetDateTime)
+    case Today =>
+      Some(ZonedDateTime.now(ZoneId.of("America/Los_Angeles")).truncatedTo(ChronoUnit.DAYS).toOffsetDateTime)
     case Week    => Some(OffsetDateTime.now().minusDays(7))
     case AllTime => None
   }
@@ -84,7 +85,8 @@ object TimeInterval extends NamedEnumCompanion[TimeInterval] {
    * @return A condition keeping rows in the interval; `TRUE` for all time.
    */
   def sqlFilter(interval: TimeInterval, column: String): String = interval match {
-    case Today   => s"$column >= date_trunc('day', NOW() AT TIME ZONE 'US/Pacific') AT TIME ZONE 'US/Pacific'"
+    case Today =>
+      s"$column >= date_trunc('day', NOW() AT TIME ZONE 'America/Los_Angeles') AT TIME ZONE 'America/Los_Angeles'"
     case Week    => s"$column >= NOW() - INTERVAL '7 days'"
     case AllTime => "TRUE"
   }

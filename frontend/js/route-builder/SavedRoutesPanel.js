@@ -5,6 +5,7 @@
  * forgotten share link isn't fatal.
  */
 
+import i18next from 'i18next';
 import { util } from '../common/utilities.js';
 
 export class SavedRoutesPanel {

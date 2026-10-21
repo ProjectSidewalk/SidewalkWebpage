@@ -11,6 +11,7 @@
  * Reuses the labelmap:story.* strings the card already loads on this page.
  */
 
+import i18next from 'i18next';
 import { ConfirmDialog } from '../common/ConfirmDialog.js';
 import { StoryComposer } from '../common/label-detail/StoryComposer.js';
 import { util } from '../common/utilities.js';

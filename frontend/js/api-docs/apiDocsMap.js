@@ -7,6 +7,9 @@
  * @requires mapbox-gl, mapbox-gl-language, i18next, ScoreRamp (js/common/scoreRamp.js)
  */
 
+import MapboxLanguage from '@mapbox/mapbox-gl-language';
+import mapboxgl from '../common/mapboxgl.js';
+import i18next from 'i18next';
 import { ScoreRamp } from '../common/scoreRamp.js';
 import { util } from '../common/utilities.js';
 import { ApiDocsTheme } from './apiDocsTheme.js';
@@ -28,7 +31,7 @@ export const ApiDocsMap = (function () {
    * @param {mapboxgl.LngLatBounds} [options.bounds] - Bounds to frame the initial view on.
    * @param {number} [options.fitPadding] - Pixels of padding left around `bounds`. Defaults to a share of the map's
    *                                        width, capped at 75.
-   * @param {Array<number>} [options.center] - Initial center as [lng, lat]. Used only when `bounds` is omitted.
+   * @param {mapboxgl.LngLatLike} [options.center] - Initial center as [lng, lat]. Used only when `bounds` is omitted.
    * @param {number} [options.zoom] - Initial zoom. Used only when `bounds` is omitted.
    * @param {number} [options.dim=BASEMAP_DIM_OPACITY] - Basemap dimming, 0 (none) to 1 (black).
    * @returns {Promise<mapboxgl.Map>} Resolves with the Mapbox map once it has loaded and been dimmed.
@@ -106,7 +109,7 @@ export const ApiDocsMap = (function () {
    * Opens a popup carrying the shared `.map-popup` styling.
    *
    * @param {mapboxgl.Map} map - The Mapbox map.
-   * @param {object|Array<number>} lngLat - Where to anchor the popup.
+   * @param {mapboxgl.LngLatLike} lngLat - Where to anchor the popup.
    * @param {string} html - The popup's contents.
    * @param {{modifier?: string, [popupOption: string]: any}} [options] - Extra `mapboxgl.Popup` options, e.g.
    *   `closeButton: false` for a hover preview; `modifier` is a class added beside `map-popup`, for a popup styled

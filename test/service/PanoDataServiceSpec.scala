@@ -300,13 +300,24 @@ class PanoDataServiceSpec extends AnyFunSuite with Matchers {
     PanoDataService.missingBackupColumns(completeBackupRow) shouldBe Nil
   }
 
-  test("missingBackupColumns names camera_pitch alone, the column an AI-submitted Mapillary pano lacks (#5183)") {
-    PanoDataService.missingBackupColumns(completeBackupRow.copy(cameraPitch = None)) shouldBe Seq("camera_pitch")
+  test("missingBackupColumns: no pose is not missing (#5725), a NaN heading is") {
+    PanoDataService.missingBackupColumns(completeBackupRow.copy(cameraPitch = None)) shouldBe Nil
+    PanoDataService.missingBackupColumns(completeBackupRow.copy(cameraHeading = Some(Double.NaN))) shouldBe
+      Seq("camera_heading")
+  }
+
+  test("missingBackupColumns is empty exactly when hasBackupViewerFields holds") {
+    val rows = Seq(
+      completeBackupRow, completeBackupRow.copy(cameraPitch = None), completeBackupRow.copy(cameraHeading = None),
+      completeBackupRow.copy(cameraHeading = Some(Double.NaN)), completeBackupRow.copy(width = None),
+      completeBackupRow.copy(lng = None)
+    )
+    rows.foreach(row => PanoDataService.missingBackupColumns(row).isEmpty shouldBe row.hasBackupViewerFields)
   }
 
   test("missingBackupColumns lists every missing column, in a fixed order") {
-    val row = completeBackupRow.copy(cameraPitch = None, lat = None, width = None)
-    PanoDataService.missingBackupColumns(row) shouldBe Seq("width", "lat", "camera_pitch")
+    val row = completeBackupRow.copy(cameraHeading = None, lat = None, width = None)
+    PanoDataService.missingBackupColumns(row) shouldBe Seq("width", "lat", "camera_heading")
   }
 
   test("missingBackupColumns checks the frontend's BACKUP_IMAGE_REQUIRED_FIELDS, in the same order") {
@@ -317,8 +328,42 @@ class PanoDataServiceSpec extends AnyFunSuite with Matchers {
     val listed = literal.findFirstMatchIn(src).map(_.group(1)).getOrElse(fail("BACKUP_IMAGE_REQUIRED_FIELDS not found"))
     val jsFields = "'([^']+)'".r.findAllMatchIn(listed).map(_.group(1)).toSeq
     val allNull  = completeBackupRow.copy(
-      width = None, height = None, lat = None, lng = None, cameraHeading = None, cameraPitch = None
+      width = None, height = None, lat = None, lng = None, cameraHeading = None
     )
     jsFields shouldBe PanoDataService.missingBackupColumns(allNull)
+  }
+
+  // Mapillary `computed_rotation` → (pitch, roll), #5725. Expected values are pinned from the auto-labeler's
+  // `geo.mapillary_pitch_roll`, the other writer of pano_data.camera_pitch (sidewalk-auto-labeler#42), not from this
+  // implementation. A level camera facing north is a quarter turn about east; the cap cases pitch it down from there.
+  private val levelNorth = math.Pi / 2
+
+  test("Mapillary rotation: a real Richmond pano (2163793620710887) gives the pose the JS viewer stored") {
+    val Some((pitch, roll)) =
+      PanoDataService.mapillaryPitchRoll(Seq(1.3857263583832, 0.71804330335161, -0.58250746512038)): @unchecked
+    pitch shouldBe (2.231776541825151 +- 1e-9)
+    roll shouldBe (-6.354952531976069 +- 1e-9)
+  }
+
+  test("Mapillary rotation: a level camera is pitch 0, roll 0") {
+    val Some((pitch, roll)) = PanoDataService.mapillaryPitchRoll(Seq(levelNorth, 0.0, 0.0)): @unchecked
+    pitch shouldBe (0.0 +- 1e-9)
+    roll shouldBe (0.0 +- 1e-9)
+  }
+
+  test("Mapillary rotation: a tilt up to the cap is a pose, past it is not") {
+    val Some((pitch44, _)) =
+      PanoDataService.mapillaryPitchRoll(Seq(levelNorth + math.toRadians(44.0), 0.0, 0.0)): @unchecked
+    pitch44 shouldBe (-44.0 +- 1e-9)
+    PanoDataService.mapillaryPitchRoll(Seq(levelNorth + math.toRadians(46.0), 0.0, 0.0)) shouldBe None
+    // Upside down, the failed-reconstruction case the cap exists for.
+    PanoDataService.mapillaryPitchRoll(Seq(math.Pi, 0.0, 0.0)) shouldBe None
+  }
+
+  test("Mapillary rotation: a malformed vector is no pose") {
+    PanoDataService.mapillaryPitchRoll(Seq.empty) shouldBe None
+    PanoDataService.mapillaryPitchRoll(Seq(levelNorth, 0.0)) shouldBe None
+    PanoDataService.mapillaryPitchRoll(Seq(levelNorth, Double.NaN, 0.0)) shouldBe None
+    PanoDataService.mapillaryPitchRoll(Seq(levelNorth, 0.0, Double.PositiveInfinity)) shouldBe None
   }
 }

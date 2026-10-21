@@ -1,6 +1,7 @@
 package controllers
 
 import actor.{
+  BasemapRefreshActor,
   CheckImageExpiryActor,
   ClusteringActor,
   CropGenerationActor,
@@ -30,6 +31,8 @@ import service.CropService.CropRunResult
 import service.PanoDataService.ImageryCheckResult
 import service.{
   AdminService,
+  BasemapRefreshResult,
+  BasemapService,
   ClusterService,
   ClusteringResults,
   CropService,
@@ -94,6 +97,9 @@ class AdminJobTriggerSpec
 
   private val StalenessResult = StreetGradientStaleness(unsampled = 4641, stale = 4642)
 
+  private val BasemapResult =
+    BasemapRefreshResult(skipped = false, Some("basemap-20261015-4643.pmtiles"), Some("20261015"), Some(4644L))
+
   /** Set per test: this endpoint's failure path is part of its contract, and Guice owns the stub. */
   @volatile private var osmWayAnswer: Future[OsmWayRefreshResult] = Future.successful(OsmWayRefreshResult.empty)
 
@@ -105,6 +111,9 @@ class AdminJobTriggerSpec
 
   /** As `cropRunning`, for the places refresh, whose trigger refuses the same way. */
   @volatile private var placesRunning: Boolean = false
+
+  /** As `cropRunning`, for the minimap basemap refresh. */
+  @volatile private var basemapRunning: Boolean = false
 
   override def fakeApplication(): Application =
     GuiceApplicationBuilder()
@@ -159,6 +168,11 @@ class AdminJobTriggerSpec
         bind[PlacesService].toInstance(
           StubService.answeringWith[PlacesService](
             Map("refresh" -> (() => Future.successful(PlacesResult)), "isRunning" -> (() => placesRunning))
+          )
+        ),
+        bind[BasemapService].toInstance(
+          StubService.answeringWith[BasemapService](
+            Map("refresh" -> (() => Future.successful(BasemapResult)), "isRunning" -> (() => basemapRunning))
           )
         )
       )
@@ -336,6 +350,34 @@ class AdminJobTriggerSpec
     }
   }
 
+  "POST /adminapi/refreshBasemap" should {
+    "answer at once and record the rebuild as a manual run of the nightly job, with its result" in {
+      val idFloor  = highestRunId
+      val response = asAdmin("/adminapi/refreshBasemap", POST)
+      status(response) mustBe ACCEPTED
+
+      val jobRun = eventually(timeout(Span(30, Seconds)), interval(Span(100, Millis))) {
+        val runs = runsSince(idFloor, BasemapRefreshActor.Name)
+        triggeredRunIds = (triggeredRunIds ++ runs.map(_.backgroundJobRunId)).distinct
+        runs.size mustBe 1
+        runs.head.status mustBe JobRunStatus.Succeeded
+        runs.head
+      }
+      jobRun.triggeredBy mustBe JobRunTrigger.Manual
+      jobRun.details.value mustBe BasemapResult.runDetails
+    }
+
+    "refuse with 409, and record nothing, while a rebuild is already in flight" in {
+      basemapRunning = true
+      try {
+        val idFloor  = highestRunId
+        val response = asAdmin("/adminapi/refreshBasemap", POST)
+        status(response) mustBe CONFLICT
+        runsSince(idFloor, BasemapRefreshActor.Name) mustBe empty
+      } finally basemapRunning = false
+    }
+  }
+
   "POST /adminapi/generateCrops" should {
     // The one trigger that answers before its job finishes (a first backfill outlives any proxy read timeout), so it
     // is also the one whose run row can't be read straight off the response.
@@ -421,6 +463,7 @@ class AdminJobTriggerSpec
         (GET, "/adminapi/checkImagery", CheckImageExpiryActor.Name),
         (GET, "/adminapi/refreshOsmWayData", OsmWayRefreshActor.Name),
         (POST, "/adminapi/refreshPlaces", PlacesRefreshActor.Name),
+        (POST, "/adminapi/refreshBasemap", BasemapRefreshActor.Name),
         (POST, "/adminapi/recountStreetGradientStaleness", StreetGradientStalenessActor.Name),
         (POST, "/adminapi/generateCrops", CropGenerationActor.Name),
         (GET, "/runClustering", ClusteringActor.Name)
