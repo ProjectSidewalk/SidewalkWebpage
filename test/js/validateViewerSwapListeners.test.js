@@ -15,6 +15,8 @@
 import { loadModules, mockModule } from './loader.js';
 import { fakePanoOverlays, fakeTracker } from './fakes.js';
 
+mockModule('i18next', () => ({ default: {language: 'en'} }));
+
 describe('PanoManager logs POV changes from whichever viewer is showing (issue #4828)', () => {
   let panoManager;
   let tracker;
@@ -60,7 +62,6 @@ describe('PanoManager logs POV changes from whichever viewer is showing (issue #
 
     document.body.innerHTML = '<div id="pano-holder"><div id="svv-panorama"></div></div>';
 
-    vi.stubGlobal('i18next', {language: 'en'});
 
     ({ attribution: attributionOverlay, createPanoAttribution } = fakePanoOverlays());
     tracker = fakeTracker();

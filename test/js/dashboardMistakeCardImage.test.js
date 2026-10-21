@@ -9,13 +9,14 @@
  * View still and is the only answer left for a crop nothing recorded. A runtime fall back has to re-place it.
  */
 
-import { loadModules } from './loader.js';
+import { loadModules, mockModule } from './loader.js';
 import { fakePanoOverlays } from './fakes.js';
+
+mockModule('i18next', () => ({ default: { t: (key) => key } }));
 
 // The imagery-credit overlays; dashboardMistakeCardAttribution.test.js checks them for real.
 fakePanoOverlays();
 
-window.i18next = { t: (key) => key };
 const { MistakeGallery } = await loadModules('frontend/js/user-dashboard/MistakeGallery.js');
 
 const CROP_URL = '/cropImage/Obstacle/501?exp=1&sig=x';

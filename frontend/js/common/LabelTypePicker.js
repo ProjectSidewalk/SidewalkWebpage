@@ -3,6 +3,7 @@
  * the backend stamps on every page. Enter is left alone on purpose: the hosting tools use it for their own submit.
  */
 
+import i18next from 'i18next';
 import { util } from './utilities.js';
 import './utilitiesSidewalk.js';
 import '../../css/components/label-type-picker.css';

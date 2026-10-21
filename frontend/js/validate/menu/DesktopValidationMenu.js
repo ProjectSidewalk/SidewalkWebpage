@@ -2,11 +2,14 @@
  * Initializes the primary validation UI on the right side, including validation of tags/severity.
  */
 
+import TomSelect from 'tom-select/base';
+import i18next from 'i18next';
 import { LabelTypePicker } from '../../common/LabelTypePicker.js';
 import { util } from '../../common/utilities.js';
 import { LabelContainer } from '../label/LabelContainer.js';
 import '../../common/utilitiesSidewalk.js';
 import '../../../css/components/tag-pills.css';
+import 'tom-select/dist/css/tom-select.css';
 /** @typedef {import('../label/Label.js').Label} Label */
 /** @typedef {import('../label/LabelCard.js').LabelCard} LabelCard */
 /** @typedef {import('../Main.js').ValidateConfig} ValidateConfig */
@@ -129,7 +132,7 @@ export class DesktopValidationMenu {
         refreshThrottle: 0, // Filter on every keystroke, so a quick Enter picks from the current list.
         labelField: 'tag_name',
         valueField: 'tag_name',
-        searchField: 'tag_name',
+        searchField: ['tag_name'],
         sortField: 'popularity', // TODO include data abt frequency of use on this server.
         onFocus: () => {
           this.#tracker.push('Click=TagSearch');

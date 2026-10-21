@@ -27,8 +27,10 @@
  * the real ones want a viewer and page markup, and none is what a shortcut exercises.
  */
 
-import { loadModules, useUtil } from './loader.js';
+import { loadModules, mockModule, useUtil } from './loader.js';
 import { mockLabelDetailCollaborators } from './fakes.js';
+
+mockModule('i18next', () => ({ default: { t: (key) => key } }));
 
 /** The pano manager the card is handed; rebuilt per test so a test can settle its setPano() when it likes. */
 let panoManager;
@@ -292,7 +294,6 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
 
     post = vi.fn(async () => ({ ok: true, status: 200, json: async () => ({}) }));
 
-    window.i18next = { t: (key) => key };
     window.logWebpageActivity = vi.fn();
     useUtil({ lazyIdentityFetch: post });
 

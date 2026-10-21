@@ -1,7 +1,6 @@
 @import service.CommonPageData
 @import models.user.SidewalkUserWithRole
 @import models.label.Tag
-@import models.pano.PanoSource
 @import play.api.Configuration
 @(commonData: CommonPageData, user: SidewalkUserWithRole, tags: Seq[Tag] = Seq.empty
 )(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
@@ -26,31 +25,8 @@
       <div id="admin-labelmap-choropleth" class="choropleth"></div>@common.filterSidebar(tags = tags, sections = Seq("severity", "label-type", "validations", "admin", "streets"), showOutdatedStreetFilter = true)@common.mapLoadingOverlay()</div>
   </div>
 
-  @* Label-detail popup + PSMap dependencies. The label-detail modules are pulled in individually (not via the legacy Admin.js bundle) to keep with the dashboard's standalone-script convention; i18next, AppManager, util and the Google Maps loader are already loaded by common.main / adminLayout. *@
 @common.labelPopup(admin = true)
   @ViteAssets.stylesheets("admin/labelMap", alreadyLinked = "admin/shell")
-  <link href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.css")' rel="stylesheet">
-  <link rel="stylesheet" href='@assets.path("vendor/pannellum/pannellum-2.5.7.css")'>
-
-@if(commonData.imagerySource == PanoSource.Infra3d) {
-  <script src='@assets.path("vendor/proj4/proj4-2.22.0.js")'></script>
-  <script src='@assets.path("vendor/infra3d/infra3dapi-1.12.1.js")'></script>
-} else if (commonData.imagerySource == PanoSource.Mapillary) {
-  <script src='@assets.path("vendor/three/three-0.160.1-min.js")'></script>
-  <script src='@assets.path("vendor/mapillary/mapillary-4.1.2.min.js")'></script>
-  <link href='@assets.path("vendor/mapillary/mapillary-4.1.2.css")' rel="stylesheet">
-  } else if (commonData.imagerySource == PanoSource.Panoramax) {
-  <script src='@assets.path("vendor/photo-sphere-viewer/psv-5.15.1-bundle.min.js")'></script>
-  <link href='@assets.path("vendor/photo-sphere-viewer/psv-5.15.1.css")' rel="stylesheet">
-  }
-  @* Pannellum is loaded everywhere the label popup is, since any expired pano may have a self-hosted fallback. *@
-  <script src='@assets.path("vendor/pannellum/pannellum-2.5.7.js")'></script>
-  <script src='@assets.path("vendor/panzoom/panzoom-9.4.4.min.js")'></script>
-
-  @* PSMap + its map dependencies (mapbox-gl, language plugin, turf). *@
-  <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.js")'></script>
-  <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")'></script>
-  <script src='@assets.path("vendor/turf/turf-7.4.0.min.js")'></script>
 
   <script type="module" id="page-entry" src='@assets.path("build/js/admin/labelMap.js")'
           data-mapbox-token="@commonData.mapboxApiKey"

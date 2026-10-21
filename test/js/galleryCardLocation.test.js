@@ -9,6 +9,8 @@
 import { loadModules, mockModule } from './loader.js';
 import { fakeTracker, fakePanoOverlays } from './fakes.js';
 
+mockModule('i18next', () => ({ default: { t: (key) => key, language: 'en' } }));
+
 // Collaborators the constructor builds but this test doesn't exercise.
 mockModule('frontend/js/gallery/displays/SeverityDisplay.js', () => ({ SeverityDisplay: class {} }));
 mockModule('frontend/js/gallery/displays/ValidationInfoDisplay.js', () => ({ ValidationInfoDisplay: class {} }));
@@ -50,7 +52,6 @@ describe('a Gallery card\'s location line', () => {
 
   beforeAll(async () => {
     window.structuredClone ??= (v) => JSON.parse(JSON.stringify(v)); // Missing from this jsdom.
-    window.i18next = { t: (key) => key, language: 'en' };
     ({ Card } = await loadModules('frontend/js/gallery/cards/Card.js'));
   });
 

@@ -4,7 +4,6 @@
 @import play.api.libs.json.{JsArray, Json}
 @import service.CommonPageData
 @import models.label.Tag
-@import models.pano.PanoSource
 @import formats.json.LabelFormats.tagWrites
 @import views.ViewHelpers.jsonForScript
 @(commonData: CommonPageData, url: String, title: String, user: SidewalkUserWithRole, validateParams: ValidateParams, tagList: Seq[Tag]
@@ -16,22 +15,6 @@
   pageMeta = service.PageMeta(description = Some(Messages("seo.description.validate", currentCity.cityNameShort)))) {
   @common.navbar(commonData, Some(user))
 
-  <script src='@assets.path("vendor/turf/turf-7.4.0.min.js")'></script>
-  <script src='@assets.path("vendor/tom-select/tom-select-2.6.2.base.min.js")'></script>
-  <link rel="stylesheet" href='@assets.path("vendor/tom-select/tom-select-2.6.2.min.css")'>
-  @if(commonData.imagerySource == PanoSource.Infra3d) {
-    <script src='@assets.path("vendor/proj4/proj4-2.22.0.js")'></script>
-    <script src='@assets.path("vendor/infra3d/infra3dapi-1.12.1.js")'></script>
-  } else if (commonData.imagerySource == PanoSource.Mapillary) {
-  <script src='@assets.path("vendor/three/three-0.160.1-min.js")'></script>
-  <script src='@assets.path("vendor/mapillary/mapillary-4.1.2.min.js")'></script>
-  <link href='@assets.path("vendor/mapillary/mapillary-4.1.2.css")' rel="stylesheet">
-  } else if (commonData.imagerySource == PanoSource.Panoramax) {
-  <script src='@assets.path("vendor/photo-sphere-viewer/psv-5.15.1-bundle.min.js")'></script>
-  <link href='@assets.path("vendor/photo-sphere-viewer/psv-5.15.1.css")' rel="stylesheet">
-  }
-  <script src='@assets.path("vendor/pannellum/pannellum-2.5.7.js")'></script>
-  <link rel="stylesheet" href='@assets.path("vendor/pannellum/pannellum-2.5.7.css")'>
   @ViteAssets.stylesheets("validate")
 
   @common.missionStartTutorial()

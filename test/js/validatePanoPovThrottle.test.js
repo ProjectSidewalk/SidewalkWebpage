@@ -11,8 +11,10 @@
  * Fake timers also mock Date.now, which the throttle's elapsed-time math reads.
  */
 
-import { loadModules } from './loader.js';
+import { loadModules, mockModule } from './loader.js';
 import { fakeTracker, fakePanoOverlays } from './fakes.js';
+
+mockModule('i18next', () => ({ default: { language: 'en' } }));
 
 fakePanoOverlays();
 
@@ -30,7 +32,6 @@ describe('PanoManager POV_Changed throttling (issue #2745)', () => {
     // The pano canvas #init looks up, with a parent for the fallback canvas + viewer logo to attach to.
     document.body.innerHTML = '<div id="pano-holder"><div id="svv-panorama"></div></div>';
 
-    window.i18next = { language: 'en' };
     tracker = fakeTracker();
 
     const panoData = {

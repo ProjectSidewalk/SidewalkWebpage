@@ -16,6 +16,7 @@
  * @property {Record<string, number>} [tag_counts] - Labels per tag.
  */
 
+import mapboxgl from '../common/mapboxgl.js';
 import { util } from '../common/utilities.js';
 import '../common/utilitiesSidewalk.js';
 
@@ -216,7 +217,7 @@ export class AccessScoreClusterLayer {
         }
       }
     }
-    return props;
+    return /** @type {AccessScoreClusterProps} */ (props);
   }
 
   #clearHover() {

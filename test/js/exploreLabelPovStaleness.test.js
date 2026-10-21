@@ -14,10 +14,12 @@
  * is the same replay the server guard runs: the record's POV + canvas_x/y must reproduce its pano_x/y.
  */
 
-import { loadModules, useUtil } from './loader.js';
+import { loadModules, mockModule, useUtil } from './loader.js';
 import { fakePanoManager, fakeTaskContainer, fakeTracker } from './fakes.js';
 
-// The real ones ask the vendored bowser script, which no page here loads.
+mockModule('i18next', () => ({ default: { language: 'en' } }));
+
+// Fixed values, so the batch's environment block doesn't depend on what jsdom's user agent parses to.
 useUtil({ getBrowser: () => 'chrome', getBrowserVersion: () => '1', getOperatingSystem: () => 'linux' });
 
 /** The `util` Form sees, for its real projection math (util.pano) in building the labels and the replay. */
@@ -179,13 +181,12 @@ describe('Explore label POV staleness (#4842 regression)', () => {
 
   beforeEach(async () => {
     // Form's one collaborator that lives on a global rather than a constructor arg.
-    window.AsyncLock = class { async acquire(key, fn) { return fn(); } };
+    mockModule('async-lock', () => ({ default: class { async acquire(key, fn) { return fn(); } } }));
     viewerPov = { heading: 128.7, pitch: -12.3, zoom: 2 };
     panoManager = fakePanoManager({}, {
       getPov: vi.fn(() => ({ ...viewerPov })),
       getPosition: () => ({ lat: 41.85, lng: -87.65 }),
     });
-    window.i18next = { language: 'en' };
 
     labels = [];
     form = await buildForm();

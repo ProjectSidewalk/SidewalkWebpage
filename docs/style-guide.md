@@ -183,11 +183,10 @@ consistent with it.
   unregistered file fails the lint, so when a second page needs a rule, it moves to `css/components/`; every
   stylesheet is imported by something; a page's class prefix (`ud-`, `ac-`/`ov-`/`dq-`/…, `svl-`, `svv-`, `gallery-`)
   is defined only in that page's stylesheet(s); and a view that loads an entry's JS asks for that entry's styles.
-- **Third-party code groups by library** under `public/vendor/<lib>/`, each folder self-contained (its JS + CSS +
-  fonts + images together, upstream internal layout preserved so relative `url()` refs keep working). **Nothing under
-  `vendor/` is ever edited or linted.** Vendored filenames carry their version (`pannellum-2.5.7.js`), which names
-  in the URL what a reader would otherwise have to diff for, and keeps two versions installable side by side during
-  an upgrade (see [`docs/upgrading-libraries.md`](upgrading-libraries.md)).
+- **Third-party code comes from npm** and is `import`ed by the module that uses it, stylesheet included
+  (`import 'mapbox-gl/dist/mapbox-gl.css'`); `package.json` pins each version exactly, and
+  [`docs/upgrading-libraries.md`](upgrading-libraries.md) says how to bump one and what to watch. **Nothing
+  under `node_modules/` is ever edited or linted.**
 - **Never hardcode an `/assets/...` URL in JavaScript** (#4893). Name the asset by its logical path under `public/`
   and resolve it with **`util.assetPath('images/icons/openhand.cur')`** (defined in `frontend/js/common/utilities.js`,
   loaded on every page). Staged builds content-fingerprint assets and serve the fingerprinted copy `immutable` for a
@@ -380,8 +379,10 @@ Rules:
   params from a view, log notes) is `Record<string, any>`.
 - When you know more than TypeScript can see, cast in place: `/** @type {HTMLInputElement} */ (el)`. Selector lookups
   (`querySelector`, `closest`) already return `HTMLElement`; `event.target` and `getElementById` often need a cast.
-- Every file in `frontend/js/` is type-checked. Globals that no file in `frontend/js/` declares (vendor libraries,
-  values a view sets on `window`) go in [`tools/lint/js-types/globals.d.ts`](../tools/lint/js-types/globals.d.ts).
+- Every file in `frontend/js/` is type-checked. Globals that no file in `frontend/js/` declares (the Google Maps API,
+  values a view sets on `window`) go in [`tools/lint/js-types/globals.d.ts`](../tools/lint/js-types/globals.d.ts),
+  which also gives mapbox-gl's and GeoJSON's types the bare names JSDoc uses (`mapboxgl.Map`,
+  `GeoJSON.Feature<GeoJSON.Point>`). Every other library's types come with its package.
 - Use `{Type} [paramName]` (square brackets) for optional parameters, and `{Type} [paramName=default]` when a
   default exists and is non-obvious.
 - Trivial one-line helpers may omit the header.

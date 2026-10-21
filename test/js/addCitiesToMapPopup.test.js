@@ -8,7 +8,15 @@
  * silently (the `|| 0` fallback turns a moved field into a wrong value, not a thrown error).
  */
 
-import { loadModules, useUtil } from './loader.js';
+import { loadModules, mockModule, useUtil } from './loader.js';
+
+// format-number echoes the raw value so tests can assert exact numbers; other keys just return the key.
+mockModule('i18next', () => ({ default: {
+  t: (key, opts) => {
+    if (key === 'common:format-number') return String(opts.val);
+    return key;
+  },
+} }));
 
 // Realistic slice of /v3/api/overallStats: validation totals live under validations.combined/human/ai (#4591),
 // labels under labels.count, distance at km_explored.
@@ -131,20 +139,14 @@ describe('addCitiesToMap city popup (#4591)', () => {
   beforeEach(async () => {
     document.body.innerHTML = POPUP_TEMPLATE;
     lastPopupContent = undefined;
-    // format-number echoes the raw value so tests can assert exact numbers; other keys just return the key.
-    vi.stubGlobal('i18next', {
-      t: (key, opts) => {
-        if (key === 'common:format-number') return String(opts.val);
-        return key;
-      },
-    });
     // Units come from the server's <html> stamp, which util reads back; these tests run in metric. The real
     // longDistanceToString goes through i18next's `distance` formatter, which AppManager registers.
     useUtil({
       isMetric: () => true,
       longDistanceToString: (km, precision = 0) => `${km.toFixed(precision)} km`,
     });
-    vi.stubGlobal('mapboxgl', { Popup: FakePopup, LngLatBounds: FakeLngLatBounds });
+    mockModule('frontend/js/common/mapboxgl.js',
+      () => ({ default: { Popup: FakePopup, LngLatBounds: FakeLngLatBounds } }));
     ({ addCitiesToMap } = await loadModules('frontend/js/ps-map/addCitiesToMap.js'));
     map = makeFakeMap();
   });

@@ -590,8 +590,8 @@ loaded by the corresponding Twirl view:
   MapLibre needs WebGL2 and throws without it, so `create` never rejects; a minimap that can't be built says so in its
   place and draws nothing, `isAvailable()` turns false for the overlays drawn to its scale, and the rest of Explore
   starts (`Minimap_Unavailable` is logged). What Project Sidewalk itself draws on the map (street-line encodings, fog,
-  cone) is `MinimapStyle.js`. The library is served as its own files rather than bundled (`docs/upgrading-libraries.md`
-  says why), and the mission-complete map on the same page is still Mapbox, so Explore loads both libraries.
+  cone) is `MinimapStyle.js`. The mission-complete map on the same page is still Mapbox, so Explore loads both
+  libraries.
 - **`common/`** — modules shared across bundles: `pano-viewer/` (an abstraction over the GSV / Mapillary / Infra3d /
   Panoramax / Pannellum imagery providers), `label-detail/` (label popups), and various utilities. The popup's pano viewer is
   built for the first label shown, never for a visit that opens none: Google bills every `StreetViewPanorama`
@@ -637,8 +637,11 @@ runs before `onMoved`) and makes the jump to the next one.
 `window.svl` and `window.svv` are only console and e2e handles, returned by each page's `Main.start()`.
 `util` is the object `common/utilities.js` exports; a file
 that reads `util.misc`, `util.math`, `util.url` or `util.pano` imports the file that adds it (`utilitiesSidewalk.js`,
-`utilitiesMath.js`, `urlQuery.js`, `pano-viewer/panoUtilities.js`). Vendor libraries (`mapboxgl`, `i18next`, `turf`, …)
-stay `<script>`-tag globals, declared for the type checker in `tools/lint/js-types/globals.d.ts`.
+`utilitiesMath.js`, `urlQuery.js`, `pano-viewer/panoUtilities.js`). Third-party libraries are npm dependencies a module
+`import`s like any other (mapbox-gl through `common/mapboxgl.js`, which sets up its worker), so Vite bundles each page
+with the libraries it reaches and tree-shakes what it can (#5734). The imagery viewers `import()` theirs on demand
+through `common/pano-viewer/sdk/`, so a city's visitors download only its own provider's SDK.
+[`upgrading-libraries.md`](upgrading-libraries.md) says how to bump one and what to watch.
 
 **One entry per page** lives in `frontend/js/pages/` (`pages/explore.js`, `pages/admin/overview.js`, …): it imports
 the page's code and runs its start-up. **Vite** (`vite.config.mjs`, Rolldown underneath) builds every file in that
@@ -667,8 +670,8 @@ so nothing is linked twice. A `url()` in a source stylesheet is the file's root-
 (`url("/images/icons/x.svg")`), which the build turns into the served `/assets/` URL. No Vite dev server: `npm start`
 runs `npm run watch` (`tools/dev/watch-assets.mjs`, `vite build --watch` plus a restart when a page entry is added or
 removed), so a save rebuilds into `public/build/` for `sbt run` to serve. Everything under `public/build/` is generated and
-git-ignored. Third-party libraries live under `public/vendor/<lib>/`, one self-contained folder each (never edited or
-linted).
+git-ignored. The one third-party asset served as files rather than bundled is the minimap's basemap glyphs under
+`public/vendor/basemap-glyphs/`, which MapLibre fetches by URL pattern.
 
 First-party assets split by type: `frontend/js/` is JavaScript-only, `frontend/css/` holds all styles, and media
 lives in `public/images/`, `public/audio/`, and `public/videos/`. Within `frontend/css/`, files are organized by what

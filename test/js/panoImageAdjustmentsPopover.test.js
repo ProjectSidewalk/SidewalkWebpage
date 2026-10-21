@@ -10,7 +10,10 @@
  * Popover API nor `:popover-open`, so the test stands up showPopover/hidePopover the way panoInfoViewLink.test.js does.
  */
 
-import { loadModules } from './loader.js';
+import { loadModules, mockModule } from './loader.js';
+
+const i18next = { t: vi.fn((k) => `t(${k})`) };
+mockModule('i18next', () => ({ default: i18next }));
 
 // The parts of app/views/common/panoImageAdjustments.scala.html and the Explore pill the class actually reads.
 const MARKUP = `
@@ -329,10 +332,6 @@ describe('sliders', () => {
 describe('screen-reader active state', () => {
   const activeText = () => button.querySelectorAll('.sr-only');
 
-  beforeEach(() => {
-    vi.stubGlobal('i18next', { t: vi.fn((k) => `t(${k})`) });
-  });
-
   test('adds one hidden sr-only span to the trigger at defaults', () => {
     mount();
     expect(activeText()).toHaveLength(1);
@@ -344,7 +343,7 @@ describe('screen-reader active state', () => {
     model.set('contrast', 120);
     expect(activeText()[0].hidden).toBe(false);
     expect(activeText()[0].textContent).toBe(' t(common:image-adjustments.active-sr)');
-    expect(window.i18next.t).toHaveBeenCalledWith('common:image-adjustments.active-sr');
+    expect(i18next.t).toHaveBeenCalledWith('common:image-adjustments.active-sr');
     model.reset();
     expect(activeText()[0].hidden).toBe(true);
   });

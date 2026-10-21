@@ -14,6 +14,8 @@
 import { loadModules, mockModule } from './loader.js';
 import { fakeTracker } from './fakes.js';
 
+mockModule('i18next', () => ({ default: {t: (key) => key} }));
+
 let fakeViewer;
 
 // The viewer type the config names must be the very class PanoManager imports, so every Mapillary-only path runs.
@@ -78,7 +80,6 @@ describe('Explore publishes the links clearance from Mapillary\'s in-place pill 
       disconnect() {}
     });
 
-    window.i18next = {t: (key) => key};
 
     const panoData = {getPanoId: () => 'pano1', getProperty: () => 0};
     fakeViewer = {

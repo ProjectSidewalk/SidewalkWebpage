@@ -2,6 +2,7 @@
  * The tool pages' start-up fetch (#5650). The page's HTML carries only session scalars; the mission or task it opens
  * on is asked for here, so a copy of the page served from a cache can never show work the user already did.
  */
+import i18next from 'i18next';
 import { util } from './utilities.js';
 
 /**

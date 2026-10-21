@@ -29,7 +29,7 @@ export class RouteGraph {
   #featureLengths = new Map(); // streetId -> geometry length in meters (for the snap prefilter)
 
   /**
-   * @param {GeoJSON.Feature[]} streetFeatures - GeoJSON LineString features with a street_edge_id property.
+   * @param {GeoJSON.Feature<GeoJSON.LineString>[]} streetFeatures - Street features with a street_edge_id property.
    */
   constructor(streetFeatures) {
     streetFeatures.forEach((feature) => {

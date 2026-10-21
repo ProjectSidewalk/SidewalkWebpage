@@ -8,6 +8,7 @@
  * Shows an encouraging empty state when the user has no mistakes.
  */
 
+import i18next from 'i18next';
 import { createPanoAttribution } from '../common/pano-viewer/PanoAttribution.js';
 import { createPanoViewerLogo } from '../common/pano-viewer/PanoViewerLogo.js';
 import { util } from '../common/utilities.js';

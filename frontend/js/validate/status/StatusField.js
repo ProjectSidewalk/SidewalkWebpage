@@ -2,6 +2,7 @@
  * Tracks the number of completed validations for the user, updating the progress bar throughout the mission.
  */
 
+import i18next from 'i18next';
 import { BadgeAchievements } from '../../common/BadgeAchievements.js';
 import { ProgressBar } from '../../common/ProgressBar.js';
 import { util } from '../../common/utilities.js';

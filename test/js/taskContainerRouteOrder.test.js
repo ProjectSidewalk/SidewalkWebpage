@@ -9,7 +9,7 @@
  * TaskContainer is loaded as a module and built against the smallest collaborators these choices touch.
  */
 
-import { loadModules } from './loader.js';
+import { loadModules, mockModule } from './loader.js';
 import { fakeTracker } from './fakes.js';
 
 /** A route street at `walkOrder`, in whichever of the three states the route's next-street choice cares about. */
@@ -86,7 +86,7 @@ describe('TaskContainer distance credit', () => {
   let container;
 
   beforeEach(async () => {
-    window.turf = { length: (feature) => feature.properties.km };
+    mockModule('@turf/turf', () => ({ length: (feature) => feature.properties.km }));
     container = await makeContainer();
   });
 

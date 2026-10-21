@@ -13,8 +13,10 @@
  * uses to size the halo to the marker it decorates (22px on desktop Validate vs 52px on mobile).
  */
 
-import { loadModules } from './loader.js';
+import { loadModules, mockModule } from './loader.js';
 import { fakeTracker, fakePanoOverlays } from './fakes.js';
+
+mockModule('i18next', () => ({ default: { t: () => 'Curb ramp' } }));
 
 fakePanoOverlays();
 
@@ -62,7 +64,6 @@ describe('Validate marker halo pulse (issue #4790)', () => {
     // here, only what classes/properties it carries. Returning null directly (jsdom's effective behavior)
     // keeps the fallback deterministic without jsdom's "not implemented" console noise.
     vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
-    window.i18next = { t: () => 'Curb ramp' };
 
     const panoData = {
       getPanoId: () => 'pano1',

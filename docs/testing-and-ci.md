@@ -51,7 +51,6 @@ phases**, the first of which requires *zero tests to exist* so it can land immed
 
 The specs need only **scalatestplus-play** (Test scope in `build.sbt`), which brings in ScalaTest and Play's test
 helpers. Formatting and coverage come from the **sbt-scalafmt** and **sbt-scoverage** plugins in `project/plugins.sbt`.
-Their versions are in [`docs/upgrading-libraries.md`](upgrading-libraries.md).
 
 ## Test support harness — `test/` mirrors `app/`, plus `test/util/`
 
@@ -123,16 +122,14 @@ Their versions are in [`docs/upgrading-libraries.md`](upgrading-libraries.md).
   `await loadModules(...)` and hands fakes to its constructor, or declares them with `mockModule` / `useUtil`; see
   `test/js/README.md`.
 - **Lint gate** (`make lint`: ESLint + Stylelint + HTMLHint + the locale checks + the `frontend/css/` layout check + the
-  `frontend/js/` asset-path check, the `public/vendor/` version check, the JSDoc type check, the spec base-class check,
-  plus the evolutions lint and ShellCheck below, each its own job) was rolled out under **#2487**, sequenced with the
-  in-progress JS ES5→ES2022 migration (dropping linters into CI mid-migration = large, conflict-prone churn). All are
+  `frontend/js/` asset-path check, the JSDoc type check, the spec base-class check, plus the evolutions lint and
+  ShellCheck below, each its own job) was rolled out under **#2487**, sequenced with the in-progress JS ES5→ES2022
+  migration (dropping linters into CI mid-migration = large, conflict-prone churn). All are
   **now blocking** steps in the `frontend` job — ESLint (`frontend/js/` + `public/locales/` + `test/js/` + `test/e2e/`),
   Stylelint (`frontend/css/**/*.css`), HTMLHint (`app/views`), `tools/lint/check-locale-parity.mjs`,
   `tools/lint/check-css-layout.mjs` (#5030, #5651: a page's stylesheet is imported only by its page's modules, page
   class prefixes stay in the page's own files, every stylesheet is imported by something, every view that loads an
-  entry's JS asks for its styles), `tools/lint/check-vendor-versions.mjs` (#4399: every self-hosted library folder is
-  listed in `docs/upgrading-libraries.md` and the versions there match the filenames — Dependabot never sees these, so
-  that doc is their whole inventory), `tools/lint/check-js-types.mjs` (#5278: TypeScript checks `frontend/js/` against
+  entry's JS asks for its styles), `tools/lint/check-js-types.mjs` (#5278: TypeScript checks `frontend/js/` against
   its JSDoc types in four runs, one each for Explore, Validate, and Gallery (which reuse class names) and one for
   everything else; every file fails on an error), and `tools/lint/check-asset-paths.mjs` (#4893: no hardcoded `/assets/`
   URL in `frontend/js/`, and every `util.assetPath` argument checkable — a literal one naming a real file in a
@@ -169,8 +166,8 @@ Their versions are in [`docs/upgrading-libraries.md`](upgrading-libraries.md).
   in both by default; one that only works on one gets an `--ignore` in the other.
 - Deps, all installed into the web container by the `Dockerfile`: `requirements.txt` (the in-band script's) into 3.8,
   `requirements-offline-tools.txt` (the offline `check_streets` utility's) into 3.13, and `requirements-dev.txt`
-  (`pytest`, `pytest-cov`, environment-marked per interpreter) into both.
-  [`docs/upgrading-libraries.md`](upgrading-libraries.md) has the exact pins.
+  (`pytest`, `pytest-cov`, environment-marked per interpreter) into both;
+  [`docs/upgrading-libraries.md`](upgrading-libraries.md) says why the pins fall where they do.
 
 ## CI — GitHub Actions (`.github/workflows/ci.yml`)
 
@@ -184,8 +181,8 @@ Parallel jobs:
   history against the project `db` image re-inserts already-seeded `sidewalk_login` rows — a bespoke empty-login DB
   would be needed, not worth it for an advisory check.)
 - **shell-lint** — host bash; `bash tools/lint/shellcheck.sh` (also `make shellcheck`, `files=<script>` to scope it, and
-  included in `make lint`). Runs [ShellCheck](https://www.shellcheck.net/) over every tracked `.sh` file outside
-  `public/vendor/`, from a Docker image pinned in `docker/shellcheck/Dockerfile` (never built; it's there so Dependabot
+  included in `make lint`). Runs [ShellCheck](https://www.shellcheck.net/) over every tracked `.sh` file, from a
+  Docker image pinned in `docker/shellcheck/Dockerfile` (never built; it's there so Dependabot
   sees the version) so CI and every developer get the same version. Any finding fails it, notes included; silence one
   only with a `# shellcheck disable=SCxxxx` line that gives the reason. Shared settings are in `.shellcheckrc`.
   **Blocking**, and a required status check once promoted (#5589; a new job can only be made required after it's on
@@ -230,10 +227,9 @@ Parallel jobs:
   nine lint steps and the Vitest suite, all **blocking** and each `if: always()` so the build and every result report in
   one run: `npx eslint frontend/js/ public/locales/ test/js/ test/e2e/ playwright.config.js`, `npx stylelint
   'frontend/css/**/*.css'`, `npx htmlhint app/views`, `node tools/lint/check-locale-parity.mjs`, `node
-  tools/lint/check-css-layout.mjs`, `node tools/lint/check-asset-paths.mjs`, `node
-  tools/lint/check-vendor-versions.mjs`, `node tools/lint/check-js-types.mjs`, `node tools/lint/check-spec-base.mjs`,
-  then `npm run test:js:coverage`, which also enforces the JS coverage ratchet (see "Coverage" below). No
-  `--max-warnings 0`: the one `warn` rule, `max-len`, is advisory.
+  tools/lint/check-css-layout.mjs`, `node tools/lint/check-asset-paths.mjs`, `node tools/lint/check-js-types.mjs`,
+  `node tools/lint/check-spec-base.mjs`, then `npm run test:js:coverage`, which also enforces the JS coverage ratchet
+  (see "Coverage" below). No `--max-warnings 0`: the one `warn` rule, `max-len`, is advisory.
 - **e2e-smoke** — the Playwright browser smoke suite ([`test/e2e/`](../test/e2e), #4504). Reuses `backend-tests`' DB
   recipe (repo `db` image, TCP readiness probe, `sidewalk_init` → `sidewalk_teaneck` schema rename), builds the frontend
   assets (`npm run build`), then `sbt stage` and boots the **prod-mode binary** on `:9000` (evolutions auto-apply at

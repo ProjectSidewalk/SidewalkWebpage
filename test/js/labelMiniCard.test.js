@@ -7,6 +7,17 @@
 
 import { loadModules, mockModule } from './loader.js';
 
+mockModule('i18next', () => ({ default: {
+  language: 'en',
+  t: (key, opts) => {
+    const bare = key.replace(/^[a-z]+:/, '');
+    // `interpolation` is i18next's own escaping switch, not an argument the text would show.
+    const args = Object.entries(opts || {}).filter(([k]) => k !== 'interpolation');
+    if (args.length === 0) return bare;
+    return `${bare} ${args.map(([k, v]) => `${k}=${v}`).join(' ')}`;
+  },
+} }));
+
 // The card tells Toast and the badge tracker about a vote; neither is under test, so each is a spy the suite reads.
 const toast = { show: vi.fn() };
 const badges = { recordValidation: vi.fn() };
@@ -37,16 +48,6 @@ describe('LabelMiniCard', () => {
   let postedBodies;
 
   beforeAll(async () => {
-    window.i18next = {
-      language: 'en',
-      t: (key, opts) => {
-        const bare = key.replace(/^[a-z]+:/, '');
-        // `interpolation` is i18next's own escaping switch, not an argument the text would show.
-        const args = Object.entries(opts || {}).filter(([k]) => k !== 'interpolation');
-        if (args.length === 0) return bare;
-        return `${bare} ${args.map(([k, v]) => `${k}=${v}`).join(' ')}`;
-      },
-    };
     ({ LabelMiniCard } = await loadModules('frontend/js/common/LabelMiniCard.js'));
   });
 

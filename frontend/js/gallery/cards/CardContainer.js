@@ -18,6 +18,7 @@
  * @typedef {ViewerParams & PageParams} CardContainerParams
  */
 
+import i18next from 'i18next';
 import { util } from '../../common/utilities.js';
 import { Card } from './Card.js';
 import { CardBucket } from './CardBucket.js';

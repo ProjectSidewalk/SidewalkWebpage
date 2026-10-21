@@ -12,6 +12,8 @@
 
 import { loadModules, mockModule } from './loader.js';
 
+mockModule('i18next', () => ({ default: { t: (key) => key, language: 'en' } }));
+
 // The layer helpers drive a Mapbox map; here they only record that the restore reached them.
 const filterLabelLayers = vi.fn();
 const filterStreetLayer = vi.fn();
@@ -144,7 +146,6 @@ describe('MapSidebarUrlSync', () => {
   }
 
   beforeAll(async () => {
-    window.i18next = { t: (key) => key, language: 'en' };
     window.logWebpageActivity = vi.fn();
     ({ MapSidebarFilter, MapSidebarUrlSync, LabelDetail } = await loadModules(
       'frontend/js/ps-map/MapSidebarFilter.js', 'frontend/js/ps-map/MapSidebarUrlSync.js',

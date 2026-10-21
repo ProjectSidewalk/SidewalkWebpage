@@ -7,6 +7,7 @@
  * Nothing saves as you type, so an UnsavedChangesGuard offers to save pending edits on the way out (#5226).
  */
 
+import i18next from 'i18next';
 import { UnsavedChangesGuard } from '../common/UnsavedChangesGuard.js';
 import { saveUserSettings } from '../common/saveUserSettings.js';
 import { TeamActions } from './TeamActions.js';

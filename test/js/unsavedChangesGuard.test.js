@@ -16,6 +16,8 @@
 
 import { loadModules, mockModule } from './loader.js';
 
+mockModule('i18next', () => ({ default: { t: (key) => key } }));
+
 /** The ConfirmDialog the guard under test asks; each `setUp` builds one that answers with that test's choice. */
 let confirmDialog;
 mockModule('frontend/js/common/ConfirmDialog.js', () => ({ ConfirmDialog: confirmDialog }));
@@ -54,7 +56,6 @@ async function setUp({ choice = 'stay', href = OTHER_PAGE, attrs = '', saveOk = 
       return Promise.resolve(choice);
     },
   };
-  window.i18next = { t: (key) => key };
   const doc = document.implementation.createHTMLDocument();
   const { UnsavedChangesGuard } = await loadModules('frontend/js/common/UnsavedChangesGuard.js');
 

@@ -72,6 +72,8 @@ function enableTouchSupport() {
 // The page's session scalars, written into the page as JSON by explore.scala.html.
 const mainParam = JSON.parse(document.getElementById('page-data').textContent);
 mainParam.viewerType = viewerClassFor(mainParam.imagerySource);
+// The viewer's code is a chunk of its own; asked for now, it downloads alongside the session instead of after it.
+mainParam.viewerType.preloadLibrary().catch((err) => console.warn('Pano viewer library preload failed:', err));
 
 // The task, mission, region and route this visit opens on, resolved from the same query string the page was asked
 // for (a route, a region, a street, an address, a live URL's pano seed). Started before the app's own setup so the

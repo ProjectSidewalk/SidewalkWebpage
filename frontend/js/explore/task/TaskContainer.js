@@ -6,6 +6,7 @@
  * TODO Split the responsibilities: storing tasks stays here, fetching from the server could go to a TaskModel.
  */
 
+import * as turf from '@turf/turf';
 import { util } from '../../common/utilities.js';
 import { Task } from './Task.js';
 import '../../common/utilitiesMath.js';
@@ -186,7 +187,7 @@ export class TaskContainer {
    *
    * @param {Task} taskIn - Task to check whether any available tasks are connected
    * @param {number} threshold - Distance threshold in km, unless specified in unit parameter
-   * @param {{units: string}} [unit] - Holds the distance unit; defaults to the user's units
+   * @param {{units: import('@turf/turf').Units}} [unit] - The distance unit; defaults to the user's
    * @returns {Task[]} Array of tasks that are connected to the given task
    */
   #findConnectedTasks(taskIn, threshold, unit) {
@@ -210,7 +211,7 @@ export class TaskContainer {
   /**
    * Get the total distance of the segments the labeler is done with — walked, or given up on for lack of imagery —
    * plus their progress along the street they are on now.
-   * @param {{units: string}} [units] - Object with field 'units' holding distance unit; defaults to the user's units
+   * @param {{units: import('@turf/turf').Units}} [units] - The distance unit; defaults to the user's
    * @returns {number} Distance in unit.
    */
   getCompletedTaskDistance(units) {

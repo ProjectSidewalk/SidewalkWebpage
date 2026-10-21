@@ -3,6 +3,7 @@
  * they can't be used, and the frame around the pano that takes the armed type's color.
  */
 
+import i18next from 'i18next';
 import { util } from '../../common/utilities.js';
 import '../../common/utilitiesSidewalk.js';
 /** @typedef {import('../alert/KeyboardShortcutAlert.js').KeyboardShortcutAlert} KeyboardShortcutAlert */

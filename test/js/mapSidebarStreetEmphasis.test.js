@@ -10,6 +10,8 @@
 
 import { loadModules, mockModule } from './loader.js';
 
+mockModule('i18next', () => ({ default: { t: (key) => key, language: 'en' } }));
+
 // The label-layer helpers drive a Mapbox map and have no part in the street emphasis; the street helpers stay real,
 // so the width expression under test is the one the layer is actually built with.
 mockModule('frontend/js/ps-map/psMapUtilities.js', async (importOriginal) => ({
@@ -84,7 +86,6 @@ describe('street row emphasis', () => {
   };
 
   beforeAll(async () => {
-    window.i18next = { t: (key) => key, language: 'en' };
     ({ MapSidebarFilter, streetLineWidth } = await loadModules('frontend/js/ps-map/psMapUtilities.js',
       'frontend/js/ps-map/MapSidebarFilter.js'));
   });

@@ -5,6 +5,7 @@
  * @property {string} label_type
  * @property {?string} mutually_exclusive_with
  */
+import i18next from 'i18next';
 import '../../../css/components/tag-pills.css';
 
 /**

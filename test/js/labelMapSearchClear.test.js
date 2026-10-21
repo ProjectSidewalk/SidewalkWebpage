@@ -11,7 +11,9 @@
  * real event on a real EventTarget, which is what the production code listens to.
  */
 
-import { loadModules } from './loader.js';
+import { loadModules, mockModule } from './loader.js';
+
+mockModule('i18next', () => ({ default: { t: (key) => key } }));
 
 /** Markers built by the mapboxgl stub during the current test, newest last. */
 let markers = [];
@@ -71,12 +73,11 @@ function setUpPage() {
         + '<button id="elsewhere">Unrelated</button>'
         + '<dialog id="sheet"><button id="in-dialog">Inside</button></dialog>';
 
-  window.i18next = { t: (key) => key };
   window.logWebpageActivity = (activity) => logged.push(activity);
   // The city-extent fetch is fire-and-forget; an empty collection keeps it from touching the network or warning.
   window.fetch = () => Promise.resolve({ json: () => Promise.resolve({ type: 'FeatureCollection', features: [] }) });
-  window.MapboxSearchBox = SearchBoxStub;
-  window.mapboxgl = {
+  mockModule('@mapbox/search-js-web', () => ({ MapboxSearchBox: SearchBoxStub }));
+  const mapboxgl = {
     Marker: class {
       constructor(opts) {
         this.element = opts.element;
@@ -111,6 +112,7 @@ function setUpPage() {
       remove() { this.removed = true; this.content.remove(); return this; }
     },
   };
+  mockModule('frontend/js/common/mapboxgl.js', () => ({ default: mapboxgl }));
 }
 
 /** A map stub with no rendered neighborhood layer, so the popup body skips its completion pitch. */
@@ -138,12 +140,12 @@ describe('clearing a searched place', () => {
 
   beforeEach(async () => {
     setUpPage();
-    window.MapboxSearchBox = class extends SearchBoxStub {
+    mockModule('@mapbox/search-js-web', () => ({ MapboxSearchBox: class extends SearchBoxStub {
       constructor() {
         super();
         searchBoxInstance = this;
       }
-    };
+    } }));
     const { initLabelMapLocationSearch } = await loadModules('frontend/js/labelMapLocationSearch.js');
     search = initLabelMapLocationSearch(mapStub, 'test-token');
   });

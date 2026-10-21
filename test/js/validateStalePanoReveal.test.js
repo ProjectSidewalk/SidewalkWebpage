@@ -24,6 +24,9 @@
 import { loadModules, mockModule } from './loader.js';
 import { fakeTracker, fakePanoOverlays } from './fakes.js';
 
+const i18next = { t: (key) => key };
+mockModule('i18next', () => ({ default: i18next }));
+
 let logo;
 let attribution;
 let PannellumViewerFake;
@@ -114,7 +117,7 @@ describe('Validate only paints a viewer canvas once it holds this label\'s pano 
   beforeEach(async () => {
     document.body.innerHTML = '<div id="pano-holder"><div id="svv-panorama"></div></div>';
 
-    window.i18next = { language: 'en' };
+    Object.assign(i18next, { language: 'en' });
     ({ logo, attribution } = fakePanoOverlays());
 
     panoData = { getPanoId: () => 'pano1', getProperty: () => new Date(2026, 5) };
@@ -427,7 +430,7 @@ describe('a viewer that paints during a load stays unpainted until it faces the 
     frames = [];
     vi.stubGlobal('requestAnimationFrame', (cb) => { frames.push(cb); return frames.length; });
 
-    window.i18next = { language: 'en', t: (key) => key };
+    Object.assign(i18next, { language: 'en', t: (key) => key });
     ({ logo, attribution } = fakePanoOverlays());
     PannellumViewerFake = class PannellumViewer {};
     // Only what renderPanoMarker needs of a marker: an element to hide and show, in the marker layer.

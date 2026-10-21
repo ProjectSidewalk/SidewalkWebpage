@@ -3,6 +3,7 @@
  * Docs: https://mapillary.github.io/mapillary-js/api/classes/viewer.Viewer
  */
 
+import * as turf from '@turf/turf';
 import { createMapillaryChunkedDataProvider } from './MapillaryChunkedDataProvider.js';
 import { NoImageryError } from './NoImageryError.js';
 import { PanoData } from './PanoData.js';
@@ -11,6 +12,9 @@ import { PanoViewer } from './PanoViewer.js';
 import { util } from '../utilities.js';
 import './panoUtilities.js';
 import '../utilitiesMath.js';
+
+/** The SDK and the three.js classes from sdk/mapillary.js, once preloadLibrary() has fetched them. */
+let sdk;
 
 export class MapillaryViewer extends PanoViewer {
   /** The `pano_data.source` value, so code outside the viewer can name this source without holding the class. */
@@ -87,20 +91,31 @@ export class MapillaryViewer extends PanoViewer {
   }
 
   /**
+   * See PanoViewer.preloadLibrary(); the chunk is sdk/mapillary.js.
+   * @returns {Promise<void>}
+   */
+  static async preloadLibrary() {
+    sdk ??= await util.importOrReload(() => import('./sdk/mapillary.js'));
+  }
+
+  /**
    * See PanoViewer.initialize().
    * @param {HTMLElement} canvasElem
-   * @param {Record<string, any>} [panoOptions]
+   * @param {Record<string, any>} [panoOptions] - The SDK's options, plus two of ours: `linkedPanos` (see
+   *   wantsLinkedPanos) and `instantTransitions`, which jumps between panos instead of animating the move, for pages
+   *   where every move is to an unrelated pano.
    * @returns {Promise<void>}
    */
   async initialize(canvasElem, panoOptions = {}) {
+    await MapillaryViewer.preloadLibrary();
     // TODO Need to define a set of options and then find a nice way to map them onto viewer-specific configs.
     const disableDefaultUi = 'disableDefaultUi' in panoOptions ? panoOptions.disableDefaultUi : true;
     const defaultNavigation = 'defaultNavigation' in panoOptions ? panoOptions.defaultNavigation : false;
     const preloadNeighbors = 'preloadNeighbors' in panoOptions ? panoOptions.preloadNeighbors : false;
-    const { linkedPanos = true, ...sdkOptions } = panoOptions; // Ours, not the SDK's; see wantsLinkedPanos.
+    const { linkedPanos = true, instantTransitions = false, ...sdkOptions } = panoOptions;
     this.wantsLinkedPanos = linkedPanos;
     let panoOpts = {
-      dataProvider: createMapillaryChunkedDataProvider({ accessToken: panoOptions.accessToken }),
+      dataProvider: createMapillaryChunkedDataProvider(sdk.GraphDataProvider, { accessToken: panoOptions.accessToken }),
       container: canvasElem.id,
       component: {
         bearing: !disableDefaultUi, // Shows heading viewer orb thing
@@ -118,7 +133,8 @@ export class MapillaryViewer extends PanoViewer {
       },
     };
     panoOpts = { ...panoOpts, ...sdkOptions };
-    this.viewer = new mapillary.Viewer(panoOpts);
+    if (instantTransitions) panoOpts.transitionMode = sdk.TransitionMode.Instantaneous;
+    this.viewer = new sdk.Viewer(panoOpts);
 
     // Restrict to panoramas -- https://mapillary.github.io/mapillary-js/api/classes/viewer.Viewer/#setfilter
     this.viewer.setFilter(['==', 'cameraType', 'spherical']);
@@ -276,7 +292,7 @@ export class MapillaryViewer extends PanoViewer {
   /**
    * Creates a bounding box around the given point with given radius, and creates a URL to fetch images in the box.
    *
-   * @param {turf.Point} centerPoint - The center of the output bounding box
+   * @param {GeoJSON.Feature<GeoJSON.Point>} centerPoint - The center of the output bounding box
    * @param {number} radius - A distance (in km) to extend from the center point in each direction
    * @returns {string} A URL that can be called to fetch Mapillary images within the bounding box
    */
@@ -304,7 +320,7 @@ export class MapillaryViewer extends PanoViewer {
    * Scores a candidate Mapillary image for selection, balancing multiple factors.
    *
    * @param {Record<string, any>} pano - Raw pano object from the Mapillary API response.
-   * @param {turf.Point} centerPoint - The target location we're trying to move to.
+   * @param {GeoJSON.Feature<GeoJSON.Point>} centerPoint - The target location we're trying to move to.
    * @param {string|null} currentSequenceId - The sequence ID of the current image (null on initial load).
    * @returns {number} A score between 0 and 1 where higher is better.
    */
@@ -358,22 +374,22 @@ export class MapillaryViewer extends PanoViewer {
   extractPitchRoll = (rotation) => {
     // Invert the rotation to get camera-to-world.
     const invR = [-rotation[0], -rotation[1], -rotation[2]];
-    const axis = new THREE.Vector3(...invR);
+    const axis = new sdk.Vector3(...invR);
     const angle = axis.length();
     if (angle > 0) axis.normalize();
-    const matrix = new THREE.Matrix4().makeRotationAxis(axis, angle);
+    const matrix = new sdk.Matrix4().makeRotationAxis(axis, angle);
 
     // Camera forward is [0,0,1]; camera up is [0,-1,0].
-    const viewDir = new THREE.Vector3(0, 0, 1).applyMatrix4(matrix);
-    const upDir = new THREE.Vector3(0, -1, 0).applyMatrix4(matrix);
+    const viewDir = new sdk.Vector3(0, 0, 1).applyMatrix4(matrix);
+    const upDir = new sdk.Vector3(0, -1, 0).applyMatrix4(matrix);
 
     // Pitch: elevation of viewing direction (Z=up in world frame).
     const pitch = Math.asin(Math.max(-1, Math.min(1, viewDir.z))) * (180 / Math.PI);
 
     // Roll: rotation of camera up-vector around the viewing axis, relative to the expected "level" up direction.
-    const worldUp = new THREE.Vector3(0, 0, 1);
-    const right = new THREE.Vector3().crossVectors(viewDir, worldUp).normalize();
-    const expectedUp = new THREE.Vector3().crossVectors(right, viewDir).normalize();
+    const worldUp = new sdk.Vector3(0, 0, 1);
+    const right = new sdk.Vector3().crossVectors(viewDir, worldUp).normalize();
+    const expectedUp = new sdk.Vector3().crossVectors(right, viewDir).normalize();
     const roll = Math.atan2(upDir.dot(right), upDir.dot(expectedUp)) * (180 / Math.PI);
 
     return { pitch, roll };
@@ -399,7 +415,7 @@ export class MapillaryViewer extends PanoViewer {
    * viable candidate (e.g. all excluded), falls back to a fresh API call centered exactly on the target, storing
    * those results in case they're useful later as well.
    *
-   * @param {turf.Point} center - The target location.
+   * @param {GeoJSON.Feature<GeoJSON.Point>} center - The target location.
    * @param {number} radius - Search radius in kilometers.
    * @param {Set<PanoData>} excludedPanos - Panos that are not viable candidates.
    * @returns {Promise<?Record<string, any>>} The best viable candidate pano from the Mapillary API, or null.
@@ -626,9 +642,9 @@ export class MapillaryViewer extends PanoViewer {
   /**
    * Creates a prefetch entry for the given location, stores it, and returns it.
    *
-   * @param {turf.Point} centerPoint
+   * @param {GeoJSON.Feature<GeoJSON.Point>} centerPoint
    * @param {number} radius - Search radius in kilometers.
-   * @returns {{ centerPoint: turf.Point, promise: Promise<Array> }}
+   * @returns {{ centerPoint: GeoJSON.Feature<GeoJSON.Point>, promise: Promise<Array> }}
    */
   #storePrefetch = (centerPoint, radius) => {
     const entry = { centerPoint, promise: this.#fetchImages(centerPoint, radius) };
@@ -646,8 +662,8 @@ export class MapillaryViewer extends PanoViewer {
   /**
    * Finds the nearest prefetched search result to the given point, if one is close enough to be useful.
    *
-   * @param {turf.Point} centerPoint - The target location.
-   * @returns {{ centerPoint: turf.Point, promise: Promise<Array> }|null}
+   * @param {GeoJSON.Feature<GeoJSON.Point>} centerPoint - The target location.
+   * @returns {{ centerPoint: GeoJSON.Feature<GeoJSON.Point>, promise: Promise<Array> }|null}
    */
   #findNearestPrefetch = (centerPoint) => {
     let nearest = null;
@@ -666,7 +682,7 @@ export class MapillaryViewer extends PanoViewer {
   /**
    * Fetches Mapillary images near the given point, retrying with smaller radii if the API returns too many results.
    *
-   * @param {turf.Point} centerPoint - The center of the search area.
+   * @param {GeoJSON.Feature<GeoJSON.Point>} centerPoint - The center of the search area.
    * @param {number} radius - The search radius in kilometers.
    * @returns {Promise<Array>} Raw pano objects from the Mapillary API.
    */
@@ -701,7 +717,7 @@ export class MapillaryViewer extends PanoViewer {
    * @param {Array} panos - Raw pano objects from the Mapillary API.
    * @param {Set<string>} excludedPanoIds - Pano IDs to exclude.
    * @param {Set<number>} excludedTimestamps - Capture timestamps to exclude (handles duplicate Mapillary images).
-   * @param {turf.Point} centerPoint - The target location.
+   * @param {GeoJSON.Feature<GeoJSON.Point>} centerPoint - The target location.
    * @param {string|null} currentSequenceId - The sequence ID of the current image (null on initial load).
    * @returns {?Record<string, any>} The best candidate pano, or null if none are viable.
    */

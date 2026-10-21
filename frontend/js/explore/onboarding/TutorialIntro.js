@@ -8,6 +8,8 @@
  * "Next"/"Start Mission" label.
  */
 
+import i18next from 'i18next';
+
 /** @typedef {import('../data/Tracker.js').Tracker} Tracker */
 
 export class TutorialIntro {

@@ -6,7 +6,7 @@
  * bounds fitted rather than a fixed zoom that can only suit one size of region.
  */
 
-import { loadModules, useUtil } from './loader.js';
+import { loadModules, mockModule, useUtil } from './loader.js';
 
 /** Minimal stand-in for the bounds object Mapbox builds, recording what it was extended with. */
 class LngLatBounds {
@@ -19,7 +19,7 @@ class LngLatBounds {
   }
 }
 
-window.mapboxgl = { LngLatBounds };
+mockModule('frontend/js/common/mapboxgl.js', () => ({ default: { LngLatBounds } }));
 const { setRegionFocus } = await loadModules('frontend/js/ps-map/psMapUtilities.js');
 
 /** A square region feature, as queryRenderedFeatures hands it back. */

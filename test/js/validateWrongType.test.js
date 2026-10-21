@@ -11,8 +11,10 @@
 import fs from 'fs';
 import path from 'path';
 
-import { REPO_ROOT, loadModules, loadVendored, useUtil } from './loader.js';
+import { loadModules, mockModule, useUtil, REPO_ROOT } from './loader.js';
 import { fakeTracker } from './fakes.js';
+
+mockModule('i18next', () => ({ default: { t: (key, opts) => (opts?.labelType ? `${key}:${opts.labelType}` : key) } }));
 
 const TAGS_BY_TYPE = {
   Obstacle: [{ tag_name: 'pole' }, { tag_name: 'trash/recycling can' }],
@@ -30,8 +32,6 @@ let util;
 
 beforeAll(async () => {
   window.matchMedia = () => /** @type {MediaQueryList} */ ({ matches: true }); // jsdom has none; act as a mouse.
-  // i18next echoes its key so assertions can name the key they expect rather than an English string.
-  window.i18next = { t: (key, opts) => (opts?.labelType ? `${key}:${opts.labelType}` : key) };
   ({ Label, LabelContainer, LabelTypePicker, LabelTypeDropdown, buildReasonButtonInfo, DesktopValidationMenu, util } =
     await loadModules(
       'frontend/js/common/LabelTypePicker.js',
@@ -503,7 +503,6 @@ describe('DesktopValidationMenu on Expert Validate', () => {
   let panoManager;
 
   beforeAll(() => {
-    loadVendored('tom-select');
     // No image ever loads in jsdom, and the menu only needs the promise to settle.
     useUtil({ getImage: () => Promise.resolve('img') });
     window.structuredClone ??= (v) => JSON.parse(JSON.stringify(v)); // Missing from this jsdom.

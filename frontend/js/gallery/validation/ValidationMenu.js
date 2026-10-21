@@ -2,6 +2,7 @@
  * A Validation Menu appended to a small Gallery Card for validation purposes.
  */
 
+import i18next from 'i18next';
 import { BadgeAchievements } from '../../common/BadgeAchievements.js';
 import { util } from '../../common/utilities.js';
 /** @typedef {import('../cards/Card.js').Card} Card */

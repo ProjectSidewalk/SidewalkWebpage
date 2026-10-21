@@ -17,6 +17,9 @@ import { loadModules, mockModule } from './loader.js';
 import { fakeTracker, fakePanoOverlays } from './fakes.js';
 import { FakeLabel, fakeLabelContainerDeps, buildLabelContainer } from './support/labelContainerHarness.js';
 
+const i18next = { t: (key) => key };
+mockModule('i18next', () => ({ default: i18next }));
+
 /** The backup viewer the PanoManager suite hands its subject; the logo and attribution are fakes for the file. */
 let PannellumViewer;
 fakePanoOverlays();
@@ -55,7 +58,7 @@ describe('PanoManager skips the provider for a pano it knows is gone (issue #556
 
     // A Date, as PanoData carries since #5549 replaced moment: the desktop callback formats it for the date badge.
     panoData = { getPanoId: () => 'pano1', getProperty: () => new Date(2026, 5, 1) };
-    vi.stubGlobal('i18next', { language: 'en' });
+    Object.assign(i18next, { language: 'en' });
     const fakeViewer = () => ({
       setPano: vi.fn(() => Promise.resolve(panoData)),
       addListener: vi.fn(),
@@ -189,7 +192,7 @@ describe('PanoManager skips the provider for a pano it knows is gone (issue #556
 describe('LabelContainer hands the flag to the PanoManager (issue #5561)', () => {
 
   beforeEach(async () => {
-    vi.stubGlobal('i18next', { t: vi.fn((key) => key) });
+    Object.assign(i18next, { t: vi.fn((key) => key) });
     const el = () => document.createElement('div');
     deps = fakeLabelContainerDeps({
       tracker: fakeTracker(),

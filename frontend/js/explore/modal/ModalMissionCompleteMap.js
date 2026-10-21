@@ -5,6 +5,10 @@
  * the streets from the mission that just finished.
  */
 
+import MapboxLanguage from '@mapbox/mapbox-gl-language';
+import mapboxgl from '../../common/mapboxgl.js';
+import * as turf from '@turf/turf';
+import i18next from 'i18next';
 import { util } from '../../common/utilities.js';
 import { addLabelsToMap } from '../../ps-map/addLabelsToMap.js';
 /** @typedef {import('../region/RegionModel.js').RegionModel} RegionModel */
@@ -88,7 +92,7 @@ export class ModalMissionCompleteMap {
   /**
    * Draws the street tiers and mission labels, then frames the just-finished mission's streets.
    * @param {{thisMission: object, previous: object, community: object}} streetTiers - GeoJSON FeatureCollections.
-   * @param {object} labelData - GeoJSON FeatureCollection of labels placed during the mission.
+   * @param {GeoJSON.FeatureCollection<GeoJSON.Point>} labelData - The labels placed during the mission.
    */
   async update(streetTiers, labelData) {
     const map = await this.#mapPromise;

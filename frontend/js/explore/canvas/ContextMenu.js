@@ -3,6 +3,7 @@
  * canvas (opening, closing, a severity pick) is announced through onChange, since the canvas is built after this.
  */
 
+import i18next from 'i18next';
 import { ShareWidget } from '../../common/share/ShareWidget.js';
 import { getImage, util } from '../../common/utilities.js';
 import '../../common/utilitiesSidewalk.js';

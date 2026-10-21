@@ -11,7 +11,10 @@
  * These are pure functions over plain objects, so no DOM stubbing is needed beyond loading the source.
  */
 
-import { loadModules } from './loader.js';
+import { loadModules, mockModule } from './loader.js';
+
+// utilitiesSidewalk.js reads i18next at call time for label descriptions; the helpers here never do.
+mockModule('i18next', () => ({ default: { t: (k) => k } }));
 
 // The tutorial pano's real dimensions (Onboarding.TUTORIAL_PANO_WIDTH), so the seam cases are the real ones.
 const PANO_WIDTH = 13312;
@@ -27,8 +30,6 @@ describe('tutorial annotation helpers', () => {
   let misc;
 
   beforeEach(async () => {
-    // utilitiesSidewalk.js reads i18next at call time for label descriptions; the helpers here never do.
-    window.i18next = { t: (k) => k };
     const { util } = await loadModules('frontend/js/common/utilitiesSidewalk.js',
       'frontend/js/common/utilities.js');
     misc = util.misc;

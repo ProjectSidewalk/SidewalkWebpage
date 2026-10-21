@@ -1,3 +1,4 @@
+import i18next from 'i18next';
 import { ShareWidget } from '../common/share/ShareWidget.js';
 import { CommunityListPage } from './CommunityListPage.js';
 

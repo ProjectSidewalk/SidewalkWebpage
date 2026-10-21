@@ -8,6 +8,7 @@
  * @requires Chart.js library (chart-4.5.1.min.js)
  */
 
+import { Chart } from './apiDocsChart.js';
 import { util } from '../common/utilities.js';
 import { ApiDocsTheme } from './apiDocsTheme.js';
 import '../common/utilitiesSidewalk.js';

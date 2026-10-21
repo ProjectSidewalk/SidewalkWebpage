@@ -2,6 +2,7 @@
  * Instructional (or sign in/up) pop-ups shown over the Explore page.
  */
 
+import i18next from 'i18next';
 import { util } from '../../common/utilities.js';
 /** @typedef {import('../Main.js').ExploreConfig} ExploreConfig */
 /** @typedef {import('../../common/Gate.js').Gate} Gate */

@@ -8,7 +8,9 @@
  * public site and is holding the pano on screen.
  */
 
-import { loadModules } from './loader.js';
+import { loadModules, mockModule } from './loader.js';
+
+mockModule('i18next', () => ({ default: { t: (key) => key } }));
 
 // The parts of app/views/common/panoInfoPopover.scala.html the class actually reads. Kept minimal on purpose: if a
 // selector is renamed there without being renamed here, these tests fail, which is the point.
@@ -110,8 +112,6 @@ describe('PanoInfoPopover view-in-pano link', () => {
     const domMatches = popoverEl.matches.bind(popoverEl);
     popoverEl.matches = (sel) => (sel === ':popover-open' ? open : domMatches(sel));
 
-    // Translations render as their raw keys so assertions stay locale-independent.
-    window.i18next = { t: (key) => key };
     window.cityName = 'Washington';
     clipboardText = null;
     Object.defineProperty(navigator, 'clipboard', {

@@ -10,7 +10,10 @@
  * The pin/marker/Escape wiring around the popup is covered in labelMapSearchClear.test.js.
  */
 
-import { loadModules } from './loader.js';
+import { loadModules, mockModule } from './loader.js';
+
+const i18next = { t: (key) => key };
+mockModule('i18next', () => ({ default: i18next }));
 
 const loadModule = () => loadModules('frontend/js/labelMapLocationSearch.js');
 
@@ -33,9 +36,9 @@ describe('buildExploreHereContent', () => {
 
   beforeEach(async () => {
     // Identity-t mock, except the percent interpolation which the progress assertions need realized.
-    window.i18next = {
+    Object.assign(i18next, {
       t: (key, opts) => (opts && opts.percent !== undefined ? `${opts.percent}% explored` : key),
-    };
+    });
     mod = await loadModule();
   });
 
@@ -82,7 +85,7 @@ describe('streetAddress', () => {
   let mod;
 
   beforeEach(async () => {
-    window.i18next = { t: (key) => key };
+    Object.assign(i18next, { t: (key) => key });
     mod = await loadModule();
   });
 

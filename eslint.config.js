@@ -47,30 +47,8 @@ module.exports = [
       globals: {
         ...globals.browser, // was `env: { browser: true }`.
         ...globals.es2021,  // was `env: { es6: true }`; supplies Promise/Map/Set/Symbol/globalThis etc.
-        // Vendor libraries loaded by <script> tag (the list tools/lint/js-types/globals.d.ts types); modules import all else.
-        AsyncLock: 'readonly',
-        bowser: 'readonly',
-        Chart: 'readonly',
-        DOMPurify: 'readonly',
-        FloatingUIDOM: 'readonly',
+        // The Google Maps API comes from its own bootstrap in main.scala.html; modules import every other library.
         google: 'readonly',
-        i18next: 'readonly',
-        i18nextHttpBackend: 'readonly',
-        infra3dapi: 'readonly',
-        mapboxgl: 'readonly',
-        maplibregl: 'readonly',
-        MapboxLanguage: 'readonly',
-        MapboxSearchBox: 'readonly',
-        mapillary: 'readonly',
-        pannellum: 'readonly',
-        panzoom: 'readonly',
-        PhotoSphereViewer: 'readonly',
-        pmtiles: 'readonly',
-        proj4: 'readonly',
-        THREE: 'readonly',
-        TomSelect: 'readonly',
-        turf: 'readonly',
-        vegaEmbed: 'readonly',
       },
     },
     rules: {

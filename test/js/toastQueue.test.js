@@ -9,7 +9,9 @@
  * A fresh class is loaded per test because the queue lives in static state.
  */
 
-import { loadModules } from './loader.js';
+import { loadModules, mockModule } from './loader.js';
+
+mockModule('i18next', () => ({ default: { t: (key) => key } }));
 
 /** Every `.ps-toast` currently in the document. */
 const mounted = () => document.querySelectorAll('.ps-toast');
@@ -25,7 +27,6 @@ describe('Toast queueing', () => {
   beforeEach(async () => {
     vi.useFakeTimers();
     document.body.innerHTML = '';
-    window.i18next = { t: (key) => key };
     // A fresh class per test: the live/waiting maps are static, so a shared one would leak between cases.
     ({ Toast } = await loadModules('frontend/js/common/Toast.js'));
     anchorA = document.createElement('div');
