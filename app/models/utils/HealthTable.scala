@@ -263,9 +263,13 @@ class HealthTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    * `max_connections`, so unlike [[getConnectionCounts]] this deliberately has no `datname` filter: running out of
    * slots refuses connections to every city at once, whichever database caused it.
    *
-   * Readable by any role: `current_setting` needs no privilege, and `pg_stat_activity` shows every row to every role,
-   * redacting only the text columns, so the count is exact. `reserved_connections` arrived in PG 16, so it is read with
-   * `missing_ok` and counts as 0 on an older server.
+   * Readable by any role: `current_setting` needs no privilege, and `pg_stat_activity` shows every row to every role.
+   * What it hides for another role's session (without `pg_read_all_stats`) includes `backend_type`, so a city role
+   * filtering on `backend_type = 'client backend'` would count only its own connections (measured on PG 16: 1 of 2).
+   * `datid` stays visible, and every client backend has one, so that is the filter. It also admits autovacuum, parallel
+   * and logical-replication workers while they run; they take no `max_connections` slot, so the figure errs high by a
+   * few while they run, which is the safe direction for a headroom warning. `reserved_connections` arrived in PG 16, so
+   * it is read with `missing_ok` and counts as 0 on an older server.
    *
    * This counts server backends, so behind a transaction-mode pooler (#4565) it would show the pooler's own pool
    * against the server, not the clients the pooler is turning away; the headroom signal would then be the pooler's.
@@ -275,7 +279,7 @@ class HealthTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
       SELECT current_setting('max_connections')::int,
              current_setting('superuser_reserved_connections')::int,
              COALESCE(NULLIF(current_setting('reserved_connections', true), ''), '0')::int,
-             (SELECT count(*)::int FROM pg_stat_activity WHERE backend_type = 'client backend')
+             (SELECT count(*)::int FROM pg_stat_activity WHERE datid IS NOT NULL)
     """.as[ConnSlotSettings].head
   }
 
