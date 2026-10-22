@@ -132,7 +132,7 @@ edited.**
 **To upgrade by hand:** `docker exec projectsidewalk-web bash -c 'cd /home && npm install --save-exact <pkg>@<ver>'`,
 then `bash tools/dev/npm-sync.sh --write-stamp` so the next `make dev` doesn't redo `npm ci`. Dependabot
 ([`.github/dependabot.yml`](../.github/dependabot.yml)) opens the monthly bumps; majors wait for a person, and so does
-anything in its `npm-imagery` groups (the viewer SDKs, three.js, MapLibre, pmtiles, proj4), since CI never drives a
+anything in its `npm-imagery` groups (the viewer SDKs, MapLibre, pmtiles, proj4), since CI never drives a
 pano viewer or the minimap: try those in a city that uses each one. **A version hold needs an `ignore` entry there**, or
 Dependabot bumps straight past it; mapbox-gl's is the one in place.
 
@@ -164,18 +164,18 @@ Dependabot bumps straight past it; mapbox-gl's is the one in place.
   ([mapbox-gl-js#13714](https://github.com/mapbox/mapbox-gl-js/issues/13714)). Take 3.25+ (and drop the entry) once the
   fix ([#13721](https://github.com/mapbox/mapbox-gl-js/pull/13721)) ships, or give every such symbol layer a
   feature-state paint expression first.
-- **mapillary-js** (loaded through `sdk/mapillary.js`, with the three.js classes below) — Explore and Validate leave the
+- **mapillary-js** (loaded through `sdk/mapillary.js`) — Explore and Validate leave the
   SDK's `.mapillary-attribution-container` where it renders it and override its position from `svl.css` and
   `svv-panorama.css` (#5600), keyed on that class, and Explore's `PanoManager.#liftAboveMapillaryAttribution` finds the
   node by it once and relies on the SDK creating the container once and patching it in place (not replacing it on the
   compact flip); on upgrade, re-check both.
 - **pannellum** (loaded through `sdk/pannellum.js`) — the viewer for self-hosted panos. A classic script with no exports
   that puts itself on `window`; that module reads it back.
-- **@photo-sphere-viewer/core + equirectangular-tiles-adapter** and **three** (loaded through
-  `sdk/photoSphereViewer.js`) — the renderer behind the Panoramax imagery provider (#5185). The two PSV packages move
-  together, and three.js is pinned at the version PSV's own `^` range resolves to, so Mapillary's `extractPitchRoll`
-  (its `Vector3` and `Matrix4`) shares the one copy: move three with PSV, never ahead of it, or the bundle carries two
-  copies.
+- **@photo-sphere-viewer/core + equirectangular-tiles-adapter** (loaded through `sdk/photoSphereViewer.js`) — the
+  renderer behind the Panoramax imagery provider (#5185). The two packages move together. three.js comes in as PSV's
+  own dependency. Never add it to `package.json`: the tiles adapter imports `three` without listing it, so it would
+  load our copy while PSV's core loads its own (#5811). `test/js/photoSphereViewerThreeCopy.test.js` fails any
+  install that splits them.
   [PSV docs](https://photo-sphere-viewer.js.org/guide/)
 - **pmtiles** — lets MapLibre read the minimap's tile archive (#5716). The server's `pmtiles` command-line tool is
   separate: it's pinned in `BasemapService` (`CliVersion` and each release file's SHA-256), so change those to upgrade
