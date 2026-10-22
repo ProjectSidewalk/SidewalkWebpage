@@ -2,43 +2,35 @@
 -- Undo the second run of 4717-consolidate-tiny-streets.sql (#4717). Written against evolution 419.
 --
 -- On 2026-10-22 the consolidation script ran a second time on ten cities. That copy could not see junctions the first
--- run had already joined a street through, so it joined cross streets across them. This puts every join made on or
--- after -v since= (default 2026-10-21) back the way the first run left it, and leaves the first run's joins alone:
---   * Each street that run removed comes back with its old id and line (street_edge_merge keeps both), and each street
---     it grew is cut back to its own stretch. Region, priority, imagery and OSM way rows come back for the restored
---     streets; the grown street moves back to its old region if the join moved it.
---   * Every audit on a grown street goes to the stretch its labeler actually walked: the stretch most of its panos
---     sit on (from audit_task_interaction), or the one nearest where it stopped. Audits started after the bad run
---     are split the same way. A drop-in's start and a free-exploration audit's covered stretches are re-measured.
---   * Labels follow their audit; a label whose audit is elsewhere goes to the nearest stretch. Comments, issues,
---     clusters, places and the label-position backups follow the same way. A route stop on a grown street becomes
---     stops on the stretches between where the route arrives and where it leaves.
---   * The audits that run marked not completed are marked completed again. Nothing recorded which they were. That
---     run un-completed every completed audit on a street it found short of walked and none on the others, so a grown
---     street with no completed audit left from before it lost all it had; what it had is worked out from the first
---     run. An audit counts as finished before either run when it is completed or logged a TaskEnd, and the first
---     run's rule is replayed (it un-completed every audit on a joined street walked less than -v min_cov= (80%) of
---     its length), with a saved street priority under 1 (see below) as proof that a street kept a finished audit.
---     The summary prints how many audits each run un-completed by this reckoning: check them against the runs' CSVs.
---   * The empty audits that run deleted stay deleted, and its rows in street_edge_merge go. Streets it disabled as
---     too short to keep are opened again.
+-- run had already joined a street through, so it joined cross streets across them. This puts every street that run
+-- touched back the way the 2026-10-20 nightly backup has it, which is after the first run and before the second:
+--   * The streets it joined away come back with their old id and line, the ones it grew go back to their old line, and
+--     the ones it disabled as too short open again. Their regions, priority, imagery, OSM ways, gradients, sidewalk
+--     presence and access scores come back from the backup too, and so does the status history of the restored ones.
+--   * Audits, labels, comments, issues, clusters, places, label-position backups and route stops that were on those
+--     streets go back to the street, completed flag and position the backup has.
+--   * The rest changed after the backup was taken. An audit picked up again since goes back to its old street and is
+--     completed if it was then, is now, or logged a TaskEnd before the run. One started since goes to the stretch most
+--     of its panos sit on, completed the same way. A new label goes to the nearest stretch, as the app files labels;
+--     new comments, clusters and places too. An issue goes with its audit, and a route made since gets a stop per
+--     stretch it walks.
+--   * The empty audits that run deleted stay deleted, and its rows in street_edge_merge go.
 -- Afterwards: recompute street priority (/adminapi/recalculateStreetPriority) in each city, then run
--- street-gradient-backfill.sh and osm-lineage-backfill.sh (naming these cities, since their positions changed).
+-- street-gradient-backfill.sh and osm-lineage-backfill.sh naming these cities.
 --
--- The saved priorities: a CSV of (city, street_edge_id, priority) from before the bad run. Send the runner the CSV
--- loaded into a temp table ahead of this script, so the same file serves every city:
---   { echo 'SET default_transaction_read_only = off;'
---     echo 'CREATE TEMP TABLE priority_snapshot (city TEXT, street_edge_id INTEGER, priority DOUBLE PRECISION);'
---     echo 'COPY priority_snapshot FROM STDIN WITH (FORMAT csv, HEADER);'
---     cat 4717-priority-snapshot.csv; echo '\.'
---     cat tools/one-off/4717-undo-rerun.sql; } > current-query.sql
--- Without it the replay alone decides.
+-- The backup rows come in one restore file per city. To make them:
+--   1. On the server, 4717-undo-extract-backup.sh pulls the ten cities out of the nightly dump; load that locally into
+--      a database of its own (sidewalk_pre4717).
+--   2. Run 4717-undo-rerun-list.sql on prod (it lists the streets the run touched, with its timestamp).
+--   3. 4717-undo-make-restore-files.sh <that CSV> 4717-undo-restore writes 4717-undo-restore/<city>.sql.
+-- Copy the folder next to current-query.sql. This reads 4717-undo-restore/<city>.sql and stops if it's missing, if
+-- it doesn't match the run it finds, or if there's nothing left to undo.
 --
 -- DRY RUN BY DEFAULT: everything runs in a transaction that is rolled back, and one summary row per city is
 -- printed. Built for sidewalk-server-tools/run-query-in-every-city.sh (-m -c "<the ten cities>"): send it a copy with
--- `\set apply 1` in place of the default below. A city with nothing to undo prints zeros. For one city by hand:
---   docker exec -i projectsidewalk-db psql "dbname=sidewalk options=--search_path=sidewalk_st_louis,public" \
---     -U sidewalk_st_louis -v city=st_louis -v apply=0 -f - < tools/one-off/4717-undo-rerun.sql
+-- `\set apply 1` in place of the default below. For one city by hand, from the folder holding 4717-undo-restore/:
+--   psql "dbname=sidewalk options=--search_path=sidewalk_st_louis,public" -U sidewalk_st_louis \
+--     -v city=st_louis -v apply=0 -f 4717-undo-rerun.sql
 -- =====================================================================================================================
 
 \set QUIET on
@@ -46,384 +38,240 @@
 \else
   \set apply 0
 \endif
-\if :{?since}
-\else
-  \set since '2026-10-21'
-\endif
-\if :{?touch_m}
-\else
-  \set touch_m 1.0
-\endif
-\if :{?min_cov}
-\else
-  \set min_cov 0.80
-\endif
 
 -- The fleet runner opens every connection read-only; temp tables need this off even for a dry run.
 SET default_transaction_read_only = off;
-SELECT to_regclass('pg_temp.priority_snapshot') IS NOT NULL AS has_snapshot \gset
 BEGIN;
--- Without the saved priorities, an empty table stands in, so every rule below reads it the same way.
-\if :has_snapshot
-\else
-CREATE TEMP TABLE priority_snapshot (city TEXT, street_edge_id INTEGER, priority DOUBLE PRECISION) ON COMMIT DROP;
-\endif
+-- Someone auditing a touched street can block this; give up rather than hold the app up, and rerun the city.
+SET LOCAL lock_timeout = '10s';
 
--- The bad run's joins. The script never wrote a trace for one without a survivor except its deleted residue, and that
--- run deleted none; one showing up here would be a street this script can't put back, so it stops.
-CREATE TEMP TABLE bad_merge ON COMMIT DROP AS
-SELECT street_edge_merge_id, dropped_street_edge_id AS id, survivor_street_edge_id AS survivor_id, rule,
-       dropped_osm_way_id AS osm_way_id, dropped_length_m AS m, dropped_geom AS geom, merged_at
+\set restore_file 4717-undo-restore/ :city .sql
+\ir :restore_file
+
+-- 1. Every row one run wrote shares its timestamp, so matching on it never mistakes a later run's joins for this one's.
+CREATE TEMP TABLE touched (id INTEGER PRIMARY KEY, kind TEXT, survivor_id INTEGER) ON COMMIT DROP;
+INSERT INTO touched SELECT street_edge_id, kind, survivor_street_edge_id FROM pre_list;
+ANALYZE touched;
+CREATE TEMP TABLE bad_merge (street_edge_merge_id INTEGER PRIMARY KEY, id INTEGER, survivor_id INTEGER) ON COMMIT DROP;
+INSERT INTO bad_merge
+SELECT street_edge_merge_id, dropped_street_edge_id, survivor_street_edge_id
 FROM street_edge_merge
-WHERE merged_at >= :'since';
+WHERE merged_at = :'bad_run_at'::timestamptz;
 DO $$
 BEGIN
-  IF EXISTS (SELECT FROM bad_merge WHERE survivor_id IS NULL OR rule = 'residue') THEN
-    RAISE EXCEPTION 'the run being undone deleted residue streets, which this script does not restore';
+  IF NOT EXISTS (SELECT FROM bad_merge) THEN
+    RAISE EXCEPTION 'none of the run''s joins are left; has this undo already been applied?';
   END IF;
-  IF EXISTS (SELECT FROM bad_merge JOIN street_edge ON street_edge.street_edge_id = bad_merge.id) THEN
-    RAISE EXCEPTION 'a street the run removed exists again; has this undo already been applied?';
+  IF EXISTS (SELECT id, survivor_id FROM bad_merge
+             EXCEPT SELECT id, survivor_id FROM touched WHERE kind = 'dropped')
+     OR EXISTS (SELECT id, survivor_id FROM touched WHERE kind = 'dropped'
+                EXCEPT SELECT id, survivor_id FROM bad_merge) THEN
+    RAISE EXCEPTION 'the restore file lists different joins than street_edge_merge has for that run';
+  END IF;
+  IF EXISTS (SELECT FROM touched WHERE NOT EXISTS (SELECT FROM pre_street_edge
+                                                   WHERE pre_street_edge.street_edge_id = touched.id)) THEN
+    RAISE EXCEPTION 'the restore file is missing some of the streets the run touched';
+  END IF;
+  IF EXISTS (SELECT FROM touched JOIN street_edge ON street_edge.street_edge_id = touched.id
+             WHERE touched.kind = 'dropped') THEN
+    RAISE EXCEPTION 'a street the run joined away exists again';
   END IF;
 END $$;
-ALTER TABLE bad_merge ADD PRIMARY KEY (id);
-CREATE INDEX ON bad_merge (survivor_id);
-ANALYZE bad_merge;
 
--- When each run happened: everything one run wrote shares its transaction's timestamp.
-SELECT coalesce((SELECT min(merged_at) FROM bad_merge), now()) AS bad_run_at,
-       coalesce((SELECT min(merged_at) FROM street_edge_merge WHERE merged_at < :'since'), '-infinity') AS first_run_at
-\gset
-
--- 1. The grown streets, and the stretch of each that was its own. Every piece was added at one end, so the pieces
---    cover the line's two ends and the street's own stretch is the gap between them. The cut is snapped to the
---    nearest vertex: the street's own vertices were never moved, so the stretch comes back exactly.
-CREATE FUNCTION pg_temp.own_stretch(line geometry, pieces geometry[], touch_m DOUBLE PRECISION) RETURNS geometry
-LANGUAGE plpgsql IMMUTABLE AS $$
-DECLARE
-  line_m DOUBLE PRECISION := ST_Length(line::geography);
-  slack DOUBLE PRECISION := 3 * touch_m / NULLIF(ST_Length(line::geography), 0);
-  span RECORD;
-  run_lo DOUBLE PRECISION;
-  run_hi DOUBLE PRECISION;
-  own_lo DOUBLE PRECISION := 0;
-  own_hi DOUBLE PRECISION := 1;
-  first_vertex INTEGER;
-  last_vertex INTEGER;
-BEGIN
-  IF line_m IS NULL OR line_m = 0 THEN RETURN NULL; END IF;
-  -- Merge the pieces' spans along the line into runs; a run must reach one end of the line or the other.
-  FOR span IN
-    SELECT least(a, b) AS lo, greatest(a, b) AS hi
-    FROM unnest(pieces) AS piece (geom)
-    CROSS JOIN LATERAL (SELECT ST_LineLocatePoint(line, ST_StartPoint(piece.geom)) AS a,
-                               ST_LineLocatePoint(line, ST_EndPoint(piece.geom)) AS b) AS at
-    ORDER BY 1
-  LOOP
-    IF run_lo IS NOT NULL AND span.lo <= run_hi + slack THEN
-      run_hi := greatest(run_hi, span.hi);
-      CONTINUE;
-    END IF;
-    IF run_lo IS NOT NULL THEN
-      IF run_lo <= slack THEN own_lo := greatest(own_lo, run_hi);
-      ELSIF run_hi >= 1 - slack THEN own_hi := least(own_hi, run_lo);
-      ELSE RETURN NULL;
-      END IF;
-    END IF;
-    run_lo := span.lo;
-    run_hi := span.hi;
-  END LOOP;
-  IF run_lo IS NOT NULL THEN
-    IF run_lo <= slack THEN own_lo := greatest(own_lo, run_hi);
-    ELSIF run_hi >= 1 - slack THEN own_hi := least(own_hi, run_lo);
-    ELSE RETURN NULL;
-    END IF;
-  END IF;
-  SELECT vertex.path[1] INTO first_vertex FROM ST_DumpPoints(line) AS vertex
-  ORDER BY abs(ST_LineLocatePoint(line, vertex.geom) - own_lo), vertex.path[1] LIMIT 1;
-  SELECT vertex.path[1] INTO last_vertex FROM ST_DumpPoints(line) AS vertex
-  ORDER BY abs(ST_LineLocatePoint(line, vertex.geom) - own_hi), vertex.path[1] DESC LIMIT 1;
-  IF first_vertex >= last_vertex THEN RETURN NULL; END IF;
-  RETURN (SELECT ST_MakeLine(vertex.geom ORDER BY vertex.path[1]) FROM ST_DumpPoints(line) AS vertex
-          WHERE vertex.path[1] BETWEEN first_vertex AND last_vertex);
-END $$;
-
-CREATE TEMP TABLE grown ON COMMIT DROP AS
-SELECT street_edge.street_edge_id AS id, street_edge.geom AS joined_geom,
-       ST_Length(street_edge.geom::geography) AS joined_m, street_edge.status, street_edge.way_type,
-       street_edge.timestamp,
-       pg_temp.own_stretch(street_edge.geom, (SELECT array_agg(bad_merge.geom) FROM bad_merge
-                                              WHERE bad_merge.survivor_id = street_edge.street_edge_id),
-                           :touch_m) AS geom
+-- 2. The stretches of each grown street: its own old line and each street it took in, each knowing whether it runs
+--    against the grown line. Used to place what was added after the backup, and to move positions along the line.
+CREATE TEMP TABLE grown (id INTEGER PRIMARY KEY, joined_geom geometry, joined_m DOUBLE PRECISION) ON COMMIT DROP;
+INSERT INTO grown
+SELECT street_edge.street_edge_id, street_edge.geom, ST_Length(street_edge.geom::geography)
 FROM street_edge
-WHERE street_edge.street_edge_id IN (SELECT survivor_id FROM bad_merge);
-ALTER TABLE grown ADD COLUMN m DOUBLE PRECISION;
-UPDATE grown SET m = ST_Length(geom::geography);
--- A cut that doesn't add up (the own stretch plus the pieces should come to the joined length, give or take the
--- touching tolerance at each joint) means the line folds back on itself somewhere; such a street is left joined.
-ALTER TABLE grown ADD COLUMN ok BOOLEAN;
-UPDATE grown SET ok = geom IS NOT NULL
-  AND abs(grown.m + (SELECT sum(bad_merge.m) FROM bad_merge WHERE bad_merge.survivor_id = grown.id) - grown.joined_m)
-      <= 2 * :touch_m * (SELECT count(*) FROM bad_merge WHERE bad_merge.survivor_id = grown.id) + 0.5;
-ALTER TABLE grown ADD PRIMARY KEY (id);
+WHERE street_edge.street_edge_id IN (SELECT id FROM touched WHERE kind = 'grown');
 ANALYZE grown;
-
--- Every stretch of every grown street: its own, then the pieces, each knowing whether it runs against the grown line.
-CREATE TEMP TABLE part ON COMMIT DROP AS
-SELECT grown.id AS grown_id, grown.id AS part_id, TRUE AS own, grown.geom, grown.m, FALSE AS reversed,
-       NULL::BIGINT AS osm_way_id, NULL::TEXT AS rule
-FROM grown WHERE grown.ok
-UNION ALL
-SELECT bad_merge.survivor_id, bad_merge.id, FALSE, bad_merge.geom, bad_merge.m,
-       ST_LineLocatePoint(grown.joined_geom, ST_StartPoint(bad_merge.geom))
-         > ST_LineLocatePoint(grown.joined_geom, ST_EndPoint(bad_merge.geom)),
-       bad_merge.osm_way_id, bad_merge.rule
-FROM bad_merge JOIN grown ON grown.id = bad_merge.survivor_id
-WHERE grown.ok;
-ALTER TABLE part ADD PRIMARY KEY (part_id);
+CREATE TEMP TABLE part (part_id INTEGER PRIMARY KEY, grown_id INTEGER, own BOOLEAN, geom geometry,
+                        m DOUBLE PRECISION, reversed BOOLEAN) ON COMMIT DROP;
+INSERT INTO part
+SELECT pre_street_edge.street_edge_id, grown.id, pre_street_edge.street_edge_id = grown.id, pre_street_edge.geom,
+       ST_Length(pre_street_edge.geom::geography),
+       ST_LineLocatePoint(grown.joined_geom, ST_StartPoint(pre_street_edge.geom))
+         > ST_LineLocatePoint(grown.joined_geom, ST_EndPoint(pre_street_edge.geom))
+FROM touched
+JOIN grown ON grown.id = coalesce(touched.survivor_id, touched.id)
+JOIN pre_street_edge ON pre_street_edge.street_edge_id = touched.id
+WHERE touched.kind IN ('grown', 'dropped');
 CREATE INDEX ON part (grown_id);
-CREATE INDEX ON part USING gist (geom);
 ANALYZE part;
 
--- 2. Where each audit on a grown street was walked. A pano is counted once per audit; ties go to the street's own
---    stretch, and an audit with no logged pano goes by where it last stood.
-CREATE TEMP TABLE grown_task ON COMMIT DROP AS
-SELECT audit_task.audit_task_id, audit_task.street_edge_id AS grown_id, audit_task.task_start, audit_task.completed,
-       audit_task.start_point_reversed, audit_task.start_offset_m, audit_task.covered_ranges,
-       ST_SetSRID(ST_MakePoint(audit_task.current_lng, audit_task.current_lat), 4326) AS last_pt
-FROM audit_task
-JOIN grown ON grown.id = audit_task.street_edge_id AND grown.ok;
-ALTER TABLE grown_task ADD PRIMARY KEY (audit_task_id);
-ANALYZE grown_task;
+-- A distance along the grown line, as the same point's distance along one of its stretches.
+CREATE FUNCTION pg_temp.along_part(m DOUBLE PRECISION, joined geometry, joined_m DOUBLE PRECISION, part_geom geometry,
+                                   part_m DOUBLE PRECISION) RETURNS DOUBLE PRECISION
+LANGUAGE sql IMMUTABLE AS $$
+  SELECT ST_LineLocatePoint(part_geom,
+                            ST_LineInterpolatePoint(joined, least(1.0, greatest(0.0, m / NULLIF(joined_m, 0)))))
+         * part_m
+$$;
 
-CREATE TEMP TABLE grown_task_part ON COMMIT DROP AS
+-- 3. Audits. "Untouched since" means its task_end is what the backup has: the app moves task_end on every save.
+CREATE TEMP TABLE task_fix (audit_task_id INTEGER PRIMARY KEY, how TEXT, from_grown_id INTEGER, part_id INTEGER,
+                            was_completed BOOLEAN, completed BOOLEAN, by_task_end BOOLEAN DEFAULT FALSE)
+  ON COMMIT DROP;
+INSERT INTO task_fix (audit_task_id, was_completed, how, from_grown_id, part_id)
+SELECT audit_task.audit_task_id, audit_task.completed,
+       CASE WHEN pre_audit_task.audit_task_id IS NULL THEN 'late'
+            WHEN audit_task.task_end IS NOT DISTINCT FROM pre_audit_task.task_end THEN 'quiet'
+            ELSE 'active' END,
+       grown.id, pre_audit_task.street_edge_id
+FROM audit_task
+LEFT JOIN pre_audit_task ON pre_audit_task.audit_task_id = audit_task.audit_task_id
+LEFT JOIN grown ON grown.id = audit_task.street_edge_id
+WHERE pre_audit_task.audit_task_id IS NOT NULL OR grown.id IS NOT NULL;
+ANALYZE task_fix;
+
+-- An audit started after the backup goes to the stretch most of its distinct panos sit on (ties to the street's own
+-- stretch), or the one nearest where it last stood.
 WITH pano AS (
   SELECT DISTINCT ON (audit_task_interaction.audit_task_id, audit_task_interaction.pano_id)
          audit_task_interaction.audit_task_id,
          ST_SetSRID(ST_MakePoint(audit_task_interaction.lng, audit_task_interaction.lat), 4326) AS pt
   FROM audit_task_interaction
-  WHERE audit_task_interaction.audit_task_id IN (SELECT audit_task_id FROM grown_task)
+  WHERE audit_task_interaction.audit_task_id IN (SELECT audit_task_id FROM task_fix WHERE how = 'late')
     AND audit_task_interaction.lat IS NOT NULL AND audit_task_interaction.lng IS NOT NULL
   ORDER BY audit_task_interaction.audit_task_id, audit_task_interaction.pano_id, audit_task_interaction.timestamp
 ), vote AS (
   SELECT pano.audit_task_id, nearest.part_id, count(*) AS panos
   FROM pano
-  JOIN grown_task USING (audit_task_id)
-  CROSS JOIN LATERAL (SELECT part.part_id FROM part WHERE part.grown_id = grown_task.grown_id
-                      ORDER BY part.geom <-> pano.pt, NOT part.own LIMIT 1) AS nearest
+  JOIN task_fix USING (audit_task_id)
+  CROSS JOIN LATERAL (SELECT part.part_id FROM part WHERE part.grown_id = task_fix.from_grown_id
+                      ORDER BY ST_DistanceSphere(part.geom, pano.pt), NOT part.own LIMIT 1) AS nearest
   GROUP BY pano.audit_task_id, nearest.part_id
 )
-SELECT grown_task.audit_task_id, grown_task.grown_id,
-       coalesce(best.part_id, by_last.part_id) AS part_id, best.part_id IS NOT NULL AS by_panos,
-       coalesce((SELECT count(*) FROM vote WHERE vote.audit_task_id = grown_task.audit_task_id), 0) AS parts_walked
-FROM grown_task
-LEFT JOIN LATERAL (SELECT vote.part_id FROM vote JOIN part USING (part_id)
-                   WHERE vote.audit_task_id = grown_task.audit_task_id
-                   ORDER BY vote.panos DESC, NOT part.own, vote.part_id LIMIT 1) AS best ON TRUE
-CROSS JOIN LATERAL (SELECT part.part_id FROM part WHERE part.grown_id = grown_task.grown_id
-                    ORDER BY part.geom <-> grown_task.last_pt, NOT part.own LIMIT 1) AS by_last;
-ALTER TABLE grown_task_part ADD PRIMARY KEY (audit_task_id);
-ANALYZE grown_task_part;
+UPDATE task_fix
+SET part_id = coalesce(
+  (SELECT vote.part_id FROM vote JOIN part USING (part_id)
+   WHERE vote.audit_task_id = task_fix.audit_task_id
+   ORDER BY vote.panos DESC, NOT part.own, vote.part_id LIMIT 1),
+  (SELECT part.part_id FROM part, audit_task
+   WHERE part.grown_id = task_fix.from_grown_id AND audit_task.audit_task_id = task_fix.audit_task_id
+   ORDER BY ST_DistanceSphere(part.geom,
+                              ST_SetSRID(ST_MakePoint(audit_task.current_lng, audit_task.current_lat), 4326)),
+            NOT part.own
+   LIMIT 1),
+  task_fix.from_grown_id)
+WHERE task_fix.how = 'late';
 
--- 3. The replay. "Finished before either run": completed now, or a TaskEnd was logged. The few completed audits that
---    never logged one and that a run un-completed are invisible to it and stay as they are.
-CREATE TEMP TABLE finished ON COMMIT DROP AS
-SELECT DISTINCT audit_task_interaction.audit_task_id
-FROM audit_task_interaction
-WHERE audit_task_interaction.action = 'TaskEnd';
-ALTER TABLE finished ADD PRIMARY KEY (audit_task_id);
-ANALYZE finished;
-
--- 3a. The first run, on every street it grew, with each as the undo leaves it: a grown street's own stretch, a piece
---     put back, or the street as it is.
-CREATE TEMP TABLE first_merge ON COMMIT DROP AS
-SELECT dropped_street_edge_id AS id, survivor_street_edge_id AS survivor_id, dropped_length_m AS m,
-       dropped_geom AS geom
-FROM street_edge_merge
-WHERE merged_at < :'since' AND rule <> 'residue';
-CREATE INDEX ON first_merge (survivor_id);
-ANALYZE first_merge;
-CREATE TEMP TABLE first_grown ON COMMIT DROP AS
-SELECT first.id, coalesce(part.geom, street_edge.geom) AS geom
-FROM (SELECT DISTINCT survivor_id AS id FROM first_merge) AS first
-LEFT JOIN part ON part.part_id = first.id
-LEFT JOIN street_edge ON street_edge.street_edge_id = first.id
-WHERE coalesce(part.geom, street_edge.geom) IS NOT NULL;
-ALTER TABLE first_grown ADD COLUMN m DOUBLE PRECISION;
-ALTER TABLE first_grown ADD COLUMN own_geom geometry;
-UPDATE first_grown SET m = ST_Length(geom::geography),
-  own_geom = pg_temp.own_stretch(geom, (SELECT array_agg(first_merge.geom) FROM first_merge
-                                        WHERE first_merge.survivor_id = first_grown.id), :touch_m);
-ALTER TABLE first_grown ADD PRIMARY KEY (id);
-ANALYZE first_grown;
-CREATE TEMP TABLE first_part ON COMMIT DROP AS
-SELECT first_grown.id AS grown_id, first_grown.id AS part_id, TRUE AS own,
-       coalesce(first_grown.own_geom, first_grown.geom) AS geom,
-       coalesce(ST_Length(first_grown.own_geom::geography),
-                greatest(first_grown.m - (SELECT sum(first_merge.m) FROM first_merge
-                                          WHERE first_merge.survivor_id = first_grown.id), 0)) AS m
-FROM first_grown
-UNION ALL
-SELECT first_merge.survivor_id, first_merge.id, FALSE, first_merge.geom, first_merge.m
-FROM first_merge JOIN first_grown ON first_grown.id = first_merge.survivor_id;
-ALTER TABLE first_part ADD PRIMARY KEY (part_id);
-CREATE INDEX ON first_part (grown_id);
-ANALYZE first_part;
-
--- The street each audit started before the first run sits on once the undo is done, and the first run's stretch of
--- it the audit was walked on, found the same way as above.
-CREATE TEMP TABLE first_task ON COMMIT DROP AS
-SELECT audit_task.audit_task_id, coalesce(grown_task_part.part_id, audit_task.street_edge_id) AS street_id,
-       audit_task.completed OR finished.audit_task_id IS NOT NULL AS was_finished,
-       ST_SetSRID(ST_MakePoint(audit_task.current_lng, audit_task.current_lat), 4326) AS last_pt
+-- Completed: what the backup says for an untouched audit. For one worked on since, also if it is completed now or
+-- logged a TaskEnd before the run, since only the run took completion away.
+UPDATE task_fix SET by_task_end = TRUE
+WHERE task_fix.how <> 'quiet'
+  AND EXISTS (SELECT FROM audit_task_interaction
+              WHERE audit_task_interaction.audit_task_id = task_fix.audit_task_id
+                AND audit_task_interaction.action = 'TaskEnd'
+                AND audit_task_interaction.timestamp < :'bad_run_at'::timestamptz);
+UPDATE task_fix
+SET completed = CASE WHEN task_fix.how = 'quiet' THEN pre_audit_task.completed
+                     ELSE coalesce(pre_audit_task.completed, FALSE) OR audit_task.completed OR task_fix.by_task_end END
 FROM audit_task
-LEFT JOIN grown_task_part ON grown_task_part.audit_task_id = audit_task.audit_task_id
-LEFT JOIN finished ON finished.audit_task_id = audit_task.audit_task_id
-WHERE audit_task.task_start < :'first_run_at'
-  AND coalesce(grown_task_part.part_id, audit_task.street_edge_id) IN (SELECT id FROM first_grown);
-ALTER TABLE first_task ADD PRIMARY KEY (audit_task_id);
-ANALYZE first_task;
-CREATE TEMP TABLE first_task_part ON COMMIT DROP AS
-WITH pano AS (
-  SELECT DISTINCT ON (audit_task_interaction.audit_task_id, audit_task_interaction.pano_id)
-         audit_task_interaction.audit_task_id,
-         ST_SetSRID(ST_MakePoint(audit_task_interaction.lng, audit_task_interaction.lat), 4326) AS pt
-  FROM audit_task_interaction
-  WHERE audit_task_interaction.audit_task_id IN (SELECT audit_task_id FROM first_task WHERE was_finished)
-    AND audit_task_interaction.lat IS NOT NULL AND audit_task_interaction.lng IS NOT NULL
-  ORDER BY audit_task_interaction.audit_task_id, audit_task_interaction.pano_id, audit_task_interaction.timestamp
-), vote AS (
-  SELECT pano.audit_task_id, nearest.part_id, count(*) AS panos
-  FROM pano
-  JOIN first_task USING (audit_task_id)
-  CROSS JOIN LATERAL (SELECT first_part.part_id FROM first_part WHERE first_part.grown_id = first_task.street_id
-                      ORDER BY first_part.geom <-> pano.pt, NOT first_part.own LIMIT 1) AS nearest
-  GROUP BY pano.audit_task_id, nearest.part_id
-)
-SELECT first_task.audit_task_id, first_task.street_id, first_task.was_finished,
-       coalesce(best.part_id, by_last.part_id) AS part_id
-FROM first_task
-LEFT JOIN LATERAL (SELECT vote.part_id FROM vote JOIN first_part USING (part_id)
-                   WHERE vote.audit_task_id = first_task.audit_task_id
-                   ORDER BY vote.panos DESC, NOT first_part.own, vote.part_id LIMIT 1) AS best ON TRUE
-CROSS JOIN LATERAL (SELECT first_part.part_id FROM first_part WHERE first_part.grown_id = first_task.street_id
-                    ORDER BY first_part.geom <-> first_task.last_pt, NOT first_part.own LIMIT 1) AS by_last;
-ALTER TABLE first_task_part ADD PRIMARY KEY (audit_task_id);
-ANALYZE first_task_part;
+LEFT JOIN pre_audit_task ON pre_audit_task.audit_task_id = audit_task.audit_task_id
+WHERE audit_task.audit_task_id = task_fix.audit_task_id;
 
--- Walked enough under the first run's rule. A saved priority under 1 also settles it: the street still had a finished
--- audit afterwards. A priority of 1 settles nothing, since audits by users the priority doesn't count leave it there.
-CREATE TEMP TABLE first_covered ON COMMIT DROP AS
-SELECT first_grown.id,
-       coalesce((SELECT sum(first_part.m) FROM first_part
-                 WHERE first_part.grown_id = first_grown.id
-                   AND EXISTS (SELECT FROM first_task_part
-                               WHERE first_task_part.part_id = first_part.part_id AND first_task_part.was_finished)),
-                0) / NULLIF(first_grown.m, 0) >= :min_cov AS replayed,
-       NULL::BOOLEAN AS saved
-FROM first_grown;
-ALTER TABLE first_covered ADD PRIMARY KEY (id);
-UPDATE first_covered SET saved = priority_snapshot.priority < 1.0
-FROM priority_snapshot
-WHERE priority_snapshot.city = :'city' AND priority_snapshot.street_edge_id = first_covered.id;
-ALTER TABLE first_covered ADD COLUMN covered BOOLEAN;
-UPDATE first_covered SET covered = coalesce(saved, FALSE) OR replayed;
-
--- 3b. What each audit on a grown street looked like just before the bad run.
-CREATE TEMP TABLE before_bad ON COMMIT DROP AS
-SELECT grown_task.audit_task_id, grown_task_part.part_id,
-       (grown_task.completed OR finished.audit_task_id IS NOT NULL)
-         AND coalesce(first_covered.covered OR grown_task.task_start >= :'first_run_at', TRUE) AS completed
-FROM grown_task
-JOIN grown_task_part USING (audit_task_id)
-LEFT JOIN finished ON finished.audit_task_id = grown_task.audit_task_id
-LEFT JOIN first_covered ON first_covered.id = grown_task_part.part_id
-WHERE grown_task.task_start < :'bad_run_at';
-ALTER TABLE before_bad ADD PRIMARY KEY (audit_task_id);
-
--- 3c. The bad run's rule needs no replaying: it un-completed every completed audit on a street it found short of
---     walked, and none on the others. So a grown street still holding a completed audit from before that run was
---     covered, and on any other one, every audit that was completed just before it is one it un-completed.
-CREATE TEMP TABLE bad_covered ON COMMIT DROP AS
-SELECT grown.id,
-       EXISTS (SELECT FROM grown_task
-               WHERE grown_task.grown_id = grown.id AND grown_task.completed
-                 AND grown_task.task_start < :'bad_run_at') AS covered
-FROM grown
-WHERE grown.ok;
-ALTER TABLE bad_covered ADD PRIMARY KEY (id);
-
--- The audits the bad run un-completed, by the replay.
-CREATE TEMP TABLE uncompleted ON COMMIT DROP AS
-SELECT before_bad.audit_task_id, grown_task.completed AS completed_now
-FROM before_bad
-JOIN grown_task USING (audit_task_id)
-JOIN bad_covered ON bad_covered.id = grown_task.grown_id
-WHERE before_bad.completed AND NOT bad_covered.covered;
-ALTER TABLE uncompleted ADD PRIMARY KEY (audit_task_id);
-
--- 4. Labels and the other things that sit on a street: each follows its audit when the audit is on the same grown
---    street, and otherwise goes to the nearest stretch.
-CREATE TEMP TABLE label_part ON COMMIT DROP AS
-SELECT label.label_id, label.street_edge_id AS grown_id,
-       coalesce(grown_task_part.part_id, nearest.part_id, label.street_edge_id) AS part_id
+-- 4. Labels: back to the backup's street, or for one made since, the nearest stretch (the app's rule), falling back
+--    to its audit's stretch when it has no position.
+CREATE TEMP TABLE label_fix (label_id INTEGER PRIMARY KEY, from_id INTEGER, to_id INTEGER, late BOOLEAN)
+  ON COMMIT DROP;
+INSERT INTO label_fix
+SELECT label.label_id, label.street_edge_id, pre_label.street_edge_id, FALSE
+FROM label JOIN pre_label ON pre_label.label_id = label.label_id;
+INSERT INTO label_fix
+SELECT label.label_id, label.street_edge_id,
+       coalesce((SELECT part.part_id FROM part, label_point
+                 WHERE part.grown_id = label.street_edge_id AND label_point.label_id = label.label_id
+                   AND label_point.geom IS NOT NULL
+                 ORDER BY ST_DistanceSphere(part.geom, label_point.geom), NOT part.own LIMIT 1),
+                (SELECT task_fix.part_id FROM task_fix
+                 WHERE task_fix.audit_task_id = label.audit_task_id AND task_fix.from_grown_id = label.street_edge_id),
+                label.street_edge_id),
+       TRUE
 FROM label
-JOIN grown ON grown.id = label.street_edge_id AND grown.ok
-LEFT JOIN grown_task_part ON grown_task_part.audit_task_id = label.audit_task_id
-                         AND grown_task_part.grown_id = label.street_edge_id
-LEFT JOIN label_point ON label_point.label_id = label.label_id
-LEFT JOIN LATERAL (SELECT part.part_id FROM part WHERE part.grown_id = label.street_edge_id
-                   ORDER BY part.geom <-> label_point.geom, NOT part.own LIMIT 1) AS nearest
-  ON label_point.geom IS NOT NULL;
-ALTER TABLE label_part ADD PRIMARY KEY (label_id);
+WHERE label.street_edge_id IN (SELECT id FROM grown)
+  AND NOT EXISTS (SELECT FROM pre_label WHERE pre_label.label_id = label.label_id);
 
-CREATE TEMP TABLE comment_part ON COMMIT DROP AS
-SELECT audit_task_comment.audit_task_comment_id,
-       coalesce(grown_task_part.part_id, nearest.part_id, audit_task_comment.edge_id) AS part_id
+-- Comments, issues, clusters and places the same way: the backup's street, else the nearest stretch (an issue has no
+-- position, so it goes with the audit its user was on at the time).
+CREATE TEMP TABLE comment_fix (audit_task_comment_id INTEGER PRIMARY KEY, to_id INTEGER, late BOOLEAN) ON COMMIT DROP;
+INSERT INTO comment_fix
+SELECT audit_task_comment.audit_task_comment_id, pre_audit_task_comment.edge_id, FALSE
 FROM audit_task_comment
-JOIN grown ON grown.id = audit_task_comment.edge_id AND grown.ok
-LEFT JOIN grown_task_part ON grown_task_part.audit_task_id = audit_task_comment.audit_task_id
-                         AND grown_task_part.grown_id = audit_task_comment.edge_id
-LEFT JOIN LATERAL (SELECT part.part_id FROM part WHERE part.grown_id = audit_task_comment.edge_id
-                   ORDER BY part.geom
-                              <-> ST_SetSRID(ST_MakePoint(audit_task_comment.lng, audit_task_comment.lat), 4326),
-                            NOT part.own
-                   LIMIT 1) AS nearest
-  ON audit_task_comment.lat IS NOT NULL AND audit_task_comment.lng IS NOT NULL;
+JOIN pre_audit_task_comment ON pre_audit_task_comment.audit_task_comment_id = audit_task_comment.audit_task_comment_id;
+INSERT INTO comment_fix
+SELECT audit_task_comment.audit_task_comment_id,
+       coalesce((SELECT part.part_id FROM part
+                 WHERE part.grown_id = audit_task_comment.edge_id
+                   AND audit_task_comment.lat IS NOT NULL AND audit_task_comment.lng IS NOT NULL
+                 ORDER BY ST_DistanceSphere(part.geom, ST_SetSRID(ST_MakePoint(audit_task_comment.lng,
+                                                                               audit_task_comment.lat), 4326)),
+                          NOT part.own
+                 LIMIT 1),
+                (SELECT task_fix.part_id FROM task_fix
+                 WHERE task_fix.audit_task_id = audit_task_comment.audit_task_id
+                   AND task_fix.from_grown_id = audit_task_comment.edge_id),
+                audit_task_comment.edge_id),
+       TRUE
+FROM audit_task_comment
+WHERE audit_task_comment.edge_id IN (SELECT id FROM grown)
+  AND NOT EXISTS (SELECT FROM pre_audit_task_comment
+                  WHERE pre_audit_task_comment.audit_task_comment_id = audit_task_comment.audit_task_comment_id);
 
--- An issue has no position; it was reported from the audit its user was on at that moment.
-CREATE TEMP TABLE issue_part ON COMMIT DROP AS
-SELECT street_edge_issue.street_edge_issue_id, coalesce(during.part_id, street_edge_issue.street_edge_id) AS part_id
+CREATE TEMP TABLE issue_fix (street_edge_issue_id INTEGER PRIMARY KEY, to_id INTEGER, late BOOLEAN) ON COMMIT DROP;
+INSERT INTO issue_fix
+SELECT street_edge_issue.street_edge_issue_id, pre_street_edge_issue.street_edge_id, FALSE
 FROM street_edge_issue
-JOIN grown ON grown.id = street_edge_issue.street_edge_id AND grown.ok
-LEFT JOIN LATERAL (
-  SELECT grown_task_part.part_id
-  FROM audit_task
-  JOIN grown_task_part ON grown_task_part.audit_task_id = audit_task.audit_task_id
-  WHERE audit_task.street_edge_id = street_edge_issue.street_edge_id
-    AND audit_task.user_id = street_edge_issue.user_id
-    AND street_edge_issue.timestamp BETWEEN audit_task.task_start - interval '5 seconds'
-                                        AND coalesce(audit_task.task_end, now()) + interval '5 seconds'
-  ORDER BY audit_task.task_start DESC
-  LIMIT 1
-) AS during ON TRUE;
+JOIN pre_street_edge_issue ON pre_street_edge_issue.street_edge_issue_id = street_edge_issue.street_edge_issue_id;
+INSERT INTO issue_fix
+SELECT street_edge_issue.street_edge_issue_id,
+       coalesce((SELECT task_fix.part_id
+                 FROM audit_task JOIN task_fix ON task_fix.audit_task_id = audit_task.audit_task_id
+                 WHERE task_fix.from_grown_id = street_edge_issue.street_edge_id
+                   AND audit_task.user_id = street_edge_issue.user_id
+                   AND street_edge_issue.timestamp BETWEEN audit_task.task_start - interval '5 seconds'
+                                                       AND audit_task.task_end + interval '5 seconds'
+                 ORDER BY audit_task.task_start DESC
+                 LIMIT 1),
+                street_edge_issue.street_edge_id),
+       TRUE
+FROM street_edge_issue
+WHERE street_edge_issue.street_edge_id IN (SELECT id FROM grown)
+  AND NOT EXISTS (SELECT FROM pre_street_edge_issue
+                  WHERE pre_street_edge_issue.street_edge_issue_id = street_edge_issue.street_edge_issue_id);
 
-CREATE TEMP TABLE cluster_part ON COMMIT DROP AS
-SELECT cluster.cluster_id, nearest.part_id
+-- The nightly clustering may have rebuilt clusters since, so an id the backup doesn't know is placed by position.
+CREATE TEMP TABLE cluster_fix (cluster_id INTEGER PRIMARY KEY, to_id INTEGER, late BOOLEAN) ON COMMIT DROP;
+INSERT INTO cluster_fix
+SELECT cluster.cluster_id, pre_cluster.street_edge_id, FALSE
+FROM cluster JOIN pre_cluster ON pre_cluster.cluster_id = cluster.cluster_id;
+INSERT INTO cluster_fix
+SELECT cluster.cluster_id,
+       (SELECT part.part_id FROM part WHERE part.grown_id = cluster.street_edge_id
+        ORDER BY ST_DistanceSphere(part.geom, cluster.geom), NOT part.own LIMIT 1),
+       TRUE
 FROM cluster
-JOIN grown ON grown.id = cluster.street_edge_id AND grown.ok
-CROSS JOIN LATERAL (SELECT part.part_id FROM part WHERE part.grown_id = cluster.street_edge_id
-                    ORDER BY part.geom <-> cluster.geom, NOT part.own LIMIT 1) AS nearest;
+WHERE cluster.street_edge_id IN (SELECT id FROM grown)
+  AND NOT EXISTS (SELECT FROM pre_cluster WHERE pre_cluster.cluster_id = cluster.cluster_id);
 
-CREATE TEMP TABLE place_part ON COMMIT DROP AS
-SELECT place.place_id, nearest.part_id, ST_Distance(place.geom::geography, nearest.geom::geography) AS distance_m
+CREATE TEMP TABLE place_fix (place_id INTEGER PRIMARY KEY, to_id INTEGER, distance_m DOUBLE PRECISION, late BOOLEAN)
+  ON COMMIT DROP;
+INSERT INTO place_fix
+SELECT place.place_id, pre_place.nearest_street_edge_id, pre_place.nearest_street_distance_m, FALSE
+FROM place JOIN pre_place ON pre_place.place_id = place.place_id;
+INSERT INTO place_fix
+SELECT place.place_id, nearest.part_id, ST_Distance(place.geom::geography, nearest.geom::geography), TRUE
 FROM place
-JOIN grown ON grown.id = place.nearest_street_edge_id AND grown.ok
 CROSS JOIN LATERAL (SELECT part.part_id, part.geom FROM part WHERE part.grown_id = place.nearest_street_edge_id
-                    ORDER BY part.geom <-> place.geom, NOT part.own LIMIT 1) AS nearest;
+                    ORDER BY ST_DistanceSphere(part.geom, place.geom), NOT part.own LIMIT 1) AS nearest
+WHERE place.nearest_street_edge_id IN (SELECT id FROM grown)
+  AND NOT EXISTS (SELECT FROM pre_place WHERE pre_place.place_id = place.place_id);
 
--- 5. Route stops. A stop on a grown street walks the stretches from where the route arrives to where it leaves:
---    the previous stop's far end and the next stop's near end, each matched to the nearest joint. A route's first or
---    last stop has nothing to match on that side, so it keeps the stretches out to the street's end there.
+-- 5. Routes made after the backup. A stop on a grown street walks the stretches from where the route arrives to where
+--    it leaves: the previous stop's far end and the next stop's near end, each matched to the nearest joint. A route's
+--    first or last stop has nothing to match on that side, so it keeps the stretches out to the street's end there.
+--    Routes the backup has are simply put back (step 7).
 CREATE TEMP TABLE route_stop ON COMMIT DROP AS
 SELECT route_street.route_street_id, route_street.route_id, route_street.position, route_street.street_edge_id,
        route_street.reverse,
@@ -434,7 +282,8 @@ SELECT route_street.route_street_id, route_street.route_id, route_street.positio
 FROM route_street
 JOIN street_edge ON street_edge.street_edge_id = route_street.street_edge_id
 WHERE route_street.route_id IN (SELECT route_street.route_id FROM route_street
-                                JOIN grown ON grown.id = route_street.street_edge_id AND grown.ok);
+                                WHERE route_street.street_edge_id IN (SELECT id FROM grown))
+  AND route_street.route_id NOT IN (SELECT route_id FROM pre_route);
 CREATE TEMP TABLE route_stop_part ON COMMIT DROP AS
 WITH stop AS (
   SELECT route_stop.*,
@@ -452,7 +301,7 @@ WITH stop AS (
          ST_LineInterpolatePoint(grown.joined_geom, CASE WHEN stop.reverse THEN 1 - walk.hi ELSE walk.hi END)
            AS walk_out_pt
   FROM stop
-  JOIN grown ON grown.id = stop.street_edge_id AND grown.ok
+  JOIN grown ON grown.id = stop.street_edge_id
   JOIN part ON part.grown_id = grown.id
   CROSS JOIN LATERAL (
     SELECT least(ST_LineLocatePoint(grown.joined_geom, ST_StartPoint(part.geom)),
@@ -486,165 +335,166 @@ JOIN walk_to USING (route_street_id)
 WHERE walk_from.from_at > walk_to.to_at
    OR (placed.walk_lo >= walk_from.from_at - 1e-9 AND placed.walk_hi <= walk_to.to_at + 1e-9);
 
--- 6. Write it all.
+-- 6. Write the streets.
 UPDATE street_edge
-SET geom = grown.geom,
-    x1 = ST_X(ST_StartPoint(grown.geom)), y1 = ST_Y(ST_StartPoint(grown.geom)),
-    x2 = ST_X(ST_EndPoint(grown.geom)), y2 = ST_Y(ST_EndPoint(grown.geom))
-FROM grown
-WHERE street_edge.street_edge_id = grown.id AND grown.ok;
+SET geom = pre_street_edge.geom, x1 = pre_street_edge.x1, y1 = pre_street_edge.y1, x2 = pre_street_edge.x2,
+    y2 = pre_street_edge.y2, way_type = pre_street_edge.way_type, status = pre_street_edge.status
+FROM pre_street_edge
+WHERE street_edge.street_edge_id = pre_street_edge.street_edge_id;
+INSERT INTO street_edge
+SELECT * FROM pre_street_edge WHERE street_edge_id IN (SELECT id FROM touched WHERE kind = 'dropped');
 
--- A restored street takes its road type from its own OSM way where the nightly cache knows it, else the grown
--- street's (joins only ever kept the same status).
-INSERT INTO street_edge (street_edge_id, geom, x1, y1, x2, y2, way_type, timestamp, status)
-SELECT part.part_id, part.geom, ST_X(ST_StartPoint(part.geom)), ST_Y(ST_StartPoint(part.geom)),
-       ST_X(ST_EndPoint(part.geom)), ST_Y(ST_EndPoint(part.geom)),
-       coalesce((SELECT enum_value::way_type FROM unnest(enum_range(NULL::way_type)) AS enum_value
-                 WHERE enum_value::TEXT = (SELECT osm_way.tags ->> 'highway' FROM osm_way
-                                           WHERE osm_way.osm_way_id = part.osm_way_id)),
-                grown.way_type),
-       grown.timestamp, grown.status
-FROM part JOIN grown ON grown.id = part.grown_id
-WHERE NOT part.own;
+-- Each table holding facts about a street gets the backup's rows for every touched street in place of its own. A row
+-- id here is never pointed at from elsewhere, so the backup's rows take fresh ones; the counter is brought up to the
+-- table first, since a restored schema can leave it behind.
+CREATE FUNCTION pg_temp.fresh_id_sequence(tbl regclass, col TEXT) RETURNS TEXT
+LANGUAGE plpgsql AS $$
+DECLARE
+  seq TEXT;
+  top BIGINT;
+BEGIN
+  SELECT substring(pg_get_expr(pg_attrdef.adbin, pg_attrdef.adrelid) FROM 'nextval\(''([^'']+)''') INTO seq
+  FROM pg_attrdef
+  JOIN pg_attribute ON pg_attribute.attrelid = pg_attrdef.adrelid AND pg_attribute.attnum = pg_attrdef.adnum
+  WHERE pg_attrdef.adrelid = tbl AND pg_attribute.attname = col;
+  EXECUTE format('SELECT max(%I) FROM %s', col, tbl) INTO top;
+  PERFORM setval(seq, coalesce(top, 0) + 1, false);
+  RETURN seq;
+END $$;
 
--- A grown street moves back to the region holding most of its own stretch only when the join is what moved it, that
--- is when it now sits where most of the joined line lies.
-CREATE TEMP TABLE region_back ON COMMIT DROP AS
-SELECT grown.id, own_best.region_id
-FROM grown
-JOIN street_edge_region ON street_edge_region.street_edge_id = grown.id
-CROSS JOIN LATERAL (SELECT region.region_id FROM region
-                    WHERE region.geom && grown.joined_geom AND NOT region.deleted
-                    ORDER BY ST_Length(ST_Intersection(grown.joined_geom, region.geom)::geography) DESC,
-                             region.region_id
-                    LIMIT 1) AS joined_best
-CROSS JOIN LATERAL (SELECT region.region_id FROM region
-                    WHERE region.geom && grown.geom AND NOT region.deleted
-                    ORDER BY ST_Length(ST_Intersection(grown.geom, region.geom)::geography) DESC, region.region_id
-                    LIMIT 1) AS own_best
-WHERE grown.ok AND street_edge_region.region_id = joined_best.region_id AND own_best.region_id <> joined_best.region_id;
-UPDATE street_edge_region SET region_id = region_back.region_id
-FROM region_back WHERE street_edge_region.street_edge_id = region_back.id;
-INSERT INTO street_edge_region (street_edge_id, region_id)
-SELECT part.part_id, coalesce(best.region_id, grown_region.region_id)
-FROM part
-JOIN street_edge_region AS grown_region ON grown_region.street_edge_id = part.grown_id
-LEFT JOIN LATERAL (SELECT region.region_id FROM region
-                   WHERE region.geom && part.geom AND NOT region.deleted
-                   ORDER BY ST_Length(ST_Intersection(part.geom, region.geom)::geography) DESC, region.region_id
-                   LIMIT 1) AS best ON TRUE
-WHERE NOT part.own;
+SELECT pg_temp.fresh_id_sequence('street_edge_region', 'street_edge_region_id') AS seq \gset
+UPDATE pre_street_edge_region SET street_edge_region_id = nextval(:'seq');
+DELETE FROM street_edge_region WHERE street_edge_id IN (SELECT id FROM touched);
+INSERT INTO street_edge_region SELECT * FROM pre_street_edge_region;
 
--- Priority starts unaudited and is set by the next recalculation; imagery is the grown street's, which covered it.
-INSERT INTO street_edge_priority (street_edge_id, priority)
-SELECT part_id, 1.0 FROM part WHERE NOT own;
-INSERT INTO street_imagery (street_edge_id, oldest_capture, newest_capture, n_panos, data_source, updated_at,
-                            median_newest_capture)
-SELECT part.part_id, street_imagery.oldest_capture, street_imagery.newest_capture, street_imagery.n_panos,
-       street_imagery.data_source, street_imagery.updated_at, street_imagery.median_newest_capture
-FROM part JOIN street_imagery ON street_imagery.street_edge_id = part.grown_id
-WHERE NOT part.own;
+SELECT pg_temp.fresh_id_sequence('street_edge_priority', 'street_edge_priority_id') AS seq \gset
+UPDATE pre_street_edge_priority SET street_edge_priority_id = nextval(:'seq');
+DELETE FROM street_edge_priority WHERE street_edge_id IN (SELECT id FROM touched);
+INSERT INTO street_edge_priority SELECT * FROM pre_street_edge_priority;
 
--- OSM ways: a restored street gets its own way back (the Infra3d placeholder where the city uses one). The grown
--- street drops each way only a piece brought, unless that would leave it with none; positions are left for the
--- lineage backfill.
-SELECT setval(pg_get_serial_sequence('osm_way_street_edge', 'osm_way_street_edge_id'),
-              (SELECT COALESCE(MAX(osm_way_street_edge_id), 0) + 1 FROM osm_way_street_edge), false)
-  AS osm_way_sequence \gset
-CREATE TEMP TABLE piece_way ON COMMIT DROP AS
-SELECT part.grown_id, part.part_id, coalesce(part.osm_way_id, placeholder.osm_way_id) AS osm_way_id, part.rule
-FROM part
-LEFT JOIN LATERAL (SELECT osm_way_street_edge.osm_way_id FROM osm_way_street_edge
-                   WHERE osm_way_street_edge.street_edge_id = part.grown_id AND osm_way_street_edge.osm_way_id = -1
-                   LIMIT 1) AS placeholder ON TRUE
-WHERE NOT part.own;
-DELETE FROM osm_way_street_edge
-USING (SELECT DISTINCT grown_id, osm_way_id FROM piece_way
-       WHERE osm_way_id IS NOT NULL AND osm_way_id <> -1
-         AND osm_way_id NOT IN (SELECT osm_way_id FROM piece_way AS same WHERE same.rule = 'same_way'
-                                AND same.grown_id = piece_way.grown_id AND same.osm_way_id IS NOT NULL)) AS brought
-WHERE osm_way_street_edge.street_edge_id = brought.grown_id
-  AND osm_way_street_edge.osm_way_id = brought.osm_way_id
-  AND EXISTS (SELECT FROM osm_way_street_edge AS kept
-              WHERE kept.street_edge_id = brought.grown_id
-                AND kept.osm_way_id NOT IN (SELECT osm_way_id FROM piece_way AS p
-                                            WHERE p.grown_id = brought.grown_id AND p.osm_way_id IS NOT NULL
-                                              AND p.rule <> 'same_way'));
-INSERT INTO osm_way_street_edge (osm_way_id, street_edge_id)
-SELECT DISTINCT osm_way_id, part_id FROM piece_way WHERE osm_way_id IS NOT NULL;
+SELECT pg_temp.fresh_id_sequence('osm_way_street_edge', 'osm_way_street_edge_id') AS seq \gset
+UPDATE pre_osm_way_street_edge SET osm_way_street_edge_id = nextval(:'seq');
+DELETE FROM osm_way_street_edge WHERE street_edge_id IN (SELECT id FROM touched);
+INSERT INTO osm_way_street_edge SELECT * FROM pre_osm_way_street_edge;
 
--- Audits back onto their stretch. A stretch drawn against the grown line turns a paused audit's start around again;
--- distances along the street are measured on the new line from the same points.
+SELECT pg_temp.fresh_id_sequence('street_access_score', 'street_access_score_id') AS seq \gset
+UPDATE pre_street_access_score SET street_access_score_id = nextval(:'seq');
+DELETE FROM street_access_score WHERE street_edge_id IN (SELECT id FROM touched);
+INSERT INTO street_access_score SELECT * FROM pre_street_access_score;
+
+DELETE FROM street_imagery WHERE street_edge_id IN (SELECT id FROM touched);
+INSERT INTO street_imagery SELECT * FROM pre_street_imagery;
+DELETE FROM street_gradient WHERE street_edge_id IN (SELECT id FROM touched);
+INSERT INTO street_gradient SELECT * FROM pre_street_gradient;
+DELETE FROM sidewalk_presence WHERE street_edge_id IN (SELECT id FROM touched);
+INSERT INTO sidewalk_presence SELECT * FROM pre_sidewalk_presence;
+
+-- History and admin state is only added back for the streets that were deleted; the rest kept theirs. The run's own
+-- status changes go, since the statuses they recorded are undone.
+DELETE FROM street_edge_status_change
+WHERE source = 'consolidate_tiny_streets' AND changed_at = :'bad_run_at'::timestamptz;
+SELECT pg_temp.fresh_id_sequence('street_edge_status_change', 'street_edge_status_change_id') AS seq \gset
+UPDATE pre_street_edge_status_change SET street_edge_status_change_id = nextval(:'seq');
+INSERT INTO street_edge_status_change
+SELECT * FROM pre_street_edge_status_change WHERE street_edge_id IN (SELECT id FROM touched WHERE kind = 'dropped');
+INSERT INTO street_reopen_candidate
+SELECT * FROM pre_street_reopen_candidate WHERE street_edge_id IN (SELECT id FROM touched WHERE kind = 'dropped');
+-- Intersections are rebuilt every night, so only links to intersections that still exist come back.
+SELECT pg_temp.fresh_id_sequence('intersection_street_edge', 'intersection_street_edge_id') AS seq \gset
+UPDATE pre_intersection_street_edge SET intersection_street_edge_id = nextval(:'seq');
+INSERT INTO intersection_street_edge
+SELECT * FROM pre_intersection_street_edge
+WHERE street_edge_id IN (SELECT id FROM touched WHERE kind = 'dropped')
+  AND intersection_id IN (SELECT intersection_id FROM intersection);
+
+-- 7. Write everything that sits on a street. A started-since audit's start turns around if its stretch runs against
+--    the grown line; one picked up again keeps the backup's start, which was set on its own street.
 UPDATE audit_task
-SET street_edge_id = grown_task_part.part_id,
-    start_point_reversed = audit_task.start_point_reversed <> part.reversed,
-    start_offset_m = CASE WHEN audit_task.start_offset_m IS NULL THEN NULL
-                          ELSE ST_LineLocatePoint(part.geom, ST_LineInterpolatePoint(grown.joined_geom,
-                                 least(1.0, audit_task.start_offset_m / NULLIF(grown.joined_m, 0)))) * part.m END,
-    covered_ranges = CASE WHEN audit_task.covered_ranges IS NULL OR jsonb_typeof(audit_task.covered_ranges) <> 'array'
+SET street_edge_id = pre_audit_task.street_edge_id, completed = pre_audit_task.completed,
+    start_point_reversed = pre_audit_task.start_point_reversed, start_offset_m = pre_audit_task.start_offset_m,
+    covered_ranges = pre_audit_task.covered_ranges, audited_distance_m = pre_audit_task.audited_distance_m
+FROM task_fix
+JOIN pre_audit_task USING (audit_task_id)
+WHERE audit_task.audit_task_id = task_fix.audit_task_id AND task_fix.how = 'quiet';
+UPDATE audit_task
+SET street_edge_id = task_fix.part_id, completed = task_fix.completed,
+    start_point_reversed = CASE WHEN task_fix.how = 'active' THEN pre_audit_task.start_point_reversed
+                                ELSE audit_task.start_point_reversed <> coalesce(part.reversed, FALSE) END,
+    start_offset_m = CASE WHEN audit_task.start_offset_m IS NULL OR grown.id IS NULL OR part.part_id IS NULL
+                            THEN audit_task.start_offset_m
+                          ELSE pg_temp.along_part(audit_task.start_offset_m, grown.joined_geom, grown.joined_m,
+                                                  part.geom, part.m) END,
+    covered_ranges = CASE WHEN grown.id IS NULL OR part.part_id IS NULL
+                            OR jsonb_typeof(audit_task.covered_ranges) IS DISTINCT FROM 'array'
                             THEN audit_task.covered_ranges
                           ELSE (SELECT coalesce(jsonb_agg(jsonb_build_array(moved.a, moved.b) ORDER BY moved.a),
                                                 '[]'::jsonb)
                                 FROM jsonb_array_elements(audit_task.covered_ranges) AS seen (pair)
                                 CROSS JOIN LATERAL (
-                                  SELECT round((least(x, y) * part.m)::numeric, 1) AS a,
-                                         round((greatest(x, y) * part.m)::numeric, 1) AS b
-                                  FROM (SELECT ST_LineLocatePoint(part.geom, ST_LineInterpolatePoint(grown.joined_geom,
-                                                 least(1.0, (seen.pair ->> 0)::float / NULLIF(grown.joined_m, 0))))
-                                                 AS x,
-                                               ST_LineLocatePoint(part.geom, ST_LineInterpolatePoint(grown.joined_geom,
-                                                 least(1.0, (seen.pair ->> 1)::float / NULLIF(grown.joined_m, 0))))
-                                                 AS y) AS located
+                                  SELECT pg_temp.along_part((seen.pair ->> 0)::float, grown.joined_geom, grown.joined_m,
+                                                            part.geom, part.m) AS x,
+                                         pg_temp.along_part((seen.pair ->> 1)::float, grown.joined_geom, grown.joined_m,
+                                                            part.geom, part.m) AS y
+                                ) AS located
+                                CROSS JOIN LATERAL (SELECT round(least(located.x, located.y)::numeric, 1) AS a,
+                                                           round(greatest(located.x, located.y)::numeric, 1) AS b
                                 ) AS moved
-                                WHERE moved.b > moved.a) END,
-    completed = audit_task.completed OR audit_task.audit_task_id IN (SELECT audit_task_id FROM uncompleted)
-FROM grown_task_part
-JOIN part ON part.part_id = grown_task_part.part_id
-JOIN grown ON grown.id = grown_task_part.grown_id
-WHERE audit_task.audit_task_id = grown_task_part.audit_task_id;
+                                WHERE moved.b > moved.a) END
+FROM task_fix
+LEFT JOIN pre_audit_task USING (audit_task_id)
+LEFT JOIN grown ON grown.id = task_fix.from_grown_id
+LEFT JOIN part ON part.part_id = task_fix.part_id AND part.grown_id = task_fix.from_grown_id
+WHERE audit_task.audit_task_id = task_fix.audit_task_id AND task_fix.how <> 'quiet';
 UPDATE audit_task
 SET audited_distance_m = (SELECT sum((pair ->> 1)::float - (pair ->> 0)::float)
                           FROM jsonb_array_elements(audit_task.covered_ranges) AS pair)
-WHERE audit_task.audit_task_id IN (SELECT audit_task_id FROM grown_task_part)
+WHERE audit_task.audit_task_id IN (SELECT audit_task_id FROM task_fix WHERE how <> 'quiet')
   AND jsonb_typeof(audit_task.covered_ranges) = 'array';
 
-UPDATE label SET street_edge_id = label_part.part_id
-FROM label_part WHERE label.label_id = label_part.label_id AND label.street_edge_id <> label_part.part_id;
+UPDATE label SET street_edge_id = label_fix.to_id
+FROM label_fix WHERE label.label_id = label_fix.label_id AND label.street_edge_id <> label_fix.to_id;
 UPDATE label_point
 SET centerline_offset_m = label_centerline_offset_m(label_point.geom, street_edge.geom)
-FROM label_part, street_edge
-WHERE label_point.label_id = label_part.label_id
-  AND street_edge.street_edge_id = label_part.part_id
+FROM label, street_edge
+WHERE label_point.label_id = label.label_id
+  AND street_edge.street_edge_id = label.street_edge_id
+  AND label.street_edge_id IN (SELECT id FROM touched)
   AND label_point.geom IS NOT NULL;
-UPDATE old_label_point_coords SET street_edge_id = label_part.part_id
-FROM label_part
-WHERE old_label_point_coords.label_id = label_part.label_id
-  AND old_label_point_coords.street_edge_id = label_part.grown_id;
-UPDATE old_label_point_position SET street_edge_id = label_part.part_id
-FROM label_part
-WHERE old_label_point_position.label_id = label_part.label_id
-  AND old_label_point_position.street_edge_id = label_part.grown_id;
-SELECT to_regclass('old_label_point_coords_2') IS NOT NULL AS has_coords_2 \gset
-\if :has_coords_2
-UPDATE old_label_point_coords_2 SET street_edge_id = label_part.part_id
-FROM label_part
-WHERE old_label_point_coords_2.label_id = label_part.label_id
-  AND old_label_point_coords_2.street_edge_id = label_part.grown_id;
-\endif
+UPDATE old_label_point_coords SET street_edge_id = pre_old_label_point_coords.street_edge_id
+FROM pre_old_label_point_coords
+WHERE old_label_point_coords.label_point_id = pre_old_label_point_coords.label_point_id;
+UPDATE old_label_point_position SET street_edge_id = pre_old_label_point_position.street_edge_id
+FROM pre_old_label_point_position
+WHERE old_label_point_position.label_point_id = pre_old_label_point_position.label_point_id;
 
-UPDATE audit_task_comment SET edge_id = comment_part.part_id
-FROM comment_part WHERE audit_task_comment.audit_task_comment_id = comment_part.audit_task_comment_id;
-UPDATE street_edge_issue SET street_edge_id = issue_part.part_id
-FROM issue_part WHERE street_edge_issue.street_edge_issue_id = issue_part.street_edge_issue_id;
-UPDATE cluster SET street_edge_id = cluster_part.part_id
-FROM cluster_part WHERE cluster.cluster_id = cluster_part.cluster_id;
-UPDATE place SET nearest_street_edge_id = place_part.part_id, nearest_street_distance_m = place_part.distance_m
-FROM place_part WHERE place.place_id = place_part.place_id;
+UPDATE audit_task_comment SET edge_id = comment_fix.to_id
+FROM comment_fix WHERE audit_task_comment.audit_task_comment_id = comment_fix.audit_task_comment_id;
+UPDATE street_edge_issue SET street_edge_id = issue_fix.to_id
+FROM issue_fix WHERE street_edge_issue.street_edge_issue_id = issue_fix.street_edge_issue_id;
+UPDATE cluster SET street_edge_id = cluster_fix.to_id
+FROM cluster_fix WHERE cluster.cluster_id = cluster_fix.cluster_id;
+UPDATE place SET nearest_street_edge_id = place_fix.to_id, nearest_street_distance_m = place_fix.distance_m
+FROM place_fix WHERE place.place_id = place_fix.place_id;
 
--- Route stops: the stop keeps its row for one stretch (its own, else the first it walks) and gains a row per other
--- stretch; then each touched route is numbered again in walking order. (route_id, position) is unique and never
--- negative, so every touched route first moves out of the way, past any real position. A walk recorded against
--- the stop moves to the stop for the stretch its audit was on.
+-- Routes the backup has get its stops back as they were, including the repeats the run deleted (with their old ids,
+-- which the walks recorded against them name). (route_id, position) is unique and never negative, so every touched
+-- route first moves out of the way, past any real position.
+UPDATE route_street SET position = 1000000 + route_street.position
+WHERE route_street.route_id IN (SELECT route_id FROM pre_route UNION SELECT route_id FROM route_stop);
+UPDATE route_street
+SET street_edge_id = pre_route_street.street_edge_id, reverse = pre_route_street.reverse,
+    position = pre_route_street.position
+FROM pre_route_street
+WHERE route_street.route_street_id = pre_route_street.route_street_id;
+INSERT INTO route_street
+SELECT * FROM pre_route_street
+WHERE NOT EXISTS (SELECT FROM route_street WHERE route_street.route_street_id = pre_route_street.route_street_id);
+UPDATE audit_task_user_route SET route_street_id = pre_audit_task_user_route.route_street_id
+FROM pre_audit_task_user_route
+WHERE audit_task_user_route.audit_task_user_route_id = pre_audit_task_user_route.audit_task_user_route_id;
+
+-- A route made since keeps its stop's row for one stretch (its own, else the first it walks) and gains a row per other
+-- stretch; then the route is numbered again in walking order.
 CREATE TEMP TABLE route_stop_keep ON COMMIT DROP AS
 SELECT DISTINCT ON (route_street_id) route_street_id, part_id, reverse, step
 FROM route_stop_part ORDER BY route_street_id, own DESC, step;
@@ -659,8 +509,6 @@ WHERE NOT EXISTS (SELECT FROM route_stop_keep WHERE route_stop_keep.route_street
 CREATE TEMP TABLE route_order ON COMMIT DROP AS
 SELECT route_stop.route_street_id, route_stop.route_id, route_stop.position, coalesce(route_stop_keep.step, 0) AS step
 FROM route_stop LEFT JOIN route_stop_keep USING (route_street_id);
-UPDATE route_street SET position = 1000000 + route_street.position
-WHERE route_street.route_id IN (SELECT route_id FROM route_stop);
 UPDATE route_street SET street_edge_id = route_stop_keep.part_id, reverse = route_stop_keep.reverse
 FROM route_stop_keep WHERE route_street.route_street_id = route_stop_keep.route_street_id;
 WITH added AS (
@@ -680,13 +528,33 @@ FROM (
   FROM route_order
 ) AS renumbered
 WHERE route_street.route_street_id = renumbered.route_street_id;
-UPDATE audit_task_user_route SET route_street_id = moved.route_street_id
-FROM grown_task_part, route_street AS was, route_street AS moved
-WHERE audit_task_user_route.audit_task_id = grown_task_part.audit_task_id
-  AND was.route_street_id = audit_task_user_route.route_street_id
-  AND was.route_street_id IN (SELECT route_street_id FROM route_stop_part)
-  AND moved.route_id = was.route_id AND moved.street_edge_id = grown_task_part.part_id
-  AND moved.route_street_id <> was.route_street_id;
+
+-- A walk recorded since against a stop on a different stretch than its audit now sits on moves to the same route's
+-- stop for the audit's stretch.
+CREATE TEMP TABLE route_stop_now ON COMMIT DROP AS
+SELECT route_street.route_street_id, route_street.route_id, route_street.street_edge_id, route_street.position
+FROM route_street
+WHERE route_street.route_id IN (SELECT route_id FROM pre_route UNION SELECT route_id FROM route_stop);
+CREATE TEMP TABLE walk_fix ON COMMIT DROP AS
+SELECT audit_task_user_route.audit_task_user_route_id,
+       (SELECT route_stop_now.route_street_id FROM route_stop_now
+        WHERE route_stop_now.route_id = route_street.route_id AND route_stop_now.street_edge_id = task_fix.part_id
+        ORDER BY route_stop_now.position LIMIT 1) AS to_id
+FROM audit_task_user_route
+JOIN task_fix ON task_fix.audit_task_id = audit_task_user_route.audit_task_id AND task_fix.how <> 'quiet'
+JOIN route_street ON route_street.route_street_id = audit_task_user_route.route_street_id
+WHERE route_street.route_id IN (SELECT route_id FROM route_stop_now)
+  AND route_street.street_edge_id <> task_fix.part_id
+  AND NOT EXISTS (SELECT FROM pre_audit_task_user_route
+                  WHERE pre_audit_task_user_route.audit_task_user_route_id
+                        = audit_task_user_route.audit_task_user_route_id);
+UPDATE audit_task_user_route SET route_street_id = walk_fix.to_id
+FROM walk_fix
+WHERE audit_task_user_route.audit_task_user_route_id = walk_fix.audit_task_user_route_id AND walk_fix.to_id IS NOT NULL;
+
+UPDATE route
+SET distance_meters = pre_route.distance_meters, street_count = pre_route.street_count
+FROM pre_route WHERE route.route_id = pre_route.route_id;
 UPDATE route
 SET distance_meters = coalesce(stats.distance_meters, 0), street_count = coalesce(stats.street_count, 0)
 FROM (
@@ -699,73 +567,59 @@ FROM (
 ) AS stats
 WHERE route.route_id = stats.route_id;
 
--- Streets the bad run disabled as too short come back as they were.
-CREATE TEMP TABLE reopened ON COMMIT DROP AS
-SELECT street_edge_status_change.street_edge_id, street_edge_status_change.old_status
-FROM street_edge_status_change
-WHERE street_edge_status_change.source = 'consolidate_tiny_streets'
-  AND street_edge_status_change.changed_at >= :'since'
-  AND street_edge_status_change.new_status = 'disabled';
-INSERT INTO street_edge_status_change (street_edge_id, old_status, new_status, source)
-SELECT reopened.street_edge_id, 'disabled', reopened.old_status, 'consolidate_tiny_streets' FROM reopened;
-UPDATE street_edge SET status = reopened.old_status
-FROM reopened WHERE street_edge.street_edge_id = reopened.street_edge_id;
-INSERT INTO street_edge_priority (street_edge_id, priority)
-SELECT reopened.street_edge_id, 1.0 FROM reopened
-WHERE NOT EXISTS (SELECT FROM street_edge_priority
-                  WHERE street_edge_priority.street_edge_id = reopened.street_edge_id);
+-- 8. The run's trace goes. Region completion refills on the next landing-page load; emptying it locks the table, so a
+--    dry run leaves it alone.
+DELETE FROM street_edge_merge WHERE street_edge_merge_id IN (SELECT street_edge_merge_id FROM bad_merge);
+\if :apply
+  TRUNCATE TABLE region_completion;
+\endif
 
-DELETE FROM street_edge_merge
-WHERE street_edge_merge_id IN (SELECT street_edge_merge_id FROM bad_merge
-                               WHERE survivor_id IN (SELECT id FROM grown WHERE ok));
-DO $$
-BEGIN
-  IF EXISTS (SELECT FROM grown WHERE ok) THEN
-    TRUNCATE TABLE region_completion;
-  END IF;
-END $$;
-
--- 7. Summary, one row. The replay_ columns are to be read against the runs' own CSVs: replay_first_run_uncompleted
---    against the first run's audits_marked_not_completed, replay_bad_run_uncompleted against the bad run's. The
---    check_ columns should all be 0.
+-- 9. Summary, one row. The check_ columns should all be 0.
 SELECT :'city' AS city,
        :apply::int = 1 AS applied,
-       :'has_snapshot'::boolean AS used_saved_priority,
        (SELECT count(*) FROM bad_merge) AS bad_joins,
        (SELECT count(*) FROM grown) AS grown_streets,
-       (SELECT count(*) FROM part WHERE NOT own) AS streets_restored,
-       (SELECT count(*) FROM grown_task) AS audits_placed,
-       (SELECT count(*) FROM grown_task_part WHERE NOT by_panos) AS audits_placed_by_last_position,
-       (SELECT count(*) FROM grown_task_part JOIN part USING (part_id) WHERE NOT part.own) AS audits_moved,
-       (SELECT count(*) FROM grown_task_part JOIN grown_task USING (audit_task_id)
-          WHERE grown_task.task_start >= :'bad_run_at' AND grown_task_part.parts_walked > 1) AS later_audits_split,
-       (SELECT count(*) FROM first_covered WHERE first_covered.saved IS NOT NULL) AS first_run_streets_saved,
-       (SELECT count(*) FROM first_covered WHERE first_covered.saved IS NOT NULL
-          AND first_covered.saved <> first_covered.replayed) AS first_run_replay_disagrees_with_saved,
-       (SELECT count(*) FROM first_task_part
-          JOIN first_covered ON first_covered.id = first_task_part.street_id
-          WHERE first_task_part.was_finished AND NOT first_covered.covered) AS replay_first_run_uncompleted,
-       (SELECT count(*) FROM uncompleted) AS replay_bad_run_uncompleted,
-       (SELECT count(*) FROM uncompleted WHERE NOT completed_now) AS audits_completed_again,
-       (SELECT count(*) FROM uncompleted WHERE completed_now) AS replay_already_completed,
-       (SELECT count(*) FROM label_part WHERE part_id <> grown_id) AS labels_moved,
-       (SELECT count(*) FROM comment_part JOIN part USING (part_id) WHERE NOT part.own) AS comments_moved,
-       (SELECT count(*) FROM issue_part JOIN part USING (part_id) WHERE NOT part.own) AS issues_moved,
-       (SELECT count(*) FROM cluster_part JOIN part USING (part_id) WHERE NOT part.own) AS clusters_moved,
-       (SELECT count(*) FROM place_part JOIN part USING (part_id) WHERE NOT part.own) AS places_moved,
-       (SELECT count(DISTINCT route_street_id) FROM route_stop_part) AS route_stops_split,
+       (SELECT count(*) FROM touched WHERE kind = 'dropped') AS streets_restored,
+       (SELECT count(*) FROM touched WHERE kind = 'disabled') AS streets_reopened,
+       (SELECT count(*) FROM task_fix WHERE how = 'quiet') AS audits_from_backup,
+       (SELECT count(*) FROM task_fix WHERE how = 'active') AS audits_worked_on_since,
+       (SELECT count(*) FROM task_fix WHERE how = 'late') AS audits_started_since,
+       (SELECT count(*) FROM task_fix WHERE completed AND NOT was_completed) AS audits_completed_again,
+       (SELECT count(*) FROM task_fix
+          WHERE completed AND NOT was_completed AND how <> 'quiet' AND by_task_end
+            AND NOT EXISTS (SELECT FROM pre_audit_task
+                            WHERE pre_audit_task.audit_task_id = task_fix.audit_task_id AND pre_audit_task.completed))
+         AS completed_again_by_task_end,
+       (SELECT count(*) FROM task_fix WHERE was_completed AND NOT completed) AS check_audits_uncompleted,
+       (SELECT count(*) FROM pre_audit_task
+          WHERE NOT EXISTS (SELECT FROM audit_task WHERE audit_task.audit_task_id = pre_audit_task.audit_task_id))
+         AS empty_audits_left_deleted,
+       (SELECT count(*) FROM label_fix WHERE NOT late AND from_id <> to_id) AS labels_moved_back,
+       (SELECT count(*) FROM label_fix WHERE late) AS labels_made_since,
+       (SELECT count(*) FROM comment_fix WHERE late) AS comments_made_since,
+       (SELECT count(*) FROM issue_fix WHERE late) AS issues_made_since,
+       (SELECT count(*) FROM cluster_fix WHERE late) AS clusters_made_since,
+       (SELECT count(*) FROM place_fix WHERE late) AS places_made_since,
+       (SELECT count(*) FROM pre_route) AS routes_from_backup,
+       (SELECT count(DISTINCT route_id) FROM route_stop) AS routes_made_since,
        (SELECT count(*) FROM route_stop_new) AS route_stops_added,
-       (SELECT count(*) FROM region_back) AS grown_streets_region_back,
-       (SELECT count(*) FROM reopened) AS streets_reopened,
-       (SELECT count(*) FROM grown WHERE NOT ok) AS check_grown_streets_left_joined,
-       (SELECT count(*) FROM bad_merge
-          WHERE NOT EXISTS (SELECT FROM street_edge WHERE street_edge.street_edge_id = bad_merge.id)
-            AND survivor_id IN (SELECT id FROM grown WHERE ok)) AS check_streets_not_restored,
-       (SELECT count(*) FROM part WHERE NOT ST_IsSimple(part.geom) OR part.m < :touch_m) AS check_bad_lines,
-       (SELECT count(*) FROM route_stop WHERE street_edge_id IN (SELECT id FROM grown WHERE ok)
-          AND route_street_id NOT IN (SELECT route_street_id FROM route_stop_part)) AS check_route_stops_unplaced,
+       -- A grown line that doesn't come to its stretches' lengths (give or take a meter a joint) changed between the
+       -- backup and the run, so the backup's lines for it can't be trusted.
+       (SELECT count(*) FROM grown
+          WHERE abs(grown.joined_m - (SELECT sum(part.m) FROM part WHERE part.grown_id = grown.id))
+                > 1.0 + (SELECT count(*) FROM part WHERE part.grown_id = grown.id)) AS check_lines_dont_add_up,
+       (SELECT count(*) FROM touched
+          WHERE NOT EXISTS (SELECT FROM street_edge JOIN pre_street_edge USING (street_edge_id)
+                            WHERE street_edge.street_edge_id = touched.id
+                              AND ST_Equals(street_edge.geom, pre_street_edge.geom)
+                              AND street_edge.status = pre_street_edge.status)) AS check_streets_not_restored,
+       (SELECT count(*) FROM task_fix WHERE part_id IS NULL) AS check_audits_unplaced,
+       (SELECT count(*) FROM route_street WHERE position >= 1000000) AS check_route_stops_unplaced,
+       (SELECT count(*) FROM pre_route_street JOIN route_street USING (route_street_id)
+          WHERE route_street.route_id <> pre_route_street.route_id) AS check_route_stop_ids_taken,
        (SELECT count(*) FROM label
-          WHERE label.street_edge_id NOT IN (SELECT street_edge_id FROM street_edge)) AS check_labels_on_no_street;
+          WHERE NOT EXISTS (SELECT FROM street_edge WHERE street_edge.street_edge_id = label.street_edge_id))
+         AS check_labels_on_no_street;
 
 \if :apply
   COMMIT;
