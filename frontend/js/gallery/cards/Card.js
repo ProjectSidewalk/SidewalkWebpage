@@ -35,6 +35,8 @@ export class Card {
   #cropMarker;
   #gsvImageUrl;
   #tracker;
+  /** @type {{onOtherReason?: (card: Card) => void}} What the container does when a card asks for its comment box. */
+  #hooks;
   #cardFilter;
   #regionNames;
 
@@ -100,7 +102,8 @@ export class Card {
    * @param {Tracker} tracker - Logs the card's interactions.
    * @param {GalleryFilter} cardFilter - The sidebar, asked which tags are applied so those are shown first.
    */
-  constructor({ label, cropUrl, gsvImageUrl, cropMarker = null }, regionNames, tracker, cardFilter) {
+  constructor({ label, cropUrl, gsvImageUrl, cropMarker = null }, regionNames, tracker, cardFilter, hooks = {}) {
+    this.#hooks = hooks;
     this.#params = label;
     this.#cropUrl = cropUrl;
     this.#cropMarker = cropMarker;
@@ -254,7 +257,9 @@ export class Card {
     this.#creditImage(this.#status.imageSource);
 
     this.#card.appendChild(cardInfo);
-    this.validationMenu = new ValidationMenu(this, imageHolder, this.#tracker);
+    this.validationMenu = new ValidationMenu(this, imageHolder, this.#tracker, {
+      onOtherReason: () => this.#hooks.onOtherReason?.(this),
+    });
   }
 
   /**
@@ -561,8 +566,12 @@ export class Card {
    * Updates metadata and visuals on the small card based on a new validation from the user.
    * @param {?('Agree'|'Disagree'|'Unsure')} newUserValidation - The user's new vote, or null when they cleared it
    *     (#4653). Either end can be null, so both count adjustments are guarded.
+   * @param {object} [opts]
+   * @param {boolean} [opts.dropOwnComment=true] - Whether the change also took the user's comment with it, as a
+   *     vote cleared or replaced from a card does (#5475). An admin's delete files its Disagree without touching
+   *     the comment, so that path passes false.
    */
-  updateUserValidation(newUserValidation) {
+  updateUserValidation(newUserValidation, { dropOwnComment = true } = {}) {
     const properties = this.#properties;
     if (newUserValidation !== properties.user_validation) {
       // Update the metadata.
@@ -570,6 +579,15 @@ export class Card {
         properties.val_counts[properties.user_validation] = Math.max(
           0, properties.val_counts[properties.user_validation] - 1,
         );
+        // Clearing or changing a vote deletes the user's comment server-side (the `undone`/`redone` paths), so the
+        // cached copy goes too; otherwise the reason pop-up and the expanded view would show a comment, and mark a
+        // chip, the server no longer holds (#5475). In place: the expanded view's card shares this very array.
+        if (dropOwnComment && Array.isArray(properties.comments)) {
+          for (let i = properties.comments.length - 1; i >= 0; i -= 1) {
+            const c = properties.comments[i];
+            if (c && typeof c === 'object' && c.mine) properties.comments.splice(i, 1);
+          }
+        }
       }
       if (newUserValidation) properties.val_counts[newUserValidation] += 1;
       properties.user_validation = newUserValidation;

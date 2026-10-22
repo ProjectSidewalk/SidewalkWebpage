@@ -23,6 +23,9 @@ import scala.concurrent.{ExecutionContext, Future}
  * @param newLabelType The type the label should become; an Agree carrying one is recorded as a vote on that type.
  * @param canEdit      Whether an Agree may apply the submitted type, severity and tags; only admins edit through a vote.
  */
+/** A canned reason the user's standing vote on the label doesn't take (#5475); the comment is not stored. */
+case class ReasonNotOffered(reason: ValidationReason) extends Exception(s"reason '$reason' not offered here")
+
 case class ValidationSubmission(
     validation: LabelValidation,
     newLabelType: Option[LabelType],
@@ -42,6 +45,7 @@ trait ValidationService {
   def insertEnvironment(env: ValidationTaskEnvironment): Future[Int]
   def insertMultipleInteractions(interactions: Seq[ValidationTaskInteraction]): Future[Unit]
   def replaceComment(comment: ValidationTaskComment): Future[Int]
+  def currentVote(labelId: Int, userId: String, labelType: LabelType): Future[Option[ValidationOption]]
   def deleteComment(labelId: Int, userId: String, labelType: LabelType): Future[Int]
   def submitValidations(validationSubmissions: Seq[ValidationSubmission]): Future[Seq[Int]]
   def submitValidationsDbio(validationSubmissions: Seq[ValidationSubmission]): DBIO[Seq[Int]]
@@ -150,10 +154,26 @@ class ValidationServiceImpl @Inject() (
   /**
    * Records the user's comment on a label, replacing whatever they had said about it before.
    *
+   * A canned reason has to be one the user's standing vote takes (#5475), and that vote can be moving at the same
+   * moment: a vote change on the label card deletes the old comment and inserts the new vote in its own
+   * transaction. So the vote row is read `FOR UPDATE` inside this transaction (a change in flight commits first
+   * and the row is then gone, so the reason is refused rather than filed under the new vote), and the controller's
+   * earlier read of the vote is only the friendly early answer.
+   *
    * @return The validation_task_comment_id of the comment that was stored.
+   * @throws ReasonNotOffered when the reason isn't one the user's current vote on the label takes.
    */
   def replaceComment(comment: ValidationTaskComment): Future[Int] = runWithUniqueViolationRetry {
+    val reasonAllowed: DBIO[Unit] = comment.reason match {
+      case None         => DBIO.successful(())
+      case Some(reason) =>
+        labelValidationTable.lockValidation(comment.labelId, comment.userId, comment.labelType).flatMap { vote =>
+          if (vote.exists(v => ValidationReason.offered(comment.labelType, v).contains(reason))) DBIO.successful(())
+          else DBIO.failed(ReasonNotOffered(reason))
+        }
+    }
     (for {
+      _ <- reasonAllowed
       _ <- validationTaskCommentTable.archive(
         comment.labelId,
         comment.userId,
@@ -163,6 +183,13 @@ class ValidationServiceImpl @Inject() (
       commentId <- validationTaskCommentTable.insert(comment)
     } yield commentId).transactionally
   }
+
+  /**
+   * The user's standing vote on a label, as the reason a comment may carry has to be one that vote takes (#5475).
+   * @return The vote on the label's given type, or None when they have none.
+   */
+  def currentVote(labelId: Int, userId: String, labelType: LabelType): Future[Option[ValidationOption]] =
+    db.run(labelValidationTable.getValidation(labelId, userId, labelType)).map(_.map(_.validationResult))
 
   /**
    * Removes the user's comment on a label, if they left one.

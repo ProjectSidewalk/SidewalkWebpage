@@ -276,7 +276,8 @@ case class LabelComment(
     username: String,
     comment: String,
     timeCreated: Option[OffsetDateTime],
-    validation: Option[String]
+    validation: Option[String],
+    reason: Option[String]
 )
 
 // Extra data to include with validations for Expert Validate. Includes usernames and previous validators.
@@ -783,7 +784,8 @@ object LabelTable {
         (obj \ "username").as[String],
         (obj \ "comment").as[String],
         (obj \ "time_created").asOpt[OffsetDateTime],
-        (obj \ "validation").asOpt[String]
+        (obj \ "validation").asOpt[String],
+        (obj \ "reason").asOpt[String]
       )
     }
   }

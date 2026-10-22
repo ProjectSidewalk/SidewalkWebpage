@@ -7,53 +7,6 @@
       "crosswalk": "Is this a <b>Marked Pedestrian Crossing</b>?"
     }
   },
-  "validate-menu": {
-    "disagree-reason": {
-      "curb-ramp": {
-        "wrong-type-tooltip": "Sometimes a missing drop kerb is accidentally mislabeled as a drop kerb",
-        "no-button-3": "This is a footpath to driveway transition",
-        "no-button-3-tooltip": "Footpath to driveway transitions are not drop kerbs unless a dedicated ramp has been added"
-      },
-      "no-curb-ramp": {
-        "wrong-type-tooltip": "Sometimes a drop kerb is mislabeled as a missing ramp, often because it's missing a tactile warning",
-        "no-button-3": "There is no footpath here",
-        "no-button-4-tooltip": "Pedestrians are not meant to cross at this spot, so no drop kerb is expected"
-      },
-      "obstacle": {
-        "no-button-2-tooltip": "If there is no footpath or the object is not on the part of the footpath meant for pedestrians, like in the image below, an Obstacle label is not needed",
-        "no-button-3-tooltip": "On very wide footpaths, easily avoidable objects should <b>not</b> be labeled as obstacles"
-      },
-      "surface-problem": {
-        "wrong-type-tooltip": "Gravel or grass are not considered a footpath, and should be marked with a No Footpath label",
-        "no-button-3": "These are normal footpath tiles"
-      },
-      "no-sidewalk": {
-        "wrong-type-tooltip": "Surface problems or obstacles may be mistakenly labeled as No Footpath",
-        "no-button-2": "There is a footpath here"
-      },
-      "crosswalk": {
-        "no-button-2": "There is no visible pedestrian crossing here"
-      }
-    },
-    "unsure-reason": {
-      "curb-ramp": {
-        "unsure-button-3-tooltip": "Some alleyways or commercial driveways require ramps due to height differences, others do not. Sometimes it's not clear if a seam between a footpath requires a ramp or tactile surface indicator."
-      },
-      "no-curb-ramp": {
-        "unsure-button-3": "Not sure if a drop kerb is required"
-      },
-      "obstacle": {
-        "unsure-button-3-tooltip": "The width of the footpath may be difficult to judge from a picture"
-      },
-      "surface-problem": {
-        "unsure-button-3-tooltip": "It may be unclear whether an issue like grass between footpath blocks needs to be labeled"
-      },
-      "no-sidewalk": {
-        "unsure-button-3": "Not sure if there should be a footpath here",
-        "unsure-button-3-tooltip": "Sometimes more context is necessary, and it's hard to determine if a footpath is necessary from just one image"
-      }
-    }
-  },
   "mission-complete": {
     "body-CurbRamp": "You just validated {{n}} Drop Kerb labels.",
     "body-NoCurbRamp": "You just validated {{n}} Missing Drop Kerb labels.",

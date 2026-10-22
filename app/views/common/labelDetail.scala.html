@@ -202,6 +202,9 @@
        CSS hides the list's "None" while the input is up. Open-ended notes about a place belong to
        lived-experience stories (#4054), not here. *@
     <div class="label-detail__comment-row">
+      @* The way back to the one-tap reasons (#5475) once their pop-up has gone: it reopens, hung off this button.
+         Shown only with a Disagree or Unsure vote whose type has canned reasons; hidden while the pop-up is up. *@
+      <button type="button" class="label-detail__reasons-reopen" aria-haspopup="dialog" hidden><span data-i18n="common:validation-reason.reopen">Reasons</span><span class="label-detail__reasons-reopen-caret" aria-hidden="true">▾</span></button>
       @* Both strings are placeholders for LabelDetail's per-vote prompt, which replaces them before the row is ever
          shown. They stay generic so a paint before that runs never contradicts the vote the reader just cast. *@
       <label class="sr-only" for="label-detail-comment-input">Add a comment…</label>

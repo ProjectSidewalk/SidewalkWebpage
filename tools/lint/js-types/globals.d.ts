@@ -79,6 +79,8 @@ interface Window {
     isPrimaryValidate: boolean;
   }>;
   logWebpageActivity: (activity: string, async?: boolean) => void;
+  // Stamped from ValidationReason.pageStampJson (#5475): each label type's canned reasons per vote, in menu order.
+  validationReasons: Record<string, Record<string, string[]>>;
   // Stamped from PanoDataService.MapillaryMaxPoseTiltDeg; absent in jsdom and the error pages.
   mapillaryMaxPoseTiltDeg?: number;
   // Pannellum is a classic script that puts itself here; sdk/pannellum.js reads it back.

@@ -2,6 +2,7 @@
 @import models.label.LabelType
 @import models.pano.ImageryAttribution
 @import models.utils.PanoScoring
+@import models.validation.ValidationReason
 @import views.ViewHelpers.jsonForScript
 @import service.CommonPageData
 @import play.filters.csrf.CSRF
@@ -80,6 +81,10 @@
        literals that can drift from the backend. Must precede the tool bundles, which read it at load time. A page
        that never stamps it (jsdom, the error pages) leaves util.misc with an empty table. *@
     <script>window.labelTypes = @Html(LabelType.pageStampJson);</script>
+    @* The canned reasons each label type offers for a Disagree or Unsure vote, in menu order (#5475).
+       ValidationReason owns it; validationReasons.js builds every reason list from it, for the Validate menus, the
+       label detail card and the Gallery cards alike, with the text for each id coming from the locale files. *@
+    <script>window.validationReasons = @Html(ValidationReason.pageStampJson);</script>
     @* What frontend/js/pages/main.js needs from the server, then the bundle itself (shared helpers, app manager, navbar,
        auth dialog, test-server banner). A module script runs after parsing and before the page's own entry below. *@
     <script type="application/json" id="page-config">{

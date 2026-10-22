@@ -33,7 +33,8 @@ case class ValidationTaskComment(
     lat: Double,
     lng: Double,
     timestamp: OffsetDateTime,
-    comment: String
+    comment: String,
+    reason: Option[ValidationReason]
 )
 
 class ValidationTaskCommentTableDef(tag: Tag) extends Table[ValidationTaskComment](tag, "validation_task_comment") {
@@ -51,9 +52,11 @@ class ValidationTaskCommentTableDef(tag: Tag) extends Table[ValidationTaskCommen
   def lng: Rep[Double]                  = column[Double]("lng")
   def timestamp: Rep[OffsetDateTime]    = column[OffsetDateTime]("timestamp")
   def comment: Rep[String]              = column[String]("comment")
+  // The canned reason the text is, when it is one (#5475); NULL for free text or a comment older than the column.
+  def reason: Rep[Option[ValidationReason]] = column[Option[ValidationReason]]("reason")
 
   def * = (validationTaskCommentId, missionId, labelId, labelType, userId, ipAddress, panoId, heading, pitch, zoom, lat,
-    lng, timestamp, comment).mapTo[ValidationTaskComment]
+    lng, timestamp, comment, reason).mapTo[ValidationTaskComment]
 
   def labelUserTypeUnique =
     index("validation_task_comment_label_id_user_id_label_type_key", (labelId, userId, labelType), unique = true)
@@ -113,9 +116,9 @@ class ValidationTaskCommentTable @Inject() (
            )
            INSERT INTO validation_task_comment_history (validation_task_comment_id, mission_id, label_id, label_type,
                                                         user_id, ip_address, pano_id, heading, pitch, zoom, lat, lng,
-                                                        timestamp, comment, change_type)
+                                                        timestamp, comment, reason, change_type)
            SELECT validation_task_comment_id, mission_id, label_id, label_type, user_id, ip_address, pano_id, heading,
-                  pitch, zoom, lat, lng, timestamp, comment, $changeType
+                  pitch, zoom, lat, lng, timestamp, comment, reason, $changeType
            FROM superseded"""
   }
 
