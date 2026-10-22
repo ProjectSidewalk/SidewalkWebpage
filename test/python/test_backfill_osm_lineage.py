@@ -90,19 +90,20 @@ def test_main_matches_the_export_and_writes_both_files(tmp_path, monkeypatch, ca
     write_input(city_dir / bl.INPUT_NAME, [input_row(1, way, '10'), input_row(2, lonlat((0, 300), (100, 300)), '10')])
     seen = {}
 
-    def fetch(polygons, include_alleys, **kwargs):
-        seen['polygons'], seen['alleys'], seen['kwargs'] = polygons, include_alleys, kwargs
+    def fetch(polygons, service_roads, **kwargs):
+        seen['polygons'], seen['service_roads'], seen['kwargs'] = polygons, service_roads, kwargs
         return gpd.GeoDataFrame({'osm_way_id': [10], 'highway': ['residential']}, geometry=[way], crs='EPSG:4326')
 
-    def probe(policy):
-        seen['probed'] = policy
+    def probe(policy, url):
+        seen['probed'], seen['probe_url'] = policy, url
 
     with caplog.at_level(logging.INFO):
-        assert bl.main(['--city-id', 'testville', '--request-timeout-s', '90', '--pause-s', '3'], fetch=fetch,
-                       probe=probe) == 0
-    assert seen['alleys'] and len(seen['polygons']) == 1 and seen['polygons'][0].contains(way)
+        assert bl.main(['--city-id', 'testville', '--request-timeout-s', '90', '--pause-s', '3', '--overpass-url',
+                        'https://x/api'], fetch=fetch, probe=probe) == 0
+    assert seen['service_roads'] == 'all' and len(seen['polygons']) == 1 and seen['polygons'][0].contains(way)
     assert seen['kwargs'] == {'request_timeout_s': 90, 'memory_mb': 256, 'pause_s': 3.0, 'policy': seen['probed'],
-                              'one_request_each': True}
+                              'one_request_each': True, 'overpass_url': 'https://x/api'}
+    assert seen['probe_url'] == 'https://x/api'
     assert any('1 Overpass request(s) over' in r.message for r in caplog.records)
     with open(city_dir / bl.OUTPUT_NAME, newline='') as f:
         rows = list(csv.DictReader(f))
@@ -144,16 +145,16 @@ def test_main_exits_75_and_writes_nothing_when_overpass_will_not_answer(tmp_path
     city_dir.mkdir(parents=True)
     write_input(city_dir / bl.INPUT_NAME, [input_row(1, lonlat((0, 0), (100, 0)), '10')])
 
-    def refusing(policy):
+    def refusing(policy, url):
         raise bl.OverpassUnavailable('Overpass probe: still not answering after 5 attempt(s)')
     with caplog.at_level(logging.ERROR):
         assert bl.main(['--city-id', 'testville'], fetch=None, probe=refusing) == 75
     assert any('Nothing was written for testville' in r.message for r in caplog.records)
     assert not (city_dir / bl.OUTPUT_NAME).exists()
 
-    def fetch(polygons, include_alleys, **kwargs):
+    def fetch(polygons, service_roads, **kwargs):
         raise bl.OverpassUnavailable('request 1/1: still not answering')
-    assert bl.main(['--city-id', 'testville'], fetch=fetch, probe=lambda policy: None) == 75
+    assert bl.main(['--city-id', 'testville'], fetch=fetch, probe=lambda policy, url: None) == 75
 
 
 def test_parse_args_validates_the_city_id():
@@ -161,4 +162,4 @@ def test_parse_args_validates_the_city_id():
         bl.parse_args(['--city-id', 'Test Ville'])
     args = bl.parse_args(['--city-id', 'testville', '--fetch-buffer-m', '20'])
     assert (args.fetch_buffer_m, args.tile_km2, args.request_timeout_s, args.request_memory_mb, args.pause_s,
-            args.dry_run) == (20.0, 300.0, 60, 256, 7.0, False)
+            args.dry_run, args.overpass_url) == (20.0, 300.0, 60, 256, 7.0, False, bl.OVERPASS_URL)

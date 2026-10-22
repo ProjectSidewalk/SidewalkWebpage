@@ -182,10 +182,12 @@ def fake_post(status=200, reason='OK', raises=None):
     return post, seen
 
 
-def test_probe_sends_the_tiny_query_with_our_identity():
+def test_probe_sends_the_tiny_query_with_our_identity_to_the_instance_named():
     post, seen = fake_post()
     assert op.is_answering(post) is True
-    assert seen['url'].endswith('/api/interpreter') and seen['data'] == {'data': op.PROBE_QUERY}
+    assert seen['url'] == 'https://overpass-api.de/api/interpreter' and seen['data'] == {'data': op.PROBE_QUERY}
+    assert op.is_answering(post, url='https://overpass.example.org/api/') is True
+    assert seen['url'] == 'https://overpass.example.org/api/interpreter'
     assert seen['headers'] == {'User-Agent': op.USER_AGENT} and 'sidewalk@cs.uw.edu' in op.USER_AGENT
     assert 'node(1)' in op.PROBE_QUERY and '[timeout:5]' in op.PROBE_QUERY
 
@@ -201,19 +203,22 @@ def test_probe_is_false_on_a_refusal_or_a_bad_status_without_retrying(caplog):
 
 def test_wait_until_answering_retries_the_probe_on_the_schedule(monkeypatch):
     answers = [False, False, True]
-    monkeypatch.setattr(op, 'is_answering', lambda: answers.pop(0))
+    asked = []
+    monkeypatch.setattr(op, 'is_answering', lambda url: asked.append(url) or answers.pop(0))
     clock = FakeClock()
-    op.wait_until_answering(sleep=clock.sleep, clock=clock, rng=no_jitter)
-    assert clock.sleeps == [30, 60]
-    monkeypatch.setattr(op, 'is_answering', lambda: False)
+    op.wait_until_answering(url='https://x/api', sleep=clock.sleep, clock=clock, rng=no_jitter)
+    assert clock.sleeps == [30, 60] and asked == ['https://x/api'] * 3
+    monkeypatch.setattr(op, 'is_answering', lambda url: False)
     with pytest.raises(op.OverpassUnavailable, match='Overpass probe'):
         op.wait_until_answering(sleep=clock.sleep, clock=clock, rng=no_jitter)
 
 
 def test_main_check_exits_0_when_answering_and_75_when_not(monkeypatch, capsys):
-    monkeypatch.setattr(op, 'is_answering', lambda: True)
+    asked = []
+    monkeypatch.setattr(op, 'is_answering', lambda url: asked.append(url) or True)
     assert op.main(['--check']) == 0
-    monkeypatch.setattr(op, 'is_answering', lambda: False)
+    assert op.main(['--check', '--url', 'https://x/api']) == 0 and asked == [op.OVERPASS_URL, 'https://x/api']
+    monkeypatch.setattr(op, 'is_answering', lambda url: False)
     assert op.main(['--check']) == op.EXIT_UNAVAILABLE == 75
     assert 'not answering' in capsys.readouterr().out
     with pytest.raises(SystemExit):
@@ -226,6 +231,9 @@ def test_configure_identifies_us_declares_the_limits_and_caches_by_day(tmp_path)
     ox = SimpleNamespace(settings=SimpleNamespace())
     op.configure(ox, tmp_path, 60, 256, today=lambda: date(2026, 10, 20))
     assert ox.settings.http_user_agent == op.USER_AGENT and ox.settings.http_referer == op.USER_AGENT
+    assert ox.settings.overpass_url == op.OVERPASS_URL and ox.settings.overpass_rate_limit is True
+    op.configure(ox, tmp_path, 60, 256, today=lambda: date(2026, 10, 20), url='https://x/api')
+    assert ox.settings.overpass_url == 'https://x/api' and ox.settings.overpass_rate_limit is False
     # The server gets 60 s and says so in the query; the client waits longer, so a "timed out" remark can arrive.
     assert ox.settings.overpass_settings == '[out:json][timeout:60]{maxsize}'
     assert ox.settings.requests_timeout == 60 + op.CLIENT_SLACK_S and ox.settings.overpass_memory == 256 * 1024 * 1024

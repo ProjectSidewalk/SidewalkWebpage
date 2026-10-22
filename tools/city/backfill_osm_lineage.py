@@ -33,7 +33,8 @@ from shapely import wkb
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from onboard_city import fetch_ways, valid_city_id  # noqa: E402
 from osm_lineage import compute_lineage, lineage_rows, lineage_summary  # noqa: E402
-from overpass import EXIT_UNAVAILABLE, OverpassUnavailable, RetryPolicy, wait_until_answering  # noqa: E402
+from overpass import (EXIT_UNAVAILABLE, OVERPASS_URL, OverpassUnavailable, RetryPolicy,  # noqa: E402
+                      wait_until_answering)
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 INPUT_NAME = 'osm_lineage_input.csv'
@@ -194,6 +195,9 @@ def parse_args(argv=None):
                         help='The rest between two requests, in seconds (default 7).')
     parser.add_argument('--dry-run', action='store_true',
                         help='Print the request count and area for the city and fetch nothing.')
+    parser.add_argument('--overpass-url', default=OVERPASS_URL,
+                        help=f'The Overpass instance to ask, without /interpreter (default {OVERPASS_URL}); read its '
+                             'usage policy first, and never switch because the default refused you.')
     return parser.parse_args(argv)
 
 
@@ -228,9 +232,10 @@ def main(argv=None, fetch=fetch_ways, probe=wait_until_answering):
         return 0
     policy = RetryPolicy()
     try:
-        probe(policy)
-        ways = fetch(tiling.polygons, True, request_timeout_s=args.request_timeout_s,
-                     memory_mb=args.request_memory_mb, pause_s=args.pause_s, policy=policy, one_request_each=True)
+        probe(policy, url=args.overpass_url)
+        ways = fetch(tiling.polygons, 'all', request_timeout_s=args.request_timeout_s,
+                     memory_mb=args.request_memory_mb, pause_s=args.pause_s, policy=policy, one_request_each=True,
+                     overpass_url=args.overpass_url)
     except OverpassUnavailable as exc:
         logger.error('%s. Nothing was written for %s.', exc, args.city_id)
         return EXIT_UNAVAILABLE

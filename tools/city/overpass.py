@@ -17,6 +17,11 @@ streetscape-tracker, which queries Overpass every night and has also been blocke
 ``python3.13 tools/city/overpass.py --check`` asks the server one tiny question and exits 0 when it answers, 75 when it
 does not; the fleet driver runs it before starting and before resuming. Everything else is imported. Stdlib and
 ``requests`` only, so it runs under both interpreters (``.claude/rules/python-scripts.md``).
+
+Every entry point takes the instance's base URL (``--url`` / ``--overpass-url``), since the main one has days when it
+admits nothing and the other public instances are run by other people, each with their own usage policy and their own
+copy of the data (a minute or two behind OSM on a healthy one, months on a neglected one). Pick one on purpose, after
+reading its policy, never by failing over on a refusal: a client that has been refused should not move its traffic.
 """
 import argparse
 import logging
@@ -36,7 +41,7 @@ logger = logging.getLogger('overpass')
 
 # app/service/OutboundHttp.scala's string: the usage policy wants a contact, and a bare python-requests UA gets a 406.
 USER_AGENT = 'ProjectSidewalk/1.0 (+https://projectsidewalk.org; sidewalk@cs.uw.edu)'
-OVERPASS_URL = 'https://overpass-api.de/api'
+OVERPASS_URL = 'https://overpass-api.de/api'   # The base, as osmnx takes it; /interpreter is appended.
 # The smallest question the interpreter answers. Not /status: it has answered while /interpreter refused the same IP.
 PROBE_QUERY = '[out:json][timeout:5][maxsize:1048576];node(1);out ids;'
 PROBE_TIMEOUT_S = 15
@@ -156,10 +161,10 @@ def summary(exc):
     return f'{type(exc).__name__}: {text[:160]}' if text else type(exc).__name__
 
 
-def is_answering(post=requests.post):
+def is_answering(post=requests.post, url=OVERPASS_URL):
     """Whether the interpreter answers a tiny query right now: one request, no retry, so a check costs nothing."""
     try:
-        response = post(f'{OVERPASS_URL}/interpreter', data={'data': PROBE_QUERY}, timeout=PROBE_TIMEOUT_S,
+        response = post(f'{url.rstrip("/")}/interpreter', data={'data': PROBE_QUERY}, timeout=PROBE_TIMEOUT_S,
                         headers={'User-Agent': USER_AGENT})
     except (requests.ConnectionError, requests.Timeout) as exc:
         logger.info('Overpass probe failed: %s', summary(exc))
@@ -169,7 +174,7 @@ def is_answering(post=requests.post):
     return response.ok
 
 
-def wait_until_answering(policy=RetryPolicy(), **retry_kwargs):
+def wait_until_answering(policy=RetryPolicy(), url=OVERPASS_URL, **retry_kwargs):
     """
     Waits for the interpreter to answer the probe, on the retry schedule, before a run sends anything heavier.
 
@@ -177,17 +182,19 @@ def wait_until_answering(policy=RetryPolicy(), **retry_kwargs):
         OverpassUnavailable: when it does not answer within the window.
     """
     def probe():
-        if not is_answering():
+        if not is_answering(url=url):
             raise Refused('the probe query was not answered')
     call_with_retry(probe, 'Overpass probe', policy, **retry_kwargs)
 
 
-def configure(ox, cache_root, request_timeout_s=180, memory_mb=None, today=date.today):
+def configure(ox, cache_root, request_timeout_s=180, memory_mb=None, today=date.today, url=OVERPASS_URL):
     """
     Points osmnx at Overpass the polite way: our identity, the declared limits, and a cache that lasts a day.
 
     Args:
         ox:                The osmnx module.
+        url:               The instance's base URL; osmnx keys its cache on the full request URL, so each instance's
+                           answers are kept apart.
         cache_root:        Where osmnx's responses are kept; today's go in a ``YYYY-MM-DD`` folder under it, and
                            folders older than :data:`CACHE_KEEP_DAYS` are removed. A rerun on the same day re-reads
                            what it already fetched, and a later one sees what OSM holds then.
@@ -200,6 +207,10 @@ def configure(ox, cache_root, request_timeout_s=180, memory_mb=None, today=date.
     """
     ox.settings.http_user_agent = USER_AGENT
     ox.settings.http_referer = USER_AGENT
+    ox.settings.overpass_url = url
+    # osmnx asks /status for a free slot before every query and waits a fixed 60 s when it cannot read the answer;
+    # the main instance serves it, the others may not (openstreetmap.fr answers 403), and the pacing here stands in.
+    ox.settings.overpass_rate_limit = url == OVERPASS_URL
     declare_limits(ox, request_timeout_s, memory_mb)
     ox.settings.use_cache = True
     ox.settings.cache_folder = str(cache_root / today().isoformat())
@@ -303,15 +314,18 @@ def fetch_each(polygons, fetch_one, pause_s=7.0, policy=RetryPolicy(), sleep=tim
 
 def main(argv=None):
     """``--check``: is Overpass answering? Exit 0 when it is, :data:`EXIT_UNAVAILABLE` when it is not."""
-    parser = argparse.ArgumentParser(description='Asks overpass-api.de one tiny question.')
+    parser = argparse.ArgumentParser(description='Asks an Overpass instance one tiny question.')
     parser.add_argument('--check', action='store_true', required=True,
                         help='Exit 0 if the interpreter answers, 75 if not.')
-    parser.parse_args(argv)
+    parser.add_argument('--url', default=OVERPASS_URL,
+                        help=f'The instance, without /interpreter (default {OVERPASS_URL}).')
+    args = parser.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format='%(message)s')
-    if is_answering():
-        print('Overpass is answering.')
+    if is_answering(url=args.url):
+        print(f'Overpass is answering at {args.url}.')
         return 0
-    print('Overpass is not answering; wait before sending it anything (a block lifts on its own, after a while).')
+    print(f'Overpass at {args.url} is not answering; wait before sending it anything (a block lifts on its own, '
+          'after a while).')
     return EXIT_UNAVAILABLE
 
 

@@ -59,6 +59,10 @@ psql -v ON_ERROR_STOP=1 -d sidewalk -U "$SCHEMA_NAME" <<EOSQL
     FROM osm_lineage_import
     INNER JOIN street_edge ON osm_lineage_import.street_edge_id = street_edge.street_edge_id
         AND osm_lineage_import.geom_md5 = md5(ST_AsBinary(street_edge.geom));
+    -- A temp table filled in the same transaction has no statistics, so the joins below would be planned off a guess
+    -- at its size; a bad guess costs hours on a big city.
+    ANALYZE osm_lineage_import;
+    ANALYZE osm_lineage_match;
 
     SELECT (SELECT COUNT(DISTINCT street_edge_id) FROM osm_lineage_import) AS streets_in_csv,
            (SELECT COUNT(*) FROM osm_lineage_match) AS streets_matching_a_geometry;
