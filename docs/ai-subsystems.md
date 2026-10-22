@@ -35,10 +35,15 @@ for CurbRamp, NoCurbRamp, Obstacle, SurfaceProblem, Crosswalk.
    type was edited is assessed again right after the edit (`AiService.reassessAfterTypeChange`, same eligibility
    rules, #3671), with this sweep as the fallback.
 2. `AiService.callAiApi` (`app/service/AiService.scala`) POSTs
-   `{label_type, panorama_id, x, y, city}`, plus the API password as an `Authorization: Bearer` header, to
+   `{label_type, panorama_id, x, y, city, coord_frame}`, plus the pano's `camera_pitch` and `camera_roll` (degrees)
+   when known, finite and within ±30°, with the API password as an `Authorization: Bearer` header, to
    `https://sidewalk-ai-api.cs.washington.edu/process` (code:
    [`sidewalk-ai-api`](https://github.com/ProjectSidewalk/sidewalk-ai-api) — Dockerized GPU
    service, ≥ 9–10 GB VRAM, serving both model families from HuggingFace).
+   `coord_frame` is `level` for human labels, whose `pano_x/pano_y` are in the gravity-levelled viewer frame; the API
+   uses the pitch and roll to centre its crop on the clicked point rather than the tilt-shifted stored pixel
+   (#4784/#5788), and must skip that for `rig`-frame coordinates (AI-labeler submissions, #5790). The API rejects
+   out-of-range poses with a 400, so those are not sent and the label is assessed uncorrected.
 3. The response (validation result + estimated accuracy + per-tag scores + model provenance: API version, and
    each model's id, training date and HuggingFace revision)
    is stored in `label_ai_assessment`, along with the type it was about, which is what makes an assessment stale once
@@ -99,6 +104,23 @@ validation.
    vote short of consensus, so the crowd queue keeps serving it until a human concurs, and a
    label the humans lean against goes to Expert Validate's triage queue
    (`docs/validation-queue.md`).
+
+**Resubmitting a pano (#5382).** A re-run of the labeler re-POSTs panos it has already
+submitted, so a submission with labels is refused with a **409** when the AI user already has
+live labels of its `label_type` on that pano, and nothing is written (the pano upsert
+included). The body carries `pano_id`, `label_type` and `existing_label_count` beside the
+message. Sending `"overwrite": true` (default `false`) instead soft-deletes those labels
+(`deleted_by` the AI user, `deleted_source = 'SidewalkAI'`, so their `label_point`,
+`label_ai_info` and validations stay and an admin can restore them) in the same transaction
+as the new inserts; with `labels: []` it just retires them. The check is per label type, so a
+model for another type is neither refused by nor wipes them. Two concurrent *first*
+submissions of one pano could both pass the check; the labeler submits sequentially.
+
+**Incomplete payloads get a 400 (#4808).** A label's lat/lng and POV come from the pano's
+`width`, `height`, `lat`, `lng` and `camera_heading`, so a submission with labels that lacks
+any of them is refused with a 400 before anything is written; they stay optional on a
+`labels: []` submission. A label whose nearest street has no live region is still a 500, a
+data-integrity fault rather than a bad request, and it rolls back the whole submission.
 
 **City gate:** `submitAiLabel` is gated by the per-city `ai-label-submission-enabled` flag in
 `cityparams.conf` (default **false**; unlisted cities reject submissions). Onboarding another

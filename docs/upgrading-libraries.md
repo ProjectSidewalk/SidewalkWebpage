@@ -28,7 +28,7 @@ listed separately and are *expected* to differ; the goal is skew that's written 
 | Python (app) | **3.8** | 3.14.7 | **Oct 2024 — past** | web base image ([why two](#interpreters)) |
 | Python (tooling) | **3.13.15** | 3.14.7 | Oct 2029 | `Dockerfile`, via uv |
 | web image | **`eclipse-temurin:17-jdk-focal`** | jammy / noble | **May 2025 — past** | `Dockerfile` |
-| db image | **`postgis/postgis:18-3.6`** | 18-3.6 | ~Aug 2028 (Debian 13) | `db/Dockerfile` |
+| db image | **`postgres:18-trixie`** + PGDG `postgresql-18-postgis-3` (the `postgis/postgis` images are amd64-only, #5789) | 18 / PostGIS 3.6 | ~Aug 2028 (Debian 13) | `db/Dockerfile` |
 | ShellCheck image | **`koalaman/shellcheck:v0.11.0`** | 0.11.0 | — | `docker/shellcheck/Dockerfile` (never built; the pin `make shellcheck` and CI run, kept where Dependabot looks) |
 
 - **Focal does more than it looks.** It's what makes `python3` mean 3.8 (retiring that is
@@ -36,8 +36,8 @@ listed separately and are *expected* to differ; the goal is skew that's written 
   2.32 and 2.34 that sbt's `sbtn` needs, so `sbt --client` can't run in the container at all and everything uses
   `sbt --jvm-client` instead (#5268). Jammy (glibc 2.35, `python3` 3.10) or noble (2.39, 3.12) fixes both, but a
   move has to say what happens to 3.8 first.
-- **The db image updates by rebuilding.** It's Debian 13 with Postgres, PostGIS, GEOS and PROJ from Postgres's own
-  package server, the same source as prod's.
+- **The db image updates by rebuilding.** It's Debian 13 with Postgres from the official image and PostGIS, GEOS and
+  PROJ from Postgres's own package server, the same source as prod's.
 - **Java 17** in dev and CI, **21** on prod; moving dev to 21 is
   [#4396](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4396). Dependabot deliberately ignores major
   `eclipse-temurin` bumps. **Node 24** is LTS until Apr 2028, with 26 taking over as LTS in Oct 2026.
@@ -132,7 +132,7 @@ edited.**
 **To upgrade by hand:** `docker exec projectsidewalk-web bash -c 'cd /home && npm install --save-exact <pkg>@<ver>'`,
 then `bash tools/dev/npm-sync.sh --write-stamp` so the next `make dev` doesn't redo `npm ci`. Dependabot
 ([`.github/dependabot.yml`](../.github/dependabot.yml)) opens the monthly bumps; majors wait for a person, and so does
-anything in its `npm-imagery` groups (the viewer SDKs, three.js, MapLibre, pmtiles, proj4), since CI never drives a
+anything in its `npm-imagery` groups (the viewer SDKs, MapLibre, pmtiles, proj4), since CI never drives a
 pano viewer or the minimap: try those in a city that uses each one. **A version hold needs an `ignore` entry there**, or
 Dependabot bumps straight past it; mapbox-gl's is the one in place.
 
@@ -154,7 +154,8 @@ Dependabot bumps straight past it; mapbox-gl's is the one in place.
   for a person.
 - **maplibre-gl** — draws the Explore minimap (#5429). It looks for its Web Worker beside its own file, which in the
   bundle is the Explore chunk, so `Minimap.js` imports the worker through Vite's `?worker&url` and hands the URL to
-  `setWorkerUrl`. A bump that renames `dist/maplibre-gl-worker.mjs` shows up as a minimap that never draws.
+  `setWorkerUrl`. A bump that renames `dist/maplibre-gl-worker.mjs` shows up as a minimap that never draws, with a
+  `Minimap_Error` in the console and the interaction log.
 - **mapbox-gl** — imported through `frontend/js/common/mapboxgl.js`, which takes the CSP build and hands it the worker
   Vite builds from `dist/mapbox-gl-csp-worker.js` (the comment there says why the regular build can't be bundled).
   **Held below 3.25 on purpose**, by the `ignore` entry in `.github/dependabot.yml`: from 3.25.0 a symbol layer that
@@ -163,18 +164,18 @@ Dependabot bumps straight past it; mapbox-gl's is the one in place.
   ([mapbox-gl-js#13714](https://github.com/mapbox/mapbox-gl-js/issues/13714)). Take 3.25+ (and drop the entry) once the
   fix ([#13721](https://github.com/mapbox/mapbox-gl-js/pull/13721)) ships, or give every such symbol layer a
   feature-state paint expression first.
-- **mapillary-js** (loaded through `sdk/mapillary.js`, with the three.js classes below) — Explore and Validate leave the
+- **mapillary-js** (loaded through `sdk/mapillary.js`) — Explore and Validate leave the
   SDK's `.mapillary-attribution-container` where it renders it and override its position from `svl.css` and
   `svv-panorama.css` (#5600), keyed on that class, and Explore's `PanoManager.#liftAboveMapillaryAttribution` finds the
   node by it once and relies on the SDK creating the container once and patching it in place (not replacing it on the
   compact flip); on upgrade, re-check both.
 - **pannellum** (loaded through `sdk/pannellum.js`) — the viewer for self-hosted panos. A classic script with no exports
   that puts itself on `window`; that module reads it back.
-- **@photo-sphere-viewer/core + equirectangular-tiles-adapter** and **three** (loaded through
-  `sdk/photoSphereViewer.js`) — the renderer behind the Panoramax imagery provider (#5185). The two PSV packages move
-  together, and three.js is pinned at the version PSV's own `^` range resolves to, so Mapillary's `extractPitchRoll`
-  (its `Vector3` and `Matrix4`) shares the one copy: move three with PSV, never ahead of it, or the bundle carries two
-  copies.
+- **@photo-sphere-viewer/core + equirectangular-tiles-adapter** (loaded through `sdk/photoSphereViewer.js`) — the
+  renderer behind the Panoramax imagery provider (#5185). The two packages move together. three.js comes in as PSV's
+  own dependency. Never add it to `package.json`: the tiles adapter imports `three` without listing it, so it would
+  load our copy while PSV's core loads its own (#5811). `test/js/photoSphereViewerThreeCopy.test.js` fails any
+  install that splits them.
   [PSV docs](https://photo-sphere-viewer.js.org/guide/)
 - **pmtiles** — lets MapLibre read the minimap's tile archive (#5716). The server's `pmtiles` command-line tool is
   separate: it's pinned in `BasemapService` (`CliVersion` and each release file's SHA-256), so change those to upgrade

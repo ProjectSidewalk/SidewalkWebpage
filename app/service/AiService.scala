@@ -237,14 +237,28 @@ class AiServiceImpl @Inject() (
     val url: String                      = s"https://${SIDEWALK_AI_API_HOSTNAME}/process"
     val labelId: Int                     = labelData.labelId
 
-    // Create form data for the multipart request.
-    val formData = Map(
+    // Create form data for the request. The pano's rig pitch and roll (degrees, as stored) let the API centre its
+    // crop on what the labeler clicked rather than on the stored pixel, which carries the rig-tilt error of #4784
+    // (#5788). The API treats them as optional (NaN counts as unknown), but rejects infinite values and any beyond
+    // +/-30 degrees with a 400 (MAX_POSE_DEG in sidewalk-ai-api's main.py; keep the two in step), which would leave
+    // the label unassessed on every nightly run. Such poses are bad data, so they're dropped and the label is assessed
+    // uncorrected, as before.
+    // `coord_frame` says which frame x/y are in: human labels are placed in the gravity-levelled viewer frame
+    // ("level"), which is what the API corrects; a label whose pano_x/pano_y are already image-frame pixels (the AI
+    // labeler's submissions, or labels placed after a #4784 fix at the source) must be sent as "rig" so it is not
+    // corrected twice. AI-labeler submissions never reach this call today (submitAiLabelData doesn't call the AI API,
+    // and getLabelsToValidateWithAi excludes the AI role); choosing the frame per label belongs with #5790.
+    val maxPoseDeg: Double              = 30.0
+    def validPose(deg: Double): Boolean = !deg.isNaN && !deg.isInfinite && math.abs(deg) <= maxPoseDeg
+    val formData                        = Map(
       "label_type"  -> labelData.labelType.name.toLowerCase,
       "panorama_id" -> labelData.panoData.panoId,
       "x"           -> (labelData.labelPoint.panoX.toDouble / labelData.panoData.width.get).toString,
       "y"           -> (labelData.labelPoint.panoY.toDouble / labelData.panoData.height.get).toString,
-      "city"        -> cityId
-    )
+      "city"        -> cityId,
+      "coord_frame" -> "level"
+    ) ++ labelData.panoData.cameraPitch.filter(validPose).map(p => "camera_pitch" -> p.toString) ++
+      labelData.panoData.cameraRoll.filter(validPose).map(r => "camera_roll" -> r.toString)
 
     // No redirects, so the password can't be forwarded to some other host.
     ws.url(url)

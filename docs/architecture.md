@@ -207,6 +207,10 @@ nothing waiting on it, retries once after `Retry-After`. Validate also fetches t
 `PanoImageCache` while the current one is judged, one at a time, and Pannellum loads the held `blob:` URL in place of
 the network one, waiting a bounded time for a prefetch still in flight rather than downloading beside it (#5562).
 
+`/backupImage/:panoId/metadata` answers 404 whether the file is missing, the `pano_data` row is missing, or the row
+lacks a column Pannellum needs, and the body names which (#5183). The file is checked first, so the common miss costs
+no query.
+
 The app used to precompute that copy for every wide pano nightly, which OOM-killed prod JVMs (#5239) — not because
 downscaling is beyond a city stage, but because doing it for a whole store, for copies almost nothing ever displays,
 was never worth it. On-demand costs ~105 MB and ~2 s per copy, by letting the JPEG decoder subsample rather than
@@ -253,6 +257,11 @@ generation, OSM way refresh, AI validations, and auth-token cleanup. The schedul
 `app/actor/ScheduledJobs.scala`: each actor reads its own time from there, staggered across the small hours and
 shifted per city by `ConfigService.getOffsetHours` so 50+ deployments don't contend for the same database and
 provider quotas.
+
+The imagery-age poll's rotation (`StreetImageryTable.streetsToPoll` and `noImageryStreetsToPoll`) keys on
+`street_imagery.polled_at`, which only the poll's `upsertFromPoll` writes (#5403): the labeling harvest bumps
+`updated_at` too, and the expiry sweep feeds its `pano_data.last_viewed` window, so keying on it starved never-polled
+streets.
 
 Label clustering closes with the **AccessScore Spotlight snapshot** (#5215), which writes `region_access_score`
 and `street_access_score` from the clusters that run just built: one row per region per night (kept, so the table is

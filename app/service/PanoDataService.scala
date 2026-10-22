@@ -553,11 +553,13 @@ object PanoDataService {
    * Camera pitch and roll in degrees from Mapillary's `computed_rotation`, or `None` when the vector is malformed or
    * tilted past [[MapillaryMaxPoseTiltDeg]].
    *
-   * A port of `MapillaryViewer.extractPitchRoll` (frontend/js/common/pano-viewer/MapillaryViewer.js), which is what a
-   * labeler's session stores for the same image, so a value filled from here is the one a human visit would have
-   * written. The vector is OpenSfM's world→camera axis-angle rotation (world = east/north/up, camera = x right,
-   * y down, z forward); negating it gives camera→world, and rotating the camera's forward and up axes into the world
-   * frame gives the elevation of the view (pitch) and the turn of the camera's up about the view axis (roll, positive
+   * `MapillaryViewer.extractPitchRoll` (frontend/js/common/pano-viewer/MapillaryViewer.js) is a line-for-line copy,
+   * which is what a labeler's session stores for the same image, so a value filled from here is the one a human visit
+   * would have written; change them together.
+   *
+   * The vector is OpenSfM's world→camera axis-angle rotation (world = east/north/up, camera = x right, y down,
+   * z forward); negating it gives camera→world, and rotating the camera's forward and up axes into the world frame
+   * gives the elevation of the view (pitch) and the turn of the camera's up about the view axis (roll, positive
    * clockwise from behind the camera).
    *
    * @param rotation Mapillary's `computed_rotation`: three finite numbers.
@@ -570,7 +572,7 @@ object PanoDataService {
       (a._2 * b._3 - a._3 * b._2, a._3 * b._1 - a._1 * b._3, a._1 * b._2 - a._2 * b._1)
     def scale(a: Vec3, s: Double): Vec3 = (a._1 * s, a._2 * s, a._3 * s)
     def add(a: Vec3, b: Vec3): Vec3     = (a._1 + b._1, a._2 + b._2, a._3 + b._3)
-    // Like THREE's normalize, a zero vector stays zero, so a camera pointing straight up or down gets roll 0 as in JS.
+    // A zero vector stays zero, so a camera pointing straight up or down gets roll 0.
     def unit(a: Vec3): Vec3      = { val len = math.sqrt(dot(a, a)); if (len > 0) scale(a, 1 / len) else a }
     def clamp(v: Double): Double = math.max(-1.0, math.min(1.0, v))
 
@@ -664,7 +666,9 @@ trait PanoDataService {
   def cropUrl(labelId: Int, labelType: LabelType): Option[String]
   def moveCrop(labelId: Int, from: LabelType, to: LabelType): Boolean
   def localBackupImageFile(panoId: String): Option[File]
-  def getLocalBackupImage(panoId: String): Future[Option[PanoData]]
+
+  /** @return The pano_data row when a stored backup can be served, or the reason it can't (the route's 404 body). */
+  def getLocalBackupImage(panoId: String): Future[Either[String, PanoData]]
 }
 
 @Singleton
@@ -1202,20 +1206,23 @@ class PanoDataServiceImpl @Inject() (
   }
 
   /**
-   * Returns the pano_data row for a pano if a self-hosted image exists AND `PanoData.hasBackupViewerFields` holds. A
-   * NaN pitch or roll is handed on as absent: JSON has no NaN, and the viewer treats the two alike.
+   * Checks the file before the row, so the common miss (no stored image) never touches the DB. Each refusal names its
+   * own cause (#5183) because each points somewhere different: the store and the scraper, or whatever wrote pano_data.
+   * A served row needs `PanoData.hasBackupViewerFields`; a NaN pitch or roll is handed on as absent: JSON has no NaN,
+   * and the viewer treats the two alike.
    */
-  def getLocalBackupImage(panoId: String): Future[Option[PanoData]] = {
+  def getLocalBackupImage(panoId: String): Future[Either[String, PanoData]] = {
     if (localBackupImageFile(panoId).isEmpty) {
-      Future.successful(None)
+      Future.successful(Left(s"No stored image for pano $panoId."))
     } else {
-      db.run(panoDataTable.getPano(panoId))
-        .map(
-          _.filter(_.hasBackupViewerFields)
-            .map(p =>
-              p.copy(cameraPitch = p.cameraPitch.filterNot(_.isNaN), cameraRoll = p.cameraRoll.filterNot(_.isNaN))
-            )
-        )
+      db.run(panoDataTable.getPano(panoId)).map {
+        case None => Left(s"Stored image for pano $panoId cannot be served: no pano_data row.")
+        case Some(p) if p.hasBackupViewerFields =>
+          Right(p.copy(cameraPitch = p.cameraPitch.filterNot(_.isNaN), cameraRoll = p.cameraRoll.filterNot(_.isNaN)))
+        case Some(p) =>
+          val missing = p.missingBackupViewerColumns.mkString(", ")
+          Left(s"Stored image for pano $panoId cannot be served: pano_data is missing $missing.")
+      }
     }
   }
 }
