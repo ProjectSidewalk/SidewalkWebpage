@@ -170,12 +170,20 @@ describe('leaving', () => {
     expect(el().querySelector('[data-action="close"]').getAttribute('aria-label')).toBe('Dismiss');
   });
 
-  test('closes, telling no one, once the card it hangs off has been re-rendered away', () => {
+  test('closes without a dismissal once the card it hangs off has been re-rendered away', () => {
     open();
     host.remove();
     window.dispatchEvent(new Event('scroll'));
     expect(isShown()).toBeFalsy();
     expect(onDismiss).not.toHaveBeenCalled();
+  });
+
+  test('opens nothing for a card already re-rendered away, so no invisible pop-up is left taking clicks', () => {
+    host.remove();
+    expect(open({ viaKeyboard: true })).toBe(false);
+    expect(isShown()).toBeFalsy();
+    expect(popover.isOpen()).toBe(false);
+    expect(el().contains(document.activeElement)).toBe(false);
   });
 
   test('Escape dismisses from the keyboard, and its keyup never reaches the page', () => {

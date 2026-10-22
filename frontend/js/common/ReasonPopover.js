@@ -152,6 +152,11 @@ export class ReasonPopover {
    */
   open(request) {
     this.#clearCloseTimer();
+    // A vote landing after its card was paged away would otherwise leave an invisible pop-up still taking clicks.
+    if (!request.anchor.isConnected || !request.host.isConnected) {
+      this.close();
+      return false;
+    }
     const count = this.#chips.render({
       labelType: request.labelType, vote: request.vote, selected: request.selected ?? null,
     });

@@ -211,14 +211,14 @@ class LabelValidationTable @Inject() (
       .headOption
   }
 
-  /** The user's most recent vote on the label, of any type: the one a redo replaces. Locked, as `lockValidation`. */
+  /**
+   * The user's most recent vote on the label, of any type: the one a redo replaces. Locked, as `lockValidation`.
+   * Read again after the lock, because a row that a concurrent change deletes while this waits is skipped, not
+   * replaced by the row it inserted, so the locking read alone could return an older vote.
+   */
   def lockNewestValidation(labelId: Int, userId: String): DBIO[Option[LabelValidation]] = {
-    validations
-      .filter(x => x.labelId === labelId && x.userId === userId)
-      .sortBy(_.labelValidationId.desc)
-      .forUpdate
-      .result
-      .headOption
+    val votes = validations.filter(x => x.labelId === labelId && x.userId === userId)
+    votes.forUpdate.result.flatMap(_ => votes.sortBy(_.labelValidationId.desc).result.headOption)
   }
 
   /**

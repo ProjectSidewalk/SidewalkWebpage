@@ -156,9 +156,10 @@ class ValidationServiceImpl @Inject() (
    *
    * A canned reason has to be one the user's standing vote takes (#5475), and that vote can be moving at the same
    * moment: a vote change on the label card deletes the old comment and inserts the new vote in its own
-   * transaction. So the vote row is read `FOR UPDATE` inside this transaction (a change in flight commits first
-   * and the row is then gone, so the reason is refused rather than filed under the new vote), and the controller's
-   * earlier read of the vote is only the friendly early answer.
+   * transaction. So the vote row is read `FOR UPDATE` inside this transaction, and the vote path takes the same lock
+   * before it archives the comment: whichever is second waits, and a reason that waited on a vote change finds the
+   * row gone and is refused rather than filed under the new vote. The controller's earlier read of the vote is only
+   * the friendly early answer.
    *
    * @return The validation_task_comment_id of the comment that was stored.
    * @throws ReasonNotOffered when the reason isn't one the user's current vote on the label takes.
