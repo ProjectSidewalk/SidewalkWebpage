@@ -102,6 +102,21 @@ describe('the reason pop-up on a Gallery card (#5475)', () => {
     expect(thumbs.animateVoteChange).toHaveBeenCalledWith(null, 'Disagree');
   });
 
+  test('Enter on a strip button moves focus into the chips; a pointer press leaves it on the button', async () => {
+    const { card } = makeMenu();
+    document.body.append(card);
+    button(card, 'disagree').focus();
+    button(card, 'disagree').dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, detail: 0 }));
+    await flush();
+    expect(document.querySelector('.reason-popover').contains(document.activeElement)).toBe(true);
+
+    reasonPopover().close();
+    button(card, 'unsure').focus();
+    click(button(card, 'unsure'));
+    await flush();
+    expect(document.activeElement).toBe(button(card, 'unsure'));
+  });
+
   test('a Disagree from the thumb hangs off the thumb; an Agree, a clear, and a reasonless type open nothing', async () => {
     const { card, thumbs } = makeMenu();
     thumbs.disagreeContainer.onclick({ currentTarget: thumbs.disagreeContainer });
@@ -146,7 +161,7 @@ describe('the reason pop-up on a Gallery card (#5475)', () => {
       ['Fine', undefined, false, undefined],
       ['common:validation-reason.driveway.text', 'driveway', true, 'Disagree'],
     ]);
-    expect(popoverEl().querySelector('.reason-popover__saved').hidden).toBe(false);
+    expect(popoverEl().querySelector('.reason-popover__saved').textContent).not.toBe('');
   });
 
   test('a pick replaces the viewer\'s earlier comment and marks the one on record when it reopens', async () => {

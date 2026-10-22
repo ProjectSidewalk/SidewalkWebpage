@@ -1143,8 +1143,7 @@ export class LabelDetail {
     }
     els.commentButton.textContent = i18next.t(this.#editingComment ? 'labelmap:comment-save' : 'labelmap:comment');
     if (els.commentCancel) els.commentCancel.hidden = !this.#editingComment;
-    // The way back to the one-tap reasons (#5475), only while the row is up for a vote that has some; CSS hides it
-    // while the pop-up itself is open.
+    // The way back to the one-tap reasons (#5475), only while the row is up for a vote that has some.
     if (els.reasonsReopen) els.reasonsReopen.hidden = !(show && voted && this.#reasonsOffered());
 
     // Show each half of the zone only when it has something to say: the labeler's description when one was

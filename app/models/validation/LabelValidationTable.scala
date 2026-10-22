@@ -191,14 +191,13 @@ class LabelValidationTable @Inject() (
   }
 
   /**
-   * The user's current vote on the label as the given type, locked for the rest of the transaction, so a comment
-   * whose reason must match that vote can't interleave with a vote change (#5475). A vote change deletes and
-   * re-inserts the row, so after waiting on one this finds no row, which the caller treats as "no vote".
+   * The user's current vote on the label as the given type, locked for the rest of the transaction (#5475). Both the
+   * vote path and a comment whose reason must match the vote take this lock before touching the comment, so the two
+   * serialize. A vote change deletes and re-inserts the row, so a comment that waited on one finds no row ("no vote").
    */
-  def lockValidation(labelId: Int, userId: String, labelType: LabelType): DBIO[Option[ValidationOption]] = {
+  def lockValidation(labelId: Int, userId: String, labelType: LabelType): DBIO[Option[LabelValidation]] = {
     validations
       .filter(x => x.labelId === labelId && x.userId === userId && x.labelType === labelType)
-      .map(_.validationResult)
       .forUpdate
       .result
       .headOption
@@ -212,11 +211,12 @@ class LabelValidationTable @Inject() (
       .headOption
   }
 
-  /** The user's most recent vote on the label, of any type: the one a redo replaces. */
-  def getNewestValidation(labelId: Int, userId: String): DBIO[Option[LabelValidation]] = {
+  /** The user's most recent vote on the label, of any type: the one a redo replaces. Locked, as `lockValidation`. */
+  def lockNewestValidation(labelId: Int, userId: String): DBIO[Option[LabelValidation]] = {
     validations
       .filter(x => x.labelId === labelId && x.userId === userId)
       .sortBy(_.labelValidationId.desc)
+      .forUpdate
       .result
       .headOption
   }

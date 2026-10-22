@@ -15,6 +15,9 @@ import java.time.OffsetDateTime
 import javax.inject.*
 import scala.concurrent.{ExecutionContext, Future}
 
+/** A canned reason the user's standing vote on the label doesn't take (#5475); the comment is not stored. */
+case class ReasonNotOffered(reason: ValidationReason) extends Exception(s"reason '$reason' not offered here")
+
 /**
  * One vote to record, with the type, severity and tags the validator wants the label to have. Those are applied as an
  * edit linked to the vote only for an Agree that changes them (#2575, #3671).
@@ -23,9 +26,6 @@ import scala.concurrent.{ExecutionContext, Future}
  * @param newLabelType The type the label should become; an Agree carrying one is recorded as a vote on that type.
  * @param canEdit      Whether an Agree may apply the submitted type, severity and tags; only admins edit through a vote.
  */
-/** A canned reason the user's standing vote on the label doesn't take (#5475); the comment is not stored. */
-case class ReasonNotOffered(reason: ValidationReason) extends Exception(s"reason '$reason' not offered here")
-
 case class ValidationSubmission(
     validation: LabelValidation,
     newLabelType: Option[LabelType],
@@ -168,7 +168,8 @@ class ValidationServiceImpl @Inject() (
       case None         => DBIO.successful(())
       case Some(reason) =>
         labelValidationTable.lockValidation(comment.labelId, comment.userId, comment.labelType).flatMap { vote =>
-          if (vote.exists(v => ValidationReason.offered(comment.labelType, v).contains(reason))) DBIO.successful(())
+          if (vote.exists(v => ValidationReason.offered(comment.labelType, v.validationResult).contains(reason)))
+            DBIO.successful(())
           else DBIO.failed(ReasonNotOffered(reason))
         }
     }
@@ -287,17 +288,18 @@ class ValidationServiceImpl @Inject() (
       val redoneOtherType: DBIO[Option[LabelValidation]] =
         if (valSubmission.redone)
           labelValidationTable
-            .getNewestValidation(validation.labelId, validation.userId)
+            .lockNewestValidation(validation.labelId, validation.userId)
             .map(_.filter(_.labelType != validation.labelType))
         else DBIO.successful(None)
 
       deleted.flatMap(
         if (_) DBIO.successful(0)
         else
-          labelValidationTable
-            .getValidation(validation.labelId, validation.userId, validation.labelType)
-            .zip(redoneOtherType)
-            .flatMap { case (existingVal, redoneVal) =>
+          // Locked before the comment is archived, as `replaceComment` does, so a reason filed from another tab is
+          // either archived here or finds its vote gone. The redo's lock goes first so two vote paths can't deadlock.
+          redoneOtherType
+            .zip(labelValidationTable.lockValidation(validation.labelId, validation.userId, validation.labelType))
+            .flatMap { case (redoneVal, existingVal) =>
               // Removed first, and as a retraction: the redo names the old type, so keeping the type change would
               // leave the new vote stale on arrival. Unwinding it puts the label back on the type this vote is on.
               val redoneValRemoved = redoneVal match {

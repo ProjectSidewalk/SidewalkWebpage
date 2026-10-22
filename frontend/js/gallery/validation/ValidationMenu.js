@@ -116,6 +116,9 @@ export class ValidationMenu {
     valInfoDisplay.disagreeContainer.onclick = this.validateOnClickOrKeyPress('validate-disagree', true, false);
     valInfoDisplay.agreeContainer.dataset.reasonAnchor = '';
     valInfoDisplay.disagreeContainer.dataset.reasonAnchor = '';
+    // Focusable from script only, so the pop-up can hand focus back to the thumb it hangs off after a pick.
+    valInfoDisplay.agreeContainer.tabIndex = -1;
+    valInfoDisplay.disagreeContainer.tabIndex = -1;
 
     // Hover preview: swap the thumb icon to its filled variant to hint that it's clickable.
     const addHoverSwap = (container, action) => {
@@ -149,6 +152,8 @@ export class ValidationMenu {
       const validationOption = ValidationMenu.#classToValidationOption[newValKey];
       // The reason pop-up hangs off the control that cast the vote (#5475): the strip button, or the thumb's holder.
       const anchor = e?.currentTarget instanceof HTMLElement ? e.currentTarget : null;
+      // Enter or Space on a strip button is a click with no pointer behind it; focus then belongs in the chips.
+      const viaKeyboard = keyboardShortcut || (e instanceof MouseEvent && e.detail === 0);
       // Whatever the pop-up was asking about is about to change under it; it comes back on the new vote's success.
       if (reasonPopover().isOpenFor(this.#galleryCard)) reasonPopover().close();
 
@@ -166,7 +171,7 @@ export class ValidationMenu {
           // Now that the vote is on record, ask why (#5475). After the POST rather than before it: a changed vote
           // deletes the user's comment server-side, so a pick racing the vote could be deleted by it.
           if (!undone && this.#reasonedVote(validationOption)) {
-            this.#openReasons(validationOption, anchor, keyboardShortcut);
+            this.#openReasons(validationOption, anchor, viaKeyboard);
           }
         }
         return res;

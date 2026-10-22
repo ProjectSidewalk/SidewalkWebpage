@@ -81,17 +81,17 @@
   color: var(--color-neutral-700);
 }
 
-.reason-popover__foot[hidden] {
-  display: none; /* Empty until a pick saves or fails; the flex rule above would otherwise keep its band. */
+/* Collapsed rather than display: none, so the live region stays in the accessibility tree before its text lands. */
+.reason-popover__foot--empty {
+  min-height: 0;
+  height: 0;
+  margin-top: 0;
+  overflow: hidden;
 }
 
 .reason-popover__saved {
   font: var(--text-caption-semibold);
   color: var(--color-pine-700);
-}
-
-.reason-popover__saved[hidden] {
-  display: none;
 }
 
 /* The tail: two stacked clip-path triangles, a neutral-300 backing one and a white fill one a hairline higher, so

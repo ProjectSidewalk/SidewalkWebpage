@@ -165,6 +165,19 @@ describe('leaving', () => {
     expect(onDismiss).toHaveBeenCalledWith('close', false);
   });
 
+  test('the close control is named for a screen reader rather than read as its glyph', () => {
+    open();
+    expect(el().querySelector('[data-action="close"]').getAttribute('aria-label')).toBe('Dismiss');
+  });
+
+  test('closes, telling no one, once the card it hangs off has been re-rendered away', () => {
+    open();
+    host.remove();
+    window.dispatchEvent(new Event('scroll'));
+    expect(isShown()).toBeFalsy();
+    expect(onDismiss).not.toHaveBeenCalled();
+  });
+
   test('Escape dismisses from the keyboard, and its keyup never reaches the page', () => {
     open();
     const pageKeyup = vi.fn();
@@ -243,6 +256,14 @@ describe('keys', () => {
     expect(onPick).not.toHaveBeenCalled();
   });
 
+  test('a shifted digit is a symbol, not a pick', () => {
+    open();
+    const event = new KeyboardEvent('keydown', { code: 'Digit1', shiftKey: true, bubbles: true, cancelable: true });
+    document.body.dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(false);
+    expect(onPick).not.toHaveBeenCalled();
+  });
+
   test('nothing answers while closed', () => {
     expect(key('Digit1').defaultPrevented).toBe(false);
     expect(key('Escape').defaultPrevented).toBe(false);
@@ -263,9 +284,8 @@ describe('after a pick', () => {
     popover.markSaved('driveway');
     expect(chips()[1].getAttribute('aria-pressed')).toBe('true');
     expect(chips()[0].getAttribute('aria-disabled')).toBe('false');
-    const saved = el().querySelector('.reason-popover__saved');
-    expect(saved.hidden).toBe(false);
-    expect(saved.textContent).toBe('Reason saved');
+    expect(el().querySelector('.reason-popover__saved').textContent).toBe('Reason saved');
+    expect(el().querySelector('.reason-popover__foot').classList.contains('reason-popover__foot--empty')).toBe(false);
     expect(el().classList.contains('reason-popover--saved')).toBe(true);
 
     vi.advanceTimersByTime(ReasonPopover.SAVED_HOLD_MS - 1);
@@ -291,6 +311,7 @@ describe('after a pick', () => {
     open({ selected: 'driveway' });
     vi.advanceTimersByTime(ReasonPopover.SAVED_HOLD_MS + 1);
     expect(isShown()).toBe(true);
-    expect(el().querySelector('.reason-popover__saved').hidden).toBe(true);
+    expect(el().querySelector('.reason-popover__saved').textContent).toBe('');
+    expect(el().querySelector('.reason-popover__foot').classList.contains('reason-popover__foot--empty')).toBe(true);
   });
 });

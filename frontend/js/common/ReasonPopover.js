@@ -78,9 +78,9 @@ export class ReasonPopover {
         <div class="reason-popover__chips"></div>
         <button type="button" class="reason-popover__close" data-action="close">✕</button>
       </div>
-      <div class="reason-popover__foot">
+      <div class="reason-popover__foot" role="status">
         <span class="reason-popover__hint"></span>
-        <span class="reason-popover__saved" role="status" hidden></span>
+        <span class="reason-popover__saved"></span>
       </div>
       <span class="reason-popover__tail" aria-hidden="true"></span>`;
     this.#closeButton = this.#el.querySelector('[data-action="close"]');
@@ -170,7 +170,9 @@ export class ReasonPopover {
     if (prompt) this.#el.setAttribute('aria-labelledby', prompt.id);
     this.#el.classList.toggle('reason-popover--disagree', request.vote === 'Disagree');
     this.#el.classList.toggle('reason-popover--unsure', request.vote === 'Unsure');
-    this.#savedEl.hidden = true;
+    // Set per open rather than once, in case the page's language resolved after the pop-up was built.
+    this.#closeButton.setAttribute('aria-label', i18next.t('common:validation-reason.dismiss'));
+    this.#savedEl.textContent = '';
     this.#hintEl.textContent = '';
     this.#syncFoot();
     this.#el.classList.remove('reason-popover--saved');
@@ -226,7 +228,6 @@ export class ReasonPopover {
     this.#chips.setSelected(id);
     this.#chips.setBusy(false);
     this.#savedEl.textContent = i18next.t('common:validation-reason.saved');
-    this.#savedEl.hidden = false;
     this.#hintEl.textContent = '';
     this.#syncFoot();
     this.#el.classList.add('reason-popover--saved');
@@ -247,12 +248,14 @@ export class ReasonPopover {
   }
 
   /**
-   * Shows the footer only while it has something to say ("Reason saved", or why a pick failed), so the chips sit
-   * on the panel's own padding the rest of the time. The panel is placed from its height, so a footer that appears
+   * Collapses the footer while it has nothing to say ("Reason saved", or why a pick failed), so the chips sit on the
+   * panel's own padding the rest of the time. Collapsed, not hidden: it is the live region, and a region that appears
+   * together with its text isn't reliably announced. The panel is placed from its height, so a footer that appears
    * re-places it and the tail stays on the anchor: the panel grows away from the anchor rather than over it.
    */
   #syncFoot() {
-    this.#footEl.hidden = this.#savedEl.hidden && this.#hintEl.textContent === '';
+    const empty = this.#savedEl.textContent === '' && this.#hintEl.textContent === '';
+    this.#footEl.classList.toggle('reason-popover__foot--empty', empty);
     if (this.isOpen()) this.#position();
   }
 
@@ -299,7 +302,7 @@ export class ReasonPopover {
       this.#dismiss('escape', true);
       return;
     }
-    if (e.metaKey || e.ctrlKey || e.altKey || e.repeat) return;
+    if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey || e.repeat) return;
     const typing = e.target instanceof HTMLElement && e.target.matches('input, textarea, select, [contenteditable]');
     if (typing) return;
     const digit = /^(?:Digit|Numpad)([1-9])$/.exec(e.code);
@@ -316,6 +319,11 @@ export class ReasonPopover {
   #position() {
     const request = this.#request;
     if (!request) return;
+    // A host re-rendered under it leaves nothing to point at, and its onPick would file a reason for a gone card.
+    if (!request.anchor.isConnected || !request.host.isConnected) {
+      this.close();
+      return;
+    }
     const margin = 8;
     const gap = Math.round(10 * util.uiScale());
     const anchor = request.anchor.getBoundingClientRect();
@@ -343,4 +351,9 @@ let shared = null;
 export function reasonPopover() {
   if (shared === null) shared = new ReasonPopover();
   return shared;
+}
+
+/** Closes the pop-up if one was ever built, for a host about to throw away the cards it could be hanging off. */
+export function closeReasonPopover() {
+  shared?.close();
 }

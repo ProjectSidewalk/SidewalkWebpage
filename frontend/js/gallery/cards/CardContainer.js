@@ -20,6 +20,7 @@
 
 import i18next from 'i18next';
 import { util } from '../../common/utilities.js';
+import { closeReasonPopover } from '../../common/ReasonPopover.js';
 import { Card } from './Card.js';
 import { CardBucket } from './CardBucket.js';
 import { isSorted } from './cardOrder.js';
@@ -559,6 +560,7 @@ export class CardContainer {
   render() {
     const uiCardContainer = this.#uiCardContainer;
     // TODO: should we try to just empty in render method? Or assume it's was emptied in a method utilizing render?
+    closeReasonPopover();
     uiCardContainer.holder.replaceChildren();
 
     const imagesToLoad = this.getCurrentPageCards();
@@ -620,6 +622,7 @@ export class CardContainer {
     // Close expanded views (if open) and empty cards from current page. The view is absent until the opening query
     // and the viewer build have both finished (see #notifyExpandedViewRendered).
     this.#expandedView?.closeExpandedView();
+    closeReasonPopover();
     this.#uiCardContainer.holder.replaceChildren();
 
     // Place user back at top of page.

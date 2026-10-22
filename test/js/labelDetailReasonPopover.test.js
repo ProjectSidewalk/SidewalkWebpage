@@ -211,7 +211,7 @@ describe('the reason pop-up on the label card (#5475)', () => {
 
       await flush();
       expect(thumb('agree').disabled).toBe(false);
-      expect(popoverEl().querySelector('.reason-popover__saved').hidden).toBe(false);
+      expect(popoverEl().querySelector('.reason-popover__saved').textContent).not.toBe('');
       expect(status().textContent).toBe('common:validation-reason.saved');
       // The comment is yours now, in your language, so the box closes as it does for a typed one.
       expect(q('.label-detail__validator-comments').textContent)
