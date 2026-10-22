@@ -157,7 +157,8 @@ Dependabot bumps straight past it; mapbox-gl's is the one in place.
   for a person.
 - **maplibre-gl** — draws the Explore minimap (#5429). It looks for its Web Worker beside its own file, which in the
   bundle is the Explore chunk, so `Minimap.js` imports the worker through Vite's `?worker&url` and hands the URL to
-  `setWorkerUrl`. A bump that renames `dist/maplibre-gl-worker.mjs` shows up as a minimap that never draws.
+  `setWorkerUrl`. A bump that renames `dist/maplibre-gl-worker.mjs` shows up as a minimap that never draws, with a
+  `Minimap_Error` in the console and the interaction log.
 - **mapbox-gl** — imported through `frontend/js/common/mapboxgl.js`, which takes the CSP build and hands it the worker
   Vite builds from `dist/mapbox-gl-csp-worker.js` (the comment there says why the regular build can't be bundled).
   **Held below 3.25 on purpose**, by the `ignore` entry in `.github/dependabot.yml`: from 3.25.0 a symbol layer that

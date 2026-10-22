@@ -161,6 +161,7 @@ export class Minimap {
         'AttributionControl.ToggleAttribution': i18next.t('audit:right-ui.minimap.attribution-toggle'),
       },
     });
+    this.#reportMapErrors();
     this.#addAttribution();
 
     this.#setupZoomControls();
@@ -185,6 +186,23 @@ export class Minimap {
     for (const layer of MinimapStyle.streetLayers(Minimap.#STREETS_SOURCE)) {
       this.#map.addLayer(/** @type {import('maplibre-gl').AddLayerObject} */ (layer));
     }
+  }
+
+  /**
+   * Logs the map's own errors: a failed tile, a bad style value, or a background worker that never started. That last
+   * one leaves a map that never draws without throwing anything create() could catch, so the log is the only sign.
+   *
+   * Only the first is sent to the interaction log, since one broken source can fail every tile. Every one still goes
+   * to the console, which MapLibre stops doing itself once anything listens.
+   */
+  #reportMapErrors() {
+    let logged = false;
+    this.#map.on('error', (event) => {
+      console.error('Minimap:', event.error);
+      if (logged) return;
+      logged = true;
+      this.#tracker.push('Minimap_Error', { error: String(event.error?.message ?? event.error) });
+    });
   }
 
   /**
