@@ -279,20 +279,26 @@ class AuditTaskTable @Inject() (
   }
 
   /**
-   * For each day with an audit, the number of audits finished that day and the total length of their streets.
-   *
-   * Distance counts only open, non-tutorial streets, like every other distance explored in the app; the left join keeps
-   * audits on other streets in the count.
-   * @return (day, audit count, meters explored); a street audited twice that day counts twice.
+   * Returns a count of the number of audits performed on each day with an audit.
    */
-  def getAuditCountsAndDistanceByDate: DBIO[Seq[(OffsetDateTime, Int, Double)]] = {
+  def getAuditCountsByDate: DBIO[Seq[(OffsetDateTime, Int)]] = {
     completedTasks
-      .joinLeft(streetEdgeTable.streets)
-      .on(_.streetEdgeId === _.streetEdgeId)
-      .map { case (task, street) => (task.taskEnd.trunc("day"), street.map(_.geom.lengthGeodesic)) }
-      .groupBy(_._1)
-      .map { case (day, rows) => (day, rows.length, rows.map(_._2).sum.getOrElse(0d)) }
-      .sortBy(_._1)
+      .map(_.taskEnd.trunc("day"))
+      .groupBy(day => day)
+      .map { case (day, tasks) => (day, tasks.length) }
+      .sortBy { case (day, _) => day }
+      .result
+  }
+
+  /**
+   * Distance explored per day as [[metersAuditedByUser]] defines it, minus excluded users like Activity's other series.
+   * @return (day, meters explored), one row per day.
+   */
+  def getExploredDistanceByDate: DBIO[Seq[(OffsetDateTime, Double)]] = {
+    exploredStreetLengths(streetEdgeTable.countedAuditTasks)
+      .groupBy { case (task, _) => task.taskEnd.trunc("day") }
+      .map { case (day, rows) => (day, rows.map { case (_, meters) => meters }.sum.getOrElse(0d)) }
+      .sortBy { case (day, _) => day }
       .result
   }
 
@@ -613,14 +619,24 @@ class AuditTaskTable @Inject() (
   def metersAuditedByUser(
       includeUser: Rep[String] => Rep[Boolean]
   ): Query[(Rep[String], Rep[Double]), (String, Double), Seq] =
-    completedTasks
-      .filter(task => includeUser(task.userId))
+    exploredStreetLengths(completedTasks.filter(task => includeUser(task.userId)))
+      .groupBy { case (task, _) => task.userId }
+      .map { case (_userId, rows) => (_userId, rows.map { case (_, meters) => meters }.sum.getOrElse(0d)) }
+
+  /**
+   * Each audit paired with the length of its street, if the street counts toward distance explored: open and not the
+   * tutorial street. A street audited twice appears twice.
+   *
+   * @param tasks The audits to measure.
+   * @return A query of (audit, meters).
+   */
+  private def exploredStreetLengths(
+      tasks: Query[AuditTaskTableDef, AuditTask, Seq]
+  ): Query[(AuditTaskTableDef, Rep[Double]), (AuditTask, Double), Seq] =
+    tasks
       .join(streetEdgeTable.streets)
       .on(_.streetEdgeId === _.streetEdgeId)
-      .groupBy { case (task, _) => task.userId }
-      .map { case (_userId, rows) =>
-        (_userId, rows.map { case (_, street) => street.geom.lengthGeodesic }.sum.getOrElse(0d))
-      }
+      .map { case (task, street) => (task, street.geom.lengthGeodesic) }
 
   /**
    * Get the sum of the line distance of all streets in the region that the user has not audited.

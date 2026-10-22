@@ -1884,10 +1884,13 @@ export class AcrossCitiesPage {
     return v.toLocaleString();
   }
 
-  /** A distance in km as a bare number in the reader's unit, with one decimal under 100 ("0.4", "12.7", "1,240"). */
-  #km(n) {
-    const v = n ?? 0;
-    return util.longDistanceToString(v, v < 100 ? 1 : 0, false);
+  /**
+   * @param {?number} km - A distance in km.
+   * @returns {string} The bare number in the reader's unit, with one decimal under 100 ("0.4", "12.7", "1,240").
+   */
+  #km(km) {
+    const v = km ?? 0;
+    return util.longDistanceToString(v, util.metersToLongDistance(v * 1000) < 100 ? 1 : 0, false);
   }
 
   /** Percentage with no decimals ("47%"). */

@@ -9,6 +9,7 @@
  * additive KPI totals).
  */
 
+import i18next from 'i18next';
 import { util } from '../common/utilities.js';
 import { AdminShell } from './AdminShell.js';
 import { MiniLineChart } from './MiniLineChart.js';
@@ -33,20 +34,25 @@ export class ActivityPage {
     comment: { label: 'Comment', cls: 'is-comment' },
   };
 
-  /** Makes a formatter for a whole-number count in the given unit, e.g. "1,234 labels". */
+  /**
+   * Makes a formatter for a whole-number count in the given unit.
+   * @param {string} unit - What is being counted, e.g. "labels".
+   * @returns {(v: number) => string} Formats a count, e.g. "1,234 labels".
+   */
   static #counted = (unit) => (v) => `${Math.round(v).toLocaleString()} ${unit}`;
 
   /**
-   * Volume small-multiples: each is one additive metric drawn as a single-series sparkline. `fmt` writes a value or
-   * total in the metric's unit; `inMeters` plots a distance in the reader's km or mi so the axis reads in that unit,
-   * and `tickFormat` keeps decimals on that axis, since a few km a day would otherwise label as 0, 1, 1, 2.
+   * Volume small-multiples: each is one additive metric drawn as a single-series sparkline. `fmt` writes a bucket's
+   * or the range's sum. Distance arrives in meters, so `toChart` plots it in the reader's km or mi and `tickFormat`
+   * labels that axis with its unit and decimals, since a few km a day would otherwise label as 0, 1, 1, 2.
    */
   static #VOLUME = [
     { title: 'Labels', fields: ['labels'], fmt: ActivityPage.#counted('labels') },
     { title: 'Validations', fields: ['validations'], fmt: ActivityPage.#counted('validations') },
-    { title: 'Distance explored', fields: ['explored_distance_m'], inMeters: true,
-      fmt: (v) => util.metersToLongDistanceString(v * ActivityPage.#metersPerUnit(), 1),
-      tickFormat: (v) => v.toLocaleString(undefined, { maximumFractionDigits: 2 }) },
+    { title: 'Distance explored', fields: ['explored_distance_m'], fmt: (m) => util.metersToLongDistanceString(m, 1),
+      toChart: (m) => util.metersToLongDistance(m),
+      tickFormat: (v) => `${new Intl.NumberFormat(i18next.language, { maximumFractionDigits: 2 }).format(v)} `
+        + `${util.unitWords().unitAbbr}` },
     { title: 'Missions', fields: ['missions'], fmt: ActivityPage.#counted('missions') },
     { title: 'Sign-ins', fields: ['signins_registered', 'signins_anon'], fmt: ActivityPage.#counted('sign-ins') },
     { title: 'New users', fields: ['new_users'], fmt: ActivityPage.#counted('users') },
@@ -204,9 +210,8 @@ export class ActivityPage {
     }
     const labels = buckets.map((b) => b.label);
     const cards = ActivityPage.#VOLUME.map((metric, i) => {
-      const perUnit = metric.inMeters ? ActivityPage.#metersPerUnit() : 1;
-      const values = buckets.map((b) => metric.fields.reduce((a, f) => a + b.vol[f], 0) / perUnit);
-      return { metric, values, total: values.reduce((a, v) => a + v, 0), idx: i };
+      const sums = buckets.map((b) => metric.fields.reduce((a, f) => a + b.vol[f], 0));
+      return { metric, sums, total: sums.reduce((a, v) => a + v, 0), idx: i };
     });
     // Build the card shells first, then render each chart into its host at the host's measured width (responsive).
     el.innerHTML = cards.map((c) => `
@@ -221,8 +226,13 @@ export class ActivityPage {
       </div>`).join('');
     cards.forEach((c) => {
       MiniLineChart.renderInto(el.querySelector(`.mini-host[data-idx="${c.idx}"]`), labels,
-        [{ name: c.metric.title, key: 'activity', values: c.values }], {
-          valueFormat: c.metric.fmt,
+        [{
+          name: c.metric.title,
+          key: 'activity',
+          values: c.metric.toChart ? c.sums.map(c.metric.toChart) : c.sums,
+          // Labeled from the raw sums, so a point's tooltip and the card total format the same value the same way.
+          tooltips: c.sums.map((v, idx) => `${labels[idx]} · ${c.metric.title}: ${c.metric.fmt(v)}`),
+        }], {
           tickFormat: c.metric.tickFormat,
           ariaLabel: `${c.metric.title} over time`,
         });
@@ -505,11 +515,6 @@ export class ActivityPage {
     return this.#series && this.#series.length
       ? 'Too little activity in this range to plot. Try a longer range.'
       : 'No activity yet.';
-  }
-
-  /** @returns {number} Meters in the reader's long distance unit, a km or a mile. */
-  static #metersPerUnit() {
-    return util.isMetric() ? 1000 : util.math.milesToMeters(1);
   }
 
   static #startOfToday() {

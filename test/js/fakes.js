@@ -127,9 +127,12 @@ export function mockLabelDetailCollaborators(getPanoManager) {
  * that AppManager registers, which a suite loading a page module on its own doesn't have.
  */
 export const metricDistanceUtil = {
+  isMetric: () => true,
+  metersToLongDistance: (meters) => (meters || 0) / 1000,
   longDistanceToString: (km, precision = 0, withUnit = true) => {
     const number = (km || 0).toLocaleString('en', { minimumFractionDigits: precision, maximumFractionDigits: precision });
     return withUnit ? `${number} km` : number;
   },
+  fineDistanceToString: (meters, precision = 0) => `${(meters || 0).toFixed(precision)} m`,
   unitWords: () => ({ unitAbbr: 'km', unitAbbrSmall: 'm', unitName: 'kilometers', unitNameSingular: 'kilometer' }),
 };

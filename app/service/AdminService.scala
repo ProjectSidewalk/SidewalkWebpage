@@ -111,7 +111,7 @@ case class ApiAnalyticsBySourceData(
  * @param labels            Labels placed that day (includes tutorial labels, matching the legacy by-date count).
  * @param validations       Human validations completed that day.
  * @param audits            Explore tasks (streets) completed that day.
- * @param exploredDistanceM Total length in meters of those streets; a street audited twice counts twice.
+ * @param exploredDistanceM Meters explored that day by non-excluded users; a street audited twice counts twice.
  * @param missions          Completed, non-skipped, non-onboarding missions that ended that day.
  * @param signinsRegistered Registered sign-in events that day.
  * @param signinsAnon       Anonymous auto sign-ups that day.
@@ -406,7 +406,8 @@ class AdminServiceImpl @Inject() (
   def getActivityByDay: Future[Seq[ActivityDayRecord]] = {
     val labelsFut      = db.run(labelTable.getLabelCountsByDate)
     val validationsFut = db.run(labelValidationTable.getValidationsByDate)
-    val auditsFut      = db.run(auditTaskTable.getAuditCountsAndDistanceByDate)
+    val auditsFut      = db.run(auditTaskTable.getAuditCountsByDate)
+    val distanceFut    = db.run(auditTaskTable.getExploredDistanceByDate)
     val missionsFut    = db.run(missionTable.getMissionCountsByDate)
     val signinsFut     = db.run(webpageActivityTable.getSignInCountsByDate)
     val activeFut      = db.run(webpageActivityTable.getActiveUserCountsByDate)
@@ -416,6 +417,7 @@ class AdminServiceImpl @Inject() (
       labels      <- labelsFut
       validations <- validationsFut
       audits      <- auditsFut
+      distances   <- distanceFut
       missions    <- missionsFut
       signins     <- signinsFut
       active      <- activeFut
@@ -429,8 +431,8 @@ class AdminServiceImpl @Inject() (
 
       val labelMap      = toDayMap(labels)
       val validationMap = toDayMap(validations)
-      val auditMap      = audits.map { case (day, count, _) => day.toLocalDate -> count }.toMap
-      val distanceMap   = audits.map { case (day, _, meters) => day.toLocalDate -> meters }.toMap
+      val auditMap      = toDayMap(audits)
+      val distanceMap   = distances.map { case (day, meters) => day.toLocalDate -> meters }.toMap
       val missionMap    = toDayMap(missions)
       val newUserMap    = toDayMap(newUsers)
       val signinRegMap  = splitMap(signins, anon = false)

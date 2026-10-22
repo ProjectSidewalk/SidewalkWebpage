@@ -77,7 +77,7 @@ const FLAGS = [
     // Keyed on the street, not a face's basis: a face's own NoSidewalk labels outrank the audit check, so one side
     // can be `absent` while the other is `unaudited`.
     test: (f) => f.street_side === 'left' && f.audit_count === 0,
-    evidence: (f) => `${f.length_m < 10 ? f.length_m.toFixed(1) : AdminShell.num(Math.round(f.length_m))} m long`,
+    evidence: (f) => `${util.fineDistanceToString(f.length_m, f.length_m < 10 ? 1 : 0)} long`,
     weight: (f) => f.length_m,
   },
 ];

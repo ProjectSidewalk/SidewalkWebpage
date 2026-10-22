@@ -436,6 +436,28 @@ util.longDistanceToString = (km, precision = 0, withUnit = true) =>
     `distance(style: large; precision: ${precision}${withUnit ? '' : '; unit: false'})`, i18next.language, {});
 
 /**
+ * Renders a short distance exactly rather than rounded to the nearest 25, e.g. "1.5 m" or "5 ft".
+ *
+ * @param {number} meters - The distance in meters.
+ * @param {number} [precision=0] - Decimal places to show.
+ * @returns {string} The distance converted, rounded, and localized, with its unit.
+ */
+util.fineDistanceToString = (meters, precision = 0) => i18next.services.formatter.format(
+  meters || 0, `distance(style: fine; precision: ${precision})`, i18next.language, {});
+
+/**
+ * A distance in meters as a plain number in this reader's long unit (km or mi), for plotting on a chart's axis. The
+ * same conversion the `distance` formatter makes, so a plotted point and its label agree.
+ *
+ * @param {number} meters - The distance in meters.
+ * @returns {number} The distance in km or mi.
+ */
+util.metersToLongDistance = (meters) => {
+  const km = (meters || 0) / 1000;
+  return util.isMetric() ? km : util.math.kmsToMiles(km);
+};
+
+/**
  * The same as `util.longDistanceToString`, for a distance in meters.
  *
  * @param {number} meters - The distance in meters.
