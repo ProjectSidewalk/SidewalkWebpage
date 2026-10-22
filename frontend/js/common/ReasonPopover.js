@@ -10,7 +10,8 @@
  *
  * It leaves on a pick, Escape, its close control, a click outside, or when the host closes it (paging, another
  * vote). Never on mouse-leave: the first version did that and read as a flash. Mouse opens never move focus; a
- * keyboard open focuses the chips. Number keys 1–N pick, N+1 is "Other…", so the pop-up reads like Validate's menu.
+ * keyboard open focuses the chips. Number keys 1–N pick, N+1 is "Other…", so the pop-up reads like Validate's menu;
+ * where a keyboard is likely (a hover-capable pointer) each chip wears its digit as a keycap.
  *
  * Native Popover API where there is one (top layer, so the Gallery grid never reflows and no card clips it) with
  * the same `hidden` fallback PanoImageAdjustmentsPopover uses, which is also what jsdom runs.
@@ -55,6 +56,7 @@ export class ReasonPopover {
   /** @type {HTMLButtonElement} */
   #closeButton;
   /** @type {HTMLElement} */
+  #footEl;
   #hintEl;
   /** @type {HTMLElement} */
   #savedEl;
@@ -82,6 +84,7 @@ export class ReasonPopover {
       </div>
       <span class="reason-popover__tail" aria-hidden="true"></span>`;
     this.#closeButton = this.#el.querySelector('[data-action="close"]');
+    this.#footEl = this.#el.querySelector('.reason-popover__foot');
     this.#hintEl = this.#el.querySelector('.reason-popover__hint');
     this.#savedEl = this.#el.querySelector('.reason-popover__saved');
     // The chips draw the prompt, so the dialog is named by that prompt rather than a second copy of it.
@@ -168,9 +171,8 @@ export class ReasonPopover {
     this.#el.classList.toggle('reason-popover--disagree', request.vote === 'Disagree');
     this.#el.classList.toggle('reason-popover--unsure', request.vote === 'Unsure');
     this.#savedEl.hidden = true;
-    this.#hintEl.textContent = this.#chips.showsKeys
-      ? i18next.t('common:validation-reason.keys-hint', { count: this.#chips.count })
-      : '';
+    this.#hintEl.textContent = '';
+    this.#syncFoot();
     this.#el.classList.remove('reason-popover--saved');
     if (!wasOpen) {
       if (typeof this.#el.showPopover === 'function') this.#el.showPopover();
@@ -226,6 +228,7 @@ export class ReasonPopover {
     this.#savedEl.textContent = i18next.t('common:validation-reason.saved');
     this.#savedEl.hidden = false;
     this.#hintEl.textContent = '';
+    this.#syncFoot();
     this.#el.classList.add('reason-popover--saved');
     this.#clearCloseTimer();
     this.#closeTimer = setTimeout(() => this.close(), ReasonPopover.SAVED_HOLD_MS);
@@ -234,12 +237,23 @@ export class ReasonPopover {
   /**
    * Puts the chips back in play after a pick that failed to save, saying so where a host has no status line of its
    * own (a Gallery card); the label card says it under its comment box as well.
-   * @param {string} [message] - What to show in the footer; the hint comes back on the next open.
+   * @param {string} [message] - What to show in the footer, which is otherwise empty until a pick saves.
    */
   markFailed(message = i18next.t('labelmap:comment-save-failed')) {
     if (!this.isOpen()) return;
     this.#chips.setBusy(false);
     this.#hintEl.textContent = message;
+    this.#syncFoot();
+  }
+
+  /**
+   * Shows the footer only while it has something to say ("Reason saved", or why a pick failed), so the chips sit
+   * on the panel's own padding the rest of the time. The panel is placed from its height, so a footer that appears
+   * re-places it and the tail stays on the anchor: the panel grows away from the anchor rather than over it.
+   */
+  #syncFoot() {
+    this.#footEl.hidden = this.#savedEl.hidden && this.#hintEl.textContent === '';
+    if (this.isOpen()) this.#position();
   }
 
   /**

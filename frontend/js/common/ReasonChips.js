@@ -11,7 +11,8 @@
  * buttons rather than radios: a pick posts at once, so an arrow that *selected* as it moved would file a reason per
  * keypress on the way past. Nothing is required — the vote is already saved when the row appears — so a reader who
  * does not care can move on. Number keys are the host's to route (it knows when it owns the keyboard);
- * `pickByNumber` does the picking.
+ * `pickByNumber` does the picking, and on a host that routes them each chip wears its digit as a keycap, so the
+ * mapping can be read off the row rather than counted along it.
  */
 
 import i18next from 'i18next';
@@ -45,7 +46,7 @@ export class ReasonChips {
    *     chip already selected: picking what is picked is a no-op, not an unpick, so a stray tap can't erase one.
    * @param {(viaKeyboard: boolean) => void} opts.onOther - "Other…" was chosen (its button or its number key); the
    *     host opens or focuses its comment box.
-   * @param {boolean} [opts.showKeys=false] - Name each chip's number key in its tooltip, on a host that routes the
+   * @param {boolean} [opts.showKeys=false] - Draw each chip's number key as a keycap, on a host that routes the
    *     number keys here. Off for touch surfaces, where a key number is noise.
    * @param {boolean} [opts.showOther=true] - Draw the "Other…" button. Off on a host whose comment box is always
    *     beside the chips, where a button that only opens it would be one tap too many; N+1 still calls `onOther`.
@@ -142,16 +143,6 @@ export class ReasonChips {
     if (this.#otherButton) this.#otherButton.setAttribute('aria-disabled', String(busy));
   }
 
-  /** @returns {boolean} Whether the chips name their number keys, for a host that says so in its own hint. */
-  get showsKeys() {
-    return this.#showKeys;
-  }
-
-  /** @returns {number} How many reasons the row currently offers. */
-  get count() {
-    return this.#chips.length;
-  }
-
   /** @returns {boolean} Whether the row is on screen with something to pick. */
   get isShowing() {
     return !this.#root.hidden && this.#chips.length > 0;
@@ -191,12 +182,35 @@ export class ReasonChips {
     chip.className = 'reason-chips__chip';
     chip.dataset.reasonId = reason.id;
     chip.setAttribute('aria-pressed', 'false');
-    chip.textContent = reason.text;
+    this.#fill(chip, reason.text, n);
     // The tooltip renders as HTML (psTooltip.js), which is fine for these first-party strings and lets one carry
     // inline emphasis; nothing user-supplied reaches it.
-    const tip = [reason.tooltip, this.#showKeys ? `(${n})` : null].filter(Boolean).join(' ');
-    if (tip) chip.setAttribute('data-ps-tooltip', tip);
+    if (reason.tooltip) chip.setAttribute('data-ps-tooltip', reason.tooltip);
     return chip;
+  }
+
+  /**
+   * Writes a chip's text, led by its keycap on a host that routes the number keys. The keycap is hidden from the
+   * accessibility tree and the key named through `aria-keyshortcuts` instead, so a screen reader says the reason
+   * and then its key rather than reading the digit as the first word of the reason.
+   * @param {HTMLButtonElement} chip
+   * @param {string} text - The reason, or "Other…".
+   * @param {number} n - Its number key.
+   */
+  #fill(chip, text, n) {
+    const label = document.createElement('span');
+    label.className = 'reason-chips__text';
+    label.textContent = text;
+    if (!this.#showKeys) {
+      chip.replaceChildren(label);
+      return;
+    }
+    const key = document.createElement('kbd');
+    key.className = 'reason-chips__key';
+    key.setAttribute('aria-hidden', 'true');
+    key.textContent = String(n);
+    chip.setAttribute('aria-keyshortcuts', String(n));
+    chip.replaceChildren(key, label);
   }
 
   /**
@@ -207,9 +221,8 @@ export class ReasonChips {
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'reason-chips__chip reason-chips__chip--other';
-    button.textContent = i18next.t('common:validation-reason.other');
-    const hint = i18next.t('common:validation-reason.other-hint');
-    button.setAttribute('data-ps-tooltip', this.#showKeys ? `${hint} (${n})` : hint);
+    this.#fill(button, i18next.t('common:validation-reason.other'), n);
+    button.setAttribute('data-ps-tooltip', i18next.t('common:validation-reason.other-hint'));
     return button;
   }
 

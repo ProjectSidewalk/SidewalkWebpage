@@ -114,11 +114,17 @@ describe('ReasonChips', () => {
     expect(root.querySelector('.reason-chips__prompt').textContent).toBe('Why do you disagree?');
     expect(chipEls().map((c) => c.dataset.reasonId))
       .toEqual(['wrong-type', 'residential-walkway', 'no-sidewalk-here', 'unsafe-crossing']);
-    expect(chipEls()[1].textContent).toBe('This is a residential walkway');
-    expect(other().textContent).toBe('Other…');
-    // The number keys are named where the host routes them, tooltips only, so the chip text stays the reason.
-    expect(other().getAttribute('data-ps-tooltip')).toBe('Write your own reason (5)');
-    expect(chipEls()[0].getAttribute('data-ps-tooltip')).toMatch(/\(1\)$/);
+    expect(chipEls()[1].querySelector('.reason-chips__text').textContent).toBe('This is a residential walkway');
+    expect(other().querySelector('.reason-chips__text').textContent).toBe('Other…');
+    // Where the host routes the number keys, each chip wears its digit as a keycap, out of the accessible name and
+    // announced as a shortcut instead; the tooltip stays the reason's own.
+    expect(chipEls().map((c) => c.querySelector('.reason-chips__key').textContent)).toEqual(['1', '2', '3', '4']);
+    expect(other().querySelector('.reason-chips__key').textContent).toBe('5');
+    expect(other().querySelector('.reason-chips__key').getAttribute('aria-hidden')).toBe('true');
+    expect(chipEls().map((c) => c.getAttribute('aria-keyshortcuts'))).toEqual(['1', '2', '3', '4']);
+    expect(other().getAttribute('aria-keyshortcuts')).toBe('5');
+    expect(other().getAttribute('data-ps-tooltip')).toBe('Write your own reason');
+    expect(chipEls()[0].getAttribute('data-ps-tooltip')).not.toMatch(/\(1\)$/);
 
     expect(chips.render({ labelType: 'NoCurbRamp', vote: 'Unsure' })).toBe(3);
     expect(root.querySelector('.reason-chips__prompt').textContent).toBe('What makes you unsure?');
@@ -188,6 +194,15 @@ describe('ReasonChips', () => {
     chips.render({ labelType: 'Crosswalk', vote: 'Agree' });
     expect(chips.isShowing).toBe(false);
     expect(chips.pickByNumber(1)).toBe(false);
+  });
+
+  test('without showKeys (a touch surface) the chips carry no keycap and name no shortcut', () => {
+    chips = new ReasonChips(root, { onPick, onOther });
+    chips.render({ labelType: 'NoCurbRamp', vote: 'Disagree' });
+    expect(root.querySelector('.reason-chips__key')).toBeNull();
+    expect(chipEls()[0].hasAttribute('aria-keyshortcuts')).toBe(false);
+    expect(other().hasAttribute('aria-keyshortcuts')).toBe(false);
+    expect(chipEls()[1].textContent).toBe('This is a residential walkway');
   });
 
   test('showOther: false draws no "Other…" button, but N+1 still reaches the host', () => {

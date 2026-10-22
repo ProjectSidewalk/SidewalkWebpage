@@ -506,7 +506,6 @@
       "text": "Not sure if there should be a sidewalk here",
       "tooltip": "Sometimes more context is necessary, and it's hard to determine if a sidewalk is necessary from just one image"
     },
-    "reopen": "Reasons",
-    "keys-hint": "Optional · keys 1–{{count}} pick"
+    "reopen": "Reasons"
   }
 }

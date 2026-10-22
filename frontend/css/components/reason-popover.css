@@ -81,6 +81,10 @@
   color: var(--color-neutral-700);
 }
 
+.reason-popover__foot[hidden] {
+  display: none; /* Empty until a pick saves or fails; the flex rule above would otherwise keep its band. */
+}
+
 .reason-popover__saved {
   font: var(--text-caption-semibold);
   color: var(--color-pine-700);

@@ -32,6 +32,7 @@
 .reason-chips__chip {
   display: inline-flex;
   align-items: center;
+  gap: calc(6px * var(--ui-scale, 1));
   padding: calc(4px * var(--ui-scale, 1)) calc(12px * var(--ui-scale, 1));
   border: none;
   border-radius: 200px;
@@ -47,6 +48,30 @@
   .reason-chips__chip:hover {
     background: var(--color-neutral-200);
   }
+}
+
+/* The chip's number key, drawn as a keycap (the Explore tutorial's, sized to a pill) so the mapping to the digit
+   keys reads off the row rather than being counted along it. Only on a host that routes the number keys. A pill
+   that leads with a keycap sits better on a slightly shorter left pad, so the cap does not float mid-pill. */
+.reason-chips__key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: calc(16px * var(--ui-scale, 1));
+  padding: 0 calc(4px * var(--ui-scale, 1));
+  margin-left: calc(-4px * var(--ui-scale, 1));
+  border: 1px solid var(--color-neutral-400);
+  border-bottom-width: calc(2px * var(--ui-scale, 1));
+  border-radius: calc(3px * var(--ui-scale, 1));
+  background: var(--color-neutral-100);
+  box-shadow: none;
+  font: var(--text-tiny-semibold);
+  color: var(--color-neutral-800);
+}
+
+/* On a tinted (selected) chip the cap goes white so it keeps reading as a key rather than merging into the fill. */
+.reason-chips__chip--selected .reason-chips__key {
+  background: var(--color-neutral-white);
 }
 
 /* The picked reason takes the vote's own color, the one the pano ring and the comment's vote chip use for it. */
@@ -85,6 +110,10 @@
 
   .reason-chips__chip--selected {
     border: 2px solid Highlight;
+  }
+
+  .reason-chips__key {
+    border-color: ButtonText;
   }
 }
 
