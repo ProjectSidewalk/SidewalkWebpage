@@ -19,7 +19,7 @@
       <div class="ps-kpi"><span class="ps-kpi-value" id="kpi-idle">—</span><span class="ps-kpi-label">Idle in transaction</span></div>
       <div class="ps-kpi"><span class="ps-kpi-value" id="kpi-evolutions">—</span><span class="ps-kpi-label">Stuck evolutions</span></div>
       <div class="ps-kpi"><span class="ps-kpi-value" id="kpi-bloat">—</span><span class="ps-kpi-label">Bloated tables</span></div>
-      <div class="ps-kpi"><span class="ps-kpi-value" id="kpi-connections">—</span><span class="ps-kpi-label">DB connections</span></div>
+      <div class="ps-kpi"><span class="ps-kpi-value" id="kpi-connections">—</span><span class="ps-kpi-label">DB slots in use (all cities)</span></div>
       <div class="ps-kpi"><span class="ps-kpi-value" id="kpi-panos">—</span><span class="ps-kpi-label">At-risk panos (this city)</span></div>
     </div>
     <p class="ac-note" id="health-meta"></p>
@@ -64,7 +64,9 @@
 
   <div class="page-section" id="health-connections-section">
     <h2 class="page-heading" id="connections">DB connections <a href="#connections" class="permalink">#</a></h2>
-    <p>Connections by role (one per city app) and state; a role near its pool limit is under pressure.</p>
+    <p>Every city's app shares one database server, which refuses new connections once its usable slots run out.
+      Then this database's connections by role (one per city app) and state; a role near its pool limit is under pressure.</p>
+    <div id="health-connections-summary"></div>
     <div id="health-connections"></div>
   </div>
 
