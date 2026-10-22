@@ -139,16 +139,17 @@ class AdminController @Inject() (
     adminService.getActivityByDay.map { series =>
       Ok(Json.obj("series" -> JsArray(series.map { r =>
         Json.obj(
-          "date"               -> r.date.toString,
-          "labels"             -> r.labels,
-          "validations"        -> r.validations,
-          "audits"             -> r.audits,
-          "missions"           -> r.missions,
-          "signins_registered" -> r.signinsRegistered,
-          "signins_anon"       -> r.signinsAnon,
-          "active_registered"  -> r.activeRegistered,
-          "active_anon"        -> r.activeAnon,
-          "new_users"          -> r.newUsers
+          "date"                -> r.date.toString,
+          "labels"              -> r.labels,
+          "validations"         -> r.validations,
+          "audits"              -> r.audits,
+          "explored_distance_m" -> r.exploredDistanceM,
+          "missions"            -> r.missions,
+          "signins_registered"  -> r.signinsRegistered,
+          "signins_anon"        -> r.signinsAnon,
+          "active_registered"   -> r.activeRegistered,
+          "active_anon"         -> r.activeAnon,
+          "new_users"           -> r.newUsers
         )
       })))
     }
@@ -586,9 +587,9 @@ class AdminController @Inject() (
           "total_streets"              -> s.totalStreets,
           "audited_streets"            -> s.auditedStreets,
           "reaudit_streets"            -> s.reauditStreets,
-          "total_distance_mi"          -> s.totalDistanceMi,
-          "audited_distance_mi"        -> s.auditedDistanceMi,
-          "reaudit_distance_mi"        -> s.reauditDistanceMi,
+          "total_distance_m"           -> s.totalDistanceM,
+          "audited_distance_m"         -> s.auditedDistanceM,
+          "reaudit_distance_m"         -> s.reauditDistanceM,
           "total_labels"               -> s.totalLabels,
           "total_validations"          -> s.totalValidations,
           "labels_past_week"           -> s.labelsPastWeek,

@@ -141,13 +141,13 @@ export class ApiAnalyticsPage {
    * @returns {string} Human-readable empty-state message.
    */
   #trendEmptyMsg(total, lastApiCall) {
-    const range = this.#days > 0 ? `the past ${this.#days} days` : 'all time';
+    const range = this.#days > 0 ? `in the past ${this.#days} days` : 'over all time';
     if (total === 0) {
       if (!lastApiCall) return 'No v3 API calls have been recorded yet.';
       const ago = ApiAnalyticsPage.#daysAgo(lastApiCall);
       const agoText = ago === null || ago === undefined ? '' : ` (${ago} ${ago === 1 ? 'day' : 'days'} ago)`;
       const lastDate = util.escapeHTML(ApiAnalyticsPage.#fmtDate(lastApiCall));
-      return `No API calls in ${range}. The last was on ${lastDate}${agoText}. `
+      return `No API calls ${range}. The last was on ${lastDate}${agoText}. `
         + 'Try a longer range.';
     }
     // total > 0 but a single bucket: all activity lands in one month (only reachable for the All time range), so
