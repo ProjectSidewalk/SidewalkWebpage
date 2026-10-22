@@ -72,8 +72,8 @@
        the live viewer name the same licence the same way. PanoramaxViewer shows an identifier it can't find here
        verbatim, so a page that never stamps this (jsdom, the error pages) degrades rather than breaks. *@
     <script>window.panoramaxLicenses = @Html(ImageryAttribution.panoramaxLicensesJson);</script>
-    @* The tilt past which a Mapillary pose is a failed reconstruction. MapillaryViewer.extractPitchRoll and the server's
-       copy of it must agree on it, so the server says what it is. A page that never stamps it applies no limit. *@
+    @* The tilt past which a Mapillary pose is a failed reconstruction. MapillaryViewer.extractPitchRoll must agree
+       with the server's copy, so the server supplies it; a page that never stamps it applies no limit. *@
     <script>window.mapillaryMaxPoseTiltDeg = @service.PanoDataService.MapillaryMaxPoseTiltDeg;</script>
     @* The label-type table, in canonical order — colour, access impact, rating scale, primary flags. LabelType
        owns it; utilitiesSidewalk.js builds every label-type lookup from this rather than keeping a parallel set of

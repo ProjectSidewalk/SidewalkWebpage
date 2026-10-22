@@ -536,9 +536,11 @@ object PanoDataService {
    *
    * `MapillaryViewer.extractPitchRoll` (frontend/js/common/pano-viewer/MapillaryViewer.js) is a line-for-line copy,
    * which is what a labeler's session stores for the same image, so a value filled from here is the one a human visit
-   * would have written; change them together. The vector is OpenSfM's world→camera axis-angle rotation (world = east/north/up, camera = x right,
-   * y down, z forward); negating it gives camera→world, and rotating the camera's forward and up axes into the world
-   * frame gives the elevation of the view (pitch) and the turn of the camera's up about the view axis (roll, positive
+   * would have written; change them together.
+   *
+   * The vector is OpenSfM's world→camera axis-angle rotation (world = east/north/up, camera = x right, y down,
+   * z forward); negating it gives camera→world, and rotating the camera's forward and up axes into the world frame
+   * gives the elevation of the view (pitch) and the turn of the camera's up about the view axis (roll, positive
    * clockwise from behind the camera).
    *
    * @param rotation Mapillary's `computed_rotation`: three finite numbers.
