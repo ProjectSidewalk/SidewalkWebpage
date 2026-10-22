@@ -9,7 +9,7 @@ import models.utils.ImageUtils
 import play.api.libs.json.*
 import play.api.mvc.{AnyContent, Request, RequestHeader}
 import play.api.{Configuration, Logger}
-import service.ImageSigningService
+import service.{ImageSigningService, LostMediaLog}
 
 import java.awt.Image
 import java.awt.image.BufferedImage
@@ -30,6 +30,7 @@ class ImageController @Inject() (
     signingService: ImageSigningService,
     shareImageCache: service.ShareImageCache,
     config: Configuration,
+    lostMediaLog: LostMediaLog,
     cpuEc: CpuIntensiveExecutionContext
 )(using ec: ExecutionContext)
     extends CustomBaseController(cc) {
@@ -202,6 +203,15 @@ class ImageController @Inject() (
                   .withHeaders(RETRY_AFTER -> "5")
             }
           case None =>
+            // Reaching here means the file was on disk when this URL was signed (backupImageUrl and
+            // getBackupImageMetadata both check first) and is gone within the signature's ~75-minute life. For a
+            // pano the provider no longer serves nothing can re-fetch it, so say so (#4926) — the 404 stays bare.
+            lostMediaLog.reportMissing(
+              "pano",
+              panoId,
+              s"${panoDataService.backupImageDir(panoId).getAbsolutePath}/$panoId.{jpg,jpeg,png}",
+              irreplaceable = true
+            )
             Future.successful(NotFound(s"Pano image not found: $panoId"))
         }
     }
@@ -247,6 +257,18 @@ class ImageController @Inject() (
         if (file.exists()) {
           Future.successful(Ok.sendFile(file, inline = true).as("image/png"))
         } else {
+          // Same signed-URL reasoning as serveBackupImage above: cropUrl only signs a crop it just saw on disk, so a
+          // miss here is a file that vanished. The one exception is a type change (#3671), which moves the crop under
+          // its new type and leaves a URL signed for the old one pointing at nothing; that crop is intact, and
+          // reporting it would spend the single line a real loss of that label's crop would get.
+          val movedByTypeChange = LabelType.labelTypeNames.exists { other =>
+            other != labelType && panoDataService.cropFile(labelId, other).exists()
+          }
+          if (!movedByTypeChange) {
+            // Most crops were captured in the labeler's browser from a pano the provider may no longer serve, and the
+            // nightly crop job can re-cut one only from the self-hosted pano store, so this is the error tier.
+            lostMediaLog.reportMissing("crop", s"$labelType/$labelId", file.getAbsolutePath, irreplaceable = true)
+          }
           Future.successful(NotFound("Crop image not found"))
         }
     }

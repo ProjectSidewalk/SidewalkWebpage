@@ -27,3 +27,17 @@ object CpuIntensiveExecutionContext {
       extends CustomExecutionContext(system, "cpu-intensive")
       with CpuIntensiveExecutionContext
 }
+
+/**
+ * Execution context for blocking filesystem operations, isolated so that a call that never returns — a stat or a
+ * directory listing against an unreachable network mount — can only exhaust this pool and not the ones serving
+ * requests or running streams.
+ */
+trait BlockingIoExecutionContext extends ExecutionContext
+
+object BlockingIoExecutionContext {
+  @Singleton
+  class PekkoBased @Inject() (system: ActorSystem)
+      extends CustomExecutionContext(system, "blocking-io")
+      with BlockingIoExecutionContext
+}

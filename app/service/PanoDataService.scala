@@ -666,6 +666,7 @@ trait PanoDataService {
   def cropUrl(labelId: Int, labelType: LabelType): Option[String]
   def moveCrop(labelId: Int, from: LabelType, to: LabelType): Boolean
   def localBackupImageFile(panoId: String): Option[File]
+  def backupImageDir(panoId: String): File
 
   /** @return The pano_data row when a stored backup can be served, or the reason it can't (the route's 404 body). */
   def getLocalBackupImage(panoId: String): Future[Either[String, PanoData]]
@@ -1199,11 +1200,14 @@ class PanoDataServiceImpl @Inject() (
    * `<pano.images.directory>/<city-id>/<panoId[0:2]>/<panoId>.<ext>`. Tries jpg/jpeg/png in order.
    */
   def localBackupImageFile(panoId: String): Option[File] = {
-    val dir = File(panosBaseDir, panoId.take(2))
+    val dir = backupImageDir(panoId)
     Seq("jpg", "jpeg", "png").iterator
       .map(ext => File(dir, s"$panoId.$ext"))
       .find(_.exists())
   }
+
+  /** The directory a pano's backup image lives in, whether or not one is there — named so a miss can say where it looked. */
+  def backupImageDir(panoId: String): File = File(panosBaseDir, panoId.take(2))
 
   /**
    * Checks the file before the row, so the common miss (no stored image) never touches the DB. Each refusal names its

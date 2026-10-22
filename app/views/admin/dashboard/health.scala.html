@@ -21,6 +21,7 @@
       <div class="ps-kpi"><span class="ps-kpi-value" id="kpi-bloat">—</span><span class="ps-kpi-label">Bloated tables</span></div>
       <div class="ps-kpi"><span class="ps-kpi-value" id="kpi-connections">—</span><span class="ps-kpi-label">DB connections</span></div>
       <div class="ps-kpi"><span class="ps-kpi-value" id="kpi-panos">—</span><span class="ps-kpi-label">At-risk panos (this city)</span></div>
+      <div class="ps-kpi"><span class="ps-kpi-value" id="kpi-media">—</span><span class="ps-kpi-label">Missing media files</span></div>
     </div>
     <p class="ac-note" id="health-meta"></p>
   </div>
@@ -66,6 +67,14 @@
     <h2 class="page-heading" id="connections">DB connections <a href="#connections" class="permalink">#</a></h2>
     <p>Connections by role (one per city app) and state; a role near its pool limit is under pressure.</p>
     <div id="health-connections"></div>
+  </div>
+
+  <div class="page-section" id="health-media-section">
+    <h2 class="page-heading" id="media-storage">Media storage <a href="#media-storage" class="permalink">#</a></h2>
+    <p>Media that must outlive a deploy, and whether any of it is gone. A deploy rebuilds the whole build tree, so anything kept inside it dies with the next release while its database rows survive &mdash; how <a href="https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4925">#4925</a> destroyed a story photo. <strong>Missing</strong> is a row with no file; <strong>orphaned</strong> is a file with no row.</p>
+    <div id="health-media-dirs"></div>
+    <div id="health-media-story"></div>
+    <p class="ac-note" id="health-media-note"></p>
   </div>
 
   <div class="page-section" id="health-panos-section">

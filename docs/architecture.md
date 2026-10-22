@@ -156,9 +156,11 @@ the app dir, #4925):
 `cropped.image.directory` additionally holds the **label crops** (#4865), cut from the self-hosted panorama store
 (`pano.images.directory`, which the nightly panorama-tools scraper fills) by the nightly `CropGenerationActor` via
 `CropService`, under `<city-id>/<LabelType>/` (a label whose type is edited has its crop moved to the new type's
-directory by `LabelEditService`). They are disposable — delete the store and the next run rebuilds it —
-which is why they live beside the app's other derived media rather than in the panorama store, which the app only
-reads.
+directory by `LabelEditService`). The job can only re-cut a crop whose pano is in that store, though: a label on a
+pano that expired before the scraper reached it keeps only the capture the labeler's browser posted to `/saveImage`,
+so the directory as a whole is irreplaceable and sits in the boot check's fatal tier
+(`docs/deployment-and-stages.md`). It still lives beside the app's other derived media rather than in the panorama
+store, which the app only reads.
 
 The same directory holds the **minimap basemap** (#5716): each city's tile archives in `<city-id>/basemap/`, and in
 `tools/` one copy of the `pmtiles` tool for every city on the server, all rebuilt if deleted.
