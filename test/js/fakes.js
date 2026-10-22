@@ -1,7 +1,7 @@
 /**
- * The collaborators the Explore, Validate and Gallery suites hand a constructor when they are not what is under test
- * (#5649). One place to edit when a constructor's contract changes, instead of the same literal in every suite. Each
- * takes overrides, so a suite that needs one method to answer differently keeps the rest.
+ * The collaborators the suites hand a constructor when they are not what is under test (#5649). One place to edit when
+ * a constructor's contract changes, instead of the same literal in every suite. Each takes overrides, so a suite that
+ * needs one method to answer differently keeps the rest.
  */
 
 import { mockModule } from './loader.js';
@@ -121,3 +121,15 @@ export function mockLabelDetailCollaborators(getPanoManager) {
   mockModule('frontend/js/common/label-detail/StorySection.js', () => ({ StorySection: class { setLabel() {} } }));
   mockModule('frontend/js/common/pano-viewer/PanoInfoPopover.js', () => ({ PanoInfoPopover: class {} }));
 }
+
+/**
+ * The `util` distance members as a metric reader sees them, for `useUtil`: the real ones need the i18next formatter
+ * that AppManager registers, which a suite loading a page module on its own doesn't have.
+ */
+export const metricDistanceUtil = {
+  longDistanceToString: (km, precision = 0, withUnit = true) => {
+    const number = (km || 0).toLocaleString('en', { minimumFractionDigits: precision, maximumFractionDigits: precision });
+    return withUnit ? `${number} km` : number;
+  },
+  unitWords: () => ({ unitAbbr: 'km', unitAbbrSmall: 'm', unitName: 'kilometers', unitNameSingular: 'kilometer' }),
+};

@@ -38,14 +38,15 @@ export class ActivityPage {
 
   /**
    * Volume small-multiples: each is one additive metric drawn as a single-series sparkline. `fmt` writes a value or
-   * total in the metric's unit; `divisor` turns distance from meters into km so the chart's axis reads in km too, and
-   * `tickFormat` keeps decimals on that axis, since a few km a day would otherwise label as 0, 1, 1, 2.
+   * total in the metric's unit; `inMeters` plots a distance in the reader's km or mi so the axis reads in that unit,
+   * and `tickFormat` keeps decimals on that axis, since a few km a day would otherwise label as 0, 1, 1, 2.
    */
   static #VOLUME = [
     { title: 'Labels', fields: ['labels'], fmt: ActivityPage.#counted('labels') },
     { title: 'Validations', fields: ['validations'], fmt: ActivityPage.#counted('validations') },
-    { title: 'Distance explored', fields: ['audited_distance_m'], divisor: 1000, fmt: (v) => ActivityPage.#km(v),
-      tickFormat: (v) => v.toLocaleString(undefined, { maximumSignificantDigits: v < 10 ? 2 : 21 }) },
+    { title: 'Distance explored', fields: ['explored_distance_m'], inMeters: true,
+      fmt: (v) => util.metersToLongDistanceString(v * ActivityPage.#metersPerUnit(), 1),
+      tickFormat: (v) => v.toLocaleString(undefined, { maximumFractionDigits: 2 }) },
     { title: 'Missions', fields: ['missions'], fmt: ActivityPage.#counted('missions') },
     { title: 'Sign-ins', fields: ['signins_registered', 'signins_anon'], fmt: ActivityPage.#counted('sign-ins') },
     { title: 'New users', fields: ['new_users'], fmt: ActivityPage.#counted('users') },
@@ -163,7 +164,7 @@ export class ActivityPage {
     set('validations', 'validations');
     set('missions', 'missions');
     set('newusers', 'new_users');
-    this.#setText('kpi-distance', ActivityPage.#km(sum('audited_distance_m') / 1000));
+    this.#setText('kpi-distance', util.metersToLongDistanceString(sum('explored_distance_m'), 1));
     this.#setText('kpi-distance-note', note);
   }
 
@@ -203,7 +204,8 @@ export class ActivityPage {
     }
     const labels = buckets.map((b) => b.label);
     const cards = ActivityPage.#VOLUME.map((metric, i) => {
-      const values = buckets.map((b) => metric.fields.reduce((a, f) => a + b.vol[f], 0) / (metric.divisor ?? 1));
+      const perUnit = metric.inMeters ? ActivityPage.#metersPerUnit() : 1;
+      const values = buckets.map((b) => metric.fields.reduce((a, f) => a + b.vol[f], 0) / perUnit);
       return { metric, values, total: values.reduce((a, v) => a + v, 0), idx: i };
     });
     // Build the card shells first, then render each chart into its host at the host's measured width (responsive).
@@ -279,7 +281,7 @@ export class ActivityPage {
 
     const buckets = new Map();
     const order = [];
-    const volFields = ['labels', 'validations', 'audited_distance_m', 'missions',
+    const volFields = ['labels', 'validations', 'explored_distance_m', 'missions',
       'signins_registered', 'signins_anon', 'new_users'];
     for (let cur = new Date(windowStart); cur <= today; cur = ActivityPage.#addDays(cur, 1)) {
       const iso = util.localIsoDate(cur);
@@ -505,12 +507,9 @@ export class ActivityPage {
       : 'No activity yet.';
   }
 
-  /**
-   * @param {number} km - A distance in km.
-   * @returns {string} The distance with one decimal, e.g. "1,234.5 km", so a short day still shows something.
-   */
-  static #km(km) {
-    return `${km.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} km`;
+  /** @returns {number} Meters in the reader's long distance unit, a km or a mile. */
+  static #metersPerUnit() {
+    return util.isMetric() ? 1000 : util.math.milesToMeters(1);
   }
 
   static #startOfToday() {

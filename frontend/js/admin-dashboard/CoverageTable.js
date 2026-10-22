@@ -13,8 +13,8 @@ export class CoverageTable {
   static #COLS = [
     { key: 'name', label: 'Region', fmt: (v) => v },
     { key: 'completion_rate', label: 'Coverage', fmt: (v) => CoverageFormat.pct(v) },
-    { key: 'audited_distance_m', label: 'Audited', fmt: (v) => CoverageFormat.km(v) },
-    { key: 'total_distance_m', label: 'Total', fmt: (v) => CoverageFormat.km(v) },
+    { key: 'audited_distance_m', label: 'Audited', fmt: (v) => util.metersToLongDistanceString(v, 1) },
+    { key: 'total_distance_m', label: 'Total', fmt: (v) => util.metersToLongDistanceString(v, 1) },
     { key: 'label_count', label: 'Labels', fmt: (v) => (v || 0).toLocaleString() },
     { key: 'user_count', label: 'Contributors', fmt: (v) => (v || 0).toLocaleString() },
   ];

@@ -428,10 +428,23 @@ util.distanceToString = (meters) =>
  *
  * @param {number} km - The distance in kilometers. Always canonical: the formatter converts.
  * @param {number} [precision=0] - Decimal places to show.
- * @returns {string} The distance converted, rounded, and localized, with its unit.
+ * @param {boolean} [withUnit=true] - False for the bare number, where a column header or axis title names the unit.
+ * @returns {string} The distance converted, rounded, and localized.
  */
-util.longDistanceToString = (km, precision = 0) =>
-  i18next.services.formatter.format(km, `distance(style: large; precision: ${precision})`, i18next.language, {});
+util.longDistanceToString = (km, precision = 0, withUnit = true) =>
+  i18next.services.formatter.format(km || 0,
+    `distance(style: large; precision: ${precision}${withUnit ? '' : '; unit: false'})`, i18next.language, {});
+
+/**
+ * The same as `util.longDistanceToString`, for a distance in meters.
+ *
+ * @param {number} meters - The distance in meters.
+ * @param {number} [precision=0] - Decimal places to show.
+ * @param {boolean} [withUnit=true] - False for the bare number.
+ * @returns {string} The distance converted, rounded, and localized.
+ */
+util.metersToLongDistanceString = (meters, precision = 0, withUnit = true) =>
+  util.longDistanceToString((meters || 0) / 1000, precision, withUnit);
 
 /**
  * The calendar year and month of a month, date or timestamp string, as the reader would name it.

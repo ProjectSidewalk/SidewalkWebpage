@@ -160,7 +160,7 @@ export class ImageryPage {
           reaudit: 0,
           audited_once: 0,
           audited_multi: 0,
-          reaudit_miles: 0,
+          reaudit_m: 0,
           priority_sum: 0,
         };
         byRegion.set(regionId, row);
@@ -169,7 +169,7 @@ export class ImageryPage {
       row.streets += 1;
       row[street.priority_tier] += 1;
       row.priority_sum += street.priority;
-      if (street.priority_tier === 'reaudit') row.reaudit_miles += ImageryPage.#miles(street.length_m);
+      if (street.priority_tier === 'reaudit') row.reaudit_m += street.length_m || 0;
       this.#streetsByRegion.get(regionId).push(Number(street.street_edge_id));
     }
     this.#regions = Array.from(byRegion.values())
@@ -187,7 +187,8 @@ export class ImageryPage {
         { key: 'mean_priority', label: 'Mean priority', format: (r) => r.mean_priority.toFixed(3) },
         { key: 'unaudited', label: 'Never audited', format: (r) => AdminShell.num(r.unaudited) },
         { key: 'reaudit', label: 'Needs re-audit', format: (r) => ImageryPage.#tierCell(r.reaudit, 'reaudit') },
-        { key: 'reaudit_miles', label: 'Re-audit miles', format: (r) => r.reaudit_miles.toFixed(1) },
+        { key: 'reaudit_m', label: `Re-audit ${util.unitWords().unitName}`,
+          format: (r) => util.metersToLongDistanceString(r.reaudit_m, 1, false) },
         { key: 'audited_once', label: 'Audited once', format: (r) => AdminShell.num(r.audited_once) },
         { key: 'audited_multi', label: 'Audited 2+', format: (r) => AdminShell.num(r.audited_multi) },
         { key: 'streets', label: 'Streets', format: (r) => AdminShell.num(r.streets) },
@@ -307,10 +308,10 @@ export class ImageryPage {
     // it reads the same as the Overview and Coverage pages. The two differ slightly -- the tier counts only audits
     // that carry weight in the priority formula -- and the map note below says so when they do.
     const flagged = this.#streets.filter((street) => street.outdated);
-    const reauditMiles = flagged.reduce((sum, street) => sum + ImageryPage.#miles(street.length_m), 0);
+    const reauditM = flagged.reduce((sum, street) => sum + (street.length_m || 0), 0);
 
     AdminShell.setText('kpi-needs-reaudit', flagged.length.toLocaleString());
-    AdminShell.setText('kpi-needs-reaudit-note', `${reauditMiles.toFixed(1)} mi with newer imagery`);
+    AdminShell.setText('kpi-needs-reaudit-note', `${util.metersToLongDistanceString(reauditM, 1)} with newer imagery`);
     AdminShell.setText('kpi-unaudited', counts.unaudited.toLocaleString());
     AdminShell.setText('kpi-unaudited-note', `of ${this.#streets.length.toLocaleString()} routable streets`);
 
@@ -370,7 +371,7 @@ export class ImageryPage {
           <td class="imagery-tier-num">${range}</td>
           <td class="imagery-tier-num">${AdminShell.num(stat.count)}</td>
           <td class="imagery-tier-num">${ImageryPage.#share(stat.count, total)}</td>
-          <td class="imagery-tier-num">${stat.miles.toFixed(1)}</td>
+          <td class="imagery-tier-num">${util.escapeHTML(util.metersToLongDistanceString(stat.meters, 1, false))}</td>
         </tr>`;
     }).join('');
     legend.innerHTML = `
@@ -384,7 +385,7 @@ export class ImageryPage {
             <th scope="col" class="imagery-tier-num">Priority</th>
             <th scope="col" class="imagery-tier-num">Streets</th>
             <th scope="col" class="imagery-tier-num">Share</th>
-            <th scope="col" class="imagery-tier-num">Miles</th>
+            <th scope="col" class="imagery-tier-num">Distance (${util.escapeHTML(util.unitWords().unitAbbr)})</th>
           </tr>
         </thead>
           <tbody>${rows}</tbody>
@@ -427,19 +428,19 @@ export class ImageryPage {
   }
 
   /**
-   * Count, mileage, and observed priority range per tier.
+   * Count, length in meters, and observed priority range per tier.
    *
-   * @returns {Record<string, {count: number, miles: number, min: number, max: number}>} Keyed by tier key; an empty
+   * @returns {Record<string, {count: number, meters: number, min: number, max: number}>} Keyed by tier key; an empty
    *   tier reports min/max of 0 rather than the +/-Infinity the fold would otherwise leave behind.
    */
   #tierStats() {
     const stats = Object.fromEntries(StreetPriorityTiers.TIERS.map((tier) =>
-      [tier.key, { count: 0, miles: 0, min: Infinity, max: -Infinity }]));
+      [tier.key, { count: 0, meters: 0, min: Infinity, max: -Infinity }]));
     for (const street of this.#streets) {
       const stat = stats[street.priority_tier];
       if (!stat) continue;
       stat.count += 1;
-      stat.miles += ImageryPage.#miles(street.length_m);
+      stat.meters += street.length_m || 0;
       stat.min = Math.min(stat.min, street.priority);
       stat.max = Math.max(stat.max, street.priority);
     }
@@ -599,11 +600,6 @@ export class ImageryPage {
     const pct = (count / total) * 100;
     if (count > 0 && pct < 0.5) return '<1%';
     return `${Math.round(pct)}%`;
-  }
-
-  /** Meters to miles, matching the units the Overview page reports re-audit distance in. */
-  static #miles(meters) {
-    return (meters || 0) * 0.000621371;
   }
 
   /** A count or label carrying its tier's color, used in both tables. */

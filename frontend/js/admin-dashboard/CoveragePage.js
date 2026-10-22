@@ -10,6 +10,7 @@
  * brushing falls out naturally — a histogram bucket selects every region in that coverage range at once.
  */
 
+import { util } from '../common/utilities.js';
 import { CoverageBars } from './CoverageBars.js';
 import { CoverageHistogram } from './CoverageHistogram.js';
 import { CoverageColors, CoverageFormat, CoverageMap } from './CoverageMap.js';
@@ -93,6 +94,9 @@ export class CoveragePage {
       completion_rate: f.properties.completion_rate,
       audited_distance_m: f.properties.audited_distance_m,
       total_distance_m: f.properties.total_distance_m,
+      // Preformatted for the bar tooltips, which can't call the reader's distance formatter themselves.
+      audited_distance_text: util.metersToLongDistanceString(f.properties.audited_distance_m, 1),
+      total_distance_text: util.metersToLongDistanceString(f.properties.total_distance_m, 1),
       street_count: f.properties.street_count,
       audit_count: f.properties.audit_count,
       label_count: f.properties.label_count,
@@ -239,11 +243,11 @@ export class CoveragePage {
     const fullyAudited = features.filter((f) => (f.properties.completion_rate || 0) >= 0.999).length;
 
     document.getElementById('kpi-city-coverage').textContent = CoverageFormat.pct(totalM ? auditedM / totalM : 0);
-    const distanceNote = `${CoverageFormat.km(auditedM)} of ${CoverageFormat.km(totalM)}`;
-    document.getElementById('kpi-city-coverage-note').textContent = distanceNote;
+    document.getElementById('kpi-city-coverage-note').textContent
+      = `${util.metersToLongDistanceString(auditedM, 1)} of ${util.metersToLongDistanceString(totalM, 1)}`;
     document.getElementById('kpi-regions').textContent = features.length.toLocaleString();
     document.getElementById('kpi-fully-audited').textContent = fullyAudited.toLocaleString();
-    document.getElementById('kpi-needs-reaudit').textContent = CoverageFormat.km(outdatedM);
+    document.getElementById('kpi-needs-reaudit').textContent = util.metersToLongDistanceString(outdatedM, 1);
   }
 
   #renderLegend() {
