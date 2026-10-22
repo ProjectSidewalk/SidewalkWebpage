@@ -16,7 +16,6 @@ import models.mission.MissionTable
 import models.region.Region
 import models.street.StreetEdgeTable
 import models.user.*
-import models.utils.CommonUtils.METERS_TO_MILES
 import models.utils.{
   ApiDailySourceCount,
   ApiEndpointSourceCount,
@@ -112,6 +111,7 @@ case class ApiAnalyticsBySourceData(
  * @param labels            Labels placed that day (includes tutorial labels, matching the legacy by-date count).
  * @param validations       Human validations completed that day.
  * @param audits            Explore tasks (streets) completed that day.
+ * @param exploredDistanceM Meters explored that day by non-excluded users; a street audited twice counts twice.
  * @param missions          Completed, non-skipped, non-onboarding missions that ended that day.
  * @param signinsRegistered Registered sign-in events that day.
  * @param signinsAnon       Anonymous auto sign-ups that day.
@@ -124,6 +124,7 @@ case class ActivityDayRecord(
     labels: Int,
     validations: Int,
     audits: Int,
+    exploredDistanceM: Double,
     missions: Int,
     signinsRegistered: Int,
     signinsAnon: Int,
@@ -265,12 +266,12 @@ case class HumanVsAiStats(
  * cards that route into the detailed pages without re-fetching each page's full payload. Every KPI carries the
  * denominator the card needs (e.g. audited *and* total distance, AI *and* human counts) so percentages can show their N.
  *
- * @param totalDistanceMi    Total street distance (miles), matching the legacy admin coverage metric.
- * @param auditedDistanceMi  Distance ever quality-audited (miles), regardless of imagery age; the card's coverage %
+ * @param totalDistanceM     Total street distance (meters).
+ * @param auditedDistanceM   Distance ever quality-audited (meters), regardless of imagery age; the card's coverage %
  *                           is this over the total, and it never dips when newer imagery lands (#4384).
  * @param reauditStreets     Streets audited before whose audits all predate newer imagery (need re-audit, #4384).
  *                           A subset of the audited count, surfaced as an annotation rather than subtracted from it.
- * @param reauditDistanceMi  Distance of those needs-re-audit streets (miles).
+ * @param reauditDistanceM   Distance of those needs-re-audit streets (meters).
  * @param totalLabels        All labels placed (includes tutorial labels, matching the by-type admin count).
  * @param labelsPastWeek     Labels placed in the last 7 days — the Activity pulse.
  * @param contributors       Distinct users who have contributed any labels or validations.
@@ -284,9 +285,9 @@ case class OverviewSummary(
     totalStreets: Int,
     auditedStreets: Int,
     reauditStreets: Int,
-    totalDistanceMi: Double,
-    auditedDistanceMi: Double,
-    reauditDistanceMi: Double,
+    totalDistanceM: Double,
+    auditedDistanceM: Double,
+    reauditDistanceM: Double,
     totalLabels: Int,
     totalValidations: Int,
     labelsPastWeek: Int,
@@ -311,9 +312,9 @@ private case class OverviewCore(
     totalStreets: Int,
     auditedStreets: Int,
     reauditStreets: Int,
-    totalDistanceMi: Double,
-    auditedDistanceMi: Double,
-    reauditDistanceMi: Double,
+    totalDistanceM: Double,
+    auditedDistanceM: Double,
+    reauditDistanceM: Double,
     totalLabels: Int,
     totalValidations: Int,
     labelsPastWeek: Int,
@@ -406,6 +407,7 @@ class AdminServiceImpl @Inject() (
     val labelsFut      = db.run(labelTable.getLabelCountsByDate)
     val validationsFut = db.run(labelValidationTable.getValidationsByDate)
     val auditsFut      = db.run(auditTaskTable.getAuditCountsByDate)
+    val distanceFut    = db.run(auditTaskTable.getExploredDistanceByDate)
     val missionsFut    = db.run(missionTable.getMissionCountsByDate)
     val signinsFut     = db.run(webpageActivityTable.getSignInCountsByDate)
     val activeFut      = db.run(webpageActivityTable.getActiveUserCountsByDate)
@@ -415,6 +417,7 @@ class AdminServiceImpl @Inject() (
       labels      <- labelsFut
       validations <- validationsFut
       audits      <- auditsFut
+      distances   <- distanceFut
       missions    <- missionsFut
       signins     <- signinsFut
       active      <- activeFut
@@ -429,6 +432,7 @@ class AdminServiceImpl @Inject() (
       val labelMap      = toDayMap(labels)
       val validationMap = toDayMap(validations)
       val auditMap      = toDayMap(audits)
+      val distanceMap   = distances.map { case (day, meters) => day.toLocalDate -> meters }.toMap
       val missionMap    = toDayMap(missions)
       val newUserMap    = toDayMap(newUsers)
       val signinRegMap  = splitMap(signins, anon = false)
@@ -446,6 +450,7 @@ class AdminServiceImpl @Inject() (
           labels = labelMap.getOrElse(d, 0),
           validations = validationMap.getOrElse(d, 0),
           audits = auditMap.getOrElse(d, 0),
+          exploredDistanceM = distanceMap.getOrElse(d, 0d),
           missions = missionMap.getOrElse(d, 0),
           signinsRegistered = signinRegMap.getOrElse(d, 0),
           signinsAnon = signinAnonMap.getOrElse(d, 0),
@@ -793,9 +798,9 @@ class AdminServiceImpl @Inject() (
         totalStreets,
         auditedStreets,
         auditedStreets - upToDateStreets,
-        totalDist * METERS_TO_MILES,
-        auditedDist * METERS_TO_MILES,
-        (auditedDist - upToDateDist) * METERS_TO_MILES,
+        totalDist,
+        auditedDist,
+        auditedDist - upToDateDist,
         labelTotal(labelsAll),
         valTotal(valsAll),
         labelTotal(labelsWeek),
@@ -818,8 +823,8 @@ class AdminServiceImpl @Inject() (
       def validator(group: String): Int = hva.validators.find(_.group == group).map(_.total).getOrElse(0)
       OverviewSummary(
         totalStreets = core.totalStreets, auditedStreets = core.auditedStreets, reauditStreets = core.reauditStreets,
-        totalDistanceMi = core.totalDistanceMi, auditedDistanceMi = core.auditedDistanceMi,
-        reauditDistanceMi = core.reauditDistanceMi, totalLabels = core.totalLabels,
+        totalDistanceM = core.totalDistanceM, auditedDistanceM = core.auditedDistanceM,
+        reauditDistanceM = core.reauditDistanceM, totalLabels = core.totalLabels,
         totalValidations = core.totalValidations, labelsPastWeek = core.labelsPastWeek,
         validationsPastWeek = core.validationsPastWeek, auditsPastWeek = core.auditsPastWeek,
         contributors = core.contributors, humanLabels = labeler("human"), aiLabels = labeler("ai"),

@@ -151,8 +151,12 @@ nested `$t(...)` references, and i18next's plural suffixes compose with them.
 
 **Rendering a distance is the `distance` formatter's job** (`AppManager._addDistanceFormatter`):
 `{{meters, distance(style: small)}}` converts, rounds, localizes the number, and appends the unit. Params are `style`
-(`small` → m/ft to the nearest 25; `fine` → m/ft to the whole unit, for elevations; `large` → km/mi), `precision`, and `unit: false` for a bare number; separate several
-with `;`. `util.distanceToString(meters)` and `util.longDistanceToString(km, precision)` call it from outside a string.
+(`small` → m/ft to the nearest 25; `fine` → m/ft unrounded, for elevations and short streets; `large` → km/mi), `precision` (`fine` and `large`), and `unit: false` for a bare number; separate several
+with `;`. `util.distanceToString(meters)`, `util.fineDistanceToString(meters, precision)`,
+`util.longDistanceToString(km, precision, withUnit)` and `util.metersToLongDistanceString(meters, precision, withUnit)`
+call it from outside a string; pass `withUnit = false` where a column header already names the unit
+(`util.unitWords().unitAbbr`). A chart plotting distances converts with `util.metersToLongDistance(meters)`, the same
+conversion, so its points and labels agree.
 
 **Its input must be canonical** — meters for `small`, km for `large`. Values that arrive already converted
 (`/userapi/basicStats` converts server-side; turf measurements are taken in `util.turfDistanceUnits()` so they can be
