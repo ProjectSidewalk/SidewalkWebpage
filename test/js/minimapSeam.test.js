@@ -40,6 +40,9 @@ const PANO = { lat: 47.6, lng: -122.33 };
 class FakeMap {
   static instances = [];
 
+  /** When true, 'style.load' waits for a test to fire it. */
+  static holdStyle = false;
+
   constructor(options) {
     this.options = options;
     this.layers = [];
@@ -47,6 +50,7 @@ class FakeMap {
     this.zoom = options.zoom;
     this.source = { setData: vi.fn() };
     this.handlers = {};
+    this.onceHandlers = {};
     this.canvas = document.createElement('canvas');
     this.dragPan = {
       enabled: true,
@@ -70,9 +74,14 @@ class FakeMap {
     return this.panoPoint;
   }
 
-  /** Fires a map event at every handler registered for it. */
-  fire(name) {
-    (this.handlers[name] ?? []).forEach((handler) => handler());
+  /**
+   * @param {string} name
+   * @param {object} [event] - What MapLibre would pass, e.g. `{ error }` for 'error'.
+   */
+  fire(name, event) {
+    const once = this.onceHandlers[name] ?? [];
+    this.onceHandlers[name] = [];
+    [...(this.handlers[name] ?? []), ...once].forEach((handler) => handler(event));
   }
 
   addImage() {}
@@ -124,9 +133,17 @@ class FakeMap {
     (this.handlers[name] ??= []).push(handler);
   }
 
-  // Only the style ever becomes ready: a test that awaited tiles ('load', 'idle') would hang, as Explore would.
+  // Only the style ever becomes ready: awaiting tiles ('load', 'idle') would hang, as Explore would. Set holdStyle
+  // to fire 'style.load' by hand.
   once(name, handler) {
-    if (name === 'style.load') setTimeout(handler, 0);
+    if (name === 'style.load' && !FakeMap.holdStyle) setTimeout(handler, 0);
+    else (this.onceHandlers[name] ??= []).push(handler);
+  }
+
+  off(name, handler) {
+    for (const registry of [this.handlers, this.onceHandlers]) {
+      registry[name] = (registry[name] ?? []).filter((registered) => registered !== handler);
+    }
   }
 
   /**
@@ -238,6 +255,7 @@ let pmtiles;
 /** Loads the sources and the globals they read, against a fresh DOM and a fresh stand-in for MapLibre. */
 async function setUpGlobals(frames) {
   FakeMap.instances = [];
+  FakeMap.holdStyle = false;
   buildDom();
   window.requestAnimationFrame = (callback) => frames.push(callback);
   maplibregl = {
@@ -283,6 +301,38 @@ describe('Minimap seam', () => {
     // Reaching this line is the assertion: FakeMap never fires 'load' or 'idle'.
     expect(map.options.center).toEqual([PANO.lng, PANO.lat]);
     expect(minimap.isAvailable()).toBe(true);
+  });
+
+  describe('map errors', () => {
+    beforeEach(() => vi.spyOn(console, 'error').mockImplementation(() => {}));
+    const tileError = (url) => ({ error: new Error(`AJAXError: Not Found (404): ${url}`) });
+
+    test('each kind of error is logged once, whatever tile it came from, and every one reaches the console', () => {
+      map.fire('error', tileError('https://example.org/basemap/a.pmtiles?z=1'));
+      map.fire('error', tileError('https://example.org/basemap/a.pmtiles?z=2'));
+      map.fire('error', { error: new Error('Worker failed to load. Check that the worker URL is correct.') });
+
+      expect(tracked('Minimap_Error')).toEqual([
+        ['Minimap_Error', { error: 'AJAXError: Not Found (404): <url>' }],
+        ['Minimap_Error', { error: 'Worker failed to load. Check that the worker URL is correct.' }],
+      ]);
+      expect(console.error).toHaveBeenCalledTimes(3);
+      expect(minimap.isAvailable()).toBe(true);
+    });
+
+    test('a page logs at most ten different errors', () => {
+      for (let i = 0; i < 12; i++) map.fire('error', { error: new Error(`failure ${i}`) });
+      expect(tracked('Minimap_Error')).toHaveLength(10);
+    });
+
+    test('an error with no message is logged as text, not as an empty note', () => {
+      map.fire('error', { error: 'tile request aborted' });
+      map.fire('error', { error: new Error('') });
+      expect(tracked('Minimap_Error')).toEqual([
+        ['Minimap_Error', { error: 'tile request aborted' }],
+        ['Minimap_Error', { error: 'Error' }],
+      ]);
+    });
   });
 
   describe('panning', () => {
@@ -812,6 +862,20 @@ describe('Minimap without a map', () => {
     expect(map.callsTo('remove')).toHaveLength(1);
     expect(document.getElementById('minimap-attribution')).toBeNull();
     expect(unavailableEvents()).toEqual([['Minimap_Unavailable', { error: 'WebGL context lost' }]]);
+  });
+
+  test('an error before the style is ready ends the wait and says the map can\'t draw', async () => {
+    FakeMap.holdStyle = true;
+    const creating = createMinimap();
+    const [map] = FakeMap.instances;
+    map.fire('error', { error: new Error('layers.background: missing required property "type"') });
+    const minimap = await creating;
+
+    expect(minimap.isAvailable()).toBe(false);
+    expect(map.callsTo('remove')).toHaveLength(1);
+    expect(unavailableEvents()).toEqual(
+      [['Minimap_Unavailable', { error: 'layers.background: missing required property "type"' }]]);
+    expect(tracker.push.mock.calls.filter(([name]) => name === 'Minimap_Error')).toEqual([]);
   });
 
 });

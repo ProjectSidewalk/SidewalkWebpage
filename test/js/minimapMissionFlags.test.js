@@ -36,6 +36,8 @@ class FakeMap {
 
   on() {}
 
+  off() {}
+
   getCanvas() {
     return document.createElement('canvas');
   }
