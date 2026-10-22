@@ -33,14 +33,22 @@ export class ActivityPage {
     comment: { label: 'Comment', cls: 'is-comment' },
   };
 
-  /** Volume small-multiples: each is one additive metric drawn as a single-series sparkline. */
+  /** Makes a formatter for a whole-number count in the given unit, e.g. "1,234 labels". */
+  static #counted = (unit) => (v) => `${Math.round(v).toLocaleString()} ${unit}`;
+
+  /**
+   * Volume small-multiples: each is one additive metric drawn as a single-series sparkline. `fmt` writes a value or
+   * total in the metric's unit; `divisor` turns distance from meters into km so the chart's axis reads in km too, and
+   * `tickFormat` keeps decimals on that axis, since a few km a day would otherwise label as 0, 1, 1, 2.
+   */
   static #VOLUME = [
-    { title: 'Labels', fields: ['labels'], unit: 'labels' },
-    { title: 'Validations', fields: ['validations'], unit: 'validations' },
-    { title: 'Streets explored', fields: ['audits'], unit: 'streets' },
-    { title: 'Missions', fields: ['missions'], unit: 'missions' },
-    { title: 'Sign-ins', fields: ['signins_registered', 'signins_anon'], unit: 'sign-ins' },
-    { title: 'New users', fields: ['new_users'], unit: 'users' },
+    { title: 'Labels', fields: ['labels'], fmt: ActivityPage.#counted('labels') },
+    { title: 'Validations', fields: ['validations'], fmt: ActivityPage.#counted('validations') },
+    { title: 'Distance explored', fields: ['audited_distance_m'], divisor: 1000, fmt: (v) => ActivityPage.#km(v),
+      tickFormat: (v) => v.toLocaleString(undefined, { maximumSignificantDigits: v < 10 ? 2 : 21 }) },
+    { title: 'Missions', fields: ['missions'], fmt: ActivityPage.#counted('missions') },
+    { title: 'Sign-ins', fields: ['signins_registered', 'signins_anon'], fmt: ActivityPage.#counted('sign-ins') },
+    { title: 'New users', fields: ['new_users'], fmt: ActivityPage.#counted('users') },
   ];
 
   /** @param {{seriesUrl: string, recentUrl: string, contributionTimeUrl: string}} opts */
@@ -153,9 +161,10 @@ export class ActivityPage {
     };
     set('labels', 'labels');
     set('validations', 'validations');
-    set('audits', 'audits');
     set('missions', 'missions');
     set('newusers', 'new_users');
+    this.#setText('kpi-distance', ActivityPage.#km(sum('audited_distance_m') / 1000));
+    this.#setText('kpi-distance-note', note);
   }
 
   /**
@@ -194,7 +203,7 @@ export class ActivityPage {
     }
     const labels = buckets.map((b) => b.label);
     const cards = ActivityPage.#VOLUME.map((metric, i) => {
-      const values = buckets.map((b) => metric.fields.reduce((a, f) => a + b.vol[f], 0));
+      const values = buckets.map((b) => metric.fields.reduce((a, f) => a + b.vol[f], 0) / (metric.divisor ?? 1));
       return { metric, values, total: values.reduce((a, v) => a + v, 0), idx: i };
     });
     // Build the card shells first, then render each chart into its host at the host's measured width (responsive).
@@ -203,7 +212,7 @@ export class ActivityPage {
         <div class="activity-card-head">
           <span class="activity-card-title">${util.escapeHTML(c.metric.title)}</span>
           <span class="activity-card-total">
-            <strong>${c.total.toLocaleString()}</strong> in ${util.escapeHTML(this.#rangeNoun())}
+            <strong>${util.escapeHTML(c.metric.fmt(c.total))}</strong> in ${util.escapeHTML(this.#rangeNoun())}
           </span>
         </div>
         <div class="mini-host" data-idx="${util.escapeHTML(c.idx)}"></div>
@@ -211,7 +220,8 @@ export class ActivityPage {
     cards.forEach((c) => {
       MiniLineChart.renderInto(el.querySelector(`.mini-host[data-idx="${c.idx}"]`), labels,
         [{ name: c.metric.title, key: 'activity', values: c.values }], {
-          valueFormat: (v) => `${Math.round(v).toLocaleString()} ${c.metric.unit}`,
+          valueFormat: c.metric.fmt,
+          tickFormat: c.metric.tickFormat,
           ariaLabel: `${c.metric.title} over time`,
         });
     });
@@ -269,7 +279,7 @@ export class ActivityPage {
 
     const buckets = new Map();
     const order = [];
-    const volFields = ['labels', 'validations', 'audits', 'missions',
+    const volFields = ['labels', 'validations', 'audited_distance_m', 'missions',
       'signins_registered', 'signins_anon', 'new_users'];
     for (let cur = new Date(windowStart); cur <= today; cur = ActivityPage.#addDays(cur, 1)) {
       const iso = util.localIsoDate(cur);
@@ -493,6 +503,14 @@ export class ActivityPage {
     return this.#series && this.#series.length
       ? 'Too little activity in this range to plot. Try a longer range.'
       : 'No activity yet.';
+  }
+
+  /**
+   * @param {number} km - A distance in km.
+   * @returns {string} The distance with one decimal, e.g. "1,234.5 km", so a short day still shows something.
+   */
+  static #km(km) {
+    return `${km.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} km`;
   }
 
   static #startOfToday() {

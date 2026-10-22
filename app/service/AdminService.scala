@@ -112,6 +112,7 @@ case class ApiAnalyticsBySourceData(
  * @param labels            Labels placed that day (includes tutorial labels, matching the legacy by-date count).
  * @param validations       Human validations completed that day.
  * @param audits            Explore tasks (streets) completed that day.
+ * @param auditedDistanceM  Total length in meters of those streets.
  * @param missions          Completed, non-skipped, non-onboarding missions that ended that day.
  * @param signinsRegistered Registered sign-in events that day.
  * @param signinsAnon       Anonymous auto sign-ups that day.
@@ -124,6 +125,7 @@ case class ActivityDayRecord(
     labels: Int,
     validations: Int,
     audits: Int,
+    auditedDistanceM: Double,
     missions: Int,
     signinsRegistered: Int,
     signinsAnon: Int,
@@ -405,7 +407,7 @@ class AdminServiceImpl @Inject() (
   def getActivityByDay: Future[Seq[ActivityDayRecord]] = {
     val labelsFut      = db.run(labelTable.getLabelCountsByDate)
     val validationsFut = db.run(labelValidationTable.getValidationsByDate)
-    val auditsFut      = db.run(auditTaskTable.getAuditCountsByDate)
+    val auditsFut      = db.run(auditTaskTable.getAuditCountsAndDistanceByDate)
     val missionsFut    = db.run(missionTable.getMissionCountsByDate)
     val signinsFut     = db.run(webpageActivityTable.getSignInCountsByDate)
     val activeFut      = db.run(webpageActivityTable.getActiveUserCountsByDate)
@@ -428,7 +430,8 @@ class AdminServiceImpl @Inject() (
 
       val labelMap      = toDayMap(labels)
       val validationMap = toDayMap(validations)
-      val auditMap      = toDayMap(audits)
+      val auditMap      = audits.map { case (day, count, _) => day.toLocalDate -> count }.toMap
+      val distanceMap   = audits.map { case (day, _, meters) => day.toLocalDate -> meters }.toMap
       val missionMap    = toDayMap(missions)
       val newUserMap    = toDayMap(newUsers)
       val signinRegMap  = splitMap(signins, anon = false)
@@ -446,6 +449,7 @@ class AdminServiceImpl @Inject() (
           labels = labelMap.getOrElse(d, 0),
           validations = validationMap.getOrElse(d, 0),
           audits = auditMap.getOrElse(d, 0),
+          auditedDistanceM = distanceMap.getOrElse(d, 0d),
           missions = missionMap.getOrElse(d, 0),
           signinsRegistered = signinRegMap.getOrElse(d, 0),
           signinsAnon = signinAnonMap.getOrElse(d, 0),

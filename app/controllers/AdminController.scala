@@ -143,6 +143,7 @@ class AdminController @Inject() (
           "labels"             -> r.labels,
           "validations"        -> r.validations,
           "audits"             -> r.audits,
+          "audited_distance_m" -> r.auditedDistanceM,
           "missions"           -> r.missions,
           "signins_registered" -> r.signinsRegistered,
           "signins_anon"       -> r.signinsAnon,

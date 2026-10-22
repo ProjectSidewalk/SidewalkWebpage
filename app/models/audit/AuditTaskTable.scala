@@ -279,14 +279,17 @@ class AuditTaskTable @Inject() (
   }
 
   /**
-   * Returns a count of the number of audits performed on each day with an audit.
+   * For each day with an audit, the number of audits finished that day and the total length of their streets.
+   * @return (day, audit count, meters audited); a street audited twice that day counts twice.
    */
-  def getAuditCountsByDate: DBIO[Seq[(OffsetDateTime, Int)]] = {
+  def getAuditCountsAndDistanceByDate: DBIO[Seq[(OffsetDateTime, Int, Double)]] = {
     completedTasks
-      .map(_.taskEnd.trunc("day"))
-      .groupBy(day => day)
-      .map { case (day, tasks) => (day, tasks.length) }
-      .sortBy { case (day, _) => day }
+      .join(TableQuery[StreetEdgeTableDef])
+      .on(_.streetEdgeId === _.streetEdgeId)
+      .map { case (task, street) => (task.taskEnd.trunc("day"), street.geom.lengthGeodesic) }
+      .groupBy(_._1)
+      .map { case (day, rows) => (day, rows.length, rows.map(_._2).sum.getOrElse(0d)) }
+      .sortBy(_._1)
       .result
   }
 

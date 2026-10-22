@@ -239,6 +239,8 @@ export class CoveragePage {
     const fullyAudited = features.filter((f) => (f.properties.completion_rate || 0) >= 0.999).length;
 
     document.getElementById('kpi-city-coverage').textContent = CoverageFormat.pct(totalM ? auditedM / totalM : 0);
+    const distanceNote = `${CoverageFormat.km(auditedM)} of ${CoverageFormat.km(totalM)}`;
+    document.getElementById('kpi-city-coverage-note').textContent = distanceNote;
     document.getElementById('kpi-regions').textContent = features.length.toLocaleString();
     document.getElementById('kpi-fully-audited').textContent = fullyAudited.toLocaleString();
     document.getElementById('kpi-needs-reaudit').textContent = CoverageFormat.km(outdatedM);
