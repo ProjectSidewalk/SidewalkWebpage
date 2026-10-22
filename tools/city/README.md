@@ -156,6 +156,11 @@ with `--point-log` (below):
   in Seattle, mostly under about 15 m) is judged by its endpoint answers alone, so for it the limit is in effect the
   25 m disc.
 
+The street-level runs behind these comparisons (Teaneck and Seattle at 15 m and 25 m, and the guard runs) are archived
+at `/projects/makeabilitylab/sidewalk/experiments/5091-imagery-scan-radius/`, with a README saying which run is which.
+The `--point-log` files the table was computed from were not kept, so a re-measurement starts from a fresh
+`--point-log` scan.
+
 The limit applies to GSV only. It was measured on Google's car-mounted captures, and a GSV response is the one pano
 the viewer would open. Mapillary and Panoramax are also captured on foot and by bike, off the roadway, so a car's
 limit would reject their sidewalk captures. For Mapillary and Panoramax, holding the viewer's pick to the limit would
