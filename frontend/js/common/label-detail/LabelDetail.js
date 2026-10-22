@@ -1363,8 +1363,12 @@ export class LabelDetail {
       onPick: (id, kb) => this.#pickReason(id, kb),
       onOther: (kb) => this.#openOtherReason(kb),
       onDismiss: (via, kb) => this.#logAction('ReasonMenu_Dismiss', kb),
+      onClose: () => this.#els.reasonsReopen?.setAttribute('aria-expanded', 'false'),
     });
-    if (opened) this.#syncControlLocks();
+    if (opened) {
+      this.#els.reasonsReopen?.setAttribute('aria-expanded', 'true');
+      this.#syncControlLocks();
+    }
     return opened;
   }
 
@@ -1396,12 +1400,17 @@ export class LabelDetail {
   }
 
   /**
-   * The comment row's Reasons button: brings the pop-up back, hung off that button, for a reader who dismissed it
-   * or wants to change a pick.
+   * The comment row's Reasons button, a disclosure: brings the pop-up back, hung off that button, for a reader who
+   * dismissed it or wants to change a pick, and closes it again on the next press.
    * @param {boolean} viaKeyboard
    */
   #reopenReasons(viaKeyboard) {
     if (this.#interactionBlocked) return;
+    if (reasonPopover().isOpenFor(this.#root)) {
+      reasonPopover().close();
+      this.#logAction('ReasonMenu_Dismiss', viaKeyboard);
+      return;
+    }
     this.#logAction('ReasonMenu_Reopen', viaKeyboard);
     this.#openReasonPopover(this.#els.reasonsReopen, viaKeyboard);
   }

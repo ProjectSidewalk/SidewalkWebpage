@@ -122,9 +122,10 @@ describe('the reason pop-up on the label card (#5475)', () => {
       expect(reasonPopover().anchor).toBe(anchor());
       expect(card.classList.contains('has-reason-popover')).toBe(true);
       expect(chips().map((c) => c.dataset.reasonId)).toEqual(['wrong-type', 'not-pedestrian-path', 'ample-space']);
-      // The comment row opens with the vote as well (#5015); the Reasons button waits for the pop-up to go.
+      // The comment row opens with the vote as well (#5015); its Reasons button is a disclosure for the pop-up.
       expect(commentRow().classList.contains('is-open')).toBe(true);
       expect(reopen().hidden).toBe(false);
+      expect(reopen().getAttribute('aria-expanded')).toBe('true');
     });
 
     test('a shortcut vote hangs it off the thumb, since the overlay button is only there under hover', async () => {
@@ -296,14 +297,20 @@ describe('the reason pop-up on the label card (#5475)', () => {
       expect(input().value).toBe('');
     });
 
-    test('the Reasons button brings the pop-up back, hung off itself', async () => {
+    test('the Reasons button brings the pop-up back, hung off itself, and a second press closes it', async () => {
       await showLabel({ user_validation: 'Unsure' });
       expect(reopen().hidden).toBe(false);
+      expect(reopen().getAttribute('aria-expanded')).toBe('false');
       click(reopen(), 0);
       expect(popoverShown()).toBe(true);
       expect(reasonPopover().anchor).toBe(reopen());
+      expect(reopen().getAttribute('aria-expanded')).toBe('true');
       expect(document.activeElement).toBe(chips()[0]);
       expect(logged()).toContain('KeyboardShortcut_module=LabelDetail_action=ReasonMenu_Reopen_labelId=42');
+      click(reopen());
+      expect(popoverShown()).toBe(false);
+      expect(reopen().getAttribute('aria-expanded')).toBe('false');
+      expect(logged()).toContain('Click_module=LabelDetail_action=ReasonMenu_Dismiss_labelId=42');
 
       // No button for a vote with nothing to offer, or no vote.
       await showLabel({ user_validation: 'Agree' });

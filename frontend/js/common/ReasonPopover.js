@@ -42,6 +42,8 @@ import '../../css/components/reason-popover.css';
  * @property {(viaKeyboard: boolean) => void} onOther - "Other…" was chosen; the pop-up has already closed.
  * @property {(via: string, viaKeyboard: boolean) => void} [onDismiss] - Closed without a pick, by the reader:
  *     'close' (the ✕), 'escape', or 'outside'. Not called for a host-driven close or a close after a pick.
+ * @property {() => void} [onClose] - Closed by any path, after the pop-up is gone; for a host keeping a disclosure
+ *     control's state in step with it.
  */
 
 export class ReasonPopover {
@@ -201,6 +203,7 @@ export class ReasonPopover {
     if (typeof this.#el.hidePopover === 'function') this.#el.hidePopover();
     else this.#el.setAttribute('hidden', '');
     if (hadFocus && request.anchor.isConnected) request.anchor.focus();
+    request.onClose?.();
   }
 
   /**

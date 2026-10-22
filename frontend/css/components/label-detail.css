@@ -893,8 +893,9 @@ button.label-detail__meta-cell:focus-visible {
 .label-detail__comment-row.is-open ~ .label-detail__validator-comments.label-detail__empty { display: none; }
 
 /* The way back to the reason pop-up (#5475): a quiet dashed pill at the row's left, drawn like the pop-up's own
-   "Other…" chip so the two read as one vocabulary. Hidden by the attribute until there are reasons to offer, and by
-   the class while the pop-up itself is open, when a second way in would only compete with it. */
+   "Other…" chip so the two read as one vocabulary. Hidden by the attribute until there are reasons to offer. It
+   stays while the pop-up is open, as a disclosure the pop-up can hang off: an anchor that disappears has no place
+   to point at. */
 .label-detail__reasons-reopen {
   box-sizing: border-box;
   display: inline-flex;
@@ -929,9 +930,12 @@ button.label-detail__meta-cell:focus-visible {
   opacity: 0.6;
 }
 
-.label-detail__reasons-reopen[hidden],
-.label-detail.has-reason-popover .label-detail__reasons-reopen {
+.label-detail__reasons-reopen[hidden] {
   display: none;
+}
+
+.label-detail__reasons-reopen[aria-expanded="true"] {
+  background: var(--color-neutral-200);
 }
 
 /* Explicit border-box + flex centering keep the input and button the same height with the text dead-center —

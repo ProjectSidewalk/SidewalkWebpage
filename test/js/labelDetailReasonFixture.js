@@ -111,7 +111,7 @@ export function buildCard() {
               <span class="label-detail__comments-count" hidden></span>
             </h3>
             <div class="label-detail__comment-row">
-              <button type="button" class="label-detail__reasons-reopen" aria-haspopup="dialog" hidden>Reasons</button>
+              <button type="button" class="label-detail__reasons-reopen" aria-haspopup="dialog" aria-expanded="false" hidden>Reasons</button>
               <label class="sr-only" for="label-detail-comment-input">Why?</label>
               <input type="text" id="label-detail-comment-input" class="label-detail__comment-input">
               <button type="button" class="label-detail__comment-submit" data-action="submit-comment">Comment</button>
