@@ -79,6 +79,8 @@ interface Window {
     isPrimaryValidate: boolean;
   }>;
   logWebpageActivity: (activity: string, async?: boolean) => void;
+  // Stamped from PanoDataService.MapillaryMaxPoseTiltDeg; absent in jsdom and the error pages.
+  mapillaryMaxPoseTiltDeg?: number;
   // Pannellum is a classic script that puts itself here; sdk/pannellum.js reads it back.
   pannellum: any;
   panoramaxLicenses: Record<string, { name: string; url: string }>;

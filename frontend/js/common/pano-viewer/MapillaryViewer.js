@@ -4,7 +4,6 @@
  */
 
 import * as turf from '@turf/turf';
-import { mat4, vec3 } from 'gl-matrix';
 import { createMapillaryChunkedDataProvider } from './MapillaryChunkedDataProvider.js';
 import { NoImageryError } from './NoImageryError.js';
 import { PanoData } from './PanoData.js';
@@ -249,7 +248,7 @@ export class MapillaryViewer extends PanoViewer {
     this.currCenter = newCenter;
     this.currVerticalFov = newFov;
 
-    const pitchAndRoll = this.extractPitchRoll(this.currImage.rotation);
+    const pitchAndRoll = MapillaryViewer.extractPitchRoll(this.currImage.rotation);
 
     const linkedPanos = edges
       .filter((link) => link.data.direction === 9) // Filter for only panoramas.
@@ -276,8 +275,8 @@ export class MapillaryViewer extends PanoViewer {
       lat: this.currImage.lngLat.lat,
       lng: this.currImage.lngLat.lng,
       cameraHeading: this.currImage.compassAngle,
-      cameraPitch: pitchAndRoll.pitch,
-      cameraRoll: pitchAndRoll.roll,
+      cameraPitch: pitchAndRoll?.pitch,
+      cameraRoll: pitchAndRoll?.roll,
       copyright: this.currImage.creatorUsername,
       history: [], // TODO could use /images endpoint to fill this. But can also see history in the UI https://www.mapillary.com/app/user/uwrapid?lat=47.66374856411&lng=-122.28224790652&z=17&x=0.5871305676894112&y=0.5159912788583514&zoom=0&panos=true&focus=photo&pKey=134748085384999&my_coverage=false&user_coverage=false
       linkedPanos,
@@ -358,42 +357,52 @@ export class MapillaryViewer extends PanoViewer {
   };
 
   /**
-   * Extracts camera pitch and roll from a Mapillary image's rotation vector.
+   * Camera pitch and roll in degrees from a Mapillary image's rotation, or null when the vector is malformed or tilted
+   * past the server's limit (`window.mapillaryMaxPoseTiltDeg`, from `PanoDataService.MapillaryMaxPoseTiltDeg`).
    *
-   * Mapillary's coordinate system: X=East, Y=North, Z=Up.
-   * The image.rotation is an axis-angle vector representing the world-to-camera transform.
-   * Camera frame: +Z=forward, -Y=up, +X=right.
+   * A line-for-line copy of `PanoDataService.mapillaryPitchRoll`, which fills the same columns for images no labeler
+   * has opened, so both must give one answer per image; change them together. Past the limit the pose is a failed
+   * reconstruction, and null leaves the stored value alone rather than overwriting the server's "unknown". The vector
+   * is OpenSfM's world→camera axis-angle rotation (world = east/north/up, camera = x right, y down, z forward).
    *
-   * NOTE I've tested that the pitch/roll values seem to be correct by transforming the original image like so:
-   * $ ffmpeg -i my-image.jpeg -vf "v360=e:e:pitch=-extractedPitch:roll=-extractedRoll" my-image-rotated.jpeg
-   *
-   * @param {number[]} rotation - The image.rotation axis-angle vector [rx, ry, rz].
-   * @returns {{ pitch: number, roll: number }} Pitch and roll in degrees.
-   *   Pitch: positive=looking up, negative=looking down.
-   *   Roll: positive=camera tilted clockwise (from photographer's perspective).
+   * @param {number[]} rotation - The image's `rotation` (Mapillary's `computed_rotation`).
+   * @returns {?{pitch: number, roll: number}} Pitch (positive looking up) and roll (positive clockwise from behind the
+   *   camera), or null.
    */
-  extractPitchRoll = (rotation) => {
-    // Invert the rotation to get camera-to-world. A zero rotation leaves the matrix as the identity, since
-    // fromRotation won't build one around a zero-length axis.
-    const axis = vec3.fromValues(-rotation[0], -rotation[1], -rotation[2]);
-    const matrix = mat4.create();
-    mat4.fromRotation(matrix, vec3.length(axis), axis);
+  static extractPitchRoll(rotation) {
+    const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+    const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+    const scale = (a, s) => [a[0] * s, a[1] * s, a[2] * s];
+    const add = (a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
+    // A zero vector stays zero, so a camera pointing straight up or down gets roll 0.
+    const unit = (a) => {
+      const len = Math.sqrt(dot(a, a));
+      return len > 0 ? scale(a, 1 / len) : a;
+    };
+    const clamp = (v) => Math.max(-1, Math.min(1, v));
 
-    // Camera forward is [0,0,1]; camera up is [0,-1,0].
-    const viewDir = vec3.transformMat4(vec3.create(), vec3.fromValues(0, 0, 1), matrix);
-    const upDir = vec3.transformMat4(vec3.create(), vec3.fromValues(0, -1, 0), matrix);
+    if (!Array.isArray(rotation) || rotation.length !== 3 || !rotation.every(Number.isFinite)) return null;
+    const inverted = [-rotation[0], -rotation[1], -rotation[2]];
+    const angle = Math.sqrt(dot(inverted, inverted));
+    const axis = unit(inverted);
+    // Rodrigues: v cos θ + (k × v) sin θ + k (k · v)(1 − cos θ).
+    const rotate = (v) => add(
+      add(scale(v, Math.cos(angle)), scale(cross(axis, v), Math.sin(angle))),
+      scale(axis, dot(axis, v) * (1 - Math.cos(angle))),
+    );
 
-    // Pitch: elevation of viewing direction (Z=up in world frame).
-    const pitch = Math.asin(Math.max(-1, Math.min(1, viewDir[2]))) * (180 / Math.PI);
+    const viewDir = rotate([0, 0, 1]);
+    const upDir = rotate([0, -1, 0]);
+    const tiltDeg = util.math.toDegrees(Math.acos(clamp(upDir[2])));
+    if (tiltDeg > (window.mapillaryMaxPoseTiltDeg ?? Infinity)) return null;
 
-    // Roll: rotation of camera up-vector around the viewing axis, relative to the expected "level" up direction.
-    const worldUp = vec3.fromValues(0, 0, 1);
-    const right = vec3.normalize(vec3.create(), vec3.cross(vec3.create(), viewDir, worldUp));
-    const expectedUp = vec3.normalize(vec3.create(), vec3.cross(vec3.create(), right, viewDir));
-    const roll = Math.atan2(vec3.dot(upDir, right), vec3.dot(upDir, expectedUp)) * (180 / Math.PI);
-
+    const worldUp = [0, 0, 1];
+    const right = unit(cross(viewDir, worldUp));
+    const expectedUp = unit(cross(right, viewDir));
+    const pitch = util.math.toDegrees(Math.asin(clamp(viewDir[2])));
+    const roll = util.math.toDegrees(Math.atan2(dot(upDir, right), dot(upDir, expectedUp)));
     return { pitch, roll };
-  };
+  }
 
   /**
    * Builds sets of excluded pano IDs and captured_at timestamps. Mapillary has an issue where duplicate images

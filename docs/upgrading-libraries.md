@@ -144,9 +144,6 @@ Dependabot bumps straight past it; mapbox-gl's is the one in place.
 - **chart.js** — the API docs' preview charts. Chart.js is modular, and `frontend/js/api-docs/apiDocsChart.js`
   registers only the chart types, scales and plugins the previews use, so a new kind of chart means adding its pieces
   there, or it fails at draw time.
-- **gl-matrix** — the vector math in `MapillaryViewer.extractPitchRoll` (#5811). It works on plain arrays, so our
-  version never has to match the copies MapLibre and Mapbox build in. `make test-js args=mapillaryPitchRoll` checks the
-  angles after a bump.
 - **i18next** and **i18next-http-backend** — `test/js/i18nextLocales.test.js` runs both over our real locale files in
   every language, so `make test-js args=i18nextLocales` is the check after a bump of either.
 - **@inovitas/infra3dapi** (with **proj4**, loaded through `sdk/infra3d.js`) — `Infra3dViewer.js` reaches past the
@@ -176,8 +173,9 @@ Dependabot bumps straight past it; mapbox-gl's is the one in place.
   that puts itself on `window`; that module reads it back.
 - **@photo-sphere-viewer/core + equirectangular-tiles-adapter** (loaded through `sdk/photoSphereViewer.js`) — the
   renderer behind the Panoramax imagery provider (#5185). The two packages move together. three.js comes in as PSV's
-  own dependency; never add it to `package.json`, since the tiles adapter imports `three` without listing it and would
-  pick up our copy instead of PSV's (#5811).
+  own dependency. Never add it to `package.json`: the tiles adapter imports `three` without listing it, so it would
+  load our copy while PSV's core loads its own (#5811). `test/js/photoSphereViewerThreeCopy.test.js` fails any
+  install that splits them.
   [PSV docs](https://photo-sphere-viewer.js.org/guide/)
 - **pmtiles** — lets MapLibre read the minimap's tile archive (#5716). The server's `pmtiles` command-line tool is
   separate: it's pinned in `BasemapService` (`CliVersion` and each release file's SHA-256), so change those to upgrade
