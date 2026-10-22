@@ -154,7 +154,7 @@ export class ActivityPage {
   #renderKpis() {
     const recs = this.#windowRecords();
     const sum = (field) => recs.reduce((a, r) => a + (r[field] || 0), 0);
-    const note = `in ${this.#rangeNoun()}`;
+    const note = this.#rangePhrase();
     const set = (id, field) => {
       this.#setText(`kpi-${id}`, sum(field).toLocaleString());
       this.#setText(`kpi-${id}-note`, note);
@@ -212,7 +212,7 @@ export class ActivityPage {
         <div class="activity-card-head">
           <span class="activity-card-title">${util.escapeHTML(c.metric.title)}</span>
           <span class="activity-card-total">
-            <strong>${util.escapeHTML(c.metric.fmt(c.total))}</strong> in ${util.escapeHTML(this.#rangeNoun())}
+            <strong>${util.escapeHTML(c.metric.fmt(c.total))}</strong> ${util.escapeHTML(this.#rangePhrase())}
           </span>
         </div>
         <div class="mini-host" data-idx="${util.escapeHTML(c.idx)}"></div>
@@ -493,9 +493,9 @@ export class ActivityPage {
 
   // --- Small helpers ------------------------------------------------------------------------------------------
 
-  /** The selected window as a noun phrase for KPI/total notes, e.g. "the last 90 days" or "all time". */
-  #rangeNoun() {
-    return this.#range > 0 ? `the last ${this.#range} days` : 'all time';
+  /** The selected window as a phrase for KPI/total notes, e.g. "in the last 90 days" or "all time". */
+  #rangePhrase() {
+    return this.#range > 0 ? `in the last ${this.#range} days` : 'all time';
   }
 
   /** Message shown when the window has fewer than two buckets, so there's no line to draw. */
