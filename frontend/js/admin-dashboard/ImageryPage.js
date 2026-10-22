@@ -314,12 +314,17 @@ export class ImageryPage {
     AdminShell.setText('kpi-unaudited', counts.unaudited.toLocaleString());
     AdminShell.setText('kpi-unaudited-note', `of ${this.#streets.length.toLocaleString()} routable streets`);
 
-    const audited = this.#streets.filter((street) => street.last_audit_date);
-    const polled = audited.filter((street) => street.median_newest_capture);
-    const share = audited.length ? Math.round((polled.length / audited.length) * 100) : 0;
+    // polled_at is the poll rotation's key (#5403); the median is NULL after a conclusive poll that found nothing.
+    const polled = this.#streets.filter((street) => street.polled_at);
+    const share = this.#streets.length ? Math.round((polled.length / this.#streets.length) * 100) : 0;
+    const oldestPoll = ImageryPage.#oldestInstant(polled, 'polled_at');
+    // Clamped: a browser clock behind the server's would otherwise read "-1 days ago".
+    const oldestAge = oldestPoll === null
+      ? 'no street has been polled yet'
+      : `oldest poll ${Math.max(0, Math.floor((Date.now() - Date.parse(oldestPoll)) / 86400000))} days ago`;
     AdminShell.setText('kpi-rotation', `${share}%`);
     AdminShell.setText('kpi-rotation-note', `${polled.length.toLocaleString()} of `
-    + `${audited.length.toLocaleString()} audited streets have a polled capture date`);
+    + `${this.#streets.length.toLocaleString()} routable streets polled at least once; ${oldestAge}`);
   }
 
   /** The last-poll KPI, which needs the pipeline report rather than the street rows. */
@@ -457,19 +462,15 @@ export class ImageryPage {
 
     const audited = this.#streets.filter((street) => street.last_audit_date);
     const withRow = this.#streets.filter((street) => street.imagery_updated_at);
-    const withMedian = this.#streets.filter((street) => street.median_newest_capture);
+    const polled = this.#streets.filter((street) => street.polled_at);
+    const auditedPolled = audited.filter((street) => street.polled_at);
     const auditedWithMedian = audited.filter((street) => street.median_newest_capture);
     const behind = auditedWithMedian.filter((street) =>
       ImageryPage.#daysBetween(street.last_audit_date, street.median_newest_capture) > 0).length;
     const stillCurrent = auditedWithMedian.length - behind;
     const recent = ImageryPage.#refreshedWithin(this.#streets, 30);
-    // Compared as instants, not as strings: these timestamps carry the server's UTC offset, so "2026-01-01T23:00Z"
-    // and "2026-01-02T00:00+02:00" sort the wrong way round lexically.
-    const oldest = withRow.length
-      ? withRow.reduce((min, street) =>
-          (Date.parse(street.imagery_updated_at) < Date.parse(min) ? street.imagery_updated_at : min),
-        withRow[0].imagery_updated_at)
-      : null;
+    const oldest = ImageryPage.#oldestInstant(withRow, 'imagery_updated_at');
+    const oldestPoll = ImageryPage.#oldestInstant(polled, 'polled_at');
 
     const nights = (this.#report?.run_days || []).filter((day) => day.streets_polled > 0);
     const perNight = nights.length
@@ -496,10 +497,11 @@ export class ImageryPage {
               `${audited.length.toLocaleString()} of them audited at least once`)}
             ${row('With any imagery record', withRow.length.toLocaleString(),
               `${pct(withRow.length, this.#streets.length)} of routable streets, from any source`)}
-            ${row('With a polled capture date', withMedian.length.toLocaleString(),
-              'written only by the nightly poll, the only source of re-audit flags')}
-            ${row('Audited and polled', auditedWithMedian.length.toLocaleString(),
-              `${pct(auditedWithMedian.length, audited.length)} of audited streets; the rest are unmeasured`)}
+            ${row('Polled at least once', polled.length.toLocaleString(),
+              'conclusively answered by the nightly poll, the only source of re-audit flags; a poll that found '
+              + 'nothing counts')}
+            ${row('Audited and polled', auditedPolled.length.toLocaleString(),
+              `${pct(auditedPolled.length, audited.length)} of audited streets; the rest are unmeasured`)}
             ${row('Audits still current', stillCurrent.toLocaleString(),
               'imagery no newer than the last audit')}
             ${row('Audits behind the imagery', behind.toLocaleString(),
@@ -512,7 +514,9 @@ export class ImageryPage {
                   (batchSize || 0).toLocaleString()})`
                 : 'no street polled in this window; the rotation is stalled')}
             ${row('Oldest imagery record', oldest ? util.escapeHTML(oldest.slice(0, 10)) : '—',
-              'the street checked longest ago')}
+              'the record written longest ago, by any feeder')}
+            ${row('Oldest poll', oldestPoll ? util.escapeHTML(oldestPoll.slice(0, 10)) : '—',
+              'the oldest poll stamp in the table; never-polled streets sort ahead of it')}
           </tbody>
         </table>
       </div>`;
@@ -559,6 +563,22 @@ export class ImageryPage {
     const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
     return streets.filter((street) => street.imagery_updated_at && Date.parse(street.imagery_updated_at) >= cutoff)
       .length;
+  }
+
+  /**
+   * The earliest of a timestamp field across streets, compared as instants: these carry the server's UTC offset, so
+   * "2026-01-01T23:00Z" and "2026-01-02T00:00+02:00" sort the wrong way round as strings.
+   *
+   * @param {Array<Record<string, any>>} streets - Rows that may carry the field.
+   * @param {string} field - Timestamp field name.
+   * @returns {string|null} The ISO string of the earliest instant, or null when no row carries the field.
+   */
+  static #oldestInstant(streets, field) {
+    let oldest = null;
+    for (const street of streets) {
+      if (street[field] && (oldest === null || Date.parse(street[field]) < Date.parse(oldest))) oldest = street[field];
+    }
+    return oldest;
   }
 
   /** Whole days from `from` to `to`, both YYYY-MM-DD; negative when `to` is the earlier date. */

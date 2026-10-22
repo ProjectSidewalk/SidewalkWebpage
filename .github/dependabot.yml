@@ -25,7 +25,6 @@ updates:
           - "pannellum"
           - "@inovitas/infra3dapi"
           - "@photo-sphere-viewer/*"
-          - "three"
           - "maplibre-gl"
           - "pmtiles"
           - "proj4"
