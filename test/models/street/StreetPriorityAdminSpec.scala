@@ -278,25 +278,41 @@ class StreetPriorityAdminSpec extends SidewalkSpec with GuiceOneAppPerSuite with
       assume(someRoutableStreet.isDefined)
       val rowlessStreet = someRoutableStreet.get
 
-      val (changedOnRerun, stored, formulaParams) = runRolledBack(
+      val (firstRun, rerun, stored, formulaParams) = runRolledBack(
         for {
           _ <- streetEdgePriorities.filter(_.streetEdgeId === rowlessStreet).delete
           // Stale every row first so the first run has to write all of them.
           _      <- streetEdgePriorities.map(_.priority).update(-1.0)
-          _      <- streetEdgePriorityTable.recalculateStreetPriority
+          first  <- streetEdgePriorityTable.recalculateStreetPriority
           rerun  <- streetEdgePriorityTable.recalculateStreetPriority
           rows   <- streetEdgePriorities.map(row => (row.streetEdgeId, row.priority)).result
           params <- streetEdgePriorityTable.selectGoodBadUserCompletionCountPriority
-        } yield (rerun, rows.toMap, params)
+        } yield (first, rerun, rows.toMap, params)
       )
 
-      changedOnRerun mustBe 0
-      // Explore only routes to streets with a row, so the recalc must not create one.
-      stored.contains(rowlessStreet) mustBe false
+      firstRun.streetsChanged mustBe stored.count { case (_, priority) => priority != -1.0 }
+      firstRun.streetsWithoutRow mustBe 1
+      rerun.streetsChanged mustBe 0
       val mismatches = formulaParams
         .filter(param => stored.contains(param.streetEdgeId))
         .filterNot(param => stored.get(param.streetEdgeId).contains(param.priorityParameter))
       mismatches mustBe empty
+    }
+
+    "leave a closed street's priority alone, so reopening it doesn't mark it audited" in {
+      assume(someRoutableStreet.isDefined)
+      val streetId = someRoutableStreet.get
+
+      val priority = runRolledBack(
+        for {
+          _        <- streetEdges.filter(_.streetEdgeId === streetId).map(_.status).update(StreetEdgeStatus.NoImagery)
+          _        <- streetEdgePriorities.filter(_.streetEdgeId === streetId).map(_.priority).update(0.5)
+          _        <- streetEdgePriorityTable.recalculateStreetPriority
+          priority <- streetEdgePriorities.filter(_.streetEdgeId === streetId).map(_.priority).result.head
+        } yield priority
+      )
+
+      priority mustBe 0.5
     }
   }
 }

@@ -8,10 +8,12 @@ import models.street.{
   StreetEdgeTable,
   StreetGradientTable,
   StreetImageryTable,
-  StreetPriorityForAdmin
+  StreetPriorityForAdmin,
+  StreetPriorityRecalc
 }
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api.*
+import play.api.Logger
 import play.api.cache.AsyncCacheApi
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.{JsObject, Json}
@@ -58,7 +60,7 @@ trait StreetService {
   def getTotalStreetDistanceDBIO: DBIO[Double]
   def getTotalStreetDistance(metric: Boolean): Future[Double]
   def getAuditedStreetDistance(metric: Boolean): Future[Double]
-  def recalculateStreetPriority: Future[Int]
+  def recalculateStreetPriority: Future[StreetPriorityRecalc]
 
   /** Counts the served streets with no gradient row or a row from an older geometry (#5223); see `stalenessCounts`. */
   def countStreetGradientStaleness: Future[StreetGradientStaleness]
@@ -86,6 +88,8 @@ class StreetServiceImpl @Inject() (
 )(using ec: ExecutionContext)
     extends StreetService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
+
+  private val logger = Logger(this.getClass)
 
   def getStreetCountDBIO: DBIO[Int] = configService.cachedDBIO[Int]("streetCount")(streetEdgeTable.streetCount)
 
@@ -122,7 +126,15 @@ class StreetServiceImpl @Inject() (
     }
   }
 
-  def recalculateStreetPriority: Future[Int] = db.run(streetEdgePriorityTable.recalculateStreetPriority)
+  def recalculateStreetPriority: Future[StreetPriorityRecalc] =
+    db.run(streetEdgePriorityTable.recalculateStreetPriority).map { recalc =>
+      if (recalc.streetsWithoutRow > 0) {
+        logger.warn(
+          s"${recalc.streetsWithoutRow} open streets have no street_edge_priority row, so Explore never serves them."
+        )
+      }
+      recalc
+    }
 
   /**
    * Every routable street's priority with the audit counts behind it, for the admin imagery panel (#4908).

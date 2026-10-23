@@ -1,6 +1,7 @@
 package actor
 
 import actor.ActorUtils.{dateFormatter, getTimeToNextUpdate}
+import models.street.StreetPriorityRecalc
 import models.utils.JobRunTrigger
 import org.apache.pekko.actor.{Actor, ActorRef, Cancellable}
 import play.api.Logger
@@ -33,13 +34,18 @@ object RecalculateStreetPriorityActor {
    * Defined here rather than at each call site so the nightly sequence and the admin hand-trigger can't record the
    * same job under two different shapes.
    *
+   * @param recalc        What the priority recalculation wrote.
    * @param regionsSeeded Rows written to `region_completion` by the rebuild that follows the recalculation, or `None`
    *                      for the hand-trigger, which runs the recalculation alone. A plain `0` would file "the
    *                      rebuild found no regions" and "no rebuild ran" as the same run.
    * @return The run's `details` object.
    */
-  def runDetails(regionsSeeded: Option[Int]): JsObject =
-    Json.obj("regions_seeded" -> regionsSeeded.fold[JsValue](JsNull)(count => JsNumber(count)))
+  def runDetails(recalc: StreetPriorityRecalc, regionsSeeded: Option[Int]): JsObject =
+    Json.obj(
+      "streets_changed"     -> recalc.streetsChanged,
+      "streets_without_row" -> recalc.streetsWithoutRow,
+      "regions_seeded"      -> regionsSeeded.fold[JsValue](JsNull)(count => JsNumber(count))
+    )
 }
 
 @Singleton
@@ -110,10 +116,12 @@ class RecalculateStreetPriorityActor @Inject() (
             "failed, see error above"
           }
         _ = logger.info(s"Imagery freshness sync: $syncSummary")
-        _             <- streetService.recalculateStreetPriority
+        recalc        <- streetService.recalculateStreetPriority
         _             <- regionService.truncateRegionCompletionTable
         regionsSeeded <- regionService.initializeRegionCompletionTable
-      } yield regionsSeeded)(regionsSeeded => RecalculateStreetPriorityActor.runDetails(Some(regionsSeeded)))
+      } yield (recalc, regionsSeeded)) { case (recalc, regionsSeeded) =>
+        RecalculateStreetPriorityActor.runDetails(recalc, Some(regionsSeeded))
+      }
       .onComplete {
         case Success(_) =>
           val currentEndTime: String = dateFormatter.format(Instant.now())
