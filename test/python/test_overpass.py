@@ -171,14 +171,19 @@ def test_summary_is_one_short_line():
 
 # ------------------------------------------------------------------------------------------------- probe
 
-def fake_post(status=200, reason='OK', raises=None):
+def fake_post(status=200, reason='OK', raises=None, body=None):
     seen = {}
+
+    def json():
+        if isinstance(body, Exception):
+            raise body
+        return body if body is not None else {'osm3s': {'timestamp_osm_base': '2026-10-23T18:00:00Z'}}
 
     def post(url, data, timeout, headers):
         seen.update(url=url, data=data, timeout=timeout, headers=headers)
         if raises:
             raise raises
-        return SimpleNamespace(ok=status < 400, status_code=status, reason=reason)
+        return SimpleNamespace(ok=status < 400, status_code=status, reason=reason, json=json)
     return post, seen
 
 
@@ -190,6 +195,11 @@ def test_probe_sends_the_tiny_query_with_our_identity_to_the_instance_named():
     assert seen['url'] == 'https://overpass.example.org/api/interpreter'
     assert seen['headers'] == {'User-Agent': op.USER_AGENT} and 'sidewalk@cs.uw.edu' in op.USER_AGENT
     assert 'node(1)' in op.PROBE_QUERY and '[timeout:5]' in op.PROBE_QUERY
+    assert op.probe(post) == (True, '2026-10-23T18:00:00Z')
+    post, _ = fake_post(body={'elements': []})
+    assert op.probe(post) == (True, None)
+    post, _ = fake_post(body=ValueError('not json'))
+    assert op.probe(post) == (True, None)
 
 
 def test_probe_is_false_on_a_refusal_or_a_bad_status_without_retrying(caplog):
@@ -215,10 +225,13 @@ def test_wait_until_answering_retries_the_probe_on_the_schedule(monkeypatch):
 
 def test_main_check_exits_0_when_answering_and_75_when_not(monkeypatch, capsys):
     asked = []
-    monkeypatch.setattr(op, 'is_answering', lambda url: asked.append(url) or True)
+    monkeypatch.setattr(op, 'probe', lambda url: asked.append(url) or (True, '2026-10-23T18:00:00Z'))
     assert op.main(['--check']) == 0
     assert op.main(['--check', '--url', 'https://x/api']) == 0 and asked == [op.OVERPASS_URL, 'https://x/api']
-    monkeypatch.setattr(op, 'is_answering', lambda url: False)
+    assert 'data is from 2026-10-23T18:00:00Z' in capsys.readouterr().out
+    monkeypatch.setattr(op, 'probe', lambda url: (True, None))
+    assert op.main(['--check']) == 0 and 'did not state' in capsys.readouterr().out
+    monkeypatch.setattr(op, 'probe', lambda url: (False, None))
     assert op.main(['--check']) == op.EXIT_UNAVAILABLE == 75
     assert 'not answering' in capsys.readouterr().out
     with pytest.raises(SystemExit):

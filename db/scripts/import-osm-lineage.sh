@@ -40,6 +40,11 @@ fi
 # hold the rows to the invariants the matcher is meant to produce, and one bad row fails the whole transaction.
 psql -v ON_ERROR_STOP=1 -d sidewalk -U "$SCHEMA_NAME" <<EOSQL
     BEGIN;
+    -- The re-rank trigger keeps the first plan its change check gets in this session (evolution 422 plans it per
+    -- statement; a stage not yet on it does not), and the DELETE's re-rank below touches no row, which would leave
+    -- a nested loop that is quadratic on the INSERT's. With nested loops off for this transaction, the first plan is
+    -- a hash join whatever the row count.
+    SET LOCAL enable_nestloop = off;
 
     CREATE TEMP TABLE osm_lineage_import (
         street_edge_id   INTEGER,
@@ -87,12 +92,6 @@ psql -v ON_ERROR_STOP=1 -d sidewalk -U "$SCHEMA_NAME" <<EOSQL
     -- survives a rollback and must never end up below a row the rollback brings back.
     SELECT setval(pg_get_serial_sequence('osm_way_street_edge', 'osm_way_street_edge_id'),
                   (SELECT COALESCE(MAX(osm_way_street_edge_id), 0) + 1 FROM osm_way_street_edge), false);
-    -- The re-rank trigger keeps the first plan its change check gets in this session (evolution 422 plans it per
-    -- statement, but a stage not yet on it does not), and the DELETE's re-rank below touches no row, which would
-    -- leave it a nested loop that is quadratic on the INSERT's. A no-op update of the rows being replaced goes
-    -- first, so the plan is made for a full-size statement.
-    UPDATE osm_way_street_edge SET is_primary = is_primary
-    WHERE street_edge_id IN (SELECT street_edge_id FROM osm_lineage_match);
     DELETE FROM osm_way_street_edge
     USING osm_lineage_match
     WHERE osm_way_street_edge.street_edge_id = osm_lineage_match.street_edge_id;

@@ -156,6 +156,21 @@ def test_main_exits_75_and_writes_nothing_when_overpass_will_not_answer(tmp_path
         raise bl.OverpassUnavailable('request 1/1: still not answering')
     assert bl.main(['--city-id', 'testville'], fetch=fetch, probe=lambda policy, url: None) == 75
 
+    # A status the retry does not cover is Overpass turning us away all the same; anything else is a bug and raised.
+    class ResponseStatusCodeError(Exception):
+        pass
+
+    def refused(polygons, way_types, **kwargs):
+        raise ResponseStatusCodeError('Overpass API at https://x/api/interpreter responded: 403 Forbidden')
+    with caplog.at_level(logging.ERROR):
+        assert bl.main(['--city-id', 'testville'], fetch=refused, probe=lambda policy, url: None) == 75
+    assert any('refused the query' in r.message for r in caplog.records)
+
+    def broken(polygons, way_types, **kwargs):
+        raise KeyError('node')
+    with pytest.raises(KeyError):
+        bl.main(['--city-id', 'testville'], fetch=broken, probe=lambda policy, url: None)
+
 
 def test_parse_args_validates_the_city_id():
     with pytest.raises(SystemExit):

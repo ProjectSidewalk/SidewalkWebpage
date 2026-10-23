@@ -33,7 +33,7 @@ from shapely import wkb
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from onboard_city import fetch_ways, valid_city_id  # noqa: E402
 from osm_lineage import compute_lineage, lineage_rows, lineage_summary  # noqa: E402
-from overpass import (EXIT_UNAVAILABLE, OVERPASS_URL, OverpassUnavailable, RetryPolicy,  # noqa: E402
+from overpass import (EXIT_UNAVAILABLE, OVERPASS_URL, OverpassUnavailable, RetryPolicy, summary,  # noqa: E402
                       wait_until_answering)
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -238,6 +238,13 @@ def main(argv=None, fetch=fetch_ways, probe=wait_until_answering):
                      overpass_url=args.overpass_url)
     except OverpassUnavailable as exc:
         logger.error('%s. Nothing was written for %s.', exc, args.city_id)
+        return EXIT_UNAVAILABLE
+    except Exception as exc:
+        # A status the retry does not cover (a 403, a 400) is still Overpass turning us away, and the driver must
+        # stop sending rather than go on to the next city; osmnx's class is matched by name as overpass.py does.
+        if type(exc).__name__ != 'ResponseStatusCodeError':
+            raise
+        logger.error('Overpass refused the query (%s). Nothing was written for %s.', summary(exc), args.city_id)
         return EXIT_UNAVAILABLE
     logger.info('Fetched %d OSM ways around them', len(ways))
     lineages = compute_lineage(((street_edge_id, geom, hints) for street_edge_id, _, hints, geom in streets),

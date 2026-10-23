@@ -162,17 +162,32 @@ def summary(exc):
     return f'{type(exc).__name__}: {text[:160]}' if text else type(exc).__name__
 
 
-def is_answering(post=requests.post, url=OVERPASS_URL):
-    """Whether the interpreter answers a tiny query right now: one request, no retry, so a check costs nothing."""
+def probe(post=requests.post, url=OVERPASS_URL):
+    """
+    Asks the interpreter a tiny query once, with no retry, so a check costs nothing.
+
+    Returns:
+        ``(answered, data_timestamp)``: whether it answered, and how current its copy of OSM is (the reply's
+        ``timestamp_osm_base``; None when it did not answer or did not say), which is what a mirror is judged on.
+    """
     try:
         response = post(f'{url.rstrip("/")}/interpreter', data={'data': PROBE_QUERY}, timeout=PROBE_TIMEOUT_S,
                         headers={'User-Agent': USER_AGENT})
     except (requests.ConnectionError, requests.Timeout) as exc:
         logger.info('Overpass probe failed: %s', summary(exc))
-        return False
+        return False, None
     if not response.ok:
         logger.info('Overpass probe answered %s %s', response.status_code, response.reason)
-    return response.ok
+        return False, None
+    try:
+        return True, response.json().get('osm3s', {}).get('timestamp_osm_base')
+    except ValueError:
+        return True, None
+
+
+def is_answering(post=requests.post, url=OVERPASS_URL):
+    """Whether the interpreter answers a tiny query right now."""
+    return probe(post, url)[0]
 
 
 def wait_until_answering(policy=RetryPolicy(), url=OVERPASS_URL, **retry_kwargs):
@@ -322,8 +337,9 @@ def main(argv=None):
                         help=f'The instance, without /interpreter (default {OVERPASS_URL}).')
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format='%(message)s')
-    if is_answering(url=args.url):
-        print(f'Overpass is answering at {args.url}.')
+    answered, data_timestamp = probe(url=args.url)
+    if answered:
+        print(f'Overpass is answering at {args.url}; its data is from {data_timestamp or "a time it did not state"}.')
         return 0
     print(f'Overpass at {args.url} is not answering; wait before sending it anything (a block lifts on its own, '
           'after a while).')
