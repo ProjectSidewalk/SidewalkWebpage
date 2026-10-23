@@ -300,16 +300,6 @@ export class ExpandedView {
   }
 
   /**
-   * Opens the expanded view on a card and asks its label card for the comment box: what "Other…" on a grid card's
-   * reason pop-up does (#5475), since the grid card has no box of its own for a typed reason.
-   * @param {number} index - The card's index in the current set.
-   */
-  openForOtherReason(index) {
-    this.#updateExpandedViewCardByIndex(index);
-    if (this.open) this.labelDetail.requestOtherReason();
-  }
-
-  /**
    * Tries to update the current card to the given input index.
    * @param {number} index - The index of the card to update to.
    */

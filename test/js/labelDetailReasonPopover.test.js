@@ -35,11 +35,12 @@ describe('the reason pop-up on the label card (#5475)', () => {
   const popoverShown = () => !!popoverEl() && !popoverEl().hidden;
   const chips = () => [...document.querySelectorAll('.reason-popover .reason-chips__group .reason-chips__chip')];
   const other = () => document.querySelector('.reason-popover .reason-chips__chip--other');
+  const otherInput = () => document.querySelector('.reason-popover .reason-chips__other-input');
+  const otherSave = () => document.querySelector('.reason-popover .reason-chips__other-save');
   const overlayButton = (vote) => q(`.label-detail__pano-overlay-button--${vote}`);
   const thumb = (vote) => q(`.label-detail__vote--${vote}`);
   const reopen = () => q('.label-detail__reasons-reopen');
   const commentRow = () => q('.label-detail__comment-row');
-  const input = () => q('.label-detail__comment-input');
   const status = () => q('.label-detail__comment-confirmation');
   const click = (el, detail = 1) => el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, detail }));
   const press = (code) => (document.activeElement || document.body).dispatchEvent(
@@ -272,29 +273,53 @@ describe('the reason pop-up on the label card (#5475)', () => {
   });
 
   describe('Other and the way back', () => {
-    test('"Other…" closes the pop-up and puts you in the comment box', async () => {
+    test('"Other…" becomes a field in the pop-up; Save stores the words as your typed comment', async () => {
       await unvoted();
       click(thumb('disagree'));
       await flush();
       click(other());
-      expect(popoverShown()).toBe(false);
-      expect(document.activeElement).toBe(input());
-      expect(input().value).toBe('');
+      expect(popoverShown()).toBe(true);
       expect(logged()).toContain('Click_module=LabelDetail_action=DisagreeReasonOther_labelId=42');
-      expect(reopen().hidden).toBe(false);
+      const field = otherInput();
+      expect(document.activeElement).toBe(field);
+      expect(field.value).toBe('');
+      expect(otherSave().disabled).toBe(true); // Nothing to save yet.
+
+      field.value = 'blocked by a bin';
+      field.dispatchEvent(new Event('input', { bubbles: true }));
+      expect(otherSave().disabled).toBe(false);
+      click(otherSave(), 0); // Enter in the field submits through a pointerless click on Save.
+      expect(thumb('agree').disabled).toBe(true); // The vote holds while the words are written.
+      await flush();
+      expect(posted('/labelmap/comment').at(-1)).toMatchObject({ comment: 'blocked by a bin', reason: null });
+      expect(logged()).toContain('KeyboardShortcut_module=LabelDetail_action=DisagreeReasonOther_Save_labelId=42');
+      expect(q('.label-detail__validator-comments').textContent).toContain('blocked by a bin');
+      expect(popoverEl().querySelector('.reason-popover__saved').textContent).not.toBe('');
+      expect(thumb('agree').disabled).toBe(false);
     });
 
-    test('"Other…" over a comment of yours edits it: typed words prefilled, a canned reason emptied', async () => {
+    test('"Other…" over a comment of yours opens holding typed words, and empty over a canned reason', async () => {
       await showLabel({ comments: [comment('my own words', true)] });
       click(reopen());
       click(other());
-      expect(document.activeElement).toBe(input());
-      expect(input().value).toBe('my own words');
+      expect(otherInput().value).toBe('my own words');
 
       await showLabel({ comments: [comment('Not on a path', true, { reason: 'not-pedestrian-path' })] });
       click(reopen());
       click(other());
-      expect(input().value).toBe('');
+      expect(otherInput().value).toBe('');
+    });
+
+    test('unsaved words outlast a click outside; Escape still closes', async () => {
+      await showLabel();
+      click(reopen());
+      click(other());
+      otherInput().value = 'draft';
+      otherInput().dispatchEvent(new Event('input', { bubbles: true }));
+      document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+      expect(popoverShown()).toBe(true);
+      otherInput().dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+      expect(popoverShown()).toBe(false);
     });
 
     test('the Reasons button brings the pop-up back, hung off itself, and a second press closes it', async () => {

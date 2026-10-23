@@ -34,21 +34,16 @@ export class ValidationMenu {
   #galleryCard;
   // A reason pick in flight holds the vote it explains: see #setVoteControlsLocked (#5475).
   #voteLocked = false;
-  /** @type {() => void} Where "Other…" on the reason pop-up leads: the expanded view, with its comment box. */
-  #onOtherReason;
 
   /**
    * @param {Card} referenceCard - The Card this menu belongs to.
    * @param {HTMLElement} gsvImage - The image holder to append the validation menu to.
    * @param {Tracker} tracker - Logs the vote.
-   * @param {object} [hooks]
-   * @param {() => void} [hooks.onOtherReason] - Called when "Other…" is chosen on the card's reason pop-up (#5475).
    */
-  constructor(referenceCard, gsvImage, tracker, { onOtherReason = () => {} } = {}) {
+  constructor(referenceCard, gsvImage, tracker) {
     this.#refCard = referenceCard;
     this.#gsvImage = gsvImage;
     this.#tracker = tracker;
-    this.#onOtherReason = onOtherReason;
 
     const cardOverlayHTML = `
       <div class="gallery-validation-button-holder">
@@ -305,8 +300,8 @@ export class ValidationMenu {
 
   /**
    * Opens the reason pop-up for a vote that just landed, hung off the control that cast it, with the reason the
-   * user's own comment already records marked. A type with no canned reasons opens nothing: the expanded view's
-   * box is the way to say why there.
+   * user's own comment already records marked, and their typed one ready in "Other…". A type with no canned reasons
+   * opens nothing: the expanded view's box is the way to say why there.
    *
    * @param {'Disagree'|'Unsure'} vote
    * @param {?HTMLElement} anchor - The control that cast the vote; the strip's button for it when unknown.
@@ -316,17 +311,21 @@ export class ValidationMenu {
     const own = this.#ownComment();
     let selected = null;
     if (own) selected = typeof own.reason === 'string' ? own.reason : ReasonChips.OTHER;
+    const otherText = own && typeof own.reason !== 'string' && typeof own.comment === 'string' ? own.comment : '';
     reasonPopover().open({
       anchor: anchor ?? this.#validationButtons[ValidationMenu.#validationOptionToClass[vote]],
       host: this.#galleryCard,
       labelType: this.#refCard.getLabelType(),
       vote,
       selected,
+      otherText,
       viaKeyboard,
       onPick: (id, kb) => this.#pickReason(vote, id, kb),
-      onOther: (kb) => {
-        this.#log(`${vote}Reason_Other`, kb);
-        this.#onOtherReason();
+      onOther: (kb) => this.#log(`${vote}Reason_Other`, kb),
+      onSubmitOther: (text, kb) => {
+        if (this.#voteLocked) return;
+        this.#log(`${vote}Reason_Other_Save`, kb);
+        this.#saveReason(vote, text, null);
       },
       onDismiss: (via, kb) => this.#log('ReasonMenu_Dismiss', kb),
     });
@@ -345,12 +344,12 @@ export class ValidationMenu {
   }
 
   /**
-   * Posts the reason as the user's comment on the label, the way the label card's comment box does, and mirrors it
+   * Posts the answer as the user's comment on the label, the way the label card's comment box does, and mirrors it
    * onto the card's payload so the expanded view opened next shows it.
    *
    * @param {string} vote - The vote the reason explains.
-   * @param {string} text - The reason's text in the reader's language, what the comment says.
-   * @param {string} reason - The reason id.
+   * @param {string} text - The reason's text in the reader's language, or the words typed into "Other…".
+   * @param {?string} reason - The reason id, or null for typed words.
    */
   async #saveReason(vote, text, reason) {
     const refCard = this.#refCard;
@@ -381,7 +380,7 @@ export class ValidationMenu {
       // The server replaced the comment whether or not the pop-up is still up, so the card records it either way,
       // unless the vote moved meanwhile, in which case the server archived it again and the card must not show it.
       if (refCard.getProperty('user_validation') === vote) this.#recordOwnComment(text, reason, vote);
-      if (stillAsking()) popover.markSaved(reason);
+      if (stillAsking()) popover.markSaved(reason ?? ReasonChips.OTHER);
     } catch (err) {
       console.error(err);
       if (stillAsking()) popover.markFailed();

@@ -1,5 +1,6 @@
 /**
- * A row of one-tap reasons for a Disagree or Unsure vote, plus "Other…" for a typed one (#5475).
+ * A row of one-tap reasons for a Disagree or Unsure vote, plus "Other…" for a typed one (#5475), which turns into
+ * a text field and a Save button in its own place, so a typed reason is written where the canned ones are picked.
  *
  * The same component on every surface that asks "why?" after a vote (the reason pop-up on the label detail card and
  * the Gallery cards, ReasonPopover.js), so the vocabulary, the keyboard handling and the accessible shape are written
@@ -7,10 +8,10 @@
  * pick, since how the pick is posted differs per surface.
  *
  * Accessible shape: a `group` named by the prompt, one toggle button per reason (`aria-pressed` marks the one on
- * record) with a roving tabindex and arrow keys between them, and the "Other…" button beside the group. Toggle
- * buttons rather than radios: a pick posts at once, so an arrow that *selected* as it moved would file a reason per
- * keypress on the way past. Nothing is required — the vote is already saved when the row appears — so a reader who
- * does not care can move on. Number keys are the host's to route (it knows when it owns the keyboard);
+ * record) with a roving tabindex and arrow keys between them, and the "Other…" button (or its field) beside the
+ * group. Toggle buttons rather than radios: a pick posts at once, so an arrow that *selected* as it moved would file
+ * a reason per keypress on the way past. Nothing is required — the vote is already saved when the row appears — so a
+ * reader who does not care can move on. Number keys are the host's to route (it knows when it owns the keyboard);
  * `pickByNumber` does the picking, and on a host that routes them each chip wears its digit as a keycap, so the
  * mapping can be read off the row rather than counted along it.
  */
@@ -30,12 +31,17 @@ export class ReasonChips {
   #root;
   #onPick;
   #onOther;
+  #onSubmitOther;
   #showKeys;
-  #showOther;
   /** @type {HTMLButtonElement[]} */
   #chips = [];
   /** @type {?HTMLButtonElement} */
   #otherButton = null;
+  /** @type {?HTMLFormElement} The field "Other…" became, while it is open. */
+  #otherForm = null;
+  #otherText = '';
+  #otherNumber = 0;
+  #saveClickDetail = -1;
   #selected = null;
   #busy = false;
 
@@ -44,19 +50,19 @@ export class ReasonChips {
    * @param {object} opts
    * @param {(id: string, viaKeyboard: boolean) => void} opts.onPick - A reason was chosen. Not fired for the
    *     chip already selected: picking what is picked is a no-op, not an unpick, so a stray tap can't erase one.
-   * @param {(viaKeyboard: boolean) => void} opts.onOther - "Other…" was chosen (its button or its number key); the
-   *     host opens or focuses its comment box.
+   * @param {(viaKeyboard: boolean) => void} opts.onOther - "Other…" was chosen (its button or its number key) and
+   *     has become a field; for the host to log, and to re-place anything sized to the row.
+   * @param {(text: string, viaKeyboard: boolean) => void} opts.onSubmitOther - The field was saved with this text,
+   *     trimmed and never empty; the host stores it as the reader's typed comment.
    * @param {boolean} [opts.showKeys=false] - Draw each chip's number key as a keycap, on a host that routes the
    *     number keys here. Off for touch surfaces, where a key number is noise.
-   * @param {boolean} [opts.showOther=true] - Draw the "Other…" button. Off on a host whose comment box is always
-   *     beside the chips, where a button that only opens it would be one tap too many; N+1 still calls `onOther`.
    */
-  constructor(root, { onPick, onOther, showKeys = false, showOther = true }) {
+  constructor(root, { onPick, onOther, onSubmitOther, showKeys = false }) {
     this.#root = root;
     this.#onPick = onPick;
     this.#onOther = onOther;
+    this.#onSubmitOther = onSubmitOther;
     this.#showKeys = showKeys;
-    this.#showOther = showOther;
     root.classList.add('reason-chips');
     root.hidden = true;
     root.addEventListener('click', this.#handleClick);
@@ -72,9 +78,10 @@ export class ReasonChips {
    * @param {?string} state.vote - The vote to explain: 'Disagree' or 'Unsure'; anything else clears the row.
    * @param {?(string|symbol)} [state.selected=null] - The reason already on record, from the reader's own comment,
    *     or `ReasonChips.OTHER` for a typed one.
+   * @param {string} [state.otherText=''] - The reader's typed comment, which the "Other…" field opens holding.
    * @returns {number} How many reasons are offered; 0 means the row is hidden.
    */
-  render({ labelType, vote, selected = null }) {
+  render({ labelType, vote, selected = null, otherText = '' }) {
     const reasons = vote ? validationReasons.forLabel(labelType, vote) : [];
     // Focus rides along to the same chip in the rebuilt row, so a host redrawing after a pick doesn't move it.
     const focusedId = this.#chips.find((c) => c === document.activeElement)?.dataset.reasonId ?? null;
@@ -82,6 +89,8 @@ export class ReasonChips {
     this.#root.replaceChildren();
     this.#chips = [];
     this.#otherButton = null;
+    this.#otherForm = null;
+    this.#otherText = otherText;
     this.#selected = selected;
     this.#busy = false;
     this.#root.classList.remove('reason-chips--busy');
@@ -93,7 +102,7 @@ export class ReasonChips {
     const promptId = `reason-chips-prompt-${Math.random().toString(36).slice(2, 8)}`;
     const promptKey = vote === 'Unsure' ? 'prompt-unsure' : 'prompt-disagree';
     const prompt = util.escapeHTML(i18next.t(`common:validation-reason.${promptKey}`));
-    // "Other…" sits beside the group, not in it: it opens a box rather than picking, so it is no peer of the chips.
+    // "Other…" sits beside the group, not in it: it opens a field rather than picking, so it is no peer of the chips.
     this.#root.innerHTML = `
       <span class="reason-chips__prompt" id="${promptId}">${prompt}</span>
       <div class="reason-chips__list">
@@ -105,10 +114,9 @@ export class ReasonChips {
       this.#chips.push(chip);
       group.appendChild(chip);
     });
-    if (this.#showOther) {
-      this.#otherButton = this.#buildOther(reasons.length + 1);
-      this.#root.querySelector('.reason-chips__list').appendChild(this.#otherButton);
-    }
+    this.#otherNumber = reasons.length + 1;
+    this.#otherButton = this.#buildOther(this.#otherNumber);
+    this.#root.querySelector('.reason-chips__list').appendChild(this.#otherButton);
     this.#syncState();
     if (hadFocus) {
       const same = this.#chips.find((c) => c.dataset.reasonId === focusedId);
@@ -141,6 +149,16 @@ export class ReasonChips {
     this.#root.classList.toggle('reason-chips--busy', busy);
     for (const chip of this.#chips) chip.setAttribute('aria-disabled', String(busy));
     if (this.#otherButton) this.#otherButton.setAttribute('aria-disabled', String(busy));
+    if (this.#otherForm) {
+      // Read-only rather than disabled, so focus stays in the field the reader is typing in.
+      this.#otherInput().readOnly = busy;
+      this.#syncOtherSave();
+    }
+  }
+
+  /** @returns {boolean} Whether the "Other…" field is open with words in it, which a stray click must not lose. */
+  get hasOtherDraft() {
+    return this.#otherForm !== null && this.#otherInput().value.trim() !== '';
   }
 
   /** @returns {boolean} Whether the row is on screen with something to pick. */
@@ -159,7 +177,7 @@ export class ReasonChips {
       this.#pick(this.#chips[n - 1], true);
       return true;
     }
-    if (n === this.#chips.length + 1) {
+    if (n === this.#otherNumber) {
       this.#other(true);
       return true;
     }
@@ -214,6 +232,62 @@ export class ReasonChips {
   }
 
   /**
+   * Turns "Other…" into a text field and a Save button in its own place, focused, holding the reader's typed
+   * comment if they have one. A second "Other…" (its number key, from outside the field) just refocuses it.
+   * @param {boolean} viaKeyboard
+   */
+  #openOther(viaKeyboard) {
+    if (this.#otherForm) {
+      this.#otherInput().focus();
+      return;
+    }
+    const hint = i18next.t('common:validation-reason.other-hint');
+    const form = document.createElement('form');
+    form.className = 'reason-chips__other-form';
+    form.noValidate = true;
+    form.innerHTML = `
+      <input type="text" name="reason" class="ps-input reason-chips__other-input" autocomplete="off">
+      <button type="submit" class="button-ps button--small button--primary reason-chips__other-save"></button>`;
+    const input = /** @type {HTMLInputElement} */ (form.elements.namedItem('reason'));
+    input.placeholder = hint;
+    input.setAttribute('aria-label', hint);
+    input.value = this.#otherText;
+    form.querySelector('button').textContent = i18next.t('common:validation-reason.other-save');
+    input.addEventListener('input', () => this.#syncOtherSave());
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const text = input.value.trim();
+      if (this.#busy || text === '') return;
+      // Enter in the field submits through a click on Save that no pointer made (detail 0), as Enter/Space on Save do.
+      const savedViaKeyboard = this.#saveClickDetail <= 0;
+      this.#saveClickDetail = -1;
+      this.#onSubmitOther(text, savedViaKeyboard);
+    });
+    form.querySelector('button').addEventListener('click', (e) => {
+      this.#saveClickDetail = e.detail;
+    });
+    this.#otherButton.replaceWith(form);
+    this.#otherButton = null;
+    this.#otherForm = form;
+    this.#syncOtherSave();
+    input.focus();
+    // Caret at the end, so a prefilled comment is extended rather than typed over.
+    input.setSelectionRange(input.value.length, input.value.length);
+    this.#onOther(viaKeyboard);
+  }
+
+  /** @returns {HTMLInputElement} */
+  #otherInput() {
+    return /** @type {HTMLInputElement} */ (this.#otherForm.elements.namedItem('reason'));
+  }
+
+  /** Save takes nothing empty, and nothing while a save is in flight. */
+  #syncOtherSave() {
+    const save = this.#otherForm?.querySelector('button');
+    if (save) save.disabled = this.#busy || this.#otherInput().value.trim() === '';
+  }
+
+  /**
    * @param {number} n - Its number key.
    * @returns {HTMLButtonElement}
    */
@@ -235,11 +309,12 @@ export class ReasonChips {
       chip.classList.toggle('reason-chips__chip--selected', checked);
       chip.tabIndex = chip === focusable ? 0 : -1;
     }
+    const typed = this.#selected === ReasonChips.OTHER;
     if (this.#otherButton) {
-      const typed = this.#selected === ReasonChips.OTHER;
       this.#otherButton.setAttribute('aria-pressed', String(typed));
       this.#otherButton.classList.toggle('reason-chips__chip--selected', typed);
     }
+    this.#otherForm?.classList.toggle('reason-chips__other-form--saved', typed);
   }
 
   /**
@@ -256,7 +331,7 @@ export class ReasonChips {
   /** @param {boolean} viaKeyboard */
   #other(viaKeyboard) {
     if (this.#busy) return;
-    this.#onOther(viaKeyboard);
+    this.#openOther(viaKeyboard);
   }
 
   #handleClick = (e) => {

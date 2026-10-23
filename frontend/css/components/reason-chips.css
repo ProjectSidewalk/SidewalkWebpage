@@ -97,6 +97,33 @@
   outline: none;
 }
 
+/* "Other…" once chosen: a field and Save on a row of their own, so a typed reason has the panel's full width. */
+.reason-chips__other-form {
+  display: flex;
+  flex: 1 1 100%;
+  align-items: center;
+  gap: calc(6px * var(--ui-scale, 1));
+}
+
+.reason-chips__other-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  font: var(--text-caption-regular);
+}
+
+.reason-chips__other-save {
+  flex: 0 0 auto;
+}
+
+/* Saved: the field takes the vote's ring, as a picked chip does. */
+.reason-chips--disagree .reason-chips__other-form--saved .reason-chips__other-input {
+  border-color: var(--color-orange-500);
+}
+
+.reason-chips--unsure .reason-chips__other-form--saved .reason-chips__other-input {
+  border-color: var(--color-asphalt-300);
+}
+
 .reason-chips__chip:focus-visible {
   outline: 2px solid var(--color-link-100);
   outline-offset: 3px;

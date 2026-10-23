@@ -417,6 +417,7 @@
     "prompt-unsure": "Qu'est-ce qui vous rend incertain ?",
     "other": "Autre…",
     "other-hint": "Écrivez votre propre raison",
+    "other-save": "Enregistrer",
     "saved": "Raison enregistrée",
     "dismiss": "Fermer",
     "wrong-type": {

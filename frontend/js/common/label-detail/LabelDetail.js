@@ -169,8 +169,6 @@ export class LabelDetail {
   // reason pop-up: a reason explains the vote on record, so neither may move while the other is being written (#5475).
   #votePending = false;
   #pickPending = false;
-  // A Gallery card's "Other…" asked for the comment box while this label's imagery was still loading (#5475).
-  #otherReasonPending = false;
   /** @type {?HTMLElement} The control that cast the vote in flight, where its reason pop-up will hang (#5475). */
   #voteAnchor = null;
   /** @type {?HTMLElement} Set by a keyboard shortcut ahead of the click it dispatches, since that click lands on the
@@ -939,7 +937,6 @@ export class LabelDetail {
         this.#noImagery = !imageShown;
         this.#panoLoading = false;
         this.#applyInteractionLock();
-        this.#runPendingOtherReason();
 
         // The live imagery's metadata may carry an address the label payload didn't. Only read it when the shown
         // pano is actually this label's on the primary viewer — on the static-crop fallback, currPanoData still
@@ -963,7 +960,6 @@ export class LabelDetail {
         this.#noImagery = true;
         this.#panoLoading = false;
         this.#applyInteractionLock();
-        this.#runPendingOtherReason();
       });
 
     // Validation counts + AI validation.
@@ -1342,6 +1338,13 @@ export class LabelDetail {
     return typeof own.reason === 'string' ? own.reason : ReasonChips.OTHER;
   }
 
+  /** @returns {string} The reader's own typed comment on the label, for "Other…" to open holding, or ''. */
+  #ownTypedComment() {
+    const own = this.#comments?.[this.#myCommentIdx];
+    if (!own || typeof own !== 'object' || typeof own.reason === 'string') return '';
+    return typeof own.comment === 'string' ? own.comment : '';
+  }
+
   /**
    * Opens the reason pop-up on the reader's current vote, hung off the given control, with the reason their own
    * comment already records marked. Nothing opens for an Agree, a locked card, or a type with no canned reasons.
@@ -1358,9 +1361,13 @@ export class LabelDetail {
       labelType: this.#currentLabelMeta.label_type,
       vote: this.#prevAction,
       selected: this.#selectedReason(),
+      otherText: this.#ownTypedComment(),
       viaKeyboard,
       onPick: (id, kb) => this.#pickReason(id, kb),
-      onOther: (kb) => this.#openOtherReason(kb),
+      onOther: (kb) => {
+        if (this.#prevAction) this.#logAction(`${this.#prevAction}ReasonOther`, kb);
+      },
+      onSubmitOther: (text, kb) => this.#submitOtherReason(text, kb),
       onDismiss: (via, kb) => this.#logAction('ReasonMenu_Dismiss', kb),
       onClose: () => this.#els.reasonsReopen?.setAttribute('aria-expanded', 'false'),
     });
@@ -1369,33 +1376,6 @@ export class LabelDetail {
       this.#syncControlLocks();
     }
     return opened;
-  }
-
-  /**
-   * Opens the comment box for a typed reason and moves focus into it: what "Other…" does on a Gallery grid card's
-   * reason pop-up, which opens the expanded view and then asks for the box (#5475).
-   */
-  requestOtherReason() {
-    if (this.#locked) return;
-    // The box is disabled while this label's imagery loads (a Gallery card's "Other…" arrives in that window), so
-    // the request waits for the load to settle rather than focusing a control that can't take input.
-    if (this.#panoLoading) {
-      this.#otherReasonPending = true;
-      return;
-    }
-    if (this.#myCommentIdx >= 0) {
-      this.#startCommentEdit(typeof this.#comments[this.#myCommentIdx]?.reason !== 'string');
-      return;
-    }
-    this.#updateCommentRow();
-    this.#els.commentInput.focus();
-  }
-
-  /** Honors a `requestOtherReason()` that arrived mid-load, now that the lock has settled either way. */
-  #runPendingOtherReason() {
-    if (!this.#otherReasonPending) return;
-    this.#otherReasonPending = false;
-    this.requestOtherReason();
   }
 
   /**
@@ -1426,6 +1406,27 @@ export class LabelDetail {
     const text = validationReasons.text(id);
     if (!vote || !text || this.#interactionBlocked) return;
     this.#logAction(`${vote}Reason_option=${id}`, viaKeyboard);
+    this.#saveReasonComment(text, id);
+  }
+
+  /**
+   * Records the words typed into the pop-up's "Other…" field as the reader's comment, with no reason id.
+   * @param {string} text - Trimmed, never empty.
+   * @param {boolean} viaKeyboard - Saved with Enter rather than a click on Save.
+   */
+  #submitOtherReason(text, viaKeyboard) {
+    const vote = this.#prevAction;
+    if (!vote || this.#interactionBlocked) return;
+    this.#logAction(`${vote}ReasonOther_Save`, viaKeyboard);
+    this.#saveReasonComment(text, null);
+  }
+
+  /**
+   * Posts an answer from the pop-up, holding the vote controls until it lands, and tells the pop-up how it went.
+   * @param {string} text - The comment.
+   * @param {?string} id - The reason id, or null for typed words.
+   */
+  #saveReasonComment(text, id) {
     const meta = this.#currentLabelMeta;
     this.#pickPending = true;
     this.#syncControlLocks();
@@ -1434,28 +1435,9 @@ export class LabelDetail {
       if (this.#currentLabelMeta !== meta) return;
       this.#pickPending = false;
       this.#syncControlLocks();
-      if (saved) reasonPopover().markSaved(id);
+      if (saved) reasonPopover().markSaved(id ?? ReasonChips.OTHER);
       else reasonPopover().markFailed();
     });
-  }
-
-  /**
-   * "Other…": a typed reason. The pop-up has closed; the comment box, already open beside the vote (#5015), takes
-   * focus for the words. With a comment of theirs on the label it edits that instead: a typed one prefilled to
-   * revise, a canned one emptied since the words replace it.
-   *
-   * @param {boolean} viaKeyboard - Chosen with its number key rather than a pointer.
-   */
-  #openOtherReason(viaKeyboard) {
-    const vote = this.#prevAction;
-    if (!vote || this.#interactionBlocked) return;
-    this.#logAction(`${vote}ReasonOther`, viaKeyboard);
-    if (this.#myCommentIdx >= 0) {
-      this.#startCommentEdit(typeof this.#comments[this.#myCommentIdx]?.reason !== 'string');
-      return;
-    }
-    this.#updateCommentRow();
-    this.#els.commentInput.focus();
   }
 
   /**
@@ -2603,7 +2585,6 @@ export class LabelDetail {
     this.#votePending = false;
     this.#pickPending = false;
     this.#voteAnchor = null;
-    this.#otherReasonPending = false;
     this.#renderComments();
     this.#els.commentInput.value = '';
     this.#els.commentButton.classList.remove('is-active');

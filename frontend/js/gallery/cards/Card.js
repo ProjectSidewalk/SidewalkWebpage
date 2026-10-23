@@ -35,8 +35,6 @@ export class Card {
   #cropMarker;
   #gsvImageUrl;
   #tracker;
-  /** @type {{onOtherReason?: (card: Card) => void}} What the container does when a card asks for its comment box. */
-  #hooks;
   #cardFilter;
   #regionNames;
 
@@ -102,8 +100,7 @@ export class Card {
    * @param {Tracker} tracker - Logs the card's interactions.
    * @param {GalleryFilter} cardFilter - The sidebar, asked which tags are applied so those are shown first.
    */
-  constructor({ label, cropUrl, gsvImageUrl, cropMarker = null }, regionNames, tracker, cardFilter, hooks = {}) {
-    this.#hooks = hooks;
+  constructor({ label, cropUrl, gsvImageUrl, cropMarker = null }, regionNames, tracker, cardFilter) {
     this.#params = label;
     this.#cropUrl = cropUrl;
     this.#cropMarker = cropMarker;
@@ -257,9 +254,7 @@ export class Card {
     this.#creditImage(this.#status.imageSource);
 
     this.#card.appendChild(cardInfo);
-    this.validationMenu = new ValidationMenu(this, imageHolder, this.#tracker, {
-      onOtherReason: () => this.#hooks.onOtherReason?.(this),
-    });
+    this.validationMenu = new ValidationMenu(this, imageHolder, this.#tracker);
   }
 
   /**

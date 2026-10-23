@@ -8,10 +8,11 @@
  * leaves, and the keys it answers while open. The host owns what a pick does (it posts the comment) and tells the
  * pop-up when the pick landed, which is when it says "Reason saved" and shrinks back into its anchor.
  *
- * It leaves on a pick, Escape, its close control, a click outside, or when the host closes it (paging, another
- * vote). Never on mouse-leave: the first version did that and read as a flash. Mouse opens never move focus; a
- * keyboard open focuses the chips. Number keys 1–N pick, N+1 is "Other…", so the pop-up reads like Validate's menu;
- * where a keyboard is likely (a hover-capable pointer) each chip wears its digit as a keycap.
+ * It leaves on a pick, a saved typed reason, Escape, its close control, a click outside (unless "Other…" holds
+ * unsaved words), or when the host closes it (paging, another vote). Never on mouse-leave: the first version did
+ * that and read as a flash. Mouse opens never move focus; a keyboard open focuses the chips. Number keys 1–N pick,
+ * N+1 is "Other…", so the pop-up reads like Validate's menu; where a keyboard is likely (a hover-capable pointer)
+ * each chip wears its digit as a keycap.
  *
  * Native Popover API where there is one (top layer, so the Gallery grid never reflows and no card clips it) with
  * the same `hidden` fallback PanoImageAdjustmentsPopover uses, which is also what jsdom runs.
@@ -19,8 +20,8 @@
  * Usage:
  *   reasonPopover.open({
  *     anchor: thumbButton, host: cardEl, labelType: 'CurbRamp', vote: 'Disagree', selected: null,
- *     onPick: (id, viaKeyboard) => post(id).then(() => reasonPopover.markSaved()),
- *     onOther: (viaKeyboard) => commentInput.focus(),
+ *     onPick: (id, viaKeyboard) => post(id).then(() => reasonPopover.markSaved(id)),
+ *     onSubmitOther: (text, viaKeyboard) => post(text).then(() => reasonPopover.markSaved(ReasonChips.OTHER)),
  *     onDismiss: (via, viaKeyboard) => log(...),
  *   });
  */
@@ -38,9 +39,11 @@ import '../../css/components/reason-popover.css';
  * @property {string} labelType - The label's type, which decides the reasons offered.
  * @property {string} vote - 'Disagree' or 'Unsure'.
  * @property {?(string|symbol)} [selected] - The reason already on record, or `ReasonChips.OTHER` for typed text.
+ * @property {string} [otherText] - The reader's typed comment on the label, which the "Other…" field opens holding.
  * @property {boolean} [viaKeyboard] - Opened from the keyboard, so focus moves into the chips.
  * @property {(id: string, viaKeyboard: boolean) => void} onPick - A reason was chosen.
- * @property {(viaKeyboard: boolean) => void} onOther - "Other…" was chosen; the pop-up has already closed.
+ * @property {(viaKeyboard: boolean) => void} [onOther] - "Other…" was opened into its field; for logging.
+ * @property {(text: string, viaKeyboard: boolean) => void} onSubmitOther - The field was saved with this text.
  * @property {(via: string, viaKeyboard: boolean) => void} [onDismiss] - Closed without a pick, by the reader:
  *     'close' (the ✕), 'escape', or 'outside'. Not called for a host-driven close or a close after a pick.
  * @property {() => void} [onClose] - Closed by any path, after the pop-up is gone; for a host keeping a disclosure
@@ -91,10 +94,10 @@ export class ReasonPopover {
     this.#chips = new ReasonChips(this.#el.querySelector('.reason-popover__chips'), {
       onPick: (id, viaKeyboard) => this.#request?.onPick(id, viaKeyboard),
       onOther: (viaKeyboard) => {
-        const request = this.#request;
-        this.close();
-        request?.onOther(viaKeyboard);
+        this.#request?.onOther?.(viaKeyboard);
+        if (this.isOpen()) this.#position(); // The field can wrap onto a row of its own.
       },
+      onSubmitOther: (text, viaKeyboard) => this.#request?.onSubmitOther(text, viaKeyboard),
       showKeys: window.matchMedia?.('(hover: hover)').matches ?? true,
     });
     if (typeof this.#el.showPopover !== 'function') this.#el.setAttribute('hidden', '');
@@ -159,6 +162,7 @@ export class ReasonPopover {
     }
     const count = this.#chips.render({
       labelType: request.labelType, vote: request.vote, selected: request.selected ?? null,
+      otherText: request.otherText ?? '',
     });
     if (count === 0) {
       this.close();
@@ -226,7 +230,7 @@ export class ReasonPopover {
 
   /**
    * Marks the pick as picked on the chips, says so, and leaves after a short hold.
-   * @param {string} id - The reason the server took.
+   * @param {string|symbol} id - The reason the server took, or `ReasonChips.OTHER` for a typed one.
    */
   markSaved(id) {
     if (!this.isOpen()) return;
@@ -290,6 +294,8 @@ export class ReasonPopover {
     // clear closes), and logging a dismissal as well would count one gesture twice.
     const control = target instanceof Element ? target.closest('[data-reason-anchor]') : null;
     if (control && request.host.contains(control)) return;
+    // Words typed into "Other…" and not yet saved outlast a stray click; Escape and the ✕ still close.
+    if (this.#chips.hasOtherDraft) return;
     this.#dismiss('outside', false);
   };
 

@@ -28,12 +28,14 @@ mockModule('i18next', () => ({
 }));
 
 let ReasonPopover;
+let ReasonChips;
 let reasonPopover;
 let popover;
 let host;
 let anchor;
 let onPick;
 let onOther;
+let onSubmitOther;
 let onDismiss;
 
 const el = () => document.querySelector('.reason-popover');
@@ -52,7 +54,7 @@ function placeAt(target, { top, left, width = 60, height = 40 }) {
 /** Opens the pop-up on the host's anchor for a CurbRamp Disagree (three reasons). */
 function open(overrides = {}) {
   return popover.open({
-    anchor, host, labelType: 'CurbRamp', vote: 'Disagree', onPick, onOther, onDismiss, ...overrides,
+    anchor, host, labelType: 'CurbRamp', vote: 'Disagree', onPick, onOther, onSubmitOther, onDismiss, ...overrides,
   });
 }
 
@@ -69,10 +71,14 @@ beforeEach(async () => {
   placeAt(anchor, { top: 400, left: 300 });
   onPick = vi.fn();
   onOther = vi.fn();
+  onSubmitOther = vi.fn();
   onDismiss = vi.fn();
   window.innerWidth = 1024;
   window.innerHeight = 768;
-  ({ ReasonPopover, reasonPopover } = await loadModules('frontend/js/common/ReasonPopover.js'));
+  ({ ReasonPopover, reasonPopover, ReasonChips } = await loadModules(
+    'frontend/js/common/ReasonPopover.js',
+    'frontend/js/common/ReasonChips.js',
+  ));
   popover = reasonPopover();
   // jsdom lays nothing out; the pop-up is 300×120 here.
   Object.defineProperties(el(), { offsetWidth: { value: 300 }, offsetHeight: { value: 120 } });
@@ -229,12 +235,30 @@ describe('leaving', () => {
     expect(document.activeElement).toBe(document.getElementById('elsewhere'));
   });
 
-  test('"Other…" closes first and then hands over, so the host can move focus where it likes', () => {
-    open();
+  test('"Other…" opens its field in place, and unsaved words keep a click outside from closing it', () => {
+    open({ otherText: '' });
     other().dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }));
-    expect(isShown()).toBeFalsy();
+    expect(isShown()).toBe(true);
     expect(onOther).toHaveBeenCalledWith(false);
-    expect(onDismiss).not.toHaveBeenCalled();
+    const input = el().querySelector('.reason-chips__other-input');
+    const press = () => document.getElementById('elsewhere')
+      .dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+
+    input.value = 'words';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    press();
+    expect(isShown()).toBe(true);
+    el().querySelector('.reason-chips__other-save')
+      .dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, detail: 0 }));
+    expect(onSubmitOther).toHaveBeenCalledWith('words', true);
+    popover.markSaved(ReasonChips.OTHER);
+    expect(el().querySelector('.reason-popover__saved').textContent).toBe('Reason saved');
+
+    input.value = '';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    press();
+    expect(isShown()).toBeFalsy();
+    expect(onDismiss).toHaveBeenCalledWith('outside', false);
   });
 });
 

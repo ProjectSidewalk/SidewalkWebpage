@@ -797,9 +797,10 @@ a Disagree and an Unsure vote, in menu order; `main.scala.html` stamps it as `wi
 Gallery cards all render their reasons from it, with each reason's text and tooltip in the locale files under its id
 (`common:validation-reason.<id>`), so the stamp stays language-free. On the label card and the Gallery cards the
 question is asked by the reason pop-up (`ReasonPopover.js`, mobile Validate's notched panel generalised): it hangs
-off whichever control cast the vote once the server has it, offers the reasons as `ReasonChips`, and leaves on a pick,
-Escape, its close control, a click outside, or the next vote, never on mouse-leave; the card's comment row keeps a
-"Reasons" button as the way back. A pick is stored as the validator's comment on the label with the id in
+off whichever control cast the vote once the server has it, offers the reasons as `ReasonChips` (whose "Other…"
+turns into a text field and Save in place, for a typed reason), and leaves on a pick or a save, Escape, its close
+control, a click outside (unless "Other…" holds unsaved words), or the next vote, never on mouse-leave; the card's
+comment row keeps a "Reasons" button as the way back. A pick is stored as the validator's comment on the label with the id in
 `validation_task_comment.reason` beside the text; the label card's comment feed carries that id back so a revisit
 marks the chosen chip and a canned reason renders in the reader's language rather than the writer's. Ids are
 semantic (`driveway`, `not-pedestrian-path`), so a reason offered on two types is one reason, and the enum is what

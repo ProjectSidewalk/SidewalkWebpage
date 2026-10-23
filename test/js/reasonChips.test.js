@@ -93,6 +93,7 @@ describe('ReasonChips', () => {
   let root;
   let onPick;
   let onOther;
+  let onSubmitOther;
   let chips;
 
   const chipEls = () => [...root.querySelectorAll('.reason-chips__group .reason-chips__chip')];
@@ -103,7 +104,8 @@ describe('ReasonChips', () => {
     root = document.getElementById('row');
     onPick = vi.fn();
     onOther = vi.fn();
-    chips = new ReasonChips(root, { onPick, onOther, showKeys: true });
+    onSubmitOther = vi.fn();
+    chips = new ReasonChips(root, { onPick, onOther, onSubmitOther, showKeys: true });
   });
 
   test('draws one toggle per reason under a prompt for the vote, plus Other, and hides for an Agree', () => {
@@ -197,7 +199,7 @@ describe('ReasonChips', () => {
   });
 
   test('without showKeys (a touch surface) the chips carry no keycap and name no shortcut', () => {
-    chips = new ReasonChips(root, { onPick, onOther });
+    chips = new ReasonChips(root, { onPick, onOther, onSubmitOther });
     chips.render({ labelType: 'NoCurbRamp', vote: 'Disagree' });
     expect(root.querySelector('.reason-chips__key')).toBeNull();
     expect(chipEls()[0].hasAttribute('aria-keyshortcuts')).toBe(false);
@@ -205,12 +207,40 @@ describe('ReasonChips', () => {
     expect(chipEls()[1].textContent).toBe('This is a residential walkway');
   });
 
-  test('showOther: false draws no "Other…" button, but N+1 still reaches the host', () => {
-    chips = new ReasonChips(root, { onPick, onOther, showOther: false });
-    chips.render({ labelType: 'Crosswalk', vote: 'Unsure' });
+  test('"Other…" turns into a field and Save in its place, holding the typed comment, and saves trimmed words', () => {
+    chips.render({ labelType: 'Crosswalk', vote: 'Unsure', otherText: 'my words' });
+    expect(chips.hasOtherDraft).toBe(false);
+    other().dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }));
     expect(other()).toBeNull();
+    const input = root.querySelector('.reason-chips__other-input');
+    const save = root.querySelector('.reason-chips__other-save');
+    expect(document.activeElement).toBe(input);
+    expect(input.value).toBe('my words');
+    expect(input.getAttribute('aria-label')).toBe('Write your own reason');
+    expect(save.textContent).toBe('Save');
+    expect(chips.hasOtherDraft).toBe(true);
+    expect(onOther).toHaveBeenCalledWith(false);
+
+    // Its number key from outside the field returns to it rather than building a second one.
     expect(chips.pickByNumber(3)).toBe(true);
-    expect(onOther).toHaveBeenCalledWith(true);
+    expect(root.querySelectorAll('.reason-chips__other-input')).toHaveLength(1);
+
+    input.value = '   ';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    expect(save.disabled).toBe(true);
+    expect(chips.hasOtherDraft).toBe(false);
+
+    input.value = '  too steep  ';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    chips.setBusy(true);
+    expect(save.disabled).toBe(true);
+    expect(input.readOnly).toBe(true);
+    chips.setBusy(false);
+    save.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, detail: 1 }));
+    expect(onSubmitOther).toHaveBeenCalledWith('too steep', false);
+
+    chips.setSelected(ReasonChips.OTHER);
+    expect(root.querySelector('.reason-chips__other-form--saved')).not.toBeNull();
   });
 
   test('takes no pick while busy, and keeps focus on the row across a redraw', () => {

@@ -31,7 +31,7 @@ const events = () => tracker.push.mock.calls.map(([name]) => name);
 /**
  * Builds a menu on a card the way Card.js does, with the pieces the menu touches.
  * @param {object} [props] - The card's properties, over a CurbRamp with no vote and no comments.
- * @returns {{menu: ValidationMenu, card: HTMLElement, props: object, onOtherReason: Function, thumbs: object}}
+ * @returns {{menu: ValidationMenu, card: HTMLElement, props: object, thumbs: object}}
  */
 function makeMenu(props = {}) {
   const card = document.createElement('div');
@@ -54,7 +54,6 @@ function makeMenu(props = {}) {
     updateValCounts: () => {},
   };
   card.append(thumbs.agreeContainer, thumbs.disagreeContainer);
-  const onOtherReason = vi.fn();
   const refCard = {
     getProperty: (key) => state[key],
     setProperty: (key, value) => { state[key] = value; },
@@ -67,9 +66,9 @@ function makeMenu(props = {}) {
       this.validationMenu.showValidationOnCard(vote);
     },
   };
-  const menu = new ValidationMenu(refCard, image, tracker, { onOtherReason });
+  const menu = new ValidationMenu(refCard, image, tracker);
   refCard.validationMenu = menu;
-  return { menu, card, props: state, onOtherReason, thumbs };
+  return { menu, card, props: state, thumbs };
 }
 
 const button = (card, option) => card.querySelector(`.gallery-card-${option}-button`);
@@ -210,14 +209,29 @@ describe('the reason pop-up on a Gallery card (#5475)', () => {
     console.error.mockRestore();
   });
 
-  test('"Other…" is logged and handed to the host, which opens the expanded view', async () => {
-    const { card, onOtherReason } = makeMenu();
+  test('"Other…" becomes a field in the pop-up; Save posts the words as a typed comment and records it', async () => {
+    const { card, props } = makeMenu({
+      comments: [{ comment: 'old words', mine: true, commenter: 1, validation: 'Unsure' }],
+      user_validation: 'Unsure',
+    });
     click(button(card, 'disagree'));
     await flush();
     click(other());
-    expect(popoverShown()).toBe(false);
-    expect(onOtherReason).toHaveBeenCalledTimes(1);
+    expect(popoverShown()).toBe(true);
     expect(events()).toContain('Click_DisagreeReason_Other');
+    const input = popoverEl().querySelector('.reason-chips__other-input');
+    expect(document.activeElement).toBe(input);
+    // The viewer's typed comment rides in, to extend rather than retype (this fake card keeps it across the vote).
+    expect(input.value).toBe('old words');
+
+    input.value = '  curb is cracked  ';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    click(popoverEl().querySelector('.reason-chips__other-save'));
+    await flush();
+    expect(events()).toContain('Click_DisagreeReason_Other_Save');
+    expect(posted('/labelmap/comment').at(-1)).toMatchObject({ comment: 'curb is cracked', reason: null });
+    expect(props.comments.filter((c) => c.mine).map((c) => [c.comment, c.reason])).toEqual([['curb is cracked', null]]);
+    expect(popoverEl().querySelector('.reason-popover__saved').textContent).not.toBe('');
   });
 
   test('a dismissal is logged; one question at a time across cards', async () => {

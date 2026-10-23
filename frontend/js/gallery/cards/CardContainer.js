@@ -257,15 +257,6 @@ export class CardContainer {
   }
 
   /**
-   * Opens the expanded view on a card with its comment box ready for a typed reason: where "Other…" on the grid
-   * card's reason pop-up leads (#5475).
-   * @param {Card} card
-   */
-  openCardForComment(card) {
-    this.#expandedView?.openForOtherReason(this.#findCardIndex(card.getImageId()));
-  }
-
-  /**
    * Gets a card from the current CardBucket given an index.
    *
    * @param {number} index - The index of the card to find.
@@ -361,9 +352,7 @@ export class CardContainer {
       return null;
     }
     const newCards = response.labelsOfType.map((labelProp) => {
-      const card = new Card(labelProp, this.#params.regionNames, this.#tracker, this.#cardFilter, {
-        onOtherReason: (c) => this.openCardForComment(c),
-      });
+      const card = new Card(labelProp, this.#params.regionNames, this.#tracker, this.#cardFilter);
       this.push(card);
       this.#loadedLabelIds.add(card.getLabelId());
       this.#fetchOrder.set(card.getLabelId(), this.#fetchOrder.size);
