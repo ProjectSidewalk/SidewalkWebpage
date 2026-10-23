@@ -160,6 +160,30 @@ describe('opening', () => {
     expect(second.classList.contains('has-reason-popover')).toBe(true);
     expect(onDismiss).not.toHaveBeenCalled();
   });
+
+  test('lives inside a <dialog> host, which a modal makes the only reachable part of the page, and back out', () => {
+    document.body.insertAdjacentHTML('beforeend', '<dialog id="card"><button id="card-vote"></button></dialog>');
+    const card = document.getElementById('card');
+    const cardVote = document.getElementById('card-vote');
+    placeAt(cardVote, { top: 400, left: 300 });
+    open({ host: card, anchor: cardVote });
+    expect(el().parentElement).toBe(card);
+    expect(isShown()).toBe(true);
+    open();
+    expect(el().parentElement).toBe(document.body);
+    expect(isShown()).toBe(true);
+  });
+
+  test('closes, quietly, when its <dialog> host closes under it', () => {
+    document.body.insertAdjacentHTML('beforeend', '<dialog id="card"><button id="card-vote"></button></dialog>');
+    const card = document.getElementById('card');
+    const onClose = vi.fn();
+    open({ host: card, anchor: document.getElementById('card-vote'), onClose });
+    card.dispatchEvent(new Event('close'));
+    expect(popover.isOpen()).toBe(false);
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(onDismiss).not.toHaveBeenCalled();
+  });
 });
 
 describe('leaving', () => {

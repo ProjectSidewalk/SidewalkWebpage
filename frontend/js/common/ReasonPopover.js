@@ -70,6 +70,8 @@ export class ReasonPopover {
   /** @type {?ReturnType<typeof setTimeout>} */
   #closeTimer = null;
   #swallowEscapeKeyup = false;
+  /** @type {WeakSet<HTMLDialogElement>} */
+  #watchedDialogs = new WeakSet();
 
   constructor() {
     this.#el = document.createElement('div');
@@ -180,8 +182,7 @@ export class ReasonPopover {
     }
     const wasOpen = this.isOpen();
     if (wasOpen && this.#request.host !== request.host) this.#request.host.classList.remove('has-reason-popover');
-    // A host that rebuilds the page's body (a test fixture, a full re-render) takes the element with it.
-    if (!this.#el.isConnected) document.body.appendChild(this.#el);
+    const moved = this.#mount(request.host);
     this.#request = request;
     request.host.classList.add('has-reason-popover');
     // The chips draw the prompt afresh on every render, so the dialog takes its name from the new one.
@@ -195,7 +196,8 @@ export class ReasonPopover {
     this.#hintEl.textContent = '';
     this.#syncFoot();
     this.#el.classList.remove('reason-popover--saved');
-    if (!wasOpen) {
+    // Moving the element out of the document hides a shown popover, so a move needs a fresh show.
+    if (!wasOpen || moved) {
       if (typeof this.#el.showPopover === 'function') this.#el.showPopover();
       else this.#el.removeAttribute('hidden');
     }
@@ -208,6 +210,28 @@ export class ReasonPopover {
       this.#el.classList.add('reason-popover--open');
     });
     if (request.viaKeyboard) this.#chips.focus();
+    return true;
+  }
+
+  /**
+   * Puts the element where the host's reader can reach it. A modal <dialog> (the LabelMap card) makes everything
+   * outside it inert, top layer included, so a pop-up left in the body there takes no click and no focus; only the
+   * number keys, caught on the document, got through. Inside the dialog it still shows in the top layer, unclipped.
+   * @param {HTMLElement} host
+   * @returns {boolean} Whether the element changed parent.
+   */
+  #mount(host) {
+    const dialog = host.closest('dialog');
+    const parent = dialog ?? document.body;
+    if (this.#el.parentElement === parent) return false;
+    parent.appendChild(this.#el);
+    if (dialog && !this.#watchedDialogs.has(dialog)) {
+      this.#watchedDialogs.add(dialog);
+      // A dialog closed under the pop-up (its backdrop, while "Other…" holds words) hides it with no way back.
+      dialog.addEventListener('close', () => {
+        if (this.#request && dialog.contains(this.#request.host)) this.close();
+      });
+    }
     return true;
   }
 
