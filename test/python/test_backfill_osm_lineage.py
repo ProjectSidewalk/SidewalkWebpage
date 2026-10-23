@@ -172,6 +172,29 @@ def test_main_exits_75_and_writes_nothing_when_overpass_will_not_answer(tmp_path
         bl.main(['--city-id', 'testville'], fetch=broken, probe=lambda policy, url: None)
 
 
+def test_main_refuses_to_write_a_city_that_mostly_matched_nothing(tmp_path, monkeypatch, caplog):
+    monkeypatch.setattr(bl, 'REPO_ROOT', tmp_path)
+    city_dir = tmp_path / 'db' / 'onboarding' / 'testville'
+    city_dir.mkdir(parents=True)
+    way = lonlat((0, 0), (100, 0))
+    write_input(city_dir / bl.INPUT_NAME, [input_row(1, way, '10'), input_row(2, lonlat((0, 300), (100, 300)), '11'),
+                                           input_row(3, lonlat((0, 600), (100, 600)), '12')])
+
+    def fetch(polygons, way_types, **kwargs):
+        return gpd.GeoDataFrame({'osm_way_id': [10], 'highway': ['residential']}, geometry=[way], crs='EPSG:4326')
+    with caplog.at_level(logging.ERROR):
+        assert bl.main(['--city-id', 'testville'], fetch=fetch, probe=lambda policy, url: None) == 1
+    assert any('2 of 3 streets matched nothing' in r.message for r in caplog.records)
+    assert not (city_dir / bl.OUTPUT_NAME).exists() and (city_dir / bl.REVIEW_NAME).exists()
+
+
+def test_parse_args_keeps_the_tile_area_where_one_request_covers_it():
+    assert bl.parse_args(['--city-id', 'x', '--tile-km2', '2500']).tile_km2 == 2500.0
+    for bad in ['0', '-5', '2501', 'big']:
+        with pytest.raises(SystemExit):
+            bl.parse_args(['--city-id', 'x', '--tile-km2', bad])
+
+
 def test_parse_args_validates_the_city_id():
     with pytest.raises(SystemExit):
         bl.parse_args(['--city-id', 'Test Ville'])

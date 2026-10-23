@@ -15,7 +15,7 @@ BEGIN
     streets := ARRAY(SELECT DISTINCT street_edge_id FROM old_rows);;
   ELSE
     -- Only a changed ranking column counts, so the re-rank's own flag writes (and any other update) end here. Dynamic
-    -- SQL, so the join is planned for these transition tables and not from a plan cached when they were empty.
+    -- SQL, so the join is planned for these transition tables rather than reused from the session's first firing.
     EXECUTE $CHANGED$
       SELECT ARRAY(SELECT old_rows.street_edge_id FROM old_rows
                    INNER JOIN new_rows ON old_rows.osm_way_street_edge_id = new_rows.osm_way_street_edge_id

@@ -138,16 +138,22 @@ def candidate_runs(street, way, positions, tol_m=LATERAL_TOL_M, min_run_m=MIN_RU
         positions: Sample positions along the street, from :func:`sample_positions`.
 
     Returns:
-        A list of ``(street_from_m, street_to_m, same_direction)`` tuples, in street order. The way positions are
-        not returned, since a run may still be trimmed; :func:`locate_on_way` reads them off the final stretch.
+        A list of ``(street_from_m, street_to_m, same_direction, mean_distance_m)`` tuples, in street order; the
+        distance is how far the street sits from the way over the run, which ranks a way the street was cut from
+        (0 m) above a sidewalk or cycleway drawn beside it. The way positions are not returned, since a run may still
+        be trimmed; :func:`locate_on_way` reads them off the final stretch.
     """
     points = shapely.line_interpolate_point(street, positions)
-    near = shapely.distance(points, way) <= tol_m
+    distances = shapely.distance(points, way)
+    near = distances <= tol_m
     street_length = street.length
     # Where the way's end nodes fall along the street, for the ends that lie on it. The samples just past an end node
-    # are still within tolerance of it, so a run reaches up to tol_m beyond the way; the way stops at the node.
-    way_ends = shapely.points(np.asarray(way.coords)[[0, -1]])
-    end_positions = shapely.line_locate_point(street, way_ends)[shapely.distance(way_ends, street) <= tol_m]
+    # are still within tolerance of it, so a run reaches up to tol_m beyond the way; the way stops at the node. A
+    # closed way passes through its end node.
+    end_positions = np.array([])
+    if not way.is_closed:
+        way_ends = shapely.points(np.asarray(way.coords)[[0, -1]])
+        end_positions = shapely.line_locate_point(street, way_ends)[shapely.distance(way_ends, street) <= tol_m]
     runs = []
     for first, last in _runs(near):
         if last == first:
@@ -171,31 +177,45 @@ def candidate_runs(street, way, positions, tol_m=LATERAL_TOL_M, min_run_m=MIN_RU
         # Near the way but not going anywhere along it: a cross street at the junction, or the far side of a loop.
         if abs(along) < min_along * run_length:
             continue
-        runs.append((float(run_from), float(run_to), bool(along > 0)))
+        runs.append((float(run_from), float(run_to), bool(along > 0), float(distances[first:last + 1].mean())))
     return runs
 
 
 def along_way(street, way, positions, street_from_m, street_to_m, tol_m=LATERAL_TOL_M):
     """
-    Where the two ends of a stretch of ``street`` fall along ``way``, in metres from the way's start, read through
-    the samples between them rather than off the ends alone: a loop street starts and ends at one point, and a closed
-    way has its start node at both 0 and its full length, so the ends alone read as no progress. Each sample's
-    nearest point of the way is a step from the one before. A step that leaps most of the way round a closed way went
-    across its start node, and one longer than two samples that close together can be apart went between two
-    branches of a way that touches itself (a cul-de-sac's stem and bulb); neither counts.
+    Where the two ends of a stretch of ``street`` fall along ``way``, in metres from the way's start.
+
+    The ends themselves are the one place the way's nearest point is ambiguous: a loop street starts and ends on the
+    node where a cul-de-sac's bulb meets its stem, a way the street was cut from passes twice, and a closed way has its
+    start node at both 0 and its full length. So the samples strictly inside the stretch anchor it, and the ends are
+    read off the nearest inside sample by the distance to them along the street. Which way the street runs the way is
+    the sign of the summed steps between samples, with a step that crosses a closed way's start node unwrapped and
+    one that leaps between two branches of a way left out; on a closed way the end is unwrapped past the start node
+    when the stretch ran across it.
 
     Returns:
-        ``(start_m, end_m)``: ``end_m`` is past ``start_m`` when the street runs the way's drawn direction, and lies
-        beyond the way's length, or before 0, when the stretch runs across a closed way's start node.
+        ``(start_m, end_m)``: ``end_m`` is past ``start_m`` when the street runs the way's drawn direction. Either can
+        lie a little outside ``[0, way.length]`` (an overhang at a way's end), or well outside it on a closed way the
+        stretch runs across the start node of.
     """
     inside = positions[(positions > street_from_m) & (positions < street_to_m)]
     stretch = np.concatenate([[street_from_m], inside, [street_to_m]])
     located = shapely.line_locate_point(way, shapely.line_interpolate_point(street, stretch))
+    way_length = way.length
     steps = np.diff(located)
     if way.is_closed:
-        steps -= np.round(steps / way.length) * way.length
+        steps -= np.round(steps / way_length) * way_length
     longest_leap = np.diff(stretch).max() + 2 * tol_m
-    return float(located[0]), float(located[0] + steps[np.abs(steps) <= longest_leap].sum())
+    progress = steps[np.abs(steps) <= longest_leap].sum()
+    if inside.size == 0 or progress == 0:
+        return float(located[0]), float(located[0] + progress)
+    direction = 1.0 if progress > 0 else -1.0
+    start_m, end_m = located[1], located[-2]
+    if way.is_closed and direction * (end_m - start_m) < 0:
+        end_m += direction * way_length
+    start_m -= direction * (stretch[1] - stretch[0])
+    end_m += direction * (stretch[-1] - stretch[-2])
+    return float(start_m), float(end_m)
 
 
 def snap_fraction(frac):
@@ -219,8 +239,7 @@ def locate_on_way(street, way, positions, street_from_m, street_to_m, tol_m=LATE
     """
     start_m, end_m = along_way(street, way, positions, street_from_m, street_to_m, tol_m)
     way_length = way.length
-    pieces = [(street_from_m, street_to_m, min(start_m, end_m), max(start_m, end_m))]
-    if end_m > way_length or end_m < 0:
+    if way.is_closed and (end_m > way_length or end_m < 0):
         # The way position runs past its end (or back past its start) at a point of the stretch found by sharing it
         # out evenly, which holds to within the sampling step.
         crossed_at = way_length if end_m > way_length else 0.0
@@ -228,6 +247,10 @@ def locate_on_way(street, way, positions, street_from_m, street_to_m, tol_m=LATE
         wrapped = end_m - way_length if end_m > way_length else end_m + way_length
         pieces = [(street_from_m, split_m, min(start_m, crossed_at), max(start_m, crossed_at)),
                   (split_m, street_to_m, min(wrapped, way_length - crossed_at), max(wrapped, way_length - crossed_at))]
+    else:
+        # An end past the way's end is the overhang the run trimming allows.
+        start_m, end_m = np.clip([start_m, end_m], 0.0, way_length)
+        pieces = [(street_from_m, street_to_m, min(start_m, end_m), max(start_m, end_m))]
     located = []
     for piece_from, piece_to, way_from_m, way_to_m in pieces:
         way_from, way_to = snap_fraction(way_from_m / way_length), snap_fraction(way_to_m / way_length)
@@ -270,13 +293,15 @@ def match_street(street, ways, hint_ids=(), tol_m=LATERAL_TOL_M, min_run_m=MIN_R
     street_length = street.length
     candidates = []
     for way_id, way in ways.items():
-        for street_from_m, street_to_m, same_direction in candidate_runs(street, way, positions, tol_m, min_run_m):
-            candidates.append((way_id not in hint_ids, -(street_to_m - street_from_m), way_id, street_from_m,
-                               street_to_m, same_direction))
-    # The way the street was built from first, then the longest run, so a parallel way only gets what is left.
+        for street_from_m, street_to_m, same_direction, distance_m in candidate_runs(street, way, positions, tol_m,
+                                                                                     min_run_m):
+            candidates.append((way_id not in hint_ids, round(distance_m), -(street_to_m - street_from_m), way_id,
+                               street_from_m, street_to_m, same_direction))
+    # The way the street was built from first, then the closest to the metre (a sidewalk drawn beside the road is
+    # metres off; the way the street was cut from is not), then the longest run; a parallel way gets what is left.
     candidates.sort()
     taken, links = [], []
-    for _, _, way_id, street_from_m, street_to_m, same_direction in candidates:
+    for _, _, _, way_id, street_from_m, street_to_m, same_direction in candidates:
         free = _subtract((street_from_m, street_to_m), taken)
         if not free:
             continue

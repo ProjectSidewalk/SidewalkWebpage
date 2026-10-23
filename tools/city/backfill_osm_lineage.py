@@ -96,9 +96,8 @@ def tiles_for(lines, buffer_m, tile_km2=300.0, cell_m=1000.0):
     The streets are laid on a grid of ``cell_m`` squares, and the occupied squares are grouped by a coarser grid of
     ``tile_km2``, so a city that is really a few towns far apart (a validation study, a county) fetches the towns and
     not the countryside between them, and a big city becomes many small requests a busy server still admits rather
-    than a few huge ones. Each group goes to the server as its convex hull, since osmnx sends a hull anyway (and hulls
-    the whole input first when it is over 2,500 km², which is why one tight polygon per city would not have helped),
-    widened by ``buffer_m`` so a way just outside a cell still comes back.
+    than a few huge ones. Each group goes to the server as its convex hull, since osmnx sends a hull anyway, widened
+    by ``buffer_m`` so a way just outside a cell still comes back.
 
     Args:
         lines:    Shapely LineStrings in lon/lat.
@@ -177,6 +176,17 @@ def write_csv(path, fields, rows):
         writer.writerows(rows)
 
 
+def tile_area(text):
+    """An argparse type: a tile area in km², from 1 to the 2,500 above which osmnx subdivides a request itself."""
+    try:
+        value = float(text)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f'not a number: {text!r}') from None
+    if not 1 <= value <= 2500:
+        raise argparse.ArgumentTypeError(f'--tile-km2 must be between 1 and 2500, not {text}')
+    return value
+
+
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.split('\n\n')[0],
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -184,8 +194,9 @@ def parse_args(argv=None):
                         help='The db/onboarding/<city-id> dir holding osm_lineage_input.csv (e.g. seattle-wa).')
     parser.add_argument('--fetch-buffer-m', type=float, default=100.0,
                         help='How far beyond the streets to fetch ways, in metres (default 100).')
-    parser.add_argument('--tile-km2', type=float, default=300.0,
-                        help='The ground one Overpass request covers at most, in km² (default 300).')
+    parser.add_argument('--tile-km2', type=tile_area, default=300.0,
+                        help='The ground one Overpass request covers at most, in km² (default 300; 1 to 2,500, since '
+                             'osmnx splits a larger area into several requests of its own).')
     parser.add_argument('--request-timeout-s', type=int, default=60,
                         help='The server time each request declares and is allowed, in seconds (default 60; raise '
                              'it for a city whose tiles are dense).')
@@ -250,9 +261,15 @@ def main(argv=None, fetch=fetch_ways, probe=wait_until_answering):
     lineages = compute_lineage(((street_edge_id, geom, hints) for street_edge_id, _, hints, geom in streets),
                                dict(zip(ways['osm_way_id'], ways.geometry)))
     counts = lineage_summary(lineages)
-    write_csv(city_dir / OUTPUT_NAME, OUTPUT_FIELDS, lineage_output(streets, lineages))
     review = review_output(streets, lineages)
     write_csv(city_dir / REVIEW_NAME, REVIEW_FIELDS, review)
+    # No city of ours matches that badly; this is an instance without the region, or the wrong city.
+    if counts['unmatched'] * 2 > len(streets):
+        logger.error('%d of %d streets matched nothing, which no city of ours does: an Overpass instance without this '
+                     'region, or the wrong city? Nothing was written for %s but the review file %s.',
+                     counts['unmatched'], len(streets), args.city_id, city_dir / REVIEW_NAME)
+        return 1
+    write_csv(city_dir / OUTPUT_NAME, OUTPUT_FIELDS, lineage_output(streets, lineages))
     logger.info('Matched %d streets along their whole length, %d in part, %d not at all. Wrote %s; the %d to review '
                 'are in %s. Next: make import-osm-lineage', counts['matched'], counts['partial'], counts['unmatched'],
                 city_dir / OUTPUT_NAME, len(review), city_dir / REVIEW_NAME)

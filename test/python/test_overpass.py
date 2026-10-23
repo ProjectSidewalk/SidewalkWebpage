@@ -18,6 +18,17 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / 'tools' /
 import overpass as op  # noqa: E402
 
 
+@pytest.fixture(autouse=True)
+def _osmnx_logger_as_found():
+    """configure() installs a handler on osmnx's logger and stops it propagating; the next test gets it as it was."""
+    osmnx_logger = logging.getLogger('OSMnx')
+    handlers, level, propagate = list(osmnx_logger.handlers), osmnx_logger.level, osmnx_logger.propagate
+    yield
+    osmnx_logger.handlers[:] = handlers
+    osmnx_logger.setLevel(level)
+    osmnx_logger.propagate = propagate
+
+
 class FakeClock:
     """A clock that only moves when something sleeps on it, so a schedule is checked exactly, not timed."""
 
