@@ -132,6 +132,10 @@ The dev DB is small enough that any SQL looks fast; prod tables are not (`label`
 `label_history` run to hundreds of thousands of rows per schema, `user_stat` to ~1M), and an evolution applies to
 **every** city schema in sequence on deploy, so a slow statement multiplies by 54. Concretely:
 
+- **A plpgsql statement keeps the plan it got the first time it ran in the session.** A trigger function reading
+  transition tables is planned for however many rows the first firing carried, and a plan made for an empty
+  statement (a nested loop) is then reused on a 300k-row bulk write, quadratically (422.sql: the lineage import's
+  re-rank took 5 hours on Chicago). Run such a join through `EXECUTE`, which plans every time.
 - **Prefer joins to correlated subqueries.** A scalar subquery in a SELECT list or a per-row `IN (SELECT …)` /
   `NOT IN (SELECT …)` re-executes per outer row; the same lookup as a `JOIN`/`LEFT JOIN` (or `EXISTS`/`NOT EXISTS`,
   which the planner turns into semi/anti-joins) lets the planner pick a hash join and stays fast when the outer set

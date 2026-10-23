@@ -90,8 +90,8 @@ def test_main_matches_the_export_and_writes_both_files(tmp_path, monkeypatch, ca
     write_input(city_dir / bl.INPUT_NAME, [input_row(1, way, '10'), input_row(2, lonlat((0, 300), (100, 300)), '10')])
     seen = {}
 
-    def fetch(polygons, service_roads, **kwargs):
-        seen['polygons'], seen['service_roads'], seen['kwargs'] = polygons, service_roads, kwargs
+    def fetch(polygons, way_types, **kwargs):
+        seen['polygons'], seen['way_types'], seen['kwargs'] = polygons, way_types, kwargs
         return gpd.GeoDataFrame({'osm_way_id': [10], 'highway': ['residential']}, geometry=[way], crs='EPSG:4326')
 
     def probe(policy, url):
@@ -100,7 +100,7 @@ def test_main_matches_the_export_and_writes_both_files(tmp_path, monkeypatch, ca
     with caplog.at_level(logging.INFO):
         assert bl.main(['--city-id', 'testville', '--request-timeout-s', '90', '--pause-s', '3', '--overpass-url',
                         'https://x/api'], fetch=fetch, probe=probe) == 0
-    assert seen['service_roads'] == 'all' and len(seen['polygons']) == 1 and seen['polygons'][0].contains(way)
+    assert seen['way_types'] == 'any' and len(seen['polygons']) == 1 and seen['polygons'][0].contains(way)
     assert seen['kwargs'] == {'request_timeout_s': 90, 'memory_mb': 256, 'pause_s': 3.0, 'policy': seen['probed'],
                               'one_request_each': True, 'overpass_url': 'https://x/api'}
     assert seen['probe_url'] == 'https://x/api'
@@ -152,7 +152,7 @@ def test_main_exits_75_and_writes_nothing_when_overpass_will_not_answer(tmp_path
     assert any('Nothing was written for testville' in r.message for r in caplog.records)
     assert not (city_dir / bl.OUTPUT_NAME).exists()
 
-    def fetch(polygons, service_roads, **kwargs):
+    def fetch(polygons, way_types, **kwargs):
         raise bl.OverpassUnavailable('request 1/1: still not answering')
     assert bl.main(['--city-id', 'testville'], fetch=fetch, probe=lambda policy, url: None) == 75
 

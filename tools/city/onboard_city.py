@@ -113,6 +113,7 @@ import geopandas as gpd
 import pandas as pd
 import requests
 import shapely
+import shapely.errors
 from pyproj import Geod
 from shapely.geometry import LineString, MultiPolygon, Point, Polygon
 from shapely.ops import linemerge, substring
@@ -125,6 +126,26 @@ from setup_new_city import staging_fingerprint
 logger = logging.getLogger(__name__)
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+
+
+def tolerate_broken_relations(ox):
+    """
+    Makes osmnx drop a relation it cannot build instead of failing the whole tile. A mirror caught mid-replication
+    can send a way without one of its nodes; osmnx logs that way and goes on, but a relation listing it (a pedestrian
+    area, a route) then dies in shapely on the empty line. Nothing here reads relations: streets are built from ways.
+    """
+    build = ox.features._build_relation_geometry
+    if getattr(build, 'tolerant', False):
+        return
+
+    def tolerant(members, way_geoms):
+        try:
+            return build(members, way_geoms)
+        except (shapely.errors.ShapelyError, ValueError) as exc:
+            logger.warning('osmnx could not build a relation, dropped: %s', exc)
+            return Polygon()
+    tolerant.tolerant = True
+    ox.features._build_relation_geometry = tolerant
 
 
 def _osmnx(request_timeout_s=180, memory_mb=None, overpass_url=OVERPASS_URL):
@@ -140,6 +161,7 @@ def _osmnx(request_timeout_s=180, memory_mb=None, overpass_url=OVERPASS_URL):
     """
     import osmnx as ox
     configure(ox, REPO_ROOT / 'db' / 'onboarding' / 'osmnx-cache', request_timeout_s, memory_mb, url=overpass_url)
+    tolerate_broken_relations(ox)
     # osmnx keeps bridge and tunnel on every edge by default but drops covered; is_structure needs all three.
     tags = list(getattr(ox.settings, 'useful_tags_way', []))
     ox.settings.useful_tags_way = tags + [tag for tag in STRUCTURE_TAGS if tag not in tags]
@@ -1256,7 +1278,7 @@ def fetch_streets(boundary_poly, include_alleys, fetch_buffer_m, policy=RetryPol
     return edges[['u', 'v', 'osm_ids', 'highway', 'is_structure', 'geometry']]
 
 
-def fetch_ways(polygons, service_roads, request_timeout_s=180, memory_mb=None, pause_s=7.0, policy=RetryPolicy(),
+def fetch_ways(polygons, way_types, request_timeout_s=180, memory_mb=None, pause_s=7.0, policy=RetryPolicy(),
                one_request_each=False, overpass_url=OVERPASS_URL, **retry_kwargs):
     """
     Fetches the OSM ways the streets are cut from, whole and in their drawn direction, for :func:`street_lineage`.
@@ -1267,9 +1289,10 @@ def fetch_ways(polygons, service_roads, request_timeout_s=180, memory_mb=None, p
 
     Args:
         polygons:          Shapely (Multi)Polygons in lon/lat, one request each; a way in two of them comes back once.
-        service_roads:     Which ``highway=service`` ways to keep beside the street types: ``'none'``, ``'alleys'`` (a
-                           build auditing alleys) or ``'all'`` (the backfill: a live city's streets may have been built
-                           from any kind, and OSM retags roads as service after the fact).
+        way_types:         ``'streets'`` for the build's :data:`DEFAULT_WAY_TYPES`, ``'alleys'`` for those plus
+                           ``service=alley`` (a build auditing alleys), or ``'any'`` for every ``highway`` way (the
+                           backfill: a live city may have been built from footways, ramps or tracks too, and OSM
+                           retags roads after the fact).
         request_timeout_s: The server time each request declares (see :func:`_osmnx`).
         memory_mb:         The server memory each request declares.
         pause_s:           The rest between two requests the server served.
@@ -1284,13 +1307,13 @@ def fetch_ways(polygons, service_roads, request_timeout_s=180, memory_mb=None, p
     Raises:
         overpass.OverpassUnavailable: when a request is refused for the whole retry window.
         RuntimeError: when the server keeps cutting a request short with the limits doubled twice.
-        ValueError: when ``service_roads`` is none of those three.
+        ValueError: when ``way_types`` is none of those three.
     """
-    if service_roads not in ('none', 'alleys', 'all'):
-        raise ValueError(f'service_roads must be none, alleys or all, not {service_roads!r}')
+    if way_types not in ('streets', 'alleys', 'any'):
+        raise ValueError(f'way_types must be streets, alleys or any, not {way_types!r}')
     ox = _osmnx(request_timeout_s, memory_mb, overpass_url)
     watch = remark_watch(ox)
-    highways = list(DEFAULT_WAY_TYPES) + (['service'] if service_roads != 'none' else [])
+    highways = True if way_types == 'any' else list(DEFAULT_WAY_TYPES) + (['service'] if way_types == 'alleys' else [])
     limits = [request_timeout_s, memory_mb]
 
     def cached():
@@ -1332,7 +1355,7 @@ def fetch_ways(polygons, service_roads, request_timeout_s=180, memory_mb=None, p
 
     ways, highway = {}, {}
     for features in fetch_each(polygons, fetch_one, pause_s, policy, **retry_kwargs):
-        if service_roads == 'alleys' and 'highway' in features.columns:
+        if way_types == 'alleys' and 'highway' in features.columns:
             # Without the service column no way in the tile says what kind of service road it is, so none is an alley.
             is_alley = features['service'] == 'alley' if 'service' in features.columns else False
             features = features[(features['highway'] != 'service') | is_alley]
@@ -2352,7 +2375,7 @@ def main(argv=None):
 
     streets = fetch_streets(boundary_poly, args.include_alleys, args.fetch_buffer_m)
     logger.info('OSM street edges fetched: %d', len(streets))
-    ways = fetch_ways([fetch_area(boundary_poly, args.fetch_buffer_m)], 'alleys' if args.include_alleys else 'none')
+    ways = fetch_ways([fetch_area(boundary_poly, args.fetch_buffer_m)], 'alleys' if args.include_alleys else 'streets')
     logger.info('OSM ways fetched: %d', len(ways))
     streets, n_tier1_merged = merge_tiny_same_way(streets, args.merge_tiny_m)
     logger.info('Merged %d pieces < %g m into a touching piece of the same OSM way (#4717 tier 1); %d edges remain',

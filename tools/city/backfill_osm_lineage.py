@@ -233,7 +233,7 @@ def main(argv=None, fetch=fetch_ways, probe=wait_until_answering):
     policy = RetryPolicy()
     try:
         probe(policy, url=args.overpass_url)
-        ways = fetch(tiling.polygons, 'all', request_timeout_s=args.request_timeout_s,
+        ways = fetch(tiling.polygons, 'any', request_timeout_s=args.request_timeout_s,
                      memory_mb=args.request_memory_mb, pause_s=args.pause_s, policy=policy, one_request_each=True,
                      overpass_url=args.overpass_url)
     except OverpassUnavailable as exc:

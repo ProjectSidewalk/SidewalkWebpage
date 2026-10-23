@@ -22,6 +22,7 @@ import requests
 gpd = pytest.importorskip('geopandas', reason='the geo stack (requirements-offline-tools.txt) needs Python >= 3.12')
 
 import shapely  # noqa: E402
+import shapely.errors  # noqa: E402
 from shapely.geometry import LineString, MultiPolygon, Point, Polygon, mapping  # noqa: E402
 from shapely.ops import substring  # noqa: E402
 
@@ -598,7 +599,9 @@ def _fake_osmnx(monkeypatch, **attrs):
     Installs a stand-in for the lazily-imported osmnx module (`settings` so _osmnx can point the cache and extend the
     way tags; the default list carries bridge and tunnel but not covered, as the real one does).
     """
-    fake = SimpleNamespace(settings=SimpleNamespace(useful_tags_way=['highway', 'bridge', 'tunnel']), **attrs)
+    fake = SimpleNamespace(settings=SimpleNamespace(useful_tags_way=['highway', 'bridge', 'tunnel']),
+                           features=SimpleNamespace(_build_relation_geometry=lambda members, way_geoms: 'built'),
+                           **attrs)
     monkeypatch.setitem(sys.modules, 'osmnx', fake)
     return fake
 
@@ -618,6 +621,23 @@ def test_osmnx_settings_add_the_covered_tag_once(monkeypatch):
     assert fake.settings.overpass_settings == '[out:json][timeout:60]{maxsize}'
     assert fake.settings.requests_timeout == 60 + op.CLIENT_SLACK_S
     assert fake.settings.overpass_memory == 256 * 1024 * 1024
+
+
+def test_osmnx_drops_a_relation_it_cannot_build_instead_of_failing_the_tile(monkeypatch, caplog):
+    fake = _fake_osmnx(monkeypatch)
+    oc._osmnx()
+    assert fake.features._build_relation_geometry([], {}) == 'built'
+
+    def broken(members, way_geoms):
+        raise shapely.errors.EmptyPartError("Can't create MultiLineString with empty component")
+    fake.features._build_relation_geometry = broken
+    oc.tolerate_broken_relations(fake)
+    with caplog.at_level(logging.WARNING):
+        assert fake.features._build_relation_geometry([], {}).is_empty
+    assert 'dropped' in caplog.text
+    wrapped = fake.features._build_relation_geometry
+    oc.tolerate_broken_relations(fake)  # Once is enough.
+    assert fake.features._build_relation_geometry is wrapped
 
 
 def test_is_structure_tag_reads_the_three_tags_like_the_export():
@@ -1022,7 +1042,7 @@ def test_street_lineage_draws_each_way_s_stretch_of_the_street():
     assert lineage['street_from_frac'].isna().all()
 
 
-def test_fetch_ways_keeps_whole_linestring_ways_and_the_service_roads_asked_for(monkeypatch):
+def test_fetch_ways_keeps_whole_linestring_ways_and_the_way_types_asked_for(monkeypatch):
     seen = {}
 
     def features_from_polygon(poly, tags):
@@ -1039,13 +1059,13 @@ def test_fetch_ways_keeps_whole_linestring_ways_and_the_service_roads_asked_for(
     assert list(ways['highway']) == ['residential', 'service']
     assert seen['tags'] == {'highway': list(oc.DEFAULT_WAY_TYPES) + ['service']}
     assert seen['poly'].contains(_CITY)
-    ways = oc.fetch_ways([_CITY], 'none')
+    ways = oc.fetch_ways([_CITY], 'streets')
     assert seen['tags'] == {'highway': list(oc.DEFAULT_WAY_TYPES)}
     assert list(ways['osm_way_id']) == [1, 2, 3]
-    ways = oc.fetch_ways([_CITY], 'all')
-    assert seen['tags'] == {'highway': list(oc.DEFAULT_WAY_TYPES) + ['service']}
+    ways = oc.fetch_ways([_CITY], 'any')
+    assert seen['tags'] == {'highway': True}
     assert list(ways['osm_way_id']) == [1, 2, 3]
-    with pytest.raises(ValueError, match='none, alleys or all'):
+    with pytest.raises(ValueError, match='streets, alleys or any'):
         oc.fetch_ways([_CITY], 'driveways')
 
 
@@ -1084,14 +1104,14 @@ def test_fetch_ways_merges_the_tiles_once_each_paces_them_and_takes_an_empty_til
     monkeypatch.setattr(oc, 'configure',
                         lambda ox, root, timeout, memory, url: setattr(ox.settings, 'cache_folder', str(cache)))
     sleeps = []
-    ways = oc.fetch_ways(['a', 'b', 'c', 'a'], 'none', pause_s=5, sleep=sleeps.append)
+    ways = oc.fetch_ways(['a', 'b', 'c', 'a'], 'streets', pause_s=5, sleep=sleeps.append)
     assert list(ways['osm_way_id']) == [1, 2]
     assert sleeps == [5, 5]  # After a and c; not after the cache hit, not after the last.
     # A reply osmnx could not read is not an empty area: it is raised, not swallowed.
     with pytest.raises(InsufficientResponseError, match='half a page'):
-        oc.fetch_ways(['garbled'], 'none', sleep=sleeps.append)
+        oc.fetch_ways(['garbled'], 'streets', sleep=sleeps.append)
     with pytest.raises(KeyError):
-        oc.fetch_ways(['missing'], 'none', sleep=sleeps.append)
+        oc.fetch_ways(['missing'], 'streets', sleep=sleeps.append)
     assert fake.settings.cache_folder == str(cache)
 
 
@@ -1114,7 +1134,7 @@ def test_fetch_ways_asks_again_with_twice_the_limits_when_the_server_cuts_a_requ
         return gpd.GeoDataFrame(geometry=[], crs='EPSG:4326')
     fake = _fake_osmnx(monkeypatch, features_from_polygon=features_from_polygon)
     with caplog.at_level(logging.WARNING):
-        ways = oc.fetch_ways(['a'], 'none', request_timeout_s=60, memory_mb=256)
+        ways = oc.fetch_ways(['a'], 'streets', request_timeout_s=60, memory_mb=256)
     assert list(ways['osm_way_id']) == [1]
     assert limits == [('[out:json][timeout:60]{maxsize}', 256 << 20), ('[out:json][timeout:120]{maxsize}', 512 << 20),
                       ('[out:json][timeout:240]{maxsize}', 1024 << 20)]
@@ -1122,7 +1142,7 @@ def test_fetch_ways_asks_again_with_twice_the_limits_when_the_server_cuts_a_requ
     # Without a declared memory there is nothing to double; after three cut-short answers the city fails.
     answers[:] = ['timed out'] * 3
     with pytest.raises(RuntimeError, match='three times running'):
-        oc.fetch_ways(['a'], 'none', request_timeout_s=60)
+        oc.fetch_ways(['a'], 'streets', request_timeout_s=60)
     assert fake.settings.overpass_memory is None and fake.settings.requests_timeout == 480 + op.CLIENT_SLACK_S
 
 
@@ -1140,7 +1160,7 @@ def test_fetch_ways_gives_a_single_request_a_deadline_and_the_retry_waits_it_out
     monkeypatch.setattr(oc, 'CLIENT_SLACK_S', 0.01)
     monkeypatch.setattr(op, 'CLIENT_SLACK_S', 0.01)
     sleeps = []
-    ways = oc.fetch_ways(['a'], 'none', request_timeout_s=0.01, one_request_each=True,
+    ways = oc.fetch_ways(['a'], 'streets', request_timeout_s=0.01, one_request_each=True,
                          sleep=sleeps.append, rng=lambda: 0.0)
     assert list(ways['osm_way_id']) == [1] and len(calls) == 2 and sleeps == [30]
 
@@ -1440,7 +1460,7 @@ def _patch_pipeline(monkeypatch, hoods, tracts=None):
                         lambda poly: tracts if tracts is not None else _empty_regions())
     monkeypatch.setattr(oc, 'fetch_streets', lambda poly, alleys, buffer_m: _streets_gdf([
         [(0.002, 0.005), (0.008, 0.005)], [(0.005, 0.002), (0.015, 0.002)]]))
-    monkeypatch.setattr(oc, 'fetch_ways', lambda polygons, service_roads: _ways_gdf([
+    monkeypatch.setattr(oc, 'fetch_ways', lambda polygons, way_types: _ways_gdf([
         [(0.002, 0.005), (0.008, 0.005)], [(0.005, 0.002), (0.015, 0.002)]]))
 
 
