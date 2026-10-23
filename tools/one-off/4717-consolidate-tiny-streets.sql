@@ -263,7 +263,8 @@ BEGIN
     FROM queue JOIN edge ON edge.id = queue.id
     WHERE queue.position = next_position AND edge.pending;
     IF NOT FOUND THEN
-      EXIT WHEN next_position > (SELECT max(position) FROM queue);
+      -- An empty queue has no max, and a NULL here would never stop the loop.
+      EXIT WHEN next_position > coalesce((SELECT max(position) FROM queue), 0);
       CONTINUE; -- Joined onto something, or settled, since it was queued.
     END IF;
 
