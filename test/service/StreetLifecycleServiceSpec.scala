@@ -123,8 +123,11 @@ class StreetLifecycleServiceSpec extends SidewalkSpec with BeforeAndAfterAll wit
     "leave out transitions older than the window" in {
       assume(streetEdgeId.isDefined, "no streets in the connected database to attach a status change to")
       cleanUp()
+      // Compared with what the window held before the seed, since a real database can have recent changes of its own.
+      val since  = OffsetDateTime.now.minusWeeks(4)
+      val before = run(statusChangeTable.transitionsByWeek(since))
       seedChange(StreetEdgeStatus.Open, StreetEdgeStatus.Closed, OffsetDateTime.now.minusWeeks(20))
-      run(statusChangeTable.transitionsByWeek(OffsetDateTime.now.minusWeeks(4))) mustBe empty
+      run(statusChangeTable.transitionsByWeek(since)) mustBe before
     }
   }
 
