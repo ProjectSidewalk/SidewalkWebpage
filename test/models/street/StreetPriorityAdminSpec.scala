@@ -278,8 +278,13 @@ class StreetPriorityAdminSpec extends SidewalkSpec with GuiceOneAppPerSuite with
       assume(someRoutableStreet.isDefined)
       val rowlessStreet = someRoutableStreet.get
 
-      val (firstRun, rerun, stored, formulaParams) = runRolledBack(
+      val (rowlessBefore, firstRun, rerun, stored, formulaParams) = runRolledBack(
         for {
+          rowlessBefore <- streetEdges
+            .filter(_.status === StreetEdgeStatus.Open)
+            .filterNot(edge => streetEdgePriorities.filter(_.streetEdgeId === edge.streetEdgeId).exists)
+            .length
+            .result
           _ <- streetEdgePriorities.filter(_.streetEdgeId === rowlessStreet).delete
           // Stale every row first so the first run has to write all of them.
           _      <- streetEdgePriorities.map(_.priority).update(-1.0)
@@ -287,11 +292,11 @@ class StreetPriorityAdminSpec extends SidewalkSpec with GuiceOneAppPerSuite with
           rerun  <- streetEdgePriorityTable.recalculateStreetPriority
           rows   <- streetEdgePriorities.map(row => (row.streetEdgeId, row.priority)).result
           params <- streetEdgePriorityTable.selectGoodBadUserCompletionCountPriority
-        } yield (first, rerun, rows.toMap, params)
+        } yield (rowlessBefore, first, rerun, rows.toMap, params)
       )
 
       firstRun.streetsChanged mustBe stored.count { case (_, priority) => priority != -1.0 }
-      firstRun.streetsWithoutRow mustBe 1
+      firstRun.streetsWithoutRow mustBe rowlessBefore + 1
       rerun.streetsChanged mustBe 0
       val mismatches = formulaParams
         .filter(param => stored.contains(param.streetEdgeId))
