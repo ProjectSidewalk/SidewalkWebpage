@@ -3,6 +3,7 @@
  * ones it has left can be shown. Creates an overlay saying which, and disables controls and shortcuts.
  */
 
+import i18next from 'i18next';
 import { util } from '../../common/utilities.js';
 /** @typedef {import('../../common/Gate.js').Gate} Gate */
 /** @typedef {import('../Tracker.js').Tracker} Tracker */

@@ -3,6 +3,7 @@
  * @typedef {{kind: 'score', from: number, to: number}} AccessScoreScoreBrush
  */
 
+import i18next from 'i18next';
 import { ScoreRamp } from '../common/scoreRamp.js';
 import { AccessScoreChart } from './AccessScoreChart.js';
 import { AccessScoreHistogram } from './AccessScoreHistogram.js';

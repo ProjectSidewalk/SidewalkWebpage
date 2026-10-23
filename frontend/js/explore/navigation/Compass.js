@@ -2,6 +2,7 @@
  * Compass module. Shows the user which way to turn/move to follow the assigned route.
  */
 
+import i18next from 'i18next';
 import { Gate } from '../../common/Gate.js';
 import { util } from '../../common/utilities.js';
 import '../../common/utilitiesMath.js';

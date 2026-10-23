@@ -2,6 +2,7 @@
  * Displays the mission complete screen at the end of a validation mission.
  */
 
+import i18next from 'i18next';
 import { BadgeAchievements } from '../../common/BadgeAchievements.js';
 import { Confetti } from '../../common/Confetti.js';
 import { MissionStartTutorial } from '../../common/MissionStartTutorial.js';

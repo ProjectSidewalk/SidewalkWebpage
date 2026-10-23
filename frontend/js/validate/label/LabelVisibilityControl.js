@@ -2,6 +2,7 @@
  * Handles the hiding and showing of labels in the panorama, and owns the label card that hovering one opens.
  */
 
+import i18next from 'i18next';
 import { LabelVisibilityToggle } from '../../common/LabelVisibilityToggle.js';
 import { Infra3dViewer } from '../../common/pano-viewer/Infra3dViewer.js';
 import { util } from '../../common/utilities.js';

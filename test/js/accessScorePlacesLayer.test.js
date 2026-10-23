@@ -61,7 +61,11 @@ describe('AccessScorePlacesLayer', () => {
   const scoreRamp = { at: vi.fn((score, { mode } = {}) => RAMP[mode ?? 'light'][score < 0.5 ? 0 : 1]) };
 
   beforeAll(async () => {
-    window.mapboxgl = { Popup: class { setLngLat() { return this; } setHTML() { return this; } addTo() { return this; } remove() {} } };
+    mockModule('frontend/js/common/mapboxgl.js', () => ({
+      default: {
+        Popup: class { setLngLat() { return this; } setHTML() { return this; } addTo() { return this; } remove() {} },
+      },
+    }));
     // The tokens the discs read: the marker ink, its halo, and the two unaudited-street greys.
     const tokens = {
       '--color-place-marker': '#121119', '--color-place-marker-halo': '#ffffff', '--color-neutral-white': '#ffffff',

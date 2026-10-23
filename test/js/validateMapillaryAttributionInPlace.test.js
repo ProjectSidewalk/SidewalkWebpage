@@ -14,6 +14,8 @@
 import { loadModules, mockModule } from './loader.js';
 import { fakePanoOverlays, fakeTracker } from './fakes.js';
 
+mockModule('i18next', () => ({ default: {language: 'en'} }));
+
 /** The viewer type IS the MapillaryViewer the manager imports, so every Mapillary-only path in PanoManager runs. */
 let MapillaryViewer;
 mockModule('frontend/js/common/pano-viewer/MapillaryViewer.js', () => ({ MapillaryViewer }));
@@ -42,7 +44,6 @@ describe('Validate leaves Mapillary\'s attribution pill in the SDK\'s DOM (issue
     renderer = document.querySelector('.mapillary-dom-renderer');
     attributionContainer = document.querySelector('.mapillary-attribution-container');
 
-    vi.stubGlobal('i18next', {language: 'en'});
 
     const fakeViewer = {addListener: vi.fn(), resize: vi.fn(), setPov: vi.fn(), getPov: () => ({})};
     MapillaryViewer = class MapillaryViewer {

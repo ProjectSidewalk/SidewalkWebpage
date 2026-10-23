@@ -12,6 +12,11 @@
 import { loadModules, mockModule, useUtil } from './loader.js';
 import { fakeGate, fakeTracker } from './fakes.js';
 
+mockModule('i18next', () => ({ default: {
+  // Echo the key plus any interpolation, so assertions can name what a slot was filled with.
+  t: (key, opts) => (opts ? `${key}|${JSON.stringify(opts)}` : key),
+} }));
+
 /** The two slides MissionStartTutorial hands the briefing for a label type: the right example, then a wrong one. */
 const SLIDES = [
   {
@@ -94,10 +99,6 @@ describe('mobile Validate mission screens', () => {
               </div>
             </div>`;
 
-    window.i18next = {
-      // Echo the key plus any interpolation, so assertions can name what a slot was filled with.
-      t: (key, opts) => (opts ? `${key}|${JSON.stringify(opts)}` : key),
-    };
     useUtil({isMobile: () => isMobile});
     FakeMissionStartTutorial.slidesFor = vi.fn(() => SLIDES);
     // The real one counts missions toward a badge toast; nothing here is about that.

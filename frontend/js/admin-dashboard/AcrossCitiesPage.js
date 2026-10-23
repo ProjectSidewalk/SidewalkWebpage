@@ -13,6 +13,7 @@
  * per-city activity trend. Owner-only; driven entirely from /adminapi/cityScorecards.
  */
 
+import mapboxgl from '../common/mapboxgl.js';
 import { util } from '../common/utilities.js';
 import { AdminShell } from './AdminShell.js';
 import { MiniLineChart } from './MiniLineChart.js';
@@ -215,7 +216,7 @@ export class AcrossCitiesPage {
     this.#setText('hero-countries', this.#num(s.num_countries));
     this.#setText('hero-languages', this.#num(s.num_languages));
     this.#setText('hero-users', this.#num(s.total_users));
-    this.#setText('hero-distance', `${this.#num(Math.round(s.total_km || 0))} km`);
+    this.#setText('hero-distance', util.longDistanceToString(s.total_km));
     this.#setText('hero-labels', this.#num(s.total_labels));
     this.#setText('hero-validations', this.#num(s.total_validations));
     this.#setText('hero-datapoints', this.#num(s.total_datapoints));
@@ -487,7 +488,7 @@ export class AcrossCitiesPage {
   #renderMap(citiesGeo) {
     const host = document.getElementById('ac-cities-map');
     if (!host) return;
-    if (typeof mapboxgl === 'undefined' || !this.#mapboxToken || !citiesGeo || !Array.isArray(citiesGeo.cities)) {
+    if (!this.#mapboxToken || !citiesGeo || !Array.isArray(citiesGeo.cities)) {
       this.#setText('ac-map-status', 'Map unavailable.');
       host.style.display = 'none';
       return;
@@ -994,8 +995,8 @@ export class AcrossCitiesPage {
         <td class="ac-num" title="${this.#num(c.audited_streets)} of ${this.#num(c.total_streets)}">
           ${this.#compact(c.audited_streets)} / ${this.#compact(c.total_streets)}</td>
         <td class="ac-num" title="${this.#num(c.streets_remaining)}"> ${this.#compact(c.streets_remaining)}</td>
-        <td class="ac-num">${this.#km(c.audited_km)} / ${this.#km(c.total_km)}</td>
-        <td class="ac-num">${this.#km(c.km_remaining)}</td>
+        <td class="ac-num">${util.escapeHTML(this.#km(c.audited_km))} / ${util.escapeHTML(this.#km(c.total_km))}</td>
+        <td class="ac-num">${util.escapeHTML(this.#km(c.km_remaining))}</td>
       </tr>`,
     ).join('');
   }
@@ -1883,10 +1884,13 @@ export class AcrossCitiesPage {
     return v.toLocaleString();
   }
 
-  /** Kilometers with one decimal under 100, else whole ("0.4", "12.7", "1,240"). */
-  #km(n) {
-    const v = n ?? 0;
-    return v < 100 ? v.toFixed(1) : Math.round(v).toLocaleString();
+  /**
+   * @param {?number} km - A distance in km.
+   * @returns {string} The bare number in the reader's unit, with one decimal under 100 ("0.4", "12.7", "1,240").
+   */
+  #km(km) {
+    const v = km ?? 0;
+    return util.longDistanceToString(v, util.metersToLongDistance(v * 1000) < 100 ? 1 : 0, false);
   }
 
   /** Percentage with no decimals ("47%"). */

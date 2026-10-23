@@ -3,6 +3,7 @@
  * everyone but the current user, then distance audited by the current user.
  */
 
+import * as turf from '@turf/turf';
 import { ProgressBar } from '../../common/ProgressBar.js';
 import { util } from '../../common/utilities.js';
 /** @typedef {import('../region/RegionModel.js').RegionModel} RegionModel */

@@ -3,7 +3,10 @@
  * controls call the endpoints the server actually exposes.
  */
 
-import { loadModules, mockModule } from './loader.js';
+import { loadModules, mockModule, useUtil } from './loader.js';
+import { metricDistanceUtil } from './fakes.js';
+
+useUtil(metricDistanceUtil);
 
 // Removing a member asks first; the dialog itself is not under test, so it answers yes without a DOM.
 const ConfirmDialog = { confirm: vi.fn(() => Promise.resolve(true)) };

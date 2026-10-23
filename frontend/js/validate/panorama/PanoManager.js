@@ -2,6 +2,7 @@
  * Creates the PanoViewer and manages access to it, tracking metadata and drawing labels as PanoMarkers.
  */
 
+import i18next from 'i18next';
 import { PanoMarker } from '../../common/PanoMarker.js';
 import { aiLabelIndicator } from '../../common/aiLabelIndicator.js';
 import { GsvViewer } from '../../common/pano-viewer/GsvViewer.js';
@@ -177,10 +178,8 @@ export class PanoManager {
     };
     // Every move in Validate is a jump between unrelated panos, so Mapillary's default animated transition only adds
     // frames of the wrong place, turning from the old label's heading (#5582). Explore keeps it: walking between
-    // neighboring panos is what the animation is for. The SDK global only exists on pages that load Mapillary.
-    if (typeof mapillary !== 'undefined' && panoViewerType === MapillaryViewer) {
-      panoOptions.transitionMode = mapillary.TransitionMode.Instantaneous;
-    }
+    // neighboring panos is what the animation is for.
+    if (panoViewerType === MapillaryViewer) panoOptions.instantTransitions = true;
     this.#primaryPaintsDuringLoad = Boolean(panoViewerType.PAINTS_DURING_LOAD);
 
     this.#panoCanvas = document.getElementById('svv-panorama');

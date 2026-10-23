@@ -150,7 +150,9 @@ class BackupWithoutPitchSpec extends SidewalkSpec with GuiceOneAppPerSuite with 
       (contentAsJson(served) \ "width").as[Int] mustBe 8192
 
       run(sqlu"UPDATE pano_data SET camera_heading = 'NaN' WHERE pano_id = $panoId")
-      status(metadata) mustBe NOT_FOUND
+      val refused = metadata
+      status(refused) mustBe NOT_FOUND
+      contentAsString(refused) must include("camera_heading") // The 404 names the column that blocks it (#5183).
     }
   }
 

@@ -11,6 +11,8 @@
 
 import { loadModules, mockModule } from './loader.js';
 
+mockModule('i18next', () => ({ default: { t: (key) => key } }));
+
 let composer;
 let confirmResult;
 
@@ -70,7 +72,6 @@ describe('the dashboard\'s "Your stories" list', () => {
   }
 
   beforeAll(async () => {
-    window.i18next = { t: (key) => key };
     ({ StoriesSection } = await loadModules('frontend/js/user-dashboard/StoriesSection.js'));
   });
 

@@ -8,7 +8,9 @@
  * this was found on had it silenced, which is exactly why the teleports looked unexplained.
  */
 
-import { loadModules, useUtil } from './loader.js';
+import { loadModules, mockModule, useUtil } from './loader.js';
+
+mockModule('i18next', () => ({ default: { t: (key, interpolation) => JSON.stringify({ key, ...interpolation }) } }));
 
 describe('the "we moved you off that street" message', () => {
   let stored;
@@ -42,7 +44,6 @@ describe('the "we moved you off that street" message', () => {
 
     getStreetNameNear = vi.fn(() => Promise.resolve(null));
     useUtil({ misc: { getStreetNameNear } });
-    window.i18next = { t: (key, interpolation) => JSON.stringify({ key, ...interpolation }) };
 
     ({ AlertController, StuckAlert } = await loadModules('frontend/js/explore/alert/AlertController.js',
       'frontend/js/explore/alert/StuckAlert.js'));

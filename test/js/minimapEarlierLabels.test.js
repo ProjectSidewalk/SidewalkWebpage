@@ -9,9 +9,11 @@
  * current again, and that eras are re-derived only when the mission actually changes.
  */
 
-import { loadModules } from './loader.js';
+import { loadModules, mockModule } from './loader.js';
 import { makeRecordingCtx } from './canvasCtxStub.js';
 import { fakeTracker, fakeTaskContainer } from './fakes.js';
+
+mockModule('i18next', () => ({ default: { t: (key, opts) => `${key}|${opts?.labelType ?? ''}` } }));
 
 /** Stands in for a marker made by Minimap.addMarker: keeps what the seam would apply to the element as plain fields. */
 class FakeMarker {
@@ -94,7 +96,6 @@ describe('Label minimap eras (#4945)', () => {
     missionContainer = { getCurrentMission: () => ({ getProperty: () => currentMissionId }), on: vi.fn() };
     tracker = fakeTracker();
     storage = fakeStorage();
-    window.i18next = { t: (key, opts) => `${key}|${opts?.labelType ?? ''}` };
     // The icon raster and hover card are DOM/canvas work outside what these tests exercise.
     Label.renderLabelIcon = () => {};
   });

@@ -1,5 +1,6 @@
 /** Wires Validate together: the one place its modules are built, so every dependency between them is visible. */
 
+import i18next from 'i18next';
 import { BadgeAchievements } from '../common/BadgeAchievements.js';
 import { ImmersiveMode } from '../common/ImmersiveMode.js';
 import { MissionStartTutorial } from '../common/MissionStartTutorial.js';

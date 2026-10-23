@@ -1,5 +1,5 @@
-// Globals that frontend/js/ code uses but tsc can't find a declaration for, such as vendor libraries and values set with
-// `window.x = ...` (#5278). Loaded by jsconfig.json. Anything typed `any` here is unchecked at every use; swap in a
+// Globals that frontend/js/ code uses but tsc can't find a declaration for, such as values set with `window.x = ...`
+// (#5278). Loaded by jsconfig.json. Anything typed `any` here is unchecked at every use; swap in a
 // real type as folders get cleaned up.
 
 // The dashboard pages hand their label popup to the contribution map through window: its click adapter resolves the
@@ -8,61 +8,39 @@ interface Window {
   udLabelPopupReady: Promise<any>;
 }
 
-// Libraries loaded from public/vendor/ by <script> tag that have no type package installed.
-declare const AsyncLock: any;
-declare const bowser: any;
-declare const Chart: any;
-declare const DOMPurify: any;
-declare const FloatingUIDOM: any;
-declare const i18next: any;
-declare const i18nextHttpBackend: any;
-declare const infra3dapi: any;
-declare const mapboxgl: any;
+// mapbox-gl's and GeoJSON's types under the bare names JSDoc uses (`mapboxgl.Map`, `GeoJSON.Feature<GeoJSON.Point>`),
+// so a comment need not spell out an import(). `geojson` is @types/geojson, a devDependency of our own so a library
+// bump can't take it away.
+declare module 'mapbox-gl/dist/mapbox-gl-csp.js' {
+  import mapboxgl from 'mapbox-gl';
+  export default mapboxgl;
+}
 declare namespace mapboxgl {
-  type GeoJSONSource = any;
-  type LngLat = any;
-  type LngLatBounds = any;
-  type LngLatLike = any;
-  type Map = any;
-  type MapMouseEvent = any;
-  type Marker = any;
-  type Popup = any;
+  type ControlPosition = import('mapbox-gl').ControlPosition;
+  type GeoJSONSource = import('mapbox-gl').GeoJSONSource;
+  type LngLat = import('mapbox-gl').LngLat;
+  type LngLatBounds = import('mapbox-gl').LngLatBounds;
+  type LngLatBoundsLike = import('mapbox-gl').LngLatBoundsLike;
+  type LngLatLike = import('mapbox-gl').LngLatLike;
+  type Map = import('mapbox-gl').Map;
+  type MapMouseEvent = import('mapbox-gl').MapMouseEvent;
+  type Marker = import('mapbox-gl').Marker;
+  type NavigationControl = import('mapbox-gl').NavigationControl;
+  type Popup = import('mapbox-gl').Popup;
 }
-declare const maplibregl: any;
-declare namespace maplibregl {
-  type LngLatBounds = any;
-  type Map = any;
-}
-declare const MapboxLanguage: any;
-declare const MapboxSearchBox: any;
-// GraphDataProvider is spelled out because a class extending an `any` base gets a constructor that takes nothing.
-declare const mapillary: { GraphDataProvider: new (options?: object) => any; [name: string]: any };
-declare const pannellum: any;
-declare namespace pannellum {
-  type Viewer = any;
-}
-declare const panzoom: any;
-declare const PhotoSphereViewer: any;
-declare const pmtiles: any;
-declare namespace PhotoSphereViewer {
-  type Viewer = any;
-}
-declare const proj4: any;
-declare const THREE: any;
-declare const TomSelect: any;
-declare const turf: any;
-declare namespace turf {
-  type Feature<G = any> = any;
-  type LineString = any;
-  type Point = any;
-}
-declare const vegaEmbed: any;
-// GeoJSON shapes, named in JSDoc only.
 declare namespace GeoJSON {
-  type Feature<G = any> = any;
-  type FeatureCollection<G = any> = any;
-  type Geometry = any;
-  type LineString = any;
+  type Geometry = import('geojson').Geometry;
+  type GeometryCollection = import('geojson').GeometryCollection;
+  type LineString = import('geojson').LineString;
+  type MultiLineString = import('geojson').MultiLineString;
+  type Point = import('geojson').Point;
+  type Polygon = import('geojson').Polygon;
+  type MultiPolygon = import('geojson').MultiPolygon;
+  type Position = import('geojson').Position;
+  type Feature<G extends Geometry = Geometry, P = import('geojson').GeoJsonProperties> =
+    import('geojson').Feature<G, P>;
+  type FeatureCollection<G extends Geometry = Geometry, P = import('geojson').GeoJsonProperties> =
+    import('geojson').FeatureCollection<G, P>;
 }
 
 // The Network Information API, which only Chromium browsers have, so TypeScript's DOM types leave it out.
@@ -101,8 +79,10 @@ interface Window {
     isPrimaryValidate: boolean;
   }>;
   logWebpageActivity: (activity: string, async?: boolean) => void;
-  // Assigned by Minimap.create from a dynamic import(): MapLibre 6 is an ES module, not a script-tag global.
-  maplibregl: any;
+  // Stamped from PanoDataService.MapillaryMaxPoseTiltDeg; absent in jsdom and the error pages.
+  mapillaryMaxPoseTiltDeg?: number;
+  // Pannellum is a classic script that puts itself here; sdk/pannellum.js reads it back.
+  pannellum: any;
   panoramaxLicenses: Record<string, { name: string; url: string }>;
   psAuthModal: import('../../../frontend/js/common/AuthModal.js').AuthModal;
 }
@@ -127,3 +107,8 @@ interface Element {
 
 // A stylesheet import (`import './x.css'`) only tells Vite which styles the module needs (#5651); it has no exports.
 declare module '*.css';
+// Vite's `?worker&url` import: the URL of the file, bundled as a Web Worker (the minimap's MapLibre worker, #5734).
+declare module '*?worker&url' {
+  const url: string;
+  export default url;
+}

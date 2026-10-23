@@ -9,6 +9,7 @@
  *     hosts can clear stale tag filters.
  * @property {string[]} allLabelTypes - Every rendered label type.
  */
+import i18next from 'i18next';
 import '../../../css/components/filter-sidebar.css';
 
 /**

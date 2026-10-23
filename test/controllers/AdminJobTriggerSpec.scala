@@ -13,6 +13,7 @@ import actor.{
   StreetGradientStalenessActor,
   UserStatActor
 }
+import models.street.StreetPriorityRecalc
 import models.user.Role
 import models.utils.MyPostgresProfile.api.given
 import models.utils.{BackgroundJobRun, BackgroundJobRunTable, JobRunStatus, JobRunTrigger}
@@ -96,6 +97,7 @@ class AdminJobTriggerSpec
   )
 
   private val StalenessResult = StreetGradientStaleness(unsampled = 4641, stale = 4642)
+  private val PriorityRecalc  = StreetPriorityRecalc(streetsChanged = 4660, streetsWithoutRow = 4661)
 
   private val BasemapResult =
     BasemapRefreshResult(skipped = false, Some("basemap-20261015-4643.pmtiles"), Some("20261015"), Some(4644L))
@@ -132,7 +134,7 @@ class AdminJobTriggerSpec
         bind[StreetService].toInstance(
           StubService.answering[StreetService](
             Map(
-              "recalculateStreetPriority"    -> Future.successful(Seq(1, 2)),
+              "recalculateStreetPriority"    -> Future.successful(PriorityRecalc),
               "countStreetGradientStaleness" -> Future.successful(StalenessResult)
             )
           )
@@ -268,7 +270,7 @@ class AdminJobTriggerSpec
       jobRun.status mustBe JobRunStatus.Succeeded
       // This one covers only the recalculation step, not the region_completion rebuild the nightly sequence wraps
       // around it, so it reports a null count rather than a number a reader could mistake for a rebuild that ran.
-      jobRun.details.value mustBe RecalculateStreetPriorityActor.runDetails(None)
+      jobRun.details.value mustBe RecalculateStreetPriorityActor.runDetails(PriorityRecalc, None)
     }
   }
 

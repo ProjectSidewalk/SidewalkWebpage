@@ -11,7 +11,7 @@
  * both conventions produce identical numbers, which is exactly why this went unnoticed.
  */
 
-import { loadModules } from './loader.js';
+import { loadModules, mockModule } from './loader.js';
 
 const CAMERA_PITCH = 8.5;    // degrees; near the top of the real distribution
 const CAMERA_HEADING = 104.9;
@@ -54,7 +54,7 @@ function makeFakePannellum() {
 /** @param {object} [panoMetadataOverrides] Fields to override on the backup metadata, e.g. a null camera_pitch. */
 async function makeViewer(panoMetadataOverrides = {}) {
   const { state, lib } = makeFakePannellum();
-  window.pannellum = lib;
+  mockModule('frontend/js/common/pano-viewer/sdk/pannellum.js', () => ({ pannellum: lib }));
   const { PannellumViewer } = await loadModules('frontend/js/common/pano-viewer/PannellumViewer.js');
   const el = document.createElement('div');
   document.body.appendChild(el);

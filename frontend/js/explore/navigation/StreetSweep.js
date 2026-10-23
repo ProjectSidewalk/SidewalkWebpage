@@ -4,6 +4,8 @@
  * around the search (locks, events) belongs to NavigationService.
  */
 
+import * as turf from '@turf/turf';
+import i18next from 'i18next';
 import { NoImageryError } from '../../common/pano-viewer/NoImageryError.js';
 import { PanoViewer } from '../../common/pano-viewer/PanoViewer.js';
 import { util } from '../../common/utilities.js';
@@ -93,7 +95,7 @@ export class StreetSweep {
   /**
    * Prefetches imagery at every search point on a street, so later moves skip the network. Safe to repeat: the
    * viewer skips points it already fetched.
-   * @param {turf.Feature<turf.LineString>} streetGeometry - The full street.
+   * @param {GeoJSON.Feature<GeoJSON.LineString>} streetGeometry - The full street.
    */
   prefetchAlongStreet(streetGeometry) {
     const totalLength = turf.length(streetGeometry); // km
@@ -150,8 +152,6 @@ export class StreetSweep {
   async #searchStreet(task) {
     // TODO show loading icon. Add when resolving issue #2403.
 
-    const streetEndpoint = turf.point([task.getEndCoordinate().lng, task.getEndCoordinate().lat]);
-
     // Start a fresh stuck set on each street. Carried over, it hides panos near the new street's start and the street
     // gets wrongly reported as having no imagery (#4918). A route that walks a street twice gets one set per pass,
     // or the return leg has nothing left to land on (#5008).
@@ -191,7 +191,7 @@ export class StreetSweep {
         return { found: false, streetLooksEmpty: NoImageryError.allNoImagery(searchFailures) };
       }
       const distIncrement = Math.min(StreetSweep.DIST_INCREMENT, turf.length(remainder));
-      remainder = turf.cleanCoords(turf.lineSliceAlong(remainder, distIncrement, streetEndpoint));
+      remainder = turf.cleanCoords(turf.lineSliceAlong(remainder, distIncrement, Infinity));
       currLoc = { lat: remainder.geometry.coordinates[0][1], lng: remainder.geometry.coordinates[0][0] };
     }
   }
@@ -291,11 +291,10 @@ export class StreetSweep {
    * Where a sweep searches first: the furthest point reached, one step further if the labeler is already there (so
    * the search looks ahead, not around them). Off route, it stays put to bring them back.
    * @param {Task} task - The task whose street is being walked.
-   * @returns {{currLoc: {lat: number, lng: number}, remainder: turf.Feature<turf.LineString>}}
+   * @returns {{currLoc: {lat: number, lng: number}, remainder: GeoJSON.Feature<GeoJSON.LineString>}}
    */
   #computeMoveTarget(task) {
     const startLatLng = turf.point(task.getFurthestPointReached().geometry.coordinates);
-    const streetEndpoint = turf.point([task.getEndCoordinate().lng, task.getEndCoordinate().lat]);
 
     let remainder = task.unwalkedRemainder();
     let currLoc = { lat: remainder.geometry.coordinates[0][1], lng: remainder.geometry.coordinates[0][0] };
@@ -306,7 +305,7 @@ export class StreetSweep {
     );
     if (distFromFurthest <= PanoViewer.SEARCH_RADIUS_M
       && turf.length(remainder, { units: 'kilometers' }) > StreetSweep.DIST_INCREMENT) {
-      remainder = turf.cleanCoords(turf.lineSliceAlong(remainder, StreetSweep.DIST_INCREMENT, streetEndpoint));
+      remainder = turf.cleanCoords(turf.lineSliceAlong(remainder, StreetSweep.DIST_INCREMENT, Infinity));
       currLoc = { lat: remainder.geometry.coordinates[0][1], lng: remainder.geometry.coordinates[0][0] };
     }
     return { currLoc, remainder };

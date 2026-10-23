@@ -8,7 +8,10 @@
  * AI provenance strip that stays out of those empty states (#5359).
  */
 
-import { loadModules, useUtil } from './loader.js';
+import { loadModules, mockModule, useUtil } from './loader.js';
+
+// The real label-type table sets the scales: CurbRamp rated for quality, Obstacle for severity, Occlusion not at all.
+mockModule('i18next', () => ({ default: { t: (key) => key } }));
 
 /**
  * Builds the card markup the way views/components/labelCard.scala.html renders it: the not-rated nudge and the
@@ -49,9 +52,6 @@ describe('LabelCardView', () => {
   let LabelCardView;
 
   beforeEach(async () => {
-    // i18next echoes its key so assertions can name the key they expect. The real label-type table plays the
-    // scales: CurbRamp is rated for quality, Obstacle for severity, Occlusion not at all.
-    window.i18next = { t: (key) => key };
     useUtil();
     ({ LabelCardView } = await loadModules('frontend/js/common/LabelCardView.js'));
   });

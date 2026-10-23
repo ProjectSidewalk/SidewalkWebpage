@@ -22,6 +22,8 @@
 import { loadModules, mockModule, useUtil } from './loader.js';
 import { fakeGate, fakeTracker, fakePanoManager } from './fakes.js';
 
+mockModule('i18next', () => ({ default: { t: (key) => key } }));
+
 // The GsvViewer replies below carry only the fields the sweep reads, not the full set the real PanoData validates.
 mockModule('frontend/js/common/pano-viewer/PanoData.js', () => ({
   PanoData: class {
@@ -243,8 +245,7 @@ describe('Explore, when the imagery search runs out along a street', () => {
       },
     };
 
-    window.turf = turfStub;
-    window.i18next = { t: (key) => key };
+    mockModule('@turf/turf', () => turfStub);
     useUtil({ misc: { reportNoImagery } });
 
     // GsvViewer rides along so the NoImageryError it throws is the one class StreetSweep checks for.

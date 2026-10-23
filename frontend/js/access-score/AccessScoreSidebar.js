@@ -9,6 +9,7 @@
  * @property {string|boolean} [value] - What the change set, for the log.
  */
 
+import i18next from 'i18next';
 import { AccessScorePlacesLayer } from './AccessScorePlacesLayer.js';
 import { AccessScoreSlopePanel } from './AccessScoreSlopePanel.js';
 import { util } from '../common/utilities.js';

@@ -9,8 +9,17 @@
  * `util.monthYear` is real, not stubbed: the printed month is half of what these tests check.
  */
 
-import { loadModules } from './loader.js';
+import { loadModules, mockModule } from './loader.js';
 import { fakeTracker } from './fakes.js';
+
+mockModule('i18next', () => ({ default: {
+  language: 'en',
+  t: (key, opts) => {
+    if (opts && opts.date) return `${key}|${opts.date}`;
+    if (opts && opts.assessedDate) return `${key}|${opts.assessedDate}|${opts.captureDate}`;
+    return key;
+  },
+} }));
 
 const { PanoDateNote } = await loadModules('frontend/js/explore/panorama/PanoDateNote.js');
 
@@ -43,14 +52,6 @@ describe('PanoDateNote', () => {
 
   beforeEach(async () => {
     tracker = fakeTracker();
-    window.i18next = {
-      language: 'en',
-      t: (key, opts) => {
-        if (opts && opts.date) return `${key}|${opts.date}`;
-        if (opts && opts.assessedDate) return `${key}|${opts.assessedDate}|${opts.captureDate}`;
-        return key;
-      },
-    };
     // Mirrors explore.scala.html, including the pill starting hidden. PanoInfoPopover's button would be a second
     // child of the pill on the real page; nothing here reads it.
     document.body.innerHTML =

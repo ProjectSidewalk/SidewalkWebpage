@@ -3,6 +3,7 @@
  * tied to their current pano/position/task. On a successful submit, a brief confirmation toast is shown.
  */
 
+import i18next from 'i18next';
 import { Toast } from '../../common/Toast.js';
 /** @typedef {import('../../common/Gate.js').Gate} Gate */
 /** @typedef {import('../navigation/NavigationService.js').NavigationService} NavigationService */

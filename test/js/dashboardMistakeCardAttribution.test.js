@@ -6,9 +6,10 @@
  * the whole point is checking that the card hooks them up.
  */
 
-import { loadModules } from './loader.js';
+import { loadModules, mockModule } from './loader.js';
 
-window.i18next = { t: (key) => key };
+mockModule('i18next', () => ({ default: { t: (key) => key } }));
+
 // The logo measures itself to report how wide it is. jsdom lays nothing out, so there's nothing to measure.
 window.ResizeObserver = class { observe() {} disconnect() {} };
 const { MistakeGallery } = await loadModules('frontend/js/user-dashboard/MistakeGallery.js');

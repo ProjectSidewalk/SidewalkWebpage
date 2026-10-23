@@ -7,7 +7,10 @@
  * and (2) getLevelForValue's boundary behavior (a value exactly at a threshold earns that level).
  */
 
-import { loadModules, useUtil } from './loader.js';
+import { loadModules, mockModule, useUtil } from './loader.js';
+
+const i18next = { t: (key) => key };
+mockModule('i18next', () => ({ default: i18next }));
 
 // What the navbar reports about the session; seedCounts reads it through util, and its tests move it per test.
 let hasSession = null;
@@ -82,12 +85,9 @@ describe('BadgeAchievements.getProgress', () => {
   const V = BadgeAchievements.THRESHOLDS.validations;
 
   beforeEach(() => {
-    window.i18next = {t: (key) => key}; // getBadge localizes the badge's display name.
+    Object.assign(i18next, {t: (key) => key}); // getBadge localizes the badge's display name.
   });
 
-  afterEach(() => {
-    delete window.i18next;
-  });
 
   test('someone with no badge yet is on the first tier, measured from zero', () => {
     const progress = BadgeAchievements.getProgress('validations', 0);
@@ -208,13 +208,12 @@ describe('BadgeAchievements.seedCounts', () => {
   beforeEach(async () => {
     Badges = await loadBadgeAchievements();
     consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
-    window.i18next = {t: (key) => key}; // getBadge localizes the badge's display name.
+    Object.assign(i18next, {t: (key) => key}); // getBadge localizes the badge's display name.
     hasSession = true;
   });
 
   afterEach(() => {
     delete window.fetch;
-    delete window.i18next;
   });
 
   test('seeds the counts from a signed-in response', async () => {

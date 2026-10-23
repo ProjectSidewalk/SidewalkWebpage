@@ -4,6 +4,7 @@
  * one-time celebration when a user first completes a full 360° (#4639).
  */
 
+import i18next from 'i18next';
 import { MinimapStyle } from './MinimapStyle.js';
 /** @typedef {import('../Main.js').ExploreConfig} ExploreConfig */
 /** @typedef {import('../Main.js').MinimapUi} MinimapUi */

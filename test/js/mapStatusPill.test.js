@@ -4,14 +4,15 @@
  * button and its hover/focus pause follow the shared Toast convention (#5415).
  */
 
-import { loadModules } from './loader.js';
+import { loadModules, mockModule } from './loader.js';
+
+mockModule('i18next', () => ({ default: { t: (key) => key } }));
 
 describe('MapStatusPill', () => {
   let container;
   let MapStatusPill;
 
   beforeAll(async () => {
-    window.i18next = { t: (key) => key };
     ({ MapStatusPill } = await loadModules('frontend/js/ps-map/MapStatusPill.js'));
   });
 

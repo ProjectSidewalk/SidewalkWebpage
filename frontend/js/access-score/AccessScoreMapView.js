@@ -17,6 +17,7 @@
  * kept inputs; the pointer handlers survive because Mapbox keys them by layer id, not by layer object.
  */
 
+import mapboxgl from '../common/mapboxgl.js';
 import { ScoreRamp } from '../common/scoreRamp.js';
 import { AccessScoreMapLegend } from './AccessScoreMapLegend.js';
 import { AccessScoreGradeRamp } from '../common/AccessScoreGradeRamp.js';

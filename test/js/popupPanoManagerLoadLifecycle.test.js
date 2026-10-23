@@ -7,8 +7,10 @@
  * holder, so a stale load reaching them paints over whatever replaced it.
  */
 
-import { loadModules, useUtil } from './loader.js';
+import { loadModules, mockModule, useUtil } from './loader.js';
 import { fakePanoOverlays } from './fakes.js';
+
+mockModule('i18next', () => ({ default: { t: (k) => k } }));
 
 fakePanoOverlays();
 
@@ -47,10 +49,11 @@ describe('PopupPanoManager load lifecycle', () => {
     svHolder = document.getElementById('sv-holder');
     loadingEl = document.querySelector('.label-detail__pano-loading');
 
-    window.panzoom = () => ({ on: vi.fn(), zoomAbs: vi.fn(), moveTo: vi.fn(), getTransform: () => ({}) });
+    mockModule('panzoom', () => ({
+      default: () => ({ on: vi.fn(), zoomAbs: vi.fn(), moveTo: vi.fn(), getTransform: () => ({}) }),
+    }));
     // The library preload would otherwise sit on the fake clock and fire during a later advance.
     useUtil({ afterLoadIdle: () => {} });
-    window.i18next = { t: (k) => k };
     window.fetch = vi.fn(() => Promise.resolve({ ok: false }));
     vi.spyOn(console, 'error').mockImplementation(() => {});
 

@@ -15,6 +15,8 @@
  * payload, and per-street label breakdowns for every street in it would be megabytes nobody hovers.
  */
 
+import mapboxgl from '../common/mapboxgl.js';
+import i18next from 'i18next';
 import { util } from '../common/utilities.js';
 import '../common/utilitiesSidewalk.js';
 

@@ -3,6 +3,8 @@
  * ends or is left (TaskContainer's events) and when a mission completes; everything else asks through submitData().
  */
 
+import AsyncLock from 'async-lock';
+import i18next from 'i18next';
 import { util } from '../../common/utilities.js';
 import '../../common/pano-viewer/panoUtilities.js';
 import '../../common/utilitiesMath.js';

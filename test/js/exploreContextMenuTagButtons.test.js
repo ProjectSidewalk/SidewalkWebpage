@@ -3,9 +3,11 @@
  * every tag shows however long a city's list is.
  */
 
-import { loadModules, useUtil } from './loader.js';
+import { loadModules, mockModule, useUtil } from './loader.js';
 import { makeContextMenuUi } from './contextMenuUiStub.js';
 import { fakeGate, fakeTracker } from './fakes.js';
+
+mockModule('i18next', () => ({ default: { t: (key) => key } }));
 
 /**
  * @param {string} labelType
@@ -28,7 +30,6 @@ describe('ContextMenu tag buttons', () => {
   let ui;
 
   beforeEach(async () => {
-    window.i18next = { t: (key) => key };
     // Never resolves, so the tag tooltips (which need real images) are never built.
     useUtil({ getImage: () => new Promise(() => {}) });
 

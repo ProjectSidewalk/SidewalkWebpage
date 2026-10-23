@@ -7,7 +7,7 @@
 import fs from 'fs';
 import path from 'path';
 
-import { loadModules, REPO_ROOT } from '../loader.js';
+import { loadModules, mockModule, REPO_ROOT } from '../loader.js';
 
 const read = (p) => fs.readFileSync(path.join(REPO_ROOT, p), 'utf8');
 
@@ -16,16 +16,18 @@ const RAMP = ['#a74d32', '#eb724e', '#c2c2c2', '#62c0ac', '#5f9e7b'];
 
 /** An i18next that returns the key (namespace stripped) followed by its arguments, so text stays inspectable. */
 function stubI18next() {
-  window.i18next = {
-    language: 'en',
-    t: (key, opts) => {
-      const bare = key.replace(/^[a-z]+:/, '');
-      // `interpolation` is i18next's own escaping switch, not an argument the text would show.
-      const args = Object.entries(opts || {}).filter(([k]) => k !== 'interpolation');
-      if (args.length === 0) return bare;
-      return `${bare} ${args.map(([k, v]) => `${k}=${v}`).join(' ')}`;
+  mockModule('i18next', () => ({
+    default: {
+      language: 'en',
+      t: (key, opts) => {
+        const bare = key.replace(/^[a-z]+:/, '');
+        // `interpolation` is i18next's own escaping switch, not an argument the text would show.
+        const args = Object.entries(opts || {}).filter(([k]) => k !== 'interpolation');
+        if (args.length === 0) return bare;
+        return `${bare} ${args.map(([k, v]) => `${k}=${v}`).join(' ')}`;
+      },
     },
-  };
+  }));
 }
 
 /**

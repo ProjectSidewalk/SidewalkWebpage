@@ -1,3 +1,4 @@
+@import controllers.helper.ControllerUtils.distanceUnitWords
 @import models.label.{LabelType, RatingScale}
 @import service.CommonPageData
 @import models.user.SidewalkUserWithRole
@@ -250,8 +251,8 @@
             <th class="ac-th-text">Progress</th>
             <th>Streets audited</th>
             <th>Streets left</th>
-            <th>km audited</th>
-            <th>km left</th>
+            <th>@distanceUnitWords.abbr audited</th>
+            <th>@distanceUnitWords.abbr left</th>
           </tr>
         </thead>
         <tbody id="ac-coverage-tbody"></tbody>
@@ -374,8 +375,6 @@
     </div>
   </div>
 
-  <link rel="stylesheet" href="@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.css")">
-  <script src="@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.js")"></script>
   @ViteAssets.stylesheets("admin/acrossCities", alreadyLinked = "admin/shell")
   <script type="module" id="page-entry" src='@assets.path("build/js/admin/acrossCities.js")'
           data-mapbox-token="@commonData.mapboxApiKey"

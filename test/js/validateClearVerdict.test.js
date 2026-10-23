@@ -7,8 +7,10 @@
  * the X, like every other menu control, refuses to act while the next label's pano is still loading (#5211).
  */
 
-import { loadModules, loadVendored, useUtil } from './loader.js';
+import { loadModules, mockModule, useUtil } from './loader.js';
 import { fakeTracker } from './fakes.js';
+
+mockModule('i18next', () => ({ default: { t: (key) => key } }));
 
 let Label;
 let DesktopValidationMenu;
@@ -18,9 +20,7 @@ beforeAll(async () => {
   window.matchMedia = () => /** @type {MediaQueryList} */ ({ matches: true }); // jsdom has none; act as a mouse.
   // The real one fetches the severity icons over the network.
   useUtil({ getImage: () => Promise.resolve('img') });
-  window.i18next = { t: (key) => key };
   window.structuredClone ??= (v) => JSON.parse(JSON.stringify(v)); // Missing from this jsdom.
-  loadVendored('tom-select');
   ({ Label, DesktopValidationMenu, buildReasonButtonInfo } = await loadModules(
     'frontend/js/validate/util/ConstantsValidate.js', 'frontend/js/validate/label/Label.js',
     'frontend/js/validate/menu/DesktopValidationMenu.js'));

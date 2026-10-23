@@ -6,14 +6,15 @@
  * which providers carry a licence: it links whatever licence it is handed and nothing else.
  */
 
-import { loadModules } from './loader.js';
+import { loadModules, mockModule } from './loader.js';
+
+mockModule('i18next', () => ({ default: {
+  t: (key) => (key === 'common:pano-attribution.opens-new-tab' ? NEW_TAB_CUE : `MISSING:${key}`),
+} }));
 
 /** The one string the overlay translates: the new-tab cue on the licence link. */
 const NEW_TAB_CUE = '(opens in a new tab)';
 
-window.i18next = {
-  t: (key) => (key === 'common:pano-attribution.opens-new-tab' ? NEW_TAB_CUE : `MISSING:${key}`),
-};
 
 const MAPILLARY = {
   holder: '© jacobwhall',

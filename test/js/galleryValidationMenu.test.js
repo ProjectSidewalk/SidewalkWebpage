@@ -5,8 +5,10 @@
  * `aria-pressed`. Overwriting the class list instead would wipe the color class and turn the button white.
  */
 
-import { loadModules } from './loader.js';
+import { loadModules, mockModule } from './loader.js';
 import { fakeTracker } from './fakes.js';
+
+mockModule('i18next', () => ({ default: { t: (key) => key } }));
 
 let ValidationMenu;
 
@@ -36,7 +38,6 @@ const button = (option) => document.querySelector(`.gallery-card-${option}-butto
 
 describe('Gallery card vote buttons', () => {
   beforeAll(async () => {
-    window.i18next = { t: (key) => key };
     ({ ValidationMenu } = await loadModules('frontend/js/gallery/validation/ValidationMenu.js'));
   });
 

@@ -1,3 +1,5 @@
+import vegaEmbed from 'vega-embed';
+
 /**
  * Renders the coverage *distribution* — regions binned into 10% coverage buckets — with Vega-Lite. This scales to
  * any number of regions (constant height) where per-region bars don't, and answers "how is coverage distributed
@@ -32,7 +34,7 @@ export class CoverageHistogram {
    * @returns {Promise<void>}
    */
   async render(buckets) {
-    const spec = {
+    const spec = /** @type {import('vega-embed').VisualizationSpec} */ ({
       $schema: 'https://vega.github.io/schema/vega-lite/v6.json',
       width: 'container',
       height: 180,
@@ -55,7 +57,7 @@ export class CoverageHistogram {
         view: { stroke: null },
         axis: { labelFont: getComputedStyle(document.documentElement).getPropertyValue('--font-primary') },
       },
-    };
+    });
 
     const result = await vegaEmbed(`#${this.#containerId}`, spec, { actions: false, renderer: 'svg' });
     // Release the previous chart's listeners (including its resize ones) only once the new chart has drawn, so that

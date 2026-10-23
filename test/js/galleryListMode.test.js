@@ -10,6 +10,8 @@
 import { loadModules, mockModule } from './loader.js';
 import { fakeTracker } from './fakes.js';
 
+mockModule('i18next', () => ({ default: { t: (key, opts) => `${key}:${JSON.stringify(opts ?? {})}` } }));
+
 /** The shared LabelDetail behind the filter and the expanded view, scripted per test. */
 const labelDetail = {};
 /** What the real LabelDetail.urlLabelId answers: the ?labelId= in the address bar, if any. */
@@ -64,7 +66,6 @@ describe('the Gallery in review-list mode', () => {
   let ExpandedView;
 
   beforeAll(async () => {
-    window.i18next = { t: (key, opts) => `${key}:${JSON.stringify(opts ?? {})}` };
     ({ GalleryFilter, CardContainer, ExpandedView } = await loadModules(
       'frontend/js/gallery/filter/GalleryFilter.js', 'frontend/js/gallery/cards/CardContainer.js',
       'frontend/js/gallery/expandedview/ExpandedView.js',

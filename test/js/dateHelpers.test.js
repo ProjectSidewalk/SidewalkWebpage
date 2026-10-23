@@ -4,9 +4,12 @@
  * vitest.config.mjs pins the clock to Los Angeles, which is exactly where reading a bare month as UTC goes wrong.
  */
 
-import { loadModules } from './loader.js';
+import { loadModules, mockModule } from './loader.js';
 
-window.i18next = { language: 'en' };
+const i18next = { t: (key) => key };
+mockModule('i18next', () => ({ default: i18next }));
+
+Object.assign(i18next, { language: 'en' });
 const { util } = await loadModules('frontend/js/common/utilities.js');
 
 describe('util.parseDate', () => {
@@ -66,8 +69,8 @@ describe('util.timeAgo', () => {
   });
 
   test('follows the page language', () => {
-    window.i18next.language = 'de';
+    i18next.language = 'de';
     expect(ago(3 * DAY)).toBe('vor 3 Tagen');
-    window.i18next.language = 'en';
+    i18next.language = 'en';
   });
 });

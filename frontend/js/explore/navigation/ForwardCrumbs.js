@@ -16,6 +16,8 @@
  * per street, and after the first burst every later refresh is free.
  */
 
+import * as turf from '@turf/turf';
+import i18next from 'i18next';
 import { PanoViewer } from '../../common/pano-viewer/PanoViewer.js';
 import { StreetSweep } from './StreetSweep.js';
 /** @typedef {import('../Main.js').ExploreConfig} ExploreConfig */
@@ -428,7 +430,7 @@ export class ForwardCrumbs {
 
   /**
    * Locates a pano relative to the street: how far along it the pano projects, and how far off the line it sits.
-   * @param {turf.Feature<turf.LineString>} street - The street geometry, in walk direction.
+   * @param {GeoJSON.Feature<GeoJSON.LineString>} street - The street geometry, in walk direction.
    * @param {PanoHit} hit - A pano the provider found.
    * @returns {MeasuredCrumb}
    */

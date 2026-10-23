@@ -7,6 +7,7 @@
  * again to unpin), and the effective highlight is the hovered region if any, else the pinned region.
  */
 
+import { geometryBounds } from '../common/geoBounds.js';
 import { util } from '../common/utilities.js';
 import { StreetStatusColors, StreetStatusMap } from './StreetStatusMap.js';
 import { StreetStatusTable } from './StreetStatusTable.js';
@@ -132,7 +133,7 @@ export class StreetStatusPage {
     this.#pinnedIds = [];
     this.#hoverIds = null;
     this.#table?.clearHighlight();
-    this.#map.focusSegment(Number(streetEdgeId), StreetStatusMap.boundsOfFeature(feature));
+    this.#map.focusSegment(Number(streetEdgeId), geometryBounds(feature.geometry));
     document.getElementById('street-status-map-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     return true;
   }

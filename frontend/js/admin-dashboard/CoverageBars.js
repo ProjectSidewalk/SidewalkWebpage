@@ -1,3 +1,5 @@
+import vegaEmbed from 'vega-embed';
+
 /**
  * Renders the per-region coverage bar chart with Vega-Lite and links it to the map. Hovering or clicking a bar
  * fires the corresponding callbacks so a coordinator can brush/pin the matching region on the map; highlightBar()/
@@ -52,7 +54,7 @@ export class CoverageBars {
   async #embed() {
     // 'coverage' → bars descending by value; 'name' → alphabetical by region name.
     const sort = this.#sort === 'name' ? 'ascending' : '-x';
-    const spec = {
+    const spec = /** @type {import('vega-embed').VisualizationSpec} */ ({
       $schema: 'https://vega.github.io/schema/vega-lite/v6.json',
       width: 'container',
       height: { step: 16 },
@@ -79,8 +81,8 @@ export class CoverageBars {
         tooltip: [
           { field: 'name', type: 'nominal', title: 'Region' },
           { field: 'completion_rate', type: 'quantitative', format: '.0%', title: 'Coverage' },
-          { field: 'audited_distance_m', type: 'quantitative', format: ',.0f', title: 'Audited (m)' },
-          { field: 'total_distance_m', type: 'quantitative', format: ',.0f', title: 'Total (m)' },
+          { field: 'audited_distance_text', type: 'nominal', title: 'Audited' },
+          { field: 'total_distance_text', type: 'nominal', title: 'Total' },
           { field: 'street_count', type: 'quantitative', format: ',', title: 'Streets' },
           { field: 'audit_count', type: 'quantitative', format: ',', title: 'Audits' },
           { field: 'label_count', type: 'quantitative', format: ',', title: 'Labels' },
@@ -91,7 +93,7 @@ export class CoverageBars {
         view: { stroke: null },
         axis: { labelFont: getComputedStyle(document.documentElement).getPropertyValue('--font-primary') },
       },
-    };
+    });
 
     const result = await vegaEmbed(`#${this.#containerId}`, spec, { actions: false, renderer: 'svg' });
     // Release the previous chart's listeners (including its resize ones) only once the new chart has drawn, so that

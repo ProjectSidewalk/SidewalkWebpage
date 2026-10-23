@@ -9,7 +9,7 @@
     <h1 class="page-heading" id="coverage">Coverage <a href="#coverage" class="permalink">#</a></h1>
     <p>Share of each neighborhood's street <em>length</em> audited at least once.</p>
     <div class="ps-kpis" id="coverage-kpis">
-      <div class="ps-kpi"><span class="ps-kpi-value" id="kpi-city-coverage">—</span><span class="ps-kpi-label">City-wide coverage</span></div>
+      <div class="ps-kpi"><span class="ps-kpi-value" id="kpi-city-coverage">—</span><span class="ps-kpi-label">City-wide coverage</span><span class="ps-kpi-note" id="kpi-city-coverage-note"></span></div>
       <div class="ps-kpi"><span class="ps-kpi-value" id="kpi-regions">—</span><span class="ps-kpi-label">Regions</span></div>
       <div class="ps-kpi"><span class="ps-kpi-value" id="kpi-fully-audited">—</span><span class="ps-kpi-label">Fully audited (100%)</span></div>
       <div class="ps-kpi"><span class="ps-kpi-value" id="kpi-needs-reaudit">—</span><span class="ps-kpi-label">Needs re-audit (newer imagery)</span></div>
@@ -55,13 +55,6 @@
       </div>
     </div>
   </div>
-
-    <!-- Page-specific libraries: loaded only on this page (Mapbox for the choropleth, Vega for the bar chart). Vega is vendored + version-pinned (not a CDN) so the dashboard works offline and can't break under us. -->
-  <link rel="stylesheet" href="@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.css")">
-  <script src="@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.js")"></script>
-  <script src="@assets.path("vendor/vega/vega-6.4.0.min.js")"></script>
-  <script src="@assets.path("vendor/vega/vega-lite-6.5.0.min.js")"></script>
-  <script src="@assets.path("vendor/vega/vega-embed-7.3.0.min.js")"></script>
 
   @ViteAssets.stylesheets("admin/coverage", alreadyLinked = "admin/shell")
 
