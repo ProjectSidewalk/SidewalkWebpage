@@ -2431,6 +2431,9 @@ kbd {
   position: fixed;
   left: -9999px;
   top: -9999px;
+
+  /* max-content, so the width comes from the text rather than from the room a host popover leaves it. */
+  width: max-content;
   max-width: calc(280px * var(--ui-scale, 1));
   padding: calc(5px * var(--ui-scale, 1)) calc(9px * var(--ui-scale, 1));
   background: var(--color-asphalt-500);

@@ -117,8 +117,8 @@ import { util } from './utilities.js';
     }
     const card = ensureTooltip();
     // A modal <dialog> or an open popover paints above every z-index on the page, so a card on <body> opens behind
-    // it; follow the trigger inside instead. Neither sets a transform/filter, so the card stays fixed to the viewport.
-    // A closed popover isn't rendered, so any [popover] match is an open one.
+    // it; follow the trigger inside instead. A closed popover isn't rendered, so any [popover] match is an open one.
+    // A host with a transform (the reason pop-up's grow-in) is the card's containing block; `place` allows for that.
     const host = trigger.closest('dialog[open], [popover]') ?? document.body;
     if (card.parentElement !== host) host.appendChild(card);
     const html = trigger.getAttribute(HTML_ATTR);
@@ -196,6 +196,10 @@ import { util } from './utilities.js';
     const tailInset = (TAIL_HALF_WIDTH_PX + CORNER_RADIUS_PX) * scale;
     const triggerRect = trigger.getBoundingClientRect();
     const cardRect = card.getBoundingClientRect(); // Text is set, so this measures the final size while still hidden.
+    // Where left/top 0 actually lands: the viewport's corner, unless a transformed ancestor is the containing block,
+    // in which case every coordinate below has to be shifted into that ancestor's frame.
+    const originX = cardRect.left;
+    const originY = cardRect.top;
     const placement = trigger.getAttribute('data-ps-tooltip-placement');
     const side = placement === 'left' || placement === 'right'
       ? sideThatFits(placement, triggerRect, cardRect.width, gap)
@@ -213,8 +217,8 @@ import { util } from './utilities.js';
         ),
       );
       card.classList.add(`ps-tooltip--beside-${side}`);
-      card.style.left = `${left}px`;
-      card.style.top = `${top}px`;
+      card.style.left = `${left - originX}px`;
+      card.style.top = `${top - originY}px`;
       card.style.setProperty('--ps-tooltip-tail-top', `${Math.max(
         tailInset,
         Math.min(triggerRect.top + triggerRect.height / 2 - top, cardRect.height - tailInset),
@@ -247,8 +251,8 @@ import { util } from './utilities.js';
       );
       // A clamp moves the card off the trigger's edge, so its tail would point at empty space; drop the tail instead.
       if (clampedTop !== top) card.classList.add('ps-tooltip--untailed');
-      card.style.left = `${left}px`;
-      card.style.top = `${clampedTop}px`;
+      card.style.left = `${left - originX}px`;
+      card.style.top = `${clampedTop - originY}px`;
 
       // Aim the tail at the trigger's center, not the card's: the clamp above slides the card sideways near a
       // viewport edge, and a tail pinned to the card's middle would then point at empty space.
