@@ -269,7 +269,7 @@ export class ReasonChips {
     form.noValidate = true;
     form.innerHTML = `
       <input type="text" name="reason" class="ps-input reason-chips__other-input" autocomplete="off">
-      <button type="submit" class="button-ps button--small button--primary reason-chips__other-save"></button>`;
+      <button type="submit" class="button button--medium button--primary reason-chips__other-save"></button>`;
     const input = /** @type {HTMLInputElement} */ (form.elements.namedItem('reason'));
     input.placeholder = hint;
     input.setAttribute('aria-label', hint);

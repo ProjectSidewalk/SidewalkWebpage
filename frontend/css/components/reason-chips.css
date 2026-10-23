@@ -101,14 +101,14 @@
 .reason-chips__other-form {
   display: flex;
   flex: 1 1 100%;
-  align-items: center;
+  align-items: stretch; /* The field and the button come out 2px apart in height; one row height for both. */
   gap: calc(6px * var(--ui-scale, 1));
 }
 
+/* .ps-input beside .button--medium: the primitives' own pairing, sized to sit flush in one row. */
 .reason-chips__other-input {
   flex: 1 1 auto;
   min-width: 0;
-  font: var(--text-caption-regular);
 }
 
 .reason-chips__other-save {
