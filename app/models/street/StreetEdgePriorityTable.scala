@@ -299,7 +299,10 @@ class StreetEdgePriorityTable @Inject() (
       _ =
         for ((f_i, w_i) <- paramGeneratorList.zip(weightVector)) {
           val priorityParamTable: Seq[StreetEdgePriorityParameter] = f_i()
-          priorityParamTable.foreach { edge => edgePriorityMap(edge.streetEdgeId) += (edge.priorityParameter * w_i) }
+          // Skip streets with no row: Explore only routes to streets that have one, so adding one would serve it.
+          priorityParamTable.foreach { edge =>
+            edgePriorityMap.updateWith(edge.streetEdgeId)(_.map(_ + edge.priorityParameter * w_i))
+          }
         }
 
       // One statement for every street: a round trip per street takes minutes in a large city (#5821).

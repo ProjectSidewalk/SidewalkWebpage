@@ -274,9 +274,13 @@ class StreetPriorityAdminSpec extends SidewalkSpec with GuiceOneAppPerSuite with
   }
 
   "recalculateStreetPriority" should {
-    "store the formula's priority for every street, and change nothing on a rerun" in {
+    "store the formula's priority for every street that has a row, and change nothing on a rerun" in {
+      assume(someRoutableStreet.isDefined)
+      val rowlessStreet = someRoutableStreet.get
+
       val (changedOnRerun, stored, formulaParams) = runRolledBack(
         for {
+          _ <- streetEdgePriorities.filter(_.streetEdgeId === rowlessStreet).delete
           // Stale every row first so the first run has to write all of them.
           _      <- streetEdgePriorities.map(_.priority).update(-1.0)
           _      <- streetEdgePriorityTable.recalculateStreetPriority
@@ -285,11 +289,13 @@ class StreetPriorityAdminSpec extends SidewalkSpec with GuiceOneAppPerSuite with
           params <- streetEdgePriorityTable.selectGoodBadUserCompletionCountPriority
         } yield (rerun, rows.toMap, params)
       )
-      assume(formulaParams.nonEmpty)
 
       changedOnRerun mustBe 0
-      val mismatches =
-        formulaParams.filterNot(param => stored.get(param.streetEdgeId).contains(param.priorityParameter))
+      // Explore only routes to streets with a row, so the recalc must not create one.
+      stored.contains(rowlessStreet) mustBe false
+      val mismatches = formulaParams
+        .filter(param => stored.contains(param.streetEdgeId))
+        .filterNot(param => stored.get(param.streetEdgeId).contains(param.priorityParameter))
       mismatches mustBe empty
     }
   }
