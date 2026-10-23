@@ -335,10 +335,13 @@ JOIN walk_to USING (route_street_id)
 WHERE walk_from.from_at > walk_to.to_at
    OR (placed.walk_lo >= walk_from.from_at - 1e-9 AND placed.walk_hi <= walk_to.to_at + 1e-9);
 
--- 6. Write the streets.
+-- 6. Write the streets. Only the run's disabled streets take the backup's status; a grown one may have had a
+--    legitimate status change since.
 UPDATE street_edge
 SET geom = pre_street_edge.geom, x1 = pre_street_edge.x1, y1 = pre_street_edge.y1, x2 = pre_street_edge.x2,
-    y2 = pre_street_edge.y2, way_type = pre_street_edge.way_type, status = pre_street_edge.status
+    y2 = pre_street_edge.y2, way_type = pre_street_edge.way_type,
+    status = CASE WHEN pre_street_edge.street_edge_id IN (SELECT id FROM touched WHERE kind = 'disabled')
+                  THEN pre_street_edge.status ELSE street_edge.status END
 FROM pre_street_edge
 WHERE street_edge.street_edge_id = pre_street_edge.street_edge_id;
 INSERT INTO street_edge
@@ -391,9 +394,10 @@ INSERT INTO sidewalk_presence SELECT * FROM pre_sidewalk_presence;
 
 -- History and admin state is only added back for the streets that were deleted; the rest kept theirs. The run's own
 -- status changes go, since the statuses they recorded are undone.
+-- The counter is set before the DELETE: it survives a rollback, which brings the deleted rows back.
+SELECT pg_temp.fresh_id_sequence('street_edge_status_change', 'street_edge_status_change_id') AS seq \gset
 DELETE FROM street_edge_status_change
 WHERE source = 'consolidate_tiny_streets' AND changed_at = :'bad_run_at'::timestamptz;
-SELECT pg_temp.fresh_id_sequence('street_edge_status_change', 'street_edge_status_change_id') AS seq \gset
 UPDATE pre_street_edge_status_change SET street_edge_status_change_id = nextval(:'seq');
 INSERT INTO street_edge_status_change
 SELECT * FROM pre_street_edge_status_change WHERE street_edge_id IN (SELECT id FROM touched WHERE kind = 'dropped');
@@ -446,8 +450,8 @@ LEFT JOIN grown ON grown.id = task_fix.from_grown_id
 LEFT JOIN part ON part.part_id = task_fix.part_id AND part.grown_id = task_fix.from_grown_id
 WHERE audit_task.audit_task_id = task_fix.audit_task_id AND task_fix.how <> 'quiet';
 UPDATE audit_task
-SET audited_distance_m = (SELECT sum((pair ->> 1)::float - (pair ->> 0)::float)
-                          FROM jsonb_array_elements(audit_task.covered_ranges) AS pair)
+SET audited_distance_m = coalesce((SELECT sum((pair ->> 1)::float - (pair ->> 0)::float)
+                                   FROM jsonb_array_elements(audit_task.covered_ranges) AS pair), 0)
 WHERE audit_task.audit_task_id IN (SELECT audit_task_id FROM task_fix WHERE how <> 'quiet')
   AND jsonb_typeof(audit_task.covered_ranges) = 'array';
 
@@ -574,7 +578,8 @@ DELETE FROM street_edge_merge WHERE street_edge_merge_id IN (SELECT street_edge_
   TRUNCATE TABLE region_completion;
 \endif
 
--- 9. Summary, one row. The check_ columns should all be 0.
+-- 9. Summary, one row. The check_ columns should all be 0, and an apply only commits if they are.
+CREATE TEMP TABLE summary ON COMMIT DROP AS
 SELECT :'city' AS city,
        :apply::int = 1 AS applied,
        (SELECT count(*) FROM bad_merge) AS bad_joins,
@@ -612,7 +617,8 @@ SELECT :'city' AS city,
           WHERE NOT EXISTS (SELECT FROM street_edge JOIN pre_street_edge USING (street_edge_id)
                             WHERE street_edge.street_edge_id = touched.id
                               AND ST_Equals(street_edge.geom, pre_street_edge.geom)
-                              AND street_edge.status = pre_street_edge.status)) AS check_streets_not_restored,
+                              AND (touched.kind <> 'disabled' OR street_edge.status = pre_street_edge.status)))
+         AS check_streets_not_restored,
        (SELECT count(*) FROM task_fix WHERE part_id IS NULL) AS check_audits_unplaced,
        (SELECT count(*) FROM route_street WHERE position >= 1000000) AS check_route_stops_unplaced,
        (SELECT count(*) FROM pre_route_street JOIN route_street USING (route_street_id)
@@ -620,8 +626,16 @@ SELECT :'city' AS city,
        (SELECT count(*) FROM label
           WHERE NOT EXISTS (SELECT FROM street_edge WHERE street_edge.street_edge_id = label.street_edge_id))
          AS check_labels_on_no_street;
+SELECT * FROM summary;
 
 \if :apply
+  DO $$
+  BEGIN
+    IF EXISTS (SELECT FROM summary, jsonb_each_text(to_jsonb(summary)) AS col
+               WHERE col.key LIKE 'check\_%' AND col.value <> '0') THEN
+      RAISE EXCEPTION 'a check_ column is not 0, so nothing was changed';
+    END IF;
+  END $$;
   COMMIT;
 \else
   ROLLBACK;

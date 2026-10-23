@@ -3,7 +3,7 @@
 # #4717: pull the 10 rerun cities' tables out of the 2026-10-20 nightly pg_dumpall, the last full dump taken after the
 # first tiny-streets run and before the bad rerun. Only reads the dump; writes only under ~/4717-backup-extract.
 #
-#   ./4717-undo-extract-backup.sh            plan: index the dump (one full read, saved for reuse) and show what it'd take
+#   ./4717-undo-extract-backup.sh            plan: index the dump (one full read, kept) and show what it'd take
 #   ./4717-undo-extract-backup.sh --extract  write ~/4717-backup-extract/pre4717.sql.gz
 #
 # The dump is ~317 GB, so the first run's index pass takes a while; run it in tmux or under nohup.
@@ -66,7 +66,8 @@ awk -F'\t' '{ total += $2; city[$4] += $2 }
     for (s in city) printf "  %-28s %8.2f GB\n", s, city[s] / 1e9
   }' "$OUT/ranges.txt"
 echo "Largest tables:"
-awk -F'\t' '$3 == "TABLE DATA" { printf "  %8.2f GB  %s.%s\n", $2 / 1e9, $4, $5 }' "$OUT/ranges.txt" | sort -rn | sed -n 1,25p
+awk -F'\t' '$3 == "TABLE DATA" { printf "  %8.2f GB  %s.%s\n", $2 / 1e9, $4, $5 }' "$OUT/ranges.txt" \
+  | sort -rn | sed -n 1,25p
 
 if [[ "${1:-}" == "--extract" ]]; then
   gz=gzip

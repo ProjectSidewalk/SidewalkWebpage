@@ -39,8 +39,10 @@ TABLES=(
   "street_edge_issue|street_edge_id IN (SELECT street_edge_id FROM x)"
   "cluster|street_edge_id IN (SELECT street_edge_id FROM x)"
   "place|nearest_street_edge_id IN (SELECT street_edge_id FROM x)"
-  "old_label_point_coords|street_edge_id IN (SELECT street_edge_id FROM x)"
-  "old_label_point_position|street_edge_id IN (SELECT street_edge_id FROM x)"
+  "old_label_point_coords|street_edge_id IN (SELECT street_edge_id FROM x)
+     OR label_id IN (SELECT label_id FROM label WHERE street_edge_id IN (SELECT street_edge_id FROM x))"
+  "old_label_point_position|street_edge_id IN (SELECT street_edge_id FROM x)
+     OR label_id IN (SELECT label_id FROM label WHERE street_edge_id IN (SELECT street_edge_id FROM x))"
   "route|route_id IN (SELECT route_id FROM route_street WHERE street_edge_id IN (SELECT street_edge_id FROM x))"
   "route_street|route_id IN (SELECT route_id FROM route_street WHERE street_edge_id IN (SELECT street_edge_id FROM x))"
   "audit_task_user_route|route_street_id IN (SELECT route_street_id FROM route_street WHERE route_id IN
@@ -58,7 +60,8 @@ for city in $("${PSQL[@]}" -c "SELECT DISTINCT city FROM public.rerun_list ORDER
   {
     echo "-- #4717 restore file for $city, cut from the 2026-10-20 nightly backup. Read by 4717-undo-rerun.sql."
     echo "\\set bad_run_at '$run_at'"
-    echo "CREATE TEMP TABLE pre_list (kind TEXT, street_edge_id INTEGER, survivor_street_edge_id INTEGER) ON COMMIT DROP;"
+    echo "CREATE TEMP TABLE pre_list (kind TEXT, street_edge_id INTEGER, survivor_street_edge_id INTEGER)"
+    echo "  ON COMMIT DROP;"
     echo "COPY pre_list FROM STDIN;"
     "${PSQL[@]}" -c "COPY (SELECT kind, street_edge_id, survivor_street_edge_id FROM public.rerun_list
                            WHERE city = '$city' ORDER BY kind, street_edge_id) TO STDOUT"
