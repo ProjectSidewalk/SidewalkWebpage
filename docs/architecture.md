@@ -94,7 +94,10 @@ arbitrary line, fewer tiny disconnected pieces, and enough of a plan that the to
   Historically the city build cut streets at region borders so the two coincided; the current build heals the short
   pieces those cuts leave (see [`docs/onboarding-a-city.md`](onboarding-a-city.md)), and
   `tools/one-off/4717-consolidate-tiny-streets.sql` applies the same rules to a city built before it, joining the
-  short pieces back onto their neighbours. A longer piece cut off at a border is simply two streets.
+  short pieces back onto their neighbours. A longer piece cut off at a border is simply two streets. A check
+  constraint (evolution 422, #5691) keeps every street that isn't `disabled` at least 1 m long. Disabled streets can
+  still be shorter, and queries that read every status (the intersection rebuild, route distances) can meet one, so a
+  route must include at least one street that isn't disabled.
 - **A street knows every OSM way it lies on, and where (#5741).** `osm_way_street_edge` holds one row per street-way
   pair: the stretch of the street the way covers, the stretch of the way that is (fractions along each line in its own
   direction) and `same_direction`, since OSM's `sidewalk:left` / `:right` follow the way's drawn direction while our

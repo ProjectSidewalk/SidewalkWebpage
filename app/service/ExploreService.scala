@@ -29,9 +29,8 @@ import scala.util.control.NoStackTrace
 /**
  * An Explore session as the page starts it: the task to walk, the mission it counts toward, and where it sits.
  *
- * @param routeUnavailable Whether a route the visit would have been in was dropped, so the page tells the user rather
- *                         than passing the visit off as an ordinary session. Either a ?routeId= named no live route
- *                         (#5156), or the walk's route has no walkable distance and so yields no mission (#5167).
+ * @param routeUnavailable Whether a ?routeId= named no live route and was dropped, so the page tells the user rather
+ *                         than passing the visit off as an ordinary session (#5156).
  * @param regionFinished   Whether the ?regionId= asked for was already finished, so the user was moved (#5692).
  */
 case class ExplorePageData(
@@ -311,41 +310,20 @@ class ExploreServiceImpl @Inject() (
       }
       regionId: Int = startRegion.regionId
 
-      // A walk whose route measures zero length (a degenerate street geom, #4670) gets no route-scoped mission, and
-      // there is no route left to walk anyway. It is dropped for this request exactly like an unresolvable
-      // ?routeId= (#5156): the page is told, and it stops claiming to be in a route whose mission it doesn't have
-      // (#5167). The walk is paused too, since setUpPossibleUserRoute left it active, and an active walk would be
-      // re-picked — and the toast re-shown — by every bare /explore after this one. Pausing rather than discarding
-      // keeps the one-way door reserved for ?resumeRoute=false (#4833). Only this walk can still be active here:
-      // setUpPossibleUserRoute paused every other one before resuming or creating it. The session then runs in the
-      // route's start region, or in a freshly picked one if the user has nothing left there.
-      (mission: Mission, walkDropped: Boolean, sessionRegion: Region) <- {
+      // A region with nothing left to size a mission from moves the session to a freshly picked one.
+      (mission: Mission, sessionRegion: Region) <- {
         if (retakingTutorial) {
-          missionService.resumeOrCreateNewAuditOnboardingMission(userId).map(m => (m.get, false, startRegion))
+          missionService.resumeOrCreateNewAuditOnboardingMission(userId).map(m => (m.get, startRegion))
         } else {
           missionService
             .resumeOrCreateNewAuditMission(userId, regionId, userRoute, revisitStreetId = streetEdgeId)
             .flatMap {
-              case Some(m)                     => DBIO.successful((m, false, startRegion))
-              case None if userRoute.isDefined =>
-                logger.warn(
-                  s"Route ${userRoute.get.routeId} (walk ${userRoute.get.userRouteId}) has no walkable distance for " +
-                    s"user $userId; dropping the walk and pausing it."
-                )
-                for {
-                  _        <- userRouteTable.pauseAllActiveRoutes(userId)
-                  fallback <- regionFallbackAfterDroppedWalk(userId, startRegion)
-                } yield (fallback._1, true, fallback._2)
-              // Work was left, but none a mission can be sized from: the only streets left are zero length (#4670).
-              case None =>
-                missionInFreshRegion(userId, s"region $regionId had only zero-length streets left")
-                  .map((m, newRegion) => (m, false, newRegion))
+              case Some(m) => DBIO.successful((m, startRegion))
+              case None    => missionInFreshRegion(userId, s"region $regionId had no distance left for a mission")
             }
         }
       }
-      sessionRegionId: Int             = sessionRegion.regionId
-      liveUserRoute: Option[UserRoute] = if (walkDropped) None else userRoute
-      liveRoute: Option[Route]         = if (walkDropped) None else routeOption
+      sessionRegionId: Int = sessionRegion.regionId
 
       // If there is a partially completed task in this route or mission, get that, o/w make a new one.
       task: Option[NewTask] <- {
@@ -353,8 +331,8 @@ class ExploreServiceImpl @Inject() (
           auditTaskTable.getATutorialTask(mission.missionId).map(Some(_))
         } else if (streetEdgeId.isDefined) {
           auditTaskTable.selectANewTask(streetEdgeId.get, userId, mission.missionId).map(Some(_))
-        } else if (liveRoute.isDefined) {
-          userRouteTable.getRouteTask(liveUserRoute.get, mission.missionId)
+        } else if (routeOption.isDefined) {
+          userRouteTable.getRouteTask(userRoute.get, mission.missionId)
         } else if (mission.currentAuditTaskId.isDefined) {
           // If we find no task with the given ID, try to get any new task in the region. A task the labeler has
           // just reported for missing imagery is passed over the same way: the report leaves it incomplete (#4922),
@@ -401,7 +379,7 @@ class ExploreServiceImpl @Inject() (
       // is suppressed — the walk stays active, so it resumes on the post-tutorial reload of /explore. (An explicit
       // ?routeId= still sets a walk up above, since that is the user asking for one; it just waits for them.)
       val (pageUserRoute, pageRoute) =
-        if (updatedMission.missionType == MissionType.AuditOnboarding) (None, None) else (liveUserRoute, liveRoute)
+        if (updatedMission.missionType == MissionType.AuditOnboarding) (None, None) else (userRoute, routeOption)
       ExplorePageData(
         task,
         updatedMission,
@@ -409,7 +387,7 @@ class ExploreServiceImpl @Inject() (
         pageUserRoute,
         pageRoute,
         routeResumed = pageUserRoute.isDefined && routeSetup.resumed,
-        routeUnavailable = routeSetup.routeUnavailable || walkDropped,
+        routeSetup.routeUnavailable,
         regionFinished,
         hasCompletedAMission,
         nextTempLabelId
@@ -572,22 +550,6 @@ class ExploreServiceImpl @Inject() (
       setup.map(_.copy(routeUnavailable = routeId.isDefined && !routeExists))
     }
   }
-
-  /**
-   * The region session a visit falls back to once its zero-length walk is dropped (#5167): the route's start region
-   * while it still has distance left for the user, else a region picked the way a bare /explore picks one. The second
-   * step is what keeps a user who finished the start region out of an error on every load: a failed request rolls
-   * back the pause with everything else, so the walk would stay active and be re-picked by the next /explore.
-   *
-   * @param userId      The user whose walk was dropped.
-   * @param routeRegion The region the route starts in, where the session was headed.
-   * @return The region mission to start on, paired with the region it sits in.
-   */
-  private def regionFallbackAfterDroppedWalk(userId: String, routeRegion: Region): DBIO[(Mission, Region)] =
-    missionService.resumeOrCreateNewAuditMission(userId, routeRegion.regionId, None).flatMap {
-      case Some(m) => DBIO.successful((m, routeRegion))
-      case None    => missionInFreshRegion(userId, "dropping their walk")
-    }
 
   /**
    * Moves the user to a top-priority region they haven't finished, as a bare /explore does.
