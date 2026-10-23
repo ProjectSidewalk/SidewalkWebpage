@@ -260,6 +260,33 @@ describe('leaving', () => {
     expect(isShown()).toBeFalsy();
     expect(onDismiss).toHaveBeenCalledWith('outside', false);
   });
+
+  test('a re-vote on the same card keeps half-typed words; another card starts fresh', () => {
+    open();
+    other().dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }));
+    const field = () => el().querySelector('.reason-chips__other-input');
+    field().value = 'half typed';
+    open({ vote: 'Unsure', labelType: 'CurbRamp' });
+    expect(field()?.value).toBe('half typed');
+
+    const elsewhere = document.getElementById('elsewhere');
+    placeAt(elsewhere, { top: 400, left: 600 });
+    open({ host: elsewhere, anchor: elsewhere });
+    expect(field()).toBeNull();
+  });
+
+  test('typing into the field during the "Reason saved" hold keeps the pop-up open', () => {
+    vi.useFakeTimers();
+    open();
+    other().dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }));
+    popover.markSaved(ReasonChips.OTHER);
+    const field = el().querySelector('.reason-chips__other-input');
+    field.value = 'one more thing';
+    field.dispatchEvent(new Event('input', { bubbles: true }));
+    vi.advanceTimersByTime(ReasonPopover.SAVED_HOLD_MS + 1);
+    expect(isShown()).toBe(true);
+    expect(el().querySelector('.reason-popover__saved').textContent).toBe('');
+  });
 });
 
 describe('keys', () => {

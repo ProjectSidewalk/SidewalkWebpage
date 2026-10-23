@@ -1430,7 +1430,7 @@ export class LabelDetail {
     const meta = this.#currentLabelMeta;
     this.#pickPending = true;
     this.#syncControlLocks();
-    this.#submitComment(text, { reason: id }).then((saved) => {
+    this.#submitComment(text, { reason: id, fromPopover: true }).then((saved) => {
       // A reply for a label already paged away from must not unlock, or report to, the label now on screen.
       if (this.#currentLabelMeta !== meta) return;
       this.#pickPending = false;
@@ -1438,6 +1438,21 @@ export class LabelDetail {
       if (saved) reasonPopover().markSaved(id ?? ReasonChips.OTHER);
       else reasonPopover().markFailed();
     });
+  }
+
+  /**
+   * Hands words typed in the pop-up to the card's own box after a save that the redraw on a type change (#5510)
+   * refused, since that redraw takes the pop-up and its field with it. Opened, so the words are seen, not parked in a
+   * hidden input.
+   * @param {string} text
+   */
+  #keepTypedWords(text) {
+    if (this.#myCommentIdx >= 0) this.#startCommentEdit(false);
+    else this.#updateCommentRow();
+    const input = this.#els.commentInput;
+    input.value = text;
+    this.#els.commentButton.classList.toggle('is-active', text.trim().length > 0);
+    if (!input.closest('[hidden]')) input.focus();
   }
 
   /**
@@ -2802,9 +2817,11 @@ export class LabelDetail {
    * @param {string} comment - Trimmed, non-empty comment text.
    * @param {object} [opts]
    * @param {?string} [opts.reason=null] - The canned reason the text is (#5475), so analysis needn't match strings.
+   * @param {boolean} [opts.fromPopover=false] - Written in the reason pop-up rather than the card's box, which keeps
+   *     whatever the reader has in that box: it is no edit of theirs, and an unsent draft there is not this comment.
    * @returns {Promise<boolean>} Whether the comment was stored. Never rejects: a failure is reported on the card.
    */
-  #submitComment(comment, { reason = null } = {}) {
+  #submitComment(comment, { reason = null, fromPopover = false } = {}) {
     const els = this.#els;
     const context = LabelDetail.submissionContext(this.#viewerState(), this.#currentLabelMeta ?? {});
 
@@ -2832,7 +2849,8 @@ export class LabelDetail {
         // The type changed under this card (#5510): reload so the user sees the right comments, keeping their text.
         if (this.#currentLabelMeta !== commentedLabelMeta) return false;
         await this.#redrawShownLabel(commentedLabelMeta.label_id);
-        if (!reason) els.commentInput.value = comment;
+        if (!reason && fromPopover) this.#keepTypedWords(comment);
+        else if (!reason) els.commentInput.value = comment;
         this.#showTypeConflictToast();
         return false;
       }
@@ -2840,10 +2858,11 @@ export class LabelDetail {
       this.#commentWrites++;
       const body = await res.json();
       if (this.#currentLabelMeta !== commentedLabelMeta) return true;
-      const wasEdit = this.#editingComment;
-      els.commentInput.value = '';
-      els.commentButton.classList.remove('is-active');
-      // A chip picked while the box was open is a pick, already logged as one, not an edit of the old text.
+      const wasEdit = this.#editingComment && !fromPopover;
+      if (!fromPopover) {
+        els.commentInput.value = '';
+        els.commentButton.classList.remove('is-active');
+      }
       if (wasEdit && !reason) this.#logAction('EditComment');
 
       // Update the visible list. Admin views render objects with a username; non-admin views render bare comment
@@ -2866,15 +2885,16 @@ export class LabelDetail {
         this.#comments.push(newEntry);
         this.#myCommentIdx = this.#comments.length - 1;
       }
-      // The box closes now that a comment of theirs exists; Edit on the entry below is the way back into it.
-      this.#editingComment = false;
+      // The box closes now that a comment of theirs exists; Edit on the entry below is the way back into it. An edit
+      // left open beside a pop-up save stays open, holding its own words.
+      if (!fromPopover) this.#editingComment = false;
       this.#updateCommentRow();
       this.#renderComments();
       if (this.#currentLabelMeta === commentedLabelMeta) this.#commentsChanged(commentedLabelMeta);
       // Announced after the row has settled — the live region sits outside it, so the collapse doesn't take the
       // message with it, and the reader hears the outcome of a card that is already in its final state.
       let statusKey = wasEdit ? 'labelmap:comment-updated' : 'labelmap:comment-submitted';
-      if (reason) statusKey = 'common:validation-reason.saved';
+      if (reason || fromPopover) statusKey = 'common:validation-reason.saved';
       this.#flashCommentStatus(statusKey);
       return true;
     }).catch((err) => {

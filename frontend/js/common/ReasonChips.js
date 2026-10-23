@@ -79,9 +79,11 @@ export class ReasonChips {
    * @param {?(string|symbol)} [state.selected=null] - The reason already on record, from the reader's own comment,
    *     or `ReasonChips.OTHER` for a typed one.
    * @param {string} [state.otherText=''] - The reader's typed comment, which the "Other…" field opens holding.
+   * @param {?string} [state.draft=null] - Words still unsaved in a field this redraw replaces; the field comes back
+   *     open, holding them.
    * @returns {number} How many reasons are offered; 0 means the row is hidden.
    */
-  render({ labelType, vote, selected = null, otherText = '' }) {
+  render({ labelType, vote, selected = null, otherText = '', draft = null }) {
     const reasons = vote ? validationReasons.forLabel(labelType, vote) : [];
     // Focus rides along to the same chip in the rebuilt row, so a host redrawing after a pick doesn't move it.
     const focusedId = this.#chips.find((c) => c === document.activeElement)?.dataset.reasonId ?? null;
@@ -118,6 +120,12 @@ export class ReasonChips {
     this.#otherButton = this.#buildOther(this.#otherNumber);
     this.#root.querySelector('.reason-chips__list').appendChild(this.#otherButton);
     this.#syncState();
+    if (draft !== null) {
+      this.#openOther(false, { notify: false });
+      this.#otherInput().value = draft;
+      this.#syncOtherSave();
+      return reasons.length;
+    }
     if (hadFocus) {
       const same = this.#chips.find((c) => c.dataset.reasonId === focusedId);
       if (same) same.focus();
@@ -132,6 +140,8 @@ export class ReasonChips {
    */
   setSelected(id) {
     this.#selected = id;
+    // What the field now holds is on record, so it is no longer a draft.
+    if (id === ReasonChips.OTHER && this.#otherForm) this.#otherText = this.#otherInput().value.trim();
     this.#syncState();
   }
 
@@ -156,9 +166,19 @@ export class ReasonChips {
     }
   }
 
-  /** @returns {boolean} Whether the "Other…" field is open with words in it, which a stray click must not lose. */
+  /**
+   * @returns {boolean} Whether the "Other…" field holds words not yet saved, which a stray click must not lose. The
+   *     comment it opened holding doesn't count until it is changed, and an emptied field has nothing to lose.
+   */
   get hasOtherDraft() {
-    return this.#otherForm !== null && this.#otherInput().value.trim() !== '';
+    if (this.#otherForm === null) return false;
+    const text = this.#otherInput().value.trim();
+    return text !== '' && text !== this.#otherText.trim();
+  }
+
+  /** @returns {?string} What the "Other…" field holds while it is open, or null, for a host redrawing the row. */
+  get otherFieldText() {
+    return this.#otherForm ? this.#otherInput().value : null;
   }
 
   /** @returns {boolean} Whether the row is on screen with something to pick. */
@@ -235,8 +255,10 @@ export class ReasonChips {
    * Turns "Other…" into a text field and a Save button in its own place, focused, holding the reader's typed
    * comment if they have one. A second "Other…" (its number key, from outside the field) just refocuses it.
    * @param {boolean} viaKeyboard
+   * @param {{notify?: boolean}} [opts] - `notify: false` for a redraw restoring the field, which the reader didn't ask
+   *     for again and the host mustn't log twice.
    */
-  #openOther(viaKeyboard) {
+  #openOther(viaKeyboard, { notify = true } = {}) {
     if (this.#otherForm) {
       this.#otherInput().focus();
       return;
@@ -273,7 +295,7 @@ export class ReasonChips {
     input.focus();
     // Caret at the end, so a prefilled comment is extended rather than typed over.
     input.setSelectionRange(input.value.length, input.value.length);
-    this.#onOther(viaKeyboard);
+    if (notify) this.#onOther(viaKeyboard);
   }
 
   /** @returns {HTMLInputElement} */

@@ -4,7 +4,7 @@
  * A Disagree or Unsure is followed by "why?", asked where the vote was cast: the pop-up (ReasonPopover.js) hangs
  * off the overlay button or the thumb that was clicked, or off the thumb for a shortcut vote, once the server has
  * the vote. A pick posts a canned reason as the reader's comment, by id and text, through the same path a typed
- * comment takes; "Other…" is the comment box the vote already opened (#5015); the row's Reasons button is the way
+ * comment takes; "Other…" turns into a field in the pop-up for typed words; the row's Reasons button is the way
  * back once the pop-up has gone. The vote and its reason hold each other: neither may move while the other is in
  * flight, since the server's delete-on-vote-change would otherwise race the pick.
  *
@@ -308,6 +308,21 @@ describe('the reason pop-up on the label card (#5475)', () => {
       click(reopen());
       click(other());
       expect(otherInput().value).toBe('');
+    });
+
+    test('a save from the pop-up leaves the card\'s own edit box and its words alone, and logs no EditComment', async () => {
+      await showLabel({ comments: [comment('my own words', true)] });
+      q('.label-detail__comment-edit').click();
+      q('.label-detail__comment-input').value = 'half an edit';
+      click(reopen());
+      click(other());
+      otherInput().value = 'typed in the pop-up';
+      otherInput().dispatchEvent(new Event('input', { bubbles: true }));
+      click(otherSave());
+      await flush();
+      expect(posted('/labelmap/comment').at(-1)).toMatchObject({ comment: 'typed in the pop-up', reason: null });
+      expect(q('.label-detail__comment-input').value).toBe('half an edit');
+      expect(logged().some((e) => e.includes('_action=EditComment_'))).toBe(false);
     });
 
     test('unsaved words outlast a click outside; Escape still closes', async () => {

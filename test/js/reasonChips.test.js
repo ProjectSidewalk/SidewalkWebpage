@@ -142,7 +142,7 @@ describe('ReasonChips', () => {
     chips.render({ labelType: 'Obstacle', vote: 'Disagree' });
     const group = root.querySelector('[role="group"]');
     expect(group.getAttribute('aria-labelledby')).toBe(root.querySelector('.reason-chips__prompt').id);
-    // "Other…" opens a box rather than picking, so it stands beside the group, not among its toggles.
+    // "Other…" opens a field rather than picking, so it stands beside the group, not among its toggles.
     expect(group.contains(other())).toBe(false);
     expect(root.querySelector('.reason-chips__list').contains(other())).toBe(true);
     expect(chipEls().map((c) => c.tabIndex)).toEqual([0, -1, -1]);
@@ -218,7 +218,7 @@ describe('ReasonChips', () => {
     expect(input.value).toBe('my words');
     expect(input.getAttribute('aria-label')).toBe('Write your own reason');
     expect(save.textContent).toBe('Save');
-    expect(chips.hasOtherDraft).toBe(true);
+    expect(chips.hasOtherDraft).toBe(false); // Only the comment already on record so far.
     expect(onOther).toHaveBeenCalledWith(false);
 
     // Its number key from outside the field returns to it rather than building a second one.
@@ -241,6 +241,18 @@ describe('ReasonChips', () => {
 
     chips.setSelected(ReasonChips.OTHER);
     expect(root.querySelector('.reason-chips__other-form--saved')).not.toBeNull();
+    expect(chips.hasOtherDraft).toBe(false); // Saved, so no longer a draft.
+  });
+
+  test('an untouched prefill is no draft, and a redraw with a draft brings the field back holding it', () => {
+    chips.render({ labelType: 'Crosswalk', vote: 'Unsure', otherText: 'my words' });
+    other().dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }));
+    expect(chips.hasOtherDraft).toBe(false);
+    onOther.mockClear();
+    chips.render({ labelType: 'Crosswalk', vote: 'Disagree', draft: 'half typed' });
+    expect(root.querySelector('.reason-chips__other-input').value).toBe('half typed');
+    expect(other()).toBeNull();
+    expect(onOther).not.toHaveBeenCalled(); // A restore, not a second "Other…".
   });
 
   test('takes no pick while busy, and keeps focus on the row across a redraw', () => {

@@ -102,6 +102,14 @@ export class ReasonPopover {
     });
     if (typeof this.#el.showPopover !== 'function') this.#el.setAttribute('hidden', '');
     document.body.appendChild(this.#el);
+    // Typing into "Other…" during the "Reason saved" hold starts a new answer, which the pending close would discard.
+    this.#el.addEventListener('input', () => {
+      if (this.#closeTimer === null) return;
+      this.#clearCloseTimer();
+      this.#el.classList.remove('reason-popover--saved');
+      this.#savedEl.textContent = '';
+      this.#syncFoot();
+    });
 
     this.#closeButton.addEventListener('click', (e) => this.#dismiss('close', e.detail === 0));
     // pointerdown rather than click: a drag that starts outside should close it too, and a click on a hover-only
@@ -160,9 +168,11 @@ export class ReasonPopover {
       this.close();
       return false;
     }
+    // A re-vote on the same card redraws the row; words half-typed into "Other…" ride across rather than vanish.
+    const draft = this.#request?.host === request.host ? this.#chips.otherFieldText : null;
     const count = this.#chips.render({
       labelType: request.labelType, vote: request.vote, selected: request.selected ?? null,
-      otherText: request.otherText ?? '',
+      otherText: request.otherText ?? '', draft,
     });
     if (count === 0) {
       this.close();
@@ -305,7 +315,9 @@ export class ReasonPopover {
    * @param {KeyboardEvent} e
    */
   #onKeydown = (e) => {
-    if (!this.isOpen() || e.isComposing) return;
+    // Safari ends a composition with a keydown that has isComposing false but keyCode 229; that key is the IME's.
+    // eslint-disable-next-line no-restricted-properties
+    if (!this.isOpen() || e.isComposing || e.keyCode === 229) return;
     if (e.key === 'Escape') {
       e.preventDefault();
       e.stopPropagation();
