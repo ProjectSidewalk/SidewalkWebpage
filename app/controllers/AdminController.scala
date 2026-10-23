@@ -8,6 +8,7 @@ import formats.json.UserFormats.given
 import models.auth.{DefaultEnv, WithAdmin, WithOwner}
 import models.api.ApiModelUtils
 import models.label.{LabelDeletion, LabelPanoMetadata, LabelType}
+import models.street.StreetPriorityRecalc
 import models.user.Role
 import models.utils.JobRunTrigger
 import org.apache.pekko.actor.ActorSystem
@@ -1123,10 +1124,10 @@ class AdminController @Inject() (
   }
 
   /** Recalculates street priority for all streets, recorded as a manual run of the nightly job. */
-  private def runStreetPriorityRecalc(): Future[Seq[Int]] =
+  private def runStreetPriorityRecalc(): Future[StreetPriorityRecalc] =
     jobRunService.record(RecalculateStreetPriorityActor.Name, JobRunTrigger.Manual)(
       streetService.recalculateStreetPriority
-    )(_ => RecalculateStreetPriorityActor.runDetails(None))
+    )(RecalculateStreetPriorityActor.runDetails(_, None))
 
   /** Recalculates street priority without making the caller wait, since it rewrites every street. */
   private def recalculateStreetPriorityInBackground(): Unit =

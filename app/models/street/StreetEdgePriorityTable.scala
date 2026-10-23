@@ -11,11 +11,18 @@ import slick.jdbc.GetResult
 
 import java.time.{LocalDate, OffsetDateTime}
 import javax.inject.{Inject, Singleton}
-import scala.collection.mutable
 import scala.concurrent.ExecutionContext
 
 case class StreetEdgePriorityParameter(streetEdgeId: Int, priorityParameter: Double)
 case class StreetEdgePriority(streetEdgePriorityId: Int, streetEdgeId: Int, priority: Double)
+
+/**
+ * What a street priority recalculation wrote.
+ *
+ * @param streetsChanged    Streets whose priority changed.
+ * @param streetsWithoutRow Open streets with no `street_edge_priority` row, which Explore can't route to.
+ */
+case class StreetPriorityRecalc(streetsChanged: Int, streetsWithoutRow: Int)
 
 /**
  * One open street's routing priority alongside the audit counts the priority formula derives it from (#4908).
@@ -227,27 +234,37 @@ class StreetEdgePriorityTable @Inject() (
   }
 
   /**
-   * Recalculates street edge priority for all streets.
+   * Recalculates street edge priority for every open street, in one statement.
+   *
+   * A closed street keeps its last priority, so a reopened one is routed by its audit history, not as if fully
+   * audited. Unchanged rows are skipped, since most streets keep their priority from night to night.
+   *
+   * @return The changed-street count, and the count of open streets with no priority row (the recalc can't add one).
    */
-  def recalculateStreetPriority: DBIO[Seq[Int]] = {
-    // Function pointer to the function that returns priority based on audit counts of good/bad users
-    // The functions being pointed to should always have the signature ()=>Seq[StreetEdgePriorityParameter]
-    // (Takes no input arguments and returns a Seq[StreetEdgePriorityParameter])
-    val completionCountPriority: DBIO[() => Seq[StreetEdgePriorityParameter]] =
-      selectGoodBadUserCompletionCountPriority.map(() => _)
-
-    // List of function pointers that will generate priority parameters.
-    val rankParameterGeneratorList: DBIO[Seq[() => Seq[StreetEdgePriorityParameter]]] =
-      completionCountPriority.map(Seq(_))
-    // Seq(completionCountPriority1,completionCountPriority2) // how it would look with two priority param funcs
-
-    // Final Priority for each street edge is calculated by some transformation (paramScalingFunction)
-    // of the weighted sum (weights are given by the weightVector) of the priority parameters.
-    // val paramScalingFunction: (Double) => Double = StreetEdgePriorityTable.logisticFunction
-    val weightVector: Seq[Double] = Seq(1d)
-    // val weightVector: Seq[Double] = Seq(0.1,0.9) -- how it would look with two priority param funcs
-    updateAllStreetEdgePriorities(rankParameterGeneratorList, weightVector)
-  }
+  def recalculateStreetPriority: DBIO[StreetPriorityRecalc] =
+    selectGoodBadUserCompletionCountPriority.flatMap { params =>
+      val ids        = params.map(_.streetEdgeId)
+      val priorities = params.map(_.priorityParameter)
+      sql"""
+        WITH new_priority AS (
+            SELECT * FROM unnest($ids::INT[], $priorities::FLOAT8[]) AS new_priority(street_edge_id, priority)
+        ), changed AS (
+            UPDATE street_edge_priority
+            SET priority = new_priority.priority
+            FROM new_priority
+            WHERE street_edge_priority.street_edge_id = new_priority.street_edge_id
+                AND street_edge_priority.priority IS DISTINCT FROM new_priority.priority
+            RETURNING 1
+        )
+        SELECT (SELECT COUNT(*) FROM changed),
+               (SELECT COUNT(*)
+                FROM new_priority
+                WHERE NOT EXISTS (
+                    SELECT 1 FROM street_edge_priority
+                    WHERE street_edge_priority.street_edge_id = new_priority.street_edge_id
+                ))
+      """.as[(Int, Int)].head.map(StreetPriorityRecalc.apply)
+    }
 
   /**
    * Return streets that have been audited by any user since a given time.
@@ -269,42 +286,6 @@ class StreetEdgePriorityTable @Inject() (
    */
   def streetPrioritiesFromIds(streetEdgeIds: Seq[Int]): DBIO[Seq[StreetEdgePriority]] = {
     streetEdgePriorities.filter(_.streetEdgeId inSetBind streetEdgeIds.toSet).result
-  }
-
-  /**
-   * Recalculate the priority attribute for all streetEdges.
-   *
-   * Computes a weighted sum of factors that influence priority (e.g. audit count). It takes a list of functions that
-   * generate a list of StreetEdgePriorityParameters (which just means a value between 0 and 1 representing priority
-   * for each street), and for each street edge, it computes a weighted sum of the priority parameters to get
-   * our final street edge priority.
-   *
-   * @param rankParameterGeneratorList List of funcs that generate a number between 0 and 1 for each streetEdge.
-   * @param weightVector List of positive numbers b/w 0 and 1 that sum to 1; used to weight the generated parameters.
-   */
-  def updateAllStreetEdgePriorities(
-      rankParameterGeneratorList: DBIO[Seq[() => Seq[StreetEdgePriorityParameter]]],
-      weightVector: Seq[Double]
-  ) = {
-    for {
-      paramGeneratorList: Seq[() => Seq[StreetEdgePriorityParameter]] <- rankParameterGeneratorList
-
-      // Create a map from each street edge to a default priority value of 0.
-      streetIds <- streetEdgePriorities.map(_.streetEdgeId).result
-      edgePriorityMap = mutable.Map[Int, Double](streetIds.map(id => id -> 0.0)*)
-
-      // Compute weighted sum of priority based on the rankParameter generators.
-      _ =
-        for ((f_i, w_i) <- paramGeneratorList.zip(weightVector)) {
-          val priorityParamTable: Seq[StreetEdgePriorityParameter] = f_i()
-          priorityParamTable.foreach { edge => edgePriorityMap(edge.streetEdgeId) += (edge.priorityParameter * w_i) }
-        }
-
-      // Set priority values in the table.
-      batchUpdate <- DBIO.sequence(edgePriorityMap.map { case (edgeId, newPriority) =>
-        streetEdgePriorities.filter(_.streetEdgeId === edgeId).map(_.priority).update(newPriority)
-      }.toSeq)
-    } yield batchUpdate
   }
 
   /**
