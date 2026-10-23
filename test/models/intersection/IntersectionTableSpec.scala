@@ -1,5 +1,6 @@
 package models.intersection
 
+import models.street.StreetEdgeStatus
 import models.utils.MyPostgresProfile.api.*
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
@@ -31,11 +32,11 @@ class IntersectionTableSpec extends SidewalkSpec with GuiceOneAppPerSuite with R
   private def degrees(meters: Double): Double = meters / 111000.0
 
   /** Seeds a residential street along the given WKT LineString (open unless `status` says), returning its id. */
-  private def insertStreetAt(wkt: String, status: String = "open"): DBIO[Int] =
+  private def insertStreetAt(wkt: String, status: StreetEdgeStatus = StreetEdgeStatus.Open): DBIO[Int] =
     sql"""INSERT INTO street_edge (street_edge_id, geom, x1, y1, x2, y2, way_type, status)
           SELECT (SELECT COALESCE(MAX(street_edge_id), 0) + 1 FROM street_edge), g,
                  ST_X(ST_StartPoint(g)), ST_Y(ST_StartPoint(g)), ST_X(ST_EndPoint(g)), ST_Y(ST_EndPoint(g)),
-                 'residential', CAST($status AS street_edge_status)
+                 'residential', $status
           FROM (SELECT ST_SetSRID(ST_GeomFromText($wkt), 4326) AS g) geom
           RETURNING street_edge_id""".as[Int].head
 
@@ -161,7 +162,7 @@ class IntersectionTableSpec extends SidewalkSpec with GuiceOneAppPerSuite with R
       runRolledBack(for {
         arms <- fourWay(10.0, 10.0)
         // A 0.6 m (so disabled, #5691) sliver from the cross, then a street off its far end: five meet, not six.
-        sliver <- insertStreetAt(line(10.0, 10.0, 10.000005, 10.000003), "disabled")
+        sliver <- insertStreetAt(line(10.0, 10.0, 10.000005, 10.000003), StreetEdgeStatus.Disabled)
         fifth  <- insertStreetAt(line(10.000005, 10.000003, 10.001, 10.001))
         _      <- table.rebuild
         near   <- intersectionsNear(10.0, 10.0)

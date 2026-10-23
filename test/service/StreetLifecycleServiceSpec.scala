@@ -127,7 +127,7 @@ class StreetLifecycleServiceSpec extends SidewalkSpec with BeforeAndAfterAll wit
       val since  = OffsetDateTime.now.minusWeeks(4)
       val before = run(statusChangeTable.transitionsByWeek(since))
       seedChange(StreetEdgeStatus.Open, StreetEdgeStatus.Closed, OffsetDateTime.now.minusWeeks(20))
-      run(statusChangeTable.transitionsByWeek(since)) mustBe before
+      run(statusChangeTable.transitionsByWeek(since)) must contain theSameElementsAs before
     }
   }
 
