@@ -272,4 +272,25 @@ class StreetPriorityAdminSpec extends SidewalkSpec with GuiceOneAppPerSuite with
       all(rows.map(_.priority)) must be <= 1.0
     }
   }
+
+  "recalculateStreetPriority" should {
+    "store the formula's priority for every street, and change nothing on a rerun" in {
+      val (changedOnRerun, stored, formulaParams) = runRolledBack(
+        for {
+          // Stale every row first so the first run has to write all of them.
+          _      <- streetEdgePriorities.map(_.priority).update(-1.0)
+          _      <- streetEdgePriorityTable.recalculateStreetPriority
+          rerun  <- streetEdgePriorityTable.recalculateStreetPriority
+          rows   <- streetEdgePriorities.map(row => (row.streetEdgeId, row.priority)).result
+          params <- streetEdgePriorityTable.selectGoodBadUserCompletionCountPriority
+        } yield (rerun, rows.toMap, params)
+      )
+      assume(formulaParams.nonEmpty)
+
+      changedOnRerun mustBe 0
+      val mismatches =
+        formulaParams.filterNot(param => stored.get(param.streetEdgeId).contains(param.priorityParameter))
+      mismatches mustBe empty
+    }
+  }
 }

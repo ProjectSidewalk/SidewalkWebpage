@@ -1123,7 +1123,7 @@ class AdminController @Inject() (
   }
 
   /** Recalculates street priority for all streets, recorded as a manual run of the nightly job. */
-  private def runStreetPriorityRecalc(): Future[Seq[Int]] =
+  private def runStreetPriorityRecalc(): Future[Int] =
     jobRunService.record(RecalculateStreetPriorityActor.Name, JobRunTrigger.Manual)(
       streetService.recalculateStreetPriority
     )(_ => RecalculateStreetPriorityActor.runDetails(None))

@@ -228,8 +228,9 @@ class StreetEdgePriorityTable @Inject() (
 
   /**
    * Recalculates street edge priority for all streets.
+   * @return The number of streets whose priority changed.
    */
-  def recalculateStreetPriority: DBIO[Seq[Int]] = {
+  def recalculateStreetPriority: DBIO[Int] = {
     // Function pointer to the function that returns priority based on audit counts of good/bad users
     // The functions being pointed to should always have the signature ()=>Seq[StreetEdgePriorityParameter]
     // (Takes no input arguments and returns a Seq[StreetEdgePriorityParameter])
@@ -281,11 +282,12 @@ class StreetEdgePriorityTable @Inject() (
    *
    * @param rankParameterGeneratorList List of funcs that generate a number between 0 and 1 for each streetEdge.
    * @param weightVector List of positive numbers b/w 0 and 1 that sum to 1; used to weight the generated parameters.
+   * @return The number of streets whose priority changed.
    */
   def updateAllStreetEdgePriorities(
       rankParameterGeneratorList: DBIO[Seq[() => Seq[StreetEdgePriorityParameter]]],
       weightVector: Seq[Double]
-  ) = {
+  ): DBIO[Int] = {
     for {
       paramGeneratorList: Seq[() => Seq[StreetEdgePriorityParameter]] <- rankParameterGeneratorList
 
@@ -300,11 +302,17 @@ class StreetEdgePriorityTable @Inject() (
           priorityParamTable.foreach { edge => edgePriorityMap(edge.streetEdgeId) += (edge.priorityParameter * w_i) }
         }
 
-      // Set priority values in the table.
-      batchUpdate <- DBIO.sequence(edgePriorityMap.map { case (edgeId, newPriority) =>
-        streetEdgePriorities.filter(_.streetEdgeId === edgeId).map(_.priority).update(newPriority)
-      }.toSeq)
-    } yield batchUpdate
+      // One statement for every street: a round trip per street takes minutes in a large city (#5821).
+      // Rows whose priority hasn't changed are skipped, since most streets keep the same priority from night to night.
+      (ids, priorities) = edgePriorityMap.toSeq.unzip
+      rowsChanged <- sqlu"""
+        UPDATE street_edge_priority
+        SET priority = new_priority.priority
+        FROM unnest($ids::INT[], $priorities::FLOAT8[]) AS new_priority(street_edge_id, priority)
+        WHERE street_edge_priority.street_edge_id = new_priority.street_edge_id
+          AND street_edge_priority.priority IS DISTINCT FROM new_priority.priority
+      """
+    } yield rowsChanged
   }
 
   /**

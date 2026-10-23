@@ -58,7 +58,7 @@ trait StreetService {
   def getTotalStreetDistanceDBIO: DBIO[Double]
   def getTotalStreetDistance(metric: Boolean): Future[Double]
   def getAuditedStreetDistance(metric: Boolean): Future[Double]
-  def recalculateStreetPriority: Future[Seq[Int]]
+  def recalculateStreetPriority: Future[Int]
 
   /** Counts the served streets with no gradient row or a row from an older geometry (#5223); see `stalenessCounts`. */
   def countStreetGradientStaleness: Future[StreetGradientStaleness]
@@ -122,7 +122,7 @@ class StreetServiceImpl @Inject() (
     }
   }
 
-  def recalculateStreetPriority: Future[Seq[Int]] = db.run(streetEdgePriorityTable.recalculateStreetPriority)
+  def recalculateStreetPriority: Future[Int] = db.run(streetEdgePriorityTable.recalculateStreetPriority)
 
   /**
    * Every routable street's priority with the audit counts behind it, for the admin imagery panel (#4908).

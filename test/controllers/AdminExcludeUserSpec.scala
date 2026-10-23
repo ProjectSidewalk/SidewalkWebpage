@@ -49,7 +49,7 @@ class AdminExcludeUserSpec
           StubService.answeringWith[StreetService](
             Map("recalculateStreetPriority" -> { () =>
               priorityRecalcs.incrementAndGet()
-              Future.successful(Seq.empty[Int])
+              Future.successful(0)
             })
           )
         )

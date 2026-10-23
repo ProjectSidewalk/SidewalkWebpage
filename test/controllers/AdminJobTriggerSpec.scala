@@ -132,7 +132,7 @@ class AdminJobTriggerSpec
         bind[StreetService].toInstance(
           StubService.answering[StreetService](
             Map(
-              "recalculateStreetPriority"    -> Future.successful(Seq(1, 2)),
+              "recalculateStreetPriority"    -> Future.successful(2),
               "countStreetGradientStaleness" -> Future.successful(StalenessResult)
             )
           )
