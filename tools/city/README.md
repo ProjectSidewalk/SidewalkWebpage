@@ -15,7 +15,11 @@ root, so they run from any directory; unit tests live in [`test/python/`](../../
 | `maps_key_referrers.py` | `make onboard-city`, or by hand | Adds a city's hostnames to the Maps key's referrer list |
 | `street_gradient.py` | `make street-gradient` | Samples an elevation model along every street |
 | `osm_lineage.py` | (imported) | Matches streets to the OSM ways they lie on, by geometry (#5741); the build and the backfill both use it |
-| `backfill_osm_lineage.py` | `make osm-lineage` | Positions a live city's streets on today's OSM ways, between `make export-osm-lineage-input` and `make import-osm-lineage` |
+| `backfill_osm_lineage.py` | `make osm-lineage` | Positions a live city's streets on today's OSM ways, between `make export-osm-lineage-input` and `make import-osm-lineage`; `--dry-run` prints the request count first |
+| `overpass.py` | (imported; `--check` by hand) | How the two fetchers above talk to the public Overpass server without getting the network blocked: identity, small tiled requests, a day cache, 30 s-and-doubling retries, one exit code (75) for "stop and resume later" |
+
+The OSM fetches share one cache, `db/onboarding/osmnx-cache/<date>/`, which `overpass.py` keeps for a week: a rerun
+the same day re-reads what it fetched, a later one sees what OSM holds then.
 
 The whole new-city sequence is [`docs/onboarding-a-city.md`](../../docs/onboarding-a-city.md); `setup_new_city.py`,
 `create_ga_properties.py` and `maps_key_referrers.py` are documented in their headers.

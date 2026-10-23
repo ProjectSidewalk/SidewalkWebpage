@@ -12,12 +12,19 @@ the OSM ways around the city and matches each street to them by geometry (``osm_
 A street's recorded ways are tried first; where OSM has since split or redrawn a way, the matching finds what is there
 now. ``osm_lineage_review.csv`` lists every street not matched along its whole length, with its line as WKT for QGIS,
 and the import keeps such a street's recorded ways without positions.
+
+The ways come from the public Overpass server in small, well-spaced requests (``overpass.py`` says why): the ground
+the streets stand on is cut into tiles of at most ``--tile-km2``, each fetched on its own, so a sprawling city asks
+for its towns and not the countryside between them. ``--dry-run`` prints the request count and area and fetches
+nothing. When Overpass keeps refusing, the exit code is 75 and nothing is written: stop and resume later rather than
+send more.
 """
 import argparse
 import csv
 import logging
 import sys
-from math import cos, radians
+from dataclasses import dataclass
+from math import cos, floor, radians, sqrt
 from pathlib import Path
 
 import shapely
@@ -26,6 +33,8 @@ from shapely import wkb
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from onboard_city import fetch_ways, valid_city_id  # noqa: E402
 from osm_lineage import compute_lineage, lineage_rows, lineage_summary  # noqa: E402
+from overpass import (EXIT_UNAVAILABLE, OVERPASS_URL, OverpassUnavailable, RetryPolicy, summary,  # noqa: E402
+                      wait_until_answering)
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 INPUT_NAME = 'osm_lineage_input.csv'
@@ -62,12 +71,66 @@ def read_input(path):
     return streets
 
 
-def hull_of(streets, buffer_m):
-    """The area to fetch ways for: the streets' convex hull, widened by ``buffer_m``, in lon/lat."""
-    # A hull needs no union of the lines first, which on a large city is the slow and memory-hungry step.
-    hull = shapely.MultiLineString([geom for _, _, _, geom in streets]).convex_hull
-    buffer_deg = buffer_m / (111_320 * cos(radians(hull.centroid.y)))
-    return hull.buffer(buffer_deg)
+@dataclass(frozen=True)
+class Tiling:
+    """
+    The fetch areas for a set of streets: one Overpass request each, in lon/lat.
+
+    ``polygons`` are the convex hulls of each group of occupied cells, widened by the buffer; ``cells_km2`` is the
+    ground the streets occupy, ``hull_km2`` what one hull around all of them would have asked for.
+    """
+    polygons: list
+    cells_km2: float
+    area_km2: float
+    hull_km2: float
+
+    def __str__(self):
+        return (f'{len(self.polygons)} Overpass request(s) over {self.area_km2:,.0f} km² (streets occupy '
+                f'{self.cells_km2:,.0f} km²; one hull around them would be {self.hull_km2:,.0f} km²)')
+
+
+def tiles_for(lines, buffer_m, tile_km2=300.0, cell_m=1000.0):
+    """
+    Cuts the ground the streets stand on into fetch areas of at most about ``tile_km2`` each.
+
+    The streets are laid on a grid of ``cell_m`` squares, and the occupied squares are grouped by a coarser grid of
+    ``tile_km2``, so a city that is really a few towns far apart (a validation study, a county) fetches the towns and
+    not the countryside between them, and a big city becomes many small requests a busy server still admits rather
+    than a few huge ones. Each group goes to the server as its convex hull, since osmnx sends a hull anyway, widened
+    by ``buffer_m`` so a way just outside a cell still comes back.
+
+    Args:
+        lines:    Shapely LineStrings in lon/lat.
+        buffer_m: How far beyond the streets to fetch, in metres.
+        tile_km2: The area of one group of cells at most, in km²; the request count follows from it.
+        cell_m:   The grid spacing, in metres.
+
+    Returns:
+        A :class:`Tiling`; an empty one for no lines.
+    """
+    if not lines:
+        return Tiling([], 0.0, 0.0, 0.0)
+    # One flat metre frame around the city, as the matcher measures, so the cells are square.
+    _, miny, _, maxy = shapely.total_bounds(lines)
+    scale = [111_320 * cos(radians((miny + maxy) / 2)), 111_320]
+    lines_m = [shapely.transform(line, lambda coords: coords * scale) for line in lines]
+    cells = set()
+    for line in lines_m:
+        # A vertex every half cell, so a long straight street marks every cell it crosses, not just its ends.
+        for x, y in shapely.get_coordinates(shapely.segmentize(line, cell_m / 2)):
+            cells.add((floor(x / cell_m), floor(y / cell_m)))
+    per_side = max(1, floor(sqrt(tile_km2 * 1e6) / cell_m))
+    groups = {}
+    for cx, cy in cells:
+        groups.setdefault((cx // per_side, cy // per_side), []).append((cx, cy))
+    polygons, area_m2 = [], 0.0
+    for key in sorted(groups):
+        boxes = [shapely.box(cx * cell_m, cy * cell_m, (cx + 1) * cell_m, (cy + 1) * cell_m) for cx, cy in groups[key]]
+        hull = shapely.union_all(boxes).convex_hull.buffer(buffer_m)
+        area_m2 += hull.area
+        polygons.append(shapely.transform(hull, lambda coords: coords / scale))
+    hull_km2 = shapely.MultiLineString(lines_m).convex_hull.buffer(buffer_m).area / 1e6
+    return Tiling(polygons, len(cells) * cell_m ** 2 / 1e6, area_m2 / 1e6, hull_km2)
 
 
 def lineage_output(streets, lineages):
@@ -113,6 +176,17 @@ def write_csv(path, fields, rows):
         writer.writerows(rows)
 
 
+def tile_area(text):
+    """An argparse type: a tile area in km², from 1 to the 2,500 above which osmnx subdivides a request itself."""
+    try:
+        value = float(text)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f'not a number: {text!r}') from None
+    if not 1 <= value <= 2500:
+        raise argparse.ArgumentTypeError(f'--tile-km2 must be between 1 and 2500, not {text}')
+    return value
+
+
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.split('\n\n')[0],
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -120,19 +194,36 @@ def parse_args(argv=None):
                         help='The db/onboarding/<city-id> dir holding osm_lineage_input.csv (e.g. seattle-wa).')
     parser.add_argument('--fetch-buffer-m', type=float, default=100.0,
                         help='How far beyond the streets to fetch ways, in metres (default 100).')
+    parser.add_argument('--tile-km2', type=tile_area, default=300.0,
+                        help='The ground one Overpass request covers at most, in km² (default 300; 1 to 2,500, since '
+                             'osmnx splits a larger area into several requests of its own).')
+    parser.add_argument('--request-timeout-s', type=int, default=60,
+                        help='The server time each request declares and is allowed, in seconds (default 60; raise '
+                             'it for a city whose tiles are dense).')
+    parser.add_argument('--request-memory-mb', type=int, default=256,
+                        help='The server memory each request declares, in MB (default 256).')
+    parser.add_argument('--pause-s', type=float, default=7.0,
+                        help='The rest between two requests, in seconds (default 7).')
+    parser.add_argument('--dry-run', action='store_true',
+                        help='Print the request count and area for the city and fetch nothing.')
+    parser.add_argument('--overpass-url', default=OVERPASS_URL,
+                        help=f'The Overpass instance to ask, without /interpreter (default {OVERPASS_URL}); read its '
+                             'usage policy first, and never switch because the default refused you.')
     return parser.parse_args(argv)
 
 
-def main(argv=None, fetch=fetch_ways):
+def main(argv=None, fetch=fetch_ways, probe=wait_until_answering):
     """
     Matches the exported streets to the OSM ways around them and writes the import and review files.
 
     Args:
         argv:  Command-line arguments; the process's when None.
         fetch: The way fetch, ``onboard_city.fetch_ways`` unless a test supplies another.
+        probe: Waits for Overpass to answer a tiny query first, so a run that has been refused is found out before
+               it asks for anything heavy; ``overpass.wait_until_answering`` unless a test supplies another.
 
     Returns:
-        The process exit code.
+        The process exit code: 0, 1 on bad input, 75 when Overpass would not answer (nothing written).
     """
     logging.basicConfig(level=logging.INFO, format='%(message)s')
     args = parse_args(argv)
@@ -146,14 +237,39 @@ def main(argv=None, fetch=fetch_ways):
         logger.error('%s holds no streets.', input_path)
         return 1
     logger.info('Read %d streets from %s', len(streets), input_path)
-    ways = fetch(hull_of(streets, args.fetch_buffer_m), True, 0, fresh=True)
+    tiling = tiles_for([geom for _, _, _, geom in streets], args.fetch_buffer_m, args.tile_km2)
+    logger.info('%s', tiling)
+    if args.dry_run:
+        return 0
+    policy = RetryPolicy()
+    try:
+        probe(policy, url=args.overpass_url)
+        ways = fetch(tiling.polygons, 'any', request_timeout_s=args.request_timeout_s,
+                     memory_mb=args.request_memory_mb, pause_s=args.pause_s, policy=policy, one_request_each=True,
+                     overpass_url=args.overpass_url)
+    except OverpassUnavailable as exc:
+        logger.error('%s. Nothing was written for %s.', exc, args.city_id)
+        return EXIT_UNAVAILABLE
+    except Exception as exc:
+        # A status the retry does not cover (a 403, a 400) is still Overpass turning us away, and the driver must
+        # stop sending rather than go on to the next city; osmnx's class is matched by name as overpass.py does.
+        if type(exc).__name__ != 'ResponseStatusCodeError':
+            raise
+        logger.error('Overpass refused the query (%s). Nothing was written for %s.', summary(exc), args.city_id)
+        return EXIT_UNAVAILABLE
     logger.info('Fetched %d OSM ways around them', len(ways))
     lineages = compute_lineage(((street_edge_id, geom, hints) for street_edge_id, _, hints, geom in streets),
                                dict(zip(ways['osm_way_id'], ways.geometry)))
     counts = lineage_summary(lineages)
-    write_csv(city_dir / OUTPUT_NAME, OUTPUT_FIELDS, lineage_output(streets, lineages))
     review = review_output(streets, lineages)
     write_csv(city_dir / REVIEW_NAME, REVIEW_FIELDS, review)
+    # No city of ours matches that badly; this is an instance without the region, or the wrong city.
+    if counts['unmatched'] * 2 > len(streets):
+        logger.error('%d of %d streets matched nothing, which no city of ours does: an Overpass instance without this '
+                     'region, or the wrong city? Nothing was written for %s but the review file %s.',
+                     counts['unmatched'], len(streets), args.city_id, city_dir / REVIEW_NAME)
+        return 1
+    write_csv(city_dir / OUTPUT_NAME, OUTPUT_FIELDS, lineage_output(streets, lineages))
     logger.info('Matched %d streets along their whole length, %d in part, %d not at all. Wrote %s; the %d to review '
                 'are in %s. Next: make import-osm-lineage', counts['matched'], counts['partial'], counts['unmatched'],
                 city_dir / OUTPUT_NAME, len(review), city_dir / REVIEW_NAME)

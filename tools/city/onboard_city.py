@@ -101,9 +101,11 @@ pay its startup cost.
 import argparse
 import csv
 import hashlib
+import json
 import logging
 import re
 import sys
+import time
 from collections import Counter, defaultdict, namedtuple
 from math import cos, radians
 from datetime import datetime, timezone
@@ -113,11 +115,14 @@ import geopandas as gpd
 import pandas as pd
 import requests
 import shapely
+import shapely.errors
 from pyproj import Geod
 from shapely.geometry import LineString, MultiPolygon, Point, Polygon
 from shapely.ops import linemerge, substring
 
 from osm_lineage import compute_lineage, lineage_rows, lineage_summary, ways_from_features
+from overpass import (CLIENT_SLACK_S, OVERPASS_URL, Refused, RetryPolicy, call_with_retry, configure, declare_limits,
+                      fetch_each, remark_watch, with_deadline)
 from setup_new_city import staging_fingerprint
 
 logger = logging.getLogger(__name__)
@@ -125,20 +130,50 @@ logger = logging.getLogger(__name__)
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 
 
-def _osmnx(fresh=False):
+def tolerate_broken_relations(ox):
     """
-    Imports osmnx with its HTTP cache pointed into the git-ignored onboarding dir instead of CWD-relative cache/.
+    Makes osmnx drop a relation it cannot build instead of failing the whole tile. A mirror caught mid-replication
+    can send a way without one of its nodes; osmnx logs that way and goes on, but a relation listing it (a pedestrian
+    area, a route) then dies in shapely on the empty line. Nothing here reads relations: streets are built from ways.
+    """
+    build = ox.features._build_relation_geometry
+    if getattr(build, 'tolerant', False):
+        return
+
+    def tolerant(members, way_geoms):
+        try:
+            return build(members, way_geoms)
+        except (shapely.errors.ShapelyError, ValueError) as exc:
+            logger.warning('osmnx could not build a relation, dropped: %s', exc)
+            return Polygon()
+    tolerant.tolerant = True
+    ox.features._build_relation_geometry = tolerant
+
+
+def _osmnx(request_timeout_s=180, memory_mb=None, overpass_url=OVERPASS_URL):
+    """
+    Imports osmnx pointed at Overpass the way ``overpass.py`` prescribes, with its cache in the git-ignored onboarding
+    dir (a folder per day) instead of CWD-relative cache/.
 
     Args:
-        fresh: Skip the cache, which never expires, so the fetch is what OSM holds today.
+        request_timeout_s: The server time each query declares; osmnx's default suits a whole-city street graph,
+                           the backfill's small tiles declare a minute.
+        memory_mb:         The server memory each query declares; None leaves the server's default.
+        overpass_url:      The instance to ask, without /interpreter.
     """
     import osmnx as ox
-    ox.settings.cache_folder = str(REPO_ROOT / 'db' / 'onboarding' / 'osmnx-cache')
-    ox.settings.use_cache = not fresh
+    configure(ox, REPO_ROOT / 'db' / 'onboarding' / 'osmnx-cache', request_timeout_s, memory_mb, url=overpass_url)
+    tolerate_broken_relations(ox)
     # osmnx keeps bridge and tunnel on every edge by default but drops covered; is_structure needs all three.
     tags = list(getattr(ox.settings, 'useful_tags_way', []))
     ox.settings.useful_tags_way = tags + [tag for tag in STRUCTURE_TAGS if tag not in tags]
     return ox
+
+
+def fetch_area(boundary_poly, fetch_buffer_m):
+    """The city boundary widened by ``fetch_buffer_m`` metres, in lon/lat: what both OSM fetches ask for."""
+    buffer_deg = fetch_buffer_m / (111_320 * cos(radians(boundary_poly.centroid.y)))
+    return boundary_poly.buffer(buffer_deg)
 
 
 # The OSM way tags that put a street on a structure, read by is_structure_tag. The same three tags, with the same
@@ -152,6 +187,13 @@ MIN_SEGMENT_M = 15
 # Every value is a label of the DB's way_type enum, so fill-new-schema.sh's ::way_type cast can't fail.
 DEFAULT_WAY_TYPES = (
     'trunk', 'primary', 'secondary', 'tertiary', 'residential', 'unclassified', 'pedestrian', 'living_street'
+)
+# Every value OSM gives a highway way, for the backfill. Named one by one rather than highway=*, which would also
+# bring every crossing, signal and lamp node, and those outnumber the ways on a dense tile.
+ALL_WAY_TYPES = DEFAULT_WAY_TYPES + (
+    'motorway', 'motorway_link', 'trunk_link', 'primary_link', 'secondary_link', 'tertiary_link', 'service', 'road',
+    'busway', 'bus_guideway', 'escape', 'raceway', 'track', 'footway', 'path', 'steps', 'cycleway', 'bridleway',
+    'corridor', 'via_ferrata', 'construction', 'proposed', 'abandoned', 'disused', 'razed', 'planned'
 )
 
 # Current (non-ACS-group) Census Tracts layer of the TIGERweb Tracts_Blocks MapServer; supports f=geojson.
@@ -1198,7 +1240,7 @@ def read_regions_file(path, name_col='name'):
     return regions.rename(columns={name_col: 'name'})[['name', 'geometry']]
 
 
-def fetch_streets(boundary_poly, include_alleys, fetch_buffer_m):
+def fetch_streets(boundary_poly, include_alleys, fetch_buffer_m, policy=RetryPolicy(), **retry_kwargs):
     """
     Fetches the intersection-noded, undirected street network from OSM.
 
@@ -1215,16 +1257,28 @@ def fetch_streets(boundary_poly, include_alleys, fetch_buffer_m):
         boundary_poly:  Shapely (Multi)Polygon of the city, in lon/lat.
         include_alleys: Also fetch ``service=alley`` ways.
         fetch_buffer_m: How far outside the boundary to fetch, in meters.
+        policy, retry_kwargs: The Overpass retry schedule and its clock fakes, for tests.
 
     Returns:
         A GeoDataFrame of street edges: ``u``/``v`` (the OSM node ids at each end, which :func:`merge_tiny_same_way`
         uses to find touching pieces), ``osm_ids`` (every OSM way the edge spans), ``highway`` (single way-type
         string), ``is_structure`` (:func:`is_structure_tag`), geometry.
+
+    Raises:
+        RuntimeError: when the server cut a query short, since a street network with a piece missing is worse than
+                      none; a build is one city, so it is run again later rather than with bigger limits.
     """
     ox = _osmnx()
-    buffer_deg = fetch_buffer_m / (111_320 * cos(radians(boundary_poly.centroid.y)))
-    graph = ox.graph_from_polygon(boundary_poly.buffer(buffer_deg), custom_filter=build_osm_filters(include_alleys),
-                                  simplify=True, retain_all=True, truncate_by_edge=True)
+    watch = remark_watch(ox)
+
+    def attempt():
+        watch.clear()   # A remark from an attempt that then failed must not count against the one that succeeds.
+        return ox.graph_from_polygon(fetch_area(boundary_poly, fetch_buffer_m),
+                                     custom_filter=build_osm_filters(include_alleys), simplify=True, retain_all=True,
+                                     truncate_by_edge=True)
+    graph = call_with_retry(attempt, 'street graph', policy, **retry_kwargs)
+    if watch.cut_short:
+        raise RuntimeError(f'Overpass cut the street fetch short ({watch.remark}); run the build again later.')
     graph = ox.convert.to_undirected(graph)
     edges = ox.convert.graph_to_gdfs(graph, nodes=False, edges=True).reset_index()
     edges['osm_ids'] = edges['osmid'].map(as_id_list)
@@ -1235,30 +1289,120 @@ def fetch_streets(boundary_poly, include_alleys, fetch_buffer_m):
     return edges[['u', 'v', 'osm_ids', 'highway', 'is_structure', 'geometry']]
 
 
-def fetch_ways(boundary_poly, include_alleys, fetch_buffer_m, fresh=False):
+def drop_unreadable_cache(folder, since):
+    """
+    Deletes the osmnx cache files written since ``since`` (epoch seconds) that are not whole JSON, and says how many.
+    A request's deadline can fall while osmnx writes the reply it just got, and osmnx reads the file back on the
+    next ask of the same query.
+    """
+    dropped = 0
+    if folder.is_dir():
+        for path in folder.iterdir():
+            if path.is_file() and path.stat().st_mtime >= since - 1:
+                try:
+                    json.loads(path.read_text(encoding='utf-8'))
+                except ValueError:
+                    path.unlink()
+                    dropped += 1
+    return dropped
+
+
+def fetch_ways(polygons, way_types, request_timeout_s=180, memory_mb=None, pause_s=7.0, policy=RetryPolicy(),
+               one_request_each=False, overpass_url=OVERPASS_URL, **retry_kwargs):
     """
     Fetches the OSM ways the streets are cut from, whole and in their drawn direction, for :func:`street_lineage`.
 
-    A second request over the same area as :func:`fetch_streets`, with the same filter and buffer, since the graph fetch
-    drops the ways' order and direction (#5741).
+    On a build this is a second request over the same area as :func:`fetch_streets`, with the same filter, since the
+    graph fetch drops the ways' order and direction (#5741). The backfill passes many small areas instead, one request
+    each, well spaced and retried the way ``overpass.py`` prescribes.
 
     Args:
-        boundary_poly:  Shapely (Multi)Polygon of the city, in lon/lat.
-        include_alleys: Also fetch ``service=alley`` ways.
-        fetch_buffer_m: How far outside the boundary to fetch, in meters.
-        fresh:          Skip osmnx's cache, so a backfill matches against the ways OSM holds today.
+        polygons:          Shapely (Multi)Polygons in lon/lat, one request each; a way in two of them comes back once.
+        way_types:         ``'streets'`` for the build's :data:`DEFAULT_WAY_TYPES`, ``'alleys'`` for those plus
+                           ``service=alley`` (a build auditing alleys), or ``'any'`` for :data:`ALL_WAY_TYPES` (the
+                           backfill: a live city may have been built from footways, ramps or tracks too, and OSM
+                           retags roads after the fact).
+        request_timeout_s: The server time each request declares (see :func:`_osmnx`).
+        memory_mb:         The server memory each request declares.
+        pause_s:           The rest between two requests the server served.
+        policy:            The retry schedule for a refused request.
+        one_request_each:  Every polygon is under 2,500 km², so each call is one request and gets a deadline.
+        overpass_url:      The instance to ask, without /interpreter.
+        retry_kwargs:      The clock fakes ``overpass.fetch_each`` takes, for tests.
 
     Returns:
         A GeoDataFrame of ways: ``osm_way_id``, ``highway``, LineString geometry in lon/lat.
+
+    Raises:
+        overpass.OverpassUnavailable: when a request is refused for the whole retry window.
+        RuntimeError: when the server keeps cutting a request short with the limits doubled twice, or answers an
+                      area with streets in it with no way at all (an instance without this region).
+        ValueError: when ``way_types`` is none of those three.
     """
-    ox = _osmnx(fresh)
-    buffer_deg = fetch_buffer_m / (111_320 * cos(radians(boundary_poly.centroid.y)))
-    highways = list(DEFAULT_WAY_TYPES) + (['service'] if include_alleys else [])
-    features = ox.features_from_polygon(boundary_poly.buffer(buffer_deg), tags={'highway': highways})
-    if include_alleys and 'service' in features.columns:
-        features = features[(features['highway'] != 'service') | (features['service'] == 'alley')]
-    ways = ways_from_features(features)
-    highway = features['highway'].to_dict() if 'highway' in features.columns else {}
+    if way_types not in ('streets', 'alleys', 'any'):
+        raise ValueError(f'way_types must be streets, alleys or any, not {way_types!r}')
+    ox = _osmnx(request_timeout_s, memory_mb, overpass_url)
+    watch = remark_watch(ox)
+    highways = list(ALL_WAY_TYPES) if way_types == 'any' else \
+        list(DEFAULT_WAY_TYPES) + (['service'] if way_types == 'alleys' else [])
+    limits = [request_timeout_s, memory_mb]
+
+    def cached():
+        folder = Path(ox.settings.cache_folder)
+        return len(list(folder.iterdir())) if folder.is_dir() else 0
+
+    sleep = retry_kwargs.get('sleep', time.sleep)
+
+    def fetch_one(polygon):
+        # A query cut short (out of its declared time or memory) is a 200 with a remark and partial data, so it is asked
+        # again with twice the limits, twice. The raised limits stay: the city's next tile is as dense.
+        for attempt in range(3):
+            if attempt:
+                sleep(pause_s)   # A second ask is a request like any other, and gets the rest between requests.
+            watch.clear()
+            before = cached()
+            started = time.time()
+            deadline = ox.settings.requests_timeout + 2 * CLIENT_SLACK_S if one_request_each else None
+            try:
+                features = with_deadline(lambda: ox.features_from_polygon(polygon, tags={'highway': highways}),
+                                         deadline)
+            except Refused:
+                raise
+            except Exception as exc:
+                if watch.cut_short:
+                    features = None
+                elif type(exc).__name__ == 'InsufficientResponseError' and str(exc).startswith('No matching features'):
+                    # Every area asked for has streets in it.
+                    raise RuntimeError('Overpass returned no ways at all for an area with streets in it: an instance '
+                                       'without this region, or the wrong one?') from exc
+                elif isinstance(exc, ValueError) and drop_unreadable_cache(Path(ox.settings.cache_folder), started):
+                    # The deadline can fall while osmnx writes its cache file, and osmnx reads that file back.
+                    logger.warning('Dropped a cache file written in pieces (%s); asking again', exc)
+                    continue
+                else:
+                    raise
+            # A served answer lands in the cache; one the server cut short is not cached but was served all the same.
+            served = watch.remark is not None or cached() > before
+            if not watch.cut_short:
+                return features, served
+            logger.warning('Overpass cut the request short (%s); asking again with twice the time and memory',
+                           watch.remark)
+            limits[0] *= 2
+            if limits[1]:
+                limits[1] *= 2
+            declare_limits(ox, *limits)
+        reason = watch.remark or 'a cache file written in pieces'
+        raise RuntimeError(f'Overpass gave no whole answer in three tries ({reason}): run again with a larger '
+                           f'--request-timeout-s and --request-memory-mb, or a smaller --tile-km2.')
+
+    ways, highway = {}, {}
+    for features in fetch_each(polygons, fetch_one, pause_s, policy, **retry_kwargs):
+        if way_types == 'alleys' and 'highway' in features.columns:
+            # Without the service column no way in the tile says what kind of service road it is, so none is an alley.
+            is_alley = features['service'] == 'alley' if 'service' in features.columns else False
+            features = features[(features['highway'] != 'service') | is_alley]
+        ways.update(ways_from_features(features))
+        highway.update(features['highway'].to_dict() if 'highway' in features.columns else {})
     return gpd.GeoDataFrame({'osm_way_id': list(ways),
                              'highway': [normalize_way_type(highway.get(('way', way_id))) for way_id in ways]},
                             geometry=list(ways.values()), crs='EPSG:4326')
@@ -2273,7 +2417,7 @@ def main(argv=None):
 
     streets = fetch_streets(boundary_poly, args.include_alleys, args.fetch_buffer_m)
     logger.info('OSM street edges fetched: %d', len(streets))
-    ways = fetch_ways(boundary_poly, args.include_alleys, args.fetch_buffer_m)
+    ways = fetch_ways([fetch_area(boundary_poly, args.fetch_buffer_m)], 'alleys' if args.include_alleys else 'streets')
     logger.info('OSM ways fetched: %d', len(ways))
     streets, n_tier1_merged = merge_tiny_same_way(streets, args.merge_tiny_m)
     logger.info('Merged %d pieces < %g m into a touching piece of the same OSM way (#4717 tier 1); %d edges remain',
