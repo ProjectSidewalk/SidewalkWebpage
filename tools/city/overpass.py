@@ -44,7 +44,8 @@ USER_AGENT = 'ProjectSidewalk/1.0 (+https://projectsidewalk.org; sidewalk@cs.uw.
 OVERPASS_URL = 'https://overpass-api.de/api'   # The base, as osmnx takes it; /interpreter is appended.
 # The smallest question the interpreter answers. Not /status: it has answered while /interpreter refused the same IP.
 PROBE_QUERY = '[out:json][timeout:5][maxsize:1048576];node(1);out ids;'
-PROBE_TIMEOUT_S = 15
+# Generous: a busy mirror has taken over ten seconds to answer even this, and a late answer is not a block.
+PROBE_TIMEOUT_S = 60
 # The usage policy's pause after a 429/406; retrying sooner is what gets an IP blocked, so no policy may go under it.
 MIN_RETRY_WAIT_S = 30.0
 # EX_TEMPFAIL: the driver stops the whole run on it; more queries to a refusing server turn a throttle into a block.
