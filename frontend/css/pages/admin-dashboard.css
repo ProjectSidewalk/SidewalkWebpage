@@ -1809,8 +1809,10 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
 }
 
 
-.ac-num {
+/* Scoped to .ps-table so it outranks main.css's `.ps-table td { text-align: left }`. */
+.ps-table td.ac-num {
   text-align: right;
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
   color: var(--color-neutral-900);
 }
