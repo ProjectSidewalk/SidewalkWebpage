@@ -565,8 +565,8 @@ case class CityScorecard(
  * A [[CityScorecard]] paired with the anomaly flags computed for it across the full cross-city set (#4329).
  *
  * @param scorecard The per-city metrics.
- * @param anomalies Zero or more flag keys: "stalled", "low_coverage", "high_disagreement", "reaudit_backlog". The page turns these into a
- *                  "needs attention" panel.
+ * @param anomalies Zero or more flag keys: "high_disagreement", "reaudit_backlog". The page turns these into a "needs
+ *                  attention" panel; stalled and low-coverage cities come from [[ConfigService.lifecycle]] instead.
  */
 case class CityScorecardWithFlags(scorecard: CityScorecard, anomalies: Seq[String])
 
@@ -1023,6 +1023,13 @@ object ConfigService {
   def reauditKm(sc: CityScorecard): Double = math.max(0.0, sc.mappedKm - sc.auditedKm)
 
   /**
+   * Whether a city's re-audit backlog is big enough to flag "reaudit_backlog": at least [[ReauditBacklogShare]] of
+   * its mapped km, and only once it has [[MinMappedKmForReauditFlag]] mapped.
+   */
+  def hasReauditBacklog(sc: CityScorecard): Boolean =
+    sc.mappedKm >= MinMappedKmForReauditFlag && reauditKm(sc) >= sc.mappedKm * ReauditBacklogShare
+
+  /**
    * Classifies a city's lifecycle/health into one of four states (#4329), so a quiet-but-finished deployment reads
    * very differently from one that never took off:
    *   - "active"       — activity within [[ActiveWithinDays]].
@@ -1227,6 +1234,17 @@ trait ConfigService {
    * @return A Future of cityId → that city's story counts, or None where the count failed.
    */
   def getCrossCityStoryStats(): Future[Map[String, Option[CityStoryStats]]]
+
+  /**
+   * Returns how many people contributed in any of the cities the Across Cities page shows, each counted once (#5828).
+   *
+   * Same population as each scorecard's `activeContributors` (staging and AI accounts excluded), deduped by the global
+   * `user_id`, and cached on the page's own [[ConfigService.CrossCityFreshFor]] clock. None when any city's read
+   * failed: a union missing a city would silently undercount.
+   *
+   * @return A Future of the distinct contributor count, or None if it couldn't be read for every city.
+   */
+  def getCrossCityDistinctContributors(): Future[Option[Int]]
 
   /**
    * Returns the current city's labeling pace as minutes of active auditing per 100 m covered.
@@ -1886,6 +1904,34 @@ class ConfigServiceImpl @Inject() (
     }
   }
 
+  def getCrossCityDistinctContributors(): Future[Option[Int]] = {
+    swrCache
+      .staleWhileRevalidate[Option[Int]](
+        "getCrossCityDistinctContributors",
+        ConfigService.CrossCityFreshFor,
+        ConfigService.CrossCityMaxAge
+      ) {
+        availableCityIds().flatMap { availableCities =>
+          val perCityFutures: Seq[Future[Option[Set[String]]]] = availableCities.map { cityId =>
+            db.run(configTable.getContributorUserIdsBySchema(getCitySchema(cityId)))
+              .map(ids => Option(ids.toSet))
+              .recover { case e: Exception =>
+                logger.warn(s"Failed to retrieve contributor ids for city $cityId: ${e.getMessage}")
+                None
+              }
+          }
+          Future.sequence(perCityFutures).zip(db.run(configTable.getAiUserIds)).map { case (perCity, aiIds) =>
+            if (perCity.contains(None)) None
+            else Some((perCity.flatten.foldLeft(Set.empty[String])(_ ++ _) -- aiIds).size)
+          }
+        }
+      }
+      .recover { case e: Exception =>
+        logger.warn(s"Distinct contributor count unavailable: ${e.getMessage}")
+        None
+      }
+  }
+
   def getCityLabelingSpeed(): Future[Option[Double]] = {
     // Daily cache, matching getCrossCityLabelingSpeed: the underlying interaction-table scan is expensive.
     cacheApi.getOrElseUpdate[Option[Double]](s"getCityLabelingSpeed_$getCityId", Duration(24, "hours")) {
@@ -1977,12 +2023,7 @@ class ConfigServiceImpl @Inject() (
         flags += "high_disagreement"
       }
 
-      if (
-        sc.mappedKm >= ConfigService.MinMappedKmForReauditFlag &&
-        ConfigService.reauditKm(sc) >= sc.mappedKm * ConfigService.ReauditBacklogShare
-      ) {
-        flags += "reaudit_backlog"
-      }
+      if (ConfigService.hasReauditBacklog(sc)) flags += "reaudit_backlog"
 
       CityScorecardWithFlags(sc, flags.toSeq)
     }

@@ -2105,20 +2105,6 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
   color: var(--color-neutral-700);
 }
 
-/* What a headline card counts (#5828); visible text rather than a tooltip so touch and keyboard readers get it too. */
-.ac-hero-def {
-  display: block;
-  margin-top: 2px;
-  font: var(--text-caption-regular);
-  color: var(--color-neutral-700);
-}
-
-.ac-hero-note {
-  margin: 0;
-  font: var(--text-caption-regular);
-  color: var(--color-neutral-700);
-}
-
 /* Week-over-week delta line under a "Today & this week" tile (#4758); direction colors mirror .ov-trend--*. */
 .ac-hero-delta {
   display: block;
@@ -2143,18 +2129,24 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
 .ac-cell-delta--down { color: #c0392b; }
 .ac-cell-delta--flat { color: var(--color-neutral-700); }
 
-/* AI output reported beside the human count it accompanies, on a tile and in a table cell (#4931). Deliberately
-   quieter than the delta chips: it qualifies the number above it rather than competing with it, and it is dotted-
-   underlined because it carries its own tooltip explaining the split. */
+/* Caption text that qualifies a number rather than competing with it: AI output beside the human count it
+   accompanies (#4931), and what a headline card counts (#5828), visible rather than a tooltip so touch and keyboard
+   readers get it too. The AI line is dotted-underlined because it carries its own tooltip explaining the split. */
 .ac-hero-ai,
-.ac-cell-ai {
+.ac-cell-ai,
+.ac-hero-def,
+.ac-hero-note {
   display: block;
   font: var(--text-caption-regular);
   color: var(--color-neutral-700);
 }
 
+.ac-hero-note { margin: 0; }
+
+.ac-hero-def,
+.ac-hero-ai { margin-top: 2px; }
+
 .ac-hero-ai {
-  margin-top: 2px;
   text-decoration: underline dotted;
   text-underline-offset: 2px;
 }

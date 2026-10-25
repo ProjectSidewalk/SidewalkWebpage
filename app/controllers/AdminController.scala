@@ -694,13 +694,8 @@ class AdminController @Inject() (
     val windowSummaryF = configService.getCrossCityActivitySummary()
     val labelingSpeedF = configService.getCrossCityLabelingSpeed()
     val storyStatsF    = configService.getCrossCityStoryStats()
-    // People active in several cities count once here, unlike a sum of each city's contributors. This is the public
-    // aggregate stats' fan-out, which is already cached; a failure only blanks the one card.
-    val distinctContributorsF =
-      configService.getAggregateStats().map(stats => Option(stats.totalUsers)).recover { case e: Exception =>
-        logger.warn(s"Distinct contributor count unavailable: ${e.getMessage}")
-        None
-      }
+    // People active in several cities count once here, unlike a sum of each city's contributors.
+    val distinctContributorsF = configService.getCrossCityDistinctContributors()
 
     for {
       withFlags     <- scorecardsF
@@ -967,7 +962,7 @@ class AdminController @Inject() (
 
   /**
    * The page's headline totals, summed from the cities shown so they match the table, except `total_users`, which
-   * counts each person once across cities. The anomaly thresholds ride along so the page can flag the "needs
+   * counts each person once across those cities. The anomaly thresholds ride along so the page can flag the "needs
    * attention" items.
    *
    * @param distinctContributors People who contributed in any city, each counted once; None if it couldn't be read.
@@ -986,23 +981,24 @@ class AdminController @Inject() (
     val sumDisagree      = scorecards.map(_.validationsDisagree).sum
     val globalAgreement  = if (sumAgree + sumDisagree > 0) sumAgree.toDouble / (sumAgree + sumDisagree) else 0.0
     Json.obj(
-      "num_cities"                -> scorecards.length,
-      "num_countries"             -> numCountries,
-      "num_languages"             -> numLanguages,
-      "total_users"               -> distinctContributors,
-      "total_walked_km"           -> scorecards.map(_.walkedKm).sum,
-      "total_mapped_km"           -> scorecards.map(_.mappedKm).sum,
-      "total_current_km"          -> scorecards.map(_.auditedKm).sum,
-      "total_reaudit_km"          -> scorecards.map(ConfigService.reauditKm).sum,
-      "total_labels"              -> totalLabels,
-      "total_validations"         -> totalValidations,
-      "total_datapoints"          -> (totalLabels.toLong + totalValidations.toLong),
-      "global_agreement"          -> globalAgreement,
-      "median_disagreement_rate"  -> ConfigService.medianDisagreementRate(scorecards),
-      "active_within_days"        -> ConfigService.ActiveWithinDays,
-      "wrapped_up_coverage"       -> ConfigService.WrappedUpCoverage,
-      "low_traction_contributors" -> ConfigService.LowTractionContributors,
-      "reaudit_backlog_share"     -> ConfigService.ReauditBacklogShare
+      "num_cities"                     -> scorecards.length,
+      "num_countries"                  -> numCountries,
+      "num_languages"                  -> numLanguages,
+      "total_users"                    -> distinctContributors,
+      "total_walked_km"                -> scorecards.map(_.walkedKm).sum,
+      "total_mapped_km"                -> scorecards.map(_.mappedKm).sum,
+      "total_current_km"               -> scorecards.map(_.auditedKm).sum,
+      "total_reaudit_km"               -> scorecards.map(ConfigService.reauditKm).sum,
+      "total_labels"                   -> totalLabels,
+      "total_validations"              -> totalValidations,
+      "total_datapoints"               -> (totalLabels.toLong + totalValidations.toLong),
+      "global_agreement"               -> globalAgreement,
+      "median_disagreement_rate"       -> ConfigService.medianDisagreementRate(scorecards),
+      "active_within_days"             -> ConfigService.ActiveWithinDays,
+      "wrapped_up_coverage"            -> ConfigService.WrappedUpCoverage,
+      "low_traction_contributors"      -> ConfigService.LowTractionContributors,
+      "reaudit_backlog_share"          -> ConfigService.ReauditBacklogShare,
+      "min_mapped_km_for_reaudit_flag" -> ConfigService.MinMappedKmForReauditFlag
     )
   }
 

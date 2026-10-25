@@ -330,6 +330,17 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
     """.as[String]
 
   /**
+   * The `user_id`s holding the AI role, from the shared login schema (#5828).
+   *
+   * Lets a caller strip AI accounts from a cross-city union of [[getContributorUserIdsBySchema]] once, rather than
+   * adding a role join to every city's query.
+   *
+   * @return DBIO action yielding the AI accounts' `user_id`s.
+   */
+  def getAiUserIds: DBIO[Seq[String]] =
+    sql"""SELECT user_id FROM sidewalk_login.user_role WHERE role = 'AI'""".as[String]
+
+  /**
    * Label type statistics for a specific schema from its existing vote counts, with a row for every type.
    *
    * @param schema       The database schema to query
@@ -548,7 +559,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
         ) AS distinct_audited
     ) AS audited_km, (
         -- Effort: every completed audit's length, repeats and outdated imagery included. The public API's km_explored
-        -- counts the same thing but over every street, open or not.
+        -- counts the same thing but over streets of every status, the tutorial street included.
         SELECT SUM(ST_Length(geom::geography)) / 1000 AS km
         FROM #${FilteredTables.streets(Some(schema))}
         INNER JOIN #${FilteredTables.completedAudits(Some(schema))}
