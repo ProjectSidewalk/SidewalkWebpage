@@ -1,0 +1,158 @@
+/* The reason pop-up (ReasonPopover.js, #5475): mobile Validate's notched reason panel, hung off whichever control
+   cast a Disagree or Unsure vote on the label detail card or a Gallery card. The chips inside are reason-chips.css;
+   this file is the panel, its tail and how it arrives and leaves. Sizes scale with --ui-scale like the other
+   popovers (pano-image-adjustments.css, .pano-info-popover). */
+.reason-popover {
+  position: fixed;
+  inset: unset;        /* Override the browser's default centered placement; JS sets left/top. */
+  margin: 0;
+  left: -9999px;       /* Off-screen until positioned, so the first paint never flashes at the origin. */
+  top: -9999px;
+  z-index: var(--z-index-popover);
+  width: min(calc(300px * var(--ui-scale, 1)), calc(100vw - 32px));
+  padding: calc(10px * var(--ui-scale, 1)) calc(12px * var(--ui-scale, 1)) calc(12px * var(--ui-scale, 1));
+  overflow: visible;   /* The tail hangs outside the box. */
+  background: var(--color-neutral-white);
+  color: var(--color-neutral-900);
+  border: 1px solid var(--color-neutral-300);
+  border-radius: calc(10px * var(--ui-scale, 1));
+  box-shadow: 0 6px 24px rgb(0 0 0 / 15%);
+
+  /* Grows out of its anchor and shrinks back into it: the transform origin is the tail, set by JS. Short, so a
+     validator working through a queue is never waiting on it. */
+  opacity: 0;
+  transform: scale(0.9);
+  transition: opacity 140ms ease-out, transform 140ms cubic-bezier(0.2, 0.9, 0.3, 1.15);
+}
+
+.reason-popover--open {
+  opacity: 1;
+  transform: scale(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reason-popover {
+    transition: none;
+  }
+}
+
+.reason-popover__head {
+  display: flex;
+  align-items: flex-start;
+  gap: calc(6px * var(--ui-scale, 1));
+}
+
+.reason-popover__chips {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* The chips' own prompt is the dialog's title; it keeps the eyebrow look reason-chips.css gives it. */
+.reason-popover__close {
+  flex: 0 0 auto;
+  margin: calc(-4px * var(--ui-scale, 1)) calc(-6px * var(--ui-scale, 1)) 0 0;
+  padding: calc(2px * var(--ui-scale, 1)) calc(6px * var(--ui-scale, 1));
+  border: none;
+  border-radius: calc(4px * var(--ui-scale, 1));
+  background: none;
+  color: var(--color-neutral-700);
+  font: var(--text-small-medium);
+  line-height: 1;
+  cursor: pointer;
+}
+
+.reason-popover__close:hover {
+  background: var(--color-neutral-200);
+  color: var(--color-neutral-900);
+}
+
+.reason-popover__close:focus-visible {
+  outline: 2px solid var(--color-link-100);
+  outline-offset: 1px;
+}
+
+.reason-popover__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: calc(16px * var(--ui-scale, 1));
+  margin-top: calc(6px * var(--ui-scale, 1));
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+}
+
+/* Collapsed rather than display: none, so the live region stays in the accessibility tree before its text lands. */
+.reason-popover__foot--empty {
+  min-height: 0;
+  height: 0;
+  margin-top: 0;
+  overflow: hidden;
+}
+
+.reason-popover__saved {
+  font: var(--text-caption-semibold);
+  color: var(--color-pine-700);
+}
+
+/* The tail: two stacked clip-path triangles, a neutral-300 backing one and a white fill one a hairline higher, so
+   the tail keeps the panel's border along its slanted edges and joins the panel with no seam. The same technique as
+   label-anchored-panel.css, turned to point down. --reason-popover-tail-x is the anchor's centre, set by JS. */
+.reason-popover__tail,
+.reason-popover__tail::after {
+  position: absolute;
+  left: var(--reason-popover-tail-x, 50%);
+  width: calc(18px * var(--ui-scale, 1));
+  height: calc(9px * var(--ui-scale, 1));
+  transform: translateX(-50%);
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+  pointer-events: none;
+}
+
+.reason-popover__tail {
+  bottom: calc(-9px * var(--ui-scale, 1));
+  background: var(--color-neutral-300);
+}
+
+.reason-popover__tail::after {
+  content: "";
+  left: 50%;
+  top: calc(-1.5px * var(--ui-scale, 1));
+  background: var(--color-neutral-white);
+}
+
+/* Flipped under the anchor: the tail moves to the top edge and points up. */
+.reason-popover--below .reason-popover__tail {
+  top: calc(-9px * var(--ui-scale, 1));
+  bottom: auto;
+  clip-path: polygon(0 100%, 100% 100%, 50% 0);
+}
+
+.reason-popover--below .reason-popover__tail::after {
+  top: calc(1.5px * var(--ui-scale, 1));
+  clip-path: polygon(0 100%, 100% 100%, 50% 0);
+}
+
+/* Touch: mobile Validate's layout, one 44px row per reason, since a wrapped pill row is a poor tap target. */
+@media (pointer: coarse) {
+  .reason-popover {
+    width: min(calc(320px * var(--ui-scale, 1)), calc(100vw - 32px));
+  }
+
+  .reason-popover .reason-chips__group,
+  .reason-popover .reason-chips__list {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .reason-popover .reason-chips__chip {
+    min-height: 44px;
+    padding: calc(8px * var(--ui-scale, 1)) calc(12px * var(--ui-scale, 1));
+    border-radius: calc(8px * var(--ui-scale, 1));
+  }
+}
+
+@media (forced-colors: active) {
+  .reason-popover {
+    border: 1px solid CanvasText;
+  }
+}

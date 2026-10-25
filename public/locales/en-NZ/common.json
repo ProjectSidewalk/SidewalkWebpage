@@ -112,5 +112,52 @@
     "subtitle-streets": "Each street's footpaths are scored from 0 to 100 by our <a href=\"{{href}}\">AccessScore</a> algorithm (100 is best).",
     "empty-highest-regions": "No neighbourhood scores {{score}} or above yet.",
     "empty-lowest-regions": "No neighbourhood scores under {{score}}."
+  },
+  "validation-reason": {
+    "wrong-type": {
+      "tooltip-curb-ramp": "Sometimes a missing drop kerb is accidentally mislabeled as a drop kerb",
+      "tooltip-no-curb-ramp": "Sometimes a drop kerb is mislabeled as a missing ramp, often because it's missing a tactile warning",
+      "tooltip-surface-problem": "Gravel or grass are not considered a footpath, and should be marked with a No Footpath label",
+      "tooltip-no-sidewalk": "Surface problems or obstacles may be mistakenly labeled as No Footpath"
+    },
+    "driveway-transition": {
+      "text": "This is a footpath to driveway transition",
+      "tooltip": "Footpath to driveway transitions are not drop kerbs unless a dedicated ramp has been added"
+    },
+    "no-sidewalk-here": {
+      "text": "There is no footpath here"
+    },
+    "unsafe-crossing": {
+      "tooltip": "Pedestrians are not meant to cross at this spot, so no drop kerb is expected"
+    },
+    "not-pedestrian-path": {
+      "tooltip-obstacle": "If there is no footpath or the object is not on the part of the footpath meant for pedestrians, like in the image below, an Obstacle label is not needed"
+    },
+    "ample-space": {
+      "tooltip": "On very wide footpaths, easily avoidable objects should <b>not</b> be labeled as obstacles"
+    },
+    "normal-tiles": {
+      "text": "These are normal footpath tiles"
+    },
+    "sidewalk-here": {
+      "text": "There is a footpath here"
+    },
+    "no-visible-crosswalk": {
+      "text": "There is no visible pedestrian crossing here"
+    },
+    "ramp-required-unsure": {
+      "text": "Not sure if a drop kerb is required",
+      "tooltip-curb-ramp": "Some alleyways or commercial driveways require ramps due to height differences, others do not. Sometimes it's not clear if a seam between a footpath requires a ramp or tactile surface indicator."
+    },
+    "space-to-avoid-unsure": {
+      "tooltip": "The width of the footpath may be difficult to judge from a picture"
+    },
+    "too-minor-unsure": {
+      "tooltip": "It may be unclear whether an issue like grass between footpath blocks needs to be labeled"
+    },
+    "sidewalk-needed-unsure": {
+      "text": "Not sure if there should be a footpath here",
+      "tooltip": "Sometimes more context is necessary, and it's hard to determine if a footpath is necessary from just one image"
+    }
   }
 }

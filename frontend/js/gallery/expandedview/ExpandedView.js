@@ -10,6 +10,7 @@
 import i18next from 'i18next';
 import { LabelDetail } from '../../common/label-detail/LabelDetail.js';
 import { PopupPanoManager } from '../../common/label-detail/PopupPanoManager.js';
+import { closeReasonPopover } from '../../common/ReasonPopover.js';
 /** @typedef {import('../cards/Card.js').Card} Card */
 /** @typedef {import('../cards/CardContainer.js').CardContainer} CardContainer */
 /** @typedef {import('../data/Tracker.js').Tracker} Tracker */
@@ -224,13 +225,16 @@ export class ExpandedView {
     const card = this.#cardContainer.findCardByLabelId(meta.label_id);
     if (!card) return;
     card.setDeleted(!!meta.deleted, !!meta.can_restore);
-    card.updateUserValidation(meta.user_validation ?? null);
+    // An admin's delete files a Disagree but leaves their comment; a restore clears that vote the same way.
+    card.updateUserValidation(meta.user_validation ?? null, { dropOwnComment: false });
   };
 
   /**
    * Opens the expanded view for the current refCard by passing the card data to LabelDetail.
    */
   #openExpandedView() {
+    // A grid card's pop-up would otherwise float over the view opening on top of its card.
+    closeReasonPopover();
     // Clear the close-guard so the in-flight pano load is allowed to show once this card's load completes.
     const panoEl = this.#root.querySelector('.label-detail__pano');
     if (panoEl) delete panoEl.dataset.closedDuringLoad;
@@ -250,6 +254,9 @@ export class ExpandedView {
    * NOTE: does not remove card transparency. For that, use closeExpandedViewAndRemoveCardTransparency().
    */
   closeExpandedView() {
+    // Hiding by visibility leaves the pop-up's host connected, so it wouldn't notice; one holding an "Other…" draft
+    // even outlasts the click on ✕.
+    closeReasonPopover();
     this.#root.style.visibility = 'hidden';
     LabelDetail.syncUrlLabelId(null);
     // Clear the inline visibility set by PopupPanoManager.setPano() so the parent's visibility:hidden cascades.

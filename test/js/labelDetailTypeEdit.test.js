@@ -312,7 +312,7 @@ describe('changing a label\'s type from the card (#3671)', () => {
     expect(q('.label-type-trigger__button .label-type-trigger__name').textContent).toBe('common:curb-ramp');
     expect(q('.label-detail__severity-faces [data-severity="1"]').getAttribute('aria-pressed')).toBe('true');
     expect(toast.show).toHaveBeenCalledWith(expect.objectContaining({
-      title: 'labelmap:edit-conflict-short', message: 'labelmap:edit-conflict',
+      message: 'labelmap:edit-conflict', dark: true, compact: true,
     }));
     expect(typeStatus().textContent).toBe('');
     // The label really is on a different type now, so the host and the vote counts have to hear about it.
