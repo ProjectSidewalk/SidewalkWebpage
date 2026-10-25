@@ -506,7 +506,6 @@
     "sidewalk-needed-unsure": {
       "text": "Ich bin mir nicht sicher, ob hier ein Trottoir sein sollte.",
       "tooltip": "Manchmal ist mehr Kontext erforderlich, und es ist schwierig, anhand eines einzelnen Bildes zu beurteilen, ob ein Trottoir notwendig ist."
-    },
-    "reopen": "Gründe"
+    }
   }
 }

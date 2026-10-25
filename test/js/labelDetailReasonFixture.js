@@ -1,8 +1,7 @@
 /**
  * The label detail card's fixture for the reason pop-up suite (labelDetailReasonPopover.test.js, #5475): the card
  * markup as views/common/labelDetail.scala.html renders it for a non-admin host, reduced to the elements
- * #cacheElements() dereferences plus the comment row and its Reasons button, and the label payload shape
- * `/label/id/:id` serves.
+ * #cacheElements() dereferences plus the comment row, and the label payload shape `/label/id/:id` serves.
  */
 
 /**
@@ -111,7 +110,6 @@ export function buildCard() {
               <span class="label-detail__comments-count" hidden></span>
             </h3>
             <div class="label-detail__comment-row">
-              <button type="button" class="label-detail__reasons-reopen" aria-haspopup="dialog" aria-expanded="false" hidden>Reasons</button>
               <label class="sr-only" for="label-detail-comment-input">Why?</label>
               <input type="text" id="label-detail-comment-input" class="label-detail__comment-input">
               <button type="button" class="label-detail__comment-submit" data-action="submit-comment">Comment</button>

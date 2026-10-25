@@ -126,7 +126,7 @@ describe('ReasonChips', () => {
     expect(chipEls().map((c) => c.getAttribute('aria-keyshortcuts'))).toEqual(['1', '2', '3', '4']);
     expect(other().getAttribute('aria-keyshortcuts')).toBe('5');
     expect(other().getAttribute('data-ps-tooltip')).toBe('Write your own reason');
-    expect(chipEls()[0].getAttribute('data-ps-tooltip')).not.toMatch(/\(1\)$/);
+    expect(chipEls()[0].getAttribute('data-ps-tooltip-html')).not.toMatch(/\(1\)$/);
 
     expect(chips.render({ labelType: 'NoCurbRamp', vote: 'Unsure' })).toBe(3);
     expect(root.querySelector('.reason-chips__prompt').textContent).toBe('What makes you unsure?');

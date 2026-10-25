@@ -506,7 +506,6 @@
     "sidewalk-needed-unsure": {
       "text": "Ik weet niet zeker of hier een trottoir hoort te liggen.",
       "tooltip": "Soms is meer context nodig, en het is moeilijk om op basis van slechts één afbeelding te bepalen of een trottoir nodig is."
-    },
-    "reopen": "Redenen"
+    }
   }
 }

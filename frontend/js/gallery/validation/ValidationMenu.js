@@ -164,7 +164,7 @@ export class ValidationMenu {
           this.#refCard.updateUserValidation(current);
           this.#refCard.validationInfoDisplay?.animateVoteChange?.(previous, current);
           // Now that the vote is on record, ask why (#5475). After the POST rather than before it: a changed vote
-          // deletes the user's comment server-side, so a pick racing the vote could be deleted by it.
+          // archives a canned reason it doesn't offer, so a pick racing the vote could be archived by it.
           if (!undone && this.#reasonedVote(validationOption)) {
             this.#openReasons(validationOption, anchor, viaKeyboard);
           }

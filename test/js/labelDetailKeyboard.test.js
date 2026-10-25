@@ -439,7 +439,7 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
   describe('what the card refuses to claim', () => {
     test('a key typed into the comment box', async () => {
       // The comment box is inside the card, so "a" has to stay an "a" and the arrows have to move the caret.
-      await showLabel({ user_validation: 'Disagree', num_disagree: 1 });
+      await showLabel({ user_validation: 'Agree', num_agree: 1 });
       const prev = vi.fn();
       prevArrow().addEventListener('click', prev);
       q('.label-detail__comment-input').focus();
@@ -676,7 +676,7 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
       // A/D/U or arrow into a typed character and end the paging run.
       await showLabel({ user_validation: null });
 
-      press('KeyD');
+      press('KeyA');
       await flush();
 
       expect(q('.label-detail__comment-row').classList.contains('is-open')).toBe(true);
@@ -692,7 +692,7 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
       // those paths and not the other makes which keys work depend on how the last vote was cast.
       await showLabel({ user_validation: null });
 
-      overlayButton('disagree').dispatchEvent(
+      overlayButton('agree').dispatchEvent(
         new MouseEvent('click', { bubbles: true, cancelable: true, detail: 1 })
       );
       await flush();

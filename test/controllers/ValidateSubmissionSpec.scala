@@ -222,7 +222,12 @@ class ValidateSubmissionSpec
     )
 
   /** A `POST /labelmap/validate` payload for the given label. */
-  private def labelMapValidationJson(label: JsObject, result: String, undone: Boolean = false): JsObject = {
+  private def labelMapValidationJson(
+      label: JsObject,
+      result: String,
+      undone: Boolean = false,
+      redone: Boolean = false
+  ): JsObject = {
     val now = OffsetDateTime.now
     Json.obj(
       "label_id"          -> (label \ "label_id").as[Int],
@@ -239,7 +244,7 @@ class ValidateSubmissionSpec
       "end_timestamp"     -> now,
       "source"            -> "LabelMap",
       "undone"            -> undone,
-      "redone"            -> false,
+      "redone"            -> redone,
       "viewer_type"       -> "Default"
     )
   }
@@ -864,6 +869,52 @@ class ValidateSubmissionSpec
       status(postLabelMapComment(session, labelMapCommentJson(label, "It is a garage entrance."))) mustBe OK
       reasonsOn(labelId, b.userId) mustBe (None, Seq((Some(reason), "edit")))
       (ownComment(session, labelId) \ "reason").asOpt[String] mustBe None
+    }
+
+    "keep typed words across a card's vote change, but not a canned reason the new vote doesn't take (#5475)" in {
+      val session                = freshAnonSession()
+      val b                      = fetchValidateBootstrap(session)
+      val label                  = b.labels.head
+      val labelId                = (label \ "label_id").as[Int]
+      val _                      = backupLabel(labelId)
+      val (reason, _, _)         = reasonsFor(label)
+      def revote(result: String) =
+        status(postLabelMapValidation(session, labelMapValidationJson(label, result, redone = true))) mustBe OK
+
+      // The words describe the label, so they ride every change, and nothing is archived along the way.
+      status(postLabelMapValidation(session, labelMapValidationJson(label, "Unsure"))) mustBe OK
+      status(postLabelMapComment(session, labelMapCommentJson(label, "Hard to tell in the shade."))) mustBe OK
+      for (result <- Seq("Disagree", "Agree", "Disagree")) {
+        revote(result)
+        commentsOn(labelId, b.userId) mustBe Seq("Hard to tell in the shade.")
+        ownCommentValidation(session, labelId) mustBe Some(result)
+      }
+      commentVersionsOn(labelId, b.userId) mustBe empty
+
+      // A canned reason explains one vote, so a change to a vote that doesn't offer it retracts it (#5076).
+      status(postLabelMapComment(session, labelMapCommentJson(label, "Canned", Some(reason)))) mustBe OK
+      revote("Unsure")
+      commentsOn(labelId, b.userId) mustBe empty
+      reasonsOn(labelId, b.userId)._2.last mustBe (Some(reason), "validation_change")
+
+      status(postLabelMapComment(session, labelMapCommentJson(label, "Still unsure."))) mustBe OK
+      status(postLabelMapValidation(session, labelMapValidationJson(label, "Unsure", undone = true))) mustBe OK
+      commentsOn(labelId, b.userId) mustBe empty
+    }
+
+    "retract typed words on a Validate-tool redo, which is an undo and a fresh vote (#5076)" in {
+      val session  = freshAnonSession()
+      val b        = fetchValidateBootstrap(session)
+      val label    = b.labels.head
+      val labelId  = (label \ "label_id").as[Int]
+      val _        = backupLabel(labelId)
+      val progress = Some(missionProgressJson(b, 1))
+
+      val first = Seq(validationJson(label, b.missionId, "Unsure", comment = Some("Hard to tell.")))
+      status(postValidationTask(session, taskSubmission(b, first, progress))) mustBe OK
+      val redo = Seq(validationJson(label, b.missionId, "Disagree", redone = true))
+      status(postValidationTask(session, taskSubmission(b, redo, progress))) mustBe OK
+      commentsOn(labelId, b.userId) mustBe empty
     }
 
     "refuse a reason the user's vote doesn't take, the type doesn't offer, or the vocabulary doesn't know (#5475)" in {

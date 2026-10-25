@@ -25,6 +25,8 @@ case class ReasonNotOffered(reason: ValidationReason) extends Exception(s"reason
  * @param validation   The vote, with `labelType` set to the type the validator was shown.
  * @param newLabelType The type the label should become; an Agree carrying one is recorded as a vote on that type.
  * @param canEdit      Whether an Agree may apply the submitted type, severity and tags; only admins edit through a vote.
+ * @param keepTypedComment Whether a vote change keeps typed words (#5475). Cards set it, since they show the words
+ *                     under the new vote; Validate's redo is an undo plus a fresh vote carrying its own comment.
  */
 case class ValidationSubmission(
     validation: LabelValidation,
@@ -34,7 +36,8 @@ case class ValidationSubmission(
     comment: Option[ValidationTaskComment],
     undone: Boolean,
     redone: Boolean,
-    canEdit: Boolean
+    canEdit: Boolean,
+    keepTypedComment: Boolean = false
 )
 
 @ImplementedBy(classOf[ValidationServiceImpl])
@@ -324,10 +327,26 @@ class ValidationServiceImpl @Inject() (
               }
 
               // Comments are keyed by (label, user, type), like votes, so only clear one when this submission
-              // accounts for it: an undo/redo retracts the comment that came with the vote, and a submission carrying
-              // its own replaces it. A repeat validation carrying none leaves the user's earlier text alone.
+              // accounts for it: an undo/redo retracts the comment that came with the vote (unless a card's vote change
+              // keeps typed words), and a submission carrying its own replaces it. A repeat validation carrying none
+              // leaves the user's earlier text alone.
               val oldCommentRemoved =
-                if (valSubmission.undone || valSubmission.redone || valSubmission.comment.isDefined) {
+                if (valSubmission.redone && valSubmission.keepTypedComment && valSubmission.comment.isEmpty) {
+                  // A canned reason explains one vote, so no menu would show it under a vote that doesn't offer it.
+                  val offered = ValidationReason.offered(validation.labelType, validation.validationResult)
+                  validationTaskCommentTable
+                    .findReason(validation.labelId, validation.userId, validation.labelType)
+                    .flatMap {
+                      case Some(Some(reason)) if !offered.contains(reason) =>
+                        validationTaskCommentTable.archive(
+                          validation.labelId,
+                          validation.userId,
+                          validation.labelType,
+                          ValidationCommentChangeType.ValidationChange
+                        )
+                      case _ => DBIO.successful(0)
+                    }
+                } else if (valSubmission.undone || valSubmission.redone || valSubmission.comment.isDefined) {
                   // A retracted vote taking the text with it is no request to erase anything, so the history tells it
                   // apart from an edit (#5076). An undo inserts nothing afterwards, so a comment riding along with one
                   // is retracted rather than replaced.

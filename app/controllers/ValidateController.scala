@@ -571,7 +571,7 @@ class ValidateController @Inject() (
    *
    * Also handles clearing a vote (#4653): a submission with `undone = true` carries the vote being cleared as its
    * `validationResult` and deletes that validation (and the user's comment on the label) instead of inserting one —
-   * the same path Validate's undo button uses.
+   * the same path Validate's undo button uses. Changing a vote keeps the user's typed comment (#5475).
    */
   def postLabelMapValidation = cc.securityService.SecuredAction(parse.json) { implicit request =>
     val userId: String = request.identity.userId
@@ -604,7 +604,8 @@ class ValidateController @Inject() (
                     comment = None,
                     newVal.undone,
                     newVal.redone,
-                    canEdit = isAdmin(request.identity)
+                    canEdit = isAdmin(request.identity),
+                    keepTypedComment = true
                   )
                 )
               )

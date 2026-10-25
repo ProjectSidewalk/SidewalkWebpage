@@ -506,7 +506,6 @@
     "sidewalk-needed-unsure": {
       "text": "No estoy seguro de si debería haber una banqueta aquí.",
       "tooltip": "A veces es necesario más contexto y es difícil determinar si una banqueta es necesaria a partir de una sola imagen."
-    },
-    "reopen": "Motivos"
+    }
   }
 }

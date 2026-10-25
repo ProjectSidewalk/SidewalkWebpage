@@ -221,9 +221,8 @@ export class ReasonChips {
     chip.dataset.reasonId = reason.id;
     chip.setAttribute('aria-pressed', 'false');
     this.#fill(chip, reason.text, n);
-    // The tooltip renders as HTML (psTooltip.js), which is fine for these first-party strings and lets one carry
-    // inline emphasis; nothing user-supplied reaches it.
-    if (reason.tooltip) chip.setAttribute('data-ps-tooltip', reason.tooltip);
+    // HTML (sanitized by psTooltip.js) so a locale string's <b> renders; nothing user-supplied reaches it.
+    if (reason.tooltip) chip.setAttribute('data-ps-tooltip-html', reason.tooltip);
     return chip;
   }
 

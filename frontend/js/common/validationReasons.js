@@ -54,6 +54,18 @@ export const validationReasons = {
   },
 
   /**
+   * Whether a comment outlives a card's vote change, restating `ValidationService`'s rule (#5475): typed words
+   * always do, since they describe the label; a canned reason only when the new vote offers it too.
+   * @param {string} labelType - The label's type.
+   * @param {?string} reason - The comment's canned reason id, or null/undefined for typed words.
+   * @param {string} vote - The vote it changed to.
+   * @returns {boolean}
+   */
+  survivesVoteChange(labelType, reason, vote) {
+    return typeof reason !== 'string' || this.idsFor(labelType, vote).includes(reason);
+  },
+
+  /**
    * @param {string} id - A reason id from the catalog.
    * @returns {?string} Its text in the current language, or null for an id the locale files don't know (a stale
    *     stamp, or a comment tagged by a newer vocabulary than this page's).

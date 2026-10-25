@@ -85,6 +85,17 @@ class ValidationTaskCommentTable @Inject() (
   }
 
   /**
+   * The canned reason on a user's comment about a label, for a vote change deciding whether the comment still fits.
+   * @return None with no comment; Some(None) for typed words.
+   */
+  def findReason(labelId: Int, userId: String, labelType: LabelType): DBIO[Option[Option[ValidationReason]]] =
+    validationTaskComments
+      .filter(c => c.labelId === labelId && c.userId === userId && c.labelType === labelType)
+      .map(_.reason)
+      .result
+      .headOption
+
+  /**
    * Moves a user's comment on a label out of the live table and into `validation_task_comment_history`.
    *
    * The only way a comment leaves this table, so a validator's words outlive every path that stops showing them

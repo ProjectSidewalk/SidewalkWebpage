@@ -2,9 +2,9 @@
  * Tests for the Gallery card's cached copy of the viewer's own comment (frontend/js/gallery/cards/Card.js, #5475).
  *
  * The card carries the label's comments from the page payload, and both the reason pop-up and the expanded view
- * read the viewer's own one from it: it says which chip is on record. The server deletes that comment whenever the
- * vote it rode in with is cleared or replaced, so the cache drops it at the same moment and the pop-up marks only
- * a reason the server still holds.
+ * read the viewer's own one from it: it says which chip is on record. The server deletes that comment when the vote
+ * is cleared, or changed away from a canned reason it doesn't offer; typed words survive a change. The cache follows
+ * at the same moment, so the pop-up marks only a reason the server still holds.
  */
 
 import { loadModules, mockModule } from './loader.js';
@@ -49,7 +49,7 @@ function makeCard(userValidation) {
 }
 
 describe('the own-comment cache on a Gallery card (#5475)', () => {
-  test('a changed vote drops the viewer\'s own comment, as the server does, and keeps everyone else\'s', () => {
+  test('a changed vote drops a canned reason it doesn\'t offer, as the server does, and keeps everyone else\'s', () => {
     const card = makeCard('Disagree');
     const shared = card.getProperty('comments');
     card.updateUserValidation('Unsure');
@@ -59,14 +59,23 @@ describe('the own-comment cache on a Gallery card (#5475)', () => {
     expect(card.getProperty('comments')).toBe(shared);
   });
 
+  test('a changed vote keeps typed words and moves their vote chip, as the server does', () => {
+    const card = makeCard('Unsure');
+    const typed = { comment: 'Hard to tell in the shade', mine: true, commenter: 0, validation: 'Unsure' };
+    card.getProperty('comments').splice(1, 1, typed);
+    card.updateUserValidation('Disagree');
+    expect(card.getProperty('comments')).toEqual([theirs, { ...typed, validation: 'Disagree' }]);
+  });
+
   test('an admin\'s delete files a vote but leaves the comment, so its relay keeps the cache', () => {
     const card = makeCard('Agree');
     card.updateUserValidation('Disagree', { dropOwnComment: false });
     expect(card.getProperty('comments')).toEqual([theirs, own]);
   });
 
-  test('a cleared vote drops it too', () => {
+  test('a cleared vote drops it too, typed words included', () => {
     const card = makeCard('Disagree');
+    card.getProperty('comments').push({ comment: 'Hard to tell', mine: true, commenter: 0, validation: 'Disagree' });
     card.updateUserValidation(null);
     expect(card.getProperty('comments')).toEqual([theirs]);
   });

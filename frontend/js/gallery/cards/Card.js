@@ -7,6 +7,7 @@ import { aiLabelIndicator } from '../../common/aiLabelIndicator.js';
 import { createPanoAttribution } from '../../common/pano-viewer/PanoAttribution.js';
 import { createPanoViewerLogo } from '../../common/pano-viewer/PanoViewerLogo.js';
 import { util } from '../../common/utilities.js';
+import { validationReasons } from '../../common/validationReasons.js';
 import { buildBackupImageData } from '../../common/utilitiesSidewalk.js';
 import { LabelMiniCard } from '../../common/LabelMiniCard.js';
 import { SeverityDisplay } from '../displays/SeverityDisplay.js';
@@ -562,9 +563,9 @@ export class Card {
    * @param {?('Agree'|'Disagree'|'Unsure')} newUserValidation - The user's new vote, or null when they cleared it
    *     (#4653). Either end can be null, so both count adjustments are guarded.
    * @param {object} [opts]
-   * @param {boolean} [opts.dropOwnComment=true] - Whether the change also took the user's comment with it, as a
-   *     vote cleared or replaced from a card does (#5475). An admin's delete files its Disagree without touching
-   *     the comment, so that path passes false.
+   * @param {boolean} [opts.dropOwnComment=true] - Whether the change reaches the user's comment, as a vote cleared
+   *     or changed from a card does (#5475). An admin's delete files its Disagree without touching the comment, so
+   *     that path passes false.
    */
   updateUserValidation(newUserValidation, { dropOwnComment = true } = {}) {
     const properties = this.#properties;
@@ -574,13 +575,18 @@ export class Card {
         properties.val_counts[properties.user_validation] = Math.max(
           0, properties.val_counts[properties.user_validation] - 1,
         );
-        // Clearing or changing a vote deletes the user's comment server-side (the `undone`/`redone` paths), so the
-        // cached copy goes too; otherwise the reason pop-up and the expanded view would show a comment, and mark a
-        // chip, the server no longer holds (#5475). In place: the expanded view's card shares this very array.
+        // Follows the server (#5475), or the pop-up and expanded view would show a comment it no longer holds. In
+        // place: the expanded view's card shares this very array.
         if (dropOwnComment && Array.isArray(properties.comments)) {
           for (let i = properties.comments.length - 1; i >= 0; i -= 1) {
             const c = properties.comments[i];
-            if (c && typeof c === 'object' && c.mine) properties.comments.splice(i, 1);
+            if (!c || typeof c !== 'object' || !c.mine) continue;
+            if (newUserValidation && validationReasons.survivesVoteChange(properties.label_type, c.reason,
+              newUserValidation)) {
+              c.validation = newUserValidation;
+            } else {
+              properties.comments.splice(i, 1);
+            }
           }
         }
       }

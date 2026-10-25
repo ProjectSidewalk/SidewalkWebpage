@@ -506,7 +506,6 @@
     "sidewalk-needed-unsure": {
       "text": "Não tenho certeza se deveria haver uma calçada aqui",
       "tooltip": "Às vezes é necessário mais contexto e pode ser difícil determinar isso a partir de apenas uma imagem"
-    },
-    "reopen": "Motivos"
+    }
   }
 }

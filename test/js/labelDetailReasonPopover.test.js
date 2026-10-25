@@ -4,9 +4,9 @@
  * A Disagree or Unsure is followed by "why?", asked where the vote was cast: the pop-up (ReasonPopover.js) hangs
  * off the overlay button or the thumb that was clicked, or off the thumb for a shortcut vote, once the server has
  * the vote. A pick posts a canned reason as the reader's comment, by id and text, through the same path a typed
- * comment takes; "Other…" turns into a field in the pop-up for typed words; the row's Reasons button is the way
- * back once the pop-up has gone. The vote and its reason hold each other: neither may move while the other is in
- * flight, since the server's delete-on-vote-change would otherwise race the pick.
+ * comment takes; "Other…" turns into a field in the pop-up for typed words. There is no button back to it: a vote
+ * asks again, so a reader who dismissed it presses their vote twice (clear, then cast). The vote and its reason hold
+ * each other: neither may move while the other is in flight, since the vote's write would otherwise race the pick.
  *
  * Fixture and stubs follow labelDetailComments.test.js, through labelDetailReasonFixture.js.
  */
@@ -39,7 +39,6 @@ describe('the reason pop-up on the label card (#5475)', () => {
   const otherSave = () => document.querySelector('.reason-popover .reason-chips__other-save');
   const overlayButton = (vote) => q(`.label-detail__pano-overlay-button--${vote}`);
   const thumb = (vote) => q(`.label-detail__vote--${vote}`);
-  const reopen = () => q('.label-detail__reasons-reopen');
   const commentRow = () => q('.label-detail__comment-row');
   const status = () => q('.label-detail__comment-confirmation');
   const click = (el, detail = 1) => el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, detail }));
@@ -65,6 +64,18 @@ describe('the reason pop-up on the label card (#5475)', () => {
 
   /** A label with no vote yet; Obstacle offers three Disagree reasons and three Unsure ones. */
   const unvoted = (overrides = {}) => showLabel({ user_validation: null, num_disagree: 0, ...overrides });
+
+  /**
+   * Changes an Unsure vote to Disagree so the pop-up asks over the payload's comment (no `redone` in the stub reply,
+   * so the card keeps that comment).
+   * @param {object} [overrides] - Payload fields.
+   * @param {number} [detail] - The click's `detail`; 0 is a keyboard press, which moves focus into the chips.
+   */
+  async function reask(overrides = {}, detail = 1) {
+    await showLabel({ user_validation: 'Unsure', num_disagree: 0, num_unsure: 1, ...overrides });
+    click(thumb('disagree'), detail);
+    await flush();
+  }
 
   beforeEach(async () => {
     card = buildCard();
@@ -123,10 +134,7 @@ describe('the reason pop-up on the label card (#5475)', () => {
       expect(reasonPopover().anchor).toBe(anchor());
       expect(card.classList.contains('has-reason-popover')).toBe(true);
       expect(chips().map((c) => c.dataset.reasonId)).toEqual(['wrong-type', 'not-pedestrian-path', 'ample-space']);
-      // The comment row opens with the vote as well (#5015); its Reasons button is a disclosure for the pop-up.
-      expect(commentRow().classList.contains('is-open')).toBe(true);
-      expect(reopen().hidden).toBe(false);
-      expect(reopen().getAttribute('aria-expanded')).toBe('true');
+      expect(commentRow().classList.contains('is-open')).toBe(false);
     });
 
     test('a shortcut vote hangs it off the thumb, since the overlay button is only there under hover', async () => {
@@ -178,15 +186,12 @@ describe('the reason pop-up on the label card (#5475)', () => {
       expect(popoverShown()).toBe(false);
     });
 
-    test('a revisit marks the reason your comment already records', async () => {
-      await showLabel({ comments: [comment('Not on a pedestrian path', true, { reason: 'not-pedestrian-path' })] });
-      click(reopen());
-      await flush();
+    test('asking again marks the reason your comment already records', async () => {
+      await reask({ comments: [comment('Not on a pedestrian path', true, { reason: 'not-pedestrian-path' })] });
       expect(chips().map((c) => c.getAttribute('aria-pressed'))).toEqual(['false', 'true', 'false']);
       expect(other().getAttribute('aria-pressed')).toBe('false');
 
-      await showLabel({ comments: [comment('my own words', true)] });
-      click(reopen());
+      await reask({ comments: [comment('my own words', true)] });
       expect(chips().map((c) => c.getAttribute('aria-pressed'))).toEqual(['false', 'false', 'false']);
       expect(other().getAttribute('aria-pressed')).toBe('true');
     });
@@ -205,7 +210,7 @@ describe('the reason pop-up on the label card (#5475)', () => {
         label_id: 42, label_type: 'Obstacle', reason: 'not-pedestrian-path',
         comment: 'common:validation-reason.not-pedestrian-path.text', pano_id: 'pano-1',
       });
-      expect(logged()).toContain('Click_module=LabelDetail_action=DisagreeReason_option=not-pedestrian-path_labelId=42');
+      expect(logged()).toContain('Click_module=LabelDetail_action=DisagreeReason_Option=not-pedestrian-path_labelId=42');
       // Locked while the pick is written: the vote may not move under it.
       expect(thumb('agree').disabled).toBe(true);
       expect(chips()[0].getAttribute('aria-disabled')).toBe('true');
@@ -218,7 +223,6 @@ describe('the reason pop-up on the label card (#5475)', () => {
       expect(q('.label-detail__validator-comments').textContent)
         .toContain('common:validation-reason.not-pedestrian-path.text');
       expect(commentRow().classList.contains('is-open')).toBe(false);
-      expect(reopen().hidden).toBe(true);
 
       expect(popoverShown()).toBe(true);
       await new Promise((resolve) => { setTimeout(resolve, 40); });
@@ -226,12 +230,11 @@ describe('the reason pop-up on the label card (#5475)', () => {
     });
 
     test('a number key picks, logged as the keyboard, and the EditComment log is not for a pick', async () => {
-      await showLabel({ comments: [comment('my own words', true)] });
-      click(reopen(), 0);
+      await reask({ comments: [comment('my own words', true)] }, 0);
       press('Digit3');
       await flush();
       expect(posted('/labelmap/comment')[0].reason).toBe('ample-space');
-      expect(logged()).toContain('KeyboardShortcut_module=LabelDetail_action=DisagreeReason_option=ample-space_labelId=42');
+      expect(logged()).toContain('KeyboardShortcut_module=LabelDetail_action=DisagreeReason_Option=ample-space_labelId=42');
       expect(logged().some((e) => e.includes('EditComment'))).toBe(false);
     });
 
@@ -279,7 +282,7 @@ describe('the reason pop-up on the label card (#5475)', () => {
       await flush();
       click(other());
       expect(popoverShown()).toBe(true);
-      expect(logged()).toContain('Click_module=LabelDetail_action=DisagreeReasonOther_labelId=42');
+      expect(logged()).toContain('Click_module=LabelDetail_action=DisagreeReason_Other_labelId=42');
       const field = otherInput();
       expect(document.activeElement).toBe(field);
       expect(field.value).toBe('');
@@ -292,29 +295,30 @@ describe('the reason pop-up on the label card (#5475)', () => {
       expect(thumb('agree').disabled).toBe(true); // The vote holds while the words are written.
       await flush();
       expect(posted('/labelmap/comment').at(-1)).toMatchObject({ comment: 'blocked by a bin', reason: null });
-      expect(logged()).toContain('KeyboardShortcut_module=LabelDetail_action=DisagreeReasonOther_Save_labelId=42');
+      expect(logged()).toContain('KeyboardShortcut_module=LabelDetail_action=DisagreeReason_Other_Save_labelId=42');
       expect(q('.label-detail__validator-comments').textContent).toContain('blocked by a bin');
       expect(popoverEl().querySelector('.reason-popover__saved').textContent).not.toBe('');
       expect(thumb('agree').disabled).toBe(false);
     });
 
     test('"Other…" over a comment of yours opens holding typed words, and empty over a canned reason', async () => {
-      await showLabel({ comments: [comment('my own words', true)] });
-      click(reopen());
+      await reask({ comments: [comment('my own words', true)] });
       click(other());
       expect(otherInput().value).toBe('my own words');
 
-      await showLabel({ comments: [comment('Not on a path', true, { reason: 'not-pedestrian-path' })] });
-      click(reopen());
+      await reask({ comments: [comment('Not on a path', true, { reason: 'not-pedestrian-path' })] });
       click(other());
       expect(otherInput().value).toBe('');
     });
 
     test('a save from the pop-up leaves the card\'s own edit box and its words alone, and logs no EditComment', async () => {
-      await showLabel({ comments: [comment('my own words', true)] });
+      await showLabel({
+        user_validation: 'Unsure', num_disagree: 0, num_unsure: 1, comments: [comment('my own words', true)],
+      });
       q('.label-detail__comment-edit').click();
       q('.label-detail__comment-input').value = 'half an edit';
-      click(reopen());
+      click(thumb('disagree'));
+      await flush();
       click(other());
       otherInput().value = 'typed in the pop-up';
       otherInput().dispatchEvent(new Event('input', { bubbles: true }));
@@ -326,8 +330,7 @@ describe('the reason pop-up on the label card (#5475)', () => {
     });
 
     test('unsaved words outlast a click outside; Escape still closes', async () => {
-      await showLabel();
-      click(reopen());
+      await reask();
       click(other());
       otherInput().value = 'draft';
       otherInput().dispatchEvent(new Event('input', { bubbles: true }));
@@ -337,26 +340,79 @@ describe('the reason pop-up on the label card (#5475)', () => {
       expect(popoverShown()).toBe(false);
     });
 
-    test('the Reasons button brings the pop-up back, hung off itself, and a second press closes it', async () => {
-      await showLabel({ user_validation: 'Unsure' });
-      expect(reopen().hidden).toBe(false);
-      expect(reopen().getAttribute('aria-expanded')).toBe('false');
-      click(reopen(), 0);
-      expect(popoverShown()).toBe(true);
-      expect(reasonPopover().anchor).toBe(reopen());
-      expect(reopen().getAttribute('aria-expanded')).toBe('true');
-      expect(document.activeElement).toBe(chips()[0]);
-      expect(logged()).toContain('KeyboardShortcut_module=LabelDetail_action=ReasonMenu_Reopen_labelId=42');
-      click(reopen());
+    test('a dismissed pop-up comes back by pressing the vote twice: once to clear it, once to cast it', async () => {
+      await unvoted();
+      click(thumb('disagree'));
+      await flush();
+      document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
       expect(popoverShown()).toBe(false);
-      expect(reopen().getAttribute('aria-expanded')).toBe('false');
-      expect(logged()).toContain('Click_module=LabelDetail_action=ReasonMenu_Dismiss_labelId=42');
 
-      // No button for a vote with nothing to offer, or no vote.
-      await showLabel({ user_validation: 'Agree' });
-      expect(reopen().hidden).toBe(true);
-      await showLabel({ user_validation: 'Disagree', label_type: 'Other' });
-      expect(reopen().hidden).toBe(true);
+      click(thumb('disagree'));
+      await flush();
+      expect(posted('/labelmap/validate').at(-1).undone).toBe(true);
+      expect(popoverShown()).toBe(false);
+      click(thumb('disagree'));
+      await flush();
+      expect(popoverShown()).toBe(true);
+      expect(reasonPopover().anchor).toBe(thumb('disagree'));
+    });
+  });
+
+  describe('the comment box around the pop-up', () => {
+    const boxOpen = () => commentRow().classList.contains('is-open');
+    const escape = () => document.body.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
+    );
+
+    test('shut while the pop-up asks, then open with the vote\'s prompt once it is dismissed, as for an Agree', async () => {
+      await unvoted();
+      click(thumb('disagree'));
+      await flush();
+      expect(boxOpen()).toBe(false);
+      expect(q('.label-detail__comments-section').hidden).toBe(true);
+
+      escape();
+      expect(boxOpen()).toBe(true);
+      expect(q('.label-detail__comment-input').placeholder).toBe('labelmap:why-disagree');
+      expect(q('.label-detail__comments-section').hidden).toBe(false);
+    });
+
+    test('a box an Agree opened stays open under the pop-up, asking the new vote\'s question', async () => {
+      await unvoted();
+      click(thumb('agree'));
+      await flush();
+      expect(boxOpen()).toBe(true);
+
+      click(thumb('unsure'));
+      await flush();
+      expect(popoverShown()).toBe(true);
+      expect(boxOpen()).toBe(true);
+      expect(q('.label-detail__comment-input').placeholder).toBe('labelmap:why-unsure');
+    });
+
+    test('a saved reason leaves the box shut and the list showing it, once the pop-up has gone', async () => {
+      ReasonPopover.SAVED_HOLD_MS = 20;
+      await unvoted();
+      click(thumb('disagree'));
+      await flush();
+      click(chips()[0]);
+      await flush();
+      await new Promise((resolve) => { setTimeout(resolve, 40); });
+      expect(popoverShown()).toBe(false);
+      expect(boxOpen()).toBe(false);
+      expect(q('.label-detail__comments-section').hidden).toBe(false);
+    });
+
+    test('paging or a new vote closes the pop-up without opening the box', async () => {
+      await unvoted();
+      click(thumb('disagree'));
+      await flush();
+      click(thumb('unsure'));
+      expect(popoverShown()).toBe(false);
+      expect(boxOpen()).toBe(false); // Still in flight: nothing moves until the new vote asks.
+      await flush();
+      expect(popoverShown()).toBe(true);
+      expect(boxOpen()).toBe(false);
     });
   });
 
@@ -369,7 +425,8 @@ describe('the reason pop-up on the label card (#5475)', () => {
       expect(popoverShown()).toBe(false);
       expect(logged()).toContain('KeyboardShortcut_module=LabelDetail_action=ReasonMenu_Dismiss_labelId=42');
 
-      click(reopen());
+      click(thumb('unsure')); // Changing the vote asks again.
+      await flush();
       expect(popoverShown()).toBe(true);
       await unvoted({ label_id: 43 });
       expect(popoverShown()).toBe(false);
@@ -420,6 +477,32 @@ describe('the reason pop-up on the label card (#5475)', () => {
       expect(list).toContain('my own words');
       expect(LabelDetail.commentText({ comment: 'as written', reason: null })).toBe('as written');
       expect(LabelDetail.commentText('bare')).toBe('bare');
+    });
+  });
+
+  describe('the shared pop-up', () => {
+    test('a save landing after the pop-up moved to another card leaves that card\'s pop-up alone', async () => {
+      await unvoted();
+      click(thumb('disagree'));
+      await flush();
+      const save = deferred();
+      post.mockImplementationOnce(() => save.promise);
+      click(chips()[1]);
+
+      // The shared pop-up now asks about some other card's vote.
+      const otherHost = document.createElement('div');
+      const otherAnchor = document.createElement('button');
+      otherHost.appendChild(otherAnchor);
+      document.body.appendChild(otherHost);
+      reasonPopover().open({ anchor: otherAnchor, host: otherHost, labelType: 'Obstacle', vote: 'Unsure' });
+
+      save.resolve({ ok: true, status: 200, json: async () => ({ username: 'tester', comment_id: 1 }) });
+      await flush();
+
+      expect(reasonPopover().isOpenFor(otherHost)).toBe(true);
+      expect(popoverEl().classList.contains('reason-popover--saved')).toBe(false);
+      expect(popoverEl().querySelector('.reason-popover__saved').textContent).toBe('');
+      otherHost.remove();
     });
   });
 });

@@ -162,6 +162,11 @@ export class LabelDetail {
   #myCommentIdx;
   #commentStatusTimer = null;
   #editingComment = false;
+  // Words a refused pop-up save handed to the box, holding it open over a vote the pop-up would otherwise ask about.
+  #holdingWords = false;
+  // Set while a vote's reason pop-up is up: the comment box holds its state so the card never reflows under it.
+  #awaitingReason = false;
+  #quietClose = false;
   // Bumped by each comment save or delete, so a refresh fetched before one doesn't overwrite it.
   #commentWrites = 0;
   #escapeCancelledEdit = false;  // Set on an Escape keydown that ended an edit; read by the matching keyup.
@@ -455,7 +460,6 @@ export class LabelDetail {
     els.commentButton = this.#q('.label-detail__comment-submit');
     els.commentConfirm = this.#q('.label-detail__comment-confirmation');
     els.commentCancel = this.#q('.label-detail__comment-cancel');
-    els.reasonsReopen = this.#q('.label-detail__reasons-reopen');
     // Prev/next arrows, rendered only when the host asks for them (`withPaging`). The host owns their click
     // handlers; the card's arrow-key shortcuts go through the buttons, so whatever hides or disables one applies
     // to the keyboard as well.
@@ -570,11 +574,6 @@ export class LabelDetail {
         if (this.#tagEditor.isOpen) this.#finishTagEditing();
         else this.#startTagEditing();
       });
-    }
-    // The way back to the reasons once the pop-up has gone (#5475): it hangs off this button instead of a vote.
-    if (els.reasonsReopen) {
-      els.reasonsReopen.dataset.reasonAnchor = '';
-      els.reasonsReopen.addEventListener('click', (e) => this.#reopenReasons(e.detail === 0));
     }
     els.commentInput.addEventListener('input', () => {
       els.commentButton.classList.toggle('is-active', els.commentInput.value.trim().length > 0);
@@ -826,7 +825,7 @@ export class LabelDetail {
     this.#source = source;
     this.#resetVoteButtonStyles();
     // A reason pop-up still up belongs to the label being left; closed quietly, since nobody dismissed it.
-    if (reasonPopover().isOpenFor(this.#root)) reasonPopover().close();
+    this.#closeReasonPopoverQuietly();
     this.panoManager.clearLabels();
 
     if (typeof idOrMeta === 'object' && idOrMeta !== null) {
@@ -1127,7 +1126,9 @@ export class LabelDetail {
     const voted = Object.hasOwn(LabelDetail.#COMMENT_PROMPT_KEYS, action ?? '');
     // Editing opens the box even with no vote: clearing a vote deletes its comment, but comments predating that rule
     // still exist, and their author must be able to reach their own text.
-    const show = !this.#locked && (this.#editingComment || (voted && this.#myCommentIdx < 0));
+    const held = els.commentRow.classList.contains('is-open');
+    const show = !this.#locked && (this.#editingComment || this.#holdingWords
+      || (this.#awaitingReason ? held : voted && this.#myCommentIdx < 0));
     els.commentRow.classList.toggle('is-open', show);
     if (show) {
       // An edit with no vote behind it has no per-vote prompt to show, so it falls back to the neutral one.
@@ -1139,8 +1140,6 @@ export class LabelDetail {
     }
     els.commentButton.textContent = i18next.t(this.#editingComment ? 'labelmap:comment-save' : 'labelmap:comment');
     if (els.commentCancel) els.commentCancel.hidden = !this.#editingComment;
-    // The way back to the one-tap reasons (#5475), only while the row is up for a vote that has some.
-    if (els.reasonsReopen) els.reasonsReopen.hidden = !(show && voted && this.#reasonsOffered());
 
     // Show each half of the zone only when it has something to say: the labeler's description when one was
     // written, the validator comments when any exist or the comment box is open. An empty heading over nothing
@@ -1228,7 +1227,8 @@ export class LabelDetail {
   #submitValidation(action, source, undone = false, viaKeyboard = false) {
     const isNewValidation = !undone && !this.#prevAction;
     // Whatever the pop-up was asking about is about to change under it; it comes back on the new vote's success.
-    if (reasonPopover().isOpenFor(this.#root)) reasonPopover().close();
+    // Quietly, so the box stays as it is until the new vote lands.
+    this.#closeReasonPopoverQuietly();
     const validationTimestamp = new Date();
     // Whole pixels; the backend rejects a fraction.
     const canvasWidth = this.panoManager.svHolder.clientWidth;
@@ -1297,23 +1297,24 @@ export class LabelDetail {
       if (overlayButton?.matches(':hover')) overlayButton.classList.add('is-just-voted');
       // Every vote, however cast, pops the icon it gained and moves the counts it changed, as a Gallery card does.
       util.misc.animateVoteChange(this.#els.voteTallies, previousAction, newAction);
-      // Clearing a vote — and changing one (the `redone` flag) — deletes the user's comment server-side; drop it
-      // here too so the list and its vote chips (#5015) match what a reload would show.
-      const commentDropped = (undone || data.redone) && this.#dropOwnComment();
+      // Mirrors the server (#5475) so the list and its vote chips (#5015) match what a reload would show.
+      const commentDropped = undone ? this.#dropOwnComment() : data.redone && this.#carryOwnComment(action);
+      this.#awaitingReason = !undone && !this.#locked && this.#reasonsOffered();
       this.#updateCommentRow();
       if (commentDropped) this.#flashCommentStatus('labelmap:comment-cleared', 'removed');
       this.#setVoteButtonsDisabled(false);
       // Now that the vote is on record, ask why (#5475). After the POST rather than before it: a changed vote
-      // deletes the user's comment server-side, so a pick racing the vote could be deleted by it.
+      // archives a canned reason it doesn't offer, so a pick racing the vote could be archived by it.
       const anchor = this.#voteAnchor ?? this.#els.voteButtons[action];
       this.#voteAnchor = null;
-      if (!undone) this.#openReasonPopover(anchor, viaKeyboard);
+      if (this.#awaitingReason && !this.#openReasonPopover(anchor, viaKeyboard)) this.#releaseReasonHold();
       if (isNewValidation) BadgeAchievements.recordValidation(this.panoManager.svHolder);
       if (typeof this.#onVote === 'function') this.#onVote(newAction, this.#currentLabelMeta);
     }).catch((err) => {
       console.error(err);
       this.#voteAnchor = null;
       this.#setVoteButtonsDisabled(false);
+      this.#releaseReasonHold();
     });
   }
 
@@ -1365,33 +1366,33 @@ export class LabelDetail {
       viaKeyboard,
       onPick: (id, kb) => this.#pickReason(id, kb),
       onOther: (kb) => {
-        if (this.#prevAction) this.#logAction(`${this.#prevAction}ReasonOther`, kb);
+        if (this.#prevAction) this.#logAction(`${this.#prevAction}Reason_Other`, kb);
       },
       onSubmitOther: (text, kb) => this.#submitOtherReason(text, kb),
       onDismiss: (via, kb) => this.#logAction('ReasonMenu_Dismiss', kb),
-      onClose: () => this.#els.reasonsReopen?.setAttribute('aria-expanded', 'false'),
+      onClose: () => {
+        if (!this.#quietClose) this.#releaseReasonHold();
+      },
     });
-    if (opened) {
-      this.#els.reasonsReopen?.setAttribute('aria-expanded', 'true');
-      this.#syncControlLocks();
-    }
+    if (opened) this.#syncControlLocks();
     return opened;
   }
 
-  /**
-   * The comment row's Reasons button, a disclosure: brings the pop-up back, hung off that button, for a reader who
-   * dismissed it or wants to change a pick, and closes it again on the next press.
-   * @param {boolean} viaKeyboard
-   */
-  #reopenReasons(viaKeyboard) {
-    if (this.#interactionBlocked) return;
-    if (reasonPopover().isOpenFor(this.#root)) {
+  /** Closes this card's pop-up without letting the comment box react, for a close the card itself is causing. */
+  #closeReasonPopoverQuietly() {
+    if (!reasonPopover().isOpenFor(this.#root)) return;
+    this.#quietClose = true;
+    try {
       reasonPopover().close();
-      this.#logAction('ReasonMenu_Dismiss', viaKeyboard);
-      return;
+    } finally {
+      this.#quietClose = false;
     }
-    this.#logAction('ReasonMenu_Reopen', viaKeyboard);
-    this.#openReasonPopover(this.#els.reasonsReopen, viaKeyboard);
+  }
+
+  /** Lets the comment box follow the vote again once the pop-up is gone, opening it if no reason was given. */
+  #releaseReasonHold() {
+    this.#awaitingReason = false;
+    this.#updateCommentRow();
   }
 
   /**
@@ -1405,7 +1406,7 @@ export class LabelDetail {
     const vote = this.#prevAction;
     const text = validationReasons.text(id);
     if (!vote || !text || this.#interactionBlocked) return;
-    this.#logAction(`${vote}Reason_option=${id}`, viaKeyboard);
+    this.#logAction(`${vote}Reason_Option=${id}`, viaKeyboard);
     this.#saveReasonComment(text, id);
   }
 
@@ -1417,7 +1418,7 @@ export class LabelDetail {
   #submitOtherReason(text, viaKeyboard) {
     const vote = this.#prevAction;
     if (!vote || this.#interactionBlocked) return;
-    this.#logAction(`${vote}ReasonOther_Save`, viaKeyboard);
+    this.#logAction(`${vote}Reason_Other_Save`, viaKeyboard);
     this.#saveReasonComment(text, null);
   }
 
@@ -1435,6 +1436,8 @@ export class LabelDetail {
       if (this.#currentLabelMeta !== meta) return;
       this.#pickPending = false;
       this.#syncControlLocks();
+      // The pop-up is shared: by now it may be open for another card, whose chips this reply says nothing about.
+      if (!reasonPopover().isOpenFor(this.#root)) return;
       if (saved) reasonPopover().markSaved(id ?? ReasonChips.OTHER);
       else reasonPopover().markFailed();
     });
@@ -1447,8 +1450,12 @@ export class LabelDetail {
    * @param {string} text
    */
   #keepTypedWords(text) {
-    if (this.#myCommentIdx >= 0) this.#startCommentEdit(false);
-    else this.#updateCommentRow();
+    if (this.#myCommentIdx >= 0) {
+      this.#startCommentEdit(false);
+    } else {
+      this.#holdingWords = true;
+      this.#updateCommentRow();
+    }
     const input = this.#els.commentInput;
     input.value = text;
     this.#els.commentButton.classList.toggle('is-active', text.trim().length > 0);
@@ -1467,8 +1474,26 @@ export class LabelDetail {
   }
 
   /**
+   * Follows the current user's comment across a vote change, as the server does (#5475).
+   *
+   * @param {string} vote - The vote it changed to.
+   * @returns {boolean} Whether the comment was dropped.
+   */
+  #carryOwnComment(vote) {
+    const own = this.#comments?.find((c) => this.#isOwnComment(c));
+    if (!own) return false;
+    if (!validationReasons.survivesVoteChange(this.#currentLabelMeta?.label_type, own.reason, vote)) {
+      return this.#dropOwnComment();
+    }
+    own.validation = vote;
+    this.#renderComments();
+    if (this.#currentLabelMeta) this.#commentsChanged(this.#currentLabelMeta);
+    return false;
+  }
+
+  /**
    * Removes the current user's validator comments from the rendered list, mirroring the server-side delete that
-   * rides along with clearing or changing a vote. No-op when they hadn't commented.
+   * rides along with clearing a vote, or changing it away from a canned reason. No-op when they hadn't commented.
    *
    * Filters by identity rather than trusting the stored #myCommentIdx, since that index is only valid for the list as
    * it stood when it was computed and this runs a network round-trip later. Filtering also matches the breadth of
@@ -1571,8 +1596,8 @@ export class LabelDetail {
       this.#logAction('DeleteComment');
       // The Delete button had focus and the re-render above just destroyed it, so focus would otherwise fall back to
       // the document. The reopened box is both the accessible landing spot and the useful one — it is where a
-      // replacement comment gets typed. A comment with no vote behind it leaves the box shut, so fall back to the
-      // section heading rather than stranding focus.
+      // replacement comment gets typed. A comment with no vote behind it, or a box held shut under the reason pop-up,
+      // leaves it shut, so fall back to the section heading rather than stranding focus.
       const els = this.#els;
       if (els.commentRow?.classList.contains('is-open')) els.commentInput.focus();
       else this.#q('.label-detail__comments-title')?.focus();
@@ -1646,7 +1671,6 @@ export class LabelDetail {
     for (const btn of Object.values(this.#els.voteButtons)) {
       btn.disabled = off;
     }
-    if (this.#els.reasonsReopen) this.#els.reasonsReopen.disabled = off;
     if (reasonPopover().isOpenFor(this.#root)) reasonPopover().setBusy(off);
   }
 
@@ -2597,6 +2621,8 @@ export class LabelDetail {
     this.#comments = comments || [];
     this.#myCommentIdx = this.#comments.findIndex((c) => this.#isOwnComment(c));
     this.#editingComment = false;
+    this.#holdingWords = false;
+    this.#awaitingReason = false;
     this.#votePending = false;
     this.#pickPending = false;
     this.#voteAnchor = null;
@@ -2887,7 +2913,10 @@ export class LabelDetail {
       }
       // The box closes now that a comment of theirs exists; Edit on the entry below is the way back into it. An edit
       // left open beside a pop-up save stays open, holding its own words.
-      if (!fromPopover) this.#editingComment = false;
+      if (!fromPopover) {
+        this.#editingComment = false;
+        this.#holdingWords = false;
+      }
       this.#updateCommentRow();
       this.#renderComments();
       if (this.#currentLabelMeta === commentedLabelMeta) this.#commentsChanged(commentedLabelMeta);

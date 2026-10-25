@@ -801,13 +801,18 @@ off whichever control cast the vote once the server has it, offers the reasons a
 turns into a text field and Save in place, for a typed reason), and leaves on a pick or a save, Escape, its close
 control, a click outside (unless "Other…" holds unsaved words), or the next vote, never on mouse-leave. It shows in
 the top layer but sits inside the host's `<dialog>` when there is one, since a modal (the LabelMap card) leaves
-everything outside it inert. The card's comment row keeps a "Reasons" button as the way back. A pick is stored as the validator's comment on the label with the id in
+everything outside it inert. There is no separate way back: the next Disagree or Unsure asks again (clicking the
+standing vote clears it, so a second click recasts it). The card's comment box holds still while the pop-up is up,
+then behaves as it does for an Agree: shut over a saved reason, open with the vote's prompt after a dismissal. A pick is stored as the validator's comment on the label with the id in
 `validation_task_comment.reason` beside the text; the label card's comment feed carries that id back so a revisit
 marks the chosen chip and a canned reason renders in the reader's language rather than the writer's. Ids are
 semantic (`driveway`, `not-pedestrian-path`), so a reason offered on two types is one reason, and the enum is what
 the backend checks a submitted id against: a reason the user's standing vote on that label doesn't take is refused
 on the label-card endpoint (checked on a locked vote row, so a vote change in flight can't slip a reason under the
-new vote), and dropped, with the vote and text kept, on the Validate batch.
+new vote), and dropped, with the vote and text kept, on the Validate batch. Changing a vote from a card keeps the
+validator's typed words, which describe the label rather than the vote, under the new vote, and archives a canned
+reason the new vote doesn't offer; clearing a vote, or Validate's redo (an undo and a fresh vote), still takes the
+comment with it.
 
 ## Where to go next
 

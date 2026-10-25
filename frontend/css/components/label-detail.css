@@ -892,52 +892,6 @@ button.label-detail__meta-cell:focus-visible {
 /* While the input is up, it replaces the list's "None" placeholder rather than stacking with it. */
 .label-detail__comment-row.is-open ~ .label-detail__validator-comments.label-detail__empty { display: none; }
 
-/* The way back to the reason pop-up (#5475): a quiet dashed pill at the row's left, drawn like the pop-up's own
-   "Other…" chip so the two read as one vocabulary. Hidden by the attribute until there are reasons to offer. It
-   stays while the pop-up is open, as a disclosure the pop-up can hang off: an anchor that disappears has no place
-   to point at. */
-.label-detail__reasons-reopen {
-  box-sizing: border-box;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  flex-shrink: 0;
-  height: 34px;
-  padding: 0 12px;
-  border: none;
-  border-radius: 999px;
-  outline: 1px dashed var(--color-neutral-700);
-  outline-offset: -1px;
-  background: var(--color-neutral-white);
-  font: var(--text-caption-medium);
-  color: var(--color-neutral-800);
-  white-space: nowrap;
-  cursor: pointer;
-}
-
-.label-detail__reasons-reopen:hover {
-  background: var(--color-neutral-200);
-  color: var(--color-neutral-black);
-}
-
-.label-detail__reasons-reopen:focus-visible {
-  outline: 2px solid var(--color-link-100);
-  outline-offset: -2px;
-}
-
-.label-detail__reasons-reopen:disabled {
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-.label-detail__reasons-reopen[hidden] {
-  display: none;
-}
-
-.label-detail__reasons-reopen[aria-expanded="true"] {
-  background: var(--color-neutral-200);
-}
-
 /* Explicit border-box + flex centering keep the input and button the same height with the text dead-center —
    fixed heights plus vertical padding drift apart under the two elements' different default box models. */
 .label-detail__comment-input {
