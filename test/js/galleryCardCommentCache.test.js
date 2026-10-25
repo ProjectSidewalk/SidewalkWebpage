@@ -93,4 +93,10 @@ describe('the own-comment cache on a Gallery card (#5475)', () => {
     card.updateUserValidation('Unsure');
     expect(card.getProperty('comments')).toEqual([theirs, { ...orphan, validation: 'Unsure' }]);
   });
+
+  test('a first vote drops an orphaned canned reason it doesn\'t offer, as the server archives it', () => {
+    const card = makeCard(null);
+    card.updateUserValidation('Unsure');
+    expect(card.getProperty('comments')).toEqual([theirs]);
+  });
 });

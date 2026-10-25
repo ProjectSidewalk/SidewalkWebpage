@@ -363,6 +363,42 @@ describe('keys', () => {
     expect(document.activeElement).toBe(inside().at(-1));
   });
 
+  test('Tab out lands past a vote that is disabled while its pick saves, and reaches a <summary>', () => {
+    const tab = (target) => target.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true }));
+    const last = () => [...el().querySelectorAll('button, input')].filter((n) => n.tabIndex >= 0 && !n.closest('[hidden]')).at(-1);
+    const details = document.createElement('details');
+    details.innerHTML = '<summary id="stories">Stories</summary>';
+    anchor.after(details);
+    // Something tabbable ahead of the vote, where a position taken from the disabled vote's index would land.
+    host.before(document.createElement('button'));
+    open({ viaKeyboard: true });
+    anchor.disabled = true;
+    last().focus();
+    tab(last());
+    expect(popover.isOpen()).toBe(false);
+    expect(document.activeElement).toBe(document.getElementById('stories'));
+  });
+
+  test('with words held and nothing after the vote, Tab out is left to the browser', () => {
+    document.getElementById('other-vote').remove();
+    document.getElementById('field').remove();
+    document.getElementById('elsewhere').remove();
+    const tab = (target) => {
+      const event = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true });
+      target.dispatchEvent(event);
+      return event;
+    };
+    open({ viaKeyboard: true });
+    other().click();
+    const field = el().querySelector('.reason-chips__other-form input');
+    field.value = 'half typed';
+    field.dispatchEvent(new Event('input', { bubbles: true }));
+    const last = [...el().querySelectorAll('button, input')].filter((n) => n.tabIndex >= 0 && !n.closest('[hidden]')).at(-1);
+    last.focus();
+    expect(tab(last).defaultPrevented).toBe(false);
+    expect(popover.isOpen()).toBe(true);
+  });
+
   test('Tab past its last control closes it, as a click elsewhere does, unless "Other…" holds words', () => {
     const tab = (target) => target.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true }));
     const last = () => [...el().querySelectorAll('button, input')].filter((n) => n.tabIndex >= 0 && !n.closest('[hidden]')).at(-1);

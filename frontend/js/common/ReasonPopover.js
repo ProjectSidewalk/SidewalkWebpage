@@ -395,13 +395,16 @@ export class ReasonPopover {
     const inside = ReasonPopover.#tabbables(this.#el);
     if (inside.length === 0) return false;
     const page = ReasonPopover.#tabbables(this.#el.parentElement ?? document.body).filter((n) => !this.#el.contains(n));
-    const after = page.slice(page.indexOf(anchor) + 1);
+    // By document position rather than index: the anchor is disabled while a pick is saving, so it isn't in `page`.
+    const after = page.filter((n) => anchor.compareDocumentPosition(n) & Node.DOCUMENT_POSITION_FOLLOWING);
+    const before = page.filter((n) => anchor.compareDocumentPosition(n) & Node.DOCUMENT_POSITION_PRECEDING);
     if (!back && target === anchor) return ReasonPopover.#focusFirst(inside);
-    if (back && target === inside[0]) return ReasonPopover.#focusFirst([anchor]);
+    if (back && target === inside[0]) return ReasonPopover.#focusFirst([anchor, ...before.reverse()]);
     if (!back && target === inside.at(-1)) {
-      // Left behind, the pop-up would float over the control focus moves to (WCAG 2.4.11), so leaving it closes it
-      // the way a click elsewhere does, words in "Other…" excepted.
-      if (!this.#chips.hasOtherDraft) this.#dismiss('tab', true);
+      // Words in "Other…" keep it open, as they do against a click elsewhere; with nowhere to go, Tab stays native.
+      if (this.#chips.hasOtherDraft) return ReasonPopover.#focusFirst(after);
+      // Left behind, the pop-up would float over the control focus moves to (WCAG 2.4.11), so leaving closes it.
+      this.#dismiss('tab', true);
       ReasonPopover.#focusFirst(after);
       return true;
     }
@@ -415,7 +418,9 @@ export class ReasonPopover {
    *     #focusFirst, which jsdom's lack of layout leaves no cheaper way to tell.
    */
   static #tabbables(scope) {
-    return [...scope.querySelectorAll('button, [href], input, select, textarea, [tabindex]')]
+    const selector = 'button, [href], input, select, textarea, summary, iframe, audio[controls], video[controls], '
+      + '[contenteditable]:not([contenteditable="false"]), [tabindex]';
+    return [...scope.querySelectorAll(selector)]
       .filter((n) => n instanceof HTMLElement && n.tabIndex >= 0 && !n.matches(':disabled')
         && !n.closest('[hidden], [inert]'));
   }

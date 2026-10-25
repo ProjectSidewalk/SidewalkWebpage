@@ -575,25 +575,20 @@ export class Card {
         properties.val_counts[properties.user_validation] = Math.max(
           0, properties.val_counts[properties.user_validation] - 1,
         );
-        // Follows the server (#5475), or the pop-up and expanded view would show a comment it no longer holds. In
-        // place: the expanded view's card shares this very array.
-        if (dropOwnComment && Array.isArray(properties.comments)) {
-          for (let i = properties.comments.length - 1; i >= 0; i -= 1) {
-            const c = properties.comments[i];
-            if (!c || typeof c !== 'object' || !c.mine) continue;
-            if (newUserValidation && validationReasons.survivesVoteChange(properties.label_type, c.reason,
-              newUserValidation)) {
-              c.validation = newUserValidation;
-            } else {
-              properties.comments.splice(i, 1);
-            }
+      }
+      // Follows the server (#5475), or the pop-up and expanded view would show a comment it no longer holds. A first
+      // vote counts too: a comment that predates clear-deletes-comment (#4653) can outlive its vote, and the server
+      // treats that vote as a change. In place: the expanded view's card shares this very array.
+      if (dropOwnComment && Array.isArray(properties.comments)) {
+        for (let i = properties.comments.length - 1; i >= 0; i -= 1) {
+          const c = properties.comments[i];
+          if (!c || typeof c !== 'object' || !c.mine) continue;
+          if (newUserValidation && validationReasons.survivesVoteChange(properties.label_type, c.reason,
+            newUserValidation)) {
+            c.validation = newUserValidation;
+          } else {
+            properties.comments.splice(i, 1);
           }
-        }
-      } else if (Array.isArray(properties.comments)) {
-        // A comment that predates clear-deletes-comment (#4653) can outlive its vote; the server's feed now pairs it
-        // with this first vote, so its chip should too.
-        for (const c of properties.comments) {
-          if (c && typeof c === 'object' && c.mine) c.validation = newUserValidation;
         }
       }
       if (newUserValidation) properties.val_counts[newUserValidation] += 1;

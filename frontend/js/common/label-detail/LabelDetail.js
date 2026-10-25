@@ -164,6 +164,8 @@ export class LabelDetail {
   #editingComment = false;
   // Words a refused pop-up save handed to the box, holding it open over a vote the pop-up would otherwise ask about.
   #holdingWords = false;
+  // Set when held words reached the box while the pano was loading and it was disabled; focus follows once it isn't.
+  #focusCommentOnLoad = false;
   // Set while a vote's reason pop-up is up: the comment box holds its state so the card never reflows under it.
   #awaitingReason = false;
   #quietClose = false;
@@ -936,6 +938,11 @@ export class LabelDetail {
         this.#noImagery = !imageShown;
         this.#panoLoading = false;
         this.#applyInteractionLock();
+        if (this.#focusCommentOnLoad) {
+          this.#focusCommentOnLoad = false;
+          const input = this.#els.commentInput;
+          if (!input.disabled && this.#els.commentRow.classList.contains('is-open')) input.focus();
+        }
 
         // The live imagery's metadata may carry an address the label payload didn't. Only read it when the shown
         // pano is actually this label's on the primary viewer — on the static-crop fallback, currPanoData still
@@ -1460,7 +1467,8 @@ export class LabelDetail {
     const input = this.#els.commentInput;
     input.value = text;
     this.#els.commentButton.classList.toggle('is-active', text.trim().length > 0);
-    if (!input.closest('[hidden]')) input.focus();
+    if (input.disabled) this.#focusCommentOnLoad = true;
+    else if (!input.closest('[hidden]')) input.focus();
   }
 
   /**
@@ -2626,6 +2634,7 @@ export class LabelDetail {
     this.#myCommentIdx = this.#comments.findIndex((c) => this.#isOwnComment(c));
     this.#editingComment = false;
     this.#holdingWords = false;
+    this.#focusCommentOnLoad = false;
     this.#awaitingReason = false;
     this.#votePending = false;
     this.#pickPending = false;

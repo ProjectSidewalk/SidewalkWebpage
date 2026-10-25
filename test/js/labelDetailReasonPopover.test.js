@@ -354,6 +354,8 @@ describe('the reason pop-up on the label card (#5475)', () => {
       expect(q('.label-detail__comment-row').classList.contains('is-open')).toBe(true);
       expect(q('.label-detail__comment-input').disabled).toBe(false);
       expect(q('.label-detail__comment-input').value).toBe('typed in the pop-up');
+      // The box was disabled when the words arrived, so focus follows them once it isn't.
+      expect(document.activeElement).toBe(q('.label-detail__comment-input'));
       expect(logged().some((e) => e.includes('_action=EditCommentOpen_'))).toBe(false);
 
       // The Edit button is what the event stands for.
