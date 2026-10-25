@@ -217,6 +217,7 @@ export class AcrossCitiesPage {
     this.#setText('hero-countries', this.#num(s.num_countries));
     this.#setText('hero-languages', this.#num(s.num_languages));
     this.#setText('hero-users', typeof s.total_users === 'number' ? this.#num(s.total_users) : '—');
+    this.#setText('hero-multi-city', typeof s.multi_city_users === 'number' ? this.#num(s.multi_city_users) : '—');
     this.#setText('hero-walked', util.longDistanceToString(s.total_walked_km));
     this.#setText('hero-mapped', util.longDistanceToString(s.total_mapped_km));
     this.#setText('hero-current', util.longDistanceToString(s.total_current_km));

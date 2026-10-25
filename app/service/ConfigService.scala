@@ -571,6 +571,14 @@ case class CityScorecard(
 case class CityScorecardWithFlags(scorecard: CityScorecard, anomalies: Seq[String])
 
 /**
+ * People who contributed across the cities the Across Cities page shows, staging and AI accounts excluded (#5828).
+ *
+ * @param distinct  Each person counted once, wherever they contributed.
+ * @param multiCity Those who contributed in two or more cities.
+ */
+case class CrossCityContributorCounts(distinct: Int, multiCity: Int)
+
+/**
  * One city's lived-experience story counts, for the Across Cities Stories section (#5543).
  *
  * Counts every story, whoever wrote it: this feeds moderation, which has to see what excluded users post too. Story
@@ -1236,16 +1244,17 @@ trait ConfigService {
   def getCrossCityStoryStats(): Future[Map[String, Option[CityStoryStats]]]
 
   /**
-   * Returns how many people contributed in any of the cities the Across Cities page shows, each counted once (#5828).
+   * Returns how many people contributed in any of the cities the Across Cities page shows, each counted once, and how
+   * many of them contributed in two or more (#5828).
    *
    * Same population as each scorecard's `activeContributors` (staging and AI accounts excluded), deduped by the global
    * `user_id`, and cached on the page's own [[ConfigService.CrossCityFreshFor]] clock. A refresh where any city's read
    * fails keeps the last good count, since a union missing a city would silently undercount; None only when no good
    * count is cached.
    *
-   * @return A Future of the distinct contributor count, or None if it couldn't be read for every city.
+   * @return A Future of the contributor counts, or None if they couldn't be read for every city.
    */
-  def getCrossCityDistinctContributors(): Future[Option[Int]]
+  def getCrossCityContributorCounts(): Future[Option[CrossCityContributorCounts]]
 
   /**
    * Returns the current city's labeling pace as minutes of active auditing per 100 m covered.
@@ -1905,10 +1914,10 @@ class ConfigServiceImpl @Inject() (
     }
   }
 
-  def getCrossCityDistinctContributors(): Future[Option[Int]] = {
+  def getCrossCityContributorCounts(): Future[Option[CrossCityContributorCounts]] = {
     swrCache
-      .staleWhileRevalidate[Int](
-        "getCrossCityDistinctContributors",
+      .staleWhileRevalidate[CrossCityContributorCounts](
+        "getCrossCityContributorCounts",
         ConfigService.CrossCityFreshFor,
         ConfigService.CrossCityMaxAge
       ) {
@@ -1922,14 +1931,17 @@ class ConfigServiceImpl @Inject() (
             )
             idsF
           }
+          // Each city's ids are already distinct (the query UNIONs), so an id's occurrence count is its city count.
           Future.sequence(perCityFutures).zip(db.run(configTable.getAiUserIds)).map { case (perCity, aiIds) =>
-            (perCity.iterator.flatten.toSet -- aiIds).size
+            val aiIdSet   = aiIds.toSet
+            val cityCount = perCity.flatten.filterNot(aiIdSet).groupMapReduce(identity)(_ => 1)(_ + _)
+            CrossCityContributorCounts(cityCount.size, cityCount.count { case (_, n) => n >= 2 })
           }
         }
       }
       .map(Option(_))
       .recover { case e: Exception =>
-        logger.warn(s"Distinct contributor count unavailable: ${e.getMessage}")
+        logger.warn(s"Cross-city contributor counts unavailable: ${e.getMessage}")
         None
       }
   }

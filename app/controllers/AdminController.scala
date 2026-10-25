@@ -695,7 +695,7 @@ class AdminController @Inject() (
     val labelingSpeedF = configService.getCrossCityLabelingSpeed()
     val storyStatsF    = configService.getCrossCityStoryStats()
     // People active in several cities count once here, unlike a sum of each city's contributors.
-    val distinctContributorsF = configService.getCrossCityDistinctContributors()
+    val contributorCountsF = configService.getCrossCityContributorCounts()
 
     for {
       withFlags     <- scorecardsF
@@ -705,7 +705,7 @@ class AdminController @Inject() (
       windowSummary <- windowSummaryF
       labelingSpeed <- labelingSpeedF
       storyStats    <- storyStatsF
-      contributors  <- distinctContributorsF
+      contributors  <- contributorCountsF
     } yield {
       val now        = OffsetDateTime.now()
       val scorecards = withFlags.map(_.scorecard)
@@ -961,17 +961,17 @@ class AdminController @Inject() (
     })
 
   /**
-   * The page's headline totals, summed from the cities shown so they match the table, except `total_users`, which
-   * counts each person once across those cities. The anomaly thresholds ride along so the page can flag the "needs
-   * attention" items.
+   * The page's headline totals, summed from the cities shown so they match the table, except `total_users` and
+   * `multi_city_users`, which count each person once across those cities. The anomaly thresholds ride along so the
+   * page can flag the "needs attention" items.
    *
-   * @param distinctContributors People who contributed in any city, each counted once; None if it couldn't be read.
-   * @return                     The summary block.
+   * @param contributorCounts People who contributed across the cities; None if they couldn't be read.
+   * @return                  The summary block.
    */
   private def crossCitySummaryJson(
       scorecards: Seq[CityScorecard],
       cityInfoById: Map[String, CityInfo],
-      distinctContributors: Option[Int]
+      contributorCounts: Option[CrossCityContributorCounts]
   ): JsObject = {
     val numCountries     = scorecards.flatMap(sc => cityInfoById.get(sc.cityId).map(_.countryId)).distinct.size
     val numLanguages     = config.get[Seq[String]]("play.i18n.langs").size
@@ -984,7 +984,8 @@ class AdminController @Inject() (
       "num_cities"                     -> scorecards.length,
       "num_countries"                  -> numCountries,
       "num_languages"                  -> numLanguages,
-      "total_users"                    -> distinctContributors,
+      "total_users"                    -> contributorCounts.map(_.distinct),
+      "multi_city_users"               -> contributorCounts.map(_.multiCity),
       "total_walked_km"                -> scorecards.map(_.walkedKm).sum,
       "total_mapped_km"                -> scorecards.map(_.mappedKm).sum,
       "total_current_km"               -> scorecards.map(_.auditedKm).sum,
