@@ -179,7 +179,6 @@
   },
   "edit-type-changed": "Geändert zu {{labelType}}",
   "edit-undo": "Rückgängig",
-  "edit-conflict-short": "Etikettentyp anderswo geändert",
   "edit-conflict": "Der Typ dieses Etiketts wurde anderswo geändert, daher zeigt die Karte jetzt seinen aktuellen Stand.",
   "delete-label": "Beschriftung löschen",
   "delete-label-confirm": "Möchten Sie diese Beschriftung wirklich löschen?",

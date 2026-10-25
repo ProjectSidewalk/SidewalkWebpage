@@ -2317,9 +2317,10 @@ export class LabelDetail {
   #showTypeConflictToast() {
     this.#showEditStatus('');
     Toast.show({
-      title: i18next.t('labelmap:edit-conflict-short'),
       message: i18next.t('labelmap:edit-conflict'),
       reference: this.#root,
+      dark: true,    // It floats over the card's street imagery, where a white card glares.
+      compact: true, // An aside on a redraw the reader can already see, not an announcement.
     });
   }
 

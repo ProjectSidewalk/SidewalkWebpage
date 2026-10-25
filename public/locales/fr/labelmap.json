@@ -179,7 +179,6 @@
   },
   "edit-type-changed": "Changé en {{labelType}}",
   "edit-undo": "Annuler",
-  "edit-conflict-short": "Type d'étiquette modifié ailleurs",
   "edit-conflict": "Le type de cette étiquette a été modifié ailleurs, la carte affiche donc son état actuel.",
   "delete-label": "Supprimer l'étiquette",
   "delete-label-confirm": "Voulez-vous vraiment supprimer cette étiquette ?",

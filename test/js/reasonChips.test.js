@@ -138,20 +138,19 @@ describe('ReasonChips', () => {
     expect(root.hidden).toBe(true);
   });
 
-  test('is a named group of toggles with a roving tabindex that arrow keys move without picking', () => {
+  test('is a named group of toggles, each a Tab stop, that arrow keys also move between without picking', () => {
     chips.render({ labelType: 'Obstacle', vote: 'Disagree' });
     const group = root.querySelector('[role="group"]');
     expect(group.getAttribute('aria-labelledby')).toBe(root.querySelector('.reason-chips__prompt').id);
     // "Other…" opens a field rather than picking, so it stands beside the group, not among its toggles.
     expect(group.contains(other())).toBe(false);
     expect(root.querySelector('.reason-chips__list').contains(other())).toBe(true);
-    expect(chipEls().map((c) => c.tabIndex)).toEqual([0, -1, -1]);
+    expect(chipEls().map((c) => c.tabIndex)).toEqual([0, 0, 0]);
     expect(chipEls().map((c) => c.getAttribute('aria-pressed'))).toEqual(['false', 'false', 'false']);
 
     chipEls()[0].focus();
     chipEls()[0].dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
     expect(document.activeElement).toBe(chipEls()[1]);
-    expect(chipEls().map((c) => c.tabIndex)).toEqual([-1, 0, -1]);
     chipEls()[1].dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }));
     chipEls()[0].dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true }));
     expect(document.activeElement).toBe(chipEls()[2]); // Wraps.
@@ -170,7 +169,6 @@ describe('ReasonChips', () => {
     chips.setSelected('ample-space');
     expect(chipEls()[2].getAttribute('aria-pressed')).toBe('true');
     expect(chipEls()[2].classList.contains('reason-chips__chip--selected')).toBe(true);
-    expect(chipEls().map((c) => c.tabIndex)).toEqual([-1, -1, 0]);
     onPick.mockClear();
     chipEls()[2].dispatchEvent(new MouseEvent('click', { bubbles: true }));
     expect(onPick).not.toHaveBeenCalled();

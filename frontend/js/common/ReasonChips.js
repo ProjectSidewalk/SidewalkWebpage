@@ -8,9 +8,10 @@
  * pick, since how the pick is posted differs per surface.
  *
  * Accessible shape: a `group` named by the prompt, one toggle button per reason (`aria-pressed` marks the one on
- * record) with a roving tabindex and arrow keys between them, and the "Other…" button (or its field) beside the
- * group. Toggle buttons rather than radios: a pick posts at once, so an arrow that *selected* as it moved would file
- * a reason per keypress on the way past. Nothing is required — the vote is already saved when the row appears — so a
+ * record), each its own Tab stop with arrow keys between them too, and the "Other…" button (or its field) beside
+ * the group. Not a roving tabindex: with three to five chips, readers expect Tab to walk each one (Jon, #5475).
+ * Toggle buttons rather than radios: a pick posts at once, so an arrow that *selected* as it moved would file a
+ * reason per keypress on the way past. Nothing is required — the vote is already saved when the row appears — so a
  * reader who does not care can move on. Number keys are the host's to route (it knows when it owns the keyboard);
  * `pickByNumber` does the picking, and on a host that routes them each chip wears its digit as a keycap, so the
  * mapping can be read off the row rather than counted along it.
@@ -206,7 +207,7 @@ export class ReasonChips {
 
   /** Moves focus to the picked chip, else the first, for a host opening the row from the keyboard. */
   focus() {
-    this.#chips.find((c) => c.tabIndex === 0)?.focus();
+    (this.#chips.find((c) => c.dataset.reasonId === this.#selected) ?? this.#chips[0])?.focus();
   }
 
   /**
@@ -321,14 +322,12 @@ export class ReasonChips {
     return button;
   }
 
-  /** Reflects the selection into aria-pressed and the roving tabindex. */
+  /** Reflects the selection into aria-pressed. */
   #syncState() {
-    const focusable = this.#chips.find((c) => c.dataset.reasonId === this.#selected) ?? this.#chips[0];
     for (const chip of this.#chips) {
       const checked = chip.dataset.reasonId === this.#selected;
       chip.setAttribute('aria-pressed', String(checked));
       chip.classList.toggle('reason-chips__chip--selected', checked);
-      chip.tabIndex = chip === focusable ? 0 : -1;
     }
     const typed = this.#selected === ReasonChips.OTHER;
     if (this.#otherButton) {
@@ -376,8 +375,6 @@ export class ReasonChips {
     if (next === null) return;
     e.preventDefault();
     e.stopPropagation();
-    for (const chip of this.#chips) chip.tabIndex = -1;
-    this.#chips[next].tabIndex = 0;
     this.#chips[next].focus();
   };
 }
